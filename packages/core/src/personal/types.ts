@@ -18,8 +18,18 @@ export type { PersonalRecordKind };
 
 /** An expense leaves the wallet; income comes into it. */
 export type TxnKind = 'expense' | 'income';
-/** How often a recurring rule fires. Interval multiplies it ("every 2 weeks"). */
-export type Cadence = 'weekly' | 'monthly' | 'yearly';
+/**
+ * How often a recurring rule fires. Interval multiplies it ("every 2 weeks"),
+ * which is what makes fortnightly, quarterly and half-yearly reachable without
+ * a case each: `weekly × 2`, `monthly × 3`, `monthly × 6`.
+ *
+ * `semimonthly` is the exception that earns its own case. Twice a month is not
+ * "every N of anything" — the 1st and the 16th are fifteen days apart one way
+ * and thirteen to sixteen the other, and a fortnightly rule drifts off the
+ * calendar within a year (26 payments, not 24). It is two days of the month, so
+ * it is stored as two days of the month: `anchorDate`'s day and `secondDay`.
+ */
+export type Cadence = 'weekly' | 'semimonthly' | 'monthly' | 'yearly';
 /** `borrowed` = money you owe; `lent` = money owed to you. */
 export type LoanDirection = 'borrowed' | 'lent';
 
@@ -46,8 +56,13 @@ export interface PersonalRecurring {
   readonly category: string | null;
   readonly note: string | null;
   readonly cadence: Cadence;
-  /** Every `interval` cadence units (1 = every week/month/year). */
+  /** Every `interval` cadence units (1 = every week/month/year). Ignored by
+   *  `semimonthly`, which is twice a month by definition. */
   readonly interval: number;
+  /** The month day of the *second* occurrence when `cadence` is `semimonthly`
+   *  (the first is `anchorDate`'s day); null for every other cadence. A day past
+   *  the end of a short month lands on that month's last day. */
+  readonly secondDay: number | null;
   /** First occurrence. */
   readonly anchorDate: string;
   /** The next date this rule is due to fire. Advanced as occurrences post. */
@@ -94,6 +109,8 @@ const money = (v: unknown): bigint => {
 };
 const oneOf = <T extends string>(v: unknown, allowed: readonly T[], fallback: T): T =>
   typeof v === 'string' && (allowed as readonly string[]).includes(v) ? (v as T) : fallback;
+const dayOfMonth = (v: unknown): number | null =>
+  typeof v === 'number' && Number.isInteger(v) && v >= 1 && v <= 31 ? v : null;
 
 // ─────────────────────────────────────────────────────────── decoders ──
 
@@ -120,8 +137,16 @@ export function decodeRecurring(id: string, data: Record<string, unknown>): Pers
     currency: str(data.currency) ?? 'INR',
     category: str(data.category),
     note: str(data.note),
-    cadence: oneOf(data.cadence, ['weekly', 'monthly', 'yearly'] as const, 'monthly'),
+    cadence: oneOf(
+      data.cadence,
+      ['weekly', 'semimonthly', 'monthly', 'yearly'] as const,
+      'monthly',
+    ),
     interval: int(data.interval, 1),
+    // A day outside 1–31 is not a day of any month, so it degrades to "no
+    // second day" and the rule reads as an ordinary monthly one rather than
+    // firing on a date that cannot exist.
+    secondDay: dayOfMonth(data.secondDay),
     anchorDate: anchor,
     nextDate: str(data.nextDate) ?? anchor,
     endDate: str(data.endDate),
@@ -179,6 +204,7 @@ export function encodeRecurring(rule: Omit<PersonalRecurring, 'id'>): Record<str
     note: rule.note,
     cadence: rule.cadence,
     interval: rule.interval,
+    secondDay: rule.secondDay,
     anchorDate: rule.anchorDate,
     nextDate: rule.nextDate,
     endDate: rule.endDate,

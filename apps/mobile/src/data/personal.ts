@@ -22,7 +22,7 @@ import {
   materialisePersonalRecords,
   MutationKind,
   personalScope,
-  recurringCatchUp,
+  unpostedOccurrences,
   recurringOccurrenceId,
   type MirrorPersonalRecord,
   type PersonalBudget,
@@ -182,10 +182,20 @@ export function useDeletePersonalRecord() {
 
 /**
  * Post every occurrence an auto-posting recurring rule owes up to `today`, and
- * advance each rule's `nextDate`. Idempotent: an occurrence whose txn already
- * exists (matched by rule id + date) is skipped, so running this on every open
- * never double-posts. Manual (non-auto) rules are left for the user to confirm.
- * Returns how many txns were posted. Call from an effect, not render.
+ * advance each rule's `nextDate`. Manual (non-auto) rules are left for the user
+ * to confirm. Returns how many txns were posted. Call from an effect, not
+ * render.
+ *
+ * Idempotent, and idempotent about the right thing: an occurrence is skipped
+ * when a record already *exists* for it, matched by the deterministic
+ * occurrence id — not by finding an entry dated exactly on the due date.
+ *
+ * That distinction is load-bearing now the timeline lets somebody record a
+ * period on the day the money really arrived. Rent due on the 5th, recorded as
+ * paid on the 7th for ₹24,000: matching on the date would find nothing for the
+ * 5th, mint an occurrence at the rule's own ₹25,000 under the *same* id, and
+ * overwrite what the person entered. Silently rewriting somebody's own figure
+ * is the worst thing this function could do.
  */
 export async function postDueRecurring(
   ledger: PersonalLedger,
@@ -195,13 +205,12 @@ export async function postDueRecurring(
   let posted = 0;
   for (const rule of ledger.recurrings) {
     if (!rule.autoPost || !rule.active) continue;
-    const { dates, nextDate } = recurringCatchUp(rule, today);
-    if (dates.length === 0) continue;
+    // Only what is genuinely missing: `unpostedOccurrences` drops any period a
+    // record already exists for, matched by id rather than by date (see its
+    // note in core — matching on the date overwrites hand-entered figures).
+    const { dates, nextDate } = unpostedOccurrences(rule, ledger.txns, today);
+    if (dates.length === 0 && nextDate === rule.nextDate) continue;
     for (const date of dates) {
-      const already = ledger.txns.some((txn) => txn.recurringId === rule.id && txn.date === date);
-      if (already) continue;
-      // A deterministic id per (rule, date), so two posts of the same occurrence
-      // — a race, or a manual "add now" crossing this catch-up — upsert one row.
       await upsert({
         recordId: recurringOccurrenceId(rule.id, date),
         recordKind: 'txn',
