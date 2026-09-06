@@ -1082,20 +1082,12 @@ export default function GroupScreen() {
               matching the dashboard. */}
                 {stalledHere ? <SyncBanner groupId={groupId} /> : null}
 
-                {/* If the two independent balance computations ever disagree, say so
-            rather than showing a number that might be wrong (ADR-004). */}
-                {ledger.mismatch ? (
-                  <Card
-                    style={{ backgroundColor: theme.color.negativeSoft, gap: theme.spacing.sm }}
-                  >
-                    <Text variant="subheading" tone="negative">
-                      {t.group.mismatch}
-                    </Text>
-                    <Text variant="caption" tone="muted">
-                      {t.group.mismatchBody}
-                    </Text>
-                  </Card>
-                ) : null}
+                {/* The balance cross-check (ADR-004) used to raise a red card
+            here. It no longer says anything: the ledger below is the source of
+            truth, the disagreement was always this device holding a stale
+            snapshot of the server's copy, and there was nothing the reader
+            could do about it but doubt their own money. `useGroupLedger` now
+            refetches and reports it to us instead. */}
 
                 {/* The one-time nudge to plan a fresh trip. Dates and budget were
             moved off the create screen to keep it short; this is where a trip
