@@ -659,6 +659,90 @@ describe('the mutation queue', () => {
     ]);
   });
 
+  /**
+   * A `group.update` speaks in column names and a queued `group.create` payload
+   * does not, so a plain merge lined up on `name` and nothing else: correcting
+   * a refused group's icon wrote `cover_emoji` into a payload the create reads
+   * as `emoji`, and the edit silently reverted.
+   */
+  it('translates a group correction into the shape the blocked create speaks', () => {
+    let queue: QueuedMutation[] = [];
+    queue = enqueue(queue, {
+      clientMutationId: 'create-goa',
+      kind: MutationKind.GroupCreate,
+      groupId: GROUP,
+      clientCreatedAt: '2026-03-01T00:00:00Z',
+      payload: { name: null, type: 'trip', currency: 'INR', emoji: '🏖️', simplify: true },
+    });
+    queue = applyOutcomes(queue, [
+      {
+        clientMutationId: 'create-goa',
+        status: 'rejected',
+        code: SyncRejectionCode.ValidationFailed,
+        message: 'no',
+      },
+    ]).queue;
+
+    queue = enqueue(queue, {
+      clientMutationId: 'rename-goa',
+      kind: MutationKind.GroupUpdate,
+      groupId: GROUP,
+      clientCreatedAt: '2026-03-01T00:01:00Z',
+      payload: { name: 'Goa', cover_emoji: '⛱️', default_currency: 'USD' },
+    });
+
+    // One entry still — the create, repaired and sendable again.
+    expect(queue).toHaveLength(1);
+    expect(queue[0]?.rejection).toBeFalsy();
+    expect(queue[0]?.payload).toMatchObject({
+      name: 'Goa',
+      emoji: '⛱️',
+      currency: 'USD',
+      type: 'trip',
+    });
+    // And nothing left speaking the column names the create cannot read.
+    expect(queue[0]?.payload).not.toHaveProperty('cover_emoji');
+    expect(queue[0]?.payload).not.toHaveProperty('default_currency');
+  });
+
+  it('queues what a create cannot carry behind it rather than swallowing it', () => {
+    let queue: QueuedMutation[] = [];
+    queue = enqueue(queue, {
+      clientMutationId: 'create-goa',
+      kind: MutationKind.GroupCreate,
+      groupId: GROUP,
+      clientCreatedAt: '2026-03-01T00:00:00Z',
+      payload: { name: 'Goa', type: 'trip', currency: 'INR' },
+    });
+    queue = applyOutcomes(queue, [
+      {
+        clientMutationId: 'create-goa',
+        status: 'rejected',
+        code: SyncRejectionCode.ValidationFailed,
+        message: 'no',
+      },
+    ]).queue;
+
+    // Trip dates have no create-side equivalent — they are a real edit and must
+    // survive as a follow-up, not disappear into a payload that ignores them.
+    queue = enqueue(queue, {
+      clientMutationId: 'dates-goa',
+      kind: MutationKind.GroupUpdate,
+      groupId: GROUP,
+      clientCreatedAt: '2026-03-01T00:01:00Z',
+      payload: { name: 'Goa trip', start_date: '2026-04-01', end_date: '2026-04-07' },
+    });
+
+    expect(queue).toHaveLength(2);
+    expect(queue[0]?.payload).toMatchObject({ name: 'Goa trip' });
+    expect(queue[1]?.payload).toEqual({ start_date: '2026-04-01', end_date: '2026-04-07' });
+    // The create is unblocked, so both flow, in order.
+    expect(nextBatch(queue, { now: 10_000_000 }).map((item) => item.clientMutationId)).toEqual([
+      'create-goa',
+      'dates-goa',
+    ]);
+  });
+
   it('lets a user delete a rejected pending expense instead of keeping it as a blocker', () => {
     let queue: QueuedMutation[] = [];
     queue = enqueue(queue, {

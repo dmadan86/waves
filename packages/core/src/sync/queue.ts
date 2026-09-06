@@ -118,18 +118,80 @@ function resolveRejectedMutation(
     return queue.filter((_item, itemIndex) => itemIndex !== index);
   }
 
+  // Translate the correction into the shape the blocked mutation speaks, and
+  // find out what will not fit. `leftover` is the part of the edit the create
+  // cannot carry — it is a real change somebody made, so it is queued behind
+  // the now-unblocked create rather than quietly dropped.
+  const { translated, leftover } = target.correctionKeyMap
+    ? splitCorrection(envelope.payload, target.correctionKeyMap)
+    : { translated: envelope.payload, leftover: null };
+
   const corrected: QueuedMutation = {
     ...pending,
-    payload: target.mergeCorrection
-      ? mergePayload(pending.payload, envelope.payload)
-      : envelope.payload,
+    payload: target.mergeCorrection ? mergePayload(pending.payload, translated) : translated,
     attempts: 0,
     nextAttemptAt: 0,
     lastError: null,
     rejection: null,
   };
-  return queue.map((item, itemIndex) => (itemIndex === index ? corrected : item));
+  const repaired = queue.map((item, itemIndex) => (itemIndex === index ? corrected : item));
+  if (leftover === null) return repaired;
+  return enqueue(repaired, { ...envelope, payload: leftover });
 }
+
+/**
+ * Split a correction into the keys the blocked mutation can carry, renamed to
+ * its shape, and the keys it cannot.
+ *
+ * `leftover` is null when everything fitted — the common case, and the one that
+ * queues nothing extra.
+ */
+function splitCorrection(
+  payload: unknown,
+  keyMap: Readonly<Record<string, string>>,
+): { translated: unknown; leftover: Record<string, unknown> | null } {
+  if (!isRecord(payload)) return { translated: payload, leftover: null };
+  const translated: Record<string, unknown> = {};
+  const leftover: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(payload)) {
+    const mapped = keyMap[key];
+    if (mapped === undefined) leftover[key] = value;
+    else translated[mapped] = value;
+  }
+  return {
+    translated,
+    leftover: Object.keys(leftover).length > 0 ? leftover : null,
+  };
+}
+
+/**
+ * A `group.update` speaks in column names; a queued `group.create` payload does
+ * not. Merging one into the other therefore lines up on `name` and `type` and
+ * on nothing else — so correcting a refused group's icon, currency, country or
+ * "simplify" wrote a key the create handler never reads, and the edit silently
+ * reverted. These are the pairs, and anything not here (trip dates,
+ * `archived_at`) has no create-side equivalent at all and has to stay behind as
+ * a follow-up rather than be swallowed.
+ */
+const GROUP_UPDATE_TO_CREATE: Readonly<Record<string, string>> = {
+  name: 'name',
+  type: 'type',
+  cover_emoji: 'emoji',
+  default_currency: 'currency',
+  simplify_debts: 'simplify',
+  country_code: 'country',
+  photo_path: 'photoPath',
+};
+
+/**
+ * The same for a plan item: a create carries the day and the title, an update
+ * carries `done`, and only the first two exist on the create.
+ */
+const PLAN_ITEM_UPDATE_TO_CREATE: Readonly<Record<string, string>> = {
+  itemId: 'itemId',
+  day: 'day',
+  title: 'title',
+};
 
 interface MutationTarget {
   readonly primaryKind: MutationKind;
@@ -138,6 +200,13 @@ interface MutationTarget {
   readonly groupId: string;
   readonly id: string;
   readonly mergeCorrection: boolean;
+  /**
+   * How a correction's keys are named in the create's payload, when the two
+   * disagree. Absent means they already speak the same shape and the whole
+   * payload merges. Present means a key missing from the map cannot be carried
+   * by the create and is queued behind it instead of being dropped.
+   */
+  readonly correctionKeyMap?: Readonly<Record<string, string>>;
 }
 
 function targetOf(mutation: MutationEnvelope): MutationTarget | null {
@@ -149,6 +218,7 @@ function targetOf(mutation: MutationEnvelope): MutationTarget | null {
       groupId: mutation.groupId,
       id: mutation.groupId,
       mergeCorrection: true,
+      correctionKeyMap: GROUP_UPDATE_TO_CREATE,
     };
   }
 
@@ -217,6 +287,7 @@ function targetOf(mutation: MutationEnvelope): MutationTarget | null {
       groupId: mutation.groupId,
       id: itemId,
       mergeCorrection: true,
+      correctionKeyMap: PLAN_ITEM_UPDATE_TO_CREATE,
     };
   }
 
