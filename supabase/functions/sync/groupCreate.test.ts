@@ -119,6 +119,29 @@ describe('group.create without a name', () => {
       expect.objectContaining({ p_name: 'Goa trip' }),
     );
   });
+
+  // The body is cast to `SyncRequest`, never parsed, so a payload can carry
+  // anything. Absent and wrong are not the same thing: folding a number into
+  // null would make a malformed create quietly produce an unnamed group.
+  it('refuses a name that is not text rather than treating it as absent', async () => {
+    const scoped = caller();
+    const session = new SyncSession(scoped.client, service().client, OWNER);
+
+    const outcome = await session.apply(createGroup(42, 'mutation-4'));
+
+    expect(outcome).toMatchObject({ status: 'rejected', code: 'VALIDATION_FAILED' });
+    expect(scoped.rpc).not.toHaveBeenCalled();
+  });
+
+  it('refuses an object name too', async () => {
+    const scoped = caller();
+    const session = new SyncSession(scoped.client, service().client, OWNER);
+
+    const outcome = await session.apply(createGroup({ evil: true }, 'mutation-5'));
+
+    expect(outcome).toMatchObject({ status: 'rejected', code: 'VALIDATION_FAILED' });
+    expect(scoped.rpc).not.toHaveBeenCalled();
+  });
 });
 
 function updateGroup(payload: Record<string, unknown>, clientMutationId = 'update-1') {
@@ -178,6 +201,18 @@ describe('group.update and the name column', () => {
     await session.apply(updateGroup({ name: '  Goa trip  ' }, 'update-4'));
 
     expect(scoped.update).toHaveBeenCalledWith({ name: 'Goa trip' });
+  });
+
+  // The destructive half of the same hole: a malformed rename must not clear a
+  // name somebody chose.
+  it('refuses a rename that is not text instead of clearing the name', async () => {
+    const scoped = caller();
+    const session = new SyncSession(scoped.client, service().client, OWNER);
+
+    const outcome = await session.apply(updateGroup({ name: 42 }, 'update-6'));
+
+    expect(outcome).toMatchObject({ status: 'rejected', code: 'VALIDATION_FAILED' });
+    expect(scoped.update).not.toHaveBeenCalled();
   });
 
   it('leaves a patch that never mentioned the name alone', async () => {

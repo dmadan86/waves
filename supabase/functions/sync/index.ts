@@ -469,7 +469,7 @@ export class SyncSession {
           // came back through the mirror either, and the phone showed "Group
           // not found" for the group it had just made, with a red refusal in
           // the header and no way to tell why.
-          p_name: optionalString(mutation.payload.name),
+          p_name: optionalString(mutation.payload.name, 'name'),
           p_type: (mutation.payload.type as string | undefined) ?? 'other',
           p_currency: (mutation.payload.currency as string | undefined) ?? 'INR',
           p_emoji: (mutation.payload.emoji as string | undefined) ?? null,
@@ -505,7 +505,7 @@ export class SyncSession {
         // one column normalised on the way in and trusted on the way past is
         // how the two ends drift apart. Only when the key is actually there, so
         // a patch that never mentioned the name is untouched.
-        if ('name' in patch) patch.name = optionalString(patch.name);
+        if ('name' in patch) patch.name = optionalString(patch.name, 'name');
         const { error } = await this.caller.from('groups').update(patch).eq('id', mutation.groupId);
         if (error) throw new HttpError(400, 'VALIDATION_FAILED', error.message);
         return { groupId: mutation.groupId };
@@ -1295,9 +1295,19 @@ function requireString(value: unknown, field: string): string {
  * Blank and whitespace-only collapse to null rather than travelling on as '':
  * the database's "no name" is NULL, and an empty string stored there is a name
  * that renders as nothing everywhere instead of falling back to the members.
+ *
+ * Absent and *wrong* are not the same thing, though, and this is a boundary:
+ * the request body is cast to `SyncRequest`, never parsed, so a payload can
+ * carry anything. Folding a number or an object into null would make a
+ * malformed `group.update` silently **clear** a name somebody chose — a
+ * destructive answer to a client bug. Only null and undefined mean "not given";
+ * anything else is refused and says so.
  */
-function optionalString(value: unknown): string | null {
-  if (typeof value !== 'string') return null;
+function optionalString(value: unknown, field: string): string | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== 'string') {
+    throw new HttpError(400, 'VALIDATION_FAILED', `${field} must be text`);
+  }
   const trimmed = value.trim();
   return trimmed.length === 0 ? null : trimmed;
 }
