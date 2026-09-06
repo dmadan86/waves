@@ -1545,8 +1545,6 @@ export interface UiStrings {
     loading: string;
     settings: string;
     more: string;
-    mismatch: string;
-    mismatchBody: string;
     confirmReceived: string;
     /** Heading over an incoming settlement claim; `{name}` is the payer. */
     saysTheyPaidYou: string;
@@ -3761,9 +3759,6 @@ const en: UiStrings = {
     loading: 'Loading…',
     settings: 'Group settings',
     more: 'More',
-    mismatch: 'Balances need a refresh',
-    mismatchBody:
-      'This device and the server disagree about this group’s balances. Pull to refresh; if it persists, the ledger below is the source of truth.',
     confirmReceived: 'Confirm received',
     saysTheyPaidYou: '{name} says they paid you',
     saysTheyPaidYouWindow: '{name} says they paid you ({window})',
@@ -6001,9 +5996,6 @@ const ta: UiStrings = {
     loading: 'ஏற்றப்படுகிறது…',
     settings: 'குழு அமைப்புகள்',
     more: 'மேலும்',
-    mismatch: 'இருப்புகளைப் புதுப்பிக்க வேண்டும்',
-    mismatchBody:
-      'இந்தக் குழுவின் இருப்புகள் குறித்து இந்தச் சாதனமும் சர்வரும் ஒத்துப்போகவில்லை. இழுத்துப் புதுப்பிக்கவும்; தொடர்ந்தால் கீழே உள்ள கணக்கே சரியானது.',
     confirmReceived: 'கிடைத்தது என்று உறுதிப்படுத்து',
     saysTheyPaidYou: '{name} உங்களுக்குப் பணம் கொடுத்ததாகச் சொல்கிறார்',
     saysTheyPaidYouWindow: '{name} உங்களுக்குப் பணம் கொடுத்ததாகச் சொல்கிறார் ({window})',
@@ -8251,9 +8243,6 @@ const hi: UiStrings = {
     loading: 'आ रहा है…',
     settings: 'समूह सेटिंग्स',
     more: 'और',
-    mismatch: 'बाकी को ताज़ा करना होगा',
-    mismatchBody:
-      'इस समूह के हिसाब पर यह डिवाइस और सर्वर सहमत नहीं हैं। खींचकर ताज़ा करें; फिर भी बना रहे तो नीचे का हिसाब ही सही है।',
     confirmReceived: 'मिलने की पुष्टि करें',
     saysTheyPaidYou: '{name} कहते हैं कि उन्होंने आपको भुगतान किया',
     saysTheyPaidYouWindow: '{name} कहते हैं कि उन्होंने आपको भुगतान किया ({window})',
@@ -10521,9 +10510,6 @@ const ar: UiStrings = {
     loading: 'جارٍ التحميل…',
     settings: 'إعدادات المجموعة',
     more: 'المزيد',
-    mismatch: 'الأرصدة بحاجة إلى تحديث',
-    mismatchBody:
-      'هذا الجهاز والخادم لا يتفقان على أرصدة هذه المجموعة. اسحب للتحديث؛ وإن استمر الأمر فالدفتر بالأسفل هو المرجع.',
     confirmReceived: 'أكّد الاستلام',
     saysTheyPaidYou: 'يقول {name} إنه دفع لك',
     saysTheyPaidYouWindow: 'يقول {name} إنه دفع لك ({window})',
