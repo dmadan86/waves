@@ -1,5 +1,5 @@
 /**
- * A group does not need a name.
+ * A group does not need a name, and clearing one is not a failure.
  *
  * `new-group.tsx` says so in as many words — "Blank is fine — the group gets
  * labelled by who is in it instead" — and it sends `name: null` when nobody
@@ -14,10 +14,17 @@
  * dashboard said "No groups yet", and the only clue was a red glyph in the
  * header.
  *
+ * Three things are asserted here, on both the create and the update path
+ * because one column normalised on the way in and trusted on the way past is
+ * how the two ends drift apart: a name is optional, blank of any kind means
+ * NULL rather than an empty string, and a real name arrives trimmed. Plus the
+ * half that is not about blankness at all — a name that is not text is refused
+ * rather than read as absent, since the request body is cast to `SyncRequest`
+ * and never parsed, and folding a number into null would let a malformed
+ * rename quietly delete a name somebody chose.
+ *
  * The session is driven with a stubbed Supabase client: no Deno, no network, no
- * database. What is asserted is the contract the client relies on — a name is
- * optional, blank means null rather than an empty string, and a real name still
- * arrives trimmed.
+ * database.
  */
 
 import { describe, expect, it, vi } from 'vitest';
@@ -29,22 +36,29 @@ const GROUP_ID = '99999999-8888-7777-6666-555555555555';
 const MEMBER_ID = '11111111-2222-3333-4444-555555555555';
 
 /**
- * The caller-scoped client: `rpc` records the arguments and answers with an id,
- * `update` records the patch a `group.update` would write. `maybeSingle`
- * answers the membership lookup `group.update` makes before it writes.
+ * The caller-scoped client.
+ *
+ * Both calls the code under test makes go through `rpc`, and they are told
+ * apart by name: `group.update` resolves the caller's membership through
+ * `waves_my_member_id` before it writes (see `memberId`), and `group.create`
+ * goes straight to `waves_create_group`. Answering every `rpc` with the same
+ * value would let the membership check pass on a group id, which is true by
+ * accident rather than by the code doing the right thing.
+ *
+ * `update` records the patch a `group.update` would write, and hands back the
+ * `.eq(...)` the real builder chains.
  */
 function caller() {
-  const rpc = vi.fn(() => Promise.resolve({ data: GROUP_ID, error: null }));
-  const update = vi.fn(() => Promise.resolve({ error: null }));
+  const rpc = vi.fn((name: string) =>
+    Promise.resolve({ data: name === 'waves_my_member_id' ? MEMBER_ID : GROUP_ID, error: null }),
+  );
+  const updateEq = vi.fn(() => Promise.resolve({ error: null }));
+  const update = vi.fn(() => ({ eq: updateEq }));
   const from = vi.fn(() => {
-    const builder: Record<string, unknown> = {};
+    const builder: Record<string, unknown> = { update };
     builder.select = () => builder;
     builder.eq = () => builder;
-    builder.maybeSingle = () => Promise.resolve({ data: { id: MEMBER_ID }, error: null });
-    builder.update = (patch: Record<string, unknown>) => {
-      void update(patch);
-      return { eq: () => Promise.resolve({ error: null }) };
-    };
+    builder.maybeSingle = () => Promise.resolve({ data: null, error: null });
     return builder;
   });
   return { client: { rpc, from } as never, rpc, update };
@@ -63,7 +77,7 @@ function service() {
   return { client: { from } as never, insert };
 }
 
-function createGroup(name: unknown, clientMutationId = 'mutation-1') {
+function createGroup(name: unknown, clientMutationId = 'create-1') {
   return {
     clientMutationId,
     kind: 'group.create',
@@ -75,74 +89,10 @@ function createGroup(name: unknown, clientMutationId = 'mutation-1') {
       type: 'trip',
       currency: 'INR',
       simplify: true,
-      creatorMemberId: '11111111-2222-3333-4444-555555555555',
+      creatorMemberId: MEMBER_ID,
     },
   } as never;
 }
-
-describe('group.create without a name', () => {
-  it('applies a null name instead of refusing it', async () => {
-    const scoped = caller();
-    const session = new SyncSession(scoped.client, service().client, OWNER);
-
-    const outcome = await session.apply(createGroup(null));
-
-    expect(outcome).toMatchObject({ status: 'applied' });
-    expect(scoped.rpc).toHaveBeenCalledWith(
-      'waves_create_group',
-      expect.objectContaining({ p_name: null, p_group_id: GROUP_ID }),
-    );
-  });
-
-  it('treats a blank name as no name, not as an empty one', async () => {
-    // '' in `groups.name` is a name that renders as nothing everywhere, rather
-    // than falling back to the members — so it has to collapse to NULL.
-    const scoped = caller();
-    const session = new SyncSession(scoped.client, service().client, OWNER);
-
-    await session.apply(createGroup('   ', 'mutation-2'));
-
-    expect(scoped.rpc).toHaveBeenCalledWith(
-      'waves_create_group',
-      expect.objectContaining({ p_name: null }),
-    );
-  });
-
-  it('still passes a real name through, trimmed', async () => {
-    const scoped = caller();
-    const session = new SyncSession(scoped.client, service().client, OWNER);
-
-    await session.apply(createGroup('  Goa trip  ', 'mutation-3'));
-
-    expect(scoped.rpc).toHaveBeenCalledWith(
-      'waves_create_group',
-      expect.objectContaining({ p_name: 'Goa trip' }),
-    );
-  });
-
-  // The body is cast to `SyncRequest`, never parsed, so a payload can carry
-  // anything. Absent and wrong are not the same thing: folding a number into
-  // null would make a malformed create quietly produce an unnamed group.
-  it('refuses a name that is not text rather than treating it as absent', async () => {
-    const scoped = caller();
-    const session = new SyncSession(scoped.client, service().client, OWNER);
-
-    const outcome = await session.apply(createGroup(42, 'mutation-4'));
-
-    expect(outcome).toMatchObject({ status: 'rejected', code: 'VALIDATION_FAILED' });
-    expect(scoped.rpc).not.toHaveBeenCalled();
-  });
-
-  it('refuses an object name too', async () => {
-    const scoped = caller();
-    const session = new SyncSession(scoped.client, service().client, OWNER);
-
-    const outcome = await session.apply(createGroup({ evil: true }, 'mutation-5'));
-
-    expect(outcome).toMatchObject({ status: 'rejected', code: 'VALIDATION_FAILED' });
-    expect(scoped.rpc).not.toHaveBeenCalled();
-  });
-});
 
 function updateGroup(payload: Record<string, unknown>, clientMutationId = 'update-1') {
   return {
@@ -156,41 +106,85 @@ function updateGroup(payload: Record<string, unknown>, clientMutationId = 'updat
 }
 
 /**
+ * Every shape of "no name somebody typed". They have to land as NULL rather
+ * than travel on as themselves: an empty string in `groups.name` is a name that
+ * renders as nothing everywhere instead of falling back to the members.
+ */
+const BLANK_NAMES: readonly [string, unknown][] = [
+  ['an explicit null', null],
+  ['an empty string', ''],
+  ['only spaces', '   '],
+  ['only a newline and a tab', '\n\t'],
+];
+
+/** Values that are not text at all — a client bug, not an omission. */
+const NON_TEXT_NAMES: readonly [string, unknown][] = [
+  ['a number', 42],
+  ['an object', { evil: true }],
+  ['a boolean', true],
+];
+
+describe('group.create and the name column', () => {
+  it.each(BLANK_NAMES)('creates the group when the name is %s', async (_label, name) => {
+    const scoped = caller();
+    const session = new SyncSession(scoped.client, service().client, OWNER);
+
+    const outcome = await session.apply(createGroup(name));
+
+    expect(outcome).toMatchObject({ status: 'applied' });
+    expect(scoped.rpc).toHaveBeenCalledWith(
+      'waves_create_group',
+      expect.objectContaining({ p_name: null, p_group_id: GROUP_ID }),
+    );
+  });
+
+  it('still passes a real name through, trimmed', async () => {
+    const scoped = caller();
+    const session = new SyncSession(scoped.client, service().client, OWNER);
+
+    const outcome = await session.apply(createGroup('  Goa trip  ', 'create-real'));
+
+    expect(outcome).toMatchObject({ status: 'applied' });
+    expect(scoped.rpc).toHaveBeenCalledWith(
+      'waves_create_group',
+      expect.objectContaining({ p_name: 'Goa trip' }),
+    );
+  });
+
+  // Absent and wrong are not the same thing. Folding these into null would make
+  // a malformed create quietly produce an unnamed group.
+  it.each(NON_TEXT_NAMES)(
+    'refuses a name that is %s rather than reading it as absent',
+    async (_label, name) => {
+      const scoped = caller();
+      const session = new SyncSession(scoped.client, service().client, OWNER);
+
+      const outcome = await session.apply(createGroup(name, 'create-bad'));
+
+      expect(outcome).toMatchObject({ status: 'rejected', code: 'VALIDATION_FAILED' });
+      // Refused before the database was asked to do anything.
+      expect(scoped.rpc).not.toHaveBeenCalled();
+    },
+  );
+});
+
+/**
  * The same reading of a name on the way back out.
  *
  * Clearing a group's name is ordinary — it goes back to being labelled by who
- * is in it — and it has to land as NULL. An empty string in `groups.name` is a
- * name that renders as nothing everywhere instead of falling back to the
- * members, which is exactly the state `group.create` refuses to create. The
- * app's own rename screen trims before it queues, but `/sync` is a boundary: a
- * column normalised on one path and trusted on the other is how the two ends
- * drift apart.
+ * is in it — and it has to land as NULL, exactly the state `group.create`
+ * already refuses to write any other way. The app's own rename screen trims
+ * before it queues, but `/sync` is a boundary that an older build, the web
+ * client or the watch also speak to.
  */
 describe('group.update and the name column', () => {
-  it('clears the name to null when it is emptied', async () => {
+  it.each(BLANK_NAMES)('clears the name when it is %s', async (_label, name) => {
     const scoped = caller();
     const session = new SyncSession(scoped.client, service().client, OWNER);
 
-    await session.apply(updateGroup({ name: '' }));
+    const outcome = await session.apply(updateGroup({ name }));
 
-    expect(scoped.update).toHaveBeenCalledWith({ name: null });
-  });
-
-  it('treats a whitespace-only name as cleared, not as a name of spaces', async () => {
-    const scoped = caller();
-    const session = new SyncSession(scoped.client, service().client, OWNER);
-
-    await session.apply(updateGroup({ name: '   ' }, 'update-2'));
-
-    expect(scoped.update).toHaveBeenCalledWith({ name: null });
-  });
-
-  it('passes an explicit null through unchanged', async () => {
-    const scoped = caller();
-    const session = new SyncSession(scoped.client, service().client, OWNER);
-
-    await session.apply(updateGroup({ name: null }, 'update-3'));
-
+    expect(outcome).toMatchObject({ status: 'applied' });
     expect(scoped.update).toHaveBeenCalledWith({ name: null });
   });
 
@@ -198,31 +192,36 @@ describe('group.update and the name column', () => {
     const scoped = caller();
     const session = new SyncSession(scoped.client, service().client, OWNER);
 
-    await session.apply(updateGroup({ name: '  Goa trip  ' }, 'update-4'));
+    const outcome = await session.apply(updateGroup({ name: '  Goa trip  ' }, 'update-real'));
 
+    expect(outcome).toMatchObject({ status: 'applied' });
     expect(scoped.update).toHaveBeenCalledWith({ name: 'Goa trip' });
   });
 
   // The destructive half of the same hole: a malformed rename must not clear a
   // name somebody chose.
-  it('refuses a rename that is not text instead of clearing the name', async () => {
-    const scoped = caller();
-    const session = new SyncSession(scoped.client, service().client, OWNER);
+  it.each(NON_TEXT_NAMES)(
+    'refuses a rename that is %s instead of clearing the name',
+    async (_label, name) => {
+      const scoped = caller();
+      const session = new SyncSession(scoped.client, service().client, OWNER);
 
-    const outcome = await session.apply(updateGroup({ name: 42 }, 'update-6'));
+      const outcome = await session.apply(updateGroup({ name }, 'update-bad'));
 
-    expect(outcome).toMatchObject({ status: 'rejected', code: 'VALIDATION_FAILED' });
-    expect(scoped.update).not.toHaveBeenCalled();
-  });
+      expect(outcome).toMatchObject({ status: 'rejected', code: 'VALIDATION_FAILED' });
+      expect(scoped.update).not.toHaveBeenCalled();
+    },
+  );
 
   it('leaves a patch that never mentioned the name alone', async () => {
     const scoped = caller();
     const session = new SyncSession(scoped.client, service().client, OWNER);
 
-    await session.apply(updateGroup({ cover_emoji: 'X' }, 'update-5'));
+    const outcome = await session.apply(updateGroup({ cover_emoji: 'X' }, 'update-icon'));
 
     // No `name` key invented, so a rename is not written as a side effect of
     // changing the icon.
+    expect(outcome).toMatchObject({ status: 'applied' });
     expect(scoped.update).toHaveBeenCalledWith({ cover_emoji: 'X' });
   });
 });
