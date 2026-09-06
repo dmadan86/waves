@@ -2641,6 +2641,33 @@ export interface UiStrings {
     ofExpected: string;
     everySince: string;
   };
+  /** The marketplace of installable category and income-source packs. */
+  packs: {
+    title: string;
+    subtitle: string;
+    browse: string;
+    browseHint: string;
+    installed: string;
+    install: string;
+    installing: string;
+    uninstall: string;
+    uninstallTitle: string;
+    uninstallBody: string;
+    includes: PluralForms;
+    added: PluralForms;
+    alreadyHave: string;
+    empty: string;
+    emptyBody: string;
+    offline: string;
+    notFound: string;
+    askTitle: string;
+    askBody: string;
+    askPlaceholder: string;
+    askSend: string;
+    askSent: string;
+    expenseSide: string;
+    incomeSide: string;
+  };
 }
 
 const en: UiStrings = {
@@ -4874,6 +4901,33 @@ const en: UiStrings = {
     openEntry: 'Open this entry',
     ofExpected: 'of {amount}',
     everySince: 'Since {date}',
+  },
+  packs: {
+    title: 'Category packs',
+    subtitle: 'Sets of categories and income sources, ready to add to your own list.',
+    browse: 'Browse packs',
+    browseHint: 'Add ready-made categories and income sources',
+    installed: 'Installed',
+    install: 'Add to my list',
+    installing: 'Adding…',
+    uninstall: 'Remove pack',
+    uninstallTitle: 'Remove this pack?',
+    uninstallBody:
+      'The categories stay in your list and nothing you have filed under them changes. You can hide or delete them yourself, like any other category.',
+    includes: { one: '{n} category', other: '{n} categories' },
+    added: { one: '{n} category added', other: '{n} categories added' },
+    alreadyHave: 'You already have all of these.',
+    empty: 'Nothing on the shelf yet',
+    emptyBody: 'Packs are on the way. Tell us what you need and we will make it.',
+    offline: 'Packs need a connection. Everything already added stays where it is.',
+    notFound: 'This pack is no longer available.',
+    askTitle: 'Ask for a pack',
+    askBody: 'What do you keep track of that the app has no words for?',
+    askPlaceholder: 'Rental property, small shop, freelance…',
+    askSend: 'Send',
+    askSent: 'Thank you — we read every one of these.',
+    expenseSide: 'Spending',
+    incomeSide: 'Income',
   },
 };
 
@@ -7211,6 +7265,34 @@ const ta: UiStrings = {
     ofExpected: '{amount} இல்',
     everySince: '{date} முதல்',
   },
+  packs: {
+    title: 'வகைத் தொகுப்புகள்',
+    subtitle: 'உங்கள் பட்டியலில் சேர்க்கத் தயாராக உள்ள வகைகளும் வருமான மூலங்களும்.',
+    browse: 'தொகுப்புகளைப் பார்க்க',
+    browseHint: 'தயாராக உள்ள வகைகளையும் வருமான மூலங்களையும் சேர்க்கவும்',
+    installed: 'சேர்க்கப்பட்டது',
+    install: 'என் பட்டியலில் சேர்',
+    installing: 'சேர்க்கிறது…',
+    uninstall: 'தொகுப்பை நீக்கு',
+    uninstallTitle: 'இந்தத் தொகுப்பை நீக்கவா?',
+    uninstallBody:
+      'வகைகள் உங்கள் பட்டியலிலேயே இருக்கும்; அவற்றின் கீழ் பதிவு செய்தவை எதுவும் மாறாது. மற்ற வகைகளைப் போலவே அவற்றை நீங்களே மறைக்கவோ நீக்கவோ முடியும்.',
+    includes: { one: '{n} வகை', other: '{n} வகைகள்' },
+    added: { one: '{n} வகை சேர்க்கப்பட்டது', other: '{n} வகைகள் சேர்க்கப்பட்டன' },
+    alreadyHave: 'இவை அனைத்தும் ஏற்கெனவே உங்களிடம் உள்ளன.',
+    empty: 'இன்னும் எதுவும் இல்லை',
+    emptyBody:
+      'தொகுப்புகள் விரைவில் வரும். உங்களுக்கு என்ன தேவை என்று சொல்லுங்கள், நாங்கள் உருவாக்குகிறோம்.',
+    offline: 'தொகுப்புகளுக்கு இணைப்பு தேவை. ஏற்கெனவே சேர்த்தவை அப்படியே இருக்கும்.',
+    notFound: 'இந்தத் தொகுப்பு இப்போது கிடைக்கவில்லை.',
+    askTitle: 'ஒரு தொகுப்பு கேளுங்கள்',
+    askBody: 'செயலியில் சொற்கள் இல்லாத எதை நீங்கள் கணக்கு வைக்கிறீர்கள்?',
+    askPlaceholder: 'வாடகை வீடு, சிறு கடை, சுயதொழில்…',
+    askSend: 'அனுப்பு',
+    askSent: 'நன்றி — ஒவ்வொன்றையும் நாங்கள் படிக்கிறோம்.',
+    expenseSide: 'செலவு',
+    incomeSide: 'வருமானம்',
+  },
 };
 
 const hi: UiStrings = {
@@ -9456,6 +9538,33 @@ const hi: UiStrings = {
     openEntry: 'यह प्रविष्टि खोलें',
     ofExpected: '{amount} में से',
     everySince: '{date} से',
+  },
+  packs: {
+    title: 'श्रेणी पैक',
+    subtitle: 'श्रेणियों और आय स्रोतों के तैयार सेट, आपकी सूची में जोड़ने के लिए।',
+    browse: 'पैक देखें',
+    browseHint: 'तैयार श्रेणियाँ और आय स्रोत जोड़ें',
+    installed: 'जुड़ा हुआ',
+    install: 'मेरी सूची में जोड़ें',
+    installing: 'जोड़ रहे हैं…',
+    uninstall: 'पैक हटाएँ',
+    uninstallTitle: 'यह पैक हटाएँ?',
+    uninstallBody:
+      'श्रेणियाँ आपकी सूची में बनी रहेंगी और उनके अंतर्गत दर्ज कुछ भी नहीं बदलेगा। बाकी श्रेणियों की तरह आप उन्हें खुद छिपा या हटा सकते हैं।',
+    includes: { one: '{n} श्रेणी', other: '{n} श्रेणियाँ' },
+    added: { one: '{n} श्रेणी जोड़ी गई', other: '{n} श्रेणियाँ जोड़ी गईं' },
+    alreadyHave: 'ये सब आपके पास पहले से हैं।',
+    empty: 'अभी कुछ नहीं है',
+    emptyBody: 'पैक जल्द आ रहे हैं। बताइए आपको क्या चाहिए, हम बना देंगे।',
+    offline: 'पैक के लिए कनेक्शन चाहिए। जो पहले जोड़ा जा चुका है वह वैसे ही रहेगा।',
+    notFound: 'यह पैक अब उपलब्ध नहीं है।',
+    askTitle: 'पैक का अनुरोध करें',
+    askBody: 'आप किसका हिसाब रखते हैं जिसके लिए ऐप में शब्द ही नहीं हैं?',
+    askPlaceholder: 'किराये का मकान, छोटी दुकान, फ़्रीलांस…',
+    askSend: 'भेजें',
+    askSent: 'धन्यवाद — हम हर एक पढ़ते हैं।',
+    expenseSide: 'ख़र्च',
+    incomeSide: 'आय',
   },
 };
 
@@ -11953,6 +12062,33 @@ const ar: UiStrings = {
     openEntry: 'افتح هذا القيد',
     ofExpected: 'من {amount}',
     everySince: 'منذ {date}',
+  },
+  packs: {
+    title: 'حزم التصنيفات',
+    subtitle: 'مجموعات جاهزة من التصنيفات ومصادر الدخل لإضافتها إلى قائمتك.',
+    browse: 'تصفّح الحزم',
+    browseHint: 'أضف تصنيفات ومصادر دخل جاهزة',
+    installed: 'مضافة',
+    install: 'أضِف إلى قائمتي',
+    installing: 'جارٍ الإضافة…',
+    uninstall: 'إزالة الحزمة',
+    uninstallTitle: 'إزالة هذه الحزمة؟',
+    uninstallBody:
+      'تبقى التصنيفات في قائمتك ولا يتغيّر شيء ممّا سجّلته تحتها. يمكنك إخفاؤها أو حذفها بنفسك مثل أي تصنيف آخر.',
+    includes: { one: 'تصنيف واحد', other: '{n} تصنيفاً' },
+    added: { one: 'أُضيف تصنيف واحد', other: 'أُضيف {n} تصنيفاً' },
+    alreadyHave: 'لديك كل هذه بالفعل.',
+    empty: 'لا شيء على الرف بعد',
+    emptyBody: 'الحزم في الطريق. أخبرنا بما تحتاجه وسنصنعه.',
+    offline: 'تحتاج الحزم إلى اتصال. وكل ما أُضيف من قبل يبقى كما هو.',
+    notFound: 'لم تعد هذه الحزمة متاحة.',
+    askTitle: 'اطلب حزمة',
+    askBody: 'ما الذي تتابعه ولا يملك التطبيق كلمات له؟',
+    askPlaceholder: 'عقار للإيجار، متجر صغير، عمل حر…',
+    askSend: 'إرسال',
+    askSent: 'شكراً — نقرأ كل واحدة منها.',
+    expenseSide: 'الإنفاق',
+    incomeSide: 'الدخل',
   },
 };
 

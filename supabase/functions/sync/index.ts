@@ -28,6 +28,7 @@ import {
   buildApplyExpenseArgs,
   computeShares,
   GUEST_TRIAL_DAYS,
+  isTagIcon,
   parseSplitParams,
   sanitiseCategoryMeta,
   sanitiseExpenseLocation,
@@ -82,7 +83,9 @@ type MutationKind =
   | 'group_budget.set'
   | 'category_budget.set'
   // The trip's shared exchange rate — group-scoped, admin-gated in its RPC.
-  | 'group_fx_rate.set';
+  | 'group_fx_rate.set'
+  | 'pack.install'
+  | 'pack.uninstall';
 
 /** True for the kinds whose scope is a user, not a group. */
 function isPersonalKind(kind: MutationKind): boolean {
@@ -95,7 +98,9 @@ function isPersonalKind(kind: MutationKind): boolean {
     kind === 'tag.update' ||
     kind === 'tag.delete' ||
     kind === 'personal.upsert' ||
-    kind === 'personal.delete'
+    kind === 'personal.delete' ||
+    kind === 'pack.install' ||
+    kind === 'pack.uninstall'
   );
 }
 
@@ -110,6 +115,12 @@ function categoryTagsScope(profileId: string): string {
  *  the client's `personalScope`; suffixed so it keeps its own cursor. */
 function personalScope(profileId: string): string {
   return `${profileId}:personal`;
+}
+
+/** The personal-scope key for the packs a user has installed. Must match the
+ *  client's `packInstallsScope`; suffixed so it keeps its own cursor. */
+function packInstallsScope(profileId: string): string {
+  return `${profileId}:pack_installs`;
 }
 
 interface MutationEnvelope {
@@ -523,6 +534,10 @@ export class SyncSession {
         return await this.upsertTag(mutation);
       case 'tag.delete':
         return await this.deleteTag(mutation);
+      case 'pack.install':
+        return await this.installPack(mutation);
+      case 'pack.uninstall':
+        return await this.uninstallPack(mutation);
       case 'personal.upsert':
         return await this.upsertPersonal(mutation);
       case 'personal.delete':
@@ -944,6 +959,8 @@ export class SyncSession {
       label?: string | null;
       icon?: string | null;
       tint?: string | null;
+      axis?: string | null;
+      packId?: string | null;
       sortOrder?: number;
       hidden?: boolean;
     };
@@ -955,9 +972,21 @@ export class SyncSession {
     if (!builtinId && !label) {
       throw new HttpError(400, 'VALIDATION_FAILED', 'A custom tag needs a label');
     }
-    const icon = typeof payload.icon === 'string' ? payload.icon.trim().slice(0, 64) : null;
+    // The icon is checked against the curated set, not merely length-capped. For
+    // as long as a picker was the only writer this could not be wrong; a pack is
+    // a second writer, authored elsewhere, and a glyph that does not exist
+    // renders as a blank box on every device that installs it. Refused rather
+    // than repaired, so the mistake stays visible where it was made.
+    const icon = typeof payload.icon === 'string' ? payload.icon.trim() : null;
+    if (icon !== null && !isTagIcon(icon)) {
+      throw new HttpError(400, 'VALIDATION_FAILED', 'Unknown icon');
+    }
     const tint =
       typeof payload.tint === 'string' && TAG_TINTS.has(payload.tint) ? payload.tint : null;
+    // Which picker the tag belongs in. Anything else reads as `expense`, which
+    // is what every tag written before this field existed already was.
+    const axis = payload.axis === 'income' ? 'income' : 'expense';
+    const packId = typeof payload.packId === 'string' ? payload.packId : null;
     // Upsert by id, so a create and its later edits are the same row and a replay
     // is harmless. owner_user_id comes from the identity, never the payload.
     const { error } = await this.caller.from('category_tags').upsert(
@@ -968,6 +997,8 @@ export class SyncSession {
         label,
         icon,
         tint,
+        axis,
+        pack_id: packId,
         sort_order: Number.isFinite(payload.sortOrder)
           ? Math.trunc(payload.sortOrder as number)
           : 0,
@@ -1007,6 +1038,70 @@ export class SyncSession {
         'A personal record may only be written under its own owner',
       );
     }
+  }
+
+  private requirePackScope(mutation: MutationEnvelope): void {
+    if (mutation.groupId !== packInstallsScope(this.profileId)) {
+      throw new HttpError(403, 'NOT_OWNER', 'A pack install belongs to its own owner');
+    }
+  }
+
+  /**
+   * Record that somebody installed a pack.
+   *
+   * The categories themselves are not written here: they arrive as ordinary
+   * `tag.create` mutations queued beside this one, because a packed category is
+   * an ordinary category and giving it a privileged write path would make it
+   * something else. This row only says which pack they came from — enough for
+   * the shelf to show "installed" and for a later version to offer what is new.
+   *
+   * The pack must be one we have published. `packs` is readable by
+   * `authenticated` only where `status = 'published'`, so reading it as the
+   * caller is the check: a draft or an unlisted pack simply is not there.
+   */
+  private async installPack(mutation: MutationEnvelope): Promise<unknown> {
+    this.requirePackScope(mutation);
+    const installId = requireString(mutation.payload.installId, 'installId');
+    const packId = requireString(mutation.payload.packId, 'packId');
+    const version = Number.isFinite(mutation.payload.version)
+      ? Math.max(1, Math.trunc(mutation.payload.version as number))
+      : 1;
+
+    const { data: pack, error: lookupError } = await this.caller
+      .from('packs')
+      .select('id')
+      .eq('id', packId)
+      .maybeSingle();
+    if (lookupError) throw new HttpError(500, 'INTERNAL', lookupError.message);
+    if (!pack) throw new HttpError(404, 'NO_SUCH_PACK', 'No such pack');
+
+    const { error } = await this.caller.from('pack_installs').upsert(
+      {
+        id: installId,
+        owner_user_id: this.profileId,
+        pack_id: packId,
+        version,
+        deleted_at: null,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'id' },
+    );
+    if (error) throw new HttpError(400, 'VALIDATION_FAILED', error.message);
+    return { installId };
+  }
+
+  /** Uninstall. A soft delete, so the tombstone reaches their other devices —
+   *  and only of this row: the categories the pack wrote are the person's own by
+   *  now, and taking them back would rewrite what they have already filed. */
+  private async uninstallPack(mutation: MutationEnvelope): Promise<unknown> {
+    this.requirePackScope(mutation);
+    const installId = requireString(mutation.payload.installId, 'installId');
+    const { error } = await this.caller
+      .from('pack_installs')
+      .update({ deleted_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+      .eq('id', installId);
+    if (error) throw new HttpError(400, 'VALIDATION_FAILED', error.message);
+    return { installId };
   }
 
   private async upsertPersonal(mutation: MutationEnvelope): Promise<unknown> {
@@ -1101,6 +1196,11 @@ async function pull(
   // suffixed key. Must equal `personalScope(profileId)` in @waves/core.
   const pfScope = `${profileId}:personal`;
   groupIds.delete(pfScope);
+
+  // Installed packs ride a fifth personal scope, its own suffixed key. Must
+  // equal `packInstallsScope(profileId)` in @waves/core.
+  const packScope = `${profileId}:pack_installs`;
+  groupIds.delete(packScope);
 
   // Every group's own row in one query rather than one lookup per group. The
   // per-group `maybeSingle` was the first of twelve serial round trips each
@@ -1246,6 +1346,15 @@ async function pull(
       column: 'owner_user_id',
       scope: pfScope,
       as: 'personal_records',
+    },
+    // The packs this person has installed. The packs themselves are not pulled:
+    // a catalogue of what we publish is not the user's data, and mirroring it
+    // would make every shelf browse an offline read of a stale shelf.
+    {
+      table: 'pack_installs',
+      column: 'owner_user_id',
+      scope: packScope,
+      as: 'pack_installs',
     },
   ] as const;
 

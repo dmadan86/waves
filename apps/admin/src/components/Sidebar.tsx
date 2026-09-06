@@ -99,6 +99,13 @@ const SECTIONS: Section[] = [
     ],
   },
   {
+    heading: 'Marketplace',
+    items: [
+      { href: '/packs', label: 'Packs', icon: I.tag },
+      { href: '/pack-requests', label: 'Pack requests', icon: I.chat },
+    ],
+  },
+  {
     heading: 'Voice',
     items: [
       { href: '/feedback', label: 'Feedback', icon: I.chat },

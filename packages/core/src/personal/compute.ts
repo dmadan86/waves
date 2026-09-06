@@ -5,6 +5,7 @@
  * device, which is the point of keeping it in core.
  */
 
+import { deterministicId } from '../ids';
 import type { CurrencyCode } from '../money/currency';
 import type {
   Cadence,
@@ -206,17 +207,10 @@ export function recurringCatchUp(
  * makes a collision vanishingly unlikely.
  */
 export function recurringOccurrenceId(ruleId: string, date: string): string {
-  const seed = `${ruleId}:${date}`;
-  const pass = (offset: number): string => {
-    let hash = offset >>> 0;
-    for (let i = 0; i < seed.length; i += 1) {
-      hash ^= seed.charCodeAt(i);
-      hash = Math.imul(hash, 0x01000193) >>> 0;
-    }
-    return hash.toString(16).padStart(8, '0');
-  };
-  const hex = pass(0x811c9dc5) + pass(0x7ee3a5b1) + pass(0x243f6a88) + pass(0x9e3779b9);
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
+  // The seed is unchanged from when this hashed inline: every occurrence already
+  // written carries an id derived from exactly this string, and a different seed
+  // here would orphan all of them.
+  return deterministicId(`${ruleId}:${date}`);
 }
 
 // ──────────────────────────────────────────────────────── occurrences ──

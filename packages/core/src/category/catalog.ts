@@ -47,6 +47,11 @@ export interface CategoryTagRow {
   readonly label: string | null;
   readonly icon: string | null;
   readonly tint: string | null;
+  /** Which picker the tag belongs in. Absent on every row written before the
+   *  income side existed, and every one of those was a spending category. */
+  readonly axis?: 'expense' | 'income' | null;
+  /** The pack this tag arrived from, for provenance. */
+  readonly packId?: string | null;
   readonly sortOrder: number;
   readonly hidden: boolean;
 }
@@ -138,7 +143,10 @@ export function buildCatalog(
   const customs: CategoryTagRow[] = [];
   for (const row of rows) {
     if (row.builtinId) overrides.set(row.builtinId, row);
-    else customs.push(row);
+    // An income source is not a spending category, and showing one in the spend
+    // picker is exactly the confusion the axis exists to end. A row with no axis
+    // predates the field, and every tag written before it was a spend category.
+    else if (row.axis !== 'income') customs.push(row);
   }
 
   const builtinEntries: CatalogEntry[] = CATEGORIES.map((category, index) => {
@@ -186,4 +194,38 @@ export function buildCatalog(
 export function nextSortOrder(rows: readonly CategoryTagRow[]): number {
   const max = rows.reduce((m, row) => Math.max(m, row.sortOrder), CATEGORIES.length - 1);
   return max + 1;
+}
+
+/**
+ * The person's own income sources — the custom half of the source picker.
+ *
+ * Deliberately not folded into `buildCatalog`: the ten spend categories are its
+ * built-ins and the fifteen income sources are a different list entirely, so one
+ * catalog would have to know which built-ins belong to which axis before it could
+ * say anything true. The picker concatenates instead, which is what it is doing
+ * on screen anyway.
+ */
+export function incomeTags(rows: readonly CategoryTagRow[]): CatalogEntry[] {
+  return rows
+    .filter((row) => !row.builtinId && row.axis === 'income')
+    .map((row) => ({
+      key: row.id,
+      icon: row.icon ?? OTHER.icon,
+      tint: normaliseTint(row.tint),
+      label: row.label ?? '',
+      custom: true,
+      builtinId: null,
+      hidden: row.hidden,
+      sortOrder: row.sortOrder,
+      tagId: row.id,
+    }))
+    .sort((a, b) =>
+      a.sortOrder !== b.sortOrder
+        ? a.sortOrder - b.sortOrder
+        : a.key < b.key
+          ? -1
+          : a.key > b.key
+            ? 1
+            : 0,
+    );
 }
