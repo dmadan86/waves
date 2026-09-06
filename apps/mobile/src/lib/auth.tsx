@@ -214,6 +214,14 @@ function metadataAvatar(user: Session['user']): string | null {
   return null;
 }
 
+/** The locale a provider sent, when it sent one. */
+function metadataLocale(user: Session['user']): string | null {
+  const value = (user.user_metadata ?? {})['locale'] as unknown;
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  return trimmed.length === 0 ? null : trimmed;
+}
+
 /**
  * Read this account's profile row, and make one if the database never did.
  *
@@ -262,11 +270,14 @@ async function loadProfile(
     }
 
     // Still nothing: the trigger is not going to write it. Write it here.
+    // The same three columns the trigger writes, read the same way — a profile
+    // must not depend on which of the three paths happened to create it.
     const { error: insertError } = await backend.from('profiles').insert({
       id: user.id,
       // ADR-006: anonymous guests get an account too, just an unnamed one.
       display_name: metadataName(user) ?? 'Guest',
       avatar_url: metadataAvatar(user),
+      locale: metadataLocale(user) ?? 'en',
     });
     // A conflict means the trigger won the race after all — the re-read below
     // picks up its row, so this is a success, not a failure.
@@ -346,11 +357,26 @@ const AuthContext = createContext<AuthValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
-  // Whether the profile load has run itself out. Bumping `profileAttempt` is
-  // what a retry does: it is the load effect's other dependency.
-  const [profileSettled, setProfileSettled] = useState(false);
+  // The profile, and the settled flag, are stored *with the account they belong
+  // to* rather than on their own.
+  //
+  // The load is asynchronous and takes seconds. Clearing state during render
+  // when the account changes is not enough to make a late write safe: passive
+  // effects run after the commit, so between the render that switches to
+  // account B and the cleanup that stops account A's effect there is a window
+  // where A's callback still fires — and it would put A's name and face on
+  // screen for B. Guarding the *write* with a flag closes it only if the flag
+  // is already false, which in that window it is not.
+  //
+  // Owning the id makes the question structural instead of a matter of timing:
+  // a value written for A is simply not read while B is signed in, whenever it
+  // lands. `loadProfile` selects by id, so `owner` is exactly whose row it is.
+  const [profileState, setProfileState] = useState<{
+    owner: string | null;
+    profile: Profile | null;
+    settled: boolean;
+  }>({ owner: null, profile: null, settled: false });
   const [profileAttempt, setProfileAttempt] = useState(0);
 
   useEffect(() => {
@@ -389,13 +415,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Adjusting state during render (rather than in an effect) is the documented
   // React pattern for "reset derived state when the input changes": it avoids a
   // render pass that would briefly show the previous user's profile.
-  const [profileFor, setProfileFor] = useState<string | null>(null);
   const currentUserId = session?.user?.id ?? null;
-  if (currentUserId !== profileFor) {
-    setProfileFor(currentUserId);
-    setProfile(null);
-    setProfileSettled(false);
-  }
+  // Reading through the owner is what resets it: a profile belonging to anybody
+  // but the account signed in right now is not this account's profile. No
+  // render-time clear, and nothing to go stale.
+  const profile = profileState.owner === currentUserId ? profileState.profile : null;
+  const profileSettled = profileState.owner === currentUserId && profileState.settled;
 
   // A crash report carries the account id and nothing else about who it is —
   // enough to tell one person hitting a bug fifty times from fifty people.
@@ -421,9 +446,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // ever has to record the giving-up, never the starting.
     void (async () => {
       const loaded = await loadProfile(user, (next) => {
-        if (active) setProfile(next);
+        if (active) setProfileState({ owner: user.id, profile: next, settled: false });
       });
-      if (active && !loaded) setProfileSettled(true);
+      if (active && !loaded) {
+        setProfileState((current) =>
+          current.owner === user.id
+            ? { ...current, settled: true }
+            : { owner: user.id, profile: null, settled: true },
+        );
+      }
     })();
     return () => {
       active = false;
@@ -437,7 +468,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       profileSettled,
       reloadProfile: () => {
-        setProfileSettled(false);
+        setProfileState((current) => ({ ...current, settled: false }));
         setProfileAttempt((n) => n + 1);
       },
       isGuest: session?.user?.is_anonymous === true,
@@ -570,7 +601,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           )
           .single();
         if (error) throw error;
-        setProfile(data as Profile);
+        setProfileState({ owner: session.user.id, profile: data as Profile, settled: false });
       },
 
       async refresh() {

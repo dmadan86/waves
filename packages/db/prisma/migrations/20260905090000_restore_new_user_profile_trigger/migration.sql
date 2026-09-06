@@ -17,6 +17,42 @@
 -- Two halves, both idempotent: re-create the trigger, then backfill the accounts
 -- that were created while it was missing.
 
+-- ─────────────────────────────── 0. one reading of the metadata, not three ──
+--
+-- A profile must not depend on which path created it. There are three:
+-- this trigger, the backfill below, and the client's self-heal in `auth.tsx`.
+-- They disagreed on the avatar: Google sends the photo under `picture` as well
+-- as `avatar_url`, and a provider that sends only `picture` gave a face through
+-- two of the three paths and initials through this one. Same ladder everywhere
+-- now — replaced rather than created, so this is safe to re-run.
+CREATE OR REPLACE FUNCTION public.waves_handle_new_user()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+BEGIN
+  INSERT INTO public.profiles (id, display_name, avatar_url, locale)
+  VALUES (
+    NEW.id,
+    COALESCE(
+      NULLIF(NEW.raw_user_meta_data ->> 'display_name', ''),
+      NULLIF(NEW.raw_user_meta_data ->> 'full_name', ''),
+      NULLIF(NEW.raw_user_meta_data ->> 'name', ''),
+      -- ADR-006: anonymous guests get an account too, just an unnamed one.
+      'Guest'
+    ),
+    COALESCE(
+      NULLIF(NEW.raw_user_meta_data ->> 'avatar_url', ''),
+      NULLIF(NEW.raw_user_meta_data ->> 'picture', '')
+    ),
+    COALESCE(NULLIF(NEW.raw_user_meta_data ->> 'locale', ''), 'en')
+  )
+  ON CONFLICT (id) DO NOTHING;
+  RETURN NEW;
+END
+$$;
+
 -- ─────────────────────────────────────────────── 1. the trigger, back ──
 --
 -- Guarded on `auth.users` existing, like the original: CI and the local drift
