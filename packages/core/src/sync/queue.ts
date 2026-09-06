@@ -12,8 +12,17 @@
  *     never overtake it, so a stalled mutation blocks everything behind it in
  *     the same group — and nothing at all in any other group.
  *  2. **Nothing is ever silently dropped.** A mutation leaves the queue only
- *     when the server confirms it applied, confirms it is a duplicate, or
- *     rejects it with a reason the user can be shown.
+ *     when the server confirms it applied or confirms it is a duplicate.
+ *  3. **A refusal is not a deletion.** A rejected mutation *stays* in the
+ *     queue, marked with its reason, until a person retries or discards it.
+ *
+ * Rule 3 is not bookkeeping — it is what keeps the thing the mutation made on
+ * screen. Every local read is the mirror with the queue laid over it, so a
+ * group created offline is visible because its `group.create` is in the queue.
+ * Dropping a rejection therefore *deleted* the group: the phone showed "Group
+ * not found" for a group somebody had just made, and the only trace was a red
+ * glyph in a corner. What the person made is theirs; a server that will not
+ * take it does not get to take it away.
  */
 
 import { MutationKind } from './protocol';
@@ -26,6 +35,12 @@ export interface QueuedMutation extends MutationEnvelope {
   /** Unix ms before which this mutation must not be retried. */
   readonly nextAttemptAt: number;
   readonly lastError?: string | null;
+  /**
+   * Set when the server refused this mutation. It stays in the queue carrying
+   * this, rather than leaving — see rule 3 above. Never retried on its own; a
+   * person clears it by retrying or discarding.
+   */
+  readonly rejection?: { readonly code: SyncRejectionCode; readonly message: string } | null;
 }
 
 /** Mutations that failed this many times stop retrying and ask the user. */
@@ -41,14 +56,28 @@ export function enqueue(
   queue: readonly QueuedMutation[],
   envelope: MutationEnvelope,
 ): QueuedMutation[] {
-  const seq = queue.reduce((highest, item) => Math.max(highest, item.seq), 0) + 1;
+  // Re-making a mutation that is already here replaces it, in its own place in
+  // the order. This matters now that a refusal stays in the queue: appending
+  // would leave two entries under one `clientMutationId` — two rows in the
+  // overlay and two banners for one change — and the server, which dedupes on
+  // that id, would only ever hear about one of them.
+  const existing = queue.find((item) => item.clientMutationId === envelope.clientMutationId);
+  const seq = existing
+    ? existing.seq
+    : queue.reduce((highest, item) => Math.max(highest, item.seq), 0) + 1;
   const queued: QueuedMutation = {
     ...envelope,
     seq,
     attempts: 0,
     nextAttemptAt: 0,
     lastError: null,
+    rejection: null,
   };
+  if (existing) {
+    return queue.map((item) =>
+      item.clientMutationId === envelope.clientMutationId ? queued : item,
+    );
+  }
   return coalesce([...queue, queued]);
 }
 
@@ -67,6 +96,9 @@ function coalesce(queue: readonly QueuedMutation[]): QueuedMutation[] {
     const previous = result[result.length - 1];
     const collapsible =
       previous !== undefined &&
+      // A refused edit has been seen by the server and is waiting on a person;
+      // folding a newer edit into it would silently change what they decide about.
+      !previous.rejection &&
       previous.kind === MutationKind.ExpenseUpdate &&
       item.kind === MutationKind.ExpenseUpdate &&
       previous.attempts === 0 &&
@@ -115,6 +147,14 @@ export function nextBatch(
 
   for (const item of [...queue].sort((a, b) => a.seq - b.seq)) {
     if (blocked.has(item.groupId)) continue;
+    // A refusal is the server's settled answer, so this is not a backoff to
+    // wait out — resending would fail identically, forever. It blocks its group
+    // for the same reason a stalled mutation does: what is queued behind it
+    // depends on it.
+    if (item.rejection) {
+      blocked.add(item.groupId);
+      continue;
+    }
     if (item.attempts >= maxAttempts || item.nextAttemptAt > now) {
       blocked.add(item.groupId);
       continue;
@@ -123,6 +163,32 @@ export function nextBatch(
     if (batch.length >= limit) break;
   }
   return batch;
+}
+
+/** The refused mutations still sitting in the queue, oldest first. */
+export function rejectedMutations(queue: readonly QueuedMutation[]): QueuedMutation[] {
+  return queue.filter((item) => Boolean(item.rejection)).sort((a, b) => a.seq - b.seq);
+}
+
+/**
+ * What is genuinely still on its way — the queue minus what the server has
+ * already refused. This is the count a "sending 1 change…" line may use: a
+ * refusal is not in flight, and saying it is would be a lie that never resolves.
+ */
+export function pendingMutations(queue: readonly QueuedMutation[]): QueuedMutation[] {
+  return queue.filter((item) => !item.rejection);
+}
+
+/** Clear a refusal so the mutation is sent again from a clean slate. */
+export function clearRejection(
+  queue: readonly QueuedMutation[],
+  clientMutationId: string,
+): QueuedMutation[] {
+  return queue.map((item) =>
+    item.clientMutationId === clientMutationId
+      ? { ...item, rejection: null, attempts: 0, nextAttemptAt: 0, lastError: null }
+      : item,
+  );
 }
 
 /** Mutations that have given up retrying and need the user to decide. */
@@ -164,7 +230,14 @@ export function applyOutcomes(
       continue;
     }
     if (outcome.status === 'applied' || outcome.status === 'duplicate') continue;
-    rejected.push({ mutation: item, code: outcome.code, message: outcome.message });
+    // Kept, not dropped (rule 3): the queue overlay is what puts this mutation's
+    // row on screen, so removing it here would delete what the person made.
+    const marked: QueuedMutation = {
+      ...item,
+      rejection: { code: outcome.code, message: outcome.message },
+    };
+    remaining.push(marked);
+    rejected.push({ mutation: marked, code: outcome.code, message: outcome.message });
   }
 
   return { queue: remaining, rejected: [...rejected] };

@@ -19,6 +19,7 @@ import fc from 'fast-check';
 import {
   applyOutcomes,
   backoffMs,
+  clearRejection,
   discard,
   emptyMirror,
   enqueue,
@@ -28,6 +29,8 @@ import {
   MutationKind,
   nextBatch,
   overlayPending,
+  pendingMutations,
+  rejectedMutations,
   reconcile,
   retryNow,
   SyncRejectionCode,
@@ -450,9 +453,44 @@ describe('the mutation queue', () => {
       },
     ]);
 
-    expect(result.queue).toHaveLength(0);
+    // Applied and duplicate both leave. The refusal does not: it stays, marked,
+    // because the queue overlay is what keeps its row on screen (rule 3).
+    expect(result.queue.map((item) => item.clientMutationId)).toEqual(['c']);
+    expect(result.queue[0]?.rejection?.code).toBe('SHARE_MISMATCH');
     expect(result.rejected).toHaveLength(1);
     expect(result.rejected[0]?.code).toBe('SHARE_MISMATCH');
+  });
+
+  it('keeps a refused mutation but never sends it again on its own', () => {
+    let queue: QueuedMutation[] = [];
+    queue = enqueue(queue, envelope('a', GROUP, MutationKind.GroupCreate));
+    queue = enqueue(queue, envelope('b', GROUP, MutationKind.ExpenseCreate));
+
+    queue = applyOutcomes(queue, [
+      {
+        clientMutationId: 'a',
+        status: 'rejected',
+        code: SyncRejectionCode.ValidationFailed,
+        message: 'no',
+      },
+    ]).queue;
+
+    // Still there — this is the group the person made.
+    expect(queue).toHaveLength(2);
+    expect(rejectedMutations(queue).map((item) => item.clientMutationId)).toEqual(['a']);
+    // Not in flight, so nothing claims to be sending it.
+    expect(pendingMutations(queue).map((item) => item.clientMutationId)).toEqual(['b']);
+    // And not resent by itself — nor is what is queued behind it, which depends
+    // on the create having landed.
+    expect(nextBatch(queue, { now: 10_000_000 })).toEqual([]);
+
+    // A person retrying clears the mark and the whole group flows again.
+    const retried = clearRejection(queue, 'a');
+    expect(rejectedMutations(retried)).toEqual([]);
+    expect(nextBatch(retried, { now: 10_000_000 }).map((item) => item.clientMutationId)).toEqual([
+      'a',
+      'b',
+    ]);
   });
 
   it('backs off exponentially and gives up rather than retrying forever', () => {

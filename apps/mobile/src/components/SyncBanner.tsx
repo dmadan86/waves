@@ -11,7 +11,7 @@ import { useEffect, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Animated, Easing, Pressable, View } from 'react-native';
 
-import { deadLettered } from '@waves/core';
+import { deadLettered, pendingMutations } from '@waves/core';
 import { Card, iconSize, Row, Text, useTheme } from '@waves/ui';
 
 import { plural, useStrings } from '@/i18n';
@@ -47,7 +47,11 @@ export function SyncStatusIcon({
   // keeps the whole-account view. Connection status (offline/syncing) stays
   // global, since the network is not per-group.
   const refused = groupId ? rejected.filter((item) => item.groupId === groupId) : rejected;
-  const pending = groupId ? queue.filter((item) => item.groupId === groupId) : queue;
+  // Refusals stay in the queue now (they are what keeps their row on screen),
+  // so "pending" has to mean the ones still on their way — otherwise a refused
+  // change would be counted twice: once as red, once as "sending…".
+  const unsent = pendingMutations(queue);
+  const pending = groupId ? unsent.filter((item) => item.groupId === groupId) : unsent;
   // A mutation that has exhausted its retries is not "syncing" — it has stopped,
   // and it blocks everything queued behind it in its group. Under the old
   // glyph it still counted as pending, so the header said "sending 1 change…"
@@ -146,7 +150,11 @@ export function SyncBanner({ groupId }: { groupId?: string }) {
   const { status, queue, rejected, retry, discard } = useSync();
   const { preference: syncNetwork } = useSyncNetwork();
 
-  const pending = groupId ? queue.filter((item) => item.groupId === groupId) : queue;
+  // Refusals stay in the queue now (they are what keeps their row on screen),
+  // so "pending" has to mean the ones still on their way — otherwise a refused
+  // change would be counted twice: once as red, once as "sending…".
+  const unsent = pendingMutations(queue);
+  const pending = groupId ? unsent.filter((item) => item.groupId === groupId) : unsent;
   const refused = groupId ? rejected.filter((item) => item.groupId === groupId) : rejected;
   const stuck = deadLettered(pending);
 
