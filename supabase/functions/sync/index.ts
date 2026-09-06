@@ -571,20 +571,22 @@ export class SyncSession {
         });
       case 'group_budget.set':
         // Admin-gated inside the RPC — kept a distinct kind rather than widening
-        // group.update, so any member cannot move the overall ceiling.
+        // group.update, so any member cannot move the overall ceiling. `null` is
+        // the clear operation; absent or malformed is a rejected payload, not an
+        // accidental clear.
         return await this.rpcAsCaller('waves_set_group_budget', {
           p_group_id: mutation.groupId,
-          p_amount_minor: (mutation.payload.amountMinor as string | null) ?? null,
-          p_currency: (mutation.payload.currency as string | undefined) ?? null,
+          p_amount_minor: nullableString(mutation.payload.amountMinor, 'amountMinor'),
+          p_currency: optionalText(mutation.payload.currency, 'currency'),
         });
       case 'category_budget.set':
         // Admin-gated inside the RPC, same as the overall budget; a null amount
         // clears that category's cap.
         return await this.rpcAsCaller('waves_set_category_budget', {
           p_group_id: mutation.groupId,
-          p_category: mutation.payload.category as string,
-          p_amount_minor: (mutation.payload.amountMinor as string | null) ?? null,
-          p_currency: (mutation.payload.currency as string | undefined) ?? null,
+          p_category: requireString(mutation.payload.category, 'category'),
+          p_amount_minor: nullableString(mutation.payload.amountMinor, 'amountMinor'),
+          p_currency: optionalText(mutation.payload.currency, 'currency'),
         });
       case 'group_fx_rate.set':
         // Admin-gated inside the RPC, like the budgets; a null ratio clears that
@@ -592,10 +594,10 @@ export class SyncSession {
         // computed — never a decimal (ADR-003).
         return await this.rpcAsCaller('waves_set_group_fx_rate', {
           p_group_id: mutation.groupId,
-          p_from: mutation.payload.from as string,
-          p_num: (mutation.payload.num as string | null) ?? null,
-          p_den: (mutation.payload.den as string | null) ?? null,
-          p_source: (mutation.payload.source as string | undefined) ?? 'manual',
+          p_from: requireString(mutation.payload.from, 'from'),
+          p_num: nullableString(mutation.payload.num, 'num'),
+          p_den: nullableString(mutation.payload.den, 'den'),
+          p_source: optionalText(mutation.payload.source, 'source') ?? 'manual',
         });
       default:
         throw new HttpError(
@@ -1285,6 +1287,24 @@ async function pull(
 function requireString(value: unknown, field: string): string {
   if (typeof value !== 'string' || value.length === 0) {
     throw new HttpError(400, 'VALIDATION_FAILED', `${field} is required`);
+  }
+  return value;
+}
+
+/**
+ * A required field whose explicit `null` means "clear it". Missing is not the
+ * same thing as clearing, and a non-text value is a malformed sync payload.
+ */
+function nullableString(value: unknown, field: string): string | null {
+  if (value === null) return null;
+  return requireString(value, field);
+}
+
+/** Optional text that may be absent/null, but may not be some other shape. */
+function optionalText(value: unknown, field: string): string | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== 'string') {
+    throw new HttpError(400, 'VALIDATION_FAILED', `${field} must be text`);
   }
   return value;
 }
