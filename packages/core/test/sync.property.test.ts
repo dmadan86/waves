@@ -28,6 +28,8 @@ import {
   MutationKind,
   nextBatch,
   overlayPending,
+  pendingMutations,
+  rejectedMutations,
   reconcile,
   retryNow,
   SyncRejectionCode,
@@ -450,9 +452,475 @@ describe('the mutation queue', () => {
       },
     ]);
 
-    expect(result.queue).toHaveLength(0);
+    // Applied and duplicate both leave. The refusal does not: it stays, marked,
+    // because the queue overlay is what keeps its row on screen (rule 3).
+    expect(result.queue.map((item) => item.clientMutationId)).toEqual(['c']);
+    expect(result.queue[0]?.rejection?.code).toBe('SHARE_MISMATCH');
     expect(result.rejected).toHaveLength(1);
     expect(result.rejected[0]?.code).toBe('SHARE_MISMATCH');
+  });
+
+  it('keeps a refused mutation but never sends it again on its own', () => {
+    let queue: QueuedMutation[] = [];
+    queue = enqueue(queue, envelope('a', GROUP, MutationKind.GroupCreate));
+    queue = enqueue(queue, envelope('b', GROUP, MutationKind.ExpenseCreate));
+
+    queue = applyOutcomes(queue, [
+      {
+        clientMutationId: 'a',
+        status: 'rejected',
+        code: SyncRejectionCode.ValidationFailed,
+        message: 'no',
+      },
+    ]).queue;
+
+    // Still there — this is the group the person made.
+    expect(queue).toHaveLength(2);
+    expect(rejectedMutations(queue).map((item) => item.clientMutationId)).toEqual(['a']);
+    // Not in flight, so nothing claims to be sending it.
+    expect(pendingMutations(queue).map((item) => item.clientMutationId)).toEqual(['b']);
+    // And not resent by itself — nor is what is queued behind it, which depends
+    // on the create having landed.
+    expect(nextBatch(queue, { now: 10_000_000 })).toEqual([]);
+
+    // A person retrying clears the mark and the whole group flows again.
+    //
+    // `retryNow` has to clear the *rejection*, not just the backoff. Resetting
+    // `attempts` alone leaves the mutation exactly as stuck, because
+    // `nextBatch` skips a marked one outright — a retry button that visibly
+    // does nothing. There is deliberately only one retry function for this
+    // reason; a second would be the one that forgets.
+    const retried = retryNow(queue, 'a');
+    expect(retried.find((item) => item.clientMutationId === 'a')?.rejection).toBeFalsy();
+    expect(rejectedMutations(retried)).toEqual([]);
+    expect(nextBatch(retried, { now: 10_000_000 }).map((item) => item.clientMutationId)).toEqual([
+      'a',
+      'b',
+    ]);
+  });
+
+  it('lets a user correct a rejected group create instead of blocking the edit behind it', () => {
+    let queue: QueuedMutation[] = [];
+    queue = enqueue(queue, {
+      clientMutationId: 'create-group',
+      kind: MutationKind.GroupCreate,
+      groupId: 'g-draft',
+      clientCreatedAt: '2026-03-01T00:00:00Z',
+      payload: { name: '', type: 'trip', currency: 'INR' },
+    });
+    queue = applyOutcomes(queue, [
+      {
+        clientMutationId: 'create-group',
+        status: 'rejected',
+        code: SyncRejectionCode.ValidationFailed,
+        message: 'Name required',
+      },
+    ]).queue;
+
+    queue = enqueue(queue, {
+      clientMutationId: 'rename-group',
+      kind: MutationKind.GroupUpdate,
+      groupId: 'g-draft',
+      clientCreatedAt: '2026-03-01T00:01:00Z',
+      payload: { name: 'Goa riders' },
+    });
+
+    expect(queue).toHaveLength(1);
+    expect(rejectedMutations(queue)).toEqual([]);
+    expect(queue[0]?.clientMutationId).toBe('create-group');
+    expect(queue[0]?.kind).toBe(MutationKind.GroupCreate);
+    expect(queue[0]?.payload).toMatchObject({ name: 'Goa riders', type: 'trip' });
+    expect(nextBatch(queue, { now: 10_000_000 }).map((item) => item.clientMutationId)).toEqual([
+      'create-group',
+    ]);
+  });
+
+  it('lets a rider fix a rejected expense create with a later edit of the same expense', () => {
+    const payload: ExpenseCreatePayload = {
+      expenseId: 'e-ride',
+      description: 'Cab',
+      expenseDate: '2026-03-01',
+      currency: INR,
+      amount: '1200',
+      splitParams: { kind: 'equal' },
+      participants: ['m1'],
+      payers: { m1: '1200' },
+    };
+    const first: MutationEnvelope = {
+      clientMutationId: 'create-ride',
+      kind: MutationKind.ExpenseCreate,
+      groupId: GROUP,
+      clientCreatedAt: '2026-03-01T00:00:00Z',
+      payload,
+    };
+    let queue = applyOutcomes(enqueue([], first), [
+      {
+        clientMutationId: 'create-ride',
+        status: 'rejected',
+        code: SyncRejectionCode.ShareMismatch,
+        message: 'Shares do not add up',
+      },
+    ]).queue;
+
+    queue = enqueue(queue, {
+      ...first,
+      clientMutationId: 'fix-ride',
+      kind: MutationKind.ExpenseUpdate,
+      payload: { ...payload, participants: members },
+    });
+
+    expect(queue).toHaveLength(1);
+    expect(queue[0]?.clientMutationId).toBe('create-ride');
+    expect(queue[0]?.kind).toBe(MutationKind.ExpenseCreate);
+    expect((queue[0]?.payload as { participants: readonly string[] }).participants).toEqual(
+      members,
+    );
+    expect(nextBatch(queue, { now: 10_000_000 }).map((item) => item.clientMutationId)).toEqual([
+      'create-ride',
+    ]);
+  });
+
+  it('lets a traveller fix a rejected plan item create with a later update', () => {
+    let queue: QueuedMutation[] = [];
+    queue = enqueue(queue, {
+      clientMutationId: 'create-stop',
+      kind: MutationKind.PlanItemCreate,
+      groupId: GROUP,
+      clientCreatedAt: '2026-03-01T00:00:00Z',
+      payload: { itemId: 'plan-1', title: '', position: 1 },
+    });
+    queue = applyOutcomes(queue, [
+      {
+        clientMutationId: 'create-stop',
+        status: 'rejected',
+        code: SyncRejectionCode.ValidationFailed,
+        message: 'Title required',
+      },
+    ]).queue;
+
+    queue = enqueue(queue, {
+      clientMutationId: 'fix-stop',
+      kind: MutationKind.PlanItemUpdate,
+      groupId: GROUP,
+      clientCreatedAt: '2026-03-01T00:01:00Z',
+      payload: { itemId: 'plan-1', title: 'Airport transfer' },
+    });
+
+    expect(queue).toHaveLength(1);
+    expect(queue[0]?.clientMutationId).toBe('create-stop');
+    expect(queue[0]?.kind).toBe(MutationKind.PlanItemCreate);
+    expect(queue[0]?.payload).toMatchObject({ itemId: 'plan-1', title: 'Airport transfer' });
+    expect(rejectedMutations(queue)).toEqual([]);
+  });
+
+  it('lets a financer correct a rejected personal-record upsert with a later upsert', () => {
+    let queue: QueuedMutation[] = [];
+    queue = enqueue(queue, {
+      clientMutationId: 'create-loan',
+      kind: MutationKind.PersonalUpsert,
+      groupId: 'p-me:personal',
+      clientCreatedAt: '2026-03-01T00:00:00Z',
+      payload: {
+        recordId: 'loan-1',
+        recordKind: 'loan',
+        data: { person: '', principalMinor: '5000' },
+      },
+    });
+    queue = applyOutcomes(queue, [
+      {
+        clientMutationId: 'create-loan',
+        status: 'rejected',
+        code: SyncRejectionCode.ValidationFailed,
+        message: 'Person required',
+      },
+    ]).queue;
+
+    queue = enqueue(queue, {
+      clientMutationId: 'fix-loan',
+      kind: MutationKind.PersonalUpsert,
+      groupId: 'p-me:personal',
+      clientCreatedAt: '2026-03-01T00:01:00Z',
+      payload: {
+        recordId: 'loan-1',
+        recordKind: 'loan',
+        data: { person: 'Asha', principalMinor: '5000' },
+      },
+    });
+
+    expect(queue).toHaveLength(1);
+    expect(queue[0]?.clientMutationId).toBe('create-loan');
+    expect(queue[0]?.kind).toBe(MutationKind.PersonalUpsert);
+    expect(queue[0]?.payload).toMatchObject({
+      recordId: 'loan-1',
+      data: { person: 'Asha', principalMinor: '5000' },
+    });
+    expect(nextBatch(queue, { now: 10_000_000 }).map((item) => item.clientMutationId)).toEqual([
+      'create-loan',
+    ]);
+  });
+
+  /**
+   * A `group.update` speaks in column names and a queued `group.create` payload
+   * does not, so a plain merge lined up on `name` and nothing else: correcting
+   * a refused group's icon wrote `cover_emoji` into a payload the create reads
+   * as `emoji`, and the edit silently reverted.
+   */
+  it('translates a group correction into the shape the blocked create speaks', () => {
+    let queue: QueuedMutation[] = [];
+    queue = enqueue(queue, {
+      clientMutationId: 'create-goa',
+      kind: MutationKind.GroupCreate,
+      groupId: GROUP,
+      clientCreatedAt: '2026-03-01T00:00:00Z',
+      payload: { name: null, type: 'trip', currency: 'INR', emoji: '🏖️', simplify: true },
+    });
+    queue = applyOutcomes(queue, [
+      {
+        clientMutationId: 'create-goa',
+        status: 'rejected',
+        code: SyncRejectionCode.ValidationFailed,
+        message: 'no',
+      },
+    ]).queue;
+
+    queue = enqueue(queue, {
+      clientMutationId: 'rename-goa',
+      kind: MutationKind.GroupUpdate,
+      groupId: GROUP,
+      clientCreatedAt: '2026-03-01T00:01:00Z',
+      payload: { name: 'Goa', cover_emoji: '⛱️', default_currency: 'USD' },
+    });
+
+    // One entry still — the create, repaired and sendable again.
+    expect(queue).toHaveLength(1);
+    expect(queue[0]?.rejection).toBeFalsy();
+    expect(queue[0]?.payload).toMatchObject({
+      name: 'Goa',
+      emoji: '⛱️',
+      currency: 'USD',
+      type: 'trip',
+    });
+    // And nothing left speaking the column names the create cannot read.
+    expect(queue[0]?.payload).not.toHaveProperty('cover_emoji');
+    expect(queue[0]?.payload).not.toHaveProperty('default_currency');
+  });
+
+  it('queues what a create cannot carry behind it rather than swallowing it', () => {
+    let queue: QueuedMutation[] = [];
+    queue = enqueue(queue, {
+      clientMutationId: 'create-goa',
+      kind: MutationKind.GroupCreate,
+      groupId: GROUP,
+      clientCreatedAt: '2026-03-01T00:00:00Z',
+      payload: { name: 'Goa', type: 'trip', currency: 'INR' },
+    });
+    queue = applyOutcomes(queue, [
+      {
+        clientMutationId: 'create-goa',
+        status: 'rejected',
+        code: SyncRejectionCode.ValidationFailed,
+        message: 'no',
+      },
+    ]).queue;
+
+    // Trip dates have no create-side equivalent — they are a real edit and must
+    // survive as a follow-up, not disappear into a payload that ignores them.
+    queue = enqueue(queue, {
+      clientMutationId: 'dates-goa',
+      kind: MutationKind.GroupUpdate,
+      groupId: GROUP,
+      clientCreatedAt: '2026-03-01T00:01:00Z',
+      payload: { name: 'Goa trip', start_date: '2026-04-01', end_date: '2026-04-07' },
+    });
+
+    expect(queue).toHaveLength(2);
+    expect(queue[0]?.payload).toMatchObject({ name: 'Goa trip' });
+    expect(queue[1]?.payload).toEqual({ start_date: '2026-04-01', end_date: '2026-04-07' });
+    // The create is unblocked, so both flow, in order.
+    expect(nextBatch(queue, { now: 10_000_000 }).map((item) => item.clientMutationId)).toEqual([
+      'create-goa',
+      'dates-goa',
+    ]);
+  });
+
+  it('lets a user delete a rejected pending expense instead of keeping it as a blocker', () => {
+    let queue: QueuedMutation[] = [];
+    queue = enqueue(queue, {
+      clientMutationId: 'create-snack',
+      kind: MutationKind.ExpenseCreate,
+      groupId: GROUP,
+      clientCreatedAt: '2026-03-01T00:00:00Z',
+      payload: {
+        expenseId: 'e-snack',
+        description: 'Snack',
+        expenseDate: '2026-03-01',
+        currency: INR,
+        amount: '0',
+        splitParams: { kind: 'equal' },
+        participants: members,
+        payers: { m1: '0' },
+      },
+    });
+    queue = applyOutcomes(queue, [
+      {
+        clientMutationId: 'create-snack',
+        status: 'rejected',
+        code: SyncRejectionCode.ValidationFailed,
+        message: 'Amount required',
+      },
+    ]).queue;
+
+    queue = enqueue(queue, {
+      clientMutationId: 'delete-snack',
+      kind: MutationKind.ExpenseDelete,
+      groupId: GROUP,
+      clientCreatedAt: '2026-03-01T00:01:00Z',
+      payload: { expenseId: 'e-snack' },
+    });
+
+    expect(queue).toEqual([]);
+  });
+
+  it('lets a rider clear a rejected pending personal trip budget', () => {
+    let queue: QueuedMutation[] = [];
+    queue = enqueue(queue, {
+      clientMutationId: 'set-rider-budget',
+      kind: MutationKind.MemberBudgetSet,
+      groupId: GROUP,
+      clientCreatedAt: '2026-03-01T00:00:00Z',
+      payload: { amountMinor: '-1', currency: INR, visibility: 'private' },
+    });
+    queue = applyOutcomes(queue, [
+      {
+        clientMutationId: 'set-rider-budget',
+        status: 'rejected',
+        code: SyncRejectionCode.ValidationFailed,
+        message: 'Budget must be positive',
+      },
+    ]).queue;
+
+    queue = enqueue(queue, {
+      clientMutationId: 'clear-rider-budget',
+      kind: MutationKind.MemberBudgetClear,
+      groupId: GROUP,
+      clientCreatedAt: '2026-03-01T00:01:00Z',
+      payload: {},
+    });
+
+    expect(queue).toEqual([]);
+  });
+
+  it('lets a traveller correct rejected trip budget and rate settings', () => {
+    let queue: QueuedMutation[] = [];
+    queue = enqueue(queue, {
+      clientMutationId: 'set-trip-budget',
+      kind: MutationKind.GroupBudgetSet,
+      groupId: GROUP,
+      clientCreatedAt: '2026-03-01T00:00:00Z',
+      payload: { amountMinor: '-1', currency: INR },
+    });
+    queue = enqueue(queue, {
+      clientMutationId: 'set-food-budget',
+      kind: MutationKind.CategoryBudgetSet,
+      groupId: GROUP,
+      clientCreatedAt: '2026-03-01T00:00:01Z',
+      payload: { category: 'food', amountMinor: '-1', currency: INR },
+    });
+    queue = enqueue(queue, {
+      clientMutationId: 'set-usd-rate',
+      kind: MutationKind.GroupFxRateSet,
+      groupId: GROUP,
+      clientCreatedAt: '2026-03-01T00:00:02Z',
+      payload: { from: 'USD', num: '0', den: '0', source: 'manual' },
+    });
+    queue = applyOutcomes(queue, [
+      {
+        clientMutationId: 'set-trip-budget',
+        status: 'rejected',
+        code: SyncRejectionCode.ValidationFailed,
+        message: 'Budget must be positive',
+      },
+      {
+        clientMutationId: 'set-food-budget',
+        status: 'rejected',
+        code: SyncRejectionCode.ValidationFailed,
+        message: 'Budget must be positive',
+      },
+      {
+        clientMutationId: 'set-usd-rate',
+        status: 'rejected',
+        code: SyncRejectionCode.ValidationFailed,
+        message: 'Rate must be positive',
+      },
+    ]).queue;
+
+    queue = enqueue(queue, {
+      clientMutationId: 'fix-trip-budget',
+      kind: MutationKind.GroupBudgetSet,
+      groupId: GROUP,
+      clientCreatedAt: '2026-03-01T00:01:00Z',
+      payload: { amountMinor: '100000', currency: INR },
+    });
+    queue = enqueue(queue, {
+      clientMutationId: 'fix-food-budget',
+      kind: MutationKind.CategoryBudgetSet,
+      groupId: GROUP,
+      clientCreatedAt: '2026-03-01T00:01:01Z',
+      payload: { category: 'food', amountMinor: '25000', currency: INR },
+    });
+    queue = enqueue(queue, {
+      clientMutationId: 'fix-usd-rate',
+      kind: MutationKind.GroupFxRateSet,
+      groupId: GROUP,
+      clientCreatedAt: '2026-03-01T00:01:02Z',
+      payload: { from: 'USD', num: '83', den: '1', source: 'manual' },
+    });
+
+    expect(queue).toHaveLength(3);
+    expect(rejectedMutations(queue)).toEqual([]);
+    expect(queue.map((item) => item.clientMutationId)).toEqual([
+      'set-trip-budget',
+      'set-food-budget',
+      'set-usd-rate',
+    ]);
+    expect(queue.map((item) => item.payload)).toEqual([
+      { amountMinor: '100000', currency: INR },
+      { category: 'food', amountMinor: '25000', currency: INR },
+      { from: 'USD', num: '83', den: '1', source: 'manual' },
+    ]);
+  });
+
+  it('lets a financer delete a rejected pending personal record', () => {
+    let queue: QueuedMutation[] = [];
+    queue = enqueue(queue, {
+      clientMutationId: 'create-budget',
+      kind: MutationKind.PersonalUpsert,
+      groupId: 'p-me:personal',
+      clientCreatedAt: '2026-03-01T00:00:00Z',
+      payload: {
+        recordId: 'budget-1',
+        recordKind: 'budget',
+        data: { category: 'food', amountMinor: '-1' },
+      },
+    });
+    queue = applyOutcomes(queue, [
+      {
+        clientMutationId: 'create-budget',
+        status: 'rejected',
+        code: SyncRejectionCode.ValidationFailed,
+        message: 'Budget must be positive',
+      },
+    ]).queue;
+
+    queue = enqueue(queue, {
+      clientMutationId: 'delete-budget',
+      kind: MutationKind.PersonalDelete,
+      groupId: 'p-me:personal',
+      clientCreatedAt: '2026-03-01T00:01:00Z',
+      payload: { recordId: 'budget-1' },
+    });
+
+    expect(queue).toEqual([]);
   });
 
   it('backs off exponentially and gives up rather than retrying forever', () => {

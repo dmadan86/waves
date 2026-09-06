@@ -20,6 +20,7 @@ import { AppState } from 'react-native';
 import * as Network from 'expo-network';
 import { randomUUID } from 'expo-crypto';
 
+import { pendingMutations } from '@waves/core';
 import type { MutationEnvelope, MutationKind } from '@waves/core';
 
 import { useAuth } from '@/lib/auth';
@@ -233,7 +234,10 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       retry: (id: string) => syncEngine.retry(id),
       discard: (id: string) => syncEngine.discard(id),
       forgetGroup: (groupId: string) => syncEngine.forgetGroup(groupId),
-      pendingCount: state.queue.length,
+      // What is genuinely still on its way. A refused mutation stays in the
+      // queue so its row stays on screen, but it is not in flight — counting it
+      // as pending would show a "sending…" that never finishes.
+      pendingCount: pendingMutations(state.queue).length,
     }),
     [state, mutate],
   );

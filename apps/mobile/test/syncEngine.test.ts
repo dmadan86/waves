@@ -578,12 +578,112 @@ describe('queue and draft controls', () => {
       payload: { name: '' },
     });
     await engine.flush();
-    expect(engine.getState().queue).toEqual([]);
+    // The refusal stays in the queue — that is what keeps whatever it made on
+    // screen — and is reported through `rejected` rather than removed.
+    expect(engine.getState().queue.map((item) => item.clientMutationId)).toEqual(['bad-edit']);
+    expect(engine.getState().queue[0]?.rejection?.message).toBe('Nope');
     expect(engine.getState().rejected.map((item) => item.clientMutationId)).toEqual(['bad-edit']);
 
+    // The server takes it on the retry, so nothing is left refused.
+    h.invoke.mockResolvedValue({
+      data: {
+        outcomes: [{ clientMutationId: 'bad-edit', status: 'applied' }],
+        changes: [],
+        cursors: {},
+        serverTime: 'accepted',
+      },
+      error: null,
+    });
     await engine.retry('bad-edit');
     expect(engine.getState().rejected).toEqual([]);
+    await engine.flush();
+    expect(engine.getState().queue).toEqual([]);
     expect(h.disk.queue).toEqual([]);
+  });
+
+  it('keeps a refused group.create so the group does not vanish', async () => {
+    online();
+    h.invoke.mockResolvedValue({
+      data: {
+        outcomes: [
+          {
+            clientMutationId: 'made-a-group',
+            status: 'rejected',
+            code: 'VALIDATION_FAILED',
+            message: 'Nope',
+          },
+        ],
+        changes: [],
+        cursors: {},
+        serverTime: 'reject',
+      },
+      error: null,
+    });
+    const engine = new SyncEngine();
+    await engine.enqueue({
+      clientMutationId: 'made-a-group',
+      kind: 'group.create' as never,
+      groupId: 'g-new',
+      clientCreatedAt: '2026-09-06T00:00:00.000Z',
+      payload: { name: null, type: 'trip', currency: 'INR' },
+    });
+    await engine.flush();
+
+    // The whole point: the group is still on the phone. Every local read is the
+    // mirror with the queue over it, so dropping this envelope would delete the
+    // group somebody just made and leave "Group not found" behind it.
+    const held = engine.getState().queue;
+    expect(held.map((item) => item.groupId)).toEqual(['g-new']);
+    expect(held[0]?.rejection?.code).toBe('VALIDATION_FAILED');
+    expect(h.disk.queue).toHaveLength(1);
+
+    // It only leaves when a person says so.
+    await engine.discard('made-a-group');
+    expect(engine.getState().queue).toEqual([]);
+    expect(engine.getState().rejected).toEqual([]);
+  });
+
+  it('sends what a discarded mutation was blocking, without waiting for the poll', async () => {
+    online();
+    h.invoke.mockResolvedValue({
+      data: {
+        outcomes: [
+          {
+            clientMutationId: 'blocker',
+            status: 'rejected',
+            code: 'VALIDATION_FAILED',
+            message: 'Nope',
+          },
+        ],
+        changes: [],
+        cursors: {},
+        serverTime: 'reject',
+      },
+      error: null,
+    });
+    const engine = new SyncEngine();
+    await engine.enqueue({
+      clientMutationId: 'blocker',
+      kind: 'group.create' as never,
+      groupId: 'g-new',
+      clientCreatedAt: '2026-09-06T00:00:00.000Z',
+      payload: { name: null, type: 'trip', currency: 'INR' },
+    });
+    await engine.enqueue({
+      clientMutationId: 'behind-it',
+      kind: 'expense.create' as never,
+      groupId: 'g-new',
+      clientCreatedAt: '2026-09-06T00:00:01.000Z',
+      payload: {},
+    });
+    await engine.flush();
+    const callsBefore = h.invoke.mock.calls.length;
+
+    // Discarding the blocker makes what was queued behind it sendable — so it
+    // has to be sent, not left to wait out the 30-second poll.
+    await engine.discard('blocker');
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(h.invoke.mock.calls.length).toBeGreaterThan(callsBefore);
   });
 
   it('discard removes a still-queued failed mutation from memory and disk', async () => {
