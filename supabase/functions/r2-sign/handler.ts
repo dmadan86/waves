@@ -355,6 +355,9 @@ export async function handleR2Sign(request: Request, deps: R2SignDeps): Promise<
     // (f)). Short TTL, and no Supabase-Storage dual-read fallback — these buckets
     // are new, so a missing object is simply gone, not "on the old backend".
     if (action === 'get' && restricted) {
+      const groupId = await groupOfSubject(service, bucket, subjectId as string);
+      await requireMembership(caller, groupId);
+      await requireRestrictedParty(caller, bucket, subjectId as string);
       await assertRestrictedPath(caller, bucket, subjectId as string, path);
       const getUrl = new URL(objectUrl(bucket, path));
       getUrl.searchParams.set('X-Amz-Expires', String(RESTRICTED_URL_TTL_SECONDS));
