@@ -399,18 +399,6 @@ export function pendingMutations(queue: readonly QueuedMutation[]): QueuedMutati
   return queue.filter((item) => !item.rejection);
 }
 
-/** Clear a refusal so the mutation is sent again from a clean slate. */
-export function clearRejection(
-  queue: readonly QueuedMutation[],
-  clientMutationId: string,
-): QueuedMutation[] {
-  return queue.map((item) =>
-    item.clientMutationId === clientMutationId
-      ? { ...item, rejection: null, attempts: 0, nextAttemptAt: 0, lastError: null }
-      : item,
-  );
-}
-
 /** Mutations that have given up retrying and need the user to decide. */
 export function deadLettered(
   queue: readonly QueuedMutation[],
@@ -489,14 +477,20 @@ export function discard(
   return queue.filter((item) => item.clientMutationId !== clientMutationId);
 }
 
-/** Send it again now, ignoring the backoff — the user tapped "retry". */
+/**
+ * Send it again now — the user tapped "retry".
+ *
+ * Clears the refusal as well as the backoff. `nextBatch` skips a marked
+ * mutation outright, so resetting only `attempts` would leave the mutation
+ * exactly as stuck as it was: a retry that visibly does nothing.
+ */
 export function retryNow(
   queue: readonly QueuedMutation[],
   clientMutationId: string,
 ): QueuedMutation[] {
   return queue.map((item) =>
     item.clientMutationId === clientMutationId
-      ? { ...item, attempts: 0, nextAttemptAt: 0, lastError: null }
+      ? { ...item, attempts: 0, nextAttemptAt: 0, lastError: null, rejection: null }
       : item,
   );
 }

@@ -741,6 +741,9 @@ export interface UiStrings {
     stuckCount: PluralForms;
     /** The line under that heading: still saved, just not sent. */
     stuckExplain: string;
+    /** Screen-reader hint on the header's red sync mark, which opens the
+     *  account-wide banner carrying retry and discard. */
+    openDetail: string;
   };
   /** The app lock, the delay before it asks again, and the way out. */
   lock: {
@@ -3043,6 +3046,7 @@ const en: UiStrings = {
     },
     stuckExplain:
       'Still saved on this phone — it just keeps failing to send. Try again, or let it go.',
+    openDetail: 'Opens what needs your decision',
   },
   lock: {
     title: 'Security',
@@ -5247,6 +5251,7 @@ const ta: UiStrings = {
     },
     stuckExplain:
       'இந்த ஃபோனில் இன்னும் சேமிக்கப்பட்டுள்ளது — அனுப்ப முடியவில்லை. மீண்டும் முயற்சிக்கவும், அல்லது நீக்கிவிடவும்.',
+    openDetail: 'உங்கள் முடிவு தேவைப்படுவதைத் திறக்கும்',
   },
   lock: {
     title: 'பாதுகாப்பு',
@@ -7526,6 +7531,7 @@ const hi: UiStrings = {
     },
     stuckExplain:
       'इस फ़ोन पर अब भी सहेजा है — बस भेजा नहीं जा पा रहा। दोबारा कोशिश करें, या हटा दें।',
+    openDetail: 'आपके निर्णय की ज़रूरत वाली चीज़ खोलता है',
   },
   lock: {
     title: 'सुरक्षा',
@@ -9748,6 +9754,7 @@ const ar: UiStrings = {
       other: '{n} تغيير عالق',
     },
     stuckExplain: 'ما زال محفوظًا على هذا الهاتف — لكنه لا يُرسَل. أعد المحاولة، أو تجاهله.',
+    openDetail: 'يفتح ما يحتاج إلى قرارك',
   },
   lock: {
     title: 'الأمان',

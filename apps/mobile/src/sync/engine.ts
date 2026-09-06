@@ -18,13 +18,13 @@ import {
   dialingCodeForCountry,
   emptyMirror,
   enqueue as enqueueMutation,
-  clearRejection,
   markFailed,
   MutationKind,
   nextBatch,
-  rejectedMutations,
   normalisePhoneInRegion,
   reconcile,
+  rejectedMutations,
+  retryNow,
   SyncTable,
   type MirrorRow,
   type MirrorState,
@@ -287,9 +287,10 @@ export class SyncEngine {
   }
 
   async retry(clientMutationId: string): Promise<void> {
-    // Clears the refusal as well as the backoff: a marked mutation is never
-    // picked up by `nextBatch`, so without this the retry would do nothing.
-    const queue = clearRejection(this.state.queue, clientMutationId);
+    // `retryNow` clears the refusal as well as the backoff — a marked mutation
+    // is never picked up by `nextBatch`, so resetting only the attempts would
+    // leave it exactly as stuck.
+    const queue = retryNow(this.state.queue, clientMutationId);
     this.set({
       queue,
       rejected: describeRejections(queue),

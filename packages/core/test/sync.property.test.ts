@@ -19,7 +19,6 @@ import fc from 'fast-check';
 import {
   applyOutcomes,
   backoffMs,
-  clearRejection,
   discard,
   emptyMirror,
   enqueue,
@@ -485,7 +484,14 @@ describe('the mutation queue', () => {
     expect(nextBatch(queue, { now: 10_000_000 })).toEqual([]);
 
     // A person retrying clears the mark and the whole group flows again.
-    const retried = clearRejection(queue, 'a');
+    //
+    // `retryNow` has to clear the *rejection*, not just the backoff. Resetting
+    // `attempts` alone leaves the mutation exactly as stuck, because
+    // `nextBatch` skips a marked one outright — a retry button that visibly
+    // does nothing. There is deliberately only one retry function for this
+    // reason; a second would be the one that forgets.
+    const retried = retryNow(queue, 'a');
+    expect(retried.find((item) => item.clientMutationId === 'a')?.rejection).toBeFalsy();
     expect(rejectedMutations(retried)).toEqual([]);
     expect(nextBatch(retried, { now: 10_000_000 }).map((item) => item.clientMutationId)).toEqual([
       'a',

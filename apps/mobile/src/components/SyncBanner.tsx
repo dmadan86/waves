@@ -12,7 +12,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Animated, Easing, Pressable, View } from 'react-native';
 
 import { deadLettered, pendingMutations } from '@waves/core';
-import { Card, iconSize, Row, Text, useTheme } from '@waves/ui';
+import { Card, iconSize, Row, Sheet, Text, useTheme } from '@waves/ui';
 
 import { plural, useStrings } from '@/i18n';
 
@@ -60,6 +60,7 @@ export function SyncStatusIcon({
   const stuck = deadLettered(pending);
   const stopped = refused.length + stuck.length;
 
+  const [detailOpen, setDetailOpen] = useState(false);
   const spin = useState(() => new Animated.Value(0))[0];
   const spinning = status === SyncStatus.Syncing && !reduceMotion;
   useEffect(() => {
@@ -120,27 +121,59 @@ export function SyncStatusIcon({
   if (!state) return null;
 
   const glyph = <Ionicons name={state.icon} size={iconSize.xl} color={state.color} />;
+  const body = spinning ? (
+    <Animated.View
+      style={{
+        transform: [
+          { rotate: spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }) },
+        ],
+      }}
+    >
+      {glyph}
+    </Animated.View>
+  ) : (
+    glyph
+  );
+
+  // Offline, queued, in flight: nothing to decide, so the glyph stays a plain
+  // mark. Red is different — it means a change needs a person, and the red mark
+  // used to be the whole of what they got. The inline banner that carries retry
+  // and discard renders on one screen, `group/[id]`, scoped to that group; a
+  // capture or a personal record has no such screen (both ride a scope keyed on
+  // the owner's user id), so a refusal there blocked its scope with no way
+  // anywhere to clear it. Opening the account-wide banner from the mark itself
+  // makes the thing that reports the problem the thing that fixes it, for every
+  // scope at once.
+  if (stopped === 0) {
+    return (
+      <View
+        accessibilityRole="image"
+        accessibilityLabel={state.label}
+        style={{ padding: theme.spacing.xs }}
+      >
+        {body}
+      </View>
+    );
+  }
 
   return (
-    <View
-      accessibilityRole="image"
-      accessibilityLabel={state.label}
-      style={{ padding: theme.spacing.xs }}
-    >
-      {spinning ? (
-        <Animated.View
-          style={{
-            transform: [
-              { rotate: spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }) },
-            ],
-          }}
-        >
-          {glyph}
-        </Animated.View>
-      ) : (
-        glyph
-      )}
-    </View>
+    <>
+      <Pressable
+        onPress={() => setDetailOpen(true)}
+        accessibilityRole="button"
+        accessibilityLabel={state.label}
+        accessibilityHint={t.sync.openDetail}
+        hitSlop={8}
+        style={({ pressed }) => ({ padding: theme.spacing.xs, opacity: pressed ? 0.6 : 1 })}
+      >
+        {body}
+      </Pressable>
+      <Sheet visible={detailOpen} onClose={() => setDetailOpen(false)} closeLabel={t.common.close}>
+        {/* Account-wide on purpose, even on a group screen: what is blocking
+            you may be a capture, which belongs to no group. */}
+        <SyncBanner />
+      </Sheet>
+    </>
   );
 }
 
