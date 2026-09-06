@@ -355,8 +355,17 @@ export async function handleR2Sign(request: Request, deps: R2SignDeps): Promise<
     // (f)). Short TTL, and no Supabase-Storage dual-read fallback — these buckets
     // are new, so a missing object is simply gone, not "on the old backend".
     if (action === 'get' && restricted) {
-      const groupId = await groupOfSubject(service, bucket, subjectId as string);
-      await requireMembership(caller, groupId);
+      // Party first, then the path. The row check alone already refuses a
+      // non-party — it runs as the caller, so RLS hides the row — but leaning on
+      // a *missing* row as the whole proof means the byte door is only ever as
+      // strong as one policy, and it answers "not visible" to somebody whose
+      // real problem is that they are not on this expense. Asking outright is
+      // one RPC and says which it is.
+      //
+      // Membership is deliberately NOT checked separately: `waves_is_expense_party`
+      // and `waves_is_settlement_party` both join `group_members` with
+      // `left_at IS NULL`, so a party is a current member by construction, and a
+      // second round trip could only ever agree.
       await requireRestrictedParty(caller, bucket, subjectId as string);
       await assertRestrictedPath(caller, bucket, subjectId as string, path);
       const getUrl = new URL(objectUrl(bucket, path));
