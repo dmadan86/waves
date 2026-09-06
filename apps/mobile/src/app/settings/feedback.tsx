@@ -1,8 +1,16 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
-import { ActivityIndicator, Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Animated,
+  Platform,
+  Pressable,
+  ScrollView,
+  TextInput,
+  View,
+} from 'react-native';
 
 import {
   Button,
@@ -22,6 +30,7 @@ import {
 import { submitFeedback, type FeedbackRating } from '@/data/api';
 import { plural, useStrings } from '@/i18n';
 import { friendlyError } from '@/lib/errors';
+import { useReducedMotion } from '@/lib/reducedMotion';
 
 enum Kind {
   General = 'general',
@@ -86,26 +95,32 @@ export default function FeedbackScreen() {
         <View style={{ width: 44 }} />
       </Row>
 
-      <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={{
-          paddingHorizontal: theme.spacing.xl,
-          paddingBottom: clearance,
-          paddingTop: theme.spacing.lg,
-          gap: theme.spacing.xl,
-        }}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        {sent ? (
-          <Card style={{ gap: theme.spacing.md, alignItems: 'center' }}>
-            <Ionicons name="checkmark-circle" size={iconSize.hero} color={theme.color.positive} />
-            <Text variant="subheading" align="center">
-              {t.privacy.feedbackThanks}
-            </Text>
-            <Button label={t.common.close} variant="secondary" onPress={() => router.back()} />
-          </Card>
-        ) : (
+      {sent ? (
+        <Sent
+          onDone={() => router.back()}
+          onAnother={() => {
+            // Back to an empty form, not the one they just sent: a second
+            // thought is a new message, and the kind it belongs to is theirs to
+            // choose again. The rating is the one thing that would be a lie
+            // twice over, so it goes too.
+            setSent(false);
+            setMessage('');
+            setRating(null);
+            setKind(Kind.General);
+          }}
+        />
+      ) : (
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{
+            paddingHorizontal: theme.spacing.xl,
+            paddingBottom: clearance,
+            paddingTop: theme.spacing.lg,
+            gap: theme.spacing.xl,
+          }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
           <>
             <Text variant="body" tone="muted">
               {t.privacy.feedbackHint}
@@ -211,8 +226,93 @@ export default function FeedbackScreen() {
               onPress={() => void send()}
             />
           </>
-        )}
-      </ScrollView>
+        </ScrollView>
+      )}
     </Screen>
+  );
+}
+
+/**
+ * What "sent" looks like.
+ *
+ * It used to be a small card at the top of an otherwise empty screen — the form
+ * vanished and left a notice stranded above a whole page of nothing, which
+ * reads less like an acknowledgement than like the screen half-loaded. A
+ * confirmation is the only thing on the screen at that moment, so it should
+ * occupy it: centred, one clear mark, and the two things a person might want
+ * next.
+ *
+ * The mark is `brand`, not `positive`. `positive` is the money colour — in dark
+ * mode it is the blue that means "you are owed" — and a tick borrowing it on a
+ * screen with no money in it says something it does not mean.
+ */
+function Sent({ onDone, onAnother }: { onDone: () => void; onAnother: () => void }) {
+  const theme = useTheme();
+  const { t } = useStrings();
+  const reduceMotion = useReducedMotion();
+
+  // A single entrance, and only a small one: the tick settles in rather than
+  // simply appearing, which is what makes it read as a reply to the tap. Under
+  // reduced motion it is already in place on the first frame.
+  const [enter] = useState(() => new Animated.Value(reduceMotion ? 1 : 0));
+  useEffect(() => {
+    if (reduceMotion) return;
+    Animated.spring(enter, {
+      toValue: 1,
+      damping: 14,
+      stiffness: 170,
+      mass: 0.7,
+      useNativeDriver: true,
+    }).start();
+  }, [enter, reduceMotion]);
+
+  return (
+    <View
+      style={{
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: theme.spacing.xl,
+        gap: theme.spacing.xl,
+      }}
+    >
+      <Animated.View
+        style={{
+          width: 96,
+          height: 96,
+          borderRadius: 48,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: theme.color.brandSoft,
+          opacity: enter,
+          transform: [{ scale: enter.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1] }) }],
+        }}
+      >
+        <Ionicons name="checkmark" size={iconSize.hero} color={theme.color.brand} />
+      </Animated.View>
+
+      <View style={{ gap: theme.spacing.sm }}>
+        <Text variant="title" align="center">
+          {t.privacy.feedbackThanks}
+        </Text>
+        <Text variant="body" tone="muted" align="center">
+          {t.privacy.feedbackThanksBody}
+        </Text>
+      </View>
+
+      {/* Done first: most people are finished. "Send another" is there because
+          the thought that arrives right after sending used to cost a trip back
+          out through settings. */}
+      <View style={{ alignSelf: 'stretch', gap: theme.spacing.sm }}>
+        <Button label={t.common.done} size="lg" fullWidth onPress={onDone} />
+        <Button
+          label={t.privacy.feedbackAnother}
+          variant="ghost"
+          size="lg"
+          fullWidth
+          onPress={onAnother}
+        />
+      </View>
+    </View>
   );
 }
