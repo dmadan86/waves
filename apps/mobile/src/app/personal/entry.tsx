@@ -35,6 +35,7 @@ import {
 } from '@waves/ui';
 
 import { CategoryPicker } from '@/components/Category';
+import { SourcePicker } from '@/components/IncomeSource';
 import {
   localIsoDate,
   todayIso,
@@ -244,16 +245,23 @@ function EntryForm({
           />
         </View>
 
-        {/* A repayment is not everyday spend, so it carries no category. */}
+        {/* A repayment is not everyday spend, so it carries no category. Income
+            asks where the money came from instead of what it was spent on —
+            the two are different questions and used to share one picker, which
+            is how a salary ended up filed under "Other". */}
         {loanId ? null : (
           <View style={{ gap: theme.spacing.sm }}>
             <Text variant="caption" tone="muted">
-              {t.personal.category}
+              {kind === 'income' ? t.personal.source : t.personal.category}
             </Text>
-            <CategoryPicker
-              value={category}
-              onChange={(picked: string, _meta: CategoryMeta | null) => setCategory(picked)}
-            />
+            {kind === 'income' ? (
+              <SourcePicker value={category} onChange={setCategory} />
+            ) : (
+              <CategoryPicker
+                value={category}
+                onChange={(picked: string, _meta: CategoryMeta | null) => setCategory(picked)}
+              />
+            )}
           </View>
         )}
 
