@@ -2402,6 +2402,10 @@ export interface UiStrings {
     feedbackPlaceholder: string;
     feedbackSend: string;
     feedbackThanks: string;
+    /** Under the thanks: what actually happens to what they just wrote. */
+    feedbackThanksBody: string;
+    /** Back to an empty form, for the thought that arrives straight after. */
+    feedbackAnother: string;
     feedbackRating: string;
     feedbackRatingHint: string;
     /** A star's accessibility label, e.g. "3 stars". `{n}` is the star. */
@@ -4581,6 +4585,9 @@ const en: UiStrings = {
     feedbackPlaceholder: 'What happened, or what you wish it did',
     feedbackSend: 'Send',
     feedbackThanks: 'Thank you — that has been received.',
+    feedbackThanksBody:
+      'A person reads every one of these. We cannot always reply, but nothing is lost.',
+    feedbackAnother: 'Send another',
     feedbackRating: 'How is Waves so far?',
     feedbackRatingHint: 'Optional',
     feedbackStarLabel: { one: '{n} star', other: '{n} stars' },
@@ -6871,6 +6878,9 @@ const ta: UiStrings = {
     feedbackPlaceholder: 'என்ன நடந்தது, அல்லது என்ன இருக்க வேண்டும் என நினைக்கிறீர்கள்',
     feedbackSend: 'அனுப்பு',
     feedbackThanks: 'நன்றி — கிடைத்துவிட்டது.',
+    feedbackThanksBody:
+      'ஒவ்வொன்றையும் ஒரு நபர் படிக்கிறார். எப்போதும் பதில் தர முடியாது, ஆனால் எதுவும் தொலைந்து போகாது.',
+    feedbackAnother: 'இன்னொன்று அனுப்பு',
     feedbackRating: 'Waves இதுவரை எப்படி இருக்கிறது?',
     feedbackRatingHint: 'விருப்பம்',
     feedbackStarLabel: { one: '{n} நட்சத்திரம்', other: '{n} நட்சத்திரங்கள்' },
@@ -9077,6 +9087,8 @@ const hi: UiStrings = {
     feedbackPlaceholder: 'क्या हुआ, या आप क्या चाहते थे कि यह करे',
     feedbackSend: 'भेजें',
     feedbackThanks: 'धन्यवाद — मिल गया।',
+    feedbackThanksBody: 'हर संदेश एक इंसान पढ़ता है। जवाब हमेशा नहीं दे पाते, पर कुछ भी खोता नहीं।',
+    feedbackAnother: 'एक और भेजें',
     feedbackRating: 'Waves अब तक कैसा लगा?',
     feedbackRatingHint: 'वैकल्पिक',
     feedbackStarLabel: { one: '{n} तारा', other: '{n} तारे' },
@@ -11528,6 +11540,8 @@ const ar: UiStrings = {
     feedbackPlaceholder: 'ماذا حدث، أو ما الذي كنت تتمناه',
     feedbackSend: 'إرسال',
     feedbackThanks: 'شكرًا — وصلتنا.',
+    feedbackThanksBody: 'يقرأ كل رسالة شخص حقيقي. لا نستطيع الرد دائمًا، لكن لا شيء يضيع.',
+    feedbackAnother: 'إرسال رسالة أخرى',
     feedbackRating: 'كيف تجد بـاقي حتى الآن؟',
     feedbackRatingHint: 'اختياري',
     feedbackStarLabel: { one: '{n} نجمة', other: '{n} نجوم' },
