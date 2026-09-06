@@ -497,6 +497,15 @@ export class SyncSession {
         if (Object.keys(patch).length === 0) {
           throw new HttpError(400, 'VALIDATION_FAILED', 'No updatable fields in payload');
         }
+        // The same reading of a name that `group.create` uses. Clearing one is
+        // an ordinary thing to do — the group goes back to being labelled by
+        // who is in it — and it has to reach the column as NULL, because ''
+        // renders as nothing everywhere instead of falling back to the members.
+        // The app's own rename screen already trims, but `/sync` is a boundary:
+        // one column normalised on the way in and trusted on the way past is
+        // how the two ends drift apart. Only when the key is actually there, so
+        // a patch that never mentioned the name is untouched.
+        if ('name' in patch) patch.name = optionalString(patch.name);
         const { error } = await this.caller.from('groups').update(patch).eq('id', mutation.groupId);
         if (error) throw new HttpError(400, 'VALIDATION_FAILED', error.message);
         return { groupId: mutation.groupId };

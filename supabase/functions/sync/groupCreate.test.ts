@@ -26,18 +26,28 @@ import { SyncSession } from './index.ts';
 
 const OWNER = 'owner-profile-id';
 const GROUP_ID = '99999999-8888-7777-6666-555555555555';
+const MEMBER_ID = '11111111-2222-3333-4444-555555555555';
 
-/** The caller-scoped client: `rpc` records the arguments and answers with an id. */
+/**
+ * The caller-scoped client: `rpc` records the arguments and answers with an id,
+ * `update` records the patch a `group.update` would write. `maybeSingle`
+ * answers the membership lookup `group.update` makes before it writes.
+ */
 function caller() {
   const rpc = vi.fn(() => Promise.resolve({ data: GROUP_ID, error: null }));
+  const update = vi.fn(() => Promise.resolve({ error: null }));
   const from = vi.fn(() => {
     const builder: Record<string, unknown> = {};
     builder.select = () => builder;
     builder.eq = () => builder;
-    builder.maybeSingle = () => Promise.resolve({ data: null, error: null });
+    builder.maybeSingle = () => Promise.resolve({ data: { id: MEMBER_ID }, error: null });
+    builder.update = (patch: Record<string, unknown>) => {
+      void update(patch);
+      return { eq: () => Promise.resolve({ error: null }) };
+    };
     return builder;
   });
-  return { client: { rpc, from } as never, rpc };
+  return { client: { rpc, from } as never, rpc, update };
 }
 
 /** The service-role client: the replay guard's own table, and nothing else. */
@@ -108,5 +118,76 @@ describe('group.create without a name', () => {
       'waves_create_group',
       expect.objectContaining({ p_name: 'Goa trip' }),
     );
+  });
+});
+
+function updateGroup(payload: Record<string, unknown>, clientMutationId = 'update-1') {
+  return {
+    clientMutationId,
+    kind: 'group.update',
+    groupId: GROUP_ID,
+    seq: 1,
+    clientCreatedAt: '2026-09-06T02:20:00.000Z',
+    payload,
+  } as never;
+}
+
+/**
+ * The same reading of a name on the way back out.
+ *
+ * Clearing a group's name is ordinary — it goes back to being labelled by who
+ * is in it — and it has to land as NULL. An empty string in `groups.name` is a
+ * name that renders as nothing everywhere instead of falling back to the
+ * members, which is exactly the state `group.create` refuses to create. The
+ * app's own rename screen trims before it queues, but `/sync` is a boundary: a
+ * column normalised on one path and trusted on the other is how the two ends
+ * drift apart.
+ */
+describe('group.update and the name column', () => {
+  it('clears the name to null when it is emptied', async () => {
+    const scoped = caller();
+    const session = new SyncSession(scoped.client, service().client, OWNER);
+
+    await session.apply(updateGroup({ name: '' }));
+
+    expect(scoped.update).toHaveBeenCalledWith({ name: null });
+  });
+
+  it('treats a whitespace-only name as cleared, not as a name of spaces', async () => {
+    const scoped = caller();
+    const session = new SyncSession(scoped.client, service().client, OWNER);
+
+    await session.apply(updateGroup({ name: '   ' }, 'update-2'));
+
+    expect(scoped.update).toHaveBeenCalledWith({ name: null });
+  });
+
+  it('passes an explicit null through unchanged', async () => {
+    const scoped = caller();
+    const session = new SyncSession(scoped.client, service().client, OWNER);
+
+    await session.apply(updateGroup({ name: null }, 'update-3'));
+
+    expect(scoped.update).toHaveBeenCalledWith({ name: null });
+  });
+
+  it('trims a real rename', async () => {
+    const scoped = caller();
+    const session = new SyncSession(scoped.client, service().client, OWNER);
+
+    await session.apply(updateGroup({ name: '  Goa trip  ' }, 'update-4'));
+
+    expect(scoped.update).toHaveBeenCalledWith({ name: 'Goa trip' });
+  });
+
+  it('leaves a patch that never mentioned the name alone', async () => {
+    const scoped = caller();
+    const session = new SyncSession(scoped.client, service().client, OWNER);
+
+    await session.apply(updateGroup({ cover_emoji: 'X' }, 'update-5'));
+
+    // No `name` key invented, so a rename is not written as a side effect of
+    // changing the icon.
+    expect(scoped.update).toHaveBeenCalledWith({ cover_emoji: 'X' });
   });
 });
