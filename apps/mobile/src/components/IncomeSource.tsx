@@ -12,9 +12,16 @@
 import { Pressable, ScrollView, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
-import { INCOME_SOURCES, incomeSource, type IncomeSource } from '@waves/core';
+import {
+  incomeSource,
+  incomeTags,
+  INCOME_SOURCES,
+  type CatalogEntry,
+  type IncomeSource,
+} from '@waves/core';
 import { iconSize, Text, useTheme } from '@waves/ui';
 
+import { useCategoryTags } from '@/data/hooks';
 import { useStrings, type UiStrings } from '@/i18n';
 
 /** The stored id carries an `inc.` prefix so the two vocabularies can share one
@@ -25,12 +32,15 @@ function labelKey(id: string): keyof UiStrings['personal']['sources'] {
 
 export function useSourceLabel(): (id: string | null) => string | null {
   const { t } = useStrings();
+  const tags = useCategoryTags().data;
   return (id) => {
     if (id === null) return null;
     const source = incomeSource(id);
-    // A source we do not know is one the person made themselves: their own
-    // words are the best label there is, so show them rather than "Other".
-    return source ? t.personal.sources[labelKey(source.id)] : id;
+    if (source) return t.personal.sources[labelKey(source.id)];
+    // Not a built-in, so it is one of theirs — from a pack or made by hand. Their
+    // own words are the best label there is; the raw id is the last resort for a
+    // tag that has not synced to this device yet.
+    return tags.find((tag) => tag.id === id)?.label ?? id;
   };
 }
 
@@ -43,6 +53,10 @@ export function SourcePicker({
 }) {
   const theme = useTheme();
   const { t } = useStrings();
+  // The fifteen we ship, then the person's own — from a pack, or made by hand.
+  // Theirs come second rather than mixed in, so the list somebody learned does
+  // not reorder itself the first time they install something.
+  const mine = incomeTags(useCategoryTags().data).filter((entry) => !entry.hidden);
 
   return (
     <ScrollView
@@ -82,6 +96,41 @@ export function SourcePicker({
             />
             <Text variant="body" style={{ color: selected ? theme.color.brand : theme.color.text }}>
               {label}
+            </Text>
+          </Pressable>
+        );
+      })}
+
+      {mine.map((entry: CatalogEntry) => {
+        const selected = entry.key === value;
+        return (
+          <Pressable
+            key={entry.key}
+            accessibilityRole="radio"
+            accessibilityState={{ selected }}
+            accessibilityLabel={entry.label}
+            onPress={() => onChange(entry.key)}
+            style={({ pressed }) => ({
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: theme.spacing.xs,
+              minHeight: 44,
+              paddingVertical: theme.spacing.sm,
+              paddingHorizontal: theme.spacing.md,
+              borderRadius: theme.radius.md,
+              borderWidth: 1,
+              borderColor: selected ? theme.color.brand : theme.color.border,
+              backgroundColor: selected ? theme.color.brandSoft : theme.color.surface,
+              opacity: pressed ? 0.7 : 1,
+            })}
+          >
+            <Ionicons
+              name={entry.icon as keyof typeof Ionicons.glyphMap}
+              size={iconSize.md}
+              color={selected ? theme.color.brand : theme.color.textMuted}
+            />
+            <Text variant="body" style={{ color: selected ? theme.color.brand : theme.color.text }}>
+              {entry.label}
             </Text>
           </Pressable>
         );

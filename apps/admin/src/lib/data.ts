@@ -1,5 +1,7 @@
 import 'server-only';
 
+import { PACK_STATUSES, parsePack } from '@waves/core';
+
 import { cookies } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
 
@@ -813,4 +815,146 @@ export async function logins(days = 30): Promise<{ rows: LoginRow[]; unavailable
   } catch (caught) {
     return { rows: [], unavailable: caught instanceof Error ? caught.message : String(caught) };
   }
+}
+
+// ─────────────────────────────────────────────────────────────── packs ──
+
+export interface PackRow {
+  id: string;
+  slug: string;
+  title: string;
+  summary: string;
+  entries: unknown;
+  status: string;
+  version: number;
+  install_count: number;
+  updated_at: string;
+}
+
+/**
+ * Every pack, in every state — the console is the only place a draft or an
+ * unlisted one is visible at all, since `packs` is readable by an app user only
+ * where `status = 'published'`.
+ */
+export async function packs(): Promise<PackRow[]> {
+  await requireSession();
+  const { data, error } = await client()
+    .from('packs')
+    .select('id, slug, title, summary, entries, status, version, install_count, updated_at')
+    .order('status')
+    .order('slug');
+  if (error) {
+    if (error.code === TABLE_MISSING) return [];
+    throw new Error(`reading packs failed: ${error.message}`);
+  }
+  return (data ?? []) as PackRow[];
+}
+
+/**
+ * Create or update one pack.
+ *
+ * `parsePack` is the same function the client runs on what it fetches, so a pack
+ * that would be dropped on a phone cannot be saved here in the first place — the
+ * author sees the refusal while they are still looking at what they wrote,
+ * rather than discovering later that the shelf is one shorter than it should be.
+ */
+export async function savePack(input: {
+  id?: string;
+  slug: string;
+  title: string;
+  summary: string;
+  entriesJson: string;
+  status: string;
+}): Promise<void> {
+  await requireSession();
+
+  if (!PACK_STATUSES.includes(input.status as (typeof PACK_STATUSES)[number])) {
+    throw new Error(`Status must be one of ${PACK_STATUSES.join(', ')}.`);
+  }
+
+  let entries: unknown;
+  try {
+    entries = JSON.parse(input.entriesJson);
+  } catch {
+    throw new Error('The entries are not valid JSON.');
+  }
+
+  const parsed = parsePack({
+    id: input.id ?? 'draft',
+    slug: input.slug.trim(),
+    title: input.title.trim(),
+    summary: input.summary.trim(),
+    entries,
+    version: 1,
+  });
+  if (!parsed) {
+    throw new Error(
+      'Refused: every entry needs a key, a label of 40 characters or fewer, an icon from the ' +
+        'curated set, one of the six tints, and an axis of expense or income. Keys must be ' +
+        'unique within the pack.',
+    );
+  }
+
+  const row = {
+    slug: parsed.slug,
+    title: parsed.title,
+    summary: parsed.summary,
+    entries: parsed.entries,
+    status: input.status,
+    updated_at: new Date().toISOString(),
+  };
+
+  const query = input.id
+    ? client().from('packs').update(row).eq('id', input.id)
+    : client().from('packs').insert(row);
+  const { error } = await query;
+  if (error) throw new Error(`saving the pack failed: ${error.message}`);
+}
+
+/** Publish or withdraw, without touching what is in the pack. Withdrawing stops
+ *  it spreading and changes nothing for anybody who already installed it. */
+export async function setPackStatus(id: string, status: string): Promise<void> {
+  await requireSession();
+  if (!PACK_STATUSES.includes(status as (typeof PACK_STATUSES)[number])) {
+    throw new Error(`Status must be one of ${PACK_STATUSES.join(', ')}.`);
+  }
+  const { error } = await client()
+    .from('packs')
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq('id', id);
+  if (error) throw new Error(`changing the pack status failed: ${error.message}`);
+}
+
+export interface PackRequestRow {
+  id: string;
+  body: string;
+  status: string;
+  created_at: string;
+}
+
+/** What people have asked for. Open first, newest first within that. */
+export async function packRequests(): Promise<PackRequestRow[]> {
+  await requireSession();
+  const { data, error } = await client()
+    .from('pack_requests')
+    .select('id, body, status, created_at')
+    .order('status')
+    .order('created_at', { ascending: false })
+    .limit(200);
+  if (error) {
+    if (error.code === TABLE_MISSING) return [];
+    throw new Error(`reading pack_requests failed: ${error.message}`);
+  }
+  return (data ?? []) as PackRequestRow[];
+}
+
+/** Decide one request. The shape matches `member_claims`: an open row carries no
+ *  decision stamp, and a decided one always does. */
+export async function decidePackRequest(id: string, status: 'done' | 'declined'): Promise<void> {
+  await requireSession();
+  const { error } = await client()
+    .from('pack_requests')
+    .update({ status, decided_at: new Date().toISOString() })
+    .eq('id', id);
+  if (error) throw new Error(`deciding the request failed: ${error.message}`);
 }

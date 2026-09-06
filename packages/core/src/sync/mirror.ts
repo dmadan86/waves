@@ -20,9 +20,18 @@ import type { MemberId, SplitParams, SplitType } from '../split/types';
 import type { CurrencyCode } from '../money/currency';
 import type { ExpenseSnapshot } from '../balances/types';
 
-import { categoryTagsScope, parseAmount, personalScope, SyncTable } from './protocol';
+import {
+  categoryTagsScope,
+  MutationKind,
+  packInstallsScope,
+  parseAmount,
+  personalScope,
+  SyncTable,
+} from './protocol';
 import type { CategoryMeta } from '../category/catalog';
 import type {
+  PackInstallPayload,
+  PackUninstallPayload,
   CaptureAssignPayload,
   CaptureCreatePayload,
   CaptureDeletePayload,
@@ -863,6 +872,10 @@ export interface MirrorCategoryTag extends MirrorRow {
   readonly label: string | null;
   readonly icon: string | null;
   readonly tint: string | null;
+  /** Which picker the tag belongs in; absent on rows written before it existed. */
+  readonly axis?: string | null;
+  /** The pack it arrived from, for provenance. */
+  readonly pack_id?: string | null;
   readonly sort_order: number;
   readonly hidden: boolean;
   readonly deleted_at: string | null;
@@ -900,6 +913,8 @@ export function materialiseCategoryTags(
           label: payload.label ?? existing?.label ?? null,
           icon: payload.icon ?? existing?.icon ?? null,
           tint: payload.tint ?? existing?.tint ?? null,
+          axis: payload.axis ?? existing?.axis ?? 'expense',
+          pack_id: payload.packId ?? existing?.pack_id ?? null,
           sort_order: payload.sortOrder,
           hidden: payload.hidden,
           deleted_at: existing?.deleted_at ?? null,
@@ -1303,4 +1318,59 @@ export function materialiseMemberBudgets(
   }
 
   return [...byMember.values()].filter((budget) => budget.deleted_at === null);
+}
+
+/** One row of `pack_installs`, as the mirror holds it. */
+export interface MirrorPackInstall extends MirrorRow {
+  readonly id: string;
+  readonly owner_user_id: string;
+  readonly pack_id: string;
+  readonly version: number;
+  readonly deleted_at: string | null;
+  readonly pending?: boolean;
+}
+
+/**
+ * The packs this person has installed, with the queue replayed on top — so a
+ * pack installed with no signal shows as installed straight away, and stays that
+ * way through the flush.
+ *
+ * The packs *themselves* are not mirrored. A catalogue of what we publish is not
+ * the user's data, and holding a copy would make every visit to the shelf an
+ * offline read of a stale shelf; it is a network read with an empty state.
+ */
+export function materialisePackInstalls(
+  state: MirrorState,
+  queue: readonly QueuedMutation[],
+  options: { readonly ownerId: string },
+): MirrorPackInstall[] {
+  const scope = packInstallsScope(options.ownerId);
+  const byId = new Map<string, MirrorPackInstall>();
+  for (const row of rowsFor(state, SyncTable.PackInstalls) as unknown as MirrorPackInstall[]) {
+    if (row.owner_user_id !== options.ownerId) continue;
+    byId.set(row.id, row);
+  }
+
+  for (const mutation of [...queue].sort((a, b) => a.seq - b.seq)) {
+    if (mutation.groupId !== scope) continue;
+    if (mutation.kind === MutationKind.PackInstall) {
+      const payload = mutation.payload as unknown as PackInstallPayload;
+      byId.set(payload.installId, {
+        id: payload.installId,
+        owner_user_id: options.ownerId,
+        pack_id: payload.packId,
+        version: payload.version,
+        deleted_at: null,
+        pending: true,
+      });
+    } else if (mutation.kind === MutationKind.PackUninstall) {
+      const { installId } = mutation.payload as unknown as PackUninstallPayload;
+      const existing = byId.get(installId);
+      if (existing) {
+        byId.set(installId, { ...existing, deleted_at: mutation.clientCreatedAt, pending: true });
+      }
+    }
+  }
+
+  return [...byId.values()].filter((row) => row.deleted_at === null);
 }

@@ -240,16 +240,39 @@ export default function CategoriesSettingsScreen() {
             </View>
           }
           ListFooterComponent={
-            order.length > 0 ? (
-              <Text
-                variant="micro"
-                tone="muted"
-                align="center"
-                style={{ marginTop: theme.spacing.md }}
+            <View style={{ gap: theme.spacing.lg, marginTop: theme.spacing.md }}>
+              {order.length > 0 ? (
+                <Text variant="micro" tone="muted" align="center">
+                  {t.tags.reorderHint}
+                </Text>
+              ) : null}
+              {/* The shelf. Here rather than in a menu of its own because this is
+                  the screen somebody is on when they discover the built-in ten
+                  are not the words they use. */}
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t.packs.browse}
+                onPress={() => router.push('/settings/packs')}
+                style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
               >
-                {t.tags.reorderHint}
-              </Text>
-            ) : null
+                <Card>
+                  <Row style={{ gap: theme.spacing.md, alignItems: 'center' }}>
+                    <Ionicons name="cube-outline" size={iconSize.lg} color={theme.color.brand} />
+                    <View style={{ flex: 1 }}>
+                      <Text variant="body">{t.packs.browse}</Text>
+                      <Text variant="micro" tone="muted">
+                        {t.packs.browseHint}
+                      </Text>
+                    </View>
+                    <Ionicons
+                      name={directionalIcon('chevron-forward')}
+                      size={iconSize.md}
+                      color={theme.color.textFaint}
+                    />
+                  </Row>
+                </Card>
+              </Pressable>
+            </View>
           }
         />
       </View>

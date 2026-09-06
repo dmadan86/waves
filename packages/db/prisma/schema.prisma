@@ -158,6 +158,9 @@ model Profile {
   /// Per-owner counter behind the personal-finance scope (A48), covering every
   /// `personal_records` row. Bumped by `waves_next_personal_seq`.
   personalSeq       BigInt   @default(0) @map("personal_seq")
+  /// Per-owner counter behind installed category packs, the captures equivalent
+  /// for `pack_installs`. Bumped by `waves_next_pack_install_seq`.
+  packInstallsSeq   BigInt   @default(0) @map("pack_installs_seq")
   createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt         DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
@@ -165,6 +168,8 @@ model Profile {
   captures            Capture[]
   categoryTags        CategoryTag[]
   personalRecords     PersonalRecord[]
+  packInstalls        PackInstall[]
+  packRequests        PackRequest[]
   pushTokens          PushToken[]
   notifications       Notification[]
   emailEvents         EmailEvent[]
@@ -967,6 +972,11 @@ model CategoryTag {
   icon        String?
   /// One of the six design-system tints (lilac/pink/mint/peach/sky/coral).
   tint        String?
+  /// Which picker this tag appears in: 'expense' or 'income'.
+  axis        String    @default("expense")
+  /// The pack that first wrote this tag, for provenance. Nulled if that pack is
+  /// deleted — the tag is the person's own by then and outlives it.
+  packId      String?   @map("pack_id") @db.Uuid
   sortOrder   Int       @default(0) @map("sort_order")
   hidden      Boolean   @default(false)
   updatedSeq  BigInt    @default(0) @map("updated_seq")
@@ -975,6 +985,7 @@ model CategoryTag {
   deletedAt   DateTime? @map("deleted_at") @db.Timestamptz(6)
 
   owner Profile @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  pack  Pack?   @relation(fields: [packId], references: [id], onDelete: SetNull)
 
   @@index([ownerUserId, updatedSeq], map: "category_tags_owner_user_id_updated_seq_idx")
   @@map("category_tags")
@@ -1006,6 +1017,80 @@ model PersonalRecord {
 
   @@index([ownerUserId, updatedSeq], map: "personal_records_owner_user_id_updated_seq_idx")
   @@map("personal_records")
+  @@schema("public")
+}
+
+/// An installable set of categories or income sources — a pack (see the
+/// `20260906120000_category_packs` migration). Data, never code: labels, icons
+/// from a curated set, tints from six, validated by `parsePack` in @waves/core
+/// before it is written and again on the client after it is read.
+///
+/// The trust boundary is the RLS, not a sandbox: readable only where
+/// `status = 'published'`, writable only by `service_role`. A pack reaches a
+/// phone because we published it.
+model Pack {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  /// URL-safe and unique; what a link to a pack is made of.
+  slug         String   @unique(map: "packs_slug_idx")
+  title        String
+  summary      String
+  /// Every entry: {key, label, icon, tint, axis}. Opaque to the database.
+  entries      Json     @default("[]")
+  /// 'draft' | 'published' | 'unlisted'. Unlisting withdraws a pack without
+  /// touching anybody who already installed it.
+  status       String   @default("draft")
+  version      Int      @default(1)
+  installCount Int      @default(0) @map("install_count")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  installs PackInstall[]
+  tags     CategoryTag[]
+
+  @@index([status, updatedAt(sort: Desc)], map: "packs_status_idx")
+  @@map("packs")
+  @@schema("public")
+}
+
+/// A pack somebody has installed. Owner-scoped and seq-stamped like `Capture`,
+/// so it rides the personal sync scope. Removing the row uninstalls the pack;
+/// the categories it wrote stay, because by then they are the person's own.
+model PackInstall {
+  id          String    @id @db.Uuid
+  ownerUserId String    @map("owner_user_id") @db.Uuid
+  packId      String    @map("pack_id") @db.Uuid
+  /// Which version was installed, so a later one can offer what is new.
+  version     Int       @default(1)
+  updatedSeq  BigInt    @default(0) @map("updated_seq")
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  owner Profile @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  pack  Pack    @relation(fields: [packId], references: [id], onDelete: Cascade)
+
+  @@index([ownerUserId, updatedSeq], map: "pack_installs_owner_user_id_updated_seq_idx")
+  @@map("pack_installs")
+  @@schema("public")
+}
+
+/// Somebody asking for a pack that does not exist yet — the other half of "we
+/// author them, others ask". A sentence, not a submission: there is no authoring
+/// surface here and nothing a request can put in front of another user.
+model PackRequest {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  requesterId String    @map("requester_id") @db.Uuid
+  body        String
+  /// 'open' | 'done' | 'declined'; an open row carries no decision stamp.
+  status      String    @default("open")
+  decidedBy   String?   @map("decided_by") @db.Uuid
+  decidedAt   DateTime? @map("decided_at") @db.Timestamptz(6)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  requester Profile @relation(fields: [requesterId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt(sort: Desc)], map: "pack_requests_status_created_at_idx")
+  @@map("pack_requests")
   @@schema("public")
 }
 
