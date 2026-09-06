@@ -41,6 +41,7 @@ import { SkeletonRows } from '@/components/Skeleton';
 import { waves } from '@/lib/waves';
 import { money } from '@/lib/money';
 import { useStrings } from '@/i18n-context';
+import { friendlyError } from '@/lib/errors';
 
 export default function SettlePage() {
   return (
@@ -74,7 +75,13 @@ function Settle({ profileId }: { profileId: string }) {
         setGroups(g);
         setMembersByGroup(m);
       } catch (caught) {
-        if (active) setError(caught instanceof Error ? caught.message : String(caught));
+        if (active)
+          setError(
+            friendlyError(caught, 'web.settle.load', {
+              fallback: t.errors.couldNotLoad,
+              offline: t.errors.offline,
+            }),
+          );
       } finally {
         if (active) setLoading(false);
       }
@@ -82,7 +89,7 @@ function Settle({ profileId }: { profileId: string }) {
     return () => {
       active = false;
     };
-  }, []);
+  }, [t.errors.couldNotLoad, t.errors.offline]);
 
   // The clicked group if still present, else the one asked for in the URL, else
   // the first — derived, never a setState-in-effect that fights the URL.
@@ -179,7 +186,13 @@ function GroupSettle({
         setExpenses(e);
         setSettlements(s);
       } catch (caught) {
-        if (active) setError(caught instanceof Error ? caught.message : String(caught));
+        if (active)
+          setError(
+            friendlyError(caught, 'web.settle.group', {
+              fallback: t.errors.couldNotLoad,
+              offline: t.errors.offline,
+            }),
+          );
       } finally {
         if (active) setLoading(false);
       }
@@ -187,7 +200,7 @@ function GroupSettle({
     return () => {
       active = false;
     };
-  }, [group.id]);
+  }, [group.id, t.errors.couldNotLoad, t.errors.offline]);
 
   const byId = useMemo(() => new Map(members.map((member) => [member.id, member])), [members]);
   const myMemberId = members.find((member) => member.profile_id === profileId)?.id ?? null;
@@ -236,7 +249,12 @@ function GroupSettle({
       await waves.confirmSettlement(settlementId);
       await refresh();
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : String(caught));
+      setError(
+        friendlyError(caught, 'web.settle.confirm', {
+          fallback: t.errors.couldNotSave,
+          offline: t.errors.offline,
+        }),
+      );
     } finally {
       setBusy(null);
     }
@@ -249,7 +267,12 @@ function GroupSettle({
       await waves.nudgeToSettle({ groupId: group.id, toMemberId, currency });
       setNudged((prev) => new Set(prev).add(toMemberId));
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : String(caught));
+      setError(
+        friendlyError(caught, 'web.settle.nudge', {
+          fallback: t.errors.couldNotSave,
+          offline: t.errors.offline,
+        }),
+      );
     } finally {
       setBusy(null);
     }
@@ -456,7 +479,12 @@ function SettleForm({
     } catch (caught) {
       // A failed attempt keeps the same key, so the retry the user is about to
       // make is deduped rather than recording a second payment.
-      setError(caught instanceof Error ? caught.message : String(caught));
+      setError(
+        friendlyError(caught, 'web.settle.record', {
+          fallback: t.errors.couldNotSave,
+          offline: t.errors.offline,
+        }),
+      );
       setSaving(false);
     }
   }

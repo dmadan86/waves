@@ -300,6 +300,15 @@ export interface WebStrings {
     nudged: string;
     loading: string;
   };
+  /** What a backend failure is allowed to say. The real message goes to Sentry
+   *  — see `lib/errors.ts`. */
+  errors: {
+    couldNotLoad: string;
+    couldNotSignIn: string;
+    couldNotSave: string;
+    offline: string;
+    tooMany: string;
+  };
 }
 
 const en: WebStrings = {
@@ -508,6 +517,13 @@ const en: WebStrings = {
     nudge: 'Nudge',
     nudged: 'Nudged',
     loading: 'Loading…',
+  },
+  errors: {
+    couldNotLoad: 'Couldn’t load this. Try again in a moment.',
+    couldNotSignIn: 'Could not sign in. Please try again.',
+    couldNotSave: 'That didn’t save. Try again in a moment.',
+    offline: 'You appear to be offline. Check your connection and try again.',
+    tooMany: 'Too many tries in a row. Wait a moment, then try again.',
   },
 };
 
@@ -726,6 +742,13 @@ const ta: WebStrings = {
     nudged: 'நினைவூட்டப்பட்டது',
     loading: 'ஏற்றுகிறது…',
   },
+  errors: {
+    couldNotLoad: 'இதை ஏற்ற முடியவில்லை. சிறிது நேரத்தில் மீண்டும் முயலவும்.',
+    couldNotSignIn: 'உள்நுழைய முடியவில்லை. மீண்டும் முயற்சிக்கவும்.',
+    couldNotSave: 'இது சேமிக்கப்படவில்லை. சிறிது நேரத்தில் மீண்டும் முயலவும்.',
+    offline: 'நீங்கள் இணைப்பில் இல்லை போலும். இணைப்பைச் சரிபார்த்து மீண்டும் முயலவும்.',
+    tooMany: 'தொடர்ச்சியாக அதிக முயற்சிகள். சிறிது காத்திருந்து மீண்டும் முயலவும்.',
+  },
 };
 
 const hi: WebStrings = {
@@ -936,6 +959,13 @@ const hi: WebStrings = {
     nudge: 'याद दिलाएँ',
     nudged: 'याद दिला दिया',
     loading: 'लोड हो रहा है…',
+  },
+  errors: {
+    couldNotLoad: 'यह लोड नहीं हो सका। थोड़ी देर में फिर कोशिश करें।',
+    couldNotSignIn: 'साइन इन नहीं हो सका। फिर से कोशिश करें।',
+    couldNotSave: 'यह सेव नहीं हुआ। थोड़ी देर में फिर कोशिश करें।',
+    offline: 'लगता है आप ऑफ़लाइन हैं। कनेक्शन जाँचकर फिर कोशिश करें।',
+    tooMany: 'लगातार बहुत सारी कोशिशें। थोड़ा रुककर फिर कोशिश करें।',
   },
 };
 
@@ -1187,6 +1217,13 @@ const ar: WebStrings = {
     nudge: 'تذكير',
     nudged: 'تم التذكير',
     loading: 'جارٍ التحميل…',
+  },
+  errors: {
+    couldNotLoad: 'تعذّر تحميل هذا. حاول بعد قليل.',
+    couldNotSignIn: 'تعذّر تسجيل الدخول. حاول مرة أخرى.',
+    couldNotSave: 'لم يُحفظ ذلك. حاول بعد قليل.',
+    offline: 'يبدو أنك غير متصل. تحقّق من اتصالك وحاول مجدداً.',
+    tooMany: 'محاولات كثيرة متتالية. انتظر قليلاً ثم حاول مجدداً.',
   },
 };
 

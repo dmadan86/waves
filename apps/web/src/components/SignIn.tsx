@@ -16,6 +16,7 @@ import { useState } from 'react';
 import { useAuth } from '@/lib/auth';
 import { fill } from '@/i18n';
 import { useStrings } from '@/i18n-context';
+import { friendlyError } from '@/lib/errors';
 
 export function SignIn() {
   const { t } = useStrings();
@@ -34,7 +35,13 @@ export function SignIn() {
       await signInWithGoogle(); // navigates away; no return
     } catch (caught) {
       setBusy(null);
-      setError(caught instanceof Error ? caught.message : String(caught));
+      setError(
+        friendlyError(caught, 'web.signIn.google', {
+          fallback: t.errors.couldNotSignIn,
+          offline: t.errors.offline,
+          tooMany: t.errors.tooMany,
+        }),
+      );
     }
   }
 
@@ -57,7 +64,13 @@ export function SignIn() {
       // The core picks the call; a guest is upgraded in place, keeping groups.
       await withPassword(address, password, mode);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : String(caught));
+      setError(
+        friendlyError(caught, 'web.signIn.password', {
+          fallback: t.errors.couldNotSignIn,
+          offline: t.errors.offline,
+          tooMany: t.errors.tooMany,
+        }),
+      );
     } finally {
       setBusy(null);
     }
@@ -75,7 +88,13 @@ export function SignIn() {
       await signInWithEmail(address);
       setSent(true);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : String(caught));
+      setError(
+        friendlyError(caught, 'web.signIn.magicLink', {
+          fallback: t.errors.couldNotSignIn,
+          offline: t.errors.offline,
+          tooMany: t.errors.tooMany,
+        }),
+      );
     } finally {
       setBusy(null);
     }

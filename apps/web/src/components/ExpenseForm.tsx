@@ -34,6 +34,7 @@ import { tooManyPayersForWeb } from '@/lib/editable';
 import { captureLocation, coordLabel, geolocationSupported, LocationFailure } from '@/lib/geo';
 import { fill } from '@/i18n';
 import { useStrings } from '@/i18n-context';
+import { friendlyError } from '@/lib/errors';
 
 enum SplitKind {
   Equal = 'equal',
@@ -180,7 +181,13 @@ export function ExpenseForm({
           setPayer(m.find((member) => member.profile_id === myProfileId)?.id ?? null);
         }
       } catch (caught) {
-        if (active) setError(caught instanceof Error ? caught.message : String(caught));
+        if (active)
+          setError(
+            friendlyError(caught, 'web.expenseForm.load', {
+              fallback: t.errors.couldNotLoad,
+              offline: t.errors.offline,
+            }),
+          );
       } finally {
         if (active) setReady(true);
       }
@@ -188,7 +195,7 @@ export function ExpenseForm({
     return () => {
       active = false;
     };
-  }, [groupId, expenseId, myProfileId]);
+  }, [groupId, expenseId, myProfileId, t.errors.couldNotLoad, t.errors.offline]);
 
   const currency = (group?.default_currency ?? 'INR') as CurrencyCode;
 
@@ -287,7 +294,12 @@ export function ExpenseForm({
       });
       router.replace(`/g/${groupId}`);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : String(caught));
+      setError(
+        friendlyError(caught, 'web.expenseForm.submit', {
+          fallback: t.errors.couldNotSave,
+          offline: t.errors.offline,
+        }),
+      );
       setSaving(false);
     }
   }, [
@@ -304,6 +316,8 @@ export function ExpenseForm({
     location,
     router,
     t.add.defaultDescription,
+    t.errors.couldNotSave,
+    t.errors.offline,
   ]);
 
   if (!ready || !group) {
