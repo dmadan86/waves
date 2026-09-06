@@ -1057,27 +1057,43 @@ function useBalanceCrossCheck(
   balances: { dataUpdatedAt: number; refetch: () => unknown },
 ): void {
   // The snapshot we asked to be replaced, and the one we have already reported.
-  const refetchedFrom = useRef<number | null>(null);
-  const reportedAt = useRef<number | null>(null);
+  // Both belong to one group, and the group is kept beside them: if this hook
+  // is handed a different `groupId` — the same screen carrying a second group,
+  // a deep link — the previous group's marks would claim a refetch had already
+  // happened for a group nothing has been asked about yet, and its very first
+  // mismatch would be reported without the second look that decides whether it
+  // is real.
+  const marks = useRef<{
+    groupId: string;
+    refetchedFrom: number | null;
+    reportedAt: number | null;
+  }>({ groupId, refetchedFrom: null, reportedAt: null });
 
   const { dataUpdatedAt, refetch } = balances;
 
   useEffect(() => {
+    // Read inside the effect, never during render (the compiler forbids it, and
+    // a ref read while rendering is a bug waiting for concurrent mode anyway).
+    if (marks.current.groupId !== groupId) {
+      marks.current = { groupId, refetchedFrom: null, reportedAt: null };
+    }
+    const state = marks.current;
+
     if (!mismatch) {
-      refetchedFrom.current = null;
-      reportedAt.current = null;
+      state.refetchedFrom = null;
+      state.reportedAt = null;
       return;
     }
 
-    if (refetchedFrom.current === null) {
-      refetchedFrom.current = dataUpdatedAt;
+    if (state.refetchedFrom === null) {
+      state.refetchedFrom = dataUpdatedAt;
       void refetch();
       return;
     }
 
     // Still disagreeing on a snapshot fetched *after* we asked for a fresh one.
-    if (dataUpdatedAt > refetchedFrom.current && reportedAt.current !== dataUpdatedAt) {
-      reportedAt.current = dataUpdatedAt;
+    if (dataUpdatedAt > state.refetchedFrom && state.reportedAt !== dataUpdatedAt) {
+      state.reportedAt = dataUpdatedAt;
       reportHandled(
         new Error(`group ${groupId}: server balances disagree with the local ledger`),
         'ledger.crossCheck',
