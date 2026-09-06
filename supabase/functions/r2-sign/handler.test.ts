@@ -457,4 +457,68 @@ describe('authorisation', () => {
     expect(response.status).toBe(400);
     expect((await response.json()).code).toBe('BAD_PATH');
   });
+
+  it('403s a restricted read when a visible row is not enough to prove party status', async () => {
+    const caller = client({
+      user: { id: 'user-1' },
+      rpc: {
+        waves_my_member_id: { data: 'member-1' },
+        waves_is_expense_party: { data: false },
+      },
+      from: { expense_attachments: { data: { id: 'att-1' }, error: null } },
+    });
+    const service = client({ from: { expenses: { data: { group_id: 'group-1' }, error: null } } });
+    const { deps, sign } = makeDeps({ caller, service });
+
+    const response = await handleR2Sign(
+      post({
+        action: 'get',
+        bucket: 'expense-attachments',
+        subjectId: 'exp-1',
+        path: 'exp-1/att.webp',
+      }),
+      deps,
+    );
+
+    expect(response.status).toBe(403);
+    expect((await response.json()).code).toBe('NOT_A_PARTY');
+    expect(sign).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['expense-attachments', 'expenses', 'waves_is_expense_party', 'exp-1', 'exp-1/att.webp'],
+    [
+      'settlement-proofs',
+      'settlements',
+      'waves_is_settlement_party',
+      'settle-1',
+      'settle-1/proof.webp',
+    ],
+  ])(
+    'signs a short-lived restricted read for a party to %s',
+    async (bucket, table, partyRpc, subjectId, path) => {
+      const caller = client({
+        user: { id: 'user-1' },
+        rpc: {
+          waves_my_member_id: { data: 'member-1' },
+          [partyRpc]: { data: true },
+        },
+        from: {
+          [bucket === 'expense-attachments' ? 'expense_attachments' : 'settlement_proofs']: {
+            data: { id: 'row-1' },
+            error: null,
+          },
+        },
+      });
+      const service = client({ from: { [table]: { data: { group_id: 'group-1' }, error: null } } });
+      const { deps, sign } = makeDeps({ caller, service });
+
+      const response = await handleR2Sign(post({ action: 'get', bucket, subjectId, path }), deps);
+
+      expect(response.status).toBe(200);
+      expect(sign).toHaveBeenCalledOnce();
+      const signedRequest = sign.mock.calls[0][0] as Request;
+      expect(new URL(signedRequest.url).searchParams.get('X-Amz-Expires')).toBe('60');
+    },
+  );
 });
