@@ -267,12 +267,20 @@ function GroupSettle({
       await waves.nudgeToSettle({ groupId: group.id, toMemberId, currency });
       setNudged((prev) => new Set(prev).add(toMemberId));
     } catch (caught) {
-      setError(
-        friendlyError(caught, 'web.settle.nudge', {
-          fallback: t.errors.couldNotSave,
-          offline: t.errors.offline,
-        }),
-      );
+      // The one-a-day server rule (ADR-010) is not a failure: the reminder they
+      // are asking for has already gone today. The app says this the same way —
+      // the row reads as nudged, and nobody is told off for asking twice.
+      const message = caught instanceof Error ? caught.message : String(caught);
+      if (message.includes('NUDGE_RATE_LIMIT')) {
+        setNudged((prev) => new Set(prev).add(toMemberId));
+      } else {
+        setError(
+          friendlyError(caught, 'web.settle.nudge', {
+            fallback: t.errors.couldNotSave,
+            offline: t.errors.offline,
+          }),
+        );
+      }
     } finally {
       setBusy(null);
     }
