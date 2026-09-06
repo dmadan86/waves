@@ -23,6 +23,7 @@ import { Section } from '@/components/Shell';
 import { SkeletonRows } from '@/components/Skeleton';
 import { plural } from '@/i18n';
 import { useStrings } from '@/i18n-context';
+import { friendlyError } from '@/lib/errors';
 
 export default function AddPage() {
   return (
@@ -59,7 +60,13 @@ function Picker({ profileId }: { profileId: string }) {
         setGroups(g);
         setMembersByGroup(m);
       } catch (caught) {
-        if (active) setError(caught instanceof Error ? caught.message : String(caught));
+        if (active)
+          setError(
+            friendlyError(caught, 'web.add.load', {
+              fallback: t.errors.couldNotLoad,
+              offline: t.errors.offline,
+            }),
+          );
       } finally {
         if (active && !forwarding) setLoading(false);
       }
@@ -67,7 +74,7 @@ function Picker({ profileId }: { profileId: string }) {
     return () => {
       active = false;
     };
-  }, [router]);
+  }, [router, t.errors.couldNotLoad, t.errors.offline]);
 
   if (loading) {
     return (

@@ -13,9 +13,37 @@
 
 import { useState } from 'react';
 
+import { IdentityError } from '@waves/core';
+
 import { useAuth } from '@/lib/auth';
-import { fill } from '@/i18n';
+import { fill, type WebStrings } from '@/i18n';
 import { useStrings } from '@/i18n-context';
+import { friendlyError } from '@/lib/errors';
+
+/**
+ * Our own sentence, when the thing that failed was the form rather than the
+ * server.
+ *
+ * `checkPassword` throws before any round trip, and what it throws was written
+ * for the person typing — "use at least 8 characters". Running that through
+ * `friendlyError` would replace a useful instruction with "could not sign in",
+ * which is both wrong (nothing was refused) and unhelpful (they cannot guess
+ * what to change). Validation is not a backend failure and is not treated as
+ * one; the core's English is the last resort for a code with no words yet.
+ */
+function validationWords(caught: unknown, t: WebStrings): string | null {
+  if (!(caught instanceof IdentityError)) return null;
+  switch (caught.code) {
+    case 'PASSWORD_TOO_SHORT':
+      return t.errors.passwordTooShort;
+    case 'PASSWORD_TOO_COMMON':
+      return t.errors.passwordTooCommon;
+    case 'EMAIL_NOT_VALID':
+      return t.dash.notAnEmail;
+    default:
+      return caught.message;
+  }
+}
 
 export function SignIn() {
   const { t } = useStrings();
@@ -34,7 +62,13 @@ export function SignIn() {
       await signInWithGoogle(); // navigates away; no return
     } catch (caught) {
       setBusy(null);
-      setError(caught instanceof Error ? caught.message : String(caught));
+      setError(
+        friendlyError(caught, 'web.signIn.google', {
+          fallback: t.errors.couldNotSignIn,
+          offline: t.errors.offline,
+          tooMany: t.errors.tooMany,
+        }),
+      );
     }
   }
 
@@ -57,7 +91,14 @@ export function SignIn() {
       // The core picks the call; a guest is upgraded in place, keeping groups.
       await withPassword(address, password, mode);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : String(caught));
+      setError(
+        validationWords(caught, t) ??
+          friendlyError(caught, 'web.signIn.password', {
+            fallback: t.errors.couldNotSignIn,
+            offline: t.errors.offline,
+            tooMany: t.errors.tooMany,
+          }),
+      );
     } finally {
       setBusy(null);
     }
@@ -75,7 +116,13 @@ export function SignIn() {
       await signInWithEmail(address);
       setSent(true);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : String(caught));
+      setError(
+        friendlyError(caught, 'web.signIn.magicLink', {
+          fallback: t.errors.couldNotSignIn,
+          offline: t.errors.offline,
+          tooMany: t.errors.tooMany,
+        }),
+      );
     } finally {
       setBusy(null);
     }

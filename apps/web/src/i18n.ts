@@ -300,6 +300,17 @@ export interface WebStrings {
     nudged: string;
     loading: string;
   };
+  /** What a backend failure is allowed to say. The real message goes to Sentry
+   *  — see `lib/errors.ts`. */
+  errors: {
+    couldNotLoad: string;
+    couldNotSignIn: string;
+    passwordTooShort: string;
+    passwordTooCommon: string;
+    couldNotSave: string;
+    offline: string;
+    tooMany: string;
+  };
 }
 
 const en: WebStrings = {
@@ -508,6 +519,15 @@ const en: WebStrings = {
     nudge: 'Nudge',
     nudged: 'Nudged',
     loading: 'Loading…',
+  },
+  errors: {
+    couldNotLoad: 'Couldn’t load this. Try again in a moment.',
+    couldNotSignIn: 'Could not sign in. Please try again.',
+    passwordTooShort: 'Use at least 8 characters — a phrase is easier to remember than a puzzle.',
+    passwordTooCommon: 'That is one of the first passwords anyone tries.',
+    couldNotSave: 'That didn’t save. Try again in a moment.',
+    offline: 'You appear to be offline. Check your connection and try again.',
+    tooMany: 'Too many tries in a row. Wait a moment, then try again.',
   },
 };
 
@@ -726,6 +746,16 @@ const ta: WebStrings = {
     nudged: 'நினைவூட்டப்பட்டது',
     loading: 'ஏற்றுகிறது…',
   },
+  errors: {
+    couldNotLoad: 'இதை ஏற்ற முடியவில்லை. சிறிது நேரத்தில் மீண்டும் முயலவும்.',
+    couldNotSignIn: 'உள்நுழைய முடியவில்லை. மீண்டும் முயற்சிக்கவும்.',
+    passwordTooShort:
+      'குறைந்தது 8 எழுத்துகள் இருக்கட்டும் — புதிரை விட ஒரு சொற்றொடர் நினைவில் நிற்கும்.',
+    passwordTooCommon: 'இது யாரும் முதலில் முயற்சிக்கும் கடவுச்சொற்களில் ஒன்று.',
+    couldNotSave: 'இது சேமிக்கப்படவில்லை. சிறிது நேரத்தில் மீண்டும் முயலவும்.',
+    offline: 'நீங்கள் இணைப்பில் இல்லை போலும். இணைப்பைச் சரிபார்த்து மீண்டும் முயலவும்.',
+    tooMany: 'தொடர்ச்சியாக அதிக முயற்சிகள். சிறிது காத்திருந்து மீண்டும் முயலவும்.',
+  },
 };
 
 const hi: WebStrings = {
@@ -936,6 +966,15 @@ const hi: WebStrings = {
     nudge: 'याद दिलाएँ',
     nudged: 'याद दिला दिया',
     loading: 'लोड हो रहा है…',
+  },
+  errors: {
+    couldNotLoad: 'यह लोड नहीं हो सका। थोड़ी देर में फिर कोशिश करें।',
+    couldNotSignIn: 'साइन इन नहीं हो सका। फिर से कोशिश करें।',
+    passwordTooShort: 'कम से कम 8 अक्षर रखें — पहेली से बेहतर है कोई वाक्यांश, याद भी रहता है।',
+    passwordTooCommon: 'यह उन पासवर्ड में से है जो सबसे पहले आज़माए जाते हैं।',
+    couldNotSave: 'यह सेव नहीं हुआ। थोड़ी देर में फिर कोशिश करें।',
+    offline: 'लगता है आप ऑफ़लाइन हैं। कनेक्शन जाँचकर फिर कोशिश करें।',
+    tooMany: 'लगातार बहुत सारी कोशिशें। थोड़ा रुककर फिर कोशिश करें।',
   },
 };
 
@@ -1187,6 +1226,15 @@ const ar: WebStrings = {
     nudge: 'تذكير',
     nudged: 'تم التذكير',
     loading: 'جارٍ التحميل…',
+  },
+  errors: {
+    couldNotLoad: 'تعذّر تحميل هذا. حاول بعد قليل.',
+    couldNotSignIn: 'تعذّر تسجيل الدخول. حاول مرة أخرى.',
+    passwordTooShort: 'استخدم 8 أحرف على الأقل — عبارة أسهل في التذكّر من لغز.',
+    passwordTooCommon: 'هذه من أوّل كلمات المرور التي يجرّبها أي شخص.',
+    couldNotSave: 'لم يُحفظ ذلك. حاول بعد قليل.',
+    offline: 'يبدو أنك غير متصل. تحقّق من اتصالك وحاول مجدداً.',
+    tooMany: 'محاولات كثيرة متتالية. انتظر قليلاً ثم حاول مجدداً.',
   },
 };
 

@@ -30,6 +30,7 @@ import { money } from '@/lib/money';
 import { coordLabel, mapsUrl } from '@/lib/geo';
 import { fill } from '@/i18n';
 import { useStrings } from '@/i18n-context';
+import { friendlyError } from '@/lib/errors';
 
 export default function ExpensePage() {
   return (
@@ -74,7 +75,13 @@ function ExpenseDetail({ profileId }: { profileId: string }) {
       try {
         await load();
       } catch (caught) {
-        if (active) setError(caught instanceof Error ? caught.message : String(caught));
+        if (active)
+          setError(
+            friendlyError(caught, 'web.expense.load', {
+              fallback: t.errors.couldNotLoad,
+              offline: t.errors.offline,
+            }),
+          );
       } finally {
         if (active) setLoading(false);
       }
@@ -82,7 +89,7 @@ function ExpenseDetail({ profileId }: { profileId: string }) {
     return () => {
       active = false;
     };
-  }, [load]);
+  }, [load, t.errors.couldNotLoad, t.errors.offline]);
 
   const run = useCallback(
     async (action: () => Promise<unknown>) => {
@@ -92,13 +99,18 @@ function ExpenseDetail({ profileId }: { profileId: string }) {
         await action();
         await load();
       } catch (caught) {
-        setError(caught instanceof Error ? caught.message : String(caught));
+        setError(
+          friendlyError(caught, 'web.expense.action', {
+            fallback: t.errors.couldNotSave,
+            offline: t.errors.offline,
+          }),
+        );
       } finally {
         setBusy(false);
         setConfirmDelete(false);
       }
     },
-    [load],
+    [load, t.errors.couldNotSave, t.errors.offline],
   );
 
   if (loading) {
