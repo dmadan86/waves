@@ -23,6 +23,7 @@ import type { InvitePreview } from '@waves/api-client';
 import { waves } from '@/lib/waves';
 import { fill, plural } from '@/i18n';
 import { useStrings } from '@/i18n-context';
+import { friendlyError } from '@/lib/errors';
 
 export default function JoinPage() {
   const params = useParams<{ token: string }>();
@@ -46,12 +47,18 @@ export default function JoinPage() {
         if (active) setPreview(result);
       })
       .catch((caught: unknown) => {
-        if (active) setError(caught instanceof Error ? caught.message : String(caught));
+        if (active)
+          setError(
+            friendlyError(caught, 'web.join.preview', {
+              fallback: t.errors.couldNotLoad,
+              offline: t.errors.offline,
+            }),
+          );
       });
     return () => {
       active = false;
     };
-  }, [token]);
+  }, [token, t.errors.couldNotLoad, t.errors.offline]);
 
   /**
    * `claim` is a parameter rather than read from state, because "join as
@@ -83,11 +90,16 @@ export default function JoinPage() {
         }
         router.replace(`/g/${accepted.group.id}`);
       } catch (caught) {
-        setError(caught instanceof Error ? caught.message : String(caught));
+        setError(
+          friendlyError(caught, 'web.join.accept', {
+            fallback: t.errors.couldNotSave,
+            offline: t.errors.offline,
+          }),
+        );
         setJoining(false);
       }
     },
-    [token, claimId, name, router],
+    [token, claimId, name, router, t.errors.couldNotSave, t.errors.offline],
   );
 
   if (error && !preview) {
@@ -95,7 +107,10 @@ export default function JoinPage() {
       <main>
         <div className="card">
           <h1>{t.join.linkBroken}</h1>
-          <p>{error}</p>
+          {/* The two sentences around this used to have the backend's own
+              message wedged between them — "JWT expired", or a row-level
+              security sentence — in front of somebody who had done nothing but
+              follow a link. They say the whole of what is knowable already. */}
           <p className="faint">{t.join.linkBrokenBody}</p>
         </div>
       </main>

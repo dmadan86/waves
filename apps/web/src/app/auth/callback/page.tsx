@@ -16,6 +16,7 @@ import { useRouter } from 'next/navigation';
 
 import { supabase } from '@/lib/waves';
 import { useStrings } from '@/i18n-context';
+import { friendlyError } from '@/lib/errors';
 
 export default function AuthCallback() {
   const router = useRouter();
@@ -31,10 +32,16 @@ export default function AuthCallback() {
         if (exchangeError) throw exchangeError;
         router.replace('/');
       } catch (caught) {
-        setError(caught instanceof Error ? caught.message : String(caught));
+        setError(
+          friendlyError(caught, 'web.auth.callback', {
+            fallback: t.errors.couldNotSignIn,
+            offline: t.errors.offline,
+            tooMany: t.errors.tooMany,
+          }),
+        );
       }
     })();
-  }, [router]);
+  }, [router, t.errors.couldNotSignIn, t.errors.offline, t.errors.tooMany]);
 
   return (
     <div className="spinner-page">

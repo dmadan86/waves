@@ -30,6 +30,7 @@ import { money } from '@/lib/money';
 import { describeActivity, verbEmoji } from '@/lib/activity';
 import { plural, type PluralForms } from '@/i18n';
 import { useStrings } from '@/i18n-context';
+import { friendlyError } from '@/lib/errors';
 
 interface GroupNet {
   group: GroupRow;
@@ -69,7 +70,13 @@ export function Overview({ profileId, query }: { profileId: string; query: strin
         setActivity(a);
         setPendingGroups(new Set(pending.map((row) => row.group_id)));
       } catch (caught) {
-        if (active) setError(caught instanceof Error ? caught.message : String(caught));
+        if (active)
+          setError(
+            friendlyError(caught, 'web.overview.load', {
+              fallback: t.errors.couldNotLoad,
+              offline: t.errors.offline,
+            }),
+          );
       } finally {
         if (active) setLoading(false);
       }
@@ -77,7 +84,7 @@ export function Overview({ profileId, query }: { profileId: string; query: strin
     return () => {
       active = false;
     };
-  }, [profileId]);
+  }, [profileId, t.errors.couldNotLoad, t.errors.offline]);
 
   // My balance per group, per currency — the number the group row shows.
   const byGroup = useMemo(() => {

@@ -30,6 +30,7 @@ import { waves } from '@/lib/waves';
 import { money } from '@/lib/money';
 import { plural } from '@/i18n';
 import { useStrings } from '@/i18n-context';
+import { friendlyError } from '@/lib/errors';
 
 export default function GroupPage() {
   return (
@@ -67,7 +68,13 @@ function GroupDetail({ profileId, query }: { profileId: string; query: string })
         setExpenses(e);
         setSettlements(s);
       } catch (caught) {
-        if (active) setError(caught instanceof Error ? caught.message : String(caught));
+        if (active)
+          setError(
+            friendlyError(caught, 'web.group.load', {
+              fallback: t.errors.couldNotLoad,
+              offline: t.errors.offline,
+            }),
+          );
       } finally {
         if (active) setLoading(false);
       }
@@ -75,7 +82,7 @@ function GroupDetail({ profileId, query }: { profileId: string; query: string })
     return () => {
       active = false;
     };
-  }, [groupId]);
+  }, [groupId, t.errors.couldNotLoad, t.errors.offline]);
 
   if (loading) {
     return (
