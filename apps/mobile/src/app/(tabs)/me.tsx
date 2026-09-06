@@ -28,11 +28,12 @@ import {
   cashflowTrend,
   categoryBreakdown,
   dayDelta,
+  dueInMonth,
   format,
   isRecurringDue,
   loanOutstanding,
   money,
-  monthlySummary,
+  monthOutlook,
   nextRecurring,
   personalBudgetProgress,
   recentMonths,
@@ -59,6 +60,7 @@ import {
 } from '@waves/ui';
 
 import { CategoryBadge } from '@/components/Category';
+import { useSourceLabel } from '@/components/IncomeSource';
 import {
   localIsoDate,
   postDueRecurring,
@@ -69,7 +71,7 @@ import {
 import { useDefaultCurrency } from '@/lib/currency';
 import { usePersonalGate } from '@/lib/lock';
 import { useSync } from '@/sync';
-import { useStrings } from '@/i18n';
+import { fill, useStrings } from '@/i18n';
 
 // One saturated wash per hero slide (net, spent, savings), dark corner to light,
 // each deep enough to hold white ink on every corner like a bank card. The net
@@ -88,6 +90,7 @@ export default function MeScreen() {
   const clearance = useScreenClearance();
   const { t, locale } = useStrings();
   const dc = useDefaultCurrency();
+  const sourceLabel = useSourceLabel();
   const { hydrated } = useSync();
   const ledger = usePersonalLedger();
   const upsert = useUpsertPersonalRecord();
@@ -140,8 +143,12 @@ export default function MeScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready]);
 
-  const summary = monthlySummary(ledger.txns, month, dc);
+  // Both halves of the month: what actually moved, and what the recurring rules
+  // still expect to. Kept apart all the way to the hero — a total that quietly
+  // included money nobody has received would be the one lie a ledger cannot tell.
+  const summary = monthOutlook(ledger.txns, ledger.recurrings, month, dc, today);
   const rate = savingsRate(summary.income, summary.expense);
+  const due = dueInMonth(ledger.txns, ledger.recurrings, month, dc, today);
 
   // The list follows the hero's month: the entries made in it, grouped by day.
   const monthTxns = ledger.txns.filter((txn) => txn.date.slice(0, 7) === month);
@@ -246,6 +253,8 @@ export default function MeScreen() {
         net={summary.net}
         income={summary.income}
         expense={summary.expense}
+        expectedIncome={summary.expectedIncome}
+        expectedExpense={summary.expectedExpense}
         rate={rate}
         currency={dc}
         locale={locale}
@@ -289,6 +298,61 @@ export default function MeScreen() {
                 {deltaLine}
               </Text>
             </Row>
+          ) : null}
+
+          {/* What this month is still waiting for. The one screen where a
+              missed rent or an unpaid EMI is actually actionable: each row goes
+              straight to that period's own confirm sheet, prefilled. Only shown
+              for the current month — a past month's misses belong in its
+              history, not as a to-do list on the way somewhere else. */}
+          {monthsBack === 0 && due.length > 0 ? (
+            <View style={{ gap: theme.spacing.sm }}>
+              <Text variant="caption" tone="muted">
+                {t.personal.dueThisMonth}
+              </Text>
+              {due.map(({ rule, occurrence }) => (
+                <Pressable
+                  key={`${rule.id}:${occurrence.periodKey}`}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${rule.note?.trim() || sourceLabel(rule.category) || ''} · ${
+                    occurrence.status === 'missed' ? t.personal.missed : t.personal.due
+                  }`}
+                  onPress={() => router.push(`/personal/source/${rule.id}`)}
+                  style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+                >
+                  <Card flat>
+                    <Row style={{ gap: theme.spacing.md, alignItems: 'center' }}>
+                      <Ionicons
+                        name={occurrence.status === 'missed' ? 'alert-circle' : 'ellipse-outline'}
+                        size={iconSize.md}
+                        color={
+                          occurrence.status === 'missed' ? theme.color.negative : theme.color.brand
+                        }
+                      />
+                      <View style={{ flex: 1 }}>
+                        <Text variant="body" numberOfLines={1}>
+                          {rule.note?.trim() ||
+                            sourceLabel(rule.category) ||
+                            (rule.txnKind === 'income'
+                              ? t.personal.incomeKind
+                              : t.personal.expense)}
+                        </Text>
+                        <Text variant="micro" tone="muted">
+                          {fill(t.personal.expectedOn, { date: occurrence.dueDate })}
+                        </Text>
+                      </View>
+                      <Text variant="body" style={{ fontWeight: '700' }}>
+                        {rule.txnKind === 'income' ? '+' : '−'}
+                        {format(money(occurrence.expected, rule.currency), {
+                          locale,
+                          compactFraction: true,
+                        })}
+                      </Text>
+                    </Row>
+                  </Card>
+                </Pressable>
+              ))}
+            </View>
           ) : null}
 
           {/* Two quiet contextual lines: what recurring item is next, and the
@@ -520,6 +584,8 @@ function MeHero({
   net,
   income,
   expense,
+  expectedIncome,
+  expectedExpense,
   rate,
   currency,
   locale,
@@ -533,6 +599,8 @@ function MeHero({
   net: bigint;
   income: bigint;
   expense: bigint;
+  expectedIncome: bigint;
+  expectedExpense: bigint;
   rate: number | null;
   currency: string;
   locale: string;
@@ -629,6 +697,26 @@ function MeHero({
         <Text variant="display" tone="onBrand" numberOfLines={1} adjustsFontSizeToFit>
           {`${net < 0n ? '−' : ''}${fmt(net < 0n ? -net : net)}`}
         </Text>
+        {/* What the month is still waiting for, said beside the figure rather
+            than folded into it. Absent when nothing is outstanding, so a settled
+            month stays as quiet as it was. */}
+        {expectedIncome > 0n || expectedExpense > 0n ? (
+          <Row style={{ gap: theme.spacing.md, alignItems: 'center' }}>
+            <Text variant="micro" tone="onBrand" numberOfLines={1} style={{ opacity: 0.85 }}>
+              {t.personal.stillExpected}
+            </Text>
+            {expectedIncome > 0n ? (
+              <Text variant="micro" tone="onBrand" numberOfLines={1} style={{ fontWeight: '700' }}>
+                {`+${fmt(expectedIncome)}`}
+              </Text>
+            ) : null}
+            {expectedExpense > 0n ? (
+              <Text variant="micro" tone="onBrand" numberOfLines={1} style={{ fontWeight: '700' }}>
+                {`−${fmt(expectedExpense)}`}
+              </Text>
+            ) : null}
+          </Row>
+        ) : null}
       </View>
 
       {/* Spend against income, then the three flat figures the month turns on:

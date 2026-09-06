@@ -12,14 +12,18 @@ import { router } from 'expo-router';
 import { Alert, Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
 
 import {
-  addToDate,
   encodeRecurring,
   encodeTxn,
   format,
+  Frequency,
+  FREQUENCIES,
+  frequencyOf,
   isRecurringDue,
   money,
+  occurrences,
   recurringOccurrenceId,
-  type Cadence,
+  scheduleFor,
+  stepOccurrence,
   type PersonalRecurring,
   type TxnKind,
 } from '@waves/core';
@@ -43,6 +47,8 @@ import {
 } from '@waves/ui';
 
 import { CategoryPicker } from '@/components/Category';
+import { SourcePicker, useSourceLabel } from '@/components/IncomeSource';
+import { OccurrenceStrip } from '@/components/OccurrenceStrip';
 import {
   localIsoDate,
   todayIso,
@@ -51,29 +57,50 @@ import {
   useUpsertPersonalRecord,
 } from '@/data/personal';
 import { useDefaultCurrency } from '@/lib/currency';
-import { useStrings } from '@/i18n';
+import { fill, useStrings } from '@/i18n';
+
+/** A repeat pattern in words. The open-ended one names its own interval, so
+ *  "every 5 months" never reads as the vaguer "every few months". */
+export function frequencyLabel(
+  t: ReturnType<typeof useStrings>['t'],
+  frequency: Frequency,
+  interval: number,
+): string {
+  switch (frequency) {
+    case Frequency.Weekly:
+      return t.personal.weekly;
+    case Frequency.Fortnightly:
+      return t.personal.fortnightly;
+    case Frequency.TwiceAMonth:
+      return t.personal.twiceAMonth;
+    case Frequency.Quarterly:
+      return t.personal.quarterly;
+    case Frequency.HalfYearly:
+      return t.personal.halfYearly;
+    case Frequency.Yearly:
+      return t.personal.yearly;
+    case Frequency.EveryNMonths:
+      return fill(t.personal.monthsInterval, { n: String(interval) });
+    default:
+      return t.personal.monthly;
+  }
+}
 
 export default function RecurringScreen() {
   const theme = useTheme();
   const clearance = useScreenClearance();
   const { t, locale } = useStrings();
   const dc = useDefaultCurrency();
-  const { recurrings } = usePersonalLedger();
+  const { recurrings, txns } = usePersonalLedger();
+  const sourceLabel = useSourceLabel();
   const upsert = useUpsertPersonalRecord();
 
   const [today] = useState(() => todayIso());
   const [editing, setEditing] = useState<PersonalRecurring | null>(null);
   const [creating, setCreating] = useState(false);
 
-  const cadenceLabel = (rule: PersonalRecurring): string => {
-    const base =
-      rule.cadence === 'weekly'
-        ? t.personal.weekly
-        : rule.cadence === 'yearly'
-          ? t.personal.yearly
-          : t.personal.monthly;
-    return rule.interval > 1 ? `${t.personal.every} ${rule.interval} · ${base}` : base;
-  };
+  const cadenceLabel = (rule: PersonalRecurring): string =>
+    frequencyLabel(t, frequencyOf(rule), rule.interval);
 
   // Post one occurrence of a manual rule now, and advance its next date. The
   // occurrence id is deterministic per (rule, date), so this posting the same
@@ -98,7 +125,7 @@ export default function RecurringScreen() {
       recordKind: 'recurring',
       data: encodeRecurring({
         ...rule,
-        nextDate: addToDate(rule.nextDate, rule.cadence, rule.interval),
+        nextDate: stepOccurrence(rule, rule.nextDate),
       }),
     });
   };
@@ -152,31 +179,64 @@ export default function RecurringScreen() {
           recurrings.map((rule) => {
             const due = isRecurringDue(rule, today);
             const income = rule.txnKind === 'income';
+            // The recent history this rule has actually had. A year is plenty to
+            // fill the strip and cheap to walk.
+            const recent = occurrences(
+              rule,
+              txns,
+              { from: `${Number(today.slice(0, 4)) - 1}${today.slice(4, 7)}-01`, to: today },
+              today,
+            );
             return (
               <Card key={rule.id} style={{ gap: theme.spacing.sm }}>
-                <Pressable accessibilityRole="button" onPress={() => setEditing(rule)}>
-                  <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
-                    <View style={{ flex: 1 }}>
-                      <Text variant="body" numberOfLines={1} style={{ fontWeight: '600' }}>
-                        {rule.note?.trim() || (income ? t.personal.incomeKind : t.personal.expense)}
+                {/* The card opens the rule's history — the question people have
+                    about a rent or a salary is whether it has been arriving, not
+                    how it is configured. Editing is the pencil. */}
+                <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={t.personal.history}
+                    style={{ flex: 1 }}
+                    onPress={() => router.push(`/personal/source/${rule.id}`)}
+                  >
+                    <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+                      <View style={{ flex: 1 }}>
+                        <Text variant="body" numberOfLines={1} style={{ fontWeight: '600' }}>
+                          {rule.note?.trim() ||
+                            sourceLabel(rule.category) ||
+                            (income ? t.personal.incomeKind : t.personal.expense)}
+                        </Text>
+                        <Text variant="micro" tone="muted">
+                          {cadenceLabel(rule)} · {t.personal.nextDue} {rule.nextDate}
+                          {rule.active ? '' : ` · ${t.personal.paused}`}
+                        </Text>
+                        <View style={{ marginTop: theme.spacing.xs }}>
+                          <OccurrenceStrip occurrences={recent} />
+                        </View>
+                      </View>
+                      <Text
+                        variant="body"
+                        style={{
+                          fontWeight: '700',
+                          color: income ? theme.color.positive : theme.color.text,
+                        }}
+                      >
+                        {income ? '+' : '−'}
+                        {format(money(rule.amount, rule.currency), {
+                          locale,
+                          compactFraction: true,
+                        })}
                       </Text>
-                      <Text variant="micro" tone="muted">
-                        {cadenceLabel(rule)} · {t.personal.nextDue} {rule.nextDate}
-                        {rule.active ? '' : ` · ${t.personal.paused}`}
-                      </Text>
-                    </View>
-                    <Text
-                      variant="body"
-                      style={{
-                        fontWeight: '700',
-                        color: income ? theme.color.positive : theme.color.text,
-                      }}
-                    >
-                      {income ? '+' : '−'}
-                      {format(money(rule.amount, rule.currency), { locale, compactFraction: true })}
-                    </Text>
-                  </Row>
-                </Pressable>
+                    </Row>
+                  </Pressable>
+                  <IconButton label={t.personal.editRecurring} onPress={() => setEditing(rule)}>
+                    <Ionicons
+                      name="create-outline"
+                      size={iconSize.md}
+                      color={theme.color.textMuted}
+                    />
+                  </IconButton>
+                </Row>
                 {due && !rule.autoPost && rule.active ? (
                   <>
                     <Divider />
@@ -214,6 +274,72 @@ export default function RecurringScreen() {
   );
 }
 
+/** A plain number stepper. Two 44pt targets beat a keyboard for a value that
+ *  only ever moves a step at a time, and it cannot be typed into an invalid
+ *  state. */
+function DayStepper({
+  label,
+  value,
+  min,
+  max,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  onChange: (next: number) => void;
+}) {
+  const theme = useTheme();
+  const step = (delta: number): void => {
+    const next = value + delta;
+    if (next >= min && next <= max) onChange(next);
+  };
+  const button = (delta: number, icon: 'remove' | 'add', disabled: boolean) => (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${label} ${icon === 'add' ? '+' : '−'}`}
+      accessibilityState={{ disabled }}
+      disabled={disabled}
+      onPress={() => step(delta)}
+      hitSlop={6}
+      style={({ pressed }) => ({
+        width: 44,
+        height: 44,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: theme.radius.md,
+        backgroundColor: theme.color.surface,
+        opacity: disabled ? 0.4 : pressed ? 0.6 : 1,
+      })}
+    >
+      <Ionicons name={icon} size={iconSize.md} color={theme.color.text} />
+    </Pressable>
+  );
+
+  return (
+    <Row
+      style={{
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: theme.spacing.sm,
+        paddingHorizontal: theme.spacing.lg,
+        backgroundColor: theme.color.surfaceMuted,
+        borderRadius: theme.radius.md,
+      }}
+    >
+      <Text variant="body">{label}</Text>
+      <Row style={{ gap: theme.spacing.sm, alignItems: 'center' }}>
+        {button(-1, 'remove', value <= min)}
+        <Text variant="body" style={{ fontWeight: '700', minWidth: 28, textAlign: 'center' }}>
+          {value}
+        </Text>
+        {button(1, 'add', value >= max)}
+      </Row>
+    </Row>
+  );
+}
+
 function RecurringEditor({
   rule,
   currency,
@@ -234,11 +360,17 @@ function RecurringEditor({
   const [amount, setAmount] = useState<bigint>(rule?.amount ?? 0n);
   const [note, setNote] = useState(rule?.note ?? '');
   const [category, setCategory] = useState<string | null>(rule?.category ?? null);
-  const [cadence, setCadence] = useState<Cadence>(rule?.cadence ?? 'monthly');
-  // The editable "next due" date: a new rule starts on it; an existing rule is
-  // rescheduled to it. Seeded from the rule's current next date, not its anchor,
-  // so opening and saving an unchanged rule never rewinds its schedule.
-  const [startDate, setStartDate] = useState(rule?.nextDate ?? today);
+  const [frequency, setFrequency] = useState<Frequency>(
+    rule ? frequencyOf(rule) : Frequency.Monthly,
+  );
+  const [months, setMonths] = useState(() => (rule && rule.interval > 1 ? rule.interval : 2));
+  const [secondDay, setSecondDay] = useState(rule?.secondDay ?? 15);
+  // The date the schedule *starts*, not the next one due. It used to be seeded
+  // from `nextDate`, which meant a rule could never be told it began last year —
+  // and knowing which months are missing is the whole point of the timeline.
+  // Moving the start back reveals that history; it does not disturb a rule that
+  // is already ahead of it (see `nextDate` below).
+  const [startDate, setStartDate] = useState(rule?.anchorDate || today);
   const [showDate, setShowDate] = useState(false);
   const [autoPost, setAutoPost] = useState(rule?.autoPost ?? false);
   const [active, setActive] = useState(rule?.active ?? true);
@@ -257,13 +389,13 @@ function RecurringEditor({
           currency: rule?.currency ?? currency,
           category,
           note: note.trim() || null,
-          cadence,
-          interval: rule?.interval ?? 1,
-          // Keep the original anchor on an edit; a new rule anchors on its start.
-          anchorDate: rule?.anchorDate ?? startDate,
-          // The picker holds the next-due date for both a new rule and an edit,
-          // so a rescheduled date actually takes effect.
-          nextDate: startDate,
+          ...scheduleFor(frequency, { interval: months, secondDay }),
+          anchorDate: startDate,
+          // A rule already ahead of its start keeps its place in the queue; one
+          // whose start has moved forward past it is pulled along with it. Either
+          // way the auto-post path never goes backwards and re-mints months the
+          // timeline can already show.
+          nextDate: rule && rule.nextDate >= startDate ? rule.nextDate : startDate,
           endDate: rule?.endDate ?? null,
           autoPost,
           active,
@@ -316,21 +448,78 @@ function RecurringEditor({
 
         {txnKind === 'expense' ? (
           <CategoryPicker value={category} onChange={(picked) => setCategory(picked)} />
-        ) : null}
+        ) : (
+          <View style={{ gap: theme.spacing.sm }}>
+            <Text variant="caption" tone="muted">
+              {t.personal.source}
+            </Text>
+            <SourcePicker value={category} onChange={setCategory} />
+          </View>
+        )}
 
         <View style={{ gap: theme.spacing.sm }}>
           <Text variant="caption" tone="muted">
             {t.personal.repeats}
           </Text>
-          <SegmentedTabs
-            value={cadence}
-            onChange={setCadence}
-            tabs={[
-              { value: 'weekly', label: t.personal.weekly },
-              { value: 'monthly', label: t.personal.monthly },
-              { value: 'yearly', label: t.personal.yearly },
-            ]}
-          />
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ gap: theme.spacing.sm, paddingRight: theme.spacing.xl }}
+          >
+            {FREQUENCIES.map((option) => {
+              const selected = option === frequency;
+              const label = frequencyLabel(t, option, months);
+              return (
+                <Pressable
+                  key={option}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected }}
+                  accessibilityLabel={label}
+                  onPress={() => setFrequency(option)}
+                  style={({ pressed }) => ({
+                    minHeight: 44,
+                    justifyContent: 'center',
+                    paddingHorizontal: theme.spacing.md,
+                    borderRadius: theme.radius.md,
+                    borderWidth: 1,
+                    borderColor: selected ? theme.color.brand : theme.color.border,
+                    backgroundColor: selected ? theme.color.brandSoft : theme.color.surface,
+                    opacity: pressed ? 0.7 : 1,
+                  })}
+                >
+                  <Text
+                    variant="body"
+                    style={{ color: selected ? theme.color.brand : theme.color.text }}
+                  >
+                    {label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+
+          {/* Twice a month is two days of the month, so it asks for the second
+              one. The first is whatever day the start date falls on. */}
+          {frequency === Frequency.TwiceAMonth ? (
+            <DayStepper
+              label={t.personal.secondDay}
+              value={secondDay}
+              min={1}
+              max={31}
+              onChange={setSecondDay}
+            />
+          ) : null}
+
+          {frequency === Frequency.EveryNMonths ? (
+            <DayStepper
+              label={t.personal.everyNMonths}
+              value={months}
+              min={2}
+              max={24}
+              onChange={setMonths}
+            />
+          ) : null}
         </View>
 
         <Pressable
@@ -347,7 +536,7 @@ function RecurringEditor({
           }}
         >
           <Text variant="body">
-            {t.personal.nextDue}: {startDate}
+            {t.personal.startsOn}: {startDate}
           </Text>
           <Ionicons name="calendar-outline" size={iconSize.md} color={theme.color.textMuted} />
         </Pressable>

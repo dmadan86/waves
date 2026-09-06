@@ -2598,6 +2598,56 @@ export interface UiStrings {
     overdue: string;
     tomorrow: string;
     privateNote: string;
+    /** Where income came from — the built-in sources in @waves/core. */
+    sources: {
+      salary: string;
+      business: string;
+      freelance: string;
+      rent: string;
+      interest: string;
+      dividends: string;
+      investment: string;
+      pension: string;
+      bonus: string;
+      commission: string;
+      royalties: string;
+      refund: string;
+      gift: string;
+      benefit: string;
+      other: string;
+    };
+    source: string;
+    sourcesTitle: string;
+    /** The named repeat patterns. */
+    fortnightly: string;
+    twiceAMonth: string;
+    quarterly: string;
+    halfYearly: string;
+    everyNMonths: string;
+    monthsInterval: string;
+    firstDay: string;
+    secondDay: string;
+    dayOfMonth: string;
+    startsOn: string;
+    /** One scheduled occurrence, and what became of it. */
+    received: string;
+    missed: string;
+    expected: string;
+    stillExpected: string;
+    dueThisMonth: string;
+    nothingDue: string;
+    markReceived: string;
+    markPaid: string;
+    recordReceipt: string;
+    recordPaid: string;
+    history: string;
+    historySub: string;
+    noHistory: string;
+    receivedOn: string;
+    expectedOn: string;
+    openEntry: string;
+    ofExpected: string;
+    everySince: string;
   };
 }
 
@@ -4787,6 +4837,53 @@ const en: UiStrings = {
     overdue: 'Overdue',
     tomorrow: 'Tomorrow',
     privateNote: 'Private to you · Not shared with groups',
+    sources: {
+      salary: 'Salary',
+      business: 'Business',
+      freelance: 'Freelance',
+      rent: 'Rent received',
+      interest: 'Interest',
+      dividends: 'Dividends',
+      investment: 'Investment sale',
+      pension: 'Pension',
+      bonus: 'Bonus',
+      commission: 'Commission',
+      royalties: 'Royalties',
+      refund: 'Refund',
+      gift: 'Gift',
+      benefit: 'Benefit',
+      other: 'Other income',
+    },
+    source: 'Source',
+    sourcesTitle: 'Sources',
+    fortnightly: 'Fortnightly',
+    twiceAMonth: 'Twice a month',
+    quarterly: 'Quarterly',
+    halfYearly: 'Half-yearly',
+    everyNMonths: 'Every few months',
+    monthsInterval: 'Every {n} months',
+    firstDay: 'First day',
+    secondDay: 'Second day',
+    dayOfMonth: 'Day {n}',
+    startsOn: 'Starts on',
+    received: 'Received',
+    missed: 'Missed',
+    expected: 'Expected',
+    stillExpected: 'Still expected',
+    dueThisMonth: 'Due this month',
+    nothingDue: 'Nothing else due this month.',
+    markReceived: 'Mark received',
+    markPaid: 'Mark paid',
+    recordReceipt: 'Record what came in',
+    recordPaid: 'Record what went out',
+    history: 'Every month',
+    historySub: 'Tap a month to record it, or to open what was recorded.',
+    noHistory: 'Nothing scheduled yet. Set a start date to see the months.',
+    receivedOn: 'Received {date}',
+    expectedOn: 'Expected {date}',
+    openEntry: 'Open this entry',
+    ofExpected: 'of {amount}',
+    everySince: 'Since {date}',
   },
 };
 
@@ -7078,6 +7175,53 @@ const ta: UiStrings = {
     overdue: 'தாமதம்',
     tomorrow: 'நாளை',
     privateNote: 'உங்களுக்கு மட்டும் தனிப்பட்டது · குழுக்களுடன் பகிரப்படாது',
+    sources: {
+      salary: 'சம்பளம்',
+      business: 'வணிகம்',
+      freelance: 'சுயதொழில்',
+      rent: 'வாடகை வருமானம்',
+      interest: 'வட்டி',
+      dividends: 'ஈவுத்தொகை',
+      investment: 'முதலீட்டு விற்பனை',
+      pension: 'ஓய்வூதியம்',
+      bonus: 'ஊக்கத்தொகை',
+      commission: 'கமிஷன்',
+      royalties: 'உரிமைத்தொகை',
+      refund: 'திரும்பப் பெற்றது',
+      gift: 'பரிசு',
+      benefit: 'உதவித்தொகை',
+      other: 'பிற வருமானம்',
+    },
+    source: 'மூலம்',
+    sourcesTitle: 'வருமான மூலங்கள்',
+    fortnightly: 'இரு வாரங்களுக்கு ஒருமுறை',
+    twiceAMonth: 'மாதம் இருமுறை',
+    quarterly: 'காலாண்டுக்கு ஒருமுறை',
+    halfYearly: 'அரையாண்டுக்கு ஒருமுறை',
+    everyNMonths: 'சில மாதங்களுக்கு ஒருமுறை',
+    monthsInterval: '{n} மாதங்களுக்கு ஒருமுறை',
+    firstDay: 'முதல் நாள்',
+    secondDay: 'இரண்டாம் நாள்',
+    dayOfMonth: '{n}ஆம் நாள்',
+    startsOn: 'தொடங்கும் நாள்',
+    received: 'கிடைத்தது',
+    missed: 'கிடைக்கவில்லை',
+    expected: 'எதிர்பார்க்கப்படுகிறது',
+    stillExpected: 'இன்னும் வர வேண்டியது',
+    dueThisMonth: 'இந்த மாதம் வர வேண்டியவை',
+    nothingDue: 'இந்த மாதம் வேறு எதுவும் பாக்கி இல்லை.',
+    markReceived: 'கிடைத்தது எனக் குறி',
+    markPaid: 'கொடுத்தது எனக் குறி',
+    recordReceipt: 'வந்ததைப் பதிவு செய்',
+    recordPaid: 'கொடுத்ததைப் பதிவு செய்',
+    history: 'ஒவ்வொரு மாதமும்',
+    historySub: 'பதிவு செய்ய அல்லது பதிவைத் திறக்க ஒரு மாதத்தைத் தட்டவும்.',
+    noHistory: 'இன்னும் எதுவும் திட்டமிடப்படவில்லை. மாதங்களைப் பார்க்கத் தொடக்க நாளை அமைக்கவும்.',
+    receivedOn: '{date} அன்று கிடைத்தது',
+    expectedOn: '{date} அன்று எதிர்பார்ப்பு',
+    openEntry: 'இந்தப் பதிவைத் திற',
+    ofExpected: '{amount} இல்',
+    everySince: '{date} முதல்',
   },
 };
 
@@ -9279,6 +9423,53 @@ const hi: UiStrings = {
     overdue: 'बकाया',
     tomorrow: 'कल',
     privateNote: 'सिर्फ़ आपके लिए निजी · समूहों के साथ साझा नहीं',
+    sources: {
+      salary: 'वेतन',
+      business: 'व्यवसाय',
+      freelance: 'फ़्रीलांस',
+      rent: 'किराया आय',
+      interest: 'ब्याज',
+      dividends: 'लाभांश',
+      investment: 'निवेश बिक्री',
+      pension: 'पेंशन',
+      bonus: 'बोनस',
+      commission: 'कमीशन',
+      royalties: 'रॉयल्टी',
+      refund: 'वापसी',
+      gift: 'उपहार',
+      benefit: 'सहायता राशि',
+      other: 'अन्य आय',
+    },
+    source: 'स्रोत',
+    sourcesTitle: 'आय के स्रोत',
+    fortnightly: 'हर दो हफ़्ते',
+    twiceAMonth: 'महीने में दो बार',
+    quarterly: 'तिमाही',
+    halfYearly: 'छमाही',
+    everyNMonths: 'कुछ महीनों में एक बार',
+    monthsInterval: 'हर {n} महीने',
+    firstDay: 'पहला दिन',
+    secondDay: 'दूसरा दिन',
+    dayOfMonth: '{n} तारीख़',
+    startsOn: 'शुरू होता है',
+    received: 'मिल गया',
+    missed: 'नहीं मिला',
+    expected: 'अपेक्षित',
+    stillExpected: 'अभी आना बाक़ी',
+    dueThisMonth: 'इस महीने बाक़ी',
+    nothingDue: 'इस महीने और कुछ बाक़ी नहीं।',
+    markReceived: 'मिला हुआ चिह्नित करें',
+    markPaid: 'चुकाया हुआ चिह्नित करें',
+    recordReceipt: 'जो आया वह दर्ज करें',
+    recordPaid: 'जो गया वह दर्ज करें',
+    history: 'हर महीना',
+    historySub: 'दर्ज करने या दर्ज की गई प्रविष्टि खोलने के लिए महीने पर टैप करें।',
+    noHistory: 'अभी कुछ तय नहीं है। महीने देखने के लिए शुरू होने की तारीख़ चुनें।',
+    receivedOn: '{date} को मिला',
+    expectedOn: '{date} को अपेक्षित',
+    openEntry: 'यह प्रविष्टि खोलें',
+    ofExpected: '{amount} में से',
+    everySince: '{date} से',
   },
 };
 
@@ -11731,6 +11922,53 @@ const ar: UiStrings = {
     overdue: 'متأخر',
     tomorrow: 'غداً',
     privateNote: 'خاص بك وحدك · غير مشارَك مع المجموعات',
+    sources: {
+      salary: 'الراتب',
+      business: 'عمل تجاري',
+      freelance: 'عمل حر',
+      rent: 'دخل إيجار',
+      interest: 'فوائد',
+      dividends: 'أرباح أسهم',
+      investment: 'بيع استثمار',
+      pension: 'معاش تقاعدي',
+      bonus: 'مكافأة',
+      commission: 'عمولة',
+      royalties: 'حقوق ملكية',
+      refund: 'مبلغ مسترد',
+      gift: 'هدية',
+      benefit: 'إعانة',
+      other: 'دخل آخر',
+    },
+    source: 'المصدر',
+    sourcesTitle: 'مصادر الدخل',
+    fortnightly: 'كل أسبوعين',
+    twiceAMonth: 'مرتين في الشهر',
+    quarterly: 'كل ثلاثة أشهر',
+    halfYearly: 'كل ستة أشهر',
+    everyNMonths: 'كل بضعة أشهر',
+    monthsInterval: 'كل {n} أشهر',
+    firstDay: 'اليوم الأول',
+    secondDay: 'اليوم الثاني',
+    dayOfMonth: 'يوم {n}',
+    startsOn: 'يبدأ في',
+    received: 'وصل',
+    missed: 'لم يصل',
+    expected: 'متوقَّع',
+    stillExpected: 'ما زال متوقَّعاً',
+    dueThisMonth: 'مستحق هذا الشهر',
+    nothingDue: 'لا شيء آخر مستحق هذا الشهر.',
+    markReceived: 'تحديد كمستلَم',
+    markPaid: 'تحديد كمدفوع',
+    recordReceipt: 'سجّل ما وصل',
+    recordPaid: 'سجّل ما خرج',
+    history: 'كل شهر',
+    historySub: 'اضغط على شهر لتسجيله أو لفتح ما سُجّل فيه.',
+    noHistory: 'لا شيء مجدول بعد. حدّد تاريخ البداية لتظهر الأشهر.',
+    receivedOn: 'وصل في {date}',
+    expectedOn: 'متوقَّع في {date}',
+    openEntry: 'افتح هذا القيد',
+    ofExpected: 'من {amount}',
+    everySince: 'منذ {date}',
   },
 };
 

@@ -53,6 +53,10 @@ function daysInMonth(y: number, m: number): number {
  * `date` advanced by `interval` cadence units. Month/year steps clamp the day to
  * the target month's length (Jan 31 + 1 month → Feb 28/29), so a rule anchored
  * on the 31st never skips a short month. Weekly steps are exact 7-day hops.
+ *
+ * `semimonthly` steps a whole month here, because a second day of the month is
+ * a property of the *rule* and this function only sees a date. Walking a
+ * twice-a-month rule goes through `stepOccurrence` below, which has the rule.
  */
 export function addToDate(date: string, cadence: Cadence, interval: number): string {
   const p = parseYmd(date);
@@ -67,11 +71,41 @@ export function addToDate(date: string, cadence: Cadence, interval: number): str
     const y = p.y + step;
     return fmtYmd(y, p.m, Math.min(p.d, daysInMonth(y, p.m)));
   }
-  // monthly
-  const total = p.m - 1 + step;
+  // monthly, and semimonthly without the rule to say where its other day is
+  const total = p.m - 1 + (cadence === 'semimonthly' ? 1 : step);
   const y = p.y + Math.floor(total / 12);
   const m = (total % 12) + 1;
   return fmtYmd(y, m, Math.min(p.d, daysInMonth(y, m)));
+}
+
+/**
+ * The occurrence that follows `date` for one rule — `addToDate` for every
+ * cadence but `semimonthly`, which needs both of the rule's month days.
+ *
+ * Twice a month is two dates, not an interval: pay days on the 1st and the 16th
+ * are fifteen days apart in one direction and thirteen to sixteen in the other,
+ * and anything that steps by a fixed number of days drifts off the calendar
+ * within the year. So this walks day-of-month to day-of-month, clamping each to
+ * the month it lands in — a rule on the 15th and the 31st fires on the 15th and
+ * the 28th in February, which is what a payroll actually does.
+ */
+export function stepOccurrence(rule: PersonalRecurring, date: string): string {
+  if (rule.cadence !== 'semimonthly' || rule.secondDay === null) {
+    return addToDate(date, rule.cadence, rule.interval);
+  }
+  const p = parseYmd(date);
+  const anchor = parseYmd(rule.anchorDate);
+  if (!p || !anchor) return date;
+
+  const [lo, hi] =
+    anchor.d <= rule.secondDay ? [anchor.d, rule.secondDay] : [rule.secondDay, anchor.d];
+  const clamp = (y: number, m: number, d: number): number => Math.min(d, daysInMonth(y, m));
+
+  if (p.d < clamp(p.y, p.m, lo)) return fmtYmd(p.y, p.m, clamp(p.y, p.m, lo));
+  if (p.d < clamp(p.y, p.m, hi)) return fmtYmd(p.y, p.m, clamp(p.y, p.m, hi));
+  const y = p.m === 12 ? p.y + 1 : p.y;
+  const m = p.m === 12 ? 1 : p.m + 1;
+  return fmtYmd(y, m, clamp(y, m, lo));
 }
 
 /** The YYYY-MM a date falls in. */
@@ -156,7 +190,7 @@ export function recurringCatchUp(
   while (cursor <= today && guard < cap) {
     if (rule.endDate !== null && cursor > rule.endDate) break;
     dates.push(cursor);
-    cursor = addToDate(cursor, rule.cadence, rule.interval);
+    cursor = stepOccurrence(rule, cursor);
     guard += 1;
   }
   return { dates, nextDate: cursor };
@@ -183,6 +217,252 @@ export function recurringOccurrenceId(ruleId: string, date: string): string {
   };
   const hex = pass(0x811c9dc5) + pass(0x7ee3a5b1) + pass(0x243f6a88) + pass(0x9e3779b9);
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
+}
+
+// ──────────────────────────────────────────────────────── occurrences ──
+
+/**
+ * What became of one scheduled occurrence.
+ *
+ * - `received` — a real entry claimed it. The money is in the ledger.
+ * - `due` — its date has come but the period it belongs to is still running.
+ *   Not late, not a problem: this is this month's rent on the 6th.
+ * - `missed` — the whole period passed and nothing claimed it. The only status
+ *   that is an accusation, and it is only ever made about the past.
+ * - `future` — not yet due.
+ */
+export type OccurrenceStatus = 'received' | 'due' | 'missed' | 'future';
+
+export interface Occurrence {
+  /** Stable key for this occurrence: `2026-09` monthly, `2026-09.1`/`.2` for
+   *  the two halves of a twice-a-month rule, the date itself when weekly. */
+  readonly periodKey: string;
+  /** YYYY-MM-DD the money was expected. */
+  readonly dueDate: string;
+  /** What the rule says should arrive. */
+  readonly expected: bigint;
+  readonly status: OccurrenceStatus;
+  /** The entry that claimed it, if any. */
+  readonly txn: PersonalTxn | null;
+  /** What actually arrived — may differ from `expected` (the tenant paid short,
+   *  the salary carried a bonus). Null until something claims the occurrence. */
+  readonly actual: bigint | null;
+}
+
+/** A hard ceiling on the walk, so a rule anchored decades ago cannot spin. */
+const OCCURRENCE_CAP = 600;
+
+/**
+ * Every occurrence of one rule inside a date range, and what became of each.
+ *
+ * Oldest first. Three decisions worth keeping in view:
+ *
+ * **Occurrences are derived, never stored.** The walk starts at `anchorDate`
+ * and steps by the rule's own cadence; `nextDate` — which the legacy auto-post
+ * path advances — is not consulted. That is what lets the ledger show months
+ * from *before* the rule was written down: set the start date back and the
+ * history appears, which is the only honest way to enter a year of rent you
+ * have already collected.
+ *
+ * **A real entry claims an occurrence by falling inside its window, not by
+ * matching its date.** Rent due on the 5th and paid on the 7th is that month's
+ * rent. Matching on the exact date — which is what the auto-post path does —
+ * would call a real payment a miss and then offer to record it a second time.
+ * The window runs from one due date up to (not including) the next.
+ *
+ * **A claim is used once.** Two payments inside one window leave the second
+ * unclaimed rather than marking two months received; it still counts in the
+ * month's totals as an ordinary entry, because it is one.
+ */
+export function occurrences(
+  rule: PersonalRecurring,
+  txns: readonly PersonalTxn[],
+  range: { readonly from: string; readonly to: string },
+  today: string,
+): Occurrence[] {
+  if (rule.anchorDate === '') return [];
+
+  // Walk the whole schedule from the anchor to the end of the range. Dates
+  // before `range.from` are walked but not returned — they are what makes the
+  // window arithmetic right for the first date that *is* returned.
+  const last = rule.endDate !== null && rule.endDate < range.to ? rule.endDate : range.to;
+  const dates: string[] = [];
+  let cursor = rule.anchorDate;
+  let guard = 0;
+  while (cursor <= last && guard < OCCURRENCE_CAP) {
+    dates.push(cursor);
+    const next = stepOccurrence(rule, cursor);
+    // A cadence that cannot advance (a malformed anchor) would loop forever.
+    if (next <= cursor) break;
+    cursor = next;
+    guard += 1;
+  }
+  if (dates.length === 0) return [];
+
+  // One more step past the end, so the last occurrence has a closing edge.
+  const windowEnd = (index: number): string =>
+    index + 1 < dates.length ? dates[index + 1]! : stepOccurrence(rule, dates[dates.length - 1]!);
+
+  const mine = txns
+    .filter((txn) => txn.recurringId === rule.id)
+    .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.id < b.id ? -1 : 1));
+  const claimed = new Set<string>();
+
+  const out: Occurrence[] = [];
+  for (let i = 0; i < dates.length; i += 1) {
+    const dueDate = dates[i]!;
+    if (dueDate < range.from) continue;
+    const end = windowEnd(i);
+    const txn = mine.find((t) => !claimed.has(t.id) && t.date >= dueDate && t.date < end) ?? null;
+    if (txn) claimed.add(txn.id);
+
+    const status: OccurrenceStatus = txn
+      ? 'received'
+      : dueDate > today
+        ? 'future'
+        : // The period is still running, so nothing has gone wrong yet.
+          today < end
+          ? 'due'
+          : 'missed';
+
+    out.push({
+      periodKey: periodKeyFor(rule, dueDate),
+      dueDate,
+      expected: rule.amount,
+      status,
+      txn,
+      actual: txn ? txn.amount : null,
+    });
+  }
+  return out;
+}
+
+/** A key that reads as the period rather than the date, where there is one. */
+function periodKeyFor(rule: PersonalRecurring, dueDate: string): string {
+  if (rule.cadence === 'weekly') return dueDate;
+  if (rule.cadence !== 'semimonthly') return monthKey(dueDate);
+  // Which half of the month this is. The anchor's own day starts the pair, so
+  // an even offset from it is the first of the month's two.
+  const anchorDay = Number(rule.anchorDate.slice(8, 10));
+  const day = Number(dueDate.slice(8, 10));
+  const first = rule.secondDay === null || anchorDay <= rule.secondDay ? anchorDay : rule.secondDay;
+  return `${monthKey(dueDate)}.${day <= first ? 1 : 2}`;
+}
+
+export interface MonthOutlook extends MonthlySummary {
+  /** Income the rules say is still coming this month and has not arrived. */
+  readonly expectedIncome: bigint;
+  /** Spending the rules say is still to leave this month. */
+  readonly expectedExpense: bigint;
+}
+
+/**
+ * A month with both halves of the truth: what actually moved, and what the
+ * recurring rules still expect to move.
+ *
+ * They are kept apart on purpose. Folding the expected figure into the total
+ * would have the ledger assert money nobody has received, which is the one
+ * thing a ledger must never do; leaving it out entirely would hide the fact
+ * that the month is not finished. So: both, side by side, each labelled.
+ */
+export function monthOutlook(
+  txns: readonly PersonalTxn[],
+  recurrings: readonly PersonalRecurring[],
+  month: string,
+  currency: CurrencyCode,
+  today: string,
+): MonthOutlook {
+  const base = monthlySummary(txns, month, currency);
+  const range = monthRange(month);
+  let expectedIncome = 0n;
+  let expectedExpense = 0n;
+  if (range) {
+    for (const rule of recurrings) {
+      if (!rule.active || rule.currency !== currency) continue;
+      for (const occurrence of occurrences(rule, txns, range, today)) {
+        if (occurrence.status === 'received') continue;
+        if (rule.txnKind === 'income') expectedIncome += occurrence.expected;
+        else expectedExpense += occurrence.expected;
+      }
+    }
+  }
+  return { ...base, expectedIncome, expectedExpense };
+}
+
+/** First and last day of a YYYY-MM month, or null if it is not one. */
+export function monthRange(month: string): { from: string; to: string } | null {
+  const p = /^(\d{4})-(\d{2})$/.exec(month);
+  if (!p) return null;
+  const y = Number(p[1]);
+  const m = Number(p[2]);
+  if (m < 1 || m > 12) return null;
+  return { from: `${month}-01`, to: `${month}-${pad(daysInMonth(y, m))}` };
+}
+
+export interface DueOccurrence {
+  readonly rule: PersonalRecurring;
+  readonly occurrence: Occurrence;
+}
+
+/**
+ * Everything a month is still waiting for, oldest first — the "due this month"
+ * list. `missed` occurrences from the same month come with it, because a rent
+ * that did not arrive on the 5th is exactly what somebody opening the app on
+ * the 20th wants to be shown.
+ */
+export function dueInMonth(
+  txns: readonly PersonalTxn[],
+  recurrings: readonly PersonalRecurring[],
+  month: string,
+  currency: CurrencyCode,
+  today: string,
+): DueOccurrence[] {
+  const range = monthRange(month);
+  if (!range) return [];
+  const out: DueOccurrence[] = [];
+  for (const rule of recurrings) {
+    if (!rule.active || rule.currency !== currency) continue;
+    for (const occurrence of occurrences(rule, txns, range, today)) {
+      if (occurrence.status === 'due' || occurrence.status === 'missed') {
+        out.push({ rule, occurrence });
+      }
+    }
+  }
+  return out.sort((a, b) =>
+    a.occurrence.dueDate < b.occurrence.dueDate
+      ? -1
+      : a.occurrence.dueDate > b.occurrence.dueDate
+        ? 1
+        : a.rule.id < b.rule.id
+          ? -1
+          : 1,
+  );
+}
+
+/**
+ * The occurrences an auto-posting rule still owes, with the ones already on the
+ * books removed — and removed by **id**, not by date.
+ *
+ * That distinction is the whole reason this is a function rather than a filter
+ * at the call site. An occurrence's record id is derived from the rule and its
+ * *due* date, so a hand-recorded period and an auto-posted one are the same row.
+ * Rent due on the 5th, recorded as arriving on the 7th for less than expected,
+ * looks absent to anything matching on the date — and re-minting it would not
+ * duplicate the entry, it would overwrite the figure somebody typed. Asking
+ * whether the id exists is what makes the catch-up safe to run on every open.
+ */
+export function unpostedOccurrences(
+  rule: PersonalRecurring,
+  txns: readonly PersonalTxn[],
+  today: string,
+  cap = 60,
+): RecurringCatchUp {
+  const { dates, nextDate } = recurringCatchUp(rule, today, cap);
+  const known = new Set(txns.map((txn) => txn.id));
+  return {
+    dates: dates.filter((date) => !known.has(recurringOccurrenceId(rule.id, date))),
+    nextDate,
+  };
 }
 
 export interface UpcomingRecurring {
