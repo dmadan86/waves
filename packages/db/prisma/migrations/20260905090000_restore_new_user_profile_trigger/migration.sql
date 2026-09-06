@@ -53,6 +53,14 @@ BEGIN
 END
 $$;
 
+-- Restated with the function, as `scripts/check-definer-grants.mjs` requires: a
+-- definer function bypasses RLS and is granted to anon + PUBLIC by default, so
+-- every migration that writes one has to say who may call it. Nobody calls this
+-- one — the trigger invokes it, as the definer — so it stays off every client
+-- role. Same ACL the baseline gives it.
+REVOKE ALL ON FUNCTION public.waves_handle_new_user() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.waves_handle_new_user() TO service_role;
+
 -- ─────────────────────────────────────────────── 1. the trigger, back ──
 --
 -- Guarded on `auth.users` existing, like the original: CI and the local drift
