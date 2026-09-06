@@ -23,6 +23,8 @@ import {
   nextBatch,
   normalisePhoneInRegion,
   reconcile,
+  rejectedMutations,
+  retryNow,
   SyncTable,
   type MirrorRow,
   type MirrorState,
@@ -130,14 +132,21 @@ function sameQueue(a: readonly QueuedMutation[], b: readonly QueuedMutation[]): 
   return true;
 }
 
-function appendRejected(
-  existing: readonly RejectedMutation[],
-  incoming: readonly RejectedMutation[],
-): RejectedMutation[] {
-  if (incoming.length === 0) return [...existing];
-  const byId = new Map(existing.map((item) => [item.clientMutationId, item]));
-  for (const item of incoming) byId.set(item.clientMutationId, item);
-  return [...byId.values()];
+/**
+ * The refusals the queue is holding, as the UI wants to read them.
+ *
+ * A projection, not a second store. The list used to be accumulated separately
+ * from the queue, which meant the two could disagree about what had been
+ * refused; now the queue is the single fact and this is a view of it.
+ */
+function describeRejections(queue: readonly QueuedMutation[]): RejectedMutation[] {
+  return rejectedMutations(queue).map((item) => ({
+    clientMutationId: item.clientMutationId,
+    kind: item.kind,
+    groupId: item.groupId,
+    code: item.rejection?.code ?? 'VALIDATION_FAILED',
+    message: item.rejection?.message ?? 'The server refused this change',
+  }));
 }
 
 export class SyncEngine {
@@ -190,7 +199,15 @@ export class SyncEngine {
       tables[row.table][row.id] = row.row;
     }
 
-    this.set({ hydrated: true, mirror: { cursors, tables }, queue });
+    // A refusal is part of the queue on disk now, so it survives a restart —
+    // and so must the list the UI reads from it, or the group would be back on
+    // screen with nothing explaining why it is not syncing.
+    this.set({
+      hydrated: true,
+      mirror: { cursors, tables },
+      queue,
+      rejected: describeRejections(queue),
+    });
   }
 
   start(): void {
@@ -270,26 +287,37 @@ export class SyncEngine {
   }
 
   async retry(clientMutationId: string): Promise<void> {
-    const queue = this.state.queue.map((item) =>
-      item.clientMutationId === clientMutationId
-        ? { ...item, attempts: 0, nextAttemptAt: 0, lastError: null }
-        : item,
-    );
+    // `retryNow` clears the refusal as well as the backoff — a marked mutation
+    // is never picked up by `nextBatch`, so resetting only the attempts would
+    // leave it exactly as stuck.
+    const queue = retryNow(this.state.queue, clientMutationId);
     this.set({
       queue,
-      rejected: this.state.rejected.filter((item) => item.clientMutationId !== clientMutationId),
+      rejected: describeRejections(queue),
     });
     await this.store.writeQueue(queue);
     void this.flush();
   }
 
+  /**
+   * Give up on a refused change — and on whatever it made.
+   *
+   * This is the only path that removes it, and it is deliberately a person's
+   * decision: dropping a rejected `group.create` takes the group off the phone,
+   * because the queue overlay is the only place that group has ever existed.
+   */
   async discard(clientMutationId: string): Promise<void> {
     const queue = this.state.queue.filter((item) => item.clientMutationId !== clientMutationId);
     this.set({
       queue,
-      rejected: this.state.rejected.filter((item) => item.clientMutationId !== clientMutationId),
+      rejected: describeRejections(queue),
     });
     await this.store.writeQueue(queue);
+    // What was discarded was blocking its group — a refused or dead-lettered
+    // mutation holds back everything queued behind it, since those depend on
+    // it. Removing it makes them sendable, so send them, rather than leaving
+    // them to wait out the 30s poll for no reason. `retry` already does this.
+    void this.flush();
   }
 
   /** Push the queue and pull whatever changed. Safe to call at any time. */
@@ -403,24 +431,17 @@ export class SyncEngine {
       // — no region, a genuinely invalid number, or a rejection for some other
       // reason — falls through to `rejected` and is shown as a friendly line.
       const requeue: MutationEnvelope[] = [];
-      const stillRejected: {
-        mutation: QueuedMutation;
-        code: SyncRejectionCode;
-        message: string;
-      }[] = [];
+      // A rejection now stays in the queue (queue.ts rule 3), so a healed one has
+      // to be taken out of it explicitly — otherwise the fixed copy would be
+      // queued *behind* the marked original, which blocks its own group forever.
+      const healedIds = new Set<string>();
       for (const entry of folded.rejected) {
         const healed = this.healRejectedGhostPhone(entry);
-        if (healed) requeue.push(healed);
-        else stillRejected.push(entry);
+        if (healed) {
+          requeue.push(healed);
+          healedIds.add(entry.mutation.clientMutationId);
+        }
       }
-
-      const rejected: RejectedMutation[] = stillRejected.map((entry) => ({
-        clientMutationId: entry.mutation.clientMutationId,
-        kind: entry.mutation.kind,
-        groupId: entry.mutation.groupId,
-        code: entry.code,
-        message: entry.message,
-      }));
 
       const changes = response.changes ?? [];
       const merged = reconcile(this.state.mirror, changes);
@@ -449,10 +470,14 @@ export class SyncEngine {
         !mirrorChanged && !cursorsChanged
           ? this.state.mirror
           : { cursors: nextCursors, tables: merged.state.tables };
-      const queue =
-        folded.rejected.length === 0 && sameQueue(this.state.queue, folded.queue)
-          ? this.state.queue
-          : folded.queue;
+      const foldedQueue =
+        healedIds.size === 0
+          ? folded.queue
+          : folded.queue.filter((item) => !healedIds.has(item.clientMutationId));
+      const queue = sameQueue(this.state.queue, foldedQueue) ? this.state.queue : foldedQueue;
+      // Derived from the queue rather than accumulated alongside it, so the list
+      // the UI shows and the mutations actually held can never drift apart.
+      const rejected = describeRejections(queue);
       const madeProgress = mirrorChanged || cursorsChanged;
 
       await this.persist(appliedChanges, mirror, queue);
@@ -461,7 +486,7 @@ export class SyncEngine {
         status: SyncStatus.Idle,
         mirror,
         queue,
-        rejected: appendRejected(this.state.rejected, rejected),
+        rejected,
         lastSyncedAt: response.serverTime ?? new Date().toISOString(),
         lastError: null,
       });
