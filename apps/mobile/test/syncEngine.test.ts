@@ -643,6 +643,49 @@ describe('queue and draft controls', () => {
     expect(engine.getState().rejected).toEqual([]);
   });
 
+  it('sends what a discarded mutation was blocking, without waiting for the poll', async () => {
+    online();
+    h.invoke.mockResolvedValue({
+      data: {
+        outcomes: [
+          {
+            clientMutationId: 'blocker',
+            status: 'rejected',
+            code: 'VALIDATION_FAILED',
+            message: 'Nope',
+          },
+        ],
+        changes: [],
+        cursors: {},
+        serverTime: 'reject',
+      },
+      error: null,
+    });
+    const engine = new SyncEngine();
+    await engine.enqueue({
+      clientMutationId: 'blocker',
+      kind: 'group.create' as never,
+      groupId: 'g-new',
+      clientCreatedAt: '2026-09-06T00:00:00.000Z',
+      payload: { name: null, type: 'trip', currency: 'INR' },
+    });
+    await engine.enqueue({
+      clientMutationId: 'behind-it',
+      kind: 'expense.create' as never,
+      groupId: 'g-new',
+      clientCreatedAt: '2026-09-06T00:00:01.000Z',
+      payload: {},
+    });
+    await engine.flush();
+    const callsBefore = h.invoke.mock.calls.length;
+
+    // Discarding the blocker makes what was queued behind it sendable — so it
+    // has to be sent, not left to wait out the 30-second poll.
+    await engine.discard('blocker');
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(h.invoke.mock.calls.length).toBeGreaterThan(callsBefore);
+  });
+
   it('discard removes a still-queued failed mutation from memory and disk', async () => {
     online();
     h.invoke.mockResolvedValue({ data: null, error: new Error('network down') });

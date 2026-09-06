@@ -312,6 +312,11 @@ export class SyncEngine {
       rejected: describeRejections(queue),
     });
     await this.store.writeQueue(queue);
+    // What was discarded was blocking its group — a refused or dead-lettered
+    // mutation holds back everything queued behind it, since those depend on
+    // it. Removing it makes them sendable, so send them, rather than leaving
+    // them to wait out the 30s poll for no reason. `retry` already does this.
+    void this.flush();
   }
 
   /** Push the queue and pull whatever changed. Safe to call at any time. */
