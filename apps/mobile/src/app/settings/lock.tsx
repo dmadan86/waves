@@ -1,19 +1,21 @@
 /**
  * Security.
  *
- * Two settings and a way out. The lock guards the screen when the phone is
- * handed over; the delay decides how often that guard gets in the way of the
- * person who owns it. Both matter, because a lock that asks too often is a lock
- * somebody turns off, and a lock nobody turns on protects nothing.
+ * Two settings. The lock guards the screen when the phone is handed over; the
+ * delay decides how often that guard gets in the way of the person who owns it.
+ * Both matter, because a lock that asks too often is a lock somebody turns off,
+ * and a lock nobody turns on protects nothing.
+ *
+ * Signing out used to sit here too, and was the same button the settings list
+ * already carries. One way out, in one place: settings owns it.
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
-import { Alert, ScrollView, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 
 import {
   Badge,
-  Button,
   Card,
   Chip,
   directionalIcon,
@@ -28,7 +30,6 @@ import {
 } from '@waves/ui';
 
 import { useStrings } from '@/i18n';
-import { useAuth } from '@/lib/auth';
 import { describeGrace, GRACE_CHOICES, useLock } from '@/lib/lock';
 
 export default function LockSettingsScreen() {
@@ -36,23 +37,6 @@ export default function LockSettingsScreen() {
   const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
   const { enabled, supported, graceSeconds, setEnabled, setGraceSeconds } = useLock();
-  const { isGuest, signOut } = useAuth();
-
-  const confirmSignOut = (): void => {
-    Alert.alert(
-      t.lock.signOutQuestion,
-      isGuest
-        ? // The one case where signing out is not reversible: a guest session
-          // lives on this device and nowhere else, so there is no credential to
-          // come back with.
-          t.lock.signOutGuestWarning
-        : t.lock.signOutReassure,
-      [
-        { text: t.lock.staySignedIn, style: 'cancel' },
-        { text: t.lock.signOut, style: 'destructive', onPress: () => void signOut() },
-      ],
-    );
-  };
 
   return (
     <Screen>
@@ -119,14 +103,6 @@ export default function LockSettingsScreen() {
             </Text>
           </Card>
         ) : null}
-
-        <Card style={{ gap: theme.spacing.md }}>
-          <Text variant="subheading">{t.lock.signOut}</Text>
-          <Text variant="caption" tone="muted">
-            {isGuest ? t.lock.signOutGuest : t.lock.signOutMember}
-          </Text>
-          <Button label={t.lock.signOut} variant="secondary" fullWidth onPress={confirmSignOut} />
-        </Card>
 
         <Text variant="micro" tone="muted" align="center">
           {t.lock.footnote}

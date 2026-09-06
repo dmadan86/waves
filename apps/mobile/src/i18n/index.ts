@@ -756,8 +756,6 @@ export interface UiStrings {
     graceMinutes: PluralForms;
     reopenAlwaysAsks: string;
     signOut: string;
-    signOutGuest: string;
-    signOutMember: string;
     signOutQuestion: string;
     signOutGuestWarning: string;
     signOutReassure: string;
@@ -3059,8 +3057,6 @@ const en: UiStrings = {
     graceMinutes: { one: 'After a minute', other: 'After {n} minutes' },
     reopenAlwaysAsks: 'Reopening Waves after it has been closed always asks, whatever this says.',
     signOut: 'Sign out',
-    signOutGuest: 'This account lives on this device only. Signing out ends it.',
-    signOutMember: 'Your groups and history stay exactly where they are.',
     signOutQuestion: 'Sign out?',
     signOutGuestWarning:
       'This is a guest account, so signing out leaves no way back into it. Add an email or phone number first if you want to keep it.',
@@ -5263,9 +5259,6 @@ const ta: UiStrings = {
     graceMinutes: { one: 'ஒரு நிமிடம் கழித்து', other: '{n} நிமிடங்கள் கழித்து' },
     reopenAlwaysAsks: 'Waves-ஐ மூடிவிட்டுத் திறந்தால் இது என்னவாக இருந்தாலும் எப்போதும் கேட்கும்.',
     signOut: 'வெளியேறு',
-    signOutGuest:
-      'இந்தக் கணக்கு இந்தச் சாதனத்தில் மட்டுமே உள்ளது. வெளியேறினால் அது முடிந்துவிடும்.',
-    signOutMember: 'உங்கள் குழுக்களும் வரலாறும் அப்படியே இருக்கும்.',
     signOutQuestion: 'வெளியேறவா?',
     signOutGuestWarning:
       'இது விருந்தினர் கணக்கு, வெளியேறினால் திரும்ப வர வழி இல்லை. வைத்திருக்க விரும்பினால் முதலில் மின்னஞ்சல் அல்லது தொலைபேசி எண்ணைச் சேர்க்கவும்.',
@@ -7541,8 +7534,6 @@ const hi: UiStrings = {
     graceMinutes: { one: 'एक मिनट बाद', other: '{n} मिनट बाद' },
     reopenAlwaysAsks: 'Waves को बंद करके दोबारा खोलने पर हमेशा पूछा जाएगा, यहाँ कुछ भी लिखा हो।',
     signOut: 'साइन आउट',
-    signOutGuest: 'यह खाता सिर्फ़ इसी डिवाइस पर है। साइन आउट करने से यह खत्म हो जाएगा।',
-    signOutMember: 'आपके समूह और इतिहास जहाँ हैं वहीं रहेंगे।',
     signOutQuestion: 'साइन आउट करें?',
     signOutGuestWarning:
       'यह मेहमान खाता है, साइन आउट करने पर वापस आने का कोई रास्ता नहीं बचेगा। इसे रखना है तो पहले ईमेल या फ़ोन नंबर जोड़ें।',
@@ -9777,8 +9768,6 @@ const ar: UiStrings = {
     },
     reopenAlwaysAsks: 'إعادة فتح Waves بعد إغلاقه تطلب التحقق دائمًا، مهما كان هذا الإعداد.',
     signOut: 'تسجيل الخروج',
-    signOutGuest: 'هذا الحساب موجود على هذا الجهاز فقط. تسجيل الخروج ينهيه.',
-    signOutMember: 'مجموعاتك وسجلك يبقيان كما هما تمامًا.',
     signOutQuestion: 'تسجيل الخروج؟',
     signOutGuestWarning:
       'هذا حساب ضيف، وتسجيل الخروج لا يترك طريقًا للعودة إليه. أضف بريدًا إلكترونيًا أو رقم هاتف أولًا إن أردت الاحتفاظ به.',
