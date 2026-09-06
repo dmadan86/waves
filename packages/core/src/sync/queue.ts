@@ -56,6 +56,9 @@ export function enqueue(
   queue: readonly QueuedMutation[],
   envelope: MutationEnvelope,
 ): QueuedMutation[] {
+  const resolved = resolveRejectedMutation(queue, envelope);
+  if (resolved) return resolved;
+
   // Re-making a mutation that is already here replaces it, in its own place in
   // the order. This matters now that a refusal stays in the queue: appending
   // would leave two entries under one `clientMutationId` — two rows in the
@@ -79,6 +82,224 @@ export function enqueue(
     );
   }
   return coalesce([...queue, queued]);
+}
+
+/**
+ * A refused pending row is still the only copy the device has. If the person
+ * edits it, repair the queued mutation instead of putting an update behind a
+ * blocker. If they delete/clear it, remove the rejected pending row altogether:
+ * there is nothing on the server to delete, and keeping it would keep the UI
+ * stuck on something the person just removed.
+ */
+function resolveRejectedMutation(
+  queue: readonly QueuedMutation[],
+  envelope: MutationEnvelope,
+): QueuedMutation[] | null {
+  const incoming = targetOf(envelope);
+  if (!incoming) return null;
+
+  const index = queue.findIndex((item) => {
+    if (!item.rejection) return false;
+    const existing = targetOf(item);
+    return (
+      existing !== null &&
+      existing.primaryKind === item.kind &&
+      existing.groupId === incoming.groupId &&
+      existing.id === incoming.id &&
+      (existing.correctionKinds.includes(envelope.kind) ||
+        existing.removalKinds.includes(envelope.kind))
+    );
+  });
+  if (index < 0) return null;
+
+  const pending = queue[index]!;
+  const target = targetOf(pending)!;
+  if (target.removalKinds.includes(envelope.kind)) {
+    return queue.filter((_item, itemIndex) => itemIndex !== index);
+  }
+
+  const corrected: QueuedMutation = {
+    ...pending,
+    payload: target.mergeCorrection
+      ? mergePayload(pending.payload, envelope.payload)
+      : envelope.payload,
+    attempts: 0,
+    nextAttemptAt: 0,
+    lastError: null,
+    rejection: null,
+  };
+  return queue.map((item, itemIndex) => (itemIndex === index ? corrected : item));
+}
+
+interface MutationTarget {
+  readonly primaryKind: MutationKind;
+  readonly correctionKinds: readonly MutationKind[];
+  readonly removalKinds: readonly MutationKind[];
+  readonly groupId: string;
+  readonly id: string;
+  readonly mergeCorrection: boolean;
+}
+
+function targetOf(mutation: MutationEnvelope): MutationTarget | null {
+  if (mutation.kind === MutationKind.GroupCreate || mutation.kind === MutationKind.GroupUpdate) {
+    return {
+      primaryKind: MutationKind.GroupCreate,
+      correctionKinds: [MutationKind.GroupUpdate],
+      removalKinds: [],
+      groupId: mutation.groupId,
+      id: mutation.groupId,
+      mergeCorrection: true,
+    };
+  }
+
+  const expenseId = stringPayloadField(mutation.payload, 'expenseId');
+  if (
+    expenseId &&
+    (mutation.kind === MutationKind.ExpenseCreate ||
+      mutation.kind === MutationKind.ExpenseUpdate ||
+      mutation.kind === MutationKind.ExpenseDelete)
+  ) {
+    return {
+      primaryKind: MutationKind.ExpenseCreate,
+      correctionKinds: [MutationKind.ExpenseUpdate],
+      removalKinds: [MutationKind.ExpenseDelete],
+      groupId: mutation.groupId,
+      id: expenseId,
+      mergeCorrection: true,
+    };
+  }
+
+  const captureId = stringPayloadField(mutation.payload, 'captureId');
+  if (
+    captureId &&
+    (mutation.kind === MutationKind.CaptureCreate ||
+      mutation.kind === MutationKind.CaptureUpdate ||
+      mutation.kind === MutationKind.CaptureDelete)
+  ) {
+    return {
+      primaryKind: MutationKind.CaptureCreate,
+      correctionKinds: [MutationKind.CaptureUpdate],
+      removalKinds: [MutationKind.CaptureDelete],
+      groupId: mutation.groupId,
+      id: captureId,
+      mergeCorrection: true,
+    };
+  }
+
+  const tagId = stringPayloadField(mutation.payload, 'tagId');
+  if (
+    tagId &&
+    (mutation.kind === MutationKind.TagCreate ||
+      mutation.kind === MutationKind.TagUpdate ||
+      mutation.kind === MutationKind.TagDelete)
+  ) {
+    return {
+      primaryKind: MutationKind.TagCreate,
+      correctionKinds: [MutationKind.TagUpdate],
+      removalKinds: [MutationKind.TagDelete],
+      groupId: mutation.groupId,
+      id: tagId,
+      mergeCorrection: true,
+    };
+  }
+
+  const itemId = stringPayloadField(mutation.payload, 'itemId');
+  if (
+    itemId &&
+    (mutation.kind === MutationKind.PlanItemCreate ||
+      mutation.kind === MutationKind.PlanItemUpdate ||
+      mutation.kind === MutationKind.PlanItemDelete)
+  ) {
+    return {
+      primaryKind: MutationKind.PlanItemCreate,
+      correctionKinds: [MutationKind.PlanItemUpdate],
+      removalKinds: [MutationKind.PlanItemDelete],
+      groupId: mutation.groupId,
+      id: itemId,
+      mergeCorrection: true,
+    };
+  }
+
+  if (
+    mutation.kind === MutationKind.MemberBudgetSet ||
+    mutation.kind === MutationKind.MemberBudgetClear
+  ) {
+    return {
+      primaryKind: MutationKind.MemberBudgetSet,
+      correctionKinds: [MutationKind.MemberBudgetSet],
+      removalKinds: [MutationKind.MemberBudgetClear],
+      groupId: mutation.groupId,
+      id: mutation.groupId,
+      mergeCorrection: false,
+    };
+  }
+
+  if (mutation.kind === MutationKind.GroupBudgetSet) {
+    return {
+      primaryKind: MutationKind.GroupBudgetSet,
+      correctionKinds: [MutationKind.GroupBudgetSet],
+      removalKinds: [],
+      groupId: mutation.groupId,
+      id: mutation.groupId,
+      mergeCorrection: false,
+    };
+  }
+
+  const category = stringPayloadField(mutation.payload, 'category');
+  if (category && mutation.kind === MutationKind.CategoryBudgetSet) {
+    return {
+      primaryKind: MutationKind.CategoryBudgetSet,
+      correctionKinds: [MutationKind.CategoryBudgetSet],
+      removalKinds: [],
+      groupId: mutation.groupId,
+      id: category,
+      mergeCorrection: false,
+    };
+  }
+
+  const from = stringPayloadField(mutation.payload, 'from');
+  if (from && mutation.kind === MutationKind.GroupFxRateSet) {
+    return {
+      primaryKind: MutationKind.GroupFxRateSet,
+      correctionKinds: [MutationKind.GroupFxRateSet],
+      removalKinds: [],
+      groupId: mutation.groupId,
+      id: from,
+      mergeCorrection: false,
+    };
+  }
+
+  const recordId = stringPayloadField(mutation.payload, 'recordId');
+  if (
+    recordId &&
+    (mutation.kind === MutationKind.PersonalUpsert || mutation.kind === MutationKind.PersonalDelete)
+  ) {
+    return {
+      primaryKind: MutationKind.PersonalUpsert,
+      correctionKinds: [MutationKind.PersonalUpsert],
+      removalKinds: [MutationKind.PersonalDelete],
+      groupId: mutation.groupId,
+      id: recordId,
+      mergeCorrection: false,
+    };
+  }
+
+  return null;
+}
+
+function stringPayloadField(payload: unknown, field: string): string | null {
+  if (!payload || typeof payload !== 'object' || !(field in payload)) return null;
+  const value = payload[field as keyof typeof payload];
+  return typeof value === 'string' ? value : null;
+}
+
+function mergePayload(first: unknown, second: unknown): unknown {
+  if (!isRecord(first) || !isRecord(second)) return second;
+  return { ...first, ...second };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
 /**
@@ -119,8 +340,7 @@ function coalesce(queue: readonly QueuedMutation[]): QueuedMutation[] {
 }
 
 function expenseIdOf(mutation: MutationEnvelope): string | undefined {
-  const payload = mutation.payload as { expenseId?: unknown } | null;
-  return typeof payload?.expenseId === 'string' ? payload.expenseId : undefined;
+  return stringPayloadField(mutation.payload, 'expenseId') ?? undefined;
 }
 
 export interface BatchOptions {
