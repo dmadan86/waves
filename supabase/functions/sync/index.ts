@@ -462,7 +462,14 @@ export class SyncSession {
         });
       case 'group.create':
         return await this.rpcAsCaller('waves_create_group', {
-          p_name: requireString(mutation.payload.name, 'name'),
+          // A group does not need a name — one with none is labelled by who is
+          // in it, which is what `new-group.tsx` sends ("Blank is fine") and
+          // what `waves_create_group` accepts. Requiring it here refused that
+          // create for good: the group never reached the server, so it never
+          // came back through the mirror either, and the phone showed "Group
+          // not found" for the group it had just made, with a red refusal in
+          // the header and no way to tell why.
+          p_name: optionalString(mutation.payload.name),
           p_type: (mutation.payload.type as string | undefined) ?? 'other',
           p_currency: (mutation.payload.currency as string | undefined) ?? 'INR',
           p_emoji: (mutation.payload.emoji as string | undefined) ?? null,
@@ -1271,6 +1278,19 @@ function requireString(value: unknown, field: string): string {
     throw new HttpError(400, 'VALIDATION_FAILED', `${field} is required`);
   }
   return value;
+}
+
+/**
+ * A string the client may legitimately leave out.
+ *
+ * Blank and whitespace-only collapse to null rather than travelling on as '':
+ * the database's "no name" is NULL, and an empty string stored there is a name
+ * that renders as nothing everywhere instead of falling back to the members.
+ */
+function optionalString(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  return trimmed.length === 0 ? null : trimmed;
 }
 
 /**
