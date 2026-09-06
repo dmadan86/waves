@@ -4,11 +4,12 @@
  * Balances are computed twice on purpose: the server keeps trigger-maintained
  * `group_balances`, and the client recomputes the same thing from the expense
  * rows with @waves/core. They must agree. If they ever don't, `useGroupLedger`
- * reports it instead of quietly showing a number that might be wrong — trust in
- * the number is the product (ADR-004).
+ * refetches the server's copy and, if it still disagrees, reports it to us —
+ * trust in the number is the product (ADR-004), and a cross-check is our
+ * instrument, not the group's problem to read about.
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { randomUUID } from 'expo-crypto';
 
@@ -54,7 +55,9 @@ import {
   byNewest,
 } from '@waves/core';
 
+import { isCrossCheckComparable } from '@/data/crossCheck';
 import { useAuth } from '@/lib/auth';
+import { reportHandled } from '@/lib/observability';
 import { normaliseContactPhone } from '@/lib/phone';
 import { backend } from '@/lib/backend';
 import { syncEngine, useSync } from '@/sync';
@@ -917,15 +920,31 @@ export interface GroupLedger {
   groupSettled: boolean;
   /** Difference the still-unconfirmed settlements would make (TDR §3.3). */
   pending: bigint;
-  /** True when the server's stored balances disagree with our recomputation. */
+  /**
+   * True when the server's stored balances disagree with our recomputation,
+   * *and* the comparison was a fair one — see `comparable` below. Never
+   * rendered: `useBalanceCrossCheck` acts on it.
+   */
   mismatch: boolean;
   loading: boolean;
 }
 
 export function useGroupLedger(groupId: string, myProfileId: string | null): GroupLedger {
   const { group, members, expenses, settlements, balances } = useGroup(groupId);
+  const { queue, status, lastSyncedAt } = useSync();
 
-  return useMemo(() => {
+  // Is the server's snapshot even comparable with ours right now? See
+  // `isCrossCheckComparable` — every false alarm this fixes was a timing gap,
+  // not an arithmetic one.
+  const comparable = isCrossCheckComparable({
+    queuedHere: queue.some((item) => item.groupId === groupId),
+    syncing: status === 'syncing',
+    fetching: balances.isFetching,
+    fetchedAt: balances.dataUpdatedAt,
+    syncedAt: lastSyncedAt ? Date.parse(lastSyncedAt) : 0,
+  });
+
+  const ledger = useMemo(() => {
     const loading =
       group.isLoading || members.isLoading || expenses.isLoading || settlements.isLoading;
 
@@ -962,12 +981,10 @@ export function useGroupLedger(groupId: string, myProfileId: string | null): Gro
       ? (withPending.get(currency)?.get(myMemberId) ?? 0n) - myBalance
       : 0n;
 
-    // Cross-check against what the database derived independently. Skipped
-    // while anything is still queued: the server has not seen those expenses
-    // yet, so a disagreement is expected rather than a problem to report.
-    const anyPending = expenses.rows.some((expense) => expense.pending === true);
+    // Cross-check against what the database derived independently, but only
+    // when the two are describing the same moment (`comparable`).
     let mismatch = false;
-    if (balances.data && !anyPending) {
+    if (balances.data && comparable) {
       const stored = new Map(
         balances.data
           .filter((row) => row.currency === currency)
@@ -1012,8 +1029,77 @@ export function useGroupLedger(groupId: string, myProfileId: string | null): Gro
     settlements.data,
     settlements.isLoading,
     balances.data,
+    comparable,
     myProfileId,
   ]);
+
+  useBalanceCrossCheck(groupId, ledger.mismatch, balances);
+  return ledger;
+}
+
+/**
+ * What to do when the two computations disagree: check again, then tell us.
+ *
+ * This used to be a red card on the group screen saying the device and the
+ * server disagreed about the balances. It was the wrong thing to show anybody.
+ * The number beside it is derived from the append-only ledger, which ADR-004
+ * makes the source of truth, and the server's projection is held to that same
+ * truth by a CI invariant — so the card could not tell the reader anything
+ * they could act on, and alarmed them about their own money for what was, in
+ * every observed case, a stale cached snapshot on this device.
+ *
+ * So: refetch once, silently. If the fresh answer still disagrees, that is a
+ * real defect and belongs in our inbox, not on their screen.
+ */
+function useBalanceCrossCheck(
+  groupId: string,
+  mismatch: boolean,
+  balances: { dataUpdatedAt: number; refetch: () => unknown },
+): void {
+  // The snapshot we asked to be replaced, and the one we have already reported.
+  // Both belong to one group, and the group is kept beside them: if this hook
+  // is handed a different `groupId` — the same screen carrying a second group,
+  // a deep link — the previous group's marks would claim a refetch had already
+  // happened for a group nothing has been asked about yet, and its very first
+  // mismatch would be reported without the second look that decides whether it
+  // is real.
+  const marks = useRef<{
+    groupId: string;
+    refetchedFrom: number | null;
+    reportedAt: number | null;
+  }>({ groupId, refetchedFrom: null, reportedAt: null });
+
+  const { dataUpdatedAt, refetch } = balances;
+
+  useEffect(() => {
+    // Read inside the effect, never during render (the compiler forbids it, and
+    // a ref read while rendering is a bug waiting for concurrent mode anyway).
+    if (marks.current.groupId !== groupId) {
+      marks.current = { groupId, refetchedFrom: null, reportedAt: null };
+    }
+    const state = marks.current;
+
+    if (!mismatch) {
+      state.refetchedFrom = null;
+      state.reportedAt = null;
+      return;
+    }
+
+    if (state.refetchedFrom === null) {
+      state.refetchedFrom = dataUpdatedAt;
+      void refetch();
+      return;
+    }
+
+    // Still disagreeing on a snapshot fetched *after* we asked for a fresh one.
+    if (dataUpdatedAt > state.refetchedFrom && state.reportedAt !== dataUpdatedAt) {
+      state.reportedAt = dataUpdatedAt;
+      reportHandled(
+        new Error(`group ${groupId}: server balances disagree with the local ledger`),
+        'ledger.crossCheck',
+      );
+    }
+  }, [groupId, mismatch, dataUpdatedAt, refetch]);
 }
 
 /**
@@ -1083,11 +1169,21 @@ export function useGroupRealtime(groupId: string): void {
  * Most of what a group screen shows now comes from the mirror, so the sync is
  * the part that matters; the invalidations cover what sync does not carry —
  * the server's cross-check balances, receipts, disputes and spending.
+ *
+ * The invalidations wait for the flush. They used to fire alongside it, which
+ * meant the refetched balances could describe the moment *before* the write
+ * being invalidated for — a server snapshot one expense out of date, held
+ * against a local ledger that already had it. The flush is still allowed to
+ * fail; a refetch after a failed sync is merely early, not wrong.
  */
 export function invalidateGroup(queryClient: QueryClient, groupId: string): void {
-  void syncEngine.flush({ groupIds: [groupId] });
-  void queryClient.invalidateQueries({ queryKey: ['group', groupId] });
-  void queryClient.invalidateQueries({ queryKey: keys.allBalances });
+  void syncEngine
+    .flush({ groupIds: [groupId] })
+    .catch(() => undefined)
+    .then(() => {
+      void queryClient.invalidateQueries({ queryKey: ['group', groupId] });
+      void queryClient.invalidateQueries({ queryKey: keys.allBalances });
+    });
 }
 
 // ─────────────────────────────────────────────────────────── mutations ──
