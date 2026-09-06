@@ -3,3 +3,4 @@ export * from './catalog';
 export * from './icons';
 export * from './markets';
 export * from './merchant';
+export * from './tagIcons';

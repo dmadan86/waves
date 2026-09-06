@@ -1462,6 +1462,8 @@ function tagRowFrom(row: MirrorCategoryTag): CategoryTagRow {
     label: row.label ?? null,
     icon: row.icon ?? null,
     tint: row.tint ?? null,
+    axis: row.axis === 'income' ? 'income' : 'expense',
+    packId: row.pack_id ?? null,
     sortOrder: Number(row.sort_order ?? 0),
     hidden: row.hidden === true,
   };

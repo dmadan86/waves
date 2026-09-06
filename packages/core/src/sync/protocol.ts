@@ -64,6 +64,12 @@ export enum MutationKind {
   // (`personalScope`). One generic upsert/delete pair covers all four record
   // kinds; `recordKind` in the payload says which, and the `data` blob is opaque
   // to the server, which only relays it. A delete is a soft tombstone.
+  // A pack somebody installed, under their own suffixed scope
+  // (`packInstallsScope`). Installing is two things at once — the tags, written
+  // as ordinary `tag.create`s, and this row saying which pack they came from —
+  // and both ride the queue, so installing a pack works with no signal.
+  PackInstall = 'pack.install',
+  PackUninstall = 'pack.uninstall',
   PersonalUpsert = 'personal.upsert',
   PersonalDelete = 'personal.delete',
 }
@@ -200,6 +206,13 @@ export interface TagUpsertPayload {
   readonly label?: string | null;
   readonly icon?: string | null;
   readonly tint?: string | null;
+  /** Which picker the tag belongs in: a spending category or an income source.
+   *  Omitted reads as `expense`, which is what every tag written before this
+   *  field existed was. */
+  readonly axis?: 'expense' | 'income' | null;
+  /** The pack this tag arrived from, if any. Provenance for the catalog to
+   *  show — never a dependency: the tag outlives the pack being uninstalled. */
+  readonly packId?: string | null;
   readonly sortOrder: number;
   readonly hidden: boolean;
 }
@@ -309,6 +322,24 @@ export interface GroupFxRateSetPayload {
   readonly num: string | null;
   readonly den: string | null;
   readonly source?: string;
+}
+
+/**
+ * Installing a pack, recorded. The tags themselves arrive as ordinary
+ * `tag.create` mutations queued alongside this one — this row only says which
+ * pack they came from, so the shelf can show "installed" and an update can offer
+ * what is new.
+ */
+export interface PackInstallPayload {
+  readonly installId: string;
+  readonly packId: string;
+  readonly version: number;
+}
+
+/** Uninstalling. The categories the pack wrote are deliberately untouched: by
+ *  now they are the person's own, with their own expenses filed under them. */
+export interface PackUninstallPayload {
+  readonly installId: string;
 }
 
 /** The four kinds of row the personal-finance ledger holds (A48). */
@@ -423,6 +454,8 @@ export enum SyncTable {
    * expenses/income, recurring rules, loans and budgets. Read + write, one
    * generic row per record, keyed by the owner's user id under `personalScope`. */
   PersonalRecords = 'personal_records',
+  /** Which packs this person has installed, under `packInstallsScope`. */
+  PackInstalls = 'pack_installs',
 }
 
 /**
@@ -451,6 +484,12 @@ export function categoryTagsScope(profileId: string): string {
  */
 export function personalScope(profileId: string): string {
   return `${profileId}:personal`;
+}
+
+/** The personal-scope key for the packs a person has installed. Suffixed like
+ *  the others so it keeps its own cursor. */
+export function packInstallsScope(profileId: string): string {
+  return `${profileId}:pack_installs`;
 }
 
 /** bigint ↔ string at the wire boundary; JSON has no integers this size. */
