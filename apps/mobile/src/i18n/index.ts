@@ -2314,14 +2314,7 @@ export interface UiStrings {
     theyAreAlreadyIn: string;
   };
   /** The rest: one or two strings each, from a dozen screens. */
-  /**
-   * Feedback, the policy screens, and erasure.
-   *
-   * The policy prose is translated, and the screen says the English text
-   * governs — a mistranslated sentence about what happens to somebody's data
-   * is worse than an untranslated one, and saying which version is
-   * authoritative is the ordinary way to carry that.
-   */
+  /** Feedback, the policy screens, and erasure. */
   blocked: {
     row: string;
     rowHint: string;
@@ -2346,7 +2339,6 @@ export interface UiStrings {
     protectBody: string;
     choicesTitle: string;
     choicesBody: string;
-    englishGoverns: string;
     couldNotSave: string;
     analyticsTitle: string;
     analyticsBody: string;
@@ -4513,8 +4505,6 @@ const en: UiStrings = {
     choicesTitle: 'What you can do',
     choicesBody:
       'Export everything you have entered, at any time, in full fidelity and for free. Turn off any notification. Delete your account and the personal data in it. Write to us with anything you want changed.',
-    englishGoverns:
-      'This text is translated for convenience. Where a translation and the English differ, the English is the one that governs.',
     couldNotSave: 'That did not save. Please try again in a moment.',
     analyticsTitle: 'How the app is used',
     analyticsBody:
@@ -6794,8 +6784,6 @@ const ta: UiStrings = {
     choicesTitle: 'நீங்கள் என்ன செய்யலாம்',
     choicesBody:
       'நீங்கள் உள்ளிட்ட அனைத்தையும் எப்போது வேண்டுமானாலும், முழுமையாக, இலவசமாக ஏற்றுமதி செய்யலாம். எந்த அறிவிப்பையும் நிறுத்தலாம். உங்கள் கணக்கையும் அதிலுள்ள தனிப்பட்ட தரவையும் நீக்கலாம்.',
-    englishGoverns:
-      'இந்த உரை வசதிக்காக மொழிபெயர்க்கப்பட்டுள்ளது. மொழிபெயர்ப்புக்கும் ஆங்கிலத்துக்கும் வேறுபாடு இருந்தால், ஆங்கிலமே செல்லுபடியாகும்.',
     couldNotSave: 'இது சேமிக்கப்படவில்லை. சிறிது நேரம் கழித்து முயற்சிக்கவும்.',
     analyticsTitle: 'செயலி எப்படி பயன்படுத்தப்படுகிறது',
     analyticsBody:
@@ -9005,8 +8993,6 @@ const hi: UiStrings = {
     choicesTitle: 'आप क्या कर सकते हैं',
     choicesBody:
       'जो कुछ आपने डाला है, कभी भी, पूरा और मुफ़्त निर्यात करें। कोई भी सूचना बंद करें। अपना खाता और उसमें रखा निजी डेटा मिटाएँ।',
-    englishGoverns:
-      'यह पाठ सुविधा के लिए अनूदित है। अनुवाद और अंग्रेज़ी में अंतर हो तो अंग्रेज़ी ही मान्य होगी।',
     couldNotSave: 'यह सहेजा नहीं जा सका। थोड़ी देर बाद फिर कोशिश करें।',
     analyticsTitle: 'ऐप कैसे इस्तेमाल होता है',
     analyticsBody:
@@ -11442,8 +11428,6 @@ const ar: UiStrings = {
     choicesTitle: 'ما الذي يمكنك فعله',
     choicesBody:
       'تصدير كل ما أدخلته، في أي وقت، كاملًا ومجانًا. إيقاف أي إشعار. حذف حسابك والبيانات الشخصية التي فيه.',
-    englishGoverns:
-      'هذا النص مترجم للتيسير. وعند الاختلاف بين الترجمة والإنجليزية، تكون الإنجليزية هي المعتمدة.',
     couldNotSave: 'لم يُحفظ هذا. أعد المحاولة بعد قليل.',
     analyticsTitle: 'كيف يُستخدم التطبيق',
     analyticsBody:
