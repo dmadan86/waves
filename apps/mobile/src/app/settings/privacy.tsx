@@ -449,9 +449,6 @@ export default function PrivacyScreen() {
               }),
             )}
           </Text>
-          <Text variant="micro" tone="muted">
-            {t.privacy.englishGoverns}
-          </Text>
         </View>
       </ScrollView>
     </Screen>
