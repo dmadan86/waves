@@ -51,6 +51,7 @@ import { LanguageProvider, useLanguage } from '@/i18n/language';
 import { LocaleSync } from '@/i18n/localeSync';
 import { LockProvider, useLock } from '@/lib/lock';
 import { legacyKeysMigrated } from '@/lib/legacyKeys';
+import { isAuthRoute, isPublicRoute } from '@/lib/routeAccess';
 import { ReducedMotionProvider, useReducedMotion } from '@/lib/reducedMotion';
 import { RecentCountProvider } from '@/lib/recentCount';
 import { ShortcutProvider } from '@/lib/shortcut';
@@ -423,7 +424,15 @@ function LockGate({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** Sends signed-out users to the sign-in screen, and back once they are in. */
+/**
+ * Sends signed-out users to the welcome screen, and back once they are in.
+ *
+ * Two mechanisms, deliberately: the `Stack.Protected` groups in the tree below
+ * are what make the doors *unreachable* — they take the history with them when
+ * the session flips — while the effect here is the redirect for routes that are
+ * not listed on the stack at all (expo-router auto-includes every file), so a
+ * deep link to one of those cannot park a signed-out person inside the app.
+ */
 function AuthGate() {
   const { session, loading } = useAuth();
   const segments = useSegments();
@@ -469,44 +478,11 @@ function AuthGate() {
     animation: push,
   };
 
-  // The two auth doors and the invite-accept screen are the only routes a
-  // signed-out person is allowed to sit on. `onAuth` covers both doors so a
-  // session that appears bounces off either one back into the app.
-  const onSignIn = segments[0] === 'sign-in';
-  // The welcome gateway is where a signed-out person lands; a session appearing
-  // on it (or on either door) bounces back into the app, so it counts as auth.
-  // The guest doorway counts as auth too: a signed-out person is allowed to sit
-  // on it, and the moment its Continue mints a guest session the gate bounces it
-  // into the app, exactly like the doors.
-  // `phone` counts as auth for the same reason the doors do: a nobody signs in
-  // there (or, in a dev build, the 000000 stub mints a guest), and the moment
-  // that session appears the gate must bounce it into the app — otherwise it
-  // sits on the code screen with a live session and nowhere to go.
-  // `verify-email` joins them: the email code is entered there, and the session
-  // `verifyOtp` mints must bounce into the app just like the phone code does.
-  const onAuth =
-    onSignIn ||
-    segments[0] === 'sign-up' ||
-    segments[0] === 'welcome' ||
-    segments[0] === 'guest-welcome' ||
-    segments[0] === 'phone' ||
-    segments[0] === 'verify-email';
-  // The privacy screen is reachable signed-out too, so the Terms & Privacy line
-  // on the welcome and guest doorways can open it before anybody has an account.
-  // Its open-source licenses screen is part of that same policy, opened from a
-  // row inside it, so it has to be public as well — otherwise tapping it bounces
-  // a signed-out reader back to /welcome. The local privacy audit is dev-only
-  // and must stay reachable after sign-out so e2e can verify private local state
-  // was removed, but production builds must never expose that route signed-out.
-  const onPublicRoute =
-    onAuth ||
-    segments[0] === 'join' ||
-    segments[0] === 'language' ||
-    (__DEV__ &&
-      (segments as string[])[0] === 'dev' &&
-      (segments as string[])[1] === 'local-privacy') ||
-    (segments[0] === 'settings' &&
-      ((segments as string[])[1] === 'privacy' || (segments as string[])[1] === 'licenses'));
+  // Which routes go with which session — the same lists the `Stack.Protected`
+  // groups below are built from, kept in `lib/routeAccess` so the guard and this
+  // redirect cannot drift apart.
+  const onAuth = isAuthRoute(segments as string[]);
+  const onPublicRoute = isPublicRoute(segments as string[], __DEV__);
 
   /**
    * The route we are on disagrees with the session we have, and the effect
@@ -610,68 +586,106 @@ function AuthGate() {
             gestureEnabled: true,
           }}
         >
-          {/* Signing in and out replaces the whole tree; sliding it would suggest a
-          place to go back to, and there is not one. */}
-          <Stack.Screen name="welcome" options={{ animation: 'none' }} />
-          <Stack.Screen name="language" />
-          <Stack.Screen name="sign-in" options={{ animation: 'none' }} />
-          {/* The sign-up page slides in from the login screen and back out, so it
-            keeps a normal push — unlike sign-in, which replaces the whole tree. */}
-          <Stack.Screen name="sign-up" />
-          <Stack.Screen name="phone" />
-          <Stack.Screen name="verify-email" />
-          <Stack.Screen name="guest-welcome" />
-          <Stack.Screen name="(tabs)" options={{ animation: 'none' }} />
-          <Stack.Screen name="new-group" options={slide} />
-          <Stack.Screen name="clone-group" options={slide} />
-          {paywallEnabled ? <Stack.Screen name="paywall" options={slide} /> : null}
-          <Stack.Screen name="capture" options={slide} />
-          {/* The drafts screen keeps the bottom bar, so a person leaves it by
+          {/* The doors, and only the doors.
+              `Stack.Protected` is not decoration here: when a guard flips from
+              true to false, expo-router *removes every history entry* for the
+              screens inside it. That is the whole fix for "sign in, land on the
+              dashboard, press Android back, and the login screen comes back" —
+              a `replace` only swaps the top of the stack, so `welcome` (and
+              anything pushed from it) stayed underneath as a back target. With
+              the group guarded, a session appearing erases those entries and
+              back from the dashboard leaves the app, which is what every other
+              app on the phone does.
+              It cuts the other way too: signing out drops the whole signed-in
+              history, so back cannot walk into a screen the account no longer
+              owns.
+              This group must stay FIRST — a signed-out person on a guarded app
+              screen falls back to the first screen still available, and that
+              should be `welcome`. */}
+          <Stack.Protected guard={!session}>
+            {/* Signing in and out replaces the whole tree; sliding it would suggest a
+            place to go back to, and there is not one. */}
+            <Stack.Screen name="welcome" options={{ animation: 'none' }} />
+            <Stack.Screen name="sign-in" options={{ animation: 'none' }} />
+            {/* The sign-up page slides in from the login screen and back out, so it
+              keeps a normal push — unlike sign-in, which replaces the whole tree. */}
+            <Stack.Screen name="sign-up" />
+            <Stack.Screen name="phone" />
+            <Stack.Screen name="verify-email" />
+            <Stack.Screen name="guest-welcome" />
+          </Stack.Protected>
+          {/* Everything behind the door. Guarded for the mirror-image reason:
+              signing out erases this history, so back cannot re-enter a screen
+              belonging to the account that just left. */}
+          <Stack.Protected guard={Boolean(session)}>
+            <Stack.Screen name="(tabs)" options={{ animation: 'none' }} />
+            <Stack.Screen name="new-group" options={slide} />
+            <Stack.Screen name="clone-group" options={slide} />
+            {/* The paywall is an unwired placeholder, so it stays unreachable
+                until its flag is on — a nested guard rather than a conditional,
+                because a `null` child is not a screen and the navigator warns
+                about one. */}
+            <Stack.Protected guard={paywallEnabled}>
+              <Stack.Screen name="paywall" options={slide} />
+            </Stack.Protected>
+            <Stack.Screen name="capture" options={slide} />
+            {/* The drafts screen keeps the bottom bar, so a person leaves it by
               tapping a tab — which should cut straight across the way a tab does,
               not slide the draft card out first. `none` makes leaving it (and
               arriving on it) instant, the same treatment the inbox destination
               had before it became a tab. */}
-          <Stack.Screen name="captures" options={{ animation: 'none' }} />
-          <Stack.Screen name="groups" options={slide} />
-          <Stack.Screen name="group/[id]/index" options={slide} />
-          <Stack.Screen name="group/[id]/add-expense" options={slide} />
-          <Stack.Screen name="group/[id]/settle" options={slide} />
-          <Stack.Screen name="group/[id]/simplify" />
-          <Stack.Screen name="group/[id]/settings" />
-          <Stack.Screen name="group/[id]/members" />
-          <Stack.Screen name="group/[id]/member/[memberId]" />
-          <Stack.Screen name="group/[id]/expense/[expenseId]" options={slide} />
-          <Stack.Screen name="group/[id]/invite" options={slide} />
-          <Stack.Screen name="group/[id]/itemize" options={slide} />
-          <Stack.Screen name="receipt/[id]" options={slide} />
-          <Stack.Screen name="friends/contacts" />
-          <Stack.Screen name="contact-picker" options={slide} />
-          <Stack.Screen name="scan" options={slide} />
-          <Stack.Screen name="settings/notifications" />
-          <Stack.Screen name="settings/export" />
-          <Stack.Screen name="settings/import" />
-          <Stack.Screen name="settings/lock" />
-          <Stack.Screen name="settings/devices" />
-          <Stack.Screen name="settings/shortcut" />
-          <Stack.Screen name="settings/recent" />
-          <Stack.Screen name="settings/sync" />
-          <Stack.Screen name="settings/backup" />
-          <Stack.Screen name="settings/theme" />
-          <Stack.Screen name="settings/categories" />
-          <Stack.Screen name="settings/language" />
-          <Stack.Screen name="settings/upgrade" />
-          <Stack.Screen name="settings/redeem" />
-          <Stack.Screen name="settings/account" />
-          <Stack.Screen name="settings/feedback" />
-          <Stack.Screen name="settings/privacy" />
-          <Stack.Screen name="settings/delete-account" />
-          <Stack.Screen name="dev/local-privacy" />
-          <Stack.Screen name="join" />
-          {/* The inbox is a tab-navigator destination now (see `(tabs)/inbox`),
+            <Stack.Screen name="captures" options={{ animation: 'none' }} />
+            <Stack.Screen name="groups" options={slide} />
+            <Stack.Screen name="group/[id]/index" options={slide} />
+            <Stack.Screen name="group/[id]/add-expense" options={slide} />
+            <Stack.Screen name="group/[id]/settle" options={slide} />
+            <Stack.Screen name="group/[id]/simplify" />
+            <Stack.Screen name="group/[id]/settings" />
+            <Stack.Screen name="group/[id]/members" />
+            <Stack.Screen name="group/[id]/member/[memberId]" />
+            <Stack.Screen name="group/[id]/expense/[expenseId]" options={slide} />
+            <Stack.Screen name="group/[id]/invite" options={slide} />
+            <Stack.Screen name="group/[id]/itemize" options={slide} />
+            <Stack.Screen name="receipt/[id]" options={slide} />
+            <Stack.Screen name="friends/contacts" />
+            <Stack.Screen name="contact-picker" options={slide} />
+            <Stack.Screen name="scan" options={slide} />
+            <Stack.Screen name="settings/notifications" />
+            <Stack.Screen name="settings/export" />
+            <Stack.Screen name="settings/import" />
+            <Stack.Screen name="settings/lock" />
+            <Stack.Screen name="settings/devices" />
+            <Stack.Screen name="settings/shortcut" />
+            <Stack.Screen name="settings/recent" />
+            <Stack.Screen name="settings/sync" />
+            <Stack.Screen name="settings/backup" />
+            <Stack.Screen name="settings/theme" />
+            <Stack.Screen name="settings/categories" />
+            <Stack.Screen name="settings/language" />
+            <Stack.Screen name="settings/upgrade" />
+            <Stack.Screen name="settings/redeem" />
+            <Stack.Screen name="settings/account" />
+            <Stack.Screen name="settings/feedback" />
+            <Stack.Screen name="settings/delete-account" />
+            {/* The inbox is a tab-navigator destination now (see `(tabs)/inbox`),
               so it is no longer a screen on this root stack — a tap on it from
               anywhere is an instant tab swap rather than a push that re-reveals
               and thaws the whole tab tree. */}
-          <Stack.Screen name="voice" options={slide} />
+            <Stack.Screen name="voice" options={slide} />
+          </Stack.Protected>
+          {/* Reachable with or without a session, so they belong to neither
+              group: the language picker is offered on the welcome screen, and
+              `join`/`settings/privacy` are opened from links and policy lines
+              that may arrive before anybody has an account. They sit last on
+              purpose — a guard flipping falls back to the first screen still
+              available, and that should be `welcome` signed out and the tabs
+              signed in, never the language picker. */}
+          <Stack.Screen name="language" />
+          <Stack.Screen name="join" />
+          <Stack.Screen name="settings/privacy" />
+          {/* Dev-only screen, and deliberately still reachable after sign-out so
+              the e2e suite can prove private local state was removed. */}
+          <Stack.Screen name="dev/local-privacy" />
         </Stack>
         {/* One bar over the whole stack, so every screen keeps it — it hides
           itself on the modals and the camera. */}
