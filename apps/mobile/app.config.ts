@@ -68,6 +68,30 @@ function googleMapsKey(platform: 'android' | 'ios'): string | undefined {
   return perPlatform || process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || undefined;
 }
 
+/**
+ * The Drive-backup sign-in plugin, for iOS builds that have a client id.
+ *
+ * Android needs nothing here: the native module autolinks, and Google matches
+ * the app by package name and signing certificate rather than by anything
+ * written into the binary. iOS is matched by bundle id instead, and its SDK
+ * takes the consent result back through a URL scheme derived from the client
+ * id — `123-abc.apps.googleusercontent.com` becomes
+ * `com.googleusercontent.apps.123-abc` — which has to be in the Info.plist
+ * before the app is built.
+ *
+ * The plugin is added only when that id is set, because its own validation
+ * throws without one, and an unconfigured clone must still be able to prebuild.
+ */
+function googleSignInPlugin(): [string, { iosUrlScheme: string }] | undefined {
+  const iosClientId = process.env.EXPO_PUBLIC_GOOGLE_DRIVE_CLIENT_ID_IOS;
+  if (!iosClientId) return undefined;
+  const bare = iosClientId.replace(/\.apps\.googleusercontent\.com$/, '');
+  return [
+    '@react-native-google-signin/google-signin',
+    { iosUrlScheme: `com.googleusercontent.apps.${bare}` },
+  ];
+}
+
 export default (): ExpoConfig => {
   const config = appJson.expo as ExpoConfig;
 
@@ -90,14 +114,19 @@ export default (): ExpoConfig => {
       : config.ios,
   };
 
+  const drive = googleSignInPlugin();
+  const withDrive: ExpoConfig = drive
+    ? { ...withPush, plugins: [...(withPush.plugins ?? []), drive] }
+    : withPush;
+
   const organization = process.env.SENTRY_ORG;
   const project = process.env.SENTRY_PROJECT;
-  if (!organization || !project) return withPush;
+  if (!organization || !project) return withDrive;
 
   return {
-    ...withPush,
+    ...withDrive,
     plugins: [
-      ...(withPush.plugins ?? []),
+      ...(withDrive.plugins ?? []),
       [
         '@sentry/react-native/expo',
         { organization, project, url: process.env.SENTRY_URL ?? 'https://sentry.io/' },
