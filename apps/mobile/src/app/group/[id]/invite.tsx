@@ -1,9 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { decode as decodeBase64 } from 'base64-arraybuffer';
 import * as Clipboard from 'expo-clipboard';
-import * as FileSystem from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
 import { router, useLocalSearchParams } from 'expo-router';
 import {
   ActivityIndicator,
@@ -39,6 +36,7 @@ import { useSync } from '@/sync';
 import { displayName, groupLabel, isGhost } from '@/data/types';
 import { useAuth } from '@/lib/auth';
 import { fill, plural, useStrings } from '@/i18n';
+import { shareInviteCard } from '@/lib/shareInviteCard';
 
 /**
  * The group's durable join link, as an invitation rather than a naked code.
@@ -78,8 +76,7 @@ export default function InviteScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  // The rendered QR, so a share can send the image itself and not just the link.
-  const qrRef = useRef<{ toDataURL?: (cb: (base64: string) => void) => void } | null>(null);
+  const inviteCardRef = useRef<View | null>(null);
 
   const joinToken = group.data?.join_token ?? ensured;
   const link = joinToken ? groupJoinLink(joinToken) : null;
@@ -128,44 +125,19 @@ export default function InviteScreen() {
     await Share.share({ message });
   };
 
-  /** The rendered QR as base64 PNG, or null if the code is not mounted yet. */
-  const captureQr = (): Promise<string | null> =>
-    new Promise((resolve) => {
-      const ref = qrRef.current;
-      if (!ref?.toDataURL) return resolve(null);
-      try {
-        ref.toDataURL((base64) => resolve(base64 ?? null));
-      } catch {
-        resolve(null);
-      }
-    });
-
   /**
-   * Send the QR code itself, so the person on the other end of a chat can scan
-   * it rather than only tap a link. The image is the one thing a plain URL
-   * scheme cannot carry, so this goes through the OS share sheet. `fallback` is
-   * the link-only path for when the code cannot be captured.
+   * Send the complete invitation card, so the person on the other end sees the
+   * group name and member context as well as the QR code. `fallback` is the
+   * link-only path for when the card cannot be captured.
    */
-  const shareQr = async (fallback: () => Promise<void>): Promise<void> => {
+  const shareCard = async (fallback: () => Promise<void>): Promise<void> => {
     if (!link) return;
-    try {
-      const base64 = await captureQr();
-      if (!base64 || !(await Sharing.isAvailableAsync())) {
-        await fallback();
-        return;
-      }
-      const file = new FileSystem.File(FileSystem.Paths.cache, 'waves-invite-qr.png');
-      if (file.exists) file.delete();
-      file.create();
-      file.write(new Uint8Array(decodeBase64(base64)));
-      await Sharing.shareAsync(file.uri, {
-        mimeType: 'image/png',
-        dialogTitle: message,
-        UTI: 'public.png',
-      });
-    } catch {
-      await fallback();
-    }
+    await shareInviteCard({
+      cardRef: inviteCardRef,
+      filename: 'waves-invite-card.png',
+      dialogTitle: message,
+      fallback,
+    });
   };
 
   const shareVia = async (channel: 'whatsapp' | 'sms' | 'email'): Promise<void> => {
@@ -224,111 +196,110 @@ export default function InviteScreen() {
             {/* The invitation. One object: whose group, who is in it, and the
                 code to join — on the brand wash, so it reads as something
                 handed over rather than a utility panel. */}
-            <Gradient radius={theme.radius.lg} style={{ padding: theme.spacing.lg }}>
-              <View style={{ alignItems: 'center', gap: theme.spacing.xs }}>
-                <Text variant="title" style={{ color: '#ffffff' }} align="center">
-                  {label}
-                </Text>
-                {present.length > 0 ? (
-                  <Text variant="caption" style={{ color: 'rgba(255,255,255,0.85)' }}>
-                    {plural(locale, present.length, t.people.inviteMembersHere)}
+            <View ref={inviteCardRef} collapsable={false}>
+              <Gradient radius={theme.radius.lg} style={{ padding: theme.spacing.lg }}>
+                <View style={{ alignItems: 'center', gap: theme.spacing.xs }}>
+                  <Text variant="title" style={{ color: '#ffffff' }} align="center">
+                    {label}
                   </Text>
-                ) : null}
-              </View>
-
-              {faces.length > 0 ? (
-                // Overlapped with a negative *start* margin rather than a left
-                // one, so the stack falls the right way round in Arabic.
-                <Row style={{ justifyContent: 'center', marginTop: theme.spacing.md }}>
-                  {faces.map((member, index) => (
-                    <View
-                      key={member.id}
-                      style={{
-                        marginStart: index === 0 ? 0 : -12,
-                        borderRadius: 999,
-                        borderWidth: 2,
-                        borderColor: '#ffffff',
-                      }}
-                    >
-                      <Avatar
-                        name={displayName(member, profile?.id, null, t.misc.someone)}
-                        ghost={isGhost(member)}
-                        size={36}
-                      />
-                    </View>
-                  ))}
-                  {overflow > 0 ? (
-                    <View
-                      style={{
-                        marginStart: -12,
-                        width: 36,
-                        height: 36,
-                        borderRadius: 999,
-                        borderWidth: 2,
-                        borderColor: '#ffffff',
-                        backgroundColor: 'rgba(255,255,255,0.25)',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <Text variant="caption" style={{ color: '#ffffff' }}>
-                        {`+${overflow}`}
-                      </Text>
-                    </View>
+                  {present.length > 0 ? (
+                    <Text variant="caption" style={{ color: 'rgba(255,255,255,0.85)' }}>
+                      {plural(locale, present.length, t.people.inviteMembersHere)}
+                    </Text>
                   ) : null}
-                </Row>
-              ) : null}
+                </View>
 
-              {/* The code sits on its own white plate whatever the theme is
+                {faces.length > 0 ? (
+                  // Overlapped with a negative *start* margin rather than a left
+                  // one, so the stack falls the right way round in Arabic.
+                  <Row style={{ justifyContent: 'center', marginTop: theme.spacing.md }}>
+                    {faces.map((member, index) => (
+                      <View
+                        key={member.id}
+                        style={{
+                          marginStart: index === 0 ? 0 : -12,
+                          borderRadius: 999,
+                          borderWidth: 2,
+                          borderColor: '#ffffff',
+                        }}
+                      >
+                        <Avatar
+                          name={displayName(member, profile?.id, null, t.misc.someone)}
+                          ghost={isGhost(member)}
+                          size={36}
+                        />
+                      </View>
+                    ))}
+                    {overflow > 0 ? (
+                      <View
+                        style={{
+                          marginStart: -12,
+                          width: 36,
+                          height: 36,
+                          borderRadius: 999,
+                          borderWidth: 2,
+                          borderColor: '#ffffff',
+                          backgroundColor: 'rgba(255,255,255,0.25)',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <Text variant="caption" style={{ color: '#ffffff' }}>
+                          {`+${overflow}`}
+                        </Text>
+                      </View>
+                    ) : null}
+                  </Row>
+                ) : null}
+
+                {/* The code sits on its own white plate whatever the theme is
                   doing: a QR on a dark ground does not scan. */}
-              <View
-                style={{
-                  alignSelf: 'center',
-                  marginTop: theme.spacing.lg,
-                  padding: theme.spacing.md,
-                  backgroundColor: '#ffffff',
-                  borderRadius: theme.radius.lg,
-                }}
-              >
-                <QRCodeStyled
-                  ref={(c) => {
-                    qrRef.current = c;
+                <View
+                  style={{
+                    alignSelf: 'center',
+                    marginTop: theme.spacing.lg,
+                    padding: theme.spacing.md,
+                    backgroundColor: '#ffffff',
+                    borderRadius: theme.radius.lg,
                   }}
-                  data={link}
-                  size={208}
-                  padding={16}
-                  style={{ backgroundColor: '#ffffff' }}
-                  // The RN `backgroundColor` style is not rasterised by
-                  // `toDataURL`, so a captured/shared PNG would come out with a
-                  // transparent ground — the dark pieces then vanish on a dark
-                  // chat bubble (WhatsApp). Paint the white quiet zone as an SVG
-                  // layer behind the code instead, so it is part of the export.
-                  renderBackground={() => (
-                    <Rect x={-40} y={-40} width={330} height={330} fill="#ffffff" />
-                  )}
-                  color="#0A0A1A"
-                  errorCorrectionLevel="H"
-                  pieceBorderRadius="50%"
-                  pieceScale={0.92}
-                  outerEyesOptions={{ borderRadius: '28%', color: '#0A0A1A' }}
-                  innerEyesOptions={{ borderRadius: '35%', color: '#0A0A1A' }}
-                  logo={{
-                    href: require('../../../../assets/images/icon.png'),
-                    scale: 0.85,
-                    padding: 6,
-                    hidePieces: true,
-                  }}
-                />
-              </View>
+                >
+                  <QRCodeStyled
+                    data={link}
+                    size={208}
+                    padding={16}
+                    style={{ backgroundColor: '#ffffff' }}
+                    // The RN `backgroundColor` style is not rasterised by
+                    // `toDataURL`, so a captured/shared PNG would come out with a
+                    // transparent ground — the dark pieces then vanish on a dark
+                    // chat bubble (WhatsApp). Paint the white quiet zone as an SVG
+                    // layer behind the code instead, so it is part of the export.
+                    renderBackground={() => (
+                      <Rect x={-40} y={-40} width={330} height={330} fill="#ffffff" />
+                    )}
+                    color="#0A0A1A"
+                    errorCorrectionLevel="H"
+                    pieceBorderRadius="50%"
+                    pieceScale={0.92}
+                    outerEyesOptions={{ borderRadius: '28%', color: '#0A0A1A' }}
+                    innerEyesOptions={{ borderRadius: '35%', color: '#0A0A1A' }}
+                    logo={{
+                      href: require('../../../../assets/images/icon.png'),
+                      scale: 0.85,
+                      padding: 6,
+                      hidePieces: true,
+                    }}
+                  />
+                </View>
 
-              <Text
-                variant="caption"
-                align="center"
-                style={{ color: 'rgba(255,255,255,0.85)', marginTop: theme.spacing.md }}
-              >
-                {t.people.scanToJoin}
-              </Text>
-            </Gradient>
+                <Text
+                  variant="caption"
+                  align="center"
+                  style={{ color: 'rgba(255,255,255,0.85)', marginTop: theme.spacing.md }}
+                >
+                  {t.people.scanToJoin}
+                </Text>
+              </Gradient>
+            </View>
 
             {/* The link, with copying on it rather than beside it. Copy used to
                 be a fifth circle on the channel row, which put the act of taking
@@ -435,7 +406,7 @@ export default function InviteScreen() {
               label={t.people.shareInvite}
               size="lg"
               fullWidth
-              onPress={() => void shareQr(share)}
+              onPress={() => void shareCard(share)}
             />
 
             {/* Said once, at the bottom, naming the group it lets people into —
