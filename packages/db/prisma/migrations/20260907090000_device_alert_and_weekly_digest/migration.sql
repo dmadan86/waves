@@ -126,6 +126,14 @@ BEGIN
 END
 $$;
 
+-- Restated because `CREATE OR REPLACE` above rewrites the function and the
+-- grants are checked per migration, not per database: a SECURITY DEFINER
+-- function is granted to PUBLIC by default, so a replacement that says nothing
+-- is a replacement that widened who can call it. Same caller model as the
+-- baseline — the device belongs to whoever is signed in.
+REVOKE ALL ON FUNCTION public.waves_register_device(p_device_id text, p_label text, p_platform text, p_app_version text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.waves_register_device(p_device_id text, p_label text, p_platform text, p_app_version text) TO authenticated;
+
 -- Anonymous accounts, named once so both this file and anything later asks the
 -- question the same way. `auth.users.is_anonymous` is the only truth for it —
 -- `profiles` does not carry the flag.
@@ -366,6 +374,11 @@ BEGIN
   WHERE n.id = ANY(v_ids) AND n.email_status = 'queued';
 END
 $$;
+
+-- Service role only, exactly as the baseline had it: the fanout calls this, and
+-- nobody signed in has any business claiming somebody else's mail.
+REVOKE ALL ON FUNCTION public.waves_claim_email_notifications(p_limit integer) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.waves_claim_email_notifications(p_limit integer) TO service_role;
 
 -- ───────────────────────────────────────────────────────── the schedule ──
 --
