@@ -285,6 +285,43 @@ describe('the weekly digest', () => {
     expect(travellerDigest!.payload).toMatchObject({ count: '1', amount: '-5000' });
   });
 
+  it('counts an author-only user even when they are not a payer or participant', async () => {
+    const group = await seedGroup(client, { memberCount: 2 });
+    const [authorProfile, bystanderProfile] = group.profileIds as [string, string];
+    const [author] = group.memberIds as [string, string];
+    for (const profileId of group.profileIds) {
+      await setEmail(profileId, `${profileId}@example.test`);
+      await optIn(profileId);
+    }
+
+    const expenseId = randomUUID();
+    const versionId = randomUUID();
+    await client.query('BEGIN');
+    await client.query(`INSERT INTO expenses (id, group_id, created_by) VALUES ($1, $2, $3)`, [
+      expenseId,
+      group.groupId,
+      author,
+    ]);
+    await client.query(
+      `INSERT INTO expense_versions
+         (id, expense_id, version_no, author_member_id, description, category, expense_date,
+          currency, amount, split_type, split_params)
+       VALUES ($1, $2, 1, $3, 'Trip note', NULL, '2026-03-01', 'INR', 0, 'equal', '{"kind":"equal"}'::jsonb)`,
+      [versionId, expenseId, author],
+    );
+    await client.query(`UPDATE expenses SET current_version_id = $1 WHERE id = $2`, [
+      versionId,
+      expenseId,
+    ]);
+    await client.query('COMMIT');
+
+    await runDigest();
+
+    const [digest] = await digestsFor(authorProfile);
+    expect(digest!.payload).toMatchObject({ count: '1', amount: '0' });
+    expect(await digestsFor(bystanderProfile)).toHaveLength(0);
+  });
+
   it('is idempotent inside one week', async () => {
     const group = await seedGroup(client, { memberCount: 1 });
     await setEmail(group.profileIds[0]!, `${group.profileIds[0]!}@example.test`);
