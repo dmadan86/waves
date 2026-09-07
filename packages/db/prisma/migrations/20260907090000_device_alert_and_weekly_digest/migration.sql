@@ -192,18 +192,30 @@ BEGIN
   FOR v_person IN
     SELECT p.id,
            p.default_currency,
-           -- Expenses filed in the last seven days in any group this person is
-           -- still a member of. Their own and everybody else's: a digest is
-           -- "what happened around you", not "what you typed".
+           -- Expenses filed in the last seven days where this person actually
+           -- appears: the author/user, a payer/financer, or a share participant
+           -- (traveller/rider). A group bystander did not have a week to report.
            (SELECT count(*)
               FROM public.expenses e
+              JOIN public.expense_versions v ON v.id = e.current_version_id
               JOIN public.group_members m
                 ON m.group_id = e.group_id
                AND m.profile_id = p.id
                AND m.left_at IS NULL
               JOIN public.groups g ON g.id = e.group_id AND g.archived_at IS NULL
              WHERE e.deleted_at IS NULL
-               AND e.created_at > v_since) AS expense_count,
+               AND e.created_at > v_since
+               AND (
+                 v.author_member_id = m.id
+                 OR EXISTS (
+                   SELECT 1 FROM public.expense_payers ep
+                    WHERE ep.expense_version_id = v.id AND ep.member_id = m.id
+                 )
+                 OR EXISTS (
+                   SELECT 1 FROM public.expense_shares es
+                    WHERE es.expense_version_id = v.id AND es.member_id = m.id
+                 )
+               )) AS expense_count,
            -- Net across every group, in their own currency only. Mixing
            -- currencies into one number would be a lie, and picking a
            -- "dominant" one would be a lie that changes week to week.
