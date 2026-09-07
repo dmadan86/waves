@@ -1656,7 +1656,12 @@ export interface UiStrings {
     upiForGroupNote: string;
     inviteTitle: string;
     /** The whole explanation the join link gets — one plain sentence. */
-    anyoneWithLink: string;
+    /** The trust line under the invite card. Carries `{group}`. */
+    inviteTrust: string;
+    /** "3 people already here" on the invite card. */
+    inviteMembersHere: PluralForms;
+    /** The primary action: hand the code and the link to somebody. */
+    shareInvite: string;
     inviteLink: string;
     /** Caption over the invite QR code. */
     scanToJoin: string;
@@ -3924,7 +3929,9 @@ const en: UiStrings = {
     upiForGroupNote:
       'Overrides your account UPI ID here only — useful when one group settles to a different account.',
     inviteTitle: 'Invite people',
-    anyoneWithLink: 'Anyone with this link can join.',
+    inviteTrust: 'Anyone with this link can join {group}, so share it with people you trust.',
+    inviteMembersHere: { one: '{n} person already here', other: '{n} people already here' },
+    shareInvite: 'Share invite',
     inviteLink: 'Invite link',
     scanToJoin: 'Scan to join',
     whatsapp: 'WhatsApp',
@@ -6236,7 +6243,13 @@ const ta: UiStrings = {
     upiForGroupNote:
       'இங்கே மட்டும் உங்கள் கணக்கின் UPI ID ஐ மேலெழுதும் — ஒரு குழு வேறு கணக்குக்குத் தீர்க்கும்போது பயனுள்ளது.',
     inviteTitle: 'ஆட்களை அழை',
-    anyoneWithLink: 'இந்த இணைப்பு உள்ள யாரும் சேரலாம்.',
+    inviteTrust:
+      'இந்த இணைப்பு உள்ள யாரும் {group} குழுவில் சேரலாம், அதனால் நம்பிக்கையானவர்களுடன் மட்டும் பகிரவும்.',
+    inviteMembersHere: {
+      one: '{n} பேர் ஏற்கனவே இங்கே',
+      other: '{n} பேர் ஏற்கனவே இங்கே',
+    },
+    shareInvite: 'அழைப்பைப் பகிர்',
     inviteLink: 'அழைப்பு இணைப்பு',
     scanToJoin: 'ஸ்கேன் செய்து சேரவும்',
     whatsapp: 'WhatsApp',
@@ -8548,7 +8561,13 @@ const hi: UiStrings = {
     upiForGroupNote:
       'सिर्फ़ यहाँ आपके खाते की UPI ID की जगह लेता है — जब कोई समूह किसी दूसरे खाते में निपटता हो तो काम आता है।',
     inviteTitle: 'लोगों को बुलाएँ',
-    anyoneWithLink: 'इस लिंक वाला कोई भी जुड़ सकता है।',
+    inviteTrust:
+      'इस लिंक वाला कोई भी {group} में जुड़ सकता है, इसलिए इसे भरोसेमंद लोगों के साथ ही साझा करें।',
+    inviteMembersHere: {
+      one: '{n} व्यक्ति पहले से यहाँ',
+      other: '{n} लोग पहले से यहाँ',
+    },
+    shareInvite: 'निमंत्रण साझा करें',
     inviteLink: 'निमंत्रण लिंक',
     scanToJoin: 'स्कैन करके जुड़ें',
     whatsapp: 'WhatsApp',
@@ -10908,7 +10927,16 @@ const ar: UiStrings = {
     upiForGroup: 'معرّف الدفع لهذه المجموعة',
     upiForGroupNote: 'يتجاوز معرّف حسابك هنا فقط — مفيد حين تُسوّى مجموعة إلى حساب مختلف.',
     inviteTitle: 'ادعُ أشخاصًا',
-    anyoneWithLink: 'يمكن لأي شخص لديه هذا الرابط الانضمام.',
+    inviteTrust: 'أي شخص لديه هذا الرابط يمكنه الانضمام إلى {group}، فشاركه مع من تثق بهم فقط.',
+    inviteMembersHere: {
+      zero: 'لا أحد هنا بعد',
+      one: 'شخص واحد هنا بالفعل',
+      two: 'شخصان هنا بالفعل',
+      few: '{n} أشخاص هنا بالفعل',
+      many: '{n} شخصًا هنا بالفعل',
+      other: '{n} شخص هنا بالفعل',
+    },
+    shareInvite: 'شارك الدعوة',
     inviteLink: 'رابط الدعوة',
     scanToJoin: 'امسح للانضمام',
     whatsapp: 'واتساب',
