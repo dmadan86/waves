@@ -12,6 +12,7 @@ import {
   dictationError,
   englishSpeechLocale,
   mergeTranscript,
+  offlineVoiceModels,
   onDeviceLocaleInstalled,
   speechLocale,
 } from '@/lib/dictation';
@@ -159,5 +160,93 @@ describe('onDeviceLocaleInstalled', () => {
     expect(onDeviceLocaleInstalled('en-IN', [])).toBe(false);
     expect(onDeviceLocaleInstalled('en-IN', null)).toBe(false);
     expect(onDeviceLocaleInstalled('', ['en'])).toBe(false);
+  });
+});
+
+describe('offlineVoiceModels', () => {
+  const languages = [Language.En, Language.Ta, Language.Hi, Language.Ar];
+
+  it('lists every app language whether or not its model is there', () => {
+    // The rows somebody came to this screen to fix are the missing ones, so
+    // they cannot be filtered out for being missing.
+    const models = offlineVoiceModels(languages, 'en-IN', [], [], 'reported');
+    expect(models.app.map((model) => model.tag)).toEqual(['en-IN', 'ta-IN', 'hi-IN', 'ar-IN']);
+    expect(models.app.every((model) => model.state === 'missing')).toBe(true);
+  });
+
+  it('reads an app row’s installed state the way the mic does', () => {
+    // A bare `en` really is the generic model and covers en-IN; en-US really is
+    // a different model and does not. The screen must give the same answer the
+    // recogniser will, or it promises a model that then returns silence.
+    const generic = offlineVoiceModels(languages, 'en-IN', [], ['en'], 'reported');
+    expect(generic.app[0]?.state).toBe('installed');
+    const wrongRegion = offlineVoiceModels(languages, 'en-IN', [], ['en-US'], 'reported');
+    expect(wrongRegion.app[0]?.state).toBe('missing');
+  });
+
+  it('splits everything else by whether the phone already holds it', () => {
+    const models = offlineVoiceModels(
+      languages,
+      'en-IN',
+      ['fr-FR', 'de-DE', 'bn-IN'],
+      ['de-DE', 'en-US'],
+      'reported',
+    );
+    // en-US is installed but no app row claims it, so it belongs with the extras
+    // rather than quietly satisfying the en-IN row above.
+    expect(models.alsoInstalled.map((model) => model.tag)).toEqual(['de-DE', 'en-US']);
+    expect(models.downloadable.map((model) => model.tag)).toEqual(['bn-IN', 'fr-FR']);
+  });
+
+  it('never lists the same model twice', () => {
+    // The phone repeats tags across its two lists, and an app tag must not
+    // reappear below as something still to download.
+    const models = offlineVoiceModels(
+      languages,
+      'en-IN',
+      ['en-IN', 'ta-IN', 'FR_fr'],
+      ['fr-FR'],
+      'reported',
+    );
+    expect(models.alsoInstalled.map((model) => model.tag)).toEqual(['fr-FR']);
+    expect(models.downloadable).toEqual([]);
+  });
+
+  it('does not list a bare tag that an app row already covers', () => {
+    // Android's usual way of saying it holds generic English is the bare `en`,
+    // which is not the `en-IN` the app row names but is the very same model.
+    // Listing both would put one model on the screen twice — once ticked at the
+    // top and once again under "also on this phone".
+    const models = offlineVoiceModels(languages, 'en-IN', ['en', 'fr-FR'], ['en'], 'reported');
+    expect(models.app[0]?.state).toBe('installed');
+    expect(models.alsoInstalled).toEqual([]);
+    expect(models.downloadable.map((model) => model.tag)).toEqual(['fr-FR']);
+  });
+
+  it('claims nothing about a phone that cannot be asked what it holds', () => {
+    // iOS returns its supported list under `installedLocales` too, so believing
+    // it would tick every locale the phone can recognise at all — the silence
+    // bug arriving through the UI. Nothing below the app rows is trustworthy
+    // either, since the split between "here" and "on offer" comes from the same
+    // answer.
+    const models = offlineVoiceModels(
+      languages,
+      'en-IN',
+      ['en-IN', 'fr-FR'],
+      ['en-IN', 'fr-FR'],
+      'unknowable',
+    );
+    expect(models.app.map((model) => model.tag)).toEqual(['en-IN', 'ta-IN', 'hi-IN', 'ar-IN']);
+    expect(models.app.every((model) => model.state === 'unknown')).toBe(true);
+    expect(models.alsoInstalled).toEqual([]);
+    expect(models.downloadable).toEqual([]);
+  });
+
+  it('survives a phone that answers with nothing at all', () => {
+    // Android 12 and below name no locales; the app rows must still draw.
+    const models = offlineVoiceModels(languages, 'en-IN', null, null, 'reported');
+    expect(models.app).toHaveLength(4);
+    expect(models.alsoInstalled).toEqual([]);
+    expect(models.downloadable).toEqual([]);
   });
 });
