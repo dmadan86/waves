@@ -418,6 +418,88 @@ function registerWriteTools(server: McpServer, supabase: SupabaseClient): void {
       });
     },
   );
+
+  server.registerTool(
+    'add_people',
+    {
+      description:
+        'Make sure these people are in the group, and return their member ids. Anyone not already there is added as a ghost — a member with a real balance and no account — which is what "split it with Raj and Priya" almost always means. Call this before add_expense when the request names people rather than member ids.',
+      inputSchema: {
+        groupId: GroupId,
+        names: z
+          .array(z.string().min(1))
+          .min(1)
+          .describe('The people, named the way the user named them.'),
+      },
+    },
+    async ({ groupId, names }): Promise<ToolResult> => {
+      const { data: rows, error } = await supabase
+        .from('group_members')
+        .select('id, ghost_name, profile_id, profile:profiles!profile_id ( display_name )')
+        .eq('group_id', groupId)
+        .is('left_at', null);
+      if (error) return fail(error.message);
+
+      const known = (rows ?? []).map((m) => {
+        const profile = m.profile as { display_name?: string } | null;
+        return {
+          memberId: m.id as string,
+          name: (profile?.display_name ?? (m.ghost_name as string | null) ?? 'Unnamed').trim(),
+        };
+      });
+
+      const resolved: { name: string; memberId: string; created: boolean }[] = [];
+      for (const raw of names) {
+        const name = raw.trim();
+        if (!name) continue;
+        const matches = known.filter((m) => m.name.toLowerCase() === name.toLowerCase());
+        // Two people with the same name is a fork in the road, not a detail to
+        // guess at: picking one of two Rajs silently puts a real debt on the
+        // wrong person, and nothing downstream would ever catch it.
+        if (matches.length > 1) {
+          return fail(
+            `"${name}" matches ${matches.length} members of this group. Ask which one, and pass their memberId to add_expense directly.`,
+          );
+        }
+        if (matches.length === 1) {
+          resolved.push({ name, memberId: matches[0]!.memberId, created: false });
+          continue;
+        }
+        const { data: ghostId, error: ghostError } = await supabase.rpc('waves_add_ghost_member', {
+          p_group_id: groupId,
+          p_name: name,
+        });
+        if (ghostError) return fail(ghostError.message);
+        known.push({ memberId: ghostId as string, name });
+        resolved.push({ name, memberId: ghostId as string, created: true });
+      }
+
+      return ok({
+        members: resolved,
+        added: resolved.filter((r) => r.created).map((r) => r.name),
+      });
+    },
+  );
+
+  server.registerTool(
+    'invite_link',
+    {
+      description:
+        "The group's reusable join link, to send to someone so they can see the ledger themselves and claim what they are owed. Anyone holding the link can join the group, so send it to people, not to channels.",
+      inputSchema: { groupId: GroupId },
+    },
+    async ({ groupId }): Promise<ToolResult> => {
+      const { data, error } = await supabase.rpc('waves_ensure_group_join_token', {
+        p_group_id: groupId,
+      });
+      if (error) return fail(error.message);
+      // The shape has to match `groupJoinLink` in the app exactly — the token
+      // in the fragment, so it never reaches a server log or a referrer header,
+      // and the path a literal `/join`, which the QR scanner checks.
+      const base = process.env.WAVES_WEB_URL ?? 'https://app.wavs.co.in';
+      return ok({ url: `${base}/join#${data as string}` });
+    },
+  );
 }
 
 main().catch((error: unknown) => {
