@@ -533,6 +533,21 @@ supabase secrets set EMAIL_WEB_URL=https://app.wavs.co.in         # optional; th
 pnpm edge:deploy
 ```
 
+That covers **product** mail — the notifications the app sends itself. **Auth**
+mail (the sign-in code, the sign-up confirmation, an address change) is sent by
+GoTrue, which `secrets set` does not reach. It needs the same key written into
+`supabase/.env` and then pushed:
+
+```bash
+echo "RESEND_SMTP_PASSWORD=re_..." >> supabase/.env    # gitignored
+supabase config push
+```
+
+`config push` uploads `[auth.email.smtp]` **and** the five templates in
+`supabase/templates/`. Push it before the key is in `.env` and you get SMTP
+enabled with an empty password, which sends nothing at all — read the note above
+that block in `config.toml`.
+
 `EMAIL_UNSUBSCRIBE_SECRET` is what signs the one-click unsubscribe URL. Changing
 it invalidates every unsubscribe link already sitting in somebody's mailbox, so
 it is set once and left alone.
