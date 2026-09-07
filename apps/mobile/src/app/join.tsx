@@ -36,7 +36,10 @@ import { useGuestGuard } from '@/lib/guestGuard';
 export default function JoinScreen() {
   const theme = useTheme();
   const { t, locale } = useStrings();
-  const { token } = useLocalSearchParams<{ token?: string }>();
+  // `from` says how the link was opened. The scanner sends `scan`, because a
+  // link that turns out to be dead has a different next step there: point the
+  // camera at another code, rather than being shown the door to the app.
+  const { token, from } = useLocalSearchParams<{ token?: string; from?: string }>();
   const { session, continueAsGuest } = useAuth();
   const guard = useGuestGuard();
   const queryClient = useQueryClient();
@@ -137,7 +140,20 @@ export default function JoinScreen() {
         <EmptyState
           title={t.misc.linkExpired}
           body={shown ?? t.misc.linkExpiredBody}
-          action={<Button label={t.misc.goToWaves} onPress={() => router.replace('/')} />}
+          action={
+            from === 'scan' ? (
+              <View style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+                <Button label={t.misc.scanAnother} onPress={() => router.replace('/scan')} />
+                <Button
+                  label={t.misc.goToWaves}
+                  variant="ghost"
+                  onPress={() => router.replace('/')}
+                />
+              </View>
+            ) : (
+              <Button label={t.misc.goToWaves} onPress={() => router.replace('/')} />
+            )
+          }
         />
       </Screen>
     );
