@@ -22,10 +22,11 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 
-import { GroupType, type GroupRow } from '@waves/api-client';
+import { GroupType, WavesApiError, type GroupRow } from '@waves/api-client';
 
 import { AppFrame } from '@/components/AppFrame';
 import { Section } from '@/components/Shell';
+import { SkeletonRows } from '@/components/Skeleton';
 import { waves } from '@/lib/waves';
 import { useStrings } from '@/i18n-context';
 import { friendlyError } from '@/lib/errors';
@@ -48,6 +49,7 @@ function GroupSettings({ profileId }: { profileId: string }) {
   const groupId = params.groupId;
 
   const [group, setGroup] = useState<GroupRow | null>(null);
+  const [loading, setLoading] = useState(true);
   const [iAmAdmin, setIAmAdmin] = useState(false);
   const [name, setName] = useState('');
   const [emoji, setEmoji] = useState<string | null>(null);
@@ -60,8 +62,11 @@ function GroupSettings({ profileId }: { profileId: string }) {
 
   const load = useCallback(async () => {
     const [row, members] = await Promise.all([waves.groupRow(groupId), waves.members(groupId)]);
-    if (!row) return;
+    // RLS answers "not yours" with no row rather than an error, so a stale or
+    // borrowed URL lands here. Leaving `group` null is the signal for the
+    // missing-group panel below — never an editable form over defaults.
     setGroup(row);
+    if (!row) return;
     setName(row.name ?? '');
     setEmoji(row.cover_emoji);
     setCurrency(row.default_currency);
@@ -85,6 +90,8 @@ function GroupSettings({ profileId }: { profileId: string }) {
               offline: t.errors.offline,
             }),
           );
+      } finally {
+        if (active) setLoading(false);
       }
     })();
     return () => {
@@ -100,12 +107,20 @@ function GroupSettings({ profileId }: { profileId: string }) {
       await action();
       after?.();
     } catch (caught) {
-      setError(
-        friendlyError(caught, 'web.groupSettings.write', {
-          fallback: t.errors.couldNotSave,
-          offline: t.errors.offline,
-        }),
-      );
+      // Losing the race is not a failure to save — somebody else saved. Say so,
+      // and pull their version in, so the next attempt starts from what is
+      // actually in the group rather than overwriting it.
+      if (caught instanceof WavesApiError && caught.code === 'stale_revision') {
+        setError(t.groupSettings.changedElsewhere);
+        await load().catch(() => undefined);
+      } else {
+        setError(
+          friendlyError(caught, 'web.groupSettings.write', {
+            fallback: t.errors.couldNotSave,
+            offline: t.errors.offline,
+          }),
+        );
+      }
     } finally {
       setBusy(false);
     }
@@ -121,6 +136,39 @@ function GroupSettings({ profileId }: { profileId: string }) {
   ];
 
   const archived = Boolean(group?.archived_at);
+
+  if (loading) {
+    return (
+      <div className="app-body" aria-hidden>
+        <div className="app-main">
+          <section className="panel">
+            <SkeletonRows rows={5} />
+          </section>
+        </div>
+        <aside className="detail" />
+      </div>
+    );
+  }
+
+  // No row came back: the group was deleted, or this URL was never ours. The
+  // same panel the group page shows — never a form over defaults, which would
+  // offer to save a name and a currency onto a group that is not there.
+  if (!group) {
+    return (
+      <div className="app-body">
+        <div className="app-main">
+          <section className="panel">
+            <h2>{t.group.notYours}</h2>
+            <p className="muted">{error ?? t.group.notYoursBody}</p>
+            <Link className="btn soft" href="/groups">
+              {t.groups.title}
+            </Link>
+          </section>
+        </div>
+        <aside className="detail" />
+      </div>
+    );
+  }
 
   return (
     <div className="app-body">
@@ -205,13 +253,20 @@ function GroupSettings({ profileId }: { profileId: string }) {
             onClick={() =>
               void run(
                 () =>
-                  waves.updateGroup(groupId, {
-                    name: name.trim() || null,
-                    cover_emoji: emoji,
-                    default_currency: currency,
-                    type,
-                    simplify_debts: simplify,
-                  }),
+                  waves.updateGroup(
+                    groupId,
+                    {
+                      name: name.trim() || null,
+                      cover_emoji: emoji,
+                      default_currency: currency,
+                      type,
+                      simplify_debts: simplify,
+                    },
+                    // Every field at once, from a form that may have sat open:
+                    // conditional on the row still being the one it was filled
+                    // in from.
+                    { ifUpdatedSeq: group?.updated_seq },
+                  ),
                 () => setSaved(true),
               )
             }
@@ -243,6 +298,7 @@ function GroupSettings({ profileId }: { profileId: string }) {
                   waves.updateGroup(groupId, {
                     archived_at: archived ? null : new Date().toISOString(),
                   }),
+                // One field, one intent — nothing of anybody else's to revert.
                 () => void load(),
               )
             }

@@ -13,5 +13,5 @@ import { JoinFlow } from '@/components/JoinFlow';
 
 export default function JoinTokenPage() {
   const params = useParams<{ token: string }>();
-  return <JoinFlow token={params.token} />;
+  return <JoinFlow key={params.token} token={params.token} />;
 }

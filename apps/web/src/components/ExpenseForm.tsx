@@ -432,9 +432,14 @@ export function ExpenseForm({
                 aria-pressed={category === option.id}
                 onClick={() => {
                   setCategoryChosen(true);
-                  // Tapping the current one again clears it: "none of these" is
-                  // a real answer, and there is nowhere else to say it.
-                  setChosenCategory(category === option.id ? null : option.id);
+                  // Tapping your own choice again clears it: "none of these"
+                  // is a real answer and there is nowhere else to say it. The
+                  // test is against the *choice*, not `category` — that also
+                  // holds the guess, so tapping the category "Uber" already
+                  // suggested would have read as unpicking it and saved none.
+                  setChosenCategory(
+                    categoryChosen && chosenCategory === option.id ? null : option.id,
+                  );
                 }}
               >
                 {t.categories[option.id]}

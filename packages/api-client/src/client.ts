@@ -55,7 +55,7 @@ const PROFILE_COLUMNS =
 
 const GROUP_ROW_COLUMNS = `
   id, name, type, country_code, default_currency, simplify_debts, cover_emoji, photo_path,
-  start_date, end_date, archived_at, created_at
+  start_date, end_date, archived_at, created_at, updated_seq
 `;
 
 // profiles is embedded by its FK column (profile_id): ghost_merges references
@@ -468,6 +468,15 @@ export function createWavesClient({ supabase }: WavesClientOptions) {
      * decides who may write these columns, and `role` is not among them —
      * promoting somebody goes through `setMemberRole`, where the last-admin
      * rule lives.
+     *
+     * `ifUpdatedSeq` makes the write conditional on the row still being the one
+     * that was read. A settings *form* needs this in a way a single switch does
+     * not: it carries every field, so saving a form filled in ten minutes ago
+     * would put its stale currency and name back over whatever another admin
+     * changed in between — a silent revert of somebody else's work. A trigger
+     * bumps `updated_seq` on every write to the group, so a row that no longer
+     * matches is exactly "somebody got here first", and the caller is told with
+     * a `stale_revision` code rather than being let through.
      */
     async updateGroup(
       groupId: string,
@@ -482,9 +491,24 @@ export function createWavesClient({ supabase }: WavesClientOptions) {
         start_date: string | null;
         end_date: string | null;
       }>,
+      options: { ifUpdatedSeq?: number } = {},
     ): Promise<void> {
-      const { error } = await supabase.from('groups').update(patch).eq('id', groupId);
+      const query = supabase.from('groups').update(patch).eq('id', groupId);
+      if (options.ifUpdatedSeq === undefined) {
+        const { error } = await query;
+        if (error)
+          throw new WavesApiError(String((error as { message?: string }).message ?? error));
+        return;
+      }
+
+      // `select` is what makes the result countable: without it PostgREST
+      // returns no rows and a write that matched nothing is indistinguishable
+      // from one that matched.
+      const { data, error } = await query.eq('updated_seq', options.ifUpdatedSeq).select('id');
       if (error) throw new WavesApiError(String((error as { message?: string }).message ?? error));
+      if (!data || (data as unknown[]).length === 0) {
+        throw new WavesApiError('The group changed since it was opened.', 'stale_revision');
+      }
     },
 
     /**

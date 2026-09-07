@@ -386,6 +386,7 @@ export interface WebStrings {
     deleteBody: string;
     deleteConfirm: string;
     adminOnly: string;
+    changedElsewhere: string;
     danger: string;
   };
   settings: {
@@ -446,6 +447,7 @@ export interface WebStrings {
     couldNotSave: string;
     offline: string;
     tooMany: string;
+    tryAgain: string;
   };
 }
 
@@ -742,6 +744,8 @@ const en: WebStrings = {
       'Only when everybody is square, and only an admin can. It goes from everyone’s list.',
     deleteConfirm: 'Delete this group for everybody? This cannot be undone.',
     adminOnly: 'Only an admin of this group can change this.',
+    changedElsewhere:
+      'Somebody else changed this group while this page was open. Their version is above — check it, then save again.',
     danger: 'Careful',
   },
   settings: {
@@ -800,6 +804,7 @@ const en: WebStrings = {
     couldNotSave: 'That didn’t save. Try again in a moment.',
     offline: 'You appear to be offline. Check your connection and try again.',
     tooMany: 'Too many tries in a row. Wait a moment, then try again.',
+    tryAgain: 'Try again',
   },
 };
 
@@ -1106,6 +1111,8 @@ const ta: WebStrings = {
       'அனைவரும் சரியாக இருக்கும்போது மட்டும், நிர்வாகி மட்டும். எல்லோர் பட்டியலிலிருந்தும் போகும்.',
     deleteConfirm: 'இந்தக் குழுவை அனைவருக்கும் நீக்கவா? திரும்பப் பெற முடியாது.',
     adminOnly: 'இந்தக் குழுவின் நிர்வாகி மட்டுமே இதை மாற்ற முடியும்.',
+    changedElsewhere:
+      'இந்தப் பக்கம் திறந்திருந்தபோது வேறு ஒருவர் இந்தக் குழுவை மாற்றியுள்ளார். அவர்களின் பதிப்பு மேலே உள்ளது — பார்த்துவிட்டு மீண்டும் சேமிக்கவும்.',
     danger: 'கவனம்',
   },
   settings: {
@@ -1165,6 +1172,7 @@ const ta: WebStrings = {
     couldNotSave: 'இது சேமிக்கப்படவில்லை. சிறிது நேரத்தில் மீண்டும் முயலவும்.',
     offline: 'நீங்கள் இணைப்பில் இல்லை போலும். இணைப்பைச் சரிபார்த்து மீண்டும் முயலவும்.',
     tooMany: 'தொடர்ச்சியாக அதிக முயற்சிகள். சிறிது காத்திருந்து மீண்டும் முயலவும்.',
+    tryAgain: 'மீண்டும் முயலவும்',
   },
 };
 
@@ -1462,6 +1470,8 @@ const hi: WebStrings = {
     deleteBody: 'तभी जब सब बराबर हों, और केवल व्यवस्थापक. यह सबकी सूची से चला जाएगा.',
     deleteConfirm: 'यह समूह सबके लिए मिटाएँ? यह वापस नहीं होगा.',
     adminOnly: 'इसे केवल इस समूह का व्यवस्थापक बदल सकता है.',
+    changedElsewhere:
+      'यह पेज खुला रहते हुए किसी और ने इस समूह में बदलाव किया। उनका संस्करण ऊपर है — देखकर फिर से सेव करें।',
     danger: 'सावधान',
   },
   settings: {
@@ -1519,6 +1529,7 @@ const hi: WebStrings = {
     couldNotSave: 'यह सेव नहीं हुआ। थोड़ी देर में फिर कोशिश करें।',
     offline: 'लगता है आप ऑफ़लाइन हैं। कनेक्शन जाँचकर फिर कोशिश करें।',
     tooMany: 'लगातार बहुत सारी कोशिशें। थोड़ा रुककर फिर कोशिश करें।',
+    tryAgain: 'फिर कोशिश करें',
   },
 };
 
@@ -1868,6 +1879,8 @@ const ar: WebStrings = {
     deleteBody: 'فقط حين يتعادل الجميع، وللمشرف وحده. ستختفي من قائمة كل شخص.',
     deleteConfirm: 'حذف هذه المجموعة للجميع؟ لا يمكن التراجع.',
     adminOnly: 'لا يغيّر هذا إلا مشرف المجموعة.',
+    changedElsewhere:
+      'غيّر شخص آخر هذه المجموعة بينما كانت هذه الصفحة مفتوحة. نسخته ظاهرة أعلاه — راجعها ثم احفظ من جديد.',
     danger: 'انتبه',
   },
   settings: {
@@ -1926,6 +1939,7 @@ const ar: WebStrings = {
     couldNotSave: 'لم يُحفظ ذلك. حاول بعد قليل.',
     offline: 'يبدو أنك غير متصل. تحقّق من اتصالك وحاول مجدداً.',
     tooMany: 'محاولات كثيرة متتالية. انتظر قليلاً ثم حاول مجدداً.',
+    tryAgain: 'حاول مجدداً',
   },
 };
 

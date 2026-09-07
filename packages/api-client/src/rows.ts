@@ -9,6 +9,8 @@
  * a number.
  */
 
+import type { RailId } from '@waves/core';
+
 export enum GroupType {
   Trip = 'trip',
   Home = 'home',
@@ -32,6 +34,12 @@ export interface GroupRow {
   end_date: string | null;
   archived_at: string | null;
   created_at: string;
+  /**
+   * The row's revision. A trigger bumps it on every write to the group, which
+   * makes it the thing a form can hold on to and hand back — see
+   * `updateGroup`'s `ifUpdatedSeq`.
+   */
+  updated_seq: number;
 }
 
 export interface MemberRow {
@@ -271,8 +279,13 @@ export interface ProfileRow {
   id: string;
   display_name: string;
   avatar_url: string | null;
-  /** How this person is paid: a `RailId` from @waves/core, and a handle on it. */
-  payment_rail: string | null;
+  /**
+   * How this person is paid: a `RailId` from @waves/core, and a handle on it.
+   * Narrower than the column, deliberately — the database accepts only the
+   * rails the enum names, so a typo like `'bitcoin'` should fail here rather
+   * than on the way to a constraint.
+   */
+  payment_rail: RailId | null;
   payment_handle: string | null;
   /** The UPI-shaped field this predates the rail pair; still read as a fallback. */
   default_vpa: string | null;

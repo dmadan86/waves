@@ -20,6 +20,7 @@ import { SkeletonRows } from '@/components/Skeleton';
 import { waves } from '@/lib/waves';
 import { plural } from '@/i18n';
 import { useStrings } from '@/i18n-context';
+import { friendlyError } from '@/lib/errors';
 
 export default function GroupsPage() {
   return <AppFrame current={Section.Groups}>{({ query }) => <Groups query={query} />}</AppFrame>;
@@ -30,7 +31,10 @@ function Groups({ query }: { query: string }) {
   const [groups, setGroups] = useState<GroupRow[]>([]);
   const [members, setMembers] = useState<Map<string, MemberRow[]>>(new Map());
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
+  /** Bumped by the retry button; re-running the effect is the whole retry. */
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -42,6 +46,17 @@ function Groups({ query }: { query: string }) {
         if (!active) return;
         setGroups(rows);
         setMembers(byGroup);
+        setError(null);
+      } catch (caught) {
+        // Without this, a failed request reads as "you have no groups" — the
+        // most alarming sentence this page could show somebody who has ten.
+        if (active)
+          setError(
+            friendlyError(caught, 'web.groups.load', {
+              fallback: t.errors.couldNotLoad,
+              offline: t.errors.offline,
+            }),
+          );
       } finally {
         if (active) setLoading(false);
       }
@@ -49,7 +64,7 @@ function Groups({ query }: { query: string }) {
     return () => {
       active = false;
     };
-  }, []);
+  }, [attempt, t.errors.couldNotLoad, t.errors.offline]);
 
   const q = query.trim().toLowerCase();
   const { live, archived } = useMemo(() => {
@@ -94,6 +109,20 @@ function Groups({ query }: { query: string }) {
         <section className="panel">
           {loading ? (
             <SkeletonRows rows={5} />
+          ) : error ? (
+            <>
+              <p className="error">{error}</p>
+              <button
+                type="button"
+                className="btn soft"
+                onClick={() => {
+                  setLoading(true);
+                  setAttempt((n) => n + 1);
+                }}
+              >
+                {t.errors.tryAgain}
+              </button>
+            </>
           ) : live.length === 0 ? (
             <>
               <p className="muted">{t.groups.empty}</p>
@@ -104,7 +133,7 @@ function Groups({ query }: { query: string }) {
           )}
         </section>
 
-        <section className="panel">
+        <section className="panel" hidden={Boolean(error)}>
           <button type="button" className="btn soft" onClick={() => setShowArchived((on) => !on)}>
             {showArchived ? t.groups.hideArchived : t.groups.showArchived}
           </button>

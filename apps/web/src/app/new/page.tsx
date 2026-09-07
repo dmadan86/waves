@@ -68,22 +68,15 @@ function NewGroup() {
   const create = async () => {
     setBusy(true);
     setError(null);
+    let groupId: string;
     try {
-      const groupId = await waves.createGroup({
+      groupId = await waves.createGroup({
         name: name.trim() || null,
         type,
         currency,
         emoji,
         simplify,
       });
-      // The people are added after the group exists, in order, and a failure
-      // here must not read as "the group was not made" — it was. So the first
-      // failure stops the loop and the router still goes to the group, where
-      // whoever is left can be added again without starting over.
-      for (const who of people) {
-        await waves.addGhostMember({ groupId, name: who });
-      }
-      router.replace(`/g/${groupId}`);
     } catch (caught) {
       setError(
         friendlyError(caught, 'web.newGroup.create', {
@@ -92,7 +85,24 @@ function NewGroup() {
         }),
       );
       setBusy(false);
+      return;
     }
+
+    // Past this line the group exists, and that is the whole reason the two
+    // steps are separated. A failure adding people must never leave the button
+    // ready to press again: pressing it would make a *second* group and the
+    // first would still be sitting there. So whatever happens next, this goes
+    // to the group, where whoever is missing can be added without starting
+    // over.
+    try {
+      for (const who of people) {
+        await waves.addGhostMember({ groupId, name: who });
+      }
+    } catch {
+      // Deliberately swallowed. The group page is the honest place to see who
+      // made it in and who did not.
+    }
+    router.replace(`/g/${groupId}`);
   };
 
   return (

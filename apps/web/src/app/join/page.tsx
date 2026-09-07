@@ -73,5 +73,10 @@ export default function JoinHashPage() {
     );
   }
 
-  return <JoinFlow token={token} />;
+  // Keyed by the token, not merely passed it. The fragment can change while
+  // this page stays mounted (a second link opened in the same tab), and without
+  // the key the previous invite's group name, claim and pending state would
+  // stay on screen over a token that has already been swapped underneath —
+  // showing group A while the join button accepts B.
+  return <JoinFlow key={token} token={token} />;
 }

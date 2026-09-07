@@ -459,6 +459,14 @@
   .item + .item {
     @apply border-t border-line;
   }
+  /* A row that goes two places: the record itself, and one action beside it.
+     The separator moves out here, because the row is now the pair. */
+  .item-pair {
+    @apply flex items-center gap-2 pe-2;
+  }
+  .item-pair + .item-pair {
+    @apply border-t border-line;
+  }
   .item .grow {
     @apply flex min-w-0 flex-1 flex-col;
   }
@@ -580,7 +588,9 @@
   .row-field {
     @apply flex items-center gap-[10px];
   }
-  .row-field > input,
+  /* Text-like controls take the room; a checkbox keeps its own size, or it
+     stretches across the row and squeezes the label it belongs to. */
+  .row-field > input:not([type='checkbox']):not([type='radio']),
   .row-field > select {
     @apply flex-1;
   }
