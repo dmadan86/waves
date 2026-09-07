@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from 'react';
+import { lazy, Suspense, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Clipboard from 'expo-clipboard';
 import { router } from 'expo-router';
@@ -49,7 +49,15 @@ export default function ScanScreen() {
   const [pasted, setPasted] = useState('');
   const [pasteError, setPasteError] = useState<string | null>(null);
 
+  // Both ways in — the camera and the sheet — end in the same navigation, and
+  // either can fire twice: a double tap on "Open invite", or the camera reading
+  // a code in the moment before the screen goes. The leaf holds the same guard
+  // for its own reads; this one covers both roads at the point they meet.
+  const navigated = useRef(false);
+
   const open = (token: string): void => {
+    if (navigated.current) return;
+    navigated.current = true;
     router.replace(`/join?token=${encodeURIComponent(token)}&from=scan`);
   };
 
@@ -63,11 +71,24 @@ export default function ScanScreen() {
    * do with Waves.
    */
   const openPaste = (): void => {
+    // A fresh sheet every time. Reopening onto the rejected text from last time,
+    // with the error that explained it already gone, reads as the field having
+    // broken rather than as a link that did not work.
+    setPasted('');
     setPasteError(null);
     setPasting(true);
-    void Clipboard.getStringAsync().then((clip) => {
-      if (clip && tokenFromScan(clip)) setPasted(clip.trim());
-    });
+    void Clipboard.getStringAsync()
+      .then((clip) => {
+        if (!clip || !tokenFromScan(clip)) return;
+        // Only into a field nobody has touched yet: the read is asynchronous and
+        // somebody typing fast can be ahead of it, and their own text wins.
+        setPasted((current) => (current === '' ? clip.trim() : current));
+      })
+      .catch(() => {
+        // Some Android builds refuse a clipboard read outright. Offering to fill
+        // the field is a courtesy, so failing at it is not worth a word — the
+        // field is there to be typed into either way.
+      });
   };
 
   const submitPaste = (): void => {
@@ -91,7 +112,12 @@ export default function ScanScreen() {
               </View>
             }
           >
-            <ScannerCamera onToken={open} onClose={() => router.back()} onPasteLink={openPaste} />
+            <ScannerCamera
+              onToken={open}
+              onClose={() => router.back()}
+              onPasteLink={openPaste}
+              paused={pasting}
+            />
           </Suspense>
         </View>
       ) : (

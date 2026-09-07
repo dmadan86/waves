@@ -26,19 +26,27 @@ const INVITE_SCHEMES = new Set(['waves']);
 
 /**
  * The three shapes a Waves join link has ever had, in the order a token is
- * looked for when more than one could apply.
+ * looked for.
  *
  *  - `#<token>` — what `groupJoinLink` writes today, and the only shape the
  *    invite screen paints as a QR. The token lives in the fragment on purpose:
  *    a fragment is never sent to a server, so it stays out of access logs,
  *    proxies and `Referer` headers on the way to the web join page.
- *  - `?token=<token>` — the older query form. Still handled because a link
- *    pasted out of an old chat thread is exactly the case this screen is for.
  *  - `/join/<token>` — the older path form, which the web app still serves
  *    (`apps/web/src/app/join/[token]`).
+ *  - `?token=<token>` — the older query form. Still handled because a link
+ *    pasted out of an old chat thread is exactly the case this screen is for.
  *
- * Query before path before fragment, so `…/join?token=abc#token=evil` reads the
- * token the server would have honoured rather than the one appended after it.
+ * Fragment first, because that is the shape the app emits and the only shape
+ * the web actually honours: `apps/web/src/app/join/page.tsx` reads
+ * `window.location.hash` and never looks at the query at all. Reading the query
+ * first would make one link mean two different groups — `…/join?token=A#B`
+ * would join B in a browser and A on the phone — which is precisely the gap
+ * somebody splicing a `?token=` into a link they forwarded would be reaching
+ * for.
+ *
+ * And when two shapes are both present and disagree, no token is returned at
+ * all. See `tokenFromScan`.
  */
 
 /** The part of an https invite path that follows `/join`: `''` for the join
@@ -129,5 +137,19 @@ export function tokenFromScan(data: string): string | null {
   // Read the query off the raw search string rather than `searchParams`, whose
   // support is patchy in the React Native URL polyfill.
   const queried = parsed.search.match(/[?&]token=([^&]+)/)?.[1];
-  return cleanToken(queried ?? (remainder || null) ?? (fragment || null));
+
+  // Fragment, then path, then query — and a shape that cleans away to nothing
+  // (`?token=%20%20`) counts as absent rather than as an empty answer, so a
+  // chat client that rewrites a link cannot blank out a token that is really
+  // there in the fragment.
+  const candidates = [cleanToken(fragment), cleanToken(remainder), cleanToken(queried)].filter(
+    (token): token is string => token !== null,
+  );
+  if (candidates.length === 0) return null;
+  // Two shapes naming two different tokens is not a link this app has ever
+  // written, and picking a winner is what makes it dangerous: whichever one
+  // loses is the one the person can see and believes they are accepting. Refuse
+  // instead. It costs a genuine link nothing — a genuine link carries one.
+  if (candidates.some((token) => token !== candidates[0])) return null;
+  return candidates[0];
 }

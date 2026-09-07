@@ -92,10 +92,45 @@ describe('tokenFromScan', () => {
     }
   });
 
-  it('prefers the token a server would have honoured over one appended after it', () => {
-    expect(tokenFromScan('https://app.wavs.co.in/join?token=abc#token=evil')).toBe('abc');
-    expect(tokenFromScan('https://app.wavs.co.in/join?other=1&token=abc#frag')).toBe('abc');
-    expect(tokenFromScan('https://app.wavs.co.in/join/path-token#frag')).toBe('path-token');
+  it('refuses a link whose shapes name different tokens instead of picking a winner', () => {
+    // This test used to assert the opposite, and the reason it did has since
+    // inverted — so if you are here to "fix" it back, read this first.
+    //
+    // When `?token=` was the shape the app wrote, a `#…` bolted on afterwards
+    // was the suspicious half, and preferring the query was preferring the real
+    // token. The app now writes `…/join#<token>` and nothing else, and
+    // `apps/web/src/app/join/page.tsx` reads `window.location.hash` and never
+    // looks at the query at all. So the query is now the half that can only
+    // have been added by somebody, and query-first would have meant one link
+    // joining two different groups depending on whether it was opened in a
+    // browser or on the phone.
+    //
+    // Preferring the fragment fixes the disagreement with the web. Refusing
+    // outright fixes something the ordering alone cannot: whichever shape loses
+    // is the one the person can see in the link they were sent, so any winner
+    // is a token they did not choose. A genuine link carries exactly one shape,
+    // so there is nothing real to lose by refusing.
+    expect(tokenFromScan('https://app.wavs.co.in/join?token=EVIL#GENUINE')).toBeNull();
+    expect(tokenFromScan('https://app.wavs.co.in/join?token=abc#token=evil')).toBeNull();
+    expect(tokenFromScan('https://app.wavs.co.in/join?other=1&token=abc#frag')).toBeNull();
+    expect(tokenFromScan('https://app.wavs.co.in/join/path-token#frag')).toBeNull();
+    expect(tokenFromScan('https://app.wavs.co.in/join/path-token?token=query-token')).toBeNull();
+  });
+
+  it('accepts two shapes that agree, because nothing is in dispute', () => {
+    expect(tokenFromScan('https://app.wavs.co.in/join/same?token=same')).toBe('same');
+    expect(tokenFromScan('https://app.wavs.co.in/join?token=same#same')).toBe('same');
+    // Percent-encoding is a spelling, not a different token: both sides are
+    // compared after decoding.
+    expect(tokenFromScan('https://app.wavs.co.in/join?token=a%20b#a b')).toBe('a b');
+  });
+
+  it('treats a shape that cleans away to nothing as absent, not as an empty answer', () => {
+    // A chat client that rewrites a forwarded link into `?token=` with nothing
+    // in it must not blank out the token that is really there in the fragment.
+    expect(tokenFromScan('https://app.wavs.co.in/join?token=%20%20#realtoken')).toBe('realtoken');
+    expect(tokenFromScan('https://app.wavs.co.in/join?token=#realtoken')).toBe('realtoken');
+    expect(tokenFromScan('https://app.wavs.co.in/join?token=abc#')).toBe('abc');
   });
 
   it('keeps malformed percent-encoding as the trimmed raw non-empty token', () => {

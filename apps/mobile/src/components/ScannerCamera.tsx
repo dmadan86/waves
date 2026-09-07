@@ -219,6 +219,7 @@ export default function ScannerCamera({
   onToken,
   onClose,
   onPasteLink,
+  paused = false,
 }: {
   onToken: (token: string) => void;
   onClose: () => void;
@@ -226,6 +227,16 @@ export default function ScannerCamera({
    *  the ones with no working camera — a person whose camera is refused is
    *  otherwise stranded on a screen that can do nothing for them. */
   onPasteLink: () => void;
+  /**
+   * True while something is covering the camera — today, the paste sheet.
+   *
+   * The sheet is a `Modal`, so the viewfinder underneath stays mounted and goes
+   * on reading every frame. Without this a phone lying on a table facing a code
+   * reads it while somebody is typing into the sheet, and the screen navigates
+   * away mid-sentence, throwing away what they had typed to join whichever
+   * group happened to be in shot.
+   */
+  paused?: boolean;
 }) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
@@ -257,7 +268,7 @@ export default function ScannerCamera({
   );
 
   const onScan = (data: string): void => {
-    if (handled.current) return;
+    if (paused || handled.current) return;
     const token = tokenFromScan(data);
     if (!token) {
       if (timer.current) clearTimeout(timer.current);
