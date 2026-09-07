@@ -36,6 +36,16 @@ describe('the protected-resource document', () => {
     expect(sloppy.authorization_servers).toEqual(['https://project.supabase.co']);
   });
 
+  it('trims a long slash tail without changing the path itself', () => {
+    const slashTail = '/'.repeat(5_000);
+    const metadata = protectedResourceMetadata(
+      `https://app.wavs.co.in/api/mcp${slashTail}`,
+      `https://project.supabase.co${slashTail}`,
+    );
+    expect(metadata.resource).toBe('https://app.wavs.co.in/api/mcp');
+    expect(metadata.authorization_servers).toEqual(['https://project.supabase.co']);
+  });
+
   it('accepts the token in a header and nowhere else', () => {
     // A token in a query string ends up in server logs and browser history.
     expect(metadata.bearer_methods_supported).toEqual(['header']);
@@ -77,6 +87,14 @@ describe('reading the token off a request', () => {
 
   it('does not care how the client cased the scheme', () => {
     expect(bearerToken('bearer abc')).toBe('abc');
+  });
+
+  it('accepts a tab separator and trims the token', () => {
+    expect(bearerToken('Bearer\tabc.def.ghi  ')).toBe('abc.def.ghi');
+  });
+
+  it('rejects an empty bearer header with a long whitespace tail', () => {
+    expect(bearerToken(`bearer ${'  '.repeat(5_000)}`)).toBeNull();
   });
 
   it('is nothing when there is no header, or nothing in it', () => {

@@ -87,11 +87,17 @@ export function metadataUrlFor(mcpUrl: string): string {
 /** The bearer token from an Authorization header, or null if there isn't one. */
 export function bearerToken(header: string | null): string | null {
   if (!header) return null;
-  const match = /^Bearer\s+(.+)$/i.exec(header.trim());
-  const token = match?.[1]?.trim();
+  const trimmed = header.trim();
+  if (trimmed.length < 'Bearer '.length) return null;
+  if (trimmed.slice(0, 6).toLowerCase() !== 'bearer') return null;
+  const separator = trimmed.charAt(6);
+  if (separator !== ' ' && separator !== '\t') return null;
+  const token = trimmed.slice(7).trim();
   return token ? token : null;
 }
 
 function trimSlash(value: string): string {
-  return value.replace(/\/+$/, '');
+  let end = value.length;
+  while (end > 0 && value.charCodeAt(end - 1) === 47) end -= 1;
+  return value.slice(0, end);
 }
