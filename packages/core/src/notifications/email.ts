@@ -241,9 +241,20 @@ export function buildEmail(row: EmailableNotification, options: EmailOptions): B
       ? copy.email.confirmAction
       : copy.email.openAction;
   const link = webLinkFor(row.deepLink, options.webUrl);
+  // Why this arrived, and the answer is different for each shape of mail. A
+  // digest summarises every group, so naming one is impossible; a security
+  // notice is about the account, not a ledger. Only mail that *is* about a group
+  // gets the group line — and when such a row reaches here with no group name
+  // (`waves_notify` allows a null group), the honest fallback is "you use
+  // Waves", not the app's own name dropped into the `{group}` slot, which read
+  // as "You are getting this because of Waves on Waves."
   const why = security
     ? copy.email.securityReason
-    : interpolate(copy.email.why, { group: row.groupName ?? copy.email.signature });
+    : template === EmailTemplate.Digest
+      ? copy.email.digestReason
+      : row.groupName
+        ? interpolate(copy.email.why, { group: row.groupName })
+        : copy.email.promoReason;
   const direction = RIGHT_TO_LEFT.has(language) ? 'rtl' : 'ltr';
 
   return {
