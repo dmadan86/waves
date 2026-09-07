@@ -618,11 +618,13 @@ export default function ImportScreen() {
                     selected={target === NEW_GROUP}
                     onPress={() => void chooseTarget(NEW_GROUP)}
                   />
+                  {/* No hint on an existing group: the group's own name already
+                      says where the rows land, and repeating "Add to this
+                      group" down every row was noise the eye has to skip. */}
                   {(groups.data ?? []).map((group) => (
                     <TargetRow
                       key={group.id}
                       label={groupLabel(group)}
-                      hint={t.importLedger.addToThisGroup}
                       selected={target === group.id}
                       onPress={() => void chooseTarget(group.id)}
                     />
@@ -694,7 +696,9 @@ export default function ImportScreen() {
                       <Pressable
                         onPress={() => cycle(person)}
                         accessibilityRole="button"
-                        accessibilityLabel={`${person} is ${describeMapping(person)}. Tap to change.`}
+                        accessibilityLabel={t.importLedger.personIsMapped
+                          .replace('{name}', person)
+                          .replace('{who}', describeMapping(person))}
                         style={{ paddingVertical: theme.spacing.lg, gap: 2 }}
                       >
                         <Row style={{ justifyContent: 'space-between' }}>
@@ -781,9 +785,10 @@ export default function ImportScreen() {
         {error ? <Callout tone="negative">{error}</Callout> : null}
       </ScrollView>
 
-      {/* How it works, on tap of the header's help glyph — a bottom sheet that
-          walks through the two file types and what does and does not come
-          across, plus that it can be done with no connection. */}
+      {/* How it works, on tap of the header's help glyph. This sheet is where
+          the longer explanation lives, so the screen itself can stay short:
+          where each file comes from, what does and does not come across, and
+          that none of it needs a connection. */}
       <Sheet
         visible={helpOpen}
         onClose={() => setHelpOpen(false)}
@@ -804,8 +809,14 @@ export default function ImportScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ gap: theme.spacing.md }}
         >
+          {/* Where the file comes from. The screen's two buttons name the
+              sources; only this — the menu to go through in the other app — is
+              the part somebody cannot work out by looking. */}
           <Text variant="body" tone="muted">
-            {t.importLedger.ledgerHowTo}
+            {t.importLedger.splitwiseHowTo}
+          </Text>
+          <Text variant="body" tone="muted">
+            {t.importLedger.wavesHowTo}
           </Text>
           <Divider />
           <Text variant="caption" tone="muted">
@@ -833,7 +844,8 @@ function TargetRow({
   onPress,
 }: {
   label: string;
-  hint: string;
+  /** Omitted where the label speaks for itself — see the call site. */
+  hint?: string;
   selected: boolean;
   onPress: () => void;
 }) {
@@ -848,9 +860,11 @@ function TargetRow({
       <Row style={{ justifyContent: 'space-between' }}>
         <View style={{ gap: 2 }}>
           <Text variant="subheading">{label}</Text>
-          <Text variant="caption" tone="muted">
-            {hint}
-          </Text>
+          {hint ? (
+            <Text variant="caption" tone="muted">
+              {hint}
+            </Text>
+          ) : null}
         </View>
         <Ionicons
           name={selected ? 'radio-button-on' : 'radio-button-off'}
