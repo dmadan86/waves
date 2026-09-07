@@ -220,9 +220,14 @@ export default function GroupSettingsScreen() {
   // loaded group changes) — synced in render, the app's idiom for following a
   // value until the user edits it, rather than a setState-in-effect.
   const [seededId, setSeededId] = useState<string | null>(null);
+  // The name last handed to the server, so a rename is not sent twice while the
+  // group query is still catching up (see `commitName`). Cleared alongside the
+  // field whenever a different group is loaded into this screen.
+  const [sentName, setSentName] = useState<string | null>(null);
   if (group.data && seededId !== group.data.id) {
     setSeededId(group.data.id);
     setName(group.data.name ?? '');
+    setSentName(null);
   }
   const [status, setStatus] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -237,14 +242,20 @@ export default function GroupSettingsScreen() {
    * There used to be a Save button beside the field, which asked for a tap to
    * confirm a change the person had already made and then sat disabled for the
    * rest of the screen's life. Committing on blur and on "done" is the same
-   * act with one fewer control. The guard compares against what the group
+   * act with one fewer control. The first guard compares against what the group
    * already carries rather than against emptiness, because clearing the field
    * is a real choice: the group goes back to being named after the people in
    * it, and that is a change worth sending.
+   *
+   * The second guard is about the two triggers overlapping. Pressing "done"
+   * both submits and blurs, so this runs twice in a row, and the second run
+   * still sees the old name on `group.data` because the mutation has not come
+   * back yet — without `sentName` the same rename would be queued twice.
    */
   const commitName = (): void => {
     const next = name.trim();
-    if (next === (group.data?.name ?? '')) return;
+    if (next === (group.data?.name ?? '') || next === sentName) return;
+    setSentName(next);
     updateGroup.mutate({ name: next || null }, { onSuccess: () => setStatus(t.account.saved) });
   };
 
@@ -506,7 +517,14 @@ export default function GroupSettingsScreen() {
           visible={coverOpen}
           onClose={() => setCoverOpen(false)}
           value={group.data.cover_emoji}
-          onChange={(emoji) => updateGroup.mutate({ cover_emoji: emoji })}
+          // Says "Saved" like every other setting on this screen. The mark is
+          // drawn, so a changed cover has no words of its own to confirm it.
+          onChange={(emoji) =>
+            updateGroup.mutate(
+              { cover_emoji: emoji },
+              { onSuccess: () => setStatus(t.account.saved) },
+            )
+          }
           hasPhoto={Boolean(group.data.photo_path)}
           photoStatus={photoStatus}
           onPickPhoto={() => void changePhoto()}
