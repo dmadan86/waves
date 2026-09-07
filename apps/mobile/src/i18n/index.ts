@@ -2287,6 +2287,14 @@ export interface UiStrings {
     countryNote: string;
     starts: string;
     ends: string;
+    /**
+     * Shown in place of the end date while the end is still being chosen, so
+     * the half that is waiting says what the next tap does rather than sitting
+     * blank beside the start that has just been picked.
+     */
+    pickEnd: string;
+    /** How long a chosen range is, counting both of its end days. */
+    dayCount: PluralForms;
     dailyReminders: string;
     breakfast: string;
     endOfDay: string;
@@ -4574,6 +4582,8 @@ const en: UiStrings = {
       'This decides how you can pay each other, and what currency a new expense starts in. Nothing already recorded changes.',
     starts: 'Starts',
     ends: 'Ends',
+    pickEnd: 'Pick the end',
+    dayCount: { one: '{n} day', other: '{n} days' },
     dailyReminders: 'Daily reminders',
     breakfast: 'Breakfast',
     endOfDay: 'End of day',
@@ -6957,6 +6967,8 @@ const ta: UiStrings = {
       'இது நீங்கள் ஒருவருக்கொருவர் எப்படிப் பணம் தரலாம் என்பதையும், புதிய செலவு எந்த நாணயத்தில் தொடங்கும் என்பதையும் தீர்மானிக்கிறது. ஏற்கெனவே பதிவானவை மாறாது.',
     starts: 'தொடக்கம்',
     ends: 'முடிவு',
+    pickEnd: 'முடிவைத் தேர்ந்தெடுக்கவும்',
+    dayCount: { one: '{n} நாள்', other: '{n} நாட்கள்' },
     dailyReminders: 'தினசரி நினைவூட்டல்கள்',
     breakfast: 'காலை உணவு',
     endOfDay: 'நாள் முடிவு',
@@ -9280,6 +9292,8 @@ const hi: UiStrings = {
       'इससे तय होता है कि आप एक-दूसरे को कैसे पैसे दे सकते हैं, और नया खर्च किस मुद्रा में शुरू होगा। जो पहले से दर्ज है वह नहीं बदलता।',
     starts: 'शुरू',
     ends: 'समाप्त',
+    pickEnd: 'आख़िरी तारीख़ चुनें',
+    dayCount: { one: '{n} दिन', other: '{n} दिन' },
     dailyReminders: 'रोज़ाना याद दिलाना',
     breakfast: 'नाश्ता',
     endOfDay: 'दिन का अंत',
@@ -11828,6 +11842,15 @@ const ar: UiStrings = {
       'يحدّد هذا كيف يمكنكم الدفع لبعضكم، وبأي عملة يبدأ المصروف الجديد. ولا يتغيّر شيء مما سُجّل من قبل.',
     starts: 'يبدأ',
     ends: 'ينتهي',
+    pickEnd: 'اختر تاريخ النهاية',
+    dayCount: {
+      zero: 'بلا أيام',
+      one: 'يوم واحد',
+      two: 'يومان',
+      few: '{n} أيام',
+      many: '{n} يومًا',
+      other: '{n} يوم',
+    },
     dailyReminders: 'تذكيرات يومية',
     breakfast: 'الإفطار',
     endOfDay: 'نهاية اليوم',

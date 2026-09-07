@@ -1,82 +1,57 @@
 /**
  * An inline month calendar with range selection — the modern date-range control
- * (Monzo, Spotify, StubHub): one calendar on screen, tap the start day then the
- * end day, the span between them tinted. It replaces the old from/to pair that
- * opened a native picker modal per end (open, pick, dismiss, open, pick, dismiss
- * — four taps before Apply). Here a custom range is two taps on a calendar that
- * never leaves the sheet.
+ * (Monzo, Spotify, StubHub, and every travel app: Airbnb, Booking.com, Vrbo,
+ * Agoda): one calendar on screen, tap the start day then the end day, the span
+ * between them tinted. It replaces the old from/to pair that opened a native
+ * picker modal per end (open, pick, dismiss, open, pick, dismiss — four taps
+ * before Apply). Here a range is two taps on a calendar that never leaves the
+ * screen.
  *
- * Pure React Native, no calendar dependency: the feed is small and the control
- * is simple, so a hand-built month grid avoids adding a native-ish library for
- * one screen. Days outside the feed's own span (`earliest`/`latest`) are
- * disabled, and month paging stops at the months that hold those bounds — you
- * cannot wander into empty time. Every day is anchored at local noon so the grid
- * is DST-proof and agrees with the `DateRange` the sheet commits.
+ * Pure React Native, no calendar dependency: the grid is simple enough to build
+ * by hand, and a native calendar library would turn every screen that picks
+ * dates into a store release instead of an over-the-air update. This file is
+ * only the drawing of it — the day arithmetic, the reader's first weekday and
+ * the Gregorian pinning of the labels all live in `@/lib/calendarGrid`, where
+ * they can be tested without a renderer. Every day is anchored at local noon, so
+ * the grid is DST-proof and agrees with the day anchors its callers commit.
+ *
+ * Bounds are optional. The activity feed clamps to the span it actually holds
+ * (`earliest`/`latest`), because a day before the first event or after the last
+ * is empty time; a trip has no such bounds — it may have happened last year or
+ * be booked for next — so leaving them off pages freely in both directions.
  */
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, View } from 'react-native';
 
 import { directionalIcon, iconSize, Row, Text, useTheme } from '@waves/ui';
 
-/** A calendar day at local noon — the anchor the whole control works in. */
-function dayAt(year: number, month: number, date: number): Date {
-  return new Date(year, month, date, 12, 0, 0, 0);
-}
-
-function startOfDay(d: Date): Date {
-  return dayAt(d.getFullYear(), d.getMonth(), d.getDate());
-}
-
-function firstOfMonth(d: Date): Date {
-  return dayAt(d.getFullYear(), d.getMonth(), 1);
-}
-
-function addMonths(d: Date, delta: number): Date {
-  return dayAt(d.getFullYear(), d.getMonth() + delta, 1);
-}
-
-/** Whole days between two day-anchors (b − a), sign preserved. */
-function dayDiff(a: Date, b: Date): number {
-  return Math.round((b.getTime() - a.getTime()) / 86_400_000);
-}
-
-function sameDay(a: Date, b: Date): boolean {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  );
-}
-
-/** The seven weekday initials in the reader's language, Sunday first. */
-function weekdayLabels(locale: string): string[] {
-  const fmt = new Intl.DateTimeFormat(locale, { weekday: 'narrow' });
-  // 2023-01-01 was a Sunday — walk a known week to get localized initials.
-  return Array.from({ length: 7 }, (_, i) => fmt.format(dayAt(2023, 0, 1 + i)));
-}
-
-function monthLabel(d: Date, locale: string): string {
-  try {
-    return new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric' }).format(d);
-  } catch {
-    return `${d.getFullYear()}-${d.getMonth() + 1}`;
-  }
-}
+import {
+  addMonths,
+  dayAt,
+  firstOfMonth,
+  firstWeekday,
+  gregorianFormatter,
+  monthGrid,
+  sameDay,
+  startOfDay,
+} from '@/lib/calendarGrid';
 
 const CELL = 40;
 
 export function RangeCalendar({
-  earliest,
-  latest,
+  earliest = null,
+  latest = null,
   locale,
   start,
   end,
   onSelect,
 }: {
-  earliest: Date;
-  latest: Date;
+  /** The earliest selectable day, or null for no lower bound. */
+  earliest?: Date | null;
+  /** The latest selectable day, or null for no upper bound. */
+  latest?: Date | null;
   locale: string;
   start: Date | null;
   end: Date | null;
@@ -84,17 +59,48 @@ export function RangeCalendar({
   onSelect: (start: Date | null, end: Date | null) => void;
 }): React.JSX.Element {
   const theme = useTheme();
-  const lo = startOfDay(earliest);
-  const hi = startOfDay(latest);
+  const lo = earliest ? startOfDay(earliest) : null;
+  const hi = latest ? startOfDay(latest) : null;
 
-  // Which month the grid shows — opens on the current start, else the latest
-  // event's month (the newest activity, where the reader most likely looks).
-  const [view, setView] = useState<Date>(() => firstOfMonth(start ?? latest));
+  // Which month the grid shows — opens on the current start, else on the upper
+  // bound's month (the newest activity, where a feed's reader most likely
+  // looks), else on today's, which is where an unbounded picker belongs.
+  const [view, setView] = useState<Date>(() => firstOfMonth(start ?? latest ?? new Date()));
 
-  const canPrev = firstOfMonth(view).getTime() > firstOfMonth(lo).getTime();
-  const canNext = firstOfMonth(view).getTime() < firstOfMonth(hi).getTime();
+  const canPrev = lo === null || firstOfMonth(view).getTime() > firstOfMonth(lo).getTime();
+  const canNext = hi === null || firstOfMonth(view).getTime() < firstOfMonth(hi).getTime();
 
-  const inBounds = (d: Date): boolean => d.getTime() >= lo.getTime() && d.getTime() <= hi.getTime();
+  const inBounds = (d: Date): boolean =>
+    (lo === null || d.getTime() >= lo.getTime()) && (hi === null || d.getTime() <= hi.getTime());
+
+  // The three formatters the grid needs, built once per language rather than
+  // once per cell — a 42-cell grid re-formatting on every render is the kind of
+  // cost that only shows up on the cheap phone somebody actually owns.
+  const format = useMemo(() => {
+    const month = gregorianFormatter(locale, { month: 'long', year: 'numeric' });
+    const weekday = gregorianFormatter(locale, { weekday: 'narrow' });
+    const full = gregorianFormatter(locale, { weekday: 'long', day: 'numeric', month: 'long' });
+    let number: Intl.NumberFormat | null = null;
+    try {
+      number = new Intl.NumberFormat(locale);
+    } catch {
+      // Western digits are the fallback, and they are legible everywhere.
+    }
+    return {
+      month: (d: Date): string => month?.format(d) ?? `${d.getFullYear()}-${d.getMonth() + 1}`,
+      weekday: (d: Date): string => weekday?.format(d) ?? '',
+      full: (d: Date): string => full?.format(d) ?? d.toDateString(),
+      day: (n: number): string => number?.format(n) ?? String(n),
+    };
+  }, [locale]);
+
+  // Where the week begins for this reader, and the seven initials in that
+  // order. 2023-01-01 was a Sunday, so walking from it plus the offset gives
+  // each column's day without any date arithmetic worth checking twice.
+  const weekStart = useMemo(() => firstWeekday(locale), [locale]);
+  const weekdays = Array.from({ length: 7 }, (_, i) =>
+    format.weekday(dayAt(2023, 0, 1 + ((weekStart + i) % 7))),
+  );
 
   // The selection span, ordered, for the tint band.
   const spanLo = start && end ? (start <= end ? start : end) : start;
@@ -105,35 +111,25 @@ export function RangeCalendar({
     d.getTime() >= spanLo.getTime() &&
     d.getTime() <= spanHi.getTime();
 
+  const today = startOfDay(new Date());
+
   const pick = (d: Date): void => {
     // Fresh start when nothing is pending or the range is already whole; else
-    // close the range on the second tap. The sheet orders the two ends, so an
+    // close the range on the second tap. Callers order the two ends, so an
     // end-before-start tap is fine.
     if (start === null || end !== null) onSelect(d, null);
     else onSelect(start, d);
   };
 
-  // Build the grid: lead blanks for the first-of-month's weekday, then the days.
-  const first = firstOfMonth(view);
-  const lead = first.getDay(); // 0 = Sunday
-  const daysInMonth = dayDiff(first, addMonths(view, 1));
-  const cells: (Date | null)[] = [
-    ...Array.from({ length: lead }, () => null),
-    ...Array.from({ length: daysInMonth }, (_, i) =>
-      dayAt(view.getFullYear(), view.getMonth(), i + 1),
-    ),
-  ];
-  while (cells.length % 7 !== 0) cells.push(null);
-  const weeks: (Date | null)[][] = [];
-  for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
+  const weeks = monthGrid(view, weekStart);
 
   return (
     <View style={{ gap: theme.spacing.sm }}>
-      {/* Month header with ‹ › paging, clamped to the feed's months. */}
+      {/* Month header with ‹ › paging, clamped to the caller's months. */}
       <Row style={{ alignItems: 'center', justifyContent: 'space-between' }}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={monthLabel(addMonths(view, -1), locale)}
+          accessibilityLabel={format.month(addMonths(view, -1))}
           disabled={!canPrev}
           onPress={() => setView((v) => addMonths(v, -1))}
           hitSlop={10}
@@ -146,11 +142,11 @@ export function RangeCalendar({
           />
         </Pressable>
         <Text variant="subheading" style={{ fontWeight: '700' }}>
-          {monthLabel(view, locale)}
+          {format.month(view)}
         </Text>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={monthLabel(addMonths(view, 1), locale)}
+          accessibilityLabel={format.month(addMonths(view, 1))}
           disabled={!canNext}
           onPress={() => setView((v) => addMonths(v, 1))}
           hitSlop={10}
@@ -164,9 +160,11 @@ export function RangeCalendar({
         </Pressable>
       </Row>
 
-      {/* Weekday initials. */}
+      {/* Weekday initials. The row is a plain `row`, which React Native reverses
+          under RTL, so the first weekday lands on the side the reader starts
+          from and the columns below line up with it either way. */}
       <Row>
-        {weekdayLabels(locale).map((w, i) => (
+        {weekdays.map((w, i) => (
           <View key={i} style={{ width: CELL, alignItems: 'center' }}>
             <Text variant="micro" tone="faint" style={{ fontWeight: '600' }}>
               {w}
@@ -182,18 +180,25 @@ export function RangeCalendar({
             {week.map((d, di) => {
               if (!d) return <View key={di} style={{ width: CELL, height: CELL }} />;
               const disabled = !inBounds(d);
-              const isEnd = (spanLo && sameDay(d, spanLo)) || (spanHi && sameDay(d, spanHi));
+              const isFrom = spanLo !== null && sameDay(d, spanLo);
+              const isTo = spanHi !== null && sameDay(d, spanHi);
+              const isEnd = isFrom || isTo;
               const banded = inSpan(d) && !isEnd;
+              // The band runs under the two end circles as well, as a half each,
+              // so a chosen range reads as one continuous bar rather than a
+              // circle, a gap, a bar, a gap and another circle. `start`/`end`
+              // rather than `left`/`right`: they are the direction-relative
+              // insets, so the half that points at the rest of the range keeps
+              // pointing at it when the whole grid mirrors for Arabic. A range
+              // of one day gets no band at all — there is nothing to span.
+              const bandFrom = isFrom && !isTo;
+              const bandTo = isTo && !isFrom;
               return (
                 <Pressable
                   key={di}
                   accessibilityRole="button"
-                  accessibilityLabel={d.toLocaleDateString(locale, {
-                    weekday: 'long',
-                    day: 'numeric',
-                    month: 'long',
-                  })}
-                  accessibilityState={{ disabled, selected: Boolean(isEnd) }}
+                  accessibilityLabel={format.full(d)}
+                  accessibilityState={{ disabled, selected: isEnd }}
                   disabled={disabled}
                   onPress={() => pick(d)}
                   style={{
@@ -205,6 +210,19 @@ export function RangeCalendar({
                     borderRadius: banded ? 0 : theme.radius.md,
                   }}
                 >
+                  {bandFrom || bandTo ? (
+                    <View
+                      pointerEvents="none"
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        bottom: 0,
+                        start: bandFrom ? '50%' : 0,
+                        end: bandTo ? '50%' : 0,
+                        backgroundColor: theme.color.brandSoft,
+                      }}
+                    />
+                  ) : null}
                   <View
                     style={{
                       width: CELL - 6,
@@ -213,6 +231,11 @@ export function RangeCalendar({
                       alignItems: 'center',
                       justifyContent: 'center',
                       backgroundColor: isEnd ? theme.color.brand : 'transparent',
+                      // Today keeps a quiet ring when it is not itself an end of
+                      // the range, so a calendar that can page anywhere still
+                      // says where now is.
+                      borderWidth: !isEnd && sameDay(d, today) ? 1 : 0,
+                      borderColor: theme.color.brand,
                     }}
                   >
                     <Text
@@ -226,7 +249,7 @@ export function RangeCalendar({
                         fontWeight: isEnd ? '700' : '500',
                       }}
                     >
-                      {d.getDate()}
+                      {format.day(d.getDate())}
                     </Text>
                   </View>
                 </Pressable>

@@ -25,6 +25,7 @@ import { Button, Row, Text, useTheme } from '@waves/ui';
 import { SheetOverlay } from '@/components/expense/SheetOverlay';
 import { RangeCalendar } from '@/components/RangeCalendar';
 import { useStrings } from '@/i18n';
+import { gregorianFormatter } from '@/lib/calendarGrid';
 
 /** A committed filter range — both ends are calendar-day anchors (local noon). */
 export interface DateRange {
@@ -88,10 +89,13 @@ export function ActivityDateFilter({
     },
   ];
 
+  // Pinned to the Gregorian calendar for the same reason the grid below it is:
+  // `ar-SA` resolves to Umm al-Qura by default, and a read-out naming a Hijri
+  // month over a calendar drawn in Gregorian ones contradicts the thing it is
+  // meant to echo. The language, and its digits, are still the reader's.
+  const readable = gregorianFormatter(locale, { weekday: 'short', day: 'numeric', month: 'short' });
   const showDate = (value: Date | null): string =>
-    value
-      ? value.toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short' })
-      : t.pickers.notSet;
+    value ? (readable?.format(value) ?? value.toDateString()) : t.pickers.notSet;
 
   // A preset is a one-tap answer: commit it and close, no Apply needed.
   const applyPreset = (p: { start: Date; end: Date }): void => {
