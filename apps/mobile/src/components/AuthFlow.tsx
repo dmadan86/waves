@@ -446,12 +446,16 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
                 </TextLink>
               </View>
             ) : null}
-            {/* The footnote belongs where a guest account is in play: the
-                sign-up door (where one can be started) and the guest upgrade. A
-                returning member has nothing to be told. */}
-            {isGuest || isSignup ? (
+            {/* Only the guest upgrade, where the reassurance answers a real
+                question: "if I make an account now, does the trip I have been
+                adding to all week come with me?" On the sign-up door it
+                answered a question nobody had asked yet — somebody creating an
+                account has no ledger to be anxious about, and explaining that
+                it will not be held hostage is the kind of promise that plants
+                the worry it denies. */}
+            {isGuest ? (
               <Text variant="micro" tone="muted" align="center">
-                {isGuest ? t.signIn.guestFootnote : t.signIn.memberFootnote}
+                {t.signIn.guestFootnote}
               </Text>
             ) : null}
           </View>
