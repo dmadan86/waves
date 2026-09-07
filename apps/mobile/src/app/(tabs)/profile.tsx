@@ -452,9 +452,9 @@ function ProfileForm() {
 
         {/* Preferences: how the app looks and speaks to you. Language leads — it
             is the one setting somebody may have to reach *before* they can read
-            the rows below it, so it cannot sit under them. Shortcut and the
-            watch are neither everyday nor state-bearing, so they trail the
-            section, quiet, rather than sit among the primary rows. */}
+            the rows below it, so it cannot sit under them. The watch is
+            neither everyday nor state-bearing, so it trails the section, quiet,
+            rather than sit among the primary rows. */}
         <SettingsSection
           title={t.account.sectionPreferences}
           rows={[
@@ -474,11 +474,6 @@ function ProfileForm() {
               icon: 'notifications-outline',
               label: t.account.notifications,
               route: '/settings/notifications',
-            },
-            {
-              icon: 'flash-outline',
-              label: t.shortcut.title,
-              route: '/settings/shortcut',
             },
             {
               icon: 'watch-outline',

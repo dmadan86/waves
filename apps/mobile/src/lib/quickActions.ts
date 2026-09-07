@@ -1,21 +1,40 @@
 /**
- * The OS app-icon shortcut (iOS Home-Screen Quick Actions / Android App
+ * The OS app-icon shortcuts (iOS Home-Screen Quick Actions / Android App
  * Shortcuts), kept behind a runtime check.
+ *
+ * All three are published, always: add an expense, scan a receipt, speak one —
+ * the same three the home-screen widgets offer, so a long-press on the icon and
+ * a widget lead to the same places. There is nothing to choose and nothing to
+ * turn on; the menu is simply there.
  *
  * `expo-quick-actions` is a native module. On a JS-only reload of an older
  * dev-client — one built before the module was installed — reaching for it would
  * throw at launch. So nothing here imports it at module scope; every entry point
  * loads it lazily inside a try/catch and no-ops when it is not in the binary
- * (the same discipline the camera and scanner use). The in-app double-tap works
- * regardless; only the icon menu waits on a rebuild.
+ * (the same discipline the camera and scanner use).
  */
 
 import { Platform } from 'react-native';
 
-import type { ShortcutAction } from './shortcut';
+/** What an icon shortcut does. */
+export type ShortcutAction = 'add' | 'scan' | 'voice';
 
-/** The dynamic-quick-action id we route on when the app is launched from one. */
-export const QUICK_ACTION_ID = 'waves.shortcut';
+/**
+ * The menu, in the order it is shown. `add` leads because it is the plainest
+ * thing somebody wants from a long-press, and the launcher puts the first item
+ * nearest the icon.
+ */
+export const SHORTCUT_ACTIONS: readonly ShortcutAction[] = ['add', 'scan', 'voice'];
+
+/** The dynamic-quick-action ids we route on when the app is opened from one. */
+const ID_PREFIX = 'waves.shortcut.';
+
+const ICON: Record<ShortcutAction, string> = {
+  // Symbol names resolve on iOS; Android falls back to no icon, which is fine.
+  add: 'symbol:plus',
+  scan: 'symbol:camera',
+  voice: 'symbol:mic',
+};
 
 type QuickActionsModule = {
   setItems: (items: unknown[]) => Promise<void> | void;
@@ -39,34 +58,41 @@ function load(): QuickActionsModule | null {
   }
 }
 
-const ICON: Record<Exclude<ShortcutAction, 'off'>, string> = {
-  // Symbol names resolve on iOS; Android falls back to no icon, which is fine.
-  scan: 'symbol:camera',
-  voice: 'symbol:mic',
-  add: 'symbol:plus',
-};
+/** The action an icon-shortcut id stands for, or null if the id is not ours. */
+export function actionForId(id: string): ShortcutAction | null {
+  if (!id.startsWith(ID_PREFIX)) return null;
+  const action = id.slice(ID_PREFIX.length);
+  return (SHORTCUT_ACTIONS as readonly string[]).includes(action)
+    ? (action as ShortcutAction)
+    : null;
+}
 
 /**
- * Publish (or clear) the single icon shortcut for the chosen action. Called
- * whenever the setting changes, and once on start. A no-op without the module.
+ * Publish the three icon shortcuts. Called once the app's strings are known, and
+ * again whenever the language changes, so the menu speaks the same language the
+ * app does. A no-op without the native module.
  */
-export async function syncQuickAction(action: ShortcutAction, title: string): Promise<void> {
+export async function syncQuickActions(titles: Record<ShortcutAction, string>): Promise<void> {
   const mod = load();
   if (!mod) return;
   try {
-    if (action === 'off') {
-      await mod.setItems([]);
-      return;
-    }
-    await mod.setItems([{ id: QUICK_ACTION_ID, title, icon: ICON[action], params: { action } }]);
+    await mod.setItems(
+      SHORTCUT_ACTIONS.map((action) => ({
+        id: `${ID_PREFIX}${action}`,
+        title: titles[action],
+        icon: ICON[action],
+        params: { action },
+      })),
+    );
   } catch {
     // A device that cannot set shortcuts (an old OS, a launcher without support)
-    // is not an error worth surfacing — the in-app gesture still works.
+    // is not an error worth surfacing — every one of these places is reachable
+    // from inside the app anyway.
   }
 }
 
 /** The action id the app was cold-launched with, if it was launched from the
- *  icon shortcut. Null otherwise (or without the module). */
+ *  icon menu. Null otherwise (or without the module). */
 export function initialQuickAction(): string | null {
   const mod = load();
   return mod?.initial?.id ?? null;

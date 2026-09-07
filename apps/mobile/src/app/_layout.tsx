@@ -54,9 +54,8 @@ import { legacyKeysMigrated } from '@/lib/legacyKeys';
 import { isRouteAllowed } from '@/lib/routeAccess';
 import { ReducedMotionProvider, useReducedMotion } from '@/lib/reducedMotion';
 import { RecentCountProvider } from '@/lib/recentCount';
-import { ShortcutProvider } from '@/lib/shortcut';
 import { WatchBridgeProvider } from '@/lib/watch/bridge';
-import { ShortcutGesture } from '@/components/ShortcutGesture';
+import { QuickShortcuts } from '@/components/QuickShortcuts';
 import { TourProvider, useTour } from '@/lib/tour';
 import { PromptQueueProvider } from '@/lib/promptQueue';
 import { SyncNetworkProvider } from '@/lib/syncNetwork';
@@ -220,56 +219,54 @@ function RootLayout() {
                         <ReducedMotionProvider>
                           <TourProvider>
                             <PromptQueueProvider>
-                              <ShortcutProvider>
-                                <RecentCountProvider>
-                                  <ThemedRoot>
-                                    <ThemedStatusBar />
-                                    {/* Outside the lock and the auth gate on purpose: a build
+                              <RecentCountProvider>
+                                <ThemedRoot>
+                                  <ThemedStatusBar />
+                                  {/* Outside the lock and the auth gate on purpose: a build
                             we have stopped trusting should not be unlocking a
                             ledger or signing anybody in either. */}
-                                    <UpdateGate>
-                                      <PushRouting />
-                                      <LockGate>
-                                        {/* Below the lock and update gates so the watch
+                                  <UpdateGate>
+                                    <PushRouting />
+                                    <LockGate>
+                                      {/* Below the lock and update gates so the watch
                                 bridge never turns a wrist tap into a capture
                                 while the app is locked or on a build we have
                                 stopped trusting. */}
-                                        <WatchBridgeProvider />
-                                        {/* Same reasoning, one step further: an
+                                      <WatchBridgeProvider />
+                                      {/* Same reasoning, one step further: an
                                 automatic backup must not run on a build we
                                 have stopped trusting, and must not decrypt a
                                 ledger while the app is still locked. */}
-                                        <AutoBackup />
-                                        {/* Inside the lock so the two-device gate never
+                                      <AutoBackup />
+                                      {/* Inside the lock so the two-device gate never
                                 paints over the lock screen, and past auth so it
                                 only ever asks a signed-in account. */}
-                                        <DeviceSessionProvider>
-                                          <AuthGate />
-                                          {/* Inside the lock on purpose: a promotion is not a
+                                      <DeviceSessionProvider>
+                                        <AuthGate />
+                                        {/* Inside the lock on purpose: a promotion is not a
                                   reason to show somebody's phone anything before
                                   they have unlocked it. */}
-                                          <CampaignPopup />
-                                          {/* The soft ask for push, once, to a
+                                        <CampaignPopup />
+                                        {/* The soft ask for push, once, to a
                                         signed-in person whose permission is
                                         still undetermined. */}
-                                          <NotificationPrompt />
-                                        </DeviceSessionProvider>
-                                      </LockGate>
-                                      {/* The coach-mark tour, over the whole app but
+                                        <NotificationPrompt />
+                                      </DeviceSessionProvider>
+                                    </LockGate>
+                                    {/* The coach-mark tour, over the whole app but
                                     only ever started from Home. Above the gate
                                     so its scrim covers the screen. */}
-                                      <TourOverlay />
-                                      {/* Last, so it paints over the screen rather than
+                                    <TourOverlay />
+                                    {/* Last, so it paints over the screen rather than
                               under it. */}
-                                      <UpdateBanner />
-                                    </UpdateGate>
-                                    {/* Topmost of all: the launch field, painting over
+                                    <UpdateBanner />
+                                  </UpdateGate>
+                                  {/* Topmost of all: the launch field, painting over
                                   the whole app until it fades itself out. Native
                                   only; renders nothing on web. */}
-                                    <AnimatedSplash />
-                                  </ThemedRoot>
-                                </RecentCountProvider>
-                              </ShortcutProvider>
+                                  <AnimatedSplash />
+                                </ThemedRoot>
+                              </RecentCountProvider>
                             </PromptQueueProvider>
                           </TourProvider>
                         </ReducedMotionProvider>
@@ -573,22 +570,26 @@ function AuthGate() {
   }
 
   return (
-    <ShortcutGesture>
-      <View style={{ flex: 1 }}>
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            // Paint the app background on the sliding card. A transparent card
-            // lets the bare window (white) show through mid-transition, which
-            // read as a white flash while a screen slid in. The heroes still
-            // paint their own gradient over this, so nothing else changes.
-            contentStyle: { backgroundColor: theme.color.bg },
-            animation: push,
-            animationDuration: reduceMotion ? 0 : NAV_TRANSITION_MS,
-            gestureEnabled: true,
-          }}
-        >
-          {/* The doors, and only the doors.
+    <View style={{ flex: 1 }}>
+      {/* Renders nothing: it publishes the app-icon shortcut menu and routes a
+          tap on one of its three entries. Here rather than higher up so the
+          menu is neither published nor acted on while the intro is still
+          running — there is nowhere to send somebody yet. */}
+      <QuickShortcuts />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          // Paint the app background on the sliding card. A transparent card
+          // lets the bare window (white) show through mid-transition, which
+          // read as a white flash while a screen slid in. The heroes still
+          // paint their own gradient over this, so nothing else changes.
+          contentStyle: { backgroundColor: theme.color.bg },
+          animation: push,
+          animationDuration: reduceMotion ? 0 : NAV_TRANSITION_MS,
+          gestureEnabled: true,
+        }}
+      >
+        {/* The doors, and only the doors.
               `Stack.Protected` is not decoration here: when a guard flips from
               true to false, expo-router *removes every history entry* for the
               screens inside it. That is the whole fix for "sign in, land on the
@@ -604,34 +605,34 @@ function AuthGate() {
               This group must stay FIRST — a signed-out person on a guarded app
               screen falls back to the first screen still available, and that
               should be `welcome`. */}
-          <Stack.Protected guard={!session}>
-            {/* Signing in and out replaces the whole tree; sliding it would suggest a
+        <Stack.Protected guard={!session}>
+          {/* Signing in and out replaces the whole tree; sliding it would suggest a
             place to go back to, and there is not one. */}
-            <Stack.Screen name="welcome" options={{ animation: 'none' }} />
-            <Stack.Screen name="sign-in" options={{ animation: 'none' }} />
-            {/* The sign-up page slides in from the login screen and back out, so it
+          <Stack.Screen name="welcome" options={{ animation: 'none' }} />
+          <Stack.Screen name="sign-in" options={{ animation: 'none' }} />
+          {/* The sign-up page slides in from the login screen and back out, so it
               keeps a normal push — unlike sign-in, which replaces the whole tree. */}
-            <Stack.Screen name="sign-up" />
-            <Stack.Screen name="phone" />
-            <Stack.Screen name="verify-email" />
-            <Stack.Screen name="guest-welcome" />
-          </Stack.Protected>
-          {/* Everything behind the door. Guarded for the mirror-image reason:
+          <Stack.Screen name="sign-up" />
+          <Stack.Screen name="phone" />
+          <Stack.Screen name="verify-email" />
+          <Stack.Screen name="guest-welcome" />
+        </Stack.Protected>
+        {/* Everything behind the door. Guarded for the mirror-image reason:
               signing out erases this history, so back cannot re-enter a screen
               belonging to the account that just left. */}
-          <Stack.Protected guard={Boolean(session)}>
-            <Stack.Screen name="(tabs)" options={{ animation: 'none' }} />
-            <Stack.Screen name="new-group" options={slide} />
-            <Stack.Screen name="clone-group" options={slide} />
-            {/* The paywall is an unwired placeholder, so it stays unreachable
+        <Stack.Protected guard={Boolean(session)}>
+          <Stack.Screen name="(tabs)" options={{ animation: 'none' }} />
+          <Stack.Screen name="new-group" options={slide} />
+          <Stack.Screen name="clone-group" options={slide} />
+          {/* The paywall is an unwired placeholder, so it stays unreachable
                 until its flag is on — a nested guard rather than a conditional,
                 because a `null` child is not a screen and the navigator warns
                 about one. */}
-            <Stack.Protected guard={paywallEnabled}>
-              <Stack.Screen name="paywall" options={slide} />
-            </Stack.Protected>
-            <Stack.Screen name="capture" options={slide} />
-            {/* The drafts screen keeps the bottom bar, so a person leaves it by
+          <Stack.Protected guard={paywallEnabled}>
+            <Stack.Screen name="paywall" options={slide} />
+          </Stack.Protected>
+          <Stack.Screen name="capture" options={slide} />
+          {/* The drafts screen keeps the bottom bar, so a person leaves it by
               tapping a tab — which should cut straight across the way a tab does,
               not slide the draft card out first. `none` makes leaving it (and
               arriving on it) instant, the same treatment the inbox destination
@@ -674,7 +675,6 @@ function AuthGate() {
             <Stack.Screen name="settings/import" />
             <Stack.Screen name="settings/lock" />
             <Stack.Screen name="settings/devices" />
-            <Stack.Screen name="settings/shortcut" />
             <Stack.Screen name="settings/recent" />
             <Stack.Screen name="settings/sync" />
             <Stack.Screen name="settings/backup" />
@@ -696,33 +696,32 @@ function AuthGate() {
               so it is no longer a screen on this root stack — a tap on it from
               anywhere is an instant tab swap rather than a push that re-reveals
               and thaws the whole tab tree. */}
-            <Stack.Screen name="voice" options={slide} />
-          </Stack.Protected>
-          {/* Reachable with or without a session, so they belong to neither
+          <Stack.Screen name="voice" options={slide} />
+        </Stack.Protected>
+        {/* Reachable with or without a session, so they belong to neither
               group: the language picker is offered on the welcome screen, and
               `join`/`settings/privacy` are opened from links and policy lines
               that may arrive before anybody has an account. They sit last on
               purpose — a guard flipping falls back to the first screen still
               available, and that should be `welcome` signed out and the tabs
               signed in, never the language picker. */}
-          <Stack.Screen name="language" />
-          <Stack.Screen name="join" />
-          <Stack.Screen name="settings/privacy" />
-          <Stack.Screen name="settings/licenses" />
-          {/* Dev-only screen, and deliberately still reachable after sign-out so
+        <Stack.Screen name="language" />
+        <Stack.Screen name="join" />
+        <Stack.Screen name="settings/privacy" />
+        <Stack.Screen name="settings/licenses" />
+        {/* Dev-only screen, and deliberately still reachable after sign-out so
               the e2e suite can prove private local state was removed. */}
-          <Stack.Protected guard={__DEV__}>
-            <Stack.Screen name="dev/local-privacy" />
-          </Stack.Protected>
-        </Stack>
-        {/* One bar over the whole stack, so every screen keeps it — it hides
+        <Stack.Protected guard={__DEV__}>
+          <Stack.Screen name="dev/local-privacy" />
+        </Stack.Protected>
+      </Stack>
+      {/* One bar over the whole stack, so every screen keeps it — it hides
           itself on the modals and the camera. */}
-        <AppTabBar />
-        {/* A slim upload/download progress bar across the very top, over every
+      <AppTabBar />
+      {/* A slim upload/download progress bar across the very top, over every
           screen — behind the `upload_progress` flag, so it renders nothing until
           the flag is on. */}
-        <TransferProgressBar />
-      </View>
-    </ShortcutGesture>
+      <TransferProgressBar />
+    </View>
   );
 }

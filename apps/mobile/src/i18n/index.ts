@@ -686,17 +686,11 @@ export interface UiStrings {
       other: string;
     };
   };
+  /** The three app-icon shortcuts, read on a long-press of the Waves icon. */
   shortcut: {
-    title: string;
-    intro: string;
-    actionLabel: string;
-    optionScan: string;
-    optionVoice: string;
-    optionAdd: string;
-    optionOff: string;
-    doubleTapTitle: string;
-    doubleTapExplain: string;
-    iconHint: string;
+    add: string;
+    scan: string;
+    voice: string;
   };
   recent: {
     title: string;
@@ -3079,17 +3073,9 @@ const en: UiStrings = {
     },
   },
   shortcut: {
-    title: 'Quick shortcut',
-    intro:
-      'Pick one thing the shortcut does, and reach it fast — a two-finger double-tap anywhere in the app, or a long-press on the Waves icon on your home screen.',
-    actionLabel: 'The shortcut opens',
-    optionScan: 'Scan a receipt',
-    optionVoice: 'Speak an expense',
-    optionAdd: 'Add an expense',
-    optionOff: 'Off',
-    doubleTapTitle: 'Two-finger double-tap',
-    doubleTapExplain: 'Double-tap anywhere with two fingers to fire the shortcut.',
-    iconHint: 'Long-press the Waves icon on your home screen for the same shortcut.',
+    add: 'Add an expense',
+    scan: 'Scan a receipt',
+    voice: 'Speak an expense',
   },
   recent: {
     title: 'Recent on your watch',
@@ -5354,17 +5340,9 @@ const ta: UiStrings = {
     },
   },
   shortcut: {
-    title: 'விரைவு குறுக்குவழி',
-    intro:
-      'குறுக்குவழி செய்யும் ஒரு செயலைத் தேர்ந்தெடுங்கள் — செயலியில் எங்கும் இரு விரல் இரட்டைத் தட்டு, அல்லது முகப்புத் திரையில் Waves சின்னத்தை நீண்ட நேரம் அழுத்துதல்.',
-    actionLabel: 'குறுக்குவழி திறப்பது',
-    optionScan: 'ரசீதை ஸ்கேன் செய்',
-    optionVoice: 'செலவைப் பேசு',
-    optionAdd: 'செலவைச் சேர்',
-    optionOff: 'அணை',
-    doubleTapTitle: 'இரு விரல் இரட்டைத் தட்டு',
-    doubleTapExplain: 'குறுக்குவழியைத் தூண்ட எங்கும் இரு விரல்களால் இரட்டைத் தட்டவும்.',
-    iconHint: 'அதே குறுக்குவழிக்கு முகப்புத் திரையில் Waves சின்னத்தை நீண்ட நேரம் அழுத்தவும்.',
+    add: 'செலவைச் சேர்',
+    scan: 'ரசீதை ஸ்கேன் செய்',
+    voice: 'செலவைப் பேசு',
   },
   recent: {
     title: 'கடிகாரத்தில் சமீபத்தியவை',
@@ -7709,17 +7687,9 @@ const hi: UiStrings = {
     },
   },
   shortcut: {
-    title: 'क्विक शॉर्टकट',
-    intro:
-      'शॉर्टकट जो एक काम करे उसे चुनें — ऐप में कहीं भी दो उँगलियों से डबल-टैप, या होम स्क्रीन पर Waves आइकन को देर तक दबाना।',
-    actionLabel: 'शॉर्टकट खोलता है',
-    optionScan: 'रसीद स्कैन करें',
-    optionVoice: 'खर्च बोलें',
-    optionAdd: 'खर्च जोड़ें',
-    optionOff: 'बंद',
-    doubleTapTitle: 'दो उँगलियों से डबल-टैप',
-    doubleTapExplain: 'शॉर्टकट चलाने के लिए कहीं भी दो उँगलियों से डबल-टैप करें।',
-    iconHint: 'वही शॉर्टकट पाने के लिए होम स्क्रीन पर Waves आइकन को देर तक दबाएँ।',
+    add: 'खर्च जोड़ें',
+    scan: 'रसीद स्कैन करें',
+    voice: 'खर्च बोलें',
   },
   recent: {
     title: 'घड़ी पर हाल के खर्च',
@@ -10004,17 +9974,9 @@ const ar: UiStrings = {
     },
   },
   shortcut: {
-    title: 'اختصار سريع',
-    intro:
-      'اختر ما يفعله الاختصار، وشغّله بسرعة — نقرة مزدوجة بإصبعين في أي مكان بالتطبيق، أو ضغطة مطوّلة على أيقونة Waves في الشاشة الرئيسية.',
-    actionLabel: 'يفتح الاختصار',
-    optionScan: 'مسح إيصال',
-    optionVoice: 'انطق مصروفًا',
-    optionAdd: 'أضف مصروفًا',
-    optionOff: 'إيقاف',
-    doubleTapTitle: 'نقرة مزدوجة بإصبعين',
-    doubleTapExplain: 'انقر نقرة مزدوجة بإصبعين في أي مكان لتشغيل الاختصار.',
-    iconHint: 'اضغط مطوّلًا على أيقونة Waves في الشاشة الرئيسية للاختصار نفسه.',
+    add: 'أضف مصروفًا',
+    scan: 'مسح إيصال',
+    voice: 'انطق مصروفًا',
   },
   recent: {
     title: 'الأحدث على ساعتك',
