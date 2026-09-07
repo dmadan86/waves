@@ -18,6 +18,7 @@ import {
   useTheme,
 } from '@waves/ui';
 
+import { GroupMark } from '@/components/GroupMark';
 import { fill, plural, useStrings } from '@/i18n';
 import { friendlyError } from '@/lib/errors';
 
@@ -189,6 +190,11 @@ export default function JoinScreen() {
     );
   }
 
+  // Read out of the narrowed preview before the render: inside the `mark`
+  // callback below TypeScript can no longer see that `preview.group` survived
+  // the guard above.
+  const group = preview.group;
+
   return (
     <Screen edges={['top', 'bottom']}>
       <ScrollView
@@ -201,7 +207,11 @@ export default function JoinScreen() {
         }}
       >
         <Card style={{ alignItems: 'center', gap: theme.spacing.md }}>
-          <Avatar name={preview.group.name} emoji={preview.group.cover_emoji ?? '👥'} size={78} />
+          <Avatar
+            name={group.name}
+            mark={(color) => <GroupMark emoji={group.cover_emoji} size={40} color={color} />}
+            size={78}
+          />
           <Text variant="title" align="center">
             {preview.group.name}
           </Text>

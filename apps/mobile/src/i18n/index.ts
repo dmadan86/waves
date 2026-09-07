@@ -1314,6 +1314,37 @@ export interface UiStrings {
     duplicates: PluralForms;
   };
   /** Group photos are a paid feature; the cover emoji stays free for everyone. */
+  /**
+   * The word for each drawn group mark (see `components/GroupMark.tsx`). A mark
+   * is a picture, and a picture announces nothing: this is what a screen reader
+   * says in its place, and what the cover picker labels each tile with.
+   */
+  groupMarks: {
+    beach: string;
+    mountain: string;
+    tent: string;
+    plane: string;
+    car: string;
+    boat: string;
+    home: string;
+    building: string;
+    bed: string;
+    key: string;
+    receipt: string;
+    coins: string;
+    plate: string;
+    pizza: string;
+    bowl: string;
+    coffee: string;
+    cake: string;
+    drinks: string;
+    party: string;
+    gift: string;
+    heart: string;
+    ball: string;
+    star: string;
+    people: string;
+  };
   groupPhoto: {
     paidHint: string;
   };
@@ -1569,10 +1600,16 @@ export interface UiStrings {
     photoUpdated: string;
     nameOptional: string;
     groupName: string;
-    saveName: string;
-    /** Opens the group cover-emoji picker. */
+    /** The cover sheet, reached by tapping the group's mark: pick one of the
+     *  drawn marks, put a photo from the phone in its place (a Plus feature),
+     *  or drop a photo already set. */
+    changeCover: string;
     chooseIcon: string;
+    chooseIconHint: string;
+    usePhotoHint: string;
+    photoIsPaid: string;
     removePhoto: string;
+    removePhotoHint: string;
     simplifyDebts: string;
     simplifyDebtsBody: string;
     simplifyDebtsHint: string;
@@ -1586,7 +1623,11 @@ export interface UiStrings {
     importSplitwiseHint: string;
     archiveGroup: string;
     leaveGroup: string;
-    leaveWhenZero: string;
+    /** One line under each of the three exit actions, naming the scope of what
+     *  it does: your own list, only you, or everybody in the group. */
+    archiveHint: string;
+    leaveHint: string;
+    deleteHint: string;
     settleFirst: string;
     settleFirstBody: string;
     leaveQuestion: string;
@@ -3621,6 +3662,32 @@ const en: UiStrings = {
     hint: 'Seeing the same guest in more than one group? Merge the duplicates into one person.',
     duplicates: { one: '{n} possible duplicate', other: '{n} possible duplicates' },
   },
+  groupMarks: {
+    beach: 'Beach',
+    mountain: 'Mountains',
+    tent: 'Camping',
+    plane: 'Flight',
+    car: 'Road trip',
+    boat: 'Boat',
+    home: 'Home',
+    building: 'Apartment',
+    bed: 'Stay',
+    key: 'Rent',
+    receipt: 'Bills',
+    coins: 'Savings',
+    plate: 'Meals',
+    pizza: 'Pizza',
+    bowl: 'Takeaway',
+    coffee: 'Coffee',
+    cake: 'Birthday',
+    drinks: 'Drinks',
+    party: 'Party',
+    gift: 'Gift',
+    heart: 'Couple',
+    ball: 'Sport',
+    star: 'Favourite',
+    people: 'Friends',
+  },
   groupPhoto: {
     paidHint: 'Group photos are a Plus feature. Pick an icon, or upgrade to add a photo.',
   },
@@ -3860,9 +3927,13 @@ const en: UiStrings = {
     photoUpdated: 'Photo updated',
     nameOptional: 'Name (optional)',
     groupName: 'Group name',
-    saveName: 'Save name',
+    changeCover: 'Group cover',
     chooseIcon: 'Choose an icon',
+    chooseIconHint: 'One of the drawn marks',
+    usePhotoHint: 'A picture from this phone',
+    photoIsPaid: 'Photos come with Plus',
     removePhoto: 'Remove photo',
+    removePhotoHint: 'Go back to the icon',
     simplifyDebts: 'Fewer repayments',
     simplifyDebtsBody:
       'Suggest the fewest payments that settle the group. The real who-owes-whom ledger is never rewritten.',
@@ -3877,7 +3948,9 @@ const en: UiStrings = {
     importSplitwiseHint: 'Bring an old group’s history across',
     archiveGroup: 'Archive group',
     leaveGroup: 'Leave group',
-    leaveWhenZero: 'You can leave once your balance here is zero.',
+    archiveHint: 'Off your list; nothing is deleted',
+    leaveHint: 'You step out, the group carries on',
+    deleteHint: 'Gone for everyone, with no undo',
     settleFirst: 'Settle up first',
     settleFirstBody:
       'You still have a balance in this group. Leaving now would strand it — settle up, then leave.',
@@ -5913,6 +5986,32 @@ const ta: UiStrings = {
     hint: 'ஒரே விருந்தினர் ஒன்றுக்கு மேற்பட்ட குழுக்களில் தெரிகிறாரா? நகல்களை ஒரே நபராக இணைக்கவும்.',
     duplicates: { one: '{n} சாத்தியமான நகல்', other: '{n} சாத்தியமான நகல்கள்' },
   },
+  groupMarks: {
+    beach: 'கடற்கரை',
+    mountain: 'மலைகள்',
+    tent: 'முகாம்',
+    plane: 'விமானப் பயணம்',
+    car: 'சாலைப் பயணம்',
+    boat: 'படகு',
+    home: 'வீடு',
+    building: 'குடியிருப்பு',
+    bed: 'தங்குமிடம்',
+    key: 'வாடகை',
+    receipt: 'பில்கள்',
+    coins: 'சேமிப்பு',
+    plate: 'உணவு',
+    pizza: 'பீட்சா',
+    bowl: 'பார்சல் உணவு',
+    coffee: 'காபி',
+    cake: 'பிறந்தநாள்',
+    drinks: 'பானங்கள்',
+    party: 'கொண்டாட்டம்',
+    gift: 'பரிசு',
+    heart: 'ஜோடி',
+    ball: 'விளையாட்டு',
+    star: 'பிடித்தது',
+    people: 'நண்பர்கள்',
+  },
   groupPhoto: {
     paidHint:
       'குழு புகைப்படங்கள் Plus அம்சம். ஒரு ஐகானைத் தேர்ந்தெடுக்கவும், அல்லது புகைப்படம் சேர்க்க மேம்படுத்தவும்.',
@@ -6164,9 +6263,13 @@ const ta: UiStrings = {
     photoUpdated: 'புகைப்படம் புதுப்பிக்கப்பட்டது',
     nameOptional: 'பெயர் (விருப்பம்)',
     groupName: 'குழுவின் பெயர்',
-    saveName: 'பெயரைச் சேமி',
+    changeCover: 'குழுவின் அட்டை',
     chooseIcon: 'ஐகானைத் தேர்ந்தெடு',
+    chooseIconHint: 'வரையப்பட்ட அடையாளங்களில் ஒன்று',
+    usePhotoHint: 'இந்த ஃபோனிலிருந்து ஒரு படம்',
+    photoIsPaid: 'புகைப்படங்கள் Plus-உடன் வரும்',
     removePhoto: 'புகைப்படத்தை நீக்கு',
+    removePhotoHint: 'மீண்டும் ஐகானுக்குச் செல்',
     simplifyDebts: 'குறைந்த திருப்பிச் செலுத்தல்கள்',
     simplifyDebtsBody:
       'குழுவைத் தீர்க்கும் மிகக் குறைந்த பணப்பரிமாற்றங்களைப் பரிந்துரைக்கும். யார் யாருக்குத் தர வேண்டும் என்ற உண்மையான கணக்கு மாற்றப்படுவதே இல்லை.',
@@ -6182,7 +6285,9 @@ const ta: UiStrings = {
     importSplitwiseHint: 'பழைய குழுவின் வரலாற்றைக் கொண்டுவா',
     archiveGroup: 'குழுவைக் காப்பகப்படுத்து',
     leaveGroup: 'குழுவிலிருந்து விலகு',
-    leaveWhenZero: 'இங்கே உங்கள் இருப்பு பூஜ்ஜியமானதும் விலகலாம்.',
+    archiveHint: 'உங்கள் பட்டியலில் இராது; எதுவும் அழியாது',
+    leaveHint: 'நீங்கள் மட்டும் விலகுவீர்கள், குழு தொடரும்',
+    deleteHint: 'அனைவருக்கும் அழியும், மீட்க முடியாது',
     settleFirst: 'முதலில் தீர்த்துக்கொள்ளுங்கள்',
     settleFirstBody:
       'இந்தக் குழுவில் உங்களுக்கு இன்னும் இருப்பு உள்ளது. இப்போது விலகினால் அது தொங்கிவிடும் — தீர்த்துவிட்டு விலகுங்கள்.',
@@ -8243,6 +8348,32 @@ const hi: UiStrings = {
     hint: 'एक ही मेहमान कई समूहों में दिख रहा है? डुप्लिकेट को एक व्यक्ति में मर्ज करें.',
     duplicates: { one: '{n} संभावित डुप्लिकेट', other: '{n} संभावित डुप्लिकेट' },
   },
+  groupMarks: {
+    beach: 'समुद्र तट',
+    mountain: 'पहाड़',
+    tent: 'कैंपिंग',
+    plane: 'हवाई यात्रा',
+    car: 'रोड ट्रिप',
+    boat: 'नाव',
+    home: 'घर',
+    building: 'अपार्टमेंट',
+    bed: 'ठहरना',
+    key: 'किराया',
+    receipt: 'बिल',
+    coins: 'बचत',
+    plate: 'खाना',
+    pizza: 'पिज़्ज़ा',
+    bowl: 'पार्सल खाना',
+    coffee: 'कॉफ़ी',
+    cake: 'जन्मदिन',
+    drinks: 'ड्रिंक्स',
+    party: 'पार्टी',
+    gift: 'तोहफ़ा',
+    heart: 'जोड़ी',
+    ball: 'खेल',
+    star: 'पसंदीदा',
+    people: 'दोस्त',
+  },
   groupPhoto: {
     paidHint: 'ग्रुप फ़ोटो एक Plus सुविधा है। कोई आइकन चुनें, या फ़ोटो जोड़ने के लिए अपग्रेड करें।',
   },
@@ -8483,9 +8614,13 @@ const hi: UiStrings = {
     photoUpdated: 'फ़ोटो बदल गई',
     nameOptional: 'नाम (वैकल्पिक)',
     groupName: 'समूह का नाम',
-    saveName: 'नाम सेव करें',
+    changeCover: 'समूह का कवर',
     chooseIcon: 'आइकन चुनें',
+    chooseIconHint: 'बने-बनाए चिह्नों में से एक',
+    usePhotoHint: 'इसी फ़ोन से एक तस्वीर',
+    photoIsPaid: 'फ़ोटो Plus के साथ आती हैं',
     removePhoto: 'फ़ोटो हटाएँ',
+    removePhotoHint: 'वापस आइकन पर जाएँ',
     simplifyDebts: 'कम भुगतान',
     simplifyDebtsBody:
       'समूह को निपटाने के सबसे कम भुगतान सुझाता है। किस पर किसका बाकी है, वह असली हिसाब कभी नहीं बदला जाता।',
@@ -8500,7 +8635,9 @@ const hi: UiStrings = {
     importSplitwiseHint: 'पुराने समूह का इतिहास ले आएँ',
     archiveGroup: 'समूह संग्रहित करें',
     leaveGroup: 'समूह छोड़ें',
-    leaveWhenZero: 'यहाँ आपका हिसाब शून्य होते ही आप छोड़ सकते हैं।',
+    archiveHint: 'आपकी सूची से हट जाएगा; कुछ मिटेगा नहीं',
+    leaveHint: 'सिर्फ़ आप निकलते हैं, समूह चलता रहेगा',
+    deleteHint: 'सबके लिए मिट जाएगा, वापस नहीं आएगा',
     settleFirst: 'पहले हिसाब चुकाएँ',
     settleFirstBody:
       'इस समूह में अभी आपका हिसाब बाकी है। अभी छोड़ने पर वह अधर में रह जाएगा — पहले चुकाएँ, फिर छोड़ें।',
@@ -10560,6 +10697,32 @@ const ar: UiStrings = {
       other: '{n} مكرَّر محتمل',
     },
   },
+  groupMarks: {
+    beach: 'الشاطئ',
+    mountain: 'الجبال',
+    tent: 'تخييم',
+    plane: 'رحلة جوية',
+    car: 'رحلة برية',
+    boat: 'قارب',
+    home: 'المنزل',
+    building: 'شقة',
+    bed: 'إقامة',
+    key: 'إيجار',
+    receipt: 'فواتير',
+    coins: 'ادخار',
+    plate: 'وجبات',
+    pizza: 'بيتزا',
+    bowl: 'طعام سفري',
+    coffee: 'قهوة',
+    cake: 'عيد ميلاد',
+    drinks: 'مشروبات',
+    party: 'حفلة',
+    gift: 'هدية',
+    heart: 'ثنائي',
+    ball: 'رياضة',
+    star: 'مفضّل',
+    people: 'أصدقاء',
+  },
   groupPhoto: {
     paidHint: 'صور المجموعة ميزة Plus. اختر أيقونة، أو قم بالترقية لإضافة صورة.',
   },
@@ -10839,9 +11002,13 @@ const ar: UiStrings = {
     photoUpdated: 'تم تحديث الصورة',
     nameOptional: 'الاسم (اختياري)',
     groupName: 'اسم المجموعة',
-    saveName: 'حفظ الاسم',
+    changeCover: 'غلاف المجموعة',
     chooseIcon: 'اختر أيقونة',
+    chooseIconHint: 'أحد الرموز المرسومة',
+    usePhotoHint: 'صورة من هذا الهاتف',
+    photoIsPaid: 'الصور تأتي مع Plus',
     removePhoto: 'إزالة الصورة',
+    removePhotoHint: 'العودة إلى الأيقونة',
     simplifyDebts: 'مدفوعات أقل',
     simplifyDebtsBody:
       'يقترح أقل عدد من الدفعات لتسوية المجموعة. أما دفتر من يدين لمن فلا يُعاد كتابته أبدًا.',
@@ -10856,7 +11023,9 @@ const ar: UiStrings = {
     importSplitwiseHint: 'أحضر سجل مجموعة قديمة',
     archiveGroup: 'أرشفة المجموعة',
     leaveGroup: 'مغادرة المجموعة',
-    leaveWhenZero: 'يمكنك المغادرة حين يصبح رصيدك هنا صفرًا.',
+    archiveHint: 'تختفي من قائمتك ولا يُحذف شيء',
+    leaveHint: 'أنت وحدك تخرج، والمجموعة تستمر',
+    deleteHint: 'تُحذف للجميع بلا رجعة',
     settleFirst: 'سوِّ حسابك أولًا',
     settleFirstBody:
       'ما زال لك رصيد في هذه المجموعة. المغادرة الآن تتركه معلّقًا — سوِّ الحساب ثم غادر.',
