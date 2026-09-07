@@ -68,3 +68,15 @@ BEGIN
   UPDATE public.groups SET deleted_at = now() WHERE id = p_group_id;
 END
 $$;
+
+-- CREATE OR REPLACE keeps the ACL the baseline set, so nothing is actually
+-- open here. The grants are restated anyway because that is the rule the
+-- repository enforces on every SECURITY DEFINER function: such a function
+-- bypasses RLS and Postgres grants EXECUTE to PUBLIC by default, so a
+-- migration that stays silent about its caller model is one signature change
+-- away from minting a *new* function with the default back on — which is
+-- exactly how waves_consume_invite once regained anon. Saying it in the same
+-- file makes the intent survive the next edit.
+REVOKE ALL ON FUNCTION public.waves_delete_group(p_group_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.waves_delete_group(p_group_id uuid) TO authenticated;
+GRANT ALL ON FUNCTION public.waves_delete_group(p_group_id uuid) TO service_role;

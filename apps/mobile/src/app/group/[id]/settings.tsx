@@ -278,7 +278,11 @@ export default function GroupSettingsScreen() {
   const outstandingDebts = (): string[] => {
     const nameFor = (memberId: string): string => {
       const member = (members.data ?? []).find((row) => row.id === memberId);
-      return member ? displayName(member) : t.misc.someone;
+      // The label for a member with no name of their own is passed in rather
+      // than left to the default, which is the English word: this alert is the
+      // last thing somebody reads before destroying a record, and half of it
+      // arriving in another language is not the moment for it.
+      return member ? displayName(member, undefined, undefined, t.misc.someone) : t.misc.someone;
     };
     return ledger.transfers.map((transfer) =>
       fill(t.group.deleteOwesLine, {
