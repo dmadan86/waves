@@ -17,6 +17,21 @@
  * letter sections that stick to the top as you scroll, and an index rail down
  * the side to throw yourself at a letter. A thousand contacts is not a list you
  * scroll — it is a list you aim at.
+ *
+ * Three things sit on top of that shape, and each is answered locally:
+ *
+ *  - The people you have already written down float to a section at the head of
+ *    the list and say which group they are in, so the friends you split with
+ *    every week are two rows from the top instead of four hundred (the same
+ *    move Monzo, Splitwise, Snapchat and LINE all make with their "recent"
+ *    section). It comes out of your own groups, not out of a server that was
+ *    told your address book.
+ *  - A pinned way out for the person who is not in the address book at all,
+ *    which is where every picker eventually fails somebody. Splitwise puts "add
+ *    a new contact" at the top of the same list; so does this.
+ *  - iOS 18 lets somebody grant access to *some* contacts. That is not the same
+ *    as a short address book, and showing eleven names with no explanation is a
+ *    quiet lie about what the phone contains, so it is said out loud.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -36,6 +51,7 @@ import {
 import {
   Avatar,
   Button,
+  Callout,
   directionalIcon,
   EmptyState,
   iconSize,
@@ -44,7 +60,13 @@ import {
   useTheme,
 } from '@waves/ui';
 
-import { plural, useStrings } from '@/i18n';
+import { fill, plural, useStrings } from '@/i18n';
+import {
+  lookupKnown,
+  matchesContactQuery,
+  type KnownIndex,
+  type KnownPerson,
+} from '@/lib/contactMatch';
 import { normaliseContactPhone } from '@/lib/phone';
 import { SkeletonList } from '@/components/Skeletons';
 
@@ -73,6 +95,18 @@ interface ContactPickerProps {
    * for a list that only ever wanted one answer.
    */
   single?: boolean;
+  /**
+   * Who Waves already has, built on the device from your own groups. Contacts
+   * that match are named with the group they are in and float to a section at
+   * the head of the list. Omitted, the picker behaves as it always did.
+   */
+  known?: KnownIndex;
+  /**
+   * The way out for somebody who is not in the address book — a row pinned to
+   * the head of the list. The caller owns the destination because it differs by
+   * screen: adding a friend is a different act from adding to an open group.
+   */
+  escape?: { readonly label: string; readonly onPress: () => void };
 }
 
 /**
@@ -105,16 +139,39 @@ const FIELDS = [
   ContactField.PHONES,
 ] as const;
 
-/** A letter heading, or somebody. One flat array so the list can recycle both. */
-type Entry = { readonly letter: string } | PickedContact;
-
-const isHeading = (entry: Entry): entry is { readonly letter: string } => 'letter' in entry;
+/**
+ * One row of the flat list: the way out, a heading, or somebody.
+ *
+ * A discriminated union rather than the old "is there a `letter` key" test,
+ * because there are three shapes now and a heading is no longer always a
+ * letter — the section of people you already split with is headed by a phrase.
+ * `known` is resolved here, once per rebuild, rather than in `renderItem`:
+ * matching a contact against every ghost you have is cheap but not free, and
+ * `renderItem` runs again on every keystroke and every tick.
+ */
+type Entry =
+  | { readonly kind: 'escape' }
+  | { readonly kind: 'heading'; readonly id: string; readonly label: string }
+  | {
+      readonly kind: 'person';
+      readonly id: string;
+      readonly contact: PickedContact;
+      readonly known: KnownPerson | null;
+    };
 
 const ROW_HEIGHT = 64;
 const HEADING_HEIGHT = 38;
 const RAIL_WIDTH = 24;
 const RAIL_LETTER_HEIGHT = 15;
 const STRIP_HEIGHT = 62;
+
+/**
+ * How many already-known people ride at the top before the alphabet takes over.
+ *
+ * A shortcut that is longer than a screen has stopped being a shortcut. Anybody
+ * past the cap is still in their letter section, where they always were.
+ */
+const RECENT_LIMIT = 8;
 
 export function ContactPicker({
   onConfirm,
@@ -123,12 +180,19 @@ export function ContactPicker({
   confirmVerb,
   busy = false,
   single = false,
+  known,
+  escape,
 }: ContactPickerProps): React.JSX.Element {
   const theme = useTheme();
   const { t, locale } = useStrings();
   const [access, setAccess] = useState<Access>(Access.Asking);
+  // iOS 18 and up can grant access to a chosen handful rather than the book.
+  // Kept apart from `access` because the list works either way — it is a
+  // caption on what you are looking at, not a state the list has to handle.
+  const [limited, setLimited] = useState(false);
   const [contacts, setContacts] = useState<PickedContact[]>([]);
   const [query, setQuery] = useState('');
+  const hasEscape = Boolean(escape);
   // Seeded from whoever is already chosen, so opening the picker shows them
   // ticked and in the strip rather than an empty selection.
   const [picked, setPicked] = useState<ReadonlyMap<string, PickedContact>>(
@@ -140,8 +204,15 @@ export function ContactPicker({
     let granted: boolean;
     try {
       const current = await getPermissionsAsync();
-      granted =
-        current.granted || (current.canAskAgain && (await requestPermissionsAsync()).granted);
+      const answered = current.granted
+        ? current
+        : current.canAskAgain
+          ? await requestPermissionsAsync()
+          : current;
+      granted = answered.granted;
+      // Absent on Android and on older iOS, where the grant is all-or-nothing —
+      // so the default is "not limited" rather than a guess.
+      if (!cancelled.current) setLimited(answered.accessPrivileges === 'limited');
     } catch {
       // Permission itself could not be asked: no contacts module on this
       // platform (web) or an OS that refused the question.
@@ -203,42 +274,92 @@ export function ContactPicker({
     return () => subscription.remove();
   }, [access, load]);
 
-  const matches = useMemo(() => {
-    const needle = query.trim().toLowerCase();
-    if (!needle) return contacts;
-    return contacts.filter(
-      (contact) =>
-        contact.name.toLowerCase().includes(needle) ||
-        contact.email?.includes(needle) ||
-        contact.phone?.includes(needle),
-    );
-  }, [contacts, query]);
+  /**
+   * Every contact, each paired with the person Waves already has under that
+   * address — resolved once per load rather than once per keystroke.
+   *
+   * The lookup walks every ghost you have for every contact in the book, which
+   * is nothing on its own and a great deal a thousand times over. Keying it on
+   * the contacts and the index alone keeps it out of the typing path entirely;
+   * only the filter below runs as you type.
+   */
+  const people = useMemo(
+    () =>
+      contacts.map((contact) => ({
+        contact,
+        known: known ? lookupKnown(known, contact) : null,
+      })),
+    [contacts, known],
+  );
+
+  // The search itself lives in `lib/contactMatch` so the rules that decide a
+  // match — accent folding, and a number compared by its digits — can be tested
+  // without a screen. The old test was a raw `toLowerCase().includes`, which
+  // missed `José` for `jose` and missed a number the moment either side had a
+  // space in it.
+  const matches = useMemo(
+    () => (query.trim() ? people.filter((row) => matchesContactQuery(row.contact, query)) : people),
+    [people, query],
+  );
 
   /**
    * The flat list, the indices that stick, and where each letter starts.
    *
-   * All three come out of one pass because they have to agree: a rail that
-   * jumps to a stale index scrolls to the wrong person, and that is the kind of
-   * wrong that only shows up on somebody else's address book.
+   * All four come out of one pass because they have to agree: a rail that jumps
+   * to a stale index scrolls to the wrong person, and that is the kind of wrong
+   * that only shows up on somebody else's address book.
+   *
+   * The already-known section is skipped while a search is running. A search
+   * returning three rows, one of them printed twice, reads as a bug rather than
+   * as a shortcut; the shortcut is for the list you did not narrow.
    */
   const sections = useMemo(() => {
     const entries: Entry[] = [];
     const sticky: number[] = [];
     const starts = new Map<string, number>();
-    let current: string | null = null;
 
-    for (const contact of matches) {
-      const letter = bucketOf(contact.name);
+    if (hasEscape) entries.push({ kind: 'escape' });
+
+    if (!query.trim()) {
+      const recent = matches
+        .filter((row): row is { contact: PickedContact; known: KnownPerson } => row.known !== null)
+        .slice(0, RECENT_LIMIT);
+      if (recent.length > 0) {
+        sticky.push(entries.length);
+        entries.push({ kind: 'heading', id: 'recent', label: t.pickers.splitWithBefore });
+        for (const row of recent) {
+          entries.push({
+            kind: 'person',
+            // Prefixed, because these same people appear again under their own
+            // letter and a list cannot have one key twice.
+            id: `recent-${keyOf(row.contact)}`,
+            contact: row.contact,
+            known: row.known,
+          });
+        }
+      }
+    }
+
+    let current: string | null = null;
+    for (const row of matches) {
+      const letter = bucketOf(row.contact.name);
       if (letter !== current) {
         current = letter;
         starts.set(letter, entries.length);
         sticky.push(entries.length);
-        entries.push({ letter });
+        entries.push({ kind: 'heading', id: `letter-${letter}`, label: letter });
       }
-      entries.push(contact);
+      entries.push({
+        kind: 'person',
+        id: keyOf(row.contact),
+        contact: row.contact,
+        known: row.known,
+      });
     }
     return { entries, sticky, starts, letters: [...starts.keys()] };
-  }, [matches]);
+    // `hasEscape` rather than `escape` itself: callers build that object inline,
+    // so a new identity every render would rebuild the whole list every render.
+  }, [matches, query, hasEscape, t.pickers.splitWithBefore]);
 
   const listRef = useRef<FlashListRef<Entry>>(null);
   // Tapping the search row (the magnifier or its padding, not just the input's
@@ -362,6 +483,18 @@ export function ContactPicker({
         ) : null}
       </Pressable>
 
+      {/* Said out loud rather than left to look like a short address book: on
+          iOS 18 a "limited" grant means the phone is showing Waves a handful the
+          person chose, and the way to widen it is the same settings screen the
+          refusal state points at. */}
+      {limited ? (
+        <Callout tone="info">
+          <Text variant="micro" tone="muted">
+            {t.pickers.contactsLimited}
+          </Text>
+        </Callout>
+      ) : null}
+
       {!single && chosen.length > 0 ? <PickedStrip chosen={chosen} onRemove={toggle} /> : null}
 
       {matches.length === 0 ? (
@@ -375,6 +508,13 @@ export function ContactPicker({
           }
           title={t.pickers.nobodyHere}
           body={query ? t.pickers.noContactMatches : t.pickers.noneHasEmailOrNumber}
+          // An empty list is exactly when somebody needs the way out, and the
+          // pinned row lives inside the list they cannot see.
+          action={
+            escape ? (
+              <Button label={escape.label} variant="secondary" onPress={escape.onPress} />
+            ) : undefined
+          }
         />
       ) : (
         <View style={{ flex: 1, flexDirection: 'row' }}>
@@ -399,27 +539,34 @@ export function ContactPicker({
               // Headings and people are different shapes; telling the list so
               // lets it recycle each against its own kind instead of throwing
               // away a row every time a letter goes by.
-              getItemType={(entry) => (isHeading(entry) ? 'heading' : 'person')}
-              keyExtractor={(entry) => (isHeading(entry) ? `letter-${entry.letter}` : keyOf(entry))}
+              getItemType={(entry) => entry.kind}
+              keyExtractor={(entry) => (entry.kind === 'escape' ? 'escape' : entry.id)}
               keyboardShouldPersistTaps="handled"
               renderItem={({ item }) => {
-                if (isHeading(item)) return <Heading letter={item.letter} />;
-                const key = keyOf(item);
+                if (item.kind === 'escape') {
+                  return escape ? (
+                    <EscapeRow label={escape.label} onPress={escape.onPress} />
+                  ) : null;
+                }
+                if (item.kind === 'heading') return <Heading label={item.label} />;
+                const { contact } = item;
+                const key = keyOf(contact);
                 const already = Boolean(
-                  (item.email && existing?.has(item.email)) ||
-                  (item.phone && existing?.has(item.phone)),
+                  (contact.email && existing?.has(contact.email)) ||
+                  (contact.phone && existing?.has(contact.phone)),
                 );
                 return (
                   <ContactRow
-                    contact={item}
+                    contact={contact}
                     already={already}
+                    known={item.known}
                     single={single}
                     // Single-pick confirms on the tap, so `busy` has no button to
                     // disable — it has to lock the rows themselves, or a second
                     // tap fires a second confirm while the first is still writing.
                     disabled={single && busy}
                     selected={single ? false : picked.has(key)}
-                    onPress={() => (single ? onConfirm([item]) : toggle(key, item))}
+                    onPress={() => (single ? onConfirm([contact]) : toggle(key, contact))}
                   />
                 );
               }}
@@ -464,12 +611,17 @@ export function ContactPicker({
 }
 
 /**
- * The letter heading. A filled square rather than the app's usual pill, because
+ * A section heading. A filled square rather than the app's usual pill, because
  * a pill in this design system means "you can tap this" and a heading is not
  * something you tap — you tap the rail on the right.
+ *
+ * A single letter keeps the square; the named section at the head of the list
+ * is a phrase, and a phrase in a 26pt box would either wrap or be cut, so it is
+ * set as plain muted text instead of squeezed into a shape built for one glyph.
  */
-function Heading({ letter }: { letter: string }): React.JSX.Element {
+function Heading({ label }: { label: string }): React.JSX.Element {
   const theme = useTheme();
+  const single = [...label].length === 1;
   return (
     <View
       style={{
@@ -480,27 +632,85 @@ function Heading({ letter }: { letter: string }): React.JSX.Element {
         backgroundColor: theme.color.surface,
       }}
     >
-      <View
-        style={{
-          width: 26,
-          height: 26,
-          borderRadius: theme.radius.sm,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: theme.color.brand,
-        }}
-      >
-        <Text variant="caption" tone="onBrand">
-          {letter}
+      {single ? (
+        <View
+          style={{
+            width: 26,
+            height: 26,
+            borderRadius: theme.radius.sm,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: theme.color.brand,
+          }}
+        >
+          <Text variant="caption" tone="onBrand">
+            {label}
+          </Text>
+        </View>
+      ) : (
+        <Text variant="micro" tone="muted" numberOfLines={1}>
+          {label}
         </Text>
-      </View>
+      )}
     </View>
+  );
+}
+
+/**
+ * The way out, at the head of the list.
+ *
+ * Every address-book picker eventually fails somebody — the flatmate saved
+ * under a nickname, the person you met yesterday, the friend whose number is in
+ * a chat and not in the contacts app. Splitwise pins "add a new contact" to the
+ * top of exactly this list rather than making you back out and hunt for another
+ * entry point, and this is the same row: a name typed by hand is a first-class
+ * way to add a person here, not the fallback for when the good one failed.
+ */
+function EscapeRow({ label, onPress }: { label: string; onPress: () => void }): React.JSX.Element {
+  const theme = useTheme();
+  const inset = theme.spacing.lg + 40 + theme.spacing.md;
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      style={({ pressed }) => ({
+        backgroundColor: pressed ? theme.color.surfaceMuted : theme.color.surface,
+      })}
+    >
+      <Row
+        style={{ height: ROW_HEIGHT, paddingHorizontal: theme.spacing.lg, gap: theme.spacing.md }}
+      >
+        <View
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 20,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: theme.color.brandSoft,
+          }}
+        >
+          <Ionicons name="person-add-outline" size={iconSize.md} color={theme.color.brand} />
+        </View>
+        <Text variant="body" tone="brand" style={{ flex: 1 }} numberOfLines={1}>
+          {label}
+        </Text>
+        <Ionicons
+          name={directionalIcon('chevron-forward')}
+          size={iconSize.md}
+          color={theme.color.textFaint}
+        />
+      </Row>
+      <View style={{ height: 1, marginLeft: inset, backgroundColor: theme.color.border }} />
+    </Pressable>
   );
 }
 
 function ContactRow({
   contact,
   already,
+  known = null,
   selected,
   single = false,
   disabled = false,
@@ -508,6 +718,9 @@ function ContactRow({
 }: {
   contact: PickedContact;
   already: boolean;
+  /** The person Waves already has under this address, if any. Never locks the
+   *  row: somebody in last year's trip is exactly who you want in this one. */
+  known?: KnownPerson | null;
   selected: boolean;
   single?: boolean;
   /** Locked for a reason other than membership (a single-pick write in flight). */
@@ -515,11 +728,23 @@ function ContactRow({
   onPress: () => void;
 }): React.JSX.Element {
   const theme = useTheme();
-  const { t } = useStrings();
+  const { t, locale } = useStrings();
   const inset = theme.spacing.lg + 40 + theme.spacing.md;
   // `already` is one reason a row is inert (and the only one that renames the
   // subtitle); `disabled` is the other. Both dim and deafen the row the same way.
   const locked = already || disabled;
+
+  // The one line under the name, in the order that answers the most pressing
+  // question first: can I even pick this person, then do I already know them,
+  // then who is this. `already` beats `known` because "in this group" is the
+  // more specific truth when both are true.
+  const subtitle = already
+    ? t.pickers.alreadyInGroup
+    : known
+      ? known.groupIds.length === 1
+        ? fill(t.pickers.knownInGroup, { group: known.groupNames[0] ?? '' })
+        : plural(locale, known.groupIds.length, t.pickers.knownInGroups)
+      : (contact.email ?? contact.phone ?? '');
 
   return (
     <Pressable
@@ -529,8 +754,15 @@ function ContactRow({
       // acts on the tap; multi keeps the checkbox it fills and unfills.
       accessibilityRole={single ? 'button' : 'checkbox'}
       accessibilityState={single ? { disabled: locked } : { checked: selected, disabled: locked }}
+      // The subtitle rides in the label rather than being left to the tint on
+      // it: "already in Goa" is the whole reason a row looks different, and a
+      // screen reader that only says the name loses the difference entirely.
       accessibilityLabel={
-        already ? t.pickers.alreadyAddedName.replace('{name}', contact.name) : contact.name
+        already
+          ? t.pickers.alreadyAddedName.replace('{name}', contact.name)
+          : known
+            ? `${contact.name}, ${subtitle}`
+            : contact.name
       }
       style={({ pressed }) => ({
         opacity: locked ? 0.45 : 1,
@@ -549,8 +781,8 @@ function ContactRow({
           <Text variant="body" numberOfLines={1}>
             {contact.name}
           </Text>
-          <Text variant="micro" tone="muted" numberOfLines={1}>
-            {already ? t.pickers.alreadyInGroup : (contact.email ?? contact.phone ?? '')}
+          <Text variant="micro" tone={!already && known ? 'brand' : 'muted'} numberOfLines={1}>
+            {subtitle}
           </Text>
         </View>
         {single ? (

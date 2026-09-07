@@ -13,11 +13,18 @@
  * nobody anything. The whole lot goes into one group: picking six people for a
  * trip and then answering "which group?" six times is the same answer six
  * times.
+ *
+ * What the screen adds to the bare picker is memory. It knows who you have
+ * already written down — every ghost in every group you are in — so a contact
+ * you added last summer says where they already are instead of looking new, and
+ * the group step will not write them into the same group a second time. That
+ * knowledge is assembled on this device from the local mirror; the address book
+ * still goes nowhere.
  */
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
 
@@ -42,10 +49,13 @@ import {
 
 import { fill, plural, useStrings } from '@/i18n';
 import { friendlyError } from '@/lib/errors';
+import { sameAddress } from '@/lib/contactMatch';
 
 import { ContactPicker, type PickedContact } from '@/components/ContactPicker';
-import { addGhostMember, fetchGroups } from '@/data/api';
-import { groupLabel } from '@/data/types';
+import { addGhostMember } from '@/data/api';
+import { useGroups } from '@/data/hooks';
+import { useKnownContacts } from '@/data/knownContacts';
+import { groupLabel, type MemberRow } from '@/data/types';
 
 export default function ContactsScreen(): React.JSX.Element {
   const theme = useTheme();
@@ -54,12 +64,42 @@ export default function ContactsScreen(): React.JSX.Element {
 
   const [picked, setPicked] = useState<readonly PickedContact[]>([]);
   const [added, setAdded] = useState<number | null>(null);
+  const [skipped, setSkipped] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
-  const groups = useQuery({ queryKey: ['groups'], queryFn: fetchGroups });
+  // Read off the mirror rather than the wire (ADR-005). The group list was a
+  // network query, which meant the last step of this screen — "which group?" —
+  // was the one part of it that needed signal, on the screen most likely to be
+  // used on a trip.
+  const groups = useGroups();
+  const { index: known, membersByGroup } = useKnownContacts();
+
+  /**
+   * How many of the people picked are already in each group.
+   *
+   * Computed for every group at once so the "which group?" step can say it on
+   * each row before anything is written, rather than making somebody pick a
+   * group to find out. Matching is by address (`sameAddress`), not by name: two
+   * flatmates called Ravi are two members, and a name test would silently
+   * refuse to add the second one.
+   */
+  const alreadyIn = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const group of groups.data) {
+      const members = membersByGroup.get(group.id) ?? [];
+      counts.set(group.id, picked.filter((contact) => isMember(members, contact)).length);
+    }
+    return counts;
+  }, [groups.data, membersByGroup, picked]);
 
   /**
    * Everybody picked, into the one group, one call each.
+   *
+   * Anyone already in that group is skipped rather than written again: the
+   * server would happily make a second ghost with the same number, and the
+   * group would end up owing money to two copies of one person — a mess the
+   * merge screen exists to clean up, and one worth not making in the first
+   * place.
    *
    * A failure part-way leaves the earlier ones added, and says whose name did
    * not make it. Adding five people is five separate acts, not a transaction:
@@ -74,8 +114,10 @@ export default function ContactsScreen(): React.JSX.Element {
       groupId: string;
       contacts: readonly PickedContact[];
     }) => {
+      const members = membersByGroup.get(groupId) ?? [];
+      const fresh = contacts.filter((contact) => !isMember(members, contact));
       const failed: string[] = [];
-      for (const contact of contacts) {
+      for (const contact of fresh) {
         try {
           await addGhostMember(groupId, contact.name, {
             email: contact.email,
@@ -92,12 +134,17 @@ export default function ContactsScreen(): React.JSX.Element {
       // A partial failure is a normal outcome, not an exception: the names that
       // did not make it ride back in the result, so nothing raw is thrown and
       // onError is left for a genuine transport failure of the whole call.
-      return { added: contacts.length - failed.length, failed };
+      return {
+        added: fresh.length - failed.length,
+        skipped: contacts.length - fresh.length,
+        failed,
+      };
     },
-    onSuccess: async ({ added, failed }, { groupId }) => {
+    onSuccess: async ({ added, skipped, failed }, { groupId }) => {
       // Only announce a count when at least one landed; on a total failure the
       // error below carries the whole story.
       setAdded(added > 0 ? added : null);
+      setSkipped(skipped);
       setPicked([]);
       setError(failed.length > 0 ? fill(t.misc.couldNotAdd, { names: failed.join(', ') }) : null);
       await queryClient.invalidateQueries({ queryKey: ['members', groupId] });
@@ -142,7 +189,8 @@ export default function ContactsScreen(): React.JSX.Element {
         {picked.length > 0 ? (
           <ChooseGroup
             contacts={picked}
-            groups={groups.data ?? []}
+            groups={groups.data}
+            alreadyIn={alreadyIn}
             busy={add.isPending}
             error={error}
             onCancel={() => {
@@ -153,7 +201,10 @@ export default function ContactsScreen(): React.JSX.Element {
           />
         ) : (
           <>
-            {added !== null ? (
+            {/* Also shown when nothing was added but somebody was skipped:
+                ticking five people and being told nothing at all is the outcome
+                that reads as a failure when it was in fact a no-op. */}
+            {added !== null || skipped > 0 ? (
               <Card style={{ backgroundColor: theme.color.buttonPrimary }}>
                 <Row style={{ gap: theme.spacing.sm }}>
                   <Ionicons
@@ -162,14 +213,33 @@ export default function ContactsScreen(): React.JSX.Element {
                     color={theme.color.onBrand}
                   />
                   <Text variant="caption" tone="onBrand" style={{ flex: 1 }}>
-                    {fill(t.misc.contactsAdded, {
-                      count: plural(locale, added, t.misc.peopleCount),
-                    })}
+                    {added !== null
+                      ? fill(t.misc.contactsAdded, {
+                          count: plural(locale, added, t.misc.peopleCount),
+                        })
+                      : ''}
+                    {/* Somebody who ticked five and sees "3 people added" is owed
+                        the other two, or the count reads as a bug. */}
+                    {skipped > 0
+                      ? `${added !== null ? ' ' : ''}${plural(locale, skipped, t.misc.alreadyThereSkipped)}`
+                      : ''}
                   </Text>
                 </Row>
               </Card>
             ) : null}
-            <ContactPicker onConfirm={setPicked} confirmVerb={t.misc.continueWith} />
+            <ContactPicker
+              onConfirm={setPicked}
+              confirmVerb={t.misc.continueWith}
+              known={known}
+              // The person who is not in the address book at all. Waves already
+              // has a screen that takes a typed name and makes the one-to-one
+              // group behind it, so this points at that rather than growing a
+              // second way to invent a person.
+              escape={{
+                label: t.misc.someoneNotInContacts,
+                onPress: () => router.push('/friends/add-person' as never),
+              }}
+            />
           </>
         )}
       </View>
@@ -186,6 +256,7 @@ export default function ContactsScreen(): React.JSX.Element {
 function ChooseGroup({
   contacts,
   groups,
+  alreadyIn,
   busy,
   error,
   onCancel,
@@ -193,6 +264,8 @@ function ChooseGroup({
 }: {
   contacts: readonly PickedContact[];
   groups: readonly { id: string; name: string | null; cover_emoji: string | null }[];
+  /** How many of `contacts` each group already holds, keyed by group id. */
+  alreadyIn: ReadonlyMap<string, number>;
   busy: boolean;
   error: string | null;
   onCancel: () => void;
@@ -243,29 +316,45 @@ function ChooseGroup({
         </Card>
       ) : (
         <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
-          {groups.map((group, index) => (
-            <View key={group.id}>
-              <ListRow
-                title={groupLabel(group)}
-                leading={
-                  <Avatar
-                    name={groupLabel(group)}
-                    emoji={group.cover_emoji ?? undefined}
-                    size={40}
-                  />
-                }
-                onPress={busy ? undefined : () => onChoose(group.id)}
-                trailing={
-                  <Ionicons
-                    name={directionalIcon('chevron-forward')}
-                    size={iconSize.md}
-                    color={theme.color.textFaint}
-                  />
-                }
-              />
-              {index < groups.length - 1 ? <Divider /> : null}
-            </View>
-          ))}
+          {groups.map((group, index) => {
+            const here = alreadyIn.get(group.id) ?? 0;
+            // Every person picked is already in here, so there is nothing this
+            // row could do. Said, not hidden: a group that vanishes from the
+            // list reads as data lost rather than as a question answered.
+            const full = here >= contacts.length;
+            return (
+              <View key={group.id} style={full ? { opacity: 0.5 } : undefined}>
+                <ListRow
+                  title={groupLabel(group)}
+                  subtitle={
+                    full
+                      ? t.misc.everyoneAlreadyIn
+                      : here > 0
+                        ? plural(locale, here, t.misc.alreadyInCount)
+                        : undefined
+                  }
+                  leading={
+                    <Avatar
+                      name={groupLabel(group)}
+                      emoji={group.cover_emoji ?? undefined}
+                      size={40}
+                    />
+                  }
+                  onPress={busy || full ? undefined : () => onChoose(group.id)}
+                  trailing={
+                    full ? undefined : (
+                      <Ionicons
+                        name={directionalIcon('chevron-forward')}
+                        size={iconSize.md}
+                        color={theme.color.textFaint}
+                      />
+                    )
+                  }
+                />
+                {index < groups.length - 1 ? <Divider /> : null}
+              </View>
+            );
+          })}
         </Card>
       )}
 
@@ -278,5 +367,21 @@ function ChooseGroup({
 
       <Button label={t.misc.pickDifferentPeople} variant="ghost" onPress={onCancel} />
     </ScrollView>
+  );
+}
+
+/**
+ * Whether this contact is already one of the group's members.
+ *
+ * Matched on the address the invite was written to, never on the name: two
+ * people called Ravi in one flat are two members, and a name test would refuse
+ * to add the second of them while giving no reason anybody could act on.
+ */
+function isMember(members: readonly MemberRow[], contact: PickedContact): boolean {
+  return members.some((member) =>
+    sameAddress(
+      { email: member.invite_email ?? null, phone: member.invite_phone ?? null },
+      contact,
+    ),
   );
 }
