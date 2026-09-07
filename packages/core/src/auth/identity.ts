@@ -306,9 +306,7 @@ export function readIdentifier(raw: string): { kind: 'email' | 'phone'; value: s
  * *link* looks like.
  */
 export type OAuthCallback =
-  | { kind: 'code'; code: string }
-  | { kind: 'error'; message: string }
-  | { kind: 'none' };
+  { kind: 'code'; code: string } | { kind: 'error'; message: string } | { kind: 'none' };
 
 export function readOAuthCallback(url: string): OAuthCallback {
   let params: URLSearchParams;
