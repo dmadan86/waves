@@ -41,6 +41,8 @@ describe('isPublicRoute', () => {
     expect(isPublicRoute(['group', 'abc', 'plan'], false)).toBe(false);
     expect(isPublicRoute(['personal', 'transactions'], false)).toBe(false);
     expect(isPublicRoute(['personal', 'source', 'salary'], false)).toBe(false);
+    expect(isPublicRoute(['voice'], false)).toBe(false);
+    expect(isPublicRoute(['settings', 'offline-voice'], false)).toBe(false);
     expect(isPublicRoute(['capture'], false)).toBe(false);
   });
 
@@ -76,5 +78,7 @@ describe('isRouteAllowed', () => {
     expect(isRouteAllowed(['group', 'abc', 'plan'], true, false, flags)).toBe(true);
     expect(isRouteAllowed(['personal', 'transactions'], true, false, flags)).toBe(true);
     expect(isRouteAllowed(['personal', 'source', 'salary'], true, false, flags)).toBe(true);
+    expect(isRouteAllowed(['voice'], true, false, flags)).toBe(true);
+    expect(isRouteAllowed(['settings', 'offline-voice'], true, false, flags)).toBe(true);
   });
 });
