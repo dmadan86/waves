@@ -1,21 +1,36 @@
 /**
- * When the trip is — its start and end, as one framed range.
+ * When the trip is — its start and end, chosen on one calendar.
  *
  * The span is worth recording on its own: it labels the group with its dates
  * and marks how long the shared ledger was meant to cover. The daily-reminder
  * controls that used to live here were removed, so this card now only asks the
  * two dates; the underlying `remind_*` fields stay on the type for whatever
  * else reads them, but nothing here sets them.
+ *
+ * It used to ask for them one at a time: a Starts field that opened the native
+ * date picker, a scroll, a confirm, then the same again for Ends — four or more
+ * interactions to express a single idea ("we are away from the 4th to the
+ * 11th"), and never once a view of both ends together. Every travel app settled
+ * on the other shape years ago — Airbnb, Booking.com, Vrbo, Agoda, Wanderlog
+ * all show one calendar, take the start on the first tap and the end on the
+ * second, and tint the days in between — so that is what this is now. The two
+ * fields survive as a read-out rather than as two doors: they show the start the
+ * moment it is picked, which is the whole point of picking on one surface.
+ *
+ * Nothing is written until both ends are known. A half-chosen range is a local
+ * draft, so walking away mid-selection leaves the stored dates exactly as they
+ * were, and a completed range is one save rather than two.
  */
 
-import { useState } from 'react';
-import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import { useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Platform, Pressable, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
-import { Button, Card, iconSize, Row, Text, useTheme } from '@waves/ui';
+import { Card, directionalIcon, iconSize, Row, Text, useTheme } from '@waves/ui';
 
-import { useStrings } from '@/i18n';
+import { RangeCalendar } from '@/components/RangeCalendar';
+import { plural, useStrings } from '@/i18n';
+import { gregorianFormatter } from '@/lib/calendarGrid';
 
 /**
  * Only the fields this card reads and writes — not a whole `GroupRow`. A saved
@@ -32,11 +47,6 @@ export interface TripDatesValue {
   remind_evening_at: string;
 }
 
-enum Field {
-  Start = 'start',
-  End = 'end',
-}
-
 export interface TripDatesPatch {
   start_date?: string | null;
   end_date?: string | null;
@@ -51,42 +61,50 @@ export interface TripDatesPatch {
  * midnight UTC lands on the previous day for anybody west of Greenwich, which
  * is how a trip silently starts a day early.
  */
-function dateFrom(iso: string | null): Date {
-  if (!iso) return new Date();
+function dateFrom(iso: string | null): Date | null {
+  if (!iso) return null;
   const [year, month, day] = iso.split('-').map(Number);
-  return new Date(year ?? 2026, (month ?? 1) - 1, day ?? 1, 12);
+  if (!year || !month || !day) return null;
+  return new Date(year, month - 1, day, 12);
 }
 
+/**
+ * Back to the `YYYY-MM-DD` the `date` columns hold, read off the local calendar
+ * fields. Never `toISOString`, which would convert to UTC first and hand back
+ * the day before for anybody east of Greenwich after lunch.
+ */
 function isoDate(value: Date): string {
   const month = String(value.getMonth() + 1).padStart(2, '0');
   const day = String(value.getDate()).padStart(2, '0');
   return `${value.getFullYear()}-${month}-${day}`;
 }
 
-function showDate(iso: string | null, locale: string, notSet: string): string {
-  if (!iso) return notSet;
-  return dateFrom(iso).toLocaleDateString(locale, {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-  });
+/** Whole days between two local-noon day anchors, inclusive of both ends. */
+function daysBetween(from: Date, to: Date): number {
+  return Math.round((to.getTime() - from.getTime()) / 86_400_000) + 1;
 }
 
 /**
- * One end of the range — its own bordered field, a small label over the date
- * with a calendar glyph. `set` lights the field in the brand tint so a chosen
- * end reads as filled and an untouched one reads as waiting, and the two boxes
- * sit side by side like the from/to of a date-range picker.
+ * One end of the range as it reads back — its own half of a single framed
+ * strip, a small label over the date. `active` marks the end the next tap on
+ * the calendar will set, so while the end is being chosen the start stays on
+ * screen, plainly filled in, and it is obvious which half is listening.
  */
 function RangeEnd({
   label,
   value,
   set,
+  active,
+  align,
   onPress,
 }: {
   label: string;
   value: string;
   set: boolean;
+  active: boolean;
+  /** Which way the half reads — `end` puts the "Ends" half against the far
+   *  edge. Both are direction-relative, so the pair mirrors under RTL. */
+  align: 'start' | 'end';
   onPress: () => void;
 }) {
   const theme = useTheme();
@@ -94,32 +112,31 @@ function RangeEnd({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={`${label}: ${value}`}
+      accessibilityState={{ selected: active }}
       onPress={onPress}
       style={({ pressed }) => ({
         flex: 1,
-        gap: 4,
-        paddingVertical: theme.spacing.md,
-        paddingHorizontal: theme.spacing.md,
-        borderRadius: theme.radius.lg,
-        borderWidth: 1,
-        borderColor: set ? theme.color.brand : theme.color.border,
-        backgroundColor: set ? theme.color.brandSoft : theme.color.surface,
+        gap: 2,
+        alignItems: align === 'end' ? 'flex-end' : 'flex-start',
+        paddingVertical: theme.spacing.sm,
+        paddingHorizontal: theme.spacing.sm,
+        borderRadius: theme.radius.md,
+        backgroundColor: active ? theme.color.brandSoft : 'transparent',
         opacity: pressed ? 0.7 : 1,
       })}
     >
       <Text variant="caption" tone="muted">
         {label}
       </Text>
-      <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
-        <Ionicons
-          name="calendar-outline"
-          size={iconSize.sm}
-          color={set ? theme.color.brand : theme.color.textMuted}
-        />
-        <Text variant="subheading" style={{ fontWeight: '700' }}>
-          {value}
-        </Text>
-      </Row>
+      <Text
+        variant="subheading"
+        style={{
+          fontWeight: '700',
+          color: set ? theme.color.text : theme.color.textMuted,
+        }}
+      >
+        {value}
+      </Text>
     </Pressable>
   );
 }
@@ -134,37 +151,63 @@ export function TripDates({
   locale: string;
   onChange: (patch: TripDatesPatch) => void;
   /**
-   * Drop the outer card and the title/info header, leaving just the two date
-   * fields, the clear link and the picker — for when this editor is unfolded
-   * inside a row of a bigger card that already carries the "Dates" label.
+   * Drop the outer card and the title/info header, and keep the calendar
+   * unfolded — for when this editor is opened inside a row of a bigger card
+   * that already carries the "Dates" label and has already asked for it.
    */
   embedded?: boolean;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
-  const [editing, setEditing] = useState<Field | null>(null);
   // The why-does-this-exist paragraph is long, and once you have read it once
   // you do not need it every time you open settings. Folded behind the info
   // icon by default; the dates themselves stay in view.
   const [showInfo, setShowInfo] = useState(false);
+  // Whether the calendar is on screen. Embedded, the host row has already made
+  // that decision by unfolding this editor at all.
+  const [open, setOpen] = useState(embedded);
+  /**
+   * The start of a range being chosen, held here rather than saved.
+   *
+   * Non-null means exactly one thing: the next tap on the calendar closes the
+   * range. That covers both ways of getting there — a fresh first tap, and
+   * tapping the "Ends" half of the strip to move only the end of a range that
+   * is already stored — so the calendar needs no mode of its own.
+   */
+  const [pendingStart, setPendingStart] = useState<Date | null>(null);
 
-  const apply = (field: Field, event: DateTimePickerEvent, picked?: Date): void => {
-    // Android's picker is a modal that reports its own dismissal; iOS's is
-    // inline and reports every scroll.
-    if (Platform.OS === 'android') setEditing(null);
-    if (event.type === 'dismissed' || !picked) return;
+  const savedStart = dateFrom(group.start_date);
+  const savedEnd = dateFrom(group.end_date);
+  // Mid-selection the strip and the grid show the draft: the pending start on
+  // its own, with the end blank and waiting.
+  const shownStart = pendingStart ?? savedStart;
+  const shownEnd = pendingStart ? null : savedEnd;
 
-    if (field === Field.Start) {
-      const start = isoDate(picked);
-      // An end date before the start is not a trip. Dragging the start past
-      // the end moves the end rather than refusing the tap.
-      const end = group.end_date && group.end_date < start ? start : group.end_date;
-      onChange({ start_date: start, end_date: end ?? start, time_zone: group.time_zone });
-      return;
-    }
-    const end = isoDate(picked);
-    const start = group.start_date && group.start_date > end ? end : group.start_date;
-    onChange({ end_date: end, start_date: start ?? end });
+  // The same Gregorian pinning the grid uses, so the read-out cannot name a
+  // Hijri month over a Gregorian calendar. Built once per language.
+  const readable = useMemo(() => {
+    const fmt = gregorianFormatter(locale, { weekday: 'short', day: 'numeric', month: 'short' });
+    return (value: Date | null): string =>
+      value ? (fmt?.format(value) ?? value.toDateString()) : t.pickers.notSet;
+  }, [locale, t]);
+
+  const commit = (a: Date, b: Date): void => {
+    // Whichever way round they were tapped, the earlier day is the start. That
+    // is why an end before a start is not something this control has to refuse:
+    // it cannot be expressed.
+    const [from, to] = a <= b ? [a, b] : [b, a];
+    onChange({
+      start_date: isoDate(from),
+      end_date: isoDate(to),
+      // Re-sent with every range so a group that never recorded a zone picks up
+      // this phone's — the reminders and the day-of-trip maths need one.
+      time_zone: group.time_zone,
+    });
+    setPendingStart(null);
+    // The range is saved and the strip above now reads it back, so there is
+    // nothing left to confirm; folding the calendar away is the confirmation.
+    // Embedded, folding is the host row's business, not ours.
+    if (!embedded) setOpen(false);
   };
 
   const body = (
@@ -178,7 +221,7 @@ export function TripDates({
               accessibilityState={{ expanded: showInfo }}
               accessibilityLabel={t.misc.aboutTripDates}
               hitSlop={8}
-              onPress={() => setShowInfo((open) => !open)}
+              onPress={() => setShowInfo((shown) => !shown)}
               style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
             >
               <Ionicons
@@ -196,67 +239,103 @@ export function TripDates({
         </View>
       )}
 
-      {/* Start and end as two side-by-side fields — each its own bordered box
-          that lights up once picked, the way a from/to date-range picker reads,
-          rather than two labels sharing one strip. */}
-      <Row style={{ alignItems: 'stretch', gap: theme.spacing.sm }}>
+      {/* The range as one framed strip rather than two doors: start, arrow, end.
+          Closed, tapping anywhere on it opens the calendar. Open, each half says
+          which end the next tap sets — so the end can be moved on its own
+          without re-picking the start. */}
+      <Row
+        style={{
+          alignItems: 'center',
+          gap: theme.spacing.xs,
+          padding: theme.spacing.xs,
+          borderRadius: theme.radius.lg,
+          borderWidth: 1,
+          borderColor: open ? theme.color.brand : theme.color.border,
+          backgroundColor: theme.color.surface,
+        }}
+      >
         <RangeEnd
           label={t.pickers.starts}
-          value={showDate(group.start_date, locale, t.pickers.notSet)}
-          set={Boolean(group.start_date)}
-          onPress={() => setEditing(Field.Start)}
+          value={readable(shownStart)}
+          set={shownStart !== null}
+          active={open && pendingStart === null}
+          align="start"
+          onPress={() => {
+            setPendingStart(null);
+            setOpen(true);
+          }}
+        />
+        {/* The arrow means "onward", so it is content, not layout: React Native
+            mirrors the row for Arabic but would leave this glyph pointing the
+            way it was drawn. `directionalIcon` is what flips it. */}
+        <Ionicons
+          name={directionalIcon('arrow-forward')}
+          size={iconSize.sm}
+          color={theme.color.textFaint}
         />
         <RangeEnd
           label={t.pickers.ends}
-          value={showDate(group.end_date, locale, t.pickers.notSet)}
-          set={Boolean(group.end_date)}
-          onPress={() => setEditing(Field.End)}
+          // Mid-selection this half is the instruction, not a blank: it says
+          // what the next tap will do while the start sits filled in beside it.
+          value={pendingStart ? t.pickers.pickEnd : readable(shownEnd)}
+          set={shownEnd !== null}
+          active={open && pendingStart !== null}
+          align="end"
+          onPress={() => {
+            // Only meaningful once there is a start to keep — otherwise this is
+            // the same request as tapping the other half.
+            setPendingStart(savedStart);
+            setOpen(true);
+          }}
         />
       </Row>
 
-      {/* A quiet way out, not a competing action: a small muted link tucked
-          under the range rather than a full-width button. */}
-      {group.start_date && group.end_date ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t.pickers.clearDates}
-          onPress={() => onChange({ start_date: null, end_date: null })}
-          hitSlop={8}
-          style={({ pressed }) => ({ alignSelf: 'center', opacity: pressed ? 0.6 : 1 })}
-        >
-          <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
-            <Ionicons
-              name="close-circle-outline"
-              size={iconSize.sm}
-              color={theme.color.textMuted}
-            />
-            <Text variant="caption" tone="muted">
-              {t.pickers.clearDates}
-            </Text>
-          </Row>
-        </Pressable>
-      ) : null}
-
-      {editing ? (
-        <DateTimePicker
-          value={editing === Field.Start ? dateFrom(group.start_date) : dateFrom(group.end_date)}
-          mode="date"
-          // The end of a trip cannot be before its beginning, so the picker
-          // does not offer it.
-          minimumDate={
-            editing === Field.End && group.start_date ? dateFrom(group.start_date) : undefined
-          }
-          onChange={(event, picked) => apply(editing, event, picked)}
+      {open ? (
+        <RangeCalendar
+          locale={locale}
+          start={shownStart}
+          end={shownEnd}
+          onSelect={(from, to) => {
+            // A null `to` is the first of the two taps: hold it and wait.
+            if (!from) return;
+            if (!to) {
+              setPendingStart(from);
+              return;
+            }
+            commit(from, to);
+          }}
         />
       ) : null}
 
-      {Platform.OS === 'ios' && editing ? (
-        <Button
-          label={t.common.done}
-          size="sm"
-          variant="secondary"
-          onPress={() => setEditing(null)}
-        />
+      {/* How long the trip is, and a quiet way out — a small muted link rather
+          than a button competing with the calendar above it. */}
+      {savedStart && savedEnd && !pendingStart ? (
+        <Row style={{ alignItems: 'center', justifyContent: 'center', gap: theme.spacing.md }}>
+          <Text variant="caption" tone="muted">
+            {plural(locale, daysBetween(savedStart, savedEnd), t.pickers.dayCount)}
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t.pickers.clearDates}
+            onPress={() => {
+              setPendingStart(null);
+              onChange({ start_date: null, end_date: null });
+            }}
+            hitSlop={8}
+            style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+          >
+            <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
+              <Ionicons
+                name="close-circle-outline"
+                size={iconSize.sm}
+                color={theme.color.textMuted}
+              />
+              <Text variant="caption" tone="muted">
+                {t.pickers.clearDates}
+              </Text>
+            </Row>
+          </Pressable>
+        </Row>
       ) : null}
     </>
   );
