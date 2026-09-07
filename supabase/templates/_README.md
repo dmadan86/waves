@@ -23,15 +23,15 @@ of decoration is a byte that can render wrong in Outlook.
 Three things in the layout are not decoration, and each was taken from how the
 apps that do this well handle it on screen:
 
-* **The code sits in its own bordered field**, tracked wide, rather than loose in
+- **The code sits in its own bordered field**, tracked wide, rather than loose in
   a paragraph. Per-digit boxes would be better still — that is what the app's own
   screen shows — but a Go template cannot slice a string, so one field with
   letter-spacing is as close as this gets.
-* **The expiry is a number**, not "shortly". It has to match `otp_expiry` in
+- **The expiry is a number**, not "shortly". It has to match `otp_expiry` in
   `config.toml`, and `apps/mobile/test/otpLength.test.ts` fails if it does not:
   a mail promising fifteen minutes against a server that allows sixty is the app
   lying about something somebody only discovers by being refused.
-* **The address is named** in the footer (`{{ .Email }}`). It costs a line and it
+- **The address is named** in the footer (`{{ .Email }}`). It costs a line and it
   is the cheapest phishing tell there is — a code mail that cannot say who it was
   sent to did not come from us.
 
