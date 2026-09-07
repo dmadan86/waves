@@ -30,6 +30,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 
+import { buildExpenseWriteBody, type AgentSplit } from './expense.js';
 import { currentUserId, makeClient, readEnv } from './supabase.js';
 
 type ToolResult = {
@@ -114,6 +115,7 @@ async function main(): Promise<void> {
       let query = supabase
         .from('groups')
         .select('id, name, type, default_currency, cover_emoji, archived_at, start_date, end_date')
+        .is('deleted_at', null)
         .order('created_at', { ascending: false });
       if (!includeArchived) query = query.is('archived_at', null);
       const { data, error } = await query;
@@ -282,34 +284,36 @@ function registerWriteTools(server: McpServer, supabase: SupabaseClient): void {
       },
     },
     async (input): Promise<ToolResult> => {
-      const splitParams =
-        !input.split || input.split.kind === 'equal'
-          ? { kind: 'equal' }
-          : input.split.kind === 'exact'
-            ? { kind: 'exact', amounts: input.split.amounts }
-            : { kind: 'shares', weights: input.split.weights };
+      const { data: group, error: groupError } = await supabase
+        .from('groups')
+        .select('default_currency')
+        .eq('id', input.groupId)
+        .is('deleted_at', null)
+        .single();
+      if (groupError) return fail(groupError.message);
 
       const expenseId = randomUUID();
       const { data, error } = await supabase.functions.invoke('expense-write', {
-        body: {
-          groupId: input.groupId,
-          expenseId,
-          description: input.description,
-          category: input.category ?? null,
-          expenseDate: input.expenseDate ?? todayIso(),
-          currency: input.currency ?? undefined,
-          amount: input.amount,
-          splitParams,
-          participants: input.participants,
-          payers: { [input.paidBy]: input.amount },
-          // expectedShares omitted on purpose: the edge function is the source
-          // of truth for the split, and sending nothing lets it compute freely.
-          notes: input.notes ?? null,
-          paymentMethod: null,
-          receiptShareUrl: null,
-          fx: null,
-          clientMutationId: randomUUID(),
-        },
+        body: buildExpenseWriteBody(
+          {
+            groupId: input.groupId,
+            description: input.description,
+            amount: input.amount,
+            currency: input.currency,
+            paidBy: input.paidBy,
+            participants: input.participants,
+            split: input.split as AgentSplit | undefined,
+            expenseDate: input.expenseDate,
+            category: input.category,
+            notes: input.notes,
+          },
+          {
+            expenseId,
+            clientMutationId: randomUUID(),
+            today: todayIso(),
+            groupCurrency: String(group.default_currency),
+          },
+        ),
       });
       if (error) return fail(await edgeError(error));
       return ok({ ...(data as object), expenseId });
