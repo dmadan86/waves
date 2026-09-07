@@ -200,7 +200,16 @@ export async function nativeRevoke(tokens: CloudTokens): Promise<boolean> {
   const module = load();
   if (!module) return false;
   await forget(module, tokens.accessToken);
-  await module.GoogleSignin.revokeAccess();
+  try {
+    await module.GoogleSignin.revokeAccess();
+  } catch {
+    // revokeAccess talks to Google's servers, so it fails for ordinary reasons
+    // — no network, a token already dead. Letting the rejection escape would
+    // take the HTTP fallback down with it and leave the grant standing while
+    // the app said it had unlinked. Reporting "not done" is what sends the
+    // caller to the other door.
+    return false;
+  }
   await module.GoogleSignin.signOut().catch(() => undefined);
   return true;
 }
