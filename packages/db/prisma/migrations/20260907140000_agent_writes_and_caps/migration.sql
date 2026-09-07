@@ -235,3 +235,103 @@ $$;
 
 REVOKE ALL ON FUNCTION public.waves_my_agent_writes(integer) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.waves_my_agent_writes(integer) TO authenticated;
+
+-- Settlements are money writes too. The MCP tool records them directly through
+-- this RPC, so apply the same agent ceiling and audit trail as expense-write.
+CREATE OR REPLACE FUNCTION public.waves_record_settlement(p_group_id uuid, p_from_member_id uuid, p_to_member_id uuid, p_amount bigint, p_method text, p_currency character DEFAULT NULL::bpchar, p_note text DEFAULT NULL::text, p_allocations jsonb DEFAULT '[]'::jsonb, p_client_mutation_id uuid DEFAULT NULL::uuid, p_rail text DEFAULT NULL::text) RETURNS uuid
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_settlement_id uuid;
+  v_currency      char(3);
+  v_actor         uuid;
+  v_allocation    jsonb;
+  v_rail          text := COALESCE(NULLIF(btrim(p_rail), ''), p_method);
+BEGIN
+  IF NOT public.is_group_member(p_group_id) THEN
+    RAISE EXCEPTION 'NOT_A_MEMBER: you are not in this group'
+      USING ERRCODE = 'insufficient_privilege';
+  END IF;
+
+  -- Resolve the caller's own member id up front: it is both the authorization
+  -- check below and the actor on the activity entry further down.
+  v_actor := public.waves_my_member_id(p_group_id);
+  IF v_actor IS NULL OR v_actor NOT IN (p_from_member_id, p_to_member_id) THEN
+    RAISE EXCEPTION 'NOT_A_PARTY: you can only record a settlement you are part of'
+      USING ERRCODE = 'insufficient_privilege';
+  END IF;
+
+  -- Both parties must be members of THIS group. The FKs only prove the ids are
+  -- real `group_members` rows, not that they belong here — without this a member
+  -- could name a party from another group, and auto-confirm would later write an
+  -- offsetting balance against a member nobody in this group can see, erasing
+  -- their own debt while the per-group sum still totals zero.
+  IF NOT EXISTS (
+        SELECT 1 FROM public.group_members gm
+        WHERE gm.id = p_from_member_id AND gm.group_id = p_group_id
+      )
+     OR NOT EXISTS (
+        SELECT 1 FROM public.group_members gm
+        WHERE gm.id = p_to_member_id AND gm.group_id = p_group_id
+      ) THEN
+    RAISE EXCEPTION 'UNKNOWN_MEMBER: both parties must be members of this group'
+      USING ERRCODE = 'foreign_key_violation';
+  END IF;
+
+  IF p_amount <= 0 THEN
+    RAISE EXCEPTION 'INVALID_AMOUNT: settle a positive amount' USING ERRCODE = 'check_violation';
+  END IF;
+
+  -- Replaying the same mutation must not create a second settlement (ADR-005),
+  -- and must not spend an agent's daily ceiling again.
+  IF p_client_mutation_id IS NOT NULL THEN
+    SELECT id INTO v_settlement_id
+    FROM public.settlements WHERE client_mutation_id = p_client_mutation_id;
+    IF v_settlement_id IS NOT NULL THEN
+      RETURN v_settlement_id;
+    END IF;
+  END IF;
+
+  SELECT COALESCE(p_currency, default_currency) INTO v_currency
+  FROM public.groups WHERE id = p_group_id;
+
+  PERFORM public.waves_assert_agent_cap(p_amount);
+
+  INSERT INTO public.settlements
+    (group_id, from_member_id, to_member_id, currency, amount, method, rail, status, note,
+     client_mutation_id)
+  VALUES
+    (p_group_id, p_from_member_id, p_to_member_id, upper(v_currency), p_amount,
+     CASE WHEN p_method IN ('upi', 'cash', 'bank', 'other') THEN p_method ELSE 'other' END
+       ::"SettlementMethod",
+     v_rail, 'initiated', p_note, p_client_mutation_id)
+  RETURNING id INTO v_settlement_id;
+
+  FOR v_allocation IN SELECT * FROM jsonb_array_elements(COALESCE(p_allocations, '[]'::jsonb))
+  LOOP
+    INSERT INTO public.settlement_allocations (settlement_id, expense_id, amount)
+    VALUES (
+      v_settlement_id,
+      (v_allocation ->> 'expenseId')::uuid,
+      (v_allocation ->> 'amount')::bigint
+    )
+    ON CONFLICT (settlement_id, expense_id)
+    DO UPDATE SET amount = public.settlement_allocations.amount + EXCLUDED.amount;
+  END LOOP;
+
+  INSERT INTO public.activity_log (group_id, actor_member_id, verb, object_type, object_id, payload)
+  VALUES (p_group_id, v_actor, 'settled', 'settlement', v_settlement_id,
+          jsonb_build_object('amount', p_amount, 'currency', v_currency,
+                             'method', p_method, 'rail', v_rail));
+
+  PERFORM public.waves_record_agent_write(
+    'settlement.record', p_group_id, v_settlement_id, p_amount, upper(v_currency)
+  );
+
+  RETURN v_settlement_id;
+END
+$$;
+
+REVOKE ALL ON FUNCTION public.waves_record_settlement(p_group_id uuid, p_from_member_id uuid, p_to_member_id uuid, p_amount bigint, p_method text, p_currency character, p_note text, p_allocations jsonb, p_client_mutation_id uuid, p_rail text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.waves_record_settlement(p_group_id uuid, p_from_member_id uuid, p_to_member_id uuid, p_amount bigint, p_method text, p_currency character, p_note text, p_allocations jsonb, p_client_mutation_id uuid, p_rail text) TO authenticated, service_role;

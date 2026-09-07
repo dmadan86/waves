@@ -18,7 +18,7 @@ import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { Client } from 'pg';
 
-import { asRole, connect } from './helpers.js';
+import { asRole, connect, seedGroup } from './helpers.js';
 
 let client: Client;
 let profileId: string;
@@ -128,6 +128,84 @@ describe('the ceiling across a day', () => {
         [profileId],
       );
       expect(count.rows[0].n).toBe(0);
+    });
+  });
+});
+
+describe('settlements written by an agent', () => {
+  it('caps and records a financer paying a rider back', async () => {
+    const group = await seedGroup(client, { memberCount: 2, name: 'Airport cab' });
+    const [financerProfile, riderProfile] = group.profileIds as [string, string];
+    const [financer, rider] = group.memberIds as [string, string];
+
+    await asRole(client, 'authenticated', asAgent(financerProfile, 'settlement-bot'), async () => {
+      const mutationId = randomUUID();
+      const { rows } = await client.query(
+        `SELECT waves_record_settlement($1, $2, $3, 7000, 'upi', 'INR', NULL, '[]'::jsonb, $4) AS id`,
+        [group.groupId, financer, rider, mutationId],
+      );
+      expect(rows[0].id).toBeTruthy();
+
+      const audit = await client.query(
+        `SELECT client_id, action, group_id, object_id, amount_minor, currency
+           FROM agent_writes WHERE profile_id = $1`,
+        [financerProfile],
+      );
+      expect(audit.rows).toHaveLength(1);
+      expect(audit.rows[0]).toMatchObject({
+        client_id: 'settlement-bot',
+        action: 'settlement.record',
+        group_id: group.groupId,
+        object_id: rows[0].id,
+        currency: 'INR',
+      });
+      expect(String(audit.rows[0].amount_minor)).toBe('7000');
+    });
+
+    await asRole(client, 'authenticated', asAgent(riderProfile), async () => {
+      const audit = await client.query(`SELECT * FROM agent_writes`);
+      expect(audit.rows).toHaveLength(0);
+    });
+  });
+
+  it('refuses an agent settlement over the cap', async () => {
+    const group = await seedGroup(client, { memberCount: 2, name: 'Over cap cab' });
+    const [financerProfile] = group.profileIds as [string, string];
+    const [financer, rider] = group.memberIds as [string, string];
+
+    await asRole(client, 'authenticated', asAgent(financerProfile), async () => {
+      await expect(
+        client.query(
+          `SELECT waves_record_settlement($1, $2, $3, 5000001, 'upi', 'INR', NULL, '[]'::jsonb, $4)`,
+          [group.groupId, financer, rider, randomUUID()],
+        ),
+      ).rejects.toThrow(/AGENT_CAP_SINGLE/);
+    });
+  });
+
+  it('does not count a replayed agent settlement twice', async () => {
+    const group = await seedGroup(client, { memberCount: 2, name: 'Replay cab' });
+    const [financerProfile] = group.profileIds as [string, string];
+    const [financer, rider] = group.memberIds as [string, string];
+
+    await asRole(client, 'authenticated', asAgent(financerProfile), async () => {
+      const mutationId = randomUUID();
+      const first = await client.query(
+        `SELECT waves_record_settlement($1, $2, $3, 4000, 'upi', 'INR', NULL, '[]'::jsonb, $4) AS id`,
+        [group.groupId, financer, rider, mutationId],
+      );
+      const second = await client.query(
+        `SELECT waves_record_settlement($1, $2, $3, 4000, 'upi', 'INR', NULL, '[]'::jsonb, $4) AS id`,
+        [group.groupId, financer, rider, mutationId],
+      );
+      expect(second.rows[0].id).toBe(first.rows[0].id);
+
+      const audit = await client.query(
+        `SELECT count(*)::int AS n, coalesce(sum(amount_minor), 0)::text AS total
+           FROM agent_writes WHERE profile_id = $1 AND action = 'settlement.record'`,
+        [financerProfile],
+      );
+      expect(audit.rows[0]).toMatchObject({ n: 1, total: '4000' });
     });
   });
 });
