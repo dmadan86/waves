@@ -637,62 +637,62 @@ function AuthGate() {
               not slide the draft card out first. `none` makes leaving it (and
               arriving on it) instant, the same treatment the inbox destination
               had before it became a tab. */}
-            <Stack.Screen name="captures" options={{ animation: 'none' }} />
-            <Stack.Screen name="groups" options={slide} />
-            <Stack.Screen name="group/[id]/index" options={slide} />
-            <Stack.Screen name="group/[id]/add-expense" options={slide} />
-            <Stack.Screen name="group/[id]/settle" options={slide} />
-            <Stack.Screen name="group/[id]/simplify" />
-            <Stack.Screen name="group/[id]/settings" />
-            <Stack.Screen name="group/[id]/members" />
-            <Stack.Screen name="group/[id]/member/[memberId]" />
-            <Stack.Screen name="group/[id]/expense/[expenseId]" options={slide} />
-            <Stack.Screen name="group/[id]/invite" options={slide} />
-            <Stack.Screen name="group/[id]/itemize" options={slide} />
-            <Stack.Screen name="group/[id]/export" options={slide} />
-            <Stack.Screen name="group/[id]/insights" />
-            <Stack.Screen name="group/[id]/map" />
-            <Stack.Screen name="group/[id]/month" />
-            <Stack.Screen name="group/[id]/pending" />
-            <Stack.Screen name="group/[id]/plan" />
-            <Stack.Screen name="group/[id]/recap" />
-            <Stack.Screen name="receipt/[id]" options={slide} />
-            <Stack.Screen name="friends/add-person" />
-            <Stack.Screen name="friends/contacts" />
-            <Stack.Screen name="friends/merge" />
-            <Stack.Screen name="friends/person/[key]" />
-            <Stack.Screen name="contact-picker" options={slide} />
-            <Stack.Screen name="country" options={slide} />
-            <Stack.Screen name="scan" options={slide} />
-            <Stack.Screen name="personal/transactions" />
-            <Stack.Screen name="personal/entry" options={slide} />
-            <Stack.Screen name="personal/recurring" />
-            <Stack.Screen name="personal/loans" />
-            <Stack.Screen name="personal/budgets" />
-            <Stack.Screen name="personal/source/[id]" />
-            <Stack.Screen name="settings/notifications" />
-            <Stack.Screen name="settings/export" />
-            <Stack.Screen name="settings/import" />
-            <Stack.Screen name="settings/lock" />
-            <Stack.Screen name="settings/devices" />
-            <Stack.Screen name="settings/recent" />
-            <Stack.Screen name="settings/sync" />
-            <Stack.Screen name="settings/backup" />
-            <Stack.Screen name="settings/archived" />
-            <Stack.Screen name="settings/blocked" />
-            <Stack.Screen name="settings/storage" />
-            <Stack.Screen name="settings/theme" />
-            <Stack.Screen name="settings/categories" />
-            <Stack.Screen name="settings/language" />
-            <Stack.Screen name="settings/packs" />
-            <Stack.Screen name="settings/packs/[slug]" />
-            <Stack.Screen name="settings/paying" />
-            <Stack.Screen name="settings/upgrade" />
-            <Stack.Screen name="settings/redeem" />
-            <Stack.Screen name="settings/account" />
-            <Stack.Screen name="settings/feedback" />
-            <Stack.Screen name="settings/delete-account" />
-            {/* The inbox is a tab-navigator destination now (see `(tabs)/inbox`),
+          <Stack.Screen name="captures" options={{ animation: 'none' }} />
+          <Stack.Screen name="groups" options={slide} />
+          <Stack.Screen name="group/[id]/index" options={slide} />
+          <Stack.Screen name="group/[id]/add-expense" options={slide} />
+          <Stack.Screen name="group/[id]/settle" options={slide} />
+          <Stack.Screen name="group/[id]/simplify" />
+          <Stack.Screen name="group/[id]/settings" />
+          <Stack.Screen name="group/[id]/members" />
+          <Stack.Screen name="group/[id]/member/[memberId]" />
+          <Stack.Screen name="group/[id]/expense/[expenseId]" options={slide} />
+          <Stack.Screen name="group/[id]/invite" options={slide} />
+          <Stack.Screen name="group/[id]/itemize" options={slide} />
+          <Stack.Screen name="group/[id]/export" options={slide} />
+          <Stack.Screen name="group/[id]/insights" />
+          <Stack.Screen name="group/[id]/map" />
+          <Stack.Screen name="group/[id]/month" />
+          <Stack.Screen name="group/[id]/pending" />
+          <Stack.Screen name="group/[id]/plan" />
+          <Stack.Screen name="group/[id]/recap" />
+          <Stack.Screen name="receipt/[id]" options={slide} />
+          <Stack.Screen name="friends/add-person" />
+          <Stack.Screen name="friends/contacts" />
+          <Stack.Screen name="friends/merge" />
+          <Stack.Screen name="friends/person/[key]" />
+          <Stack.Screen name="contact-picker" options={slide} />
+          <Stack.Screen name="country" options={slide} />
+          <Stack.Screen name="scan" options={slide} />
+          <Stack.Screen name="personal/transactions" />
+          <Stack.Screen name="personal/entry" options={slide} />
+          <Stack.Screen name="personal/recurring" />
+          <Stack.Screen name="personal/loans" />
+          <Stack.Screen name="personal/budgets" />
+          <Stack.Screen name="personal/source/[id]" />
+          <Stack.Screen name="settings/notifications" />
+          <Stack.Screen name="settings/export" />
+          <Stack.Screen name="settings/import" />
+          <Stack.Screen name="settings/lock" />
+          <Stack.Screen name="settings/devices" />
+          <Stack.Screen name="settings/recent" />
+          <Stack.Screen name="settings/sync" />
+          <Stack.Screen name="settings/backup" />
+          <Stack.Screen name="settings/archived" />
+          <Stack.Screen name="settings/blocked" />
+          <Stack.Screen name="settings/storage" />
+          <Stack.Screen name="settings/theme" />
+          <Stack.Screen name="settings/categories" />
+          <Stack.Screen name="settings/language" />
+          <Stack.Screen name="settings/packs" />
+          <Stack.Screen name="settings/packs/[slug]" />
+          <Stack.Screen name="settings/paying" />
+          <Stack.Screen name="settings/upgrade" />
+          <Stack.Screen name="settings/redeem" />
+          <Stack.Screen name="settings/account" />
+          <Stack.Screen name="settings/feedback" />
+          <Stack.Screen name="settings/delete-account" />
+          {/* The inbox is a tab-navigator destination now (see `(tabs)/inbox`),
               so it is no longer a screen on this root stack — a tap on it from
               anywhere is an instant tab swap rather than a push that re-reveals
               and thaws the whole tab tree. */}
