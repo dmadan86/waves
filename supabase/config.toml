@@ -101,6 +101,12 @@ enable_confirmations = true
 # something this setting can express.
 max_frequency = "1m0s"
 otp_length = 6
+# Fifteen minutes, and the templates say so in those words. Supabase's default
+# is an hour, which is a long time for a code sitting in a mailbox somebody else
+# may later read — and "expires shortly" is what a mail says when nobody knows
+# the number. If this changes, change the line in `supabase/templates/*.html`
+# with it.
+otp_expiry = 900
 
 # Auth mail — the sign-up confirmation and the login code — through Resend.
 #

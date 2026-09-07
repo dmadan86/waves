@@ -14,9 +14,27 @@ both teaches people to click the link in a message asking for a code, which is
 the exact shape of every phishing mail they will ever get. `otp_length = 8` in
 config.toml, so the code is eight digits.
 
-They are deliberately plain: inline styles, no images, no web fonts, one colour.
-A code mail is read in two seconds in a notification shade, and every byte of
-decoration is a byte that can render wrong in Outlook.
+They are deliberately plain: table layout, inline styles, no images, no web
+fonts. A code mail is read in two seconds in a notification shade, and every byte
+of decoration is a byte that can render wrong in Outlook.
+
+Three things in the layout are not decoration, and each was taken from how the
+apps that do this well handle it on screen:
+
+* **The code sits in its own bordered field**, tracked wide, rather than loose in
+  a paragraph. Per-digit boxes would be better still — that is what the app's own
+  screen shows — but a Go template cannot slice a string, so one field with
+  letter-spacing is as close as this gets.
+* **The expiry is a number**, not "shortly". It has to match `otp_expiry` in
+  `config.toml`, and `apps/mobile/test/otpLength.test.ts` fails if it does not:
+  a mail promising fifteen minutes against a server that allows sixty is the app
+  lying about something somebody only discovers by being refused.
+* **The address is named** in the footer (`{{ .Email }}`). It costs a line and it
+  is the cheapest phishing tell there is — a code mail that cannot say who it was
+  sent to did not come from us.
+
+The hidden `div` at the top is preview text: what an inbox list shows beside the
+subject. Left out, mail clients show the first words of the markup instead.
 
 The Go template variables GoTrue exposes are `{{ .Token }}`, `{{ .TokenHash }}`,
 `{{ .ConfirmationURL }}`, `{{ .SiteURL }}`, `{{ .Email }}` and `{{ .NewEmail }}`.
