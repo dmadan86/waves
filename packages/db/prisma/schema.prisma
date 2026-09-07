@@ -170,6 +170,7 @@ model Profile {
   personalRecords     PersonalRecord[]
   packInstalls        PackInstall[]
   packRequests        PackRequest[]
+  agentWrites         AgentWrite[]
   pushTokens          PushToken[]
   notifications       Notification[]
   emailEvents         EmailEvent[]
@@ -1664,6 +1665,38 @@ model RateLimitSetting {
 /// lives here (see 20260818160000_receipt_cap). One row per limit. Readable by
 /// clients (it is configuration, not data about a person); written by the
 /// service role alone, so a limit a client could raise is not a limit.
+/// What an AI agent did in somebody's name.
+///
+/// A write made through the MCP server (`apps/agent-mcp`) with a third-party
+/// OAuth token, which carries a `client_id` claim the app's own tokens do not.
+/// It exists to answer two questions RLS cannot: how much an assistant may
+/// write (the ceiling reads this table for today's total) and what it has
+/// already written, so a person can look and decide to revoke a client.
+///
+/// Rows are inserted only by `waves_record_agent_write` — there is no INSERT
+/// policy, so an agent cannot forge its own trail or attribute a write to a
+/// different client than its token names.
+model AgentWrite {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  profileId   String    @map("profile_id") @db.Uuid
+  /// The OAuth client, kept verbatim so one assistant can be told from another.
+  clientId    String    @map("client_id")
+  /// In the app's words: expense.add, expense.edit, expense.delete, settlement.record.
+  action      String
+  groupId     String?   @map("group_id") @db.Uuid
+  objectId    String?   @map("object_id") @db.Uuid
+  /// Minor units. Null for actions that move no amount.
+  amountMinor BigInt?   @map("amount_minor")
+  currency    String?   @db.Char(3)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  profile     Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([profileId, createdAt(sort: Desc)], map: "agent_writes_profile_created_idx")
+  @@map("agent_writes")
+  @@schema("public")
+}
+
 model AppConfig {
   key         String   @id
   value       Int
