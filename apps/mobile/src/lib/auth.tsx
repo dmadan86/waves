@@ -3,6 +3,7 @@ import { Platform } from 'react-native';
 import type { Session } from '@/lib/backend';
 import { makeRedirectUri } from 'expo-auth-session';
 import * as Crypto from 'expo-crypto';
+import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 
 import {
@@ -17,6 +18,7 @@ import {
 } from '@waves/core';
 
 import { identifyForReporting, reportHandled } from './observability';
+import { claimCode } from './oauthClaim';
 import { refreshPushToken, revokePushToken } from './push';
 import { backend } from './backend';
 
@@ -30,6 +32,21 @@ function viewerFrom(session: Session | null): Viewer {
   return session.user.is_anonymous === true
     ? { kind: 'guest', userId: session.user.id }
     : { kind: 'user', userId: session.user.id };
+}
+
+/**
+ * Redeem the code in a callback URL, if it has one nobody has claimed yet.
+ *
+ * `undefined` means there was nothing here to do — no code, or somebody else
+ * already took it. That is not a failure and must not be reported as one.
+ */
+async function claimOAuthCode(url: string | null): Promise<Session | null | undefined> {
+  if (!url) return undefined;
+  const callback = readOAuthCallback(url);
+  if (callback.kind !== 'code' || !claimCode(callback.code)) return undefined;
+  const { data, error } = await backend.auth.exchangeCodeForSession(callback.code);
+  if (error) throw error;
+  return data.session;
 }
 
 /**
@@ -94,11 +111,14 @@ async function oauthThroughBrowser(
     return current.session;
   }
 
-  const { data: signedIn, error: sessionError } = await backend.auth.exchangeCodeForSession(
-    callback.code,
-  );
-  if (sessionError) throw sessionError;
-  return signedIn.session;
+  // Through the same claim as the deep-link route, so whichever of the two
+  // gets there first is the one that spends the code.
+  const claimed = await claimOAuthCode(result.url);
+  if (claimed !== undefined) return claimed;
+  // Somebody else already redeemed it — the link handler, most likely, on an
+  // app that was restarted mid-sign-in. Their session is the one to keep.
+  const { data: current } = await backend.auth.getSession();
+  return current.session;
 }
 
 /**
@@ -436,6 +456,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // render-time clear, and nothing to go stale.
   const profile = profileState.owner === currentUserId ? profileState.profile : null;
   const profileSettled = profileState.owner === currentUserId && profileState.settled;
+
+  /**
+   * Finish a sign-in that outlived the process which started it.
+   *
+   * `oauthThroughBrowser` awaits the browser and redeems the code itself, and
+   * that is the normal path. It only works while this process is alive — and
+   * on a phone it frequently is not: Android is free to kill a backgrounded
+   * app, and while Chrome is in front showing a consent screen, Waves is a
+   * backgrounded app. Several OEM builds do it eagerly. When that happens the
+   * awaiting promise dies with the process, `waves://auth?code=…` arrives at a
+   * cold start with nobody listening, and somebody who really did sign in with
+   * Google lands back on the welcome screen. The screen recording that found
+   * this shows it plainly: the splash plays a second time, then the door.
+   *
+   * The verifier is in the keystore, not in memory, so the fresh process can
+   * still redeem the code — it just has to notice it. This is the noticing:
+   * the launch URL, and every link that arrives afterwards.
+   */
+  useEffect(() => {
+    let active = true;
+
+    const finish = (url: string | null): void => {
+      void claimOAuthCode(url)
+        .then((next) => {
+          if (active && next) setSession(next);
+        })
+        .catch((caught) => {
+          // An expired or already-spent code is the ordinary shape of a
+          // duplicate delivery, not something to put on screen.
+          reportHandled(caught, 'auth.linkCallback');
+        });
+    };
+
+    void Linking.getInitialURL()
+      .then(finish)
+      .catch(() => undefined);
+    const subscription = Linking.addEventListener('url', ({ url }) => finish(url));
+
+    return () => {
+      active = false;
+      subscription.remove();
+    };
+  }, []);
 
   // A crash report carries the account id and nothing else about who it is —
   // enough to tell one person hitting a bug fifty times from fifty people.
