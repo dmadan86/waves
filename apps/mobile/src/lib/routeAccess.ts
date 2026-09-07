@@ -48,6 +48,23 @@ export function isAuthRoute(segments: readonly string[]): boolean {
   return (AUTH_ROUTES as readonly string[]).includes(segments[0] ?? '');
 }
 
+/** True while the route exists only in local development builds. */
+function isDevOnlyRoute(segments: readonly string[]): boolean {
+  const [first, second] = segments;
+  return first === 'dev' && second === 'local-privacy';
+}
+
+/** True while the route is behind a remotely-controlled feature flag. */
+function isFlaggedRoute(segments: readonly string[], flags: RouteAccessFlags): boolean {
+  const [first] = segments;
+  return first === 'paywall' && !flags.paywall;
+}
+
+/** Runtime switches that decide whether optional route files are reachable. */
+export interface RouteAccessFlags {
+  readonly paywall: boolean;
+}
+
 /**
  * True while the route is one a signed-out person may sit on.
  *
@@ -59,9 +76,28 @@ export function isPublicRoute(segments: readonly string[], dev: boolean): boolea
   if (isAuthRoute(segments)) return true;
   const [first, second] = segments;
   if ((OPEN_ROUTES as readonly string[]).includes(first ?? '')) return true;
-  if (dev && first === 'dev' && second === 'local-privacy') return true;
+  if (dev && isDevOnlyRoute(segments)) return true;
   if (first === 'settings' && (OPEN_SETTINGS as readonly string[]).includes(second ?? '')) {
     return true;
   }
   return false;
+}
+
+/**
+ * True while the current session state is allowed to remain on this route.
+ *
+ * This is the redirect-side mirror of the Stack groups in the root layout. It
+ * covers the files expo-router can auto-include even when no `Stack.Screen` is
+ * rendered for them, such as production dev tools and disabled feature routes.
+ */
+export function isRouteAllowed(
+  segments: readonly string[],
+  signedIn: boolean,
+  dev: boolean,
+  flags: RouteAccessFlags,
+): boolean {
+  if (!dev && isDevOnlyRoute(segments)) return false;
+  if (isFlaggedRoute(segments, flags)) return false;
+  if (signedIn) return !isAuthRoute(segments);
+  return isPublicRoute(segments, dev);
 }

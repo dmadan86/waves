@@ -51,7 +51,7 @@ import { LanguageProvider, useLanguage } from '@/i18n/language';
 import { LocaleSync } from '@/i18n/localeSync';
 import { LockProvider, useLock } from '@/lib/lock';
 import { legacyKeysMigrated } from '@/lib/legacyKeys';
-import { isAuthRoute, isPublicRoute } from '@/lib/routeAccess';
+import { isRouteAllowed } from '@/lib/routeAccess';
 import { ReducedMotionProvider, useReducedMotion } from '@/lib/reducedMotion';
 import { RecentCountProvider } from '@/lib/recentCount';
 import { ShortcutProvider } from '@/lib/shortcut';
@@ -481,8 +481,10 @@ function AuthGate() {
   // Which routes go with which session — the same lists the `Stack.Protected`
   // groups below are built from, kept in `lib/routeAccess` so the guard and this
   // redirect cannot drift apart.
-  const onAuth = isAuthRoute(segments as string[]);
-  const onPublicRoute = isPublicRoute(segments as string[], __DEV__);
+  const signedIn = Boolean(session);
+  const routeAllowed = isRouteAllowed(segments as string[], signedIn, __DEV__, {
+    paywall: paywallEnabled,
+  });
 
   /**
    * The route we are on disagrees with the session we have, and the effect
@@ -492,13 +494,13 @@ function AuthGate() {
    * sees on a cold start. Hold the spinner until the route and the session
    * agree, and the app tree never mounts the wrong screen at all.
    */
-  const needsRedirect = !loading && ((!session && !onPublicRoute) || (Boolean(session) && onAuth));
+  const needsRedirect = !loading && !routeAllowed;
 
   useEffect(() => {
-    if (loading) return;
-    if (!session && !onPublicRoute) router.replace('/welcome');
-    else if (session && onAuth) router.replace('/');
-  }, [session, loading, onAuth, onPublicRoute, router]);
+    if (loading || routeAllowed) return;
+    if (!session) router.replace('/welcome');
+    else router.replace('/');
+  }, [session, loading, routeAllowed, router]);
 
   // The intro tour now comes *after* sign-in, not in front of it: the first
   // authenticated launch on this device shows the three cards once, over the
@@ -646,10 +648,26 @@ function AuthGate() {
             <Stack.Screen name="group/[id]/expense/[expenseId]" options={slide} />
             <Stack.Screen name="group/[id]/invite" options={slide} />
             <Stack.Screen name="group/[id]/itemize" options={slide} />
+            <Stack.Screen name="group/[id]/export" options={slide} />
+            <Stack.Screen name="group/[id]/insights" />
+            <Stack.Screen name="group/[id]/map" />
+            <Stack.Screen name="group/[id]/month" />
+            <Stack.Screen name="group/[id]/pending" />
+            <Stack.Screen name="group/[id]/plan" />
+            <Stack.Screen name="group/[id]/recap" />
             <Stack.Screen name="receipt/[id]" options={slide} />
+            <Stack.Screen name="friends/add-person" />
             <Stack.Screen name="friends/contacts" />
+            <Stack.Screen name="friends/merge" />
+            <Stack.Screen name="friends/person/[key]" />
             <Stack.Screen name="contact-picker" options={slide} />
             <Stack.Screen name="scan" options={slide} />
+            <Stack.Screen name="personal/transactions" />
+            <Stack.Screen name="personal/entry" options={slide} />
+            <Stack.Screen name="personal/recurring" />
+            <Stack.Screen name="personal/loans" />
+            <Stack.Screen name="personal/budgets" />
+            <Stack.Screen name="personal/source/[id]" />
             <Stack.Screen name="settings/notifications" />
             <Stack.Screen name="settings/export" />
             <Stack.Screen name="settings/import" />
@@ -659,9 +677,15 @@ function AuthGate() {
             <Stack.Screen name="settings/recent" />
             <Stack.Screen name="settings/sync" />
             <Stack.Screen name="settings/backup" />
+            <Stack.Screen name="settings/archived" />
+            <Stack.Screen name="settings/blocked" />
+            <Stack.Screen name="settings/storage" />
             <Stack.Screen name="settings/theme" />
             <Stack.Screen name="settings/categories" />
             <Stack.Screen name="settings/language" />
+            <Stack.Screen name="settings/packs" />
+            <Stack.Screen name="settings/packs/[slug]" />
+            <Stack.Screen name="settings/paying" />
             <Stack.Screen name="settings/upgrade" />
             <Stack.Screen name="settings/redeem" />
             <Stack.Screen name="settings/account" />
@@ -683,9 +707,12 @@ function AuthGate() {
           <Stack.Screen name="language" />
           <Stack.Screen name="join" />
           <Stack.Screen name="settings/privacy" />
+          <Stack.Screen name="settings/licenses" />
           {/* Dev-only screen, and deliberately still reachable after sign-out so
               the e2e suite can prove private local state was removed. */}
-          <Stack.Screen name="dev/local-privacy" />
+          <Stack.Protected guard={__DEV__}>
+            <Stack.Screen name="dev/local-privacy" />
+          </Stack.Protected>
         </Stack>
         {/* One bar over the whole stack, so every screen keeps it — it hides
           itself on the modals and the camera. */}
