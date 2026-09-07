@@ -1,9 +1,9 @@
 /**
  * How many recent expenses the watch shows.
  *
- * A short preference screen — pick 3, 5, or 10 — modelled on the Shortcut
- * settings screen. The value is device-local (AsyncStorage via useRecentCount)
- * and is relayed to a paired watch by the watch bridge.
+ * A short preference screen — pick 3, 5, or 10. The value is device-local
+ * (AsyncStorage via useRecentCount) and is relayed to a paired watch by the
+ * watch bridge.
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';

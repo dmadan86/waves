@@ -37,7 +37,6 @@ FLOWS=(
   widget-deeplinks
   auth-providers
   welcome-door
-  shortcut-preference
 )
 
 status=0
