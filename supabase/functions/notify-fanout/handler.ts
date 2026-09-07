@@ -89,6 +89,13 @@ export function factsOf(payload: Record<string, unknown>): Record<string, string
     group: text('group'),
     description: text('description'),
     count: text('count'),
+    // Every placeholder any mailed or pushed kind uses has to be named here:
+    // this is a whitelist, and a fact that is missing from it does not fail —
+    // it renders the placeholder itself, so somebody receives
+    // "New sign-in on {device}". `device` is the sign-in alert's; `name` is the
+    // ghost-claim kinds', which push today and could be mailed tomorrow.
+    device: text('device'),
+    name: text('name'),
   };
 }
 
