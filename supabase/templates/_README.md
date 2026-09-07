@@ -11,8 +11,10 @@ in a console text box nobody can diff.
 for a code on a six-box screen (`verify-email.tsx`, `phone.tsx`) — a magic link
 lands somebody on a page with nothing to type into, and a mail that contains
 both teaches people to click the link in a message asking for a code, which is
-the exact shape of every phishing mail they will ever get. `otp_length = 8` in
-config.toml, so the code is eight digits.
+the exact shape of every phishing mail they will ever get. `otp_length = 6` in
+config.toml, matching `OTP_LEN` in the app — the two are checked against each
+other by `apps/mobile/test/otpLength.test.ts`, because at 8 the mail carried a
+code the six-box screen silently truncated.
 
 They are deliberately plain: table layout, inline styles, no images, no web
 fonts. A code mail is read in two seconds in a notification shade, and every byte
