@@ -14,6 +14,8 @@
 
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
+import { readStore, writeStore, STORE_PATH } from './store.js';
+
 export interface WavesEnv {
   url: string;
   anonKey: string;
@@ -32,6 +34,20 @@ export function readEnv(): WavesEnv {
     (process.env.WAVES_MCP_READONLY ?? '').toLowerCase(),
   );
 
+  // A session signed in from this machine (`pnpm mcp:login`) stands in for the
+  // whole set. The environment still wins where it is set, so a deployment that
+  // supplies its own token is unaffected by whatever is on somebody's laptop.
+  const stored = readStore();
+  if (stored && !accessToken) {
+    return {
+      url: url ?? stored.url,
+      anonKey: anonKey ?? stored.anonKey,
+      accessToken: stored.accessToken,
+      refreshToken: stored.refreshToken,
+      readOnly,
+    };
+  }
+
   const missing: string[] = [];
   if (!url) missing.push('WAVES_SUPABASE_URL');
   if (!anonKey) missing.push('WAVES_SUPABASE_ANON_KEY');
@@ -41,7 +57,8 @@ export function readEnv(): WavesEnv {
       `Missing required environment: ${missing.join(', ')}. ` +
         "The server acts as a signed-in user, so it needs that user's Supabase " +
         'session (a WAVES_SUPABASE_ACCESS_TOKEN, and ideally a ' +
-        'WAVES_SUPABASE_REFRESH_TOKEN so long sessions keep working).',
+        'WAVES_SUPABASE_REFRESH_TOKEN so long sessions keep working). ' +
+        `Or sign in from this machine: pnpm mcp:login (stores ${STORE_PATH}).`,
     );
   }
 
@@ -75,6 +92,24 @@ export async function makeClient(env: WavesEnv): Promise<SupabaseClient> {
       refresh_token: env.refreshToken,
     });
     if (error) throw new Error(`Could not establish the user session: ${error.message}`);
+
+    // A refreshed session is only useful if it outlives the process. An MCP
+    // server is started and stopped by its client constantly, so without this
+    // the stored refresh token goes stale and a machine that signed in once
+    // ends up signed in never. Only sessions that came from the store are
+    // written back; an env-supplied token belongs to whoever set it.
+    if (!process.env.WAVES_SUPABASE_ACCESS_TOKEN) {
+      client.auth.onAuthStateChange((_event, session) => {
+        if (!session) return;
+        const stored = readStore();
+        if (!stored) return;
+        writeStore({
+          ...stored,
+          accessToken: session.access_token,
+          refreshToken: session.refresh_token,
+        });
+      });
+    }
   }
 
   return client;
