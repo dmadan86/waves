@@ -77,3 +77,25 @@ export function buildExpenseWriteBody(
     clientMutationId: defaults.clientMutationId,
   };
 }
+
+/**
+ * Everyone an expense is split between, with the payer always among them.
+ *
+ * Told "split it with Raj and Priya", a request names two people and means
+ * three. Leaving the payer out of their own expense does not produce a smaller
+ * split — it produces one where they lent the entire bill and are owed all of
+ * it, which is a wrong number in a shared ledger rather than a missing one.
+ *
+ * Duplicates collapse: the same person named twice, or named and also passed as
+ * a member id, is one participant. `computeShares` refuses a repeated member
+ * outright (DUPLICATE_PARTICIPANT), so this is what keeps an ordinary way of
+ * speaking from becoming an error.
+ */
+export function expenseParticipants(
+  paidBy: string,
+  memberIds: readonly string[],
+): readonly string[] {
+  const party = new Set(memberIds);
+  party.add(paidBy);
+  return [...party];
+}
