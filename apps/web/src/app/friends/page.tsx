@@ -76,7 +76,11 @@ function Friends({ query }: { query: string }) {
           ) : (
             <div className="list">
               {shown.map((person) => (
-                <div key={person.key} className="item" style={{ cursor: 'default' }}>
+                <Link
+                  key={person.key}
+                  href={`/friends/${encodeURIComponent(person.key)}`}
+                  className="item"
+                >
                   <span className="avatar" aria-hidden style={{ width: 38, height: 38 }}>
                     {person.name.trim().charAt(0).toUpperCase() || '🙂'}
                   </span>
@@ -106,15 +110,11 @@ function Friends({ query }: { query: string }) {
                         </span>
                       );
                     })}
-                    <Link
-                      className="btn soft"
-                      href={person.onlyGroupId ? `/settle?group=${person.onlyGroupId}` : '/settle'}
-                      style={{ marginTop: 4 }}
-                    >
+                    <span className="btn soft" style={{ marginTop: 4 }}>
                       {t.friends.settleUp}
-                    </Link>
+                    </span>
                   </span>
-                </div>
+                </Link>
               ))}
             </div>
           )}

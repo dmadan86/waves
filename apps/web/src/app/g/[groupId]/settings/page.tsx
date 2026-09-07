@@ -19,6 +19,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 
 import { GroupType, type GroupRow } from '@waves/api-client';
@@ -220,6 +221,14 @@ function GroupSettings({ profileId }: { profileId: string }) {
         </section>
 
         {error ? <p className="error">{error}</p> : null}
+
+        <section className="panel">
+          <h2>{t.exportData.title}</h2>
+          <p className="faint">{t.exportData.body}</p>
+          <Link className="btn soft" href={`/g/${groupId}/export`}>
+            {t.exportData.title}
+          </Link>
+        </section>
 
         <section className="panel">
           <h2>{t.groupSettings.danger}</h2>

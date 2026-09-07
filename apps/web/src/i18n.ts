@@ -143,6 +143,7 @@ export interface WebStrings {
     title: string;
     defaultDescription: string;
     whatWasIt: string;
+    categoryLabel: string;
     howMuch: string;
     amountIn: string;
     notAnAmount: string;
@@ -411,6 +412,32 @@ export interface WebStrings {
     onlyInApp: string;
     onlyInAppBody: string;
   };
+  /** The ten built-in categories, worded the same as the phone's. */
+  categories: {
+    food: string;
+    groceries: string;
+    travel: string;
+    stay: string;
+    shopping: string;
+    entertainment: string;
+    home: string;
+    health: string;
+    gifts: string;
+    other: string;
+  };
+  /** One person, un-collapsed into the groups the balance came from. */
+  person: {
+    acrossGroups: string;
+    squareWith: string;
+  };
+  /** Taking the ledger away (ADR-012). */
+  exportData: {
+    title: string;
+    body: string;
+    csv: string;
+    json: string;
+    working: string;
+  };
   errors: {
     couldNotLoad: string;
     couldNotSignIn: string;
@@ -481,6 +508,7 @@ const en: WebStrings = {
     title: 'Add an expense',
     defaultDescription: 'Expense',
     whatWasIt: 'What was it?',
+    categoryLabel: 'What kind of spend',
     howMuch: 'How much? ({currency})',
     amountIn: 'Amount in {currency}',
     notAnAmount: 'That is not an amount.',
@@ -741,6 +769,29 @@ const en: WebStrings = {
     onlyInAppBody:
       'Scanning receipts, speaking an expense, offline entry and your private Me ledger live in the phone app.',
   },
+  categories: {
+    food: 'Food & drink',
+    groceries: 'Groceries',
+    travel: 'Travel',
+    stay: 'Stay',
+    shopping: 'Shopping',
+    entertainment: 'Fun',
+    home: 'Home & bills',
+    health: 'Health',
+    gifts: 'Gifts',
+    other: 'Other',
+  },
+  person: {
+    acrossGroups: 'Across the groups you share',
+    squareWith: 'You are square with each other.',
+  },
+  exportData: {
+    title: 'Export',
+    body: 'Everything in this group as a file, to keep or to open in a spreadsheet.',
+    csv: 'Download CSV',
+    json: 'Download JSON',
+    working: 'Building the file…',
+  },
   errors: {
     couldNotLoad: 'Couldn’t load this. Try again in a moment.',
     couldNotSignIn: 'Could not sign in. Please try again.',
@@ -813,6 +864,7 @@ const ta: WebStrings = {
     title: 'ஒரு செலவைச் சேர்',
     defaultDescription: 'செலவு',
     whatWasIt: 'எதற்காக?',
+    categoryLabel: 'எந்த வகைச் செலவு',
     howMuch: 'எவ்வளவு? ({currency})',
     amountIn: '{currency} இல் தொகை',
     notAnAmount: 'அது ஒரு தொகை அல்ல.',
@@ -1081,6 +1133,29 @@ const ta: WebStrings = {
     onlyInAppBody:
       'ரசீது ஸ்கேன், குரலில் செலவு, இணையம் இல்லாமல் பதிவு, தனிப்பட்ட கணக்கு — இவை போன் செயலியில்.',
   },
+  categories: {
+    food: 'உணவு',
+    groceries: 'மளிகை',
+    travel: 'பயணம்',
+    stay: 'தங்குமிடம்',
+    shopping: 'ஷாப்பிங்',
+    entertainment: 'பொழுதுபோக்கு',
+    home: 'வீடு & பில்',
+    health: 'உடல்நலம்',
+    gifts: 'பரிசு',
+    other: 'மற்றவை',
+  },
+  person: {
+    acrossGroups: 'நீங்கள் பகிரும் குழுக்களில்',
+    squareWith: 'நீங்கள் இருவரும் சரியாக இருக்கிறீர்கள்.',
+  },
+  exportData: {
+    title: 'ஏற்றுமதி',
+    body: 'இந்தக் குழுவின் அனைத்தும் ஒரு கோப்பாக — வைத்துக்கொள்ளவும் அல்லது விரிதாளில் திறக்கவும்.',
+    csv: 'CSV பதிவிறக்கு',
+    json: 'JSON பதிவிறக்கு',
+    working: 'கோப்பு தயாராகிறது…',
+  },
   errors: {
     couldNotLoad: 'இதை ஏற்ற முடியவில்லை. சிறிது நேரத்தில் மீண்டும் முயலவும்.',
     couldNotSignIn: 'உள்நுழைய முடியவில்லை. மீண்டும் முயற்சிக்கவும்.',
@@ -1153,6 +1228,7 @@ const hi: WebStrings = {
     title: 'खर्च जोड़ें',
     defaultDescription: 'खर्च',
     whatWasIt: 'किस चीज़ का था?',
+    categoryLabel: 'किस तरह का ख़र्च',
     howMuch: 'कितना? ({currency})',
     amountIn: '{currency} में रकम',
     notAnAmount: 'यह रकम नहीं है।',
@@ -1412,6 +1488,29 @@ const hi: WebStrings = {
     onlyInApp: 'ऐप में',
     onlyInAppBody: 'रसीद स्कैन, बोलकर ख़र्च, बिना नेट के entry और निजी हिसाब — ये फ़ोन ऐप में हैं.',
   },
+  categories: {
+    food: 'खाना-पीना',
+    groceries: 'किराना',
+    travel: 'सफ़र',
+    stay: 'ठहरना',
+    shopping: 'शॉपिंग',
+    entertainment: 'मनोरंजन',
+    home: 'घर व बिल',
+    health: 'सेहत',
+    gifts: 'तोहफ़े',
+    other: 'अन्य',
+  },
+  person: {
+    acrossGroups: 'आप जिन समूहों में साथ हैं',
+    squareWith: 'आप दोनों बराबर हैं.',
+  },
+  exportData: {
+    title: 'निर्यात',
+    body: 'इस समूह का सब कुछ एक फ़ाइल में — रखने के लिए या स्प्रेडशीट में खोलने के लिए.',
+    csv: 'CSV डाउनलोड करें',
+    json: 'JSON डाउनलोड करें',
+    working: 'फ़ाइल बन रही है…',
+  },
   errors: {
     couldNotLoad: 'यह लोड नहीं हो सका। थोड़ी देर में फिर कोशिश करें।',
     couldNotSignIn: 'साइन इन नहीं हो सका। फिर से कोशिश करें।',
@@ -1497,6 +1596,7 @@ const ar: WebStrings = {
     title: 'أضف مصروفًا',
     defaultDescription: 'مصروف',
     whatWasIt: 'على ماذا؟',
+    categoryLabel: 'أي نوع من الصرف',
     howMuch: 'كم؟ ({currency})',
     amountIn: 'المبلغ بـ {currency}',
     notAnAmount: 'هذا ليس مبلغًا.',
@@ -1794,6 +1894,29 @@ const ar: WebStrings = {
     onlyInApp: 'في التطبيق',
     onlyInAppBody:
       'مسح الإيصالات، وقول المصروف صوتًا، والإدخال دون إنترنت، وسجلك الخاص — كلها في تطبيق الهاتف.',
+  },
+  categories: {
+    food: 'طعام وشراب',
+    groceries: 'بقالة',
+    travel: 'تنقّل',
+    stay: 'إقامة',
+    shopping: 'تسوّق',
+    entertainment: 'ترفيه',
+    home: 'المنزل والفواتير',
+    health: 'صحة',
+    gifts: 'هدايا',
+    other: 'أخرى',
+  },
+  person: {
+    acrossGroups: 'في المجموعات التي تشاركانها',
+    squareWith: 'أنتما متعادلان.',
+  },
+  exportData: {
+    title: 'تصدير',
+    body: 'كل ما في هذه المجموعة كملف، للاحتفاظ به أو فتحه في جدول بيانات.',
+    csv: 'تنزيل CSV',
+    json: 'تنزيل JSON',
+    working: 'يتم إنشاء الملف…',
   },
   errors: {
     couldNotLoad: 'تعذّر تحميل هذا. حاول بعد قليل.',

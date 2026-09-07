@@ -300,3 +300,28 @@ export const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
   nudges: true,
   weeklyEmail: false,
 };
+
+/**
+ * One person's balance in one group — the un-collapsed version of what the
+ * Friends list nets together, so tapping a name can say *where* the money is
+ * rather than only how much.
+ */
+export interface PersonGroupBalanceRow {
+  group_id: string;
+  group_name: string | null;
+  cover_emoji: string | null;
+  currency: string;
+  /** Positive: they owe you here. Negative: you owe them. Minor units. */
+  net: string;
+  is_ghost: boolean;
+  display_name: string;
+}
+
+/** A file the server built for somebody to take their ledger away (ADR-012). */
+export interface ExportResult {
+  filename: string;
+  contentType: string;
+  content: string;
+  /** 'base64' when `content` is binary (PDF); text formats omit it. */
+  encoding?: 'utf8' | 'base64';
+}

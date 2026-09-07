@@ -41,7 +41,9 @@ import {
   type ExpenseVersionSummary,
   type GroupRow,
   type GroupType,
+  type ExportResult,
   type MemberRow,
+  type PersonGroupBalanceRow,
   type ProfileRow,
   type NotificationRow,
   type PersonBalanceRow,
@@ -712,6 +714,30 @@ export function createWavesClient({ supabase }: WavesClientOptions) {
       if (!id) throw new WavesApiError('Not signed in');
       const { error } = await supabase.from('profiles').update(patch).eq('id', id);
       if (error) throw new WavesApiError(String((error as { message?: string }).message ?? error));
+    },
+
+    /**
+     * Where one person's money actually sits: their balance per group, before
+     * the Friends list nets it into a single number per currency.
+     */
+    async personGroupBalances(personKey: string): Promise<PersonGroupBalanceRow[]> {
+      const rows = await rpc<PersonGroupBalanceRow[] | null>('waves_person_group_balances', {
+        p_person_key: personKey,
+      });
+      return rows ?? [];
+    },
+
+    /**
+     * Take the ledger away (ADR-012). The file is built server-side so the
+     * browser and the phone produce the same bytes for the same data, rather
+     * than each inventing a CSV dialect.
+     */
+    exportData(input: {
+      groupId?: string;
+      format: 'json' | 'csv' | 'pdf';
+      csvSeparator?: string;
+    }): Promise<ExportResult> {
+      return callFunction<ExportResult>('export-data', input);
     },
 
     notifications(limit = 50): Promise<NotificationRow[]> {
