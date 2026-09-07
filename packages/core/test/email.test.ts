@@ -392,3 +392,28 @@ describe('a security mail', () => {
     expect(built?.html).toContain('Stop emails like this');
   });
 });
+
+describe('why a mail arrived', () => {
+  it('tells a digest reader it was the weekly digest, not a group', () => {
+    const built = buildEmail(
+      { ...ROW, kind: 'digest_weekly', groupName: null, facts: { count: '4' } },
+      OPTIONS,
+    );
+    // Shipped once as "You are getting this because of Waves on Waves." — the
+    // group placeholder filled with the signature, because a digest has no
+    // group to name.
+    expect(built?.text).toContain('you turned on the weekly digest');
+    expect(built?.text).not.toContain('Waves on Waves');
+  });
+
+  it('falls back to "you use Waves" for a group mail that arrived without one', () => {
+    const built = buildEmail({ ...ROW, groupName: null }, OPTIONS);
+    expect(built?.text).toContain('because you use Waves');
+    expect(built?.text).not.toContain('Waves on Waves');
+  });
+
+  it('still names the group when there is one', () => {
+    const built = buildEmail(ROW, OPTIONS);
+    expect(built?.text).toContain('because of Goa trip on Waves');
+  });
+});

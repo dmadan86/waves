@@ -107,6 +107,13 @@ export interface EmailChrome {
   readonly securityReason: string;
   /** Button on a security mail — straight to the list of signed-in devices. */
   readonly securityAction: string;
+  /**
+   * The footer reason on a digest, which has no group to name — it is a summary
+   * of all of them. Without it `why` interpolates its `{group}` placeholder with
+   * the fallback and produces "You are getting this because of Waves on Waves",
+   * which is what shipped for one day.
+   */
+  readonly digestReason: string;
   readonly unsubscribe: string;
   readonly signature: string;
 }
@@ -218,6 +225,7 @@ const en: CopyStrings = {
     promoReason: 'You are getting this because you use Waves.',
     securityReason: 'You are getting this because somebody signed in to your Waves account.',
     securityAction: 'Review your devices',
+    digestReason: 'You are getting this because you turned on the weekly digest.',
     unsubscribe: 'Stop emails like this',
     signature: 'Waves',
   },
@@ -324,6 +332,7 @@ const ta: CopyStrings = {
     promoReason: 'நீங்கள் Waves-ஐப் பயன்படுத்துவதால் இந்த மின்னஞ்சல் வந்துள்ளது.',
     securityReason: 'உங்கள் Waves கணக்கில் யாரோ உள்நுழைந்ததால் இந்த மின்னஞ்சல் வந்துள்ளது.',
     securityAction: 'உங்கள் சாதனங்களைப் பார்க்கவும்',
+    digestReason: 'வாராந்திர சுருக்கத்தை நீங்கள் இயக்கியதால் இந்த மின்னஞ்சல் வந்துள்ளது.',
     unsubscribe: 'இதுபோன்ற மின்னஞ்சல்களை நிறுத்தவும்',
     signature: 'Waves',
   },
@@ -427,6 +436,7 @@ const hi: CopyStrings = {
     promoReason: 'यह मेल इसलिए आया है क्योंकि आप Waves इस्तेमाल करते हैं।',
     securityReason: 'यह मेल इसलिए आया है क्योंकि किसी ने आपके Waves खाते में साइन इन किया।',
     securityAction: 'अपने डिवाइस देखें',
+    digestReason: 'यह मेल इसलिए आया है क्योंकि आपने साप्ताहिक सारांश चालू किया है।',
     unsubscribe: 'ऐसे मेल बंद करें',
     signature: 'Waves',
   },
@@ -530,6 +540,7 @@ const ar: CopyStrings = {
     promoReason: 'وصلك هذا البريد لأنك تستخدم Waves.',
     securityReason: 'وصلك هذا البريد لأن أحدهم سجّل الدخول إلى حسابك في Waves.',
     securityAction: 'راجع أجهزتك',
+    digestReason: 'وصلك هذا البريد لأنك فعّلت الملخص الأسبوعي.',
     unsubscribe: 'أوقف هذه الرسائل',
     signature: 'Waves',
   },
