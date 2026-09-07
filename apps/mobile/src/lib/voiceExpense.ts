@@ -414,6 +414,23 @@ const STOPWORDS: ReadonlySet<string> = new Set([
 ]);
 
 /**
+ * A word reduced to the letters and digits that identify it, for set lookups.
+ *
+ * Note that this drops combining marks along with the punctuation: `\p{M}` is
+ * neither `\p{L}` nor `\p{N}`, so "மற்றும்" comes back as "மறறம" and "कॉफी" as
+ * "कफ". Harmless for comparing two tokens with each other — both sides lose the
+ * same marks — but fatal for a *literal* written into a lookup table, which
+ * keeps its marks and can then never be matched. Every set this function is
+ * used against has to be built through it (see NOTE_CONJUNCTIONS below).
+ */
+function noteToken(word: string): string {
+  return word
+    .normalize('NFKC')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]/gu, '');
+}
+
+/**
  * List glue that a description keeps even though it is a stopword everywhere
  * else. "800 rupees for dress and biscuits" is one bill for two things, and the
  * note has to read back the way it was spoken — "dress biscuits" is not a
@@ -423,25 +440,39 @@ const STOPWORDS: ReadonlySet<string> = new Set([
  * The non-English entries are the same word in the app's other locales. They
  * were never stopwords, so they already survived into notes; listing them here
  * only lets the dangling-edge tidy below reach them too.
+ *
+ * Stored as noteToken() output rather than as the words themselves, so the
+ * written form and the looked-up form cannot drift apart. Spelling "மற்றும்"
+ * out here instead would put an entry in the set that no lookup can ever reach.
  */
-const NOTE_CONJUNCTIONS: ReadonlySet<string> = new Set(['and', 'और', 'மற்றும்', 'و']);
-
-/** A word reduced to the letters and digits that identify it, for set lookups. */
-function noteToken(word: string): string {
-  return word
-    .normalize('NFKC')
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}]/gu, '');
-}
+const NOTE_CONJUNCTIONS: ReadonlySet<string> = new Set(
+  ['and', 'और', 'மற்றும்', 'و'].map(noteToken),
+);
 
 /**
- * A description that starts, ends or doubles on a conjunction, cleaned up.
+ * The glue a description is allowed to keep between two things: the list
+ * punctuation people speak, and nothing else. Anything wider ("then") would be
+ * written into notes that the tidy below has no way to take back out again.
+ *
+ * One class, three uses — what separatorGlue writes back and what the tidy trims
+ * off the ends have to stay the same set, or a mark can be written into a note
+ * that nothing can remove.
+ */
+const NOTE_GLUE_PUNCTUATION = String.raw`[,;]`;
+const IS_NOTE_GLUE_PUNCTUATION = new RegExp(`^${NOTE_GLUE_PUNCTUATION}$`, 'u');
+const LEADING_NOTE_GLUE = new RegExp(`^${NOTE_GLUE_PUNCTUATION}+\\s*`, 'u');
+const TRAILING_NOTE_GLUE = new RegExp(`\\s*${NOTE_GLUE_PUNCTUATION}+$`, 'u');
+
+/**
+ * A description that starts, ends or doubles on glue, cleaned up.
  *
  * Keeping "and" in the note means it can be left stranded once the words around
  * it are taken away — a category phrase lifted out ("category food and dinner"),
  * a member's name removed ("dinner and Ravi"), or a trailing "… and" the speaker
- * never finished. A conjunction joining nothing is not grammar, so it is dropped
- * wherever it no longer sits between two things.
+ * never finished. The same is true of the comma that joined a list: "500 for
+ * dinner, Ravi and Asha" becomes "dinner," once the names move to the split.
+ * Glue joining nothing is not grammar, so it is dropped wherever it no longer
+ * sits between two things.
  */
 function tidyNoteConjunctions(note: string): string {
   const isConjunction = (word: string | undefined): boolean =>
@@ -449,12 +480,22 @@ function tidyNoteConjunctions(note: string): string {
 
   const kept: string[] = [];
   for (const word of note.split(/\s+/u).filter(Boolean)) {
+    // A word that is only punctuation says nothing on its own. It reaches here
+    // when the word it was attached to was taken away, and dropping it keeps a
+    // detached comma from reading differently to an attached one.
+    if (!noteToken(word)) continue;
     if (isConjunction(word) && (kept.length === 0 || isConjunction(kept[kept.length - 1])))
       continue;
     kept.push(word);
   }
   while (kept.length > 0 && isConjunction(kept[kept.length - 1])) kept.pop();
-  return kept.join(' ');
+  if (kept.length === 0) return '';
+
+  // The list punctuation left clinging to the ends once its other half is gone
+  // — "dinner," where the names that followed it are now rows on the split.
+  kept[0] = kept[0].replace(LEADING_NOTE_GLUE, '');
+  kept[kept.length - 1] = kept[kept.length - 1].replace(TRAILING_NOTE_GLUE, '');
+  return kept.filter(Boolean).join(' ');
 }
 
 /** A signed number; validation below accepts only positive values. */
@@ -1748,11 +1789,17 @@ const SEGMENT_SEPARATOR = /(\s*,\s*|\s+and\s+|\s*;\s*|\s+then\s+|\n+)/i;
 /**
  * The mark or word that joined two fragments, written the way it would be typed
  * back into a description: ", " after a comma, " and " around a conjunction.
+ *
+ * Only glue the tidy above can take back out again is ever written back. A line
+ * break says nothing, and "then" narrates a sequence rather than joining a list
+ * — "coffee then tax" is not how anyone describes one bill, and a "then" left
+ * stranded by a name or a category coming out of the note could never be
+ * removed. Both collapse to the plain space the split used to leave behind.
  */
 function separatorGlue(separator: string): string {
   const joiner = separator.replace(/\s+/gu, ' ').trim();
-  if (!joiner) return ' ';
-  return /^[,;]$/u.test(joiner) ? `${joiner} ` : ` ${joiner} `;
+  if (IS_NOTE_GLUE_PUNCTUATION.test(joiner)) return `${joiner} `;
+  return NOTE_CONJUNCTIONS.has(noteToken(joiner)) ? ` ${joiner} ` : ' ';
 }
 
 /**

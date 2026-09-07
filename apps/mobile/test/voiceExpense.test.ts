@@ -441,6 +441,11 @@ describe('matchMemberNames', () => {
     expect(stripMemberNames('dinner and Ravi', members)).toBe('dinner');
     expect(stripMemberNames('Ravi and dinner', members)).toBe('dinner');
     expect(stripMemberNames('tea and Ravi and coffee', members)).toBe('tea and coffee');
+    // Whatever the sentence was spoken in — the note is never translated.
+    expect(stripMemberNames('चाय और Ravi', members)).toBe('चाय');
+    expect(stripMemberNames('தேநீர் மற்றும் Ravi', members)).toBe('தேநீர்');
+    // And the comma that introduced the name goes with it.
+    expect(stripMemberNames('dinner, Ravi', members)).toBe('dinner');
   });
 
   it('resolves named voice participants and keeps the payer included', () => {
@@ -609,12 +614,63 @@ describe('parseVoiceExpenses (several in one breath)', () => {
   it('keeps the local conjunction in Hindi, Tamil, or Arabic descriptions', () => {
     // "और", "மற்றும்" and "و" are never translated into English — the note is
     // shown back in the language it was spoken, so the local word has to survive
-    // as the English one now does.
+    // as the English one now does. None of the three was ever a stopword, so
+    // this half held before any of this; the dangling case below is the half
+    // that did not.
     expect(parseVoiceExpenses('500 रुपये चाय और कॉफी', groups).items[0]?.note).toBe('चाय और कॉफी');
     expect(parseVoiceExpenses('500 ரூபாய் தேநீர் மற்றும் காபி', groups).items[0]?.note).toBe(
       'தேநீர் மற்றும் காபி',
     );
     expect(parseVoiceExpenses('٥٠٠ روبية شاي و قهوة', groups).items[0]?.note).toBe('شاي و قهوة');
+  });
+
+  it('drops a local conjunction left joining nothing', () => {
+    // The half a mid-sentence assertion cannot see: a conjunction survives in
+    // the middle whether or not the parser knows it is one. A conjunction is
+    // recognised through noteToken(), which strips combining marks, so a Tamil
+    // word spelled out in the lookup set would sit there unreachable and this
+    // would keep its "மற்றும்" for ever.
+    expect(parseVoiceExpenses('500 रुपये चाय और', groups).items[0]?.note).toBe('चाय');
+    expect(parseVoiceExpenses('500 ரூபாய் தேநீர் மற்றும்', groups).items[0]?.note).toBe('தேநீர்');
+    expect(parseVoiceExpenses('٥٠٠ روبية شاي و', groups).items[0]?.note).toBe('شاي');
+    expect(parseVoiceExpenses('500 रुपये चाय और और कॉफी', groups).items[0]?.note).toBe(
+      'चाय और कॉफी',
+    );
+    expect(
+      parseVoiceExpenses('500 ரூபாய் தேநீர் மற்றும் மற்றும் காபி', groups).items[0]?.note,
+    ).toBe('தேநீர் மற்றும் காபி');
+  });
+
+  it('leaves no comma hanging where the words after it became split rows', () => {
+    // "500 for dinner, Ravi and Asha" reaches the form as "dinner, Ravi and
+    // Asha"; the names then become rows on the split, and the comma that
+    // introduced them has nothing left to separate.
+    const note = parseVoiceExpenses('500 for dinner, Ravi and Asha', groups).items[0].note;
+    expect(note).toBe('dinner, Ravi and Asha');
+    expect(
+      stripMemberNames(note, [
+        { id: 'r', name: 'Ravi' },
+        { id: 'a', name: 'Asha' },
+      ]),
+    ).toBe('dinner');
+  });
+
+  it('leaves no comma or semicolon hanging where a category phrase came out', () => {
+    expect(parseVoiceExpenses('400 for dinner, category food', groups).items[0].note).toBe(
+      'dinner',
+    );
+    expect(parseVoiceExpenses('400 for dinner; category food', groups).items[0].note).toBe(
+      'dinner',
+    );
+  });
+
+  it('does not write a spoken "then" into a description', () => {
+    // "then" narrates a sequence rather than joining a list, and one stranded
+    // by a category phrase coming out could never be tidied away again.
+    expect(parseVoiceExpenses('coffee 50 then tax', groups).items[0].note).toBe('coffee tax');
+    expect(parseVoiceExpenses('400 for dinner then category food', groups).items[0].note).toBe(
+      'dinner',
+    );
   });
 
   it('keeps a lone expense working, with its named group', () => {
