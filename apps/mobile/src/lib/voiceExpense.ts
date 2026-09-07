@@ -413,6 +413,50 @@ const STOPWORDS: ReadonlySet<string> = new Set([
   'fils',
 ]);
 
+/**
+ * List glue that a description keeps even though it is a stopword everywhere
+ * else. "800 rupees for dress and biscuits" is one bill for two things, and the
+ * note has to read back the way it was spoken — "dress biscuits" is not a
+ * phrase anyone would have typed. The conjunction stays a stopword for group
+ * and member matching, where it names nothing; only the note holds on to it.
+ *
+ * The non-English entries are the same word in the app's other locales. They
+ * were never stopwords, so they already survived into notes; listing them here
+ * only lets the dangling-edge tidy below reach them too.
+ */
+const NOTE_CONJUNCTIONS: ReadonlySet<string> = new Set(['and', 'और', 'மற்றும்', 'و']);
+
+/** A word reduced to the letters and digits that identify it, for set lookups. */
+function noteToken(word: string): string {
+  return word
+    .normalize('NFKC')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]/gu, '');
+}
+
+/**
+ * A description that starts, ends or doubles on a conjunction, cleaned up.
+ *
+ * Keeping "and" in the note means it can be left stranded once the words around
+ * it are taken away — a category phrase lifted out ("category food and dinner"),
+ * a member's name removed ("dinner and Ravi"), or a trailing "… and" the speaker
+ * never finished. A conjunction joining nothing is not grammar, so it is dropped
+ * wherever it no longer sits between two things.
+ */
+function tidyNoteConjunctions(note: string): string {
+  const isConjunction = (word: string | undefined): boolean =>
+    word !== undefined && NOTE_CONJUNCTIONS.has(noteToken(word));
+
+  const kept: string[] = [];
+  for (const word of note.split(/\s+/u).filter(Boolean)) {
+    if (isConjunction(word) && (kept.length === 0 || isConjunction(kept[kept.length - 1])))
+      continue;
+    kept.push(word);
+  }
+  while (kept.length > 0 && isConjunction(kept[kept.length - 1])) kept.pop();
+  return kept.join(' ');
+}
+
 /** A signed number; validation below accepts only positive values. */
 const SIGNED_AMOUNT_RE = String.raw`[+-]?\s*\d[\d,]*(?:\.\d+)?`;
 
@@ -556,24 +600,24 @@ function buildNote(transcript: string, matchedGroupName: string | null): string 
   const nameTokens = new Set(matchedGroupName ? tokenize(matchedGroupName) : []);
   const currencyWord = new RegExp(`\\b(?:${CURRENCY_WORD_ALT})\\b`, 'gi');
 
-  return transcript
+  const words = transcript
     .replace(SPLIT_WITH_CLAUSE, ' ')
     .replace(currencyWord, ' ')
     .replace(new RegExp(CURRENCY_SYMBOL_RE, 'g'), ' ')
     .replace(/\d[\d,]*(?:\.\d+)?/g, ' ')
     .split(/\s+/)
     .filter((word) => {
-      const token = word
-        .normalize('NFKC')
-        .toLowerCase()
-        .replace(/[^\p{L}\p{N}]/gu, '');
+      const token = noteToken(word);
       if (!token) return false;
-      if (STOPWORDS.has(token)) return false;
+      // The list conjunction is the one stopword a description keeps, so two
+      // things bought on one bill still read as two things.
+      if (STOPWORDS.has(token) && !NOTE_CONJUNCTIONS.has(token)) return false;
       if (nameTokens.has(token)) return false;
       return true;
     })
-    .join(' ')
-    .trim();
+    .join(' ');
+
+  return tidyNoteConjunctions(words);
 }
 
 /**
@@ -673,7 +717,8 @@ export function matchMemberNames(
  * A spoken name is split information, not a description — "dinner with Ravi"
  * describes dinner, and Ravi becomes a row, not a word in the note. Removes
  * every member name word (two letters or more) so the description that reaches
- * the form is just what was spent on.
+ * the form is just what was spent on. Taking a name out can strand the "and"
+ * that led to it ("dinner and Ravi"), so the leftovers are tidied afterwards.
  */
 export function stripMemberNames(
   note: string,
@@ -682,14 +727,15 @@ export function stripMemberNames(
   const nameTokens = new Set(
     members.flatMap((member) => tokenize(member.name)).filter((token) => token.length >= 2),
   );
-  return note
+  const words = note
     .split(/\s+/)
     .filter((word) => {
       const token = word.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
       return token !== '' && !nameTokens.has(token);
     })
-    .join(' ')
-    .trim();
+    .join(' ');
+
+  return tidyNoteConjunctions(words);
 }
 
 export function resolveVoiceParticipants(params: {
@@ -779,6 +825,17 @@ function stripCategoryPhrase(text: string): string {
     .replace(CATEGORY_PHRASE, ' ')
     .replace(/[ \t]{2,}/g, ' ')
     .trim();
+}
+
+/**
+ * The last pass over a description before the review screen shows it. Lifting a
+ * category phrase out can leave the conjunction that led to it hanging
+ * ("category food and dinner" → "and dinner"), so the tidy runs after, not
+ * before. Only notes go through here — the split/people text is read by
+ * machine, not by a person, and is left exactly as spoken.
+ */
+function finalizeNote(note: string): string {
+  return tidyNoteConjunctions(stripCategoryPhrase(note));
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -1682,6 +1739,23 @@ export function detectCreateGroup(transcript: string): { name: string; rest: str
 }
 
 /**
+ * What people put between two spoken expenses. Captured, not discarded, because
+ * a fragment with no amount is folded back into a priced neighbour and the word
+ * that joined them belongs in the description.
+ */
+const SEGMENT_SEPARATOR = /(\s*,\s*|\s+and\s+|\s*;\s*|\s+then\s+|\n+)/i;
+
+/**
+ * The mark or word that joined two fragments, written the way it would be typed
+ * back into a description: ", " after a comma, " and " around a conjunction.
+ */
+function separatorGlue(separator: string): string {
+  const joiner = separator.replace(/\s+/gu, ' ').trim();
+  if (!joiner) return ' ';
+  return /^[,;]$/u.test(joiner) ? `${joiner} ` : ` ${joiner} `;
+}
+
+/**
  * The sentence broken into one piece per expense.
  *
  * People list expenses with commas and "and" ("5 for snacks, 10 for tea and 20
@@ -1690,37 +1764,67 @@ export function detectCreateGroup(transcript: string): { name: string; rest: str
  * than one currency-adjacent amount is split again just before each amount, so
  * a run with no commas still comes apart. Pieces with no amount are dropped by
  * the caller.
+ *
+ * A piece put back together keeps the word it was split on, so a single-price
+ * sentence still reads as one: "800 rupees for dress and biscuits" is one bill
+ * for "dress and biscuits", never for "dress biscuits".
  */
 function segmentExpenses(text: string): string[] {
   // Take out "split among 4" / "4 people" first, so the count is never scanned
   // as an amount and turned into a phantom expense. The caller keeps the count
   // separately (extractSplitCount reads the untouched body), so nothing is lost.
   const withoutCount = text.replace(new RegExp(SPLIT_COUNT.source, 'gi'), ' ');
-  const bySeparator = withoutCount
-    .split(/\s*,\s*|\s+and\s+|\s*;\s*|\s+then\s+|\n+/i)
-    .map((piece) => piece.trim())
-    .filter(Boolean);
+
+  // With a capturing separator, split alternates fragment, separator, fragment.
+  // Each fragment remembers the separator that came before it, so a fold can put
+  // it back. Consecutive separators around an empty fragment ("tea,, 30") keep
+  // the first, which is the one that reads.
+  const parts = withoutCount.split(SEGMENT_SEPARATOR);
+  const fragments: { text: string; separatorBefore: string }[] = [];
+  let carriedSeparator = '';
+  for (let index = 0; index < parts.length; index += 1) {
+    if (index % 2 === 1) {
+      if (!carriedSeparator) carriedSeparator = parts[index];
+      continue;
+    }
+    const piece = parts[index].trim();
+    if (!piece) continue;
+    fragments.push({ text: piece, separatorBefore: carriedSeparator });
+    carriedSeparator = '';
+  }
 
   // A separator only starts a new expense when a *price* follows it: "5 snacks
   // and 10 tea" is two, but "bread and tea 300" is one bill whose note happens
   // to contain "and". So an amountless fragment is not its own expense — it is
   // words belonging to a neighbouring priced one. Fold each into the next priced
   // fragment (a leading label like "bread and…"); any left over at the end joins
-  // the last priced fragment ("…300 and tax"). A wholly amountless transcript
-  // keeps its single fragment, which the caller then drops for having no amount.
+  // the last priced fragment ("…300 and tax"). The joining word is put back with
+  // the fragment so the description stays the sentence that was spoken. A wholly
+  // amountless transcript keeps its single fragment, which the caller then drops
+  // for having no amount.
   const hasAmount = (piece: string): boolean => /\d[\d,]*(?:\.\d+)?/.test(piece);
   const merged: string[] = [];
   let pending = '';
-  for (const piece of bySeparator) {
-    if (hasAmount(piece)) {
-      merged.push(pending ? `${pending} ${piece}` : piece);
+  let pendingSeparator = '';
+  for (const fragment of fragments) {
+    const glue = separatorGlue(fragment.separatorBefore);
+    if (hasAmount(fragment.text)) {
+      merged.push(pending ? `${pending}${glue}${fragment.text}` : fragment.text);
       pending = '';
+      pendingSeparator = '';
+    } else if (pending) {
+      pending = `${pending}${glue}${fragment.text}`;
     } else {
-      pending = pending ? `${pending} ${piece}` : piece;
+      pending = fragment.text;
+      // How this run of amountless words attaches to the priced fragment before
+      // it, kept for the trailing case ("coffee 50 and tax").
+      pendingSeparator = fragment.separatorBefore;
     }
   }
   if (pending) {
-    if (merged.length > 0) merged[merged.length - 1] = `${merged[merged.length - 1]} ${pending}`;
+    if (merged.length > 0)
+      merged[merged.length - 1] =
+        `${merged[merged.length - 1]}${separatorGlue(pendingSeparator)}${pending}`;
     else merged.push(pending);
   }
 
@@ -1824,7 +1928,7 @@ export function parseVoiceExpenses(
       amountMajor,
       amountMinor: toVoiceMinorUnits(amountMajor, currency),
       currency,
-      note: stripCategoryPhrase(buildNote(segment, matchedName)),
+      note: finalizeNote(buildNote(segment, matchedName)),
       category: itemCategory,
     });
   }
@@ -1838,7 +1942,7 @@ export function parseVoiceExpenses(
         amountMinor: one.amountMinor,
         amountMajor: one.amountMajor,
         currency: one.currency,
-        note: stripCategoryPhrase(one.note),
+        note: finalizeNote(one.note),
         category,
       });
     }
