@@ -31,6 +31,7 @@ import { format as formatMoney, money as coreMoney, type CurrencyCode } from '@w
 import { GroupPhoto } from '@/components/GroupPhoto';
 import { type PickedContact } from '@/components/ContactPicker';
 import { friendlyError } from '@/lib/errors';
+import { groupDeleteBody } from '@/lib/groupDeleteWarning';
 import { pickGroupPhoto } from '@/lib/image';
 import { requestContacts } from '@/lib/contactPickerBridge';
 import { isPhoneCountryError } from '@/lib/phone';
@@ -52,11 +53,6 @@ import { fill, plural, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { useFavorites } from '@/lib/favorites';
 import { displayName, groupLabel, GroupType, isGhost, vpaOf } from '@/data/types';
-
-// How many open debts the delete warning spells out before it starts counting
-// the rest. Four is enough to make the loss feel like a list of real people
-// rather than a number, and short enough that the alert still fits on a phone.
-const MAX_DEBT_LINES = 4;
 
 // Same chip icons the create screen wears, so changing a group's kind looks
 // like the same control that first set it.
@@ -308,20 +304,12 @@ export default function GroupSettingsScreen() {
     const debts = ledger.groupSettled ? [] : outstandingDebts();
     // Enough lines to make the loss concrete without turning the alert into a
     // ledger; the rest are counted, since the point is the size of what goes.
-    const shown = debts.slice(0, MAX_DEBT_LINES);
-    const body = ledger.groupSettled
-      ? t.group.deleteBody
-      : [
-          t.group.deleteBody,
-          '',
-          t.group.deleteUnsettledIntro,
-          ...shown,
-          ...(debts.length > shown.length
-            ? [plural(locale, debts.length - shown.length, t.group.deleteMoreDebts)]
-            : []),
-          '',
-          t.group.deleteUnsettledWarning,
-        ].join('\n');
+    const body = groupDeleteBody({
+      groupSettled: ledger.groupSettled,
+      debtLines: debts,
+      locale,
+      text: t.group,
+    });
 
     Alert.alert(t.group.deleteQuestion, body, [
       { text: t.common.cancel, style: 'cancel' },
