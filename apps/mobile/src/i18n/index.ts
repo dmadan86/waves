@@ -2123,7 +2123,10 @@ export interface UiStrings {
     importFailed: string;
     splitwiseTitle: string;
     ledgerTitle: string;
+    /** Help-sheet step: where a Splitwise export is produced. */
     splitwiseHowTo: string;
+    /** Help-sheet step: where a Waves export is produced. */
+    wavesHowTo: string;
     bringHistory: string;
     free: string;
     ledgerHowTo: string;
@@ -2138,6 +2141,11 @@ export interface UiStrings {
     whoIsWho: string;
     whoIsWhoNote: string;
     tapANameNote: string;
+    /**
+     * Screen-reader label for a who-is-who row. The visible row is a name, a
+     * balance and a badge, none of which says the row is tappable.
+     */
+    personIsMapped: string;
     addAsNew: string;
     newPerson: string;
     importedGroup: string;
@@ -2148,7 +2156,6 @@ export interface UiStrings {
     whereItGoes: string;
     aNewGroup: string;
     namedAfterFile: string;
-    addToThisGroup: string;
     importing: string;
     importCount: PluralForms;
     chooseWhoIs: string;
@@ -4376,15 +4383,14 @@ const en: UiStrings = {
     importFailed: 'Could not bring in that file. Please try again.',
     splitwiseTitle: 'Import a Splitwise export',
     ledgerTitle: 'Import a ledger',
-    splitwiseHowTo:
-      'In Splitwise, open the group, choose Export as spreadsheet, and pick the file here.',
+    splitwiseHowTo: 'In Splitwise: open a group, then Export as spreadsheet.',
+    wavesHowTo: 'In Waves: Settings, then Export.',
     bringHistory: 'Bring your history across',
     free: 'free',
-    ledgerHowTo:
-      'From Splitwise: open a group → the ⚙ menu → Export as spreadsheet, and choose that CSV here. From Waves: choose a JSON file you exported from Settings. Everyone named in it becomes a member of the group — they do not need the app, and they can claim their history whenever they join.',
+    ledgerHowTo: 'Everyone named in the file joins the group. They don’t need the app.',
     chooseFile: 'Choose a file',
     fromSplitwise: 'Import from Splitwise',
-    fromOther: 'Import from other data',
+    fromOther: 'Import another file',
     chosenFile: 'Chosen: {name}',
     chooseDifferentFile: 'Choose a different file',
     whichGroup: 'Which group',
@@ -4392,8 +4398,8 @@ const en: UiStrings = {
     whoIsWho: 'Who is who',
     whoIsWhoNote:
       'The file names people; this group has members. Nothing is imported until every name has somebody against it.',
-    tapANameNote:
-      'Tap a name to say who they are here. Nobody is matched by name on your behalf — two people really can be called Ravi.',
+    tapANameNote: 'Tap a name to say who they are. Nothing is matched for you.',
+    personIsMapped: '{name} is {who}. Tap to change.',
     addAsNew: 'Add as new',
     newPerson: 'New person',
     importedGroup: 'Imported group',
@@ -4405,12 +4411,11 @@ const en: UiStrings = {
     whereItGoes: 'Where it goes',
     aNewGroup: 'A new group',
     namedAfterFile: 'Named after the file',
-    addToThisGroup: 'Add to this group',
     importing: 'Importing…',
     importCount: { one: 'Import {n} expense', other: 'Import {n} expenses' },
     chooseWhoIs: 'Choose who {name} is',
     chooseWhoArePlural: { one: 'Choose who {n} person is', other: 'Choose who {n} people are' },
-    tapYourNameFirst: 'Tap whichever name is you first — otherwise none of this history is yours.',
+    tapYourNameFirst: 'Tap your own name first.',
     imported: 'Imported',
     openTheGroup: 'Open the group',
     importedCount: {
@@ -4432,11 +4437,10 @@ const en: UiStrings = {
     rowsSkipped: { one: '{n} row will be skipped', other: '{n} rows will be skipped' },
     andMore: '…and {n} more.',
     fromWavesNote:
-      'Every balance comes across to the paisa, settlements included. What does not come across: the edit history of each expense, and which expenses a past payment was applied against. Neither changes what anybody owes.',
+      'Balances and settlements come across exactly. Edit history and how past payments were split do not — nobody’s balance changes.',
     fromSplitwiseNote:
-      'Balances come across exactly. Who paid does not: a Splitwise export records only what each person came out up or down on a row, and many different payers produce the same result. Every imported expense is marked, and you can correct any of them.',
-    otherCurrenciesNote:
-      'The amounts below are the {currency} ones. {others} come across too, and are never converted.',
+      'Balances come across exactly. Who paid is worked out, not recorded — every row is marked, and you can correct it.',
+    otherCurrenciesNote: 'Amounts here are {currency}. {others} come across too, unconverted.',
     noGroupsInFile: 'That file has no groups to import.',
     couldNotFindYou: 'Could not find you in that group. Open it and try again.',
     reading: 'Reading the file…',
@@ -4449,7 +4453,7 @@ const en: UiStrings = {
     nameItBelow: 'Name it below',
     waitingNamed: '{name} — waiting for a connection',
     waitingHint: 'It will import the moment you are back online.',
-    helpOffline: 'No connection? The import is saved and runs the moment you are back online.',
+    helpOffline: 'No connection? It imports when you’re back online.',
     alreadyImporting: 'An import is already running. Give it a moment to finish.',
   },
   pickers: {
@@ -6720,15 +6724,15 @@ const ta: UiStrings = {
     importFailed: 'அந்தக் கோப்பை இறக்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்.',
     splitwiseTitle: 'Splitwise ஏற்றுமதியை இறக்குமதி செய்',
     ledgerTitle: 'ஒரு கணக்கை இறக்குமதி செய்',
-    splitwiseHowTo:
-      'Splitwise இல் குழுவைத் திறந்து, Export as spreadsheet என்பதைத் தேர்ந்தெடுத்து, அந்தக் கோப்பை இங்கே தேர்வு செய்யுங்கள்.',
+    splitwiseHowTo: 'Splitwise-இல்: குழுவைத் திறந்து, Export as spreadsheet.',
+    wavesHowTo: 'Waves-இல்: அமைப்புகள், பிறகு ஏற்றுமதி.',
     bringHistory: 'உங்கள் வரலாற்றைக் கொண்டு வாருங்கள்',
     free: 'இலவசம்',
     ledgerHowTo:
-      'Splitwise இலிருந்து: குழுவைத் திறந்து → ⚙ மெனு → Export as spreadsheet, அந்த CSV ஐ இங்கே தேர்வு செய்யுங்கள். Waves-இலிருந்து: அமைப்புகளிலிருந்து ஏற்றுமதி செய்த JSON கோப்பைத் தேர்வு செய்யுங்கள். அதில் பெயர் உள்ள அனைவரும் குழுவின் உறுப்பினராகிவிடுவார்கள் — அவர்களுக்குச் செயலி தேவையில்லை, சேரும்போது தங்கள் வரலாற்றைக் கோரலாம்.',
+      'கோப்பில் பெயர் உள்ள அனைவரும் குழுவில் சேர்வார்கள். அவர்களுக்குச் செயலி தேவையில்லை.',
     chooseFile: 'ஒரு கோப்பைத் தேர்வு செய்',
     fromSplitwise: 'Splitwise இலிருந்து இறக்குமதி',
-    fromOther: 'மற்ற தரவிலிருந்து இறக்குமதி',
+    fromOther: 'வேறு கோப்பை இறக்குமதி',
     chosenFile: 'தேர்ந்தெடுத்தது: {name}',
     chooseDifferentFile: 'வேறு கோப்பைத் தேர்வு செய்',
     whichGroup: 'எந்தக் குழு',
@@ -6737,7 +6741,8 @@ const ta: UiStrings = {
     whoIsWhoNote:
       'கோப்பில் பெயர்கள் உள்ளன; இந்தக் குழுவில் உறுப்பினர்கள் உள்ளனர். ஒவ்வொரு பெயருக்கும் ஒருவரைக் குறிக்கும் வரை எதுவும் இறக்குமதி ஆகாது.',
     tapANameNote:
-      'இங்கே அவர்கள் யார் என்று சொல்ல ஒரு பெயரைத் தட்டுங்கள். உங்கள் சார்பாக யாரும் பெயரால் பொருத்தப்படுவதில்லை — இரண்டு பேர் ரவி என்று இருக்க முடியும்.',
+      'ஒரு பெயரைத் தட்டி அவர்கள் யார் என்று சொல்லுங்கள். உங்களுக்காக எதுவும் பொருத்தப்படுவதில்லை.',
+    personIsMapped: '{name} இங்கே {who}. மாற்றத் தட்டுங்கள்.',
     addAsNew: 'புதியவராகச் சேர்',
     newPerson: 'புதிய நபர்',
     importedGroup: 'இறக்குமதி செய்யப்பட்ட குழு',
@@ -6749,7 +6754,6 @@ const ta: UiStrings = {
     whereItGoes: 'எங்கே சேரும்',
     aNewGroup: 'ஒரு புதிய குழு',
     namedAfterFile: 'கோப்பின் பெயரில்',
-    addToThisGroup: 'இந்தக் குழுவில் சேர்',
     importing: 'இறக்குமதி செய்கிறது…',
     importCount: { one: '{n} செலவை இறக்குமதி செய்', other: '{n} செலவுகளை இறக்குமதி செய்' },
     chooseWhoIs: '{name} யார் என்று தேர்ந்தெடுக்கவும்',
@@ -6757,8 +6761,7 @@ const ta: UiStrings = {
       one: '{n} நபர் யார் என்று தேர்ந்தெடுக்கவும்',
       other: '{n} நபர்கள் யார் என்று தேர்ந்தெடுக்கவும்',
     },
-    tapYourNameFirst:
-      'முதலில் உங்கள் பெயரைத் தட்டுங்கள் — இல்லையெனில் இந்த வரலாறு எதுவும் உங்களுடையது ஆகாது.',
+    tapYourNameFirst: 'முதலில் உங்கள் பெயரைத் தட்டுங்கள்.',
     imported: 'இறக்குமதி ஆனது',
     openTheGroup: 'குழுவைத் திற',
     importedCount: {
@@ -6780,11 +6783,10 @@ const ta: UiStrings = {
     rowsSkipped: { one: '{n} வரிசை விடப்படும்', other: '{n} வரிசைகள் விடப்படும்' },
     andMore: '…மேலும் {n}.',
     fromWavesNote:
-      'ஒவ்வொரு இருப்பும் காசு வரை சரியாக வரும், தீர்வுகள் உட்பட. வராதவை: ஒவ்வொரு செலவின் திருத்த வரலாறு, மற்றும் பழைய கொடுப்பனவு எந்தச் செலவுகளுக்குப் பயன்படுத்தப்பட்டது என்பது. இரண்டும் யார் என்ன தர வேண்டும் என்பதை மாற்றாது.',
+      'இருப்புகளும் தீர்வுகளும் அப்படியே வரும். திருத்த வரலாறும் பழைய கொடுப்பனவுகளின் பகிர்வும் வராது — யாருடைய இருப்பும் மாறாது.',
     fromSplitwiseNote:
-      'இருப்புகள் அப்படியே வரும். யார் கொடுத்தார்கள் என்பது வராது: Splitwise ஏற்றுமதி ஒரு வரிசையில் ஒவ்வொருவரும் எவ்வளவு மேலே அல்லது கீழே போனார்கள் என்பதை மட்டுமே பதிவு செய்கிறது, பல வேறுபட்ட செலுத்துபவர்கள் ஒரே முடிவைத் தருவார்கள். இறக்குமதி செய்யப்பட்ட ஒவ்வொரு செலவும் குறிக்கப்படும், நீங்கள் எதையும் திருத்தலாம்.',
-    otherCurrenciesNote:
-      'கீழே உள்ள தொகைகள் {currency} இல் உள்ளவை. {others} உம் வரும், அவை ஒருபோதும் மாற்றப்படுவதில்லை.',
+      'இருப்புகள் அப்படியே வரும். யார் கொடுத்தார்கள் என்பது கணிக்கப்படுகிறது, பதிவாகவில்லை — ஒவ்வொரு வரிசையும் குறிக்கப்படும், நீங்கள் திருத்தலாம்.',
+    otherCurrenciesNote: 'இங்குள்ள தொகைகள் {currency}. {others} உம் மாற்றப்படாமல் வரும்.',
     noGroupsInFile: 'அந்தக் கோப்பில் இறக்குமதி செய்ய குழுக்கள் இல்லை.',
     couldNotFindYou:
       'அந்தக் குழுவில் உங்களைக் கண்டறிய முடியவில்லை. அதைத் திறந்து மீண்டும் முயற்சிக்கவும்.',
@@ -6801,8 +6803,7 @@ const ta: UiStrings = {
     nameItBelow: 'கீழே பெயரிடுங்கள்',
     waitingNamed: '{name} — இணைப்புக்காக காத்திருக்கிறது',
     waitingHint: 'நீங்கள் மீண்டும் ஆன்லைனுக்கு வந்ததும் இறக்குமதி ஆகும்.',
-    helpOffline:
-      'இணைப்பு இல்லையா? இறக்குமதி சேமிக்கப்பட்டு, நீங்கள் ஆன்லைனுக்கு வந்ததும் இயங்கும்.',
+    helpOffline: 'இணைப்பு இல்லையா? ஆன்லைனுக்கு வந்ததும் இறக்குமதி ஆகும்.',
     alreadyImporting: 'ஏற்கனவே ஒரு இறக்குமதி நடக்கிறது. முடிய சிறிது நேரம் கொடுங்கள்.',
   },
   pickers: {
@@ -9021,15 +9022,14 @@ const hi: UiStrings = {
     importFailed: 'वह फ़ाइल नहीं लाई जा सकी। कृपया फिर कोशिश करें।',
     splitwiseTitle: 'Splitwise निर्यात आयात करें',
     ledgerTitle: 'हिसाब आयात करें',
-    splitwiseHowTo:
-      'Splitwise में समूह खोलें, Export as spreadsheet चुनें, और वह फ़ाइल यहाँ चुनें।',
+    splitwiseHowTo: 'Splitwise में: समूह खोलें, फिर Export as spreadsheet।',
+    wavesHowTo: 'Waves में: सेटिंग्स, फिर निर्यात।',
     bringHistory: 'अपना इतिहास ले आएँ',
     free: 'मुफ़्त',
-    ledgerHowTo:
-      'Splitwise से: समूह खोलें → ⚙ मेनू → Export as spreadsheet, और वही CSV यहाँ चुनें। Waves से: सेटिंग्स से निर्यात की गई JSON फ़ाइल चुनें। उसमें जिनका नाम है वे सब समूह के सदस्य बन जाते हैं — उन्हें ऐप की ज़रूरत नहीं, और जब वे जुड़ेंगे तब अपना इतिहास ले सकते हैं।',
+    ledgerHowTo: 'फ़ाइल में जिनका नाम है वे सब समूह में जुड़ जाते हैं। उन्हें ऐप की ज़रूरत नहीं।',
     chooseFile: 'फ़ाइल चुनें',
     fromSplitwise: 'Splitwise से आयात',
-    fromOther: 'दूसरे डेटा से आयात',
+    fromOther: 'दूसरी फ़ाइल आयात करें',
     chosenFile: 'चुनी गई: {name}',
     chooseDifferentFile: 'दूसरी फ़ाइल चुनें',
     whichGroup: 'कौन-सा समूह',
@@ -9037,8 +9037,8 @@ const hi: UiStrings = {
     whoIsWho: 'कौन कौन है',
     whoIsWhoNote:
       'फ़ाइल में नाम हैं; इस समूह में सदस्य हैं। जब तक हर नाम के सामने कोई नहीं होगा, कुछ भी आयात नहीं होगा।',
-    tapANameNote:
-      'किसी नाम पर टैप करके बताएँ कि यहाँ वे कौन हैं। आपकी तरफ़ से नाम से कोई मिलान नहीं किया जाता — दो लोग सचमुच रवि हो सकते हैं।',
+    tapANameNote: 'नाम पर टैप करके बताएँ कि वे कौन हैं। आपकी तरफ़ से कोई मिलान नहीं होता।',
+    personIsMapped: '{name} यहाँ {who} हैं। बदलने के लिए टैप करें।',
     addAsNew: 'नए के रूप में जोड़ें',
     newPerson: 'नया व्यक्ति',
     importedGroup: 'आयातित समूह',
@@ -9050,7 +9050,6 @@ const hi: UiStrings = {
     whereItGoes: 'कहाँ जाएगा',
     aNewGroup: 'एक नया समूह',
     namedAfterFile: 'फ़ाइल के नाम पर',
-    addToThisGroup: 'इसी समूह में जोड़ें',
     importing: 'आयात हो रहा है…',
     importCount: { one: '{n} खर्च आयात करें', other: '{n} खर्च आयात करें' },
     chooseWhoIs: 'चुनें कि {name} कौन हैं',
@@ -9058,7 +9057,7 @@ const hi: UiStrings = {
       one: 'चुनें कि {n} व्यक्ति कौन है',
       other: 'चुनें कि {n} लोग कौन हैं',
     },
-    tapYourNameFirst: 'पहले उस नाम पर टैप करें जो आप हैं — वरना यह इतिहास आपका नहीं होगा।',
+    tapYourNameFirst: 'पहले अपने नाम पर टैप करें।',
     imported: 'आयात हो गया',
     openTheGroup: 'समूह खोलें',
     importedCount: {
@@ -9079,11 +9078,10 @@ const hi: UiStrings = {
     rowsSkipped: { one: '{n} पंक्ति छोड़ी जाएगी', other: '{n} पंक्तियाँ छोड़ी जाएँगी' },
     andMore: '…और {n} अन्य।',
     fromWavesNote:
-      'हर हिसाब पाई-पाई सहित आता है, निपटान भी। जो नहीं आता: हर खर्च का संपादन इतिहास, और यह कि कोई पुराना भुगतान किन खर्चों पर लगाया गया था। इनमें से कोई भी यह नहीं बदलता कि किस पर क्या बाकी है।',
+      'हिसाब और निपटान बिल्कुल सही आते हैं। संपादन इतिहास और पुराने भुगतान का बँटवारा नहीं — किसी का हिसाब नहीं बदलता।',
     fromSplitwiseNote:
-      'हिसाब बिल्कुल सही आता है। किसने दिया, यह नहीं: Splitwise निर्यात सिर्फ़ यह दर्ज करता है कि एक पंक्ति पर हर व्यक्ति कितना ऊपर या नीचे रहा, और कई अलग-अलग भुगतानकर्ता एक ही नतीजा देते हैं। हर आयातित खर्च पर निशान लगा होता है, और आप किसी को भी ठीक कर सकते हैं।',
-    otherCurrenciesNote:
-      'नीचे की रकमें {currency} वाली हैं। {others} भी आती हैं, और कभी बदली नहीं जातीं।',
+      'हिसाब बिल्कुल सही आता है। किसने दिया, यह निकाला जाता है, दर्ज नहीं होता — हर पंक्ति पर निशान है और आप उसे ठीक कर सकते हैं।',
+    otherCurrenciesNote: 'यहाँ की रकमें {currency} में हैं। {others} भी बिना बदले आती हैं।',
     noGroupsInFile: 'उस फ़ाइल में आयात करने के लिए कोई समूह नहीं है।',
     couldNotFindYou: 'उस समूह में आप नहीं मिले। उसे खोलकर फिर कोशिश करें।',
     reading: 'फ़ाइल पढ़ी जा रही है…',
@@ -9096,7 +9094,7 @@ const hi: UiStrings = {
     nameItBelow: 'नीचे नाम दें',
     waitingNamed: '{name} — कनेक्शन का इंतज़ार',
     waitingHint: 'ऑनलाइन आते ही यह इंपोर्ट हो जाएगा।',
-    helpOffline: 'कनेक्शन नहीं? इंपोर्ट सेव हो जाता है और ऑनलाइन आते ही चल जाता है।',
+    helpOffline: 'कनेक्शन नहीं? ऑनलाइन आते ही इंपोर्ट हो जाएगा।',
     alreadyImporting: 'एक इंपोर्ट पहले से चल रहा है। इसे पूरा होने का थोड़ा समय दें।',
   },
   pickers: {
@@ -11471,14 +11469,14 @@ const ar: UiStrings = {
     importFailed: 'تعذّر إحضار ذلك الملف. حاول مرة أخرى.',
     splitwiseTitle: 'استيراد ملف Splitwise',
     ledgerTitle: 'استيراد دفتر',
-    splitwiseHowTo: 'في Splitwise، افتح المجموعة واختر Export as spreadsheet، ثم اختر الملف هنا.',
+    splitwiseHowTo: 'في Splitwise: افتح مجموعة، ثم Export as spreadsheet.',
+    wavesHowTo: 'في Waves: الإعدادات، ثم تصدير.',
     bringHistory: 'أحضر سجلّك معك',
     free: 'مجانًا',
-    ledgerHowTo:
-      'من Splitwise: افتح مجموعة ← قائمة ⚙ ← Export as spreadsheet، ثم اختر ملف CSV هنا. من Waves: اختر ملف JSON صدّرته من الإعدادات. كل من ورد اسمه فيه يصبح عضوًا في المجموعة — لا يحتاجون التطبيق، ويمكنهم المطالبة بسجلّهم متى انضمّوا.',
+    ledgerHowTo: 'كل من ورد اسمه في الملف ينضم إلى المجموعة. لا يحتاجون التطبيق.',
     chooseFile: 'اختر ملفًا',
     fromSplitwise: 'استيراد من Splitwise',
-    fromOther: 'استيراد من بيانات أخرى',
+    fromOther: 'استيراد ملف آخر',
     chosenFile: 'المختار: {name}',
     chooseDifferentFile: 'اختر ملفًا آخر',
     whichGroup: 'أي مجموعة',
@@ -11486,8 +11484,8 @@ const ar: UiStrings = {
     whoIsWho: 'من هو من',
     whoIsWhoNote:
       'الملف يذكر أسماء؛ وهذه المجموعة لها أعضاء. لا يُستورد شيء حتى يقابل كل اسمٍ شخصٌ ما.',
-    tapANameNote:
-      'اضغط على اسم لتقول من يكون هنا. لا يُطابَق أحد بالاسم نيابةً عنك — فقد يحمل شخصان الاسم نفسه فعلًا.',
+    tapANameNote: 'اضغط على اسم لتقول من يكون. لا يُطابَق شيء نيابةً عنك.',
+    personIsMapped: '{name} هو {who} هنا. اضغط للتغيير.',
     addAsNew: 'أضفه كشخص جديد',
     newPerson: 'شخص جديد',
     importedGroup: 'مجموعة مستوردة',
@@ -11499,7 +11497,6 @@ const ar: UiStrings = {
     whereItGoes: 'إلى أين يذهب',
     aNewGroup: 'مجموعة جديدة',
     namedAfterFile: 'باسم الملف',
-    addToThisGroup: 'أضف إلى هذه المجموعة',
     importing: 'جارٍ الاستيراد…',
     importCount: {
       zero: 'لا شيء لاستيراده',
@@ -11518,7 +11515,7 @@ const ar: UiStrings = {
       many: 'اختر من يكون {n} شخصًا',
       other: 'اختر من يكون {n} شخص',
     },
-    tapYourNameFirst: 'اضغط أولًا على الاسم الذي يخصّك — وإلا فلن يكون هذا السجلّ لك.',
+    tapYourNameFirst: 'اضغط أولًا على الاسم الذي يخصّك.',
     imported: 'تم الاستيراد',
     openTheGroup: 'افتح المجموعة',
     importedCount: {
@@ -11579,11 +11576,10 @@ const ar: UiStrings = {
     },
     andMore: '…و{n} غيرها.',
     fromWavesNote:
-      'يأتي كل رصيد بالفلس الواحد، بما في ذلك التسويات. وما لا يأتي: سجلّ تعديلات كل مصروف، وأي المصاريف طُبّقت عليها دفعة سابقة. ولا يغيّر أيٌّ منهما ما على أحد.',
+      'تأتي الأرصدة والتسويات بالضبط. أما سجلّ التعديلات وتوزيع الدفعات السابقة فلا — ولا يتغيّر رصيد أحد.',
     fromSplitwiseNote:
-      'تأتي الأرصدة بالضبط. أما من دفع فلا: ملف Splitwise يسجّل فقط كم ارتفع أو انخفض كل شخص في صفٍّ ما، وكثير من الدافعين المختلفين يعطون النتيجة نفسها. كل مصروف مستورد يُوسم، ويمكنك تصحيح أي منها.',
-    otherCurrenciesNote:
-      'المبالغ أدناه هي مبالغ {currency}. وتأتي {others} أيضًا، ولا تُحوَّل أبدًا.',
+      'تأتي الأرصدة بالضبط. أما من دفع فيُستنتَج ولا يُسجَّل — كل صف موسوم، ويمكنك تصحيحه.',
+    otherCurrenciesNote: 'المبالغ هنا بعملة {currency}. وتأتي {others} أيضًا دون تحويل.',
     noGroupsInFile: 'لا توجد مجموعات في ذلك الملف لاستيرادها.',
     couldNotFindYou: 'تعذّر العثور عليك في تلك المجموعة. افتحها وحاول مرة أخرى.',
     reading: 'جارٍ قراءة الملف…',
@@ -11603,7 +11599,7 @@ const ar: UiStrings = {
     nameItBelow: 'سمِّها بالأسفل',
     waitingNamed: '{name} — بانتظار الاتصال',
     waitingHint: 'سيُستورد فور عودتك للاتصال.',
-    helpOffline: 'لا يوجد اتصال؟ يُحفظ الاستيراد ويعمل فور عودتك للاتصال.',
+    helpOffline: 'لا يوجد اتصال؟ يُستورد فور عودتك للاتصال.',
     alreadyImporting: 'هناك استيراد قيد التنفيذ بالفعل. امنحه لحظة حتى ينتهي.',
   },
   pickers: {
