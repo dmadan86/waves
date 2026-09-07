@@ -1155,7 +1155,6 @@ export interface UiStrings {
     hidePassword: string;
     continueGuest: string;
     guestFootnote: string;
-    memberFootnote: string;
     /** The passwordless email-code way in, and the recovery link beside the
         password field. */
     forgotPassword: string;
@@ -3487,8 +3486,6 @@ const en: UiStrings = {
     continueGuest: 'Continue as guest',
     guestFootnote:
       'Everything you have already added stays exactly where it is. This only adds a way to sign back in.',
-    memberFootnote:
-      'A guest account keeps everything on this device until you add a way to sign in. Your ledger is never held hostage.',
     forgotPassword: 'Forgot password',
     emailMeACode: 'Email me a code',
     orContinueWith: 'or continue with',
@@ -5779,8 +5776,6 @@ const ta: UiStrings = {
     continueGuest: 'விருந்தினராகத் தொடர்',
     guestFootnote:
       'நீங்கள் ஏற்கனவே சேர்த்த அனைத்தும் அப்படியே இருக்கும். இது மீண்டும் உள்நுழைய ஒரு வழியை மட்டுமே சேர்க்கிறது.',
-    memberFootnote:
-      'உள்நுழைய ஒரு வழியைச் சேர்க்கும் வரை விருந்தினர் கணக்கு அனைத்தையும் இந்தச் சாதனத்திலேயே வைத்திருக்கும். உங்கள் கணக்கு எப்போதும் பணயம் வைக்கப்படுவதில்லை.',
     forgotPassword: 'கடவுச்சொல் மறந்துவிட்டதா',
     emailMeACode: 'எனக்கு ஒரு குறியீட்டை மின்னஞ்சல் அனுப்பு',
     orContinueWith: 'அல்லது இதன் மூலம் தொடர்க',
@@ -8112,8 +8107,6 @@ const hi: UiStrings = {
     continueGuest: 'मेहमान के तौर पर जारी रखें',
     guestFootnote:
       'आपने जो जोड़ा है वह जहाँ है वहीं रहेगा। इससे सिर्फ़ दोबारा साइन इन करने का रास्ता जुड़ता है।',
-    memberFootnote:
-      'जब तक आप साइन इन का कोई तरीका न जोड़ें, मेहमान खाता सब कुछ इसी डिवाइस पर रखता है। आपका हिसाब कभी बंधक नहीं बनाया जाता।',
     forgotPassword: 'पासवर्ड भूल गए',
     emailMeACode: 'मुझे एक कोड ईमेल करें',
     orContinueWith: 'या इससे जारी रखें',
@@ -10425,8 +10418,6 @@ const ar: UiStrings = {
     hidePassword: 'إخفاء كلمة المرور',
     continueGuest: 'المتابعة كضيف',
     guestFootnote: 'كل ما أضفته يبقى كما هو تمامًا. هذا يضيف فقط طريقة للعودة وتسجيل الدخول.',
-    memberFootnote:
-      'يحتفظ حساب الضيف بكل شيء على هذا الجهاز حتى تضيف طريقة لتسجيل الدخول. دفترك ليس رهينة أبدًا.',
     forgotPassword: 'نسيت كلمة المرور',
     emailMeACode: 'أرسل لي رمزًا بالبريد',
     orContinueWith: 'أو تابع عبر',
