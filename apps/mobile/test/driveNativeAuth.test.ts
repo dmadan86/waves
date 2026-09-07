@@ -36,10 +36,17 @@ interface FakeState {
   signIn: 'success' | 'cancelled' | 'throws-cancelled';
   /** What a silent renewal finds. */
   silent: 'success' | 'nobody' | 'required';
+  /** Whether Play services can reach Google to hand the grant back. */
+  revoke: 'success' | 'throws';
   accessToken: string;
 }
 
-const state: FakeState = { signIn: 'success', silent: 'success', accessToken: 'token-1' };
+const state: FakeState = {
+  signIn: 'success',
+  silent: 'success',
+  revoke: 'success',
+  accessToken: 'token-1',
+};
 const calls = {
   signIn: vi.fn(),
   signInSilently: vi.fn(),
@@ -81,6 +88,7 @@ function fakeModule() {
       },
       async revokeAccess() {
         calls.revoked();
+        if (state.revoke === 'throws') throw new Error('network');
         return null;
       },
       async signOut() {
@@ -98,6 +106,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   state.signIn = 'success';
   state.silent = 'success';
+  state.revoke = 'success';
   state.accessToken = 'token-1';
   process.env.EXPO_PUBLIC_GOOGLE_DRIVE_CLIENT_ID_WEB = '1234.apps.googleusercontent.com';
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -185,6 +194,29 @@ describe('unlinking', () => {
     });
     expect(calls.revoked).toHaveBeenCalled();
     expect(calls.cleared).toHaveBeenCalledWith('token-1');
+  });
+
+  it('falls back to revoking over HTTP when Play services cannot reach Google', async () => {
+    // revokeAccess is a network call, so it fails for ordinary reasons. The
+    // thing that must not happen is the app reporting "unlinked" with the
+    // grant still standing in somebody's Google account.
+    state.revoke = 'throws';
+    const fetched = vi.fn(async () => new Response(null, { status: 200 }));
+    vi.stubGlobal('fetch', fetched);
+    try {
+      await googleDrive.revoke?.({
+        accessToken: 'token-1',
+        refreshToken: null,
+        expiresAt: Date.now(),
+      });
+      expect(calls.revoked).toHaveBeenCalled();
+      expect(fetched).toHaveBeenCalledWith(
+        'https://oauth2.googleapis.com/revoke',
+        expect.objectContaining({ method: 'POST' }),
+      );
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });
 
