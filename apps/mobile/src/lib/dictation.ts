@@ -86,6 +86,92 @@ export function onDeviceLocaleInstalled(
   });
 }
 
+/** One on-device speech model, as the offline-voice screen lists it. */
+export interface OfflineVoiceModel {
+  /** The BCP-47 tag the recogniser is asked for, and the tag a download names. */
+  readonly tag: string;
+  /**
+   * The app language this model serves, or null for a model the phone offers
+   * that Waves itself never asks for. The screen names an app language in its
+   * own script; anything else can only be named by its tag.
+   */
+  readonly language: Language | null;
+  /** Whether the phone already holds this model. */
+  readonly installed: boolean;
+}
+
+/** The three groups the offline-voice screen shows, in the order it shows them. */
+export interface OfflineVoiceModels {
+  /** One row per app language, present or not — these are the ones Waves uses. */
+  readonly app: OfflineVoiceModel[];
+  /** Models already on the phone that no app language claims. */
+  readonly alsoInstalled: OfflineVoiceModel[];
+  /** Everything else the recogniser says it knows about, and so could fetch. */
+  readonly downloadable: OfflineVoiceModel[];
+}
+
+/** Lower-cased, dash-separated — the one shape tags are compared in. */
+function normaliseTag(tag: string): string {
+  return tag.trim().replace(/_/g, '-').toLowerCase();
+}
+
+/**
+ * The model list, built from what the app needs and what the phone reports.
+ *
+ * Kept pure (no native module, no React) for the same reason the rest of this
+ * file is: the interesting part is the bookkeeping, and the bookkeeping is easy
+ * to get wrong in ways a device would only reveal by staying silent.
+ *
+ * The app's four languages always lead, in the app's own order, whether or not
+ * their model is installed — they are the rows somebody came here to fix, and a
+ * missing one has to be visible to be downloadable. Their installed state goes
+ * through {@link onDeviceLocaleInstalled} rather than a plain membership test,
+ * because that is the matcher the mic itself uses: a phone listing a bare `en`
+ * really does cover `en-IN`, and a phone listing only `en-US` really does not.
+ *
+ * Everything else the phone names is split by whether it is already there. That
+ * split is not cosmetic — an installed model is a fact about the phone, while a
+ * merely supported one is an offer, and putting them in one list would invite a
+ * download of something already present.
+ *
+ * A tag an app row already names is dropped from both other groups so the same
+ * model cannot be listed (or downloaded) twice.
+ */
+export function offlineVoiceModels(
+  languages: readonly Language[],
+  deviceLocale: string,
+  supported: readonly string[] | null | undefined,
+  installed: readonly string[] | null | undefined,
+): OfflineVoiceModels {
+  const installedTags = installed ?? [];
+  const app: OfflineVoiceModel[] = languages.map((language) => {
+    const tag = speechLocale(language, deviceLocale);
+    return { tag, language, installed: onDeviceLocaleInstalled(tag, installedTags) };
+  });
+  const claimed = new Set(app.map((model) => normaliseTag(model.tag)));
+
+  const alsoInstalled: OfflineVoiceModel[] = [];
+  const downloadable: OfflineVoiceModel[] = [];
+  // The phone may name a tag in `installedLocales` that never appears in
+  // `locales`, so both lists are walked; `seen` keeps a tag to one row.
+  const seen = new Set(claimed);
+  for (const raw of [...installedTags, ...(supported ?? [])]) {
+    const tag = raw.trim();
+    const key = normaliseTag(tag);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    const isInstalled = installedTags.some((entry) => normaliseTag(entry) === key);
+    (isInstalled ? alsoInstalled : downloadable).push({
+      tag,
+      language: null,
+      installed: isInstalled,
+    });
+  }
+
+  const byTag = (a: OfflineVoiceModel, b: OfflineVoiceModel): number => a.tag.localeCompare(b.tag);
+  return { app, alsoInstalled: alsoInstalled.sort(byTag), downloadable: downloadable.sort(byTag) };
+}
+
 /**
  * What the field should read while somebody is speaking.
  *

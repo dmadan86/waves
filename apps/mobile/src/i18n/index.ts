@@ -988,6 +988,56 @@ export interface UiStrings {
     /** The button on the answer card that reopens the mic for another question. */
     askAgain: string;
   };
+  /**
+   * The on-device speech models, and the one screen that manages them.
+   *
+   * On Android the models are a separate download the phone owns; until one is
+   * there the mic falls back to the network recogniser, which is dead on some
+   * OEM ROMs. This screen brings that download inside the app instead of asking
+   * somebody to go hunting through Android settings for it.
+   */
+  offlineVoice: {
+    /** Settings-row label, and the screen's own title. */
+    row: string;
+    title: string;
+    /** Settings-row subtitle. */
+    rowHint: string;
+    intro: string;
+    /** The models Waves itself asks for — one per app language. */
+    appSection: string;
+    appSectionHint: string;
+    /** Models already on the phone that no app language claims. */
+    alsoInstalled: string;
+    /** Everything else the recogniser knows about. */
+    otherLanguages: string;
+    otherLanguagesHint: string;
+    /** Per-row state. */
+    installed: string;
+    notInstalled: string;
+    download: string;
+    /** Under a row while the phone fetches a model. Android hands the app no
+     *  percentage — the bar is indeterminate and this says why. */
+    downloading: string;
+    noProgress: string;
+    /** The three things a finished download call can mean. */
+    ready: string;
+    dialogOpened: string;
+    scheduled: string;
+    failed: string;
+    /** Android 12 and below can neither list installed models nor fetch one. */
+    tooOld: string;
+    /** iOS installs its dictation languages itself; there is nothing to tap. */
+    iosNote: string;
+    /** An older binary whose native speech module is missing entirely. */
+    unavailable: string;
+    /** A recogniser that only ever works over the network. */
+    noOnDevice: string;
+    /** Re-reads the phone's lists, so a download finished elsewhere shows up. */
+    refresh: string;
+    /** The phone named no languages at all. */
+    empty: string;
+    footnote: string;
+  };
   /** Notification preferences, and what the phone will and will not allow. */
   notifications: {
     title: string;
@@ -3336,6 +3386,39 @@ const en: UiStrings = {
     ansNoPerson: "Couldn't find {name}",
     askAgain: 'Ask again',
   },
+  offlineVoice: {
+    row: 'Offline voice',
+    title: 'Offline voice',
+    rowHint: 'Speech models kept on this phone',
+    intro:
+      'With a language downloaded, the mic works with no connection — and keeps working on phones whose online speech service is broken.',
+    appSection: 'Waves languages',
+    appSectionHint: 'These are the ones the mic asks for.',
+    alsoInstalled: 'Also on this phone',
+    otherLanguages: 'Other languages',
+    otherLanguagesHint: 'Your phone can fetch any of these.',
+    installed: 'On this phone',
+    notInstalled: 'Not downloaded',
+    download: 'Download',
+    downloading: 'Your phone is downloading this.',
+    noProgress: 'Android doesn’t say how far along it is.',
+    ready: 'Downloaded. The mic can use it now.',
+    dialogOpened:
+      'Your phone has taken over with its own download screen. Finish there, then come back and refresh.',
+    scheduled: 'Queued. Your phone will finish it, usually once you’re on Wi‑Fi.',
+    failed: 'Your phone couldn’t download that one.',
+    tooOld:
+      'This phone’s Android is too old to download models from inside an app. Search Android settings for “voice” to add one.',
+    iosNote:
+      'iPhone downloads its dictation languages itself. Add one under Settings › General › Keyboard › Dictation Languages and the mic will use it.',
+    unavailable: 'This build can’t reach the speech models.',
+    noOnDevice:
+      'This phone can’t recognise speech without a connection, so there’s nothing to download.',
+    refresh: 'Refresh',
+    empty: 'Your phone didn’t name any languages.',
+    footnote:
+      'The models belong to your phone, not to Waves. With one installed, what you say is turned into text on the device and never leaves it.',
+  },
   notifications: {
     title: 'Notifications',
     neverSpam:
@@ -5613,6 +5696,39 @@ const ta: UiStrings = {
     ansGroupSettled: '{group} இல் அனைத்தும் தீர்க்கப்பட்டது',
     ansNoPerson: '{name} கிடைக்கவில்லை',
     askAgain: 'மீண்டும் கேள்',
+  },
+  offlineVoice: {
+    row: 'ஆஃப்லைன் குரல்',
+    title: 'ஆஃப்லைன் குரல்',
+    rowHint: 'இந்த ஃபோனில் வைத்திருக்கும் பேச்சு மாதிரிகள்',
+    intro:
+      'ஒரு மொழியைப் பதிவிறக்கிய பிறகு இணைப்பு இல்லாமலும் மைக் வேலை செய்யும் — ஆன்லைன் பேச்சுச் சேவை செயலிழந்த ஃபோன்களிலும் தொடர்ந்து வேலை செய்யும்.',
+    appSection: 'Waves மொழிகள்',
+    appSectionHint: 'மைக் கேட்பது இவற்றைத்தான்.',
+    alsoInstalled: 'இந்த ஃபோனில் ஏற்கெனவே உள்ளவை',
+    otherLanguages: 'மற்ற மொழிகள்',
+    otherLanguagesHint: 'இவற்றில் எதையும் உங்கள் ஃபோன் கொண்டுவரும்.',
+    installed: 'ஃபோனில் உள்ளது',
+    notInstalled: 'பதிவிறக்கப்படவில்லை',
+    download: 'பதிவிறக்கு',
+    downloading: 'உங்கள் ஃபோன் இதைப் பதிவிறக்குகிறது.',
+    noProgress: 'எவ்வளவு முடிந்தது என்பதை Android சொல்வதில்லை.',
+    ready: 'பதிவிறக்கப்பட்டது. மைக் இப்போது இதைப் பயன்படுத்தும்.',
+    dialogOpened:
+      'உங்கள் ஃபோன் தன் சொந்தப் பதிவிறக்கத் திரையைத் திறந்துவிட்டது. அங்கே முடித்துவிட்டு, திரும்பி வந்து புதுப்பிக்கவும்.',
+    scheduled: 'வரிசையில் உள்ளது. பொதுவாக Wi‑Fi இணைப்பில் உங்கள் ஃபோன் இதை முடிக்கும்.',
+    failed: 'அதை உங்கள் ஃபோனால் பதிவிறக்க முடியவில்லை.',
+    tooOld:
+      'செயலிக்குள் இருந்து மாதிரிகளைப் பதிவிறக்க இந்த ஃபோனின் Android மிகவும் பழையது. Android அமைப்புகளில் “voice” எனத் தேடி ஒன்றைச் சேர்க்கவும்.',
+    iosNote:
+      'iPhone தன் டிக்டேஷன் மொழிகளைத் தானே பதிவிறக்கும். Settings › General › Keyboard › Dictation Languages இல் ஒன்றைச் சேர்த்தால் மைக் அதைப் பயன்படுத்தும்.',
+    unavailable: 'இந்தப் பதிப்பால் பேச்சு மாதிரிகளை அணுக முடியாது.',
+    noOnDevice:
+      'இணைப்பு இல்லாமல் பேச்சை இந்த ஃபோனால் அடையாளம் காண முடியாது, எனவே பதிவிறக்க எதுவும் இல்லை.',
+    refresh: 'புதுப்பி',
+    empty: 'உங்கள் ஃபோன் எந்த மொழியையும் சொல்லவில்லை.',
+    footnote:
+      'மாதிரிகள் உங்கள் ஃபோனுடையவை, Waves உடையவை அல்ல. ஒன்று இருந்தால், நீங்கள் பேசுவது ஃபோனிலேயே உரையாக மாறும், வெளியே செல்லாது.',
   },
   notifications: {
     title: 'அறிவிப்புகள்',
@@ -7956,6 +8072,38 @@ const hi: UiStrings = {
     ansNoPerson: '{name} नहीं मिला',
     askAgain: 'फिर पूछें',
   },
+  offlineVoice: {
+    row: 'ऑफ़लाइन आवाज़',
+    title: 'ऑफ़लाइन आवाज़',
+    rowHint: 'इस फ़ोन पर रखे स्पीच मॉडल',
+    intro:
+      'कोई भाषा डाउनलोड कर लेने पर माइक बिना कनेक्शन के भी काम करता है — और उन फ़ोनों पर भी चलता रहता है जिनकी ऑनलाइन स्पीच सेवा ख़राब है।',
+    appSection: 'Waves की भाषाएँ',
+    appSectionHint: 'माइक यही माँगता है।',
+    alsoInstalled: 'इस फ़ोन पर पहले से मौजूद',
+    otherLanguages: 'दूसरी भाषाएँ',
+    otherLanguagesHint: 'इनमें से कोई भी आपका फ़ोन ला सकता है।',
+    installed: 'फ़ोन पर मौजूद',
+    notInstalled: 'डाउनलोड नहीं है',
+    download: 'डाउनलोड करें',
+    downloading: 'आपका फ़ोन इसे डाउनलोड कर रहा है।',
+    noProgress: 'Android यह नहीं बताता कि कितना हुआ।',
+    ready: 'डाउनलोड हो गया। माइक अब इसे इस्तेमाल कर सकता है।',
+    dialogOpened:
+      'आपके फ़ोन ने अपनी डाउनलोड स्क्रीन खोल दी है। वहीं पूरा करें, फिर लौटकर ताज़ा करें।',
+    scheduled: 'क़तार में है। आपका फ़ोन इसे पूरा कर देगा, आम तौर पर Wi‑Fi पर।',
+    failed: 'आपका फ़ोन उसे डाउनलोड नहीं कर सका।',
+    tooOld:
+      'ऐप के भीतर से मॉडल डाउनलोड करने के लिए इस फ़ोन का Android बहुत पुराना है। Android सेटिंग्स में “voice” खोजकर एक जोड़ें।',
+    iosNote:
+      'iPhone अपनी डिक्टेशन भाषाएँ ख़ुद डाउनलोड करता है। Settings › General › Keyboard › Dictation Languages में एक जोड़ें, माइक उसे इस्तेमाल करने लगेगा।',
+    unavailable: 'यह बिल्ड स्पीच मॉडल तक नहीं पहुँच सकता।',
+    noOnDevice: 'यह फ़ोन बिना कनेक्शन के बोली नहीं पहचान सकता, इसलिए डाउनलोड करने को कुछ नहीं है।',
+    refresh: 'ताज़ा करें',
+    empty: 'आपके फ़ोन ने कोई भाषा नहीं बताई।',
+    footnote:
+      'मॉडल आपके फ़ोन के हैं, Waves के नहीं। एक मौजूद हो तो आप जो कहते हैं वह फ़ोन पर ही लिखाई में बदलता है और बाहर नहीं जाता।',
+  },
   notifications: {
     title: 'सूचनाएँ',
     neverSpam:
@@ -10276,6 +10424,37 @@ const ar: UiStrings = {
     ansGroupSettled: 'تمت التسوية بالكامل في {group}',
     ansNoPerson: 'تعذر العثور على {name}',
     askAgain: 'اسأل مرة أخرى',
+  },
+  offlineVoice: {
+    row: 'الصوت دون اتصال',
+    title: 'الصوت دون اتصال',
+    rowHint: 'نماذج الكلام المحفوظة على هذا الهاتف',
+    intro:
+      'بعد تنزيل لغة يعمل الميكروفون دون اتصال — ويظل يعمل على الهواتف التي تعطّلت فيها خدمة الكلام عبر الإنترنت.',
+    appSection: 'لغات Waves',
+    appSectionHint: 'هذه ما يطلبه الميكروفون.',
+    alsoInstalled: 'موجودة على هذا الهاتف',
+    otherLanguages: 'لغات أخرى',
+    otherLanguagesHint: 'يستطيع هاتفك جلب أيٍّ منها.',
+    installed: 'على الهاتف',
+    notInstalled: 'غير مُنزَّلة',
+    download: 'تنزيل',
+    downloading: 'هاتفك ينزّل هذا الآن.',
+    noProgress: 'لا يخبر Android بمقدار ما اكتمل.',
+    ready: 'اكتمل التنزيل. يمكن للميكروفون استخدامه الآن.',
+    dialogOpened: 'فتح هاتفك شاشة التنزيل الخاصة به. أكمِل هناك ثم عُد وحدِّث القائمة.',
+    scheduled: 'في الانتظار. سيُكمل هاتفك التنزيل، غالبًا عند اتصاله بشبكة Wi‑Fi.',
+    failed: 'تعذّر على هاتفك تنزيل ذلك.',
+    tooOld:
+      'إصدار Android على هذا الهاتف أقدم من أن ينزّل النماذج من داخل التطبيق. ابحث عن «voice» في إعدادات Android وأضف واحدة.',
+    iosNote:
+      'ينزّل iPhone لغات الإملاء بنفسه. أضف لغة من Settings ‹ General ‹ Keyboard ‹ Dictation Languages وسيستخدمها الميكروفون.',
+    unavailable: 'لا يستطيع هذا الإصدار الوصول إلى نماذج الكلام.',
+    noOnDevice: 'لا يستطيع هذا الهاتف التعرّف على الكلام دون اتصال، فلا شيء لتنزيله.',
+    refresh: 'تحديث',
+    empty: 'لم يذكر هاتفك أي لغة.',
+    footnote:
+      'النماذج ملك لهاتفك لا لـ Waves. وبوجود واحدة يتحوّل ما تقوله إلى نص على الجهاز ولا يغادره.',
   },
   notifications: {
     title: 'الإشعارات',
