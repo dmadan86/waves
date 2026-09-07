@@ -661,6 +661,7 @@ function AuthGate() {
             <Stack.Screen name="friends/merge" />
             <Stack.Screen name="friends/person/[key]" />
             <Stack.Screen name="contact-picker" options={slide} />
+            <Stack.Screen name="country" options={slide} />
             <Stack.Screen name="scan" options={slide} />
             <Stack.Screen name="personal/transactions" />
             <Stack.Screen name="personal/entry" options={slide} />
