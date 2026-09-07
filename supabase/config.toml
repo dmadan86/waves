@@ -87,11 +87,20 @@ enable_signup = true
 # means addresses are guessable by design. `config push` sends this file to the
 # hosted project, so a local convenience here is a live account takeover.
 enable_confirmations = true
-# A minute between mails, and eight digits. Both are Supabase's hosted defaults;
-# 1s and six digits are what a local stack does not care about and a real one
-# does — that is a mailbox flood and a code worth guessing.
+# A minute between mails, and six digits. The frequency is Supabase's hosted
+# default; 1s is what a local stack does not care about and a real one does —
+# that is a mailbox flood.
+#
+# **`otp_length` must equal `OTP_LEN` in `apps/mobile/src/components/OtpInput.tsx`**,
+# and `test/otpLength.test.ts` fails if they drift. At 8 it shipped a code the
+# app could not accept: the code screen has six boxes and slices anything longer,
+# so the mail arrived, the digits were right, and email sign-in still could not
+# be completed on a phone.
+#
+# Six is also the floor — GoTrue accepts 6 to 10, so a shorter code is not
+# something this setting can express.
 max_frequency = "1m0s"
-otp_length = 8
+otp_length = 6
 
 # Auth mail — the sign-up confirmation and the login code — through Resend.
 #
