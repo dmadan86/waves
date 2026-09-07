@@ -1588,20 +1588,29 @@ export interface UiStrings {
     leaveWhenZero: string;
     settleFirst: string;
     settleFirstBody: string;
-    /** The settle-first body when the WHOLE group must be square (delete, A49),
-     *  not just the reader's own balance (leave). */
-    settleAllFirstBody: string;
     leaveQuestion: string;
     leaveBody: string;
     leave: string;
     archiveQuestion: string;
     archiveBody: string;
     archive: string;
-    /** Delete a group for everyone (A49) — admin-only, settled-only. */
+    /** Delete a group for everyone (A49) — admin-only, settled or not. */
     deleteGroup: string;
     deleteQuestion: string;
     deleteBody: string;
     delete: string;
+    /** The delete confirmation when balances are still open. The intro heads a
+     *  list of `deleteOwesLine`s (`{from}` owes `{to}` `{amount}`), the count
+     *  closes it when there are more than the alert shows, and the warning says
+     *  what is actually being thrown away and for whom. The hint is the same
+     *  point made in one line under the button, before it is ever tapped. */
+    deleteUnsettledIntro: string;
+    deleteOwesLine: string;
+    deleteMoreDebts: PluralForms;
+    deleteUnsettledWarning: string;
+    deleteUnsettledHint: string;
+    /** The confirm button when there are open balances to lose. */
+    deleteAnyway: string;
     /** The RPC's NOT_ADMIN refusal, in case a non-admin ever reaches it. */
     deleteAdminOnly: string;
     /** The archived-groups screen, its empty state, and the way back. */
@@ -3866,8 +3875,6 @@ const en: UiStrings = {
     settleFirst: 'Settle up first',
     settleFirstBody:
       'You still have a balance in this group. Leaving now would strand it — settle up, then leave.',
-    settleAllFirstBody:
-      'Someone in this group still owes or is owed. Everyone has to be square before the group can be deleted — settle up first.',
     leaveQuestion: 'Leave this group?',
     leaveBody: 'Your past expenses stay in the group history.',
     leave: 'Leave',
@@ -3877,9 +3884,16 @@ const en: UiStrings = {
     archive: 'Archive',
     deleteGroup: 'Delete group',
     deleteQuestion: 'Delete this group?',
-    deleteBody:
-      'It goes for everyone in it, and this cannot be undone. The group has to be fully settled first.',
+    deleteBody: 'It goes for everyone in it, immediately, and this cannot be undone.',
     delete: 'Delete',
+    deleteUnsettledIntro: 'This group is not settled. Right now:',
+    deleteOwesLine: '{from} owes {to} {amount}',
+    deleteMoreDebts: { one: 'and {n} more', other: 'and {n} more' },
+    deleteUnsettledWarning:
+      'Deleting it wipes that record for everyone in the group, not just for you. Nobody will be able to look up who owed what.',
+    deleteUnsettledHint:
+      'This group is not settled. Deleting it removes the record of who owes what for everyone.',
+    deleteAnyway: 'Delete anyway',
     deleteAdminOnly: 'Only a group admin can delete this group.',
     archivedTitle: 'Archived groups',
     archivedEmpty: 'Nothing archived',
@@ -6174,8 +6188,6 @@ const ta: UiStrings = {
     settleFirst: 'முதலில் தீர்த்துக்கொள்ளுங்கள்',
     settleFirstBody:
       'இந்தக் குழுவில் உங்களுக்கு இன்னும் இருப்பு உள்ளது. இப்போது விலகினால் அது தொங்கிவிடும் — தீர்த்துவிட்டு விலகுங்கள்.',
-    settleAllFirstBody:
-      'இந்தக் குழுவில் இன்னும் யாரோ ஒருவர் கொடுக்க அல்லது பெற வேண்டியுள்ளது. குழுவை அழிக்குமுன் அனைவரும் தீர்த்திருக்க வேண்டும் — முதலில் தீர்த்துக்கொள்ளுங்கள்.',
     leaveQuestion: 'இந்தக் குழுவிலிருந்து விலகவா?',
     leaveBody: 'உங்கள் பழைய செலவுகள் குழு வரலாற்றில் இருக்கும்.',
     leave: 'விலகு',
@@ -6185,9 +6197,16 @@ const ta: UiStrings = {
     archive: 'காப்பகப்படுத்து',
     deleteGroup: 'குழுவை அழி',
     deleteQuestion: 'இந்தக் குழுவை அழிக்கவா?',
-    deleteBody:
-      'இது இதிலுள்ள அனைவருக்கும் அழியும், இதை மீட்க முடியாது. முதலில் குழு முழுவதும் தீர்க்கப்பட்டிருக்க வேண்டும்.',
+    deleteBody: 'இது இதிலுள்ள அனைவருக்கும் உடனடியாக அழியும், இதை மீட்க முடியாது.',
     delete: 'அழி',
+    deleteUnsettledIntro: 'இந்தக் குழு இன்னும் தீர்க்கப்படவில்லை. இப்போது:',
+    deleteOwesLine: '{to}-க்கு {from} {amount} தர வேண்டும்',
+    deleteMoreDebts: { one: 'மேலும் {n}', other: 'மேலும் {n}' },
+    deleteUnsettledWarning:
+      'அழித்தால் அந்தப் பதிவு உங்களுக்கு மட்டுமல்ல, குழுவிலுள்ள அனைவருக்கும் அழிந்துவிடும். யார் யாருக்குத் தர வேண்டும் என்பதை இனி யாராலும் பார்க்க முடியாது.',
+    deleteUnsettledHint:
+      'இந்தக் குழு தீர்க்கப்படவில்லை. அழித்தால் யார் யாருக்குத் தர வேண்டும் என்ற பதிவு அனைவருக்கும் போய்விடும்.',
+    deleteAnyway: 'இருந்தாலும் அழி',
     deleteAdminOnly: 'குழு நிர்வாகி மட்டுமே இந்தக் குழுவை அழிக்க முடியும்.',
     archivedTitle: 'காப்பகக் குழுக்கள்',
     archivedEmpty: 'காப்பகத்தில் ஏதுமில்லை',
@@ -8491,8 +8510,6 @@ const hi: UiStrings = {
     settleFirst: 'पहले हिसाब चुकाएँ',
     settleFirstBody:
       'इस समूह में अभी आपका हिसाब बाकी है। अभी छोड़ने पर वह अधर में रह जाएगा — पहले चुकाएँ, फिर छोड़ें।',
-    settleAllFirstBody:
-      'इस समूह में अभी किसी का लेना-देना बाकी है। समूह हटाने से पहले सबका हिसाब बराबर होना चाहिए — पहले चुकाएँ।',
     leaveQuestion: 'यह समूह छोड़ें?',
     leaveBody: 'आपके पुराने खर्च समूह के इतिहास में बने रहेंगे।',
     leave: 'छोड़ें',
@@ -8501,9 +8518,16 @@ const hi: UiStrings = {
     archive: 'संग्रहित करें',
     deleteGroup: 'समूह हटाएँ',
     deleteQuestion: 'यह समूह हटाएँ?',
-    deleteBody:
-      'यह इसमें शामिल सभी के लिए हट जाएगा, और इसे वापस नहीं लाया जा सकता। पहले समूह का पूरा हिसाब बराबर होना चाहिए।',
+    deleteBody: 'यह इसमें शामिल सभी के लिए तुरंत हट जाएगा, और इसे वापस नहीं लाया जा सकता।',
     delete: 'हटाएँ',
+    deleteUnsettledIntro: 'इस समूह का हिसाब बाकी है। अभी:',
+    deleteOwesLine: '{from} पर {to} के {amount} बाकी हैं',
+    deleteMoreDebts: { one: '{n} और', other: '{n} और' },
+    deleteUnsettledWarning:
+      'हटाने पर यह हिसाब सिर्फ़ आपके लिए नहीं, समूह के सभी लोगों के लिए मिट जाएगा। फिर कोई नहीं देख पाएगा कि किसका किससे क्या लेना-देना था।',
+    deleteUnsettledHint:
+      'इस समूह का हिसाब बाकी है। हटाने पर किसका किससे क्या लेना-देना है, यह रिकॉर्ड सबके लिए मिट जाएगा।',
+    deleteAnyway: 'फिर भी हटाएँ',
     deleteAdminOnly: 'केवल समूह का एडमिन ही यह समूह हटा सकता है।',
     archivedTitle: 'संग्रहित समूह',
     archivedEmpty: 'कुछ भी संग्रहित नहीं',
@@ -10846,8 +10870,6 @@ const ar: UiStrings = {
     settleFirst: 'سوِّ حسابك أولًا',
     settleFirstBody:
       'ما زال لك رصيد في هذه المجموعة. المغادرة الآن تتركه معلّقًا — سوِّ الحساب ثم غادر.',
-    settleAllFirstBody:
-      'ما زال أحد أفراد هذه المجموعة مدينًا أو دائنًا. يجب أن يتساوى حساب الجميع قبل حذف المجموعة — سوّوا الحساب أولًا.',
     leaveQuestion: 'مغادرة هذه المجموعة؟',
     leaveBody: 'تبقى مصروفاتك السابقة في سجل المجموعة.',
     leave: 'مغادرة',
@@ -10856,9 +10878,22 @@ const ar: UiStrings = {
     archive: 'أرشفة',
     deleteGroup: 'حذف المجموعة',
     deleteQuestion: 'حذف هذه المجموعة؟',
-    deleteBody:
-      'تُحذف لكل من فيها، ولا يمكن التراجع عن ذلك. يجب أن تكون المجموعة مسوّاة بالكامل أولًا.',
+    deleteBody: 'تُحذف لكل من فيها فورًا، ولا يمكن التراجع عن ذلك.',
     delete: 'حذف',
+    deleteUnsettledIntro: 'حساب هذه المجموعة لم يُسوَّ بعد. حاليًا:',
+    deleteOwesLine: 'على {from} أن يدفع {amount} إلى {to}',
+    deleteMoreDebts: {
+      zero: 'و{n} أخرى',
+      one: 'وواحد آخر',
+      two: 'واثنان آخران',
+      few: 'و{n} أخرى',
+      many: 'و{n} أخرى',
+      other: 'و{n} أخرى',
+    },
+    deleteUnsettledWarning:
+      'الحذف يمحو هذا السجل لكل أفراد المجموعة، لا لك وحدك. ولن يستطيع أحد بعدها معرفة من كان مدينًا لمن.',
+    deleteUnsettledHint: 'حساب هذه المجموعة لم يُسوَّ. حذفها يمحو سجل من يدين لمن، للجميع.',
+    deleteAnyway: 'احذف على أي حال',
     deleteAdminOnly: 'يمكن لمشرف المجموعة وحده حذف هذه المجموعة.',
     archivedTitle: 'المجموعات المؤرشفة',
     archivedEmpty: 'لا شيء في الأرشيف',

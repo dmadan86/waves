@@ -26,6 +26,8 @@ import {
   useTabBarClearance,
 } from '@waves/ui';
 
+import { format as formatMoney, money as coreMoney, type CurrencyCode } from '@waves/core';
+
 import { GroupPhoto } from '@/components/GroupPhoto';
 import { type PickedContact } from '@/components/ContactPicker';
 import { friendlyError } from '@/lib/errors';
@@ -50,6 +52,11 @@ import { fill, plural, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { useFavorites } from '@/lib/favorites';
 import { displayName, groupLabel, GroupType, isGhost, vpaOf } from '@/data/types';
+
+// How many open debts the delete warning spells out before it starts counting
+// the rest. Four is enough to make the loss feel like a list of real people
+// rather than a number, and short enough that the alert still fits on a phone.
+const MAX_DEBT_LINES = 4;
 
 // Same chip icons the create screen wears, so changing a group's kind looks
 // like the same control that first set it.
@@ -262,36 +269,82 @@ export default function GroupSettingsScreen() {
     ]);
   };
 
-  // Delete removes the group for everyone (A49), so it is gated harder than
-  // archive: the WHOLE group must be square first (not just my own balance), and
-  // it asks before doing something there is no undo for. The server re-checks
-  // both admin and settled — this is the courteous front of that boundary.
+  /**
+   * The open debts, said in words — "Asha owes Ravi ₹500" — for the delete
+   * warning. Read off the same `transfers` the who-pays-whom screen shows, so
+   * the amounts in the warning are the amounts the group has been looking at,
+   * and across every currency rather than only the group default.
+   *
+   * Names are the plain member names, never "You": the line has to read the
+   * same to whoever is holding the phone, and "You owes Ravi" is not a
+   * sentence in any of the four languages.
+   */
+  const outstandingDebts = (): string[] => {
+    const nameFor = (memberId: string): string => {
+      const member = (members.data ?? []).find((row) => row.id === memberId);
+      return member ? displayName(member) : t.misc.someone;
+    };
+    return ledger.transfers.map((transfer) =>
+      fill(t.group.deleteOwesLine, {
+        from: nameFor(transfer.from),
+        to: nameFor(transfer.to),
+        amount: formatMoney(coreMoney(transfer.amount, transfer.currency as CurrencyCode), {
+          locale,
+        }),
+      }),
+    );
+  };
+
+  // Delete removes the group for everyone (A49), immediately and with no undo,
+  // so the confirmation is written to be read rather than tapped through.
+  //
+  // It used to refuse outright unless the whole group was square. That rule is
+  // gone — a group whose balances will never reach zero (the trip nobody
+  // settled, the group created by mistake) could otherwise never be deleted by
+  // anybody, including the person who created it. What replaces it is honesty:
+  // when balances are open, the alert names them and says plainly that deleting
+  // throws that record away for every member, not only for the admin tapping.
   const confirmDelete = (): void => {
-    if (!ledger.groupSettled) {
-      Alert.alert(t.group.settleFirst, t.group.settleAllFirstBody);
-      return;
-    }
-    Alert.alert(t.group.deleteQuestion, t.group.deleteBody, [
+    const debts = ledger.groupSettled ? [] : outstandingDebts();
+    // Enough lines to make the loss concrete without turning the alert into a
+    // ledger; the rest are counted, since the point is the size of what goes.
+    const shown = debts.slice(0, MAX_DEBT_LINES);
+    const body = ledger.groupSettled
+      ? t.group.deleteBody
+      : [
+          t.group.deleteBody,
+          '',
+          t.group.deleteUnsettledIntro,
+          ...shown,
+          ...(debts.length > shown.length
+            ? [plural(locale, debts.length - shown.length, t.group.deleteMoreDebts)]
+            : []),
+          '',
+          t.group.deleteUnsettledWarning,
+        ].join('\n');
+
+    Alert.alert(t.group.deleteQuestion, body, [
       { text: t.common.cancel, style: 'cancel' },
       {
-        text: t.group.delete,
+        // "Delete anyway" when there is something to lose, so the button itself
+        // admits what the sentence above it just said.
+        text: ledger.groupSettled ? t.group.delete : t.group.deleteAnyway,
         style: 'destructive',
         onPress: () => {
           if (deleteGroup.isPending) return;
           deleteGroup.mutate(undefined, {
             onSuccess: () => router.replace('/'),
             onError: (caught) => {
-              // The two coded refusals carry a `code` (set in api.deleteGroup);
-              // show their localized line directly. Anything else is unknown and
-              // goes through friendlyError, which never echoes raw backend text.
+              // The one coded refusal left carries a `code` (set in
+              // api.deleteGroup); show its localized line directly. Anything
+              // else is unknown and goes through friendlyError, which never
+              // echoes raw backend text.
               const code = (caught as { code?: string } | null)?.code;
-              const body =
-                code === 'NOT_SETTLED'
-                  ? t.group.settleAllFirstBody
-                  : code === 'NOT_ADMIN'
-                    ? t.group.deleteAdminOnly
-                    : friendlyError(caught, t.misc.tryAgainMoment, 'groupSettings.delete');
-              Alert.alert(t.group.deleteGroup, body);
+              const message =
+                code === 'NOT_ADMIN'
+                  ? t.group.deleteAdminOnly
+                  : friendlyError(caught, t.misc.tryAgainMoment, 'groupSettings.delete');
+              Alert.alert(t.group.deleteGroup, message);
             },
           });
         },
@@ -626,6 +679,13 @@ export default function GroupSettingsScreen() {
               disabled={deleteGroup.isPending}
               onPress={confirmDelete}
             />
+          ) : null}
+          {/* An admin looking at an unsettled group should know what the button
+              costs before they tap it, not only in the alert afterwards. */}
+          {isAdmin && !ledger.groupSettled ? (
+            <Text variant="micro" tone="muted" align="center">
+              {t.group.deleteUnsettledHint}
+            </Text>
           ) : null}
           {!settled ? (
             <Text variant="micro" tone="muted" align="center">
