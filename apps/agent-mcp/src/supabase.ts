@@ -14,7 +14,7 @@
 
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
-import { readStore, writeStore, STORE_PATH } from './store.js';
+import { readStore, writeStore, STORE_PATH } from './store';
 
 export interface WavesEnv {
   url: string;
