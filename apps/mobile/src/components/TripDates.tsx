@@ -31,6 +31,7 @@ import { Card, directionalIcon, iconSize, Row, Text, useTheme } from '@waves/ui'
 import { RangeCalendar } from '@/components/RangeCalendar';
 import { plural, useStrings } from '@/i18n';
 import { gregorianFormatter } from '@/lib/calendarGrid';
+import { inclusiveTripDays, tripDateFromIso, tripDateRangePatch } from '@/lib/tripDateRange';
 
 /**
  * Only the fields this card reads and writes — not a whole `GroupRow`. A saved
@@ -54,34 +55,6 @@ export interface TripDatesPatch {
   remind_daily?: boolean;
   remind_morning_at?: string;
   remind_evening_at?: string;
-}
-
-/**
- * Parsed as local noon rather than midnight. A date-only string turned into
- * midnight UTC lands on the previous day for anybody west of Greenwich, which
- * is how a trip silently starts a day early.
- */
-function dateFrom(iso: string | null): Date | null {
-  if (!iso) return null;
-  const [year, month, day] = iso.split('-').map(Number);
-  if (!year || !month || !day) return null;
-  return new Date(year, month - 1, day, 12);
-}
-
-/**
- * Back to the `YYYY-MM-DD` the `date` columns hold, read off the local calendar
- * fields. Never `toISOString`, which would convert to UTC first and hand back
- * the day before for anybody east of Greenwich after lunch.
- */
-function isoDate(value: Date): string {
-  const month = String(value.getMonth() + 1).padStart(2, '0');
-  const day = String(value.getDate()).padStart(2, '0');
-  return `${value.getFullYear()}-${month}-${day}`;
-}
-
-/** Whole days between two local-noon day anchors, inclusive of both ends. */
-function daysBetween(from: Date, to: Date): number {
-  return Math.round((to.getTime() - from.getTime()) / 86_400_000) + 1;
 }
 
 /**
@@ -176,8 +149,8 @@ export function TripDates({
    */
   const [pendingStart, setPendingStart] = useState<Date | null>(null);
 
-  const savedStart = dateFrom(group.start_date);
-  const savedEnd = dateFrom(group.end_date);
+  const savedStart = tripDateFromIso(group.start_date);
+  const savedEnd = tripDateFromIso(group.end_date);
   // Mid-selection the strip and the grid show the draft: the pending start on
   // its own, with the end blank and waiting.
   const shownStart = pendingStart ?? savedStart;
@@ -195,14 +168,7 @@ export function TripDates({
     // Whichever way round they were tapped, the earlier day is the start. That
     // is why an end before a start is not something this control has to refuse:
     // it cannot be expressed.
-    const [from, to] = a <= b ? [a, b] : [b, a];
-    onChange({
-      start_date: isoDate(from),
-      end_date: isoDate(to),
-      // Re-sent with every range so a group that never recorded a zone picks up
-      // this phone's — the reminders and the day-of-trip maths need one.
-      time_zone: group.time_zone,
-    });
+    onChange(tripDateRangePatch(a, b, group.time_zone));
     setPendingStart(null);
     // The range is saved and the strip above now reads it back, so there is
     // nothing left to confirm; folding the calendar away is the confirmation.
@@ -312,7 +278,7 @@ export function TripDates({
       {savedStart && savedEnd && !pendingStart ? (
         <Row style={{ alignItems: 'center', justifyContent: 'center', gap: theme.spacing.md }}>
           <Text variant="caption" tone="muted">
-            {plural(locale, daysBetween(savedStart, savedEnd), t.pickers.dayCount)}
+            {plural(locale, inclusiveTripDays(savedStart, savedEnd), t.pickers.dayCount)}
           </Text>
           <Pressable
             accessibilityRole="button"
