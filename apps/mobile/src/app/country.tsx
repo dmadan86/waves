@@ -37,7 +37,7 @@ import {
   Row,
   Screen,
   Text,
-  useScreenClearance,
+  useTabBarClearance,
   useTheme,
 } from '@waves/ui';
 
@@ -48,7 +48,7 @@ import { takeCountryRequest } from '@/lib/countryPickerBridge';
 export default function CountryScreen(): React.JSX.Element {
   const theme = useTheme();
   const { t } = useStrings();
-  const clearance = useScreenClearance();
+  const clearance = useTabBarClearance();
 
   // Taken once on mount — this captures the request and clears the bridge in
   // one step, so the route owns it outright and no re-render or later open can

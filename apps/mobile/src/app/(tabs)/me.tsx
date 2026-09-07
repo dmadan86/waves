@@ -54,7 +54,7 @@ import {
   Row,
   Screen,
   Text,
-  useScreenClearance,
+  useTabBarClearance,
   useTheme,
   type BarDatum,
 } from '@waves/ui';
@@ -87,7 +87,7 @@ const HERO_CONTROL_BG = 'rgba(255, 255, 255, 0.16)';
 
 export default function MeScreen() {
   const theme = useTheme();
-  const clearance = useScreenClearance();
+  const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
   const dc = useDefaultCurrency();
   const sourceLabel = useSourceLabel();
