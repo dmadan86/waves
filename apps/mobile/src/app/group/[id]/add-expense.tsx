@@ -259,6 +259,17 @@ function textEntries(
   );
 }
 
+/**
+ * The travel shortcuts a trip group is offered, in the order they are shown.
+ *
+ * `none` is not one of them: it is the state of the row before any has been
+ * applied, which a strip that always has exactly one chip lit has no other way
+ * to say. Nothing is stored under it and it is never an option to tap.
+ */
+const PRESET_KINDS = ['nights', 'car', 'ride', 'treat'] as const;
+type PresetKind = (typeof PRESET_KINDS)[number];
+type PresetChoice = PresetKind | 'none';
+
 // A route param is not a trusted integer string; a throw here is a white screen.
 function safeBigInt(value: string | undefined): bigint {
   if (!value) return 0n;
@@ -426,10 +437,12 @@ export default function AddExpenseScreen() {
   // live from the amount via `treatHost`. Any manual edit clears the preset.
   const [presetParams, setPresetParams] = useState<SplitParams | null>(null);
   const [treatHost, setTreatHost] = useState<MemberId | null>(null);
-  const [presetLabel, setPresetLabel] = useState<string | null>(null);
-  const [presetEditor, setPresetEditor] = useState<'nights' | 'car' | 'ride' | 'treat' | null>(
-    null,
-  );
+  // Which shortcut is currently applied, if any. It used to be held as the
+  // shortcut's translated label and compared string-to-string to decide which
+  // button looked pressed, which made the lit control depend on the locale
+  // rather than on what was chosen.
+  const [appliedPreset, setAppliedPreset] = useState<PresetKind | null>(null);
+  const [presetEditor, setPresetEditor] = useState<PresetKind | null>(null);
   const [nightCounts, setNightCounts] = useState<Record<MemberId, string>>({});
   const [riderPick, setRiderPick] = useState<MemberId[]>([]);
   const [fuelAmounts, setFuelAmounts] = useState<Record<MemberId, bigint>>({});
@@ -438,7 +451,7 @@ export default function AddExpenseScreen() {
   const clearPreset = (): void => {
     setPresetParams(null);
     setTreatHost(null);
-    setPresetLabel(null);
+    setAppliedPreset(null);
   };
   // Guessed from the description until somebody picks one themselves, at which
   // point the guess must stop moving it — see `categoryChosen`.
@@ -1356,7 +1369,7 @@ export default function AddExpenseScreen() {
   // message rather than a crash, and nothing is applied.
   const roster = members.data ?? [];
 
-  const openPreset = (kind: 'nights' | 'car' | 'ride' | 'treat'): void => {
+  const openPreset = (kind: PresetKind): void => {
     setError(null);
     setRiderPick(participants.length > 0 ? participants : roster.map((member) => member.id));
     setNightCounts({});
@@ -1387,7 +1400,7 @@ export default function AddExpenseScreen() {
       setSplitKind(SplitKind.Shares);
       setParticipants(chosen);
       setWeights(Object.fromEntries(chosen.map((id) => [id, String(units[id])])));
-      setPresetLabel(t.expense.presets.nights);
+      setAppliedPreset('nights');
       setPresetEditor(null);
     } catch (caught) {
       setError(friendlyError(caught, t.couldNotSave, 'preset.nights'));
@@ -1400,7 +1413,7 @@ export default function AddExpenseScreen() {
       clearPreset();
       setSplitKind(SplitKind.Equal);
       setParticipants(result.participants);
-      setPresetLabel(t.expense.presets.ride);
+      setAppliedPreset('ride');
       setPresetEditor(null);
     } catch (caught) {
       setError(friendlyError(caught, t.couldNotSave, 'preset.ride'));
@@ -1423,7 +1436,7 @@ export default function AddExpenseScreen() {
       setSplitKind(SplitKind.Equal);
       setParticipants(result.participants);
       setPresetParams(result.params);
-      setPresetLabel(t.expense.presets.car);
+      setAppliedPreset('car');
       setPresetEditor(null);
     } catch (caught) {
       setError(friendlyError(caught, t.couldNotSave, 'preset.car'));
@@ -1444,7 +1457,7 @@ export default function AddExpenseScreen() {
       // A treat is one person picking up the whole bill, by definition.
       applyPayers([host], new Map([[host, amount]]), EMPTY_LOCKS, amount);
       setTreatHost(host);
-      setPresetLabel(t.expense.presets.treat);
+      setAppliedPreset('treat');
       setPresetEditor(null);
     } catch (caught) {
       setError(friendlyError(caught, t.couldNotSave, 'preset.treat'));
@@ -1707,44 +1720,92 @@ export default function AddExpenseScreen() {
             </Pressable>
           ) : null}
 
-          {/* Just the heading. The summary card that used to stand here folded
-            the three controls away behind a sentence — one more thing to read,
-            and one more tap between somebody and the split they came to change.
-            The controls below say the same thing and can be acted on. */}
-          <Text variant="caption" tone="muted">
-            {t.expense.howToSplit}
-          </Text>
+          {/* "How is this split" as one block instead of three.
 
+            The heading, the row of modes and the itemise button used to be three
+            siblings of the scroll view with a 16pt gutter between each, so a
+            question with one answer looked like three separate decisions — and
+            the last of them was a full-width button, the widest control on the
+            screen, for the rarest of the four ways to split. Here the heading
+            owns the block, carries the one action that is not a mode (itemising
+            leaves for another screen) at the end of its own line, and the
+            choices sit directly under it — the shape the payer card's heading
+            below already has, so the two read as the same kind of question. */}
           <View style={{ gap: theme.spacing.sm }}>
+            <Row style={{ justifyContent: 'space-between' }}>
+              <Text variant="caption" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
+                {t.expense.howToSplit}
+              </Text>
+              {/* Splitting the bill line by line is another answer to "how is
+                  this split", so it belongs to this heading rather than to the
+                  top bar, where it competed with the title. A link like the
+                  payer card's, not a button: it goes somewhere, and the controls
+                  that change something on this screen are all chips. New
+                  expenses only — an existing one is edited in place, not
+                  re-itemised. */}
+              {!editing ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t.expense.splitByItem}
+                  onPress={() => router.replace(`/group/${groupId}/itemize`)}
+                  hitSlop={8}
+                  style={{ flexShrink: 0 }}
+                >
+                  <Text
+                    variant="micro"
+                    tone="brand"
+                    numberOfLines={1}
+                    style={{ fontWeight: '700' }}
+                  >
+                    {t.expense.splitByItem}
+                  </Text>
+                </Pressable>
+              ) : null}
+            </Row>
+
+            {/* The trip shortcuts, on one scrolling lane like every other strip
+              of choices here. Wrapped across two rows — which four buttons did
+              on a narrow phone in any of the four languages — they made the
+              block taller than the question it answers and left a ragged second
+              line under the first. Brand green rather than the modes' black:
+              these seed a split and then hand it over, so the row below is
+              still the thing that says how the bill is actually divided. */}
             {isTrip && !editing ? (
               <View style={{ gap: theme.spacing.xs }}>
                 <Text variant="micro" tone="muted">
                   {t.expense.presets.title}
                 </Text>
-                <Row style={{ flexWrap: 'wrap', gap: theme.spacing.sm }}>
-                  {(
-                    [
-                      ['nights', t.expense.presets.nights],
-                      ['car', t.expense.presets.car],
-                      ['ride', t.expense.presets.ride],
-                      ['treat', t.expense.presets.treat],
-                    ] as const
-                  ).map(([kind, label]) => (
-                    <Button
-                      key={kind}
-                      label={label}
-                      size="sm"
-                      variant={presetLabel === label ? 'primary' : 'secondary'}
-                      onPress={() => openPreset(kind)}
-                    />
-                  ))}
-                </Row>
+                <ChipRow<PresetChoice>
+                  value={appliedPreset ?? 'none'}
+                  onChange={(kind) => {
+                    // 'none' is never offered, so this only ever opens a sheet.
+                    if (kind !== 'none') openPreset(kind);
+                  }}
+                  variant="brand"
+                  options={PRESET_KINDS.map((kind) => ({
+                    value: kind,
+                    label:
+                      kind === 'nights'
+                        ? t.expense.presets.nights
+                        : kind === 'car'
+                          ? t.expense.presets.car
+                          : kind === 'ride'
+                            ? t.expense.presets.ride
+                            : t.expense.presets.treat,
+                  }))}
+                />
               </View>
             ) : null}
 
-            {/* Word plus glyph, not three identical word-pills: the icon is what
+            {/* Word plus glyph, not four identical word-pills: the icon is what
               carries over to the expense screen, where the same split comes back
-              as a marked row rather than a bare word. */}
+              as a marked row rather than a bare word. Four labelled modes do not
+              fit one line on a narrow phone in any of the four languages, so the
+              lane scrolls rather than wraps: a fourth chip alone on a second row
+              is what reads as a broken control, where a chip cut off at the edge
+              reads as more to the side. Each chip states its own selected state
+              to the screen reader; the fill is not the only thing saying which
+              one is on. */}
             <ChipRow<SplitKind>
               value={splitKind}
               onChange={(next) => {
@@ -1769,22 +1830,6 @@ export default function AddExpenseScreen() {
               )}
             />
           </View>
-
-          {/* Splitting the bill line by line is another answer to "how is this
-            split", so it sits with the split rather than as a word in the top
-            bar, where it competed with the title and would have had to lose
-            either its icon or its words to fit the hero. Outside the fold, so it
-            is still found without opening the split first. New expenses only: an
-            existing one is edited in place, not re-itemised. */}
-          {!editing ? (
-            <Button
-              label={t.expense.splitByItem}
-              variant="secondary"
-              size="sm"
-              onPress={() => router.replace(`/group/${groupId}/itemize`)}
-              icon={<Ionicons name="list-outline" size={iconSize.md} color={theme.color.brand} />}
-            />
-          ) : null}
 
           {/* Who paid — on an edit as much as on a new expense, and now as many
             people as actually put money in.
