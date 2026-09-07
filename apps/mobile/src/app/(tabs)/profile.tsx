@@ -475,6 +475,15 @@ function ProfileForm() {
               label: t.account.notifications,
               route: '/settings/notifications',
             },
+            // The mic's own settings sit with the rest of "how the app speaks to
+            // you", not under Data: what is managed here is a language, and the
+            // person who needs it is the person whose mic went silent.
+            {
+              icon: 'mic-outline',
+              label: t.offlineVoice.row,
+              hint: t.offlineVoice.rowHint,
+              route: '/settings/offline-voice',
+            },
             {
               icon: 'watch-outline',
               label: t.recent.title,
