@@ -31,15 +31,15 @@ export function redirectSystemPath({ path }: { path: string; initial: boolean })
     if (url.hostname === 'auth' || firstSegment === 'auth') {
       return '/';
     }
-    // The Drive-backup consent redirects to `waves://oauthredirect`, and the
-    // same double delivery happens: `promptAsync` has already taken the code
-    // and swapped it, so the intent carries nothing left to do — but there is
-    // no `/oauthredirect` screen either, and letting the router match it lands
-    // on "Unmatched Route" the moment somebody links their Drive. Unlike
-    // sign-in, sending this one to the root would be wrong: the person is
-    // standing on the backup screen and expects to still be there, so it goes
-    // back to the screen that started the flow. A `navigate` to a route already
-    // in the stack returns to it rather than pushing a second copy.
+    // Drive-backup consent used to redirect to `waves://oauthredirect`. It no
+    // longer does — Google withdrew custom URI schemes for Android clients, so
+    // that consent is now asked for by Play services with no redirect at all
+    // (see `lib/cloud/nativeGoogle.ts`). The guard stays because the link can
+    // still arrive: a phone carrying an older build's pending intent, or
+    // anything else that has the scheme. Letting the router match it lands on
+    // "Unmatched Route", so it goes to the screen the flow belonged to rather
+    // than to the root. A `navigate` to a route already in the stack returns to
+    // it rather than pushing a second copy.
     if (url.hostname === 'oauthredirect' || firstSegment === 'oauthredirect') {
       return '/settings/backup';
     }
