@@ -284,13 +284,17 @@ function requiredEnv(name: string): string {
 }
 
 /**
- * `Waves <hello@mail.dmadan.com>` unless told otherwise.
+ * `Waves <hello@wavs.co.in>` unless told otherwise.
  *
  * The domain has to be one verified in Resend with SPF, DKIM and DMARC. An
  * unverified sender is not a soft failure — every message is refused outright.
+ * The default moved off `mail.dmadan.com` when wavs.co.in was verified, so the
+ * product mail and the auth mail (`[auth.email.smtp]` in config.toml) come from
+ * one domain — two sending domains means two reputations to keep, and the one
+ * nobody watches is the one that starts landing in spam.
  */
 export function emailFrom(): string {
-  return Deno.env.get('EMAIL_FROM') ?? 'Waves <hello@mail.dmadan.com>';
+  return Deno.env.get('EMAIL_FROM') ?? 'Waves <hello@wavs.co.in>';
 }
 
 /**
@@ -344,6 +348,13 @@ function factsOf(payload: Record<string, unknown>): Record<string, string | unde
     group: text('group'),
     description: text('description'),
     count: text('count'),
+    // Every placeholder any mailed or pushed kind uses has to be named here:
+    // this is a whitelist, and a fact that is missing from it does not fail —
+    // it renders the placeholder itself, so somebody receives
+    // "New sign-in on {device}". `device` is the sign-in alert's; `name` is the
+    // ghost-claim kinds', which push today and could be mailed tomorrow.
+    device: text('device'),
+    name: text('name'),
   };
 }
 

@@ -93,6 +93,79 @@ enable_confirmations = true
 max_frequency = "1m0s"
 otp_length = 8
 
+# Auth mail — the sign-up confirmation and the login code — through Resend.
+#
+# Without this block GoTrue uses Supabase's built-in sender, which is rate
+# limited to a handful of messages an hour and documented as being for testing.
+# That is fine until the day two people sign up in the same minute, and then it
+# is a login door that silently does not open.
+#
+# The password is the Resend API key. Resend's SMTP user is the literal string
+# `resend` for every account — the key is the whole secret. It is read from
+# `supabase/.env` (gitignored) at `config push` time, exactly like the Google
+# secret below and the SMS hook secret above; `supabase secrets set` sets Edge
+# Function environment and does **not** reach GoTrue.
+#
+#   # supabase/.env
+#   RESEND_SMTP_PASSWORD=re_...
+#
+# Port 465 (implicit TLS) rather than 587: GoTrue speaks either, and 465 needs
+# no STARTTLS upgrade to get wrong.
+#
+# `sender_name` and `admin_email` are what the mail is *from*. The domain is
+# wavs.co.in, verified in Resend — an address on an unverified domain is
+# accepted by the API and then rejected at the mailbox.
+# NOT PUSHED UNTIL THE KEY EXISTS. `config push` sends this file as it stands,
+# and `env(RESEND_SMTP_PASSWORD)` resolving to nothing pushes SMTP *enabled with
+# an empty password* — which is worse than the built-in sender it replaces,
+# because then no auth mail leaves at all. Set the value in `supabase/.env`
+# first, in the same change that pushes. Same rule as the SMS hook above.
+[auth.email.smtp]
+enabled = true
+host = "smtp.resend.com"
+port = 465
+user = "resend"
+pass = "env(RESEND_SMTP_PASSWORD)"
+admin_email = "hello@wavs.co.in"
+sender_name = "Waves"
+
+# The mail GoTrue sends, in the repo rather than in a console text box.
+#
+# Every one of these prints `{{ .Token }}` and **none of them links**. Supabase's
+# stock templates are magic links, and the app asks for a code on a six-box
+# screen — a link lands somebody on a page with nothing to type into. Worse, a
+# mail carrying both teaches people to click the link in a message asking for a
+# code, which is the shape of every phishing mail they will ever get. This is
+# what `sendEmailOtp` in `lib/auth.tsx` has always assumed and never had.
+#
+# `content_path` is resolved from the repo root (not from `supabase/`), and the
+# file is read and uploaded by `config push` — so changing a template is a
+# commit, not a click. See `supabase/templates/_README.md`.
+#
+# `recovery` and `reauthentication` have no caller in the app today. They are
+# here because GoTrue will send its own link-shaped default the moment one
+# appears, and the failure would be silent.
+
+[auth.email.template.magic_link]
+subject = "Your Waves sign-in code"
+content_path = "./supabase/templates/magic-link.html"
+
+[auth.email.template.confirmation]
+subject = "Confirm your email for Waves"
+content_path = "./supabase/templates/confirmation.html"
+
+[auth.email.template.email_change]
+subject = "Confirm your new Waves address"
+content_path = "./supabase/templates/email-change.html"
+
+[auth.email.template.recovery]
+subject = "Reset your Waves password"
+content_path = "./supabase/templates/recovery.html"
+
+[auth.email.template.reauthentication]
+subject = "Confirm it is you"
+content_path = "./supabase/templates/reauthentication.html"
+
 # ADR-006: guests join a group from a link with no account at all, so phone is a
 # way to keep an account, never the way to get one.
 #

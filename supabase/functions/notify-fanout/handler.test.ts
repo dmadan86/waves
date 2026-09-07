@@ -91,7 +91,18 @@ describe('factsOf', () => {
       group: undefined,
       description: undefined,
       count: undefined, // a number, not a string → dropped
+      device: undefined,
+      name: undefined,
     });
+  });
+
+  /**
+   * The whitelist is the whole risk here: a fact missing from it does not throw,
+   * it renders the placeholder, and somebody receives "New sign-in on {device}".
+   * That shipped once — this is the regression test for it.
+   */
+  it('carries the sign-in alert device through', () => {
+    expect(factsOf({ device: 'Pixel 9 · android' }).device).toBe('Pixel 9 · android');
   });
 });
 
