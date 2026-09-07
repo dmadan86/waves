@@ -12,13 +12,15 @@
  * reads both and insists they match.
  */
 
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
 const CONFIG = readFileSync(join(__dirname, '../../../supabase/config.toml'), 'utf8');
 const OTP_INPUT = readFileSync(join(__dirname, '../src/components/OtpInput.tsx'), 'utf8');
+const TEMPLATE_DIR = join(__dirname, '../../../supabase/templates');
+const TEMPLATES = readdirSync(TEMPLATE_DIR).filter((name) => name.endsWith('.html'));
 
 /**
  * Read as source rather than imported: `OtpInput` pulls in react-native, which
@@ -50,5 +52,32 @@ describe('the sign-in code', () => {
   it('stays inside the range GoTrue accepts', () => {
     expect(configuredOtpLength()).toBeGreaterThanOrEqual(6);
     expect(configuredOtpLength()).toBeLessThanOrEqual(10);
+  });
+});
+
+/**
+ * The mail states a number of minutes. A template saying fifteen while GoTrue
+ * expires the code in sixty is not a cosmetic mismatch — it is the app lying to
+ * somebody about how long they have, which they only discover by being refused.
+ */
+describe('how long the code lasts', () => {
+  function configuredExpirySeconds(): number {
+    const match = /^otp_expiry\s*=\s*(\d+)\s*$/m.exec(CONFIG);
+    if (!match) throw new Error('otp_expiry is not set in supabase/config.toml');
+    return Number(match[1]);
+  }
+
+  it('is the number of minutes every template promises', () => {
+    const minutes = configuredExpirySeconds() / 60;
+    for (const name of TEMPLATES) {
+      const html = readFileSync(join(TEMPLATE_DIR, name), 'utf8');
+      const stated = /Expires in (\d+) minutes/.exec(html);
+      expect(stated, `${name} does not state an expiry`).not.toBeNull();
+      expect(Number(stated?.[1]), name).toBe(minutes);
+    }
+  });
+
+  it('covers every template, so a new one cannot ship unchecked', () => {
+    expect(TEMPLATES.length).toBeGreaterThanOrEqual(5);
   });
 });

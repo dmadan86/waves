@@ -1,13 +1,153 @@
 <!doctype html>
 <html>
-  <body style="margin:0;padding:24px;background:#f5f5f4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-    <div style="max-width:520px;margin:0 auto;background:#ffffff;border-radius:12px;padding:28px;">
-      <h1 style="margin:0 0 12px;font-size:20px;line-height:1.35;color:#1c1917;">Confirm it is you</h1>
-      <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#44403c;">Type this code into Waves to confirm the change you just asked for.</p>
-      <p style="margin:0 0 24px;font-size:30px;line-height:1.2;letter-spacing:6px;font-weight:700;color:#1c1917;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;">{{ .Token }}</p>
-      <p style="margin:0;font-size:13px;line-height:1.6;color:#78716c;">If you were not making a change to your account just now, ignore this and change how you sign in.</p>
-      <p style="margin:28px 0 0;font-size:12px;line-height:1.6;color:#78716c;">Waves will never ask you for this code — not by email, not on a call, not in a chat. If somebody is asking, they are not us.</p>
+  <body style="margin: 0; padding: 0; background: #f4f4f2">
+    <!-- Preview text: what the inbox list shows beside the subject. Hidden in
+         the mail itself by the zero height + hidden colour. -->
+    <div
+      style="
+        display: none;
+        max-height: 0;
+        overflow: hidden;
+        opacity: 0;
+        color: transparent;
+        height: 0;
+        width: 0;
+      "
+    >
+      Confirm the change you just asked for in Waves.
     </div>
-    <p style="max-width:520px;margin:16px auto 0;font-size:12px;color:#a8a29e;">Waves</p>
+    <table
+      role="presentation"
+      width="100%"
+      cellpadding="0"
+      cellspacing="0"
+      style="background: #f4f4f2; padding: 32px 16px"
+    >
+      <tr>
+        <td align="center">
+          <table
+            role="presentation"
+            width="100%"
+            cellpadding="0"
+            cellspacing="0"
+            style="max-width: 480px; background: #ffffff; border-radius: 16px"
+          >
+            <tr>
+              <td
+                style="
+                  padding: 32px 32px 0;
+                  font-family:
+                    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial,
+                    sans-serif;
+                "
+              >
+                <p
+                  style="
+                    margin: 0 0 28px;
+                    font-size: 15px;
+                    font-weight: 700;
+                    letter-spacing: -0.2px;
+                    color: #4f9a2e;
+                  "
+                >
+                  Waves
+                </p>
+                <h1
+                  style="
+                    margin: 0 0 10px;
+                    font-size: 24px;
+                    line-height: 1.25;
+                    font-weight: 700;
+                    letter-spacing: -0.5px;
+                    color: #12100e;
+                  "
+                >
+                  Confirm it is you
+                </h1>
+                <p style="margin: 0 0 24px; font-size: 15px; line-height: 1.6; color: #57534e">
+                  Type this into Waves to confirm the change you just asked for.
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding: 0 32px">
+                <table
+                  role="presentation"
+                  width="100%"
+                  cellpadding="0"
+                  cellspacing="0"
+                  style="border: 1px solid #e7e5e4; border-radius: 12px; background: #fafaf9"
+                >
+                  <tr>
+                    <td
+                      align="center"
+                      style="
+                        padding: 20px 12px;
+                        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+                        font-size: 34px;
+                        line-height: 1.1;
+                        font-weight: 700;
+                        letter-spacing: 10px;
+                        text-indent: 10px;
+                        color: #12100e;
+                      "
+                    >
+                      {{ .Token }}
+                    </td>
+                  </tr>
+                </table>
+                <p style="margin: 12px 0 0; font-size: 13px; line-height: 1.6; color: #78716c">
+                  Expires in 15 minutes, and works once.
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td
+                style="
+                  padding: 28px 32px 32px;
+                  font-family:
+                    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial,
+                    sans-serif;
+                "
+              >
+                <table
+                  role="presentation"
+                  width="100%"
+                  cellpadding="0"
+                  cellspacing="0"
+                  style="border-top: 1px solid #f0efed"
+                >
+                  <tr>
+                    <td style="padding-top: 20px">
+                      <p
+                        style="margin: 0 0 10px; font-size: 13px; line-height: 1.6; color: #57534e"
+                      >
+                        Were you not changing anything just now? Ignore this, then change how you
+                        sign in.
+                      </p>
+                      <p style="margin: 0; font-size: 13px; line-height: 1.6; color: #a8a29e">
+                        Waves will never ask you for this code &mdash; not by email, not on a call,
+                        not in a chat.
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+          <p
+            style="
+              margin: 16px 0 0;
+              font-family:
+                -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+              font-size: 12px;
+              color: #a8a29e;
+            "
+          >
+            Sent to {{ .Email }} &middot; Waves
+          </p>
+        </td>
+      </tr>
+    </table>
   </body>
 </html>
