@@ -306,14 +306,24 @@ export function readIdentifier(raw: string): { kind: 'email' | 'phone'; value: s
  * *link* looks like.
  */
 export type OAuthCallback =
-  { kind: 'code'; code: string } | { kind: 'error'; message: string } | { kind: 'none' };
+  | { kind: 'code'; code: string }
+  | { kind: 'error'; message: string }
+  | { kind: 'none' };
 
 export function readOAuthCallback(url: string): OAuthCallback {
   let params: URLSearchParams;
   try {
     // The custom scheme parses on its own (`waves://auth?code=…`), but the
     // triple-slash form puts `auth` in the pathname and needs a base.
-    params = new URL(url, 'waves://app').searchParams;
+    const parsed = new URL(url, 'waves://app');
+    // The fragment matters as much as the query. A provider that refuses —
+    // consent declined, an app not yet verified — commonly answers in the
+    // fragment (`#error=access_denied&error_description=…`), and reading only
+    // the query turned that refusal into `none`: the caller then kept whatever
+    // session it already had, which for a fresh sign-in is no session at all.
+    // Somebody was sent back to the sign-in screen with nothing said, which is
+    // indistinguishable from the app ignoring the button.
+    params = mergeParams(parsed.searchParams, new URLSearchParams(parsed.hash.replace(/^#/, '')));
   } catch {
     return { kind: 'none' };
   }
@@ -324,5 +334,24 @@ export function readOAuthCallback(url: string): OAuthCallback {
     const description = params.get('error_description');
     return { kind: 'error', message: description?.trim() || error };
   }
+  // Tokens in the fragment are the implicit flow — the one PKCE replaced. The
+  // client asks for PKCE (`flowType` in the mobile Supabase client), so being
+  // answered this way means the server was not asked for a code, and there is
+  // nothing here this client will accept: the refresh token in a URL is the
+  // exact thing PKCE exists to keep out. Say so rather than pretending the
+  // redirect was empty.
+  if (params.has('access_token')) {
+    return {
+      kind: 'error',
+      message: 'This sign-in came back in an old format the app no longer accepts.',
+    };
+  }
   return { kind: 'none' };
+}
+
+/** Query first: a value that appears in both is the one the server put in the URL proper. */
+function mergeParams(query: URLSearchParams, fragment: URLSearchParams): URLSearchParams {
+  const merged = new URLSearchParams(fragment);
+  for (const [key, value] of query) merged.set(key, value);
+  return merged;
 }

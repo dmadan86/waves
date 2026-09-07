@@ -64,6 +64,9 @@ async function oauthThroughBrowser(
   if (!data?.url) throw new Error(`${provider} did not give us a sign-in link`);
 
   const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+  if (__DEV__) console.log(`[oauth] ${provider} redirectTo=${redirectTo} came back ${result.type}`);
+  // Closed the browser, or swiped the tab away. Nothing failed and nothing
+  // changed, so the screen stays exactly as they left it.
   if (result.type !== 'success') return undefined;
 
   // PKCE (`flowType` in lib/supabase.ts): the redirect carries a one-time
@@ -73,8 +76,20 @@ async function oauthThroughBrowser(
   const callback = readOAuthCallback(result.url);
   if (callback.kind === 'error') throw new Error(callback.message);
   if (callback.kind === 'none') {
-    // A redirect that added nothing: the session it just linked an identity
-    // to is the one already held.
+    // A redirect that added nothing means two opposite things depending on
+    // what was asked for.
+    //
+    // Linking an identity: nothing is *supposed* to come back. The session the
+    // identity was just attached to is the one already held, so return it.
+    //
+    // Signing in: the whole point of the round trip was to come back with a
+    // code, and there isn't one. Returning the current session here — which is
+    // null, because nobody was signed in — put somebody back on the sign-in
+    // screen with no message, no spinner and no clue, looking exactly like the
+    // button did nothing. It has to be an error, even a generic one.
+    if (!link) {
+      throw new Error(`${provider} sign-in came back without a code`);
+    }
     const { data: current } = await backend.auth.getSession();
     return current.session;
   }
