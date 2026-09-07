@@ -55,7 +55,7 @@ import { isRouteAllowed } from '@/lib/routeAccess';
 import { ReducedMotionProvider, useReducedMotion } from '@/lib/reducedMotion';
 import { RecentCountProvider } from '@/lib/recentCount';
 import { WatchBridgeProvider } from '@/lib/watch/bridge';
-import { QuickShortcuts } from '@/components/QuickShortcuts';
+import { QuickShortcutRouting, QuickShortcutsMenu } from '@/components/QuickShortcuts';
 import { TourProvider, useTour } from '@/lib/tour';
 import { PromptQueueProvider } from '@/lib/promptQueue';
 import { SyncNetworkProvider } from '@/lib/syncNetwork';
@@ -222,6 +222,14 @@ function RootLayout() {
                               <RecentCountProvider>
                                 <ThemedRoot>
                                   <ThemedStatusBar />
+                                  {/* Renders nothing: it keeps the app-icon long-press
+                                      menu in step with the session. Outside every
+                                      gate because the menu lives on the home screen,
+                                      not in the app — it has to be cleared when
+                                      somebody signs out, and an upgrade has to replace
+                                      the single shortcut the old version published,
+                                      whether or not this launch gets past the lock. */}
+                                  <QuickShortcutsMenu />
                                   {/* Outside the lock and the auth gate on purpose: a build
                             we have stopped trusting should not be unlocking a
                             ledger or signing anybody in either. */}
@@ -571,11 +579,11 @@ function AuthGate() {
 
   return (
     <View style={{ flex: 1 }}>
-      {/* Renders nothing: it publishes the app-icon shortcut menu and routes a
-          tap on one of its three entries. Here rather than higher up so the
-          menu is neither published nor acted on while the intro is still
-          running — there is nowhere to send somebody yet. */}
-      <QuickShortcuts />
+      {/* Renders nothing: it routes a tap on one of the menu's three entries.
+          Here rather than higher up so a shortcut is never acted on while the
+          app is locked or the intro is still running — there is nowhere to send
+          somebody yet. The menu itself is published above every gate. */}
+      <QuickShortcutRouting />
       <Stack
         screenOptions={{
           headerShown: false,
