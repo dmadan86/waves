@@ -31,8 +31,6 @@ import Svg, { Circle, Ellipse, Path, Rect } from 'react-native-svg';
 
 import { Text, useTheme } from '@waves/ui';
 
-import { useStrings } from '@/i18n';
-
 /** The marks, in the order the picker lays them out. */
 export const GROUP_MARK_IDS = [
   'beach',
@@ -503,14 +501,4 @@ export function GroupMark({ emoji, size = 24, color }: GroupMarkProps) {
       <Drawing color={ink} />
     </Svg>
   );
-}
-
-/**
- * The mark's name, for a screen reader and for the picker's labels. Kept here
- * rather than in the picker because every surface that draws a mark owes the
- * same word to somebody who cannot see it.
- */
-export function useGroupMarkName(): (id: GroupMarkId) => string {
-  const { t } = useStrings();
-  return (id) => t.groupMarks[id];
 }
