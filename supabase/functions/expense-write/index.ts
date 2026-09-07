@@ -31,6 +31,7 @@ import {
   requireMembership,
 } from '../_shared/auth.ts';
 import { enforceRateLimit } from '../_shared/rateLimit.ts';
+import { assertAgentCap, recordAgentWrite } from '../_shared/agent.ts';
 
 interface ExpenseWriteRequest {
   groupId: string;
@@ -113,6 +114,13 @@ serveWithCors(async (request) => {
 
     const amount = parseMinor(body.amount, 'amount');
     if (amount < 0n) throw new HttpError(400, 'INVALID_AMOUNT', 'Amount cannot be negative');
+
+    // Before anything is written, and only for an agent: the app's own writes
+    // do not reach a ceiling here. After the replay check above, so retrying a
+    // mutation that already landed is still free — an agent retries on a
+    // timeout, and refusing the retry would leave it believing the expense was
+    // never written.
+    await assertAgentCap(caller, amount);
 
     const payers = Object.entries(body.payers ?? {}).map(
       ([id, value]) => [id, parseMinor(value, 'payer amount')] as const,
@@ -212,6 +220,15 @@ serveWithCors(async (request) => {
       versionNo: number;
       replayed: boolean;
     };
+
+    // The ledger has it; note who really asked for it. A no-op for the app.
+    await recordAgentWrite(caller, {
+      action: body.expenseId ? 'expense.edit' : 'expense.add',
+      groupId: body.groupId,
+      objectId: result.expenseId,
+      amountMinor: amount,
+      currency: body.currency,
+    });
 
     return json({
       ...result,
