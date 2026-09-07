@@ -93,6 +93,37 @@ enable_confirmations = true
 max_frequency = "1m0s"
 otp_length = 8
 
+# Auth mail — the sign-up confirmation and the login code — through Resend.
+#
+# Without this block GoTrue uses Supabase's built-in sender, which is rate
+# limited to a handful of messages an hour and documented as being for testing.
+# That is fine until the day two people sign up in the same minute, and then it
+# is a login door that silently does not open.
+#
+# The password is the Resend API key. Resend's SMTP user is the literal string
+# `resend` for every account — the key is the whole secret. It is read from
+# `supabase/.env` (gitignored) at `config push` time, exactly like the Google
+# secret below and the SMS hook secret above; `supabase secrets set` sets Edge
+# Function environment and does **not** reach GoTrue.
+#
+#   # supabase/.env
+#   RESEND_SMTP_PASSWORD=re_...
+#
+# Port 465 (implicit TLS) rather than 587: GoTrue speaks either, and 465 needs
+# no STARTTLS upgrade to get wrong.
+#
+# `sender_name` and `admin_email` are what the mail is *from*. The domain is
+# wavs.co.in, verified in Resend — an address on an unverified domain is
+# accepted by the API and then rejected at the mailbox.
+[auth.email.smtp]
+enabled = true
+host = "smtp.resend.com"
+port = 465
+user = "resend"
+pass = "env(RESEND_SMTP_PASSWORD)"
+admin_email = "hello@wavs.co.in"
+sender_name = "Waves"
+
 # ADR-006: guests join a group from a link with no account at all, so phone is a
 # way to keep an account, never the way to get one.
 #

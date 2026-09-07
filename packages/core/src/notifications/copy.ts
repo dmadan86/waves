@@ -59,6 +59,21 @@ export enum NotificationKind {
    * A tap, not a claim request: you are already in.
    */
   GroupAdded = 'group_added',
+  /**
+   * A device that has never signed in on this account just did. The one
+   * notification here that is a *security* notice rather than ledger news:
+   * it is the only way somebody learns their account was opened somewhere they
+   * are not, and it is the mail they will look for afterwards. So unlike
+   * everything else on this list it ignores the "email me" preference and is
+   * never held back because a push landed — see `waves_claim_email_notifications`.
+   */
+  NewDeviceLogin = 'new_device_login',
+  /**
+   * Monday morning: what the past week came to. Same template as the daily
+   * digest (which has no producer), a different cadence and its own kind so
+   * either can be turned on without the other.
+   */
+  DigestWeekly = 'digest_weekly',
 }
 
 /**
@@ -83,6 +98,15 @@ export interface EmailChrome {
    * spam.
    */
   readonly promoReason: string;
+  /**
+   * The footer reason on a security mail. It names no group and offers no way
+   * out, because there is not one: an account cannot opt out of being told it
+   * was signed into. Kept separate from `why` so that difference is a string
+   * somebody translated, not a missing `{group}` placeholder.
+   */
+  readonly securityReason: string;
+  /** Button on a security mail — straight to the list of signed-in devices. */
+  readonly securityAction: string;
   readonly unsubscribe: string;
   readonly signature: string;
 }
@@ -178,12 +202,22 @@ const en: CopyStrings = {
       title: '{actor} added you to {group}',
       body: 'Tap to open the group',
     },
+    [NotificationKind.NewDeviceLogin]: {
+      title: 'New sign-in on {device}',
+      body: 'If this was not you, sign that device out and change how you sign in.',
+    },
+    [NotificationKind.DigestWeekly]: {
+      title: 'Your week on Waves',
+      body: '{count} expenses · {amount}',
+    },
   },
   email: {
     confirmAction: 'Confirm you received it',
     openAction: 'Open Waves',
     why: 'You are getting this because of {group} on Waves.',
     promoReason: 'You are getting this because you use Waves.',
+    securityReason: 'You are getting this because somebody signed in to your Waves account.',
+    securityAction: 'Review your devices',
     unsubscribe: 'Stop emails like this',
     signature: 'Waves',
   },
@@ -274,12 +308,22 @@ const ta: CopyStrings = {
       title: '{actor} உங்களை {group} இல் சேர்த்தார்',
       body: 'குழுவைத் திறக்கத் தட்டவும்',
     },
+    [NotificationKind.NewDeviceLogin]: {
+      title: '{device} இல் புதிய உள்நுழைவு',
+      body: 'இது நீங்கள் இல்லையென்றால், அந்தச் சாதனத்தை வெளியேற்றி உள்நுழையும் முறையை மாற்றவும்.',
+    },
+    [NotificationKind.DigestWeekly]: {
+      title: 'Waves-இல் உங்கள் வாரம்',
+      body: '{count} செலவுகள் · {amount}',
+    },
   },
   email: {
     confirmAction: 'கிடைத்தது என உறுதிப்படுத்தவும்',
     openAction: 'Waves-ஐத் திறக்கவும்',
     why: 'Waves-இல் {group} காரணமாக இந்த மின்னஞ்சல் வந்துள்ளது.',
     promoReason: 'நீங்கள் Waves-ஐப் பயன்படுத்துவதால் இந்த மின்னஞ்சல் வந்துள்ளது.',
+    securityReason: 'உங்கள் Waves கணக்கில் யாரோ உள்நுழைந்ததால் இந்த மின்னஞ்சல் வந்துள்ளது.',
+    securityAction: 'உங்கள் சாதனங்களைப் பார்க்கவும்',
     unsubscribe: 'இதுபோன்ற மின்னஞ்சல்களை நிறுத்தவும்',
     signature: 'Waves',
   },
@@ -367,12 +411,22 @@ const hi: CopyStrings = {
       title: '{actor} ने आपको {group} में जोड़ा',
       body: 'ग्रुप खोलने के लिए टैप करें',
     },
+    [NotificationKind.NewDeviceLogin]: {
+      title: '{device} पर नया साइन-इन',
+      body: 'अगर यह आप नहीं थे, तो उस डिवाइस को साइन आउट करें और साइन-इन का तरीका बदलें।',
+    },
+    [NotificationKind.DigestWeekly]: {
+      title: 'Waves पर आपका हफ़्ता',
+      body: '{count} ख़र्च · {amount}',
+    },
   },
   email: {
     confirmAction: 'मिलने की पुष्टि करें',
     openAction: 'Waves खोलें',
     why: 'यह मेल Waves पर {group} की वजह से आया है।',
     promoReason: 'यह मेल इसलिए आया है क्योंकि आप Waves इस्तेमाल करते हैं।',
+    securityReason: 'यह मेल इसलिए आया है क्योंकि किसी ने आपके Waves खाते में साइन इन किया।',
+    securityAction: 'अपने डिवाइस देखें',
     unsubscribe: 'ऐसे मेल बंद करें',
     signature: 'Waves',
   },
@@ -460,12 +514,22 @@ const ar: CopyStrings = {
       title: 'أضافك {actor} إلى {group}',
       body: 'اضغط لفتح المجموعة',
     },
+    [NotificationKind.NewDeviceLogin]: {
+      title: 'تسجيل دخول جديد على {device}',
+      body: 'إن لم تكن أنت، فسجّل خروج ذلك الجهاز وغيّر طريقة دخولك.',
+    },
+    [NotificationKind.DigestWeekly]: {
+      title: 'أسبوعك على Waves',
+      body: '{count} مصروفات · {amount}',
+    },
   },
   email: {
     confirmAction: 'أكّد استلامك للمبلغ',
     openAction: 'افتح Waves',
     why: 'وصلك هذا البريد بسبب {group} في Waves.',
     promoReason: 'وصلك هذا البريد لأنك تستخدم Waves.',
+    securityReason: 'وصلك هذا البريد لأن أحدهم سجّل الدخول إلى حسابك في Waves.',
+    securityAction: 'راجع أجهزتك',
     unsubscribe: 'أوقف هذه الرسائل',
     signature: 'Waves',
   },

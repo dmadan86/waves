@@ -34,7 +34,11 @@ describe('what may be mailed at all', () => {
     expect(templateForKind('settlement_confirm_request')).toBe('settlement-confirm');
     expect(templateForKind('settlement_initiated')).toBe('settlement-confirm');
     expect(templateForKind('digest_daily')).toBe('digest');
+    // Same template, a cadence that actually has a producer behind it.
+    expect(templateForKind('digest_weekly')).toBe('digest');
     expect(templateForKind('nudge')).toBe('nudge');
+    // A security notice rather than ledger news — see the security block below.
+    expect(templateForKind('new_device_login')).toBe('new-device');
     // Not in TDR §7.3 — added because there is no in-app inbox any more (#565)
     // to fall back on when the push for it fails.
     expect(templateForKind('group_added')).toBe('group-added');
@@ -346,5 +350,45 @@ describe('the webhook signature', () => {
         now: AT_THE_TIME,
       }),
     ).toBe(true);
+  });
+});
+
+describe('a security mail', () => {
+  const SIGN_IN = {
+    ...ROW,
+    kind: 'new_device_login',
+    facts: { device: 'Pixel 9 · android' },
+    deepLink: 'waves://settings/devices',
+    groupName: null,
+  };
+
+  it('names the device it is warning about', () => {
+    const built = buildEmail(SIGN_IN, OPTIONS);
+    expect(built?.subject).toBe('New sign-in on Pixel 9 · android');
+  });
+
+  /**
+   * The difference that matters. `List-Unsubscribe` on a sign-in alert would
+   * offer somebody a one-click way to stop being told their account was opened
+   * from a device they do not own — and Gmail would happily show the button.
+   */
+  it('carries no unsubscribe: not the header, not the link, not the line', () => {
+    const built = buildEmail(SIGN_IN, OPTIONS);
+    expect(built?.headers).toEqual({});
+    expect(built?.html).not.toContain(OPTIONS.unsubscribeUrl);
+    expect(built?.html).not.toContain('Stop emails like this');
+    expect(built?.text).not.toContain(OPTIONS.unsubscribeUrl);
+  });
+
+  it('explains itself by the sign-in rather than by a group', () => {
+    const built = buildEmail(SIGN_IN, OPTIONS);
+    expect(built?.html).toContain('somebody signed in to your Waves account');
+    expect(built?.html).toContain('Review your devices');
+  });
+
+  it('leaves ordinary mail with its unsubscribe intact', () => {
+    const built = buildEmail(ROW, OPTIONS);
+    expect(built?.headers['List-Unsubscribe']).toBe(`<${OPTIONS.unsubscribeUrl}>`);
+    expect(built?.html).toContain('Stop emails like this');
   });
 });

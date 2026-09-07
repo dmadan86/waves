@@ -44,6 +44,27 @@ export enum EmailTemplate {
   Digest = 'digest',
   Nudge = 'nudge',
   GroupAdded = 'group-added',
+  /**
+   * A sign-in on a device this account has not used before. The only
+   * *security* mail here, and it is shaped differently for that reason: no
+   * unsubscribe line and no `List-Unsubscribe` header, because there is no such
+   * thing as opting out of being told your account was opened somewhere.
+   */
+  NewDevice = 'new-device',
+}
+
+/**
+ * Templates that are security notices rather than news. They carry the
+ * security footer instead of the group one, and no way to unsubscribe.
+ *
+ * Bulk-mail rules are not being dodged here: `List-Unsubscribe` is required on
+ * *bulk* mail, and a sign-in alert is transactional — the same class as a
+ * password reset, which no sender offers an opt-out on either.
+ */
+const SECURITY_TEMPLATES: ReadonlySet<EmailTemplate> = new Set([EmailTemplate.NewDevice]);
+
+export function isSecurityTemplate(template: EmailTemplate): boolean {
+  return SECURITY_TEMPLATES.has(template);
 }
 
 /**
@@ -68,6 +89,19 @@ export const TEMPLATE_FOR_KIND: Readonly<Record<string, EmailTemplate>> = Object
     settlement_initiated: EmailTemplate.SettlementConfirm,
     settlement_confirm_request: EmailTemplate.SettlementConfirm,
     digest_daily: EmailTemplate.Digest,
+    /**
+     * The weekly one is the digest that actually has a producer — a Monday
+     * morning cron (`waves_enqueue_weekly_digest`). Same template, because a
+     * digest is a digest whatever its cadence.
+     */
+    digest_weekly: EmailTemplate.Digest,
+    /**
+     * Mailed every time, unconditionally: no push check, and it survives the
+     * "email me" preference (see `waves_claim_email_notifications`). Somebody
+     * whose account was taken needs the mail most when they are least likely to
+     * be holding the phone that got the push.
+     */
+    new_device_login: EmailTemplate.NewDevice,
     /**
      * A nudge is mailed only when the person has no live device — TDR §7.4. That
      * condition is not checked here; it is checked in SQL, where the tokens are.
@@ -200,10 +234,16 @@ export function buildEmail(row: EmailableNotification, options: EmailOptions): B
     body: row.body,
   });
 
-  const action =
-    template === 'settlement-confirm' ? copy.email.confirmAction : copy.email.openAction;
+  const security = isSecurityTemplate(template);
+  const action = security
+    ? copy.email.securityAction
+    : template === 'settlement-confirm'
+      ? copy.email.confirmAction
+      : copy.email.openAction;
   const link = webLinkFor(row.deepLink, options.webUrl);
-  const why = interpolate(copy.email.why, { group: row.groupName ?? copy.email.signature });
+  const why = security
+    ? copy.email.securityReason
+    : interpolate(copy.email.why, { group: row.groupName ?? copy.email.signature });
   const direction = RIGHT_TO_LEFT.has(language) ? 'rtl' : 'ltr';
 
   return {
@@ -217,8 +257,8 @@ export function buildEmail(row: EmailableNotification, options: EmailOptions): B
       action,
       link,
       why,
-      unsubscribe: copy.email.unsubscribe,
-      unsubscribeUrl: options.unsubscribeUrl,
+      unsubscribe: security ? null : copy.email.unsubscribe,
+      unsubscribeUrl: security ? null : options.unsubscribeUrl,
       signature: copy.email.signature,
     }),
     text: [
@@ -229,15 +269,17 @@ export function buildEmail(row: EmailableNotification, options: EmailOptions): B
       link ?? '',
       '',
       why,
-      `${copy.email.unsubscribe}: ${options.unsubscribeUrl}`,
+      security ? '' : `${copy.email.unsubscribe}: ${options.unsubscribeUrl}`,
     ]
       .join('\n')
       .trim(),
     template,
-    headers: {
-      'List-Unsubscribe': `<${options.unsubscribeUrl}>`,
-      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
-    },
+    headers: security
+      ? {}
+      : {
+          'List-Unsubscribe': `<${options.unsubscribeUrl}>`,
+          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+        },
   };
 }
 
@@ -248,8 +290,9 @@ interface HtmlParts {
   readonly action: string;
   readonly link: string | null;
   readonly why: string;
-  readonly unsubscribe: string;
-  readonly unsubscribeUrl: string;
+  /** Both null on a security mail, which offers no way out. */
+  readonly unsubscribe: string | null;
+  readonly unsubscribeUrl: string | null;
   readonly signature: string;
 }
 
@@ -263,6 +306,13 @@ interface HtmlParts {
  */
 function renderHtml(parts: HtmlParts): string {
   const align = parts.direction === 'rtl' ? 'right' : 'left';
+  // A security mail has no unsubscribe line at all — not an empty one, and not
+  // a dead link. Both halves arrive null together, so one check covers them.
+  const optOut =
+    parts.unsubscribe && parts.unsubscribeUrl
+      ? `<br />
+<a href="${escapeHtml(parts.unsubscribeUrl)}" style="color:#78716c;">${escapeHtml(parts.unsubscribe)}</a>`
+      : '';
   const button = parts.link
     ? `<a href="${escapeHtml(parts.link)}" style="display:inline-block;padding:12px 20px;border-radius:8px;background:#1c1917;color:#ffffff;text-decoration:none;font-size:15px;">${escapeHtml(parts.action)}</a>`
     : '';
@@ -273,8 +323,7 @@ function renderHtml(parts: HtmlParts): string {
 <h1 style="margin:0 0 12px;font-size:20px;line-height:1.35;color:#1c1917;">${escapeHtml(parts.title)}</h1>
 <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#44403c;">${escapeHtml(parts.body)}</p>
 ${button}
-<p style="margin:28px 0 0;font-size:12px;line-height:1.6;color:#78716c;">${escapeHtml(parts.why)}<br />
-<a href="${escapeHtml(parts.unsubscribeUrl)}" style="color:#78716c;">${escapeHtml(parts.unsubscribe)}</a></p>
+<p style="margin:28px 0 0;font-size:12px;line-height:1.6;color:#78716c;">${escapeHtml(parts.why)}${optOut}</p>
 </div>
 <p style="max-width:520px;margin:16px auto 0;font-size:12px;color:#a8a29e;text-align:${align};">${escapeHtml(parts.signature)}</p>
 </body>
