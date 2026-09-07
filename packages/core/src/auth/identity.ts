@@ -350,6 +350,8 @@ export function readOAuthCallback(url: string): OAuthCallback {
 /** Query first: a value that appears in both is the one the server put in the URL proper. */
 function mergeParams(query: URLSearchParams, fragment: URLSearchParams): URLSearchParams {
   const merged = new URLSearchParams(fragment);
-  for (const [key, value] of query) merged.set(key, value);
+  // `forEach`, not `for...of`: this package compiles without `DOM.Iterable`, so
+  // iterating the params is a type error even though it runs everywhere.
+  query.forEach((value, key) => merged.set(key, value));
   return merged;
 }
