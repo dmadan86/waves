@@ -1051,6 +1051,13 @@ export interface UiStrings {
     signInMethodsTitle: string;
     signInMethodsBody: string;
     link: string;
+    /**
+     * The spoken label for one provider's Link button. The visible pill says
+     * only "Link", which is right beside the name and wrong on its own: with
+     * two providers listed, a screen reader would otherwise announce two
+     * identical buttons. `{provider}` is the brand name, never translated.
+     */
+    linkProvider: string;
     linked: string;
     footnote: string;
     /** Shown when a guest is sent here by a limit rather than arriving on their own. */
@@ -3385,6 +3392,7 @@ const en: UiStrings = {
     signInMethodsTitle: 'Ways to sign in',
     signInMethodsBody: 'Link an account and you can sign in with it next time, on any phone.',
     link: 'Link',
+    linkProvider: 'Link {provider}',
     linked: 'Linked',
     footnote:
       'Waves never asks for this to let you in, and never shares it with anyone in your groups. People see the name you choose, nothing else.',
@@ -5669,6 +5677,7 @@ const ta: UiStrings = {
     signInMethodsTitle: 'உள்நுழையும் வழிகள்',
     signInMethodsBody: 'ஒரு கணக்கை இணைத்தால், அடுத்த முறை எந்த ஃபோனிலும் அதன் மூலம் உள்நுழையலாம்.',
     link: 'இணை',
+    linkProvider: '{provider} ஐ இணை',
     linked: 'இணைக்கப்பட்டது',
     footnote:
       'உள்ளே விடுவதற்கு Waves இதை ஒருபோதும் கேட்பதில்லை, உங்கள் குழுக்களில் உள்ள யாருடனும் இதைப் பகிர்வதும் இல்லை. நீங்கள் தேர்ந்தெடுத்த பெயரை மட்டுமே மற்றவர்கள் பார்ப்பார்கள்.',
@@ -8006,6 +8015,7 @@ const hi: UiStrings = {
     signInMethodsTitle: 'साइन इन करने के तरीके',
     signInMethodsBody: 'कोई खाता लिंक करें और अगली बार किसी भी फ़ोन पर उससे साइन इन कर सकते हैं।',
     link: 'लिंक करें',
+    linkProvider: '{provider} लिंक करें',
     linked: 'लिंक किया गया',
     footnote:
       'अंदर आने देने के लिए Waves यह कभी नहीं माँगता, और आपके समूह में किसी के साथ इसे साझा नहीं करता। लोग सिर्फ़ वही नाम देखते हैं जो आप चुनते हैं।',
@@ -10323,6 +10333,7 @@ const ar: UiStrings = {
     signInMethodsTitle: 'طرق تسجيل الدخول',
     signInMethodsBody: 'اربط حسابًا لتتمكن من تسجيل الدخول به في المرة القادمة، على أي هاتف.',
     link: 'ربط',
+    linkProvider: 'ربط {provider}',
     linked: 'مرتبط',
     footnote:
       'لا يطلب Waves هذا ليسمح لك بالدخول، ولا يشاركه مع أحد في مجموعاتك. يرى الناس الاسم الذي تختاره، لا غير.',

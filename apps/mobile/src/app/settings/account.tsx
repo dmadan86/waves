@@ -10,7 +10,7 @@
 import { useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useLocalSearchParams } from 'expo-router';
-import { ActivityIndicator, ScrollView, TextInput, View } from 'react-native';
+import { ActivityIndicator, Platform, ScrollView, TextInput, View } from 'react-native';
 
 import {
   Badge,
@@ -72,7 +72,7 @@ function AccountForm() {
   const theme = useTheme();
   const clearance = useTabBarClearance();
   const { t } = useStrings();
-  const { session, profile, isGuest, refresh, updateProfile, withGoogle } = useAuth();
+  const { session, profile, isGuest, refresh, updateProfile, withGoogle, withApple } = useAuth();
 
   // Set when a guest was sent here by a limit rather than arriving on their own
   // (ADR-006 addendum). It only changes the explainer at the top; the linking
@@ -149,7 +149,7 @@ function AccountForm() {
 
   // Which providers already sign this account in, so a linked one shows as done
   // rather than offering to link what is already linked. Adding one goes through
-  // the same `withGoogle` the sign-in screen uses: for somebody
+  // the same `withGoogle`/`withApple` the sign-in screen uses: for somebody
   // already signed in, `planAuth` turns that into a link, never a fresh sign-in
   // that would strand this account (ADR-006).
   const linkedProviders = new Set(
@@ -586,22 +586,35 @@ function AccountForm() {
 
           {/* Linking a social account, so it can sign this same account in later
               on another phone — the OAuth complement to the email/phone above.
-              Only Google today; the row is built to take more. Under the same
-              heading, because it is another way into the same account. */}
+              Under the same heading, because it is another way into the same
+              account.
+
+              Apple is offered on Android too, exactly as the sign-in screen
+              offers it: `withApple` only reaches the native sheet for a fresh
+              sign-in on iOS, and a link is always the browser round trip, so
+              there is nothing platform-specific to hide here. The order follows
+              the sign-in screen's — Apple first on iOS, where its guidelines
+              want it at least as prominent as its neighbours. */}
           <Card style={{ gap: theme.spacing.md }}>
             <Text variant="caption" tone="muted">
               {t.contact.signInMethodsBody}
             </Text>
             <View style={{ gap: theme.spacing.md }}>
-              <ProviderRow
-                name="Google"
-                icon="logo-google"
-                linked={linkedProviders.has('google')}
-                busy={busy}
-                linkLabel={t.contact.link}
-                linkedLabel={t.contact.linked}
-                onLink={() => void link(withGoogle)}
-              />
+              {(Platform.OS === 'ios' ? PROVIDERS_APPLE_FIRST : PROVIDERS_GOOGLE_FIRST).map(
+                (provider) => (
+                  <ProviderRow
+                    key={provider.id}
+                    name={provider.name}
+                    icon={provider.icon}
+                    linked={linkedProviders.has(provider.id)}
+                    busy={busy}
+                    linkLabel={t.contact.link}
+                    linkA11yLabel={t.contact.linkProvider.replace('{provider}', provider.name)}
+                    linkedLabel={t.contact.linked}
+                    onLink={() => void link(provider.id === 'apple' ? withApple : withGoogle)}
+                  />
+                ),
+              )}
             </View>
           </Card>
         </View>
@@ -648,6 +661,17 @@ function GroupLabel({ icon, title }: { icon: keyof typeof Ionicons.glyphMap; tit
 }
 
 /**
+ * The identity providers this screen can attach, as data rather than repeated
+ * markup. `id` is the provider string Supabase stores on `user.identities`, so
+ * it is what decides whether a row is already linked — it must stay spelled the
+ * way the server spells it. Brand names are not translated.
+ */
+const PROVIDER_GOOGLE = { id: 'google', name: 'Google', icon: 'logo-google' } as const;
+const PROVIDER_APPLE = { id: 'apple', name: 'Apple', icon: 'logo-apple' } as const;
+const PROVIDERS_APPLE_FIRST = [PROVIDER_APPLE, PROVIDER_GOOGLE];
+const PROVIDERS_GOOGLE_FIRST = [PROVIDER_GOOGLE, PROVIDER_APPLE];
+
+/**
  * One provider in the "ways to sign in" list: its mark, its name, and either a
  * Linked badge or a button to link it. Icon-and-name so the row reads at a
  * glance; the action says exactly what it does.
@@ -658,14 +682,17 @@ function ProviderRow({
   linked,
   busy,
   linkLabel,
+  linkA11yLabel,
   linkedLabel,
   onLink,
 }: {
   name: string;
-  icon: 'logo-google';
+  icon: 'logo-google' | 'logo-apple';
   linked: boolean;
   busy: boolean;
   linkLabel: string;
+  /** Names the provider aloud, because the visible pill only says "Link". */
+  linkA11yLabel: string;
   linkedLabel: string;
   onLink: () => void;
 }) {
@@ -681,6 +708,7 @@ function ProviderRow({
       ) : (
         <Button
           label={linkLabel}
+          accessibilityLabel={linkA11yLabel}
           size="sm"
           variant="secondary"
           disabled={busy}
