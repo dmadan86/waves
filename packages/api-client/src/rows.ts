@@ -9,11 +9,15 @@
  * a number.
  */
 
+import type { RailId } from '@waves/core';
+
 export enum GroupType {
   Trip = 'trip',
   Home = 'home',
   Couple = 'couple',
   Event = 'event',
+  /** Added with the Friends tab (#347); the database enum has carried it since. */
+  Friends = 'friends',
   Other = 'other',
 }
 
@@ -30,6 +34,12 @@ export interface GroupRow {
   end_date: string | null;
   archived_at: string | null;
   created_at: string;
+  /**
+   * The row's revision. A trigger bumps it on every write to the group, which
+   * makes it the thing a form can hold on to and hand back — see
+   * `updateGroup`'s `ifUpdatedSeq`.
+   */
+  updated_seq: number;
 }
 
 export interface MemberRow {
@@ -256,4 +266,75 @@ export function groupLabel(
   if (others.length === 1) return `You and ${others[0]}`;
   if (others.length === 2) return `You, ${others[0]} and ${others[1]}`;
   return `You, ${others[0]} and ${others.length - 1} others`;
+}
+
+/**
+ * The signed-in person's own row, as the settings screens edit it.
+ *
+ * `notification_prefs` is JSON rather than columns because the set of things
+ * worth being told about changes with the product, and a migration per switch
+ * would be a migration per idea.
+ */
+export interface ProfileRow {
+  id: string;
+  display_name: string;
+  avatar_url: string | null;
+  /**
+   * How this person is paid: a `RailId` from @waves/core, and a handle on it.
+   * Narrower than the column, deliberately — the database accepts only the
+   * rails the enum names, so a typo like `'bitcoin'` should fail here rather
+   * than on the way to a constraint.
+   */
+  payment_rail: RailId | null;
+  payment_handle: string | null;
+  /** The UPI-shaped field this predates the rail pair; still read as a fallback. */
+  default_vpa: string | null;
+  /** ISO-3166 alpha-2 — seeds a new group's country and its currency. */
+  country_code: string | null;
+  default_currency: string;
+  locale: string;
+  notification_prefs?: NotificationPrefs | null;
+}
+
+/** What somebody agrees to be told about. Stored as JSON on the profile. */
+export interface NotificationPrefs {
+  /** Only things that involve me — the default that stops the noise. */
+  involvesMe: boolean;
+  groupActivityDigest: boolean;
+  settlementRequests: boolean;
+  nudges: boolean;
+  weeklyEmail: boolean;
+}
+
+export const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
+  involvesMe: true,
+  groupActivityDigest: true,
+  settlementRequests: true,
+  nudges: true,
+  weeklyEmail: false,
+};
+
+/**
+ * One person's balance in one group — the un-collapsed version of what the
+ * Friends list nets together, so tapping a name can say *where* the money is
+ * rather than only how much.
+ */
+export interface PersonGroupBalanceRow {
+  group_id: string;
+  group_name: string | null;
+  cover_emoji: string | null;
+  currency: string;
+  /** Positive: they owe you here. Negative: you owe them. Minor units. */
+  net: string;
+  is_ghost: boolean;
+  display_name: string;
+}
+
+/** A file the server built for somebody to take their ledger away (ADR-012). */
+export interface ExportResult {
+  filename: string;
+  contentType: string;
+  content: string;
+  /** 'base64' when `content` is binary (PDF); text formats omit it. */
+  encoding?: 'utf8' | 'base64';
 }

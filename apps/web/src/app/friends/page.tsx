@@ -76,44 +76,48 @@ function Friends({ query }: { query: string }) {
           ) : (
             <div className="list">
               {shown.map((person) => (
-                <div key={person.key} className="item" style={{ cursor: 'default' }}>
-                  <span className="avatar" aria-hidden style={{ width: 38, height: 38 }}>
-                    {person.name.trim().charAt(0).toUpperCase() || '🙂'}
-                  </span>
-                  <span className="grow">
-                    <span className="title">{person.name}</span>
-                    <span className="meta">
-                      {plural(locale, person.groupCount, t.friends.inGroups)}
+                // The row is two destinations, so it cannot be one link: a
+                // "Settle up" nested inside the person link would navigate to
+                // the person — invalid markup that quietly swallows the action.
+                <div key={person.key} className="item-pair">
+                  <Link href={`/friends/${encodeURIComponent(person.key)}`} className="item grow">
+                    <span className="avatar" aria-hidden style={{ width: 38, height: 38 }}>
+                      {person.name.trim().charAt(0).toUpperCase() || '🙂'}
                     </span>
-                  </span>
-                  <span
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'flex-end',
-                      gap: 2,
-                    }}
-                  >
-                    {person.nets.map((row) => {
-                      // Positive: they owe you. Negative: you owe them.
-                      const owed = row.net > 0n;
-                      return (
-                        <span key={row.currency} className={`amount ${owed ? 'pos' : 'neg'}`}>
-                          {money(row.net < 0n ? -row.net : row.net, row.currency, locale)}
-                          <span className="faint" style={{ marginInlineStart: 6, fontWeight: 500 }}>
-                            {owed ? t.friends.owesYou : t.friends.youOwe}
-                          </span>
-                        </span>
-                      );
-                    })}
-                    <Link
-                      className="btn soft"
-                      href={person.onlyGroupId ? `/settle?group=${person.onlyGroupId}` : '/settle'}
-                      style={{ marginTop: 4 }}
+                    <span className="grow">
+                      <span className="title">{person.name}</span>
+                      <span className="meta">
+                        {plural(locale, person.groupCount, t.friends.inGroups)}
+                      </span>
+                    </span>
+                    <span
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'flex-end',
+                        gap: 2,
+                      }}
                     >
-                      {t.friends.settleUp}
-                    </Link>
-                  </span>
+                      {person.nets.map((row) => {
+                        // Positive: they owe you. Negative: you owe them.
+                        const owed = row.net > 0n;
+                        return (
+                          <span key={row.currency} className={`amount ${owed ? 'pos' : 'neg'}`}>
+                            {money(row.net < 0n ? -row.net : row.net, row.currency, locale)}
+                            <span
+                              className="faint"
+                              style={{ marginInlineStart: 6, fontWeight: 500 }}
+                            >
+                              {owed ? t.friends.owesYou : t.friends.youOwe}
+                            </span>
+                          </span>
+                        );
+                      })}
+                    </span>
+                  </Link>
+                  <Link className="btn soft" href="/settle">
+                    {t.friends.settleUp}
+                  </Link>
                 </div>
               ))}
             </div>
