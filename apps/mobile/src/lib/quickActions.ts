@@ -67,6 +67,18 @@ export function actionForId(id: string): ShortcutAction | null {
     : null;
 }
 
+/** Destination for each app-icon shortcut. */
+export function routeForShortcut(action: ShortcutAction, now = Date.now()): string {
+  switch (action) {
+    case 'scan':
+      return `/capture?scan=${now}`;
+    case 'voice':
+      return '/voice';
+    default:
+      return '/capture';
+  }
+}
+
 /**
  * Publish the three icon shortcuts. Called once the app's strings are known, and
  * again whenever the language changes, so the menu speaks the same language the

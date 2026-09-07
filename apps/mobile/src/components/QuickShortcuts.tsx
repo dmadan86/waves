@@ -18,6 +18,7 @@ import {
   actionForId,
   initialQuickAction,
   onQuickAction,
+  routeForShortcut,
   syncQuickActions,
   type ShortcutAction,
 } from '@/lib/quickActions';
@@ -27,19 +28,13 @@ import {
 const RETIRED_KEYS = ['shortcut.action', 'shortcut.doubleTap'];
 
 function run(action: ShortcutAction): void {
-  switch (action) {
-    case 'scan':
-      // A fresh nonce so the capture screen's consume-once scan guard survives
-      // Android recreating it (same as the dashboard scan button).
-      router.push(`/capture?scan=${Date.now()}`);
-      break;
-    case 'voice':
-      router.push('/voice');
-      break;
-    default:
-      router.push('/capture');
-      break;
+  const route = routeForShortcut(action);
+  if (route === '/voice' || route === '/capture') {
+    router.push(route);
+    return;
   }
+  const scan = route.split('=')[1];
+  router.push({ pathname: '/capture', params: { scan } });
 }
 
 export function QuickShortcuts() {
