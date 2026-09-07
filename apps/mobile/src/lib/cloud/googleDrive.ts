@@ -191,8 +191,14 @@ export const googleDrive: CloudProvider = {
   async revoke(tokens: CloudTokens): Promise<void> {
     // Play services can do this properly — it drops its cached token and tells
     // Google in one go. The HTTP call below is the fallback for a build that
-    // somehow has tokens without the module that made them.
-    if (await nativeRevoke(tokens)) return;
+    // somehow has tokens without the module that made them, or for a partial
+    // native failure while unlinking: disconnect is best-effort, but if one path
+    // to Google failed and another remains, take it.
+    try {
+      if (await nativeRevoke(tokens)) return;
+    } catch {
+      // Fall through to HTTP revoke below.
+    }
     const token = tokens.refreshToken ?? tokens.accessToken;
     if (!token) return;
     await fetch(REVOCATION_ENDPOINT, {

@@ -19,8 +19,15 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+const platform = { OS: 'android' };
+
 vi.mock('react-native', () => ({
-  Platform: { OS: 'android', select: (o: Record<string, unknown>) => o.android ?? o.default },
+  Platform: {
+    get OS() {
+      return platform.OS;
+    },
+    select: (o: Record<string, unknown>) => o[platform.OS] ?? o.default,
+  },
 }));
 
 const { googleDrive } = await import('../src/lib/cloud/googleDrive');
@@ -36,10 +43,17 @@ interface FakeState {
   signIn: 'success' | 'cancelled' | 'throws-cancelled';
   /** What a silent renewal finds. */
   silent: 'success' | 'nobody' | 'required';
+  /** Whether native revoke completes or throws after a partial Play-services failure. */
+  revoke: 'success' | 'throws';
   accessToken: string;
 }
 
-const state: FakeState = { signIn: 'success', silent: 'success', accessToken: 'token-1' };
+const state: FakeState = {
+  signIn: 'success',
+  silent: 'success',
+  revoke: 'success',
+  accessToken: 'token-1',
+};
 const calls = {
   signIn: vi.fn(),
   signInSilently: vi.fn(),
@@ -47,6 +61,7 @@ const calls = {
   cleared: vi.fn(),
   revoked: vi.fn(),
   configured: vi.fn(),
+  fetch: vi.fn(),
 };
 
 function cancelled(code: string): Error & { code: string } {
@@ -81,6 +96,7 @@ function fakeModule() {
       },
       async revokeAccess() {
         calls.revoked();
+        if (state.revoke === 'throws') throw new Error('native revoke failed');
         return null;
       },
       async signOut() {
@@ -96,9 +112,13 @@ function fakeModule() {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  platform.OS = 'android';
   state.signIn = 'success';
   state.silent = 'success';
+  state.revoke = 'success';
   state.accessToken = 'token-1';
+  calls.fetch.mockResolvedValue({ ok: true, text: async () => '' });
+  vi.stubGlobal('fetch', calls.fetch);
   process.env.EXPO_PUBLIC_GOOGLE_DRIVE_CLIENT_ID_WEB = '1234.apps.googleusercontent.com';
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   setSigninModuleForTests(fakeModule() as any);
@@ -185,6 +205,38 @@ describe('unlinking', () => {
     });
     expect(calls.revoked).toHaveBeenCalled();
     expect(calls.cleared).toHaveBeenCalledWith('token-1');
+    expect(calls.fetch).not.toHaveBeenCalled();
+  });
+
+  it('falls back to HTTP revoke when native revoke fails partway through', async () => {
+    state.revoke = 'throws';
+    await googleDrive.revoke?.({
+      accessToken: 'token-1',
+      refreshToken: null,
+      expiresAt: Date.now(),
+    });
+
+    expect(calls.revoked).toHaveBeenCalled();
+    expect(calls.fetch).toHaveBeenCalledWith('https://oauth2.googleapis.com/revoke', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'token=token-1',
+    });
+  });
+
+  it('falls back to HTTP revoke when tokens exist but the native module does not', async () => {
+    setSigninModuleForTests(null);
+    await googleDrive.revoke?.({
+      accessToken: 'access-token',
+      refreshToken: 'refresh-token',
+      expiresAt: Date.now(),
+    });
+
+    expect(calls.fetch).toHaveBeenCalledWith('https://oauth2.googleapis.com/revoke', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'token=refresh-token',
+    });
   });
 });
 
@@ -200,5 +252,30 @@ describe('whether the row is offered at all', () => {
     // The project is still named; the phone simply cannot ask.
     expect(isConfigured('gdrive')).toBe(true);
     expect(googleDrive.isConfigured()).toBe(false);
+  });
+
+  it('is not offered on web even when a project is named', () => {
+    platform.OS = 'web';
+    expect(isConfigured('gdrive')).toBe(false);
+    expect(googleDrive.isConfigured()).toBe(false);
+  });
+
+  it('requires the iOS client id on iOS builds', () => {
+    platform.OS = 'ios';
+    delete process.env.EXPO_PUBLIC_GOOGLE_DRIVE_CLIENT_ID_IOS;
+    expect(isConfigured('gdrive')).toBe(false);
+    expect(googleDrive.isConfigured()).toBe(false);
+  });
+
+  it('configures the iOS client id only on iOS builds', async () => {
+    platform.OS = 'ios';
+    process.env.EXPO_PUBLIC_GOOGLE_DRIVE_CLIENT_ID_IOS = 'ios-client.apps.googleusercontent.com';
+    expect(isConfigured('gdrive')).toBe(true);
+
+    await googleDrive.connect();
+
+    expect(calls.configured).toHaveBeenCalledWith(
+      expect.objectContaining({ iosClientId: 'ios-client.apps.googleusercontent.com' }),
+    );
   });
 });
