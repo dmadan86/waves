@@ -566,6 +566,25 @@
     @apply text-end font-semibold text-ink;
   }
 
+  /* A labelled control. The older screens use a bare input with an aria-label,
+     which is right for one obvious box (an amount, a description) and wrong for
+     a settings form where six of them sit in a column and every one needs a
+     name you can read. */
+  .field {
+    @apply mb-[14px] block;
+  }
+  .field-label {
+    @apply mb-[6px] block text-[12px] font-semibold text-ink-faint;
+  }
+  /* A control and its button side by side — "add this person", "save this". */
+  .row-field {
+    @apply flex items-center gap-[10px];
+  }
+  .row-field > input,
+  .row-field > select {
+    @apply flex-1;
+  }
+
   .btn {
     @apply inline-flex w-auto cursor-pointer appearance-none items-center justify-center gap-2 rounded-[9px] border-0 px-[18px] py-[10px] text-[14px] font-semibold text-white no-underline;
     background: var(--color-accent);

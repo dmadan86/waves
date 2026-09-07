@@ -40,10 +40,16 @@ import {
   type DisputeRow,
   type ExpenseVersionSummary,
   type GroupRow,
+  type GroupType,
   type MemberRow,
+  type ProfileRow,
   type NotificationRow,
   type PersonBalanceRow,
 } from './rows';
+
+const PROFILE_COLUMNS =
+  'id, display_name, avatar_url, payment_rail, payment_handle, default_vpa, ' +
+  'country_code, default_currency, locale, notification_prefs';
 
 const GROUP_ROW_COLUMNS = `
   id, name, type, country_code, default_currency, simplify_debts, cover_emoji, photo_path,
@@ -412,6 +418,144 @@ export function createWavesClient({ supabase }: WavesClientOptions) {
       );
     },
 
+    /** Every group, archived ones included — the archive shelf reads this. */
+    allGroups(): Promise<GroupRow[]> {
+      return read<GroupRow>(
+        supabase.from('groups').select(GROUP_ROW_COLUMNS).order('created_at', { ascending: false }),
+      );
+    },
+
+    /** The whole row for one group, not the lean five columns `group` returns. */
+    async groupRow(groupId: string): Promise<GroupRow | null> {
+      const rows = await read<GroupRow>(
+        supabase.from('groups').select(GROUP_ROW_COLUMNS).eq('id', groupId).limit(1),
+      );
+      return rows[0] ?? null;
+    },
+
+    /**
+     * Start a group. The creator's membership is made by the RPC, not by a
+     * second insert here: two round trips could leave a group nobody is in.
+     *
+     * A name is optional throughout Waves — a group with none is labelled by
+     * who is in it — so an empty box is a choice, not a validation failure.
+     */
+    createGroup(input: {
+      name?: string | null;
+      type: GroupType;
+      currency: string;
+      emoji?: string | null;
+      simplify?: boolean;
+      country?: string | null;
+    }): Promise<string> {
+      return rpc<string>('waves_create_group', {
+        p_name: input.name?.trim() || null,
+        p_type: input.type,
+        p_currency: input.currency,
+        p_emoji: input.emoji ?? null,
+        p_simplify: input.simplify ?? true,
+        p_group_id: null,
+        p_photo_path: null,
+        p_country: input.country ?? null,
+        p_creator_member_id: null,
+      });
+    },
+
+    /**
+     * Change the group itself. A plain table update, which is deliberate: RLS
+     * decides who may write these columns, and `role` is not among them —
+     * promoting somebody goes through `setMemberRole`, where the last-admin
+     * rule lives.
+     */
+    async updateGroup(
+      groupId: string,
+      patch: Partial<{
+        name: string | null;
+        type: GroupType;
+        cover_emoji: string | null;
+        simplify_debts: boolean;
+        default_currency: string;
+        country_code: string | null;
+        archived_at: string | null;
+        start_date: string | null;
+        end_date: string | null;
+      }>,
+    ): Promise<void> {
+      const { error } = await supabase.from('groups').update(patch).eq('id', groupId);
+      if (error) throw new WavesApiError(String((error as { message?: string }).message ?? error));
+    },
+
+    /**
+     * Delete a group for everybody. A tombstone rather than a row delete — the
+     * ledger stays append-only (ADR-004) — and admin-only and settled-only are
+     * enforced inside the RPC, so the two coded refusals below are what the
+     * caller turns into a sentence.
+     */
+    deleteGroup(groupId: string): Promise<void> {
+      return rpc<void>('waves_delete_group', { p_group_id: groupId });
+    },
+
+    /**
+     * Add somebody who is not here yet: a name in the group, with expenses
+     * filed against it, that a real person can later claim through an invite
+     * (ADR-006). The contact is a hint for one invitation, never a contact book.
+     */
+    addGhostMember(input: {
+      groupId: string;
+      name: string;
+      email?: string | null;
+      phone?: string | null;
+    }): Promise<string> {
+      return rpc<string>('waves_add_ghost_member', {
+        p_group_id: input.groupId,
+        p_name: input.name.trim() || null,
+        p_member_id: null,
+        p_email: input.email?.trim() || null,
+        p_phone: input.phone?.trim() || null,
+      });
+    },
+
+    /** Rename a ghost, or set your own per-group payment handle. */
+    async updateMember(
+      memberId: string,
+      patch: Partial<{ ghost_name: string; vpa: string | null }>,
+    ): Promise<void> {
+      const { error } = await supabase.from('group_members').update(patch).eq('id', memberId);
+      if (error) throw new WavesApiError(String((error as { message?: string }).message ?? error));
+    },
+
+    /**
+     * Promote or demote. Never a column a client writes: admin-only and the
+     * last-admin guard live in the RPC, and a trigger refuses the direct route.
+     */
+    setMemberRole(memberId: string, role: 'admin' | 'member'): Promise<void> {
+      return rpc<void>('waves_set_member_role', { p_member_id: memberId, p_role: role });
+    },
+
+    /** A soft exit: the history stays, the person stops accruing new shares. */
+    async leaveGroup(memberId: string): Promise<void> {
+      const { error } = await supabase
+        .from('group_members')
+        .update({ left_at: new Date().toISOString() })
+        .eq('id', memberId);
+      if (error) throw new WavesApiError(String((error as { message?: string }).message ?? error));
+    },
+
+    /**
+     * The group's durable join token, made on first use (A47).
+     *
+     * One stable token per group — the WhatsApp model — so the same link and QR
+     * can be shown again tomorrow rather than minting a fresh invite per person.
+     */
+    ensureGroupJoinToken(groupId: string): Promise<string> {
+      return rpc<string>('waves_ensure_group_join_token', { p_group_id: groupId });
+    },
+
+    /** Rotate it. Admin only, and every copy already shared stops working. */
+    resetGroupJoinToken(groupId: string): Promise<string> {
+      return rpc<string>('waves_reset_group_join_token', { p_group_id: groupId });
+    },
+
     /** Every member of every group I am in, keyed by group — one query. */
     async membersByGroup(): Promise<Map<string, MemberRow[]>> {
       const rows = await read<MemberRow>(
@@ -543,6 +687,32 @@ export function createWavesClient({ supabase }: WavesClientOptions) {
     // Everything Waves has told this person, kept whether or not a push ever
     // landed. No profile filter: `notifications_select_own` decides whose inbox
     // this is, and a second, weaker check here would only invite disagreement.
+
+    /**
+     * The signed-in person's own profile row.
+     *
+     * Read by id rather than "the one row RLS returns", because RLS lets you
+     * see other people you share a group with — a `.single()` over the table
+     * would be a coin toss about whose name the settings page edits.
+     */
+    async myProfile(): Promise<ProfileRow | null> {
+      const { data: auth } = await supabase.auth.getUser();
+      const id = auth.user?.id;
+      if (!id) return null;
+      const rows = await read<ProfileRow>(
+        supabase.from('profiles').select(PROFILE_COLUMNS).eq('id', id).limit(1),
+      );
+      return rows[0] ?? null;
+    },
+
+    /** Change your own row. RLS makes "your own" the only row this can touch. */
+    async updateProfile(patch: Partial<ProfileRow>): Promise<void> {
+      const { data: auth } = await supabase.auth.getUser();
+      const id = auth.user?.id;
+      if (!id) throw new WavesApiError('Not signed in');
+      const { error } = await supabase.from('profiles').update(patch).eq('id', id);
+      if (error) throw new WavesApiError(String((error as { message?: string }).message ?? error));
+    },
 
     notifications(limit = 50): Promise<NotificationRow[]> {
       return read<NotificationRow>(

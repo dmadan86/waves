@@ -14,6 +14,8 @@ export enum GroupType {
   Home = 'home',
   Couple = 'couple',
   Event = 'event',
+  /** Added with the Friends tab (#347); the database enum has carried it since. */
+  Friends = 'friends',
   Other = 'other',
 }
 
@@ -257,3 +259,44 @@ export function groupLabel(
   if (others.length === 2) return `You, ${others[0]} and ${others[1]}`;
   return `You, ${others[0]} and ${others.length - 1} others`;
 }
+
+/**
+ * The signed-in person's own row, as the settings screens edit it.
+ *
+ * `notification_prefs` is JSON rather than columns because the set of things
+ * worth being told about changes with the product, and a migration per switch
+ * would be a migration per idea.
+ */
+export interface ProfileRow {
+  id: string;
+  display_name: string;
+  avatar_url: string | null;
+  /** How this person is paid: a `RailId` from @waves/core, and a handle on it. */
+  payment_rail: string | null;
+  payment_handle: string | null;
+  /** The UPI-shaped field this predates the rail pair; still read as a fallback. */
+  default_vpa: string | null;
+  /** ISO-3166 alpha-2 — seeds a new group's country and its currency. */
+  country_code: string | null;
+  default_currency: string;
+  locale: string;
+  notification_prefs?: NotificationPrefs | null;
+}
+
+/** What somebody agrees to be told about. Stored as JSON on the profile. */
+export interface NotificationPrefs {
+  /** Only things that involve me — the default that stops the noise. */
+  involvesMe: boolean;
+  groupActivityDigest: boolean;
+  settlementRequests: boolean;
+  nudges: boolean;
+  weeklyEmail: boolean;
+}
+
+export const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
+  involvesMe: true,
+  groupActivityDigest: true,
+  settlementRequests: true,
+  nudges: true,
+  weeklyEmail: false,
+};

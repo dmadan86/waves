@@ -302,6 +302,115 @@ export interface WebStrings {
   };
   /** What a backend failure is allowed to say. The real message goes to Sentry
    *  — see `lib/errors.ts`. */
+  /** The groups shelf, and the group management the browser never had. */
+  groups: {
+    title: string;
+    empty: string;
+    emptyBody: string;
+    newGroup: string;
+    showArchived: string;
+    hideArchived: string;
+    archivedEmpty: string;
+    archivedTag: string;
+    memberCount: PluralForms;
+  };
+  newGroup: {
+    title: string;
+    intro: string;
+    nameLabel: string;
+    namePlaceholder: string;
+    emojiLabel: string;
+    currencyLabel: string;
+    typeLabel: string;
+    typeTrip: string;
+    typeHome: string;
+    typeCouple: string;
+    typeFriends: string;
+    typeEvent: string;
+    typeOther: string;
+    simplifyLabel: string;
+    simplifyBody: string;
+    peopleLabel: string;
+    peopleBody: string;
+    personPlaceholder: string;
+    addPerson: string;
+    create: string;
+    creating: string;
+  };
+  members: {
+    title: string;
+    you: string;
+    admin: string;
+    ghost: string;
+    ghostBody: string;
+    addTitle: string;
+    namePlaceholder: string;
+    emailPlaceholder: string;
+    phonePlaceholder: string;
+    add: string;
+    makeAdmin: string;
+    removeAdmin: string;
+    remove: string;
+    removeConfirm: string;
+    leave: string;
+    leaveConfirm: string;
+    inviteInstead: string;
+  };
+  invite: {
+    title: string;
+    scanToJoin: string;
+    copyLink: string;
+    copied: string;
+    share: string;
+    reset: string;
+    resetConfirm: string;
+    alreadyHere: PluralForms;
+    trust: string;
+    making: string;
+  };
+  groupSettings: {
+    title: string;
+    nameLabel: string;
+    emojiLabel: string;
+    currencyLabel: string;
+    currencyNote: string;
+    simplifyLabel: string;
+    simplifyBody: string;
+    save: string;
+    saved: string;
+    archive: string;
+    archiveBody: string;
+    unarchive: string;
+    delete: string;
+    deleteBody: string;
+    deleteConfirm: string;
+    adminOnly: string;
+    danger: string;
+  };
+  settings: {
+    title: string;
+    profile: string;
+    displayName: string;
+    currency: string;
+    country: string;
+    paymentHandle: string;
+    paymentHandleBody: string;
+    save: string;
+    saved: string;
+    notifications: string;
+    notifyInvolvesMe: string;
+    notifyDigest: string;
+    notifySettlements: string;
+    notifyNudges: string;
+    notifyWeekly: string;
+    language: string;
+    languageBody: string;
+    guestTitle: string;
+    guestBody: string;
+    signOut: string;
+    onlyInApp: string;
+    onlyInAppBody: string;
+  };
   errors: {
     couldNotLoad: string;
     couldNotSignIn: string;
@@ -519,6 +628,118 @@ const en: WebStrings = {
     nudge: 'Nudge',
     nudged: 'Nudged',
     loading: 'Loading…',
+  },
+  groups: {
+    title: 'Your groups',
+    empty: 'No groups yet',
+    emptyBody: 'Start one for a trip, a flat, or the two of you.',
+    newGroup: 'New group',
+    showArchived: 'Show archived',
+    hideArchived: 'Hide archived',
+    archivedEmpty: 'Nothing archived.',
+    archivedTag: 'Archived',
+    memberCount: { one: '{n} person', other: '{n} people' },
+  },
+  newGroup: {
+    title: 'New group',
+    intro: 'Everything after this is free and unlimited — add people now or share a link later.',
+    nameLabel: 'Name',
+    namePlaceholder: 'Goa trip, Flat 3B, us two…',
+    emojiLabel: 'Icon',
+    currencyLabel: 'Currency',
+    typeLabel: 'What is it for',
+    typeTrip: 'Trip',
+    typeHome: 'Home',
+    typeCouple: 'Couple',
+    typeFriends: 'Friends',
+    typeEvent: 'Event',
+    typeOther: 'Other',
+    simplifyLabel: 'Simplify debts',
+    simplifyBody: 'Fewest payments that square everybody, rather than one payment per expense.',
+    peopleLabel: 'Who is in it',
+    peopleBody: 'Add names now; they can claim their place when they open your invite.',
+    personPlaceholder: 'Name',
+    addPerson: 'Add',
+    create: 'Create group',
+    creating: 'Creating…',
+  },
+  members: {
+    title: 'People',
+    you: 'You',
+    admin: 'Admin',
+    ghost: 'Not joined',
+    ghostBody:
+      'A name somebody typed in. Share the invite and they can take this place, with the expenses already against it.',
+    addTitle: 'Add somebody',
+    namePlaceholder: 'Name',
+    emailPlaceholder: 'Email (optional)',
+    phonePlaceholder: 'Phone with country code (optional)',
+    add: 'Add',
+    makeAdmin: 'Make admin',
+    removeAdmin: 'Remove admin',
+    remove: 'Remove',
+    removeConfirm: 'Remove {name}? Their expenses stay in the ledger.',
+    leave: 'Leave group',
+    leaveConfirm: 'Leave this group? What you added stays.',
+    inviteInstead: 'Invite with a link',
+  },
+  invite: {
+    title: 'Invite people',
+    scanToJoin: 'Scan to join',
+    copyLink: 'Copy link',
+    copied: 'Copied',
+    share: 'Share invite',
+    reset: 'Reset link',
+    resetConfirm: 'Reset the link? Every copy already shared stops working.',
+    alreadyHere: { one: '{n} person already here', other: '{n} people already here' },
+    trust: 'Anyone with this link can join {group}, so share it with people you trust.',
+    making: 'Making the link…',
+  },
+  groupSettings: {
+    title: 'Group settings',
+    nameLabel: 'Name',
+    emojiLabel: 'Icon',
+    currencyLabel: 'Currency',
+    currencyNote:
+      'New expenses default to this. Ones already entered keep the currency they were in.',
+    simplifyLabel: 'Simplify debts',
+    simplifyBody: 'Fewest payments that square everybody.',
+    save: 'Save',
+    saved: 'Saved',
+    archive: 'Archive group',
+    archiveBody: 'It leaves your list and stops appearing in totals. Nothing is deleted.',
+    unarchive: 'Bring it back',
+    delete: 'Delete for everybody',
+    deleteBody:
+      'Only when everybody is square, and only an admin can. It goes from everyone’s list.',
+    deleteConfirm: 'Delete this group for everybody? This cannot be undone.',
+    adminOnly: 'Only an admin of this group can change this.',
+    danger: 'Careful',
+  },
+  settings: {
+    title: 'Settings',
+    profile: 'You',
+    displayName: 'Name',
+    currency: 'Default currency',
+    country: 'Country',
+    paymentHandle: 'Payment handle',
+    paymentHandleBody: 'Shown to people settling up with you, so they can pay without asking.',
+    save: 'Save',
+    saved: 'Saved',
+    notifications: 'What we tell you about',
+    notifyInvolvesMe: 'Only things that involve me',
+    notifyDigest: 'A daily summary of group activity',
+    notifySettlements: 'When somebody pays me, or asks me to confirm',
+    notifyNudges: 'Reminders somebody sends me',
+    notifyWeekly: 'A weekly email',
+    language: 'Language',
+    languageBody: 'Follows your browser. Change it there and this page follows.',
+    guestTitle: 'You are a guest',
+    guestBody: 'Add an email so this account can be opened on another device.',
+    signOut: 'Sign out',
+    onlyInApp: 'In the app',
+    onlyInAppBody:
+      'Scanning receipts, speaking an expense, offline entry and your private Me ledger live in the phone app.',
   },
   errors: {
     couldNotLoad: 'Couldn’t load this. Try again in a moment.',
@@ -746,6 +967,120 @@ const ta: WebStrings = {
     nudged: 'நினைவூட்டப்பட்டது',
     loading: 'ஏற்றுகிறது…',
   },
+  groups: {
+    title: 'உங்கள் குழுக்கள்',
+    empty: 'இன்னும் குழு இல்லை',
+    emptyBody: 'பயணம், வீடு, அல்லது நீங்கள் இருவர் — ஒன்றைத் தொடங்குங்கள்.',
+    newGroup: 'புதிய குழு',
+    showArchived: 'காப்பகத்தைக் காட்டு',
+    hideArchived: 'காப்பகத்தை மறை',
+    archivedEmpty: 'காப்பகத்தில் எதுவும் இல்லை.',
+    archivedTag: 'காப்பகம்',
+    memberCount: { one: '{n} நபர்', other: '{n} நபர்கள்' },
+  },
+  newGroup: {
+    title: 'புதிய குழு',
+    intro:
+      'இதற்குப் பிறகு எல்லாம் இலவசம் — இப்போது ஆட்களைச் சேர்க்கலாம் அல்லது பிறகு இணைப்பைப் பகிரலாம்.',
+    nameLabel: 'பெயர்',
+    namePlaceholder: 'கோவா பயணம், வீடு 3B, நாம் இருவர்…',
+    emojiLabel: 'சின்னம்',
+    currencyLabel: 'நாணயம்',
+    typeLabel: 'எதற்காக',
+    typeTrip: 'பயணம்',
+    typeHome: 'வீடு',
+    typeCouple: 'இருவர்',
+    typeFriends: 'நண்பர்கள்',
+    typeEvent: 'நிகழ்வு',
+    typeOther: 'மற்றவை',
+    simplifyLabel: 'கடன்களை எளிதாக்கு',
+    simplifyBody:
+      'ஒவ்வொரு செலவுக்கும் ஒரு பணப்பரிமாற்றம் அல்ல — குறைந்த பரிமாற்றங்களில் அனைவரும் சரியாகிறார்கள்.',
+    peopleLabel: 'யார் இருக்கிறார்கள்',
+    peopleBody:
+      'இப்போது பெயர்களைச் சேர்க்கவும்; உங்கள் அழைப்பைத் திறக்கும்போது அவர்கள் அந்த இடத்தை எடுக்கலாம்.',
+    personPlaceholder: 'பெயர்',
+    addPerson: 'சேர்',
+    create: 'குழுவை உருவாக்கு',
+    creating: 'உருவாக்குகிறது…',
+  },
+  members: {
+    title: 'ஆட்கள்',
+    you: 'நீங்கள்',
+    admin: 'நிர்வாகி',
+    ghost: 'சேரவில்லை',
+    ghostBody:
+      'யாரோ தட்டச்சு செய்த பெயர். அழைப்பைப் பகிர்ந்தால், ஏற்கனவே உள்ள செலவுகளுடன் அவர்கள் இந்த இடத்தை எடுக்கலாம்.',
+    addTitle: 'ஒருவரைச் சேர்',
+    namePlaceholder: 'பெயர்',
+    emailPlaceholder: 'மின்னஞ்சல் (விருப்பம்)',
+    phonePlaceholder: 'நாட்டுக் குறியீட்டுடன் எண் (விருப்பம்)',
+    add: 'சேர்',
+    makeAdmin: 'நிர்வாகியாக்கு',
+    removeAdmin: 'நிர்வாகியை நீக்கு',
+    remove: 'நீக்கு',
+    removeConfirm: '{name} ஐ நீக்கவா? அவர்களின் செலவுகள் கணக்கில் இருக்கும்.',
+    leave: 'குழுவிலிருந்து விலகு',
+    leaveConfirm: 'இந்தக் குழுவிலிருந்து விலகவா? நீங்கள் சேர்த்தவை இருக்கும்.',
+    inviteInstead: 'இணைப்பு மூலம் அழை',
+  },
+  invite: {
+    title: 'ஆட்களை அழை',
+    scanToJoin: 'ஸ்கேன் செய்து சேரவும்',
+    copyLink: 'இணைப்பை நகலெடு',
+    copied: 'நகலெடுக்கப்பட்டது',
+    share: 'அழைப்பைப் பகிர்',
+    reset: 'இணைப்பை மீட்டமை',
+    resetConfirm: 'இணைப்பை மீட்டமைக்கவா? ஏற்கனவே பகிர்ந்த நகல்கள் வேலை செய்யாது.',
+    alreadyHere: { one: '{n} பேர் ஏற்கனவே இங்கே', other: '{n} பேர் ஏற்கனவே இங்கே' },
+    trust: 'இந்த இணைப்பு உள்ள யாரும் {group} இல் சேரலாம், நம்பிக்கையானவர்களுடன் மட்டும் பகிரவும்.',
+    making: 'இணைப்பு உருவாக்கப்படுகிறது…',
+  },
+  groupSettings: {
+    title: 'குழு அமைப்புகள்',
+    nameLabel: 'பெயர்',
+    emojiLabel: 'சின்னம்',
+    currencyLabel: 'நாணயம்',
+    currencyNote: 'புதிய செலவுகள் இதைப் பயன்படுத்தும். ஏற்கனவே உள்ளவை மாறாது.',
+    simplifyLabel: 'கடன்களை எளிதாக்கு',
+    simplifyBody: 'குறைந்த பரிமாற்றங்களில் அனைவரும் சரியாகிறார்கள்.',
+    save: 'சேமி',
+    saved: 'சேமிக்கப்பட்டது',
+    archive: 'குழுவைக் காப்பகப்படுத்து',
+    archiveBody: 'உங்கள் பட்டியலிலிருந்து விலகும், மொத்தங்களில் வராது. எதுவும் அழிக்கப்படாது.',
+    unarchive: 'மீண்டும் கொண்டு வா',
+    delete: 'அனைவருக்கும் நீக்கு',
+    deleteBody:
+      'அனைவரும் சரியாக இருக்கும்போது மட்டும், நிர்வாகி மட்டும். எல்லோர் பட்டியலிலிருந்தும் போகும்.',
+    deleteConfirm: 'இந்தக் குழுவை அனைவருக்கும் நீக்கவா? திரும்பப் பெற முடியாது.',
+    adminOnly: 'இந்தக் குழுவின் நிர்வாகி மட்டுமே இதை மாற்ற முடியும்.',
+    danger: 'கவனம்',
+  },
+  settings: {
+    title: 'அமைப்புகள்',
+    profile: 'நீங்கள்',
+    displayName: 'பெயர்',
+    currency: 'இயல்பு நாணயம்',
+    country: 'நாடு',
+    paymentHandle: 'பணம் பெறும் முகவரி',
+    paymentHandleBody: 'உங்களுக்குப் பணம் தருபவர்களுக்குக் காட்டப்படும், கேட்காமல் அனுப்ப.',
+    save: 'சேமி',
+    saved: 'சேமிக்கப்பட்டது',
+    notifications: 'எதைப் பற்றி சொல்ல வேண்டும்',
+    notifyInvolvesMe: 'என்னைச் சார்ந்தவை மட்டும்',
+    notifyDigest: 'குழு நடவடிக்கைகளின் தினசரி சுருக்கம்',
+    notifySettlements: 'யாரோ பணம் தந்தால், அல்லது உறுதிப்படுத்தச் சொன்னால்',
+    notifyNudges: 'யாரோ அனுப்பும் நினைவூட்டல்கள்',
+    notifyWeekly: 'வாராந்திர மின்னஞ்சல்',
+    language: 'மொழி',
+    languageBody: 'உலாவியைப் பின்பற்றுகிறது. அங்கே மாற்றினால் இந்தப் பக்கமும் மாறும்.',
+    guestTitle: 'நீங்கள் விருந்தினர்',
+    guestBody: 'மற்றொரு சாதனத்தில் திறக்க மின்னஞ்சலைச் சேர்க்கவும்.',
+    signOut: 'வெளியேறு',
+    onlyInApp: 'செயலியில்',
+    onlyInAppBody:
+      'ரசீது ஸ்கேன், குரலில் செலவு, இணையம் இல்லாமல் பதிவு, தனிப்பட்ட கணக்கு — இவை போன் செயலியில்.',
+  },
   errors: {
     couldNotLoad: 'இதை ஏற்ற முடியவில்லை. சிறிது நேரத்தில் மீண்டும் முயலவும்.',
     couldNotSignIn: 'உள்நுழைய முடியவில்லை. மீண்டும் முயற்சிக்கவும்.',
@@ -966,6 +1301,116 @@ const hi: WebStrings = {
     nudge: 'याद दिलाएँ',
     nudged: 'याद दिला दिया',
     loading: 'लोड हो रहा है…',
+  },
+  groups: {
+    title: 'आपके समूह',
+    empty: 'अभी कोई समूह नहीं',
+    emptyBody: 'यात्रा, घर, या आप दोनों — एक शुरू करें.',
+    newGroup: 'नया समूह',
+    showArchived: 'संग्रह दिखाएँ',
+    hideArchived: 'संग्रह छिपाएँ',
+    archivedEmpty: 'संग्रह में कुछ नहीं.',
+    archivedTag: 'संग्रहीत',
+    memberCount: { one: '{n} व्यक्ति', other: '{n} लोग' },
+  },
+  newGroup: {
+    title: 'नया समूह',
+    intro: 'इसके बाद सब कुछ मुफ़्त है — अभी लोग जोड़ें या बाद में लिंक साझा करें.',
+    nameLabel: 'नाम',
+    namePlaceholder: 'गोवा ट्रिप, फ़्लैट 3B, हम दो…',
+    emojiLabel: 'चिह्न',
+    currencyLabel: 'मुद्रा',
+    typeLabel: 'किसलिए',
+    typeTrip: 'यात्रा',
+    typeHome: 'घर',
+    typeCouple: 'हम दो',
+    typeFriends: 'दोस्त',
+    typeEvent: 'आयोजन',
+    typeOther: 'अन्य',
+    simplifyLabel: 'हिसाब आसान करें',
+    simplifyBody: 'हर ख़र्च का अलग भुगतान नहीं — कम से कम भुगतान में सब बराबर.',
+    peopleLabel: 'कौन-कौन है',
+    peopleBody: 'अभी नाम जोड़ें; आपका निमंत्रण खोलकर वे अपनी जगह ले सकते हैं.',
+    personPlaceholder: 'नाम',
+    addPerson: 'जोड़ें',
+    create: 'समूह बनाएँ',
+    creating: 'बन रहा है…',
+  },
+  members: {
+    title: 'लोग',
+    you: 'आप',
+    admin: 'व्यवस्थापक',
+    ghost: 'शामिल नहीं',
+    ghostBody:
+      'किसी ने टाइप किया नाम. निमंत्रण साझा करें और वे पहले से दर्ज ख़र्चों समेत यह जगह ले सकते हैं.',
+    addTitle: 'किसी को जोड़ें',
+    namePlaceholder: 'नाम',
+    emailPlaceholder: 'ईमेल (वैकल्पिक)',
+    phonePlaceholder: 'देश कोड सहित नंबर (वैकल्पिक)',
+    add: 'जोड़ें',
+    makeAdmin: 'व्यवस्थापक बनाएँ',
+    removeAdmin: 'व्यवस्थापक हटाएँ',
+    remove: 'हटाएँ',
+    removeConfirm: '{name} को हटाएँ? उनके ख़र्च हिसाब में रहेंगे.',
+    leave: 'समूह छोड़ें',
+    leaveConfirm: 'यह समूह छोड़ें? आपने जो जोड़ा वह रहेगा.',
+    inviteInstead: 'लिंक से बुलाएँ',
+  },
+  invite: {
+    title: 'लोगों को बुलाएँ',
+    scanToJoin: 'स्कैन करके जुड़ें',
+    copyLink: 'लिंक कॉपी करें',
+    copied: 'कॉपी हो गया',
+    share: 'निमंत्रण साझा करें',
+    reset: 'लिंक रीसेट करें',
+    resetConfirm: 'लिंक रीसेट करें? पहले साझा की गई हर कॉपी काम करना बंद कर देगी.',
+    alreadyHere: { one: '{n} व्यक्ति पहले से यहाँ', other: '{n} लोग पहले से यहाँ' },
+    trust:
+      'इस लिंक वाला कोई भी {group} में जुड़ सकता है, इसलिए इसे भरोसेमंद लोगों के साथ ही साझा करें.',
+    making: 'लिंक बन रहा है…',
+  },
+  groupSettings: {
+    title: 'समूह सेटिंग',
+    nameLabel: 'नाम',
+    emojiLabel: 'चिह्न',
+    currencyLabel: 'मुद्रा',
+    currencyNote: 'नए ख़र्च इसी में होंगे. पहले के ख़र्च जैसे थे वैसे रहेंगे.',
+    simplifyLabel: 'हिसाब आसान करें',
+    simplifyBody: 'कम से कम भुगतान में सब बराबर.',
+    save: 'सहेजें',
+    saved: 'सहेजा गया',
+    archive: 'समूह संग्रह करें',
+    archiveBody: 'यह आपकी सूची और कुल से हट जाएगा. कुछ मिटता नहीं.',
+    unarchive: 'वापस लाएँ',
+    delete: 'सबके लिए मिटाएँ',
+    deleteBody: 'तभी जब सब बराबर हों, और केवल व्यवस्थापक. यह सबकी सूची से चला जाएगा.',
+    deleteConfirm: 'यह समूह सबके लिए मिटाएँ? यह वापस नहीं होगा.',
+    adminOnly: 'इसे केवल इस समूह का व्यवस्थापक बदल सकता है.',
+    danger: 'सावधान',
+  },
+  settings: {
+    title: 'सेटिंग',
+    profile: 'आप',
+    displayName: 'नाम',
+    currency: 'डिफ़ॉल्ट मुद्रा',
+    country: 'देश',
+    paymentHandle: 'भुगतान पता',
+    paymentHandleBody: 'आपको भुगतान करने वालों को दिखता है, ताकि पूछना न पड़े.',
+    save: 'सहेजें',
+    saved: 'सहेजा गया',
+    notifications: 'किस बारे में बताएँ',
+    notifyInvolvesMe: 'केवल वे बातें जिनसे मेरा वास्ता है',
+    notifyDigest: 'समूह गतिविधि का रोज़ का सारांश',
+    notifySettlements: 'जब कोई मुझे भुगतान करे या पुष्टि माँगे',
+    notifyNudges: 'किसी की भेजी याद-दिलाहट',
+    notifyWeekly: 'साप्ताहिक ईमेल',
+    language: 'भाषा',
+    languageBody: 'ब्राउज़र के अनुसार. वहाँ बदलें, यह पेज भी बदल जाएगा.',
+    guestTitle: 'आप अतिथि हैं',
+    guestBody: 'दूसरे डिवाइस पर खोलने के लिए ईमेल जोड़ें.',
+    signOut: 'साइन आउट',
+    onlyInApp: 'ऐप में',
+    onlyInAppBody: 'रसीद स्कैन, बोलकर ख़र्च, बिना नेट के entry और निजी हिसाब — ये फ़ोन ऐप में हैं.',
   },
   errors: {
     couldNotLoad: 'यह लोड नहीं हो सका। थोड़ी देर में फिर कोशिश करें।',
@@ -1226,6 +1671,129 @@ const ar: WebStrings = {
     nudge: 'تذكير',
     nudged: 'تم التذكير',
     loading: 'جارٍ التحميل…',
+  },
+  groups: {
+    title: 'مجموعاتك',
+    empty: 'لا توجد مجموعات بعد',
+    emptyBody: 'ابدأ واحدة لرحلة أو سكن أو لكما أنتما الاثنان.',
+    newGroup: 'مجموعة جديدة',
+    showArchived: 'إظهار المؤرشف',
+    hideArchived: 'إخفاء المؤرشف',
+    archivedEmpty: 'لا شيء في الأرشيف.',
+    archivedTag: 'مؤرشفة',
+    memberCount: {
+      zero: 'لا أحد',
+      one: 'شخص واحد',
+      two: 'شخصان',
+      few: '{n} أشخاص',
+      many: '{n} شخصًا',
+      other: '{n} شخص',
+    },
+  },
+  newGroup: {
+    title: 'مجموعة جديدة',
+    intro: 'كل ما بعد ذلك مجاني — أضف أشخاصًا الآن أو شارك رابطًا لاحقًا.',
+    nameLabel: 'الاسم',
+    namePlaceholder: 'رحلة جوا، شقة 3B، نحن الاثنان…',
+    emojiLabel: 'الرمز',
+    currencyLabel: 'العملة',
+    typeLabel: 'لماذا هي',
+    typeTrip: 'رحلة',
+    typeHome: 'سكن',
+    typeCouple: 'ثنائي',
+    typeFriends: 'أصدقاء',
+    typeEvent: 'مناسبة',
+    typeOther: 'أخرى',
+    simplifyLabel: 'تبسيط الديون',
+    simplifyBody: 'أقل عدد من الدفعات يجعل الجميع متعادلين، بدل دفعة لكل مصروف.',
+    peopleLabel: 'من فيها',
+    peopleBody: 'أضف الأسماء الآن؛ يمكنهم أخذ مكانهم عند فتح دعوتك.',
+    personPlaceholder: 'الاسم',
+    addPerson: 'إضافة',
+    create: 'إنشاء المجموعة',
+    creating: 'يتم الإنشاء…',
+  },
+  members: {
+    title: 'الأشخاص',
+    you: 'أنت',
+    admin: 'مشرف',
+    ghost: 'لم ينضم',
+    ghostBody: 'اسم كتبه أحدهم. شارك الدعوة ليأخذ صاحبه هذا المكان بما عليه من مصاريف.',
+    addTitle: 'أضف شخصًا',
+    namePlaceholder: 'الاسم',
+    emailPlaceholder: 'البريد (اختياري)',
+    phonePlaceholder: 'الهاتف مع رمز الدولة (اختياري)',
+    add: 'إضافة',
+    makeAdmin: 'اجعله مشرفًا',
+    removeAdmin: 'إزالة الإشراف',
+    remove: 'إزالة',
+    removeConfirm: 'إزالة {name}؟ تبقى مصاريفهم في السجل.',
+    leave: 'مغادرة المجموعة',
+    leaveConfirm: 'مغادرة هذه المجموعة؟ يبقى ما أضفته.',
+    inviteInstead: 'ادعُ برابط',
+  },
+  invite: {
+    title: 'ادعُ أشخاصًا',
+    scanToJoin: 'امسح للانضمام',
+    copyLink: 'نسخ الرابط',
+    copied: 'تم النسخ',
+    share: 'مشاركة الدعوة',
+    reset: 'إعادة ضبط الرابط',
+    resetConfirm: 'إعادة ضبط الرابط؟ كل نسخة شاركتها ستتوقف عن العمل.',
+    alreadyHere: {
+      zero: 'لا أحد هنا بعد',
+      one: 'شخص واحد هنا بالفعل',
+      two: 'شخصان هنا بالفعل',
+      few: '{n} أشخاص هنا بالفعل',
+      many: '{n} شخصًا هنا بالفعل',
+      other: '{n} شخص هنا بالفعل',
+    },
+    trust: 'أي شخص لديه هذا الرابط يمكنه الانضمام إلى {group}، فشاركه مع من تثق بهم.',
+    making: 'يتم إنشاء الرابط…',
+  },
+  groupSettings: {
+    title: 'إعدادات المجموعة',
+    nameLabel: 'الاسم',
+    emojiLabel: 'الرمز',
+    currencyLabel: 'العملة',
+    currencyNote: 'المصاريف الجديدة تأتي بهذه العملة. ما أُدخل سابقًا يبقى كما هو.',
+    simplifyLabel: 'تبسيط الديون',
+    simplifyBody: 'أقل عدد من الدفعات يجعل الجميع متعادلين.',
+    save: 'حفظ',
+    saved: 'تم الحفظ',
+    archive: 'أرشفة المجموعة',
+    archiveBody: 'تخرج من قائمتك ومن المجاميع. لا يُحذف شيء.',
+    unarchive: 'أعدها',
+    delete: 'حذف للجميع',
+    deleteBody: 'فقط حين يتعادل الجميع، وللمشرف وحده. ستختفي من قائمة كل شخص.',
+    deleteConfirm: 'حذف هذه المجموعة للجميع؟ لا يمكن التراجع.',
+    adminOnly: 'لا يغيّر هذا إلا مشرف المجموعة.',
+    danger: 'انتبه',
+  },
+  settings: {
+    title: 'الإعدادات',
+    profile: 'أنت',
+    displayName: 'الاسم',
+    currency: 'العملة الافتراضية',
+    country: 'الدولة',
+    paymentHandle: 'عنوان الدفع',
+    paymentHandleBody: 'يظهر لمن يسدد لك، ليدفع دون أن يسأل.',
+    save: 'حفظ',
+    saved: 'تم الحفظ',
+    notifications: 'ما الذي نخبرك به',
+    notifyInvolvesMe: 'ما يخصني فقط',
+    notifyDigest: 'ملخص يومي لنشاط المجموعة',
+    notifySettlements: 'حين يدفع لي أحد أو يطلب تأكيدًا',
+    notifyNudges: 'التذكيرات التي يرسلها أحدهم',
+    notifyWeekly: 'بريد أسبوعي',
+    language: 'اللغة',
+    languageBody: 'تتبع المتصفح. غيّرها هناك وتتبعها هذه الصفحة.',
+    guestTitle: 'أنت ضيف',
+    guestBody: 'أضف بريدًا ليمكن فتح هذا الحساب على جهاز آخر.',
+    signOut: 'تسجيل الخروج',
+    onlyInApp: 'في التطبيق',
+    onlyInAppBody:
+      'مسح الإيصالات، وقول المصروف صوتًا، والإدخال دون إنترنت، وسجلك الخاص — كلها في تطبيق الهاتف.',
   },
   errors: {
     couldNotLoad: 'تعذّر تحميل هذا. حاول بعد قليل.',
