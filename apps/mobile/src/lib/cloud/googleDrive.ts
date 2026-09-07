@@ -20,33 +20,24 @@
  * accumulates and a restore never has to choose between candidates.
  */
 
-import { asAuthFailure, authorize, isExpired, refresh, type OAuthConfig } from './oauth';
-import { requestJson, requestRaw, requestText } from './http';
-import { clientId, isConfigured as clientConfigured } from './config';
+import { isExpired } from './oauth';
+import { CloudHttpError, requestJson, requestRaw, requestText } from './http';
+import { isConfigured as clientConfigured } from './config';
+import {
+  nativeAuthAvailable,
+  nativeAuthorize,
+  nativeReauthorize,
+  nativeRevoke,
+} from './nativeGoogle';
 import type { CloudFile, CloudProvider, CloudTokens } from './types';
 
-const DISCOVERY = {
-  authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
-  tokenEndpoint: 'https://oauth2.googleapis.com/token',
-  revocationEndpoint: 'https://oauth2.googleapis.com/revoke',
-};
+/** Where a grant is handed back when somebody unlinks. */
+const REVOCATION_ENDPOINT = 'https://oauth2.googleapis.com/revoke';
 
 /** The hidden per-app folder. Not an id we look up — Drive accepts the alias. */
 const APP_DATA = 'appDataFolder';
 /** The fields worth asking for; Drive returns only what it is asked for. */
 const FILE_FIELDS = 'id,name,size,modifiedTime';
-
-function config(): OAuthConfig {
-  return {
-    clientId: clientId('gdrive'),
-    scopes: ['https://www.googleapis.com/auth/drive.appdata'],
-    discovery: DISCOVERY,
-    // `offline` plus a forced consent is what makes Google hand back a refresh
-    // token; without it an automatic backup would stop working an hour after
-    // the person connected, and they would find out weeks later.
-    extraParams: { access_type: 'offline', prompt: 'consent' },
-  };
-}
 
 function authHeader(tokens: CloudTokens): Record<string, string> {
   return { Authorization: `Bearer ${tokens.accessToken}` };
@@ -67,27 +58,32 @@ function toFile(raw: Record<string, unknown>): CloudFile {
 export const googleDrive: CloudProvider = {
   id: 'gdrive',
   label: 'Google Drive',
-  isConfigured: () => clientConfigured('gdrive'),
-  connect: () => authorize(config()),
+  // Both halves have to hold: a project to ask consent for, and a build that
+  // carries the module able to ask.
+  isConfigured: () => clientConfigured('gdrive') && nativeAuthAvailable(),
+  connect: () => nativeAuthorize(),
 
   /**
-   * Fresh tokens, refreshing first when the access token is stale.
+   * A token good to use now, asked for again when the one held is stale.
    *
-   * A refresh Google rejects because the grant is gone — revoked in the user's
-   * account settings, consent withdrawn, the app removed — is turned into the
-   * same 401 a Drive API call would produce, so the one caller-side predicate
-   * (`isAuthFailure`) recognises it. Everything else is left as it is: a token
-   * endpoint that timed out is a transport failure, and treating it as a dead
-   * link would sign the person out of their own backup over a bad minute of
-   * signal.
+   * There is no refresh token to present — Play services keeps the grant — so
+   * "refreshing" is asking for the scopes a second time. That is silent while
+   * the consent stands, and it is exactly what stops standing when somebody
+   * revokes access in their Google account settings: Google then has a decision
+   * to put to them, which cannot be done from a background backup, and the
+   * request comes back with nothing.
+   *
+   * Nothing is the same dead grant a rejected refresh used to be, so it becomes
+   * the same 401 a Drive call would produce and the one caller-side predicate
+   * (`isAuthFailure`) recognises it. Anything else thrown here is a transport
+   * failure and is left alone: treating a bad minute of signal as a dead link
+   * would unlink somebody from their own backup.
    */
   async ensureValid(tokens: CloudTokens): Promise<CloudTokens> {
     if (!isExpired(tokens)) return tokens;
-    try {
-      return await refresh(config(), tokens);
-    } catch (error) {
-      throw asAuthFailure(error) ?? error;
-    }
+    const renewed = await nativeReauthorize(tokens);
+    if (!renewed) throw new CloudHttpError(401, 'the Drive authorization is no longer granted');
+    return renewed;
   },
 
   /**
@@ -186,14 +182,26 @@ export const googleDrive: CloudProvider = {
 
   /**
    * Hand the grant back when somebody unlinks, so "disconnect" means it in
-   * Google's account settings too and not only in this app's keystore. The
-   * refresh token is the one worth revoking — revoking it kills the access
-   * token with it.
+   * Google's account settings too and not only in this app's keystore.
+   *
+   * Two things have to happen, and the local one is not optional: revoking at
+   * Google kills the grant, but Play services would keep handing out the token
+   * it has already cached until that token expires on its own.
    */
   async revoke(tokens: CloudTokens): Promise<void> {
+    // Play services can do this properly — it drops its cached token and tells
+    // Google in one go. The HTTP call below is the fallback for a build that
+    // somehow has tokens without the module that made them, or for a partial
+    // native failure while unlinking: disconnect is best-effort, but if one path
+    // to Google failed and another remains, take it.
+    try {
+      if (await nativeRevoke(tokens)) return;
+    } catch {
+      // Fall through to HTTP revoke below.
+    }
     const token = tokens.refreshToken ?? tokens.accessToken;
     if (!token) return;
-    await fetch(DISCOVERY.revocationEndpoint, {
+    await fetch(REVOCATION_ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: `token=${encodeURIComponent(token)}`,

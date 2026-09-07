@@ -400,23 +400,42 @@ Three decisions worth knowing:
 
 Drive needs **its own OAuth clients**, which the app does not otherwise have:
 sign-in goes through Supabase's hosted Google flow and holds no Google client id
-of its own. In the Google Cloud console, on a project with the Drive API
-enabled: create an OAuth client per platform (Android bound to
-`app.waves.mobile` plus the signing SHA-1 — one for debug, one for release; iOS
-bound to the bundle id), add `.../auth/drive.appdata` to the consent screen, and
-set:
+of its own.
 
-| Variable                                     | Where              | What it does                   |
-| -------------------------------------------- | ------------------ | ------------------------------ |
-| `EXPO_PUBLIC_GOOGLE_DRIVE_CLIENT_ID_ANDROID` | `apps/mobile/.env` | the Android OAuth client       |
-| `EXPO_PUBLIC_GOOGLE_DRIVE_CLIENT_ID_IOS`     | `apps/mobile/.env` | the iOS OAuth client           |
-| `EXPO_PUBLIC_GOOGLE_DRIVE_CLIENT_ID_WEB`     | `apps/mobile/.env` | the fallback for anything else |
+Consent is asked for by Play services, not by a browser tab. Google
+[withdrew custom URI schemes](https://developers.google.com/identity/protocols/oauth2/native-app)
+for Android clients — any app can claim a scheme and catch the redirect — so
+there is no `waves://` redirect left to register, and no Android client id to put
+in the bundle either: Android apps are identified by their package name and
+signing certificate. That is also why a debug-signed build and a release-signed
+build need one client each.
 
-These are not secrets — a native OAuth client has none, which is why the flow is
-PKCE — but they name a Google project, so they are read from the environment
-rather than committed. With none set the app builds and runs; the backup screen
-says the destination is unavailable in this build rather than opening a consent
-page Google would reject.
+In the Google Cloud console, on a project with the Drive API enabled:
+
+1. Create an **Android** OAuth client per signing key, bound to
+   `app.waves.mobile` plus that key's SHA-1
+   (`keytool -list -v -keystore ~/.android/debug.keystore -storepass android`
+   for the debug one). Nothing references its id; registering it is the point.
+2. Create an **iOS** client bound to the bundle id, if you build for iOS.
+3. Add `.../auth/drive.appdata` to the consent screen.
+4. Set the two ids the SDK does need:
+
+| Variable                                 | Where              | What it does                               |
+| ---------------------------------------- | ------------------ | ------------------------------------------ |
+| `EXPO_PUBLIC_GOOGLE_DRIVE_CLIENT_ID_WEB` | `apps/mobile/.env` | names the Cloud project — required on both |
+| `EXPO_PUBLIC_GOOGLE_DRIVE_CLIENT_ID_IOS` | `apps/mobile/.env` | the iOS client, and its URL scheme         |
+
+These are not secrets — none of these flows has a client secret, which is the
+whole reason they are usable on a phone — but they name a Google project, so
+they are read from the environment rather than committed. Both are read at
+**build** time, so changing one means rebuilding the app, not restarting it.
+With neither set the app builds and runs; the backup screen says the destination
+is unavailable in this build rather than opening a consent page Google would
+reject.
+
+Play services keeps the grant and issues an access token about an hour long,
+so there is no refresh token on the phone: a renewal asks it again, silently,
+for as long as the person leaves the access granted in their Google account.
 
 A `drive.appdata` app stays in testing until the consent screen is verified;
 until then only accounts added as test users can link one.
