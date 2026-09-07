@@ -4,7 +4,7 @@
  * A per-device preference (not ledger data), so it lives in AsyncStorage and is
  * relayed to the paired watch rather than synced through Supabase. The offered
  * sizes and the default come from `@waves/core` so the phone, the relay codec
- * and the watch all agree on what's allowed. Modelled on `shortcut.tsx`.
+ * and the watch all agree on what's allowed.
  */
 
 import {
@@ -46,7 +46,7 @@ export function RecentCountProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   // A change made during the (brief) storage read must not be reversed by the
-  // hydrated value landing afterwards (same guard as shortcut.tsx).
+  // hydrated value landing afterwards.
   const dirty = useRef(false);
   useEffect(() => {
     let active = true;
