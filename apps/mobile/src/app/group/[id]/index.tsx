@@ -20,7 +20,7 @@ import {
   SegmentedTabs,
   Text,
   useTheme,
-  useScreenClearance,
+  useTabBarClearance,
 } from '@waves/ui';
 
 import {
@@ -429,7 +429,14 @@ const ExpenseFeedRow = memo(function ExpenseFeedRow({
 
 export default function GroupScreen() {
   const theme = useTheme();
-  const clearance = useScreenClearance(112);
+  // The root bar is over this screen, so the room starts from the bar's own
+  // clearance rather than the bare system inset. The extra 36 has no cause
+  // anywhere in this file — there is no floating action and no pinned footer
+  // asking for it — it is simply what the hardcoded 112 this replaces comes to
+  // once the bar (60) and its breath (16) are taken out, kept so the ledger
+  // renders exactly as it did. Derived rather than hardcoded so it follows
+  // `BAR_HEIGHT` instead of quietly sliding under a taller bar one day.
+  const clearance = useTabBarClearance() + 36;
   const pull = usePullRefresh();
   const { t, locale } = useStrings();
   // `?welcome=trip` is set once, by the create screen, when a trip is made

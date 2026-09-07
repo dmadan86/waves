@@ -14,7 +14,7 @@ import {
   Row,
   Screen,
   Text,
-  useScreenClearance,
+  useTabBarClearance,
   useTheme,
 } from '@waves/ui';
 
@@ -50,7 +50,7 @@ const absBig = (n: bigint): bigint => (n < 0n ? -n : n);
  */
 export default function AllGroupsScreen() {
   const theme = useTheme();
-  const clearance = useScreenClearance();
+  const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
   const { profile } = useAuth();
   const summary = useHomeSummary(profile?.id ?? null);

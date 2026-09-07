@@ -30,7 +30,7 @@ import {
   Screen,
   Sheet,
   Text,
-  useScreenClearance,
+  useTabBarClearance,
   useTheme,
 } from '@waves/ui';
 
@@ -39,7 +39,7 @@ import { plural, useStrings } from '@/i18n';
 
 export default function PacksScreen() {
   const theme = useTheme();
-  const clearance = useScreenClearance();
+  const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
   const packs = usePacks();
   const installed = useInstalledPacks();

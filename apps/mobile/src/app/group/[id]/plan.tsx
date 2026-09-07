@@ -45,7 +45,7 @@ import {
   Screen,
   Text,
   type Theme,
-  useScreenClearance,
+  useTabBarClearance,
   useTheme,
 } from '@waves/ui';
 
@@ -91,7 +91,7 @@ function dayLabel(day: string, locale: string): string {
 
 export default function PlanScreen() {
   const theme = useTheme();
-  const clearance = useScreenClearance();
+  const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
   const { id } = useLocalSearchParams<{ id: string }>();
   const groupId = id ?? '';
