@@ -20,7 +20,7 @@ import { randomUUID } from 'node:crypto';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { Client } from 'pg';
 
-import { addEqualSplitExpense, connect, seedGroup } from './helpers.js';
+import { addEqualSplitExpense, addSplitExpense, connect, seedGroup } from './helpers.js';
 
 let client: Client;
 
@@ -243,13 +243,50 @@ describe('the weekly digest', () => {
 
     await runDigest();
 
-    // Both members of the group, not just whoever filed the expense: a digest
-    // is what happened around you.
+    // Both parties to the expense, not just whoever filed it: a digest is what
+    // changed around your balance.
     for (const profileId of group.profileIds) {
       expect(await digestsFor(profileId)).toHaveLength(1);
     }
     const [digest] = await digestsFor(group.profileIds[0]!);
     expect(digest!.payload).toMatchObject({ count: '1', currency: 'INR' });
+  });
+
+  it('counts payer-only financers and share-only riders/travellers, not bystander users', async () => {
+    const group = await seedGroup(client, { memberCount: 4 });
+    const [financerProfile, riderProfile, travellerProfile, bystanderProfile] = group.profileIds as [
+      string,
+      string,
+      string,
+      string,
+    ];
+    const [financer, rider, traveller] = group.memberIds as [string, string, string, string];
+    for (const profileId of group.profileIds) {
+      await setEmail(profileId, `${profileId}@example.test`);
+      await optIn(profileId);
+    }
+
+    await addSplitExpense(client, {
+      groupId: group.groupId,
+      payers: { [financer]: 12000n },
+      participants: [rider, traveller],
+      amount: 12000n,
+      params: { kind: 'exact', amounts: { [rider]: 7000n, [traveller]: 5000n } },
+      description: 'Cab ride',
+    });
+
+    await runDigest();
+
+    expect(await digestsFor(financerProfile)).toHaveLength(1);
+    expect(await digestsFor(riderProfile)).toHaveLength(1);
+    expect(await digestsFor(travellerProfile)).toHaveLength(1);
+    expect(await digestsFor(bystanderProfile)).toHaveLength(0);
+    const [financerDigest] = await digestsFor(financerProfile);
+    const [riderDigest] = await digestsFor(riderProfile);
+    const [travellerDigest] = await digestsFor(travellerProfile);
+    expect(financerDigest!.payload).toMatchObject({ count: '1', amount: '12000' });
+    expect(riderDigest!.payload).toMatchObject({ count: '1', amount: '-7000' });
+    expect(travellerDigest!.payload).toMatchObject({ count: '1', amount: '-5000' });
   });
 
   it('is idempotent inside one week', async () => {
