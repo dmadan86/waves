@@ -309,21 +309,35 @@ export type OAuthCallback =
   { kind: 'code'; code: string } | { kind: 'error'; message: string } | { kind: 'none' };
 
 export function readOAuthCallback(url: string): OAuthCallback {
-  let params: URLSearchParams;
   try {
     // The custom scheme parses on its own (`waves://auth?code=…`), but the
     // triple-slash form puts `auth` in the pathname and needs a base.
     const parsed = new URL(url, 'waves://app');
+    const query = readOAuthParams(parsed.searchParams);
+    if (query.kind !== 'none') return query;
     // The fragment matters as much as the query. A provider that refuses —
     // consent declined, an app not yet verified — commonly answers in the
     // fragment (`#error=access_denied&error_description=…`), and reading only
     // the query turned that refusal into `none`: the caller then kept whatever
     // session it already had, which for a fresh sign-in is no session at all.
     // Somebody was sent back to the sign-in screen with nothing said, which is
-    // indistinguishable from the app ignoring the button.
-    params = mergeParams(parsed.searchParams, new URLSearchParams(parsed.hash.replace(/^#/, '')));
+    // indistinguishable from the app ignoring the button. It is still second to
+    // the query string: a server-provided answer in the URL proper wins over a
+    // stale or provider-specific fragment.
+    return readOAuthParams(new URLSearchParams(parsed.hash.replace(/^#/, '')));
   } catch {
     return { kind: 'none' };
+  }
+}
+
+/** One callback channel, parsed without flattening it into the other one. */
+function readOAuthParams(params: URLSearchParams): OAuthCallback {
+  if (
+    hasDuplicate(params, 'code') ||
+    hasDuplicate(params, 'error') ||
+    hasDuplicate(params, 'access_token')
+  ) {
+    return { kind: 'error', message: 'Malformed OAuth callback.' };
   }
   const code = params.get('code');
   if (code) return { kind: 'code', code };
@@ -347,11 +361,11 @@ export function readOAuthCallback(url: string): OAuthCallback {
   return { kind: 'none' };
 }
 
-/** Query first: a value that appears in both is the one the server put in the URL proper. */
-function mergeParams(query: URLSearchParams, fragment: URLSearchParams): URLSearchParams {
-  const merged = new URLSearchParams(fragment);
-  // `forEach`, not `for...of`: this package compiles without `DOM.Iterable`, so
-  // iterating the params is a type error even though it runs everywhere.
-  query.forEach((value, key) => merged.set(key, value));
-  return merged;
+/** Decisive OAuth fields must not arrive twice with competing values. */
+function hasDuplicate(params: URLSearchParams, key: string): boolean {
+  let seen = 0;
+  params.forEach((_, candidate) => {
+    if (candidate === key) seen += 1;
+  });
+  return seen > 1;
 }

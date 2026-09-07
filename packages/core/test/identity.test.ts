@@ -332,10 +332,35 @@ describe('what the browser brings back from a provider', () => {
     ).toEqual({ kind: 'error', message: 'Access denied' });
   });
 
-  it('takes the query string over the fragment when both answer', () => {
+  it('takes the query string over the fragment when both answer with a code', () => {
     expect(readOAuthCallback('waves://auth?code=real#code=stale')).toEqual({
       kind: 'code',
       code: 'real',
+    });
+  });
+
+  it('takes a query refusal over a stale fragment code', () => {
+    expect(readOAuthCallback('waves://auth?error=access_denied#code=stale')).toEqual({
+      kind: 'error',
+      message: 'access_denied',
+    });
+  });
+
+  it('takes a query code over a stale fragment refusal', () => {
+    expect(readOAuthCallback('waves://auth?code=real#error=access_denied')).toEqual({
+      kind: 'code',
+      code: 'real',
+    });
+  });
+
+  it('rejects duplicate decisive OAuth fields as malformed', () => {
+    expect(readOAuthCallback('waves://auth?code=first&code=second')).toEqual({
+      kind: 'error',
+      message: 'Malformed OAuth callback.',
+    });
+    expect(readOAuthCallback('waves://auth#error=one&error=two')).toEqual({
+      kind: 'error',
+      message: 'Malformed OAuth callback.',
     });
   });
 
