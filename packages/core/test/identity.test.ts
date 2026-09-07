@@ -312,10 +312,55 @@ describe('what the browser brings back from a provider', () => {
   });
 
   it('never mistakes a token in the fragment for a session', () => {
-    // The implicit flow put the refresh token here. Under PKCE nothing reads
-    // the fragment: a redirect shaped like the old one is simply "nothing".
-    expect(readOAuthCallback('waves://auth#access_token=a&refresh_token=b')).toEqual({
-      kind: 'none',
+    // The implicit flow put the refresh token here, and this client will not
+    // take it: PKCE exists so a session never travels in a URL. But it is not
+    // "nothing" either — a redirect shaped like the old flow means the server
+    // was never asked for a code, and the caller has to be told rather than
+    // left holding whatever session it already had.
+    const callback = readOAuthCallback('waves://auth#access_token=a&refresh_token=b');
+    expect(callback.kind).toBe('error');
+    expect(callback).not.toHaveProperty('code');
+  });
+
+  it('reads a refusal the provider put in the fragment', () => {
+    // Consent declined comes back this way, and reading only the query string
+    // turned it into `none` — which the sign-in path treated as "keep the
+    // session you have". For somebody signing in that is no session, so they
+    // landed back on the sign-in screen with nothing said at all.
+    expect(
+      readOAuthCallback('waves://auth#error=access_denied&error_description=Access+denied'),
+    ).toEqual({ kind: 'error', message: 'Access denied' });
+  });
+
+  it('takes the query string over the fragment when both answer with a code', () => {
+    expect(readOAuthCallback('waves://auth?code=real#code=stale')).toEqual({
+      kind: 'code',
+      code: 'real',
+    });
+  });
+
+  it('takes a query refusal over a stale fragment code', () => {
+    expect(readOAuthCallback('waves://auth?error=access_denied#code=stale')).toEqual({
+      kind: 'error',
+      message: 'access_denied',
+    });
+  });
+
+  it('takes a query code over a stale fragment refusal', () => {
+    expect(readOAuthCallback('waves://auth?code=real#error=access_denied')).toEqual({
+      kind: 'code',
+      code: 'real',
+    });
+  });
+
+  it('rejects duplicate decisive OAuth fields as malformed', () => {
+    expect(readOAuthCallback('waves://auth?code=first&code=second')).toEqual({
+      kind: 'error',
+      message: 'Malformed OAuth callback.',
+    });
+    expect(readOAuthCallback('waves://auth#error=one&error=two')).toEqual({
+      kind: 'error',
+      message: 'Malformed OAuth callback.',
     });
   });
 
