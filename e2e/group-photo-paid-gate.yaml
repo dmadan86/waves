@@ -25,12 +25,14 @@ appId: app.waves.mobile
     text: 'Plus feature'
     optional: true
 
-# The icon path still works: pick an emoji, name the group, create it.
+# The icon path still works: pick a mark, name the group, create it. The tiles
+# carry the mark's name now — the covers are drawn rather than typed, so there
+# is no emoji to tap.
 - tapOn:
     id: 'CoverEmojiPicker'
     optional: true
 - tapOn:
-    text: '🏠'
+    text: 'Home'
     optional: true
 - inputText: 'Flat 4B'
 - tapOn:

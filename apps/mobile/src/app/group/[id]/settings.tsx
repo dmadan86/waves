@@ -36,10 +36,10 @@ import { pickGroupPhoto } from '@/lib/image';
 import { requestContacts } from '@/lib/contactPickerBridge';
 import { isPhoneCountryError } from '@/lib/phone';
 import { CountryRow } from '@/components/CountryPicker';
-import { CoverEmojiPicker } from '@/components/CoverEmojiPicker';
+import { GroupCoverSheet } from '@/components/CoverEmojiPicker';
 import { InfoDisclosure } from '@/components/InfoDisclosure';
 import { TripDates } from '@/components/TripDates';
-import { photoGateParam, photoGateStatus, photoTapAction } from '@/lib/groupPhotoGate';
+import { photoGateParam, photoGateStatus } from '@/lib/groupPhotoGate';
 import { canUploadGroupPhoto, removeGroupPhoto, uploadGroupPhoto } from '@/data/api';
 import {
   useAddGhostMember,
@@ -62,11 +62,65 @@ const iconFor =
   // eslint-disable-next-line react/display-name
   (color: string): ReactNode => <Ionicons name={name} size={iconSize.base} color={color} />;
 
+/**
+ * The round mark on one of the three exit rows, and the whole of how they are
+ * told apart at a glance.
+ *
+ * One shape, three weights, in the order the consequence grows: `quiet` is the
+ * brand chip every ordinary row in the app wears, because archiving is an
+ * ordinary, reversible thing; `soft` is the same chip in the negative colour,
+ * for the act that ends your own membership; `loud` fills with that colour and
+ * cuts the glyph out of it in the card's own surface, for the one act that
+ * cannot be taken back. Red is spent sparingly on purpose — if it were on all
+ * three it would distinguish none of them.
+ */
+function ExitChip({
+  icon,
+  tone,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  tone: 'quiet' | 'soft' | 'loud';
+}) {
+  const theme = useTheme();
+  return (
+    <View
+      style={{
+        width: 40,
+        height: 40,
+        borderRadius: theme.radius.pill,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor:
+          tone === 'quiet'
+            ? theme.color.brandSoft
+            : tone === 'soft'
+              ? theme.color.negativeSoft
+              : theme.color.negative,
+      }}
+    >
+      <Ionicons
+        name={icon}
+        size={iconSize.lg}
+        // On the filled chip the glyph is cut from the card behind it — white
+        // on the light red, near-black on the dark one — which clears the 3:1
+        // a graphic needs in both schemes where white alone would not.
+        color={
+          tone === 'quiet'
+            ? theme.color.brand
+            : tone === 'soft'
+              ? theme.color.negative
+              : theme.color.surface
+        }
+      />
+    </View>
+  );
+}
+
 export default function GroupSettingsScreen() {
   const theme = useTheme();
   // This screen renders under the persistent bottom nav, so it must pad for the
-  // bar, not just the system inset — with the plain inset the last row (Leave
-  // group, below Archive) sat behind the bar and could not be reached.
+  // bar, not just the system inset — with the plain inset the last of the exit
+  // rows sat behind the bar and could not be reached.
   const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -166,12 +220,44 @@ export default function GroupSettingsScreen() {
   // loaded group changes) — synced in render, the app's idiom for following a
   // value until the user edits it, rather than a setState-in-effect.
   const [seededId, setSeededId] = useState<string | null>(null);
+  // The name last handed to the server, so a rename is not sent twice while the
+  // group query is still catching up (see `commitName`). Cleared alongside the
+  // field whenever a different group is loaded into this screen.
+  const [sentName, setSentName] = useState<string | null>(null);
   if (group.data && seededId !== group.data.id) {
     setSeededId(group.data.id);
     setName(group.data.name ?? '');
+    setSentName(null);
   }
   const [status, setStatus] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  // Whether the name is being edited (the rule under it lights up) and whether
+  // the cover sheet is open. Both are about the identity row at the top.
+  const [naming, setNaming] = useState(false);
+  const [coverOpen, setCoverOpen] = useState(false);
+
+  /**
+   * Save the name, if it has actually changed.
+   *
+   * There used to be a Save button beside the field, which asked for a tap to
+   * confirm a change the person had already made and then sat disabled for the
+   * rest of the screen's life. Committing on blur and on "done" is the same
+   * act with one fewer control. The first guard compares against what the group
+   * already carries rather than against emptiness, because clearing the field
+   * is a real choice: the group goes back to being named after the people in
+   * it, and that is a change worth sending.
+   *
+   * The second guard is about the two triggers overlapping. Pressing "done"
+   * both submits and blurs, so this runs twice in a row, and the second run
+   * still sees the old name on `group.data` because the mutation has not come
+   * back yet — without `sentName` the same rename would be queued twice.
+   */
+  const commitName = (): void => {
+    const next = name.trim();
+    if (next === (group.data?.name ?? '') || next === sentName) return;
+    setSentName(next);
+    updateGroup.mutate({ name: next || null }, { onSuccess: () => setStatus(t.account.saved) });
+  };
 
   // A group photo is a paid feature; the cover emoji is free. The group may
   // carry a photo if anyone in it is paid (or it holds a pass) — a server-side
@@ -197,15 +283,6 @@ export default function GroupSettingsScreen() {
     } finally {
       setUploading(false);
     }
-  };
-
-  // Tapping the photo: pick when allowed, otherwise point at the upgrade screen.
-  // Removing an existing photo is never gated — a group that loses its paying
-  // member can always fall back to an icon.
-  const onPhotoPress = (): void => {
-    const action = photoTapAction(photoStatus);
-    if (action === 'pick') void changePhoto();
-    else if (action === 'showLockedHint') router.push('/settings/upgrade');
   };
 
   const dropPhoto = async (): Promise<void> => {
@@ -381,14 +458,25 @@ export default function GroupSettingsScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <Card style={{ gap: theme.spacing.lg }}>
+        {/* The group's identity, as one thing rather than three controls.
+            A group *is* its mark and its name — that is the pair every list
+            in the app shows — so they sit on one line: the mark on the left,
+            tappable, opening every way of changing it; the name written
+            straight into the row beside it, over a rule that lights up while
+            it is being edited. The three loose buttons that used to sit under
+            this card (Save name, Choose an icon, Remove photo) are gone: the
+            first asked for a tap to confirm a change already made, and the
+            other two are ways of changing the mark, which is what the mark
+            itself is for. This is the same row the new-group screen opens
+            with, so naming a group and renaming one look like one control. */}
+        <Card>
           <Row style={{ gap: theme.spacing.lg }}>
             <GroupPhoto
               photoPath={group.data.photo_path}
               emoji={group.data.cover_emoji}
-              size={72}
+              size={64}
               busy={uploading}
-              onPress={onPhotoPress}
+              onPress={() => setCoverOpen(true)}
             />
             <View style={{ flex: 1, gap: theme.spacing.xs }}>
               <Text variant="caption" tone="muted">
@@ -397,6 +485,16 @@ export default function GroupSettingsScreen() {
               <TextInput
                 value={name}
                 onChangeText={setName}
+                onFocus={() => setNaming(true)}
+                // The name commits itself: on the keyboard's "done" and again
+                // when the field loses focus, so leaving the screen never
+                // silently drops what was typed.
+                onBlur={() => {
+                  setNaming(false);
+                  commitName();
+                }}
+                onSubmitEditing={commitName}
+                returnKeyType="done"
                 accessibilityLabel={t.group.groupName}
                 placeholder={groupLabel(null, members.data ?? [], profile?.id)}
                 placeholderTextColor={theme.color.textFaint}
@@ -405,43 +503,34 @@ export default function GroupSettingsScreen() {
                   fontWeight: '700',
                   color: theme.color.text,
                   paddingVertical: theme.spacing.sm,
+                  borderBottomWidth: 1.5,
+                  borderBottomColor: naming ? theme.color.brand : theme.color.border,
                 }}
               />
             </View>
           </Row>
-
-          {/* The cover is set two ways from here: the photo by tapping the
-              picture above, and the icon by the picker — which now opens a wide,
-              scrollable set instead of a fixed nine crammed into the card. */}
-          <Row style={{ flexWrap: 'wrap', gap: theme.spacing.sm }}>
-            <Button
-              label={t.group.saveName}
-              size="sm"
-              variant="secondary"
-              // Clearing the field is a real choice: the group goes back to
-              // being named after the people in it.
-              disabled={name.trim() === (group.data.name ?? '')}
-              onPress={() =>
-                updateGroup.mutate(
-                  { name: name.trim() || null },
-                  { onSuccess: () => setStatus(t.account.saved) },
-                )
-              }
-            />
-            <CoverEmojiPicker
-              value={group.data.cover_emoji}
-              onChange={(emoji) => updateGroup.mutate({ cover_emoji: emoji })}
-            />
-            {group.data.photo_path ? (
-              <Button
-                label={t.group.removePhoto}
-                size="sm"
-                variant="ghost"
-                onPress={() => void dropPhoto()}
-              />
-            ) : null}
-          </Row>
         </Card>
+
+        {/* Opened by the mark above and nothing else, so there is one door to
+            the cover rather than a button per way through it. */}
+        <GroupCoverSheet
+          visible={coverOpen}
+          onClose={() => setCoverOpen(false)}
+          value={group.data.cover_emoji}
+          // Says "Saved" like every other setting on this screen. The mark is
+          // drawn, so a changed cover has no words of its own to confirm it.
+          onChange={(emoji) =>
+            updateGroup.mutate(
+              { cover_emoji: emoji },
+              { onSuccess: () => setStatus(t.account.saved) },
+            )
+          }
+          hasPhoto={Boolean(group.data.photo_path)}
+          photoStatus={photoStatus}
+          onPickPhoto={() => void changePhoto()}
+          onRemovePhoto={() => void dropPhoto()}
+          onUpgrade={() => router.push('/settings/upgrade')}
+        />
 
         {/* The kind of group. Only changes the label, cover default and trip
             affordances — nothing already recorded moves. */}
@@ -662,31 +751,67 @@ export default function GroupSettingsScreen() {
           </Text>
         ) : null}
 
-        <View style={{ gap: theme.spacing.md }}>
-          <Button label={t.group.archiveGroup} variant="ghostDanger" fullWidth onPress={archive} />
-          <Button label={t.group.leaveGroup} variant="ghostDanger" fullWidth onPress={leave} />
-          {/* Deleting drops the group for everyone, so it is an admin-only power
-              and sits below leave/archive as the most final of the three. */}
-          {isAdmin ? (
-            <Button
-              label={t.group.deleteGroup}
-              variant="ghostDanger"
-              fullWidth
-              disabled={deleteGroup.isPending}
-              onPress={confirmDelete}
+        {/* The three ways out.
+            They used to be three identical red pill buttons stacked in a
+            column, which said the wrong thing twice over: that the three acts
+            weigh the same, and that all three are dangerous. They are not.
+            Archiving is reversible and touches nobody but your own list;
+            leaving affects only you and leaves the group standing; deleting
+            takes the whole thing away from everyone, at once, with no undo.
+            So each is a row with its own mark and one line saying whose it is,
+            and the weight climbs across them: a brand mark and plain ink for
+            archive, a red mark and a red title for leave, and — alone on its
+            own card, ringed in red — the delete. Delete standing apart is the
+            same grammar the account screen's danger zone uses; a section that
+            ends things announces itself by being set off, not by a heading. */}
+        <View style={{ gap: theme.spacing.xl }}>
+          <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
+            <ListRow
+              title={t.group.archiveGroup}
+              subtitle={t.group.archiveHint}
+              leading={<ExitChip icon="archive-outline" tone="quiet" />}
+              onPress={archive}
             />
-          ) : null}
-          {/* An admin looking at an unsettled group should know what the button
-              costs before they tap it, not only in the alert afterwards. */}
-          {isAdmin && !ledger.groupSettled ? (
-            <Text variant="micro" tone="muted" align="center">
-              {t.group.deleteUnsettledHint}
-            </Text>
-          ) : null}
-          {!settled ? (
-            <Text variant="micro" tone="muted" align="center">
-              {t.group.leaveWhenZero}
-            </Text>
+            <View style={{ height: 1, backgroundColor: theme.color.border }} />
+            <ListRow
+              title={t.group.leaveGroup}
+              subtitle={t.group.leaveHint}
+              destructive
+              // Not `exit-outline`: that glyph is an arrow through a door, and
+              // an arrow drawn to the right still points right in a mirrored
+              // layout. Taking yourself off the list is direction-free.
+              leading={<ExitChip icon="person-remove-outline" tone="soft" />}
+              onPress={leave}
+            />
+          </Card>
+
+          {/* Deleting drops the group for everyone, so it is an admin-only
+              power (the RPC refuses it regardless) and stands alone. */}
+          {isAdmin ? (
+            <View style={{ gap: theme.spacing.sm }}>
+              <Card
+                padded={false}
+                style={{
+                  paddingHorizontal: theme.spacing.lg,
+                  borderWidth: 1,
+                  borderColor: theme.color.negative,
+                  opacity: deleteGroup.isPending ? 0.45 : 1,
+                }}
+              >
+                <ListRow
+                  title={t.group.deleteGroup}
+                  subtitle={t.group.deleteHint}
+                  destructive
+                  leading={<ExitChip icon="trash-outline" tone="loud" />}
+                  onPress={deleteGroup.isPending ? undefined : confirmDelete}
+                />
+              </Card>
+              {/* An admin looking at an unsettled group should know what the
+                  row costs before they tap it, not only in the alert after. */}
+              {!ledger.groupSettled ? (
+                <Callout tone="negative">{t.group.deleteUnsettledHint}</Callout>
+              ) : null}
+            </View>
           ) : null}
         </View>
       </ScrollView>

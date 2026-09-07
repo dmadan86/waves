@@ -14,6 +14,8 @@ import { Pressable, View } from 'react-native';
 import type { CurrencyCode } from '@waves/core';
 import { Avatar, Badge, MoneyText, Row, Text, tintForKey, useTheme } from '@waves/ui';
 
+import { GroupMark } from './GroupMark';
+
 export function GroupCard({
   id,
   title,
@@ -64,7 +66,12 @@ export function GroupCard({
         {/* A bigger circular avatar carries the group's colour and initial. The
             LINE-services look: solid round icon, bold name, muted line beneath,
             airy rows with no hairline between them. */}
-        <Avatar name={title} emoji={coverEmoji ?? undefined} size={52} tint={tintForKey(id)} />
+        <Avatar
+          name={title}
+          mark={(color) => <GroupMark emoji={coverEmoji} size={26} color={color} />}
+          size={52}
+          tint={tintForKey(id)}
+        />
 
         <View style={{ flex: 1, minWidth: 0 }}>
           <Row style={{ gap: theme.spacing.xs, alignItems: 'center' }}>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Image, Pressable, View } from 'react-native';
 
 import { useTheme } from '../theme';
@@ -22,6 +22,7 @@ export function initialsOf(name: string): string {
 export function Avatar({
   name,
   emoji,
+  mark,
   size = 44,
   tint,
   /** Ghost members (ADR-006) read as provisional until somebody claims them. */
@@ -32,6 +33,14 @@ export function Avatar({
 }: {
   name: string;
   emoji?: string;
+  /**
+   * A drawn glyph to stand where the emoji or the initials would — a group's
+   * cover mark, say. Handed the tint's ink so it matches the circle it sits in
+   * without the caller resolving the palette, the same bargain `Callout` makes
+   * with its `icon`. Passed as a node because this package carries no icon or
+   * vector library of its own.
+   */
+  mark?: (color: string) => ReactNode;
   size?: number;
   tint?: TintName;
   ghost?: boolean;
@@ -89,6 +98,8 @@ export function Avatar({
           resizeMode="cover"
           onError={() => setBroken(photoUrl)}
         />
+      ) : mark ? (
+        mark(resolved.ink)
       ) : (
         <Text variant={size >= 44 ? 'subheading' : 'caption'} style={{ color: resolved.ink }}>
           {emoji ?? initialsOf(name)}

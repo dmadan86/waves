@@ -25,7 +25,7 @@ appId: app.waves.mobile
 - tapOn: 'Settings'
 - assertVisible: 'Members'
 
-# The Leave button sits below Archive at the very bottom, under the tab bar —
+# The Leave row sits under Archive at the very bottom, under the tab bar —
 # scroll it into reach (the clearance this flow also guards) and confirm.
 - scrollUntilVisible:
     element: 'Leave group'
