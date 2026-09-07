@@ -1945,6 +1945,21 @@ export interface UiStrings {
     scanDenied: string;
     scanInvalid: string;
     scanRebuild: string;
+    scanAllowTitle: string;
+    scanDeniedTitle: string;
+    scanCameraFailedTitle: string;
+    scanCameraFailed: string;
+    scanFound: string;
+    scanViewfinder: string;
+    scanTorchOn: string;
+    scanTorchOff: string;
+    scanPasteLink: string;
+    scanPasteTitle: string;
+    scanPasteBody: string;
+    scanPastePlaceholder: string;
+    scanPasteAction: string;
+    scanPasteInvalid: string;
+    scanAnother: string;
     personName: string;
     createGroup: string;
     linkExpired: string;
@@ -4219,6 +4234,23 @@ const en: UiStrings = {
     scanDenied: 'Camera access is off. Turn it on in Settings to scan.',
     scanInvalid: 'That is not a Waves invite code.',
     scanRebuild: 'Update the app to scan invite codes.',
+    scanAllowTitle: 'Turn on the camera',
+    scanDeniedTitle: 'The camera is switched off',
+    scanCameraFailedTitle: 'The camera would not start',
+    scanCameraFailed:
+      'Another app may be using it. Close this and try again, or paste the invite link instead.',
+    scanFound: 'Invite code found',
+    scanViewfinder: 'Camera viewfinder. Point it at an invite QR code — it reads by itself.',
+    scanTorchOn: 'Turn the light on',
+    scanTorchOff: 'Turn the light off',
+    scanPasteLink: 'Paste a link instead',
+    scanPasteTitle: 'Paste an invite link',
+    scanPasteBody: 'If the link came through a chat on this phone, paste it here.',
+    scanPastePlaceholder: 'Paste the invite link',
+    scanPasteAction: 'Open invite',
+    scanPasteInvalid:
+      'That is not a Waves invite link. Paste the whole link, including the code at the end.',
+    scanAnother: 'Scan another code',
     personName: "Person's name",
     createGroup: 'Create group',
     linkExpired: 'This link has expired',
@@ -6578,6 +6610,24 @@ const ta: UiStrings = {
     scanDenied: 'கேமரா அணுகல் அணைக்கப்பட்டுள்ளது. ஸ்கேன் செய்ய அமைப்புகளில் இயக்கவும்.',
     scanInvalid: 'இது Waves அழைப்புக் குறியீடு அல்ல.',
     scanRebuild: 'அழைப்புக் குறியீடுகளை ஸ்கேன் செய்ய ஆப்பைப் புதுப்பிக்கவும்.',
+    scanAllowTitle: 'கேமராவை இயக்கவும்',
+    scanDeniedTitle: 'கேமரா அணைக்கப்பட்டுள்ளது',
+    scanCameraFailedTitle: 'கேமரா தொடங்கவில்லை',
+    scanCameraFailed:
+      'வேறு ஒரு ஆப் அதைப் பயன்படுத்தலாம். இதை மூடி மீண்டும் முயற்சிக்கவும், அல்லது அழைப்பு இணைப்பை ஒட்டவும்.',
+    scanFound: 'அழைப்புக் குறியீடு கிடைத்தது',
+    scanViewfinder:
+      'கேமரா காட்சி. அழைப்பு QR குறியீட்டை நோக்கிக் காட்டவும் — அது தானாகவே படிக்கும்.',
+    scanTorchOn: 'விளக்கை இயக்கு',
+    scanTorchOff: 'விளக்கை அணை',
+    scanPasteLink: 'இணைப்பை ஒட்டவும்',
+    scanPasteTitle: 'அழைப்பு இணைப்பை ஒட்டவும்',
+    scanPasteBody: 'இந்த ஃபோனில் ஒரு அரட்டையில் இணைப்பு வந்திருந்தால், அதை இங்கே ஒட்டவும்.',
+    scanPastePlaceholder: 'அழைப்பு இணைப்பை ஒட்டவும்',
+    scanPasteAction: 'அழைப்பைத் திற',
+    scanPasteInvalid:
+      'இது Waves அழைப்பு இணைப்பு அல்ல. இறுதியில் உள்ள குறியீடு உட்பட முழு இணைப்பையும் ஒட்டவும்.',
+    scanAnother: 'வேறு ஒரு குறியீட்டை ஸ்கேன் செய்',
     personName: 'நபரின் பெயர்',
     createGroup: 'குழுவை உருவாக்கு',
     linkExpired: 'இந்த இணைப்பு காலாவதியாகிவிட்டது',
@@ -8925,6 +8975,22 @@ const hi: UiStrings = {
     scanDenied: 'कैमरा एक्सेस बंद है। स्कैन करने के लिए सेटिंग्स में चालू करें।',
     scanInvalid: 'यह Waves इनवाइट कोड नहीं है।',
     scanRebuild: 'इनवाइट कोड स्कैन करने के लिए ऐप अपडेट करें।',
+    scanAllowTitle: 'कैमरा चालू करें',
+    scanDeniedTitle: 'कैमरा बंद है',
+    scanCameraFailedTitle: 'कैमरा शुरू नहीं हो सका',
+    scanCameraFailed:
+      'हो सकता है कोई दूसरा ऐप उसे इस्तेमाल कर रहा हो। इसे बंद करके फिर कोशिश करें, या इनवाइट लिंक पेस्ट करें।',
+    scanFound: 'इनवाइट कोड मिल गया',
+    scanViewfinder: 'कैमरा व्यूफ़ाइंडर। इनवाइट QR कोड की ओर करें — यह अपने आप पढ़ लेता है।',
+    scanTorchOn: 'लाइट चालू करें',
+    scanTorchOff: 'लाइट बंद करें',
+    scanPasteLink: 'लिंक पेस्ट करें',
+    scanPasteTitle: 'इनवाइट लिंक पेस्ट करें',
+    scanPasteBody: 'अगर लिंक इसी फ़ोन की किसी चैट में आया है, तो उसे यहाँ पेस्ट करें।',
+    scanPastePlaceholder: 'इनवाइट लिंक पेस्ट करें',
+    scanPasteAction: 'इनवाइट खोलें',
+    scanPasteInvalid: 'यह Waves इनवाइट लिंक नहीं है। आख़िर के कोड सहित पूरा लिंक पेस्ट करें।',
+    scanAnother: 'दूसरा कोड स्कैन करें',
     personName: 'व्यक्ति का नाम',
     createGroup: 'समूह बनाएँ',
     linkExpired: 'यह लिंक खत्म हो चुका है',
@@ -11352,6 +11418,21 @@ const ar: UiStrings = {
     scanDenied: 'الوصول إلى الكاميرا متوقف. فعّله من الإعدادات للمسح.',
     scanInvalid: 'هذا ليس رمز دعوة Waves.',
     scanRebuild: 'حدّث التطبيق لمسح رموز الدعوة.',
+    scanAllowTitle: 'شغّل الكاميرا',
+    scanDeniedTitle: 'الكاميرا متوقفة',
+    scanCameraFailedTitle: 'تعذّر تشغيل الكاميرا',
+    scanCameraFailed: 'قد يستخدمها تطبيق آخر. أغلق هذه الشاشة وحاول مرة أخرى، أو ألصق رابط الدعوة.',
+    scanFound: 'تم العثور على رمز الدعوة',
+    scanViewfinder: 'عدسة الكاميرا. وجّهها إلى رمز QR الخاص بالدعوة — يُقرأ تلقائيًا.',
+    scanTorchOn: 'شغّل الضوء',
+    scanTorchOff: 'أطفئ الضوء',
+    scanPasteLink: 'ألصق رابطًا بدلاً من ذلك',
+    scanPasteTitle: 'ألصق رابط الدعوة',
+    scanPasteBody: 'إذا وصلك الرابط في محادثة على هذا الهاتف، فألصقه هنا.',
+    scanPastePlaceholder: 'ألصق رابط الدعوة',
+    scanPasteAction: 'افتح الدعوة',
+    scanPasteInvalid: 'هذا ليس رابط دعوة Waves. ألصق الرابط كاملاً بما فيه الرمز في آخره.',
+    scanAnother: 'امسح رمزًا آخر',
     personName: 'اسم الشخص',
     createGroup: 'إنشاء مجموعة',
     linkExpired: 'انتهت صلاحية هذا الرابط',
