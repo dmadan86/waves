@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildExpenseWriteBody, splitParamsFor, expenseParticipants } from './expense.js';
+import { buildExpenseWriteBody, splitParamsFor, expenseParticipants } from './expense';
 
 describe('MCP expense-write payloads', () => {
   it('defaults omitted currency from the group for rider/traveller splits', () => {

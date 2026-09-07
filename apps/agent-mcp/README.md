@@ -121,19 +121,51 @@ server has been probed over real stdio — but nothing here has been run
 end-to-end against a live account. Verify against a throwaway group before
 pointing it at anything real.
 
+## Connecting somebody else's agent (remote)
+
+The stdio server above is one machine and one account. For anybody else there
+is `POST /api/mcp` on the web app, where each request carries its own bearer
+token and the server keeps nothing between them.
+
+The URL to give a connector is `https://app.wavs.co.in/api/mcp`. Nobody
+exchanges an API key: a client with no token is refused with a
+`WWW-Authenticate` header naming
+`/.well-known/oauth-protected-resource/api/mcp` (RFC 9728), fetches that,
+learns Supabase Auth is the authorization server, registers itself and runs an
+authorization-code flow with PKCE. The person approves it once, in a browser,
+as themselves.
+
+The token that comes back is an ordinary Supabase JWT, so **every RLS policy in
+this repo applies to the agent unchanged** — which is the reason this is a
+small amount of code rather than a second permission system. It also carries a
+`client_id` claim the app's own tokens do not, and that claim is what
+`waves_assert_agent_cap` and `agent_writes` key off: a ceiling on how much an
+assistant may write, and a record of what it did that the person can read and
+act on.
+
+Two things are owed before this is usable by strangers:
+
+1. **Turn on the OAuth 2.1 server** in the Supabase dashboard (Auth → OAuth
+   server) so `/.well-known/oauth-authorization-server` answers on the project.
+   Until it does, a client discovers this endpoint and then has nowhere to get
+   a token.
+2. **Apply the migration** `20260907140000_agent_writes_and_caps` to prod. The
+   ceiling and the audit trail are inert without it — and inert here means
+   absent, not permissive.
+
+`WAVES_MCP_READONLY=1` on the web deployment offers reads only; the write tools
+are not registered at all, so they never appear in `tools/list`.
+
 ## Where this is going
 
 This is Stage 0 of the agent story: stdio, one machine, one account. It is not a
 thing to hand to somebody else — the session on disk is yours, and giving away
 the server gives away your ledger.
 
-Stage 1 makes it a product: [Supabase Auth's OAuth 2.1
-server](https://supabase.com/docs/guides/auth/oauth-server) as the authorization
-server, `/.well-known/oauth-protected-resource` (RFC 9728) published here,
-Streamable HTTP instead of stdio, and server-side spend ceilings plus a
-`client_id` audit trail so a person can see what their agent did in their name
-and revoke it. Access tokens there are ordinary Supabase JWTs carrying `user_id`
-and `role`, so every RLS policy in this repo keeps working unchanged for a
-stranger's agent — which is what makes the whole idea tractable. At that point
-`login.ts` and `store.ts` are deleted, because nothing should keep a refresh
-token on disk.
+Stage 1 is built — see the section above. What is left is the part only a
+person can do: switching the OAuth server on in the Supabase dashboard, and
+deploying the migration that gives the ceiling something to read.
+
+After that, `login.ts` and `store.ts` can go: nothing should keep a refresh
+token on disk once there is a flow that does not need one. They stay for now
+because the stdio server is still how this gets tested.

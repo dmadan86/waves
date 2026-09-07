@@ -17,7 +17,7 @@ import { stdin, stdout } from 'node:process';
 
 import { createClient } from '@supabase/supabase-js';
 
-import { readStore, writeStore, STORE_PATH } from './store.js';
+import { readStore, writeStore, STORE_PATH } from './store';
 
 /**
  * Which project to sign in to. Flags win, then the environment, then whatever
