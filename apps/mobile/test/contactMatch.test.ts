@@ -42,6 +42,12 @@ describe('reading a written number', () => {
   it('drops the trunk zero', () => {
     expect(digitsOf('09876543210')).toBe('9876543210');
   });
+
+  it('folds Arabic, Devanagari, and Tamil digits to ASCII', () => {
+    expect(digitsOf('+٩١ ٩٨٧٦٥ ٤٣٢١٠')).toBe('919876543210');
+    expect(digitsOf('+९१ ९८७६५ ४३२१०')).toBe('919876543210');
+    expect(digitsOf('+௯௧ ௯௮௭௬௫ ௪௩௨௧௦')).toBe('919876543210');
+  });
 });
 
 describe('the same line, written three ways', () => {
@@ -53,6 +59,12 @@ describe('the same line, written three ways', () => {
 
   it('matches a US number written locally', () => {
     expect(samePhone('+16502137379', '(650) 213-7379')).toBe(true);
+  });
+
+  it('matches local numeral phone cards to stored invite numbers', () => {
+    expect(samePhone('+٩١ ٩٨٧٦٥ ٤٣٢١٠', '9876543210')).toBe(true);
+    expect(samePhone('+९१ ९८७६५ ४३२१०', '9876543210')).toBe(true);
+    expect(samePhone('+௯௧ ௯௮௭௬௫ ௪௩௨௧௦', '9876543210')).toBe(true);
   });
 
   it('keeps two different people apart', () => {
@@ -119,6 +131,13 @@ describe('searching the address book', () => {
     expect(matchesContactQuery(ravi, '098765')).toBe(true);
   });
 
+  it('finds a number typed or stored with local numerals', () => {
+    expect(matchesContactQuery(ravi, '٩٨٧٦٥')).toBe(true);
+    expect(
+      matchesContactQuery({ name: 'மீரா', email: null, phone: '+௯௧ ௯௮௭௬௫ ௪௩௨௧௦' }, '98765'),
+    ).toBe(true);
+  });
+
   it('refuses a number that is not theirs', () => {
     expect(matchesContactQuery(ravi, '5551234')).toBe(false);
   });
@@ -153,6 +172,11 @@ describe('the index of people already written down', () => {
     const ravi = lookupKnown(index, { name: 'Ravi K', email: null, phone: '098765 43210' });
     expect(ravi?.groupIds).toEqual(['goa', 'flat']);
     expect(ravi?.groupNames).toEqual(['Goa trip', 'Flatmates']);
+  });
+
+  it('recognises an already-known person whose phone uses local numerals', () => {
+    const ravi = lookupKnown(index, { name: 'Ravi K', email: null, phone: '+٩١ ٩٨٧٦٥ ٤٣٢١٠' });
+    expect(ravi?.groupIds).toEqual(['goa', 'flat']);
   });
 
   it('names the single group somebody is in', () => {

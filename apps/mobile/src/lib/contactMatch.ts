@@ -43,6 +43,25 @@ export function fold(value: string): string {
 }
 
 /**
+ * One written decimal digit, in the numeral systems the app ships UI for.
+ *
+ * JavaScript's `\d` and `Number()` only understand ASCII digits, but address
+ * books on Arabic, Hindi and Tamil phones can contain local numerals. Search and
+ * duplicate detection are comparison-only paths, so folding them to ASCII is the
+ * right representation here and never changes what is displayed.
+ */
+function asciiDigit(char: string): string | null {
+  const code = char.codePointAt(0);
+  if (code === undefined) return null;
+  if (code >= 0x30 && code <= 0x39) return String(code - 0x30);
+  if (code >= 0x660 && code <= 0x669) return String(code - 0x660);
+  if (code >= 0x6f0 && code <= 0x6f9) return String(code - 0x6f0);
+  if (code >= 0x966 && code <= 0x96f) return String(code - 0x966);
+  if (code >= 0xbe6 && code <= 0xbef) return String(code - 0xbe6);
+  return null;
+}
+
+/**
  * Just the digits, with any leading trunk zero dropped.
  *
  * The zero in `09876543210` is a dialling instruction for the local network,
@@ -50,7 +69,9 @@ export function fold(value: string): string {
  * person looks like two people.
  */
 export function digitsOf(value: string): string {
-  return value.replace(/[^0-9]/g, '').replace(/^0+/, '');
+  let digits = '';
+  for (const char of value) digits += asciiDigit(char) ?? '';
+  return digits.replace(/^0+/, '');
 }
 
 /**
