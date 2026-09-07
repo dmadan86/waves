@@ -42,7 +42,9 @@ const INDICATOR_HEIGHT = 30;
  *
  * This is what nearly every scrolling screen wants, not just the four tabs: the
  * bar is rendered once at the root over the whole navigation stack (`AppTabBar`),
- * so a pushed group, settings or personal screen carries it too.
+ * so a pushed group, settings or personal screen carries it too. The exceptions
+ * are the routes named in `TAB_BAR_HIDDEN_ROUTES` (`apps/mobile/src/lib/tabBar.ts`)
+ * and anything reached without a session, which want `useScreenClearance`.
  */
 export function useTabBarClearance(): number {
   const insets = useSafeAreaInsets();
@@ -51,18 +53,26 @@ export function useTabBarClearance(): number {
 
 /**
  * How much room a scrolling screen that is NOT under the app's own bottom bar
- * has to leave at its foot — only the routes the bar hides itself on, which is
- * the full-screen camera, the rise-from-bottom modals (add an expense, settle
- * up, invite, itemize) and the signed-out screens.
+ * has to leave at its foot.
+ *
+ * One place decides which screens those are: `TAB_BAR_HIDDEN_ROUTES` in
+ * `apps/mobile/src/lib/tabBar.ts`, the set of route names the bar hides itself
+ * on — plus anything reached without a session, which the same module handles.
+ * Go and read that set; do not trust a list written here. It is edited every
+ * time a screen is added, so a copy in this comment would be stale within a
+ * release, and a stale copy is worse than none: it reads as authority. If the
+ * route is not in the set, the bar is over the screen and it wants
+ * `useTabBarClearance` instead. (For the shape of it: the full-screen camera and
+ * the add-an-expense sheet are in the set today; a pushed group, settings or
+ * personal screen is not.)
  *
  * Being *pushed* is not the test, and reading it that way is what left the plan
  * screen's last day under the bar: the bar lives at the root and stays on top of
- * pushed screens too, so those want `useTabBarClearance` instead. The one thing
- * this reserves is the system navigation bar (gesture pill or the three
- * buttons), which sits *over* the content because the app draws edge-to-edge —
- * a fixed `paddingBottom` cannot know its height, so the last row ends up under
- * the system UI. Pass a larger `base` on a screen with a floating action or a
- * pinned footer.
+ * pushed screens too. The one thing this reserves is the system navigation bar
+ * (gesture pill or the three buttons), which sits *over* the content because the
+ * app draws edge-to-edge — a fixed `paddingBottom` cannot know its height, so
+ * the last row ends up under the system UI. Pass a larger `base` on a screen
+ * with a floating action or a pinned footer.
  */
 export function useScreenClearance(base: number = spacing.xxxl): number {
   const insets = useSafeAreaInsets();

@@ -11,6 +11,7 @@ import {
   Screen,
   Text,
   tintForKey,
+  useTabBarClearance,
   useTheme,
 } from '@waves/ui';
 
@@ -34,6 +35,7 @@ import { fill, plural, useStrings } from '@/i18n';
  */
 export default function CloneGroupScreen() {
   const theme = useTheme();
+  const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
   const { profile } = useAuth();
   const groups = useGroups();
@@ -63,7 +65,7 @@ export default function CloneGroupScreen() {
       <ScrollView
         contentContainerStyle={{
           paddingHorizontal: theme.spacing.xl,
-          paddingBottom: theme.spacing.xl,
+          paddingBottom: clearance,
           gap: theme.spacing.xs,
         }}
         showsVerticalScrollIndicator={false}
