@@ -293,7 +293,7 @@ export function displayName(
 ): string {
   if (member.profile_id && member.profile_id === myProfileId) return 'You';
   if (member.profile_id && blocked?.has(member.profile_id)) return someoneLabel;
-  return member.profile?.display_name ?? member.ghost_name ?? 'Someone';
+  return member.profile?.display_name ?? member.ghost_name ?? someoneLabel;
 }
 
 /**

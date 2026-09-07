@@ -916,7 +916,8 @@ export interface GroupLedger {
   myMemberId: MemberId | null;
   myBalance: bigint;
   /** Whether the WHOLE group is square — every member, in every currency (A49).
-   *  The button state for deleting a group; the RPC re-checks it authoritatively. */
+   *  Not a gate on deleting a group any more, but the reason the delete
+   *  confirmation has to spell out which debts are about to vanish. */
   groupSettled: boolean;
   /** Difference the still-unconfirmed settlements would make (TDR §3.3). */
   pending: bigint;
@@ -961,8 +962,10 @@ export function useGroupLedger(groupId: string, myProfileId: string | null): Gro
     const computed = net.get(currency) ?? new Map<MemberId, bigint>();
 
     // Is the WHOLE group square (A49)? Across every currency, not just the group
-    // default — a USD balance left open must still block a delete. The server
-    // re-checks this in `waves_delete_group`; this only decides the button.
+    // default — a USD balance left open still means the group is not settled.
+    // This no longer decides whether a delete is allowed (an admin may delete an
+    // unsettled group); it decides how loudly the confirmation has to warn, since
+    // deleting with balances open destroys that record for every member.
     let groupSettled = true;
     for (const perMember of net.values()) {
       for (const balance of perMember.values()) {
@@ -1705,8 +1708,9 @@ export function useLeaveGroup(groupId: string) {
 
 /**
  * Delete a group for everyone (A49). Unlike leave and archive — plain column
- * writes — this goes through `waves_delete_group`, which enforces admin-only and
- * all-settled server-side. The tombstone syncs to every member and the mirror
+ * writes — this goes through `waves_delete_group`, which enforces admin-only
+ * server-side (and nothing else: an unsettled group deletes too). The tombstone
+ * syncs to every member and the mirror
  * filters hide it; on this device we forget it at once (like leave) so it drops
  * from the list before the pull round-trips, then flush to fetch the tombstone.
  */
