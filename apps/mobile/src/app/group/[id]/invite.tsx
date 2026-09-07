@@ -212,7 +212,9 @@ export default function InviteScreen() {
         contentContainerStyle={{
           paddingHorizontal: theme.spacing.xl,
           paddingTop: theme.spacing.lg,
-          paddingBottom: clearance,
+          // Plus a line's worth, so the closing sentence is not sitting on
+          // the navigation bar.
+          paddingBottom: clearance + theme.spacing.lg,
           gap: theme.spacing.lg,
         }}
         showsVerticalScrollIndicator={false}
@@ -340,8 +342,12 @@ export default function InviteScreen() {
                   numberOfLines={1}
                   // The token is the end of the URL and the only part that
                   // differs between groups, so it is the half worth keeping.
+                  //
+                  // Not `selectable`: Android renders selectable text through a
+                  // path that ignores `numberOfLines`, so the URL wrapped and
+                  // the second line was clipped by the card. Copy is a tap
+                  // away, which is the better way to take a link anyway.
                   ellipsizeMode="middle"
-                  selectable
                 >
                   {link}
                 </Text>
@@ -401,14 +407,14 @@ export default function InviteScreen() {
                     opacity: pressed ? 0.6 : 1,
                   })}
                 >
-                  {/* Sized off the column rather than a fixed width, so the
-                      circles stay round on a narrow phone. */}
+                  {/* An explicit square. `width: '100%'` with `aspectRatio`
+                      resolved against the column and came out a tall oval on a
+                      real screen; a circle is one number, not a proportion. */}
                   <View
                     style={{
-                      width: '100%',
-                      maxWidth: 60,
-                      aspectRatio: 1,
-                      borderRadius: 999,
+                      width: 60,
+                      height: 60,
+                      borderRadius: 30,
                       alignItems: 'center',
                       justifyContent: 'center',
                       backgroundColor: option.color,
