@@ -986,10 +986,14 @@ export async function leaveGroup(memberId: string): Promise<void> {
  * not a row delete: the ledger stays append-only (ADR-004), the group simply
  * leaves every member's lists on their next sync.
  *
- * Admin-only and settled-only are enforced in `waves_delete_group`, not here —
- * the button only offers it to an admin of a squared-up group, so the two coded
- * refusals are defence-in-depth. They are turned into a sentence the same way
- * `importLedger` maps its codes.
+ * Admin-only is enforced in `waves_delete_group`, not here — the button only
+ * offers it to an admin, so the coded refusal is defence-in-depth. It is turned
+ * into a sentence the same way `importLedger` maps its codes.
+ *
+ * There is deliberately no settled-only refusal to map any more: an admin may
+ * delete a group with balances still open in it. The client warns, in as many
+ * words, that doing so destroys the record of those debts for every member —
+ * see `confirmDelete` on the group settings screen.
  */
 export async function deleteGroup(groupId: string): Promise<void> {
   const { error } = await backend.rpc('waves_delete_group', { p_group_id: groupId });
@@ -1001,14 +1005,8 @@ export async function deleteGroup(groupId: string): Promise<void> {
     // raw PostgREST) for any non-UI consumer / crash report; the unknown case
     // keeps the raw message, which the UI runs through friendlyError so it is
     // never shown verbatim.
-    const thrown = new Error(
-      code === 'NOT_SETTLED'
-        ? strings.group.settleAllFirstBody
-        : code === 'NOT_ADMIN'
-          ? strings.group.deleteAdminOnly
-          : error.message,
-    );
-    if (code === 'NOT_SETTLED' || code === 'NOT_ADMIN') {
+    const thrown = new Error(code === 'NOT_ADMIN' ? strings.group.deleteAdminOnly : error.message);
+    if (code === 'NOT_ADMIN') {
       (thrown as { code?: string }).code = code;
     }
     throw thrown;
