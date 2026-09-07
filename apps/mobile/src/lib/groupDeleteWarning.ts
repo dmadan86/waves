@@ -1,13 +1,20 @@
-export const MAX_DELETE_DEBT_LINES = 4;
+/**
+ * The body of the "delete this group?" confirmation (A64).
+ *
+ * Pulled out of the screen so the wording can be tested without a device: the
+ * alert is the only thing standing between an admin and a record that goes for
+ * everyone, so what it says is worth pinning down.
+ */
 
-interface PluralForms {
-  readonly zero?: string;
-  readonly one?: string;
-  readonly two?: string;
-  readonly few?: string;
-  readonly many?: string;
-  readonly other: string;
-}
+import { plural, type PluralForms } from '@/i18n';
+import type { Transfer } from '@waves/core';
+
+/**
+ * How many open debts the warning spells out before it starts counting the
+ * rest. Four is enough to make the loss feel like a list of real people rather
+ * than a number, and short enough that the alert still fits on a phone.
+ */
+export const MAX_DELETE_DEBT_LINES = 4;
 
 export interface GroupDeleteWarningStrings {
   readonly deleteBody: string;
@@ -16,31 +23,33 @@ export interface GroupDeleteWarningStrings {
   readonly deleteMoreDebts: PluralForms;
 }
 
-function selectRule(locale: string, count: number): Intl.LDMLPluralRule {
-  const language = locale.toLowerCase().split(/[-_]/)[0];
-  if (language === 'ar') {
-    const mod100 = count % 100;
-    if (count === 0) return 'zero';
-    if (count === 1) return 'one';
-    if (count === 2) return 'two';
-    if (mod100 >= 3 && mod100 <= 10) return 'few';
-    if (mod100 >= 11 && mod100 <= 99) return 'many';
-  }
-  if (language === 'hi') return count === 0 || count === 1 ? 'one' : 'other';
-  return count === 1 ? 'one' : 'other';
-}
-
-function formatCount(locale: string, count: number): string {
-  try {
-    return new Intl.NumberFormat(locale).format(count);
-  } catch {
-    return String(count);
-  }
-}
-
-function plural(locale: string, count: number, forms: PluralForms): string {
-  const rule = selectRule(locale, count);
-  return (forms[rule] ?? forms.other).replaceAll('{n}', formatCount(locale, count));
+/**
+ * The order the debts are said in, given only four of them are said at all.
+ *
+ * `transfers` arrives in the order the balance maths happened to produce —
+ * alphabetical by currency then by member id — so slicing it takes four
+ * arbitrary debts and counts the rest, which can hide the ₹40,000 nobody paid
+ * behind three small ones. The point of naming them is to make the loss
+ * concrete, so the biggest go first.
+ *
+ * "Biggest" only means anything inside one currency: comparing ₹500 with $8.50
+ * needs an FX rate this screen does not have, and minor units are not even the
+ * same size (JPY has no decimals). So the group's own currency leads, the rest
+ * follow alphabetically, and within each the largest debt is first.
+ */
+export function orderDebtsForWarning(
+  transfers: readonly Transfer[],
+  defaultCurrency: string,
+): Transfer[] {
+  return [...transfers].sort((a, b) => {
+    if (a.currency !== b.currency) {
+      if (a.currency === defaultCurrency) return -1;
+      if (b.currency === defaultCurrency) return 1;
+      return a.currency.localeCompare(b.currency);
+    }
+    // bigint, so no subtraction into a number that might not hold it.
+    return a.amount > b.amount ? -1 : a.amount < b.amount ? 1 : 0;
+  });
 }
 
 export function groupDeleteBody(params: {

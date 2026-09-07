@@ -31,7 +31,7 @@ import { format as formatMoney, money as coreMoney, type CurrencyCode } from '@w
 import { GroupPhoto } from '@/components/GroupPhoto';
 import { type PickedContact } from '@/components/ContactPicker';
 import { friendlyError } from '@/lib/errors';
-import { groupDeleteBody } from '@/lib/groupDeleteWarning';
+import { groupDeleteBody, orderDebtsForWarning } from '@/lib/groupDeleteWarning';
 import { pickGroupPhoto } from '@/lib/image';
 import { requestContacts } from '@/lib/contactPickerBridge';
 import { isPhoneCountryError } from '@/lib/phone';
@@ -52,6 +52,7 @@ import {
 import { fill, plural, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { useFavorites } from '@/lib/favorites';
+import { useBlockedUsers } from '@/data/blocked';
 import { displayName, groupLabel, GroupType, isGhost, vpaOf } from '@/data/types';
 
 // Same chip icons the create screen wears, so changing a group's kind looks
@@ -78,6 +79,7 @@ export default function GroupSettingsScreen() {
   const leaveGroup = useLeaveGroup(groupId);
   const deleteGroup = useDeleteGroup(groupId);
   const { isFavorite, toggle: toggleFavorite } = useFavorites();
+  const { blockedIds } = useBlockedUsers();
   const addGhost = useAddGhostMember(groupId);
 
   // A name is enough to start splitting with someone (ADR-006). Adding by name
@@ -273,7 +275,9 @@ export default function GroupSettingsScreen() {
    *
    * Names are the plain member names, never "You": the line has to read the
    * same to whoever is holding the phone, and "You owes Ravi" is not a
-   * sentence in any of the four languages.
+   * sentence in any of the four languages. A blocked person keeps the ghost
+   * they wear everywhere else (A62) — the block is about not seeing a name all
+   * day, and a warning is not the place to hand it back.
    */
   const outstandingDebts = (): string[] => {
     const nameFor = (memberId: string): string => {
@@ -282,9 +286,9 @@ export default function GroupSettingsScreen() {
       // than left to the default, which is the English word: this alert is the
       // last thing somebody reads before destroying a record, and half of it
       // arriving in another language is not the moment for it.
-      return member ? displayName(member, undefined, undefined, t.misc.someone) : t.misc.someone;
+      return member ? displayName(member, undefined, blockedIds, t.misc.someone) : t.misc.someone;
     };
-    return ledger.transfers.map((transfer) =>
+    return orderDebtsForWarning(ledger.transfers, currency).map((transfer) =>
       fill(t.group.deleteOwesLine, {
         from: nameFor(transfer.from),
         to: nameFor(transfer.to),
