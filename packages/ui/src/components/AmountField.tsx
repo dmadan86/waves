@@ -164,9 +164,14 @@ export function AmountField({
         alignItems: 'center',
         justifyContent: compact ? 'flex-end' : hero ? 'flex-start' : 'center',
         gap: theme.spacing.xs,
-        // The hero shares its line with the currency pill, so a long amount has
-        // to give ground rather than push the pill off the header; the standalone
-        // sizes have the row to themselves and must not be squeezed by a sibling.
+        // The hero takes every point its line does not owe to something else and
+        // gives them back when the amount is long: it grows into the gap between
+        // the category badge and the currency pill, and shrinks rather than
+        // pushing that pill off the end of the header. It is the field the screen
+        // exists to fill, so it should be the widest thing on its row even when
+        // it holds a single digit. The standalone sizes have the row to
+        // themselves and must be neither stretched nor squeezed by a sibling.
+        flexGrow: hero ? 1 : 0,
         flexShrink: hero ? 1 : 0,
         minWidth: 0,
         ...(framed
@@ -211,7 +216,14 @@ export function AmountField({
           fontWeight: '700',
           color: digitInk,
           fontVariant: ['tabular-nums'],
+          // Physical, not logical, on purpose: React Native flips `textAlign`
+          // itself in an RTL layout, so 'left' is already "the side the digits
+          // start on" in Arabic.
           textAlign: compact ? 'right' : 'left',
+          // The input fills whatever the well grew to, so the whole well raises
+          // the keyboard. Sized to its text it would leave most of a wide hero
+          // field as dead space that looks like a tap target and is not one.
+          flexGrow: hero ? 1 : 0,
           flexShrink: hero ? 1 : 0,
         }}
       />

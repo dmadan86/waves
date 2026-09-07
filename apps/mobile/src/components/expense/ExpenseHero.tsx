@@ -50,7 +50,12 @@ export function ExpenseHero({
   amount: bigint;
   onAmountChange: (value: bigint) => void;
   onPressCurrency: () => void;
-  /** A trailing action; a 44pt spacer keeps the row balanced when omitted. */
+  /**
+   * A trailing action. Omitted, nothing stands in for it: the row used to keep a
+   * 44pt spacer there for balance, but the amount field now grows into whatever
+   * the row has spare, and an empty box holding 44 points away from it is 44
+   * points the number does not get.
+   */
   right?: ReactNode;
   /** A modal (capture) dismisses with an X; a pushed page goes back. */
   leading?: 'close' | 'back';
@@ -103,8 +108,15 @@ export function ExpenseHero({
           <Text variant="micro" tone="onBrand" numberOfLines={1} style={{ opacity: 0.85 }}>
             {title}
           </Text>
-          {/* Amount and currency on one line: the number leads, the code it is
-              counted in sits at the end of it as the pill that opens the picker. */}
+          {/* Amount and currency on one line, and the line belongs to the
+              amount: the field takes the whole run between the category badge
+              and the pill, which sits hard against the trailing edge. The two
+              used to be sized by their content, so a freshly opened form put a
+              well barely wider than the "0" in it next to a currency pill
+              floating in the middle of the header, with the rest of the line
+              empty — the smallest thing on the row was the one the screen is
+              for. Nothing here wraps: the pill refuses to shrink and the field
+              gives ground (and drops a point or two of type) instead. */}
           <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
             <AmountField
               currency={currency}
@@ -124,6 +136,10 @@ export function ExpenseHero({
                 flexDirection: 'row',
                 alignItems: 'center',
                 gap: theme.spacing.xs,
+                // Whatever the amount does, the pill keeps its own width: a
+                // three-letter code squeezed to "IN…" beside a long total would
+                // be the one part of this row that must never be ambiguous.
+                flexShrink: 0,
                 // A real tap target, not a label: the pill is the only way to
                 // change the currency, and `hitSlop` alone left it under 44pt.
                 minHeight: 36,
@@ -150,7 +166,7 @@ export function ExpenseHero({
           </Row>
         </View>
 
-        {right ?? <View style={{ width: 44 }} />}
+        {right}
       </Row>
     </Gradient>
   );
