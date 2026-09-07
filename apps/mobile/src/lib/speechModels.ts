@@ -33,18 +33,27 @@ export interface SpeechLocales {
 }
 
 export interface SpeechModelsApi {
-  /** Whether a recogniser is usable at all on this phone right now. */
-  available: () => boolean;
   /** Whether this phone can recognise speech without a connection. */
   supportsOnDevice: () => boolean;
   /**
+   * Whether {@link listLocales}'s `installedLocales` is a fact or an echo.
+   *
+   * Android reports the models actually on the device, separate from the ones it
+   * merely supports. iOS assigns one to the other — its module literally returns
+   * the supported list under both names — so on iPhone the answer means nothing
+   * and must not be drawn as if it did.
+   */
+  reportsInstalled: () => boolean;
+  /**
    * Whether a model can be fetched from inside the app.
    *
-   * Android only, and only from Android 13: `androidTriggerOfflineModelDownload`
-   * is not implemented on iOS at all (calling it there throws), and it rejects
-   * with `not_supported` below API 33. iOS installs its dictation languages
-   * through the system's own settings and offers no API to ask for one, so the
-   * screen falls back to telling somebody where to tap.
+   * Android 13 and up. `androidTriggerOfflineModelDownload` is not implemented
+   * in the iOS module at all — calling it there throws — and on Android below
+   * API 33 the native side rejects it with `not_supported` before doing
+   * anything. Both are checked here rather than left to fail at the tap, so no
+   * button is ever offered that cannot work. iOS installs its dictation
+   * languages through the system's own settings and offers no API to ask for
+   * one, so the screen falls back to telling somebody where to tap.
    */
   canDownload: () => boolean;
   /** Ask the phone for its locale lists. Rejects on a service that is busy. */
@@ -55,7 +64,6 @@ export interface SpeechModelsApi {
 
 /** The shape this file uses from the native module — no more than it needs. */
 interface SpeechModule {
-  isRecognitionAvailable: () => boolean;
   supportsOnDeviceRecognition: () => boolean;
   getDefaultRecognitionService?: () => { packageName: string };
   getSupportedLocales: (options: {
@@ -83,13 +91,6 @@ function load(): SpeechModelsApi | null {
   }
 
   return {
-    available: () => {
-      try {
-        return module.isRecognitionAvailable();
-      } catch {
-        return false;
-      }
-    },
     supportsOnDevice: () => {
       try {
         return module.supportsOnDeviceRecognition();
@@ -97,11 +98,28 @@ function load(): SpeechModelsApi | null {
         return false;
       }
     },
-    canDownload: () => Platform.OS === 'android',
+    reportsInstalled: () => Platform.OS === 'android',
+    // API 33 is where the native side stops rejecting outright. `Platform.Version`
+    // is the API level on Android (a string on iOS, which the platform check has
+    // already excluded).
+    canDownload: () => Platform.OS === 'android' && Number(Platform.Version) >= 33,
     listLocales: async () => {
-      // Asking Google's own recogniser by name is what makes `installedLocales`
-      // meaningful: the library returns an empty installed list for any other
-      // service package. iOS has no service concept, so it is queried bare.
+      // The service package is named so this asks the *same* recogniser the mic
+      // asks, and so cannot answer differently from it.
+      //
+      // It is worth being plain that this is a trade, not a free win. Naming a
+      // package makes the native side bind to that service instead of the
+      // on-device recogniser, and the library's own note is that installedLocales
+      // "will likely be an empty array if the service package is not
+      // com.google.android.as" — which the default service usually is not. So on
+      // many phones this under-reports: models that are present read as absent.
+      //
+      // That is the direction to fail in. An under-report offers a download for
+      // something already there, which costs a tap and resolves immediately. The
+      // other direction — querying the on-device recogniser bare, getting a
+      // fuller list, and ticking a model the mic (which asks by package) will not
+      // find — is the silence bug this whole screen exists to cure. Until the mic
+      // and this share one probe, they stay wrong the same way.
       let androidRecognitionServicePackage: string | undefined;
       try {
         const packageName = module.getDefaultRecognitionService?.().packageName;
@@ -109,6 +127,8 @@ function load(): SpeechModelsApi | null {
       } catch {
         // No service to name — query without one rather than fail the read.
       }
+      // iOS has no service concept and answers with an empty package name, so it
+      // falls through to the bare query on its own.
       const answer = await module.getSupportedLocales(
         androidRecognitionServicePackage ? { androidRecognitionServicePackage } : {},
       );

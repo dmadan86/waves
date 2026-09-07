@@ -1024,6 +1024,9 @@ export interface UiStrings {
     dialogOpened: string;
     scheduled: string;
     failed: string;
+    /** A download still unanswered long after it began — Android's listener may
+     *  simply never fire, and the row stops asserting rather than spin forever. */
+    stillWorking: string;
     /** Android 12 and below can neither list installed models nor fetch one. */
     tooOld: string;
     /** iOS installs its dictation languages itself; there is nothing to tap. */
@@ -1034,7 +1037,8 @@ export interface UiStrings {
     noOnDevice: string;
     /** Re-reads the phone's lists, so a download finished elsewhere shows up. */
     refresh: string;
-    /** The phone named no languages at all. */
+    /** The phone answered, and named no languages at all — so the app's own are
+     *  the only rows on the screen. */
     empty: string;
     footnote: string;
   };
@@ -3407,15 +3411,18 @@ const en: UiStrings = {
       'Your phone has taken over with its own download screen. Finish there, then come back and refresh.',
     scheduled: 'Queued. Your phone will finish it, usually once you’re on Wi‑Fi.',
     failed: 'Your phone couldn’t download that one.',
+    stillWorking:
+      'Your phone hasn’t said whether this finished. Give it a while, then refresh to see if it landed.',
     tooOld:
       'This phone’s Android is too old to download models from inside an app. Search Android settings for “voice” to add one.',
     iosNote:
-      'iPhone downloads its dictation languages itself. Add one under Settings › General › Keyboard › Dictation Languages and the mic will use it.',
+      'iPhone downloads its dictation languages itself, and won’t say which ones it already has. Add one under Settings › General › Keyboard › Dictation Languages and the mic will use it.',
     unavailable: 'This build can’t reach the speech models.',
     noOnDevice:
       'This phone can’t recognise speech without a connection, so there’s nothing to download.',
     refresh: 'Refresh',
-    empty: 'Your phone didn’t name any languages.',
+    empty:
+      'Your phone didn’t name any languages it can recognise, so only the ones Waves asks for are listed. A download may still work.',
     footnote:
       'The models belong to your phone, not to Waves. With one installed, what you say is turned into text on the device and never leaves it.',
   },
@@ -5718,15 +5725,18 @@ const ta: UiStrings = {
       'உங்கள் ஃபோன் தன் சொந்தப் பதிவிறக்கத் திரையைத் திறந்துவிட்டது. அங்கே முடித்துவிட்டு, திரும்பி வந்து புதுப்பிக்கவும்.',
     scheduled: 'வரிசையில் உள்ளது. பொதுவாக Wi‑Fi இணைப்பில் உங்கள் ஃபோன் இதை முடிக்கும்.',
     failed: 'அதை உங்கள் ஃபோனால் பதிவிறக்க முடியவில்லை.',
+    stillWorking:
+      'இது முடிந்ததா என்பதை உங்கள் ஃபோன் இன்னும் சொல்லவில்லை. கொஞ்சம் நேரம் கழித்து, வந்து சேர்ந்ததா எனப் புதுப்பித்துப் பாருங்கள்.',
     tooOld:
       'செயலிக்குள் இருந்து மாதிரிகளைப் பதிவிறக்க இந்த ஃபோனின் Android மிகவும் பழையது. Android அமைப்புகளில் “voice” எனத் தேடி ஒன்றைச் சேர்க்கவும்.',
     iosNote:
-      'iPhone தன் டிக்டேஷன் மொழிகளைத் தானே பதிவிறக்கும். Settings › General › Keyboard › Dictation Languages இல் ஒன்றைச் சேர்த்தால் மைக் அதைப் பயன்படுத்தும்.',
+      'iPhone தன் டிக்டேஷன் மொழிகளைத் தானே பதிவிறக்கும்; எவை ஏற்கெனவே உள்ளன என்பதைச் சொல்லாது. Settings › General › Keyboard › Dictation Languages இல் ஒன்றைச் சேர்த்தால் மைக் அதைப் பயன்படுத்தும்.',
     unavailable: 'இந்தப் பதிப்பால் பேச்சு மாதிரிகளை அணுக முடியாது.',
     noOnDevice:
       'இணைப்பு இல்லாமல் பேச்சை இந்த ஃபோனால் அடையாளம் காண முடியாது, எனவே பதிவிறக்க எதுவும் இல்லை.',
     refresh: 'புதுப்பி',
-    empty: 'உங்கள் ஃபோன் எந்த மொழியையும் சொல்லவில்லை.',
+    empty:
+      'தான் அடையாளம் காணக்கூடிய மொழிகள் எதையும் உங்கள் ஃபோன் சொல்லவில்லை, எனவே Waves கேட்பவை மட்டுமே பட்டியலில் உள்ளன. பதிவிறக்கம் இன்னும் வேலை செய்யக்கூடும்.',
     footnote:
       'மாதிரிகள் உங்கள் ஃபோனுடையவை, Waves உடையவை அல்ல. ஒன்று இருந்தால், நீங்கள் பேசுவது ஃபோனிலேயே உரையாக மாறும், வெளியே செல்லாது.',
   },
@@ -8093,14 +8103,17 @@ const hi: UiStrings = {
       'आपके फ़ोन ने अपनी डाउनलोड स्क्रीन खोल दी है। वहीं पूरा करें, फिर लौटकर ताज़ा करें।',
     scheduled: 'क़तार में है। आपका फ़ोन इसे पूरा कर देगा, आम तौर पर Wi‑Fi पर।',
     failed: 'आपका फ़ोन उसे डाउनलोड नहीं कर सका।',
+    stillWorking:
+      'आपके फ़ोन ने अब तक नहीं बताया कि यह पूरा हुआ या नहीं। थोड़ी देर बाद ताज़ा करके देखें कि आया या नहीं।',
     tooOld:
       'ऐप के भीतर से मॉडल डाउनलोड करने के लिए इस फ़ोन का Android बहुत पुराना है। Android सेटिंग्स में “voice” खोजकर एक जोड़ें।',
     iosNote:
-      'iPhone अपनी डिक्टेशन भाषाएँ ख़ुद डाउनलोड करता है। Settings › General › Keyboard › Dictation Languages में एक जोड़ें, माइक उसे इस्तेमाल करने लगेगा।',
+      'iPhone अपनी डिक्टेशन भाषाएँ ख़ुद डाउनलोड करता है, और यह नहीं बताता कि कौन-सी पहले से मौजूद हैं। Settings › General › Keyboard › Dictation Languages में एक जोड़ें, माइक उसे इस्तेमाल करने लगेगा।',
     unavailable: 'यह बिल्ड स्पीच मॉडल तक नहीं पहुँच सकता।',
     noOnDevice: 'यह फ़ोन बिना कनेक्शन के बोली नहीं पहचान सकता, इसलिए डाउनलोड करने को कुछ नहीं है।',
     refresh: 'ताज़ा करें',
-    empty: 'आपके फ़ोन ने कोई भाषा नहीं बताई।',
+    empty:
+      'आपके फ़ोन ने ऐसी कोई भाषा नहीं बताई जिसे वह पहचान सके, इसलिए सिर्फ़ वही सूचीबद्ध हैं जो Waves माँगता है। डाउनलोड फिर भी काम कर सकता है।',
     footnote:
       'मॉडल आपके फ़ोन के हैं, Waves के नहीं। एक मौजूद हो तो आप जो कहते हैं वह फ़ोन पर ही लिखाई में बदलता है और बाहर नहीं जाता।',
   },
@@ -10445,14 +10458,17 @@ const ar: UiStrings = {
     dialogOpened: 'فتح هاتفك شاشة التنزيل الخاصة به. أكمِل هناك ثم عُد وحدِّث القائمة.',
     scheduled: 'في الانتظار. سيُكمل هاتفك التنزيل، غالبًا عند اتصاله بشبكة Wi‑Fi.',
     failed: 'تعذّر على هاتفك تنزيل ذلك.',
+    stillWorking:
+      'لم يقل هاتفك بعدُ إن كان هذا قد اكتمل. امهله قليلًا ثم حدِّث القائمة لترى إن كان قد وصل.',
     tooOld:
       'إصدار Android على هذا الهاتف أقدم من أن ينزّل النماذج من داخل التطبيق. ابحث عن «voice» في إعدادات Android وأضف واحدة.',
     iosNote:
-      'ينزّل iPhone لغات الإملاء بنفسه. أضف لغة من Settings ‹ General ‹ Keyboard ‹ Dictation Languages وسيستخدمها الميكروفون.',
+      'ينزّل iPhone لغات الإملاء بنفسه، ولا يقول أيّها موجود لديه بالفعل. أضف لغة من Settings ‹ General ‹ Keyboard ‹ Dictation Languages وسيستخدمها الميكروفون.',
     unavailable: 'لا يستطيع هذا الإصدار الوصول إلى نماذج الكلام.',
     noOnDevice: 'لا يستطيع هذا الهاتف التعرّف على الكلام دون اتصال، فلا شيء لتنزيله.',
     refresh: 'تحديث',
-    empty: 'لم يذكر هاتفك أي لغة.',
+    empty:
+      'لم يذكر هاتفك أي لغة يستطيع التعرّف عليها، لذا لا تظهر سوى اللغات التي يطلبها Waves. وقد ينجح التنزيل رغم ذلك.',
     footnote:
       'النماذج ملك لهاتفك لا لـ Waves. وبوجود واحدة يتحوّل ما تقوله إلى نص على الجهاز ولا يغادره.',
   },
