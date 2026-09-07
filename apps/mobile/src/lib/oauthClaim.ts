@@ -14,16 +14,41 @@
  * Kept free of react-native imports so it can be tested in a plain node suite.
  */
 
-const claimed = new Set<string>();
+const CLAIM_TTL_MS = 10 * 60 * 1000;
+const MAX_CLAIMED_CODES = 256;
 
-/** True the first time a code is seen, false every time after. */
+const claimed = new Map<string, number>();
+let now = (): number => Date.now();
+
+/** True the first time a code is seen, false while it is still in the replay window. */
 export function claimCode(code: string): boolean {
+  pruneClaimedCodes(now());
   if (claimed.has(code)) return false;
-  claimed.add(code);
+  claimed.set(code, now());
+  pruneClaimedCodes(now());
   return true;
 }
 
-/** Test seam. Nothing in the app calls this: the set is per-process by design. */
+/** Test seam. Nothing in the app calls this: the registry is per-process by design. */
 export function resetClaimedCodes(): void {
   claimed.clear();
+  now = () => Date.now();
+}
+
+/** Test seam for expiry and eviction. */
+export function setClaimedCodeClock(clock: () => number): void {
+  now = clock;
+}
+
+function pruneClaimedCodes(current: number): void {
+  for (const [code, claimedAt] of claimed) {
+    if (current - claimedAt <= CLAIM_TTL_MS) break;
+    claimed.delete(code);
+  }
+
+  while (claimed.size > MAX_CLAIMED_CODES) {
+    const oldest = claimed.keys().next().value as string | undefined;
+    if (!oldest) return;
+    claimed.delete(oldest);
+  }
 }
