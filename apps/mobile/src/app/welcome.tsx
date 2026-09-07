@@ -330,10 +330,20 @@ function HeaderGlyph({
  * seamlessly. Motion-gated: with animation off the waves are still drawn (the
  * flat wash gets its shape) but hold still.
  */
+/**
+ * Baselines are a fraction of screen height, and they sit in the open green
+ * between the hero (which ends around 0.42) and the legal line above the
+ * providers (around 0.68). That gap is the only place the crests are actually
+ * *seen*: lower down they ran behind the buttons and the app named Waves showed
+ * none. Each band still fills to the bottom of the screen, so the tint under
+ * the controls is unchanged — only the crest lines moved up into the open.
+ * Keep the topmost crest (baseline − amplitude) below 0.42 so it never rides
+ * into the headline.
+ */
 const WAVES = [
-  { amplitude: 0.05, baseline: 0.62, color: '#FFFFFF14', seconds: 9 },
-  { amplitude: 0.07, baseline: 0.72, color: '#4F9A2E4D', seconds: 13 },
-  { amplitude: 0.06, baseline: 0.82, color: '#FFFFFF12', seconds: 17 },
+  { amplitude: 0.05, baseline: 0.47, color: '#FFFFFF1F', seconds: 9 },
+  { amplitude: 0.07, baseline: 0.56, color: '#4F9A2E5C', seconds: 13 },
+  { amplitude: 0.06, baseline: 0.65, color: '#FFFFFF1A', seconds: 17 },
 ] as const;
 
 /**
