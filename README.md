@@ -44,7 +44,8 @@ missing is that none of it has reached anybody:
 - **No email has ever been sent.** The pipeline, the suppression list, the
   webhook and the one-click unsubscribe are built and covered by 79 tests, but
   every one of them stops at the edge of the network. Sending needs
-  `mail.dmadan.com` verified in Resend, a webhook secret, and a deploy.
+  `wavs.co.in` (verified in Resend on 2026-09-07), `RESEND_API_KEY` set as an
+  edge secret, a webhook secret, and a deploy.
 
 Also outstanding: `account-delete`. The erasure RPC removes a person's ledger
 rows and their auth identity survives it, which needs an edge function holding
@@ -514,7 +515,7 @@ both before it claims a row, so a half-configured deployment strands nothing.
 
 **In the Resend dashboard, once:**
 
-1. Add the domain **`mail.dmadan.com`** and publish the SPF, DKIM and DMARC
+1. Add the domain **`wavs.co.in`** and publish the SPF, DKIM and DMARC
    records it gives you. Until it says verified, every send is refused outright —
    this is not a deliverability problem that shows up as spam, it is a 4xx.
 2. Add a webhook pointing at
@@ -526,7 +527,8 @@ both before it claims a row, so a half-configured deployment strands nothing.
 
 ```bash
 supabase secrets set RESEND_WEBHOOK_SECRET=whsec_...
-supabase secrets set EMAIL_FROM='Waves <hello@mail.dmadan.com>'   # optional; this is the default
+supabase secrets set RESEND_API_KEY=re_...
+supabase secrets set EMAIL_FROM='Waves <hello@wavs.co.in>'        # optional; this is the default
 supabase secrets set EMAIL_WEB_URL=https://app.wavs.co.in         # optional; this is the default
 pnpm edge:deploy
 ```

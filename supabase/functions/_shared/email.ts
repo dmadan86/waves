@@ -284,13 +284,17 @@ function requiredEnv(name: string): string {
 }
 
 /**
- * `Waves <hello@mail.dmadan.com>` unless told otherwise.
+ * `Waves <hello@wavs.co.in>` unless told otherwise.
  *
  * The domain has to be one verified in Resend with SPF, DKIM and DMARC. An
  * unverified sender is not a soft failure — every message is refused outright.
+ * The default moved off `mail.dmadan.com` when wavs.co.in was verified, so the
+ * product mail and the auth mail (`[auth.email.smtp]` in config.toml) come from
+ * one domain — two sending domains means two reputations to keep, and the one
+ * nobody watches is the one that starts landing in spam.
  */
 export function emailFrom(): string {
-  return Deno.env.get('EMAIL_FROM') ?? 'Waves <hello@mail.dmadan.com>';
+  return Deno.env.get('EMAIL_FROM') ?? 'Waves <hello@wavs.co.in>';
 }
 
 /**

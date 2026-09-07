@@ -32,6 +32,14 @@ export interface NotificationFacts {
   readonly count?: string;
   /** The ghost member being claimed — used by the ghost-claim kinds. */
   readonly name?: string;
+  /**
+   * How the device that just signed in describes itself ("Pixel 9 · Android").
+   * Written by `waves_register_device` from what the client reported, so it is
+   * a label a person chose or a model string — never anything the server knows
+   * to be true. It is shown so somebody can recognise their own phone, and the
+   * mail says what to do when they cannot.
+   */
+  readonly device?: string;
 }
 
 export interface RenderedNotification {
@@ -60,6 +68,7 @@ export function renderNotification(
   if (facts.description) values.description = facts.description;
   if (facts.count) values.count = facts.count;
   if (facts.name) values.name = facts.name;
+  if (facts.device) values.device = facts.device;
 
   const amount = formatAmount(facts, locale);
   if (amount) values.amount = amount;
