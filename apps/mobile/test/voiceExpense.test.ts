@@ -606,14 +606,15 @@ describe('parseVoiceExpenses (several in one breath)', () => {
     expect(result.items[0].category).toBe('food');
   });
 
-  it('keeps the local conjunction in a Hindi or Tamil description', () => {
-    // "और" and "மற்றும்" are never translated into English — the note is shown
-    // back in the language it was spoken, so the local word has to survive as
-    // the English one now does.
+  it('keeps the local conjunction in Hindi, Tamil, or Arabic descriptions', () => {
+    // "और", "மற்றும்" and "و" are never translated into English — the note is
+    // shown back in the language it was spoken, so the local word has to survive
+    // as the English one now does.
     expect(parseVoiceExpenses('500 रुपये चाय और कॉफी', groups).items[0]?.note).toBe('चाय और कॉफी');
     expect(parseVoiceExpenses('500 ரூபாய் தேநீர் மற்றும் காபி', groups).items[0]?.note).toBe(
       'தேநீர் மற்றும் காபி',
     );
+    expect(parseVoiceExpenses('٥٠٠ روبية شاي و قهوة', groups).items[0]?.note).toBe('شاي و قهوة');
   });
 
   it('keeps a lone expense working, with its named group', () => {
