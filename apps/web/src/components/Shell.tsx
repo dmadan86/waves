@@ -20,6 +20,7 @@ export enum Section {
   Activity = 'activity',
   Friends = 'friends',
   Settle = 'settle',
+  Settings = 'settings',
 }
 
 export function Shell({
@@ -59,13 +60,17 @@ export function Shell({
   // A group page reports `current: 'groups'`, but there is no separate Groups
   // destination in the rail — the groups live on the overview — so it lights the
   // overview item rather than nothing.
-  const activeKey: Section = current === Section.Groups ? Section.Overview : current;
+  // Groups is its own destination now that there is a shelf to go to; it used
+  // to fold into the overview because there was nowhere for it to lead.
+  const activeKey: Section = current;
 
   const nav: { key: Section; label: string; href: string; icon: string }[] = [
     { key: Section.Overview, label: t.dash.nav.overview, href: '/', icon: '▤' },
+    { key: Section.Groups, label: t.groups.title, href: '/groups', icon: '👥' },
     { key: Section.Activity, label: t.dash.nav.activity, href: '/activity', icon: '📈' },
     { key: Section.Friends, label: t.dash.nav.friends, href: '/friends', icon: '🙂' },
     { key: Section.Settle, label: t.dash.nav.settle, href: '/settle', icon: '⇄' },
+    { key: Section.Settings, label: t.settings.title, href: '/settings', icon: '⚙' },
   ];
 
   const pageTitle = nav.find((item) => item.key === activeKey)?.label ?? t.dash.nav.overview;

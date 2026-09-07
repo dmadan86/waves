@@ -16,8 +16,10 @@ import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 
 import { useRouter } from 'next/navigation';
 
 import {
+  CATEGORIES,
   computeShares,
   money as coreMoney,
+  guessCategory,
   parseMajor,
   parseSplitParams,
   serialiseSplitParams,
@@ -64,6 +66,15 @@ export function ExpenseForm({
 
   const [description, setDescription] = useState('');
   const [amountText, setAmountText] = useState('');
+  /**
+   * What kind of spend this was. Null means nobody has said and nobody has
+   * guessed — the phone writes a category on almost every expense, so a web
+   * client that could not set one was quietly making the charts worse for
+   * everybody in the group.
+   */
+  const [chosenCategory, setChosenCategory] = useState<string | null>(null);
+  /** True once a person has picked, which retires the guess for this expense. */
+  const [categoryChosen, setCategoryChosen] = useState(false);
   const [expenseDate, setExpenseDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [payer, setPayer] = useState<string | null>(null);
   const [participants, setParticipants] = useState<string[]>([]);
@@ -106,6 +117,20 @@ export function ExpenseForm({
     }
   }, []);
 
+  /**
+   * What the expense is filed under: their choice if they made one, otherwise a
+   * guess from what they typed — the same keywords and the same tie-breaking
+   * the phone uses, so "Uber to the airport" is Travel on both.
+   *
+   * Derived rather than stored. Writing a guess into state from an effect makes
+   * the description and the category two facts that can disagree for a render,
+   * and the one that loses is whichever the person just did.
+   */
+  const category = useMemo(
+    () => (categoryChosen ? chosenCategory : guessCategory(description)),
+    [categoryChosen, chosenCategory, description],
+  );
+
   useEffect(() => {
     let active = true;
     void (async () => {
@@ -135,6 +160,10 @@ export function ExpenseForm({
           setPayer(version.payers[0]?.member_id ?? null);
           setParticipants(version.shares.map((s) => s.member_id));
           setLocation(version.location ?? null);
+          // An expense already carries whatever whoever filed it decided, and
+          // that stands: an edit must not let the guesser re-file it.
+          setChosenCategory(version.category ?? null);
+          setCategoryChosen(true);
           try {
             // Deserialise the stored split back into the editor. Anything the web
             // cannot express (adjustment, itemised) drops to a read-only note.
@@ -289,6 +318,7 @@ export function ExpenseForm({
         participants,
         payers: { [payer]: amount },
         expectedShares: Object.fromEntries(preview),
+        category,
         location,
         clientMutationId: crypto.randomUUID(),
       });
@@ -312,6 +342,7 @@ export function ExpenseForm({
     description,
     expenseDate,
     currency,
+    category,
     participants,
     location,
     router,
@@ -382,6 +413,39 @@ export function ExpenseForm({
           {amountText.trim() && amount === null ? (
             <p className="error">{t.add.notAnAmount}</p>
           ) : null}
+        </section>
+
+        {/* What kind of spend. Ten, not fifty — the same ten the phone offers,
+            from @waves/core, so a chart drawn from both never has to reconcile
+            two vocabularies. The guess from the description is a suggestion
+            that stops the moment somebody picks for themselves. */}
+        <section className="panel">
+          <div className="panel-head">
+            <h2>{t.add.categoryLabel}</h2>
+          </div>
+          <div className="people">
+            {CATEGORIES.map((option) => (
+              <button
+                key={option.id}
+                type="button"
+                className="chip"
+                aria-pressed={category === option.id}
+                onClick={() => {
+                  setCategoryChosen(true);
+                  // Tapping your own choice again clears it: "none of these"
+                  // is a real answer and there is nowhere else to say it. The
+                  // test is against the *choice*, not `category` — that also
+                  // holds the guess, so tapping the category "Uber" already
+                  // suggested would have read as unpicking it and saved none.
+                  setChosenCategory(
+                    categoryChosen && chosenCategory === option.id ? null : option.id,
+                  );
+                }}
+              >
+                {t.categories[option.id]}
+              </button>
+            ))}
+          </div>
         </section>
 
         {/* Where it happened (A43) — optional, opt-in, coordinates only on the

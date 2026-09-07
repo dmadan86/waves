@@ -459,6 +459,14 @@
   .item + .item {
     @apply border-t border-line;
   }
+  /* A row that goes two places: the record itself, and one action beside it.
+     The separator moves out here, because the row is now the pair. */
+  .item-pair {
+    @apply flex items-center gap-2 pe-2;
+  }
+  .item-pair + .item-pair {
+    @apply border-t border-line;
+  }
   .item .grow {
     @apply flex min-w-0 flex-1 flex-col;
   }
@@ -564,6 +572,27 @@
   }
   .detail-field .v {
     @apply text-end font-semibold text-ink;
+  }
+
+  /* A labelled control. The older screens use a bare input with an aria-label,
+     which is right for one obvious box (an amount, a description) and wrong for
+     a settings form where six of them sit in a column and every one needs a
+     name you can read. */
+  .field {
+    @apply mb-[14px] block;
+  }
+  .field-label {
+    @apply mb-[6px] block text-[12px] font-semibold text-ink-faint;
+  }
+  /* A control and its button side by side — "add this person", "save this". */
+  .row-field {
+    @apply flex items-center gap-[10px];
+  }
+  /* Text-like controls take the room; a checkbox keeps its own size, or it
+     stretches across the row and squeezes the label it belongs to. */
+  .row-field > input:not([type='checkbox']):not([type='radio']),
+  .row-field > select {
+    @apply flex-1;
   }
 
   .btn {

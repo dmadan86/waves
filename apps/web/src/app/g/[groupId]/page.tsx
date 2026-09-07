@@ -149,9 +149,23 @@ function GroupDetail({ profileId, query }: { profileId: string; query: string })
               {plural(locale, live.length, t.group.expenseCount)}
             </div>
           </div>
-          <Link className="btn" href={`/g/${groupId}/add`}>
-            {t.group.addAnExpense}
-          </Link>
+          {/* The three places a group leads that are not an expense. They were
+              reachable only by typing a URL, which meant a browser could join a
+              group and then never invite anybody else to it. */}
+          <div className="people">
+            <Link className="btn soft" href={`/g/${groupId}/members`}>
+              {t.members.title}
+            </Link>
+            <Link className="btn soft" href={`/g/${groupId}/invite`}>
+              {t.invite.title}
+            </Link>
+            <Link className="btn soft" href={`/g/${groupId}/settings`}>
+              {t.groupSettings.title}
+            </Link>
+            <Link className="btn" href={`/g/${groupId}/add`}>
+              {t.group.addAnExpense}
+            </Link>
+          </div>
         </div>
 
         <section className="panel">
