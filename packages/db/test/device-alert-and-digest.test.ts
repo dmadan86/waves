@@ -254,12 +254,8 @@ describe('the weekly digest', () => {
 
   it('counts payer-only financers and share-only riders/travellers, not bystander users', async () => {
     const group = await seedGroup(client, { memberCount: 4 });
-    const [financerProfile, riderProfile, travellerProfile, bystanderProfile] = group.profileIds as [
-      string,
-      string,
-      string,
-      string,
-    ];
+    const [financerProfile, riderProfile, travellerProfile, bystanderProfile] =
+      group.profileIds as [string, string, string, string];
     const [financer, rider, traveller] = group.memberIds as [string, string, string, string];
     for (const profileId of group.profileIds) {
       await setEmail(profileId, `${profileId}@example.test`);
