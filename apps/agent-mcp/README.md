@@ -34,12 +34,15 @@ RLS and the business rules apply to the agent identically to the human.
 | `list_groups`       | read  | `groups` (RLS)                                                                     |
 | `list_members`      | read  | `group_members` (RLS)                                                              |
 | `get_balances`      | read  | `group_balances` (RLS)                                                             |
+| `list_expenses`     | read  | `expenses` + the version in force (RLS)                                            |
 | `create_group`      | write | `rpc('waves_create_group')`                                                        |
 | `add_expense`       | write | `functions.invoke('expense-write')` → recomputes split, then `waves_apply_expense` |
+| `edit_expense`      | write | the same, with `baseVersionNo` — appends a version, never overwrites               |
+| `delete_expense`    | write | `rpc('waves_delete_expense')` — soft delete                                        |
 | `record_settlement` | write | `rpc('waves_record_settlement')` — records only                                    |
 | `add_people`        | write | `rpc('waves_add_ghost_member')` — names in, member ids out                         |
 | `invite_link`       | write | `rpc('waves_ensure_group_join_token')` — the group's reusable join link            |
-| `payment_link`      | pure  | builds a `upi://` or `paypal.me` link                                              |
+| `payment_link`      | pure  | builds a `upi://` or `paypal.me` link — a read, so read-only mode keeps it         |
 
 All amounts are **integer minor units** (paise/cents) as strings — money is
 never a float.
@@ -113,9 +116,10 @@ npx @modelcontextprotocol/inspector node apps/agent-mcp/dist/index.js
 
 ## Status
 
-The write tools are type-checked and the server has been probed over real stdio,
-but nothing here has been run end-to-end against a live account. Verify against
-a throwaway group before pointing it at anything real.
+The pure parts are unit-tested and now run in CI (`agent MCP tests`), and the
+server has been probed over real stdio — but nothing here has been run
+end-to-end against a live account. Verify against a throwaway group before
+pointing it at anything real.
 
 ## Where this is going
 

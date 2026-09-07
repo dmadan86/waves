@@ -113,6 +113,23 @@ jobs:
       # Rendering is covered by the Maestro flows in e2e/, not here.
       - run: pnpm test:app
 
+  agent-mcp:
+    name: agent MCP tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # The pure parts of the server an AI agent talks to: the expense-write
+      # payload it builds, and who ends up party to an expense. Typecheck
+      # already covered the package; its tests ran nowhere, because every test
+      # job here names one package and this one was not on the list.
+      - run: pnpm test:mcp
+
   web:
     name: web app tests
     runs-on: ubuntu-latest

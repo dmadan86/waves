@@ -30,7 +30,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 
-import { buildExpenseWriteBody, type AgentSplit } from './expense.js';
+import { buildExpenseWriteBody, expenseParticipants, type AgentSplit } from './expense.js';
 import { currentUserId, makeClient, readEnv } from './supabase.js';
 
 type ToolResult = {
@@ -61,6 +61,46 @@ const Currency = z
   .describe('ISO-4217, e.g. INR, USD');
 
 const todayIso = (): string => new Date().toISOString().slice(0, 10);
+
+/** How a bill is divided. Shared by add_expense and edit_expense. */
+const SplitSchema = z
+  .discriminatedUnion('kind', [
+    z.object({ kind: z.literal('equal') }),
+    z.object({
+      kind: z.literal('exact'),
+      amounts: z
+        .record(z.string(), MinorUnits)
+        .describe('memberId → minor units; must sum to the total.'),
+    }),
+    z.object({
+      kind: z.literal('shares'),
+      weights: z
+        .record(z.string(), z.number().int().positive())
+        .describe('memberId → weight, e.g. {"a":2,"b":1}.'),
+    }),
+  ])
+  .describe('How to split. Defaults to an equal split across participants.');
+
+/**
+ * A group's own currency, so the caller does not have to state one.
+ *
+ * Returns the code, or the failure to hand straight back — an expense written
+ * in the wrong currency is not a cosmetic mistake, so guessing is not an
+ * option when the group cannot be read.
+ */
+async function groupCurrency(
+  supabase: SupabaseClient,
+  groupId: string,
+): Promise<string | ToolResult> {
+  const { data, error } = await supabase
+    .from('groups')
+    .select('default_currency')
+    .eq('id', groupId)
+    .is('deleted_at', null)
+    .single();
+  if (error) return fail(error.message);
+  return String(data.default_currency);
+}
 
 /** Read the app-defined error code out of a wrapped edge-function failure. */
 async function edgeError(error: unknown): Promise<string> {
@@ -185,6 +225,131 @@ async function main(): Promise<void> {
     },
   );
 
+  server.registerTool(
+    'list_expenses',
+    {
+      description:
+        "What is actually in a group's ledger, newest first — each expense with its current description, amount, who paid and how it was split. Use it to show somebody what was recorded, to find the expenseId for edit_expense or delete_expense, and to check what you just wrote.",
+      inputSchema: {
+        groupId: GroupId,
+        limit: z
+          .number()
+          .int()
+          .min(1)
+          .max(100)
+          .default(20)
+          .describe('How many to return, newest first.'),
+        includeDeleted: z
+          .boolean()
+          .default(false)
+          .describe('Include deleted expenses, which keep their place in the history.'),
+      },
+    },
+    async ({ groupId, limit, includeDeleted }): Promise<ToolResult> => {
+      // An expense is a chain of versions (ADR-004); `current_version_id` is
+      // the one in force. Reading the chain instead would show an edited
+      // expense at its original amount, which is worse than showing nothing.
+      let query = supabase
+        .from('expenses')
+        .select(
+          `id, deleted_at, created_at,
+           current:expense_versions!expenses_current_version_id_fkey (
+             version_no, description, category, expense_date, currency, amount,
+             split_type, author_member_id, notes,
+             payers:expense_payers ( member_id, amount ),
+             shares:expense_shares ( member_id, amount )
+           )`,
+        )
+        .eq('group_id', groupId)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+      if (!includeDeleted) query = query.is('deleted_at', null);
+
+      const { data, error } = await query;
+      if (error) return fail(error.message);
+      return ok(
+        (data ?? []).map((row) => {
+          // PostgREST types an embedded relation as an array even when the
+          // foreign key makes it to-one, and returns an object at runtime.
+          // Accept either rather than trusting one of them.
+          const embedded = row.current as unknown;
+          const current = (Array.isArray(embedded) ? embedded[0] : embedded) as
+            Record<string, unknown> | null | undefined;
+          return {
+            expenseId: row.id,
+            deleted: Boolean(row.deleted_at),
+            // The version number is what edit_expense has to send back as
+            // baseVersionNo, so it is not an internal detail here.
+            versionNo: current?.version_no ?? null,
+            description: current?.description ?? null,
+            amount: current?.amount ?? null,
+            currency: current?.currency ?? null,
+            date: current?.expense_date ?? null,
+            splitType: current?.split_type ?? null,
+            category: current?.category ?? null,
+            notes: current?.notes ?? null,
+            payers: current?.payers ?? [],
+            shares: current?.shares ?? [],
+          };
+        }),
+      );
+    },
+  );
+
+  // Pure: it builds a string and touches nothing. It sits with the reads
+  // deliberately — `WAVES_MCP_READONLY` is for "look but do not change the
+  // ledger", and a person on a read-only server still needs the link that lets
+  // them go and pay somebody.
+  server.registerTool(
+    'payment_link',
+    {
+      description:
+        'Build a payment handoff link (UPI or PayPal) for a payer to open in their own app and complete a transfer. This does not move money; it is a deep link a human taps and confirms.',
+      inputSchema: {
+        rail: z.enum(['upi', 'paypal']).default('upi'),
+        payeeVpa: z
+          .string()
+          .optional()
+          .describe(
+            'The payee UPI id (vpa), e.g. name@bank — from list_members. Required for upi.',
+          ),
+        payeeHandle: z
+          .string()
+          .optional()
+          .describe('The payee PayPal.me handle. Required for paypal.'),
+        payeeName: z.string().optional(),
+        amount: MinorUnits,
+        currency: Currency.default('INR'),
+      },
+    },
+    async ({ rail, payeeVpa, payeeHandle, payeeName, amount, currency }): Promise<ToolResult> => {
+      // Minor → major with two decimals. Every currency this app settles in is
+      // two-decimal; a decimal string keeps the exact value without a float.
+      const major = `${(BigInt(amount) / 100n).toString()}.${(BigInt(amount) % 100n)
+        .toString()
+        .padStart(2, '0')}`;
+
+      if (rail === 'upi') {
+        if (!payeeVpa) return fail("A UPI link needs payeeVpa (the payee's UPI id).");
+        const params = new URLSearchParams({
+          pa: payeeVpa,
+          ...(payeeName ? { pn: payeeName } : {}),
+          am: major,
+          cu: currency,
+        });
+        return ok({ rail, uri: `upi://pay?${params.toString()}`, amountMajor: major, currency });
+      }
+
+      if (!payeeHandle) return fail('A PayPal link needs payeeHandle (the PayPal.me handle).');
+      return ok({
+        rail,
+        uri: `https://paypal.me/${encodeURIComponent(payeeHandle)}/${major}${currency}`,
+        amountMajor: major,
+        currency,
+      });
+    },
+  );
+
   // ── writes ─────────────────────────────────────────────────────────────
   // Registered only when the server is not in read-only mode.
 
@@ -196,6 +361,118 @@ async function main(): Promise<void> {
   await server.connect(transport);
   // A stdio server must not print to stdout (that is the protocol channel).
   process.stderr.write(`waves-agent MCP up as ${meId}${env.readOnly ? ' (read-only)' : ''}\n`);
+}
+
+interface ResolvedMember {
+  readonly name: string;
+  readonly memberId: string;
+  readonly created: boolean;
+}
+
+/**
+ * Turn the names somebody actually said into member ids, adding as ghosts the
+ * people who are not in the group yet.
+ *
+ * A ghost is a member with a real balance and no account, and it is the normal
+ * case here rather than an edge one: "split it with Raj and Priya" is the whole
+ * request this product exists to serve, and Raj usually has not heard of it.
+ *
+ * Returns the failure to hand back when a name is ambiguous. Two members called
+ * Raj is a fork in the road, not a detail to guess at — choosing one of them
+ * silently puts a real debt on the wrong person, and nothing downstream would
+ * ever catch it.
+ */
+async function resolveMembers(
+  supabase: SupabaseClient,
+  groupId: string,
+  names: readonly string[],
+): Promise<ResolvedMember[] | ToolResult> {
+  const { data: rows, error } = await supabase
+    .from('group_members')
+    .select('id, ghost_name, profile_id, profile:profiles!profile_id ( display_name )')
+    .eq('group_id', groupId)
+    .is('left_at', null);
+  if (error) return fail(error.message);
+
+  const known = (rows ?? []).map((m) => {
+    const profile = m.profile as { display_name?: string } | null;
+    return {
+      memberId: m.id as string,
+      name: (profile?.display_name ?? (m.ghost_name as string | null) ?? 'Unnamed').trim(),
+    };
+  });
+
+  const resolved: ResolvedMember[] = [];
+  for (const raw of names) {
+    const name = raw.trim();
+    if (!name) continue;
+    const matches = known.filter((m) => m.name.toLowerCase() === name.toLowerCase());
+    if (matches.length > 1) {
+      return fail(
+        `"${name}" matches ${matches.length} members of this group. Ask which one, and pass their memberId directly.`,
+      );
+    }
+    if (matches.length === 1) {
+      resolved.push({ name, memberId: matches[0]!.memberId, created: false });
+      continue;
+    }
+    const { data: ghostId, error: ghostError } = await supabase.rpc('waves_add_ghost_member', {
+      p_group_id: groupId,
+      p_name: name,
+    });
+    if (ghostError) return fail(ghostError.message);
+    known.push({ memberId: ghostId as string, name });
+    resolved.push({ name, memberId: ghostId as string, created: true });
+  }
+  return resolved;
+}
+
+/**
+ * Who the expense is split between, and who paid.
+ *
+ * Names go through `resolveMembers`; member ids are taken as given. The payer
+ * defaults to the signed-in user and is always party to their own expense —
+ * told "split it with Raj and Priya", a request names two people and means
+ * three, and leaving the payer out would have them lending the whole bill.
+ */
+async function expenseParty(
+  supabase: SupabaseClient,
+  groupId: string,
+  input: { people?: string[]; participants?: string[]; paidBy?: string },
+): Promise<{ participants: string[] | ToolResult; paidBy: string; added: string[] }> {
+  const nothing = { paidBy: '', added: [] };
+  if (!input.people?.length && !input.participants?.length) {
+    return {
+      ...nothing,
+      participants: fail(
+        'Say who the expense is split between: `people` (names) or `participants` (member ids).',
+      ),
+    };
+  }
+
+  let paidBy = input.paidBy;
+  if (!paidBy) {
+    const { data, error } = await supabase.rpc('waves_my_member_id_for', { p_group_id: groupId });
+    if (error) return { ...nothing, participants: fail(error.message) };
+    if (!data) {
+      return {
+        ...nothing,
+        participants: fail('You are not a member of that group, so say who paid with paidBy.'),
+      };
+    }
+    paidBy = data as string;
+  }
+
+  const ids = [...(input.participants ?? [])];
+  let added: string[] = [];
+  if (input.people?.length) {
+    const resolved = await resolveMembers(supabase, groupId, input.people);
+    if (!Array.isArray(resolved)) return { ...nothing, participants: resolved };
+    for (const member of resolved) ids.push(member.memberId);
+    added = resolved.filter((m) => m.created).map((m) => m.name);
+  }
+
+  return { participants: [...expenseParticipants(paidBy, ids)], paidBy, added };
 }
 
 function registerWriteTools(server: McpServer, supabase: SupabaseClient): void {
@@ -248,32 +525,28 @@ function registerWriteTools(server: McpServer, supabase: SupabaseClient): void {
     'add_expense',
     {
       description:
-        "Add an expense to a group. The server does NOT trust a client-computed split — it sends the split intent to the app's expense-write edge function, which recomputes every share and writes the ledger. Amounts are integer minor units as strings. Resolve member ids with list_members first.",
+        "Add an expense to a group. The server does NOT trust a client-computed split — it sends the split intent to the app's expense-write edge function, which recomputes every share and writes the ledger. Amounts are integer minor units as strings. Name the people in `people` and anyone new is added as a ghost; use `participants` with member ids from list_members when you already have them, or when two members share a name. The payer defaults to the signed-in user. This puts a real debt on real people — confirm the amount and who is on it before calling.",
       inputSchema: {
         groupId: GroupId,
         description: z.string().min(1).describe('What the expense was for.'),
         amount: MinorUnits.describe('Total of the expense, in minor units.'),
         currency: Currency.optional().describe("Defaults to the group's currency if omitted."),
-        paidBy: MemberId.describe('The member who paid (single payer).'),
-        participants: z.array(MemberId).min(1).describe('The members the expense is split across.'),
-        split: z
-          .discriminatedUnion('kind', [
-            z.object({ kind: z.literal('equal') }),
-            z.object({
-              kind: z.literal('exact'),
-              amounts: z
-                .record(z.string(), MinorUnits)
-                .describe('memberId → minor units; must sum to the total.'),
-            }),
-            z.object({
-              kind: z.literal('shares'),
-              weights: z
-                .record(z.string(), z.number().int().positive())
-                .describe('memberId → weight, e.g. {"a":2,"b":1}.'),
-            }),
-          ])
+        paidBy: MemberId.optional().describe(
+          'The member who paid. Defaults to the signed-in user.',
+        ),
+        people: z
+          .array(z.string().min(1))
+          .min(1)
           .optional()
-          .describe('How to split. Defaults to an equal split across participants.'),
+          .describe(
+            'The people it is split between, named the way the user named them. Anyone not in the group yet is added as a ghost. The payer is included automatically.',
+          ),
+        participants: z
+          .array(MemberId)
+          .min(1)
+          .optional()
+          .describe('Member ids, when you have them. Use instead of `people`, not as well.'),
+        split: SplitSchema.optional(),
         expenseDate: z
           .string()
           .regex(/^\d{4}-\d{2}-\d{2}$/)
@@ -284,13 +557,12 @@ function registerWriteTools(server: McpServer, supabase: SupabaseClient): void {
       },
     },
     async (input): Promise<ToolResult> => {
-      const { data: group, error: groupError } = await supabase
-        .from('groups')
-        .select('default_currency')
-        .eq('id', input.groupId)
-        .is('deleted_at', null)
-        .single();
-      if (groupError) return fail(groupError.message);
+      const currency = await groupCurrency(supabase, input.groupId);
+      if (typeof currency !== 'string') return currency;
+
+      const party = await expenseParty(supabase, input.groupId, input);
+      if (!Array.isArray(party.participants)) return party.participants;
+      const { participants, paidBy, added } = party;
 
       const expenseId = randomUUID();
       const { data, error } = await supabase.functions.invoke('expense-write', {
@@ -300,8 +572,8 @@ function registerWriteTools(server: McpServer, supabase: SupabaseClient): void {
             description: input.description,
             amount: input.amount,
             currency: input.currency,
-            paidBy: input.paidBy,
-            participants: input.participants,
+            paidBy,
+            participants,
             split: input.split as AgentSplit | undefined,
             expenseDate: input.expenseDate,
             category: input.category,
@@ -311,12 +583,94 @@ function registerWriteTools(server: McpServer, supabase: SupabaseClient): void {
             expenseId,
             clientMutationId: randomUUID(),
             today: todayIso(),
-            groupCurrency: String(group.default_currency),
+            groupCurrency: currency,
           },
         ),
       });
       if (error) return fail(await edgeError(error));
-      return ok({ ...(data as object), expenseId });
+      return ok({ ...(data as object), expenseId, addedToGroup: added });
+    },
+  );
+
+  server.registerTool(
+    'edit_expense',
+    {
+      description:
+        'Correct an expense that is already in the ledger. Nothing is overwritten — this appends a new version (ADR-004), so the history of what was recorded and when stays intact. Send the expense as it should now read, in full: fields are not merged into the old version. Get expenseId and versionNo from list_expenses.',
+      inputSchema: {
+        groupId: GroupId,
+        expenseId: z.string().uuid().describe('The expense to correct, from list_expenses.'),
+        baseVersionNo: z
+          .number()
+          .int()
+          .min(1)
+          .describe(
+            'The versionNo you are correcting, from list_expenses. If somebody else edited it in the meantime the write is refused rather than silently overwriting them.',
+          ),
+        description: z.string().min(1),
+        amount: MinorUnits,
+        currency: Currency.optional(),
+        paidBy: MemberId,
+        participants: z.array(MemberId).min(1),
+        split: SplitSchema.optional(),
+        expenseDate: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .optional(),
+        category: z.string().optional(),
+        notes: z.string().optional(),
+      },
+    },
+    async (input): Promise<ToolResult> => {
+      const currency = await groupCurrency(supabase, input.groupId);
+      if (typeof currency !== 'string') return currency;
+
+      const { data, error } = await supabase.functions.invoke('expense-write', {
+        body: {
+          ...buildExpenseWriteBody(
+            {
+              groupId: input.groupId,
+              description: input.description,
+              amount: input.amount,
+              currency: input.currency,
+              paidBy: input.paidBy,
+              participants: input.participants,
+              split: input.split as AgentSplit | undefined,
+              expenseDate: input.expenseDate,
+              category: input.category,
+              notes: input.notes,
+            },
+            {
+              expenseId: input.expenseId,
+              clientMutationId: randomUUID(),
+              today: todayIso(),
+              groupCurrency: currency,
+            },
+          ),
+          // What makes this an edit rather than a create: the server checks it
+          // against the version in force and turns a concurrent edit into a
+          // logged conflict instead of a silent overwrite (TDR §4.4).
+          baseVersionNo: input.baseVersionNo,
+        },
+      });
+      if (error) return fail(await edgeError(error));
+      return ok({ ...(data as object), expenseId: input.expenseId });
+    },
+  );
+
+  server.registerTool(
+    'delete_expense',
+    {
+      description:
+        'Remove an expense from the ledger. It is a soft delete — the expense keeps its place in the history and everyone in the group sees that it was removed — and it changes what people owe each other, so confirm with the user before calling it.',
+      inputSchema: {
+        expenseId: z.string().uuid().describe('The expense to remove, from list_expenses.'),
+      },
+    },
+    async ({ expenseId }): Promise<ToolResult> => {
+      const { error } = await supabase.rpc('waves_delete_expense', { p_expense_id: expenseId });
+      if (error) return fail(error.message);
+      return ok({ expenseId, deleted: true });
     },
   );
 
@@ -374,56 +728,6 @@ function registerWriteTools(server: McpServer, supabase: SupabaseClient): void {
   );
 
   server.registerTool(
-    'payment_link',
-    {
-      description:
-        'Build a payment handoff link (UPI or PayPal) for a payer to open in their own app and complete a transfer. This does not move money; it is a deep link a human taps and confirms.',
-      inputSchema: {
-        rail: z.enum(['upi', 'paypal']).default('upi'),
-        payeeVpa: z
-          .string()
-          .optional()
-          .describe(
-            'The payee UPI id (vpa), e.g. name@bank — from list_members. Required for upi.',
-          ),
-        payeeHandle: z
-          .string()
-          .optional()
-          .describe('The payee PayPal.me handle. Required for paypal.'),
-        payeeName: z.string().optional(),
-        amount: MinorUnits,
-        currency: Currency.default('INR'),
-      },
-    },
-    async ({ rail, payeeVpa, payeeHandle, payeeName, amount, currency }): Promise<ToolResult> => {
-      // Minor → major with two decimals. Every currency this app settles in is
-      // two-decimal; a decimal string keeps the exact value without a float.
-      const major = `${(BigInt(amount) / 100n).toString()}.${(BigInt(amount) % 100n)
-        .toString()
-        .padStart(2, '0')}`;
-
-      if (rail === 'upi') {
-        if (!payeeVpa) return fail("A UPI link needs payeeVpa (the payee's UPI id).");
-        const params = new URLSearchParams({
-          pa: payeeVpa,
-          ...(payeeName ? { pn: payeeName } : {}),
-          am: major,
-          cu: currency,
-        });
-        return ok({ rail, uri: `upi://pay?${params.toString()}`, amountMajor: major, currency });
-      }
-
-      if (!payeeHandle) return fail('A PayPal link needs payeeHandle (the PayPal.me handle).');
-      return ok({
-        rail,
-        uri: `https://paypal.me/${encodeURIComponent(payeeHandle)}/${major}${currency}`,
-        amountMajor: major,
-        currency,
-      });
-    },
-  );
-
-  server.registerTool(
     'add_people',
     {
       description:
@@ -437,46 +741,8 @@ function registerWriteTools(server: McpServer, supabase: SupabaseClient): void {
       },
     },
     async ({ groupId, names }): Promise<ToolResult> => {
-      const { data: rows, error } = await supabase
-        .from('group_members')
-        .select('id, ghost_name, profile_id, profile:profiles!profile_id ( display_name )')
-        .eq('group_id', groupId)
-        .is('left_at', null);
-      if (error) return fail(error.message);
-
-      const known = (rows ?? []).map((m) => {
-        const profile = m.profile as { display_name?: string } | null;
-        return {
-          memberId: m.id as string,
-          name: (profile?.display_name ?? (m.ghost_name as string | null) ?? 'Unnamed').trim(),
-        };
-      });
-
-      const resolved: { name: string; memberId: string; created: boolean }[] = [];
-      for (const raw of names) {
-        const name = raw.trim();
-        if (!name) continue;
-        const matches = known.filter((m) => m.name.toLowerCase() === name.toLowerCase());
-        // Two people with the same name is a fork in the road, not a detail to
-        // guess at: picking one of two Rajs silently puts a real debt on the
-        // wrong person, and nothing downstream would ever catch it.
-        if (matches.length > 1) {
-          return fail(
-            `"${name}" matches ${matches.length} members of this group. Ask which one, and pass their memberId to add_expense directly.`,
-          );
-        }
-        if (matches.length === 1) {
-          resolved.push({ name, memberId: matches[0]!.memberId, created: false });
-          continue;
-        }
-        const { data: ghostId, error: ghostError } = await supabase.rpc('waves_add_ghost_member', {
-          p_group_id: groupId,
-          p_name: name,
-        });
-        if (ghostError) return fail(ghostError.message);
-        known.push({ memberId: ghostId as string, name });
-        resolved.push({ name, memberId: ghostId as string, created: true });
-      }
+      const resolved = await resolveMembers(supabase, groupId, names);
+      if (!Array.isArray(resolved)) return resolved;
 
       return ok({
         members: resolved,

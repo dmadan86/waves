@@ -16,6 +16,7 @@
     "test:app": "pnpm --filter @waves/mobile run test",
     "test:api": "pnpm --filter @waves/api-client run test",
     "test:web": "pnpm --filter @waves/web run test",
+    "test:mcp": "pnpm --filter @waves/agent-mcp run test",
     "test:edge": "vitest run --config supabase/functions/vitest.config.ts",
     "web": "pnpm --filter @waves/web run dev",
     "website": "pnpm --filter @waves/website run dev",
