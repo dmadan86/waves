@@ -2029,6 +2029,14 @@ export interface UiStrings {
     addThemAllToWhichGroup: string;
     startAGroup: string;
     pickDifferentPeople: string;
+    /** The way out of the contact picker for somebody not in the address book. */
+    someoneNotInContacts: string;
+    /** On a group row in "which group?": how many of the people picked are in it. */
+    alreadyInCount: PluralForms;
+    /** That row when every single person picked is already a member. */
+    everyoneAlreadyIn: string;
+    /** Appended to the added-count when some were skipped for already being there. */
+    alreadyThereSkipped: PluralForms;
     someone: string;
     /** Badges on a cross-group activity row: its group is archived, or no
      *  longer on this device (left or deleted). */
@@ -2359,6 +2367,14 @@ export interface UiStrings {
     personCount: PluralForms;
     alreadyAddedName: string;
     alreadyInGroup: string;
+    /** Heading over the contacts you have already written into a group. */
+    splitWithBefore: string;
+    /** A contact who is already in exactly one of your groups: "Already in {group}". */
+    knownInGroup: string;
+    /** A contact who is in several of them. */
+    knownInGroups: PluralForms;
+    /** iOS 18's partial contacts grant — said out loud so a short list is not a lie. */
+    contactsLimited: string;
     removeName: string;
     remindZoneNote: string;
     useMyTimezone: string;
@@ -4351,6 +4367,13 @@ const en: UiStrings = {
     addThemAllToWhichGroup: 'Add them all to which group?',
     startAGroup: 'Start a group',
     pickDifferentPeople: 'Pick different people',
+    someoneNotInContacts: 'Someone not in your contacts',
+    alreadyInCount: { one: '{n} of them is already here', other: '{n} of them are already here' },
+    everyoneAlreadyIn: 'Everyone you picked is already here',
+    alreadyThereSkipped: {
+      one: '{n} was already in that group.',
+      other: '{n} were already in that group.',
+    },
     someone: 'Someone',
     archivedGroup: 'Archived',
     unavailableGroup: 'Unavailable',
@@ -4672,7 +4695,7 @@ const en: UiStrings = {
     contactCount: { one: '{n} contact', other: '{n} contacts' },
     clearSearch: 'Clear search',
     nobodyHere: 'Nobody here',
-    noContactMatches: 'No contact matches that.',
+    noContactMatches: 'No contact matches that. Try a name, a phone number or an email.',
     noneHasEmailOrNumber: 'None of your contacts has an email or number.',
     onlyPickedAreSent:
       'Only the people you pick are sent to Waves. Your contacts stay on this phone.',
@@ -4697,6 +4720,10 @@ const en: UiStrings = {
     personCount: { one: '{n} person', other: '{n} people' },
     alreadyAddedName: '{name}, already added',
     alreadyInGroup: 'Already in this group',
+    splitWithBefore: 'People you split with',
+    knownInGroup: 'Already in {group}',
+    knownInGroups: { one: 'In {n} of your groups', other: 'In {n} of your groups' },
+    contactsLimited: 'You gave Waves only some of your contacts. Open settings to let it see more.',
     removeName: 'Remove {name}',
     remindZoneNote: 'Asked in {zone} — where the trip is, not where each person is.',
     useMyTimezone: 'Use my timezone ({zone})',
@@ -6761,6 +6788,16 @@ const ta: UiStrings = {
     addThemAllToWhichGroup: 'அனைவரையும் எந்தக் குழுவில் சேர்ப்பது?',
     startAGroup: 'ஒரு குழுவைத் தொடங்கு',
     pickDifferentPeople: 'வேறு ஆட்களைத் தேர்ந்தெடு',
+    someoneNotInContacts: 'உங்கள் தொடர்புகளில் இல்லாத ஒருவர்',
+    alreadyInCount: {
+      one: 'அவர்களில் {n} பேர் ஏற்கனவே இங்கே உள்ளார்',
+      other: 'அவர்களில் {n} பேர் ஏற்கனவே இங்கே உள்ளனர்',
+    },
+    everyoneAlreadyIn: 'நீங்கள் தேர்ந்தெடுத்த அனைவரும் ஏற்கனவே இங்கே உள்ளனர்',
+    alreadyThereSkipped: {
+      one: '{n} பேர் ஏற்கனவே அந்தக் குழுவில் இருந்தார்.',
+      other: '{n} பேர் ஏற்கனவே அந்தக் குழுவில் இருந்தனர்.',
+    },
     someone: 'யாரோ',
     archivedGroup: 'காப்பகம்',
     unavailableGroup: 'கிடைக்கவில்லை',
@@ -7107,7 +7144,8 @@ const ta: UiStrings = {
     contactCount: { one: '{n} தொடர்பு', other: '{n} தொடர்புகள்' },
     clearSearch: 'தேடலை அழி',
     nobodyHere: 'இங்கே யாரும் இல்லை',
-    noContactMatches: 'அதற்குப் பொருந்தும் தொடர்பு இல்லை.',
+    noContactMatches:
+      'அதற்குப் பொருந்தும் தொடர்பு இல்லை. பெயர், தொலைபேசி எண் அல்லது மின்னஞ்சலை முயலுங்கள்.',
     noneHasEmailOrNumber: 'உங்கள் தொடர்புகளில் யாருக்கும் மின்னஞ்சலோ எண்ணோ இல்லை.',
     onlyPickedAreSent:
       'நீங்கள் தேர்ந்தெடுத்த நபர்கள் மட்டுமே Waves-க்கு அனுப்பப்படுவார்கள். உங்கள் தொடர்புகள் இந்த ஃபோனிலேயே இருக்கும்.',
@@ -7132,6 +7170,14 @@ const ta: UiStrings = {
     personCount: { one: '{n} நபர்', other: '{n} நபர்கள்' },
     alreadyAddedName: '{name}, ஏற்கனவே சேர்க்கப்பட்டது',
     alreadyInGroup: 'ஏற்கனவே இந்தக் குழுவில் உள்ளார்',
+    splitWithBefore: 'நீங்கள் செலவுகளைப் பகிர்பவர்கள்',
+    knownInGroup: 'ஏற்கனவே {group} இல் உள்ளார்',
+    knownInGroups: {
+      one: 'உங்கள் {n} குழுவில் உள்ளார்',
+      other: 'உங்கள் {n} குழுக்களில் உள்ளார்',
+    },
+    contactsLimited:
+      'உங்கள் தொடர்புகளில் சிலவற்றை மட்டுமே Waves-க்குக் கொடுத்துள்ளீர்கள். மேலும் பார்க்க அமைப்புகளைத் திறக்கவும்.',
     removeName: '{name} ஐ நீக்கு',
     remindZoneNote:
       '{zone} இல் கேட்கப்படுகிறது — பயணம் இருக்கும் இடம், ஒவ்வொருவரும் இருக்கும் இடம் அல்ல.',
@@ -9155,6 +9201,16 @@ const hi: UiStrings = {
     addThemAllToWhichGroup: 'इन सबको किस समूह में जोड़ें?',
     startAGroup: 'समूह शुरू करें',
     pickDifferentPeople: 'दूसरे लोग चुनें',
+    someoneNotInContacts: 'कोई जो आपके संपर्कों में नहीं है',
+    alreadyInCount: {
+      one: 'उनमें से {n} पहले से यहाँ है',
+      other: 'उनमें से {n} पहले से यहाँ हैं',
+    },
+    everyoneAlreadyIn: 'आपने जिन्हें चुना, वे सब पहले से यहाँ हैं',
+    alreadyThereSkipped: {
+      one: '{n} पहले से उस समूह में था।',
+      other: '{n} पहले से उस समूह में थे।',
+    },
     someone: 'कोई',
     archivedGroup: 'संग्रहीत',
     unavailableGroup: 'अनुपलब्ध',
@@ -9480,7 +9536,7 @@ const hi: UiStrings = {
     contactCount: { one: '{n} संपर्क', other: '{n} संपर्क' },
     clearSearch: 'खोज मिटाएँ',
     nobodyHere: 'यहाँ कोई नहीं',
-    noContactMatches: 'उससे कोई संपर्क नहीं मिला।',
+    noContactMatches: 'उससे कोई संपर्क नहीं मिला। नाम, फ़ोन नंबर या ईमेल आज़माएँ।',
     noneHasEmailOrNumber: 'आपके किसी संपर्क के पास ईमेल या नंबर नहीं है।',
     onlyPickedAreSent:
       'सिर्फ़ वही लोग Waves को भेजे जाते हैं जिन्हें आप चुनते हैं। आपके संपर्क इसी फ़ोन पर रहते हैं।',
@@ -9505,6 +9561,13 @@ const hi: UiStrings = {
     personCount: { one: '{n} व्यक्ति', other: '{n} लोग' },
     alreadyAddedName: '{name}, पहले से जुड़ा है',
     alreadyInGroup: 'पहले से इस समूह में है',
+    splitWithBefore: 'जिनके साथ आप खर्च बाँटते हैं',
+    knownInGroup: 'पहले से {group} में है',
+    knownInGroups: {
+      one: 'आपके {n} समूह में है',
+      other: 'आपके {n} समूहों में है',
+    },
+    contactsLimited: 'आपने Waves को अपने कुछ ही संपर्क दिए हैं। और दिखाने के लिए सेटिंग्स खोलें।',
     removeName: '{name} को हटाएँ',
     remindZoneNote: '{zone} में पूछा जाता है — जहाँ यात्रा है, न कि जहाँ हर कोई है।',
     useMyTimezone: 'मेरा टाइमज़ोन इस्तेमाल करें ({zone})',
@@ -11628,6 +11691,24 @@ const ar: UiStrings = {
     addThemAllToWhichGroup: 'إلى أي مجموعة نضيفهم جميعًا؟',
     startAGroup: 'ابدأ مجموعة',
     pickDifferentPeople: 'اختر أشخاصًا آخرين',
+    someoneNotInContacts: 'شخص ليس في جهات اتصالك',
+    alreadyInCount: {
+      zero: 'لا أحد منهم هنا بعد',
+      one: 'واحد منهم هنا بالفعل',
+      two: 'اثنان منهم هنا بالفعل',
+      few: '{n} منهم هنا بالفعل',
+      many: '{n} منهم هنا بالفعل',
+      other: '{n} منهم هنا بالفعل',
+    },
+    everyoneAlreadyIn: 'كل من اخترتهم هنا بالفعل',
+    alreadyThereSkipped: {
+      zero: 'لم يكن أحد في تلك المجموعة من قبل.',
+      one: 'كان واحد منهم في تلك المجموعة من قبل.',
+      two: 'كان اثنان منهم في تلك المجموعة من قبل.',
+      few: 'كان {n} منهم في تلك المجموعة من قبل.',
+      many: 'كان {n} منهم في تلك المجموعة من قبل.',
+      other: 'كان {n} منهم في تلك المجموعة من قبل.',
+    },
     someone: 'أحدهم',
     archivedGroup: 'مؤرشَف',
     unavailableGroup: 'غير متاح',
@@ -12078,7 +12159,7 @@ const ar: UiStrings = {
     },
     clearSearch: 'امسح البحث',
     nobodyHere: 'لا أحد هنا',
-    noContactMatches: 'لا تطابق أي جهة اتصال ذلك.',
+    noContactMatches: 'لا تطابق أي جهة اتصال ذلك. جرّب اسمًا أو رقم هاتف أو بريدًا.',
     noneHasEmailOrNumber: 'لا يملك أي من جهات اتصالك بريدًا أو رقمًا.',
     onlyPickedAreSent: 'لا يُرسل إلى Waves إلا من تختارهم. تبقى جهات اتصالك على هذا الهاتف.',
     jumpToLetter: 'انتقل إلى حرف',
@@ -12116,6 +12197,17 @@ const ar: UiStrings = {
     },
     alreadyAddedName: '{name}، مضاف بالفعل',
     alreadyInGroup: 'موجود بالفعل في هذه المجموعة',
+    splitWithBefore: 'من تقاسم معهم المصاريف',
+    knownInGroup: 'موجود بالفعل في {group}',
+    knownInGroups: {
+      zero: 'ليس في أي من مجموعاتك',
+      one: 'في مجموعة واحدة من مجموعاتك',
+      two: 'في مجموعتين من مجموعاتك',
+      few: 'في {n} من مجموعاتك',
+      many: 'في {n} من مجموعاتك',
+      other: 'في {n} من مجموعاتك',
+    },
+    contactsLimited: 'أعطيت Waves بعض جهات اتصالك فقط. افتح الإعدادات ليرى المزيد.',
     removeName: 'إزالة {name}',
     remindZoneNote: 'يُسأل بتوقيت {zone} — حيث الرحلة، لا حيث كل شخص.',
     useMyTimezone: 'استخدم منطقتي الزمنية ({zone})',
