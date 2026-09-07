@@ -37,15 +37,37 @@ RLS and the business rules apply to the agent identically to the human.
 | `create_group`      | write | `rpc('waves_create_group')`                                                        |
 | `add_expense`       | write | `functions.invoke('expense-write')` → recomputes split, then `waves_apply_expense` |
 | `record_settlement` | write | `rpc('waves_record_settlement')` — records only                                    |
+| `add_people`        | write | `rpc('waves_add_ghost_member')` — names in, member ids out                         |
+| `invite_link`       | write | `rpc('waves_ensure_group_join_token')` — the group's reusable join link            |
 | `payment_link`      | pure  | builds a `upi://` or `paypal.me` link                                              |
 
 All amounts are **integer minor units** (paise/cents) as strings — money is
 never a float.
 
-## Configuration
+## Signing in
 
-The server needs the user's Supabase session (get it from a signed-in device or
-a login flow):
+The server acts as one signed-in person, so it needs that person's session.
+There are two ways to give it one.
+
+**From this machine, with a code to your inbox** — the way to try it:
+
+```bash
+pnpm mcp:login --url=https://<ref>.supabase.co --key=<publishable key>
+```
+
+It sends a six-digit code (the same one the app's login door sends), takes it
+back on the terminal, and stores the session in `~/.waves-mcp/session.json`,
+owner-only. After that the server needs no environment at all, and refreshed
+sessions are written back so a machine that signed in once stays signed in.
+
+Sign-in is a command and not a tool on purpose. A stdio server has no channel
+on which to ask a human for a code, and an agent that could _start_ a login
+could be talked into starting one for somebody else's address.
+
+**From the environment** — the way a deployment does it. Set below; the
+environment wins wherever it is set, so a stored session never overrides it.
+
+## Configuration
 
 | Env var                        | Required | Notes                                         |
 | ------------------------------ | -------- | --------------------------------------------- |
@@ -91,6 +113,23 @@ npx @modelcontextprotocol/inspector node apps/agent-mcp/dist/index.js
 
 ## Status
 
-First cut. Not yet wired into CI, and the write tools have been type-checked but
-not run end-to-end against a live project. Verify against a throwaway group
-before pointing it at anything real.
+The write tools are type-checked and the server has been probed over real stdio,
+but nothing here has been run end-to-end against a live account. Verify against
+a throwaway group before pointing it at anything real.
+
+## Where this is going
+
+This is Stage 0 of the agent story: stdio, one machine, one account. It is not a
+thing to hand to somebody else — the session on disk is yours, and giving away
+the server gives away your ledger.
+
+Stage 1 makes it a product: [Supabase Auth's OAuth 2.1
+server](https://supabase.com/docs/guides/auth/oauth-server) as the authorization
+server, `/.well-known/oauth-protected-resource` (RFC 9728) published here,
+Streamable HTTP instead of stdio, and server-side spend ceilings plus a
+`client_id` audit trail so a person can see what their agent did in their name
+and revoke it. Access tokens there are ordinary Supabase JWTs carrying `user_id`
+and `role`, so every RLS policy in this repo keeps working unchanged for a
+stranger's agent — which is what makes the whole idea tractable. At that point
+`login.ts` and `store.ts` are deleted, because nothing should keep a refresh
+token on disk.
