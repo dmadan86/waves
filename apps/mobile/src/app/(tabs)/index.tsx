@@ -42,6 +42,7 @@ import { useGuestGuard } from '@/lib/guestGuard';
 import { usePromptSlot } from '@/lib/promptQueue';
 import { useDashboardTips } from '@/lib/tips';
 import { TourTarget, useTour } from '@/lib/tour';
+import { GroupMark } from '@/components/GroupMark';
 import { SyncStatusIcon } from '@/components/SyncBanner';
 import { ImportProgressBanner } from '@/components/ImportProgressBanner';
 import { SkeletonList } from '@/components/Skeletons';
@@ -1670,7 +1671,7 @@ function GroupRow({
             justifyContent: 'center',
           }}
         >
-          <Text style={{ fontSize: 20 }}>{coverEmoji ?? '👥'}</Text>
+          <GroupMark emoji={coverEmoji} size={22} />
         </View>
         <View style={{ flex: 1, gap: 2 }}>
           <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>

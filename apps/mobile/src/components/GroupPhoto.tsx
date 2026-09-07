@@ -15,10 +15,11 @@ import { Image } from 'expo-image';
 import { ActivityIndicator, Pressable, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
-import { Text, useTheme } from '@waves/ui';
+import { useTheme } from '@waves/ui';
 
 import { useStrings } from '@/i18n';
 
+import { GroupMark } from './GroupMark';
 import { groupPhotoUrl } from '@/data/api';
 import { useSignedUrl } from '@/lib/useSignedUrl';
 
@@ -67,7 +68,11 @@ export function GroupPhoto({
           transition={150}
         />
       ) : (
-        <Text style={{ fontSize: size * 0.45 }}>{emoji ?? '👥'}</Text>
+        // The drawn mark, not the raw character: see `GroupMark` for why an
+        // emoji rendered as text never sat right beside the app's own icons.
+        // A cover with no mark still falls back to the character there, so a
+        // group keeps whatever picture it has always had.
+        <GroupMark emoji={emoji} size={size * 0.55} />
       )}
 
       {onPress && !busy ? (

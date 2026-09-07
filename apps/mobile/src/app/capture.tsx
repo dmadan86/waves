@@ -32,6 +32,7 @@ import {
   useTheme,
 } from '@waves/ui';
 
+import { GroupMark } from '@/components/GroupMark';
 import { CategoryPicker } from '@/components/Category';
 import { TagEditorSheet } from '@/components/TagEditorSheet';
 import { PaymentMethodPicker } from '@/components/PaymentMethodPicker';
@@ -882,7 +883,7 @@ function GroupPicker({
   const renderGroup = (group: GroupRow): React.JSX.Element => (
     <ChoiceRow
       key={group.id}
-      leading={<Text variant="subheading">{group.cover_emoji ?? '👥'}</Text>}
+      leading={<GroupMark emoji={group.cover_emoji} size={22} />}
       label={groupLabel(group, membersFor(group.id), profileId)}
       selected={selectedId === group.id}
       onPress={() => onPick(group.id)}

@@ -22,6 +22,7 @@ import { useGroups, useHomeSummary } from '@/data/hooks';
 import { groupLabel } from '@/data/types';
 import { plural, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
+import { GroupMark } from '@/components/GroupMark';
 import { SkeletonList } from '@/components/Skeletons';
 
 /**
@@ -297,7 +298,7 @@ export default function AllGroupsScreen() {
                       justifyContent: 'center',
                     }}
                   >
-                    <Text style={{ fontSize: 20 }}>{group.cover_emoji ?? '👥'}</Text>
+                    <GroupMark emoji={group.cover_emoji} size={22} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text variant="body" numberOfLines={2}>
