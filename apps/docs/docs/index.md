@@ -26,6 +26,7 @@ it.
 
 ## Day to day
 
+- [Common ways to use Waves](./using-waves/common-ways-to-use-waves.md) — where to start if you are setting up a group, riding along, travelling, or tracking what you paid.
 - [Add an expense](./using-waves/add-an-expense.md) — by hand, by voice, or by scanning the bill.
 - [How splitting works](./using-waves/how-splitting-works.md) — Equally, Exact, Shares, Percent, and what happens to the odd rupee.
 - [People and placeholders](./using-waves/people-and-placeholders.md) — adding somebody who does not have the app.

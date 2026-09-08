@@ -30,6 +30,7 @@ const sidebars: SidebarsConfig = {
       label: 'Using Waves',
       collapsed: false,
       items: [
+        'using-waves/common-ways-to-use-waves',
         'using-waves/add-an-expense',
         'using-waves/how-splitting-works',
         'using-waves/people-and-placeholders',
