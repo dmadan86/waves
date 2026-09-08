@@ -255,6 +255,19 @@ export default function PrivacyScreen() {
                 }
               />
               {divider}
+              {/* Sits directly above blocking because the two are the same
+                  question at different ranges: who may reach you at all, and
+                  who may no longer. */}
+              <ListRow
+                title={t.person.discoveryRow}
+                subtitle={t.person.discoveryRowHint}
+                onPress={() => router.push('/settings/discovery')}
+                leading={
+                  <Ionicons name="search-outline" size={iconSize.md} color={theme.color.brand} />
+                }
+                trailing={chevron}
+              />
+              {divider}
               <ListRow
                 title={t.blocked.row}
                 subtitle={t.blocked.rowHint}

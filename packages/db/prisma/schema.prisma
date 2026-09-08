@@ -147,6 +147,16 @@ model Profile {
   defaultCurrency   String   @default("INR") @map("default_currency") @db.Char(3)
   locale            String   @default("en")
   notificationPrefs Json     @default("{}") @map("notification_prefs")
+  /// Can somebody who types this account's exact phone number find it
+  /// (`waves_find_person`)? Search only — it does not affect being recognised
+  /// by a person who is adding you to their group.
+  discoverableByPhone Boolean @default(true) @map("discoverable_by_phone")
+  /// The same, for an exact email address.
+  discoverableByEmail Boolean @default(true) @map("discoverable_by_email")
+  /// Who may read this account's email and phone off its profile:
+  /// `nobody`, or `groups` (people it shares a group with). A separate axis
+  /// from discoverability — one is search, this is display.
+  contactVisibility   String  @default("groups") @map("contact_visibility")
   /// Per-owner monotonic counter behind the personal sync scope (TDR A34), the
   /// captures equivalent of `groups.updated_seq`. Bumped under row lock by
   /// `waves_next_capture_seq`.
@@ -1704,6 +1714,23 @@ model AppConfig {
   updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@map("app_config")
+  @@schema("public")
+}
+
+/// Per-caller daily count of `waves_find_person` calls, misses included — the
+/// misses are what a phone-number sweep is made of. Rate limiting only; it is
+/// never shown to anybody and holds no record of what was searched for. No FK
+/// on purpose: the row is a counter, and losing it with the account is fine.
+model PersonLookup {
+  profileId String   @map("profile_id") @db.Uuid
+  /// No default: `waves_spend_person_lookup` always writes the day, and a
+  /// `now() AT TIME ZONE 'utc'` default is normalised by Postgres into a form
+  /// `dbgenerated` cannot match, which reads as permanent drift.
+  day       DateTime @db.Date
+  lookups   Int      @default(0)
+
+  @@id([profileId, day])
+  @@map("person_lookups")
   @@schema("public")
 }
 
