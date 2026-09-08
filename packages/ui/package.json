@@ -6,7 +6,8 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./curve": "./src/curve.ts"
+    "./curve": "./src/curve.ts",
+    "./initials": "./src/initials.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
