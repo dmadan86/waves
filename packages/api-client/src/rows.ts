@@ -9,7 +9,7 @@
  * a number.
  */
 
-import type { RailId } from '@waves/core';
+import type { NotificationPrefs, RailId } from '@waves/core';
 
 export enum GroupType {
   Trip = 'trip',
@@ -48,13 +48,19 @@ export interface MemberRow {
   profile_id: string | null;
   ghost_name: string | null;
   role?: 'admin' | 'member';
+  /** The UPI-shaped fields. Superseded by the rail pair; still read as a fallback. */
   vpa?: string | null;
+  /** Which rail this person is paid on here — a `RailId` from `@waves/core`. */
+  payment_rail?: string | null;
+  payment_handle?: string | null;
   left_at: string | null;
   profile?: {
     id: string;
     display_name: string | null;
     avatar_url: string | null;
     default_vpa?: string | null;
+    payment_rail?: string | null;
+    payment_handle?: string | null;
   } | null;
 }
 
@@ -296,23 +302,12 @@ export interface ProfileRow {
   notification_prefs?: NotificationPrefs | null;
 }
 
-/** What somebody agrees to be told about. Stored as JSON on the profile. */
-export interface NotificationPrefs {
-  /** Only things that involve me — the default that stops the noise. */
-  involvesMe: boolean;
-  groupActivityDigest: boolean;
-  settlementRequests: boolean;
-  nudges: boolean;
-  weeklyEmail: boolean;
-}
-
-export const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
-  involvesMe: true,
-  groupActivityDigest: true,
-  settlementRequests: true,
-  nudges: true,
-  weeklyEmail: false,
-};
+/**
+ * Re-exported so a caller holding a `ProfileRow` does not have to know that the
+ * shape lives in `@waves/core`. One definition, three consumers — see the note
+ * on the source for why it moved there.
+ */
+export { DEFAULT_NOTIFICATION_PREFS, type NotificationPrefs } from '@waves/core';
 
 /**
  * One person's balance in one group — the un-collapsed version of what the

@@ -11,6 +11,7 @@ import { randomUUID } from 'expo-crypto';
 
 import {
   buildExpenseWriteBody,
+  DEFAULT_NOTIFICATION_PREFS,
   normaliseEmail,
   normalisePhone,
   serialiseSplitParams,
@@ -20,6 +21,7 @@ import {
   type DeviceSession,
   type ExpenseLocation,
   type FxRecord,
+  type NotificationPrefs,
   type ParsedReceipt,
   type PaymentMethod,
   type ReceiptCheck,
@@ -254,7 +256,7 @@ export async function fetchMembersByGroup(): Promise<Map<string, MemberRow[]>> {
     await backend
       .from('group_members')
       .select(
-        'id, group_id, profile_id, ghost_name, role, vpa, left_at, invite_email, invite_phone, profile:profiles!profile_id ( id, display_name, avatar_url, default_vpa )',
+        'id, group_id, profile_id, ghost_name, role, vpa, payment_rail, payment_handle, left_at, invite_email, invite_phone, profile:profiles!profile_id ( id, display_name, avatar_url, default_vpa, payment_rail, payment_handle )',
       )
       .is('left_at', null)
       .order('created_at', { ascending: true }),
@@ -1304,22 +1306,12 @@ export async function importLedger(input: {
 
 // ─────────────────────────────── notification preferences (ADR-010) ──
 
-export interface NotificationPrefs {
-  /** Push only for things that involve me — the default that stops the spam. */
-  involvesMe: boolean;
-  groupActivityDigest: boolean;
-  settlementRequests: boolean;
-  nudges: boolean;
-  weeklyEmail: boolean;
-}
-
-export const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
-  involvesMe: true,
-  groupActivityDigest: true,
-  settlementRequests: true,
-  nudges: true,
-  weeklyEmail: false,
-};
+/**
+ * Re-exported from `@waves/core`, where the shape lives. It used to be declared
+ * here as well, and the two copies had already drifted apart from the SQL that
+ * actually obeys the keys — see the note on the source.
+ */
+export { DEFAULT_NOTIFICATION_PREFS, type NotificationPrefs };
 
 export async function fetchNotificationPrefs(profileId: string): Promise<NotificationPrefs> {
   const { data, error } = await backend

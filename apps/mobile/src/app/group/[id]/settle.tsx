@@ -72,7 +72,6 @@ export default function SettleScreen() {
   const country = group.data?.country_code ?? null;
   const rails = useMemo(() => railsFor(country), [country]);
   const [rail, setRail] = useState<string | null>(null);
-  const method = rail ?? defaultRailFor(country);
   const myMemberId = ledger.myMemberId;
 
   // Only people on the other side of my ledger can settle with me: if I am owed
@@ -94,6 +93,21 @@ export default function SettleScreen() {
 
   const counterparty: MemberRow | undefined =
     counterparties.find((member) => member.id === selected) ?? counterparties[0];
+
+  /**
+   * The rail this settlement is on.
+   *
+   * Seeded from the payee, not from the group's country. The link is built from
+   * *their* stored rail (`payableAt` below) while `settlements.rail` recorded
+   * whatever the picker said, so the two could disagree: the button read "Pay
+   * via Pix" over a UPI intent, and the row afterwards named a rail nobody
+   * used. One truth, and it is the person being paid — they are the only party
+   * who knows what will actually reach them. The country default is what is
+   * left when they have said nothing at all, and the picker still overrides
+   * both, because cash is always a possibility no profile records.
+   */
+  const payeeRail = counterparty ? (payableAt(counterparty)?.rail ?? null) : null;
+  const method = rail ?? payeeRail ?? defaultRailFor(country);
 
   const theirBalance = counterparty ? (ledger.balances.get(counterparty.id) ?? 0n) : 0n;
   const iPay = ledger.myBalance < 0n && theirBalance > 0n;
@@ -195,17 +209,25 @@ export default function SettleScreen() {
       return;
     }
 
-    const uri = buildPaymentUri(
-      {
-        railId: payable.rail,
-        handle: payable.handle,
-        payeeName: displayName(counterparty),
-        amount,
-        currency,
-        note: `Waves ${group.data?.name ?? ''}`.trim(),
-      },
-      (value, code) => toMajorString({ minor: value, currency: code }),
-    );
+    // Only when the picker is still on the rail this handle belongs to. A
+    // handle is not portable between rails — somebody who overrides the picker
+    // to Wise has not given us a Wise handle, and building a link out of their
+    // UPI id under a Wise label is a tap that cannot work dressed as one that
+    // can. The fallback below is the honest answer in that case.
+    const uri =
+      method !== payable.rail
+        ? null
+        : buildPaymentUri(
+            {
+              railId: payable.rail,
+              handle: payable.handle,
+              payeeName: displayName(counterparty),
+              amount,
+              currency,
+              note: `Waves ${group.data?.name ?? ''}`.trim(),
+            },
+            (value, code) => toMajorString({ minor: value, currency: code }),
+          );
 
     // An 'app' scheme is asked about first: a custom scheme with nothing
     // installed to answer it fails silently, and a tap that looks like it
@@ -226,6 +248,9 @@ export default function SettleScreen() {
     Alert.alert(
       t.misc.settlePayTitle.replace('{name}', displayName(counterparty)),
       t.misc.settlePayBody
+        // `payable.rail`, because the handle underneath belongs to it — naming
+        // the picker's rail here is what let the button say "Pay via Pix" over
+        // an alert reading "UPI".
         .replace('{rail}', railById(payable.rail)?.label ?? t.misc.settleSendTo)
         .replace('{handle}', payable.handle),
       [

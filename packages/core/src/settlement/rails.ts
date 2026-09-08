@@ -366,6 +366,82 @@ export function isValidHandle(railId: string, handle: string): boolean {
   }
 }
 
+// ─────────────────────────────────────────── who gets paid, and on what ──
+
+/**
+ * The columns a settlement needs off a member row, whichever client is holding
+ * it. Deliberately snake_case and all-optional: this is the database's spelling,
+ * every caller reads it out of a PostgREST row, and no client should have to
+ * reshape a row to ask a question about it.
+ */
+export interface PayableMember {
+  /** Per-group override, UPI-shaped. Superseded by the rail pair below. */
+  readonly vpa?: string | null;
+  /** Per-group override on the rail pair. */
+  readonly payment_rail?: string | null;
+  readonly payment_handle?: string | null;
+  readonly profile?: {
+    readonly default_vpa?: string | null;
+    readonly payment_rail?: string | null;
+    readonly payment_handle?: string | null;
+  } | null;
+}
+
+export interface Payable {
+  readonly rail: string;
+  readonly handle: string;
+}
+
+/**
+ * How this person is paid: the rail, and the handle on it.
+ *
+ * Per-group first, then their profile default, because one person can be paid
+ * over UPI in one group and over Wise in another. The `vpa` columns are the
+ * last fallback: everything written before rails existed is a UPI ID, and the
+ * person who typed it should not have to type it again.
+ *
+ * Lives here rather than in either client because both were answering it, and
+ * only one of them was answering it correctly — the web settle screen read
+ * `vpa ?? profile.default_vpa` and nothing else, so a payee whose handle is a
+ * Pix key or a PayID had, as far as that screen was concerned, given no details
+ * at all. Two clients reading one pair of columns is one function's job.
+ *
+ * **The rail and the handle are chosen together, from one source.** The obvious
+ * way to write this is two independent `??` chains, one per field, and that way
+ * is wrong in a way nothing would catch: somebody with a per-group `vpa` and a
+ * later profile PayID gets the profile's handle paired with — depending on
+ * which chain resolved first — the group's rail, and the app builds a UPI
+ * intent around an Australian phone number. A rail and a handle are one fact
+ * about how to reach somebody, not two facts that happen to sit beside each
+ * other, so each candidate is taken whole or skipped whole.
+ */
+export function payableFor(member: PayableMember): Payable | null {
+  /**
+   * A rail pair counts only when it has both halves. A `payment_handle` with no
+   * `payment_rail` is not "presumably UPI" — that column holds Pix keys and
+   * Venmo names too, and guessing UPI over an Australian phone number builds an
+   * intent no app will answer. It is skipped, and the fall-through below finds
+   * the legacy column or nobody. (`apps/web` used to write exactly that pair
+   * half-filled; it no longer does.)
+   */
+  const pair = (rail?: string | null, handle?: string | null): Payable | null =>
+    rail && handle ? { rail, handle } : null;
+
+  /** A `vpa` column predates rails, so it can only ever have held a UPI id. */
+  const legacy = (handle?: string | null): Payable | null =>
+    handle ? { rail: RailId.Upi, handle } : null;
+
+  return (
+    // Per-group first, whole: this group's own answer about this person.
+    pair(member.payment_rail, member.payment_handle) ??
+    legacy(member.vpa) ??
+    // Then how they are paid everywhere else.
+    pair(member.profile?.payment_rail, member.profile?.payment_handle) ??
+    legacy(member.profile?.default_vpa) ??
+    null
+  );
+}
+
 /**
  * Where a link leads, and how much to trust it.
  *

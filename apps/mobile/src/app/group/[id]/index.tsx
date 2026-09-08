@@ -61,6 +61,7 @@ import {
   displayName,
   isBlockedMember,
   isGhost,
+  payableAt,
   type ActivityActor,
   type ActivityRow,
   type ExpenseRow,
@@ -910,9 +911,14 @@ export default function GroupScreen() {
               {isGhost(member)
                 ? t.notJoinedYet
                 : isBlockedMember(member, blockedIds)
-                  ? // A VPA carries a name or phone — masked for a blocked person.
+                  ? // A payment handle carries a name, an address or a phone
+                    // number — masked for a blocked person.
                     '—'
-                  : (member.vpa ?? member.profile?.default_vpa ?? '—')}
+                  : // `payableAt`, not `member.vpa ?? profile.default_vpa`: the
+                    // rail pair is where a handle lives now, and reading only
+                    // the old column showed a dash to everybody whose handle is
+                    // a Pix key, a PayID or a Venmo name.
+                    (payableAt(member)?.handle ?? '—')}
             </Text>
           </View>
           <Row style={{ gap: theme.spacing.sm, alignItems: 'center' }}>

@@ -32,6 +32,7 @@ import {
 import { errorResponse, HttpError, json, type SupabaseClient } from '../_shared/auth.ts';
 import {
   buildFor,
+  factsOf,
   pause,
   emailSendable,
   sendEmail,
@@ -76,27 +77,6 @@ export interface NotifyFanoutDeps {
   env(name: string): string | undefined;
   fetchImpl: typeof fetch;
   dispatchEmail(service: SupabaseClient): Promise<EmailSummary>;
-}
-
-/** The facts a push can interpolate, taken from the row that was written. */
-export function factsOf(payload: Record<string, unknown>): Record<string, string | undefined> {
-  const text = (key: string): string | undefined =>
-    typeof payload[key] === 'string' ? (payload[key] as string) : undefined;
-  return {
-    amount: text('amount'),
-    currency: text('currency'),
-    counterparty: text('counterparty'),
-    group: text('group'),
-    description: text('description'),
-    count: text('count'),
-    // Every placeholder any mailed or pushed kind uses has to be named here:
-    // this is a whitelist, and a fact that is missing from it does not fail —
-    // it renders the placeholder itself, so somebody receives
-    // "New sign-in on {device}". `device` is the sign-in alert's; `name` is the
-    // ghost-claim kinds', which push today and could be mailed tomorrow.
-    device: text('device'),
-    name: text('name'),
-  };
 }
 
 export async function handlePushFanout(

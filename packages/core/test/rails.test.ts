@@ -14,6 +14,7 @@ import {
   buildPaymentUri,
   defaultRailFor,
   isValidHandle,
+  payableFor,
   PAYMENT_RAILS,
   railById,
   railsFor,
@@ -274,5 +275,54 @@ describe('the markets Waves is going to next', () => {
         railId,
       ).toBeNull();
     }
+  });
+});
+
+describe('how a person is paid', () => {
+  // The precedence used to live in `apps/mobile/src/data/types.ts` and,
+  // separately and differently, in the web settle page — which read
+  // `vpa ?? default_vpa` and nothing else, so a payee on any rail but UPI
+  // looked to it like somebody who had given no details at all.
+
+  it('prefers the per-group override to the profile default', () => {
+    expect(
+      payableFor({
+        payment_rail: 'pix',
+        payment_handle: 'ravi@example.com',
+        profile: { payment_rail: 'upi', payment_handle: 'ravi@okhdfcbank' },
+      }),
+    ).toEqual({ rail: 'pix', handle: 'ravi@example.com' });
+  });
+
+  it('falls back to the profile when the group says nothing', () => {
+    expect(
+      payableFor({ profile: { payment_rail: 'payid', payment_handle: '+61 400 123 456' } }),
+    ).toEqual({ rail: 'payid', handle: '+61 400 123 456' });
+  });
+
+  it('reads a handle written before rails existed as a UPI id', () => {
+    // Nobody who typed a VPA into the old field should have to type it again.
+    expect(payableFor({ profile: { default_vpa: 'ravi@okhdfcbank' } })).toEqual({
+      rail: 'upi',
+      handle: 'ravi@okhdfcbank',
+    });
+    expect(payableFor({ vpa: 'trip@okaxis' })).toEqual({ rail: 'upi', handle: 'trip@okaxis' });
+  });
+
+  it('lets the rail pair win over the legacy column on the same row', () => {
+    expect(
+      payableFor({
+        vpa: 'old@okhdfcbank',
+        payment_rail: 'venmo',
+        payment_handle: '@ravi-kumar',
+      }),
+    ).toEqual({ rail: 'venmo', handle: '@ravi-kumar' });
+  });
+
+  it('is null for somebody who has given no way to be paid', () => {
+    expect(payableFor({})).toBeNull();
+    expect(payableFor({ profile: null })).toBeNull();
+    // A rail with no handle is not a way to be paid either.
+    expect(payableFor({ payment_rail: 'pix' })).toBeNull();
   });
 });
