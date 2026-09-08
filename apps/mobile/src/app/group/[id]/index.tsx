@@ -921,7 +921,9 @@ export default function GroupScreen() {
                 send it. Touch keeps the visible chip; screen readers get the
                 same affordance as a custom action on the row below, because a
                 nested accessible button can be hidden by an accessible parent. */}
-            {canRemind ? <RemindChip groupId={groupId} memberId={member.id} currency={currency} /> : null}
+            {canRemind ? (
+              <RemindChip groupId={groupId} memberId={member.id} currency={currency} />
+            ) : null}
             <MoneyText amount={balance} currency={currency} locale={locale} mode="balance" />
             {member.pending ? <PendingMark /> : null}
             {/* A fixed slot at the trailing edge, on every row whether or not it
@@ -947,10 +949,14 @@ export default function GroupScreen() {
               accessibilityRole="button"
               accessibilityLabel={rowLabel}
               accessibilityHint={t.people.seeSharedGroups}
-              accessibilityActions={canRemind ? [{ name: 'remind', label: t.people.remind }] : undefined}
+              accessibilityActions={
+                canRemind ? [{ name: 'remind', label: t.people.remind }] : undefined
+              }
               onAccessibilityAction={(event) => {
                 if (event.nativeEvent.actionName === 'remind') {
-                  nudgeToSettle({ groupId, toMemberId: member.id, currency }).catch(() => undefined);
+                  nudgeToSettle({ groupId, toMemberId: member.id, currency }).catch(
+                    () => undefined,
+                  );
                 }
               }}
               onPress={() =>
