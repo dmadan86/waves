@@ -762,6 +762,55 @@ export interface UiStrings {
     /** Native biometric prompt shown on entering the private Me tab. */
     personalPrompt: string;
   };
+  /** The sheet behind Sign out: what leaves the phone with the account, and
+   *  the two things you can do about it before you go. */
+  signOutSheet: {
+    /** Callout title above the guest warning in `lock.signOutGuestWarning`. */
+    guestTitle: string;
+    /** Callout when the queue is empty and every photo has been sent. Scoped to
+     *  the ledger on purpose: the backup-key warning below can appear beside
+     *  it, and a reassurance that claimed *everything* comes back would then
+     *  contradict the line right under it. */
+    allSafeTitle: string;
+    allSafeBody: string;
+    /** Callout when something on this device has not reached the account. */
+    atRiskTitle: string;
+    atRiskBody: string;
+    /** The lines under that callout. `otherUnsent` counts queued changes to
+     *  shared groups, `personalUnsent` the private records on the Personal
+     *  tab, `refused` the ones the server turned down, which will never go on
+     *  their own, `receiptsUnsent` the photos still only on the phone, and
+     *  `draftsUnsent` the forms somebody had started but never submitted —
+     *  those live in the drafts table, which the sign-out wipe deletes. */
+    otherUnsent: PluralForms;
+    personalUnsent: PluralForms;
+    refused: PluralForms;
+    receiptsUnsent: PluralForms;
+    draftsUnsent: PluralForms;
+    /** The backup recovery key, which this device holds and sign-out forgets.
+     *  Not part of the list above: it is lost even when everything has synced,
+     *  so it is shown whether or not anything is unsent. */
+    backupKeyTitle: string;
+    backupKeyWarning: string;
+    /** Shown when nothing can be sent right now — offline, or on a connection
+     *  the sync setting does not allow. */
+    offlineHint: string;
+    syncNow: string;
+    syncing: string;
+    /** Sending finished with something still queued. */
+    syncFailed: string;
+    /** Writes everything on the device to a file and opens the share sheet. */
+    copyNow: string;
+    copying: string;
+    copyFailed: string;
+    /** Said beside the copy button when receipt photos are unsent: the file is
+     *  JSON and does not carry image bytes. */
+    copyExcludesPhotos: string;
+    /** "Saved {file}" — `{file}` is the file name. */
+    copySaved: string;
+    /** Title on the system share sheet. */
+    copyShareTitle: string;
+  };
   /** The devices screen and the free-tier two-device cap. */
   devices: {
     couldNotSignOut: string;
@@ -3364,6 +3413,49 @@ const en: UiStrings = {
       'This guards the screen, not the data — your ledger is protected by row-level security on the server whether the lock is on or not.',
     personalPrompt: 'Unlock your personal ledger',
   },
+  signOutSheet: {
+    guestTitle: 'This account cannot be signed back into',
+    allSafeTitle: 'Everything is safe',
+    allSafeBody:
+      'Every change on this device has reached your account. Sign back in and your ledger comes back.',
+    atRiskTitle: 'Some of this would be lost',
+    atRiskBody:
+      "Signing out erases this device's copy. What is listed below has not reached your account yet, so it goes with it.",
+    otherUnsent: {
+      one: '{n} change to your groups has not been sent',
+      other: '{n} changes to your groups have not been sent',
+    },
+    personalUnsent: {
+      one: '{n} personal record has not been sent',
+      other: '{n} personal records have not been sent',
+    },
+    refused: {
+      one: '{n} change the server would not accept',
+      other: '{n} changes the server would not accept',
+    },
+    receiptsUnsent: {
+      one: '{n} receipt photo is still only on this phone',
+      other: '{n} receipt photos are still only on this phone',
+    },
+    draftsUnsent: {
+      one: '{n} expense you were still typing',
+      other: '{n} expenses you were still typing',
+    },
+    backupKeyTitle: 'Your backup key is only on this device',
+    backupKeyWarning:
+      'Signing out forgets the recovery key for your backup. The file stays on Drive, but nothing can open it again without that key — not even you. Write it down before you go.',
+    offlineHint: 'Nothing can be sent right now. Download a copy before you go.',
+    syncNow: 'Sync now',
+    syncing: 'Sending…',
+    syncFailed: 'Could not send everything. Try again, or download a copy.',
+    copyNow: 'Download a copy',
+    copying: 'Preparing…',
+    copyFailed: 'Could not make the file.',
+    copyExcludesPhotos:
+      'The file holds your records, not the receipt photos. Send those first if you need them kept.',
+    copySaved: 'Saved {file}',
+    copyShareTitle: 'Your Waves data',
+  },
   devices: {
     couldNotSignOut: 'Could not sign out the other devices. Please try again.',
     title: 'Devices',
@@ -5791,6 +5883,50 @@ const ta: UiStrings = {
     footnote:
       'இது திரையைக் காக்கிறது, தரவை அல்ல — பூட்டு இருந்தாலும் இல்லாவிட்டாலும் உங்கள் கணக்கு சர்வரில் வரிசை அளவிலான பாதுகாப்பால் காக்கப்படுகிறது.',
     personalPrompt: 'உங்கள் தனிப்பட்ட கணக்கைத் திறக்கவும்',
+  },
+  signOutSheet: {
+    guestTitle: 'இந்தக் கணக்கில் மீண்டும் உள்நுழைய முடியாது',
+    allSafeTitle: 'எல்லாம் பாதுகாப்பாக உள்ளது',
+    allSafeBody:
+      'இந்தச் சாதனத்தில் செய்த ஒவ்வொரு மாற்றமும் உங்கள் கணக்கை அடைந்துவிட்டது. மீண்டும் உள்நுழைந்தால் உங்கள் கணக்குப் பதிவு திரும்பி வரும்.',
+    atRiskTitle: 'இவற்றில் சில தொலைந்துவிடும்',
+    atRiskBody:
+      'வெளியேறினால் இந்தச் சாதனத்தில் உள்ள நகல் அழிக்கப்படும். கீழே பட்டியலிட்டவை இன்னும் உங்கள் கணக்கை அடையவில்லை, எனவே அவையும் அதனுடன் போய்விடும்.',
+    otherUnsent: {
+      one: 'உங்கள் குழுக்களில் {n} மாற்றம் அனுப்பப்படவில்லை',
+      other: 'உங்கள் குழுக்களில் {n} மாற்றங்கள் அனுப்பப்படவில்லை',
+    },
+    personalUnsent: {
+      one: '{n} தனிப்பட்ட பதிவு அனுப்பப்படவில்லை',
+      other: '{n} தனிப்பட்ட பதிவுகள் அனுப்பப்படவில்லை',
+    },
+    refused: {
+      one: 'சர்வர் ஏற்க மறுத்த {n} மாற்றம்',
+      other: 'சர்வர் ஏற்க மறுத்த {n} மாற்றங்கள்',
+    },
+    receiptsUnsent: {
+      one: '{n} ரசீதுப் படம் இன்னும் இந்தத் தொலைபேசியில் மட்டுமே உள்ளது',
+      other: '{n} ரசீதுப் படங்கள் இன்னும் இந்தத் தொலைபேசியில் மட்டுமே உள்ளன',
+    },
+    draftsUnsent: {
+      one: 'நீங்கள் இன்னும் தட்டச்சு செய்துகொண்டிருந்த {n} செலவு',
+      other: 'நீங்கள் இன்னும் தட்டச்சு செய்துகொண்டிருந்த {n} செலவுகள்',
+    },
+    backupKeyTitle: 'உங்கள் காப்புப்பிரதி விசை இந்தச் சாதனத்தில் மட்டுமே உள்ளது',
+    backupKeyWarning:
+      'வெளியேறினால் உங்கள் காப்புப்பிரதியின் மீட்பு விசை மறக்கப்படும். கோப்பு Drive-இல் இருக்கும், ஆனால் அந்த விசை இல்லாமல் அதை யாராலும் — உங்களாலும் — திறக்க முடியாது. வெளியேறும் முன் அதை எழுதி வைத்துக்கொள்ளுங்கள்.',
+    offlineHint: 'இப்போது எதையும் அனுப்ப முடியாது. வெளியேறும் முன் ஒரு நகலைப் பதிவிறக்கவும்.',
+    syncNow: 'இப்போது ஒத்திசை',
+    syncing: 'அனுப்பப்படுகிறது…',
+    syncFailed:
+      'எல்லாவற்றையும் அனுப்ப முடியவில்லை. மீண்டும் முயற்சிக்கவும், அல்லது ஒரு நகலைப் பதிவிறக்கவும்.',
+    copyNow: 'ஒரு நகலைப் பதிவிறக்கு',
+    copying: 'தயாராகிறது…',
+    copyFailed: 'கோப்பை உருவாக்க முடியவில்லை.',
+    copyExcludesPhotos:
+      'இந்தக் கோப்பில் உங்கள் பதிவுகள் இருக்கும், ரசீதுப் படங்கள் இருக்காது. அவை தேவைப்பட்டால் முதலில் அவற்றை அனுப்பிவிடுங்கள்.',
+    copySaved: '{file} சேமிக்கப்பட்டது',
+    copyShareTitle: 'உங்கள் Waves தரவு',
   },
   devices: {
     couldNotSignOut: 'மற்ற சாதனங்களை வெளியேற்ற முடியவில்லை. மீண்டும் முயற்சிக்கவும்.',
@@ -8312,6 +8448,49 @@ const hi: UiStrings = {
       'यह स्क्रीन की रक्षा करता है, डेटा की नहीं — लॉक चालू हो या बंद, आपका हिसाब सर्वर पर रो-लेवल सुरक्षा से सुरक्षित है।',
     personalPrompt: 'अपना निजी हिसाब अनलॉक करें',
   },
+  signOutSheet: {
+    guestTitle: 'इस खाते में दोबारा साइन इन नहीं किया जा सकता',
+    allSafeTitle: 'सब कुछ सुरक्षित है',
+    allSafeBody:
+      'इस डिवाइस का हर बदलाव आपके खाते तक पहुँच चुका है। दोबारा साइन इन करने पर आपका पूरा हिसाब वापस आ जाएगा।',
+    atRiskTitle: 'इनमें से कुछ खो जाएगा',
+    atRiskBody:
+      'साइन आउट करने पर इस डिवाइस की कॉपी मिट जाती है। नीचे जो दिखाया है वह अभी आपके खाते तक नहीं पहुँचा है, इसलिए वह भी उसी के साथ चला जाएगा।',
+    otherUnsent: {
+      one: 'आपके समूहों में {n} बदलाव नहीं भेजा गया',
+      other: 'आपके समूहों में {n} बदलाव नहीं भेजे गए',
+    },
+    personalUnsent: {
+      one: '{n} निजी प्रविष्टि नहीं भेजी गई',
+      other: '{n} निजी प्रविष्टियाँ नहीं भेजी गईं',
+    },
+    refused: {
+      one: '{n} बदलाव जिसे सर्वर ने स्वीकार नहीं किया',
+      other: '{n} बदलाव जिन्हें सर्वर ने स्वीकार नहीं किया',
+    },
+    receiptsUnsent: {
+      one: '{n} रसीद की फ़ोटो अब भी सिर्फ़ इसी फ़ोन पर है',
+      other: '{n} रसीदों की फ़ोटो अब भी सिर्फ़ इसी फ़ोन पर हैं',
+    },
+    draftsUnsent: {
+      one: '{n} ख़र्च जो आप अब भी लिख रहे थे',
+      other: '{n} ख़र्च जो आप अब भी लिख रहे थे',
+    },
+    backupKeyTitle: 'आपकी बैकअप कुंजी सिर्फ़ इसी डिवाइस पर है',
+    backupKeyWarning:
+      'साइन आउट करने पर आपके बैकअप की रिकवरी कुंजी भूल जाएगी। फ़ाइल Drive पर रहेगी, पर उस कुंजी के बिना उसे कोई नहीं खोल सकता — आप भी नहीं। जाने से पहले उसे लिख लें।',
+    offlineHint: 'अभी कुछ भी नहीं भेजा जा सकता। जाने से पहले एक कॉपी डाउनलोड कर लें।',
+    syncNow: 'अभी सिंक करें',
+    syncing: 'भेजा जा रहा है…',
+    syncFailed: 'सब कुछ भेजा नहीं जा सका। फिर कोशिश करें, या एक कॉपी डाउनलोड कर लें।',
+    copyNow: 'एक कॉपी डाउनलोड करें',
+    copying: 'तैयार हो रही है…',
+    copyFailed: 'फ़ाइल नहीं बनाई जा सकी।',
+    copyExcludesPhotos:
+      'फ़ाइल में आपकी प्रविष्टियाँ होंगी, रसीदों की फ़ोटो नहीं। उन्हें रखना है तो पहले उन्हें भेज दें।',
+    copySaved: '{file} सहेज लिया',
+    copyShareTitle: 'आपका Waves डेटा',
+  },
   devices: {
     couldNotSignOut: 'अन्य डिवाइस साइन आउट नहीं हो सके। कृपया फिर कोशिश करें।',
     title: 'डिवाइस',
@@ -10778,6 +10957,68 @@ const ar: UiStrings = {
     footnote:
       'هذا يحمي الشاشة لا البيانات — دفترك محمي على الخادم بأمان على مستوى الصفوف سواء كان القفل مفعّلًا أم لا.',
     personalPrompt: 'افتح قفل دفترك الشخصي',
+  },
+  signOutSheet: {
+    guestTitle: 'لا يمكن تسجيل الدخول إلى هذا الحساب مرة أخرى',
+    allSafeTitle: 'كل شيء بأمان',
+    allSafeBody: 'كل تغيير على هذا الجهاز وصل إلى حسابك. سجّل الدخول مرة أخرى وسيعود دفترك كما هو.',
+    atRiskTitle: 'بعض هذا سيُفقد',
+    atRiskBody:
+      'تسجيل الخروج يمحو نسخة هذا الجهاز. وما هو مذكور أدناه لم يصل إلى حسابك بعد، فسيذهب معها.',
+    otherUnsent: {
+      zero: 'لا تغييرات غير مُرسَلة في مجموعاتك',
+      one: 'تغيير واحد في مجموعاتك لم يُرسَل',
+      two: 'تغييران في مجموعاتك لم يُرسَلا',
+      few: '{n} تغييرات في مجموعاتك لم تُرسَل',
+      many: '{n} تغييرًا في مجموعاتك لم يُرسَل',
+      other: '{n} تغيير في مجموعاتك لم يُرسَل',
+    },
+    personalUnsent: {
+      zero: 'لا سجلات شخصية غير مُرسَلة',
+      one: 'سجل شخصي واحد لم يُرسَل',
+      two: 'سجلان شخصيان لم يُرسَلا',
+      few: '{n} سجلات شخصية لم تُرسَل',
+      many: '{n} سجلًا شخصيًا لم يُرسَل',
+      other: '{n} سجل شخصي لم يُرسَل',
+    },
+    refused: {
+      zero: 'لا تغييرات رفضها الخادم',
+      one: 'تغيير واحد رفضه الخادم',
+      two: 'تغييران رفضهما الخادم',
+      few: '{n} تغييرات رفضها الخادم',
+      many: '{n} تغييرًا رفضه الخادم',
+      other: '{n} تغيير رفضه الخادم',
+    },
+    receiptsUnsent: {
+      zero: 'لا صور إيصالات على هذا الهاتف وحده',
+      one: 'صورة إيصال واحدة ما زالت على هذا الهاتف وحده',
+      two: 'صورتا إيصال ما زالتا على هذا الهاتف وحده',
+      few: '{n} صور إيصالات ما زالت على هذا الهاتف وحده',
+      many: '{n} صورة إيصال ما زالت على هذا الهاتف وحده',
+      other: '{n} صورة إيصال ما زالت على هذا الهاتف وحده',
+    },
+    draftsUnsent: {
+      zero: 'لا مصروفات كنت ما زلت تكتبها',
+      one: 'مصروف واحد كنت ما زلت تكتبه',
+      two: 'مصروفان كنت ما زلت تكتبهما',
+      few: '{n} مصروفات كنت ما زلت تكتبها',
+      many: '{n} مصروفًا كنت ما زلت تكتبه',
+      other: '{n} مصروف كنت ما زلت تكتبه',
+    },
+    backupKeyTitle: 'مفتاح نسختك الاحتياطية على هذا الجهاز وحده',
+    backupKeyWarning:
+      'تسجيل الخروج ينسى مفتاح استرداد نسختك الاحتياطية. سيبقى الملف على Drive، لكن لا شيء يفتحه من دون ذلك المفتاح — ولا أنت. دوّنه قبل أن تخرج.',
+    offlineHint: 'لا يمكن إرسال أي شيء الآن. نزّل نسخة قبل أن تخرج.',
+    syncNow: 'زامن الآن',
+    syncing: 'جارٍ الإرسال…',
+    syncFailed: 'تعذّر إرسال كل شيء. حاول مرة أخرى، أو نزّل نسخة.',
+    copyNow: 'تنزيل نسخة',
+    copying: 'جارٍ التجهيز…',
+    copyFailed: 'تعذّر إنشاء الملف.',
+    copyExcludesPhotos:
+      'الملف يحمل سجلاتك، لا صور الإيصالات. أرسل الصور أولًا إن كنت تريد الاحتفاظ بها.',
+    copySaved: 'تم حفظ {file}',
+    copyShareTitle: 'بيانات Waves الخاصة بك',
   },
   devices: {
     couldNotSignOut: 'تعذّر تسجيل خروج الأجهزة الأخرى. حاول مرة أخرى.',
