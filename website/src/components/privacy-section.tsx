@@ -1,50 +1,60 @@
 import type { Dictionary } from '@/i18n/dictionaries';
-import { Lock } from './icons';
-import { Reveal } from './reveal';
+import { Alert, Eye, EyeOff } from './icons';
 import { Container, Eyebrow, Lede, Section, SectionTitle } from './ui';
 
+/**
+ * Three headings, and the third is the point.
+ *
+ * "We take your privacy seriously" is what everyone writes. What separates a
+ * claim you can believe from one you can't is naming yourself as an excluded
+ * party ("not even us"), itemising what you *do* hold, and then saying plainly
+ * what the design does not protect against. The last list is uncomfortable to
+ * write, which is exactly why it is worth more than a badge.
+ *
+ * Nothing here claims an audit or a certification, because there isn't one.
+ */
 export function PrivacySection({ t }: { t: Dictionary['privacy'] }) {
+  const columns = [
+    { key: 'cant', Icon: EyeOff, items: t.cant, accent: true },
+    { key: 'does', Icon: Eye, items: t.does, accent: false },
+    { key: 'wont', Icon: Alert, items: t.wont, accent: false },
+  ] as const;
+
+  const headings = [t.cantTitle, t.doesTitle, t.wontTitle];
+
   return (
-    <Section>
+    <Section id="privacy" ground="paper">
       <Container>
-        <div className="glass-strong relative isolate overflow-hidden rounded-5xl p-8 sm:p-12 lg:p-16">
-          <div
-            aria-hidden="true"
-            className="absolute -top-40 start-1/4 -z-10 h-80 w-80 rounded-full bg-brand-500/25 blur-[110px]"
-          />
-
-          <div className="grid gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16">
-            <div>
-              <Reveal>
-                <Eyebrow>{t.eyebrow}</Eyebrow>
-              </Reveal>
-              <Reveal delay={60}>
-                <SectionTitle className="mt-6">{t.title}</SectionTitle>
-              </Reveal>
-              <Reveal delay={120}>
-                <div className="mt-5">
-                  <Lede>{t.body}</Lede>
-                </div>
-              </Reveal>
-            </div>
-
-            <ul className="grid gap-4 sm:grid-cols-2">
-              {t.points.map((point, index) => (
-                <li key={point.title}>
-                  <Reveal delay={index * 80} className="h-full">
-                    <div className="h-full rounded-3xl border border-white/[0.08] bg-night-950/50 p-5">
-                      <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-brand-500/15 text-brand-200 ring-1 ring-brand-400/20">
-                        <Lock className="h-4 w-4" />
-                      </span>
-                      <h3 className="mt-4 text-sm font-semibold text-white">{point.title}</h3>
-                      <p className="mt-2 text-sm leading-relaxed text-white/50">{point.body}</p>
-                    </div>
-                  </Reveal>
-                </li>
-              ))}
-            </ul>
-          </div>
+        <div className="max-w-2xl">
+          <Eyebrow index="04">{t.eyebrow}</Eyebrow>
+          <SectionTitle className="mt-5">{t.title}</SectionTitle>
+          <Lede className="mt-4">{t.body}</Lede>
         </div>
+
+        <div className="mt-12 grid gap-px overflow-hidden rounded-xl bg-line lg:grid-cols-3">
+          {columns.map((column, index) => (
+            <section key={column.key} className="bg-surface p-6 sm:p-7">
+              <h3 className="flex items-center gap-2.5 text-[0.9375rem] font-semibold tracking-[-0.01em] text-ink">
+                <column.Icon
+                  className={`h-4 w-4 shrink-0 ${column.accent ? 'text-accent' : 'text-ink-3'}`}
+                  aria-hidden="true"
+                />
+                {headings[index]}
+              </h3>
+
+              <ul className="mt-5 space-y-4">
+                {column.items.map((item) => (
+                  <li key={item.title}>
+                    <p className="text-[0.875rem] font-medium text-ink">{item.title}</p>
+                    <p className="mt-1 text-[0.8125rem] leading-[1.6] text-ink-2">{item.body}</p>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
+        </div>
+
+        <p className="mt-6 max-w-3xl text-[0.8125rem] leading-relaxed text-ink-3">{t.footnote}</p>
       </Container>
     </Section>
   );

@@ -9,6 +9,14 @@ export const site = {
   url: process.env.NEXT_PUBLIC_SITE_URL ?? 'https://wavs.co.in',
   appUrl: process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.wavs.co.in',
   supportEmail: 'hello@wavs.co.in',
+
+  /*
+   * Store listings, when they exist. Left empty on purpose: a badge that links
+   * nowhere is worse than no badge, and both vendors require their own
+   * artwork, so `StoreBadges` renders a plain sentence until these are set.
+   */
+  iosUrl: process.env.NEXT_PUBLIC_IOS_URL ?? '',
+  androidUrl: process.env.NEXT_PUBLIC_ANDROID_URL ?? '',
 } as const;
 
 /** Absolute URL for a locale-prefixed path, used by metadata and the sitemap. */

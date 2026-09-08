@@ -1,20 +1,20 @@
 import { notFound } from 'next/navigation';
 
-import { Aurora } from '@/components/aurora';
 import { Audience } from '@/components/audience';
+import { Currencies } from '@/components/currencies';
+import { Custody } from '@/components/custody';
 import { Faq } from '@/components/faq';
 import { Features } from '@/components/features';
 import { FinalCta } from '@/components/final-cta';
 import { Hero } from '@/components/hero';
-import { Marquee } from '@/components/marquee';
+import { HowItWorks } from '@/components/how-it-works';
 import { Pricing } from '@/components/pricing';
 import { PrivacySection } from '@/components/privacy-section';
 import { SiteFooter } from '@/components/site-footer';
 import { SiteHeader } from '@/components/site-header';
-import { Stats } from '@/components/stats';
-import { HowItWorks } from '@/components/how-it-works';
 import { isLocale } from '@/i18n/config';
 import { getDictionary } from '@/i18n/dictionaries';
+import { currencyRows } from '@/lib/currencies';
 import { absoluteUrl, site } from '@/lib/site';
 
 export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
@@ -23,17 +23,42 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
 
   const t = await getDictionary(locale);
 
+  /*
+   * `SoftwareApplication` and `Organization` are the two types that still earn
+   * their keep — the first for the app itself, the second because it is the
+   * block search engines and language models use to resolve "Waves" to an
+   * entity. `FAQPage` stays because it costs nothing, but Google retired FAQ
+   * rich results in May 2026, so it is not doing SEO work any more.
+   *
+   * There is deliberately no `aggregateRating`: it must reflect real reviews,
+   * and inventing one is a manual-action risk as well as a lie. The price is
+   * zero and the currency is the locale's, not one country's.
+   */
   const jsonLd = {
     '@context': 'https://schema.org',
     '@graph': [
       {
-        '@type': 'SoftwareApplication',
+        '@type': 'Organization',
+        '@id': `${site.url}#org`,
+        name: site.name,
+        url: site.url,
+        email: site.supportEmail,
+      },
+      {
+        '@type': 'MobileApplication',
         name: site.name,
         applicationCategory: 'FinanceApplication',
+        applicationSubCategory: 'Expense sharing',
         operatingSystem: 'Android, iOS, Web',
         description: t.meta.description,
         url: absoluteUrl(`/${locale}`),
-        offers: { '@type': 'Offer', price: '0', priceCurrency: 'INR' },
+        inLanguage: locale,
+        publisher: { '@id': `${site.url}#org` },
+        offers: {
+          '@type': 'Offer',
+          price: '0',
+          priceCurrency: t.meta.priceCurrency,
+        },
       },
       {
         '@type': 'FAQPage',
@@ -59,20 +84,21 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      <Aurora />
       <SiteHeader locale={locale} nav={t.nav} appUrl={site.appUrl} />
 
-      <main id="main">
+      {/* The skip link targets this, so it has to be able to take focus —
+          without the tabindex the jump lands on <body> and nothing changes. */}
+      <main id="main" tabIndex={-1}>
         <Hero t={t.hero} banner={t.banner} appUrl={site.appUrl} />
-        <Marquee t={t.marquee} />
-        <Stats t={t.stats} />
+        <Custody t={t.custody} />
         <Features t={t.features} visuals={t.visuals} />
+        <Currencies t={t.currencies} rows={currencyRows(locale)} />
         <HowItWorks t={t.how} />
         <Audience t={t.audience} />
         <PrivacySection t={t.privacy} />
         <Pricing t={t.pricing} appUrl={site.appUrl} />
         <Faq t={t.faq} />
-        <FinalCta t={t.cta} appUrl={site.appUrl} />
+        <FinalCta t={t.cta} stores={t.hero.stores} appUrl={site.appUrl} />
       </main>
 
       <SiteFooter locale={locale} t={t.footer} appUrl={site.appUrl} />

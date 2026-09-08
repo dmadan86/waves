@@ -1,41 +1,40 @@
 /**
- * The mark is the name: three crests of a wave that also read as the rise and
- * fall of a balance. It scales down to a favicon without losing the shape.
+ * The mark is the name: three crests that also read as the rise and fall of a
+ * balance. It is drawn in `currentColor` as a monoline rather than filled into
+ * a gradient tile, so it inverts with the theme, prints, and survives being
+ * scaled down to a favicon.
  */
-export function WaveMark({ className = 'h-7 w-7' }: { className?: string }) {
+export function WaveMark({ className = 'h-[1.125rem] w-[1.6rem]' }: { className?: string }) {
   return (
-    <svg viewBox="0 0 32 32" fill="none" className={className} aria-hidden="true">
-      <defs>
-        <linearGradient id="wave-mark" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#B4A5FB" />
-          <stop offset="0.55" stopColor="#7A5AF8" />
-          <stop offset="1" stopColor="#F97316" />
-        </linearGradient>
-      </defs>
-      <rect width="32" height="32" rx="9" fill="url(#wave-mark)" />
+    <svg viewBox="0 0 26 18" fill="none" className={className} aria-hidden="true">
       <path
-        d="M5 20.5c2.2 0 2.2-4.6 4.4-4.6s2.2 4.6 4.4 4.6 2.2-4.6 4.4-4.6 2.2 4.6 4.4 4.6 2.2-4.6 4.4-4.6"
-        stroke="#0E0E1A"
-        strokeOpacity="0.85"
-        strokeWidth="2.1"
+        d="M1 12.2c1.9 0 1.9-4.1 3.8-4.1s1.9 4.1 3.8 4.1 1.9-4.1 3.8-4.1 1.9 4.1 3.8 4.1 1.9-4.1 3.8-4.1 1.9 4.1 3.8 4.1"
+        stroke="currentColor"
+        strokeWidth="1.9"
         strokeLinecap="round"
+        strokeLinejoin="round"
       />
+      {/* One crest carries the accent — the balance that is yours. */}
       <path
-        d="M7.5 12.4c1.9 0 1.9-3.4 3.8-3.4s1.9 3.4 3.8 3.4 1.9-3.4 3.8-3.4 1.9 3.4 3.8 3.4"
-        stroke="#FFFFFF"
-        strokeOpacity="0.7"
-        strokeWidth="1.6"
+        d="M12.6 8.1c1.9 0 1.9 4.1 3.8 4.1"
+        stroke="var(--w-accent)"
+        strokeWidth="1.9"
         strokeLinecap="round"
       />
     </svg>
   );
 }
 
+/**
+ * The wordmark is set in the pixel face. It is the one place on the site that
+ * is allowed to be lo-fi, and because a brand name is never translated it is
+ * safe to pin to a Latin-only font.
+ */
 export function Wordmark({ className = '' }: { className?: string }) {
   return (
-    <span className={`inline-flex items-center gap-2.5 ${className}`}>
+    <span className={`inline-flex items-center gap-2.5 text-ink ${className}`}>
       <WaveMark />
-      <span className="text-[1.35rem] font-semibold tracking-[-0.03em] text-white">Waves</span>
+      <span className="font-pixel text-[1.0625rem] leading-none tracking-[0.02em]">waves</span>
     </span>
   );
 }

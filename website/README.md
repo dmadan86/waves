@@ -5,12 +5,18 @@ one is static, has no database, no auth and no `@waves/*` imports, so it can be
 rebuilt and redeployed without touching the app.
 
 ```
-src/app/[locale]/        every page, one per language
-src/app/[locale]/privacy Privacy policy
-src/app/[locale]/terms   Terms
-src/components/          sections, drawn product visuals, primitives
-src/i18n/                locale config + one dictionary per language
-middleware.ts            bare paths get a locale prefix
+src/app/[locale]/          every page, one per language
+src/app/[locale]/privacy   Privacy policy
+src/app/[locale]/terms     Terms
+src/app/[locale]/index.md  the same page as Markdown, per language
+src/app/[locale]/[...rest] catch-all, so a miss gets our own 404 in-locale
+src/app/llms.txt           an index for anything reading the site as text
+src/components/            sections, drawn product visuals, primitives
+src/fonts/                 the two self-hosted OFL faces + their licences
+src/i18n/                  locale config + one dictionary per language
+src/lib/currencies.ts      the ISO 4217 list the currency section is built from
+src/lib/markdown.ts        renders a dictionary as the Markdown twin
+proxy.ts                   bare paths get a locale prefix; Accept negotiation
 ```
 
 ## Running it
@@ -45,13 +51,49 @@ one. They say so on the page.
 
 ## Design
 
-The palette is lifted from `packages/ui/src/tokens.ts` so the site and the app
-are recognisably the same product: the indigo/violet brand ramp, the sunset
-coral accent, the night canvas, and the blue/red money pair used only where it
-means money. No green anywhere.
+The subject is a shared ledger, so the page is built from a ledger's materials:
+a true-neutral ground rather than a tinted night sky, hairlines instead of glass,
+radii small enough to read as ruled boxes, and every figure on the page set in a
+monospace with tabular lining numerals.
+
+**Light first, with a real dark theme.** Every surface and ink colour is a
+`--w-*` custom property redefined in three places — bare `:root` (light),
+`prefers-color-scheme: dark` guarded by `:not(.theme-light)`, and `.theme-dark` —
+so the OS decides by default and the header's three-state toggle wins over it in
+either direction. An inline script in the layout stamps the stored choice before
+first paint. A component never names a colour literal; if it does, one of the two
+themes is already broken.
+
+Colour is spent in exactly two places: the violet accent the app already uses,
+and the semantic money pair. Money never travels on colour alone — a sign and a
+word go with it, so it survives colour blindness and greyscale. No green
+anywhere.
+
+Three typefaces, all SIL OFL 1.1, all self-hosted from `src/fonts` with the
+licence text beside the file: **Overused Grotesk** for everything that is prose,
+**IBM Plex Mono** for everything that is data, and **Departure Mono** for the
+wordmark. The last two are Latin-only, so neither may ever be pinned to a string
+that gets translated — `globals.css` hands Tamil, Devanagari and Arabic to their
+own Noto faces, and only the script the page is actually written in is loaded.
 
 The product illustrations are **drawn, not screenshotted** — a screenshot cannot
-be translated, goes stale the week the UI moves, and ships a 400 KB PNG.
+be translated, goes stale the week the UI moves, and ships a 400 KB PNG. Because
+they are live DOM, each one carries `role="img"` and a translated `aria-label`
+so a screen reader hears one summary instead of a hundred loose fragments.
+
+## Being read by machines
+
+Every page has a Markdown twin at `/{locale}/index.md`, generated from the same
+dictionary the page renders from, so it cannot drift. It is advertised three
+ways: a `<link rel="alternate" type="text/markdown">` in the head for DOM
+crawlers, an HTTP `Link:` header for headless ones, and `Accept: text/markdown`
+content negotiation in `proxy.ts` — which decides on the header's q-values only,
+never on the user agent, because that would be cloaking. Responses carry
+`Vary: Accept`.
+
+`/llms.txt` indexes the whole thing. Expect no search-engine effect from any of
+it; what it buys is a clean answer when somebody pastes the domain into an
+assistant.
 
 ## Deploying
 
