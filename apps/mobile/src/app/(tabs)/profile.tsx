@@ -22,6 +22,7 @@ import {
 } from '@waves/ui';
 
 import { ProfileAvatar } from '@/components/ProfileAvatar';
+import { SignOutSheet } from '@/components/SignOutSheet';
 import { friendlyError } from '@/lib/errors';
 import { SkeletonList } from '@/components/Skeletons';
 import { removeAvatar, uploadAvatar } from '@/data/api';
@@ -237,6 +238,7 @@ function ProfileForm() {
 
   const [status, setStatus] = useState<string | null>(null);
   const [photoBusy, setPhotoBusy] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
 
   /**
    * Pick, shrink, upload, then tell the profile where it landed. The upload
@@ -333,17 +335,6 @@ function ProfileForm() {
         : t.account.lockOff;
 
   const signOutHint = isGuest ? t.account.signOutGuestHint : t.account.signOutHint;
-
-  const confirmSignOut = (): void => {
-    Alert.alert(
-      t.lock.signOutQuestion,
-      isGuest ? t.lock.signOutGuestWarning : t.lock.signOutReassure,
-      [
-        { text: t.lock.staySignedIn, style: 'cancel' },
-        { text: t.lock.signOut, style: 'destructive', onPress: () => void signOut() },
-      ],
-    );
-  };
 
   return (
     <Screen>
@@ -587,7 +578,7 @@ function ProfileForm() {
               icon: 'log-out-outline',
               label: t.lock.signOut,
               hint: signOutHint,
-              onPress: confirmSignOut,
+              onPress: () => setSigningOut(true),
               destructive: true,
             },
           ]}
@@ -604,6 +595,22 @@ function ProfileForm() {
           ]}
         />
       </ScrollView>
+
+      {/* Signing out is a confirmation the OS cannot draw: it wipes this
+          device's mirror and the queue with it, so the question has to be able
+          to name what is still unsent and offer to send it or save a copy
+          first. An alert can only ask; this can show. Mounted only while open,
+          because a Modal that starts hidden never presents on Android. */}
+      {signingOut ? (
+        <SignOutSheet
+          visible
+          onClose={() => setSigningOut(false)}
+          onSignOut={() => {
+            setSigningOut(false);
+            void signOut();
+          }}
+        />
+      ) : null}
     </Screen>
   );
 }
