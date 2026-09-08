@@ -75,8 +75,10 @@ in your groups can see your contact details. Turning discovery off never changes
 who owes what.
 
 For a full copy of your record, use [Export your data](../privacy/export-your-data.md).
-If you delete your account, your personal details go, but shared expenses and
-settlements remain because they are also other people's records.
+If you [delete your account](../privacy/delete-your-account.md), your profile
+goes, but shared expenses and settlements remain because they are also other
+people's records — and so does anything you type into the optional "Why are you
+leaving?" box.
 
 ## Next
 
