@@ -64,12 +64,24 @@ describe('app_releases', () => {
     ]);
 
     await asRole('authenticated', { sub: profileId, role: 'authenticated' }, async () => {
-      // No policy for UPDATE means no rows are visible to update: Postgres
-      // reports success having changed nothing rather than refusing.
-      const updated = await client.query(
-        `UPDATE app_releases SET minimum_version = '99.0.0' WHERE platform = 'android'`,
-      );
-      expect(updated.rowCount).toBe(0);
+      // Both statements are refused at the grant, since `20260908140000` took
+      // INSERT and UPDATE away from `authenticated`.
+      //
+      // This assertion used to be weaker, and the way it was weak is the reason
+      // that migration exists. It asserted `rowCount === 0` on the UPDATE —
+      // Postgres reporting success having changed nothing, because the only
+      // policy on the table is `FOR SELECT` and so no row was visible to
+      // update. That is a real barrier, but it is a *single* barrier, and the
+      // grant sitting behind it meant an UPDATE policy added later for some
+      // unrelated reason would have silently handed every signed-in account the
+      // ability to set `minimum_version` and lock every install out of Waves.
+      // The refusal is now the grant's, and the policy is the second line
+      // rather than the only one.
+      await expect(
+        client.query(
+          `UPDATE app_releases SET minimum_version = '99.0.0' WHERE platform = 'android'`,
+        ),
+      ).rejects.toThrow(/permission denied/i);
 
       await expect(
         client.query(
@@ -77,7 +89,7 @@ describe('app_releases', () => {
            VALUES ('android', '99.0.0', '99.0.0', 'https://evil.example')
            ON CONFLICT (platform) DO UPDATE SET minimum_version = '99.0.0'`,
         ),
-      ).rejects.toThrow(/row-level security|policy/i);
+      ).rejects.toThrow(/permission denied/i);
     });
 
     const after = await client.query(
