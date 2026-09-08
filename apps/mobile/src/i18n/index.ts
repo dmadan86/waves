@@ -1804,6 +1804,8 @@ export interface UiStrings {
     remind: string;
     reminded: string;
     remindedToday: string;
+    /** Spoken hint on a tappable person row: where the tap goes. */
+    seeSharedGroups: string;
   };
   /** Adding and editing an expense, and reading one off a bill. */
   expense: {
@@ -4193,6 +4195,7 @@ const en: UiStrings = {
     remind: 'Remind',
     reminded: 'Reminded',
     remindedToday: 'Nudged today',
+    seeSharedGroups: 'Opens the groups you share with them',
   },
   expense: {
     edit: 'Edit expense',
@@ -6615,6 +6618,7 @@ const ta: UiStrings = {
     remind: 'நினைவூட்டு',
     reminded: 'நினைவூட்டப்பட்டது',
     remindedToday: 'இன்று நினைவூட்டிவிட்டீர்கள்',
+    seeSharedGroups: 'நீங்கள் இருவரும் பகிரும் குழுக்களைத் திறக்கும்',
   },
   expense: {
     edit: 'செலவைத் திருத்து',
@@ -9044,6 +9048,7 @@ const hi: UiStrings = {
     remind: 'याद दिलाएँ',
     reminded: 'याद दिला दिया',
     remindedToday: 'आज याद दिला चुके',
+    seeSharedGroups: 'उनके साथ साझा किए गए समूह खोलता है',
   },
   expense: {
     edit: 'खर्च बदलें',
@@ -11530,6 +11535,7 @@ const ar: UiStrings = {
     remind: 'ذكّر',
     reminded: 'تم التذكير',
     remindedToday: 'ذُكّر اليوم',
+    seeSharedGroups: 'يفتح المجموعات المشتركة معكما',
   },
   expense: {
     edit: 'تعديل المصروف',

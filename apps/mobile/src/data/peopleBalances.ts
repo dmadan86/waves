@@ -56,9 +56,27 @@ export function countOthersInGroup(members: readonly CountableMember[], profileI
   return present.filter((member) => member.profile_id !== profileId).length;
 }
 
-/** COALESCE(profile_id, merge person_id, member_id) — the SQL's person_key. */
-function personKey(contribution: PersonContribution): string {
-  return contribution.profileId ?? contribution.mergePersonId ?? contribution.memberId;
+/** The three facts that decide who somebody is — the arguments to {@link personKeyOf}. */
+export interface PersonIdentity {
+  /** Their profile id, or null for a ghost. */
+  profileId: string | null;
+  /** The person id of a viewer-recorded ghost merge (A38), else null. */
+  mergePersonId: string | null;
+  /** Their group_member id — per-group, and the last resort. */
+  memberId: string;
+}
+
+/**
+ * COALESCE(profile_id, merge person_id, member_id) — the SQL's person_key.
+ *
+ * The one place the app decides who a person *is*. `waves_people_i_owe` and
+ * `waves_person_group_balances` key on exactly this expression, so anything
+ * that wants to point at a person across groups — the Friends list, a group's
+ * Balances row — has to spell it the same way. A second, parallel guess at
+ * identity would quietly point somebody at a stranger's ledger.
+ */
+export function personKeyOf(person: PersonIdentity): string {
+  return person.profileId ?? person.mergePersonId ?? person.memberId;
 }
 
 /** Lexicographic max, ignoring null — mirrors the SQL `max(...)`. */
@@ -94,7 +112,7 @@ export function aggregatePeopleBalances(
   const groups = new Map<string, Group>();
 
   for (const c of contributions) {
-    const key = personKey(c);
+    const key = personKeyOf(c);
     const mapKey = `${key}|${c.currency}`;
     let group = groups.get(mapKey);
     if (!group) {
