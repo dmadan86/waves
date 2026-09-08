@@ -28,10 +28,19 @@ const AnimatedImage = Animated.createAnimatedComponent(Image);
  */
 export function ZoomableImage({
   uri,
+  preview,
   onZoomChange,
   annotations,
 }: {
   uri: string;
+  /**
+   * A tiny stored stand-in, drawn inside the same `Image` until the real bytes
+   * decode and then cross-faded out. It is the difference between a black
+   * screen and the bill's shape while a signed URL is fetched over a slow
+   * connection — and being the placeholder of one image rather than a second
+   * image, nothing announces it twice.
+   */
+  preview?: string | null;
   /** Fires when the image crosses between fit (1×) and zoomed (>1×). A pager uses
    *  it to stop swiping between pages while a page is zoomed in. */
   onZoomChange?: (zoomed: boolean) => void;
@@ -210,6 +219,8 @@ export function ZoomableImage({
         <Animated.View style={{ flex: 1, justifyContent: 'center' }} collapsable={false}>
           <AnimatedImage
             source={{ uri }}
+            placeholder={preview ? { uri: preview } : undefined}
+            placeholderContentFit="contain"
             style={[{ width, height: boxHeight }, animatedStyle]}
             contentFit="contain"
             transition={150}
@@ -228,6 +239,8 @@ export function ZoomableImage({
         <Animated.View style={[{ width: rect.w, height: rect.h }, animatedStyle]}>
           <Image
             source={{ uri }}
+            placeholder={preview ? { uri: preview } : undefined}
+            placeholderContentFit="contain"
             style={{ width: rect.w, height: rect.h }}
             contentFit="contain"
             transition={150}

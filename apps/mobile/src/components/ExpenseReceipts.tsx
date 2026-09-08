@@ -58,11 +58,14 @@ import { imageUrl, restrictedImageUrl } from '@/lib/storage';
 import { cacheImage, cachedImageUri, evictImage } from '@/lib/storage/imageCache';
 import {
   discardPendingReceipt,
+  dropSettledReceipts,
   enqueueReceipt,
   flushReceiptQueue,
   pendingReceiptUri,
   retryPendingReceipts,
+  settledPast,
   usePendingReceipts,
+  SETTLED_MAX_AGE_MS,
   type FlushResult,
   type PendingReceiptStatus,
   type PendingReceiptView,
@@ -78,6 +81,31 @@ type GalleryItem =
   | { kind: 'legacy'; key: string; path: string; visibility: 'group' }
   | { kind: 'attachment'; key: string; row: ExpenseAttachmentRow }
   | { kind: 'pending'; key: string; entry: PendingReceiptView };
+
+/**
+ * The file an item can be drawn from *right now*, with nothing awaited: a
+ * capture the queue is still carrying is its own local file, and a bill seen
+ * before is on disk under its stable path (ADR-005). Null when only a
+ * short-lived signed URL will do.
+ *
+ * Cheap enough to ask on every render — it is a stat — which is the point:
+ * answering during render rather than from an effect is what stops an image the
+ * device already holds from showing a spinner for a frame first.
+ */
+function localUri(it: GalleryItem): string | null {
+  if (it.kind === 'pending') return pendingReceiptUri(it.entry);
+  const bucket = it.kind === 'legacy' ? 'receipts' : 'expense-attachments';
+  const path = it.kind === 'legacy' ? it.path : it.row.storagePath;
+  return cachedImageUri(bucket, path);
+}
+
+/** The tiny stored stand-in for an item's image, when it has one. */
+function previewOf(it: GalleryItem): string | null {
+  if (it.kind === 'attachment') return it.row.preview;
+  if (it.kind === 'pending') return it.entry.preview ?? null;
+  // The legacy bill predates the column; there is nothing to have kept.
+  return null;
+}
 
 /**
  * Resolve every item to a displayable URL, each through its own backend (the
@@ -97,29 +125,16 @@ function useResolvedUrls(
     void (async () => {
       for (const it of items) {
         if (urls[it.key] !== undefined) continue;
-
-        // A still-unsent capture is already a local file — show it straight from
-        // there, no network and no cache round-trip.
-        if (it.kind === 'pending') {
-          if (!active) return;
-          setUrls((prev) => ({ ...prev, [it.key]: pendingReceiptUri(it.entry) }));
-          continue;
-        }
+        // Already answerable from disk, and the render below has been drawing it
+        // since the item appeared. Nothing to mint.
+        if (localUri(it) !== null) continue;
+        if (it.kind === 'pending') continue;
 
         const bucket = it.kind === 'legacy' ? 'receipts' : 'expense-attachments';
         const path = it.kind === 'legacy' ? it.path : it.row.storagePath;
 
-        // A bill seen before is on disk under its stable path — show it straight
-        // away, so an already-opened receipt renders with no network (ADR-005).
-        const cached = cachedImageUri(bucket, path);
-        if (cached) {
-          if (!active) return;
-          setUrls((prev) => ({ ...prev, [it.key]: cached }));
-          continue;
-        }
-
         // Not cached: resolve the short-lived signed URL. Offline this is null
-        // and the tile stays a blank placeholder, exactly as before.
+        // and the tile falls back to its stored preview, or to a blank tile.
         const url =
           it.kind === 'legacy'
             ? await imageUrl('receipts', path)
@@ -139,11 +154,17 @@ function useResolvedUrls(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [expenseId, keys]);
   // `undefined` = still resolving, `null` = resolved to nothing, string = URL.
-  return items.map((it) => urls[it.key]);
+  // A resolved null stands: it means the mint came back empty (offline, or a
+  // refused signature), which the tile reports rather than spinning forever.
+  return items.map((it) => {
+    const resolved = urls[it.key];
+    return resolved !== undefined ? resolved : (localUri(it) ?? undefined);
+  });
 }
 
 function Thumb({
   url,
+  preview,
   resolved,
   isPrivate,
   status,
@@ -151,6 +172,12 @@ function Thumb({
   label,
 }: {
   url: string | null;
+  /**
+   * The tiny stored stand-in, drawn under the real image and cross-faded out
+   * when it arrives. Decoration only — it lives inside the same `Image`, so a
+   * screen reader is never told there are two pictures here.
+   */
+  preview: string | null;
   resolved: boolean;
   isPrivate: boolean;
   /**
@@ -177,8 +204,18 @@ function Thumb({
         backgroundColor: theme.color.surfaceMuted,
       }}
     >
-      {url ? (
-        <Image source={{ uri: url }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
+      {url || preview ? (
+        <Image
+          source={url ? { uri: url } : null}
+          // Held under the real image until it decodes, so the tile is never a
+          // grey hole: on a cold view this is the bill's colours a whole network
+          // round trip before the bill itself.
+          placeholder={preview ? { uri: preview } : undefined}
+          placeholderContentFit="cover"
+          style={{ width: '100%', height: '100%' }}
+          contentFit="cover"
+          transition={180}
+        />
       ) : (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
           {resolved ? (
@@ -202,7 +239,7 @@ function Thumb({
           <Ionicons name="lock-closed" size={12} color={theme.color.text} />
         </View>
       ) : null}
-      {status ? (
+      {status && status !== 'sent' ? (
         // A soft scrim over the image, with the state drawn on top of it: a
         // spinner while the bytes are in the air, a cloud glyph while they wait
         // for a connection, and a filled red disc when the send failed. The
@@ -386,25 +423,57 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [status]);
 
+    // The handover, completed.
+    //
+    // A capture the queue has finished uploading stays in it, still drawing the
+    // picture, precisely until the row it became arrives from the sync — that is
+    // what stopped the strip going blank for the length of a pull. This is the
+    // other half: once both exist, the entry is a duplicate of the row and goes.
+    //
+    // The queue's own sweep for the row that never comes runs when something
+    // reads or flushes it, and a gallery left open on screen does neither — so
+    // an entry past its welcome is let go from here too.
+    useEffect(() => {
+      const done = pending
+        .filter((entry) => entry.status === 'sent')
+        .filter(
+          (entry) =>
+            attachments.data.some((row) => row.id === entry.attachmentId) ||
+            settledPast(entry, SETTLED_MAX_AGE_MS),
+        )
+        .map((entry) => entry.attachmentId);
+      if (done.length > 0) void dropSettledReceipts(done);
+    }, [pending, attachments.data]);
+
     const items = useMemo<GalleryItem[]>(() => {
       const list: GalleryItem[] = [];
       if (legacyReceiptPath) {
         list.push({ kind: 'legacy', key: 'legacy', path: legacyReceiptPath, visibility: 'group' });
+      }
+      // Captures the queue is still carrying come first, newest first — the same
+      // order the attachment rows below are in, and the same place the row will
+      // occupy when it arrives. They used to be appended after them, so the tile
+      // somebody had just taken jumped from the end of the strip to the front the
+      // moment the sync caught up.
+      //
+      // A parked capture is shown only until its real row lands: once the upload
+      // has been pulled into the mirror the entry shares that row's id, so it is
+      // dropped here to avoid two tiles for one receipt.
+      const uploaded = new Set(attachments.data.map((row) => row.id));
+      for (const entry of [...pending].reverse()) {
+        // Never draw what the sweep would already have removed: an upload whose
+        // row has not arrived in an hour is no longer news, and the effect above
+        // is letting go of it.
+        if (settledPast(entry, SETTLED_MAX_AGE_MS)) continue;
+        if (!uploaded.has(entry.attachmentId)) {
+          list.push({ kind: 'pending', key: `pending-${entry.attachmentId}`, entry });
+        }
       }
       for (const row of attachments.data) {
         // Just deleted, and the mirror has not caught up yet. Hiding it here
         // rather than waiting is what makes the tap feel like it did something.
         if (removedIds.includes(row.id)) continue;
         list.push({ kind: 'attachment', key: row.id, row });
-      }
-      // Show a parked capture only until its real row lands — once the upload has
-      // been pulled into the mirror, the entry shares that row's id, so drop it
-      // here to avoid a duplicate tile for the same receipt.
-      const uploaded = new Set(attachments.data.map((row) => row.id));
-      for (const entry of pending) {
-        if (!uploaded.has(entry.attachmentId)) {
-          list.push({ kind: 'pending', key: `pending-${entry.attachmentId}`, entry });
-        }
       }
       return list;
     }, [legacyReceiptPath, attachments.data, pending, removedIds]);
@@ -427,6 +496,7 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
       () =>
         items.map((it, i) => ({
           url: urls[i] ?? null,
+          preview: previewOf(it),
           annotations: it.kind === 'attachment' ? (it.row.annotations ?? undefined) : undefined,
         })),
       [items, urls],
@@ -463,6 +533,7 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
             visibility,
             sourceUri: file.uri,
             contentType: file.mimeType,
+            preview: file.preview,
           });
         } catch {
           // The bytes never reached the disk (a full device, a revoked path), so
@@ -531,7 +602,25 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
           onPress: () => {
             setViewerIndex(null);
             const onError = () => Alert.alert(t.imageAudit.couldNotRemove);
-            if (it.kind === 'pending') {
+            if (it.kind === 'pending' && it.entry.sentAt) {
+              // Settled: the server already has this one, it is only still in the
+              // queue because its row has not come back down the sync. Removing
+              // it is therefore a real removal — dropping the local entry alone
+              // would leave the attachment on the server with nothing showing it.
+              const attachmentId = it.entry.attachmentId;
+              const storagePath = it.entry.storagePath;
+              removeAttachment.mutate(
+                { attachmentId, storagePath },
+                {
+                  onError,
+                  onSuccess: () => {
+                    evictImage('expense-attachments', storagePath);
+                    void dropSettledReceipts([attachmentId]);
+                    refreshCap();
+                  },
+                },
+              );
+            } else if (it.kind === 'pending') {
               // Not uploaded yet: just drop the parked capture and its local bytes.
               void discardPendingReceipt(it.entry.attachmentId);
             } else if (it.kind === 'legacy') {
@@ -575,7 +664,11 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
     // What the strip as a whole is doing, for the line under it. Sending wins
     // over failed, and failed over waiting: the line reports the most active
     // thing happening, and the per-tile badges say which capture is which.
-    const unsent = items.flatMap((it) => (it.kind === 'pending' ? [it.entry] : []));
+    // Only the ones still owed to the server: a settled entry is sitting here
+    // waiting for its row, and reporting it as unsent would be a lie.
+    const unsent = items.flatMap((it) =>
+      it.kind === 'pending' && it.entry.status !== 'sent' ? [it.entry] : [],
+    );
     const failedIds = unsent
       .filter((entry) => entry.status === 'failed')
       .map((entry) => entry.attachmentId);
@@ -596,6 +689,11 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
         : state === 'failed'
           ? t.receipts.notSent
           : t.receipts.waitingToSend;
+
+    /** A settled capture is an ordinary receipt as far as the strip is concerned
+     *  — no badge, no scrim, nothing to say about it. */
+    const badgeStatus = (it: GalleryItem): PendingReceiptStatus | undefined =>
+      it.kind === 'pending' && it.entry.status !== 'sent' ? it.entry.status : undefined;
 
     // A capture that did not go up: say what that means and offer the two things
     // worth doing about it. Removing here does not go through `removeAt`'s
@@ -731,6 +829,7 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
             {preparing !== null ? (
               <Thumb
                 url={preparing}
+                preview={null}
                 resolved
                 isPrivate={false}
                 status="uploading"
@@ -743,14 +842,17 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
               <Thumb
                 key={it.key}
                 url={urls[index] ?? null}
+                preview={previewOf(it)}
                 resolved={urls[index] !== undefined}
                 isPrivate={isPrivate(it)}
-                status={it.kind === 'pending' ? it.entry.status : undefined}
+                status={badgeStatus(it)}
                 label={[
                   isPrivate(it)
                     ? `${t.receipts.title} — ${t.receipts.privateTag}`
                     : t.receipts.title,
-                  it.kind === 'pending' ? statusWord(it.entry.status) : null,
+                  it.kind === 'pending' && it.entry.status !== 'sent'
+                    ? statusWord(it.entry.status)
+                    : null,
                 ]
                   .filter(Boolean)
                   .join(' — ')}

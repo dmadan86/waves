@@ -28,6 +28,8 @@ const world = vi.hoisted(() => ({
     error: null as { message: string } | null,
   })),
   cached: [] as { bucket: string; path: string }[],
+  /** Whether a cache write succeeds. False stands in for a full/unwritable cache. */
+  cacheWrites: true,
   /** Objects taken back out of the bucket, in order — see the orphan test. */
   removed: [] as { bucket: string; subjectId: string; path: string }[],
   remove: vi.fn(async (bucket: string, subjectId: string, path: string) => {
@@ -122,10 +124,18 @@ vi.mock('@/lib/storage', () => ({
   removeRestrictedImage: (bucket: string, subjectId: string, path: string) =>
     world.remove(bucket, subjectId, path),
 }));
+const cacheUri = (bucket: string, path: string) => `cache-root/${bucket}/${path}`;
 vi.mock('@/lib/storage/imageCache', () => ({
   cacheImageBytes: vi.fn((bucket: string, path: string) => {
+    if (!world.cacheWrites) return null;
     world.cached.push({ bucket, path });
+    return `cache-root/${bucket}/${path}`;
   }),
+  cachedImageUri: vi.fn((bucket: string, path: string) =>
+    world.cached.some((item) => item.bucket === bucket && item.path === path)
+      ? `cache-root/${bucket}/${path}`
+      : null,
+  ),
 }));
 vi.mock('@/lib/transferProgress', () => ({
   endTransfer: vi.fn(),
@@ -136,6 +146,7 @@ vi.mock('@/lib/transferProgress', () => ({
 const {
   clearReceiptQueue,
   discardPendingReceipt,
+  dropSettledReceipts,
   enqueueReceipt,
   flushReceiptQueue,
   getPendingReceiptsSnapshot,
@@ -186,6 +197,7 @@ beforeEach(() => {
   ids.n = 0;
   world.online = true;
   world.cached = [];
+  world.cacheWrites = true;
   world.removed = [];
   world.remove.mockReset();
   world.remove.mockImplementation(async (bucket: string, subjectId: string, path: string) => {
@@ -258,12 +270,16 @@ describe('resuming an interrupted upload', () => {
       p_storage_path: 'e1/a1.jpg',
       p_visibility: 'group',
       p_attachment_id: 'a1',
+      p_preview: null,
     });
     expect(result.uploadedExpenseIds).toEqual(['e1']);
     // Sent, so the bytes move into the view cache and out of the pending dir.
     expect(world.cached).toEqual([{ bucket: 'expense-attachments', path: 'e1/a1.jpg' }]);
     expect(fs.files.has(pendingPath('a1.jpg'))).toBe(false);
-    expect(await storedQueue()).toEqual([]);
+    // The entry itself stays, marked sent — it is what the gallery draws until
+    // the real row arrives, and dropping it here is what used to blank the strip.
+    expect((await storedQueue()).map((entry) => entry.attachmentId)).toEqual(['a1']);
+    expect(fresh.getPendingReceiptsSnapshot()[0]?.status).toBe('sent');
   });
 
   it('says a capture is sending while it is in the air', async () => {
@@ -304,6 +320,101 @@ describe('resuming an interrupted upload', () => {
 
     expect(world.put).not.toHaveBeenCalled();
     expect(await storedQueue()).toHaveLength(1);
+  });
+});
+
+describe('the handover from the queue to the real row', () => {
+  it('keeps drawing the same picture while the row is still on its way down', async () => {
+    parkOnDisk();
+    await listPendingReceipts();
+    await flushReceiptQueue();
+
+    // The whole point: after a successful upload there is still something for
+    // the gallery to draw. Dropping the entry here left the strip empty for the
+    // length of a sync pull — the blank the person actually complained about.
+    const [entry] = getPendingReceiptsSnapshot();
+    expect(entry?.status).toBe('sent');
+    // And it resolves to the very file the real row will resolve to, so the
+    // swap when the row lands redraws nothing.
+    expect(entry && pendingReceiptUri(entry)).toBe(cacheUri('expense-attachments', 'e1/a1.jpg'));
+  });
+
+  it('never sends a settled capture a second time', async () => {
+    parkOnDisk();
+    await listPendingReceipts();
+    await flushReceiptQueue();
+    world.put.mockClear();
+    world.rpc.mockClear();
+
+    await flushReceiptQueue();
+
+    expect(world.put).not.toHaveBeenCalled();
+    expect(world.rpc).not.toHaveBeenCalled();
+  });
+
+  it('does not re-send a settled capture even if retry is asked for', async () => {
+    parkOnDisk();
+    await listPendingReceipts();
+    await flushReceiptQueue();
+    world.put.mockClear();
+    world.rpc.mockClear();
+
+    const result = await retryPendingReceipts(['a1']);
+
+    expect(result.uploadedExpenseIds).toEqual([]);
+    expect(world.put).not.toHaveBeenCalled();
+    expect(world.rpc).not.toHaveBeenCalled();
+    expect(getPendingReceiptsSnapshot()[0]?.status).toBe('sent');
+  });
+
+  it('lets go once the gallery has seen the row', async () => {
+    parkOnDisk();
+    await listPendingReceipts();
+    await flushReceiptQueue();
+
+    await dropSettledReceipts(['a1']);
+
+    expect(getPendingReceiptsSnapshot()).toEqual([]);
+    expect(await storedQueue()).toEqual([]);
+  });
+
+  it('forgets a settled capture whose row never came', async () => {
+    // Uploaded a day ago on a device that has not managed a pull since. The
+    // gallery would otherwise show a tile for a receipt that may since have
+    // been removed from somewhere else.
+    parkOnDisk({ sentAt: new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString() });
+
+    expect(await listPendingReceipts()).toEqual([]);
+  });
+
+  it('keeps the local bytes when the cache write failed, so there is still something to draw', async () => {
+    world.cacheWrites = false;
+    parkOnDisk();
+    await listPendingReceipts();
+    await flushReceiptQueue();
+
+    const [entry] = getPendingReceiptsSnapshot();
+    expect(entry?.status).toBe('sent');
+    expect(fs.files.has(pendingPath('a1.jpg'))).toBe(true);
+    expect(entry && pendingReceiptUri(entry)).toBe(pendingPath('a1.jpg'));
+  });
+
+  it('carries the stored placeholder up with the receipt', async () => {
+    await enqueueReceipt({
+      expenseId: 'e1',
+      groupId: 'g1',
+      visibility: 'group',
+      base64: Buffer.from([1]).toString('base64'),
+      contentType: 'image/jpeg',
+      preview: 'data:image/jpeg;base64,AAAA',
+    });
+
+    await flushReceiptQueue();
+
+    expect(world.rpc).toHaveBeenCalledWith(
+      'waves_attach_expense_attachment',
+      expect.objectContaining({ p_preview: 'data:image/jpeg;base64,AAAA' }),
+    );
   });
 });
 
@@ -414,7 +525,9 @@ describe('a capture that does not go up', () => {
 
     expect(result.uploadedExpenseIds).toEqual(['e1']);
     expect(world.put).toHaveBeenCalledTimes(2);
-    expect(await storedQueue()).toEqual([]);
+    // Up, and now waiting for its row rather than for another attempt.
+    expect(await storedQueue()).toMatchObject([{ attachmentId: 'a1', lastError: null }]);
+    expect(getPendingReceiptsSnapshot()[0]?.status).toBe('sent');
   });
 
   it('drops an entry whose bytes are gone rather than retrying forever', async () => {
@@ -446,10 +559,71 @@ describe('a capture parked while a flush is running', () => {
     await flushReceiptQueue();
 
     const queue = await storedQueue();
-    expect(queue).toHaveLength(1);
-    expect(queue[0]).toMatchObject({ expenseId: 'e2' });
+    // The one that went up is still here, settled and waiting for its row; the
+    // latecomer is here too, untouched and still to be sent.
+    expect(queue.map((entry) => entry.expenseId)).toEqual(['e1', 'e2']);
+    expect(queue[1]).toMatchObject({ expenseId: 'e2', sentAt: null });
     // Its bytes are still under the pending dir — not orphaned by the write-back.
     expect(fs.files.has(pendingPath(latecomerFile))).toBe(true);
+  });
+});
+
+describe('two things touching the queue at once', () => {
+  it('does not lose a receipt added while another operation is writing the index', async () => {
+    // The collision that matters: somebody taps add (the resize runs for a
+    // second, so the enqueue lands late) while the gallery lets go of a capture
+    // whose row has just arrived. Both read the same index; whoever writes last
+    // used to decide, and when that was the drop, the new receipt was gone from
+    // the index with its bytes orphaned under the pending dir — where the next
+    // orphan sweep deletes them.
+    parkOnDisk();
+    await listPendingReceipts();
+    await flushReceiptQueue();
+
+    const [drop, added] = await Promise.all([
+      dropSettledReceipts(['a1']),
+      enqueueReceipt({
+        expenseId: 'e2',
+        groupId: 'g1',
+        visibility: 'group',
+        base64: Buffer.from([9]).toString('base64'),
+        contentType: 'image/jpeg',
+      }),
+      // `drop` is void; `added` is the entry.
+    ]);
+    void drop;
+
+    expect((await storedQueue()).map((entry) => entry.attachmentId)).toEqual([added.attachmentId]);
+    expect(fs.files.has(pendingPath(added.fileName))).toBe(true);
+    // And the sweep that runs on the next read leaves it alone.
+    await listPendingReceipts();
+    expect(fs.files.has(pendingPath(added.fileName))).toBe(true);
+  });
+
+  it('does not sweep away the bytes of a receipt being added', async () => {
+    // The orphan sweep reads the index and deletes every pending file missing
+    // from it. An enqueue writes bytes and index together for exactly this
+    // reason — split apart, a listing in between would delete the photograph.
+    const [, added] = await Promise.all([
+      listPendingReceipts(),
+      enqueueReceipt({
+        expenseId: 'e1',
+        groupId: 'g1',
+        visibility: 'group',
+        base64: Buffer.from([5]).toString('base64'),
+        contentType: 'image/jpeg',
+      }),
+    ]);
+
+    expect(fs.files.has(pendingPath(added.fileName))).toBe(true);
+    expect((await storedQueue()).map((entry) => entry.attachmentId)).toEqual([added.attachmentId]);
+  });
+
+  it('lets go of a settled capture whose row never came, on the next read', async () => {
+    parkOnDisk({ sentAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString() });
+
+    expect(await listPendingReceipts()).toEqual([]);
+    expect(await storedQueue()).toEqual([]);
   });
 });
 

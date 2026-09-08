@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { Image } from 'expo-image';
 import { FlatList, useWindowDimensions, View, type ListRenderItemInfo } from 'react-native';
 
 import { ZoomableImage } from '@/components/ZoomableImage';
@@ -7,6 +8,12 @@ import type { Annotations } from '@/lib/annotations';
 /** One gallery page: its resolved URL (null while resolving) and any markup. */
 export interface GalleryPage {
   url: string | null;
+  /**
+   * A tiny stored stand-in for the image, shown while the real bytes are being
+   * signed for and fetched. Decoration; null for a receipt kept before there
+   * was such a thing.
+   */
+  preview?: string | null;
   annotations?: Annotations;
 }
 
@@ -44,8 +51,20 @@ export function ZoomableGallery({
       {item.url ? (
         <ZoomableImage
           uri={item.url}
+          preview={item.preview}
           onZoomChange={(next) => setZoomState({ url: item.url, zoomed: next })}
           annotations={item.annotations}
+        />
+      ) : item.preview ? (
+        // Nothing to zoom yet — the URL is still being minted — but a blurred
+        // wash of the bill beats a black screen, and it is the same picture the
+        // real image will fade in over.
+        <Image
+          source={null}
+          placeholder={{ uri: item.preview }}
+          placeholderContentFit="contain"
+          style={{ width, height: '100%' }}
+          contentFit="contain"
         />
       ) : null}
     </View>
