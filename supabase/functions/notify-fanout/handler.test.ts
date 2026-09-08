@@ -17,6 +17,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { handlePushFanout, type NotifyFanoutDeps } from './handler.ts';
 import { factsOf } from '../_shared/email.ts';
+import { COPY, renderNotification } from '../_shared/core.js';
 
 const SERVICE_KEY = 'service-role-key';
 
@@ -105,6 +106,59 @@ describe('factsOf', () => {
   it('carries the sign-in alert device through', () => {
     expect(factsOf({ device: 'Pixel 9 · android' }).device).toBe('Pixel 9 · android');
   });
+
+  /**
+   * The member-claim RPCs write `group_name` and `ghost_name` where the copy
+   * table says `{group}` and `{name}`. Nothing reconciled the two, so all three
+   * ghost-claim kinds reached a phone reading "You are in {group}" — translated
+   * copy with an unfilled placeholder, and the English fallback on the row
+   * unused because the *kind* was perfectly well known.
+   */
+  it('reconciles the names the member-claim RPCs actually write', () => {
+    expect(factsOf({ group_name: 'Goa trip', ghost_name: 'Ravi' })).toMatchObject({
+      group: 'Goa trip',
+      name: 'Ravi',
+    });
+  });
+
+  it('prefers the canonical spelling when a payload carries both', () => {
+    expect(factsOf({ group: 'Goa trip', group_name: 'Something else' }).group).toBe('Goa trip');
+  });
+});
+
+/**
+ * The end-to-end vocabulary check, and the one this file exists for.
+ *
+ * Three lists have to agree for a notification to read as a sentence: what a
+ * producer puts in `payload`, what `factsOf` is willing to carry out of it, and
+ * what the copy table asks for in `{braces}`. Nothing enforced that. A fact
+ * missing from the middle list does not throw — it renders its own placeholder,
+ * so somebody receives "New sign-in on {device}". That has shipped twice.
+ *
+ * So: for every kind, in every language, hand `factsOf` a payload with every
+ * name a producer might use, render it, and insist no brace survives.
+ */
+describe('every kind renders into a sentence, in every language', () => {
+  const everyFact = {
+    amount: '42000',
+    currency: 'INR',
+    counterparty: 'Ravi',
+    group: 'Goa trip',
+    description: 'Dinner',
+    count: '3',
+    device: 'Pixel 9 · android',
+    name: 'Ravi',
+  };
+
+  for (const locale of Object.keys(COPY)) {
+    for (const kind of Object.keys(COPY[locale as keyof typeof COPY].notifications)) {
+      it(`${kind} in ${locale}`, () => {
+        const { title, body } = renderNotification(kind, factsOf(everyFact), locale);
+        expect(title, `${kind}/${locale} title`).not.toMatch(/[{}]/);
+        expect(body, `${kind}/${locale} body`).not.toMatch(/[{}]/);
+      });
+    }
+  }
 });
 
 describe('the machine-to-machine gate', () => {
