@@ -9,6 +9,10 @@
  * Only the codes and their regions live here. The *names* are produced per
  * locale at build time by `Intl.DisplayNames`, which means a Tamil reader gets
  * Tamil currency names and no one has to translate a hundred and eighty rows.
+ *
+ * "Active" is a moving target and the list has to move with it, or the page
+ * makes a claim it does not keep: `XCG` replaced `ANG` on 31 March 2025, and
+ * `BGN` went historical when Bulgaria took the euro on 1 January 2026.
  */
 
 export const REGIONS = ['africa', 'americas', 'asia', 'europe', 'oceania'] as const;
@@ -93,6 +97,7 @@ export const CURRENCIES: Readonly<Record<Region, readonly string[]>> = Object.fr
     'UYU',
     'VES',
     'XCD',
+    'XCG',
   ],
   asia: [
     'AED',
@@ -147,7 +152,6 @@ export const CURRENCIES: Readonly<Record<Region, readonly string[]>> = Object.fr
   europe: [
     'ALL',
     'BAM',
-    'BGN',
     'BYN',
     'CHF',
     'CZK',

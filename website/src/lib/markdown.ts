@@ -37,7 +37,7 @@ export async function pageAsMarkdown(locale: Locale): Promise<string> {
   line();
   line(t.custody.body);
   line();
-  line(`Settles through, for example: ${t.custody.rails.join(', ')}.`);
+  line(`${t.custody.railsLabel}: ${t.custody.rails.join(', ')}.`);
   line();
 
   line(`## ${t.features.title}`);
@@ -57,7 +57,11 @@ export async function pageAsMarkdown(locale: Locale): Promise<string> {
   line();
   line(t.currencies.subtitle);
   line();
-  line(`${CURRENCY_COUNT} currencies, every active ISO 4217 code. ${t.currencies.note}`);
+  // The subtitle above already makes the ISO 4217 claim in the page's own
+  // language, so the count only has to be the count.
+  line(t.currencies.count.replace('{n}', String(CURRENCY_COUNT)));
+  line();
+  line(t.currencies.note);
   line();
 
   line(`## ${t.how.title}`);
@@ -128,7 +132,9 @@ export async function pageAsMarkdown(locale: Locale): Promise<string> {
   line('---');
   line();
   line(`${t.footer.tagline} ${t.footer.notABank}`);
-  line(`Web app: ${site.appUrl} · Contact: ${site.supportEmail}`);
+  line(
+    `${t.footer.links.webApp}: ${site.appUrl} · ${t.footer.links.contact}: ${site.supportEmail}`,
+  );
   line();
 
   return out.join('\n');

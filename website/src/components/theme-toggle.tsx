@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useSyncExternalStore } from 'react';
 
 import { Moon, Sun, System } from './icons';
 
@@ -38,6 +38,16 @@ function readStored(): Choice | null {
   }
 }
 
+/**
+ * The same two classes the inline script in the layout stamps before first
+ * paint, in one place so the toggle and the script can never disagree.
+ */
+function applyClass(choice: Choice) {
+  const root = document.documentElement;
+  root.classList.remove('theme-light', 'theme-dark');
+  if (choice !== 'system') root.classList.add(`theme-${choice}`);
+}
+
 /** Before hydration there is no answer, and pretending otherwise is the flash. */
 const serverSnapshot = () => null;
 
@@ -45,10 +55,22 @@ export function ThemeToggle({ label, names }: { label: string; names: Record<Cho
   const stored = useSyncExternalStore(subscribe, readStored, serverSnapshot);
   const choice: Choice = stored ?? 'system';
 
+  /*
+   * A choice made in another tab arrives here as a `storage` event, which
+   * refreshes the snapshot but touches nothing in this document — without
+   * this the icon would flip while the page stayed the colour it was. While
+   * `stored` is still null, before hydration, the inline script's class is
+   * the right answer and must not be cleared out from under it.
+   */
+  useEffect(() => {
+    if (stored) applyClass(stored);
+  }, [stored]);
+
+  // Applied here as well as in the effect above, because with storage blocked
+  // the snapshot never changes and the effect never fires — the choice still
+  // has to hold for this page view.
   const apply = useCallback((next: Choice) => {
-    const root = document.documentElement;
-    root.classList.remove('theme-light', 'theme-dark');
-    if (next !== 'system') root.classList.add(`theme-${next}`);
+    applyClass(next);
     try {
       if (next === 'system') localStorage.removeItem(KEY);
       else localStorage.setItem(KEY, next);

@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
 import { Audience } from '@/components/audience';
@@ -15,7 +16,30 @@ import { SiteHeader } from '@/components/site-header';
 import { isLocale } from '@/i18n/config';
 import { getDictionary } from '@/i18n/dictionaries';
 import { currencyRows } from '@/lib/currencies';
-import { absoluteUrl, site } from '@/lib/site';
+import { absoluteUrl, localeAlternates, site } from '@/lib/site';
+
+/**
+ * `/{locale}/index.md` is a twin of *this* page and no other, so this is the
+ * only route that may advertise it. Declaring it on the shared layout had
+ * /privacy and /terms pointing at the home document as their own alternate
+ * representation, which is a different claim and a false one. The HTTP `Link:`
+ * header half is scoped the same way, in proxy.ts.
+ */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  if (!isLocale(locale)) return {};
+
+  return {
+    alternates: {
+      ...localeAlternates(locale),
+      types: { 'text/markdown': absoluteUrl(`/${locale}/index.md`) },
+    },
+  };
+}
 
 export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;

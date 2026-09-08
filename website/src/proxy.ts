@@ -14,6 +14,22 @@ import { defaultLocale, locales } from './i18n/config';
 const PUBLIC_FILE = /\.[^/]+$/;
 
 /**
+ * The quality value of one `Accept` or `Accept-Language` entry.
+ *
+ * Parameter names are case-insensitive in RFC 9110, so `Q=0` is exactly as
+ * much a refusal as `q=0` — matching only the lowercase spelling silently
+ * promoted a refusal to the default weight of 1. A `q` that is not a number
+ * falls back to that same default rather than to `NaN`, which would otherwise
+ * poison every comparison the value took part in.
+ */
+function qualityOf(params: string[]): number {
+  const q = params.find((param) => param.trim().toLowerCase().startsWith('q='));
+  if (!q) return 1;
+  const value = Number.parseFloat(q.slice(q.indexOf('=') + 1));
+  return Number.isFinite(value) ? value : 1;
+}
+
+/**
  * Content negotiation for the markdown twin.
  *
  * An agent that says it would rather have `text/markdown` than `text/html`
@@ -28,8 +44,7 @@ function prefersMarkdown(accept: string | null): boolean {
   const weights = new Map<string, number>();
   for (const part of accept.split(',')) {
     const [type, ...params] = part.trim().split(';');
-    const q = params.find((param) => param.trim().startsWith('q='));
-    weights.set(type.trim().toLowerCase(), q ? (Number.parseFloat(q.split('=')[1]) ?? 1) : 1);
+    weights.set(type.trim().toLowerCase(), qualityOf(params));
   }
 
   const markdown = weights.get('text/markdown') ?? 0;
@@ -44,8 +59,7 @@ function negotiate(header: string | null): string {
     .split(',')
     .map((part) => {
       const [tag, ...params] = part.trim().split(';');
-      const q = params.find((p) => p.trim().startsWith('q='));
-      return { tag: tag.toLowerCase(), q: q ? Number.parseFloat(q.split('=')[1]) || 0 : 1 };
+      return { tag: tag.toLowerCase(), q: qualityOf(params) };
     })
     // `q=0` is an explicit refusal of that language, not a weak preference.
     .filter((entry) => entry.q > 0)
@@ -84,11 +98,16 @@ export function proxy(request: NextRequest) {
 
     const response = NextResponse.next();
     // A headless reader looks at this header; a DOM crawler looks at the
-    // <link> in the document head. Both are published and point at the same URL.
-    response.headers.set(
-      'Link',
-      `<${request.nextUrl.origin}/${locale}/index.md>; rel="alternate"; type="text/markdown"`,
-    );
+    // <link> the home page puts in its head. Both are published and point at
+    // the same URL — and only from the one route that has a Markdown twin.
+    // `/{locale}/privacy` announcing `/{locale}/index.md` would be claiming
+    // the home document is an alternate representation of the policy.
+    if (pathname === `/${locale}`) {
+      response.headers.set(
+        'Link',
+        `<${request.nextUrl.origin}/${locale}/index.md>; rel="alternate"; type="text/markdown"`,
+      );
+    }
     // Deliberately no `Vary: Accept` here. Browsers send wildly different
     // Accept headers, so varying the HTML on it would shred the CDN's hit rate
     // to guard against a failure that is only ever "an agent got the HTML".

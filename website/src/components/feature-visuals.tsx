@@ -336,11 +336,17 @@ function SettleVisual({ t }: VisualProps) {
           <span>{t.settle.paidLabel}</span>
           <span className="tabular">{t.settle.paidValue}</span>
         </p>
+        {/* The fraction comes from the dictionary because the amounts do:
+            every language shows its own money, so one hardcoded width would
+            be right in one of the four and visibly wrong in the other three. */}
         <span
           aria-hidden="true"
           className="mt-1.5 block h-1 w-full overflow-hidden rounded-full bg-chip"
         >
-          <span className="block h-full w-[58%] rounded-full bg-accent" />
+          <span
+            className="block h-full rounded-full bg-accent"
+            style={{ inlineSize: `${t.settle.paidPercent}%` }}
+          />
         </span>
         <p className="mt-3 flex items-center gap-2 font-mono text-[0.6875rem] text-ink-3">
           <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-line-strong" />

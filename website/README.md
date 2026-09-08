@@ -83,13 +83,19 @@ so a screen reader hears one summary instead of a hundred loose fragments.
 
 ## Being read by machines
 
-Every page has a Markdown twin at `/{locale}/index.md`, generated from the same
-dictionary the page renders from, so it cannot drift. It is advertised three
-ways: a `<link rel="alternate" type="text/markdown">` in the head for DOM
-crawlers, an HTTP `Link:` header for headless ones, and `Accept: text/markdown`
-content negotiation in `proxy.ts` — which decides on the header's q-values only,
-never on the user agent, because that would be cloaking. Responses carry
-`Vary: Accept`.
+The home page has a Markdown twin at `/{locale}/index.md`, generated from the
+same dictionary the page renders from, so it cannot drift. It is advertised
+three ways, all three scoped to `/{locale}` and nowhere else — the legal pages
+have no twin, and pointing them at this one would be claiming the home document
+is an alternate representation of a policy. A
+`<link rel="alternate" type="text/markdown">` in the head serves DOM crawlers,
+an HTTP `Link:` header serves headless ones, and `Accept: text/markdown`
+content negotiation in `proxy.ts` serves anything that asks — deciding on the
+header's q-values only, never on the user agent, because that would be
+cloaking. The Markdown response carries `Vary: Accept`; the HTML deliberately
+does not, since browsers send wildly different `Accept` headers and varying on
+it would cost the CDN most of its hit rate to prevent nothing worse than an
+agent receiving HTML.
 
 `/llms.txt` indexes the whole thing. Expect no search-engine effect from any of
 it; what it buys is a clean answer when somebody pastes the domain into an

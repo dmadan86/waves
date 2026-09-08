@@ -11,7 +11,7 @@ import localFont from 'next/font/local';
 import '../globals.css';
 import { dirFor, htmlLang, isLocale, locales, type Locale } from '@/i18n/config';
 import { getDictionary } from '@/i18n/dictionaries';
-import { absoluteUrl, site } from '@/lib/site';
+import { absoluteUrl, localeAlternates, site } from '@/lib/site';
 
 /*
  * Three faces, all SIL OFL 1.1, all self-hosted. The licence text for the two
@@ -100,13 +100,10 @@ export async function generateMetadata({
     title: { default: t.meta.title, template: `%s · ${site.name}` },
     description: t.meta.description,
     applicationName: site.name,
-    alternates: {
-      canonical: absoluteUrl(`/${locale}`),
-      languages: {
-        ...Object.fromEntries(locales.map((l) => [htmlLang[l], absoluteUrl(`/${l}`)])),
-        'x-default': absoluteUrl('/en'),
-      },
-    },
+    // The Markdown alternate is *not* declared here: this layout also wraps
+    // /privacy, /terms and the 404, and none of them have a Markdown twin.
+    // The home page adds it to its own copy of this block.
+    alternates: localeAlternates(locale),
     openGraph: {
       type: 'website',
       siteName: site.name,
@@ -121,11 +118,7 @@ export async function generateMetadata({
       description: t.meta.description,
     },
     robots: { index: true, follow: true },
-    other: {
-      // The DOM-crawler half of the markdown alternate; the HTTP `Link:`
-      // header half is set in proxy.ts.
-      'og:image:alt': t.meta.ogAlt,
-    },
+    other: { 'og:image:alt': t.meta.ogAlt },
   };
 }
 
@@ -155,7 +148,6 @@ export default async function LocaleLayout({
       suppressHydrationWarning
     >
       <head>
-        <link rel="alternate" type="text/markdown" href={`/${locale}/index.md`} />
         {/* Our own literal, not user input. */}
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>

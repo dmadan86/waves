@@ -1,3 +1,7 @@
+import type { Metadata } from 'next';
+
+import { htmlLang, locales, type Locale } from '@/i18n/config';
+
 /**
  * Everything about "where this site lives" in one place. The marketing site is
  * the apex domain; the product itself is a separate deployment, so the CTAs
@@ -23,4 +27,22 @@ export const site = {
 export function absoluteUrl(path = ''): string {
   const trimmed = path.startsWith('/') ? path : `/${path}`;
   return `${site.url}${trimmed === '/' ? '' : trimmed}`;
+}
+
+/**
+ * The home page's canonical URL and the hreflang map that goes with it.
+ *
+ * Next merges metadata shallowly: a page that declares `alternates` at all
+ * replaces the layout's block entirely. The home page has to declare one,
+ * because it is the only route with a Markdown twin to point at, so the rest
+ * of the block lives here rather than being written out twice.
+ */
+export function localeAlternates(locale: Locale): NonNullable<Metadata['alternates']> {
+  return {
+    canonical: absoluteUrl(`/${locale}`),
+    languages: {
+      ...Object.fromEntries(locales.map((l) => [htmlLang[l], absoluteUrl(`/${l}`)])),
+      'x-default': absoluteUrl('/en'),
+    },
+  };
 }

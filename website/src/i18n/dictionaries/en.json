@@ -32,12 +32,7 @@
     "subtitle": "Waves splits a bill any way you need, keeps the balance in every currency you spent, and hands the settlement to the payment app you already use. It works with the network off.",
     "ctaPrimary": "Get Waves free",
     "ctaSecondary": "See a worked example",
-    "facts": [
-      "No card to start",
-      "Works offline",
-      "Every ISO currency",
-      "Arabic, right to left"
-    ],
+    "facts": ["No card to start", "Works offline", "Every ISO currency", "Arabic, right to left"],
     "stores": {
       "ios": "iPhone",
       "android": "Android",
@@ -78,16 +73,8 @@
   "custody": {
     "claim": "Waves never holds, moves, or touches your money.",
     "body": "It works out who pays whom, hands the amount to the payment app you already use, and records what both sides agreed. That is why it works with any payment method in any country — and why there is nothing here for anyone to run off with.",
-    "rails": [
-      "Bank transfer",
-      "UPI",
-      "Pix",
-      "SEPA",
-      "PayNow",
-      "Venmo",
-      "PayPal",
-      "Cash"
-    ]
+    "railsLabel": "Settles through, for example",
+    "rails": ["Bank transfer", "UPI", "Pix", "SEPA", "PayNow", "Venmo", "PayPal", "Cash"]
   },
   "features": {
     "eyebrow": "What it does",
@@ -169,12 +156,7 @@
       "bill": "Dinner, last night",
       "total": "96.00 €",
       "typesLabel": "Split type",
-      "types": [
-        "Exact",
-        "Equal",
-        "Shares",
-        "%"
-      ],
+      "types": ["Exact", "Equal", "Shares", "%"],
       "people": [
         {
           "name": "You",
@@ -201,11 +183,7 @@
       "noSignal": "No network",
       "waiting": "3 waiting",
       "queued": "queued",
-      "rows": [
-        "Airport transfer",
-        "Dinner at the port",
-        "Museum tickets"
-      ],
+      "rows": ["Airport transfer", "Dinner at the port", "Museum tickets"],
       "encrypted": "Encrypted on this device",
       "alt": "An offline queue: three expenses saved on the device with no network, marked encrypted."
     },
@@ -214,11 +192,7 @@
       "rateLabel": "Fixed for the whole trip",
       "rate": "£1 = 1.160 €",
       "rateNote": "Set 12 Sep · the rate you actually got",
-      "columns": [
-        "Expense",
-        "Paid",
-        "Converted"
-      ],
+      "columns": ["Expense", "Paid", "Converted"],
       "rows": [
         {
           "label": "Museum tickets",
@@ -268,6 +242,7 @@
       "amount": "45.70 €",
       "paidLabel": "Paid so far",
       "paidValue": "26.50 € of 45.70 €",
+      "paidPercent": 58,
       "awaiting": "Waiting for Tomás to confirm",
       "alt": "Two diagrams: seven debts tangled between five people, then the same group settled by two payments."
     },
