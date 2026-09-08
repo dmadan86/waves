@@ -58,6 +58,7 @@ apps/mobile/       Expo (SDK 57, React 19, Expo Router, TypeScript strict)
 apps/web/          The app in a browser, and the guest invite view (Next)
 apps/admin/        The operator console (Next)
 apps/api/          The public developer API — tokens, OAuth 2.1, /v1 (Next + Hono)
+apps/docs/         Docusaurus help + API reference — help.wavs.co.in
 apps/agent-mcp/    An MCP server that acts as a signed-in Waves user
 packages/core/     Pure money/split/balance/simplify/settlement logic — no deps
 packages/api-client/ The framework-free client the browser and the API share
