@@ -26,19 +26,15 @@ import { iconSize, Text, useTheme } from '@waves/ui';
 
 import { ChoiceRow, SettingRow, SheetOverlay } from '@/components/expense/SheetOverlay';
 import { deviceSupportsUpi, useStrings } from '@/i18n';
+import { offeredPaymentMethods } from '@/lib/paymentMethods';
 
-const PAYMENT_METHODS: readonly {
-  id: PaymentMethod;
-  icon: keyof typeof Ionicons.glyphMap;
-  /** True for a rail that only some regions have — filtered by device support. */
-  regional?: boolean;
-}[] = [
-  { id: 'cash', icon: 'cash-outline' },
-  { id: 'upi', icon: 'phone-portrait-outline', regional: true },
-  { id: 'credit', icon: 'card-outline' },
-  { id: 'debit', icon: 'card' },
-  { id: 'forex', icon: 'swap-horizontal-outline' },
-];
+const PAYMENT_METHOD_ICONS: Readonly<Record<PaymentMethod, keyof typeof Ionicons.glyphMap>> = {
+  cash: 'cash-outline',
+  upi: 'phone-portrait-outline',
+  credit: 'card-outline',
+  debit: 'card',
+  forex: 'swap-horizontal-outline',
+};
 
 /**
  * Two shapes, one picker. The group add-expense screen always has a method
@@ -79,17 +75,11 @@ function usePaymentMethodLabel(): (id: PaymentMethod) => string {
   };
 }
 
-/** The rails worth offering here — regional ones only where the rail exists. */
-function offeredMethods(): typeof PAYMENT_METHODS {
-  const upiSupported = deviceSupportsUpi();
-  return PAYMENT_METHODS.filter((method) => !method.regional || upiSupported);
-}
-
 export function PaymentMethodPicker(props: PaymentMethodPickerProps) {
   const { value } = props;
   const theme = useTheme();
   const label = usePaymentMethodLabel();
-  const methods = offeredMethods();
+  const methods = offeredPaymentMethods({ upiSupported: deviceSupportsUpi(), current: value });
 
   return (
     <ScrollView
@@ -99,18 +89,18 @@ export function PaymentMethodPicker(props: PaymentMethodPickerProps) {
       contentContainerStyle={{ gap: theme.spacing.sm, paddingRight: theme.spacing.xl }}
     >
       {methods.map((method) => {
-        const active = value === method.id;
+        const active = value === method;
         return (
           <Pressable
-            key={method.id}
+            key={method}
             accessibilityRole="radio"
             accessibilityState={{ selected: active }}
-            accessibilityLabel={label(method.id)}
+            accessibilityLabel={label(method)}
             onPress={() => {
               if (props.allowDeselect) {
-                props.onChange(active ? null : method.id);
+                props.onChange(active ? null : method);
               } else {
-                props.onChange(method.id);
+                props.onChange(method);
               }
             }}
             style={({ pressed }) => ({
@@ -130,12 +120,12 @@ export function PaymentMethodPicker(props: PaymentMethodPickerProps) {
             })}
           >
             <Ionicons
-              name={method.icon}
+              name={PAYMENT_METHOD_ICONS[method]}
               size={iconSize.md}
               color={active ? theme.color.brand : theme.color.textMuted}
             />
             <Text variant="body" style={{ color: active ? theme.color.brand : theme.color.text }}>
-              {label(method.id)}
+              {label(method)}
             </Text>
           </Pressable>
         );
@@ -162,7 +152,9 @@ export function PaymentMethodRow({
   const theme = useTheme();
   const { t } = useStrings();
   const label = usePaymentMethodLabel();
-  const method = offeredMethods().find((it) => it.id === value);
+  const method = offeredPaymentMethods({ upiSupported: deviceSupportsUpi(), current: value }).find(
+    (it) => it === value,
+  );
 
   return (
     <SettingRow
@@ -170,7 +162,7 @@ export function PaymentMethodRow({
       value={label(value)}
       leading={
         method ? (
-          <Ionicons name={method.icon} size={iconSize.md} color={theme.color.textMuted} />
+          <Ionicons name={PAYMENT_METHOD_ICONS[method]} size={iconSize.md} color={theme.color.textMuted} />
         ) : null
       }
       onPress={onPress}
@@ -195,12 +187,12 @@ export function PaymentMethodSheet({
   return (
     <SheetOverlay title={t.captures.paidWith} onClose={onClose}>
       <View style={{ gap: theme.spacing.xs }}>
-        {offeredMethods().map((method) => {
-          const active = value === method.id;
+        {offeredPaymentMethods({ upiSupported: deviceSupportsUpi(), current: value }).map((method) => {
+          const active = value === method;
           return (
             <ChoiceRow
-              key={method.id}
-              label={label(method.id)}
+              key={method}
+              label={label(method)}
               selected={active}
               leading={
                 // A fixed-width box so every label starts on the same line
@@ -208,13 +200,13 @@ export function PaymentMethodSheet({
                 // symbols are boxed.
                 <View style={{ width: 32, alignItems: 'center' }}>
                   <Ionicons
-                    name={method.icon}
+                    name={PAYMENT_METHOD_ICONS[method]}
                     size={iconSize.md}
                     color={active ? theme.color.brand : theme.color.textMuted}
                   />
                 </View>
               }
-              onPress={() => onChange(method.id)}
+              onPress={() => onChange(method)}
             />
           );
         })}
