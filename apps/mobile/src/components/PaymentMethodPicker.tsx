@@ -11,28 +11,30 @@
  *
  * Shared so the capture screen, add-expense, and add-person all speak the same
  * language for the same field.
+ *
+ * `PaymentMethodRow` + `PaymentMethodSheet` are the same rails as a list: a
+ * settings row naming the field and showing the rail in force, and the options
+ * behind it. Same ids, same labels, same order — only the presentation differs,
+ * for forms that read as a list of settings rather than a stack of chip lanes.
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, ScrollView } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 
 import { type PaymentMethod } from '@waves/core';
 import { iconSize, Text, useTheme } from '@waves/ui';
 
+import { ChoiceRow, SettingRow, SheetOverlay } from '@/components/expense/SheetOverlay';
 import { deviceSupportsUpi, useStrings } from '@/i18n';
+import { offeredPaymentMethods } from '@/lib/paymentMethods';
 
-const PAYMENT_METHODS: readonly {
-  id: PaymentMethod;
-  icon: keyof typeof Ionicons.glyphMap;
-  /** True for a rail that only some regions have — filtered by device support. */
-  regional?: boolean;
-}[] = [
-  { id: 'cash', icon: 'cash-outline' },
-  { id: 'upi', icon: 'phone-portrait-outline', regional: true },
-  { id: 'credit', icon: 'card-outline' },
-  { id: 'debit', icon: 'card' },
-  { id: 'forex', icon: 'swap-horizontal-outline' },
-];
+const PAYMENT_METHOD_ICONS: Readonly<Record<PaymentMethod, keyof typeof Ionicons.glyphMap>> = {
+  cash: 'cash-outline',
+  upi: 'phone-portrait-outline',
+  credit: 'card-outline',
+  debit: 'card',
+  forex: 'swap-horizontal-outline',
+};
 
 /**
  * Two shapes, one picker. The group add-expense screen always has a method
@@ -50,12 +52,14 @@ type PaymentMethodPickerProps =
       allowDeselect: true;
     };
 
-export function PaymentMethodPicker(props: PaymentMethodPickerProps) {
-  const { value } = props;
-  const theme = useTheme();
+/**
+ * The rail's name, in the phone's language. A hook rather than a free function
+ * because the strings come from context, and every presentation of this field —
+ * chips, row, sheet — must name a rail the same way.
+ */
+function usePaymentMethodLabel(): (id: PaymentMethod) => string {
   const { t } = useStrings();
-
-  const label = (id: PaymentMethod): string => {
+  return (id) => {
     switch (id) {
       case 'cash':
         return t.captures.payCash;
@@ -69,9 +73,13 @@ export function PaymentMethodPicker(props: PaymentMethodPickerProps) {
         return t.captures.payForex;
     }
   };
+}
 
-  const upiSupported = deviceSupportsUpi();
-  const methods = PAYMENT_METHODS.filter((method) => !method.regional || upiSupported);
+export function PaymentMethodPicker(props: PaymentMethodPickerProps) {
+  const { value } = props;
+  const theme = useTheme();
+  const label = usePaymentMethodLabel();
+  const methods = offeredPaymentMethods({ upiSupported: deviceSupportsUpi(), current: value });
 
   return (
     <ScrollView
@@ -81,18 +89,18 @@ export function PaymentMethodPicker(props: PaymentMethodPickerProps) {
       contentContainerStyle={{ gap: theme.spacing.sm, paddingRight: theme.spacing.xl }}
     >
       {methods.map((method) => {
-        const active = value === method.id;
+        const active = value === method;
         return (
           <Pressable
-            key={method.id}
+            key={method}
             accessibilityRole="radio"
             accessibilityState={{ selected: active }}
-            accessibilityLabel={label(method.id)}
+            accessibilityLabel={label(method)}
             onPress={() => {
               if (props.allowDeselect) {
-                props.onChange(active ? null : method.id);
+                props.onChange(active ? null : method);
               } else {
-                props.onChange(method.id);
+                props.onChange(method);
               }
             }}
             style={({ pressed }) => ({
@@ -112,16 +120,103 @@ export function PaymentMethodPicker(props: PaymentMethodPickerProps) {
             })}
           >
             <Ionicons
-              name={method.icon}
+              name={PAYMENT_METHOD_ICONS[method]}
               size={iconSize.md}
               color={active ? theme.color.brand : theme.color.textMuted}
             />
             <Text variant="body" style={{ color: active ? theme.color.brand : theme.color.text }}>
-              {label(method.id)}
+              {label(method)}
             </Text>
           </Pressable>
         );
       })}
     </ScrollView>
+  );
+}
+
+/**
+ * The rail in force as one row of a settings list: the field's name, the rail's
+ * glyph and label, a chevron into {@link PaymentMethodSheet}.
+ *
+ * Only the non-deselectable shape: a list row has to show *something* on its
+ * right, and "not said" is a state the chip lane can express by having nothing
+ * lit but a row cannot. The screens that allow "not said" keep the chips.
+ */
+export function PaymentMethodRow({
+  value,
+  onPress,
+}: {
+  value: PaymentMethod;
+  onPress: () => void;
+}) {
+  const theme = useTheme();
+  const { t } = useStrings();
+  const label = usePaymentMethodLabel();
+  const method = offeredPaymentMethods({ upiSupported: deviceSupportsUpi(), current: value }).find(
+    (it) => it === value,
+  );
+
+  return (
+    <SettingRow
+      label={t.captures.paidWith}
+      value={label(value)}
+      leading={
+        method ? (
+          <Ionicons
+            name={PAYMENT_METHOD_ICONS[method]}
+            size={iconSize.md}
+            color={theme.color.textMuted}
+          />
+        ) : null
+      }
+      onPress={onPress}
+    />
+  );
+}
+
+/** The same rails as a sheet of options, one per line, checked where chosen. */
+export function PaymentMethodSheet({
+  value,
+  onChange,
+  onClose,
+}: {
+  value: PaymentMethod | null;
+  onChange: (value: PaymentMethod) => void;
+  onClose: () => void;
+}) {
+  const theme = useTheme();
+  const { t } = useStrings();
+  const label = usePaymentMethodLabel();
+
+  return (
+    <SheetOverlay title={t.captures.paidWith} onClose={onClose}>
+      <View style={{ gap: theme.spacing.xs }}>
+        {offeredPaymentMethods({ upiSupported: deviceSupportsUpi(), current: value }).map(
+          (method) => {
+            const active = value === method;
+            return (
+              <ChoiceRow
+                key={method}
+                label={label(method)}
+                selected={active}
+                leading={
+                  // A fixed-width box so every label starts on the same line
+                  // however wide its glyph draws, the way the currency sheet's
+                  // symbols are boxed.
+                  <View style={{ width: 32, alignItems: 'center' }}>
+                    <Ionicons
+                      name={PAYMENT_METHOD_ICONS[method]}
+                      size={iconSize.md}
+                      color={active ? theme.color.brand : theme.color.textMuted}
+                    />
+                  </View>
+                }
+                onPress={() => onChange(method)}
+              />
+            );
+          },
+        )}
+      </View>
+    </SheetOverlay>
   );
 }

@@ -49,6 +49,7 @@ import {
   Callout,
   Card,
   ChipRow,
+  Divider,
   EmptyState,
   iconSize,
   MoneyText,
@@ -58,10 +59,10 @@ import {
   useTheme,
 } from '@waves/ui';
 
-import { CategoryPicker } from '@/components/Category';
+import { CategoryRow, CategorySheet } from '@/components/Category';
 import { ExpenseReceipts } from '@/components/ExpenseReceipts';
 import { TagEditorSheet } from '@/components/TagEditorSheet';
-import { PaymentMethodPicker } from '@/components/PaymentMethodPicker';
+import { PaymentMethodRow, PaymentMethodSheet } from '@/components/PaymentMethodPicker';
 import { LocationField } from '@/components/LocationField';
 import { captureLocationIfGranted } from '@/lib/location';
 import { friendlyError } from '@/lib/errors';
@@ -460,8 +461,15 @@ export default function AddExpenseScreen() {
   const [category, setCategory] = useState<string | null>(CategoryId.Food);
   const [categoryMeta, setCategoryMeta] = useState<CategoryMeta | null>(null);
   const [categoryChosen, setCategoryChosen] = useState(false);
-  // The create-tag sheet, opened from the picker's "＋ New tag" chip.
+  // The create-tag sheet, opened from the category sheet's "＋ New tag" row.
   const [editingTag, setEditingTag] = useState(false);
+  // The two "more details" rows open their options in sheets, and those sheets
+  // are rendered at the screen root rather than beside their rows: the sheet is
+  // absolutely positioned against its nearest positioned ancestor, and a row
+  // inside the scroll view would anchor it to the scrolled content instead of
+  // the screen. The same reason the currency sheet lives down there.
+  const [pickingCategory, setPickingCategory] = useState(false);
+  const [pickingPayment, setPickingPayment] = useState(false);
   /**
    * Names to bias the recogniser towards. "You" and "Someone" are placeholders
    * this screen prints, not things anybody says out loud, so they would only
@@ -2151,31 +2159,27 @@ export default function AddExpenseScreen() {
           </Pressable>
 
           <View style={{ gap: theme.spacing.xl, display: showDetails ? 'flex' : 'none' }}>
-            {/* Pre-picked from the description, because a menu between somebody and
-              saving a dinner is how a column ends up empty — and an empty column
-              is a spending chart nobody can draw (TDR §8). */}
-            <View style={{ gap: theme.spacing.md }}>
-              <Text variant="caption" tone="muted">
-                {t.whatFor}
-              </Text>
-              <CategoryPicker
-                value={category}
-                onChange={(picked, meta) => {
-                  setCategory(picked);
-                  setCategoryMeta(meta);
-                  setCategoryChosen(true);
-                }}
-                onCreate={() => setEditingTag(true)}
-              />
-            </View>
+            {/* The two tags an expense carries, as a list rather than two lanes
+              of chips.
 
-            {/* How it was paid — a tag on the expense, defaulting to cash. */}
-            <View style={{ gap: theme.spacing.md }}>
-              <Text variant="caption" tone="muted">
-                {t.captures.paidWith}
-              </Text>
-              <PaymentMethodPicker value={paymentMethod} onChange={setPaymentMethod} />
-            </View>
+              Both are questions with one short answer, and both are already
+              answered when the fold opens — the category is guessed from the
+              note (a menu between somebody and saving a dinner is how a column
+              ends up empty, and an empty column is a spending chart nobody can
+              draw, TDR §8), and the rail defaults to cash. Two rows of chips
+              spent a screenful showing every answer that was *not* chosen; two
+              rows name the field, say what it is set to, and keep the options
+              behind a sheet for the times somebody wants to change one. The same
+              card of divided rows the capture screen uses for its meta. */}
+            <Card style={{ paddingVertical: theme.spacing.xs, gap: 0 }}>
+              <CategoryRow
+                value={category}
+                meta={categoryMeta}
+                onPress={() => setPickingCategory(true)}
+              />
+              <Divider />
+              <PaymentMethodRow value={paymentMethod} onPress={() => setPickingPayment(true)} />
+            </Card>
 
             {/* Where it happened (A43) — optional, opt-in, never a background track. */}
             <LocationField value={location} onChange={setLocation} />
@@ -2468,7 +2472,41 @@ export default function AddExpenseScreen() {
         </SheetOverlay>
       ) : null}
 
-      {/* Make a tag on the spot, from the picker's "＋ New tag" chip. */}
+      {/* What kind of expense, from the "more details" list. Picking one closes
+          the sheet — one tap, one answer, which is the whole point of moving
+          this off a lane of chips. "＋ New tag" swaps this sheet for the tag
+          editor rather than stacking one over the other. */}
+      {pickingCategory ? (
+        <CategorySheet
+          value={category}
+          onChange={(picked, meta) => {
+            setCategory(picked);
+            setCategoryMeta(meta);
+            // A tap of their own, so the description guess stops moving it.
+            setCategoryChosen(true);
+            setPickingCategory(false);
+          }}
+          onCreate={() => {
+            setPickingCategory(false);
+            setEditingTag(true);
+          }}
+          onClose={() => setPickingCategory(false)}
+        />
+      ) : null}
+
+      {/* How it was paid — a tag on the expense, defaulting to cash. */}
+      {pickingPayment ? (
+        <PaymentMethodSheet
+          value={paymentMethod}
+          onChange={(picked) => {
+            setPaymentMethod(picked);
+            setPickingPayment(false);
+          }}
+          onClose={() => setPickingPayment(false)}
+        />
+      ) : null}
+
+      {/* Make a tag on the spot, from the category sheet's "＋ New tag" row. */}
       <TagEditorSheet open={editingTag} onClose={() => setEditingTag(false)} />
     </Screen>
   );
