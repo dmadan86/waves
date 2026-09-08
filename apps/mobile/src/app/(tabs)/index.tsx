@@ -15,7 +15,7 @@ import {
   View,
 } from 'react-native';
 
-import { dayNumber, type GuestGate } from '@waves/core';
+import { balanceDeckSlides, dayNumber, type BalanceSlide, type GuestGate } from '@waves/core';
 import {
   Avatar,
   Button,
@@ -89,7 +89,7 @@ export default function HomeScreen() {
   const { hidden: balanceHidden, ready: balanceReady, toggle: toggleBalance } = useBalanceHidden();
   // The carousel's live scroll offset, owned here so the hero background and the
   // balance deck share one value: the background crossfades between the slide
-  // colours (SLIDE_GRADIENTS) exactly as the deck moves. Lazy-init, never
+  // colours (SLIDE_STYLE) exactly as the deck moves. Lazy-init, never
   // re-read through `.current` in render (the ref lint the compiler enforces).
   const [heroScrollX] = useState(() => new Animated.Value(0));
   // Each slide fills the hero's inner width; a slide's snap point is that plus
@@ -242,6 +242,14 @@ export default function HomeScreen() {
     owing: 0n,
   };
 
+  // Which figures the balance deck is worth swiping through, decided from the
+  // headline totals in @waves/core. Two slides for money that runs one way,
+  // three when it runs both — a gross slide appears only where the net is
+  // hiding a side, so no two slides ever carry the same number under two names.
+  // The screen and the deck read the same answer: the colour layers, the
+  // watermarks and the dot pager all count this one list.
+  const deck = balanceDeckSlides(headline);
+
   // The ids of the trips running today, so their rows can wear an "on trip"
   // tag. "Running" is decided in the trip's own timezone, not the phone's — a
   // Goa trip run from Dubai turns over at midnight in Goa (the same rule
@@ -286,9 +294,9 @@ export default function HomeScreen() {
                 the swipe. Native-driven opacity off the shared scroll value —
                 smooth at 60fps and free at rest. The first layer sits opaque
                 behind everything as the base while the balance loads. */}
-          {SLIDE_GRADIENTS.map((colors, index) => (
+          {deck.map((slide, index) => (
             <Animated.View
-              key={colors[0]}
+              key={slide}
               pointerEvents="none"
               style={[
                 StyleSheet.absoluteFill,
@@ -307,13 +315,13 @@ export default function HomeScreen() {
                     },
               ]}
             >
-              <Gradient colors={colors} radius={0} style={{ flex: 1 }} />
+              <Gradient colors={SLIDE_STYLE[slide].gradient} radius={0} style={{ flex: 1 }} />
             </Animated.View>
           ))}
 
           {/* The corner watermark — a faint glyph per slide that crossfades
                 as you swipe, off the same scroll value as the colour. */}
-          <HeroBackdrop scrollX={heroScrollX} snap={heroSnap} />
+          <HeroBackdrop slides={deck} scrollX={heroScrollX} snap={heroSnap} />
 
           {/* Greeting row: face + "Hi, {name}" over the time of day, then the
                 white controls the reference tucks top-right — sync, a shortcut to
@@ -368,6 +376,7 @@ export default function HomeScreen() {
             <HeroBalanceSkeleton />
           ) : (
             <HeroBalance
+              slides={deck}
               primary={headline}
               monthSpent={summary.monthSpent}
               locale={locale}
@@ -409,7 +418,7 @@ export default function HomeScreen() {
             </Row>
 
             {/* The swipe pager, right under the buttons. */}
-            <HeroDots count={SLIDE_KEYS.length} scrollX={heroScrollX} snap={heroSnap} />
+            <HeroDots count={deck.length} scrollX={heroScrollX} snap={heroSnap} />
           </View>
         </View>
       </TourTarget>
@@ -708,7 +717,11 @@ function HeroPill({
         flexDirection: 'row',
         alignItems: 'center',
         gap: theme.spacing.xs,
-        paddingVertical: theme.spacing.sm + 2,
+        // Padding, not `hitSlop`: the pill is wrapped in the tour's anchor View,
+        // which measures to the pill exactly, and a hit area reaching outside its
+        // own parent is not offered the touch. So the target has to be the box.
+        // Two lots of `md` over a 22pt line clears the 44pt floor.
+        paddingVertical: theme.spacing.md,
         paddingHorizontal: theme.spacing.lg,
         borderRadius: theme.radius.pill,
         backgroundColor: '#FFFFFF',
@@ -1129,44 +1142,33 @@ function todayIn(timeZone: string): string {
 }
 
 /**
- * One saturated wash per balance slide, so the whole hero takes a colour of its
- * own as you swipe — green for where you stand, teal for what you're owed, indigo
- * for what you've spent. Each is a two-stop diagonal gradient, dark enough that
- * the white ink clears AA on either stop in both themes (like a bank card, the
- * hero keeps its colour whichever theme is on). Money's own red/green still lives
- * on the ledger rows below, where owe-vs-owed has to be told apart at a glance.
+ * How each balance slide dresses the hero: one saturated wash so the whole card
+ * takes a colour of its own as you swipe — green for where you stand, teal for
+ * what is owed to you, copper for what you owe, indigo for what you've spent —
+ * and one watermark glyph, a faint oversized outline riding the corner. Each
+ * gradient is two diagonal stops, dark enough that the white ink clears AA on
+ * either stop in both themes (like a bank card, the hero keeps its colour
+ * whichever theme is on). Money's own red/green still lives on the ledger rows
+ * below, where owe-vs-owed has to be told apart at a glance.
  *
- * The order matches the slides in `HeroBalance` (net, owed, month); the hero
- * crossfades between them driven by the carousel's scroll position.
+ * Keyed by slide rather than positional, because the deck itself is decided per
+ * person (`balanceDeckSlides`) — a two-slide deck must paint its month slide
+ * indigo, not inherit whatever colour sat second in a fixed list.
  */
-const SLIDE_GRADIENTS = [
-  ['#1F6B49', '#0C3A27'], // net — green
-  ['#12667A', '#06323D'], // owed — teal
-  ['#463F86', '#221C46'], // month — indigo
-] as const;
+const SLIDE_STYLE: Record<
+  BalanceSlide,
+  { readonly gradient: readonly [string, string]; readonly icon: keyof typeof Ionicons.glyphMap }
+> = {
+  net: { gradient: ['#1F6B49', '#0C3A27'], icon: 'wallet-outline' },
+  owed: { gradient: ['#12667A', '#06323D'], icon: 'trending-up-outline' },
+  owing: { gradient: ['#8A4B12', '#40220A'], icon: 'trending-down-outline' },
+  month: { gradient: ['#463F86', '#221C46'], icon: 'calendar-outline' },
+};
 
-/**
- * The slides the deck actually carries, in order. Everything that has to agree
- * on "how many" counts this — the dot pager, the colour layers, the watermarks
- * — so the answer comes from the content rather than from the length of the
- * palette that happens to paint it.
- */
-const SLIDE_KEYS = ['net', 'owed', 'month'] as const;
-
-/**
- * One watermark glyph per slide, in the same order (net, owed, month). It rides
- * the corner of the hero as a faint, oversized outline and crossfades on the
- * same scroll value as the colour, so the mark swaps as you swipe: a wallet for
- * where you stand, a rising line for what is owed to you, a calendar for the
- * month's spend. Kept large + low-alpha so it reads as texture behind the
- * balance, not a literal icon competing with it.
- */
-const SLIDE_ICONS = ['wallet-outline', 'trending-up-outline', 'calendar-outline'] as const;
-
-/** The first slide's green, reused for the accents that sit on white (the
+/** The net slide's green, reused for the accents that sit on white (the
     add-expense pill's ink) and the badge ring — a fixed brand green, not the
     animated hero colour. */
-const HERO_GREEN = SLIDE_GRADIENTS[0];
+const HERO_GREEN = SLIDE_STYLE.net.gradient;
 
 /**
  * The hero's two lines, in one place. `HeroBalanceSkeleton` builds itself to
@@ -1184,18 +1186,24 @@ const HERO_AMOUNT_STYLE = {
 } as const;
 
 /**
- * The swipeable balance inside the hero: three views of where you stand, one per
+ * The swipeable balance inside the hero: a few views of where you stand, one per
  * swipe, riding transparent on the hero's colour — net first (the number you see
- * on load), then what is owed to you, then what you have spent this month. All in
- * your primary currency, because a total across currencies is a number that does
- * not exist (ADR-004). A dot pager beneath is the "swipe me" signal; the three
- * slides are the same shape, so the block never jumps as you move between them.
+ * on load), then whichever gross side the net is hiding, then what you have spent
+ * this month. All in your primary currency, because a total across currencies is
+ * a number that does not exist (ADR-004). A dot pager beneath is the "swipe me"
+ * signal; every slide is the same shape, so the block never jumps as you move
+ * between them.
+ *
+ * Which slides those are is `balanceDeckSlides`' call, made once by the screen
+ * and passed down — so the deck, the colour washes and the pager cannot disagree
+ * about what is in the carousel.
  *
  * The scroll offset (`scrollX`) and the slide geometry (`cardWidth`/`gap`/`snap`)
  * are owned by the screen and passed in, so the same value that lays the deck out
  * also drives the hero's colour crossfade — the two can never fall out of step.
  */
 function HeroBalance({
+  slides,
   primary,
   monthSpent,
   locale,
@@ -1208,6 +1216,8 @@ function HeroBalance({
   snap,
   settling,
 }: {
+  /** The deck, in swipe order — the screen's `balanceDeckSlides(primary)`. */
+  slides: readonly BalanceSlide[];
   primary: CurrencyTotal;
   /** My share of this month's spend, per currency (from useHomeSummary). */
   monthSpent: readonly { currency: string; amount: bigint }[];
@@ -1225,10 +1235,8 @@ function HeroBalance({
   /** The figure is the local one and a fresher answer is on its way. */
   settling: boolean;
 }) {
-  // The three balance views the dashboard leads with, one per swipe: where you
-  // stand overall (net), what is owed to you, and what you have spent this month
-  // — all in your primary currency, which is the one the headline is already in
-  // (no total across currencies, ADR-004).
+  // Every figure is in the primary currency, which is the one the headline is
+  // already in (no total across currencies, ADR-004).
   const monthAmount = monthSpent.find((entry) => entry.currency === primary.currency)?.amount ?? 0n;
   // The net slide is the only one whose sign is information, so it shows that
   // sign on the figure itself — a signed headline number is what gets read at a
@@ -1238,52 +1246,26 @@ function HeroBalance({
   const netDirection =
     primary.net === 0n ? t.allSettled : primary.net > 0n ? t.dashHero.netOwed : t.dashHero.netOwe;
 
-  const slides = [
-    {
-      key: 'net',
-      node: (
-        <MetricSlide
-          label={`${netDirection} · ${primary.currency}`}
-          amount={primary.net}
-          currency={primary.currency}
-          locale={locale}
-          hidden={hidden}
-          onToggleHide={onToggleHide}
-          settling={settling}
-          // Square is square: a "+₹0" would be a direction where there is none.
-          showSign={primary.net !== 0n}
-        />
-      ),
-    },
-    {
-      key: 'owed',
-      node: (
-        <MetricSlide
-          label={`${t.dashHero.owedToYou} · ${primary.currency}`}
-          amount={primary.owed}
-          currency={primary.currency}
-          locale={locale}
-          hidden={hidden}
-          onToggleHide={onToggleHide}
-          settling={settling}
-        />
-      ),
-    },
-    {
-      key: 'month',
-      node: (
-        <MetricSlide
-          label={`${t.dashHero.monthSpent} · ${primary.currency}`}
-          amount={monthAmount}
-          currency={primary.currency}
-          locale={locale}
-          hidden={hidden}
-          onToggleHide={onToggleHide}
-          settling={settling}
-        />
-      ),
-    },
-  ];
+  // What one slide says. The gross pair name their whole side — "Receivables",
+  // "Payables" — against the net's "Net receivable": the labels have to say why
+  // two figures differ, because the deck only ever shows them together when
+  // they do.
+  const metricFor = (
+    slide: BalanceSlide,
+  ): { label: string; amount: bigint; showSign?: boolean } => {
+    const label = (heading: string): string => `${heading} · ${primary.currency}`;
+    switch (slide) {
+      case 'net':
+        // Square is square: a "+₹0" would be a direction where there is none.
+        return { label: label(netDirection), amount: primary.net, showSign: primary.net !== 0n };
+      case 'owed':
+        return { label: label(t.dashHero.owedToYou), amount: primary.owed };
+      case 'owing':
+        return { label: label(t.dashHero.owedByYou), amount: primary.owing };
+      case 'month':
+        return { label: label(t.dashHero.monthSpent), amount: monthAmount };
+    }
+  };
 
   // Each slide fills the hero's inner width (`cardWidth`), snapping one-to-one.
   // No peek of the next slide: they are transparent on the hero's colour, so a
@@ -1311,7 +1293,7 @@ function HeroBalance({
     >
       {slides.map((slide, index) => (
         <Animated.View
-          key={slide.key}
+          key={slide}
           style={{
             width: cardWidth,
             // The centred slide sits at full size; the one being dragged in
@@ -1333,7 +1315,14 @@ function HeroBalance({
             ],
           }}
         >
-          {slide.node}
+          <MetricSlide
+            {...metricFor(slide)}
+            currency={primary.currency}
+            locale={locale}
+            hidden={hidden}
+            onToggleHide={onToggleHide}
+            settling={settling}
+          />
         </Animated.View>
       ))}
     </Animated.ScrollView>
@@ -1470,13 +1459,21 @@ function HeroBalanceSkeleton() {
  * it to the rounded corner (`overflow: 'hidden'`) and `pointerEvents none` so
  * it never eats a tap; white at low alpha reads the same on green/teal/indigo.
  */
-function HeroBackdrop({ scrollX, snap }: { scrollX: Animated.Value; snap: number }) {
+function HeroBackdrop({
+  slides,
+  scrollX,
+  snap,
+}: {
+  slides: readonly BalanceSlide[];
+  scrollX: Animated.Value;
+  snap: number;
+}) {
   const theme = useTheme();
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-      {SLIDE_ICONS.map((icon, index) => (
+      {slides.map((slide, index) => (
         <Animated.View
-          key={icon}
+          key={slide}
           style={{
             position: 'absolute',
             right: -44,
@@ -1488,7 +1485,7 @@ function HeroBackdrop({ scrollX, snap }: { scrollX: Animated.Value; snap: number
             }),
           }}
         >
-          <Ionicons name={icon} size={208} color={theme.color.onBrand} />
+          <Ionicons name={SLIDE_STYLE[slide].icon} size={208} color={theme.color.onBrand} />
         </Animated.View>
       ))}
     </View>
