@@ -218,7 +218,15 @@ const GROUP_TABLES = [
   // profiles is embedded by the explicit FK column: ghost_merges references
   // both group_members and profiles, so PostgREST otherwise sees two
   // group_members↔profiles relationships and refuses to guess.
-  ['group_members', '*, profile:profiles!profile_id ( id, display_name, avatar_url, default_vpa )'],
+  // The rail pair travels with the member, not only `default_vpa`: the mirror
+  // is what the settle screen reads, and a payee whose handle is a PayID or a
+  // Pix key had no handle at all here — `payableAt` looked for
+  // `payment_handle`, this pull never fetched it, and the screen said the
+  // person had given no details.
+  [
+    'group_members',
+    '*, profile:profiles!profile_id ( id, display_name, avatar_url, default_vpa, payment_rail, payment_handle )',
+  ],
   ['expenses', EXPENSE_SELECT],
   ['settlements', SETTLEMENT_SELECT],
   ['activity_log', '*'],

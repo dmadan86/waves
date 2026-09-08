@@ -1,4 +1,5 @@
-import type { CategoryMeta, ExpenseLocation, MemberId, SplitParams } from '@waves/core';
+import { payableFor } from '@waves/core';
+import type { CategoryMeta, ExpenseLocation, MemberId, Payable, SplitParams } from '@waves/core';
 
 export enum GroupType {
   Trip = 'trip',
@@ -339,29 +340,15 @@ export function isGhost(member: MemberRow): boolean {
   return member.profile_id === null;
 }
 
-export function vpaOf(member: MemberRow): string | null {
-  return member.vpa ?? member.profile?.default_vpa ?? null;
-}
-
 /**
  * How this person is paid: the rail, and the handle on it.
  *
- * Per-group first, then their profile default — the same precedence `vpaOf`
- * has always used, because one person can be paid over UPI in one group and
- * over Wise in another. The `vpa` columns are the last fallback: everything
- * written before rails existed is a UPI ID, and the person who typed it should
- * not have to type it again.
+ * The precedence lives in `@waves/core` (`payableFor`), because the web settle
+ * screen has to answer the same question off the same columns and used to
+ * answer it differently — reading `vpa ?? default_vpa` alone, so a payee on any
+ * rail but UPI looked like somebody who had given no details. This is the thin
+ * wrapper that types it against the mobile row.
  */
-export function payableAt(member: MemberRow): { rail: string; handle: string } | null {
-  const handle = member.payment_handle ?? member.profile?.payment_handle ?? vpaOf(member) ?? null;
-  if (!handle) return null;
-
-  const rail =
-    member.payment_rail ??
-    member.profile?.payment_rail ??
-    // A handle from before rails existed can only have been a UPI ID.
-    (vpaOf(member) ? 'upi' : null);
-  if (!rail) return null;
-
-  return { rail, handle };
+export function payableAt(member: MemberRow): Payable | null {
+  return payableFor(member);
 }

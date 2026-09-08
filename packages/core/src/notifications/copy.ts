@@ -26,6 +26,15 @@ export enum NotificationKind {
   SettlementInitiated = 'settlement_initiated',
   SettlementConfirmRequest = 'settlement_confirm_request',
   SettlementConfirmed = 'settlement_confirmed',
+  /**
+   * The two ends ADR-007 calls "deliberate mirror images, one per party": the
+   * payer withdrawing a claim while it is still pending, and the payee's answer
+   * to a payment they never received. Both exist so that neither party can
+   * silently erase the other's record — which needs the other party to be told,
+   * or "silently" is exactly what it stays.
+   */
+  SettlementCancelled = 'settlement_cancelled',
+  SettlementDisputed = 'settlement_disputed',
   Nudge = 'nudge',
   GhostClaimed = 'ghost_claimed',
   GroupInviteAccepted = 'group_invite_accepted',
@@ -164,6 +173,14 @@ const en: CopyStrings = {
       title: 'Settled with {actor}',
       body: '{amount} in {group}',
     },
+    [NotificationKind.SettlementCancelled]: {
+      title: '{actor} withdrew a payment',
+      body: '{amount} in {group} is owed again',
+    },
+    [NotificationKind.SettlementDisputed]: {
+      title: '{actor} has not received it',
+      body: '{amount} in {group} — check with them',
+    },
     [NotificationKind.Nudge]: {
       title: 'A gentle nudge from {actor}',
       body: '{amount} pending in {group}',
@@ -267,6 +284,14 @@ const ta: CopyStrings = {
     [NotificationKind.SettlementConfirmed]: {
       title: '{actor} உடன் தீர்ந்தது',
       body: '{amount} ({group})',
+    },
+    [NotificationKind.SettlementCancelled]: {
+      title: '{actor} பணப் பதிவை விலக்கிக் கொண்டார்',
+      body: '{group} இல் {amount} மீண்டும் பாக்கி',
+    },
+    [NotificationKind.SettlementDisputed]: {
+      title: '{actor} அதைப் பெறவில்லை',
+      body: '{group} இல் {amount} — அவரிடம் சரிபாருங்கள்',
     },
     [NotificationKind.Nudge]: {
       title: '{actor} இடமிருந்து ஒரு நினைவூட்டல்',
@@ -372,6 +397,14 @@ const hi: CopyStrings = {
       title: '{actor} के साथ हिसाब बराबर',
       body: '{amount} ({group})',
     },
+    [NotificationKind.SettlementCancelled]: {
+      title: '{actor} ने भुगतान वापस लिया',
+      body: '{group} में {amount} फिर से बाकी है',
+    },
+    [NotificationKind.SettlementDisputed]: {
+      title: '{actor} को यह नहीं मिला',
+      body: '{group} में {amount} — उनसे पुष्टि करें',
+    },
     [NotificationKind.Nudge]: {
       title: '{actor} की ओर से एक याद',
       body: '{group} में {amount} बाकी',
@@ -475,6 +508,14 @@ const ar: CopyStrings = {
     [NotificationKind.SettlementConfirmed]: {
       title: 'تمت التسوية مع {actor}',
       body: '{amount} في {group}',
+    },
+    [NotificationKind.SettlementCancelled]: {
+      title: 'تراجع {actor} عن دفعة',
+      body: 'أصبح {amount} في {group} مستحقًا من جديد',
+    },
+    [NotificationKind.SettlementDisputed]: {
+      title: 'لم يستلمها {actor}',
+      body: '{amount} في {group} — تحقق معهم',
     },
     [NotificationKind.Nudge]: {
       title: 'تذكير لطيف من {actor}',

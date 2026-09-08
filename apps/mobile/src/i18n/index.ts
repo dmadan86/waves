@@ -1084,6 +1084,8 @@ export interface UiStrings {
     digestBody: string;
     /** The weekly email is not a push notification, so it gets its own section. */
     emailSection: string;
+    emailAll: string;
+    emailAllBody: string;
     weeklyEmail: string;
     weeklyEmailBody: string;
     failDenied: string;
@@ -3563,6 +3565,9 @@ const en: UiStrings = {
     digest: 'Daily group summary',
     digestBody: 'Everything else, batched into one notification a day instead of a stream.',
     emailSection: 'By email',
+    emailAll: 'Email me at all',
+    emailAllBody:
+      'Settlements, reminders and the weekly summary. Security alerts about a new sign-in arrive whatever this says.',
     weeklyEmail: 'Weekly email digest',
     weeklyEmailBody: 'Your net balance and pending confirmations, once a week. Off by default.',
     failDenied: 'Not enabled — you can turn it on in your phone settings later.',
@@ -5953,6 +5958,9 @@ const ta: UiStrings = {
     digest: 'நாள்தோறும் குழுச் சுருக்கம்',
     digestBody: 'மற்ற அனைத்தும், தொடர்ச்சியாக அல்லாமல் நாளுக்கு ஒரு அறிவிப்பாகத் தொகுத்து.',
     emailSection: 'மின்னஞ்சல் வழியாக',
+    emailAll: 'மின்னஞ்சல் அனுப்பவும்',
+    emailAllBody:
+      'தீர்வுகள், நினைவூட்டல்கள், வாராந்திரச் சுருக்கம். புதிய உள்நுழைவு பற்றிய பாதுகாப்பு எச்சரிக்கை இது எதுவாக இருந்தாலும் வரும்.',
     weeklyEmail: 'வாராந்திர மின்னஞ்சல் சுருக்கம்',
     weeklyEmailBody:
       'உங்கள் நிகர பாக்கியும் நிலுவையிலுள்ள உறுதிப்படுத்தல்களும், வாரம் ஒருமுறை. இயல்பாக நிறுத்தத்தில்.',
@@ -8410,6 +8418,9 @@ const hi: UiStrings = {
     digest: 'दैनिक समूह सारांश',
     digestBody: 'बाकी सब कुछ, लगातार की जगह दिन में एक सूचना में इकट्ठा।',
     emailSection: 'ईमेल से',
+    emailAll: 'मुझे ईमेल भेजें',
+    emailAllBody:
+      'हिसाब, याद दिलाने वाले संदेश और साप्ताहिक सारांश। नए साइन-इन की सुरक्षा चेतावनी इससे परे हमेशा आएगी।',
     weeklyEmail: 'साप्ताहिक ईमेल सारांश',
     weeklyEmailBody: 'आपकी कुल बाकी और लंबित पुष्टियाँ, हफ़्ते में एक बार। डिफ़ॉल्ट रूप से बंद।',
     failDenied: 'चालू नहीं हुआ — आप बाद में फ़ोन सेटिंग्स में इसे चालू कर सकते हैं।',
@@ -10845,6 +10856,9 @@ const ar: UiStrings = {
     digest: 'ملخص المجموعة اليومي',
     digestBody: 'كل ما تبقّى، مجمّعًا في إشعار واحد يوميًا بدل تدفق مستمر.',
     emailSection: 'عبر البريد',
+    emailAll: 'راسلني بالبريد',
+    emailAllBody:
+      'التسويات والتذكيرات والملخص الأسبوعي. تنبيه الأمان عند تسجيل دخول جديد يصل مهما كان هذا الإعداد.',
     weeklyEmail: 'ملخص أسبوعي بالبريد',
     weeklyEmailBody: 'صافي باقيك والتأكيدات المعلّقة، مرة كل أسبوع. متوقف افتراضيًا.',
     failDenied: 'لم يُفعَّل — يمكنك تفعيله لاحقًا من إعدادات هاتفك.',

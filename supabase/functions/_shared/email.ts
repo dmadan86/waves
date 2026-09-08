@@ -337,24 +337,41 @@ export async function buildFor(row: EmailableRow): Promise<BuiltEmail | null> {
   );
 }
 
-/** The facts a mail can interpolate, taken from the row that was written. */
-function factsOf(payload: Record<string, unknown>): Record<string, string | undefined> {
+/**
+ * The facts a mail or a push can interpolate, taken from the row that was
+ * written.
+ *
+ * One copy, exported, because there were two — identical, in this file and in
+ * `notify-fanout/handler.ts` — and two whitelists that must agree is a bug
+ * waiting for somebody to add a fact to the half they happened to be reading.
+ * A mail and a push say the same sentence out of the same copy table; there was
+ * never a reason for them to disagree about which words it may contain.
+ *
+ * Every placeholder any mailed or pushed kind uses has to be named here: this
+ * is a whitelist, and a fact that is missing from it does not fail — it renders
+ * the placeholder itself, so somebody receives "New sign-in on {device}".
+ * `device` is the sign-in alert's; `name` is the ghost-claim kinds'.
+ */
+export function factsOf(payload: Record<string, unknown>): Record<string, string | undefined> {
   const text = (key: string): string | undefined =>
     typeof payload[key] === 'string' ? (payload[key] as string) : undefined;
   return {
     amount: text('amount'),
     currency: text('currency'),
     counterparty: text('counterparty'),
-    group: text('group'),
+    // `group_name` and `ghost_name` are the same two facts under the names the
+    // member-claim RPCs happen to write them by (`waves_request_member_claim`,
+    // `waves_decide_member_claim`). Without the alias all three ghost-claim
+    // kinds reach a phone reading "You are in {group}" — the copy is
+    // translated, the placeholder is never filled, and the English fallback on
+    // the row is not used because the *kind* is perfectly well known. The
+    // spelling is the producer's; the vocabulary is this function's, and this
+    // is where the two are reconciled.
+    group: text('group') ?? text('group_name'),
     description: text('description'),
     count: text('count'),
-    // Every placeholder any mailed or pushed kind uses has to be named here:
-    // this is a whitelist, and a fact that is missing from it does not fail —
-    // it renders the placeholder itself, so somebody receives
-    // "New sign-in on {device}". `device` is the sign-in alert's; `name` is the
-    // ghost-claim kinds', which push today and could be mailed tomorrow.
     device: text('device'),
-    name: text('name'),
+    name: text('name') ?? text('ghost_name'),
   };
 }
 

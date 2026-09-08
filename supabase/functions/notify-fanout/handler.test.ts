@@ -15,7 +15,8 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { factsOf, handlePushFanout, type NotifyFanoutDeps } from './handler.ts';
+import { handlePushFanout, type NotifyFanoutDeps } from './handler.ts';
+import { factsOf } from '../_shared/email.ts';
 
 const SERVICE_KEY = 'service-role-key';
 

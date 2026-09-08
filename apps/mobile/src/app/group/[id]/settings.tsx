@@ -53,7 +53,7 @@ import { fill, plural, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { useFavorites } from '@/lib/favorites';
 import { useBlockedUsers } from '@/data/blocked';
-import { displayName, groupLabel, GroupType, isGhost, vpaOf } from '@/data/types';
+import { displayName, groupLabel, GroupType, isGhost, payableAt } from '@/data/types';
 
 // Same chip icons the create screen wears, so changing a group's kind looks
 // like the same control that first set it.
@@ -612,7 +612,12 @@ export default function GroupSettingsScreen() {
               <View key={member.id}>
                 <ListRow
                   title={displayName(member, profile?.id)}
-                  subtitle={isGhost(member) ? t.notJoinedYet : (vpaOf(member) ?? t.misc.noUpiYet)}
+                  subtitle={
+                    isGhost(member)
+                      ? t.notJoinedYet
+                      : // The rail pair, not the legacy UPI column alone.
+                        (payableAt(member)?.handle ?? t.misc.noUpiYet)
+                  }
                   leading={<Avatar name={displayName(member)} ghost={isGhost(member)} />}
                   onPress={() => router.push(`/group/${groupId}/member/${member.id}`)}
                   trailing={

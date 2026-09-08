@@ -65,14 +65,27 @@ function pushRows(t: UiStrings): PrefRow[] {
   ];
 }
 
-/** The weekly digest arrives by email, not push, so it sits in its own section. */
+/**
+ * The email door, which is not the phone's.
+ *
+ * `email` is the master switch — `waves_claim_email_notifications` has read it
+ * since M4 and suppressed every mail when it is false, and until now there was
+ * no screen anywhere that could set it. It leads, because turning it off makes
+ * the row under it moot.
+ */
 function emailRows(t: UiStrings): PrefRow[] {
   return [
+    {
+      key: 'email',
+      title: t.notifications.emailAll,
+      body: t.notifications.emailAllBody,
+      icon: 'mail-outline',
+    },
     {
       key: 'weeklyEmail',
       title: t.notifications.weeklyEmail,
       body: t.notifications.weeklyEmailBody,
-      icon: 'mail-outline',
+      icon: 'newspaper-outline',
     },
   ];
 }

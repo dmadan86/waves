@@ -62,8 +62,8 @@ const GROUP_ROW_COLUMNS = `
 // both group_members and profiles, so PostgREST sees two group_members↔profiles
 // relationships and an unqualified embed fails ("more than one relationship").
 const MEMBER_ROW_COLUMNS = `
-  id, group_id, profile_id, ghost_name, role, vpa, left_at,
-  profile:profiles!profile_id ( id, display_name, avatar_url, default_vpa )
+  id, group_id, profile_id, ghost_name, role, vpa, payment_rail, payment_handle, left_at,
+  profile:profiles!profile_id ( id, display_name, avatar_url, default_vpa, payment_rail, payment_handle )
 `;
 
 const ACTIVITY_COLUMNS = `
