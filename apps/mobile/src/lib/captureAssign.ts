@@ -12,6 +12,18 @@
 
 import { type CaptureRow } from '@/data/types';
 
+function fold(value: string): string {
+  return value
+    .normalize('NFKD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLocaleLowerCase();
+}
+
+export function matchesAssignGroupQuery(label: string, query: string): boolean {
+  const needle = fold(query.trim());
+  return !needle || fold(label).includes(needle);
+}
+
 export function assignCaptureHref(capture: CaptureRow, groupId: string) {
   return {
     pathname: '/group/[id]/add-expense' as const,
