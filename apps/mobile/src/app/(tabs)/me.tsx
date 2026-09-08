@@ -830,7 +830,9 @@ function HeroPill({
         alignItems: 'center',
         justifyContent: 'center',
         gap: theme.spacing.xs,
-        paddingVertical: theme.spacing.sm + 2,
+        // Two lots of `md` over a 22pt line: 46pt, clear of the 44pt floor a
+        // finger needs. The dashboard's pill is built to the same measure.
+        paddingVertical: theme.spacing.md,
         paddingHorizontal: theme.spacing.md,
         borderRadius: theme.radius.pill,
         backgroundColor: ghost ? HERO_CONTROL_BG : '#FFFFFF',

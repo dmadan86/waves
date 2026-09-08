@@ -53,6 +53,17 @@ export interface PillTabAction {
 /** The bar's own content height, above the system inset. WhatsApp sits ~56–64. */
 const BAR_HEIGHT = 60;
 
+/** The raised centre button's diameter, and how far it lifts above the bar. */
+const CENTER_SIZE = 58;
+const CENTER_RAISE = 16;
+/**
+ * The breath left above and below the centre button when it is seated in the
+ * row — what the raise lifts it *from*. Both halves of the geometry are derived
+ * from it: where the button is drawn, and how far its touch area reaches back
+ * down to the bar's foot.
+ */
+const CENTER_SEAT = (BAR_HEIGHT - CENTER_SIZE) / 2;
+
 /** The rounded active indicator behind the selected icon (Material 3). */
 const INDICATOR_WIDTH = 56;
 const INDICATOR_HEIGHT = 30;
@@ -166,28 +177,86 @@ export function PillTabBar({
     />
   );
 
+  // The bar's touch area has to be taller than its paint by exactly the raise.
+  // A view drawn outside its parent's bounds is still *painted* — neither
+  // platform clips it here — but it is never offered the touch: hit testing
+  // walks down from the root and only descends into a view that contains the
+  // point, so a circle lifted 16pt above a 60pt bar had its top 15pt visible,
+  // inviting, and completely dead. That is the part of a raised button a thumb
+  // aims at. So the bar lives inside a taller box, and the button is drawn in
+  // an overlay that fills it — nothing is outside its parent any more.
+  const raise = centerAction ? CENTER_RAISE : 0;
+
   return (
     <View
+      // Only the bar and the button answer; the strip of headroom either side of
+      // the button belongs to the screen behind it, which keeps scrolling.
+      pointerEvents="box-none"
       style={{
         position: 'absolute',
         left: 0,
         right: 0,
         bottom: 0,
-        // The inset is padding, not margin, so the bar's fill runs all the way
-        // to the screen edge behind the system navigation buttons rather than
-        // leaving a strip of content showing beneath it.
-        paddingBottom: insets.bottom,
-        height: BAR_HEIGHT + insets.bottom,
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: theme.color.surface,
-        borderTopWidth: 1,
-        borderTopColor: theme.color.border,
+        height: BAR_HEIGHT + insets.bottom + raise,
       }}
     >
-      {left.map(renderItem)}
-      {centerAction ? <CenterButton action={centerAction} /> : null}
-      {right.map(renderItem)}
+      <View
+        style={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          bottom: 0,
+          // The inset is padding, not margin, so the bar's fill runs all the way
+          // to the screen edge behind the system navigation buttons rather than
+          // leaving a strip of content showing beneath it.
+          paddingBottom: insets.bottom,
+          height: BAR_HEIGHT + insets.bottom,
+          flexDirection: 'row',
+          alignItems: 'center',
+          backgroundColor: theme.color.surface,
+          borderTopWidth: 1,
+          borderTopColor: theme.color.border,
+        }}
+      >
+        {left.map(renderItem)}
+        {/* The centre button's column, held open so the destinations still split
+            evenly around it. The button itself is drawn in the overlay below. */}
+        {centerAction ? <View style={{ flex: 1 }} /> : null}
+        {right.map(renderItem)}
+      </View>
+
+      {centerAction ? (
+        <View
+          pointerEvents="box-none"
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            top: 0,
+            bottom: 0,
+            flexDirection: 'row',
+          }}
+        >
+          {/* The same flex weights as the row beneath, so the button lands over
+              the column left open for it whichever way the writing runs — both
+              rows flip together. The flanks are inert: they lie over the
+              destinations, and a live view here would swallow their taps. */}
+          <View pointerEvents="none" style={{ flex: left.length }} />
+          <View
+            pointerEvents="box-none"
+            style={{
+              flex: 1,
+              alignItems: 'center',
+              // Seated as it would be centred in the bar's own row — the box's
+              // extra headroom above the bar is what the raise then buys.
+              paddingTop: CENTER_SEAT,
+            }}
+          >
+            <CenterButton action={centerAction} />
+          </View>
+          <View pointerEvents="none" style={{ flex: right.length }} />
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -216,69 +285,77 @@ const CenterButton = memo(function CenterButton({ action }: { action: PillTabAct
   // let that press straight through.
   const handled = useRef(false);
 
+  // The column and the seating are the bar's business (it has to place this
+  // over the gap it left in the row); what is here is the button.
   return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={action.accessibilityLabel}
-        accessibilityHint={action.accessibilityHint}
-        onPress={() => {
-          if (handled.current) {
-            handled.current = false;
-            return;
-          }
-          action.onPress();
-        }}
-        onPressIn={(event) => {
-          const press = action.onPressIn;
-          if (!press) return;
-          handled.current = true;
-          origin.current = { x: event.nativeEvent.pageX, y: event.nativeEvent.pageY };
-          press();
-        }}
-        onPressOut={() => {
-          origin.current = null;
-          const release = action.onPressOut;
-          if (!release) return;
-          release();
-          setTimeout(() => {
-            handled.current = false;
-          }, 0);
-        }}
-        // A raw touch handler rather than the responder callbacks: Pressability
-        // owns the responder here, and anything we passed for it would be
-        // overwritten by the handlers Pressable spreads on after ours.
-        onTouchMove={(event) => {
-          const from = origin.current;
-          const move = action.onHoldMove;
-          if (!from || !move) return;
-          move({
-            dx: event.nativeEvent.pageX - from.x,
-            dy: event.nativeEvent.pageY - from.y,
-          });
-        }}
-        pressRetentionOffset={holdable ? HOLD_RETENTION : undefined}
-        hitSlop={8}
-        style={({ pressed }) => ({
-          width: 58,
-          height: 58,
-          borderRadius: 29,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: theme.color.buttonPrimary,
-          // Lifted so it reads as sitting above the bar, not in the row.
-          transform: [{ translateY: -16 }],
-          opacity: pressed ? 0.9 : 1,
-          shadowColor: '#000',
-          shadowOpacity: 0.2,
-          shadowRadius: 8,
-          shadowOffset: { width: 0, height: 4 },
-          elevation: 6,
-        })}
-      >
-        {action.icon(theme.color.onBrand)}
-      </Pressable>
-    </View>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={action.accessibilityLabel}
+      accessibilityHint={action.accessibilityHint}
+      onPress={() => {
+        if (handled.current) {
+          handled.current = false;
+          return;
+        }
+        action.onPress();
+      }}
+      onPressIn={(event) => {
+        const press = action.onPressIn;
+        if (!press) return;
+        handled.current = true;
+        origin.current = { x: event.nativeEvent.pageX, y: event.nativeEvent.pageY };
+        press();
+      }}
+      onPressOut={() => {
+        origin.current = null;
+        const release = action.onPressOut;
+        if (!release) return;
+        release();
+        setTimeout(() => {
+          handled.current = false;
+        }, 0);
+      }}
+      // A raw touch handler rather than the responder callbacks: Pressability
+      // owns the responder here, and anything we passed for it would be
+      // overwritten by the handlers Pressable spreads on after ours.
+      onTouchMove={(event) => {
+        const from = origin.current;
+        const move = action.onHoldMove;
+        if (!from || !move) return;
+        move({
+          dx: event.nativeEvent.pageX - from.x,
+          dy: event.nativeEvent.pageY - from.y,
+        });
+      }}
+      pressRetentionOffset={holdable ? HOLD_RETENTION : undefined}
+      // The button owns its whole column of the bar. Reaching back down to the
+      // bar's foot is the point: the strip under a lifted circle reads as part
+      // of it, and left to the row beneath it answered to nothing — a hole in
+      // the middle of the bar between the two halves of the destinations. The
+      // sides stop a hair short of the neighbouring tabs.
+      hitSlop={{
+        top: CENTER_SEAT,
+        bottom: CENTER_RAISE + CENTER_SEAT,
+        left: 8,
+        right: 8,
+      }}
+      style={({ pressed }) => ({
+        width: CENTER_SIZE,
+        height: CENTER_SIZE,
+        borderRadius: CENTER_SIZE / 2,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: theme.color.buttonPrimary,
+        opacity: pressed ? 0.9 : 1,
+        shadowColor: '#000',
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 4 },
+        elevation: 6,
+      })}
+    >
+      {action.icon(theme.color.onBrand)}
+    </Pressable>
   );
 });
 
