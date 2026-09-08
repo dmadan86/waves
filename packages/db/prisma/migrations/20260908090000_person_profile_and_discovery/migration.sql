@@ -209,9 +209,9 @@ BEGIN
   shared_groups    := coalesce(v_shared, 0);
   email            := v_email;
   phone            := v_phone;
-  payment_rail     := v_rail;
-  payment_handle   := v_handle;
-  country_code     := v_country;
+  payment_rail     := CASE WHEN v_visible THEN v_rail ELSE NULL END;
+  payment_handle   := CASE WHEN v_visible THEN v_handle ELSE NULL END;
+  country_code     := CASE WHEN v_visible THEN v_country ELSE NULL END;
   contact_withheld := (NOT v_ghost) AND (NOT v_visible);
   RETURN NEXT;
 END

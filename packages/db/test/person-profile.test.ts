@@ -40,6 +40,9 @@ interface PersonRow {
   shared_groups: number;
   email: string | null;
   phone: string | null;
+  payment_rail: string | null;
+  payment_handle: string | null;
+  country_code: string | null;
   contact_withheld: boolean;
 }
 
@@ -115,8 +118,18 @@ describe('waves_person_profile', () => {
     const group = await seedGroup(client, { memberCount: 2 });
     const [me, them] = group.profileIds;
 
+    await client.query(
+      `UPDATE profiles SET payment_rail = 'upi', payment_handle = 'priya@upi', country_code = 'IN'
+        WHERE id = $1`,
+      [them],
+    );
+
     // Default first: allowed, so nothing is being withheld.
-    expect((await profileOf(me!, them!))?.contact_withheld).toBe(false);
+    const visible = await profileOf(me!, them!);
+    expect(visible?.contact_withheld).toBe(false);
+    expect(visible?.payment_rail).toBe('upi');
+    expect(visible?.payment_handle).toBe('priya@upi');
+    expect(visible?.country_code).toBe('IN');
 
     await client.query(`UPDATE profiles SET contact_visibility = 'nobody' WHERE id = $1`, [them]);
 
@@ -124,18 +137,29 @@ describe('waves_person_profile', () => {
     expect(row?.contact_withheld).toBe(true);
     expect(row?.email).toBeNull();
     expect(row?.phone).toBeNull();
+    expect(row?.payment_rail).toBeNull();
+    expect(row?.payment_handle).toBeNull();
+    expect(row?.country_code).toBeNull();
   });
 
   it('always shows you to yourself, whatever your own switch says', async () => {
     const group = await seedGroup(client, { memberCount: 1 });
     const me = group.profileIds[0]!;
-    await client.query(`UPDATE profiles SET contact_visibility = 'nobody' WHERE id = $1`, [me]);
+    await client.query(
+      `UPDATE profiles
+          SET contact_visibility = 'nobody', payment_rail = 'bank', payment_handle = 'acct-123', country_code = 'IN'
+        WHERE id = $1`,
+      [me],
+    );
 
     const row = await profileOf(me, me);
 
     expect(row?.is_you).toBe(true);
     // Your own setting is about other people, so nothing is withheld from you.
     expect(row?.contact_withheld).toBe(false);
+    expect(row?.payment_rail).toBe('bank');
+    expect(row?.payment_handle).toBe('acct-123');
+    expect(row?.country_code).toBe('IN');
   });
 
   it('resolves a ghost by its membership id and says it is one', async () => {
