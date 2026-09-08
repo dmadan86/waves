@@ -30,7 +30,6 @@ import {
   Screen,
   SegmentedTabs,
   Text,
-  useScreenClearance,
   useTheme,
 } from '@waves/ui';
 
@@ -46,6 +45,7 @@ import {
 import { useDefaultCurrency } from '@/lib/currency';
 import { useSync } from '@/sync';
 import { useStrings } from '@/i18n';
+import { useBottomClearance } from '@/lib/clearance';
 
 export default function PersonalEntryScreen() {
   const theme = useTheme();
@@ -116,7 +116,7 @@ function EntryForm({
   t: ReturnType<typeof useStrings>['t'];
 }) {
   const theme = useTheme();
-  const clearance = useScreenClearance();
+  const clearance = useBottomClearance();
   const upsert = useUpsertPersonalRecord();
   const remove = useDeletePersonalRecord();
 

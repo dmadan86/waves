@@ -11,7 +11,6 @@
 import { type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, ScrollView, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
@@ -24,6 +23,7 @@ import Animated, {
 import { directionalIcon, iconSize, Row, Text, useTheme } from '@waves/ui';
 
 import { useStrings } from '@/i18n';
+import { useBottomClearance } from '@/lib/clearance';
 
 /**
  * A labelled tap-row: a leading icon, the field name over its value, a chevron.
@@ -174,7 +174,18 @@ export function SheetOverlay({
 }): React.JSX.Element {
   const theme = useTheme();
   const { t } = useStrings();
-  const insets = useSafeAreaInsets();
+  // The foot this sheet leaves at the bottom edge.
+  //
+  // Route-aware, because this sheet is drawn in the screen's own tree rather
+  // than in a modal window of its own. A modal would be a separate native window
+  // and would cover everything; this is a view inside the page, and the app's
+  // bottom bar is a later sibling at the root — it paints *over* the sheet, scrim
+  // and all. So on any route where the bar is showing (the Activity feed's date
+  // filter, say) the sheet has to clear the bar as well as the system navigation
+  // inset, or its last control ends up behind the bar and cannot be tapped at
+  // all. On a route the bar hides on (add-expense, capture) the plain screen foot
+  // is right, and `useBottomClearance` knows which is which.
+  const foot = useBottomClearance(theme.spacing.xl);
 
   // Drag the handle down to dismiss. translateY only ever goes positive (down);
   // past a short threshold or on a quick flick the sheet closes, otherwise it
@@ -233,9 +244,7 @@ export function SheetOverlay({
             borderTopLeftRadius: theme.radius.lg,
             borderTopRightRadius: theme.radius.lg,
             padding: theme.spacing.xl,
-            // Clear the Android gesture/nav bar so the last list row is not
-            // hidden behind it.
-            paddingBottom: theme.spacing.xl + insets.bottom,
+            paddingBottom: foot,
             gap: theme.spacing.md,
             maxHeight: '75%',
           },

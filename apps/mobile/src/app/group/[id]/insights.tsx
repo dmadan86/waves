@@ -41,7 +41,6 @@ import {
   type BarDatum,
   type ColumnDatum,
   useTheme,
-  useScreenClearance,
 } from '@waves/ui';
 
 import { CategoryBadge } from '@/components/Category';
@@ -51,6 +50,7 @@ import { computeSpendingRows } from '@/data/spending';
 import { useGroup } from '@/data/hooks';
 import { useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
+import { useBottomClearance } from '@/lib/clearance';
 
 enum Scope {
   Group = 'group',
@@ -62,7 +62,7 @@ const MONTHS_SHOWN = 6;
 
 export default function InsightsScreen() {
   const theme = useTheme();
-  const clearance = useScreenClearance();
+  const clearance = useBottomClearance();
   const { t, locale } = useStrings();
   const { id } = useLocalSearchParams<{ id: string }>();
   const groupId = id ?? '';

@@ -51,7 +51,6 @@ import {
   SectionHeader,
   Sheet,
   Text,
-  useTabBarClearance,
   useTheme,
 } from '@waves/ui';
 
@@ -63,6 +62,7 @@ import { useReducedMotion } from '@/lib/reducedMotion';
 import { useGroups } from '@/data/hooks';
 import { displayName, groupLabel, GroupType, type MemberRow } from '@/data/types';
 import { useAuth } from '@/lib/auth';
+import { useBottomClearance } from '@/lib/clearance';
 
 /** What a column in the file has been mapped to. */
 type Mapping = { kind: 'me' } | { kind: 'member'; memberId: string } | { kind: 'ghost' };
@@ -131,9 +131,10 @@ export default function ImportScreen() {
   // The bottom bar shows on this screen (it is a settings page, not a modal), and
   // it is opaque — so the scroll has to clear the *bar*, not just the system
   // inset. `useScreenClearance` only cleared the inset, which left the Import CTA
-  // jammed under the bar. `useTabBarClearance` is the bar-aware room the other
-  // settings screens use; a token more on top gives the footer CTA its breath.
-  const clearance = useTabBarClearance() + theme.spacing.xl;
+  // jammed under the bar. `useBottomClearance` asks the bar itself whether it is
+  // showing here rather than this screen having to know; a token more on top
+  // gives the footer CTA its breath.
+  const clearance = useBottomClearance() + theme.spacing.xl;
   const { t, locale } = useStrings();
   const reduceMotion = useReducedMotion();
   const groups = useGroups();

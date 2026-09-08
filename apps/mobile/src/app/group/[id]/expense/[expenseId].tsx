@@ -25,7 +25,6 @@ import {
   SegmentedTabs,
   Text,
   useTheme,
-  useScreenClearance,
 } from '@waves/ui';
 
 import { format, money } from '@waves/core';
@@ -53,6 +52,7 @@ import { plural, useStrings, type UiStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { expenseReceiptPath, expenseReceiptUrl } from '@/data/api';
 import { coordLabel, mapsUrl } from '@/lib/location';
+import { useBottomClearance } from '@/lib/clearance';
 
 function splitLabels(t: UiStrings): Record<string, string> {
   return {
@@ -126,7 +126,7 @@ function DetailLine({
 export default function ExpenseDetailScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const clearance = useScreenClearance();
+  const clearance = useBottomClearance();
   const { t, locale } = useStrings();
   const { id, expenseId } = useLocalSearchParams<{ id: string; expenseId: string }>();
   const groupId = id ?? '';

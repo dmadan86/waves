@@ -75,7 +75,6 @@ import {
   Screen,
   SectionHeader,
   Text,
-  useScreenClearance,
   useTheme,
   type Theme,
 } from '@waves/ui';
@@ -89,6 +88,7 @@ import {
 } from '@/lib/dictation';
 import { useReducedMotion } from '@/lib/reducedMotion';
 import { speechModels } from '@/lib/speechModels';
+import { useBottomClearance } from '@/lib/clearance';
 
 /**
  * How long a download may run before the screen stops claiming to know.
@@ -149,7 +149,7 @@ function localeName(tag: string, locale: string): string | null {
 
 export default function OfflineVoiceScreen() {
   const theme = useTheme();
-  const clearance = useScreenClearance();
+  const clearance = useBottomClearance();
   const reduceMotion = useReducedMotion();
   const { t, locale } = useStrings();
   const [progress, setProgress] = useState<Record<string, RowProgress>>({});

@@ -32,7 +32,6 @@ import {
   TintCard,
   tintForKey,
   useTheme,
-  useScreenClearance,
 } from '@waves/ui';
 
 import { CategoryBadge } from '@/components/Category';
@@ -42,6 +41,7 @@ import { displayName, groupLabel, type ExpenseRow } from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { paidBy } from '@/lib/payerLines';
+import { useBottomClearance } from '@/lib/clearance';
 
 /** One row of the flattened month: the header tile, a day heading, or a bill. */
 type MonthItem =
@@ -59,7 +59,7 @@ function myShare(shares: { member_id: string; amount: string }[], memberId: stri
 
 export default function SpendingMonthScreen() {
   const theme = useTheme();
-  const clearance = useScreenClearance();
+  const clearance = useBottomClearance();
   const { t, locale } = useStrings();
   const params = useLocalSearchParams<{
     id: string;

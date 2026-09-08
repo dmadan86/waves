@@ -29,6 +29,7 @@ import {
   Row,
   Screen,
   Text,
+  useScreenClearance,
   useTheme,
 } from '@waves/ui';
 
@@ -174,6 +175,9 @@ const consumedScans = new Set<string>();
 export default function CaptureScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  // What the pinned Save bar leaves beneath itself for the system navigation
+  // bar, from the helper every scrolling screen uses for the same question.
+  const clearance = useScreenClearance(theme.spacing.md);
   const { t, locale } = useStrings();
   const createCapture = useCreateCapture();
   const updateCapture = useUpdateCapture();
@@ -490,7 +494,7 @@ export default function CaptureScreen() {
   // renders with the shot, on cancel it navigates back.
   if (awaitingScan) {
     return (
-      <Screen edges={['top', 'bottom']}>
+      <Screen edges={['top']}>
         <View
           style={{
             flex: 1,
@@ -509,7 +513,7 @@ export default function CaptureScreen() {
   }
 
   return (
-    <Screen edges={['top', 'bottom']}>
+    <Screen edges={['top']}>
       <View style={{ paddingHorizontal: theme.spacing.xl }}>
         <ExpenseHeader title={isEditing ? t.captures.editTitle : t.captures.newTitle} />
       </View>
@@ -716,6 +720,12 @@ export default function CaptureScreen() {
         style={{
           paddingHorizontal: theme.spacing.xl,
           paddingTop: theme.spacing.md,
+          // The bar carries the navigation-bar inset itself rather than letting
+          // the Screen hold it off the bottom edge: its fill and hairline reach
+          // the edge, Save keeps a breath under it, and the picker sheets — which
+          // are absolutely positioned inside this same tree — can finally reach
+          // the bottom of the screen instead of stopping at the Screen's padding.
+          paddingBottom: clearance,
           gap: theme.spacing.sm,
           borderTopWidth: 1,
           borderTopColor: theme.color.border,

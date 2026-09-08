@@ -38,7 +38,29 @@ import {
   startOfDay,
 } from '@/lib/calendarGrid';
 
+/**
+ * A day cell's height, and the diameter the day's own circle is drawn at.
+ *
+ * Not its width: the seven columns share the width they are given, so the grid
+ * is exactly as wide as whatever holds it. It used to be a width too, and seven
+ * fixed cells with `Row`'s default 12pt gap between them came to 352 points —
+ * wider than the content box of a sheet on a 360pt phone, which pushed the grid
+ * (and everything else sharing that scroll column, such as the From/To line) off
+ * the right-hand edge. The gap did a second kind of damage: it broke the tinted
+ * span between the two ends into stripes, since a band drawn inside a cell
+ * cannot cross the gap to the next one.
+ */
 const CELL = 40;
+
+/**
+ * How wide the calendar is allowed to get before it stops growing.
+ *
+ * Columns that share the width need a ceiling, or on a tablet seven day circles
+ * drift to the far corners of a very wide row with the tint band stretched
+ * between them. Roughly a large phone's grid: past that the calendar centres
+ * itself in whatever it was given.
+ */
+const MAX_GRID_WIDTH = 7 * 56;
 
 export function RangeCalendar({
   earliest = null,
@@ -124,7 +146,14 @@ export function RangeCalendar({
   const weeks = monthGrid(view, weekStart);
 
   return (
-    <View style={{ gap: theme.spacing.sm }}>
+    <View
+      style={{
+        gap: theme.spacing.sm,
+        width: '100%',
+        maxWidth: MAX_GRID_WIDTH,
+        alignSelf: 'center',
+      }}
+    >
       {/* Month header with ‹ › paging, clamped to the caller's months. */}
       <Row style={{ alignItems: 'center', justifyContent: 'space-between' }}>
         <Pressable
@@ -163,9 +192,9 @@ export function RangeCalendar({
       {/* Weekday initials. The row is a plain `row`, which React Native reverses
           under RTL, so the first weekday lands on the side the reader starts
           from and the columns below line up with it either way. */}
-      <Row>
+      <Row gap={0}>
         {weekdays.map((w, i) => (
-          <View key={i} style={{ width: CELL, alignItems: 'center' }}>
+          <View key={i} style={{ flex: 1, alignItems: 'center' }}>
             <Text variant="micro" tone="faint" style={{ fontWeight: '600' }}>
               {w}
             </Text>
@@ -176,9 +205,9 @@ export function RangeCalendar({
       {/* The day grid. */}
       <View style={{ gap: 2 }}>
         {weeks.map((week, wi) => (
-          <Row key={wi}>
+          <Row key={wi} gap={0}>
             {week.map((d, di) => {
-              if (!d) return <View key={di} style={{ width: CELL, height: CELL }} />;
+              if (!d) return <View key={di} style={{ flex: 1, height: CELL }} />;
               const disabled = !inBounds(d);
               const isFrom = spanLo !== null && sameDay(d, spanLo);
               const isTo = spanHi !== null && sameDay(d, spanHi);
@@ -202,7 +231,12 @@ export function RangeCalendar({
                   disabled={disabled}
                   onPress={() => pick(d)}
                   style={{
-                    width: CELL,
+                    // A seventh of the row rather than a fixed 40: the columns
+                    // divide the width they are given, which is what keeps the
+                    // grid inside its container on a narrow phone and lets the
+                    // tint band run unbroken from one end of a range to the
+                    // other. The circle inside stays its own fixed size.
+                    flex: 1,
                     height: CELL,
                     alignItems: 'center',
                     justifyContent: 'center',
