@@ -50,7 +50,7 @@ import { useCaptures, useDeleteCapture, useGroups, useHomeSummary } from '@/data
 import { groupLabel, type CaptureRow, type GroupRow } from '@/data/types';
 import { fill, plural, useStrings, type UiStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
-import { assignCaptureHref } from '@/lib/captureAssign';
+import { assignCaptureHref, matchesAssignGroupQuery } from '@/lib/captureAssign';
 import { foldedCaptureCount } from '@/lib/captureBatch';
 import { buildCaptureFeedItems, type CaptureFeedItem } from '@/lib/captureFeed';
 import { usePullRefresh } from '@/lib/pullRefresh';
@@ -544,10 +544,9 @@ export default function CapturesScreen() {
   // search field once the list is long enough to scroll (below); until then the
   // memo just passes every group through.
   const visibleGroups = useMemo(() => {
-    const needle = query.trim().toLowerCase();
-    if (!needle) return assignableGroups;
+    if (!query.trim()) return assignableGroups;
     return assignableGroups.filter((group) =>
-      groupLabel(group, summary.membersFor(group.id), profile?.id).toLowerCase().includes(needle),
+      matchesAssignGroupQuery(groupLabel(group, summary.membersFor(group.id), profile?.id), query),
     );
   }, [assignableGroups, query, summary, profile?.id]);
 
