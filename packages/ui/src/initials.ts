@@ -22,16 +22,29 @@
  */
 const LEADING_NOISE = /^[^\p{L}\p{N}]+/u;
 
+function wordsForInitials(name: string): string[] {
+  const raw = name.split(/\s+/).filter((word) => word.length > 0);
+  const words = raw
+    .map((word) => word.replace(LEADING_NOISE, ''))
+    .filter((word) => word.length > 0);
+
+  // Some phone books prefix imported names with a short marker like `.Rvs`.
+  // Using that marker makes every avatar in that imported cluster identical
+  // (`RA`, `RA`, `RA`), so skip it when there is an actual name after it.
+  const firstRaw = raw[0] ?? '';
+  const firstWord = words[0] ?? '';
+  if (LEADING_NOISE.test(firstRaw) && [...firstWord].length <= 3 && words.length > 1) {
+    return words.slice(1);
+  }
+  return words;
+}
+
 /**
  * Up to two letters, from the first two words that have a letter or digit in
  * them at all.
  */
 export function initialsOf(name: string): string {
-  const words = name
-    .split(/\s+/)
-    .map((word) => word.replace(LEADING_NOISE, ''))
-    .filter((word) => word.length > 0)
-    .slice(0, 2);
+  const words = wordsForInitials(name).slice(0, 2);
 
   return (
     words

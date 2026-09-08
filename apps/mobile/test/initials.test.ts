@@ -20,11 +20,16 @@ describe('initialsOf', () => {
   });
 
   it('skips punctuation in front of a name', () => {
-    // The bug: all three of these used to come back as '.A'.
-    expect(initialsOf('.Rvs Amirnath')).toBe('RA');
-    expect(initialsOf('.Rvs Arun T')).toBe('RA');
     expect(initialsOf('·Anoop')).toBe('A');
     expect(initialsOf('  Priya  Sharma ')).toBe('PS');
+  });
+
+  it('skips short punctuated contact prefixes instead of making every imported contact identical', () => {
+    // The bug: all three of these used to come back as '.A', and then as the
+    // equally unhelpful 'RA' when the leading dot alone was stripped.
+    expect(initialsOf('.Rvs Amirnath')).toBe('A');
+    expect(initialsOf('.Rvs Arun T')).toBe('AT');
+    expect(initialsOf('.Rvs Anoop')).toBe('A');
   });
 
   it('keeps the first letter of a non-Latin name', () => {
