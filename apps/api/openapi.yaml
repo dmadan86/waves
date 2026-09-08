@@ -1,0 +1,3873 @@
+openapi: 3.1.0
+
+info:
+  title: Waves API
+  version: 1.0.0
+  summary: Read and write a Waves shared ledger — groups, expenses, settlements and balances.
+  description: |
+    The Waves API lets a program act for a Waves user: read the groups they are
+    in, add and edit expenses, record payments, and read what everybody is owed.
+    Every request runs as that person with their row-level security intact, so a
+    token can never reach a group its owner could not reach from the app. A scope
+    only narrows what the token may do; it never widens what the person can see.
+
+    ## Authenticating
+
+    There are two ways in, and they produce the same kind of credential.
+
+    **A personal access token** is a developer acting on their own account. It is
+    created in the Waves developer console, carries a fixed scope list, and is
+    sent as `Authorization: Bearer wavs_pat_…`. Use this when the program and the
+    account belong to the same person.
+
+    **OAuth 2.1 authorization code with PKCE** is somebody else's program acting
+    for a Waves user who approved it. Send the browser to `/oauth/authorize`,
+    exchange the returned code at `/oauth/token`, and use the resulting
+    `wavs_at_…` access token in the same `Authorization` header. `S256` is the
+    only code challenge method accepted, and a refresh token is only issued when
+    `offline_access` was granted. Refresh tokens rotate: each one is single-use,
+    and replaying a spent one disconnects the application.
+
+    Both are checked the same way on every call — the signature first, then the
+    token row, which is where revocation, expiry, the current scope list and the
+    rate limit live. Narrowing an application's scopes therefore takes effect on
+    its next request, not on its next token.
+
+    ## Conventions
+
+    - **Money is a decimal string of minor units, always beside its currency.**
+      `"125000"` with `"INR"` is ₹1,250.00. A JSON number cannot hold the range
+      and rounds silently on the way past, so amounts are strings everywhere they
+      appear, in both directions.
+    - Field names are `snake_case`.
+    - Lists that can grow without bound use keyset pagination: pass `limit` and
+      `cursor`, and follow `next_cursor` until it is `null`. Never count rows to
+      decide whether there is a next page — a page can come back shorter than
+      `limit` and still have one.
+    - Writes accept an `Idempotency-Key` header. A retry with the same key
+      returns the original write rather than making a second one — except
+      `POST /v1/categories`, where the retry is refused with a 409 rather than
+      adding a second tag. Either way you never end up with a duplicate.
+    - Boolean query parameters accept `true`/`1`/`yes`/`on` and
+      `false`/`0`/`no`/`off`, case-insensitively. Anything else is a 400 rather
+      than a silent false.
+    - Every response carries `X-Request-Id`. Quote it when reporting a problem.
+    - Every authenticated response carries `RateLimit-Limit`,
+      `RateLimit-Remaining` and `RateLimit-Reset`. All three are integers, and
+      `RateLimit-Reset` is **seconds from now**, matching `Retry-After` on the
+      429 that follows.
+    - Errors under `/v1` and `/developer` are always
+      `{"error": {"code": …, "message": …, "request_id": …}}`. The `/oauth`
+      endpoints are the one exception: they answer in RFC 6749's shape,
+      `{"error": "invalid_grant", "error_description": …}` with `error` as a
+      plain string, because that is what every OAuth client library parses.
+    - A refusal that came from the database rather than from a rule this API
+      wrote — a malformed id, a value too long for its column, a constraint —
+      still arrives with the right status, but with a fixed generic sentence.
+      The database's own message names columns and constraints that are ours,
+      not yours, so it is never forwarded. Branch on `code`, and check the ids
+      and values you sent.
+
+    ## Behaviour a client library must handle
+
+    Two places where the obvious generic wrapper is wrong. Both are deliberate,
+    and both bite silently rather than loudly.
+
+    **Pagination — stop on `next_cursor`, never on a short page.**
+    `GET /v1/expenses` drops any expense whose current version you cannot read,
+    because half an expense is worse than none, but it decides the page boundary
+    on the rows the database returned, *before* dropping any. So `data` can hold
+    fewer than `limit` items — even zero — and still carry a `next_cursor` that
+    must be followed. A loop that exits on `data.length < limit`, or on an empty
+    `data`, stops early with expenses unread and reports success.
+
+    **Retries — one endpoint answers 409 instead of replaying.** Every write
+    that takes an `Idempotency-Key` derives a stable id from it, so a retry
+    lands on the row it already wrote. For all of them but one that means the
+    original resource comes back. `POST /v1/categories` instead answers
+    `409 conflict`, because the row is inserted directly rather than through an
+    RPC that recognises a replay. A retry wrapper that treats 409 as a failure
+    will report an error for a write that in fact succeeded the first time; on
+    that endpoint, a 409 after a retry means "already created", and the current
+    row is in `GET /v1/categories`. You never end up with a duplicate either
+    way.
+
+    ## Rate limits
+
+    Two buckets, per minute: one per token and one per person. The defaults are
+    300 requests per token and 900 per account, and a deployment can change both
+    (`api_rate_limit_per_minute`, `api_rate_limit_per_minute_user`). The
+    per-person bucket is the one that actually bounds a caller, since minting a
+    second token takes a second.
+  contact:
+    name: Waves developer console
+    url: https://wavs.co.in/developers
+
+servers:
+  - url: '{protocol}://{host}'
+    description: |
+      A Waves deployment. There is no single production hostname baked into this
+      description on purpose: the service derives its own base URL from the
+      request it received (see `publicBaseUrl` in `apps/api/src/server/env.ts`),
+      so a fork, a preview deployment and a self-host each describe themselves
+      correctly with no configuration. Whatever address you are reading this
+      document from is the address to call. Set `host` to your own if you are
+      self-hosting; `api.wavs.co.in` is only the hosted deployment's value.
+    variables:
+      protocol:
+        default: https
+        enum:
+          - https
+          - http
+        description: >-
+          `http` is accepted only for a loopback deployment a developer is
+          running locally. Everything else is TLS.
+      host:
+        default: api.wavs.co.in
+        description: >-
+          The host this deployment is served from. Override it for a self-hosted
+          instance, a preview deployment, or `localhost:3001` in development.
+
+tags:
+  - name: Identity
+    description: Who the token is acting as.
+  - name: Groups
+    description: Groups, the people in them, and what each of those people is owed.
+  - name: Expenses
+    description: >-
+      The ledger. Shares are recomputed server-side from the split parameters on
+      every write; the numbers you send are a claim to be checked, not an
+      instruction.
+  - name: Settlements
+    description: >-
+      Money that has moved between two people, or says it has. Recording one is
+      a claim; it becomes real when the person who was paid confirms it.
+  - name: Friends
+    description: >-
+      Who you owe and who owes you, netted across every group you share with
+      them.
+  - name: Categories
+    description: A person's own expense tag catalogue.
+  - name: OAuth
+    description: >-
+      The authorization code flow, its discovery document, and the scope
+      catalogue. These endpoints answer in RFC 6749's error shape, not this
+      API's.
+  - name: Developer console
+    description: >-
+      The console's own surface: personal access tokens, registered
+      applications, and the list of apps a person has connected. Authenticated
+      by a signed-in Waves session rather than an API token, and **not part of
+      the public contract's stability promise** — it exists to serve the Waves
+      developer console and may change without a version bump.
+  - name: Service
+    description: Liveness and a deployment's own account of itself.
+
+security:
+  - bearerAuth: []
+
+paths:
+  # ───────────────────────────────────────────────────────────── service ──
+
+  /health:
+    get:
+      tags: [Service]
+      operationId: getHealth
+      summary: Liveness, and which configuration is missing
+      description: >-
+        Answers 200 either way. `status` is `ok` when the deployment has
+        everything it needs, `misconfigured` when it does not, and `degraded`
+        when the backend could not be reached to find out. `missing` names the
+        environment variables that are unset. It names variables, never values.
+
+
+        `signing` is the one an operator should read after a deploy. The API
+        authenticates by signing a short session for the person a token names,
+        which works only while the project accepts its legacy HS256 secret;
+        `state` is `ok` if a freshly signed session was actually accepted,
+        `rejected` if it was not. This cannot be inferred from the project's
+        JWKS document, because symmetric keys are excluded from it by design —
+        so the check signs a token and presents it rather than reasoning about
+        configuration.
+      security: []
+      responses:
+        '200':
+          description: The deployment's own account of itself.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+
+  # ─────────────────────────────────────────────────────────── identity ──
+
+  /v1/me:
+    get:
+      tags: [Identity]
+      operationId: getMe
+      summary: The account this token acts for
+      description: >-
+        The first call worth making. It answers not "is this token valid" but
+        "whose account am I about to write to".
+      security:
+        - bearerAuth: []
+        - oauth2: [identity.read]
+      responses:
+        '200':
+          description: The profile the token belongs to.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404':
+          description: This account has no profile row yet.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '500': { $ref: '#/components/responses/InternalError' }
+    patch:
+      tags: [Identity]
+      operationId: updateMe
+      summary: Change profile details
+      description: >-
+        Only `display_name`, `default_currency`, `country_code` and `locale` can
+        be changed through the API. Any other field in the body is ignored
+        rather than refused. Send at least one of them.
+      security:
+        - bearerAuth: []
+        - oauth2: [identity.write]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateMeRequest'
+      responses:
+        '200':
+          description: The profile as it now stands.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  # ───────────────────────────────────────────────────────────── groups ──
+
+  /v1/groups:
+    get:
+      tags: [Groups]
+      operationId: listGroups
+      summary: List the groups this person is in
+      description: >-
+        Newest first. Archived groups are left out unless `include_archived` is
+        the literal string `true`.
+      security:
+        - bearerAuth: []
+        - oauth2: [groups.read]
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+        - name: include_archived
+          in: query
+          required: false
+          description: Include archived groups. Defaults to false.
+          schema:
+            $ref: '#/components/schemas/QueryFlag'
+      responses:
+        '200':
+          description: One page of groups.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupPage'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '500': { $ref: '#/components/responses/InternalError' }
+    post:
+      tags: [Groups]
+      operationId: createGroup
+      summary: Create a group
+      description: >-
+        The caller becomes its first member and an admin. The group's id is
+        derived from the `Idempotency-Key`, so a retried create returns the same
+        group rather than a second one.
+      security:
+        - bearerAuth: []
+        - oauth2: [groups.write]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateGroupRequest'
+      responses:
+        '201':
+          description: The group as created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Group'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /v1/groups/{groupId}:
+    parameters:
+      - $ref: '#/components/parameters/GroupId'
+    get:
+      tags: [Groups]
+      operationId: getGroup
+      summary: Read one group
+      description: >-
+        A group the caller is not in is not forbidden, it is absent: the read
+        runs under their own session and returns no row, which becomes a 404.
+      security:
+        - bearerAuth: []
+        - oauth2: [groups.read]
+      responses:
+        '200':
+          description: The group.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Group'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '500': { $ref: '#/components/responses/InternalError' }
+    patch:
+      tags: [Groups]
+      operationId: updateGroup
+      summary: Change a group's settings, or archive it
+      description: >-
+        Send at least one editable field. Pass `if_revision` with the `revision`
+        you last read to make the write conditional: if somebody else changed
+        the group in between you get a 409 instead of silently reverting their
+        edit.
+      security:
+        - bearerAuth: []
+        - oauth2: [groups.write]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateGroupRequest'
+      responses:
+        '200':
+          description: The group as it now stands.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Group'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: >-
+            `if_revision` was sent and the group has changed since you read it.
+            Re-read the group and decide what to do with your edit.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '500': { $ref: '#/components/responses/InternalError' }
+    delete:
+      tags: [Groups]
+      operationId: deleteGroup
+      summary: Delete a group
+      description: >-
+        Admin-only, and only when everybody is settled — both decided
+        server-side. A tombstone rather than a row delete: the ledger stays
+        append-only.
+      security:
+        - bearerAuth: []
+        - oauth2: [groups.write]
+      responses:
+        '204':
+          description: Deleted.
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403':
+          description: >-
+            `insufficient_scope`, or `forbidden` because you are not an admin of
+            this group.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422':
+          description: >-
+            `NOT_SETTLED` — somebody in the group still owes somebody else.
+            Settle up first.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /v1/groups/{groupId}/members:
+    parameters:
+      - $ref: '#/components/parameters/GroupId'
+    get:
+      tags: [Groups]
+      operationId: listGroupMembers
+      summary: Who is in a group
+      description: >-
+        Returns the complete list. Not paginated — a group's membership is
+        bounded — so the answer is a plain `{"data": […]}` with no cursor and
+        there is nothing to loop over. Oldest first.
+      security:
+        - bearerAuth: []
+        - oauth2: [groups.read]
+      parameters:
+        - name: include_left
+          in: query
+          required: false
+          description: >-
+            Include people who have left. Their history and balances count
+            either way; they just stop accruing new shares. Defaults to false.
+          schema:
+            $ref: '#/components/schemas/QueryFlag'
+      responses:
+        '200':
+          description: The group's members.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberList'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '500': { $ref: '#/components/responses/InternalError' }
+    post:
+      tags: [Groups]
+      operationId: addGroupMember
+      summary: Add a person to a group
+      description: >-
+        Adds a *ghost*: a name in the group, with expenses filed against it,
+        that a real person can later claim through an invite. There is no way to
+        add somebody else's account to a group from the API, and there should
+        not be — joining is something a person does, not something done to them.
+        The member's id is derived from the `Idempotency-Key`.
+      security:
+        - bearerAuth: []
+        - oauth2: [groups.write]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddMemberRequest'
+      responses:
+        '201':
+          description: The member as added.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Member'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /v1/groups/{groupId}/members/{memberId}:
+    parameters:
+      - $ref: '#/components/parameters/GroupId'
+      - $ref: '#/components/parameters/MemberId'
+    patch:
+      tags: [Groups]
+      operationId: updateGroupMember
+      summary: Rename a member, or change their role
+      description: >-
+        Send `role`, `name`, or both — a body with neither is a 400 naming the
+        two fields, not a silent no-op. The member is looked up under the group
+        in the URL before anything is written, so a member of another group is a
+        404 here even when the caller can see them. `role` is applied by a
+        server-side call that enforces admin-only, refuses to demote the last
+        admin, and refuses to promote a ghost.
+      security:
+        - bearerAuth: []
+        - oauth2: [groups.write]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateMemberRequest'
+      responses:
+        '200':
+          description: The member as it now stands.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Member'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422':
+          description: >-
+            The role change is not one the group can accept — demoting the last
+            admin (`LAST_ADMIN`), or promoting a ghost (`GHOST_CANNOT_ADMIN`).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '500': { $ref: '#/components/responses/InternalError' }
+    delete:
+      tags: [Groups]
+      operationId: removeGroupMember
+      summary: Remove a member from a group
+      description: >-
+        A soft exit. The history stays and the balances still count; the person
+        just stops accruing new shares. Removing the row would delete somebody's
+        debts. Answers 404 if they had already left.
+      security:
+        - bearerAuth: []
+        - oauth2: [groups.write]
+      responses:
+        '204':
+          description: They have left.
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /v1/groups/{groupId}/balances:
+    parameters:
+      - $ref: '#/components/parameters/GroupId'
+    get:
+      tags: [Groups]
+      operationId: listGroupBalances
+      summary: What each member is owed in a group
+      description: >-
+        One row per member per currency. Positive means the member is owed;
+        negative means they owe. Returns the complete list — not paginated,
+        nothing to loop over. A group everybody is square in answers an empty
+        list, as does a group the caller cannot see.
+      security:
+        - bearerAuth: []
+        - oauth2: [groups.read]
+      responses:
+        '200':
+          description: The group's balances.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BalanceList'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  # ─────────────────────────────────────────────────────────── expenses ──
+
+  /v1/expenses:
+    get:
+      tags: [Expenses]
+      operationId: listExpenses
+      summary: List expenses
+      description: >-
+        Newest first, across every group the caller is in unless `group_id`
+        narrows it.
+
+
+        **`data` may hold fewer than `limit` items and still carry a
+        `next_cursor`.** An expense whose current version the caller cannot read
+        is dropped rather than half-rendered — half an expense is worse than
+        none — but the page boundary is computed on the rows the database
+        returned, before any are dropped, so the cursor stays correct. Stop when
+        `next_cursor` is `null`, never when `data.length < limit`; a client that
+        does the latter will stop early with expenses still unread.
+      security:
+        - bearerAuth: []
+        - oauth2: [expenses.read]
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+        - name: group_id
+          in: query
+          required: false
+          description: Only expenses in this group.
+          schema:
+            type: string
+            format: uuid
+        - name: include_deleted
+          in: query
+          required: false
+          description: Include soft-deleted expenses. Defaults to false.
+          schema:
+            $ref: '#/components/schemas/QueryFlag'
+      responses:
+        '200':
+          description: One page of expenses.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExpensePage'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '500': { $ref: '#/components/responses/InternalError' }
+    post:
+      tags: [Expenses]
+      operationId: createExpense
+      summary: Add an expense
+      description: |
+        The shares are recomputed server-side from `split`, `amount` and
+        `participants` by the same code the Waves app runs. If the result
+        disagrees with what you sent the write is refused with a `conflict`
+        rather than accepted — the client's arithmetic is a claim to be checked,
+        never an instruction. That also means a new split kind or a change to
+        the remainder rotation reaches this API for free.
+
+        `payers` must add up to `amount`.
+      security:
+        - bearerAuth: []
+        - oauth2: [expenses.write]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateExpenseRequest'
+      responses:
+        '201':
+          description: The expense as written, with the shares the server computed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Expense'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: >-
+            The shares or payers you sent do not reconcile with the amount
+            (`SHARE_MISMATCH`), or a concurrent write got there first.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /v1/expenses/{expenseId}:
+    parameters:
+      - $ref: '#/components/parameters/ExpenseId'
+    get:
+      tags: [Expenses]
+      operationId: getExpense
+      summary: Read one expense
+      security:
+        - bearerAuth: []
+        - oauth2: [expenses.read]
+      responses:
+        '200':
+          description: The expense, at its current version.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Expense'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '500': { $ref: '#/components/responses/InternalError' }
+    patch:
+      tags: [Expenses]
+      operationId: updateExpense
+      summary: Edit an expense
+      description: >-
+        An edit is a new version, not a mutation of the old one, so it carries
+        the whole expense rather than a patch — there is no "change only the
+        amount", because a version is a complete snapshot. Send
+        `base_version_no` with the `version_no` you read to turn a concurrent
+        edit into a refusal instead of a silent overwrite.
+
+
+        There is no `group_id` in the body: the group is read off the expense
+        itself, so no group id in this request is one anybody chose. An expense
+        you cannot see, or one that is deleted, is a 404 — restore it first.
+      security:
+        - bearerAuth: []
+        - oauth2: [expenses.write]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateExpenseRequest'
+      responses:
+        '200':
+          description: The expense at its new version.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Expense'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: >-
+            The shares do not reconcile (`SHARE_MISMATCH`), or
+            `base_version_no` is not the current version (`STALE_REVISION`) —
+            somebody edited the expense after you read it.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '500': { $ref: '#/components/responses/InternalError' }
+    delete:
+      tags: [Expenses]
+      operationId: deleteExpense
+      summary: Delete an expense
+      description: >-
+        Soft, and restorable through `POST /v1/expenses/{expenseId}/restore`. A
+        share somebody could remove for good would be a debt they could delete.
+      security:
+        - bearerAuth: []
+        - oauth2: [expenses.write]
+      responses:
+        '204':
+          description: Deleted.
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /v1/expenses/{expenseId}/restore:
+    parameters:
+      - $ref: '#/components/parameters/ExpenseId'
+    post:
+      tags: [Expenses]
+      operationId: restoreExpense
+      summary: Restore a deleted expense
+      description: >-
+        Undoes a soft delete. Takes no body and no `Idempotency-Key` — it is
+        naturally idempotent.
+      security:
+        - bearerAuth: []
+        - oauth2: [expenses.write]
+      responses:
+        '200':
+          description: The expense, no longer deleted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Expense'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422':
+          description: >-
+            `RESTORE_WINDOW_EXPIRED` — this expense was deleted too long ago to
+            bring back.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  # ──────────────────────────────────────────────────────── settlements ──
+
+  /v1/settlements:
+    get:
+      tags: [Settlements]
+      operationId: listSettlements
+      summary: List payments
+      description: Most recently initiated first.
+      security:
+        - bearerAuth: []
+        - oauth2: [settlements.read]
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+        - name: group_id
+          in: query
+          required: false
+          description: Only payments in this group.
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          required: false
+          description: >-
+            Only payments in this state. Validated against the lifecycle: a
+            value outside the enum is a 400, not an empty page.
+          schema:
+            $ref: '#/components/schemas/SettlementStatus'
+      responses:
+        '200':
+          description: One page of settlements.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SettlementPage'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '500': { $ref: '#/components/responses/InternalError' }
+    post:
+      tags: [Settlements]
+      operationId: createSettlement
+      summary: Record a payment
+      description: >-
+        Records a claim that money moved, not the movement itself; it counts
+        against the ledger once the payee confirms it. The `Idempotency-Key`
+        matters more here than anywhere else in the API — a retried "I paid
+        them" that recorded twice would take a real debt to a negative balance,
+        so this endpoint requires the header.
+      security:
+        - bearerAuth: []
+        - oauth2: [settlements.write]
+      parameters:
+        - $ref: '#/components/parameters/RequiredIdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSettlementRequest'
+      responses:
+        '201':
+          description: The settlement as recorded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Settlement'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422':
+          description: >-
+            `NOTHING_OWED` — there is no debt between these two people for this
+            payment to settle.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /v1/settlements/{settlementId}:
+    parameters:
+      - $ref: '#/components/parameters/SettlementId'
+    get:
+      tags: [Settlements]
+      operationId: getSettlement
+      summary: Read one payment
+      security:
+        - bearerAuth: []
+        - oauth2: [settlements.read]
+      responses:
+        '200':
+          description: The settlement.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Settlement'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /v1/settlements/{settlementId}/confirm:
+    parameters:
+      - $ref: '#/components/parameters/SettlementId'
+    post:
+      tags: [Settlements]
+      operationId: confirmSettlement
+      summary: Confirm that a payment reached you
+      description: >-
+        "Yes, that reached me." Only the payee may say it, and that is decided
+        server-side — a token with `settlements.write` can confirm the payments
+        addressed to its owner and nobody else's. Takes no body.
+      security:
+        - bearerAuth: []
+        - oauth2: [settlements.write]
+      responses:
+        '200':
+          description: The settlement, now confirmed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Settlement'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403':
+          description: >-
+            You are not the person this payment was made to, so you cannot
+            confirm it.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: >-
+            `INVALID_TRANSITION` — this payment is not in a state that can be
+            confirmed. It has already been confirmed, or was cancelled or
+            disputed.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  # ──────────────────────────────────────────────────────────── friends ──
+
+  /v1/friends:
+    get:
+      tags: [Friends]
+      operationId: listFriends
+      summary: Who you owe and who owes you
+      description: >-
+        Not a friend list — there is no such table and nothing to add somebody
+        to. It is the derived answer to "who am I not square with", netted
+        across every group you share with them, per currency. That is why there
+        is no write here: adding a person is creating a group with them in it,
+        which is `POST /v1/groups` followed by
+        `POST /v1/groups/{groupId}/members`. Returns the complete list — not
+        paginated, nothing to loop over.
+      security:
+        - bearerAuth: []
+        - oauth2: [friends.read]
+      responses:
+        '200':
+          description: Everybody you are not square with.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FriendList'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  # ───────────────────────────────────────────────────────── categories ──
+
+  /v1/categories:
+    get:
+      tags: [Categories]
+      operationId: listCategories
+      summary: This person's expense categories
+      description: >-
+        The caller's own tag catalogue: rows that either override a built-in
+        category's presentation or define a custom tag of their own. Deleted
+        rows are left out. Ordered by `sort_order`. Returns the complete list —
+        not paginated, nothing to loop over.
+      security:
+        - bearerAuth: []
+        - oauth2: [categories.read]
+      responses:
+        '200':
+          description: The catalogue.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryList'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '500': { $ref: '#/components/responses/InternalError' }
+    post:
+      tags: [Categories]
+      operationId: createCategory
+      summary: Add a category, or override a built-in one
+      description: >-
+        Two shapes, and exactly one of them per call. Send `label` (and
+        optionally `icon` and `tint`) to mint a custom tag; send `builtin_id` to
+        override a built-in category's presentation. Sending both means you have
+        not decided which you meant, and is refused.
+
+
+        The row id is derived from `Idempotency-Key` like every other create
+        here, so a retry collides with the row it already wrote and comes back
+        409 rather than adding a second tag to somebody's picker. With no key
+        the id is random, which is what sending no key means.
+      security:
+        - bearerAuth: []
+        - oauth2: [categories.write]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCategoryRequest'
+      responses:
+        '201':
+          description: The category as created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /v1/categories/{categoryId}:
+    parameters:
+      - $ref: '#/components/parameters/CategoryId'
+    patch:
+      tags: [Categories]
+      operationId: updateCategory
+      summary: Change a category
+      description: >-
+        Send at least one of `label`, `icon`, `tint`, `hidden` or `sort_order`.
+        Hiding a built-in override is how a person removes a category they never
+        use without deleting anything.
+      security:
+        - bearerAuth: []
+        - oauth2: [categories.write]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCategoryRequest'
+      responses:
+        '200':
+          description: The category as it now stands.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '500': { $ref: '#/components/responses/InternalError' }
+    delete:
+      tags: [Categories]
+      operationId: deleteCategory
+      summary: Delete a category
+      description: >-
+        A tombstone rather than a row delete, because the catalogue syncs to the
+        phone and a row that simply vanished would come back on the next pull.
+        Answers 404 if it was already deleted.
+      security:
+        - bearerAuth: []
+        - oauth2: [categories.write]
+      responses:
+        '204':
+          description: Deleted.
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  # ────────────────────────────────────────────────────────────── oauth ──
+
+  /.well-known/oauth-authorization-server:
+    get:
+      tags: [OAuth]
+      operationId: getAuthorizationServerMetadata
+      summary: OAuth 2.0 authorization server metadata
+      description: >-
+        RFC 8414 discovery. Every address in it is derived from the request this
+        deployment received, so a fork or a self-host describes itself correctly
+        with no configuration. Unauthenticated.
+      security: []
+      responses:
+        '200':
+          description: This deployment's authorization server metadata.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthorizationServerMetadata'
+
+  /oauth/scopes:
+    get:
+      tags: [OAuth]
+      operationId: listScopes
+      summary: The scope catalogue
+      description: >-
+        Every scope this deployment knows, with the sentence a consent screen
+        shows for it. Unauthenticated, and not paginated.
+      security: []
+      responses:
+        '200':
+          description: The scopes and what each one lets somebody do.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScopeList'
+
+  /oauth/authorize:
+    get:
+      tags: [OAuth]
+      operationId: authorize
+      summary: Start the authorization code flow
+      description: |
+        Checks the *shape* of the request and redirects the browser to this
+        deployment's own consent screen, carrying the parameters along. It never
+        redirects to a caller-supplied address and never touches the database,
+        which is why it cannot be used to probe whether a client id exists —
+        whether the client and the redirect are real is decided later, under the
+        signed-in user's session.
+
+        Errors are returned as an RFC 6749 JSON body rather than bounced to
+        `redirect_uri`: a validator that redirected errors to an unverified
+        address would be an open redirect wearing an OAuth costume.
+      security: []
+      parameters:
+        - name: response_type
+          in: query
+          required: true
+          description: Must be `code`.
+          schema:
+            type: string
+            enum: [code]
+        - name: client_id
+          in: query
+          required: true
+          description: The application's public client id.
+          schema:
+            type: string
+            examples: ['wavs_app_5f2c1d9a4b7e42f1a0c6d3e8b91f7a24']
+        - name: redirect_uri
+          in: query
+          required: true
+          description: >-
+            Where to deliver the code. Must be one of the addresses registered
+            for this application — checked later, when the user approves.
+          schema:
+            type: string
+            format: uri
+        - name: scope
+          in: query
+          required: true
+          description: >-
+            Space-separated. Every entry must be a known scope; one unknown
+            entry fails the whole request rather than being silently dropped.
+          schema:
+            type: string
+            examples: ['identity.read groups.read expenses.write offline_access']
+        - name: code_challenge
+          in: query
+          required: true
+          description: The unpadded base64url SHA-256 of your verifier — 43 characters.
+          schema:
+            type: string
+            pattern: '^[A-Za-z0-9_-]{43}$'
+        - name: code_challenge_method
+          in: query
+          required: true
+          description: '`S256` only. `plain` is a challenge whose answer is in the same request.'
+          schema:
+            type: string
+            enum: [S256]
+        - name: state
+          in: query
+          required: false
+          description: Returned unchanged on the redirect back.
+          schema:
+            type: string
+      responses:
+        '302':
+          description: >-
+            Redirect to this deployment's consent screen. The user approves
+            there, and the screen calls `POST /oauth/authorize` with their own
+            session.
+          headers:
+            Location:
+              description: The consent screen, with the request's parameters attached.
+              schema:
+                type: string
+                format: uri
+        '400':
+          description: >-
+            The request is malformed, or `scope` names something this deployment
+            does not know.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OAuthError' }
+        '500':
+          description: >-
+            This deployment has no consent screen configured
+            (`WAVES_API_WEB_URL` is unset).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OAuthError' }
+    post:
+      tags: [OAuth]
+      operationId: approveAuthorization
+      summary: Record the user's approval and mint a code
+      description: >-
+        Called by the consent screen, authenticated by the *user's own Waves
+        session* rather than a client credential — the decision being recorded
+        is theirs. The redirect and the scopes are re-checked against the
+        application's registration here, because the browser between the two
+        screens is the attacker's ground and nothing it carries is believed
+        twice. Returns the address to send the browser to, rather than
+        redirecting, so the screen can control the navigation.
+
+
+        Because it carries a session, this endpoint is on the console's CORS
+        surface, not the public one: a browser can only call it from an origin
+        in the deployment's `WAVES_API_ALLOWED_ORIGINS` allowlist, and a
+        deployment that has not set that variable refuses browser calls
+        entirely. The `GET` beside it carries no credential and stays public.
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApproveAuthorizationRequest'
+      responses:
+        '200':
+          description: Where to send the browser, with the code attached.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [redirect_to]
+                properties:
+                  redirect_to:
+                    type: string
+                    format: uri
+                    description: >-
+                      The application's registered redirect with `code` and, if
+                      you sent one, `state` appended.
+        '400':
+          description: Malformed, or the redirect or scopes are not registered for this client.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OAuthError' }
+        '401':
+          description: No Waves session, or one the authorization server would not vouch for.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OAuthError' }
+        '500':
+          description: Something went wrong on our side.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OAuthError' }
+
+  /oauth/token:
+    post:
+      tags: [OAuth]
+      operationId: token
+      summary: Exchange a code, or rotate a refresh token
+      description: |
+        Form-encoded, as RFC 6749 requires. Two grants:
+
+        - `authorization_code` — send `code`, `redirect_uri` and
+          `code_verifier`. The verifier is 43 to 128 unreserved characters and
+          is checked against the challenge in the same statement that spends the
+          code, so two clients replaying the same code both run and exactly one
+          succeeds.
+        - `refresh_token` — send `refresh_token`. Refresh tokens are single-use:
+          each exchange returns a new one, and presenting a spent one is treated
+          as a compromise and disconnects the application.
+
+        A confidential client authenticates with HTTP Basic
+        (`client_secret_basic`) or `client_secret_post`; a public client sends
+        neither and is authenticated by PKCE and its registered redirect alone.
+
+        A `refresh_token` comes back from the code exchange only if
+        `offline_access` was among the granted scopes.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenRequest'
+      responses:
+        '200':
+          description: A new access token.
+          headers:
+            Cache-Control:
+              description: Always `no-store`. The body is a credential.
+              schema:
+                type: string
+            Pragma:
+              description: Always `no-cache`.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '400':
+          description: >-
+            `invalid_request`, `invalid_grant`, `invalid_scope` or
+            `unsupported_grant_type`.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OAuthError' }
+        '401':
+          description: >-
+            `invalid_client` — the client id is unknown or the secret is wrong.
+            Carries `WWW-Authenticate: Basic realm="waves"`.
+          headers:
+            WWW-Authenticate:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OAuthError' }
+        '500':
+          description: '`server_error`.'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OAuthError' }
+
+  /oauth/revoke:
+    post:
+      tags: [OAuth]
+      operationId: revoke
+      summary: Revoke an access or refresh token
+      description: >-
+        RFC 7009. Answers 200 with an empty body whether or not anything was
+        revoked — a different answer for "that one was already dead" would turn
+        this endpoint into an oracle for checking whether a stolen string is
+        still worth trying. Authorization codes are not revocable here; they
+        expire on their own.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token:
+                  type: string
+                  description: The access or refresh token to revoke.
+                  examples: ['wavs_rt_AWx0b2tlbmlkYnl0ZXNwcm9maWxlaWRieXRlc3RhZw']
+                token_type_hint:
+                  type: string
+                  description: >-
+                    Accepted and ignored — the token's own prefix already says
+                    what kind it is.
+      responses:
+        '200':
+          description: Done, as far as you can tell.
+        '400':
+          description: '`token` was missing.'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OAuthError' }
+        '500':
+          description: '`server_error`.'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OAuthError' }
+
+  # ────────────────────────────────────────────────── developer console ──
+
+  /developer/tokens:
+    get:
+      tags: [Developer console]
+      operationId: listPersonalTokens
+      summary: This person's personal access tokens
+      description: >-
+        Newest first. The token strings themselves are not here and cannot be:
+        the rows hold a SHA-256 and nothing anywhere can recover the plaintext.
+        Not paginated.
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: The tokens, without their secrets.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PersonalTokenList'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '500': { $ref: '#/components/responses/InternalError' }
+    post:
+      tags: [Developer console]
+      operationId: createPersonalToken
+      summary: Create a personal access token
+      description: >-
+        The response is the only time the token string exists anywhere. Store it
+        now; there is no endpoint that can produce it again. An account that
+        already holds as many live tokens as it is allowed gets a 422
+        (`TOKEN_LIMIT`).
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePersonalTokenRequest'
+      responses:
+        '201':
+          description: The new token, shown once.
+          headers:
+            Cache-Control:
+              description: Always `no-store`.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreatedPersonalToken'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /developer/tokens/{tokenId}:
+    parameters:
+      - name: tokenId
+        in: path
+        required: true
+        description: The token's id, from the create response or the list.
+        schema:
+          type: string
+          format: uuid
+    delete:
+      tags: [Developer console]
+      operationId: revokePersonalToken
+      summary: Revoke a personal access token
+      description: >-
+        Takes effect on the token's next request. Answers 404 if no live token
+        of yours has that id.
+      security:
+        - sessionAuth: []
+      responses:
+        '204':
+          description: Revoked.
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /developer/apps:
+    get:
+      tags: [Developer console]
+      operationId: listApps
+      summary: Applications this person has registered
+      description: Newest first. Client secrets are never returned. Not paginated.
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: The applications.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppList'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '500': { $ref: '#/components/responses/InternalError' }
+    post:
+      tags: [Developer console]
+      operationId: registerApp
+      summary: Register an OAuth application
+      description: >-
+        A confidential client is one that can actually keep a secret — a server.
+        A mobile or single-page app cannot, and a secret published in an app
+        bundle is not a secret, so send `confidential: false` for those and rely
+        on PKCE. A `client_secret` is returned only for a confidential client,
+        and only here. An account that already holds as many applications as it
+        is allowed gets a 422 (`APP_LIMIT`).
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterAppRequest'
+      responses:
+        '201':
+          description: The registration, with the client secret shown once.
+          headers:
+            Cache-Control:
+              description: Always `no-store`.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisteredApp'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /developer/apps/{appId}:
+    parameters:
+      - $ref: '#/components/parameters/AppId'
+    patch:
+      tags: [Developer console]
+      operationId: updateApp
+      summary: Change an application's registration
+      description: >-
+        Every field is optional; an omitted one is left alone. The client secret
+        is never rotated as a side effect of another edit — that is its own call.
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAppRequest'
+      responses:
+        '200':
+          description: The application as it now stands.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/App'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/InternalError' }
+    delete:
+      tags: [Developer console]
+      operationId: deleteApp
+      summary: Delete an application
+      description: Owner-only. Every token issued to it stops working.
+      security:
+        - sessionAuth: []
+      responses:
+        '204':
+          description: Deleted.
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /developer/apps/{appId}/secret:
+    parameters:
+      - $ref: '#/components/parameters/AppId'
+    post:
+      tags: [Developer console]
+      operationId: rotateAppSecret
+      summary: Rotate an application's client secret
+      description: >-
+        Mints a new secret and replaces the stored hash. The old secret stops
+        working immediately, and the new one is shown once. Takes no body.
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: The new client secret, shown once.
+          headers:
+            Cache-Control:
+              description: Always `no-store`.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [client_secret]
+                properties:
+                  client_secret:
+                    type: string
+                    examples: ['wavs_cs_Zm9vYmFyYmF6cXV4Y29ycmdlZ3JhdWx0']
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /developer/connections:
+    get:
+      tags: [Developer console]
+      operationId: listConnections
+      summary: Applications this person has connected
+      description: >-
+        The other side of the console: not what you built, but what you have
+        approved. Not paginated.
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: The connected applications.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectionList'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /developer/connections/{appId}:
+    parameters:
+      - $ref: '#/components/parameters/AppId'
+    delete:
+      tags: [Developer console]
+      operationId: revokeConnection
+      summary: Withdraw an application's access to your account
+      description: >-
+        Not the same as deleting the application — the person doing this is
+        usually not the developer who owns it. Answers 200 with a count rather
+        than 204, and revoking nothing is not an error.
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: How many tokens were revoked.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [revoked]
+                properties:
+                  revoked:
+                    type: integer
+                    minimum: 0
+                    examples: [2]
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /developer/consent:
+    get:
+      tags: [Developer console]
+      operationId: getConsentPreview
+      summary: What the consent screen should render
+      description: >-
+        Checked against the registration before anything is shown. It refuses
+        outright — rather than rendering with a warning — when the redirect is
+        not one the application registered, because a consent screen that
+        displayed an unregistered address would be teaching people to approve a
+        delivery the developer never asked for.
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: client_id
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: redirect_uri
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uri
+        - name: scope
+          in: query
+          required: true
+          description: Space-separated, exactly as the application asked for it.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: What to show the person about to approve.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConsentPreview'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+components:
+  # ────────────────────────────────────────────── security definitions ──
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: wavs_pat_… or wavs_at_…
+      description: |
+        A Waves API token in `Authorization: Bearer …`. Two kinds are accepted
+        here and they behave identically once presented:
+
+        - `wavs_pat_…` — a personal access token, created in the developer
+          console, acting for the developer's own account.
+        - `wavs_at_…` — an OAuth access token, acting for a user who approved an
+          application.
+
+        A refresh token (`wavs_rt_…`) is a credential for `/oauth/token` and
+        nothing else; presenting one here is refused with `invalid_token`.
+
+        The token string carries no scope list — the row does — so the scopes
+        each operation lists apply to both kinds, and narrowing an
+        application's scopes takes effect on its next request.
+
+        A missing token is `401 unauthorized` with
+        `WWW-Authenticate: Bearer realm="waves"`. A token that is malformed,
+        expired, revoked, or belongs to a disabled application is `401
+        invalid_token` with
+        `WWW-Authenticate: Bearer realm="waves", error="invalid_token"`. A live
+        token that lacks the scope the route needs is `403 insufficient_scope`.
+    oauth2:
+      type: oauth2
+      description: >-
+        OAuth 2.1 authorization code with PKCE (`S256` only). The URLs below are
+        relative to this deployment's own base URL; the authoritative copies are
+        in `/.well-known/oauth-authorization-server`, which derives them from
+        the request. Ask for `offline_access` if you need a refresh token.
+      flows:
+        authorizationCode:
+          authorizationUrl: /oauth/authorize
+          tokenUrl: /oauth/token
+          refreshUrl: /oauth/token
+          scopes:
+            identity.read: See your name, avatar, country, language, default currency and payment
+              handle.
+            identity.write: Change your name, country, language and default currency.
+            groups.read: See your groups, who is in them and what each person is owed.
+            groups.write: Create groups, change their settings, add and remove people, and archive
+              or delete a group.
+            expenses.read: See the expenses in your groups.
+            expenses.write: Add, edit and delete expenses in your groups.
+            settlements.read: See payments recorded between you and other people.
+            settlements.write: Record and confirm payments on your behalf.
+            friends.read: See who you owe and who owes you, across every group.
+            categories.read: See your expense categories.
+            categories.write: Add, change and hide your expense categories.
+            offline_access: Stay connected without asking you again.
+    sessionAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: >-
+        A signed-in Waves user's own session access token, in
+        `Authorization: Bearer …`. This is how the developer console
+        authenticates, and it is deliberately not an API token: a token that
+        could mint tokens would make revocation meaningless, since whoever stole
+        one could simply issue another. The session is verified with the
+        authentication service on every call rather than checked locally.
+
+  # ──────────────────────────────────────────────────── shared headers ──
+
+  headers:
+    XRequestId:
+      description: >-
+        This request's id. Present on every response, including errors, and
+        repeated in the error body as `request_id`.
+      schema:
+        type: string
+        format: uuid
+    RateLimitLimit:
+      description: >-
+        Requests allowed in the current window — the lower of the per-token and
+        per-account budgets. Present on every response that got as far as
+        authenticating.
+      schema:
+        type: integer
+    RateLimitRemaining:
+      description: Requests left in the current window.
+      schema:
+        type: integer
+    RateLimitReset:
+      description: >-
+        Seconds from now until the window resets — delta-seconds, the same unit
+        as `Retry-After` on the 429 that follows, and what the IETF
+        RateLimit-header drafts specify. Never negative.
+      schema:
+        type: integer
+        minimum: 0
+    RetryAfter:
+      description: Seconds to wait before retrying. At least 1.
+      schema:
+        type: integer
+        minimum: 1
+    WWWAuthenticate:
+      description: >-
+        `Bearer realm="waves"` when no token was sent, and
+        `Bearer realm="waves", error="invalid_token"` when one was sent and is
+        not usable.
+      schema:
+        type: string
+
+  # ───────────────────────────────────────────────── shared parameters ──
+
+  parameters:
+    Limit:
+      name: limit
+      in: query
+      required: false
+      description: >-
+        How many rows to return. Defaults to 25; anything above 100 is quietly
+        capped at 100. A value below 1, or one that is not a whole number, is a
+        400.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 25
+    Cursor:
+      name: cursor
+      in: query
+      required: false
+      description: >-
+        The `next_cursor` from the previous page. Opaque: it encodes a sort key
+        and a tiebreaker, and treating it as anything other than a string you
+        pass back will break. A cursor this deployment did not issue is a 400.
+      schema:
+        type: string
+        examples:
+          ['MjAyNi0wOS0wOFQxMDoxNDowMi4xMTFaIDNmYTg1ZjY0LTU3MTctNDU2Mi1iM2ZjLTJjOTYzZjY2YWZhNg']
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      description: >-
+        A key of your own choosing, 8 to 200 characters, that makes this write
+        safe to retry: the same key on the same route returns the original write
+        rather than making a second one. (`POST /v1/categories` is the one
+        exception — a retry there is refused with a 409 instead of returning the
+        original row. Either way you never get a duplicate.) It is scoped to the
+        token that sent it, so two developers who both pick `"1"` do not
+        collide. Omitting it means the write is not idempotent, which is a
+        choice, not an error — but a key outside 8–200 characters is a 400 with
+        `details.header = "Idempotency-Key"`.
+      schema:
+        type: string
+        minLength: 8
+        maxLength: 200
+        examples: ['dinner-2026-09-08-goa-01']
+    RequiredIdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: >-
+        Required for recording a payment. A retry without this key could record
+        the same real-world settlement twice, so the API refuses the request
+        rather than making it non-idempotent.
+      schema:
+        type: string
+        minLength: 8
+        maxLength: 200
+        examples: ['settlement-2026-09-08-ravi-upi']
+    GroupId:
+      name: groupId
+      in: path
+      required: true
+      description: The group's id.
+      schema:
+        type: string
+        format: uuid
+    MemberId:
+      name: memberId
+      in: path
+      required: true
+      description: >-
+        The membership row's id — not the person's user id. A person in two
+        groups is two members.
+      schema:
+        type: string
+        format: uuid
+    ExpenseId:
+      name: expenseId
+      in: path
+      required: true
+      description: The expense's id, stable across every version of it.
+      schema:
+        type: string
+        format: uuid
+    SettlementId:
+      name: settlementId
+      in: path
+      required: true
+      description: The settlement's id.
+      schema:
+        type: string
+        format: uuid
+    CategoryId:
+      name: categoryId
+      in: path
+      required: true
+      description: The category row's id.
+      schema:
+        type: string
+        format: uuid
+    AppId:
+      name: appId
+      in: path
+      required: true
+      description: The application's id — not its `client_id`.
+      schema:
+        type: string
+        format: uuid
+
+  # ────────────────────────────────────────────────── shared responses ──
+
+  responses:
+    BadRequest:
+      description: >-
+        `invalid_request` — the body, a query parameter or a header is not
+        something this endpoint can act on. The message names the field.
+      headers:
+        X-Request-Id: { $ref: '#/components/headers/XRequestId' }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Unauthorized:
+      description: >-
+        `unauthorized` when no credential was sent, or `invalid_token` when one
+        was sent and is malformed, expired, revoked, of the wrong kind, or
+        belongs to a disabled application.
+      headers:
+        WWW-Authenticate: { $ref: '#/components/headers/WWWAuthenticate' }
+        X-Request-Id: { $ref: '#/components/headers/XRequestId' }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Forbidden:
+      description: >-
+        `insufficient_scope` when the token is live but was not granted the
+        scope this route needs, or `forbidden` when the account itself may not
+        do this — not a member of the group, not a party to the settlement, not
+        the owner, or a guest whose trial has ended.
+      headers:
+        WWW-Authenticate: { $ref: '#/components/headers/WWWAuthenticate' }
+        X-Request-Id: { $ref: '#/components/headers/XRequestId' }
+        RateLimit-Limit: { $ref: '#/components/headers/RateLimitLimit' }
+        RateLimit-Remaining: { $ref: '#/components/headers/RateLimitRemaining' }
+        RateLimit-Reset: { $ref: '#/components/headers/RateLimitReset' }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotFound:
+      description: >-
+        `not_found`. Note that a row the caller is not allowed to see is absent
+        rather than forbidden, so this also covers "it exists, but not for you".
+      headers:
+        X-Request-Id: { $ref: '#/components/headers/XRequestId' }
+        RateLimit-Limit: { $ref: '#/components/headers/RateLimitLimit' }
+        RateLimit-Remaining: { $ref: '#/components/headers/RateLimitRemaining' }
+        RateLimit-Reset: { $ref: '#/components/headers/RateLimitReset' }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Conflict:
+      description: >-
+        `conflict` — the write collided with the state it was based on. A stale
+        `if_revision` or `base_version_no`, shares that do not reconcile with
+        the amount, or an id that is already taken.
+      headers:
+        X-Request-Id: { $ref: '#/components/headers/XRequestId' }
+        RateLimit-Limit: { $ref: '#/components/headers/RateLimitLimit' }
+        RateLimit-Remaining: { $ref: '#/components/headers/RateLimitRemaining' }
+        RateLimit-Reset: { $ref: '#/components/headers/RateLimitReset' }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Unprocessable:
+      description: >-
+        `unprocessable` — the request is well formed and you are allowed to make
+        it, but the ledger's own rules say no. A limit (the applications or live
+        tokens an account may have), a group that is not settled, the last admin
+        being demoted, a restore window that has closed, or a database CHECK
+        constraint.
+      headers:
+        X-Request-Id: { $ref: '#/components/headers/XRequestId' }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    TooManyRequests:
+      description: >-
+        `rate_limited`. Two buckets are enforced, per token and per account, and
+        this is returned when either is spent. Wait `Retry-After` seconds.
+      headers:
+        Retry-After: { $ref: '#/components/headers/RetryAfter' }
+        RateLimit-Limit: { $ref: '#/components/headers/RateLimitLimit' }
+        RateLimit-Remaining: { $ref: '#/components/headers/RateLimitRemaining' }
+        RateLimit-Reset: { $ref: '#/components/headers/RateLimitReset' }
+        X-Request-Id: { $ref: '#/components/headers/XRequestId' }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    InternalError:
+      description: >-
+        `internal` when something went wrong on our side, or `misconfigured`
+        when the deployment is missing configuration it needs (check `/health`).
+        Neither says anything about the cause; quote `request_id`.
+      headers:
+        X-Request-Id: { $ref: '#/components/headers/XRequestId' }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+
+  # ──────────────────────────────────────────────────────────── schemas ──
+
+  schemas:
+    # ── primitives ──
+
+    Money:
+      type: string
+      pattern: '^-?\d+$'
+      description: >-
+        A whole number of minor units, as a decimal string, always read
+        alongside its currency. `"125000"` with `"INR"` is ₹1,250.00; `"-4500"`
+        with `"INR"` is −₹45.00. It is a string because a JSON number cannot
+        carry the range and rounds silently on the way past. Only balances and
+        net positions are ever negative; amounts you send on a write are
+        unsigned.
+      examples: ['125000']
+
+    UnsignedMoney:
+      type: string
+      pattern: '^\d{1,19}$'
+      description: >-
+        A whole number of minor units, as a decimal string, with no sign. This
+        is the form every write takes: `"1250"` is ₹12.50.
+      examples: ['125000']
+
+    Currency:
+      type: string
+      pattern: '^[A-Z]{3}$'
+      description: >-
+        An uppercase ISO 4217 code. Checked for shape only — whether `XYZ` is a
+        currency anyone uses is the ledger's question, not this layer's.
+      examples: ['INR']
+
+    CountryCode:
+      type: string
+      pattern: '^[A-Z]{2}$'
+      description: An uppercase ISO 3166-1 alpha-2 code. Shape-checked only.
+      examples: ['IN']
+
+    Locale:
+      type: string
+      pattern: '^[a-z]{2,3}(-[A-Za-z0-9]{2,8}){0,2}$'
+      description: A BCP 47 language tag in the loose form the app stores.
+      examples: ['en', 'hi-IN']
+
+    QueryFlag:
+      type: string
+      enum: ['true', '1', 'yes', 'on', 'false', '0', 'no', 'off']
+      description: >-
+        A boolean in a query string, matched case-insensitively. `true`, `1`,
+        `yes` and `on` are true; `false`, `0`, `no` and `off` are false; an
+        empty or absent value is false. Anything else is a 400 with
+        `details.parameter` naming the offender — a strict `=== "true"` would
+        read `?flag=1` as false without saying so, which is the worst kind of
+        refusal because the caller sees a plausible answer to a different
+        question.
+
+    ScopeName:
+      type: string
+      enum:
+        - identity.read
+        - identity.write
+        - groups.read
+        - groups.write
+        - expenses.read
+        - expenses.write
+        - settlements.read
+        - settlements.write
+        - friends.read
+        - categories.read
+        - categories.write
+        - offline_access
+      description: >-
+        One of the scopes this deployment knows. An unknown entry fails the
+        whole request rather than being dropped, because silently granting less
+        than was asked for is how a client ends up mysteriously unable to do the
+        thing it thought it had permission for.
+
+    BuiltinCategoryId:
+      type: string
+      enum:
+        - food
+        - groceries
+        - travel
+        - stay
+        - shopping
+        - entertainment
+        - home
+        - health
+        - gifts
+        - other
+      description: >-
+        One of the built-in expense categories, from the catalogue every Waves
+        client resolves against. These are the ids a `category_tags` row may
+        override, and the ids an expense's `category` will usually carry.
+
+    GroupTypeName:
+      type: string
+      enum: [trip, home, couple, event, friends, other]
+      description: What kind of group this is. Presentational; it does not change the maths.
+
+    SettlementStatus:
+      type: string
+      enum: [initiated, confirmed, auto_confirmed, disputed, cancelled]
+      description: >-
+        Where a payment stands. `initiated` is a claim awaiting the payee;
+        `confirmed` is the payee saying it arrived; `auto_confirmed` is the
+        system doing so after a grace period; `disputed` is the payee saying it
+        did not; `cancelled` is the payer withdrawing the claim.
+
+    # ── errors ──
+
+    Error:
+      type: object
+      description: >-
+        Every refusal under `/v1` and `/developer` has this shape. It is nested
+        under `error` so that it can never collide with a resource that happens
+        to have a `message`, and so a client can branch on `"error" in body`
+        without knowing which endpoint it called. Nothing internal — a database
+        message, a stack, a hostname — ever reaches this body.
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message, request_id]
+          properties:
+            code:
+              type: string
+              enum:
+                - invalid_request
+                - unauthorized
+                - invalid_token
+                - insufficient_scope
+                - forbidden
+                - not_found
+                - conflict
+                - unprocessable
+                - rate_limited
+                - misconfigured
+                - internal
+              description: |
+                A token to match on, rather than a sentence to parse. The HTTP
+                status each one carries:
+
+                | code | status |
+                | --- | --- |
+                | `invalid_request` | 400 |
+                | `unauthorized` | 401 |
+                | `invalid_token` | 401 |
+                | `insufficient_scope` | 403 |
+                | `forbidden` | 403 |
+                | `not_found` | 404 |
+                | `conflict` | 409 |
+                | `unprocessable` | 422 |
+                | `rate_limited` | 429 |
+                | `misconfigured` | 500 |
+                | `internal` | 500 |
+            message:
+              type: string
+              description: >-
+                A sentence written for a person. Safe to show, and safe to
+                ignore — branch on `code`, not on this.
+            request_id:
+              type: string
+              format: uuid
+              description: The same value as the `X-Request-Id` header. Quote it when reporting a problem.
+            details:
+              type: object
+              additionalProperties: true
+              description: >-
+                Present only when naming the offending thing is what makes the
+                error useful. `{"editable": [...]}` on a patch with nothing
+                patchable in it, `{"field": "default_currency"}` on a value of
+                the wrong shape, `{"parameter": "include_archived"}` on an
+                unreadable query flag, `{"header": "Idempotency-Key"}` on a key
+                of the wrong length, or `{"scopes": [...]}` listing the
+                catalogue when an unknown scope was named.
+      examples:
+        - error:
+            code: insufficient_scope
+            message: this token was not granted that
+            request_id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+
+    OAuthError:
+      type: object
+      description: >-
+        RFC 6749's error shape, used only by the `/oauth/*` endpoints. Note that
+        `error` is a **string** here, not the object the rest of the API
+        returns — this is the one place the service deliberately deviates from
+        its own convention, because it is what every OAuth client library
+        parses.
+      required: [error, error_description]
+      properties:
+        error:
+          type: string
+          enum:
+            - invalid_request
+            - invalid_client
+            - invalid_grant
+            - unauthorized_client
+            - unsupported_grant_type
+            - invalid_scope
+            - server_error
+        error_description:
+          type: string
+      examples:
+        - error: invalid_grant
+          error_description: that is not a code we issued
+
+    # ── resources ──
+
+    User:
+      type: object
+      description: A Waves account, as the API publishes it.
+      required:
+        - id
+        - display_name
+        - avatar_url
+        - default_currency
+        - country_code
+        - locale
+        - payment_rail
+        - payment_handle
+      properties:
+        id:
+          type: string
+          format: uuid
+        display_name:
+          type: string
+        avatar_url:
+          type: [string, 'null']
+          format: uri
+        default_currency:
+          $ref: '#/components/schemas/Currency'
+        country_code:
+          type: [string, 'null']
+          description: ISO 3166-1 alpha-2, when the account has one.
+        locale:
+          type: string
+          examples: ['en']
+        payment_rail:
+          type: [string, 'null']
+          description: How this person prefers to be paid — `upi`, `paypal`, `cash` and so on.
+          examples: ['upi']
+        payment_handle:
+          type: [string, 'null']
+          description: >-
+            The address on that rail. Readable with `identity.read`, so treat it
+            as personal data.
+          examples: ['asha@okhdfcbank']
+      examples:
+        - id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+          display_name: Asha Menon
+          avatar_url: https://cdn.example.com/avatars/asha.webp
+          default_currency: INR
+          country_code: IN
+          locale: en
+          payment_rail: upi
+          payment_handle: asha@okhdfcbank
+
+    Group:
+      type: object
+      required:
+        - id
+        - name
+        - type
+        - default_currency
+        - country_code
+        - simplify_debts
+        - cover_emoji
+        - start_date
+        - end_date
+        - archived_at
+        - created_at
+        - revision
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: [string, 'null']
+          description: >-
+            Null is a real state, not missing data: a group with no name is
+            labelled by who is in it.
+        type:
+          $ref: '#/components/schemas/GroupTypeName'
+        default_currency:
+          $ref: '#/components/schemas/Currency'
+        country_code:
+          type: [string, 'null']
+        simplify_debts:
+          type: boolean
+          description: >-
+            Whether the group nets debts down to the fewest payments rather than
+            keeping every pairwise IOU.
+        cover_emoji:
+          type: [string, 'null']
+        start_date:
+          type: [string, 'null']
+          format: date
+          description: For a trip. Null otherwise.
+        end_date:
+          type: [string, 'null']
+          format: date
+        archived_at:
+          type: [string, 'null']
+          format: date-time
+          description: Set when the group is archived. Archived groups are hidden by default.
+        created_at:
+          type: string
+          format: date-time
+        revision:
+          type: integer
+          description: >-
+            The row's revision, bumped on every write to the group. Send it back
+            as `if_revision` on a PATCH and a concurrent edit is refused rather
+            than silently overwritten.
+      examples:
+        - id: 8c1f2d6e-4a3b-4c5d-9e7f-1a2b3c4d5e6f
+          name: Goa, September
+          type: trip
+          default_currency: INR
+          country_code: IN
+          simplify_debts: true
+          cover_emoji: 🏖️
+          start_date: '2026-09-11'
+          end_date: '2026-09-15'
+          archived_at: null
+          created_at: '2026-09-08T10:14:02.111Z'
+          revision: 7
+
+    Member:
+      type: object
+      description: >-
+        Somebody's place in one group. A person in two groups is two members
+        with two ids, and every expense refers to members, never to accounts.
+      required: [id, group_id, user_id, name, role, is_ghost, left_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: The member id. This is what `payers`, `shares` and settlements refer to.
+        group_id:
+          type: string
+          format: uuid
+        user_id:
+          type: [string, 'null']
+          format: uuid
+          description: >-
+            The account behind this member, or null for a ghost — somebody named
+            in the group who has no Waves account yet.
+        name:
+          type: [string, 'null']
+          description: The account's display name, or the ghost's name.
+        role:
+          type: string
+          enum: [admin, member]
+        is_ghost:
+          type: boolean
+          description: True when there is no account behind this member. Equivalent to `user_id === null`.
+        left_at:
+          type: [string, 'null']
+          format: date-time
+          description: >-
+            When they left. Their history and balances still count; they just
+            stop accruing new shares.
+      examples:
+        - id: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
+          group_id: 8c1f2d6e-4a3b-4c5d-9e7f-1a2b3c4d5e6f
+          user_id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+          name: Asha Menon
+          role: admin
+          is_ghost: false
+          left_at: null
+
+    Balance:
+      type: object
+      description: One member's position in one group, in one currency.
+      required: [member_id, currency, amount]
+      properties:
+        member_id:
+          type: string
+          format: uuid
+        currency:
+          $ref: '#/components/schemas/Currency'
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/Money'
+          description: Positive means this member is owed. Negative means they owe.
+      examples:
+        - member_id: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
+          currency: INR
+          amount: '84250'
+
+    Expense:
+      type: object
+      description: >-
+        An expense at its current version. Waves keeps every version, so this is
+        a snapshot rather than a mutable row, and `version_no` is the input to
+        the next edit rather than decoration.
+      required:
+        - id
+        - group_id
+        - description
+        - category
+        - expense_date
+        - currency
+        - amount
+        - split_type
+        - payers
+        - shares
+        - location
+        - version_no
+        - deleted_at
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        group_id:
+          type: string
+          format: uuid
+        description:
+          type: string
+        category:
+          type: [string, 'null']
+        expense_date:
+          type: string
+          format: date
+          description: The calendar date the money was spent, not when the row was written.
+        currency:
+          $ref: '#/components/schemas/Currency'
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/Money'
+          description: The total. `shares` sums to exactly this, and so does `payers`.
+        split_type:
+          type: string
+          enum: [equal, exact, percent, shares, adjustment, itemized]
+          description: Which kind of split produced `shares`.
+        payers:
+          type: array
+          description: Who put money in, and how much each. Sums to `amount`.
+          items:
+            type: object
+            required: [member_id, amount]
+            properties:
+              member_id:
+                type: string
+                format: uuid
+              amount:
+                $ref: '#/components/schemas/Money'
+        shares:
+          type: array
+          description: >-
+            Who owes what, as the server computed it from the split parameters.
+            Sums to `amount` exactly, remainder included.
+          items:
+            type: object
+            required: [member_id, amount]
+            properties:
+              member_id:
+                type: string
+                format: uuid
+              amount:
+                $ref: '#/components/schemas/Money'
+        location:
+          type: [object, 'null']
+          description: Where it was spent, if the person chose to attach it.
+          required: [lat, lng]
+          properties:
+            lat:
+              type: number
+            lng:
+              type: number
+            name:
+              type: [string, 'null']
+        version_no:
+          type: integer
+          description: >-
+            Which edit this is. Send it back as `base_version_no` on a PATCH so
+            a concurrent edit is refused instead of quietly undoing somebody
+            else's work.
+        deleted_at:
+          type: [string, 'null']
+          format: date-time
+          description: Set on a soft delete. Restorable.
+        created_at:
+          type: string
+          format: date-time
+          description: >-
+            When the expense was first written. This, not `expense_date`, is the
+            list's sort key.
+      examples:
+        - id: 6d3a1f88-2c44-4f0e-b1a2-9c7e5d4f3b21
+          group_id: 8c1f2d6e-4a3b-4c5d-9e7f-1a2b3c4d5e6f
+          description: Dinner at Gunpowder
+          category: food
+          expense_date: '2026-09-12'
+          currency: INR
+          amount: '360000'
+          split_type: equal
+          payers:
+            - member_id: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
+              amount: '360000'
+          shares:
+            - member_id: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
+              amount: '120000'
+            - member_id: 2c8e7fad-3b1c-4a9e-8d6f-7b5a4c3d2e10
+              amount: '120000'
+            - member_id: 4e6f8a0b-9c2d-4e1f-a3b5-6d7c8e9f0a1b
+              amount: '120000'
+          location: null
+          version_no: 1
+          deleted_at: null
+          created_at: '2026-09-12T19:42:10.004Z'
+
+    SplitParams:
+      description: |
+        How to divide the amount. Passed through untouched to the shared split
+        engine, so the accepted grammar is exactly what the Waves app accepts.
+        Omit it for an equal split.
+
+        Every amount inside is minor units as a decimal string, the same as
+        `amount`. `basisPoints` and `weights` are plain integers.
+      oneOf:
+        - title: Equal
+          type: object
+          required: [kind]
+          properties:
+            kind:
+              type: string
+              const: equal
+          description: Everyone in `participants` pays the same, with the remainder rotated.
+        - title: Exact
+          type: object
+          required: [kind, amounts]
+          properties:
+            kind:
+              type: string
+              const: exact
+            amounts:
+              type: object
+              description: Member id to their share. Must sum to `amount` exactly.
+              additionalProperties:
+                $ref: '#/components/schemas/UnsignedMoney'
+        - title: Percent
+          type: object
+          required: [kind, basisPoints]
+          properties:
+            kind:
+              type: string
+              const: percent
+            basisPoints:
+              type: object
+              description: Member id to integer basis points. 10000 is 100%, and they must sum to 10000.
+              additionalProperties:
+                type: integer
+        - title: Shares
+          type: object
+          required: [kind, weights]
+          properties:
+            kind:
+              type: string
+              const: shares
+            weights:
+              type: object
+              description: >-
+                Member id to a weight. `{"asha": 2, "ravi": 1}` means Asha pays
+                two thirds.
+              additionalProperties:
+                type: integer
+        - title: Adjustment
+          type: object
+          required: [kind, adjustments]
+          properties:
+            kind:
+              type: string
+              const: adjustment
+            adjustments:
+              type: object
+              description: >-
+                Member id to a signed adjustment in minor units — Ravi's extra
+                beer at ₹120 is `{"ravi": "12000"}`. Adjustments come off the
+                top; the residual splits equally.
+              additionalProperties:
+                $ref: '#/components/schemas/Money'
+        - title: Itemized
+          type: object
+          required: [kind, items, claims]
+          properties:
+            kind:
+              type: string
+              const: itemized
+            items:
+              type: array
+              description: The lines on the bill, as printed.
+              items:
+                type: object
+                required: [total]
+                properties:
+                  label:
+                    type: string
+                  total:
+                    $ref: '#/components/schemas/UnsignedMoney'
+            claims:
+              type: object
+              description: >-
+                Item index (as a string key) to the member ids claiming that
+                line. A line claimed by several splits equally between them, and
+                every line must be claimed.
+              additionalProperties:
+                type: array
+                items:
+                  type: string
+                  format: uuid
+            taxes:
+              $ref: '#/components/schemas/UnsignedMoney'
+            serviceCharge:
+              $ref: '#/components/schemas/UnsignedMoney'
+            tip:
+              $ref: '#/components/schemas/UnsignedMoney'
+            discounts:
+              allOf:
+                - $ref: '#/components/schemas/UnsignedMoney'
+              description: A positive value, subtracted from the bill.
+      examples:
+        - kind: equal
+        - kind: shares
+          weights:
+            1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed: 2
+            2c8e7fad-3b1c-4a9e-8d6f-7b5a4c3d2e10: 1
+
+    Settlement:
+      type: object
+      description: A payment one member says they made to another.
+      required:
+        - id
+        - group_id
+        - from_member_id
+        - to_member_id
+        - currency
+        - amount
+        - status
+        - initiated_at
+        - confirmed_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        group_id:
+          type: string
+          format: uuid
+        from_member_id:
+          type: string
+          format: uuid
+          description: Who paid.
+        to_member_id:
+          type: string
+          format: uuid
+          description: Who was paid. Only this person can confirm it.
+        currency:
+          $ref: '#/components/schemas/Currency'
+        amount:
+          $ref: '#/components/schemas/Money'
+        status:
+          $ref: '#/components/schemas/SettlementStatus'
+        initiated_at:
+          type: string
+          format: date-time
+          description: When the claim was recorded. This is the list's sort key.
+        confirmed_at:
+          type: [string, 'null']
+          format: date-time
+      examples:
+        - id: 9f0e1d2c-3b4a-4958-8677-5a4b3c2d1e0f
+          group_id: 8c1f2d6e-4a3b-4c5d-9e7f-1a2b3c4d5e6f
+          from_member_id: 2c8e7fad-3b1c-4a9e-8d6f-7b5a4c3d2e10
+          to_member_id: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
+          currency: INR
+          amount: '120000'
+          status: initiated
+          initiated_at: '2026-09-16T08:03:44.900Z'
+          confirmed_at: null
+
+    Friend:
+      type: object
+      description: >-
+        One person you are not square with, netted across every group you share
+        with them, per currency.
+      required:
+        - person_key
+        - user_id
+        - display_name
+        - avatar_url
+        - is_ghost
+        - currency
+        - net
+        - group_count
+      properties:
+        person_key:
+          type: string
+          description: >-
+            Stable across groups: a real account's id, or a merged ghost's key.
+            Use it to recognise the same person in two groups; it is not a
+            member id and cannot be used on an expense. Despite the name it is
+            an identifier, not a credential — it grants nothing and is safe to
+            store and log.
+        user_id:
+          type: [string, 'null']
+          format: uuid
+        display_name:
+          type: string
+        avatar_url:
+          type: [string, 'null']
+          format: uri
+        is_ghost:
+          type: boolean
+        currency:
+          $ref: '#/components/schemas/Currency'
+        net:
+          allOf:
+            - $ref: '#/components/schemas/Money'
+          description: Positive means they owe you. Negative means you owe them.
+        group_count:
+          type: integer
+          description: How many groups you share with them.
+      examples:
+        - person_key: 11111111-1111-4111-8111-111111111111
+          user_id: 11111111-1111-4111-8111-111111111111
+          display_name: Ravi Iyer
+          avatar_url: null
+          is_ghost: false
+          currency: INR
+          net: '-45000'
+          group_count: 2
+
+    Category:
+      type: object
+      description: >-
+        One row in a person's own tag catalogue. It either overrides a built-in
+        category's presentation (`builtin_id` set, `label` usually null) or
+        defines a tag of their own (`label` set, `builtin_id` null).
+      required: [id, builtin_id, label, icon, tint, axis, sort_order, hidden]
+      properties:
+        id:
+          type: string
+          format: uuid
+        builtin_id:
+          type: [string, 'null']
+          description: >-
+            The built-in category this row overrides, or null for a custom tag.
+            Anything written through this API is one of the ids in
+            `BuiltinCategoryId`; it is not enumerated here because rows predating
+            that check may hold something else.
+          examples: ['food']
+        label:
+          type: [string, 'null']
+          description: The custom tag's name. Null when this row only overrides a built-in.
+        icon:
+          type: [string, 'null']
+        tint:
+          type: [string, 'null']
+          enum: [lilac, pink, mint, peach, sky, coral, null]
+          description: One of the six design-system tints, or null.
+        axis:
+          type: string
+          enum: [expense, income]
+        sort_order:
+          type: integer
+          description: Where it sits in the list. Lower comes first.
+        hidden:
+          type: boolean
+          description: >-
+            Hidden categories stay in the catalogue but are not offered when
+            filing an expense. This is how somebody removes a built-in they
+            never use.
+      examples:
+        - id: aa11bb22-cc33-4d44-8e55-ff6677889900
+          builtin_id: null
+          label: Scuba
+          icon: 🤿
+          tint: sky
+          axis: expense
+          sort_order: 3
+          hidden: false
+
+    # ── page and list wrappers ──
+
+    GroupPage:
+      type: object
+      required: [data, next_cursor]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Group'
+        next_cursor:
+          type: [string, 'null']
+          description: >-
+            Pass as `cursor` for the next page, or null when this is the last
+            one. A page can be shorter than `limit` and still have one.
+
+    ExpensePage:
+      type: object
+      required: [data, next_cursor]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Expense'
+        next_cursor:
+          type: [string, 'null']
+
+    SettlementPage:
+      type: object
+      required: [data, next_cursor]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Settlement'
+        next_cursor:
+          type: [string, 'null']
+
+    MemberList:
+      type: object
+      description: Not paginated — there is no `next_cursor`.
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Member'
+
+    BalanceList:
+      type: object
+      description: Not paginated — there is no `next_cursor`.
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Balance'
+
+    FriendList:
+      type: object
+      description: Not paginated — there is no `next_cursor`.
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Friend'
+
+    CategoryList:
+      type: object
+      description: Not paginated — there is no `next_cursor`.
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Category'
+
+    ScopeList:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            required: [scope, description]
+            properties:
+              scope:
+                $ref: '#/components/schemas/ScopeName'
+              description:
+                type: string
+                description: >-
+                  The sentence a consent screen shows. Written to describe a
+                  consequence, not an endpoint.
+
+    # ── request bodies ──
+
+    UpdateMeRequest:
+      type: object
+      minProperties: 1
+      description: >-
+        Send at least one of these four. Anything else in the body is ignored
+        rather than refused, so a round-trip of the whole `User` object is safe.
+      properties:
+        display_name:
+          type: string
+          minLength: 1
+          maxLength: 80
+          description: Cannot be empty or blank; trimmed before it is stored.
+        default_currency:
+          $ref: '#/components/schemas/Currency'
+        country_code:
+          oneOf:
+            - $ref: '#/components/schemas/CountryCode'
+            - type: 'null'
+          description: Null clears it.
+        locale:
+          $ref: '#/components/schemas/Locale'
+      examples:
+        - display_name: Asha M.
+          default_currency: INR
+
+    CreateGroupRequest:
+      type: object
+      required: [default_currency]
+      properties:
+        name:
+          type: [string, 'null']
+          maxLength: 80
+          description: >-
+            Optional. A group with no name is labelled by who is in it, so null,
+            an empty string or an omitted field are all a choice rather than a
+            validation failure. The cap is the one PATCH applies, so a name you
+            can create is always one you can edit back to itself.
+        type:
+          allOf:
+            - $ref: '#/components/schemas/GroupTypeName'
+          default: other
+        default_currency:
+          $ref: '#/components/schemas/Currency'
+        country_code:
+          oneOf:
+            - $ref: '#/components/schemas/CountryCode'
+            - type: 'null'
+        cover_emoji:
+          type: [string, 'null']
+          maxLength: 16
+          description: Null, an empty string or an omitted field all mean "no emoji".
+        simplify_debts:
+          type: boolean
+          default: true
+      examples:
+        - name: Goa, September
+          type: trip
+          default_currency: INR
+          country_code: IN
+          cover_emoji: 🏖️
+          simplify_debts: true
+
+    UpdateGroupRequest:
+      type: object
+      minProperties: 1
+      description: >-
+        Send at least one of `name`, `type`, `cover_emoji`, `simplify_debts`,
+        `default_currency`, `country_code`, `start_date`, `end_date` or
+        `archived`. `if_revision` alone is not enough.
+      properties:
+        name:
+          type: [string, 'null']
+          minLength: 1
+          maxLength: 80
+          description: >-
+            Null clears it — a group with no name is labelled by who is in it.
+            An empty or blank string is a 400, not a way to clear it.
+        type:
+          $ref: '#/components/schemas/GroupTypeName'
+        cover_emoji:
+          type: [string, 'null']
+          maxLength: 16
+        simplify_debts:
+          type: boolean
+        default_currency:
+          $ref: '#/components/schemas/Currency'
+        country_code:
+          oneOf:
+            - $ref: '#/components/schemas/CountryCode'
+            - type: 'null'
+        start_date:
+          type: [string, 'null']
+          format: date
+        end_date:
+          type: [string, 'null']
+          format: date
+        archived:
+          type: boolean
+          description: >-
+            True archives the group, false un-archives it. Writes
+            `archived_at`; you cannot set that field directly.
+        if_revision:
+          type: integer
+          description: >-
+            The `revision` you last read. When present, the write only lands if
+            the group is still on that revision; otherwise you get a 409.
+      examples:
+        - name: Goa, September (final)
+          if_revision: 7
+
+    AddMemberRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+          description: Who you are adding. Cannot be empty or blank.
+        email:
+          type: [string, 'null']
+          format: email
+          description: Optional, so an invite can find them later.
+        phone:
+          type: [string, 'null']
+      examples:
+        - name: Ravi Iyer
+          email: ravi@example.com
+
+    UpdateMemberRequest:
+      type: object
+      minProperties: 1
+      anyOf:
+        - required: [role]
+        - required: [name]
+      description: >-
+        Send `role`, `name`, or both. A body with neither is a 400 carrying
+        `details.editable = ["role", "name"]`.
+      properties:
+        role:
+          type: string
+          enum: [admin, member]
+          description: >-
+            Applied by a server-side call that enforces admin-only, refuses to
+            demote the last admin, and refuses to promote a ghost.
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+          description: Renames a ghost. Has no effect on a member with an account.
+      examples:
+        - role: admin
+
+    CreateExpenseRequest:
+      type: object
+      required: [group_id, description, currency, expense_date, amount, payers, participants]
+      properties:
+        group_id:
+          type: string
+          format: uuid
+          description: Where the expense goes.
+        description:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: What the money was for. Cannot be empty or blank; trimmed.
+        currency:
+          $ref: '#/components/schemas/Currency'
+        expense_date:
+          type: string
+          format: date
+          description: A calendar date, `YYYY-MM-DD`.
+        amount:
+          $ref: '#/components/schemas/UnsignedMoney'
+        payers:
+          type: object
+          minProperties: 1
+          description: Member id to what they put in. Must sum to `amount`.
+          additionalProperties:
+            $ref: '#/components/schemas/UnsignedMoney'
+        participants:
+          type: array
+          minItems: 1
+          description: The member ids the expense is split across.
+          items:
+            type: string
+            format: uuid
+        split:
+          allOf:
+            - $ref: '#/components/schemas/SplitParams'
+          description: Omit for an equal split.
+        category:
+          type: [string, 'null']
+        notes:
+          type: [string, 'null']
+      examples:
+        - group_id: 8c1f2d6e-4a3b-4c5d-9e7f-1a2b3c4d5e6f
+          description: Dinner at Gunpowder
+          currency: INR
+          expense_date: '2026-09-12'
+          amount: '360000'
+          payers:
+            1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed: '360000'
+          participants:
+            - 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
+            - 2c8e7fad-3b1c-4a9e-8d6f-7b5a4c3d2e10
+            - 4e6f8a0b-9c2d-4e1f-a3b5-6d7c8e9f0a1b
+          split:
+            kind: equal
+          category: food
+
+    UpdateExpenseRequest:
+      type: object
+      description: >-
+        A complete snapshot, not a patch — an edit writes a new version, so
+        every field a create needs is required here too. `group_id` is the one
+        exception: the group is read off the expense and never taken from the
+        body, so there is no group id in this request that anybody chose.
+      required: [description, currency, expense_date, amount, payers, participants]
+      properties:
+        description:
+          type: string
+          minLength: 1
+          maxLength: 200
+        currency:
+          $ref: '#/components/schemas/Currency'
+        expense_date:
+          type: string
+          format: date
+        amount:
+          $ref: '#/components/schemas/UnsignedMoney'
+        payers:
+          type: object
+          minProperties: 1
+          additionalProperties:
+            $ref: '#/components/schemas/UnsignedMoney'
+        participants:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            format: uuid
+        split:
+          $ref: '#/components/schemas/SplitParams'
+        category:
+          type: [string, 'null']
+        notes:
+          type: [string, 'null']
+        base_version_no:
+          type: integer
+          description: >-
+            The `version_no` you read and edited. Optional, and the thing to
+            send: without it a concurrent edit is silently overwritten instead
+            of refused.
+
+    CreateSettlementRequest:
+      type: object
+      required: [group_id, from_member_id, to_member_id, amount]
+      properties:
+        group_id:
+          type: string
+          format: uuid
+        from_member_id:
+          type: string
+          format: uuid
+          description: Who paid. Must differ from `to_member_id`.
+        to_member_id:
+          type: string
+          format: uuid
+          description: Who was paid.
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/UnsignedMoney'
+          description: Strictly positive.
+        currency:
+          type: [string, 'null']
+          description: Defaults to the group's currency when omitted.
+        rail:
+          type: string
+          default: cash
+          description: >-
+            How the money moved. The finer rail, not a coarse enum — a rail this
+            deployment has never heard of (Pix, PayNow, Wise) still records,
+            because the stored category is derived from it.
+          examples: ['upi']
+        note:
+          type: [string, 'null']
+      examples:
+        - group_id: 8c1f2d6e-4a3b-4c5d-9e7f-1a2b3c4d5e6f
+          from_member_id: 2c8e7fad-3b1c-4a9e-8d6f-7b5a4c3d2e10
+          to_member_id: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
+          amount: '120000'
+          currency: INR
+          rail: upi
+          note: Settling up for dinner
+
+    CreateCategoryRequest:
+      type: object
+      description: >-
+        Send `label` for a new tag, or `builtin_id` to override a built-in.
+        Exactly one of the two.
+
+
+        Fields are read by presence, not by type, and share their rules with the
+        PATCH beside this one: a value of the wrong type is a 400 with
+        `details.field` rather than being dropped for a default. A default
+        applies only when the key is absent — sending `axis: "monthly"` is a
+        400, not a fall back to `expense`.
+      properties:
+        label:
+          type: string
+          maxLength: 40
+          description: The tag's name. Mutually exclusive with `builtin_id`.
+        builtin_id:
+          allOf:
+            - $ref: '#/components/schemas/BuiltinCategoryId'
+          description: >-
+            The built-in category to override. Mutually exclusive with `label`.
+            Validated against the catalogue: an id nothing resolves to would be
+            an invisible row — it would resolve to nothing, in every client, and
+            nobody would be told why their colour did not take.
+        icon:
+          type: [string, 'null']
+          maxLength: 64
+          description: Null and an empty string both mean "no icon".
+        tint:
+          type: [string, 'null']
+          enum: [lilac, pink, mint, peach, sky, coral, null]
+          description: Null means "no tint". Anything outside the six is a 400.
+        axis:
+          type: string
+          enum: [expense, income]
+          default: expense
+          description: Defaults to `expense` only when the key is absent.
+        sort_order:
+          type: integer
+          default: 0
+          description: A whole number. A fraction or a string is a 400.
+        hidden:
+          type: boolean
+          default: false
+      examples:
+        - label: Scuba
+          icon: 🤿
+          tint: sky
+          sort_order: 3
+
+    UpdateCategoryRequest:
+      type: object
+      minProperties: 1
+      description: >-
+        Send at least one of these. Fields are read by presence, not by type, so
+        a value of the wrong type is a 400 with `details.field` rather than
+        being quietly dropped.
+      properties:
+        label:
+          type: [string, 'null']
+          maxLength: 40
+          description: >-
+            Null and an empty string both clear it. A blank-but-not-empty string
+            is a 400.
+        icon:
+          type: [string, 'null']
+          maxLength: 64
+          description: Null and an empty string both clear it.
+        tint:
+          type: [string, 'null']
+          enum: [lilac, pink, mint, peach, sky, coral, null]
+          description: Null clears it. Anything outside the six is a 400.
+        hidden:
+          type: boolean
+        sort_order:
+          type: integer
+          description: A whole number. A fraction or a string is a 400.
+      examples:
+        - hidden: true
+        - label: Diving
+          icon: 🤿
+
+    # ── oauth ──
+
+    AuthorizationServerMetadata:
+      type: object
+      required:
+        - issuer
+        - authorization_endpoint
+        - token_endpoint
+        - revocation_endpoint
+        - scopes_supported
+        - response_types_supported
+        - grant_types_supported
+        - code_challenge_methods_supported
+        - token_endpoint_auth_methods_supported
+      properties:
+        issuer:
+          type: string
+          format: uri
+          description: This deployment's own base URL, derived from the request.
+        authorization_endpoint:
+          type: string
+          format: uri
+        token_endpoint:
+          type: string
+          format: uri
+        revocation_endpoint:
+          type: string
+          format: uri
+        scopes_supported:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScopeName'
+        response_types_supported:
+          type: array
+          items:
+            type: string
+          examples: [[code]]
+        grant_types_supported:
+          type: array
+          items:
+            type: string
+          examples: [[authorization_code, refresh_token]]
+        code_challenge_methods_supported:
+          type: array
+          description: '`S256` only. `plain` is a challenge an eavesdropper can also answer.'
+          items:
+            type: string
+          examples: [[S256]]
+        token_endpoint_auth_methods_supported:
+          type: array
+          items:
+            type: string
+          examples: [[client_secret_basic, client_secret_post, none]]
+
+    ApproveAuthorizationRequest:
+      type: object
+      description: >-
+        The same parameters `GET /oauth/authorize` takes, as a JSON body, posted
+        by the consent screen once the person has approved.
+      required:
+        [response_type, client_id, redirect_uri, scope, code_challenge, code_challenge_method]
+      properties:
+        response_type:
+          type: string
+          enum: [code]
+        client_id:
+          type: string
+        redirect_uri:
+          type: string
+          format: uri
+        scope:
+          type: string
+          description: Space-separated.
+        code_challenge:
+          type: string
+          pattern: '^[A-Za-z0-9_-]{43}$'
+        code_challenge_method:
+          type: string
+          enum: [S256]
+        state:
+          type: string
+
+    TokenRequest:
+      description: >-
+        Form-encoded. `client_id` and `client_secret` may instead be sent as
+        HTTP Basic; a public client sends neither.
+      oneOf:
+        - title: Authorization code
+          type: object
+          required: [grant_type, code, redirect_uri, code_verifier]
+          properties:
+            grant_type:
+              type: string
+              const: authorization_code
+            code:
+              type: string
+              description: The `wavs_ac_…` code from the redirect. Single-use.
+            redirect_uri:
+              type: string
+              format: uri
+              description: The same address the code was issued for.
+            code_verifier:
+              type: string
+              pattern: '^[A-Za-z0-9._~-]{43,128}$'
+              description: The PKCE verifier whose SHA-256 you sent as `code_challenge`.
+            client_id:
+              type: string
+            client_secret:
+              type: string
+              description: Confidential clients only.
+        - title: Refresh token
+          type: object
+          required: [grant_type, refresh_token]
+          properties:
+            grant_type:
+              type: string
+              const: refresh_token
+            refresh_token:
+              type: string
+              description: >-
+                The `wavs_rt_…` token. Single-use — the response carries its
+                replacement, and presenting a spent one disconnects the
+                application.
+            client_id:
+              type: string
+            client_secret:
+              type: string
+
+    TokenResponse:
+      type: object
+      required: [access_token, token_type, expires_in, scope]
+      properties:
+        access_token:
+          type: string
+          examples: ['wavs_at_AWx0b2tlbmlkYnl0ZXNwcm9maWxlaWRieXRlc3RhZw']
+        token_type:
+          type: string
+          const: Bearer
+        expires_in:
+          type: integer
+          description: >-
+            Seconds. An hour by default; a deployment can set it anywhere from
+            300 to 86400.
+          examples: [3600]
+        refresh_token:
+          type: string
+          description: >-
+            Present only when `offline_access` was granted. On the refresh grant
+            it is always present, and always a new one.
+          examples: ['wavs_rt_AWx0b2tlbmlkYnl0ZXNwcm9maWxlaWRieXRlc3RhZw']
+        scope:
+          type: string
+          description: >-
+            What was actually granted, space-separated. Compare it against what
+            you asked for.
+          examples: ['identity.read groups.read expenses.write offline_access']
+
+    # ── developer console ──
+
+    PersonalToken:
+      type: object
+      description: A personal access token as the console lists it — without its secret.
+      required:
+        [
+          id,
+          name,
+          kind,
+          token_prefix,
+          scopes,
+          expires_at,
+          last_used_at,
+          revoked_at,
+          created_at,
+          app_id,
+        ]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        kind:
+          type: string
+          enum: [personal, access, refresh]
+          description: Always `personal` in this list.
+        token_prefix:
+          type: string
+          description: >-
+            Enough of the token to recognise it in a list, and nowhere near
+            enough to use it.
+          examples: ['wavs_pat_AWx0b2tl']
+        scopes:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScopeName'
+        expires_at:
+          type: [string, 'null']
+          format: date-time
+        last_used_at:
+          type: [string, 'null']
+          format: date-time
+          description: Updated at most once a minute.
+        revoked_at:
+          type: [string, 'null']
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        app_id:
+          type: [string, 'null']
+          format: uuid
+          description: Null for a personal token.
+
+    PersonalTokenList:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/PersonalToken'
+
+    CreatePersonalTokenRequest:
+      type: object
+      required: [name, scopes]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          description: Something you will recognise in a list months from now.
+        scopes:
+          type: array
+          minItems: 1
+          description: Non-empty, no repeats, every entry a known scope.
+          items:
+            $ref: '#/components/schemas/ScopeName'
+        expires_in_days:
+          type: [integer, 'null']
+          minimum: 1
+          description: Omit or send null for a token that does not expire on its own.
+      examples:
+        - name: Nightly export job
+          scopes: [groups.read, expenses.read]
+          expires_in_days: 90
+
+    CreatedPersonalToken:
+      type: object
+      required: [id, name, scopes, token_prefix, expires_at, token]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        scopes:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScopeName'
+        token_prefix:
+          type: string
+        expires_at:
+          type: [string, 'null']
+          format: date-time
+        token:
+          type: string
+          description: >-
+            The only time this value exists anywhere. The row holds a SHA-256,
+            so there is no second chance.
+          examples: ['wavs_pat_AWx0b2tlbmlkYnl0ZXNwcm9maWxlaWRieXRlc3RhZw']
+
+    App:
+      type: object
+      description: A registered OAuth application, as its owner sees it.
+      required:
+        [
+          id,
+          name,
+          description,
+          website_url,
+          client_id,
+          redirect_uris,
+          scopes,
+          disabled_at,
+          created_at,
+        ]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        website_url:
+          type: [string, 'null']
+          format: uri
+        client_id:
+          type: string
+          examples: ['wavs_app_5f2c1d9a4b7e42f1a0c6d3e8b91f7a24']
+        redirect_uris:
+          type: array
+          items:
+            type: string
+            format: uri
+        scopes:
+          type: array
+          description: The most this application may ever ask a user for.
+          items:
+            $ref: '#/components/schemas/ScopeName'
+        disabled_at:
+          type: [string, 'null']
+          format: date-time
+          description: While set, every token issued to this application is refused.
+        created_at:
+          type: string
+          format: date-time
+
+    AppList:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/App'
+
+    RegisterAppRequest:
+      type: object
+      required: [name, scopes, redirect_uris]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        scopes:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/ScopeName'
+        redirect_uris:
+          type: array
+          minItems: 1
+          maxItems: 10
+          description: Between 1 and 10 addresses. Every one must be a non-empty string.
+          items:
+            type: string
+            format: uri
+        description:
+          type: string
+          default: ''
+        website_url:
+          type: [string, 'null']
+          format: uri
+        confidential:
+          type: boolean
+          default: true
+          description: >-
+            True mints a client secret. Send false for a mobile or single-page
+            app, which cannot keep one, and rely on PKCE instead.
+      examples:
+        - name: Trip Budget Bot
+          description: Posts a nightly summary of a trip group to Slack.
+          website_url: https://tripbudget.example.com
+          redirect_uris: ['https://tripbudget.example.com/oauth/callback']
+          scopes: [identity.read, groups.read, expenses.read, offline_access]
+          confidential: true
+
+    RegisteredApp:
+      type: object
+      required: [id, name, client_id, redirect_uris, scopes]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        client_id:
+          type: string
+        redirect_uris:
+          type: array
+          items:
+            type: string
+            format: uri
+        scopes:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScopeName'
+        client_secret:
+          type: string
+          description: >-
+            Present only for a confidential client, and only here. Rotating it
+            later is a separate, deliberate call.
+          examples: ['wavs_cs_Zm9vYmFyYmF6cXV4Y29ycmdlZ3JhdWx0']
+
+    UpdateAppRequest:
+      type: object
+      description: Every field optional; an omitted one is left alone.
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        website_url:
+          type: string
+          format: uri
+        redirect_uris:
+          type: array
+          minItems: 1
+          maxItems: 10
+          items:
+            type: string
+            format: uri
+        scopes:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/ScopeName'
+        disabled:
+          type: boolean
+          description: True refuses every token issued to this application until it is set back.
+      examples:
+        - redirect_uris:
+            ['https://tripbudget.example.com/oauth/callback', 'http://localhost:5173/callback']
+
+    Connection:
+      type: object
+      description: An application this person has approved.
+      required: [app_id, name, description, website_url, scopes, active, connected_at, last_used_at]
+      properties:
+        app_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        website_url:
+          type: [string, 'null']
+          format: uri
+        scopes:
+          type: array
+          description: >-
+            What this person granted. Always an array, never null; it can be
+            empty once the application's registration no longer overlaps it.
+          items:
+            $ref: '#/components/schemas/ScopeName'
+        active:
+          type: boolean
+          description: >-
+            Whether a request from this application would actually be allowed
+            right now. False when the application has been switched off, or when
+            its registered scopes no longer intersect what was granted — in
+            either case it still holds live tokens and every one of them is
+            refused, so "connected" without this qualifier would be a lie. The
+            row stays either way, because this is the only place the person can
+            clear it.
+        connected_at:
+          type: string
+          format: date-time
+        last_used_at:
+          type: [string, 'null']
+          format: date-time
+
+    ConnectionList:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Connection'
+
+    ConsentPreview:
+      type: object
+      description: >-
+        What the consent screen may say about an application: its name, its
+        owner's display name, and the scopes it is asking for. Never the client
+        secret hash, never the owner's address.
+      required: [app_id, name, description, website_url, owner_name, scopes, scope_descriptions]
+      properties:
+        app_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        website_url:
+          type: [string, 'null']
+          format: uri
+        owner_name:
+          type: [string, 'null']
+          description: The display name of the person who registered the application.
+        scopes:
+          type: array
+          description: Exactly the scopes that were asked for, echoed back.
+          items:
+            type: string
+        scope_descriptions:
+          type: array
+          description: >-
+            The sentence to show for each scope. An entry this deployment does
+            not recognise falls back to the scope name itself.
+          items:
+            type: object
+            required: [scope, description]
+            properties:
+              scope:
+                type: string
+              description:
+                type: string
+
+    Health:
+      type: object
+      required: [status, missing, signing]
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded, misconfigured]
+        missing:
+          type: array
+          description: >-
+            The environment variables this deployment needs and does not have.
+            Empty when `status` is `ok`. It names variables, never values.
+          items:
+            type: string
+          examples: [[WAVES_API_TOKEN_SECRET, WAVES_API_WEB_URL]]
+        signing:
+          $ref: '#/components/schemas/SigningHealth'
+
+    SigningHealth:
+      type: object
+      description: >-
+        Whether the backend accepts the sessions this deployment signs. Checked
+        by signing one and presenting it, not by reading configuration.
+      required: [state, published_algorithms, detail]
+      properties:
+        state:
+          type: string
+          description: >-
+            `ok` — a signed session was accepted. `rejected` — it was refused,
+            so every request will fail and this is a server fault, not a token
+            problem. `unreachable` — the backend could not be asked.
+            `unconfigured` — not enough settings to try.
+          enum: [ok, rejected, unreachable, unconfigured]
+        published_algorithms:
+          type: array
+          description: >-
+            What the project advertises at its JWKS endpoint. Informational
+            only: symmetric keys are excluded from that document, so this can
+            never settle whether HS256 is accepted.
+          items:
+            type: string
+          examples: [[ES256]]
+        detail:
+          type: string
+          description: One sentence an operator can act on. Never a key or a token.
+          examples: ['The backend accepts the sessions this service signs.']

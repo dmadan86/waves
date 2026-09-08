@@ -1,0 +1,200 @@
+/**
+ * The small, dull things every route needs: reading a body without trusting it,
+ * paginating without offsets, and turning an idempotency key into something the
+ * ledger already knows how to deduplicate.
+ *
+ * The last one is worth a paragraph. Waves has had idempotent writes since the
+ * offline queue existed (ADR-005): an expense carries a `clientMutationId` and
+ * the unique column on `expense_versions` makes a replay return the original
+ * row; `waves_record_settlement` and `waves_create_group` take a client-chosen
+ * id for the same reason. So this API does not need a table of stored
+ * responses — it needs the *same* mutation id for the same `Idempotency-Key`,
+ * every time. Deriving it (UUIDv5 over the token, the route and the key) does
+ * exactly that, and inherits the guarantee rather than reimplementing it.
+ *
+ * The token id is part of the derivation, so two developers who both pick
+ * `"1"` as their key do not collide — an idempotency key is scoped to whoever
+ * sent it, which is what every API that has one means by it.
+ */
+
+import { createHash } from 'node:crypto';
+
+import { ApiError } from './errors';
+
+/**
+ * A stable namespace for the derivation. Arbitrary, and fixed forever: changing
+ * it would make every in-flight retry look like a fresh write.
+ */
+const IDEMPOTENCY_NAMESPACE = '5a1d0b4c-7b4e-5a8e-9c31-2f5b6d4e1a90';
+
+function uuidV5(namespace: string, name: string): string {
+  const hash = createHash('sha1')
+    .update(Buffer.from(namespace.replace(/-/g, ''), 'hex'))
+    .update(name, 'utf8')
+    .digest();
+  const bytes = Buffer.from(hash.subarray(0, 16));
+  bytes[6] = ((bytes[6] as number) & 0x0f) | 0x50;
+  bytes[8] = ((bytes[8] as number) & 0x3f) | 0x80;
+  const hex = bytes.toString('hex');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
+/**
+ * The mutation id a write should carry.
+ *
+ * A missing `Idempotency-Key` is not an error: a write with no key is a write
+ * the caller has said it will not retry, and refusing it would make the header
+ * mandatory for no gain. It gets a fresh random id, which is what "not
+ * idempotent" means.
+ */
+export function mutationIdFor(
+  tokenId: string,
+  route: string,
+  key: string | null | undefined,
+): string {
+  if (!key) return crypto.randomUUID();
+  const trimmed = key.trim();
+  if (trimmed.length < 8 || trimmed.length > 200) {
+    throw new ApiError(
+      'invalid_request',
+      'An Idempotency-Key is between 8 and 200 characters.',
+      {},
+      { header: 'Idempotency-Key' },
+    );
+  }
+  return uuidV5(IDEMPOTENCY_NAMESPACE, `${tokenId}\0${route}\0${trimmed}`);
+}
+
+export function requiredMutationIdFor(
+  tokenId: string,
+  route: string,
+  key: string | null | undefined,
+): string {
+  if (!key?.trim()) {
+    throw new ApiError(
+      'invalid_request',
+      'Send Idempotency-Key when recording a payment, so a retry cannot record it twice.',
+      {},
+      { header: 'Idempotency-Key' },
+    );
+  }
+  return mutationIdFor(tokenId, route, key);
+}
+
+/**
+ * A second derived id from the same key, for writes that need more than one
+ * (a group and its first member, say). The suffix keeps them distinct while
+ * both stay stable across retries.
+ */
+export function derivedId(mutationId: string, suffix: string): string {
+  return uuidV5(IDEMPOTENCY_NAMESPACE, `${mutationId}\0${suffix}`);
+}
+
+export async function jsonBody(request: Request): Promise<Record<string, unknown>> {
+  const type = request.headers.get('content-type') ?? '';
+  if (!type.includes('application/json')) {
+    throw new ApiError('invalid_request', 'Send a JSON body with Content-Type: application/json.');
+  }
+  let parsed: unknown;
+  try {
+    parsed = await request.json();
+  } catch {
+    throw new ApiError('invalid_request', 'That body is not valid JSON.');
+  }
+  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+    throw new ApiError('invalid_request', 'The body must be a JSON object.');
+  }
+  return parsed as Record<string, unknown>;
+}
+
+// ───────────────────────────────────────────────────────── pagination ──
+//
+// Keyset, not offset. An offset over a ledger that is being written to shows
+// the same expense twice and skips another, and the fix is not a bigger page —
+// it is not counting rows nobody asked about. The cursor is opaque on purpose:
+// it encodes a sort key and a tiebreaker id, and making that a documented
+// format would freeze the sort order forever.
+
+export const DEFAULT_PAGE = 25;
+export const MAX_PAGE = 100;
+
+export interface Cursor {
+  readonly key: string;
+  readonly id: string;
+}
+
+export function encodeCursor(cursor: Cursor): string {
+  return Buffer.from(`${cursor.key}\0${cursor.id}`, 'utf8').toString('base64url');
+}
+
+export function decodeCursor(raw: string | undefined | null): Cursor | null {
+  if (!raw) return null;
+  let decoded: string;
+  try {
+    decoded = Buffer.from(raw, 'base64url').toString('utf8');
+  } catch {
+    throw new ApiError('invalid_request', 'That cursor is not one we issued.');
+  }
+  const split = decoded.indexOf('\0');
+  if (split < 1) throw new ApiError('invalid_request', 'That cursor is not one we issued.');
+  return { key: decoded.slice(0, split), id: decoded.slice(split + 1) };
+}
+
+export function pageSize(raw: string | undefined | null): number {
+  if (!raw) return DEFAULT_PAGE;
+  const parsed = Number.parseInt(raw, 10);
+  if (!Number.isFinite(parsed) || parsed < 1) {
+    throw new ApiError('invalid_request', 'limit is a whole number of at least 1.');
+  }
+  return Math.min(parsed, MAX_PAGE);
+}
+
+/**
+ * The PostgREST filter for "strictly after this cursor", descending.
+ *
+ * Two columns, because one is not unique: rows written in the same millisecond
+ * would page against each other forever on the sort key alone.
+ */
+export function keysetFilter(cursor: Cursor, keyColumn: string): string {
+  return `${keyColumn}.lt.${cursor.key},and(${keyColumn}.eq.${cursor.key},id.lt.${cursor.id})`;
+}
+
+/**
+ * A boolean in a query string.
+ *
+ * `?include_archived=1` and `?include_archived=yes` are what people actually
+ * type, and a strict `=== 'true'` reads both as false without saying so — the
+ * worst kind of refusal, because the caller sees a plausible answer to a
+ * different question. Anything unrecognised is refused rather than guessed at.
+ */
+export function queryFlag(raw: string | undefined | null, name: string): boolean {
+  if (raw === undefined || raw === null || raw === '') return false;
+  const value = raw.trim().toLowerCase();
+  if (['true', '1', 'yes', 'on'].includes(value)) return true;
+  if (['false', '0', 'no', 'off'].includes(value)) return false;
+  throw new ApiError('invalid_request', `${name} is true or false.`, {}, { parameter: name });
+}
+
+export interface Page<T> {
+  data: T[];
+  next_cursor: string | null;
+}
+
+/**
+ * Turn one row over the page size into a `next_cursor`. Asking for `limit + 1`
+ * and dropping the extra is how the API knows there is a next page without a
+ * COUNT over a table it has no business counting.
+ */
+export function toPage<T>(
+  rows: readonly T[],
+  limit: number,
+  cursorOf: (row: T) => Cursor,
+): Page<T> {
+  const data = rows.slice(0, limit);
+  const more = rows.length > limit;
+  const last = data[data.length - 1];
+  return {
+    data: [...data],
+    next_cursor: more && last ? encodeCursor(cursorOf(last)) : null,
+  };
+}

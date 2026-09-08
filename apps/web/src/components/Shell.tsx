@@ -20,6 +20,7 @@ export enum Section {
   Activity = 'activity',
   Friends = 'friends',
   Settle = 'settle',
+  Developers = 'developers',
   Settings = 'settings',
 }
 
@@ -70,6 +71,7 @@ export function Shell({
     { key: Section.Activity, label: t.dash.nav.activity, href: '/activity', icon: '📈' },
     { key: Section.Friends, label: t.dash.nav.friends, href: '/friends', icon: '🙂' },
     { key: Section.Settle, label: t.dash.nav.settle, href: '/settle', icon: '⇄' },
+    { key: Section.Developers, label: t.developers.title, href: '/developers', icon: '🔑' },
     { key: Section.Settings, label: t.settings.title, href: '/settings', icon: '⚙' },
   ];
 

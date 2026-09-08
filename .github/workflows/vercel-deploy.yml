@@ -3,7 +3,7 @@ name: Vercel deploy (manual)
 # Vercel's git integration is turned off (git.deploymentEnabled: false in each
 # project's vercel.json), so no push or PR ever creates a deployment. This workflow
 # is the only way a deploy happens: run it by hand from the Actions tab, pick
-# the project (web / admin / website / docs / all) and the target
+# the project (web / admin / website / docs / api / all) and the target
 # (preview / production).
 #
 # Required repository secrets (Settings → Secrets and variables → Actions):
@@ -13,6 +13,7 @@ name: Vercel deploy (manual)
 #   VERCEL_PROJECT_ID_ADMIN   — project id of waves-admin   (.vercel/project.json)
 #   VERCEL_PROJECT_ID_WEBSITE — project id of waves         (.vercel/project.json)
 #   VERCEL_PROJECT_ID_DOCS    — project id of waves-docs    (.vercel/project.json)
+#   VERCEL_PROJECT_ID_API     — project id of waves-api     (.vercel/project.json)
 
 on:
   workflow_dispatch:
@@ -26,6 +27,7 @@ on:
           - admin
           - website
           - docs
+          - api
           - all
       target:
         description: Deployment environment
@@ -52,7 +54,7 @@ jobs:
       # one failing project does not cancel the others.
       fail-fast: false
       matrix:
-        app: [web, admin, website, docs]
+        app: [web, admin, website, docs, api]
         # One exclude per project, each reading "drop this app unless it was the
         # one asked for, or the answer was `all`". Naming every other app in
         # every line, which is what this was, needed a new clause in every line
@@ -62,6 +64,7 @@ jobs:
           - app: ${{ (github.event.inputs.project != 'all' && github.event.inputs.project != 'admin') && 'admin' || 'nothing' }}
           - app: ${{ (github.event.inputs.project != 'all' && github.event.inputs.project != 'website') && 'website' || 'nothing' }}
           - app: ${{ (github.event.inputs.project != 'all' && github.event.inputs.project != 'docs') && 'docs' || 'nothing' }}
+          - app: ${{ (github.event.inputs.project != 'all' && github.event.inputs.project != 'api') && 'api' || 'nothing' }}
     env:
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
       # Every app names its own secret and the chain ends in an empty string.
@@ -72,7 +75,7 @@ jobs:
       # fail: it silently borrowed the web app's project, and `vercel deploy`
       # run from that app's directory would have published it over the live web
       # app. The guard below turns the empty string into a stopped run.
-      VERCEL_PROJECT_ID: ${{ matrix.app == 'web' && secrets.VERCEL_PROJECT_ID_WEB || matrix.app == 'admin' && secrets.VERCEL_PROJECT_ID_ADMIN || matrix.app == 'website' && secrets.VERCEL_PROJECT_ID_WEBSITE || matrix.app == 'docs' && secrets.VERCEL_PROJECT_ID_DOCS || '' }}
+      VERCEL_PROJECT_ID: ${{ matrix.app == 'web' && secrets.VERCEL_PROJECT_ID_WEB || matrix.app == 'admin' && secrets.VERCEL_PROJECT_ID_ADMIN || matrix.app == 'website' && secrets.VERCEL_PROJECT_ID_WEBSITE || matrix.app == 'docs' && secrets.VERCEL_PROJECT_ID_DOCS || matrix.app == 'api' && secrets.VERCEL_PROJECT_ID_API || '' }}
       # The marketing site sits at the repo root, the rest under apps/.
       APP_DIR: ${{ matrix.app == 'website' && 'website' || format('apps/{0}', matrix.app) }}
     steps:
@@ -99,9 +102,9 @@ jobs:
       # Which half of this an app takes is decided by whether it imports a
       # workspace package, not by where it sits.
       #
-      # `web` and `admin` import @waves/core, so they are built here — from the
-      # repository root, where the workspace resolves — and the finished output
-      # is uploaded.
+      # `web`, `admin` and `api` import @waves/core, so they are built here —
+      # from the repository root, where the workspace resolves — and the
+      # finished output is uploaded.
       #
       # `website` and `docs` import nothing from the workspace. They also
       # cannot be built here: every dependency is a symlink into a store at the
@@ -111,12 +114,12 @@ jobs:
       # been installed"). Building on Vercel instead installs from their own
       # package.json, which resolves on its own.
       - name: Build
-        if: matrix.app == 'web' || matrix.app == 'admin'
+        if: matrix.app == 'web' || matrix.app == 'admin' || matrix.app == 'api'
         working-directory: ${{ env.APP_DIR }}
         run: vercel build ${{ github.event.inputs.target == 'production' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }}
 
       - name: Deploy (prebuilt)
-        if: matrix.app == 'web' || matrix.app == 'admin'
+        if: matrix.app == 'web' || matrix.app == 'admin' || matrix.app == 'api'
         working-directory: ${{ env.APP_DIR }}
         run: vercel deploy --prebuilt ${{ github.event.inputs.target == 'production' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }}
 
