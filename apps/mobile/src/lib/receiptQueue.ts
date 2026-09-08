@@ -272,6 +272,36 @@ async function writeQueue(queue: readonly PendingReceipt[]): Promise<void> {
   publish(queue);
 }
 
+/**
+ * One queue at a time.
+ *
+ * Every mutation here is read-modify-write over a single AsyncStorage key, and
+ * both halves are asynchronous. Two that overlap both read the same index and
+ * the second write silently discards the first one's change — which for the
+ * pair that actually collides is a lost receipt: somebody taps add, the resize
+ * runs for a second, and while it does a flush or the gallery's own handover
+ * writes back a queue that never saw the new entry. Its bytes are then sitting
+ * under the pending dir with nothing pointing at them, and the next orphan
+ * sweep deletes the photograph.
+ *
+ * So each mutation takes a turn. The chain is per-module, not per-key, because
+ * there is one key; the failure handlers keep it alive, since a single
+ * rejection propagated down the chain would wedge every write after it. Nothing
+ * inside a turn takes another one — uploads and the flush's network work
+ * deliberately sit outside, so a slow send never blocks somebody adding a
+ * receipt.
+ */
+let queueTurn: Promise<void> = Promise.resolve();
+
+function inTurn<T>(run: () => Promise<T>): Promise<T> {
+  const result = queueTurn.then(run);
+  queueTurn = result.then(
+    () => undefined,
+    () => undefined,
+  );
+  return result;
+}
+
 function cleanupOrphanFiles(queue: readonly PendingReceipt[]): void {
   try {
     const dir = new Directory(Paths.document, PENDING_DIR);
@@ -336,21 +366,39 @@ export async function isOnline(): Promise<boolean> {
  * receipt that may since have been removed from another device.
  */
 async function reapSettled(queue: readonly PendingReceipt[]): Promise<PendingReceipt[]> {
-  const now = Date.now();
-  const kept = queue.filter((entry) => {
-    if (!entry.sentAt) return true;
-    const at = Date.parse(entry.sentAt);
-    return !Number.isNaN(at) && now - at < SETTLED_TTL_MS;
-  });
+  const kept = queue.filter((entry) => !settledPast(entry, SETTLED_TTL_MS));
   if (kept.length === queue.length) return [...queue];
   await writeQueue(kept);
   return kept;
 }
 
+/**
+ * Whether a capture finished uploading longer ago than `age`.
+ *
+ * Exported because the sweep below only runs when something reads or flushes
+ * the queue, and a gallery left open does neither — so the gallery applies the
+ * same rule to what it draws (see `ExpenseReceipts`). One definition, asked in
+ * two places, rather than two that can drift.
+ */
+export function settledPast(entry: Pick<PendingReceipt, 'sentAt'>, age: number): boolean {
+  if (!entry.sentAt) return false;
+  const at = Date.parse(entry.sentAt);
+  return Number.isNaN(at) || Date.now() - at >= age;
+}
+
+/** How long a settled capture may be drawn while its row is still on its way. */
+export const SETTLED_MAX_AGE_MS = SETTLED_TTL_MS;
+
 /** Every pending capture, or those for one expense, oldest first. */
 export async function listPendingReceipts(expenseId?: string): Promise<PendingReceipt[]> {
-  const queue = await reapSettled(await readQueue());
-  cleanupOrphanFiles(queue);
+  const queue = await inTurn(async () => {
+    const kept = await reapSettled(await readQueue());
+    // Inside the turn: an enqueue writes its bytes and its entry in one, so a
+    // sweep that runs between those two would delete a receipt somebody just
+    // added.
+    cleanupOrphanFiles(kept);
+    return kept;
+  });
   return expenseId ? queue.filter((entry) => entry.expenseId === expenseId) : queue;
 }
 
@@ -366,46 +414,50 @@ export async function listPendingReceipts(expenseId?: string): Promise<PendingRe
 export async function dropSettledReceipts(attachmentIds: readonly string[]): Promise<void> {
   if (attachmentIds.length === 0) return;
   const wanted = new Set(attachmentIds);
-  const queue = await readQueue();
-  const kept = queue.filter((entry) => !(entry.sentAt && wanted.has(entry.attachmentId)));
-  if (kept.length === queue.length) return;
-  // The bytes normally moved into the view cache when the upload landed; delete
-  // whatever is left over for the case where that write failed.
-  for (const entry of queue) {
-    if (kept.includes(entry)) continue;
-    try {
-      const file = pendingFile(entry);
-      if (file.exists) file.delete();
-    } catch {
-      // Best-effort; a lingering file is reclaimed with the app's document dir.
+  await inTurn(async () => {
+    const queue = await readQueue();
+    const kept = queue.filter((entry) => !(entry.sentAt && wanted.has(entry.attachmentId)));
+    if (kept.length === queue.length) return;
+    // The bytes normally moved into the view cache when the upload landed; delete
+    // whatever is left over for the case where that write failed.
+    for (const entry of queue) {
+      if (kept.includes(entry)) continue;
+      try {
+        const file = pendingFile(entry);
+        if (file.exists) file.delete();
+      } catch {
+        // Best-effort; a lingering file is reclaimed with the app's document dir.
+      }
     }
-  }
-  await writeQueue(kept);
+    await writeQueue(kept);
+  });
 }
 
 /** Sign-out/privacy cleanup: drop the queue index and every pending capture byte file. */
 export async function clearReceiptQueue(): Promise<void> {
-  const queue = await readQueue();
-  for (const entry of queue) {
-    try {
-      const file = pendingFile(entry);
-      if (file.exists) file.delete();
-    } catch {
-      // Best-effort cleanup; keep deleting the rest.
+  await inTurn(async () => {
+    const queue = await readQueue();
+    for (const entry of queue) {
+      try {
+        const file = pendingFile(entry);
+        if (file.exists) file.delete();
+      } catch {
+        // Best-effort cleanup; keep deleting the rest.
+      }
     }
-  }
 
-  try {
-    const dir = new Directory(Paths.document, PENDING_DIR);
-    if (dir.exists) dir.delete();
-  } catch {
-    // Some file-system implementations cannot delete non-empty dirs; queued files
-    // above were already attempted, and the index removal below is the source of truth.
-  }
+    try {
+      const dir = new Directory(Paths.document, PENDING_DIR);
+      if (dir.exists) dir.delete();
+    } catch {
+      // Some file-system implementations cannot delete non-empty dirs; queued files
+      // above were already attempted, and the index removal below is the source of truth.
+    }
 
-  await AsyncStorage.removeItem(QUEUE_KEY);
-  uploading.clear();
-  publish([]);
+    await AsyncStorage.removeItem(QUEUE_KEY);
+    uploading.clear();
+    publish([]);
+  });
 }
 
 /**
@@ -453,36 +505,45 @@ export async function enqueueReceipt(input: {
     sentAt: null,
   };
 
-  const dir = new Directory(Paths.document, PENDING_DIR);
-  if (!dir.exists) dir.create({ intermediates: true });
-  if (input.sourceUri) {
-    // Copied, not moved: the source is the manipulator's own output in the cache
-    // directory, and the caller may still be showing it as the tile's image.
-    await new File(input.sourceUri).copy(pendingFile(entry));
-  } else if (input.base64) {
-    pendingFile(entry).write(new Uint8Array(decode(input.base64)));
-  } else {
+  if (!input.sourceUri && !input.base64) {
     throw new Error('enqueueReceipt needs either sourceUri or base64.');
   }
 
-  const queue = await readQueue();
-  await writeQueue([...queue, entry]);
+  // The bytes and the entry that names them go down together, in one turn.
+  // Split across turns, the file exists for a moment with nothing in the index
+  // pointing at it — and the orphan sweep in `listPendingReceipts` is entitled
+  // to delete exactly that.
+  await inTurn(async () => {
+    const dir = new Directory(Paths.document, PENDING_DIR);
+    if (!dir.exists) dir.create({ intermediates: true });
+    if (input.sourceUri) {
+      // Copied, not moved: the source is the manipulator's own output in the cache
+      // directory, and the caller may still be showing it as the tile's image.
+      await new File(input.sourceUri).copy(pendingFile(entry));
+    } else if (input.base64) {
+      pendingFile(entry).write(new Uint8Array(decode(input.base64)));
+    }
+    const queue = await readQueue();
+    await writeQueue([...queue, entry]);
+  });
   return entry;
 }
 
 /** Drop a pending capture the user chose not to keep, deleting its bytes too. */
 export async function discardPendingReceipt(attachmentId: string): Promise<void> {
-  const queue = await readQueue();
-  const entry = queue.find((item) => item.attachmentId === attachmentId);
-  if (entry) {
-    try {
-      const file = pendingFile(entry);
-      if (file.exists) file.delete();
-    } catch {
-      // Already gone — nothing to clean up.
+  await inTurn(async () => {
+    const queue = await readQueue();
+    const entry = queue.find((item) => item.attachmentId === attachmentId);
+    if (entry) {
+      try {
+        const file = pendingFile(entry);
+        if (file.exists) file.delete();
+      } catch {
+        // Already gone — nothing to clean up.
+      }
     }
-  }
-  await writeQueue(queue.filter((item) => item.attachmentId !== attachmentId));
+    await writeQueue(queue.filter((item) => item.attachmentId !== attachmentId));
+  });
 }
 
 /**
@@ -503,14 +564,18 @@ export async function discardPendingReceipt(attachmentId: string): Promise<void>
 export async function retryPendingReceipts(attachmentIds: readonly string[]): Promise<FlushResult> {
   if (attachmentIds.length === 0) return EMPTY_FLUSH;
   const wanted = new Set(attachmentIds);
-  const queue = await readQueue();
-  await writeQueue(
-    queue.map((entry) =>
-      wanted.has(entry.attachmentId)
-        ? { ...entry, lastError: null, permanent: false, nextAttemptAt: null }
-        : entry,
-    ),
-  );
+  await inTurn(async () => {
+    const queue = await readQueue();
+    await writeQueue(
+      queue.map((entry) =>
+        wanted.has(entry.attachmentId)
+          ? { ...entry, lastError: null, permanent: false, nextAttemptAt: null }
+          : entry,
+      ),
+    );
+  });
+  // Outside the turn: the flush below takes turns of its own, and holding one
+  // across it would deadlock.
   return flushReceiptQueue();
 }
 
@@ -574,7 +639,7 @@ export function flushReceiptQueue(): Promise<FlushResult> {
 }
 
 async function runFlush(): Promise<FlushResult> {
-  const queue = await reapSettled(await readQueue());
+  const queue = await inTurn(async () => reapSettled(await readQueue()));
   if (queue.length === 0) return EMPTY_FLUSH;
 
   // Only entries that are actually due: a permanent refusal waits for somebody
@@ -725,12 +790,14 @@ async function runFlush(): Promise<FlushResult> {
   // uploads above, and writing only what this run touched would silently drop it
   // (its bytes then orphaned under PENDING_DIR). Rebuilding from the current
   // queue keeps those, keeps the untouched entries, and preserves the order.
-  const current = await readQueue();
-  const next = current.flatMap((entry) => {
-    if (!updates.has(entry.attachmentId)) return [entry];
-    const replacement = updates.get(entry.attachmentId);
-    return replacement ? [replacement] : [];
+  await inTurn(async () => {
+    const current = await readQueue();
+    const next = current.flatMap((entry) => {
+      if (!updates.has(entry.attachmentId)) return [entry];
+      const replacement = updates.get(entry.attachmentId);
+      return replacement ? [replacement] : [];
+    });
+    await writeQueue(next);
   });
-  await writeQueue(next);
   return { uploadedExpenseIds: [...uploaded], hadPermanentFailure, capReached };
 }

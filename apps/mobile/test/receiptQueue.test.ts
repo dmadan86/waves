@@ -568,6 +568,65 @@ describe('a capture parked while a flush is running', () => {
   });
 });
 
+describe('two things touching the queue at once', () => {
+  it('does not lose a receipt added while another operation is writing the index', async () => {
+    // The collision that matters: somebody taps add (the resize runs for a
+    // second, so the enqueue lands late) while the gallery lets go of a capture
+    // whose row has just arrived. Both read the same index; whoever writes last
+    // used to decide, and when that was the drop, the new receipt was gone from
+    // the index with its bytes orphaned under the pending dir — where the next
+    // orphan sweep deletes them.
+    parkOnDisk();
+    await listPendingReceipts();
+    await flushReceiptQueue();
+
+    const [drop, added] = await Promise.all([
+      dropSettledReceipts(['a1']),
+      enqueueReceipt({
+        expenseId: 'e2',
+        groupId: 'g1',
+        visibility: 'group',
+        base64: Buffer.from([9]).toString('base64'),
+        contentType: 'image/jpeg',
+      }),
+      // `drop` is void; `added` is the entry.
+    ]);
+    void drop;
+
+    expect((await storedQueue()).map((entry) => entry.attachmentId)).toEqual([added.attachmentId]);
+    expect(fs.files.has(pendingPath(added.fileName))).toBe(true);
+    // And the sweep that runs on the next read leaves it alone.
+    await listPendingReceipts();
+    expect(fs.files.has(pendingPath(added.fileName))).toBe(true);
+  });
+
+  it('does not sweep away the bytes of a receipt being added', async () => {
+    // The orphan sweep reads the index and deletes every pending file missing
+    // from it. An enqueue writes bytes and index together for exactly this
+    // reason — split apart, a listing in between would delete the photograph.
+    const [, added] = await Promise.all([
+      listPendingReceipts(),
+      enqueueReceipt({
+        expenseId: 'e1',
+        groupId: 'g1',
+        visibility: 'group',
+        base64: Buffer.from([5]).toString('base64'),
+        contentType: 'image/jpeg',
+      }),
+    ]);
+
+    expect(fs.files.has(pendingPath(added.fileName))).toBe(true);
+    expect((await storedQueue()).map((entry) => entry.attachmentId)).toEqual([added.attachmentId]);
+  });
+
+  it('lets go of a settled capture whose row never came, on the next read', async () => {
+    parkOnDisk({ sentAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString() });
+
+    expect(await listPendingReceipts()).toEqual([]);
+    expect(await storedQueue()).toEqual([]);
+  });
+});
+
 describe('receipt queue local privacy cleanup', () => {
   it('removes the queue index and pending receipt files on sign-out cleanup', async () => {
     const entries = [

@@ -578,8 +578,13 @@ export async function prepareReceipt(
   return {
     uri: asset.uri,
     mimeType: asset.mimeType ?? 'image/jpeg',
-    // No manipulator ran, so there is nothing to make a thumbnail with either.
-    preview: null,
+    // Still worth asking. This branch is reached either because there is no
+    // manipulator — in which case this returns null for free, without touching
+    // the file — or because the source did not report its dimensions, which is
+    // not the same as their being unknowable: the picker can omit them for a
+    // file `Image.getSize` reads perfectly well. It cannot throw, and a null is
+    // exactly the "no preview" this used to hard-code.
+    preview: await previewDataUri(asset.uri),
   };
 }
 

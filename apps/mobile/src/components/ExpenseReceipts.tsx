@@ -63,7 +63,9 @@ import {
   flushReceiptQueue,
   pendingReceiptUri,
   retryPendingReceipts,
+  settledPast,
   usePendingReceipts,
+  SETTLED_MAX_AGE_MS,
   type FlushResult,
   type PendingReceiptStatus,
   type PendingReceiptView,
@@ -427,12 +429,20 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
     // picture, precisely until the row it became arrives from the sync — that is
     // what stopped the strip going blank for the length of a pull. This is the
     // other half: once both exist, the entry is a duplicate of the row and goes.
+    //
+    // The queue's own sweep for the row that never comes runs when something
+    // reads or flushes it, and a gallery left open on screen does neither — so
+    // an entry past its welcome is let go from here too.
     useEffect(() => {
-      const landed = pending
+      const done = pending
         .filter((entry) => entry.status === 'sent')
-        .filter((entry) => attachments.data.some((row) => row.id === entry.attachmentId))
+        .filter(
+          (entry) =>
+            attachments.data.some((row) => row.id === entry.attachmentId) ||
+            settledPast(entry, SETTLED_MAX_AGE_MS),
+        )
         .map((entry) => entry.attachmentId);
-      if (landed.length > 0) void dropSettledReceipts(landed);
+      if (done.length > 0) void dropSettledReceipts(done);
     }, [pending, attachments.data]);
 
     const items = useMemo<GalleryItem[]>(() => {
@@ -451,6 +461,10 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
       // dropped here to avoid two tiles for one receipt.
       const uploaded = new Set(attachments.data.map((row) => row.id));
       for (const entry of [...pending].reverse()) {
+        // Never draw what the sweep would already have removed: an upload whose
+        // row has not arrived in an hour is no longer news, and the effect above
+        // is letting go of it.
+        if (settledPast(entry, SETTLED_MAX_AGE_MS)) continue;
         if (!uploaded.has(entry.attachmentId)) {
           list.push({ kind: 'pending', key: `pending-${entry.attachmentId}`, entry });
         }
