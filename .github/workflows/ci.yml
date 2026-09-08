@@ -162,6 +162,23 @@ jobs:
       # quietly differ from the app's.
       - run: pnpm test:api
 
+  api-server:
+    name: developer API tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # The public developer API (A49). Its own job rather than a line in another
+      # one, because this is the only surface a stranger's program can reach: the
+      # suite is mostly forged credentials, scope refusals and CORS, and a red
+      # check here should name that surface rather than "some app".
+      - run: pnpm test:api-server
+
   # The database + scenario jobs moved to their own workflow (.github/workflows/
   # db.yml): they exercise only SQL and the @waves/core split maths, so they run
   # only when the migrations, the DB tests, or @waves/core change — never on a

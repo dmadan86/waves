@@ -45,6 +45,12 @@ while IFS= read -r path; do
   if [[ $name =~ ^\(.+\)$ ]]; then continue; fi
   if [[ $name =~ ^\[\.{0,3}[A-Za-z0-9_-]+\](\.[A-Za-z0-9]+)?$ ]]; then continue; fi
 
+  # Next names an *optional* catch-all with doubled brackets — `[[...route]]` —
+  # and the doubling is what makes it match the root path as well as everything
+  # under it. The developer API is one such route and nothing else, so this is a
+  # real directory name rather than a fragment of somebody's shell.
+  if [[ $name =~ ^\[\[\.{3}[A-Za-z0-9_-]+\]\]$ ]]; then continue; fi
+
   # Expo Router's special files carry a leading `+` — `+native-intent.ts`,
   # `+not-found.tsx`, `+html.tsx`. The `+` is the framework's; the rest is an
   # ordinary name with a known extension.

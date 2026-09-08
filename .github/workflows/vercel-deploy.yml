@@ -3,7 +3,8 @@ name: Vercel deploy (manual)
 # Vercel's git integration is turned off (git.deploymentEnabled: false in each
 # project's vercel.json), so no push or PR ever creates a deployment. This workflow
 # is the only way a deploy happens: run it by hand from the Actions tab, pick
-# the project (web / admin / website / all) and the target (preview / production).
+# the project (web / admin / website / api / all) and the target
+# (preview / production).
 #
 # Required repository secrets (Settings → Secrets and variables → Actions):
 #   VERCEL_TOKEN              — a Vercel access token
@@ -11,6 +12,7 @@ name: Vercel deploy (manual)
 #   VERCEL_PROJECT_ID_WEB     — project id of waves-web     (.vercel/project.json)
 #   VERCEL_PROJECT_ID_ADMIN   — project id of waves-admin   (.vercel/project.json)
 #   VERCEL_PROJECT_ID_WEBSITE — project id of waves         (.vercel/project.json)
+#   VERCEL_PROJECT_ID_API     — project id of waves-api     (.vercel/project.json)
 
 on:
   workflow_dispatch:
@@ -23,6 +25,7 @@ on:
           - web
           - admin
           - website
+          - api
           - all
       target:
         description: Deployment environment
@@ -49,14 +52,15 @@ jobs:
       # one failing project does not cancel the others.
       fail-fast: false
       matrix:
-        app: [web, admin, website]
+        app: [web, admin, website, api]
         exclude:
-          - app: ${{ (github.event.inputs.project == 'admin' || github.event.inputs.project == 'website') && 'web' || 'nothing' }}
-          - app: ${{ (github.event.inputs.project == 'web' || github.event.inputs.project == 'website') && 'admin' || 'nothing' }}
-          - app: ${{ (github.event.inputs.project == 'web' || github.event.inputs.project == 'admin') && 'website' || 'nothing' }}
+          - app: ${{ (github.event.inputs.project == 'admin' || github.event.inputs.project == 'website' || github.event.inputs.project == 'api') && 'web' || 'nothing' }}
+          - app: ${{ (github.event.inputs.project == 'web' || github.event.inputs.project == 'website' || github.event.inputs.project == 'api') && 'admin' || 'nothing' }}
+          - app: ${{ (github.event.inputs.project == 'web' || github.event.inputs.project == 'admin' || github.event.inputs.project == 'api') && 'website' || 'nothing' }}
+          - app: ${{ (github.event.inputs.project == 'web' || github.event.inputs.project == 'admin' || github.event.inputs.project == 'website') && 'api' || 'nothing' }}
     env:
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-      VERCEL_PROJECT_ID: ${{ matrix.app == 'admin' && secrets.VERCEL_PROJECT_ID_ADMIN || matrix.app == 'website' && secrets.VERCEL_PROJECT_ID_WEBSITE || secrets.VERCEL_PROJECT_ID_WEB }}
+      VERCEL_PROJECT_ID: ${{ matrix.app == 'admin' && secrets.VERCEL_PROJECT_ID_ADMIN || matrix.app == 'website' && secrets.VERCEL_PROJECT_ID_WEBSITE || matrix.app == 'api' && secrets.VERCEL_PROJECT_ID_API || secrets.VERCEL_PROJECT_ID_WEB }}
       # The marketing site sits at the repo root, the two apps under apps/.
       APP_DIR: ${{ matrix.app == 'website' && 'website' || format('apps/{0}', matrix.app) }}
     steps:

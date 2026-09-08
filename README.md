@@ -55,12 +55,24 @@ the service key.
 
 ```
 apps/mobile/       Expo (SDK 57, React 19, Expo Router, TypeScript strict)
+apps/web/          The app in a browser, and the guest invite view (Next)
+apps/admin/        The operator console (Next)
+apps/api/          The public developer API — tokens, OAuth 2.1, /v1 (Next + Hono)
+apps/agent-mcp/    An MCP server that acts as a signed-in Waves user
 packages/core/     Pure money/split/balance/simplify/settlement logic — no deps
+packages/api-client/ The framework-free client the browser and the API share
 packages/db/       Prisma schema + migrations (RLS, triggers, derived balances)
 packages/ui/       Design tokens and components
 supabase/          Local stack config + edge functions (M2+)
+website/           The marketing site
 e2e/               Maestro flows
 ```
+
+`apps/api` is the newest of these and the only one a stranger's program can
+reach. It holds no service-role key: a token resolves to a person, the API signs
+a one-minute session for them, and every read and write goes through the RLS
+policies and edge functions the phone already uses. `docs/developer-api.md` is
+the design; `apps/api/openapi.yaml` is the contract.
 
 `packages/core` has **zero runtime dependencies** on React or Supabase. That is
 deliberate: the app, the guest web view and the Deno edge functions all import

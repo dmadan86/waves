@@ -1,0 +1,31 @@
+{
+  "name": "@waves/api",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --port 3200",
+    "build": "next build",
+    "start": "next start --port 3200",
+    "lint": "eslint src --max-warnings 0",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.112.3",
+    "@waves/api-client": "workspace:*",
+    "@waves/core": "workspace:*",
+    "hono": "^4.13.7",
+    "next": "^16.3.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@types/node": "^26.3.0",
+    "@types/react": "~19.2.2",
+    "eslint": "^10.9.1",
+    "eslint-config-next": "^16.3.0",
+    "typescript": "~5.9.2",
+    "vitest": "^4.1.10"
+  }
+}
