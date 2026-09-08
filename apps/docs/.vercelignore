@@ -1,0 +1,20 @@
+# What Vercel does not need when this site deploys from its own directory.
+#
+# Which `.vercelignore` a deployment reads depends on where its source root
+# lands: this file when the root is `apps/docs` (the expected case, and the way
+# `website/` deploys), the repository's when the root is the repository. Both
+# are written to be safe for this site, because guessing wrong silently
+# publishes a site with no pages in it.
+#
+# The build runs on Vercel, so nothing generated locally needs uploading.
+
+node_modules
+build
+.docusaurus
+
+# Generated from the OpenAPI document during the build, never from the upload.
+.openapi
+docs/api/reference
+
+.env.local
+*.tsbuildinfo

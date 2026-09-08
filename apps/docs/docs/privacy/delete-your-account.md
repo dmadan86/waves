@@ -21,8 +21,11 @@ because after this there is nothing to export.
 > notification history, purchases and anything the AI scanner recorded about
 > your usage.
 
-Your account is closed. Nobody can sign into it again, and none of your personal
-details remain.
+Your account is closed and nobody can sign into it again.
+
+Two things outlive it, and both are covered below: your share of the shared
+ledger, and — if you filled it in — the answer you typed into
+[**Why are you leaving?**](#doing-it)
 
 ## What stays, and why
 
@@ -55,9 +58,28 @@ so it is kinder to settle first.
 ## Doing it
 
 - **Why are you leaving? (optional)** — _"It helps to know, and it is kept after
-  your account is gone."_ It is a free-text box, and it is genuinely optional.
+  your account is gone."_ Read that literally; see below.
 - **Type DELETE to confirm** — the literal word, in capitals.
 - **Delete my data**.
+
+:::warning What you type here is kept
+
+The answer is saved a moment before the account is deleted, and it survives the
+deletion. What is saved is the text exactly as you typed it, up to 4,000
+characters, together with the language and country that were on your account and
+the date. The link back to your account is cleared, so the entry no longer says
+who wrote it — but nothing in the text itself is removed or masked.
+
+That matters because it is a free-text box, and people write their own name, or
+an email address, or a phone number in it. Anything you put there stays there,
+whether or not it identifies you.
+
+The box is genuinely optional. **Leave it empty and nothing is written at all.**
+If you do want to tell us why, it is worth saying it in a way you would be
+content to have kept — the reason is the useful part, and your phone number
+is not.
+
+:::
 
 When it is done: _Your data has been deleted_, and _"You are now a former member
 of {n} groups."_

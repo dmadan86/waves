@@ -50,9 +50,5 @@
   "link.item.label.Email us": {
     "message": "हमें ईमेल करें",
     "description": "The label of footer link with label=Email us linking to the support address"
-  },
-  "copyright": {
-    "message": "© 2026 Waves",
-    "description": "The footer copyright"
   }
 }

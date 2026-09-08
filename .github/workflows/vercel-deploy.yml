@@ -64,10 +64,24 @@ jobs:
           - app: ${{ (github.event.inputs.project != 'all' && github.event.inputs.project != 'docs') && 'docs' || 'nothing' }}
     env:
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-      VERCEL_PROJECT_ID: ${{ matrix.app == 'admin' && secrets.VERCEL_PROJECT_ID_ADMIN || matrix.app == 'website' && secrets.VERCEL_PROJECT_ID_WEBSITE || matrix.app == 'docs' && secrets.VERCEL_PROJECT_ID_DOCS || secrets.VERCEL_PROJECT_ID_WEB }}
+      # Every app names its own secret and the chain ends in an empty string.
+      #
+      # It used to end in VERCEL_PROJECT_ID_WEB, and `a && b || c` in this
+      # expression language falls through whenever `b` is falsy — which an unset
+      # secret is. So an app whose project id had not been created yet did not
+      # fail: it silently borrowed the web app's project, and `vercel deploy`
+      # run from that app's directory would have published it over the live web
+      # app. The guard below turns the empty string into a stopped run.
+      VERCEL_PROJECT_ID: ${{ matrix.app == 'web' && secrets.VERCEL_PROJECT_ID_WEB || matrix.app == 'admin' && secrets.VERCEL_PROJECT_ID_ADMIN || matrix.app == 'website' && secrets.VERCEL_PROJECT_ID_WEBSITE || matrix.app == 'docs' && secrets.VERCEL_PROJECT_ID_DOCS || '' }}
       # The marketing site sits at the repo root, the rest under apps/.
       APP_DIR: ${{ matrix.app == 'website' && 'website' || format('apps/{0}', matrix.app) }}
     steps:
+      - name: This app must have a project id of its own
+        run: |
+          if [ -z "${VERCEL_PROJECT_ID}" ]; then
+            echo "::error::No Vercel project id for '${{ matrix.app }}'. Create the project, run 'vercel link' in ${APP_DIR}, and add the id from .vercel/project.json as the VERCEL_PROJECT_ID_$(echo '${{ matrix.app }}' | tr '[:lower:]' '[:upper:]') repository secret."
+            exit 1
+          fi
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:

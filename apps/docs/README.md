@@ -169,6 +169,15 @@ Whichever document it reads, its first `servers` URL is rewritten from
 `WAVES_API_URL` into a build-only copy before generation
 (`src/config/openapi.ts`), so a self-hosted help site documents its own host.
 
+That rewrite is a line edit, not a YAML round-trip — parsing and re-emitting
+would reformat somebody else's document for the sake of one string. It reads a
+top-level `servers:` list whose first entry has a literal `url:` line, in any
+key order, and it touches only that entry. Anything else — an inline
+`- {url: …}`, a `{variable}` template, no `servers:` at all — **fails the
+build** with a message naming the file, rather than passing the original host
+through. A reference that quietly documents the wrong API is the failure the
+function exists to prevent, so it is not allowed to be the quiet outcome.
+
 ## Deploying
 
 Vercel, as its own project, with **Root Directory** set to `apps/docs`.
@@ -187,7 +196,16 @@ Nothing deploys on a push: `git.deploymentEnabled` is false in `vercel.json`, an
 the only way a deployment happens is the **Vercel deploy (manual)** workflow in
 the Actions tab — pick `docs` and a target. It needs `VERCEL_TOKEN`,
 `VERCEL_ORG_ID` and `VERCEL_PROJECT_ID_DOCS` (the id in this directory's
-`.vercel/project.json` after a `vercel link`) as repository secrets.
+`.vercel/project.json` after a `vercel link`) as repository secrets. Without
+that last one the workflow stops on its first step; it used to fall through to
+the web app's project id and would have published these docs over the product.
+
+There are two `.vercelignore` files in play, and which one Vercel reads depends
+on where the deployment's source root lands — this directory's when the root is
+`apps/docs`, the repository's when the root is the repository. Both are written
+to be safe for this site: the root one no longer excludes `apps/docs`, and its
+`*.md` rule carries an exception for `apps/docs/**/*.md`, without which a help
+site made of Markdown would deploy with no pages in it.
 
 `vercel.json` carries an `ignoreCommand` so a push that did not touch this
 directory does not spend a deployment — the free tier rate-limits on a burst of

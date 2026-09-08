@@ -24,12 +24,16 @@ node_modules
 # on purpose: it has no workspace dependencies, so it deploys from its own
 # directory and never reads this file.
 #
-# `apps/docs` is excluded for the same reason `apps/mobile` is — no web app
-# imports it — and it deploys the way `website/` does, from its own directory,
-# so it never reads this file either. That matters: the `*.md` line at the
-# bottom would otherwise strip every page out of a help site made of Markdown.
+# `apps/docs` is absent for a sharper reason. It is expected to deploy the way
+# `website/` does — from its own directory, reading its own `.vercelignore` —
+# but that expectation is about how Vercel resolves a deployment's source root,
+# and being wrong about it here has two different costs. Listing `apps/docs`
+# costs a deploy that fails with "The specified Root Directory apps/docs does
+# not exist" (this file has caused exactly that before, for `apps/web`).
+# Omitting it costs a couple of hundred kilobytes in the web and admin uploads.
+# So it is omitted, and the `*.md` line at the bottom carries an exception, and
+# a docs deploy made from this root would still work.
 apps/mobile
-apps/docs
 e2e
 supabase
 
@@ -48,4 +52,9 @@ supabase
 **/*.tsbuildinfo
 .git
 .github
+
+# Documentation is not built into either web app, so it is dropped — except the
+# help site, where the Markdown *is* the product. A rule that quietly removes
+# every page from a site made of pages is worth one line to prevent.
 *.md
+!apps/docs/**/*.md

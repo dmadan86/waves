@@ -44,15 +44,11 @@
     "description": "The label of footer link with label=Home linking to the marketing site"
   },
   "link.item.label.Open the app": {
-    "message": "செயலியைத் திற",
+    "message": "செயலியைத் திறக்கவும்",
     "description": "The label of footer link with label=Open the app linking to the product"
   },
   "link.item.label.Email us": {
     "message": "எங்களுக்கு எழுதுங்கள்",
     "description": "The label of footer link with label=Email us linking to the support address"
-  },
-  "copyright": {
-    "message": "© 2026 Waves",
-    "description": "The footer copyright"
   }
 }

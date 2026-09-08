@@ -49,8 +49,15 @@ The practical consequences:
 
 ## Keep the token out of the URL
 
-Put it in the header, never in a query string. Query strings are written to
-server logs, browser history and proxy caches; headers are not.
+Put it in the header, never in a query string. A URL is recorded almost
+everywhere by default — access logs, browser history, `Referer` headers,
+bookmarks, proxy caches — so a token in one leaks without anybody deciding it
+should.
+
+A header is not automatically safe, only less automatically unsafe: servers,
+reverse proxies, APM agents and debug middleware can all be configured to
+capture request headers. If you run any of those, redact `Authorization`
+explicitly at each hop rather than assuming it was never written down.
 
 ## Self-hosted deployments
 
