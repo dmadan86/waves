@@ -18,6 +18,7 @@ import {
   Alert,
   Pressable,
   RefreshControl,
+  ScrollView,
   TextInput,
   useWindowDimensions,
   View,
@@ -54,10 +55,6 @@ import { foldedCaptureCount } from '@/lib/captureBatch';
 import { buildCaptureFeedItems, type CaptureFeedItem } from '@/lib/captureFeed';
 import { usePullRefresh } from '@/lib/pullRefresh';
 
-/** Minimum width of the right-aligned amount column, so short (₹300) and long
- *  (₹80,580) amounts share a right edge and read as one column down the list. */
-const AMOUNT_COLUMN = 76;
-
 /**
  * What the ⋯ overflow sheet is open on: a single capture (add to group / edit /
  * delete) or a whole spoken batch (delete them all). Null when nothing is open.
@@ -72,6 +69,14 @@ type CaptureMenu =
  * dashed outline when still open — so a labelled affordance replaces the old
  * invisible "the whole card is secretly tappable". The chip is a label, not its
  * own button: the card's tap is what assigns.
+ *
+ * It shares its line with the place the spend happened, and the two used to
+ * shrink together: on a narrow row the label was squeezed away entirely and the
+ * chip rendered as a bare "+" and an ellipsis — a mark that reads as breakage
+ * rather than an action. The label is the row's one action, and a place name is
+ * context that already truncates happily, so the chip holds its width and the
+ * place gives way first. The cap keeps a very long group name from swallowing
+ * the whole line (and, with no shrink left, spilling over the amount).
  */
 function AssignChip({ label, aimed }: { label: string; aimed: boolean }): React.JSX.Element {
   const theme = useTheme();
@@ -91,7 +96,8 @@ function AssignChip({ label, aimed }: { label: string; aimed: boolean }): React.
         borderWidth: aimed ? 0 : 1,
         borderColor: theme.color.border,
         borderStyle: 'dashed',
-        flexShrink: 1,
+        flexShrink: 0,
+        maxWidth: '70%',
       }}
     >
       <Ionicons name="add" size={13} color={ink} />
@@ -233,10 +239,14 @@ function CaptureListRow({
           ) : null}
         </View>
 
-        {/* The amount sits in a right-aligned column so the numbers line up down
-            the list rather than each ending wherever its own width happens to
-            land — a ledger reads by its right edge. */}
-        <View style={{ minWidth: AMOUNT_COLUMN, alignItems: 'flex-end' }}>
+        {/* The amount and the ⋯ never shrink (RN's flexShrink is 0 by default),
+            so every row's amount ends at the same point — the ⋯ is a fixed width
+            and the amount is the item before it. That alignment is free, and the
+            76pt minimum this column used to carry bought nothing for it: it only
+            reserved blank space to the amount's left, on the very row where the
+            title needed it. A long title now ellipses ~60pt later, and a short
+            one leaves the gap where a reader expects it, between two columns. */}
+        <View style={{ alignItems: 'flex-end' }}>
           <MoneyText
             amount={BigInt(capture.amount)}
             currency={capture.currency}
@@ -251,19 +261,15 @@ function CaptureListRow({
             focusable nested in the accessible row can be unreachable, so screen
             readers reach it through the row's "more" action instead.
 
-            The trailing slot mirrors the batch card's ⋯-plus-chevron exactly
-            (same order, same gap) so a standalone amount shares its right edge
-            with a batch total — the empty slot stands in for the batch's expand
-            chevron. */}
-        <View
-          accessibilityElementsHidden
-          importantForAccessibility="no-hide-descendants"
-          style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md }}
-        >
+            It used to be followed by an empty 18pt slot standing in for the
+            batch card's expand chevron, so the two kinds of row shared a right
+            edge. That cost every single row 30pt of title width for a blank; the
+            batch card now wears its chevron beside its title instead, and both
+            trailing slots are simply the ⋯. */}
+        <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
           <IconButton label={t.captures.moreActions} onPress={onMore}>
             <Ionicons name="ellipsis-horizontal" size={iconSize.md} color={theme.color.textMuted} />
           </IconButton>
-          <View style={{ width: iconSize.md }} />
         </View>
       </Row>
     </Pressable>
@@ -358,11 +364,23 @@ function BatchGroupCard({
           <View style={{ flex: 1, minWidth: 0 }}>
             {/* The count is the whole headline — a batch stands for one outing,
                 so the individual descriptions belong to the expanded rows, not
-                here. The second line says what the folded row can do, so a person
-                is not left guessing whether it assigns whole or item by item. */}
-            <Text variant="subheading" numberOfLines={1}>
-              {plural(locale, items.length, t.captures.batchExpenses)}
-            </Text>
+                here. The chevron rides beside it (down closed, up open): the
+                standard reveal mark, but here rather than at the trailing edge,
+                where it forced every standalone row to reserve a blank slot of
+                the same width just to keep the two amounts aligned. Vertical
+                chevrons carry no handedness, so nothing to mirror in RTL. The
+                second line says what the folded row can do, so a person is not
+                left guessing whether it assigns whole or item by item. */}
+            <Row style={{ gap: theme.spacing.xs, alignItems: 'center' }}>
+              <Text variant="subheading" numberOfLines={1} style={{ flexShrink: 1 }}>
+                {plural(locale, items.length, t.captures.batchExpenses)}
+              </Text>
+              <Ionicons
+                name={open ? 'chevron-up' : 'chevron-down'}
+                size={iconSize.md}
+                color={theme.color.textMuted}
+              />
+            </Row>
             <Row style={{ gap: theme.spacing.xs, alignItems: 'center', marginTop: 2 }}>
               <Text variant="micro" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
                 {t.captures.batchHint}
@@ -371,12 +389,10 @@ function BatchGroupCard({
             </Row>
           </View>
 
-          {/* Total then the expander, both trailing — the chevron is the standard
-              reveal affordance (down closed, up open), sitting just past the
-              amount rather than a plus crammed at the edge. */}
-          {/* Same right-aligned amount column as the standalone rows, so a
-              batch total lines up under the single amounts above and below it. */}
-          <View style={{ minWidth: AMOUNT_COLUMN, alignItems: 'flex-end' }}>
+          {/* The total, then the ⋯ — the same trailing pair a standalone row
+              carries, so a batch total lines up under the single amounts above
+              and below it without either kind of row padding itself out. */}
+          <View style={{ alignItems: 'flex-end' }}>
             {total !== null ? (
               <MoneyText amount={total} currency={currency} locale={locale} variant="subheading" />
             ) : (
@@ -388,13 +404,8 @@ function BatchGroupCard({
           {/* The batch's own ⋯, matching the standalone rows: it opens the sheet
               that can delete the whole batch at once, rather than a standing red
               trash on the card. A nested press for a sighted tap, but hidden from
-              the a11y tree (reached through the row's "more" action); the chevron
-              beside it is decorative — the expanded state is already announced. */}
-          <View
-            accessibilityElementsHidden
-            importantForAccessibility="no-hide-descendants"
-            style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md }}
-          >
+              the a11y tree (reached through the row's "more" action). */}
+          <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
             <IconButton label={t.captures.moreActions} onPress={onMoreBatch}>
               <Ionicons
                 name="ellipsis-horizontal"
@@ -402,11 +413,6 @@ function BatchGroupCard({
                 color={theme.color.textMuted}
               />
             </IconButton>
-            <Ionicons
-              name={open ? 'chevron-up' : 'chevron-down'}
-              size={iconSize.md}
-              color={theme.color.textMuted}
-            />
           </View>
         </Row>
       </Pressable>
@@ -548,7 +554,12 @@ export default function CapturesScreen() {
   // Past this many groups the picker earns a search field; a short list is
   // faster to eyeball than to type through.
   const showSearch = assignableGroups.length > 6;
-  const pickerListHeight = Math.max(180, height * (showSearch ? 0.34 : 0.42));
+  // How tall the picker sheet is ever allowed to get. A ceiling, not a height:
+  // the sheet hugs its rows and only starts scrolling here. In points off the
+  // window rather than the '80%' it used to pass, because a percentage height
+  // needs an ancestor with a definite one to resolve against and this card is
+  // sized by its own content — points can't be quietly dropped.
+  const pickerMaxHeight = height * 0.8;
 
   const rows = useMemo(() => captures.data ?? [], [captures.data]);
   const feedItems = useMemo(() => buildCaptureFeedItems(rows), [rows]);
@@ -755,10 +766,11 @@ export default function CapturesScreen() {
   );
 
   const renderGroupPickerItem = useCallback(
-    ({ item: group }: { item: GroupRow }) => {
+    (group: GroupRow) => {
       const label = groupLabel(group, summary.membersFor(group.id), profile?.id);
       return (
         <Pressable
+          key={group.id}
           accessibilityRole="button"
           accessibilityLabel={label}
           onPress={() => {
@@ -898,13 +910,19 @@ export default function CapturesScreen() {
         onClose={closeAssign}
         padded={false}
         closeLabel={t.common.close}
-        style={{ paddingHorizontal: theme.spacing.xl, gap: theme.spacing.md, maxHeight: '80%' }}
+        style={{
+          paddingHorizontal: theme.spacing.xl,
+          gap: theme.spacing.md,
+          maxHeight: pickerMaxHeight,
+        }}
       >
         <Text variant="heading">{t.captures.assignTitle}</Text>
 
         {/* What is being placed, so the sheet stands on its own over the
                 list it hides: the amount and its note beside the capture's own
-                glyph. */}
+                glyph. The title says what this sheet is for; a line under this
+                repeating "choose where to add this expense" only said it again,
+                so the summary is the whole of the preamble now. */}
         {assigning ? (
           <Row style={{ gap: theme.spacing.md, alignItems: 'center' }}>
             <CategoryBadge
@@ -928,10 +946,6 @@ export default function CapturesScreen() {
             </View>
           </Row>
         ) : null}
-
-        <Text variant="caption" tone="muted">
-          {t.captures.assignBody}
-        </Text>
 
         {/* Search only earns its place on a long list (see `showSearch`);
                 a rounded field with a leading glyph, the picker grammar Mobbin
@@ -964,77 +978,92 @@ export default function CapturesScreen() {
           </Row>
         ) : null}
 
-        <View style={{ height: pickerListHeight }}>
-          <FlashList
-            data={assignableGroups.length === 0 ? [] : visibleGroups}
-            keyExtractor={(group) => group.id}
-            renderItem={renderGroupPickerItem}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            ListHeaderComponent={
-              <>
-                {/* Start a group and drop this into it — so a capture with no
-                        fitting group is no longer a dead end (it used to only say
-                        "make one first"). Mirrors the "Create group" affordance the
-                        Wise/Starling pickers lead with. */}
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={t.captures.assignNew}
-                  onPress={() => {
-                    // Carry the capture through group creation so new-group
-                    // can hand it back and finish the assignment — read the id
-                    // before closeAssign clears `assigning`.
-                    const captureId = assigning?.id;
-                    closeAssign();
-                    router.push(
-                      captureId
-                        ? { pathname: '/new-group', params: { assignCaptureId: captureId } }
-                        : '/new-group',
-                    );
-                  }}
-                  style={({ pressed }) => ({
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: theme.spacing.md,
-                    paddingVertical: theme.spacing.md,
-                    opacity: pressed ? 0.6 : 1,
-                  })}
-                >
-                  <View
-                    style={{
-                      width: 44,
-                      height: 44,
-                      borderRadius: 22,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      backgroundColor: theme.color.surfaceMuted,
-                      borderWidth: 1,
-                      borderColor: theme.color.border,
-                      borderStyle: 'dashed',
-                    }}
-                  >
-                    <Ionicons name="add" size={iconSize.lg} color={theme.color.brand} />
-                  </View>
-                  <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text variant="subheading" numberOfLines={1}>
-                      {t.captures.assignNew}
-                    </Text>
-                    <Text variant="caption" tone="muted" numberOfLines={1}>
-                      {t.captures.assignNewBody}
-                    </Text>
-                  </View>
-                </Pressable>
-
-                <View style={{ height: 1, backgroundColor: theme.color.border }} />
-              </>
-            }
-            ListEmptyComponent={
-              <Text variant="caption" tone="muted" style={{ paddingVertical: theme.spacing.lg }}>
-                {assignableGroups.length === 0 ? t.captures.noGroups : t.captures.assignNoMatch}
+        {/* A plain ScrollView, not the FlashList this screen uses everywhere
+            else — and the exception is the whole point of the fix. FlashList's
+            container is `flex: 1` by construction, so it cannot size itself to
+            its rows: it needs a height handed down, and the fixed one this sheet
+            used to compute (a fraction of the window) left a person with two
+            groups staring at a half-screen of white below the last row. The
+            picker holds the groups you are a member of — a handful, and already
+            filtered by the search field above once there are more than six — so
+            rendering them all costs nothing, and `flexShrink` lets the sheet hug
+            them and only start scrolling at `pickerMaxHeight`. */}
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          style={{ flexShrink: 1 }}
+        >
+          {/* Start a group and drop this into it — so a capture with no fitting
+              group is no longer a dead end (it used to only say "make one
+              first"). Mirrors the "Create group" affordance the Wise/Starling
+              pickers lead with. */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t.captures.assignNew}
+            onPress={() => {
+              // Carry the capture through group creation so new-group can hand
+              // it back and finish the assignment — read the id before
+              // closeAssign clears `assigning`.
+              const captureId = assigning?.id;
+              closeAssign();
+              router.push(
+                captureId
+                  ? { pathname: '/new-group', params: { assignCaptureId: captureId } }
+                  : '/new-group',
+              );
+            }}
+            style={({ pressed }) => ({
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: theme.spacing.md,
+              paddingVertical: theme.spacing.md,
+              opacity: pressed ? 0.6 : 1,
+            })}
+          >
+            <View
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 22,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: theme.color.surfaceMuted,
+                borderWidth: 1,
+                borderColor: theme.color.border,
+                borderStyle: 'dashed',
+              }}
+            >
+              <Ionicons name="add" size={iconSize.lg} color={theme.color.brand} />
+            </View>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text variant="subheading" numberOfLines={1}>
+                {t.captures.assignNew}
               </Text>
-            }
-          />
-        </View>
+              <Text variant="caption" tone="muted" numberOfLines={1}>
+                {t.captures.assignNewBody}
+              </Text>
+            </View>
+            {/* Every row in this list leaves the sheet for another screen, so
+                every row wears the chevron that says so — this one used to be
+                the odd one out, tappable but unmarked. `directionalIcon` turns
+                it around when the app runs right-to-left. */}
+            <Ionicons
+              name={directionalIcon('chevron-forward')}
+              size={iconSize.md}
+              color={theme.color.textFaint}
+            />
+          </Pressable>
+
+          <View style={{ height: 1, backgroundColor: theme.color.border }} />
+
+          {assignableGroups.length === 0 || visibleGroups.length === 0 ? (
+            <Text variant="caption" tone="muted" style={{ paddingVertical: theme.spacing.lg }}>
+              {assignableGroups.length === 0 ? t.captures.noGroups : t.captures.assignNoMatch}
+            </Text>
+          ) : (
+            visibleGroups.map(renderGroupPickerItem)
+          )}
+        </ScrollView>
       </Sheet>
 
       {/* The row's ⋯ overflow, as a small sheet: the actions that are not "add to
