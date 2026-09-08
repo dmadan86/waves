@@ -55,6 +55,7 @@ the service key.
 
 ```
 apps/mobile/       Expo (SDK 57, React 19, Expo Router, TypeScript strict)
+apps/docs/         Docusaurus help + API reference — help.wavs.co.in
 packages/core/     Pure money/split/balance/simplify/settlement logic — no deps
 packages/db/       Prisma schema + migrations (RLS, triggers, derived balances)
 packages/ui/       Design tokens and components

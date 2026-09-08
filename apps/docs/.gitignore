@@ -1,0 +1,11 @@
+# Docusaurus output and cache.
+build/
+.docusaurus/
+
+# Generated at build time from the OpenAPI document, never committed: the
+# reference MDX, and the copy of the spec with its `servers` URL substituted
+# from WAVES_API_URL. Committing either would let a stale reference outlive the
+# document it claims to describe — which is the one failure a generated
+# reference exists to prevent.
+docs/api/reference/
+.openapi/
