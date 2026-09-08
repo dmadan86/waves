@@ -116,13 +116,33 @@ export function SettingRow({
       {/* Both sides shrink and clip rather than wrap: the names here are whole
           questions ("What kind of expense") and in Tamil or Arabic either half
           can outrun a narrow phone. A row that grows to two lines would break
-          the list's rhythm for the one language it happened in. */}
-      <Text variant="body" numberOfLines={1} style={{ flexShrink: 1 }}>
+          the list's rhythm for the one language it happened in.
+
+          They must shrink *in proportion*, which is why the value's side is
+          `flexGrow`/`flexShrink`/`flexBasis: 'auto'` and not the `flex: 1` it
+          started as. `flex: 1` in React Native means a zero flex-basis, so once
+          the label's own text outran the row there was no free space left to
+          grow back from, and the value settled at zero width — the row drew the
+          question and the chevron with nothing between them, which is worse
+          than a truncated answer and exactly what a long Tamil label or a large
+          font scale produced. With a content basis on both halves the shrink is
+          shared and each keeps a readable fraction. `minWidth: 0` on both is
+          what lets either shrink below its text at all. */}
+      <Text variant="body" numberOfLines={1} style={{ flexShrink: 1, minWidth: 0 }}>
         {label}
       </Text>
-      <Row style={{ gap: theme.spacing.xs, flex: 1, minWidth: 0, justifyContent: 'flex-end' }}>
+      <Row
+        style={{
+          gap: theme.spacing.xs,
+          flexGrow: 1,
+          flexShrink: 1,
+          flexBasis: 'auto',
+          minWidth: 0,
+          justifyContent: 'flex-end',
+        }}
+      >
         {leading}
-        <Text variant="body" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
+        <Text variant="body" tone="muted" numberOfLines={1} style={{ flexShrink: 1, minWidth: 0 }}>
           {value}
         </Text>
       </Row>
