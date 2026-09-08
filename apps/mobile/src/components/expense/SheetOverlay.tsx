@@ -21,7 +21,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { iconSize, Text, useTheme } from '@waves/ui';
+import { directionalIcon, iconSize, Row, Text, useTheme } from '@waves/ui';
 
 import { useStrings } from '@/i18n';
 
@@ -71,6 +71,68 @@ export function FieldRow({
         </Text>
       </View>
       <Ionicons name="chevron-forward" size={iconSize.md} color={theme.color.textFaint} />
+    </Pressable>
+  );
+}
+
+/**
+ * A settings-style tap-row: the field's name on the left, what is currently
+ * chosen on the right — its glyph and its label — and a chevron into the sheet
+ * that changes it.
+ *
+ * The one-line sibling of {@link FieldRow}. That one stacks the name over its
+ * value, which suits meta a person reads on the way past (which group, which
+ * date). This one keeps the pair on a single line, which is what a short answer
+ * picked from a sheet wants: a column of names you scan down the left and the
+ * answers down the right, so two settings read as a list of two rather than as
+ * two more blocks in a long form.
+ */
+export function SettingRow({
+  label,
+  value,
+  leading,
+  onPress,
+}: {
+  label: string;
+  value: string;
+  /** The chosen option's glyph, drawn immediately before its label. */
+  leading?: ReactNode;
+  onPress: () => void;
+}): React.JSX.Element {
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${label}: ${value}`}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.md,
+        paddingVertical: theme.spacing.md,
+        opacity: pressed ? 0.6 : 1,
+      })}
+    >
+      {/* Both sides shrink and clip rather than wrap: the names here are whole
+          questions ("What kind of expense") and in Tamil or Arabic either half
+          can outrun a narrow phone. A row that grows to two lines would break
+          the list's rhythm for the one language it happened in. */}
+      <Text variant="body" numberOfLines={1} style={{ flexShrink: 1 }}>
+        {label}
+      </Text>
+      <Row style={{ gap: theme.spacing.xs, flex: 1, minWidth: 0, justifyContent: 'flex-end' }}>
+        {leading}
+        <Text variant="body" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
+          {value}
+        </Text>
+      </Row>
+      {/* The chevron is content, not layout: RN mirrors the row itself in RTL
+          but leaves the glyph pointing whichever way it was drawn. */}
+      <Ionicons
+        name={directionalIcon('chevron-forward')}
+        size={iconSize.md}
+        color={theme.color.textFaint}
+      />
     </Pressable>
   );
 }
@@ -210,7 +272,13 @@ export function ChoiceRow({
 }: {
   leading: ReactNode;
   label: string;
-  selected: boolean;
+  /**
+   * Whether this is the chosen option. Omit for a row that is an *action*
+   * rather than one of the choices — "New tag" at the foot of the category
+   * sheet — so a screen reader is told it is a button and not that it is an
+   * option you have not selected.
+   */
+  selected?: boolean;
   onPress: () => void;
 }): React.JSX.Element {
   const theme = useTheme();
@@ -218,7 +286,7 @@ export function ChoiceRow({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
-      accessibilityState={{ selected }}
+      accessibilityState={selected === undefined ? undefined : { selected }}
       onPress={onPress}
       style={({ pressed }) => ({
         flexDirection: 'row',

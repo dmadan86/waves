@@ -646,6 +646,16 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
           // No receipt yet (and, per the guard above, the viewer may add one). A
           // lone 96px tile left a wide empty band under it; a full-width row that
           // reads "Add receipt" fills the space and makes the affordance obvious.
+          //
+          // Flush against the gutter, with no box of its own. This used to be a
+          // dashed card carrying `lg` of side padding, which set its camera glyph
+          // 16pt further in than every other leading glyph on the form it sits in
+          // — the note field's receipt icon, the "just for me" lock — so the one
+          // control wearing a border was also the one that looked out of line.
+          // The border is what the padding was there for, and neither is doing
+          // work the row needs: it is full width, it has a tinted glyph and two
+          // lines of type, and that is already more affordance than the rows it
+          // now lines up with.
           <Pressable
             onPress={handleAddPress}
             disabled={preparing !== null}
@@ -655,13 +665,7 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
               flexDirection: 'row',
               alignItems: 'center',
               gap: theme.spacing.md,
-              paddingVertical: theme.spacing.md,
-              paddingHorizontal: theme.spacing.lg,
-              borderRadius: theme.radius.lg,
-              borderWidth: 1,
-              borderColor: theme.color.border,
-              borderStyle: 'dashed',
-              backgroundColor: theme.color.surfaceMuted,
+              paddingVertical: theme.spacing.sm,
               opacity: pressed ? 0.6 : 1,
             })}
           >
@@ -672,7 +676,10 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
                 borderRadius: theme.radius.md,
                 alignItems: 'center',
                 justifyContent: 'center',
-                backgroundColor: theme.color.surface,
+                // Tinted rather than plain surface: with the surrounding card
+                // gone, a surface-on-background square would have all but
+                // disappeared against the form.
+                backgroundColor: theme.color.brandSoft,
               }}
             >
               {preparing !== null ? (
