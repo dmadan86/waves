@@ -18,7 +18,6 @@ import {
   Screen,
   Text,
   useTheme,
-  useScreenClearance,
 } from '@waves/ui';
 
 import { type PickedContact } from '@/components/ContactPicker';
@@ -36,10 +35,11 @@ import { useAuth } from '@/lib/auth';
 import { requestContacts } from '@/lib/contactPickerBridge';
 import { friendlyError } from '@/lib/errors';
 import { isPhoneCountryError } from '@/lib/phone';
+import { useBottomClearance } from '@/lib/clearance';
 
 export default function MembersScreen() {
   const theme = useTheme();
-  const clearance = useScreenClearance();
+  const clearance = useBottomClearance();
   const { t, locale } = useStrings();
   const { id } = useLocalSearchParams<{ id: string }>();
   const groupId = id ?? '';

@@ -15,7 +15,6 @@ import {
   Screen,
   Text,
   useTheme,
-  useScreenClearance,
 } from '@waves/ui';
 
 import {
@@ -30,6 +29,7 @@ import { useBlockedUsers } from '@/data/blocked';
 import { displayName, isGhost, type SettlementRow } from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
+import { useBottomClearance } from '@/lib/clearance';
 
 /**
  * Whole days left before a pending settlement auto-confirms — the 7-day window
@@ -57,7 +57,7 @@ function daysToConfirm(initiatedIso: string, now: number = Date.now()): number {
  */
 export default function PendingConfirmationsScreen() {
   const theme = useTheme();
-  const clearance = useScreenClearance();
+  const clearance = useBottomClearance();
   const { t, locale } = useStrings();
   const { id } = useLocalSearchParams<{ id: string }>();
   const groupId = id ?? '';

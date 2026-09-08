@@ -102,11 +102,18 @@ export function useTabBarClearance(): number {
  *
  * Not only screens: anything whose last row is the last thing above the system
  * bar asks the same question and must get the same answer — a bottom sheet's
- * foot (`Sheet`, and the expense forms' own `SheetOverlay`), and a pinned action
- * bar that carries the inset itself so its fill reaches the screen edge instead
- * of floating on a strip of page colour. The arithmetic is trivial, which is
- * exactly why it had been written out by hand in three other places; there is
- * one of it now.
+ * foot (`Sheet`), and a pinned action bar that carries the inset itself so its
+ * fill reaches the screen edge instead of floating on a strip of page colour.
+ * The arithmetic is trivial, which is exactly why it had been written out by
+ * hand in three other places; there is one of it now.
+ *
+ * `Sheet` is the interesting case, and the reason it is *this* helper and not
+ * `useTabBarClearance`: a sheet drawn in a `Modal` gets its own native window
+ * above everything the app has drawn, bottom bar included, so the only thing
+ * under it is the system's own bar. A sheet drawn inside the page instead — the
+ * expense forms' `SheetOverlay` — is painted *under* that bar and has to clear
+ * it as well; the app answers that one with `useBottomClearance`, which picks
+ * between these two hooks by asking whether the bar is showing on this route.
  */
 export function useScreenClearance(base: number = spacing.xxxl): number {
   const insets = useSafeAreaInsets();

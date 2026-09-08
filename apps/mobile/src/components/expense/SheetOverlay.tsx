@@ -20,9 +20,10 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { directionalIcon, iconSize, Row, Text, useScreenClearance, useTheme } from '@waves/ui';
+import { directionalIcon, iconSize, Row, Text, useTheme } from '@waves/ui';
 
 import { useStrings } from '@/i18n';
+import { useBottomClearance } from '@/lib/clearance';
 
 /**
  * A labelled tap-row: a leading icon, the field name over its value, a chevron.
@@ -173,12 +174,18 @@ export function SheetOverlay({
 }): React.JSX.Element {
   const theme = useTheme();
   const { t } = useStrings();
-  // The foot every screen in this app leaves at the bottom edge, from the one
-  // helper that knows how to work it out. This sheet is drawn in the screen's
-  // own tree rather than in a modal window, so nothing else is going to clear
-  // the navigation bar for it: the last row of the list is the last thing above
-  // the gesture pill or the three buttons.
-  const foot = useScreenClearance(theme.spacing.xl);
+  // The foot this sheet leaves at the bottom edge.
+  //
+  // Route-aware, because this sheet is drawn in the screen's own tree rather
+  // than in a modal window of its own. A modal would be a separate native window
+  // and would cover everything; this is a view inside the page, and the app's
+  // bottom bar is a later sibling at the root — it paints *over* the sheet, scrim
+  // and all. So on any route where the bar is showing (the Activity feed's date
+  // filter, say) the sheet has to clear the bar as well as the system navigation
+  // inset, or its last control ends up behind the bar and cannot be tapped at
+  // all. On a route the bar hides on (add-expense, capture) the plain screen foot
+  // is right, and `useBottomClearance` knows which is which.
+  const foot = useBottomClearance(theme.spacing.xl);
 
   // Drag the handle down to dismiss. translateY only ever goes positive (down);
   // past a short threshold or on a quick flick the sheet closes, otherwise it

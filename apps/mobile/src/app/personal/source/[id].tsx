@@ -46,7 +46,6 @@ import {
   Screen,
   Sheet,
   Text,
-  useScreenClearance,
   useTheme,
 } from '@waves/ui';
 
@@ -59,6 +58,7 @@ import {
   useUpsertPersonalRecord,
 } from '@/data/personal';
 import { fill, useStrings } from '@/i18n';
+import { useBottomClearance } from '@/lib/clearance';
 
 /**
  * How far back the timeline looks: five years of months.
@@ -71,7 +71,7 @@ const LOOKBACK_YEARS = 5;
 
 export default function SourceTimelineScreen() {
   const theme = useTheme();
-  const clearance = useScreenClearance();
+  const clearance = useBottomClearance();
   const { t, locale } = useStrings();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { txns, recurrings } = usePersonalLedger();

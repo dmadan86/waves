@@ -32,7 +32,6 @@ import {
   Row,
   Screen,
   Text,
-  useScreenClearance,
   useTheme,
 } from '@waves/ui';
 
@@ -40,6 +39,7 @@ import { useGroup } from '@/data/hooks';
 import { coordLabel, mapsUrl } from '@/lib/location';
 import { InsightsSkeleton } from '@/components/Skeletons';
 import { useStrings } from '@/i18n';
+import { useBottomClearance } from '@/lib/clearance';
 
 interface Place {
   readonly id: string;
@@ -51,7 +51,7 @@ interface Place {
 
 export default function PlacesScreen() {
   const theme = useTheme();
-  const clearance = useScreenClearance();
+  const clearance = useBottomClearance();
   const { t, locale } = useStrings();
   const { id } = useLocalSearchParams<{ id: string }>();
   const groupId = id ?? '';
