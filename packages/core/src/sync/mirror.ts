@@ -1188,6 +1188,14 @@ export interface MirrorExpenseAttachment extends MirrorRow {
   readonly uploader_member_id: string;
   /** Non-destructive pen/text markup (jsonb), or null. Shape parsed at the UI. */
   readonly annotations: unknown;
+  /**
+   * A tiny blurred stand-in for the image, as a `data:` URI — enough to draw
+   * something the instant this row is read, while the real bytes are still
+   * being signed for and fetched. Optional rather than nullable: a mirror
+   * pulled before the column existed has no such key at all, and every receipt
+   * stored before it has null.
+   */
+  readonly preview?: string | null;
   readonly created_at: string | null;
   readonly deleted_at: string | null;
 }

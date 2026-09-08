@@ -1574,6 +1574,13 @@ model ExpenseAttachment {
   /// image coordinates so it renders at any size. Null when the image is not
   /// marked up. Edited by a party through an RPC; the bytes are never touched.
   annotations      Json?
+  /// A ~32px blurred stand-in for the image, as a `data:` URI, so a device that
+  /// has never fetched these bytes still has something to draw the moment the
+  /// row arrives. Small enough to be cheaper than the request it covers for
+  /// (capped at 4 KB by a check constraint) and written only through the attach
+  /// / replace RPCs, which drop anything that is not a small image data URI.
+  /// Null is ordinary — every receipt stored before this existed has none.
+  preview          String?
   createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt        DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   updatedSeq       BigInt    @default(0) @map("updated_seq")

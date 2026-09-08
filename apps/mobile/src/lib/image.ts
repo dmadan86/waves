@@ -73,6 +73,11 @@ export interface PickedImage {
   mimeType: string;
   /** Local URI, so the choice is visible before it has been uploaded. */
   uri: string;
+  /**
+   * A ~32px `data:` URI of the same picture — see {@link previewDataUri}. Null
+   * where the manipulator could not produce one; the caller then stores none.
+   */
+  preview?: string | null;
 }
 
 /** Longest edge, in pixels, after downscaling. */
@@ -184,6 +189,58 @@ async function shrinkWithBytes(
   if (!result) return null;
   if (result.base64 === null) throw new Error('Could not read that image.');
   return { base64: result.base64, uri: result.uri, mimeType: result.mimeType };
+}
+
+/**
+ * Longest edge of the stand-in thumbnail kept beside a receipt.
+ *
+ * Thirty-two pixels is not a small picture of the bill; it is the bill's
+ * colours and its rough shape, which is all a placeholder is for. It also has
+ * to stay inside the 4 KB the column allows, and that ceiling — not the looks —
+ * is what fixes the number: at 32px a JPEG lands near a kilobyte, at 64 it is
+ * three or four and the thing has stopped being cheaper than the request it
+ * covers for.
+ */
+export const PREVIEW_MAX_EDGE = 32;
+
+/** The DB drops anything longer, so there is no point sending it. */
+const PREVIEW_MAX_CHARS = 4096;
+
+/**
+ * A tiny stand-in for an image, as a `data:` URI, to draw while the real bytes
+ * are still being signed for and fetched (the LQIP pattern).
+ *
+ * Deliberately JPEG rather than the WebP the full image prefers: at this size
+ * the two are within a few hundred bytes of each other, and WebP encoding is
+ * the one step that is known to throw on some iOS versions. A placeholder that
+ * fails to encode is worth less than a slightly larger one that never does.
+ *
+ * Returns null on any failure — no manipulator, an unreadable file, a string
+ * that came out too long. Every caller treats that as "this receipt has no
+ * preview", which is what every receipt stored before this existed has.
+ */
+export async function previewDataUri(
+  uri: string,
+  size?: { width: number; height: number },
+): Promise<string | null> {
+  const module = await loadManipulator();
+  if (!module) return null;
+  try {
+    const source = size && size.width > 0 && size.height > 0 ? size : await imageSize(uri);
+    if (!source || source.width <= 0 || source.height <= 0) return null;
+    const context = module.ImageManipulator.manipulate(uri);
+    context.resize(
+      source.width >= source.height ? { width: PREVIEW_MAX_EDGE } : { height: PREVIEW_MAX_EDGE },
+    );
+    const saved = await (
+      await context.renderAsync()
+    ).saveAsync({ base64: true, compress: 0.5, format: module.SaveFormat.JPEG });
+    if (!saved.base64) return null;
+    const data = `data:image/jpeg;base64,${saved.base64}`;
+    return data.length <= PREVIEW_MAX_CHARS ? data : null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -495,7 +552,7 @@ export async function captureReceiptAsset(): Promise<PickedAsset | null> {
  */
 export async function prepareReceipt(
   asset: PickedAsset,
-): Promise<{ uri: string; mimeType: string }> {
+): Promise<{ uri: string; mimeType: string; preview: string | null }> {
   const shrunk =
     asset.width > 0 && asset.height > 0
       ? await shrink({
@@ -507,10 +564,28 @@ export async function prepareReceipt(
           base64: false,
         })
       : null;
-  if (shrunk) return { uri: shrunk.uri, mimeType: shrunk.mimeType };
+  // The placeholder is cut from the resized file, not the original: same
+  // picture, a fraction of the pixels to decode a second time.
+  if (shrunk) {
+    return {
+      uri: shrunk.uri,
+      mimeType: shrunk.mimeType,
+      preview: await previewDataUri(shrunk.uri),
+    };
+  }
   // Untouched bytes, so they keep whatever they already were. JPEG is the guess
   // of last resort, for a source that reported nothing.
-  return { uri: asset.uri, mimeType: asset.mimeType ?? 'image/jpeg' };
+  return {
+    uri: asset.uri,
+    mimeType: asset.mimeType ?? 'image/jpeg',
+    // Still worth asking. This branch is reached either because there is no
+    // manipulator — in which case this returns null for free, without touching
+    // the file — or because the source did not report its dimensions, which is
+    // not the same as their being unknowable: the picker can omit them for a
+    // file `Image.getSize` reads perfectly well. It cannot throw, and a null is
+    // exactly the "no preview" this used to hard-code.
+    preview: await previewDataUri(asset.uri),
+  };
 }
 
 /**
@@ -543,7 +618,17 @@ export async function transformReceipt(
   if (webp) {
     try {
       const saved = await (await render()).saveAsync({ base64: true, compress: 0.9, format: webp });
-      if (saved.base64) return { base64: saved.base64, uri: saved.uri, mimeType: 'image/webp' };
+      if (saved.base64) {
+        return {
+          base64: saved.base64,
+          uri: saved.uri,
+          mimeType: 'image/webp',
+          // These are new pixels — a rotation, a crop — so the old placeholder
+          // would flash the previous framing. Cut a fresh one from what was
+          // actually saved.
+          preview: await previewDataUri(saved.uri),
+        };
+      }
     } catch {
       // iOS without a WebP encoder — fall through to JPEG.
     }
@@ -557,7 +642,12 @@ export async function transformReceipt(
     format: module.SaveFormat.JPEG,
   });
   if (!saved.base64) throw new Error('Could not read that image.');
-  return { base64: saved.base64, uri: saved.uri, mimeType: 'image/jpeg' };
+  return {
+    base64: saved.base64,
+    uri: saved.uri,
+    mimeType: 'image/jpeg',
+    preview: await previewDataUri(saved.uri),
+  };
 }
 
 function imageSize(uri: string): Promise<{ width: number; height: number } | null> {

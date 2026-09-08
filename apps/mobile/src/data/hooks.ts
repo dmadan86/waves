@@ -1987,6 +1987,12 @@ export interface ExpenseAttachmentRow {
   uploaderMemberId: string;
   /** Parsed pen/text markup over the image, or null when unmarked. */
   annotations: Annotations | null;
+  /**
+   * A tiny `data:` URI of the image, stored on the row so this device can draw
+   * something the instant the row is read — before the signed URL exists, let
+   * alone the bytes. Null for anything kept before the column existed.
+   */
+  preview: string | null;
   createdAt: string | null;
 }
 
@@ -2005,6 +2011,7 @@ export function useExpenseAttachments(expenseId: string): LocalRead<ExpenseAttac
         visibility: row.visibility === 'parties' ? 'parties' : 'group',
         uploaderMemberId: row.uploader_member_id,
         annotations: row.annotations == null ? null : parseAnnotations(row.annotations),
+        preview: row.preview ?? null,
         createdAt: row.created_at,
       })),
     [mirror, expenseId],
@@ -2073,6 +2080,9 @@ export function useReplaceExpenseAttachmentImage(groupId: string, expenseId: str
         const { error } = await backend.rpc('waves_replace_expense_attachment_image', {
           p_attachment_id: input.attachmentId,
           p_new_path: path,
+          // New pixels, so a new stand-in: keeping the old one would flash the
+          // previous framing every time this image loaded cold.
+          p_preview: input.picked.preview ?? null,
         });
         if (error) throw new Error(error.message);
         committed = null;
