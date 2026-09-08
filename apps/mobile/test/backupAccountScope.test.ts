@@ -58,6 +58,11 @@ vi.mock('react-native', () => ({
 
 vi.mock('expo-web-browser', () => ({ maybeCompleteAuthSession: () => undefined }));
 
+// The provider classifies a failed authorization and files it with the crash
+// reporter, which reaches Sentry — and Sentry reaches into react-native by deep
+// path, which the mock above cannot stand in for.
+vi.mock('@/lib/observability', () => ({ reportHandled: vi.fn() }));
+
 vi.mock('expo-auth-session', () => ({
   AuthRequest: class {},
   exchangeCodeAsync: async () => ({}),

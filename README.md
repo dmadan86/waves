@@ -642,6 +642,55 @@ tells you what happened to each one — `suppressed` means we chose not to mail 
 list), `failed` means Resend refused it, and NULL after a run means it will be
 retried. `email_events` is the trail, one row per send plus one per report.
 
+## Signing in without a browser
+
+Tapping Google or Apple used to send somebody out of the app: Waves asked
+Supabase for an `/authorize` URL, a browser tab opened on `<project-ref>.supabase.co`,
+Supabase bounced it on to the provider, and a redirect came back through
+`waves://auth`. It works, and it is still the fallback — but it shows a domain
+that is neither ours nor Google's on the way to somebody's own account.
+
+The native path (`apps/mobile/src/lib/nativeIdentity.ts`) presents the sheet the
+OS already has — Play services on Android, `expo-apple-authentication` on iOS —
+and hands the **identity token** it issues to `signInWithIdToken`. Same
+mechanism the Drive link uses (`lib/cloud/nativeGoogle.ts`), asking who you are
+instead of for your files.
+
+It applies to a **fresh sign-in only**. Supabase has no id-token form of
+`linkIdentity`, so a guest upgrading in place (ADR-006, the common path here)
+still goes out through the browser. So does every case the sheet cannot serve:
+no Play services, no native module in the binary, Apple off iOS, the web app,
+and a build with no OAuth client registered for its signature. None of those
+surfaces as an error — the browser flow runs and the person signs in.
+
+Google's client ids are the Drive ones, because they are the same ids: Google
+allows one iOS client per bundle id, and identifies an Android build by its
+package name and signing certificate rather than by anything in the bundle. Set
+the neutral names instead if a build offers sign-in but no backup; either works.
+
+| Variable                           | Where              | What it does                                         |
+| ---------------------------------- | ------------------ | ---------------------------------------------------- |
+| `EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB` | `apps/mobile/.env` | names the Cloud project; falls back to the Drive one |
+| `EXPO_PUBLIC_GOOGLE_CLIENT_ID_IOS` | `apps/mobile/.env` | the iOS client and its URL scheme; same fallback     |
+
+**What the consoles need.** Google, per signing key:
+
+1. An **Android** OAuth client bound to `app.waves.mobile` plus that key's SHA-1
+   — the debug keystore's and the release keystore's are different clients.
+   Nothing reads its id; registering it is the point. Without one Play services
+   refuses with `DEVELOPER_ERROR` (status 10) before Google ever sees the
+   request, and Waves quietly uses the browser instead.
+2. An **iOS** client bound to the bundle id, for iOS builds.
+3. In Supabase → Authentication → Providers → Google, put the **Web** client id
+   in _Client ID_ and list every id whose tokens should be accepted under
+   **Authorized Client IDs** — the web one (the audience of an Android native
+   token) and the iOS one. A token whose `aud` is not listed is rejected, which
+   is the only check standing in for the nonce Google's SDK does not let us set.
+
+Apple needs nothing new: the native iOS path already ran before this change, and
+its provider config is the section below — including the client-id order, which
+is load-bearing.
+
 ## Sign in with Apple
 
 Back, and live since 2026-09-05. This section previously said it had been

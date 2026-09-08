@@ -69,7 +69,13 @@ function googleMapsKey(platform: 'android' | 'ios'): string | undefined {
 }
 
 /**
- * The Drive-backup sign-in plugin, for iOS builds that have a client id.
+ * The Google sign-in plugin, for iOS builds that have a client id.
+ *
+ * Two features ride on it — logging in (`lib/nativeIdentity.ts`) and linking
+ * Drive for backup (`lib/cloud/nativeGoogle.ts`) — and they share one client
+ * id because Google allows exactly one iOS client per bundle id. Either name
+ * therefore configures both; the neutral one wins so a build that offers
+ * sign-in without backup need not set something called `..._DRIVE_...`.
  *
  * Android needs nothing here: the native module autolinks, and Google matches
  * the app by package name and signing certificate rather than by anything
@@ -83,7 +89,9 @@ function googleMapsKey(platform: 'android' | 'ios'): string | undefined {
  * throws without one, and an unconfigured clone must still be able to prebuild.
  */
 function googleSignInPlugin(): [string, { iosUrlScheme: string }] | undefined {
-  const iosClientId = process.env.EXPO_PUBLIC_GOOGLE_DRIVE_CLIENT_ID_IOS;
+  const iosClientId =
+    process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_IOS ||
+    process.env.EXPO_PUBLIC_GOOGLE_DRIVE_CLIENT_ID_IOS;
   if (!iosClientId) return undefined;
   const bare = iosClientId.replace(/\.apps\.googleusercontent\.com$/, '');
   return [
@@ -114,19 +122,19 @@ export default (): ExpoConfig => {
       : config.ios,
   };
 
-  const drive = googleSignInPlugin();
-  const withDrive: ExpoConfig = drive
-    ? { ...withPush, plugins: [...(withPush.plugins ?? []), drive] }
+  const googleSignIn = googleSignInPlugin();
+  const withGoogleSignIn: ExpoConfig = googleSignIn
+    ? { ...withPush, plugins: [...(withPush.plugins ?? []), googleSignIn] }
     : withPush;
 
   const organization = process.env.SENTRY_ORG;
   const project = process.env.SENTRY_PROJECT;
-  if (!organization || !project) return withDrive;
+  if (!organization || !project) return withGoogleSignIn;
 
   return {
-    ...withDrive,
+    ...withGoogleSignIn,
     plugins: [
-      ...(withDrive.plugins ?? []),
+      ...(withGoogleSignIn.plugins ?? []),
       [
         '@sentry/react-native/expo',
         { organization, project, url: process.env.SENTRY_URL ?? 'https://sentry.io/' },
