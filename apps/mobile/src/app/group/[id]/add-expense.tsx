@@ -56,6 +56,7 @@ import {
   Row,
   Screen,
   Text,
+  useScreenClearance,
   useTheme,
 } from '@waves/ui';
 
@@ -126,6 +127,20 @@ const EMPTY_LOCKS: ReadonlySet<MemberId> = new Set();
  * rather than one row of faces.
  */
 const PAYER_TILE_WIDTH = 60;
+
+/**
+ * The press area around this form's small text links — "Split by item", "Paid
+ * by several", "Split evenly".
+ *
+ * They are drawn in `micro`, which is 15 points of line: a symmetric slop of 8
+ * left them a ~31pt target, well under the 44 both platforms ask for, and
+ * they sit on crowded rows where a miss lands on something else. The vertical
+ * slop is the half that matters, so it is the half that grows; widening the
+ * sides as well would only steal presses from the control next to them. Slop
+ * rather than padding because these links share a line with a heading — padding
+ * would push the heading's baseline around.
+ */
+const LINK_HIT_SLOP = { top: 15, bottom: 15, left: 8, right: 8 } as const;
 
 /** Who paid what, in minor units. */
 type PayerMap = ReadonlyMap<MemberId, bigint>;
@@ -326,6 +341,10 @@ function parseLocationParam(value: string | undefined): ExpenseLocation | null {
 
 export default function AddExpenseScreen() {
   const theme = useTheme();
+  // The room the pinned action bar leaves under Save for the system navigation
+  // bar. Read here rather than in the bar's style so the whole screen agrees on
+  // one number, and so the hook is not buried in a `return`.
+  const clearance = useScreenClearance(theme.spacing.md);
   const { t, locale } = useStrings();
   // The capture params are the inbox handoff (A34): assigning a capture opens
   // this form prefilled and carries the capture id so a successful save can
@@ -1110,7 +1129,7 @@ export default function AddExpenseScreen() {
     // only the form body waits on the mirror read (a few ms at launch). A bare
     // full-screen spinner used to leave a headerless blank while it loaded.
     return (
-      <Screen edges={['bottom']}>
+      <Screen edges={[]}>
         <StatusBar style="light" />
         {/* The same hero the loaded form opens on, so the panel does not repaint
             from a white bar to a purple one once the mirror read lands. */}
@@ -1531,7 +1550,19 @@ export default function AddExpenseScreen() {
         : plural(locale, participants.length, t.memberCount);
 
   return (
-    <Screen edges={['bottom']}>
+    // No safe-area edges: this screen reserves neither end itself. The hero pads
+    // the status bar into its own gradient at the top, and the action bar pads
+    // the navigation bar into its own fill at the bottom, so both surfaces run
+    // to the screen edge instead of floating on a strip of page colour — the
+    // grammar the app's bottom bar already uses.
+    //
+    // It also settles where a picker sheet lands. `SheetOverlay` is drawn in
+    // this tree, absolutely positioned to the bottom, and an absolute child is
+    // laid out inside its parent's padding: with a bottom inset on the Screen
+    // the sheet stopped short of the screen edge, its scrim left the navigation
+    // bar unwashed, and the sheet then reserved the same inset a second time
+    // under its own last row.
+    <Screen edges={[]}>
       {/* The hero runs dark under the status bar, so its icons must be light —
           the same override the expense screen this form mirrors makes. */}
       <StatusBar style="light" />
@@ -1756,7 +1787,7 @@ export default function AddExpenseScreen() {
                   accessibilityRole="button"
                   accessibilityLabel={t.expense.splitByItem}
                   onPress={() => router.replace(`/group/${groupId}/itemize`)}
-                  hitSlop={8}
+                  hitSlop={LINK_HIT_SLOP}
                   style={{ flexShrink: 0 }}
                 >
                   <Text
@@ -1863,7 +1894,7 @@ export default function AddExpenseScreen() {
                     accessibilityRole="button"
                     accessibilityLabel={t.expense.splitPaidEvenly}
                     onPress={splitPaidEvenly}
-                    hitSlop={8}
+                    hitSlop={LINK_HIT_SLOP}
                   >
                     <Text variant="micro" tone="brand" style={{ fontWeight: '700' }}>
                       {t.expense.splitPaidEvenly}
@@ -1878,7 +1909,7 @@ export default function AddExpenseScreen() {
                   accessibilityState={{ checked: manyPayers }}
                   accessibilityLabel={manyPayers ? t.expense.paidByOne : t.expense.paidBySeveral}
                   onPress={() => setManyPayers(!manyPayers)}
-                  hitSlop={8}
+                  hitSlop={LINK_HIT_SLOP}
                 >
                   <Text variant="micro" tone="brand" style={{ fontWeight: '700' }}>
                     {manyPayers ? t.expense.paidByOne : t.expense.paidBySeveral}
@@ -2210,7 +2241,14 @@ export default function AddExpenseScreen() {
           style={{
             paddingHorizontal: theme.spacing.xl,
             paddingTop: theme.spacing.md,
-            paddingBottom: theme.spacing.md,
+            // The bar is the last thing on the screen, so it is the one that
+            // owes the navigation bar its room — and it pays it as padding, not
+            // as a gap: the fill and the hairline run all the way to the bottom
+            // edge behind the gesture pill or the three buttons, and Save sits a
+            // clear breath above them. A bare `spacing.md` left the button
+            // pressed against the system bar on any phone whose bar is drawn
+            // over the app.
+            paddingBottom: clearance,
             gap: theme.spacing.sm,
             borderTopWidth: 1,
             borderTopColor: theme.color.border,

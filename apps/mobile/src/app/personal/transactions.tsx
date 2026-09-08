@@ -17,17 +17,17 @@ import {
   Row,
   Screen,
   Text,
-  useScreenClearance,
   useTheme,
 } from '@waves/ui';
 
 import { CategoryBadge } from '@/components/Category';
 import { usePersonalLedger } from '@/data/personal';
 import { useStrings } from '@/i18n';
+import { useBottomClearance } from '@/lib/clearance';
 
 export default function PersonalTransactionsScreen() {
   const theme = useTheme();
-  const clearance = useScreenClearance();
+  const clearance = useBottomClearance();
   const { t, locale } = useStrings();
   const { txns } = usePersonalLedger();
 

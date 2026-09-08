@@ -24,7 +24,6 @@ import {
   Row,
   Screen,
   Text,
-  useScreenClearance,
   useTheme,
 } from '@waves/ui';
 
@@ -33,10 +32,11 @@ import { useGroup } from '@/data/hooks';
 import { useAuth } from '@/lib/auth';
 import { InsightsSkeleton } from '@/components/Skeletons';
 import { useStrings, fill } from '@/i18n';
+import { useBottomClearance } from '@/lib/clearance';
 
 export default function RecapScreen() {
   const theme = useTheme();
-  const clearance = useScreenClearance();
+  const clearance = useBottomClearance();
   const { t, locale } = useStrings();
   const { id } = useLocalSearchParams<{ id: string }>();
   const groupId = id ?? '';

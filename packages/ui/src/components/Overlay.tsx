@@ -27,9 +27,10 @@ import {
   View,
   type ViewStyle,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTheme } from '../theme';
+import { useScreenClearance } from './PillTabBar';
 
 /** The scrim behind every overlay — a near-black wash, enough to sit the surface
  *  off the screen without dimming it to a blackout. */
@@ -115,6 +116,70 @@ export interface SheetProps {
 }
 
 /**
+ * The card itself, rendered *inside* the modal's own safe-area provider so its
+ * foot is measured against the window it is actually drawn in.
+ *
+ * Split out for exactly that reason: `useScreenClearance` has to run under the
+ * provider below, and a hook cannot be called halfway down a return tree.
+ */
+function SheetCard({
+  handle,
+  padded,
+  style,
+  onLayout,
+  children,
+}: {
+  handle: boolean;
+  padded: boolean;
+  style?: ViewStyle;
+  onLayout: (height: number) => void;
+  children: ReactNode;
+}) {
+  const theme = useTheme();
+  // The same foot every scrolling screen leaves at the bottom edge, from the
+  // same helper: the system navigation bar plus a breath, so the last row of a
+  // sheet clears the gesture pill or the three buttons the way the last row of
+  // a list does. It used to be spelled out here as `spacing.md + insets.bottom`,
+  // which was the same arithmetic in a second place — and a second place is
+  // where the two drift apart.
+  const foot = useScreenClearance(theme.spacing.md);
+
+  return (
+    <Pressable
+      onPress={() => {}}
+      accessibilityViewIsModal
+      onLayout={(event) => onLayout(event.nativeEvent.layout.height)}
+      style={[
+        {
+          backgroundColor: theme.color.surface,
+          borderTopLeftRadius: theme.radius.xxl,
+          borderTopRightRadius: theme.radius.xxl,
+          paddingHorizontal: padded ? theme.spacing.lg : 0,
+          paddingTop: theme.spacing.md,
+          paddingBottom: foot,
+          ...theme.shadow.lifted,
+        },
+        style,
+      ]}
+    >
+      {handle ? (
+        <View
+          style={{
+            alignSelf: 'center',
+            width: 40,
+            height: 4,
+            borderRadius: 2,
+            backgroundColor: theme.color.border,
+            marginBottom: theme.spacing.sm,
+          }}
+        />
+      ) : null}
+      {children}
+    </Pressable>
+  );
+}
+
+/**
  * A bottom sheet: the surface slides up from the bottom edge under a fading
  * scrim, and back down on dismiss. Tapping the scrim closes it; the sheet itself
  * swallows the tap so a press inside never dismisses. Rounded top corners, a
@@ -129,10 +194,9 @@ export function Sheet({
   style,
   closeLabel = 'Close',
 }: SheetProps) {
-  const theme = useTheme();
   const insets = useSafeAreaInsets();
   const reduceMotion = useReduceMotion();
-  const { height: screenHeight } = useWindowDimensions();
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const { mounted, progress } = useOverlay(visible);
   // The sheet's own height, measured on layout, so it travels exactly its own
   // distance rather than a guess. Until the first measure a screen-height
@@ -152,52 +216,52 @@ export function Sheet({
     <Modal
       transparent
       statusBarTranslucent
+      // A sheet is anchored to the bottom edge, so the *bottom* edge is the one
+      // that has to be its own. Without this the modal gets a window that stops
+      // above the navigation bar: the card's rounded top corners are then drawn
+      // over a surface that ends short of the screen, and the safe-area foot
+      // below the last row is reserved twice — once by the window, once by the
+      // padding. `statusBarTranslucent` has always said this about the top; this
+      // is the same sentence for the other end.
+      navigationBarTranslucent
       visible={mounted}
       animationType="none"
       onRequestClose={onClose}
     >
-      <Animated.View style={{ flex: 1, backgroundColor: SCRIM, opacity: progress }}>
-        <Pressable
-          onPress={onClose}
-          accessibilityRole="button"
-          accessibilityLabel={closeLabel}
-          style={{ flex: 1, justifyContent: 'flex-end' }}
-        >
-          <Animated.View style={{ transform: [{ translateY }] }}>
-            <Pressable
-              onPress={() => {}}
-              accessibilityViewIsModal
-              onLayout={(event) => setHeight(event.nativeEvent.layout.height)}
-              style={[
-                {
-                  backgroundColor: theme.color.surface,
-                  borderTopLeftRadius: theme.radius.xxl,
-                  borderTopRightRadius: theme.radius.xxl,
-                  paddingHorizontal: padded ? theme.spacing.lg : 0,
-                  paddingTop: theme.spacing.md,
-                  paddingBottom: theme.spacing.md + insets.bottom,
-                  ...theme.shadow.lifted,
-                },
-                style,
-              ]}
-            >
-              {handle ? (
-                <View
-                  style={{
-                    alignSelf: 'center',
-                    width: 40,
-                    height: 4,
-                    borderRadius: 2,
-                    backgroundColor: theme.color.border,
-                    marginBottom: theme.spacing.sm,
-                  }}
-                />
-              ) : null}
-              {children}
-            </Pressable>
-          </Animated.View>
-        </Pressable>
-      </Animated.View>
+      {/* A modal is its own native window, and the app's root provider never
+          measures it: the insets read through the context belong to the screen
+          underneath, which is a different window with different bars. Giving the
+          modal its own provider makes the safe area re-measure against the
+          window the sheet is actually drawn in — the same cure `Screen`'s
+          `inModal` applies, and the reason that prop exists.
+
+          Seeded with the app's insets rather than left to measure from nothing:
+          a bare provider renders null until its first layout lands, which would
+          hold the sheet off the screen for a frame while the entrance animation
+          was already running — the sheet would appear halfway up its own travel.
+          The seed is a good guess for one frame; the real measurement replaces
+          it immediately. */}
+      <SafeAreaProvider
+        initialMetrics={{
+          frame: { x: 0, y: 0, width: screenWidth, height: screenHeight },
+          insets,
+        }}
+      >
+        <Animated.View style={{ flex: 1, backgroundColor: SCRIM, opacity: progress }}>
+          <Pressable
+            onPress={onClose}
+            accessibilityRole="button"
+            accessibilityLabel={closeLabel}
+            style={{ flex: 1, justifyContent: 'flex-end' }}
+          >
+            <Animated.View style={{ transform: [{ translateY }] }}>
+              <SheetCard handle={handle} padded={padded} style={style} onLayout={setHeight}>
+                {children}
+              </SheetCard>
+            </Animated.View>
+          </Pressable>
+        </Animated.View>
+      </SafeAreaProvider>
     </Modal>
   );
 }

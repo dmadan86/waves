@@ -17,7 +17,6 @@ import {
   Row,
   Screen,
   Text,
-  useScreenClearance,
   useTheme,
 } from '@waves/ui';
 
@@ -35,6 +34,7 @@ import { friendlyError } from '@/lib/errors';
 import { printAvailable, printHtmlToFile } from '@/lib/print';
 import { useAuth } from '@/lib/auth';
 import { useStrings } from '@/i18n';
+import { useBottomClearance } from '@/lib/clearance';
 
 /** The correct OOXML spreadsheet MIME type + Apple UTI for an .xlsx. */
 const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
@@ -68,7 +68,7 @@ function slugify(name: string): string {
  */
 export default function GroupExportScreen() {
   const theme = useTheme();
-  const clearance = useScreenClearance();
+  const clearance = useBottomClearance();
   const { t, locale } = useStrings();
   const { id } = useLocalSearchParams<{ id: string }>();
   const groupId = id ?? '';

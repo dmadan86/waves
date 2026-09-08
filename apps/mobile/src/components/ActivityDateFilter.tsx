@@ -116,7 +116,13 @@ export function ActivityDateFilter({
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: theme.spacing.sm }}
+          // A gutter past the last chip, the same one the payment rails and the
+          // payer lane carry: the four ranges do not fit a narrow phone, and a
+          // chip sliced off flush at the card's edge reads as a broken layout
+          // rather than as "there is more this way". `paddingEnd`, not
+          // `paddingRight`, so the gutter follows the row when Arabic reverses
+          // it and the cut lands on the trailing side either way.
+          contentContainerStyle={{ gap: theme.spacing.sm, paddingEnd: theme.spacing.xl }}
         >
           {presets.map((p) => {
             const active = activePreset(p);
@@ -151,12 +157,20 @@ export function ActivityDateFilter({
           })}
         </ScrollView>
 
-        {/* The selected range, read-only — it echoes the calendar taps below. */}
+        {/* The selected range, read-only — it echoes the calendar taps below.
+
+            Both halves shrink and truncate rather than push each other about:
+            the dates are formatted long ("Sat, 12 Sept") in the reader's own
+            language, and a Tamil or Arabic month name at a large font scale can
+            outrun half a phone. Without this the trailing half was shoved past
+            the card's padding and clipped at the screen edge — the leading one
+            keeping its gutter, which is what makes the row look lopsided rather
+            than full. */}
         <Row style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
-          <Text variant="caption" tone="muted">
+          <Text variant="caption" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
             {t.activityFilter.from} · {showDate(start)}
           </Text>
-          <Text variant="caption" tone="muted">
+          <Text variant="caption" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
             {t.activityFilter.to} · {showDate(end ?? start)}
           </Text>
         </Row>

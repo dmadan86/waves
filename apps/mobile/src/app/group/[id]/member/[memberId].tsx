@@ -21,7 +21,6 @@ import {
   Text,
   TintCard,
   useTheme,
-  useScreenClearance,
 } from '@waves/ui';
 
 import { useGroup, useGroupLedger, useSetMemberRole, useUpdateMember } from '@/data/hooks';
@@ -31,10 +30,11 @@ import { useBlockedUsers } from '@/data/blocked';
 import { displayName, groupLabel, isBlockedMember, isGhost } from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
+import { useBottomClearance } from '@/lib/clearance';
 
 export default function MemberScreen() {
   const theme = useTheme();
-  const clearance = useScreenClearance();
+  const clearance = useBottomClearance();
   const { t, locale } = useStrings();
   const { id, memberId } = useLocalSearchParams<{ id: string; memberId: string }>();
   const groupId = id ?? '';

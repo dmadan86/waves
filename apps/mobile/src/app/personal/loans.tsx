@@ -33,7 +33,6 @@ import {
   Sheet,
   SegmentedTabs,
   Text,
-  useScreenClearance,
   useTheme,
 } from '@waves/ui';
 
@@ -46,10 +45,11 @@ import {
 } from '@/data/personal';
 import { useDefaultCurrency } from '@/lib/currency';
 import { useStrings } from '@/i18n';
+import { useBottomClearance } from '@/lib/clearance';
 
 export default function LoansScreen() {
   const theme = useTheme();
-  const clearance = useScreenClearance();
+  const clearance = useBottomClearance();
   const { t, locale } = useStrings();
   const dc = useDefaultCurrency();
   const { loans, txns } = usePersonalLedger();

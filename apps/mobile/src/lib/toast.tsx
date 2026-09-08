@@ -13,17 +13,16 @@
  * Callout on the screen that owns it, or a sheet.
  *
  * The bar it must clear is not fixed, so the host asks the same rules the bar
- * itself follows (`resolveTabBar`) which of the two clearances applies.
+ * itself follows, through `useBottomClearance`, which of the two clearances
+ * applies.
  */
 
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
-import { useSegments } from 'expo-router';
 
-import { Toast, useScreenClearance, useTabBarClearance } from '@waves/ui';
+import { Toast } from '@waves/ui';
 
-import { useAuth } from '@/lib/auth';
 import { useReducedMotion } from '@/lib/reducedMotion';
-import { resolveTabBar } from '@/lib/tabBar';
+import { useBottomClearance } from '@/lib/clearance';
 
 interface ToastValue {
   /** Show a line briefly over whatever is on screen. The newest one wins. */
@@ -73,14 +72,13 @@ function ToastHost({
   current: { seq: number; message: string } | null;
   onDone: () => void;
 }) {
-  const segments = useSegments() as readonly string[];
-  const { session } = useAuth();
   const reduceMotion = useReducedMotion();
-  // Both are hooks, so both are asked; which one is right depends on whether the
-  // bottom bar is over this screen — the same question `AppTabBar` asks.
-  const overBar = useTabBarClearance();
-  const overScreen = useScreenClearance();
-  const { hidden } = resolveTabBar(segments, !session);
+  // The toast floats over whatever screen is showing, so it needs the same
+  // answer every screen needs: the system navigation bar, plus the app's bottom
+  // bar wherever that is drawn over the route. `useBottomClearance` is that
+  // question asked once, so a route moving in or out of `TAB_BAR_HIDDEN_ROUTES`
+  // corrects the toast along with everything else.
+  const bottom = useBottomClearance();
 
   return (
     <Toast
@@ -89,7 +87,7 @@ function ToastHost({
       message={current?.message ?? ''}
       visible={current !== null}
       onDone={onDone}
-      bottom={hidden ? overScreen : overBar}
+      bottom={bottom}
       animated={!reduceMotion}
     />
   );

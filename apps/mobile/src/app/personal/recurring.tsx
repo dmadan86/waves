@@ -42,7 +42,6 @@ import {
   SegmentedTabs,
   Text,
   Toggle,
-  useScreenClearance,
   useTheme,
 } from '@waves/ui';
 
@@ -58,6 +57,7 @@ import {
 } from '@/data/personal';
 import { useDefaultCurrency } from '@/lib/currency';
 import { fill, useStrings } from '@/i18n';
+import { useBottomClearance } from '@/lib/clearance';
 
 /** A repeat pattern in words. The open-ended one names its own interval, so
  *  "every 5 months" never reads as the vaguer "every few months". */
@@ -88,7 +88,7 @@ export function frequencyLabel(
 
 export default function RecurringScreen() {
   const theme = useTheme();
-  const clearance = useScreenClearance();
+  const clearance = useBottomClearance();
   const { t, locale } = useStrings();
   const dc = useDefaultCurrency();
   const { recurrings, txns } = usePersonalLedger();
