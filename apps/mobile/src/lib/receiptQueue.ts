@@ -41,7 +41,7 @@ import * as Network from 'expo-network';
 
 import { backend } from '@/lib/backend';
 import { putImage, removeRestrictedImage } from '@/lib/storage';
-import { cacheImageBytes } from '@/lib/storage/imageCache';
+import { cacheImageBytes, cachedImageUri } from '@/lib/storage/imageCache';
 import { endTransfer, setTransferProgress, startTransfer } from '@/lib/transferProgress';
 
 /** The transfer id the receipt-upload flush reports under (one bar for the batch). */
@@ -64,6 +64,24 @@ const PENDING_DIR = 'pending-receipts';
  */
 const RETRY_BACKOFF_MS = [30_000, 2 * 60_000, 10 * 60_000, 30 * 60_000] as const;
 
+/**
+ * How long a capture that has already been uploaded stays in the queue waiting
+ * for its own row to come back down the sync.
+ *
+ * It is kept because dropping it the instant the upload lands is what made the
+ * gallery blink: the tile drawn from the local file disappeared, and the row
+ * that replaces it does not exist on this device until a pull brings it, which
+ * is a network round trip later. So the entry survives its own success, still
+ * drawing the same picture, and the gallery drops it when the real row arrives
+ * (see `dropSettledReceipts`).
+ *
+ * This ceiling is only the backstop for the pull that never comes — a sync that
+ * keeps failing, an app closed before it finished. An hour is far longer than
+ * any pull and short enough that a receipt deleted elsewhere cannot haunt the
+ * strip for a day.
+ */
+const SETTLED_TTL_MS = 60 * 60 * 1000;
+
 function backoffFor(attempts: number): number {
   const index = Math.min(Math.max(attempts, 1), RETRY_BACKOFF_MS.length) - 1;
   return RETRY_BACKOFF_MS[index] ?? RETRY_BACKOFF_MS[RETRY_BACKOFF_MS.length - 1] ?? 0;
@@ -81,6 +99,12 @@ export interface PendingReceipt {
   contentType: string;
   /** Basename of the bytes file under {@link PENDING_DIR} (dir resolved at read time). */
   fileName: string;
+  /**
+   * A tiny `data:` URI of the same image, stored on the row so every other
+   * device has something to draw while the real bytes are fetched. Null where
+   * the manipulator could not make one.
+   */
+  preview?: string | null;
   createdAt: string;
   attempts: number;
   /** The last failure's raw message. Kept for diagnosis; never shown to anybody. */
@@ -95,6 +119,13 @@ export interface PendingReceipt {
   permanent?: boolean;
   /** Earliest time a background flush may try again; see {@link RETRY_BACKOFF_MS}. */
   nextAttemptAt?: string | null;
+  /**
+   * When the bytes and the row both landed on the server. Set, this entry is
+   * finished work kept only so the gallery has something to draw until the real
+   * attachment row arrives — see {@link SETTLED_TTL_MS}. No flush touches it
+   * again.
+   */
+  sentAt?: string | null;
 }
 
 /**
@@ -105,7 +136,7 @@ export interface PendingReceipt {
  * back as `queued`, because that is the truth — the bytes are on disk and
  * nothing is in the air until a flush picks them up again.
  */
-export type PendingReceiptStatus = 'queued' | 'uploading' | 'failed';
+export type PendingReceiptStatus = 'queued' | 'uploading' | 'failed' | 'sent';
 
 /** A pending capture as a view renders it: the stored row plus its live state. */
 export interface PendingReceiptView extends PendingReceipt {
@@ -139,6 +170,9 @@ let snapshot: readonly PendingReceiptView[] = [];
 let hydrated = false;
 
 function statusOf(entry: PendingReceipt): PendingReceiptStatus {
+  // Sent wins over everything: this one is done, and nothing about it is still
+  // in the air or worth reporting as a problem.
+  if (entry.sentAt) return 'sent';
   if (uploading.has(entry.attachmentId)) return 'uploading';
   return entry.lastError ? 'failed' : 'queued';
 }
@@ -164,7 +198,8 @@ function sameQueue(a: readonly PendingReceipt[], b: readonly PendingReceipt[]): 
       entry.attempts === other.attempts &&
       entry.lastError === other.lastError &&
       Boolean(entry.permanent) === Boolean(other.permanent) &&
-      (entry.nextAttemptAt ?? null) === (other.nextAttemptAt ?? null)
+      (entry.nextAttemptAt ?? null) === (other.nextAttemptAt ?? null) &&
+      (entry.sentAt ?? null) === (other.sentAt ?? null)
     );
   });
 }
@@ -262,8 +297,22 @@ function pendingFile(entry: Pick<PendingReceipt, 'fileName'>): File {
   return new File(Paths.document, PENDING_DIR, entry.fileName);
 }
 
-/** The `file://` a gallery renders for a still-unsent capture. */
-export function pendingReceiptUri(entry: Pick<PendingReceipt, 'fileName'>): string {
+/**
+ * The local file a gallery renders for a capture the queue is still carrying.
+ *
+ * A settled one resolves to the view cache instead, under the very key its real
+ * row will resolve to — so when the row finally arrives and the tile switches
+ * from this entry to that row, it is the same file and nothing redraws.
+ */
+export function pendingReceiptUri(
+  entry: Pick<PendingReceipt, 'fileName' | 'storagePath' | 'sentAt'>,
+): string {
+  if (entry.sentAt) {
+    const cached = cachedImageUri('expense-attachments', entry.storagePath);
+    // Falling through means the cache write failed, and in that case the flush
+    // deliberately kept the pending file.
+    if (cached) return cached;
+  }
   return pendingFile(entry).uri;
 }
 
@@ -277,11 +326,61 @@ export async function isOnline(): Promise<boolean> {
   }
 }
 
+/**
+ * Forget settled captures nobody came back for.
+ *
+ * The gallery normally drops one the moment the real row lands beside it, but
+ * that only happens on a screen somebody is looking at. This is the sweep for
+ * the rest: a capture uploaded an hour ago whose row never arrived here is not
+ * information any more, and leaving it would keep a tile on screen for a
+ * receipt that may since have been removed from another device.
+ */
+async function reapSettled(queue: readonly PendingReceipt[]): Promise<PendingReceipt[]> {
+  const now = Date.now();
+  const kept = queue.filter((entry) => {
+    if (!entry.sentAt) return true;
+    const at = Date.parse(entry.sentAt);
+    return !Number.isNaN(at) && now - at < SETTLED_TTL_MS;
+  });
+  if (kept.length === queue.length) return [...queue];
+  await writeQueue(kept);
+  return kept;
+}
+
 /** Every pending capture, or those for one expense, oldest first. */
 export async function listPendingReceipts(expenseId?: string): Promise<PendingReceipt[]> {
-  const queue = await readQueue();
+  const queue = await reapSettled(await readQueue());
   cleanupOrphanFiles(queue);
   return expenseId ? queue.filter((entry) => entry.expenseId === expenseId) : queue;
+}
+
+/**
+ * Let go of captures whose real attachment row has arrived.
+ *
+ * Called by the gallery the moment the mirror shows the row: from then on the
+ * row is the thing on screen, the bytes are already in the view cache under its
+ * key, and this entry is a duplicate of it. Distinct from
+ * {@link discardPendingReceipt}, which is somebody deciding not to keep a
+ * photograph — this is the handover completing.
+ */
+export async function dropSettledReceipts(attachmentIds: readonly string[]): Promise<void> {
+  if (attachmentIds.length === 0) return;
+  const wanted = new Set(attachmentIds);
+  const queue = await readQueue();
+  const kept = queue.filter((entry) => !(entry.sentAt && wanted.has(entry.attachmentId)));
+  if (kept.length === queue.length) return;
+  // The bytes normally moved into the view cache when the upload landed; delete
+  // whatever is left over for the case where that write failed.
+  for (const entry of queue) {
+    if (kept.includes(entry)) continue;
+    try {
+      const file = pendingFile(entry);
+      if (file.exists) file.delete();
+    } catch {
+      // Best-effort; a lingering file is reclaimed with the app's document dir.
+    }
+  }
+  await writeQueue(kept);
 }
 
 /** Sign-out/privacy cleanup: drop the queue index and every pending capture byte file. */
@@ -322,6 +421,8 @@ export async function enqueueReceipt(input: {
   expenseId: string;
   groupId: string;
   visibility: 'group' | 'parties';
+  /** A tiny `data:` URI to store beside the receipt as a loading placeholder. */
+  preview?: string | null;
   /**
    * A file on this device to take over. Preferred: the image has already been
    * written once by the resize, so copying it costs a file copy, where `base64`
@@ -343,11 +444,13 @@ export async function enqueueReceipt(input: {
     storagePath: `${input.expenseId}/${randomUUID()}.${ext}`,
     contentType: input.contentType,
     fileName: `${attachmentId}.${ext}`,
+    preview: input.preview ?? null,
     createdAt: new Date().toISOString(),
     attempts: 0,
     lastError: null,
     permanent: false,
     nextAttemptAt: null,
+    sentAt: null,
   };
 
   const dir = new Directory(Paths.document, PENDING_DIR);
@@ -448,8 +551,10 @@ const EMPTY_FLUSH: FlushResult = {
  * isolation so one stuck capture never blocks the rest.
  *
  * On success the bytes move into the view cache (so the receipt stays offline-
- * readable) and the entry and its file are dropped. A transient failure keeps
- * the entry with a backoff, to be tried again on the next event; a permanent one
+ * readable) and the entry is marked sent — kept, not dropped, so the gallery has
+ * something to draw for the length of the sync pull that brings the real row
+ * down. A transient failure keeps the entry with a backoff, to be tried again on
+ * the next event; a permanent one
  * (cap, not a party) keeps it too, marked so no background run retries it —
  * either way the tile stays in the gallery saying what happened, and the bytes
  * stay on disk, until the person retries it or removes it.
@@ -469,7 +574,7 @@ export function flushReceiptQueue(): Promise<FlushResult> {
 }
 
 async function runFlush(): Promise<FlushResult> {
-  const queue = await readQueue();
+  const queue = await reapSettled(await readQueue());
   if (queue.length === 0) return EMPTY_FLUSH;
 
   // Only entries that are actually due: a permanent refusal waits for somebody
@@ -477,6 +582,8 @@ async function runFlush(): Promise<FlushResult> {
   // the queue and on screen — being skipped here is not the same as being gone.
   const now = Date.now();
   const due = queue.filter((entry) => {
+    // Already up. It is only still here so the gallery has something to draw.
+    if (entry.sentAt) return false;
     if (entry.permanent) return false;
     if (!entry.nextAttemptAt) return true;
     const at = Date.parse(entry.nextAttemptAt);
@@ -538,19 +645,38 @@ async function runFlush(): Promise<FlushResult> {
           p_storage_path: entry.storagePath,
           p_visibility: entry.visibility,
           p_attachment_id: entry.attachmentId,
+          p_preview: entry.preview ?? null,
         });
         if (error) throw new Error(error.message);
         objectStored = false;
 
-        // Uploaded and recorded. Keep it viewable offline by moving the bytes into
-        // the view cache, then delete the pending file.
-        cacheImageBytes('expense-attachments', entry.storagePath, new Uint8Array(decode(base64)));
-        try {
-          file.delete();
-        } catch {
-          // Best-effort; a lingering file is reclaimed with the app's document dir.
+        // Uploaded and recorded. The bytes move into the view cache under the
+        // key the real row resolves to, which keeps the receipt readable offline
+        // and — because the settled tile below reads that same file — makes the
+        // handover to the row a no-op rather than a second load.
+        const cached = cacheImageBytes(
+          'expense-attachments',
+          entry.storagePath,
+          new Uint8Array(decode(base64)),
+        );
+        if (cached) {
+          try {
+            file.delete();
+          } catch {
+            // Best-effort; a lingering file is reclaimed with the app's document dir.
+          }
         }
-        updates.set(entry.attachmentId, null);
+        // Kept, not dropped. Deleting the entry here is what used to empty the
+        // gallery for the length of a sync pull: the tile drawn from this file
+        // vanished and the row that replaces it had not arrived yet. It stays,
+        // drawing the same picture, until the row does — see SETTLED_TTL_MS.
+        updates.set(entry.attachmentId, {
+          ...entry,
+          sentAt: new Date().toISOString(),
+          lastError: null,
+          permanent: false,
+          nextAttemptAt: null,
+        });
         uploaded.add(entry.expenseId);
       } catch (caught) {
         // The bytes went up but the row did not: take the object back out, or it
