@@ -13,6 +13,17 @@ allowBuilds:
   # upload, so every stack trace arrives minified and a crash report points at
   # column 4210 of one line.
   '@sentry/cli': true
+  # Three postinstalls that arrived with the docs site (apps/docs) and are
+  # declined rather than left undecided, because an undeclared ignored build
+  # fails `pnpm install` outright.
+  #
+  # @parcel/watcher only speeds up `docusaurus start`'s file watching and falls
+  # back to polling; core-js's postinstall prints a funding notice; and
+  # postman-code-generators compiles per-language snippet generators for the
+  # OpenAPI theme's "try it" panel, which is turned off (hideSendButton).
+  '@parcel/watcher': false
+  core-js: false
+  postman-code-generators: false
 minimumReleaseAgeExclude:
   - '@expo/cli@57.0.12 || 57.0.13 || 57.0.14'
   - '@expo/router-server@57.0.5'

@@ -23,7 +23,13 @@ node_modules
 # functions are imported by either web app. `website/` is absent from this list
 # on purpose: it has no workspace dependencies, so it deploys from its own
 # directory and never reads this file.
+#
+# `apps/docs` is excluded for the same reason `apps/mobile` is — no web app
+# imports it — and it deploys the way `website/` does, from its own directory,
+# so it never reads this file either. That matters: the `*.md` line at the
+# bottom would otherwise strip every page out of a help site made of Markdown.
 apps/mobile
+apps/docs
 e2e
 supabase
 
