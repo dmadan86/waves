@@ -195,13 +195,15 @@ const DEVELOPER_ERROR = '10';
 export async function googleNativeSignIn(): Promise<NativeSignIn<GoogleCredential>> {
   const module = loadGoogle();
   const webClientId = googleWebClientId();
+  const iosClientId = googleIosClientId();
   if (!module || !webClientId || Platform.OS === 'web') return unavailable;
+  if (Platform.OS === 'ios' && !iosClientId) return unavailable;
 
   try {
     module.GoogleSignin.configure({
       webClientId,
       offlineAccess: false,
-      ...(Platform.OS === 'ios' ? { iosClientId: googleIosClientId() } : {}),
+      ...(Platform.OS === 'ios' ? { iosClientId } : {}),
     });
     await module.GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: false });
     const response = await module.GoogleSignin.signIn();

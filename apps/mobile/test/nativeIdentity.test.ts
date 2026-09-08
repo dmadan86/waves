@@ -269,6 +269,18 @@ describe('Google, through the phone rather than a browser', () => {
     );
   });
 
+  it('falls back quietly on iOS when the build has no iOS client id', async () => {
+    platform.OS = 'ios';
+    delete process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_IOS;
+    delete process.env.EXPO_PUBLIC_GOOGLE_DRIVE_CLIENT_ID_IOS;
+
+    await expect(googleNativeSignIn()).resolves.toEqual({ kind: 'unavailable' });
+    expect(calls.configured).not.toHaveBeenCalled();
+    expect(calls.playServices).not.toHaveBeenCalled();
+    expect(calls.signIn).not.toHaveBeenCalled();
+    expect(reportHandled).not.toHaveBeenCalled();
+  });
+
   describe('whether the native path is offered at all', () => {
     it('is, on a configured Android build carrying the module', () => {
       expect(googleNativeAvailable()).toBe(true);
