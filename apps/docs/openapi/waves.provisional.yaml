@@ -1,0 +1,396 @@
+openapi: 3.0.3
+
+# ---------------------------------------------------------------------------
+# PROVISIONAL. Not the contract.
+# ---------------------------------------------------------------------------
+# The Waves developer API is being built in `apps/api`, which will own the real
+# `apps/api/openapi.yaml`. This file exists so the reference section has a
+# document to render, the build has something to fail on, and the page furniture
+# (tags, auth scheme, error shape) can be reviewed before the endpoints are
+# settled. Every path below is a plausible guess, not a promise.
+#
+# When `apps/api/openapi.yaml` lands, point `WAVES_OPENAPI_SPEC` at it (see
+# apps/docs/README.md) and delete this file. Nothing else has to change.
+#
+# The `servers` URL is rewritten from `WAVES_API_URL` at build time, so the
+# value here is only the default a self-hoster overrides.
+
+info:
+  title: Waves API
+  version: 0.0.0-provisional
+  summary: Read and write shared expenses, balances and settlements.
+  description: |
+    **This document is provisional.** It describes the shape the Waves developer
+    API is expected to take, so that the reference section can be built and
+    reviewed before the API itself is finished. Do not build against it.
+
+    Money is always a pair: an integer of minor units and an ISO 4217 currency
+    code. There are no floating-point amounts anywhere in this API — a rupee
+    split three ways has to add back up to a rupee, and a `double` cannot
+    promise that.
+  contact:
+    name: Waves
+    email: hello@wavs.co.in
+  license:
+    name: Proprietary
+    url: https://wavs.co.in/en/terms
+
+servers:
+  - url: https://api.wavs.co.in
+    description: Waves-hosted API
+
+tags:
+  - name: Groups
+    description: |
+      A group is where shared money lives: a trip, a flat, a pair of friends.
+      Every expense and every settlement belongs to exactly one group.
+  - name: Expenses
+    description: |
+      An expense records who paid and who owes. The shares always sum to the
+      total; the server rejects a split that does not.
+  - name: Balances
+    description: |
+      Who owes whom, derived from the group's expenses and settlements. Balances
+      are computed, never stored, so they cannot drift from the ledger.
+  - name: Settlements
+    description: |
+      A payment between two people that clears part of a balance. A settlement
+      is proposed by one side and confirmed by the other.
+
+security:
+  - bearerAuth: []
+
+paths:
+  /v1/groups:
+    get:
+      operationId: listGroups
+      summary: List your groups
+      description: Every group the authenticated person is a member of.
+      tags: [Groups]
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: A page of groups.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Group' }
+                  nextCursor:
+                    type: string
+                    nullable: true
+                    description: Pass back as `cursor` to fetch the next page.
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      operationId: createGroup
+      summary: Create a group
+      tags: [Groups]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, maxLength: 80, example: Goa trip }
+                type:
+                  type: string
+                  enum: [general, trip, friends]
+                  default: general
+                currency:
+                  type: string
+                  description: ISO 4217 code the group settles in.
+                  example: INR
+      responses:
+        '201':
+          description: The created group.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Group' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/Invalid' }
+
+  /v1/groups/{groupId}:
+    parameters:
+      - $ref: '#/components/parameters/GroupId'
+    get:
+      operationId: getGroup
+      summary: Get one group
+      tags: [Groups]
+      responses:
+        '200':
+          description: The group.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Group' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /v1/groups/{groupId}/expenses:
+    parameters:
+      - $ref: '#/components/parameters/GroupId'
+    get:
+      operationId: listExpenses
+      summary: List a group's expenses
+      tags: [Expenses]
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: A page of expenses, newest first.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Expense' }
+                  nextCursor: { type: string, nullable: true }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    post:
+      operationId: createExpense
+      summary: Add an expense
+      description: |
+        The `shares` must sum exactly to `amount.minor`. The server does not
+        round on your behalf: a remainder that cannot be divided evenly has to
+        be assigned to somebody, and only the caller knows to whom.
+      tags: [Expenses]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ExpenseInput' }
+      responses:
+        '201':
+          description: The created expense.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Expense' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/Invalid' }
+
+  /v1/groups/{groupId}/balances:
+    parameters:
+      - $ref: '#/components/parameters/GroupId'
+    get:
+      operationId: getBalances
+      summary: Get a group's balances
+      description: |
+        One entry per member. The `net` values across a group always sum to
+        zero; if they do not, the ledger is wrong and the API is expected to
+        fail rather than answer.
+      tags: [Balances]
+      responses:
+        '200':
+          description: Every member's net position.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Balance' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /v1/groups/{groupId}/settlements:
+    parameters:
+      - $ref: '#/components/parameters/GroupId'
+    post:
+      operationId: proposeSettlement
+      summary: Record a payment
+      description: |
+        Creates a settlement in `pending`. It only moves the balance once the
+        other side confirms it — one person cannot declare themselves paid.
+      tags: [Settlements]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fromMemberId, toMemberId, amount]
+              properties:
+                fromMemberId: { type: string, format: uuid }
+                toMemberId: { type: string, format: uuid }
+                amount: { $ref: '#/components/schemas/Money' }
+                note: { type: string, maxLength: 200 }
+      responses:
+        '201':
+          description: The pending settlement.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Settlement' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/Invalid' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        A Waves access token in the `Authorization` header. Provisional: the
+        token issuance flow is part of the API work and is not settled.
+
+  parameters:
+    GroupId:
+      name: groupId
+      in: path
+      required: true
+      description: The group's id.
+      schema: { type: string, format: uuid }
+    Limit:
+      name: limit
+      in: query
+      required: false
+      schema: { type: integer, minimum: 1, maximum: 100, default: 25 }
+    Cursor:
+      name: cursor
+      in: query
+      required: false
+      description: An opaque cursor from a previous response's `nextCursor`.
+      schema: { type: string }
+
+  responses:
+    Unauthorized:
+      description: The token is missing, expired or not yours.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotFound:
+      description: |
+        No such group, or you are not a member of it. The two cases answer
+        identically on purpose: a distinguishable 403 would confirm that a group
+        id exists to somebody who has no business knowing.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Invalid:
+      description: The body is well-formed JSON but the values do not hold.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+
+  schemas:
+    Money:
+      type: object
+      required: [minor, currency]
+      description: |
+        An amount in minor units plus its currency. `minor` is an integer:
+        1250 with currency INR is ₹12.50.
+      properties:
+        minor:
+          type: integer
+          format: int64
+          example: 125000
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+          example: INR
+
+    Group:
+      type: object
+      required: [id, name, type, currency, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string, example: Goa trip }
+        type: { type: string, enum: [general, trip, friends] }
+        currency: { type: string, example: INR }
+        archivedAt: { type: string, format: date-time, nullable: true }
+        createdAt: { type: string, format: date-time }
+
+    Share:
+      type: object
+      required: [memberId, amount]
+      description: One person's part of an expense.
+      properties:
+        memberId: { type: string, format: uuid }
+        amount: { $ref: '#/components/schemas/Money' }
+
+    ExpenseInput:
+      type: object
+      required: [amount, paidByMemberId, shares]
+      properties:
+        amount: { $ref: '#/components/schemas/Money' }
+        paidByMemberId: { type: string, format: uuid }
+        note: { type: string, maxLength: 200, example: Beach shack dinner }
+        spentAt:
+          type: string
+          format: date-time
+          description: Defaults to now.
+        shares:
+          type: array
+          minItems: 1
+          items: { $ref: '#/components/schemas/Share' }
+
+    Expense:
+      allOf:
+        - $ref: '#/components/schemas/ExpenseInput'
+        - type: object
+          required: [id, groupId, createdAt]
+          properties:
+            id: { type: string, format: uuid }
+            groupId: { type: string, format: uuid }
+            createdAt: { type: string, format: date-time }
+
+    Balance:
+      type: object
+      required: [memberId, net]
+      properties:
+        memberId: { type: string, format: uuid }
+        displayName: { type: string, example: Priya }
+        net:
+          allOf:
+            - $ref: '#/components/schemas/Money'
+          description: |
+            Positive means the group owes this person; negative means they owe
+            the group.
+
+    Settlement:
+      type: object
+      required: [id, groupId, fromMemberId, toMemberId, amount, status, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        groupId: { type: string, format: uuid }
+        fromMemberId: { type: string, format: uuid }
+        toMemberId: { type: string, format: uuid }
+        amount: { $ref: '#/components/schemas/Money' }
+        status:
+          type: string
+          enum: [pending, confirmed, cancelled, rejected]
+        note: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              example: shares_do_not_sum
+            message:
+              type: string
+              description: |
+                Safe to show a person. It never contains a database message, a
+                stack frame or another member's details.
+              example: The shares add up to ₹1,240 but the expense is ₹1,250.

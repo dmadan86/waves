@@ -1,0 +1,22 @@
+{
+  "version.label": {
+    "message": "Next",
+    "description": "The label for version current"
+  },
+  "sidebar.help.category.Getting started": {
+    "message": "शुरुआत",
+    "description": "The label for category 'Getting started' in sidebar 'help'"
+  },
+  "sidebar.help.category.Using Waves": {
+    "message": "Waves का इस्तेमाल",
+    "description": "The label for category 'Using Waves' in sidebar 'help'"
+  },
+  "sidebar.help.category.Privacy and your data": {
+    "message": "निजता और आपका डेटा",
+    "description": "The label for category 'Privacy and your data' in sidebar 'help'"
+  },
+  "sidebar.api.category.Reference": {
+    "message": "संदर्भ",
+    "description": "The label for category 'Reference' in sidebar 'api'"
+  }
+}

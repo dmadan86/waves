@@ -1,0 +1,54 @@
+{
+  "link.title.Help": {
+    "message": "मदद",
+    "description": "The title of the footer links column with title=Help in the footer"
+  },
+  "link.title.Developers": {
+    "message": "डेवलपर",
+    "description": "The title of the footer links column with title=Developers in the footer"
+  },
+  "link.title.Waves": {
+    "message": "Waves",
+    "description": "The title of the footer links column with title=Waves in the footer"
+  },
+  "link.item.label.Getting started": {
+    "message": "शुरुआत",
+    "description": "The label of footer link with label=Getting started linking to /getting-started/what-waves-is"
+  },
+  "link.item.label.Adding an expense": {
+    "message": "खर्च जोड़ना",
+    "description": "The label of footer link with label=Adding an expense linking to /using-waves/add-an-expense"
+  },
+  "link.item.label.Settling up": {
+    "message": "हिसाब चुकाना",
+    "description": "The label of footer link with label=Settling up linking to /using-waves/settle-up"
+  },
+  "link.item.label.Your data": {
+    "message": "आपका डेटा",
+    "description": "The label of footer link with label=Your data linking to /privacy/export-your-data"
+  },
+  "link.item.label.API overview": {
+    "message": "API अवलोकन",
+    "description": "The label of footer link with label=API overview linking to /api/overview"
+  },
+  "link.item.label.Self-hosting": {
+    "message": "खुद होस्ट करना",
+    "description": "The label of footer link with label=Self-hosting linking to the repository's MIGRATION.md"
+  },
+  "link.item.label.Source": {
+    "message": "सोर्स कोड",
+    "description": "The label of footer link with label=Source linking to the repository"
+  },
+  "link.item.label.Home": {
+    "message": "होम",
+    "description": "The label of footer link with label=Home linking to the marketing site"
+  },
+  "link.item.label.Open the app": {
+    "message": "ऐप खोलें",
+    "description": "The label of footer link with label=Open the app linking to the product"
+  },
+  "link.item.label.Email us": {
+    "message": "हमें ईमेल करें",
+    "description": "The label of footer link with label=Email us linking to the support address"
+  }
+}

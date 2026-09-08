@@ -10,3 +10,11 @@ packages/db/prisma/migrations
 pnpm-lock.yaml
 .next
 out
+# The docs site's build output, and the API reference it generates from the
+# OpenAPI document. Both are machine-written and neither is committed, but
+# Prettier walks the filesystem rather than the index, so a local build would
+# otherwise fail `format:check` on files nobody wrote.
+apps/docs/build
+apps/docs/.docusaurus
+apps/docs/.openapi
+apps/docs/docs/api/reference

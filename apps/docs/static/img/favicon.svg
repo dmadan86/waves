@@ -1,0 +1,7 @@
+<!-- A tab icon sits on browser chrome we do not control, so unlike the navbar
+     mark this one carries its own ground rather than borrowing the page's. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <rect width="32" height="32" rx="8" fill="#5638C4"/>
+  <path d="M5 20.5c2.2 0 2.2-4.6 4.4-4.6s2.2 4.6 4.4 4.6 2.2-4.6 4.4-4.6 2.2 4.6 4.4 4.6 2.2-4.6 4.4-4.6" stroke="#FFFFFF" stroke-width="2.1" stroke-linecap="round" fill="none"/>
+  <path d="M7.5 12.4c1.9 0 1.9-3.4 3.8-3.4s1.9 3.4 3.8 3.4 1.9-3.4 3.8-3.4 1.9 3.4 3.8 3.4" stroke="#FFFFFF" stroke-opacity="0.5" stroke-width="1.6" stroke-linecap="round" fill="none"/>
+</svg>

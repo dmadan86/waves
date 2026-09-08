@@ -1,0 +1,26 @@
+{
+  "title": {
+    "message": "مساعدة Waves",
+    "description": "The title in the navbar"
+  },
+  "logo.alt": {
+    "message": "Waves",
+    "description": "The alt text of navbar logo"
+  },
+  "item.label.Help": {
+    "message": "المساعدة",
+    "description": "Navbar item with label Help"
+  },
+  "item.label.API": {
+    "message": "API",
+    "description": "Navbar item with label API"
+  },
+  "item.label.Open Waves": {
+    "message": "افتح Waves",
+    "description": "Navbar item with label Open Waves"
+  },
+  "item.label.wavs.co.in": {
+    "message": "wavs.co.in",
+    "description": "Navbar item with label wavs.co.in"
+  }
+}

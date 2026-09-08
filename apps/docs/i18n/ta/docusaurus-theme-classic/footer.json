@@ -1,0 +1,54 @@
+{
+  "link.title.Help": {
+    "message": "உதவி",
+    "description": "The title of the footer links column with title=Help in the footer"
+  },
+  "link.title.Developers": {
+    "message": "டெவலப்பர்கள்",
+    "description": "The title of the footer links column with title=Developers in the footer"
+  },
+  "link.title.Waves": {
+    "message": "Waves",
+    "description": "The title of the footer links column with title=Waves in the footer"
+  },
+  "link.item.label.Getting started": {
+    "message": "தொடங்குவது",
+    "description": "The label of footer link with label=Getting started linking to /getting-started/what-waves-is"
+  },
+  "link.item.label.Adding an expense": {
+    "message": "செலவைச் சேர்ப்பது",
+    "description": "The label of footer link with label=Adding an expense linking to /using-waves/add-an-expense"
+  },
+  "link.item.label.Settling up": {
+    "message": "தீர்ப்பது",
+    "description": "The label of footer link with label=Settling up linking to /using-waves/settle-up"
+  },
+  "link.item.label.Your data": {
+    "message": "உங்கள் தரவு",
+    "description": "The label of footer link with label=Your data linking to /privacy/export-your-data"
+  },
+  "link.item.label.API overview": {
+    "message": "API அறிமுகம்",
+    "description": "The label of footer link with label=API overview linking to /api/overview"
+  },
+  "link.item.label.Self-hosting": {
+    "message": "சொந்தமாக இயக்குவது",
+    "description": "The label of footer link with label=Self-hosting linking to the repository's MIGRATION.md"
+  },
+  "link.item.label.Source": {
+    "message": "மூலக் குறியீடு",
+    "description": "The label of footer link with label=Source linking to the repository"
+  },
+  "link.item.label.Home": {
+    "message": "முகப்பு",
+    "description": "The label of footer link with label=Home linking to the marketing site"
+  },
+  "link.item.label.Open the app": {
+    "message": "செயலியைத் திறக்கவும்",
+    "description": "The label of footer link with label=Open the app linking to the product"
+  },
+  "link.item.label.Email us": {
+    "message": "எங்களுக்கு எழுதுங்கள்",
+    "description": "The label of footer link with label=Email us linking to the support address"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "version.label": {
+    "message": "Next",
+    "description": "The label for version current"
+  },
+  "sidebar.help.category.Getting started": {
+    "message": "தொடங்குவது",
+    "description": "The label for category 'Getting started' in sidebar 'help'"
+  },
+  "sidebar.help.category.Using Waves": {
+    "message": "Waves பயன்படுத்துவது",
+    "description": "The label for category 'Using Waves' in sidebar 'help'"
+  },
+  "sidebar.help.category.Privacy and your data": {
+    "message": "தனியுரிமையும் உங்கள் தரவும்",
+    "description": "The label for category 'Privacy and your data' in sidebar 'help'"
+  },
+  "sidebar.api.category.Reference": {
+    "message": "குறிப்பேடு",
+    "description": "The label for category 'Reference' in sidebar 'api'"
+  }
+}
