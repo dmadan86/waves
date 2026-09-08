@@ -5,6 +5,7 @@ import { useMemo } from 'react';
 
 import { ReactEChartsCore } from './echarts-core';
 import { WHEEL } from './palette';
+import { useChartInk } from './useChartInk';
 
 export interface Slice {
   name: string;
@@ -16,8 +17,8 @@ export interface Slice {
  *
  * Client-only because ECharts needs the DOM to size and paint. The Server
  * Component that renders the surrounding card computes the slices and hands
- * them down as a plain, serialisable array — no echarts import crosses onto the
- * server, no data fetching crosses onto the client.
+ * them down as a plain, serialisable array — no echarts import crosses onto
+ * the server, no data fetching crosses onto the client.
  */
 export function DonutChart({
   slices,
@@ -28,6 +29,7 @@ export function DonutChart({
   centerLabel: string;
   unit?: string;
 }) {
+  const ink = useChartInk();
   const total = slices.reduce((sum, s) => sum + s.value, 0);
   const summary = describeSlices(slices, centerLabel, unit);
 
@@ -36,6 +38,9 @@ export function DonutChart({
       color: [...WHEEL],
       tooltip: {
         trigger: 'item',
+        backgroundColor: ink.tooltipBg,
+        borderColor: ink.tooltipBorder,
+        textStyle: { color: ink.ink, fontSize: 12 },
         formatter: (p: unknown) => {
           const point = p as { name: string; value: number; percent: number };
           return `${point.name}<br/><b>${point.value.toLocaleString('en-IN')}</b>${
@@ -50,35 +55,32 @@ export function DonutChart({
         itemWidth: 9,
         itemHeight: 9,
         icon: 'circle',
-        textStyle: { color: '#6a6880', fontSize: 12 },
+        textStyle: { color: ink.label, fontSize: 12 },
       },
       series: [
         {
           type: 'pie',
-          radius: ['58%', '82%'],
+          radius: ['58%', '80%'],
           center: ['34%', '50%'],
           avoidLabelOverlap: false,
-          itemStyle: { borderRadius: 6, borderColor: 'transparent', borderWidth: 2 },
+          itemStyle: { borderRadius: 4, borderColor: ink.tooltipBg, borderWidth: 2 },
           label: {
             show: true,
             position: 'center',
             formatter: () => `{v|${total.toLocaleString('en-IN')}}
 {l|${centerLabel}}`,
             rich: {
-              v: { fontSize: 24, fontWeight: 700, color: '#14131f' },
-              l: { fontSize: 12, color: '#9997ac', padding: [4, 0, 0, 0] },
+              v: { fontSize: 22, fontWeight: 700, color: ink.ink },
+              l: { fontSize: 12, color: ink.label, padding: [4, 0, 0, 0] },
             },
           },
-          emphasis: {
-            label: { show: true },
-            scaleSize: 4,
-          },
+          emphasis: { label: { show: true }, scaleSize: 4 },
           labelLine: { show: false },
           data: slices,
         },
       ],
     }),
-    [centerLabel, slices, total, unit],
+    [centerLabel, ink, slices, total, unit],
   );
 
   return (

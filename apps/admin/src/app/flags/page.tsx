@@ -1,9 +1,21 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
-import { flagResults, flags, saveFlag, type FlagResultRow } from '@/lib/data';
-import { guardMutation } from '@/lib/csrf';
 import { CsrfField } from '@/components/CsrfField';
+import { Icon } from '@/components/icons';
+import {
+  Badge,
+  Card,
+  Check,
+  Empty,
+  Field,
+  Lede,
+  Outcome,
+  PageHeader,
+  TableScroll,
+} from '@/components/ui';
+import { guardMutation } from '@/lib/csrf';
+import { flagResults, flags, saveFlag, type FlagResultRow } from '@/lib/data';
 
 export const dynamic = 'force-dynamic';
 
@@ -57,149 +69,186 @@ export default async function Flags({
   }
 
   return (
-    <main>
-      <header className="top">
-        <h1>Experiments</h1>{' '}
-      </header>
+    <main className="page">
+      <PageHeader
+        eyebrow="Configuration"
+        title="Experiments"
+        actions={
+          <span className="small muted">
+            {running.length} running of {all.length}
+          </span>
+        }
+      />
+      <Outcome error={error} done={saved ? 'Saved.' : undefined} />
 
-      {error ? <p className="error">{error}</p> : null}
-      {saved ? <p className="faint">Saved.</p> : null}
-
-      <p className="note" style={{ padding: 0 }}>
+      <Lede>
         Nobody&rsquo;s assignment is stored. A person&rsquo;s arm is hashed from the flag key and
         their profile id, by the same rule in the app and in the database, so the split needs no
         round trip and an experiment can be read retrospectively — including for the days before it
         occurred to anybody to look.
-      </p>
+      </Lede>
 
       {all.length === 0 ? (
-        <section style={{ marginTop: 20 }}>
-          <p className="note">
-            No flags yet. If you expected some, the
-            <code> 20260808200000_feature_flags </code> migration may not be deployed to this
-            project.
-          </p>
-        </section>
+        <Card bare>
+          <Empty title="No flags yet" migration="20260808200000_feature_flags">
+            Nothing in <code>feature_flags</code> to switch.
+          </Empty>
+        </Card>
       ) : null}
 
-      {all.map((flag) => {
-        const rows = results.get(flag.key) ?? [];
-        const enrolled = rows.reduce((sum, row) => sum + Number(row.people), 0);
+      <div className="stack">
+        {all.map((flag) => {
+          const rows = results.get(flag.key) ?? [];
+          const enrolled = rows.reduce((sum, row) => sum + Number(row.people), 0);
 
-        return (
-          <div key={flag.key}>
-            <h2>{flag.key}</h2>
-            <section>
-              <form action={save} className="flag">
+          return (
+            <Card
+              key={flag.key}
+              title={flag.key}
+              // The description is already an editable field two lines down;
+              // an eyebrow is a category, not a second copy of the sentence.
+              eyebrow="Feature flag"
+              actions={
+                flag.enabled ? (
+                  <Badge tone="ok">On · {flag.rollout_percent}%</Badge>
+                ) : (
+                  <Badge>Off</Badge>
+                )
+              }
+              bare
+            >
+              <form action={save} className="form card-body">
                 <CsrfField />
                 <input type="hidden" name="key" value={flag.key} />
-                <label>
-                  <span>Description</span>
-                  <input type="text" name="description" defaultValue={flag.description} />
-                </label>
-                <label className="inline">
-                  <input type="checkbox" name="enabled" defaultChecked={flag.enabled} />
-                  <span>Enabled</span>
-                </label>
-                <label>
-                  <span>Rollout %</span>
+                <Field label="Description">
+                  <input
+                    type="text"
+                    name="description"
+                    defaultValue={flag.description}
+                    size={34}
+                    aria-label={`Description of ${flag.key}`}
+                  />
+                </Field>
+                <Field label="Rollout %">
                   <input
                     type="number"
                     name="rollout"
                     min={0}
                     max={100}
                     defaultValue={flag.rollout_percent}
+                    aria-label={`Rollout percentage for ${flag.key}`}
                   />
-                </label>
-                <label>
-                  <span>Arms (comma separated)</span>
-                  <input type="text" name="variants" defaultValue={flag.variants.join(', ')} />
-                </label>
-                <button type="submit">Save</button>
+                </Field>
+                <Field label="Arms" hint="comma separated">
+                  <input
+                    type="text"
+                    name="variants"
+                    defaultValue={flag.variants.join(', ')}
+                    size={22}
+                    aria-label={`Arms of ${flag.key}`}
+                  />
+                </Field>
+                <Check name="enabled" label="Enabled" defaultChecked={flag.enabled} />
+                <button type="submit" className="btn">
+                  {Icon.save}
+                  <span>Save</span>
+                </button>
               </form>
 
-              {flag.enabled ? (
-                rows.length === 0 ? (
-                  <p className="note">
-                    Nobody is enrolled. At {flag.rollout_percent}% rollout that is expected if there
-                    are few accounts.
-                  </p>
-                ) : (
-                  <div className="scroll">
+              {!flag.enabled ? (
+                <p className="card-note">
+                  Off. Everybody sees whatever the app did before this flag.
+                </p>
+              ) : rows.length === 0 ? (
+                <p className="card-note">
+                  Nobody is enrolled. At {flag.rollout_percent}% rollout that is expected if there
+                  are few accounts.
+                </p>
+              ) : (
+                <>
+                  <p className="card-subhead">Results</p>
+                  <TableScroll>
                     <table>
+                      <caption className="sr-only">Results per arm of {flag.key}</caption>
                       <thead>
                         <tr>
-                          <th>Arm</th>
-                          <th>People</th>
-                          <th>Share</th>
-                          <th>Expenses created</th>
-                          <th>Per person</th>
-                          <th>Active 30d</th>
+                          <th scope="col">Arm</th>
+                          <th scope="col" className="n">
+                            People
+                          </th>
+                          <th scope="col" className="n">
+                            Share
+                          </th>
+                          <th scope="col" className="n">
+                            Expenses created
+                          </th>
+                          <th scope="col" className="n">
+                            Per person
+                          </th>
+                          <th scope="col" className="n">
+                            Active 30d
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
                         {rows.map((row) => (
                           <tr key={row.variant}>
-                            <td>{row.variant}</td>
-                            <td>{num(row.people)}</td>
-                            <td>
+                            <th scope="row" style={{ fontWeight: 600 }}>
+                              {row.variant}
+                            </th>
+                            <td className="n">{num(row.people)}</td>
+                            <td className="n">
                               {enrolled === 0
                                 ? '—'
                                 : `${Math.round((Number(row.people) / enrolled) * 100)}%`}
                             </td>
-                            <td>{num(row.expenses_created)}</td>
-                            <td>
+                            <td className="n">{num(row.expenses_created)}</td>
+                            <td className="n">
                               {Number(row.people) === 0
                                 ? '—'
                                 : (Number(row.expenses_created) / Number(row.people)).toFixed(2)}
                             </td>
-                            <td>{num(row.active_30d)}</td>
+                            <td className="n">{num(row.active_30d)}</td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
-                    <p className="note">
-                      People outside the rollout are not shown. They are not a control group — the
-                      experiment never touched them, and putting them beside the arms invites the
-                      one comparison that is wrong.
-                    </p>
-                  </div>
-                )
-              ) : (
-                <p className="note">Off. Everybody sees whatever the app did before this flag.</p>
+                  </TableScroll>
+                  <p className="card-note">
+                    People outside the rollout are not shown. They are not a control group — the
+                    experiment never touched them, and putting them beside the arms invites the one
+                    comparison that is wrong.
+                  </p>
+                </>
               )}
-            </section>
-          </div>
-        );
-      })}
+            </Card>
+          );
+        })}
+      </div>
 
-      <h2>New flag</h2>
-      <section>
-        <form action={save} className="flag">
+      <h2 className="section">New flag</h2>
+      <Card bare>
+        <form action={save} className="form card-body">
           <CsrfField />
-          <label>
-            <span>Key</span>
+          <Field label="Key">
             <input type="text" name="key" placeholder="itemized_receipts" required />
-          </label>
-          <label>
-            <span>Description</span>
-            <input type="text" name="description" />
-          </label>
-          <label className="inline">
-            <input type="checkbox" name="enabled" />
-            <span>Enabled</span>
-          </label>
-          <label>
-            <span>Rollout %</span>
+          </Field>
+          <Field label="Description">
+            <input type="text" name="description" size={30} />
+          </Field>
+          <Field label="Rollout %">
             <input type="number" name="rollout" min={0} max={100} defaultValue={0} />
-          </label>
-          <label>
-            <span>Arms (comma separated)</span>
-            <input type="text" name="variants" defaultValue="control, treatment" />
-          </label>
-          <button type="submit">Create</button>
+          </Field>
+          <Field label="Arms" hint="comma separated">
+            <input type="text" name="variants" defaultValue="control, treatment" size={22} />
+          </Field>
+          <Check name="enabled" label="Enabled" />
+          <button type="submit" className="btn">
+            {Icon.plus}
+            <span>Create</span>
+          </button>
         </form>
-      </section>
+      </Card>
     </main>
   );
 }

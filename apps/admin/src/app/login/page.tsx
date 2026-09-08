@@ -1,6 +1,7 @@
 import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 
+import { Icon } from '@/components/icons';
 import { checkPassword, issueToken } from '@/lib/session';
 import { clientAddress, recordLoginAttempt } from '@/lib/loginThrottle';
 import { assertSameOrigin, RequestRejected } from '@/lib/csrf';
@@ -57,25 +58,42 @@ export default async function Login({
   }
 
   return (
-    <main className="login">
-      <h1>Waves admin</h1>
-      <p className="faint">Private console. Contains personal data.</p>
-      <form action={signIn}>
-        <input
-          type="password"
-          name="password"
-          placeholder="Password"
-          aria-label="Password"
-          autoFocus
-          autoComplete="current-password"
-        />
-        <button type="submit">Sign in</button>
-        {error === 'locked' ? (
-          <p className="error">Too many attempts. Wait a few minutes and try again.</p>
-        ) : error ? (
-          <p className="error">That did not work.</p>
-        ) : null}
-      </form>
+    <main className="login-page">
+      <div className="login-card">
+        <span className="login-mark">{Icon.cube}</span>
+        <h1>Waves admin</h1>
+        <p className="muted small">Private console. Contains personal data.</p>
+
+        <form action={signIn}>
+          <label className="field">
+            <span>Password</span>
+            <input
+              type="password"
+              name="password"
+              autoFocus
+              autoComplete="current-password"
+              required
+              // The message is deliberately the same whatever went wrong, so
+              // the field points at it rather than describing the failure.
+              aria-describedby={error ? 'login-error' : undefined}
+              aria-invalid={error ? true : undefined}
+            />
+          </label>
+          <button type="submit" className="btn">
+            Sign in
+          </button>
+          {error ? (
+            <p id="login-error" className="banner banner-danger" role="alert">
+              {Icon.alert}
+              <span>
+                {error === 'locked'
+                  ? 'Too many attempts. Wait a few minutes and try again.'
+                  : 'That did not work.'}
+              </span>
+            </p>
+          ) : null}
+        </form>
+      </div>
     </main>
   );
 }
