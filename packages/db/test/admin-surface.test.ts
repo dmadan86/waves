@@ -96,3 +96,49 @@ describe('the admin console surface', () => {
     expect(rows[0]?.select_policies).toBe('0');
   });
 });
+
+/**
+ * The three tables that answer before there is a session — the version gate the
+ * app reads before its own sign-in screen, the country denylist on the phone
+ * sign-in screen, and public feature configuration. They are public *read*;
+ * every write is service-role.
+ *
+ * `app_releases` is the one that matters most: `minimum_version` is the single
+ * row in this database that can stop every install of Waves at once. It carried
+ * INSERT and UPDATE grants for `authenticated` from the baseline until
+ * `20260908140000`, which RLS happened to neutralise — an UPDATE matched zero
+ * rows because the only policy is `FOR SELECT`. Redundant is not harmless: an
+ * UPDATE policy added later for a good reason would have turned a leftover
+ * grant into a product-wide denial of service by any signed-in account.
+ */
+describe('the pre-sign-in config surface', () => {
+  it('is read-only for anon and authenticated', async () => {
+    const { rows } = await client.query<{
+      table_name: string;
+      grantee: string;
+      privilege: string;
+    }>(`
+      SELECT t.table_name, r.rolname AS grantee, p.privilege
+        FROM (VALUES ('app_releases'), ('country_settings'), ('feature_flags')) AS t(table_name)
+        CROSS JOIN (VALUES ('anon'), ('authenticated')) AS roles(rolname)
+        CROSS JOIN (VALUES ('INSERT'), ('UPDATE'), ('DELETE'), ('TRUNCATE')) AS p(privilege)
+        JOIN pg_roles r ON r.rolname = roles.rolname
+       WHERE has_table_privilege(r.rolname, 'public.' || t.table_name, p.privilege)
+       ORDER BY t.table_name, r.rolname, p.privilege
+    `);
+
+    expect(rows.map((row) => `${row.table_name} -> ${row.grantee} ${row.privilege}`)).toEqual([]);
+  });
+
+  it('still lets a signed-out client read the version gate', async () => {
+    // The other half of the same property: revoking the writes must not take
+    // the read with it, or the app cannot check its own minimum version before
+    // sign-in and every launch fails closed.
+    const { rows } = await client.query<{ anon_read: boolean; auth_read: boolean }>(`
+      SELECT has_table_privilege('anon', 'public.app_releases', 'SELECT') AS anon_read,
+             has_table_privilege('authenticated', 'public.app_releases', 'SELECT') AS auth_read
+    `);
+    expect(rows[0]?.anon_read).toBe(true);
+    expect(rows[0]?.auth_read).toBe(true);
+  });
+});
