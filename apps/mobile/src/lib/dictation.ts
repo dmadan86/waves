@@ -16,10 +16,19 @@ import type { DictationErrorStrings, Language } from '@/i18n';
  *
  * The device's own tag wins when it agrees with the language the app is showing
  * — somebody on `en-GB` should be recognised as `en-GB`, not corrected to
- * Indian English. When it disagrees, or carries no region, India is the
- * fallback: Waves is India-first, and `ta`/`hi` with no region is a recogniser
- * lottery on Android.
+ * Indian English. When it disagrees, or carries no region, the fallback is the
+ * app language's nearest supported default: India for en/ta/hi, and Saudi Arabia
+ * for Arabic. `ar-IN` is not a real speech locale on Android, so using India for
+ * every language made Arabic voice and offline-model rows fail before the user
+ * could do anything useful.
  */
+const SPEECH_FALLBACK_REGION: Readonly<Record<Language, string>> = {
+  en: 'IN',
+  ta: 'IN',
+  hi: 'IN',
+  ar: 'SA',
+};
+
 export function speechLocale(language: Language, deviceLocale: string): string {
   const parts = deviceLocale.trim().split(/[-_]/);
   const tag = parts[0];
@@ -27,7 +36,7 @@ export function speechLocale(language: Language, deviceLocale: string): string {
   // three-digit UN M.49 code is a real region the recogniser can match.
   const region = parts.slice(1).find((part) => /^([A-Za-z]{2}|\d{3})$/.test(part));
   if (tag?.toLowerCase() === language && region) return `${language}-${region.toUpperCase()}`;
-  return `${language}-IN`;
+  return `${language}-${SPEECH_FALLBACK_REGION[language]}`;
 }
 
 /**
@@ -214,6 +223,86 @@ export function offlineVoiceModels(
 
   const byTag = (a: OfflineVoiceModel, b: OfflineVoiceModel): number => a.tag.localeCompare(b.tag);
   return { app, alsoInstalled: alsoInstalled.sort(byTag), downloadable: downloadable.sort(byTag) };
+}
+
+/**
+ * Why a request to fetch an on-device model ended the way it did.
+ *
+ * This exists because the honest answer to "why did Tamil fail?" was being
+ * thrown away one layer down. `androidTriggerOfflineModelDownload` rejects with
+ * a code, and on Android 14+ that code is `error_<n>` where `n` is a
+ * `SpeechRecognizer.ERROR_*` constant handed straight through from
+ * `ModelDownloadListener.onError`. The screen used to test for exactly one code
+ * (`not_supported`, the pre-Android-13 refusal) and collapse every other cause
+ * into "your phone couldn't download that one" — a sentence that is true of a
+ * dead network, a busy service, a language the recogniser has never heard of
+ * and a download that in fact started fine. Four different things to do, one
+ * dead end.
+ *
+ * The distinctions that earn their own word:
+ *
+ *  - `language-missing` (12, ERROR_LANGUAGE_NOT_SUPPORTED) — "not available to
+ *    be used with the current recognizer". There is no model to fetch and there
+ *    never will be on this phone as it stands. This is the one that matters:
+ *    the screen offers a Download button for all four app languages whether or
+ *    not the recogniser has ever heard of them, and it cannot know better in
+ *    advance (see {@link offlineVoiceModels} and the probe note in
+ *    `speechModels.ts` — the supported list is a union that includes
+ *    network-only languages, so a tag appearing there is no promise of a model).
+ *    The tap *is* the probe, and this is the probe answering "no".
+ *  - `not-downloaded` (13, ERROR_LANGUAGE_UNAVAILABLE) — the opposite, and it
+ *    reads identically to a user: "supported, but not yet downloaded". The
+ *    model exists; this attempt did not land it. Worth trying again.
+ *  - `started` (15, ERROR_CANNOT_LISTEN_TO_DOWNLOAD_EVENTS) — not a failure at
+ *    all. The service took the request and cannot report on it. Calling that
+ *    "couldn't download" is simply false.
+ *  - `network` (1, 2, 4, 11), `busy` (8) — ordinary, retryable, and each has a
+ *    different thing for a person to go and do.
+ *  - `too-old` — the module's own pre-API-33 refusal, which the screen already
+ *    prevents by not drawing a button; kept because a rejection is a rejection.
+ *  - `refused` — everything else, including a code that is not a code. A future
+ *    Android constant lands here and gets a sentence that is still true.
+ */
+export type OfflineDownloadReason =
+  'too-old' | 'language-missing' | 'not-downloaded' | 'started' | 'network' | 'busy' | 'refused';
+
+/**
+ * The reason behind a rejected download, read off the thrown value.
+ *
+ * Kept here rather than in `speechModels.ts` for the reason the rest of this
+ * file is: it is pure decision-making over a string, it is easy to get subtly
+ * wrong, and a device is a terrible place to find that out.
+ */
+export function offlineDownloadReason(caught: unknown): OfflineDownloadReason {
+  const code = (caught as { code?: unknown } | null | undefined)?.code;
+  if (code === 'not_supported') return 'too-old';
+  if (typeof code !== 'string') return 'refused';
+  const error = /^error_(\d+)$/.exec(code);
+  if (!error) return 'refused';
+  switch (Number(error[1])) {
+    // ERROR_NETWORK_TIMEOUT, ERROR_NETWORK, ERROR_SERVER, ERROR_SERVER_DISCONNECTED.
+    case 1:
+    case 2:
+    case 4:
+    case 11:
+      return 'network';
+    // ERROR_RECOGNIZER_BUSY.
+    case 8:
+      return 'busy';
+    // ERROR_LANGUAGE_NOT_SUPPORTED.
+    case 12:
+      return 'language-missing';
+    // ERROR_LANGUAGE_UNAVAILABLE.
+    case 13:
+      return 'not-downloaded';
+    // ERROR_CANNOT_LISTEN_TO_DOWNLOAD_EVENTS.
+    case 15:
+      return 'started';
+    // ERROR_CLIENT (5), ERROR_INSUFFICIENT_PERMISSIONS (9),
+    // ERROR_CANNOT_CHECK_SUPPORT (14), and whatever a later Android adds.
+    default:
+      return 'refused';
+  }
 }
 
 /**

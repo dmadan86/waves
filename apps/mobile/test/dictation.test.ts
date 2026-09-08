@@ -12,6 +12,7 @@ import {
   dictationError,
   englishSpeechLocale,
   mergeTranscript,
+  offlineDownloadReason,
   offlineVoiceModels,
   onDeviceLocaleInstalled,
   speechLocale,
@@ -31,16 +32,23 @@ describe('speechLocale', () => {
     expect(speechLocale(Language.Ta, 'ta-LK')).toBe('ta-LK');
   });
 
-  it('falls back to India when the tag carries no region', () => {
+  it('falls back to a served default when the tag carries no region', () => {
     // Bare "ta" is a lottery on Android — some recognisers take it, some
-    // return language-not-supported.
+    // return language-not-supported. Arabic cannot use the India fallback,
+    // because `ar-IN` is not a recognizer-served locale.
     expect(speechLocale(Language.Ta, 'ta')).toBe('ta-IN');
     expect(speechLocale(Language.Hi, 'hi')).toBe('hi-IN');
+    expect(speechLocale(Language.Ar, 'ar')).toBe('ar-SA');
   });
 
   it('follows the app language, not the phone, when they disagree', () => {
     // The app is showing Tamil, so Tamil is what the user is about to speak.
     expect(speechLocale(Language.Ta, 'en-US')).toBe('ta-IN');
+    expect(speechLocale(Language.Ar, 'en-US')).toBe('ar-SA');
+  });
+
+  it('keeps an Arabic phone region when the app is Arabic', () => {
+    expect(speechLocale(Language.Ar, 'ar-AE')).toBe('ar-AE');
   });
 
   it('survives the shapes a locale tag actually arrives in', () => {
@@ -170,7 +178,7 @@ describe('offlineVoiceModels', () => {
     // The rows somebody came to this screen to fix are the missing ones, so
     // they cannot be filtered out for being missing.
     const models = offlineVoiceModels(languages, 'en-IN', [], [], 'reported');
-    expect(models.app.map((model) => model.tag)).toEqual(['en-IN', 'ta-IN', 'hi-IN', 'ar-IN']);
+    expect(models.app.map((model) => model.tag)).toEqual(['en-IN', 'ta-IN', 'hi-IN', 'ar-SA']);
     expect(models.app.every((model) => model.state === 'missing')).toBe(true);
   });
 
@@ -236,7 +244,7 @@ describe('offlineVoiceModels', () => {
       ['en-IN', 'fr-FR'],
       'unknowable',
     );
-    expect(models.app.map((model) => model.tag)).toEqual(['en-IN', 'ta-IN', 'hi-IN', 'ar-IN']);
+    expect(models.app.map((model) => model.tag)).toEqual(['en-IN', 'ta-IN', 'hi-IN', 'ar-SA']);
     expect(models.app.every((model) => model.state === 'unknown')).toBe(true);
     expect(models.alsoInstalled).toEqual([]);
     expect(models.downloadable).toEqual([]);
@@ -248,5 +256,54 @@ describe('offlineVoiceModels', () => {
     expect(models.app).toHaveLength(4);
     expect(models.alsoInstalled).toEqual([]);
     expect(models.downloadable).toEqual([]);
+  });
+});
+
+describe('offlineDownloadReason', () => {
+  // The rejection Expo hands back is a coded error: `{ code, message }`. These
+  // are the codes the native module actually produces.
+  const rejected = (code: unknown): unknown => ({ code, message: 'whatever' });
+
+  it('tells "there is no such model" apart from "the model did not arrive"', () => {
+    // The whole reason this function exists. Tapping Tamil on a phone whose
+    // recogniser has no Tamil model rejects with ERROR_LANGUAGE_NOT_SUPPORTED
+    // (12); a phone that has one and failed to fetch it rejects with
+    // ERROR_LANGUAGE_UNAVAILABLE (13). One is "this will never work here", the
+    // other is "try again on Wi-Fi", and the screen used to say the same dead
+    // sentence to both.
+    expect(offlineDownloadReason(rejected('error_12'))).toBe('language-missing');
+    expect(offlineDownloadReason(rejected('error_13'))).toBe('not-downloaded');
+  });
+
+  it('does not call a started download a failure', () => {
+    // ERROR_CANNOT_LISTEN_TO_DOWNLOAD_EVENTS (15) arrives as a rejection, but it
+    // means the service took the request and will not narrate it.
+    expect(offlineDownloadReason(rejected('error_15'))).toBe('started');
+  });
+
+  it('names the retryable causes separately', () => {
+    // ERROR_NETWORK_TIMEOUT, ERROR_NETWORK, ERROR_SERVER, ERROR_SERVER_DISCONNECTED.
+    for (const code of ['error_1', 'error_2', 'error_4', 'error_11']) {
+      expect(offlineDownloadReason(rejected(code))).toBe('network');
+    }
+    // ERROR_RECOGNIZER_BUSY.
+    expect(offlineDownloadReason(rejected('error_8'))).toBe('busy');
+  });
+
+  it('keeps the platform’s own pre-Android-13 refusal', () => {
+    expect(offlineDownloadReason(rejected('not_supported'))).toBe('too-old');
+  });
+
+  it('still answers for a code it has never seen, or no code at all', () => {
+    // A future Android constant, an error thrown before the native call, a
+    // rejection with nothing on it — none of these may throw here, and none may
+    // be mistaken for one of the specific causes above.
+    expect(offlineDownloadReason(rejected('error_99'))).toBe('refused');
+    expect(offlineDownloadReason(rejected('error_'))).toBe('refused');
+    expect(offlineDownloadReason(rejected('error_12x'))).toBe('refused');
+    expect(offlineDownloadReason(rejected(12))).toBe('refused');
+    expect(offlineDownloadReason(new Error('boom'))).toBe('refused');
+    expect(offlineDownloadReason(null)).toBe('refused');
+    expect(offlineDownloadReason(undefined)).toBe('refused');
   });
 });
