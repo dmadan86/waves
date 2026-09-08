@@ -162,7 +162,11 @@ export function PaymentMethodRow({
       value={label(value)}
       leading={
         method ? (
-          <Ionicons name={PAYMENT_METHOD_ICONS[method]} size={iconSize.md} color={theme.color.textMuted} />
+          <Ionicons
+            name={PAYMENT_METHOD_ICONS[method]}
+            size={iconSize.md}
+            color={theme.color.textMuted}
+          />
         ) : null
       }
       onPress={onPress}
@@ -187,29 +191,31 @@ export function PaymentMethodSheet({
   return (
     <SheetOverlay title={t.captures.paidWith} onClose={onClose}>
       <View style={{ gap: theme.spacing.xs }}>
-        {offeredPaymentMethods({ upiSupported: deviceSupportsUpi(), current: value }).map((method) => {
-          const active = value === method;
-          return (
-            <ChoiceRow
-              key={method}
-              label={label(method)}
-              selected={active}
-              leading={
-                // A fixed-width box so every label starts on the same line
-                // however wide its glyph draws, the way the currency sheet's
-                // symbols are boxed.
-                <View style={{ width: 32, alignItems: 'center' }}>
-                  <Ionicons
-                    name={PAYMENT_METHOD_ICONS[method]}
-                    size={iconSize.md}
-                    color={active ? theme.color.brand : theme.color.textMuted}
-                  />
-                </View>
-              }
-              onPress={() => onChange(method)}
-            />
-          );
-        })}
+        {offeredPaymentMethods({ upiSupported: deviceSupportsUpi(), current: value }).map(
+          (method) => {
+            const active = value === method;
+            return (
+              <ChoiceRow
+                key={method}
+                label={label(method)}
+                selected={active}
+                leading={
+                  // A fixed-width box so every label starts on the same line
+                  // however wide its glyph draws, the way the currency sheet's
+                  // symbols are boxed.
+                  <View style={{ width: 32, alignItems: 'center' }}>
+                    <Ionicons
+                      name={PAYMENT_METHOD_ICONS[method]}
+                      size={iconSize.md}
+                      color={active ? theme.color.brand : theme.color.textMuted}
+                    />
+                  </View>
+                }
+                onPress={() => onChange(method)}
+              />
+            );
+          },
+        )}
       </View>
     </SheetOverlay>
   );
