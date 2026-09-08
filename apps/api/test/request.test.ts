@@ -22,6 +22,7 @@ import {
   mutationIdFor,
   pageSize,
   queryFlag,
+  requiredMutationIdFor,
   toPage,
 } from '../src/server/request';
 
@@ -64,6 +65,17 @@ describe('the idempotency key', () => {
     const mutationId = mutationIdFor(TOKEN_A, 'POST /v1/groups', 'trip-to-goa');
     expect(derivedId(mutationId, 'group')).toBe(derivedId(mutationId, 'group'));
     expect(derivedId(mutationId, 'group')).not.toBe(derivedId(mutationId, 'creator-member'));
+  });
+
+  it('requires an idempotency key for settlement payments', () => {
+    expect(() => requiredMutationIdFor(TOKEN_A, 'POST /v1/settlements', null)).toThrow(ApiError);
+    expect(() => requiredMutationIdFor(TOKEN_A, 'POST /v1/settlements', '   ')).toThrow(ApiError);
+  });
+
+  it('keeps required settlement ids stable when a key is present', () => {
+    expect(requiredMutationIdFor(TOKEN_A, 'POST /v1/settlements', 'upi-payment-42')).toBe(
+      requiredMutationIdFor(TOKEN_A, 'POST /v1/settlements', 'upi-payment-42'),
+    );
   });
 });
 

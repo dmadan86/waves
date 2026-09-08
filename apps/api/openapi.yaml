@@ -857,12 +857,13 @@ paths:
         Records a claim that money moved, not the movement itself; it counts
         against the ledger once the payee confirms it. The `Idempotency-Key`
         matters more here than anywhere else in the API — a retried "I paid
-        them" that recorded twice would take a real debt to a negative balance.
+        them" that recorded twice would take a real debt to a negative balance,
+        so this endpoint requires the header.
       security:
         - bearerAuth: []
         - oauth2: [settlements.write]
       parameters:
-        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/RequiredIdempotencyKey'
       requestBody:
         required: true
         content:
@@ -1886,6 +1887,19 @@ components:
         minLength: 8
         maxLength: 200
         examples: ['dinner-2026-09-08-goa-01']
+    RequiredIdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: >-
+        Required for recording a payment. A retry without this key could record
+        the same real-world settlement twice, so the API refuses the request
+        rather than making it non-idempotent.
+      schema:
+        type: string
+        minLength: 8
+        maxLength: 200
+        examples: ['settlement-2026-09-08-ravi-upi']
     GroupId:
       name: groupId
       in: path

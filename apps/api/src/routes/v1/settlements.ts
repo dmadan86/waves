@@ -24,8 +24,8 @@ import {
   decodeCursor,
   jsonBody,
   keysetFilter,
-  mutationIdFor,
   pageSize,
+  requiredMutationIdFor,
   toPage,
 } from '../../server/request';
 import { toSettlement } from '../../server/resources';
@@ -123,7 +123,7 @@ settlements.post('/settlements', requireScope('settlements.write'), async (c) =>
     rail,
     currency: typeof body.currency === 'string' ? body.currency : null,
     note: typeof body.note === 'string' ? body.note : null,
-    clientMutationId: mutationIdFor(
+    clientMutationId: requiredMutationIdFor(
       me.tokenId,
       'POST /v1/settlements',
       c.req.header('Idempotency-Key'),

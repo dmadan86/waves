@@ -126,6 +126,12 @@ there is no table of stored responses to keep consistent: the API inherits the
 guarantee instead of reimplementing it. The token id is in the derivation, so two
 developers who both choose `"1"` do not collide.
 
+`POST /v1/settlements` is stricter than the other creates: it **requires** the
+header. A settlement is a real-world payment claim, and a retry without a key
+could record the same payer-to-payee transfer twice before either person notices.
+Other creates still treat an omitted key as "this write is not meant to be
+retried".
+
 ## 4. OAuth 2.1
 
 ```
