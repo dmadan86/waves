@@ -511,6 +511,24 @@ export function useKnownPeopleCount(profileId: string | null): LocalRead<number>
 }
 
 /**
+ * member_id → the person id a viewer's own ghost merge folds that membership
+ * into (A38).
+ *
+ * The middle term of `personKeyOf`, and the reason a guest the viewer has said
+ * is one human resolves to one person rather than to whichever group's ghost
+ * happened to be tapped. Pull-only mirror data (the client never writes these),
+ * so there is no queue overlay to replay — and it is read from the mirror, not
+ * the network, so a tap works with no connection.
+ */
+export function useGhostMergePersonIds(): ReadonlyMap<string, string> {
+  const { mirror } = useSync();
+  return useMemo(
+    () => new Map(ghostMerges(mirror).map((merge) => [merge.member_id, merge.person_id])),
+    [mirror],
+  );
+}
+
+/**
  * Who owes you and who you owe, across every group — from the mirror (ADR-005).
  *
  * The local-first twin of `waves_people_i_owe` (A11/A36/A38). For each group the

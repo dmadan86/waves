@@ -26,6 +26,7 @@ import {
 import {
   memberLookup,
   useCancelSettlement,
+  useGhostMergePersonIds,
   useGroup,
   useDisputes,
   useGroupLedger,
@@ -44,8 +45,16 @@ import {
 } from '@/data/activity';
 import { nudgeToSettle } from '@/data/api';
 import { expenseTitle } from '@/data/expenseTitle';
+import { personKeyOf } from '@/data/peopleBalances';
 import { GroupSkeleton } from '@/components/Skeletons';
-import { deadLettered, formatParts, type MemberId } from '@waves/core';
+import {
+  balanceDirection,
+  copyFor,
+  deadLettered,
+  formatParts,
+  moneyAccessibilityLabel,
+  type MemberId,
+} from '@waves/core';
 import { useBlockedUsers } from '@/data/blocked';
 import {
   actorName,
@@ -479,6 +488,44 @@ export default function GroupScreen() {
     },
     [blockedIds, lookup, profile?.id, t.misc.someone],
   );
+
+  // Where a Balances row goes when it is tapped: that person, un-collapsed
+  // across every group you share with them.
+  //
+  // The key has to be spelled the way the database spells it — `personKeyOf` is
+  // the same COALESCE(profile_id, merge person_id, member_id) the
+  // `waves_person_group_balances` view keys on — because a second, client-side
+  // guess at who somebody is would point the screen at a stranger's ledger. A
+  // ghost the viewer has merged folds through their merge, exactly as the
+  // Friends list folds them, so the same tap lands on the same person from
+  // either screen.
+  //
+  // Null means the row is a dead end, and a dead end must not look tappable:
+  //   * yourself — there is no such thing as the groups you share with yourself;
+  //   * a member who exists only in the local queue, whose id the server has
+  //     never seen, and for whom the view would honestly answer "nothing" —
+  //     which reads as "you are square", the wrong thing to say about somebody
+  //     who has not been saved yet.
+  // A blocked person is *not* a dead end: Friends opens them too, with their
+  // name masked all the way through, and this passes the masked name along.
+  const mergePersonIds = useGhostMergePersonIds();
+  const personKeyFor = useCallback(
+    (member: MemberRow): string | null => {
+      // Both readings of "me", because `myMemberId` is derived from the members
+      // and is null for the frame before they land — long enough for your own
+      // row to be drawn as a doorway into yourself.
+      if (member.id === ledger.myMemberId) return null;
+      if (member.profile_id !== null && member.profile_id === profile?.id) return null;
+      if (member.pending) return null;
+      return personKeyOf({
+        profileId: member.profile_id,
+        mergePersonId: mergePersonIds.get(member.id) ?? null,
+        memberId: member.id,
+      });
+    },
+    [ledger.myMemberId, mergePersonIds, profile?.id],
+  );
+
   // The joined actor an activity row would carry on the cross-group feed, rebuilt
   // from this group's members — so the mirror-backed group feed can name who did
   // the thing rather than falling back to "someone".
@@ -807,51 +854,108 @@ export default function GroupScreen() {
     }
     if (item.kind === 'balance') {
       const { member, balance, isLast } = item;
+      // The name the row is allowed to say — already masked for a blocked
+      // person, and it travels with the tap so the destination opens under the
+      // same mask rather than flashing the real name while it loads.
+      const shownName = displayName(member, profile?.id, blockedIds, t.misc.someone);
+      const personKey = personKeyFor(member);
+      // What a screen reader hears once the row is one button: who, then the
+      // amount in the words `MoneyText` would have spoken on its own, then —
+      // for a guest — that they have not joined. Making the row accessible
+      // groups its text, so anything worth hearing has to be said here.
+      const rowLabel = [
+        shownName,
+        moneyAccessibilityLabel(
+          { minor: balance, currency },
+          balanceDirection(balance),
+          copyFor(locale).money,
+          { locale },
+        ),
+        isGhost(member) ? t.notJoinedYet : '',
+      ]
+        .filter(Boolean)
+        .join('. ');
       // Flat row: the money meaning is the sign on the amount and its
       // "you are owed / you owe" label, not the row's colour.
+      const row = (
+        <Row
+          style={{
+            gap: theme.spacing.md,
+            alignItems: 'center',
+            paddingVertical: theme.spacing.sm,
+          }}
+        >
+          <Avatar
+            name={displayName(member, null, blockedIds, t.misc.someone)}
+            ghost={isGhost(member) || isBlockedMember(member, blockedIds)}
+            size={40}
+          />
+          <View style={{ flex: 1 }}>
+            <Row style={{ gap: theme.spacing.sm }}>
+              <Text variant="subheading" numberOfLines={1} style={{ flexShrink: 1 }}>
+                {shownName}
+              </Text>
+              {member.role === 'admin' && !isGhost(member) ? (
+                <Badge label={t.people.admin} tone="brand" />
+              ) : null}
+            </Row>
+            <Text variant="caption" tone="muted" numberOfLines={1}>
+              {isGhost(member)
+                ? t.notJoinedYet
+                : isBlockedMember(member, blockedIds)
+                  ? // A VPA carries a name or phone — masked for a blocked person.
+                    '—'
+                  : (member.vpa ?? member.profile?.default_vpa ?? '—')}
+            </Text>
+          </View>
+          <Row style={{ gap: theme.spacing.sm, alignItems: 'center' }}>
+            {/* Somebody who owes the group money can be nudged from the row that
+                says so, the way Friends already does. Ghosts have nowhere to
+                send it. The chip keeps its own press inside the row's: the
+                innermost pressable wins the touch, so nudging never navigates
+                — the same nesting the Friends list has always used. */}
+            {balance < 0n && !isGhost(member) && member.id !== ledger.myMemberId ? (
+              <RemindChip groupId={groupId} memberId={member.id} currency={currency} />
+            ) : null}
+            <MoneyText amount={balance} currency={currency} locale={locale} mode="balance" />
+            {member.pending ? <PendingMark /> : null}
+            {/* A fixed slot at the trailing edge, on every row whether or not it
+                leads anywhere, so the amounts stay in one column instead of
+                sliding left on the rows that have no chevron. The glyph itself
+                flips with the writing direction. */}
+            <View style={{ width: iconSize.md, alignItems: 'center' }}>
+              {personKey ? (
+                <Ionicons
+                  name={directionalIcon('chevron-forward')}
+                  size={iconSize.md}
+                  color={theme.color.textFaint}
+                />
+              ) : null}
+            </View>
+          </Row>
+        </Row>
+      );
       return (
         <View>
-          <Row
-            style={{
-              gap: theme.spacing.md,
-              alignItems: 'center',
-              paddingVertical: theme.spacing.sm,
-            }}
-          >
-            <Avatar
-              name={displayName(member, null, blockedIds, t.misc.someone)}
-              ghost={isGhost(member) || isBlockedMember(member, blockedIds)}
-              size={40}
-            />
-            <View style={{ flex: 1 }}>
-              <Row style={{ gap: theme.spacing.sm }}>
-                <Text variant="subheading" numberOfLines={1} style={{ flexShrink: 1 }}>
-                  {displayName(member, profile?.id, blockedIds, t.misc.someone)}
-                </Text>
-                {member.role === 'admin' && !isGhost(member) ? (
-                  <Badge label={t.people.admin} tone="brand" />
-                ) : null}
-              </Row>
-              <Text variant="caption" tone="muted" numberOfLines={1}>
-                {isGhost(member)
-                  ? t.notJoinedYet
-                  : isBlockedMember(member, blockedIds)
-                    ? // A VPA carries a name or phone — masked for a blocked person.
-                      '—'
-                    : (member.vpa ?? member.profile?.default_vpa ?? '—')}
-              </Text>
-            </View>
-            <Row style={{ gap: theme.spacing.sm, alignItems: 'center' }}>
-              {/* Somebody who owes the group money can be nudged from the row that
-                  says so, the way Friends already does. Ghosts have nowhere to
-                  send it. */}
-              {balance < 0n && !isGhost(member) && member.id !== ledger.myMemberId ? (
-                <RemindChip groupId={groupId} memberId={member.id} currency={currency} />
-              ) : null}
-              <MoneyText amount={balance} currency={currency} locale={locale} mode="balance" />
-              {member.pending ? <PendingMark /> : null}
-            </Row>
-          </Row>
+          {personKey ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={rowLabel}
+              accessibilityHint={t.people.seeSharedGroups}
+              onPress={() =>
+                router.push(
+                  `/friends/person/${encodeURIComponent(personKey)}?name=${encodeURIComponent(
+                    shownName,
+                  )}` as never,
+                )
+              }
+              style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+            >
+              {row}
+            </Pressable>
+          ) : (
+            row
+          )}
           {!isLast ? <View style={{ height: 1, backgroundColor: theme.color.border }} /> : null}
         </View>
       );
@@ -1044,7 +1148,14 @@ export default function GroupScreen() {
           // Not the tab: switching tabs already hands `data` a different array,
           // and naming it here only made every mounted cell re-render a second
           // time for the same switch.
-          extraData={`${showDeleted}|${locale}`}
+          //
+          // A Balances row's destination is not in its `data` item — it comes
+          // from who you are in this group and from the ghost merges on the
+          // phone — so those go in here too, or a recycled row keeps whatever
+          // tappability it was drawn with. `myMemberId` arrives a beat after
+          // the members do, and a merge that syncs in mid-scroll only ever adds
+          // a row, so its size is enough to notice one landing.
+          extraData={`${showDeleted}|${locale}|${ledger.myMemberId ?? ''}|${mergePersonIds.size}`}
           keyExtractor={(item) => item.key}
           getItemType={(item) => item.kind}
           renderItem={renderFeedItem}
