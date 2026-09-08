@@ -12,6 +12,7 @@ import {
   dictationError,
   englishSpeechLocale,
   mergeTranscript,
+  offlineDownloadReason,
   offlineVoiceModels,
   onDeviceLocaleInstalled,
   speechLocale,
@@ -248,5 +249,54 @@ describe('offlineVoiceModels', () => {
     expect(models.app).toHaveLength(4);
     expect(models.alsoInstalled).toEqual([]);
     expect(models.downloadable).toEqual([]);
+  });
+});
+
+describe('offlineDownloadReason', () => {
+  // The rejection Expo hands back is a coded error: `{ code, message }`. These
+  // are the codes the native module actually produces.
+  const rejected = (code: unknown): unknown => ({ code, message: 'whatever' });
+
+  it('tells "there is no such model" apart from "the model did not arrive"', () => {
+    // The whole reason this function exists. Tapping Tamil on a phone whose
+    // recogniser has no Tamil model rejects with ERROR_LANGUAGE_NOT_SUPPORTED
+    // (12); a phone that has one and failed to fetch it rejects with
+    // ERROR_LANGUAGE_UNAVAILABLE (13). One is "this will never work here", the
+    // other is "try again on Wi-Fi", and the screen used to say the same dead
+    // sentence to both.
+    expect(offlineDownloadReason(rejected('error_12'))).toBe('language-missing');
+    expect(offlineDownloadReason(rejected('error_13'))).toBe('not-downloaded');
+  });
+
+  it('does not call a started download a failure', () => {
+    // ERROR_CANNOT_LISTEN_TO_DOWNLOAD_EVENTS (15) arrives as a rejection, but it
+    // means the service took the request and will not narrate it.
+    expect(offlineDownloadReason(rejected('error_15'))).toBe('started');
+  });
+
+  it('names the retryable causes separately', () => {
+    // ERROR_NETWORK_TIMEOUT, ERROR_NETWORK, ERROR_SERVER, ERROR_SERVER_DISCONNECTED.
+    for (const code of ['error_1', 'error_2', 'error_4', 'error_11']) {
+      expect(offlineDownloadReason(rejected(code))).toBe('network');
+    }
+    // ERROR_RECOGNIZER_BUSY.
+    expect(offlineDownloadReason(rejected('error_8'))).toBe('busy');
+  });
+
+  it('keeps the platform’s own pre-Android-13 refusal', () => {
+    expect(offlineDownloadReason(rejected('not_supported'))).toBe('too-old');
+  });
+
+  it('still answers for a code it has never seen, or no code at all', () => {
+    // A future Android constant, an error thrown before the native call, a
+    // rejection with nothing on it — none of these may throw here, and none may
+    // be mistaken for one of the specific causes above.
+    expect(offlineDownloadReason(rejected('error_99'))).toBe('refused');
+    expect(offlineDownloadReason(rejected('error_'))).toBe('refused');
+    expect(offlineDownloadReason(rejected('error_12x'))).toBe('refused');
+    expect(offlineDownloadReason(rejected(12))).toBe('refused');
+    expect(offlineDownloadReason(new Error('boom'))).toBe('refused');
+    expect(offlineDownloadReason(null)).toBe('refused');
+    expect(offlineDownloadReason(undefined)).toBe('refused');
   });
 });

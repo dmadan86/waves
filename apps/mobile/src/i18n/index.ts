@@ -1011,9 +1011,14 @@ export interface UiStrings {
     /** Everything else the recogniser knows about. */
     otherLanguages: string;
     otherLanguagesHint: string;
+    /** How many rows a folded section holds — the whole of what it says while
+     *  it is shut, since the point of folding it is not reading the rest. */
+    sectionCount: PluralForms;
     /** Per-row state. */
     installed: string;
     notInstalled: string;
+    /** A phone that cannot be asked what it holds, so the row claims nothing. */
+    cannotTell: string;
     download: string;
     /** Under a row while the phone fetches a model. Android hands the app no
      *  percentage — the bar is indeterminate and this says why. */
@@ -1023,6 +1028,19 @@ export interface UiStrings {
     ready: string;
     dialogOpened: string;
     scheduled: string;
+    /**
+     * The reasons a download can end badly, decoded from the phone's own error
+     * code by `offlineDownloadReason`. They are separate strings because they
+     * are separate things to go and do: no model exists at all, a model exists
+     * and did not arrive, the connection, the service being busy, or a download
+     * that in fact started and cannot be watched. `failed` is now only the case
+     * where the phone refused without saying why.
+     */
+    languageMissing: string;
+    notDownloaded: string;
+    networkFailed: string;
+    serviceBusy: string;
+    handedOff: string;
     failed: string;
     /** A download still unanswered long after it began — Android's listener may
      *  simply never fire, and the row stops asserting rather than spin forever. */
@@ -3481,8 +3499,10 @@ const en: UiStrings = {
     alsoInstalled: 'Also on this phone',
     otherLanguages: 'Other languages',
     otherLanguagesHint: 'Your phone can fetch any of these.',
+    sectionCount: { one: '{n} language', other: '{n} languages' },
     installed: 'On this phone',
     notInstalled: 'Not downloaded',
+    cannotTell: 'Can’t tell',
     download: 'Download',
     downloading: 'Your phone is downloading this.',
     noProgress: 'Android doesn’t say how far along it is.',
@@ -3490,7 +3510,16 @@ const en: UiStrings = {
     dialogOpened:
       'Your phone has taken over with its own download screen. Finish there, then come back and refresh.',
     scheduled: 'Queued. Your phone will finish it, usually once you’re on Wi‑Fi.',
-    failed: 'Your phone couldn’t download that one.',
+    languageMissing:
+      'Your phone’s speech service has no offline model for this language, so there is nothing to fetch. Updating “Speech Recognition & Synthesis” from the Play Store sometimes adds one; until then this language needs a connection.',
+    notDownloaded:
+      'Your phone has this language but hasn’t fetched it yet. It usually waits for Wi‑Fi — try again once you’re on it.',
+    networkFailed: 'The download couldn’t get through. Check your connection and try again.',
+    serviceBusy:
+      'Your phone’s speech service is busy. Close anything else using the mic and try again.',
+    handedOff:
+      'Your phone started the download but won’t report on it. Give it a few minutes, then refresh.',
+    failed: 'Your phone’s speech service refused the download and didn’t say why.',
     stillWorking:
       'Your phone hasn’t said whether this finished. Give it a while, then refresh to see if it landed.',
     tooOld:
@@ -5857,8 +5886,10 @@ const ta: UiStrings = {
     alsoInstalled: 'இந்த ஃபோனில் ஏற்கெனவே உள்ளவை',
     otherLanguages: 'மற்ற மொழிகள்',
     otherLanguagesHint: 'இவற்றில் எதையும் உங்கள் ஃபோன் கொண்டுவரும்.',
+    sectionCount: { one: '{n} மொழி', other: '{n} மொழிகள்' },
     installed: 'ஃபோனில் உள்ளது',
     notInstalled: 'பதிவிறக்கப்படவில்லை',
+    cannotTell: 'சொல்ல முடியவில்லை',
     download: 'பதிவிறக்கு',
     downloading: 'உங்கள் ஃபோன் இதைப் பதிவிறக்குகிறது.',
     noProgress: 'எவ்வளவு முடிந்தது என்பதை Android சொல்வதில்லை.',
@@ -5866,7 +5897,17 @@ const ta: UiStrings = {
     dialogOpened:
       'உங்கள் ஃபோன் தன் சொந்தப் பதிவிறக்கத் திரையைத் திறந்துவிட்டது. அங்கே முடித்துவிட்டு, திரும்பி வந்து புதுப்பிக்கவும்.',
     scheduled: 'வரிசையில் உள்ளது. பொதுவாக Wi‑Fi இணைப்பில் உங்கள் ஃபோன் இதை முடிக்கும்.',
-    failed: 'அதை உங்கள் ஃபோனால் பதிவிறக்க முடியவில்லை.',
+    languageMissing:
+      'உங்கள் ஃபோனின் பேச்சுச் சேவையிடம் இந்த மொழிக்கான ஆஃப்லைன் மாதிரியே இல்லை, எனவே பதிவிறக்க எதுவும் இல்லை. Play Store-இல் “Speech Recognition & Synthesis” ஐப் புதுப்பித்தால் சில சமயங்களில் ஒன்று சேரும்; அதுவரை இந்த மொழிக்கு இணைப்பு தேவை.',
+    notDownloaded:
+      'இந்த மொழி உங்கள் ஃபோனுக்குத் தெரியும், ஆனால் இன்னும் கொண்டுவரவில்லை. பொதுவாக Wi‑Fi வரும் வரை காத்திருக்கும் — இணைந்ததும் மீண்டும் முயலுங்கள்.',
+    networkFailed:
+      'பதிவிறக்கம் சென்று சேரவில்லை. உங்கள் இணைப்பைச் சரிபார்த்து மீண்டும் முயலுங்கள்.',
+    serviceBusy:
+      'உங்கள் ஃபோனின் பேச்சுச் சேவை பணியில் உள்ளது. மைக்கைப் பயன்படுத்தும் மற்றவற்றை மூடிவிட்டு மீண்டும் முயலுங்கள்.',
+    handedOff:
+      'உங்கள் ஃபோன் பதிவிறக்கத்தைத் தொடங்கிவிட்டது, ஆனால் அதைப் பற்றிச் சொல்லாது. சில நிமிடங்கள் கழித்துப் புதுப்பிக்கவும்.',
+    failed: 'உங்கள் ஃபோனின் பேச்சுச் சேவை பதிவிறக்கத்தை மறுத்தது, காரணம் சொல்லவில்லை.',
     stillWorking:
       'இது முடிந்ததா என்பதை உங்கள் ஃபோன் இன்னும் சொல்லவில்லை. கொஞ்சம் நேரம் கழித்து, வந்து சேர்ந்ததா எனப் புதுப்பித்துப் பாருங்கள்.',
     tooOld:
@@ -8306,8 +8347,10 @@ const hi: UiStrings = {
     alsoInstalled: 'इस फ़ोन पर पहले से मौजूद',
     otherLanguages: 'दूसरी भाषाएँ',
     otherLanguagesHint: 'इनमें से कोई भी आपका फ़ोन ला सकता है।',
+    sectionCount: { one: '{n} भाषा', other: '{n} भाषाएँ' },
     installed: 'फ़ोन पर मौजूद',
     notInstalled: 'डाउनलोड नहीं है',
+    cannotTell: 'बता नहीं सकते',
     download: 'डाउनलोड करें',
     downloading: 'आपका फ़ोन इसे डाउनलोड कर रहा है।',
     noProgress: 'Android यह नहीं बताता कि कितना हुआ।',
@@ -8315,7 +8358,16 @@ const hi: UiStrings = {
     dialogOpened:
       'आपके फ़ोन ने अपनी डाउनलोड स्क्रीन खोल दी है। वहीं पूरा करें, फिर लौटकर ताज़ा करें।',
     scheduled: 'क़तार में है। आपका फ़ोन इसे पूरा कर देगा, आम तौर पर Wi‑Fi पर।',
-    failed: 'आपका फ़ोन उसे डाउनलोड नहीं कर सका।',
+    languageMissing:
+      'आपके फ़ोन की स्पीच सेवा के पास इस भाषा का ऑफ़लाइन मॉडल है ही नहीं, इसलिए लाने को कुछ नहीं है। Play Store से “Speech Recognition & Synthesis” अपडेट करने पर कभी‑कभी एक जुड़ जाता है; तब तक इस भाषा को कनेक्शन चाहिए।',
+    notDownloaded:
+      'आपका फ़ोन यह भाषा जानता है, पर अभी लाया नहीं है। आम तौर पर वह Wi‑Fi का इंतज़ार करता है — जुड़ते ही फिर कोशिश करें।',
+    networkFailed: 'डाउनलोड पहुँच ही नहीं पाया। अपना कनेक्शन जाँचकर फिर कोशिश करें।',
+    serviceBusy:
+      'आपके फ़ोन की स्पीच सेवा व्यस्त है। माइक इस्तेमाल कर रही दूसरी चीज़ें बंद करके फिर कोशिश करें।',
+    handedOff:
+      'आपके फ़ोन ने डाउनलोड शुरू कर दिया है पर उसकी ख़बर नहीं देगा। कुछ मिनट बाद ताज़ा करें।',
+    failed: 'आपके फ़ोन की स्पीच सेवा ने डाउनलोड से इनकार कर दिया और वजह नहीं बताई।',
     stillWorking:
       'आपके फ़ोन ने अब तक नहीं बताया कि यह पूरा हुआ या नहीं। थोड़ी देर बाद ताज़ा करके देखें कि आया या नहीं।',
     tooOld:
@@ -10729,15 +10781,31 @@ const ar: UiStrings = {
     alsoInstalled: 'موجودة على هذا الهاتف',
     otherLanguages: 'لغات أخرى',
     otherLanguagesHint: 'يستطيع هاتفك جلب أيٍّ منها.',
+    sectionCount: {
+      zero: '{n} لغة',
+      one: 'لغة واحدة',
+      two: 'لغتان',
+      few: '{n} لغات',
+      many: '{n} لغة',
+      other: '{n} لغة',
+    },
     installed: 'على الهاتف',
     notInstalled: 'غير مُنزَّلة',
+    cannotTell: 'يتعذّر معرفة ذلك',
     download: 'تنزيل',
     downloading: 'هاتفك ينزّل هذا الآن.',
     noProgress: 'لا يخبر Android بمقدار ما اكتمل.',
     ready: 'اكتمل التنزيل. يمكن للميكروفون استخدامه الآن.',
     dialogOpened: 'فتح هاتفك شاشة التنزيل الخاصة به. أكمِل هناك ثم عُد وحدِّث القائمة.',
     scheduled: 'في الانتظار. سيُكمل هاتفك التنزيل، غالبًا عند اتصاله بشبكة Wi‑Fi.',
-    failed: 'تعذّر على هاتفك تنزيل ذلك.',
+    languageMissing:
+      'لا تملك خدمة الكلام في هاتفك نموذجًا يعمل دون اتصال لهذه اللغة، فليس هناك ما يُجلب. تحديث «Speech Recognition & Synthesis» من متجر Play يضيف لغة أحيانًا؛ وحتى ذلك الحين تحتاج هذه اللغة إلى اتصال.',
+    notDownloaded:
+      'هاتفك يعرف هذه اللغة لكنه لم يجلبها بعد. عادةً ينتظر شبكة Wi‑Fi — أعد المحاولة بعد الاتصال بها.',
+    networkFailed: 'لم يصل التنزيل. تحقّق من اتصالك وأعد المحاولة.',
+    serviceBusy: 'خدمة الكلام في هاتفك مشغولة. أغلق ما يستخدم الميكروفون وأعد المحاولة.',
+    handedOff: 'بدأ هاتفك التنزيل لكنه لن يُبلغ عنه. امهله بضع دقائق ثم حدِّث القائمة.',
+    failed: 'رفضت خدمة الكلام في هاتفك التنزيل ولم تذكر السبب.',
     stillWorking:
       'لم يقل هاتفك بعدُ إن كان هذا قد اكتمل. امهله قليلًا ثم حدِّث القائمة لترى إن كان قد وصل.',
     tooOld:
