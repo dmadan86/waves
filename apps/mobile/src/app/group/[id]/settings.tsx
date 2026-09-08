@@ -53,7 +53,14 @@ import { fill, plural, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { useFavorites } from '@/lib/favorites';
 import { useBlockedUsers } from '@/data/blocked';
-import { displayName, groupLabel, GroupType, isGhost, payableAt } from '@/data/types';
+import {
+  displayName,
+  groupLabel,
+  GroupType,
+  isBlockedMember,
+  isGhost,
+  payableAt,
+} from '@/data/types';
 
 // Same chip icons the create screen wears, so changing a group's kind looks
 // like the same control that first set it.
@@ -476,6 +483,10 @@ export default function GroupSettingsScreen() {
               emoji={group.data.cover_emoji}
               size={64}
               busy={uploading}
+              // The mark is the one door to the cover now, so it has to say so:
+              // its default label offers a photo, which is only one of the three
+              // things behind it and the one a free group cannot take.
+              accessibilityLabel={t.group.changeCover}
               onPress={() => setCoverOpen(true)}
             />
             <View style={{ flex: 1, gap: theme.spacing.xs }}>
@@ -611,14 +622,26 @@ export default function GroupSettingsScreen() {
             {(members.data ?? []).map((member, index) => (
               <View key={member.id}>
                 <ListRow
-                  title={displayName(member, profile?.id)}
+                  title={displayName(member, profile?.id, blockedIds, t.misc.someone)}
                   subtitle={
                     isGhost(member)
                       ? t.notJoinedYet
-                      : // The rail pair, not the legacy UPI column alone.
-                        (payableAt(member)?.handle ?? t.misc.noUpiYet)
+                      : // A handle carries a name, an address or a phone number,
+                        // so a blocked person's is masked here exactly as it is
+                        // on the members screen — this roster was showing the
+                        // real name and the real handle of somebody the reader
+                        // had asked never to see again.
+                        isBlockedMember(member, blockedIds)
+                        ? t.misc.noUpiYet
+                        : // The rail pair, not the legacy UPI column alone.
+                          (payableAt(member)?.handle ?? t.misc.noUpiYet)
                   }
-                  leading={<Avatar name={displayName(member)} ghost={isGhost(member)} />}
+                  leading={
+                    <Avatar
+                      name={displayName(member, null, blockedIds, t.misc.someone)}
+                      ghost={isGhost(member) || isBlockedMember(member, blockedIds)}
+                    />
+                  }
                   onPress={() => router.push(`/group/${groupId}/member/${member.id}`)}
                   trailing={
                     <Row style={{ gap: theme.spacing.sm }}>

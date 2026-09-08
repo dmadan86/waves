@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { Image, Pressable, View } from 'react-native';
 
+import { initialsOf } from '../initials';
 import { useTheme } from '../theme';
 import { tints, type TintName } from '../tokens';
 import { Text } from './Text';
@@ -12,11 +13,6 @@ export function tintForKey(key: string): TintName {
     hash = (hash * 31 + key.charCodeAt(index)) >>> 0;
   }
   return tints[hash % tints.length] as TintName;
-}
-
-export function initialsOf(name: string): string {
-  const parts = name.trim().split(/\s+/).slice(0, 2);
-  return parts.map((part) => part.charAt(0).toUpperCase()).join('') || '?';
 }
 
 export function Avatar({

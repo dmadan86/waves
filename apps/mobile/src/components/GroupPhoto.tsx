@@ -31,6 +31,13 @@ interface GroupPhotoProps {
   size?: number;
   onPress?: () => void;
   busy?: boolean;
+  /**
+   * What tapping this does, when it is not "choose a photo". On the group's own
+   * settings screen the mark is the door to every way of changing the cover —
+   * the drawn marks, a photo, removing one — so announcing it as "Add group
+   * photo" describes a button that no longer exists.
+   */
+  accessibilityLabel?: string;
 }
 
 export function GroupPhoto({
@@ -40,6 +47,7 @@ export function GroupPhoto({
   size = 64,
   onPress,
   busy = false,
+  accessibilityLabel,
 }: GroupPhotoProps) {
   const theme = useTheme();
   const { t } = useStrings();
@@ -100,7 +108,9 @@ export function GroupPhoto({
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={source ? t.misc.changeGroupPhoto : t.misc.addGroupPhoto}
+      accessibilityLabel={
+        accessibilityLabel ?? (source ? t.misc.changeGroupPhoto : t.misc.addGroupPhoto)
+      }
     >
       {body}
     </Pressable>

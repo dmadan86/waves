@@ -283,9 +283,10 @@ export interface UiStrings {
   simplifyPaymentsCount: PluralForms;
   /** "{from} pays {to}" — a sentence, so it reads right-to-left too. */
   simplifyPaysWhom: string;
-  /** The micro line on my own transfer row. */
-  simplifyYouPay: string;
-  simplifyYouReceive: string;
+  /** The two headings that split the reader's own payments from everybody
+   *  else's. Shown only when there is something on both sides. */
+  simplifyYourPayments: string;
+  simplifyOtherPayments: string;
   freeForever: string;
   nothingYet: string;
   nothingYetBody: string;
@@ -2972,8 +2973,8 @@ const en: UiStrings = {
   simplifyPairwiseBody: 'Showing the actual pairwise ledger, exactly as the expenses created it.',
   simplifyPaymentsCount: { one: '{n} payment', other: '{n} payments' },
   simplifyPaysWhom: '{from} pays {to}',
-  simplifyYouPay: 'You pay',
-  simplifyYouReceive: 'You receive',
+  simplifyYourPayments: 'Your payments',
+  simplifyOtherPayments: 'Between other people',
   freeForever: 'Unlimited and free, forever',
   nothingYet: 'Nothing here yet',
   nothingYetBody: 'Add your first expense and the maths takes care of itself.',
@@ -5394,8 +5395,8 @@ const ta: UiStrings = {
   simplifyPairwiseBody: 'செலவுகள் உருவாக்கியபடி, உண்மையான இணை-கணக்கைக் காட்டுகிறது.',
   simplifyPaymentsCount: { one: '{n} பரிமாற்றம்', other: '{n} பரிமாற்றங்கள்' },
   simplifyPaysWhom: '{from} {to}க்குச் செலுத்துகிறார்',
-  simplifyYouPay: 'நீங்கள் செலுத்துகிறீர்கள்',
-  simplifyYouReceive: 'நீங்கள் பெறுகிறீர்கள்',
+  simplifyYourPayments: 'உங்கள் பரிமாற்றங்கள்',
+  simplifyOtherPayments: 'மற்றவர்களுக்கு இடையே',
   freeForever: 'எப்போதும் இலவசம்',
   nothingYet: 'இங்கே இன்னும் ஒன்றுமில்லை',
   nothingYetBody: 'முதல் செலவைச் சேருங்கள் — கணக்கு தானே பார்த்துக்கொள்ளும்.',
@@ -7915,8 +7916,8 @@ const hi: UiStrings = {
   simplifyPairwiseBody: 'खर्चों ने जैसा बनाया, ठीक वैसा असली जोड़ीवार हिसाब दिखाया जा रहा है।',
   simplifyPaymentsCount: { one: '{n} भुगतान', other: '{n} भुगतान' },
   simplifyPaysWhom: '{from} {to} को भुगतान करते हैं',
-  simplifyYouPay: 'आप भुगतान करते हैं',
-  simplifyYouReceive: 'आपको मिलते हैं',
+  simplifyYourPayments: 'आपके भुगतान',
+  simplifyOtherPayments: 'बाकी लोगों के बीच',
   freeForever: 'हमेशा मुफ़्त',
   nothingYet: 'यहाँ अभी कुछ नहीं है',
   nothingYetBody: 'पहला खर्च जोड़िए, हिसाब अपने आप संभल जाएगा।',
@@ -10365,8 +10366,8 @@ const ar: UiStrings = {
   simplifyPairwiseBody: 'يعرض السجل الثنائي الفعلي تماماً كما أنشأته المصروفات.',
   simplifyPaymentsCount: { one: 'دفعة واحدة', other: '{n} دفعات' },
   simplifyPaysWhom: 'يدفع {from} لـ {to}',
-  simplifyYouPay: 'تدفع',
-  simplifyYouReceive: 'تستلم',
+  simplifyYourPayments: 'دفعاتك',
+  simplifyOtherPayments: 'بين أشخاص آخرين',
   freeForever: 'بلا حدود ومجاني، للأبد',
   nothingYet: 'لا شيء هنا بعد',
   nothingYetBody: 'أضف أول مصروف والحساب يتكفل بنفسه.',
