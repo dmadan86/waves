@@ -27,7 +27,10 @@
 
 import { Platform } from 'react-native';
 
+import { reportHandled } from '@/lib/observability';
+
 import { clientId, webClientId } from './config';
+import { CloudAuthError, type CloudAuthFault } from './oauth';
 import type { CloudTokens } from './types';
 
 type SigninModule = typeof import('@react-native-google-signin/google-signin');
@@ -111,9 +114,87 @@ function configure(module: SigninModule): void {
 /** The module, configured — or a thrown failure the caller turns into a sentence. */
 function ready(): SigninModule {
   const module = load();
-  if (!module) throw new Error('the Google authorization module is missing from this build');
-  configure(module);
+  if (!module) {
+    throw fail('cloud.googleConfigure', 'not-set-up', null, 'no Google authorization module');
+  }
+  try {
+    configure(module);
+  } catch (error) {
+    // `webClientId` throws when the build names no Cloud project. That is the
+    // same kind of fault as a missing module — this build cannot ask — and it
+    // must not arrive at the screen as a bare Error saying so in developer
+    // English.
+    throw fail('cloud.googleConfigure', 'not-set-up', null, detailOf(error));
+  }
   return module;
+}
+
+/**
+ * The status code Play services returns when it will not even put the request
+ * to Google: it found no OAuth client registered for this build's package name
+ * and signing certificate.
+ *
+ * It is the one failure on this path that is certainly ours rather than the
+ * network's, and the SDK does not name it — `statusCodes` stops at cancellation
+ * and "sign in first" — so it arrives as a bare rejection carrying the string
+ * `'10'`, is recognised by nothing, and collapses into the same "try again" as
+ * a dropped connection. It is not a try-again: every retry from now until
+ * somebody opens the Google Cloud console fails identically.
+ */
+const DEVELOPER_ERROR = '10';
+
+/** A rejection's message, whatever kind of thing was thrown. */
+function detailOf(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  return typeof error === 'string' ? error : 'no detail';
+}
+
+/**
+ * The provider's status code, or null when the rejection carried none.
+ *
+ * The SDK's own type guard first, because that is the supported way to read
+ * one — and then the field directly, because the guard only admits codes the
+ * library knows about and `DEVELOPER_ERROR` is precisely a code it does not.
+ */
+function statusOf(module: SigninModule | null, error: unknown): string | null {
+  if (module?.isErrorWithCode(error)) return String(error.code);
+  if (typeof error !== 'object' || error === null) return null;
+  const code = (error as { code?: unknown }).code;
+  return typeof code === 'string' || typeof code === 'number' ? String(code) : null;
+}
+
+/**
+ * Classify what Play services raised, and file it before it goes anywhere near
+ * a sentence.
+ *
+ * Reporting happens here rather than at the screen because this is the only
+ * place the status code still exists — by the time the failure has been turned
+ * into "Could not link that account" the diagnosis is gone, and a build with no
+ * Sentry DSN drops it silently, which is how this path came to be undiagnosable
+ * from anything short of `adb logcat` on the device in question.
+ */
+function classify(module: SigninModule | null, error: unknown, where: string): CloudAuthError {
+  const status = statusOf(module, error);
+  const detail = detailOf(error);
+  const developerError = status === DEVELOPER_ERROR || detail.includes('DEVELOPER_ERROR');
+  const fault: CloudAuthFault = developerError
+    ? 'not-set-up'
+    : status !== null && status === module?.statusCodes.PLAY_SERVICES_NOT_AVAILABLE
+      ? 'play-services'
+      : 'failed';
+  return fail(where, fault, status, detail);
+}
+
+/** Report a classified failure, and hand it back to be thrown. */
+function fail(
+  where: string,
+  fault: CloudAuthFault,
+  status: string | null,
+  detail: string,
+): CloudAuthError {
+  const error = new CloudAuthError(fault, status, detail);
+  reportHandled(error, where);
+  return error;
 }
 
 function tokensFrom(accessToken: string): CloudTokens {
@@ -148,7 +229,7 @@ export async function nativeAuthorize(): Promise<CloudTokens | null> {
     return tokensFrom(tokens.accessToken);
   } catch (error) {
     if (isCancellation(module, error)) return null;
-    throw error;
+    throw classify(module, error, 'cloud.googleAuthorize');
   }
 }
 
@@ -179,7 +260,10 @@ export async function nativeReauthorize(previous: CloudTokens): Promise<CloudTok
     // this without asking: the grant is not usable now, and asking belongs to
     // the person tapping Connect rather than to a backup running behind them.
     if (isGone(module, error)) return null;
-    throw error;
+    // Everything else is worth a report even though nobody is watching: a
+    // renewal runs behind a scheduled backup, so this is the one half of the
+    // flow that has no screen to say anything on.
+    throw classify(module, error, 'cloud.googleReauthorize');
   }
 }
 
