@@ -71,6 +71,40 @@ COMMENT ON COLUMN public.profiles.discoverable_by_email IS
 COMMENT ON COLUMN public.profiles.contact_visibility IS
   'Who may read this account''s email and phone off its profile: nobody, or people it shares a group with.';
 
+-- ────────────────────────────────────────────── is there a real auth to read ──
+
+-- Whether `auth.users` exists *and* carries the three columns the contact
+-- lookups below actually read.
+--
+-- `to_regclass('auth.users') IS NOT NULL` on its own is not enough, which cost a
+-- CI run to learn. The DB suite runs against a bare Postgres where several test
+-- files create a stub `auth.users` between them — `campaignBroadcast` makes it
+-- with `(id, email, email_confirmed_at)` and `group-add-notify` later adds
+-- `phone` and `deleted_at` — so the stub's shape depends on which file ran
+-- first. A function that checks only for the table then reads `u.phone` fails
+-- with `42703` on whichever ordering loses. The existing guest-ceiling guard in
+-- the baseline already checks for `is_anonymous` by name for exactly this
+-- reason; this is the same idea, factored out because two functions need it.
+--
+-- plpgsql plans a statement only when its branch actually runs, so a false
+-- answer here means the missing column is never referenced at all. No real auth
+-- table means no contact on file, which is the right answer rather than a hole.
+CREATE OR REPLACE FUNCTION public.waves_auth_contact_readable() RETURNS boolean
+    LANGUAGE sql STABLE
+    SET search_path TO 'public', 'pg_temp'
+    AS $fn$
+  SELECT to_regclass('auth.users') IS NOT NULL
+     AND (
+       SELECT count(*) FROM information_schema.columns
+        WHERE table_schema = 'auth'
+          AND table_name = 'users'
+          AND column_name IN ('email', 'phone', 'deleted_at')
+     ) = 3;
+$fn$;
+
+REVOKE ALL ON FUNCTION public.waves_auth_contact_readable() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.waves_auth_contact_readable() TO service_role;
+
 -- ──────────────────────────────────────────────────── one person, one screen ──
 
 -- Everything the person screen needs about one person, contact included when
@@ -185,11 +219,11 @@ BEGIN
     END IF;
   END IF;
 
-  -- The reveal. Guarded on `auth.users` existing for the same reason every
-  -- other read of it in this schema is: the DB test suite and the self-host
-  -- stack run these RPCs against a Postgres with no `auth` schema, where the
-  -- right answer is "no contact on file", not an error.
-  IF NOT v_ghost AND v_visible AND to_regclass('auth.users') IS NOT NULL THEN
+  -- The reveal. Guarded on a real `auth.users` for the same reason every other
+  -- read of it in this schema is: the DB test suite and the self-host stack run
+  -- these RPCs against a Postgres with no `auth` schema, or with a stub one,
+  -- where the right answer is "no contact on file", not an error.
+  IF NOT v_ghost AND v_visible AND public.waves_auth_contact_readable() THEN
     SELECT nullif(btrim(lower(coalesce(u.email, ''))), ''),
            -- Stored bare in `auth.users`; the '+' is put back so the number is
            -- dialable and reads like every other number in the app.
@@ -360,7 +394,7 @@ BEGIN
       USING ERRCODE = 'too_many_connections';
   END IF;
 
-  IF to_regclass('auth.users') IS NULL THEN
+  IF NOT public.waves_auth_contact_readable() THEN
     RETURN;
   END IF;
 
