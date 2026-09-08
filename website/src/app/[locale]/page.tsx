@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
 import { Audience } from '@/components/audience';
+import { Comparison } from '@/components/comparison';
 import { Currencies } from '@/components/currencies';
 import { Custody } from '@/components/custody';
 import { Faq } from '@/components/faq';
@@ -120,6 +121,10 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         <HowItWorks t={t.how} />
         <Audience t={t.audience} />
         <PrivacySection t={t.privacy} />
+        {/* Between "here is what we hold" and "here is what it costs" — the
+            visitor has the product in their head by now and the next honest
+            question is what else they could be using instead. */}
+        <Comparison t={t.comparison} locale={locale} />
         <Pricing t={t.pricing} appUrl={site.appUrl} />
         <Faq t={t.faq} />
         <FinalCta t={t.cta} stores={t.hero.stores} appUrl={site.appUrl} />
