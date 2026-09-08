@@ -3,9 +3,11 @@ import { redirect } from 'next/navigation';
 
 import { COUNTRIES, countryFlag, dialingCodeForCountry } from '@waves/core';
 
-import { countrySettings, saveCountrySettings } from '@/lib/data';
-import { guardMutation } from '@/lib/csrf';
 import { CsrfField } from '@/components/CsrfField';
+import { Icon } from '@/components/icons';
+import { Card, Lede, Outcome, PageHeader } from '@/components/ui';
+import { guardMutation } from '@/lib/csrf';
+import { countrySettings, saveCountrySettings } from '@/lib/data';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,7 +27,12 @@ export default async function Countries({
   const { error, saved } = await searchParams;
   const rows = await countrySettings();
   const disabled = new Set(rows.filter((row) => !row.enabled).map((row) => row.code));
-  const enabledCount = DIALABLE.length - disabled.size;
+  // Counted over the boxes actually on screen. `country_settings` can hold a
+  // row for a country this build has no dial code for — one dropped from
+  // `COUNTRIES`, or one switched off before it was — and subtracting the
+  // table's size from the list's would report a number that disagreed with
+  // the ticks underneath it.
+  const enabledCount = DIALABLE.filter((country) => !disabled.has(country.code)).length;
 
   async function save(formData: FormData) {
     'use server';
@@ -51,41 +58,56 @@ export default async function Countries({
   }
 
   return (
-    <main>
-      <header className="top">
-        <h1>Countries</h1>{' '}
-      </header>
+    <main className="page">
+      <PageHeader
+        eyebrow="Configuration"
+        title="Countries"
+        actions={
+          <span className="small muted">
+            {enabledCount} of {DIALABLE.length} offered
+          </span>
+        }
+      />
+      <Outcome error={error} done={saved ? 'Saved.' : undefined} />
 
-      {error ? <p className="error">{error}</p> : null}
-      {saved ? <p className="faint">Saved.</p> : null}
-
-      <p className="note" style={{ padding: 0 }}>
+      <Lede>
         Which countries the phone sign-in offers. Untick one to hide it from the dial-code picker —
         a market we are not live in, or one we have paused. A country with no setting is offered, so
-        an empty list shows everything. {enabledCount} of {DIALABLE.length} on.
-      </p>
+        an empty table shows everything.
+      </Lede>
 
-      <section style={{ marginTop: 20 }}>
-        <form action={save} className="flag">
+      <Card bare>
+        <form action={save}>
           <CsrfField />
-          <div className="country-grid">
-            {DIALABLE.map((country) => (
-              <label key={country.code} className="country-row">
-                <input
-                  type="checkbox"
-                  name={country.code}
-                  defaultChecked={!disabled.has(country.code)}
-                />
-                <span>
-                  {countryFlag(country.code)} {country.name}{' '}
-                  <span className="faint">{dialingCodeForCountry(country.code)}</span>
-                </span>
-              </label>
-            ))}
+          {/* A fieldset with a legend, because a hundred and ninety loose
+              checkboxes with no group name is a hundred and ninety questions
+              with no question. */}
+          <fieldset className="card-body">
+            <legend className="sr-only">Countries offered at sign-in</legend>
+            <div className="check-grid">
+              {DIALABLE.map((country) => (
+                <label key={country.code} className="check plain">
+                  <input
+                    type="checkbox"
+                    name={country.code}
+                    defaultChecked={!disabled.has(country.code)}
+                  />
+                  <span>
+                    <span aria-hidden>{countryFlag(country.code)}</span> {country.name}{' '}
+                    <span className="muted small">{dialingCodeForCountry(country.code)}</span>
+                  </span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+          <div className="card-body" style={{ paddingTop: 0 }}>
+            <button type="submit" className="btn">
+              {Icon.save}
+              <span>Save countries</span>
+            </button>
           </div>
-          <button type="submit">Save</button>
         </form>
-      </section>
+      </Card>
     </main>
   );
 }

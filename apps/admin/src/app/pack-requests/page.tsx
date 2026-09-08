@@ -1,9 +1,10 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
-import { decidePackRequest, packRequests } from '@/lib/data';
-import { guardMutation } from '@/lib/csrf';
 import { CsrfField } from '@/components/CsrfField';
+import { Badge, Card, Empty, Lede, Outcome, PageHeader, TableScroll } from '@/components/ui';
+import { guardMutation } from '@/lib/csrf';
+import { decidePackRequest, packRequests } from '@/lib/data';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,13 +12,14 @@ export const dynamic = 'force-dynamic';
  * What people have asked for.
  *
  * The other half of "we author them, others ask": there is no submission flow
- * and nothing anybody writes here reaches another user — a request is a sentence
- * in a queue. Which makes this the cheapest possible way to find out what the
- * shelf is missing, and the only one that carries no moderation burden at all.
+ * and nothing anybody writes here reaches another user — a request is a
+ * sentence in a queue. Which makes this the cheapest possible way to find out
+ * what the shelf is missing, and the only one that carries no moderation
+ * burden at all.
  *
  * No requester is shown. Knowing *who* asked adds nothing to deciding whether
- * the pack is worth making, and this console deliberately keeps what it can see
- * about people to what it needs (see `data.ts`).
+ * the pack is worth making, and this console deliberately keeps what it can
+ * see about people to what it needs (see `data.ts`).
  */
 export default async function PackRequests({
   searchParams,
@@ -48,71 +50,107 @@ export default async function PackRequests({
   }
 
   return (
-    <main>
-      <header className="top">
-        <h1>Pack requests</h1>{' '}
-      </header>
+    <main className="page">
+      <PageHeader
+        eyebrow="Marketplace"
+        title="Pack requests"
+        actions={<span className="small muted">{open.length} waiting</span>}
+      />
+      <Outcome error={error} done={saved ? 'Saved.' : undefined} />
 
-      {error ? <p className="error">{error}</p> : null}
-      {saved ? <p className="faint">Saved.</p> : null}
-
-      <p className="note" style={{ padding: 0 }}>
+      <Lede>
         What people told us the app has no words for. Mark one <strong>done</strong> once a pack
         covering it is published, or <strong>declined</strong> if it is not something we will make.
         Nobody is notified either way.
-      </p>
+      </Lede>
 
-      {open.length === 0 ? (
-        <p className="note">Nothing waiting.</p>
-      ) : (
-        <div className="scroll">
-          <table>
-            <thead>
-              <tr>
-                <th>Asked for</th>
-                <th>When</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {open.map((row) => (
-                <tr key={row.id}>
-                  <td>{row.body}</td>
-                  <td className="faint">{new Date(row.created_at).toLocaleDateString()}</td>
-                  <td>
-                    <form action={decide} style={{ display: 'flex', gap: 8 }}>
-                      <CsrfField />
-                      <input type="hidden" name="id" value={row.id} />
-                      <button type="submit" name="status" value="done">
-                        Done
-                      </button>
-                      <button type="submit" name="status" value="declined">
-                        Decline
-                      </button>
-                    </form>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {decided.length > 0 ? (
-        <>
-          <h2>Decided</h2>
-          <div className="scroll">
+      <Card bare>
+        {open.length === 0 ? (
+          <Empty title="Nothing waiting">Every request has been decided.</Empty>
+        ) : (
+          <TableScroll>
             <table>
+              <caption className="sr-only">Open pack requests</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Asked for</th>
+                  <th scope="col">When</th>
+                  <th scope="col">
+                    <span className="sr-only">Decision</span>
+                  </th>
+                </tr>
+              </thead>
               <tbody>
-                {decided.slice(0, 50).map((row) => (
+                {open.map((row) => (
                   <tr key={row.id}>
-                    <td>{row.body}</td>
-                    <td className="faint">{row.status}</td>
+                    <td className="wrap">{row.body}</td>
+                    <td className="muted">
+                      <time dateTime={row.created_at}>
+                        {new Date(row.created_at).toLocaleDateString('en-IN', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric',
+                        })}
+                      </time>
+                    </td>
+                    <td>
+                      <form action={decide} className="row-actions">
+                        <CsrfField />
+                        <input type="hidden" name="id" value={row.id} />
+                        <button
+                          type="submit"
+                          name="status"
+                          value="done"
+                          className="btn btn-sm"
+                          aria-label={`Mark "${row.body}" done`}
+                        >
+                          Done
+                        </button>
+                        <button
+                          type="submit"
+                          name="status"
+                          value="declined"
+                          className="btn btn-danger btn-sm"
+                          aria-label={`Decline "${row.body}"`}
+                        >
+                          Decline
+                        </button>
+                      </form>
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
+          </TableScroll>
+        )}
+      </Card>
+
+      {decided.length > 0 ? (
+        <>
+          <h2 className="section">Decided</h2>
+          <Card bare>
+            <TableScroll>
+              <table>
+                <caption className="sr-only">Requests already decided</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Asked for</th>
+                    <th scope="col">Decision</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {decided.slice(0, 50).map((row) => (
+                    <tr key={row.id}>
+                      <td className="wrap">{row.body}</td>
+                      <td>
+                        <Badge tone={row.status === 'done' ? 'ok' : 'neutral'}>{row.status}</Badge>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </TableScroll>
+          </Card>
         </>
       ) : null}
     </main>

@@ -5,28 +5,30 @@ import { CsrfField } from '@/components/CsrfField';
 import { Icon } from '@/components/icons';
 import { Card, Empty, Lede, Outcome, PageHeader, TableScroll } from '@/components/ui';
 import { guardMutation } from '@/lib/csrf';
-import { appConfig, saveAppConfig } from '@/lib/data';
+import { saveServiceConfig, serviceConfig } from '@/lib/data';
 
 export const dynamic = 'force-dynamic';
 
 /**
- * The numeric knobs, whichever ones exist.
+ * The string knobs — `service_config`, the sibling of `app_config` that holds
+ * settings whose value is a word rather than a number.
  *
- * Nothing here names a key. `appConfig()` selects the whole table and this
- * renders a row per result, so a knob added by a migration — the receipt cap,
- * the storage cap, the device caps, and `person_lookup_daily_cap` when the
- * person-lookup branch lands — turns up on this page with no change to the
- * console at all. The one thing the console cannot do is *create* a knob: the
- * save is an UPDATE, because a key that no code reads is a number with no
- * effect, and the migration that reads it is the right place to define it.
+ * Today that is which cloud provider and model the voice pipeline calls. It
+ * was editable only by hand in a SQL console, which meant switching speech
+ * providers during an outage was a database session rather than a text field.
+ *
+ * Deliberately generic, exactly like `/config`: no key appears in this file.
+ * A migration that adds a setting gets a row here for free, and the row's own
+ * `description` column is the help text — so the thing that knows what a
+ * setting means is the migration that introduced it, not this page.
  */
-export default async function Config({
+export default async function Services({
   searchParams,
 }: {
   searchParams: Promise<{ error?: string; saved?: string }>;
 }) {
   const { error, saved } = await searchParams;
-  const rows = await appConfig();
+  const rows = await serviceConfig();
 
   async function save(formData: FormData) {
     'use server';
@@ -34,54 +36,50 @@ export default async function Config({
     let failure: string | null = null;
     try {
       await guardMutation(formData);
-      const rawValue = String(formData.get('value') ?? '').trim();
-      if (rawValue === '') {
-        throw new Error('A limit is a whole number, zero or more.');
-      }
-      await saveAppConfig({
+      await saveServiceConfig({
         key: String(formData.get('key') ?? '').trim(),
-        value: Number(rawValue),
+        value: String(formData.get('value') ?? ''),
       });
     } catch (caught) {
       failure = caught instanceof Error ? caught.message : String(caught);
     }
 
-    if (failure) redirect(`/config?error=${encodeURIComponent(failure)}`);
-    revalidatePath('/config');
-    redirect('/config?saved=1');
+    if (failure) redirect(`/services?error=${encodeURIComponent(failure)}`);
+    revalidatePath('/services');
+    redirect('/services?saved=1');
   }
 
   return (
     <main className="page">
-      <PageHeader eyebrow="Configuration" title="Limits" />
+      <PageHeader eyebrow="Configuration" title="Services" />
       <Outcome error={error} done={saved ? 'Saved.' : undefined} />
 
       <Lede>
-        Numeric knobs the app reads at runtime. They live in the database so they can change without
-        a deploy, and the database enforces them, so lowering one is real rather than cosmetic. This
-        list is whatever <code>app_config</code> holds — a knob a migration adds appears here on its
-        own, and a knob no migration created cannot be invented here.
+        Which outside services the backend calls, and with which model. Read by the edge functions
+        at call time, so a change takes effect on the next request rather than the next deploy —
+        which is the point: switching speech providers during somebody else&rsquo;s outage should
+        not need a release. An empty value means &ldquo;the provider&rsquo;s own default&rdquo;.
+        Credentials are <strong>not</strong> here and never will be; those are Supabase function
+        secrets, and this console cannot read them.
       </Lede>
 
       {rows.length === 0 ? (
         <Card bare>
-          <Empty title="No knobs yet" migration="20260818160000_receipt_cap">
-            Nothing in <code>app_config</code> to turn.
+          <Empty title="No service settings" migration="20260904000000_waves_baseline">
+            Nothing in <code>service_config</code> to set.
           </Empty>
         </Card>
       ) : (
         <Card bare>
           <TableScroll>
             <table>
-              <caption className="sr-only">Runtime numeric limits</caption>
+              <caption className="sr-only">Backend service settings</caption>
               <thead>
                 <tr>
-                  <th scope="col">Knob</th>
+                  <th scope="col">Setting</th>
                   <th scope="col">What it does</th>
                   <th scope="col">Changed</th>
-                  <th scope="col" className="n">
-                    Value
-                  </th>
+                  <th scope="col">Value</th>
                 </tr>
               </thead>
               <tbody>
@@ -101,21 +99,18 @@ export default async function Config({
                       })}
                     </td>
                     <td>
-                      <form action={save} className="row" style={{ justifyContent: 'flex-end' }}>
+                      <form action={save} className="row" style={{ flexWrap: 'nowrap' }}>
                         <CsrfField />
                         <input type="hidden" name="key" value={row.key} />
-                        {/* The column header already says "Value"; a visible
-                            label per row would be that word ten times down
-                            the page. The name each input actually needs is
-                            the knob's, and that is what a screen reader gets. */}
+                        {/* The column heading is the visible label; a screen
+                            reader needs to know *which* setting this box is. */}
                         <input
-                          type="number"
-                          className="wide"
+                          type="text"
                           name="value"
-                          min={0}
-                          step={1}
-                          defaultValue={row.value}
-                          required
+                          defaultValue={row.value ?? ''}
+                          maxLength={200}
+                          size={22}
+                          placeholder="(provider default)"
                           aria-label={`Value for ${row.key}`}
                         />
                         <button type="submit" className="btn btn-sm">

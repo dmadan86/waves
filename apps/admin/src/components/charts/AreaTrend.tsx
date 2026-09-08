@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react';
 
 import { ReactEChartsCore } from './echarts-core';
 import { PALETTE } from './palette';
+import { useChartInk } from './useChartInk';
 
 export interface TrendDay {
   day: string;
@@ -20,8 +21,8 @@ enum Metric {
 }
 
 const SERIES: Record<Metric, { label: string; color: string }> = {
-  [Metric.NewProfiles]: { label: 'New people', color: PALETTE.purple },
-  [Metric.NewExpenses]: { label: 'Expenses', color: PALETTE.blue },
+  [Metric.NewProfiles]: { label: 'People', color: PALETTE.blue },
+  [Metric.NewExpenses]: { label: 'Expenses', color: PALETTE.purple },
   [Metric.Active]: { label: 'Active', color: PALETTE.green },
 };
 
@@ -35,28 +36,32 @@ const ORDER: Metric[] = [Metric.NewProfiles, Metric.NewExpenses, Metric.Active];
  */
 export function AreaTrend({ days }: { days: TrendDay[] }) {
   const [metric, setMetric] = useState<Metric>(Metric.NewProfiles);
+  const ink = useChartInk();
   const active = SERIES[metric];
   const summary = describeTrend(days, metric, active.label);
 
   const option = useMemo<EChartsOption>(
     () => ({
-      grid: { left: 8, right: 12, top: 16, bottom: 4, containLabel: true },
+      grid: { left: 4, right: 12, top: 12, bottom: 0, containLabel: true },
       tooltip: {
         trigger: 'axis',
-        axisPointer: { type: 'line', lineStyle: { color: '#c9c7dd' } },
+        backgroundColor: ink.tooltipBg,
+        borderColor: ink.tooltipBorder,
+        textStyle: { color: ink.ink, fontSize: 12 },
+        axisPointer: { type: 'line', lineStyle: { color: ink.line } },
       },
       xAxis: {
         type: 'category',
         boundaryGap: false,
         data: days.map((d) => d.day.slice(5)), // MM-DD; the year is the same 30 days
-        axisLine: { lineStyle: { color: '#e6e5ef' } },
+        axisLine: { lineStyle: { color: ink.line } },
         axisTick: { show: false },
-        axisLabel: { color: '#9997ac', fontSize: 11, interval: 4 },
+        axisLabel: { color: ink.label, fontSize: 11, interval: 4 },
       },
       yAxis: {
         type: 'value',
-        splitLine: { lineStyle: { color: '#eeedf5' } },
-        axisLabel: { color: '#9997ac', fontSize: 11 },
+        splitLine: { lineStyle: { color: ink.grid } },
+        axisLabel: { color: ink.label, fontSize: 11 },
       },
       series: [
         {
@@ -65,7 +70,7 @@ export function AreaTrend({ days }: { days: TrendDay[] }) {
           symbol: 'none',
           name: active.label,
           data: days.map((d) => d[metric]),
-          lineStyle: { width: 2.5, color: active.color },
+          lineStyle: { width: 2, color: active.color },
           itemStyle: { color: active.color },
           areaStyle: {
             color: {
@@ -75,22 +80,25 @@ export function AreaTrend({ days }: { days: TrendDay[] }) {
               x2: 0,
               y2: 1,
               colorStops: [
-                { offset: 0, color: `${active.color}55` },
-                { offset: 1, color: `${active.color}05` },
+                { offset: 0, color: `${active.color}45` },
+                { offset: 1, color: `${active.color}00` },
               ],
             },
           },
         },
       ],
     }),
-    [active.color, active.label, days, metric],
+    [active.color, active.label, days, ink, metric],
   );
 
   return (
     <>
       <div className="card-head">
-        <h3>Activity, 30 days</h3>
-        <div className="seg" role="group" aria-label="Which series">
+        <div>
+          <div className="eyebrow">Last 30 days</div>
+          <h3>Activity</h3>
+        </div>
+        <div className="seg" role="group" aria-label="Which series to draw">
           {ORDER.map((key) => (
             <button
               key={key}
@@ -106,7 +114,7 @@ export function AreaTrend({ days }: { days: TrendDay[] }) {
       <figure className="echart" role="img" aria-label={summary}>
         <ReactEChartsCore
           option={option}
-          style={{ height: 240 }}
+          style={{ height: 260 }}
           opts={{ renderer: 'svg' }}
           notMerge
         />
