@@ -344,6 +344,22 @@ export interface VoiceCaptureProps {
    * the mic under a message the reader has not read yet.
    */
   autoStart?: boolean;
+  /**
+   * A push-to-talk hold has ended and this capture is the one it was speaking
+   * into: `send` finishes the utterance the way the stop button does, `cancel`
+   * drops it without a transcript. `seq` distinguishes one ending from the next.
+   *
+   * It may arrive before the recogniser is open — the finger can lift while the
+   * permission call and the model probe are still being awaited — in which case
+   * it is latched and applied the moment the mic actually opens.
+   */
+  endSignal?: { seq: number; mode: 'send' | 'cancel' } | null;
+  /**
+   * The `endSignal` has been taken care of. The screen clears it here rather
+   * than on a timer, so a later capture (the panel is remounted for each one)
+   * cannot be closed by an ending that belonged to an earlier one.
+   */
+  onEndConsumed?: () => void;
 }
 
 function recognitionAvailable(): boolean {
@@ -419,6 +435,8 @@ export function VoiceCapture({
   missed,
   onListen,
   autoStart = true,
+  endSignal = null,
+  onEndConsumed,
 }: VoiceCaptureProps) {
   const theme = useTheme();
   const reduceMotion = useReducedMotion();
@@ -452,6 +470,10 @@ export function VoiceCapture({
   // In particular the `end` a *previous* panel's abort still owes belongs to
   // nobody, and closing this capture on it is what left the second attempt dead.
   const [session] = useState(() => Symbol('voice-capture'));
+
+  // A push-to-talk hold ended before the recogniser was open, so its ending is
+  // waiting here for the native start to be issued. See `endSignal`.
+  const pendingEnd = useRef<'send' | 'cancel' | null>(null);
 
   // A start is already on its way — the mic is claimed but the native call has
   // not been made yet, because a permission check and an installed-model probe
@@ -670,6 +692,25 @@ export function VoiceCapture({
         speechMic.opened(session);
         starting.current = false;
 
+        // The finger lifted while this was still opening. Apply that ending now
+        // it can be applied: `stop` squeezes out whatever was said, `release`
+        // aborts and — by dropping ownership — makes the `end` that follows
+        // belong to nobody, so no transcript and no miss reaches the screen.
+        if (pendingEnd.current !== null) {
+          const ending = pendingEnd.current;
+          pendingEnd.current = null;
+          if (ending === 'cancel') {
+            clearStall();
+            clearMaxListen();
+            clearProgress();
+            setListening(false);
+            level.set(withTiming(0, { duration: 150 }));
+            speechMic.release(session);
+            return;
+          }
+          speechMic.stop(session);
+        }
+
         // No transcript yet; if none arrives by PROGRESS_MS this engine is not
         // transcribing. An on-device attempt falls back once to the network engine
         // (the field's silent on-device model); a network attempt that is already
@@ -766,6 +807,33 @@ export function VoiceCapture({
     // would make the handler above drop the words spoken before the tap.
     speechMic.stop(session);
   }, [session]);
+
+  // A push-to-talk hold has ended (see `endSignal`). Lifting the finger is the
+  // same act as tapping the stop button, so it takes the same path; sliding away
+  // is the one that has to differ, because it must not deliver a transcript.
+  //
+  // The mic may not be open yet — it is opened behind a permission call and an
+  // installed-model probe — so an ending that arrives early is latched for the
+  // start to apply, rather than dropped on a recogniser that cannot hear it.
+  // A cancel takes the screen with it, so there is nothing here to tidy for the
+  // eye — the mic is simply given back, and the panel is gone a frame later.
+  useEffect(() => {
+    if (!endSignal) return;
+    if (starting.current || !speechMic.owns(session)) {
+      pendingEnd.current = endSignal.mode;
+    } else if (endSignal.mode === 'cancel') {
+      clearStall();
+      clearMaxListen();
+      clearProgress();
+      speechMic.release(session);
+    } else {
+      stop();
+    }
+    onEndConsumed?.();
+    // Only a new ending should act; the callbacks are stable and re-running on
+    // them would re-apply an ending already dealt with.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [endSignal?.seq]);
 
   // Probe once: is on-device supported but not yet installed? If so, the offline
   // model is worth offering up front — on some devices the network engine hears
