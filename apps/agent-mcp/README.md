@@ -143,15 +143,17 @@ small amount of code rather than a second permission system. It also carries a
 assistant may write, and a record of what it did that the person can read and
 act on.
 
-Two things are owed before this is usable by strangers:
+One thing is owed before this is usable by strangers: **turn on the OAuth 2.1
+server** in the Supabase dashboard (Auth → OAuth server) so
+`/.well-known/oauth-authorization-server` answers on the project. Until it does,
+a client discovers this endpoint and then has nowhere to get a token.
 
-1. **Turn on the OAuth 2.1 server** in the Supabase dashboard (Auth → OAuth
-   server) so `/.well-known/oauth-authorization-server` answers on the project.
-   Until it does, a client discovers this endpoint and then has nowhere to get
-   a token.
-2. **Apply the migration** `20260907140000_agent_writes_and_caps` to prod. The
-   ceiling and the audit trail are inert without it — and inert here means
-   absent, not permissive.
+The other half is done. `20260907140000_agent_writes_and_caps` was applied to
+prod on 2026-09-08, so `agent_writes`, the four functions and both `app_config`
+rows are live. That mattered because the ceiling and the audit trail are inert
+without it — and inert here means _absent_, not permissive: with no
+`waves_assert_agent_cap` to call, a write is not refused, it is simply
+unmeasured.
 
 `WAVES_MCP_READONLY=1` on the web deployment offers reads only; the write tools
 are not registered at all, so they never appear in `tools/list`.

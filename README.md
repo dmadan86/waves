@@ -18,7 +18,7 @@ accepted architecture decisions) and [`waves-tdr.md`](./waves-tdr.md) (how to
 build them, milestone by milestone). **The ADRs are constraints, not
 suggestions** — if code and ADR disagree, the ADR wins.
 
-Current state, as of 2026-08-09. [TDR §10](./waves-tdr.md) carries the evidence
+Current state, as of 2026-09-08. [TDR §10](./waves-tdr.md) carries the evidence
 for each line; this is the summary.
 
 | Milestone               | State                                                                                 |
@@ -30,26 +30,32 @@ for each line; this is the summary.
 | M4 UPI + notifications  | **Not complete**, and the shortfall is bigger than the ✓ suggests — see below         |
 | M5 AI receipts + export | **Complete.** All four parts of the criterion have a proof behind them                |
 
-M4 is the largest incomplete block. The settle/confirm state machine, the 7-day
-auto-confirm, trip nudges, disputes, the push fan-out and — since 2026-08-09 —
-the email half are all built and tested against a real database. What is
-missing is that none of it has reached anybody:
+M4 is still the largest incomplete block, but the shortfall has halved since
+this line was first written. The settle/confirm state machine, the 7-day
+auto-confirm, trip nudges, disputes, the push fan-out and the email half are all
+built and tested against a real database. Of the two things that had never
+reached anybody, one now has:
 
+- **Mail leaves the building.** `wavs.co.in` was verified in Resend on
+  2026-09-07 and **auth mail is live** — the sign-in code, the sign-up
+  confirmation and an address change go out as GoTrue SMTP through the same
+  Resend account, from the five templates in `supabase/templates/`, and a send
+  was watched through to `delivered`. **Product mail** — the notifications the
+  app raises itself — has its secrets set and its cron behind it, and no first
+  delivery is recorded here. The two halves are configured in completely
+  different places and neither reaches the other: see "Turning on email".
 - **No push has ever reached a device.** Android's half of the credentials was
   finished on 2026-08-09 — Firebase project `baaki-43455`, its service account
   key uploaded to EAS, and that key proved live against FCM v1 rather than
   assumed to be. iOS still has no APNs key at all. And no build has yet been made
   that contains `google-services.json`, so no phone has been able to ask for a
-  token, which is what reaching a device would take.
-- **No email has ever been sent.** The pipeline, the suppression list, the
-  webhook and the one-click unsubscribe are built and covered by 79 tests, but
-  every one of them stops at the edge of the network. Sending needs
-  `wavs.co.in` (verified in Resend on 2026-09-07), `RESEND_API_KEY` set as an
-  edge secret, a webhook secret, and a deploy.
+  token, which is what reaching a device would take. `push_tokens` is empty in
+  consequence, which is also why the fan-out's clean runs prove nothing about
+  delivery.
 
-Also outstanding: `account-delete`. The erasure RPC removes a person's ledger
-rows and their auth identity survives it, which needs an edge function holding
-the service key.
+`account-delete` is no longer outstanding: the erasure RPC runs as the caller and
+the edge function beside it removes the `auth.users` row with the service key
+(TDR A22).
 
 ## Layout
 
@@ -76,7 +82,7 @@ policies and edge functions the phone already uses. `docs/developer-api.md` is
 the design; `apps/api/openapi.yaml` is the contract.
 
 `packages/core` has **zero runtime dependencies** on React or Supabase. That is
-deliberate: the app, the guest web view and the Deno edge functions all import
+deliberate: the app, the web client and the Deno edge functions all import
 the same module, so three runtimes can never disagree about what someone owes.
 
 ## Getting started
@@ -84,7 +90,7 @@ the same module, so three runtimes can never disagree about what someone owes.
 ```bash
 pnpm install
 
-# money engine: 51 tests, property-based
+# money engine: 927 tests across 59 files, the money ones property-based
 pnpm test:core
 
 # database: throwaway Postgres, migrations, RLS + invariant tests
@@ -98,48 +104,86 @@ Requires Node 24+, pnpm 11+, and Docker.
 
 ### Screens
 
-Sign in (phone OTP or guest) · Home · Activity · Friends · Account · New group ·
-Group (expenses / balances / activity) · Expense detail with version history ·
-Add or edit expense · Split by item · Spending · Settle up · Who pays whom ·
-Members · Member detail · Group settings · Invite · Join from a link ·
-Notification preferences · Security (app lock, re-ask delay, sign out) ·
-Inbox · Export · Import.
+The front door, split (TDR A55): welcome · sign in · sign up · phone code ·
+verify email · language · guest welcome. Then the five destinations — Home ·
+Activity · Friends · **Me** (the private personal ledger, biometrically gated,
+A56) · Account — with a raised mic between them that opens voice quick-add
+(A41).
+
+Group (expenses / balances / activity) · Expense detail with its version
+history, comment thread and image audit · Add or edit expense · Split by item ·
+Spending and the month drill · Settle up · Who pays whom · Pending settlements ·
+Members · Member detail · Person profile across every shared group · Group
+settings · Invite and its QR · Join from a link · Scan a code · Capture
+(an expense with no group yet) and the captures inbox · Trip plan, places and
+recap · twenty-five settings screens, of which export, import, notifications,
+lock, tags, packs, archived groups, devices, image storage, backup, discovery
+and blocked people are the ones most often looked for.
+
+[TDR §9](./waves-tdr.md) is the authoritative list and says which amendment each
+screen arrived under. The notification **Inbox** was removed (#565) — the
+`notifications` table stayed, because it is the delivery queue and not a screen.
 
 ### Scheduled jobs
 
-Both run hourly under `pg_cron`, take their clock as an argument so they can be
-tested without waiting a week, and are idempotent — `notifications.dedupe_key`
-is what makes a retried run a no-op rather than a second buzz.
+They run under `pg_cron`, take their clock as an argument so they can be tested
+without waiting a week, and are idempotent — `notifications.dedupe_key` is what
+makes a retried run a no-op rather than a second buzz.
 
-| Job                                | What it resolves                                                                                                                                                                                             |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `waves_auto_confirm_settlements()` | A settlement nobody answered for 7 days (ADR-007). A dispute still reopens it.                                                                                                                               |
-| `waves_claim_push_notifications()` | Hands unsent inbox rows to the fanout. An UPDATE, not a SELECT — two overlapping runs cannot both send the same reminder.                                                                                    |
-| `waves_trip_nudges()`              | Twice a day during a group's dates: at breakfast about yesterday, at the end of the day about today. Skips anybody who already recorded that day, and asks in the group's timezone rather than the server's. |
+| Job                                 | What it resolves                                                                                                                                                                                             |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `waves_auto_confirm_settlements()`  | A settlement nobody answered for 7 days (ADR-007). A dispute still reopens it.                                                                                                                               |
+| `waves_claim_push_notifications()`  | Hands unsent inbox rows to the fanout. An UPDATE, not a SELECT — two overlapping runs cannot both send the same reminder.                                                                                    |
+| `waves_trip_nudges()`               | Twice a day during a group's dates: at breakfast about yesterday, at the end of the day about today. Skips anybody who already recorded that day, and asks in the group's timezone rather than the server's. |
+| `waves_enqueue_weekly_digest()`     | Monday 03:30 UTC (09:00 Asia/Kolkata). One row per account **with activity in the last seven days**, and none for the rest (TDR A63).                                                                        |
+| `waves_auto_archive_stale_groups()` | Archives a group nothing has touched in eighteen months. A tombstone it is not — archiving is reversible from Settings (TDR A35).                                                                            |
+| `waves_storage_expire_pending()`    | Releases a storage reservation an upload never committed, so the free-tier cap frees itself with no R2 credential involved (TDR A44).                                                                        |
+
+**Only one of these schedules itself.** `20260907090000_device_alert_and_weekly_digest`
+registers `waves-weekly-digest` from inside the migration, and guards it on
+`pg_cron` being installed so a bare CI Postgres still applies. Every other
+schedule — including the five-minute `notify-fanout` call that is the delivery
+path for all of the above — is a `cron.schedule` run against the project by hand,
+because it needs a URL and a Vault secret that are properties of a deployment and
+not of the schema. `docs/notify-fanout-scheduling.md` is the recipe, and it exists
+because the fanout was once deployed with no cron behind it: a pipeline that
+passes every test and delivers nothing.
 
 ### Edge functions
 
-| Function            | What it owns                                                                   |
-| ------------------- | ------------------------------------------------------------------------------ |
-| `sync`              | Batch mutation replay and the change feed (TDR §4)                             |
-| `expense-write`     | Recomputes every share with `@waves/core` and writes the expense atomically    |
-| `invite-mint`       | Signed, expiring, revocable invite links (only a hash is stored)               |
-| `invite-accept`     | Preview without an account, join, and asking to claim a ghost                  |
-| `receipt-parse`     | Vision-model itemization, metered against the monthly quota                    |
-| `fx-rate`           | One upstream rate, cached, never an open proxy                                 |
-| `export-data`       | Lossless JSON and CSV export                                                   |
-| `notify-fanout`     | Claims unsent inbox rows, pushes them via Expo and mails the few that merit it |
-| `email-events`      | Resend's delivery reports, signature-checked; bounces and complaints suppress  |
-| `email-unsubscribe` | One click, no account, signed address (RFC 8058)                               |
+| Function             | What it owns                                                                   |
+| -------------------- | ------------------------------------------------------------------------------ |
+| `sync`               | Batch mutation replay and the change feed (TDR §4)                             |
+| `expense-write`      | Recomputes every share with `@waves/core` and writes the expense atomically    |
+| `invite-mint`        | Signed, expiring, revocable invite links (only a hash is stored)               |
+| `invite-accept`      | Preview without an account, join, and asking to claim a ghost                  |
+| `receipt-parse`      | Vision-model itemization, metered against the monthly quota                    |
+| `fx-rate`            | One upstream rate, cached, never an open proxy                                 |
+| `export-data`        | Lossless JSON and CSV export                                                   |
+| `notify-fanout`      | Claims unsent inbox rows, pushes them via Expo and mails the few that merit it |
+| `email-events`       | Resend's delivery reports, signature-checked; bounces and complaints suppress  |
+| `email-unsubscribe`  | One click, no account, signed address (RFC 8058)                               |
+| `otp-send`           | GoTrue's Send SMS Hook: the sign-in code, carried over WhatsApp (TDR A61)      |
+| `r2-sign`            | The client's only door to object storage — presigned PUT/GET, never a key      |
+| `storage-sweep`      | Reclaims R2 bytes nothing points at, and expires abandoned reservations        |
+| `storage-recount`    | Re-reads an object's true size after the image worker transcoded it            |
+| `account-delete`     | The half of erasure a database role cannot do — removes the `auth.users` row   |
+| `campaign-broadcast` | Mails a campaign to its cohort, holdout excluded (TDR A21)                     |
 
-`email-events` and `email-unsubscribe` are the only two functions that do not
-verify a Supabase JWT, because neither caller can hold one — Resend has no
-account, and a mail client pressing "unsubscribe" has no session. Both are named
-in `supabase/config.toml`; what stands in for the JWT is a Svix signature over
-the webhook body and an HMAC over the address.
+Sixteen in all; `supabase/functions/` is the list, and the table names the ones a
+reader needs to place.
 
-All of them except those two and `notify-fanout` — which refuses anything that is
-not the service role — take a rate limit before doing the expensive or revealing part of
+`email-events`, `email-unsubscribe` and `otp-send` are the three functions that do
+not verify a Supabase JWT, because none of their callers can hold one — Resend has
+no account, a mail client pressing "unsubscribe" has no session, and `otp-send` is
+called by GoTrue itself before anybody has signed in. All three are named in
+`supabase/config.toml`; what stands in for the JWT is a signature — Svix over the
+webhook body, an HMAC over the address, and standardwebhooks over the hook's exact
+body bytes.
+
+Four of them answer only to the service role rather than to any signed-in caller:
+`notify-fanout`, `campaign-broadcast`, `storage-sweep` and `storage-recount`. The
+rest take a rate limit before doing the expensive or revealing part of
 their work. The allowances live in `supabase/functions/_shared/rateLimit.ts` and
 are counted in Postgres, because Supabase discards edge isolates between
 requests and a counter held in one limits nothing. `invite-accept` is the reason
@@ -195,7 +239,7 @@ of them break:
 | Only a group member can create, delete or settle in it | `packages/db/test/m1-rpcs.test.ts`             |
 | Only the payee can confirm a settlement                | `packages/db/test/m1-rpcs.test.ts`             |
 | Replaying a mutation id never double-posts             | `packages/db/test/m1-rpcs.test.ts`             |
-| A crash report carries no ledger                       | `apps/web-lite/test/reporting.test.ts`         |
+| A crash report carries no ledger                       | `apps/web/test/reporting.test.ts`              |
 
 The client also recomputes each group's balances with `@waves/core` and compares
 them against the server's `group_balances`. If they ever disagree, the group
@@ -203,7 +247,7 @@ screen says so rather than showing a number that might be wrong.
 
 ## Crash reporting
 
-Sentry, on all three surfaces — the app, the guest web view and the edge
+Sentry, on all three surfaces — the app, the web client and the edge
 functions. TDR §11 asks for crash-free sessions above 99.5%, and a 500 from an
 edge function is otherwise a line in a log nobody reads.
 
@@ -222,13 +266,13 @@ error is **attach ids, never rows**.
 Nothing is reported unless a DSN is set, so a clone with no Sentry account
 builds and runs unchanged:
 
-| Variable                        | Where                      | What it does                                     |
-| ------------------------------- | -------------------------- | ------------------------------------------------ |
-| `EXPO_PUBLIC_SENTRY_DSN`        | `apps/mobile/.env`         | turns reporting on in the app                    |
-| `NEXT_PUBLIC_SENTRY_DSN`        | `apps/web-lite/.env.local` | same, for the guest view                         |
-| `SENTRY_DSN`                    | edge function env          | same, for the functions                          |
-| `SENTRY_ORG` / `SENTRY_PROJECT` | build env                  | adds source-map upload; without them, minified   |
-| `SENTRY_AUTH_TOKEN`             | build env only             | write token — never in a bundle, never committed |
+| Variable                        | Where                 | What it does                                     |
+| ------------------------------- | --------------------- | ------------------------------------------------ |
+| `EXPO_PUBLIC_SENTRY_DSN`        | `apps/mobile/.env`    | turns reporting on in the app                    |
+| `NEXT_PUBLIC_SENTRY_DSN`        | `apps/web/.env.local` | same, for the web client                         |
+| `SENTRY_DSN`                    | edge function env     | same, for the functions                          |
+| `SENTRY_ORG` / `SENTRY_PROJECT` | build env             | adds source-map upload; without them, minified   |
+| `SENTRY_AUTH_TOKEN`             | build env only        | write token — never in a bundle, never committed |
 
 A DSN is public by design: it can only write events, which is why it ships in
 the binary. `SENTRY_AUTH_TOKEN` is the one that reads, and it stays in CI.
