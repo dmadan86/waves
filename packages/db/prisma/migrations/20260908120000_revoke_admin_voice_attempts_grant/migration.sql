@@ -1,0 +1,42 @@
+-- The one `waves_admin_*` function a signed-in user can still call.
+--
+-- `20260904200000_authenticated_surface_on_hosted` closed a 66-function hole by
+-- revoking EXECUTE from `authenticated` across the schema and then re-granting,
+-- one line per function, from a local build of the same migration chain. That
+-- replay was faithful — which is the problem. The baseline had granted this
+-- function to `anon` and `authenticated` (`20260904000000` :11298-11299), so the
+-- replay reproduced the grant rather than questioning it, and
+-- `waves_admin_voice_attempts` came back as the only member of the admin console
+-- API reachable by any signed-in user. A guest counts as `authenticated`.
+--
+-- **This is not currently a data leak, and the migration should not be described
+-- as fixing one.** Three things independently stop it, and it was checked by
+-- calling the function as `authenticated` rather than by reading the grants:
+--
+--   1. The function is `LANGUAGE sql STABLE` with no `SECURITY DEFINER`, so it
+--      runs with the caller's own rights, not the owner's.
+--   2. `authenticated` holds INSERT and nothing else on `voice_attempts`
+--      (`20260904160000` :104).
+--   3. RLS is on with exactly one policy, `voice_attempts_insert_own`, and no
+--      SELECT policy at all.
+--
+-- The call therefore fails with `permission denied for table voice_attempts`.
+--
+-- It is revoked anyway, because the grant is load-bearing on all three of those
+-- holding forever. Voice attempts are verbatim transcripts of what somebody said
+-- out loud — names, amounts, places — beside the `profile_id` that identifies
+-- who said it. The day anyone adds a SELECT policy or a SELECT grant to that
+-- table for a perfectly good reason, this function becomes a full-table dump of
+-- every user's transcripts with nothing left standing in the way, and the person
+-- adding the policy has no reason to look for a stray grant on an admin RPC.
+--
+-- Nothing breaks: the admin console reaches this through the service-role key
+-- (`apps/admin/src/lib/data.ts`), which is unaffected.
+--
+-- `anon` is already covered — `20260904160000` revoked ALL functions from it —
+-- but it is named here too so the intent survives the next replay, which is
+-- exactly the failure mode that produced this line in the first place.
+
+REVOKE ALL ON FUNCTION public.waves_admin_voice_attempts(p_limit integer) FROM anon;
+REVOKE ALL ON FUNCTION public.waves_admin_voice_attempts(p_limit integer) FROM authenticated;
+GRANT EXECUTE ON FUNCTION public.waves_admin_voice_attempts(p_limit integer) TO service_role;
