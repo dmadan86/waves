@@ -1,9 +1,10 @@
 import { format, money, type CurrencyCode } from '@waves/core';
-import type { ReactNode } from 'react';
 
 import { Bars } from '@/components/Bars';
 import { AreaTrend } from '@/components/charts/AreaTrend';
 import { DonutChart } from '@/components/charts/DonutChart';
+import { Icon } from '@/components/icons';
+import { Card, Empty, PageHeader, Stat, TableScroll } from '@/components/ui';
 import { aiCost, daily, geo, logins, money as moneyRows, overview } from '@/lib/data';
 
 export const dynamic = 'force-dynamic';
@@ -32,13 +33,13 @@ export default async function Dashboard() {
 
   if (!head) {
     return (
-      <main>
-        <h1>Waves admin</h1>
-        <p className="note">
-          The analytics functions returned nothing. That usually means the
-          <code> 20260808190000_admin_analytics </code> migration has not been deployed to this
-          project yet.
-        </p>
+      <main className="page">
+        <PageHeader eyebrow="Overview" title="Dashboard" />
+        <Card>
+          <Empty title="No analytics to read" migration="20260808190000_admin_analytics">
+            The analytics functions returned nothing at all.
+          </Empty>
+        </Card>
       </main>
     );
   }
@@ -61,297 +62,289 @@ export default async function Dashboard() {
     .sort((a, b) => b.value - a.value);
 
   return (
-    <main>
-      <header className="top">
-        <h1>Dashboard</h1>
-        <p className="faint">
-          {new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} IST
-        </p>
-      </header>
-
-      <section className="hero">
-        <div>
-          <div className="who">Waves, at a glance</div>
-          <div className="big">{num(head.active_profiles_30d)}</div>
-          <div className="lead">people active in the last 30 days</div>
-        </div>
-        <div style={{ textAlign: 'right' }}>
-          <div className="big">{num(head.active_profiles_7d)}</div>
-          <div className="lead">active in the last 7 days</div>
-        </div>
-      </section>
-
-      <div className="stats">
-        <Stat
-          tint="purple"
-          icon={ICON.people}
-          label="People"
-          value={num(head.profiles_total)}
-          chip={`+${num(head.profiles_new_7d)} in 7d`}
-          dir={Number(head.profiles_new_7d) > 0 ? 'up' : 'flat'}
-        />
-        <Stat
-          tint="blue"
-          icon={ICON.group}
-          label="Groups"
-          value={num(head.groups_total)}
-          chip={`${num(head.groups_active_30d)} active`}
-          dir="flat"
-        />
-        <Stat
-          tint="green"
-          icon={ICON.receipt}
-          label="Expenses"
-          value={num(head.expenses_total)}
-          chip={`+${num(head.expenses_new_30d)} in 30d`}
-          dir={Number(head.expenses_new_30d) > 0 ? 'up' : 'flat'}
-        />
-        <Stat
-          tint="amber"
-          icon={ICON.check}
-          label="Settlements"
-          value={num(head.settlements_total)}
-          chip={`${num(head.settlements_confirmed)} confirmed`}
-          dir="flat"
-        />
-        <Stat
-          tint="blue"
-          icon={ICON.pulse}
-          label="Active 30d"
-          value={num(head.active_profiles_30d)}
-          chip={`${num(head.active_profiles_7d)} in 7d`}
-          dir="flat"
-        />
-        <Stat
-          tint="red"
-          icon={ICON.trash}
-          label="Deleted expenses"
-          value={num(head.expenses_deleted)}
-          chip="soft-deleted"
-          dir="flat"
-        />
-      </div>
-
-      <div className="grid-2" style={{ marginTop: 18 }}>
-        <div className="card">
-          <div className="card-head">
-            <h3>Expenses by currency</h3>
-          </div>
-          <p className="card-sub">Live expenses, counted — never summed across currencies.</p>
-          {currencySlices.length === 0 ? (
-            <p className="note">No expenses yet.</p>
-          ) : (
-            <div className="echart">
-              <DonutChart slices={currencySlices} centerLabel="expenses" />
-            </div>
-          )}
-        </div>
-
-        <div className="card">
-          <AreaTrend days={trend} />
-          <p className="card-sub" style={{ paddingTop: 0 }}>
-            Active means the ledger recorded something. Opening the app is not written down, so it
-            is not counted here.
-          </p>
-        </div>
-      </div>
-
-      <h2>Where they are</h2>
-      <section className="scroll">
-        <table>
-          <thead>
-            <tr>
-              <th>Country</th>
-              <th>People</th>
-              <th>Groups</th>
-              <th>Expenses</th>
-            </tr>
-          </thead>
-          <tbody>
-            {countries.map((row) => (
-              <tr key={row.country_code ?? 'unknown'}>
-                <td>{row.country_code ?? <span className="muted">Not set</span>}</td>
-                <td>{num(row.profile_count)}</td>
-                <td>{num(row.group_count)}</td>
-                <td>{num(row.expense_count)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <p className="note">
-          This is the device locale the app read at signup, and for groups it is where the group
-          settles. It is not IP geolocation: a phone set to en-GB in Bengaluru counts as GB.
-        </p>
-      </section>
-
-      <h2>Volume</h2>
-      <section className="scroll">
-        <table>
-          <thead>
-            <tr>
-              <th>Currency</th>
-              <th>Expenses</th>
-              <th>Value</th>
-              <th>Settled</th>
-              <th>Settled value</th>
-            </tr>
-          </thead>
-          <tbody>
-            {currencies.map((row) => (
-              <tr key={row.currency}>
-                <td>{row.currency}</td>
-                <td>{num(row.expense_count)}</td>
-                <td>{amount(row.expense_minor, row.currency)}</td>
-                <td>{num(row.settlement_count)}</td>
-                <td>{amount(row.settlement_minor, row.currency)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <p className="note">
-          Never summed across currencies and never converted — the same rule the product follows.
-          Live expenses at their current version only, so an edited expense counts once.
-        </p>
-      </section>
-
-      <h2>AI receipt cost, 30 days</h2>
-      <section className="scroll">
-        {ai.length === 0 ? (
-          <p className="note">No scans in this window.</p>
-        ) : (
-          <table>
-            <thead>
-              <tr>
-                <th>Day</th>
-                <th>Currency</th>
-                <th>Scans</th>
-                <th>In</th>
-                <th>Out</th>
-                <th>Cost</th>
-              </tr>
-            </thead>
-            <tbody>
-              {ai.map((row) => (
-                <tr key={`${row.day}-${row.currency}`}>
-                  <td>{row.day}</td>
-                  <td>{row.currency}</td>
-                  <td>{num(row.events)}</td>
-                  <td>{num(row.input_tokens)}</td>
-                  <td>{num(row.output_tokens)}</td>
-                  <td>{amount(row.cost_minor, row.currency)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </section>
-
-      <h2>Sign-ins, 30 days</h2>
-      <section>
-        {signIns.unavailable ? (
-          // Said plainly, and not as an empty chart. This is the only panel
-          // reading outside `public`, so it is the only one whose failure means
-          // "the grant is missing" rather than "nobody did anything".
-          <p className="note">
-            Sign-in history could not be read: <code>{signIns.unavailable}</code>. Everything else
-            on this page is unaffected.
-          </p>
-        ) : signIns.rows.length === 0 ? (
-          <p className="note">
-            Nothing to show. Supabase prunes its auth audit log, so an empty result here means the
-            retention window has passed — not that nobody signed in.
-          </p>
-        ) : (
+    <main className="page">
+      <PageHeader
+        eyebrow="Overview"
+        title="Dashboard"
+        actions={
           <>
+            <span className="small muted">
+              {new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} IST
+            </span>
+            {/* A plain anchor, not `next/link`: these are route handlers that
+                stream a file with a Content-Disposition. A client-side
+                navigation to one starts no download. */}
+            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+            <a className="btn btn-outline" href="/export/daily">
+              {Icon.download}
+              <span>Daily CSV</span>
+            </a>
+          </>
+        }
+      />
+
+      <section aria-labelledby="figures-head">
+        <h2 className="section" id="figures-head">
+          Where things stand
+        </h2>
+        <div className="cols-3">
+          <Stat
+            label="People"
+            value={num(head.profiles_total)}
+            sub={`+${num(head.profiles_new_7d)} in the last 7 days`}
+            dir={Number(head.profiles_new_7d) > 0 ? 'up' : 'flat'}
+            icon={Icon.users}
+          />
+          <Stat
+            label="Groups"
+            value={num(head.groups_total)}
+            sub={`${num(head.groups_active_30d)} active in 30 days`}
+            icon={Icon.layers}
+          />
+          <Stat
+            label="Expenses"
+            value={num(head.expenses_total)}
+            sub={`+${num(head.expenses_new_30d)} in the last 30 days`}
+            dir={Number(head.expenses_new_30d) > 0 ? 'up' : 'flat'}
+            icon={Icon.receipt}
+          />
+          <Stat
+            label="Settlements"
+            value={num(head.settlements_total)}
+            sub={`${num(head.settlements_confirmed)} confirmed`}
+            icon={Icon.check}
+          />
+          <Stat
+            label="Active, 30 days"
+            value={num(head.active_profiles_30d)}
+            sub={`${num(head.active_profiles_7d)} of them in the last 7`}
+            icon={Icon.activity}
+          />
+          <Stat
+            label="Deleted expenses"
+            value={num(head.expenses_deleted)}
+            sub="soft-deleted, still on the ledger"
+            icon={Icon.trash}
+          />
+        </div>
+      </section>
+
+      <h2 className="section">Movement</h2>
+      <div className="cols-chart">
+        <Card
+          title="Expenses by currency"
+          eyebrow="Split"
+          note="Live expenses, counted — never summed across currencies."
+          bare
+        >
+          {currencySlices.length === 0 ? (
+            <Empty title="No expenses yet">
+              Nothing has been added to a ledger on this project.
+            </Empty>
+          ) : (
+            <DonutChart slices={currencySlices} centerLabel="expenses" />
+          )}
+        </Card>
+
+        <Card
+          note="Active means the ledger recorded something. Opening the app is not written down, so it is not counted here."
+          bare
+        >
+          <AreaTrend days={trend} />
+        </Card>
+      </div>
+
+      <h2 className="section">Where they are</h2>
+      <Card
+        bare
+        note="This is the device locale the app read at signup, and for groups it is where the group settles. It is not IP geolocation: a phone set to en-GB in Bengaluru counts as GB."
+      >
+        {countries.length === 0 ? (
+          <Empty title="No countries recorded">Nobody has signed up on this project yet.</Empty>
+        ) : (
+          <TableScroll>
+            <table>
+              <caption className="sr-only">People, groups and expenses per country</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Country</th>
+                  <th scope="col" className="n">
+                    People
+                  </th>
+                  <th scope="col" className="n">
+                    Groups
+                  </th>
+                  <th scope="col" className="n">
+                    Expenses
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {countries.map((row) => (
+                  <tr key={row.country_code ?? 'unknown'}>
+                    <th scope="row" style={{ fontWeight: 600 }}>
+                      {row.country_code ?? <span className="muted">Not set</span>}
+                    </th>
+                    <td className="n">{num(row.profile_count)}</td>
+                    <td className="n">{num(row.group_count)}</td>
+                    <td className="n">{num(row.expense_count)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </TableScroll>
+        )}
+      </Card>
+
+      <h2 className="section">Volume</h2>
+      <Card
+        bare
+        note="Never summed across currencies and never converted — the same rule the product follows. Live expenses at their current version only, so an edited expense counts once."
+      >
+        {currencies.length === 0 ? (
+          <Empty title="No volume yet">No expense has been recorded in any currency.</Empty>
+        ) : (
+          <TableScroll>
+            <table>
+              <caption className="sr-only">Expense and settlement volume per currency</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Currency</th>
+                  <th scope="col" className="n">
+                    Expenses
+                  </th>
+                  <th scope="col" className="n">
+                    Value
+                  </th>
+                  <th scope="col" className="n">
+                    Settled
+                  </th>
+                  <th scope="col" className="n">
+                    Settled value
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {currencies.map((row) => (
+                  <tr key={row.currency}>
+                    <th scope="row" style={{ fontWeight: 600 }}>
+                      {row.currency}
+                    </th>
+                    <td className="n">{num(row.expense_count)}</td>
+                    <td className="n">{amount(row.expense_minor, row.currency)}</td>
+                    <td className="n">{num(row.settlement_count)}</td>
+                    <td className="n">{amount(row.settlement_minor, row.currency)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </TableScroll>
+        )}
+      </Card>
+
+      <h2 className="section">Cost and sign-ins</h2>
+      <div className="cols-2">
+        <Card title="AI receipt cost" eyebrow="Last 30 days" bare>
+          {ai.length === 0 ? (
+            <Empty title="No scans in this window">
+              Nobody has run a receipt through the pipeline in 30 days.
+            </Empty>
+          ) : (
+            <TableScroll>
+              <table>
+                <caption className="sr-only">Receipt pipeline cost per day and currency</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Day</th>
+                    <th scope="col">Currency</th>
+                    <th scope="col" className="n">
+                      Scans
+                    </th>
+                    <th scope="col" className="n">
+                      In
+                    </th>
+                    <th scope="col" className="n">
+                      Out
+                    </th>
+                    <th scope="col" className="n">
+                      Cost
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ai.map((row) => (
+                    <tr key={`${row.day}-${row.currency}`}>
+                      <td>{row.day}</td>
+                      <td>{row.currency}</td>
+                      <td className="n">{num(row.events)}</td>
+                      <td className="n">{num(row.input_tokens)}</td>
+                      <td className="n">{num(row.output_tokens)}</td>
+                      <td className="n">{amount(row.cost_minor, row.currency)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </TableScroll>
+          )}
+        </Card>
+
+        <Card
+          title="Sign-ins"
+          eyebrow="Last 30 days"
+          bare
+          note={
+            signIns.unavailable || signIns.rows.length === 0
+              ? undefined
+              : `${num(signInTotal)} sign-ins in the retained window.`
+          }
+        >
+          {signIns.unavailable ? (
+            // Said plainly, and not as an empty chart. This is the only panel
+            // reading outside `public`, so it is the only one whose failure
+            // means "the grant is missing" rather than "nobody did anything".
+            <Empty title="Sign-in history could not be read">
+              <code>{signIns.unavailable}</code>. Everything else on this page is unaffected.
+            </Empty>
+          ) : signIns.rows.length === 0 ? (
+            <Empty title="Nothing in the window">
+              Supabase prunes its auth audit log, so an empty result here means the retention window
+              has passed — not that nobody signed in.
+            </Empty>
+          ) : (
             <Bars
               label="Sign-ins per day"
               rows={[...signIns.rows]
                 .reverse()
                 .map((row) => ({ day: row.day, value: Number(row.sign_ins) }))}
             />
-            <p className="note">{num(signInTotal)} sign-ins in the retained window.</p>
-          </>
-        )}
-      </section>
+          )}
+        </Card>
+      </div>
 
-      <h2>Reports</h2>
-      <section>
-        {/* Plain anchors on purpose. These are route handlers that stream a
-            file with a Content-Disposition, not pages: `next/link` would
-            client-side navigate to them and the download would never start. */}
+      <h2 className="section">Reports</h2>
+      <Card>
+        {/* Plain anchors on purpose — see the note on the header button. */}
         {/* eslint-disable @next/next/no-html-link-for-pages */}
-        <p className="note">
-          <a href="/export/daily">daily.csv</a> · <a href="/export/geo">geo.csv</a> ·{' '}
-          <a href="/export/money">money.csv</a> · <a href="/export/ai">ai-cost.csv</a>
-        </p>
+        <div className="row">
+          <a className="btn btn-quiet" href="/export/daily">
+            {Icon.download}
+            <span>daily.csv</span>
+          </a>
+          <a className="btn btn-quiet" href="/export/geo">
+            {Icon.download}
+            <span>geo.csv</span>
+          </a>
+          <a className="btn btn-quiet" href="/export/money">
+            {Icon.download}
+            <span>money.csv</span>
+          </a>
+          <a className="btn btn-quiet" href="/export/ai">
+            {Icon.download}
+            <span>ai-cost.csv</span>
+          </a>
+        </div>
         {/* eslint-enable @next/next/no-html-link-for-pages */}
-      </section>
+      </Card>
     </main>
   );
 }
-
-function Stat({
-  tint,
-  icon,
-  label,
-  value,
-  chip,
-  dir,
-}: {
-  tint: 'blue' | 'green' | 'amber' | 'red' | 'purple';
-  icon: ReactNode;
-  label: string;
-  value: string;
-  chip: string;
-  dir: 'up' | 'down' | 'flat';
-}) {
-  return (
-    <div className="stat">
-      <div className={`ico tint-${tint}`}>{icon}</div>
-      <span className="label">{label}</span>
-      <div className="figure">
-        <span className="value">{value}</span>
-        <span className={`chip ${dir}`}>{chip}</span>
-      </div>
-    </div>
-  );
-}
-
-/** Stroke icons for the stat cards, matched to the sidebar's set. */
-const ICON = {
-  people: (
-    <svg viewBox="0 0 24 24" aria-hidden fill="none" stroke="currentColor">
-      <circle cx="9" cy="8" r="3.2" />
-      <path d="M3.5 20a5.5 5.5 0 0 1 11 0" />
-      <path d="M16 5.2a3.2 3.2 0 0 1 0 5.6M17.5 14.4A5.5 5.5 0 0 1 20.5 19" />
-    </svg>
-  ),
-  group: (
-    <svg viewBox="0 0 24 24" aria-hidden fill="none" stroke="currentColor">
-      <circle cx="12" cy="12" r="8" />
-      <path d="M12 4v16M4 12h16" />
-    </svg>
-  ),
-  receipt: (
-    <svg viewBox="0 0 24 24" aria-hidden fill="none" stroke="currentColor">
-      <path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3z" />
-      <path d="M9 8h6M9 12h6" />
-    </svg>
-  ),
-  check: (
-    <svg viewBox="0 0 24 24" aria-hidden fill="none" stroke="currentColor">
-      <circle cx="12" cy="12" r="8.5" />
-      <path d="M8.5 12.5l2.5 2.5 4.5-5" />
-    </svg>
-  ),
-  pulse: (
-    <svg viewBox="0 0 24 24" aria-hidden fill="none" stroke="currentColor">
-      <path d="M3 12h4l2.5-6 4 12 2.5-6H21" />
-    </svg>
-  ),
-  trash: (
-    <svg viewBox="0 0 24 24" aria-hidden fill="none" stroke="currentColor">
-      <path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13" />
-    </svg>
-  ),
-} as const;

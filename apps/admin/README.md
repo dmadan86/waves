@@ -9,23 +9,59 @@ grouped `en-IN` because that is the market the business is in. Amounts still go
 through `@waves/core`'s formatter rather than a local one, so the console can
 never disagree with the ledger about what a number means.
 
-Minimum responsive. It is read at a desk; the phone case is checking a figure
-while away from one, so nothing is unreadable or unreachable and nothing more.
+**Desktop only, and stated rather than implied.** `body { min-width: 1024px }`
+and no breakpoints under it: a narrow screen gets the real layout and pans,
+which is honest, instead of a reflowed one that pretends. The login page opts
+back out of that floor, because signing in from a phone to check the console is
+up is a real thing to do. Desktop-only is about viewport width and nothing
+else — keyboard reachability, visible focus, semantic tables and contrast all
+still apply, and `src/app/globals.css` opens with why.
+
+## The design system
+
+The visual language is lifted from the [d-board](https://d-board-omega.vercel.app/)
+reference dashboard, with its tokens read out of the compiled stylesheet rather
+than eyeballed. The whole vocabulary lives in `src/app/globals.css` and the
+components that use it in `src/components/ui.tsx`; a screen should be
+assembling those, not inventing a `<section>` with a new class.
+
+| Token     | Value                                                 |
+| --------- | ----------------------------------------------------- |
+| Neutrals  | Tailwind `gray` — 50 page, white card, 100 hairline   |
+| Accent    | Tailwind `blue` — 500 fills, **600 for text**         |
+| Radius    | `rounded-lg` cards, `rounded-md` inputs               |
+| Rail      | 16rem, collapsing to 4rem, 4px accent bar on active   |
+| Bars      | 4rem — logo block, section head and topbar agree      |
+| Table row | `px-3 py-2`, uppercase `text-xs` head                 |
+| Charts    | blue / violet / emerald / amber / red at the 500 step |
+
+Three deliberate departures from the reference, all the same direction. It
+ships `*, :focus { outline: none !important }` — replaced here with a visible
+focus ring, written as the first rule in the file so nothing can quietly beat
+it. It uses `blue-500` as link text at 3.7:1 — anything blue that has to be
+_read_ uses `blue-600` here. And it hides scrollbars, which a console full of
+wide tables cannot afford.
 
 ## What it can see
 
-Six functions in `20260808190000_admin_analytics`, and nothing else. Not one of
-them returns a description, a note, a display name, a payment handle or a
-profile id.
+The `waves_admin_*` functions, plus a short list of tables that hold
+configuration this console owns. Not one of the functions returns a
+description, a note, a display name or a payment handle.
 
-| Function               | Answers                                              |
-| ---------------------- | ---------------------------------------------------- |
-| `waves_admin_overview` | People, groups, expenses, settlements, active counts |
-| `waves_admin_daily`    | A row per day for 30 days, including empty ones      |
-| `waves_admin_geo`      | Counts per country                                   |
-| `waves_admin_money`    | Volume per currency, never converted                 |
-| `waves_admin_ai_cost`  | The receipt pipeline's bill (ADR-008/011)            |
-| `waves_admin_logins`   | Sign-ins per day, while Supabase still has them      |
+| Function                                              | Answers                                              |
+| ----------------------------------------------------- | ---------------------------------------------------- |
+| `waves_admin_overview`                                | People, groups, expenses, settlements, active counts |
+| `waves_admin_daily`                                   | A row per day for 30 days, including empty ones      |
+| `waves_admin_geo`                                     | Counts per country                                   |
+| `waves_admin_money`                                   | Volume per currency, never converted                 |
+| `waves_admin_ai_cost`                                 | The receipt pipeline's bill (ADR-008/011)            |
+| `waves_admin_logins`                                  | Sign-ins per day, while Supabase still has them      |
+| `waves_admin_users`                                   | The signup directory, one page at a time             |
+| `waves_admin_flag_results`                            | People and behaviour per experiment arm              |
+| `waves_admin_campaign_*`                              | Funnel, revenue and email status per campaign        |
+| `waves_admin_feedback`                                | What people wrote in, with no author                 |
+| `waves_admin_voice_attempts`                          | Dictations the parser could not use                  |
+| `waves_admin_promo_codes` / `waves_admin_grant_promo` | Codes and comps                                      |
 
 They are revoked from `PUBLIC`, `anon` and `authenticated`, and granted to
 `service_role` alone. That REVOKE is load-bearing: Postgres grants EXECUTE to
@@ -33,6 +69,32 @@ PUBLIC on every new function and Supabase's roles inherit PUBLIC, so without it
 any anonymous guest could read the whole business through the anon key that
 ships inside the mobile binary. `packages/db/test/adminAnalytics.test.ts` fails
 if that ever regresses.
+
+> **`waves_admin_voice_attempts` is the exception, and it is a live bug.** The
+> baseline grants it to `anon` and `authenticated`, and
+> `20260904200000_authenticated_surface_on_hosted` re-grants it to
+> `authenticated` after its blanket revoke. It is `SECURITY DEFINER` over a
+> table no client can select, and it returns verbatim speech transcripts and
+> profile ids — so any signed-in account can read them today. That is a
+> migration to write, not a console change, and it is not fixed here.
+
+### The tables it reads directly
+
+Configuration the console owns, rather than an aggregate over somebody's data:
+`app_config`, `service_config`, `app_releases`, `country_settings`,
+`feature_flags`, `rate_limit_settings`, `rate_limit_rules`, `campaigns`,
+`promo_codes`, `packs`, `pack_requests` and `agent_writes`. A row that only
+ever held a setting the operator typed has nothing to hide from the operator.
+Anything that _aggregates over people_ still goes through a `waves_admin_*`
+function, so what this console can see about users stays one reviewable list in
+one migration.
+
+`app_config` and `service_config` are read **generically** — the whole table,
+no key list — and rendered a row each, with the row's own `description` column
+as the help text. A knob a migration adds appears here with no change to the
+console; `person_lookup_daily_cap` will. What the console cannot do is _create_
+one: both saves are an `UPDATE`, because a key no code reads is a number with
+no effect.
 
 Two things it will not pretend to know:
 
@@ -42,6 +104,29 @@ Two things it will not pretend to know:
   empty chart means the retention window passed, not that nobody signed in.
   `last_sign_in_at` is deliberately unused: it is one snapshot per user, and
   grouping it by day draws a convincing chart of nothing.
+
+## What it still has no screen for
+
+Every one of these needs a `waves_admin_*` function in a migration first,
+because each is an aggregate over real people's data and the rule above says
+those do not get a direct table read. Listed so the next person does not have
+to rediscover them:
+
+- **Storage accounting** — who is over `free_storage_cap_bytes`, and the
+  `storage_orphans` sweep backlog. The cap is editable on Limits with no way to
+  see its effect.
+- **Billing** — `subscriptions` and `group_passes`. Revenue exists here only as
+  a per-campaign cohort figure; there is no list and no way to fix a status.
+- **Delivery health** — `notifications` retries and exhaustion, `email_events`,
+  and `email_suppressions` with no unsuppress path. A bounce storm is invisible.
+- **Moderation** — `expense_comments.flagged_at` and `expense_disputes` are
+  recorded and shown to nobody but the group's own admin.
+- **Groups** — no browse, no inspect, no support surface at all.
+- **Rate-limit hits** — the rules are tunable, the resulting 429s are not
+  observable.
+- **Job health** — six scheduled functions and **no run-history table anywhere**,
+  so "when did auto-archive last run" is a question the database cannot answer.
+  A screen for it would have to invent the data; it does not exist instead.
 
 ## Running it locally
 

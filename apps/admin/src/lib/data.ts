@@ -958,3 +958,220 @@ export async function decidePackRequest(id: string, status: 'done' | 'declined')
     .eq('id', id);
   if (error) throw new Error(`deciding the request failed: ${error.message}`);
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+ * Service settings, release policy, and the agent audit.
+ *
+ * The first two are configuration this console owns, so they are read from
+ * their tables the way `app_config` and `country_settings` already are — not
+ * through a `waves_admin_*` function. That exception is narrow and worth
+ * naming: a function is the right shape for an *aggregate over somebody's
+ * data*, because it fixes what the console can see in one reviewable
+ * migration. A row that only ever held a setting the operator typed has
+ * nothing to hide from the operator.
+ *
+ * `agent_writes` is the exception to the exception. It is a log of what an
+ * automated client did on real people's ledgers, so what is selected here is
+ * kept to what answers "which client, doing what, how often, how much" —
+ * `profile_id`, `group_id` and `object_id` are deliberately left out, because
+ * knowing *whose* expense an agent touched is not needed in order to decide
+ * whether to stop trusting the agent.
+ * ═══════════════════════════════════════════════════════════════════════ */
+
+export interface ServiceConfigRow {
+  key: string;
+  value: string | null;
+  description: string;
+  updated_at: string;
+}
+
+/**
+ * The string knobs — which speech provider and model the voice pipeline uses.
+ * Generic in the same way `appConfig` is: the whole table, no key list, so a
+ * setting a migration adds shows up here without a change to this file.
+ */
+export async function serviceConfig(): Promise<ServiceConfigRow[]> {
+  await requireSession();
+  const { data, error } = await client()
+    .from('service_config')
+    .select('key, value, description, updated_at')
+    .order('key');
+  if (error) {
+    if (error.code === TABLE_MISSING) return [];
+    throw new Error(`reading service_config failed: ${error.message}`);
+  }
+  return (data ?? []) as ServiceConfigRow[];
+}
+
+/**
+ * Change one service knob. An UPDATE for the same reason `saveAppConfig` is:
+ * the keys are defined by the code that reads them, and a key nothing reads is
+ * a setting with no effect.
+ *
+ * An empty string is a real value here and means "the provider's own default"
+ * — that is what `voice_stt_model` ships as — so it is stored rather than
+ * refused. The length cap is not a validation of meaning, only a refusal to
+ * put an essay in a settings row.
+ */
+export async function saveServiceConfig(input: { key: string; value: string }): Promise<void> {
+  await requireSession();
+
+  if (!/^[a-z][a-z0-9_]{1,60}$/.test(input.key)) {
+    throw new Error('A key is lowercase letters, digits and underscores, starting with a letter.');
+  }
+  const value = input.value.trim();
+  if (value.length > 200) {
+    throw new Error('A service setting is 200 characters or fewer.');
+  }
+
+  const { error } = await client()
+    .from('service_config')
+    .update({ value, updated_at: new Date().toISOString() })
+    .eq('key', input.key)
+    .select()
+    .single();
+  if (error) {
+    if (error.code === NO_ROWS) throw new Error(`no such service key "${input.key}"`);
+    throw new Error(`saving ${input.key} failed: ${error.message}`);
+  }
+}
+
+export interface AppReleaseRow {
+  platform: string;
+  latest_version: string;
+  minimum_version: string;
+  store_url: string;
+  message: string | null;
+  updated_at: string;
+}
+
+/** The version policy each store is under. One row per platform, by primary key. */
+export async function appReleases(): Promise<AppReleaseRow[]> {
+  await requireSession();
+  const { data, error } = await client()
+    .from('app_releases')
+    .select('platform, latest_version, minimum_version, store_url, message, updated_at')
+    .order('platform');
+  if (error) {
+    if (error.code === TABLE_MISSING) return [];
+    throw new Error(`reading app_releases failed: ${error.message}`);
+  }
+  return (data ?? []) as AppReleaseRow[];
+}
+
+/** The shape both version columns are constrained to, checked here as well. */
+const VERSION = /^[0-9]+(\.[0-9]+){0,3}$/;
+
+/** Dotted version as four numbers, shorter ones padded — `waves_version_key`. */
+function versionKey(version: string): number[] {
+  const parts = version.split('.').map(Number);
+  while (parts.length < 4) parts.push(0);
+  return parts;
+}
+
+function atMost(a: string, b: string): boolean {
+  const left = versionKey(a);
+  const right = versionKey(b);
+  for (let i = 0; i < 4; i += 1) {
+    if (left[i] !== right[i]) return left[i]! < right[i]!;
+  }
+  return true;
+}
+
+/**
+ * Set a platform's version policy.
+ *
+ * `minimum_version` is the sharpest control in the whole database: the app
+ * checks it before anybody signs in, so raising it past a build locks every
+ * install on that build out of the product until the store has the new one.
+ * The database has a CHECK that minimum never exceeds latest; it is repeated
+ * here so the refusal arrives as a sentence beside the field rather than as a
+ * constraint violation.
+ *
+ * An UPDATE, not an upsert: the two platform rows are seeded by the migration
+ * and `app_releases_platform_check` allows no third.
+ */
+export async function saveAppRelease(input: {
+  platform: string;
+  latestVersion: string;
+  minimumVersion: string;
+  storeUrl: string;
+  message: string;
+}): Promise<void> {
+  await requireSession();
+
+  const platform = input.platform.trim();
+  if (platform !== 'ios' && platform !== 'android') {
+    throw new Error('Platform is ios or android.');
+  }
+  const latest = input.latestVersion.trim();
+  const minimum = input.minimumVersion.trim();
+  if (!VERSION.test(latest)) throw new Error(`"${latest}" is not a version like 1.4.2.`);
+  if (!VERSION.test(minimum)) throw new Error(`"${minimum}" is not a version like 1.4.2.`);
+  if (!atMost(minimum, latest)) {
+    throw new Error(
+      `The minimum (${minimum}) cannot be above the latest release (${latest}) — that would lock out everybody, including people already on the newest build.`,
+    );
+  }
+
+  const storeUrl = input.storeUrl.trim();
+  if (!/^https:\/\/\S+$/.test(storeUrl)) {
+    throw new Error('The store link must be an https:// URL.');
+  }
+
+  const message = input.message.trim();
+  if (message.length > 300) {
+    throw new Error('The upgrade message is 300 characters or fewer.');
+  }
+
+  const { error } = await client()
+    .from('app_releases')
+    .update({
+      latest_version: latest,
+      minimum_version: minimum,
+      store_url: storeUrl,
+      // Null rather than an empty string: the app reads absence as "use the
+      // default wording", and an empty string is a message that says nothing.
+      message: message === '' ? null : message,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('platform', platform)
+    .select()
+    .single();
+  if (error) {
+    if (error.code === NO_ROWS) throw new Error(`no release row for "${platform}"`);
+    throw new Error(`saving the ${platform} release failed: ${error.message}`);
+  }
+}
+
+export interface AgentWriteRow {
+  id: string;
+  client_id: string;
+  action: string;
+  amount_minor: string | null;
+  currency: string | null;
+  created_at: string;
+}
+
+/**
+ * What automated clients have written, newest first.
+ *
+ * `agent_writes` was added as the audit half of letting an outside agent post
+ * to somebody's ledger, and until now it had no reader at all: the two caps
+ * that bound it (`agent_expense_cap_minor`, `agent_daily_cap_minor`) are
+ * turnable on the Limits page while the writes they bound were invisible.
+ * This is the reader.
+ */
+export async function agentWrites(limit = 200): Promise<AgentWriteRow[]> {
+  await requireSession();
+  const { data, error } = await client()
+    .from('agent_writes')
+    .select('id, client_id, action, amount_minor, currency, created_at')
+    .order('created_at', { ascending: false })
+    .limit(Math.min(Math.max(1, limit), 500));
+  if (error) {
+    if (error.code === TABLE_MISSING) return [];
+    throw new Error(`reading agent_writes failed: ${error.message}`);
+  }
+  return (data ?? []) as AgentWriteRow[];
+}

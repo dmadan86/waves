@@ -3,6 +3,10 @@ import { redirect } from 'next/navigation';
 
 import { format, money, type CurrencyCode } from '@waves/core';
 
+import { CsrfField } from '@/components/CsrfField';
+import { Icon } from '@/components/icons';
+import { Badge, Card, Empty, Field, Lede, Outcome, PageHeader, TableScroll } from '@/components/ui';
+import { guardMutation } from '@/lib/csrf';
 import {
   broadcastCampaign,
   campaignEmailStats,
@@ -15,8 +19,6 @@ import {
   type CampaignRevenueRow,
   type FunnelRow,
 } from '@/lib/data';
-import { guardMutation } from '@/lib/csrf';
-import { CsrfField } from '@/components/CsrfField';
 
 export const dynamic = 'force-dynamic';
 
@@ -137,56 +139,66 @@ export default async function Campaigns({
     redirect(`/campaigns?done=${encodeURIComponent(message)}`);
   }
 
+  const running = all.filter(
+    (c) => new Date(c.starts_at) <= new Date() && new Date(c.ends_at) > new Date(),
+  ).length;
+
   return (
-    <main>
-      <header className="top">
-        <h1>Campaigns</h1>{' '}
-      </header>
+    <main className="page">
+      <PageHeader
+        eyebrow="Growth"
+        title="Campaigns"
+        actions={
+          <span className="small muted">
+            {running} live of {all.length}
+          </span>
+        }
+      />
+      <Outcome error={error} done={done} />
 
-      {error ? <p className="error">{error}</p> : null}
-      {done ? <p className="faint">{done}</p> : null}
-
-      <p className="note" style={{ padding: 0 }}>
+      <Lede>
         Every campaign withholds itself from a slice of its own audience. That holdout is the only
         reason &ldquo;did this work&rdquo; has an answer: a comped subscription earns nothing by
         construction, so the impact is whether the people who were offered it went on to pay more
         than the people who were not.
-      </p>
+      </Lede>
 
       {all.length === 0 ? (
-        <section style={{ marginTop: 20 }}>
-          <p className="note">
-            None yet. If you expected some, the <code>20260808220000_campaigns</code> migration may
-            not be deployed to this project.
-          </p>
-        </section>
+        <Card bare>
+          <Empty title="No campaigns yet" migration="20260808220000_campaigns">
+            Nothing has been sent to anybody.
+          </Empty>
+        </Card>
       ) : null}
 
-      {all.map((campaign) => {
-        const result = results.get(campaign.id);
-        const funnel = result?.funnel ?? [];
-        const revenue = result?.revenue ?? [];
-        const emailStats: CampaignEmailStatRow[] = result?.email ?? [];
-        const emailCount = (status: string) =>
-          Number(emailStats.find((row) => row.status === status)?.count ?? 0);
-        const targeted = funnel.find((row) => row.cohort === 'targeted');
-        const currencies = [...new Set(revenue.map((row) => row.currency))];
-        const live =
-          new Date(campaign.starts_at) <= new Date() && new Date(campaign.ends_at) > new Date();
+      <div className="stack">
+        {all.map((campaign) => {
+          const result = results.get(campaign.id);
+          const funnel = result?.funnel ?? [];
+          const revenue = result?.revenue ?? [];
+          const emailStats: CampaignEmailStatRow[] = result?.email ?? [];
+          const emailCount = (status: string) =>
+            Number(emailStats.find((row) => row.status === status)?.count ?? 0);
+          const targeted = funnel.find((row) => row.cohort === 'targeted');
+          const currencies = [...new Set(revenue.map((row) => row.currency))];
+          const live =
+            new Date(campaign.starts_at) <= new Date() && new Date(campaign.ends_at) > new Date();
 
-        return (
-          <div key={campaign.id}>
-            <h2>
-              {campaign.name} {live ? '· live' : '· ended'}
-            </h2>
-            <section>
-              <p className="note">
+          return (
+            <Card
+              key={campaign.id}
+              title={campaign.name}
+              eyebrow="Campaign"
+              actions={live ? <Badge tone="ok">Live</Badge> : <Badge>Ended</Badge>}
+              bare
+            >
+              <p className="card-note">
                 <strong>{campaign.title}</strong>
-                {campaign.body ? ` — ${campaign.body}` : ''}
-                <br />
+                {' · '}
+                {campaign.body ? <>{campaign.body} · </> : null}
                 {campaign.promo_code ? (
                   <>
-                    Code <code>{campaign.promo_code}</code> ·{' '}
+                    code <code>{campaign.promo_code}</code> ·{' '}
                   </>
                 ) : null}
                 {campaign.holdout_percent}% holdout ·{' '}
@@ -194,76 +206,102 @@ export default async function Campaigns({
                 {new Date(campaign.ends_at).toLocaleDateString('en-IN')}
               </p>
 
-              <div className="scroll">
+              <p className="card-subhead">Funnel</p>
+              <TableScroll>
                 <table>
+                  <caption className="sr-only">{campaign.name}: funnel per cohort</caption>
                   <thead>
                     <tr>
-                      <th>Cohort</th>
-                      <th>People</th>
-                      <th>Saw it</th>
-                      <th>Redeemed</th>
-                      <th>Paid</th>
-                      <th>Pay rate</th>
+                      <th scope="col">Cohort</th>
+                      <th scope="col" className="n">
+                        People
+                      </th>
+                      <th scope="col" className="n">
+                        Saw it
+                      </th>
+                      <th scope="col" className="n">
+                        Redeemed
+                      </th>
+                      <th scope="col" className="n">
+                        Paid
+                      </th>
+                      <th scope="col" className="n">
+                        Pay rate
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
                     {funnel.map((row) => (
                       <tr key={row.cohort}>
-                        <td>{row.cohort}</td>
-                        <td>{num(row.people)}</td>
-                        <td>{num(row.seen)}</td>
-                        <td>{num(row.redeemed)}</td>
-                        <td>{num(row.paid)}</td>
-                        <td>{pct(Number(row.paid), Number(row.people))}</td>
+                        <th scope="row" style={{ fontWeight: 600 }}>
+                          {row.cohort}
+                        </th>
+                        <td className="n">{num(row.people)}</td>
+                        <td className="n">{num(row.seen)}</td>
+                        <td className="n">{num(row.redeemed)}</td>
+                        <td className="n">{num(row.paid)}</td>
+                        <td className="n">{pct(Number(row.paid), Number(row.people))}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </TableScroll>
 
               {currencies.length === 0 ? (
-                <p className="note">No purchases in either arm yet.</p>
+                <p className="card-note">No purchases in either arm yet.</p>
               ) : (
-                <div className="scroll">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Currency</th>
-                        <th>Targeted</th>
-                        <th>Holdout</th>
-                        <th>Incremental</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {currencies.map((currency) => {
-                        const lift = incremental(revenue, funnel, currency);
-                        const forCohort = (cohort: string) =>
-                          revenue.find((row) => row.cohort === cohort && row.currency === currency)
-                            ?.revenue_minor ?? '0';
-                        return (
-                          <tr key={currency}>
-                            <td>{currency}</td>
-                            <td>{amount(forCohort('targeted'), currency)}</td>
-                            <td>{amount(forCohort('holdout'), currency)}</td>
-                            <td
-                              style={{
-                                color:
-                                  lift === null
-                                    ? 'var(--muted)'
-                                    : lift >= 0n
-                                      ? 'var(--positive)'
-                                      : 'var(--negative)',
-                                fontWeight: 600,
-                              }}
-                            >
-                              {lift === null ? '—' : amount(String(lift), currency)}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                  <p className="note">
+                <>
+                  <p className="card-subhead">Revenue</p>
+                  <TableScroll>
+                    <table>
+                      <caption className="sr-only">
+                        {campaign.name}: incremental revenue per currency
+                      </caption>
+                      <thead>
+                        <tr>
+                          <th scope="col">Currency</th>
+                          <th scope="col" className="n">
+                            Targeted
+                          </th>
+                          <th scope="col" className="n">
+                            Holdout
+                          </th>
+                          <th scope="col" className="n">
+                            Incremental
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {currencies.map((currency) => {
+                          const lift = incremental(revenue, funnel, currency);
+                          const forCohort = (cohort: string) =>
+                            revenue.find(
+                              (row) => row.cohort === cohort && row.currency === currency,
+                            )?.revenue_minor ?? '0';
+                          return (
+                            <tr key={currency}>
+                              <th scope="row" style={{ fontWeight: 600 }}>
+                                {currency}
+                              </th>
+                              <td className="n">{amount(forCohort('targeted'), currency)}</td>
+                              <td className="n">{amount(forCohort('holdout'), currency)}</td>
+                              {/* Colour is the *second* signal: the sign is
+                                  already in the number, so a red minus still
+                                  reads as a minus without the red. */}
+                              <td
+                                className={
+                                  lift === null ? 'n muted' : lift >= 0n ? 'n pos' : 'n neg'
+                                }
+                              >
+                                {lift === null ? '—' : amount(String(lift), currency)}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </TableScroll>
+                  <p className="card-note">
                     Incremental is revenue per person in the targeted arm minus revenue per person
                     in the holdout, times the targeted population. Per person because the arms are
                     different sizes. It goes negative when the giveaway cannibalised purchases
@@ -276,11 +314,13 @@ export default async function Campaigns({
                       </>
                     ) : null}
                   </p>
-                </div>
+                </>
               )}
-              <div style={{ marginTop: 16 }}>
-                <p className="note" style={{ padding: 0 }}>
-                  <strong>Email</strong> — sent {num(emailCount('sent'))}
+
+              <p className="card-subhead">Email</p>
+              <div className="card-body">
+                <p className="small muted" style={{ margin: '0 0 0.75rem' }}>
+                  Sent {num(emailCount('sent'))}
                   {emailCount('failed') > 0 ? `, ${num(emailCount('failed'))} failed` : ''}
                   {emailCount('queued') > 0 ? `, ${num(emailCount('queued'))} in flight` : ''}. The
                   holdout is never mailed, so this reaches the targeted cohort only.
@@ -289,41 +329,39 @@ export default async function Campaigns({
                   <form action={broadcast}>
                     <CsrfField />
                     <input type="hidden" name="id" value={campaign.id} />
-                    <button type="submit">Send email to targeted cohort</button>
+                    <button type="submit" className="btn">
+                      {Icon.send}
+                      <span>Send to targeted cohort</span>
+                    </button>
                   </form>
                 ) : (
-                  <p className="note">
+                  <p className="small muted" style={{ margin: 0 }}>
                     Email only sends while a campaign is live. This one is not running now.
                   </p>
                 )}
               </div>
-            </section>
-          </div>
-        );
-      })}
+            </Card>
+          );
+        })}
+      </div>
 
-      <h2>New campaign</h2>
-      <section>
-        <form action={create} className="flag">
+      <h2 className="section">New campaign</h2>
+      <Card bare>
+        <form action={create} className="form card-body">
           <CsrfField />
-          <label>
-            <span>Name (internal)</span>
+          <Field label="Name" hint="internal">
             <input type="text" name="name" placeholder="Diwali 2026" />
-          </label>
-          <label>
-            <span>Title</span>
+          </Field>
+          <Field label="Title">
             <input type="text" name="title" placeholder="Two months of Plus, free" required />
-          </label>
-          <label>
-            <span>Body</span>
+          </Field>
+          <Field label="Body" full>
             <input type="text" name="body" placeholder="Because you have been here a while" />
-          </label>
-          <label>
-            <span>Button</span>
+          </Field>
+          <Field label="Button">
             <input type="text" name="cta" placeholder="Claim it" defaultValue="Claim it" />
-          </label>
-          <label>
-            <span>Promo code</span>
+          </Field>
+          <Field label="Promo code">
             <select name="code" defaultValue="">
               <option value="">None</option>
               {codes.map((code) => (
@@ -332,22 +370,22 @@ export default async function Campaigns({
                 </option>
               ))}
             </select>
-          </label>
-          <label>
-            <span>Ends</span>
+          </Field>
+          <Field label="Ends">
             <input type="date" name="ends" required />
-          </label>
-          <label>
-            <span>Countries</span>
-            <input type="text" name="countries" placeholder="IN, AE — blank for all" />
-          </label>
-          <label>
-            <span>Holdout %</span>
+          </Field>
+          <Field label="Countries" hint="blank for all">
+            <input type="text" name="countries" placeholder="IN, AE" />
+          </Field>
+          <Field label="Holdout %">
             <input type="number" name="holdout" min={1} max={90} defaultValue={10} />
-          </label>
-          <button type="submit">Create campaign</button>
+          </Field>
+          <button type="submit" className="btn">
+            {Icon.plus}
+            <span>Create campaign</span>
+          </button>
         </form>
-      </section>
+      </Card>
     </main>
   );
 }

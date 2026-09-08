@@ -1,9 +1,11 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
-import { createPromoCode, grantPromo, promoCodes } from '@/lib/data';
-import { guardMutation } from '@/lib/csrf';
 import { CsrfField } from '@/components/CsrfField';
+import { Icon } from '@/components/icons';
+import { Card, Empty, Field, Lede, Outcome, PageHeader, TableScroll } from '@/components/ui';
+import { guardMutation } from '@/lib/csrf';
+import { createPromoCode, grantPromo, promoCodes } from '@/lib/data';
 
 export const dynamic = 'force-dynamic';
 
@@ -60,108 +62,111 @@ export default async function Promotions({
   }
 
   return (
-    <main>
-      <header className="top">
-        <h1>Promotions</h1>{' '}
-      </header>
+    <main className="page">
+      <PageHeader eyebrow="Growth" title="Promotions" />
+      <Outcome error={error} done={done} />
 
-      {error ? <p className="error">{error}</p> : null}
-      {done ? <p className="faint">{done}</p> : null}
-
-      <p className="note" style={{ padding: 0 }}>
+      <Lede>
         A promotion is an ordinary <code>subscriptions</code> row with{' '}
         <code>store = &lsquo;promo&rsquo;</code>. Every screen that already asks what plan somebody
         is on gets the right answer with no change — there is no second source of truth for who has
         paid.
-      </p>
+      </Lede>
 
-      <h2>Comp an account</h2>
-      <section>
-        <form action={grant} className="flag">
-          <CsrfField />
-          <label>
-            <span>Profile id</span>
-            <input type="text" name="profile" placeholder="uuid" required size={38} />
-          </label>
-          <label>
-            <span>Days</span>
-            <input type="number" name="days" min={1} max={3650} defaultValue={30} />
-          </label>
-          <button type="submit">Grant Plus</button>
-        </form>
-        <p className="note">
-          Keyed on the account and the day, so pressing this twice in one conversation is the same
-          grant rather than two months.
-        </p>
-      </section>
+      <div className="cols-2">
+        <Card
+          title="Comp an account"
+          eyebrow="One person"
+          bare
+          note="Keyed on the account and the day, so pressing this twice in one conversation is the same grant rather than two months."
+        >
+          <form action={grant} className="form card-body">
+            <CsrfField />
+            <Field label="Profile id" hint="uuid" full>
+              <input type="text" name="profile" placeholder="uuid" required />
+            </Field>
+            <Field label="Days">
+              <input type="number" name="days" min={1} max={3650} defaultValue={30} />
+            </Field>
+            <button type="submit" className="btn">
+              {Icon.plus}
+              <span>Grant Plus</span>
+            </button>
+          </form>
+        </Card>
 
-      <h2>Codes</h2>
-      <section className="scroll">
+        <Card
+          title="New code"
+          eyebrow="Many people"
+          bare
+          note="Uppercase letters and digits only — these get read aloud and typed by hand. Redeeming is one code per account, enforced by the same unique key the app stores use to stop a replayed store webhook granting a purchase twice."
+        >
+          <form action={create} className="form card-body">
+            <CsrfField />
+            <Field label="Code">
+              <input type="text" name="code" placeholder="DIWALI25" required size={14} />
+            </Field>
+            <Field label="Days granted">
+              <input type="number" name="days" min={1} max={3650} defaultValue={30} />
+            </Field>
+            <Field label="Max redemptions">
+              <input type="number" name="max" min={1} defaultValue={100} />
+            </Field>
+            <Field label="Note" full>
+              <input type="text" name="note" placeholder="Diwali campaign" />
+            </Field>
+            <button type="submit" className="btn">
+              {Icon.plus}
+              <span>Create code</span>
+            </button>
+          </form>
+        </Card>
+      </div>
+
+      <h2 className="section">Codes</h2>
+      <Card bare>
         {codes.length === 0 ? (
-          <p className="note">
-            None yet. If you expected some, the <code>20260808210000_promotions</code> migration may
-            not be deployed to this project.
-          </p>
+          <Empty title="No codes yet" migration="20260808210000_promotions">
+            Nothing in <code>promo_codes</code>.
+          </Empty>
         ) : (
-          <table>
-            <thead>
-              <tr>
-                <th>Code</th>
-                <th>Grants</th>
-                <th>Used</th>
-                <th>Of</th>
-                <th>Expires</th>
-                <th>Note</th>
-              </tr>
-            </thead>
-            <tbody>
-              {codes.map((row) => (
-                <tr key={row.code}>
-                  <td>
-                    <code>{row.code}</code>
-                  </td>
-                  <td>{num(row.days)} days</td>
-                  <td>{num(row.redeemed_count)}</td>
-                  <td>{num(row.max_redemptions)}</td>
-                  <td>{day(row.expires_at)}</td>
-                  <td style={{ textAlign: 'left' }}>
-                    {row.note || <span className="muted">—</span>}
-                  </td>
+          <TableScroll>
+            <table>
+              <caption className="sr-only">Promotional codes and their redemptions</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Code</th>
+                  <th scope="col" className="n">
+                    Grants
+                  </th>
+                  <th scope="col" className="n">
+                    Used
+                  </th>
+                  <th scope="col" className="n">
+                    Of
+                  </th>
+                  <th scope="col">Expires</th>
+                  <th scope="col">Note</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {codes.map((row) => (
+                  <tr key={row.code}>
+                    <th scope="row">
+                      <code>{row.code}</code>
+                    </th>
+                    <td className="n">{num(row.days)} days</td>
+                    <td className="n">{num(row.redeemed_count)}</td>
+                    <td className="n">{num(row.max_redemptions)}</td>
+                    <td>{day(row.expires_at)}</td>
+                    <td className="wrap">{row.note || <span className="muted">—</span>}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </TableScroll>
         )}
-      </section>
-
-      <h2>New code</h2>
-      <section>
-        <form action={create} className="flag">
-          <CsrfField />
-          <label>
-            <span>Code</span>
-            <input type="text" name="code" placeholder="DIWALI25" required />
-          </label>
-          <label>
-            <span>Days granted</span>
-            <input type="number" name="days" min={1} max={3650} defaultValue={30} />
-          </label>
-          <label>
-            <span>Max redemptions</span>
-            <input type="number" name="max" min={1} defaultValue={100} />
-          </label>
-          <label>
-            <span>Note</span>
-            <input type="text" name="note" placeholder="Diwali campaign" />
-          </label>
-          <button type="submit">Create code</button>
-        </form>
-        <p className="note">
-          Uppercase letters and digits only — these get read aloud and typed by hand. Redeeming is
-          one code per account, enforced by the same unique key the app stores use to stop a
-          replayed store webhook granting a purchase twice.
-        </p>
-      </section>
+      </Card>
     </main>
   );
 }
