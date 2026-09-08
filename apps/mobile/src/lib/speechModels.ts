@@ -28,6 +28,17 @@ export type OfflineModelDownload = 'download_success' | 'opened_dialog' | 'downl
 
 /** The locales the recogniser knows about, and the ones it already holds. */
 export interface SpeechLocales {
+  /**
+   * Every language the recogniser will answer in — and the trap in this screen.
+   *
+   * The native side builds it as `supportedOnDeviceLanguages ∪
+   * installedOnDeviceLanguages ∪ onlineLanguages` and hands over the union with
+   * no seam, so a tag here may be one the phone can only do *over the network*.
+   * Google's cloud recogniser speaks a few hundred languages; the on-device one
+   * speaks a fraction of them. So this list says what can be recognised, never
+   * what can be downloaded, and the difference only surfaces at the tap — as a
+   * rejection carrying `error_12`. See {@link SpeechModelsApi.download}.
+   */
   readonly locales: string[];
   readonly installedLocales: string[];
 }
@@ -58,7 +69,18 @@ export interface SpeechModelsApi {
   canDownload: () => boolean;
   /** Ask the phone for its locale lists. Rejects on a service that is busy. */
   listLocales: () => Promise<SpeechLocales>;
-  /** Ask the phone to fetch the model for `tag`. See {@link OfflineModelDownload}. */
+  /**
+   * Ask the phone to fetch the model for `tag`. See {@link OfflineModelDownload}.
+   *
+   * A rejection here is not noise: the thrown value carries a `code`, and that
+   * code is the reason. `not_supported` is the module's own pre-API-33 refusal;
+   * anything shaped `error_<n>` is a `SpeechRecognizer.ERROR_*` constant passed
+   * through from `ModelDownloadListener.onError` untouched — 12 for a language
+   * the recogniser does not have a model for at all, 13 for one it has but has
+   * not fetched, 15 for a download that started and cannot be watched. Decode it
+   * with `offlineDownloadReason` in `dictation.ts` rather than treating every
+   * rejection as one failure; they are not one failure.
+   */
   download: (tag: string) => Promise<OfflineModelDownload>;
 }
 
