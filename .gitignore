@@ -73,4 +73,9 @@ apps/web/blob-report/
 apps/web/playwright/.cache/
 
 .vercel
+# A second, broader .env rule than the one at the top of this file, added with
+# the Vercel apps. It swallowed `!.env.example` along with everything else, so
+# the exception has to be restated after it or a new app's example file is
+# silently untracked (apps/api's was).
 .env*
+!.env.example

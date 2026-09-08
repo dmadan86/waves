@@ -90,6 +90,36 @@ export function plural(locale: string, count: number, forms: PluralForms): strin
   return (forms[rule] ?? forms.other).replaceAll('{n}', shown);
 }
 
+/**
+ * What each API scope actually lets an application do, in the reader's own
+ * language.
+ *
+ * The catalogue itself belongs to the server (`apps/api/src/server/scopes.ts`,
+ * duplicated in SQL so the database can refuse an unknown one). These are only
+ * the *words*, and they exist because the consent screen is the one place in
+ * Waves where somebody is asked to make a security decision — asking it in
+ * English of a person reading the rest of the app in Tamil is asking them to
+ * guess. A scope the server knows and this table does not falls back to the
+ * server's own sentence rather than being hidden.
+ *
+ * A type alias rather than an interface member written inline: an alias gets an
+ * implicit index signature, so the page can look a scope up by name.
+ */
+export type ScopeWords = {
+  'identity.read': string;
+  'identity.write': string;
+  'groups.read': string;
+  'groups.write': string;
+  'expenses.read': string;
+  'expenses.write': string;
+  'settlements.read': string;
+  'settlements.write': string;
+  'friends.read': string;
+  'categories.read': string;
+  'categories.write': string;
+  offline_access: string;
+};
+
 export interface WebStrings {
   /** The page somebody reaches by typing the domain in. */
   home: {
@@ -440,6 +470,93 @@ export interface WebStrings {
     csv: string;
     json: string;
     working: string;
+  };
+  /** The developer console: tokens, applications, and the consent screen. */
+  developers: {
+    title: string;
+    intro: string;
+    notConfigured: string;
+    notConfiguredBody: string;
+    copy: string;
+    copied: string;
+    copyFailed: string;
+    permissions: string;
+    signInAgain: string;
+    tokens: {
+      title: string;
+      body: string;
+      empty: string;
+      name: string;
+      namePlaceholder: string;
+      expiryDays: string;
+      expiryBody: string;
+      create: string;
+      creating: string;
+      revoke: string;
+      revoking: string;
+      revokedTag: string;
+      expiredTag: string;
+      expires: string;
+      neverExpires: string;
+      lastUsed: string;
+      neverUsed: string;
+      createdTitle: string;
+      onlyOnce: string;
+      prefix: string;
+    };
+    apps: {
+      title: string;
+      body: string;
+      empty: string;
+      name: string;
+      namePlaceholder: string;
+      description: string;
+      website: string;
+      redirects: string;
+      redirectsBody: string;
+      kind: string;
+      confidential: string;
+      publicClient: string;
+      register: string;
+      registering: string;
+      clientId: string;
+      rotate: string;
+      rotating: string;
+      enable: string;
+      disable: string;
+      disabledTag: string;
+      delete: string;
+      deleteConfirm: string;
+      deleting: string;
+      secretTitle: string;
+      secretOnce: string;
+      publicNote: string;
+    };
+    connections: {
+      title: string;
+      body: string;
+      empty: string;
+      connected: string;
+      lastUsed: string;
+      neverUsed: string;
+      disconnect: string;
+      disconnecting: string;
+    };
+    consent: {
+      title: string;
+      wants: string;
+      by: string;
+      website: string;
+      ableTo: string;
+      approve: string;
+      approving: string;
+      cancel: string;
+      refused: string;
+      refusedBody: string;
+      badRequest: string;
+      back: string;
+    };
+    scope: ScopeWords;
   };
   errors: {
     couldNotLoad: string;
@@ -799,6 +916,112 @@ const en: WebStrings = {
     csv: 'Download CSV',
     json: 'Download JSON',
     working: 'Building the file…',
+  },
+  developers: {
+    title: 'Developers',
+    intro:
+      'Build on your own Waves data: a token for a script of your own, or an application other people can connect to their accounts.',
+    notConfigured: 'The developer API is not configured for this deployment.',
+    notConfiguredBody:
+      'Set NEXT_PUBLIC_WAVES_API_URL to the address of the Waves API, then reload this page.',
+    copy: 'Copy',
+    copied: 'Copied',
+    copyFailed: 'Copy it by hand — the browser would not let the page do it for you.',
+    permissions: 'Permissions',
+    signInAgain: 'Your Waves session has expired. Sign in again, then open this link once more.',
+    tokens: {
+      title: 'Personal access tokens',
+      body: 'A token acts as you, limited to the permissions you tick. Treat one like a password and keep it out of anything you publish.',
+      empty: 'You have not made a token yet.',
+      name: 'What is it for?',
+      namePlaceholder: 'My backup script',
+      expiryDays: 'Expires after (days)',
+      expiryBody: 'Leave this empty for a token that never expires.',
+      create: 'Create token',
+      creating: 'Creating…',
+      revoke: 'Revoke',
+      revoking: 'Revoking…',
+      revokedTag: 'Revoked',
+      expiredTag: 'Expired',
+      expires: 'Expires {date}',
+      neverExpires: 'No expiry',
+      lastUsed: 'Last used {date}',
+      neverUsed: 'Never used',
+      createdTitle: 'Your new token',
+      onlyOnce:
+        'Copy it now. This is the only time it will ever be shown — Waves keeps a fingerprint of it and cannot show it to you again.',
+      prefix: 'Starts {prefix}',
+    },
+    apps: {
+      title: 'Applications',
+      body: 'An application asks other people for permission and then acts for them. Everyone who connects it sees the name and website you give here.',
+      empty: 'You have not registered an application.',
+      name: 'Name',
+      namePlaceholder: 'Trip Splitter',
+      description: 'What it does',
+      website: 'Website',
+      redirects: 'Redirect addresses',
+      redirectsBody:
+        'One per line. Waves will only ever send somebody back to an address listed here.',
+      kind: 'Where does it run?',
+      confidential: 'On a server, where it can keep a secret',
+      publicClient: 'On a phone or in a browser, where it cannot',
+      register: 'Register application',
+      registering: 'Registering…',
+      clientId: 'Client id',
+      rotate: 'New secret',
+      rotating: 'Making one…',
+      enable: 'Enable',
+      disable: 'Disable',
+      disabledTag: 'Disabled',
+      delete: 'Delete',
+      deleteConfirm: 'Delete for good?',
+      deleting: 'Deleting…',
+      secretTitle: 'Your new client secret',
+      secretOnce:
+        'Copy it now. This is the only time it will ever be shown, and making another one signs nobody out — it only stops the old one working.',
+      publicNote:
+        'A public client has no secret. PKCE is what proves a request really came from it.',
+    },
+    connections: {
+      title: 'Connected apps',
+      body: 'Applications you have allowed to act for you. Disconnecting one revokes every token it holds.',
+      empty: 'Nothing is connected to your account.',
+      connected: 'Connected {date}',
+      lastUsed: 'Last used {date}',
+      neverUsed: 'Not used yet',
+      disconnect: 'Disconnect',
+      disconnecting: 'Disconnecting…',
+    },
+    consent: {
+      title: 'Approve access',
+      wants: '{app} would like to act for you',
+      by: 'Registered by {owner}',
+      website: 'Website',
+      ableTo: 'It will be able to:',
+      approve: 'Approve',
+      approving: 'Approving…',
+      cancel: 'Cancel',
+      refused: 'Waves will not show this request.',
+      refusedBody:
+        'The application, the address it asked to be sent back to, or the permission it asked for is not what its developer registered. Nothing has been shared, and there is nothing here to approve.',
+      badRequest: 'This link is missing something Waves needs, so there is nothing to approve.',
+      back: 'Back to developers',
+    },
+    scope: {
+      'identity.read': 'See your name, avatar and default currency.',
+      'identity.write': 'Change your profile details.',
+      'groups.read': 'See your groups, who is in them and what each person is owed.',
+      'groups.write': 'Create groups, rename them, and add or remove people.',
+      'expenses.read': 'See the expenses in your groups.',
+      'expenses.write': 'Add, edit and delete expenses in your groups.',
+      'settlements.read': 'See payments recorded between you and other people.',
+      'settlements.write': 'Record and confirm payments on your behalf.',
+      'friends.read': 'See who you owe and who owes you, across every group.',
+      'categories.read': 'See your expense categories.',
+      'categories.write': 'Add, change and hide your expense categories.',
+      offline_access: 'Stay connected without asking you again.',
+    },
   },
   errors: {
     couldNotLoad: 'Couldn’t load this. Try again in a moment.',
@@ -1169,6 +1392,116 @@ const ta: WebStrings = {
     json: 'JSON பதிவிறக்கு',
     working: 'கோப்பு தயாராகிறது…',
   },
+  developers: {
+    title: 'உருவாக்குநர்கள்',
+    intro:
+      'உங்கள் Waves தரவின் மீது கட்டமையுங்கள்: உங்கள் சொந்த ஸ்கிரிப்ட்டுக்கு ஒரு டோக்கன், அல்லது மற்றவர்கள் தங்கள் கணக்குகளுடன் இணைக்கக்கூடிய ஒரு செயலி.',
+    notConfigured: 'இந்த நிறுவலில் டெவலப்பர் API அமைக்கப்படவில்லை.',
+    notConfiguredBody:
+      'NEXT_PUBLIC_WAVES_API_URL-ஐ Waves API முகவரிக்கு அமைத்து, இந்தப் பக்கத்தை மீண்டும் ஏற்றவும்.',
+    copy: 'நகலெடு',
+    copied: 'நகலெடுக்கப்பட்டது',
+    copyFailed: 'கையால் நகலெடுக்கவும் — உலாவி இந்தப் பக்கத்தை அதைச் செய்ய அனுமதிக்கவில்லை.',
+    permissions: 'அனுமதிகள்',
+    signInAgain:
+      'உங்கள் Waves அமர்வு காலாவதியாகிவிட்டது. மீண்டும் உள்நுழைந்து, இந்த இணைப்பை மறுபடியும் திறக்கவும்.',
+    tokens: {
+      title: 'தனிப்பட்ட அணுகல் டோக்கன்கள்',
+      body: 'ஒரு டோக்கன் உங்களைப் போலவே செயல்படும், நீங்கள் தேர்ந்தெடுத்த அனுமதிகளுக்கு மட்டும். அதைக் கடவுச்சொல்லாகக் கருதி, வெளியிடும் எதிலும் சேர்க்க வேண்டாம்.',
+      empty: 'நீங்கள் இன்னும் எந்த டோக்கனையும் உருவாக்கவில்லை.',
+      name: 'இது எதற்காக?',
+      namePlaceholder: 'என் காப்புப்பிரதி ஸ்கிரிப்ட்',
+      expiryDays: 'எத்தனை நாட்களில் காலாவதி',
+      expiryBody: 'காலாவதியாகாத டோக்கனுக்கு இதைக் காலியாக விடவும்.',
+      create: 'டோக்கனை உருவாக்கு',
+      creating: 'உருவாக்குகிறது…',
+      revoke: 'ரத்து செய்',
+      revoking: 'ரத்து செய்கிறது…',
+      revokedTag: 'ரத்து செய்யப்பட்டது',
+      expiredTag: 'காலாவதியானது',
+      expires: '{date} அன்று காலாவதியாகும்',
+      neverExpires: 'காலாவதி இல்லை',
+      lastUsed: 'கடைசியாக {date} அன்று பயன்படுத்தப்பட்டது',
+      neverUsed: 'பயன்படுத்தப்படவில்லை',
+      createdTitle: 'உங்கள் புதிய டோக்கன்',
+      onlyOnce:
+        'இப்போதே நகலெடுக்கவும். இது காட்டப்படும் ஒரே தருணம் இதுதான் — Waves அதன் கைரேகையை மட்டுமே வைத்திருப்பதால் மீண்டும் காட்ட முடியாது.',
+      prefix: '{prefix} என்று தொடங்குகிறது',
+    },
+    apps: {
+      title: 'செயலிகள்',
+      body: 'ஒரு செயலி மற்றவர்களிடம் அனுமதி கேட்டு அவர்களுக்காகச் செயல்படுகிறது. இணைக்கும் ஒவ்வொருவரும் நீங்கள் இங்கே தரும் பெயரையும் இணையதளத்தையும் பார்ப்பார்கள்.',
+      empty: 'நீங்கள் எந்தச் செயலியையும் பதிவு செய்யவில்லை.',
+      name: 'பெயர்',
+      namePlaceholder: 'பயணப் பங்கீடு',
+      description: 'இது என்ன செய்கிறது',
+      website: 'இணையதளம்',
+      redirects: 'திருப்பியனுப்பும் முகவரிகள்',
+      redirectsBody:
+        'ஒரு வரிக்கு ஒன்று. இங்கே பட்டியலிடப்பட்ட முகவரிக்கு மட்டுமே Waves ஒருவரைத் திருப்பி அனுப்பும்.',
+      kind: 'இது எங்கே இயங்குகிறது?',
+      confidential: 'ரகசியத்தைக் காக்கக்கூடிய ஒரு சேவையகத்தில்',
+      publicClient: 'தொலைபேசியிலோ உலாவியிலோ, அங்கே காக்க முடியாது',
+      register: 'செயலியைப் பதிவு செய்',
+      registering: 'பதிவு செய்கிறது…',
+      clientId: 'கிளையண்ட் ஐடி',
+      rotate: 'புதிய ரகசியம்',
+      rotating: 'உருவாக்குகிறது…',
+      enable: 'இயக்கு',
+      disable: 'முடக்கு',
+      disabledTag: 'முடக்கப்பட்டது',
+      delete: 'நீக்கு',
+      deleteConfirm: 'நிரந்தரமாக நீக்கவா?',
+      deleting: 'நீக்குகிறது…',
+      secretTitle: 'உங்கள் புதிய கிளையண்ட் ரகசியம்',
+      secretOnce:
+        'இப்போதே நகலெடுக்கவும். இது காட்டப்படும் ஒரே தருணம் இதுதான்; புதியது ஒன்றை உருவாக்குவது யாரையும் வெளியேற்றாது — பழையது வேலை செய்வதை மட்டும் நிறுத்தும்.',
+      publicNote:
+        'பொதுக் கிளையண்டுக்கு ரகசியம் இல்லை. கோரிக்கை அதிலிருந்துதான் வந்தது என்பதை PKCE நிரூபிக்கிறது.',
+    },
+    connections: {
+      title: 'இணைக்கப்பட்ட செயலிகள்',
+      body: 'உங்களுக்காகச் செயல்பட நீங்கள் அனுமதித்த செயலிகள். ஒன்றைத் துண்டித்தால் அது வைத்திருக்கும் எல்லா டோக்கன்களும் ரத்தாகும்.',
+      empty: 'உங்கள் கணக்குடன் எதுவும் இணைக்கப்படவில்லை.',
+      connected: '{date} அன்று இணைக்கப்பட்டது',
+      lastUsed: 'கடைசியாக {date} அன்று பயன்படுத்தப்பட்டது',
+      neverUsed: 'இன்னும் பயன்படுத்தப்படவில்லை',
+      disconnect: 'துண்டி',
+      disconnecting: 'துண்டிக்கிறது…',
+    },
+    consent: {
+      title: 'அணுகலை அனுமதி',
+      wants: '{app} உங்களுக்காகச் செயல்பட விரும்புகிறது',
+      by: '{owner} பதிவு செய்தது',
+      website: 'இணையதளம்',
+      ableTo: 'இது செய்யக்கூடியவை:',
+      approve: 'அனுமதி',
+      approving: 'அனுமதிக்கிறது…',
+      cancel: 'ரத்து',
+      refused: 'இந்தக் கோரிக்கையை Waves காட்டாது.',
+      refusedBody:
+        'செயலி, அது திரும்பக் கேட்ட முகவரி, அல்லது அது கேட்ட அனுமதி — இவற்றில் ஏதோ ஒன்று அதன் உருவாக்குநர் பதிவு செய்ததோடு ஒத்துப்போகவில்லை. எதுவும் பகிரப்படவில்லை; இங்கே அனுமதிக்க எதுவும் இல்லை.',
+      badRequest: 'இந்த இணைப்பில் Waves-க்குத் தேவையான ஒன்று இல்லை, எனவே அனுமதிக்க எதுவும் இல்லை.',
+      back: 'உருவாக்குநர்கள் பக்கத்திற்குத் திரும்பு',
+    },
+    scope: {
+      'identity.read': 'உங்கள் பெயர், படம், இயல்பு நாணயத்தைப் பார்க்கும்.',
+      'identity.write': 'உங்கள் சுயவிவரத்தை மாற்றும்.',
+      'groups.read': 'உங்கள் குழுக்கள், அவற்றில் உள்ளவர்கள், யாருக்கு எவ்வளவு என்பதைப் பார்க்கும்.',
+      'groups.write': 'குழுக்களை உருவாக்கும், பெயர் மாற்றும், ஆட்களைச் சேர்க்கும் அல்லது நீக்கும்.',
+      'expenses.read': 'உங்கள் குழுக்களின் செலவுகளைப் பார்க்கும்.',
+      'expenses.write': 'உங்கள் குழுக்களில் செலவுகளைச் சேர்க்கும், திருத்தும், நீக்கும்.',
+      'settlements.read':
+        'உங்களுக்கும் மற்றவர்களுக்கும் இடையே பதிவான பணப் பரிமாற்றங்களைப் பார்க்கும்.',
+      'settlements.write':
+        'உங்கள் சார்பாகப் பணப் பரிமாற்றங்களைப் பதிவு செய்யும், உறுதிப்படுத்தும்.',
+      'friends.read':
+        'எல்லாக் குழுக்களிலும் நீங்கள் யாருக்குத் தர வேண்டும், யார் உங்களுக்குத் தர வேண்டும் என்பதைப் பார்க்கும்.',
+      'categories.read': 'உங்கள் செலவு வகைகளைப் பார்க்கும்.',
+      'categories.write': 'உங்கள் செலவு வகைகளைச் சேர்க்கும், மாற்றும், மறைக்கும்.',
+      offline_access: 'மீண்டும் கேட்காமல் இணைந்திருக்கும்.',
+    },
+  },
   errors: {
     couldNotLoad: 'இதை ஏற்ற முடியவில்லை. சிறிது நேரத்தில் மீண்டும் முயலவும்.',
     couldNotSignIn: 'உள்நுழைய முடியவில்லை. மீண்டும் முயற்சிக்கவும்.',
@@ -1528,6 +1861,112 @@ const hi: WebStrings = {
     csv: 'CSV डाउनलोड करें',
     json: 'JSON डाउनलोड करें',
     working: 'फ़ाइल बन रही है…',
+  },
+  developers: {
+    title: 'डेवलपर',
+    intro:
+      'अपने Waves डेटा पर कुछ बनाइए: अपनी स्क्रिप्ट के लिए एक टोकन, या एक ऐप्लिकेशन जिसे दूसरे लोग अपने खाते से जोड़ सकें।',
+    notConfigured: 'इस परिनियोजन में डेवलपर API सेट नहीं है।',
+    notConfiguredBody:
+      'NEXT_PUBLIC_WAVES_API_URL को Waves API के पते पर सेट करें और यह पृष्ठ फिर से लोड करें।',
+    copy: 'कॉपी करें',
+    copied: 'कॉपी हो गया',
+    copyFailed: 'इसे हाथ से कॉपी करें — ब्राउज़र ने पृष्ठ को ऐसा करने नहीं दिया।',
+    permissions: 'अनुमतियाँ',
+    signInAgain: 'आपका Waves सत्र समाप्त हो गया है। फिर से साइन इन करें और यह लिंक दोबारा खोलें।',
+    tokens: {
+      title: 'निजी एक्सेस टोकन',
+      body: 'टोकन आपकी ओर से काम करता है, सिर्फ़ उन्हीं अनुमतियों तक जो आप चुनते हैं। इसे पासवर्ड मानिए और कहीं प्रकाशित मत कीजिए।',
+      empty: 'आपने अभी कोई टोकन नहीं बनाया है।',
+      name: 'यह किस काम के लिए है?',
+      namePlaceholder: 'मेरी बैकअप स्क्रिप्ट',
+      expiryDays: 'कितने दिनों में समाप्त',
+      expiryBody: 'कभी समाप्त न होने वाले टोकन के लिए इसे खाली छोड़ दें।',
+      create: 'टोकन बनाएँ',
+      creating: 'बन रहा है…',
+      revoke: 'रद्द करें',
+      revoking: 'रद्द किया जा रहा है…',
+      revokedTag: 'रद्द',
+      expiredTag: 'समाप्त',
+      expires: '{date} को समाप्त',
+      neverExpires: 'कोई समाप्ति नहीं',
+      lastUsed: 'आख़िरी बार {date} को इस्तेमाल',
+      neverUsed: 'कभी इस्तेमाल नहीं हुआ',
+      createdTitle: 'आपका नया टोकन',
+      onlyOnce:
+        'इसे अभी कॉपी कर लें। यह इसे दिखाने का इकलौता मौक़ा है — Waves के पास सिर्फ़ इसका फ़िंगरप्रिंट रहता है, इसलिए यह दोबारा नहीं दिखाया जा सकता।',
+      prefix: '{prefix} से शुरू',
+    },
+    apps: {
+      title: 'ऐप्लिकेशन',
+      body: 'ऐप्लिकेशन दूसरों से अनुमति माँगकर उनकी ओर से काम करता है। जोड़ने वाला हर व्यक्ति वही नाम और वेबसाइट देखेगा जो आप यहाँ देंगे।',
+      empty: 'आपने कोई ऐप्लिकेशन पंजीकृत नहीं किया है।',
+      name: 'नाम',
+      namePlaceholder: 'ट्रिप स्प्लिटर',
+      description: 'यह क्या करता है',
+      website: 'वेबसाइट',
+      redirects: 'वापसी पते',
+      redirectsBody: 'हर पंक्ति में एक। Waves किसी को सिर्फ़ यहाँ लिखे पते पर ही वापस भेजेगा।',
+      kind: 'यह कहाँ चलता है?',
+      confidential: 'सर्वर पर, जहाँ राज़ छिपाया जा सकता है',
+      publicClient: 'फ़ोन या ब्राउज़र में, जहाँ नहीं छिपाया जा सकता',
+      register: 'ऐप्लिकेशन पंजीकृत करें',
+      registering: 'पंजीकृत हो रहा है…',
+      clientId: 'क्लाइंट आईडी',
+      rotate: 'नया सीक्रेट',
+      rotating: 'बन रहा है…',
+      enable: 'चालू करें',
+      disable: 'बंद करें',
+      disabledTag: 'बंद',
+      delete: 'हटाएँ',
+      deleteConfirm: 'हमेशा के लिए हटाएँ?',
+      deleting: 'हटाया जा रहा है…',
+      secretTitle: 'आपका नया क्लाइंट सीक्रेट',
+      secretOnce:
+        'इसे अभी कॉपी कर लें। यह इसे दिखाने का इकलौता मौक़ा है; नया बनाने से कोई साइन आउट नहीं होता — बस पुराना काम करना बंद कर देता है।',
+      publicNote:
+        'सार्वजनिक क्लाइंट के पास सीक्रेट नहीं होता। अनुरोध वाक़ई उसी से आया है, यह PKCE साबित करता है।',
+    },
+    connections: {
+      title: 'जुड़े हुए ऐप',
+      body: 'वे ऐप्लिकेशन जिन्हें आपने अपनी ओर से काम करने दिया है। किसी का कनेक्शन तोड़ने पर उसके सारे टोकन रद्द हो जाते हैं।',
+      empty: 'आपके खाते से कुछ भी नहीं जुड़ा है।',
+      connected: '{date} को जुड़ा',
+      lastUsed: 'आख़िरी बार {date} को इस्तेमाल',
+      neverUsed: 'अभी इस्तेमाल नहीं हुआ',
+      disconnect: 'कनेक्शन तोड़ें',
+      disconnecting: 'तोड़ा जा रहा है…',
+    },
+    consent: {
+      title: 'पहुँच की अनुमति',
+      wants: '{app} आपकी ओर से काम करना चाहता है',
+      by: '{owner} द्वारा पंजीकृत',
+      website: 'वेबसाइट',
+      ableTo: 'यह ये कर सकेगा:',
+      approve: 'अनुमति दें',
+      approving: 'अनुमति दी जा रही है…',
+      cancel: 'रद्द करें',
+      refused: 'Waves यह अनुरोध नहीं दिखाएगा।',
+      refusedBody:
+        'ऐप्लिकेशन, जिस पते पर वापस भेजने को कहा गया, या जो अनुमति माँगी गई — इनमें से कुछ वैसा नहीं है जैसा उसके डेवलपर ने पंजीकृत किया था। कुछ भी साझा नहीं हुआ है और यहाँ अनुमति देने को कुछ नहीं है।',
+      badRequest:
+        'इस लिंक में वह चीज़ नहीं है जो Waves को चाहिए, इसलिए यहाँ अनुमति देने को कुछ नहीं है।',
+      back: 'डेवलपर पृष्ठ पर लौटें',
+    },
+    scope: {
+      'identity.read': 'आपका नाम, तस्वीर और डिफ़ॉल्ट मुद्रा देखना।',
+      'identity.write': 'आपकी प्रोफ़ाइल बदलना।',
+      'groups.read': 'आपके समूह, उनमें कौन है और किसका कितना बाक़ी है, यह देखना।',
+      'groups.write': 'समूह बनाना, नाम बदलना, और लोगों को जोड़ना या हटाना।',
+      'expenses.read': 'आपके समूहों के खर्च देखना।',
+      'expenses.write': 'आपके समूहों में खर्च जोड़ना, बदलना और हटाना।',
+      'settlements.read': 'आपके और दूसरों के बीच दर्ज भुगतान देखना।',
+      'settlements.write': 'आपकी ओर से भुगतान दर्ज करना और पक्का करना।',
+      'friends.read': 'हर समूह में आप किसके देनदार हैं और कौन आपका, यह देखना।',
+      'categories.read': 'आपकी खर्च श्रेणियाँ देखना।',
+      'categories.write': 'आपकी खर्च श्रेणियाँ जोड़ना, बदलना और छिपाना।',
+      offline_access: 'दोबारा पूछे बिना जुड़े रहना।',
+    },
   },
   errors: {
     couldNotLoad: 'यह लोड नहीं हो सका। थोड़ी देर में फिर कोशिश करें।',
@@ -1940,6 +2379,109 @@ const ar: WebStrings = {
     csv: 'تنزيل CSV',
     json: 'تنزيل JSON',
     working: 'يتم إنشاء الملف…',
+  },
+  developers: {
+    title: 'المطوّرون',
+    intro:
+      'ابنِ على بيانات Waves الخاصة بك: رمز لبرنامجك النصي، أو تطبيق يستطيع الآخرون ربطه بحساباتهم.',
+    notConfigured: 'واجهة المطوّرين غير مهيّأة في هذا النشر.',
+    notConfiguredBody: 'اضبط NEXT_PUBLIC_WAVES_API_URL على عنوان واجهة Waves ثم أعد تحميل الصفحة.',
+    copy: 'نسخ',
+    copied: 'تم النسخ',
+    copyFailed: 'انسخه يدويًا — لم يسمح المتصفّح للصفحة بفعل ذلك.',
+    permissions: 'الأذونات',
+    signInAgain: 'انتهت جلستك في Waves. سجّل الدخول من جديد ثم افتح هذا الرابط مرة أخرى.',
+    tokens: {
+      title: 'رموز الوصول الشخصية',
+      body: 'يتصرّف الرمز نيابةً عنك، ضمن الأذونات التي تختارها فقط. عامله ككلمة مرور ولا تضعه في أي شيء تنشره.',
+      empty: 'لم تُنشئ أي رمز بعد.',
+      name: 'لأي غرض هو؟',
+      namePlaceholder: 'برنامج النسخ الاحتياطي',
+      expiryDays: 'ينتهي بعد (أيام)',
+      expiryBody: 'اترك الحقل فارغًا لرمز لا ينتهي.',
+      create: 'إنشاء رمز',
+      creating: 'جارٍ الإنشاء…',
+      revoke: 'إبطال',
+      revoking: 'جارٍ الإبطال…',
+      revokedTag: 'مُبطَل',
+      expiredTag: 'منتهٍ',
+      expires: 'ينتهي في {date}',
+      neverExpires: 'بلا انتهاء',
+      lastUsed: 'آخر استخدام في {date}',
+      neverUsed: 'لم يُستخدم قط',
+      createdTitle: 'رمزك الجديد',
+      onlyOnce:
+        'انسخه الآن. هذه هي المرة الوحيدة التي يظهر فيها — إذ لا يحتفظ Waves إلا ببصمته ولا يمكنه عرضه ثانية.',
+      prefix: 'يبدأ بـ {prefix}',
+    },
+    apps: {
+      title: 'التطبيقات',
+      body: 'يطلب التطبيق الإذن من الآخرين ثم يتصرّف نيابةً عنهم. وكل من يربطه سيرى الاسم والموقع اللذين تكتبهما هنا.',
+      empty: 'لم تسجّل أي تطبيق.',
+      name: 'الاسم',
+      namePlaceholder: 'مقسّم الرحلات',
+      description: 'ماذا يفعل',
+      website: 'الموقع الإلكتروني',
+      redirects: 'عناوين الإعادة',
+      redirectsBody: 'عنوان في كل سطر. لن يعيد Waves أحدًا إلا إلى عنوان مذكور هنا.',
+      kind: 'أين يعمل؟',
+      confidential: 'على خادم يستطيع حفظ السر',
+      publicClient: 'على هاتف أو في متصفّح، حيث لا يستطيع',
+      register: 'تسجيل التطبيق',
+      registering: 'جارٍ التسجيل…',
+      clientId: 'معرّف العميل',
+      rotate: 'سر جديد',
+      rotating: 'جارٍ الإنشاء…',
+      enable: 'تفعيل',
+      disable: 'تعطيل',
+      disabledTag: 'معطّل',
+      delete: 'حذف',
+      deleteConfirm: 'حذف نهائي؟',
+      deleting: 'جارٍ الحذف…',
+      secretTitle: 'سرّ العميل الجديد',
+      secretOnce:
+        'انسخه الآن. هذه هي المرة الوحيدة التي يظهر فيها؛ وإنشاء سرّ جديد لا يُخرج أحدًا — إنما يوقف عمل السرّ القديم.',
+      publicNote: 'العميل العام بلا سر، وPKCE هو ما يثبت أن الطلب جاء منه فعلًا.',
+    },
+    connections: {
+      title: 'التطبيقات المرتبطة',
+      body: 'تطبيقات سمحت لها بالتصرّف نيابةً عنك. وفصل أحدها يُبطل كل رموزه.',
+      empty: 'لا شيء مرتبط بحسابك.',
+      connected: 'ارتبط في {date}',
+      lastUsed: 'آخر استخدام في {date}',
+      neverUsed: 'لم يُستخدم بعد',
+      disconnect: 'فصل',
+      disconnecting: 'جارٍ الفصل…',
+    },
+    consent: {
+      title: 'الموافقة على الوصول',
+      wants: 'يريد {app} التصرّف نيابةً عنك',
+      by: 'سجّله {owner}',
+      website: 'الموقع الإلكتروني',
+      ableTo: 'سيتمكّن من:',
+      approve: 'موافقة',
+      approving: 'جارٍ الموافقة…',
+      cancel: 'إلغاء',
+      refused: 'لن يعرض Waves هذا الطلب.',
+      refusedBody:
+        'التطبيق، أو العنوان الذي طلب الإعادة إليه، أو الإذن الذي طلبه، لا يطابق ما سجّله مطوّره. لم تتم مشاركة أي شيء ولا يوجد هنا ما يُوافَق عليه.',
+      badRequest: 'ينقص هذا الرابط شيء يحتاجه Waves، فلا يوجد ما يُوافَق عليه.',
+      back: 'العودة إلى صفحة المطوّرين',
+    },
+    scope: {
+      'identity.read': 'رؤية اسمك وصورتك وعملتك الافتراضية.',
+      'identity.write': 'تغيير بيانات ملفك الشخصي.',
+      'groups.read': 'رؤية مجموعاتك ومن فيها وما على كل شخص.',
+      'groups.write': 'إنشاء المجموعات وإعادة تسميتها وإضافة الأشخاص أو إزالتهم.',
+      'expenses.read': 'رؤية المصروفات في مجموعاتك.',
+      'expenses.write': 'إضافة المصروفات في مجموعاتك وتعديلها وحذفها.',
+      'settlements.read': 'رؤية المدفوعات المسجّلة بينك وبين الآخرين.',
+      'settlements.write': 'تسجيل المدفوعات وتأكيدها نيابةً عنك.',
+      'friends.read': 'رؤية من تدين له ومن يدين لك، في كل المجموعات.',
+      'categories.read': 'رؤية فئات مصروفاتك.',
+      'categories.write': 'إضافة فئات مصروفاتك وتغييرها وإخفاؤها.',
+      offline_access: 'البقاء متصلًا دون أن يسألك مرة أخرى.',
+    },
   },
   errors: {
     couldNotLoad: 'تعذّر تحميل هذا. حاول بعد قليل.',

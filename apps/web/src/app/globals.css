@@ -594,6 +594,31 @@
   .row-field > select {
     @apply flex-1;
   }
+  /* A control several lines tall — the redirect addresses, one per line. The
+     shared input rule is a single underline, which reads as one field with a
+     stray box around it once the content wraps. */
+  .textarea {
+    @apply block w-full rounded-[9px] border border-line-strong bg-app-surface px-[11px] py-[9px] text-[14px] text-ink;
+    font-family: inherit;
+  }
+  .textarea:focus {
+    border-color: var(--color-accent);
+  }
+
+  /* Machine text: a token, a client id, a redirect address. Monospaced and
+     always laid out left-to-right — in Arabic the page reads the other way and
+     a credential that reorders itself is a credential somebody mistypes. */
+  .code {
+    @apply text-[12.5px] text-ink-muted;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  /* The plaintext of a credential, on the one occasion it is ever shown. Its
+     own box, selectable, and wide enough to double-click — nothing about it
+     should look like prose that can be skimmed past. */
+  .secret {
+    @apply mt-2 block w-full select-all break-all rounded-[9px] border border-line-strong bg-app-surface px-3 py-[10px] text-[13px] text-ink;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
 
   .btn {
     @apply inline-flex w-auto cursor-pointer appearance-none items-center justify-center gap-2 rounded-[9px] border-0 px-[18px] py-[10px] text-[14px] font-semibold text-white no-underline;

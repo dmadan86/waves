@@ -15,6 +15,7 @@
     "test:db:scenario": "pnpm --filter @waves/db run test:scenario",
     "test:app": "pnpm --filter @waves/mobile run test",
     "test:api": "pnpm --filter @waves/api-client run test",
+    "test:api-server": "pnpm --filter @waves/api run test",
     "test:web": "pnpm --filter @waves/web run test",
     "test:mcp": "pnpm --filter @waves/agent-mcp run test",
     "test:edge": "vitest run --config supabase/functions/vitest.config.ts",
@@ -22,6 +23,7 @@
     "website": "pnpm --filter @waves/website run dev",
     "docs": "pnpm --filter @waves/docs run dev",
     "admin": "pnpm --filter @waves/admin run dev",
+    "api": "pnpm --filter @waves/api run dev",
     "db:generate": "pnpm --filter @waves/db run generate",
     "db:migrate": "pnpm --filter @waves/db run migrate:deploy",
     "db:migrate:dev": "pnpm --filter @waves/db run migrate:dev",
@@ -43,6 +45,7 @@
     "coverage:db": "pnpm --filter @waves/db run coverage",
     "coverage:app": "pnpm --filter @waves/mobile run coverage",
     "coverage:api": "pnpm --filter @waves/api-client run coverage",
+    "coverage:api-server": "pnpm --filter @waves/api run coverage",
     "coverage:web": "pnpm --filter @waves/web run coverage",
     "coverage:admin": "pnpm --filter @waves/admin run coverage",
     "coverage:watches": "pnpm --filter @waves/mobile run coverage:watches"

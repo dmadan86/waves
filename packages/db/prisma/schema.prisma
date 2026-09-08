@@ -199,6 +199,9 @@ model Profile {
   storageObjects      StorageObject[]
   voiceSttUsage       VoiceSttUsage[]
   voiceAttempts       VoiceAttempt[]
+  apiApps             ApiApp[]
+  apiTokens           ApiToken[]
+  apiCodes            ApiAuthorizationCode[]
 
   @@map("profiles")
   @@schema("public")
@@ -1855,5 +1858,95 @@ model CountrySetting {
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@map("country_settings")
+  @@schema("public")
+}
+
+// ─────────────────────────────────────────── the developer API (A65) ──
+
+/// A third-party application registered by a Waves developer. The client secret
+/// is stored only as a SHA-256; a null one means a public client, which cannot
+/// keep a secret and must therefore prove itself with PKCE and a registered
+/// redirect instead. Shape rules Prisma cannot express — the scope catalogue,
+/// the redirect-URI grammar, the per-developer ceiling — live as CHECK
+/// constraints and definer functions in the migration.
+model ApiApp {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ownerProfileId   String    @map("owner_profile_id") @db.Uuid
+  name             String
+  description      String    @default("")
+  websiteUrl       String?   @map("website_url")
+  clientId         String    @unique @map("client_id")
+  clientSecretHash String?   @map("client_secret_hash")
+  redirectUris     String[]  @map("redirect_uris")
+  scopes           String[]
+  disabledAt       DateTime? @map("disabled_at") @db.Timestamptz(6)
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  owner  Profile               @relation(fields: [ownerProfileId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  tokens ApiToken[]
+  codes  ApiAuthorizationCode[]
+
+  @@index([ownerProfileId, createdAt(sort: Desc)], map: "api_apps_owner_idx")
+  @@map("api_apps")
+  @@schema("public")
+}
+
+/// Personal access tokens and OAuth access/refresh tokens in one table, because
+/// they are the same object: a hashed secret, the person it acts as, and the
+/// scopes that bound it. Only the SHA-256 is kept — the plaintext is shown once
+/// and is never recoverable. `parentId` ties an access token to the refresh
+/// token that minted it, so revoking or rotating the one takes the other along.
+model ApiToken {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  profileId   String    @map("profile_id") @db.Uuid
+  /// Null for a personal token: nobody is acting on anybody's behalf.
+  appId       String?   @map("app_id") @db.Uuid
+  /// 'personal' | 'access' | 'refresh' (CHECK in the migration).
+  kind        String
+  name        String?
+  tokenHash   String    @unique @map("token_hash")
+  /// The first few characters, so a list can identify a token without holding it.
+  tokenPrefix String    @map("token_prefix")
+  scopes      String[]
+  parentId    String?   @map("parent_id") @db.Uuid
+  expiresAt   DateTime? @map("expires_at") @db.Timestamptz(6)
+  lastUsedAt  DateTime? @map("last_used_at") @db.Timestamptz(6)
+  revokedAt   DateTime? @map("revoked_at") @db.Timestamptz(6)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  profile  Profile    @relation(fields: [profileId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  app      ApiApp?    @relation(fields: [appId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  parent   ApiToken?  @relation("ApiTokenLineage", fields: [parentId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  children ApiToken[] @relation("ApiTokenLineage")
+
+  @@index([profileId, createdAt(sort: Desc)], map: "api_tokens_profile_idx")
+  @@index([appId, profileId], map: "api_tokens_app_idx")
+  @@map("api_tokens")
+  @@schema("public")
+}
+
+/// The short-lived middle of the OAuth authorization-code flow. Single use: the
+/// consuming UPDATE is guarded on `consumedAt IS NULL`, so two clients racing
+/// the same code produce one token pair and one refusal. Unreachable by any
+/// client role — the definer functions are the only door.
+model ApiAuthorizationCode {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  appId         String    @map("app_id") @db.Uuid
+  profileId     String    @map("profile_id") @db.Uuid
+  codeHash      String    @unique @map("code_hash")
+  redirectUri   String    @map("redirect_uri")
+  scopes        String[]
+  /// PKCE S256 only; a `plain` challenge is no challenge at all.
+  codeChallenge String    @map("code_challenge")
+  expiresAt     DateTime  @map("expires_at") @db.Timestamptz(6)
+  consumedAt    DateTime? @map("consumed_at") @db.Timestamptz(6)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  app     ApiApp  @relation(fields: [appId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([expiresAt], map: "api_authorization_codes_expiry_idx")
+  @@map("api_authorization_codes")
   @@schema("public")
 }
