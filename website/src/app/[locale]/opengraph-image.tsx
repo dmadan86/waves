@@ -4,7 +4,7 @@ import { site } from '@/lib/site';
 
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
-export const alt = 'Waves';
+export const alt = 'Waves — every bill split, every debt settled';
 
 /**
  * The share card. The wordmark and tagline stay in English in every locale on
@@ -21,7 +21,7 @@ export default function OpengraphImage() {
         flexDirection: 'column',
         justifyContent: 'space-between',
         padding: 80,
-        background: 'linear-gradient(135deg, #08080F 0%, #2E1E6B 55%, #4326A6 100%)',
+        background: '#0d0e10',
         color: 'white',
         fontFamily: 'sans-serif',
       }}
@@ -31,8 +31,8 @@ export default function OpengraphImage() {
           style={{
             width: 68,
             height: 68,
-            borderRadius: 20,
-            background: 'linear-gradient(135deg, #B4A5FB 0%, #7A5AF8 55%, #F97316 100%)',
+            borderRadius: 10,
+            background: '#9880f9',
           }}
         />
         <div style={{ fontSize: 46, fontWeight: 700, letterSpacing: -1.5 }}>Waves</div>
@@ -51,11 +51,11 @@ export default function OpengraphImage() {
             lineHeight: 1.05,
           }}
         >
-          <span>Money between friends,</span>
-          <span>finally weightless.</span>
+          <span>Every bill, split.</span>
+          <span style={{ color: '#9880f9' }}>Every debt, settled.</span>
         </div>
         <div style={{ fontSize: 30, color: 'rgba(255,255,255,0.66)' }}>
-          Split anything. Settle anywhere. Works offline.
+          Any currency. Works offline. Waves never holds your money.
         </div>
       </div>
 

@@ -1,7 +1,7 @@
 import type { Dictionary } from '@/i18n/dictionaries';
-import { AppPreview } from './app-preview';
-import { ArrowRight } from './icons';
+import { LedgerCard } from './ledger-card';
 import { Reveal } from './reveal';
+import { StoreBadges } from './store-badges';
 import { Button, Container } from './ui';
 
 export function Hero({
@@ -14,68 +14,85 @@ export function Hero({
   appUrl: string;
 }) {
   return (
-    <section className="relative overflow-hidden pt-32 pb-20 sm:pt-40 sm:pb-28">
+    <section className="relative overflow-hidden border-b border-line pt-24 pb-14 sm:pt-28 sm:pb-20">
+      {/*
+       * Ruled paper, faint, behind the whole opening. It is the ledger's own
+       * texture rather than a decorative glow, and it stops at the fold so the
+       * rest of the page reads as a different surface.
+       */}
+      <div
+        aria-hidden="true"
+        className="ruled pointer-events-none absolute inset-0 -z-10 opacity-60 [--rule:32px] [mask-image:linear-gradient(to_bottom,#000_20%,transparent_92%)]"
+      />
+
       <Container>
-        <div className="grid items-center gap-16 lg:grid-cols-[1.05fr_0.95fr] lg:gap-10">
+        <div className="grid items-center gap-14 lg:grid-cols-[1fr_0.92fr] lg:gap-16">
           <div>
             <Reveal>
               <a
                 href="#pricing"
-                className="group inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] py-1.5 ps-4 pe-2.5 text-xs text-white/70 transition-colors hover:border-white/25 hover:text-white sm:text-sm"
+                className="inline-flex items-center gap-2 rounded-md border border-line px-2.5 py-1.5 font-mono text-[0.6875rem] tracking-[0.06em] text-ink-2 transition-colors duration-150 hover:border-line-strong hover:text-ink"
               >
-                <span className="relative flex h-1.5 w-1.5">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-400 opacity-75" />
-                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-brand-300" />
-                </span>
+                <span
+                  aria-hidden="true"
+                  className="animate-blink h-1.5 w-1.5 rounded-full bg-accent"
+                />
                 {banner.text}
-                <ArrowRight className="h-3.5 w-3.5 opacity-60 transition-transform group-hover:translate-x-0.5 rtl:-scale-x-100 rtl:group-hover:-translate-x-0.5" />
+                {/* The pill's text is a statement; without this the link has no
+                    stated destination. */}
+                <span className="text-accent">{banner.link}</span>
               </a>
             </Reveal>
 
-            <Reveal delay={60}>
-              <p className="mt-8 text-xs font-medium tracking-[0.2em] text-brand-200/80 uppercase">
-                {t.eyebrow}
-              </p>
-            </Reveal>
-
-            <Reveal delay={80}>
-              <h1 className="mt-4 text-balance text-[2.6rem] leading-[0.98] font-semibold tracking-[-0.045em] text-white sm:text-6xl lg:text-[4.25rem]">
-                {t.titleLine1}{' '}
-                <span className="font-display text-gradient italic">{t.titleAccent}</span>
+            <Reveal delay={50}>
+              <h1 className="mt-7 text-balance text-[2.75rem] leading-[1.02] font-semibold tracking-[-0.04em] text-ink sm:text-[3.75rem] lg:text-[4.25rem]">
+                {t.titleLine1}
+                <br />
+                <span className="text-accent">{t.titleAccent}</span>
               </h1>
             </Reveal>
 
-            <Reveal delay={160}>
-              <p className="mt-6 max-w-xl text-pretty text-base leading-relaxed text-white/60 sm:text-lg">
+            <Reveal delay={100}>
+              <p className="mt-6 max-w-lg text-pretty text-[1.0625rem] leading-[1.6] text-ink-2">
                 {t.subtitle}
               </p>
             </Reveal>
 
-            <Reveal delay={240}>
-              <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <Reveal delay={150}>
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
                 <Button href={appUrl} external size="lg">
                   {t.ctaPrimary}
                 </Button>
-                <Button href="#how" variant="ghost" size="lg">
+                <Button href="#how" variant="quiet" size="lg">
                   {t.ctaSecondary}
                 </Button>
               </div>
             </Reveal>
 
-            <Reveal delay={320}>
-              <p className="mt-7 text-sm text-white/40">{t.trust}</p>
+            <Reveal delay={200}>
+              <StoreBadges t={t.stores} className="mt-7" />
+            </Reveal>
+
+            <Reveal delay={240}>
+              {/*
+               * Four claims a sceptic can check, set as data rather than as a
+               * sentence — no adjectives, no superlatives.
+               */}
+              <ul className="mt-7 flex flex-wrap gap-x-5 gap-y-2 font-mono text-[0.75rem] text-ink-3">
+                {t.facts.map((fact) => (
+                  <li key={fact} className="flex items-center gap-1.5">
+                    <span aria-hidden="true" className="text-accent">
+                      ·
+                    </span>
+                    {fact}
+                  </li>
+                ))}
+              </ul>
             </Reveal>
           </div>
 
-          <Reveal delay={200} className="lg:justify-self-end">
-            <AppPreview
-              title={t.cardTitle}
-              members={t.cardMembers}
-              balanceLabel={t.cardBalanceLabel}
-              balance={t.cardBalance}
-              rows={t.cardRows}
-              settle={t.cardSettle}
-            />
+          <Reveal delay={120} className="lg:justify-self-end lg:ps-4">
+            <LedgerCard t={t.card} />
           </Reveal>
         </div>
       </Container>

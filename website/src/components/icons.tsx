@@ -136,3 +136,81 @@ export const Close = (p: IconProps) => (
     <path d="m6 6 12 12M18 6 6 18" />
   </Svg>
 );
+
+export const Sun = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="12" cy="12" r="4" />
+    <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+  </Svg>
+);
+
+export const Moon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M20 14.2A8.2 8.2 0 0 1 9.8 4 8.2 8.2 0 1 0 20 14.2Z" />
+  </Svg>
+);
+
+/** The "follow the system" state of the theme control. */
+export const System = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="2.5" y="4" width="19" height="13" rx="2" />
+    <path d="M8.5 21h7" />
+  </Svg>
+);
+
+export const Plus = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M12 5v14M5 12h14" />
+  </Svg>
+);
+
+export const Minus = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M5 12h14" />
+  </Svg>
+);
+
+/* Platform glyphs. These are our own line drawings used beside a word, not a
+   reproduction of either vendor's badge artwork — see store-badges.tsx. */
+export const Apple = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M16.2 12.4c0-2.3 1.9-3.4 2-3.4-1.1-1.6-2.8-1.8-3.4-1.9-1.4-.1-2.8.9-3.5.9s-1.8-.8-3-.8c-1.5 0-2.9.9-3.7 2.3-1.6 2.7-.4 6.8 1.1 9 .7 1.1 1.6 2.3 2.8 2.3 1.1 0 1.5-.7 2.9-.7s1.7.7 2.9.7 2-1.1 2.7-2.1c.9-1.2 1.2-2.4 1.2-2.4s-2-.8-2-3.9Z" />
+    <path d="M14 5.2c.6-.7 1-1.7.9-2.7-.9 0-2 .6-2.6 1.3-.6.6-1.1 1.7-1 2.6 1 .1 2-.5 2.7-1.2Z" />
+  </Svg>
+);
+
+export const Android = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M5 10.5h14v7a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 17.5v-7Z" />
+    <path d="M5 10.5a7 7 0 0 1 14 0M8.5 6.2 7.2 4M15.5 6.2 16.8 4" />
+    <path d="M2.6 11.7v3.6M21.4 11.7v3.6M9 19v2M15 19v2" />
+  </Svg>
+);
+
+export const Search = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="11" cy="11" r="6.5" />
+    <path d="m16 16 4.5 4.5" />
+  </Svg>
+);
+
+export const Eye = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" />
+    <circle cx="12" cy="12" r="3" />
+  </Svg>
+);
+
+export const EyeOff = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M4 4l16 16" />
+    <path d="M9.7 5.9A9.6 9.6 0 0 1 12 5.5c6 0 9.5 6.5 9.5 6.5a17 17 0 0 1-3.3 4M6.4 7.9A17 17 0 0 0 2.5 12S6 18.5 12 18.5c1 0 1.9-.2 2.7-.5" />
+  </Svg>
+);
+
+export const Alert = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M12 8.5v5M12 17h.01" />
+    <circle cx="12" cy="12" r="9" />
+  </Svg>
+);
