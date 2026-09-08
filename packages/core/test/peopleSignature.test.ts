@@ -19,6 +19,13 @@ describe('a set of people as one key', () => {
     expect(peopleSignatureKey(['  ravi ', 'SAM'])).toBe(peopleSignatureKey(['Ravi', 'Sam']));
   });
 
+  it('ignores accents so typed or spoken names reuse the same existing group', () => {
+    expect(peopleSignatureKey(['José', 'Chloé'])).toBe(peopleSignatureKey(['jose', 'chloe']));
+    expect(peopleSignatureKey(['São Paulo Rider', 'Financé'])).toBe(
+      peopleSignatureKey(['Sao Paulo Rider', 'Finance']),
+    );
+  });
+
   it('counts the same person named twice once', () => {
     expect(peopleSignatureKey(['Ravi', 'ravi', 'Sam'])).toBe(peopleSignatureKey(['Ravi', 'Sam']));
   });
