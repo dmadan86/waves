@@ -265,11 +265,14 @@ export function LocationPickerSheet({
                 />
               </View>
 
-              {/* Zoom controls, stacked at the trailing edge. */}
+              {/* Zoom controls, stacked at the trailing edge — `end`, not
+                  `right`, so "trailing" is true in Arabic too. `right` pins them
+                  to the same side of the glass in both directions, which put
+                  them under the reading hand in RTL. */}
               <View
                 style={{
                   position: 'absolute',
-                  right: theme.spacing.lg,
+                  end: theme.spacing.lg,
                   top: theme.spacing.lg,
                   gap: theme.spacing.sm,
                 }}
@@ -300,17 +303,21 @@ export function LocationPickerSheet({
                 ))}
               </View>
 
-              {/* Attribution — required by the tile licence (OSM data, CARTO tiles). */}
+              {/* Attribution — required by the tile licence (OSM data, CARTO
+                  tiles). Pinned to the trailing corner and rounded on the corner
+                  that faces into the map, both of which flip with the direction:
+                  under RTL a `borderTopLeftRadius` would have rounded the corner
+                  against the screen edge instead. */}
               <View
                 pointerEvents="none"
                 style={{
                   position: 'absolute',
-                  right: 0,
+                  end: 0,
                   bottom: 0,
                   paddingHorizontal: 4,
                   paddingVertical: 2,
                   backgroundColor: 'rgba(255, 255, 255, 0.7)',
-                  borderTopLeftRadius: theme.radius.sm,
+                  borderTopStartRadius: theme.radius.sm,
                 }}
               >
                 <Text variant="micro" style={{ color: '#333', fontSize: 9 }}>
@@ -336,30 +343,36 @@ export function LocationPickerSheet({
           <Text variant="micro" tone="muted" align="center">
             {t.location.pickerHint}
           </Text>
-          <Row style={{ gap: theme.spacing.md }}>
-            <View style={{ flex: 1 }}>
-              <Button
-                label={t.location.useCurrentLocation}
-                variant="secondary"
-                disabled={locating || saving}
-                onPress={() => void snapToCurrentLocation()}
-                icon={
-                  locating ? (
-                    <ActivityIndicator color={theme.color.brand} />
-                  ) : (
-                    <Ionicons name="locate" size={iconSize.md} color={theme.color.brand} />
-                  )
-                }
-              />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Button
-                label={t.location.usePlace}
-                disabled={saving || locating}
-                onPress={() => void confirm()}
-              />
-            </View>
-          </Row>
+          {/* Stacked, not side by side. These two labels are wildly unequal —
+              "Use my current location" against "Use this place" — so splitting
+              the footer into equal halves left the long one about 105pt of text
+              room after the button's own padding and the locate glyph, which is
+              roughly a third of what it needs. It wrapped inside a button whose
+              height is fixed, while its short neighbour sat in the same width
+              with room to spare: two controls the same size, one crammed and one
+              loose, and no shared edge between their labels. Full width each
+              gives both a single line and one left and right edge down the
+              footer. The confirm sits closest to the thumb. */}
+          <Button
+            label={t.location.useCurrentLocation}
+            variant="secondary"
+            fullWidth
+            disabled={locating || saving}
+            onPress={() => void snapToCurrentLocation()}
+            icon={
+              locating ? (
+                <ActivityIndicator color={theme.color.brand} />
+              ) : (
+                <Ionicons name="locate" size={iconSize.md} color={theme.color.brand} />
+              )
+            }
+          />
+          <Button
+            label={t.location.usePlace}
+            fullWidth
+            disabled={saving || locating}
+            onPress={() => void confirm()}
+          />
         </View>
       </View>
     </Modal>
