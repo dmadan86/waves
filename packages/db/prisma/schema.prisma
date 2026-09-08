@@ -1723,7 +1723,10 @@ model AppConfig {
 /// on purpose: the row is a counter, and losing it with the account is fine.
 model PersonLookup {
   profileId String   @map("profile_id") @db.Uuid
-  day       DateTime @default(dbgenerated("(now() AT TIME ZONE 'utc')::date")) @db.Date
+  /// No default: `waves_spend_person_lookup` always writes the day, and a
+  /// `now() AT TIME ZONE 'utc'` default is normalised by Postgres into a form
+  /// `dbgenerated` cannot match, which reads as permanent drift.
+  day       DateTime @db.Date
   lookups   Int      @default(0)
 
   @@id([profileId, day])

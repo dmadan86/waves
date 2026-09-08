@@ -239,7 +239,12 @@ GRANT EXECUTE ON FUNCTION public.waves_person_profile(text) TO authenticated, se
 -- changing it should not need a release.
 CREATE TABLE IF NOT EXISTS public.person_lookups (
     profile_id uuid NOT NULL,
-    day        date NOT NULL DEFAULT (now() AT TIME ZONE 'utc')::date,
+    -- No column default on purpose. `waves_spend_person_lookup` always supplies
+    -- the day explicitly, so a default would never fire — and Postgres
+    -- normalises a `now() AT TIME ZONE 'utc'` default into a form Prisma's
+    -- `dbgenerated` string cannot match, which shows up as permanent schema
+    -- drift in CI. A default nobody uses is not worth a failing check forever.
+    day        date NOT NULL,
     lookups    integer NOT NULL DEFAULT 0,
     CONSTRAINT person_lookups_pkey PRIMARY KEY (profile_id, day),
     CONSTRAINT person_lookups_count_nonneg CHECK (lookups >= 0)
