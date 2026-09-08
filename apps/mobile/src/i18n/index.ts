@@ -1807,6 +1807,53 @@ export interface UiStrings {
     /** Spoken hint on a tappable person row: where the tap goes. */
     seeSharedGroups: string;
   };
+  /** One person's profile, finding a person, and your own say in both. */
+  person: {
+    title: string;
+    you: string;
+    sharedGroups: PluralForms;
+    contact: string;
+    phone: string;
+    email: string;
+    paidVia: string;
+    /** They have an account but keep contact private. Carries `{name}`. */
+    contactWithheld: string;
+    /** They allow it, but there is genuinely nothing on the account. */
+    noContact: string;
+    /** A ghost — no account, so no contact to withhold or to show. */
+    ghostContact: string;
+    call: string;
+    message: string;
+    copy: string;
+    copied: string;
+    notFound: string;
+    notFoundBody: string;
+    findTitle: string;
+    findHint: string;
+    findPlaceholder: string;
+    findAction: string;
+    findNoMatch: string;
+    /** Deliberately covers "nobody uses that" and "they opted out" in one
+     *  sentence, because the server refuses to tell the two apart. */
+    findNoMatchBody: string;
+    findRateLimited: string;
+    alreadyShared: string;
+    /** The Settings row that opens the discovery screen. */
+    discoveryRow: string;
+    discoveryRowHint: string;
+    discoveryTitle: string;
+    discoveryIntro: string;
+    discoveryPhone: string;
+    discoveryPhoneHint: string;
+    discoveryEmail: string;
+    discoveryEmailHint: string;
+    visibilityTitle: string;
+    visibilityGroups: string;
+    visibilityGroupsHint: string;
+    visibilityNobody: string;
+    visibilityNobodyHint: string;
+    discoveryFootnote: string;
+  };
   /** Adding and editing an expense, and reading one off a bill. */
   expense: {
     edit: string;
@@ -4196,6 +4243,49 @@ const en: UiStrings = {
     reminded: 'Reminded',
     remindedToday: 'Nudged today',
     seeSharedGroups: 'Opens the groups you share with them',
+  },
+  person: {
+    title: 'Profile',
+    you: 'You',
+    sharedGroups: { one: '{n} group in common', other: '{n} groups in common' },
+    contact: 'Contact',
+    phone: 'Phone',
+    email: 'Email',
+    paidVia: 'Gets paid at',
+    contactWithheld: '{name} keeps their contact details to themselves.',
+    noContact: 'No phone or email on this account.',
+    ghostContact: 'Not on Waves yet, so there is nothing to show here.',
+    call: 'Call',
+    message: 'Message',
+    copy: 'Copy',
+    copied: 'Copied',
+    notFound: 'Nothing to show',
+    notFoundBody: 'You share no groups with this person any more.',
+    findTitle: 'Find someone',
+    findHint: 'Type the exact email address or phone number they use on Waves.',
+    findPlaceholder: 'Email or phone',
+    findAction: 'Search',
+    findNoMatch: 'No match',
+    findNoMatchBody: 'Nobody uses that, or they have chosen not to be found by it.',
+    findRateLimited: 'That is enough searching for today. Try again tomorrow.',
+    alreadyShared: 'Already in a group with you',
+    discoveryRow: 'How people find you',
+    discoveryRowHint: 'Being searched for, and what group-mates can see',
+    discoveryTitle: 'How people find you',
+    discoveryIntro:
+      'Somebody who already has your number or your address can look you up on Waves. Nobody can browse for you, and no search is ever by name.',
+    discoveryPhone: 'Find me by my phone number',
+    discoveryPhoneHint:
+      'Only an exact match. Turning this off does not remove you from groups you are already in.',
+    discoveryEmail: 'Find me by my email address',
+    discoveryEmailHint: 'Only an exact match, and only the address on this account.',
+    visibilityTitle: 'On your profile',
+    visibilityGroups: 'People I share a group with',
+    visibilityGroupsHint: 'They can see your phone and email on your profile.',
+    visibilityNobody: 'Nobody',
+    visibilityNobodyHint: 'Your phone and email stay hidden, even from group-mates.',
+    discoveryFootnote:
+      'Somebody who found you by typing your number will see that number — they already had it. None of this ever changes who owes what.',
   },
   expense: {
     edit: 'Edit expense',
@@ -6619,6 +6709,53 @@ const ta: UiStrings = {
     reminded: 'நினைவூட்டப்பட்டது',
     remindedToday: 'இன்று நினைவூட்டிவிட்டீர்கள்',
     seeSharedGroups: 'நீங்கள் இருவரும் பகிரும் குழுக்களைத் திறக்கும்',
+  },
+  person: {
+    title: 'சுயவிவரம்',
+    you: 'நீங்கள்',
+    sharedGroups: { one: 'பொதுவாக {n} குழு', other: 'பொதுவாக {n} குழுக்கள்' },
+    contact: 'தொடர்பு',
+    phone: 'தொலைபேசி',
+    email: 'மின்னஞ்சல்',
+    paidVia: 'பணம் பெறும் முகவரி',
+    contactWithheld: '{name} தமது தொடர்பு விவரங்களைத் தமக்குள்ளேயே வைத்திருக்கிறார்.',
+    noContact: 'இந்தக் கணக்கில் தொலைபேசி எண்ணோ மின்னஞ்சலோ இல்லை.',
+    ghostContact: 'இவர் இன்னும் Waves-இல் சேரவில்லை, அதனால் இங்கே காட்ட ஒன்றுமில்லை.',
+    call: 'அழை',
+    message: 'செய்தி',
+    copy: 'நகலெடு',
+    copied: 'நகலெடுக்கப்பட்டது',
+    notFound: 'காட்ட ஒன்றுமில்லை',
+    notFoundBody: 'இவருடன் இப்போது நீங்கள் எந்தக் குழுவையும் பகிரவில்லை.',
+    findTitle: 'ஒருவரைத் தேடுங்கள்',
+    findHint:
+      'அவர் Waves-இல் பயன்படுத்தும் மின்னஞ்சல் முகவரியையோ தொலைபேசி எண்ணையோ அப்படியே தட்டச்சு செய்யுங்கள்.',
+    findPlaceholder: 'மின்னஞ்சல் அல்லது தொலைபேசி',
+    findAction: 'தேடு',
+    findNoMatch: 'பொருத்தம் இல்லை',
+    findNoMatchBody:
+      'அதை யாரும் பயன்படுத்தவில்லை, அல்லது அதன் மூலம் கண்டறியப்படுவதை அவர் விரும்பவில்லை.',
+    findRateLimited: 'இன்றைக்கு இவ்வளவு தேடல் போதும். நாளை மீண்டும் முயற்சியுங்கள்.',
+    alreadyShared: 'ஏற்கனவே உங்களுடன் ஒரு குழுவில் இருக்கிறார்',
+    discoveryRow: 'மற்றவர்கள் உங்களை எப்படிக் கண்டறிவார்கள்',
+    discoveryRowHint: 'உங்களைத் தேடுவது, குழுவினர் பார்ப்பது',
+    discoveryTitle: 'மற்றவர்கள் உங்களை எப்படிக் கண்டறிவார்கள்',
+    discoveryIntro:
+      'உங்கள் எண்ணையோ முகவரியையோ ஏற்கனவே வைத்திருப்பவர் உங்களை Waves-இல் தேட முடியும். யாரும் உங்களைத் தேடி உலவ முடியாது; பெயரால் தேடுவது என்பது ஒருபோதும் இல்லை.',
+    discoveryPhone: 'என் தொலைபேசி எண்ணால் என்னைக் கண்டறியலாம்',
+    discoveryPhoneHint:
+      'சரியான பொருத்தம் மட்டுமே. இதை அணைத்தால், நீங்கள் ஏற்கனவே இருக்கும் குழுக்களிலிருந்து நீக்கப்பட மாட்டீர்கள்.',
+    discoveryEmail: 'என் மின்னஞ்சல் முகவரியால் என்னைக் கண்டறியலாம்',
+    discoveryEmailHint: 'சரியான பொருத்தம் மட்டுமே, இந்தக் கணக்கின் முகவரி மட்டுமே.',
+    visibilityTitle: 'உங்கள் சுயவிவரத்தில்',
+    visibilityGroups: 'நான் குழு பகிரும் நபர்கள்',
+    visibilityGroupsHint:
+      'உங்கள் சுயவிவரத்தில் உங்கள் தொலைபேசியையும் மின்னஞ்சலையும் அவர்கள் பார்க்கலாம்.',
+    visibilityNobody: 'யாரும் இல்லை',
+    visibilityNobodyHint:
+      'குழுவினரிடமிருந்து கூட உங்கள் தொலைபேசியும் மின்னஞ்சலும் மறைந்தே இருக்கும்.',
+    discoveryFootnote:
+      'உங்கள் எண்ணைத் தட்டச்சு செய்து உங்களைக் கண்டறிந்தவர் அந்த எண்ணைப் பார்ப்பார் — அது ஏற்கனவே அவரிடம் இருந்தது. இவை எதுவும் யார் யாருக்குக் கடன் என்பதை மாற்றாது.',
   },
   expense: {
     edit: 'செலவைத் திருத்து',
@@ -9049,6 +9186,49 @@ const hi: UiStrings = {
     reminded: 'याद दिला दिया',
     remindedToday: 'आज याद दिला चुके',
     seeSharedGroups: 'उनके साथ साझा किए गए समूह खोलता है',
+  },
+  person: {
+    title: 'प्रोफ़ाइल',
+    you: 'आप',
+    sharedGroups: { one: '{n} साझा समूह', other: '{n} साझा समूह' },
+    contact: 'संपर्क',
+    phone: 'फ़ोन',
+    email: 'ईमेल',
+    paidVia: 'भुगतान यहाँ लेते हैं',
+    contactWithheld: '{name} ने अपने संपर्क विवरण अपने पास रखे हैं।',
+    noContact: 'इस खाते पर कोई फ़ोन नंबर या ईमेल नहीं है।',
+    ghostContact: 'ये अभी Waves पर नहीं हैं, इसलिए यहाँ दिखाने को कुछ नहीं है।',
+    call: 'कॉल',
+    message: 'संदेश',
+    copy: 'कॉपी',
+    copied: 'कॉपी हो गया',
+    notFound: 'दिखाने को कुछ नहीं',
+    notFoundBody: 'अब आप इनके साथ कोई समूह साझा नहीं करते।',
+    findTitle: 'किसी को खोजें',
+    findHint: 'वही ईमेल पता या फ़ोन नंबर लिखें जो वे Waves पर इस्तेमाल करते हैं।',
+    findPlaceholder: 'ईमेल या फ़ोन',
+    findAction: 'खोजें',
+    findNoMatch: 'कोई मेल नहीं',
+    findNoMatchBody: 'इसे कोई इस्तेमाल नहीं करता, या उन्होंने इससे खोजे जाने से मना किया है।',
+    findRateLimited: 'आज के लिए इतनी खोज काफ़ी। कल फिर कोशिश करें।',
+    alreadyShared: 'पहले से आपके साथ एक समूह में',
+    discoveryRow: 'लोग आपको कैसे खोजें',
+    discoveryRowHint: 'खोजा जाना, और समूह वालों को क्या दिखे',
+    discoveryTitle: 'लोग आपको कैसे खोजें',
+    discoveryIntro:
+      'जिसके पास पहले से आपका नंबर या पता है, वह आपको Waves पर खोज सकता है। कोई यूँ ही लोगों में आपको ढूँढ़ नहीं सकता, और नाम से खोज कभी नहीं होती।',
+    discoveryPhone: 'मेरे फ़ोन नंबर से मुझे खोजा जा सके',
+    discoveryPhoneHint:
+      'सिर्फ़ पूरा मिलान। इसे बंद करने से आप उन समूहों से नहीं हटते जिनमें आप पहले से हैं।',
+    discoveryEmail: 'मेरे ईमेल पते से मुझे खोजा जा सके',
+    discoveryEmailHint: 'सिर्फ़ पूरा मिलान, और सिर्फ़ इस खाते का पता।',
+    visibilityTitle: 'आपकी प्रोफ़ाइल पर',
+    visibilityGroups: 'जिनके साथ मेरा कोई समूह है',
+    visibilityGroupsHint: 'वे आपकी प्रोफ़ाइल पर आपका फ़ोन और ईमेल देख सकते हैं।',
+    visibilityNobody: 'कोई नहीं',
+    visibilityNobodyHint: 'आपका फ़ोन और ईमेल छिपे रहते हैं, समूह वालों से भी।',
+    discoveryFootnote:
+      'जिसने आपका नंबर लिखकर आपको खोजा, उसे वह नंबर दिखेगा — वह उसके पास पहले से था। इनमें से कुछ भी यह नहीं बदलता कि किस पर कितना बाक़ी है।',
   },
   expense: {
     edit: 'खर्च बदलें',
@@ -11536,6 +11716,55 @@ const ar: UiStrings = {
     reminded: 'تم التذكير',
     remindedToday: 'ذُكّر اليوم',
     seeSharedGroups: 'يفتح المجموعات المشتركة معكما',
+  },
+  person: {
+    title: 'الملف الشخصي',
+    you: 'أنت',
+    sharedGroups: {
+      zero: 'لا مجموعات مشتركة',
+      one: 'مجموعة مشتركة واحدة',
+      two: 'مجموعتان مشتركتان',
+      few: '{n} مجموعات مشتركة',
+      many: '{n} مجموعة مشتركة',
+      other: '{n} مجموعة مشتركة',
+    },
+    contact: 'التواصل',
+    phone: 'الهاتف',
+    email: 'البريد الإلكتروني',
+    paidVia: 'يستلم المدفوعات على',
+    contactWithheld: 'يحتفظ {name} ببيانات تواصله لنفسه.',
+    noContact: 'لا يوجد هاتف أو بريد على هذا الحساب.',
+    ghostContact: 'لم ينضم إلى Waves بعد، فلا شيء لعرضه هنا.',
+    call: 'اتصال',
+    message: 'رسالة',
+    copy: 'نسخ',
+    copied: 'تم النسخ',
+    notFound: 'لا شيء لعرضه',
+    notFoundBody: 'لم تعد تجمعك بهذا الشخص أي مجموعة.',
+    findTitle: 'ابحث عن شخص',
+    findHint: 'اكتب بالضبط البريد الإلكتروني أو رقم الهاتف الذي يستخدمه على Waves.',
+    findPlaceholder: 'بريد إلكتروني أو هاتف',
+    findAction: 'بحث',
+    findNoMatch: 'لا يوجد تطابق',
+    findNoMatchBody: 'لا أحد يستخدم ذلك، أو أنه اختار ألا يُعثر عليه بهذه الطريقة.',
+    findRateLimited: 'يكفي بحثًا اليوم. حاول مرة أخرى غدًا.',
+    alreadyShared: 'تجمعكما مجموعة بالفعل',
+    discoveryRow: 'كيف يعثر عليك الآخرون',
+    discoveryRowHint: 'أن يُبحث عنك، وما يراه أفراد مجموعاتك',
+    discoveryTitle: 'كيف يعثر عليك الآخرون',
+    discoveryIntro:
+      'من يملك رقمك أو عنوان بريدك مسبقًا يستطيع البحث عنك على Waves. لا أحد يستطيع تصفّح الأشخاص بحثًا عنك، ولا بحث بالاسم إطلاقًا.',
+    discoveryPhone: 'يمكن العثور عليّ برقم هاتفي',
+    discoveryPhoneHint: 'تطابق تام فقط. إيقافه لا يُخرجك من المجموعات التي أنت فيها بالفعل.',
+    discoveryEmail: 'يمكن العثور عليّ ببريدي الإلكتروني',
+    discoveryEmailHint: 'تطابق تام فقط، ولعنوان هذا الحساب وحده.',
+    visibilityTitle: 'في ملفك الشخصي',
+    visibilityGroups: 'من تجمعني بهم مجموعة',
+    visibilityGroupsHint: 'يستطيعون رؤية هاتفك وبريدك في ملفك الشخصي.',
+    visibilityNobody: 'لا أحد',
+    visibilityNobodyHint: 'يبقى هاتفك وبريدك مخفيين، حتى عن أفراد مجموعاتك.',
+    discoveryFootnote:
+      'من عثر عليك بكتابة رقمك سيرى ذلك الرقم — فقد كان لديه أصلًا. ولا شيء من هذا يغيّر أبدًا من يدين لمن.',
   },
   expense: {
     edit: 'تعديل المصروف',

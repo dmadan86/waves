@@ -1655,6 +1655,15 @@ function AddMenu({
       onPress: () => go('/friends/contacts'),
     },
     {
+      // Sits after the address book because it is the narrower tool: this one
+      // needs the exact address or number, and only finds somebody who has
+      // allowed being found that way.
+      key: 'find',
+      label: t.person.findTitle,
+      icon: <Ionicons name="search-outline" size={iconSize.lg} color={theme.color.text} />,
+      onPress: () => go('/friends/find'),
+    },
+    {
       key: 'scan',
       label: t.misc.scanToJoin,
       icon: <Ionicons name="qr-code-outline" size={iconSize.lg} color={theme.color.text} />,
