@@ -99,6 +99,14 @@ export function useTabBarClearance(): number {
  * app draws edge-to-edge — a fixed `paddingBottom` cannot know its height, so
  * the last row ends up under the system UI. Pass a larger `base` on a screen
  * with a floating action or a pinned footer.
+ *
+ * Not only screens: anything whose last row is the last thing above the system
+ * bar asks the same question and must get the same answer — a bottom sheet's
+ * foot (`Sheet`, and the expense forms' own `SheetOverlay`), and a pinned action
+ * bar that carries the inset itself so its fill reaches the screen edge instead
+ * of floating on a strip of page colour. The arithmetic is trivial, which is
+ * exactly why it had been written out by hand in three other places; there is
+ * one of it now.
  */
 export function useScreenClearance(base: number = spacing.xxxl): number {
   const insets = useSafeAreaInsets();

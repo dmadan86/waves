@@ -11,7 +11,6 @@
 import { type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, ScrollView, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
@@ -21,7 +20,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { directionalIcon, iconSize, Row, Text, useTheme } from '@waves/ui';
+import { directionalIcon, iconSize, Row, Text, useScreenClearance, useTheme } from '@waves/ui';
 
 import { useStrings } from '@/i18n';
 
@@ -174,7 +173,12 @@ export function SheetOverlay({
 }): React.JSX.Element {
   const theme = useTheme();
   const { t } = useStrings();
-  const insets = useSafeAreaInsets();
+  // The foot every screen in this app leaves at the bottom edge, from the one
+  // helper that knows how to work it out. This sheet is drawn in the screen's
+  // own tree rather than in a modal window, so nothing else is going to clear
+  // the navigation bar for it: the last row of the list is the last thing above
+  // the gesture pill or the three buttons.
+  const foot = useScreenClearance(theme.spacing.xl);
 
   // Drag the handle down to dismiss. translateY only ever goes positive (down);
   // past a short threshold or on a quick flick the sheet closes, otherwise it
@@ -233,9 +237,7 @@ export function SheetOverlay({
             borderTopLeftRadius: theme.radius.lg,
             borderTopRightRadius: theme.radius.lg,
             padding: theme.spacing.xl,
-            // Clear the Android gesture/nav bar so the last list row is not
-            // hidden behind it.
-            paddingBottom: theme.spacing.xl + insets.bottom,
+            paddingBottom: foot,
             gap: theme.spacing.md,
             maxHeight: '75%',
           },
