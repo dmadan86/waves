@@ -1452,7 +1452,6 @@ export interface UiStrings {
     /** Chip label on a pre-aimed row: "Add to {name}" (the group it was tagged for). */
     addTo: string;
     assignTitle: string;
-    assignBody: string;
     assignSearch: string;
     assignNew: string;
     assignNewBody: string;
@@ -3868,7 +3867,6 @@ const en: UiStrings = {
     assign: 'Add to group',
     addTo: 'Add to {name}',
     assignTitle: 'Add to a group',
-    assignBody: 'Choose where to add this expense.',
     assignSearch: 'Search groups',
     assignNew: 'New group',
     assignNewBody: 'Create one and add this to it',
@@ -6260,7 +6258,6 @@ const ta: UiStrings = {
     assign: 'குழுவில் சேர்',
     addTo: '{name} இல் சேர்',
     assignTitle: 'ஒரு குழுவில் சேர்க்கவும்',
-    assignBody: 'இந்தச் செலவை எங்கே சேர்ப்பது எனத் தேர்ந்தெடுங்கள்.',
     assignSearch: 'குழுக்களைத் தேடு',
     assignNew: 'புதிய குழு',
     assignNewBody: 'ஒன்றை உருவாக்கி இதை அதில் சேருங்கள்',
@@ -8691,7 +8688,6 @@ const hi: UiStrings = {
     assign: 'समूह में जोड़ें',
     addTo: '{name} में जोड़ें',
     assignTitle: 'किसी समूह में जोड़ें',
-    assignBody: 'चुनें कि यह खर्च कहाँ जोड़ना है।',
     assignSearch: 'समूह खोजें',
     assignNew: 'नया समूह',
     assignNewBody: 'एक बनाएँ और इसे उसमें जोड़ें',
@@ -11112,7 +11108,6 @@ const ar: UiStrings = {
     assign: 'أضِف إلى مجموعة',
     addTo: 'أضِف إلى {name}',
     assignTitle: 'أضِف إلى مجموعة',
-    assignBody: 'اختر أين تضيف هذا المصروف.',
     assignSearch: 'ابحث عن المجموعات',
     assignNew: 'مجموعة جديدة',
     assignNewBody: 'أنشئ واحدة وأضف هذا إليها',
