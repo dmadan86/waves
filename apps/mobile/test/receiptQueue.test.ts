@@ -352,6 +352,21 @@ describe('the handover from the queue to the real row', () => {
     expect(world.rpc).not.toHaveBeenCalled();
   });
 
+  it('does not re-send a settled capture even if retry is asked for', async () => {
+    parkOnDisk();
+    await listPendingReceipts();
+    await flushReceiptQueue();
+    world.put.mockClear();
+    world.rpc.mockClear();
+
+    const result = await retryPendingReceipts(['a1']);
+
+    expect(result.uploadedExpenseIds).toEqual([]);
+    expect(world.put).not.toHaveBeenCalled();
+    expect(world.rpc).not.toHaveBeenCalled();
+    expect(getPendingReceiptsSnapshot()[0]?.status).toBe('sent');
+  });
+
   it('lets go once the gallery has seen the row', async () => {
     parkOnDisk();
     await listPendingReceipts();
