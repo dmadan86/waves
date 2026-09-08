@@ -89,7 +89,23 @@ and the numbers stop being alarming. Budget it as revenue and it will disappoint
 4. **Ship statement import as a paid feature, not an earned one — and gate it behind compliance,
    not engineering.** §8.
 
-### 1.3 What would make me say no outright
+### 1.3 Persona/use-case check: who must not be trapped
+
+The economic recommendation above is necessary but not sufficient. Every gate also has to be checked
+against the four ways Waves is used day to day:
+
+| Persona/use case | What they need | Monetisation rule |
+| ---------------- | -------------- | ----------------- |
+| **User/admin** setting up or maintaining a group | Add people, edit members, settle, delete/archive, see activity | **Never ad-gated.** These are core ledger operations and ADR-011's "no ads in money flow" rule stays absolute here. |
+| **Rider/share participant** adding their portion or correcting a split | Add/edit expense, receipt attachment inside the free cap, reminders, settlement visibility | **Never ad-gated for correctness.** A rider must be able to fix what they owe without watching an ad; ads can only unlock convenience AI after the manual path remains available. |
+| **Traveller** recording trip spend with weak connectivity | Offline capture, local receipt queue, trip dates, currency/rate entry, later assignment to a group | **Offline-first path must work with zero ads.** Rewarded unlocks cannot be required at the moment of travel because fill, consent and network are least reliable there. |
+| **Financer/payer** importing or reconciling personal/bank records | Statement import, transaction review, budget/ledger reconciliation | **Paid/compliance-gated first.** Statement import is the only candidate whose COGS can justify pricing, but it also carries the highest privacy/legal risk; an ad path is secondary and only after a non-ad paid door exists. |
+| **Guest/teen/EEA-consent-declined user** | Participate without a full account, or use the app where ads cannot be served/rewarded | **Must have a non-ad route.** Guests do not earn; teens have no reward loop; EEA no-consent can have zero fills. Any feature that matters must be reachable through free allowance, manual fallback or subscription. |
+
+This table is the guardrail for every phase below: an ad may buy speed, automation or a preview, but
+it must never buy the only route to a correct shared ledger.
+
+### 1.4 What would make me say no outright
 
 - **If the answer to "can a paying user ever see an ad?" is anything but a hard no**, stop. There
   is no purchase path today, so the entitlement read has never been exercised on a cold start, and
@@ -115,7 +131,7 @@ and the numbers stop being alarming. Budget it as revenue and it will disappoint
   model exceptions) and is the only self-serve path found. If none of those is reachable, statement
   parsing stays on-device or does not ship.
 
-### 1.4 One thing the request gets wrong, said plainly
+### 1.5 One thing the request gets wrong, said plainly
 
 You asked to detect ad blockers and DNS blockers and withhold points from those users. **Don't
 detect anything.** Mint coins _only_ on Google's signed **Server-Side Verification callback** — a
