@@ -32,16 +32,23 @@ describe('speechLocale', () => {
     expect(speechLocale(Language.Ta, 'ta-LK')).toBe('ta-LK');
   });
 
-  it('falls back to India when the tag carries no region', () => {
+  it('falls back to a served default when the tag carries no region', () => {
     // Bare "ta" is a lottery on Android — some recognisers take it, some
-    // return language-not-supported.
+    // return language-not-supported. Arabic cannot use the India fallback,
+    // because `ar-IN` is not a recognizer-served locale.
     expect(speechLocale(Language.Ta, 'ta')).toBe('ta-IN');
     expect(speechLocale(Language.Hi, 'hi')).toBe('hi-IN');
+    expect(speechLocale(Language.Ar, 'ar')).toBe('ar-SA');
   });
 
   it('follows the app language, not the phone, when they disagree', () => {
     // The app is showing Tamil, so Tamil is what the user is about to speak.
     expect(speechLocale(Language.Ta, 'en-US')).toBe('ta-IN');
+    expect(speechLocale(Language.Ar, 'en-US')).toBe('ar-SA');
+  });
+
+  it('keeps an Arabic phone region when the app is Arabic', () => {
+    expect(speechLocale(Language.Ar, 'ar-AE')).toBe('ar-AE');
   });
 
   it('survives the shapes a locale tag actually arrives in', () => {
@@ -171,7 +178,7 @@ describe('offlineVoiceModels', () => {
     // The rows somebody came to this screen to fix are the missing ones, so
     // they cannot be filtered out for being missing.
     const models = offlineVoiceModels(languages, 'en-IN', [], [], 'reported');
-    expect(models.app.map((model) => model.tag)).toEqual(['en-IN', 'ta-IN', 'hi-IN', 'ar-IN']);
+    expect(models.app.map((model) => model.tag)).toEqual(['en-IN', 'ta-IN', 'hi-IN', 'ar-SA']);
     expect(models.app.every((model) => model.state === 'missing')).toBe(true);
   });
 
@@ -237,7 +244,7 @@ describe('offlineVoiceModels', () => {
       ['en-IN', 'fr-FR'],
       'unknowable',
     );
-    expect(models.app.map((model) => model.tag)).toEqual(['en-IN', 'ta-IN', 'hi-IN', 'ar-IN']);
+    expect(models.app.map((model) => model.tag)).toEqual(['en-IN', 'ta-IN', 'hi-IN', 'ar-SA']);
     expect(models.app.every((model) => model.state === 'unknown')).toBe(true);
     expect(models.alsoInstalled).toEqual([]);
     expect(models.downloadable).toEqual([]);

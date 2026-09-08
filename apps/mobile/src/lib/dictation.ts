@@ -16,10 +16,19 @@ import type { DictationErrorStrings, Language } from '@/i18n';
  *
  * The device's own tag wins when it agrees with the language the app is showing
  * — somebody on `en-GB` should be recognised as `en-GB`, not corrected to
- * Indian English. When it disagrees, or carries no region, India is the
- * fallback: Waves is India-first, and `ta`/`hi` with no region is a recogniser
- * lottery on Android.
+ * Indian English. When it disagrees, or carries no region, the fallback is the
+ * app language's nearest supported default: India for en/ta/hi, and Saudi Arabia
+ * for Arabic. `ar-IN` is not a real speech locale on Android, so using India for
+ * every language made Arabic voice and offline-model rows fail before the user
+ * could do anything useful.
  */
+const SPEECH_FALLBACK_REGION: Readonly<Record<Language, string>> = {
+  en: 'IN',
+  ta: 'IN',
+  hi: 'IN',
+  ar: 'SA',
+};
+
 export function speechLocale(language: Language, deviceLocale: string): string {
   const parts = deviceLocale.trim().split(/[-_]/);
   const tag = parts[0];
@@ -27,7 +36,7 @@ export function speechLocale(language: Language, deviceLocale: string): string {
   // three-digit UN M.49 code is a real region the recogniser can match.
   const region = parts.slice(1).find((part) => /^([A-Za-z]{2}|\d{3})$/.test(part));
   if (tag?.toLowerCase() === language && region) return `${language}-${region.toUpperCase()}`;
-  return `${language}-IN`;
+  return `${language}-${SPEECH_FALLBACK_REGION[language]}`;
 }
 
 /**
