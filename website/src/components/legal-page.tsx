@@ -3,7 +3,6 @@ import Link from 'next/link';
 import type { Locale } from '@/i18n/config';
 import type { Dictionary } from '@/i18n/dictionaries';
 import { site } from '@/lib/site';
-import { Aurora } from './aurora';
 import { ArrowRight } from './icons';
 import { Wordmark } from './logo';
 import { Container } from './ui';
@@ -34,16 +33,14 @@ export function LegalPage({
 }) {
   return (
     <>
-      <Aurora />
-
-      <header className="border-b border-white/[0.07]">
-        <Container className="flex h-18 items-center justify-between">
+      <header className="border-b border-line">
+        <Container className="flex h-16 items-center justify-between">
           <Link href={`/${locale}`} aria-label={site.name}>
             <Wordmark />
           </Link>
           <Link
             href={`/${locale}`}
-            className="group inline-flex items-center gap-2 text-sm text-white/60 transition-colors hover:text-white"
+            className="group inline-flex items-center gap-2 rounded-xs text-sm text-ink-2 transition-colors hover:text-ink"
           >
             {t.backHome}
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 rtl:-scale-x-100 rtl:group-hover:-translate-x-0.5" />
@@ -51,27 +48,27 @@ export function LegalPage({
         </Container>
       </header>
 
-      <main className="py-20 sm:py-28">
+      <main id="main" tabIndex={-1} className="py-20 sm:py-28">
         <Container className="max-w-3xl">
-          <p className="text-xs tracking-[0.16em] text-white/35 uppercase">
+          <p className="font-mono text-[0.6875rem] tracking-[0.12em] text-ink-3 uppercase">
             {t.lastUpdated} · {updated}
           </p>
-          <h1 className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-white sm:text-5xl">
+          <h1 className="mt-4 text-[2.25rem] font-semibold tracking-[-0.035em] text-ink sm:text-[3rem]">
             {title}
           </h1>
-          <p className="mt-3 text-xs text-white/35">{t.englishOnly}</p>
+          <p className="mt-3 font-mono text-[0.75rem] text-ink-3">{t.englishOnly}</p>
 
           <div lang="en" dir="ltr" className="mt-12 space-y-10">
-            <p className="text-pretty leading-relaxed text-white/65">{intro}</p>
+            <p className="text-pretty text-[1.0625rem] leading-[1.65] text-ink-2">{intro}</p>
 
             {sections.map((section) => (
               <section key={section.heading}>
-                <h2 className="text-lg font-semibold tracking-[-0.02em] text-white">
+                <h2 className="text-[1.0625rem] font-semibold tracking-[-0.015em] text-ink">
                   {section.heading}
                 </h2>
                 <div className="mt-3 space-y-3">
                   {section.body.map((paragraph) => (
-                    <p key={paragraph} className="text-sm leading-relaxed text-white/55">
+                    <p key={paragraph} className="text-[0.9375rem] leading-[1.65] text-ink-2">
                       {paragraph}
                     </p>
                   ))}
@@ -79,10 +76,10 @@ export function LegalPage({
               </section>
             ))}
 
-            <p className="text-sm text-white/45">
+            <p className="text-[0.9375rem] text-ink-2">
               Questions about any of this:{' '}
               <a
-                className="text-brand-200 underline-offset-4 hover:underline"
+                className="rounded-xs text-ink underline decoration-line-strong underline-offset-4 transition-colors hover:decoration-accent"
                 href={`mailto:${site.supportEmail}`}
               >
                 {site.supportEmail}

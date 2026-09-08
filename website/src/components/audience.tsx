@@ -1,41 +1,44 @@
 import type { Dictionary } from '@/i18n/dictionaries';
 import { Compass, Heart, Home, Wallet } from './icons';
-import { Reveal } from './reveal';
 import { Container, Eyebrow, Section, SectionTitle } from './ui';
 
 const icons = [Compass, Home, Heart, Wallet] as const;
 
+/**
+ * Four cases, as a rule-separated index rather than four identical cards. The
+ * point of this section is scanning, and a card grid asks you to read four
+ * boxes of equal weight to find the one that is you.
+ */
 export function Audience({ t }: { t: Dictionary['audience'] }) {
   return (
-    <Section className="py-20 sm:py-24">
+    <Section className="py-16 sm:py-20">
       <Container>
-        <div className="max-w-2xl">
-          <Reveal>
-            <Eyebrow>{t.eyebrow}</Eyebrow>
-          </Reveal>
-          <Reveal delay={60}>
-            <SectionTitle className="mt-6">{t.title}</SectionTitle>
-          </Reveal>
-        </div>
+        <div className="grid gap-10 lg:grid-cols-[0.72fr_1.28fr] lg:gap-16">
+          <div>
+            <Eyebrow index="04">{t.eyebrow}</Eyebrow>
+            <SectionTitle className="mt-5">{t.title}</SectionTitle>
+          </div>
 
-        <ul className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {t.items.map((item, index) => {
-            const Icon = icons[index] ?? Compass;
-            return (
-              <li key={item.title}>
-                <Reveal delay={index * 80} className="h-full">
-                  <div className="group glass h-full rounded-4xl p-6 transition-colors duration-500 hover:border-white/20">
-                    <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-white/[0.06] text-brand-200 ring-1 ring-white/10 transition-colors duration-500 group-hover:bg-brand-500/20">
-                      <Icon />
-                    </span>
-                    <h3 className="mt-5 text-base font-semibold text-white">{item.title}</h3>
-                    <p className="mt-2.5 text-sm leading-relaxed text-white/50">{item.body}</p>
-                  </div>
-                </Reveal>
-              </li>
-            );
-          })}
-        </ul>
+          <ul className="border-t border-line">
+            {t.items.map((item, index) => {
+              const Icon = icons[index] ?? Compass;
+              return (
+                <li
+                  key={item.title}
+                  className="grid gap-x-5 gap-y-1.5 border-b border-line py-5 sm:grid-cols-[10rem_1fr] sm:items-baseline"
+                >
+                  <h3 className="flex items-center gap-2.5 text-[0.9375rem] font-semibold tracking-[-0.01em] text-ink">
+                    <Icon className="h-4 w-4 shrink-0 text-ink-3" aria-hidden="true" />
+                    {item.title}
+                  </h3>
+                  <p className="text-pretty text-[0.9375rem] leading-[1.6] text-ink-2">
+                    {item.body}
+                  </p>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
       </Container>
     </Section>
   );
