@@ -1,8 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Platform } from 'react-native';
 import type { Session } from '@/lib/backend';
 import { makeRedirectUri } from 'expo-auth-session';
-import * as Crypto from 'expo-crypto';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 
@@ -17,6 +15,7 @@ import {
   type Viewer,
 } from '@waves/core';
 
+import { appleNativeSignIn, googleNativeSignIn } from './nativeIdentity';
 import { identifyForReporting, reportHandled } from './observability';
 import { claimCode } from './oauthClaim';
 import { refreshPushToken, revokePushToken } from './push';
@@ -119,67 +118,6 @@ async function oauthThroughBrowser(
   // app that was restarted mid-sign-in. Their session is the one to keep.
   const { data: current } = await backend.auth.getSession();
   return current.session;
-}
-
-/**
- * Sign in with Apple's native sheet — iOS only.
- *
- * The module is a native one, so it is required lazily behind a catch: a build
- * that predates the `expo-apple-authentication` dependency (Android, web, or an
- * old dev client) must fall back to the browser flow rather than crash at
- * launch (see the native-module rule).
- */
-type AppleAuthModule = typeof import('expo-apple-authentication');
-
-function loadAppleAuth(): AppleAuthModule | null {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    return require('expo-apple-authentication') as AppleAuthModule;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Present Apple's native sheet and hand back the identity token plus, only on
- * the very first authorization, the person's name — Apple returns it once and
- * never again. `undefined` means they dismissed the sheet.
- *
- * The token is bound to this one request with a nonce: Apple is given its
- * SHA-256 and stamps that into the identity token, Supabase is given the raw
- * value and checks the hash matches. Without it, an identity token captured
- * anywhere — another app, a log, an old device — is a valid sign-in here.
- */
-async function appleNativeCredential(apple: AppleAuthModule): Promise<
-  | {
-      identityToken: string;
-      nonce: string;
-      fullName: {
-        givenName: string | null;
-        middleName: string | null;
-        familyName: string | null;
-      } | null;
-    }
-  | undefined
-> {
-  const nonce = Crypto.randomUUID();
-  const hashedNonce = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, nonce);
-  try {
-    const credential = await apple.signInAsync({
-      requestedScopes: [
-        apple.AppleAuthenticationScope.FULL_NAME,
-        apple.AppleAuthenticationScope.EMAIL,
-      ],
-      nonce: hashedNonce,
-    });
-    if (!credential.identityToken) {
-      throw new Error('Apple sign-in returned no identity token');
-    }
-    return { identityToken: credential.identityToken, nonce, fullName: credential.fullName };
-  } catch (error) {
-    if ((error as { code?: string }).code === 'ERR_REQUEST_CANCELED') return undefined;
-    throw error;
-  }
 }
 
 /**
@@ -378,9 +316,13 @@ interface AuthValue {
     password: string,
     intent: 'sign_in' | 'sign_up',
   ) => Promise<PasswordOutcome>;
-  /** Google. Links to the current account when there is one, for the same reason. */
+  /**
+   * Google. The phone's own sheet for a fresh sign-in, the browser when this
+   * build or device cannot present one — and always the browser for a link,
+   * because linking an identity has no id-token form.
+   */
   withGoogle: () => Promise<void>;
-  /** Apple. Native sheet on iOS for a fresh sign-in; browser otherwise and for links. */
+  /** Apple. The same three cases, through the same seam (`lib/nativeIdentity`). */
   withApple: () => Promise<void>;
   updateProfile: (patch: Partial<Profile>) => Promise<void>;
   /** Re-read the session after it changes underneath us (e.g. a linked email). */
@@ -633,36 +575,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       async withGoogle() {
         const action = planAuth(viewerFrom(session), AuthMethod.Google);
+        // Native first, and only for a fresh sign-in: Supabase has no id-token
+        // form of `linkIdentity`, so a guest upgrading (the ADR-006 common
+        // path) has to go out through the browser however good the sheet is.
+        if (action.call === 'signInWithOAuth') {
+          const outcome = await googleNativeSignIn();
+          if (outcome.kind === 'dismissed') return;
+          if (outcome.kind === 'credential') {
+            const { data, error } = await backend.auth.signInWithIdToken({
+              provider: 'google',
+              token: outcome.credential.idToken,
+            });
+            if (error) throw error;
+            setSession(data.session);
+            return;
+          }
+          // `unavailable`: no module, no Play services, no OAuth client for
+          // this build's signature. The browser flow below is what this phone
+          // can still do, so it runs — the person sees a sign-in, not a fault.
+        }
         const next = await oauthThroughBrowser(OAuthMethod.Google, action.call === 'linkIdentity');
         if (next !== undefined) setSession(next);
       },
 
       async withApple() {
         const action = planAuth(viewerFrom(session), AuthMethod.Apple);
-        // The native id-token flow is a fresh sign-in only: Supabase has no
-        // id-token form of linkIdentity, so a guest upgrading (the ADR-006
-        // common path) still goes through the browser, exactly like Google.
-        if (Platform.OS === 'ios' && action.call === 'signInWithOAuth') {
-          const apple = loadAppleAuth();
-          if (apple) {
-            const credential = await appleNativeCredential(apple);
-            if (credential === undefined) return; // sheet dismissed
+        // Same shape as Google, and the same reason for the same limit: this is
+        // a fresh sign-in only, and everything else falls through.
+        if (action.call === 'signInWithOAuth') {
+          const outcome = await appleNativeSignIn();
+          if (outcome.kind === 'dismissed') return;
+          if (outcome.kind === 'credential') {
             const { data, error } = await backend.auth.signInWithIdToken({
               provider: 'apple',
-              token: credential.identityToken,
-              nonce: credential.nonce,
+              token: outcome.credential.identityToken,
+              nonce: outcome.credential.nonce,
             });
             if (error) throw error;
             // Apple hands over the name only on the first authorization; seed
             // the profile with it before it is gone for good.
-            const name = appleFullName(credential.fullName);
+            const name = appleFullName(outcome.credential.fullName);
             if (name && data.user) {
               await persistAppleName(data.user.id, name);
             }
             setSession(data.session);
             return;
           }
-          // No native module in this build — fall through to the browser.
         }
         const next = await oauthThroughBrowser(OAuthMethod.Apple, action.call === 'linkIdentity');
         if (next !== undefined) setSession(next);

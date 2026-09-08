@@ -15,9 +15,19 @@
  *     say, because that is the one signal the engine acts on;
  *   * a dismissed sheet is **not an error**, because they meant it;
  *   * unlinking tells **Google**, not only this phone's keystore.
+ *
+ * And one the flow added: a refusal has to say *which* refusal it was. Play
+ * services answers "why" with a status code the SDK's own `statusCodes` does
+ * not name, so an unclassified failure is a failure nobody can act on — the
+ * screen says "try again" for a build Google will never issue a token to.
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+// Classification files the failure with the crash reporter on the way past,
+// which pulls the native Sentry pipeline; stub it, and assert on it.
+const reportHandled = vi.hoisted(() => vi.fn());
+vi.mock('@/lib/observability', () => ({ reportHandled }));
 
 const platform = { OS: 'android' };
 
@@ -34,15 +44,21 @@ const { googleDrive } = await import('../src/lib/cloud/googleDrive');
 const { setSigninModuleForTests } = await import('../src/lib/cloud/nativeGoogle');
 const { isConfigured } = await import('../src/lib/cloud/config');
 const { CloudHttpError } = await import('../src/lib/cloud/http');
+const { CloudAuthError } = await import('../src/lib/cloud/oauth');
 
 const SIGN_IN_CANCELLED = 'SIGN_IN_CANCELLED';
 const SIGN_IN_REQUIRED = 'SIGN_IN_REQUIRED';
+const PLAY_SERVICES_NOT_AVAILABLE = 'PLAY_SERVICES_NOT_AVAILABLE';
+/** Not in the SDK's `statusCodes`; Android rejects with the bare number. */
+const DEVELOPER_ERROR = '10';
 
 interface FakeState {
   /** What the interactive sheet does. */
-  signIn: 'success' | 'cancelled' | 'throws-cancelled';
+  signIn: 'success' | 'cancelled' | 'throws-cancelled' | 'developer-error' | 'network';
+  /** Whether Google's services are there to present the sheet at all. */
+  play: 'present' | 'missing';
   /** What a silent renewal finds. */
-  silent: 'success' | 'nobody' | 'required';
+  silent: 'success' | 'nobody' | 'required' | 'throws';
   /** Whether native revoke completes or throws after a partial Play-services failure. */
   revoke: 'success' | 'throws';
   accessToken: string;
@@ -50,6 +66,7 @@ interface FakeState {
 
 const state: FakeState = {
   signIn: 'success',
+  play: 'present',
   silent: 'success',
   revoke: 'success',
   accessToken: 'token-1',
@@ -73,15 +90,28 @@ function fakeModule() {
   return {
     GoogleSignin: {
       configure: (params: unknown) => calls.configured(params),
-      hasPlayServices: async () => true,
+      async hasPlayServices() {
+        if (state.play === 'missing') throw cancelled(PLAY_SERVICES_NOT_AVAILABLE);
+        return true;
+      },
       async signIn() {
         calls.signIn();
         if (state.signIn === 'throws-cancelled') throw cancelled(SIGN_IN_CANCELLED);
+        if (state.signIn === 'developer-error') {
+          // Exactly what RNGoogleSigninModule rejects with: the bare number, and
+          // a message pointing at the library's troubleshooting page.
+          throw Object.assign(
+            new Error('DEVELOPER_ERROR: Follow troubleshooting instructions at ...'),
+            { code: DEVELOPER_ERROR },
+          );
+        }
+        if (state.signIn === 'network') throw new Error('network error');
         if (state.signIn === 'cancelled') return { type: 'cancelled', data: null };
         return { type: 'success', data: { user: { email: 'someone@example.com' } } };
       },
       async signInSilently() {
         calls.signInSilently();
+        if (state.silent === 'throws') throw new Error('network error');
         if (state.silent === 'required') throw cancelled(SIGN_IN_REQUIRED);
         if (state.silent === 'nobody') return { type: 'noSavedCredentialFound', data: null };
         return { type: 'success', data: { user: { email: 'someone@example.com' } } };
@@ -106,7 +136,7 @@ function fakeModule() {
     isSuccessResponse: (response: { type: string }) => response.type === 'success',
     isErrorWithCode: (error: unknown) =>
       typeof error === 'object' && error !== null && 'code' in error,
-    statusCodes: { SIGN_IN_CANCELLED, SIGN_IN_REQUIRED },
+    statusCodes: { SIGN_IN_CANCELLED, SIGN_IN_REQUIRED, PLAY_SERVICES_NOT_AVAILABLE },
   };
 }
 
@@ -114,6 +144,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   platform.OS = 'android';
   state.signIn = 'success';
+  state.play = 'present';
   state.silent = 'success';
   state.revoke = 'success';
   state.accessToken = 'token-1';
@@ -159,6 +190,74 @@ describe('asking for consent', () => {
     // Android reports this by rejecting rather than resolving.
     state.signIn = 'throws-cancelled';
     await expect(googleDrive.connect()).resolves.toBeNull();
+  });
+});
+
+describe('saying which refusal it was', () => {
+  it('calls DEVELOPER_ERROR what it is: a build nothing can be retried into', async () => {
+    state.signIn = 'developer-error';
+    // The screen offers "try again" for `failed` and does not for `not-set-up`,
+    // which is the entire point of classifying: no Android OAuth client is
+    // registered for this package name and signing certificate, and tapping the
+    // button again cannot register one.
+    await expect(googleDrive.connect()).rejects.toMatchObject({
+      fault: 'not-set-up',
+      status: DEVELOPER_ERROR,
+    });
+  });
+
+  it('separates Google services being absent from the request being refused', async () => {
+    state.play = 'missing';
+    await expect(googleDrive.connect()).rejects.toMatchObject({ fault: 'play-services' });
+    expect(calls.signIn).not.toHaveBeenCalled();
+  });
+
+  it('leaves an ordinary failure retryable, because it is', async () => {
+    state.signIn = 'network';
+    await expect(googleDrive.connect()).rejects.toMatchObject({ fault: 'failed', status: null });
+  });
+
+  it('says so when the build carries no module to ask with', async () => {
+    setSigninModuleForTests(null);
+    await expect(googleDrive.connect()).rejects.toMatchObject({ fault: 'not-set-up' });
+  });
+
+  it('says so when the build names no Cloud project', async () => {
+    delete process.env.EXPO_PUBLIC_GOOGLE_DRIVE_CLIENT_ID_WEB;
+    await expect(googleDrive.connect()).rejects.toMatchObject({ fault: 'not-set-up' });
+  });
+
+  it('files the status code with the crash reporter, and nothing identifying', async () => {
+    state.signIn = 'developer-error';
+    await expect(googleDrive.connect()).rejects.toBeInstanceOf(CloudAuthError);
+
+    expect(reportHandled).toHaveBeenCalledTimes(1);
+    const [reported, where] = reportHandled.mock.calls[0] as [Error, string];
+    expect(where).toBe('cloud.googleAuthorize');
+    // The code is the diagnosis and the reason this is reported at all.
+    expect(reported.message).toContain(DEVELOPER_ERROR);
+    expect(reported.message).toContain('DEVELOPER_ERROR');
+    // The account and the token are not, and must never ride along.
+    expect(reported.message).not.toContain('someone@example.com');
+    expect(reported.message).not.toContain('token-1');
+  });
+
+  it('reports a renewal that fails behind a scheduled backup, where no screen would', async () => {
+    // The half of the flow with nobody watching: a silent renewal runs under
+    // AutoBackup, so a failure there that is not reported is invisible
+    // entirely. A grant that is merely *gone* is still not this — that resolves
+    // to null and becomes the 401 the engine already knows how to act on.
+    state.silent = 'throws';
+    const expired = { accessToken: 'token-1', refreshToken: null, expiresAt: Date.now() - 1_000 };
+
+    await expect(googleDrive.ensureValid(expired)).rejects.toMatchObject({ fault: 'failed' });
+    expect(reportHandled).toHaveBeenCalledWith(expect.anything(), 'cloud.googleReauthorize');
+  });
+
+  it('does not report a cancellation — they meant it', async () => {
+    state.signIn = 'throws-cancelled';
+    await googleDrive.connect();
+    expect(reportHandled).not.toHaveBeenCalled();
   });
 });
 

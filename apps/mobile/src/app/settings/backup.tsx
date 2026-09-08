@@ -53,6 +53,7 @@ import { useBackup, type BackupOutcome } from '@/lib/backup/useBackup';
 import { BackupFrequency } from '@/lib/backup/schedule';
 import { formatRecoveryKey } from '@/lib/backup/recoveryKey';
 import type { RestoreScan } from '@/lib/backup/engine';
+import { CloudAuthError } from '@/lib/cloud/oauth';
 import { friendlyError } from '@/lib/errors';
 import { SyncNetworkPreference } from '@/lib/syncNetwork';
 
@@ -119,13 +120,42 @@ export default function BackupSettingsScreen() {
           ? t.backup.phaseUploading
           : null;
 
+  /**
+   * Why linking failed, said in a way that points at whoever can fix it.
+   *
+   * "Try again" is honest advice for a dropped connection and a lie for a build
+   * Google refuses to issue tokens to — no client registered for this package
+   * name and signing certificate, or no client id in the bundle at all. Those
+   * are settled before the app is installed and no tap changes them, so they
+   * get the same sentence the screen already uses for a build that cannot do
+   * this: "not available in this build".
+   *
+   * The status code is the whole diagnosis for whoever is building and noise
+   * for everybody else, so it is appended in development only. It is already in
+   * the crash report either way — `lib/cloud/nativeGoogle` files these on the
+   * way out, which is also why this does not run a `CloudAuthError` back
+   * through `friendlyError`: that would report the same failure twice.
+   */
+  const connectFailure = (caught: unknown): string => {
+    if (!(caught instanceof CloudAuthError)) {
+      return friendlyError(caught, t.backup.connectFailed, 'backup.connect');
+    }
+    // `play-services` deserves its own sentence — Google's services being
+    // absent or stale is the one fault here the person can fix themselves — and
+    // will get one as soon as `backup.connectNoPlayServices` exists in all four
+    // locale tables. Until then it reads as an ordinary failure, which is at
+    // least not wrong.
+    const sentence = caught.fault === 'not-set-up' ? t.backup.unavailable : t.backup.connectFailed;
+    return __DEV__ && caught.status ? `${sentence} (${caught.status})` : sentence;
+  };
+
   const onConnect = async (): Promise<void> => {
     setBusy(true);
     setError(null);
     try {
       await backup.connect();
     } catch (caught) {
-      setError(friendlyError(caught, t.backup.connectFailed, 'backup.connect'));
+      setError(connectFailure(caught));
     } finally {
       setBusy(false);
     }
