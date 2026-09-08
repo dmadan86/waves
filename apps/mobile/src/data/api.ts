@@ -1559,6 +1559,124 @@ export async function fetchPersonGroupBalances(
   return (data ?? []) as PersonGroupBalanceRow[];
 }
 
+/** One person's identity, with contact filled in only when they allow it. */
+export interface PersonProfileRow {
+  person_key: string;
+  display_name: string;
+  avatar_url: string | null;
+  is_ghost: boolean;
+  is_you: boolean;
+  shared_groups: number;
+  email: string | null;
+  phone: string | null;
+  payment_rail: string | null;
+  payment_handle: string | null;
+  country_code: string | null;
+  /** They have an account but have chosen not to show contact to group-mates.
+   *  Distinct from "nothing on file", so the screen can say the true one. */
+  contact_withheld: boolean;
+}
+
+/**
+ * Who one person is, across every group you share with them.
+ *
+ * Separate from `fetchPersonGroupBalances` on purpose: that RPC drops anybody
+ * whose balance nets to zero, which is exactly when you most want to look
+ * somebody up and find nothing owing. Identity has to survive being square.
+ *
+ * Returns null when the person is not visible to you — no shared group, or a
+ * key that resolves to nobody. The server never distinguishes those two, so
+ * neither can this.
+ */
+export async function fetchPersonProfile(personKey: string): Promise<PersonProfileRow | null> {
+  const { data, error } = await backend.rpc('waves_person_profile', {
+    p_person_key: personKey,
+  });
+  if (error) throw new Error(error.message);
+  const rows = (data ?? []) as PersonProfileRow[];
+  return rows[0] ?? null;
+}
+
+/** A person found by an exact email address or phone number. */
+export interface FoundPerson {
+  profile_id: string;
+  display_name: string;
+  avatar_url: string | null;
+  /** You are already in a group together — so the next step is "open", not "add". */
+  already_shared: boolean;
+}
+
+/**
+ * Find one account by an exact email address or phone number.
+ *
+ * Exact match only, and only for somebody who has left that channel
+ * discoverable. Null covers both "no such account" and "they have turned this
+ * off", deliberately and identically — a switch that could be detected would be
+ * the very oracle it exists to close.
+ *
+ * The server counts every call, hit or miss, against a daily ceiling. Past it
+ * the RPC raises `LOOKUP_RATE_LIMIT`, which callers should show as a plain
+ * "try again tomorrow" rather than a number.
+ */
+export async function findPerson(
+  channel: 'email' | 'phone',
+  value: string,
+): Promise<FoundPerson | null> {
+  const { data, error } = await backend.rpc('waves_find_person', {
+    p_channel: channel,
+    p_value: value,
+  });
+  if (error) throw new Error(error.message);
+  const rows = (data ?? []) as FoundPerson[];
+  return rows[0] ?? null;
+}
+
+/** How this account may be found, and what group-mates may read off it. */
+export interface DiscoverySettings {
+  discoverableByPhone: boolean;
+  discoverableByEmail: boolean;
+  /** `nobody` or `groups`. A constrained union, not a free string — the column
+   *  has the same check, and the two must not be able to drift apart. */
+  contactVisibility: 'nobody' | 'groups';
+}
+
+export const DEFAULT_DISCOVERY: DiscoverySettings = {
+  discoverableByPhone: true,
+  discoverableByEmail: true,
+  contactVisibility: 'groups',
+};
+
+export async function fetchDiscoverySettings(profileId: string): Promise<DiscoverySettings> {
+  const { data, error } = await backend
+    .from('profiles')
+    .select('discoverable_by_phone, discoverable_by_email, contact_visibility')
+    .eq('id', profileId)
+    .single();
+  if (error) throw new Error(error.message);
+  return {
+    discoverableByPhone: data?.discoverable_by_phone ?? DEFAULT_DISCOVERY.discoverableByPhone,
+    discoverableByEmail: data?.discoverable_by_email ?? DEFAULT_DISCOVERY.discoverableByEmail,
+    // Anything the column somehow holds that is not one of the two known values
+    // falls back to the stricter reading, never the more open one.
+    contactVisibility: data?.contact_visibility === 'nobody' ? 'nobody' : 'groups',
+  };
+}
+
+export async function saveDiscoverySettings(
+  profileId: string,
+  next: DiscoverySettings,
+): Promise<void> {
+  const { error } = await backend
+    .from('profiles')
+    .update({
+      discoverable_by_phone: next.discoverableByPhone,
+      discoverable_by_email: next.discoverableByEmail,
+      contact_visibility: next.contactVisibility,
+    })
+    .eq('id', profileId);
+  if (error) throw new Error(error.message);
+}
+
 /**
  * Fold a set of ghosts into one merged person for this viewer (Friends screen).
  *
