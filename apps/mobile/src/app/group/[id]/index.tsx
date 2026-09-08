@@ -69,6 +69,7 @@ import {
 } from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
+import { canRemindFromBalanceRow } from '@/lib/balanceRowActions';
 import { paidBy } from '@/lib/payerLines';
 import { CategoryBadge } from '@/components/Category';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
@@ -859,6 +860,12 @@ export default function GroupScreen() {
       // same mask rather than flashing the real name while it loads.
       const shownName = displayName(member, profile?.id, blockedIds, t.misc.someone);
       const personKey = personKeyFor(member);
+      const canRemind = canRemindFromBalanceRow({
+        balance,
+        isGhost: isGhost(member),
+        memberId: member.id,
+        myMemberId: ledger.myMemberId,
+      });
       // What a screen reader hears once the row is one button: who, then the
       // amount in the words `MoneyText` would have spoken on its own, then —
       // for a guest — that they have not joined. Making the row accessible
@@ -911,12 +918,10 @@ export default function GroupScreen() {
           <Row style={{ gap: theme.spacing.sm, alignItems: 'center' }}>
             {/* Somebody who owes the group money can be nudged from the row that
                 says so, the way Friends already does. Ghosts have nowhere to
-                send it. The chip keeps its own press inside the row's: the
-                innermost pressable wins the touch, so nudging never navigates
-                — the same nesting the Friends list has always used. */}
-            {balance < 0n && !isGhost(member) && member.id !== ledger.myMemberId ? (
-              <RemindChip groupId={groupId} memberId={member.id} currency={currency} />
-            ) : null}
+                send it. Touch keeps the visible chip; screen readers get the
+                same affordance as a custom action on the row below, because a
+                nested accessible button can be hidden by an accessible parent. */}
+            {canRemind ? <RemindChip groupId={groupId} memberId={member.id} currency={currency} /> : null}
             <MoneyText amount={balance} currency={currency} locale={locale} mode="balance" />
             {member.pending ? <PendingMark /> : null}
             {/* A fixed slot at the trailing edge, on every row whether or not it
@@ -942,6 +947,12 @@ export default function GroupScreen() {
               accessibilityRole="button"
               accessibilityLabel={rowLabel}
               accessibilityHint={t.people.seeSharedGroups}
+              accessibilityActions={canRemind ? [{ name: 'remind', label: t.people.remind }] : undefined}
+              onAccessibilityAction={(event) => {
+                if (event.nativeEvent.actionName === 'remind') {
+                  nudgeToSettle({ groupId, toMemberId: member.id, currency }).catch(() => undefined);
+                }
+              }}
               onPress={() =>
                 router.push(
                   `/friends/person/${encodeURIComponent(personKey)}?name=${encodeURIComponent(
