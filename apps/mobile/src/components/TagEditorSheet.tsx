@@ -15,7 +15,7 @@ import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Alert, Pressable, ScrollView, TextInput, View } from 'react-native';
 
-import { TINTS, type CatalogEntry, type TintName } from '@waves/core';
+import { TINTS, type CatalogEntry, type CategoryMeta, type TintName } from '@waves/core';
 import { Button, iconSize, Row, Sheet, Text, useTheme } from '@waves/ui';
 
 import { CategoryBadge } from '@/components/Category';
@@ -26,10 +26,23 @@ import { useStrings } from '@/i18n';
 export function TagEditorSheet({
   open,
   onClose,
+  onCreated,
   editing,
 }: {
   open: boolean;
   onClose: () => void;
+  /**
+   * A tag was just made here, with the id to store and the display snapshot to
+   * carry onto whatever is being tagged.
+   *
+   * Somebody who opens this from a picker has come to tag the thing in front of
+   * them, not to tend their catalog — so the caller applies what they made
+   * rather than closing onto an unchanged screen and leaving them to find it.
+   * Optional: the tags manager creates tags for their own sake and wants
+   * nothing selected. Never fired for an edit, which changes the catalog, not
+   * the choice a screen is already carrying.
+   */
+  onCreated?: (tagId: string, meta: CategoryMeta) => void;
   /** The custom tag to edit, or null to create a fresh one. */
   editing?: CatalogEntry | null;
 }) {
@@ -39,7 +52,12 @@ export function TagEditorSheet({
               so its fields initialise from the tag being edited without a
               setState-in-effect to seed them. */}
       {open ? (
-        <TagEditorForm key={editing?.tagId ?? 'new'} editing={editing ?? null} onClose={onClose} />
+        <TagEditorForm
+          key={editing?.tagId ?? 'new'}
+          editing={editing ?? null}
+          onClose={onClose}
+          onCreated={onCreated}
+        />
       ) : null}
     </Sheet>
   );
@@ -50,9 +68,11 @@ export function TagEditorSheet({
 function TagEditorForm({
   editing,
   onClose,
+  onCreated,
 }: {
   editing: CatalogEntry | null;
   onClose: () => void;
+  onCreated?: (tagId: string, meta: CategoryMeta) => void;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
@@ -79,7 +99,17 @@ function TagEditorForm({
         sortOrder: editing?.sortOrder,
         hidden: editing?.hidden ?? false,
       },
-      { onSuccess: onClose },
+      {
+        onSuccess: (tagId) => {
+          // Hand the new tag back before closing. The snapshot is built from
+          // the fields as saved rather than read back from the catalog: the
+          // upsert is queued locally and the catalog is a mirror of it, so
+          // reading it here would be a race against the caller's next render
+          // for a value this form already holds exactly.
+          if (!editing) onCreated?.(tagId, { label: trimmed, icon, tint });
+          onClose();
+        },
+      },
     );
   };
 
