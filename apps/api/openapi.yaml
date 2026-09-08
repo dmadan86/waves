@@ -176,9 +176,19 @@ paths:
       summary: Liveness, and which configuration is missing
       description: >-
         Answers 200 either way. `status` is `ok` when the deployment has
-        everything it needs, and `misconfigured` otherwise, in which case
-        `missing` names the environment variables that are unset. It names
-        variables, never values.
+        everything it needs, `misconfigured` when it does not, and `degraded`
+        when the backend could not be reached to find out. `missing` names the
+        environment variables that are unset. It names variables, never values.
+
+
+        `signing` is the one an operator should read after a deploy. The API
+        authenticates by signing a short session for the person a token names,
+        which works only while the project accepts its legacy HS256 secret;
+        `state` is `ok` if a freshly signed session was actually accepted,
+        `rejected` if it was not. This cannot be inferred from the project's
+        JWKS document, because symmetric keys are excluded from it by design —
+        so the check signs a token and presents it rather than reasoning about
+        configuration.
       security: []
       responses:
         '200':
@@ -3803,11 +3813,11 @@ components:
 
     Health:
       type: object
-      required: [status, missing]
+      required: [status, missing, signing]
       properties:
         status:
           type: string
-          enum: [ok, misconfigured]
+          enum: [ok, degraded, misconfigured]
         missing:
           type: array
           description: >-
@@ -3816,3 +3826,34 @@ components:
           items:
             type: string
           examples: [[WAVES_API_TOKEN_SECRET, WAVES_API_WEB_URL]]
+        signing:
+          $ref: '#/components/schemas/SigningHealth'
+
+    SigningHealth:
+      type: object
+      description: >-
+        Whether the backend accepts the sessions this deployment signs. Checked
+        by signing one and presenting it, not by reading configuration.
+      required: [state, published_algorithms, detail]
+      properties:
+        state:
+          type: string
+          description: >-
+            `ok` — a signed session was accepted. `rejected` — it was refused,
+            so every request will fail and this is a server fault, not a token
+            problem. `unreachable` — the backend could not be asked.
+            `unconfigured` — not enough settings to try.
+          enum: [ok, rejected, unreachable, unconfigured]
+        published_algorithms:
+          type: array
+          description: >-
+            What the project advertises at its JWKS endpoint. Informational
+            only: symmetric keys are excluded from that document, so this can
+            never settle whether HS256 is accepted.
+          items:
+            type: string
+          examples: [[ES256]]
+        detail:
+          type: string
+          description: One sentence an operator can act on. Never a key or a token.
+          examples: ['The backend accepts the sessions this service signs.']

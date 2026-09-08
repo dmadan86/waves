@@ -2,7 +2,10 @@
 
 Status: **built** (this PR). Verified against a local Postgres and the service's
 own suite; **not deployed** — the migration and a new Vercel project are both
-outstanding, and the OAuth flow has never run against a real GoTrue. See
+outstanding, and the OAuth flow has never run against a real GoTrue. The one
+thing that cannot be settled from here is whether the project still accepts the
+HS256 sessions this service signs; `GET /health` answers it in one call once
+deployed, and §7 says what to do with each answer. See
 [Deploying](#deploying) for exactly what is owed.
 
 A public HTTP API third-party software calls on a Waves user's behalf: personal
@@ -217,11 +220,50 @@ Full list with reasoning: `apps/api/.env.example`.
 2. **Create the Vercel project** (once) from `apps/api`, add the hostname, and
    set `VERCEL_PROJECT_ID_API` in the repository secrets.
 3. **Set its environment** from `apps/api/.env.example`. `WAVES_API_JWT_SECRET`
-   is the project's JWT secret; **confirm the project still accepts HS256** —
-   this is the one assumption that cannot be checked without a real deployment,
-   and if the project has moved to asymmetric signing keys the minted session JWT
-   will be rejected by PostgREST and `/v1` will answer 401 for every valid token.
-   `GET /health` names any variable that is missing.
+   is the project's JWT secret. Before the first deploy, open **Auth → JWT Keys**
+   in the dashboard and read the state of the **legacy JWT secret**:
+
+   | State there                  | What it means here                                                      |
+   | ---------------------------- | ----------------------------------------------------------------------- |
+   | _In use_ / _Previously used_ | The API works. Tokens signed with the legacy secret are still verified. |
+   | _Revoked_                    | **The API cannot work at all** — see below.                             |
+
+   This matters more than it looks and it cannot be answered from the outside.
+   The prod project already advertises an `ES256` key at
+   `/auth/v1/.well-known/jwks.json`, and that says **nothing** about HS256:
+   Supabase excludes symmetric keys from the discovery document by design ("this
+   should return the EC public key (the symmetric key is excluded)"). Migrating
+   to signing keys also creates the asymmetric key as a _standby_ — advertised,
+   but not yet used to sign — so a project that has only clicked _Migrate JWT
+   secret_ looks byte-for-byte identical to one that has fully rotated and
+   revoked. The same JWKS output is consistent with the API working perfectly
+   and with it not working at all.
+
+   **You do not have to take anyone's word for it.** `GET /health` signs a
+   session and presents it, and reports the answer:
+
+   ```
+   { "status": "ok",
+     "signing": { "state": "ok", "published_algorithms": ["ES256"],
+                  "detail": "The backend accepts the sessions this service signs." } }
+   ```
+
+   `state` is `ok`, `rejected`, `unreachable` or `unconfigured`, and `status`
+   goes to `misconfigured` on a rejection. Check it immediately after the first
+   deploy, before telling anybody the API exists.
+
+   **If the legacy secret is revoked**, this design cannot be patched into
+   working: the private half of an asymmetric signing key never leaves Supabase,
+   so nothing outside it can mint a user session at all. The options are to
+   un-revoke the legacy secret, or to replace the mint step — a direct Postgres
+   connection using `SET LOCAL ROLE authenticated` with `request.jwt.claims`, the
+   way `packages/db/test/helpers.ts` already impersonates, which reaches
+   PostgREST's rows but not the edge functions. That is a redesign, not a
+   configuration change, which is exactly why this step is here rather than in a
+   troubleshooting section.
+
+   `GET /health` also names any variable that is missing.
+
 4. **Set `NEXT_PUBLIC_WAVES_API_URL`** on the web project so the developer
    console can reach the API, and add the web origin to
    `WAVES_API_ALLOWED_ORIGINS` on the API project. **Do not skip the second

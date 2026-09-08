@@ -25,6 +25,7 @@ import { randomUUID } from 'node:crypto';
 import { rateHeaders, type ApiEnv } from './server/authorize';
 import { readConfig } from './server/env';
 import { ApiError, errorBody, fromUnknown } from './server/errors';
+import { probeSigning } from './server/signing';
 import { developer } from './routes/developer';
 import { oauth } from './routes/oauth';
 import { expenses } from './routes/v1/expenses';
@@ -93,8 +94,14 @@ export function createApp(): Hono<ApiEnv> {
    * it is: "no token secret" is the difference between a deployment that will
    * work and one that will 500 on every call, and somebody standing one up
    * needs to be told which. It names variables, never values.
+   *
+   * It also actually *tries* to sign a session and present it, rather than
+   * assuming the backend will take one. That check is the difference between
+   * finding out at deploy time and finding out from a developer reporting that
+   * every one of their tokens returns 401 — and the answer cannot be reasoned
+   * out from configuration, because a symmetric secret is never published.
    */
-  app.get('/health', (c) => {
+  app.get('/health', async (c) => {
     const config = c.get('config');
     const missing = [
       !config.supabaseUrl && 'WAVES_API_SUPABASE_URL',
@@ -103,7 +110,29 @@ export function createApp(): Hono<ApiEnv> {
       !config.tokenSecret && 'WAVES_API_TOKEN_SECRET',
       !config.webUrl && 'WAVES_API_WEB_URL',
     ].filter((value): value is string => typeof value === 'string');
-    return c.json({ status: missing.length === 0 ? 'ok' : 'misconfigured', missing }, 200);
+
+    const signing = await probeSigning(config);
+    // A deployment whose sessions are refused is not serving anything, so it
+    // does not get to call itself ok even with every variable set.
+    const status =
+      missing.length > 0 || signing.state === 'rejected' || signing.state === 'unconfigured'
+        ? 'misconfigured'
+        : signing.state === 'unreachable'
+          ? 'degraded'
+          : 'ok';
+
+    return c.json(
+      {
+        status,
+        missing,
+        signing: {
+          state: signing.state,
+          published_algorithms: signing.published,
+          detail: signing.detail,
+        },
+      },
+      200,
+    );
   });
 
   app.route('/', oauth);

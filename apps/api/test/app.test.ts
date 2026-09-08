@@ -13,6 +13,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createApp } from '../src/app';
+import { forgetSigningProbe } from '../src/server/signing';
 
 const app = createApp();
 
@@ -21,6 +22,7 @@ function get(path: string, init: RequestInit = {}): Promise<Response> {
 }
 
 beforeEach(() => {
+  forgetSigningProbe();
   vi.stubEnv('WAVES_API_SUPABASE_URL', 'https://backend.example.test');
   vi.stubEnv('WAVES_API_SUPABASE_ANON_KEY', 'anon-key');
   vi.stubEnv('WAVES_API_JWT_SECRET', 'jwt-secret');
@@ -31,6 +33,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllEnvs();
+  forgetSigningProbe();
 });
 
 describe('the shape of a refusal', () => {
@@ -321,5 +324,45 @@ describe('rate-limit headers', () => {
     });
     expect(Number(headers['RateLimit-Reset'])).toBeGreaterThan(25);
     expect(Number(headers['RateLimit-Reset'])).toBeLessThanOrEqual(30);
+  });
+});
+
+describe('a signing key the backend will not accept', () => {
+  it('is a 500 that says so, never a 401 the caller could mistake for their own', async () => {
+    // The whole point. If the project revokes its legacy HS256 secret, every
+    // session this service signs becomes unacceptable — and PostgREST answers
+    // 401, which is exactly what a bad API token looks like. Passing that
+    // through would send a developer holding a perfectly good key to debug the
+    // one thing that is not wrong, with nothing anywhere pointing at the truth.
+    const { fromUnknown, ApiError } = await import('../src/server/errors');
+    const { isSignatureRejection } = await import('../src/server/signing');
+
+    const refusal = { code: 'PGRST301', message: 'JWSError JWSInvalidSignature' };
+    expect(isSignatureRejection(refusal)).toBe(true);
+
+    // Without the guard in `requireScope` this is what the caller would get.
+    expect(fromUnknown(refusal).status).toBe(500);
+
+    // And with it, the sentence has to tell them it is not their token.
+    const surfaced = new ApiError(
+      'misconfigured',
+      'This deployment cannot sign a session the backend will accept. That is a fault on our side, not a problem with your token — the operator can see the detail at /health.',
+    );
+    expect(surfaced.status).toBe(500);
+    expect(surfaced.message).toMatch(/not a problem with your token/i);
+  });
+
+  it('reports the check on /health rather than leaving it to be discovered', async () => {
+    const response = await get('/health');
+    const body = (await response.json()) as {
+      status: string;
+      signing: { state: string; detail: string };
+    };
+    // No backend is reachable from the test process, and "cannot reach it" is
+    // deliberately not "it refused us" — an operator must not be sent to rotate
+    // a key over a network blip.
+    expect(body.signing.state).toBe('unreachable');
+    expect(body.status).toBe('degraded');
+    expect(typeof body.signing.detail).toBe('string');
   });
 });

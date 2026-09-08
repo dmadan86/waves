@@ -29,6 +29,7 @@ import { readConfig, type ApiConfig } from './env';
 import { ApiError, fromUnknown } from './errors';
 import type { Scope } from './scopes';
 import { bearerOf, clientFor, signUserJwt, wavesFor } from './session';
+import { isSignatureRejection } from './signing';
 
 export interface Caller {
   readonly profileId: string;
@@ -112,9 +113,20 @@ export function requireScope(scope: Scope): MiddlewareHandler<ApiEnv> {
       p_scope: scope,
     });
     if (error) {
+      // A session signed two hundred milliseconds ago cannot legitimately be
+      // unverifiable — this process made it. So a JWT-level refusal is a fault
+      // in *this deployment's* signing key, and answering 401 would send a
+      // developer holding a perfectly good API token to debug the one thing
+      // that is not wrong. It is a 500, and it says so.
+      if (isSignatureRejection(error)) {
+        throw new ApiError(
+          'misconfigured',
+          'This deployment cannot sign a session the backend will accept. That is a fault on our side, not a problem with your token — the operator can see the detail at /health.',
+        );
+      }
       const mapped = fromUnknown(error);
-      // Every refusal from the function is about the token, so it earns the
-      // challenge header that tells a client to stop retrying with this one.
+      // Every other refusal from the function is about the token, so it earns
+      // the challenge header that tells a client to stop retrying with this one.
       throw new ApiError(mapped.code, mapped.message, { 'WWW-Authenticate': CHALLENGE });
     }
 
