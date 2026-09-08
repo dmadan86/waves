@@ -1315,8 +1315,10 @@ export interface UiStrings {
      *  figure is shown absolute, so the direction lives in the label). */
     netOwed: string;
     netOwe: string;
-    /** Owed-to-you slide label: the gross total others owe you. */
+    /** Gross-slide labels: the whole of one side, before the net folds the
+     *  two together. Only ever shown for the side the net figure omits. */
     owedToYou: string;
+    owedByYou: string;
     /** Balance-deck slide label: your spend so far in the current month. */
     monthSpent: string;
     /** The hero greeting over the name: "Hi, {name}". */
@@ -3825,6 +3827,7 @@ const en: UiStrings = {
     netOwed: 'Net receivable',
     netOwe: 'Net payable',
     owedToYou: 'Receivables',
+    owedByYou: 'Payables',
     monthSpent: 'Monthly spend',
     hi: 'Hi, {name}',
     morning: 'Good morning',
@@ -6273,6 +6276,7 @@ const ta: UiStrings = {
     netOwed: 'நிகர வரவு',
     netOwe: 'நிகர கொடுபாடு',
     owedToYou: 'பெறவேண்டியவை',
+    owedByYou: 'கொடுக்கவேண்டியவை',
     monthSpent: 'மாதச் செலவு',
     hi: 'வணக்கம், {name}',
     morning: 'காலை வணக்கம்',
@@ -8773,6 +8777,7 @@ const hi: UiStrings = {
     netOwed: 'शुद्ध प्राप्य',
     netOwe: 'शुद्ध देय',
     owedToYou: 'प्राप्य',
+    owedByYou: 'देय',
     monthSpent: 'मासिक ख़र्च',
     hi: 'नमस्ते, {name}',
     morning: 'शुभ प्रभात',
@@ -11256,6 +11261,7 @@ const ar: UiStrings = {
     netOwed: 'صافي المستحق لك',
     netOwe: 'صافي المستحق عليك',
     owedToYou: 'مستحقاتك',
+    owedByYou: 'مستحقات عليك',
     monthSpent: 'الإنفاق الشهري',
     hi: 'مرحباً، {name}',
     morning: 'صباح الخير',
