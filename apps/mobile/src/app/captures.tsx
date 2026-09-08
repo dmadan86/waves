@@ -13,19 +13,19 @@
 import { useCallback, useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { FlashList } from '@shopify/flash-list';
+import { randomUUID } from 'expo-crypto';
 import { router } from 'expo-router';
 import {
   Alert,
   Pressable,
   RefreshControl,
   ScrollView,
-  TextInput,
   useWindowDimensions,
   View,
 } from 'react-native';
 
+import { peopleSignatureKey } from '@waves/core';
 import {
-  Avatar,
   Button,
   directionalIcon,
   Divider,
@@ -37,22 +37,37 @@ import {
   Screen,
   Sheet,
   Text,
-  tintForKey,
   useTabBarClearance,
   useTheme,
 } from '@waves/ui';
 
 import { CategoryBadge } from '@/components/Category';
+import {
+  DestinationPicker,
+  type DestinationSelection,
+  type PersonChoice,
+} from '@/components/DestinationPicker';
 import { PendingMark } from '@/components/PendingMark';
 import { InboxSkeleton } from '@/components/Skeletons';
 import { dayHeading } from '@/data/activity';
-import { useCaptures, useDeleteCapture, useGroups, useHomeSummary } from '@/data/hooks';
-import { groupLabel, type CaptureRow, type GroupRow } from '@/data/types';
-import { fill, plural, useStrings, type UiStrings } from '@/i18n';
+import {
+  useAddGhostMember,
+  useCaptures,
+  useCreateGroup,
+  useDeleteCapture,
+  useGroupPeopleSignatures,
+  useGroups,
+  useHomeSummary,
+  useOneToOneGroupIds,
+  usePeopleBalances,
+} from '@/data/hooks';
+import { groupLabel, GroupType, type CaptureRow } from '@/data/types';
+import { plural, useStrings, type UiStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
-import { assignCaptureHref, matchesAssignGroupQuery } from '@/lib/captureAssign';
+import { assignCaptureHref } from '@/lib/captureAssign';
 import { foldedCaptureCount } from '@/lib/captureBatch';
 import { buildCaptureFeedItems, type CaptureFeedItem } from '@/lib/captureFeed';
+import { friendlyError } from '@/lib/errors';
 import { usePullRefresh } from '@/lib/pullRefresh';
 
 /**
@@ -63,63 +78,17 @@ type CaptureMenu =
   { kind: 'capture'; capture: CaptureRow } | { kind: 'batch'; items: CaptureRow[] } | null;
 
 /**
- * The pill on a row's second line that names its one action: "Add to a group"
- * when the capture is loose, or "Add to Goa Trip" when it was pre-aimed at one.
- * Brand-soft and filled when aimed (a real destination to confirm), a quiet
- * dashed outline when still open — so a labelled affordance replaces the old
- * invisible "the whole card is secretly tappable". The chip is a label, not its
- * own button: the card's tap is what assigns.
- *
- * It shares its line with the place the spend happened, and the two used to
- * shrink together: on a narrow row the label was squeezed away entirely and the
- * chip rendered as a bare "+" and an ellipsis — a mark that reads as breakage
- * rather than an action. The label is the row's one action, and a place name is
- * context that already truncates happily, so the chip holds its width and the
- * place gives way first. The cap keeps a very long group name from swallowing
- * the whole line (and, with no shrink left, spilling over the amount).
- */
-function AssignChip({ label, aimed }: { label: string; aimed: boolean }): React.JSX.Element {
-  const theme = useTheme();
-  const ink = aimed ? theme.color.brand : theme.color.textMuted;
-  return (
-    <View
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 3,
-        paddingVertical: 3,
-        // Logical, not left/right, so the plus-then-label pill mirrors in RTL.
-        paddingStart: 6,
-        paddingEnd: 9,
-        borderRadius: theme.radius.pill,
-        backgroundColor: aimed ? theme.color.brandSoft : theme.color.surfaceMuted,
-        borderWidth: aimed ? 0 : 1,
-        borderColor: theme.color.border,
-        borderStyle: 'dashed',
-        flexShrink: 0,
-        maxWidth: '70%',
-      }}
-    >
-      <Ionicons name="add" size={13} color={ink} />
-      <Text
-        variant="micro"
-        numberOfLines={1}
-        style={{ color: ink, fontWeight: '600', flexShrink: 1 }}
-      >
-        {label}
-      </Text>
-    </View>
-  );
-}
-
-/**
  * One capture, in the card grammar this screen now speaks (Mobbin: Phantom
  * Recent Activity, Apple Wallet Daily Cash): a leading category glyph — always
  * the category colour, never the bill's thumbnail — the note over a muted place
  * line, and the amount at the trailing edge, all on a soft rounded card.
  *
  * The whole card taps to assign — adding it to a group is the one thing you do
- * with a capture, so it is the card's own gesture, not a control to hunt for.
+ * with a capture, so it is the card's own gesture, not a control to hunt for. It
+ * used to say so on a chip under the title ("Add to a group"), which spent the
+ * row's second line restating the one gesture the card has; the line now carries
+ * where the spend happened, and carries nothing at all when the spend has no
+ * place — an empty line is a title with room, not a row missing something.
  * The quieter things (edit, delete) fold behind a single ⋯ at the trailing edge,
  * which opens the actions sheet; the two used to sit on the row as a pencil and
  * an always-red trash, which crowded the amount and put "delete" a mis-tap from
@@ -134,7 +103,6 @@ function CaptureListRow({
   t,
   onAssign,
   onMore,
-  targetGroupName = null,
   hideLocation = false,
   bare = false,
 }: {
@@ -144,10 +112,6 @@ function CaptureListRow({
   onAssign: () => void;
   /** Open the row's overflow sheet (add to group, edit, delete). */
   onMore: () => void;
-  /** The group this capture was tagged for, resolved to its display name — so the
-   *  assign chip reads "Add to Goa Trip". Null when it was not pre-aimed (or the
-   *  aimed group is one the viewer can no longer assign into). */
-  targetGroupName?: string | null;
   /** Inside a batch the description IS the line that matters, so the place is
    *  suppressed there — the batch stands for one outing, one location. */
   hideLocation?: boolean;
@@ -209,23 +173,12 @@ function CaptureListRow({
           <Text variant="subheading" numberOfLines={1}>
             {title}
           </Text>
-          {/* Line two spells the one thing you do with a capture — add it to a
-              group — and names the group when the capture was pre-aimed at one, so
-              the action is labelled rather than hidden in the card's tap. The
-              place and the unsynced mark trail it, muted. Inside a batch the chip
-              is dropped: the batch's own line already says how its items assign. */}
-          {!bare || subtitle || capture.pending ? (
+          {/* Line two is context, not an instruction: where the spend happened,
+              and the unsynced mark when the row is still queued. With neither, it
+              is absent entirely and the title has the row to itself — the line
+              used to be spent on a chip repeating the card's own tap. */}
+          {subtitle || capture.pending ? (
             <Row style={{ gap: theme.spacing.xs, alignItems: 'center' }}>
-              {!bare ? (
-                <AssignChip
-                  label={
-                    targetGroupName
-                      ? fill(t.captures.addTo, { name: targetGroupName })
-                      : t.captures.assign
-                  }
-                  aimed={Boolean(targetGroupName)}
-                />
-              ) : null}
               {locationName ? (
                 <Ionicons name="location-outline" size={13} color={theme.color.textFaint} />
               ) : null}
@@ -513,12 +466,24 @@ export default function CapturesScreen() {
   const deleteCapture = useDeleteCapture();
   const groups = useGroups();
   const summary = useHomeSummary(profile?.id ?? null);
+  // The people the picker can point a draft at, and the raw material for
+  // deciding whether a chosen set of them already share a group. All read from
+  // the mirror, so the picker works with no network (ADR-005).
+  const people = usePeopleBalances(profile?.id ?? null);
+  const oneToOne = useOneToOneGroupIds();
+  const signatures = useGroupPeopleSignatures(profile?.id ?? null);
+  const createGroup = useCreateGroup();
 
-  // Which capture is being assigned, if any — drives the group-picker sheet.
+  // Which capture is being assigned, if any — drives the destination sheet.
   const [assigning, setAssigning] = useState<CaptureRow | null>(null);
-  // The picker's own search text, so a long group list stays one tap from any
-  // group. Cleared whenever the sheet opens on a fresh capture.
-  const [query, setQuery] = useState('');
+  // The id a group made from picked people will take, minted before the create
+  // so the ghosts and the expense behind it can already name it — the
+  // offline-first pattern the voice review and "add a person" both use. Retired
+  // for a fresh one the moment it is spent, so a second new group in the same
+  // session is not handed the same id.
+  const [newGroupId, setNewGroupId] = useState(() => randomUUID());
+  const [newMemberId, setNewMemberId] = useState(() => randomUUID());
+  const addGhost = useAddGhostMember(newGroupId);
   // FlashList recycles row components, so batch expansion lives with the screen
   // and is keyed by batch id rather than inside the recycled row instance.
   const [openBatchIds, setOpenBatchIds] = useState<ReadonlySet<string>>(() => new Set());
@@ -540,19 +505,46 @@ export default function CapturesScreen() {
     [groups.data, summary, profile?.id],
   );
 
-  // Group rows matching the picker's search text, by name. Only worth showing a
-  // search field once the list is long enough to scroll (below); until then the
-  // memo just passes every group through.
-  const visibleGroups = useMemo(() => {
-    if (!query.trim()) return assignableGroups;
-    return assignableGroups.filter((group) =>
-      matchesAssignGroupQuery(groupLabel(group, summary.membersFor(group.id), profile?.id), query),
-    );
-  }, [assignableGroups, query, summary, profile?.id]);
+  // The people the picker offers, by name. A contact is somebody whose balance
+  // with the viewer is explained by a single group (`only_group_id`) that is a
+  // true 1:1 — you and them and nobody else. A whole trip is never a person,
+  // even when it happens to be the only group you share with someone.
+  const peopleChoices = useMemo(() => {
+    const byGroup = new Map<string, PersonChoice>();
+    for (const row of people.data ?? []) {
+      if (!row.only_group_id || !oneToOne.data.has(row.only_group_id)) continue;
+      // One entry per 1:1 group — a person has a row per currency, and they all
+      // carry the same display name.
+      byGroup.set(row.only_group_id, {
+        personKey: row.person_key,
+        name: row.display_name,
+        groupId: row.only_group_id,
+      });
+    }
+    return [...byGroup.values()].sort((a, b) => a.name.localeCompare(b.name));
+  }, [people.data, oneToOne.data]);
 
-  // Past this many groups the picker earns a search field; a short list is
-  // faster to eyeball than to type through.
-  const showSearch = assignableGroups.length > 6;
+  // A set of people → the group they already share, if any. First match wins;
+  // it only ever answers "these exact people already have a group together".
+  const groupBySignature = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const sig of signatures.data) {
+      const key = peopleSignatureKey(sig.names);
+      if (!map.has(key)) map.set(key, sig.groupId);
+    }
+    return map;
+  }, [signatures.data]);
+
+  // Which row the picker opens with ticked: the group the capture was tagged
+  // for at capture time, when it is still one the viewer can assign into. That
+  // pre-aim used to be spelled out on the row itself and skip the picker
+  // entirely; it is now a suggestion the picker shows and a tap confirms.
+  const pickerSelection: DestinationSelection = useMemo(() => {
+    const targetId = assigning?.target_group_id;
+    return targetId && assignableGroups.some((group) => group.id === targetId)
+      ? { kind: 'existing', groupId: targetId }
+      : { kind: 'none' };
+  }, [assigning?.target_group_id, assignableGroups]);
   // How tall the picker sheet is ever allowed to get. A ceiling, not a height:
   // the sheet hugs its rows and only starts scrolling here. In points off the
   // window rather than the '80%' it used to pass, because a percentage height
@@ -567,7 +559,6 @@ export default function CapturesScreen() {
   const waitingCount = useMemo(() => foldedCaptureCount(rows), [rows]);
 
   const openAssign = useCallback((capture: CaptureRow): void => {
-    setQuery('');
     setAssigning(capture);
   }, []);
 
@@ -643,21 +634,82 @@ export default function CapturesScreen() {
     ],
   );
 
-  const closeAssign = useCallback((): void => {
-    setAssigning(null);
-    setQuery('');
-  }, []);
+  const closeAssign = useCallback((): void => setAssigning(null), []);
 
   // Hand the capture's own values to the add-expense form as prefill, and carry
   // its id so that saving there can close the capture (useAssignCapture). The
   // href is built by the shared helper so the "New group" flow, which routes to
   // the very same form, hands it identical params.
   const assignTo = useCallback(
-    (capture: CaptureRow, group: GroupRow): void => {
+    (capture: CaptureRow, groupId: string): void => {
       closeAssign();
-      router.push(assignCaptureHref(capture, group.id));
+      router.push(assignCaptureHref(capture, groupId));
     },
     [closeAssign],
+  );
+
+  // The People tab, confirmed: this draft is with these people. If they already
+  // share a group it is that group's expense — the same assignment a Groups-tab
+  // tap makes. If they do not, the group is made here and the draft assigned
+  // into it: a lone name is the 1:1 "add a person" case, several is a real
+  // group, and both are named after whoever is in them the way WhatsApp does.
+  //
+  // The create rides the offline queue like every other write (ADR-005), and the
+  // ids were minted up front, so the add-expense screen this pushes to can name
+  // the group and the members before the server has ever heard of them.
+  const assignToPeople = useCallback(
+    async (names: string[]): Promise<void> => {
+      const capture = assigning;
+      if (!capture) return;
+      const clean = [...new Set(names.map((name) => name.trim()).filter(Boolean))];
+      if (clean.length === 0) return;
+
+      const shared = groupBySignature.get(peopleSignatureKey(clean));
+      if (shared) {
+        assignTo(capture, shared);
+        return;
+      }
+
+      const groupId = newGroupId;
+      closeAssign();
+      try {
+        await createGroup.mutateAsync({
+          groupId,
+          creatorMemberId: newMemberId,
+          name: clean.join(', '),
+          type: GroupType.Other,
+          // The draft's own currency: it is the money actually spent with these
+          // people, and a fresh group has nothing better to go on.
+          currency: capture.currency,
+        });
+        for (const name of clean) await addGhost.mutateAsync(name);
+      } catch (caught) {
+        // With no group to assign into there is nowhere to push, so say why and
+        // leave the draft exactly where it was rather than opening a form over a
+        // group that was never made.
+        Alert.alert(
+          t.captures.title,
+          friendlyError(caught, t.captures.couldNotSave, 'captures.newPeopleGroup'),
+        );
+        return;
+      }
+      // Spent — the next new group needs its own pair of ids.
+      setNewGroupId(randomUUID());
+      setNewMemberId(randomUUID());
+      router.push(assignCaptureHref(capture, groupId));
+    },
+    [
+      addGhost,
+      assigning,
+      assignTo,
+      closeAssign,
+      createGroup,
+      groupBySignature,
+      newGroupId,
+      newMemberId,
+      t.captures.couldNotSave,
+      t.captures.title,
+    ],
   );
 
   const closeMenu = useCallback((): void => setMenu(null), []);
@@ -722,25 +774,17 @@ export default function CapturesScreen() {
           );
         case 'single': {
           const capture = item.capture;
-          // The group this capture was pre-aimed at, if it is still one the viewer
-          // can assign into — the chip names it and the tap goes straight there.
-          const targetGroup = capture.target_group_id
-            ? (assignableGroups.find((group) => group.id === capture.target_group_id) ?? null)
-            : null;
-          const targetGroupName = targetGroup
-            ? groupLabel(targetGroup, summary.membersFor(targetGroup.id), profile?.id)
-            : null;
           return (
             <CaptureListRow
               capture={capture}
               locale={locale}
               t={t}
-              targetGroupName={targetGroupName}
-              // A pre-aimed capture skips the picker — the chip said where it is
-              // going, so tapping should not ask again; a loose one opens it.
-              onAssign={
-                targetGroup ? () => assignTo(capture, targetGroup) : () => openAssign(capture)
-              }
+              // Every row opens the picker, pre-aimed or not. It used to skip
+              // straight to the group a capture was tagged for, which was fair
+              // while a chip on the row named that group; with the chip gone the
+              // jump would be unannounced, so the picker opens with that group
+              // already ticked and one more tap confirms it.
+              onAssign={() => openAssign(capture)}
               onMore={() => openCaptureMenu(capture)}
             />
           );
@@ -748,76 +792,15 @@ export default function CapturesScreen() {
       }
     },
     [
-      assignTo,
-      assignableGroups,
       locale,
       openAssign,
       openBatchIds,
       openBatchMenu,
       openCaptureMenu,
-      profile?.id,
-      summary,
       t,
       theme.spacing.md,
       theme.spacing.xs,
       toggleBatch,
-    ],
-  );
-
-  const renderGroupPickerItem = useCallback(
-    (group: GroupRow) => {
-      const label = groupLabel(group, summary.membersFor(group.id), profile?.id);
-      return (
-        <Pressable
-          key={group.id}
-          accessibilityRole="button"
-          accessibilityLabel={label}
-          onPress={() => {
-            // The Modal stays mounted through its fade-out, so this can fire a
-            // frame after the backdrop cleared `assigning`.
-            if (assigning) assignTo(assigning, group);
-          }}
-          style={({ pressed }) => ({
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: theme.spacing.md,
-            paddingVertical: theme.spacing.md,
-            opacity: pressed ? 0.6 : 1,
-          })}
-        >
-          {/* The group's own avatar and colour carry its identity — the flat-row
-              look the dashboard's GroupCard uses. */}
-          <Avatar
-            name={label}
-            emoji={group.cover_emoji ?? undefined}
-            size={44}
-            tint={tintForKey(group.id)}
-          />
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Text variant="subheading" numberOfLines={1}>
-              {label}
-            </Text>
-            <Text variant="caption" tone="muted" numberOfLines={1}>
-              {plural(locale, summary.memberCountFor(group.id), t.memberCount)}
-            </Text>
-          </View>
-          <Ionicons
-            name={directionalIcon('chevron-forward')}
-            size={iconSize.md}
-            color={theme.color.textFaint}
-          />
-        </Pressable>
-      );
-    },
-    [
-      assignTo,
-      assigning,
-      locale,
-      profile?.id,
-      summary,
-      t.memberCount,
-      theme.color.textFaint,
-      theme.spacing.md,
     ],
   );
 
@@ -946,122 +929,60 @@ export default function CapturesScreen() {
           </Row>
         ) : null}
 
-        {/* Search only earns its place on a long list (see `showSearch`);
-                a rounded field with a leading glyph, the picker grammar Mobbin
-                shows across Starling/Swarm/Canva. */}
-        {showSearch ? (
-          <Row
-            style={{
-              gap: theme.spacing.sm,
-              alignItems: 'center',
-              backgroundColor: theme.color.surfaceMuted,
-              borderRadius: theme.radius.md,
-              paddingHorizontal: theme.spacing.md,
-            }}
-          >
-            <Ionicons name="search" size={iconSize.md} color={theme.color.textFaint} />
-            <TextInput
-              value={query}
-              onChangeText={setQuery}
-              placeholder={t.captures.assignSearch}
-              placeholderTextColor={theme.color.textFaint}
-              accessibilityLabel={t.captures.assignSearch}
-              autoCorrect={false}
-              style={{
-                flex: 1,
-                fontSize: 16,
-                color: theme.color.text,
-                paddingVertical: theme.spacing.md,
-              }}
-            />
-          </Row>
-        ) : null}
+        {/* The same picker the voice review opens, so "where does this go?" is
+            one control in the app rather than two that drifted apart — and the
+            drafts inbox inherits its People tab, which this screen never had.
 
-        {/* A plain ScrollView, not the FlashList this screen uses everywhere
-            else — and the exception is the whole point of the fix. FlashList's
-            container is `flex: 1` by construction, so it cannot size itself to
-            its rows: it needs a height handed down, and the fixed one this sheet
-            used to compute (a fraction of the window) left a person with two
-            groups staring at a half-screen of white below the last row. The
-            picker holds the groups you are a member of — a handful, and already
-            filtered by the search field above once there are more than six — so
-            rendering them all costs nothing, and `flexShrink` lets the sheet hug
-            them and only start scrolling at `pickerMaxHeight`. */}
+            A plain ScrollView, not the FlashList this screen uses everywhere
+            else, and the exception is deliberate: FlashList's container is
+            `flex: 1` by construction, so it cannot size itself to its rows — it
+            needs a height handed down, and a fixed fraction of the window left a
+            person with two groups staring at a half-screen of white. The picker
+            holds the groups you are in and the people you already share one
+            with — a handful, and filtered by its own search once there are more
+            — so rendering them all costs nothing, and `flexShrink` lets the
+            sheet hug them and only start scrolling at `pickerMaxHeight`. */}
         <ScrollView
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           style={{ flexShrink: 1 }}
         >
-          {/* Start a group and drop this into it — so a capture with no fitting
-              group is no longer a dead end (it used to only say "make one
-              first"). Mirrors the "Create group" affordance the Wise/Starling
-              pickers lead with. */}
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t.captures.assignNew}
-            onPress={() => {
-              // Carry the capture through group creation so new-group can hand
-              // it back and finish the assignment — read the id before
-              // closeAssign clears `assigning`.
-              const captureId = assigning?.id;
-              closeAssign();
-              router.push(
-                captureId
-                  ? { pathname: '/new-group', params: { assignCaptureId: captureId } }
-                  : '/new-group',
-              );
+          <DestinationPicker
+            // Remount per capture, so the tab and any half-made people selection
+            // start fresh on each open rather than carrying over from the last.
+            key={assigning?.id ?? 'closed'}
+            selection={pickerSelection}
+            // The sheet's own heading already says what this is; a second
+            // "SAVE TO" line under it would only say it again.
+            eyebrow={null}
+            // Neither pinned default belongs here: a draft already *is*
+            // unassigned, and "just me" writes to the personal ledger, which
+            // this screen has no path to.
+            pinned={[]}
+            createRow={{ label: t.captures.assignNew }}
+            emptyGroups={t.captures.noGroups}
+            // A group with no name of its own reads as its members here, which
+            // needs the membership only the home summary holds.
+            labelFor={(group) => groupLabel(group, summary.membersFor(group.id), profile?.id)}
+            groups={assignableGroups}
+            people={peopleChoices}
+            t={t}
+            onChoose={(choice) => {
+              // The Sheet stays mounted through its fade-out, so this can fire a
+              // frame after the backdrop cleared `assigning`.
+              const capture = assigning;
+              if (!capture) return;
+              if (choice.kind === 'existing') {
+                assignTo(capture, choice.groupId);
+              } else if (choice.kind === 'create') {
+                // Carry the capture through group creation so new-group can hand
+                // it back and finish the assignment.
+                closeAssign();
+                router.push({ pathname: '/new-group', params: { assignCaptureId: capture.id } });
+              }
             }}
-            style={({ pressed }) => ({
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: theme.spacing.md,
-              paddingVertical: theme.spacing.md,
-              opacity: pressed ? 0.6 : 1,
-            })}
-          >
-            <View
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: 22,
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: theme.color.surfaceMuted,
-                borderWidth: 1,
-                borderColor: theme.color.border,
-                borderStyle: 'dashed',
-              }}
-            >
-              <Ionicons name="add" size={iconSize.lg} color={theme.color.brand} />
-            </View>
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Text variant="subheading" numberOfLines={1}>
-                {t.captures.assignNew}
-              </Text>
-              <Text variant="caption" tone="muted" numberOfLines={1}>
-                {t.captures.assignNewBody}
-              </Text>
-            </View>
-            {/* Every row in this list leaves the sheet for another screen, so
-                every row wears the chevron that says so — this one used to be
-                the odd one out, tappable but unmarked. `directionalIcon` turns
-                it around when the app runs right-to-left. */}
-            <Ionicons
-              name={directionalIcon('chevron-forward')}
-              size={iconSize.md}
-              color={theme.color.textFaint}
-            />
-          </Pressable>
-
-          <View style={{ height: 1, backgroundColor: theme.color.border }} />
-
-          {assignableGroups.length === 0 || visibleGroups.length === 0 ? (
-            <Text variant="caption" tone="muted" style={{ paddingVertical: theme.spacing.lg }}>
-              {assignableGroups.length === 0 ? t.captures.noGroups : t.captures.assignNoMatch}
-            </Text>
-          ) : (
-            visibleGroups.map(renderGroupPickerItem)
-          )}
+            onResolvePeople={(names) => void assignToPeople(names)}
+          />
         </ScrollView>
       </Sheet>
 

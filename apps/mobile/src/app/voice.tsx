@@ -39,6 +39,7 @@ import {
   encodeTxn,
   guessCategory,
   minorUnitScale,
+  peopleSignatureKey,
   type ExpenseLocation,
   type SplitParams,
 } from '@waves/core';
@@ -52,7 +53,6 @@ import {
   MoneyText,
   Row,
   Screen,
-  SegmentedTabs,
   Text,
   useScreenClearance,
   useTheme,
@@ -78,6 +78,12 @@ import { isRtl, plural, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { useDefaultCurrency } from '@/lib/currency';
 import { friendlyError } from '@/lib/errors';
+import {
+  DestinationPicker,
+  GROUP_TYPE_ICON,
+  type DestinationSelection,
+  type PersonChoice,
+} from '@/components/DestinationPicker';
 import { VoiceMicPanel } from '@/components/VoiceMicPanel';
 import { LocationField } from '@/components/LocationField';
 import { CategoryBadge } from '@/components/Category';
@@ -149,14 +155,6 @@ type Dest =
   // the group are skipped at save, so re-speaking adds no duplicate.
   | { kind: 'add-member'; groupId: string; names: string[]; groupName: string };
 
-/** A person the batch can be assigned to on the review — an existing friend
- *  (reuses their 1:1 group) surfaced by name in the picker. */
-interface PersonChoice {
-  personKey: string;
-  name: string;
-  groupId: string;
-}
-
 /**
  * What a returning transcript does — the full-screen mic is reused for two jobs,
  * and the job is fixed the moment the mic is opened, not read off the transcript.
@@ -176,15 +174,6 @@ const EQUAL: SplitParams = { kind: 'equal' };
 /** Today as `YYYY-MM-DD` — the expense date a spoken expense is filed under. */
 function today(): string {
   return new Date().toISOString().slice(0, 10);
-}
-
-/** A set of people as one order-independent, case-insensitive key, so "Ravi, Sam"
- *  and "sam, ravi" hash the same — the test for "do these people already share a
- *  group". Names are trimmed, lowercased, de-duplicated, sorted, NUL-joined. */
-function sigKey(names: readonly string[]): string {
-  return [...new Set(names.map((name) => name.trim().toLowerCase()).filter(Boolean))]
-    .sort()
-    .join('\0');
 }
 
 /**
@@ -834,7 +823,7 @@ export default function VoiceScreen() {
   const groupBySignature = useMemo(() => {
     const map = new Map<string, string>();
     for (const sig of signatures.data) {
-      const key = sigKey(sig.names);
+      const key = peopleSignatureKey(sig.names);
       if (!map.has(key)) map.set(key, sig.groupId);
     }
     return map;
@@ -850,7 +839,7 @@ export default function VoiceScreen() {
     if (clean.length === 0) return;
     groupCreated.current = false;
     ghostMemberIds.current = null;
-    const match = groupBySignature.get(sigKey(clean));
+    const match = groupBySignature.get(peopleSignatureKey(clean));
     if (match) {
       setDest({ kind: 'existing', groupId: match });
     } else {
@@ -1334,6 +1323,22 @@ export default function VoiceScreen() {
 
   const current = describeDest(dest, groupRows, t);
 
+  // The destination as the picker reads it. The picker only needs to know which
+  // row carries the check, so the kinds it has no row for — a spoken settle-up,
+  // a nudge, "add Ravi to the trip" — read as nothing selected. (It is never
+  // opened over one of those; the answer card is.)
+  const pickerSelection: DestinationSelection =
+    dest.kind === 'unassigned' ||
+    dest.kind === 'me' ||
+    dest.kind === 'create' ||
+    dest.kind === 'existing'
+      ? dest.kind === 'existing'
+        ? { kind: 'existing', groupId: dest.groupId }
+        : { kind: dest.kind }
+      : dest.kind === 'people'
+        ? { kind: 'people', names: dest.ghostNames }
+        : { kind: 'none' };
+
   // With no group chosen the batch is a draft (it lands in the capture inbox),
   // so the button says so; once a group is picked it writes real expenses and
   // the label counts them.
@@ -1714,21 +1719,34 @@ export default function VoiceScreen() {
                 // people re-seed from the current destination rather than keeping
                 // stale state from the last open.
                 key={pickerOpen ? 'open' : 'closed'}
-                dest={dest}
-                requested={requested}
-                onChoose={(next) => {
+                selection={pickerSelection}
+                eyebrow={t.voice.saveTo}
+                // The "new group" row is offered whenever a name was heard,
+                // whatever the destination now stands at.
+                createRow={
+                  requested
+                    ? { label: t.voice.newGroupNamed.replace('{name}', requested.name) }
+                    : null
+                }
+                onChoose={(choice) => {
                   // A change of destination is a change of group/ghost to make,
                   // so drop the once-only latches for the new one.
                   groupCreated.current = false;
                   ghostMemberIds.current = null;
-                  setDest(next);
+                  // 'create' is the picker naming a row, not a destination: the
+                  // group id and my member id were minted when the name was
+                  // heard, and this screen holds them.
+                  if (choice.kind === 'create') {
+                    if (requested) setDest({ kind: 'create', ...requested });
+                  } else {
+                    setDest(choice);
+                  }
                   setPickerOpen(false);
                 }}
                 onResolvePeople={resolvePeople}
                 people={peopleChoices}
                 groups={groupRows}
                 t={t}
-                theme={theme}
               />
             </ScrollView>
           </Pressable>
@@ -1770,448 +1788,6 @@ function describeDest(
     emoji: group.cover_emoji,
     icon: GROUP_TYPE_ICON[group.type] ?? 'people-outline',
   };
-}
-
-/** One Ionicon per group type, the fallback when a group has no cover emoji —
- * echoing the new-group picker and the dashboard's category glyphs. */
-const GROUP_TYPE_ICON: Record<GroupType, React.ComponentProps<typeof Ionicons>['name']> = {
-  [GroupType.Trip]: 'airplane',
-  [GroupType.Home]: 'home',
-  [GroupType.Couple]: 'heart',
-  [GroupType.Event]: 'sparkles',
-  [GroupType.Friends]: 'people-circle',
-  [GroupType.Other]: 'people-outline',
-};
-
-type PickerRow = {
-  key: string;
-  label: string;
-  // A row wears either the group's own cover emoji or, lacking one, an Ionicon
-  // — the inbox and "new group" rows only ever use an icon.
-  icon: React.ComponentProps<typeof Ionicons>['name'];
-  emoji?: string | null;
-  selected: boolean;
-  onPress: () => void;
-};
-
-/**
- * The one choice a Save needs: where the expenses land. Split into two tabs —
- * Groups and People — under a pinned "Unassigned" default, because a flat list of
- * groups then people grew long enough to bury one under the other. No recency or
- * frequency badges: they made the reader read the row twice; the plain name is the
- * signal. The selected row carries a check.
- */
-function DestinationPicker({
-  dest,
-  requested,
-  onChoose,
-  onResolvePeople,
-  people,
-  groups,
-  t,
-  theme,
-}: {
-  dest: Dest;
-  requested: { groupId: string; memberId: string; name: string } | null;
-  onChoose: (dest: Dest) => void;
-  /** The People-tab selection, confirmed. The parent decides whether these
-   *  people already share a group (assign to it) or need a new one. */
-  onResolvePeople: (names: string[]) => void;
-  people: PersonChoice[];
-  groups: GroupRow[];
-  t: ReturnType<typeof useStrings>['t'];
-  theme: ReturnType<typeof useTheme>;
-}) {
-  // Open on whichever tab the current destination lives in, so the choice reads
-  // back: the People tab for a people destination, and also for an existing group
-  // that is really a 1:1 contact (its id is one the People tab represents);
-  // otherwise Groups. Re-seeded on each open by the remount key at the call site.
-  const [tab, setTab] = useState<'groups' | 'people'>(
-    dest.kind === 'people' ||
-      (dest.kind === 'existing' && people.some((person) => person.groupId === dest.groupId))
-      ? 'people'
-      : 'groups',
-  );
-  // People are chosen as a set and confirmed — a group is one place, but an
-  // expense can be with several people at once. Seeded from a people destination
-  // so the running selection reads back when the sheet reopens.
-  const [picked, setPicked] = useState<string[]>(() =>
-    dest.kind === 'people' ? dest.ghostNames : [],
-  );
-  // One box for both jobs, the way WhatsApp's new-group search is: it filters the
-  // contacts you already have and, for a name nobody matches, adds a new person.
-  const [query, setQuery] = useState('');
-
-  const isPicked = (name: string): boolean =>
-    picked.some((entry) => entry.toLowerCase() === name.toLowerCase());
-  const togglePicked = (name: string): void => {
-    const trimmed = name.trim();
-    if (!trimmed) return;
-    setPicked((current) =>
-      current.some((entry) => entry.toLowerCase() === trimmed.toLowerCase())
-        ? current.filter((entry) => entry.toLowerCase() !== trimmed.toLowerCase())
-        : [...current, trimmed],
-    );
-  };
-  const addTyped = (): void => {
-    const trimmed = query.trim();
-    if (!trimmed) return;
-    if (!isPicked(trimmed)) togglePicked(trimmed);
-    setQuery('');
-  };
-
-  // Pinned defaults above the tabs: the capture inbox (a Save with no destination
-  // lands here) and "Just me" (a private personal expense). Neither is a group
-  // nor a person, so both stay in view whichever tab is open.
-  const pinnedRows: PickerRow[] = [
-    {
-      key: 'unassigned',
-      label: t.captures.unassigned,
-      // The inbox row wears the dashboard's captures glyph, so "Unassigned" here
-      // and the captures card on Home read as the same place.
-      icon: 'file-tray-full-outline',
-      selected: dest.kind === 'unassigned',
-      onPress: () => onChoose({ kind: 'unassigned' }),
-    },
-    {
-      key: 'me',
-      label: t.voice.justMe,
-      icon: 'person-circle-outline',
-      selected: dest.kind === 'me',
-      onPress: () => onChoose({ kind: 'me' }),
-    },
-  ];
-
-  const groupRows: PickerRow[] = [];
-  // Driven by the persisted request, not the current destination, so the "new
-  // group" row stays offered after the reader switches to the inbox or a group.
-  if (requested) {
-    groupRows.push({
-      key: 'create',
-      label: t.voice.newGroupNamed.replace('{name}', requested.name),
-      icon: 'add-circle-outline',
-      selected: dest.kind === 'create',
-      onPress: () => onChoose({ kind: 'create', ...requested }),
-    });
-  }
-  // Newest group first: the one you just made is the one you are most likely
-  // saving into, so it sits at the top of the list rather than lost in creation
-  // order. Every row carries its own cover emoji (or a type glyph as a fallback)
-  // so a trip, a home and an event are told apart at a glance instead of a
-  // column of identical people icons.
-  // A person's 1:1 group is their row on the People tab, not a group in its own
-  // right — showing it in both tabs lists the same conversation twice. So the
-  // groups the People tab already represents are dropped here.
-  const personGroupIds = new Set(people.map((person) => person.groupId));
-  const sorted = [...groups]
-    .filter((group) => !personGroupIds.has(group.id))
-    .sort((a, b) => {
-      // Newest first by creation time; when two groups share a timestamp (made
-      // in the same request), fall back to id so the order is stable across
-      // renders rather than flipping on every re-sort.
-      if (a.created_at !== b.created_at) return a.created_at < b.created_at ? 1 : -1;
-      return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
-    });
-  for (const group of sorted) {
-    groupRows.push({
-      key: group.id,
-      label: groupLabel(group),
-      icon: GROUP_TYPE_ICON[group.type] ?? 'people-outline',
-      emoji: group.cover_emoji,
-      selected: dest.kind === 'existing' && dest.groupId === group.id,
-      onPress: () => onChoose({ kind: 'existing', groupId: group.id }),
-    });
-  }
-
-  // Existing contacts, filtered by the search box. Picked names still tick even
-  // when the filter would hide them, so the running selection never disappears.
-  const q = query.trim().toLowerCase();
-  const contacts = people.filter(
-    (person) => q.length === 0 || person.name.toLowerCase().includes(q),
-  );
-  // A typed name that is not already an existing contact — offered as an "add"
-  // row so a brand-new person can join the selection without leaving the search.
-  const typedIsNew =
-    query.trim().length > 0 && !people.some((person) => person.name.toLowerCase() === q);
-
-  const renderRow = (row: PickerRow, showDivider: boolean): React.JSX.Element => (
-    <View key={row.key}>
-      <Pressable
-        onPress={row.onPress}
-        accessibilityRole="button"
-        accessibilityState={{ selected: row.selected }}
-        style={({ pressed }) => ({
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: theme.spacing.md,
-          paddingVertical: theme.spacing.md,
-          paddingHorizontal: theme.spacing.lg,
-          opacity: pressed ? 0.6 : 1,
-        })}
-      >
-        <View
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: 18,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: row.selected ? theme.color.brandSoft : theme.color.surfaceMuted,
-          }}
-        >
-          {row.emoji ? (
-            <Text style={{ fontSize: 18 }}>{row.emoji}</Text>
-          ) : (
-            <Ionicons
-              name={row.icon}
-              size={iconSize.md}
-              color={row.selected ? theme.color.brand : theme.color.textMuted}
-            />
-          )}
-        </View>
-        <Text
-          numberOfLines={1}
-          style={{
-            flex: 1,
-            color: row.selected ? theme.color.brand : theme.color.text,
-            fontWeight: row.selected ? '600' : '400',
-          }}
-        >
-          {row.label}
-        </Text>
-        <Ionicons
-          name={row.selected ? 'checkmark-circle' : 'ellipse-outline'}
-          size={iconSize.md}
-          color={row.selected ? theme.color.brand : theme.color.border}
-        />
-      </Pressable>
-      {showDivider ? <Divider /> : null}
-    </View>
-  );
-
-  return (
-    <View style={{ gap: theme.spacing.lg }}>
-      <Text variant="micro" tone="faint" style={{ letterSpacing: 0.8 }}>
-        {t.voice.saveTo.toUpperCase()}
-      </Text>
-
-      {/* The defaults, pinned above the tabs — one grouped card, the same control
-          shape the rest of the picker uses. */}
-      <Card padded={false} flat style={{ overflow: 'hidden' }}>
-        {pinnedRows.map((row, index) => renderRow(row, index < pinnedRows.length - 1))}
-      </Card>
-
-      {/* Groups and People are their own tab: a flat list of every group then
-          every person grew long enough to bury one under the other. */}
-      <SegmentedTabs
-        value={tab}
-        onChange={setTab}
-        tabs={[
-          { value: 'groups', label: t.voice.groupsTab },
-          { value: 'people', label: t.voice.peopleTab },
-        ]}
-      />
-
-      {tab === 'groups' ? (
-        groupRows.length > 0 ? (
-          <Card padded={false} flat style={{ overflow: 'hidden' }}>
-            {groupRows.map((row, index) => renderRow(row, index < groupRows.length - 1))}
-          </Card>
-        ) : (
-          <Text tone="muted" align="center" style={{ paddingVertical: theme.spacing.lg }}>
-            {t.voice.noGroups}
-          </Text>
-        )
-      ) : (
-        <View style={{ gap: theme.spacing.md }}>
-          {/* Search + add, kept at the top so the keyboard never hides it. Filters
-              existing contacts; a name nobody matches is added as a new person. */}
-          <Row
-            style={{
-              gap: theme.spacing.sm,
-              paddingHorizontal: theme.spacing.md,
-              paddingVertical: theme.spacing.xs,
-              borderRadius: theme.radius.md,
-              borderWidth: 1,
-              borderColor: theme.color.border,
-              backgroundColor: theme.color.surface,
-              alignItems: 'center',
-            }}
-          >
-            <Ionicons name="search" size={iconSize.md} color={theme.color.textFaint} />
-            <TextInput
-              value={query}
-              onChangeText={setQuery}
-              placeholder={t.voice.searchPeople}
-              placeholderTextColor={theme.color.textFaint}
-              accessibilityLabel={t.voice.searchPeople}
-              onSubmitEditing={addTyped}
-              returnKeyType="done"
-              autoCorrect={false}
-              style={{ flex: 1, fontSize: 15, color: theme.color.text, paddingVertical: 6 }}
-            />
-            {query.trim().length > 0 ? (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={t.voice.addPerson}
-                onPress={addTyped}
-                hitSlop={8}
-                style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
-              >
-                <Ionicons name="add-circle" size={iconSize.lg} color={theme.color.brand} />
-              </Pressable>
-            ) : null}
-          </Row>
-
-          {/* The running selection as removable chips, so several people read at a
-              glance and any one comes back off with a tap. */}
-          {picked.length > 0 ? (
-            <View
-              style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.xs }}
-              accessibilityLabel={t.voice.peopleTab}
-            >
-              {picked.map((name) => (
-                <Pressable
-                  key={name}
-                  accessibilityRole="button"
-                  accessibilityLabel={name}
-                  onPress={() => togglePicked(name)}
-                  style={({ pressed }) => ({
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 4,
-                    paddingLeft: theme.spacing.md,
-                    paddingRight: theme.spacing.sm,
-                    paddingVertical: 6,
-                    borderRadius: theme.radius.pill,
-                    backgroundColor: theme.color.brand,
-                    opacity: pressed ? 0.7 : 1,
-                  })}
-                >
-                  <Text
-                    variant="caption"
-                    numberOfLines={1}
-                    style={{ color: theme.color.onBrand, fontWeight: '600', maxWidth: 160 }}
-                  >
-                    {name}
-                  </Text>
-                  <Ionicons name="close" size={iconSize.sm} color={theme.color.onBrand} />
-                </Pressable>
-              ))}
-            </View>
-          ) : null}
-
-          {/* The contacts (filtered), each a toggle, plus an "add" row for a typed
-              name that is nobody you already know. */}
-          {contacts.length > 0 || typedIsNew ? (
-            <Card padded={false} flat style={{ overflow: 'hidden' }}>
-              {contacts.map((person, index) => {
-                const on = isPicked(person.name);
-                return (
-                  <View key={person.groupId}>
-                    <Pressable
-                      onPress={() => togglePicked(person.name)}
-                      accessibilityRole="checkbox"
-                      accessibilityState={{ checked: on }}
-                      accessibilityLabel={person.name}
-                      style={({ pressed }) => ({
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        gap: theme.spacing.md,
-                        paddingVertical: theme.spacing.md,
-                        paddingHorizontal: theme.spacing.lg,
-                        opacity: pressed ? 0.6 : 1,
-                      })}
-                    >
-                      <View
-                        style={{
-                          width: 36,
-                          height: 36,
-                          borderRadius: 18,
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          backgroundColor: on ? theme.color.brandSoft : theme.color.surfaceMuted,
-                        }}
-                      >
-                        <Ionicons
-                          name="person-outline"
-                          size={iconSize.md}
-                          color={on ? theme.color.brand : theme.color.textMuted}
-                        />
-                      </View>
-                      <Text
-                        numberOfLines={1}
-                        style={{
-                          flex: 1,
-                          color: on ? theme.color.brand : theme.color.text,
-                          fontWeight: on ? '600' : '400',
-                        }}
-                      >
-                        {person.name}
-                      </Text>
-                      <Ionicons
-                        name={on ? 'checkmark-circle' : 'ellipse-outline'}
-                        size={iconSize.md}
-                        color={on ? theme.color.brand : theme.color.border}
-                      />
-                    </Pressable>
-                    {index < contacts.length - 1 || typedIsNew ? <Divider /> : null}
-                  </View>
-                );
-              })}
-              {typedIsNew ? (
-                <Pressable
-                  onPress={addTyped}
-                  accessibilityRole="button"
-                  accessibilityLabel={t.voice.addPerson}
-                  style={({ pressed }) => ({
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: theme.spacing.md,
-                    paddingVertical: theme.spacing.md,
-                    paddingHorizontal: theme.spacing.lg,
-                    opacity: pressed ? 0.6 : 1,
-                  })}
-                >
-                  <View
-                    style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: 18,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      backgroundColor: theme.color.surfaceMuted,
-                    }}
-                  >
-                    <Ionicons
-                      name="person-add-outline"
-                      size={iconSize.md}
-                      color={theme.color.brand}
-                    />
-                  </View>
-                  <Text numberOfLines={1} style={{ flex: 1, color: theme.color.brand }}>
-                    {t.voice.addNamed.replace('{name}', query.trim())}
-                  </Text>
-                </Pressable>
-              ) : null}
-            </Card>
-          ) : (
-            <Text tone="muted" align="center" style={{ paddingVertical: theme.spacing.lg }}>
-              {t.voice.noPeople}
-            </Text>
-          )}
-
-          {/* One confirm: the parent decides whether the picked people already
-              share a group (assign to it) or need a fresh one. */}
-          <Button
-            label={picked.length > 0 ? t.voice.confirmPeople : t.voice.selectPeople}
-            onPress={() => onResolvePeople(picked)}
-            disabled={picked.length === 0}
-          />
-        </View>
-      )}
-    </View>
-  );
 }
 
 /**
