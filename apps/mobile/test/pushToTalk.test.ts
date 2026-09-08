@@ -49,6 +49,35 @@ describe('pushToTalk', () => {
     expect(gesture.take()).toBeNull();
   });
 
+  it('can consume the specific cancel a slide-to-cancel screen already handled', () => {
+    const gesture = new PushToTalk();
+    gesture.begin(0);
+    gesture.cancel();
+
+    expect(gesture.take({ seq: 1, mode: 'cancel' })).toEqual({ seq: 1, mode: 'cancel' });
+    expect(gesture.take()).toBeNull();
+  });
+
+  it('does not consume a different pending ending when guarded', () => {
+    const gesture = new PushToTalk();
+    gesture.begin(0);
+    gesture.release(1000);
+
+    expect(gesture.take({ seq: 1, mode: 'cancel' })).toBeNull();
+    expect(gesture.take()).toEqual({ seq: 1, mode: 'send' });
+  });
+
+  it('does not consume a newer pending ending when an old cancel cleanup runs late', () => {
+    const gesture = new PushToTalk();
+    gesture.begin(0);
+    gesture.cancel();
+    gesture.begin(1000);
+    gesture.release(2000);
+
+    expect(gesture.take({ seq: 1, mode: 'cancel' })).toBeNull();
+    expect(gesture.take()).toEqual({ seq: 2, mode: 'send' });
+  });
+
   it('keeps an ending waiting for a screen that has not mounted yet', () => {
     const gesture = new PushToTalk();
     gesture.begin(0);

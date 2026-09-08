@@ -120,10 +120,15 @@ export class PushToTalk {
    * same press that starts the hold, so a short-but-real hold can be over before
    * that screen has mounted and subscribed. Leaving the ending on the store lets
    * it be picked up on arrival instead of being missed.
+   *
+   * When `expected` is passed, only that ending is consumed. A screen dismissing
+   * itself for cancel must not accidentally clear a newer send if another hold
+   * starts before React runs the effect.
    */
-  take(): { seq: number; mode: PushToTalkEnd } | null {
+  take(expected?: { seq: number; mode: PushToTalkEnd }): { seq: number; mode: PushToTalkEnd } | null {
     const ended = this.state.ended;
     if (!ended) return null;
+    if (expected && (ended.seq !== expected.seq || ended.mode !== expected.mode)) return null;
     this.set({ ...this.state, ended: null });
     return { ...ended };
   }
