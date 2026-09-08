@@ -401,6 +401,99 @@
     ],
     "footnote": "Waves has not been through an independent security audit, and this page will say so until it has. Deleting your account deletes the rows, not a flag on a row we keep."
   },
+  "comparison": {
+    "eyebrow": "Compared",
+    "title": "Waves next to Splitwise",
+    "subtitle": "Splitwise is the app most people mean when they say \"let's split it\". Waves is new and Splitwise is not, so here is where the two actually differ — including the places Splitwise is the better answer today.",
+    "checkedOn": "Every Splitwise cell was read from their own pages on {date}.",
+    "columns": {
+      "feature": "What you want to do",
+      "waves": "Waves",
+      "rival": "Splitwise"
+    },
+    "included": "Included",
+    "notIncluded": "Not included",
+    "groups": [
+      {
+        "caption": "Where Waves is different",
+        "rows": [
+          {
+            "label": "Adding expenses on the free plan",
+            "waves": "Unlimited",
+            "wavesNote": "",
+            "rival": "4 a day",
+            "rivalNote": "Unlimited on Pro"
+          },
+          {
+            "label": "Converting a bill to another currency",
+            "waves": "Free",
+            "wavesNote": "",
+            "rival": "Pro only",
+            "rivalNote": ""
+          },
+          {
+            "label": "Scanning and itemising a receipt",
+            "waves": "Free",
+            "wavesNote": "Read on your own device",
+            "rival": "Pro only",
+            "rivalNote": ""
+          },
+          {
+            "label": "Spending charts by category",
+            "waves": "Free",
+            "wavesNote": "",
+            "rival": "Pro only",
+            "rivalNote": ""
+          },
+          {
+            "label": "Ads in the app",
+            "waves": "None",
+            "wavesNote": "On either plan",
+            "rival": "Ad-free on Pro",
+            "rivalNote": ""
+          }
+        ]
+      },
+      {
+        "caption": "Where Splitwise is ahead",
+        "rows": [
+          {
+            "label": "Languages the app is available in",
+            "waves": "4",
+            "wavesNote": "English, Tamil, Hindi, Arabic",
+            "rival": "7+",
+            "rivalNote": ""
+          },
+          {
+            "label": "Connecting a card to import purchases",
+            "waves": false,
+            "wavesNote": "",
+            "rival": "Pro, US only",
+            "rivalNote": ""
+          },
+          {
+            "label": "An API other developers can build on",
+            "waves": false,
+            "wavesNote": "",
+            "rival": true,
+            "rivalNote": "Public and documented"
+          },
+          {
+            "label": "Paying a friend inside the app",
+            "waves": false,
+            "wavesNote": "Waves opens the payment app you already use",
+            "rival": true,
+            "rivalNote": "Payment integrations"
+          }
+        ]
+      }
+    ],
+    "sameTitle": "The same in both",
+    "same": "Both split equally and unequally, by percentage or by shares. Both reduce a group to the fewest payments that clear it, and both keep working with the network off.",
+    "sourcesTitle": "Where these came from",
+    "sourcesBody": "Splitwise's own plan pages and help centre, and nothing else. If a row here has gone out of date, tell us and we will fix it.",
+    "footnote": "Waves has not shipped in the app stores yet, so it has no store ratings, no user numbers and no security audit — and no row here rests on one. Splitwise is a trademark of Splitwise, Inc., who have nothing to do with this page."
+  },
   "pricing": {
     "eyebrow": "Pricing",
     "title": "Free is the whole ledger, not a teaser",

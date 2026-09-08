@@ -26,7 +26,7 @@ export function PrivacySection({ t }: { t: Dictionary['privacy'] }) {
     <Section id="privacy" ground="paper">
       <Container>
         <div className="max-w-2xl">
-          <Eyebrow index="04">{t.eyebrow}</Eyebrow>
+          <Eyebrow index="05">{t.eyebrow}</Eyebrow>
           <SectionTitle className="mt-5">{t.title}</SectionTitle>
           <Lede className="mt-4">{t.body}</Lede>
         </div>

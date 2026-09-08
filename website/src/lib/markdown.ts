@@ -1,5 +1,6 @@
 import type { Locale } from '@/i18n/config';
 import { getDictionary } from '@/i18n/dictionaries';
+import { checkedOnDate, COMPARISON_SOURCES } from './comparison';
 import { CURRENCY_COUNT } from './currencies';
 import { absoluteUrl, site } from './site';
 
@@ -102,6 +103,43 @@ export async function pageAsMarkdown(locale: Locale): Promise<string> {
     line();
   }
   line(t.privacy.footnote);
+  line();
+
+  line(`## ${t.comparison.title}`);
+  line();
+  line(t.comparison.subtitle);
+  line();
+  line(t.comparison.checkedOn.replace('{date}', checkedOnDate(locale)));
+  line();
+  for (const group of t.comparison.groups) {
+    line(`### ${group.caption}`);
+    line();
+    // A machine reading this gets the cells as text, so a tick has to become a
+    // word — `included` and `notIncluded` are the same two words the page
+    // gives a screen reader.
+    const cell = (value: string | boolean, note: string) => {
+      const text =
+        value === true ? t.comparison.included : value === false ? t.comparison.notIncluded : value;
+      return note ? `${text} (${note})` : text;
+    };
+    for (const row of group.rows) {
+      line(
+        `- **${row.label}** — ${t.comparison.columns.waves}: ${cell(row.waves, row.wavesNote)}; ${t.comparison.columns.rival}: ${cell(row.rival, row.rivalNote)}`,
+      );
+    }
+    line();
+  }
+  line(`### ${t.comparison.sameTitle}`);
+  line();
+  line(t.comparison.same);
+  line();
+  line(`### ${t.comparison.sourcesTitle}`);
+  line();
+  line(t.comparison.sourcesBody);
+  line();
+  line(`- ${COMPARISON_SOURCES.join('\n- ')}`);
+  line();
+  line(t.comparison.footnote);
   line();
 
   line(`## ${t.pricing.title}`);

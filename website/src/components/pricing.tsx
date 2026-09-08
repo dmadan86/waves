@@ -20,7 +20,7 @@ export function Pricing({ t, appUrl }: { t: Dictionary['pricing']; appUrl: strin
     <Section id="pricing">
       <Container>
         <div className="max-w-2xl">
-          <Eyebrow index="05">{t.eyebrow}</Eyebrow>
+          <Eyebrow index="07">{t.eyebrow}</Eyebrow>
           <SectionTitle className="mt-5">{t.title}</SectionTitle>
           <Lede className="mt-4">{t.subtitle}</Lede>
         </div>

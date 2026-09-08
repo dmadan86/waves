@@ -15,7 +15,7 @@ export function Audience({ t }: { t: Dictionary['audience'] }) {
       <Container>
         <div className="grid gap-10 lg:grid-cols-[0.72fr_1.28fr] lg:gap-16">
           <div>
-            <Eyebrow index="07">{t.eyebrow}</Eyebrow>
+            <Eyebrow index="04">{t.eyebrow}</Eyebrow>
             <SectionTitle className="mt-5">{t.title}</SectionTitle>
           </div>
 
