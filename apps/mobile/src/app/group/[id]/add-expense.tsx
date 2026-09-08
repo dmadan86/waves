@@ -2506,8 +2506,21 @@ export default function AddExpenseScreen() {
         />
       ) : null}
 
-      {/* Make a tag on the spot, from the category sheet's "＋ New tag" row. */}
-      <TagEditorSheet open={editingTag} onClose={() => setEditingTag(false)} />
+      {/* Make a tag on the spot, from the category sheet's "＋ New tag" row —
+          and then wear it. Somebody who breaks off from tagging an expense to
+          invent a tag wanted that tag on this expense; the editor used to close
+          onto a row still showing the old category, with the thing they had
+          just made nowhere on screen and only findable by opening the sheet
+          again. Selecting it here is the rest of that one gesture. */}
+      <TagEditorSheet
+        open={editingTag}
+        onClose={() => setEditingTag(false)}
+        onCreated={(tagId, meta) => {
+          setCategory(tagId);
+          setCategoryMeta(meta);
+          setCategoryChosen(true);
+        }}
+      />
     </Screen>
   );
 }
