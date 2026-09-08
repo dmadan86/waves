@@ -199,7 +199,7 @@ export function buildWavesServer(
       const { data, error } = await supabase
         .from('group_members')
         .select(
-          'id, group_id, profile_id, ghost_name, vpa, role, profile:profiles!profile_id ( display_name, default_vpa )',
+          'id, group_id, profile_id, ghost_name, vpa, payment_rail, payment_handle, role, profile:profiles!profile_id ( display_name, default_vpa, payment_rail, payment_handle )',
         )
         .eq('group_id', groupId)
         .is('left_at', null)
@@ -207,14 +207,37 @@ export function buildWavesServer(
       if (error) return fail(error.message);
       return ok(
         (data ?? []).map((m) => {
-          const profile = m.profile as { display_name?: string; default_vpa?: string } | null;
+          const profile = m.profile as {
+            display_name?: string;
+            default_vpa?: string;
+            payment_rail?: string;
+            payment_handle?: string;
+          } | null;
+          // `payableFor` from `@waves/core`, inlined because this server
+          // deliberately depends on nothing in the workspace. Reading
+          // `vpa ?? default_vpa` alone told an agent that a payee on any rail
+          // but UPI had given no details at all. The pairs are taken whole —
+          // a rail from one source with a handle from another is how a UPI
+          // intent gets built around an Australian phone number.
+          const payable =
+            (m.payment_rail && m.payment_handle
+              ? { rail: m.payment_rail, handle: m.payment_handle }
+              : null) ??
+            (m.vpa ? { rail: 'upi', handle: m.vpa } : null) ??
+            (profile?.payment_rail && profile.payment_handle
+              ? { rail: profile.payment_rail, handle: profile.payment_handle }
+              : null) ??
+            (profile?.default_vpa ? { rail: 'upi', handle: profile.default_vpa } : null);
           return {
             memberId: m.id,
             name: profile?.display_name ?? m.ghost_name ?? 'Unnamed',
             isYou: m.profile_id === meId,
             isGhost: !m.profile_id,
             role: m.role,
-            vpa: m.vpa ?? profile?.default_vpa ?? null,
+            rail: payable?.rail ?? null,
+            handle: payable?.handle ?? null,
+            /** @deprecated Superseded by `handle`; kept while callers move over. */
+            vpa: payable?.handle ?? null,
           };
         }),
       );

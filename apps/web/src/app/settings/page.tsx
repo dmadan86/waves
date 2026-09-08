@@ -16,13 +16,14 @@
  * second answer to the same question.
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import {
   DEFAULT_NOTIFICATION_PREFS,
   type NotificationPrefs,
   type ProfileRow,
 } from '@waves/api-client';
+import { defaultRailFor, railsFor } from '@waves/core';
 
 import { AppFrame } from '@/components/AppFrame';
 import { Section } from '@/components/Shell';
@@ -47,7 +48,23 @@ function Settings() {
   const [currency, setCurrency] = useState('INR');
   const [country, setCountry] = useState('');
   const [handle, setHandle] = useState('');
+  // Saved beside the handle, never left behind it. Web used to write
+  // `payment_handle` alone, and a handle with no rail is not a way to be paid:
+  // `payableFor` refuses to guess UPI over what might be a Pix key, so every
+  // handle set from a browser was invisible to both settle screens.
+  const [rail, setRail] = useState('');
   const [prefs, setPrefs] = useState<NotificationPrefs>(DEFAULT_NOTIFICATION_PREFS);
+  // The rails this country actually uses, plus the universal ones. Never empty:
+  // `railsFor` always ends with bank, cash and other, so an unknown country
+  // still offers something rather than an empty select.
+  const rails = useMemo(() => railsFor(country), [country]);
+  // What is shown when the account has no rail yet, and what is saved if the
+  // person never touches the picker. Recomputed as the country changes, so
+  // typing "BR" lands on Pix rather than on whatever India suggested.
+  const effectiveRail = useMemo(
+    () => rails.find((entry) => entry.id === rail)?.id ?? defaultRailFor(country),
+    [rails, rail, country],
+  );
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -64,6 +81,8 @@ function Settings() {
     // UPI-shaped field, still read so an account written before the pair
     // existed does not look like it has no handle at all.
     setHandle(row.payment_handle ?? row.default_vpa ?? '');
+    // A row written before rails existed can only have held a UPI id.
+    setRail(row.payment_rail ?? (row.default_vpa ? 'upi' : ''));
     setPrefs({ ...DEFAULT_NOTIFICATION_PREFS, ...(row.notification_prefs ?? {}) });
   }, []);
 
@@ -120,6 +139,9 @@ function Settings() {
     { key: 'groupActivityDigest', label: t.settings.notifyDigest },
     { key: 'settlementRequests', label: t.settings.notifySettlements },
     { key: 'nudges', label: t.settings.notifyNudges },
+    // The master switch on the email door. The SQL has read this key since M4
+    // and neither client could set it.
+    { key: 'email', label: t.settings.notifyEmail },
     { key: 'weeklyEmail', label: t.settings.notifyWeekly },
   ];
 
@@ -178,6 +200,17 @@ function Settings() {
               </label>
 
               <label className="field">
+                <span className="field-label">{t.settings.paymentRail}</span>
+                <select value={effectiveRail} onChange={(event) => setRail(event.target.value)}>
+                  {rails.map((entry) => (
+                    <option key={entry.id} value={entry.id}>
+                      {entry.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="field">
                 <span className="field-label">{t.settings.paymentHandle}</span>
                 <input
                   value={handle}
@@ -198,6 +231,9 @@ function Settings() {
                     default_currency: currency,
                     country_code: country.trim() || null,
                     payment_handle: handle.trim() || null,
+                    // Cleared together: a rail with nobody to pay is noise, and
+                    // a handle with no rail is unusable.
+                    payment_rail: handle.trim() ? effectiveRail : null,
                   })
                 }
               >

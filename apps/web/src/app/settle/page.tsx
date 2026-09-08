@@ -29,6 +29,7 @@ import {
 import {
   buildPaymentUri,
   defaultRailFor,
+  payableFor,
   railById,
   railsFor,
   toMajorString,
@@ -437,7 +438,13 @@ function SettleForm({
 }) {
   const { t, locale } = useStrings();
   const rails = useMemo(() => railsFor(group.country_code), [group.country_code]);
-  const [rail, setRail] = useState<string>(() => defaultRailFor(group.country_code));
+  // What this payee is actually reachable on, and only then the country's
+  // default. Starting from the country meant offering a UPI intent to somebody
+  // whose handle is a PayID, which builds a link no app will answer.
+  const payable = useMemo(() => payableFor(payee), [payee]);
+  const [rail, setRail] = useState<string>(
+    () => payable?.rail ?? defaultRailFor(group.country_code),
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // The idempotency key for this settlement attempt. Minted once when the form
@@ -447,7 +454,7 @@ function SettleForm({
   // next settlement is a new one and not a replay of this one.
   const [mutationId, setMutationId] = useState<string>(() => crypto.randomUUID());
 
-  const handle = payee.vpa ?? payee.profile?.default_vpa ?? '';
+  const handle = payable?.handle ?? '';
   const railInfo = railById(rail);
   const needsHandle = railInfo ? railInfo.handle !== 'none' : false;
 

@@ -397,6 +397,7 @@ export interface WebStrings {
     country: string;
     paymentHandle: string;
     paymentHandleBody: string;
+    paymentRail: string;
     save: string;
     saved: string;
     notifications: string;
@@ -405,6 +406,7 @@ export interface WebStrings {
     notifySettlements: string;
     notifyNudges: string;
     notifyWeekly: string;
+    notifyEmail: string;
     language: string;
     languageBody: string;
     guestTitle: string;
@@ -756,6 +758,7 @@ const en: WebStrings = {
     country: 'Country',
     paymentHandle: 'Payment handle',
     paymentHandleBody: 'Shown to people settling up with you, so they can pay without asking.',
+    paymentRail: 'Paid via',
     save: 'Save',
     saved: 'Saved',
     notifications: 'What we tell you about',
@@ -764,6 +767,7 @@ const en: WebStrings = {
     notifySettlements: 'When somebody pays me, or asks me to confirm',
     notifyNudges: 'Reminders somebody sends me',
     notifyWeekly: 'A weekly email',
+    notifyEmail: 'Email me at all',
     language: 'Language',
     languageBody: 'Follows your browser. Change it there and this page follows.',
     guestTitle: 'You are a guest',
@@ -1123,6 +1127,7 @@ const ta: WebStrings = {
     country: 'நாடு',
     paymentHandle: 'பணம் பெறும் முகவரி',
     paymentHandleBody: 'உங்களுக்குப் பணம் தருபவர்களுக்குக் காட்டப்படும், கேட்காமல் அனுப்ப.',
+    paymentRail: 'எதன் மூலம் பணம்',
     save: 'சேமி',
     saved: 'சேமிக்கப்பட்டது',
     notifications: 'எதைப் பற்றி சொல்ல வேண்டும்',
@@ -1131,6 +1136,7 @@ const ta: WebStrings = {
     notifySettlements: 'யாரோ பணம் தந்தால், அல்லது உறுதிப்படுத்தச் சொன்னால்',
     notifyNudges: 'யாரோ அனுப்பும் நினைவூட்டல்கள்',
     notifyWeekly: 'வாராந்திர மின்னஞ்சல்',
+    notifyEmail: 'மின்னஞ்சல் அனுப்பவும்',
     language: 'மொழி',
     languageBody: 'உலாவியைப் பின்பற்றுகிறது. அங்கே மாற்றினால் இந்தப் பக்கமும் மாறும்.',
     guestTitle: 'நீங்கள் விருந்தினர்',
@@ -1482,6 +1488,7 @@ const hi: WebStrings = {
     country: 'देश',
     paymentHandle: 'भुगतान पता',
     paymentHandleBody: 'आपको भुगतान करने वालों को दिखता है, ताकि पूछना न पड़े.',
+    paymentRail: 'किसके ज़रिए',
     save: 'सहेजें',
     saved: 'सहेजा गया',
     notifications: 'किस बारे में बताएँ',
@@ -1490,6 +1497,7 @@ const hi: WebStrings = {
     notifySettlements: 'जब कोई मुझे भुगतान करे या पुष्टि माँगे',
     notifyNudges: 'किसी की भेजी याद-दिलाहट',
     notifyWeekly: 'साप्ताहिक ईमेल',
+    notifyEmail: 'मुझे ईमेल भेजें',
     language: 'भाषा',
     languageBody: 'ब्राउज़र के अनुसार. वहाँ बदलें, यह पेज भी बदल जाएगा.',
     guestTitle: 'आप अतिथि हैं',
@@ -1891,6 +1899,7 @@ const ar: WebStrings = {
     country: 'الدولة',
     paymentHandle: 'عنوان الدفع',
     paymentHandleBody: 'يظهر لمن يسدد لك، ليدفع دون أن يسأل.',
+    paymentRail: 'يُدفع عبر',
     save: 'حفظ',
     saved: 'تم الحفظ',
     notifications: 'ما الذي نخبرك به',
@@ -1899,6 +1908,7 @@ const ar: WebStrings = {
     notifySettlements: 'حين يدفع لي أحد أو يطلب تأكيدًا',
     notifyNudges: 'التذكيرات التي يرسلها أحدهم',
     notifyWeekly: 'بريد أسبوعي',
+    notifyEmail: 'راسلني بالبريد',
     language: 'اللغة',
     languageBody: 'تتبع المتصفح. غيّرها هناك وتتبعها هذه الصفحة.',
     guestTitle: 'أنت ضيف',

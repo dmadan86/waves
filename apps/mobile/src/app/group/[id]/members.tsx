@@ -30,7 +30,7 @@ import {
   useMemberClaims,
 } from '@/data/hooks';
 import { useBlockedUsers } from '@/data/blocked';
-import { displayName, groupLabel, isBlockedMember, isGhost, vpaOf } from '@/data/types';
+import { displayName, groupLabel, isBlockedMember, isGhost, payableAt } from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { requestContacts } from '@/lib/contactPickerBridge';
@@ -265,9 +265,14 @@ export default function MembersScreen() {
                   isGhost(member)
                     ? t.notJoinedYet
                     : isBlockedMember(member, blockedIds)
-                      ? // A VPA carries a name or phone — masked for a blocked person.
+                      ? // A payment handle carries a name, an address or a
+                        // phone number — masked for a blocked person.
                         t.misc.noUpiYet
-                      : (vpaOf(member) ?? t.misc.noUpiYet)
+                      : // `payableAt`, not the legacy column alone: the rail
+                        // pair is where a handle lives now, and reading only
+                        // `vpa`/`default_vpa` told everybody on Pix, PayID or
+                        // Venmo that they had given nothing.
+                        (payableAt(member)?.handle ?? t.misc.noUpiYet)
                 }
                 leading={
                   <Avatar
