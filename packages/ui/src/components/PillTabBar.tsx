@@ -17,11 +17,37 @@ export interface PillTabItem {
  * A raised round button in the middle of the bar — a primary quick action that
  * sits above the destinations rather than beside them, the way many apps lift
  * their "+" or record button. Optional: without it the bar is a flat row.
+ *
+ * It can be a press-and-hold control as well as a tap one. Give it `onPressIn`
+ * and the action starts the instant the finger lands, which is the only way a
+ * hold-to-talk button can work: waiting for a long-press timer costs half a
+ * second, and half a second of a spoken sentence is a whole word. `onPress`
+ * still fires for a plain tap — and, importantly, for a screen reader's or a
+ * keyboard's activation, which produce no touch at all. Both paths must lead
+ * somewhere: a hold is a shortcut, never the only way in.
  */
 export interface PillTabAction {
   icon: (color: string) => ReactNode;
+  /**
+   * Activated. For a touch this is the release; for a screen reader or keyboard
+   * it is the whole interaction. When `onPressIn` is given, this is *not* called
+   * for the gesture that press-in already handled — so a caller may act in both
+   * without acting twice.
+   */
   onPress: () => void;
   accessibilityLabel: string;
+  /** Read after the label by a screen reader — say that holding works too. */
+  accessibilityHint?: string;
+  /** The finger has landed. Providing this makes the button hold-capable. */
+  onPressIn?: () => void;
+  /** The finger has lifted, or the gesture was cancelled. */
+  onPressOut?: () => void;
+  /**
+   * How far the finger has travelled from where it landed, in points, while it
+   * is still down. What a slide-to-cancel is built from; the direction is the
+   * caller's business, since it flips with the writing direction.
+   */
+  onHoldMove?: (offset: { dx: number; dy: number }) => void;
 }
 
 /** The bar's own content height, above the system inset. WhatsApp sits ~56–64. */
@@ -151,15 +177,72 @@ export function PillTabBar({
   );
 }
 
+/**
+ * How far outside the button the finger may wander before React Native calls
+ * the press off. Generous, because a hold-capable button is *meant* to be slid
+ * across: the caller's own cancel threshold should be what ends the gesture, not
+ * Pressability's, and a press RN cancels delivers no `onPress` to balance the
+ * `onPressIn` that opened it.
+ */
+const HOLD_RETENTION = { top: 140, bottom: 140, left: 200, right: 200 };
+
 /** The raised round action in the middle of the bar. */
 const CenterButton = memo(function CenterButton({ action }: { action: PillTabAction }) {
   const theme = useTheme();
+  const holdable = action.onPressIn != null;
+  // Where the finger landed, so a move can be reported as a distance rather
+  // than a screen coordinate. Null between gestures.
+  const origin = useRef<{ x: number; y: number } | null>(null);
+  // A touch gesture acted on press-in, so the `onPress` closing that same
+  // gesture must not act again. It is consumed by the press it belongs to; a
+  // gesture React Native cancels delivers no press at all, so it is dropped on
+  // the way out too — a beat later, because Pressability fires `onPressOut`
+  // immediately before `onPress` in the same tick, and clearing it inline would
+  // let that press straight through.
+  const handled = useRef(false);
+
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={action.accessibilityLabel}
-        onPress={action.onPress}
+        accessibilityHint={action.accessibilityHint}
+        onPress={() => {
+          if (handled.current) {
+            handled.current = false;
+            return;
+          }
+          action.onPress();
+        }}
+        onPressIn={(event) => {
+          const press = action.onPressIn;
+          if (!press) return;
+          handled.current = true;
+          origin.current = { x: event.nativeEvent.pageX, y: event.nativeEvent.pageY };
+          press();
+        }}
+        onPressOut={() => {
+          origin.current = null;
+          const release = action.onPressOut;
+          if (!release) return;
+          release();
+          setTimeout(() => {
+            handled.current = false;
+          }, 0);
+        }}
+        // A raw touch handler rather than the responder callbacks: Pressability
+        // owns the responder here, and anything we passed for it would be
+        // overwritten by the handlers Pressable spreads on after ours.
+        onTouchMove={(event) => {
+          const from = origin.current;
+          const move = action.onHoldMove;
+          if (!from || !move) return;
+          move({
+            dx: event.nativeEvent.pageX - from.x,
+            dy: event.nativeEvent.pageY - from.y,
+          });
+        }}
+        pressRetentionOffset={holdable ? HOLD_RETENTION : undefined}
         hitSlop={8}
         style={({ pressed }) => ({
           width: 58,
