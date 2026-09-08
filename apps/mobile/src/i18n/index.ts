@@ -895,6 +895,10 @@ export interface UiStrings {
   voice: {
     /** Mic label + screen title. */
     speakExpense: string;
+    /** Read after the mic's label: the hold shortcut, said once, for everybody. */
+    micHint: string;
+    /** Shown under the mic while a finger is held on the bar's button. */
+    slideToCancel: string;
     title: string;
     prompt: string;
     example: string;
@@ -929,6 +933,9 @@ export interface UiStrings {
     thinking: string;
     /** '{n}' is how many expenses will be saved. */
     save: PluralForms;
+    /** The brief confirmation after a save, shown wherever the reader lands.
+        '{n}' is how many were written. */
+    savedCount: PluralForms;
     /** A bare count of the drafts in the review, shown by the total. `{n}`. */
     count: PluralForms;
     /** The Save button when no group is chosen: the batch is kept as a draft
@@ -3484,6 +3491,8 @@ const en: UiStrings = {
   },
   voice: {
     speakExpense: 'Speak an expense',
+    micHint: 'Tap to open, or hold and talk',
+    slideToCancel: 'Slide to cancel',
     title: 'Speak an expense',
     prompt: 'Say what you spent',
     example: 'e.g. “add 500 to Goa trip”',
@@ -3508,6 +3517,7 @@ const en: UiStrings = {
     newGroupNamed: 'New group “{name}”',
     thinking: 'Making sense of that…',
     save: { one: 'Save {n} expense', other: 'Save {n} expenses' },
+    savedCount: { one: '{n} expense saved', other: '{n} expenses saved' },
     count: { one: '{n} expense', other: '{n} expenses' },
     saveDraft: 'Save to inbox',
     draftNeedsAmounts: 'Enter an amount for each expense, or remove it, to keep this draft.',
@@ -5915,6 +5925,8 @@ const ta: UiStrings = {
   },
   voice: {
     speakExpense: 'செலவைப் பேசு',
+    micHint: 'திறக்க தட்டு, அல்லது அழுத்திப் பிடித்துப் பேசு',
+    slideToCancel: 'ரத்து செய்ய நகர்த்து',
     title: 'செலவைப் பேசு',
     prompt: 'நீங்கள் என்ன செலவழித்தீர்கள் என்று சொல்',
     example: 'உ.தா. “கோவா டிரிப்பில் 500 சேர்”',
@@ -5940,6 +5952,7 @@ const ta: UiStrings = {
     newGroupNamed: 'புதிய குழு “{name}”',
     thinking: 'புரிந்துகொள்கிறது…',
     save: { one: '{n} செலவைச் சேமி', other: '{n} செலவுகளைச் சேமி' },
+    savedCount: { one: '{n} செலவு சேமிக்கப்பட்டது', other: '{n} செலவுகள் சேமிக்கப்பட்டன' },
     count: { one: '{n} செலவு', other: '{n} செலவுகள்' },
     saveDraft: 'இன்பாக்ஸில் சேமி',
     draftNeedsAmounts:
@@ -8428,6 +8441,8 @@ const hi: UiStrings = {
   },
   voice: {
     speakExpense: 'खर्च बोलें',
+    micHint: 'खोलने के लिए टैप करें, या दबाकर बोलें',
+    slideToCancel: 'रद्द करने के लिए सरकाएँ',
     title: 'खर्च बोलें',
     prompt: 'बताएँ आपने क्या खर्च किया',
     example: 'जैसे “गोवा ट्रिप में 500 जोड़ें”',
@@ -8452,6 +8467,7 @@ const hi: UiStrings = {
     newGroupNamed: 'नया समूह “{name}”',
     thinking: 'समझा जा रहा है…',
     save: { one: '{n} खर्च सहेजें', other: '{n} खर्च सहेजें' },
+    savedCount: { one: '{n} खर्च सहेजा गया', other: '{n} खर्च सहेजे गए' },
     count: { one: '{n} खर्च', other: '{n} खर्च' },
     saveDraft: 'इनबॉक्स में सहेजें',
     draftNeedsAmounts: 'यह ड्राफ़्ट रखने के लिए हर खर्च में राशि भरें, या उसे हटाएँ।',
@@ -10901,6 +10917,8 @@ const ar: UiStrings = {
   },
   voice: {
     speakExpense: 'انطق مصروفًا',
+    micHint: 'انقر للفتح، أو اضغط مطوّلًا وتحدّث',
+    slideToCancel: 'اسحب للإلغاء',
     title: 'انطق مصروفًا',
     prompt: 'قل ماذا أنفقت',
     example: 'مثل: «أضف 500 إلى رحلة جوا»',
@@ -10925,6 +10943,7 @@ const ar: UiStrings = {
     newGroupNamed: 'مجموعة جديدة «{name}»',
     thinking: 'جارٍ الفهم…',
     save: { one: 'حفظ مصروف', other: 'حفظ {n} مصاريف' },
+    savedCount: { one: 'تم حفظ مصروف', other: 'تم حفظ {n} مصاريف' },
     count: {
       zero: 'لا مصاريف',
       one: 'مصروف واحد',
