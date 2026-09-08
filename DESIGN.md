@@ -245,11 +245,16 @@ tab.
 
 ## Components
 
-`Screen · Card · TintCard · CurvedPanel · Gradient · Text · Button · IconButton · Fab ·
-Chip · ChipRow · Badge · Avatar · AvatarStack · ListRow · EmptyState ·
-MoneyText · Toggle · PillTabBar · SegmentedTabs · AmountKeypad`
+`Screen · Card · TintCard · SectionHeader · Divider · Row · Callout · CurvedPanel ·
+Gradient · Text · Button · IconButton · Fab · Chip · ChipRow · Badge · Avatar ·
+AvatarStack · ListRow · EmptyState · MoneyText · Skeleton · ProgressBar · Toggle ·
+PillTabBar · SegmentedTabs · AmountField · AmountKeypad · Sheet · Popup ·
+BarList · ColumnChart`
 
-Two carry product decisions rather than styling:
+`packages/ui/src/index.ts` is the list; this one is written out because a
+component that is not in it gets rebuilt locally, badly, on the next screen.
+
+Four carry product decisions rather than styling:
 
 - **`AmountKeypad`** — the calculator lives inside the amount field (TDR §9,
   the 955-vote fix). Splitting a bill means arithmetic; making people leave for
@@ -258,12 +263,51 @@ Two carry product decisions rather than styling:
 - **`Avatar` (ghost variant)** — members who have not joined yet (ADR-006) get a
   dashed ring. A ghost holds real balances, so it must look present but
   provisional, never like an error.
+- **`Sheet` and `Popup`** — every transient surface in the app is one of these
+  two, and reaching for `Modal` with a hand-picked `animationType` is not an
+  option any more. A sheet springs up from the bottom edge under a fading scrim;
+  a popup fades in while scaling up from just under full size. Both are built on
+  React Native's own `Animated` rather than Reanimated, because the design system
+  carries no animation dependency and opacity, translate and scale on the native
+  driver are exactly what `Animated` is good at. Each holds its surface mounted
+  through the close so the exit actually plays — `Modal`'s own animation unmounts
+  too soon for that. Reduced motion keeps the fade and drops the travel and the
+  scale, read from `AccessibilityInfo` locally: the OS setting is a choice the
+  reader has already made, and this app does not ask again.
+- **`BarList` and `ColumnChart`** — the only two charts in the app, and both are
+  plain views (TDR A8). No chart library ships in the binary: `victory-native`
+  renders through Skia, which is a native module that can fail at launch, and
+  the price of that is a list of bars. The operator console is a web page and
+  draws with ECharts instead (A31) — that is not an inconsistency, it is the
+  same rule reaching a different conclusion where the constraint is absent.
 
-## Screens (M0)
+## Lists are recycled, always
 
-Home · Activity · Account · Group (expenses / balances / activity) ·
-Add expense · Settle up · Who pays whom.
+Every list of rows a person can scroll is `@shopify/flash-list`, never a
+`ScrollView` with a `.map()` inside it. The settings that go with it: a
+`drawDistance` in the low thousands so a fast flick does not scroll into blank
+space (1500 on most lists, 2500 on the group ledger, which has the tallest
+rows), `extraData` carrying whatever a row reads besides its own item, and the
+bottom clearance from `useTabBarClearance` on a tab screen or
+`useScreenClearance` on a pushed one, so the last row never sits under the
+navigation bar.
 
-All of them run on fixture data, but every number they show is computed by
-`@waves/core` — shares, balances, pairwise edges and simplification — so the
-wiring is real and M1 only swaps the data source.
+The rule is absolute rather than a judgement about length, because the list that
+needs recycling is never the one being written: it is the same list two years
+later with nine hundred expenses in it, and by then nobody remembers it was a
+`.map()`. The one place a `ScrollView` is still right is a screen that is a
+_form_ or a _page_ — a settings screen, an expense detail — where the content is
+finite, heterogeneous, and known at build time.
+
+The contact picker (above) is where this earns itself twice over: sections are
+one flat array of headings and people, with `getItemType` telling the recycler
+the two are different shapes.
+
+## Where this list stops
+
+The screens themselves are not enumerated here. There are far too many now —
+[TDR §9](./waves-tdr.md) carries the list and says which amendment each arrived
+under, so it is one place that stays current rather than two that disagree. What
+belongs in this file is the vocabulary: the colours, the type ramp, the shapes,
+the components, and the handful of rules above that a screen has to obey whatever
+it is for.

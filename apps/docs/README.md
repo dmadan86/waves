@@ -52,6 +52,13 @@ There is deliberately no `.env.example` here: `website/` documents its variables
 the same way, in its README, because a static site's variables are build
 settings rather than secrets and there is nothing to keep out of git.
 
+Two of those defaults are worth knowing before trusting them. **`DOCS_REPO_URL`
+still names `dmadan86/baaki`**, which is the repository's old name — GitHub
+redirects it, so every "Edit this page" link works and none of them says
+`waves`; the constant is in `src/config/site.ts` and wants correcting there
+rather than only here. And **`WAVES_OPENAPI_SPEC` points at the provisional
+document**, not at `apps/api/openapi.yaml` — see below.
+
 ### Pointing it at a different domain
 
 For a local check:
@@ -155,9 +162,39 @@ The pages under `docs/api/reference/` are **generated** by
 them every time, so the reference cannot outlive the document it describes.
 
 Today it reads `openapi/waves.provisional.yaml`, a placeholder written so the
-section has something to render while the real API is built in `apps/api`.
+section had something to render while the real API was built in `apps/api`.
 
-**When `apps/api/openapi.yaml` exists:**
+**`apps/api/openapi.yaml` now exists, and the swap is not yet the one-line
+change this section used to describe.** Read the next four paragraphs before
+setting the variable.
+
+Whichever document it reads, its first `servers` URL is rewritten from
+`WAVES_API_URL` into a build-only copy before generation
+(`src/config/openapi.ts`), so a self-hosted help site documents its own host.
+That rewrite is a line edit, not a YAML round-trip — parsing and re-emitting
+would reformat somebody else's document for the sake of one string. It reads a
+top-level `servers:` list whose first entry has a literal `url:` line, in any
+key order, and touches only that entry.
+
+The real document's first entry is a **templated** server: a literal `url:` line
+carrying `'{protocol}://{host}'`, with a `variables:` block under it supplying
+the defaults. That is the shape `apps/api` chose deliberately, for the same
+reason this site takes its own addresses from the environment — no hostname is a
+constant anywhere in that service. But it is also a literal `url:` line, so the
+rewrite matches it, does **not** fail the build, and silently replaces the
+template with one concrete host while leaving the now-meaningless `variables:`
+block behind it.
+
+So the paragraph that used to sit here — "a `{variable}` template fails the
+build" — is wrong for this shape, and the failure it promised is exactly the
+quiet outcome it was written to prevent. **This is a code question, not a
+configuration one**, and it is open: either the rewrite should recognise a
+templated server and leave it alone (letting the document describe its own
+host), or it should rewrite the `variables:` defaults rather than the `url:`
+line. Until that is settled, pointing `WAVES_OPENAPI_SPEC` at the real file
+produces a reference whose server block contradicts itself.
+
+**When it is settled**, the swap is:
 
 1. Set `WAVES_OPENAPI_SPEC=../api/openapi.yaml` — in this directory's
    environment and in the Vercel project's.
@@ -165,18 +202,10 @@ section has something to render while the real API is built in `apps/api`.
 3. Remove the "provisional" warnings from `docs/api/overview.md`,
    `docs/api/authentication.md` and `docs/api/reference-intro.md`.
 
-Whichever document it reads, its first `servers` URL is rewritten from
-`WAVES_API_URL` into a build-only copy before generation
-(`src/config/openapi.ts`), so a self-hosted help site documents its own host.
-
-That rewrite is a line edit, not a YAML round-trip — parsing and re-emitting
-would reformat somebody else's document for the sake of one string. It reads a
-top-level `servers:` list whose first entry has a literal `url:` line, in any
-key order, and it touches only that entry. Anything else — an inline
-`- {url: …}`, a `{variable}` template, no `servers:` at all — **fails the
-build** with a message naming the file, rather than passing the original host
-through. A reference that quietly documents the wrong API is the failure the
-function exists to prevent, so it is not allowed to be the quiet outcome.
+Meanwhile the site builds from the provisional document, which is a reference
+that can drift from the API it describes — the one thing an OpenAPI document
+exists to prevent. It is recorded here, and in `waves-tdr.md` §12 A70, rather
+than left to be discovered by somebody comparing the two files.
 
 ## Deploying
 

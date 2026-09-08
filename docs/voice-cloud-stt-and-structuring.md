@@ -1,7 +1,7 @@
 # Voice — cloud STT + managed LLM structuring (design)
 
-**Status:** Proposed (design review before build)
-**Feature id:** A48 (proposed)
+**Status:** Phase 1 built and dark (the meter and the mode rule; nothing calls them). Phases 2–3 proposed.
+**Feature id:** **A73** — see `waves-tdr.md` §12. This document said "A48" for a while, which was wrong: A48 is the mirror's at-rest encryption, and the number had been handed to four different pieces of work in one fortnight.
 **Author:** design draft for review
 **Supersedes/extends:** the existing on-device voice quick-add ([`apps/mobile/src/app/voice.tsx`](../apps/mobile/src/app/voice.tsx), [`voiceExpense.ts`](../apps/mobile/src/lib/voiceExpense.ts), [`voiceLlm.ts`](../apps/mobile/src/lib/voiceLlm.ts), [`dictation.ts`](../apps/mobile/src/lib/dictation.ts))
 

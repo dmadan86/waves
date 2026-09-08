@@ -174,9 +174,14 @@ because most of it is not obvious from the app's own config.
    Production. It was already on by default here — check rather than assume,
    with `vercel project protection`.
 
-`apps/admin/vercel.json` pins the functions to `sin1`. The database is in
-`ap-southeast-1`, and every page here is server-rendered from it — hosting the
-functions anywhere else adds a transpacific round trip to each of six queries.
+`apps/admin/vercel.json` pins the functions to `bom1`. The database moved to
+`ap-south-1` (Mumbai) on 2026-09-04 — a Supabase project's region cannot be
+changed after creation, so the move was a new project rather than a setting — and
+every page here is server-rendered from it, so hosting the functions anywhere else
+adds a round trip to each of six queries. `apps/web` and `apps/api` are pinned to
+the same region for the same reason. The pin was `sin1` while the database was in
+Singapore; if this file and `vercel.json` ever disagree again, `vercel.json` is
+the one that runs.
 
 ### Step 5 is not optional
 

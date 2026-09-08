@@ -19,7 +19,7 @@ planning any move:
 | Image storage                              | `apps/mobile/src/lib/storage`, R2      | **Already provider-neutral** (Cloudflare R2). |
 | Reads (`.from().select()`)                 | mobile `data/api.ts`, web `api-client` | PostgREST — open source, self-hostable.       |
 | Auth (anon guest, in-place upgrade, OAuth) | `api-client`, mobile `lib/auth.tsx`    | **GoTrue — the stickiest piece.**             |
-| Edge functions (15, Deno)                  | `supabase/functions/*`                 | Portable code, Supabase deploy target.        |
+| Edge functions (16, Deno)                  | `supabase/functions/*`                 | Portable code, Supabase deploy target.        |
 | `pg_net` HTTP-from-DB (push fan-out)       | `push_fanout` migration                | **The one real hard dependency.** See §6.     |
 
 The takeaway: "leave Supabase" is really "re-home GoTrue, PostgREST, the edge
@@ -53,6 +53,12 @@ only after the code seam (the "option A / ports" work) exists.
    DIRECT_URL=postgres://postgres:<pw>@<host>:5432/postgres \
    pnpm --filter @waves/db exec prisma migrate deploy
    ```
+   The history is one squashed baseline plus what has landed since, so this is a
+   short run rather than a replay of a year: `20260904000000_waves_baseline` is a
+   `pg_dump` of the schema in its current shape, with the Supabase role bootstrap
+   prepended (a dump omits cluster-global roles) and the reference data appended.
+   That prepended bootstrap is the reason a plain Postgres takes it — the roles
+   `anon`, `authenticated` and `service_role` are created rather than assumed.
 3. **Move the data** — §5.
 4. **Redeploy edge functions** — they already run in the stack's Edge runtime
    from the mounted `supabase/functions/*`. Just fill `functions.env`.
@@ -124,8 +130,14 @@ Notes:
 ## 6. `pg_net` and cron — the one thing to watch
 
 - **Self-host / `supabase/postgres` image (Path A):** `pg_net` and `pg_cron`
-  are present. Push fan-out and the scheduled jobs (auto-archive, settlement
-  auto-confirm, storage sweep) run **unchanged**.
+  are present. Push fan-out and the scheduled jobs — settlement auto-confirm,
+  trip nudges, the weekly digest, the eighteen-month auto-archive, and the
+  storage reservation expiry — run **unchanged**. Note that only the weekly
+  digest schedules itself from inside a migration; the rest are `cron.schedule`
+  statements run against the project, because each needs a URL and a Vault
+  secret that belong to a deployment rather than to the schema. Standing the
+  stack up therefore includes scheduling them (`docs/notify-fanout-scheduling.md`),
+  and forgetting to is a pipeline that passes every test and delivers nothing.
 - **Vanilla managed Postgres (Path B/C — RDS, Cloud SQL, Azure DB):** no
   `pg_net`. The `notify-fanout` path that calls HTTP from inside the DB must be
   replaced with an **external worker** — a small process (or the edge function
