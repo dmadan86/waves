@@ -7,10 +7,12 @@
  * real group expense and drops it from this list. Everything here is personal
  * and offline-first: a row still queued wears a faint cloud glyph rather than
  * hiding until the server has seen it (ADR-005). Expenses spoken in one breath
- * fold into a single collapsible "N expenses" row with the running total.
+ * fold into a single collapsible "N expenses" row with the running total, and
+ * that row's ⋯ can place the whole cluster in one group at once — one answer to
+ * "where does this go?" instead of the same answer once per row.
  */
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { FlashList } from '@shopify/flash-list';
 import { randomUUID } from 'expo-crypto';
@@ -24,7 +26,7 @@ import {
   View,
 } from 'react-native';
 
-import { peopleSignatureKey } from '@waves/core';
+import { MutationKind, peopleSignatureKey } from '@waves/core';
 import {
   Button,
   directionalIcon,
@@ -52,6 +54,7 @@ import { InboxSkeleton } from '@/components/Skeletons';
 import { dayHeading } from '@/data/activity';
 import {
   useAddGhostMember,
+  useAssignCapture,
   useCaptures,
   useCreateGroup,
   useDeleteCapture,
@@ -66,16 +69,34 @@ import { plural, useStrings, type UiStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { assignCaptureHref } from '@/lib/captureAssign';
 import { foldedCaptureCount } from '@/lib/captureBatch';
+import { planCaptureAssign, stillWaiting, type AssignMember } from '@/lib/captureBulkAssign';
 import { buildCaptureFeedItems, type CaptureFeedItem } from '@/lib/captureFeed';
 import { friendlyError } from '@/lib/errors';
+import { useGuestGuard } from '@/lib/guestGuard';
 import { usePullRefresh } from '@/lib/pullRefresh';
+import { useToast } from '@/lib/toast';
+import { useSync } from '@/sync';
 
 /**
  * What the ⋯ overflow sheet is open on: a single capture (add to group / edit /
- * delete) or a whole spoken batch (delete them all). Null when nothing is open.
+ * delete) or a whole spoken batch (add them all to one group / delete them all).
+ * Null when nothing is open.
  */
 type CaptureMenu =
   { kind: 'capture'; capture: CaptureRow } | { kind: 'batch'; items: CaptureRow[] } | null;
+
+/**
+ * What the destination sheet is placing: one draft, or a whole spoken batch at
+ * once. One picker serves both, so "where does this go?" is the same control and
+ * the same list of groups however many drafts are riding on the answer.
+ *
+ * The two differ only in what happens after the tap. A single draft opens the
+ * add-expense form prefilled — the unchanged path, where a person says who split
+ * what. A batch is written straight onto the queue with the form's own defaults,
+ * which is the whole point of asking once for several.
+ */
+type AssignTarget =
+  { kind: 'capture'; capture: CaptureRow } | { kind: 'batch'; items: CaptureRow[] };
 
 /**
  * One capture, in the card grammar this screen now speaks (Mobbin: Phantom
@@ -464,6 +485,18 @@ export default function CapturesScreen() {
 
   const captures = useCaptures();
   const deleteCapture = useDeleteCapture();
+  // Closing a draft against the expense it became. The single-draft path reaches
+  // this from inside the add-expense form; the batch path calls it here, right
+  // after queueing each expense.
+  const assignCapture = useAssignCapture();
+  // The batch path writes the expenses itself rather than opening a form per
+  // draft, so it queues them the way the form does (ADR-005).
+  const { mutate } = useSync();
+  const toast = useToast();
+  // A guest past their trial may read but not write. The single-draft path is
+  // stopped by the same guard inside add-expense; a batch write never reaches
+  // that screen, so it asks here.
+  const guard = useGuestGuard();
   const groups = useGroups();
   const summary = useHomeSummary(profile?.id ?? null);
   // The people the picker can point a draft at, and the raw material for
@@ -474,8 +507,15 @@ export default function CapturesScreen() {
   const signatures = useGroupPeopleSignatures(profile?.id ?? null);
   const createGroup = useCreateGroup();
 
-  // Which capture is being assigned, if any — drives the destination sheet.
-  const [assigning, setAssigning] = useState<CaptureRow | null>(null);
+  // What is being assigned, if anything — drives the destination sheet: one
+  // draft, or a whole spoken batch.
+  const [assigning, setAssigning] = useState<AssignTarget | null>(null);
+  // The one draft under the picker, when it is a single one. The batch case has
+  // no single capture to preview or pre-aim from.
+  const assigningCapture = assigning?.kind === 'capture' ? assigning.capture : null;
+  // A batch write is several queue writes behind one tap; the lock keeps a
+  // second tap (or a re-entrant people-tab resolve) from filing them twice.
+  const placing = useRef(false);
   // The id a group made from picked people will take, minted before the create
   // so the ghosts and the expense behind it can already name it — the
   // offline-first pattern the voice review and "add a person" both use. Retired
@@ -540,17 +580,32 @@ export default function CapturesScreen() {
   // pre-aim used to be spelled out on the row itself and skip the picker
   // entirely; it is now a suggestion the picker shows and a tap confirms.
   const pickerSelection: DestinationSelection = useMemo(() => {
-    const targetId = assigning?.target_group_id;
+    const targetId = assigningCapture?.target_group_id;
     return targetId && assignableGroups.some((group) => group.id === targetId)
       ? { kind: 'existing', groupId: targetId }
       : { kind: 'none' };
-  }, [assigning?.target_group_id, assignableGroups]);
+  }, [assigningCapture?.target_group_id, assignableGroups]);
   // How tall the picker sheet is ever allowed to get. A ceiling, not a height:
   // the sheet hugs its rows and only starts scrolling here. In points off the
   // window rather than the '80%' it used to pass, because a percentage height
   // needs an ancestor with a definite one to resolve against and this card is
   // sized by its own content — points can't be quietly dropped.
   const pickerMaxHeight = height * 0.8;
+
+  // What the picker says it is placing when a whole batch is riding on the
+  // answer: the running total (absent when the drafts are not one currency, as
+  // on the batch card itself) and how many drafts it stands for.
+  const batchPreview = useMemo(() => {
+    if (assigning?.kind !== 'batch') return null;
+    const items = assigning.items;
+    const currency = items[0]!.currency;
+    const sameCurrency = items.every((item) => item.currency === currency);
+    return {
+      count: items.length,
+      currency,
+      total: sameCurrency ? items.reduce((sum, item) => sum + BigInt(item.amount), 0n) : null,
+    };
+  }, [assigning]);
 
   const rows = useMemo(() => captures.data ?? [], [captures.data]);
   const feedItems = useMemo(() => buildCaptureFeedItems(rows), [rows]);
@@ -559,7 +614,13 @@ export default function CapturesScreen() {
   const waitingCount = useMemo(() => foldedCaptureCount(rows), [rows]);
 
   const openAssign = useCallback((capture: CaptureRow): void => {
-    setAssigning(capture);
+    setAssigning({ kind: 'capture', capture });
+  }, []);
+
+  // The batch card's ⋯ → "Add these to a group": the same picker, opened on the
+  // whole cluster instead of one row of it.
+  const openAssignBatch = useCallback((items: CaptureRow[]): void => {
+    setAssigning({ kind: 'batch', items });
   }, []);
 
   // Open the draft in the capture form to fix its fields — the same screen that
@@ -636,16 +697,132 @@ export default function CapturesScreen() {
 
   const closeAssign = useCallback((): void => setAssigning(null), []);
 
-  // Hand the capture's own values to the add-expense form as prefill, and carry
-  // its id so that saving there can close the capture (useAssignCapture). The
-  // href is built by the shared helper so the "New group" flow, which routes to
-  // the very same form, hands it identical params.
-  const assignTo = useCallback(
-    (capture: CaptureRow, groupId: string): void => {
-      closeAssign();
-      router.push(assignCaptureHref(capture, groupId));
+  /**
+   * A whole spoken batch into one group, in one go.
+   *
+   * This is the batch's answer to the same question the single row asks, and it
+   * ends differently on purpose: opening the add-expense form four times to
+   * accept its defaults four times is exactly the work the ⋯ item exists to
+   * remove. So the expenses are written here, with the form's own defaults —
+   * everyone in the group, split equally, the person assigning down as having
+   * paid — and each draft is closed against the expense it became.
+   *
+   * Both writes ride the ordinary offline queue (ADR-005), so this works with no
+   * network and survives being killed mid-run. Each draft is its own attempt:
+   * one that refuses does not take the others down, and it is left in the inbox
+   * (nothing closes it) rather than vanishing into a success message that would
+   * be a lie. What actually happened is then said out loud — the count that
+   * landed, and, when anything did not, the count still waiting.
+   */
+  const placeBatch = useCallback(
+    async (input: {
+      items: readonly CaptureRow[];
+      groupId: string;
+      /** What to call the group in the confirmation. */
+      label: string;
+      members: readonly AssignMember[];
+      currency: string;
+    }): Promise<void> => {
+      if (placing.current) return;
+      if (guard.blockWrite()) return;
+      placing.current = true;
+      try {
+        // Another device may have placed one of these while the sheet was open;
+        // the inbox read already knows, and writing it again would file the same
+        // dinner twice.
+        const waiting = stillWaiting(input.items, rows);
+        const plan = planCaptureAssign({
+          captures: waiting,
+          members: input.members,
+          myProfileId: profile?.id ?? null,
+          currency: input.currency,
+        });
+
+        let placed = 0;
+        // A draft whose amount the ledger cannot take never had a write to try.
+        let failed = plan.unusable.length;
+        for (const write of plan.writes) {
+          try {
+            await mutate(MutationKind.ExpenseCreate, input.groupId, write.payload);
+            // Only once the expense is on the queue: a draft closed before its
+            // expense exists is a spend that quietly disappeared.
+            await assignCapture.mutateAsync({
+              captureId: write.captureId,
+              groupId: input.groupId,
+              expenseId: write.expenseId,
+            });
+            placed += 1;
+          } catch {
+            failed += 1;
+          }
+        }
+
+        if (failed === 0) {
+          if (placed > 0) {
+            toast.show(
+              plural(locale, placed, t.captures.assignedBatch).replaceAll('{name}', input.label),
+            );
+          }
+          return;
+        }
+        // Something did not land, so this is said in a dialog rather than a
+        // toast that fades: it names how many are still waiting, and (when some
+        // did land) how many did, so neither half of a partial run is implied.
+        const lines: string[] = [];
+        if (placed > 0) {
+          lines.push(
+            plural(locale, placed, t.captures.assignedBatch).replaceAll('{name}', input.label),
+          );
+        }
+        lines.push(plural(locale, failed, t.captures.assignBatchSomeFailed));
+        Alert.alert(t.captures.title, lines.join('\n\n'));
+      } finally {
+        placing.current = false;
+      }
     },
-    [closeAssign],
+    [
+      assignCapture,
+      guard,
+      locale,
+      mutate,
+      profile?.id,
+      rows,
+      t.captures.assignBatchSomeFailed,
+      t.captures.assignedBatch,
+      t.captures.title,
+      toast,
+    ],
+  );
+
+  /**
+   * A chosen existing group, for whichever the picker is open on.
+   *
+   * One draft is unchanged: its own values are handed to the add-expense form as
+   * prefill, carrying its id so that saving there closes the capture
+   * (`useAssignCapture`). The href is built by the shared helper so the "New
+   * group" flow, which routes to the very same form, hands it identical params.
+   * A batch skips the form — that is the whole point of the batch item.
+   */
+  const chooseExistingGroup = useCallback(
+    (target: AssignTarget, groupId: string): void => {
+      closeAssign();
+      if (target.kind === 'capture') {
+        router.push(assignCaptureHref(target.capture, groupId));
+        return;
+      }
+      const members = summary.membersFor(groupId);
+      const group = assignableGroups.find((row) => row.id === groupId);
+      void placeBatch({
+        items: target.items,
+        groupId,
+        label: group ? groupLabel(group, members, profile?.id) : '',
+        members,
+        // A draft assigned through the form takes the group's currency too
+        // (the href carries no currency of its own), so the batch does the same.
+        currency: group?.default_currency ?? target.items[0]!.currency,
+      });
+    },
+    [assignableGroups, closeAssign, placeBatch, profile?.id, summary],
   );
 
   // The People tab, confirmed: this draft is with these people. If they already
@@ -659,30 +836,34 @@ export default function CapturesScreen() {
   // the group and the members before the server has ever heard of them.
   const assignToPeople = useCallback(
     async (names: string[]): Promise<void> => {
-      const capture = assigning;
-      if (!capture) return;
+      const target = assigning;
+      if (!target) return;
       const clean = [...new Set(names.map((name) => name.trim()).filter(Boolean))];
       if (clean.length === 0) return;
 
       const shared = groupBySignature.get(peopleSignatureKey(clean));
       if (shared) {
-        assignTo(capture, shared);
+        chooseExistingGroup(target, shared);
         return;
       }
 
       const groupId = newGroupId;
+      // The draft's own currency: it is the money actually spent with these
+      // people, and a fresh group has nothing better to go on. A batch is one
+      // utterance, so its first draft speaks for the lot.
+      const currency =
+        target.kind === 'capture' ? target.capture.currency : target.items[0]!.currency;
       closeAssign();
+      const ghostIds: string[] = [];
       try {
         await createGroup.mutateAsync({
           groupId,
           creatorMemberId: newMemberId,
           name: clean.join(', '),
           type: GroupType.Other,
-          // The draft's own currency: it is the money actually spent with these
-          // people, and a fresh group has nothing better to go on.
-          currency: capture.currency,
+          currency,
         });
-        for (const name of clean) await addGhost.mutateAsync(name);
+        for (const name of clean) ghostIds.push(await addGhost.mutateAsync(name));
       } catch (caught) {
         // With no group to assign into there is nowhere to push, so say why and
         // leave the draft exactly where it was rather than opening a form over a
@@ -696,17 +877,35 @@ export default function CapturesScreen() {
       // Spent — the next new group needs its own pair of ids.
       setNewGroupId(randomUUID());
       setNewMemberId(randomUUID());
-      router.push(assignCaptureHref(capture, groupId));
+      if (target.kind === 'capture') {
+        router.push(assignCaptureHref(target.capture, groupId));
+        return;
+      }
+      // The group and its people exist only on the queue so far, so the mirror
+      // cannot list its members yet. Their ids were minted here, so the batch
+      // names them itself rather than waiting for a read that has not happened.
+      void placeBatch({
+        items: target.items,
+        groupId,
+        label: clean.join(', '),
+        members: [
+          { id: newMemberId, profile_id: profile?.id ?? null },
+          ...ghostIds.map((id) => ({ id, profile_id: null })),
+        ],
+        currency,
+      });
     },
     [
       addGhost,
       assigning,
-      assignTo,
+      chooseExistingGroup,
       closeAssign,
       createGroup,
       groupBySignature,
       newGroupId,
       newMemberId,
+      placeBatch,
+      profile?.id,
       t.captures.couldNotSave,
       t.captures.title,
     ],
@@ -905,26 +1104,57 @@ export default function CapturesScreen() {
                 glyph. The title says what this sheet is for; a line under this
                 repeating "choose where to add this expense" only said it again,
                 so the summary is the whole of the preamble now. */}
-        {assigning ? (
+        {assigningCapture ? (
           <Row style={{ gap: theme.spacing.md, alignItems: 'center' }}>
             <CategoryBadge
-              category={assigning.category}
-              meta={assigning.category_meta}
-              description={assigning.description}
+              category={assigningCapture.category}
+              meta={assigningCapture.category_meta}
+              description={assigningCapture.description}
               size={38}
             />
             <View style={{ flex: 1, minWidth: 0 }}>
               <MoneyText
-                amount={BigInt(assigning.amount)}
-                currency={assigning.currency}
+                amount={BigInt(assigningCapture.amount)}
+                currency={assigningCapture.currency}
                 locale={locale}
                 variant="subheading"
               />
-              {assigning.description ? (
+              {assigningCapture.description ? (
                 <Text variant="caption" tone="muted" numberOfLines={1}>
-                  {assigning.description}
+                  {assigningCapture.description}
                 </Text>
               ) : null}
+            </View>
+          </Row>
+        ) : batchPreview ? (
+          /* A whole cluster is being placed: the batch card's own glyph and
+             running total, so the sheet says how much money the next tap moves
+             and how many drafts it clears. */
+          <Row style={{ gap: theme.spacing.md, alignItems: 'center' }}>
+            <View
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: 12,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: theme.color.brandSoft,
+              }}
+            >
+              <Ionicons name="layers-outline" size={iconSize.md} color={theme.color.brand} />
+            </View>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              {batchPreview.total !== null ? (
+                <MoneyText
+                  amount={batchPreview.total}
+                  currency={batchPreview.currency}
+                  locale={locale}
+                  variant="subheading"
+                />
+              ) : null}
+              <Text variant="caption" tone="muted" numberOfLines={1}>
+                {plural(locale, batchPreview.count, t.captures.batchExpenses)}
+              </Text>
             </View>
           </Row>
         ) : null}
@@ -948,9 +1178,16 @@ export default function CapturesScreen() {
           style={{ flexShrink: 1 }}
         >
           <DestinationPicker
-            // Remount per capture, so the tab and any half-made people selection
-            // start fresh on each open rather than carrying over from the last.
-            key={assigning?.id ?? 'closed'}
+            // Remount per draft (or per batch), so the tab and any half-made
+            // people selection start fresh on each open rather than carrying
+            // over from the last.
+            key={
+              assigning
+                ? assigning.kind === 'capture'
+                  ? assigning.capture.id
+                  : assigning.items[0]!.id
+                : 'closed'
+            }
             selection={pickerSelection}
             // The sheet's own heading already says what this is; a second
             // "SAVE TO" line under it would only say it again.
@@ -959,7 +1196,11 @@ export default function CapturesScreen() {
             // unassigned, and "just me" writes to the personal ledger, which
             // this screen has no path to.
             pinned={[]}
-            createRow={{ label: t.captures.assignNew }}
+            // "New group" routes away to /new-group, which carries one draft
+            // back to the form; a batch stays here, so the row is not offered
+            // for one. Naming the people it was with still makes a group —
+            // that path (the People tab) places the whole batch into it.
+            createRow={assigning?.kind === 'batch' ? null : { label: t.captures.assignNew }}
             emptyGroups={t.captures.noGroups}
             // A group with no name of its own reads as its members here, which
             // needs the membership only the home summary holds.
@@ -970,15 +1211,18 @@ export default function CapturesScreen() {
             onChoose={(choice) => {
               // The Sheet stays mounted through its fade-out, so this can fire a
               // frame after the backdrop cleared `assigning`.
-              const capture = assigning;
-              if (!capture) return;
+              const target = assigning;
+              if (!target) return;
               if (choice.kind === 'existing') {
-                assignTo(capture, choice.groupId);
-              } else if (choice.kind === 'create') {
+                chooseExistingGroup(target, choice.groupId);
+              } else if (choice.kind === 'create' && target.kind === 'capture') {
                 // Carry the capture through group creation so new-group can hand
                 // it back and finish the assignment.
                 closeAssign();
-                router.push({ pathname: '/new-group', params: { assignCaptureId: capture.id } });
+                router.push({
+                  pathname: '/new-group',
+                  params: { assignCaptureId: target.capture.id },
+                });
               }
             }}
             onResolvePeople={(names) => void assignToPeople(names)}
@@ -1044,6 +1288,21 @@ export default function CapturesScreen() {
             <Text variant="heading" numberOfLines={1} style={{ marginBottom: theme.spacing.xs }}>
               {plural(locale, menu.items.length, t.captures.batchExpenses)}
             </Text>
+            {/* The whole cluster into one group, in one tap — the alternative
+                to expanding it and answering the same question once per row.
+                Opens the very same picker a single draft opens, so the choice
+                is made the same way whichever is riding on it. */}
+            <ActionSheetRow
+              icon="people-outline"
+              label={t.captures.assignBatch}
+              tone="brand"
+              onPress={() => {
+                const items = menu.items;
+                setMenu(null);
+                openAssignBatch(items);
+              }}
+            />
+            <Divider />
             <ActionSheetRow
               icon="trash-outline"
               label={t.captures.deleteBatch}
