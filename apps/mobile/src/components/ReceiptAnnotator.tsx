@@ -43,6 +43,7 @@ import {
   type AnnotText,
   type Annotations,
 } from '@/lib/annotations';
+import { ModalNotice } from '@/components/ModalNotice';
 import { useStrings } from '@/i18n';
 
 /** Default pen width and text size, as a fraction of the image's smaller edge. */
@@ -55,12 +56,21 @@ export function ReceiptAnnotator({
   uri,
   initial,
   saving,
+  error,
+  onDismissError,
   onCancel,
   onSave,
 }: {
   uri: string;
   initial: Annotations;
   saving: boolean;
+  /**
+   * A save that did not land. Drawn inside this modal because it has to be:
+   * the app's toast host is an in-tree view and this is a native window, so a
+   * toast raised from here is painted underneath it and never seen.
+   */
+  error?: string | null;
+  onDismissError?: () => void;
   onCancel: () => void;
   onSave: (annotations: Annotations) => void;
 }): React.JSX.Element {
@@ -171,6 +181,7 @@ export function ReceiptAnnotator({
     <Modal visible animationType="slide" onRequestClose={onCancel}>
       <View style={{ flex: 1, backgroundColor: '#000' }}>
         <StatusBar barStyle="light-content" />
+        <ModalNotice message={error ?? null} onDismiss={() => onDismissError?.()} />
 
         {/* The canvas fills the screen; the chrome floats over it (the Apple
             Photos markup pattern), so the bill gets the whole frame. */}

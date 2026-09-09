@@ -2,7 +2,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useMutation } from '@tanstack/react-query';
 import { useLocalSearchParams, type Href } from 'expo-router';
-import { Alert, InteractionManager, Pressable, RefreshControl, View } from 'react-native';
+import { InteractionManager, Pressable, RefreshControl, View } from 'react-native';
 import { FlashList, type FlashListRef } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
 
@@ -81,6 +81,7 @@ import { SettlementProof } from '@/components/SettlementProof';
 import { SyncBanner } from '@/components/SyncBanner';
 import { useSync } from '@/sync';
 import { usePullRefresh } from '@/lib/pullRefresh';
+import { useDialog } from '@/lib/dialog';
 
 enum Tab {
   Expenses = 'expenses',
@@ -452,6 +453,7 @@ export default function GroupScreen() {
   const clearance = useTabBarClearance() + 36;
   const pull = usePullRefresh();
   const { t, locale } = useStrings();
+  const { confirm } = useDialog();
   // `?welcome=trip` is set once, by the create screen, when a trip is made
   // without dates — it opens this group with a one-time plan-your-trip nudge.
   // The param is gone on any later visit, so the nudge is a moment, not a nag.
@@ -1351,18 +1353,15 @@ export default function GroupScreen() {
                       variant="secondary"
                       fullWidth
                       onPress={() =>
-                        Alert.alert(
-                          t.group.cancelTitle,
-                          fill(t.group.cancelBody, { name: nameOf(settlement.to_member_id) }),
-                          [
-                            { text: t.group.keep, style: 'cancel' },
-                            {
-                              text: t.group.cancelConfirm,
-                              style: 'destructive',
-                              onPress: () => cancelSettlement.mutate(settlement.id),
-                            },
-                          ],
-                        )
+                        void confirm({
+                          title: t.group.cancelTitle,
+                          body: fill(t.group.cancelBody, { name: nameOf(settlement.to_member_id) }),
+                          confirmLabel: t.group.cancelConfirm,
+                          cancelLabel: t.group.keep,
+                          tone: 'danger',
+                        }).then((ok) => {
+                          if (ok) cancelSettlement.mutate(settlement.id);
+                        })
                       }
                       disabled={cancelSettlement.isPending}
                     />

@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams } from 'expo-router';
-import { Alert, View } from 'react-native';
+import { View } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 
 import {
@@ -31,6 +31,7 @@ import { fill, plural, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { useBottomClearance } from '@/lib/clearance';
 import { router } from '@/lib/navigation';
+import { useDialog } from '@/lib/dialog';
 
 /**
  * Whole days left before a pending settlement auto-confirms — the 7-day window
@@ -60,6 +61,7 @@ export default function PendingConfirmationsScreen() {
   const theme = useTheme();
   const clearance = useBottomClearance();
   const { t, locale } = useStrings();
+  const { confirm } = useDialog();
   const { id } = useLocalSearchParams<{ id: string }>();
   const groupId = id ?? '';
   const { profile } = useAuth();
@@ -85,29 +87,26 @@ export default function PendingConfirmationsScreen() {
   const total = pending.reduce((sum, settlement) => sum + BigInt(settlement.amount), 0n);
   const busy = confirmSettlement.isPending || disputeSettlement.isPending;
 
-  const reject = (settlement: SettlementRow): void => {
-    Alert.alert(
-      t.group.rejectTitle,
-      fill(t.group.rejectBody, { name: nameOf(settlement.from_member_id) }),
-      [
-        { text: t.group.keep, style: 'cancel' },
-        {
-          text: t.group.rejectConfirm,
-          style: 'destructive',
-          onPress: () => disputeSettlement.mutate(settlement.id),
-        },
-      ],
-    );
+  const reject = async (settlement: SettlementRow): Promise<void> => {
+    const ok = await confirm({
+      title: t.group.rejectTitle,
+      body: fill(t.group.rejectBody, { name: nameOf(settlement.from_member_id) }),
+      confirmLabel: t.group.rejectConfirm,
+      cancelLabel: t.group.keep,
+      tone: 'danger',
+    });
+    if (ok) disputeSettlement.mutate(settlement.id);
   };
 
-  const confirmAll = (): void => {
-    Alert.alert(t.group.confirmAll, fill(t.group.confirmAllBody, { count: pending.length }), [
-      { text: t.common.cancel, style: 'cancel' },
-      {
-        text: t.group.confirmAll,
-        onPress: () => pending.forEach((settlement) => confirmSettlement.mutate(settlement.id)),
-      },
-    ]);
+  // Accepting money owed to you is not destructive, so this one keeps the
+  // ordinary weight: a filled brand button, no warning mark.
+  const confirmAll = async (): Promise<void> => {
+    const ok = await confirm({
+      title: t.group.confirmAll,
+      body: fill(t.group.confirmAllBody, { count: pending.length }),
+      confirmLabel: t.group.confirmAll,
+    });
+    if (ok) pending.forEach((settlement) => confirmSettlement.mutate(settlement.id));
   };
 
   return (
@@ -189,7 +188,7 @@ export default function PendingConfirmationsScreen() {
                       variant="secondary"
                       fullWidth
                       disabled={busy}
-                      onPress={() => reject(settlement)}
+                      onPress={() => void reject(settlement)}
                     />
                   </View>
                 </Row>
@@ -204,7 +203,7 @@ export default function PendingConfirmationsScreen() {
                   variant="secondary"
                   fullWidth
                   disabled={busy}
-                  onPress={confirmAll}
+                  onPress={() => void confirmAll()}
                 />
               </View>
             ) : null

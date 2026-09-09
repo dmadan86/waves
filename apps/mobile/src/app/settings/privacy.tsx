@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Alert, LayoutAnimation, Pressable, ScrollView, View } from 'react-native';
+import { LayoutAnimation, Pressable, ScrollView, View } from 'react-native';
 
 import {
   Card,
@@ -25,6 +25,7 @@ import { describeGrace, useLock } from '@/lib/lock';
 import { router } from '@/lib/navigation';
 import { useReducedMotion } from '@/lib/reducedMotion';
 import { sessionReplayConsent, setSessionReplayConsent } from '@/lib/sessionReplay';
+import { useToast } from '@/lib/toast';
 
 /**
  * What is held, how it is kept, and what somebody can do about it.
@@ -53,6 +54,7 @@ export default function PrivacyScreen() {
   const theme = useTheme();
   const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
+  const toast = useToast();
   const reduceMotion = useReducedMotion();
   // The account data-controls act on an account a signed-out reader does not
   // have yet, so they are shown only once there is a session (a guest counts —
@@ -89,8 +91,10 @@ export default function PrivacyScreen() {
   const onReplayChange = (value: boolean): void => {
     setReplay(value);
     void setSessionReplayConsent(value).catch(() => {
+      // The switch has already flipped back, which is the real message. The line
+      // only says why, and a line that only says why does not need a door.
       setReplay(!value);
-      Alert.alert(t.privacy.couldNotSave);
+      toast.show(t.privacy.couldNotSave, 'negative');
     });
   };
 

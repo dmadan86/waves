@@ -13,7 +13,7 @@
 import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams } from 'expo-router';
-import { Alert, ScrollView, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 
 import type { PackEntry } from '@waves/core';
 import {
@@ -34,11 +34,13 @@ import {
 import { useInstallPack, useInstalledPacks, usePacks, useUninstallPack } from '@/data/packs';
 import { plural, useStrings } from '@/i18n';
 import { router } from '@/lib/navigation';
+import { useDialog } from '@/lib/dialog';
 
 export default function PackScreen() {
   const theme = useTheme();
   const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
+  const { confirm } = useDialog();
   const { slug } = useLocalSearchParams<{ slug: string }>();
 
   const packs = usePacks();
@@ -71,16 +73,15 @@ export default function PackScreen() {
     install.mutate(pack, { onSuccess: (count) => setAdded(count) });
   };
 
-  const onUninstall = (): void => {
+  const onUninstall = async (): Promise<void> => {
     if (!record) return;
-    Alert.alert(t.packs.uninstallTitle, t.packs.uninstallBody, [
-      { text: t.common.cancel, style: 'cancel' },
-      {
-        text: t.packs.uninstall,
-        style: 'destructive',
-        onPress: () => uninstall.mutate(record.installId, { onSuccess: () => setAdded(null) }),
-      },
-    ]);
+    const ok = await confirm({
+      title: t.packs.uninstallTitle,
+      body: t.packs.uninstallBody,
+      confirmLabel: t.packs.uninstall,
+      tone: 'danger',
+    });
+    if (ok) uninstall.mutate(record.installId, { onSuccess: () => setAdded(null) });
   };
 
   return (

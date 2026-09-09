@@ -7,7 +7,6 @@ import { useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -117,6 +116,7 @@ import {
   type SplitEntries,
 } from '@/lib/split';
 import { clearDraft, syncEngine, useDraft, useRestoredDraft, useSync } from '@/sync';
+import { useDialog } from '@/lib/dialog';
 
 /** Shared empty set — a new one per render would defeat every memo below it. */
 const EMPTY_LOCKS: ReadonlySet<MemberId> = new Set();
@@ -350,6 +350,7 @@ export default function AddExpenseScreen() {
   // one number, and so the hook is not buried in a `return`.
   const clearance = useScreenClearance(theme.spacing.md);
   const { t, locale } = useStrings();
+  const { confirm } = useDialog();
   // The capture params are the inbox handoff (A34): assigning a capture opens
   // this form prefilled and carries the capture id so a successful save can
   // close it. Absent for every ordinary add or edit, which behave unchanged.
@@ -966,22 +967,17 @@ export default function AddExpenseScreen() {
     // a bill that already records several payers those figures are recorded
     // facts, and this is a text link sitting next to an ordinary one — near
     // enough to a save button to be worth a question first.
-    Alert.alert(
-      t.expense.collapsePayersTitle,
-      fill(t.expense.collapsePayersBody, { name }),
-      [
-        { text: t.cancel, style: 'cancel' },
-        {
-          text: t.expense.collapsePayersConfirm,
-          style: 'destructive',
-          onPress: () => {
-            setPayerMode('one');
-            run(plan);
-          },
-        },
-      ],
-      { cancelable: true },
-    );
+    void confirm({
+      title: t.expense.collapsePayersTitle,
+      body: fill(t.expense.collapsePayersBody, { name }),
+      confirmLabel: t.expense.collapsePayersConfirm,
+      cancelLabel: t.cancel,
+      tone: 'danger',
+    }).then((ok) => {
+      if (!ok) return;
+      setPayerMode('one');
+      run(plan);
+    });
   };
 
   // Who may add or remove a bill against this expense: a party to it (its author

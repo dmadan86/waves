@@ -17,15 +17,7 @@ import { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from 'r
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  ActivityIndicator,
-  Alert,
-  Modal,
-  Pressable,
-  ScrollView,
-  StatusBar,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Modal, Pressable, ScrollView, StatusBar, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { iconSize, Row, Text, useTheme } from '@waves/ui';
@@ -37,6 +29,7 @@ import { saveImageToDevice } from '@/lib/saveImage';
 
 import { ViewerButton } from '@/components/ViewerButton';
 import { ZoomableGallery, type GalleryPage } from '@/components/ZoomableGallery';
+import { ModalNotice } from '@/components/ModalNotice';
 import { ReceiptAnnotator } from '@/components/ReceiptAnnotator';
 import { ReceiptCropper } from '@/components/ReceiptCropper';
 import {
@@ -72,6 +65,8 @@ import {
 } from '@/lib/receiptQueue';
 import { SyncStatus, useSync } from '@/sync';
 import { fill, useStrings } from '@/i18n';
+import { useDialog } from '@/lib/dialog';
+import { useToast } from '@/lib/toast';
 
 const THUMB = 96;
 
@@ -326,6 +321,14 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
     const theme = useTheme();
     const insets = useSafeAreaInsets();
     const { t } = useStrings();
+    const { confirm, choose, notify } = useDialog();
+    const toast = useToast();
+    // Failures raised while one of this component's three modals is presented.
+    // A toast would be painted under the modal's own native window and never
+    // seen, so each of them is said inside the modal that raised it.
+    const [viewerError, setViewerError] = useState<string | null>(null);
+    const [annotateError, setAnnotateError] = useState<string | null>(null);
+    const [adjustError, setAdjustError] = useState<string | null>(null);
     const attachments = useExpenseAttachments(expenseId);
     const removeAttachment = useRemoveExpenseAttachment(expenseId);
     const removeLegacy = useRemoveExpenseReceipt(groupId, expenseId);
@@ -376,10 +379,13 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
     // person at the upgrade rather than open the add sheet. Reuses the scan cap's
     // strings and upgrade route so both ceilings read and route the same.
     const showCapUpsell = () => {
-      Alert.alert(t.expense.capReachedTitle, t.expense.capReachedBody, [
-        { text: t.common.cancel, style: 'cancel' },
-        { text: t.expense.capUpgrade, onPress: () => router.push('/settings/upgrade') },
-      ]);
+      void confirm({
+        title: t.expense.capReachedTitle,
+        body: t.expense.capReachedBody,
+        confirmLabel: t.expense.capUpgrade,
+      }).then((upgrade) => {
+        if (upgrade) router.push('/settings/upgrade');
+      });
     };
 
     // What a flush of the receipt queue means for this screen. A success pulls
@@ -539,7 +545,12 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
           // The bytes never reached the disk (a full device, a revoked path), so
           // there is no tile to carry the failure and this is the only chance to
           // say so. Everything past this point has somewhere to show it instead.
-          Alert.alert(t.receipts.couldNotKeep);
+          //
+          // Which is exactly why this one stayed a dialog when the other nine
+          // failures here became toasts: with nothing on the strip, a line that
+          // fades after three seconds is a receipt somebody believes they
+          // attached. It has to be dismissed to be gone.
+          await notify({ title: t.receipts.couldNotKeep });
           return;
         } finally {
           setPreparing(null);
@@ -567,12 +578,19 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
       commitAdd(asset, 'group');
     };
 
+    // Camera or library: two ways in and a way out, so a sheet at the thumb
+    // rather than a card in the middle of the screen.
     const startAdd = () => {
-      Alert.alert(t.receipts.add, undefined, [
-        { text: t.receipts.scan, onPress: () => void captureReceiptAsset().then(add) },
-        { text: t.receipts.choosePhoto, onPress: () => void pickReceiptAsset().then(add) },
-        { text: t.common.cancel, style: 'cancel' },
-      ]);
+      void choose({
+        title: t.receipts.add,
+        options: [
+          { id: 'scan', label: t.receipts.scan },
+          { id: 'pick', label: t.receipts.choosePhoto },
+        ],
+      }).then((picked) => {
+        if (picked === 'scan') void captureReceiptAsset().then(add);
+        else if (picked === 'pick') void pickReceiptAsset().then(add);
+      });
     };
 
     // The add affordance's tap: locked → upsell, otherwise the scan/choose sheet.
@@ -591,74 +609,74 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
     // add here": the parent's button owns adding, so an empty gallery is nothing.
     if (items.length === 0 && preparing === null && (!canManage || externalAdd)) return null;
 
-    const removeAt = (index: number) => {
+    const removeAt = async (index: number) => {
       const it = items[index];
       if (!it) return;
-      Alert.alert(t.receipts.removeConfirm, undefined, [
-        { text: t.common.cancel, style: 'cancel' },
-        {
-          text: t.receipts.remove,
-          style: 'destructive',
-          onPress: () => {
-            setViewerIndex(null);
-            const onError = () => Alert.alert(t.imageAudit.couldNotRemove);
-            if (it.kind === 'pending' && it.entry.sentAt) {
-              // Settled: the server already has this one, it is only still in the
-              // queue because its row has not come back down the sync. Removing
-              // it is therefore a real removal — dropping the local entry alone
-              // would leave the attachment on the server with nothing showing it.
-              const attachmentId = it.entry.attachmentId;
-              const storagePath = it.entry.storagePath;
-              removeAttachment.mutate(
-                { attachmentId, storagePath },
-                {
-                  onError,
-                  onSuccess: () => {
-                    evictImage('expense-attachments', storagePath);
-                    void dropSettledReceipts([attachmentId]);
-                    refreshCap();
-                  },
-                },
-              );
-            } else if (it.kind === 'pending') {
-              // Not uploaded yet: just drop the parked capture and its local bytes.
-              void discardPendingReceipt(it.entry.attachmentId);
-            } else if (it.kind === 'legacy') {
-              // Only clear the parent's receipt state on a confirmed delete — if the
-              // byte removal throws, the bill is still there and must keep showing.
-              removeLegacy.mutate(undefined, {
-                onSuccess: () => {
-                  evictImage('receipts', it.path);
-                  onLegacyRemoved?.();
-                },
-                onError,
-              });
-            } else {
-              const storagePath = it.row.storagePath;
-              const attachmentId = it.row.id;
-              // Gone from the strip now. The row itself only disappears once the
-              // RPC has landed and a pull has brought the mirror up to date, and
-              // watching a deleted receipt sit there through both is the whole
-              // complaint. Put back if the delete turns out to have failed.
-              setRemovedIds((current) => [...current, attachmentId]);
-              removeAttachment.mutate(
-                { attachmentId, storagePath },
-                // Removing a live attachment frees a slot, so re-ask the cap gate.
-                {
-                  onError: () => {
-                    setRemovedIds((current) => current.filter((id) => id !== attachmentId));
-                    onError();
-                  },
-                  onSuccess: () => {
-                    evictImage('expense-attachments', storagePath);
-                    refreshCap();
-                  },
-                },
-              );
-            }
+      const ok = await confirm({
+        title: t.receipts.removeConfirm,
+        confirmLabel: t.receipts.remove,
+        tone: 'danger',
+      });
+      if (!ok) return;
+
+      setViewerIndex(null);
+      // A removal that did not go through leaves the tile exactly where it was —
+      // the strip is the message, and this line only says why it is still there.
+      const onError = () => toast.show(t.imageAudit.couldNotRemove, 'negative');
+      if (it.kind === 'pending' && it.entry.sentAt) {
+        // Settled: the server already has this one, it is only still in the
+        // queue because its row has not come back down the sync. Removing
+        // it is therefore a real removal — dropping the local entry alone
+        // would leave the attachment on the server with nothing showing it.
+        const attachmentId = it.entry.attachmentId;
+        const storagePath = it.entry.storagePath;
+        removeAttachment.mutate(
+          { attachmentId, storagePath },
+          {
+            onError,
+            onSuccess: () => {
+              evictImage('expense-attachments', storagePath);
+              void dropSettledReceipts([attachmentId]);
+              refreshCap();
+            },
           },
-        },
-      ]);
+        );
+      } else if (it.kind === 'pending') {
+        // Not uploaded yet: just drop the parked capture and its local bytes.
+        void discardPendingReceipt(it.entry.attachmentId);
+      } else if (it.kind === 'legacy') {
+        // Only clear the parent's receipt state on a confirmed delete — if the
+        // byte removal throws, the bill is still there and must keep showing.
+        removeLegacy.mutate(undefined, {
+          onSuccess: () => {
+            evictImage('receipts', it.path);
+            onLegacyRemoved?.();
+          },
+          onError,
+        });
+      } else {
+        const storagePath = it.row.storagePath;
+        const attachmentId = it.row.id;
+        // Gone from the strip now. The row itself only disappears once the
+        // RPC has landed and a pull has brought the mirror up to date, and
+        // watching a deleted receipt sit there through both is the whole
+        // complaint. Put back if the delete turns out to have failed.
+        setRemovedIds((current) => [...current, attachmentId]);
+        removeAttachment.mutate(
+          { attachmentId, storagePath },
+          // Removing a live attachment frees a slot, so re-ask the cap gate.
+          {
+            onError: () => {
+              setRemovedIds((current) => current.filter((id) => id !== attachmentId));
+              onError();
+            },
+            onSuccess: () => {
+              evictImage('expense-attachments', storagePath);
+              refreshCap();
+            },
+          },
+        );
+      }
     };
 
     // What the strip as a whole is doing, for the line under it. Sending wins
@@ -699,20 +717,21 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
     // worth doing about it. Removing here does not go through `removeAt`'s
     // confirmation — nothing was ever sent, so there is no change to record and
     // nothing for anybody else to see disappear.
+    // Three ways forward — try again, throw it away, leave it alone — so this is
+    // the sheet, and "try again" leads because it is what somebody tapping a
+    // failed upload almost always means.
     const showUnsent = (entry: PendingReceiptView) => {
-      Alert.alert(
-        t.receipts.notSent,
-        entry.permanent ? t.receipts.notSentBlockedBody : t.receipts.notSentBody,
-        [
-          { text: t.common.cancel, style: 'cancel' },
-          {
-            text: t.receipts.remove,
-            style: 'destructive',
-            onPress: () => void discardPendingReceipt(entry.attachmentId),
-          },
-          { text: t.receipts.tryAgain, onPress: () => retryFailed([entry.attachmentId]) },
+      void choose({
+        title: t.receipts.notSent,
+        body: entry.permanent ? t.receipts.notSentBlockedBody : t.receipts.notSentBody,
+        options: [
+          { id: 'retry', label: t.receipts.tryAgain },
+          { id: 'discard', label: t.receipts.remove, tone: 'danger' },
         ],
-      );
+      }).then((picked) => {
+        if (picked === 'retry') retryFailed([entry.attachmentId]);
+        else if (picked === 'discard') void discardPendingReceipt(entry.attachmentId);
+      });
     };
 
     const viewing = viewerIndex !== null ? items[viewerIndex] : null;
@@ -725,7 +744,8 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
       setSaving(true);
       void saveImageToDevice(url).then((result) => {
         setSaving(false);
-        if (result === 'error') Alert.alert(t.receipts.couldNotSave);
+        // Raised from inside the viewer modal, so it is said in the viewer.
+        if (result === 'error') setViewerError(t.receipts.couldNotSave);
       });
     };
 
@@ -899,7 +919,10 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
         <Modal
           visible={viewing !== null}
           animationType="fade"
-          onRequestClose={() => setViewerIndex(null)}
+          onRequestClose={() => {
+            setViewerError(null);
+            setViewerIndex(null);
+          }}
         >
           {/* A dark, immersive viewer (the Photos/ChatGPT pattern): the image fills
             the screen and every control floats over it, so nothing squeezes the
@@ -927,7 +950,10 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
               <ViewerButton
                 icon="close"
                 label={t.common.close}
-                onPress={() => setViewerIndex(null)}
+                onPress={() => {
+                  setViewerError(null);
+                  setViewerIndex(null);
+                }}
               />
               <Row style={{ gap: theme.spacing.sm, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                 {viewerIndex !== null && urls[viewerIndex] ? (
@@ -988,7 +1014,7 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
                           tint={theme.color.negative}
                           onPress={() => {
                             if (!removeAttachment.isPending && !removeLegacy.isPending)
-                              removeAt(viewerIndex);
+                              void removeAt(viewerIndex);
                           }}
                         />
                       ) : null}
@@ -1029,6 +1055,12 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
                 </Text>
               </Row>
             </View>
+            {/* Clear of the page-counter pill at `insets.bottom + xl`. */}
+            <ModalNotice
+              message={viewerError}
+              onDismiss={() => setViewerError(null)}
+              offset={theme.spacing.xxxl * 2}
+            />
           </View>
         </Modal>
 
@@ -1037,7 +1069,12 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
             uri={editing.uri}
             initial={editing.initial}
             saving={annotate.isPending}
-            onCancel={() => setEditing(null)}
+            error={annotateError}
+            onDismissError={() => setAnnotateError(null)}
+            onCancel={() => {
+              setAnnotateError(null);
+              setEditing(null);
+            }}
             onSave={(next) =>
               annotate.mutate(
                 {
@@ -1046,7 +1083,7 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
                 },
                 {
                   onSuccess: () => setEditing(null),
-                  onError: () => Alert.alert(t.annotate.couldNotSave),
+                  onError: () => setAnnotateError(t.annotate.couldNotSave),
                 },
               )
             }
@@ -1057,7 +1094,12 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
           <ReceiptCropper
             uri={adjusting.uri}
             saving={replace.isPending}
-            onCancel={() => setAdjusting(null)}
+            error={adjustError}
+            onDismissError={() => setAdjustError(null)}
+            onCancel={() => {
+              setAdjustError(null);
+              setAdjusting(null);
+            }}
             onSave={(picked) =>
               replace.mutate(
                 {
@@ -1072,7 +1114,7 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
                     evictImage('expense-attachments', adjusting.oldStoragePath);
                     setAdjusting(null);
                   },
-                  onError: () => Alert.alert(t.adjust.couldNotSave),
+                  onError: () => setAdjustError(t.adjust.couldNotSave),
                 },
               )
             }

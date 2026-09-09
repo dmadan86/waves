@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, StatusBar, View } from 'react-native';
+import { ActivityIndicator, StatusBar, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -11,6 +11,7 @@ import { useStrings } from '@/i18n';
 import { router } from '@/lib/navigation';
 import { imageUrl } from '@/lib/storage';
 import { saveImageToDevice } from '@/lib/saveImage';
+import { useToast } from '@/lib/toast';
 
 /**
  * See the bill, any time after it was kept (E2).
@@ -28,6 +29,7 @@ export default function ReceiptViewerScreen(): React.JSX.Element {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { t } = useStrings();
+  const toast = useToast();
   // `id` is the expense id in the route; the receipt itself is addressed by the
   // `path` param, which is what actually resolves the image.
   const { path } = useLocalSearchParams<{ id?: string; path?: string }>();
@@ -78,8 +80,11 @@ export default function ReceiptViewerScreen(): React.JSX.Element {
     setSaving(true);
     const result = await saveImageToDevice(uri);
     setSaving(false);
-    if (result === 'error') Alert.alert(t.receipts.couldNotSave);
-  }, [uri, saving, t]);
+    // A save that did not happen, said over the receipt still on screen. There
+    // is nothing to answer and nothing was lost — taking the screen to demand a
+    // tap before giving it back is a tax on a failure nobody caused.
+    if (result === 'error') toast.show(t.receipts.couldNotSave, 'negative');
+  }, [uri, saving, t, toast]);
 
   return (
     <View style={{ flex: 1, backgroundColor: '#000' }}>

@@ -19,14 +19,22 @@
 
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
 
-import { Toast } from '@waves/ui';
+import { Toast, type CalloutTone } from '@waves/ui';
 
 import { useReducedMotion } from '@/lib/reducedMotion';
 import { useBottomClearance } from '@/lib/clearance';
 
 interface ToastValue {
-  /** Show a line briefly over whatever is on screen. The newest one wins. */
-  show: (message: string) => void;
+  /**
+   * Show a line briefly over whatever is on screen. The newest one wins.
+   *
+   * The tone is the difference between "saved" and "that did not save", and it
+   * exists because the failures that used to interrupt with a native alert now
+   * come through here: a red panel that fades is the honest weight for a
+   * one-sentence failure nobody has to answer. Positive by default, because
+   * that is what almost every caller means.
+   */
+  show: (message: string, tone?: CalloutTone) => void;
 }
 
 const ToastContext = createContext<ToastValue | null>(null);
@@ -35,10 +43,14 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   // The message and a serial number: showing the same words twice in a row is a
   // real thing to want ("1 expense saved", again), and without the number the
   // second one would not restart the timer.
-  const [current, setCurrent] = useState<{ seq: number; message: string } | null>(null);
+  const [current, setCurrent] = useState<{
+    seq: number;
+    message: string;
+    tone: CalloutTone;
+  } | null>(null);
 
-  const show = useCallback((message: string): void => {
-    setCurrent((previous) => ({ seq: (previous?.seq ?? 0) + 1, message }));
+  const show = useCallback((message: string, tone: CalloutTone = 'positive'): void => {
+    setCurrent((previous) => ({ seq: (previous?.seq ?? 0) + 1, message, tone }));
   }, []);
 
   const value = useMemo<ToastValue>(() => ({ show }), [show]);
@@ -69,7 +81,7 @@ function ToastHost({
   current,
   onDone,
 }: {
-  current: { seq: number; message: string } | null;
+  current: { seq: number; message: string; tone: CalloutTone } | null;
   onDone: () => void;
 }) {
   const reduceMotion = useReducedMotion();
@@ -85,6 +97,7 @@ function ToastHost({
       // The key restarts the entrance and the timer for a repeated message.
       key={current?.seq ?? 0}
       message={current?.message ?? ''}
+      tone={current?.tone ?? 'positive'}
       visible={current !== null}
       onDone={onDone}
       bottom={bottom}

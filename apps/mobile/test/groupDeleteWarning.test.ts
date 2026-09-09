@@ -9,10 +9,11 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import {
-  groupDeleteBody,
+  groupDeleteWarning,
   MAX_DELETE_DEBT_LINES,
   orderDebtsForWarning,
 } from '../src/lib/groupDeleteWarning';
+import type { DialogRow } from '../src/lib/dialogQueue';
 import { Language, STRINGS_BY_LANGUAGE } from '@/i18n';
 
 // The i18n module imports expo-localization (and through it react-native) at
@@ -28,35 +29,57 @@ const text = {
   deleteMoreDebts: { one: 'and {n} more', other: 'and {n} more' },
 };
 
-describe('groupDeleteBody', () => {
-  it('uses the short confirmation for a settled group', () => {
-    expect(
-      groupDeleteBody({
-        groupSettled: true,
-        debtLines: ['Rider owes Financer ₹500'],
-        locale: 'en',
-        text,
-      }),
-    ).toBe(text.deleteBody);
+/** A debt as the screen hands it over: who owes whom, and the money apart. */
+const debtRow = (label: string, minor = 500n): DialogRow => ({
+  key: label,
+  label,
+  amount: { minor, currency: 'INR' },
+});
+
+describe('groupDeleteWarning', () => {
+  it('uses the short confirmation for a settled group, and shows no ledger', () => {
+    const warning = groupDeleteWarning({
+      groupSettled: true,
+      debts: [debtRow('Rider owes Financer')],
+      locale: 'en',
+      text,
+    });
+
+    expect(warning.body).toBe(text.deleteBody);
+    expect(warning.rows).toEqual([]);
+    expect(warning.moreRows).toBeUndefined();
+    expect(warning.note).toBeUndefined();
   });
 
   it('names outstanding rider, traveller, and financer debts before counting the rest', () => {
-    const debtLines = [
-      'Rider owes Financer ₹500',
-      'Traveller owes Financer AED 25.00',
-      'User owes Rider ₹120',
-      'Traveller owes User $8.50',
-      'Financer owes Traveller €3.00',
+    const debts = [
+      debtRow('Rider owes Financer'),
+      debtRow('Traveller owes Financer'),
+      debtRow('User owes Rider'),
+      debtRow('Traveller owes User'),
+      debtRow('Financer owes Traveller'),
     ];
 
-    const body = groupDeleteBody({ groupSettled: false, debtLines, locale: 'en', text });
+    const warning = groupDeleteWarning({ groupSettled: false, debts, locale: 'en', text });
 
-    for (const line of debtLines.slice(0, MAX_DELETE_DEBT_LINES)) {
-      expect(body).toContain(line);
-    }
-    expect(body).not.toContain(debtLines[MAX_DELETE_DEBT_LINES]);
-    expect(body).toContain('and 1 more');
-    expect(body).toContain(text.deleteUnsettledWarning);
+    // The rows are handed over whole — label and money apart — rather than
+    // flattened into the body, which is the point of the new dialog.
+    expect(warning.rows).toEqual(debts.slice(0, MAX_DELETE_DEBT_LINES));
+    expect(warning.rows).not.toContain(debts[MAX_DELETE_DEBT_LINES]);
+    expect(warning.moreRows).toBe('and 1 more');
+    expect(warning.body).toContain(text.deleteUnsettledIntro);
+    expect(warning.note).toBe(text.deleteUnsettledWarning);
+  });
+
+  it('counts nothing extra when every debt is named', () => {
+    const warning = groupDeleteWarning({
+      groupSettled: false,
+      debts: [debtRow('Rider owes Financer')],
+      locale: 'en',
+      text,
+    });
+
+    expect(warning.moreRows).toBeUndefined();
   });
 
   // Arabic has six plural categories where English has two, and the count of
@@ -66,29 +89,29 @@ describe('groupDeleteBody', () => {
   it('counts the remaining debts with the right Arabic plural form', () => {
     const ar = STRINGS_BY_LANGUAGE[Language.Ar].group;
     const locale = 'ar';
-    const bodyWith = (extra: number): string =>
-      groupDeleteBody({
+    const moreWith = (extra: number): string =>
+      groupDeleteWarning({
         groupSettled: false,
-        // No digits in the lines themselves, so an assertion about digits in
-        // the body is an assertion about the count and nothing else.
-        debtLines: Array.from({ length: MAX_DELETE_DEBT_LINES + extra }, (_unused, index) =>
-          'debt '.concat('x'.repeat(index + 1)),
+        // No digits in the labels themselves, so an assertion about digits is
+        // an assertion about the count and nothing else.
+        debts: Array.from({ length: MAX_DELETE_DEBT_LINES + extra }, (_unused, index) =>
+          debtRow('debt '.concat('x'.repeat(index + 1))),
         ),
         locale,
         text: ar,
-      });
+      }).moreRows ?? '';
 
     // One and two are the forms Arabic spells out as words, and the ones an
     // English-shaped implementation gets wrong by reaching for `other`.
-    expect(bodyWith(1)).toContain(ar.deleteMoreDebts.one);
-    expect(bodyWith(1)).not.toContain('1');
-    expect(bodyWith(2)).toContain(ar.deleteMoreDebts.two);
-    expect(bodyWith(2)).not.toContain('2');
+    expect(moreWith(1)).toContain(ar.deleteMoreDebts.one);
+    expect(moreWith(1)).not.toContain('1');
+    expect(moreWith(2)).toContain(ar.deleteMoreDebts.two);
+    expect(moreWith(2)).not.toContain('2');
 
     // From three on the count is printed, and in the locale's own digits — a
     // phrase reading "و3 أخرى" is a sentence in two number systems.
-    expect(bodyWith(3)).toContain(new Intl.NumberFormat(locale).format(3));
-    expect(bodyWith(11)).toContain(new Intl.NumberFormat(locale).format(11));
+    expect(moreWith(3)).toContain(new Intl.NumberFormat(locale).format(3));
+    expect(moreWith(11)).toContain(new Intl.NumberFormat(locale).format(11));
   });
 });
 

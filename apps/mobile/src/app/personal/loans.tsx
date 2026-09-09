@@ -8,7 +8,7 @@
 import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { Alert, Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
+import { Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
 
 import {
   encodeLoan,
@@ -47,6 +47,7 @@ import { useStrings } from '@/i18n';
 import { PersonalGuard } from '@/components/PersonalGuard';
 import { useBottomClearance } from '@/lib/clearance';
 import { router } from '@/lib/navigation';
+import { useDialog } from '@/lib/dialog';
 
 function LoansScreenBody() {
   const theme = useTheme();
@@ -201,6 +202,7 @@ function LoanEditor({
 }) {
   const theme = useTheme();
   const { t } = useStrings();
+  const { confirm } = useDialog();
   const upsert = useUpsertPersonalRecord();
   const remove = useDeletePersonalRecord();
 
@@ -350,14 +352,14 @@ function LoanEditor({
             variant="danger"
             fullWidth
             onPress={() =>
-              Alert.alert(t.common.delete, t.personal.deleteConfirm, [
-                { text: t.common.cancel, style: 'cancel' },
-                {
-                  text: t.common.delete,
-                  style: 'destructive',
-                  onPress: () => remove.mutate(loan.id, { onSuccess: onClose }),
-                },
-              ])
+              void confirm({
+                title: t.common.delete,
+                body: t.personal.deleteConfirm,
+                confirmLabel: t.common.delete,
+                tone: 'danger',
+              }).then((ok) => {
+                if (ok) remove.mutate(loan.id, { onSuccess: onClose });
+              })
             }
           />
         ) : null}

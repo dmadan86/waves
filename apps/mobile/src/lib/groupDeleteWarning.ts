@@ -1,12 +1,13 @@
 /**
  * The body of the "delete this group?" confirmation (A64).
  *
- * Pulled out of the screen so the wording can be tested without a device: the
- * alert is the only thing standing between an admin and a record that goes for
+ * Pulled out of the screen so the wording can be tested without a device: this
+ * dialog is the only thing standing between an admin and a record that goes for
  * everyone, so what it says is worth pinning down.
  */
 
 import { plural, type PluralForms } from '@/i18n';
+import type { DialogRow } from '@/lib/dialogQueue';
 import type { Transfer } from '@waves/core';
 
 /**
@@ -52,24 +53,43 @@ export function orderDebtsForWarning(
   });
 }
 
-export function groupDeleteBody(params: {
+/** What the confirmation is handed: a title's worth of prose, then the ledger. */
+export interface GroupDeleteWarning {
+  readonly body: string;
+  /** The open debts, at most {@link MAX_DELETE_DEBT_LINES} of them. */
+  readonly rows: readonly DialogRow[];
+  /** "and 3 more", when there were more debts than rows. */
+  readonly moreRows?: string;
+  /** The line that says the loss is everybody's, not only the admin's. */
+  readonly note?: string;
+}
+
+/**
+ * The parts of the "delete this group?" confirmation.
+ *
+ * It used to return one string, because a native alert could be told nothing
+ * else — so four real debts, names and rupee amounts, arrived as a paragraph.
+ * The app's own dialog takes rows, so the amounts are handed over as money and
+ * drawn as money (A66); what is left here is the wording and the arithmetic of
+ * how many to show, which is the part worth pinning down without a device.
+ */
+export function groupDeleteWarning(params: {
   readonly groupSettled: boolean;
-  readonly debtLines: readonly string[];
+  readonly debts: readonly DialogRow[];
   readonly locale: string;
   readonly text: GroupDeleteWarningStrings;
-}): string {
-  if (params.groupSettled) return params.text.deleteBody;
+}): GroupDeleteWarning {
+  if (params.groupSettled) return { body: params.text.deleteBody, rows: [] };
 
-  const shown = params.debtLines.slice(0, MAX_DELETE_DEBT_LINES);
-  return [
-    params.text.deleteBody,
-    '',
-    params.text.deleteUnsettledIntro,
-    ...shown,
-    ...(params.debtLines.length > shown.length
-      ? [plural(params.locale, params.debtLines.length - shown.length, params.text.deleteMoreDebts)]
-      : []),
-    '',
-    params.text.deleteUnsettledWarning,
-  ].join('\n');
+  const rows = params.debts.slice(0, MAX_DELETE_DEBT_LINES);
+  const unnamed = params.debts.length - rows.length;
+  return {
+    // The lead-in belongs to the list, so it is the last thing said before it.
+    body: `${params.text.deleteBody}
+
+${params.text.deleteUnsettledIntro}`,
+    rows,
+    moreRows: unnamed > 0 ? plural(params.locale, unnamed, params.text.deleteMoreDebts) : undefined,
+    note: params.text.deleteUnsettledWarning,
+  };
 }

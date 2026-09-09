@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams } from 'expo-router';
-import { Alert, ScrollView, TextInput, View } from 'react-native';
+import { ScrollView, TextInput, View } from 'react-native';
 
 import { currencyExposure, isValidVpa } from '@waves/core';
 import {
@@ -32,11 +32,13 @@ import { fill, plural, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { useBottomClearance } from '@/lib/clearance';
 import { router } from '@/lib/navigation';
+import { useDialog } from '@/lib/dialog';
 
 export default function MemberScreen() {
   const theme = useTheme();
   const clearance = useBottomClearance();
   const { t, locale } = useStrings();
+  const { confirm } = useDialog();
   const { id, memberId } = useLocalSearchParams<{ id: string; memberId: string }>();
   const groupId = id ?? '';
   const { profile } = useAuth();
@@ -84,18 +86,18 @@ export default function MemberScreen() {
   const realName = member.profile?.display_name ?? member.ghost_name ?? t.misc.someone;
   const vpaValid = vpa.trim() === '' || isValidVpa(vpa.trim());
 
-  const confirmBlock = (): void => {
+  const confirmBlock = async (): Promise<void> => {
     if (!member.profile_id) return;
     const profileId = member.profile_id;
-    Alert.alert(fill(t.blocked.confirmTitle, { name: realName }), t.blocked.confirmBody, [
-      { text: t.common.cancel, style: 'cancel' },
-      {
-        text: t.blocked.action,
-        style: 'destructive',
-        onPress: () =>
-          block({ id: profileId, name: realName, avatarUrl: member.profile?.avatar_url ?? null }),
-      },
-    ]);
+    const ok = await confirm({
+      title: fill(t.blocked.confirmTitle, { name: realName }),
+      body: t.blocked.confirmBody,
+      confirmLabel: t.blocked.action,
+      tone: 'danger',
+    });
+    if (ok) {
+      block({ id: profileId, name: realName, avatarUrl: member.profile?.avatar_url ?? null });
+    }
   };
   const balance = ledger.balances.get(member.id) ?? 0n;
   // The hero wears the money colour for its meaning — mint when this person is
@@ -340,7 +342,7 @@ export default function MemberScreen() {
             <Button
               label={blocked ? t.blocked.unblock : t.blocked.action}
               variant={blocked ? 'secondary' : 'ghostDanger'}
-              onPress={blocked ? () => unblock(member.profile_id!) : confirmBlock}
+              onPress={blocked ? () => unblock(member.profile_id!) : () => void confirmBlock()}
             />
             <Text variant="micro" tone="muted">
               {t.blocked.note}

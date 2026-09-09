@@ -19,7 +19,7 @@
 import { useEffect, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
-import { ActivityIndicator, Alert, Modal, Pressable, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, View } from 'react-native';
 
 import { Button, IconButton, iconSize, Text, useTheme } from '@waves/ui';
 
@@ -31,6 +31,7 @@ import {
 } from '@/data/hooks';
 import { restrictedImageUrl } from '@/lib/storage';
 import { useStrings } from '@/i18n';
+import { useDialog } from '@/lib/dialog';
 
 const THUMB = 72;
 
@@ -77,6 +78,7 @@ export function SettlementProof({
 }): React.JSX.Element | null {
   const theme = useTheme();
   const { t } = useStrings();
+  const { confirm } = useDialog();
   const proof = useSettlementProof(settlementId);
   const attach = useAttachSettlementProof(groupId, settlementId);
   const remove = useRemoveSettlementProof(settlementId);
@@ -107,17 +109,15 @@ export function SettlementProof({
   }
 
   const confirmRemove = () => {
-    Alert.alert(t.proof.removeConfirm, undefined, [
-      { text: t.common.cancel, style: 'cancel' },
-      {
-        text: t.proof.remove,
-        style: 'destructive',
-        onPress: () => {
-          setViewing(false);
-          remove.mutate({ proofId: row.id, storagePath: row.storagePath });
-        },
-      },
-    ]);
+    void confirm({
+      title: t.proof.removeConfirm,
+      confirmLabel: t.proof.remove,
+      tone: 'danger',
+    }).then((ok) => {
+      if (!ok) return;
+      setViewing(false);
+      remove.mutate({ proofId: row.id, storagePath: row.storagePath });
+    });
   };
 
   return (

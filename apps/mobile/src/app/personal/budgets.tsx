@@ -7,7 +7,7 @@
 
 import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Alert, Pressable, ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 
 import {
   encodeBudget,
@@ -44,6 +44,7 @@ import { useStrings } from '@/i18n';
 import { PersonalGuard } from '@/components/PersonalGuard';
 import { useBottomClearance } from '@/lib/clearance';
 import { router } from '@/lib/navigation';
+import { useDialog } from '@/lib/dialog';
 
 function BudgetsScreenBody() {
   const theme = useTheme();
@@ -181,6 +182,7 @@ function BudgetEditor({
 }) {
   const theme = useTheme();
   const { t } = useStrings();
+  const { confirm } = useDialog();
   const upsert = useUpsertPersonalRecord();
   const remove = useDeletePersonalRecord();
 
@@ -256,14 +258,14 @@ function BudgetEditor({
             variant="danger"
             fullWidth
             onPress={() =>
-              Alert.alert(t.common.delete, t.personal.deleteConfirm, [
-                { text: t.common.cancel, style: 'cancel' },
-                {
-                  text: t.common.delete,
-                  style: 'destructive',
-                  onPress: () => remove.mutate(budget.id, { onSuccess: onClose }),
-                },
-              ])
+              void confirm({
+                title: t.common.delete,
+                body: t.personal.deleteConfirm,
+                confirmLabel: t.common.delete,
+                tone: 'danger',
+              }).then((ok) => {
+                if (ok) remove.mutate(budget.id, { onSuccess: onClose });
+              })
             }
           />
         ) : null}

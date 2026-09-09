@@ -13,7 +13,7 @@
 
 import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Alert, Pressable, ScrollView, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, TextInput, View } from 'react-native';
 
 import { TINTS, type CatalogEntry, type CategoryMeta, type TintName } from '@waves/core';
 import { Button, iconSize, Row, Sheet, Text, useTheme } from '@waves/ui';
@@ -22,6 +22,7 @@ import { CategoryBadge } from '@/components/Category';
 import { DEFAULT_TAG_ICON, TAG_ICON_GROUPS } from '@/components/tagIcons';
 import { useDeleteTag, useUpsertTag } from '@/data/hooks';
 import { useStrings } from '@/i18n';
+import { useDialog } from '@/lib/dialog';
 
 export function TagEditorSheet({
   open,
@@ -76,6 +77,7 @@ function TagEditorForm({
 }) {
   const theme = useTheme();
   const { t } = useStrings();
+  const { confirm } = useDialog();
   const upsertTag = useUpsertTag();
   const deleteTag = useDeleteTag();
 
@@ -115,14 +117,15 @@ function TagEditorForm({
 
   const remove = (): void => {
     if (!editing?.tagId) return;
-    Alert.alert(t.tags.editTag, t.tags.deleteConfirm, [
-      { text: t.common.cancel, style: 'cancel' },
-      {
-        text: t.common.delete,
-        style: 'destructive',
-        onPress: () => deleteTag.mutate(editing.tagId!, { onSuccess: onClose }),
-      },
-    ]);
+    const tagId = editing.tagId;
+    void confirm({
+      title: t.tags.editTag,
+      body: t.tags.deleteConfirm,
+      confirmLabel: t.common.delete,
+      tone: 'danger',
+    }).then((ok) => {
+      if (ok) deleteTag.mutate(tagId, { onSuccess: onClose });
+    });
   };
 
   return (
