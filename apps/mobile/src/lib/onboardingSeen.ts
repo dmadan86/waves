@@ -23,6 +23,13 @@
  * missing their onboarding would have carried on missing it. So existing
  * accounts see the intro once more after this ships. It is three cards.
  *
+ * Deliberately no `await legacyKeysMigrated` here, unlike every other reader of
+ * a renamed key. A per-account slot never existed before the rename, so no
+ * migration can touch one, and awaiting would hold the gate's spinner behind a
+ * dozen storage reads to answer a question that does not depend on them. The
+ * sweep still runs at boot — half a dozen modules the root layout mounts import
+ * `legacyKeys` and start it — it simply is not on this path.
+ *
  * Nothing in here rejects. Storage refusing to answer must not decide anything
  * dramatic, so each reader states its own safe direction below.
  */
