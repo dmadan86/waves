@@ -16,6 +16,7 @@ import * as Network from 'expo-network';
 import {
   applyOutcomes,
   dialingCodeForCountry,
+  discard as discardMutation,
   emptyMirror,
   enqueue as enqueueMutation,
   markFailed,
@@ -305,9 +306,15 @@ export class SyncEngine {
    * This is the only path that removes it, and it is deliberately a person's
    * decision: dropping a rejected `group.create` takes the group off the phone,
    * because the queue overlay is the only place that group has ever existed.
+   *
+   * The rule that decides what "whatever it made" means lives in the queue
+   * itself (`discard` in @waves/core), where it can be tested — abandoning an
+   * expense also abandons the `capture.assign` that was waiting to close a draft
+   * against it, so the draft comes back into the inbox rather than being closed
+   * against an expense nobody will ever write.
    */
   async discard(clientMutationId: string): Promise<void> {
-    const queue = this.state.queue.filter((item) => item.clientMutationId !== clientMutationId);
+    const queue = discardMutation(this.state.queue, clientMutationId);
     this.set({
       queue,
       rejected: describeRejections(queue),
