@@ -2059,6 +2059,12 @@ export interface UiStrings {
     /** "In 4 expenses" over the list on a member. */
     inCount: PluralForms;
     whoOwesWhat: string;
+    /** What a screen reader hears on one "who owes what" row, now that the row
+     *  is a single button to that person: their name and what this bill does to
+     *  them. Third person on purpose — the row is about them, not about you. */
+    rowOwes: string;
+    rowOwed: string;
+    rowSquare: string;
     /** Labels on the expense detail card: the group it belongs to, its date, and
      *  how it was split. */
     detailGroup: string;
@@ -4511,6 +4517,9 @@ const en: UiStrings = {
     editedTimes: { one: 'edited once', other: 'edited {n} times' },
     inCount: { one: 'In {n} expense', other: 'In {n} expenses' },
     whoOwesWhat: 'Who owes what',
+    rowOwes: '{name} owes {amount}',
+    rowOwed: '{name} is owed {amount}',
+    rowSquare: '{name} is square on this bill',
     detailGroup: 'Group',
     detailDate: 'Date',
     detailSplit: 'Split',
@@ -7040,6 +7049,9 @@ const ta: UiStrings = {
     editedTimes: { one: 'ஒருமுறை திருத்தப்பட்டது', other: '{n} முறை திருத்தப்பட்டது' },
     inCount: { one: '{n} செலவில்', other: '{n} செலவுகளில்' },
     whoOwesWhat: 'யார் என்ன தர வேண்டும்',
+    rowOwes: '{name} {amount} தர வேண்டும்',
+    rowOwed: '{name}-க்கு {amount} வர வேண்டும்',
+    rowSquare: 'இந்த பில்லில் {name} சரிசமம்',
     detailGroup: 'குழு',
     detailDate: 'தேதி',
     detailSplit: 'பிரிப்பு',
@@ -9560,6 +9572,9 @@ const hi: UiStrings = {
     editedTimes: { one: 'एक बार संपादित', other: '{n} बार संपादित' },
     inCount: { one: '{n} खर्च में', other: '{n} खर्चों में' },
     whoOwesWhat: 'किस पर क्या बाकी',
+    rowOwes: '{name} पर {amount} बाकी हैं',
+    rowOwed: '{name} को {amount} मिलने हैं',
+    rowSquare: 'इस बिल पर {name} का हिसाब बराबर है',
     detailGroup: 'समूह',
     detailDate: 'तारीख़',
     detailSplit: 'बँटवारा',
@@ -12186,6 +12201,9 @@ const ar: UiStrings = {
       other: 'في {n} مصروف',
     },
     whoOwesWhat: 'من عليه ماذا',
+    rowOwes: 'على {name} دفع {amount}',
+    rowOwed: 'يُستحق لـ {name} {amount}',
+    rowSquare: 'حساب {name} في هذه الفاتورة متساوٍ',
     detailGroup: 'المجموعة',
     detailDate: 'التاريخ',
     detailSplit: 'التقسيم',
