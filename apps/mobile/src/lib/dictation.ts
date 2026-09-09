@@ -82,9 +82,7 @@ export function onDeviceLocaleInstalled(
     const parts = tag.trim().replace(/_/g, '-').toLowerCase().split('-').filter(Boolean);
     const language = parts[0];
     if (!language) return null;
-    const region = parts
-      .slice(1)
-      .find((part) => /^[a-z]{2}$/.test(part) || /^\d{3}$/.test(part));
+    const region = parts.slice(1).find((part) => /^[a-z]{2}$/.test(part) || /^\d{3}$/.test(part));
     return { language, region: region ?? null };
   };
 
