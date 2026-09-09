@@ -132,6 +132,7 @@ describe('planCaptureAssign', () => {
       captures: [
         capture({ id: 'a' }),
         capture({ id: 'broken', amount: 'not-a-number' }),
+        capture({ id: 'zero', amount: '0' }),
         capture({ id: 'c' }),
       ],
       members: MEMBERS,
@@ -141,8 +142,9 @@ describe('planCaptureAssign', () => {
 
     expect(plan.writes.map((write) => write.captureId)).toEqual(['a', 'c']);
     // Named, not dropped: the screen counts it as a failure and it stays in the
-    // inbox rather than disappearing into a success message.
-    expect(plan.unusable.map((row) => row.id)).toEqual(['broken']);
+    // inbox rather than disappearing into a success message. Zero matches the
+    // single add-expense form, whose Save is blocked until there is an amount.
+    expect(plan.unusable.map((row) => row.id)).toEqual(['broken', 'zero']);
   });
 
   it('writes nothing into a group with nobody left in it', () => {

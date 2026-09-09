@@ -54,9 +54,9 @@ export interface CaptureAssignWrite {
 export interface CaptureAssignPlan {
   readonly writes: readonly CaptureAssignWrite[];
   /**
-   * Drafts that cannot become an expense at all — an amount that is not a whole
-   * number of minor units. They are counted as failures and left in the inbox
-   * rather than quietly skipped.
+   * Drafts that cannot become an expense at all — an amount that is not a
+   * positive whole number of minor units. They are counted as failures and left
+   * in the inbox rather than quietly skipped.
    */
   readonly unusable: readonly CaptureRow[];
   /** Set when the group itself cannot take an expense; then `writes` is empty. */
@@ -68,7 +68,7 @@ function minorAmount(value: string): bigint | null {
   if (!/^-?\d+$/.test(value.trim())) return null;
   try {
     const amount = BigInt(value.trim());
-    return amount < 0n ? null : amount;
+    return amount <= 0n ? null : amount;
   } catch {
     return null;
   }
