@@ -18,26 +18,34 @@
  * language the person has said they read is the one they picked.
  */
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 import { STRINGS_BY_LANGUAGE } from '@/i18n';
-import { useLanguage } from '@/i18n/language';
+import { useRestartPrompt } from '@/i18n/language';
 import { useDialog } from '@/lib/dialog';
 import { canRestart, restartApp } from '@/lib/restart';
 
 export function LanguageRestartPrompt(): null {
-  const { restartPrompt, clearRestartPrompt } = useLanguage();
+  const { prompt, clear } = useRestartPrompt();
   const { confirm, notify } = useDialog();
+  // Whether one is already on screen. Flipping the direction twice in a sitting
+  // — English, Arabic, Hindi, Arabic — raises the question twice, and the second
+  // is word for word the first: the only thing it could say is that the app will
+  // mirror when it is opened again, which is what is already being read. Without
+  // this the second one queues behind the first and has to be dismissed twice.
+  const open = useRef(false);
 
   useEffect(() => {
-    if (restartPrompt === null) return;
-    const { language, rtl } = restartPrompt;
+    if (prompt === null) return;
+    const { language, rtl } = prompt;
     const words = STRINGS_BY_LANGUAGE[language];
-    // Consumed as it is read, so a re-render never asks twice. Clearing here
-    // rather than after the answer also means the question survives nothing:
-    // somebody who changes their mind and picks a third language gets one
-    // prompt about where they ended up, not a queue of where they have been.
-    clearRestartPrompt();
+    // Consumed as it is read, so a re-render never asks twice.
+    clear();
+    if (open.current) return;
+    open.current = true;
+    const done = (): void => {
+      open.current = false;
+    };
 
     // Builds carrying `expo-updates` can restart themselves, so they offer
     // rather than instruct. Older binaries — and any build that refuses the
@@ -48,17 +56,19 @@ export function LanguageRestartPrompt(): null {
         body: rtl ? words.account.restartNowMirror : words.account.restartNowUnmirror,
         confirmLabel: words.account.restartNow,
         cancelLabel: words.misc.notNow,
-      }).then((now) => {
-        if (now) void restartApp();
-      });
+      })
+        .then((now) => {
+          if (now) void restartApp();
+        })
+        .finally(done);
     } else {
       void notify({
         title: words.account.restartTitle,
         body: rtl ? words.signIn.restartToMirror : words.signIn.restartToUnmirror,
         okLabel: words.common.ok,
-      });
+      }).finally(done);
     }
-  }, [restartPrompt, clearRestartPrompt, confirm, notify]);
+  }, [prompt, clear, confirm, notify]);
 
   return null;
 }

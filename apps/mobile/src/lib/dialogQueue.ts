@@ -29,6 +29,19 @@ export const DIALOG_CONFIRM = 'confirm';
 export const DIALOG_CANCEL = 'cancel';
 
 /**
+ * What a request that was never drawn resolves to.
+ *
+ * A full queue refuses the newest question, and a provider that unmounts with
+ * dialogs still open settles them. Neither is an answer, and neither may be
+ * mistaken for one: `friends/merge` navigates the person off the screen when
+ * its invite prompt is declined, so "declined" and "never asked" ending up the
+ * same value would move somebody without asking. `confirm` reads this as a no,
+ * because a question nobody saw is not a yes — but a caller that acts on the
+ * *no* can tell the two apart by asking through {@link DialogRequest} directly.
+ */
+export const DIALOG_UNASKED = 'unasked';
+
+/**
  * How a dialog can end.
  *
  * `null` is a dismissal: the scrim was tapped, or Android's back gesture was
@@ -41,6 +54,11 @@ export type DialogChoice = string | null;
 /** Whether the affirmative door was the one taken. A dismissal never is. */
 export function isConfirmed(choice: DialogChoice): boolean {
   return choice === DIALOG_CONFIRM;
+}
+
+/** Whether a request was never put in front of anybody. Not an answer. */
+export function isUnasked(choice: DialogChoice): boolean {
+  return choice === DIALOG_UNASKED;
 }
 
 /** How loud the dialog is: a delete wears the danger mark, a question does not. */
@@ -99,6 +117,16 @@ export interface DialogRequest {
   readonly tone?: DialogTone;
   /** At least one door, each naming what it does. Never an "OK". */
   readonly actions: readonly DialogAction[];
+  /**
+   * Never dropped, however deep the queue is.
+   *
+   * The depth cap exists to stop a failing loop building a wall of *questions*.
+   * A report is not a question — nothing branches on the answer, and the whole
+   * reason it is a dialog rather than a toast is that it must be read. The
+   * partial-result message after a batch assign is the only word anybody gets
+   * that some drafts did not land; rationing it away would lose that outright.
+   */
+  readonly mustBeSeen?: boolean;
 }
 
 /**
@@ -180,7 +208,7 @@ export function openDialog(
   if (queue.current === null) {
     return { queue: { current: slot, waiting: queue.waiting }, refused: false };
   }
-  if (queue.waiting.length >= MAX_WAITING_DIALOGS) {
+  if (queue.waiting.length >= MAX_WAITING_DIALOGS && slot.request.mustBeSeen !== true) {
     return { queue, refused: true };
   }
   return { queue: { current: queue.current, waiting: [...queue.waiting, slot] }, refused: false };
@@ -201,4 +229,93 @@ export function closeDialog(
   if (queue.current === null || queue.current.id !== id) return { queue, closed: null };
   const [next, ...rest] = queue.waiting;
   return { queue: { current: next ?? null, waiting: rest }, closed: queue.current };
+}
+
+/**
+ * The queue with the promises attached — everything the provider does, minus
+ * React.
+ *
+ * It lives here rather than in the provider because this is where the contract
+ * that matters is: a request settles exactly once, a stale answer settles
+ * nothing, and a hub that goes away settles what it was holding. Those are
+ * three sentences that are either true or not, and a test can say which — which
+ * it cannot do while they are tangled up in `useState` and a component tree.
+ *
+ * `onChange` is called with the new queue whenever it moves, which is the one
+ * thing the provider has to render from.
+ */
+export interface DialogHub {
+  /** The queue as it stands. */
+  readonly queue: () => DialogQueue;
+  /** Put a question up (or behind whatever is up) and wait for its answer. */
+  readonly ask: (request: DialogRequest) => Promise<DialogChoice>;
+  /** Answer or dismiss the dialog on screen. A stale id does nothing. */
+  readonly respond: (id: number, choice: DialogChoice) => void;
+  /**
+   * The surface is going away — settle everything still waiting.
+   *
+   * Without this a render error (the boundary swaps the tree out from under an
+   * open dialog) or a Fast Refresh in development leaves every `await confirm`
+   * hanging forever, and with it whatever `finally` the caller was relying on.
+   */
+  readonly dispose: () => void;
+}
+
+export function createDialogHub(onChange: (queue: DialogQueue) => void): DialogHub {
+  let queue = EMPTY_DIALOG_QUEUE;
+  let nextId = 1;
+  // Keyed by id rather than held on the slot, so nothing that renders can reach
+  // a resolver; and deleted before it is called, so a re-entrant `respond` from
+  // inside a `.then` cannot find it twice.
+  const waiting = new Map<number, (choice: DialogChoice) => void>();
+  let disposed = false;
+
+  const settle = (id: number, choice: DialogChoice): void => {
+    const resolve = waiting.get(id);
+    waiting.delete(id);
+    resolve?.(choice);
+  };
+
+  const move = (next: DialogQueue): void => {
+    queue = next;
+    onChange(next);
+  };
+
+  return {
+    queue: () => queue,
+
+    ask: (request) =>
+      new Promise<DialogChoice>((resolve) => {
+        // A hub that has been disposed has no surface to draw on, so the honest
+        // answer is the one a person who was never shown the question gave.
+        if (disposed) {
+          resolve(DIALOG_UNASKED);
+          return;
+        }
+        const slot: DialogSlot = { id: nextId, request };
+        nextId += 1;
+
+        const step = openDialog(queue, slot);
+        if (step.refused) {
+          resolve(DIALOG_UNASKED);
+          return;
+        }
+        waiting.set(slot.id, resolve);
+        move(step.queue);
+      }),
+
+    respond: (id, choice) => {
+      const step = closeDialog(queue, id);
+      if (step.closed === null) return;
+      move(step.queue);
+      settle(id, choice);
+    },
+
+    dispose: () => {
+      disposed = true;
+      const ids = [...waiting.keys()];
+      move(EMPTY_DIALOG_QUEUE);
+      for (const id of ids) settle(id, DIALOG_UNASKED);
+    },
+  };
 }

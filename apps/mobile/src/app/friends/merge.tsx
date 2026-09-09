@@ -86,7 +86,8 @@ import { friendlyError } from '@/lib/errors';
 import { router } from '@/lib/navigation';
 import { useSync } from '@/sync';
 import { fill, plural, useStrings, type UiStrings } from '@/i18n';
-import { useDialog } from '@/lib/dialog';
+import { isUnasked, useDialog } from '@/lib/dialog';
+import { DIALOG_CANCEL, DIALOG_CONFIRM } from '@/lib/dialogQueue';
 
 /**
  * How much of the mergeable roster is drawn before asking. It is every ghost in
@@ -112,7 +113,7 @@ export default function MergePeopleScreen() {
   // button hidden behind the bar, unreachable by scrolling.
   const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
-  const { confirm } = useDialog();
+  const { ask, confirm } = useDialog();
   const { flush } = useSync();
 
   // People pre-picked on the Friends tab (its multiselect merge) arrive as a
@@ -315,15 +316,24 @@ export default function MergePeopleScreen() {
       }
       // Ask before sharing anything. Skip closes the screen; Invite opens the
       // per-group share sheet. Dismissing — the scrim, the back gesture — is the
-      // same answer as Skip, which is why both fall to the else.
-      void confirm({
+      // same answer as Skip, which is why both fall to the second branch.
+      //
+      // Asked through `ask` rather than `confirm`, which is the one place in the
+      // app that needs the distinction: this is the only prompt whose *no* takes
+      // somebody off the screen. `confirm` reads a question that was never shown
+      // (the queue was full) as a no, and a no here navigates — so a person
+      // would be moved on the strength of a question nobody put to them. A
+      // request that was not asked simply leaves the screen where it is.
+      void ask({
         title: fill(t.mergePeople.invitePromptTitle, { name: name.trim() }),
         body: t.mergePeople.invitePromptBody,
-        confirmLabel: t.people.invite,
-        cancelLabel: t.mergePeople.invitePromptSkip,
-      }).then((wanted) => {
-        if (wanted) setInviteFor({ name: name.trim(), groups });
-        else router.back();
+        actions: [
+          { id: DIALOG_CONFIRM, label: t.people.invite, tone: 'primary' },
+          { id: DIALOG_CANCEL, label: t.mergePeople.invitePromptSkip, tone: 'quiet' },
+        ],
+      }).then((answer) => {
+        if (answer === DIALOG_CONFIRM) setInviteFor({ name: name.trim(), groups });
+        else if (!isUnasked(answer)) router.back();
       });
     },
     onError: (caught) => setError(mergeErrorMessage(caught, t.mergePeople)),

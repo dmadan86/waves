@@ -122,9 +122,21 @@ interface LanguageValue {
    * screen. Only ever true on a device, and only until the app is opened again.
    */
   restartNeeded: boolean;
+}
+
+/**
+ * The restart question, on its own context.
+ *
+ * It deliberately does not ride on {@link LanguageValue}: that value is what
+ * `useStrings` hands to every screen in the app, so putting a piece of state
+ * that changes on it would re-render the whole tree twice for a question one
+ * component draws. `_layout` says the same thing about where `ToastProvider`
+ * sits, for the same reason.
+ */
+interface RestartPromptValue {
   /** Set the moment a choice flips the direction; cleared once it is shown. */
-  restartPrompt: LanguageRestartPrompt | null;
-  clearRestartPrompt: () => void;
+  readonly prompt: LanguageRestartPrompt | null;
+  readonly clear: () => void;
 }
 
 /**
@@ -137,6 +149,7 @@ interface LanguageValue {
  * AsyncStorage into a module the tests import for its data.
  */
 const LanguageValueContext = createContext<LanguageValue | null>(null);
+const RestartPromptContext = createContext<RestartPromptValue>({ prompt: null, clear: () => {} });
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [stored, setStored] = useState<Language | null>(null);
@@ -211,17 +224,27 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       setLanguage,
       phoneLanguage,
       restartNeeded: LAUNCHED_RTL !== null && LAUNCHED_RTL !== isRtlLanguage(language),
-      restartPrompt,
-      clearRestartPrompt,
     }),
-    [language, stored, loading, setLanguage, phoneLanguage, restartPrompt, clearRestartPrompt],
+    [language, stored, loading, setLanguage, phoneLanguage],
+  );
+
+  const restart = useMemo<RestartPromptValue>(
+    () => ({ prompt: restartPrompt, clear: clearRestartPrompt }),
+    [restartPrompt, clearRestartPrompt],
   );
 
   return (
     <LanguageContext.Provider value={value}>
-      <LanguageValueContext.Provider value={value}>{children}</LanguageValueContext.Provider>
+      <LanguageValueContext.Provider value={value}>
+        <RestartPromptContext.Provider value={restart}>{children}</RestartPromptContext.Provider>
+      </LanguageValueContext.Provider>
     </LanguageContext.Provider>
   );
+}
+
+/** For `LanguageRestartPrompt`, which is the only thing that wants this. */
+export function useRestartPrompt(): RestartPromptValue {
+  return useContext(RestartPromptContext);
 }
 
 export function useLanguage(): LanguageValue {

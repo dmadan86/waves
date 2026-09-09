@@ -56,7 +56,6 @@ import { useFavorites } from '@/lib/favorites';
 import { useBlockedUsers } from '@/data/blocked';
 import { useDialog } from '@/lib/dialog';
 import { type DialogRow } from '@/lib/dialogQueue';
-import { useToast } from '@/lib/toast';
 import {
   displayName,
   groupLabel,
@@ -135,7 +134,10 @@ export default function GroupSettingsScreen() {
   const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
   const { confirm, notify } = useDialog();
-  const toast = useToast();
+  // Why the group is still here. It sits under the delete row rather than
+  // fading, because a refused delete leaves the screen looking exactly as it
+  // did and a line that is gone in three seconds is a tap that did nothing.
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const { id } = useLocalSearchParams<{ id: string }>();
   const groupId = id ?? '';
   const { profile } = useAuth();
@@ -433,6 +435,7 @@ export default function GroupSettingsScreen() {
       tone: 'danger',
     });
     if (!ok || deleteGroup.isPending) return;
+    setDeleteError(null);
 
     deleteGroup.mutate(undefined, {
       onSuccess: () => router.replace('/'),
@@ -441,15 +444,15 @@ export default function GroupSettingsScreen() {
         // show its localized line directly. Anything else is unknown and goes
         // through friendlyError, which never echoes raw backend text.
         //
-        // A toast, not a second dialog: the group is exactly as it was, there is
-        // nothing to answer, and stacking a dialog on the one just dismissed is
-        // how somebody taps through a sentence without reading it.
+        // Neither a second dialog nor a toast: stacking a dialog on the one just
+        // dismissed is how somebody taps through a sentence without reading it,
+        // and a toast that fades leaves a screen that looks untouched with no
+        // explanation on it. It stays under the row that was refused.
         const code = (caught as { code?: string } | null)?.code;
-        toast.show(
+        setDeleteError(
           code === 'NOT_ADMIN'
             ? t.group.deleteAdminOnly
             : friendlyError(caught, t.misc.tryAgainMoment, 'groupSettings.delete'),
-          'negative',
         );
       },
     });
@@ -866,6 +869,7 @@ export default function GroupSettingsScreen() {
               {!ledger.groupSettled ? (
                 <Callout tone="negative">{t.group.deleteUnsettledHint}</Callout>
               ) : null}
+              {deleteError !== null ? <Callout tone="negative">{deleteError}</Callout> : null}
             </View>
           ) : null}
         </View>

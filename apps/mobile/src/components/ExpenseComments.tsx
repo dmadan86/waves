@@ -32,7 +32,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Avatar, Button, iconSize, Row, Text, useTheme } from '@waves/ui';
+import { Avatar, Button, Callout, iconSize, Row, Text, useTheme } from '@waves/ui';
 
 import {
   useAddExpenseComment,
@@ -111,6 +111,12 @@ export function ExpenseComments({
   const { t, locale } = useStrings();
   const { confirm, choose } = useDialog();
   const toast = useToast();
+  // A failed post is said inside the composer, not as a toast: the composer is
+  // a Modal — its own native window — and the toast host is an ordinary view in
+  // the app's tree, so a toast raised from here is painted underneath it and
+  // nobody sees it. The composer deliberately stays open on failure with the
+  // text still in it, so there is a right place to put the sentence.
+  const [composerError, setComposerError] = useState<string | null>(null);
   const comments = useExpenseComments(expenseId);
   const add = useAddExpenseComment(groupId, expenseId);
   const edit = useEditExpenseComment();
@@ -164,7 +170,10 @@ export function ExpenseComments({
     setEditorOpen(true);
   };
 
-  const closeEditor = () => setEditorOpen(false);
+  const closeEditor = () => {
+    setComposerError(null);
+    setEditorOpen(false);
+  };
 
   const send = () => {
     // Sanitize here, not just trim: the mutations sanitize too and resolve
@@ -174,6 +183,7 @@ export function ExpenseComments({
     // lost. Validate against the same sanitizer and keep the sheet open on empty.
     const body = sanitizeCommentMarkdown(editorBody);
     if (body === '') return;
+    setComposerError(null);
     if (editorCommentId === null) {
       add.mutate(
         { body },
@@ -198,7 +208,7 @@ export function ExpenseComments({
               ]);
             }
           },
-          onError: () => toast.show(t.comments.couldNotPost, 'negative'),
+          onError: () => setComposerError(t.comments.couldNotPost),
         },
       );
     } else {
@@ -206,7 +216,7 @@ export function ExpenseComments({
         { commentId: editorCommentId, body },
         {
           onSuccess: () => setEditorOpen(false),
-          onError: () => toast.show(t.comments.couldNotPost, 'negative'),
+          onError: () => setComposerError(t.comments.couldNotPost),
         },
       );
     }
@@ -502,6 +512,8 @@ export function ExpenseComments({
                   textAlignVertical: 'top',
                 }}
               />
+
+              {composerError !== null ? <Callout tone="negative">{composerError}</Callout> : null}
 
               <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
                 {toolbar.map((tool) => (

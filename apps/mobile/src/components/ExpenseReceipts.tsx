@@ -29,6 +29,7 @@ import { saveImageToDevice } from '@/lib/saveImage';
 
 import { ViewerButton } from '@/components/ViewerButton';
 import { ZoomableGallery, type GalleryPage } from '@/components/ZoomableGallery';
+import { ModalNotice } from '@/components/ModalNotice';
 import { ReceiptAnnotator } from '@/components/ReceiptAnnotator';
 import { ReceiptCropper } from '@/components/ReceiptCropper';
 import {
@@ -320,8 +321,14 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
     const theme = useTheme();
     const insets = useSafeAreaInsets();
     const { t } = useStrings();
-    const { confirm, choose } = useDialog();
+    const { confirm, choose, notify } = useDialog();
     const toast = useToast();
+    // Failures raised while one of this component's three modals is presented.
+    // A toast would be painted under the modal's own native window and never
+    // seen, so each of them is said inside the modal that raised it.
+    const [viewerError, setViewerError] = useState<string | null>(null);
+    const [annotateError, setAnnotateError] = useState<string | null>(null);
+    const [adjustError, setAdjustError] = useState<string | null>(null);
     const attachments = useExpenseAttachments(expenseId);
     const removeAttachment = useRemoveExpenseAttachment(expenseId);
     const removeLegacy = useRemoveExpenseReceipt(groupId, expenseId);
@@ -538,7 +545,12 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
           // The bytes never reached the disk (a full device, a revoked path), so
           // there is no tile to carry the failure and this is the only chance to
           // say so. Everything past this point has somewhere to show it instead.
-          toast.show(t.receipts.couldNotKeep, 'negative');
+          //
+          // Which is exactly why this one stayed a dialog when the other nine
+          // failures here became toasts: with nothing on the strip, a line that
+          // fades after three seconds is a receipt somebody believes they
+          // attached. It has to be dismissed to be gone.
+          await notify({ title: t.receipts.couldNotKeep });
           return;
         } finally {
           setPreparing(null);
@@ -732,7 +744,8 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
       setSaving(true);
       void saveImageToDevice(url).then((result) => {
         setSaving(false);
-        if (result === 'error') toast.show(t.receipts.couldNotSave, 'negative');
+        // Raised from inside the viewer modal, so it is said in the viewer.
+        if (result === 'error') setViewerError(t.receipts.couldNotSave);
       });
     };
 
@@ -906,7 +919,10 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
         <Modal
           visible={viewing !== null}
           animationType="fade"
-          onRequestClose={() => setViewerIndex(null)}
+          onRequestClose={() => {
+            setViewerError(null);
+            setViewerIndex(null);
+          }}
         >
           {/* A dark, immersive viewer (the Photos/ChatGPT pattern): the image fills
             the screen and every control floats over it, so nothing squeezes the
@@ -934,7 +950,10 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
               <ViewerButton
                 icon="close"
                 label={t.common.close}
-                onPress={() => setViewerIndex(null)}
+                onPress={() => {
+                  setViewerError(null);
+                  setViewerIndex(null);
+                }}
               />
               <Row style={{ gap: theme.spacing.sm, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                 {viewerIndex !== null && urls[viewerIndex] ? (
@@ -1036,6 +1055,12 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
                 </Text>
               </Row>
             </View>
+            {/* Clear of the page-counter pill at `insets.bottom + xl`. */}
+            <ModalNotice
+              message={viewerError}
+              onDismiss={() => setViewerError(null)}
+              offset={theme.spacing.xxxl * 2}
+            />
           </View>
         </Modal>
 
@@ -1044,7 +1069,12 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
             uri={editing.uri}
             initial={editing.initial}
             saving={annotate.isPending}
-            onCancel={() => setEditing(null)}
+            error={annotateError}
+            onDismissError={() => setAnnotateError(null)}
+            onCancel={() => {
+              setAnnotateError(null);
+              setEditing(null);
+            }}
             onSave={(next) =>
               annotate.mutate(
                 {
@@ -1053,7 +1083,7 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
                 },
                 {
                   onSuccess: () => setEditing(null),
-                  onError: () => toast.show(t.annotate.couldNotSave, 'negative'),
+                  onError: () => setAnnotateError(t.annotate.couldNotSave),
                 },
               )
             }
@@ -1064,7 +1094,12 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
           <ReceiptCropper
             uri={adjusting.uri}
             saving={replace.isPending}
-            onCancel={() => setAdjusting(null)}
+            error={adjustError}
+            onDismissError={() => setAdjustError(null)}
+            onCancel={() => {
+              setAdjustError(null);
+              setAdjusting(null);
+            }}
             onSave={(picked) =>
               replace.mutate(
                 {
@@ -1079,7 +1114,7 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
                     evictImage('expense-attachments', adjusting.oldStoragePath);
                     setAdjusting(null);
                   },
-                  onError: () => toast.show(t.adjust.couldNotSave, 'negative'),
+                  onError: () => setAdjustError(t.adjust.couldNotSave),
                 },
               )
             }

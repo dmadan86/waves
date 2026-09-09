@@ -41,9 +41,9 @@
  * all still in the design system.
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { ScrollView, useWindowDimensions, View } from 'react-native';
+import { AccessibilityInfo, ScrollView, useWindowDimensions, View } from 'react-native';
 
 import {
   Button,
@@ -66,6 +66,7 @@ import {
   type DialogChoice,
   type DialogPresentation,
   type DialogRequest,
+  type DialogSlot,
 } from '@/lib/dialogQueue';
 
 /**
@@ -79,6 +80,18 @@ import {
  * doors visible; the card has to leave a gutter at both ends.
  */
 const BODY_FRACTION = { sheet: 0.46, popup: 0.38 } as const;
+
+/**
+ * How much of the window a whole dialog may take.
+ *
+ * The sheet is anchored to the bottom edge and only has to leave enough of the
+ * screen behind it to read as an overlay. The centred card has to leave a
+ * gutter at *both* ends, and — unlike the sheet — had no bound at all until a
+ * review caught it: `Popup` centres its child and lets it be any height, so a
+ * dialog that outgrew the window bled off the top and the bottom with nothing
+ * to scroll. Both numbers are here rather than one being implicit.
+ */
+const SURFACE_FRACTION = { sheet: 0.88, popup: 0.8 } as const;
 
 /**
  * The mark a destructive dialog wears — the round tinted chip this app already
@@ -153,12 +166,33 @@ function DialogContent({
   const tone = request.tone ?? 'neutral';
   const rows = request.rows ?? [];
 
+  /**
+   * Say what is being asked, once, when it arrives.
+   *
+   * The obvious spelling — `accessibilityRole="alert"` with a label on the
+   * container — does nothing: a View is not an accessibility element unless it
+   * is also `accessible`, and making it one would swallow the buttons inside it
+   * on iOS. So the announcement is spoken directly, the way `Toast` already
+   * does it, and the doors stay individually reachable.
+   *
+   * Keyed on the request object, so a queued dialog promoted into this surface
+   * announces itself rather than silently replacing the words on screen.
+   */
+  useEffect(() => {
+    AccessibilityInfo.announceForAccessibility(
+      request.body ? `${request.title}. ${request.body}` : request.title,
+    );
+  }, [request]);
+
   return (
-    // Announced as one thing, and named by its title: a screen reader that
-    // lands here should hear what is being asked before it starts reading the
-    // doors. `accessibilityViewIsModal` is already set by the surface itself,
-    // so what is left is saying which kind of surface this is.
-    <View accessibilityRole="alert" accessibilityLabel={request.title}>
+    // `flexShrink` so the surface's own `maxHeight` can actually squeeze this:
+    // without it the column is sized by its content and the doors are pushed
+    // past the bottom edge of the card at a large text scale.
+    <View
+      style={{ flexShrink: 1 }}
+      // Android reads a live region without being asked; iOS is told above.
+      accessibilityLiveRegion="assertive"
+    >
       <Row style={{ gap: theme.spacing.md, marginBottom: theme.spacing.lg }}>
         {tone === 'danger' ? <DialogMark /> : null}
         <View style={{ flex: 1 }}>
@@ -266,70 +300,87 @@ function DialogContent({
  * usually forgets.
  */
 export function AppDialog({
-  request,
+  slot,
   visible,
   onChoose,
 }: {
-  request: DialogRequest | null;
+  slot: DialogSlot | null;
   visible: boolean;
-  onChoose: (choice: DialogChoice) => void;
+  /** Answers the dialog with the id it was drawn for, never "whatever is up". */
+  onChoose: (id: number, choice: DialogChoice) => void;
 }): React.JSX.Element | null {
   const { t } = useStrings();
   const { height: screenHeight } = useWindowDimensions();
-  const [sheetRequest, setSheetRequest] = useState<DialogRequest | null>(null);
-  const [popupRequest, setPopupRequest] = useState<DialogRequest | null>(null);
+  const [sheetSlot, setSheetSlot] = useState<DialogSlot | null>(null);
+  const [popupSlot, setPopupSlot] = useState<DialogSlot | null>(null);
 
   // A state adjustment in render, the shape `Overlay`'s own mount latch uses:
   // the surface has to be showing the new request on the frame it arrives, and
   // an effect would draw the previous one once more first.
-  const presentation = request === null ? null : presentationFor(request);
-  if (visible && request !== null) {
-    if (presentation === 'sheet' && request !== sheetRequest) setSheetRequest(request);
-    if (presentation === 'popup' && request !== popupRequest) setPopupRequest(request);
+  const presentation = slot === null ? null : presentationFor(slot.request);
+  if (visible && slot !== null) {
+    if (presentation === 'sheet' && slot !== sheetSlot) setSheetSlot(slot);
+    if (presentation === 'popup' && slot !== popupSlot) setPopupSlot(slot);
   }
 
-  if (sheetRequest === null && popupRequest === null) return null;
-
-  const dismiss = (): void => onChoose(null);
+  if (sheetSlot === null && popupSlot === null) return null;
 
   /**
    * The scrim's spoken label names the way out this dialog actually offers, so
-   * a screen reader hears "Cancel", or "Not now", rather than a generic "Close"
-   * over a question whose safe door is called something else.
+   * a screen reader hears "Cancel", or "Not now", rather than a generic
+   * "Close". A notice has one door and it *is* the way out, so it carries the
+   * cancel id for exactly this reason.
    */
   const labelFor = (shown: DialogRequest): string =>
     shown.actions.find((action) => action.id === DIALOG_CANCEL)?.label ?? t.common.close;
 
-  const body = (shown: DialogRequest, on: DialogPresentation) => (
-    <DialogContent
-      request={shown}
-      bodyMax={Math.round(screenHeight * BODY_FRACTION[on])}
-      onChoose={onChoose}
-    />
-  );
+  /**
+   * A surface answers for the dialog *it is drawing*, not for whatever the
+   * queue has promoted since.
+   *
+   * Two fast taps on the scrim used to dismiss two different questions: the
+   * first answered the dialog on screen, the queue promoted the next one behind
+   * an unchanged Modal, and the second tap — through a closure rebuilt with the
+   * new id — declined a question nobody had read. Binding the id to the drawn
+   * slot makes the second tap a stale answer, which the hub already ignores.
+   */
+  const surface = (shown: DialogSlot, on: DialogPresentation) => ({
+    dismiss: (): void => onChoose(shown.id, null),
+    content: (
+      <DialogContent
+        request={shown.request}
+        bodyMax={Math.round(screenHeight * BODY_FRACTION[on])}
+        onChoose={(choice) => onChoose(shown.id, choice)}
+      />
+    ),
+  });
+
+  const sheet = sheetSlot === null ? null : surface(sheetSlot, 'sheet');
+  const popup = popupSlot === null ? null : surface(popupSlot, 'popup');
 
   return (
     <>
-      {sheetRequest !== null ? (
+      {sheetSlot !== null && sheet !== null ? (
         <Sheet
           visible={visible && presentation === 'sheet'}
-          onClose={dismiss}
-          closeLabel={labelFor(sheetRequest)}
+          onClose={sheet.dismiss}
+          closeLabel={labelFor(sheetSlot.request)}
           // Never taller than the window can hold with room to see what is
           // behind it — a sheet that reaches the status bar reads as a screen,
           // and this is a question about the screen underneath.
-          style={{ maxHeight: Math.round(screenHeight * 0.88) }}
+          style={{ maxHeight: Math.round(screenHeight * SURFACE_FRACTION.sheet) }}
         >
-          {body(sheetRequest, 'sheet')}
+          {sheet.content}
         </Sheet>
       ) : null}
-      {popupRequest !== null ? (
+      {popupSlot !== null && popup !== null ? (
         <Popup
           visible={visible && presentation === 'popup'}
-          onClose={dismiss}
-          closeLabel={labelFor(popupRequest)}
+          onClose={popup.dismiss}
+          closeLabel={labelFor(popupSlot.request)}
+          style={{ maxHeight: Math.round(screenHeight * SURFACE_FRACTION.popup) }}
         >
-          {body(popupRequest, 'popup')}
+          {popup.content}
         </Popup>
       ) : null}
     </>
