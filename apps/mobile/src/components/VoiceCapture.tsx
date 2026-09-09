@@ -15,6 +15,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { useFocusEffect } from 'expo-router';
 import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-speech-recognition';
 import { Animated, Easing, Linking, Pressable, View } from 'react-native';
 import Reanimated, {
@@ -193,6 +194,75 @@ function PulseRings({ active, theme }: { active: boolean; theme: Theme }) {
       ))}
     </>
   );
+}
+
+/**
+ * The resting breath: how long one half of it takes, how far it swells, and how
+ * long it takes to let go.
+ *
+ * Slow and shallow on purpose. This is an invitation to tap, not a notification,
+ * so there is no bounce, no jitter and no colour in it — a four-and-a-bit-percent
+ * swell over two and a half seconds, which the eye reads as alive and never as
+ * urgent.
+ *
+ * It is also deliberately a *different gesture* from listening, not a weaker one.
+ * While the mic listens, the button holds perfectly still and the space around it
+ * comes alive — the halo swells, rings break outward. At rest the opposite: the
+ * button itself breathes and nothing surrounds it. Because the two states are
+ * made of different parts, idle can never read as a half-broken listening.
+ */
+const IDLE_BREATH_MS = 2500;
+const IDLE_BREATH_SCALE = 1.045;
+const IDLE_SETTLE_MS = 320;
+
+/**
+ * The mic's breath while nobody is speaking, as a 0…1 driver.
+ *
+ * `active` is the entire gate, and every reason to be still goes through it: the
+ * reduce-motion preference, a screen that is no longer in front, and a live
+ * recogniser. Switching it off does not snap the button back to size — a jump at
+ * the exact moment the mic opens reads as a glitch — it eases home over
+ * {@link IDLE_SETTLE_MS}, so idle → listening → idle is one continuous gesture.
+ *
+ * Nothing outlives the effect: every path stops its own animation on the way out,
+ * so a re-render, a blur, or a Fast Refresh cannot leave a loop running behind
+ * the screen.
+ */
+function useIdleBreath(active: boolean): Animated.Value {
+  const [breath] = useState(() => new Animated.Value(0));
+
+  useEffect(() => {
+    if (!active) {
+      const settle = Animated.timing(breath, {
+        toValue: 0,
+        duration: IDLE_SETTLE_MS,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      });
+      settle.start();
+      return () => settle.stop();
+    }
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(breath, {
+          toValue: 1,
+          duration: IDLE_BREATH_MS,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(breath, {
+          toValue: 0,
+          duration: IDLE_BREATH_MS,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [active, breath]);
+
+  return breath;
 }
 
 /** The waveform's drawing box. Fixed and centred — the status area centres it. */
@@ -533,6 +603,23 @@ export function VoiceCapture({
   const [downloading, setDownloading] = useState(false);
   const [downloadMsg, setDownloadMsg] = useState<string | null>(null);
 
+  // Whether this screen is the one in front. The resting breath below must not
+  // run behind another screen — an animation nobody can see is battery and
+  // nothing else — and the panel is not always unmounted when it is left.
+  const [focused, setFocused] = useState(true);
+  useFocusEffect(
+    useCallback(() => {
+      setFocused(true);
+      return () => setFocused(false);
+    }, []),
+  );
+
+  // The mic breathes only while it is genuinely waiting to be tapped: not while
+  // it listens (that state has motion of its own), not behind another screen,
+  // not on a build that has no microphone to offer, and never when the reader
+  // has asked the OS for less motion.
+  const breath = useIdleBreath(available && focused && !listening && !reduceMotion);
+
   useSpeechRecognitionEvent('start', () => {
     if (!speechMic.owns(session)) return;
     clearStall();
@@ -808,6 +895,21 @@ export function VoiceCapture({
     speechMic.stop(session);
   }, [session]);
 
+  /**
+   * The one act this screen offers: open the mic, or close it.
+   *
+   * It is a named function rather than a lambda on the button because it now has
+   * two ways in — the mic itself, and the line of copy under it, which somebody
+   * reading "Tap to speak" will very reasonably tap. Two entrances must not mean
+   * two implementations: every guard `start` keeps (the claim on the single
+   * recogniser, a permission call already in flight, the installed-model probe)
+   * and everything `stop` is careful about belong to both taps or to neither.
+   */
+  const toggle = useCallback((): void => {
+    if (listening) stop();
+    else void start();
+  }, [listening, start, stop]);
+
   // A push-to-talk hold has ended (see `endSignal`). Lifting the finger is the
   // same act as tapping the stop button, so it takes the same path; sliding away
   // is the one that has to differ, because it must not deliver a transcript.
@@ -945,40 +1047,57 @@ export function VoiceCapture({
       >
         <Halo active={listening && !reduceMotion} theme={theme} />
         <PulseRings active={listening && !reduceMotion} theme={theme} />
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={
-            listening ? t.misc.stopDictating : showMiss ? t.voice.tapToRetry : t.voice.tapToSpeak
-          }
-          accessibilityState={{ busy: listening }}
-          onPress={() => (listening ? stop() : void start())}
-          hitSlop={8}
-          style={({ pressed }) => ({
-            width: MIC_SIZE,
-            height: MIC_SIZE,
-            borderRadius: MIC_SIZE / 2,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: theme.color.buttonPrimary,
-            opacity: pressed ? 0.9 : 1,
-            // A soft glow lifts the black mic off the surface while it is live.
-            ...(listening
-              ? {
-                  shadowColor: theme.color.buttonPrimary,
-                  shadowOpacity: 0.45,
-                  shadowRadius: 20,
-                  shadowOffset: { width: 0, height: 6 },
-                  elevation: 10,
-                }
-              : null),
-          })}
+        {/* The resting breath scales the button and only the button. It lives
+            inside the fixed square, so the swell never moves a single thing
+            around it — and it is a wrapper rather than a style on the Pressable
+            so the press feedback and the breath cannot overwrite each other. */}
+        <Animated.View
+          style={{
+            transform: [
+              {
+                scale: breath.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [1, IDLE_BREATH_SCALE],
+                }),
+              },
+            ],
+          }}
         >
-          <Ionicons
-            name={listening ? 'stop' : 'mic'}
-            size={iconSize.xxl}
-            color={theme.color.onButtonPrimary}
-          />
-        </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={
+              listening ? t.misc.stopDictating : showMiss ? t.voice.tapToRetry : t.voice.tapToSpeak
+            }
+            accessibilityState={{ busy: listening }}
+            onPress={toggle}
+            hitSlop={8}
+            style={({ pressed }) => ({
+              width: MIC_SIZE,
+              height: MIC_SIZE,
+              borderRadius: MIC_SIZE / 2,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: theme.color.buttonPrimary,
+              opacity: pressed ? 0.9 : 1,
+              // A soft glow lifts the black mic off the surface while it is live.
+              ...(listening
+                ? {
+                    shadowColor: theme.color.buttonPrimary,
+                    shadowOpacity: 0.45,
+                    shadowRadius: 20,
+                    shadowOffset: { width: 0, height: 6 },
+                    elevation: 10,
+                  }
+                : null),
+            })}
+          >
+            <Ionicons
+              name={listening ? 'stop' : 'mic'}
+              size={iconSize.xxl}
+              color={theme.color.onButtonPrimary}
+            />
+          </Pressable>
+        </Animated.View>
       </View>
 
       {/* Listening: the status word over a live waveform. Recovering: the title
@@ -987,9 +1106,28 @@ export function VoiceCapture({
           The miss is stated once (the title), never a warning stacked on a
           warning. */}
       <View style={{ alignItems: 'center', gap: theme.spacing.md }}>
-        <Text tone={listening || showMiss ? 'brand' : 'muted'}>
-          {listening ? t.misc.listening : showMiss ? t.voice.tapToRetry : t.voice.tapToSpeak}
-        </Text>
+        {/* The line that says "Tap to speak" is a thing to tap. It was copy and
+            nothing else, which meant the most literal reading of the screen —
+            tap the words telling you to tap — did nothing at all. It runs the
+            same `toggle` the mic runs, so it can never drift out of step with
+            it: whatever the mic would do in this state, this does.
+
+            Deliberately not a second entry in the accessibility tree. The mic
+            two rows up is already a button carrying this exact label and this
+            exact action, and a screen reader that meets the same command twice
+            in a row has learned nothing the second time. This is that control's
+            own copy, widened into a target for the eye and the thumb. */}
+        <Pressable
+          onPress={toggle}
+          hitSlop={8}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+        >
+          <Text tone={listening || showMiss ? 'brand' : 'muted'}>
+            {listening ? t.misc.listening : showMiss ? t.voice.tapToRetry : t.voice.tapToSpeak}
+          </Text>
+        </Pressable>
         {listening && !reduceMotion ? (
           <Waveform active={listening} level={level} />
         ) : !listening && !showMiss && !live ? (
