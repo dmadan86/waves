@@ -240,9 +240,14 @@ export function endPersonalCheck(): void {
 }
 
 /**
- * What an `AppState` value means to this lock. A function rather than a
- * condition inlined in the listener, so the app lock and the personal gate
- * cannot drift into reading the same transitions differently.
+ * What an `AppState` value means to a lock: gone, back, or neither.
+ *
+ * Used by both listeners in `lib/lock.tsx` — the whole-app lock and this gate.
+ * One "Ask again after" window governs the two of them, so one function has to
+ * decide what starts it; two inline conditions that merely happen to agree
+ * today is how a shared setting quietly comes to mean two different things.
+ * Named for locks rather than for the personal ledger for that reason, even
+ * though it lives in this file with the rest of the pure decisions.
  *
  * `inactive` counts as leaving. On iOS it is what the app switcher reports —
  * and `background` only follows once some other app actually takes over, so a
@@ -254,14 +259,14 @@ export function endPersonalCheck(): void {
  * also reports `inactive`, and that one is not a trade-off but a bug — it is
  * excluded by name, in `personalAppAway`, not by ignoring the whole transition.
  */
-export function personalAppTransition(state: string): 'away' | 'back' | 'ignore' {
+export function lockAwayTransition(state: string): 'away' | 'back' | 'ignore' {
   if (state === 'background' || state === 'inactive') return 'away';
   if (state === 'active') return 'back';
   return 'ignore';
 }
 
 /**
- * The app went away — see `personalAppTransition` for what counts.
+ * The app went away — see `lockAwayTransition` for what counts.
  *
  * A check in flight means the prompt we raised is the reason the app went
  * quiet, so this is a no-op until it resolves. Safe by construction: we only

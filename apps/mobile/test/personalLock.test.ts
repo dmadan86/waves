@@ -25,11 +25,11 @@ import {
   getPersonalLockState,
   isPersonalSection,
   isPersonalUnlocked,
+  lockAwayTransition,
   lockPersonal,
   markPersonalUnlocked,
   personalAppActive,
   personalAppAway,
-  personalAppTransition,
   PERSONAL_LOCKED,
   personalPresent,
   personalUnlockedNow,
@@ -276,19 +276,22 @@ describe('a result that lands after the user has gone', () => {
   });
 });
 
-describe('personalAppTransition', () => {
+describe('lockAwayTransition', () => {
+  // Both listeners in lib/lock.tsx read transitions through this — the app lock
+  // and the personal gate — so the one "Ask again after" window they share
+  // cannot come to mean two different things.
   it('counts the app switcher, which iOS reports as inactive and nothing else', () => {
     // `background` only arrives once another app actually takes the foreground,
     // so a switcher swipe and a hand-over would never start the clock without
     // this — the exact case the lock is for.
-    expect(personalAppTransition('inactive')).toBe('away');
-    expect(personalAppTransition('background')).toBe('away');
+    expect(lockAwayTransition('inactive')).toBe('away');
+    expect(lockAwayTransition('background')).toBe('away');
   });
 
   it('counts coming back, and nothing else at all', () => {
-    expect(personalAppTransition('active')).toBe('back');
-    expect(personalAppTransition('extension')).toBe('ignore');
-    expect(personalAppTransition('unknown')).toBe('ignore');
+    expect(lockAwayTransition('active')).toBe('back');
+    expect(lockAwayTransition('extension')).toBe('ignore');
+    expect(lockAwayTransition('unknown')).toBe('ignore');
   });
 });
 
@@ -299,7 +302,7 @@ describe('the app switcher shuts the section', () => {
 
     // Swipe into the switcher and hand the phone over. No `background` ever
     // arrives, because no other app takes over.
-    if (personalAppTransition('inactive') === 'away') personalAppAway(T0 + 1_000);
+    if (lockAwayTransition('inactive') === 'away') personalAppAway(T0 + 1_000);
 
     expect(getPersonalLockState().awaySince).toBe(T0 + 1_000);
     expect(personalUnlockedNow(GRACE, T0 + 1_000 + GRACE * 1000)).toBe(false);

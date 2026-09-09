@@ -22,12 +22,12 @@ import {
   getPersonalLockState,
   isPersonalSection,
   isPersonalUnlocked,
+  lockAwayTransition,
   lockClockNow,
   lockPersonal,
   markPersonalUnlocked,
   personalAppActive,
   personalAppAway,
-  personalAppTransition,
   setPersonalPresence,
   subscribePersonalLock,
 } from '@/lib/personalLock';
@@ -126,14 +126,19 @@ export function LockProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!enabled) return;
     const subscription = AppState.addEventListener('change', (state) => {
-      if (state === 'background' || state === 'inactive') {
+      // Same reading of the same transitions as the personal gate below. One
+      // window governs both locks, so one function decides what starts it;
+      // two copies of the rule that merely happen to agree today is how the
+      // shared "Ask again after" setting would quietly come to mean two things.
+      const move = lockAwayTransition(state);
+      if (move === 'away') {
         // Only the first departure counts. iOS reports `inactive` on the way to
         // `background`, and treating the second as a fresh departure would
         // restart the clock at the moment the phone was put down.
         leftAt.current ??= Date.now();
         return;
       }
-      if (state !== 'active') return;
+      if (move !== 'back') return;
       const away = leftAt.current;
       leftAt.current = null;
       if (away === null) return;
@@ -146,11 +151,11 @@ export function LockProvider({ children }: { children: ReactNode }) {
   // app lock is on: the two are independent gates, and the private section is
   // guarded whether or not the whole app is. One subscription for the app, held
   // above every screen, so no personal screen has to be mounted for a departure
-  // to be noticed. Which transitions count is `personalAppTransition`'s to say,
+  // to be noticed. Which transitions count is `lockAwayTransition`'s to say,
   // so this gate and the app lock above cannot come to read them differently.
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (state) => {
-      const move = personalAppTransition(state);
+      const move = lockAwayTransition(state);
       if (move === 'away') personalAppAway();
       else if (move === 'back') personalAppActive(graceSeconds);
     });
