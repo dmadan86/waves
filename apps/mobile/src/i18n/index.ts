@@ -1692,6 +1692,30 @@ export interface UiStrings {
     /** Shown when this build carries no Drive OAuth client id. */
     unavailable: string;
 
+    /** The card at the top, which wears one of four faces: still reading the
+     *  stored state, not set up, set up but never run, and running. The sealed
+     *  line is the promise repeated where the good news is. */
+    statusChecking: string;
+    statusOff: string;
+    statusReady: string;
+    statusOn: string;
+    statusSealed: string;
+    /** How much of the setup is left, under "Not backing up yet". */
+    stepsLeft: PluralForms;
+
+    /** The checklist that stands in for the controls until a backup can run. */
+    setupSection: string;
+    /** "{done} of {total}" — the checklist's own progress. */
+    setupProgress: string;
+    /** The state word on a step already taken. */
+    stepDone: string;
+    stepAccountTitle: string;
+    stepAccountBody: string;
+    stepKeyTitle: string;
+    stepKeyBody: string;
+    stepSaveTitle: string;
+    stepSaveBody: string;
+
     accountSection: string;
     notConnected: string;
     connect: string;
@@ -1706,8 +1730,9 @@ export interface UiStrings {
     phaseUploading: string;
     backedUp: PluralForms;
     backupFailed: string;
+    /** Under a button held down by some other in-flight action on the screen. */
+    busy: string;
 
-    lastSection: string;
     never: string;
     /** "{date} · {size}" — when the last backup landed, and how big it was. */
     lastLine: string;
@@ -1719,6 +1744,8 @@ export interface UiStrings {
     freqMonthly: string;
     /** Why "daily" means "daily, when you open the app". */
     frequencyNote: string;
+    /** Said next to a schedule that is set and cannot yet run. */
+    frequencyBlocked: string;
 
     networkSection: string;
     networkWifi: string;
@@ -4236,6 +4263,26 @@ const en: UiStrings = {
       'Your private Me ledger, copied to your own Google Drive and locked with a key only you hold. Neither Waves nor Google can read it.',
     unavailable: 'Backup is not available in this build.',
 
+    statusChecking: 'Checking…',
+    statusOff: 'Not backing up yet',
+    statusReady: 'Ready to back up',
+    statusOn: 'Backed up',
+    statusSealed: 'Locked with your key',
+    stepsLeft: {
+      one: '{n} step left',
+      other: '{n} steps left',
+    },
+
+    setupSection: 'Finish setting up',
+    setupProgress: '{done} of {total}',
+    stepDone: 'Done',
+    stepAccountTitle: 'Link your Google Drive',
+    stepAccountBody: 'The backup goes to a private folder in your own Drive.',
+    stepKeyTitle: 'Create your key',
+    stepKeyBody: 'The 64 characters that lock the backup. Waves never sees them.',
+    stepSaveTitle: 'Save your key',
+    stepSaveBody: 'Write it down somewhere that is not this phone. Then backups can start.',
+
     accountSection: 'Google account',
     notConnected: 'No account linked yet',
     connect: 'Link Google Drive',
@@ -4254,8 +4301,8 @@ const en: UiStrings = {
       other: '{n} records backed up',
     },
     backupFailed: 'The backup did not finish. Try again in a moment.',
+    busy: 'Just a moment…',
 
-    lastSection: 'Last backup',
     never: 'Never backed up',
     lastLine: '{date} · {size}',
 
@@ -4265,6 +4312,7 @@ const en: UiStrings = {
     freqWeekly: 'Weekly',
     freqMonthly: 'Monthly',
     frequencyNote: 'Automatic backups run when you open the app, not while it is closed.',
+    frequencyBlocked: 'Nothing will be backed up on this schedule until the steps above are done.',
 
     networkSection: 'Back up over',
     networkWifi: 'Wi‑Fi only',
@@ -6776,6 +6824,27 @@ const ta: UiStrings = {
       'உங்கள் தனிப்பட்ட "நான்" கணக்கு, உங்கள் சொந்த Google Drive-க்கு நகலெடுக்கப்பட்டு, உங்களிடம் மட்டுமே உள்ள சாவியால் பூட்டப்படுகிறது. Waves-ஆலும் Google-ஆலும் அதைப் படிக்க முடியாது.',
     unavailable: 'இந்தப் பதிப்பில் காப்புப்பிரதி கிடைக்கவில்லை.',
 
+    statusChecking: 'பார்க்கிறது…',
+    statusOff: 'இன்னும் காப்பு எடுக்கப்படவில்லை',
+    statusReady: 'காப்பு எடுக்கத் தயார்',
+    statusOn: 'காப்பு எடுக்கப்பட்டது',
+    statusSealed: 'உங்கள் சாவியால் பூட்டப்பட்டது',
+    stepsLeft: {
+      one: 'இன்னும் {n} படி',
+      other: 'இன்னும் {n} படிகள்',
+    },
+
+    setupSection: 'அமைப்பை முடியுங்கள்',
+    setupProgress: '{total}-இல் {done}',
+    stepDone: 'முடிந்தது',
+    stepAccountTitle: 'உங்கள் Google Drive-ஐ இணையுங்கள்',
+    stepAccountBody: 'காப்புப்பிரதி உங்கள் சொந்த Drive-இல் ஒரு தனிப்பட்ட கோப்புறைக்குச் செல்கிறது.',
+    stepKeyTitle: 'உங்கள் சாவியை உருவாக்குங்கள்',
+    stepKeyBody: 'காப்பைப் பூட்டும் 64 எழுத்துகள். Waves அவற்றைப் பார்ப்பதே இல்லை.',
+    stepSaveTitle: 'உங்கள் சாவியைச் சேமியுங்கள்',
+    stepSaveBody:
+      'இந்த ஃபோன் அல்லாத இடத்தில் எழுதி வையுங்கள். அதன் பிறகு காப்புப்பிரதிகள் தொடங்கும்.',
+
     accountSection: 'Google கணக்கு',
     notConnected: 'எந்தக் கணக்கும் இணைக்கப்படவில்லை',
     connect: 'Google Drive-ஐ இணை',
@@ -6794,8 +6863,8 @@ const ta: UiStrings = {
       other: '{n} பதிவுகள் காப்பு செய்யப்பட்டன',
     },
     backupFailed: 'காப்புப்பிரதி முடியவில்லை. சிறிது நேரம் கழித்து முயலுங்கள்.',
+    busy: 'ஒரு நிமிடம்…',
 
-    lastSection: 'கடைசி காப்புப்பிரதி',
     never: 'இதுவரை காப்பு எடுக்கவில்லை',
     lastLine: '{date} · {size}',
 
@@ -6805,6 +6874,8 @@ const ta: UiStrings = {
     freqWeekly: 'வாரம் ஒருமுறை',
     freqMonthly: 'மாதம் ஒருமுறை',
     frequencyNote: 'செயலியைத் திறக்கும்போது தானியங்கி காப்பு இயங்கும்; மூடியிருக்கும்போது அல்ல.',
+    frequencyBlocked:
+      'மேலே உள்ள படிகள் முடியும் வரை இந்த அட்டவணையில் எதுவும் காப்பு எடுக்கப்படாது.',
 
     networkSection: 'எதன் வழியாகக் காப்பு எடுக்க',
     networkWifi: 'Wi‑Fi மட்டும்',
@@ -9341,6 +9412,26 @@ const hi: UiStrings = {
       'आपका निजी "मैं" खाता, आपकी अपनी Google Drive पर कॉपी होता है और सिर्फ़ आपके पास मौजूद चाबी से बंद रहता है। इसे न Waves पढ़ सकता है, न Google।',
     unavailable: 'इस बिल्ड में बैकअप उपलब्ध नहीं है।',
 
+    statusChecking: 'देखा जा रहा है…',
+    statusOff: 'अभी बैकअप नहीं हो रहा',
+    statusReady: 'बैकअप के लिए तैयार',
+    statusOn: 'बैकअप हो गया',
+    statusSealed: 'आपकी चाबी से बंद',
+    stepsLeft: {
+      one: '{n} कदम बाकी',
+      other: '{n} कदम बाकी',
+    },
+
+    setupSection: 'सेटअप पूरा करें',
+    setupProgress: '{total} में से {done}',
+    stepDone: 'हो गया',
+    stepAccountTitle: 'अपनी Google Drive जोड़ें',
+    stepAccountBody: 'बैकअप आपकी अपनी Drive के एक निजी फ़ोल्डर में जाता है।',
+    stepKeyTitle: 'अपनी चाबी बनाएँ',
+    stepKeyBody: 'वे 64 अक्षर जो बैकअप को बंद करते हैं। Waves उन्हें कभी नहीं देखता।',
+    stepSaveTitle: 'अपनी चाबी सुरक्षित रखें',
+    stepSaveBody: 'इसे इस फ़ोन के अलावा कहीं लिख लीजिए। उसके बाद बैकअप शुरू हो सकते हैं।',
+
     accountSection: 'Google खाता',
     notConnected: 'अभी कोई खाता जुड़ा नहीं है',
     connect: 'Google Drive जोड़ें',
@@ -9359,8 +9450,8 @@ const hi: UiStrings = {
       other: '{n} रिकॉर्ड का बैकअप हो गया',
     },
     backupFailed: 'बैकअप पूरा नहीं हुआ। थोड़ी देर में फिर कोशिश करें।',
+    busy: 'एक पल…',
 
-    lastSection: 'पिछला बैकअप',
     never: 'अभी तक कोई बैकअप नहीं',
     lastLine: '{date} · {size}',
 
@@ -9370,6 +9461,7 @@ const hi: UiStrings = {
     freqWeekly: 'हफ़्ते में एक बार',
     freqMonthly: 'महीने में एक बार',
     frequencyNote: 'अपने आप बैकअप तब चलता है जब आप ऐप खोलते हैं, बंद रहने पर नहीं।',
+    frequencyBlocked: 'ऊपर के कदम पूरे होने तक इस समय-सारणी पर कुछ भी बैकअप नहीं होगा।',
 
     networkSection: 'किस पर बैकअप लें',
     networkWifi: 'सिर्फ़ Wi‑Fi',
@@ -11941,6 +12033,30 @@ const ar: UiStrings = {
       'دفترك الخاص في تبويب "أنا"، يُنسخ إلى Google Drive الخاص بك ويُقفل بمفتاح لا يملكه سواك. لا يستطيع Waves ولا Google قراءته.',
     unavailable: 'النسخ الاحتياطي غير متاح في هذه النسخة.',
 
+    statusChecking: 'يتحقق…',
+    statusOff: 'لا نسخ احتياطي بعد',
+    statusReady: 'جاهز للنسخ',
+    statusOn: 'تم النسخ',
+    statusSealed: 'مقفل بمفتاحك',
+    stepsLeft: {
+      zero: 'لم تبقَ خطوات',
+      one: 'بقيت خطوة واحدة',
+      two: 'بقيت خطوتان',
+      few: 'بقيت {n} خطوات',
+      many: 'بقيت {n} خطوة',
+      other: 'بقيت {n} خطوة',
+    },
+
+    setupSection: 'أكمل الإعداد',
+    setupProgress: '{done} من {total}',
+    stepDone: 'تم',
+    stepAccountTitle: 'اربط Google Drive الخاص بك',
+    stepAccountBody: 'تذهب النسخة إلى مجلد خاص داخل Drive الخاص بك.',
+    stepKeyTitle: 'أنشئ مفتاحك',
+    stepKeyBody: 'الـ 64 حرفًا التي تقفل النسخة. لا يراها Waves أبدًا.',
+    stepSaveTitle: 'احفظ مفتاحك',
+    stepSaveBody: 'اكتبه في مكان غير هذا الهاتف. عندها يبدأ النسخ الاحتياطي.',
+
     accountSection: 'حساب Google',
     notConnected: 'لم يُربط أي حساب بعد',
     connect: 'اربط Google Drive',
@@ -11963,8 +12079,8 @@ const ar: UiStrings = {
       other: 'نُسخ {n} سجل',
     },
     backupFailed: 'لم يكتمل النسخ. حاول بعد قليل.',
+    busy: 'لحظة…',
 
-    lastSection: 'آخر نسخة احتياطية',
     never: 'لم يحدث نسخ بعد',
     lastLine: '{date} · {size}',
 
@@ -11974,6 +12090,7 @@ const ar: UiStrings = {
     freqWeekly: 'أسبوعيًا',
     freqMonthly: 'شهريًا',
     frequencyNote: 'يعمل النسخ التلقائي عند فتحك للتطبيق، لا وهو مغلق.',
+    frequencyBlocked: 'لن يُنسخ شيء وفق هذا الجدول حتى تكتمل الخطوات أعلاه.',
 
     networkSection: 'النسخ عبر',
     networkWifi: 'Wi‑Fi فقط',
