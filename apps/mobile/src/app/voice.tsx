@@ -54,7 +54,6 @@ import {
   Row,
   Screen,
   Text,
-  useScreenClearance,
   useTheme,
 } from '@waves/ui';
 
@@ -76,6 +75,7 @@ import { useUpsertPersonalRecord } from '@/data/personal';
 import { displayName, groupLabel, GroupType, type GroupRow } from '@/data/types';
 import { isRtl, plural, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
+import { useBottomClearance } from '@/lib/clearance';
 import { useDefaultCurrency } from '@/lib/currency';
 import { friendlyError } from '@/lib/errors';
 import {
@@ -191,7 +191,9 @@ function toMinor(amount: string, currency: string): bigint | null {
 
 export default function VoiceScreen() {
   const theme = useTheme();
-  const clearance = useScreenClearance();
+  // The one canonical foot. `Screen` below takes only the top edge, so nothing
+  // else has added the bottom inset — this is where it comes from, once.
+  const clearance = useBottomClearance();
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
   // The keyboard's height, measured — used to lift the destination sheet above
@@ -1387,6 +1389,13 @@ export default function VoiceScreen() {
           paddingHorizontal: theme.spacing.xl,
           paddingBottom: phase === 'review' ? theme.spacing.xl : clearance,
           gap: theme.spacing.xl,
+          // Fill the viewport when the capture surface is shorter than it, so the
+          // mic panel's own footer (the offline-voice offer) can sit at the foot of
+          // the screen rather than tucked under the mic. `flexGrow` only ever sets a
+          // *minimum* — a panel taller than the window still scrolls, where `flex`
+          // would have squeezed it. The review lays itself out and keeps its own
+          // pinned action bar, so it is left alone.
+          ...(phase === 'review' ? null : { flexGrow: 1 }),
         }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
@@ -1579,7 +1588,7 @@ export default function VoiceScreen() {
           // included. A heard-but-amountless try comes back as `missed`; the mic
           // is the retry, and tapping it (via `onListen`) clears the miss. No
           // warning banner and no separate button stacked around it.
-          <View style={{ gap: theme.spacing.lg, paddingTop: theme.spacing.xxl }}>
+          <View style={{ flexGrow: 1, gap: theme.spacing.lg, paddingTop: theme.spacing.xxl }}>
             <VoiceMicPanel
               key={attempt}
               onDone={handleTranscript}

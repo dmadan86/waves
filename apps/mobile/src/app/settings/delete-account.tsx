@@ -22,6 +22,7 @@ import { deleteMyAccount, erasurePreview } from '@/data/api';
 import { fill, plural, useStrings } from '@/i18n';
 import { friendlyError } from '@/lib/errors';
 import { useAuth } from '@/lib/auth';
+import { forgetTours } from '@/lib/onboardingSeen';
 
 /**
  * Leaving, with the consequence in view before the button.
@@ -40,7 +41,7 @@ export default function DeleteAccountScreen() {
   const theme = useTheme();
   const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
-  const { signOut } = useAuth();
+  const { session, signOut } = useAuth();
 
   const [reason, setReason] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -57,6 +58,13 @@ export default function DeleteAccountScreen() {
     setError(null);
     try {
       const result = await deleteMyAccount(reason.trim() || null);
+      // The device's own note of which tours this account had seen. Erasure is
+      // the one moment it is meaningless — there is no account left to have
+      // seen anything — and the last moment we still know the id to look it up
+      // by. It never rejects, so it cannot come between the deletion and the
+      // sign-out below.
+      const ownerId = session?.user.id;
+      if (ownerId) await forgetTours(ownerId);
       // Signing out is the last thing, and only after the data is gone: the
       // reverse order would leave somebody signed out of an account that still
       // holds everything, with no way back in to try again.

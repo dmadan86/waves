@@ -414,6 +414,26 @@ function expenseIdOf(mutation: MutationEnvelope): string | undefined {
   return stringPayloadField(mutation.payload, 'expenseId') ?? undefined;
 }
 
+/**
+ * The expenses this queue is still carrying — the ones the server has not
+ * confirmed, refusals included (a refusal stays in the queue, rule 3).
+ *
+ * Only the two kinds that *write* an expense count. `capture.assign` names an
+ * expense id too, so counting every payload that mentions one would have an
+ * assign hold itself forever.
+ */
+export function unwrittenExpenseIds(queue: readonly QueuedMutation[]): Set<string> {
+  const ids = new Set<string>();
+  for (const item of queue) {
+    if (item.kind !== MutationKind.ExpenseCreate && item.kind !== MutationKind.ExpenseUpdate) {
+      continue;
+    }
+    const id = expenseIdOf(item);
+    if (id) ids.add(id);
+  }
+  return ids;
+}
+
 export interface BatchOptions {
   readonly now: number;
   readonly limit?: number;
@@ -427,6 +447,18 @@ export interface BatchOptions {
  * all this round — sending its later mutations would apply an edit before the
  * create it depends on. Other groups are unaffected, so one poisoned expense
  * cannot stop the rest of the app from syncing.
+ *
+ * The one dependency that crosses scopes gets the same treatment. Closing a
+ * draft (`capture.assign`, personal scope) records that it became a particular
+ * expense in some group — but that expense is written under the *group's* scope,
+ * and per-group blocking says nothing about a personal one. So a refused
+ * expense left the draft free to close against an expense that does not exist:
+ * the draft leaves the inbox, the money sits refused behind the banner, and
+ * discarding the banner loses it with nothing to fall back on. An assign is
+ * therefore held while the expense it names is still anywhere in the queue —
+ * sent only once the server has confirmed the expense, never merely enqueued
+ * it. Held, not dropped: it goes out on a later round, and if the expense is
+ * refused it waits behind that refusal until a person retries or discards.
  */
 export function nextBatch(
   queue: readonly QueuedMutation[],
@@ -435,9 +467,20 @@ export function nextBatch(
   const { now, limit = 50, maxAttempts = MAX_ATTEMPTS } = options;
   const blocked = new Set<string>();
   const batch: QueuedMutation[] = [];
+  const unwrittenExpenses = unwrittenExpenseIds(queue);
 
   for (const item of [...queue].sort((a, b) => a.seq - b.seq)) {
     if (blocked.has(item.groupId)) continue;
+    // The cross-scope dependency above. It blocks its own scope for the reason
+    // every other hold does: what a person queued after this expects it to have
+    // happened.
+    if (item.kind === MutationKind.CaptureAssign) {
+      const expenseId = expenseIdOf(item);
+      if (expenseId && unwrittenExpenses.has(expenseId)) {
+        blocked.add(item.groupId);
+        continue;
+      }
+    }
     // A refusal is the server's settled answer, so this is not a backoff to
     // wait out — resending would fail identically, forever. It blocks its group
     // for the same reason a stalled mutation does: what is queued behind it
@@ -540,12 +583,37 @@ export function markFailed(
   });
 }
 
-/** Drop a dead-lettered mutation the user has chosen to abandon. */
+/**
+ * Drop a mutation the user has chosen to abandon — and anything that was only
+ * ever a claim about it.
+ *
+ * Discarding a refused `expense.create` is a person saying "let that spend go".
+ * A `capture.assign` waiting on it (see `nextBatch`) exists for one purpose: to
+ * record which expense a draft became. With the expense abandoned it is a claim
+ * about something that will now never exist, and sending it would close the
+ * draft against nothing — which is how a refusal turns into a deletion, the one
+ * thing rule 3 is here to prevent. So it goes too, and the draft simply stays in
+ * the inbox for the person to place again.
+ *
+ * Only a discarded *create* cascades. An `expense.update` being abandoned leaves
+ * an expense that already exists on the server, and the assign is still true.
+ * And if another write for the same expense is still queued, the expense is
+ * still coming, so the assign keeps waiting for it instead.
+ */
 export function discard(
   queue: readonly QueuedMutation[],
   clientMutationId: string,
 ): QueuedMutation[] {
-  return queue.filter((item) => item.clientMutationId !== clientMutationId);
+  const dropped = queue.find((item) => item.clientMutationId === clientMutationId);
+  const remaining = queue.filter((item) => item.clientMutationId !== clientMutationId);
+  if (!dropped || dropped.kind !== MutationKind.ExpenseCreate) return remaining;
+
+  const expenseId = expenseIdOf(dropped);
+  if (!expenseId || unwrittenExpenseIds(remaining).has(expenseId)) return remaining;
+
+  return remaining.filter(
+    (item) => !(item.kind === MutationKind.CaptureAssign && expenseIdOf(item) === expenseId),
+  );
 }
 
 /**

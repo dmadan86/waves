@@ -57,6 +57,7 @@ import {
 } from '@/data/personal';
 import { useDefaultCurrency } from '@/lib/currency';
 import { fill, useStrings } from '@/i18n';
+import { PersonalGuard } from '@/components/PersonalGuard';
 import { useBottomClearance } from '@/lib/clearance';
 
 /** A repeat pattern in words. The open-ended one names its own interval, so
@@ -86,7 +87,7 @@ export function frequencyLabel(
   }
 }
 
-export default function RecurringScreen() {
+function RecurringScreenBody() {
   const theme = useTheme();
   const clearance = useBottomClearance();
   const { t, locale } = useStrings();
@@ -597,5 +598,17 @@ function RecurringEditor({
         ) : null}
       </ScrollView>
     </Sheet>
+  );
+}
+
+/**
+ * Behind the section shield: one unlock covers the Me tab and every room
+ * under `personal/`, so arriving here from the ledger never asks again.
+ */
+export default function RecurringScreen() {
+  return (
+    <PersonalGuard>
+      <RecurringScreenBody />
+    </PersonalGuard>
   );
 }
