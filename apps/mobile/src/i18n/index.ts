@@ -773,29 +773,35 @@ export interface UiStrings {
   signOutSheet: {
     /** Callout title above the guest warning in `lock.signOutGuestWarning`. */
     guestTitle: string;
-    /** Callout when the queue is empty and every photo has been sent. Scoped to
-     *  the ledger on purpose: the backup-key warning below can appear beside
-     *  it, and a reassurance that claimed *everything* comes back would then
-     *  contradict the line right under it. */
-    allSafeTitle: string;
+    /** "Signed in as {email}" — the line under the sheet's title, so the
+     *  account being left is named rather than assumed. Omitted for a guest,
+     *  who has no address. */
+    signedInAs: string;
+    /** Said when the queue is empty and every photo has been sent. Scoped to
+     *  the ledger on purpose: the backup-key row can appear beside it, and a
+     *  reassurance that claimed *everything* comes back would then contradict
+     *  the line right under it. */
     allSafeBody: string;
-    /** Callout when something on this device has not reached the account. */
-    atRiskTitle: string;
+    /** Said when something on this device has not reached the account. It
+     *  points at the rows below it, so it must never be shown without them. */
     atRiskBody: string;
-    /** The lines under that callout. `otherUnsent` counts queued changes to
-     *  shared groups, `personalUnsent` the private records on the Personal
-     *  tab, `refused` the ones the server turned down, which will never go on
-     *  their own, `receiptsUnsent` the photos still only on the phone, and
-     *  `draftsUnsent` the forms somebody had started but never submitted —
-     *  those live in the drafts table, which the sign-out wipe deletes. */
+    /** The rows under that line. `otherUnsent` counts queued changes to shared
+     *  groups (its detail line names them), `personalUnsent` the private
+     *  records on the Personal tab, `refused` the ones the server turned down,
+     *  which will never go on their own, `receiptsUnsent` the photos still only
+     *  on the phone, and `draftsUnsent` the forms somebody had started but
+     *  never submitted — those live in the drafts table, which the sign-out
+     *  wipe deletes. */
     otherUnsent: PluralForms;
     personalUnsent: PluralForms;
     refused: PluralForms;
+    /** Why a refusal is not waiting for a better signal. */
+    refusedHint: string;
     receiptsUnsent: PluralForms;
     draftsUnsent: PluralForms;
     /** The backup recovery key, which this device holds and sign-out forgets.
-     *  Not part of the list above: it is lost even when everything has synced,
-     *  so it is shown whether or not anything is unsent. */
+     *  Not part of the unsent work: it is lost even when everything has synced,
+     *  so its row is shown whether or not anything is queued. */
     backupKeyTitle: string;
     backupKeyWarning: string;
     /** Shown when nothing can be sent right now — offline, or on a connection
@@ -3485,12 +3491,11 @@ const en: UiStrings = {
   },
   signOutSheet: {
     guestTitle: 'This account cannot be signed back into',
-    allSafeTitle: 'Everything is safe',
+    signedInAs: 'Signed in as {email}',
     allSafeBody:
-      'Every change on this device has reached your account. Sign back in and your ledger comes back.',
-    atRiskTitle: 'Some of this would be lost',
+      "Every change on this device has reached your account. Signing out clears this phone's copy — sign back in and your ledger comes back.",
     atRiskBody:
-      "Signing out erases this device's copy. What is listed below has not reached your account yet, so it goes with it.",
+      "Signing out clears this phone's copy. These have not reached your account yet, so they go with it:",
     otherUnsent: {
       one: '{n} change to your groups has not been sent',
       other: '{n} changes to your groups have not been sent',
@@ -3503,6 +3508,7 @@ const en: UiStrings = {
       one: '{n} change the server would not accept',
       other: '{n} changes the server would not accept',
     },
+    refusedHint: 'Waiting longer will not send these. Save a copy to keep them.',
     receiptsUnsent: {
       one: '{n} receipt photo is still only on this phone',
       other: '{n} receipt photos are still only on this phone',
@@ -3513,16 +3519,15 @@ const en: UiStrings = {
     },
     backupKeyTitle: 'Your backup key is only on this device',
     backupKeyWarning:
-      'Signing out forgets the recovery key for your backup. The file stays on Drive, but nothing can open it again without that key — not even you. Write it down before you go.',
-    offlineHint: 'Nothing can be sent right now. Download a copy before you go.',
+      'Write it down before you go — without it nothing can open the backup on Drive again, not even you.',
+    offlineHint: 'Nothing can be sent right now. Save a copy before you go.',
     syncNow: 'Sync now',
     syncing: 'Sending…',
-    syncFailed: 'Could not send everything. Try again, or download a copy.',
-    copyNow: 'Download a copy',
+    syncFailed: 'Could not send everything. Try again, or save a copy.',
+    copyNow: 'Save a copy',
     copying: 'Preparing…',
     copyFailed: 'Could not make the file.',
-    copyExcludesPhotos:
-      'The file holds your records, not the receipt photos. Send those first if you need them kept.',
+    copyExcludesPhotos: 'A saved copy holds your records, not the photos themselves.',
     copySaved: 'Saved {file}',
     copyShareTitle: 'Your Waves data',
   },
@@ -5990,12 +5995,11 @@ const ta: UiStrings = {
   },
   signOutSheet: {
     guestTitle: 'இந்தக் கணக்கில் மீண்டும் உள்நுழைய முடியாது',
-    allSafeTitle: 'எல்லாம் பாதுகாப்பாக உள்ளது',
+    signedInAs: '{email} என உள்நுழைந்துள்ளீர்கள்',
     allSafeBody:
-      'இந்தச் சாதனத்தில் செய்த ஒவ்வொரு மாற்றமும் உங்கள் கணக்கை அடைந்துவிட்டது. மீண்டும் உள்நுழைந்தால் உங்கள் கணக்குப் பதிவு திரும்பி வரும்.',
-    atRiskTitle: 'இவற்றில் சில தொலைந்துவிடும்',
+      'இந்தச் சாதனத்தில் செய்த ஒவ்வொரு மாற்றமும் உங்கள் கணக்கை அடைந்துவிட்டது. வெளியேறினால் இந்தத் தொலைபேசியில் உள்ள நகல் அழிக்கப்படும் — மீண்டும் உள்நுழைந்தால் உங்கள் கணக்குப் பதிவு திரும்பி வரும்.',
     atRiskBody:
-      'வெளியேறினால் இந்தச் சாதனத்தில் உள்ள நகல் அழிக்கப்படும். கீழே பட்டியலிட்டவை இன்னும் உங்கள் கணக்கை அடையவில்லை, எனவே அவையும் அதனுடன் போய்விடும்.',
+      'வெளியேறினால் இந்தத் தொலைபேசியில் உள்ள நகல் அழிக்கப்படும். இவை இன்னும் உங்கள் கணக்கை அடையவில்லை, எனவே அவையும் அதனுடன் போய்விடும்:',
     otherUnsent: {
       one: 'உங்கள் குழுக்களில் {n} மாற்றம் அனுப்பப்படவில்லை',
       other: 'உங்கள் குழுக்களில் {n} மாற்றங்கள் அனுப்பப்படவில்லை',
@@ -6008,6 +6012,7 @@ const ta: UiStrings = {
       one: 'சர்வர் ஏற்க மறுத்த {n} மாற்றம்',
       other: 'சர்வர் ஏற்க மறுத்த {n} மாற்றங்கள்',
     },
+    refusedHint: 'காத்திருந்தாலும் இவை அனுப்பப்படாது. வைத்திருக்க ஒரு நகலைச் சேமியுங்கள்.',
     receiptsUnsent: {
       one: '{n} ரசீதுப் படம் இன்னும் இந்தத் தொலைபேசியில் மட்டுமே உள்ளது',
       other: '{n} ரசீதுப் படங்கள் இன்னும் இந்தத் தொலைபேசியில் மட்டுமே உள்ளன',
@@ -6018,17 +6023,16 @@ const ta: UiStrings = {
     },
     backupKeyTitle: 'உங்கள் காப்புப்பிரதி விசை இந்தச் சாதனத்தில் மட்டுமே உள்ளது',
     backupKeyWarning:
-      'வெளியேறினால் உங்கள் காப்புப்பிரதியின் மீட்பு விசை மறக்கப்படும். கோப்பு Drive-இல் இருக்கும், ஆனால் அந்த விசை இல்லாமல் அதை யாராலும் — உங்களாலும் — திறக்க முடியாது. வெளியேறும் முன் அதை எழுதி வைத்துக்கொள்ளுங்கள்.',
-    offlineHint: 'இப்போது எதையும் அனுப்ப முடியாது. வெளியேறும் முன் ஒரு நகலைப் பதிவிறக்கவும்.',
+      'வெளியேறும் முன் அதை எழுதி வைத்துக்கொள்ளுங்கள் — அது இல்லாமல் Drive-இல் உள்ள காப்புப்பிரதியை யாராலும், உங்களாலும் கூட, மீண்டும் திறக்க முடியாது.',
+    offlineHint: 'இப்போது எதையும் அனுப்ப முடியாது. வெளியேறும் முன் ஒரு நகலைச் சேமியுங்கள்.',
     syncNow: 'இப்போது ஒத்திசை',
     syncing: 'அனுப்பப்படுகிறது…',
     syncFailed:
-      'எல்லாவற்றையும் அனுப்ப முடியவில்லை. மீண்டும் முயற்சிக்கவும், அல்லது ஒரு நகலைப் பதிவிறக்கவும்.',
-    copyNow: 'ஒரு நகலைப் பதிவிறக்கு',
+      'எல்லாவற்றையும் அனுப்ப முடியவில்லை. மீண்டும் முயற்சிக்கவும், அல்லது ஒரு நகலைச் சேமிக்கவும்.',
+    copyNow: 'ஒரு நகலைச் சேமி',
     copying: 'தயாராகிறது…',
     copyFailed: 'கோப்பை உருவாக்க முடியவில்லை.',
-    copyExcludesPhotos:
-      'இந்தக் கோப்பில் உங்கள் பதிவுகள் இருக்கும், ரசீதுப் படங்கள் இருக்காது. அவை தேவைப்பட்டால் முதலில் அவற்றை அனுப்பிவிடுங்கள்.',
+    copyExcludesPhotos: 'சேமித்த நகலில் உங்கள் பதிவுகள் இருக்கும், படங்கள் இருக்காது.',
     copySaved: '{file} சேமிக்கப்பட்டது',
     copyShareTitle: 'உங்கள் Waves தரவு',
   },
@@ -8589,12 +8593,11 @@ const hi: UiStrings = {
   },
   signOutSheet: {
     guestTitle: 'इस खाते में दोबारा साइन इन नहीं किया जा सकता',
-    allSafeTitle: 'सब कुछ सुरक्षित है',
+    signedInAs: '{email} के रूप में साइन इन हैं',
     allSafeBody:
-      'इस डिवाइस का हर बदलाव आपके खाते तक पहुँच चुका है। दोबारा साइन इन करने पर आपका पूरा हिसाब वापस आ जाएगा।',
-    atRiskTitle: 'इनमें से कुछ खो जाएगा',
+      'इस डिवाइस का हर बदलाव आपके खाते तक पहुँच चुका है। साइन आउट करने पर इस फ़ोन की कॉपी मिट जाएगी — दोबारा साइन इन करने पर आपका पूरा हिसाब वापस आ जाएगा।',
     atRiskBody:
-      'साइन आउट करने पर इस डिवाइस की कॉपी मिट जाती है। नीचे जो दिखाया है वह अभी आपके खाते तक नहीं पहुँचा है, इसलिए वह भी उसी के साथ चला जाएगा।',
+      'साइन आउट करने पर इस फ़ोन की कॉपी मिट जाती है। ये अभी आपके खाते तक नहीं पहुँचे हैं, इसलिए ये भी उसी के साथ चले जाएँगे:',
     otherUnsent: {
       one: 'आपके समूहों में {n} बदलाव नहीं भेजा गया',
       other: 'आपके समूहों में {n} बदलाव नहीं भेजे गए',
@@ -8607,6 +8610,7 @@ const hi: UiStrings = {
       one: '{n} बदलाव जिसे सर्वर ने स्वीकार नहीं किया',
       other: '{n} बदलाव जिन्हें सर्वर ने स्वीकार नहीं किया',
     },
+    refusedHint: 'और इंतज़ार करने से ये नहीं भेजे जाएँगे। रखना है तो एक कॉपी सहेज लें।',
     receiptsUnsent: {
       one: '{n} रसीद की फ़ोटो अब भी सिर्फ़ इसी फ़ोन पर है',
       other: '{n} रसीदों की फ़ोटो अब भी सिर्फ़ इसी फ़ोन पर हैं',
@@ -8617,16 +8621,15 @@ const hi: UiStrings = {
     },
     backupKeyTitle: 'आपकी बैकअप कुंजी सिर्फ़ इसी डिवाइस पर है',
     backupKeyWarning:
-      'साइन आउट करने पर आपके बैकअप की रिकवरी कुंजी भूल जाएगी। फ़ाइल Drive पर रहेगी, पर उस कुंजी के बिना उसे कोई नहीं खोल सकता — आप भी नहीं। जाने से पहले उसे लिख लें।',
-    offlineHint: 'अभी कुछ भी नहीं भेजा जा सकता। जाने से पहले एक कॉपी डाउनलोड कर लें।',
+      'जाने से पहले उसे लिख लें — उसके बिना Drive पर रखे बैकअप को कोई दोबारा नहीं खोल सकता, आप भी नहीं।',
+    offlineHint: 'अभी कुछ भी नहीं भेजा जा सकता। जाने से पहले एक कॉपी सहेज लें।',
     syncNow: 'अभी सिंक करें',
     syncing: 'भेजा जा रहा है…',
-    syncFailed: 'सब कुछ भेजा नहीं जा सका। फिर कोशिश करें, या एक कॉपी डाउनलोड कर लें।',
-    copyNow: 'एक कॉपी डाउनलोड करें',
+    syncFailed: 'सब कुछ भेजा नहीं जा सका। फिर कोशिश करें, या एक कॉपी सहेज लें।',
+    copyNow: 'एक कॉपी सहेजें',
     copying: 'तैयार हो रही है…',
     copyFailed: 'फ़ाइल नहीं बनाई जा सकी।',
-    copyExcludesPhotos:
-      'फ़ाइल में आपकी प्रविष्टियाँ होंगी, रसीदों की फ़ोटो नहीं। उन्हें रखना है तो पहले उन्हें भेज दें।',
+    copyExcludesPhotos: 'सहेजी गई कॉपी में आपकी प्रविष्टियाँ होंगी, फ़ोटो नहीं।',
     copySaved: '{file} सहेज लिया',
     copyShareTitle: 'आपका Waves डेटा',
   },
@@ -11132,11 +11135,10 @@ const ar: UiStrings = {
   },
   signOutSheet: {
     guestTitle: 'لا يمكن تسجيل الدخول إلى هذا الحساب مرة أخرى',
-    allSafeTitle: 'كل شيء بأمان',
-    allSafeBody: 'كل تغيير على هذا الجهاز وصل إلى حسابك. سجّل الدخول مرة أخرى وسيعود دفترك كما هو.',
-    atRiskTitle: 'بعض هذا سيُفقد',
-    atRiskBody:
-      'تسجيل الخروج يمحو نسخة هذا الجهاز. وما هو مذكور أدناه لم يصل إلى حسابك بعد، فسيذهب معها.',
+    signedInAs: 'مسجّل الدخول باسم {email}',
+    allSafeBody:
+      'كل تغيير على هذا الجهاز وصل إلى حسابك. تسجيل الخروج يمحو نسخة هذا الهاتف — سجّل الدخول مرة أخرى وسيعود دفترك كما هو.',
+    atRiskBody: 'تسجيل الخروج يمحو نسخة هذا الهاتف. وهذه لم تصل إلى حسابك بعد، فستذهب معها:',
     otherUnsent: {
       zero: 'لا تغييرات غير مُرسَلة في مجموعاتك',
       one: 'تغيير واحد في مجموعاتك لم يُرسَل',
@@ -11161,6 +11163,7 @@ const ar: UiStrings = {
       many: '{n} تغييرًا رفضه الخادم',
       other: '{n} تغيير رفضه الخادم',
     },
+    refusedHint: 'الانتظار أطول لن يُرسلها. احفظ نسخة إن أردت الاحتفاظ بها.',
     receiptsUnsent: {
       zero: 'لا صور إيصالات على هذا الهاتف وحده',
       one: 'صورة إيصال واحدة ما زالت على هذا الهاتف وحده',
@@ -11179,16 +11182,15 @@ const ar: UiStrings = {
     },
     backupKeyTitle: 'مفتاح نسختك الاحتياطية على هذا الجهاز وحده',
     backupKeyWarning:
-      'تسجيل الخروج ينسى مفتاح استرداد نسختك الاحتياطية. سيبقى الملف على Drive، لكن لا شيء يفتحه من دون ذلك المفتاح — ولا أنت. دوّنه قبل أن تخرج.',
-    offlineHint: 'لا يمكن إرسال أي شيء الآن. نزّل نسخة قبل أن تخرج.',
+      'دوّنه قبل أن تخرج — من دونه لا شيء يفتح النسخة الاحتياطية على Drive مرة أخرى، ولا أنت.',
+    offlineHint: 'لا يمكن إرسال أي شيء الآن. احفظ نسخة قبل أن تخرج.',
     syncNow: 'زامن الآن',
     syncing: 'جارٍ الإرسال…',
-    syncFailed: 'تعذّر إرسال كل شيء. حاول مرة أخرى، أو نزّل نسخة.',
-    copyNow: 'تنزيل نسخة',
+    syncFailed: 'تعذّر إرسال كل شيء. حاول مرة أخرى، أو احفظ نسخة.',
+    copyNow: 'حفظ نسخة',
     copying: 'جارٍ التجهيز…',
     copyFailed: 'تعذّر إنشاء الملف.',
-    copyExcludesPhotos:
-      'الملف يحمل سجلاتك، لا صور الإيصالات. أرسل الصور أولًا إن كنت تريد الاحتفاظ بها.',
+    copyExcludesPhotos: 'النسخة المحفوظة تحمل سجلاتك، لا الصور نفسها.',
     copySaved: 'تم حفظ {file}',
     copyShareTitle: 'بيانات Waves الخاصة بك',
   },
