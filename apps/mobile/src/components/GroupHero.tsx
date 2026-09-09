@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Alert, I18nManager, Platform, Pressable, ScrollView, View } from 'react-native';
+import { I18nManager, Platform, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
@@ -20,6 +20,7 @@ import { fill, plural, useStrings } from '@/i18n';
 import { GroupPhoto } from '@/components/GroupPhoto';
 import { SyncStatusIcon } from '@/components/SyncBanner';
 import { router, useGoBack } from '@/lib/navigation';
+import { useDialog } from '@/lib/dialog';
 
 /**
  * Which hero slide a paging scroll has landed on, correct in both directions.
@@ -125,6 +126,7 @@ export function GroupHero({
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { t, locale } = useStrings();
+  const { confirm } = useDialog();
   const goBack = useGoBack();
   const confirmSettlement = useConfirmSettlement(groupId);
   const disputeSettlement = useDisputeSettlement(groupId);
@@ -144,18 +146,15 @@ export function GroupHero({
   const soleProof = useSettlementProof(soleClaim?.id ?? '');
 
   const rejectPrompt = (settlement: SettlementRow): void => {
-    Alert.alert(
-      t.group.rejectTitle,
-      fill(t.group.rejectBody, { name: nameOf(settlement.from_member_id) }),
-      [
-        { text: t.group.keep, style: 'cancel' },
-        {
-          text: t.group.rejectConfirm,
-          style: 'destructive',
-          onPress: () => disputeSettlement.mutate(settlement.id),
-        },
-      ],
-    );
+    void confirm({
+      title: t.group.rejectTitle,
+      body: fill(t.group.rejectBody, { name: nameOf(settlement.from_member_id) }),
+      confirmLabel: t.group.rejectConfirm,
+      cancelLabel: t.group.keep,
+      tone: 'danger',
+    }).then((ok) => {
+      if (ok) disputeSettlement.mutate(settlement.id);
+    });
   };
 
   return (

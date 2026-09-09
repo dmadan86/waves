@@ -53,6 +53,18 @@ module.exports = [
               message: 'Import `backend` from `@/lib/backend`, not the Supabase client directly.',
             },
             {
+              // The stock alert is a different application's window borrowed for
+              // a moment — grey slab, square corners, two identical capitals —
+              // over a screen of rounded cards and brand purple, and it can be
+              // told nothing but strings. Every one of the forty-nine call sites
+              // it had is now `useDialog()` or `useToast()`; this is what stops
+              // the fiftieth. Everything else in react-native is fine.
+              name: 'react-native',
+              importNames: ['Alert'],
+              message:
+                'Use `useDialog()` (@/lib/dialog) for a question and `useToast()` (@/lib/toast) for a notice. `Alert` is the native dialog this app replaced.',
+            },
+            {
               // One tap, one screen. `@/lib/navigation` is expo-router's router
               // with a short guard in front of it, so a double tap cannot push
               // the same route twice — a bug you only see on a real phone, and

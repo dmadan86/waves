@@ -41,7 +41,6 @@ import { useMutation } from '@tanstack/react-query';
 import { useLocalSearchParams } from 'expo-router';
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -87,6 +86,7 @@ import { friendlyError } from '@/lib/errors';
 import { router } from '@/lib/navigation';
 import { useSync } from '@/sync';
 import { fill, plural, useStrings, type UiStrings } from '@/i18n';
+import { useDialog } from '@/lib/dialog';
 
 /**
  * How much of the mergeable roster is drawn before asking. It is every ghost in
@@ -112,6 +112,7 @@ export default function MergePeopleScreen() {
   // button hidden behind the bar, unreachable by scrolling.
   const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
+  const { confirm } = useDialog();
   const { flush } = useSync();
 
   // People pre-picked on the Friends tab (its multiselect merge) arrive as a
@@ -313,15 +314,17 @@ export default function MergePeopleScreen() {
         return;
       }
       // Ask before sharing anything. Skip closes the screen; Invite opens the
-      // per-group share sheet.
-      Alert.alert(
-        fill(t.mergePeople.invitePromptTitle, { name: name.trim() }),
-        t.mergePeople.invitePromptBody,
-        [
-          { text: t.mergePeople.invitePromptSkip, style: 'cancel', onPress: () => router.back() },
-          { text: t.people.invite, onPress: () => setInviteFor({ name: name.trim(), groups }) },
-        ],
-      );
+      // per-group share sheet. Dismissing — the scrim, the back gesture — is the
+      // same answer as Skip, which is why both fall to the else.
+      void confirm({
+        title: fill(t.mergePeople.invitePromptTitle, { name: name.trim() }),
+        body: t.mergePeople.invitePromptBody,
+        confirmLabel: t.people.invite,
+        cancelLabel: t.mergePeople.invitePromptSkip,
+      }).then((wanted) => {
+        if (wanted) setInviteFor({ name: name.trim(), groups });
+        else router.back();
+      });
     },
     onError: (caught) => setError(mergeErrorMessage(caught, t.mergePeople)),
   });
@@ -334,23 +337,25 @@ export default function MergePeopleScreen() {
   // a mis-tap on a long roster — is visible in the last moment before it stops
   // being reversible. A warning that says only "this can't be undone" cannot be
   // checked against anything.
-  const confirmMerge = (): void => {
+  const confirmMerge = async (): Promise<void> => {
     if (!ready || merge.isPending) return;
     const who = fill(t.mergePeople.warningWho, {
       people: selectedRows.map((row) => row.display_name).join(', '),
     });
-    Alert.alert(t.mergePeople.warningTitle, `${who}\n\n${t.mergePeople.warningBody}`, [
-      { text: t.common.cancel, style: 'cancel' },
-      {
-        text: t.mergePeople.cta,
-        style: 'destructive',
-        onPress: () => {
-          // Snapshot the groups before the write, from the pre-merge picks.
-          pendingInviteGroups.current = gatherInviteGroups();
-          merge.mutate();
-        },
-      },
-    ]);
+    // The "cannot be undone" line is the note rather than a third paragraph of
+    // body text: by that point in a warning a run of grey sentences is a run
+    // nobody reads to the end, and this is the sentence that matters.
+    const ok = await confirm({
+      title: t.mergePeople.warningTitle,
+      body: who,
+      note: t.mergePeople.warningBody,
+      confirmLabel: t.mergePeople.cta,
+      tone: 'danger',
+    });
+    if (!ok) return;
+    // Snapshot the groups before the write, from the pre-merge picks.
+    pendingInviteGroups.current = gatherInviteGroups();
+    merge.mutate();
   };
 
   const dismissInvite = (): void => {
@@ -614,7 +619,7 @@ export default function MergePeopleScreen() {
                 size="lg"
                 fullWidth
                 disabled={!ready || merge.isPending}
-                onPress={confirmMerge}
+                onPress={() => void confirmMerge()}
               />
               {merge.isPending ? <ActivityIndicator color={theme.color.brand} /> : null}
             </>

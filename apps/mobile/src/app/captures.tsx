@@ -16,14 +16,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { FlashList } from '@shopify/flash-list';
 import { randomUUID } from 'expo-crypto';
-import {
-  Alert,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  useWindowDimensions,
-  View,
-} from 'react-native';
+import { Pressable, RefreshControl, ScrollView, useWindowDimensions, View } from 'react-native';
 
 import { MutationKind, peopleSignatureKey } from '@waves/core';
 import {
@@ -74,6 +67,7 @@ import { friendlyError } from '@/lib/errors';
 import { useGuestGuard } from '@/lib/guestGuard';
 import { router } from '@/lib/navigation';
 import { usePullRefresh } from '@/lib/pullRefresh';
+import { useDialog } from '@/lib/dialog';
 import { useToast } from '@/lib/toast';
 import { useSync } from '@/sync';
 
@@ -493,6 +487,7 @@ export default function CapturesScreen() {
   // draft, so it queues them the way the form does (ADR-005).
   const { mutate } = useSync();
   const toast = useToast();
+  const { confirm, notify } = useDialog();
   // A guest past their trial may read but not write. The single-draft path is
   // stopped by the same guard inside add-expense; a batch write never reaches
   // that screen, so it asks here.
@@ -656,45 +651,39 @@ export default function CapturesScreen() {
   // Shared by the standalone rows and the rows inside a batch, so a capture is
   // deleted the same way wherever it is shown.
   const confirmDelete = useCallback(
-    (capture: CaptureRow): void => {
-      Alert.alert(t.captures.delete, t.captures.deleteConfirm, [
-        { text: t.common.cancel, style: 'cancel' },
-        {
-          text: t.captures.delete,
-          style: 'destructive',
-          onPress: () => void deleteCapture.mutateAsync(capture.id),
-        },
-      ]);
+    async (capture: CaptureRow): Promise<void> => {
+      const ok = await confirm({
+        title: t.captures.delete,
+        body: t.captures.deleteConfirm,
+        confirmLabel: t.captures.delete,
+        tone: 'danger',
+      });
+      if (ok) void deleteCapture.mutateAsync(capture.id);
     },
-    [deleteCapture, t.captures.delete, t.captures.deleteConfirm, t.common.cancel],
+    [confirm, deleteCapture, t.captures.delete, t.captures.deleteConfirm],
   );
 
   // Delete every capture in a spoken batch at once, behind one confirm — the
   // trailing trash on the batch card.
   const confirmDeleteBatch = useCallback(
-    (items: CaptureRow[]): void => {
-      Alert.alert(
-        t.captures.deleteBatch,
-        plural(locale, items.length, t.captures.deleteBatchConfirm),
-        [
-          { text: t.common.cancel, style: 'cancel' },
-          {
-            text: t.captures.delete,
-            style: 'destructive',
-            onPress: () => {
-              for (const item of items) void deleteCapture.mutateAsync(item.id);
-            },
-          },
-        ],
-      );
+    async (items: CaptureRow[]): Promise<void> => {
+      const ok = await confirm({
+        title: t.captures.deleteBatch,
+        body: plural(locale, items.length, t.captures.deleteBatchConfirm),
+        confirmLabel: t.captures.delete,
+        tone: 'danger',
+      });
+      if (ok) {
+        for (const item of items) void deleteCapture.mutateAsync(item.id);
+      }
     },
     [
+      confirm,
       deleteCapture,
       locale,
       t.captures.delete,
       t.captures.deleteBatch,
       t.captures.deleteBatchConfirm,
-      t.common.cancel,
     ],
   );
 
@@ -786,14 +775,15 @@ export default function CapturesScreen() {
           );
         }
         lines.push(plural(locale, failed, t.captures.assignBatchSomeFailed));
-        Alert.alert(t.captures.title, lines.join('\n\n'));
+        await notify({ title: t.captures.title, body: lines.join('\n\n') });
       } catch (caught) {
         // The callers fire this without awaiting it, so anything the planning
         // step throws would otherwise leave with no word to the person whose
-        // drafts are still sitting there.
-        Alert.alert(
-          t.captures.title,
+        // drafts are still sitting there. A toast rather than a dialog: the
+        // drafts are exactly where they were, so there is nothing to answer.
+        toast.show(
           friendlyError(caught, t.captures.couldNotSave, 'captures.assignBatch'),
+          'negative',
         );
       } finally {
         placing.current = false;
@@ -804,6 +794,7 @@ export default function CapturesScreen() {
       guard,
       locale,
       mutate,
+      notify,
       rows,
       t.captures.assignBatchAlreadyDone,
       t.captures.assignBatchSomeFailed,
@@ -892,9 +883,9 @@ export default function CapturesScreen() {
         // With no group to assign into there is nowhere to push, so say why and
         // leave the draft exactly where it was rather than opening a form over a
         // group that was never made.
-        Alert.alert(
-          t.captures.title,
+        toast.show(
           friendlyError(caught, t.captures.couldNotSave, 'captures.newPeopleGroup'),
+          'negative',
         );
         return;
       }
@@ -930,7 +921,7 @@ export default function CapturesScreen() {
       newMemberId,
       placeBatch,
       t.captures.couldNotSave,
-      t.captures.title,
+      toast,
     ],
   );
 
@@ -1302,7 +1293,7 @@ export default function CapturesScreen() {
               onPress={() => {
                 const capture = menu.capture;
                 setMenu(null);
-                confirmDelete(capture);
+                void confirmDelete(capture);
               }}
             />
           </>
@@ -1333,7 +1324,7 @@ export default function CapturesScreen() {
               onPress={() => {
                 const items = menu.items;
                 setMenu(null);
-                confirmDeleteBatch(items);
+                void confirmDeleteBatch(items);
               }}
             />
           </>

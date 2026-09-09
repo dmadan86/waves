@@ -29,7 +29,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useQuery } from '@tanstack/react-query';
 import * as Clipboard from 'expo-clipboard';
 import { useLocalSearchParams } from 'expo-router';
-import { Alert, Linking, Pressable, ScrollView, View } from 'react-native';
+import { Linking, Pressable, ScrollView, View } from 'react-native';
 
 import {
   Badge,
@@ -60,6 +60,7 @@ import { ProfileAvatar } from '@/components/ProfileAvatar';
 import { PeopleSkeleton } from '@/components/Skeletons';
 import { fill, plural, useStrings } from '@/i18n';
 import { router } from '@/lib/navigation';
+import { useDialog } from '@/lib/dialog';
 
 /** A person's balance in one group: the group, and one net per currency in it. */
 interface GroupBlock {
@@ -73,6 +74,7 @@ export default function PersonDetailScreen() {
   const theme = useTheme();
   const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
+  const { confirm } = useDialog();
   const { key, name } = useLocalSearchParams<{ key: string; name?: string }>();
 
   const who = useQuery({
@@ -113,15 +115,14 @@ export default function PersonDetailScreen() {
       ? t.misc.someone
       : (profile?.display_name ?? name ?? rows[0]?.display_name ?? '');
 
-  const confirmBlock = (): void => {
-    Alert.alert(fill(t.blocked.confirmTitle, { name: realName }), t.blocked.confirmBody, [
-      { text: t.common.cancel, style: 'cancel' },
-      {
-        text: t.blocked.action,
-        style: 'destructive',
-        onPress: () => block({ id: key, name: realName, avatarUrl: profile?.avatar_url ?? null }),
-      },
-    ]);
+  const confirmBlock = async (): Promise<void> => {
+    const ok = await confirm({
+      title: fill(t.blocked.confirmTitle, { name: realName }),
+      body: t.blocked.confirmBody,
+      confirmLabel: t.blocked.action,
+      tone: 'danger',
+    });
+    if (ok) block({ id: key, name: realName, avatarUrl: profile?.avatar_url ?? null });
   };
 
   // One block per group (a group can carry two currencies), and the per-currency
@@ -165,7 +166,7 @@ export default function PersonDetailScreen() {
         {isRealPerson && !profile?.is_you ? (
           <IconButton
             label={blocked ? t.blocked.unblock : t.blocked.action}
-            onPress={blocked ? () => unblock(key) : confirmBlock}
+            onPress={blocked ? () => unblock(key) : () => void confirmBlock()}
           >
             <Ionicons
               name={blocked ? 'person-add-outline' : 'person-remove-outline'}

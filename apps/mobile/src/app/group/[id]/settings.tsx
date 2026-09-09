@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useQuery } from '@tanstack/react-query';
 import { useLocalSearchParams } from 'expo-router';
-import { ActivityIndicator, Alert, ScrollView, TextInput, View } from 'react-native';
+import { ActivityIndicator, ScrollView, TextInput, View } from 'react-native';
 
 import {
   Avatar,
@@ -26,12 +26,12 @@ import {
   useTabBarClearance,
 } from '@waves/ui';
 
-import { format as formatMoney, money as coreMoney, type CurrencyCode } from '@waves/core';
+import { type CurrencyCode } from '@waves/core';
 
 import { GroupPhoto } from '@/components/GroupPhoto';
 import { type PickedContact } from '@/components/ContactPicker';
 import { friendlyError } from '@/lib/errors';
-import { groupDeleteBody, orderDebtsForWarning } from '@/lib/groupDeleteWarning';
+import { groupDeleteWarning, orderDebtsForWarning } from '@/lib/groupDeleteWarning';
 import { pickGroupPhoto } from '@/lib/image';
 import { requestContacts } from '@/lib/contactPickerBridge';
 import { router } from '@/lib/navigation';
@@ -54,6 +54,9 @@ import { fill, plural, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { useFavorites } from '@/lib/favorites';
 import { useBlockedUsers } from '@/data/blocked';
+import { useDialog } from '@/lib/dialog';
+import { type DialogRow } from '@/lib/dialogQueue';
+import { useToast } from '@/lib/toast';
 import {
   displayName,
   groupLabel,
@@ -131,6 +134,8 @@ export default function GroupSettingsScreen() {
   // rows sat behind the bar and could not be reached.
   const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
+  const { confirm, notify } = useDialog();
+  const toast = useToast();
   const { id } = useLocalSearchParams<{ id: string }>();
   const groupId = id ?? '';
   const { profile } = useAuth();
@@ -320,43 +325,51 @@ export default function GroupSettingsScreen() {
     (member) => member.profile_id === profile?.id && member.role === 'admin',
   );
 
-  const leave = (): void => {
+  const leave = async (): Promise<void> => {
+    // A refusal, not a failure — it explains why the tap did nothing, so it
+    // keeps its dialog rather than fading past as a toast.
     if (!settled) {
-      Alert.alert(t.group.settleFirst, t.group.settleFirstBody);
+      await notify({ title: t.group.settleFirst, body: t.group.settleFirstBody });
       return;
     }
-    Alert.alert(t.group.leaveQuestion, t.group.leaveBody, [
-      { text: t.common.cancel, style: 'cancel' },
-      {
-        text: t.group.leave,
-        style: 'destructive',
-        onPress: () => {
-          if (!ledger.myMemberId) return;
-          leaveGroup.mutate(ledger.myMemberId, { onSuccess: () => router.replace('/') });
-        },
-      },
-    ]);
+    const ok = await confirm({
+      title: t.group.leaveQuestion,
+      body: t.group.leaveBody,
+      confirmLabel: t.group.leave,
+      tone: 'danger',
+    });
+    if (!ok || !ledger.myMemberId) return;
+    leaveGroup.mutate(ledger.myMemberId, { onSuccess: () => router.replace('/') });
   };
 
-  const archive = (): void => {
-    Alert.alert(t.group.archiveQuestion, t.group.archiveBody, [
-      { text: t.common.cancel, style: 'cancel' },
-      {
-        text: t.group.archive,
-        onPress: () =>
-          updateGroup.mutate(
-            { archived_at: new Date().toISOString() },
-            { onSuccess: () => router.replace('/') },
-          ),
-      },
-    ]);
+  // Archiving puts a group away; it does not throw anything out, and it can be
+  // undone from the archive. So it asks in the ordinary voice — no warning mark,
+  // no red door — which is the difference the native alert could not draw.
+  const archive = async (): Promise<void> => {
+    const ok = await confirm({
+      title: t.group.archiveQuestion,
+      body: t.group.archiveBody,
+      confirmLabel: t.group.archive,
+    });
+    if (ok) {
+      updateGroup.mutate(
+        { archived_at: new Date().toISOString() },
+        { onSuccess: () => router.replace('/') },
+      );
+    }
   };
 
   /**
-   * The open debts, said in words — "Asha owes Ravi ₹500" — for the delete
+   * The open debts — "Asha owes Ravi", and ₹500 beside it — for the delete
    * warning. Read off the same `transfers` the who-pays-whom screen shows, so
    * the amounts in the warning are the amounts the group has been looking at,
    * and across every currency rather than only the group default.
+   *
+   * The money is handed over as money rather than formatted into the sentence.
+   * The native alert could be told nothing but strings, so four real debts
+   * arrived as one paragraph; a row keeps the name and the amount apart, and
+   * `MoneyText` then draws the amount the way every other amount in this app is
+   * drawn, with the spoken label it carries everywhere else.
    *
    * Names are the plain member names, never "You": the line has to read the
    * same to whoever is holding the phone, and "You owes Ravi" is not a
@@ -364,24 +377,25 @@ export default function GroupSettingsScreen() {
    * they wear everywhere else (A62) — the block is about not seeing a name all
    * day, and a warning is not the place to hand it back.
    */
-  const outstandingDebts = (): string[] => {
+  const outstandingDebts = (): DialogRow[] => {
     const nameFor = (memberId: string): string => {
       const member = (members.data ?? []).find((row) => row.id === memberId);
       // The label for a member with no name of their own is passed in rather
-      // than left to the default, which is the English word: this alert is the
+      // than left to the default, which is the English word: this dialog is the
       // last thing somebody reads before destroying a record, and half of it
       // arriving in another language is not the moment for it.
       return member ? displayName(member, undefined, blockedIds, t.misc.someone) : t.misc.someone;
     };
-    return orderDebtsForWarning(ledger.transfers, currency).map((transfer) =>
-      fill(t.group.deleteOwesLine, {
+    return orderDebtsForWarning(ledger.transfers, currency).map((transfer) => ({
+      // Two members and a currency are exactly one debt in `transfers`, so this
+      // is stable across a re-render and unique within the list.
+      key: `${transfer.from}:${transfer.to}:${transfer.currency}`,
+      label: fill(t.group.deleteOwesWho, {
         from: nameFor(transfer.from),
         to: nameFor(transfer.to),
-        amount: formatMoney(coreMoney(transfer.amount, transfer.currency as CurrencyCode), {
-          locale,
-        }),
       }),
-    );
+      amount: { minor: transfer.amount, currency: transfer.currency as CurrencyCode },
+    }));
   };
 
   // Delete removes the group for everyone (A49), immediately and with no undo,
@@ -391,46 +405,54 @@ export default function GroupSettingsScreen() {
   // gone — a group whose balances will never reach zero (the trip nobody
   // settled, the group created by mistake) could otherwise never be deleted by
   // anybody, including the person who created it. What replaces it is honesty:
-  // when balances are open, the alert names them and says plainly that deleting
-  // throws that record away for every member, not only for the admin tapping.
-  const confirmDelete = (): void => {
+  // when balances are open, the dialog names them and says plainly that
+  // deleting throws that record away for every member, not only for the admin
+  // tapping. This is the dialog the whole replacement was for: it is the one
+  // place in the app where the consequence of a tap is a list of real people
+  // and real money, and the native alert rendered it as a wall of prose.
+  const confirmDelete = async (): Promise<void> => {
     const debts = ledger.groupSettled ? [] : outstandingDebts();
-    // Enough lines to make the loss concrete without turning the alert into a
+    // Enough rows to make the loss concrete without turning the dialog into a
     // ledger; the rest are counted, since the point is the size of what goes.
-    const body = groupDeleteBody({
+    const warning = groupDeleteWarning({
       groupSettled: ledger.groupSettled,
-      debtLines: debts,
+      debts,
       locale,
       text: t.group,
     });
 
-    Alert.alert(t.group.deleteQuestion, body, [
-      { text: t.common.cancel, style: 'cancel' },
-      {
-        // "Delete anyway" when there is something to lose, so the button itself
-        // admits what the sentence above it just said.
-        text: ledger.groupSettled ? t.group.delete : t.group.deleteAnyway,
-        style: 'destructive',
-        onPress: () => {
-          if (deleteGroup.isPending) return;
-          deleteGroup.mutate(undefined, {
-            onSuccess: () => router.replace('/'),
-            onError: (caught) => {
-              // The one coded refusal left carries a `code` (set in
-              // api.deleteGroup); show its localized line directly. Anything
-              // else is unknown and goes through friendlyError, which never
-              // echoes raw backend text.
-              const code = (caught as { code?: string } | null)?.code;
-              const message =
-                code === 'NOT_ADMIN'
-                  ? t.group.deleteAdminOnly
-                  : friendlyError(caught, t.misc.tryAgainMoment, 'groupSettings.delete');
-              Alert.alert(t.group.deleteGroup, message);
-            },
-          });
-        },
+    const ok = await confirm({
+      title: t.group.deleteQuestion,
+      body: warning.body,
+      rows: warning.rows,
+      moreRows: warning.moreRows,
+      note: warning.note,
+      // "Delete anyway" when there is something to lose, so the button itself
+      // admits what the rows above it just showed.
+      confirmLabel: ledger.groupSettled ? t.group.delete : t.group.deleteAnyway,
+      tone: 'danger',
+    });
+    if (!ok || deleteGroup.isPending) return;
+
+    deleteGroup.mutate(undefined, {
+      onSuccess: () => router.replace('/'),
+      onError: (caught) => {
+        // The one coded refusal left carries a `code` (set in api.deleteGroup);
+        // show its localized line directly. Anything else is unknown and goes
+        // through friendlyError, which never echoes raw backend text.
+        //
+        // A toast, not a second dialog: the group is exactly as it was, there is
+        // nothing to answer, and stacking a dialog on the one just dismissed is
+        // how somebody taps through a sentence without reading it.
+        const code = (caught as { code?: string } | null)?.code;
+        toast.show(
+          code === 'NOT_ADMIN'
+            ? t.group.deleteAdminOnly
+            : friendlyError(caught, t.misc.tryAgainMoment, 'groupSettings.delete'),
+          'negative',
+        );
       },
-    ]);
+    });
   };
 
   return (
@@ -803,7 +825,7 @@ export default function GroupSettingsScreen() {
               title={t.group.archiveGroup}
               subtitle={t.group.archiveHint}
               leading={<ExitChip icon="archive-outline" tone="quiet" />}
-              onPress={archive}
+              onPress={() => void archive()}
             />
             <View style={{ height: 1, backgroundColor: theme.color.border }} />
             <ListRow
@@ -814,7 +836,7 @@ export default function GroupSettingsScreen() {
               // an arrow drawn to the right still points right in a mirrored
               // layout. Taking yourself off the list is direction-free.
               leading={<ExitChip icon="person-remove-outline" tone="soft" />}
-              onPress={leave}
+              onPress={() => void leave()}
             />
           </Card>
 
@@ -836,7 +858,7 @@ export default function GroupSettingsScreen() {
                   subtitle={t.group.deleteHint}
                   destructive
                   leading={<ExitChip icon="trash-outline" tone="loud" />}
-                  onPress={deleteGroup.isPending ? undefined : confirmDelete}
+                  onPress={deleteGroup.isPending ? undefined : () => void confirmDelete()}
                 />
               </Card>
               {/* An admin looking at an unsettled group should know what the

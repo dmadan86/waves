@@ -51,11 +51,10 @@ import {
   type ReactNode,
 } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Alert, I18nManager, Platform } from 'react-native';
+import { I18nManager, Platform } from 'react-native';
 
 import { setLayoutDirection } from '@waves/ui';
 
-import { canRestart, restartApp } from '@/lib/restart';
 import { legacyKeysMigrated } from '@/lib/legacyKeys';
 
 import {
@@ -65,7 +64,6 @@ import {
   LanguageContext,
   localeFor,
   setActiveLanguage,
-  STRINGS_BY_LANGUAGE,
   type Language,
 } from '@/i18n';
 
@@ -85,6 +83,27 @@ const KEY = 'waves.language';
  */
 const LAUNCHED_RTL = Platform.OS === 'web' ? null : I18nManager.isRTL;
 
+/**
+ * The app has been put the other way round and cannot mirror itself until it is
+ * opened again — raised by `setLanguage`, answered by `LanguageRestartPrompt`.
+ *
+ * It is a value rather than a dialog because of where this provider sits: it is
+ * the outermost one in the tree, above the theme, above `DialogProvider`, and
+ * so it cannot use the app's own dialog. It used to reach past all of that for
+ * `Alert.alert`, which is exactly the borrowed native window this app stopped
+ * using (A66). So the provider says *what happened* and something mounted
+ * further in draws it.
+ *
+ * The language is carried along rather than read off the context by the
+ * consumer, because the words have to be the ones just chosen — that is the one
+ * language the person has said they read.
+ */
+export interface LanguageRestartPrompt {
+  readonly language: Language;
+  /** True when the layout is about to become right-to-left. */
+  readonly rtl: boolean;
+}
+
 interface LanguageValue {
   /** The language the app is speaking. */
   language: Language;
@@ -103,6 +122,9 @@ interface LanguageValue {
    * screen. Only ever true on a device, and only until the app is opened again.
    */
   restartNeeded: boolean;
+  /** Set the moment a choice flips the direction; cleared once it is shown. */
+  restartPrompt: LanguageRestartPrompt | null;
+  clearRestartPrompt: () => void;
 }
 
 /**
@@ -119,6 +141,7 @@ const LanguageValueContext = createContext<LanguageValue | null>(null);
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [stored, setStored] = useState<Language | null>(null);
   const [loading, setLoading] = useState(true);
+  const [restartPrompt, setRestartPrompt] = useState<LanguageRestartPrompt | null>(null);
 
   const phoneLanguage = deviceLanguage();
   const language = stored ?? phoneLanguage;
@@ -166,37 +189,16 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       // Said at the moment of the choice, and said in a way that has to be
       // dismissed, because the alternative has already failed twice: a banner
       // lives on one screen, and somebody who taps a language and walks away
-      // never reads it. The words are in the language just chosen — that is the
-      // one they have said they read.
+      // never reads it.
       //
       // Compared against the direction the app *launched* in rather than the
       // language being replaced. Going Arabic → English → Arabic in one sitting
       // ends where it started, and there is nothing left to restart for.
-      if (rtl !== LAUNCHED_RTL) {
-        const words = STRINGS_BY_LANGUAGE[chosen];
-
-        // Builds carrying `expo-updates` can do it themselves, so they offer
-        // rather than instruct. Older binaries — and any build that refuses the
-        // reload — still get the sentence that was always true.
-        if (canRestart()) {
-          Alert.alert(
-            words.account.restartTitle,
-            rtl ? words.account.restartNowMirror : words.account.restartNowUnmirror,
-            [
-              { text: words.misc.notNow, style: 'cancel' },
-              { text: words.account.restartNow, onPress: () => void restartApp() },
-            ],
-          );
-        } else {
-          Alert.alert(
-            words.account.restartTitle,
-            rtl ? words.signIn.restartToMirror : words.signIn.restartToUnmirror,
-            [{ text: words.common.ok }],
-          );
-        }
-      }
+      if (rtl !== LAUNCHED_RTL) setRestartPrompt({ language: chosen, rtl });
     }
   }, []);
+
+  const clearRestartPrompt = useCallback(() => setRestartPrompt(null), []);
 
   const value = useMemo<LanguageValue>(
     () => ({
@@ -209,8 +211,10 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       setLanguage,
       phoneLanguage,
       restartNeeded: LAUNCHED_RTL !== null && LAUNCHED_RTL !== isRtlLanguage(language),
+      restartPrompt,
+      clearRestartPrompt,
     }),
-    [language, stored, loading, setLanguage, phoneLanguage],
+    [language, stored, loading, setLanguage, phoneLanguage, restartPrompt, clearRestartPrompt],
   );
 
   return (

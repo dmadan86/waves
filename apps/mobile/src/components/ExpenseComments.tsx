@@ -24,7 +24,6 @@ import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -48,6 +47,8 @@ import { useAvatarUrl } from '@/components/ProfileAvatar';
 import { CommentMarkdown } from '@/components/CommentMarkdown';
 import { RichCommentInput } from '@/components/RichCommentInput';
 import { useStrings } from '@/i18n';
+import { useDialog } from '@/lib/dialog';
+import { useToast } from '@/lib/toast';
 
 function whenLabel(iso: string | null, locale: string): string {
   if (!iso) return '';
@@ -108,6 +109,8 @@ export function ExpenseComments({
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { t, locale } = useStrings();
+  const { confirm, choose } = useDialog();
+  const toast = useToast();
   const comments = useExpenseComments(expenseId);
   const add = useAddExpenseComment(groupId, expenseId);
   const edit = useEditExpenseComment();
@@ -195,7 +198,7 @@ export function ExpenseComments({
               ]);
             }
           },
-          onError: () => Alert.alert(t.comments.couldNotPost),
+          onError: () => toast.show(t.comments.couldNotPost, 'negative'),
         },
       );
     } else {
@@ -203,7 +206,7 @@ export function ExpenseComments({
         { commentId: editorCommentId, body },
         {
           onSuccess: () => setEditorOpen(false),
-          onError: () => Alert.alert(t.comments.couldNotPost),
+          onError: () => toast.show(t.comments.couldNotPost, 'negative'),
         },
       );
     }
@@ -239,52 +242,47 @@ export function ExpenseComments({
     setForcedSel(caret);
   };
 
-  const confirmDelete = (row: ExpenseCommentRow) => {
-    Alert.alert(t.comments.deleteConfirm, undefined, [
-      { text: t.common.cancel, style: 'cancel' },
-      {
-        text: t.comments.delete,
-        style: 'destructive',
-        onPress: () =>
-          remove.mutate(
-            { commentId: row.id },
-            { onError: () => Alert.alert(t.comments.couldNotDelete) },
-          ),
-      },
-    ]);
+  const confirmDelete = async (row: ExpenseCommentRow) => {
+    const ok = await confirm({
+      title: t.comments.deleteConfirm,
+      confirmLabel: t.comments.delete,
+      tone: 'danger',
+    });
+    if (!ok) return;
+    remove.mutate(
+      { commentId: row.id },
+      { onError: () => toast.show(t.comments.couldNotDelete, 'negative') },
+    );
   };
 
   // The "···" sheet: only the actions this person may take on this comment, so
   // it mirrors the RPC matrix. Nothing to offer → the dots are not shown.
-  const openActions = (row: ExpenseCommentRow) => {
+  const openActions = async (row: ExpenseCommentRow) => {
     const mine = myMemberId !== null && row.authorMemberId === myMemberId;
     const flagged = row.flaggedAt !== null;
-    const options: { text: string; style?: 'destructive' | 'cancel'; onPress?: () => void }[] = [];
+    // A list of what this person may do, so it comes up from the bottom edge as
+    // a sheet rather than a centred card — the shape an action list has taken
+    // since Nextdoor and Instacart, and the one within reach of a thumb.
+    const options: { id: string; label: string; tone?: 'danger' }[] = [];
     if (mine) {
-      options.push({ text: t.comments.edit, onPress: () => openEdit(row) });
+      options.push({ id: 'edit', label: t.comments.edit });
     }
     if (mine || iAmAdmin) {
-      options.push({
-        text: t.comments.delete,
-        style: 'destructive',
-        onPress: () => confirmDelete(row),
-      });
+      options.push({ id: 'delete', label: t.comments.delete, tone: 'danger' });
     }
     if (!mine && !flagged) {
-      options.push({
-        text: t.comments.report,
-        onPress: () => flag.mutate({ commentId: row.id, flag: true }),
-      });
+      options.push({ id: 'report', label: t.comments.report });
     }
     if (flagged && iAmAdmin) {
-      options.push({
-        text: t.comments.resolve,
-        onPress: () => flag.mutate({ commentId: row.id, flag: false }),
-      });
+      options.push({ id: 'resolve', label: t.comments.resolve });
     }
     if (options.length === 0) return;
-    options.push({ text: t.common.cancel, style: 'cancel' });
-    Alert.alert(t.comments.title, undefined, options);
+
+    const picked = await choose({ title: t.comments.title, options });
+    if (picked === 'edit') openEdit(row);
+    else if (picked === 'delete') void confirmDelete(row);
+    else if (picked === 'report') flag.mutate({ commentId: row.id, flag: true });
+    else if (picked === 'resolve') flag.mutate({ commentId: row.id, flag: false });
   };
 
   const hasActions = (row: ExpenseCommentRow): boolean => {
@@ -419,7 +417,7 @@ export function ExpenseComments({
                   <View style={{ flex: 1 }} />
                   {hasActions(row) ? (
                     <Pressable
-                      onPress={() => openActions(row)}
+                      onPress={() => void openActions(row)}
                       accessibilityRole="button"
                       accessibilityLabel={t.comments.title}
                       hitSlop={10}
