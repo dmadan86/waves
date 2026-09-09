@@ -13,11 +13,21 @@
  * already one identity by their account and must never be folded under a made-up
  * name, which the RPC also enforces.
  *
+ * Who is offered comes from group membership, not from balances. The screen used
+ * to read the balance list, which drops anybody square with you and carries no
+ * address — so a guest you had given a phone number to could not be seen at all,
+ * and nothing on a row said which of two names was the one you already knew.
+ * Both are the whole point of this screen: it now shows every guest you share a
+ * group with, says what makes each of them somebody already (their number or
+ * address, and how far they reach), and pre-fills the merged name from the
+ * identified one. Pre-fills only — the field stays editable.
+ *
  * Assigning a device contact only *names* the merged person. It never creates a
  * new guest and never asks which group to add anyone to — the people being
- * merged are already in their groups. If the contact's name matches a guest on
- * the list, that guest is ticked; either way the contact's name becomes the
- * merged name and is held so the invite step below can offer it.
+ * merged are already in their groups. A contact whose name fits exactly one
+ * guest ticks them; a name that fits several ticks nobody and says so, because a
+ * name three people share is not evidence about any of them. Either way the
+ * contact's name becomes the merged name and is held for the invite step below.
  *
  * After the merge, the person can be invited to the groups they now span. There
  * is no targeted send in this app — invites are one durable join link per group
@@ -27,7 +37,7 @@
 import { useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
 import {
   ActivityIndicator,
@@ -59,26 +69,33 @@ import {
   useTheme,
 } from '@waves/ui';
 
-import {
-  ensureGroupJoinToken,
-  fetchPeopleBalances,
-  fetchPersonGroupBalances,
-  groupJoinLink,
-  mergeGhosts,
-  type PersonBalanceRow,
-} from '@/data/api';
+import { ensureGroupJoinToken, groupJoinLink, mergeGhosts } from '@/data/api';
+import { useGroups, useMergeCandidates } from '@/data/hooks';
 import {
   canMerge,
+  contactNameMatch,
   defaultMergeName,
-  isMergeable,
+  hasContact,
   memberIdsForMerge,
   mergeErrorMessage,
+  suggestMergeCluster,
+  type MergeCandidate,
 } from '@/data/mergePeople';
 import { ContactPicker, type PickedContact } from '@/components/ContactPicker';
 import { PeopleSkeleton } from '@/components/Skeletons';
 import { friendlyError } from '@/lib/errors';
 import { useSync } from '@/sync';
-import { fill, plural, useStrings } from '@/i18n';
+import { fill, plural, useStrings, type UiStrings } from '@/i18n';
+
+/**
+ * How much of the mergeable roster is drawn before asking. It is every ghost in
+ * every active group, so it has no ceiling; this keeps a cold open cheap without
+ * hiding anybody behind a search box they would have to guess at.
+ */
+const ROSTER_PAGE = 25;
+
+/** Nothing ticked. Hoisted so it is one stable object, not a new set per render. */
+const EMPTY: ReadonlySet<string> = new Set();
 
 /** One group the merged person belongs to, for the post-merge invite sheet. */
 interface InviteGroup {
@@ -94,7 +111,6 @@ export default function MergePeopleScreen() {
   // button hidden behind the bar, unreachable by scrolling.
   const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
-  const queryClient = useQueryClient();
   const { flush } = useSync();
 
   // People pre-picked on the Friends tab (its multiselect merge) arrive as a
@@ -114,26 +130,44 @@ export default function MergePeopleScreen() {
     [params.keys],
   );
 
-  const people = useQuery({ queryKey: ['people', 'balances'], queryFn: fetchPeopleBalances });
+  // Every guest you share a group with, from the mirror — whatever the balance,
+  // and carrying the address that says which of them you already know.
+  const people = useMergeCandidates(t.misc.someone);
+  const guests = people.data;
+  const groups = useGroups();
 
-  // One selectable row per guest. A guest unsettled in two currencies is two
-  // balance rows but one person, so collapse by `person_key`; the first row
-  // carries the member id and name the rest of the screen needs.
-  const guests = useMemo(() => {
-    const byKey = new Map<string, PersonBalanceRow>();
-    for (const row of people.data ?? []) {
-      if (!isMergeable(row)) continue;
-      if (!byKey.has(row.person_key)) byKey.set(row.person_key, row);
-    }
-    return [...byKey.values()];
-  }, [people.data]);
+  // Two guests you wrote the same number against are almost certainly one
+  // person. Say so by ticking them — both, separately, each removable, each
+  // named in the confirmation — rather than by folding them into one row behind
+  // the user's back (see `suggestMergeCluster`). The roster arrives from the
+  // mirror a beat after mount, so this has to be derived rather than seeded: an
+  // effect writing the selection would fight every sync that re-derives the
+  // roster, and would re-impose itself over picks already made.
+  const suggestion = useMemo(() => {
+    if (initialKeys.size > 0) return null;
+    const cluster = suggestMergeCluster(guests);
+    return cluster.length >= 2 ? new Set(cluster.map((row) => row.person_key)) : null;
+  }, [guests, initialKeys]);
 
-  const [selected, setSelected] = useState<ReadonlySet<string>>(() => new Set(initialKeys));
-  const [name, setName] = useState(() =>
-    decodeURIComponent(typeof params.name === 'string' ? params.name : ''),
-  );
-  const [nameTouched, setNameTouched] = useState(false);
+  // What is ticked before the user has touched anything: their own pre-picks
+  // from Friends if there were any, else the suggestion, else nothing.
+  const baseKeys: ReadonlySet<string> = initialKeys.size > 0 ? initialKeys : (suggestion ?? EMPTY);
+  // Null until the user picks for themselves; from then on it is theirs alone
+  // and the suggestion is ignored, however the roster moves underneath.
+  const [picked, setPicked] = useState<ReadonlySet<string> | null>(null);
+  const selected = picked ?? baseKeys;
+  /** The ticks are the screen's proposal, not the user's — the list says so. */
+  const suggested = picked === null && suggestion !== null;
+
+  // Null until somebody types (or assigns a contact): the field then shows the
+  // suggestion below, which follows the picks. Not state that has to be kept in
+  // step — a derived name cannot drift out of it.
+  const [typedName, setTypedName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Set when a picked contact's name fits more than one guest — the screen says
+  // so and picks nobody, rather than quietly ticking several different humans.
+  const [contactNotice, setContactNotice] = useState<string | null>(null);
+  const [showAllGuests, setShowAllGuests] = useState(false);
 
   // The device contact assigned to name the merge (if any). Held only for its
   // name and to show the "assigned" state — it is never turned into a guest.
@@ -150,60 +184,115 @@ export default function MergePeopleScreen() {
   // not), so the invite prompt can list them without another round-trip.
   const pendingInviteGroups = useRef<InviteGroup[]>([]);
 
-  const selectedRows = guests.filter((row) => selected.has(row.person_key));
+  const selectedRows = useMemo(
+    () => guests.filter((row) => selected.has(row.person_key)),
+    [guests, selected],
+  );
+  /** The guests not in the merge yet — what the "add a person" list offers. */
+  const remaining = useMemo(
+    () => guests.filter((row) => !selected.has(row.person_key)),
+    [guests, selected],
+  );
+  const shownRemaining = showAllGuests ? remaining : remaining.slice(0, ROSTER_PAGE);
 
-  const toggle = (personKey: string): void => {
+  // The name the merge would keep if nobody typed one: the identified person's
+  // (see `defaultMergeName`). It follows the picks, so removing the person it
+  // came from moves it to whoever is left, and the caption below says it is a
+  // suggestion rather than a decision.
+  const suggestedName = useMemo(
+    () =>
+      defaultMergeName(
+        selectedRows.map((row) => ({
+          display_name: row.display_name,
+          phone: row.phone,
+          email: row.email,
+          group_count: row.group_ids.length,
+        })),
+      ),
+    [selectedRows],
+  );
+  // The name the Friends tab guessed before this screen had the fuller picture —
+  // used only until the candidates are read off the mirror, so the field is
+  // never blank for a frame. Read raw for the same reason `keys` above is:
+  // `useLocalSearchParams` has already decoded it, and a second pass throws on a
+  // name containing a literal %.
+  const seededName = typeof params.name === 'string' ? params.name : '';
+  const name = typedName ?? (suggestedName || seededName);
+  const showingSuggestion = typedName === null && name.trim().length > 0;
+
+  /** Somebody in the merge whose membership has not reached the server yet. */
+  const pendingPicked = selectedRows.some((row) => row.pending);
+
+  const toggle = (row: MergeCandidate): void => {
     setError(null);
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(personKey)) next.delete(personKey);
-      else next.add(personKey);
-      // Keep the name in step with the pick until the person types their own.
-      if (!nameTouched) {
-        setName(defaultMergeName(guests.filter((row) => next.has(row.person_key))));
+    setContactNotice(null);
+    // Folded from whatever is ticked *now*, so two taps in a row before React
+    // has re-rendered still land on the real set rather than on a snapshot.
+    setPicked((prev) => {
+      const current = prev ?? baseKeys;
+      const next = new Set(current);
+      if (current.has(row.person_key)) {
+        next.delete(row.person_key);
+      } else if (!row.pending) {
+        // Adding somebody the server has not seen would make the RPC refuse the
+        // whole merge, and say of them that they are not a guest you share a
+        // group with — untrue, about a person this very screen is listing.
+        // Removing one always works, so only the add is blocked.
+        next.add(row.person_key);
       }
       return next;
     });
   };
 
   /**
-   * A contact was picked. It only names the merge: if its name matches somebody
-   * already on this list, that is exactly the recognition this screen is built
-   * on — tick them, the same as tapping their row would. Either way the contact
-   * becomes the merged name and is held for the invite step. No guest is
-   * created, and no group is chosen — the merge is over the people already here.
+   * A contact was picked. It only names the merge: the contact's name becomes
+   * the merged name and is held for the invite step. No guest is created, and no
+   * group is chosen — the merge is over the people already here.
+   *
+   * A name match ticks somebody only when it is unambiguous. It used to tick
+   * every guest wearing that name, which was survivable while the roster was
+   * only people carrying a live debt; now that it is every guest in every group,
+   * one contact called "Alex" could silently sweep three different humans into
+   * an irreversible merge whose confirmation named nobody. So a single match is
+   * ticked (that is the recognition this screen is built on), several matches
+   * tick nobody and say so, and the person picks the one they meant.
    */
   const onPickContact = (chosen: readonly PickedContact[]): void => {
     const contact = chosen[0];
     if (!contact) return;
-    const needle = contact.name.trim().toLowerCase();
-    const matches = guests.filter((row) => row.display_name.trim().toLowerCase() === needle);
-    setSelected((prev) => {
-      const next = new Set(prev);
-      for (const row of matches) next.add(row.person_key);
-      return next;
-    });
+    const { pick, ambiguous } = contactNameMatch(guests, contact.name);
+    if (pick) setPicked((prev) => new Set(prev ?? baseKeys).add(pick.person_key));
+    setContactNotice(
+      ambiguous ? fill(t.mergePeople.contactAmbiguous, { name: contact.name }) : null,
+    );
     setPickedContact(contact);
     // Assigning a contact is naming the merged person: the contact's name wins,
     // and it stops auto-tracking the picks from here on.
-    setNameTouched(true);
-    setName(contact.name);
+    setTypedName(contact.name);
     setError(null);
     setPickingContact(false);
   };
 
-  const ready = canMerge(selectedRows) && name.trim().length > 0;
+  const ready = canMerge(selectedRows) && !pendingPicked && name.trim().length > 0;
   const nothingToMergeYet = guests.length === 0;
 
-  /** The groups the currently-selected guests span, deduped by group id. */
-  const gatherInviteGroups = async (): Promise<InviteGroup[]> => {
-    const rows = (
-      await Promise.all([...selected].map((key) => fetchPersonGroupBalances(key)))
-    ).flat();
+  /**
+   * The groups the currently-selected guests span, deduped by group id. Read off
+   * the mirror the candidates came from — no round-trip, and it holds for a
+   * person you are square with, whose balance rows would list no groups at all.
+   */
+  const gatherInviteGroups = (): InviteGroup[] => {
     const byId = new Map<string, InviteGroup>();
-    for (const row of rows) {
-      if (!byId.has(row.group_id)) {
-        byId.set(row.group_id, { id: row.group_id, name: row.group_name, emoji: row.cover_emoji });
+    const known = new Map(groups.data.map((group) => [group.id, group]));
+    for (const row of selectedRows) {
+      for (const groupId of row.group_ids) {
+        if (byId.has(groupId)) continue;
+        const group = known.get(groupId);
+        byId.set(groupId, {
+          id: groupId,
+          name: group?.name ?? null,
+          emoji: group?.cover_emoji ?? null,
+        });
       }
     }
     return [...byId.values()];
@@ -211,11 +300,10 @@ export default function MergePeopleScreen() {
 
   const merge = useMutation({
     mutationFn: () => mergeGhosts(memberIdsForMerge(selectedRows), name.trim()),
-    onSuccess: async () => {
+    onSuccess: () => {
       // The merge is written server-side by the RPC; pull it into the mirror so
-      // the now-local Friends list (ADR-005) folds it without waiting for the
-      // next background sync. The invalidate keeps this screen's own list fresh.
-      await queryClient.invalidateQueries({ queryKey: ['people', 'balances'] });
+      // the now-local Friends list (ADR-005) — and this screen, which reads the
+      // same rows — folds it without waiting for the next background sync.
       void flush();
       const groups = pendingInviteGroups.current;
       // Nothing to invite into (no groups resolved) → this screen is done.
@@ -240,23 +328,25 @@ export default function MergePeopleScreen() {
   // Merging is permanent, so the "this can't be undone" warning is a dialog on
   // tap — the person confirms it deliberately — rather than a line they may
   // skim past. Only the confirm proceeds to the write.
+  //
+  // It names everybody being folded, so an extra pick — from a contact match, or
+  // a mis-tap on a long roster — is visible in the last moment before it stops
+  // being reversible. A warning that says only "this can't be undone" cannot be
+  // checked against anything.
   const confirmMerge = (): void => {
     if (!ready || merge.isPending) return;
-    Alert.alert(t.mergePeople.warningTitle, t.mergePeople.warningBody, [
+    const who = fill(t.mergePeople.warningWho, {
+      people: selectedRows.map((row) => row.display_name).join(', '),
+    });
+    Alert.alert(t.mergePeople.warningTitle, `${who}\n\n${t.mergePeople.warningBody}`, [
       { text: t.common.cancel, style: 'cancel' },
       {
         text: t.mergePeople.cta,
         style: 'destructive',
         onPress: () => {
-          void (async () => {
-            // Snapshot the groups before the write, from the pre-merge keys.
-            try {
-              pendingInviteGroups.current = await gatherInviteGroups();
-            } catch {
-              pendingInviteGroups.current = [];
-            }
-            merge.mutate();
-          })();
+          // Snapshot the groups before the write, from the pre-merge picks.
+          pendingInviteGroups.current = gatherInviteGroups();
+          merge.mutate();
         },
       },
     ]);
@@ -323,14 +413,6 @@ export default function MergePeopleScreen() {
         >
           {people.isLoading ? (
             <PeopleSkeleton />
-          ) : people.isError ? (
-            <EmptyState
-              title={t.loadError}
-              body={t.loadErrorBody}
-              action={
-                <Button label={t.retry} variant="secondary" onPress={() => people.refetch()} />
-              }
-            />
           ) : nothingToMergeYet ? (
             <EmptyState title={t.mergePeople.title} body={t.mergePeople.empty} />
           ) : (
@@ -352,10 +434,7 @@ export default function MergePeopleScreen() {
                 >
                   <TextInput
                     value={name}
-                    onChangeText={(value) => {
-                      setNameTouched(true);
-                      setName(value);
-                    }}
+                    onChangeText={setTypedName}
                     editable={selectedRows.length > 0}
                     accessibilityLabel={t.mergePeople.nameLabel}
                     placeholder={t.mergePeople.namePlaceholder}
@@ -370,29 +449,44 @@ export default function MergePeopleScreen() {
                   />
                   <Ionicons name="pencil" size={iconSize.md} color={theme.color.textFaint} />
                 </Row>
+                {/* Say out loud that the name is a suggestion. It is filled from
+                    the person we already have details for, which is right often
+                    enough to save a typing — and wrong often enough that it must
+                    never read as settled. */}
+                {showingSuggestion ? (
+                  <Text variant="micro" tone="muted">
+                    {t.mergePeople.nameSuggested}
+                  </Text>
+                ) : null}
               </View>
 
               {/* Only the people actually being merged — not the whole roster.
-                  Each is removable; the button below assigns a contact name. */}
+                  Each is removable; the list below adds more. */}
               <View style={{ gap: theme.spacing.sm }}>
                 <Text variant="caption" tone="muted">
                   {selectedRows.length > 0
                     ? plural(locale, selectedRows.length, t.mergePeople.peopleHeader)
                     : t.mergePeople.needTwo}
                 </Text>
+                {/* These were ticked by the screen, not by the user. Saying so
+                    is what keeps it a suggestion: they share a number, which is
+                    good evidence and not proof, and the next line says plainly
+                    that removing anybody is expected. */}
+                {suggested && selectedRows.length > 0 ? (
+                  <Callout tone="info">{t.mergePeople.suggestedPicks}</Callout>
+                ) : null}
                 {selectedRows.length > 0 ? (
                   <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
                     {selectedRows.map((row, index) => (
                       <View key={row.person_key}>
                         <MergeMemberRow
                           name={row.display_name}
-                          subtitle={
-                            row.group_count === 1
-                              ? t.tabs.inOneGroup
-                              : plural(locale, row.group_count, t.tabs.acrossGroups)
-                          }
+                          subtitle={identityLine(row, locale, t)}
+                          spoken={identitySpoken(row, locale, t)}
+                          identified={hasContact(row)}
+                          identifiedLabel={t.mergePeople.hasContact}
                           removeLabel={fill(t.pickers.removeName, { name: row.display_name })}
-                          onRemove={() => toggle(row.person_key)}
+                          onRemove={() => toggle(row)}
                         />
                         {index < selectedRows.length - 1 ? <Divider /> : null}
                       </View>
@@ -401,10 +495,84 @@ export default function MergePeopleScreen() {
                 ) : null}
               </View>
 
+              {/* Everybody else you could merge — the step this screen lost, and
+                  without which a person who was not pre-picked on Friends could
+                  not be reached at all. Each row says what makes them somebody
+                  already: the number or address you wrote down, how many groups
+                  they turn up in, and whether they are still waiting to sync.
+                  Ready-and-identified people sort first.
+
+                  Drawn a page at a time rather than all at once: the roster is
+                  every ghost in every active group, which is unbounded, and this
+                  screen cannot hand it to a FlashList — the list would have to
+                  own the whole scroll (nesting one inside this ScrollView
+                  defeats it), which would put the name field in a header that
+                  remounts and loses focus mid-typing. A "show the rest" tap is
+                  the honest trade. */}
+              <View style={{ gap: theme.spacing.sm }}>
+                <Text variant="caption" tone="muted">
+                  {t.mergePeople.addGuestTitle}
+                </Text>
+                {remaining.length === 0 ? (
+                  <Text variant="caption" tone="muted">
+                    {t.mergePeople.noMoreGuests}
+                  </Text>
+                ) : (
+                  <>
+                    <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
+                      {shownRemaining.map((row, index) => (
+                        <View key={row.person_key}>
+                          <ListRow
+                            title={row.display_name}
+                            subtitle={identityLine(row, locale, t)}
+                            // The tick the selected rows wear has nowhere to go
+                            // on a ListRow, so the fact it stands for is spoken
+                            // here instead — the number itself is on the row.
+                            accessibilityLabel={[
+                              row.display_name,
+                              hasContact(row) ? t.mergePeople.hasContact : '',
+                              identitySpoken(row, locale, t),
+                            ]
+                              .filter(Boolean)
+                              .join(', ')}
+                            accessibilityState={{ disabled: row.pending }}
+                            leading={<Avatar name={row.display_name} size={40} ghost />}
+                            trailing={
+                              <Ionicons
+                                name={row.pending ? 'cloud-upload-outline' : 'add-circle'}
+                                size={iconSize.xl}
+                                color={row.pending ? theme.color.textFaint : theme.color.brand}
+                              />
+                            }
+                            // Inert while their membership is only in the queue:
+                            // the server would refuse the whole merge over them.
+                            onPress={row.pending ? undefined : () => toggle(row)}
+                          />
+                          {index < shownRemaining.length - 1 ? <Divider /> : null}
+                        </View>
+                      ))}
+                    </Card>
+                    {shownRemaining.length < remaining.length ? (
+                      <Button
+                        label={plural(
+                          locale,
+                          remaining.length - shownRemaining.length,
+                          t.mergePeople.showAllGuests,
+                        )}
+                        variant="ghost"
+                        fullWidth
+                        onPress={() => setShowAllGuests(true)}
+                      />
+                    ) : null}
+                  </>
+                )}
+              </View>
+
               {/* Give the merged person a real identity: assign them a device
-                  contact. A contact whose name matches a guest ticks it; either
-                  way the contact's name becomes the merged name (see
-                  onPickContact). No guest is created and no group is chosen. */}
+                  contact. A contact whose name fits exactly one guest ticks
+                  them; several matches tick nobody and say so. Either way the
+                  contact's name becomes the merged name (see onPickContact). No
+                  guest is created and no group is chosen. */}
               <Button
                 label={
                   pickedContact
@@ -423,6 +591,17 @@ export default function MergePeopleScreen() {
                   />
                 }
               />
+
+              {/* The contact's name fitted several guests. Nobody was ticked —
+                  this says why, and the roster above is where they choose. */}
+              {contactNotice ? <Callout tone="info">{contactNotice}</Callout> : null}
+
+              {/* Somebody in the merge is still only in the queue. Saying so
+                  here beats the server's refusal, which would call them a person
+                  you share no group with. */}
+              {pendingPicked ? (
+                <Callout tone="warning">{t.mergePeople.pendingBlocked}</Callout>
+              ) : null}
 
               {error ? <Callout tone="negative">{error}</Callout> : null}
 
@@ -545,21 +724,81 @@ export default function MergePeopleScreen() {
   );
 }
 
+/** The one address we hold for this guest — a number first, else an email. */
+function contactAddress(person: MergeCandidate): string {
+  return person.phone?.trim() || person.email?.trim() || '';
+}
+
+/** The facts the identity line is made of, unformatted. */
+function identityParts(
+  person: MergeCandidate,
+  locale: string,
+  t: UiStrings,
+): { address: string; reach: string; pending: string } {
+  return {
+    address: contactAddress(person),
+    reach:
+      person.group_ids.length === 1
+        ? t.tabs.inOneGroup
+        : plural(locale, person.group_ids.length, t.tabs.acrossGroups),
+    pending: person.pending ? t.mergePeople.pendingTag : '',
+  };
+}
+
 /**
- * One person in the merge selection: their name, where their balance sits, and
- * a remove control. No avatar — the identity being built is the name at the top,
- * so the rows stay a compact, glanceable list rather than a stack of circles.
- * Removing is the only edit here — there is no "unpick to unmerged," only "not
- * part of this merge," so it reads as a delete, not a toggle.
+ * What makes this guest somebody already, in one line.
+ *
+ * The number or address you wrote down when you invited them comes first — it is
+ * the nearest thing to proof of a particular human a guest can carry, and it is
+ * the whole reason one of two same-looking names is the one to keep. Their reach
+ * across groups follows it, and whether they are still waiting to sync last.
+ *
+ * The address is wrapped in a Unicode isolate (U+2068 … U+2069) because it is
+ * the one strongly-LTR run in a line that is otherwise the UI language: without
+ * it a leading `+` walks to the wrong end of an Arabic subtitle. `ListRow`'s
+ * subtitle takes a string, not a node, so the isolation is in the text rather
+ * than in a nested `writingDirection` Text the way `friends/person/[key]` does
+ * it. Screen readers skip the controls, but {@link identitySpoken} is built from
+ * the bare address anyway so nothing depends on that.
+ */
+function identityLine(person: MergeCandidate, locale: string, t: UiStrings): string {
+  const { address, reach, pending } = identityParts(person, locale, t);
+  // Spelled as escapes on purpose: FSI and PDI are invisible, and a copy-paste
+  // or an editor that strips format characters would silently undo the fix.
+  const isolated = address ? `\u2068${address}\u2069` : '';
+  return [isolated, reach, pending].filter(Boolean).join(' · ');
+}
+
+/** The same facts for a spoken label — no isolate controls, comma-separated. */
+function identitySpoken(person: MergeCandidate, locale: string, t: UiStrings): string {
+  const { address, reach, pending } = identityParts(person, locale, t);
+  return [address, reach, pending].filter(Boolean).join(', ');
+}
+
+/**
+ * One person in the merge selection: their name, what makes them somebody
+ * already, and a remove control. No avatar — the identity being built is the
+ * name at the top, so the rows stay a compact, glanceable list rather than a
+ * stack of circles. Removing is the only edit here — there is no "unpick to
+ * unmerged," only "not part of this merge," so it reads as a delete, not a
+ * toggle.
  */
 function MergeMemberRow({
   name,
   subtitle,
+  spoken,
+  identified,
+  identifiedLabel,
   removeLabel,
   onRemove,
 }: {
   name: string;
   subtitle: string;
+  /** The same line without the bidi isolate controls, for a screen reader. */
+  spoken: string;
+  /** We hold an address for them — the tick that says "this one is a real someone". */
+  identified: boolean;
+  identifiedLabel: string;
   removeLabel: string;
   onRemove: () => void;
 }): React.JSX.Element {
@@ -567,10 +806,20 @@ function MergeMemberRow({
   return (
     <Row style={{ paddingVertical: theme.spacing.sm, alignItems: 'center', minHeight: 44 }}>
       <View style={{ flex: 1 }}>
-        <Text variant="subheading" numberOfLines={1}>
-          {name}
-        </Text>
-        <Text variant="caption" tone="muted" numberOfLines={1}>
+        <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
+          <Text variant="subheading" numberOfLines={1} style={{ flexShrink: 1 }}>
+            {name}
+          </Text>
+          {identified ? (
+            <MaterialCommunityIcons
+              name="account-check"
+              size={iconSize.sm}
+              color={theme.color.brand}
+              accessibilityLabel={identifiedLabel}
+            />
+          ) : null}
+        </Row>
+        <Text variant="caption" tone="muted" numberOfLines={1} accessibilityLabel={spoken}>
           {subtitle}
         </Text>
       </View>

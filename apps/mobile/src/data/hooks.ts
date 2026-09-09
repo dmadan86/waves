@@ -94,6 +94,7 @@ import {
   countOthersInGroup,
   type PersonContribution,
 } from './peopleBalances';
+import { buildMergeCandidates, type MergeCandidate, type MergeableMember } from './mergePeople';
 import { totalsByCurrency } from './totals';
 import { serialiseExpense } from './serialiseExpense';
 import { putImage, removeRestrictedImage } from '@/lib/storage';
@@ -477,6 +478,59 @@ function lastActivityByMember(
     bump(settlement.to, settlement.at);
   }
   return latest;
+}
+
+/**
+ * Everybody you could merge into one person — from the mirror, so it reads the
+ * same with no signal (ADR-005).
+ *
+ * Deliberately *not* built on `usePeopleBalances`. That list is a list of debts:
+ * it drops anybody square with you, and it carries no address, so a guest you
+ * gave a phone number to and then settled up with vanished from the merge screen
+ * altogether — the one person you were most likely trying to merge a stray name
+ * into. This walks memberships instead, which is also where the invite address
+ * lives.
+ *
+ * Only groups you are still in are read: the merge RPC refuses a member of a
+ * group you are not in, so offering one would be a merge that cannot go through.
+ */
+export function useMergeCandidates(someoneLabel: string): LocalRead<MergeCandidate[]> {
+  const { mirror, queue } = useSync();
+  const { profile } = useAuth();
+  const profileId = profile?.id ?? null;
+
+  const candidates = useMemo(() => {
+    if (!profileId) return [];
+    const merges = new Map(ghostMerges(mirror).map((merge) => [merge.member_id, merge]));
+    const members: MergeableMember[] = [];
+    for (const group of materialiseGroups(mirror, queue) as unknown as GroupRow[]) {
+      const rows = materialiseMembers(mirror, queue, {
+        groupId: group.id,
+      }) as unknown as MemberRow[];
+      if (!rows.some((member) => member.profile_id === profileId && member.left_at === null)) {
+        continue;
+      }
+      for (const member of rows) {
+        members.push({
+          id: member.id,
+          group_id: group.id,
+          profile_id: member.profile_id,
+          ghost_name: member.ghost_name,
+          left_at: member.left_at,
+          invite_email: member.invite_email ?? null,
+          invite_phone: member.invite_phone ?? null,
+          // A ghost added offline is a queue row with a client-chosen id the
+          // server has never seen. The merge RPC would refuse the whole merge
+          // over it, so the flag travels and the screen shows them as not ready
+          // rather than either hiding them or letting them poison a pick.
+          pending: member.pending === true,
+        });
+      }
+    }
+    return buildMergeCandidates(members, merges, someoneLabel);
+  }, [mirror, queue, profileId, someoneLabel]);
+
+  return useLocalRead(candidates);
 }
 
 /**

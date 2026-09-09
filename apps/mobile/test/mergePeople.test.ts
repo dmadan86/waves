@@ -1,22 +1,72 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  buildMergeCandidates,
   canMerge,
+  contactNameMatch,
   defaultMergeName,
+  hasContact,
   isMergeable,
   memberIdsForMerge,
   mergeErrorMessage,
+  suggestMergeCluster,
+  type MergeableMember,
+  type MergeCandidate,
   type MergeErrorStrings,
+  type RecordedMerge,
 } from '@/data/mergePeople';
 
-/** A minimal person row — only the fields the merge logic reads. */
-function row(over: Partial<{ member_id: string; display_name: string; is_ghost: boolean }> = {}) {
+/** A minimal picked person — only the fields the merge logic reads. */
+function row(
+  over: Partial<{
+    person_key: string;
+    member_ids: readonly string[];
+    display_name: string;
+    phone: string | null;
+    email: string | null;
+    group_count: number;
+  }> = {},
+) {
+  const key = over.person_key ?? 'm1';
   return {
-    member_id: over.member_id ?? 'm1',
+    person_key: key,
+    member_ids: over.member_ids ?? [key],
     display_name: over.display_name ?? 'person1',
-    is_ghost: over.is_ghost ?? true,
+    phone: over.phone ?? null,
+    email: over.email ?? null,
+    group_count: over.group_count ?? 1,
   };
 }
+
+/** A membership as `buildMergeCandidates` takes them. */
+function member(over: Partial<MergeableMember> = {}): MergeableMember {
+  return {
+    id: over.id ?? 'm1',
+    group_id: over.group_id ?? 'g1',
+    profile_id: over.profile_id ?? null,
+    ghost_name: 'ghost_name' in over ? (over.ghost_name ?? null) : 'person1',
+    left_at: over.left_at ?? null,
+    invite_email: over.invite_email ?? null,
+    invite_phone: over.invite_phone ?? null,
+    pending: over.pending ?? false,
+  };
+}
+
+/** A candidate as the screen holds them, for the contact-match rule. */
+function candidate(over: Partial<MergeCandidate> = {}): MergeCandidate {
+  const key = over.person_key ?? 'k1';
+  return {
+    person_key: key,
+    member_ids: over.member_ids ?? [key],
+    group_ids: over.group_ids ?? ['g1'],
+    display_name: over.display_name ?? 'person1',
+    phone: over.phone ?? null,
+    email: over.email ?? null,
+    pending: over.pending ?? false,
+  };
+}
+
+const noMerges = new Map<string, RecordedMerge>();
 
 describe('isMergeable', () => {
   it('allows a ghost', () => {
@@ -28,19 +78,302 @@ describe('isMergeable', () => {
   });
 });
 
+describe('hasContact', () => {
+  it('is true for a number or an address', () => {
+    expect(hasContact({ phone: '+919876543210', email: null })).toBe(true);
+    expect(hasContact({ phone: null, email: 'ravi@example.com' })).toBe(true);
+  });
+
+  it('is false for nothing, and for whitespace pretending to be something', () => {
+    expect(hasContact({ phone: null, email: null })).toBe(false);
+    expect(hasContact({ phone: '  ', email: '' })).toBe(false);
+  });
+});
+
+describe('buildMergeCandidates', () => {
+  it('offers a guest carrying a phone number — the person you are merging into', () => {
+    // The bug this fixes: this guest had a number and no debt, so the balance
+    // list the screen used to read dropped them entirely.
+    const candidates = buildMergeCandidates(
+      [member({ id: 'a', ghost_name: 'Ravi', invite_phone: '+919876543210' })],
+      noMerges,
+    );
+    expect(candidates).toEqual([
+      {
+        person_key: 'a',
+        member_ids: ['a'],
+        group_ids: ['g1'],
+        display_name: 'Ravi',
+        phone: '+919876543210',
+        email: null,
+        pending: false,
+      },
+    ]);
+  });
+
+  it('refuses a real account holder — a profile id is already one identity', () => {
+    const candidates = buildMergeCandidates(
+      [member({ id: 'a', profile_id: 'p1', ghost_name: null })],
+      noMerges,
+    );
+    expect(candidates).toEqual([]);
+  });
+
+  it('drops somebody who has left', () => {
+    expect(
+      buildMergeCandidates([member({ id: 'a', left_at: '2026-01-01T00:00:00Z' })], noMerges),
+    ).toEqual([]);
+  });
+
+  it('folds a person the viewer already merged into one candidate, carrying every membership', () => {
+    const merges = new Map<string, RecordedMerge>([
+      ['a', { person_id: 'P', display_name: 'Ravi' }],
+      ['b', { person_id: 'P', display_name: 'Ravi' }],
+    ]);
+    const candidates = buildMergeCandidates(
+      [
+        member({ id: 'a', group_id: 'g1', ghost_name: 'person1' }),
+        member({ id: 'b', group_id: 'g2', ghost_name: 'ravi' }),
+      ],
+      merges,
+    );
+    expect(candidates).toHaveLength(1);
+    expect(candidates[0]?.person_key).toBe('P');
+    expect(candidates[0]?.member_ids).toEqual(['a', 'b']);
+    expect(candidates[0]?.group_ids).toEqual(['g1', 'g2']);
+    // The name the viewer gave the merge outranks either ghost's own name.
+    expect(candidates[0]?.display_name).toBe('Ravi');
+  });
+
+  it('never folds two unmerged ghosts who happen to share a name', () => {
+    const candidates = buildMergeCandidates(
+      [
+        member({ id: 'a', group_id: 'g1', ghost_name: 'Ravi' }),
+        member({ id: 'b', group_id: 'g2', ghost_name: 'Ravi' }),
+      ],
+      noMerges,
+    );
+    expect(candidates.map((c) => c.person_key)).toEqual(['a', 'b']);
+  });
+
+  it('does NOT fold two ghosts sharing an invite number — that is a suggestion, not an identity', () => {
+    // A shared number is good evidence and not proof, and the key it would have
+    // to change is the one the SQL and `personKeyOf` both spell. They stay two
+    // people here; `suggestMergeCluster` is what proposes the merge.
+    const candidates = buildMergeCandidates(
+      [
+        member({ id: 'a', group_id: 'g1', ghost_name: 'Ravi', invite_phone: '+91 98765 43210' }),
+        member({ id: 'b', group_id: 'g2', ghost_name: 'Ravi', invite_phone: '०९८७६५४३२१०' }),
+      ],
+      noMerges,
+    );
+    expect(candidates.map((c) => c.person_key)).toEqual(['a', 'b']);
+  });
+
+  it('keys every candidate the way personKeyOf and the SQL do', () => {
+    // person_key travels into `friends/person/[key]`, which hands it to two
+    // server RPCs. Anything but a merge person id or a member id opens empty.
+    const merges = new Map<string, RecordedMerge>([['b', { person_id: 'P', display_name: 'Bea' }]]);
+    const candidates = buildMergeCandidates(
+      [
+        member({ id: 'a', invite_phone: '+919876543210', invite_email: 'ravi@example.com' }),
+        member({ id: 'b', group_id: 'g2' }),
+      ],
+      merges,
+    );
+    expect(candidates.map((c) => c.person_key).sort()).toEqual(['P', 'a']);
+  });
+
+  it('falls back to the given label for a nameless ghost', () => {
+    const candidates = buildMergeCandidates([member({ ghost_name: null })], noMerges, 'Someone');
+    expect(candidates[0]?.display_name).toBe('Someone');
+  });
+
+  it('marks a ghost added offline as pending — the server has never seen that row', () => {
+    const candidates = buildMergeCandidates(
+      [member({ id: 'a', ghost_name: 'Ravi', invite_phone: '+919876543210', pending: true })],
+      noMerges,
+    );
+    expect(candidates[0]?.pending).toBe(true);
+    // Still listed, with their details: hiding somebody you added a minute ago
+    // is its own confusion. The screen makes the row inert instead.
+    expect(candidates[0]?.display_name).toBe('Ravi');
+    expect(candidates[0]?.phone).toBe('+919876543210');
+  });
+
+  it('treats one unsynced membership as enough to hold the whole person back', () => {
+    // The RPC checks every member id it is handed and refuses the lot, so
+    // "pending" has to be any, not all.
+    const merges = new Map<string, RecordedMerge>([
+      ['a', { person_id: 'P', display_name: 'Ravi' }],
+      ['b', { person_id: 'P', display_name: 'Ravi' }],
+    ]);
+    const candidates = buildMergeCandidates(
+      [member({ id: 'a', group_id: 'g1' }), member({ id: 'b', group_id: 'g2', pending: true })],
+      merges,
+    );
+    expect(candidates).toHaveLength(1);
+    expect(candidates[0]?.pending).toBe(true);
+  });
+
+  it('sinks the not-yet-mergeable below everybody who can be picked', () => {
+    const candidates = buildMergeCandidates(
+      [
+        member({ id: 'a', ghost_name: 'Ravi', invite_phone: '+911111111111', pending: true }),
+        member({ id: 'b', ghost_name: 'Zoya' }),
+      ],
+      noMerges,
+    );
+    expect(candidates.map((c) => c.display_name)).toEqual(['Zoya', 'Ravi']);
+  });
+
+  it('leads with the identified person, then the widest reach, then the name', () => {
+    const merges = new Map<string, RecordedMerge>([
+      ['b', { person_id: 'P', display_name: 'Bea' }],
+      ['c', { person_id: 'P', display_name: 'Bea' }],
+    ]);
+    const candidates = buildMergeCandidates(
+      [
+        member({ id: 'a', group_id: 'g1', ghost_name: 'Zoya' }),
+        member({ id: 'b', group_id: 'g1', ghost_name: 'Bea' }),
+        member({ id: 'c', group_id: 'g2', ghost_name: 'Bea' }),
+        member({ id: 'd', group_id: 'g1', ghost_name: 'Ravi', invite_phone: '+919876543210' }),
+      ],
+      merges,
+    );
+    expect(candidates.map((c) => c.display_name)).toEqual(['Ravi', 'Bea', 'Zoya']);
+  });
+});
+
+describe('suggestMergeCluster', () => {
+  it('proposes the two guests sharing a number, as two separate people', () => {
+    const guests = [
+      candidate({ person_key: 'a', display_name: 'Ravi', phone: '+91 98765 43210' }),
+      candidate({ person_key: 'b', display_name: 'Ravi', phone: '९८७६५४३२१०' }),
+      candidate({ person_key: 'c', display_name: 'Zoya', phone: '+911111111111' }),
+    ];
+    const cluster = suggestMergeCluster(guests);
+    // Two candidates, not one folded row: the user ticks off a real pair, and
+    // `canMerge` therefore sees two people and lets the merge be recorded.
+    expect(cluster.map((row) => row.person_key)).toEqual(['a', 'b']);
+    expect(canMerge(cluster)).toBe(true);
+  });
+
+  it('proposes on a shared email too, ignoring case and accents', () => {
+    const guests = [
+      candidate({ person_key: 'a', display_name: 'Chloé', email: 'Chloe@Example.com' }),
+      candidate({ person_key: 'b', display_name: 'Chloe', email: 'chloé@example.com' }),
+    ];
+    expect(suggestMergeCluster(guests).map((row) => row.person_key)).toEqual(['a', 'b']);
+  });
+
+  it('proposes nothing when nobody shares an address', () => {
+    const guests = [
+      candidate({ person_key: 'a', phone: '+911111111111' }),
+      candidate({ person_key: 'b', phone: '+912222222222' }),
+      candidate({ person_key: 'c' }),
+    ];
+    expect(suggestMergeCluster(guests)).toEqual([]);
+  });
+
+  it('proposes nothing from names alone — a shared name is not evidence', () => {
+    const guests = [
+      candidate({ person_key: 'a', display_name: 'Ravi' }),
+      candidate({ person_key: 'b', display_name: 'Ravi' }),
+    ];
+    expect(suggestMergeCluster(guests)).toEqual([]);
+  });
+
+  it('leaves out anybody still waiting to sync — they cannot be picked at all', () => {
+    const guests = [
+      candidate({ person_key: 'a', phone: '+919876543210' }),
+      candidate({ person_key: 'b', phone: '+919876543210', pending: true }),
+    ];
+    expect(suggestMergeCluster(guests)).toEqual([]);
+  });
+
+  it('is a star around one guest, never a transitive closure', () => {
+    // samePhone lets a shorter number be the tail of a longer one, so it is not
+    // an equivalence relation: a matches both b and c while b and c do not match
+    // each other. Closing over that would invent a group the data never claimed.
+    const guests = [
+      candidate({ person_key: 'a', phone: '9876543210' }),
+      candidate({ person_key: 'b', phone: '+919876543210' }),
+      candidate({ person_key: 'c', phone: '+449876543210' }),
+    ];
+    expect(suggestMergeCluster(guests).map((row) => row.person_key)).toEqual(['a', 'b', 'c']);
+    // ...and from b's side, c is not a partner at all.
+    expect(suggestMergeCluster(guests.slice(1)).map((row) => row.person_key)).toEqual([]);
+  });
+});
+
+describe('contactNameMatch', () => {
+  it('ticks the one guest the contact name unambiguously fits', () => {
+    const guests = [
+      candidate({ person_key: 'a', display_name: 'Ravi' }),
+      candidate({ person_key: 'b', display_name: 'Zoya' }),
+    ];
+    expect(contactNameMatch(guests, ' ravi ')).toEqual({ pick: guests[0], ambiguous: false });
+  });
+
+  it('ticks NOBODY when the name fits several different people', () => {
+    // The whole point: three humans called Alex must not be swept into one
+    // irreversible merge because a device contact carries that name.
+    const guests = [
+      candidate({ person_key: 'a', display_name: 'Alex' }),
+      candidate({ person_key: 'b', display_name: 'alex' }),
+      candidate({ person_key: 'c', display_name: 'ALEX ' }),
+    ];
+    expect(contactNameMatch(guests, 'Alex')).toEqual({ pick: null, ambiguous: true });
+  });
+
+  it('never reaches somebody still waiting to sync', () => {
+    const guests = [candidate({ person_key: 'a', display_name: 'Ravi', pending: true })];
+    expect(contactNameMatch(guests, 'Ravi')).toEqual({ pick: null, ambiguous: false });
+  });
+
+  it('leaves a pending namesake out of the ambiguity count', () => {
+    const guests = [
+      candidate({ person_key: 'a', display_name: 'Ravi' }),
+      candidate({ person_key: 'b', display_name: 'Ravi', pending: true }),
+    ];
+    expect(contactNameMatch(guests, 'Ravi')).toEqual({ pick: guests[0], ambiguous: false });
+  });
+
+  it('matches nobody on a blank name, and says nothing is ambiguous', () => {
+    const guests = [candidate({ display_name: 'Ravi' })];
+    expect(contactNameMatch(guests, '   ')).toEqual({ pick: null, ambiguous: false });
+  });
+
+  it('matches nobody when no guest wears the name', () => {
+    const guests = [candidate({ display_name: 'Ravi' })];
+    expect(contactNameMatch(guests, 'Zoya')).toEqual({ pick: null, ambiguous: false });
+  });
+});
+
 describe('memberIdsForMerge', () => {
   it('returns the distinct member ids', () => {
-    expect(memberIdsForMerge([row({ member_id: 'a' }), row({ member_id: 'b' })])).toEqual([
+    expect(memberIdsForMerge([row({ member_ids: ['a'] }), row({ member_ids: ['b'] })])).toEqual([
       'a',
       'b',
     ]);
   });
 
-  it('counts one ghost seen in two currencies as a single member', () => {
-    // Same person1, unsettled in both ₹ and € — two rows, one member.
-    const inr = row({ member_id: 'a' });
-    const eur = row({ member_id: 'a' });
-    expect(memberIdsForMerge([inr, eur])).toEqual(['a']);
+  it('carries every membership of an already-merged person, not just one', () => {
+    // A person merged across two groups is two member ids and one person; the
+    // RPC has to be handed both or the merge extends only half of them.
+    expect(
+      memberIdsForMerge([
+        row({ person_key: 'P', member_ids: ['a', 'b'] }),
+        row({ member_ids: ['c'] }),
+      ]),
+    ).toEqual(['a', 'b', 'c']);
+  });
+
+  it('counts a membership two picks share only once', () => {
+    expect(memberIdsForMerge([row({ member_ids: ['a'] }), row({ member_ids: ['a'] })])).toEqual([
+      'a',
+    ]);
   });
 
   it('is empty for no selection', () => {
@@ -51,23 +384,89 @@ describe('memberIdsForMerge', () => {
 describe('canMerge', () => {
   it('needs at least two distinct people', () => {
     expect(canMerge([])).toBe(false);
-    expect(canMerge([row({ member_id: 'a' })])).toBe(false);
-    expect(canMerge([row({ member_id: 'a' }), row({ member_id: 'b' })])).toBe(true);
+    expect(canMerge([row({ person_key: 'a' })])).toBe(false);
+    expect(canMerge([row({ person_key: 'a' }), row({ person_key: 'b' })])).toBe(true);
   });
 
-  it('does not count the same member twice (two currencies of one ghost)', () => {
-    expect(canMerge([row({ member_id: 'a' }), row({ member_id: 'a' })])).toBe(false);
+  it('does not count one already-merged person as two, however many groups they span', () => {
+    expect(canMerge([row({ person_key: 'P', member_ids: ['a', 'b'] })])).toBe(false);
   });
 
   it('allows three or more', () => {
     expect(
-      canMerge([row({ member_id: 'a' }), row({ member_id: 'b' }), row({ member_id: 'c' })]),
+      canMerge([row({ person_key: 'a' }), row({ person_key: 'b' }), row({ person_key: 'c' })]),
     ).toBe(true);
   });
 });
 
 describe('defaultMergeName', () => {
-  it('picks the most common name', () => {
+  it('keeps the name of the person whose number we have, over the more common one', () => {
+    // The report this rule comes from: one guest has a phone number, the others
+    // are strays. The known name is the one worth keeping.
+    const rows = [
+      row({ person_key: 'a', display_name: 'person1' }),
+      row({ person_key: 'b', display_name: 'person1' }),
+      row({ person_key: 'c', display_name: 'Ravi', phone: '+919876543210' }),
+    ];
+    expect(defaultMergeName(rows)).toBe('Ravi');
+  });
+
+  it('takes an email as identity too', () => {
+    const rows = [
+      row({ person_key: 'a', display_name: 'person1' }),
+      row({ person_key: 'b', display_name: 'Ravi', email: 'ravi@example.com' }),
+    ];
+    expect(defaultMergeName(rows)).toBe('Ravi');
+  });
+
+  it('prefers the most common name among the identified, not across everyone', () => {
+    const rows = [
+      row({ person_key: 'a', display_name: 'person1' }),
+      row({ person_key: 'b', display_name: 'person1' }),
+      row({ person_key: 'c', display_name: 'Ravi', phone: '+911111111111' }),
+      row({ person_key: 'd', display_name: 'Ravi K', email: 'ravi@example.com' }),
+      row({ person_key: 'e', display_name: 'Ravi', phone: '+912222222222' }),
+    ];
+    expect(defaultMergeName(rows)).toBe('Ravi');
+  });
+
+  it('falls back to whoever reaches the most groups when nobody has an address', () => {
+    const rows = [
+      row({ person_key: 'a', display_name: 'person1', group_count: 1 }),
+      row({ person_key: 'b', display_name: 'person1', group_count: 1 }),
+      row({ person_key: 'c', display_name: 'Ravi', group_count: 3 }),
+    ];
+    expect(defaultMergeName(rows)).toBe('Ravi');
+  });
+
+  it('does not treat being in one group as reach — that says nothing about anybody', () => {
+    const rows = [
+      row({ person_key: 'a', display_name: 'Ravi', group_count: 1 }),
+      row({ person_key: 'b', display_name: 'person1', group_count: 1 }),
+      row({ person_key: 'c', display_name: 'person1', group_count: 1 }),
+    ];
+    expect(defaultMergeName(rows)).toBe('person1');
+  });
+
+  it('falls through to the next tier when the identified pick has no usable name', () => {
+    const rows = [
+      row({ person_key: 'a', display_name: '  ', phone: '+919876543210' }),
+      row({ person_key: 'b', display_name: 'Ravi', group_count: 3 }),
+      row({ person_key: 'c', display_name: 'person1', group_count: 1 }),
+    ];
+    expect(defaultMergeName(rows)).toBe('Ravi');
+  });
+
+  it('falls through both tiers to the plain most-common rule', () => {
+    const rows = [
+      row({ person_key: 'a', display_name: '', phone: '+919876543210' }),
+      row({ person_key: 'b', display_name: '   ', group_count: 3 }),
+      row({ person_key: 'c', display_name: 'person1', group_count: 1 }),
+    ];
+    expect(defaultMergeName(rows)).toBe('person1');
+  });
+
+  it('picks the most common name when nothing distinguishes anybody', () => {
     const rows = [
       row({ display_name: 'Ravi' }),
       row({ display_name: 'person1' }),
@@ -92,6 +491,10 @@ describe('defaultMergeName', () => {
 
   it('trims the chosen name', () => {
     expect(defaultMergeName([row({ display_name: '  person1  ' })])).toBe('person1');
+  });
+
+  it('works on a bare list of names — the Friends tab has nothing else to give', () => {
+    expect(defaultMergeName([{ display_name: 'Ravi' }, { display_name: 'Ravi' }])).toBe('Ravi');
   });
 
   it('returns empty string when nothing usable remains', () => {
