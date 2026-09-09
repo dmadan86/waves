@@ -34,8 +34,11 @@
  * a renamed key. A per-account slot never existed before the rename, so no
  * migration can touch one, and awaiting would hold the gate's spinner behind a
  * dozen storage reads to answer a question that does not depend on them. The
- * sweep still runs at boot — half a dozen modules the root layout mounts import
- * `legacyKeys` and start it — it simply is not on this path.
+ * sweep still runs at boot, and not merely because some provider happens to
+ * mount: the root layout calls `applyStoredSessionReplayConsent()` at module
+ * scope, and `lib/sessionReplay` imports `legacyKeys`, so importing the layout
+ * starts the migration. (Half a dozen other modules import it too, but that one
+ * is the guarantee — it is the one a refactor would have to break on purpose.)
  *
  * Nothing in here rejects. Storage refusing to answer must not decide anything
  * dramatic, so each reader states its own safe direction below.
