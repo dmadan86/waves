@@ -40,6 +40,13 @@ export interface MergeableMember {
   readonly invite_email?: string | null;
   /** E.164. */
   readonly invite_phone?: string | null;
+  /**
+   * True while this membership exists only in the local queue (ADR-005) — added
+   * offline, or still on its way up. The merge RPC looks the row up in
+   * `group_members` and refuses the *whole* merge if it is not there yet, so a
+   * pending person can be shown but must never be picked.
+   */
+  readonly pending?: boolean;
 }
 
 /** A merge the viewer has already recorded against a membership (A38). */
@@ -68,6 +75,18 @@ export interface MergeCandidate {
   readonly phone: string | null;
   /** The address recorded against them when they were invited, if any. */
   readonly email: string | null;
+  /**
+   * Any one of their memberships is still only in the local queue.
+   *
+   * The server checks *every* member id it is handed and refuses the whole merge
+   * if one of them is not a row it can see, so this is deliberately "any", not
+   * "all": one unsynced membership is enough to make the merge fail, and it
+   * would fail saying this person is not a guest you share a group with —
+   * untrue, and about somebody the screen itself just listed. So they are shown
+   * (hiding a person you added a minute ago is its own lie) and cannot be
+   * picked until the queue drains.
+   */
+  readonly pending: boolean;
 }
 
 /** Everything {@link defaultMergeName} weighs — a candidate, or just a name. */
@@ -120,6 +139,7 @@ export function buildMergeCandidates(
     ghostName: string;
     phone: string | null;
     email: string | null;
+    pending: boolean;
   }
 
   const byKey = new Map<string, Draft>();
@@ -158,9 +178,11 @@ export function buildMergeCandidates(
         ghostName: '',
         phone: null,
         email: null,
+        pending: false,
       };
       byKey.set(key, draft);
     }
+    if (member.pending === true) draft.pending = true;
     if (!draft.member_ids.includes(member.id)) draft.member_ids.push(member.id);
     if (!draft.group_ids.includes(member.group_id)) draft.group_ids.push(member.group_id);
 
@@ -182,9 +204,13 @@ export function buildMergeCandidates(
     display_name: draft.mergedName || draft.ghostName || someoneLabel,
     phone: draft.phone,
     email: draft.email,
+    pending: draft.pending,
   }));
 
   candidates.sort((a, b) => {
+    // Anybody who cannot be picked yet sinks below everybody who can.
+    const byReady = Number(a.pending) - Number(b.pending);
+    if (byReady !== 0) return byReady;
     const byIdentity = Number(hasContact(b)) - Number(hasContact(a));
     if (byIdentity !== 0) return byIdentity;
     const byReach = b.group_ids.length - a.group_ids.length;
@@ -192,6 +218,42 @@ export function buildMergeCandidates(
     return a.display_name.localeCompare(b.display_name);
   });
   return candidates;
+}
+
+/** What a picked device contact's name resolves to on the mergeable roster. */
+export interface ContactNameMatch {
+  /** The one guest that name unambiguously fits, or null. */
+  readonly pick: MergeCandidate | null;
+  /** The name fits several different people, so it fits nobody in particular. */
+  readonly ambiguous: boolean;
+}
+/**
+ * Who a picked contact's name points at.
+ *
+ * Ticking somebody because a device contact carries their name is the whole
+ * recognition this screen runs on — but only when the name points at exactly one
+ * person. It used to tick *every* guest wearing that name, which was survivable
+ * while the roster was only people carrying a live debt; over every guest in
+ * every group, one contact called "Alex" could sweep three different humans into
+ * a merge that cannot be undone. So several matches tick nobody and the screen
+ * says why: a name shared by three people is not evidence about any of them.
+ *
+ * Anybody still waiting to sync is excluded outright — they cannot be picked by
+ * hand either, so a contact must not pick them by the side door.
+ */
+export function contactNameMatch(
+  guests: readonly MergeCandidate[],
+  contactName: string,
+): ContactNameMatch {
+  const needle = contactName.trim().toLowerCase();
+  if (!needle) return { pick: null, ambiguous: false };
+  const matches = guests.filter(
+    (row) => !row.pending && row.display_name.trim().toLowerCase() === needle,
+  );
+  return {
+    pick: matches.length === 1 ? (matches[0] ?? null) : null,
+    ambiguous: matches.length > 1,
+  };
 }
 
 /**
@@ -262,12 +324,17 @@ function mostCommonName(rows: readonly NamedPerson[]): string {
  * stays editable, so a wrong guess costs one tap to fix.
  */
 export function defaultMergeName(rows: readonly NamedPerson[]): string {
-  const identified = rows.filter((row) => hasContact(row));
-  if (identified.length > 0) return mostCommonName(identified);
+  // Each tier falls through on a blank winner rather than returning it: an
+  // identified person whose name is empty says nothing, and swallowing the
+  // lower tiers to hand back '' would leave the field blank when a perfectly
+  // good name was sitting one tier down.
+  const byContact = mostCommonName(rows.filter((row) => hasContact(row)));
+  if (byContact) return byContact;
 
   const reach = rows.reduce((most, row) => Math.max(most, row.group_count ?? 0), 0);
   if (reach > 1) {
-    return mostCommonName(rows.filter((row) => (row.group_count ?? 0) === reach));
+    const byReach = mostCommonName(rows.filter((row) => (row.group_count ?? 0) === reach));
+    if (byReach) return byReach;
   }
 
   return mostCommonName(rows);
