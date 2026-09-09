@@ -45,7 +45,12 @@ export async function onboardingSeen(ownerId: string): Promise<boolean> {
     // before that has landed would call a returning phone a new one.
     await legacyKeysMigrated;
 
-    if ((await AsyncStorage.getItem(slotFor(ownerId))) === 'yes') return true;
+    if ((await AsyncStorage.getItem(slotFor(ownerId))) === 'yes') {
+      // If a legacy device-wide answer survived beside this account's own slot,
+      // it is stale now. Do not let it answer for the next person on the phone.
+      await AsyncStorage.removeItem(DEVICE_KEY);
+      return true;
+    }
     if ((await AsyncStorage.getItem(DEVICE_KEY)) !== 'yes') return false;
 
     // Claimed: this account inherits the phone's old answer, and the phone

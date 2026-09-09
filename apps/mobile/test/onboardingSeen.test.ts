@@ -42,6 +42,15 @@ describe('onboardingSeen', () => {
     expect(await onboardingSeen(ALICE)).toBe(true);
   });
 
+  it('clears a stale device flag when this account already has its own answer', async () => {
+    await rememberOnboardingSeen(ALICE);
+    await AsyncStorage.setItem(DEVICE_KEY, 'yes');
+
+    expect(await onboardingSeen(ALICE)).toBe(true);
+    expect(await AsyncStorage.getItem(DEVICE_KEY)).toBeNull();
+    expect(await onboardingSeen(BOB)).toBe(false);
+  });
+
   it('leaves an untouched device flag alone for a first-run phone', async () => {
     expect(await onboardingSeen(ALICE)).toBe(false);
     expect(await AsyncStorage.getItem(`${DEVICE_KEY}.${ALICE}`)).toBeNull();
