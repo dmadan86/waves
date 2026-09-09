@@ -220,6 +220,24 @@ export function buildMergeCandidates(
   return candidates;
 }
 
+/**
+ * Whether this candidate is one of the picked, by person key or by any of the
+ * memberships behind them.
+ *
+ * The Friends tab keys people the ledger's way — a recorded merge, else the
+ * `group_member` id (`personKeyOf`) — and hands those keys to this screen. This
+ * screen keys them by shared invite address as well, so the very people it
+ * exists to surface are exactly the ones whose key it does *not* spell the same
+ * way. Matching on the memberships too means a pre-picked person still arrives
+ * picked instead of quietly falling off the screen built to show them.
+ */
+export function isPicked(
+  row: Pick<MergeCandidate, 'person_key' | 'member_ids'>,
+  picked: ReadonlySet<string>,
+): boolean {
+  return picked.has(row.person_key) || row.member_ids.some((id) => picked.has(id));
+}
+
 /** What a picked device contact's name resolves to on the mergeable roster. */
 export interface ContactNameMatch {
   /** The one guest that name unambiguously fits, or null. */

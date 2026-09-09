@@ -76,6 +76,7 @@ import {
   contactNameMatch,
   defaultMergeName,
   hasContact,
+  isPicked,
   memberIdsForMerge,
   mergeErrorMessage,
   type MergeCandidate,
@@ -159,12 +160,12 @@ export default function MergePeopleScreen() {
   const pendingInviteGroups = useRef<InviteGroup[]>([]);
 
   const selectedRows = useMemo(
-    () => guests.filter((row) => selected.has(row.person_key)),
+    () => guests.filter((row) => isPicked(row, selected)),
     [guests, selected],
   );
   /** The guests not in the merge yet — what the "add a person" list offers. */
   const remaining = useMemo(
-    () => guests.filter((row) => !selected.has(row.person_key)),
+    () => guests.filter((row) => !isPicked(row, selected)),
     [guests, selected],
   );
   const shownRemaining = showAllGuests ? remaining : remaining.slice(0, ROSTER_PAGE);
@@ -197,18 +198,22 @@ export default function MergePeopleScreen() {
   /** Somebody in the merge whose membership has not reached the server yet. */
   const pendingPicked = selectedRows.some((row) => row.pending);
 
-  const toggle = (personKey: string): void => {
+  const toggle = (row: MergeCandidate): void => {
     setError(null);
     setContactNotice(null);
     setSelected((prev) => {
       const next = new Set(prev);
-      if (next.has(personKey)) next.delete(personKey);
-      // Adding somebody the server has not seen would make the RPC refuse the
-      // whole merge, and say of them that they are not a guest you share a group
-      // with — untrue, about a person this very screen is listing. Removing one
-      // always works, so only the add is blocked.
-      else if (!guests.some((row) => row.person_key === personKey && row.pending)) {
-        next.add(personKey);
+      if (isPicked(row, prev)) {
+        // A seeded pick may be spelled as one of their member ids rather than
+        // their person key (see `isPicked`), so drop every spelling of them.
+        next.delete(row.person_key);
+        for (const id of row.member_ids) next.delete(id);
+      } else if (!row.pending) {
+        // Adding somebody the server has not seen would make the RPC refuse the
+        // whole merge, and say of them that they are not a guest you share a
+        // group with — untrue, about a person this very screen is listing.
+        // Removing one always works, so only the add is blocked.
+        next.add(row.person_key);
       }
       return next;
     });
@@ -449,7 +454,7 @@ export default function MergePeopleScreen() {
                           identified={hasContact(row)}
                           identifiedLabel={t.mergePeople.hasContact}
                           removeLabel={fill(t.pickers.removeName, { name: row.display_name })}
-                          onRemove={() => toggle(row.person_key)}
+                          onRemove={() => toggle(row)}
                         />
                         {index < selectedRows.length - 1 ? <Divider /> : null}
                       </View>
@@ -509,7 +514,7 @@ export default function MergePeopleScreen() {
                             }
                             // Inert while their membership is only in the queue:
                             // the server would refuse the whole merge over them.
-                            onPress={row.pending ? undefined : () => toggle(row.person_key)}
+                            onPress={row.pending ? undefined : () => toggle(row)}
                           />
                           {index < shownRemaining.length - 1 ? <Divider /> : null}
                         </View>
