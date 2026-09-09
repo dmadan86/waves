@@ -13,9 +13,13 @@ import {
   englishSpeechLocale,
   mergeTranscript,
   offlineDownloadReason,
+  offlineVoiceKnowledge,
   offlineVoiceModels,
+  offlineVoiceRead,
   onDeviceLocaleInstalled,
   speechLocale,
+  withConfirmedInstalls,
+  type OfflineVoiceReadInput,
 } from '@/lib/dictation';
 import { Language, STRINGS_BY_LANGUAGE } from '@/i18n';
 
@@ -169,6 +173,12 @@ describe('onDeviceLocaleInstalled', () => {
     expect(onDeviceLocaleInstalled('en-IN', null)).toBe(false);
     expect(onDeviceLocaleInstalled('', ['en'])).toBe(false);
   });
+
+  it('ignores script subtags when language and region match', () => {
+    expect(onDeviceLocaleInstalled('ar-SA', ['ar-Arab-SA'])).toBe(true);
+    expect(onDeviceLocaleInstalled('hi-IN', ['hi-Deva-IN'])).toBe(true);
+    expect(onDeviceLocaleInstalled('en-IN', ['en-Latn-US'])).toBe(false);
+  });
 });
 
 describe('offlineVoiceModels', () => {
@@ -288,6 +298,10 @@ describe('offlineDownloadReason', () => {
     }
     // ERROR_RECOGNIZER_BUSY.
     expect(offlineDownloadReason(rejected('error_8'))).toBe('busy');
+    // ERROR_INSUFFICIENT_PERMISSIONS — a switch in Settings, and nothing to do
+    // with the phone, the language or the connection. It used to land in
+    // `refused`, which is the sentence for a phone that would not say why.
+    expect(offlineDownloadReason(rejected('error_9'))).toBe('permission');
   });
 
   it('keeps the platform’s own pre-Android-13 refusal', () => {
@@ -305,5 +319,159 @@ describe('offlineDownloadReason', () => {
     expect(offlineDownloadReason(new Error('boom'))).toBe('refused');
     expect(offlineDownloadReason(null)).toBe('refused');
     expect(offlineDownloadReason(undefined)).toBe('refused');
+  });
+});
+
+/**
+ * The two questions this screen kept getting wrong, now asked separately.
+ *
+ * The bug in the field: a phone with working 5G, an English model already
+ * downloaded, and a card reading "Couldn't load this — check your connection".
+ * Reading the phone's models never touches a network, so that sentence could not
+ * have been true; what had actually happened was that the recogniser service
+ * refused the query, and every rejection was being poured into the app's generic
+ * network empty-state. The same undefined answer then told the row below that
+ * nothing was installed, so English offered a Download directly above its own
+ * "Downloaded. The mic can use it now."
+ *
+ * The deeper mistake, and the reason these are two functions: one value was
+ * being asked both "what should the screen say?" and "may the list be
+ * believed?". The first is a ranking of what most needs saying; the second is a
+ * question of evidence. Ranking the second produced two more bugs of its own,
+ * both pinned below — Android 12 and the failed refresh.
+ */
+describe('offlineVoiceRead', () => {
+  // A modern Android that answers: the case everything else is a deviation from.
+  const android: OfflineVoiceReadInput = {
+    hasModule: true,
+    supportsOnDevice: true,
+    reportsInstalled: true,
+    canDownload: true,
+    query: 'success',
+    hasData: true,
+    namedAnything: true,
+  };
+
+  it('trusts a phone that answered with a list', () => {
+    expect(offlineVoiceRead(android)).toBe('ready');
+    expect(offlineVoiceKnowledge(android)).toBe('reported');
+  });
+
+  it('separates an answer of nothing from no answer at all', () => {
+    // Answered, named nothing: an empty inventory is a fact, and believable.
+    const empty = { ...android, namedAnything: false };
+    expect(offlineVoiceRead(empty)).toBe('empty');
+    expect(offlineVoiceKnowledge(empty)).toBe('reported');
+
+    // Refused with nothing held: not an empty inventory, and not the connection.
+    const refused = { ...android, query: 'error', hasData: false, namedAnything: false } as const;
+    expect(offlineVoiceRead(refused)).toBe('unreadable');
+    expect(offlineVoiceKnowledge(refused)).toBe('unknowable');
+  });
+
+  it('keeps the answer it already has when a refresh fails on top of it', () => {
+    // React Query keeps `data` and flips `status` to error when a *refetch*
+    // fails. Reading only "the last fetch failed" made the screen forget a good
+    // list — and since it now refetches on every visit, a briefly busy speech
+    // service (the known failure mode here) would wipe the ticks on the visit
+    // after a good one. The ticks must survive; only their freshness is in doubt.
+    const refreshFailed = { ...android, query: 'error' } as const;
+    expect(offlineVoiceRead(refreshFailed)).toBe('stale');
+    expect(offlineVoiceKnowledge(refreshFailed)).toBe('reported');
+
+    // Both error shapes, side by side, so neither can quietly take the other's
+    // words: one is a list that is merely not fresh, the other is no list.
+    expect(offlineVoiceRead({ ...refreshFailed, hasData: false })).toBe('unreadable');
+  });
+
+  it('does not blank the list while it is being re-read', () => {
+    // A refresh in flight over an answer is a list being checked, not an empty
+    // screen waiting to be filled.
+    const refreshing = { ...android, query: 'loading' } as const;
+    expect(offlineVoiceRead(refreshing)).toBe('ready');
+    expect(offlineVoiceKnowledge(refreshing)).toBe('reported');
+
+    // The first read, with nothing behind it, really is loading — and must not
+    // be believed as an empty inventory while it waits.
+    const first = { ...refreshing, hasData: false, namedAnything: false };
+    expect(offlineVoiceRead(first)).toBe('loading');
+    expect(offlineVoiceKnowledge(first)).toBe('unknowable');
+  });
+
+  it('puts the device facts ahead of the read, most disqualifying first', () => {
+    // Each of these is true whatever the query does, so each outranks it.
+    const broken = { query: 'error', hasData: false, namedAnything: false } as const;
+    expect(offlineVoiceRead({ ...android, ...broken, hasModule: false })).toBe('no-module');
+    expect(offlineVoiceRead({ ...android, ...broken, supportsOnDevice: false })).toBe(
+      'no-on-device',
+    );
+    // iPhone answers, and its answer means nothing — see InstalledKnowledge.
+    expect(offlineVoiceRead({ ...android, reportsInstalled: false })).toBe('unknowable');
+    // Android 12: nothing to fetch, which is a truer sentence than a failed read.
+    expect(offlineVoiceRead({ ...android, ...broken, canDownload: false })).toBe('too-old');
+  });
+
+  it('lets Android 12 be told it cannot fetch without being told it cannot be asked', () => {
+    // The regression this pins. `canDownload` is `android && API >= 33`, but
+    // `reportsInstalled` is merely `android` — so an Android 12 phone runs the
+    // query and answers it correctly. Ranking `too-old` above the read and then
+    // reading knowledge off that rank told somebody who had installed English
+    // through system settings that the phone could not say, immediately after it
+    // had. "Cannot fetch" is the right notice; it is not an answer about
+    // evidence, and the two must not be derived from one another.
+    const android12 = { ...android, canDownload: false } as const;
+    expect(offlineVoiceRead(android12)).toBe('too-old');
+    expect(offlineVoiceKnowledge(android12)).toBe('reported');
+
+    // Still nothing to believe when there is genuinely no answer in hand.
+    expect(offlineVoiceKnowledge({ ...android12, query: 'error', hasData: false })).toBe(
+      'unknowable',
+    );
+  });
+
+  it('never lets iPhone’s echo be read as an inventory', () => {
+    // The one refusal that survives a perfectly good-looking answer: iOS returns
+    // its supported list under both names, so `hasData` is true and worthless.
+    expect(offlineVoiceKnowledge({ ...android, reportsInstalled: false })).toBe('unknowable');
+    expect(offlineVoiceKnowledge({ ...android, supportsOnDevice: false })).toBe('unknowable');
+    expect(offlineVoiceKnowledge({ ...android, hasModule: false })).toBe('unknowable');
+  });
+});
+
+describe('withConfirmedInstalls', () => {
+  const model = (tag: string, state: 'installed' | 'missing' | 'unknown') => ({
+    tag,
+    language: null,
+    state,
+  });
+
+  it('ticks a model this screen watched land, whatever the phone says', () => {
+    // The screenshot, exactly: the read failed, so every row reads `unknown`,
+    // but English arrived a moment ago and we saw it arrive.
+    const models = {
+      app: [model('en-IN', 'unknown'), model('ta-IN', 'unknown')],
+      alsoInstalled: [],
+      downloadable: [],
+    };
+    const ticked = withConfirmedInstalls(models, ['en-IN']);
+    expect(ticked.app.map((row) => row.state)).toEqual(['installed', 'unknown']);
+  });
+
+  it('matches the way tags are written, not the way they are typed', () => {
+    const models = { app: [model('en-IN', 'missing')], alsoInstalled: [], downloadable: [] };
+    expect(withConfirmedInstalls(models, ['EN_in']).app[0]?.state).toBe('installed');
+  });
+
+  it('only ever adds — it cannot untick anything', () => {
+    const models = {
+      app: [model('en-IN', 'installed')],
+      alsoInstalled: [model('de-DE', 'installed')],
+      downloadable: [model('fr-FR', 'missing')],
+    };
+    const same = withConfirmedInstalls(models, []);
+    expect(same).toEqual(models);
+    const one = withConfirmedInstalls(models, ['en-IN']);
+    expect(one.alsoInstalled[0]?.state).toBe('installed');
+    expect(one.downloadable[0]?.state).toBe('missing');
   });
 });
