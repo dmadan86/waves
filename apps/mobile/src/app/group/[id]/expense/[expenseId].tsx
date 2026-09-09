@@ -48,7 +48,7 @@ import {
 import { expenseTitle } from '@/data/expenseTitle';
 import { useBlockedUsers } from '@/data/blocked';
 import { displayName, groupLabel, isBlockedMember, isGhost } from '@/data/types';
-import { plural, useStrings, type UiStrings } from '@/i18n';
+import { fill, plural, useStrings, type UiStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { expenseReceiptPath, expenseReceiptUrl } from '@/data/api';
 import { coordLabel, mapsUrl } from '@/lib/location';
@@ -707,10 +707,39 @@ export default function ExpenseDetailScreen() {
               <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
                 {ledgerRows.map((row, index) => {
                   const member = lookup.get(row.memberId);
+                  // Every person on the bill is a way into their page — the same
+                  // push the members list uses, and the member screen reads the
+                  // same mirror, so a ghost opens exactly as a joined member
+                  // does. A row whose member the mirror cannot resolve (someone
+                  // written into an old version and since gone) has nowhere to
+                  // land, so it stays a plain row rather than a tap that ends on
+                  // "member not found".
+                  const openMember = member
+                    ? () => router.push(`/group/${groupId}/member/${row.memberId}`)
+                    : undefined;
+                  // Making the row one button groups its text, so the amount
+                  // `MoneyText` would have spoken on its own has to be said here.
+                  // Third person: this row is about them, not about the reader.
+                  const spokenAmount = format(money(row.net < 0n ? -row.net : row.net, currency), {
+                    locale,
+                  });
+                  const spokenName = nameOf(row.memberId);
+                  const rowLabel = [
+                    row.net > 0n
+                      ? fill(t.expense.rowOwed, { name: spokenName, amount: spokenAmount })
+                      : row.net < 0n
+                        ? fill(t.expense.rowOwes, { name: spokenName, amount: spokenAmount })
+                        : fill(t.expense.rowSquare, { name: spokenName }),
+                    member && isGhost(member) ? t.notJoinedYet : '',
+                  ]
+                    .filter(Boolean)
+                    .join('. ');
                   return (
                     <View key={row.memberId}>
                       <ListRow
                         title={nameOf(row.memberId)}
+                        onPress={openMember}
+                        accessibilityLabel={rowLabel}
                         subtitle={
                           [
                             member && isGhost(member) ? t.notJoinedYet : null,
