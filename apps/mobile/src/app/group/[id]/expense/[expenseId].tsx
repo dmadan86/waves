@@ -27,7 +27,7 @@ import {
   useTheme,
 } from '@waves/ui';
 
-import { format, money } from '@waves/core';
+import { balanceDirection, copyFor, format, money, moneyAccessibilityLabel } from '@waves/core';
 
 import { CategoryBadge } from '@/components/Category';
 import { useAvatarUrl } from '@/components/ProfileAvatar';
@@ -717,47 +717,62 @@ export default function ExpenseDetailScreen() {
                   const openMember = member
                     ? () => router.push(`/group/${groupId}/member/${row.memberId}`)
                     : undefined;
+                  // The words under the name, computed once and given to both the
+                  // row and its spoken label — an explicit `accessibilityLabel`
+                  // replaces `ListRow`'s default wholesale, so anything only the
+                  // subtitle said would otherwise be dropped from the audio.
+                  const subtitle =
+                    [
+                      member && isGhost(member) ? t.notJoinedYet : null,
+                      // Only for somebody who put money in: their row shows a
+                      // net, and without this the two numbers it came from are
+                      // nowhere on the screen.
+                      row.paid > 0n
+                        ? t.expense.paidAndShare
+                            .replace('{paid}', format(money(row.paid, currency), { locale }))
+                            .replace('{share}', format(money(row.share, currency), { locale }))
+                        : null,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ') || undefined;
                   // Making the row one button groups its text, so the amount
-                  // `MoneyText` would have spoken on its own has to be said here.
-                  // Third person: this row is about them, not about the reader.
+                  // `MoneyText` would have spoken on its own has to be said here
+                  // — in the same compact form the row prints, so what is heard
+                  // and what is seen are the same figure and not "₹500.00" over
+                  // a visible "₹500".
+                  //
+                  // Third person, because the row is about them: "Ravi owes ₹500".
+                  // Except on your own row, where the third person would read the
+                  // literal "You" back through a sentence built for a name — "You
+                  // owes ₹500", and in Tamil, Hindi or Arabic an English word
+                  // spliced mid-sentence. That row speaks the second person the
+                  // rest of the app already uses for your own money.
                   const spokenAmount = format(money(row.net < 0n ? -row.net : row.net, currency), {
                     locale,
+                    compactFraction: true,
                   });
                   const spokenName = nameOf(row.memberId);
-                  const rowLabel = [
-                    row.net > 0n
+                  const isMe = Boolean(member?.profile_id && member.profile_id === profile?.id);
+                  const spokenBalance = isMe
+                    ? moneyAccessibilityLabel(
+                        { minor: row.net, currency },
+                        balanceDirection(row.net),
+                        copyFor(locale).money,
+                        { locale, compactFraction: true },
+                      )
+                    : row.net > 0n
                       ? fill(t.expense.rowOwed, { name: spokenName, amount: spokenAmount })
                       : row.net < 0n
                         ? fill(t.expense.rowOwes, { name: spokenName, amount: spokenAmount })
-                        : fill(t.expense.rowSquare, { name: spokenName }),
-                    member && isGhost(member) ? t.notJoinedYet : '',
-                  ]
-                    .filter(Boolean)
-                    .join('. ');
+                        : fill(t.expense.rowSquare, { name: spokenName });
+                  const rowLabel = [spokenBalance, subtitle].filter(Boolean).join('. ');
                   return (
                     <View key={row.memberId}>
                       <ListRow
                         title={nameOf(row.memberId)}
                         onPress={openMember}
                         accessibilityLabel={rowLabel}
-                        subtitle={
-                          [
-                            member && isGhost(member) ? t.notJoinedYet : null,
-                            // Only for somebody who put money in: their row shows a
-                            // net, and without this the two numbers it came from are
-                            // nowhere on the screen.
-                            row.paid > 0n
-                              ? t.expense.paidAndShare
-                                  .replace('{paid}', format(money(row.paid, currency), { locale }))
-                                  .replace(
-                                    '{share}',
-                                    format(money(row.share, currency), { locale }),
-                                  )
-                              : null,
-                          ]
-                            .filter(Boolean)
-                            .join(' · ') || undefined
-                        }
+                        subtitle={subtitle}
                         leading={
                           <MemberAvatar
                             name={avatarNameOf(row.memberId)}
