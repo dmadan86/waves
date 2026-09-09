@@ -1661,6 +1661,40 @@ export default function AddExpenseScreen() {
             multiline
           />
 
+          {/* When it happened, on the common path rather than behind the fold.
+            The day is not an advanced setting: an expense filed on the wrong one
+            lands in the wrong month, the wrong trip and the wrong place in the
+            feed, and somebody correcting a date should not have to guess that it
+            lives under "More details" — which is exactly what happened when it
+            did. It sits beside the note rather than above the fold for the same
+            reason: split, payers and participants fill the first screenful, so
+            anything after them is still a scroll away. What, when, then who.
+            Untouched it still inherits the day it always had, so editing a note
+            never moves a three-week-old dinner. */}
+          <Card style={{ paddingVertical: theme.spacing.xs, gap: 0 }}>
+            <SettingRow
+              label={t.captures.date}
+              value={showDate(expenseDate, locale)}
+              leading={
+                <Ionicons
+                  name="calendar-outline"
+                  size={iconSize.md}
+                  color={theme.color.textMuted}
+                />
+              }
+              onPress={() => setEditingDate(true)}
+            />
+          </Card>
+
+          {editingDate ? (
+            <DateTimePicker
+              value={dateFrom(expenseDate)}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'inline' : 'default'}
+              onChange={applyDate}
+            />
+          ) : null}
+
           {/* The bill is a shortcut, not the screen: two small actions rather
             than a card that makes this look like a receipt scanner. Scan is
             metered and gives way when the group is capped; Add photo keeps an
@@ -2241,34 +2275,7 @@ export default function AddExpenseScreen() {
               />
               <Divider />
               <PaymentMethodRow value={paymentMethod} onPress={() => setPickingPayment(true)} />
-              <Divider />
-              {/* When it happened. An expense filed on the wrong day lands in
-                the wrong month, the wrong trip and the wrong place in the feed,
-                and until now the only way to correct one was to delete it and
-                type it again. Untouched it still inherits the day it always
-                did, so editing a note never moves a three-week-old dinner. */}
-              <SettingRow
-                label={t.captures.date}
-                value={showDate(expenseDate, locale)}
-                leading={
-                  <Ionicons
-                    name="calendar-outline"
-                    size={iconSize.md}
-                    color={theme.color.textMuted}
-                  />
-                }
-                onPress={() => setEditingDate(true)}
-              />
             </Card>
-
-            {editingDate ? (
-              <DateTimePicker
-                value={dateFrom(expenseDate)}
-                mode="date"
-                display={Platform.OS === 'ios' ? 'inline' : 'default'}
-                onChange={applyDate}
-              />
-            ) : null}
 
             {/* Where it happened (A43) — optional, opt-in, never a background track. */}
             <LocationField value={location} onChange={setLocation} />
