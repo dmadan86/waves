@@ -115,6 +115,12 @@ describe('hrefKey', () => {
     );
   });
 
+  it('does not collide an array param with the scalar string it would stringify to', () => {
+    expect(hrefKey({ pathname: '/x', params: { ids: ['rider', 'traveller'] } })).not.toBe(
+      hrefKey({ pathname: '/x', params: { ids: 'rider,traveller' } }),
+    );
+  });
+
   it('keeps a bare pathname bare', () => {
     expect(hrefKey({ pathname: '/x' })).toBe('/x');
   });
