@@ -17,6 +17,28 @@
  * holds somebody's account open until an upload succeeds is a worse failure
  * than a lost draft. The warning is honest and the door stays unlocked.
  *
+ * Three shape rules, each of them the fix for a way the first version misled:
+ *
+ * 1. **The alarm is proportional.** With nothing queued, signing out costs
+ *    nothing that does not come back, so the sheet says exactly that in one
+ *    line and shows two buttons. The warning language, the list and the two
+ *    precautions appear only when there is something on this phone the account
+ *    has never seen. A sheet that shouts at everybody teaches people to tap
+ *    through the shout.
+ * 2. **The list is never promised without being shown.** The lead line points
+ *    at the rows below it, so the rows have to be laid out where they can be
+ *    seen. They used to sit in a `ScrollView` nested one `View` deep, which
+ *    measured short and clipped: the warning said "listed below" over an empty
+ *    white gap. The scroll region is now a direct child of the sheet with a
+ *    definite `maxHeight` in points — the shape that hugs its content instead
+ *    of guessing at it — and its indicator is on, so a list that really is too
+ *    long to fit says so.
+ * 3. **Weight follows consequence.** Signing out is the destructive thing being
+ *    confirmed, so it is the filled red button; staying is the soft one right
+ *    under it, full width and impossible to miss; and the two ways to keep the
+ *    data are small and sit with the list they protect, because a precaution
+ *    drawn at full width above the decision reads as the recommended path.
+ *
  * The copy button writes a plain JSON snapshot of everything on the device
  * (`saveDeviceCopy`) — the unsent queue and the drafts included — and hands it
  * to the share sheet. It never touches the network, because the case it exists
@@ -27,9 +49,14 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { ScrollView, View } from 'react-native';
+import { ScrollView, useWindowDimensions, View } from 'react-native';
 
-import { unsentWork, type DeviceDraft } from '@waves/core';
+import {
+  materialiseArchivedGroups,
+  materialiseGroups,
+  unsentWork,
+  type DeviceDraft,
+} from '@waves/core';
 import { Button, Callout, iconSize, Row, Sheet, Text, useTheme } from '@waves/ui';
 
 import { plural, useStrings } from '@/i18n';
@@ -49,15 +76,73 @@ import { syncEngine, SyncStatus, useSync } from '@/sync';
 /** What the two work buttons are doing, so neither can be pressed twice. */
 type Busy = 'none' | 'sync' | 'copy';
 
-/** One "this is still only here" line: a warning glyph and the count in words. */
-function RiskRow({ icon, label }: { icon: keyof typeof Ionicons.glyphMap; label: string }) {
+/** How many group names the "changes to your groups" row will name before it
+ *  stops. Three is a line; a device holding work in eight groups wants a count,
+ *  not a paragraph, and the count is already the line above it. */
+const NAMED_GROUPS = 3;
+
+/** The round tinted mark this app puts at the head of a settings row, reused
+ *  here so the sheet is built out of the same parts as the screen behind it. */
+function Chip({
+  icon,
+  bg,
+  ink,
+  size,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  bg: string;
+  ink: string;
+  size: number;
+}) {
   const theme = useTheme();
   return (
-    <Row style={{ gap: theme.spacing.md, alignItems: 'center' }}>
-      <Ionicons name={icon} size={iconSize.md} color={theme.color.warning} />
-      <Text variant="body" style={{ flex: 1 }}>
-        {label}
-      </Text>
+    <View
+      style={{
+        width: size,
+        height: size,
+        borderRadius: theme.radius.pill,
+        backgroundColor: bg,
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <Ionicons name={icon} size={iconSize.md} color={ink} />
+    </View>
+  );
+}
+
+/**
+ * One "this is still only here" line.
+ *
+ * Read as a single item by a screen reader — the count and the detail under it
+ * are one fact, and hearing them as two lines loses which belongs to which when
+ * there are four of them.
+ */
+function RiskRow({
+  icon,
+  label,
+  hint,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  hint?: string;
+}) {
+  const theme = useTheme();
+  return (
+    <Row
+      accessible
+      accessibilityLabel={hint ? `${label}. ${hint}` : label}
+      style={{ gap: theme.spacing.md, alignItems: 'center' }}
+    >
+      <Chip icon={icon} bg={theme.color.warningSoft} ink={theme.color.warning} size={36} />
+      <View style={{ flex: 1 }}>
+        <Text variant="body">{label}</Text>
+        {hint ? (
+          <Text variant="caption" tone="muted">
+            {hint}
+          </Text>
+        ) : null}
+      </View>
     </Row>
   );
 }
@@ -135,6 +220,7 @@ export function SignOutSheet({
   const { session, isGuest } = useAuth();
   const { mirror, queue, status, flush } = useSync();
   const receipts = usePendingReceipts();
+  const { height: screenHeight } = useWindowDimensions();
 
   const ownerId = session?.user?.id ?? '';
   const drafts = useDeviceDrafts(visible);
@@ -148,6 +234,37 @@ export function SignOutSheet({
   // their own queue, and leaving them out of this gated the button away from a
   // device whose only unsent thing was a photograph it could have sent.
   const sendable = work.personal + work.other + unsentReceipts > 0;
+
+  /**
+   * The names of the groups the unsent changes belong to.
+   *
+   * "3 changes to your groups" is a number somebody has to take on trust; "3
+   * changes to your groups / Goa trip · Flatmates" is one they can check
+   * against what they remember doing. The ids come off the queue and the names
+   * off the mirror, archived groups included, so an unsent change to a trip
+   * that has since been put away is still named rather than silently dropped.
+   * Ids with no group behind them — the personal scope, the capture inbox — do
+   * not resolve and fall out here, which is right: they have their own rows.
+   */
+  const groupNames = useMemo(() => {
+    if (work.other + work.refused === 0) return undefined;
+    const named = new Map<string, string>();
+    for (const group of [
+      ...materialiseGroups(mirror, queue),
+      ...materialiseArchivedGroups(mirror, queue),
+    ]) {
+      if (group.name) named.set(group.id, group.name);
+    }
+    const seen: string[] = [];
+    for (const item of queue) {
+      const name = named.get(item.groupId);
+      if (name !== undefined && !seen.includes(name)) seen.push(name);
+    }
+    if (seen.length === 0) return undefined;
+    return seen.length > NAMED_GROUPS
+      ? `${seen.slice(0, NAMED_GROUPS).join(' · ')} …`
+      : seen.join(' · ');
+  }, [mirror, queue, work.other, work.refused]);
 
   const [busy, setBusy] = useState<Busy>('none');
   const [error, setError] = useState<string | null>(null);
@@ -217,154 +334,183 @@ export function SignOutSheet({
     }
   }, [mirror, queue, drafts, ownerId, t]);
 
+  // Nothing queued and no key to lose is the ordinary case, and it is not a
+  // dangerous one — the head mark then says "safe", not "look out".
+  const alarmed = atRisk > 0 || backupKeyAtRisk;
+  const headTone = isGuest
+    ? { bg: theme.color.negativeSoft, ink: theme.color.negative }
+    : alarmed
+      ? { bg: theme.color.warningSoft, ink: theme.color.warning }
+      : { bg: theme.color.positiveSoft, ink: theme.color.positive };
+  const email = session?.user?.email ?? '';
+
+  // Points, not a percentage: a percentage max-height resolves against a parent
+  // with no height of its own here, and a scroll view with no real bound is the
+  // thing that clipped the list. Two fifths of the window leaves the title and
+  // both doors on screen on the shortest phone we support.
+  const bodyMax = Math.round(screenHeight * 0.42);
+
   return (
     <Sheet
       visible={visible}
       onClose={onClose}
       closeLabel={t.common.close}
-      style={{ maxHeight: '88%' }}
+      style={{ maxHeight: Math.round(screenHeight * 0.88) }}
     >
-      <View style={{ gap: theme.spacing.lg, flexShrink: 1 }}>
-        <Text variant="heading">{t.lock.signOutQuestion}</Text>
-
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          style={{ flexShrink: 1 }}
-          contentContainerStyle={{ gap: theme.spacing.md }}
-        >
-          {/* A guest has no way back into the account at all, which outranks
-              everything else on this sheet — so it is said first, and loudest. */}
-          {isGuest ? (
-            <Callout tone="negative" title={t.signOutSheet.guestTitle}>
-              {t.lock.signOutGuestWarning}
-            </Callout>
-          ) : null}
-
-          {/* Deliberately outside the two branches below. The recovery key is
-              not unsent work — it is lost on sign-out whether or not anything
-              is still queued — so it has to be sayable beside the green
-              callout as well as the warning one. That is also why `allSafeBody`
-              is scoped to the ledger: "everything comes back" with this
-              underneath it would be a contradiction on the same screen. */}
-          {backupKeyAtRisk ? (
-            <Callout tone="warning" title={t.signOutSheet.backupKeyTitle}>
-              {t.signOutSheet.backupKeyWarning}
-            </Callout>
-          ) : null}
-
-          {atRisk === 0 ? (
-            <Callout tone="positive" title={t.signOutSheet.allSafeTitle}>
-              {t.signOutSheet.allSafeBody}
-            </Callout>
-          ) : (
-            <>
-              <Callout tone="warning" title={t.signOutSheet.atRiskTitle}>
-                {t.signOutSheet.atRiskBody}
-              </Callout>
-
-              <View style={{ gap: theme.spacing.sm, paddingVertical: theme.spacing.xs }}>
-                {work.other > 0 ? (
-                  <RiskRow
-                    icon="people-outline"
-                    label={plural(locale, work.other, t.signOutSheet.otherUnsent)}
-                  />
-                ) : null}
-                {/* The private ledger gets its own line rather than being folded
-                    into the count above: it lives on the Me tab, it is the one
-                    part of the app nobody else holds a copy of, and somebody who
-                    keeps their money there deserves to be told by name. */}
-                {work.personal > 0 ? (
-                  <RiskRow
-                    icon="wallet-outline"
-                    label={plural(locale, work.personal, t.signOutSheet.personalUnsent)}
-                  />
-                ) : null}
-                {work.refused > 0 ? (
-                  <RiskRow
-                    icon="alert-circle-outline"
-                    label={plural(locale, work.refused, t.signOutSheet.refused)}
-                  />
-                ) : null}
-                {unsentReceipts > 0 ? (
-                  <RiskRow
-                    icon="receipt-outline"
-                    label={plural(locale, unsentReceipts, t.signOutSheet.receiptsUnsent)}
-                  />
-                ) : null}
-                {/* A draft was never submitted, so unlike everything above it
-                    there is no server copy waiting and no queue entry to send —
-                    only the file below can keep it. */}
-                {drafts.length > 0 ? (
-                  <RiskRow
-                    icon="document-text-outline"
-                    label={plural(locale, drafts.length, t.signOutSheet.draftsUnsent)}
-                  />
-                ) : null}
-              </View>
-
-              {/* Offline is why the copy button is not an afterthought: sending
-                  is not on the table, so "sync first" would be advice nobody in
-                  that moment can take. */}
-              {offline ? (
-                <Text variant="caption" tone="muted">
-                  {t.signOutSheet.offlineHint}
-                </Text>
-              ) : null}
-
-              {/* The snapshot is JSON: the records go in, the image bytes do
-                  not. Said here, next to the count of photos still on the
-                  phone, because "download a copy" one line above it otherwise
-                  reads as an offer to keep them. */}
-              {unsentReceipts > 0 ? (
-                <Text variant="caption" tone="muted">
-                  {t.signOutSheet.copyExcludesPhotos}
-                </Text>
-              ) : null}
-            </>
-          )}
-
-          {error ? (
-            <Text variant="caption" style={{ color: theme.color.negative }}>
-              {error}
+      <Row style={{ gap: theme.spacing.md, marginBottom: theme.spacing.lg }}>
+        <Chip
+          icon={alarmed || isGuest ? 'alert-circle' : 'shield-checkmark'}
+          bg={headTone.bg}
+          ink={headTone.ink}
+          size={44}
+        />
+        <View style={{ flex: 1 }}>
+          <Text variant="title">{t.lock.signOutQuestion}</Text>
+          {email ? (
+            <Text variant="caption" tone="muted" numberOfLines={1}>
+              {t.signOutSheet.signedInAs.replace('{email}', email)}
             </Text>
           ) : null}
-          {saved ? (
-            <Text variant="caption" tone="muted">
-              {t.signOutSheet.copySaved.replace('{file}', saved)}
-            </Text>
-          ) : null}
-        </ScrollView>
+        </View>
+      </Row>
 
-        {/* The two ways to keep the data, then the two doors. The order is
-            deliberate — safe first, destructive last — but nothing here is
-            gated on anything else: this sheet warns, it does not hold anybody
-            hostage. */}
-        <View style={{ gap: theme.spacing.sm }}>
+      <ScrollView
+        // `flexGrow: 0` with a definite `maxHeight` is the shape that sizes
+        // itself to its content and stops there. Left to grow it measures short
+        // inside a sheet that has no height of its own, which is how the list
+        // the copy above points at came to be drawn off the bottom of it.
+        style={{ flexGrow: 0, flexShrink: 1, maxHeight: bodyMax }}
+        contentContainerStyle={{ gap: theme.spacing.md, paddingBottom: theme.spacing.xs }}
+      >
+        {/* A guest has no way back into the account at all, which outranks
+            everything else on this sheet — so it is said first, and loudest.
+            It keeps the panel the rest of the sheet no longer needs: this is
+            the one case where the whole account ends, not a copy of it. */}
+        {isGuest ? (
+          <Callout tone="negative" title={t.signOutSheet.guestTitle}>
+            {t.lock.signOutGuestWarning}
+          </Callout>
+        ) : null}
+
+        <Text variant="body" tone="muted">
+          {atRisk === 0 ? t.signOutSheet.allSafeBody : t.signOutSheet.atRiskBody}
+        </Text>
+
+        {alarmed ? (
+          <View style={{ gap: theme.spacing.sm }}>
+            {work.other > 0 ? (
+              <RiskRow
+                icon="people-outline"
+                label={plural(locale, work.other, t.signOutSheet.otherUnsent)}
+                hint={groupNames}
+              />
+            ) : null}
+            {/* The private ledger gets its own line rather than being folded
+                into the count above: it lives on the Me tab, it is the one
+                part of the app nobody else holds a copy of, and somebody who
+                keeps their money there deserves to be told by name. */}
+            {work.personal > 0 ? (
+              <RiskRow
+                icon="wallet-outline"
+                label={plural(locale, work.personal, t.signOutSheet.personalUnsent)}
+              />
+            ) : null}
+            {work.refused > 0 ? (
+              <RiskRow
+                icon="alert-circle-outline"
+                label={plural(locale, work.refused, t.signOutSheet.refused)}
+                hint={t.signOutSheet.refusedHint}
+              />
+            ) : null}
+            {unsentReceipts > 0 ? (
+              <RiskRow
+                icon="receipt-outline"
+                label={plural(locale, unsentReceipts, t.signOutSheet.receiptsUnsent)}
+                // The snapshot is JSON: the records go in, the image bytes do
+                // not. Said on this row rather than beside the copy button,
+                // because it is a fact about the photographs and this is where
+                // somebody is already counting them.
+                hint={t.signOutSheet.copyExcludesPhotos}
+              />
+            ) : null}
+            {/* A draft was never submitted, so unlike everything above it there
+                is no server copy waiting and no queue entry to send — only the
+                file can keep it. */}
+            {drafts.length > 0 ? (
+              <RiskRow
+                icon="document-text-outline"
+                label={plural(locale, drafts.length, t.signOutSheet.draftsUnsent)}
+              />
+            ) : null}
+            {/* Not unsent work: the recovery key is lost on sign-out whether or
+                not anything is queued, which is why it is the one row that can
+                appear under an otherwise clear list. */}
+            {backupKeyAtRisk ? (
+              <RiskRow
+                icon="key-outline"
+                label={t.signOutSheet.backupKeyTitle}
+                hint={t.signOutSheet.backupKeyWarning}
+              />
+            ) : null}
+          </View>
+        ) : null}
+
+        {/* Offline is why the copy button is not an afterthought: sending is not
+            on the table, so "sync first" would be advice nobody in that moment
+            can take. */}
+        {atRisk > 0 && offline ? (
+          <Text variant="caption" tone="muted">
+            {t.signOutSheet.offlineHint}
+          </Text>
+        ) : null}
+
+        {/* The two ways to keep it, kept small and kept here — beside the list
+            they protect rather than above the decision, which is where a
+            precaution drawn at full width starts reading as the thing to do. */}
+        <Row style={{ gap: theme.spacing.sm }}>
           {sendable && !offline ? (
             <Button
               label={busy === 'sync' ? t.signOutSheet.syncing : t.signOutSheet.syncNow}
-              variant="primary"
-              fullWidth
+              variant="secondary"
+              size="sm"
               disabled={busy !== 'none'}
               onPress={() => void syncNow()}
             />
           ) : null}
           <Button
             label={busy === 'copy' ? t.signOutSheet.copying : t.signOutSheet.copyNow}
-            variant="secondary"
-            fullWidth
+            variant="ghost"
+            size="sm"
             disabled={busy !== 'none'}
             onPress={() => void download()}
           />
-          <Button
-            label={t.lock.signOut}
-            variant="ghostDanger"
-            fullWidth
-            disabled={busy !== 'none'}
-            onPress={onSignOut}
-          />
-          <Button label={t.lock.staySignedIn} variant="ghost" fullWidth onPress={onClose} />
-        </View>
+        </Row>
+
+        {error ? (
+          <Text variant="caption" style={{ color: theme.color.negative }}>
+            {error}
+          </Text>
+        ) : null}
+        {saved ? (
+          <Text variant="caption" tone="muted">
+            {t.signOutSheet.copySaved.replace('{file}', saved)}
+          </Text>
+        ) : null}
+      </ScrollView>
+
+      {/* The doors, in the order the consequence puts them: the destructive one
+          wears the destructive colour, and the way out of it is the wide soft
+          button directly under the thumb. Neither is gated on anything above —
+          this sheet warns, it does not hold anybody hostage. */}
+      <View style={{ gap: theme.spacing.sm, marginTop: theme.spacing.lg }}>
+        <Button
+          label={t.lock.signOut}
+          variant="danger"
+          fullWidth
+          disabled={busy !== 'none'}
+          onPress={onSignOut}
+        />
+        <Button label={t.lock.staySignedIn} variant="secondary" fullWidth onPress={onClose} />
       </View>
     </Sheet>
   );
