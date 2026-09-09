@@ -908,8 +908,24 @@ export function VoiceCapture({
   const showMiss = !listening && (missed || emptyMiss);
   const missHeadline = missed ? t.voice.noAmount : t.voice.missedNothing;
 
+  // The on-device setup offer, in one place instead of two.
+  //
+  // It used to be drawn twice — once crammed under the worked example at rest,
+  // once after a miss the network engine caused — and the first of those put a
+  // one-off piece of housekeeping in the middle of the capture surface, a line
+  // under the sentence somebody is being invited to speak. The *when* is
+  // unchanged (this is exactly the union of the two old conditions); only the
+  // *where* moved, to the foot of the panel, where an aside belongs.
+  const offerOffline =
+    (!listening && !showMiss && !live && offlineEligible) ||
+    (showMiss && (engine === 'network' || offlineEligible));
+
   return (
-    <View style={{ alignItems: 'center', gap: theme.spacing.xl }}>
+    // `flexGrow` (never `flex`) so the panel fills a tall screen — letting the
+    // offer below settle on the bottom edge — without being squeezed on a short
+    // one, where the screen scrolls instead. See the matching note on the route's
+    // scroll container.
+    <View style={{ flexGrow: 1, alignItems: 'center', gap: theme.spacing.xl }}>
       {/* One headline, whatever most needs saying: the sentence forming while
           listening, a calm recovery line after a miss, or the opening prompt at
           rest. Never a warning stacked on top of it. */}
@@ -977,24 +993,9 @@ export function VoiceCapture({
         {listening && !reduceMotion ? (
           <Waveform active={listening} level={level} />
         ) : !listening && !showMiss && !live ? (
-          <View style={{ alignItems: 'center', gap: theme.spacing.xs }}>
-            <Text variant="caption" tone="faint" align="center">
-              {t.voice.example}
-            </Text>
-            {offlineEligible ? (
-              <Pressable
-                accessibilityRole="button"
-                disabled={downloading}
-                onPress={() => void setupOffline()}
-                hitSlop={8}
-                style={({ pressed }) => ({ opacity: downloading ? 0.5 : pressed ? 0.6 : 1 })}
-              >
-                <Text variant="caption" tone="brand" style={{ fontWeight: '600' }}>
-                  {t.voice.setupOffline}
-                </Text>
-              </Pressable>
-            ) : null}
-          </View>
+          <Text variant="caption" tone="faint" align="center">
+            {t.voice.example}
+          </Text>
         ) : null}
       </View>
 
@@ -1006,17 +1007,31 @@ export function VoiceCapture({
         </Pressable>
       ) : null}
 
-      {/* A one-line failure diagnostic, shown only on a miss — which engine ran,
-          whether audio reached it, whether any words returned. Lets a device
-          where voice silently does nothing be told apart from a cable. */}
-      {/* When the network engine heard audio but returned nothing, its recogniser
-          is broken on this device — offer the on-device model, which recognises
-          without the network path at all. */}
-      {showMiss && (engine === 'network' || offlineEligible) ? (
-        <View style={{ alignItems: 'center', gap: theme.spacing.xs }}>
+      {/* The panel's footer: the on-device setup offer, at the foot of the screen.
+          Either it is the standing offer (on-device is supported here but the
+          English model is not installed) or it is the way out of a miss the
+          network engine caused — when that recogniser hears audio and returns
+          nothing, it is broken on this device and the on-device model is the only
+          path that works.
+
+          `marginTop: 'auto'` is what carries it down: the panel grows to the
+          window, so the free space collects above this block instead of below it.
+          The padding above is its own breathing room, and the room below it comes
+          from the route's `clearance` — the system navigation bar's inset plus a
+          breath — applied once, on the scroll container. */}
+      {offerOffline ? (
+        <View
+          style={{
+            marginTop: 'auto',
+            paddingTop: theme.spacing.xxl,
+            alignItems: 'center',
+            gap: theme.spacing.xs,
+          }}
+        >
           <Pressable
             accessibilityRole="button"
             disabled={downloading}
+            accessibilityState={{ disabled: downloading }}
             onPress={() => void setupOffline()}
             hitSlop={8}
             style={({ pressed }) => ({ opacity: downloading ? 0.5 : pressed ? 0.6 : 1 })}
