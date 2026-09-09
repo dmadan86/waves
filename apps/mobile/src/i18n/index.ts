@@ -3406,7 +3406,7 @@ const en: UiStrings = {
     unsupported: 'This device has no biometrics or passcode set up',
     askAgainAfter: 'Ask again after',
     askAgainExplain:
-      'Time in the background before Waves locks. Settling by UPI sends you to another app and back, so locking the instant you leave means unlocking every time you pay somebody.',
+      'Time away before Waves asks again — for the app lock, and for the private personal ledger, which uses the same window when you leave it. Settling by UPI sends you to another app and back, so asking the instant you leave means unlocking every time you pay somebody.',
     graceImmediate: 'Straight away',
     graceSeconds: { one: 'After {n} second', other: 'After {n} seconds' },
     graceMinutes: { one: 'After a minute', other: 'After {n} minutes' },
@@ -5881,7 +5881,7 @@ const ta: UiStrings = {
     unsupported: 'இந்தச் சாதனத்தில் கைரேகையோ கடவுக்குறியீடோ அமைக்கப்படவில்லை',
     askAgainAfter: 'மீண்டும் கேட்க',
     askAgainExplain:
-      'Waves பூட்டப்படுவதற்கு முன் பின்னணியில் இருக்கும் நேரம். UPI மூலம் தீர்ப்பது உங்களை வேறு ஆப்புக்கு அனுப்பி மீண்டும் கொண்டுவரும், எனவே வெளியேறியதுமே பூட்டினால் ஒவ்வொரு முறை பணம் கொடுக்கும்போதும் திறக்க வேண்டியிருக்கும்.',
+      'Waves மீண்டும் கேட்பதற்கு முன் நீங்கள் விலகி இருக்கும் நேரம் — ஆப் பூட்டுக்கும், தனிப்பட்ட கணக்குக்கும்; அதை விட்டு வெளியேறினாலும் இதே நேரம்தான். UPI மூலம் தீர்ப்பது உங்களை வேறு ஆப்புக்கு அனுப்பி மீண்டும் கொண்டுவரும், எனவே வெளியேறியதுமே கேட்டால் ஒவ்வொரு முறை பணம் கொடுக்கும்போதும் திறக்க வேண்டியிருக்கும்.',
     graceImmediate: 'உடனடியாக',
     graceSeconds: { one: '{n} வினாடி கழித்து', other: '{n} வினாடிகள் கழித்து' },
     graceMinutes: { one: 'ஒரு நிமிடம் கழித்து', other: '{n} நிமிடங்கள் கழித்து' },
@@ -8449,7 +8449,7 @@ const hi: UiStrings = {
     unsupported: 'इस डिवाइस पर बायोमेट्रिक या पासकोड सेट नहीं है',
     askAgainAfter: 'दोबारा पूछें',
     askAgainExplain:
-      'Waves के लॉक होने से पहले बैकग्राउंड में बीता समय। UPI से निपटाने पर आप दूसरे ऐप में जाकर लौटते हैं, इसलिए निकलते ही लॉक करने का मतलब है हर भुगतान पर दोबारा खोलना।',
+      'Waves के दोबारा पूछने से पहले आपके दूर रहने का समय — ऐप लॉक के लिए भी, और निजी हिसाब के लिए भी, जिसे छोड़ने पर यही समय लागू होता है। UPI से निपटाने पर आप दूसरे ऐप में जाकर लौटते हैं, इसलिए निकलते ही पूछने का मतलब है हर भुगतान पर दोबारा खोलना।',
     graceImmediate: 'तुरंत',
     graceSeconds: { one: '{n} सेकंड बाद', other: '{n} सेकंड बाद' },
     graceMinutes: { one: 'एक मिनट बाद', other: '{n} मिनट बाद' },
@@ -10949,7 +10949,7 @@ const ar: UiStrings = {
     unsupported: 'لا توجد بصمة أو رمز مرور مضبوط على هذا الجهاز',
     askAgainAfter: 'اسأل مرة أخرى بعد',
     askAgainExplain:
-      'المدة في الخلفية قبل أن يُقفل Waves. التسوية عبر UPI تنقلك إلى تطبيق آخر ثم تعيدك، فالقفل لحظة الخروج يعني فتح القفل مع كل دفعة.',
+      'المدة التي تقضيها بعيدًا قبل أن يسأل Waves مرة أخرى — لقفل التطبيق، ولدفترك الشخصي الذي يستخدم المدة نفسها عند مغادرته. التسوية عبر UPI تنقلك إلى تطبيق آخر ثم تعيدك، فالسؤال لحظة الخروج يعني فتح القفل مع كل دفعة.',
     graceImmediate: 'فورًا',
     graceSeconds: {
       zero: 'بعد {n} ثانية',

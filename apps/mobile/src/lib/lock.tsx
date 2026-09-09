@@ -10,23 +10,24 @@ import {
 } from 'react';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as SecureStore from 'expo-secure-store';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useSegments } from 'expo-router';
 import { AppState, Platform } from 'react-native';
 
 import { plural, type UiStrings } from '@/i18n';
 import { legacyKeysMigrated } from '@/lib/legacyKeys';
 import {
+  beginPersonalCheck,
   DEFAULT_IDLE_GRACE_SECONDS,
-  enterPersonalSection,
+  endPersonalCheck,
   getPersonalLockState,
+  isPersonalSection,
   isPersonalUnlocked,
-  leavePersonalSection,
   lockClockNow,
   lockPersonal,
   markPersonalUnlocked,
-  markPersonalUnlockedFromPrompt,
   personalAppActive,
   personalAppAway,
+  setPersonalPresence,
   subscribePersonalLock,
 } from '@/lib/personalLock';
 
@@ -144,10 +145,10 @@ export function LockProvider({ children }: { children: ReactNode }) {
   // app lock is on: the two are independent gates, and the private section is
   // guarded whether or not the whole app is. One subscription for the app, held
   // above every screen, so no personal screen has to be mounted for a departure
-  // to be noticed.
+  // to be noticed. `inactive` is not a departure here — see `personalAppAway`.
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (state) => {
-      if (state === 'background' || state === 'inactive') personalAppAway();
+      if (state === 'background') personalAppAway();
       else if (state === 'active') personalAppActive(graceSeconds);
     });
     return () => subscription.remove();
@@ -194,9 +195,30 @@ export function LockProvider({ children }: { children: ReactNode }) {
         unlock,
       }}
     >
+      {/* Renders nothing; it is the one place that says whether the user is
+          inside the private section. A sibling of `children` rather than a hook
+          up here, so a route change re-renders this and nothing else. */}
+      <PersonalPresence graceSeconds={graceSeconds} />
       {children}
     </LockContext.Provider>
   );
+}
+
+/**
+ * Keeps the personal lock's idea of "the user is in the section" in step with
+ * the router.
+ *
+ * Presence is a property of where you are, not of which component happened to
+ * fire a focus event, and reading it off the path is what lets a push from the
+ * Me tab into `personal/entry` cost nothing: one personal route replaces
+ * another and presence never changes at all.
+ */
+function PersonalPresence({ graceSeconds }: { graceSeconds: number }) {
+  const segments = useSegments();
+  useEffect(() => {
+    setPersonalPresence(isPersonalSection(segments as string[]), graceSeconds);
+  }, [segments, graceSeconds]);
+  return null;
 }
 
 export function useLock(): LockValue {
@@ -224,10 +246,13 @@ export interface PersonalGateValue {
  * Every screen in the section mounts this — the Me tab and each `personal/*`
  * room — but they all read one state (`lib/personalLock`), so the first unlock
  * covers the section and walking between its screens never asks again. What
- * ages an unlock is time spent *away*: outside the section, or with the app in
- * the background, for longer than the user's "Ask again after" window — the
- * same setting the app lock uses, so the two can never disagree. Sign-out shuts
- * it, and so does a cold start: the store begins locked.
+ * ages an unlock is time spent *away*: on a route outside the section, or with
+ * the app in the background, for longer than the user's "Ask again after"
+ * window — the same setting the app lock uses, so the two can never disagree.
+ * Whether the user is in the section is read off the router, not off focus
+ * events, so a push has no gap in it to mistake for a departure. A cold start
+ * begins locked, and any change of account — signing out, a session revoked
+ * from elsewhere, somebody else signing in — shuts it.
  *
  * Until it opens the caller draws a shield rather than the figures, so nothing
  * is ever on show behind the OS prompt. A refused or cancelled check leaves the
@@ -240,10 +265,20 @@ export interface PersonalGateValue {
  */
 export function usePersonalGate(promptMessage: string): PersonalGateValue {
   const { graceSeconds, supported, ready } = useLock();
-  const state = useSyncExternalStore(subscribePersonalLock, getPersonalLockState);
+  // Third argument is the server snapshot: a static web export prerenders these
+  // routes, and the locked state is exactly what a render with no device should
+  // produce — the shield.
+  const state = useSyncExternalStore(
+    subscribePersonalLock,
+    getPersonalLockState,
+    getPersonalLockState,
+  );
   const [checking, setChecking] = useState(false);
   const [failed, setFailed] = useState(false);
   const [focused, setFocused] = useState(false);
+  // The same fact as `focused`, readable from inside an async check that
+  // started before the user walked off.
+  const onScreen = useRef(false);
   // One prompt at a time. The effect below can re-run while the OS sheet is
   // still up (the grace window arrives asynchronously, and `supported` flips
   // once the hardware check lands), and two stacked biometric prompts is how a
@@ -255,28 +290,41 @@ export function usePersonalGate(promptMessage: string): PersonalGateValue {
   // hoisted. `state` is an argument so this re-evaluates whenever the store moves.
   const unlocked = isPersonalUnlocked(state, lockClockNow(), graceSeconds);
 
-  // Presence, not authentication: this is what tells the store whether the user
-  // is still in the section. A push inside it blurs one screen and focuses the
-  // next, and the store's settle window covers that gap.
+  // Focus decides which screen does the asking — several personal screens can
+  // be mounted at once and only the visible one should raise a prompt. It says
+  // nothing about presence; that is the router's job (`PersonalPresence`).
+  // Leaving also clears a refusal, so coming back asks again rather than
+  // greeting the user with the last attempt's failure.
   useFocusEffect(
     useCallback(() => {
-      enterPersonalSection(graceSeconds);
+      onScreen.current = true;
       setFocused(true);
       return () => {
+        onScreen.current = false;
         setFocused(false);
-        leavePersonalSection();
+        setFailed(false);
       };
-    }, [graceSeconds]),
+    }, []),
   );
 
   const ask = useCallback(async (): Promise<void> => {
     if (asking.current) return;
     asking.current = true;
+    // From here until the result is applied, an OS transition is our own doing
+    // rather than the user leaving.
+    beginPersonalCheck();
     try {
       // Nothing to authenticate against (no hardware, nothing enrolled, or
       // web): there is nothing to prompt for, so open. RLS still guards the data.
       const canAsk =
         Platform.OS !== 'web' && supported && (await LocalAuthentication.isEnrolledAsync());
+      // Every result below is discarded if the screen that asked has gone. The
+      // OS sheet outlives its screen — back out of the section with Android's
+      // prompt up and the success lands on nothing — and an answer given to a
+      // question the user has walked away from is not consent to open the
+      // ledger. The store guards this too (`afterPersonalAuth`); this is the
+      // near end of the same rule.
+      if (!onScreen.current) return;
       if (!canAsk) {
         markPersonalUnlocked();
         return;
@@ -286,8 +334,9 @@ export function usePersonalGate(promptMessage: string): PersonalGateValue {
         promptMessage,
         fallbackLabel: 'Use passcode',
       });
+      if (!onScreen.current) return;
       if (result.success) {
-        markPersonalUnlockedFromPrompt();
+        markPersonalUnlocked();
       } else {
         // Refused: stay shut, and wait to be asked again rather than looping the
         // prompt or navigating away underneath whoever is holding the phone.
@@ -297,6 +346,7 @@ export function usePersonalGate(promptMessage: string): PersonalGateValue {
     } finally {
       setChecking(false);
       asking.current = false;
+      endPersonalCheck();
     }
   }, [supported, promptMessage]);
 

@@ -30,17 +30,25 @@
 export const DEFAULT_IDLE_GRACE_SECONDS = 30;
 
 /**
- * How long "no personal screen is focused" must hold before it counts as
- * having left the section.
+ * Whether a route belongs to the private section.
  *
- * A push inside the section blurs one screen and focuses the next, and for the
- * instant between them nothing personal is focused. Without this settle that
- * gap would read as a departure, and with the window set to "Straight away" it
- * would re-lock on every single navigation — the very complaint this module
- * exists to answer. The departure is timestamped when the blur happened, not
- * when the timer fires, so the delay never lengthens anybody's grace.
+ * Presence is read off the router, not off focus events. Focus arrives as a
+ * blur and a focus with a gap between them, and every scheme for deciding
+ * whether that gap was a departure — a counter, a settle timer — is a race with
+ * a constant in it: too short and a slow focus re-locks mid-push, too long and
+ * a real departure is forgiven. The path has no gap. A push from the Me tab to
+ * `personal/entry` is one personal route replacing another, and presence never
+ * so much as flickers.
+ *
+ * Group segments are dropped, so this holds whether the router reports
+ * `['(tabs)', 'me']` or `['me']`.
  */
-export const PERSONAL_LEAVE_SETTLE_MS = 50;
+export function isPersonalSection(segments: readonly string[]): boolean {
+  const first = segments.find(
+    (part) => part !== '' && !(part.startsWith('(') && part.endsWith(')')),
+  );
+  return first === 'me' || first === 'personal';
+}
 
 export interface PersonalLockState {
   /** When the device last proved who is holding it. `null` means locked. */
@@ -80,9 +88,19 @@ export function isPersonalUnlocked(
   return now - state.awaySince < idleSeconds * 1000;
 }
 
-/** A successful check: open, and the idle clock stops. */
-export function afterPersonalAuth(now: number): PersonalLockState {
-  return { unlockedAt: now, awaySince: null };
+/**
+ * A successful check.
+ *
+ * `inside` is whether the user is actually in the section as the result lands.
+ * A biometric prompt is a system window that outlives the screen that asked:
+ * back out of the section with Android's sheet still up, then present a
+ * fingerprint, and the success arrives for a screen that has gone. Stopping the
+ * idle clock on that would open the ledger for good, so an unlock granted from
+ * outside starts its clock immediately — it is worth exactly the grace window,
+ * and nothing more.
+ */
+export function afterPersonalAuth(now: number, inside: boolean): PersonalLockState {
+  return { unlockedAt: now, awaySince: inside ? null : now };
 }
 
 /**
@@ -119,13 +137,20 @@ export function afterPersonalReturn(
 let current: PersonalLockState = PERSONAL_LOCKED;
 const listeners = new Set<() => void>();
 
+/** Whether the current route is in the section. Set from the router, once. */
+let inside = false;
+
 /**
- * How many personal screens are focused. In practice zero or one — a
- * navigator focuses one screen at a time — but counting rather than flagging
- * keeps the blur/focus pair of a push from ever losing track of itself.
+ * How many biometric checks are up right now.
+ *
+ * The OS sheet is not part of our app: iOS reports `inactive` behind Face ID
+ * and some Android builds pause the activity outright behind BiometricPrompt.
+ * Counting our own prompt as the user leaving would re-lock the section because
+ * we asked it to unlock — at a zero-second window, over and over. Suppressing
+ * the away-clock while a check is up is safe by construction: we only ever ask
+ * while the section is shut, so there is nothing open to protect.
  */
-let present = 0;
-let settling: ReturnType<typeof setTimeout> | null = null;
+let checks = 0;
 
 function commit(next: PersonalLockState): void {
   if (next.unlockedAt === current.unlockedAt && next.awaySince === current.awaySince) return;
@@ -149,60 +174,81 @@ export function subscribePersonalLock(listener: () => void): () => void {
  * the clock is read inside it — the React Compiler forbids `Date.now()` inline
  * in a component, the same reason `todayIso()` is hoisted.
  */
-export function personalUnlockedNow(idleSeconds: number, now = Date.now()): boolean {
+export function personalUnlockedNow(idleSeconds: number, now = lockClockNow()): boolean {
   return isPersonalUnlocked(current, now, idleSeconds);
 }
 
-/** The device proved who is holding it. */
-export function markPersonalUnlocked(now = Date.now()): void {
-  commit(afterPersonalAuth(now));
+/** The device proved who is holding it — see `afterPersonalAuth` on `inside`. */
+export function markPersonalUnlocked(now = lockClockNow()): void {
+  commit(afterPersonalAuth(now, inside));
 }
 
 /**
- * A prompt proved who is holding the device. If the prompt resolved after the
- * personal screen disappeared, start the away clock immediately instead of
- * leaving a stale, indefinitely open section behind it.
- */
-export function markPersonalUnlockedFromPrompt(now = Date.now()): void {
-  const unlocked = afterPersonalAuth(now);
-  commit(present > 0 ? unlocked : afterPersonalLeave(unlocked, now));
-}
-
-/**
- * Shut the section: sign-out, and a check that failed or was cancelled. A
- * refused check must never leave a half-open gate behind it.
+ * Shut the section: sign-out, a switch of account, and a check that failed or
+ * was cancelled. A refused check must never leave a half-open gate behind it.
  */
 export function lockPersonal(): void {
   commit(PERSONAL_LOCKED);
 }
 
-/** A personal screen took focus. */
-export function enterPersonalSection(idleSeconds: number, now = Date.now()): void {
-  if (settling !== null) {
-    clearTimeout(settling);
-    settling = null;
-  }
-  present += 1;
-  commit(afterPersonalReturn(current, now, idleSeconds));
+/** Whether the router currently has the user inside the section. */
+export function personalPresent(): boolean {
+  return inside;
 }
 
 /**
- * A personal screen lost focus. Only the last one out closes the door, and only
- * once the navigation has settled — see `PERSONAL_LEAVE_SETTLE_MS`.
+ * Which account is signed in, as far as this lock is concerned. Any change —
+ * signing out, a session revoked from another device, a refresh that failed, a
+ * different person signing in — shuts the section.
+ *
+ * Most sign-outs never pass through the app's own sign-out action, and this
+ * store is module-scoped by design, so it outlives the React tree that was
+ * unmounted around it. Without this, the next account signed in during the same
+ * process launch would find the ledger already open. The rule lives here rather
+ * than in the auth listener so it can be tested without a React tree.
  */
-export function leavePersonalSection(now = Date.now()): void {
-  present = Math.max(0, present - 1);
-  if (present > 0) return;
-  if (settling !== null) clearTimeout(settling);
-  settling = setTimeout(() => {
-    settling = null;
-    if (present > 0) return;
-    commit(afterPersonalLeave(current, now));
-  }, PERSONAL_LEAVE_SETTLE_MS);
+let account: string | null = null;
+
+export function syncPersonalAccount(userId: string | null): void {
+  if (userId === account) return;
+  account = userId;
+  lockPersonal();
 }
 
-/** The app went to the background or turned inactive. */
-export function personalAppAway(now = Date.now()): void {
+/**
+ * The route changed. One caller — the watcher in `LockProvider` — and it passes
+ * what `isPersonalSection` made of the current segments, so arriving and
+ * leaving are the same event seen from two sides.
+ */
+export function setPersonalPresence(
+  next: boolean,
+  idleSeconds: number,
+  now = lockClockNow(),
+): void {
+  if (next === inside) return;
+  inside = next;
+  commit(next ? afterPersonalReturn(current, now, idleSeconds) : afterPersonalLeave(current, now));
+}
+
+/** A biometric check is going up. Pair every call with `endPersonalCheck`. */
+export function beginPersonalCheck(): void {
+  checks += 1;
+}
+
+export function endPersonalCheck(): void {
+  checks = Math.max(0, checks - 1);
+}
+
+/**
+ * The app went to the background. `inactive` is deliberately not a departure:
+ * on iOS it is what a notification banner, a control-centre pull and our own
+ * Face ID sheet all report, and none of those is the user leaving. Genuinely
+ * leaving — the switcher, the home gesture, the screen locking — reports
+ * `background` right behind it, so nothing that matters is missed.
+ */
+export function personalAppAway(now = lockClockNow()): void {
+  // Our own prompt is not the user walking off; see `checks`.
+  if (checks > 0) return;
   commit(afterPersonalLeave(current, now));
 }
 
@@ -211,16 +257,16 @@ export function personalAppAway(now = Date.now()): void {
  * screen is actually focused — coming back to the dashboard is still time spent
  * away from the ledger.
  */
-export function personalAppActive(idleSeconds: number, now = Date.now()): void {
-  if (present === 0) return;
+export function personalAppActive(idleSeconds: number, now = lockClockNow()): void {
+  if (!inside) return;
   commit(afterPersonalReturn(current, now, idleSeconds));
 }
 
-/** Test seam: forget everything, including who is on screen. */
+/** Test seam: forget everything, including where the user is. */
 export function resetPersonalLockForTests(): void {
-  if (settling !== null) clearTimeout(settling);
-  settling = null;
-  present = 0;
+  inside = false;
+  checks = 0;
+  account = null;
   current = PERSONAL_LOCKED;
   listeners.clear();
 }
