@@ -934,6 +934,37 @@ export class SyncSession {
     const captureId = requireString(mutation.payload.captureId, 'captureId');
     const groupId = requireString(mutation.payload.groupId, 'groupId');
     const expenseId = requireString(mutation.payload.expenseId, 'expenseId');
+
+    // A draft may only be closed against an expense that actually exists.
+    //
+    // This flip is what takes a spend out of somebody's inbox, and it used to
+    // be taken on the client's word alone. The two writes are separate
+    // mutations in separate scopes — the expense under the group, this under
+    // the owner — so a refused expense (an unknown member, a share mismatch)
+    // did not stop its assign: the draft left the inbox for good while the
+    // money sat refused behind the sync banner, and discarding that banner lost
+    // it with nothing to fall back on. The client now holds an assign until its
+    // expense is confirmed (`nextBatch`), and this is the guarantee underneath:
+    // no expense, no close. Read with the service client because this is a bare
+    // existence question — RLS not seeing the row is not the same as it not
+    // being there, and a false refusal here would strand a real draft.
+    const { data: expense, error: lookupError } = await this.service
+      .from('expenses')
+      .select('id, group_id')
+      .eq('id', expenseId)
+      .maybeSingle();
+    if (lookupError) throw new HttpError(500, 'INTERNAL', lookupError.message);
+    if (!expense || expense.group_id !== groupId) {
+      // Refused, not quietly ignored: a draft the server would not close is a
+      // thing the person has to see, and rule 3 keeps this in the queue where
+      // the banner can offer a retry once the expense lands.
+      throw new HttpError(
+        409,
+        'EXPENSE_MISSING',
+        'That expense has not been saved to this group, so the draft stays in the inbox',
+      );
+    }
+
     // Idempotent and one-way: only an open capture flips, so a replay after the
     // expense already exists is a no-op rather than a second assignment.
     const { error } = await this.caller

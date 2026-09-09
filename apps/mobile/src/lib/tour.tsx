@@ -14,7 +14,8 @@
  * target has not measured yet) is shown centred, as a plain card.
  *
  * State lives here so the overlay, the Home autostart and the replay item all
- * read the same thing; the "seen" flag is the only thing that persists.
+ * read the same thing; the "seen" flag is the only thing that persists, and it
+ * persists per account rather than per handset (see `lib/onboardingSeen`).
  */
 
 import {
@@ -27,13 +28,11 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { View, type ViewStyle } from 'react-native';
 
 import type { UiStrings } from '@/i18n';
-
-/** Bumping the suffix re-shows the tour to everyone after it changes shape. */
-const SEEN_KEY = 'waves.tour_seen_v1';
+import { useAuth } from '@/lib/auth';
+import { rememberTourSeen, tourSeen } from '@/lib/onboardingSeen';
 
 /** A measured target, in window (screen) coordinates. */
 export interface TourRect {
@@ -107,10 +106,14 @@ interface TourValue {
 const TourContext = createContext<TourValue | null>(null);
 
 export function TourProvider({ children }: { children: ReactNode }) {
+  // Whose coach-marks these are. The "seen" flag used to be one device-wide key,
+  // so the first person to finish the tour on a handset silently cancelled it
+  // for every account that signed in there afterwards — the same bug the intro
+  // cards had, one line further on (`lib/onboardingSeen` tells the whole story).
+  const { session } = useAuth();
+  const ownerId = session?.user.id ?? null;
   const [active, setActive] = useState(false);
   const [step, setStep] = useState(0);
-  const [seen, setSeen] = useState(false);
-  const [ready, setReady] = useState(false);
   // Bumped when a target re-measures while the tour is up, so the overlay
   // re-renders and reads the fresh rectangle (see `register`). Carried in the
   // value's deps so the context identity changes and consumers re-render.
@@ -125,21 +128,28 @@ export function TourProvider({ children }: { children: ReactNode }) {
     activeRef.current = active;
   }, [active]);
 
+  // The answer is held *with the account it is about*, the way the profile is,
+  // rather than as a bare boolean an account change has to reset: an answer left
+  // behind by whoever was signed in before must not start (or suppress) this
+  // person's tour, and clearing it from the effect body is a cascading render.
+  // So `ready` and `seen` are derived, and a sign-in stands them back down until
+  // storage has answered for the new account.
+  const [answer, setAnswer] = useState<{ owner: string; seen: boolean } | null>(null);
   useEffect(() => {
-    let active2 = true;
-    void AsyncStorage.getItem(SEEN_KEY)
-      .then((value) => {
-        if (!active2) return;
-        setSeen(value === 'yes');
-      })
-      .catch(() => {})
-      .finally(() => {
-        if (active2) setReady(true);
-      });
+    if (!ownerId) return;
+    let live = true;
+    // Never rejects; a phone that cannot answer reports "not seen", so the worst
+    // case is a dismissable overlay rather than a tour nobody can ever get.
+    void tourSeen(ownerId).then((value) => {
+      if (live) setAnswer({ owner: ownerId, seen: value });
+    });
     return () => {
-      active2 = false;
+      live = false;
     };
-  }, []);
+  }, [ownerId]);
+  const current = answer && answer.owner === ownerId ? answer : null;
+  const ready = current !== null;
+  const seen = current?.seen ?? false;
 
   const register = useCallback((id: string, rect: TourRect | null) => {
     if (rect) rects.current.set(id, rect);
@@ -161,9 +171,12 @@ export function TourProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const remember = useCallback(() => {
-    setSeen(true);
-    void AsyncStorage.setItem(SEEN_KEY, 'yes').catch(() => {});
-  }, []);
+    // Signed out there is nobody to remember it for — and nobody can be looking
+    // at the tour either, since Home is behind the door.
+    if (!ownerId) return;
+    setAnswer({ owner: ownerId, seen: true });
+    void rememberTourSeen(ownerId);
+  }, [ownerId]);
 
   const finish = useCallback(() => {
     setActive(false);
