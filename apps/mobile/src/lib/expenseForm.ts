@@ -27,21 +27,24 @@ export function todayIso(now: Date = new Date()): string {
 /**
  * The day the expense is filed under.
  *
- * An edit must not move it. The form has no date picker, so it used to send
- * today's date on every write — which meant opening a three-week-old dinner to
- * fix a spelling silently re-filed it as today's, reordered the feed, moved it
- * between months and trips, and (now that an expense keeps a visible history)
- * wrote a date change into the audit trail that nobody made.
+ * An edit must not move it *by itself*. The form used to send today's date on
+ * every write — which meant opening a three-week-old dinner to fix a spelling
+ * silently re-filed it as today's, reordered the feed, moved it between months
+ * and trips, and (now that an expense keeps a visible history) wrote a date
+ * change into the audit trail that nobody made.
  *
- * A capture keeps the day it was caught; a saved expense keeps the day it has;
- * only a genuinely new expense is today's.
+ * So the order is: a day the person actually picked; else the day a capture was
+ * caught; else the day a saved expense already has; else today. `picked` is
+ * null until somebody opens the picker, which is what keeps "I edited the note"
+ * distinct from "I moved this to Tuesday".
  */
 export function expenseDateFor(input: {
+  readonly picked?: string | null;
   readonly captureDate: string | null | undefined;
   readonly savedDate: string | null | undefined;
   readonly today: string;
 }): string {
-  return input.captureDate ?? input.savedDate ?? input.today;
+  return input.picked ?? input.captureDate ?? input.savedDate ?? input.today;
 }
 
 /**

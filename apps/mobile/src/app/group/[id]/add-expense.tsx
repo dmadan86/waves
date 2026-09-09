@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { randomUUID } from 'expo-crypto';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -71,7 +72,7 @@ import { COMMON_CURRENCIES, CurrencyRate } from '@/components/CurrencyRate';
 import { DescriptionField } from '@/components/expense/DescriptionField';
 import { ExpenseHero } from '@/components/expense/ExpenseHero';
 import { splitIcon } from '@/components/expense/splitIcon';
-import { ChoiceRow, SheetOverlay } from '@/components/expense/SheetOverlay';
+import { ChoiceRow, SettingRow, SheetOverlay } from '@/components/expense/SheetOverlay';
 import {
   canAddReceipt,
   expenseReceiptPath,
@@ -89,6 +90,7 @@ import { useAuth } from '@/lib/auth';
 import { useGuestGuard } from '@/lib/guestGuard';
 import { handoverKey } from '@/lib/handover';
 import { resolveDraftCurrency, resolveDraftFx } from '@/lib/expenseDraft';
+import { dateFrom, isoDate, showDate } from '@/lib/expenseDay';
 import {
   expenseDateFor,
   planCollapseToOne,
@@ -445,6 +447,13 @@ export default function AddExpenseScreen() {
   // How it was paid — a free-text tag on the expense. Defaults to cash; the
   // picker offers UPI only where the region settles over it.
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
+  // The day the expense is filed under. It opens on the answer `expenseDateFor`
+  // has always computed — a capture's own day, a saved expense's own day, or
+  // today for a new one — and, now that there is a picker, the person can move
+  // it. `null` means "nobody has touched it", which is what keeps an edit from
+  // re-filing an expense it did not mean to move.
+  const [pickedDate, setPickedDate] = useState<string | null>(null);
+  const [editingDate, setEditingDate] = useState(false);
   const [participants, setParticipants] = useState<MemberId[]>([]);
   // What was typed into each member's field, as text. Two maps, not one: the
   // same person is "2 shares" and "40%", and switching between the two must not
@@ -848,6 +857,21 @@ export default function AddExpenseScreen() {
   // moment a second person is added, the figures have to add up to the total —
   // the ledger has always allowed several payer rows, and both edge functions
   // reject a write whose rows do not sum to the amount.
+  // The day this expense is filed under, picked or inherited (expenseDateFor).
+  const expenseDate = expenseDateFor({
+    picked: pickedDate,
+    captureDate: captureId ? captureExpenseDate : null,
+    savedDate: editing?.currentVersion?.expense_date,
+    today: todayIso(),
+  });
+
+  const applyDate = (event: DateTimePickerEvent, picked?: Date): void => {
+    // Android's dialog dismisses itself; iOS keeps the spinner on the screen.
+    if (Platform.OS === 'android') setEditingDate(false);
+    if (event.type === 'dismissed' || !picked) return;
+    setPickedDate(isoDate(picked));
+  };
+
   const payerIds = [...payers.keys()];
   // With one payer there is nothing to hold constant: that person carries the
   // whole bill by definition, so a lock left over from a moment when there were
@@ -1194,13 +1218,10 @@ export default function AddExpenseScreen() {
         description: description.trim(),
         category,
         categoryMeta,
-        // A capture keeps the day it was caught, a saved expense keeps the day
-        // it has, and only a new one is today's (expenseDateFor).
-        expenseDate: expenseDateFor({
-          captureDate: captureId ? captureExpenseDate : null,
-          savedDate: editing?.currentVersion?.expense_date,
-          today: todayIso(),
-        }),
+        // A chosen day wins outright. Untouched, a capture keeps the day it was
+        // caught, a saved expense keeps the day it has, and only a new one is
+        // today's (expenseDateFor).
+        expenseDate: expenseDate,
         currency,
         amount: amount.toString(),
         fx,
@@ -2219,7 +2240,34 @@ export default function AddExpenseScreen() {
               />
               <Divider />
               <PaymentMethodRow value={paymentMethod} onPress={() => setPickingPayment(true)} />
+              <Divider />
+              {/* When it happened. An expense filed on the wrong day lands in
+                the wrong month, the wrong trip and the wrong place in the feed,
+                and until now the only way to correct one was to delete it and
+                type it again. Untouched it still inherits the day it always
+                did, so editing a note never moves a three-week-old dinner. */}
+              <SettingRow
+                label={t.captures.date}
+                value={showDate(expenseDate, locale)}
+                leading={
+                  <Ionicons
+                    name="calendar-outline"
+                    size={iconSize.md}
+                    color={theme.color.textMuted}
+                  />
+                }
+                onPress={() => setEditingDate(true)}
+              />
             </Card>
+
+            {editingDate ? (
+              <DateTimePicker
+                value={dateFrom(expenseDate)}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                onChange={applyDate}
+              />
+            ) : null}
 
             {/* Where it happened (A43) — optional, opt-in, never a background track. */}
             <LocationField value={location} onChange={setLocation} />

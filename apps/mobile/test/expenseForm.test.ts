@@ -63,6 +63,25 @@ describe('expenseDateFor', () => {
     ).toBe('2026-07-04');
   });
 
+  it('lets a picked day beat every day it would have inherited', () => {
+    expect(
+      expenseDateFor({
+        picked: '2026-06-20',
+        captureDate: '2026-07-04',
+        savedDate: '2026-08-11',
+        today: TODAY,
+      }),
+    ).toBe('2026-06-20');
+  });
+
+  it('inherits while the picker has not been touched', () => {
+    // `null` is "nobody moved this", which is what keeps editing a note from
+    // re-filing a three-week-old expense under today.
+    expect(
+      expenseDateFor({ picked: null, captureDate: null, savedDate: '2026-08-11', today: TODAY }),
+    ).toBe('2026-08-11');
+  });
+
   it('writes a plain UTC day, never a timestamp', () => {
     expect(todayIso(new Date('2026-09-01T22:45:00.000Z'))).toBe('2026-09-01');
   });
