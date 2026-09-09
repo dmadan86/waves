@@ -22,10 +22,11 @@ import {
 import { CategoryBadge } from '@/components/Category';
 import { usePersonalLedger } from '@/data/personal';
 import { useStrings } from '@/i18n';
+import { PersonalGuard } from '@/components/PersonalGuard';
 import { useBottomClearance } from '@/lib/clearance';
 import { router } from '@/lib/navigation';
 
-export default function PersonalTransactionsScreen() {
+function PersonalTransactionsScreenBody() {
   const theme = useTheme();
   const clearance = useBottomClearance();
   const { t, locale } = useStrings();
@@ -130,5 +131,17 @@ export default function PersonalTransactionsScreen() {
         }}
       />
     </Screen>
+  );
+}
+
+/**
+ * Behind the section shield: one unlock covers the Me tab and every room
+ * under `personal/`, so arriving here from the ledger never asks again.
+ */
+export default function PersonalTransactionsScreen() {
+  return (
+    <PersonalGuard>
+      <PersonalTransactionsScreenBody />
+    </PersonalGuard>
   );
 }

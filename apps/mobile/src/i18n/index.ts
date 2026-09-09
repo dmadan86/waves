@@ -761,6 +761,12 @@ export interface UiStrings {
     footnote: string;
     /** Native biometric prompt shown on entering the private Me tab. */
     personalPrompt: string;
+    /** Heading on the shield in front of the private ledger. */
+    personalLockedTitle: string;
+    /** How to open it — shown while the prompt is up or about to be. */
+    personalLockedBody: string;
+    /** Shown instead, once a check has been refused or cancelled. */
+    personalLockedRefused: string;
   };
   /** The sheet behind Sign out: what leaves the phone with the account, and
    *  the two things you can do about it before you go. */
@@ -1112,6 +1118,32 @@ export interface UiStrings {
     noOnDevice: string;
     /** Re-reads the phone's lists, so a download finished elsewhere shows up. */
     refresh: string;
+    /**
+     * The phone was asked what models it holds and would not say.
+     *
+     * Its own words, deliberately, and never the network's: reading the
+     * inventory is a local call into the recogniser service on the device, so
+     * the app's generic "check your connection" was naming a fault that cannot
+     * be the cause. It also must not claim the rows are missing — a failed read
+     * is not an empty one, and saying otherwise is what put a Download button
+     * next to a model somebody had just watched arrive.
+     */
+    unreadable: string;
+    unreadableBody: string;
+    /**
+     * The phone was asked again and refused, but its earlier answer still
+     * stands.
+     *
+     * A quieter thing than {@link unreadable}, and kept apart from it because
+     * the difference is the whole point: there the screen knows nothing and
+     * offers a way to recover, here the list is still on the page and is merely
+     * not fresh. Saying "couldn't load" over a list somebody can see is how a
+     * screen teaches people to disbelieve it.
+     */
+    staleNote: string;
+    /** The speech service will not fetch a model for an app it cannot hear
+     *  through — a switch in Settings, not a fault of the phone or the language. */
+    permissionNeeded: string;
     /** The phone answered, and named no languages at all — so the app's own are
      *  the only rows on the screen. */
     empty: string;
@@ -1527,6 +1559,14 @@ export interface UiStrings {
     /** Confirm body when deleting a whole voice batch at once. */
     deleteBatch: string;
     deleteBatchConfirm: PluralForms;
+    /** The batch ⋯ can also place the whole cluster in one group at once: the
+     *  menu item, the confirmation once they land, and — because a queued write
+     *  can refuse — what is said when only some of them made it. */
+    assignBatch: string;
+    assignedBatch: PluralForms;
+    assignBatchSomeFailed: PluralForms;
+    /** Nothing was left to place — another device had already placed them. */
+    assignBatchAlreadyDone: string;
     assign: string;
     /** Chip label on a pre-aimed row: "Add to {name}" (the group it was tagged for). */
     addTo: string;
@@ -2059,6 +2099,12 @@ export interface UiStrings {
     /** "In 4 expenses" over the list on a member. */
     inCount: PluralForms;
     whoOwesWhat: string;
+    /** What a screen reader hears on one "who owes what" row, now that the row
+     *  is a single button to that person: their name and what this bill does to
+     *  them. Third person on purpose — the row is about them, not about you. */
+    rowOwes: string;
+    rowOwed: string;
+    rowSquare: string;
     /** Labels on the expense detail card: the group it belongs to, its date, and
      *  how it was split. */
     detailGroup: string;
@@ -2977,7 +3023,7 @@ const en: UiStrings = {
     title: 'Add a person',
     subtitle: 'Track what someone owes you — nobody needs the app, and no group to set up.',
     nameLabel: 'Their name',
-    namePlaceholder: 'e.g. Ravi',
+    namePlaceholder: 'e.g. Alex',
     amountLabel: 'Amount',
     directionQuestion: 'Which way?',
     theyOweMe: 'They owe me',
@@ -3400,7 +3446,7 @@ const en: UiStrings = {
     unsupported: 'This device has no biometrics or passcode set up',
     askAgainAfter: 'Ask again after',
     askAgainExplain:
-      'Time in the background before Waves locks. Settling by UPI sends you to another app and back, so locking the instant you leave means unlocking every time you pay somebody.',
+      'Time away before Waves asks again — for the app lock, and for the private personal ledger, which uses the same window when you leave it. Settling by UPI sends you to another app and back, so asking the instant you leave means unlocking every time you pay somebody.',
     graceImmediate: 'Straight away',
     graceSeconds: { one: 'After {n} second', other: 'After {n} seconds' },
     graceMinutes: { one: 'After a minute', other: 'After {n} minutes' },
@@ -3414,6 +3460,9 @@ const en: UiStrings = {
     footnote:
       'This guards the screen, not the data — your ledger is protected by row-level security on the server whether the lock is on or not.',
     personalPrompt: 'Unlock your personal ledger',
+    personalLockedTitle: 'Your personal ledger is locked',
+    personalLockedBody: 'Unlock with the same face or fingerprint that opens this phone.',
+    personalLockedRefused: 'That did not unlock it. Try again, or go back.',
   },
   signOutSheet: {
     guestTitle: 'This account cannot be signed back into',
@@ -3685,6 +3734,13 @@ const en: UiStrings = {
     noOnDevice:
       'This phone can’t recognise speech without a connection, so there’s nothing to download.',
     refresh: 'Refresh',
+    unreadable: 'This phone wouldn’t say what it has',
+    unreadableBody:
+      'Its own speech service didn’t answer, so there’s no telling which languages are already here. Nothing on this screen needs a connection — try again, or just download the language you want.',
+    staleNote:
+      'Couldn’t check with the phone again just now, so the ticks below may be out of date.',
+    permissionNeeded:
+      'Your phone’s speech service needs the microphone before it will fetch a model. Allow it in Settings, then try again.',
     empty:
       'Your phone didn’t name any languages it can recognise, so only the ones Waves asks for are listed. A download may still work.',
     footnote:
@@ -3949,7 +4005,7 @@ const en: UiStrings = {
       'Pick the guests who are the same person. Their balances are combined under one name.',
     empty: 'No guests to merge — only people without a Waves account can be merged.',
     nameLabel: 'Name for the merged person',
-    namePlaceholder: 'e.g. Ravi',
+    namePlaceholder: 'e.g. Alex',
     warningTitle: 'This can’t be undone',
     warningBody:
       'Their separate balances are combined into one person for good. There’s no way to split them back apart.',
@@ -4053,6 +4109,16 @@ const en: UiStrings = {
       one: 'Delete this expense?',
       other: 'Delete all {n} expenses in this batch?',
     },
+    assignBatch: 'Add these to a group',
+    assignedBatch: {
+      one: '{n} expense added to {name}',
+      other: '{n} expenses added to {name}',
+    },
+    assignBatchSomeFailed: {
+      one: '{n} could not be added, and is still saved for later.',
+      other: '{n} could not be added, and are still saved for later.',
+    },
+    assignBatchAlreadyDone: 'These were already added somewhere else',
     assign: 'Add to group',
     addTo: 'Add to {name}',
     assignTitle: 'Add to a group',
@@ -4312,7 +4378,7 @@ const en: UiStrings = {
   people: {
     invite: 'Invite',
     addSomeone: 'Add someone',
-    namePlaceholder: 'Rahul',
+    namePlaceholder: 'e.g. Alex',
     contactPlaceholder: 'Email or phone, if you want to send them the link',
     phoneNeedsCountryCode: 'Add the country code to that number, like +91.',
     yetToJoin: { one: '{n} yet to join', other: '{n} yet to join' },
@@ -4511,6 +4577,9 @@ const en: UiStrings = {
     editedTimes: { one: 'edited once', other: 'edited {n} times' },
     inCount: { one: 'In {n} expense', other: 'In {n} expenses' },
     whoOwesWhat: 'Who owes what',
+    rowOwes: '{name} owes {amount}',
+    rowOwed: '{name} is owed {amount}',
+    rowSquare: '{name} is square on this bill',
     detailGroup: 'Group',
     detailDate: 'Date',
     detailSplit: 'Split',
@@ -5445,7 +5514,7 @@ const ta: UiStrings = {
     subtitle:
       'யார் உங்களுக்குத் தர வேண்டும் என்பதைக் கண்காணி — அவருக்கு ஆப் தேவையில்லை, குழுவும் தேவையில்லை.',
     nameLabel: 'அவரது பெயர்',
-    namePlaceholder: 'எ.கா. ரவி',
+    namePlaceholder: 'எ.கா. அலெக்ஸ்',
     amountLabel: 'தொகை',
     directionQuestion: 'எந்தப் பக்கம்?',
     theyOweMe: 'அவர் எனக்குத் தர வேண்டும்',
@@ -5872,7 +5941,7 @@ const ta: UiStrings = {
     unsupported: 'இந்தச் சாதனத்தில் கைரேகையோ கடவுக்குறியீடோ அமைக்கப்படவில்லை',
     askAgainAfter: 'மீண்டும் கேட்க',
     askAgainExplain:
-      'Waves பூட்டப்படுவதற்கு முன் பின்னணியில் இருக்கும் நேரம். UPI மூலம் தீர்ப்பது உங்களை வேறு ஆப்புக்கு அனுப்பி மீண்டும் கொண்டுவரும், எனவே வெளியேறியதுமே பூட்டினால் ஒவ்வொரு முறை பணம் கொடுக்கும்போதும் திறக்க வேண்டியிருக்கும்.',
+      'Waves மீண்டும் கேட்பதற்கு முன் நீங்கள் விலகி இருக்கும் நேரம் — ஆப் பூட்டுக்கும், தனிப்பட்ட கணக்குக்கும்; அதை விட்டு வெளியேறினாலும் இதே நேரம்தான். UPI மூலம் தீர்ப்பது உங்களை வேறு ஆப்புக்கு அனுப்பி மீண்டும் கொண்டுவரும், எனவே வெளியேறியதுமே கேட்டால் ஒவ்வொரு முறை பணம் கொடுக்கும்போதும் திறக்க வேண்டியிருக்கும்.',
     graceImmediate: 'உடனடியாக',
     graceSeconds: { one: '{n} வினாடி கழித்து', other: '{n} வினாடிகள் கழித்து' },
     graceMinutes: { one: 'ஒரு நிமிடம் கழித்து', other: '{n} நிமிடங்கள் கழித்து' },
@@ -5886,6 +5955,9 @@ const ta: UiStrings = {
     footnote:
       'இது திரையைக் காக்கிறது, தரவை அல்ல — பூட்டு இருந்தாலும் இல்லாவிட்டாலும் உங்கள் கணக்கு சர்வரில் வரிசை அளவிலான பாதுகாப்பால் காக்கப்படுகிறது.',
     personalPrompt: 'உங்கள் தனிப்பட்ட கணக்கைத் திறக்கவும்',
+    personalLockedTitle: 'உங்கள் தனிப்பட்ட கணக்கு பூட்டப்பட்டுள்ளது',
+    personalLockedBody: 'இந்த ஃபோனைத் திறக்கும் அதே முகம் அல்லது கைரேகையால் திறக்கவும்.',
+    personalLockedRefused: 'அது திறக்கவில்லை. மீண்டும் முயலுங்கள், அல்லது திரும்பிச் செல்லுங்கள்.',
   },
   signOutSheet: {
     guestTitle: 'இந்தக் கணக்கில் மீண்டும் உள்நுழைய முடியாது',
@@ -6167,6 +6239,13 @@ const ta: UiStrings = {
     noOnDevice:
       'இணைப்பு இல்லாமல் பேச்சை இந்த ஃபோனால் அடையாளம் காண முடியாது, எனவே பதிவிறக்க எதுவும் இல்லை.',
     refresh: 'புதுப்பி',
+    unreadable: 'இந்தத் தொலைபேசி தன்னிடம் என்ன இருக்கிறது எனச் சொல்லவில்லை',
+    unreadableBody:
+      'அதன் சொந்தப் பேச்சுச் சேவை பதிலளிக்கவில்லை, எனவே எந்த மொழிகள் ஏற்கெனவே இங்கு உள்ளன எனத் தெரியவில்லை. இந்தத் திரையில் எதற்கும் இணைய இணைப்பு தேவையில்லை — மீண்டும் முயலுங்கள், அல்லது வேண்டிய மொழியை நேரடியாகப் பதிவிறக்குங்கள்.',
+    staleNote:
+      'இப்போது தொலைபேசியிடம் மீண்டும் சரிபார்க்க முடியவில்லை, எனவே கீழுள்ள குறிகள் பழையவையாக இருக்கலாம்.',
+    permissionNeeded:
+      'மாதிரியைப் பெறுவதற்கு முன் உங்கள் தொலைபேசியின் பேச்சுச் சேவைக்கு ஒலிவாங்கி அனுமதி தேவை. அமைப்புகளில் அனுமதித்துவிட்டு மீண்டும் முயலுங்கள்.',
     empty:
       'தான் அடையாளம் காணக்கூடிய மொழிகள் எதையும் உங்கள் ஃபோன் சொல்லவில்லை, எனவே Waves கேட்பவை மட்டுமே பட்டியலில் உள்ளன. பதிவிறக்கம் இன்னும் வேலை செய்யக்கூடும்.',
     footnote:
@@ -6442,7 +6521,7 @@ const ta: UiStrings = {
       'ஒரே நபராக இருக்கும் விருந்தினர்களைத் தேர்ந்தெடுக்கவும். அவர்களின் இருப்புகள் ஒரே பெயரின் கீழ் இணைக்கப்படும்.',
     empty: 'இணைக்க விருந்தினர்கள் இல்லை — Waves கணக்கு இல்லாதவர்களை மட்டுமே இணைக்க முடியும்.',
     nameLabel: 'இணைந்த நபருக்கான பெயர்',
-    namePlaceholder: 'எ.கா. ரவி',
+    namePlaceholder: 'எ.கா. அலெக்ஸ்',
     warningTitle: 'இதை மீட்டெடுக்க முடியாது',
     warningBody:
       'அவர்களின் தனித்தனி இருப்புகள் நிரந்தரமாக ஒரே நபராக இணைக்கப்படும். மீண்டும் பிரிக்க வழி இல்லை.',
@@ -6551,6 +6630,16 @@ const ta: UiStrings = {
       one: 'இந்தச் செலவை நீக்கவா?',
       other: 'இந்த தொகுப்பில் உள்ள {n} செலவுகளையும் நீக்கவா?',
     },
+    assignBatch: 'இவற்றை ஒரு குழுவில் சேர்',
+    assignedBatch: {
+      one: '{n} செலவு {name} இல் சேர்க்கப்பட்டது',
+      other: '{n} செலவுகள் {name} இல் சேர்க்கப்பட்டன',
+    },
+    assignBatchSomeFailed: {
+      one: '{n} சேர்க்க முடியவில்லை; அது இன்னும் பிறகுக்காகச் சேமித்திருக்கிறது.',
+      other: '{n} சேர்க்க முடியவில்லை; அவை இன்னும் பிறகுக்காகச் சேமித்திருக்கின்றன.',
+    },
+    assignBatchAlreadyDone: 'இவை ஏற்கனவே வேறு சாதனத்தில் சேர்க்கப்பட்டுவிட்டன',
     assign: 'குழுவில் சேர்',
     addTo: '{name} இல் சேர்',
     assignTitle: 'ஒரு குழுவில் சேர்க்கவும்',
@@ -6822,7 +6911,7 @@ const ta: UiStrings = {
   people: {
     invite: 'அழை',
     addSomeone: 'ஒருவரைச் சேர்',
-    namePlaceholder: 'ராகுல்',
+    namePlaceholder: 'எ.கா. அலெக்ஸ்',
     contactPlaceholder: 'இணைப்பை அனுப்ப விரும்பினால் மின்னஞ்சல் அல்லது தொலைபேசி',
     phoneNeedsCountryCode: 'அந்த எண்ணுடன் நாட்டுக் குறியீட்டைச் சேர்க்கவும், எடுத்துக்காட்டாக +91.',
     yetToJoin: { one: '{n} பேர் இன்னும் சேரவில்லை', other: '{n} பேர் இன்னும் சேரவில்லை' },
@@ -7040,6 +7129,9 @@ const ta: UiStrings = {
     editedTimes: { one: 'ஒருமுறை திருத்தப்பட்டது', other: '{n} முறை திருத்தப்பட்டது' },
     inCount: { one: '{n} செலவில்', other: '{n} செலவுகளில்' },
     whoOwesWhat: 'யார் என்ன தர வேண்டும்',
+    rowOwes: '{name} {amount} தர வேண்டும்',
+    rowOwed: '{name}-க்கு {amount} வர வேண்டும்',
+    rowSquare: 'இந்த பில்லில் {name} சரிசமம்',
     detailGroup: 'குழு',
     detailDate: 'தேதி',
     detailSplit: 'பிரிப்பு',
@@ -8015,7 +8107,7 @@ const hi: UiStrings = {
     title: 'एक व्यक्ति जोड़ें',
     subtitle: 'किसी को आप पर कितना देना है, यह रखें — न उन्हें ऐप चाहिए, न कोई समूह बनाना है।',
     nameLabel: 'उनका नाम',
-    namePlaceholder: 'जैसे रवि',
+    namePlaceholder: 'जैसे एलेक्स',
     amountLabel: 'राशि',
     directionQuestion: 'किस ओर?',
     theyOweMe: 'वे मुझे देंगे',
@@ -8437,7 +8529,7 @@ const hi: UiStrings = {
     unsupported: 'इस डिवाइस पर बायोमेट्रिक या पासकोड सेट नहीं है',
     askAgainAfter: 'दोबारा पूछें',
     askAgainExplain:
-      'Waves के लॉक होने से पहले बैकग्राउंड में बीता समय। UPI से निपटाने पर आप दूसरे ऐप में जाकर लौटते हैं, इसलिए निकलते ही लॉक करने का मतलब है हर भुगतान पर दोबारा खोलना।',
+      'Waves के दोबारा पूछने से पहले आपके दूर रहने का समय — ऐप लॉक के लिए भी, और निजी हिसाब के लिए भी, जिसे छोड़ने पर यही समय लागू होता है। UPI से निपटाने पर आप दूसरे ऐप में जाकर लौटते हैं, इसलिए निकलते ही पूछने का मतलब है हर भुगतान पर दोबारा खोलना।',
     graceImmediate: 'तुरंत',
     graceSeconds: { one: '{n} सेकंड बाद', other: '{n} सेकंड बाद' },
     graceMinutes: { one: 'एक मिनट बाद', other: '{n} मिनट बाद' },
@@ -8451,6 +8543,9 @@ const hi: UiStrings = {
     footnote:
       'यह स्क्रीन की रक्षा करता है, डेटा की नहीं — लॉक चालू हो या बंद, आपका हिसाब सर्वर पर रो-लेवल सुरक्षा से सुरक्षित है।',
     personalPrompt: 'अपना निजी हिसाब अनलॉक करें',
+    personalLockedTitle: 'आपका निजी हिसाब लॉक है',
+    personalLockedBody: 'उसी चेहरे या फ़िंगरप्रिंट से खोलें जिससे यह फ़ोन खुलता है।',
+    personalLockedRefused: 'इससे लॉक नहीं खुला। फिर से कोशिश करें, या वापस जाएँ।',
   },
   signOutSheet: {
     guestTitle: 'इस खाते में दोबारा साइन इन नहीं किया जा सकता',
@@ -8723,6 +8818,12 @@ const hi: UiStrings = {
     unavailable: 'यह बिल्ड स्पीच मॉडल तक नहीं पहुँच सकता।',
     noOnDevice: 'यह फ़ोन बिना कनेक्शन के बोली नहीं पहचान सकता, इसलिए डाउनलोड करने को कुछ नहीं है।',
     refresh: 'ताज़ा करें',
+    unreadable: 'यह फ़ोन नहीं बता रहा कि उसके पास क्या है',
+    unreadableBody:
+      'इसकी अपनी स्पीच सेवा ने जवाब नहीं दिया, इसलिए पता नहीं चल रहा कि कौन-सी भाषाएँ पहले से मौजूद हैं। इस स्क्रीन पर किसी चीज़ को कनेक्शन की ज़रूरत नहीं है — फिर कोशिश करें, या जो भाषा चाहिए उसे सीधे डाउनलोड कर लें।',
+    staleNote: 'अभी फ़ोन से दोबारा पूछा नहीं जा सका, इसलिए नीचे के निशान पुराने हो सकते हैं।',
+    permissionNeeded:
+      'मॉडल लाने से पहले आपके फ़ोन की स्पीच सेवा को माइक्रोफ़ोन चाहिए। सेटिंग्स में अनुमति दें, फिर कोशिश करें।',
     empty:
       'आपके फ़ोन ने ऐसी कोई भाषा नहीं बताई जिसे वह पहचान सके, इसलिए सिर्फ़ वही सूचीबद्ध हैं जो Waves माँगता है। डाउनलोड फिर भी काम कर सकता है।',
     footnote:
@@ -8987,7 +9088,7 @@ const hi: UiStrings = {
     empty:
       'मर्ज करने के लिए कोई मेहमान नहीं — केवल बिना Waves खाते वाले लोग ही मर्ज किए जा सकते हैं.',
     nameLabel: 'मर्ज किए गए व्यक्ति का नाम',
-    namePlaceholder: 'जैसे रवि',
+    namePlaceholder: 'जैसे एलेक्स',
     warningTitle: 'इसे पहले जैसा नहीं किया जा सकता',
     warningBody:
       'उनके अलग-अलग बैलेंस हमेशा के लिए एक व्यक्ति में जोड़ दिए जाते हैं। इन्हें वापस अलग करने का कोई तरीका नहीं है.',
@@ -9090,6 +9191,16 @@ const hi: UiStrings = {
     batchHint: 'एक साथ असाइन करें, या हर एक को खोलकर संभालें',
     deleteBatch: 'ये खर्च हटाएँ',
     deleteBatchConfirm: { one: 'यह खर्च हटाएँ?', other: 'इस बैच के सभी {n} खर्च हटाएँ?' },
+    assignBatch: 'इन्हें किसी समूह में जोड़ें',
+    assignedBatch: {
+      one: '{n} खर्च {name} में जोड़ा गया',
+      other: '{n} खर्च {name} में जोड़े गए',
+    },
+    assignBatchSomeFailed: {
+      one: '{n} जोड़ा नहीं जा सका, वह अब भी बाद के लिए सहेजा है।',
+      other: '{n} जोड़े नहीं जा सके, वे अब भी बाद के लिए सहेजे हैं।',
+    },
+    assignBatchAlreadyDone: 'ये पहले ही कहीं और जोड़े जा चुके हैं',
     assign: 'समूह में जोड़ें',
     addTo: '{name} में जोड़ें',
     assignTitle: 'किसी समूह में जोड़ें',
@@ -9352,7 +9463,7 @@ const hi: UiStrings = {
   people: {
     invite: 'बुलाएँ',
     addSomeone: 'किसी को जोड़ें',
-    namePlaceholder: 'राहुल',
+    namePlaceholder: 'जैसे एलेक्स',
     contactPlaceholder: 'ईमेल या फ़ोन, अगर उन्हें लिंक भेजना हो',
     phoneNeedsCountryCode: 'उस नंबर में देश का कोड जोड़ें, जैसे +91।',
     yetToJoin: { one: '{n} अभी जुड़ना बाकी', other: '{n} अभी जुड़ना बाकी' },
@@ -9560,6 +9671,9 @@ const hi: UiStrings = {
     editedTimes: { one: 'एक बार संपादित', other: '{n} बार संपादित' },
     inCount: { one: '{n} खर्च में', other: '{n} खर्चों में' },
     whoOwesWhat: 'किस पर क्या बाकी',
+    rowOwes: '{name} पर {amount} बाकी हैं',
+    rowOwed: '{name} को {amount} मिलने हैं',
+    rowSquare: 'इस बिल पर {name} का हिसाब बराबर है',
     detailGroup: 'समूह',
     detailDate: 'तारीख़',
     detailSplit: 'बँटवारा',
@@ -10505,7 +10619,7 @@ const ar: UiStrings = {
     title: 'إضافة شخص',
     subtitle: 'تتبّع ما يدين لك به أحدهم — لا يحتاج إلى التطبيق، ولا إلى إنشاء مجموعة.',
     nameLabel: 'اسمه',
-    namePlaceholder: 'مثل: رافي',
+    namePlaceholder: 'مثال: أليكس',
     amountLabel: 'المبلغ',
     directionQuestion: 'في أي اتجاه؟',
     theyOweMe: 'يدين لي',
@@ -10934,7 +11048,7 @@ const ar: UiStrings = {
     unsupported: 'لا توجد بصمة أو رمز مرور مضبوط على هذا الجهاز',
     askAgainAfter: 'اسأل مرة أخرى بعد',
     askAgainExplain:
-      'المدة في الخلفية قبل أن يُقفل Waves. التسوية عبر UPI تنقلك إلى تطبيق آخر ثم تعيدك، فالقفل لحظة الخروج يعني فتح القفل مع كل دفعة.',
+      'المدة التي تقضيها بعيدًا قبل أن يسأل Waves مرة أخرى — لقفل التطبيق، ولدفترك الشخصي الذي يستخدم المدة نفسها عند مغادرته. التسوية عبر UPI تنقلك إلى تطبيق آخر ثم تعيدك، فالسؤال لحظة الخروج يعني فتح القفل مع كل دفعة.',
     graceImmediate: 'فورًا',
     graceSeconds: {
       zero: 'بعد {n} ثانية',
@@ -10962,6 +11076,9 @@ const ar: UiStrings = {
     footnote:
       'هذا يحمي الشاشة لا البيانات — دفترك محمي على الخادم بأمان على مستوى الصفوف سواء كان القفل مفعّلًا أم لا.',
     personalPrompt: 'افتح قفل دفترك الشخصي',
+    personalLockedTitle: 'دفترك الشخصي مقفل',
+    personalLockedBody: 'افتحه بالوجه أو البصمة نفسها التي تفتح هذا الهاتف.',
+    personalLockedRefused: 'لم يُفتح القفل. حاول مرة أخرى، أو ارجع.',
   },
   signOutSheet: {
     guestTitle: 'لا يمكن تسجيل الدخول إلى هذا الحساب مرة أخرى',
@@ -11273,6 +11390,12 @@ const ar: UiStrings = {
     unavailable: 'لا يستطيع هذا الإصدار الوصول إلى نماذج الكلام.',
     noOnDevice: 'لا يستطيع هذا الهاتف التعرّف على الكلام دون اتصال، فلا شيء لتنزيله.',
     refresh: 'تحديث',
+    unreadable: 'لم يخبرنا هذا الهاتف بما لديه',
+    unreadableBody:
+      'لم تُجب خدمة الكلام في الهاتف نفسه، لذا لا سبيل لمعرفة اللغات الموجودة هنا بالفعل. لا شيء في هذه الشاشة يحتاج إلى اتصال — أعد المحاولة، أو نزّل اللغة التي تريدها مباشرةً.',
+    staleNote: 'تعذّرت مراجعة الهاتف مرة أخرى الآن، لذا قد تكون العلامات أدناه قديمة.',
+    permissionNeeded:
+      'تحتاج خدمة الكلام في هاتفك إلى إذن الميكروفون قبل جلب النموذج. اسمح به في الإعدادات ثم أعد المحاولة.',
     empty:
       'لم يذكر هاتفك أي لغة يستطيع التعرّف عليها، لذا لا تظهر سوى اللغات التي يطلبها Waves. وقد ينجح التنزيل رغم ذلك.',
     footnote:
@@ -11531,7 +11654,7 @@ const ar: UiStrings = {
     subtitle: 'اختر الضيوف الذين هم الشخص نفسه. تُجمع أرصدتهم تحت اسم واحد.',
     empty: 'لا يوجد ضيوف للدمج — يمكن دمج من ليس لديهم حساب Waves فقط.',
     nameLabel: 'اسم الشخص المدمج',
-    namePlaceholder: 'مثال: رافي',
+    namePlaceholder: 'مثال: أليكس',
     warningTitle: 'لا يمكن التراجع عن هذا',
     warningBody: 'تُجمع أرصدتهم المنفصلة في شخص واحد نهائيًا. لا توجد طريقة لفصلهم مرة أخرى.',
     cta: 'دمج',
@@ -11639,6 +11762,22 @@ const ar: UiStrings = {
       one: 'حذف هذا المصروف؟',
       other: 'حذف كل المصاريف الـ {n} في هذه المجموعة؟',
     },
+    assignBatch: 'أضِف هذه إلى مجموعة',
+    assignedBatch: {
+      one: 'أُضيف مصروف واحد إلى {name}',
+      two: 'أُضيف مصروفان إلى {name}',
+      few: 'أُضيفت {n} مصاريف إلى {name}',
+      many: 'أُضيف {n} مصروفًا إلى {name}',
+      other: 'أُضيف {n} مصروف إلى {name}',
+    },
+    assignBatchSomeFailed: {
+      one: 'تعذّرت إضافة مصروف واحد، وما زال محفوظًا لوقت لاحق.',
+      two: 'تعذّرت إضافة مصروفين، وما زالا محفوظين لوقت لاحق.',
+      few: 'تعذّرت إضافة {n} مصاريف، وما زالت محفوظة لوقت لاحق.',
+      many: 'تعذّرت إضافة {n} مصروفًا، وما زالت محفوظة لوقت لاحق.',
+      other: 'تعذّرت إضافة {n} مصروف، وما زالت محفوظة لوقت لاحق.',
+    },
+    assignBatchAlreadyDone: 'أُضيفت هذه من جهاز آخر بالفعل',
     assign: 'أضِف إلى مجموعة',
     addTo: 'أضِف إلى {name}',
     assignTitle: 'أضِف إلى مجموعة',
@@ -11942,7 +12081,7 @@ const ar: UiStrings = {
   people: {
     invite: 'دعوة',
     addSomeone: 'أضف شخصًا',
-    namePlaceholder: 'راكيش',
+    namePlaceholder: 'مثال: أليكس',
     contactPlaceholder: 'بريد أو هاتف، إن أردت إرسال الرابط إليه',
     phoneNeedsCountryCode: 'أضِف رمز الدولة إلى هذا الرقم أولًا.',
     yetToJoin: {
@@ -12186,6 +12325,9 @@ const ar: UiStrings = {
       other: 'في {n} مصروف',
     },
     whoOwesWhat: 'من عليه ماذا',
+    rowOwes: 'على {name} دفع {amount}',
+    rowOwed: 'يُستحق لـ {name} {amount}',
+    rowSquare: 'حساب {name} في هذه الفاتورة متساوٍ',
     detailGroup: 'المجموعة',
     detailDate: 'التاريخ',
     detailSplit: 'التقسيم',

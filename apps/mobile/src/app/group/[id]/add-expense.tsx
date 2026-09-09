@@ -101,6 +101,7 @@ import {
 } from '@/lib/expenseForm';
 import { captureReceipt, pickReceiptImage, type PickedImage } from '@/lib/image';
 import { recogniseReceipt } from '@/lib/ocr';
+import { capturePaymentMethod } from '@/lib/captureAssign';
 import { matchMemberNames, stripMemberNames } from '@/lib/voiceExpense';
 import {
   entryValues,
@@ -361,6 +362,7 @@ export default function AddExpenseScreen() {
     category: captureCategory,
     categoryMeta: captureCategoryMeta,
     location: captureLocation,
+    paymentMethod: capturePayment,
     expenseDate: captureExpenseDate,
     focus,
   } = useLocalSearchParams<{
@@ -380,6 +382,9 @@ export default function AddExpenseScreen() {
     /** The capture's {lat,lng,name} place, JSON-encoded, carried onto the
      *  assigned expense (A43). Absent when the capture had no location. */
     location?: string;
+    /** How the capture says it was paid, so assigning keeps it. Absent when the
+     *  draft never named one, and on a voice hand-off. */
+    paymentMethod?: string;
     expenseDate?: string;
     /** 'amount' when the editor was opened by tapping the total on the expense
      *  screen — the amount field takes focus and raises the keyboard on arrival. */
@@ -656,6 +661,10 @@ export default function AddExpenseScreen() {
       setCategoryChosen(Boolean(captureCategory));
       // Carry the capture's place onto the expense it becomes (A43).
       setLocation(parseLocationParam(captureLocation));
+      // And how the draft says it was paid, so assigning does not quietly turn a
+      // card payment into cash. A voice hand-off carries none and keeps the
+      // default; anything the ledger does not know falls back to it too.
+      setPaymentMethod(capturePaymentMethod(capturePayment));
       seedSolePayer(myMemberId, safeBigInt(captureAmount));
     } else if (draft) {
       // A draft outranks the saved version: it is what the user was in the

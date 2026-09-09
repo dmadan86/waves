@@ -3,7 +3,6 @@
 import '@/lib/intlPolyfill';
 
 import { useEffect, useState } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
@@ -50,8 +49,8 @@ import { isRtl, isRtlLanguage, useStrings } from '@/i18n';
 import { LanguageProvider, useLanguage } from '@/i18n/language';
 import { LocaleSync } from '@/i18n/localeSync';
 import { LockProvider, useLock } from '@/lib/lock';
-import { legacyKeysMigrated } from '@/lib/legacyKeys';
 import { useRouter } from '@/lib/navigation';
+import { onboardingSeen, rememberOnboardingSeen } from '@/lib/onboardingSeen';
 import { isRouteAllowed } from '@/lib/routeAccess';
 import { ReducedMotionProvider, useReducedMotion } from '@/lib/reducedMotion';
 import { RecentCountProvider } from '@/lib/recentCount';
@@ -103,11 +102,6 @@ if (pushSupported) {
     }),
   });
 }
-
-// The device-local flag that the intro tour has been seen. Shared verbatim with
-// the value AuthFlow wrote before the tour moved here, so anybody who already
-// saw it pre-move is not shown it again.
-const TOUR_KEY = 'waves.onboarding_seen';
 
 // How long a forward push runs. A touch longer than a plain slide because the
 // iOS-style transition has two layers to read — the incoming page arriving and
@@ -517,27 +511,35 @@ function AuthGate() {
     else router.replace('/');
   }, [session, loading, routeAllowed, router]);
 
-  // The intro tour now comes *after* sign-in, not in front of it: the first
-  // authenticated launch on this device shows the three cards once, over the
-  // app, then never again. `null` until storage answers, so it neither flashes
-  // for a returning account nor holds a first-timer at a blank screen.
-  const [tourSeen, setTourSeen] = useState<boolean | null>(null);
+  // The intro tour comes *after* sign-in, not in front of it: the first launch
+  // of an account shows the three cards once, over the app, then never again.
+  // Asked per account rather than per phone — the flag used to be one
+  // device-wide key, so the first person to finish the tour on a handset
+  // silently cancelled it for every account that signed in there afterwards
+  // (see `lib/onboardingSeen`).
+  //
+  // The answer is stored *with the account it is about*, the way the profile is,
+  // rather than as a bare boolean that a change of account has to reset: an
+  // answer left behind by whoever was signed in before must not decide this
+  // person's tour, and clearing it from the effect body is a cascading render.
+  // So `tourSeen` is derived — `null` until storage has answered for the current
+  // account, which neither flashes the tour at a returning one nor holds a
+  // first-timer at a blank screen.
+  const ownerId = session?.user.id ?? null;
+  const [tourAnswer, setTourAnswer] = useState<{ owner: string; seen: boolean } | null>(null);
   useEffect(() => {
+    if (!ownerId) return;
     let cancelled = false;
-    void legacyKeysMigrated
-      .then(() => AsyncStorage.getItem(TOUR_KEY))
-      .then((value) => {
-        if (!cancelled) setTourSeen(value === 'yes');
-      })
-      // Storage failing is not a reason to trap somebody on the tour forever;
-      // worst case they miss it, which costs nothing they cannot find later.
-      .catch(() => {
-        if (!cancelled) setTourSeen(true);
-      });
+    // Never rejects — a phone whose storage refuses to answer reports "seen"
+    // rather than trapping somebody behind an intro they cannot dismiss.
+    void onboardingSeen(ownerId).then((seen) => {
+      if (!cancelled) setTourAnswer({ owner: ownerId, seen });
+    });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [ownerId]);
+  const tourSeen = tourAnswer && tourAnswer.owner === ownerId ? tourAnswer.seen : null;
 
   if (loading || needsRedirect) {
     return (
@@ -557,7 +559,7 @@ function AuthGate() {
   // A signed-in person who has not seen the tour meets it here, once, before
   // the app proper. Held while storage is still answering so the app tree does
   // not paint under it for a frame.
-  if (session && tourSeen !== true) {
+  if (session && ownerId && tourSeen !== true) {
     if (tourSeen === null) {
       return (
         <View
@@ -575,10 +577,10 @@ function AuthGate() {
     return (
       <Onboarding
         onDone={() => {
-          setTourSeen(true);
+          setTourAnswer({ owner: ownerId, seen: true });
           // Not awaited: the tour is over the moment they say so, and a write
           // that fails costs them one repeat, not a stuck screen.
-          void AsyncStorage.setItem(TOUR_KEY, 'yes').catch(() => {});
+          void rememberOnboardingSeen(ownerId);
           // One onboarding, not two: mark the coach tour seen as well so it does
           // not autostart on the Home screen the intro just handed them to.
           tour.finish();

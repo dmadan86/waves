@@ -27,7 +27,7 @@ import {
   useTheme,
 } from '@waves/ui';
 
-import { format, money } from '@waves/core';
+import { balanceDirection, copyFor, format, money, moneyAccessibilityLabel } from '@waves/core';
 
 import { CategoryBadge } from '@/components/Category';
 import { useAvatarUrl } from '@/components/ProfileAvatar';
@@ -48,11 +48,12 @@ import {
 import { expenseTitle } from '@/data/expenseTitle';
 import { useBlockedUsers } from '@/data/blocked';
 import { displayName, groupLabel, isBlockedMember, isGhost } from '@/data/types';
-import { plural, useStrings, type UiStrings } from '@/i18n';
+import { fill, plural, useStrings, type UiStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { expenseReceiptPath, expenseReceiptUrl } from '@/data/api';
 import { coordLabel, mapsUrl } from '@/lib/location';
 import { useBottomClearance } from '@/lib/clearance';
+import { expenseMemberHref } from '@/lib/expenseMemberRows';
 import { router, useGoBack } from '@/lib/navigation';
 
 function splitLabels(t: UiStrings): Record<string, string> {
@@ -670,10 +671,25 @@ export default function ExpenseDetailScreen() {
                 <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
                   {version.payers.map((payer, index) => {
                     const payerMember = lookup.get(payer.member_id);
+                    const payerHref = expenseMemberHref(
+                      groupId,
+                      payer.member_id,
+                      Boolean(payerMember),
+                    );
                     return (
                       <View key={payer.member_id}>
                         <ListRow
                           title={nameOf(payer.member_id)}
+                          onPress={payerHref ? () => router.push(payerHref) : undefined}
+                          accessibilityLabel={t.expense.paidByNameAmount
+                            .replace('{name}', nameOf(payer.member_id))
+                            .replace(
+                              '{amount}',
+                              format(money(BigInt(payer.amount), currency), {
+                                locale,
+                                compactFraction: true,
+                              }),
+                            )}
                           leading={
                             <MemberAvatar
                               name={avatarNameOf(payer.member_id)}
@@ -709,28 +725,71 @@ export default function ExpenseDetailScreen() {
               <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
                 {ledgerRows.map((row, index) => {
                   const member = lookup.get(row.memberId);
+                  // Every person on the bill is a way into their page — the same
+                  // push the members list uses, and the member screen reads the
+                  // same mirror, so a ghost opens exactly as a joined member
+                  // does. A row whose member the mirror cannot resolve (someone
+                  // written into an old version and since gone) has nowhere to
+                  // land, so it stays a plain row rather than a tap that ends on
+                  // "member not found".
+                  const memberHref = expenseMemberHref(groupId, row.memberId, Boolean(member));
+                  const openMember = memberHref ? () => router.push(memberHref) : undefined;
+                  // The words under the name, computed once and given to both the
+                  // row and its spoken label — an explicit `accessibilityLabel`
+                  // replaces `ListRow`'s default wholesale, so anything only the
+                  // subtitle said would otherwise be dropped from the audio.
+                  const subtitle =
+                    [
+                      member && isGhost(member) ? t.notJoinedYet : null,
+                      // Only for somebody who put money in: their row shows a
+                      // net, and without this the two numbers it came from are
+                      // nowhere on the screen.
+                      row.paid > 0n
+                        ? t.expense.paidAndShare
+                            .replace('{paid}', format(money(row.paid, currency), { locale }))
+                            .replace('{share}', format(money(row.share, currency), { locale }))
+                        : null,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ') || undefined;
+                  // Making the row one button groups its text, so the amount
+                  // `MoneyText` would have spoken on its own has to be said here
+                  // — in the same compact form the row prints, so what is heard
+                  // and what is seen are the same figure and not "₹500.00" over
+                  // a visible "₹500".
+                  //
+                  // Third person, because the row is about them: "Ravi owes ₹500".
+                  // Except on your own row, where the third person would read the
+                  // literal "You" back through a sentence built for a name — "You
+                  // owes ₹500", and in Tamil, Hindi or Arabic an English word
+                  // spliced mid-sentence. That row speaks the second person the
+                  // rest of the app already uses for your own money.
+                  const spokenAmount = format(money(row.net < 0n ? -row.net : row.net, currency), {
+                    locale,
+                    compactFraction: true,
+                  });
+                  const spokenName = nameOf(row.memberId);
+                  const isMe = Boolean(member?.profile_id && member.profile_id === profile?.id);
+                  const spokenBalance = isMe
+                    ? moneyAccessibilityLabel(
+                        { minor: row.net, currency },
+                        balanceDirection(row.net),
+                        copyFor(locale).money,
+                        { locale, compactFraction: true },
+                      )
+                    : row.net > 0n
+                      ? fill(t.expense.rowOwed, { name: spokenName, amount: spokenAmount })
+                      : row.net < 0n
+                        ? fill(t.expense.rowOwes, { name: spokenName, amount: spokenAmount })
+                        : fill(t.expense.rowSquare, { name: spokenName });
+                  const rowLabel = [spokenBalance, subtitle].filter(Boolean).join('. ');
                   return (
                     <View key={row.memberId}>
                       <ListRow
                         title={nameOf(row.memberId)}
-                        subtitle={
-                          [
-                            member && isGhost(member) ? t.notJoinedYet : null,
-                            // Only for somebody who put money in: their row shows a
-                            // net, and without this the two numbers it came from are
-                            // nowhere on the screen.
-                            row.paid > 0n
-                              ? t.expense.paidAndShare
-                                  .replace('{paid}', format(money(row.paid, currency), { locale }))
-                                  .replace(
-                                    '{share}',
-                                    format(money(row.share, currency), { locale }),
-                                  )
-                              : null,
-                          ]
-                            .filter(Boolean)
-                            .join(' · ') || undefined
-                        }
+                        onPress={openMember}
+                        accessibilityLabel={rowLabel}
+                        subtitle={subtitle}
                         leading={
                           <MemberAvatar
                             name={avatarNameOf(row.memberId)}

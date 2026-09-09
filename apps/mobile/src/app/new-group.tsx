@@ -49,7 +49,7 @@ import { deviceCountry, fill, useStrings } from '@/i18n';
 
 /**
  * Where the icon comes from when the name has not said anything yet — which is
- * the state this screen opens in, and the state a group called "Ravi and Asha"
+ * the state this screen opens in, and the state a group called "Alex and Sam"
  * stays in. The kind of group is a real answer to "what is this", so it is a
  * better fallback than one fixed emoji for everybody.
  */
@@ -595,21 +595,35 @@ export default function NewGroupScreen() {
 
         {/* People sit directly under the name — they are the group, so nothing
             optional (kind, dates, budget) comes between naming it and saying who
-            is in it. Contacts is a real button, not a corner link; a typed name
-            is the quieter second way. Nobody's address book is uploaded
-            (ADR-006). */}
+            is in it. Contacts is still a real button, not a corner link — it has
+            just moved onto the end of the title row instead of taking a
+            full-width line of its own, so the typed name (the quieter second
+            way) sits directly under the label it belongs to. Nobody's address
+            book is uploaded (ADR-006). */}
         <Card style={{ gap: theme.spacing.md }}>
           <InfoDisclosure
             title={t.extras.addPeopleByName}
             info={t.extras.ghostNote}
             titleVariant="caption"
-          />
-          <Button
-            label={t.people.browseContacts}
-            variant="secondary"
-            fullWidth
-            onPress={openContactPicker}
-            icon={<Ionicons name="people-outline" size={iconSize.base} color={theme.color.brand} />}
+            // `right` is InfoDisclosure's own title-row slot: the title flexes,
+            // this sits at the end of the same Row (start/end, not left/right,
+            // so RTL mirrors it), and the folded-out explanation still spans the
+            // full width underneath.
+            right={
+              <Button
+                // The short label is what fits beside a title at `sm`; the full
+                // "browse my contacts" is what the button still announces, so
+                // shortening the text costs nothing to a screen reader.
+                label={t.people.contacts}
+                accessibilityLabel={t.people.browseContacts}
+                variant="secondary"
+                size="sm"
+                onPress={openContactPicker}
+                icon={
+                  <Ionicons name="people-outline" size={iconSize.base} color={theme.color.brand} />
+                }
+              />
+            }
           />
           <Row>
             <TextInput
@@ -835,11 +849,17 @@ export default function NewGroupScreen() {
       {/* The primary action is pinned rather than parked at the foot of a long
           scroll: name, kind, country, dates, simplify and people all sit above
           it, and "just make the group" should not depend on scrolling past all
-          of them first. */}
+          of them first.
+
+          The bottom padding is a plain spacing token, not useScreenClearance:
+          the Screen above already applies the bottom safe-area inset on this
+          screen, so a clearance hook would count the gesture bar twice. This is
+          only the breathing room between the button and that inset. */}
       <View
         style={{
           paddingHorizontal: theme.spacing.xl,
           paddingTop: theme.spacing.md,
+          paddingBottom: theme.spacing.md,
           gap: theme.spacing.sm,
           borderTopWidth: 1,
           borderTopColor: theme.color.border,

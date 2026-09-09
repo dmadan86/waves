@@ -58,6 +58,7 @@ import {
   useUpsertPersonalRecord,
 } from '@/data/personal';
 import { fill, useStrings } from '@/i18n';
+import { PersonalGuard } from '@/components/PersonalGuard';
 import { useBottomClearance } from '@/lib/clearance';
 import { router } from '@/lib/navigation';
 
@@ -70,7 +71,7 @@ import { router } from '@/lib/navigation';
  */
 const LOOKBACK_YEARS = 5;
 
-export default function SourceTimelineScreen() {
+function SourceTimelineScreenBody() {
   const theme = useTheme();
   const clearance = useBottomClearance();
   const { t, locale } = useStrings();
@@ -407,5 +408,17 @@ function RecordSheet({
         />
       </View>
     </Sheet>
+  );
+}
+
+/**
+ * Behind the section shield: one unlock covers the Me tab and every room
+ * under `personal/`, so arriving here from the ledger never asks again.
+ */
+export default function SourceTimelineScreen() {
+  return (
+    <PersonalGuard>
+      <SourceTimelineScreenBody />
+    </PersonalGuard>
   );
 }

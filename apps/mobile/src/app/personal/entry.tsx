@@ -46,9 +46,10 @@ import { useDefaultCurrency } from '@/lib/currency';
 import { router } from '@/lib/navigation';
 import { useSync } from '@/sync';
 import { useStrings } from '@/i18n';
+import { PersonalGuard } from '@/components/PersonalGuard';
 import { useBottomClearance } from '@/lib/clearance';
 
-export default function PersonalEntryScreen() {
+function PersonalEntryScreenBody() {
   const theme = useTheme();
   const { t } = useStrings();
   const dc = useDefaultCurrency();
@@ -302,5 +303,17 @@ function EntryForm({
         <Button label={t.personal.save} size="lg" fullWidth onPress={onSave} disabled={!canSave} />
       </ScrollView>
     </Screen>
+  );
+}
+
+/**
+ * Behind the section shield: one unlock covers the Me tab and every room
+ * under `personal/`, so arriving here from the ledger never asks again.
+ */
+export default function PersonalEntryScreen() {
+  return (
+    <PersonalGuard>
+      <PersonalEntryScreenBody />
+    </PersonalGuard>
   );
 }

@@ -44,10 +44,11 @@ import {
 } from '@/data/personal';
 import { useDefaultCurrency } from '@/lib/currency';
 import { useStrings } from '@/i18n';
+import { PersonalGuard } from '@/components/PersonalGuard';
 import { useBottomClearance } from '@/lib/clearance';
 import { router } from '@/lib/navigation';
 
-export default function LoansScreen() {
+function LoansScreenBody() {
   const theme = useTheme();
   const clearance = useBottomClearance();
   const { t, locale } = useStrings();
@@ -362,5 +363,17 @@ function LoanEditor({
         ) : null}
       </ScrollView>
     </Sheet>
+  );
+}
+
+/**
+ * Behind the section shield: one unlock covers the Me tab and every room
+ * under `personal/`, so arriving here from the ledger never asks again.
+ */
+export default function LoansScreen() {
+  return (
+    <PersonalGuard>
+      <LoansScreenBody />
+    </PersonalGuard>
   );
 }
