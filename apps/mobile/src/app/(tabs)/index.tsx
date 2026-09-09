@@ -49,6 +49,7 @@ import { SkeletonList } from '@/components/Skeletons';
 import { useImportedGroupId } from '@/lib/importProgress';
 import { useReducedMotion } from '@/lib/reducedMotion';
 import { useDefaultCurrency } from '@/lib/currency';
+import { captureInboxActionState } from '@/lib/dashboardActions';
 import { QuickAddSheet, useQuickAddActions } from '@/components/QuickAddSheet';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { useAvatarUrl } from '@/components/ProfileAvatar';
@@ -75,6 +76,7 @@ export default function HomeScreen() {
   const captures = useCaptures();
   // A voice batch counts as one draft on the inbox glyph, not one per item.
   const captureCount = foldedCaptureCount(captures.data ?? []);
+  const captureInboxAction = captureInboxActionState(captureCount);
   const guard = useGuestGuard();
   const tour = useTour();
 
@@ -410,8 +412,8 @@ export default function HomeScreen() {
                 <HeroCircle
                   icon="file-tray-outline"
                   label={t.captures.title}
-                  badge={captureCount || undefined}
-                  disabled={captureCount === 0}
+                  badge={captureInboxAction.badge}
+                  disabled={captureInboxAction.disabled}
                   onPress={() => router.navigate('/captures')}
                 />
               </Row>
