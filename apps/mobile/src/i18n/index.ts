@@ -1409,6 +1409,18 @@ export interface UiStrings {
     nameSuggested: string;
     /** Spoken label for the tick beside a guest we hold contact details for. */
     hasContact: string;
+    /** Row line for a guest whose membership is still only in the local queue. */
+    pendingTag: string;
+    /** Why the merge is held while one of the picked people has not synced. */
+    pendingBlocked: string;
+    /** A picked contact's name fitted several guests, so none was ticked.
+     *  `{name}` is the contact's name. */
+    contactAmbiguous: string;
+    /** Names everybody being folded, in the irreversibility dialog.
+     *  `{people}` is the comma-joined list. */
+    warningWho: string;
+    /** Draws the rest of the mergeable roster. `{n}` is how many are hidden. */
+    showAllGuests: PluralForms;
     warningTitle: string;
     warningBody: string;
     cta: string;
@@ -3957,6 +3969,12 @@ const en: UiStrings = {
     namePlaceholder: 'e.g. Ravi',
     nameSuggested: 'Suggested from the person you have details for. Tap to change.',
     hasContact: 'You have their contact details',
+    pendingTag: 'Waiting to sync',
+    pendingBlocked:
+      'Someone in this merge hasn’t reached the server yet. You can merge them once this device is back online.',
+    contactAmbiguous: 'More than one guest is called {name}. Pick the right one below.',
+    warningWho: 'Merging: {people}',
+    showAllGuests: { one: 'Show 1 more', other: 'Show {n} more' },
     warningTitle: 'This can’t be undone',
     warningBody:
       'Their separate balances are combined into one person for good. There’s no way to split them back apart.',
@@ -6452,6 +6470,13 @@ const ta: UiStrings = {
     namePlaceholder: 'எ.கா. ரவி',
     nameSuggested: 'உங்களிடம் விவரங்கள் உள்ள நபரிடமிருந்து பரிந்துரைக்கப்பட்டது. மாற்ற தட்டவும்.',
     hasContact: 'உங்களிடம் அவர்களின் தொடர்பு விவரங்கள் உள்ளன',
+    pendingTag: 'ஒத்திசைவுக்குக் காத்திருக்கிறது',
+    pendingBlocked:
+      'இந்த இணைப்பில் உள்ள ஒருவர் இன்னும் சேவையகத்தை அடையவில்லை. இந்தச் சாதனம் மீண்டும் ஆன்லைனுக்கு வந்ததும் அவர்களை இணைக்கலாம்.',
+    contactAmbiguous:
+      '{name} என்ற பெயரில் ஒன்றுக்கு மேற்பட்ட விருந்தினர்கள் உள்ளனர். கீழே சரியானவரைத் தேர்ந்தெடுக்கவும்.',
+    warningWho: 'இணைக்கப்படுபவர்கள்: {people}',
+    showAllGuests: { one: 'மேலும் 1 நபரைக் காட்டு', other: 'மேலும் {n} நபர்களைக் காட்டு' },
     warningTitle: 'இதை மீட்டெடுக்க முடியாது',
     warningBody:
       'அவர்களின் தனித்தனி இருப்புகள் நிரந்தரமாக ஒரே நபராக இணைக்கப்படும். மீண்டும் பிரிக்க வழி இல்லை.',
@@ -8999,6 +9024,12 @@ const hi: UiStrings = {
     namePlaceholder: 'जैसे रवि',
     nameSuggested: 'जिस व्यक्ति के विवरण आपके पास हैं, उससे सुझाया गया. बदलने के लिए टैप करें.',
     hasContact: 'आपके पास उनके संपर्क विवरण हैं',
+    pendingTag: 'सिंक होना बाकी है',
+    pendingBlocked:
+      'इस मर्ज में शामिल कोई व्यक्ति अभी सर्वर तक नहीं पहुँचा है. यह डिवाइस दोबारा ऑनलाइन होने पर आप उन्हें मर्ज कर सकते हैं.',
+    contactAmbiguous: '{name} नाम के एक से ज़्यादा मेहमान हैं. नीचे से सही व्यक्ति चुनें.',
+    warningWho: 'मर्ज हो रहे हैं: {people}',
+    showAllGuests: { one: '1 और दिखाएँ', other: '{n} और दिखाएँ' },
     warningTitle: 'इसे पहले जैसा नहीं किया जा सकता',
     warningBody:
       'उनके अलग-अलग बैलेंस हमेशा के लिए एक व्यक्ति में जोड़ दिए जाते हैं। इन्हें वापस अलग करने का कोई तरीका नहीं है.',
@@ -11545,6 +11576,19 @@ const ar: UiStrings = {
     namePlaceholder: 'مثال: رافي',
     nameSuggested: 'مقترح من الشخص الذي لديك بياناته. انقر لتغييره.',
     hasContact: 'لديك بيانات الاتصال الخاصة به',
+    pendingTag: 'في انتظار المزامنة',
+    pendingBlocked:
+      'أحد المشمولين في هذا الدمج لم يصل إلى الخادم بعد. يمكنك دمجهم بمجرد عودة هذا الجهاز إلى الاتصال.',
+    contactAmbiguous: 'هناك أكثر من ضيف باسم {name}. اختر الشخص الصحيح أدناه.',
+    warningWho: 'يجري دمج: {people}',
+    showAllGuests: {
+      zero: 'لا مزيد لعرضه',
+      one: 'عرض واحد آخر',
+      two: 'عرض اثنين آخرين',
+      few: 'عرض {n} آخرين',
+      many: 'عرض {n} آخر',
+      other: 'عرض {n} آخر',
+    },
     warningTitle: 'لا يمكن التراجع عن هذا',
     warningBody: 'تُجمع أرصدتهم المنفصلة في شخص واحد نهائيًا. لا توجد طريقة لفصلهم مرة أخرى.',
     cta: 'دمج',

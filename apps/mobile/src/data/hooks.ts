@@ -519,6 +519,11 @@ export function useMergeCandidates(someoneLabel: string): LocalRead<MergeCandida
           left_at: member.left_at,
           invite_email: member.invite_email ?? null,
           invite_phone: member.invite_phone ?? null,
+          // A ghost added offline is a queue row with a client-chosen id the
+          // server has never seen. The merge RPC would refuse the whole merge
+          // over it, so the flag travels and the screen shows them as not ready
+          // rather than either hiding them or letting them poison a pick.
+          pending: member.pending === true,
         });
       }
     }
