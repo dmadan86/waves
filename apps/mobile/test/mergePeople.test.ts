@@ -7,9 +7,9 @@ import {
   defaultMergeName,
   hasContact,
   isMergeable,
-  isPicked,
   memberIdsForMerge,
   mergeErrorMessage,
+  suggestMergeCluster,
   type MergeableMember,
   type MergeCandidate,
   type MergeErrorStrings,
@@ -100,7 +100,7 @@ describe('buildMergeCandidates', () => {
     );
     expect(candidates).toEqual([
       {
-        person_key: 'phone:919876543210',
+        person_key: 'a',
         member_ids: ['a'],
         group_ids: ['g1'],
         display_name: 'Ravi',
@@ -156,7 +156,10 @@ describe('buildMergeCandidates', () => {
     expect(candidates.map((c) => c.person_key)).toEqual(['a', 'b']);
   });
 
-  it('folds the same invited phone across groups before any manual merge exists', () => {
+  it('does NOT fold two ghosts sharing an invite number — that is a suggestion, not an identity', () => {
+    // A shared number is good evidence and not proof, and the key it would have
+    // to change is the one the SQL and `personKeyOf` both spell. They stay two
+    // people here; `suggestMergeCluster` is what proposes the merge.
     const candidates = buildMergeCandidates(
       [
         member({ id: 'a', group_id: 'g1', ghost_name: 'Ravi', invite_phone: '+91 98765 43210' }),
@@ -164,21 +167,21 @@ describe('buildMergeCandidates', () => {
       ],
       noMerges,
     );
-    expect(candidates).toHaveLength(1);
-    expect(candidates[0]?.member_ids).toEqual(['a', 'b']);
-    expect(candidates[0]?.group_ids).toEqual(['g1', 'g2']);
+    expect(candidates.map((c) => c.person_key)).toEqual(['a', 'b']);
   });
 
-  it('folds the same invited email across groups case-insensitively', () => {
+  it('keys every candidate the way personKeyOf and the SQL do', () => {
+    // person_key travels into `friends/person/[key]`, which hands it to two
+    // server RPCs. Anything but a merge person id or a member id opens empty.
+    const merges = new Map<string, RecordedMerge>([['b', { person_id: 'P', display_name: 'Bea' }]]);
     const candidates = buildMergeCandidates(
       [
-        member({ id: 'a', group_id: 'g1', ghost_name: 'Chloé', invite_email: 'Chloe@Example.com' }),
-        member({ id: 'b', group_id: 'g2', ghost_name: 'Chloe', invite_email: 'chloé@example.com' }),
+        member({ id: 'a', invite_phone: '+919876543210', invite_email: 'ravi@example.com' }),
+        member({ id: 'b', group_id: 'g2' }),
       ],
-      noMerges,
+      merges,
     );
-    expect(candidates).toHaveLength(1);
-    expect(candidates[0]?.member_ids).toEqual(['a', 'b']);
+    expect(candidates.map((c) => c.person_key).sort()).toEqual(['P', 'a']);
   });
 
   it('falls back to the given label for a nameless ghost', () => {
@@ -242,24 +245,65 @@ describe('buildMergeCandidates', () => {
   });
 });
 
-describe('isPicked', () => {
-  it('matches on the person key', () => {
-    const row = candidate({ person_key: 'phone:919876543210', member_ids: ['a'] });
-    expect(isPicked(row, new Set(['phone:919876543210']))).toBe(true);
+describe('suggestMergeCluster', () => {
+  it('proposes the two guests sharing a number, as two separate people', () => {
+    const guests = [
+      candidate({ person_key: 'a', display_name: 'Ravi', phone: '+91 98765 43210' }),
+      candidate({ person_key: 'b', display_name: 'Ravi', phone: '९८७६५४३२१०' }),
+      candidate({ person_key: 'c', display_name: 'Zoya', phone: '+911111111111' }),
+    ];
+    const cluster = suggestMergeCluster(guests);
+    // Two candidates, not one folded row: the user ticks off a real pair, and
+    // `canMerge` therefore sees two people and lets the merge be recorded.
+    expect(cluster.map((row) => row.person_key)).toEqual(['a', 'b']);
+    expect(canMerge(cluster)).toBe(true);
   });
 
-  it('matches a key seeded as one of their member ids', () => {
-    // The Friends tab keys an unmerged ghost by its group_member id; this screen
-    // may key the same person by their shared invite number. Without this, the
-    // identified person falls off the screen built to show them.
-    const row = candidate({ person_key: 'phone:919876543210', member_ids: ['a', 'b'] });
-    expect(isPicked(row, new Set(['b']))).toBe(true);
+  it('proposes on a shared email too, ignoring case and accents', () => {
+    const guests = [
+      candidate({ person_key: 'a', display_name: 'Chloé', email: 'Chloe@Example.com' }),
+      candidate({ person_key: 'b', display_name: 'Chloe', email: 'chloé@example.com' }),
+    ];
+    expect(suggestMergeCluster(guests).map((row) => row.person_key)).toEqual(['a', 'b']);
   });
 
-  it('is false for somebody else', () => {
-    const row = candidate({ person_key: 'a', member_ids: ['a'] });
-    expect(isPicked(row, new Set(['z']))).toBe(false);
-    expect(isPicked(row, new Set())).toBe(false);
+  it('proposes nothing when nobody shares an address', () => {
+    const guests = [
+      candidate({ person_key: 'a', phone: '+911111111111' }),
+      candidate({ person_key: 'b', phone: '+912222222222' }),
+      candidate({ person_key: 'c' }),
+    ];
+    expect(suggestMergeCluster(guests)).toEqual([]);
+  });
+
+  it('proposes nothing from names alone — a shared name is not evidence', () => {
+    const guests = [
+      candidate({ person_key: 'a', display_name: 'Ravi' }),
+      candidate({ person_key: 'b', display_name: 'Ravi' }),
+    ];
+    expect(suggestMergeCluster(guests)).toEqual([]);
+  });
+
+  it('leaves out anybody still waiting to sync — they cannot be picked at all', () => {
+    const guests = [
+      candidate({ person_key: 'a', phone: '+919876543210' }),
+      candidate({ person_key: 'b', phone: '+919876543210', pending: true }),
+    ];
+    expect(suggestMergeCluster(guests)).toEqual([]);
+  });
+
+  it('is a star around one guest, never a transitive closure', () => {
+    // samePhone lets a shorter number be the tail of a longer one, so it is not
+    // an equivalence relation: a matches both b and c while b and c do not match
+    // each other. Closing over that would invent a group the data never claimed.
+    const guests = [
+      candidate({ person_key: 'a', phone: '9876543210' }),
+      candidate({ person_key: 'b', phone: '+919876543210' }),
+      candidate({ person_key: 'c', phone: '+449876543210' }),
+    ];
+    expect(suggestMergeCluster(guests).map((row) => row.person_key)).toEqual(['a', 'b', 'c']);
+    // ...and from b's side, c is not a partner at all.
+    expect(suggestMergeCluster(guests.slice(1)).map((row) => row.person_key)).toEqual([]);
   });
 });
 

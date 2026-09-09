@@ -1409,6 +1409,8 @@ export interface UiStrings {
     nameSuggested: string;
     /** Spoken label for the tick beside a guest we hold contact details for. */
     hasContact: string;
+    /** Says the ticked people were suggested by a shared number, not chosen. */
+    suggestedPicks: string;
     /** Row line for a guest whose membership is still only in the local queue. */
     pendingTag: string;
     /** Why the merge is held while one of the picked people has not synced. */
@@ -3969,6 +3971,8 @@ const en: UiStrings = {
     namePlaceholder: 'e.g. Ravi',
     nameSuggested: 'Suggested from the person you have details for. Tap to change.',
     hasContact: 'You have their contact details',
+    suggestedPicks:
+      'These share a phone number or email, so they’re probably one person. Remove anyone who isn’t.',
     pendingTag: 'Waiting to sync',
     pendingBlocked:
       'Someone in this merge hasn’t reached the server yet. You can merge them once this device is back online.',
@@ -6470,6 +6474,8 @@ const ta: UiStrings = {
     namePlaceholder: 'எ.கா. ரவி',
     nameSuggested: 'உங்களிடம் விவரங்கள் உள்ள நபரிடமிருந்து பரிந்துரைக்கப்பட்டது. மாற்ற தட்டவும்.',
     hasContact: 'உங்களிடம் அவர்களின் தொடர்பு விவரங்கள் உள்ளன',
+    suggestedPicks:
+      'இவர்கள் ஒரே தொலைபேசி எண் அல்லது மின்னஞ்சலைப் பகிர்கிறார்கள், எனவே இவர்கள் ஒரே நபராக இருக்கலாம். ஒரே நபர் இல்லாதவர்களை நீக்கவும்.',
     pendingTag: 'ஒத்திசைவுக்குக் காத்திருக்கிறது',
     pendingBlocked:
       'இந்த இணைப்பில் உள்ள ஒருவர் இன்னும் சேவையகத்தை அடையவில்லை. இந்தச் சாதனம் மீண்டும் ஆன்லைனுக்கு வந்ததும் அவர்களை இணைக்கலாம்.',
@@ -9024,6 +9030,8 @@ const hi: UiStrings = {
     namePlaceholder: 'जैसे रवि',
     nameSuggested: 'जिस व्यक्ति के विवरण आपके पास हैं, उससे सुझाया गया. बदलने के लिए टैप करें.',
     hasContact: 'आपके पास उनके संपर्क विवरण हैं',
+    suggestedPicks:
+      'इनका फ़ोन नंबर या ईमेल एक ही है, इसलिए ये शायद एक ही व्यक्ति हैं. जो न हो उसे हटा दें.',
     pendingTag: 'सिंक होना बाकी है',
     pendingBlocked:
       'इस मर्ज में शामिल कोई व्यक्ति अभी सर्वर तक नहीं पहुँचा है. यह डिवाइस दोबारा ऑनलाइन होने पर आप उन्हें मर्ज कर सकते हैं.',
@@ -11576,6 +11584,8 @@ const ar: UiStrings = {
     namePlaceholder: 'مثال: رافي',
     nameSuggested: 'مقترح من الشخص الذي لديك بياناته. انقر لتغييره.',
     hasContact: 'لديك بيانات الاتصال الخاصة به',
+    suggestedPicks:
+      'يشترك هؤلاء في رقم هاتف أو بريد إلكتروني، لذا من المرجّح أنهم شخص واحد. أزِل من ليس منهم.',
     pendingTag: 'في انتظار المزامنة',
     pendingBlocked:
       'أحد المشمولين في هذا الدمج لم يصل إلى الخادم بعد. يمكنك دمجهم بمجرد عودة هذا الجهاز إلى الاتصال.',
