@@ -102,6 +102,12 @@ describe('hrefKey', () => {
     );
   });
 
+  it('does not collide when params contain query punctuation', () => {
+    expect(hrefKey({ pathname: '/x', params: { a: '1&b=2' } })).not.toBe(
+      hrefKey({ pathname: '/x', params: { a: '1', b: '2' } }),
+    );
+  });
+
   it('keeps a bare pathname bare', () => {
     expect(hrefKey({ pathname: '/x' })).toBe('/x');
   });

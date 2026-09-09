@@ -49,10 +49,8 @@ export function hrefKey(href: unknown): string {
 
   const query = Object.entries(params as Record<string, unknown>)
     .map(([key, value]) => [key, String(value)] as const)
-    .sort((a, b) => a[0].localeCompare(b[0]))
-    .map(([key, value]) => `${key}=${value}`)
-    .join('&');
-  return query.length > 0 ? `${path}?${query}` : path;
+    .sort((a, b) => a[0].localeCompare(b[0]));
+  return query.length > 0 ? JSON.stringify([path, query]) : path;
 }
 
 export function createNavigationGuard(options: NavigationGuardOptions = {}): NavigationGuard {
