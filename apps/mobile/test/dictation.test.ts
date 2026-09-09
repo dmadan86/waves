@@ -173,6 +173,12 @@ describe('onDeviceLocaleInstalled', () => {
     expect(onDeviceLocaleInstalled('en-IN', null)).toBe(false);
     expect(onDeviceLocaleInstalled('', ['en'])).toBe(false);
   });
+
+  it('ignores script subtags when language and region match', () => {
+    expect(onDeviceLocaleInstalled('ar-SA', ['ar-Arab-SA'])).toBe(true);
+    expect(onDeviceLocaleInstalled('hi-IN', ['hi-Deva-IN'])).toBe(true);
+    expect(onDeviceLocaleInstalled('en-IN', ['en-Latn-US'])).toBe(false);
+  });
 });
 
 describe('offlineVoiceModels', () => {

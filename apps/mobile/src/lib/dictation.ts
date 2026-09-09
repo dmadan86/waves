@@ -78,20 +78,26 @@ export function onDeviceLocaleInstalled(
   langTag: string,
   installedLocales: readonly string[] | null | undefined,
 ): boolean {
-  const norm = (tag: string): string => tag.trim().replace(/_/g, '-').toLowerCase();
-  const want = norm(langTag);
+  const parse = (tag: string): { language: string; region: string | null } | null => {
+    const parts = tag.trim().replace(/_/g, '-').toLowerCase().split('-').filter(Boolean);
+    const language = parts[0];
+    if (!language) return null;
+    const region = parts
+      .slice(1)
+      .find((part) => /^[a-z]{2}$/.test(part) || /^\d{3}$/.test(part));
+    return { language, region: region ?? null };
+  };
+
+  const want = parse(langTag);
   if (!want) return false;
-  const wantLang = want.split('-')[0];
-  const wantHasRegion = want.includes('-');
   return (installedLocales ?? []).some((raw) => {
-    const tag = norm(raw);
+    const tag = parse(raw);
     if (!tag) return false;
-    if (tag.split('-')[0] !== wantLang) return false;
-    const tagHasRegion = tag.includes('-');
+    if (tag.language !== want.language) return false;
     // A language-only entry on either side is the generic model: it covers the
-    // whole language. Only when both carry a region must the regions match.
-    if (!tagHasRegion || !wantHasRegion) return true;
-    return tag === want;
+    // whole language. Only when both carry a region must those regions match.
+    if (!tag.region || !want.region) return true;
+    return tag.region === want.region;
   });
 }
 
