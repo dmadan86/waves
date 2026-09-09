@@ -7,6 +7,7 @@ import {
   defaultMergeName,
   hasContact,
   isMergeable,
+  isPicked,
   memberIdsForMerge,
   mergeErrorMessage,
   type MergeableMember,
@@ -238,6 +239,27 @@ describe('buildMergeCandidates', () => {
       merges,
     );
     expect(candidates.map((c) => c.display_name)).toEqual(['Ravi', 'Bea', 'Zoya']);
+  });
+});
+
+describe('isPicked', () => {
+  it('matches on the person key', () => {
+    const row = candidate({ person_key: 'phone:919876543210', member_ids: ['a'] });
+    expect(isPicked(row, new Set(['phone:919876543210']))).toBe(true);
+  });
+
+  it('matches a key seeded as one of their member ids', () => {
+    // The Friends tab keys an unmerged ghost by its group_member id; this screen
+    // may key the same person by their shared invite number. Without this, the
+    // identified person falls off the screen built to show them.
+    const row = candidate({ person_key: 'phone:919876543210', member_ids: ['a', 'b'] });
+    expect(isPicked(row, new Set(['b']))).toBe(true);
+  });
+
+  it('is false for somebody else', () => {
+    const row = candidate({ person_key: 'a', member_ids: ['a'] });
+    expect(isPicked(row, new Set(['z']))).toBe(false);
+    expect(isPicked(row, new Set())).toBe(false);
   });
 });
 
