@@ -71,9 +71,19 @@ export interface MergeCandidate {
   /** The groups they appear in — the invite step's list, and their reach. */
   readonly group_ids: readonly string[];
   readonly display_name: string;
-  /** The number recorded against them when they were invited, if any. */
+  /**
+   * The number recorded against them when they were invited, if any — the
+   * *first* non-blank one across their memberships, not all of them.
+   *
+   * That matters to {@link suggestMergeCluster}, which compares on it: somebody
+   * already merged whose second group carries a different number will not match
+   * on that second number. It only ever suggests fewer merges than it might,
+   * never a wrong one, so it is a limit rather than a bug — but it is why a
+   * suggestion you expected can be missing. Same for {@link email}.
+   */
   readonly phone: string | null;
-  /** The address recorded against them when they were invited, if any. */
+  /** The address recorded against them when they were invited — first non-blank
+   *  across their memberships, on the same terms as {@link phone}. */
   readonly email: string | null;
   /**
    * Any one of their memberships is still only in the local queue.
