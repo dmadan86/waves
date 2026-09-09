@@ -18,6 +18,7 @@ import {
 import { appleNativeSignIn, googleNativeSignIn } from './nativeIdentity';
 import { identifyForReporting, reportHandled } from './observability';
 import { claimCode } from './oauthClaim';
+import { lockPersonal, syncPersonalAccount } from './personalLock';
 import { refreshPushToken, revokePushToken } from './push';
 import { backend } from './backend';
 
@@ -370,6 +371,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .getSession()
       .then(({ data }) => {
         if (!active) return;
+        syncPersonalAccount(data.session?.user?.id ?? null);
         setSession(data.session);
       })
       .catch((caught) => {
@@ -380,6 +382,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
     const { data: subscription } = backend.auth.onAuthStateChange((_event, next) => {
+      // Whoever proved they were holding this phone proved it for one account.
+      // Most sign-outs never reach the `signOut` action below — a revoked
+      // refresh token, a remote sign-out from another device, an account
+      // deleted elsewhere, a refresh that simply fails — and the personal
+      // ledger's unlock is module-scoped, so it would outlive the unmounted
+      // tree and greet the next account with no check at all. Keyed on the user
+      // id, so a switch of account counts too and a token refresh does not.
+      syncPersonalAccount(next?.user?.id ?? null);
       setSession(next);
     });
 
@@ -650,6 +660,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // the revocation to, and the token would keep receiving notifications
         // for an account nobody is signed in on.
         await revokePushToken();
+        // The private ledger's unlock belongs to whoever proved they were
+        // holding the phone, not to the phone. It does not survive the account
+        // it was granted under.
+        lockPersonal();
         await backend.auth.signOut();
       },
     }),

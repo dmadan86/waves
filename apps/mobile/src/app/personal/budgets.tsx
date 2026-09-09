@@ -42,9 +42,10 @@ import {
 } from '@/data/personal';
 import { useDefaultCurrency } from '@/lib/currency';
 import { useStrings } from '@/i18n';
+import { PersonalGuard } from '@/components/PersonalGuard';
 import { useBottomClearance } from '@/lib/clearance';
 
-export default function BudgetsScreen() {
+function BudgetsScreenBody() {
   const theme = useTheme();
   const clearance = useBottomClearance();
   const { t, locale } = useStrings();
@@ -268,5 +269,17 @@ function BudgetEditor({
         ) : null}
       </ScrollView>
     </Sheet>
+  );
+}
+
+/**
+ * Behind the section shield: one unlock covers the Me tab and every room
+ * under `personal/`, so arriving here from the ledger never asks again.
+ */
+export default function BudgetsScreen() {
+  return (
+    <PersonalGuard>
+      <BudgetsScreenBody />
+    </PersonalGuard>
   );
 }

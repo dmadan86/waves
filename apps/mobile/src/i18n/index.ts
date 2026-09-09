@@ -761,6 +761,12 @@ export interface UiStrings {
     footnote: string;
     /** Native biometric prompt shown on entering the private Me tab. */
     personalPrompt: string;
+    /** Heading on the shield in front of the private ledger. */
+    personalLockedTitle: string;
+    /** How to open it — shown while the prompt is up or about to be. */
+    personalLockedBody: string;
+    /** Shown instead, once a check has been refused or cancelled. */
+    personalLockedRefused: string;
   };
   /** The sheet behind Sign out: what leaves the phone with the account, and
    *  the two things you can do about it before you go. */
@@ -3414,7 +3420,7 @@ const en: UiStrings = {
     unsupported: 'This device has no biometrics or passcode set up',
     askAgainAfter: 'Ask again after',
     askAgainExplain:
-      'Time in the background before Waves locks. Settling by UPI sends you to another app and back, so locking the instant you leave means unlocking every time you pay somebody.',
+      'Time away before Waves asks again — for the app lock, and for the private personal ledger, which uses the same window when you leave it. Settling by UPI sends you to another app and back, so asking the instant you leave means unlocking every time you pay somebody.',
     graceImmediate: 'Straight away',
     graceSeconds: { one: 'After {n} second', other: 'After {n} seconds' },
     graceMinutes: { one: 'After a minute', other: 'After {n} minutes' },
@@ -3428,6 +3434,9 @@ const en: UiStrings = {
     footnote:
       'This guards the screen, not the data — your ledger is protected by row-level security on the server whether the lock is on or not.',
     personalPrompt: 'Unlock your personal ledger',
+    personalLockedTitle: 'Your personal ledger is locked',
+    personalLockedBody: 'Unlock with the same face or fingerprint that opens this phone.',
+    personalLockedRefused: 'That did not unlock it. Try again, or go back.',
   },
   signOutSheet: {
     guestTitle: 'This account cannot be signed back into',
@@ -5899,7 +5908,7 @@ const ta: UiStrings = {
     unsupported: 'இந்தச் சாதனத்தில் கைரேகையோ கடவுக்குறியீடோ அமைக்கப்படவில்லை',
     askAgainAfter: 'மீண்டும் கேட்க',
     askAgainExplain:
-      'Waves பூட்டப்படுவதற்கு முன் பின்னணியில் இருக்கும் நேரம். UPI மூலம் தீர்ப்பது உங்களை வேறு ஆப்புக்கு அனுப்பி மீண்டும் கொண்டுவரும், எனவே வெளியேறியதுமே பூட்டினால் ஒவ்வொரு முறை பணம் கொடுக்கும்போதும் திறக்க வேண்டியிருக்கும்.',
+      'Waves மீண்டும் கேட்பதற்கு முன் நீங்கள் விலகி இருக்கும் நேரம் — ஆப் பூட்டுக்கும், தனிப்பட்ட கணக்குக்கும்; அதை விட்டு வெளியேறினாலும் இதே நேரம்தான். UPI மூலம் தீர்ப்பது உங்களை வேறு ஆப்புக்கு அனுப்பி மீண்டும் கொண்டுவரும், எனவே வெளியேறியதுமே கேட்டால் ஒவ்வொரு முறை பணம் கொடுக்கும்போதும் திறக்க வேண்டியிருக்கும்.',
     graceImmediate: 'உடனடியாக',
     graceSeconds: { one: '{n} வினாடி கழித்து', other: '{n} வினாடிகள் கழித்து' },
     graceMinutes: { one: 'ஒரு நிமிடம் கழித்து', other: '{n} நிமிடங்கள் கழித்து' },
@@ -5913,6 +5922,9 @@ const ta: UiStrings = {
     footnote:
       'இது திரையைக் காக்கிறது, தரவை அல்ல — பூட்டு இருந்தாலும் இல்லாவிட்டாலும் உங்கள் கணக்கு சர்வரில் வரிசை அளவிலான பாதுகாப்பால் காக்கப்படுகிறது.',
     personalPrompt: 'உங்கள் தனிப்பட்ட கணக்கைத் திறக்கவும்',
+    personalLockedTitle: 'உங்கள் தனிப்பட்ட கணக்கு பூட்டப்பட்டுள்ளது',
+    personalLockedBody: 'இந்த ஃபோனைத் திறக்கும் அதே முகம் அல்லது கைரேகையால் திறக்கவும்.',
+    personalLockedRefused: 'அது திறக்கவில்லை. மீண்டும் முயலுங்கள், அல்லது திரும்பிச் செல்லுங்கள்.',
   },
   signOutSheet: {
     guestTitle: 'இந்தக் கணக்கில் மீண்டும் உள்நுழைய முடியாது',
@@ -8477,7 +8489,7 @@ const hi: UiStrings = {
     unsupported: 'इस डिवाइस पर बायोमेट्रिक या पासकोड सेट नहीं है',
     askAgainAfter: 'दोबारा पूछें',
     askAgainExplain:
-      'Waves के लॉक होने से पहले बैकग्राउंड में बीता समय। UPI से निपटाने पर आप दूसरे ऐप में जाकर लौटते हैं, इसलिए निकलते ही लॉक करने का मतलब है हर भुगतान पर दोबारा खोलना।',
+      'Waves के दोबारा पूछने से पहले आपके दूर रहने का समय — ऐप लॉक के लिए भी, और निजी हिसाब के लिए भी, जिसे छोड़ने पर यही समय लागू होता है। UPI से निपटाने पर आप दूसरे ऐप में जाकर लौटते हैं, इसलिए निकलते ही पूछने का मतलब है हर भुगतान पर दोबारा खोलना।',
     graceImmediate: 'तुरंत',
     graceSeconds: { one: '{n} सेकंड बाद', other: '{n} सेकंड बाद' },
     graceMinutes: { one: 'एक मिनट बाद', other: '{n} मिनट बाद' },
@@ -8491,6 +8503,9 @@ const hi: UiStrings = {
     footnote:
       'यह स्क्रीन की रक्षा करता है, डेटा की नहीं — लॉक चालू हो या बंद, आपका हिसाब सर्वर पर रो-लेवल सुरक्षा से सुरक्षित है।',
     personalPrompt: 'अपना निजी हिसाब अनलॉक करें',
+    personalLockedTitle: 'आपका निजी हिसाब लॉक है',
+    personalLockedBody: 'उसी चेहरे या फ़िंगरप्रिंट से खोलें जिससे यह फ़ोन खुलता है।',
+    personalLockedRefused: 'इससे लॉक नहीं खुला। फिर से कोशिश करें, या वापस जाएँ।',
   },
   signOutSheet: {
     guestTitle: 'इस खाते में दोबारा साइन इन नहीं किया जा सकता',
@@ -10987,7 +11002,7 @@ const ar: UiStrings = {
     unsupported: 'لا توجد بصمة أو رمز مرور مضبوط على هذا الجهاز',
     askAgainAfter: 'اسأل مرة أخرى بعد',
     askAgainExplain:
-      'المدة في الخلفية قبل أن يُقفل Waves. التسوية عبر UPI تنقلك إلى تطبيق آخر ثم تعيدك، فالقفل لحظة الخروج يعني فتح القفل مع كل دفعة.',
+      'المدة التي تقضيها بعيدًا قبل أن يسأل Waves مرة أخرى — لقفل التطبيق، ولدفترك الشخصي الذي يستخدم المدة نفسها عند مغادرته. التسوية عبر UPI تنقلك إلى تطبيق آخر ثم تعيدك، فالسؤال لحظة الخروج يعني فتح القفل مع كل دفعة.',
     graceImmediate: 'فورًا',
     graceSeconds: {
       zero: 'بعد {n} ثانية',
@@ -11015,6 +11030,9 @@ const ar: UiStrings = {
     footnote:
       'هذا يحمي الشاشة لا البيانات — دفترك محمي على الخادم بأمان على مستوى الصفوف سواء كان القفل مفعّلًا أم لا.',
     personalPrompt: 'افتح قفل دفترك الشخصي',
+    personalLockedTitle: 'دفترك الشخصي مقفل',
+    personalLockedBody: 'افتحه بالوجه أو البصمة نفسها التي تفتح هذا الهاتف.',
+    personalLockedRefused: 'لم يُفتح القفل. حاول مرة أخرى، أو ارجع.',
   },
   signOutSheet: {
     guestTitle: 'لا يمكن تسجيل الدخول إلى هذا الحساب مرة أخرى',

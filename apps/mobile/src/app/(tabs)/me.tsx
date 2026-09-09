@@ -18,10 +18,10 @@
  * it was last open (idempotent — see `postDueRecurring`).
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
@@ -60,6 +60,7 @@ import {
 } from '@waves/ui';
 
 import { CategoryBadge } from '@/components/Category';
+import { PersonalLocked } from '@/components/PersonalGuard';
 import { useSourceLabel } from '@/components/IncomeSource';
 import {
   localIsoDate,
@@ -95,15 +96,14 @@ export default function MeScreen() {
   const ledger = usePersonalLedger();
   const upsert = useUpsertPersonalRecord();
 
-  // The Me tab is the private personal ledger — ask for biometrics on entry and
-  // keep the screen a blank shield until it succeeds (below), so the figures are
-  // never on show behind the prompt. It then stays quiet for the app-lock grace
-  // window. A failed or cancelled check leaves the tab rather than exposing data.
-  const leaveMe = useCallback(() => {
-    if (router.canGoBack()) router.back();
-    else router.replace('/');
-  }, []);
-  const gate = usePersonalGate(t.lock.personalPrompt, leaveMe);
+  // The Me tab is the home of the private personal ledger — ask for biometrics
+  // on entry and keep the screen a shield until it succeeds (below), so the
+  // figures are never on show behind the prompt. One unlock covers the whole
+  // section: the rooms under `personal/` mount the same gate and read the same
+  // state, so walking into "add income" and back never asks again. Only time
+  // spent away — out of the section, or with the app in the background — past
+  // the "Ask again after" window brings it back.
+  const gate = usePersonalGate(t.lock.personalPrompt);
 
   // Read the clock once, off render (the React Compiler forbids it inline).
   const [today] = useState(() => todayIso());
@@ -232,20 +232,10 @@ export default function MeScreen() {
     : null;
 
   // Private ledger: while the biometric gate is unresolved the whole screen is a
-  // blank shield — no hero, no figures — so nothing is on show behind the OS
-  // prompt. A failed check has already navigated away by the time this renders.
-  if (!gate.unlocked) {
-    return (
-      <Screen edges={[]}>
-        <View
-          style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: theme.spacing.lg }}
-        >
-          <Ionicons name="lock-closed" size={iconSize.huge} color={theme.color.textFaint} />
-          {gate.checking ? <ActivityIndicator color={theme.color.textFaint} /> : null}
-        </View>
-      </Screen>
-    );
-  }
+  // shield — no hero, no figures — so nothing is on show behind the OS prompt.
+  // A refused check stays here with a way to try again, rather than sending the
+  // user backwards without a word.
+  if (!gate.unlocked) return <PersonalLocked gate={gate} />;
 
   return (
     <Screen edges={[]}>
