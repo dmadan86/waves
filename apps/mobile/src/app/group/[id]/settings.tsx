@@ -763,6 +763,10 @@ export default function GroupSettingsScreen() {
                 />
               }
               onPress={() => toggleFavorite(groupId)}
+              // The row *is* the switch beside it — same handler, same state.
+              // Guarded, the row would refuse a fast on-off while the Switch on
+              // its right accepted it, and the star would disagree with itself.
+              repeatable
               trailing={
                 <Toggle
                   value={isFavorite(groupId)}

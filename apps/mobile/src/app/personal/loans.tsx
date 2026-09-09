@@ -333,6 +333,10 @@ function LoanEditor({
               size="sm"
               variant="secondary"
               onPress={() => setClosed((prev) => !prev)}
+              // A toggle wearing a button's clothes: the label flips between
+              // close and reopen, so the second tap is a different action and
+              // has to land.
+              repeatable
             />
           </Row>
         ) : null}

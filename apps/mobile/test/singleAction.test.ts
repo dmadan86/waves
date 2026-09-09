@@ -12,7 +12,12 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { createTapGate, selectPressHandler, SINGLE_ACTION_WINDOW_MS } from '@waves/ui/press';
+import {
+  createTapGate,
+  MAX_ACTION_LOCK_MS,
+  selectPressHandler,
+  SINGLE_ACTION_WINDOW_MS,
+} from '@waves/ui/press';
 
 /** A clock the test drives by hand — no timers, no flakiness. */
 function clock(start = 1_000): { now: () => number; advance: (ms: number) => void } {
@@ -74,6 +79,25 @@ describe('tap gate', () => {
     expect(cancelled).toBe(1);
   });
 
+  it('makes a double-tapped back one pop, without slowing the way out of a stack', () => {
+    // `useGoBack` puts one of these behind each header's chevron. That is why
+    // `router.back()` itself is left unguarded: a guard on the router could not
+    // tell "this header, twice" from "the header underneath, next" — and the
+    // second is somebody leaving in a hurry, which must never be refused.
+    const time = clock();
+    const expenseHeader = createTapGate({ now: time.now });
+    const groupHeader = createTapGate({ now: time.now });
+    let pops = 0;
+    const pop = (): number => (pops += 1);
+
+    expect(expenseHeader.run(pop)).toBe(true);
+    time.advance(130);
+    expect(expenseHeader.run(pop)).toBe(false); // the second half of the double tap
+    time.advance(90);
+    expect(groupHeader.run(pop)).toBe(true); // the screen underneath, straight away
+    expect(pops).toBe(2);
+  });
+
   it('stays shut for the whole of a slow async handler', async () => {
     const time = clock();
     const gate = createTapGate({ now: time.now });
@@ -121,6 +145,56 @@ describe('tap gate', () => {
     expect(runs).toBe(1);
   });
 
+  it('gives up on a promise that never settles', async () => {
+    // Otherwise one hung promise kills the control for the life of the screen,
+    // and from the outside that is indistinguishable from a frozen app. The
+    // real candidate is a handler awaiting `requestAnimationFrame`, which does
+    // not fire while an Android app is backgrounded.
+    const time = clock();
+    const gate = createTapGate({ now: time.now });
+    let runs = 0;
+    const tap = (): boolean =>
+      gate.run(() => {
+        runs += 1;
+        return new Promise<void>(() => {
+          /* never settles */
+        });
+      });
+
+    expect(tap()).toBe(true);
+    time.advance(MAX_ACTION_LOCK_MS - 1);
+    expect(tap()).toBe(false);
+    time.advance(1);
+    expect(tap()).toBe(true);
+    expect(runs).toBe(2);
+  });
+
+  it('does not let a late promise unlock the press that replaced it', async () => {
+    const time = clock();
+    const gate = createTapGate({ now: time.now });
+    const pending: (() => void)[] = [];
+    const slow = (): boolean =>
+      gate.run(
+        () =>
+          new Promise<void>((resolve) => {
+            pending.push(resolve);
+          }),
+      );
+
+    expect(slow()).toBe(true);
+    time.advance(MAX_ACTION_LOCK_MS);
+    expect(slow()).toBe(true); // the ceiling handed the gate to this press
+
+    // The abandoned first promise finally comes back. It must not open the gate
+    // under the press that is now holding it.
+    pending.shift()?.();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    time.advance(SINGLE_ACTION_WINDOW_MS);
+    expect(slow()).toBe(false);
+  });
+
   it('re-opens after a handler that threw', () => {
     const time = clock();
     const gate = createTapGate({ now: time.now });
@@ -151,6 +225,31 @@ describe('which handler a control attaches', () => {
   it('guards everything else', () => {
     const open = (): void => {};
     expect(selectPressHandler(open, guarded, false)).toBe(guarded);
+  });
+
+  it('lets a row that is a switch answer on, then off', () => {
+    // The group settings "favourite" row is its own trailing Switch: same
+    // handler, same state. Guarded, the row refused a fast on-off that the
+    // Switch beside it accepted, and the star disagreed with itself.
+    const time = clock();
+    const gate = createTapGate({ now: time.now });
+    let favourite = false;
+    const toggle = (): void => {
+      favourite = !favourite;
+    };
+
+    const guardedRow = selectPressHandler(toggle, () => gate.run(toggle), false);
+    guardedRow?.();
+    time.advance(150);
+    guardedRow?.();
+    expect(favourite).toBe(true); // the off tap was eaten — the bug
+
+    favourite = false;
+    const repeatableRow = selectPressHandler(toggle, () => gate.run(toggle), true);
+    repeatableRow?.();
+    time.advance(150);
+    repeatableRow?.();
+    expect(favourite).toBe(false); // on, then off, as pressed
   });
 
   it('keeps a handler-less control handler-less', () => {

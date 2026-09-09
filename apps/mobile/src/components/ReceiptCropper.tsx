@@ -328,10 +328,13 @@ export function ReceiptCropper({
             paddingVertical: theme.spacing.lg,
           }}
         >
-          <IconButton label={t.adjust.rotateLeft} onPress={() => void rotate(-90)}>
+          {/* Turning a photo the right way up is often two taps of the same
+              button — a receipt scanned upside down needs 180°. Both must land;
+              the screen's own `busy` flag is what stops them overlapping. */}
+          <IconButton label={t.adjust.rotateLeft} onPress={() => void rotate(-90)} repeatable>
             <Ionicons name="return-up-back" size={iconSize.lg} color="#FFFFFF" />
           </IconButton>
-          <IconButton label={t.adjust.rotateRight} onPress={() => void rotate(90)}>
+          <IconButton label={t.adjust.rotateRight} onPress={() => void rotate(90)} repeatable>
             <Ionicons name="return-up-forward" size={iconSize.lg} color="#FFFFFF" />
           </IconButton>
           <IconButton label={t.adjust.reset} onPress={() => setCrop(FULL)}>

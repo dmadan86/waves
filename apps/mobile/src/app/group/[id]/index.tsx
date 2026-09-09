@@ -71,7 +71,7 @@ import {
 import { fill, plural, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { canRemindFromBalanceRow } from '@/lib/balanceRowActions';
-import { router } from '@/lib/navigation';
+import { router, useGoBack } from '@/lib/navigation';
 import { paidBy } from '@/lib/payerLines';
 import { CategoryBadge } from '@/components/Category';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
@@ -441,6 +441,7 @@ const ExpenseFeedRow = memo(function ExpenseFeedRow({
 
 export default function GroupScreen() {
   const theme = useTheme();
+  const goBack = useGoBack('/');
   // The root bar is over this screen, so the room starts from the bar's own
   // clearance rather than the bare system inset. The extra 36 has no cause
   // anywhere in this file — there is no floating action and no pinned footer
@@ -694,7 +695,7 @@ export default function GroupScreen() {
                 invite link has no history to pop, so the chevron falls back to
                 home rather than silently doing nothing. */}
             <Pressable
-              onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+              onPress={goBack}
               accessibilityRole="button"
               accessibilityLabel={t.common.back}
               hitSlop={10}

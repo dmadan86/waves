@@ -7,6 +7,13 @@
  * The two things it must never do are pinned here as hard as the thing it must:
  * it must not eat a second, different destination, and it must not stand
  * between somebody and a screen they left and want back.
+ *
+ * Only the motions that can *stack* a screen are guarded at all — `push` and
+ * `navigate`. `GuardedNavigation` is the whole list, and the type is the test:
+ * `allow('replace', …)` and `allow('back', …)` do not compile. Backwards
+ * motions must always be answered, and a `replace` cannot double up a screen,
+ * so guarding it would only risk refusing a redirect that expo-router had
+ * quietly dropped before the navigator mounted.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -57,22 +64,22 @@ describe('navigation guard', () => {
     expect(guard.allow('push', '/capture')).toBe(true);
   });
 
-  it('does not confuse a push with a replace', () => {
+  it('does not confuse a push with a navigate', () => {
     const time = clock();
     const guard = createNavigationGuard({ now: time.now });
 
     expect(guard.allow('push', '/welcome')).toBe(true);
     time.advance(50);
-    expect(guard.allow('replace', '/welcome')).toBe(true);
+    expect(guard.allow('navigate', '/welcome')).toBe(true);
   });
 
-  it('forgets everything when you go back', () => {
+  it('forgets everything when you leave the screen', () => {
     const time = clock();
     const guard = createNavigationGuard({ now: time.now });
 
     expect(guard.allow('push', '/group/7/settings')).toBe(true);
     time.advance(100);
-    guard.reset(); // what `router.back()` does
+    guard.reset(); // what back / dismiss / replace all do
     // Opened it, changed their mind, went back, opened it again — all inside
     // the window, and all deliberate.
     expect(guard.allow('push', '/group/7/settings')).toBe(true);

@@ -23,12 +23,13 @@ import { directionalIcon, iconSize, Row, Screen, Text, useTheme } from '@waves/u
 
 import { LanguageChoiceList } from '@/components/LanguageChoiceList';
 import { useStrings } from '@/i18n';
-import { router } from '@/lib/navigation';
+import { useGoBack } from '@/lib/navigation';
 
 export default function LanguageScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { t } = useStrings();
+  const goBack = useGoBack('/welcome');
 
   return (
     <Screen>
@@ -38,7 +39,7 @@ export default function LanguageScreen() {
           accessibilityRole="button"
           accessibilityLabel={t.common.back}
           hitSlop={12}
-          onPress={() => (router.canGoBack() ? router.back() : router.replace('/welcome'))}
+          onPress={goBack}
           style={({ pressed }) => ({
             width: 44,
             height: 44,

@@ -30,7 +30,7 @@ import { iconSize, PillTabBar, type PillTabAction, type PillTabItem } from '@wav
 
 import { isRtl, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
-import { router } from '@/lib/navigation';
+import { router, switchTab } from '@/lib/navigation';
 import { pushToTalk } from '@/lib/pushToTalk';
 import { resolveTabBar, tabBarRouteForSelection } from '@/lib/tabBar';
 
@@ -110,7 +110,7 @@ export function AppTabBar() {
   const go = useCallback(
     (key: string): void => {
       const route = tabBarRouteForSelection(activeKey, key);
-      if (route) router.navigate(route);
+      if (route) switchTab(route);
     },
     [activeKey],
   );

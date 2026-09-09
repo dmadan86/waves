@@ -25,7 +25,7 @@ import { AmountField, directionalIcon, Gradient, iconSize, Row, Text, useTheme }
 
 import { CategoryBadge } from '@/components/Category';
 import { useStrings } from '@/i18n';
-import { router } from '@/lib/navigation';
+import { useGoBack } from '@/lib/navigation';
 
 export function ExpenseHero({
   title,
@@ -66,6 +66,7 @@ export function ExpenseHero({
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { t } = useStrings();
+  const goBack = useGoBack();
 
   return (
     <Gradient
@@ -81,7 +82,7 @@ export function ExpenseHero({
     >
       <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
         <Pressable
-          onPress={() => router.back()}
+          onPress={goBack}
           accessibilityRole="button"
           accessibilityLabel={leading === 'back' ? t.common.back : t.common.close}
           hitSlop={10}

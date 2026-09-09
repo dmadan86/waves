@@ -53,7 +53,7 @@ import { useAuth } from '@/lib/auth';
 import { expenseReceiptPath, expenseReceiptUrl } from '@/data/api';
 import { coordLabel, mapsUrl } from '@/lib/location';
 import { useBottomClearance } from '@/lib/clearance';
-import { router } from '@/lib/navigation';
+import { router, useGoBack } from '@/lib/navigation';
 
 function splitLabels(t: UiStrings): Record<string, string> {
   return {
@@ -126,6 +126,7 @@ function DetailLine({
 
 export default function ExpenseDetailScreen() {
   const theme = useTheme();
+  const goBack = useGoBack();
   const insets = useSafeAreaInsets();
   const clearance = useBottomClearance();
   const { t, locale } = useStrings();
@@ -400,7 +401,7 @@ export default function ExpenseDetailScreen() {
           {/* Back and overflow match the dashboard/group hero: a chip-less xxl
                 white glyph, not the smaller boxed IconButton. */}
           <Pressable
-            onPress={() => router.back()}
+            onPress={goBack}
             accessibilityRole="button"
             accessibilityLabel={t.common.back}
             hitSlop={10}

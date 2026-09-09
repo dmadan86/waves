@@ -9,18 +9,26 @@ import { SINGLE_ACTION_WINDOW_MS } from '@waves/ui/press';
  * is the backstop for all of those: the same href, pushed twice inside the same
  * window, is one push.
  *
+ * Only the two motions that can *stack* a screen are guarded. `replace` swaps
+ * the current screen for another, so asking for it twice leaves one screen
+ * either way and guarding it buys nothing — it would only mean remembering a
+ * redirect that expo-router may have dropped on the floor (its routing queue
+ * silently discards actions issued before the navigator mounts), which is the
+ * one way this could ever swallow a navigation somebody wanted. Backwards
+ * motions are never guarded at all.
+ *
  * Keyed per method *and* href, never globally: pressing "Settings" and then
  * immediately "Invite" is two different destinations and both must open. And
- * going back clears the record, so leaving a screen and walking straight back
- * into it works — the guard is about a stuttering finger, not about where you
- * are allowed to go.
+ * leaving a screen clears the record, so walking straight back into it works —
+ * the guard is about a stuttering finger, not about where you are allowed to
+ * go.
  *
  * Pure: no expo-router here, so it can be tested without standing up a
  * navigator. `lib/navigation.ts` is the thin wiring that puts it in front of
  * the real router.
  */
 
-export type GuardedNavigation = 'push' | 'navigate' | 'replace' | 'dismissTo';
+export type GuardedNavigation = 'push' | 'navigate';
 
 export interface NavigationGuardOptions {
   windowMs?: number;
@@ -30,7 +38,7 @@ export interface NavigationGuardOptions {
 export interface NavigationGuard {
   /** Whether this navigation should happen. Records it when it should. */
   allow: (method: GuardedNavigation, href: unknown) => boolean;
-  /** Forget every recent navigation — what going back does. */
+  /** Forget every recent navigation — what leaving the current screen does. */
   reset: () => void;
 }
 

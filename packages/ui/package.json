@@ -8,6 +8,7 @@
     ".": "./src/index.ts",
     "./curve": "./src/curve.ts",
     "./press": "./src/press.ts",
+    "./useSingleAction": "./src/useSingleAction.ts",
     "./initials": "./src/initials.ts"
   },
   "scripts": {
