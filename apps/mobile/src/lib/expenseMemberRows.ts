@@ -6,6 +6,10 @@
  * same member page as the group member list. If it no longer exists, leave it
  * inert instead of sending someone to a known "member not found" dead-end.
  */
-export function expenseMemberHref(groupId: string, memberId: string, memberExists: boolean): string | null {
+export function expenseMemberHref(
+  groupId: string,
+  memberId: string,
+  memberExists: boolean,
+): string | null {
   return memberExists ? `/group/${groupId}/member/${memberId}` : null;
 }

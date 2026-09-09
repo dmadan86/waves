@@ -669,7 +669,11 @@ export default function ExpenseDetailScreen() {
                 <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
                   {version.payers.map((payer, index) => {
                     const payerMember = lookup.get(payer.member_id);
-                    const payerHref = expenseMemberHref(groupId, payer.member_id, Boolean(payerMember));
+                    const payerHref = expenseMemberHref(
+                      groupId,
+                      payer.member_id,
+                      Boolean(payerMember),
+                    );
                     return (
                       <View key={payer.member_id}>
                         <ListRow
