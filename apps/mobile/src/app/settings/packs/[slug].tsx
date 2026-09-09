@@ -12,7 +12,7 @@
 
 import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { Alert, ScrollView, View } from 'react-native';
 
 import type { PackEntry } from '@waves/core';
@@ -33,6 +33,7 @@ import {
 
 import { useInstallPack, useInstalledPacks, usePacks, useUninstallPack } from '@/data/packs';
 import { plural, useStrings } from '@/i18n';
+import { router } from '@/lib/navigation';
 
 export default function PackScreen() {
   const theme = useTheme();

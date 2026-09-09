@@ -38,7 +38,7 @@ import { useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useMutation } from '@tanstack/react-query';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import {
   ActivityIndicator,
   Alert,
@@ -84,6 +84,7 @@ import {
 import { ContactPicker, type PickedContact } from '@/components/ContactPicker';
 import { PeopleSkeleton } from '@/components/Skeletons';
 import { friendlyError } from '@/lib/errors';
+import { router } from '@/lib/navigation';
 import { useSync } from '@/sync';
 import { fill, plural, useStrings, type UiStrings } from '@/i18n';
 

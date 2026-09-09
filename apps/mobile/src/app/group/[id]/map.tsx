@@ -18,7 +18,7 @@
 
 import { useMemo } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { Linking, Pressable, ScrollView, View } from 'react-native';
 
 import type { ExpenseLocation } from '@waves/core';
@@ -40,6 +40,7 @@ import { coordLabel, mapsUrl } from '@/lib/location';
 import { InsightsSkeleton } from '@/components/Skeletons';
 import { useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
+import { router } from '@/lib/navigation';
 
 interface Place {
   readonly id: string;

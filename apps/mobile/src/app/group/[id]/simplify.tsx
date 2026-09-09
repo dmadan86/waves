@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { FlashList } from '@shopify/flash-list';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { Pressable, RefreshControl, View } from 'react-native';
 
 import {
@@ -34,6 +34,7 @@ import { personKeyOf } from '@/data/peopleBalances';
 import { displayName, groupLabel, isBlockedMember, isGhost, type MemberRow } from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
+import { router } from '@/lib/navigation';
 import { usePullRefresh } from '@/lib/pullRefresh';
 import { SimplifySide, simplifyItems, type SimplifyItem } from '@/lib/simplifyRows';
 

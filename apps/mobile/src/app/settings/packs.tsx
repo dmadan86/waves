@@ -15,7 +15,6 @@
 
 import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
 import { FlashList } from '@shopify/flash-list';
 import { Pressable, TextInput, View } from 'react-native';
 
@@ -36,6 +35,7 @@ import {
 
 import { useInstalledPacks, usePacks, useRequestPack, type ShelfPack } from '@/data/packs';
 import { plural, useStrings } from '@/i18n';
+import { router } from '@/lib/navigation';
 
 export default function PacksScreen() {
   const theme = useTheme();

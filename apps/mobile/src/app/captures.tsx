@@ -16,7 +16,6 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { FlashList } from '@shopify/flash-list';
 import { randomUUID } from 'expo-crypto';
-import { router } from 'expo-router';
 import {
   Alert,
   Pressable,
@@ -73,6 +72,7 @@ import { planCaptureAssign, stillWaiting, type AssignMember } from '@/lib/captur
 import { buildCaptureFeedItems, type CaptureFeedItem } from '@/lib/captureFeed';
 import { friendlyError } from '@/lib/errors';
 import { useGuestGuard } from '@/lib/guestGuard';
+import { router } from '@/lib/navigation';
 import { usePullRefresh } from '@/lib/pullRefresh';
 import { useToast } from '@/lib/toast';
 import { useSync } from '@/sync';

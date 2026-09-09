@@ -12,12 +12,12 @@
 
 import { type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
 import { View } from 'react-native';
 
 import { directionalIcon, IconButton, iconSize, Row, Text, useTheme } from '@waves/ui';
 
 import { useStrings } from '@/i18n';
+import { router } from '@/lib/navigation';
 
 export function ExpenseHeader({
   title,

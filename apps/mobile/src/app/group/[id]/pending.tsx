@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { Alert, View } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 
@@ -30,6 +30,7 @@ import { displayName, isGhost, type SettlementRow } from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { useBottomClearance } from '@/lib/clearance';
+import { router } from '@/lib/navigation';
 
 /**
  * Whole days left before a pending settlement auto-confirms — the 7-day window

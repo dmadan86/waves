@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Clipboard from 'expo-clipboard';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import {
   ActivityIndicator,
   Linking,
@@ -32,6 +32,7 @@ import {
 import { ensureGroupJoinToken, groupJoinLink } from '@/data/api';
 import { friendlyError } from '@/lib/errors';
 import { useGroup } from '@/data/hooks';
+import { router } from '@/lib/navigation';
 import { useSync } from '@/sync';
 import { displayName, groupLabel, isGhost } from '@/data/types';
 import { useAuth } from '@/lib/auth';

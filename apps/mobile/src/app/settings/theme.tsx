@@ -9,7 +9,6 @@
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
 import { ScrollView, View } from 'react-native';
 
 import {
@@ -26,6 +25,7 @@ import {
 } from '@waves/ui';
 
 import { useStrings } from '@/i18n';
+import { router } from '@/lib/navigation';
 import { SchemePreference, useThemePreference } from '@/lib/theme';
 
 export default function ThemeSettingsScreen() {
@@ -102,6 +102,9 @@ export default function ThemeSettingsScreen() {
                   title={row.title}
                   subtitle={row.subtitle}
                   onPress={() => void setPreference(row.value)}
+                  // A picker row, not a door: choosing is idempotent and every
+                  // tap should land.
+                  repeatable
                   accessibilityLabel={`${row.title}${chosen ? ', selected' : ''}`}
                   leading={<Ionicons name={row.icon} size={iconSize.xl} color={theme.color.text} />}
                   trailing={

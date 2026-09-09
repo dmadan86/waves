@@ -19,7 +19,6 @@
 
 import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
 import { ActivityIndicator, Pressable, ScrollView, TextInput, View } from 'react-native';
 
 import {
@@ -40,6 +39,7 @@ import { findPerson, type FoundPerson } from '@/data/api';
 import { ProfileAvatar } from '@/components/ProfileAvatar';
 import { useStrings } from '@/i18n';
 import { friendlyError } from '@/lib/errors';
+import { router } from '@/lib/navigation';
 
 /** What the box holds decides which channel is searched — no second control. */
 function channelFor(query: string): 'email' | 'phone' | null {

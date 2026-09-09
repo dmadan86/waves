@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import type { ScrollView as RNScrollView } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -54,6 +54,7 @@ import { expenseReceiptPath, expenseReceiptUrl } from '@/data/api';
 import { coordLabel, mapsUrl } from '@/lib/location';
 import { useBottomClearance } from '@/lib/clearance';
 import { expenseMemberHref } from '@/lib/expenseMemberRows';
+import { router, useGoBack } from '@/lib/navigation';
 
 function splitLabels(t: UiStrings): Record<string, string> {
   return {
@@ -126,6 +127,7 @@ function DetailLine({
 
 export default function ExpenseDetailScreen() {
   const theme = useTheme();
+  const goBack = useGoBack();
   const insets = useSafeAreaInsets();
   const clearance = useBottomClearance();
   const { t, locale } = useStrings();
@@ -400,7 +402,7 @@ export default function ExpenseDetailScreen() {
           {/* Back and overflow match the dashboard/group hero: a chip-less xxl
                 white glyph, not the smaller boxed IconButton. */}
           <Pressable
-            onPress={() => router.back()}
+            onPress={goBack}
             accessibilityRole="button"
             accessibilityLabel={t.common.back}
             hitSlop={10}

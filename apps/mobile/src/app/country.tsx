@@ -26,7 +26,6 @@
 
 import { useEffect, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
 import { Pressable, ScrollView, View } from 'react-native';
 
 import { COUNTRIES, countryFlag, railsFor } from '@waves/core';
@@ -44,6 +43,7 @@ import {
 import { useStrings } from '@/i18n';
 
 import { takeCountryRequest } from '@/lib/countryPickerBridge';
+import { router } from '@/lib/navigation';
 
 export default function CountryScreen(): React.JSX.Element {
   const theme = useTheme();

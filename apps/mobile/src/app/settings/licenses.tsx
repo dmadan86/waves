@@ -1,5 +1,4 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
 import { ScrollView, View } from 'react-native';
 
 import {
@@ -15,6 +14,7 @@ import {
 } from '@waves/ui';
 
 import { useStrings } from '@/i18n';
+import { router } from '@/lib/navigation';
 
 /**
  * The open-source software Waves stands on.

@@ -52,6 +52,17 @@ module.exports = [
               name: '@/lib/supabase',
               message: 'Import `backend` from `@/lib/backend`, not the Supabase client directly.',
             },
+            {
+              // One tap, one screen. `@/lib/navigation` is expo-router's router
+              // with a short guard in front of it, so a double tap cannot push
+              // the same route twice — a bug you only see on a real phone, and
+              // one that comes straight back the moment a screen imports the
+              // raw router again.
+              name: 'expo-router',
+              importNames: ['router', 'useRouter'],
+              message:
+                'Import `router` / `useRouter` from `@/lib/navigation` — the guarded router. Everything else in expo-router is fine to import directly.',
+            },
           ],
           patterns: [
             {

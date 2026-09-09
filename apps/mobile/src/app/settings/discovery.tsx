@@ -24,7 +24,6 @@
 
 import { useEffect, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
 import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
 
 import {
@@ -51,6 +50,7 @@ import {
 import { useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { friendlyError } from '@/lib/errors';
+import { router } from '@/lib/navigation';
 
 export default function DiscoveryScreen() {
   const theme = useTheme();

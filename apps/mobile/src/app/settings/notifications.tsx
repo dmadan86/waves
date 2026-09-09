@@ -1,6 +1,5 @@
 import { useEffect, useState, type ComponentProps } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
 
 import {
@@ -30,6 +29,7 @@ import {
 import { useStrings, type UiStrings } from '@/i18n';
 import { friendlyError } from '@/lib/errors';
 import { useAuth } from '@/lib/auth';
+import { router } from '@/lib/navigation';
 import { enablePush, PushFailure, PushPermission, pushPermission } from '@/lib/push';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];

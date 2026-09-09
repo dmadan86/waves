@@ -11,7 +11,6 @@
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
 import { ScrollView, View } from 'react-native';
 
 import { MutationKind, rowsFor, SyncTable } from '@waves/core';
@@ -34,6 +33,7 @@ import { GroupPhoto } from '@/components/GroupPhoto';
 import { groupLabel, type MemberRow } from '@/data/types';
 import { fill, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
+import { router } from '@/lib/navigation';
 import { useSync } from '@/sync/provider';
 
 export default function ArchivedGroupsScreen() {

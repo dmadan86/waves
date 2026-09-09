@@ -11,7 +11,6 @@
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
 import { ScrollView, View } from 'react-native';
 
 import {
@@ -31,6 +30,7 @@ import {
 
 import { useStrings } from '@/i18n';
 import { describeGrace, GRACE_CHOICES, useLock } from '@/lib/lock';
+import { router } from '@/lib/navigation';
 
 export default function LockSettingsScreen() {
   const theme = useTheme();
@@ -103,6 +103,8 @@ export default function LockSettingsScreen() {
                   label={describeGrace(seconds, t, locale)}
                   selected={graceSeconds === seconds}
                   onPress={() => void setGraceSeconds(seconds)}
+                  // Picking a value, not opening anything: every tap counts.
+                  repeatable
                 />
               ))}
             </Row>

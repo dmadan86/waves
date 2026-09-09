@@ -19,7 +19,6 @@ import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { randomUUID } from 'expo-crypto';
-import { router } from 'expo-router';
 import { ActivityIndicator, Modal, Pressable, ScrollView, TextInput, View } from 'react-native';
 
 import { parseReceiptText, type HeuristicReceipt, type PaymentMethod } from '@waves/core';
@@ -50,6 +49,7 @@ import { useAuth } from '@/lib/auth';
 import { useDefaultCurrency } from '@/lib/currency';
 import { captureReceipt, type PickedImage } from '@/lib/image';
 import { useGuestGuard } from '@/lib/guestGuard';
+import { router } from '@/lib/navigation';
 import { recogniseReceipt } from '@/lib/ocr';
 
 type Direction = 'theyOwe' | 'iOwe';

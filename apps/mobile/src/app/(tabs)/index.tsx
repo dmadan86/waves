@@ -3,7 +3,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
 import {
   ActivityIndicator,
   Animated,
@@ -39,6 +38,7 @@ import { plural, useStrings, type UiStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { foldedCaptureCount } from '@/lib/captureBatch';
 import { useGuestGuard } from '@/lib/guestGuard';
+import { router } from '@/lib/navigation';
 import { usePromptSlot } from '@/lib/promptQueue';
 import { useDashboardTips } from '@/lib/tips';
 import { TourTarget, useTour } from '@/lib/tour';

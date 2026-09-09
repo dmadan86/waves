@@ -20,7 +20,6 @@
 
 import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
 import { ActivityIndicator, Pressable, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Line, Path } from 'react-native-svg';
@@ -31,6 +30,7 @@ import { LegalLine } from '@/components/LegalLine';
 import { useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { friendlyError } from '@/lib/errors';
+import { useGoBack } from '@/lib/navigation';
 
 /** The screen's own dark-green field and the light on it — a front-of-house
     palette, held apart from the app theme on purpose. */
@@ -46,6 +46,7 @@ const APP_TOKEN = '{app}';
 export default function GuestWelcomeScreen() {
   const theme = useTheme();
   const { t } = useStrings();
+  const goBack = useGoBack('/sign-up');
   const { continueAsGuest } = useAuth();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -82,7 +83,7 @@ export default function GuestWelcomeScreen() {
             accessibilityRole="button"
             accessibilityLabel={t.common.back}
             hitSlop={12}
-            onPress={() => (router.canGoBack() ? router.back() : router.replace('/sign-up'))}
+            onPress={goBack}
             style={({ pressed }) => ({
               width: 44,
               height: 44,

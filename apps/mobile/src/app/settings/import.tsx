@@ -23,7 +23,6 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { randomUUID } from 'expo-crypto';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
-import { router } from 'expo-router';
 import { Pressable, ScrollView, TextInput, View } from 'react-native';
 
 import {
@@ -58,6 +57,7 @@ import { createGroup, fetchMembers, importLedger, type ImportPerson } from '@/da
 import { beginImport } from '@/lib/importProgress';
 import { friendlyError } from '@/lib/errors';
 import { plural, useStrings, type UiStrings } from '@/i18n';
+import { router } from '@/lib/navigation';
 import { useReducedMotion } from '@/lib/reducedMotion';
 import { useGroups } from '@/data/hooks';
 import { displayName, groupLabel, GroupType, type MemberRow } from '@/data/types';

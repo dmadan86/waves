@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, StatusBar, View } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button, EmptyState, Row, useTheme } from '@waves/ui';
@@ -8,6 +8,7 @@ import { Button, EmptyState, Row, useTheme } from '@waves/ui';
 import { ViewerButton } from '@/components/ViewerButton';
 import { ZoomableImage } from '@/components/ZoomableImage';
 import { useStrings } from '@/i18n';
+import { router } from '@/lib/navigation';
 import { imageUrl } from '@/lib/storage';
 import { saveImageToDevice } from '@/lib/saveImage';
 

@@ -12,12 +12,12 @@
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
 import { Pressable, View } from 'react-native';
 
 import { iconSize, Sheet, Text, tintForKey, useTheme } from '@waves/ui';
 
 import { useStrings } from '@/i18n';
+import { router } from '@/lib/navigation';
 
 export interface QuickAddAction {
   icon: keyof typeof Ionicons.glyphMap;

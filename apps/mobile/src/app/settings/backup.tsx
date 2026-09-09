@@ -25,7 +25,6 @@
 import { useCallback, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Clipboard from 'expo-clipboard';
-import { router } from 'expo-router';
 import { ActivityIndicator, ScrollView, TextInput, View } from 'react-native';
 
 import {
@@ -55,6 +54,7 @@ import { formatRecoveryKey } from '@/lib/backup/recoveryKey';
 import type { RestoreScan } from '@/lib/backup/engine';
 import { CloudAuthError } from '@/lib/cloud/oauth';
 import { friendlyError } from '@/lib/errors';
+import { router } from '@/lib/navigation';
 import { SyncNetworkPreference } from '@/lib/syncNetwork';
 
 /** A found backup, held while the person decides whether to take it. */
@@ -441,6 +441,8 @@ export default function BackupSettingsScreen() {
                   <ListRow
                     title={option.label}
                     onPress={() => void backup.setFrequency(option.value)}
+                    // A picker row, not a door: every tap should land.
+                    repeatable
                     accessibilityRole="radio"
                     accessibilityState={{ selected: chosen }}
                     accessibilityLabel={`${option.label}${chosen ? `, ${t.backup.selected}` : ''}`}
@@ -473,6 +475,8 @@ export default function BackupSettingsScreen() {
                   <ListRow
                     title={option.label}
                     onPress={() => void backup.setNetwork(option.value)}
+                    // A picker row, not a door: every tap should land.
+                    repeatable
                     accessibilityRole="radio"
                     accessibilityState={{ selected: chosen }}
                     accessibilityLabel={`${option.label}${chosen ? `, ${t.backup.selected}` : ''}`}

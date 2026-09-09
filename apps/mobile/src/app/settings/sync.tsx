@@ -8,7 +8,6 @@
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
 import { ScrollView, View } from 'react-native';
 
 import {
@@ -25,6 +24,7 @@ import {
 } from '@waves/ui';
 
 import { useStrings } from '@/i18n';
+import { router } from '@/lib/navigation';
 import { SyncNetworkPreference, useSyncNetwork } from '@/lib/syncNetwork';
 
 export default function SyncSettingsScreen() {
@@ -98,6 +98,9 @@ export default function SyncSettingsScreen() {
                   title={row.title}
                   subtitle={row.subtitle}
                   onPress={() => void setPreference(row.value)}
+                  // A picker row, not a door: choosing is idempotent and every
+                  // tap should land.
+                  repeatable
                   accessibilityLabel={`${row.title}${chosen ? `, ${t.sync.selected}` : ''}`}
                   leading={<Ionicons name={row.icon} size={iconSize.xl} color={theme.color.text} />}
                   trailing={

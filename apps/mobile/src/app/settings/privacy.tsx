@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
 import { Alert, LayoutAnimation, Pressable, ScrollView, View } from 'react-native';
 
 import {
@@ -23,6 +22,7 @@ import { useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { clarityConfigured } from '@/lib/clarity';
 import { describeGrace, useLock } from '@/lib/lock';
+import { router } from '@/lib/navigation';
 import { useReducedMotion } from '@/lib/reducedMotion';
 import { sessionReplayConsent, setSessionReplayConsent } from '@/lib/sessionReplay';
 

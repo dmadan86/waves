@@ -13,7 +13,6 @@
  */
 
 import { useCallback, useMemo } from 'react';
-import { router } from 'expo-router';
 
 import {
   guestGate,
@@ -24,6 +23,7 @@ import {
 } from '@waves/core';
 
 import { useGroups } from '@/data/hooks';
+import { router } from '@/lib/navigation';
 import { useAuth } from './auth';
 
 export interface GuestGuard {

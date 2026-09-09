@@ -15,13 +15,13 @@
 
 import type { ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
 
 import { Button, iconSize, Screen, Text, useTheme } from '@waves/ui';
 
 import { useStrings } from '@/i18n';
 import { usePersonalGate, type PersonalGateValue } from '@/lib/lock';
+import { useGoBack } from '@/lib/navigation';
 
 /** Wraps a personal screen so its body never mounts while the section is shut. */
 export function PersonalGuard({ children }: { children: ReactNode }) {
@@ -38,6 +38,9 @@ export function PersonalGuard({ children }: { children: ReactNode }) {
 export function PersonalLocked({ gate }: { gate: PersonalGateValue }) {
   const theme = useTheme();
   const { t } = useStrings();
+  // Home is the fallback: this screen can be the first thing a cold open from a
+  // shortcut or a notification lands on, with no history to pop.
+  const goBack = useGoBack('/');
 
   return (
     <Screen edges={[]}>
@@ -71,10 +74,7 @@ export function PersonalLocked({ gate }: { gate: PersonalGateValue }) {
               variant="secondary"
               size="lg"
               fullWidth
-              onPress={() => {
-                if (router.canGoBack()) router.back();
-                else router.replace('/');
-              }}
+              onPress={goBack}
             />
           </View>
         ) : null}

@@ -1,5 +1,4 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
 import { Pressable, ScrollView, View } from 'react-native';
 
 import {
@@ -20,6 +19,7 @@ import { groupLabel } from '@/data/types';
 import { useAuth } from '@/lib/auth';
 import { useFavorites } from '@/lib/favorites';
 import { fill, plural, useStrings } from '@/i18n';
+import { router } from '@/lib/navigation';
 
 /**
  * Pick a group to start a new one from (the clone flow's front door).

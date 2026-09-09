@@ -8,7 +8,6 @@
 import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { router } from 'expo-router';
 import { Alert, Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
 
 import {
@@ -59,6 +58,7 @@ import { useDefaultCurrency } from '@/lib/currency';
 import { fill, useStrings } from '@/i18n';
 import { PersonalGuard } from '@/components/PersonalGuard';
 import { useBottomClearance } from '@/lib/clearance';
+import { router } from '@/lib/navigation';
 
 /** A repeat pattern in words. The open-ended one names its own interval, so
  *  "every 5 months" never reads as the vaguer "every few months". */

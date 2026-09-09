@@ -14,7 +14,6 @@
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
 import { ScrollView, View } from 'react-native';
 
 import {
@@ -31,6 +30,7 @@ import {
 } from '@waves/ui';
 
 import { useStrings, type UiStrings } from '@/i18n';
+import { router } from '@/lib/navigation';
 
 /** What a paid tier would be for, and what it would never touch. */
 function conveniences(

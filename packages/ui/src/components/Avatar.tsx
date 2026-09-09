@@ -3,6 +3,7 @@ import { Image, Pressable, View } from 'react-native';
 
 import { initialsOf } from '../initials';
 import { useTheme } from '../theme';
+import { useSingleAction } from '../useSingleAction';
 import { tints, type TintName } from '../tokens';
 import { Text } from './Text';
 
@@ -59,6 +60,7 @@ export function Avatar({
   accessibilityLabel?: string;
 }) {
   const theme = useTheme();
+  const press = useSingleAction(onPress);
   const resolved = theme.tint[tint ?? tintForKey(name)];
 
   // A signed URL can expire between being handed over and being fetched. When
@@ -106,7 +108,7 @@ export function Avatar({
 
   if (!onPress) return body;
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label}>
+    <Pressable onPress={press} accessibilityRole="button" accessibilityLabel={label}>
       {body}
     </Pressable>
   );

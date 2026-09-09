@@ -11,7 +11,6 @@
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
 
@@ -36,6 +35,7 @@ import { friendlyError } from '@/lib/errors';
 import { fetchDevices } from '@/data/api';
 import { deviceId } from '@/lib/device';
 import { useDeviceSession } from '@/lib/deviceSession';
+import { router } from '@/lib/navigation';
 
 /**
  * A phone or a computer, read off the free-text platform string. Only ever

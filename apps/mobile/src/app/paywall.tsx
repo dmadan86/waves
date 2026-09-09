@@ -16,10 +16,11 @@
 
 import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
 import { Pressable, ScrollView, View } from 'react-native';
 
 import { IconButton, iconSize, Screen, Text, useTheme } from '@waves/ui';
+
+import { router } from '@/lib/navigation';
 
 /** The reference's warm gold, for the badge and the call to action. Local, not
     a brand token: the app's brand is purple, and this is placeholder styling to

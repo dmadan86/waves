@@ -1,7 +1,7 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useMutation } from '@tanstack/react-query';
-import { router, useLocalSearchParams, type Href } from 'expo-router';
+import { useLocalSearchParams, type Href } from 'expo-router';
 import { Alert, InteractionManager, Pressable, RefreshControl, View } from 'react-native';
 import { FlashList, type FlashListRef } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
@@ -71,6 +71,7 @@ import {
 import { fill, plural, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { canRemindFromBalanceRow } from '@/lib/balanceRowActions';
+import { router, useGoBack } from '@/lib/navigation';
 import { paidBy } from '@/lib/payerLines';
 import { CategoryBadge } from '@/components/Category';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
@@ -440,6 +441,7 @@ const ExpenseFeedRow = memo(function ExpenseFeedRow({
 
 export default function GroupScreen() {
   const theme = useTheme();
+  const goBack = useGoBack('/');
   // The root bar is over this screen, so the room starts from the bar's own
   // clearance rather than the bare system inset. The extra 36 has no cause
   // anywhere in this file — there is no floating action and no pinned footer
@@ -693,7 +695,7 @@ export default function GroupScreen() {
                 invite link has no history to pop, so the chevron falls back to
                 home rather than silently doing nothing. */}
             <Pressable
-              onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+              onPress={goBack}
               accessibilityRole="button"
               accessibilityLabel={t.common.back}
               hitSlop={10}

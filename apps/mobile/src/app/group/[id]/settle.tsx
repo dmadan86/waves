@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useMutation } from '@tanstack/react-query';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, View } from 'react-native';
 
 import {
@@ -43,6 +43,7 @@ import { displayName, isGhost, payableAt, type MemberRow } from '@/data/types';
 import { fill, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { useGuestGuard } from '@/lib/guestGuard';
+import { router } from '@/lib/navigation';
 
 export default function SettleScreen() {
   const theme = useTheme();

@@ -17,7 +17,7 @@ import { useMemo } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { FlashList } from '@shopify/flash-list';
 import { byNewest } from '@waves/core';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { ActivityIndicator, Pressable, View } from 'react-native';
 
 import {
@@ -40,6 +40,7 @@ import { expenseTitle } from '@/data/expenseTitle';
 import { displayName, groupLabel, type ExpenseRow } from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
+import { router } from '@/lib/navigation';
 import { paidBy } from '@/lib/payerLines';
 import { useBottomClearance } from '@/lib/clearance';
 

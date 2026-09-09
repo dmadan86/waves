@@ -18,7 +18,7 @@
 
 import { useEffect, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router, type Href } from 'expo-router';
+import { type Href } from 'expo-router';
 import { Modal, Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
   Easing,
@@ -32,6 +32,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { iconSize, Text, useTheme } from '@waves/ui';
 
 import { useStrings } from '@/i18n';
+import { router } from '@/lib/navigation';
 import { useReducedMotion } from '@/lib/reducedMotion';
 
 /** The corner-grow timings: a touch longer to open than to close, the usual
