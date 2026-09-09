@@ -1,7 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  forgetTours,
   onboardingSeen,
   rememberOnboardingSeen,
   rememberTourSeen,
@@ -88,6 +89,63 @@ describe('the coach-mark flag', () => {
 
     expect(await onboardingSeen(ALICE)).toBe(true);
     expect(await tourSeen(ALICE)).toBe(false);
+  });
+});
+
+/**
+ * The module's one behavioural asymmetry, and the only thing its header spends a
+ * paragraph arguing: a phone that cannot answer sends the two flags in opposite
+ * directions. Worth pinning, because both directions look arbitrary until you
+ * remember which of the two is a full-screen gate.
+ */
+describe('when storage will not answer', () => {
+  beforeEach(async () => {
+    await AsyncStorage.clear();
+    // Seeded so neither assertion below can pass by accident: Alice has had the
+    // coach-marks and has *not* had the intro, so a working read would answer
+    // false then true, and the failing reads have to answer true then false to
+    // prove the catch is what spoke.
+    await rememberTourSeen(ALICE);
+
+    vi.spyOn(AsyncStorage, 'getItem').mockRejectedValue(new Error('storage unavailable'));
+    vi.spyOn(AsyncStorage, 'setItem').mockRejectedValue(new Error('storage unavailable'));
+    vi.spyOn(AsyncStorage, 'removeItem').mockRejectedValue(new Error('storage unavailable'));
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('lets the intro through rather than trapping somebody behind it', async () => {
+    expect(await onboardingSeen(ALICE)).toBe(true);
+  });
+
+  it('offers the coach-marks, because the worst case is a tap on the X', async () => {
+    expect(await tourSeen(ALICE)).toBe(false);
+  });
+
+  it('reports rather than throws, so a gate is never left waiting', async () => {
+    await expect(rememberOnboardingSeen(ALICE)).resolves.toBeUndefined();
+    await expect(rememberTourSeen(ALICE)).resolves.toBeUndefined();
+    await expect(forgetTours(ALICE)).resolves.toBeUndefined();
+  });
+});
+
+describe('forgetting a deleted account', () => {
+  beforeEach(async () => {
+    await AsyncStorage.clear();
+  });
+
+  it('drops both of its answers and nobody else’s', async () => {
+    await rememberOnboardingSeen(ALICE);
+    await rememberTourSeen(ALICE);
+    await rememberOnboardingSeen(BOB);
+
+    await forgetTours(ALICE);
+
+    expect(await onboardingSeen(ALICE)).toBe(false);
+    expect(await tourSeen(ALICE)).toBe(false);
+    expect(await onboardingSeen(BOB)).toBe(true);
   });
 });
 

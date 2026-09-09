@@ -23,6 +23,13 @@
  * missing their onboarding would have carried on missing it. So existing
  * accounts see the intro once more after this ships. It is three cards.
  *
+ * The coach-marks are re-armed by the same sweep, and that is intended too,
+ * though almost nobody will meet them: the intro's `onDone` marks them seen, so
+ * a returning account gets the three cards and then Home as usual. Only somebody
+ * who reaches Home without passing through the intro — dismissing it is passing
+ * through it — sees the coach-marks again, and one more pass over the balance
+ * deck is not worth a mechanism to prevent.
+ *
  * Deliberately no `await legacyKeysMigrated` here, unlike every other reader of
  * a renamed key. A per-account slot never existed before the rename, so no
  * migration can touch one, and awaiting would hold the gate's spinner behind a
@@ -85,3 +92,23 @@ export const tourSeen = (ownerId: string): Promise<boolean> => readFlag(tourSlot
 
 /** Remember that this account is done with the coach-marks. Never rejects. */
 export const rememberTourSeen = (ownerId: string): Promise<void> => writeFlag(tourSlot(ownerId));
+
+/**
+ * Drop both answers for an account that no longer exists. Never rejects.
+ *
+ * Only for erasure, and deliberately not for signing out: an account that signs
+ * out has still seen the tour, and would be entitled to be annoyed at meeting it
+ * again on the way back in. A deleted account has not — there is no it. Left
+ * alone the two slots are about sixty bytes of a phone that will never read them
+ * again, since every read is keyed by the live session's id; sweeping them is
+ * hygiene rather than a fix.
+ */
+export async function forgetTours(ownerId: string): Promise<void> {
+  try {
+    await AsyncStorage.removeItem(introSlot(ownerId));
+    await AsyncStorage.removeItem(tourSlot(ownerId));
+  } catch {
+    // Sixty bytes that outlive the account they describe. Not worth a word to
+    // the person who is in the middle of deleting everything they own.
+  }
+}
