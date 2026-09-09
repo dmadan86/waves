@@ -13,7 +13,7 @@
  * are most likely to be merging *into* — so the balance list, which drops
  * anybody square with you, is the wrong roster to pick from.
  */
-import { digitsOf, fold, samePhone } from '@/lib/contactMatch';
+import { sameAddress } from '@/lib/contactMatch';
 
 import type { PersonBalanceRow } from './api';
 
@@ -107,13 +107,6 @@ export function hasContact(person: Pick<NamedPerson, 'phone' | 'email'>): boolea
   return Boolean(person.phone?.trim() || person.email?.trim());
 }
 
-function contactKey(member: Pick<MergeableMember, 'invite_email' | 'invite_phone'>): string | null {
-  const email = member.invite_email?.trim();
-  if (email) return `email:${fold(email)}`;
-  const phone = member.invite_phone ? digitsOf(member.invite_phone) : '';
-  return phone ? `phone:${phone}` : null;
-}
-
 /**
  * Build the mergeable people out of raw memberships.
  *
@@ -143,31 +136,22 @@ export function buildMergeCandidates(
   }
 
   const byKey = new Map<string, Draft>();
-  const phoneKeys: { phone: string; key: string }[] = [];
   for (const member of members) {
     if (member.left_at !== null) continue;
     if (!isMergeable({ is_ghost: member.profile_id === null })) continue;
 
     const merge = merges.get(member.id) ?? null;
-    const contact = contactKey(member);
-    const phoneForKey = member.invite_phone?.trim() ?? '';
-    const existingPhoneKey =
-      !merge && phoneForKey
-        ? phoneKeys.find((entry) => samePhone(entry.phone, phoneForKey))?.key
-        : undefined;
     // A ghost merge the viewer recorded is their own proof that two rows are one
-    // human. Failing that, a shared invite address/number is the same kind of
-    // local proof across groups; without either, a ghost stays keyed to its own
-    // membership so two same-named people are never auto-folded.
-    const key = merge?.person_id ?? existingPhoneKey ?? contact ?? member.id;
-    if (
-      !merge &&
-      phoneForKey &&
-      contact?.startsWith('phone:') &&
-      !phoneKeys.some((entry) => entry.key === key)
-    ) {
-      phoneKeys.push({ phone: phoneForKey, key });
-    }
+    // human; failing that a ghost stays keyed to its own membership.
+    //
+    // Nothing else may enter this expression. It has to spell identity exactly
+    // as `personKeyOf` and the SQL's COALESCE(profile_id, person_id, member id)
+    // do, because the key travels: Friends, the group ledger and the simplify
+    // sheet all push it into `friends/person/[key]`, which hands it straight to
+    // two server RPCs. A locally-invented key opens that screen empty. A shared
+    // invite number is worth *suggesting* a merge over — see
+    // {@link suggestMergeCluster} — but it may not decide who somebody is.
+    const key = merge?.person_id ?? member.id;
     let draft = byKey.get(key);
     if (!draft) {
       draft = {
@@ -221,21 +205,35 @@ export function buildMergeCandidates(
 }
 
 /**
- * Whether this candidate is one of the picked, by person key or by any of the
- * memberships behind them.
+ * The people to pre-tick: a guest and everybody carrying the same invite
+ * address. A suggestion — never an identity.
  *
- * The Friends tab keys people the ledger's way — a recorded merge, else the
- * `group_member` id (`personKeyOf`) — and hands those keys to this screen. This
- * screen keys them by shared invite address as well, so the very people it
- * exists to surface are exactly the ones whose key it does *not* spell the same
- * way. Matching on the memberships too means a pre-picked person still arrives
- * picked instead of quietly falling off the screen built to show them.
+ * Two ghosts you wrote the same number against are almost certainly one human,
+ * and saying so is the whole of what the original report asked for. What this
+ * deliberately does *not* do is fold them into one person behind the user's
+ * back. They stay two candidates, both ticked, both named in the confirmation
+ * dialog, and either can be unticked — so the merge that gets written is one the
+ * user asserted, exactly as it is for a name match (see {@link contactNameMatch}
+ * — a heuristic may propose an identity, it may not decide one).
+ *
+ * It is a star around the first guest with a partner, not a transitive closure:
+ * `samePhone` allows a shorter number to be the tail of a longer one, so "same
+ * address" is not an equivalence relation — A can match both B and C while B and
+ * C match nothing. Closing over that would invent a group nobody's data
+ * supports. One seed and its direct matches is a claim we can actually stand
+ * behind, and the user sees every member of it before anything is written.
+ *
+ * People still waiting to sync are left out: they cannot be picked at all.
  */
-export function isPicked(
-  row: Pick<MergeCandidate, 'person_key' | 'member_ids'>,
-  picked: ReadonlySet<string>,
-): boolean {
-  return picked.has(row.person_key) || row.member_ids.some((id) => picked.has(id));
+export function suggestMergeCluster(candidates: readonly MergeCandidate[]): MergeCandidate[] {
+  const usable = candidates.filter((row) => !row.pending && hasContact(row));
+  for (const seed of usable) {
+    const partners = usable.filter(
+      (other) => other.person_key !== seed.person_key && sameAddress(seed, other),
+    );
+    if (partners.length > 0) return [seed, ...partners];
+  }
+  return [];
 }
 
 /** What a picked device contact's name resolves to on the mergeable roster. */

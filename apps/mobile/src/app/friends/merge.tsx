@@ -76,9 +76,9 @@ import {
   contactNameMatch,
   defaultMergeName,
   hasContact,
-  isPicked,
   memberIdsForMerge,
   mergeErrorMessage,
+  suggestMergeCluster,
   type MergeCandidate,
 } from '@/data/mergePeople';
 import { ContactPicker, type PickedContact } from '@/components/ContactPicker';
@@ -93,6 +93,9 @@ import { fill, plural, useStrings, type UiStrings } from '@/i18n';
  * hiding anybody behind a search box they would have to guess at.
  */
 const ROSTER_PAGE = 25;
+
+/** Nothing ticked. Hoisted so it is one stable object, not a new set per render. */
+const EMPTY: ReadonlySet<string> = new Set();
 
 /** One group the merged person belongs to, for the post-merge invite sheet. */
 interface InviteGroup {
@@ -133,7 +136,29 @@ export default function MergePeopleScreen() {
   const guests = people.data;
   const groups = useGroups();
 
-  const [selected, setSelected] = useState<ReadonlySet<string>>(() => new Set(initialKeys));
+  // Two guests you wrote the same number against are almost certainly one
+  // person. Say so by ticking them — both, separately, each removable, each
+  // named in the confirmation — rather than by folding them into one row behind
+  // the user's back (see `suggestMergeCluster`). The roster arrives from the
+  // mirror a beat after mount, so this has to be derived rather than seeded: an
+  // effect writing the selection would fight every sync that re-derives the
+  // roster, and would re-impose itself over picks already made.
+  const suggestion = useMemo(() => {
+    if (initialKeys.size > 0) return null;
+    const cluster = suggestMergeCluster(guests);
+    return cluster.length >= 2 ? new Set(cluster.map((row) => row.person_key)) : null;
+  }, [guests, initialKeys]);
+
+  // What is ticked before the user has touched anything: their own pre-picks
+  // from Friends if there were any, else the suggestion, else nothing.
+  const baseKeys: ReadonlySet<string> = initialKeys.size > 0 ? initialKeys : (suggestion ?? EMPTY);
+  // Null until the user picks for themselves; from then on it is theirs alone
+  // and the suggestion is ignored, however the roster moves underneath.
+  const [picked, setPicked] = useState<ReadonlySet<string> | null>(null);
+  const selected = picked ?? baseKeys;
+  /** The ticks are the screen's proposal, not the user's — the list says so. */
+  const suggested = picked === null && suggestion !== null;
+
   // Null until somebody types (or assigns a contact): the field then shows the
   // suggestion below, which follows the picks. Not state that has to be kept in
   // step — a derived name cannot drift out of it.
@@ -160,12 +185,12 @@ export default function MergePeopleScreen() {
   const pendingInviteGroups = useRef<InviteGroup[]>([]);
 
   const selectedRows = useMemo(
-    () => guests.filter((row) => isPicked(row, selected)),
+    () => guests.filter((row) => selected.has(row.person_key)),
     [guests, selected],
   );
   /** The guests not in the merge yet — what the "add a person" list offers. */
   const remaining = useMemo(
-    () => guests.filter((row) => !isPicked(row, selected)),
+    () => guests.filter((row) => !selected.has(row.person_key)),
     [guests, selected],
   );
   const shownRemaining = showAllGuests ? remaining : remaining.slice(0, ROSTER_PAGE);
@@ -201,13 +226,13 @@ export default function MergePeopleScreen() {
   const toggle = (row: MergeCandidate): void => {
     setError(null);
     setContactNotice(null);
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (isPicked(row, prev)) {
-        // A seeded pick may be spelled as one of their member ids rather than
-        // their person key (see `isPicked`), so drop every spelling of them.
+    // Folded from whatever is ticked *now*, so two taps in a row before React
+    // has re-rendered still land on the real set rather than on a snapshot.
+    setPicked((prev) => {
+      const current = prev ?? baseKeys;
+      const next = new Set(current);
+      if (current.has(row.person_key)) {
         next.delete(row.person_key);
-        for (const id of row.member_ids) next.delete(id);
       } else if (!row.pending) {
         // Adding somebody the server has not seen would make the RPC refuse the
         // whole merge, and say of them that they are not a guest you share a
@@ -236,7 +261,7 @@ export default function MergePeopleScreen() {
     const contact = chosen[0];
     if (!contact) return;
     const { pick, ambiguous } = contactNameMatch(guests, contact.name);
-    if (pick) setSelected((prev) => new Set(prev).add(pick.person_key));
+    if (pick) setPicked((prev) => new Set(prev ?? baseKeys).add(pick.person_key));
     setContactNotice(
       ambiguous ? fill(t.mergePeople.contactAmbiguous, { name: contact.name }) : null,
     );
@@ -443,6 +468,13 @@ export default function MergePeopleScreen() {
                     ? plural(locale, selectedRows.length, t.mergePeople.peopleHeader)
                     : t.mergePeople.needTwo}
                 </Text>
+                {/* These were ticked by the screen, not by the user. Saying so
+                    is what keeps it a suggestion: they share a number, which is
+                    good evidence and not proof, and the next line says plainly
+                    that removing anybody is expected. */}
+                {suggested && selectedRows.length > 0 ? (
+                  <Callout tone="info">{t.mergePeople.suggestedPicks}</Callout>
+                ) : null}
                 {selectedRows.length > 0 ? (
                   <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
                     {selectedRows.map((row, index) => (
