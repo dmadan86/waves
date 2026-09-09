@@ -82,7 +82,15 @@ export default function LockSettingsScreen() {
 
         {!supported ? <Badge label={t.lock.unsupported} /> : null}
 
-        {enabled ? (
+        {/* Shown whether or not the app lock is on, because the number governs
+            two locks and only one of them is behind that switch: the private
+            personal ledger asks again after this long away regardless. Hidden
+            behind `enabled`, somebody who tried "Straight away", disliked it
+            and turned the app lock off would be left with a zero-second window
+            on their ledger and no way back to the control that set it. Gated on
+            `supported` instead, since with nothing enrolled neither lock can
+            ask at all. */}
+        {supported ? (
           <Card style={{ gap: theme.spacing.md }}>
             <Text variant="subheading">{t.lock.askAgainAfter}</Text>
             <Text variant="caption" tone="muted">
