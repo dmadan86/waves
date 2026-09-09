@@ -10505,7 +10505,7 @@ const ar: UiStrings = {
     title: 'إضافة شخص',
     subtitle: 'تتبّع ما يدين لك به أحدهم — لا يحتاج إلى التطبيق، ولا إلى إنشاء مجموعة.',
     nameLabel: 'اسمه',
-    namePlaceholder: 'مثل: أليكس',
+    namePlaceholder: 'مثال: أليكس',
     amountLabel: 'المبلغ',
     directionQuestion: 'في أي اتجاه؟',
     theyOweMe: 'يدين لي',

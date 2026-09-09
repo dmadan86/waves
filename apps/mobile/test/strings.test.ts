@@ -85,6 +85,27 @@ describe('the string tables', () => {
     }
   });
 
+  it('uses the same person-name example across add, merge and group people fields', () => {
+    const examples = {
+      en: 'e.g. Alex',
+      ta: 'எ.கா. அலெக்ஸ்',
+      hi: 'जैसे एलेक्स',
+      ar: 'مثال: أليكس',
+    } as const;
+
+    for (const language of LANGUAGES) {
+      expect(STRINGS_BY_LANGUAGE[language].addPerson.namePlaceholder, language).toBe(
+        examples[language],
+      );
+      expect(STRINGS_BY_LANGUAGE[language].mergePeople.namePlaceholder, language).toBe(
+        examples[language],
+      );
+      expect(STRINGS_BY_LANGUAGE[language].people.namePlaceholder, language).toBe(
+        examples[language],
+      );
+    }
+  });
+
   it('actually translated every language rather than copying English', () => {
     // The failure this catches is a half-done language: the table exists, the
     // keys are all there, and half the app is still in English. It went
