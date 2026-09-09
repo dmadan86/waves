@@ -2983,7 +2983,7 @@ const en: UiStrings = {
     title: 'Add a person',
     subtitle: 'Track what someone owes you — nobody needs the app, and no group to set up.',
     nameLabel: 'Their name',
-    namePlaceholder: 'e.g. Ravi',
+    namePlaceholder: 'e.g. Alex',
     amountLabel: 'Amount',
     directionQuestion: 'Which way?',
     theyOweMe: 'They owe me',
@@ -3955,7 +3955,7 @@ const en: UiStrings = {
       'Pick the guests who are the same person. Their balances are combined under one name.',
     empty: 'No guests to merge — only people without a Waves account can be merged.',
     nameLabel: 'Name for the merged person',
-    namePlaceholder: 'e.g. Ravi',
+    namePlaceholder: 'e.g. Alex',
     warningTitle: 'This can’t be undone',
     warningBody:
       'Their separate balances are combined into one person for good. There’s no way to split them back apart.',
@@ -4318,7 +4318,7 @@ const en: UiStrings = {
   people: {
     invite: 'Invite',
     addSomeone: 'Add someone',
-    namePlaceholder: 'Rahul',
+    namePlaceholder: 'e.g. Alex',
     contactPlaceholder: 'Email or phone, if you want to send them the link',
     phoneNeedsCountryCode: 'Add the country code to that number, like +91.',
     yetToJoin: { one: '{n} yet to join', other: '{n} yet to join' },
@@ -5454,7 +5454,7 @@ const ta: UiStrings = {
     subtitle:
       'யார் உங்களுக்குத் தர வேண்டும் என்பதைக் கண்காணி — அவருக்கு ஆப் தேவையில்லை, குழுவும் தேவையில்லை.',
     nameLabel: 'அவரது பெயர்',
-    namePlaceholder: 'எ.கா. ரவி',
+    namePlaceholder: 'எ.கா. அலெக்ஸ்',
     amountLabel: 'தொகை',
     directionQuestion: 'எந்தப் பக்கம்?',
     theyOweMe: 'அவர் எனக்குத் தர வேண்டும்',
@@ -6451,7 +6451,7 @@ const ta: UiStrings = {
       'ஒரே நபராக இருக்கும் விருந்தினர்களைத் தேர்ந்தெடுக்கவும். அவர்களின் இருப்புகள் ஒரே பெயரின் கீழ் இணைக்கப்படும்.',
     empty: 'இணைக்க விருந்தினர்கள் இல்லை — Waves கணக்கு இல்லாதவர்களை மட்டுமே இணைக்க முடியும்.',
     nameLabel: 'இணைந்த நபருக்கான பெயர்',
-    namePlaceholder: 'எ.கா. ரவி',
+    namePlaceholder: 'எ.கா. அலெக்ஸ்',
     warningTitle: 'இதை மீட்டெடுக்க முடியாது',
     warningBody:
       'அவர்களின் தனித்தனி இருப்புகள் நிரந்தரமாக ஒரே நபராக இணைக்கப்படும். மீண்டும் பிரிக்க வழி இல்லை.',
@@ -6831,7 +6831,7 @@ const ta: UiStrings = {
   people: {
     invite: 'அழை',
     addSomeone: 'ஒருவரைச் சேர்',
-    namePlaceholder: 'ராகுல்',
+    namePlaceholder: 'எ.கா. அலெக்ஸ்',
     contactPlaceholder: 'இணைப்பை அனுப்ப விரும்பினால் மின்னஞ்சல் அல்லது தொலைபேசி',
     phoneNeedsCountryCode: 'அந்த எண்ணுடன் நாட்டுக் குறியீட்டைச் சேர்க்கவும், எடுத்துக்காட்டாக +91.',
     yetToJoin: { one: '{n} பேர் இன்னும் சேரவில்லை', other: '{n} பேர் இன்னும் சேரவில்லை' },
@@ -8027,7 +8027,7 @@ const hi: UiStrings = {
     title: 'एक व्यक्ति जोड़ें',
     subtitle: 'किसी को आप पर कितना देना है, यह रखें — न उन्हें ऐप चाहिए, न कोई समूह बनाना है।',
     nameLabel: 'उनका नाम',
-    namePlaceholder: 'जैसे रवि',
+    namePlaceholder: 'जैसे एलेक्स',
     amountLabel: 'राशि',
     directionQuestion: 'किस ओर?',
     theyOweMe: 'वे मुझे देंगे',
@@ -8999,7 +8999,7 @@ const hi: UiStrings = {
     empty:
       'मर्ज करने के लिए कोई मेहमान नहीं — केवल बिना Waves खाते वाले लोग ही मर्ज किए जा सकते हैं.',
     nameLabel: 'मर्ज किए गए व्यक्ति का नाम',
-    namePlaceholder: 'जैसे रवि',
+    namePlaceholder: 'जैसे एलेक्स',
     warningTitle: 'इसे पहले जैसा नहीं किया जा सकता',
     warningBody:
       'उनके अलग-अलग बैलेंस हमेशा के लिए एक व्यक्ति में जोड़ दिए जाते हैं। इन्हें वापस अलग करने का कोई तरीका नहीं है.',
@@ -9364,7 +9364,7 @@ const hi: UiStrings = {
   people: {
     invite: 'बुलाएँ',
     addSomeone: 'किसी को जोड़ें',
-    namePlaceholder: 'राहुल',
+    namePlaceholder: 'जैसे एलेक्स',
     contactPlaceholder: 'ईमेल या फ़ोन, अगर उन्हें लिंक भेजना हो',
     phoneNeedsCountryCode: 'उस नंबर में देश का कोड जोड़ें, जैसे +91।',
     yetToJoin: { one: '{n} अभी जुड़ना बाकी', other: '{n} अभी जुड़ना बाकी' },
@@ -10520,7 +10520,7 @@ const ar: UiStrings = {
     title: 'إضافة شخص',
     subtitle: 'تتبّع ما يدين لك به أحدهم — لا يحتاج إلى التطبيق، ولا إلى إنشاء مجموعة.',
     nameLabel: 'اسمه',
-    namePlaceholder: 'مثل: رافي',
+    namePlaceholder: 'مثال: أليكس',
     amountLabel: 'المبلغ',
     directionQuestion: 'في أي اتجاه؟',
     theyOweMe: 'يدين لي',
@@ -11546,7 +11546,7 @@ const ar: UiStrings = {
     subtitle: 'اختر الضيوف الذين هم الشخص نفسه. تُجمع أرصدتهم تحت اسم واحد.',
     empty: 'لا يوجد ضيوف للدمج — يمكن دمج من ليس لديهم حساب Waves فقط.',
     nameLabel: 'اسم الشخص المدمج',
-    namePlaceholder: 'مثال: رافي',
+    namePlaceholder: 'مثال: أليكس',
     warningTitle: 'لا يمكن التراجع عن هذا',
     warningBody: 'تُجمع أرصدتهم المنفصلة في شخص واحد نهائيًا. لا توجد طريقة لفصلهم مرة أخرى.',
     cta: 'دمج',
@@ -11957,7 +11957,7 @@ const ar: UiStrings = {
   people: {
     invite: 'دعوة',
     addSomeone: 'أضف شخصًا',
-    namePlaceholder: 'راكيش',
+    namePlaceholder: 'مثال: أليكس',
     contactPlaceholder: 'بريد أو هاتف، إن أردت إرسال الرابط إليه',
     phoneNeedsCountryCode: 'أضِف رمز الدولة إلى هذا الرقم أولًا.',
     yetToJoin: {
