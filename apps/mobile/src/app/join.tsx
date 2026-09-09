@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -26,6 +26,7 @@ import { acceptInvite, previewInvite, type InvitePreview } from '@/data/api';
 import { keys } from '@/data/hooks';
 import { useAuth } from '@/lib/auth';
 import { useGuestGuard } from '@/lib/guestGuard';
+import { router } from '@/lib/navigation';
 
 /**
  * Landing screen for an invite link (ADR-006).

@@ -9,7 +9,7 @@
 
 import { useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { ActivityIndicator, Platform, ScrollView, TextInput, View } from 'react-native';
 
 import {
@@ -38,6 +38,7 @@ import { friendlyError } from '@/lib/errors';
 import { confirmContact, startAddingContact, ContactChannel } from '@/data/api';
 import { deviceCountry, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
+import { router } from '@/lib/navigation';
 
 export default function AccountScreen() {
   const { profile, profileSettled, reloadProfile } = useAuth();

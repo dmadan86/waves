@@ -9,7 +9,6 @@
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
 import { ScrollView, View } from 'react-native';
 
 import {
@@ -25,6 +24,7 @@ import {
 
 import { LanguageChoiceList } from '@/components/LanguageChoiceList';
 import { useStrings } from '@/i18n';
+import { router } from '@/lib/navigation';
 
 export default function LanguageSettingsScreen() {
   const theme = useTheme();

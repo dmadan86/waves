@@ -16,7 +16,6 @@
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -24,11 +23,13 @@ import { directionalIcon, iconSize, Row, Screen, Text, useTheme } from '@waves/u
 
 import { LanguageChoiceList } from '@/components/LanguageChoiceList';
 import { useStrings } from '@/i18n';
+import { useGoBack } from '@/lib/navigation';
 
 export default function LanguageScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { t } = useStrings();
+  const goBack = useGoBack('/welcome');
 
   return (
     <Screen>
@@ -38,7 +39,7 @@ export default function LanguageScreen() {
           accessibilityRole="button"
           accessibilityLabel={t.common.back}
           hitSlop={12}
-          onPress={() => (router.canGoBack() ? router.back() : router.replace('/welcome'))}
+          onPress={goBack}
           style={({ pressed }) => ({
             width: 44,
             height: 44,

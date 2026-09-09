@@ -21,7 +21,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { randomUUID } from 'expo-crypto';
-import { router, useLocalSearchParams, useNavigation } from 'expo-router';
+import { useLocalSearchParams, useNavigation } from 'expo-router';
 import {
   ActivityIndicator,
   Keyboard,
@@ -88,6 +88,7 @@ import { VoiceMicPanel } from '@/components/VoiceMicPanel';
 import { LocationField } from '@/components/LocationField';
 import { CategoryBadge } from '@/components/Category';
 import { captureLocation, locationAvailable } from '@/lib/location';
+import { router } from '@/lib/navigation';
 import { pushToTalk } from '@/lib/pushToTalk';
 import { useToast } from '@/lib/toast';
 import {

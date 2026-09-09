@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Constants from 'expo-constants';
-import { router } from 'expo-router';
 import {
   ActivityIndicator,
   Animated,
@@ -30,6 +29,7 @@ import {
 import { submitFeedback, type FeedbackRating } from '@/data/api';
 import { plural, useStrings } from '@/i18n';
 import { friendlyError } from '@/lib/errors';
+import { router } from '@/lib/navigation';
 import { useReducedMotion } from '@/lib/reducedMotion';
 
 enum Kind {

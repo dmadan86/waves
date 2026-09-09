@@ -14,14 +14,13 @@
  * the answer comes back through `countryPickerBridge`.
  */
 
-import { router } from 'expo-router';
-
 import { countryFlag, countryName, railsFor } from '@waves/core';
 import { Card, ListRow, Text, useTheme } from '@waves/ui';
 
 import { useStrings } from '@/i18n';
 
 import { requestCountry } from '@/lib/countryPickerBridge';
+import { router } from '@/lib/navigation';
 
 export function CountryRow({
   countryCode,

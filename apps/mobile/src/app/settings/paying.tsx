@@ -13,7 +13,6 @@
 
 import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
 import { ScrollView, TextInput, View } from 'react-native';
 
 import { defaultRailFor, isValidHandle, railById, railsFor } from '@waves/core';
@@ -36,6 +35,7 @@ import { CountryRow } from '@/components/CountryPicker';
 import { friendlyError } from '@/lib/errors';
 import { deviceCountry, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
+import { router } from '@/lib/navigation';
 
 export default function PayingScreen() {
   const { profile, profileSettled, reloadProfile } = useAuth();

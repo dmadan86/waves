@@ -1,6 +1,5 @@
 import { useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
 import { Alert, I18nManager, Platform, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -20,6 +19,7 @@ import { groupLabel, type GroupRow, type MemberRow, type SettlementRow } from '@
 import { fill, plural, useStrings } from '@/i18n';
 import { GroupPhoto } from '@/components/GroupPhoto';
 import { SyncStatusIcon } from '@/components/SyncBanner';
+import { router, useGoBack } from '@/lib/navigation';
 
 /**
  * Which hero slide a paging scroll has landed on, correct in both directions.
@@ -125,6 +125,7 @@ export function GroupHero({
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { t, locale } = useStrings();
+  const goBack = useGoBack();
   const confirmSettlement = useConfirmSettlement(groupId);
   const disputeSettlement = useDisputeSettlement(groupId);
 
@@ -172,7 +173,7 @@ export function GroupHero({
     >
       <Row style={{ gap: theme.spacing.sm }}>
         <Pressable
-          onPress={() => router.back()}
+          onPress={goBack}
           accessibilityRole="button"
           accessibilityLabel={t.common.back}
           hitSlop={10}

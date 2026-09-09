@@ -18,7 +18,7 @@
 import { useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { FlashList } from '@shopify/flash-list';
 import { Platform, Pressable, View } from 'react-native';
 
@@ -60,6 +60,7 @@ import {
 import { fill, useStrings } from '@/i18n';
 import { PersonalGuard } from '@/components/PersonalGuard';
 import { useBottomClearance } from '@/lib/clearance';
+import { router } from '@/lib/navigation';
 
 /**
  * How far back the timeline looks: five years of months.

@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTheme } from '../theme';
 import { spacing } from '../tokens';
+import { useSingleAction } from '../useSingleAction';
 import { Text } from './Text';
 
 export interface PillTabItem {
@@ -284,6 +285,10 @@ const CenterButton = memo(function CenterButton({ action }: { action: PillTabAct
   // immediately before `onPress` in the same tick, and clearing it inline would
   // let that press straight through.
   const handled = useRef(false);
+  // The tap path only. A hold acts on press-in and is deliberately untouched:
+  // it is one continuous gesture, not a repeat, and it has its own bookkeeping
+  // in `handled` above.
+  const tap = useSingleAction(action.onPress);
 
   // The column and the seating are the bar's business (it has to place this
   // over the gap it left in the row); what is here is the button.
@@ -297,7 +302,7 @@ const CenterButton = memo(function CenterButton({ action }: { action: PillTabAct
           handled.current = false;
           return;
         }
-        action.onPress();
+        tap?.();
       }}
       onPressIn={(event) => {
         const press = action.onPressIn;

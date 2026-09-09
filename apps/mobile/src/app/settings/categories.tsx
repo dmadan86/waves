@@ -14,7 +14,6 @@
 
 import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
 import { Pressable, View } from 'react-native';
 import DraggableFlatList, {
   ScaleDecorator,
@@ -40,6 +39,7 @@ import { CategoryBadge } from '@/components/Category';
 import { TagEditorSheet } from '@/components/TagEditorSheet';
 import { useCategoryCatalog, useUpsertTag, type TagUpsertInput } from '@/data/hooks';
 import { useStrings } from '@/i18n';
+import { router } from '@/lib/navigation';
 
 export default function CategoriesSettingsScreen() {
   const theme = useTheme();

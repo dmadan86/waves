@@ -10,10 +10,10 @@
  * line in one control.
  */
 
-import { router } from 'expo-router';
 import { Text, type TextStyle } from 'react-native';
 
 import { useStrings } from '@/i18n';
+import { router } from '@/lib/navigation';
 
 export function LegalLine({ textStyle }: { textStyle?: TextStyle }) {
   const { t } = useStrings();

@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 
 import { useTheme } from '../theme';
+import { useSingleAction } from '../useSingleAction';
 import { Text } from './Text';
 
 export interface ChipProps {
@@ -15,10 +16,24 @@ export interface ChipProps {
    * green where a chip strip is meant to read as a brand accent.
    */
   variant?: 'brand' | 'ink';
+  /**
+   * Lets the chip answer every tap. A chip that picks a value is repeatable —
+   * choosing, unchoosing and choosing again is three real choices. A chip that
+   * opens something (a "see all" pill) leaves this off.
+   */
+  repeatable?: boolean;
 }
 
-export function Chip({ label, selected = false, onPress, icon, variant = 'ink' }: ChipProps) {
+export function Chip({
+  label,
+  selected = false,
+  onPress,
+  icon,
+  variant = 'ink',
+  repeatable = false,
+}: ChipProps) {
   const theme = useTheme();
+  const press = useSingleAction(onPress, { repeatable });
   const selectedFill = variant === 'ink' ? theme.color.buttonPrimary : theme.color.brand;
   const selectedInk = variant === 'ink' ? theme.color.onButtonPrimary : theme.color.onBrand;
   const color = selected ? selectedInk : theme.color.textMuted;
@@ -27,7 +42,7 @@ export function Chip({ label, selected = false, onPress, icon, variant = 'ink' }
       accessibilityRole="button"
       accessibilityState={{ selected }}
       accessibilityLabel={label}
-      onPress={onPress}
+      onPress={press}
       style={({ pressed }) => ({
         flexDirection: 'row',
         alignItems: 'center',
@@ -74,6 +89,7 @@ export function ChipRow<T extends string>({
           selected={option.value === value}
           onPress={() => onChange(option.value)}
           variant={variant}
+          repeatable
         />
       ))}
     </ScrollView>

@@ -1,6 +1,6 @@
 import { memo, useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router, type Href } from 'expo-router';
+import { type Href } from 'expo-router';
 import { Pressable, RefreshControl, View } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 
@@ -38,6 +38,7 @@ import { FeedSkeleton } from '@/components/Skeletons';
 import { useGroups, useRecentActivity, type RecentActivityRow } from '@/data/hooks';
 import { useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
+import { router } from '@/lib/navigation';
 import { usePullRefresh } from '@/lib/pullRefresh';
 import { SyncStatus, useSync } from '@/sync';
 

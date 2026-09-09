@@ -11,10 +11,10 @@
 
 import { useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { router } from 'expo-router';
 
 import { useAuth } from '@/lib/auth';
 import { useStrings } from '@/i18n';
+import { router } from '@/lib/navigation';
 import {
   actionForId,
   clearQuickActions,

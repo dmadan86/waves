@@ -25,7 +25,6 @@
 import { useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { router } from 'expo-router';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
 
 import {
@@ -56,6 +55,7 @@ import { addGhostMember } from '@/data/api';
 import { useGroups } from '@/data/hooks';
 import { useKnownContacts } from '@/data/knownContacts';
 import { groupLabel, type MemberRow } from '@/data/types';
+import { router } from '@/lib/navigation';
 
 export default function ContactsScreen(): React.JSX.Element {
   const theme = useTheme();

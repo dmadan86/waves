@@ -16,7 +16,6 @@
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
-import { router } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ActivityIndicator,
@@ -32,6 +31,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { iconSize, Row, Text, useTheme } from '@waves/ui';
 
 import { canAddExpenseAttachment } from '@/data/api';
+import { router } from '@/lib/navigation';
 import { receiptCapStatus } from '@/lib/receiptCapGate';
 import { saveImageToDevice } from '@/lib/saveImage';
 

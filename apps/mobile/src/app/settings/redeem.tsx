@@ -14,7 +14,6 @@
 
 import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
 import { ActivityIndicator, ScrollView, TextInput, View } from 'react-native';
 
 import {
@@ -34,6 +33,7 @@ import {
 import { redeemPromoCode, type PromoOutcome } from '@/data/api';
 import { fill, useStrings, type UiStrings } from '@/i18n';
 import { friendlyError } from '@/lib/errors';
+import { router } from '@/lib/navigation';
 
 /**
  * The same shape the `promo_codes_shape` constraint enforces.

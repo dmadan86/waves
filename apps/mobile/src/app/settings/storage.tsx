@@ -13,7 +13,6 @@
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useQuery } from '@tanstack/react-query';
-import { router } from 'expo-router';
 import { ScrollView, View } from 'react-native';
 
 import {
@@ -33,6 +32,7 @@ import { canUploadGroupPhoto, myStorageUsage } from '@/data/api';
 import { formatBytes } from '@/lib/bytes';
 import { useStrings } from '@/i18n';
 import { SkeletonList } from '@/components/Skeletons';
+import { router } from '@/lib/navigation';
 import { r2Enabled } from '@/lib/storage';
 
 export default function StorageUsageScreen() {

@@ -32,7 +32,6 @@
 
 import { useEffect, useRef, useState, type ComponentProps } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -49,6 +48,7 @@ import { SocialTile } from '@/components/SocialTile';
 import { useStrings, type UiStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { friendlyError } from '@/lib/errors';
+import { router, useGoBack } from '@/lib/navigation';
 
 export type AuthFlowKind = 'login' | 'signup';
 
@@ -70,6 +70,7 @@ const RESEND_SECONDS = 60;
 export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
   const theme = useTheme();
   const { t } = useStrings();
+  const goBack = useGoBack('/welcome');
   const reduceMotion = useReducedMotion();
   const { withPassword, withGoogle, withApple, sendEmailOtp, verifyEmailOtp, isGuest } = useAuth();
 
@@ -207,7 +208,7 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
           <HeaderGlyph
             label={t.common.back}
             icon={directionalIcon('chevron-back')}
-            onPress={() => (router.canGoBack() ? router.back() : router.replace('/welcome'))}
+            onPress={goBack}
           />
           <View style={{ flex: 1 }} />
           <HeaderGlyph

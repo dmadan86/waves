@@ -58,7 +58,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { FlashList } from '@shopify/flash-list';
 import { useQuery } from '@tanstack/react-query';
-import { router, useFocusEffect } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { Pressable, View } from 'react-native';
 
 import {
@@ -90,6 +90,7 @@ import {
   type OfflineVoiceModel,
   type OfflineVoiceReadInput,
 } from '@/lib/dictation';
+import { router } from '@/lib/navigation';
 import { useReducedMotion } from '@/lib/reducedMotion';
 import { speechModels } from '@/lib/speechModels';
 import { useBottomClearance } from '@/lib/clearance';
