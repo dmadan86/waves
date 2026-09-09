@@ -1436,6 +1436,25 @@ export interface UiStrings {
     empty: string;
     nameLabel: string;
     namePlaceholder: string;
+    /** Caption under the name field while it still holds the suggested name,
+     *  so a pre-filled name reads as a default rather than a decision. */
+    nameSuggested: string;
+    /** Spoken label for the tick beside a guest we hold contact details for. */
+    hasContact: string;
+    /** Says the ticked people were suggested by a shared number, not chosen. */
+    suggestedPicks: string;
+    /** Row line for a guest whose membership is still only in the local queue. */
+    pendingTag: string;
+    /** Why the merge is held while one of the picked people has not synced. */
+    pendingBlocked: string;
+    /** A picked contact's name fitted several guests, so none was ticked.
+     *  `{name}` is the contact's name. */
+    contactAmbiguous: string;
+    /** Names everybody being folded, in the irreversibility dialog.
+     *  `{people}` is the comma-joined list. */
+    warningWho: string;
+    /** Draws the rest of the mergeable roster. `{n}` is how many are hidden. */
+    showAllGuests: PluralForms;
     warningTitle: string;
     warningBody: string;
     cta: string;
@@ -4006,6 +4025,16 @@ const en: UiStrings = {
     empty: 'No guests to merge — only people without a Waves account can be merged.',
     nameLabel: 'Name for the merged person',
     namePlaceholder: 'e.g. Alex',
+    nameSuggested: 'Suggested from the person you have details for. Tap to change.',
+    hasContact: 'You have their contact details',
+    suggestedPicks:
+      'These share a phone number or email, so they’re probably one person. Remove anyone who isn’t.',
+    pendingTag: 'Waiting to sync',
+    pendingBlocked:
+      'Someone in this merge hasn’t reached the server yet. You can merge them once this device is back online.',
+    contactAmbiguous: 'More than one guest is called {name}. Pick the right one below.',
+    warningWho: 'Merging: {people}',
+    showAllGuests: { one: 'Show 1 more', other: 'Show {n} more' },
     warningTitle: 'This can’t be undone',
     warningBody:
       'Their separate balances are combined into one person for good. There’s no way to split them back apart.',
@@ -6522,6 +6551,17 @@ const ta: UiStrings = {
     empty: 'இணைக்க விருந்தினர்கள் இல்லை — Waves கணக்கு இல்லாதவர்களை மட்டுமே இணைக்க முடியும்.',
     nameLabel: 'இணைந்த நபருக்கான பெயர்',
     namePlaceholder: 'எ.கா. அலெக்ஸ்',
+    nameSuggested: 'உங்களிடம் விவரங்கள் உள்ள நபரிடமிருந்து பரிந்துரைக்கப்பட்டது. மாற்ற தட்டவும்.',
+    hasContact: 'உங்களிடம் அவர்களின் தொடர்பு விவரங்கள் உள்ளன',
+    suggestedPicks:
+      'இவர்கள் ஒரே தொலைபேசி எண் அல்லது மின்னஞ்சலைப் பகிர்கிறார்கள், எனவே இவர்கள் ஒரே நபராக இருக்கலாம். ஒரே நபர் இல்லாதவர்களை நீக்கவும்.',
+    pendingTag: 'ஒத்திசைவுக்குக் காத்திருக்கிறது',
+    pendingBlocked:
+      'இந்த இணைப்பில் உள்ள ஒருவர் இன்னும் சேவையகத்தை அடையவில்லை. இந்தச் சாதனம் மீண்டும் ஆன்லைனுக்கு வந்ததும் அவர்களை இணைக்கலாம்.',
+    contactAmbiguous:
+      '{name} என்ற பெயரில் ஒன்றுக்கு மேற்பட்ட விருந்தினர்கள் உள்ளனர். கீழே சரியானவரைத் தேர்ந்தெடுக்கவும்.',
+    warningWho: 'இணைக்கப்படுபவர்கள்: {people}',
+    showAllGuests: { one: 'மேலும் 1 நபரைக் காட்டு', other: 'மேலும் {n} நபர்களைக் காட்டு' },
     warningTitle: 'இதை மீட்டெடுக்க முடியாது',
     warningBody:
       'அவர்களின் தனித்தனி இருப்புகள் நிரந்தரமாக ஒரே நபராக இணைக்கப்படும். மீண்டும் பிரிக்க வழி இல்லை.',
@@ -9089,6 +9129,16 @@ const hi: UiStrings = {
       'मर्ज करने के लिए कोई मेहमान नहीं — केवल बिना Waves खाते वाले लोग ही मर्ज किए जा सकते हैं.',
     nameLabel: 'मर्ज किए गए व्यक्ति का नाम',
     namePlaceholder: 'जैसे एलेक्स',
+    nameSuggested: 'जिस व्यक्ति के विवरण आपके पास हैं, उससे सुझाया गया. बदलने के लिए टैप करें.',
+    hasContact: 'आपके पास उनके संपर्क विवरण हैं',
+    suggestedPicks:
+      'इनका फ़ोन नंबर या ईमेल एक ही है, इसलिए ये शायद एक ही व्यक्ति हैं. जो न हो उसे हटा दें.',
+    pendingTag: 'सिंक होना बाकी है',
+    pendingBlocked:
+      'इस मर्ज में शामिल कोई व्यक्ति अभी सर्वर तक नहीं पहुँचा है. यह डिवाइस दोबारा ऑनलाइन होने पर आप उन्हें मर्ज कर सकते हैं.',
+    contactAmbiguous: '{name} नाम के एक से ज़्यादा मेहमान हैं. नीचे से सही व्यक्ति चुनें.',
+    warningWho: 'मर्ज हो रहे हैं: {people}',
+    showAllGuests: { one: '1 और दिखाएँ', other: '{n} और दिखाएँ' },
     warningTitle: 'इसे पहले जैसा नहीं किया जा सकता',
     warningBody:
       'उनके अलग-अलग बैलेंस हमेशा के लिए एक व्यक्ति में जोड़ दिए जाते हैं। इन्हें वापस अलग करने का कोई तरीका नहीं है.',
@@ -11655,6 +11705,23 @@ const ar: UiStrings = {
     empty: 'لا يوجد ضيوف للدمج — يمكن دمج من ليس لديهم حساب Waves فقط.',
     nameLabel: 'اسم الشخص المدمج',
     namePlaceholder: 'مثال: أليكس',
+    nameSuggested: 'مقترح من الشخص الذي لديك بياناته. انقر لتغييره.',
+    hasContact: 'لديك بيانات الاتصال الخاصة به',
+    suggestedPicks:
+      'يشترك هؤلاء في رقم هاتف أو بريد إلكتروني، لذا من المرجّح أنهم شخص واحد. أزِل من ليس منهم.',
+    pendingTag: 'في انتظار المزامنة',
+    pendingBlocked:
+      'أحد المشمولين في هذا الدمج لم يصل إلى الخادم بعد. يمكنك دمجهم بمجرد عودة هذا الجهاز إلى الاتصال.',
+    contactAmbiguous: 'هناك أكثر من ضيف باسم {name}. اختر الشخص الصحيح أدناه.',
+    warningWho: 'يجري دمج: {people}',
+    showAllGuests: {
+      zero: 'لا مزيد لعرضه',
+      one: 'عرض واحد آخر',
+      two: 'عرض اثنين آخرين',
+      few: 'عرض {n} آخرين',
+      many: 'عرض {n} آخر',
+      other: 'عرض {n} آخر',
+    },
     warningTitle: 'لا يمكن التراجع عن هذا',
     warningBody: 'تُجمع أرصدتهم المنفصلة في شخص واحد نهائيًا. لا توجد طريقة لفصلهم مرة أخرى.',
     cta: 'دمج',
