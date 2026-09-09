@@ -1404,6 +1404,11 @@ export interface UiStrings {
     empty: string;
     nameLabel: string;
     namePlaceholder: string;
+    /** Caption under the name field while it still holds the suggested name,
+     *  so a pre-filled name reads as a default rather than a decision. */
+    nameSuggested: string;
+    /** Spoken label for the tick beside a guest we hold contact details for. */
+    hasContact: string;
     warningTitle: string;
     warningBody: string;
     cta: string;
@@ -3950,6 +3955,8 @@ const en: UiStrings = {
     empty: 'No guests to merge — only people without a Waves account can be merged.',
     nameLabel: 'Name for the merged person',
     namePlaceholder: 'e.g. Ravi',
+    nameSuggested: 'Suggested from the person you have details for. Tap to change.',
+    hasContact: 'You have their contact details',
     warningTitle: 'This can’t be undone',
     warningBody:
       'Their separate balances are combined into one person for good. There’s no way to split them back apart.',
@@ -6443,6 +6450,8 @@ const ta: UiStrings = {
     empty: 'இணைக்க விருந்தினர்கள் இல்லை — Waves கணக்கு இல்லாதவர்களை மட்டுமே இணைக்க முடியும்.',
     nameLabel: 'இணைந்த நபருக்கான பெயர்',
     namePlaceholder: 'எ.கா. ரவி',
+    nameSuggested: 'உங்களிடம் விவரங்கள் உள்ள நபரிடமிருந்து பரிந்துரைக்கப்பட்டது. மாற்ற தட்டவும்.',
+    hasContact: 'உங்களிடம் அவர்களின் தொடர்பு விவரங்கள் உள்ளன',
     warningTitle: 'இதை மீட்டெடுக்க முடியாது',
     warningBody:
       'அவர்களின் தனித்தனி இருப்புகள் நிரந்தரமாக ஒரே நபராக இணைக்கப்படும். மீண்டும் பிரிக்க வழி இல்லை.',
@@ -8988,6 +8997,8 @@ const hi: UiStrings = {
       'मर्ज करने के लिए कोई मेहमान नहीं — केवल बिना Waves खाते वाले लोग ही मर्ज किए जा सकते हैं.',
     nameLabel: 'मर्ज किए गए व्यक्ति का नाम',
     namePlaceholder: 'जैसे रवि',
+    nameSuggested: 'जिस व्यक्ति के विवरण आपके पास हैं, उससे सुझाया गया. बदलने के लिए टैप करें.',
+    hasContact: 'आपके पास उनके संपर्क विवरण हैं',
     warningTitle: 'इसे पहले जैसा नहीं किया जा सकता',
     warningBody:
       'उनके अलग-अलग बैलेंस हमेशा के लिए एक व्यक्ति में जोड़ दिए जाते हैं। इन्हें वापस अलग करने का कोई तरीका नहीं है.',
@@ -11532,6 +11543,8 @@ const ar: UiStrings = {
     empty: 'لا يوجد ضيوف للدمج — يمكن دمج من ليس لديهم حساب Waves فقط.',
     nameLabel: 'اسم الشخص المدمج',
     namePlaceholder: 'مثال: رافي',
+    nameSuggested: 'مقترح من الشخص الذي لديك بياناته. انقر لتغييره.',
+    hasContact: 'لديك بيانات الاتصال الخاصة به',
     warningTitle: 'لا يمكن التراجع عن هذا',
     warningBody: 'تُجمع أرصدتهم المنفصلة في شخص واحد نهائيًا. لا توجد طريقة لفصلهم مرة أخرى.',
     cta: 'دمج',
