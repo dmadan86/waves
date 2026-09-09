@@ -32,6 +32,9 @@ const DUPLICATE_KEY = {
   message: 'duplicate key value violates unique constraint "captures_pkey"',
 };
 
+const GROUP_ID = '66666666-7777-8888-9999-000000000000';
+const EXPENSE_ID = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+
 interface CallerOptions {
   /** The error `insert` reports, or null for a clean first write. */
   insertError?: { code: string; message: string } | null;
@@ -132,5 +135,94 @@ describe('capture.create arriving twice', () => {
 
     expect(outcome).toMatchObject({ status: 'rejected' });
     expect(scoped.maybeSingle).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * Closing a draft is what takes a spend out of somebody's inbox, and the expense
+ * it closes against is a *different mutation in a different scope* — written
+ * under the group, while this is written under the owner. Per-group ordering on
+ * the client therefore says nothing about this one: a refused expense used to
+ * leave its assign free to apply, and the draft left the inbox for good while
+ * the money sat refused behind the sync banner. The client now holds an assign
+ * until its expense is confirmed; this is the guarantee underneath it.
+ */
+function assignCaller() {
+  const update = vi.fn(() => {
+    const builder: Record<string, unknown> = {};
+    builder.eq = () => builder;
+    return builder;
+  });
+  const from = vi.fn(() => ({ update }));
+  return { client: { from } as never, update };
+}
+
+/** Service-role client: the replay table, plus the expense existence question. */
+function assignService(expense: { id: string; group_id: string } | null) {
+  const insert = vi.fn(() => Promise.resolve({ error: null }));
+  const from = vi.fn((table: string) => {
+    const builder: Record<string, unknown> = { insert };
+    builder.select = () => builder;
+    builder.eq = () => builder;
+    builder.maybeSingle = () =>
+      Promise.resolve({ data: table === 'expenses' ? expense : null, error: null });
+    return builder;
+  });
+  return { client: { from } as never, insert };
+}
+
+function assignCapture(clientMutationId: string, expenseId = EXPENSE_ID) {
+  return {
+    clientMutationId,
+    kind: 'capture.assign',
+    groupId: OWNER,
+    seq: 1,
+    clientCreatedAt: '2026-09-09T10:00:00.000Z',
+    payload: { captureId: CAPTURE_ID, groupId: GROUP_ID, expenseId },
+  } as never;
+}
+
+describe('capture.assign against the expense it names', () => {
+  it('closes the draft when the expense really is in that group', async () => {
+    const scoped = assignCaller();
+    const session = new SyncSession(
+      scoped.client,
+      assignService({ id: EXPENSE_ID, group_id: GROUP_ID }).client,
+      OWNER,
+    );
+
+    const outcome = await session.apply(assignCapture('mutation-5'));
+
+    expect(outcome).toMatchObject({
+      status: 'applied',
+      result: { captureId: CAPTURE_ID, expenseId: EXPENSE_ID, groupId: GROUP_ID },
+    });
+    expect(scoped.update).toHaveBeenCalledTimes(1);
+  });
+
+  it('refuses to close a draft against an expense that was never written', async () => {
+    // The refused-expense case. Answering "fine" here is what loses the money:
+    // the draft would leave the inbox with nothing to fall back on.
+    const scoped = assignCaller();
+    const session = new SyncSession(scoped.client, assignService(null).client, OWNER);
+
+    const outcome = await session.apply(assignCapture('mutation-6'));
+
+    expect(outcome).toMatchObject({ status: 'rejected', code: 'EXPENSE_MISSING' });
+    expect(scoped.update).not.toHaveBeenCalled();
+  });
+
+  it('refuses an expense that exists but belongs to another group', async () => {
+    const scoped = assignCaller();
+    const session = new SyncSession(
+      scoped.client,
+      assignService({ id: EXPENSE_ID, group_id: 'some-other-group' }).client,
+      OWNER,
+    );
+
+    const outcome = await session.apply(assignCapture('mutation-7'));
+
+    expect(outcome).toMatchObject({ status: 'rejected', code: 'EXPENSE_MISSING' });
+    expect(scoped.update).not.toHaveBeenCalled();
   });
 });

@@ -38,10 +38,8 @@ function capture(overrides: Partial<CaptureRow> = {}): CaptureRow {
   return { ...base, ...overrides };
 }
 
-const MEMBERS = [
-  { id: 'member-me', profile_id: 'user-1' },
-  { id: 'member-ravi', profile_id: null },
-];
+const MEMBERS = [{ id: 'member-me' }, { id: 'member-ravi' }];
+const ME = 'member-me';
 
 describe('planCaptureAssign', () => {
   it('turns every draft in the cluster into an expense for the chosen group', () => {
@@ -52,7 +50,7 @@ describe('planCaptureAssign', () => {
         capture({ id: 'c', amount: '4000' }),
       ],
       members: MEMBERS,
-      myProfileId: 'user-1',
+      myMemberId: ME,
       currency: 'INR',
     });
 
@@ -68,7 +66,7 @@ describe('planCaptureAssign', () => {
     const plan = planCaptureAssign({
       captures: [capture({ id: 'a', amount: '9000' })],
       members: MEMBERS,
-      myProfileId: 'user-1',
+      myMemberId: ME,
       currency: 'INR',
     });
 
@@ -105,7 +103,7 @@ describe('planCaptureAssign', () => {
         }),
       ],
       members: MEMBERS,
-      myProfileId: 'user-1',
+      myMemberId: ME,
       currency: 'INR',
     });
 
@@ -119,8 +117,36 @@ describe('planCaptureAssign', () => {
   it('files a draft nobody else can pay under whoever is in the group', () => {
     const plan = planCaptureAssign({
       captures: [capture({ id: 'a' })],
-      members: [{ id: 'member-ravi', profile_id: 'user-9' }],
-      myProfileId: 'user-1',
+      members: [{ id: 'member-ravi' }],
+      myMemberId: ME,
+      currency: 'INR',
+    });
+
+    expect(plan.writes[0]!.payload).toMatchObject({ payers: { 'member-ravi': '9000' } });
+  });
+
+  it('never makes a ghost the payer when the viewer is unknown', () => {
+    // A ghost has no profile of their own. When identity resolution lived in
+    // here it compared profile ids, and an unloaded profile (null) matched the
+    // first ghost — making them sole payer of every expense in the cluster.
+    // The plan is handed the answer now, so there is nothing to mismatch: with
+    // no viewer it falls to the group's first member, never to whoever happens
+    // to carry a null profile.
+    const plan = planCaptureAssign({
+      captures: [capture({ id: 'a' })],
+      members: [{ id: 'member-me' }, { id: 'ghost-ravi' }],
+      myMemberId: null,
+      currency: 'INR',
+    });
+
+    expect(plan.writes[0]!.payload).toMatchObject({ payers: { 'member-me': '9000' } });
+  });
+
+  it('ignores a viewer who is not in the chosen group', () => {
+    const plan = planCaptureAssign({
+      captures: [capture({ id: 'a' })],
+      members: [{ id: 'member-ravi' }, { id: 'member-asha' }],
+      myMemberId: 'member-from-another-group',
       currency: 'INR',
     });
 
@@ -136,7 +162,7 @@ describe('planCaptureAssign', () => {
         capture({ id: 'c' }),
       ],
       members: MEMBERS,
-      myProfileId: 'user-1',
+      myMemberId: ME,
       currency: 'INR',
     });
 
@@ -151,7 +177,7 @@ describe('planCaptureAssign', () => {
     const plan = planCaptureAssign({
       captures: [capture({ id: 'a' }), capture({ id: 'b' })],
       members: [],
-      myProfileId: 'user-1',
+      myMemberId: ME,
       currency: 'INR',
     });
 
@@ -164,7 +190,7 @@ describe('planCaptureAssign', () => {
     const plan = planCaptureAssign({
       captures: [capture({ id: 'only' })],
       members: MEMBERS,
-      myProfileId: 'user-1',
+      myMemberId: ME,
       currency: 'INR',
     });
 

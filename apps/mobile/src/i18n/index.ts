@@ -1533,6 +1533,8 @@ export interface UiStrings {
     assignBatch: string;
     assignedBatch: PluralForms;
     assignBatchSomeFailed: PluralForms;
+    /** Nothing was left to place — another device had already placed them. */
+    assignBatchAlreadyDone: string;
     assign: string;
     /** Chip label on a pre-aimed row: "Add to {name}" (the group it was tagged for). */
     addTo: string;
@@ -4068,6 +4070,7 @@ const en: UiStrings = {
       one: '{n} could not be added, and is still saved for later.',
       other: '{n} could not be added, and are still saved for later.',
     },
+    assignBatchAlreadyDone: 'These were already added somewhere else',
     assign: 'Add to group',
     addTo: 'Add to {name}',
     assignTitle: 'Add to a group',
@@ -6575,6 +6578,7 @@ const ta: UiStrings = {
       one: '{n} சேர்க்க முடியவில்லை; அது இன்னும் பிறகுக்காகச் சேமித்திருக்கிறது.',
       other: '{n} சேர்க்க முடியவில்லை; அவை இன்னும் பிறகுக்காகச் சேமித்திருக்கின்றன.',
     },
+    assignBatchAlreadyDone: 'இவை ஏற்கனவே வேறு சாதனத்தில் சேர்க்கப்பட்டுவிட்டன',
     assign: 'குழுவில் சேர்',
     addTo: '{name} இல் சேர்',
     assignTitle: 'ஒரு குழுவில் சேர்க்கவும்',
@@ -9123,6 +9127,7 @@ const hi: UiStrings = {
       one: '{n} जोड़ा नहीं जा सका, वह अब भी बाद के लिए सहेजा है।',
       other: '{n} जोड़े नहीं जा सके, वे अब भी बाद के लिए सहेजे हैं।',
     },
+    assignBatchAlreadyDone: 'ये पहले ही कहीं और जोड़े जा चुके हैं',
     assign: 'समूह में जोड़ें',
     addTo: '{name} में जोड़ें',
     assignTitle: 'किसी समूह में जोड़ें',
@@ -11687,6 +11692,7 @@ const ar: UiStrings = {
       many: 'تعذّرت إضافة {n} مصروفًا، وما زالت محفوظة لوقت لاحق.',
       other: 'تعذّرت إضافة {n} مصروف، وما زالت محفوظة لوقت لاحق.',
     },
+    assignBatchAlreadyDone: 'أُضيفت هذه من جهاز آخر بالفعل',
     assign: 'أضِف إلى مجموعة',
     addTo: 'أضِف إلى {name}',
     assignTitle: 'أضِف إلى مجموعة',

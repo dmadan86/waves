@@ -514,7 +514,10 @@ export default function CapturesScreen() {
   // no single capture to preview or pre-aim from.
   const assigningCapture = assigning?.kind === 'capture' ? assigning.capture : null;
   // A batch write is several queue writes behind one tap; the lock keeps a
-  // second tap (or a re-entrant people-tab resolve) from filing them twice.
+  // second tap from filing them twice. It guards the write itself — the group a
+  // People-tab confirm creates is made before this is taken, and a double tap
+  // there can still make two groups (as it could before this screen wrote
+  // anything in batch).
   const placing = useRef(false);
   // The id a group made from picked people will take, minted before the create
   // so the ghosts and the expense behind it can already name it — the
@@ -721,6 +724,8 @@ export default function CapturesScreen() {
       /** What to call the group in the confirmation. */
       label: string;
       members: readonly AssignMember[];
+      /** Who the viewer is in that group — the payer. Resolved by the caller. */
+      myMemberId: string | null;
       currency: string;
     }): Promise<void> => {
       if (placing.current) return;
@@ -731,10 +736,16 @@ export default function CapturesScreen() {
         // the inbox read already knows, and writing it again would file the same
         // dinner twice.
         const waiting = stillWaiting(input.items, rows);
+        if (waiting.length === 0) {
+          // There is nothing left to do, and a sheet that simply closes would
+          // read as "done" for work this device never did. Say what happened.
+          toast.show(t.captures.assignBatchAlreadyDone);
+          return;
+        }
         const plan = planCaptureAssign({
           captures: waiting,
           members: input.members,
-          myProfileId: profile?.id ?? null,
+          myMemberId: input.myMemberId,
           currency: input.currency,
         });
 
@@ -776,6 +787,14 @@ export default function CapturesScreen() {
         }
         lines.push(plural(locale, failed, t.captures.assignBatchSomeFailed));
         Alert.alert(t.captures.title, lines.join('\n\n'));
+      } catch (caught) {
+        // The callers fire this without awaiting it, so anything the planning
+        // step throws would otherwise leave with no word to the person whose
+        // drafts are still sitting there.
+        Alert.alert(
+          t.captures.title,
+          friendlyError(caught, t.captures.couldNotSave, 'captures.assignBatch'),
+        );
       } finally {
         placing.current = false;
       }
@@ -785,10 +804,11 @@ export default function CapturesScreen() {
       guard,
       locale,
       mutate,
-      profile?.id,
       rows,
+      t.captures.assignBatchAlreadyDone,
       t.captures.assignBatchSomeFailed,
       t.captures.assignedBatch,
+      t.captures.couldNotSave,
       t.captures.title,
       toast,
     ],
@@ -817,6 +837,10 @@ export default function CapturesScreen() {
         groupId,
         label: group ? groupLabel(group, members, profile?.id) : '',
         members,
+        // Compared against `profile?.id` — undefined, never null — exactly as
+        // the add-expense form resolves the same thing. A ghost's null
+        // `profile_id` can therefore never answer to an unloaded profile.
+        myMemberId: members.find((member) => member.profile_id === profile?.id)?.id ?? null,
         // A draft assigned through the form takes the group's currency too
         // (the href carries no currency of its own), so the batch does the same.
         currency: group?.default_currency ?? target.items[0]!.currency,
@@ -888,10 +912,10 @@ export default function CapturesScreen() {
         items: target.items,
         groupId,
         label: clean.join(', '),
-        members: [
-          { id: newMemberId, profile_id: profile?.id ?? null },
-          ...ghostIds.map((id) => ({ id, profile_id: null })),
-        ],
+        members: [{ id: newMemberId }, ...ghostIds.map((id) => ({ id }))],
+        // Not looked up but minted: this group's creator membership is the one
+        // this screen just chose an id for, so who paid is known outright.
+        myMemberId: newMemberId,
         currency,
       });
     },
@@ -905,7 +929,6 @@ export default function CapturesScreen() {
       newGroupId,
       newMemberId,
       placeBatch,
-      profile?.id,
       t.captures.couldNotSave,
       t.captures.title,
     ],

@@ -25,20 +25,27 @@
  * (mobile's vitest renders nothing; see vitest.config.ts).
  */
 
-import { computeShares, type PaymentMethod, type SplitParams } from '@waves/core';
+import { computeShares, type SplitParams } from '@waves/core';
 
 import type { CaptureRow } from '@/data/types';
+import { capturePaymentMethod } from '@/lib/captureAssign';
 
 /** Everyone in, divided evenly — the add-expense form's own default. */
 const EQUAL: SplitParams = { kind: 'equal' };
 
-/** The methods the ledger knows; anything else on a draft is not sent. */
-const PAYMENT_METHODS: readonly string[] = ['cash', 'upi', 'credit', 'debit', 'forex'];
-
-/** The member fields a plan reads. `summary.membersFor(groupId)` satisfies it. */
+/**
+ * The member fields a plan reads: an id, and nothing else.
+ *
+ * Deliberately not the profile id. Working out "which of these is me" from a
+ * profile id is identity resolution, and a plan is the wrong place for it: a
+ * ghost carries `profile_id: null`, so a comparison against an unloaded profile
+ * (`null`) matches the first ghost and makes them sole payer of every expense in
+ * the cluster. The caller knows who it is — the form resolves the same thing
+ * against `profile?.id`, and the new-people path mints the id outright — so it
+ * passes the answer in rather than leaving it to be guessed here.
+ */
 export interface AssignMember {
   readonly id: string;
-  readonly profile_id: string | null;
 }
 
 /** One draft's expense, ready to be queued as an `expense.create` on the group. */
@@ -95,23 +102,23 @@ export function stillWaiting(
 /**
  * What to write so a whole cluster lands in one group.
  *
- * `myProfileId` decides who is down as having paid: the viewer's own membership
- * when they are in the group, and otherwise the first member, which is the same
- * fallback the voice save uses — an expense with no payer is not a state the
- * ledger has.
+ * `myMemberId` is the viewer's membership in that group, already resolved by
+ * the caller; it is who goes down as having paid. It falls back to the first
+ * member — the same fallback the voice save uses — because an expense nobody
+ * paid is not a state the ledger has.
  */
 export function planCaptureAssign(input: {
   readonly captures: readonly CaptureRow[];
   readonly members: readonly AssignMember[];
-  readonly myProfileId: string | null;
+  /** The viewer's own member id in this group, or null when they have none. */
+  readonly myMemberId: string | null;
   /** The group's own currency — a capture assigned through the form takes it too. */
   readonly currency: string;
 }): CaptureAssignPlan {
   const participants = input.members.map((member) => member.id);
-  const payer =
-    input.members.find((member) => member.profile_id === input.myProfileId)?.id ??
-    participants[0] ??
-    null;
+  const mine =
+    input.myMemberId && participants.includes(input.myMemberId) ? input.myMemberId : null;
+  const payer = mine ?? participants[0] ?? null;
   if (!payer || participants.length === 0) {
     return { writes: [], unusable: [...input.captures], problem: 'no-members' };
   }
@@ -151,11 +158,9 @@ export function planCaptureAssign(input: {
         splitParams: EQUAL,
         participants,
         payers: { [payer]: amount.toString() },
-        // How the draft says it was paid, when it says something the ledger
-        // knows; the form's own default otherwise.
-        paymentMethod: (PAYMENT_METHODS.includes(capture.payment_method ?? '')
-          ? capture.payment_method
-          : 'cash') as PaymentMethod,
+        // How the draft says it was paid — read through the same helper the
+        // form's own handoff uses, so both routes produce the same expense.
+        paymentMethod: capturePaymentMethod(capture.payment_method),
         // The place the draft recorded (A43), kept the way the form keeps it.
         location: capture.location,
         expectedShares: Object.fromEntries(

@@ -435,6 +435,95 @@ describe('the mutation queue', () => {
     ).toEqual(['a1', 'a2', 'b1']);
   });
 
+  it('holds a draft-closing assign until the expense it names is confirmed', () => {
+    // The one dependency that crosses scopes: the expense is written under the
+    // group, the `capture.assign` that closes the draft under the owner. Per-
+    // group blocking says nothing about a personal scope, so without this rule
+    // a refused expense still let its draft close against an expense that does
+    // not exist — the draft leaves the inbox and the money sits refused.
+    const OWNER = 'owner-1';
+    let queue: QueuedMutation[] = [];
+    queue = enqueue(queue, {
+      clientMutationId: 'x1',
+      kind: MutationKind.ExpenseCreate,
+      groupId: GROUP,
+      clientCreatedAt: '2026-03-01T00:00:00Z',
+      payload: { expenseId: 'e-1' },
+    });
+    queue = enqueue(queue, {
+      clientMutationId: 'x2',
+      kind: MutationKind.CaptureAssign,
+      groupId: OWNER,
+      clientCreatedAt: '2026-03-01T00:00:01Z',
+      payload: { captureId: 'c-1', groupId: GROUP, expenseId: 'e-1' },
+    });
+
+    // The expense goes; the assign waits, even though its own scope is clear.
+    expect(nextBatch(queue, { now: 0 }).map((item) => item.clientMutationId)).toEqual(['x1']);
+
+    // Confirmed — and only now is the draft closed.
+    const settled = applyOutcomes(queue, [{ clientMutationId: 'x1', status: 'applied' }]).queue;
+    expect(nextBatch(settled, { now: 0 }).map((item) => item.clientMutationId)).toEqual(['x2']);
+  });
+
+  it('keeps the assign waiting while its expense sits refused', () => {
+    const OWNER = 'owner-1';
+    let queue: QueuedMutation[] = [];
+    queue = enqueue(queue, {
+      clientMutationId: 'x1',
+      kind: MutationKind.ExpenseCreate,
+      groupId: GROUP,
+      clientCreatedAt: '2026-03-01T00:00:00Z',
+      payload: { expenseId: 'e-1' },
+    });
+    queue = enqueue(queue, {
+      clientMutationId: 'x2',
+      kind: MutationKind.CaptureAssign,
+      groupId: OWNER,
+      clientCreatedAt: '2026-03-01T00:00:01Z',
+      payload: { captureId: 'c-1', groupId: GROUP, expenseId: 'e-1' },
+    });
+    // A capture create in the same personal scope, queued after the assign.
+    queue = enqueue(queue, {
+      clientMutationId: 'x3',
+      kind: MutationKind.CaptureCreate,
+      groupId: OWNER,
+      clientCreatedAt: '2026-03-01T00:00:02Z',
+      payload: { captureId: 'c-2' },
+    });
+
+    const refused = applyOutcomes(queue, [
+      {
+        clientMutationId: 'x1',
+        status: 'rejected',
+        code: SyncRejectionCode.ValidationFailed,
+        message: 'Unknown member',
+      },
+    ]).queue;
+
+    // Nothing goes: the refusal blocks its group (rule 3) and the assign is
+    // still waiting on it, which holds its own scope behind it in turn.
+    expect(nextBatch(refused, { now: 0 })).toEqual([]);
+    // The refusal is kept, not dropped — it is what the banner offers to retry.
+    expect(refused.map((item) => item.clientMutationId)).toEqual(['x1', 'x2', 'x3']);
+  });
+
+  it('lets an assign through when no expense of that id is queued', () => {
+    // The ordinary case after a restart: the expense synced in an earlier
+    // session, so only the assign is left and it must not wait forever.
+    const OWNER = 'owner-1';
+    let queue: QueuedMutation[] = [];
+    queue = enqueue(queue, {
+      clientMutationId: 'x2',
+      kind: MutationKind.CaptureAssign,
+      groupId: OWNER,
+      clientCreatedAt: '2026-03-01T00:00:01Z',
+      payload: { captureId: 'c-1', groupId: GROUP, expenseId: 'e-1' },
+    });
+
+    expect(nextBatch(queue, { now: 0 }).map((item) => item.clientMutationId)).toEqual(['x2']);
+  });
+
   it('treats applied and duplicate identically — both mean the server has it', () => {
     let queue: QueuedMutation[] = [];
     queue = enqueue(queue, envelope('a', GROUP, MutationKind.ExpenseCreate));
