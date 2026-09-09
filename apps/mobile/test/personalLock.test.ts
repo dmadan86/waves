@@ -29,6 +29,7 @@ import {
   markPersonalUnlocked,
   personalAppActive,
   personalAppAway,
+  personalAppTransition,
   PERSONAL_LOCKED,
   personalPresent,
   personalUnlockedNow,
@@ -275,12 +276,43 @@ describe('a result that lands after the user has gone', () => {
   });
 });
 
+describe('personalAppTransition', () => {
+  it('counts the app switcher, which iOS reports as inactive and nothing else', () => {
+    // `background` only arrives once another app actually takes the foreground,
+    // so a switcher swipe and a hand-over would never start the clock without
+    // this — the exact case the lock is for.
+    expect(personalAppTransition('inactive')).toBe('away');
+    expect(personalAppTransition('background')).toBe('away');
+  });
+
+  it('counts coming back, and nothing else at all', () => {
+    expect(personalAppTransition('active')).toBe('back');
+    expect(personalAppTransition('extension')).toBe('ignore');
+    expect(personalAppTransition('unknown')).toBe('ignore');
+  });
+});
+
+describe('the app switcher shuts the section', () => {
+  it('starts the clock on inactive alone, with no background behind it', () => {
+    setPersonalPresence(true, GRACE, T0);
+    markPersonalUnlocked(T0);
+
+    // Swipe into the switcher and hand the phone over. No `background` ever
+    // arrives, because no other app takes over.
+    if (personalAppTransition('inactive') === 'away') personalAppAway(T0 + 1_000);
+
+    expect(getPersonalLockState().awaySince).toBe(T0 + 1_000);
+    expect(personalUnlockedNow(GRACE, T0 + 1_000 + GRACE * 1000)).toBe(false);
+  });
+});
+
 describe("the app's own biometric prompt is not a departure", () => {
-  it('survives a background reported from behind our own sheet', () => {
-    // Some Android builds pause the activity behind BiometricPrompt, and iOS
-    // reports inactive behind Face ID. At a zero-second window, counting that
-    // as leaving would re-lock the section because we asked it to unlock —
-    // and then ask again, and again.
+  it('survives the away reported from behind our own sheet', () => {
+    // iOS turns inactive behind Face ID and some Android builds pause the
+    // activity outright behind BiometricPrompt. Now that `inactive` counts as
+    // leaving, this exclusion is what keeps a zero-second window from
+    // re-locking the section because we asked it to unlock — and then asking
+    // again, and again.
     setPersonalPresence(true, 0, T0);
     markPersonalUnlocked(T0);
 
@@ -291,6 +323,31 @@ describe("the app's own biometric prompt is not a departure", () => {
 
     expect(personalUnlockedNow(0, T0 + 10)).toBe(true);
     expect(getPersonalLockState().awaySince).toBe(null);
+  });
+
+  it('covers the app lock raising its own prompt, which is also not a departure', () => {
+    // `unlock()` and the confirm inside `setEnabled` wrap themselves the same
+    // way; without it, answering the app lock at a zero-second window would
+    // stamp a personal departure and cost a second prompt straight after.
+    setPersonalPresence(true, 0, T0);
+    markPersonalUnlocked(T0);
+
+    beginPersonalCheck();
+    personalAppAway(T0 + 5); // inactive, behind the app lock's sheet
+    personalAppActive(0, T0 + 20);
+    endPersonalCheck();
+
+    expect(personalUnlockedNow(0, T0 + 20)).toBe(true);
+  });
+
+  it('cannot leak the exclusion past a check that threw', () => {
+    // The gate pairs these in a `finally`; this is the property that relies on.
+    beginPersonalCheck();
+    endPersonalCheck();
+    setPersonalPresence(true, 0, T0);
+    markPersonalUnlocked(T0);
+    personalAppAway(T0 + 5);
+    expect(getPersonalLockState().awaySince).toBe(T0 + 5);
   });
 
   it('still notices a real departure once the check is over', () => {

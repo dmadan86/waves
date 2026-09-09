@@ -27,6 +27,7 @@ import {
   markPersonalUnlocked,
   personalAppActive,
   personalAppAway,
+  personalAppTransition,
   setPersonalPresence,
   subscribePersonalLock,
 } from '@/lib/personalLock';
@@ -145,31 +146,50 @@ export function LockProvider({ children }: { children: ReactNode }) {
   // app lock is on: the two are independent gates, and the private section is
   // guarded whether or not the whole app is. One subscription for the app, held
   // above every screen, so no personal screen has to be mounted for a departure
-  // to be noticed. `inactive` is not a departure here — see `personalAppAway`.
+  // to be noticed. Which transitions count is `personalAppTransition`'s to say,
+  // so this gate and the app lock above cannot come to read them differently.
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (state) => {
-      if (state === 'background') personalAppAway();
-      else if (state === 'active') personalAppActive(graceSeconds);
+      const move = personalAppTransition(state);
+      if (move === 'away') personalAppAway();
+      else if (move === 'back') personalAppActive(graceSeconds);
     });
     return () => subscription.remove();
   }, [graceSeconds]);
 
+  // Both prompts below are marked as ours for the personal clock's benefit.
+  // Any biometric sheet turns the app inactive, and one the app raised itself
+  // is not the user walking away — an app-lock unlock that stamped a personal
+  // departure would, at a zero-second window, cost a second prompt the instant
+  // the first was answered.
   const unlock = useCallback(async () => {
-    const result = await LocalAuthentication.authenticateAsync({
-      promptMessage: 'Unlock Waves',
-      fallbackLabel: 'Use passcode',
-    });
-    if (result.success) setLocked(false);
-    return result.success;
+    beginPersonalCheck();
+    try {
+      const result = await LocalAuthentication.authenticateAsync({
+        promptMessage: 'Unlock Waves',
+        fallbackLabel: 'Use passcode',
+      });
+      if (result.success) setLocked(false);
+      return result.success;
+    } finally {
+      endPersonalCheck();
+    }
   }, []);
 
   const setEnabled = useCallback(async (value: boolean) => {
     if (value) {
       // Prove the device can actually unlock before locking them out of it.
-      const result = await LocalAuthentication.authenticateAsync({
-        promptMessage: 'Confirm to turn on app lock',
-      });
-      if (!result.success) return;
+      beginPersonalCheck();
+      let confirmed = false;
+      try {
+        const result = await LocalAuthentication.authenticateAsync({
+          promptMessage: 'Confirm to turn on app lock',
+        });
+        confirmed = result.success;
+      } finally {
+        endPersonalCheck();
+      }
+      if (!confirmed) return;
     }
     // SecureStore has no web implementation, same as the read path above.
     if (Platform.OS !== 'web') await SecureStore.setItemAsync(KEY, value ? 'true' : 'false');

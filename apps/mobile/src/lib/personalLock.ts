@@ -240,14 +240,36 @@ export function endPersonalCheck(): void {
 }
 
 /**
- * The app went to the background. `inactive` is deliberately not a departure:
- * on iOS it is what a notification banner, a control-centre pull and our own
- * Face ID sheet all report, and none of those is the user leaving. Genuinely
- * leaving — the switcher, the home gesture, the screen locking — reports
- * `background` right behind it, so nothing that matters is missed.
+ * What an `AppState` value means to this lock. A function rather than a
+ * condition inlined in the listener, so the app lock and the personal gate
+ * cannot drift into reading the same transitions differently.
+ *
+ * `inactive` counts as leaving. On iOS it is what the app switcher reports —
+ * and `background` only follows once some other app actually takes over, so a
+ * switcher swipe alone would otherwise never start the clock. That is exactly
+ * the case the lock exists for: the phone gets handed over with the ledger
+ * still on screen. It costs a false positive on a notification banner and a
+ * control-centre pull, which every window above zero forgives anyway, and which
+ * at "Straight away" is arguably what was asked for. Our own biometric sheet
+ * also reports `inactive`, and that one is not a trade-off but a bug — it is
+ * excluded by name, in `personalAppAway`, not by ignoring the whole transition.
+ */
+export function personalAppTransition(state: string): 'away' | 'back' | 'ignore' {
+  if (state === 'background' || state === 'inactive') return 'away';
+  if (state === 'active') return 'back';
+  return 'ignore';
+}
+
+/**
+ * The app went away — see `personalAppTransition` for what counts.
+ *
+ * A check in flight means the prompt we raised is the reason the app went
+ * quiet, so this is a no-op until it resolves. Safe by construction: we only
+ * ever ask while the section is shut, so nothing is being held open. iOS
+ * reports `inactive` on the way *into* the sheet and `active` on the way out,
+ * so the suppression window covers the whole of it.
  */
 export function personalAppAway(now = lockClockNow()): void {
-  // Our own prompt is not the user walking off; see `checks`.
   if (checks > 0) return;
   commit(afterPersonalLeave(current, now));
 }
