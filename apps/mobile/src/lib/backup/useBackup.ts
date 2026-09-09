@@ -27,6 +27,7 @@ import { useSync } from '@/sync';
 
 import { providerFor } from '../cloud/providers';
 import { loadTokens, saveTokens } from '../cloud/tokens';
+import type { CloudTokens } from '../cloud/types';
 import type { SyncNetworkPreference } from '../syncNetwork';
 import {
   clearBackupState,
@@ -61,7 +62,11 @@ export type BackupOutcome =
   | { readonly kind: 'refused'; readonly refusal: BackupRefusal };
 
 export interface BackupState {
-  /** False while the stored settings and tokens are still being read. */
+  /**
+   * True only while the three local reads are in flight. Deliberately not the
+   * account-address lookup: nothing the screen decides may wait on a network
+   * call that has no timeout.
+   */
   readonly loading: boolean;
   readonly settings: BackupSettings;
   /** False when this build has no OAuth client id — everything else is inert. */
@@ -107,7 +112,15 @@ export function useBackup(): BackupState & BackupActions {
   const records = usePersonalRecords();
   const localIds = usePersonalRecordIds();
 
-  const [loading, setLoading] = useState(true);
+  /**
+   * Whose local reads have landed, rather than a boolean somebody has to
+   * remember to raise again. `loading` is then derived, so switching accounts
+   * re-arms it for free: the moment `ownerId` changes it stops matching, and
+   * the screen goes back to "Checking…" instead of showing the previous
+   * person's answers under the new person's name.
+   */
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
+  const loading = loadedFor !== ownerId;
   const [settings, setSettings] = useState<BackupSettings>(NO_BACKUP_SETTINGS);
   const [connected, setConnected] = useState(false);
   const [account, setAccount] = useState<string | null>(null);
@@ -118,21 +131,39 @@ export function useBackup(): BackupState & BackupActions {
   const provider = providerFor(PRIMARY_PROVIDER);
   const configured = provider.isConfigured();
 
-  const refreshAccount = useCallback(async (): Promise<void> => {
+  /**
+   * Whether an account is linked, from the tokens on disk. A local read and
+   * nothing else — no network — because this is the answer the screen decides
+   * its whole layout with.
+   */
+  const refreshLink = useCallback(async (): Promise<CloudTokens | null> => {
     const tokens = ownerId ? await loadTokens(PRIMARY_PROVIDER, ownerId) : null;
     setConnected(tokens !== null);
-    if (!tokens) {
-      setAccount(null);
-      return;
-    }
-    // Best effort, and quietly: the address is a nicety, and a failed lookup
-    // must not make a working link look broken.
-    setAccount(
-      await providerFor(PRIMARY_PROVIDER)
-        .account(tokens)
-        .catch(() => null),
-    );
+    if (!tokens) setAccount(null);
+    return tokens;
   }, [ownerId]);
+
+  /**
+   * Ask Drive whose account it is, and never wait for the answer.
+   *
+   * The address is a nicety — the screen falls back to the provider's own name
+   * — so nothing may be blocked on it. It used to be awaited inside the first
+   * load, which meant `loading` stayed true for the length of a Drive round
+   * trip; `lib/cloud/http` puts no timeout on `fetch` and Android's OkHttp
+   * defaults to none, so a socket that connects and never answers left the
+   * screen saying "Checking…" with no controls, indefinitely. Fired and
+   * forgotten, the worst it can now do is leave one line reading
+   * "Google Drive" instead of an address.
+   */
+  const fillAddress = useCallback((tokens: CloudTokens | null): void => {
+    if (!tokens) return;
+    void providerFor(PRIMARY_PROVIDER)
+      .account(tokens)
+      .then(
+        (address) => setAccount(address),
+        () => setAccount(null),
+      );
+  }, []);
 
   // Everything below is keyed by the signed-in account, so a sign-out or a
   // switch has to re-read rather than keep showing what the previous person
@@ -140,20 +171,26 @@ export function useBackup(): BackupState & BackupActions {
   useEffect(() => {
     let alive = true;
     void (async () => {
-      const [stored, key] = await Promise.all([
+      const [stored, key, tokens] = await Promise.all([
         loadBackupSettings(ownerId),
         ownerId ? loadRecoveryKey(ownerId) : Promise.resolve(null),
+        ownerId ? loadTokens(PRIMARY_PROVIDER, ownerId) : Promise.resolve(null),
       ]);
       if (!alive) return;
       setSettings(stored);
       setHasKey(key !== null);
-      await refreshAccount();
-      if (alive) setLoading(false);
+      setConnected(tokens !== null);
+      if (!tokens) setAccount(null);
+      // Three local reads, and the screen knows everything it decides with —
+      // in the same batch as the values, so there is no frame where the screen
+      // believes it has settled on somebody else's answers.
+      setLoadedFor(ownerId);
+      if (tokens) fillAddress(tokens);
     })();
     return () => {
       alive = false;
     };
-  }, [ownerId, refreshAccount]);
+  }, [ownerId, fillAddress]);
 
   const connect = useCallback(async (): Promise<boolean> => {
     if (!ownerId) return false;
@@ -162,9 +199,11 @@ export function useBackup(): BackupState & BackupActions {
     // the caller must not dress it as one.
     if (!tokens) return false;
     await saveTokens(PRIMARY_PROVIDER, ownerId, tokens);
-    await refreshAccount();
+    // The link is what the caller is waiting on; the address arrives when it
+    // arrives, so a slow Drive cannot hold the connect button down.
+    fillAddress(await refreshLink());
     return true;
-  }, [ownerId, provider, refreshAccount]);
+  }, [ownerId, provider, refreshLink, fillAddress]);
 
   const disconnect = useCallback(async (): Promise<void> => {
     if (!ownerId) return;
@@ -181,8 +220,8 @@ export function useBackup(): BackupState & BackupActions {
     setSettings(NO_BACKUP_SETTINGS);
     setHasKey(false);
     setOutcome(null);
-    await refreshAccount();
-  }, [ownerId, provider, refreshAccount]);
+    await refreshLink();
+  }, [ownerId, provider, refreshLink]);
 
   const backupNow = useCallback(async (): Promise<BackupOutcome> => {
     const key = ownerId ? await loadRecoveryKey(ownerId) : null;
@@ -207,7 +246,7 @@ export function useBackup(): BackupState & BackupActions {
         // A dead grant clears the tokens inside the engine; reflect that here so
         // the screen swaps to "Connect" instead of offering a retry that cannot
         // work.
-        if (result.refusal === 'auth') await refreshAccount();
+        if (result.refusal === 'auth') await refreshLink();
         return refused;
       }
       await saveLastBackup(ownerId, result.last);
@@ -218,7 +257,7 @@ export function useBackup(): BackupState & BackupActions {
     } finally {
       setPhase(null);
     }
-  }, [ownerId, records, settings.network, refreshAccount]);
+  }, [ownerId, records, settings.network, refreshLink]);
 
   const setFrequencyAction = useCallback(
     async (frequency: BackupFrequency): Promise<void> => {

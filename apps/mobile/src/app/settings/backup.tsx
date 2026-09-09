@@ -1,28 +1,78 @@
 /**
  * Backing the private "Me" ledger up to the person's own Google Drive.
  *
- * The shape is WhatsApp's chat-backup screen, because that screen is the mental
- * model people already have for this and inventing a different one would only
- * cost them: back up now with a live line saying what is happening, how often
- * to do it automatically, which account it goes to, over which networks, and
- * when the last one landed. What WhatsApp puts behind "End-to-end encrypted
- * backup" is here up front instead — the key is the thing that decides whether
- * a backup is worth anything on a new phone, so it is a section, not a
- * disclosure.
+ * THE SHAPE, AND WHY IT CHANGED. This was WhatsApp's chat-backup screen — six
+ * peer sections: back up now, account, key, schedule, network, restore. That
+ * shape assumes the feature already works. It does not until three separate
+ * things are true (an account is linked, this device holds the key, and the
+ * person has kept a copy of it), and until then four of the six sections were
+ * inert: "Back up now" a grey slab with no reason attached, "Check for a
+ * backup" the same, and the one control that unblocked either — "Create a key"
+ * — a small chip two screens further down, under a heading that gave no hint it
+ * gated everything above it. A setup flow wearing a settings screen's clothes
+ * reads, correctly, as a screen that is broken.
  *
- * Two ordering decisions worth naming. The key section sits *above* the
- * schedule, because a schedule with no key backs nothing up and the screen
- * should not let somebody set one and walk away believing otherwise. And
- * Restore is last: it is the half people need once, at the worst moment, and
- * burying it would be cruel — but putting it near "Back up now" invites the
- * wrong tap.
+ * So the screen now has two modes and one anchor.
+ *
+ * The anchor is the card at the top. It always answers "is this protected",
+ * in the same place, in one line: still reading / not yet / ready / backed up.
+ * The other two things WhatsApp's chat-backup card carries — when the last one
+ * landed, and that the lock is a key only this person holds — appear once
+ * there is a truthful answer to give, which is once the setup is done; a
+ * "Locked with your key" line over a phone with no key would be the same lie
+ * this redesign is here to remove. It is first because "am I safe" is the
+ * question somebody opened this screen with.
+ *
+ * Below the fold of that card the screen forks. **Until a backup can run**, the
+ * card continues into a three-step checklist and the outstanding step — and
+ * only that one — carries a button. Steps already taken collapse to a line with
+ * "Done" beside them; steps further out are dimmed and silent. That is Uber
+ * Eats' account checkup, where the item needing attention expands in place with
+ * its own action and the satisfied ones shrink to checked rows. **Once it can
+ * run**, the checklist disappears entirely and the card continues into "Back up
+ * now" — an ordinary settings screen, with no scaffolding left to nag somebody
+ * whose backups have been running for a year.
+ *
+ * THE ORDERING, in the order it is rendered:
+ *
+ * 1. Status + the one thing to do. Both answers within a thumb of the top.
+ * 2. The promise ("nothing legible leaves the phone"), because *what to do*
+ *    outranks *why* on a screen somebody came to with a problem.
+ * 3. Account, and then the key — each rendered once the thing it manages
+ *    exists (a link; a key on this phone) *and* the checklist is not itself
+ *    asking for that same thing. So the two never offer the same tap. Note it
+ *    is not gated on the setup being finished: `configured` is a runtime
+ *    conjunction and can go false under a phone that already holds a key, and
+ *    hiding "Show my key" there would strand the Drive file for good.
+ * 4. The schedule, which now refuses to lie. "Daily" with no key backs nothing
+ *    up, so when the steps are unfinished the schedule says so directly under
+ *    the picker rather than sitting there looking live. Not in a build that
+ *    cannot back up at all, where the card has already said why and "the steps
+ *    above" would point at nothing.
+ * 5. Which networks.
+ * 6. Restore, last: it is the half people need once, at the worst moment, and
+ *    burying it would be cruel — but putting it near "Back up now" invites the
+ *    wrong tap. Its position is unchanged and deliberately so; what changed is
+ *    that when it is blocked for want of a key it now says which key and
+ *    carries the button that takes it. That is the one place the screen shows
+ *    a tap the checklist also offers, and it is worth it: the alternative was
+ *    a person on a new phone reading "Create your backup key first", doing it,
+ *    and having the next run overwrite the backup they came to recover.
+ *
+ * THE RULE THE WHOLE FILE OBEYS, stated exactly. A control that *cannot* run
+ * either carries its reason beside it or is not rendered at all, with the step
+ * that unblocks it standing in its place. A control merely waiting on work
+ * already in flight is a different thing and gets a different treatment: the
+ * button that was pressed wears a spinner, and the rest go quiet for as long as
+ * that takes. What is ruled out is the third case, which is what was here
+ * before — a grey button, nothing running, and no reason anywhere on screen.
  *
  * The one promise this screen makes, and must keep: nothing legible leaves the
  * phone. What goes to Drive is a sealed blob; the key that opens it is shown to
  * the person and never sent anywhere.
  */
 
-import { useCallback, useState } from 'react';
+import { useCallback, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Clipboard from 'expo-clipboard';
 import { ActivityIndicator, ScrollView, TextInput, View } from 'react-native';
@@ -51,6 +101,7 @@ import { formatBytes } from '@/lib/bytes';
 import { useBackup, type BackupOutcome } from '@/lib/backup/useBackup';
 import { BackupFrequency } from '@/lib/backup/schedule';
 import { formatRecoveryKey } from '@/lib/backup/recoveryKey';
+import { backupSetup, BackupStep } from '@/lib/backup/setup';
 import type { RestoreScan } from '@/lib/backup/engine';
 import { CloudAuthError } from '@/lib/cloud/oauth';
 import { friendlyError } from '@/lib/errors';
@@ -63,19 +114,72 @@ type FoundBackup = Extract<RestoreScan, { ok: true }>;
 /** A brand name, not copy — the same word in every locale, so not translated. */
 const PROVIDER_LABEL = 'Google Drive';
 
+/** The checklist mark's diameter, and so the indent its buttons hang under. */
+const STEP_MARK = 26;
+
+/**
+ * Which action is in flight, rather than a bare `busy` flag.
+ *
+ * A screen-wide boolean greys every button at once and says nothing about any
+ * of them, which is indistinguishable from the refusal this whole redesign
+ * exists to remove — worst of all on "Link your Google Drive", which holds the
+ * flag for the entire Google consent sheet plus a Drive round trip. Naming the
+ * action lets the pressed button carry a spinner and read as *working*, while
+ * the rest go quiet for a second or two beside something visibly running.
+ */
+type PendingAction = 'connect' | 'disconnect' | 'key' | 'backup' | 'scan' | 'restore';
+
+/**
+ * The disc at the head of a checklist row: a tick once the step is taken, its
+ * number in the brand colour while it is the one being asked for, and a hollow
+ * outline for the steps still ahead.
+ *
+ * Three states rather than two, because "done" and "not done" cannot express
+ * the thing this screen exists to say — which of the not-done ones is *yours to
+ * do right now*. Every checklist that works (Chime's "Finish setup", Plum's
+ * "Get set up", Shopify's "Get ready to sell") draws that distinction.
+ */
+function StepMark({ number, done, active }: { number: number; done: boolean; active: boolean }) {
+  const theme = useTheme();
+  const fill = done ? theme.color.positive : active ? theme.color.brand : 'transparent';
+  return (
+    <View
+      style={{
+        width: STEP_MARK,
+        height: STEP_MARK,
+        borderRadius: STEP_MARK / 2,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: fill,
+        borderWidth: done || active ? 0 : 1,
+        borderColor: theme.color.border,
+      }}
+    >
+      {done ? (
+        <Ionicons name="checkmark" size={iconSize.base} color={theme.color.onBrand} />
+      ) : (
+        <Text variant="micro" tone={active ? 'onBrand' : 'faint'}>
+          {String(number)}
+        </Text>
+      )}
+    </View>
+  );
+}
+
 export default function BackupSettingsScreen() {
   const theme = useTheme();
   const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
   const backup = useBackup();
 
-  const [busy, setBusy] = useState(false);
+  const [pending, setPending] = useState<PendingAction | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [shownKey, setShownKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [entering, setEntering] = useState(false);
   const [typedKey, setTypedKey] = useState('');
-  const [typedInvalid, setTypedInvalid] = useState(false);
+  /** What went wrong with the key just typed — not a key, or the keystore. */
+  const [typedProblem, setTypedProblem] = useState<string | null>(null);
   const [unlinking, setUnlinking] = useState(false);
   const [found, setFound] = useState<FoundBackup | null>(null);
   const [restored, setRestored] = useState<number | null>(null);
@@ -150,59 +254,97 @@ export default function BackupSettingsScreen() {
   };
 
   const onConnect = async (): Promise<void> => {
-    setBusy(true);
+    setPending('connect');
     setError(null);
     try {
       await backup.connect();
     } catch (caught) {
       setError(connectFailure(caught));
     } finally {
-      setBusy(false);
+      setPending(null);
     }
   };
 
   const onBackUpNow = async (): Promise<void> => {
-    setBusy(true);
+    setPending('backup');
     setError(null);
     try {
       await backup.backupNow();
     } catch (caught) {
       setError(friendlyError(caught, t.backup.backupFailed, 'backup.run'));
     } finally {
-      setBusy(false);
+      setPending(null);
     }
   };
 
   const onCreateKey = async (): Promise<void> => {
-    setBusy(true);
+    setPending('key');
     setError(null);
     try {
       setCopied(false);
       setShownKey(await backup.createKey());
     } catch (caught) {
-      setError(friendlyError(caught, t.backup.backupFailed, 'backup.createKey'));
+      setError(friendlyError(caught, t.backup.keySaveFailed, 'backup.createKey'));
     } finally {
-      setBusy(false);
+      setPending(null);
     }
   };
 
+  /**
+   * Show the key again — and say so when it cannot.
+   *
+   * `loadRecoveryKey` swallows a SecureStore failure to null, so this used to
+   * be able to do nothing at all: no sheet, no sentence, and no way to finish
+   * the step that "Show my key" is the only exit from. It was survivable while
+   * this was a small chip beside other controls; it is not now that the
+   * checklist hangs a step on it.
+   */
   const onShowKey = async (): Promise<void> => {
-    setCopied(false);
-    setShownKey(await backup.revealKey());
+    setPending('key');
+    setError(null);
+    try {
+      setCopied(false);
+      const key = await backup.revealKey();
+      if (!key) {
+        setError(t.backup.keyUnreadable);
+        return;
+      }
+      setShownKey(key);
+    } catch (caught) {
+      setError(friendlyError(caught, t.backup.keyUnreadable, 'backup.revealKey'));
+    } finally {
+      setPending(null);
+    }
   };
 
-  const onAcceptKey = async (): Promise<void> => {
-    if (!(await backup.acceptKey(typedKey))) {
-      setTypedInvalid(true);
-      return;
-    }
-    setEntering(false);
+  const onEnterKey = (): void => {
     setTypedKey('');
-    setTypedInvalid(false);
+    setTypedProblem(null);
+    setEntering(true);
+  };
+
+  /**
+   * Take a key typed in from another phone. The keystore write can reject, and
+   * an unhandled rejection would leave the sheet open saying nothing, so both
+   * kinds of "no" get the same treatment: a sentence inside the sheet, where
+   * the person still has what they typed.
+   */
+  const onAcceptKey = async (): Promise<void> => {
+    setTypedProblem(null);
+    try {
+      if (!(await backup.acceptKey(typedKey))) {
+        setTypedProblem(t.backup.keyEnterInvalid);
+        return;
+      }
+      setEntering(false);
+      setTypedKey('');
+    } catch (caught) {
+      setTypedProblem(friendlyError(caught, t.backup.keySaveFailed, 'backup.acceptKey'));
+    }
   };
 
   const onCheckForBackup = async (): Promise<void> => {
-    setBusy(true);
+    setPending('scan');
     setError(null);
     setRestored(null);
     try {
@@ -221,13 +363,13 @@ export default function BackupSettingsScreen() {
           : friendlyError(caught, t.backup.restoreFailed, 'backup.scan'),
       );
     } finally {
-      setBusy(false);
+      setPending(null);
     }
   };
 
   const onRestore = async (): Promise<void> => {
     if (!found) return;
-    setBusy(true);
+    setPending('restore');
     try {
       setRestored(await backup.applyRestore(found));
       setFound(null);
@@ -235,19 +377,19 @@ export default function BackupSettingsScreen() {
       setFound(null);
       setError(friendlyError(caught, t.backup.restoreFailed, 'backup.restore'));
     } finally {
-      setBusy(false);
+      setPending(null);
     }
   };
 
   const onUnlink = async (): Promise<void> => {
     setUnlinking(false);
-    setBusy(true);
+    setPending('disconnect');
     try {
       await backup.disconnect();
     } catch (caught) {
       setError(friendlyError(caught, t.backup.connectFailed, 'backup.disconnect'));
     } finally {
-      setBusy(false);
+      setPending(null);
     }
   };
 
@@ -264,10 +406,144 @@ export default function BackupSettingsScreen() {
   ];
 
   const running = backup.phase !== null;
-  // A backup needs a linked account and a key the person has confirmed they
-  // kept. Anything less and the button would produce a file nobody can open.
-  const canBackUp =
-    backup.configured && backup.connected && backup.hasKey && backup.settings.keySeen;
+  /** Something is in flight. Which one it is decides who gets the spinner. */
+  const busy = pending !== null;
+  /**
+   * The mark a working button wears in place of its icon. Filled buttons put a
+   * light label on the brand colour, so their spinner has to invert too.
+   */
+  const spinner = (onBrand: boolean): ReactNode => (
+    <ActivityIndicator size="small" color={onBrand ? theme.color.onBrand : theme.color.text} />
+  );
+
+  const setup = backupSetup({
+    configured: backup.configured,
+    connected: backup.connected,
+    hasKey: backup.hasKey,
+    keySeen: backup.settings.keySeen,
+  });
+  const last = backup.settings.last;
+
+  /**
+   * The status card's face. `loading` gets its own one rather than borrowing
+   * "not set up": the hook's first pass reads two stores *and* asks Drive who
+   * the linked account is, so on a slow network a fully configured phone would
+   * otherwise open on "Not backing up yet" and correct itself a second later —
+   * the one sentence on this screen that must never be shown wrongly.
+   */
+  const settled = !backup.loading;
+  const statusTone: 'warning' | 'brand' | 'positive' =
+    !settled || (setup.complete && !last) ? 'brand' : setup.complete ? 'positive' : 'warning';
+  const statusColor =
+    statusTone === 'positive'
+      ? { fg: theme.color.positive, bg: theme.color.positiveSoft }
+      : statusTone === 'brand'
+        ? { fg: theme.color.brand, bg: theme.color.brandSoft }
+        : { fg: theme.color.warning, bg: theme.color.warningSoft };
+
+  const statusTitle = !settled
+    ? t.backup.statusChecking
+    : setup.complete
+      ? last
+        ? t.backup.statusOn
+        : t.backup.statusReady
+      : t.backup.statusOff;
+
+  const statusDetail = !settled
+    ? null
+    : setup.unavailable
+      ? t.backup.unavailable
+      : setup.complete
+        ? last
+          ? t.backup.lastLine
+              .replace('{date}', dateTime(last.at))
+              .replace('{size}', formatBytes(last.size, locale))
+          : t.backup.never
+        : plural(locale, setup.total - setup.done, t.backup.stepsLeft);
+
+  /** One title and one sentence per step; the sentence shows only on the active one. */
+  const stepCopy: Record<BackupStep, { title: string; body: string }> = {
+    [BackupStep.Account]: { title: t.backup.stepAccountTitle, body: t.backup.stepAccountBody },
+    [BackupStep.Key]: { title: t.backup.stepKeyTitle, body: t.backup.stepKeyBody },
+    [BackupStep.SaveKey]: { title: t.backup.stepSaveTitle, body: t.backup.stepSaveBody },
+  };
+
+  /**
+   * The buttons the outstanding step carries.
+   *
+   * "I already have a key" rides along with both key steps, because somebody
+   * restoring onto a new phone is *at* one of those two moments and typing
+   * their old key is the whole answer — it satisfies the step and the one after
+   * it in a single tap. At step 2 it is a `secondary`, not a ghost: the two are
+   * genuinely equal choices, and drawing the wrong one louder is how somebody
+   * with a backup to recover ends up minting a key that cannot open it.
+   */
+  const stepActions = (step: BackupStep): ReactNode => {
+    if (step === BackupStep.Account) {
+      return (
+        <Button
+          label={t.backup.connect}
+          onPress={() => void onConnect()}
+          disabled={busy}
+          icon={pending === 'connect' ? spinner(true) : undefined}
+          fullWidth
+        />
+      );
+    }
+    const primary =
+      step === BackupStep.Key
+        ? { label: t.backup.keyCreate, run: onCreateKey }
+        : { label: t.backup.keyShow, run: onShowKey };
+    return (
+      <>
+        <Button
+          label={primary.label}
+          onPress={() => void primary.run()}
+          disabled={busy}
+          icon={pending === 'key' ? spinner(true) : undefined}
+          fullWidth
+        />
+        <Button
+          label={t.backup.keyEnter}
+          variant={step === BackupStep.Key ? 'secondary' : 'ghost'}
+          size={step === BackupStep.Key ? 'md' : 'sm'}
+          onPress={onEnterKey}
+          disabled={busy}
+          fullWidth
+        />
+      </>
+    );
+  };
+
+  /**
+   * Why "Check for a backup" cannot run, in the person's terms, beside the
+   * button rather than instead of it — a restore has to stay findable even when
+   * it is not yet possible, because the moment somebody needs it is the moment
+   * they have nothing else.
+   *
+   * The no-key case gets its own sentence rather than borrowing the backup
+   * button's "Create your backup key first." That advice is correct above and
+   * catastrophic here: this is a new phone whose backup is sealed under the key
+   * from the old one, and minting a fresh one does not open it — it makes
+   * `setup.complete` true, which arms "Back up now" and any non-Off schedule,
+   * and `runBackup` overwrites the Drive file in place. Following the wrong
+   * sentence would destroy the only copy of the ledger the person came here
+   * for. So the reason names the old key, and the button beside it is the one
+   * that takes it.
+   *
+   * `settled` is consulted because these flags start false: without it the card
+   * would say "Checking…" while this line flatly told a linked phone to link an
+   * account.
+   */
+  const restoreReason = !settled
+    ? t.backup.statusChecking
+    : !backup.configured
+      ? t.backup.unavailable
+      : !backup.connected
+        ? t.backup.refusedNotConnected
+        : !backup.hasKey
+          ? t.backup.restoreNeedsKey
+          : null;
 
   return (
     <Screen>
@@ -295,142 +571,242 @@ export default function BackupSettingsScreen() {
         }}
         showsVerticalScrollIndicator={false}
       >
+        {error ? <Callout tone="negative">{error}</Callout> : null}
+
+        {/* The anchor: where things stand, and — under the same rule — either
+            the one step outstanding or the button that is now possible. */}
+        <Card style={{ gap: theme.spacing.lg }}>
+          <Row gap={theme.spacing.md} style={{ alignItems: 'flex-start' }}>
+            <View
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 22,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: statusColor.bg,
+              }}
+            >
+              {settled ? (
+                <Ionicons
+                  name={
+                    setup.complete
+                      ? last
+                        ? 'cloud-done'
+                        : 'cloud-upload-outline'
+                      : 'cloud-offline-outline'
+                  }
+                  size={iconSize.xxl}
+                  color={statusColor.fg}
+                />
+              ) : (
+                <ActivityIndicator size="small" color={statusColor.fg} />
+              )}
+            </View>
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text variant="heading">{statusTitle}</Text>
+              {statusDetail ? (
+                <Text variant="caption" tone="muted">
+                  {statusDetail}
+                </Text>
+              ) : null}
+              {/* WhatsApp's "End-to-end encrypted" line: the reassurance belongs
+                  where the good news is, not three sections further down. */}
+              {settled && setup.complete ? (
+                <Row gap={theme.spacing.xs} style={{ marginTop: 2 }}>
+                  <Ionicons name="lock-closed" size={iconSize.xs} color={theme.color.textFaint} />
+                  <Text variant="micro" tone="faint">
+                    {t.backup.statusSealed}
+                  </Text>
+                </Row>
+              ) : null}
+            </View>
+          </Row>
+
+          {settled && setup.complete ? (
+            <>
+              <Divider />
+              <View style={{ gap: theme.spacing.md }}>
+                <Button
+                  label={t.backup.backUpNow}
+                  onPress={() => void onBackUpNow()}
+                  disabled={busy || running}
+                  fullWidth
+                  icon={
+                    running || pending === 'backup' ? (
+                      <ActivityIndicator size="small" color={theme.color.onBrand} />
+                    ) : (
+                      <Ionicons
+                        name="cloud-upload-outline"
+                        size={iconSize.md}
+                        color={theme.color.onBrand}
+                      />
+                    )
+                  }
+                />
+                {/* A run in progress says which part it is on; the gap between
+                    the tap and the first phase — network checks and a token
+                    refresh — says something rather than nothing; and a finished
+                    run says what it did. Scoped to this button's own action, so
+                    pressing something else on the screen does not make this one
+                    sprout a progress line. */}
+                {phaseLine ? (
+                  <Text variant="micro" tone="muted" align="center">
+                    {phaseLine}
+                  </Text>
+                ) : pending === 'backup' ? (
+                  <Text variant="micro" tone="muted" align="center">
+                    {t.backup.busy}
+                  </Text>
+                ) : backup.outcome ? (
+                  <Text
+                    variant="micro"
+                    tone={backup.outcome.kind === 'ok' ? 'muted' : 'faint'}
+                    align="center"
+                  >
+                    {refusalLine(backup.outcome)}
+                  </Text>
+                ) : null}
+              </View>
+            </>
+          ) : settled && !setup.unavailable ? (
+            <>
+              <Divider />
+              <View style={{ gap: theme.spacing.lg }}>
+                <Row style={{ justifyContent: 'space-between' }}>
+                  <Text variant="micro" tone="faint">
+                    {t.backup.setupSection}
+                  </Text>
+                  <Text variant="micro" tone="faint">
+                    {t.backup.setupProgress
+                      .replace('{done}', String(setup.done))
+                      .replace('{total}', String(setup.total))}
+                  </Text>
+                </Row>
+                {setup.steps.map(({ step, done }, index) => {
+                  const active = setup.outstanding === step;
+                  const copy = stepCopy[step];
+                  return (
+                    <View key={step} style={{ gap: theme.spacing.md }}>
+                      <Row gap={theme.spacing.md} style={{ alignItems: 'flex-start' }}>
+                        <StepMark number={index + 1} done={done} active={active} />
+                        <View style={{ flex: 1, gap: 2 }}>
+                          <Text variant="subheading" tone={active ? 'default' : 'muted'}>
+                            {copy.title}
+                          </Text>
+                          {active ? (
+                            <Text variant="caption" tone="muted">
+                              {copy.body}
+                            </Text>
+                          ) : null}
+                        </View>
+                        {done ? (
+                          <Text variant="micro" tone="positive">
+                            {t.backup.stepDone}
+                          </Text>
+                        ) : null}
+                      </Row>
+                      {active ? (
+                        // Hung under the row's text rather than the mark, so the
+                        // button reads as belonging to this step and not to the
+                        // list. `paddingStart` so it hangs off the right edge in
+                        // Arabic.
+                        <View
+                          style={{
+                            paddingStart: STEP_MARK + theme.spacing.md,
+                            gap: theme.spacing.sm,
+                          }}
+                        >
+                          {stepActions(step)}
+                        </View>
+                      ) : null}
+                    </View>
+                  );
+                })}
+              </View>
+            </>
+          ) : null}
+        </Card>
+
         <Text variant="body" tone="muted">
           {t.backup.intro}
         </Text>
 
-        {!backup.configured ? <Callout tone="warning">{t.backup.unavailable}</Callout> : null}
-        {error ? <Callout tone="negative">{error}</Callout> : null}
-
-        {/* Back up now, and the last one. The button and the record it produces
-            belong together — a result line under a button somewhere else is a
-            result nobody connects to what they just pressed. */}
-        <Card style={{ gap: theme.spacing.md }}>
-          <Button
-            label={t.backup.backUpNow}
-            onPress={() => void onBackUpNow()}
-            disabled={!canBackUp || busy || running}
-            fullWidth
-            icon={
-              running ? (
-                <ActivityIndicator size="small" color={theme.color.onBrand} />
-              ) : (
-                <Ionicons
-                  name="cloud-upload-outline"
-                  size={iconSize.md}
-                  color={theme.color.onBrand}
-                />
-              )
-            }
-          />
-          {phaseLine ? (
-            <Text variant="micro" tone="muted" align="center">
-              {phaseLine}
-            </Text>
-          ) : backup.outcome ? (
-            <Text
-              variant="micro"
-              tone={backup.outcome.kind === 'ok' ? 'muted' : 'faint'}
-              align="center"
-            >
-              {refusalLine(backup.outcome)}
-            </Text>
-          ) : null}
-
-          <Divider />
-          <Row style={{ justifyContent: 'space-between' }}>
-            <Text variant="micro" tone="faint">
-              {t.backup.lastSection}
-            </Text>
-            <Text variant="micro" tone="muted">
-              {backup.settings.last
-                ? `${dateTime(backup.settings.last.at)} · ${formatBytes(
-                    backup.settings.last.size,
-                    locale,
-                  )}`
-                : t.backup.never}
-            </Text>
-          </Row>
-        </Card>
-
-        {/* Which Google account. */}
-        <View style={{ gap: theme.spacing.sm }}>
-          <SectionHeader title={t.backup.accountSection} />
-          <Card style={{ gap: theme.spacing.md }}>
-            <Row style={{ gap: theme.spacing.md }}>
-              <Ionicons
-                name={backup.connected ? 'logo-google' : 'cloud-offline-outline'}
-                size={iconSize.xl}
-                color={backup.connected ? theme.color.brand : theme.color.textFaint}
+        {/* Which Google account. Rendered whenever one is linked *and* the
+            checklist is not itself asking for one — so the two never offer the
+            same tap, and a build that has lost `configured` under a linked
+            account can still unlink it. */}
+        {backup.connected && setup.outstanding !== BackupStep.Account ? (
+          <View style={{ gap: theme.spacing.sm }}>
+            <SectionHeader title={t.backup.accountSection} />
+            <Card style={{ gap: theme.spacing.md }}>
+              <Row style={{ gap: theme.spacing.md }}>
+                <Ionicons name="logo-google" size={iconSize.xl} color={theme.color.brand} />
+                {/* The linked address when Drive will say who it is, and the
+                    destination's own name when it will not — never a guess, and
+                    never a blank row that reads as "not connected". */}
+                <Text variant="body" style={{ flex: 1 }}>
+                  {backup.account ?? PROVIDER_LABEL}
+                </Text>
+              </Row>
+              <Button
+                label={t.backup.disconnect}
+                variant="ghostDanger"
+                onPress={() => setUnlinking(true)}
+                disabled={busy}
+                icon={pending === 'disconnect' ? spinner(false) : undefined}
+                fullWidth
               />
-              {/* The linked address when Drive will say who it is, and the
-                  destination's own name when it will not — never a guess, and
-                  never a blank row that reads as "not connected". */}
-              <Text variant="body" style={{ flex: 1 }}>
-                {backup.connected ? (backup.account ?? PROVIDER_LABEL) : t.backup.notConnected}
+            </Card>
+          </View>
+        ) : null}
+
+        {/* The key. Rendered whenever this phone holds one and the checklist is
+            not itself asking to be shown it. Gating this on `setup.complete`
+            was wrong: `configured` is a runtime conjunction (a client id *and*
+            the native Google module), so a build that loses either would hide
+            the only way to read back a key already on the device — and the
+            Drive file it opens would then be unrecoverable. */}
+        {backup.hasKey && setup.outstanding !== BackupStep.SaveKey ? (
+          <View style={{ gap: theme.spacing.sm }}>
+            <SectionHeader title={t.backup.keySection} />
+            <Card style={{ gap: theme.spacing.md }}>
+              <Row style={{ gap: theme.spacing.sm }}>
+                <Ionicons name="key" size={iconSize.md} color={theme.color.brand} />
+                <Text variant="body">{t.backup.keyPresent}</Text>
+              </Row>
+              <Text variant="micro" tone="muted">
+                {t.backup.keyIntro}
               </Text>
-            </Row>
-            <Button
-              label={backup.connected ? t.backup.disconnect : t.backup.connect}
-              variant={backup.connected ? 'ghostDanger' : 'secondary'}
-              onPress={() => (backup.connected ? setUnlinking(true) : void onConnect())}
-              disabled={!backup.configured || busy}
-              fullWidth
-            />
-          </Card>
-        </View>
+              <Row style={{ gap: theme.spacing.sm }}>
+                <View style={{ flex: 1 }}>
+                  <Button
+                    label={t.backup.keyShow}
+                    variant="secondary"
+                    size="sm"
+                    onPress={() => void onShowKey()}
+                    disabled={busy}
+                    icon={pending === 'key' ? spinner(false) : undefined}
+                    fullWidth
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Button
+                    label={t.backup.keyEnter}
+                    variant="ghost"
+                    size="sm"
+                    onPress={onEnterKey}
+                    disabled={busy}
+                    fullWidth
+                  />
+                </View>
+              </Row>
+            </Card>
+          </View>
+        ) : null}
 
-        {/* The key. Above the schedule on purpose — see the file header. */}
-        <View style={{ gap: theme.spacing.sm }}>
-          <SectionHeader title={t.backup.keySection} />
-          <Card style={{ gap: theme.spacing.md }}>
-            <Text variant="micro" tone="muted">
-              {t.backup.keyIntro}
-            </Text>
-            <Row style={{ gap: theme.spacing.sm }}>
-              <Ionicons
-                name={backup.hasKey ? 'key' : 'key-outline'}
-                size={iconSize.md}
-                color={backup.hasKey ? theme.color.brand : theme.color.textFaint}
-              />
-              <Text variant="body">{backup.hasKey ? t.backup.keyPresent : t.backup.keyAbsent}</Text>
-            </Row>
-            {/* A key made and then dismissed without confirming leaves "Back up
-                now" disabled with nothing on screen explaining why. Say it, and
-                point at the button that fixes it. */}
-            {backup.hasKey && !backup.settings.keySeen ? (
-              <Callout tone="warning">{t.backup.keyWarning}</Callout>
-            ) : null}
-            <Row style={{ gap: theme.spacing.sm }}>
-              <View style={{ flex: 1 }}>
-                <Button
-                  label={backup.hasKey ? t.backup.keyShow : t.backup.keyCreate}
-                  variant="secondary"
-                  size="sm"
-                  onPress={() => void (backup.hasKey ? onShowKey() : onCreateKey())}
-                  disabled={busy}
-                  fullWidth
-                />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Button
-                  label={t.backup.keyEnter}
-                  variant="ghost"
-                  size="sm"
-                  onPress={() => {
-                    setTypedKey('');
-                    setTypedInvalid(false);
-                    setEntering(true);
-                  }}
-                  disabled={busy}
-                  fullWidth
-                />
-              </View>
-            </Row>
-          </Card>
-        </View>
-
-        {/* How often. */}
+        {/* How often — and, when it cannot yet run, saying so rather than
+            sitting there reading "Daily" over a key that does not exist. */}
         <View style={{ gap: theme.spacing.sm }}>
           <SectionHeader title={t.backup.frequencySection} />
           <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
@@ -459,6 +835,14 @@ export default function BackupSettingsScreen() {
               );
             })}
           </Card>
+          {/* Not in a build that cannot back up at all: the card at the top
+              already says why, and "the steps above" would point at nothing. */}
+          {settled &&
+          !setup.complete &&
+          !setup.unavailable &&
+          backup.settings.frequency !== BackupFrequency.Off ? (
+            <Callout tone="warning">{t.backup.frequencyBlocked}</Callout>
+          ) : null}
           <Text variant="micro" tone="faint">
             {t.backup.frequencyNote}
           </Text>
@@ -522,9 +906,27 @@ export default function BackupSettingsScreen() {
               label={t.backup.restoreCheck}
               variant="secondary"
               onPress={() => void onCheckForBackup()}
-              disabled={!backup.configured || !backup.connected || !backup.hasKey || busy}
+              disabled={restoreReason !== null || busy}
+              icon={pending === 'scan' ? spinner(false) : undefined}
               fullWidth
             />
+            {restoreReason ? (
+              <Text variant="micro" tone="faint" align="center">
+                {restoreReason}
+              </Text>
+            ) : null}
+            {/* The way out of the one blocked state that has one, right here,
+                so nobody has to go looking for it in the checklist — where the
+                other button is the one that would cost them the backup. */}
+            {settled && backup.configured && backup.connected && !backup.hasKey ? (
+              <Button
+                label={t.backup.keyEnter}
+                variant="secondary"
+                onPress={onEnterKey}
+                disabled={busy}
+                fullWidth
+              />
+            ) : null}
           </Card>
         </View>
       </ScrollView>
@@ -588,7 +990,7 @@ export default function BackupSettingsScreen() {
               value={typedKey}
               onChangeText={(value) => {
                 setTypedKey(value);
-                setTypedInvalid(false);
+                setTypedProblem(null);
               }}
               placeholder={t.backup.keyEnterPlaceholder}
               placeholderTextColor={theme.color.textFaint}
@@ -608,7 +1010,7 @@ export default function BackupSettingsScreen() {
               }}
             />
           </Card>
-          {typedInvalid ? <Callout tone="negative">{t.backup.keyEnterInvalid}</Callout> : null}
+          {typedProblem ? <Callout tone="negative">{typedProblem}</Callout> : null}
           <Button label={t.backup.keyEnterSave} onPress={() => void onAcceptKey()} fullWidth />
         </View>
       </Sheet>
@@ -635,6 +1037,7 @@ export default function BackupSettingsScreen() {
                   label={t.backup.restoreConfirm}
                   onPress={() => void onRestore()}
                   disabled={busy}
+                  icon={pending === 'restore' ? spinner(true) : undefined}
                   fullWidth
                 />
               ) : null}
