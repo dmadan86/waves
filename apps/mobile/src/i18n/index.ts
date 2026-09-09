@@ -1118,6 +1118,32 @@ export interface UiStrings {
     noOnDevice: string;
     /** Re-reads the phone's lists, so a download finished elsewhere shows up. */
     refresh: string;
+    /**
+     * The phone was asked what models it holds and would not say.
+     *
+     * Its own words, deliberately, and never the network's: reading the
+     * inventory is a local call into the recogniser service on the device, so
+     * the app's generic "check your connection" was naming a fault that cannot
+     * be the cause. It also must not claim the rows are missing — a failed read
+     * is not an empty one, and saying otherwise is what put a Download button
+     * next to a model somebody had just watched arrive.
+     */
+    unreadable: string;
+    unreadableBody: string;
+    /**
+     * The phone was asked again and refused, but its earlier answer still
+     * stands.
+     *
+     * A quieter thing than {@link unreadable}, and kept apart from it because
+     * the difference is the whole point: there the screen knows nothing and
+     * offers a way to recover, here the list is still on the page and is merely
+     * not fresh. Saying "couldn't load" over a list somebody can see is how a
+     * screen teaches people to disbelieve it.
+     */
+    staleNote: string;
+    /** The speech service will not fetch a model for an app it cannot hear
+     *  through — a switch in Settings, not a fault of the phone or the language. */
+    permissionNeeded: string;
     /** The phone answered, and named no languages at all — so the app's own are
      *  the only rows on the screen. */
     empty: string;
@@ -3708,6 +3734,13 @@ const en: UiStrings = {
     noOnDevice:
       'This phone can’t recognise speech without a connection, so there’s nothing to download.',
     refresh: 'Refresh',
+    unreadable: 'This phone wouldn’t say what it has',
+    unreadableBody:
+      'Its own speech service didn’t answer, so there’s no telling which languages are already here. Nothing on this screen needs a connection — try again, or just download the language you want.',
+    staleNote:
+      'Couldn’t check with the phone again just now, so the ticks below may be out of date.',
+    permissionNeeded:
+      'Your phone’s speech service needs the microphone before it will fetch a model. Allow it in Settings, then try again.',
     empty:
       'Your phone didn’t name any languages it can recognise, so only the ones Waves asks for are listed. A download may still work.',
     footnote:
@@ -6206,6 +6239,13 @@ const ta: UiStrings = {
     noOnDevice:
       'இணைப்பு இல்லாமல் பேச்சை இந்த ஃபோனால் அடையாளம் காண முடியாது, எனவே பதிவிறக்க எதுவும் இல்லை.',
     refresh: 'புதுப்பி',
+    unreadable: 'இந்தத் தொலைபேசி தன்னிடம் என்ன இருக்கிறது எனச் சொல்லவில்லை',
+    unreadableBody:
+      'அதன் சொந்தப் பேச்சுச் சேவை பதிலளிக்கவில்லை, எனவே எந்த மொழிகள் ஏற்கெனவே இங்கு உள்ளன எனத் தெரியவில்லை. இந்தத் திரையில் எதற்கும் இணைய இணைப்பு தேவையில்லை — மீண்டும் முயலுங்கள், அல்லது வேண்டிய மொழியை நேரடியாகப் பதிவிறக்குங்கள்.',
+    staleNote:
+      'இப்போது தொலைபேசியிடம் மீண்டும் சரிபார்க்க முடியவில்லை, எனவே கீழுள்ள குறிகள் பழையவையாக இருக்கலாம்.',
+    permissionNeeded:
+      'மாதிரியைப் பெறுவதற்கு முன் உங்கள் தொலைபேசியின் பேச்சுச் சேவைக்கு ஒலிவாங்கி அனுமதி தேவை. அமைப்புகளில் அனுமதித்துவிட்டு மீண்டும் முயலுங்கள்.',
     empty:
       'தான் அடையாளம் காணக்கூடிய மொழிகள் எதையும் உங்கள் ஃபோன் சொல்லவில்லை, எனவே Waves கேட்பவை மட்டுமே பட்டியலில் உள்ளன. பதிவிறக்கம் இன்னும் வேலை செய்யக்கூடும்.',
     footnote:
@@ -8778,6 +8818,12 @@ const hi: UiStrings = {
     unavailable: 'यह बिल्ड स्पीच मॉडल तक नहीं पहुँच सकता।',
     noOnDevice: 'यह फ़ोन बिना कनेक्शन के बोली नहीं पहचान सकता, इसलिए डाउनलोड करने को कुछ नहीं है।',
     refresh: 'ताज़ा करें',
+    unreadable: 'यह फ़ोन नहीं बता रहा कि उसके पास क्या है',
+    unreadableBody:
+      'इसकी अपनी स्पीच सेवा ने जवाब नहीं दिया, इसलिए पता नहीं चल रहा कि कौन-सी भाषाएँ पहले से मौजूद हैं। इस स्क्रीन पर किसी चीज़ को कनेक्शन की ज़रूरत नहीं है — फिर कोशिश करें, या जो भाषा चाहिए उसे सीधे डाउनलोड कर लें।',
+    staleNote: 'अभी फ़ोन से दोबारा पूछा नहीं जा सका, इसलिए नीचे के निशान पुराने हो सकते हैं।',
+    permissionNeeded:
+      'मॉडल लाने से पहले आपके फ़ोन की स्पीच सेवा को माइक्रोफ़ोन चाहिए। सेटिंग्स में अनुमति दें, फिर कोशिश करें।',
     empty:
       'आपके फ़ोन ने ऐसी कोई भाषा नहीं बताई जिसे वह पहचान सके, इसलिए सिर्फ़ वही सूचीबद्ध हैं जो Waves माँगता है। डाउनलोड फिर भी काम कर सकता है।',
     footnote:
@@ -11344,6 +11390,12 @@ const ar: UiStrings = {
     unavailable: 'لا يستطيع هذا الإصدار الوصول إلى نماذج الكلام.',
     noOnDevice: 'لا يستطيع هذا الهاتف التعرّف على الكلام دون اتصال، فلا شيء لتنزيله.',
     refresh: 'تحديث',
+    unreadable: 'لم يخبرنا هذا الهاتف بما لديه',
+    unreadableBody:
+      'لم تُجب خدمة الكلام في الهاتف نفسه، لذا لا سبيل لمعرفة اللغات الموجودة هنا بالفعل. لا شيء في هذه الشاشة يحتاج إلى اتصال — أعد المحاولة، أو نزّل اللغة التي تريدها مباشرةً.',
+    staleNote: 'تعذّرت مراجعة الهاتف مرة أخرى الآن، لذا قد تكون العلامات أدناه قديمة.',
+    permissionNeeded:
+      'تحتاج خدمة الكلام في هاتفك إلى إذن الميكروفون قبل جلب النموذج. اسمح به في الإعدادات ثم أعد المحاولة.',
     empty:
       'لم يذكر هاتفك أي لغة يستطيع التعرّف عليها، لذا لا تظهر سوى اللغات التي يطلبها Waves. وقد ينجح التنزيل رغم ذلك.',
     footnote:
