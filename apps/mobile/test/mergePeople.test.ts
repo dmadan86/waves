@@ -82,7 +82,7 @@ describe('buildMergeCandidates', () => {
     );
     expect(candidates).toEqual([
       {
-        person_key: 'a',
+        person_key: 'phone:919876543210',
         member_ids: ['a'],
         group_ids: ['g1'],
         display_name: 'Ravi',
@@ -135,6 +135,31 @@ describe('buildMergeCandidates', () => {
       noMerges,
     );
     expect(candidates.map((c) => c.person_key)).toEqual(['a', 'b']);
+  });
+
+  it('folds the same invited phone across groups before any manual merge exists', () => {
+    const candidates = buildMergeCandidates(
+      [
+        member({ id: 'a', group_id: 'g1', ghost_name: 'Ravi', invite_phone: '+91 98765 43210' }),
+        member({ id: 'b', group_id: 'g2', ghost_name: 'Ravi', invite_phone: '०९८७६५४३२१०' }),
+      ],
+      noMerges,
+    );
+    expect(candidates).toHaveLength(1);
+    expect(candidates[0]?.member_ids).toEqual(['a', 'b']);
+    expect(candidates[0]?.group_ids).toEqual(['g1', 'g2']);
+  });
+
+  it('folds the same invited email across groups case-insensitively', () => {
+    const candidates = buildMergeCandidates(
+      [
+        member({ id: 'a', group_id: 'g1', ghost_name: 'Chloé', invite_email: 'Chloe@Example.com' }),
+        member({ id: 'b', group_id: 'g2', ghost_name: 'Chloe', invite_email: 'chloé@example.com' }),
+      ],
+      noMerges,
+    );
+    expect(candidates).toHaveLength(1);
+    expect(candidates[0]?.member_ids).toEqual(['a', 'b']);
   });
 
   it('falls back to the given label for a nameless ghost', () => {

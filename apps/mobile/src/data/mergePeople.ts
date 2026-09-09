@@ -13,6 +13,8 @@
  * are most likely to be merging *into* — so the balance list, which drops
  * anybody square with you, is the wrong roster to pick from.
  */
+import { digitsOf, fold, samePhone } from '@/lib/contactMatch';
+
 import type { PersonBalanceRow } from './api';
 
 /**
@@ -86,6 +88,13 @@ export function hasContact(person: Pick<NamedPerson, 'phone' | 'email'>): boolea
   return Boolean(person.phone?.trim() || person.email?.trim());
 }
 
+function contactKey(member: Pick<MergeableMember, 'invite_email' | 'invite_phone'>): string | null {
+  const email = member.invite_email?.trim();
+  if (email) return `email:${fold(email)}`;
+  const phone = member.invite_phone ? digitsOf(member.invite_phone) : '';
+  return phone ? `phone:${phone}` : null;
+}
+
 /**
  * Build the mergeable people out of raw memberships.
  *
@@ -114,14 +123,31 @@ export function buildMergeCandidates(
   }
 
   const byKey = new Map<string, Draft>();
+  const phoneKeys: { phone: string; key: string }[] = [];
   for (const member of members) {
     if (member.left_at !== null) continue;
     if (!isMergeable({ is_ghost: member.profile_id === null })) continue;
 
     const merge = merges.get(member.id) ?? null;
+    const contact = contactKey(member);
+    const phoneForKey = member.invite_phone?.trim() ?? '';
+    const existingPhoneKey =
+      !merge && phoneForKey
+        ? phoneKeys.find((entry) => samePhone(entry.phone, phoneForKey))?.key
+        : undefined;
     // A ghost merge the viewer recorded is their own proof that two rows are one
-    // human; failing that a ghost stays keyed to its own membership.
-    const key = merge?.person_id ?? member.id;
+    // human. Failing that, a shared invite address/number is the same kind of
+    // local proof across groups; without either, a ghost stays keyed to its own
+    // membership so two same-named people are never auto-folded.
+    const key = merge?.person_id ?? existingPhoneKey ?? contact ?? member.id;
+    if (
+      !merge &&
+      phoneForKey &&
+      contact?.startsWith('phone:') &&
+      !phoneKeys.some((entry) => entry.key === key)
+    ) {
+      phoneKeys.push({ phone: phoneForKey, key });
+    }
     let draft = byKey.get(key);
     if (!draft) {
       draft = {
