@@ -12,12 +12,41 @@ import { backupSetup, BackupStep } from '../src/lib/backup/setup';
 
 const setup = backupSetup;
 
+describe('the order of the steps', () => {
+  it('is account, then key, then saving it, whatever the flags say', () => {
+    // The order is the module's central claim — the reason it exists rather
+    // than the screen branching inline — so it is asserted directly, and on a
+    // state where the flags would not produce it by accident.
+    const state = setup({ configured: true, connected: false, hasKey: true, keySeen: true });
+    expect(state.steps.map((entry) => entry.step)).toEqual([
+      BackupStep.Account,
+      BackupStep.Key,
+      BackupStep.SaveKey,
+    ]);
+  });
+});
+
 describe('nothing set up yet', () => {
   it('points at the account first, because linking can fail on its own', () => {
     const state = setup({ configured: true, connected: false, hasKey: false, keySeen: false });
     expect(state.outstanding).toBe(BackupStep.Account);
     expect(state.done).toBe(0);
     expect(state.total).toBe(3);
+    expect(state.complete).toBe(false);
+  });
+});
+
+describe('a link that died under a key that did not', () => {
+  // Reachable on every `auth` refusal: the engine drops the dead tokens and
+  // `useBackup` re-reads, leaving a phone that still holds its key with nothing
+  // linked. Two of three done, and the outstanding one is the *first* gap, not
+  // the last — a checklist that walked forward from the count would point at
+  // the wrong step here.
+  const state = setup({ configured: true, connected: false, hasKey: true, keySeen: true });
+
+  it('counts two done but asks for the account again', () => {
+    expect(state.done).toBe(2);
+    expect(state.outstanding).toBe(BackupStep.Account);
     expect(state.complete).toBe(false);
   });
 });

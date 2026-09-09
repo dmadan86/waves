@@ -4,8 +4,15 @@
  *
  * A backup needs a linked Drive account, a key on this device, and — the one
  * everybody forgets is a step — the person having actually kept a copy of that
- * key. Until all three are true, `runBackup` refuses and the screen has nothing
- * useful to offer except the step that is outstanding.
+ * key. Until all three are true the screen has nothing useful to offer except
+ * the step that is outstanding.
+ *
+ * Two of the three are the engine's own refusals: `runBackup` returns
+ * `not-connected` with no tokens and `no-key` with no key. The third is not.
+ * `engine.ts` never reads `keySeen` — that gate is enforced by the two callers
+ * instead, this screen and `AutoBackup.tsx`, because "have you written it
+ * down?" is a question about a person and the engine only knows about bytes.
+ * Which is exactly why it belongs on a checklist.
  *
  * The order is not cosmetic. Linking comes first because it is the only step
  * that can fail for reasons outside the app (no Play services, a cancelled
@@ -28,13 +35,6 @@ export enum BackupStep {
   /** The key written down somewhere that is not this phone. */
   SaveKey = 'save-key',
 }
-
-/** The steps, in order, always all three — a checklist hides nothing. */
-export const BACKUP_STEPS: readonly BackupStep[] = [
-  BackupStep.Account,
-  BackupStep.Key,
-  BackupStep.SaveKey,
-];
 
 /** What the hook knows that bears on whether a backup can run. */
 export interface BackupSetupInput {

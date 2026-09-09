@@ -1717,7 +1717,6 @@ export interface UiStrings {
     stepSaveBody: string;
 
     accountSection: string;
-    notConnected: string;
     connect: string;
     connectFailed: string;
     disconnect: string;
@@ -1754,7 +1753,9 @@ export interface UiStrings {
     keySection: string;
     keyIntro: string;
     keyPresent: string;
-    keyAbsent: string;
+    /** The keystore would not give the key back, or would not take one. */
+    keyUnreadable: string;
+    keySaveFailed: string;
     keyCreate: string;
     keyShow: string;
     keyEnter: string;
@@ -1780,6 +1781,10 @@ export interface UiStrings {
     restoreDone: PluralForms;
     restoreFailed: string;
     restoreWrongKey: string;
+    /** Why a restore is blocked when this phone holds no key. Emphatically
+     *  not "create one": a new key cannot open an old backup, and making
+     *  one would let the next run overwrite that backup. */
+    restoreNeedsKey: string;
 
     /** Why a run did nothing. Each one is a different way out. */
     refusedNotConnected: string;
@@ -4284,7 +4289,6 @@ const en: UiStrings = {
     stepSaveBody: 'Write it down somewhere that is not this phone. Then backups can start.',
 
     accountSection: 'Google account',
-    notConnected: 'No account linked yet',
     connect: 'Link Google Drive',
     connectFailed: 'Could not link that account. Try again.',
     disconnect: 'Unlink',
@@ -4322,7 +4326,8 @@ const en: UiStrings = {
     keyIntro:
       'The backup is locked with a 64-character key. Write it down: it is the only way to open the backup on a new phone, and nobody can give it back to you — not Waves, not Google.',
     keyPresent: 'This phone has your key',
-    keyAbsent: 'No key on this phone yet',
+    keyUnreadable: 'This phone could not read your key. Try again in a moment.',
+    keySaveFailed: 'That key could not be saved on this phone. Try again in a moment.',
     keyCreate: 'Create a key',
     keyShow: 'Show my key',
     keyEnter: 'I already have a key',
@@ -4354,6 +4359,8 @@ const en: UiStrings = {
     },
     restoreFailed: 'Could not read that backup. Try again in a moment.',
     restoreWrongKey: 'That key does not open this backup.',
+    restoreNeedsKey:
+      'Enter the key from the phone that made this backup. A new key will not open it.',
 
     refusedNotConnected: 'Link a Google account first.',
     refusedNoKey: 'Create your backup key first.',
@@ -6846,7 +6853,6 @@ const ta: UiStrings = {
       'இந்த ஃபோன் அல்லாத இடத்தில் எழுதி வையுங்கள். அதன் பிறகு காப்புப்பிரதிகள் தொடங்கும்.',
 
     accountSection: 'Google கணக்கு',
-    notConnected: 'எந்தக் கணக்கும் இணைக்கப்படவில்லை',
     connect: 'Google Drive-ஐ இணை',
     connectFailed: 'அந்தக் கணக்கை இணைக்க முடியவில்லை. மீண்டும் முயலுங்கள்.',
     disconnect: 'இணைப்பை நீக்கு',
@@ -6885,7 +6891,10 @@ const ta: UiStrings = {
     keyIntro:
       'காப்புப்பிரதி 64 எழுத்துச் சாவியால் பூட்டப்படுகிறது. அதை எழுதி வையுங்கள்: புதிய ஃபோனில் அதைத் திறக்க அதுவே ஒரே வழி. Waves-ஆலும் Google-ஆலும் அதைத் திரும்பத் தர முடியாது.',
     keyPresent: 'இந்த ஃபோனில் உங்கள் சாவி உள்ளது',
-    keyAbsent: 'இந்த ஃபோனில் இன்னும் சாவி இல்லை',
+    keyUnreadable:
+      'இந்த ஃபோனால் உங்கள் சாவியைப் படிக்க முடியவில்லை. சிறிது நேரம் கழித்து முயலுங்கள்.',
+    keySaveFailed:
+      'அந்தச் சாவியை இந்த ஃபோனில் சேமிக்க முடியவில்லை. சிறிது நேரம் கழித்து முயலுங்கள்.',
     keyCreate: 'சாவியை உருவாக்கு',
     keyShow: 'என் சாவியைக் காட்டு',
     keyEnter: 'என்னிடம் ஏற்கனவே சாவி உள்ளது',
@@ -6917,6 +6926,7 @@ const ta: UiStrings = {
     },
     restoreFailed: 'அந்தக் காப்பைப் படிக்க முடியவில்லை. சிறிது நேரம் கழித்து முயலுங்கள்.',
     restoreWrongKey: 'அந்தச் சாவி இந்தக் காப்பைத் திறக்காது.',
+    restoreNeedsKey: 'காப்பு எடுத்த ஃபோனின் சாவியை உள்ளிடுங்கள். புதிய சாவி அதைத் திறக்காது.',
 
     refusedNotConnected: 'முதலில் ஒரு Google கணக்கை இணையுங்கள்.',
     refusedNoKey: 'முதலில் உங்கள் காப்புச் சாவியை உருவாக்குங்கள்.',
@@ -9433,7 +9443,6 @@ const hi: UiStrings = {
     stepSaveBody: 'इसे इस फ़ोन के अलावा कहीं लिख लीजिए। उसके बाद बैकअप शुरू हो सकते हैं।',
 
     accountSection: 'Google खाता',
-    notConnected: 'अभी कोई खाता जुड़ा नहीं है',
     connect: 'Google Drive जोड़ें',
     connectFailed: 'वह खाता नहीं जुड़ सका। फिर कोशिश करें।',
     disconnect: 'हटाएँ',
@@ -9471,7 +9480,8 @@ const hi: UiStrings = {
     keyIntro:
       'बैकअप 64 अक्षरों की एक चाबी से बंद रहता है। उसे लिख लीजिए: नए फ़ोन पर बैकअप खोलने का यही एक रास्ता है, और उसे कोई लौटा नहीं सकता — न Waves, न Google।',
     keyPresent: 'इस फ़ोन पर आपकी चाबी है',
-    keyAbsent: 'इस फ़ोन पर अभी कोई चाबी नहीं',
+    keyUnreadable: 'यह फ़ोन आपकी चाबी नहीं पढ़ सका। थोड़ी देर में फिर कोशिश करें।',
+    keySaveFailed: 'वह चाबी इस फ़ोन पर सेव नहीं हो सकी। थोड़ी देर में फिर कोशिश करें।',
     keyCreate: 'चाबी बनाएँ',
     keyShow: 'मेरी चाबी दिखाएँ',
     keyEnter: 'मेरे पास पहले से चाबी है',
@@ -9503,6 +9513,7 @@ const hi: UiStrings = {
     },
     restoreFailed: 'वह बैकअप पढ़ा नहीं जा सका। थोड़ी देर में फिर कोशिश करें।',
     restoreWrongKey: 'यह चाबी इस बैकअप को नहीं खोलती।',
+    restoreNeedsKey: 'जिस फ़ोन ने यह बैकअप बनाया, उसी की चाबी डालें। नई चाबी इसे नहीं खोलेगी।',
 
     refusedNotConnected: 'पहले एक Google खाता जोड़ें।',
     refusedNoKey: 'पहले अपनी बैकअप चाबी बनाएँ।',
@@ -12058,7 +12069,6 @@ const ar: UiStrings = {
     stepSaveBody: 'اكتبه في مكان غير هذا الهاتف. عندها يبدأ النسخ الاحتياطي.',
 
     accountSection: 'حساب Google',
-    notConnected: 'لم يُربط أي حساب بعد',
     connect: 'اربط Google Drive',
     connectFailed: 'تعذّر ربط هذا الحساب. حاول مرة أخرى.',
     disconnect: 'إلغاء الربط',
@@ -12100,7 +12110,8 @@ const ar: UiStrings = {
     keyIntro:
       'تُقفل النسخة بمفتاح من 64 حرفًا. اكتبه في مكان آمن: هو الطريق الوحيد لفتح النسخة على هاتف جديد، ولا أحد يستطيع إعادته لك — لا Waves ولا Google.',
     keyPresent: 'هذا الهاتف يحمل مفتاحك',
-    keyAbsent: 'لا مفتاح على هذا الهاتف بعد',
+    keyUnreadable: 'تعذّر على هذا الهاتف قراءة مفتاحك. حاول بعد قليل.',
+    keySaveFailed: 'تعذّر حفظ هذا المفتاح على هذا الهاتف. حاول بعد قليل.',
     keyCreate: 'أنشئ مفتاحًا',
     keyShow: 'أظهر مفتاحي',
     keyEnter: 'لديّ مفتاح بالفعل',
@@ -12139,6 +12150,7 @@ const ar: UiStrings = {
     },
     restoreFailed: 'تعذّرت قراءة تلك النسخة. حاول بعد قليل.',
     restoreWrongKey: 'هذا المفتاح لا يفتح هذه النسخة.',
+    restoreNeedsKey: 'أدخل مفتاح الهاتف الذي أنشأ هذه النسخة. المفتاح الجديد لن يفتحها.',
 
     refusedNotConnected: 'اربط حساب Google أولًا.',
     refusedNoKey: 'أنشئ مفتاح النسخة أولًا.',
