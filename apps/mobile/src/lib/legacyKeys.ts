@@ -16,6 +16,9 @@
  * overwrite. That makes the whole pass idempotent and safe to run at every
  * launch, which is what it does.
  *
+ * A few keys are swept away here instead of moved — see `RETIRED` below. They
+ * are the ones whose meaning has gone, not just their name.
+ *
  * `legacyKeysMigrated` is the promise every reader of a moved key awaits. It is
  * created at import time and settles once per process; awaiting it a dozen
  * times costs nothing after the first. It never rejects — a device whose
@@ -49,7 +52,6 @@ const MOVES: readonly Move[] = [
   { from: 'baaki.session_replay_consent', to: 'waves.session_replay_consent' },
   { from: 'baaki.release_policy', to: 'waves.release_policy' },
   { from: 'baaki.update_dismissed', to: 'waves.update_dismissed' },
-  { from: 'baaki.onboarding_seen', to: 'waves.onboarding_seen' },
   // The web driver's whole local store, including writes that have not synced.
   { from: 'baaki:mirror', to: 'waves:mirror' },
   { from: 'baaki:cursors', to: 'waves:cursors' },
@@ -58,6 +60,32 @@ const MOVES: readonly Move[] = [
   { from: 'baaki.device.id', to: 'waves.device.id', secure: true },
   { from: 'baaki.app_lock_enabled', to: 'waves.app_lock_enabled', secure: true },
   { from: 'baaki.app_lock_grace_seconds', to: 'waves.app_lock_grace_seconds', secure: true },
+];
+
+/**
+ * Keys that are deleted rather than moved, because nothing reads them any more.
+ *
+ * All three held "somebody on this handset has already been shown the intro"
+ * (or the coach-marks) — one device-wide answer, given on behalf of every
+ * account that would ever sign in here. That is the bug `lib/onboardingSeen`
+ * exists to end: the answer belongs to an account now, and a phone does not get
+ * to give it. So the old values are not migrated, not claimed and not
+ * consulted; they are swept up, and every account is asked once for itself.
+ *
+ * Sweeping is what makes it safe. A retired key is never read again, so a
+ * delete that fails is an orphaned string and nothing more — it cannot come
+ * back as an answer, and it cannot be re-created by the moves above, because
+ * `baaki.onboarding_seen` is no longer one of them. (Leaving it a move and
+ * deleting the destination elsewhere would have resurrected it: `apply` rewrites
+ * the destination whenever it finds it empty, so a source whose `forget` had
+ * failed would re-answer on the next launch, and every launch after that.)
+ */
+const RETIRED: readonly string[] = [
+  'baaki.onboarding_seen',
+  'waves.onboarding_seen',
+  // Never had a `baaki.` spelling — it was born after the rename — so the one
+  // name is the whole of it.
+  'waves.tour_seen_v1',
 ];
 
 const onWeb = typeof document !== 'undefined';
@@ -121,9 +149,24 @@ async function apply(move: Move): Promise<void> {
   await forget(move, move.from);
 }
 
-async function migrate(): Promise<void> {
-  await Promise.all(MOVES.map((move) => apply(move).catch(() => {})));
+async function retire(key: string): Promise<void> {
+  try {
+    await AsyncStorage.removeItem(key);
+  } catch {
+    // Nothing reads it, so a key that will not delete is wasted bytes rather
+    // than a wrong answer. The next launch tries again.
+  }
 }
 
-/** Settles once the device's pre-rename keys have been moved. Never rejects. */
+async function migrate(): Promise<void> {
+  await Promise.all([
+    ...MOVES.map((move) => apply(move).catch(() => {})),
+    ...RETIRED.map((key) => retire(key)),
+  ]);
+}
+
+/**
+ * Settles once the device's pre-rename keys have been moved and its retired
+ * ones swept. Never rejects.
+ */
 export const legacyKeysMigrated: Promise<void> = migrate();
