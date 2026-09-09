@@ -24,6 +24,7 @@ import {
   lockClockNow,
   lockPersonal,
   markPersonalUnlocked,
+  markPersonalUnlockedFromPrompt,
   personalAppActive,
   personalAppAway,
   subscribePersonalLock,
@@ -286,7 +287,7 @@ export function usePersonalGate(promptMessage: string): PersonalGateValue {
         fallbackLabel: 'Use passcode',
       });
       if (result.success) {
-        markPersonalUnlocked();
+        markPersonalUnlockedFromPrompt();
       } else {
         // Refused: stay shut, and wait to be asked again rather than looping the
         // prompt or navigating away underneath whoever is holding the phone.

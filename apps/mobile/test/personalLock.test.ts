@@ -21,6 +21,7 @@ import {
   leavePersonalSection,
   lockPersonal,
   markPersonalUnlocked,
+  markPersonalUnlockedFromPrompt,
   personalAppActive,
   personalAppAway,
   PERSONAL_LEAVE_SETTLE_MS,
@@ -154,6 +155,21 @@ describe('the live store', () => {
     enterPersonalSection(GRACE, T0);
     lockPersonal();
     expect(personalUnlockedNow(GRACE, T0)).toBe(false);
+  });
+
+  it('starts the away clock if a prompt success resolves after the section was left', () => {
+    markPersonalUnlockedFromPrompt(T0);
+
+    expect(getPersonalLockState()).toEqual({ unlockedAt: T0, awaySince: T0 });
+    expect(personalUnlockedNow(GRACE, T0 + (GRACE - 1) * 1000)).toBe(true);
+    expect(personalUnlockedNow(GRACE, T0 + GRACE * 1000)).toBe(false);
+  });
+
+  it('does not start the away clock when a prompt success resolves while the section is focused', () => {
+    enterPersonalSection(GRACE, T0);
+    markPersonalUnlockedFromPrompt(T0);
+
+    expect(getPersonalLockState()).toEqual({ unlockedAt: T0, awaySince: null });
   });
 
   it('is not opened by a refused check', () => {

@@ -159,6 +159,16 @@ export function markPersonalUnlocked(now = Date.now()): void {
 }
 
 /**
+ * A prompt proved who is holding the device. If the prompt resolved after the
+ * personal screen disappeared, start the away clock immediately instead of
+ * leaving a stale, indefinitely open section behind it.
+ */
+export function markPersonalUnlockedFromPrompt(now = Date.now()): void {
+  const unlocked = afterPersonalAuth(now);
+  commit(present > 0 ? unlocked : afterPersonalLeave(unlocked, now));
+}
+
+/**
  * Shut the section: sign-out, and a check that failed or was cancelled. A
  * refused check must never leave a half-open gate behind it.
  */
