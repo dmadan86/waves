@@ -3,6 +3,13 @@ const path = require('path');
 const expoConfig = require('eslint-config-expo/flat');
 
 /**
+ * Said once, because the two selectors that catch a native alert are two
+ * spellings of the same mistake.
+ */
+const ALERT_MESSAGE =
+  'Use `useDialog()` (@/lib/dialog) for a question and `useToast()` (@/lib/toast) for a notice. `Alert.alert` is the native dialog this app replaced.';
+
+/**
  * Expo's shared config already turns on `import/no-unresolved` and wires an
  * `import/resolver.typescript` entry — but that only resolves the `@/*` path
  * alias if `eslint-import-resolver-typescript` is actually installed. It has
@@ -53,6 +60,18 @@ module.exports = [
               message: 'Import `backend` from `@/lib/backend`, not the Supabase client directly.',
             },
             {
+              // The stock alert is a different application's window borrowed for
+              // a moment — grey slab, square corners, two identical capitals —
+              // over a screen of rounded cards and brand purple, and it can be
+              // told nothing but strings. Every one of the forty-nine call sites
+              // it had is now `useDialog()` or `useToast()`; this is what stops
+              // the fiftieth. Everything else in react-native is fine.
+              name: 'react-native',
+              importNames: ['Alert'],
+              message:
+                'Use `useDialog()` (@/lib/dialog) for a question and `useToast()` (@/lib/toast) for a notice. `Alert` is the native dialog this app replaced.',
+            },
+            {
               // One tap, one screen. `@/lib/navigation` is expo-router's router
               // with a short guard in front of it, so a double tap cannot push
               // the same route twice — a bug you only see on a real phone, and
@@ -70,6 +89,24 @@ module.exports = [
               message: 'Import through the backend port (`@/lib/backend`).',
             },
           ],
+        },
+      ],
+      // The import rule cannot see `require('react-native').Alert`, and this
+      // repo reaches for a lazy `require` on purpose (see lib/restart.ts, where
+      // a hoisted import of a missing native module kills the app at launch).
+      // This catches the call however `Alert` was got hold of.
+      'no-restricted-syntax': [
+        'error',
+        {
+          // `Alert.alert(…)`, however `Alert` was bound — including out of a
+          // destructured `require`.
+          selector: "MemberExpression[object.name='Alert'][property.name='alert']",
+          message: ALERT_MESSAGE,
+        },
+        {
+          // `RN.Alert.alert(…)` and `require('react-native').Alert.alert(…)`.
+          selector: "MemberExpression[property.name='alert'][object.property.name='Alert']",
+          message: ALERT_MESSAGE,
         },
       ],
     },

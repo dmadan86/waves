@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useMutation } from '@tanstack/react-query';
 import { useLocalSearchParams } from 'expo-router';
-import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Linking, Pressable, ScrollView, View } from 'react-native';
 
 import {
   allocateSettlement,
@@ -44,11 +44,13 @@ import { fill, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { useGuestGuard } from '@/lib/guestGuard';
 import { router } from '@/lib/navigation';
+import { useDialog } from '@/lib/dialog';
 
 export default function SettleScreen() {
   const theme = useTheme();
   const clearance = useScreenClearance();
   const { t, locale } = useStrings();
+  const { confirm, notify } = useDialog();
   const { id } = useLocalSearchParams<{ id: string }>();
   const groupId = id ?? '';
   const { profile } = useAuth();
@@ -203,10 +205,15 @@ export default function SettleScreen() {
     const railInfo = railById(method);
 
     if (!payable) {
-      Alert.alert(
-        t.misc.settleNoDetailsTitle.replace('{rail}', railInfo?.label ?? t.misc.settleRailFallback),
-        t.misc.settleNoDetailsBody.replace('{name}', displayName(counterparty)),
-      );
+      // Why the tap did nothing, so it is a notice with a door rather than a
+      // toast: the next thing to do is go and ask this person for their details.
+      await notify({
+        title: t.misc.settleNoDetailsTitle.replace(
+          '{rail}',
+          railInfo?.label ?? t.misc.settleRailFallback,
+        ),
+        body: t.misc.settleNoDetailsBody.replace('{name}', displayName(counterparty)),
+      });
       return;
     }
 
@@ -239,26 +246,27 @@ export default function SettleScreen() {
       : false;
     if (uri && canOpen) {
       await Linking.openURL(uri.uri);
-      Alert.alert(t.extras.paymentWentThrough, t.extras.onlyIfCompleted, [
-        { text: t.misc.recordNo, style: 'cancel' },
-        { text: t.misc.recordYes, onPress: () => void record() },
-      ]);
+      const paid = await confirm({
+        title: t.extras.paymentWentThrough,
+        body: t.extras.onlyIfCompleted,
+        confirmLabel: t.misc.recordYes,
+        cancelLabel: t.misc.recordNo,
+      });
+      if (paid) void record();
       return;
     }
 
-    Alert.alert(
-      t.misc.settlePayTitle.replace('{name}', displayName(counterparty)),
-      t.misc.settlePayBody
+    const recordIt = await confirm({
+      title: t.misc.settlePayTitle.replace('{name}', displayName(counterparty)),
+      body: t.misc.settlePayBody
         // `payable.rail`, because the handle underneath belongs to it — naming
         // the picker's rail here is what let the button say "Pay via Pix" over
-        // an alert reading "UPI".
+        // a dialog reading "UPI".
         .replace('{rail}', railById(payable.rail)?.label ?? t.misc.settleSendTo)
         .replace('{handle}', payable.handle),
-      [
-        { text: t.common.cancel, style: 'cancel' },
-        { text: t.misc.recordIt, onPress: () => void record() },
-      ],
-    );
+      confirmLabel: t.misc.recordIt,
+    });
+    if (recordIt) void record();
   };
 
   if (group.isLoading || members.isLoading) {

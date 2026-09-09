@@ -34,6 +34,7 @@ import {
 import { Onboarding } from '@/components/Onboarding';
 import { AnimatedSplash } from '@/components/AnimatedSplash';
 import { AppTabBar } from '@/components/AppTabBar';
+import { LanguageRestartPrompt } from '@/components/LanguageRestartPrompt';
 import { TransferProgressBar } from '@/components/TransferProgressBar';
 import { CampaignPopup } from '@/components/CampaignPopup';
 import { NotificationPrompt } from '@/components/NotificationPrompt';
@@ -60,6 +61,7 @@ import { TourProvider, useTour } from '@/lib/tour';
 import { PromptQueueProvider } from '@/lib/promptQueue';
 import { SyncNetworkProvider } from '@/lib/syncNetwork';
 import { ThemePreferenceProvider, useThemePreference } from '@/lib/theme';
+import { DialogProvider } from '@/lib/dialog';
 import { ToastProvider } from '@/lib/toast';
 import { UpdateProvider } from '@/lib/update';
 import { initClarity } from '@/lib/clarity';
@@ -224,58 +226,71 @@ function RootLayout() {
                                       same element across its own state changes,
                                       so showing one does not re-render the app. */}
                                   <ToastProvider>
-                                    <ThemedStatusBar />
-                                    {/* Renders nothing: it keeps the app-icon long-press
+                                    {/* Beside the toast host and for the same
+                                        reason: a question can outlive the screen
+                                        that asked it, and the surface that draws
+                                        it has to sit above the navigation stack.
+                                        Inside the toast provider so a dialog's
+                                        outcome can raise one. */}
+                                    <DialogProvider>
+                                      <ThemedStatusBar />
+                                      {/* Renders nothing: it draws the "open the app
+                                        again to mirror it" question that
+                                        `LanguageProvider` can only raise as a
+                                        value, being above every surface. */}
+                                      <LanguageRestartPrompt />
+                                      {/* Renders nothing: it keeps the app-icon long-press
                                       menu in step with the session. Outside every
                                       gate because the menu lives on the home screen,
                                       not in the app — it has to be cleared when
                                       somebody signs out, and an upgrade has to replace
                                       the single shortcut the old version published,
                                       whether or not this launch gets past the lock. */}
-                                    <QuickShortcutsMenu />
-                                    {/* Outside the lock and the auth gate on purpose: a build
+                                      <QuickShortcutsMenu />
+                                      {/* Outside the lock and the auth gate on purpose: a build
                             we have stopped trusting should not be unlocking a
                             ledger or signing anybody in either. */}
-                                    <UpdateGate>
-                                      <PushRouting />
-                                      <LockGate>
-                                        {/* Below the lock and update gates so the watch
+                                      <UpdateGate>
+                                        <PushRouting />
+                                        <LockGate>
+                                          {/* Below the lock and update gates so the watch
                                 bridge never turns a wrist tap into a capture
                                 while the app is locked or on a build we have
                                 stopped trusting. */}
-                                        <WatchBridgeProvider />
-                                        {/* Same reasoning, one step further: an
+                                          <WatchBridgeProvider />
+                                          {/* Same reasoning, one step further: an
                                 automatic backup must not run on a build we
                                 have stopped trusting, and must not decrypt a
                                 ledger while the app is still locked. */}
-                                        <AutoBackup />
-                                        {/* Inside the lock so the two-device gate never
+                                          <AutoBackup />
+                                          {/* Inside the lock so the two-device gate never
                                 paints over the lock screen, and past auth so it
                                 only ever asks a signed-in account. */}
-                                        <DeviceSessionProvider>
-                                          <AuthGate />
-                                          {/* Inside the lock on purpose: a promotion is not a
+                                          <DeviceSessionProvider>
+                                            <AuthGate />
+                                            {/* Inside the lock on purpose: a promotion is not a
                                   reason to show somebody's phone anything before
                                   they have unlocked it. */}
-                                          <CampaignPopup />
-                                          {/* The soft ask for push, once, to a
+                                            <CampaignPopup />
+                                            {/* The soft ask for push, once, to a
                                         signed-in person whose permission is
                                         still undetermined. */}
-                                          <NotificationPrompt />
-                                        </DeviceSessionProvider>
-                                      </LockGate>
-                                      {/* The coach-mark tour, over the whole app but
+                                            <NotificationPrompt />
+                                          </DeviceSessionProvider>
+                                        </LockGate>
+                                        {/* The coach-mark tour, over the whole app but
                                     only ever started from Home. Above the gate
                                     so its scrim covers the screen. */}
-                                      <TourOverlay />
-                                      {/* Last, so it paints over the screen rather than
+                                        <TourOverlay />
+                                        {/* Last, so it paints over the screen rather than
                               under it. */}
-                                      <UpdateBanner />
-                                    </UpdateGate>
-                                    {/* Topmost of all: the launch field, painting over
+                                        <UpdateBanner />
+                                      </UpdateGate>
+                                      {/* Topmost of all: the launch field, painting over
                                   the whole app until it fades itself out. Native
                                   only; renders nothing on web. */}
-                                    <AnimatedSplash />
+                                      <AnimatedSplash />
+                                    </DialogProvider>
                                   </ToastProvider>
                                 </ThemedRoot>
                               </RecentCountProvider>

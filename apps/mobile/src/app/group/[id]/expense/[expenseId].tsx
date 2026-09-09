@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import type { ScrollView as RNScrollView } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Linking, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
@@ -55,6 +55,7 @@ import { coordLabel, mapsUrl } from '@/lib/location';
 import { useBottomClearance } from '@/lib/clearance';
 import { expenseMemberHref } from '@/lib/expenseMemberRows';
 import { router, useGoBack } from '@/lib/navigation';
+import { useDialog } from '@/lib/dialog';
 
 function splitLabels(t: UiStrings): Record<string, string> {
   return {
@@ -131,6 +132,7 @@ export default function ExpenseDetailScreen() {
   const insets = useSafeAreaInsets();
   const clearance = useBottomClearance();
   const { t, locale } = useStrings();
+  const { confirm } = useDialog();
   const { id, expenseId } = useLocalSearchParams<{ id: string; expenseId: string }>();
   const groupId = id ?? '';
   const { profile } = useAuth();
@@ -318,17 +320,14 @@ export default function ExpenseDetailScreen() {
   // wash is the neutral brand indigo, never a money verdict. The category keeps
   // its own colour as the badge chip on the wash.
 
-  const confirmDelete = (): void => {
-    Alert.alert(t.expense.deleteQuestion, t.expense.deleteBody, [
-      { text: t.common.cancel, style: 'cancel' },
-      {
-        text: t.common.delete,
-        style: 'destructive',
-        onPress: () => {
-          deleteExpense.mutate(expense.id, { onSuccess: () => router.back() });
-        },
-      },
-    ]);
+  const confirmDelete = async (): Promise<void> => {
+    const ok = await confirm({
+      title: t.expense.deleteQuestion,
+      body: t.expense.deleteBody,
+      confirmLabel: t.common.delete,
+      tone: 'danger',
+    });
+    if (ok) deleteExpense.mutate(expense.id, { onSuccess: () => router.back() });
   };
 
   const openEditor = (focus?: 'amount'): void => {
@@ -362,7 +361,7 @@ export default function ExpenseDetailScreen() {
           label: t.expense.deleteAction,
           tone: 'danger',
           onPress: () => {
-            if (!deleteExpense.isPending) confirmDelete();
+            if (!deleteExpense.isPending) void confirmDelete();
           },
         },
       ];

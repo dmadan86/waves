@@ -1871,12 +1871,13 @@ export interface UiStrings {
     deleteBody: string;
     delete: string;
     /** The delete confirmation when balances are still open. The intro heads a
-     *  list of `deleteOwesLine`s (`{from}` owes `{to}` `{amount}`), the count
-     *  closes it when there are more than the alert shows, and the warning says
+     *  list of `deleteOwesWho` rows (`{from}` owes `{to}`, with the amount drawn
+     *  beside it as money rather than folded into the sentence), the count
+     *  closes it when there are more than the dialog shows, and the warning says
      *  what is actually being thrown away and for whom. The hint is the same
      *  point made in one line under the button, before it is ever tapped. */
     deleteUnsettledIntro: string;
-    deleteOwesLine: string;
+    deleteOwesWho: string;
     deleteMoreDebts: PluralForms;
     deleteUnsettledWarning: string;
     deleteUnsettledHint: string;
@@ -4437,7 +4438,7 @@ const en: UiStrings = {
     deleteBody: 'It goes for everyone in it, immediately, and this cannot be undone.',
     delete: 'Delete',
     deleteUnsettledIntro: 'This group is not settled. Right now:',
-    deleteOwesLine: '{from} owes {to} {amount}',
+    deleteOwesWho: '{from} owes {to}',
     deleteMoreDebts: { one: 'and {n} more', other: 'and {n} more' },
     deleteUnsettledWarning:
       'Deleting it wipes that record for everyone in the group, not just for you. Nobody will be able to look up who owed what.',
@@ -7005,7 +7006,7 @@ const ta: UiStrings = {
     deleteBody: 'இது இதிலுள்ள அனைவருக்கும் உடனடியாக அழியும், இதை மீட்க முடியாது.',
     delete: 'அழி',
     deleteUnsettledIntro: 'இந்தக் குழு இன்னும் தீர்க்கப்படவில்லை. இப்போது:',
-    deleteOwesLine: '{to}-க்கு {from} {amount} தர வேண்டும்',
+    deleteOwesWho: '{to}-க்கு {from} தர வேண்டும்',
     deleteMoreDebts: { one: 'மேலும் {n}', other: 'மேலும் {n}' },
     deleteUnsettledWarning:
       'அழித்தால் அந்தப் பதிவு உங்களுக்கு மட்டுமல்ல, குழுவிலுள்ள அனைவருக்கும் அழிந்துவிடும். யார் யாருக்குத் தர வேண்டும் என்பதை இனி யாராலும் பார்க்க முடியாது.',
@@ -9589,7 +9590,7 @@ const hi: UiStrings = {
     deleteBody: 'यह इसमें शामिल सभी के लिए तुरंत हट जाएगा, और इसे वापस नहीं लाया जा सकता।',
     delete: 'हटाएँ',
     deleteUnsettledIntro: 'इस समूह का हिसाब बाकी है। अभी:',
-    deleteOwesLine: '{from} पर {to} के {amount} बाकी हैं',
+    deleteOwesWho: '{from} पर {to} का बकाया',
     deleteMoreDebts: { one: '{n} और', other: '{n} और' },
     deleteUnsettledWarning:
       'हटाने पर यह हिसाब सिर्फ़ आपके लिए नहीं, समूह के सभी लोगों के लिए मिट जाएगा। फिर कोई नहीं देख पाएगा कि किसका किससे क्या लेना-देना था।',
@@ -12244,7 +12245,7 @@ const ar: UiStrings = {
     deleteBody: 'تُحذف لكل من فيها فورًا، ولا يمكن التراجع عن ذلك.',
     delete: 'حذف',
     deleteUnsettledIntro: 'حساب هذه المجموعة لم يُسوَّ بعد. حاليًا:',
-    deleteOwesLine: 'على {from} أن يدفع {amount} إلى {to}',
+    deleteOwesWho: 'على {from} أن يدفع إلى {to}',
     deleteMoreDebts: {
       zero: 'و{n} أخرى',
       one: 'وواحد آخر',

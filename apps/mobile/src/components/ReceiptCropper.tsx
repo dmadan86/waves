@@ -27,6 +27,7 @@ import { IconButton, iconSize, Row, Text, useTheme } from '@waves/ui';
 
 import { containRect } from '@/lib/annotations';
 import { transformReceipt, type PickedImage } from '@/lib/image';
+import { ModalNotice } from '@/components/ModalNotice';
 import { useStrings } from '@/i18n';
 
 type Crop = { x: number; y: number; w: number; h: number };
@@ -43,11 +44,16 @@ function clamp01(n: number): number {
 export function ReceiptCropper({
   uri,
   saving,
+  error,
+  onDismissError,
   onCancel,
   onSave,
 }: {
   uri: string;
   saving: boolean;
+  /** See {@link ModalNotice} — a toast raised from a modal is never seen. */
+  error?: string | null;
+  onDismissError?: () => void;
   onCancel: () => void;
   onSave: (picked: PickedImage) => void;
 }): React.JSX.Element {
@@ -214,6 +220,7 @@ export function ReceiptCropper({
   return (
     <Modal visible animationType="slide" onRequestClose={onCancel}>
       <View style={{ flex: 1, backgroundColor: '#000' }}>
+        <ModalNotice message={error ?? null} onDismiss={() => onDismissError?.()} />
         <Row
           style={{
             justifyContent: 'space-between',

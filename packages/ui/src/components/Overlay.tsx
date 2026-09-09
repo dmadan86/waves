@@ -15,6 +15,14 @@
  * through its close, so the exit plays instead of the content vanishing the
  * instant `visible` flips — `Modal`'s own `animationType` would unmount too soon
  * for that. Reduced motion keeps the fade and drops the travel and the scale.
+ *
+ * One structural rule holds in both: **the tap-away scrim is a sibling of the
+ * card, never its parent.** A `Pressable` is an accessibility element, and an
+ * accessibility element hides everything inside it — wrapping the card in the
+ * scrim meant a screen reader found one button called "Close" where the title,
+ * the rows and the doors should have been. So the scrim is an absolutely-filled
+ * layer underneath, and the card sits over it in a `box-none` frame that lets
+ * taps beside the card fall through to the scrim.
  */
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
@@ -23,6 +31,7 @@ import {
   Animated,
   Modal,
   Pressable,
+  StyleSheet,
   useWindowDimensions,
   View,
   type ViewStyle,
@@ -248,18 +257,20 @@ export function Sheet({
         }}
       >
         <Animated.View style={{ flex: 1, backgroundColor: SCRIM, opacity: progress }}>
+          {/* Underneath, not around: see the note at the top of this file. */}
           <Pressable
             onPress={onClose}
             accessibilityRole="button"
             accessibilityLabel={closeLabel}
-            style={{ flex: 1, justifyContent: 'flex-end' }}
-          >
+            style={StyleSheet.absoluteFill}
+          />
+          <View pointerEvents="box-none" style={{ flex: 1, justifyContent: 'flex-end' }}>
             <Animated.View style={{ transform: [{ translateY }] }}>
               <SheetCard handle={handle} padded={padded} style={style} onLayout={setHeight}>
                 {children}
               </SheetCard>
             </Animated.View>
-          </Pressable>
+          </View>
         </Animated.View>
       </SafeAreaProvider>
     </Modal>
@@ -310,10 +321,17 @@ export function Popup({
       onRequestClose={onClose}
     >
       <Animated.View style={{ flex: 1, backgroundColor: SCRIM, opacity: progress }}>
-        <Pressable
-          onPress={dismissable ? onClose : undefined}
-          accessibilityRole={dismissable ? 'button' : undefined}
-          accessibilityLabel={dismissable ? closeLabel : undefined}
+        {/* Underneath, not around: see the note at the top of this file. */}
+        {dismissable ? (
+          <Pressable
+            onPress={onClose}
+            accessibilityRole="button"
+            accessibilityLabel={closeLabel}
+            style={StyleSheet.absoluteFill}
+          />
+        ) : null}
+        <View
+          pointerEvents="box-none"
           style={{
             flex: 1,
             alignItems: 'center',
@@ -321,7 +339,10 @@ export function Popup({
             padding: theme.spacing.xl,
           }}
         >
-          <Animated.View style={{ width: '100%', opacity: progress, transform: [{ scale }] }}>
+          <Animated.View
+            style={{ width: '100%', opacity: progress, transform: [{ scale }] }}
+            pointerEvents="box-none"
+          >
             <Pressable
               onPress={() => {}}
               accessibilityViewIsModal
@@ -341,7 +362,7 @@ export function Popup({
               {children}
             </Pressable>
           </Animated.View>
-        </Pressable>
+        </View>
       </Animated.View>
     </Modal>
   );

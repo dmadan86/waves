@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Alert, ScrollView, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 
 import {
   Badge,
@@ -29,6 +29,7 @@ import { useSettledTotals } from '@/data/hooks';
 import { isRtlLanguage, LANGUAGE_NAMES, plural, useStrings } from '@/i18n';
 import { useLanguage } from '@/i18n/language';
 import { useAuth } from '@/lib/auth';
+import { useDialog } from '@/lib/dialog';
 import { pickAvatarPhoto } from '@/lib/image';
 import { router } from '@/lib/navigation';
 import { r2Enabled } from '@/lib/storage';
@@ -213,6 +214,7 @@ function ProfileForm() {
   const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
   const { session, profile, isGuest, updateProfile, signOut } = useAuth();
+  const { choose } = useDialog();
   // A Google/Apple sign-in carries a photo in the session's user metadata, but
   // the profile row only holds one if a trigger copied it across — older
   // accounts have a null `avatar_url` and so showed initials here. Fall back to
@@ -279,16 +281,24 @@ function ProfileForm() {
     }
   };
 
-  const photoOptions = (): void => {
+  // Three ways forward, so a sheet rather than a dialog — the shape Nextdoor
+  // and Instacart use for a short list of actions, and the one a thumb can
+  // reach. There is nothing to choose between when no photo is set yet, so that
+  // case skips the question entirely and opens the picker.
+  const photoOptions = async (): Promise<void> => {
     if (!profile?.avatar_url) {
       void choosePhoto();
       return;
     }
-    Alert.alert(t.account.yourPhoto, undefined, [
-      { text: t.account.chooseNewPhoto, onPress: () => void choosePhoto() },
-      { text: t.common.remove, style: 'destructive', onPress: () => void clearPhoto() },
-      { text: t.common.cancel, style: 'cancel' },
-    ]);
+    const picked = await choose({
+      title: t.account.yourPhoto,
+      options: [
+        { id: 'replace', label: t.account.chooseNewPhoto },
+        { id: 'remove', label: t.common.remove, tone: 'danger' },
+      ],
+    });
+    if (picked === 'replace') void choosePhoto();
+    else if (picked === 'remove') void clearPhoto();
   };
 
   /**
@@ -375,7 +385,7 @@ function ProfileForm() {
             name={profile?.display_name ?? t.account.you}
             avatarUrl={profile?.avatar_url || oauthAvatar}
             size={92}
-            onPress={profile ? photoOptions : undefined}
+            onPress={profile ? () => void photoOptions() : undefined}
             busy={photoBusy}
           />
           <View style={{ alignItems: 'center', gap: theme.spacing.sm }}>

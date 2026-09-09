@@ -9,15 +9,7 @@ import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useLocalSearchParams } from 'expo-router';
-import {
-  ActivityIndicator,
-  Alert,
-  Platform,
-  Pressable,
-  ScrollView,
-  TextInput,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
 
 import { encodeTxn, type CategoryMeta, type PersonalTxn, type TxnKind } from '@waves/core';
 import {
@@ -48,6 +40,7 @@ import { useSync } from '@/sync';
 import { useStrings } from '@/i18n';
 import { PersonalGuard } from '@/components/PersonalGuard';
 import { useBottomClearance } from '@/lib/clearance';
+import { useDialog } from '@/lib/dialog';
 
 function PersonalEntryScreenBody() {
   const theme = useTheme();
@@ -118,6 +111,7 @@ function EntryForm({
   t: ReturnType<typeof useStrings>['t'];
 }) {
   const theme = useTheme();
+  const { confirm } = useDialog();
   const clearance = useBottomClearance();
   const upsert = useUpsertPersonalRecord();
   const remove = useDeletePersonalRecord();
@@ -155,16 +149,15 @@ function EntryForm({
     );
   };
 
-  const onDelete = (): void => {
+  const onDelete = async (): Promise<void> => {
     if (!editing) return;
-    Alert.alert(t.common.delete, t.personal.deleteConfirm, [
-      { text: t.common.cancel, style: 'cancel' },
-      {
-        text: t.common.delete,
-        style: 'destructive',
-        onPress: () => remove.mutate(editing.id, { onSuccess: () => router.back() }),
-      },
-    ]);
+    const ok = await confirm({
+      title: t.common.delete,
+      body: t.personal.deleteConfirm,
+      confirmLabel: t.common.delete,
+      tone: 'danger',
+    });
+    if (ok) remove.mutate(editing.id, { onSuccess: () => router.back() });
   };
 
   const title = editing
