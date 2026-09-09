@@ -53,6 +53,7 @@ import { useAuth } from '@/lib/auth';
 import { expenseReceiptPath, expenseReceiptUrl } from '@/data/api';
 import { coordLabel, mapsUrl } from '@/lib/location';
 import { useBottomClearance } from '@/lib/clearance';
+import { expenseMemberHref } from '@/lib/expenseMemberRows';
 
 function splitLabels(t: UiStrings): Record<string, string> {
   return {
@@ -668,10 +669,21 @@ export default function ExpenseDetailScreen() {
                 <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
                   {version.payers.map((payer, index) => {
                     const payerMember = lookup.get(payer.member_id);
+                    const payerHref = expenseMemberHref(groupId, payer.member_id, Boolean(payerMember));
                     return (
                       <View key={payer.member_id}>
                         <ListRow
                           title={nameOf(payer.member_id)}
+                          onPress={payerHref ? () => router.push(payerHref) : undefined}
+                          accessibilityLabel={t.expense.paidByNameAmount
+                            .replace('{name}', nameOf(payer.member_id))
+                            .replace(
+                              '{amount}',
+                              format(money(BigInt(payer.amount), currency), {
+                                locale,
+                                compactFraction: true,
+                              }),
+                            )}
                           leading={
                             <MemberAvatar
                               name={avatarNameOf(payer.member_id)}
@@ -714,9 +726,8 @@ export default function ExpenseDetailScreen() {
                   // written into an old version and since gone) has nowhere to
                   // land, so it stays a plain row rather than a tap that ends on
                   // "member not found".
-                  const openMember = member
-                    ? () => router.push(`/group/${groupId}/member/${row.memberId}`)
-                    : undefined;
+                  const memberHref = expenseMemberHref(groupId, row.memberId, Boolean(member));
+                  const openMember = memberHref ? () => router.push(memberHref) : undefined;
                   // The words under the name, computed once and given to both the
                   // row and its spoken label — an explicit `accessibilityLabel`
                   // replaces `ListRow`'s default wholesale, so anything only the
