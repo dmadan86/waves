@@ -20,7 +20,6 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -70,6 +69,7 @@ import {
 } from '@/data/personal';
 import { useDefaultCurrency } from '@/lib/currency';
 import { usePersonalGate } from '@/lib/lock';
+import { router } from '@/lib/navigation';
 import { useSync } from '@/sync';
 import { fill, useStrings } from '@/i18n';
 

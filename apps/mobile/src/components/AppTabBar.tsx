@@ -23,13 +23,14 @@
 
 import { useCallback, useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router, useGlobalSearchParams, useSegments } from 'expo-router';
+import { useGlobalSearchParams, useSegments } from 'expo-router';
 import { Platform, Vibration } from 'react-native';
 
 import { iconSize, PillTabBar, type PillTabAction, type PillTabItem } from '@waves/ui';
 
 import { isRtl, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
+import { router } from '@/lib/navigation';
 import { pushToTalk } from '@/lib/pushToTalk';
 import { resolveTabBar, tabBarRouteForSelection } from '@/lib/tabBar';
 

@@ -15,7 +15,7 @@
 
 import { useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { Pressable, ScrollView, TextInput, View } from 'react-native';
 
 import {
@@ -67,6 +67,7 @@ import { useAuth } from '@/lib/auth';
 import { SkeletonList } from '@/components/Skeletons';
 import { CategoryBudgets } from '@/components/CategoryBudgets';
 import { fill, useStrings, type UiStrings } from '@/i18n';
+import { router } from '@/lib/navigation';
 
 /** Today where the trip is, not where the server is. */
 function todayIn(timeZone: string): string {

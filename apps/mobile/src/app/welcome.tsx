@@ -22,7 +22,6 @@
 import { useEffect, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
 import { Platform, Pressable, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
@@ -42,6 +41,7 @@ import { ProviderButton, SocialTile } from '@/components/SocialTile';
 import { useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { friendlyError } from '@/lib/errors';
+import { router } from '@/lib/navigation';
 
 /** The door's green wash — a light stop into the base green (#65B63E) into a
     darker one, top to bottom, matching the splash. A local screen colour, not a

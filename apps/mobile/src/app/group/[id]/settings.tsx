@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useQuery } from '@tanstack/react-query';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { ActivityIndicator, Alert, ScrollView, TextInput, View } from 'react-native';
 
 import {
@@ -34,6 +34,7 @@ import { friendlyError } from '@/lib/errors';
 import { groupDeleteBody, orderDebtsForWarning } from '@/lib/groupDeleteWarning';
 import { pickGroupPhoto } from '@/lib/image';
 import { requestContacts } from '@/lib/contactPickerBridge';
+import { router } from '@/lib/navigation';
 import { isPhoneCountryError } from '@/lib/phone';
 import { CountryRow } from '@/components/CountryPicker';
 import { GroupCoverSheet } from '@/components/CoverEmojiPicker';

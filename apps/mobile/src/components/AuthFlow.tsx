@@ -32,7 +32,6 @@
 
 import { useEffect, useRef, useState, type ComponentProps } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -49,6 +48,7 @@ import { SocialTile } from '@/components/SocialTile';
 import { useStrings, type UiStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { friendlyError } from '@/lib/errors';
+import { router } from '@/lib/navigation';
 
 export type AuthFlowKind = 'login' | 'signup';
 

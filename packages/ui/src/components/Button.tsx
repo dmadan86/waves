@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Pressable, View, type PressableProps, type ViewStyle } from 'react-native';
 
 import { useTheme } from '../theme';
+import { useSingleAction } from '../useSingleAction';
 import { Text } from './Text';
 
 /**
@@ -38,6 +39,12 @@ export interface ButtonProps extends Omit<PressableProps, 'style' | 'children'> 
   icon?: ReactNode;
   fullWidth?: boolean;
   style?: ViewStyle;
+  /**
+   * Lets the button be pressed as fast as a finger can move, for the controls
+   * whose repeats are meant: a stepper's + and -, a keypad digit. Everything
+   * else swallows the second half of a double tap — see `useSingleAction`.
+   */
+  repeatable?: boolean;
 }
 
 export function Button({
@@ -48,9 +55,12 @@ export function Button({
   fullWidth = false,
   style,
   disabled,
+  repeatable = false,
+  onPress,
   ...rest
 }: ButtonProps) {
   const theme = useTheme();
+  const press = useSingleAction(onPress, { repeatable });
   const height = size === 'sm' ? 38 : size === 'lg' ? 56 : 48;
   const paddingHorizontal = size === 'sm' ? theme.spacing.lg : theme.spacing.xxl;
 
@@ -112,6 +122,7 @@ export function Button({
         style,
       ]}
       {...rest}
+      onPress={press}
     >
       {icon}
       <Text
@@ -140,19 +151,23 @@ export function IconButton({
   onPress,
   tone = 'surface',
   badge = false,
+  repeatable = false,
 }: {
   children: ReactNode;
   label: string;
   onPress?: () => void;
   tone?: 'surface' | 'brand';
   badge?: boolean;
+  /** See `ButtonProps.repeatable` — off by default, one tap is one action. */
+  repeatable?: boolean;
 }) {
   const theme = useTheme();
+  const press = useSingleAction(onPress, { repeatable });
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
-      onPress={onPress}
+      onPress={press}
       style={({ pressed }) => [
         {
           width: 44,
@@ -203,12 +218,13 @@ export function Fab({
   icon: ReactNode;
 }) {
   const theme = useTheme();
+  const press = useSingleAction(onPress);
   const size = 52;
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
-      onPress={onPress}
+      onPress={press}
       style={({ pressed }) => [
         {
           position: 'absolute',

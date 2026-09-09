@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
 import { Alert, ScrollView, View } from 'react-native';
 
 import {
@@ -31,6 +30,7 @@ import { isRtlLanguage, LANGUAGE_NAMES, plural, useStrings } from '@/i18n';
 import { useLanguage } from '@/i18n/language';
 import { useAuth } from '@/lib/auth';
 import { pickAvatarPhoto } from '@/lib/image';
+import { router } from '@/lib/navigation';
 import { r2Enabled } from '@/lib/storage';
 import { describeGrace, useLock } from '@/lib/lock';
 import { SyncNetworkPreference, useSyncNetwork } from '@/lib/syncNetwork';

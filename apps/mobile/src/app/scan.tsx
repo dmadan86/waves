@@ -1,7 +1,6 @@
 import { lazy, Suspense, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Clipboard from 'expo-clipboard';
-import { router } from 'expo-router';
 import { ActivityIndicator, TextInput, View } from 'react-native';
 
 import {
@@ -19,6 +18,7 @@ import {
 } from '@waves/ui';
 
 import { useStrings } from '@/i18n';
+import { router } from '@/lib/navigation';
 import { cameraAvailable, tokenFromScan } from '@/lib/qrScan';
 
 // Only pulled in when the native camera is present — a dynamic import so an

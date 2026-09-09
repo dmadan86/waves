@@ -15,7 +15,6 @@
 
 import { useEffect, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
 import { View } from 'react-native';
 
 import { directionalIcon, IconButton, iconSize, Row, Screen, Text, useTheme } from '@waves/ui';
@@ -24,6 +23,7 @@ import { useStrings } from '@/i18n';
 
 import { ContactPicker, type PickedContact } from '@/components/ContactPicker';
 import { takeContactRequest } from '@/lib/contactPickerBridge';
+import { router } from '@/lib/navigation';
 
 export default function ContactPickerScreen(): React.JSX.Element {
   const theme = useTheme();

@@ -7,7 +7,6 @@
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
 import { Pressable, ScrollView, View } from 'react-native';
 
 import { RECENT_COUNT_OPTIONS, type RecentCount } from '@waves/core';
@@ -25,6 +24,7 @@ import {
 } from '@waves/ui';
 
 import { useStrings } from '@/i18n';
+import { router } from '@/lib/navigation';
 import { useRecentCount } from '@/lib/recentCount';
 
 export default function RecentSettingsScreen() {

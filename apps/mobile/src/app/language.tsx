@@ -16,7 +16,6 @@
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -24,6 +23,7 @@ import { directionalIcon, iconSize, Row, Screen, Text, useTheme } from '@waves/u
 
 import { LanguageChoiceList } from '@/components/LanguageChoiceList';
 import { useStrings } from '@/i18n';
+import { router } from '@/lib/navigation';
 
 export default function LanguageScreen() {
   const theme = useTheme();

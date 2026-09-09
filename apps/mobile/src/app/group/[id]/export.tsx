@@ -2,7 +2,7 @@ import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { decode } from 'base64-arraybuffer';
 import * as FileSystem from 'expo-file-system';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import { ActivityIndicator, Platform, ScrollView, View } from 'react-native';
 
@@ -31,6 +31,7 @@ import {
   type GroupExportSheetLabels,
 } from '@/data/groupExportXlsx';
 import { friendlyError } from '@/lib/errors';
+import { router } from '@/lib/navigation';
 import { printAvailable, printHtmlToFile } from '@/lib/print';
 import { useAuth } from '@/lib/auth';
 import { useStrings } from '@/i18n';

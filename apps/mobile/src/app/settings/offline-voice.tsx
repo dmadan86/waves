@@ -58,7 +58,6 @@ import { useEffect, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { FlashList } from '@shopify/flash-list';
 import { useQuery } from '@tanstack/react-query';
-import { router } from 'expo-router';
 import { Platform, Pressable, View } from 'react-native';
 
 import {
@@ -86,6 +85,7 @@ import {
   type OfflineDownloadReason,
   type OfflineVoiceModel,
 } from '@/lib/dictation';
+import { router } from '@/lib/navigation';
 import { useReducedMotion } from '@/lib/reducedMotion';
 import { speechModels } from '@/lib/speechModels';
 import { useBottomClearance } from '@/lib/clearance';

@@ -1,6 +1,5 @@
 import { useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
 import { Alert, I18nManager, Platform, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -20,6 +19,7 @@ import { groupLabel, type GroupRow, type MemberRow, type SettlementRow } from '@
 import { fill, plural, useStrings } from '@/i18n';
 import { GroupPhoto } from '@/components/GroupPhoto';
 import { SyncStatusIcon } from '@/components/SyncBanner';
+import { router } from '@/lib/navigation';
 
 /**
  * Which hero slide a paging scroll has landed on, correct in both directions.

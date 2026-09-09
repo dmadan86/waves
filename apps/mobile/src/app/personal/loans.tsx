@@ -8,7 +8,6 @@
 import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { router } from 'expo-router';
 import { Alert, Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
 
 import {
@@ -46,6 +45,7 @@ import {
 import { useDefaultCurrency } from '@/lib/currency';
 import { useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
+import { router } from '@/lib/navigation';
 
 export default function LoansScreen() {
   const theme = useTheme();

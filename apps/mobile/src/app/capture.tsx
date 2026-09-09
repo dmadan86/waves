@@ -3,7 +3,7 @@ import DateTimePicker, { type DateTimePickerEvent } from '@react-native-communit
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { randomUUID } from 'expo-crypto';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { ActivityIndicator, Modal, Platform, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -50,6 +50,7 @@ import { useAuth } from '@/lib/auth';
 import { useDefaultCurrency } from '@/lib/currency';
 import { plural, useStrings, type UiStrings } from '@/i18n';
 import { captureReceipt, type PickedImage } from '@/lib/image';
+import { router } from '@/lib/navigation';
 import { recogniseReceipt } from '@/lib/ocr';
 import { uploadCapturePhoto } from '@/data/api';
 import { StorageCapError } from '@/lib/storage';

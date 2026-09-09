@@ -14,7 +14,6 @@ import { useCallback, useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { FlashList } from '@shopify/flash-list';
 import { randomUUID } from 'expo-crypto';
-import { router } from 'expo-router';
 import {
   Alert,
   Pressable,
@@ -68,6 +67,7 @@ import { assignCaptureHref } from '@/lib/captureAssign';
 import { foldedCaptureCount } from '@/lib/captureBatch';
 import { buildCaptureFeedItems, type CaptureFeedItem } from '@/lib/captureFeed';
 import { friendlyError } from '@/lib/errors';
+import { router } from '@/lib/navigation';
 import { usePullRefresh } from '@/lib/pullRefresh';
 
 /**

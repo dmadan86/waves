@@ -16,13 +16,13 @@
 
 import { useEffect, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
 import { Animated, Pressable, View } from 'react-native';
 
 import { directionalIcon, iconSize, ProgressBar, Row, Text, useTheme } from '@waves/ui';
 
 import { dismissImport, useImportProgress } from '@/lib/importProgress';
 import { plural, useStrings } from '@/i18n';
+import { router } from '@/lib/navigation';
 import { useReducedMotion } from '@/lib/reducedMotion';
 
 export function ImportProgressBanner(): React.JSX.Element | null {

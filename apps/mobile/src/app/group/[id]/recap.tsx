@@ -10,7 +10,7 @@
 
 import { useMemo } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { ScrollView, View } from 'react-native';
 
 import { recap, resolveCategory, type RecapExpense } from '@waves/core';
@@ -33,6 +33,7 @@ import { useAuth } from '@/lib/auth';
 import { InsightsSkeleton } from '@/components/Skeletons';
 import { useStrings, fill } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
+import { router } from '@/lib/navigation';
 
 export default function RecapScreen() {
   const theme = useTheme();

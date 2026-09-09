@@ -1,6 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
 import { Pressable, TextInput, View } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 
@@ -24,6 +23,7 @@ import { plural, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { GroupMark } from '@/components/GroupMark';
 import { SkeletonList } from '@/components/Skeletons';
+import { router } from '@/lib/navigation';
 
 /**
  * Below this many groups a search field is ceremony — the list is short enough

@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Pressable, View, type AccessibilityRole, type AccessibilityState } from 'react-native';
 
 import { useTheme } from '../theme';
+import { useSingleAction } from '../useSingleAction';
 import { Text } from './Text';
 
 export interface ListRowProps {
@@ -21,6 +22,12 @@ export interface ListRowProps {
    * the row shout twice and the explanation harder to read.
    */
   destructive?: boolean;
+  /**
+   * Lets the row answer every tap. For a row that toggles rather than opens —
+   * a member in a multi-select, a filter — where tapping twice quickly is two
+   * real choices. A row that navigates must leave this off.
+   */
+  repeatable?: boolean;
 }
 
 export function ListRow({
@@ -33,8 +40,10 @@ export function ListRow({
   accessibilityRole = 'button',
   accessibilityState,
   destructive = false,
+  repeatable = false,
 }: ListRowProps) {
   const theme = useTheme();
+  const press = useSingleAction(onPress, { repeatable });
   const content = (
     <View
       style={{
@@ -72,7 +81,7 @@ export function ListRow({
       accessibilityRole={accessibilityRole}
       accessibilityState={accessibilityState}
       accessibilityLabel={accessibilityLabel ?? `${title}${subtitle ? `, ${subtitle}` : ''}`}
-      onPress={onPress}
+      onPress={press}
       style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
     >
       {content}

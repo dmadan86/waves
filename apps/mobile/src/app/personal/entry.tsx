@@ -8,7 +8,7 @@
 import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import {
   ActivityIndicator,
   Alert,
@@ -43,6 +43,7 @@ import {
   useUpsertPersonalRecord,
 } from '@/data/personal';
 import { useDefaultCurrency } from '@/lib/currency';
+import { router } from '@/lib/navigation';
 import { useSync } from '@/sync';
 import { useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';

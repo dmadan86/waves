@@ -4,7 +4,6 @@
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
 import { Pressable, SectionList, View } from 'react-native';
 
 import { format, money, type PersonalTxn } from '@waves/core';
@@ -24,6 +23,7 @@ import { CategoryBadge } from '@/components/Category';
 import { usePersonalLedger } from '@/data/personal';
 import { useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
+import { router } from '@/lib/navigation';
 
 export default function PersonalTransactionsScreen() {
   const theme = useTheme();

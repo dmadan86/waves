@@ -19,7 +19,6 @@
 
 import { useEffect, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -47,15 +46,16 @@ import { dialingCodeForCountry } from '@waves/core';
 
 import { CountryCodePicker } from '@/components/CountryCodePicker';
 import { OtpInput, OTP_LEN } from '@/components/OtpInput';
+import { deviceCountry, useStrings } from '@/i18n';
+import { useAuth } from '@/lib/auth';
+import { friendlyError } from '@/lib/errors';
+import { router } from '@/lib/navigation';
 
 /** Matches the email code screen, so the two waits feel like one product. */
 const RESEND_SECONDS = 60;
 /** Four codes a number a day is the server's rule; three from one sitting
     leaves the person a fourth after they have gone away and come back. */
 const MAX_RESENDS = 3;
-import { deviceCountry, useStrings } from '@/i18n';
-import { useAuth } from '@/lib/auth';
-import { friendlyError } from '@/lib/errors';
 
 export default function PhoneScreen() {
   const theme = useTheme();

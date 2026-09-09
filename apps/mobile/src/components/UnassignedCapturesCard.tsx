@@ -10,7 +10,6 @@
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
 import { Pressable, View } from 'react-native';
 
 import { Card, iconSize, Text, useTheme } from '@waves/ui';
@@ -18,6 +17,7 @@ import { Card, iconSize, Text, useTheme } from '@waves/ui';
 import { useCaptures } from '@/data/hooks';
 import { plural, useStrings } from '@/i18n';
 import { foldedCaptureCount } from '@/lib/captureBatch';
+import { router } from '@/lib/navigation';
 
 /** Shows the folded count of unassigned captures and navigates to the captures inbox. */
 export function UnassignedCapturesCard() {

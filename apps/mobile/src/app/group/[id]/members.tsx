@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { ActivityIndicator, ScrollView, TextInput, View } from 'react-native';
 
 import {
@@ -34,6 +34,7 @@ import { fill, plural, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { requestContacts } from '@/lib/contactPickerBridge';
 import { friendlyError } from '@/lib/errors';
+import { router } from '@/lib/navigation';
 import { isPhoneCountryError } from '@/lib/phone';
 import { useBottomClearance } from '@/lib/clearance';
 

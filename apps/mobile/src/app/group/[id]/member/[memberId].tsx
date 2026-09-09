@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { Alert, ScrollView, TextInput, View } from 'react-native';
 
 import { currencyExposure, isValidVpa } from '@waves/core';
@@ -31,6 +31,7 @@ import { displayName, groupLabel, isBlockedMember, isGhost } from '@/data/types'
 import { fill, plural, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { useBottomClearance } from '@/lib/clearance';
+import { router } from '@/lib/navigation';
 
 export default function MemberScreen() {
   const theme = useTheme();

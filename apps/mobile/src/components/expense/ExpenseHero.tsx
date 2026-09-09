@@ -17,7 +17,6 @@
 
 import { type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
 import { Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -26,6 +25,7 @@ import { AmountField, directionalIcon, Gradient, iconSize, Row, Text, useTheme }
 
 import { CategoryBadge } from '@/components/Category';
 import { useStrings } from '@/i18n';
+import { router } from '@/lib/navigation';
 
 export function ExpenseHero({
   title,

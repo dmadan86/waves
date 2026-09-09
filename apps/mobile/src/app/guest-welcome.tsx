@@ -20,7 +20,6 @@
 
 import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
 import { ActivityIndicator, Pressable, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Line, Path } from 'react-native-svg';
@@ -31,6 +30,7 @@ import { LegalLine } from '@/components/LegalLine';
 import { useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { friendlyError } from '@/lib/errors';
+import { router } from '@/lib/navigation';
 
 /** The screen's own dark-green field and the light on it — a front-of-house
     palette, held apart from the app theme on purpose. */

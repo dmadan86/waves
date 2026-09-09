@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { ActivityIndicator, ScrollView, TextInput, View } from 'react-native';
 
@@ -22,6 +21,7 @@ import { deleteMyAccount, erasurePreview } from '@/data/api';
 import { fill, plural, useStrings } from '@/i18n';
 import { friendlyError } from '@/lib/errors';
 import { useAuth } from '@/lib/auth';
+import { router } from '@/lib/navigation';
 
 /**
  * Leaving, with the consequence in view before the button.

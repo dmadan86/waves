@@ -7,7 +7,6 @@
 
 import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
 import { Alert, Pressable, ScrollView, View } from 'react-native';
 
 import {
@@ -43,6 +42,7 @@ import {
 import { useDefaultCurrency } from '@/lib/currency';
 import { useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
+import { router } from '@/lib/navigation';
 
 export default function BudgetsScreen() {
   const theme = useTheme();

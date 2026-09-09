@@ -10,7 +10,6 @@
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
 import { ScrollView, View } from 'react-native';
 
 import {
@@ -32,6 +31,7 @@ import type { BlockedUser } from '@/data/blocked';
 import { useBlockedUsers } from '@/data/blocked';
 import { useAvatarUrl } from '@/components/ProfileAvatar';
 import { useStrings, type UiStrings } from '@/i18n';
+import { router } from '@/lib/navigation';
 
 export default function BlockedScreen() {
   const theme = useTheme();

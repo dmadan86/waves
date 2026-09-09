@@ -16,12 +16,12 @@
  */
 
 import { Component, type ReactNode } from 'react';
-import { router } from 'expo-router';
 import { View } from 'react-native';
 
 import { Button, Screen, Text, useTheme } from '@waves/ui';
 
 import { useStrings } from '@/i18n';
+import { router } from '@/lib/navigation';
 import { reportHandled } from '@/lib/observability';
 
 interface Props {

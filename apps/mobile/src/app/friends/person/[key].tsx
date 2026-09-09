@@ -28,7 +28,7 @@ import { useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useQuery } from '@tanstack/react-query';
 import * as Clipboard from 'expo-clipboard';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { Alert, Linking, Pressable, ScrollView, View } from 'react-native';
 
 import {
@@ -59,6 +59,7 @@ import { useBlockedUsers } from '@/data/blocked';
 import { ProfileAvatar } from '@/components/ProfileAvatar';
 import { PeopleSkeleton } from '@/components/Skeletons';
 import { fill, plural, useStrings } from '@/i18n';
+import { router } from '@/lib/navigation';
 
 /** A person's balance in one group: the group, and one net per currency in it. */
 interface GroupBlock {
