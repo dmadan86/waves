@@ -55,8 +55,12 @@ export function hrefKey(href: unknown): string {
   const path = typeof pathname === 'string' ? pathname : '';
   if (typeof params !== 'object' || params === null) return path;
 
+  const valueKey = (value: unknown): unknown => {
+    if (Array.isArray(value)) return value.map(valueKey);
+    return String(value);
+  };
   const query = Object.entries(params as Record<string, unknown>)
-    .map(([key, value]) => [key, String(value)] as const)
+    .map(([key, value]) => [key, valueKey(value)] as const)
     .sort((a, b) => a[0].localeCompare(b[0]));
   return query.length > 0 ? JSON.stringify([path, query]) : path;
 }
