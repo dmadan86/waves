@@ -19,7 +19,7 @@
     "@waves/agent-mcp": "workspace:*",
     "@waves/api-client": "workspace:*",
     "@waves/core": "workspace:*",
-    "next": "^16.3.0",
+    "next": "^16.3.3",
     "qrcode.react": "^4.2.0",
     "react": "19.2.8",
     "react-dom": "19.2.8"
