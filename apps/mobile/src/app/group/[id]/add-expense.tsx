@@ -2198,6 +2198,37 @@ export default function AddExpenseScreen() {
             />
           </Card>
 
+          {/* When it happened, on the common path rather than behind the fold.
+            The day is not an advanced setting: an expense filed on the wrong one
+            lands in the wrong month, the wrong trip and the wrong place in the
+            feed, and somebody correcting a date should not have to guess that it
+            lives under "More details" — which is exactly what happened when it
+            did. Untouched it still inherits the day it always had, so editing a
+            note never moves a three-week-old dinner. */}
+          <Card style={{ paddingVertical: theme.spacing.xs, gap: 0 }}>
+            <SettingRow
+              label={t.captures.date}
+              value={showDate(expenseDate, locale)}
+              leading={
+                <Ionicons
+                  name="calendar-outline"
+                  size={iconSize.md}
+                  color={theme.color.textMuted}
+                />
+              }
+              onPress={() => setEditingDate(true)}
+            />
+          </Card>
+
+          {editingDate ? (
+            <DateTimePicker
+              value={dateFrom(expenseDate)}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'inline' : 'default'}
+              onChange={applyDate}
+            />
+          ) : null}
+
           {/* Everything most expenses never need — the category (already guessed
             from the note), how it was paid, where, and a foreign rate — folded
             off the common path. It opens itself the moment one of them carries a
@@ -2241,34 +2272,7 @@ export default function AddExpenseScreen() {
               />
               <Divider />
               <PaymentMethodRow value={paymentMethod} onPress={() => setPickingPayment(true)} />
-              <Divider />
-              {/* When it happened. An expense filed on the wrong day lands in
-                the wrong month, the wrong trip and the wrong place in the feed,
-                and until now the only way to correct one was to delete it and
-                type it again. Untouched it still inherits the day it always
-                did, so editing a note never moves a three-week-old dinner. */}
-              <SettingRow
-                label={t.captures.date}
-                value={showDate(expenseDate, locale)}
-                leading={
-                  <Ionicons
-                    name="calendar-outline"
-                    size={iconSize.md}
-                    color={theme.color.textMuted}
-                  />
-                }
-                onPress={() => setEditingDate(true)}
-              />
             </Card>
-
-            {editingDate ? (
-              <DateTimePicker
-                value={dateFrom(expenseDate)}
-                mode="date"
-                display={Platform.OS === 'ios' ? 'inline' : 'default'}
-                onChange={applyDate}
-              />
-            ) : null}
 
             {/* Where it happened (A43) — optional, opt-in, never a background track. */}
             <LocationField value={location} onChange={setLocation} />
