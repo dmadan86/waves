@@ -1031,6 +1031,88 @@ describe('the mutation queue', () => {
     expect(discard(queue, 'a')).toHaveLength(0);
   });
 
+  it('abandoning an expense abandons the draft-closing assign waiting on it', () => {
+    // The action a person actually takes when staring at a refused expense.
+    // Without this the hold simply lifts and the assign goes out — closing the
+    // draft against an expense that was discarded and will never be written,
+    // which is finding #1 arriving by another door. The draft must come back.
+    const OWNER = 'owner-1';
+    let queue: QueuedMutation[] = [];
+    queue = enqueue(queue, {
+      clientMutationId: 'x1',
+      kind: MutationKind.ExpenseCreate,
+      groupId: GROUP,
+      clientCreatedAt: '2026-03-01T00:00:00Z',
+      payload: { expenseId: 'e-1' },
+    });
+    queue = enqueue(queue, {
+      clientMutationId: 'x2',
+      kind: MutationKind.CaptureAssign,
+      groupId: OWNER,
+      clientCreatedAt: '2026-03-01T00:00:01Z',
+      payload: { captureId: 'c-1', groupId: GROUP, expenseId: 'e-1' },
+    });
+    // A second draft's assign, for an expense that synced long ago: untouched.
+    queue = enqueue(queue, {
+      clientMutationId: 'x3',
+      kind: MutationKind.CaptureAssign,
+      groupId: OWNER,
+      clientCreatedAt: '2026-03-01T00:00:02Z',
+      payload: { captureId: 'c-2', groupId: GROUP, expenseId: 'e-other' },
+    });
+
+    expect(discard(queue, 'x1').map((item) => item.clientMutationId)).toEqual(['x3']);
+  });
+
+  it('keeps the assign when the expense is still coming', () => {
+    // Two writes of the same expense (a re-run after a half-finished batch):
+    // dropping one leaves the other, so the expense is still on its way and the
+    // assign must go on waiting rather than be thrown away with it.
+    const OWNER = 'owner-1';
+    let queue: QueuedMutation[] = [];
+    for (const id of ['x1', 'x1b']) {
+      queue = enqueue(queue, {
+        clientMutationId: id,
+        kind: MutationKind.ExpenseCreate,
+        groupId: id === 'x1' ? GROUP : 'g-other',
+        clientCreatedAt: '2026-03-01T00:00:00Z',
+        payload: { expenseId: 'e-1' },
+      });
+    }
+    queue = enqueue(queue, {
+      clientMutationId: 'x2',
+      kind: MutationKind.CaptureAssign,
+      groupId: OWNER,
+      clientCreatedAt: '2026-03-01T00:00:01Z',
+      payload: { captureId: 'c-1', groupId: GROUP, expenseId: 'e-1' },
+    });
+
+    expect(discard(queue, 'x1').map((item) => item.clientMutationId)).toEqual(['x1b', 'x2']);
+  });
+
+  it('leaves the assign alone when an edit is abandoned, not the expense itself', () => {
+    // An `expense.update` that is given up on leaves an expense that already
+    // exists on the server, so the draft's claim about it is still true.
+    const OWNER = 'owner-1';
+    let queue: QueuedMutation[] = [];
+    queue = enqueue(queue, {
+      clientMutationId: 'x1',
+      kind: MutationKind.ExpenseUpdate,
+      groupId: GROUP,
+      clientCreatedAt: '2026-03-01T00:00:00Z',
+      payload: { expenseId: 'e-1' },
+    });
+    queue = enqueue(queue, {
+      clientMutationId: 'x2',
+      kind: MutationKind.CaptureAssign,
+      groupId: OWNER,
+      clientCreatedAt: '2026-03-01T00:00:01Z',
+      payload: { captureId: 'c-1', groupId: GROUP, expenseId: 'e-1' },
+    });
+
+    expect(discard(queue, 'x1').map((item) => item.clientMutationId)).toEqual(['x2']);
+  });
+
   it('collapses un-sent consecutive edits of the same expense', () => {
     const edit = (id: string, description: string): MutationEnvelope => ({
       clientMutationId: id,

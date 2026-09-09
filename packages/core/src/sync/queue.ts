@@ -583,12 +583,37 @@ export function markFailed(
   });
 }
 
-/** Drop a dead-lettered mutation the user has chosen to abandon. */
+/**
+ * Drop a mutation the user has chosen to abandon — and anything that was only
+ * ever a claim about it.
+ *
+ * Discarding a refused `expense.create` is a person saying "let that spend go".
+ * A `capture.assign` waiting on it (see `nextBatch`) exists for one purpose: to
+ * record which expense a draft became. With the expense abandoned it is a claim
+ * about something that will now never exist, and sending it would close the
+ * draft against nothing — which is how a refusal turns into a deletion, the one
+ * thing rule 3 is here to prevent. So it goes too, and the draft simply stays in
+ * the inbox for the person to place again.
+ *
+ * Only a discarded *create* cascades. An `expense.update` being abandoned leaves
+ * an expense that already exists on the server, and the assign is still true.
+ * And if another write for the same expense is still queued, the expense is
+ * still coming, so the assign keeps waiting for it instead.
+ */
 export function discard(
   queue: readonly QueuedMutation[],
   clientMutationId: string,
 ): QueuedMutation[] {
-  return queue.filter((item) => item.clientMutationId !== clientMutationId);
+  const dropped = queue.find((item) => item.clientMutationId === clientMutationId);
+  const remaining = queue.filter((item) => item.clientMutationId !== clientMutationId);
+  if (!dropped || dropped.kind !== MutationKind.ExpenseCreate) return remaining;
+
+  const expenseId = expenseIdOf(dropped);
+  if (!expenseId || unwrittenExpenseIds(remaining).has(expenseId)) return remaining;
+
+  return remaining.filter(
+    (item) => !(item.kind === MutationKind.CaptureAssign && expenseIdOf(item) === expenseId),
+  );
 }
 
 /**
