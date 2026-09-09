@@ -13,9 +13,13 @@ import {
   englishSpeechLocale,
   mergeTranscript,
   offlineDownloadReason,
+  offlineVoiceKnowledge,
   offlineVoiceModels,
+  offlineVoiceRead,
   onDeviceLocaleInstalled,
   speechLocale,
+  withConfirmedInstalls,
+  type OfflineVoiceReadInput,
 } from '@/lib/dictation';
 import { Language, STRINGS_BY_LANGUAGE } from '@/i18n';
 
@@ -288,6 +292,10 @@ describe('offlineDownloadReason', () => {
     }
     // ERROR_RECOGNIZER_BUSY.
     expect(offlineDownloadReason(rejected('error_8'))).toBe('busy');
+    // ERROR_INSUFFICIENT_PERMISSIONS — a switch in Settings, and nothing to do
+    // with the phone, the language or the connection. It used to land in
+    // `refused`, which is the sentence for a phone that would not say why.
+    expect(offlineDownloadReason(rejected('error_9'))).toBe('permission');
   });
 
   it('keeps the platform’s own pre-Android-13 refusal', () => {
@@ -305,5 +313,113 @@ describe('offlineDownloadReason', () => {
     expect(offlineDownloadReason(new Error('boom'))).toBe('refused');
     expect(offlineDownloadReason(null)).toBe('refused');
     expect(offlineDownloadReason(undefined)).toBe('refused');
+  });
+});
+
+/**
+ * The one question this screen kept getting wrong, now asked of a pure function.
+ *
+ * The bug in the field: a phone with working 5G, an English model already
+ * downloaded, and a card reading "Couldn't load this — check your connection".
+ * Reading the phone's models never touches a network, so that sentence could not
+ * have been true; what had actually happened was that the recogniser service
+ * refused the query, and every rejection was being poured into the app's generic
+ * network empty-state. The same undefined answer then told the row below that
+ * nothing was installed, so English offered a Download directly above its own
+ * "Downloaded. The mic can use it now."
+ */
+describe('offlineVoiceRead', () => {
+  // A modern Android that answers: the case everything else is a deviation from.
+  const android: OfflineVoiceReadInput = {
+    hasModule: true,
+    supportsOnDevice: true,
+    reportsInstalled: true,
+    canDownload: true,
+    query: 'success',
+    namedAnything: true,
+  };
+
+  it('trusts a phone that answered with a list', () => {
+    expect(offlineVoiceRead(android)).toBe('ready');
+    expect(offlineVoiceKnowledge(offlineVoiceRead(android))).toBe('reported');
+  });
+
+  it('separates an answer of nothing from no answer at all', () => {
+    // Answered, named nothing: an empty inventory is a fact, and believable.
+    const empty = offlineVoiceRead({ ...android, namedAnything: false });
+    expect(empty).toBe('empty');
+    expect(offlineVoiceKnowledge(empty)).toBe('reported');
+
+    // Refused: not an empty inventory, and emphatically not the connection.
+    const refused = offlineVoiceRead({ ...android, query: 'error', namedAnything: false });
+    expect(refused).toBe('unreadable');
+    expect(offlineVoiceKnowledge(refused)).toBe('unknowable');
+  });
+
+  it('never calls a read still in flight an answer', () => {
+    for (const query of ['idle', 'loading'] as const) {
+      const state = offlineVoiceRead({ ...android, query, namedAnything: false });
+      expect(state).toBe('loading');
+      // The whole of the row bug: believing a not-yet-answered read is what drew
+      // a Download button beside a model that was already there.
+      expect(offlineVoiceKnowledge(state)).toBe('unknowable');
+    }
+  });
+
+  it('puts the device facts ahead of the read, most disqualifying first', () => {
+    // Each of these is true whatever the query does, so each outranks it.
+    const broken = { query: 'error', namedAnything: false } as const;
+    expect(offlineVoiceRead({ ...android, ...broken, hasModule: false })).toBe('no-module');
+    expect(offlineVoiceRead({ ...android, ...broken, supportsOnDevice: false })).toBe(
+      'no-on-device',
+    );
+    // iPhone answers, and its answer means nothing — see InstalledKnowledge.
+    expect(offlineVoiceRead({ ...android, reportsInstalled: false })).toBe('unknowable');
+    // Android 12: nothing to fetch, which is a truer sentence than a failed read.
+    expect(offlineVoiceRead({ ...android, ...broken, canDownload: false })).toBe('too-old');
+  });
+
+  it('never lets iPhone’s echo be read as an inventory', () => {
+    expect(offlineVoiceKnowledge(offlineVoiceRead({ ...android, reportsInstalled: false }))).toBe(
+      'unknowable',
+    );
+  });
+});
+
+describe('withConfirmedInstalls', () => {
+  const model = (tag: string, state: 'installed' | 'missing' | 'unknown') => ({
+    tag,
+    language: null,
+    state,
+  });
+
+  it('ticks a model this screen watched land, whatever the phone says', () => {
+    // The screenshot, exactly: the read failed, so every row reads `unknown`,
+    // but English arrived a moment ago and we saw it arrive.
+    const models = {
+      app: [model('en-IN', 'unknown'), model('ta-IN', 'unknown')],
+      alsoInstalled: [],
+      downloadable: [],
+    };
+    const ticked = withConfirmedInstalls(models, ['en-IN']);
+    expect(ticked.app.map((row) => row.state)).toEqual(['installed', 'unknown']);
+  });
+
+  it('matches the way tags are written, not the way they are typed', () => {
+    const models = { app: [model('en-IN', 'missing')], alsoInstalled: [], downloadable: [] };
+    expect(withConfirmedInstalls(models, ['EN_in']).app[0]?.state).toBe('installed');
+  });
+
+  it('only ever adds — it cannot untick anything', () => {
+    const models = {
+      app: [model('en-IN', 'installed')],
+      alsoInstalled: [model('de-DE', 'installed')],
+      downloadable: [model('fr-FR', 'missing')],
+    };
+    const same = withConfirmedInstalls(models, []);
+    expect(same).toEqual(models);
+    const one = withConfirmedInstalls(models, ['en-IN']);
+    expect(one.alsoInstalled[0]?.state).toBe('installed');
+    expect(one.downloadable[0]?.state).toBe('missing');
   });
 });

@@ -226,6 +226,119 @@ export function offlineVoiceModels(
 }
 
 /**
+ * What the offline-voice screen actually knows about this phone.
+ *
+ * This exists because the screen used to have no name for its own most common
+ * failure, and borrowed the app's generic one instead: any rejection from the
+ * inventory read drew "Couldn't load this — check your connection". That
+ * sentence is not merely unhelpful here, it is false. Reading the phone's speech
+ * models is a local call into the recogniser service on the device; there is no
+ * server anywhere in it, so a connection cannot be the cause and checking one
+ * cannot be the cure. On a phone whose service is slow, busy, or simply does not
+ * implement the query — which is the OEM-ROM case this whole screen exists for —
+ * the reader was told to go and look at their Wi-Fi.
+ *
+ * The second half of the same mistake was quieter and worse. A failed read left
+ * the inventory undefined, which {@link offlineVoiceModels} could only read as
+ * "nothing is installed" — so every row offered a Download, including one the
+ * reader had just watched succeed, with the confirmation still under it. A
+ * failed read is not an empty one, and these states keep them apart.
+ *
+ *  - `no-module` — an older binary with no native speech module at all.
+ *  - `no-on-device` — a recogniser that only ever works over the network.
+ *  - `unknowable` — iPhone, which returns its supported list under both names,
+ *    so its answer about what is installed means nothing (see
+ *    {@link InstalledKnowledge}).
+ *  - `too-old` — Android 12 and below: nothing to list and nothing to fetch.
+ *  - `unreadable` — the phone was asked and would not say. Its own words, never
+ *    the connection's.
+ *  - `loading` — asked, still waiting.
+ *  - `empty` — answered, and named nothing at all.
+ *  - `ready` — answered with a list that can be trusted.
+ */
+export type OfflineVoiceRead =
+  | 'no-module'
+  | 'no-on-device'
+  | 'unknowable'
+  | 'too-old'
+  | 'unreadable'
+  | 'loading'
+  | 'empty'
+  | 'ready';
+
+/** Everything the read state is decided from — no React, no native module. */
+export interface OfflineVoiceReadInput {
+  /** The native speech module imported on this build. */
+  readonly hasModule: boolean;
+  /** This phone can recognise speech with no connection. */
+  readonly supportsOnDevice: boolean;
+  /** The installed list is a fact rather than an echo — Android only. */
+  readonly reportsInstalled: boolean;
+  /** A model can be fetched from inside the app — Android 13 and up. */
+  readonly canDownload: boolean;
+  /** How the inventory read is going. */
+  readonly query: 'idle' | 'loading' | 'error' | 'success';
+  /** The answer named at least one locale, supported or installed. */
+  readonly namedAnything: boolean;
+}
+
+/**
+ * The one state the screen draws from, most disqualifying fact first.
+ *
+ * The order is the point. A device that cannot do on-device recognition at all
+ * is not also "still loading", and a phone too old to fetch a model is told that
+ * rather than told its read failed — the older fact is the truer sentence, and
+ * the one with something to do about it.
+ */
+export function offlineVoiceRead(input: OfflineVoiceReadInput): OfflineVoiceRead {
+  if (!input.hasModule) return 'no-module';
+  if (!input.supportsOnDevice) return 'no-on-device';
+  if (!input.reportsInstalled) return 'unknowable';
+  if (!input.canDownload) return 'too-old';
+  if (input.query === 'error') return 'unreadable';
+  if (input.query !== 'success') return 'loading';
+  return input.namedAnything ? 'ready' : 'empty';
+}
+
+/**
+ * Whether the installed list may be believed in this state.
+ *
+ * Only an answer counts. `unreadable` and `loading` are emphatically not
+ * `reported`: treating either as a trustworthy empty list is exactly how a row
+ * came to offer a download for a model that was already there.
+ */
+export function offlineVoiceKnowledge(read: OfflineVoiceRead): InstalledKnowledge {
+  return read === 'ready' || read === 'empty' ? 'reported' : 'unknowable';
+}
+
+/**
+ * Tick the models this screen watched land, whatever the phone will say.
+ *
+ * A download that resolved `download_success` is the strongest evidence there
+ * is — stronger than the inventory, which on many phones under-reports and on
+ * some cannot be read at all. Without this, finishing a download on a phone
+ * whose service will not answer leaves the row exactly as it was, still offering
+ * the Download that just worked.
+ *
+ * It only ever adds: a row already installed stays installed, and nothing here
+ * can turn a tick off.
+ */
+export function withConfirmedInstalls(
+  models: OfflineVoiceModels,
+  confirmed: readonly string[],
+): OfflineVoiceModels {
+  if (confirmed.length === 0) return models;
+  const tags = new Set(confirmed.map(normaliseTag));
+  const tick = (model: OfflineVoiceModel): OfflineVoiceModel =>
+    tags.has(normaliseTag(model.tag)) ? { ...model, state: 'installed' } : model;
+  return {
+    app: models.app.map(tick),
+    alsoInstalled: models.alsoInstalled.map(tick),
+    downloadable: models.downloadable.map(tick),
+  };
+}
+
+/**
  * Why a request to fetch an on-device model ended the way it did.
  *
  * This exists because the honest answer to "why did Tamil fail?" was being
@@ -257,14 +370,28 @@ export function offlineVoiceModels(
  *    all. The service took the request and cannot report on it. Calling that
  *    "couldn't download" is simply false.
  *  - `network` (1, 2, 4, 11), `busy` (8) — ordinary, retryable, and each has a
- *    different thing for a person to go and do.
+ *    different thing for a person to go and do. `network` is the *only* reason
+ *    on this screen that may mention a connection, because it is the only one
+ *    that is about one.
+ *  - `permission` (9, ERROR_INSUFFICIENT_PERMISSIONS) — the service will not act
+ *    for an app that has not been given the microphone. Nothing about the phone,
+ *    the language or the network; a switch in Settings, and previously filed
+ *    under "refused without saying why", which was a dead end for a fixable
+ *    thing.
  *  - `too-old` — the module's own pre-API-33 refusal, which the screen already
  *    prevents by not drawing a button; kept because a rejection is a rejection.
  *  - `refused` — everything else, including a code that is not a code. A future
  *    Android constant lands here and gets a sentence that is still true.
  */
 export type OfflineDownloadReason =
-  'too-old' | 'language-missing' | 'not-downloaded' | 'started' | 'network' | 'busy' | 'refused';
+  | 'too-old'
+  | 'language-missing'
+  | 'not-downloaded'
+  | 'started'
+  | 'network'
+  | 'busy'
+  | 'permission'
+  | 'refused';
 
 /**
  * The reason behind a rejected download, read off the thrown value.
@@ -298,8 +425,11 @@ export function offlineDownloadReason(caught: unknown): OfflineDownloadReason {
     // ERROR_CANNOT_LISTEN_TO_DOWNLOAD_EVENTS.
     case 15:
       return 'started';
-    // ERROR_CLIENT (5), ERROR_INSUFFICIENT_PERMISSIONS (9),
-    // ERROR_CANNOT_CHECK_SUPPORT (14), and whatever a later Android adds.
+    // ERROR_INSUFFICIENT_PERMISSIONS.
+    case 9:
+      return 'permission';
+    // ERROR_CLIENT (5), ERROR_CANNOT_CHECK_SUPPORT (14), and whatever a later
+    // Android adds.
     default:
       return 'refused';
   }

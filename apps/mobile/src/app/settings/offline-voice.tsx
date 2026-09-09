@@ -54,12 +54,12 @@
  * different sentences, because they are different problems.
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { FlashList } from '@shopify/flash-list';
 import { useQuery } from '@tanstack/react-query';
-import { router } from 'expo-router';
-import { Platform, Pressable, View } from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
+import { Pressable, View } from 'react-native';
 
 import {
   Avatar,
@@ -82,7 +82,10 @@ import {
 import { deviceLocale, LANGUAGE_NAMES, LANGUAGES, plural, useStrings } from '@/i18n';
 import {
   offlineDownloadReason,
+  offlineVoiceKnowledge,
   offlineVoiceModels,
+  offlineVoiceRead,
+  withConfirmedInstalls,
   type OfflineDownloadReason,
   type OfflineVoiceModel,
 } from '@/lib/dictation';
@@ -197,12 +200,59 @@ export default function OfflineVoiceScreen() {
     enabled: speechModels !== null && reportsInstalled,
   });
 
-  const models = offlineVoiceModels(
-    LANGUAGES,
-    deviceLocale(),
-    locales.data?.locales,
-    locales.data?.installedLocales,
-    reportsInstalled ? 'reported' : 'unknowable',
+  // A model can land while this screen is not the one in front — the Android 13
+  // dialog finishes, a queued download completes on Wi-Fi, somebody adds one in
+  // Android's own settings — and nothing tells us when. Coming back is the moment
+  // to ask again, so the tick appears on its own rather than only after somebody
+  // thinks to pull or tap refresh.
+  //
+  // Gated on the same condition the query is enabled by rather than trusting a
+  // disabled query to ignore a refetch — the screen should not depend on which
+  // way the data library happens to read `enabled` this major version.
+  const canRead = speechModels !== null && reportsInstalled;
+  const refetch = locales.refetch;
+  useFocusEffect(
+    useCallback(() => {
+      if (canRead) void refetch();
+    }, [canRead, refetch]),
+  );
+
+  // What this screen actually knows, as one word (see `offlineVoiceRead`). Every
+  // notice, the error card, and whether the installed list may be believed all
+  // come from here, so they cannot disagree with one another.
+  const read = offlineVoiceRead({
+    hasModule: speechModels !== null,
+    supportsOnDevice,
+    reportsInstalled,
+    canDownload,
+    query: locales.isError
+      ? 'error'
+      : locales.isSuccess
+        ? 'success'
+        : locales.isPending && locales.fetchStatus === 'idle'
+          ? 'idle'
+          : 'loading',
+    namedAnything:
+      (locales.data?.locales.length ?? 0) > 0 || (locales.data?.installedLocales.length ?? 0) > 0,
+  });
+
+  // The tags this screen watched land. Stronger evidence than the inventory,
+  // which under-reports on many phones and on some cannot be read at all —
+  // without it, a finished download on such a phone leaves the row still
+  // offering Download with "Downloaded. The mic can use it now." underneath.
+  const confirmed = Object.entries(progress)
+    .filter(([, row]) => row.phase === 'done')
+    .map(([tag]) => tag);
+
+  const models = withConfirmedInstalls(
+    offlineVoiceModels(
+      LANGUAGES,
+      deviceLocale(),
+      locales.data?.locales,
+      locales.data?.installedLocales,
+      offlineVoiceKnowledge(read),
+    ),
+    confirmed,
   );
 
   const setRow = (tag: string, row: RowProgress): void => {
@@ -229,6 +279,8 @@ export default function OfflineVoiceScreen() {
         return t.offlineVoice.notDownloaded;
       case 'network':
         return t.offlineVoice.networkFailed;
+      case 'permission':
+        return t.offlineVoice.permissionNeeded;
       case 'busy':
         return t.offlineVoice.serviceBusy;
       case 'started':
@@ -291,27 +343,21 @@ export default function OfflineVoiceScreen() {
   };
 
   const showList = speechModels !== null && supportsOnDevice;
-  // A phone that answered, and named nothing at all. Worth saying out loud: the
-  // app rows below are then the only ones on the screen, and their absence of
-  // company is the phone's doing rather than a list still loading.
-  const namedNothing =
-    locales.isSuccess &&
-    (locales.data?.locales.length ?? 0) === 0 &&
-    (locales.data?.installedLocales.length ?? 0) === 0;
 
-  // One notice at a time, most disqualifying first. Each says what this
-  // particular phone can do, and none of them promises a download that will not
-  // happen.
+  // One notice at a time, in the order `offlineVoiceRead` settled — most
+  // disqualifying fact first, and each of them something about this phone rather
+  // than about the app. `unreadable` is deliberately absent: it is not a notice
+  // but the card below, because it is the one state with something to press.
   const notice: { tone: 'warning' | 'info'; text: string } | null =
-    speechModels === null
+    read === 'no-module'
       ? { tone: 'warning', text: t.offlineVoice.unavailable }
-      : !supportsOnDevice
+      : read === 'no-on-device'
         ? { tone: 'warning', text: t.offlineVoice.noOnDevice }
-        : Platform.OS === 'ios'
+        : read === 'unknowable'
           ? { tone: 'info', text: t.offlineVoice.iosNote }
-          : !canDownload
+          : read === 'too-old'
             ? { tone: 'warning', text: t.offlineVoice.tooOld }
-            : namedNothing
+            : read === 'empty'
               ? { tone: 'info', text: t.offlineVoice.empty }
               : null;
 
@@ -411,19 +457,32 @@ export default function OfflineVoiceScreen() {
           paddingBottom: clearance,
         }}
         showsVerticalScrollIndicator={false}
+        // The gesture the old copy promised and the screen never had. Offered
+        // only where there is a list to re-read, exactly as the header glyph is.
+        refreshing={reportsInstalled && locales.isFetching}
+        onRefresh={reportsInstalled ? () => void locales.refetch() : undefined}
         ListHeaderComponent={
           <View style={{ gap: theme.spacing.md, paddingVertical: theme.spacing.lg }}>
             <Text variant="body" tone="muted">
               {t.offlineVoice.intro}
             </Text>
             {notice ? <Callout tone={notice.tone}>{notice.text}</Callout> : null}
-            {locales.isError ? (
+            {/* The phone's own words, never the network's. Nothing in this read
+                leaves the device, so the app's generic "check your connection"
+                was naming a fault that cannot be the cause — and sending somebody
+                on full signal off to look at their Wi-Fi. */}
+            {read === 'unreadable' ? (
               <Card style={{ gap: theme.spacing.sm }}>
-                <Text variant="subheading">{t.loadError}</Text>
+                <Text variant="subheading">{t.offlineVoice.unreadable}</Text>
                 <Text variant="body" tone="muted">
-                  {t.loadErrorBody}
+                  {t.offlineVoice.unreadableBody}
                 </Text>
-                <Button label={t.retry} fullWidth onPress={() => void locales.refetch()} />
+                <Button
+                  label={t.retry}
+                  fullWidth
+                  disabled={locales.isFetching}
+                  onPress={() => void locales.refetch()}
+                />
               </Card>
             ) : null}
           </View>
@@ -673,11 +732,13 @@ function ModelRow({
             </Text>
           ) : null}
         </View>
-        {/* `unknown` gets a question mark and says so. It used to draw nothing,
-            which read as an answer of its own — a row with no tick looks
-            uninstalled. "Can't tell" is the true statement, and the notice in
-            the header explains why iPhone cannot be asked. What it still does
-            not get is a button, because there is nothing here to press. */}
+        {/* Three answers, and only one of them is a shrug. A tick is a fact. A
+            Download button is offered wherever a download is actually possible —
+            including when the phone would not say what it holds, because there
+            the tap *is* the probe (see `offlineDownloadReason`), and refusing to
+            offer it would strand the reader on the one screen built to help
+            them. "Can't tell" is left for the phones with nothing to press:
+            iPhone, which cannot be asked, and Android 12, which cannot fetch. */}
         {model.state === 'installed' ? (
           <StateMark
             icon="checkmark-circle"
@@ -685,30 +746,28 @@ function ModelRow({
             label={t.offlineVoice.installed}
             tone="positive"
           />
+        ) : canDownload ? (
+          <Button
+            label={t.offlineVoice.download}
+            size="sm"
+            variant="secondary"
+            icon={
+              <Ionicons
+                name="cloud-download-outline"
+                size={iconSize.md}
+                color={theme.color.brand}
+              />
+            }
+            disabled={working}
+            onPress={onDownload}
+          />
         ) : model.state === 'missing' ? (
-          canDownload ? (
-            <Button
-              label={t.offlineVoice.download}
-              size="sm"
-              variant="secondary"
-              icon={
-                <Ionicons
-                  name="cloud-download-outline"
-                  size={iconSize.md}
-                  color={theme.color.brand}
-                />
-              }
-              disabled={working}
-              onPress={onDownload}
-            />
-          ) : (
-            <StateMark
-              icon="cloud-offline-outline"
-              color={theme.color.textMuted}
-              label={t.offlineVoice.notInstalled}
-              tone="neutral"
-            />
-          )
+          <StateMark
+            icon="cloud-offline-outline"
+            color={theme.color.textMuted}
+            label={t.offlineVoice.notInstalled}
+            tone="neutral"
+          />
         ) : (
           <StateMark
             icon="help-circle-outline"
