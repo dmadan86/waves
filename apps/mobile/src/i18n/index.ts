@@ -1527,6 +1527,14 @@ export interface UiStrings {
     /** Confirm body when deleting a whole voice batch at once. */
     deleteBatch: string;
     deleteBatchConfirm: PluralForms;
+    /** The batch ⋯ can also place the whole cluster in one group at once: the
+     *  menu item, the confirmation once they land, and — because a queued write
+     *  can refuse — what is said when only some of them made it. */
+    assignBatch: string;
+    assignedBatch: PluralForms;
+    assignBatchSomeFailed: PluralForms;
+    /** Nothing was left to place — another device had already placed them. */
+    assignBatchAlreadyDone: string;
     assign: string;
     /** Chip label on a pre-aimed row: "Add to {name}" (the group it was tagged for). */
     addTo: string;
@@ -4059,6 +4067,16 @@ const en: UiStrings = {
       one: 'Delete this expense?',
       other: 'Delete all {n} expenses in this batch?',
     },
+    assignBatch: 'Add these to a group',
+    assignedBatch: {
+      one: '{n} expense added to {name}',
+      other: '{n} expenses added to {name}',
+    },
+    assignBatchSomeFailed: {
+      one: '{n} could not be added, and is still saved for later.',
+      other: '{n} could not be added, and are still saved for later.',
+    },
+    assignBatchAlreadyDone: 'These were already added somewhere else',
     assign: 'Add to group',
     addTo: 'Add to {name}',
     assignTitle: 'Add to a group',
@@ -6560,6 +6578,16 @@ const ta: UiStrings = {
       one: 'இந்தச் செலவை நீக்கவா?',
       other: 'இந்த தொகுப்பில் உள்ள {n} செலவுகளையும் நீக்கவா?',
     },
+    assignBatch: 'இவற்றை ஒரு குழுவில் சேர்',
+    assignedBatch: {
+      one: '{n} செலவு {name} இல் சேர்க்கப்பட்டது',
+      other: '{n} செலவுகள் {name} இல் சேர்க்கப்பட்டன',
+    },
+    assignBatchSomeFailed: {
+      one: '{n} சேர்க்க முடியவில்லை; அது இன்னும் பிறகுக்காகச் சேமித்திருக்கிறது.',
+      other: '{n} சேர்க்க முடியவில்லை; அவை இன்னும் பிறகுக்காகச் சேமித்திருக்கின்றன.',
+    },
+    assignBatchAlreadyDone: 'இவை ஏற்கனவே வேறு சாதனத்தில் சேர்க்கப்பட்டுவிட்டன',
     assign: 'குழுவில் சேர்',
     addTo: '{name} இல் சேர்',
     assignTitle: 'ஒரு குழுவில் சேர்க்கவும்',
@@ -9102,6 +9130,16 @@ const hi: UiStrings = {
     batchHint: 'एक साथ असाइन करें, या हर एक को खोलकर संभालें',
     deleteBatch: 'ये खर्च हटाएँ',
     deleteBatchConfirm: { one: 'यह खर्च हटाएँ?', other: 'इस बैच के सभी {n} खर्च हटाएँ?' },
+    assignBatch: 'इन्हें किसी समूह में जोड़ें',
+    assignedBatch: {
+      one: '{n} खर्च {name} में जोड़ा गया',
+      other: '{n} खर्च {name} में जोड़े गए',
+    },
+    assignBatchSomeFailed: {
+      one: '{n} जोड़ा नहीं जा सका, वह अब भी बाद के लिए सहेजा है।',
+      other: '{n} जोड़े नहीं जा सके, वे अब भी बाद के लिए सहेजे हैं।',
+    },
+    assignBatchAlreadyDone: 'ये पहले ही कहीं और जोड़े जा चुके हैं',
     assign: 'समूह में जोड़ें',
     addTo: '{name} में जोड़ें',
     assignTitle: 'किसी समूह में जोड़ें',
@@ -11654,6 +11692,22 @@ const ar: UiStrings = {
       one: 'حذف هذا المصروف؟',
       other: 'حذف كل المصاريف الـ {n} في هذه المجموعة؟',
     },
+    assignBatch: 'أضِف هذه إلى مجموعة',
+    assignedBatch: {
+      one: 'أُضيف مصروف واحد إلى {name}',
+      two: 'أُضيف مصروفان إلى {name}',
+      few: 'أُضيفت {n} مصاريف إلى {name}',
+      many: 'أُضيف {n} مصروفًا إلى {name}',
+      other: 'أُضيف {n} مصروف إلى {name}',
+    },
+    assignBatchSomeFailed: {
+      one: 'تعذّرت إضافة مصروف واحد، وما زال محفوظًا لوقت لاحق.',
+      two: 'تعذّرت إضافة مصروفين، وما زالا محفوظين لوقت لاحق.',
+      few: 'تعذّرت إضافة {n} مصاريف، وما زالت محفوظة لوقت لاحق.',
+      many: 'تعذّرت إضافة {n} مصروفًا، وما زالت محفوظة لوقت لاحق.',
+      other: 'تعذّرت إضافة {n} مصروف، وما زالت محفوظة لوقت لاحق.',
+    },
+    assignBatchAlreadyDone: 'أُضيفت هذه من جهاز آخر بالفعل',
     assign: 'أضِف إلى مجموعة',
     addTo: 'أضِف إلى {name}',
     assignTitle: 'أضِف إلى مجموعة',

@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
 import { CaptureStatus, type CaptureRow } from '../src/data/types';
-import { assignCaptureHref, matchesAssignGroupQuery } from '../src/lib/captureAssign';
+import {
+  assignCaptureHref,
+  capturePaymentMethod,
+  matchesAssignGroupQuery,
+} from '../src/lib/captureAssign';
 
 function capture(overrides: Partial<CaptureRow> = {}): CaptureRow {
   const base: CaptureRow = {
@@ -43,6 +47,32 @@ describe('assignCaptureHref', () => {
         expenseDate: '2026-09-08',
       },
     });
+  });
+
+  it('carries how the draft was paid, so assigning does not turn a card into cash', () => {
+    const href = assignCaptureHref(capture({ payment_method: 'credit' }), 'group-1');
+    expect(href.params).toMatchObject({ paymentMethod: 'credit' });
+  });
+
+  it('says nothing about payment when the draft named none', () => {
+    const href = assignCaptureHref(capture({ payment_method: null }), 'group-1');
+    expect(href.params).not.toHaveProperty('paymentMethod');
+  });
+});
+
+describe('capturePaymentMethod', () => {
+  it('keeps every method the ledger knows', () => {
+    for (const method of ['cash', 'upi', 'credit', 'debit', 'forex'] as const) {
+      expect(capturePaymentMethod(method)).toBe(method);
+    }
+  });
+
+  it('falls back to the form default for anything it does not know', () => {
+    // A draft's column is plain text, so an older build's value — or none at
+    // all — must land on something the ledger accepts rather than be cast.
+    expect(capturePaymentMethod(null)).toBe('cash');
+    expect(capturePaymentMethod(undefined)).toBe('cash');
+    expect(capturePaymentMethod('crypto')).toBe('cash');
   });
 });
 
