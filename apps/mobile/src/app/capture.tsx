@@ -49,6 +49,7 @@ import { groupLabel, GroupType, type GroupRow, type MemberRow } from '@/data/typ
 import { useAuth } from '@/lib/auth';
 import { useDefaultCurrency } from '@/lib/currency';
 import { plural, useStrings, type UiStrings } from '@/i18n';
+import { dateFrom, isoDate, showDate } from '@/lib/expenseDay';
 import { captureReceipt, type PickedImage } from '@/lib/image';
 import { router } from '@/lib/navigation';
 import { recogniseReceipt } from '@/lib/ocr';
@@ -122,30 +123,6 @@ function todayIn(timeZone: string): string {
 function isCurrentTrip(group: GroupRow): boolean {
   if (group.type !== GroupType.Trip) return false;
   return dayNumber(todayIn(group.time_zone), group.start_date, group.end_date) !== null;
-}
-
-/**
- * Parsed as local noon rather than midnight: a date-only string turned into
- * midnight UTC lands on the previous day west of Greenwich (the same trap
- * TripDates avoids).
- */
-function dateFrom(iso: string): Date {
-  const [year, month, day] = iso.split('-').map(Number);
-  return new Date(year ?? 2026, (month ?? 1) - 1, day ?? 1, 12);
-}
-
-function isoDate(value: Date): string {
-  const month = String(value.getMonth() + 1).padStart(2, '0');
-  const day = String(value.getDate()).padStart(2, '0');
-  return `${value.getFullYear()}-${month}-${day}`;
-}
-
-function showDate(iso: string, locale: string): string {
-  return dateFrom(iso).toLocaleDateString(locale, {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-  });
 }
 
 /**
