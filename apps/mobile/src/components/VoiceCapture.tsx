@@ -1113,13 +1113,24 @@ export function VoiceCapture({
             it: whatever the mic would do in this state, this does.
 
             Deliberately not a second entry in the accessibility tree. The mic
-            two rows up is already a button carrying this exact label and this
-            exact action, and a screen reader that meets the same command twice
-            in a row has learned nothing the second time. This is that control's
-            own copy, widened into a target for the eye and the thumb. */}
+            two rows up is already a button carrying this exact label — the same
+            expression, character for character — and this exact action, so a
+            screen reader that meets the same command twice in a row has learned
+            nothing the second time. This is that control's own copy, widened
+            into a target for the eye and the thumb.
+
+            It takes all three props, and `accessible={false}` is the one doing
+            the work on iOS. A `Pressable` defaults to `accessible`, which makes
+            it an accessibility *element* — and `accessibilityElementsHidden`
+            hides what an element contains, not the element itself, so on its own
+            it would have left VoiceOver announcing this button after the mic's.
+            (Everywhere else in the app this pair sits on a plain `View`, which
+            is not an element, which is why two props are enough there.)
+            `importantForAccessibility` is the Android half. */}
         <Pressable
           onPress={toggle}
           hitSlop={8}
+          accessible={false}
           accessibilityElementsHidden
           importantForAccessibility="no-hide-descendants"
           style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}

@@ -88,6 +88,7 @@ import {
   withConfirmedInstalls,
   type OfflineDownloadReason,
   type OfflineVoiceModel,
+  type OfflineVoiceReadInput,
 } from '@/lib/dictation';
 import { useReducedMotion } from '@/lib/reducedMotion';
 import { speechModels } from '@/lib/speechModels';
@@ -217,24 +218,28 @@ export default function OfflineVoiceScreen() {
     }, [canRead, refetch]),
   );
 
-  // What this screen actually knows, as one word (see `offlineVoiceRead`). Every
-  // notice, the error card, and whether the installed list may be believed all
-  // come from here, so they cannot disagree with one another.
-  const read = offlineVoiceRead({
+  // Everything the screen knows about this phone, gathered once and then asked
+  // two separate questions — what to say, and what may be believed. They are not
+  // the same question and must not be derived from one another; see
+  // `offlineVoiceKnowledge`.
+  //
+  // `hasData` is the one that has to be read carefully. React Query keeps a
+  // query's answer when a later refetch fails — `status` goes to `error` while
+  // `data` stays exactly where it was — so "the last fetch failed" and "we know
+  // nothing" are different facts, and this screen refetches on every visit now.
+  // Conflating them would mean a briefly busy speech service, on the visit after
+  // a good one, wiped every tick off the screen.
+  const inventory: OfflineVoiceReadInput = {
     hasModule: speechModels !== null,
     supportsOnDevice,
     reportsInstalled,
     canDownload,
-    query: locales.isError
-      ? 'error'
-      : locales.isSuccess
-        ? 'success'
-        : locales.isPending && locales.fetchStatus === 'idle'
-          ? 'idle'
-          : 'loading',
+    query: locales.isError ? 'error' : locales.isSuccess ? 'success' : 'loading',
+    hasData: locales.data != null,
     namedAnything:
       (locales.data?.locales.length ?? 0) > 0 || (locales.data?.installedLocales.length ?? 0) > 0,
-  });
+  };
+  const read = offlineVoiceRead(inventory);
 
   // The tags this screen watched land. Stronger evidence than the inventory,
   // which under-reports on many phones and on some cannot be read at all —
@@ -250,7 +255,7 @@ export default function OfflineVoiceScreen() {
       deviceLocale(),
       locales.data?.locales,
       locales.data?.installedLocales,
-      offlineVoiceKnowledge(read),
+      offlineVoiceKnowledge(inventory),
     ),
     confirmed,
   );
@@ -343,11 +348,16 @@ export default function OfflineVoiceScreen() {
   };
 
   const showList = speechModels !== null && supportsOnDevice;
+  // There is a list, and it can be re-read. Both refresh affordances answer to
+  // this one condition rather than each judging it for itself.
+  const canRefresh = showList && reportsInstalled;
 
   // One notice at a time, in the order `offlineVoiceRead` settled — most
   // disqualifying fact first, and each of them something about this phone rather
   // than about the app. `unreadable` is deliberately absent: it is not a notice
   // but the card below, because it is the one state with something to press.
+  // `stale` is a notice and not that card, which is the whole difference between
+  // them — the list is still standing, so there is nothing here to recover from.
   const notice: { tone: 'warning' | 'info'; text: string } | null =
     read === 'no-module'
       ? { tone: 'warning', text: t.offlineVoice.unavailable }
@@ -357,9 +367,11 @@ export default function OfflineVoiceScreen() {
           ? { tone: 'info', text: t.offlineVoice.iosNote }
           : read === 'too-old'
             ? { tone: 'warning', text: t.offlineVoice.tooOld }
-            : read === 'empty'
-              ? { tone: 'info', text: t.offlineVoice.empty }
-              : null;
+            : read === 'stale'
+              ? { tone: 'info', text: t.offlineVoice.staleNote }
+              : read === 'empty'
+                ? { tone: 'info', text: t.offlineVoice.empty }
+                : null;
 
   /**
    * A group that folds: its header always, its rows only when open.
@@ -434,7 +446,7 @@ export default function OfflineVoiceScreen() {
             where there is a list to re-read: on a phone that reports nothing,
             refreshing would redraw the same four rows and mean nothing. The
             spacer keeps the title centred in its absence. */}
-        {reportsInstalled ? (
+        {canRefresh ? (
           <IconButton label={t.offlineVoice.refresh} onPress={() => void locales.refetch()}>
             <Ionicons name="refresh" size={iconSize.md} color={theme.color.text} />
           </IconButton>
@@ -458,9 +470,12 @@ export default function OfflineVoiceScreen() {
         }}
         showsVerticalScrollIndicator={false}
         // The gesture the old copy promised and the screen never had. Offered
-        // only where there is a list to re-read, exactly as the header glyph is.
-        refreshing={reportsInstalled && locales.isFetching}
-        onRefresh={reportsInstalled ? () => void locales.refetch() : undefined}
+        // wherever there is actually a list to re-read — which is `showList` and
+        // not merely "this phone reports installed models": an Android build that
+        // cannot recognise on-device at all draws no rows, and a pull that
+        // re-reads nothing is a control with no referent.
+        refreshing={canRefresh && locales.isFetching}
+        onRefresh={canRefresh ? () => void locales.refetch() : undefined}
         ListHeaderComponent={
           <View style={{ gap: theme.spacing.md, paddingVertical: theme.spacing.lg }}>
             <Text variant="body" tone="muted">

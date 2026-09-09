@@ -323,7 +323,7 @@ describe('offlineDownloadReason', () => {
 });
 
 /**
- * The one question this screen kept getting wrong, now asked of a pure function.
+ * The two questions this screen kept getting wrong, now asked separately.
  *
  * The bug in the field: a phone with working 5G, an English model already
  * downloaded, and a card reading "Couldn't load this — check your connection".
@@ -333,6 +333,12 @@ describe('offlineDownloadReason', () => {
  * network empty-state. The same undefined answer then told the row below that
  * nothing was installed, so English offered a Download directly above its own
  * "Downloaded. The mic can use it now."
+ *
+ * The deeper mistake, and the reason these are two functions: one value was
+ * being asked both "what should the screen say?" and "may the list be
+ * believed?". The first is a ranking of what most needs saying; the second is a
+ * question of evidence. Ranking the second produced two more bugs of its own,
+ * both pinned below — Android 12 and the failed refresh.
  */
 describe('offlineVoiceRead', () => {
   // A modern Android that answers: the case everything else is a deviation from.
@@ -342,39 +348,59 @@ describe('offlineVoiceRead', () => {
     reportsInstalled: true,
     canDownload: true,
     query: 'success',
+    hasData: true,
     namedAnything: true,
   };
 
   it('trusts a phone that answered with a list', () => {
     expect(offlineVoiceRead(android)).toBe('ready');
-    expect(offlineVoiceKnowledge(offlineVoiceRead(android))).toBe('reported');
+    expect(offlineVoiceKnowledge(android)).toBe('reported');
   });
 
   it('separates an answer of nothing from no answer at all', () => {
     // Answered, named nothing: an empty inventory is a fact, and believable.
-    const empty = offlineVoiceRead({ ...android, namedAnything: false });
-    expect(empty).toBe('empty');
+    const empty = { ...android, namedAnything: false };
+    expect(offlineVoiceRead(empty)).toBe('empty');
     expect(offlineVoiceKnowledge(empty)).toBe('reported');
 
-    // Refused: not an empty inventory, and emphatically not the connection.
-    const refused = offlineVoiceRead({ ...android, query: 'error', namedAnything: false });
-    expect(refused).toBe('unreadable');
+    // Refused with nothing held: not an empty inventory, and not the connection.
+    const refused = { ...android, query: 'error', hasData: false, namedAnything: false } as const;
+    expect(offlineVoiceRead(refused)).toBe('unreadable');
     expect(offlineVoiceKnowledge(refused)).toBe('unknowable');
   });
 
-  it('never calls a read still in flight an answer', () => {
-    for (const query of ['idle', 'loading'] as const) {
-      const state = offlineVoiceRead({ ...android, query, namedAnything: false });
-      expect(state).toBe('loading');
-      // The whole of the row bug: believing a not-yet-answered read is what drew
-      // a Download button beside a model that was already there.
-      expect(offlineVoiceKnowledge(state)).toBe('unknowable');
-    }
+  it('keeps the answer it already has when a refresh fails on top of it', () => {
+    // React Query keeps `data` and flips `status` to error when a *refetch*
+    // fails. Reading only "the last fetch failed" made the screen forget a good
+    // list — and since it now refetches on every visit, a briefly busy speech
+    // service (the known failure mode here) would wipe the ticks on the visit
+    // after a good one. The ticks must survive; only their freshness is in doubt.
+    const refreshFailed = { ...android, query: 'error' } as const;
+    expect(offlineVoiceRead(refreshFailed)).toBe('stale');
+    expect(offlineVoiceKnowledge(refreshFailed)).toBe('reported');
+
+    // Both error shapes, side by side, so neither can quietly take the other's
+    // words: one is a list that is merely not fresh, the other is no list.
+    expect(offlineVoiceRead({ ...refreshFailed, hasData: false })).toBe('unreadable');
+  });
+
+  it('does not blank the list while it is being re-read', () => {
+    // A refresh in flight over an answer is a list being checked, not an empty
+    // screen waiting to be filled.
+    const refreshing = { ...android, query: 'loading' } as const;
+    expect(offlineVoiceRead(refreshing)).toBe('ready');
+    expect(offlineVoiceKnowledge(refreshing)).toBe('reported');
+
+    // The first read, with nothing behind it, really is loading — and must not
+    // be believed as an empty inventory while it waits.
+    const first = { ...refreshing, hasData: false, namedAnything: false };
+    expect(offlineVoiceRead(first)).toBe('loading');
+    expect(offlineVoiceKnowledge(first)).toBe('unknowable');
   });
 
   it('puts the device facts ahead of the read, most disqualifying first', () => {
     // Each of these is true whatever the query does, so each outranks it.
-    const broken = { query: 'error', namedAnything: false } as const;
+    const broken = { query: 'error', hasData: false, namedAnything: false } as const;
     expect(offlineVoiceRead({ ...android, ...broken, hasModule: false })).toBe('no-module');
     expect(offlineVoiceRead({ ...android, ...broken, supportsOnDevice: false })).toBe(
       'no-on-device',
@@ -385,10 +411,30 @@ describe('offlineVoiceRead', () => {
     expect(offlineVoiceRead({ ...android, ...broken, canDownload: false })).toBe('too-old');
   });
 
-  it('never lets iPhone’s echo be read as an inventory', () => {
-    expect(offlineVoiceKnowledge(offlineVoiceRead({ ...android, reportsInstalled: false }))).toBe(
+  it('lets Android 12 be told it cannot fetch without being told it cannot be asked', () => {
+    // The regression this pins. `canDownload` is `android && API >= 33`, but
+    // `reportsInstalled` is merely `android` — so an Android 12 phone runs the
+    // query and answers it correctly. Ranking `too-old` above the read and then
+    // reading knowledge off that rank told somebody who had installed English
+    // through system settings that the phone could not say, immediately after it
+    // had. "Cannot fetch" is the right notice; it is not an answer about
+    // evidence, and the two must not be derived from one another.
+    const android12 = { ...android, canDownload: false } as const;
+    expect(offlineVoiceRead(android12)).toBe('too-old');
+    expect(offlineVoiceKnowledge(android12)).toBe('reported');
+
+    // Still nothing to believe when there is genuinely no answer in hand.
+    expect(offlineVoiceKnowledge({ ...android12, query: 'error', hasData: false })).toBe(
       'unknowable',
     );
+  });
+
+  it('never lets iPhone’s echo be read as an inventory', () => {
+    // The one refusal that survives a perfectly good-looking answer: iOS returns
+    // its supported list under both names, so `hasData` is true and worthless.
+    expect(offlineVoiceKnowledge({ ...android, reportsInstalled: false })).toBe('unknowable');
+    expect(offlineVoiceKnowledge({ ...android, supportsOnDevice: false })).toBe('unknowable');
+    expect(offlineVoiceKnowledge({ ...android, hasModule: false })).toBe('unknowable');
   });
 });
 

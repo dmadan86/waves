@@ -1124,6 +1124,17 @@ export interface UiStrings {
      */
     unreadable: string;
     unreadableBody: string;
+    /**
+     * The phone was asked again and refused, but its earlier answer still
+     * stands.
+     *
+     * A quieter thing than {@link unreadable}, and kept apart from it because
+     * the difference is the whole point: there the screen knows nothing and
+     * offers a way to recover, here the list is still on the page and is merely
+     * not fresh. Saying "couldn't load" over a list somebody can see is how a
+     * screen teaches people to disbelieve it.
+     */
+    staleNote: string;
     /** The speech service will not fetch a model for an app it cannot hear
      *  through — a switch in Settings, not a fault of the phone or the language. */
     permissionNeeded: string;
@@ -3702,7 +3713,9 @@ const en: UiStrings = {
     refresh: 'Refresh',
     unreadable: 'This phone wouldn’t say what it has',
     unreadableBody:
-      'Its own speech service didn’t answer, so the ticks below may be out of date. Nothing here needs a connection — try again, or just download the language you want.',
+      'Its own speech service didn’t answer, so there’s no telling which languages are already here. Nothing on this screen needs a connection — try again, or just download the language you want.',
+    staleNote:
+      'Couldn’t check with the phone again just now, so the ticks below may be out of date.',
     permissionNeeded:
       'Your phone’s speech service needs the microphone before it will fetch a model. Allow it in Settings, then try again.',
     empty:
@@ -6189,7 +6202,9 @@ const ta: UiStrings = {
     refresh: 'புதுப்பி',
     unreadable: 'இந்தத் தொலைபேசி தன்னிடம் என்ன இருக்கிறது எனச் சொல்லவில்லை',
     unreadableBody:
-      'அதன் சொந்தப் பேச்சுச் சேவை பதிலளிக்கவில்லை, எனவே கீழுள்ள குறிகள் பழையவையாக இருக்கலாம். இதற்கு இணைய இணைப்பு எதுவும் தேவையில்லை — மீண்டும் முயலுங்கள், அல்லது வேண்டிய மொழியை நேரடியாகப் பதிவிறக்குங்கள்.',
+      'அதன் சொந்தப் பேச்சுச் சேவை பதிலளிக்கவில்லை, எனவே எந்த மொழிகள் ஏற்கெனவே இங்கு உள்ளன எனத் தெரியவில்லை. இந்தத் திரையில் எதற்கும் இணைய இணைப்பு தேவையில்லை — மீண்டும் முயலுங்கள், அல்லது வேண்டிய மொழியை நேரடியாகப் பதிவிறக்குங்கள்.',
+    staleNote:
+      'இப்போது தொலைபேசியிடம் மீண்டும் சரிபார்க்க முடியவில்லை, எனவே கீழுள்ள குறிகள் பழையவையாக இருக்கலாம்.',
     permissionNeeded:
       'மாதிரியைப் பெறுவதற்கு முன் உங்கள் தொலைபேசியின் பேச்சுச் சேவைக்கு ஒலிவாங்கி அனுமதி தேவை. அமைப்புகளில் அனுமதித்துவிட்டு மீண்டும் முயலுங்கள்.',
     empty:
@@ -8750,7 +8765,8 @@ const hi: UiStrings = {
     refresh: 'ताज़ा करें',
     unreadable: 'यह फ़ोन नहीं बता रहा कि उसके पास क्या है',
     unreadableBody:
-      'इसकी अपनी स्पीच सेवा ने जवाब नहीं दिया, इसलिए नीचे के निशान पुराने हो सकते हैं। इसमें कनेक्शन की कोई ज़रूरत नहीं है — फिर कोशिश करें, या जो भाषा चाहिए उसे सीधे डाउनलोड कर लें।',
+      'इसकी अपनी स्पीच सेवा ने जवाब नहीं दिया, इसलिए पता नहीं चल रहा कि कौन-सी भाषाएँ पहले से मौजूद हैं। इस स्क्रीन पर किसी चीज़ को कनेक्शन की ज़रूरत नहीं है — फिर कोशिश करें, या जो भाषा चाहिए उसे सीधे डाउनलोड कर लें।',
+    staleNote: 'अभी फ़ोन से दोबारा पूछा नहीं जा सका, इसलिए नीचे के निशान पुराने हो सकते हैं।',
     permissionNeeded:
       'मॉडल लाने से पहले आपके फ़ोन की स्पीच सेवा को माइक्रोफ़ोन चाहिए। सेटिंग्स में अनुमति दें, फिर कोशिश करें।',
     empty:
@@ -11305,7 +11321,8 @@ const ar: UiStrings = {
     refresh: 'تحديث',
     unreadable: 'لم يخبرنا هذا الهاتف بما لديه',
     unreadableBody:
-      'لم تُجب خدمة الكلام في الهاتف نفسه، لذا قد تكون العلامات أدناه قديمة. لا شيء هنا يحتاج إلى اتصال — أعد المحاولة، أو نزّل اللغة التي تريدها مباشرةً.',
+      'لم تُجب خدمة الكلام في الهاتف نفسه، لذا لا سبيل لمعرفة اللغات الموجودة هنا بالفعل. لا شيء في هذه الشاشة يحتاج إلى اتصال — أعد المحاولة، أو نزّل اللغة التي تريدها مباشرةً.',
+    staleNote: 'تعذّرت مراجعة الهاتف مرة أخرى الآن، لذا قد تكون العلامات أدناه قديمة.',
     permissionNeeded:
       'تحتاج خدمة الكلام في هاتفك إلى إذن الميكروفون قبل جلب النموذج. اسمح به في الإعدادات ثم أعد المحاولة.',
     empty:

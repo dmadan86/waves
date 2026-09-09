@@ -232,7 +232,7 @@ export function offlineVoiceModels(
 }
 
 /**
- * What the offline-voice screen actually knows about this phone.
+ * What the offline-voice screen has to say about this phone.
  *
  * This exists because the screen used to have no name for its own most common
  * failure, and borrowed the app's generic one instead: any rejection from the
@@ -244,23 +244,29 @@ export function offlineVoiceModels(
  * implement the query — which is the OEM-ROM case this whole screen exists for —
  * the reader was told to go and look at their Wi-Fi.
  *
- * The second half of the same mistake was quieter and worse. A failed read left
- * the inventory undefined, which {@link offlineVoiceModels} could only read as
- * "nothing is installed" — so every row offered a Download, including one the
- * reader had just watched succeed, with the confirmation still under it. A
- * failed read is not an empty one, and these states keep them apart.
+ * This answers exactly one question — *what should the screen say* — and it is
+ * deliberately not asked the other one. Whether the installed list may be
+ * believed is {@link offlineVoiceKnowledge}. Deriving that from this cost two
+ * separate bugs, because a ranking of what most needs saying is the wrong
+ * instrument for a question of evidence: a phone too old to *fetch* a model was
+ * told it could not be *asked* what it holds (it can, and it just had), and a
+ * refresh that failed on top of a perfectly good answer threw that answer away.
  *
  *  - `no-module` — an older binary with no native speech module at all.
  *  - `no-on-device` — a recogniser that only ever works over the network.
  *  - `unknowable` — iPhone, which returns its supported list under both names,
  *    so its answer about what is installed means nothing (see
  *    {@link InstalledKnowledge}).
- *  - `too-old` — Android 12 and below: nothing to list and nothing to fetch.
- *  - `unreadable` — the phone was asked and would not say. Its own words, never
- *    the connection's.
- *  - `loading` — asked, still waiting.
+ *  - `too-old` — Android 12 and below: nothing to *fetch*. It may still be asked
+ *    what it holds, and on this path it usually answers.
+ *  - `unreadable` — asked, refused, and nothing held from before. Its own words,
+ *    never the connection's.
+ *  - `stale` — asked again and refused, but an earlier answer is still in hand.
+ *    A quieter thing entirely: the ticks stand, they are merely not fresh.
+ *  - `loading` — asked, still waiting, nothing yet. A refresh *over* an answer is
+ *    not this: the list stays on screen and keeps its own state.
  *  - `empty` — answered, and named nothing at all.
- *  - `ready` — answered with a list that can be trusted.
+ *  - `ready` — answered with a list.
  */
 export type OfflineVoiceRead =
   | 'no-module'
@@ -268,11 +274,12 @@ export type OfflineVoiceRead =
   | 'unknowable'
   | 'too-old'
   | 'unreadable'
+  | 'stale'
   | 'loading'
   | 'empty'
   | 'ready';
 
-/** Everything the read state is decided from — no React, no native module. */
+/** Everything both answers are decided from — no React, no native module. */
 export interface OfflineVoiceReadInput {
   /** The native speech module imported on this build. */
   readonly hasModule: boolean;
@@ -282,39 +289,70 @@ export interface OfflineVoiceReadInput {
   readonly reportsInstalled: boolean;
   /** A model can be fetched from inside the app — Android 13 and up. */
   readonly canDownload: boolean;
-  /** How the inventory read is going. */
-  readonly query: 'idle' | 'loading' | 'error' | 'success';
+  /** How the newest read went. */
+  readonly query: 'loading' | 'error' | 'success';
+  /**
+   * An answer is in hand — from this read or an earlier one.
+   *
+   * The distinction the data layer draws, and this file has to draw too: a query
+   * that answered and *then* failed a refresh is still holding its answer, and is
+   * a different thing from one that has never answered at all. Reading only "did
+   * the last fetch fail" turned a momentarily busy speech service into a screen
+   * that forgot everything it knew — on a surface whose single best-known failure
+   * mode is a momentarily busy speech service.
+   */
+  readonly hasData: boolean;
   /** The answer named at least one locale, supported or installed. */
   readonly namedAnything: boolean;
 }
 
 /**
- * The one state the screen draws from, most disqualifying fact first.
+ * The one sentence the screen leads with, most disqualifying fact first.
  *
- * The order is the point. A device that cannot do on-device recognition at all
+ * The order is the point. A device that cannot recognise speech offline at all
  * is not also "still loading", and a phone too old to fetch a model is told that
  * rather than told its read failed — the older fact is the truer sentence, and
- * the one with something to do about it.
+ * the one with something to do about it. What the order must never decide is
+ * whether the rows below may be trusted; that is not a sentence, and it is not
+ * here.
  */
 export function offlineVoiceRead(input: OfflineVoiceReadInput): OfflineVoiceRead {
   if (!input.hasModule) return 'no-module';
   if (!input.supportsOnDevice) return 'no-on-device';
   if (!input.reportsInstalled) return 'unknowable';
   if (!input.canDownload) return 'too-old';
-  if (input.query === 'error') return 'unreadable';
-  if (input.query !== 'success') return 'loading';
+  // A refusal on top of an answer is not the same event as a refusal instead of
+  // one, and must not wear the same words: the first costs freshness, the second
+  // costs everything.
+  if (input.query === 'error') return input.hasData ? 'stale' : 'unreadable';
+  // Likewise a refresh in flight over an answer, which is not a blank screen
+  // waiting to be filled — it is a list, being checked.
+  if (input.query === 'loading' && !input.hasData) return 'loading';
   return input.namedAnything ? 'ready' : 'empty';
 }
 
 /**
- * Whether the installed list may be believed in this state.
+ * Whether the installed list may be believed.
  *
- * Only an answer counts. `unreadable` and `loading` are emphatically not
- * `reported`: treating either as a trustworthy empty list is exactly how a row
- * came to offer a download for a model that was already there.
+ * Its own function over the same input, and emphatically not a reading of
+ * {@link OfflineVoiceRead}. Deriving it from that answered "can this phone be
+ * asked what it holds?" with "can this phone download?", and an Android 12
+ * reader who had installed English through system settings — the one person the
+ * screen exists to answer — was told the phone could not say, immediately after
+ * it did.
+ *
+ * Three things make an answer trustworthy, and `canDownload` is not among them:
+ * the module is here, the phone recognises on-device at all, and it reports
+ * installed models as fact rather than echoing its supported list (iPhone does
+ * the latter — see {@link InstalledKnowledge}). Then there must actually be an
+ * answer in hand. That is `hasData`, never "the last fetch succeeded", so a
+ * failed refresh over a good list keeps the list instead of blanking every row;
+ * and never "the answer named something", because a phone that answers with
+ * nothing has still answered, and an empty inventory is a fact like any other.
  */
-export function offlineVoiceKnowledge(read: OfflineVoiceRead): InstalledKnowledge {
-  return read === 'ready' || read === 'empty' ? 'reported' : 'unknowable';
+export function offlineVoiceKnowledge(input: OfflineVoiceReadInput): InstalledKnowledge {
+  if (!input.hasModule || !input.supportsOnDevice || !input.reportsInstalled) return 'unknowable';
+  return input.hasData ? 'reported' : 'unknowable';
 }
 
 /**
