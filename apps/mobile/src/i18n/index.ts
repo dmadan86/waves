@@ -761,6 +761,12 @@ export interface UiStrings {
     footnote: string;
     /** Native biometric prompt shown on entering the private Me tab. */
     personalPrompt: string;
+    /** Heading on the shield in front of the private ledger. */
+    personalLockedTitle: string;
+    /** How to open it — shown while the prompt is up or about to be. */
+    personalLockedBody: string;
+    /** Shown instead, once a check has been refused or cancelled. */
+    personalLockedRefused: string;
   };
   /** The sheet behind Sign out: what leaves the phone with the account, and
    *  the two things you can do about it before you go. */
@@ -3414,6 +3420,9 @@ const en: UiStrings = {
     footnote:
       'This guards the screen, not the data — your ledger is protected by row-level security on the server whether the lock is on or not.',
     personalPrompt: 'Unlock your personal ledger',
+    personalLockedTitle: 'Your personal ledger is locked',
+    personalLockedBody: 'Unlock with the same face or fingerprint that opens this phone.',
+    personalLockedRefused: 'That did not unlock it. Try again, or go back.',
   },
   signOutSheet: {
     guestTitle: 'This account cannot be signed back into',
@@ -5886,6 +5895,9 @@ const ta: UiStrings = {
     footnote:
       'இது திரையைக் காக்கிறது, தரவை அல்ல — பூட்டு இருந்தாலும் இல்லாவிட்டாலும் உங்கள் கணக்கு சர்வரில் வரிசை அளவிலான பாதுகாப்பால் காக்கப்படுகிறது.',
     personalPrompt: 'உங்கள் தனிப்பட்ட கணக்கைத் திறக்கவும்',
+    personalLockedTitle: 'உங்கள் தனிப்பட்ட கணக்கு பூட்டப்பட்டுள்ளது',
+    personalLockedBody: 'இந்த ஃபோனைத் திறக்கும் அதே முகம் அல்லது கைரேகையால் திறக்கவும்.',
+    personalLockedRefused: 'அது திறக்கவில்லை. மீண்டும் முயலுங்கள், அல்லது திரும்பிச் செல்லுங்கள்.',
   },
   signOutSheet: {
     guestTitle: 'இந்தக் கணக்கில் மீண்டும் உள்நுழைய முடியாது',
@@ -8451,6 +8463,9 @@ const hi: UiStrings = {
     footnote:
       'यह स्क्रीन की रक्षा करता है, डेटा की नहीं — लॉक चालू हो या बंद, आपका हिसाब सर्वर पर रो-लेवल सुरक्षा से सुरक्षित है।',
     personalPrompt: 'अपना निजी हिसाब अनलॉक करें',
+    personalLockedTitle: 'आपका निजी हिसाब लॉक है',
+    personalLockedBody: 'उसी चेहरे या फ़िंगरप्रिंट से खोलें जिससे यह फ़ोन खुलता है।',
+    personalLockedRefused: 'इससे लॉक नहीं खुला। फिर से कोशिश करें, या वापस जाएँ।',
   },
   signOutSheet: {
     guestTitle: 'इस खाते में दोबारा साइन इन नहीं किया जा सकता',
@@ -10962,6 +10977,9 @@ const ar: UiStrings = {
     footnote:
       'هذا يحمي الشاشة لا البيانات — دفترك محمي على الخادم بأمان على مستوى الصفوف سواء كان القفل مفعّلًا أم لا.',
     personalPrompt: 'افتح قفل دفترك الشخصي',
+    personalLockedTitle: 'دفترك الشخصي مقفل',
+    personalLockedBody: 'افتحه بالوجه أو البصمة نفسها التي تفتح هذا الهاتف.',
+    personalLockedRefused: 'لم يُفتح القفل. حاول مرة أخرى، أو ارجع.',
   },
   signOutSheet: {
     guestTitle: 'لا يمكن تسجيل الدخول إلى هذا الحساب مرة أخرى',

@@ -5,6 +5,7 @@ import {
   useEffect,
   useRef,
   useState,
+  useSyncExternalStore,
   type ReactNode,
 } from 'react';
 import * as LocalAuthentication from 'expo-local-authentication';
@@ -14,6 +15,19 @@ import { AppState, Platform } from 'react-native';
 
 import { plural, type UiStrings } from '@/i18n';
 import { legacyKeysMigrated } from '@/lib/legacyKeys';
+import {
+  DEFAULT_IDLE_GRACE_SECONDS,
+  enterPersonalSection,
+  getPersonalLockState,
+  isPersonalUnlocked,
+  leavePersonalSection,
+  lockClockNow,
+  lockPersonal,
+  markPersonalUnlocked,
+  personalAppActive,
+  personalAppAway,
+  subscribePersonalLock,
+} from '@/lib/personalLock';
 
 const KEY = 'waves.app_lock_enabled';
 const GRACE_KEY = 'waves.app_lock_grace_seconds';
@@ -27,7 +41,14 @@ const GRACE_KEY = 'waves.app_lock_grace_seconds';
  * short enough that a phone left on a table is not an open ledger.
  */
 export const GRACE_CHOICES = [0, 15, 30, 60, 300] as const;
-export const DEFAULT_GRACE_SECONDS = 30;
+/**
+ * One window, two locks: the whole-app lock and the personal-ledger gate both
+ * ask again after this long away, so the single "Ask again after" setting
+ * cannot come to mean two different things. The number itself lives once, in
+ * `lib/personalLock` (the pure, testable half); this is the name the settings
+ * screens already import.
+ */
+export const DEFAULT_GRACE_SECONDS = DEFAULT_IDLE_GRACE_SECONDS;
 
 interface LockValue {
   /** Whether the user has turned the lock on. */
@@ -118,6 +139,19 @@ export function LockProvider({ children }: { children: ReactNode }) {
     return () => subscription.remove();
   }, [enabled, graceSeconds]);
 
+  // The personal ledger's own idle clock. Subscribed always, not only when the
+  // app lock is on: the two are independent gates, and the private section is
+  // guarded whether or not the whole app is. One subscription for the app, held
+  // above every screen, so no personal screen has to be mounted for a departure
+  // to be noticed.
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'background' || state === 'inactive') personalAppAway();
+      else if (state === 'active') personalAppActive(graceSeconds);
+    });
+    return () => subscription.remove();
+  }, [graceSeconds]);
+
   const unlock = useCallback(async () => {
     const result = await LocalAuthentication.authenticateAsync({
       promptMessage: 'Unlock Waves',
@@ -170,96 +204,113 @@ export function useLock(): LockValue {
   return value;
 }
 
-/**
- * When the personal ("Me") ledger was last unlocked. Module-scoped so leaving
- * the tab and coming back within the grace window does not re-prompt — the same
- * intent the app lock's grace has, applied per-screen rather than per-app.
- */
-let personalAuthedAt: number | null = null;
-
-/**
- * Whether a recent personal unlock still counts, read off render through a
- * function call (the React Compiler forbids `Date.now()` inline in a component,
- * the same reason `todayIso()` is hoisted). Lets the gate open with no cover on
- * a within-grace re-entry instead of flashing the shield first.
- */
-export function personalGateFresh(graceSeconds: number): boolean {
-  return personalAuthedAt !== null && Date.now() - personalAuthedAt < graceSeconds * 1000;
+/** What a screen in the private section needs, to choose ledger or shield. */
+export interface PersonalGateValue {
+  /** Whether the private ledger may be drawn. */
+  unlocked: boolean;
+  /** Whether the OS prompt is up right now. */
+  checking: boolean;
+  /** Whether the last check was refused or cancelled, and is awaiting a retry. */
+  failed: boolean;
+  /** Ask again, after a refusal. */
+  retry: () => void;
 }
 
 /**
- * A biometric gate for the private personal ledger, independent of the whole-app
- * lock. On entering the Me tab it asks the device to prove who is holding it and
- * keeps the screen obscured until it succeeds, so the figures are never on show
- * behind the prompt. It then stays quiet for the same "ask again after" window
- * the app lock uses (so the two share one setting) — a within-grace re-entry
- * opens straight away. A failed or cancelled check calls `onFail` (navigate off
- * the tab) rather than revealing anything. With nothing enrolled to authenticate
- * against there is nothing to ask, so it opens; RLS still guards the data on the
- * server. `onFail` should be stable (wrap it in useCallback).
+ * The biometric gate on the private personal ledger, independent of the
+ * whole-app lock.
+ *
+ * Every screen in the section mounts this — the Me tab and each `personal/*`
+ * room — but they all read one state (`lib/personalLock`), so the first unlock
+ * covers the section and walking between its screens never asks again. What
+ * ages an unlock is time spent *away*: outside the section, or with the app in
+ * the background, for longer than the user's "Ask again after" window — the
+ * same setting the app lock uses, so the two can never disagree. Sign-out shuts
+ * it, and so does a cold start: the store begins locked.
+ *
+ * Until it opens the caller draws a shield rather than the figures, so nothing
+ * is ever on show behind the OS prompt. A refused or cancelled check leaves the
+ * shield up with a way to try again and a way out; it does not navigate on the
+ * user's behalf, because a screen that throws you backwards seconds after you
+ * arrived is indistinguishable from a bug.
+ *
+ * With nothing enrolled to authenticate against there is nothing to ask, so it
+ * opens — unchanged from before; RLS still guards the data on the server.
  */
-export function usePersonalGate(
-  promptMessage: string,
-  onFail: () => void,
-): { unlocked: boolean; checking: boolean } {
-  const { graceSeconds, supported } = useLock();
-  // Start open only when a prior unlock is still within grace; otherwise start
-  // covered so the first paint never shows the ledger.
-  const [unlocked, setUnlocked] = useState(() => personalGateFresh(graceSeconds));
+export function usePersonalGate(promptMessage: string): PersonalGateValue {
+  const { graceSeconds, supported, ready } = useLock();
+  const state = useSyncExternalStore(subscribePersonalLock, getPersonalLockState);
   const [checking, setChecking] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const [focused, setFocused] = useState(false);
+  // One prompt at a time. The effect below can re-run while the OS sheet is
+  // still up (the grace window arrives asynchronously, and `supported` flips
+  // once the hardware check lands), and two stacked biometric prompts is how a
+  // device comes to refuse both.
+  const asking = useRef(false);
 
-  const run = useCallback(async (): Promise<void> => {
-    // Still inside the grace window from a recent success — open, no prompt.
-    if (personalGateFresh(graceSeconds)) {
-      setUnlocked(true);
-      return;
-    }
-    // Nothing to authenticate against (no hardware, nothing enrolled, or web):
-    // there is nothing to prompt for, so open. RLS still guards the data.
-    const canAsk =
-      Platform.OS !== 'web' && supported && (await LocalAuthentication.isEnrolledAsync());
-    if (!canAsk) {
-      personalAuthedAt = Date.now();
-      setUnlocked(true);
-      return;
-    }
-    // Keep it covered while the OS prompt is up so a cancel never flashes the
-    // figures.
-    setUnlocked(false);
-    setChecking(true);
-    const result = await LocalAuthentication.authenticateAsync({
-      promptMessage,
-      fallbackLabel: 'Use passcode',
-    });
-    setChecking(false);
-    if (result.success) {
-      personalAuthedAt = Date.now();
-      setUnlocked(true);
-    } else {
-      onFail();
-    }
-  }, [graceSeconds, supported, promptMessage, onFail]);
+  // The clock is read through a function call, not inline — the React Compiler
+  // forbids `Date.now()` in a component body, the same reason `todayIso()` is
+  // hoisted. `state` is an argument so this re-evaluates whenever the store moves.
+  const unlocked = isPersonalUnlocked(state, lockClockNow(), graceSeconds);
 
+  // Presence, not authentication: this is what tells the store whether the user
+  // is still in the section. A push inside it blurs one screen and focuses the
+  // next, and the store's settle window covers that gap.
   useFocusEffect(
     useCallback(() => {
-      let active = true;
-      // The check runs inside the async callback, not the effect body, so no
-      // state is set synchronously on the render path.
-      void (async () => {
-        if (active) await run();
-      })();
-      // On blur, always re-cover: the tab stays mounted, so without this a
-      // return after the grace lapsed would show the old figures for a frame
-      // before the next prompt resolves. A within-grace return re-opens on the
-      // next focus with no prompt, so the cost is at most a one-frame shield.
+      enterPersonalSection(graceSeconds);
+      setFocused(true);
       return () => {
-        active = false;
-        setUnlocked(false);
+        setFocused(false);
+        leavePersonalSection();
       };
-    }, [run]),
+    }, [graceSeconds]),
   );
 
-  return { unlocked, checking };
+  const ask = useCallback(async (): Promise<void> => {
+    if (asking.current) return;
+    asking.current = true;
+    try {
+      // Nothing to authenticate against (no hardware, nothing enrolled, or
+      // web): there is nothing to prompt for, so open. RLS still guards the data.
+      const canAsk =
+        Platform.OS !== 'web' && supported && (await LocalAuthentication.isEnrolledAsync());
+      if (!canAsk) {
+        markPersonalUnlocked();
+        return;
+      }
+      setChecking(true);
+      const result = await LocalAuthentication.authenticateAsync({
+        promptMessage,
+        fallbackLabel: 'Use passcode',
+      });
+      if (result.success) {
+        markPersonalUnlocked();
+      } else {
+        // Refused: stay shut, and wait to be asked again rather than looping the
+        // prompt or navigating away underneath whoever is holding the phone.
+        lockPersonal();
+        setFailed(true);
+      }
+    } finally {
+      setChecking(false);
+      asking.current = false;
+    }
+  }, [supported, promptMessage]);
+
+  useEffect(() => {
+    // `ready` first: whether this device can ask at all is read asynchronously,
+    // and `supported` is false until it lands. Deciding before then would open
+    // the ledger on a phone that could perfectly well have asked. The shield is
+    // up in the meantime, so the wait costs a spinner, not a leak.
+    if (!ready || !focused || unlocked || failed || checking) return;
+    void ask();
+  }, [ready, focused, unlocked, failed, checking, ask]);
+
+  const retry = useCallback(() => setFailed(false), []);
+
+  return { unlocked, checking, failed, retry };
 }
 
 /** "Straight away", "After 30 seconds" — the words the settings row uses too. */

@@ -18,6 +18,7 @@ import {
 import { appleNativeSignIn, googleNativeSignIn } from './nativeIdentity';
 import { identifyForReporting, reportHandled } from './observability';
 import { claimCode } from './oauthClaim';
+import { lockPersonal } from './personalLock';
 import { refreshPushToken, revokePushToken } from './push';
 import { backend } from './backend';
 
@@ -650,6 +651,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // the revocation to, and the token would keep receiving notifications
         // for an account nobody is signed in on.
         await revokePushToken();
+        // The private ledger's unlock belongs to whoever proved they were
+        // holding the phone, not to the phone. It does not survive the account
+        // it was granted under.
+        lockPersonal();
         await backend.auth.signOut();
       },
     }),
