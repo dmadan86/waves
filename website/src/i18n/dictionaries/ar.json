@@ -651,7 +651,8 @@
       "support": "الدعم",
       "privacy": "الخصوصية",
       "terms": "الشروط",
-      "markdown": "هذه الصفحة بصيغة Markdown"
+      "markdown": "هذه الصفحة بصيغة Markdown",
+      "deleteAccount": "حذف حسابك"
     },
     "rights": "جميع الحقوق محفوظة."
   },
@@ -660,7 +661,8 @@
     "termsTitle": "الشروط",
     "lastUpdated": "آخر تحديث",
     "backHome": "العودة إلى الرئيسية",
-    "englishOnly": "تُنشَر مستنداتنا القانونية باللغة الإنجليزية."
+    "englishOnly": "تُنشَر مستنداتنا القانونية باللغة الإنجليزية.",
+    "deleteTitle": "حذف حسابك"
   },
   "currencies": {
     "eyebrow": "في كل مكان",

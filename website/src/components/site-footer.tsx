@@ -39,6 +39,7 @@ export function SiteFooter({
       links: [
         { label: t.links.privacy, href: `/${locale}/privacy` },
         { label: t.links.terms, href: `/${locale}/terms` },
+        { label: t.links.deleteAccount, href: `/${locale}/delete-account` },
         // The markdown twin of this page, for anyone — or anything — that
         // would rather read the text than the layout.
         { label: t.links.markdown, href: `/${locale}/index.md`, external: true },

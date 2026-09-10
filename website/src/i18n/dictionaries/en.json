@@ -651,7 +651,8 @@
       "support": "Support",
       "privacy": "Privacy",
       "terms": "Terms",
-      "markdown": "This page as Markdown"
+      "markdown": "This page as Markdown",
+      "deleteAccount": "Delete your account"
     },
     "rights": "All rights reserved."
   },
@@ -660,7 +661,8 @@
     "termsTitle": "Terms",
     "lastUpdated": "Last updated",
     "backHome": "Back to home",
-    "englishOnly": "Our legal documents are published in English."
+    "englishOnly": "Our legal documents are published in English.",
+    "deleteTitle": "Delete your account"
   },
   "currencies": {
     "eyebrow": "Everywhere",

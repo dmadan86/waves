@@ -1,7 +1,14 @@
+import { tokenFromScan } from '@/lib/inviteLink';
+
 /**
  * Rewrite incoming native deep links before expo-router tries to match them.
  *
- * The one link that needs rewriting is the OAuth callback. Google and Apple
+ * Two kinds of link arrive here. An invite — now that the app claims its own
+ * https links (`expo.android.intentFilters` plus the Digital Asset Links
+ * statement the web app serves at `/.well-known/assetlinks.json`) — and the
+ * OAuth callback.
+ *
+ * The OAuth callback: Google and Apple
  * sign-in redirect to `waves://auth?code=…` — see
  * `makeRedirectUri({ scheme: 'waves', path: 'auth' })` in `lib/auth.tsx`. The
  * code exchange is already done in-process: `WebBrowser.openAuthSessionAsync`
@@ -22,6 +29,25 @@
  */
 export function redirectSystemPath({ path }: { path: string; initial: boolean }): string {
   try {
+    // An invite, arriving as an App Link. The token is in the fragment
+    // (`https://app.wavs.co.in/join#abc`), and a fragment is not a route: left
+    // alone, expo-router matches `/join` with no params and the screen asks for
+    // a token that was in the person's hand the whole time. Rewritten to the
+    // query form the screen already reads.
+    //
+    // `tokenFromScan` is the scanner's parser, and deliberately so: it knows all
+    // three link shapes, it checks the host against the same constant outgoing
+    // links are built from, and it refuses a link whose shapes disagree about
+    // which token they name. A second parser here is how the QR and the tap
+    // would come to mean two different groups.
+    //
+    // A non-invite https link that the OS handed over anyway falls through to
+    // the rewrites below and then out unchanged.
+    if (path.startsWith('https://') || path.startsWith('http://')) {
+      const token = tokenFromScan(path);
+      if (token !== null) return `/join?token=${encodeURIComponent(token)}`;
+    }
+
     // A base is required for the custom-scheme URL to parse. `waves://auth`
     // lands `auth` in the hostname; a `waves:///auth` triple-slash form lands it
     // in the pathname instead — cover both. The base only matters when `path`

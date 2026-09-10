@@ -12,7 +12,7 @@
       "policy": "appVersion"
     },
     "updates": {
-      "url": "https://u.expo.dev/d0d34ed9-5888-4204-b116-a873d3bec94f",
+      "url": "https://u.expo.dev/d6e19674-a70b-4385-a925-1884ba5315d8",
       "fallbackToCacheTimeout": 0
     },
     "ios": {
@@ -23,6 +23,7 @@
     },
     "android": {
       "package": "app.waves.mobile",
+      "versionCode": 1,
       "permissions": [],
       "adaptiveIcon": {
         "backgroundColor": "#14162a",
@@ -30,7 +31,36 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "app.wavs.co.in",
+              "path": "/join"
+            },
+            {
+              "scheme": "https",
+              "host": "app.wavs.co.in",
+              "pathPrefix": "/join/"
+            },
+            {
+              "scheme": "https",
+              "host": "app.wavs.co.in",
+              "path": "/g"
+            },
+            {
+              "scheme": "https",
+              "host": "app.wavs.co.in",
+              "pathPrefix": "/g/"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
     },
     "web": {
       "output": "static",
@@ -88,6 +118,7 @@
       "./plugins/withShortNativeBuildPath",
       "./plugins/withGradleMemory",
       "./plugins/withSideBySideDebug",
+      "./plugins/withReleaseSigning",
       "./plugins/withWavesWidgets",
       "./plugins/withWavesWear",
       "@bacons/apple-targets",
@@ -104,7 +135,7 @@
       "supportsRTL": true,
       "router": {},
       "eas": {
-        "projectId": "d0d34ed9-5888-4204-b116-a873d3bec94f"
+        "projectId": "d6e19674-a70b-4385-a925-1884ba5315d8"
       }
     },
     "owner": "dmadan86"
