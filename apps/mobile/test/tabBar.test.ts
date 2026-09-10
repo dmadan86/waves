@@ -36,9 +36,10 @@ describe('resolveTabBar', () => {
   });
 
   it('does not light the removed account tab even when on it', () => {
-    // The profile screen still exists and is reached from the header avatar,
-    // but it is no longer a bar destination, so nothing lights.
-    const state = resolveTabBar(['(tabs)', 'profile']);
+    // Settings still exists and is reached from the header avatar, but it is no
+    // longer a bar destination — and no longer inside the tab group either, so
+    // it pushes like any other screen. The bar stays, with nothing lit.
+    const state = resolveTabBar(['profile']);
     expect(state.hidden).toBe(false);
     expect(['index', 'friends', 'activity', 'me']).not.toContain(state.activeKey);
   });
