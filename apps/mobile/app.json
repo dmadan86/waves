@@ -40,12 +40,22 @@
             {
               "scheme": "https",
               "host": "app.wavs.co.in",
-              "pathPrefix": "/join"
+              "path": "/join"
             },
             {
               "scheme": "https",
               "host": "app.wavs.co.in",
-              "pathPrefix": "/g"
+              "pathPrefix": "/join/"
+            },
+            {
+              "scheme": "https",
+              "host": "app.wavs.co.in",
+              "path": "/g"
+            },
+            {
+              "scheme": "https",
+              "host": "app.wavs.co.in",
+              "pathPrefix": "/g/"
             }
           ],
           "category": ["BROWSABLE", "DEFAULT"]
