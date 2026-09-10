@@ -50,7 +50,7 @@ OpenAPI document — start at the [API overview](./api/overview.md).
 
 This manual covers the app as it ships. If a screen does not match what you see
 here, the app is right and this page is wrong — tell us at
-[{{supportEmail}}](mailto:{{supportEmail}}), or use **Send feedback** in the
-app's Privacy & security screen. A person reads every one of those.
+[{{supportEmail}}](mailto:{{supportEmail}}), or use **Send feedback** under
+**Settings → Help**. A person reads every one of those.
 
 :::

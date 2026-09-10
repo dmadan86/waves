@@ -29,11 +29,12 @@ ledger, and — if you filled it in — the answer you typed into
 
 ## What stays, and why
 
-> The expenses and settlements in your shared groups remain, because they are
-> also other people's records — they are what says who owes whom, and removing
-> them would silently change somebody else's balance to settle a debt nobody
-> paid. You become an unnamed former member in those groups. Your name is gone
-> from them; your share of the dinner is not.
+> The expenses and settlements in your shared groups remain, along with the
+> notes, comments and receipt images on them, because they are also other
+> people's records — they are what says who owes whom, and removing them would
+> silently change somebody else's balance to settle a debt nobody paid. You
+> become an unnamed former member in those groups. Your name is gone from them;
+> your share of the dinner is not.
 
 This is worth reading twice. A shared ledger is not yours alone. If your half of
 a ₹2,000 dinner vanished when you left, the other person's balance would quietly
