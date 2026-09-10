@@ -213,9 +213,9 @@ describe('activityHeadline', () => {
   });
 
   it('describes a group delete as a sentence, not a raw verb', () => {
-    expect(describeActivity(row({ verb: 'group_deleted', payload: { name: 'Goa Trip' } }), null)).toBe(
-      'Ravi deleted Goa Trip',
-    );
+    expect(
+      describeActivity(row({ verb: 'group_deleted', payload: { name: 'Goa Trip' } }), null),
+    ).toBe('Ravi deleted Goa Trip');
     expect(describeActivity(row({ actor: ME, verb: 'group_deleted' }), 'profile-asha')).toBe(
       'You deleted the group',
     );
