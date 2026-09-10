@@ -229,6 +229,12 @@ export function activityHeadline(entry: ActivityRow): string {
       return 'Group imported';
     case 'auto_archived':
       return 'Group archived';
+    // Its own verb rather than the plain 'deleted' above, which is about an
+    // expense and would render this as "Deleted expense". The row is written
+    // into the group it is about, so almost nobody will ever see it — it exists
+    // so that afterwards there is a record of who did this.
+    case 'group_deleted':
+      return 'Group deleted';
     default:
       // A verb from a newer build. Say what is known rather than dropping the row.
       return `${entry.verb} ${entry.object_type}`;
