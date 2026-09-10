@@ -42,7 +42,9 @@ import { useToast } from '@/lib/toast';
  *
  * Being findable is not a reason to add a row. Everything is already findable
  * from Settings, and a second menu is not a shortcut — it is a fork, and forks
- * fall out of step. That test is what moved three rows off this screen:
+ * fall out of step. There is exactly one deliberate exception, named below: the
+ * contact line, because a policy that does not say who to write to is not a
+ * policy. That test is what moved three rows off this screen:
  *
  *   App lock protects the phone, not the record, and Settings has a Security
  *   group which is where people go looking for it — Splitwise, Cash App, Wise,
@@ -76,7 +78,7 @@ import { useToast } from '@/lib/toast';
  */
 
 /** When the policy text below last changed. Shown, because an undated policy is not one. */
-const POLICY_UPDATED = '2026-08-31';
+const POLICY_UPDATED = '2026-09-10';
 
 export default function PrivacyScreen() {
   const theme = useTheme();
@@ -237,9 +239,11 @@ export default function PrivacyScreen() {
           </Text>
         </View>
 
-        {/* Signed in, the controls come before the policy prose. The three of
-            them are one question asked at three ranges: who may find you at
-            all, who may no longer reach you, and what of your use is watched. */}
+        {/* Signed in, the controls come before the policy prose. They are one
+            question asked at three ranges: who may find you at all, who may no
+            longer reach you, and what of your use is watched — the last of
+            which is only there on a build with a Clarity project, so on the
+            rest the question stops at two. */}
         {session ? (
           <View style={{ gap: theme.spacing.sm }}>
             <SectionHeader title={t.privacy.controlsSection} />
@@ -372,9 +376,16 @@ export default function PrivacyScreen() {
             Signed out the feedback form has no account to attach a message to,
             and this screen is instead the whole of the legal surface somebody
             can reach before they have signed up, so it carries the open-source
-            attributions that otherwise live under Settings → Help. The two are
-            alternatives rather than a pair: neither reader is ever offered
-            both, so neither is a second door to something they already have. */}
+            attributions that otherwise live under Settings. Those two are
+            alternatives, never a pair — signed out is the only way to reach the
+            licenses from here, so that half is not a second door at all.
+            The contact row is one, and knowingly: it opens the same feedback
+            form as Settings, under a different name. That is the single place
+            the one-door rule is broken on purpose, because a policy has to say
+            who to write to, and "Send feedback", three screens away and named
+            for something else, is not saying it. Keep both pointed at the same
+            route and the fork stays a label rather than a second thing to
+            maintain. */}
         <Card style={{ paddingVertical: theme.spacing.xs }}>
           {session ? (
             <ListRow
