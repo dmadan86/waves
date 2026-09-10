@@ -207,8 +207,18 @@ describe('activityHeadline', () => {
     ['auto_confirmed', 'Settlement auto-confirmed'],
     ['joined', 'Joined the group'],
     ['created', 'Group created'],
+    ['group_deleted', 'Group deleted'],
   ])('words the non-expense event %s', (verb, expected) => {
     expect(activityHeadline(row({ verb }))).toBe(expected);
+  });
+
+  it('describes a group delete as a sentence, not a raw verb', () => {
+    expect(
+      describeActivity(row({ verb: 'group_deleted', payload: { name: 'Goa Trip' } }), null),
+    ).toBe('Ravi deleted Goa Trip');
+    expect(describeActivity(row({ actor: ME, verb: 'group_deleted' }), 'profile-asha')).toBe(
+      'You deleted the group',
+    );
   });
 
   it('names the group in the title when a create carries one', () => {

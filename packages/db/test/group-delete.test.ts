@@ -119,6 +119,44 @@ describe('deleting a group', () => {
     expect(await deletedAt(groupId)).toBeNull();
   });
 
+  it('writes down who did it', async () => {
+    // The tombstone says a group was deleted and when; on its own it does not
+    // say by whom, so a legitimate delete and a forged one were the same event
+    // in the data that survives. Deleting a group destroys the record of who
+    // owed whom for every member — the one action of that weight that left no
+    // line in the feed.
+    const { groupId, profileIds, memberIds } = await seedGroup(client, { memberCount: 2 });
+
+    await asUser(profileIds[0]!, () => client.query(`SELECT waves_delete_group($1)`, [groupId]));
+
+    const { rows } = await client.query(
+      `SELECT actor_member_id, object_type, payload FROM activity_log
+        WHERE group_id = $1 AND verb = 'group_deleted'`,
+      [groupId],
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.actor_member_id).toBe(memberIds[0]);
+    expect(rows[0]?.object_type).toBe('group');
+    // The name is captured before the row goes, because afterwards nothing in
+    // the app will ever show that group again to read it off.
+    expect(rows[0]?.payload?.name).toBe('Goa trip');
+  });
+
+  it('does not write a second audit row for a repeated delete', async () => {
+    // The row goes after the idempotency check, so a retried offline queue flush
+    // records the delete once rather than once per attempt.
+    const { groupId, profileIds } = await seedGroup(client, { memberCount: 2 });
+
+    await asUser(profileIds[0]!, () => client.query(`SELECT waves_delete_group($1)`, [groupId]));
+    await asUser(profileIds[0]!, () => client.query(`SELECT waves_delete_group($1)`, [groupId]));
+
+    const { rows } = await client.query(
+      `SELECT count(*)::int AS n FROM activity_log WHERE group_id = $1 AND verb = 'group_deleted'`,
+      [groupId],
+    );
+    expect(rows[0]?.n).toBe(1);
+  });
+
   it('is idempotent — a second delete is a clean no-op', async () => {
     const { groupId, profileIds } = await seedGroup(client, { memberCount: 2 });
 
