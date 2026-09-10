@@ -230,6 +230,22 @@ describe('Standard, on a second phone signed into the same Google account', () =
     expect(bytesToHex((await loadRecoveryKey(OWNER))!)).toBe(escrowed);
     expect((await scanBackup({ ownerId: OWNER, localIds: new Set() })).ok).toBe(true);
   });
+
+  it('repairs a missing escrow instead of sealing Standard under a device-only key', async () => {
+    await run(BackupTier.Standard, [row('a')]);
+    const first = parseEscrow(hoisted.folder.get(ESCROW)!.content).key;
+    hoisted.folder.delete(ESCROW);
+
+    expect((await run(BackupTier.Standard, [row('b')])).ok).toBe(true);
+    const second = parseEscrow(hoisted.folder.get(ESCROW)!.content).key;
+    expect(second).not.toBe(first);
+    expect(bytesToHex((await loadRecoveryKey(OWNER))!)).toBe(second);
+    forgetDeviceKey();
+    const scan = await scanBackup({ ownerId: OWNER, localIds: new Set() });
+    expect(scan.ok).toBe(true);
+    if (!scan.ok) return;
+    expect(scan.plan.restore.map((record) => record.id)).toEqual(['b']);
+  });
 });
 
 describe('an account made under the build before tiers', () => {
@@ -327,6 +343,39 @@ describe('turning Extra protection on', () => {
     expect(removed).toBeGreaterThan(put);
     expect(hoisted.folder.has(ESCROW)).toBe(false);
     expect(envelope().tier).toBe(BackupTier.Extra);
+  });
+
+  it('keeps a concurrent automatic Standard run out while the upgrade is in flight', async () => {
+    await run(BackupTier.Standard, [row('a')]);
+    let releaseRead!: () => void;
+    const originalRead = hoisted.folder.get(BLOB)!.remoteId;
+    const pendingRead = new Promise<string>((resolve) => {
+      releaseRead = () => resolve(hoisted.folder.get(BLOB)!.content);
+    });
+    const readName = `read:${originalRead}`;
+    hoisted.calls.length = 0;
+    const provider = (await import('../src/lib/cloud/providers')).providerFor('gdrive');
+    const realRead = provider.read;
+    provider.read = async (tokens, remoteId) => {
+      if (remoteId === originalRead) {
+        hoisted.calls.push(readName);
+        return pendingRead;
+      }
+      return realRead(tokens, remoteId);
+    };
+
+    try {
+      const upgrading = upgradeToExtra({ ownerId: OWNER, records: [], key: NEW_KEY });
+      await vi.waitFor(() => expect(hoisted.calls).toContain(readName));
+      await expect(run(BackupTier.Standard, [row('auto')])).resolves.toEqual({
+        ok: false,
+        refusal: 'busy',
+      });
+      releaseRead();
+      expect((await upgrading).ok).toBe(true);
+    } finally {
+      provider.read = realRead;
+    }
   });
 
   it('carries the records over rather than starting a new backup', async () => {

@@ -167,6 +167,12 @@ describe('where the key for the next backup comes from', () => {
     expect(at({ hasDeviceKey: true, hasEscrow: true })).toBe(KeySource.Escrow);
   });
 
+  it('mints on Standard when no escrow can be read, even if this phone has a key', () => {
+    // A Standard backup sealed only under a device key is an Extra backup nobody
+    // opted into. Missing/corrupt escrow must be repaired before upload.
+    expect(at({ hasDeviceKey: true, hasEscrow: false })).toBe(KeySource.Mint);
+  });
+
   it('uses this phone’s key on Extra, and asks the person when there is none', () => {
     expect(at({ tier: BackupTier.Extra, hasDeviceKey: true })).toBe(KeySource.Device);
     expect(at({ tier: BackupTier.Extra, hasDeviceKey: false })).toBe(KeySource.AskPerson);

@@ -279,9 +279,10 @@ export interface KeyLookup {
  * safe: the upgrade writes a new key to the keystore before it re-seals
  * anything, so a phone that died in between holds a key that opens nothing
  * while Drive still holds the one that opens the blob. Preferring the escrow
- * discards the stale local copy and everything keeps working. It also makes a
- * second phone on the same Google account converge on one key instead of
- * quietly sealing every other backup under a different one.
+ * discards the stale local copy and everything keeps working. If the escrow is
+ * absent or unreadable, Standard mints and escrows a fresh key instead of using
+ * the device-only copy, because a Standard backup must always be restorable from
+ * Drive alone.
  *
  * Under **Extra there is no escrow to consult**, by construction, so the
  * device's key is the only answer and its absence is the person's to fix.
@@ -291,7 +292,6 @@ export function keyForBackup(lookup: KeyLookup): KeySource {
     return lookup.hasDeviceKey ? KeySource.Device : KeySource.AskPerson;
   }
   if (lookup.hasEscrow) return KeySource.Escrow;
-  if (lookup.hasDeviceKey) return KeySource.Device;
   return KeySource.Mint;
 }
 

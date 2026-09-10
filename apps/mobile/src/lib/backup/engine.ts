@@ -615,23 +615,27 @@ export async function upgradeToExtra(input: UpgradeInput): Promise<UpgradeResult
   // Past `Confirm` already: the caller only gets here once the key has been
   // shown and the person has said they kept it.
   let state = advanceUpgrade(UPGRADE_START, 'ok');
-  const provider = providerFor(PRIMARY_PROVIDER);
   const stop = (refusal: BackupRefusal): UpgradeResult => ({
     ok: false,
     refusal,
     state: advanceUpgrade(state, 'failed'),
   });
-
-  if (!provider.isConfigured()) return stop('not-configured');
-
-  const net = await connection();
-  if (!net.online) return stop('offline');
-
-  const lookup = await freshTokens(PRIMARY_PROVIDER, input.ownerId);
-  if (lookup.kind !== 'ok') return stop(lookup.kind === 'auth' ? 'auth' : 'not-connected');
-  const tokens = lookup.tokens;
+  if (running) return stop('busy');
+  // Claimed before the first await, so AutoBackup cannot race a Standard write
+  // over the Extra blob while this upgrade is still resealing it.
+  running = true;
+  const provider = providerFor(PRIMARY_PROVIDER);
 
   try {
+    if (!provider.isConfigured()) return stop('not-configured');
+
+    const net = await connection();
+    if (!net.online) return stop('offline');
+
+    const lookup = await freshTokens(PRIMARY_PROVIDER, input.ownerId);
+    if (lookup.kind !== 'ok') return stop(lookup.kind === 'auth' ? 'auth' : 'not-connected');
+    const tokens = lookup.tokens;
+
     const folder = await readFolder(provider, tokens, input.ownerId);
 
     // What is going back up: the body already there, or the ledger in hand.
@@ -715,5 +719,7 @@ export async function upgradeToExtra(input: UpgradeInput): Promise<UpgradeResult
     // account is still Standard — so it goes up to the caller to be laundered
     // into a sentence and offered another go.
     throw error;
+  } finally {
+    running = false;
   }
 }
