@@ -73,11 +73,24 @@ serveWithCors(async (request) => {
       throw new HttpError(404, 'INVITE_INVALID', 'This invite link is no longer valid');
     }
 
+    // `service` is the service role, so RLS is not doing any filtering here and
+    // the tombstone has to be asked about by name. A group somebody deleted
+    // (A49) keeps its rows — that is how the delete travels to other devices —
+    // so without this a QR code or a WhatsApp link for a group that no longer
+    // exists still previewed with its name and member count, and still let
+    // people in.
     const { data: group } = await service
       .from('groups')
       .select('id, name, cover_emoji, default_currency')
       .eq('id', invite.group_id)
-      .single();
+      .is('deleted_at', null)
+      .maybeSingle();
+
+    // The same answer as a revoked or expired link, deliberately: a caller
+    // learns that the link does not work, not which groups have been deleted.
+    if (!group) {
+      throw new HttpError(404, 'INVITE_INVALID', 'This invite link is no longer valid');
+    }
 
     const { data: members } = await service
       .from('group_members')

@@ -361,6 +361,19 @@ export default function GroupSettingsScreen() {
     }
   };
 
+  // An archived group can now be opened, so this screen has to offer the way
+  // back. Before, the only Unarchive in the app was on the archive shelf in
+  // settings, because a group there was the one place you could reach it from;
+  // arriving here instead — from a balance on the Friends list, say — and being
+  // offered "Archive" on a group that is already archived would be a control
+  // that does nothing you can see. No confirmation: putting something back is
+  // not a decision that wants a second thought, and it stays on the screen so
+  // the row simply flips.
+  const archived = Boolean(group.data?.archived_at);
+  const unarchive = (): void => {
+    updateGroup.mutate({ archived_at: null });
+  };
+
   /**
    * The open debts — "Asha owes Ravi", and ₹500 beside it — for the delete
    * warning. Read off the same `transfers` the who-pays-whom screen shows, so
@@ -824,11 +837,16 @@ export default function GroupSettingsScreen() {
             ends things announces itself by being set off, not by a heading. */}
         <View style={{ gap: theme.spacing.xl }}>
           <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
+            {/* One row, both directions. The mark stays the same either way: an
+                undo arrow would read better and points left, which is the wrong
+                way round in Arabic and is not in the mirror table — a
+                directional glyph for a reversible action is not worth a
+                wrong-facing arrow. The title says which way this row goes. */}
             <ListRow
-              title={t.group.archiveGroup}
-              subtitle={t.group.archiveHint}
+              title={archived ? t.group.unarchive : t.group.archiveGroup}
+              subtitle={archived ? t.group.unarchiveHint : t.group.archiveHint}
               leading={<ExitChip icon="archive-outline" tone="quiet" />}
-              onPress={() => void archive()}
+              onPress={archived ? unarchive : () => void archive()}
             />
             <View style={{ height: 1, backgroundColor: theme.color.border }} />
             <ListRow
