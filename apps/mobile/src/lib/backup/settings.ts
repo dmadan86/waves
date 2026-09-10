@@ -27,15 +27,23 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { SyncNetworkPreference } from '../syncNetwork';
 import { BackupFrequency, DEFAULT_FREQUENCY, parseFrequency } from './schedule';
+import { BackupTier, parseTier } from './tier';
 
 const FREQUENCY_KEY = 'waves.backup.frequency';
 const NETWORK_KEY = 'waves.backup.network';
 const LAST_KEY = 'waves.backup.last';
 /** Set once the person has been shown their recovery key and confirmed it. */
 const KEY_SEEN_KEY = 'waves.backup.key_seen';
+/**
+ * Which tier the account is on. Absent on a phone that set its backup up before
+ * tiers existed, and on one that has never set anything up — two states that
+ * are not the same, which is why `resolveTier` needs the key flag to tell them
+ * apart, and why the caller writes the answer down the first time it asks.
+ */
+const TIER_KEY = 'waves.backup.tier';
 
 /** Every stored key, for the sign-out wipe. */
-const ALL_KEYS = [FREQUENCY_KEY, NETWORK_KEY, LAST_KEY, KEY_SEEN_KEY] as const;
+const ALL_KEYS = [FREQUENCY_KEY, NETWORK_KEY, LAST_KEY, KEY_SEEN_KEY, TIER_KEY] as const;
 
 const scoped = (base: string, ownerId: string): string => `${base}.${ownerId}`;
 
@@ -62,6 +70,12 @@ export interface BackupSettings {
   readonly last: LastBackup | null;
   /** False until the recovery key has been shown and acknowledged. */
   readonly keySeen: boolean;
+  /**
+   * The tier as stored, or null when nothing has been stored yet. Deliberately
+   * not resolved here: turning null into a tier needs to know whether this
+   * phone holds a key, which is a keystore read this module does not do.
+   */
+  readonly tier: BackupTier | null;
 }
 
 function parseNetwork(raw: string | null): SyncNetworkPreference {
@@ -91,22 +105,39 @@ export const NO_BACKUP_SETTINGS: BackupSettings = {
   network: DEFAULT_BACKUP_NETWORK,
   last: null,
   keySeen: false,
+  tier: null,
 };
 
 export async function loadBackupSettings(ownerId: string): Promise<BackupSettings> {
   if (!ownerId) return NO_BACKUP_SETTINGS;
-  const [frequency, network, last, keySeen] = await Promise.all([
+  const [frequency, network, last, keySeen, tier] = await Promise.all([
     AsyncStorage.getItem(scoped(FREQUENCY_KEY, ownerId)).catch(() => null),
     AsyncStorage.getItem(scoped(NETWORK_KEY, ownerId)).catch(() => null),
     AsyncStorage.getItem(scoped(LAST_KEY, ownerId)).catch(() => null),
     AsyncStorage.getItem(scoped(KEY_SEEN_KEY, ownerId)).catch(() => null),
+    AsyncStorage.getItem(scoped(TIER_KEY, ownerId)).catch(() => null),
   ]);
   return {
     frequency: parseFrequency(frequency),
     network: parseNetwork(network),
     last: parseLast(last),
     keySeen: keySeen === '1',
+    tier: parseTier(tier),
   };
+}
+
+/**
+ * Write the tier down.
+ *
+ * Unlike the frequency and the network, the default is stored rather than
+ * elided. "Standard" and "nothing here yet" have to stay distinguishable: the
+ * second one is what an account carried over from the pre-tier build looks
+ * like, and collapsing them would put every one of those people on Standard —
+ * silently downgrading a key they were told nobody else would ever hold.
+ */
+export async function saveTier(ownerId: string, tier: BackupTier): Promise<void> {
+  if (!ownerId) return;
+  await AsyncStorage.setItem(scoped(TIER_KEY, ownerId), tier);
 }
 
 export async function saveFrequency(ownerId: string, frequency: BackupFrequency): Promise<void> {

@@ -13,6 +13,21 @@
  * words. A **failure** is a thrown error carrying a provider message that must
  * never reach a screen; it goes through `friendlyError` at the call site, which
  * reports the original and returns a sentence.
+ *
+ * WHERE THE KEY COMES FROM is now the engine's problem rather than the
+ * caller's, because the answer depends on things only the engine can see. On
+ * **Extra protection** it is the device's key or nothing. On **Standard** it is
+ * the escrowed copy in the appDataFolder, adopted onto this device on the way
+ * past — and minted and put there if the folder is empty. That is what makes
+ * the default tier ceremony-free: a new phone that signs into the same Google
+ * account finds the key sitting beside the blob and opens it with no screen in
+ * between. `tier.ts` holds the decision table and the reasoning; this file does
+ * the I/O the table asks for.
+ *
+ * Under Standard the escrow costs one extra `find` per run, alongside the one
+ * for the blob and issued at the same time. That is one small list request on a
+ * path that runs at most daily, in exchange for two phones on one Google
+ * account never sealing their backups under different keys.
  */
 
 import * as Network from 'expo-network';
@@ -21,20 +36,45 @@ import { networkAllows, type SyncNetworkPreference } from '../syncNetwork';
 import { isAuthFailure } from '../cloud/http';
 import { providerFor } from '../cloud/providers';
 import { clearTokens, loadTokens, saveTokens } from '../cloud/tokens';
-import type { CloudProviderId, CloudTokens } from '../cloud/types';
+import type { CloudFile, CloudProvider, CloudProviderId, CloudTokens } from '../cloud/types';
 import {
   backupAad,
   buildBody,
   buildFile,
+  fileTier,
   parseBody,
   parseFile,
   planRestore,
   type BackupBody,
+  type BackupFile,
   type RestorePlan,
   type SourceRecord,
 } from './payload';
-import { backupNonce, clearRecoveryKey, openBackup, sealBackup } from './recoveryKey';
-import { clearBackupSettings, type LastBackup } from './settings';
+import {
+  backupNonce,
+  bytesToHex,
+  clearRecoveryKey,
+  loadRecoveryKey,
+  mintRecoveryKey,
+  openBackup,
+  parseRecoveryKey,
+  saveRecoveryKey,
+  sealBackup,
+} from './recoveryKey';
+import { clearBackupSettings, saveTier, type LastBackup } from './settings';
+import {
+  advanceUpgrade,
+  BackupTier,
+  buildEscrow,
+  escrowFileName,
+  keyForBackup,
+  keyForRestore,
+  KeySource,
+  mayClearEscrow,
+  parseEscrow,
+  UPGRADE_START,
+  type UpgradeState,
+} from './tier';
 
 /**
  * The one file in the provider's app-private storage, per account. Overwritten
@@ -71,6 +111,10 @@ export type BackupRefusal =
   | 'not-connected'
   /** No recovery key on this device — nothing to seal (or open) with. */
   | 'no-key'
+  /** The backup on Drive is under extra protection and only the person has its key. */
+  | 'needs-key'
+  /** A standard backup whose escrowed key is no longer in the Drive folder. */
+  | 'key-lost'
   /** No usable connection at all. */
   | 'offline'
   /** Connected, but not over a network the person allows backups on. */
@@ -87,8 +131,12 @@ export type BackupResult =
 export interface BackupRunInput {
   readonly ownerId: string;
   readonly records: readonly SourceRecord[];
-  /** The 32-byte recovery key. See `recoveryKey.ts` for why it is user-held. */
-  readonly key: Uint8Array;
+  /**
+   * Which promise this account's backup makes. Decides where the key comes
+   * from, what goes in the envelope, and whether a copy of the key is left in
+   * the Drive folder — see `tier.ts`.
+   */
+  readonly tier: BackupTier;
   readonly network: SyncNetworkPreference;
   /**
    * True for "Back up now". A person tapping the button has made the data-plan
@@ -189,6 +237,126 @@ export async function clearBackupState(ownerId: string): Promise<void> {
   if (failures.length > 0) throw failures[0];
 }
 
+// ────────────────────────────────────────────────── the escrowed key ──
+
+/**
+ * What the appDataFolder holds for one account: the sealed ledger, and — on
+ * Standard — the key that opens it.
+ *
+ * Both looked up in one pass and issued together, because the interesting
+ * questions are about the pair. "Is there a backup, and is its key beside it"
+ * is one state, and asking for the halves in sequence would double the latency
+ * of the check every restore begins with.
+ */
+interface FolderState {
+  readonly blob: CloudFile | null;
+  readonly escrow: CloudFile | null;
+}
+
+async function readFolder(
+  provider: CloudProvider,
+  tokens: CloudTokens,
+  ownerId: string,
+): Promise<FolderState> {
+  const [blob, escrow] = await Promise.all([
+    provider.find(tokens, backupFileName(ownerId)),
+    provider.find(tokens, escrowFileName(ownerId)),
+  ]);
+  return { blob, escrow };
+}
+
+/**
+ * The escrowed key as bytes, or null when the file is there but unusable.
+ *
+ * A key file we cannot parse is treated as no key file rather than as a
+ * failure. It can only have come from a future version of this app, or from
+ * something else writing into the folder, and in either case the useful next
+ * move is the one taken for an empty folder — mint a key and escrow it on a
+ * backup path; say the key is gone on a restore path. Throwing would leave a
+ * person unable to back up because of a file they cannot see or delete.
+ */
+async function openEscrow(
+  provider: CloudProvider,
+  tokens: CloudTokens,
+  file: CloudFile,
+): Promise<Uint8Array | null> {
+  try {
+    return parseRecoveryKey(parseEscrow(await provider.read(tokens, file.remoteId)).key);
+  } catch (error) {
+    if (isAuthFailure(error)) throw error;
+    return null;
+  }
+}
+
+/** Put a key in the folder beside the blob, creating or overwriting the file. */
+async function writeEscrow(
+  provider: CloudProvider,
+  tokens: CloudTokens,
+  ownerId: string,
+  key: Uint8Array,
+  existing: CloudFile | null,
+): Promise<void> {
+  const content = JSON.stringify(buildEscrow(bytesToHex(key), new Date().toISOString()));
+  await provider.put(tokens, escrowFileName(ownerId), content, existing?.remoteId ?? null);
+}
+
+/**
+ * The key to seal the next backup with, doing whatever the tier says that takes.
+ *
+ * The decision itself is `keyForBackup`; everything here is the I/O it asks
+ * for. Two of the answers have a side effect, and both are deliberate: adopting
+ * the escrowed key writes it into this device's keystore, so the next run needs
+ * no round trip and a later upgrade has something to hand over; and minting
+ * writes the new key to *both* places, because a Standard key that exists only
+ * on the phone is an Extra key nobody was warned about.
+ */
+async function keyForRun(
+  provider: CloudProvider,
+  tokens: CloudTokens,
+  input: BackupRunInput,
+  folder: FolderState,
+): Promise<Uint8Array | null> {
+  const deviceKey = await loadRecoveryKey(input.ownerId);
+  const escrowKey =
+    input.tier === BackupTier.Standard && folder.escrow
+      ? await openEscrow(provider, tokens, folder.escrow)
+      : null;
+
+  switch (
+    keyForBackup({
+      tier: input.tier,
+      hasDeviceKey: deviceKey !== null,
+      remoteTier: null,
+      hasEscrow: escrowKey !== null,
+    })
+  ) {
+    case KeySource.Device:
+      return deviceKey;
+    case KeySource.Escrow: {
+      // Not null: `hasEscrow` was true only because this one opened.
+      const key = escrowKey as Uint8Array;
+      // Written back only when it differs, so an ordinary run does not touch
+      // the keystore on every pass. A differing local key here is a stale one —
+      // a half-finished upgrade, or a second phone that minted before it looked.
+      if (!deviceKey || bytesToHex(deviceKey) !== bytesToHex(key)) {
+        await saveRecoveryKey(input.ownerId, key);
+      }
+      return key;
+    }
+    case KeySource.Mint: {
+      const key = mintRecoveryKey();
+      // Escrow first. A key on the phone with no copy in the folder is the one
+      // state Standard must never be in, because the screen is at that moment
+      // telling the person a new phone will find it.
+      await writeEscrow(provider, tokens, input.ownerId, key, folder.escrow);
+      await saveRecoveryKey(input.ownerId, key);
+      return key;
+    }
+    default:
+      return null;
+  }
+}
+
 /**
  * Back the personal ledger up. Resolves with a refusal rather than throwing for
  * anything the person can fix; throws for a genuine transport or provider
@@ -201,7 +369,6 @@ export async function runBackup(input: BackupRunInput): Promise<BackupResult> {
   try {
     const provider = providerFor(PRIMARY_PROVIDER);
     if (!provider.isConfigured()) return { ok: false, refusal: 'not-configured' };
-    if (input.key.length === 0) return { ok: false, refusal: 'no-key' };
 
     const net = await connection();
     if (!net.online) return { ok: false, refusal: 'offline' };
@@ -215,23 +382,37 @@ export async function runBackup(input: BackupRunInput): Promise<BackupResult> {
     }
     const tokens = lookup.tokens;
 
-    input.onPhase?.('collecting');
-    const body = buildBody(input.ownerId, input.records, new Date());
-
-    input.onPhase?.('sealing');
-    const sealed = sealBackup(
-      input.key,
-      backupNonce(),
-      JSON.stringify(body),
-      backupAad(input.ownerId),
-    );
-    const content = JSON.stringify(buildFile(sealed, body.createdAt));
-
-    input.onPhase?.('uploading');
-    const fileName = backupFileName(input.ownerId);
     try {
-      const existing = await provider.find(tokens, fileName);
-      const stored = await provider.put(tokens, fileName, content, existing?.remoteId ?? null);
+      const folder = await readFolder(provider, tokens, input.ownerId);
+      const key = await keyForRun(provider, tokens, input, folder);
+      // Extra protection with nothing in the keystore. The person holds the
+      // only copy, and the screen's job is to ask for it rather than mint a
+      // second one that would seal the next backup away from the first.
+      if (!key) return { ok: false, refusal: 'no-key' };
+
+      input.onPhase?.('collecting');
+      const body = buildBody(input.ownerId, input.records, new Date());
+
+      input.onPhase?.('sealing');
+      const sealed = sealBackup(key, backupNonce(), JSON.stringify(body), backupAad(input.ownerId));
+      const content = JSON.stringify(buildFile(sealed, body.createdAt, input.tier));
+
+      input.onPhase?.('uploading');
+      const stored = await provider.put(
+        tokens,
+        backupFileName(input.ownerId),
+        content,
+        folder.blob?.remoteId ?? null,
+      );
+
+      // The sweep. An upgrade whose escrow delete failed leaves behind a key
+      // file that opens nothing — `keyForRestore` reads the blob's tier, not
+      // the file's presence — but it is still a copy of a key in a folder the
+      // person was told held none, so every later Extra run tries again.
+      if (input.tier === BackupTier.Extra && folder.escrow) {
+        await provider.remove(tokens, folder.escrow.remoteId).catch(() => undefined);
+      }
+
       return {
         ok: true,
         last: {
@@ -257,6 +438,24 @@ export async function runBackup(input: BackupRunInput): Promise<BackupResult> {
   }
 }
 
+/**
+ * What a found backup says about itself before anybody tries to open it.
+ *
+ * The date, the size and the tier are all outside the AEAD, so they can be read
+ * without a key — which is exactly what makes it possible to tell somebody
+ * *what opening this will take* instead of letting them find out by failing.
+ * Every restore flow worth copying (Coinbase Wallet's import fork, LINE's
+ * "restore or enter it yourself", WhatsApp's date-and-size card) puts that
+ * choice before the attempt, not after it.
+ */
+export interface FoundBackupMeta {
+  /** ISO, from the envelope. Empty when an older file did not record one. */
+  readonly createdAt: string;
+  /** Bytes as Drive stores it, or 0 when Drive would not say. */
+  readonly size: number;
+  readonly tier: BackupTier;
+}
+
 export type RestoreScan =
   | {
       readonly ok: true;
@@ -264,12 +463,22 @@ export type RestoreScan =
       readonly plan: RestorePlan;
       /** Bytes of the file as stored, for the confirmation line. */
       readonly size: number;
+      /** Which tier sealed the *found file*, whatever this phone believes. */
+      readonly tier: BackupTier;
     }
-  | { readonly ok: false; readonly refusal: BackupRefusal };
+  | {
+      readonly ok: false;
+      readonly refusal: BackupRefusal;
+      /**
+       * Set when the refusal is about a backup we *found* and could not open —
+       * `needs-key` and `key-lost`. It is what lets the screen present the
+       * fork rather than an error: here is your backup, here is what it takes.
+       */
+      readonly found?: FoundBackupMeta;
+    };
 
 export interface RestoreScanInput {
   readonly ownerId: string;
-  readonly key: Uint8Array;
   /** Every personal record id this device knows, tombstones included. */
   readonly localIds: ReadonlySet<string>;
 }
@@ -280,6 +489,22 @@ export interface RestoreScanInput {
  * date before they commit, because "restore" is the word people are most afraid
  * of pressing.
  *
+ * THE FILE'S TIER BEATS THE PHONE'S, and this is the moment it matters most. A
+ * phone freshly signed in has whatever tier its defaults gave it and knows
+ * nothing about what made the blob; the envelope knows exactly. So the tier is
+ * read out of the file, and `keyForRestore` decides from that:
+ *
+ * - **Standard** — the key is in the folder. Read it, adopt it, open the file.
+ *   Nobody is asked anything, which is the entire point of the default tier.
+ * - **Extra, and this phone holds the key** — open it.
+ * - **Extra, and it does not** — `needs-key`. The screen points at "I already
+ *   have a key" and must not, ever, point at "create one": a new key does not
+ *   open this file, and making one arms a backup run that would overwrite it.
+ * - **Standard, and the key file is gone** — `key-lost`. Somebody used Drive's
+ *   "Delete hidden app data", or a failure left the folder half-empty. There is
+ *   nothing to type and nothing to recover, and saying so is the only honest
+ *   move left.
+ *
  * The network policy is deliberately not applied: a restore is always somebody
  * standing there having asked for it, usually on a phone that has just been set
  * up and may well not be on Wi‑Fi yet.
@@ -287,7 +512,6 @@ export interface RestoreScanInput {
 export async function scanBackup(input: RestoreScanInput): Promise<RestoreScan> {
   const provider = providerFor(PRIMARY_PROVIDER);
   if (!provider.isConfigured()) return { ok: false, refusal: 'not-configured' };
-  if (input.key.length === 0) return { ok: false, refusal: 'no-key' };
 
   const net = await connection();
   if (!net.online) return { ok: false, refusal: 'offline' };
@@ -299,25 +523,197 @@ export async function scanBackup(input: RestoreScanInput): Promise<RestoreScan> 
   const tokens = lookup.tokens;
 
   try {
-    const file = await provider.find(tokens, backupFileName(input.ownerId));
-    if (!file) return { ok: false, refusal: 'no-backup' };
+    const folder = await readFolder(provider, tokens, input.ownerId);
+    if (!folder.blob) return { ok: false, refusal: 'no-backup' };
 
-    const envelope = parseFile(await provider.read(tokens, file.remoteId));
+    const envelope = parseFile(await provider.read(tokens, folder.blob.remoteId));
+    const remoteTier = fileTier(envelope);
+    const deviceKey = await loadRecoveryKey(input.ownerId);
+    const escrowKey =
+      remoteTier === BackupTier.Standard && folder.escrow
+        ? await openEscrow(provider, tokens, folder.escrow)
+        : null;
+
+    const source = keyForRestore({
+      tier: remoteTier,
+      hasDeviceKey: deviceKey !== null,
+      remoteTier,
+      hasEscrow: escrowKey !== null,
+    });
+    const meta: FoundBackupMeta = {
+      createdAt: envelope.createdAt,
+      size: folder.blob.size > 0 ? folder.blob.size : 0,
+      tier: remoteTier,
+    };
+    if (source === KeySource.AskPerson) return { ok: false, refusal: 'needs-key', found: meta };
+    if (source === KeySource.Lost) return { ok: false, refusal: 'key-lost', found: meta };
+
+    const key = source === KeySource.Escrow ? (escrowKey as Uint8Array) : (deviceKey as Uint8Array);
+    // Adopt the escrowed key, so this phone can back up from here on without
+    // fetching it again — and so the tier the person is told they are on is one
+    // this device can actually honour.
+    if (source === KeySource.Escrow) await saveRecoveryKey(input.ownerId, key);
+
     // Throws on the wrong key (the AEAD tag fails) — the screen turns that into
     // "that key does not open this backup", which is the whole diagnosis.
-    const plain = openBackup(input.key, envelope.sealed, backupAad(input.ownerId));
+    const plain = openBackup(key, envelope.sealed, backupAad(input.ownerId));
     const body = parseBody(plain, input.ownerId);
     return {
       ok: true,
       body,
       plan: planRestore(input.localIds, body),
-      size: file.size > 0 ? file.size : 0,
+      size: folder.blob.size > 0 ? folder.blob.size : 0,
+      tier: remoteTier,
     };
   } catch (error) {
     if (isAuthFailure(error)) {
       await clearTokens(PRIMARY_PROVIDER, input.ownerId).catch(() => undefined);
       return { ok: false, refusal: 'auth' };
     }
+    throw error;
+  }
+}
+
+// ──────────────────────────────────────── turning Extra protection on ──
+
+export interface UpgradeInput {
+  readonly ownerId: string;
+  /** The ledger as it stands, for the case where there is nothing to re-seal. */
+  readonly records: readonly SourceRecord[];
+  /** The key just minted and shown to the person. Not yet stored anywhere. */
+  readonly key: Uint8Array;
+}
+
+export type UpgradeResult =
+  | { readonly ok: true; readonly state: UpgradeState; readonly last: LastBackup }
+  | { readonly ok: false; readonly refusal: BackupRefusal; readonly state: UpgradeState };
+
+/**
+ * Standard → Extra protection: re-lock the backup under a key Drive does not
+ * have, and only then take Drive's copy away.
+ *
+ * The order *is* the promise. `tier.ts` sets out the state machine and every
+ * window in it; what this function adds is the I/O the machine asks for, and
+ * one decision it cannot make for itself — **what to re-seal**.
+ *
+ * It re-seals the *body already on Drive* whenever it can read one: that file
+ * is what the person is being handed a key for, and a fresh capture of the live
+ * ledger, however nearly identical, is a different thing from the backup they
+ * have. When there is no file, or its body cannot be opened with any key we
+ * hold, it falls back to sealing the ledger as it stands — the same bytes an
+ * ordinary run would send. Either way exactly one blob leaves, under the new
+ * key, marked `extra`.
+ *
+ * The new key goes into the keystore *before* the upload, and that is not an
+ * oversight. Until the escrow file is deleted Drive still holds the old key,
+ * and `keyForBackup` prefers it under Standard — so a phone that dies in this
+ * window comes back holding a stale local key that the next run quietly
+ * replaces from the folder. Writing the key after the upload would instead
+ * leave a blob nothing on earth could open.
+ */
+export async function upgradeToExtra(input: UpgradeInput): Promise<UpgradeResult> {
+  // Past `Confirm` already: the caller only gets here once the key has been
+  // shown and the person has said they kept it.
+  let state = advanceUpgrade(UPGRADE_START, 'ok');
+  const provider = providerFor(PRIMARY_PROVIDER);
+  const stop = (refusal: BackupRefusal): UpgradeResult => ({
+    ok: false,
+    refusal,
+    state: advanceUpgrade(state, 'failed'),
+  });
+
+  if (!provider.isConfigured()) return stop('not-configured');
+
+  const net = await connection();
+  if (!net.online) return stop('offline');
+
+  const lookup = await freshTokens(PRIMARY_PROVIDER, input.ownerId);
+  if (lookup.kind !== 'ok') return stop(lookup.kind === 'auth' ? 'auth' : 'not-connected');
+  const tokens = lookup.tokens;
+
+  try {
+    const folder = await readFolder(provider, tokens, input.ownerId);
+
+    // What is going back up: the body already there, or the ledger in hand.
+    let body: BackupBody | null = null;
+    if (folder.blob) {
+      const envelope: BackupFile = parseFile(await provider.read(tokens, folder.blob.remoteId));
+      const oldKey =
+        (folder.escrow ? await openEscrow(provider, tokens, folder.escrow) : null) ??
+        (await loadRecoveryKey(input.ownerId));
+      if (oldKey) {
+        try {
+          body = parseBody(
+            openBackup(oldKey, envelope.sealed, backupAad(input.ownerId)),
+            input.ownerId,
+          );
+        } catch {
+          // Unreadable with every key we have. Nothing is lost by sending the
+          // live ledger instead — it is where those records came from — and
+          // refusing here would strand somebody on Standard over a file that
+          // was already beyond saving.
+          body = null;
+        }
+      }
+    }
+    const outgoing = body ?? buildBody(input.ownerId, input.records, new Date());
+
+    // The keystore, before the network. See the note in the doc comment.
+    await saveRecoveryKey(input.ownerId, input.key);
+
+    const sealed = sealBackup(
+      input.key,
+      backupNonce(),
+      JSON.stringify(outgoing),
+      backupAad(input.ownerId),
+    );
+    const content = JSON.stringify(buildFile(sealed, outgoing.createdAt, BackupTier.Extra));
+    const stored = await provider.put(
+      tokens,
+      backupFileName(input.ownerId),
+      content,
+      folder.blob?.remoteId ?? null,
+    );
+    state = advanceUpgrade(state, 'ok');
+
+    // The tier is now true of the file, so it is written down before the escrow
+    // delete rather than after: somebody who closes the app here is on Extra,
+    // and the file left in the folder opens nothing.
+    await saveTier(input.ownerId, BackupTier.Extra);
+
+    if (folder.escrow && mayClearEscrow(state)) {
+      try {
+        await provider.remove(tokens, folder.escrow.remoteId);
+        state = advanceUpgrade(state, 'ok');
+      } catch (error) {
+        if (isAuthFailure(error)) throw error;
+        // Recorded as a stage failure, not as a failed upgrade: the blob is
+        // already sealed under a key Google does not hold, which is the whole
+        // promise. Every later Extra run sweeps for the file again.
+        state = advanceUpgrade(state, 'failed');
+      }
+    } else {
+      state = advanceUpgrade(state, 'ok');
+    }
+
+    return {
+      ok: true,
+      state,
+      last: {
+        at: Date.now(),
+        size: stored.size > 0 ? stored.size : content.length,
+        records: outgoing.records.length,
+      },
+    };
+  } catch (error) {
+    if (isAuthFailure(error)) {
+      await clearTokens(PRIMARY_PROVIDER, input.ownerId).catch(() => undefined);
+      return stop('auth');
+    }
+    // Anything else is a transport failure. Nothing on Drive changed — the
+    // escrowed key is still there, the blob is still the one it opens, and the
+    // account is still Standard — so it goes up to the caller to be laundered
+    // into a sentence and offered another go.
     throw error;
   }
 }

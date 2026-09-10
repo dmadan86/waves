@@ -17,7 +17,7 @@
  * people are least likely to have signal: setting up a new phone.
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { MutationKind, personalScope } from '@waves/core';
 
@@ -34,6 +34,7 @@ import {
   PRIMARY_PROVIDER,
   runBackup,
   scanBackup,
+  upgradeToExtra,
   type BackupPhase,
   type BackupRefusal,
   type RestoreScan,
@@ -53,8 +54,10 @@ import {
   saveFrequency,
   saveLastBackup,
   saveNetwork,
+  saveTier,
   type BackupSettings,
 } from './settings';
+import { backupStanding, BackupTier, resolveTier, type BackupStanding } from './tier';
 
 /** What the screen says after a run: nothing yet, done, or a named refusal. */
 export type BackupOutcome =
@@ -77,8 +80,21 @@ export interface BackupState {
   readonly account: string | null;
   /** True when this device holds the recovery key. */
   readonly hasKey: boolean;
+  /**
+   * Which tier this account is on. Resolved once from what is stored and what
+   * this phone holds, then written down — see `tier.ts` for the one-time
+   * migration that carries pre-tier users onto Extra protection.
+   */
+  readonly tier: BackupTier;
   /** How many personal records a backup would carry right now. */
   readonly recordCount: number;
+  /**
+   * The three questions the sign-out guard and the sign-in restore prompt need
+   * answering, in one value and with no knowledge of tiers or Drive: is there
+   * anything not yet backed up, when did the last one land, and would a restore
+   * on a new phone have to ask for a key.
+   */
+  readonly standing: BackupStanding;
   /** Non-null while a backup is running. */
   readonly phase: BackupPhase | null;
   /** The result of the last run this session. */
@@ -93,6 +109,17 @@ export interface BackupActions {
   setNetwork: (network: SyncNetworkPreference) => Promise<void>;
   /** Mint a key for this device and hand back its hex, for showing once. */
   createKey: () => Promise<string>;
+  /**
+   * Mint the key that Extra protection will be turned on with, and hand back
+   * its hex for showing. Stores nothing: until the person says they have kept
+   * it, the account is still Standard and this key exists only on screen.
+   */
+  beginExtra: () => string;
+  /**
+   * Do the upgrade with the key `beginExtra` produced: re-seal the backup under
+   * it, then take Drive's copy of the old key away. Never the other way round.
+   */
+  commitExtra: (keyHex: string) => Promise<BackupOutcome>;
   /** The key this device holds, as hex, or null. For "show it to me again". */
   revealKey: () => Promise<string | null>;
   /** Accept a key typed in from another device. False when it is not a key. */
@@ -130,6 +157,39 @@ export function useBackup(): BackupState & BackupActions {
 
   const provider = providerFor(PRIMARY_PROVIDER);
   const configured = provider.isConfigured();
+
+  /**
+   * The tier, resolved from the stored value and this phone's key.
+   *
+   * `settings.tier` is written the first time the effect below runs, so this
+   * falls back to the inference only for the frame before that lands — and the
+   * inference and the write agree, so the screen never flickers between tiers.
+   */
+  const tier = resolveTier(settings.tier, hasKey);
+
+  /**
+   * How many records were created after the last backup landed.
+   *
+   * Creation time is the only timestamp the mirror rows carry, so this counts
+   * additions and nothing else — see `backupStanding` for what that does and
+   * does not let the caller claim. Memoised because it walks the whole ledger
+   * and the ledger changes far less often than this hook renders.
+   */
+  const newSince = useMemo(() => {
+    const since = settings.last?.at ?? null;
+    if (since === null) return records.length;
+    return records.filter((row) => Date.parse(row.created_at) > since).length;
+  }, [records, settings.last?.at]);
+
+  const standing = backupStanding({
+    tier,
+    keySeen: settings.keySeen,
+    connected,
+    lastAt: settings.last?.at ?? null,
+    lastRecords: settings.last?.records ?? 0,
+    recordCount: records.length,
+    newSince,
+  });
 
   /**
    * Whether an account is linked, from the tokens on disk. A local read and
@@ -177,7 +237,18 @@ export function useBackup(): BackupState & BackupActions {
         ownerId ? loadTokens(PRIMARY_PROVIDER, ownerId) : Promise.resolve(null),
       ]);
       if (!alive) return;
-      setSettings(stored);
+      // The one-time migration. A phone that set a backup up under the build
+      // before tiers has a key and no stored tier, and that key *is* Extra
+      // protection; a phone with neither is a fresh setup and gets the default.
+      // The answer is written down as soon as it is worked out, so from here on
+      // the tier is state and never an inference — including for the sign-out
+      // guard, which reads the settings without a keystore of its own.
+      const tier = resolveTier(stored.tier, key !== null);
+      if (ownerId && stored.tier === null) {
+        await saveTier(ownerId, tier).catch(() => undefined);
+      }
+      if (!alive) return;
+      setSettings({ ...stored, tier });
       setHasKey(key !== null);
       setConnected(tokens !== null);
       if (!tokens) setAccount(null);
@@ -224,18 +295,16 @@ export function useBackup(): BackupState & BackupActions {
   }, [ownerId, provider, refreshLink]);
 
   const backupNow = useCallback(async (): Promise<BackupOutcome> => {
-    const key = ownerId ? await loadRecoveryKey(ownerId) : null;
-    if (!key) {
-      const refused: BackupOutcome = { kind: 'refused', refusal: 'no-key' };
-      setOutcome(refused);
-      return refused;
-    }
     setOutcome(null);
     try {
+      // No key is loaded here any more. Where it comes from depends on the tier
+      // and on what is in the Drive folder, and the engine is the only place
+      // that can see both — on Standard it will mint and escrow one rather than
+      // refuse, which is the whole of the default tier's setup.
       const result = await runBackup({
         ownerId,
         records,
-        key,
+        tier,
         network: settings.network,
         manual: true,
         onPhase: setPhase,
@@ -251,13 +320,16 @@ export function useBackup(): BackupState & BackupActions {
       }
       await saveLastBackup(ownerId, result.last);
       setSettings((current) => ({ ...current, last: result.last }));
+      // A Standard run may have minted the key itself; the screen's "this phone
+      // holds a key" is only true after that, and nothing else would say so.
+      setHasKey(true);
       const done: BackupOutcome = { kind: 'ok', records: result.last.records };
       setOutcome(done);
       return done;
     } finally {
       setPhase(null);
     }
-  }, [ownerId, records, settings.network, refreshLink]);
+  }, [ownerId, records, tier, settings.network, refreshLink]);
 
   const setFrequencyAction = useCallback(
     async (frequency: BackupFrequency): Promise<void> => {
@@ -296,7 +368,13 @@ export function useBackup(): BackupState & BackupActions {
       // A key typed in from elsewhere has self-evidently been kept somewhere,
       // so there is nothing left to warn this person about.
       await markKeySeen(ownerId);
-      setSettings((current) => ({ ...current, keySeen: true }));
+      // And it declares the tier. Somebody typing a key in is holding one, and
+      // leaving them on Standard would have the next run write `tier: standard`
+      // into the envelope with no key escrowed beside it — a file that says a
+      // key is in the folder when it is in their notebook, which a later
+      // restore would read as "the key is lost".
+      await saveTier(ownerId, BackupTier.Extra);
+      setSettings((current) => ({ ...current, keySeen: true, tier: BackupTier.Extra }));
       return true;
     },
     [ownerId],
@@ -307,10 +385,51 @@ export function useBackup(): BackupState & BackupActions {
     await markKeySeen(ownerId);
   }, [ownerId]);
 
+  /**
+   * Mint the key Extra protection would be turned on with, and hand it back to
+   * be shown. Nothing is written anywhere: back out of the sheet and the
+   * account is untouched, still Standard, still opening with the key Drive
+   * holds. The upgrade only starts at `commitExtra`.
+   */
+  const beginExtra = useCallback((): string => bytesToHex(mintRecoveryKey()), []);
+
+  const commitExtra = useCallback(
+    async (keyHex: string): Promise<BackupOutcome> => {
+      const key = parseRecoveryKey(keyHex);
+      // Only reachable if the hex we minted came back mangled, which would mean
+      // the screen handed us something other than what it was given.
+      if (!key || !ownerId) return { kind: 'refused', refusal: 'no-key' };
+      const result = await upgradeToExtra({ ownerId, records, key });
+      if (!result.ok) {
+        const refused: BackupOutcome = { kind: 'refused', refusal: result.refusal };
+        setOutcome(refused);
+        if (result.refusal === 'auth') await refreshLink();
+        return refused;
+      }
+      // The engine has already written the key and the tier; this is the screen
+      // catching up with what is now true on disk. `keySeen` rides along
+      // because the person confirmed keeping the key before any of it ran.
+      await markKeySeen(ownerId);
+      await saveLastBackup(ownerId, result.last);
+      setHasKey(true);
+      setSettings((current) => ({
+        ...current,
+        tier: BackupTier.Extra,
+        keySeen: true,
+        last: result.last,
+      }));
+      const done: BackupOutcome = { kind: 'ok', records: result.last.records };
+      setOutcome(done);
+      return done;
+    },
+    [ownerId, records, refreshLink],
+  );
+
   const scan = useCallback(async (): Promise<RestoreScan> => {
-    const key = ownerId ? await loadRecoveryKey(ownerId) : null;
-    if (!key) return { ok: false, refusal: 'no-key' };
-    return scanBackup({ ownerId, key, localIds });
+    // The key question belongs to the engine here too, and on Standard it has a
+    // better answer than this hook could give: the key is in the folder next to
+    // the backup, so a phone that has never held one can still open it.
+    return scanBackup({ ownerId, localIds });
   }, [ownerId, localIds]);
 
   const applyRestore = useCallback(
@@ -338,6 +457,8 @@ export function useBackup(): BackupState & BackupActions {
     connected,
     account,
     hasKey,
+    tier,
+    standing,
     recordCount: records.length,
     phase,
     outcome,
@@ -347,6 +468,8 @@ export function useBackup(): BackupState & BackupActions {
     setFrequency: setFrequencyAction,
     setNetwork: setNetworkAction,
     createKey,
+    beginExtra,
+    commitExtra,
     revealKey,
     acceptKey,
     confirmKeySeen,

@@ -1687,8 +1687,11 @@ export interface UiStrings {
     title: string;
     /** The settings-row label. */
     row: string;
-    /** The promise the screen leads with. */
-    intro: string;
+    /** The promise the screen leads with, in whichever form is true. The
+     *  Standard one must not borrow the Extra one's claim about Google: on
+     *  Standard the key is in the Google account the backup goes to. */
+    introStandard: string;
+    introExtra: string;
     /** Shown when this build carries no Drive OAuth client id. */
     unavailable: string;
 
@@ -1699,7 +1702,8 @@ export interface UiStrings {
     statusOff: string;
     statusReady: string;
     statusOn: string;
-    statusSealed: string;
+    statusSealedStandard: string;
+    statusSealedExtra: string;
     /** How much of the setup is left, under "Not backing up yet". */
     stepsLeft: PluralForms;
 
@@ -1721,7 +1725,10 @@ export interface UiStrings {
     connectFailed: string;
     disconnect: string;
     disconnectTitle: string;
-    disconnectBody: string;
+    /** What unlinking costs — different in each tier, and neither is true of
+     *  the other. Relinking is also the deliberate way back from Extra. */
+    disconnectBodyStandard: string;
+    disconnectBodyExtra: string;
 
     backUpNow: string;
     phaseCollecting: string;
@@ -1769,6 +1776,11 @@ export interface UiStrings {
     keyEnterPlaceholder: string;
     keyEnterInvalid: string;
     keyEnterSave: string;
+    /** The three things a 64-character field owes whoever is typing into it. */
+    keyEnterPaste: string;
+    keyEnterHint: string;
+    keyEnterWhat: string;
+    keyEnterWhatBody: string;
 
     restoreSection: string;
     restoreIntro: string;
@@ -1781,6 +1793,10 @@ export interface UiStrings {
     restoreDone: PluralForms;
     restoreFailed: string;
     restoreWrongKey: string;
+    /** The sheet for a backup that was found and will not open from here — the
+     *  fork stated before the attempt, not a failure reported after it. */
+    restoreFoundTitle: string;
+    restoreIsExtra: string;
     /** Why a restore is blocked when this phone holds no key. Emphatically
      *  not "create one": a new key cannot open an old backup, and making
      *  one would let the next run overwrite that backup. */
@@ -1789,11 +1805,43 @@ export interface UiStrings {
     /** Why a run did nothing. Each one is a different way out. */
     refusedNotConnected: string;
     refusedNoKey: string;
+    /** The found backup is under extra protection and only its key opens it. */
+    refusedNeedsKey: string;
+    /** A standard backup whose escrowed key has gone from the Drive folder. */
+    refusedKeyLost: string;
     refusedOffline: string;
     refusedNetwork: string;
     refusedAuth: string;
     refusedNoBackup: string;
     refusedBusy: string;
+
+    /** Extra protection: the opt-in tier, last on the screen and set apart. */
+    extraSection: string;
+    extraOn: string;
+    extraOff: string;
+    extraFootnoteOff: string;
+    extraFootnoteOn: string;
+    /** The pitch: benefit, then mechanism, then who is locked out. No warning
+     *  here — that belongs beside the key, on the screen after this one. */
+    extraPitchTitle: string;
+    extraPitchBenefit: string;
+    extraPitchMechanism: string;
+    extraPitchAdversary: string;
+    extraTurnOn: string;
+    /** What it means once it is on, and why there is no switch back. */
+    extraOnTitle: string;
+    extraOnBody: string;
+    extraNoWayBack: string;
+    /** The key, shown on the way in, with the consent gate under it. */
+    extraKeyTitle: string;
+    extraKeyBody: string;
+    /** "{n} records will be locked behind this key" — what is at stake. */
+    extraCovers: PluralForms;
+    /** Asserted in the past tense, and it names who cannot help. */
+    extraConsent: string;
+    extraTurningOn: string;
+    extraFailed: string;
+
     /** Screen-reader suffix on a chosen option row. */
     selected: string;
   };
@@ -4265,15 +4313,18 @@ const en: UiStrings = {
   backup: {
     title: 'Backup',
     row: 'Back up to Google Drive',
-    intro:
-      'Your private Me ledger, copied to your own Google Drive and locked with a key only you hold. Neither Waves nor Google can read it.',
+    introStandard:
+      'Your private Me ledger, copied to a hidden folder in your own Google Drive and locked with a key kept there too — so a new phone signed in to the same Google account opens it by itself. Waves cannot read it. Anyone who can get into your Google account can.',
+    introExtra:
+      'Your private Me ledger, copied to your own Google Drive and locked with a key only you hold. Neither Waves nor Google can read it, and nothing opens it without your key.',
     unavailable: 'Backup is not available in this build.',
 
     statusChecking: 'Checking…',
     statusOff: 'Not backing up yet',
     statusReady: 'Ready to back up',
     statusOn: 'Backed up',
-    statusSealed: 'Locked with your key',
+    statusSealedStandard: 'Locked with a key kept in your Google account',
+    statusSealedExtra: 'Locked with a key only you have',
     stepsLeft: {
       one: '{n} step left',
       other: '{n} steps left',
@@ -4294,7 +4345,9 @@ const en: UiStrings = {
     connectFailed: 'Could not link that account. Try again.',
     disconnect: 'Unlink',
     disconnectTitle: 'Unlink Google Drive?',
-    disconnectBody:
+    disconnectBodyStandard:
+      'Automatic backups stop. The backup and its key stay in your Google Drive, and linking this account again brings both back.',
+    disconnectBodyExtra:
       'Automatic backups stop and this phone forgets its key. The backup already on Drive stays there, and the key you wrote down still opens it.',
 
     backUpNow: 'Back up now',
@@ -4342,6 +4395,11 @@ const en: UiStrings = {
     keyEnterPlaceholder: '64 characters',
     keyEnterInvalid: 'That is not a backup key. A key is 64 letters and digits.',
     keyEnterSave: 'Use this key',
+    keyEnterPaste: 'Paste',
+    keyEnterHint: '64 letters and digits, in 16 groups of four. Spaces and dashes are ignored.',
+    keyEnterWhat: 'What is a backup key?',
+    keyEnterWhatBody:
+      'It is the 64 characters shown when extra protection was turned on, on the phone that made the backup. Without it that backup cannot be opened — not by us, and not by Google.',
 
     restoreSection: 'Restore',
     restoreIntro:
@@ -4359,17 +4417,55 @@ const en: UiStrings = {
       other: '{n} records restored',
     },
     restoreFailed: 'Could not read that backup. Try again in a moment.',
-    restoreWrongKey: 'That key does not open this backup.',
+    restoreWrongKey:
+      'That key does not open this backup. Check it against the phone that made the backup — one wrong character is enough.',
+    restoreFoundTitle: 'Backup found',
+    restoreIsExtra:
+      'This backup is under extra protection. Enter the key from the phone that made it. A new key will not open it.',
     restoreNeedsKey:
       'Enter the key from the phone that made this backup. A new key will not open it.',
 
     refusedNotConnected: 'Link a Google account first.',
     refusedNoKey: 'Create your backup key first.',
+    refusedNeedsKey: 'That backup is under extra protection. Only its key opens it.',
+    refusedKeyLost:
+      'The key for that backup is no longer in your Google account, so it can no longer be opened.',
     refusedOffline: 'No connection. The backup will run when you are back online.',
     refusedNetwork: 'Waiting for Wi‑Fi. Change Back up over to use mobile data.',
     refusedAuth: 'Google asked for the link again. Reconnect the account.',
     refusedNoBackup: 'There is no backup on this Drive account yet.',
     refusedBusy: 'A backup is already running.',
+
+    extraSection: 'Extra protection',
+    extraOn: 'On',
+    extraOff: 'Off',
+    extraFootnoteOff: 'Lock the backup with a key only you have, so not even Google can open it.',
+    extraFootnoteOn:
+      'This backup is locked with your key. Keep it safe — nobody can give it back to you.',
+    extraPitchTitle: 'Lock your backup with a key only you have',
+    extraPitchBenefit: 'Your backup stays safe even if somebody gets into your Google account.',
+    extraPitchMechanism:
+      'A 64-character key is made for you and shown once. You keep it, and so does this phone.',
+    extraPitchAdversary: 'Nobody else can open the backup. Not Google, and not Waves.',
+    extraTurnOn: 'Turn on',
+    extraOnTitle: 'Extra protection is on',
+    extraOnBody:
+      'Your backup is locked with your key, and Google keeps no copy of it. Only a phone that has the key can open it.',
+    extraNoWayBack:
+      'There is no switch back. To return to the standard backup, unlink your Google account and link it again — that starts a fresh backup with a new key.',
+    extraKeyTitle: 'Save your backup key',
+    extraKeyBody:
+      'This key locks your backup from now on, and it is shown only here. You will need it to restore on another phone.',
+    extraCovers: {
+      one: '{n} record will be locked behind this key',
+      other: '{n} records will be locked behind this key',
+    },
+    extraConsent:
+      'I have saved my key, and I understand that Waves cannot open this backup for me if I lose it.',
+    extraTurningOn: 'Re-locking your backup…',
+    extraFailed:
+      'Extra protection could not be turned on. Your backup is unchanged. Try again in a moment.',
+
     selected: 'selected',
   },
   group: {
@@ -6828,15 +6924,18 @@ const ta: UiStrings = {
   backup: {
     title: 'காப்புப்பிரதி',
     row: 'Google Drive-இல் காப்பு',
-    intro:
-      'உங்கள் தனிப்பட்ட "நான்" கணக்கு, உங்கள் சொந்த Google Drive-க்கு நகலெடுக்கப்பட்டு, உங்களிடம் மட்டுமே உள்ள சாவியால் பூட்டப்படுகிறது. Waves-ஆலும் Google-ஆலும் அதைப் படிக்க முடியாது.',
+    introStandard:
+      'உங்கள் தனிப்பட்ட "நான்" கணக்கு, உங்கள் சொந்த Google Drive-இல் ஒரு மறைவான கோப்புறைக்கு நகலெடுக்கப்பட்டு, அங்கேயே வைக்கப்படும் சாவியால் பூட்டப்படுகிறது — அதே Google கணக்கில் நுழையும் புதிய ஃபோன் தானாகவே அதைத் திறக்கும். Waves-ஆல் அதைப் படிக்க முடியாது; உங்கள் Google கணக்கை அணுகும் எவரும் படிக்க முடியும்.',
+    introExtra:
+      'உங்கள் தனிப்பட்ட "நான்" கணக்கு, உங்கள் சொந்த Google Drive-க்கு நகலெடுக்கப்பட்டு, உங்களிடம் மட்டுமே உள்ள சாவியால் பூட்டப்படுகிறது. Waves-ஆலும் Google-ஆலும் அதைப் படிக்க முடியாது; உங்கள் சாவி இல்லாமல் அதை எதுவும் திறக்காது.',
     unavailable: 'இந்தப் பதிப்பில் காப்புப்பிரதி கிடைக்கவில்லை.',
 
     statusChecking: 'பார்க்கிறது…',
     statusOff: 'இன்னும் காப்பு எடுக்கப்படவில்லை',
     statusReady: 'காப்பு எடுக்கத் தயார்',
     statusOn: 'காப்பு எடுக்கப்பட்டது',
-    statusSealed: 'உங்கள் சாவியால் பூட்டப்பட்டது',
+    statusSealedStandard: 'உங்கள் Google கணக்கில் வைக்கப்பட்ட சாவியால் பூட்டப்பட்டது',
+    statusSealedExtra: 'உங்களிடம் மட்டுமே உள்ள சாவியால் பூட்டப்பட்டது',
     stepsLeft: {
       one: 'இன்னும் {n} படி',
       other: 'இன்னும் {n} படிகள்',
@@ -6858,7 +6957,9 @@ const ta: UiStrings = {
     connectFailed: 'அந்தக் கணக்கை இணைக்க முடியவில்லை. மீண்டும் முயலுங்கள்.',
     disconnect: 'இணைப்பை நீக்கு',
     disconnectTitle: 'Google Drive இணைப்பை நீக்கவா?',
-    disconnectBody:
+    disconnectBodyStandard:
+      'தானியங்கி காப்புப்பிரதிகள் நிற்கும். காப்புப்பிரதியும் அதன் சாவியும் உங்கள் Google Drive-இலேயே இருக்கும்; இந்தக் கணக்கை மீண்டும் இணைத்தால் இரண்டும் திரும்பும்.',
+    disconnectBodyExtra:
       'தானியங்கி காப்புப்பிரதிகள் நிற்கும், இந்த ஃபோன் தன் சாவியை மறக்கும். Drive-இல் உள்ள காப்புப்பிரதி அப்படியே இருக்கும் — நீங்கள் எழுதி வைத்த சாவி இன்னும் அதைத் திறக்கும்.',
 
     backUpNow: 'இப்போது காப்பு எடு',
@@ -6909,6 +7010,12 @@ const ta: UiStrings = {
     keyEnterPlaceholder: '64 எழுத்துகள்',
     keyEnterInvalid: 'இது காப்புச் சாவி அல்ல. சாவி 64 எழுத்துகளும் இலக்கங்களும் கொண்டது.',
     keyEnterSave: 'இந்தச் சாவியைப் பயன்படுத்து',
+    keyEnterPaste: 'ஒட்டு',
+    keyEnterHint:
+      '64 எழுத்துகளும் இலக்கங்களும், நான்கு நான்காக 16 குழுக்களில். இடைவெளிகளும் கோடுகளும் கணக்கில் எடுக்கப்படுவதில்லை.',
+    keyEnterWhat: 'காப்புச் சாவி என்றால் என்ன?',
+    keyEnterWhatBody:
+      'காப்புப்பிரதியை உருவாக்கிய ஃபோனில் கூடுதல் பாதுகாப்பை இயக்கியபோது காட்டப்பட்ட அந்த 64 எழுத்துகள் தான். அது இல்லாமல் அந்தக் காப்பைத் திறக்க முடியாது — எங்களாலும் முடியாது, Google-ஆலும் முடியாது.',
 
     restoreSection: 'மீட்டெடு',
     restoreIntro:
@@ -6926,17 +7033,59 @@ const ta: UiStrings = {
       other: '{n} பதிவுகள் மீட்கப்பட்டன',
     },
     restoreFailed: 'அந்தக் காப்பைப் படிக்க முடியவில்லை. சிறிது நேரம் கழித்து முயலுங்கள்.',
-    restoreWrongKey: 'அந்தச் சாவி இந்தக் காப்பைத் திறக்காது.',
+    restoreWrongKey:
+      'அந்தச் சாவி இந்தக் காப்பைத் திறக்காது. காப்பை உருவாக்கிய ஃபோனில் உள்ளதுடன் ஒப்பிட்டுப் பாருங்கள் — ஒரு எழுத்து தவறினாலும் போதும்.',
+    restoreFoundTitle: 'காப்புப்பிரதி கிடைத்தது',
+    restoreIsExtra:
+      'இந்தக் காப்பு கூடுதல் பாதுகாப்பில் உள்ளது. அதை உருவாக்கிய ஃபோனின் சாவியை உள்ளிடுங்கள்; புதிய சாவி அதைத் திறக்காது.',
     restoreNeedsKey: 'காப்பு எடுத்த ஃபோனின் சாவியை உள்ளிடுங்கள். புதிய சாவி அதைத் திறக்காது.',
 
     refusedNotConnected: 'முதலில் ஒரு Google கணக்கை இணையுங்கள்.',
     refusedNoKey: 'முதலில் உங்கள் காப்புச் சாவியை உருவாக்குங்கள்.',
+    refusedNeedsKey:
+      'அந்தக் காப்பு கூடுதல் பாதுகாப்பில் உள்ளது. அதன் சாவி மட்டுமே அதைத் திறக்கும்.',
+    refusedKeyLost:
+      'அந்தக் காப்பின் சாவி உங்கள் Google கணக்கில் இனி இல்லை, எனவே அதைத் திறக்க முடியாது.',
     refusedOffline: 'இணைப்பு இல்லை. மீண்டும் ஆன்லைனுக்கு வரும்போது காப்பு எடுக்கப்படும்.',
     refusedNetwork:
       'Wi‑Fi-க்காகக் காத்திருக்கிறது. மொபைல் டேட்டாவைப் பயன்படுத்த அமைப்பை மாற்றுங்கள்.',
     refusedAuth: 'Google மீண்டும் அனுமதி கேட்கிறது. கணக்கை மீண்டும் இணையுங்கள்.',
     refusedNoBackup: 'இந்த Drive கணக்கில் இன்னும் காப்புப்பிரதி இல்லை.',
     refusedBusy: 'ஒரு காப்பு ஏற்கனவே இயங்குகிறது.',
+
+    extraSection: 'கூடுதல் பாதுகாப்பு',
+    extraOn: 'இயக்கத்தில்',
+    extraOff: 'இல்லை',
+    extraFootnoteOff:
+      'உங்களிடம் மட்டுமே உள்ள சாவியால் காப்பைப் பூட்டுங்கள் — Google-ஆல் கூட அதைத் திறக்க முடியாது.',
+    extraFootnoteOn:
+      'இந்தக் காப்பு உங்கள் சாவியால் பூட்டப்பட்டுள்ளது. அதைப் பத்திரமாக வையுங்கள் — யாராலும் அதைத் திரும்பத் தர முடியாது.',
+    extraPitchTitle: 'உங்களிடம் மட்டுமே உள்ள சாவியால் காப்பைப் பூட்டுங்கள்',
+    extraPitchBenefit:
+      'உங்கள் Google கணக்குக்குள் யாரோ நுழைந்தாலும் உங்கள் காப்பு பாதுகாப்பாகவே இருக்கும்.',
+    extraPitchMechanism:
+      '64 எழுத்துச் சாவி ஒன்று உங்களுக்காக உருவாக்கப்பட்டு ஒரு முறை மட்டும் காட்டப்படும். அதை நீங்களும் இந்த ஃபோனும் வைத்திருப்பீர்கள்.',
+    extraPitchAdversary:
+      'வேறு யாராலும் காப்பைத் திறக்க முடியாது. Google-ஆலும் இல்லை, Waves-ஆலும் இல்லை.',
+    extraTurnOn: 'இயக்கு',
+    extraOnTitle: 'கூடுதல் பாதுகாப்பு இயக்கத்தில் உள்ளது',
+    extraOnBody:
+      'உங்கள் காப்பு உங்கள் சாவியால் பூட்டப்பட்டுள்ளது; Google அதன் நகலை வைத்திருக்கவில்லை. அந்தச் சாவி உள்ள ஃபோன் மட்டுமே அதைத் திறக்க முடியும்.',
+    extraNoWayBack:
+      'திரும்பச் செல்ல ஒரு நிலைமாற்றி இல்லை. வழக்கமான காப்புக்குத் திரும்ப, உங்கள் Google கணக்கின் இணைப்பை நீக்கி மீண்டும் இணையுங்கள் — அது புதிய சாவியுடன் புதிய காப்பைத் தொடங்கும்.',
+    extraKeyTitle: 'உங்கள் காப்புச் சாவியைச் சேமியுங்கள்',
+    extraKeyBody:
+      'இனிமேல் இந்தச் சாவி தான் உங்கள் காப்பைப் பூட்டும், அது இங்கே மட்டுமே காட்டப்படுகிறது. வேறு ஃபோனில் மீட்டெடுக்க இது தேவைப்படும்.',
+    extraCovers: {
+      one: '{n} பதிவு இந்தச் சாவிக்குப் பின் பூட்டப்படும்',
+      other: '{n} பதிவுகள் இந்தச் சாவிக்குப் பின் பூட்டப்படும்',
+    },
+    extraConsent:
+      'என் சாவியைச் சேமித்துவிட்டேன்; அதை இழந்தால் Waves-ஆல் இந்தக் காப்பை எனக்குத் திறக்க முடியாது என்பதைப் புரிந்துகொள்கிறேன்.',
+    extraTurningOn: 'உங்கள் காப்பை மீண்டும் பூட்டுகிறது…',
+    extraFailed:
+      'கூடுதல் பாதுகாப்பை இயக்க முடியவில்லை. உங்கள் காப்பு மாறாமல் உள்ளது. சிறிது நேரத்தில் மீண்டும் முயலுங்கள்.',
+
     selected: 'தேர்ந்தெடுக்கப்பட்டது',
   },
   group: {
@@ -9419,15 +9568,18 @@ const hi: UiStrings = {
   backup: {
     title: 'बैकअप',
     row: 'Google Drive पर बैकअप',
-    intro:
-      'आपका निजी "मैं" खाता, आपकी अपनी Google Drive पर कॉपी होता है और सिर्फ़ आपके पास मौजूद चाबी से बंद रहता है। इसे न Waves पढ़ सकता है, न Google।',
+    introStandard:
+      'आपका निजी "मैं" खाता, आपकी अपनी Google Drive के एक छिपे फ़ोल्डर में कॉपी होता है और वहीं रखी एक चाबी से बंद रहता है — इसलिए उसी Google खाते में साइन इन किया नया फ़ोन इसे खुद ही खोल लेता है। Waves इसे नहीं पढ़ सकता। आपके Google खाते तक पहुँचने वाला कोई भी पढ़ सकता है।',
+    introExtra:
+      'आपका निजी "मैं" खाता, आपकी अपनी Google Drive पर कॉपी होता है और सिर्फ़ आपके पास मौजूद चाबी से बंद रहता है। इसे न Waves पढ़ सकता है, न Google — और आपकी चाबी के बिना इसे कुछ भी नहीं खोलता।',
     unavailable: 'इस बिल्ड में बैकअप उपलब्ध नहीं है।',
 
     statusChecking: 'देखा जा रहा है…',
     statusOff: 'अभी बैकअप नहीं हो रहा',
     statusReady: 'बैकअप के लिए तैयार',
     statusOn: 'बैकअप हो गया',
-    statusSealed: 'आपकी चाबी से बंद',
+    statusSealedStandard: 'आपके Google खाते में रखी चाबी से बंद',
+    statusSealedExtra: 'सिर्फ़ आपके पास मौजूद चाबी से बंद',
     stepsLeft: {
       one: '{n} कदम बाकी',
       other: '{n} कदम बाकी',
@@ -9448,7 +9600,9 @@ const hi: UiStrings = {
     connectFailed: 'वह खाता नहीं जुड़ सका। फिर कोशिश करें।',
     disconnect: 'हटाएँ',
     disconnectTitle: 'Google Drive हटाएँ?',
-    disconnectBody:
+    disconnectBodyStandard:
+      'अपने आप होने वाले बैकअप रुक जाएँगे। बैकअप और उसकी चाबी आपकी Google Drive में ही रहते हैं, और इस खाते को दोबारा जोड़ने पर दोनों वापस आ जाते हैं।',
+    disconnectBodyExtra:
       'अपने आप होने वाले बैकअप रुक जाएँगे और यह फ़ोन अपनी चाबी भूल जाएगा। Drive पर मौजूद बैकअप वहीं रहेगा — आपकी लिखी हुई चाबी उसे अब भी खोल देगी।',
 
     backUpNow: 'अभी बैकअप लें',
@@ -9496,6 +9650,11 @@ const hi: UiStrings = {
     keyEnterPlaceholder: '64 अक्षर',
     keyEnterInvalid: 'यह बैकअप चाबी नहीं है। चाबी में 64 अक्षर और अंक होते हैं।',
     keyEnterSave: 'यही चाबी इस्तेमाल करें',
+    keyEnterPaste: 'पेस्ट करें',
+    keyEnterHint: '64 अक्षर और अंक, चार-चार के 16 समूहों में। स्पेस और डैश नहीं गिने जाते।',
+    keyEnterWhat: 'बैकअप चाबी क्या है?',
+    keyEnterWhatBody:
+      'यह वही 64 अक्षर हैं जो उस फ़ोन पर अतिरिक्त सुरक्षा चालू करते समय दिखाए गए थे जिसने बैकअप बनाया था। उसके बिना वह बैकअप नहीं खुल सकता — न हमसे, न Google से।',
 
     restoreSection: 'वापस लाएँ',
     restoreIntro:
@@ -9513,16 +9672,55 @@ const hi: UiStrings = {
       other: '{n} रिकॉर्ड वापस आ गए',
     },
     restoreFailed: 'वह बैकअप पढ़ा नहीं जा सका। थोड़ी देर में फिर कोशिश करें।',
-    restoreWrongKey: 'यह चाबी इस बैकअप को नहीं खोलती।',
+    restoreWrongKey:
+      'यह चाबी इस बैकअप को नहीं खोलती। जिस फ़ोन ने बैकअप बनाया था, उसकी चाबी से मिलाकर देखें — एक अक्षर की गलती भी काफ़ी है।',
+    restoreFoundTitle: 'बैकअप मिला',
+    restoreIsExtra:
+      'यह बैकअप अतिरिक्त सुरक्षा में है। जिस फ़ोन ने इसे बनाया था, उसी की चाबी डालें। नई चाबी इसे नहीं खोलेगी।',
     restoreNeedsKey: 'जिस फ़ोन ने यह बैकअप बनाया, उसी की चाबी डालें। नई चाबी इसे नहीं खोलेगी।',
 
     refusedNotConnected: 'पहले एक Google खाता जोड़ें।',
     refusedNoKey: 'पहले अपनी बैकअप चाबी बनाएँ।',
+    refusedNeedsKey: 'वह बैकअप अतिरिक्त सुरक्षा में है। उसे सिर्फ़ उसकी चाबी ही खोलती है।',
+    refusedKeyLost:
+      'उस बैकअप की चाबी अब आपके Google खाते में नहीं है, इसलिए उसे खोला नहीं जा सकता।',
     refusedOffline: 'कोई कनेक्शन नहीं। ऑनलाइन आते ही बैकअप चल जाएगा।',
     refusedNetwork: 'Wi‑Fi का इंतज़ार है। मोबाइल डेटा इस्तेमाल करने के लिए सेटिंग बदलें।',
     refusedAuth: 'Google ने फिर से अनुमति माँगी है। खाता दोबारा जोड़ें।',
     refusedNoBackup: 'इस Drive खाते पर अभी कोई बैकअप नहीं है।',
     refusedBusy: 'एक बैकअप पहले से चल रहा है।',
+
+    extraSection: 'अतिरिक्त सुरक्षा',
+    extraOn: 'चालू',
+    extraOff: 'बंद',
+    extraFootnoteOff:
+      'बैकअप को ऐसी चाबी से बंद करें जो सिर्फ़ आपके पास हो — तब Google भी उसे नहीं खोल सकेगा।',
+    extraFootnoteOn:
+      'यह बैकअप आपकी चाबी से बंद है। उसे सँभालकर रखें — कोई भी उसे आपको वापस नहीं दे सकता।',
+    extraPitchTitle: 'बैकअप को ऐसी चाबी से बंद करें जो सिर्फ़ आपके पास हो',
+    extraPitchBenefit: 'कोई आपके Google खाते तक पहुँच भी जाए, तब भी आपका बैकअप सुरक्षित रहता है।',
+    extraPitchMechanism:
+      '64 अक्षरों की एक चाबी आपके लिए बनती है और सिर्फ़ एक बार दिखती है। वह आपके पास रहती है, और इस फ़ोन के पास भी।',
+    extraPitchAdversary: 'और कोई बैकअप नहीं खोल सकता। न Google, न Waves।',
+    extraTurnOn: 'चालू करें',
+    extraOnTitle: 'अतिरिक्त सुरक्षा चालू है',
+    extraOnBody:
+      'आपका बैकअप आपकी चाबी से बंद है और Google उसकी कोई कॉपी नहीं रखता। सिर्फ़ वही फ़ोन उसे खोल सकता है जिसके पास चाबी हो।',
+    extraNoWayBack:
+      'वापस जाने का कोई स्विच नहीं है। सामान्य बैकअप पर लौटने के लिए अपना Google खाता हटाएँ और दोबारा जोड़ें — इससे नई चाबी के साथ नया बैकअप शुरू होता है।',
+    extraKeyTitle: 'अपनी बैकअप चाबी सुरक्षित रखें',
+    extraKeyBody:
+      'अब से यही चाबी आपके बैकअप को बंद करती है, और यह सिर्फ़ यहीं दिख रही है। दूसरे फ़ोन पर वापस लाने के लिए यह ज़रूरी होगी।',
+    extraCovers: {
+      one: '{n} रिकॉर्ड इस चाबी के पीछे बंद होगा',
+      other: '{n} रिकॉर्ड इस चाबी के पीछे बंद होंगे',
+    },
+    extraConsent:
+      'मैंने अपनी चाबी सुरक्षित रख ली है, और मैं समझता हूँ कि खो जाने पर Waves इस बैकअप को मेरे लिए नहीं खोल सकता।',
+    extraTurningOn: 'आपका बैकअप दोबारा बंद किया जा रहा है…',
+    extraFailed:
+      'अतिरिक्त सुरक्षा चालू नहीं हो सकी। आपका बैकअप जैसा था वैसा ही है। थोड़ी देर में फिर कोशिश करें।',
+
     selected: 'चुना गया',
   },
   group: {
@@ -12041,15 +12239,18 @@ const ar: UiStrings = {
   backup: {
     title: 'النسخ الاحتياطي',
     row: 'نسخ احتياطي إلى Google Drive',
-    intro:
-      'دفترك الخاص في تبويب "أنا"، يُنسخ إلى Google Drive الخاص بك ويُقفل بمفتاح لا يملكه سواك. لا يستطيع Waves ولا Google قراءته.',
+    introStandard:
+      'دفترك الخاص في تبويب "أنا"، يُنسخ إلى مجلد مخفي داخل Google Drive الخاص بك ويُقفل بمفتاح محفوظ هناك أيضًا — فيفتحه وحده أي هاتف جديد يسجّل الدخول إلى حساب Google نفسه. لا يستطيع Waves قراءته، أما من يصل إلى حساب Google الخاص بك فيستطيع.',
+    introExtra:
+      'دفترك الخاص في تبويب "أنا"، يُنسخ إلى Google Drive الخاص بك ويُقفل بمفتاح لا يملكه سواك. لا يستطيع Waves ولا Google قراءته، ولا شيء يفتحه دون مفتاحك.',
     unavailable: 'النسخ الاحتياطي غير متاح في هذه النسخة.',
 
     statusChecking: 'يتحقق…',
     statusOff: 'لا نسخ احتياطي بعد',
     statusReady: 'جاهز للنسخ',
     statusOn: 'تم النسخ',
-    statusSealed: 'مقفل بمفتاحك',
+    statusSealedStandard: 'مقفل بمفتاح محفوظ في حساب Google الخاص بك',
+    statusSealedExtra: 'مقفل بمفتاح لا يملكه سواك',
     stepsLeft: {
       zero: 'لم تبقَ خطوات',
       one: 'بقيت خطوة واحدة',
@@ -12074,7 +12275,9 @@ const ar: UiStrings = {
     connectFailed: 'تعذّر ربط هذا الحساب. حاول مرة أخرى.',
     disconnect: 'إلغاء الربط',
     disconnectTitle: 'إلغاء ربط Google Drive؟',
-    disconnectBody:
+    disconnectBodyStandard:
+      'يتوقف النسخ التلقائي. تبقى النسخة ومفتاحها داخل Google Drive الخاص بك، وربط هذا الحساب من جديد يعيدهما معًا.',
+    disconnectBodyExtra:
       'يتوقف النسخ التلقائي وينسى هذا الهاتف مفتاحه. تبقى النسخة الموجودة على Drive كما هي، والمفتاح الذي كتبته ما زال يفتحها.',
 
     backUpNow: 'انسخ الآن',
@@ -12126,6 +12329,11 @@ const ar: UiStrings = {
     keyEnterPlaceholder: '64 حرفًا',
     keyEnterInvalid: 'هذا ليس مفتاح نسخة. المفتاح 64 حرفًا ورقمًا.',
     keyEnterSave: 'استخدم هذا المفتاح',
+    keyEnterPaste: 'لصق',
+    keyEnterHint: '64 حرفًا ورقمًا، في 16 مجموعة من أربعة. المسافات والشرطات لا تُحتسب.',
+    keyEnterWhat: 'ما هو مفتاح النسخة؟',
+    keyEnterWhatBody:
+      'هو الـ 64 حرفًا التي ظهرت عند تشغيل الحماية الإضافية على الهاتف الذي أنشأ النسخة. من دونه لا يمكن فتح تلك النسخة — لا نحن ولا Google.',
 
     restoreSection: 'الاستعادة',
     restoreIntro: 'أعد السجلات من نسخة Drive. لا يتغيّر ولا يُحذف شيء موجود على هذا الهاتف.',
@@ -12150,16 +12358,53 @@ const ar: UiStrings = {
       other: 'استُعيد {n} سجل',
     },
     restoreFailed: 'تعذّرت قراءة تلك النسخة. حاول بعد قليل.',
-    restoreWrongKey: 'هذا المفتاح لا يفتح هذه النسخة.',
+    restoreWrongKey:
+      'هذا المفتاح لا يفتح هذه النسخة. قارنه بما في الهاتف الذي أنشأ النسخة — حرف واحد خاطئ يكفي.',
+    restoreFoundTitle: 'وُجدت نسخة احتياطية',
+    restoreIsExtra:
+      'هذه النسخة تحت الحماية الإضافية. أدخل المفتاح من الهاتف الذي أنشأها؛ المفتاح الجديد لن يفتحها.',
     restoreNeedsKey: 'أدخل مفتاح الهاتف الذي أنشأ هذه النسخة. المفتاح الجديد لن يفتحها.',
 
     refusedNotConnected: 'اربط حساب Google أولًا.',
     refusedNoKey: 'أنشئ مفتاح النسخة أولًا.',
+    refusedNeedsKey: 'تلك النسخة تحت الحماية الإضافية. لا يفتحها إلا مفتاحها.',
+    refusedKeyLost: 'لم يعد مفتاح تلك النسخة في حساب Google الخاص بك، لذا لا يمكن فتحها.',
     refusedOffline: 'لا اتصال. سيجري النسخ عند عودتك للاتصال.',
     refusedNetwork: 'في انتظار Wi‑Fi. غيّر الإعداد لاستخدام بيانات الجوال.',
     refusedAuth: 'طلب Google الإذن من جديد. أعد ربط الحساب.',
     refusedNoBackup: 'لا توجد نسخة على حساب Drive هذا بعد.',
     refusedBusy: 'هناك نسخ جارٍ بالفعل.',
+
+    extraSection: 'حماية إضافية',
+    extraOn: 'مُفعّلة',
+    extraOff: 'متوقفة',
+    extraFootnoteOff: 'اقفل النسخة بمفتاح لا يملكه سواك، فلا يستطيع حتى Google فتحها.',
+    extraFootnoteOn: 'هذه النسخة مقفلة بمفتاحك. احفظه جيدًا — لا أحد يستطيع أن يعيده إليك.',
+    extraPitchTitle: 'اقفل نسختك بمفتاح لا يملكه سواك',
+    extraPitchBenefit: 'تبقى نسختك آمنة حتى لو وصل أحدهم إلى حساب Google الخاص بك.',
+    extraPitchMechanism: 'يُنشأ لك مفتاح من 64 حرفًا ويُعرض مرة واحدة. يبقى عندك، وعند هذا الهاتف.',
+    extraPitchAdversary: 'لا يستطيع أحد غيرك فتح النسخة. لا Google ولا Waves.',
+    extraTurnOn: 'تشغيل',
+    extraOnTitle: 'الحماية الإضافية مُفعّلة',
+    extraOnBody:
+      'نسختك مقفلة بمفتاحك، ولا يحتفظ Google بأي نسخة منه. لا يفتحها إلا هاتف يملك ذلك المفتاح.',
+    extraNoWayBack:
+      'لا يوجد زر للعودة. للرجوع إلى النسخ العادي، افصل حساب Google ثم اربطه من جديد — عندها تبدأ نسخة جديدة بمفتاح جديد.',
+    extraKeyTitle: 'احفظ مفتاح النسخة',
+    extraKeyBody:
+      'هذا المفتاح هو ما يقفل نسختك من الآن، وهو معروض هنا فقط. ستحتاجه لاستعادتها على هاتف آخر.',
+    extraCovers: {
+      zero: 'لن يُقفل أي سجل خلف هذا المفتاح',
+      one: 'سيُقفل سجل واحد خلف هذا المفتاح',
+      two: 'سيُقفل سجلّان خلف هذا المفتاح',
+      few: 'ستُقفل {n} سجلات خلف هذا المفتاح',
+      many: 'سيُقفل {n} سجلًا خلف هذا المفتاح',
+      other: 'سيُقفل {n} سجل خلف هذا المفتاح',
+    },
+    extraConsent: 'حفظت مفتاحي، وأفهم أن Waves لن يستطيع فتح هذه النسخة لي إن فقدته.',
+    extraTurningOn: 'يُعاد قفل نسختك…',
+    extraFailed: 'تعذّر تشغيل الحماية الإضافية. نسختك كما هي دون تغيير. حاول بعد قليل.',
+
     selected: 'محدد',
   },
   group: {

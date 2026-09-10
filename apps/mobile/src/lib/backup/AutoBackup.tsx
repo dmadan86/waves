@@ -30,6 +30,7 @@ import { runBackup } from './engine';
 import { loadRecoveryKey } from './recoveryKey';
 import { isDue } from './schedule';
 import { loadBackupSettings, saveLastBackup } from './settings';
+import { resolveTier, tierAllowsBackup } from './tier';
 
 /** Don't re-ask the question more than this often, however often we foreground. */
 const CHECK_THROTTLE_MS = 5 * 60 * 1000;
@@ -60,16 +61,20 @@ export function AutoBackup() {
 
       const settings = await loadBackupSettings(ownerId);
       if (!isDue(settings.last?.at ?? null, settings.frequency, now)) return;
-      // Nothing goes out until the person has been shown the recovery key and
-      // said they have it — a backup they cannot open is worse than none.
-      if (!settings.keySeen) return;
-      const key = await loadRecoveryKey(ownerId);
-      if (!key) return;
+
+      // The keystore read is now only here to answer the tier question for an
+      // account carried over from the build before tiers — the engine finds,
+      // adopts or mints the key it actually seals with.
+      const tier = resolveTier(settings.tier, (await loadRecoveryKey(ownerId)) !== null);
+      // On Extra protection nothing goes out until the person has been shown
+      // the key and said they have it: a backup they cannot open is worse than
+      // none. On Standard there is nothing to have kept, so there is no gate.
+      if (!tierAllowsBackup(tier, settings.keySeen)) return;
 
       const result = await runBackup({
         ownerId,
         records: recordsRef.current,
-        key,
+        tier,
         network: settings.network,
         // The whole point of the network preference is to gate *this* run.
         manual: false,

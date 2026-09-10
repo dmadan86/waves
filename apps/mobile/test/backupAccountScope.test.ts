@@ -126,6 +126,9 @@ describe('A signs out, B signs in', () => {
       network: SyncNetworkPreference.Wifi,
       last: null,
       keySeen: false,
+      // Including the tier: a phone that remembered A was on Extra protection
+      // would put B's fresh setup behind a key ceremony B was never shown.
+      tier: null,
     });
     // Nothing of A's is left anywhere in the keystore under any name.
     expect([...hoisted.keystore.keys()].filter((key) => key.includes('waves.'))).toEqual([]);
