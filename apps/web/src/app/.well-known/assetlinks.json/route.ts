@@ -42,6 +42,13 @@ const CERT_FINGERPRINTS = [
   'C6:49:25:7D:02:E3:A9:3D:57:69:89:38:5A:8E:1A:4E:BB:3D:3E:C9:AB:83:5B:8D:30:B1:0A:2A:B3:1E:81:AE',
   '5C:A5:76:10:F5:6A:B0:A3:81:70:05:89:54:BD:7E:84:62:77:F7:AB:02:0D:F3:3A:5F:B7:96:8B:3D:B6:CB:73',
   'EB:90:C2:92:01:08:8A:7D:A6:B7:62:E0:D3:B9:A6:64:DF:C4:42:3D:9C:2C:EE:85:C2:37:6E:65:CA:CF:50:27',
+  // The upload key (`~/keys/waves-upload.jks`). A phone that installed from Play
+  // never sees this certificate — Play re-signs with one of the three above — so
+  // this line is for the builds that skip Play: the release APKs handed round
+  // for testing, which are signed with the upload key itself. Without it those
+  // builds are the one place an invite link still opens the browser, which is
+  // exactly where a link is most likely to be tested.
+  'CD:72:24:BE:46:44:D1:0F:BC:11:31:04:B8:CD:96:2F:60:12:02:52:1D:03:07:B1:E2:31:43:6D:02:4D:EA:3E',
 ];
 
 export const runtime = 'nodejs';

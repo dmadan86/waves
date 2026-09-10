@@ -38,9 +38,7 @@
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-import type { ExpoConfig } from 'expo/config';
-
-import appJson from './app.json';
+import type { ConfigContext, ExpoConfig } from 'expo/config';
 
 /** The FCM config for this build, or nothing if this build has none. */
 function googleServicesFile(): string | undefined {
@@ -100,8 +98,13 @@ function googleSignInPlugin(): [string, { iosUrlScheme: string }] | undefined {
   ];
 }
 
-export default (): ExpoConfig => {
-  const config = appJson.expo as ExpoConfig;
+export default ({ config: fromAppJson }: ConfigContext): ExpoConfig => {
+  // `app.json` arrives here already parsed, rather than being imported: that is
+  // the shape `expo-doctor` recognises as "the dynamic config uses the static
+  // one", and importing `./app.json` directly — which worked, and produced
+  // identical output — failed that check and read as a project with two
+  // configs disagreeing.
+  const config = fromAppJson as ExpoConfig;
 
   const services = googleServicesFile();
   const androidBase = services

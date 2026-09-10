@@ -57,10 +57,15 @@ minimumReleaseAgeExclude:
 
 # expo-asset pulls its own expo-constants, so pnpm installs two copies. A
 # native build may only contain one version of a native module, and
-# `expo doctor` fails on the duplicate. Pinning collapses both to the version
-# the app already depends on.
+# `expo doctor` fails on the duplicate. Pinning collapses both to one.
+#
+# Keep this in step with `apps/mobile/package.json` and with what the SDK
+# expects. It sat at 57.0.9 while the app asked for 57.0.17, and because
+# `node-linker=hoisted` flattens the tree to a single copy, the override won and
+# the app's own pin was silently ignored — which `expo doctor` then reported as
+# a version mismatch the app's package.json appeared to have already fixed.
 overrides:
-  expo-constants: 57.0.9
+  expo-constants: 57.0.17
 
 # Expo loads a package's config plugin from inside that package, and several of
 # them require `@expo/config-plugins` without declaring it — it is always

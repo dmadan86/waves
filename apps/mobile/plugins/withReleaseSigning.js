@@ -48,14 +48,25 @@ const MARKER = 'waves:release-signing';
 const DEBUG_SIGNING_CONFIG = `    signingConfigs {
         debug {`;
 
-const RELEASE_SIGNING_CONFIG = `    // ${MARKER} — see apps/mobile/plugins/withReleaseSigning.js
-    // The upload key, read from ~/.gradle/gradle.properties. Absent, the release
-    // build falls back to debug signing: sideloadable, and refused by Play.
-    def wavesUploadStore = findProperty('WAVES_UPLOAD_STORE_FILE')
-    def wavesHasUploadKey = wavesUploadStore != null && file(wavesUploadStore).exists()
+/**
+ * Where the two values are declared: at project scope, above `android { }`.
+ *
+ * `def` inside `android { }` would be a local of that closure, invisible to the
+ * task-graph guard at the foot of the file — which is a `Could not get unknown
+ * property 'wavesHasUploadKey'` at configuration time, before any task runs.
+ * `ext.` puts them on the project, where both readers can see them.
+ */
+const PROJECT_ANCHOR = 'android {';
 
-    signingConfigs {
-        debug {`;
+const PROJECT_PROPERTIES = `// ${MARKER} — see apps/mobile/plugins/withReleaseSigning.js
+// The upload key, read from ~/.gradle/gradle.properties. Absent, the release
+// build falls back to debug signing: sideloadable, and refused by Play.
+// On the project rather than in a closure: the guard at the foot of this file
+// reads them too.
+ext.wavesUploadStore = findProperty('WAVES_UPLOAD_STORE_FILE')
+ext.wavesHasUploadKey = ext.wavesUploadStore != null && file(ext.wavesUploadStore).exists()
+
+android {`;
 
 const RELEASE_BUILD_TYPE = `        release {
             // Caution! In production, you need to generate your own keystore file.
@@ -74,7 +85,7 @@ const RELEASE_BUILD_TYPE_PATCHED = `        release {
 const UPLOAD_SIGNING_BLOCK = `        // ${MARKER}
         release {
             if (wavesHasUploadKey) {
-                storeFile file(wavesUploadStore)
+                storeFile file(project.wavesUploadStore)
                 storePassword findProperty('WAVES_UPLOAD_STORE_PASSWORD')
                 keyAlias findProperty('WAVES_UPLOAD_KEY_ALIAS')
                 keyPassword findProperty('WAVES_UPLOAD_KEY_PASSWORD')
@@ -124,11 +135,14 @@ function patchBuildGradle(contents) {
   if (!contents.includes(DEBUG_SIGNING_CONFIG)) {
     throw new Error('withReleaseSigning: could not find signingConfigs in build.gradle');
   }
+  if (!contents.includes(PROJECT_ANCHOR)) {
+    throw new Error('withReleaseSigning: could not find the android block in build.gradle');
+  }
   if (!contents.includes(RELEASE_BUILD_TYPE)) {
     throw new Error('withReleaseSigning: could not find the release buildType in build.gradle');
   }
 
-  let next = contents.replace(DEBUG_SIGNING_CONFIG, RELEASE_SIGNING_CONFIG);
+  let next = contents.replace(PROJECT_ANCHOR, PROJECT_PROPERTIES);
   next = next.replace(RELEASE_BUILD_TYPE, RELEASE_BUILD_TYPE_PATCHED);
 
   // The upload config goes after the debug one closes. `signingConfigs` holds

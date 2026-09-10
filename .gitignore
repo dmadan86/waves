@@ -79,3 +79,5 @@ apps/web/playwright/.cache/
 # silently untracked (apps/api's was).
 .env*
 !.env.example
+
+.vercel
