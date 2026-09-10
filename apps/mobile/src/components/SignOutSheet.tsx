@@ -62,6 +62,7 @@ import { Button, Callout, iconSize, Row, Sheet, Text, useTheme } from '@waves/ui
 import { plural, useStrings } from '@/i18n';
 import { loadRecoveryKey } from '@/lib/backup/recoveryKey';
 import { loadBackupSettings } from '@/lib/backup/settings';
+import { BackupTier, resolveTier } from '@/lib/backup/tier';
 import { useAuth } from '@/lib/auth';
 import { saveDeviceCopy } from '@/lib/deviceCopy';
 import { friendlyError } from '@/lib/errors';
@@ -185,6 +186,15 @@ function useDeviceDrafts(visible: boolean): readonly DeviceDraft[] {
  * this keystore, which sign-out clears (`clearBackupState`). Once somebody has
  * written it down there is nothing here to warn about — the file on Drive
  * outlives the app either way.
+ *
+ * **And only on Extra protection.** Standard mints a key on its first run too
+ * and never shows it, because Drive holds a copy beside the backup — so on
+ * Standard there is nothing to have written down, `keySeen` is never set, and
+ * asking about the key alone made this warn *every* Standard user, at every
+ * sign-out, that their backup was about to become unopenable. It was not: the
+ * key is in the Google account they are still signed into, which the same
+ * sheet's own disconnect copy says. It also sent them looking for a control
+ * that does not exist on Standard.
  */
 function useUnconfirmedBackupKey(visible: boolean, ownerId: string): boolean {
   const [atRisk, setAtRisk] = useState(false);
@@ -196,7 +206,8 @@ function useUnconfirmedBackupKey(visible: boolean, ownerId: string): boolean {
         loadRecoveryKey(ownerId),
         loadBackupSettings(ownerId),
       ]);
-      if (alive) setAtRisk(key !== null && !settings.keySeen);
+      const tier = resolveTier(settings.tier, key !== null, settings.keySeen);
+      if (alive) setAtRisk(tier === BackupTier.Extra && key !== null && !settings.keySeen);
     })().catch((error: unknown) => reportHandled(error, 'signOut.backupKey'));
     return () => {
       alive = false;

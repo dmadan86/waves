@@ -23,6 +23,7 @@ const hoisted = vi.hoisted(() => ({
   find: vi.fn(),
   put: vi.fn(),
   read: vi.fn(),
+  remove: vi.fn(),
 }));
 
 vi.mock('expo-secure-store', () => ({
@@ -55,6 +56,10 @@ vi.mock('react-native', () => ({
 }));
 
 vi.mock('expo-web-browser', () => ({ maybeCompleteAuthSession: () => undefined }));
+// The engine reports a failed tier write rather than letting it reach the
+// screen; the real module reaches for react-native, which this suite mocks to a
+// stub that has no Promise shim to resolve.
+vi.mock('@/lib/observability', () => ({ reportHandled: vi.fn() }));
 
 vi.mock('expo-auth-session', () => ({
   AuthRequest: class {},
@@ -84,13 +89,15 @@ vi.mock('@/lib/cloud/providers', async () => {
     find: hoisted.find,
     put: hoisted.put,
     read: hoisted.read,
+    remove: hoisted.remove,
   };
   return { providerFor: () => provider, allProviders: () => [provider] };
 });
 
 const { loadTokens, saveTokens } = await import('../src/lib/cloud/tokens');
 const { runBackup, scanBackup } = await import('../src/lib/backup/engine');
-const { parseRecoveryKey } = await import('../src/lib/backup/recoveryKey');
+const { parseRecoveryKey, saveRecoveryKey } = await import('../src/lib/backup/recoveryKey');
+const { BackupTier } = await import('../src/lib/backup/tier');
 const { SyncNetworkPreference } = await import('../src/lib/syncNetwork');
 const { asAuthFailure } = await import('../src/lib/cloud/oauth');
 const { isAuthFailure } = await import('../src/lib/cloud/http');
@@ -99,16 +106,20 @@ const OWNER = 'aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa';
 const KEY = parseRecoveryKey('11'.repeat(32))!;
 const TOKENS = { accessToken: 'stale', refreshToken: 'revoked-by-the-user', expiresAt: 1 };
 
+// Extra protection, so the run uses the key in this device's keystore and
+// never goes looking for an escrowed one — the auth behaviour under test is the
+// same in both tiers, and this is the tier with the fewest moving parts.
 const backupInput = {
   ownerId: OWNER,
   records: [],
-  key: KEY,
+  tier: BackupTier.Extra,
   network: SyncNetworkPreference.Both,
   manual: true,
 };
 
-beforeEach(() => {
+beforeEach(async () => {
   hoisted.keystore.clear();
+  await saveRecoveryKey(OWNER, KEY);
   hoisted.refresh = 'ok';
   hoisted.find.mockReset().mockResolvedValue(null);
   hoisted.put.mockReset().mockResolvedValue({
@@ -118,6 +129,7 @@ beforeEach(() => {
     modifiedAt: null,
   });
   hoisted.read.mockReset();
+  hoisted.remove.mockReset().mockResolvedValue(undefined);
 });
 
 describe('a refresh token the user has revoked', () => {
@@ -150,7 +162,7 @@ describe('a refresh token the user has revoked', () => {
     await saveTokens('gdrive', OWNER, TOKENS);
     hoisted.refresh = 'revoked';
 
-    const result = await scanBackup({ ownerId: OWNER, key: KEY, localIds: new Set() });
+    const result = await scanBackup({ ownerId: OWNER, localIds: new Set() });
     expect(result).toEqual({ ok: false, refusal: 'auth' });
     expect(hoisted.read).not.toHaveBeenCalled();
   });
@@ -159,7 +171,7 @@ describe('a refresh token the user has revoked', () => {
 describe('no tokens at all', () => {
   it('is still "not connected", which is a different problem with a different fix', async () => {
     expect(await runBackup(backupInput)).toEqual({ ok: false, refusal: 'not-connected' });
-    expect(await scanBackup({ ownerId: OWNER, key: KEY, localIds: new Set() })).toEqual({
+    expect(await scanBackup({ ownerId: OWNER, localIds: new Set() })).toEqual({
       ok: false,
       refusal: 'not-connected',
     });

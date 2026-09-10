@@ -22,6 +22,7 @@ import {
   BackupOpenError,
   type SourceRecord,
 } from '../src/lib/backup/payload';
+import { BackupTier } from '../src/lib/backup/tier';
 
 const OWNER = '11111111-1111-4111-8111-111111111111';
 const NOW = new Date('2026-09-05T10:00:00.000Z');
@@ -61,7 +62,7 @@ describe('building a backup body', () => {
 describe('the envelope', () => {
   it('says almost nothing in the clear — no counts, no dates of spending', () => {
     const body = buildBody(OWNER, [row('a'), row('b')], NOW);
-    const file = buildFile('v1:sealed', body.createdAt);
+    const file = buildFile('v1:sealed', body.createdAt, BackupTier.Standard);
     const text = JSON.stringify(file);
     expect(text).not.toContain(OWNER);
     expect(text).not.toContain('1200');
@@ -69,7 +70,7 @@ describe('the envelope', () => {
   });
 
   it('round-trips through parseFile', () => {
-    const file = buildFile('v1:sealed', NOW.toISOString());
+    const file = buildFile('v1:sealed', NOW.toISOString(), BackupTier.Extra);
     expect(parseFile(JSON.stringify(file))).toEqual(file);
   });
 

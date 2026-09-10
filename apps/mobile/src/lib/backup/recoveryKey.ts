@@ -42,6 +42,31 @@
  * A future password option can be added beside this without changing the file
  * format: the envelope already names its algorithm, and a password variant
  * would add a `kdf` block rather than replace anything.
+ *
+ * ─────────────────────────────────────────────────────────────────────────────
+ *
+ * WHAT THE ABOVE GOT WRONG, and where the answer moved to. Everything from
+ * "THE THREE OPTIONS" down is still exactly right about the *cryptography* and
+ * exactly wrong about the *default*. It ends by naming this "WhatsApp's
+ * '64-digit encryption key' option, minus the password option beside it", and
+ * misses that in WhatsApp this is not a default at all: it is the opt-in
+ * end-to-end encrypted backup, buried in settings, and WhatsApp's default Drive
+ * backup asks for no key whatsoever. Shipping the advanced tier as the only
+ * tier produced a Backup screen where nothing worked until you copied 64 hex
+ * characters somewhere, which is the report that started the rework.
+ *
+ * So the key model now has two tiers, and this file is the machinery for both
+ * of them rather than the argument for one. `tier.ts` holds the argument: on
+ * **Standard**, the default, everything below still happens except that the key
+ * is never shown to anybody and a copy of it goes into the same hidden Drive
+ * folder as the backup. On **Extra protection**, opt-in, it is exactly what is
+ * described above — shown once, this device only, never escrowed.
+ *
+ * Nothing in the code below changed. The key is the same 32 bytes, minted the
+ * same way, used directly as the XChaCha20-Poly1305 key through the same
+ * `seal`/`open`; what changed is who else gets a copy, and that is a question
+ * about tiers, not about crypto. `formatRecoveryKey` and `parseRecoveryKey` are
+ * still only reached on the Extra path, because Standard has nothing to show.
  */
 
 import * as Crypto from 'expo-crypto';
