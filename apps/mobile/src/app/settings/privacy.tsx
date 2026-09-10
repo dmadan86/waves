@@ -21,34 +21,64 @@ import { useBlockedUsers } from '@/data/blocked';
 import { useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { clarityConfigured } from '@/lib/clarity';
-import { describeGrace, useLock } from '@/lib/lock';
 import { router } from '@/lib/navigation';
 import { useReducedMotion } from '@/lib/reducedMotion';
 import { sessionReplayConsent, setSessionReplayConsent } from '@/lib/sessionReplay';
 import { useToast } from '@/lib/toast';
 
 /**
- * What is held, how it is kept, and what somebody can do about it.
+ * What Waves holds about you, and who can see you.
  *
- * Written from what the app actually does rather than from a template: every
- * claim here is one this codebase can be checked against — row-level security
- * on every table (ADR-013), receipts in a private bucket behind signed links,
- * the offline mirror sealed at rest (`sync/rowCipher`), crash reports scrubbed
- * before they leave the phone, export free and lossless (ADR-012). A policy
- * that promises something the code does not do is worse than no policy, because
- * it is the one people rely on.
+ * THE RULE THIS SCREEN AND SETTINGS DIVIDE ON. Please keep it, or the two drift
+ * back into two copies of each other — which is exactly what had happened:
+ * App lock, Export and Delete each appeared on both, dressed differently in
+ * each place, so the same act looked like two different acts.
+ *
+ *   Settings (`(tabs)/profile.tsx`) is where you change how the app behaves,
+ *   and where you end things — the whole account included.
+ *   Privacy is where you find out what is held about you, and decide who else
+ *   can see it. Controls over *other people's* view of you belong here. Controls
+ *   over your own copy of the app do not.
+ *
+ * Being findable is not a reason to add a row. Everything is already findable
+ * from Settings, and a second menu is not a shortcut — it is a fork, and forks
+ * fall out of step. There is exactly one deliberate exception, named below: the
+ * contact line, because a policy that does not say who to write to is not a
+ * policy. That test is what moved three rows off this screen:
+ *
+ *   App lock protects the phone, not the record, and Settings has a Security
+ *   group which is where people go looking for it — Splitwise, Cash App, Wise,
+ *   Monzo, Telegram and Revolut all file a biometric lock under a heading
+ *   called Security, never under Privacy.
+ *   Open-source licenses were never privacy at all, and already sit under
+ *   Settings → Help.
+ *   Export and Delete are account acts, and every app worth copying keeps them
+ *   together under the account: WhatsApp pairs "Request account info" with
+ *   "Delete my account", X puts "Download an archive" directly above
+ *   "Deactivate", Instagram offers the export *inside* the delete flow — which
+ *   is what `settings/delete-account` does too. Their home is Settings; the
+ *   policy below still says plainly that both are yours to use.
+ *
+ * What is left is the shape a real privacy screen has: who can find you, who
+ * may no longer reach you, what of your use is recorded, and the disclosure
+ * itself. Every claim in that disclosure is one this codebase can be checked
+ * against — row-level security on every table (ADR-013), receipts in a private
+ * bucket behind signed links, the offline mirror sealed at rest
+ * (`sync/rowCipher`), crash reports scrubbed before they leave the phone,
+ * export free and lossless (ADR-012). A policy that promises something the code
+ * does not do is worse than no policy, because it is the one people rely on.
  *
  * The screen has two readers and serves them in two different orders. Somebody
- * arriving from Settings came to *do* something — lock the app, see who they
- * blocked, stop the recording, take their data out — so for them the switches
- * come first and the prose is folded down to a line each, opened on a tap.
- * Somebody arriving from the legal line on the signed-out gate came to *read*
- * the policy, so for them the same text is the page, open from the start, with
- * no account controls that would act on an account they do not have.
+ * arriving from Settings came to *do* something — see who they blocked, stop
+ * the recording — so for them the controls come first and the prose is folded
+ * down to a line each, opened on a tap. Somebody arriving from the legal line
+ * on the signed-out gate came to *read* the policy, so for them the same text
+ * is the page, open from the start, with no account controls that would act on
+ * an account they do not have.
  */
 
 /** When the policy text below last changed. Shown, because an undated policy is not one. */
-const POLICY_UPDATED = '2026-08-31';
+const POLICY_UPDATED = '2026-09-10';
 
 export default function PrivacyScreen() {
   const theme = useTheme();
@@ -56,25 +86,11 @@ export default function PrivacyScreen() {
   const { t, locale } = useStrings();
   const toast = useToast();
   const reduceMotion = useReducedMotion();
-  // The account data-controls act on an account a signed-out reader does not
-  // have yet, so they are shown only once there is a session (a guest counts —
-  // they have data to manage).
+  // The controls act on an account a signed-out reader does not have yet, so
+  // they are shown only once there is a session (a guest counts — they have
+  // data to manage).
   const { session } = useAuth();
-  const {
-    enabled: lockEnabled,
-    supported: lockSupported,
-    ready: lockReady,
-    graceSeconds,
-  } = useLock();
   const { blocked } = useBlockedUsers();
-
-  // The same sentence the Settings lock row shows, so the two never disagree
-  // about what the lock is currently doing.
-  const lockSummary = !lockSupported
-    ? t.account.lockNoBiometrics
-    : lockEnabled
-      ? t.account.lockOn.replace('{when}', describeGrace(graceSeconds, t, locale).toLowerCase())
-      : t.account.lockOff;
 
   // The session-replay opt-in, mirrored from storage. Only meaningful when a
   // Clarity project is configured; on a build without one the switch is hidden
@@ -223,45 +239,15 @@ export default function PrivacyScreen() {
           </Text>
         </View>
 
-        {/* Signed in, the controls come before the policy prose. */}
+        {/* Signed in, the controls come before the policy prose. They are one
+            question asked at three ranges: who may find you at all, who may no
+            longer reach you, and what of your use is watched — the last of
+            which is only there on a build with a Clarity project, so on the
+            rest the question stops at two. */}
         {session ? (
           <View style={{ gap: theme.spacing.sm }}>
             <SectionHeader title={t.privacy.controlsSection} />
             <Card style={{ paddingVertical: theme.spacing.xs }}>
-              <ListRow
-                title={t.privacy.appLockRow}
-                subtitle={lockReady ? lockSummary : t.privacy.appLockHint}
-                onPress={() => router.push('/settings/lock')}
-                leading={
-                  <Ionicons
-                    name="finger-print-outline"
-                    size={iconSize.md}
-                    color={theme.color.brand}
-                  />
-                }
-                trailing={
-                  <Row style={{ gap: theme.spacing.xs }}>
-                    {/* Nothing until the lock's stored state and hardware check
-                        are both back: `supported` starts false, and a security
-                        row that says "not available" for a frame and then "on"
-                        is worse than one that says nothing for a frame. */}
-                    {lockReady
-                      ? status(
-                          !lockSupported
-                            ? t.privacy.appLockUnavailable
-                            : lockEnabled
-                              ? t.privacy.statusOn
-                              : t.privacy.statusOff,
-                        )
-                      : null}
-                    {chevron}
-                  </Row>
-                }
-              />
-              {divider}
-              {/* Sits directly above blocking because the two are the same
-                  question at different ranges: who may reach you at all, and
-                  who may no longer. */}
               <ListRow
                 title={t.person.discoveryRow}
                 subtitle={t.person.discoveryRowHint}
@@ -320,24 +306,6 @@ export default function PrivacyScreen() {
                   />
                 </>
               ) : null}
-            </Card>
-          </View>
-        ) : null}
-
-        {/* Export is reversible; it does not share a card with delete. */}
-        {session ? (
-          <View style={{ gap: theme.spacing.sm }}>
-            <SectionHeader title={t.privacy.dataControlsSection} />
-            <Card style={{ paddingVertical: theme.spacing.xs }}>
-              <ListRow
-                title={t.privacy.exportRow}
-                subtitle={t.privacy.exportRowHint}
-                onPress={() => router.push('/settings/export')}
-                leading={
-                  <Ionicons name="download-outline" size={iconSize.md} color={theme.color.brand} />
-                }
-                trailing={chevron}
-              />
             </Card>
           </View>
         ) : null}
@@ -402,58 +370,48 @@ export default function PrivacyScreen() {
           </View>
         </View>
 
-        <View style={{ gap: theme.spacing.sm }}>
-          <SectionHeader title={t.privacy.legalSection} />
-          <Card style={{ paddingVertical: theme.spacing.xs }}>
-            {/* Feedback needs a session, so it is offered only with one. */}
-            {session ? (
-              <>
-                <ListRow
-                  title={t.privacy.supportRow}
-                  subtitle={t.privacy.supportRowHint}
-                  onPress={() => router.push('/settings/feedback')}
-                  leading={
-                    <Ionicons
-                      name="chatbubble-ellipses-outline"
-                      size={iconSize.md}
-                      color={theme.color.brand}
-                    />
-                  }
-                  trailing={chevron}
+        {/* One row closes the page, and which one depends on who is reading.
+            Signed in it is the contact line every policy has to carry — a line,
+            not a menu row, which is why there is no section header above it.
+            Signed out the feedback form has no account to attach a message to,
+            and this screen is instead the whole of the legal surface somebody
+            can reach before they have signed up, so it carries the open-source
+            attributions that otherwise live under Settings. Those two are
+            alternatives, never a pair — signed out is the only way to reach the
+            licenses from here, so that half is not a second door at all.
+            The contact row is one, and knowingly: it opens the same feedback
+            form as Settings, under a different name. That is the single place
+            the one-door rule is broken on purpose, because a policy has to say
+            who to write to, and "Send feedback", three screens away and named
+            for something else, is not saying it. Keep both pointed at the same
+            route and the fork stays a label rather than a second thing to
+            maintain. */}
+        <Card style={{ paddingVertical: theme.spacing.xs }}>
+          {session ? (
+            <ListRow
+              title={t.privacy.supportRow}
+              subtitle={t.privacy.supportRowHint}
+              onPress={() => router.push('/settings/feedback')}
+              leading={
+                <Ionicons
+                  name="chatbubble-ellipses-outline"
+                  size={iconSize.md}
+                  color={theme.color.brand}
                 />
-                {divider}
-              </>
-            ) : null}
+              }
+              trailing={chevron}
+            />
+          ) : (
             <ListRow
               title={t.privacy.licensesRow}
-              subtitle={t.privacy.licensesRowHint}
               onPress={() => router.push('/settings/licenses')}
               leading={
                 <Ionicons name="code-slash-outline" size={iconSize.md} color={theme.color.brand} />
               }
               trailing={chevron}
             />
-          </Card>
-        </View>
-
-        {/* Deleting the account sits alone, below everything reversible. */}
-        {session ? (
-          <View style={{ gap: theme.spacing.sm }}>
-            <SectionHeader title={t.privacy.dangerSection} />
-            <Card style={{ paddingVertical: theme.spacing.xs }}>
-              <ListRow
-                title={t.privacy.deleteRow}
-                subtitle={t.privacy.deleteRowHint}
-                destructive
-                onPress={() => router.push('/settings/delete-account')}
-                leading={
-                  <Ionicons name="trash-outline" size={iconSize.md} color={theme.color.negative} />
-                }
-                trailing={chevron}
-              />
-            </Card>
-          </View>
-        ) : null}
+          )}
+        </Card>
 
         <View style={{ gap: theme.spacing.xs }}>
           <Text variant="micro" tone="muted">

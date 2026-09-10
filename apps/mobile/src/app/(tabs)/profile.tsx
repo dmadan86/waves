@@ -37,6 +37,32 @@ import { describeGrace, useLock } from '@/lib/lock';
 import { SyncNetworkPreference, useSyncNetwork } from '@/lib/syncNetwork';
 import { useThemePreference } from '@/lib/theme';
 
+/**
+ * Settings: everything you can change, and the two things you can end.
+ *
+ * THE RULE THIS SCREEN AND PRIVACY DIVIDE ON — the other half of the note at
+ * the top of `settings/privacy`, and worth keeping in step with it:
+ *
+ *   Settings is where you change how the app behaves, and where you end
+ *   things — the session, and the whole account.
+ *   Privacy is where you find out what is held about you, and decide who else
+ *   can see it.
+ *
+ * The three of these that had drifted onto both screens are back to one home
+ * each. App lock is under Security here, where a biometric lock is filed in
+ * every app that has a screen by that name (Splitwise, Cash App, Wise, Monzo,
+ * Telegram, Revolut). Export is under Data, beside the other things that move
+ * records around, and offered a second time inside the delete flow, which is
+ * where somebody leaving actually needs it. Delete is the isolated card at the
+ * very bottom, the shape Revolut, Monzo and Nike all use, and Apple's own
+ * guidance ("typically, it's included in the app's account settings").
+ *
+ * What does *not* belong here is a row whose only argument is that somebody
+ * might look for it here too. A second door to the same screen is not a
+ * shortcut; it is a fork, and the two halves fall out of step — which is how
+ * the same delete ended up a quiet list row on one screen and a red card on
+ * this one.
+ */
 interface SettingsRow {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
@@ -496,7 +522,11 @@ function ProfileForm() {
         {/* Data & privacy: your records, and who can reach them. Export and
             import used to sit up among Language and Notifications, which made
             the screen read like an admin console; they belong with the data
-            they move. */}
+            they move. Export is the only door to a copy of your ledger — the
+            Privacy screen used to offer a second one — and the Privacy row at
+            the foot of the section is the only door to discovery and to the
+            blocked list, which is why it is worth its place rather than being
+            a link to a policy. */}
         <SettingsSection
           title={t.account.sectionData}
           rows={[
@@ -535,7 +565,10 @@ function ProfileForm() {
           ]}
         />
 
-        {/* Security: the one group somebody comes to Settings looking *for*.
+        {/* Security: the one group somebody comes to Settings looking *for*,
+            and now the only place App lock is offered — it had a second row on
+            the Privacy screen, which meant two copies of the "on, after two
+            minutes" summary that had to be kept saying the same thing.
             Sign out and Delete used to live here too — but ending a session and
             ending an account are not security settings, and burying an
             irreversible act in a list is how it gets tapped by accident. They
@@ -581,7 +614,12 @@ function ProfileForm() {
             bottom, split from every section and from each other by the same gap
             that separates sections. No header — a danger zone announces itself
             by standing apart, not by a title. Sign out ends the session; Delete
-            ends the account. */}
+            ends the account.
+            This card is now the app's single entrance to deletion, and it has
+            to stay easy to find: the store rules require it (Apple 5.1.1(v),
+            Google Play's account-deletion policy), and it is offered to guests
+            on the same terms as anybody else, because an automatically created
+            account is still an account somebody may want gone. */}
         <SettingsSection
           rows={[
             {

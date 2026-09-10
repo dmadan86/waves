@@ -46,7 +46,7 @@ they already had it. And the footnote that matters:
 
 ## The rest of the privacy screen
 
-**Settings → Privacy & security** is a longer read, and worth one. It covers:
+**Settings → Privacy** is a longer read, and worth one. It covers:
 
 - **What is stored.** Your display name and whichever of a phone number, email
   or sign-in identity you used; optionally a payment handle and a country; the
@@ -67,19 +67,30 @@ they already had it. And the footnote that matters:
   you switch it on**. _"Your data is never sold, and there are no ad networks."_
 - **How long it is kept.** While your account is open. An account untouched for
   three years is deleted along with the personal data in it. A group untouched
-  for eighteen months is archived, not deleted.
+  for eighteen months is archived, not deleted. It also says what survives
+  deleting your account — the shared record does, without your name on it.
 
 ## The controls themselves
 
-- **App lock** — _Ask for fingerprint or face to open Waves._ Off means _"anyone
-  holding your phone can read the ledger."_
+The Privacy screen holds the controls over what other people can see of you:
+
+- **How people find you** — the two switches above.
+- **Blocked** — people you have blocked.
 - **Record how I use the app** — anonymous screen analytics, off unless you turn
   it on.
-- **Blocked** — people you have blocked.
-- **Notifications** — every category can be turned off; the default is _only
-  what involves me_.
-- **Export your data** — see [Export your data](./export-your-data.md).
-- **Delete my data** — see [Delete your account](./delete-your-account.md).
+
+The rest live in Settings proper, because they change how the app behaves rather
+than who can see you:
+
+- **App lock** — under **Settings → Security**. _Ask for fingerprint or face to
+  open Waves._ Off means _"anyone holding your phone can read the ledger."_
+- **Notifications** — under **Settings → Preferences**. Every category can be
+  turned off; the default is _only what involves me_.
+- **Export your data** — under **Settings → Data & privacy**, and offered again
+  on the way out of the delete screen. See
+  [Export your data](./export-your-data.md).
+- **Delete my data** — the red card at the very bottom of **Settings**. See
+  [Delete your account](./delete-your-account.md).
 
 ## Next
 
