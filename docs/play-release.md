@@ -58,6 +58,23 @@ binary will accept: **changing `version` orphans every installed build from new
 OTA updates** until they take the new binary from the store. Change it when the
 native side changed; leave it alone for a JS-only release.
 
+## The EAS project
+
+`extra.eas.projectId` and `updates.url` both name `@dmadan86/waves`
+(`d6e19674-…`). They used to name `@dmadan86/baaki`, left behind by the rebrand,
+and the disagreement between that project's slug and `expo.slug` made every
+`eas` command fail outright:
+
+> Slug for project identified by "extra.eas.projectId" (baaki) does not match the "slug" field (waves)
+
+Which is why OTA updates had not shipped since the rebrand. A project's slug
+cannot be renamed — the API exposes only `displayName` — so the fix is to point
+at the project that carries the right one.
+
+The two must stay in step: `updates.url` is `https://u.expo.dev/<projectId>`, and
+a binary asks that URL and no other for updates. Changing the id means builds
+already installed against the old one stop hearing about updates for good.
+
 ## Building the bundle
 
 ```sh

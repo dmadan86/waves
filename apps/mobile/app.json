@@ -12,7 +12,7 @@
       "policy": "appVersion"
     },
     "updates": {
-      "url": "https://u.expo.dev/d0d34ed9-5888-4204-b116-a873d3bec94f",
+      "url": "https://u.expo.dev/d6e19674-a70b-4385-a925-1884ba5315d8",
       "fallbackToCacheTimeout": 0
     },
     "ios": {
@@ -125,7 +125,7 @@
       "supportsRTL": true,
       "router": {},
       "eas": {
-        "projectId": "d0d34ed9-5888-4204-b116-a873d3bec94f"
+        "projectId": "d6e19674-a70b-4385-a925-1884ba5315d8"
       }
     },
     "owner": "dmadan86"
