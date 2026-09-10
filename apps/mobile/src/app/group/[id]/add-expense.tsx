@@ -1652,58 +1652,19 @@ export default function AddExpenseScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* "How much" and "what for" are the whole of the common case. The
-            amount is in the hero above; the note follows it directly, with
-            nothing between the two fields somebody came here to fill and the
-            split below them. The names are handed to the recogniser as hints; a
-            general model guesses at Indian names and the note is where they turn
-            up. */}
-          <DescriptionField
-            value={description}
-            onChange={setDescription}
-            placeholder={t.expense.descriptionPlaceholder}
-            accessibilityLabel={t.description}
-            hints={nameHints}
-            multiline
-          />
+          {/* The bill, first — the order the expense screen reads in.
 
-          {/* When it happened, on the common path rather than behind the fold.
-            The day is not an advanced setting: an expense filed on the wrong one
-            lands in the wrong month, the wrong trip and the wrong place in the
-            feed, and somebody correcting a date should not have to guess that it
-            lives under "More details" — which is exactly what happened when it
-            did. It sits beside the note rather than above the fold for the same
-            reason: split, payers and participants fill the first screenful, so
-            anything after them is still a scroll away. What, when, then who.
-            Untouched it still inherits the day it always had, so editing a note
-            never moves a three-week-old dinner. */}
-          <Card style={{ paddingVertical: theme.spacing.xs, gap: 0 }}>
-            <SettingRow
-              label={t.captures.date}
-              value={showDate(expenseDate, locale)}
-              leading={
-                <Ionicons
-                  name="calendar-outline"
-                  size={iconSize.md}
-                  color={theme.color.textMuted}
-                />
-              }
-              onPress={() => setEditingDate(true)}
-            />
-          </Card>
+            Viewing a bill puts its receipts at the top, above the card of facts
+            and above the split; the form used to put them third, after the note
+            and the day, so the same expense told its story in two different
+            orders depending on whether you were reading it or writing it. The
+            bill is also the thing a person is most often holding when they open
+            this screen, and scanning it fills in the amount and the note below —
+            so it belongs before the fields it populates, not after them.
 
-          {editingDate ? (
-            <DateTimePicker
-              value={dateFrom(expenseDate)}
-              mode="date"
-              display={Platform.OS === 'ios' ? 'inline' : 'default'}
-              onChange={applyDate}
-            />
-          ) : null}
-
-          {/* The bill is a shortcut, not the screen: two small actions rather
-            than a card that makes this look like a receipt scanner. Scan is
-            metered and gives way when the group is capped; Add photo keeps an
+            The bill is still a shortcut, not the screen: two small actions
+            rather than a card that makes this look like a receipt scanner. Scan
+            is metered and gives way when the group is capped; Add photo keeps an
             image on the device and never records a receipt server-side, so it
             is offered even at the cap.
 
@@ -1798,6 +1759,91 @@ export default function AddExpenseScreen() {
               </Pressable>
             ) : null}
           </View>
+
+          {/* "How much" and "what for" are the whole of the common case. The
+            amount is in the hero above and the note is here, with only the bill
+            between them — and the bill is what fills both in when it is scanned,
+            so it is on the way to the note rather than in front of it. The names
+            are handed to the recogniser as hints; a general model guesses at
+            Indian names and the note is where they turn up. */}
+          <DescriptionField
+            value={description}
+            onChange={setDescription}
+            placeholder={t.expense.descriptionPlaceholder}
+            accessibilityLabel={t.description}
+            hints={nameHints}
+            multiline
+          />
+
+          {/* The bill's facts, as one labelled card — the same card the expense
+            screen shows under its receipts, with the answers editable instead of
+            printed.
+
+            These four are all the same kind of question: a short answer, already
+            filled in, changed from a sheet. They used to be spread across three
+            places — the day in a card of its own here, the category and the rail
+            behind the "More details" fold, and the currency only as a pill in
+            the header — so a form that could have said what it knew in four
+            lines instead made you find three different controls to read it.
+
+            None of them is an advanced setting. An expense filed on the wrong
+            day lands in the wrong month, the wrong trip and the wrong place in
+            the feed; a bill paid on a card recorded as cash is wrong on the
+            statement it is checked against; and a total in the wrong currency is
+            simply a different number. Untouched, the day still inherits whatever
+            it always had, so editing a note never moves a three-week-old dinner.
+
+            Category is here as well as on the hero badge above: the badge shows
+            the guess, which is what you want while typing the note, but it is
+            not a control — this row is where the guess is overruled. */}
+          <Card style={{ paddingVertical: theme.spacing.xs, gap: 0 }}>
+            <SettingRow
+              label={t.captures.date}
+              value={showDate(expenseDate, locale)}
+              leading={
+                <Ionicons
+                  name="calendar-outline"
+                  size={iconSize.md}
+                  color={theme.color.textMuted}
+                />
+              }
+              onPress={() => setEditingDate(true)}
+            />
+            <Divider />
+            <CategoryRow
+              value={category}
+              meta={categoryMeta}
+              onPress={() => setPickingCategory(true)}
+            />
+            <Divider />
+            <PaymentMethodRow value={paymentMethod} onPress={() => setPickingPayment(true)} />
+            <Divider />
+            {/* What it was paid in, as a named row rather than only as the pill
+              in the header. The pill is still there and still works — but it is
+              a hairline outline on a gradient beside a large amount, and "there
+              is no currency selection" is what somebody looking for one
+              reported. This names the field and opens the same sheet. */}
+            <SettingRow
+              label={t.captures.currencyLabel}
+              value={`${currencySymbol(currency)} ${currency}`}
+              leading={
+                // Not `cash-outline`: the rail row directly above wears that
+                // glyph whenever the answer is cash, which is the default — two
+                // rows with the same icon read as one repeated question.
+                <Ionicons name="globe-outline" size={iconSize.md} color={theme.color.textMuted} />
+              }
+              onPress={() => setPickingCurrency(true)}
+            />
+          </Card>
+
+          {editingDate ? (
+            <DateTimePicker
+              value={dateFrom(expenseDate)}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'inline' : 'default'}
+              onChange={applyDate}
+            />
+          ) : null}
 
           {/* "How is this split" as one block instead of three.
 
@@ -2207,10 +2253,16 @@ export default function AddExpenseScreen() {
             />
           </Card>
 
-          {/* Everything most expenses never need — the category (already guessed
-            from the note), how it was paid, where, and a foreign rate — folded
-            off the common path. It opens itself the moment one of them carries a
-            value, so an edit or a foreign currency is never hidden behind it. */}
+          {/* What is genuinely optional: where it happened, and — once the
+            currency is not the group's — the rate that converts it.
+
+            The category and the rail used to live down here too. They are not
+            optional in the same sense: both are always set (the category is
+            guessed from the note, the rail defaults to cash), so the fold was
+            hiding two answers the form had already given rather than two
+            questions nobody had asked. They are up in the facts card now, beside
+            the day and the currency, and this keeps the two that really can be
+            left empty. */}
           <Pressable
             accessibilityRole="button"
             accessibilityState={{ expanded: showDetails }}
@@ -2230,53 +2282,13 @@ export default function AddExpenseScreen() {
           </Pressable>
 
           <View style={{ gap: theme.spacing.xl, display: showDetails ? 'flex' : 'none' }}>
-            {/* The two tags an expense carries, as a list rather than two lanes
-              of chips.
-
-              Both are questions with one short answer, and both are already
-              answered when the fold opens — the category is guessed from the
-              note (a menu between somebody and saving a dinner is how a column
-              ends up empty, and an empty column is a spending chart nobody can
-              draw, TDR §8), and the rail defaults to cash. Two rows of chips
-              spent a screenful showing every answer that was *not* chosen; two
-              rows name the field, say what it is set to, and keep the options
-              behind a sheet for the times somebody wants to change one. The same
-              card of divided rows the capture screen uses for its meta. */}
-            <Card style={{ paddingVertical: theme.spacing.xs, gap: 0 }}>
-              <CategoryRow
-                value={category}
-                meta={categoryMeta}
-                onPress={() => setPickingCategory(true)}
-              />
-              <Divider />
-              <PaymentMethodRow value={paymentMethod} onPress={() => setPickingPayment(true)} />
-              <Divider />
-              {/* What it was paid in, as a named row rather than only as the pill
-                  in the header. The pill is still there and still works — but it
-                  is a hairline outline on a gradient beside a large amount, and
-                  "there is no currency selection" is what somebody looking for
-                  one reported. A row spells the field out by name, in the card
-                  where the other two short answers already live, and opens the
-                  same sheet the pill does. */}
-              <SettingRow
-                label={t.captures.currencyLabel}
-                value={`${currencySymbol(currency)} ${currency}`}
-                leading={
-                  // Not `cash-outline`: the rail row directly above wears that
-                  // glyph whenever the answer is cash, which is the default —
-                  // two rows with the same icon read as one repeated question.
-                  <Ionicons name="globe-outline" size={iconSize.md} color={theme.color.textMuted} />
-                }
-                onPress={() => setPickingCurrency(true)}
-              />
-            </Card>
-
             {/* Where it happened (A43) — optional, opt-in, never a background track. */}
             <LocationField value={location} onChange={setLocation} />
 
-            {/* Currency is chosen from the header pill; this collapses to the FX
-              rate alone — nothing while the expense is in the group's currency,
-              the rate methods once it is foreign (ADR-003). */}
+            {/* Currency is chosen from the facts card above (and from the header
+              pill); this collapses to the FX rate alone — nothing while the
+              expense is in the group's currency, the rate methods once it is
+              foreign (ADR-003). */}
             <CurrencyRate
               groupCurrency={groupCurrency}
               currency={currency}
