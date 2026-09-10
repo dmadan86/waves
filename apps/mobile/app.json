@@ -23,6 +23,7 @@
     },
     "android": {
       "package": "app.waves.mobile",
+      "versionCode": 1,
       "permissions": [],
       "adaptiveIcon": {
         "backgroundColor": "#14162a",
@@ -107,6 +108,7 @@
       "./plugins/withShortNativeBuildPath",
       "./plugins/withGradleMemory",
       "./plugins/withSideBySideDebug",
+      "./plugins/withReleaseSigning",
       "./plugins/withWavesWidgets",
       "./plugins/withWavesWear",
       "@bacons/apple-targets",
