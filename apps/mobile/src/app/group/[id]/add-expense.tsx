@@ -1552,11 +1552,21 @@ export default function AddExpenseScreen() {
   const canSave =
     amount > 0n && participants.length > 0 && splitIssue === null && payerProblem === null;
 
-  // A foreign currency must show its rate card (it cannot be saved without one),
-  // and any detail somebody has already set is a decision that must not hide.
-  const detailsNonDefault =
-    currency !== groupCurrency || location !== null || paymentMethod !== 'cash' || categoryChosen;
-  const showDetails = detailsChoice ?? detailsNonDefault;
+  // The fold starts open, and starts open the same way whether this is a new
+  // expense or an edit.
+  //
+  // It used to derive its default from whether anything inside carried a
+  // non-default value — and `categoryChosen` was one of those. Every saved
+  // expense has a category, so that flag is true on essentially every edit and
+  // false on every new one: the fold stood open on the edit form and shut on the
+  // add form, and one screen quietly had two layouts. Worse, it shut in exactly
+  // the case where the rows are most use — a new expense, where the day, the
+  // rail and the currency have not been set by anybody yet.
+  //
+  // A foreign currency still forces it open over a collapse: the rate card lives
+  // inside the fold and the expense cannot be saved without a rate.
+  const rateNeeded = currency !== groupCurrency;
+  const showDetails = rateNeeded || (detailsChoice ?? true);
 
   // The bottom-bar sub-line. When an equal split lands the same amount on every
   // head, say it in money — "3 people owe ₹200 each" — which is the number
@@ -2240,6 +2250,25 @@ export default function AddExpenseScreen() {
               />
               <Divider />
               <PaymentMethodRow value={paymentMethod} onPress={() => setPickingPayment(true)} />
+              <Divider />
+              {/* What it was paid in, as a named row rather than only as the pill
+                  in the header. The pill is still there and still works — but it
+                  is a hairline outline on a gradient beside a large amount, and
+                  "there is no currency selection" is what somebody looking for
+                  one reported. A row spells the field out by name, in the card
+                  where the other two short answers already live, and opens the
+                  same sheet the pill does. */}
+              <SettingRow
+                label={t.captures.currencyLabel}
+                value={`${currencySymbol(currency)} ${currency}`}
+                leading={
+                  // Not `cash-outline`: the rail row directly above wears that
+                  // glyph whenever the answer is cash, which is the default —
+                  // two rows with the same icon read as one repeated question.
+                  <Ionicons name="globe-outline" size={iconSize.md} color={theme.color.textMuted} />
+                }
+                onPress={() => setPickingCurrency(true)}
+              />
             </Card>
 
             {/* Where it happened (A43) — optional, opt-in, never a background track. */}
