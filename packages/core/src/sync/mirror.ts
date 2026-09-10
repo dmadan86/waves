@@ -722,6 +722,13 @@ export function materialiseLedgerGroups(
     .sort(byNewest((row) => String(row.created_at)));
 }
 
+export function materialiseLedgerGroupIds(
+  state: MirrorState,
+  queue: readonly QueuedMutation[],
+): ReadonlySet<string> {
+  return new Set(materialiseLedgerGroups(state, queue).map((group) => group.id));
+}
+
 /**
  * One group by id, archived or not. `materialiseGroups` hides archived groups so
  * they leave the dashboard, but a per-group screen (the plan, its budget) still

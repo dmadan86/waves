@@ -25,6 +25,7 @@ import {
   materialiseExpenses,
   materialiseGroup,
   materialiseGroups,
+  materialiseLedgerGroupIds,
   materialiseLedgerGroups,
   materialiseMemberBudgets,
   materialiseMembers,
@@ -855,6 +856,7 @@ export interface DestinationUsage {
 export function useDestinationUsage(): Map<string, DestinationUsage> {
   const { mirror } = useSync();
   return useMemo(() => {
+    const ledgerGroupIds = materialiseLedgerGroupIds(mirror, []);
     const usage = new Map<string, DestinationUsage>();
     for (const row of rowsFor(mirror, SyncTable.Expenses)) {
       const e = row as unknown as {
@@ -862,7 +864,7 @@ export function useDestinationUsage(): Map<string, DestinationUsage> {
         created_at: string;
         deleted_at: string | null;
       };
-      if (e.deleted_at) continue;
+      if (e.deleted_at || !ledgerGroupIds.has(e.group_id)) continue;
       const prev = usage.get(e.group_id);
       if (!prev) {
         usage.set(e.group_id, { lastAt: e.created_at, count: 1 });
@@ -884,10 +886,11 @@ export function useDestinationUsage(): Map<string, DestinationUsage> {
 export function useGroupCreatedAt(): Map<string, string> {
   const { mirror } = useSync();
   return useMemo(() => {
+    const ledgerGroupIds = materialiseLedgerGroupIds(mirror, []);
     const byId = new Map<string, string>();
     for (const row of rowsFor(mirror, SyncTable.Groups)) {
       const g = row as unknown as { id: string; created_at: string };
-      if (g.id && g.created_at) byId.set(g.id, g.created_at);
+      if (g.id && g.created_at && ledgerGroupIds.has(g.id)) byId.set(g.id, g.created_at);
     }
     return byId;
   }, [mirror]);

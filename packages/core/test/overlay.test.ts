@@ -20,6 +20,7 @@ import {
   materialiseArchivedGroups,
   materialiseCategoryTags,
   materialiseGroups,
+  materialiseLedgerGroupIds,
   materialiseLedgerGroups,
   materialiseMemberBudgets,
   materialiseMembers,
@@ -388,6 +389,27 @@ describe('the groups whose ledger still counts', () => {
       queued(envelope('m-1', MutationKind.GroupCreate, { name: 'Ravi', currency: 'INR' })),
     );
     expect(rows.map((row) => row.id)).toEqual([GROUP]);
+  });
+
+  it('exposes the same deleted-aware id set for child-row metadata filters', () => {
+    const mirror = mirrorWith([
+      { id: 'g-live', name: 'Goa', default_currency: 'INR', created_at: AT, archived_at: null },
+      { id: 'g-old', name: 'Old flat', default_currency: 'INR', created_at: AT, archived_at: AT },
+      {
+        id: 'g-gone',
+        name: 'Splitwise',
+        default_currency: 'INR',
+        created_at: AT,
+        archived_at: null,
+        deleted_at: AT,
+      },
+    ]);
+    const ids = materialiseLedgerGroupIds(
+      mirror,
+      queued(envelope('m-1', MutationKind.GroupCreate, { name: 'Ravi', currency: 'INR' })),
+    );
+
+    expect([...ids].sort()).toEqual([GROUP, 'g-live', 'g-old']);
   });
 });
 
