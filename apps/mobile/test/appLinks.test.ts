@@ -34,9 +34,7 @@ interface AppConfig {
   };
 }
 
-const appConfig = JSON.parse(
-  readFileSync(join(__dirname, '../app.json'), 'utf8'),
-) as AppConfig;
+const appConfig = JSON.parse(readFileSync(join(__dirname, '../app.json'), 'utf8')) as AppConfig;
 
 const appLinkData =
   appConfig.expo?.android?.intentFilters?.find(
