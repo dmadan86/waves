@@ -1789,37 +1789,6 @@ export default function AddExpenseScreen() {
             ) : null}
           </View>
 
-          {/* The escape hatch, up on the common path where it is found before the
-            whole shared form is filled — not after. Some spend is nobody else's;
-            this hands the amount and note already typed to the personal captures
-            inbox, which never touches a group balance (plan §5). Only on a new
-            expense; converting an existing shared row is a different act. */}
-          {!editing ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t.expense.justForMe}
-              onPress={() => {
-                const params: Record<string, string> = { cur: currency };
-                if (amount > 0n) params.amount = amount.toString();
-                const note = description.trim();
-                if (note) params.desc = note;
-                router.replace({ pathname: '/capture', params });
-              }}
-            >
-              <Row style={{ gap: theme.spacing.md, alignItems: 'center' }}>
-                <Ionicons name="lock-closed-outline" size={iconSize.md} color={theme.color.brand} />
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <Text variant="subheading" tone="brand">
-                    {t.expense.justForMe}
-                  </Text>
-                  <Text variant="micro" tone="muted">
-                    {t.expense.justForMeBody}
-                  </Text>
-                </View>
-              </Row>
-            </Pressable>
-          ) : null}
-
           {/* "How is this split" as one block instead of three.
 
             The heading, the row of modes and the itemise button used to be three

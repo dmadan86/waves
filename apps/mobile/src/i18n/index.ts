@@ -2075,10 +2075,6 @@ export interface UiStrings {
     splitByItem: string;
     scanBillTitle: string;
     scanBillBody: string;
-    /** Route this spend to the personal captures inbox instead of splitting it. */
-    justForMe: string;
-    /** One line under it: what "just for me" means. */
-    justForMeBody: string;
     scan: string;
     reading: string;
     scanReconciles: string;
@@ -4653,8 +4649,6 @@ const en: UiStrings = {
     scanBillTitle: 'Scan the bill',
     scanBillBody:
       'The total and the name of the place come out filled in. Check them — entering them by hand is always free.',
-    justForMe: 'Just for me',
-    justForMeBody: "Not splitting this? Keep it in your own captures — off the group's ledger.",
     scan: 'Scan',
     reading: 'Reading…',
     scanReconciles: 'Read the total off the bill. Check it, then split it however you like.',
@@ -7275,9 +7269,6 @@ const ta: UiStrings = {
       'திருத்தினாலும் பழைய பதிப்பு இருக்கும். என்ன மாறியது என்பதை அனைவரும் பார்க்கலாம், மீட்கவும் முடியும்.',
     splitByItem: 'பொருள் வாரியாகப் பிரி',
     scanBillTitle: 'ரசீதை ஸ்கேன் செய்',
-    justForMe: 'எனக்கு மட்டும்',
-    justForMeBody:
-      'இதைப் பங்கிடவில்லையா? உங்கள் சொந்த கேப்சர்களில் வைத்திரு — குழுக் கணக்கில் இல்லாமல்.',
     scanBillBody:
       'மொத்தமும் இடத்தின் பெயரும் தானாக நிரப்பப்படும். சரிபாருங்கள் — கையால் உள்ளிடுவது எப்போதும் இலவசம்.',
     scan: 'ஸ்கேன்',
@@ -9891,8 +9882,6 @@ const hi: UiStrings = {
       'बदलने पर पुराना संस्करण बना रहता है। सब देख सकते हैं क्या बदला, और उसे वापस भी लाया जा सकता है।',
     splitByItem: 'चीज़-वार बाँटें',
     scanBillTitle: 'बिल स्कैन करें',
-    justForMe: 'सिर्फ़ मेरे लिए',
-    justForMeBody: 'इसे बाँट नहीं रहे? इसे अपने कैप्चर में रखें — ग्रुप के हिसाब से बाहर।',
     scanBillBody:
       'कुल रकम और जगह का नाम अपने आप भर जाते हैं। जाँच लें — हाथ से डालना हमेशा मुफ़्त है।',
     scan: 'स्कैन',
@@ -12603,8 +12592,6 @@ const ar: UiStrings = {
     editingKeepsVersion: 'التعديل يحتفظ بالنسخة القديمة. يرى الجميع ما تغيّر، ويمكن استرجاعها.',
     splitByItem: 'التقسيم حسب الصنف',
     scanBillTitle: 'امسح الفاتورة',
-    justForMe: 'لي وحدي',
-    justForMeBody: 'لن تقسّم هذه؟ احتفظ بها في التقاطاتك الخاصة — خارج حساب المجموعة.',
     scanBillBody: 'يُملأ المجموع واسم المكان تلقائيًا. تحقّق منهما — والإدخال اليدوي مجاني دائمًا.',
     scan: 'مسح',
     reading: 'جارٍ القراءة…',

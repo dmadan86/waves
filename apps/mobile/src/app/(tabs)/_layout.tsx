@@ -4,6 +4,12 @@ import { Tabs } from 'expo-router';
  * The four tab screens. The bottom bar itself is rendered once at the root
  * (`AppTabBar`) so it stays on every screen, not just these — so this navigator
  * hides its own bar and only owns the scene switching between the tabs.
+ *
+ * Only the four bar destinations belong here. Settings (`app/profile.tsx`) used
+ * to sit in this group despite never being a bar destination, and it inherited
+ * the `animation: 'none'` below — so opening it from the dashboard cut to it in
+ * one frame while every other pushed screen slid in. It is a root stack screen
+ * now, and pushes like the rest.
  */
 export default function TabsLayout() {
   return (
@@ -40,7 +46,6 @@ export default function TabsLayout() {
       <Tabs.Screen name="friends" />
       <Tabs.Screen name="activity" />
       <Tabs.Screen name="me" />
-      <Tabs.Screen name="profile" />
     </Tabs>
   );
 }
