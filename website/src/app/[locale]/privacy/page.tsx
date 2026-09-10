@@ -6,7 +6,7 @@ import { isLocale, locales } from '@/i18n/config';
 import { getDictionary } from '@/i18n/dictionaries';
 import { absoluteUrl, site } from '@/lib/site';
 
-const UPDATED = '3 September 2026';
+const UPDATED = '10 September 2026';
 
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
@@ -62,7 +62,7 @@ const sections: LegalSection[] = [
   {
     heading: 'How long we keep it',
     body: [
-      'Ledger data is kept while your account exists, because the other people in a group depend on it being there. Deleting your account removes your rows and your sign-in identity; expenses you created inside a shared group are anonymised rather than deleted, so the group balance does not silently change for everyone else.',
+      'Ledger data is kept while your account exists, because the other people in a group depend on it being there. Deleting your account removes your rows and your sign-in identity. What you added inside a shared group stays rather than being deleted, so the group balance does not silently change for everyone else: the expenses and settlements, the notes and comments on them, and the images you added — receipts, proofs of payment, trip photos — are kept as they are, with your name detached from them. Notifications and activity entries already delivered to other people can still carry the name you had when they were written, and if you give a reason when you delete, that text is kept with the link back to you removed. Nothing is retained for advertising, and nothing is retained because a law obliges us to.',
       'Crash reports are kept for 90 days. Email delivery logs are kept for as long as the provider retains them, and no longer than a year.',
     ],
   },

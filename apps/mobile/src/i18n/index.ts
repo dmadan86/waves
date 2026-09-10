@@ -2734,15 +2734,9 @@ export interface UiStrings {
     retentionTitle: string;
     retentionBody: string;
     controlsSection: string;
-    appLockRow: string;
-    appLockHint: string;
-    appLockUnavailable: string;
-    statusOn: string;
-    statusOff: string;
     blockedNone: string;
     sessionReplayHint: string;
     policySection: string;
-    dangerSection: string;
     supportRow: string;
     supportRowHint: string;
     /** Carries `{date}` — when this policy text last changed. */
@@ -2759,12 +2753,7 @@ export interface UiStrings {
     deviceTitle: string;
     deviceSummary: string;
     deviceBody: string;
-    dataControlsSection: string;
-    legalSection: string;
-    exportRow: string;
-    exportRowHint: string;
     licensesRow: string;
-    licensesRowHint: string;
     licensesTitle: string;
     licensesIntro: string;
     licenseNote: string;
@@ -5206,9 +5195,9 @@ const en: UiStrings = {
     badge: 'Blocked',
   },
   privacy: {
-    row: 'Privacy & security',
+    row: 'Privacy',
     rowHint: 'What is stored, and how it is kept',
-    title: 'Privacy & security',
+    title: 'Privacy',
     intro:
       'Waves holds as little about you as it can and still work. This describes what that is, in plain terms.',
     storeTitle: 'What is stored',
@@ -5219,7 +5208,7 @@ const en: UiStrings = {
       'Every table is behind row-level security in the database, so a request can only ever read rows your own account is entitled to — not a filter applied by the app, but a rule the database enforces. Receipt images sit in a private bucket reached through short-lived signed links. Crash reports are scrubbed of addresses, phone numbers, payment handles and keys before they leave the phone. Each receipt can be visible to everybody in the group, or only to the people on that expense — you choose per image. You can require your fingerprint or face to open the app.',
     choicesTitle: 'What you can do',
     choicesBody:
-      'Export everything you have entered, at any time, in full fidelity and for free. Turn off any notification. Delete your account and the personal data in it. Write to us with anything you want changed.',
+      'Export everything you have entered, at any time, in full fidelity and for free. Turn off any notification. Delete your account and the personal data in it. Export and deletion both live in Settings, and the export is offered again on the way out. Write to us with anything you want changed.',
     couldNotSave: 'That did not save. Please try again in a moment.',
     analyticsTitle: 'How the app is used',
     analyticsBody:
@@ -5230,17 +5219,11 @@ const en: UiStrings = {
       'Waves runs on Supabase — the database and sign-in, on servers we control. Crash reports go to Sentry, scrubbed of your details before they leave the phone. Anonymous usage goes to Microsoft Clarity, and only if you turn it on above. Your data is never sold, and there are no ad networks.',
     retentionTitle: 'How long we keep it',
     retentionBody:
-      'Your data stays while your account is open. If the account goes untouched for 3 years, we delete it and the personal data with it. You never have to wait for that — export or delete everything yourself, any time, below. A group you close and leave untouched for a year and a half is moved to your archive automatically — nothing is deleted, and you can reopen it whenever you like.',
+      "Your data stays while your account is open. If the account goes untouched for 3 years, we delete it and the personal data with it. You never have to wait for that — export or delete everything yourself, any time, from Settings. A group you close and leave untouched for a year and a half is moved to your archive automatically — nothing is deleted, and you can reopen it whenever you like. Some of what you leave behind survives deleting your account, and you should know it before you do. What you added to a shared group stays — the expenses and settlements, the notes and comments on them, and the images you added, whether a receipt, a proof of payment or a trip photo — because it is also the other members' record of who owed whom, and taking it out would silently change somebody else's balance to settle a debt nobody paid. Your name, photo, contact details and payment handles are removed from those groups, where you become an unnamed former member; notifications and activity already written to other people can still carry the name you had at the time. And if you write an answer into the box asking why you are leaving, that answer is kept exactly as you typed it, with the link back to you removed. Nothing is kept for advertising, and nothing is kept because a law obliges us to.",
     controlsSection: 'Your controls',
-    appLockRow: 'App lock',
-    appLockHint: 'Ask for fingerprint or face to open Waves',
-    appLockUnavailable: 'Not available',
-    statusOn: 'On',
-    statusOff: 'Off',
     blockedNone: 'None',
     sessionReplayHint: 'Off unless you turn it on',
     policySection: 'How Waves protects you',
-    dangerSection: 'Danger zone',
     supportRow: 'Privacy questions',
     supportRowHint: 'Write to us — a person answers',
     lastUpdated: 'Last updated {date}.',
@@ -5250,19 +5233,15 @@ const en: UiStrings = {
     protectSummary: 'Database rules on every read, private receipt links, scrubbed crash reports.',
     servicesSummary: 'Supabase for the database, Sentry for crashes, Clarity only if you allow it.',
     analyticsSummary: 'No ads, no ad identifier. Screen recording is off unless you turn it on.',
-    retentionSummary: 'Kept while your account is open, deleted after 3 untouched years.',
+    retentionSummary:
+      'Kept while your account is open, deleted after 3 untouched years. Shared records stay on without your name.',
     choicesSummary: 'Export everything, mute anything, or delete your account.',
     deviceTitle: 'On this phone',
     deviceSummary:
       'The ledger is sealed with a device key; settings and pending uploads are not. All cleared on sign-out.',
     deviceBody:
       "Waves keeps a copy of your ledger on the phone so it still works with no signal. The ledger rows and the queue of changes waiting to be sent are sealed with a key kept in the phone's secure store, so a copy of that file taken off the phone is unreadable without it. Some things sit outside the seal: your app settings, and receipt images still waiting to upload. Signing out clears the ledger, the queue, the cached images and the key together.",
-    dataControlsSection: 'Your data',
-    legalSection: 'Legal',
-    exportRow: 'Export your data',
-    exportRowHint: 'A full, lossless copy — yours to keep',
     licensesRow: 'Open source licenses',
-    licensesRowHint: 'The libraries Waves is built on',
     licensesTitle: 'Open source',
     licensesIntro:
       'Waves is built on open-source software. Thank you to the people who made and maintain these.',
@@ -5307,7 +5286,7 @@ const en: UiStrings = {
       'Your name, photo, payment handle, country, language and notification settings. Your sign-in, so this account can no longer be opened. Your devices, notification history, purchases and anything the AI scanner recorded about your usage.',
     deleteStaysTitle: 'What stays, and why',
     deleteStaysBody:
-      "The expenses and settlements in your shared groups remain, because they are also other people's records — they are what says who owes whom, and removing them would silently change somebody else's balance to settle a debt nobody paid. You become an unnamed former member in those groups. Your name is gone from them; your share of the dinner is not.",
+      "The expenses and settlements in your shared groups remain, along with the notes and comments on them and the images you added — receipts, proofs of payment, trip photos — because they are also other people's records — they are what says who owes whom, and removing them would silently change somebody else's balance to settle a debt nobody paid. You become an unnamed former member in those groups. Your name is gone from them; your share of the dinner is not.",
     deleteExportFirst: 'Export your data first',
     deleteWhyLabel: 'Why are you leaving? (optional)',
     deleteWhyPlaceholder: 'It helps to know, and it is kept after your account is gone',
@@ -7834,9 +7813,9 @@ const ta: UiStrings = {
     badge: 'தடுக்கப்பட்டது',
   },
   privacy: {
-    row: 'தனியுரிமை & பாதுகாப்பு',
+    row: 'தனியுரிமை',
     rowHint: 'என்ன சேமிக்கப்படுகிறது, எப்படி பாதுகாக்கப்படுகிறது',
-    title: 'தனியுரிமை & பாதுகாப்பு',
+    title: 'தனியுரிமை',
     intro:
       'Waves வேலை செய்ய எவ்வளவு தேவையோ அவ்வளவு மட்டுமே உங்களைப் பற்றி வைத்திருக்கிறது. அது என்ன என்பது இங்கே.',
     storeTitle: 'என்ன சேமிக்கப்படுகிறது',
@@ -7847,7 +7826,7 @@ const ta: UiStrings = {
       'ஒவ்வொரு அட்டவணையும் தரவுத்தளத்தில் வரிசை-நிலை பாதுகாப்பின் பின்னால் உள்ளது — செயலி வடிகட்டுவதல்ல, தரவுத்தளமே அமல்படுத்தும் விதி. ரசீது படங்கள் தனிப்பட்ட இடத்தில், குறுகிய கால இணைப்புகள் வழியாக மட்டுமே. செயலி முறிவு அறிக்கைகளிலிருந்து முகவரிகள், எண்கள், பணமுகவரிகள் தொலைபேசியை விட்டு வெளியேறும் முன்பே நீக்கப்படுகின்றன. ஒவ்வொரு ரசீதும் குழுவில் உள்ள அனைவருக்கும் தெரியலாம், அல்லது அந்தச் செலவில் உள்ளவர்களுக்கு மட்டும் — படத்துக்குப் படம் நீங்கள் தேர்வு செய்யலாம்.',
     choicesTitle: 'நீங்கள் என்ன செய்யலாம்',
     choicesBody:
-      'நீங்கள் உள்ளிட்ட அனைத்தையும் எப்போது வேண்டுமானாலும், முழுமையாக, இலவசமாக ஏற்றுமதி செய்யலாம். எந்த அறிவிப்பையும் நிறுத்தலாம். உங்கள் கணக்கையும் அதிலுள்ள தனிப்பட்ட தரவையும் நீக்கலாம்.',
+      'நீங்கள் உள்ளிட்ட அனைத்தையும் எப்போது வேண்டுமானாலும், முழுமையாக, இலவசமாக ஏற்றுமதி செய்யலாம். எந்த அறிவிப்பையும் நிறுத்தலாம். உங்கள் கணக்கையும் அதிலுள்ள தனிப்பட்ட தரவையும் நீக்கலாம். ஏற்றுமதியும் நீக்கமும் அமைப்புகளில் உள்ளன; வெளியேறும் வழியிலும் ஏற்றுமதி மீண்டும் வழங்கப்படும்.',
     couldNotSave: 'இது சேமிக்கப்படவில்லை. சிறிது நேரம் கழித்து முயற்சிக்கவும்.',
     analyticsTitle: 'செயலி எப்படி பயன்படுத்தப்படுகிறது',
     analyticsBody:
@@ -7858,17 +7837,11 @@ const ta: UiStrings = {
       'Waves Supabase-இல் இயங்குகிறது — தரவுத்தளமும் உள்நுழைவும், நாங்கள் நிர்வகிக்கும் சேவையகங்களில். செயலிழப்பு அறிக்கைகள் உங்கள் விவரங்கள் நீக்கப்பட்ட பிறகே Sentry-க்குச் செல்கின்றன. அநாமதேய பயன்பாட்டு தரவு Microsoft Clarity-க்குச் செல்கிறது, மேலே நீங்கள் இயக்கினால் மட்டுமே. உங்கள் தரவு விற்கப்படுவதில்லை, விளம்பர வலையமைப்புகளும் இல்லை.',
     retentionTitle: 'எவ்வளவு காலம் வைத்திருக்கிறோம்',
     retentionBody:
-      'உங்கள் கணக்கு திறந்திருக்கும் வரை தரவு இருக்கும். கணக்கு 3 ஆண்டுகள் தொடப்படாமல் இருந்தால், அதை அதிலுள்ள தனிப்பட்ட தரவுடன் நீக்குகிறோம். அதற்காகக் காத்திருக்க வேண்டாம் — கீழே எப்போது வேண்டுமானாலும் எல்லாவற்றையும் ஏற்றுமதி செய்யலாம் அல்லது நீக்கலாம். நீங்கள் மூடி, ஒன்றரை ஆண்டுகளாகத் தொடாமல் விட்ட குழு தானாகவே உங்கள் காப்பகத்திற்கு நகர்த்தப்படுகிறது — எதுவும் நீக்கப்படாது, எப்போது வேண்டுமானாலும் மீண்டும் திறக்கலாம்.',
+      'உங்கள் கணக்கு திறந்திருக்கும் வரை தரவு இருக்கும். கணக்கு 3 ஆண்டுகள் தொடப்படாமல் இருந்தால், அதை அதிலுள்ள தனிப்பட்ட தரவுடன் நீக்குகிறோம். அதற்காகக் காத்திருக்க வேண்டாம் — அமைப்புகளில் எப்போது வேண்டுமானாலும் எல்லாவற்றையும் ஏற்றுமதி செய்யலாம் அல்லது நீக்கலாம். நீங்கள் மூடி, ஒன்றரை ஆண்டுகளாகத் தொடாமல் விட்ட குழு தானாகவே உங்கள் காப்பகத்திற்கு நகர்த்தப்படுகிறது — எதுவும் நீக்கப்படாது, எப்போது வேண்டுமானாலும் மீண்டும் திறக்கலாம். கணக்கை நீக்கிய பிறகும் நீங்கள் விட்டுச் செல்வதில் சில தொடரும்; நீக்கும் முன் அதைத் தெரிந்து கொள்ளுங்கள். பகிர்ந்த குழுவில் நீங்கள் சேர்த்தவை — செலவுகள், தீர்வுகள், அவற்றின் குறிப்புகளும் கருத்துகளும், நீங்கள் சேர்த்த படங்கள், அது ரசீதாக இருந்தாலும், பணம் கட்டிய சான்றாக இருந்தாலும், பயணப் புகைப்படமாக இருந்தாலும் — அப்படியே இருக்கும், ஏனெனில் அவை மற்ற உறுப்பினர்களின் பதிவும் கூட; அவற்றை நீக்கினால் யாரும் கட்டாத கடன் தீர்ந்தது போல் இன்னொருவரின் இருப்பு அமைதியாக மாறிவிடும். உங்கள் பெயர், புகைப்படம், தொடர்பு விவரங்கள், பணம் பெறும் முகவரி ஆகியவை அந்தக் குழுக்களிலிருந்து நீக்கப்படும்; அங்கே நீங்கள் பெயரில்லாத முன்னாள் உறுப்பினராகிவிடுவீர்கள். ஆனால் ஏற்கெனவே மற்றவர்களுக்குச் சென்ற அறிவிப்புகளிலும் செயல்பதிவிலும் அப்போது இருந்த உங்கள் பெயர் இருக்கக்கூடும். ஏன் வெளியேறுகிறீர்கள் என்ற கேள்விக்கு நீங்கள் பதில் எழுதினால், அது நீங்கள் எழுதியபடியே, உங்களுடனான தொடர்பு நீக்கப்பட்டு, வைக்கப்படும். விளம்பரத்திற்காக எதுவும் வைக்கப்படுவதில்லை; சட்டம் கட்டாயப்படுத்துவதால் எதுவும் வைக்கப்படுவதில்லை.',
     controlsSection: 'உங்கள் கட்டுப்பாடுகள்',
-    appLockRow: 'செயலிப் பூட்டு',
-    appLockHint: 'திறக்க கைரேகை அல்லது முகத்தைக் கேட்கும்',
-    appLockUnavailable: 'கிடைக்கவில்லை',
-    statusOn: 'இயக்கத்தில்',
-    statusOff: 'அணைக்கப்பட்டது',
     blockedNone: 'யாரும் இல்லை',
     sessionReplayHint: 'நீங்கள் இயக்கும் வரை அணைந்தே இருக்கும்',
     policySection: 'உங்கள் தரவை எப்படிப் பாதுகாக்கிறோம்',
-    dangerSection: 'கவனம் தேவை',
     supportRow: 'தனியுரிமைக் கேள்விகள்',
     supportRowHint: 'எங்களுக்கு எழுதுங்கள் — ஒரு நபர் பதிலளிப்பார்',
     lastUpdated: 'கடைசியாகப் புதுப்பிக்கப்பட்டது {date}.',
@@ -7881,7 +7854,8 @@ const ta: UiStrings = {
     servicesSummary:
       'தரவுத்தளத்திற்கு Supabase, பிழைகளுக்கு Sentry, நீங்கள் அனுமதித்தால் மட்டுமே Clarity.',
     analyticsSummary: 'விளம்பரம் இல்லை. நீங்கள் இயக்கும் வரை திரைப் பதிவும் இல்லை.',
-    retentionSummary: 'கணக்கு திறந்திருக்கும் வரை; 3 ஆண்டுகள் தொடாவிட்டால் நீக்கப்படும்.',
+    retentionSummary:
+      'கணக்கு திறந்திருக்கும் வரை; 3 ஆண்டுகள் தொடாவிட்டால் நீக்கப்படும். பகிர்ந்த பதிவுகள் உங்கள் பெயர் இல்லாமல் தொடரும்.',
     choicesSummary:
       'எல்லாவற்றையும் ஏற்றுமதி செய்யுங்கள், அறிவிப்புகளை நிறுத்துங்கள், கணக்கை நீக்குங்கள்.',
     deviceTitle: 'இந்தத் தொலைபேசியில்',
@@ -7889,12 +7863,7 @@ const ta: UiStrings = {
       'கணக்கு சாதனச் சாவியால் மூடப்படுகிறது; அமைப்புகளும் காத்திருக்கும் பதிவேற்றங்களும் இல்லை. வெளியேறும்போது அனைத்தும் நீக்கப்படும்.',
     deviceBody:
       'சிக்னல் இல்லாமலும் வேலை செய்ய, Waves உங்கள் கணக்கின் ஒரு நகலைத் தொலைபேசியிலேயே வைத்திருக்கிறது. கணக்கு வரிசைகளும், அனுப்பப்படக் காத்திருக்கும் மாற்றங்களும் தொலைபேசியின் பாதுகாப்புச் சேமிப்பில் உள்ள சாவியால் மூடப்படுகின்றன — அந்தக் கோப்பை வெளியே எடுத்தாலும் சாவி இல்லாமல் படிக்க முடியாது. சிலவை அந்த மூடலுக்கு வெளியே இருக்கின்றன: உங்கள் செயலி அமைப்புகள், பதிவேற்றக் காத்திருக்கும் ரசீது படங்கள். நீங்கள் வெளியேறும்போது கணக்கு, வரிசை, சேமித்த படங்கள், சாவி எல்லாம் சேர்ந்து நீக்கப்படுகின்றன.',
-    dataControlsSection: 'உங்கள் தரவு',
-    legalSection: 'சட்டம்',
-    exportRow: 'உங்கள் தரவை ஏற்றுமதி செய்',
-    exportRowHint: 'முழுமையான, இழப்பில்லா நகல் — உங்களுக்கே',
     licensesRow: 'திறந்த மூல உரிமங்கள்',
-    licensesRowHint: 'Waves கட்டப்பட்ட நூலகங்கள்',
     licensesTitle: 'திறந்த மூலம்',
     licensesIntro:
       'Waves திறந்த மூல மென்பொருளால் கட்டப்பட்டது. இவற்றை உருவாக்கிப் பராமரிப்பவர்களுக்கு நன்றி.',
@@ -7942,7 +7911,7 @@ const ta: UiStrings = {
       'உங்கள் பெயர், படம், பணமுகவரி, நாடு, மொழி, அறிவிப்பு அமைப்புகள். உங்கள் உள்நுழைவு — இந்தக் கணக்கை இனி திறக்க முடியாது. உங்கள் சாதனங்கள், அறிவிப்பு வரலாறு, கொள்முதல்கள்.',
     deleteStaysTitle: 'என்ன இருக்கும், ஏன்',
     deleteStaysBody:
-      'உங்கள் குழுக்களில் உள்ள செலவுகளும் தீர்வுகளும் இருக்கும், ஏனெனில் அவை மற்றவர்களின் பதிவுகளும் கூட — யார் யாருக்குக் கடன்பட்டவர் என்பதைச் சொல்வது அவைதான். அவற்றை நீக்கினால் யாரும் கட்டாத கடன் தானாகத் தீர்ந்துவிடும். நீங்கள் பெயரில்லாத முன்னாள் உறுப்பினராகிவிடுவீர்கள்.',
+      'உங்கள் குழுக்களில் உள்ள செலவுகளும் தீர்வுகளும், அவற்றின் குறிப்புகள், கருத்துகள், நீங்கள் சேர்த்த படங்கள் — ரசீதுகள், பணம் கட்டிய சான்றுகள், பயணப் புகைப்படங்கள் — ஆகியவற்றுடன் இருக்கும், ஏனெனில் அவை மற்றவர்களின் பதிவுகளும் கூட — யார் யாருக்குக் கடன்பட்டவர் என்பதைச் சொல்வது அவைதான். அவற்றை நீக்கினால் யாரும் கட்டாத கடன் தானாகத் தீர்ந்துவிடும். நீங்கள் பெயரில்லாத முன்னாள் உறுப்பினராகிவிடுவீர்கள்.',
     deleteExportFirst: 'முதலில் உங்கள் தரவை ஏற்றுமதி செய்யுங்கள்',
     deleteWhyLabel: 'ஏன் விலகுகிறீர்கள்? (விருப்பம்)',
     deleteWhyPlaceholder: 'தெரிந்தால் உதவும்; கணக்கு போன பிறகும் இது வைக்கப்படும்',
@@ -10376,9 +10345,9 @@ const hi: UiStrings = {
     badge: 'अवरोधित',
   },
   privacy: {
-    row: 'निजता और सुरक्षा',
+    row: 'निजता',
     rowHint: 'क्या रखा जाता है, और कैसे सुरक्षित रहता है',
-    title: 'निजता और सुरक्षा',
+    title: 'निजता',
     intro:
       'Waves आपके बारे में उतना ही रखता है जितना काम करने के लिए ज़रूरी है। वह क्या है, सीधे शब्दों में।',
     storeTitle: 'क्या रखा जाता है',
@@ -10389,7 +10358,7 @@ const hi: UiStrings = {
       'हर तालिका डेटाबेस में row-level security के पीछे है — ऐप का लगाया फ़िल्टर नहीं, बल्कि डेटाबेस का लागू किया नियम। रसीद की तस्वीरें एक निजी जगह में, छोटी अवधि के लिंक से ही पहुँच में। क्रैश रिपोर्ट से पते, नंबर और भुगतान पते फ़ोन छोड़ने से पहले ही हटा दिए जाते हैं। हर रसीद पूरे समूह को दिख सकती है, या केवल उस ख़र्च में शामिल लोगों को — यह आप हर तस्वीर के लिए चुनते हैं।',
     choicesTitle: 'आप क्या कर सकते हैं',
     choicesBody:
-      'जो कुछ आपने डाला है, कभी भी, पूरा और मुफ़्त निर्यात करें। कोई भी सूचना बंद करें। अपना खाता और उसमें रखा निजी डेटा मिटाएँ।',
+      'जो कुछ आपने डाला है, कभी भी, पूरा और मुफ़्त निर्यात करें। कोई भी सूचना बंद करें। अपना खाता और उसमें रखा निजी डेटा मिटाएँ। निर्यात और खाता मिटाना, दोनों सेटिंग्स में हैं; जाते समय निर्यात फिर से पूछा जाता है।',
     couldNotSave: 'यह सहेजा नहीं जा सका। थोड़ी देर बाद फिर कोशिश करें।',
     analyticsTitle: 'ऐप कैसे इस्तेमाल होता है',
     analyticsBody:
@@ -10400,17 +10369,11 @@ const hi: UiStrings = {
       'Waves Supabase पर चलता है — डेटाबेस और साइन-इन, हमारे नियंत्रण वाले सर्वर पर। क्रैश रिपोर्ट फ़ोन छोड़ने से पहले आपके विवरण हटाकर Sentry को जाती हैं। गुमनाम उपयोग डेटा Microsoft Clarity को जाता है, और सिर्फ़ तभी जब आप इसे ऊपर चालू करें। आपका डेटा कभी बेचा नहीं जाता, और कोई विज्ञापन नेटवर्क नहीं है।',
     retentionTitle: 'हम इसे कब तक रखते हैं',
     retentionBody:
-      'जब तक आपका खाता खुला है, आपका डेटा रहता है। अगर खाता 3 साल तक अछूता रहे, तो हम उसे और उसके निजी डेटा को हटा देते हैं। इसके लिए इंतज़ार करने की ज़रूरत नहीं — नीचे कभी भी सब कुछ ख़ुद निर्यात या हटा सकते हैं। जिस समूह को आप बंद कर दें और डेढ़ साल तक न छूएं, वह अपने-आप आपके संग्रह में चला जाता है — कुछ भी नहीं हटता, और आप उसे कभी भी दोबारा खोल सकते हैं।',
+      'जब तक आपका खाता खुला है, आपका डेटा रहता है। अगर खाता 3 साल तक अछूता रहे, तो हम उसे और उसके निजी डेटा को हटा देते हैं। इसके लिए इंतज़ार करने की ज़रूरत नहीं — सेटिंग्स में कभी भी सब कुछ ख़ुद निर्यात या हटा सकते हैं। जिस समूह को आप बंद कर दें और डेढ़ साल तक न छूएं, वह अपने-आप आपके संग्रह में चला जाता है — कुछ भी नहीं हटता, और आप उसे कभी भी दोबारा खोल सकते हैं। खाता मिटाने के बाद भी आपकी छोड़ी हुई कुछ चीज़ें बनी रहती हैं, और मिटाने से पहले यह जान लेना चाहिए। साझा समूह में आपने जो जोड़ा — ख़र्च और भुगतान, उन पर लिखे नोट और टिप्पणियाँ, और आपकी जोड़ी हुई तस्वीरें, चाहे वह रसीद हो, भुगतान का सबूत हो या यात्रा की फ़ोटो — वह बना रहता है, क्योंकि वह बाक़ी सदस्यों का भी रिकॉर्ड है; उसे हटाने से किसी और का हिसाब चुपचाप बदल जाता, जैसे कोई क़र्ज़ बिना चुकाए चुक गया हो। आपका नाम, फ़ोटो, संपर्क विवरण और भुगतान पता उन समूहों से हटा दिए जाते हैं और वहाँ आप एक अनाम पूर्व सदस्य बन जाते हैं; लेकिन जो सूचनाएँ और गतिविधि पहले ही दूसरों तक पहुँच चुकी हैं, उनमें उस समय का आपका नाम रह सकता है। और अगर आप “क्यों जा रहे हैं” वाले बॉक्स में कुछ लिखते हैं, तो वह जवाब जैसा आपने लिखा वैसा ही रखा जाता है, आपसे उसका नाता हटाकर। विज्ञापन के लिए कुछ नहीं रखा जाता, और किसी क़ानूनी बाध्यता के कारण भी कुछ नहीं रखा जाता।',
     controlsSection: 'आपके नियंत्रण',
-    appLockRow: 'ऐप लॉक',
-    appLockHint: 'खोलने के लिए फ़िंगरप्रिंट या चेहरा माँगे',
-    appLockUnavailable: 'उपलब्ध नहीं',
-    statusOn: 'चालू',
-    statusOff: 'बंद',
     blockedNone: 'कोई नहीं',
     sessionReplayHint: 'जब तक आप चालू न करें, बंद रहता है',
     policySection: 'हम आपके डेटा की रक्षा कैसे करते हैं',
-    dangerSection: 'सावधानी क्षेत्र',
     supportRow: 'निजता से जुड़े सवाल',
     supportRowHint: 'हमें लिखें — जवाब एक व्यक्ति देता है',
     lastUpdated: 'अंतिम बार {date} को अपडेट किया गया।',
@@ -10421,19 +10384,15 @@ const hi: UiStrings = {
     protectSummary: 'हर पठन पर डेटाबेस नियम, निजी रसीद लिंक, साफ़ की गई क्रैश रिपोर्ट।',
     servicesSummary: 'डेटाबेस के लिए Supabase, क्रैश के लिए Sentry, अनुमति देने पर ही Clarity।',
     analyticsSummary: 'कोई विज्ञापन नहीं। आपके चालू किए बिना स्क्रीन रिकॉर्डिंग नहीं।',
-    retentionSummary: 'खाता खुला रहने तक; 3 साल अछूता रहा तो हटा दिया जाता है।',
+    retentionSummary:
+      'खाता खुला रहने तक; 3 साल अछूता रहा तो हटा दिया जाता है। साझा रिकॉर्ड आपके नाम के बिना बने रहते हैं।',
     choicesSummary: 'सब कुछ निर्यात करें, कोई भी सूचना बंद करें, या खाता हटाएँ।',
     deviceTitle: 'इस फ़ोन पर',
     deviceSummary:
       'हिसाब डिवाइस की कुंजी से सील है; सेटिंग्स और बचे अपलोड नहीं। साइन आउट पर सब मिट जाता है।',
     deviceBody:
       'सिग्नल न होने पर भी चले, इसके लिए Waves आपके हिसाब की एक नक़ल फ़ोन में रखता है। हिसाब की पंक्तियाँ और भेजे जाने को बची हुई बदलावों की कतार फ़ोन के सुरक्षित स्टोर में रखी कुंजी से सील रहती हैं, इसलिए वह फ़ाइल फ़ोन से निकाल भी ली जाए तो कुंजी के बिना पढ़ी नहीं जा सकती। कुछ चीज़ें उस सील से बाहर हैं: आपकी ऐप सेटिंग्स, और अपलोड होने को बची रसीद तस्वीरें। साइन आउट करते ही हिसाब, कतार, कैश की तस्वीरें और कुंजी — सब साथ मिट जाते हैं।',
-    dataControlsSection: 'आपका डेटा',
-    legalSection: 'क़ानूनी',
-    exportRow: 'अपना डेटा निर्यात करें',
-    exportRowHint: 'पूरी, बिना नुक़सान की कॉपी — आपकी अपनी',
     licensesRow: 'ओपन सोर्स लाइसेंस',
-    licensesRowHint: 'वे लाइब्रेरियाँ जिन पर Waves बना है',
     licensesTitle: 'ओपन सोर्स',
     licensesIntro:
       'Waves ओपन-सोर्स सॉफ़्टवेयर पर बना है। इन्हें बनाने और सँभालने वालों का धन्यवाद।',
@@ -10477,7 +10436,7 @@ const hi: UiStrings = {
       'आपका नाम, फ़ोटो, भुगतान पता, देश, भाषा और सूचना सेटिंग्स। आपका साइन-इन, ताकि यह खाता फिर न खुले। आपके उपकरण, सूचना इतिहास और ख़रीद।',
     deleteStaysTitle: 'क्या रहता है, और क्यों',
     deleteStaysBody:
-      'आपके साझा समूहों के ख़र्चे और भुगतान रहते हैं, क्योंकि वे दूसरों के भी रिकॉर्ड हैं — वही बताते हैं कि कौन किसका देनदार है। उन्हें हटाने से किसी और का हिसाब चुपचाप बदल जाएगा और वह कर्ज़ चुक जाएगा जो किसी ने चुकाया ही नहीं। आप उन समूहों में एक अनाम पूर्व-सदस्य बन जाते हैं।',
+      'आपके साझा समूहों के ख़र्चे और भुगतान, उन पर लिखे नोट और टिप्पणियाँ तथा आपकी जोड़ी हुई तस्वीरें — रसीदें, भुगतान के सबूत, यात्रा की फ़ोटो — रहती हैं, क्योंकि वे दूसरों के भी रिकॉर्ड हैं — वही बताते हैं कि कौन किसका देनदार है। उन्हें हटाने से किसी और का हिसाब चुपचाप बदल जाएगा और वह कर्ज़ चुक जाएगा जो किसी ने चुकाया ही नहीं। आप उन समूहों में एक अनाम पूर्व-सदस्य बन जाते हैं।',
     deleteExportFirst: 'पहले अपना डेटा निर्यात करें',
     deleteWhyLabel: 'आप क्यों जा रहे हैं? (वैकल्पिक)',
     deleteWhyPlaceholder: 'जानना मददगार है; खाता जाने के बाद भी यह रखा जाता है',
@@ -13218,9 +13177,9 @@ const ar: UiStrings = {
     badge: 'محظور',
   },
   privacy: {
-    row: 'الخصوصية والأمان',
+    row: 'الخصوصية',
     rowHint: 'ما الذي يُحفظ، وكيف يُحمى',
-    title: 'الخصوصية والأمان',
+    title: 'الخصوصية',
     intro: 'يحتفظ Waves بأقل قدر ممكن عنك مع بقائه صالحًا للعمل. وهذا بيان بما يحتفظ به.',
     storeTitle: 'ما الذي يُحفظ',
     storeBody:
@@ -13230,7 +13189,7 @@ const ar: UiStrings = {
       'كل جدول محميّ بأمان على مستوى الصف داخل قاعدة البيانات — ليس ترشيحًا يجريه التطبيق، بل قاعدة تفرضها قاعدة البيانات نفسها. صور الإيصالات في مكان خاص لا يُوصل إليه إلا بروابط قصيرة الأجل. وتُنقّى تقارير الأعطال من العناوين والأرقام وعناوين الدفع قبل مغادرتها الهاتف. ويمكن أن يظهر كل إيصال لجميع أفراد المجموعة أو لمن شارك في ذلك المصروف فقط — تختار ذلك لكل صورة.',
     choicesTitle: 'ما الذي يمكنك فعله',
     choicesBody:
-      'تصدير كل ما أدخلته، في أي وقت، كاملًا ومجانًا. إيقاف أي إشعار. حذف حسابك والبيانات الشخصية التي فيه.',
+      'تصدير كل ما أدخلته، في أي وقت، كاملًا ومجانًا. إيقاف أي إشعار. حذف حسابك والبيانات الشخصية التي فيه. التصدير والحذف كلاهما في الإعدادات، ويُعرض التصدير مرة أخرى عند المغادرة.',
     couldNotSave: 'لم يُحفظ هذا. أعد المحاولة بعد قليل.',
     analyticsTitle: 'كيف يُستخدم التطبيق',
     analyticsBody:
@@ -13241,17 +13200,11 @@ const ar: UiStrings = {
       'يعمل بـاقي على Supabase — قاعدة البيانات وتسجيل الدخول، على خوادم نتحكّم بها. تقارير الأعطال تذهب إلى Sentry بعد إزالة تفاصيلك قبل أن تغادر الهاتف. بيانات الاستخدام المجهولة تذهب إلى Microsoft Clarity، وفقط إذا فعّلتها أعلاه. بياناتك لا تُباع أبدًا، ولا توجد شبكات إعلانات.',
     retentionTitle: 'كم نحتفظ بها',
     retentionBody:
-      'تبقى بياناتك ما دام حسابك مفتوحًا. إذا بقي الحساب دون استخدام لمدة 3 سنوات، نحذفه ونحذف معه البيانات الشخصية. لا داعي للانتظار — يمكنك تصدير كل شيء أو حذفه بنفسك في أي وقت أدناه. المجموعة التي تغلقها وتتركها دون استخدام لمدة عام ونصف تُنقل تلقائيًا إلى أرشيفك — لا يُحذف شيء، ويمكنك إعادة فتحها في أي وقت.',
+      'تبقى بياناتك ما دام حسابك مفتوحًا. إذا بقي الحساب دون استخدام لمدة 3 سنوات، نحذفه ونحذف معه البيانات الشخصية. لا داعي للانتظار — يمكنك تصدير كل شيء أو حذفه بنفسك في أي وقت من الإعدادات. المجموعة التي تغلقها وتتركها دون استخدام لمدة عام ونصف تُنقل تلقائيًا إلى أرشيفك — لا يُحذف شيء، ويمكنك إعادة فتحها في أي وقت. ويبقى بعض ما تتركه خلفك حتى بعد حذف حسابك، ومن حقك معرفته قبل أن تحذف. ما أضفته إلى مجموعة مشتركة — المصروفات والتسويات، والملاحظات والتعليقات عليها، والصور التي أضفتها، سواء كانت إيصالًا أو إثبات دفع أو صورة رحلة — يبقى، لأنه سجلّ بقية الأعضاء أيضًا، وإزالته تغيّر رصيد شخص آخر بصمت وكأن دَينًا سُدّد دون أن يدفعه أحد. أما اسمك وصورتك وبيانات التواصل وعناوين الدفع فتُزال من تلك المجموعات، وتصبح فيها عضوًا سابقًا بلا اسم؛ غير أن الإشعارات وسجل النشاط التي وصلت إلى آخرين من قبل قد تظل تحمل اسمك وقتها. وإذا كتبت شيئًا في خانة سبب المغادرة، فيُحفظ ما كتبته كما هو بعد إزالة ما يربطه بك. لا يُحتفظ بشيء لأغراض إعلانية، ولا يُحتفظ بشيء لأن قانونًا يلزمنا بذلك.',
     controlsSection: 'أدواتك',
-    appLockRow: 'قفل التطبيق',
-    appLockHint: 'يطلب بصمتك أو وجهك عند الفتح',
-    appLockUnavailable: 'غير متاح',
-    statusOn: 'مفعّل',
-    statusOff: 'متوقف',
     blockedNone: 'لا أحد',
     sessionReplayHint: 'متوقف ما لم تفعّله بنفسك',
     policySection: 'كيف نحمي بياناتك',
-    dangerSection: 'منطقة الخطر',
     supportRow: 'أسئلة عن الخصوصية',
     supportRowHint: 'راسلنا — يردّ عليك شخص',
     lastUpdated: 'آخر تحديث {date}.',
@@ -13261,19 +13214,15 @@ const ar: UiStrings = {
     protectSummary: 'قواعد قاعدة البيانات عند كل قراءة، وروابط إيصالات خاصة، وتقارير أعطال منقّاة.',
     servicesSummary: 'Supabase لقاعدة البيانات، وSentry للأعطال، وClarity فقط إن سمحت.',
     analyticsSummary: 'لا إعلانات ولا معرّف إعلاني. ولا تسجيل للشاشة ما لم تفعّله.',
-    retentionSummary: 'يبقى ما دام حسابك مفتوحًا، ويُحذف بعد ثلاث سنوات دون استخدام.',
+    retentionSummary:
+      'يبقى ما دام حسابك مفتوحًا، ويُحذف بعد ثلاث سنوات دون استخدام. وتبقى السجلات المشتركة دون اسمك.',
     choicesSummary: 'صدّر كل شيء، أوقف أي إشعار، أو احذف حسابك.',
     deviceTitle: 'على هذا الهاتف',
     deviceSummary:
       'الدفتر مختوم بمفتاح على الجهاز، أما الإعدادات والرفع المعلّق فلا. ويُمحى الكل عند تسجيل الخروج.',
     deviceBody:
       'يحتفظ Waves بنسخة من دفترك على الهاتف كي يعمل دون شبكة. وصفوف الدفتر وطابور التغييرات التي لم تُرسل بعد مختومة بمفتاح داخل المخزن الآمن للهاتف، فلا تُقرأ نسخة من ذلك الملف تُؤخذ خارج الهاتف دون المفتاح. وبعض الأشياء خارج هذا الختم: إعدادات التطبيق، وصور الإيصالات التي تنتظر الرفع. وتسجيل الخروج يمسح الدفتر والطابور والصور المخزّنة والمفتاح معًا.',
-    dataControlsSection: 'بياناتك',
-    legalSection: 'قانوني',
-    exportRow: 'صدِّر بياناتك',
-    exportRowHint: 'نسخة كاملة بلا فقدان — مِلكك',
     licensesRow: 'تراخيص المصدر المفتوح',
-    licensesRowHint: 'المكتبات التي بُني عليها بـاقي',
     licensesTitle: 'المصدر المفتوح',
     licensesIntro: 'بُني بـاقي على برمجيات مفتوحة المصدر. شكرًا لمن صنعها ويصونها.',
     licenseNote: 'كلٌّ منها يُستخدم بموجب ترخيصه الخاص، دون تغيير.',
@@ -13330,7 +13279,7 @@ const ar: UiStrings = {
       'اسمك وصورتك وعنوان الدفع والبلد واللغة وإعدادات الإشعارات. وتسجيل دخولك، فلا يُفتح هذا الحساب بعدها. وأجهزتك وسجل إشعاراتك ومشترياتك.',
     deleteStaysTitle: 'ما الذي يبقى، ولماذا',
     deleteStaysBody:
-      'تبقى المصروفات والتسويات في مجموعاتك المشتركة، لأنها سجلات الآخرين أيضًا — وهي ما يحدد من يدين لمن. وحذفها يغيّر حساب شخص آخر بصمت ويُسقط دَينًا لم يسدده أحد. تصبح عضوًا سابقًا بلا اسم في تلك المجموعات.',
+      'تبقى المصروفات والتسويات في مجموعاتك المشتركة، ومعها الملاحظات والتعليقات والصور التي أضفتها — إيصالات وإثباتات دفع وصور رحلات — لأنها سجلات الآخرين أيضًا — وهي ما يحدد من يدين لمن. وحذفها يغيّر حساب شخص آخر بصمت ويُسقط دَينًا لم يسدده أحد. تصبح عضوًا سابقًا بلا اسم في تلك المجموعات.',
     deleteExportFirst: 'صدّر بياناتك أولًا',
     deleteWhyLabel: 'لماذا تغادر؟ (اختياري)',
     deleteWhyPlaceholder: 'معرفة السبب تفيدنا، ويُحتفظ بها بعد زوال الحساب',

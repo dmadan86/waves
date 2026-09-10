@@ -23,23 +23,34 @@ because after this there is nothing to export.
 
 Your account is closed and nobody can sign into it again.
 
-Two things outlive it, and both are covered below: your share of the shared
-ledger, and — if you filled it in — the answer you typed into
-[**Why are you leaving?**](#doing-it)
+Three things outlive it, and all three are covered below: your share of the
+shared ledger; — if you filled it in — the answer you typed into
+[**Why are you leaving?**](#doing-it); and the notifications and activity
+entries that had already reached other people, which keep the name you had when
+they were written. Nothing prunes those after the fact, so somebody who was
+told _"Asha added you to Goa trip"_ still reads that sentence after Asha has
+gone.
 
 ## What stays, and why
 
-> The expenses and settlements in your shared groups remain, because they are
-> also other people's records — they are what says who owes whom, and removing
-> them would silently change somebody else's balance to settle a debt nobody
-> paid. You become an unnamed former member in those groups. Your name is gone
-> from them; your share of the dinner is not.
+> The expenses and settlements in your shared groups remain, along with the
+> notes and comments on them and the images you added — receipts, proofs of
+> payment, trip photos — because they are also other people's records — they
+> are what says who owes whom, and removing them would silently change somebody
+> else's balance to settle a debt nobody paid. You become an unnamed former
+> member in those groups. Your name is gone from them; your share of the dinner
+> is not.
 
 This is worth reading twice. A shared ledger is not yours alone. If your half of
 a ₹2,000 dinner vanished when you left, the other person's balance would quietly
 change by ₹1,000 in your favour — a debt cancelled by an account deletion rather
 than by a payment. So the amounts stay and your identity does not: those rows
 become an unnamed former member.
+
+That last part is true of the groups themselves. It is not true of messages
+already sent: a notification or an activity entry written before you left keeps
+the name it was written with, in the copy held by whoever received it, and
+there is no job that goes back and changes them.
 
 ## Before you press it
 
