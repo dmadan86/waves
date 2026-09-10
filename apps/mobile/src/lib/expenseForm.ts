@@ -65,6 +65,22 @@ export interface PayerPlan {
 const NO_LOCKS: ReadonlySet<MemberId> = new Set<MemberId>();
 
 /**
+ * Whether the optional details fold is visible.
+ *
+ * The form starts open on both add and edit so the two routes do not present two
+ * different layouts for the same expense. A person's explicit toggle is still
+ * honoured — except when a foreign currency is selected, because the FX rate
+ * lives in the fold and the expense cannot be saved without it.
+ */
+export function expenseDetailsVisible(input: {
+  readonly choice: boolean | null;
+  readonly currency: string;
+  readonly groupCurrency: string;
+}): boolean {
+  return input.currency !== input.groupCurrency || (input.choice ?? true);
+}
+
+/**
  * Tapping a member's face.
  *
  * One-payer mode is a radio: the tap replaces whoever was there and hands them

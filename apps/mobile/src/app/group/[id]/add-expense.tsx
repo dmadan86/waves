@@ -93,6 +93,7 @@ import { resolveDraftCurrency, resolveDraftFx } from '@/lib/expenseDraft';
 import { dateFrom, isoDate, showDate } from '@/lib/expenseDay';
 import {
   expenseDateFor,
+  expenseDetailsVisible,
   planCollapseToOne,
   planEvenly,
   planToggle,
@@ -1565,8 +1566,11 @@ export default function AddExpenseScreen() {
   //
   // A foreign currency still forces it open over a collapse: the rate card lives
   // inside the fold and the expense cannot be saved without a rate.
-  const rateNeeded = currency !== groupCurrency;
-  const showDetails = rateNeeded || (detailsChoice ?? true);
+  const showDetails = expenseDetailsVisible({
+    choice: detailsChoice,
+    currency,
+    groupCurrency,
+  });
 
   // The bottom-bar sub-line. When an equal split lands the same amount on every
   // head, say it in money — "3 people owe ₹200 each" — which is the number

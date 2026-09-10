@@ -13,6 +13,7 @@ import { rebalancePayers, type PayerMap } from '@waves/core';
 
 import {
   expenseDateFor,
+  expenseDetailsVisible,
   planCollapseToOne,
   planEvenly,
   planToggle,
@@ -84,6 +85,31 @@ describe('expenseDateFor', () => {
 
   it('writes a plain UTC day, never a timestamp', () => {
     expect(todayIso(new Date('2026-09-01T22:45:00.000Z'))).toBe('2026-09-01');
+  });
+});
+
+describe('expenseDetailsVisible', () => {
+  it('starts open when nobody has toggled it, so add and edit share one layout', () => {
+    // The bug was deriving the default from saved facts: ordinary edits opened
+    // because a category existed, while a new bill opened shut. Users, riders and
+    // travellers saw two versions of the same form for the same kind of expense.
+    expect(expenseDetailsVisible({ choice: null, currency: 'INR', groupCurrency: 'INR' })).toBe(
+      true,
+    );
+  });
+
+  it('honours an explicit collapse for a same-currency expense', () => {
+    expect(expenseDetailsVisible({ choice: false, currency: 'INR', groupCurrency: 'INR' })).toBe(
+      false,
+    );
+  });
+
+  it('keeps a foreign-currency expense open so the required rate is reachable', () => {
+    // A traveller's hotel bill or a financer reconciling USD in an INR group must
+    // not be allowed to hide the FX rate card behind a collapsed fold.
+    expect(expenseDetailsVisible({ choice: false, currency: 'USD', groupCurrency: 'INR' })).toBe(
+      true,
+    );
   });
 });
 
