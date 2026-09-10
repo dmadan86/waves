@@ -656,7 +656,8 @@
       "support": "सपोर्ट",
       "privacy": "निजता",
       "terms": "शर्तें",
-      "markdown": "यह पन्ना Markdown में"
+      "markdown": "यह पन्ना Markdown में",
+      "deleteAccount": "खाता हटाना"
     },
     "rights": "सर्वाधिकार सुरक्षित।"
   },
@@ -665,7 +666,8 @@
     "termsTitle": "शर्तें",
     "lastUpdated": "आख़िरी अपडेट",
     "backHome": "होम पर वापस",
-    "englishOnly": "हमारे क़ानूनी दस्तावेज़ अंग्रेज़ी में प्रकाशित होते हैं।"
+    "englishOnly": "हमारे क़ानूनी दस्तावेज़ अंग्रेज़ी में प्रकाशित होते हैं।",
+    "deleteTitle": "खाता हटाना"
   },
   "currencies": {
     "eyebrow": "हर जगह",

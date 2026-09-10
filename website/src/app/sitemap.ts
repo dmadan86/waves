@@ -3,7 +3,10 @@ import type { MetadataRoute } from 'next';
 import { htmlLang, locales } from '@/i18n/config';
 import { absoluteUrl } from '@/lib/site';
 
-const paths = ['', '/privacy', '/terms'] as const;
+// `/delete-account` is listed on purpose. Google Play requires the deletion URL
+// to be publicly reachable and findable, and a page reachable only by someone
+// who already has the link is neither.
+const paths = ['', '/privacy', '/terms', '/delete-account'] as const;
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return locales.flatMap((locale) =>
