@@ -43,10 +43,16 @@ export async function requestJson(
   return parse(text);
 }
 
-/** A request whose body is raw text (an upload); returns the parsed response. */
+/**
+ * A request whose body is raw text (an upload); returns the parsed response.
+ *
+ * The body is optional so the same helper covers a DELETE, which carries none
+ * and answers 204 with nothing — `parse` reads an empty response as an empty
+ * object rather than a failure.
+ */
 export async function requestRaw(
   url: string,
-  options: { method: string; headers: Record<string, string>; body: string },
+  options: { method: string; headers: Record<string, string>; body?: string },
 ): Promise<Record<string, unknown>> {
   const response = await fetch(url, {
     method: options.method,

@@ -1,6 +1,30 @@
 /**
  * Backing the private "Me" ledger up to the person's own Google Drive.
  *
+ * TWO TIERS, AND WHICH ONE THIS SCREEN IS FOR. The first version of this screen
+ * had one tier and it was the wrong one: a 64-character key, shown once, that
+ * nothing worked without. That is WhatsApp's *advanced* option — its end-to-end
+ * encrypted backup, four taps down in settings — shipped as though it were the
+ * default. WhatsApp's actual default asks for no key at all, and so does ours
+ * now. On **Standard** the app mints a key, keeps a copy in the same hidden
+ * Drive folder as the backup, and never mentions it; linking the account is the
+ * whole of the setup. On **Extra protection**, opt-in, the key is shown once and
+ * lives only on this phone.
+ *
+ * We ship WhatsApp's advanced tier minus its password half. WhatsApp offers a
+ * password first and demotes the 64-digit key to a text link beneath it; a
+ * password is only safe behind a memory-hard KDF, which is a new crypto
+ * dependency and a tuning decision this app has deliberately not taken (see
+ * `recoveryKey.ts`). So our version of that screen has one primary button and
+ * no fork.
+ *
+ * WHERE THE TIER IS SAID, and where it is not. Following WhatsApp's chat-backup
+ * card, the tier is a padlocked line *inside the status card*, beside the date
+ * and the size — not a badge and not a section heading. And "Extra protection"
+ * is the last card on the screen, visually apart, reading Off or On with a
+ * one-line footnote: it is an upgrade, not a step, and it must not compete with
+ * "Back up now" for the attention of somebody whose backup is already working.
+ *
  * THE SHAPE, AND WHY IT CHANGED. This was WhatsApp's chat-backup screen — six
  * peer sections: back up now, account, key, schedule, network, restore. That
  * shape assumes the feature already works. It does not until three separate
@@ -16,6 +40,10 @@
  *
  * The anchor is the card at the top. It always answers "is this protected",
  * in the same place, in one line: still reading / not yet / ready / backed up.
+ * It is not updated optimistically: a run in progress replaces the *button*
+ * with its own progress line and leaves the status card saying what was last
+ * true, which is what WhatsApp does and what stops the screen claiming a backup
+ * that has not landed.
  * The other two things WhatsApp's chat-backup card carries — when the last one
  * landed, and that the lock is a key only this person holds — appear once
  * there is a truthful answer to give, which is once the setup is done; a
@@ -24,8 +52,10 @@
  * question somebody opened this screen with.
  *
  * Below the fold of that card the screen forks. **Until a backup can run**, the
- * card continues into a three-step checklist and the outstanding step — and
- * only that one — carries a button. Steps already taken collapse to a line with
+ * card continues into the checklist and the outstanding step — and only that
+ * one — carries a button. On Standard there is exactly one step, so it is not
+ * drawn as a checklist at all: no marks, no "1 of 1", just the button. A
+ * progress counter over a single item is scaffolding measuring itself. Steps already taken collapse to a line with
  * "Done" beside them; steps further out are dimmed and silent. That is Uber
  * Eats' account checkup, where the item needing attention expands in place with
  * its own action and the satisfied ones shrink to checked rows. **Once it can
@@ -50,7 +80,7 @@
  *    cannot back up at all, where the card has already said why and "the steps
  *    above" would point at nothing.
  * 5. Which networks.
- * 6. Restore, last: it is the half people need once, at the worst moment, and
+ * 6. Restore: it is the half people need once, at the worst moment, and
  *    burying it would be cruel — but putting it near "Back up now" invites the
  *    wrong tap. Its position is unchanged and deliberately so; what changed is
  *    that when it is blocked for want of a key it now says which key and
@@ -58,6 +88,11 @@
  *    a tap the checklist also offers, and it is worth it: the alternative was
  *    a person on a new phone reading "Create your backup key first", doing it,
  *    and having the next run overwrite the backup they came to recover.
+ * 7. Extra protection, last and set apart, exactly where WhatsApp puts its own
+ *    end-to-end row. Below Restore rather than above it, because the reason
+ *    Restore sits low — that it must not be next to "Back up now" — is
+ *    unaffected by what comes after it, and an upgrade offered before the way
+ *    back is offered would be the wrong order of business.
  *
  * THE RULE THE WHOLE FILE OBEYS, stated exactly. A control that *cannot* run
  * either carries its reason beside it or is not rendered at all, with the step
@@ -67,9 +102,13 @@
  * that takes. What is ruled out is the third case, which is what was here
  * before — a grey button, nothing running, and no reason anywhere on screen.
  *
- * The one promise this screen makes, and must keep: nothing legible leaves the
- * phone. What goes to Drive is a sealed blob; the key that opens it is shown to
- * the person and never sent anywhere.
+ * THE PROMISE, WHICH IS NOW TWO PROMISES, AND NEITHER MAY BE OVERSTATED. What
+ * goes to Drive is a sealed blob either way. On Extra protection the key that
+ * opens it is shown to the person and sent nowhere, and the screen says so. On
+ * Standard the key is in their Google account, which means whoever reaches that
+ * account can read the ledger — so the Standard copy says *that*, and does not
+ * borrow the sentence about Google not being able to read it. Getting this
+ * wrong is worse than any other mistake available on this screen.
  */
 
 import { useCallback, useState, type ReactNode } from 'react';
@@ -92,6 +131,7 @@ import {
   SectionHeader,
   Sheet,
   Text,
+  Toggle,
   useTabBarClearance,
   useTheme,
 } from '@waves/ui';
@@ -102,6 +142,7 @@ import { useBackup, type BackupOutcome } from '@/lib/backup/useBackup';
 import { BackupFrequency } from '@/lib/backup/schedule';
 import { formatRecoveryKey } from '@/lib/backup/recoveryKey';
 import { backupSetup, BackupStep } from '@/lib/backup/setup';
+import { BackupTier } from '@/lib/backup/tier';
 import type { RestoreScan } from '@/lib/backup/engine';
 import { CloudAuthError } from '@/lib/cloud/oauth';
 import { friendlyError } from '@/lib/errors';
@@ -118,6 +159,16 @@ const PROVIDER_LABEL = 'Google Drive';
 const STEP_MARK = 26;
 
 /**
+ * How tall the key sheet's scroller may get, in points and not a percentage.
+ *
+ * A percentage height resolves against a parent that has none — the sheet sizes
+ * itself to its content — so it collapses to nothing visible and quietly clips
+ * whatever was at the bottom. Here that would be the consent toggle and the
+ * button beside it, on the one sheet where the last control is the point.
+ */
+const KEY_SHEET_MAX_HEIGHT = 460;
+
+/**
  * Which action is in flight, rather than a bare `busy` flag.
  *
  * A screen-wide boolean greys every button at once and says nothing about any
@@ -127,7 +178,7 @@ const STEP_MARK = 26;
  * action lets the pressed button carry a spinner and read as *working*, while
  * the rest go quiet for a second or two beside something visibly running.
  */
-type PendingAction = 'connect' | 'disconnect' | 'key' | 'backup' | 'scan' | 'restore';
+type PendingAction = 'connect' | 'disconnect' | 'key' | 'backup' | 'scan' | 'restore' | 'extra';
 
 /**
  * The disc at the head of a checklist row: a tick once the step is taken, its
@@ -180,9 +231,43 @@ export default function BackupSettingsScreen() {
   const [typedKey, setTypedKey] = useState('');
   /** What went wrong with the key just typed — not a key, or the keystore. */
   const [typedProblem, setTypedProblem] = useState<string | null>(null);
+  /** "What is a backup key?", opened from inside the entry sheet. */
+  const [explaining, setExplaining] = useState(false);
   const [unlinking, setUnlinking] = useState(false);
   const [found, setFound] = useState<FoundBackup | null>(null);
   const [restored, setRestored] = useState<number | null>(null);
+  /** The Extra-protection pitch, before any key has been minted. */
+  const [pitching, setPitching] = useState(false);
+  /**
+   * True while the key on screen is one that has not been committed to
+   * anything. It is what makes the same sheet serve two jobs — "here is the key
+   * you already have" and "here is the key that is about to replace Drive's
+   * copy" — and the second one carries the consent gate and the button that
+   * actually does the work.
+   */
+  const [upgrading, setUpgrading] = useState(false);
+  /** Solflare's gate: the destructive button stays inert until this is on. */
+  const [understood, setUnderstood] = useState(false);
+  /**
+   * Set when a scan finds a backup this phone cannot open. Until then the
+   * restore card does not offer "I already have a key" on Standard, where
+   * nobody is expected to have one; after it, that button is the only way out.
+   */
+  const [needsOldKey, setNeedsOldKey] = useState(false);
+  /**
+   * A backup that was found and cannot be opened from here, with what it says
+   * about itself. Shown as a sheet of its own rather than as an error, because
+   * a person who asked "is there a backup" got a yes — what changes is what
+   * opening it takes, and that is a fork to offer, not a failure to report.
+   */
+  const [blocked, setBlocked] = useState<Extract<RestoreScan, { ok: false }> | null>(null);
+  /**
+   * Why the last scan came to nothing, said inside the restore card. The button
+   * that produced it is directly above, so the retry is where the answer is —
+   * "no backup found" is very often "not loaded yet", and a sentence stranded
+   * in the callout at the top of the screen leaves the retry a scroll away.
+   */
+  const [restoreNote, setRestoreNote] = useState<string | null>(null);
 
   const dateTime = useCallback(
     (at: number): string =>
@@ -202,6 +287,10 @@ export default function BackupSettingsScreen() {
         return t.backup.refusedNotConnected;
       case 'no-key':
         return t.backup.refusedNoKey;
+      case 'needs-key':
+        return t.backup.refusedNeedsKey;
+      case 'key-lost':
+        return t.backup.refusedKeyLost;
       case 'offline':
         return t.backup.refusedOffline;
       case 'network-policy':
@@ -282,12 +371,74 @@ export default function BackupSettingsScreen() {
     setError(null);
     try {
       setCopied(false);
+      setUpgrading(false);
       setShownKey(await backup.createKey());
     } catch (caught) {
       setError(friendlyError(caught, t.backup.keySaveFailed, 'backup.createKey'));
     } finally {
       setPending(null);
     }
+  };
+
+  /**
+   * Turn Extra protection on: mint the key, and show it.
+   *
+   * Nothing is committed here. The key exists on this screen and nowhere else
+   * until the person works the consent gate below it, which is deliberate —
+   * backing out of the sheet leaves the account exactly as it was, still
+   * Standard, still opening with the key Drive holds.
+   */
+  const onOfferExtra = (): void => {
+    setPitching(false);
+    setError(null);
+    setCopied(false);
+    setUnderstood(false);
+    setUpgrading(true);
+    setShownKey(backup.beginExtra());
+  };
+
+  /**
+   * Commit it: re-seal the backup under the new key, then take Drive's copy of
+   * the old one away — in that order, and never the other.
+   *
+   * The sheet stays open for the length of it, with the button wearing the
+   * spinner, because this is a Drive read and a Drive write and a Drive delete
+   * and closing over it would leave somebody looking at a screen that had not
+   * changed yet. It closes on success, and on failure it stays open carrying
+   * the reason, with the key still on it — which is the whole point of failing
+   * before the escrow is touched.
+   */
+  const onCommitExtra = async (): Promise<void> => {
+    if (!shownKey) return;
+    setPending('extra');
+    setError(null);
+    try {
+      const outcome = await backup.commitExtra(shownKey);
+      if (outcome.kind === 'refused') {
+        setError(refusalLine(outcome));
+        return;
+      }
+      setUpgrading(false);
+      setShownKey(null);
+    } catch (caught) {
+      setError(friendlyError(caught, t.backup.extraFailed, 'backup.upgrade'));
+    } finally {
+      setPending(null);
+    }
+  };
+
+  /**
+   * Put the key sheet away, and forget everything that only made sense while it
+   * was open. Refused outright mid-upgrade: the sheet is at that moment the
+   * only place the new key exists, and losing it between the re-seal and the
+   * escrow delete would leave the Drive file sealed under something nobody can
+   * read back.
+   */
+  const closeKeySheet = (): void => {
+    if (pending === 'extra') return;
+    setShownKey(null);
+    setUpgrading(false);
+    setUnderstood(false);
   };
 
   /**
@@ -304,6 +455,7 @@ export default function BackupSettingsScreen() {
     setError(null);
     try {
       setCopied(false);
+      setUpgrading(false);
       const key = await backup.revealKey();
       if (!key) {
         setError(t.backup.keyUnreadable);
@@ -320,6 +472,7 @@ export default function BackupSettingsScreen() {
   const onEnterKey = (): void => {
     setTypedKey('');
     setTypedProblem(null);
+    setExplaining(false);
     setEntering(true);
   };
 
@@ -338,6 +491,8 @@ export default function BackupSettingsScreen() {
       }
       setEntering(false);
       setTypedKey('');
+      setNeedsOldKey(false);
+      setBlocked(null);
     } catch (caught) {
       setTypedProblem(friendlyError(caught, t.backup.keySaveFailed, 'backup.acceptKey'));
     }
@@ -346,11 +501,24 @@ export default function BackupSettingsScreen() {
   const onCheckForBackup = async (): Promise<void> => {
     setPending('scan');
     setError(null);
+    setRestoreNote(null);
     setRestored(null);
     try {
       const result = await backup.scan();
-      if (result.ok) setFound(result);
-      else setError(refusalLine({ kind: 'refused', refusal: result.refusal }));
+      if (result.ok) {
+        setFound(result);
+        return;
+      }
+      // A backup that exists and needs something gets its own surface, with the
+      // date and the size it announced and the one button that would open it.
+      // Everything else — nothing there, no link, no connection — is a line
+      // under the button that would try again.
+      if (result.found) {
+        setBlocked(result);
+        if (result.refusal === 'needs-key') setNeedsOldKey(true);
+      } else {
+        setRestoreNote(refusalLine({ kind: 'refused', refusal: result.refusal }));
+      }
     } catch (caught) {
       // A key that does not open the file throws out of the AEAD. That is the
       // whole diagnosis and it is worth saying precisely; anything else is a
@@ -421,7 +589,14 @@ export default function BackupSettingsScreen() {
     connected: backup.connected,
     hasKey: backup.hasKey,
     keySeen: backup.settings.keySeen,
+    tier: backup.tier,
   });
+  const extra = backup.tier === BackupTier.Extra;
+  /**
+   * One step is not a checklist. On Standard the card carries the Link button
+   * on its own — no marks, no numbers, no "1 of 1" measuring itself.
+   */
+  const checklist = setup.total > 1;
   const last = backup.settings.last;
 
   /**
@@ -534,6 +709,12 @@ export default function BackupSettingsScreen() {
    * `settled` is consulted because these flags start false: without it the card
    * would say "Checking…" while this line flatly told a linked phone to link an
    * account.
+   *
+   * The no-key block now applies **only on Extra protection**. On Standard a
+   * phone that has never held a key is the ordinary case — a new phone, signed
+   * into the same Google account — and the key it needs is in the folder beside
+   * the backup. Blocking there would be the same mistake in a new costume:
+   * refusing the one action that was going to work.
    */
   const restoreReason = !settled
     ? t.backup.statusChecking
@@ -541,7 +722,7 @@ export default function BackupSettingsScreen() {
       ? t.backup.unavailable
       : !backup.connected
         ? t.backup.refusedNotConnected
-        : !backup.hasKey
+        : extra && !backup.hasKey
           ? t.backup.restoreNeedsKey
           : null;
 
@@ -615,8 +796,13 @@ export default function BackupSettingsScreen() {
               {settled && setup.complete ? (
                 <Row gap={theme.spacing.xs} style={{ marginTop: 2 }}>
                   <Ionicons name="lock-closed" size={iconSize.xs} color={theme.color.textFaint} />
+                  {/* Two padlocks, two different sentences. The Extra one is
+                      WhatsApp's "End-to-end encrypted"; the Standard one names
+                      where the key is kept, because a line that only said
+                      "locked" would let somebody read the stronger promise into
+                      it. */}
                   <Text variant="micro" tone="faint">
-                    {t.backup.statusSealed}
+                    {extra ? t.backup.statusSealedExtra : t.backup.statusSealedStandard}
                   </Text>
                 </Row>
               ) : null}
@@ -673,63 +859,83 @@ export default function BackupSettingsScreen() {
             <>
               <Divider />
               <View style={{ gap: theme.spacing.lg }}>
-                <Row style={{ justifyContent: 'space-between' }}>
-                  <Text variant="micro" tone="faint">
-                    {t.backup.setupSection}
-                  </Text>
-                  <Text variant="micro" tone="faint">
-                    {t.backup.setupProgress
-                      .replace('{done}', String(setup.done))
-                      .replace('{total}', String(setup.total))}
-                  </Text>
-                </Row>
-                {setup.steps.map(({ step, done }, index) => {
-                  const active = setup.outstanding === step;
-                  const copy = stepCopy[step];
-                  return (
-                    <View key={step} style={{ gap: theme.spacing.md }}>
-                      <Row gap={theme.spacing.md} style={{ alignItems: 'flex-start' }}>
-                        <StepMark number={index + 1} done={done} active={active} />
-                        <View style={{ flex: 1, gap: 2 }}>
-                          <Text variant="subheading" tone={active ? 'default' : 'muted'}>
-                            {copy.title}
-                          </Text>
-                          {active ? (
-                            <Text variant="caption" tone="muted">
-                              {copy.body}
+                {/* A one-item list gets no heading and no counter: on Standard
+                    the only thing outstanding is linking the account, and a
+                    progress bar over it would be scaffolding measuring itself.
+                    Its copy still comes from the step, so the single button
+                    carries the same sentence it would have on a list. */}
+                {checklist ? (
+                  <Row style={{ justifyContent: 'space-between' }}>
+                    <Text variant="micro" tone="faint">
+                      {t.backup.setupSection}
+                    </Text>
+                    <Text variant="micro" tone="faint">
+                      {t.backup.setupProgress
+                        .replace('{done}', String(setup.done))
+                        .replace('{total}', String(setup.total))}
+                    </Text>
+                  </Row>
+                ) : null}
+                {!checklist && setup.outstanding ? (
+                  <View style={{ gap: theme.spacing.md }}>
+                    <View style={{ gap: 2 }}>
+                      <Text variant="subheading">{stepCopy[setup.outstanding].title}</Text>
+                      <Text variant="caption" tone="muted">
+                        {stepCopy[setup.outstanding].body}
+                      </Text>
+                    </View>
+                    {stepActions(setup.outstanding)}
+                  </View>
+                ) : null}
+                {checklist &&
+                  setup.steps.map(({ step, done }, index) => {
+                    const active = setup.outstanding === step;
+                    const copy = stepCopy[step];
+                    return (
+                      <View key={step} style={{ gap: theme.spacing.md }}>
+                        <Row gap={theme.spacing.md} style={{ alignItems: 'flex-start' }}>
+                          <StepMark number={index + 1} done={done} active={active} />
+                          <View style={{ flex: 1, gap: 2 }}>
+                            <Text variant="subheading" tone={active ? 'default' : 'muted'}>
+                              {copy.title}
+                            </Text>
+                            {active ? (
+                              <Text variant="caption" tone="muted">
+                                {copy.body}
+                              </Text>
+                            ) : null}
+                          </View>
+                          {done ? (
+                            <Text variant="micro" tone="positive">
+                              {t.backup.stepDone}
                             </Text>
                           ) : null}
-                        </View>
-                        {done ? (
-                          <Text variant="micro" tone="positive">
-                            {t.backup.stepDone}
-                          </Text>
+                        </Row>
+                        {active ? (
+                          // Hung under the row's text rather than the mark, so the
+                          // button reads as belonging to this step and not to the
+                          // list. `paddingStart` so it hangs off the right edge in
+                          // Arabic.
+                          <View
+                            style={{
+                              paddingStart: STEP_MARK + theme.spacing.md,
+                              gap: theme.spacing.sm,
+                            }}
+                          >
+                            {stepActions(step)}
+                          </View>
                         ) : null}
-                      </Row>
-                      {active ? (
-                        // Hung under the row's text rather than the mark, so the
-                        // button reads as belonging to this step and not to the
-                        // list. `paddingStart` so it hangs off the right edge in
-                        // Arabic.
-                        <View
-                          style={{
-                            paddingStart: STEP_MARK + theme.spacing.md,
-                            gap: theme.spacing.sm,
-                          }}
-                        >
-                          {stepActions(step)}
-                        </View>
-                      ) : null}
-                    </View>
-                  );
-                })}
+                      </View>
+                    );
+                  })}
               </View>
             </>
           ) : null}
         </Card>
 
+        {/* The promise, in whichever of its two forms is true. */}
         <Text variant="body" tone="muted">
-          {t.backup.intro}
+          {extra ? t.backup.introExtra : t.backup.introStandard}
         </Text>
 
         {/* Which Google account. Rendered whenever one is linked *and* the
@@ -761,13 +967,17 @@ export default function BackupSettingsScreen() {
           </View>
         ) : null}
 
-        {/* The key. Rendered whenever this phone holds one and the checklist is
-            not itself asking to be shown it. Gating this on `setup.complete`
-            was wrong: `configured` is a runtime conjunction (a client id *and*
-            the native Google module), so a build that loses either would hide
-            the only way to read back a key already on the device — and the
-            Drive file it opens would then be unrecoverable. */}
-        {backup.hasKey && setup.outstanding !== BackupStep.SaveKey ? (
+        {/* The key. Extra protection only — on Standard this phone holds a key
+            too, minted on the first run, but showing it would put back the
+            ceremony the tier exists to remove and would invite somebody to
+            treat a key Google also has as the thing keeping them safe.
+            Otherwise unchanged: rendered whenever this phone holds one and the
+            checklist is not itself asking to be shown it. Gating this on
+            `setup.complete` was wrong — `configured` is a runtime conjunction
+            (a client id *and* the native Google module), so a build that loses
+            either would hide the only way to read back a key already on the
+            device, and the Drive file it opens would then be unrecoverable. */}
+        {extra && backup.hasKey && setup.outstanding !== BackupStep.SaveKey ? (
           <View style={{ gap: theme.spacing.sm }}>
             <SectionHeader title={t.backup.keySection} />
             <Card style={{ gap: theme.spacing.md }}>
@@ -914,11 +1124,27 @@ export default function BackupSettingsScreen() {
               <Text variant="micro" tone="faint" align="center">
                 {restoreReason}
               </Text>
+            ) : restoreNote ? (
+              // Where the last look ended up, under the button that would look
+              // again. "There is no backup on this Drive account yet" is often
+              // a slow folder rather than an empty one.
+              <Text variant="micro" tone="muted" align="center">
+                {restoreNote}
+              </Text>
             ) : null}
             {/* The way out of the one blocked state that has one, right here,
                 so nobody has to go looking for it in the checklist — where the
-                other button is the one that would cost them the backup. */}
-            {settled && backup.configured && backup.connected && !backup.hasKey ? (
+                other button is the one that would cost them the backup.
+                On Standard it appears only once a scan has actually found a
+                backup this phone cannot open: offering "I already have a key"
+                to somebody who was never given one is a question with no
+                answer, and it would quietly undercut the tier's promise that
+                nothing has to be kept. */}
+            {settled &&
+            backup.configured &&
+            backup.connected &&
+            !backup.hasKey &&
+            (extra || needsOldKey) ? (
               <Button
                 label={t.backup.keyEnter}
                 variant="secondary"
@@ -929,16 +1155,72 @@ export default function BackupSettingsScreen() {
             ) : null}
           </Card>
         </View>
+
+        {/* Extra protection: the opt-in tier, last on the screen and set apart,
+            where WhatsApp puts its end-to-end row. One line saying Off or On,
+            one footnote, and a door — never a tap that does the thing. */}
+        {settled && !setup.unavailable ? (
+          <View style={{ gap: theme.spacing.sm }}>
+            <SectionHeader title={t.backup.extraSection} />
+            <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
+              <ListRow
+                title={t.backup.extraSection}
+                // Both states open something. "On" opens the sheet that says
+                // what it means and why there is no switch back; a row that
+                // read "On" and did nothing would be the disabled-and-silent
+                // control this screen was rebuilt to get rid of.
+                onPress={() => setPitching(true)}
+                accessibilityLabel={`${t.backup.extraSection}, ${
+                  extra ? t.backup.extraOn : t.backup.extraOff
+                }`}
+                leading={
+                  <Ionicons
+                    name={extra ? 'shield-checkmark' : 'shield-outline'}
+                    size={iconSize.xl}
+                    color={extra ? theme.color.positive : theme.color.text}
+                  />
+                }
+                trailing={
+                  <Row gap={theme.spacing.xs}>
+                    <Text variant="body" tone="muted">
+                      {extra ? t.backup.extraOn : t.backup.extraOff}
+                    </Text>
+                    <Ionicons
+                      name={directionalIcon('chevron-forward')}
+                      size={iconSize.md}
+                      color={theme.color.textFaint}
+                    />
+                  </Row>
+                }
+              />
+            </Card>
+            <Text variant="micro" tone="faint">
+              {extra ? t.backup.extraFootnoteOn : t.backup.extraFootnoteOff}
+            </Text>
+          </View>
+        ) : null}
       </ScrollView>
 
-      {/* The key, shown once — or again, on request. */}
-      <Sheet
-        visible={shownKey !== null}
-        onClose={() => setShownKey(null)}
-        closeLabel={t.common.close}
-      >
-        <View style={{ gap: theme.spacing.md }}>
-          <Text variant="heading">{t.backup.keyTitle}</Text>
+      {/* The key: shown once on the way into Extra protection, or again later
+          on request. One sheet, two jobs — and the upgrade job is the one that
+          carries the consent gate, because the tap after it deletes Drive's
+          copy of the old key. */}
+      <Sheet visible={shownKey !== null} onClose={closeKeySheet} closeLabel={t.common.close}>
+        {/* A definite `maxHeight` in points and `flexGrow: 0`, per the Sheet's
+            own contract: a percentage against a parent that has no height of
+            its own silently clips the last control off the bottom, which here
+            would be the button that finishes the upgrade. */}
+        <ScrollView
+          style={{ flexGrow: 0, maxHeight: KEY_SHEET_MAX_HEIGHT }}
+          contentContainerStyle={{ gap: theme.spacing.md }}
+          showsVerticalScrollIndicator={false}
+        >
+          <Text variant="heading">{upgrading ? t.backup.extraKeyTitle : t.backup.keyTitle}</Text>
+          {upgrading ? (
+            <Text variant="body" tone="muted">
+              {t.backup.extraKeyBody}
+            </Text>
+          ) : null}
           <Card flat style={{ backgroundColor: theme.color.surfaceMuted }}>
             <Text
               variant="body"
@@ -950,9 +1232,41 @@ export default function BackupSettingsScreen() {
               {shownKey ? formatRecoveryKey(shownKey) : ''}
             </Text>
           </Card>
-          <Callout tone="warning">{t.backup.keyWarning}</Callout>
-          <Row style={{ gap: theme.spacing.sm }}>
-            <View style={{ flex: 1 }}>
+          {/* WhatsApp's warning card, and deliberately not a red one: black on
+              the ordinary surface, bordered, with a triangle as the only alarm
+              signal. Red is reserved on this screen for something that has
+              already gone wrong — using it here would spend the same colour on
+              a consequence that has not happened and may never. */}
+          <Card
+            flat
+            style={{
+              borderWidth: 1,
+              borderColor: theme.color.border,
+              gap: theme.spacing.sm,
+              alignItems: 'center',
+            }}
+          >
+            <Ionicons name="warning-outline" size={iconSize.xxl} color={theme.color.text} />
+            <Text variant="caption" align="center">
+              {t.backup.keyWarning}
+            </Text>
+          </Card>
+          {/* Uniswap names the account it is about to strand and shows its
+              balance. The equivalent here is how much ledger is going behind
+              this key — an abstraction ("your backup") is easy to shrug at, a
+              number is not. */}
+          {upgrading ? (
+            <Text variant="micro" tone="muted" align="center">
+              {plural(
+                locale,
+                backup.settings.last?.records ?? backup.recordCount,
+                t.backup.extraCovers,
+              )}
+            </Text>
+          ) : null}
+
+          {upgrading ? (
+            <>
               <Button
                 label={copied ? t.backup.keyCopied : t.backup.keyCopy}
                 variant="secondary"
@@ -961,20 +1275,104 @@ export default function BackupSettingsScreen() {
                   void Clipboard.setStringAsync(formatRecoveryKey(shownKey));
                   setCopied(true);
                 }}
+                disabled={pending === 'extra'}
                 fullWidth
               />
-            </View>
-            <View style={{ flex: 1 }}>
+              {/* Solflare's gate. A confirm button on its own is answered
+                  reflexively, and what follows this one cannot be undone: the
+                  escrowed key leaves Drive and the old backup is re-locked.
+                  The sentence is Uniswap's shape — an assertion in the past
+                  tense, and a consequence that names who cannot help. */}
+              <Row gap={theme.spacing.md} style={{ alignItems: 'flex-start' }}>
+                <Text variant="caption" style={{ flex: 1 }}>
+                  {t.backup.extraConsent}
+                </Text>
+                <Toggle
+                  value={understood}
+                  onValueChange={setUnderstood}
+                  disabled={pending === 'extra'}
+                  accessibilityLabel={t.backup.extraConsent}
+                />
+              </Row>
               <Button
-                label={t.backup.keyConfirm}
-                onPress={() => {
-                  void backup.confirmKeySeen();
-                  setShownKey(null);
-                }}
+                label={t.backup.extraTurnOn}
+                onPress={() => void onCommitExtra()}
+                // The reason it will not press is the row directly above it,
+                // which is the whole of Solflare's answer to "no control is
+                // disabled and silent": the gate is the explanation.
+                disabled={!understood || pending === 'extra'}
+                icon={pending === 'extra' ? spinner(true) : undefined}
                 fullWidth
               />
-            </View>
-          </Row>
+              {pending === 'extra' ? (
+                <Text variant="micro" tone="muted" align="center">
+                  {t.backup.extraTurningOn}
+                </Text>
+              ) : null}
+            </>
+          ) : (
+            <Row style={{ gap: theme.spacing.sm }}>
+              <View style={{ flex: 1 }}>
+                <Button
+                  label={copied ? t.backup.keyCopied : t.backup.keyCopy}
+                  variant="secondary"
+                  onPress={() => {
+                    if (!shownKey) return;
+                    void Clipboard.setStringAsync(formatRecoveryKey(shownKey));
+                    setCopied(true);
+                  }}
+                  fullWidth
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Button
+                  label={t.backup.keyConfirm}
+                  onPress={() => {
+                    void backup.confirmKeySeen();
+                    setShownKey(null);
+                  }}
+                  fullWidth
+                />
+              </View>
+            </Row>
+          )}
+        </ScrollView>
+      </Sheet>
+
+      {/* Extra protection, explained — the pitch when it is off, and what it
+          means when it is on. WhatsApp's equivalent screen carries no warning
+          at all: benefit, then mechanism, then who is locked out, then one
+          button. The warning belongs on the *next* screen, next to the key,
+          which is where ours is. */}
+      <Sheet visible={pitching} onClose={() => setPitching(false)} closeLabel={t.common.close}>
+        <View style={{ gap: theme.spacing.md }}>
+          <Text variant="heading">{extra ? t.backup.extraOnTitle : t.backup.extraPitchTitle}</Text>
+          {extra ? (
+            <>
+              <Text variant="body" tone="muted">
+                {t.backup.extraOnBody}
+              </Text>
+              {/* Said here rather than left to be discovered: there is no
+                  switch back, and the route that does exist is a different
+                  control on this screen. See the file header on why. */}
+              <Text variant="body" tone="muted">
+                {t.backup.extraNoWayBack}
+              </Text>
+            </>
+          ) : (
+            <>
+              <Text variant="body" tone="muted">
+                {t.backup.extraPitchBenefit}
+              </Text>
+              <Text variant="body" tone="muted">
+                {t.backup.extraPitchMechanism}
+              </Text>
+              <Text variant="body" tone="muted">
+                {t.backup.extraPitchAdversary}
+              </Text>
+              <Button label={t.backup.extraTurnOn} onPress={onOfferExtra} fullWidth />
+            </>
+          )}
         </View>
       </Sheet>
 
@@ -985,7 +1383,7 @@ export default function BackupSettingsScreen() {
           <Text variant="micro" tone="muted">
             {t.backup.keyEnterBody}
           </Text>
-          <Card flat style={{ backgroundColor: theme.color.surfaceMuted }}>
+          <Card flat style={{ backgroundColor: theme.color.surfaceMuted, gap: theme.spacing.sm }}>
             <TextInput
               value={typedKey}
               onChangeText={(value) => {
@@ -1009,9 +1407,46 @@ export default function BackupSettingsScreen() {
                 writingDirection: 'ltr',
               }}
             />
+            {/* The three things a long-string field owes the person typing into
+                it: somewhere to paste from, what the right answer looks like,
+                and a way to ask what is even being asked for. A 64-character
+                key is not typed by hand if there is any alternative. */}
+            <Row style={{ justifyContent: 'flex-end' }}>
+              <Button
+                label={t.backup.keyEnterPaste}
+                variant="ghost"
+                size="sm"
+                onPress={() => {
+                  void (async () => {
+                    const clip = await Clipboard.getStringAsync().catch(() => '');
+                    if (!clip) return;
+                    setTypedKey(clip);
+                    setTypedProblem(null);
+                  })();
+                }}
+              />
+            </Row>
           </Card>
+          <Text variant="micro" tone="faint">
+            {t.backup.keyEnterHint}
+          </Text>
           {typedProblem ? <Callout tone="negative">{typedProblem}</Callout> : null}
           <Button label={t.backup.keyEnterSave} onPress={() => void onAcceptKey()} fullWidth />
+          {/* The escape hatch for somebody who does not recognise the question.
+              A door rather than a paragraph: most people typing here know
+              exactly what they are holding. */}
+          <Button
+            label={explaining ? t.common.close : t.backup.keyEnterWhat}
+            variant="ghost"
+            size="sm"
+            onPress={() => setExplaining((open) => !open)}
+            fullWidth
+          />
+          {explaining ? (
+            <Text variant="micro" tone="muted">
+              {t.backup.keyEnterWhatBody}
+            </Text>
+          ) : null}
         </View>
       </Sheet>
 
@@ -1021,11 +1456,15 @@ export default function BackupSettingsScreen() {
           <Text variant="heading">{t.backup.restoreSection}</Text>
           {found ? (
             <>
+              {/* Date and size, the two things WhatsApp's restore card shows,
+                  plus the one nobody in the field shows and a ledger badly
+                  needs: how much of it is actually coming back. */}
               <Text variant="micro" tone="muted">
                 {t.backup.restoreFrom.replace(
                   '{date}',
                   found.body.createdAt ? dateTime(Date.parse(found.body.createdAt)) : '—',
                 )}
+                {found.size > 0 ? ` · ${formatBytes(found.size, locale)}` : ''}
               </Text>
               <Text variant="body">
                 {found.plan.restore.length === 0
@@ -1046,11 +1485,57 @@ export default function BackupSettingsScreen() {
         </View>
       </Sheet>
 
+      {/* A backup that is there and will not open from this phone.
+          Deliberately not an error: the question asked was "is there a backup",
+          and the answer is yes. What the sheet adds is which kind it is and
+          what opening it takes — the fork before the attempt, which is how
+          every restore flow worth copying does it, rather than a wall somebody
+          walks into halfway through. */}
+      <Sheet
+        visible={blocked !== null}
+        onClose={() => setBlocked(null)}
+        closeLabel={t.common.close}
+      >
+        <View style={{ gap: theme.spacing.md }}>
+          <Text variant="heading">{t.backup.restoreFoundTitle}</Text>
+          {blocked?.found ? (
+            <Text variant="micro" tone="muted">
+              {t.backup.restoreFrom.replace(
+                '{date}',
+                blocked.found.createdAt ? dateTime(Date.parse(blocked.found.createdAt)) : '—',
+              )}
+              {blocked.found.size > 0 ? ` · ${formatBytes(blocked.found.size, locale)}` : ''}
+            </Text>
+          ) : null}
+          <Text variant="body">
+            {blocked?.refusal === 'needs-key' ? t.backup.restoreIsExtra : t.backup.refusedKeyLost}
+          </Text>
+          {blocked?.refusal === 'needs-key' ? (
+            // The key path *is* the primary here, because on this file it is
+            // the only path. The one button this sheet must never carry is
+            // "create a key": a new one does not open this backup, and making
+            // one arms a run that would overwrite it.
+            <Button
+              label={t.backup.keyEnter}
+              onPress={() => {
+                setBlocked(null);
+                onEnterKey();
+              }}
+              fullWidth
+            />
+          ) : null}
+        </View>
+      </Sheet>
+
       <Popup visible={unlinking} onClose={() => setUnlinking(false)} closeLabel={t.common.close}>
         <View style={{ gap: theme.spacing.md }}>
           <Text variant="heading">{t.backup.disconnectTitle}</Text>
+          {/* What unlinking costs is different in each tier, and neither
+              sentence would be true of the other. On Standard the key goes with
+              the account, which is also why relinking is the honest way back to
+              Standard from Extra — see the file header. */}
           <Text variant="body" tone="muted">
-            {t.backup.disconnectBody}
+            {extra ? t.backup.disconnectBodyExtra : t.backup.disconnectBodyStandard}
           </Text>
           <Row style={{ gap: theme.spacing.sm }}>
             <View style={{ flex: 1 }}>

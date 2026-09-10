@@ -8,9 +8,17 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { backupSetup, BackupStep } from '../src/lib/backup/setup';
+import { backupSetup, BackupStep, type BackupSetupInput } from '../src/lib/backup/setup';
+import { BackupTier } from '../src/lib/backup/tier';
 
-const setup = backupSetup;
+/**
+ * Everything below without a tier of its own is about Extra protection, whose
+ * checklist is the three-step one this module has always had — and which every
+ * account made under the build before tiers is now on. Standard has its own
+ * block at the bottom.
+ */
+const setup = (input: Omit<BackupSetupInput, 'tier'>) =>
+  backupSetup({ ...input, tier: BackupTier.Extra });
 
 describe('the order of the steps', () => {
   it('is account, then key, then saving it, whatever the flags say', () => {
@@ -107,5 +115,58 @@ describe('a build with no OAuth client id', () => {
     expect(stale.steps[0]?.done).toBe(false);
     expect(stale.complete).toBe(false);
     expect(stale.outstanding).toBeNull();
+  });
+});
+
+describe('Standard, where there is no key ceremony at all', () => {
+  const standard = (connected: boolean, configured = true) =>
+    backupSetup({
+      configured,
+      connected,
+      // Deliberately the flags that would make the old checklist say "two of
+      // three done": on Standard neither of them is a step, and neither may
+      // count towards anything.
+      hasKey: false,
+      keySeen: false,
+      tier: BackupTier.Standard,
+    });
+
+  it('asks for one thing, and it is the account', () => {
+    const state = standard(false);
+    expect(state.steps.map((entry) => entry.step)).toEqual([BackupStep.Account]);
+    expect(state.outstanding).toBe(BackupStep.Account);
+    expect(state.total).toBe(1);
+    expect(state.done).toBe(0);
+  });
+
+  it('is complete the moment the account is linked, with no key on the phone', () => {
+    // The whole point of the tier. Under the old checklist this same state was
+    // "one of three" and every control on the screen was inert.
+    const state = standard(true);
+    expect(state.complete).toBe(true);
+    expect(state.outstanding).toBeNull();
+    expect(state.done).toBe(1);
+  });
+
+  it('never mentions a key, even on a phone that happens to hold one', () => {
+    // True after the first backup: the engine mints a key and escrows it. It is
+    // not a step, it was not asked for, and a checklist that ticked it would be
+    // claiming credit for something the person did not do.
+    const state = backupSetup({
+      configured: true,
+      connected: true,
+      hasKey: true,
+      keySeen: false,
+      tier: BackupTier.Standard,
+    });
+    expect(state.steps.map((entry) => entry.step)).toEqual([BackupStep.Account]);
+    expect(state.complete).toBe(true);
+  });
+
+  it('still offers nothing in a build with no client id', () => {
+    const state = standard(false, false);
+    expect(state.unavailable).toBe(true);
+    expect(state.outstanding).toBeNull();
+    expect(state.complete).toBe(false);
   });
 });

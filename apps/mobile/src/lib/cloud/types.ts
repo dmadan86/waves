@@ -69,6 +69,17 @@ export interface CloudProvider {
   ): Promise<CloudFile>;
   /** Read a file's whole text back. */
   read(tokens: CloudTokens, remoteId: string): Promise<string>;
+  /**
+   * Delete a file from the app's private storage, for good.
+   *
+   * Added for the escrowed backup key: turning Extra protection on means the
+   * copy of the key kept beside the blob has to actually leave the folder, and
+   * "overwrite it with something harmless" is not the same promise. A file that
+   * is already gone is a success, not an error — the delete runs after a
+   * re-seal that may have been retried, and a second attempt must not report a
+   * failure for work the first one finished.
+   */
+  remove(tokens: CloudTokens, remoteId: string): Promise<void>;
   /** Best-effort token revocation on unlink. Optional; failure is not fatal. */
   revoke?(tokens: CloudTokens): Promise<void>;
 }

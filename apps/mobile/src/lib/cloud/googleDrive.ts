@@ -181,6 +181,28 @@ export const googleDrive: CloudProvider = {
   },
 
   /**
+   * Delete a file outright. Used for the escrowed backup key when somebody
+   * turns Extra protection on, where the whole point is that Google stops
+   * holding it.
+   *
+   * A 404 is treated as done. Drive answers that for a file already deleted,
+   * and this call sits at the end of a sequence that can legitimately be run
+   * twice — the delete is retried on a later run if it failed the first time —
+   * so "it is not there" is exactly the state being asked for.
+   */
+  async remove(tokens: CloudTokens, remoteId: string): Promise<void> {
+    try {
+      await requestRaw(`https://www.googleapis.com/drive/v3/files/${remoteId}`, {
+        method: 'DELETE',
+        headers: authHeader(tokens),
+      });
+    } catch (error) {
+      if (error instanceof CloudHttpError && error.status === 404) return;
+      throw error;
+    }
+  },
+
+  /**
    * Hand the grant back when somebody unlinks, so "disconnect" means it in
    * Google's account settings too and not only in this app's keystore.
    *

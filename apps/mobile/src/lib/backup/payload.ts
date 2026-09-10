@@ -24,9 +24,17 @@
  * file is that it cannot.
  */
 
+import { BackupTier } from './tier';
+
 /** Marks a file as ours before anything is decrypted. */
 export const BACKUP_FORMAT = 'waves.personal.backup';
-/** The envelope version. Bumped only when the *outer* shape changes. */
+/**
+ * The envelope version. Bumped only when the *outer* shape changes — and note
+ * that "adding a field" is not that. The version is inside the AEAD's
+ * associated data (see `backupAad`), so bumping it makes every backup taken
+ * under the old number fail to open. The `tier` field below was added without
+ * touching this, precisely so the files the first build wrote stay readable.
+ */
 export const BACKUP_VERSION = 1;
 /** The AEAD the body is sealed with — see `recoveryKey.ts`. */
 export const BACKUP_ALG = 'xchacha20poly1305';
@@ -62,6 +70,21 @@ export interface BackupFile {
   readonly createdAt: string;
   /** The sealed body, in the `v1:`-tagged form `rowCipher.seal` produces. */
   readonly sealed: string;
+  /**
+   * Which tier sealed this file — and so whether a key sits beside it in the
+   * appDataFolder or only in somebody's notebook.
+   *
+   * Optional, and **absent means Extra protection**. Every file the first build
+   * wrote was sealed with a device-only key and carries no tier, so reading the
+   * absence that way is not a default, it is the truth about those files. See
+   * `tier.ts` for why this could not be a version bump.
+   *
+   * In the clear, like the format name, because a restore has to decide whether
+   * to go looking for a key or ask for one *before* it can decrypt anything.
+   * What it discloses to whoever reads the folder — that a key is or is not
+   * beside the blob — the presence of the key file discloses anyway.
+   */
+  readonly tier?: BackupTier;
 }
 
 /** A file that is not ours, or is from a future version we cannot read. */
@@ -125,14 +148,24 @@ export function buildBody(
 }
 
 /** Wrap a sealed body in the envelope that goes to the cloud. */
-export function buildFile(sealed: string, createdAt: string): BackupFile {
+export function buildFile(sealed: string, createdAt: string, tier: BackupTier): BackupFile {
   return {
     format: BACKUP_FORMAT,
     version: BACKUP_VERSION,
     alg: BACKUP_ALG,
     createdAt,
     sealed,
+    tier,
   };
+}
+
+/**
+ * Which tier a found file belongs to. The one place the "absent means Extra"
+ * rule is applied, so no caller has to remember it — and so a file written by a
+ * build older than tiers reads as exactly what it is.
+ */
+export function fileTier(file: BackupFile): BackupTier {
+  return file.tier ?? BackupTier.Extra;
 }
 
 /** Read an envelope back, or say which way it is wrong. */
@@ -160,6 +193,13 @@ export function parseFile(text: string): BackupFile {
     alg: file.alg,
     createdAt: typeof file.createdAt === 'string' ? file.createdAt : '',
     sealed: file.sealed,
+    // A tier this build does not recognise is dropped rather than carried, so
+    // it falls through to `fileTier`'s "absent means Extra". That is the safe
+    // way to be wrong: it asks for a key that may not be needed, rather than
+    // promising an automatic restore that cannot happen.
+    ...(file.tier === BackupTier.Standard || file.tier === BackupTier.Extra
+      ? { tier: file.tier }
+      : {}),
   };
 }
 

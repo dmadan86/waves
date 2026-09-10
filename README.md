@@ -433,14 +433,26 @@ Three decisions worth knowing:
   token was never issued for it. The file does not appear in their Drive either
   — Drive's storage settings are where they can see and delete it.
 
-- **The key is the user's, and only the user's.** The file is sealed with
-  XChaCha20-Poly1305 under a 256-bit key the app generates and shows once as 64
-  hexadecimal characters, the same `seal`/`open` the offline mirror uses. It is
-  kept in this device's keystore for convenience and typed in on a new phone.
-  Waves never sees it and Google holds only ciphertext, so **a lost key is a
-  lost backup** — the screen says that before it makes one. The reasoning, and
-  the two options rejected, are in the header of
-  `apps/mobile/src/lib/backup/recoveryKey.ts`.
+- **Two tiers, and the default asks for nothing.** The file is sealed with
+  XChaCha20-Poly1305 under a 256-bit key, the same `seal`/`open` the offline
+  mirror uses. What differs is where that key lives.
+
+  **Standard**, the default: the key is minted silently and a copy is written
+  into the _same hidden `appDataFolder` as the backup_, so signing into the same
+  Google account on a new phone finds both and restores with no ceremony. The
+  honest trade, which the screen states plainly rather than dressing up: whoever
+  reaches the Google account can read the backup.
+
+  **Extra protection**, opt-in: the key is shown once as 64 hexadecimal
+  characters, lives only in this device's keystore, and is never escrowed, so
+  Waves and Google are both locked out and **a lost key is a lost backup**. That
+  is what the previous build made everybody do before they could have a backup
+  at all, which is why it is now a choice instead of a toll-gate.
+
+  Upgrading re-seals the blob under a key Drive does not hold and only then
+  deletes the escrowed copy. There is no downgrade — the way back is to unlink
+  the account and link it again. The reasoning is in the headers of
+  `apps/mobile/src/lib/backup/tier.ts` and `recoveryKey.ts`.
 
 - **A restore only adds.** Records carry client-chosen ids that are already the
   idempotency key for `personal.upsert`, so a restore re-queues what this device
@@ -452,8 +464,10 @@ Three decisions worth knowing:
   last-backup preferences, and the remote filename all carry the owner id, and
   signing out wipes the departing account's set (`clearBackupState`, called from
   `clearLocalPrivateData`). The Drive file itself is left alone: it is the
-  user's, it is unreadable without their key, and outliving the app's state is
-  the whole point of it.
+  user's, and outliving the app's state is the whole point of it. On Extra
+  protection it is unreadable without the key the person kept; on Standard the
+  key is still in their Google account, which is what makes signing in on a new
+  phone enough.
 
 Drive needs **its own OAuth clients**, which the app does not otherwise have:
 sign-in goes through Supabase's hosted Google flow and holds no Google client id
