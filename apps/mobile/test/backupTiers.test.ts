@@ -45,24 +45,37 @@ const KEY_HEX = '11'.repeat(32);
 describe('which tier somebody is on', () => {
   it('defaults a fresh account to Standard, which is the whole point', () => {
     expect(DEFAULT_TIER).toBe(BackupTier.Standard);
-    expect(resolveTier(null, false)).toBe(BackupTier.Standard);
+    expect(resolveTier(null, false, false)).toBe(BackupTier.Standard);
   });
 
   it('carries a pre-tier user onto Extra protection, because that is what they have', () => {
     // The migration, and the only inference in the module. A phone that set a
-    // backup up under the build before tiers has a key in its keystore and
+    // backup up under the build before tiers has a key in its keystore, has
+    // confirmed it (the old build refused to back up otherwise), and has
     // nothing stored about tiers; that key *is* Extra protection, and reading
     // it as Standard would silently promise that Google could recover a backup
     // Google has never had the key to.
-    expect(resolveTier(null, true)).toBe(BackupTier.Extra);
+    expect(resolveTier(null, true, true)).toBe(BackupTier.Extra);
+  });
+
+  it('reads a key nobody confirmed as Standard, because a reinstall looks exactly like that', () => {
+    // iOS keeps keychain items when an app is deleted and throws AsyncStorage
+    // away, so a reinstalled Standard phone comes back holding its minted key
+    // with no stored tier — indistinguishable from a migrating Extra user by
+    // the key alone. `keySeen` is what tells them apart: the old build gated
+    // its backup button on it, so every real migrant has it, and it lived in
+    // the storage the reinstall wiped. Guessing Extra here would send the next
+    // run to delete the escrowed key out of Drive and leave the person owning
+    // 64 characters they were never shown.
+    expect(resolveTier(null, true, false)).toBe(BackupTier.Standard);
   });
 
   it('lets the stored answer win over the phone, both ways round', () => {
     // Once written down it is state, not a guess — including for the account
     // that turned Extra protection on and then had its keystore cleared, and
     // for a Standard phone that holds a minted key.
-    expect(resolveTier(BackupTier.Extra, false)).toBe(BackupTier.Extra);
-    expect(resolveTier(BackupTier.Standard, true)).toBe(BackupTier.Standard);
+    expect(resolveTier(BackupTier.Extra, false, false)).toBe(BackupTier.Extra);
+    expect(resolveTier(BackupTier.Standard, true, true)).toBe(BackupTier.Standard);
   });
 
   it('reads a stored value it does not recognise as nothing stored', () => {
@@ -267,6 +280,7 @@ describe('what the sign-out guard will ask', () => {
     backupStanding({
       tier: BackupTier.Standard,
       keySeen: false,
+      configured: true,
       connected: true,
       lastAt: 1_757_000_000_000,
       lastRecords: 12,

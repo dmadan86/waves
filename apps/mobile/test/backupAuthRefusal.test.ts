@@ -56,6 +56,10 @@ vi.mock('react-native', () => ({
 }));
 
 vi.mock('expo-web-browser', () => ({ maybeCompleteAuthSession: () => undefined }));
+// The engine reports a failed tier write rather than letting it reach the
+// screen; the real module reaches for react-native, which this suite mocks to a
+// stub that has no Promise shim to resolve.
+vi.mock('@/lib/observability', () => ({ reportHandled: vi.fn() }));
 
 vi.mock('expo-auth-session', () => ({
   AuthRequest: class {},

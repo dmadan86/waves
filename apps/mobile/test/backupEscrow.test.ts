@@ -24,6 +24,8 @@ const hoisted = vi.hoisted(() => ({
   failPut: null as string | null,
   /** When set, `remove` throws. */
   failRemove: false,
+  /** When set, the next `read` of this remote id throws instead of answering. */
+  failRead: null as string | null,
   nextId: 1,
 }));
 
@@ -95,6 +97,7 @@ vi.mock('@/lib/cloud/providers', () => {
     },
     async read(_tokens: unknown, remoteId: string) {
       hoisted.calls.push(`read:${remoteId}`);
+      if (hoisted.failRead === remoteId) throw new Error('drive said 500');
       for (const file of hoisted.folder.values())
         if (file.remoteId === remoteId) return file.content;
       throw new Error('no such file');
@@ -168,6 +171,7 @@ beforeEach(async () => {
   hoisted.calls.length = 0;
   hoisted.failPut = null;
   hoisted.failRemove = false;
+  hoisted.failRead = null;
   hoisted.nextId = 1;
   await AsyncStorage.clear();
   await saveTokens('gdrive', OWNER, TOKENS);
@@ -433,6 +437,77 @@ describe('turning Extra protection on', () => {
     });
     expect(result.ok).toBe(true);
     expect(envelope().tier).toBe(BackupTier.Extra);
+    expect(hoisted.folder.has(ESCROW)).toBe(false);
+  });
+});
+
+describe('when the folder cannot be read rather than being empty', () => {
+  it('refuses the run instead of minting over the key it failed to read', async () => {
+    // The worst path this design has. `openEscrow` used to answer null for any
+    // failure, so a 500 on the key file read as "there is no key" — and the
+    // engine would mint a fresh one, PATCH it over the file it could not read,
+    // and re-seal the blob under it. One unlucky request and the only copy of
+    // somebody's ledger is unopenable, reported as a successful backup.
+    await run(BackupTier.Standard);
+    const escrowedBefore = hoisted.folder.get(ESCROW)!.content;
+    const blobBefore = hoisted.folder.get(BLOB)!.content;
+    // A phone that holds no key of its own, so the escrow is the only way it
+    // can seal anything — the new-phone case, where the local ledger is also
+    // the emptiest it will ever be.
+    forgetDeviceKey();
+    hoisted.failRead = hoisted.folder.get(ESCROW)!.remoteId;
+
+    await expect(run(BackupTier.Standard, [row('b')])).rejects.toThrow();
+
+    // Nothing moved. Both files are byte-for-byte what they were.
+    expect(hoisted.folder.get(ESCROW)!.content).toBe(escrowedBefore);
+    expect(hoisted.folder.get(BLOB)!.content).toBe(blobBefore);
+  });
+
+  it('still treats a key file that will never parse as no key file', async () => {
+    // The other half of the distinction: this one cannot be retried into
+    // working, so minting is the repair rather than the mistake.
+    await run(BackupTier.Standard);
+    forgetDeviceKey();
+    const file = hoisted.folder.get(ESCROW)!;
+    hoisted.folder.set(ESCROW, { ...file, content: 'not json at all' });
+
+    expect((await run(BackupTier.Standard, [row('b')])).ok).toBe(true);
+    expect(parseEscrow(hoisted.folder.get(ESCROW)!.content).key).toHaveLength(64);
+  });
+});
+
+describe('a second phone that has not heard about an upgrade', () => {
+  it('refuses rather than overwriting the Extra blob with a Standard one', async () => {
+    // Phone A upgraded: the blob is sealed under a key only A holds and the
+    // escrow is gone. Phone B is still Standard and still holds the old key. It
+    // must not seal its own Standard backup over A's — that would leave a blob
+    // A cannot open, with no escrow beside it for anybody else either.
+    await run(BackupTier.Standard);
+    await saveRecoveryKey(OWNER, OLD_KEY);
+    hoisted.folder.set(BLOB, {
+      ...hoisted.folder.get(BLOB)!,
+      content: JSON.stringify(
+        buildFile(
+          sealBackup(
+            OLD_KEY,
+            backupNonce(),
+            JSON.stringify(buildBody(OWNER, [row('a')], new Date())),
+            backupAad(OWNER),
+          ),
+          new Date().toISOString(),
+          BackupTier.Extra,
+        ),
+      ),
+    });
+    hoisted.folder.delete(ESCROW);
+    const blobBefore = hoisted.folder.get(BLOB)!.content;
+
+    const result = await run(BackupTier.Standard, [row('b')]);
+
+    expect(result.ok).toBe(false);
+    expect(result.ok === false && result.refusal).toBe('needs-key');
+    expect(hoisted.folder.get(BLOB)!.content).toBe(blobBefore);
     expect(hoisted.folder.has(ESCROW)).toBe(false);
   });
 });

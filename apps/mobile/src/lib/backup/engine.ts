@@ -33,6 +33,7 @@
 import * as Network from 'expo-network';
 
 import { networkAllows, type SyncNetworkPreference } from '../syncNetwork';
+import { reportHandled } from '../observability';
 import { isAuthFailure } from '../cloud/http';
 import { providerFor } from '../cloud/providers';
 import { clearTokens, loadTokens, saveTokens } from '../cloud/tokens';
@@ -67,6 +68,7 @@ import {
   BackupTier,
   buildEscrow,
   escrowFileName,
+  EscrowFormatError,
   keyForBackup,
   keyForRestore,
   KeySource,
@@ -266,25 +268,39 @@ async function readFolder(
 }
 
 /**
- * The escrowed key as bytes, or null when the file is there but unusable.
+ * The escrowed key as bytes, or null when the file is there but *unusable*.
  *
- * A key file we cannot parse is treated as no key file rather than as a
- * failure. It can only have come from a future version of this app, or from
- * something else writing into the folder, and in either case the useful next
- * move is the one taken for an empty folder — mint a key and escrow it on a
- * backup path; say the key is gone on a restore path. Throwing would leave a
- * person unable to back up because of a file they cannot see or delete.
+ * The distinction this makes is the whole safety of the Standard tier, and it
+ * used to be missing. "The file did not parse" and "the request to read it
+ * failed" arrive at the same `catch`, and they mean opposite things:
+ *
+ *   * A file that does not parse can only have come from a future version of
+ *     this app, or from something else writing into the folder. It will never
+ *     parse, no retry helps, and the useful next move is the one taken for an
+ *     empty folder — mint a key and escrow it. Returning null says that.
+ *   * A read that *failed* — a 500, a timeout, a truncated body — says nothing
+ *     at all about what is in the folder. Answering null there tells the caller
+ *     "there is no key", and the caller mints a new one, writes it over the file
+ *     it could not read, and re-seals the backup under it. One unlucky HTTP
+ *     request and the only copy of somebody's ledger is unopenable, with a
+ *     cheerful "N records backed up" on screen. So it throws, and the run
+ *     refuses instead of guessing.
  */
 async function openEscrow(
   provider: CloudProvider,
   tokens: CloudTokens,
   file: CloudFile,
 ): Promise<Uint8Array | null> {
+  // Outside the try on purpose: a failed read must leave through here, not be
+  // mistaken below for a file that does not parse.
+  const raw = await provider.read(tokens, file.remoteId);
   try {
-    return parseRecoveryKey(parseEscrow(await provider.read(tokens, file.remoteId)).key);
+    // `parseRecoveryKey` answers null for a well-formed file holding something
+    // that is not a key, which is the same "will never work" as a bad envelope.
+    return parseRecoveryKey(parseEscrow(raw).key);
   } catch (error) {
-    if (isAuthFailure(error)) throw error;
-    return null;
+    if (error instanceof EscrowFormatError) return null;
+    throw error;
   }
 }
 
@@ -315,7 +331,29 @@ async function keyForRun(
   tokens: CloudTokens,
   input: BackupRunInput,
   folder: FolderState,
-): Promise<Uint8Array | null> {
+): Promise<Uint8Array | 'needs-key' | null> {
+  // A Standard phone that finds a blob and *no* escrow beside it is looking at
+  // one of two things, and they need opposite answers. Either the folder lost
+  // its key file (Drive offers "Delete hidden app data", and it deletes exactly
+  // this), in which case minting a fresh key and re-escrowing is the repair —
+  // or another phone on this account upgraded to Extra protection, which is
+  // precisely what deletes the escrow, and the blob is now sealed under a key
+  // that lives only on that phone.
+  //
+  // Minting in the second case overwrites somebody else's Extra backup with a
+  // Standard one sealed under a key they do not have, and leaves no escrow for
+  // any third device either: the backup becomes unopenable by everyone. The
+  // blob's own tier is the only thing that tells the two apart, so it is worth
+  // the one read — which happens only in this narrow case, never on an ordinary
+  // run where the escrow is sitting right there.
+  if (input.tier === BackupTier.Standard && folder.blob && !folder.escrow) {
+    const remoteTier = parseFile(await provider.read(tokens, folder.blob.remoteId)).tier;
+    // The file's tier beats the phone's — the phone may simply not have heard
+    // yet. Answering `needs-key` sends the screen to "I already have a key",
+    // which is exactly what this phone needs from its owner.
+    if (remoteTier === BackupTier.Extra) return 'needs-key';
+  }
+
   const deviceKey = await loadRecoveryKey(input.ownerId);
   const escrowKey =
     input.tier === BackupTier.Standard && folder.escrow
@@ -385,6 +423,8 @@ export async function runBackup(input: BackupRunInput): Promise<BackupResult> {
     try {
       const folder = await readFolder(provider, tokens, input.ownerId);
       const key = await keyForRun(provider, tokens, input, folder);
+      // Somebody else's Extra blob. Refusing leaves it exactly as it is.
+      if (key === 'needs-key') return { ok: false, refusal: 'needs-key' };
       // Extra protection with nothing in the keystore. The person holds the
       // only copy, and the screen's job is to ask for it rather than mint a
       // second one that would seal the next backup away from the first.
@@ -683,7 +723,19 @@ export async function upgradeToExtra(input: UpgradeInput): Promise<UpgradeResult
     // The tier is now true of the file, so it is written down before the escrow
     // delete rather than after: somebody who closes the app here is on Extra,
     // and the file left in the folder opens nothing.
-    await saveTier(input.ownerId, BackupTier.Extra);
+    //
+    // Its failure must not travel. This is AsyncStorage, it can throw, and
+    // everything above it has already happened — the blob is re-sealed under the
+    // new key and the keystore holds that key. Letting it out of here would put
+    // the screen's "could not be turned on, your backup is unchanged" in front
+    // of somebody whose backup very much did change, and anyone who believed
+    // that sentence and discarded the key would have lost it. The local tier
+    // being briefly wrong is survivable — `keyForRun` now reads the blob's own
+    // tier when the escrow is gone, which is exactly this state — and the next
+    // read of the settings writes it again.
+    await saveTier(input.ownerId, BackupTier.Extra).catch((error: unknown) =>
+      reportHandled(error, 'backup.upgrade.saveTier'),
+    );
 
     if (folder.escrow && mayClearEscrow(state)) {
       try {

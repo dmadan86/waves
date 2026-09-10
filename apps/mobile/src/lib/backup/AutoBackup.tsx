@@ -65,7 +65,11 @@ export function AutoBackup() {
       // The keystore read is now only here to answer the tier question for an
       // account carried over from the build before tiers — the engine finds,
       // adopts or mints the key it actually seals with.
-      const tier = resolveTier(settings.tier, (await loadRecoveryKey(ownerId)) !== null);
+      const tier = resolveTier(
+        settings.tier,
+        (await loadRecoveryKey(ownerId)) !== null,
+        settings.keySeen,
+      );
       // On Extra protection nothing goes out until the person has been shown
       // the key and said they have it: a backup they cannot open is worse than
       // none. On Standard there is nothing to have kept, so there is no gate.

@@ -165,7 +165,7 @@ export function useBackup(): BackupState & BackupActions {
    * falls back to the inference only for the frame before that lands — and the
    * inference and the write agree, so the screen never flickers between tiers.
    */
-  const tier = resolveTier(settings.tier, hasKey);
+  const tier = resolveTier(settings.tier, hasKey, settings.keySeen);
 
   /**
    * How many records were created after the last backup landed.
@@ -184,6 +184,7 @@ export function useBackup(): BackupState & BackupActions {
   const standing = backupStanding({
     tier,
     keySeen: settings.keySeen,
+    configured,
     connected,
     lastAt: settings.last?.at ?? null,
     lastRecords: settings.last?.records ?? 0,
@@ -243,7 +244,7 @@ export function useBackup(): BackupState & BackupActions {
       // The answer is written down as soon as it is worked out, so from here on
       // the tier is state and never an inference — including for the sign-out
       // guard, which reads the settings without a keystore of its own.
-      const tier = resolveTier(stored.tier, key !== null);
+      const tier = resolveTier(stored.tier, key !== null, stored.keySeen);
       if (ownerId && stored.tier === null) {
         await saveTier(ownerId, tier).catch(() => undefined);
       }

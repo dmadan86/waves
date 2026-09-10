@@ -113,20 +113,41 @@ export function parseTier(raw: string | null): BackupTier | null {
  * a network answer to a local question and would make the screen's own claims
  * wait on a Drive round trip.
  *
- * The inference exists for exactly one population and runs exactly once: people
- * who set a backup up under the previous build. They have a key in the keystore
- * and no stored tier, because the previous build had no tiers to store. In the
- * new vocabulary they are on Extra protection — that is precisely what their
- * key is — so they keep working with no prompt, their Drive file stays
- * readable, and nothing about their screen changes except its words. The caller
- * writes the answer down the first time it is asked, so the inference is a
- * migration and not a standing rule.
+ * The inference is for people who set a backup up under the previous build:
+ * they hold a key and no stored tier, because the previous build had no tiers
+ * to store. In the new vocabulary they are on Extra protection — that is
+ * precisely what their key is — so they keep working with no prompt and their
+ * Drive file stays readable.
+ *
+ * **Why it asks about `keySeen` and not only about the key.** "Holds a key" was
+ * proof of Extra for exactly as long as Extra was the only tier. It is not any
+ * more: a Standard phone mints a key on its first run too, so on its own the
+ * signal now says nothing. And the ambiguity is reachable, not theoretical —
+ * iOS keeps keychain items across an app being deleted and reinstalled while it
+ * throws AsyncStorage away, so a reinstall lands on exactly "key, no stored
+ * tier". Reading that as Extra would flip a Standard account over, and the next
+ * run would sweep the escrowed key out of Drive, leaving the person depending
+ * on 64 characters Standard deliberately never showed them.
+ *
+ * `keySeen` separates them because the previous build *could not back up
+ * without it* — it gated the button on exactly this flag — so every migrating
+ * Extra user has it, and it lives in the same AsyncStorage the reinstall wiped.
+ * Someone who minted a key under the old build and never confirmed it reads as
+ * Standard, which is right in the only way that matters: they never had a
+ * backup to keep openable.
+ *
+ * The caller writes the answer down the first time it is asked, so this stays a
+ * migration rather than a standing rule.
  *
  * A phone with no stored tier and no key is a fresh setup, and gets the default.
  */
-export function resolveTier(stored: BackupTier | null, hasKey: boolean): BackupTier {
+export function resolveTier(
+  stored: BackupTier | null,
+  hasKey: boolean,
+  keySeen: boolean,
+): BackupTier {
   if (stored !== null) return stored;
-  return hasKey ? BackupTier.Extra : DEFAULT_TIER;
+  return hasKey && keySeen ? BackupTier.Extra : DEFAULT_TIER;
 }
 
 /**
@@ -452,7 +473,14 @@ export interface BackupStanding {
    * changed the note on one" is not.
    */
   readonly upToDate: boolean;
-  /** True when a backup would run right now if something asked it to. */
+  /**
+   * True when a backup would run right now if something asked it to.
+   *
+   * "Configured" is part of it and not an afterthought: a build shipped without
+   * Google client ids can be linked-looking (tokens on disk from a previous
+   * build) and still have every run refuse with `not-configured`. Leaving it
+   * out made this field say yes to a question the engine always answered no to.
+   */
   readonly canBackUp: boolean;
   /**
    * Whether a restore on a *new* phone would have to ask for a key. False on
@@ -464,6 +492,8 @@ export interface BackupStanding {
 export interface StandingInput {
   readonly tier: BackupTier;
   readonly keySeen: boolean;
+  /** Whether this build can talk to the provider at all. */
+  readonly configured: boolean;
   readonly connected: boolean;
   /** Epoch ms, or null. */
   readonly lastAt: number | null;
@@ -483,7 +513,7 @@ export function backupStanding(input: StandingInput): BackupStanding {
     everBackedUp,
     newSince: input.newSince,
     upToDate: everBackedUp && input.newSince === 0 && input.recordCount === input.lastRecords,
-    canBackUp: input.connected && tierAllowsBackup(input.tier, input.keySeen),
+    canBackUp: input.configured && input.connected && tierAllowsBackup(input.tier, input.keySeen),
     restoreNeedsKey: input.tier === BackupTier.Extra,
   };
 }
