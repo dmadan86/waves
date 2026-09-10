@@ -657,6 +657,14 @@ function AuthGate() {
               belonging to the account that just left. */}
         <Stack.Protected guard={Boolean(session)}>
           <Stack.Screen name="(tabs)" options={{ animation: 'none' }} />
+          {/* Settings. A screen on this stack, not a fifth member of the tab
+              group it used to live in: it is reached by a push (the header
+              avatar, the overflow menu), never by the bottom bar, and inside
+              the tab navigator it inherited that navigator's instant switch —
+              so it appeared in one frame while every other pushed screen slid.
+              Here it pushes like the rest, and back pops back to where it was
+              opened from. */}
+          <Stack.Screen name="profile" options={slide} />
           <Stack.Screen name="new-group" options={slide} />
           <Stack.Screen name="clone-group" options={slide} />
           {/* The paywall is an unwired placeholder, so it stays unreachable
