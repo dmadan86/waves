@@ -1890,6 +1890,8 @@ export interface UiStrings {
     archivedEmpty: string;
     archivedEmptyBody: string;
     unarchive: string;
+    /** Subtitle under Unarchive on a group's own settings screen. */
+    unarchiveHint: string;
     /** Caption on an archived row — `{date}` is when it was archived. */
     archivedOn: string;
     nobodyOwes: string;
@@ -4450,6 +4452,7 @@ const en: UiStrings = {
     archivedEmpty: 'Nothing archived',
     archivedEmptyBody: 'Groups you archive show up here, ready to bring back.',
     unarchive: 'Unarchive',
+    unarchiveHint: 'Put it back on your list',
     archivedOn: 'Archived {date}',
     nobodyOwes: 'Nobody owes anybody in this group.',
     recordedNotMoved: 'Recorded, not moved by Waves',
@@ -7019,6 +7022,7 @@ const ta: UiStrings = {
     archivedEmptyBody:
       'நீங்கள் காப்பகப்படுத்தும் குழுக்கள் இங்கே தோன்றும், மீண்டும் கொண்டுவரத் தயார்.',
     unarchive: 'மீட்டெடு',
+    unarchiveHint: 'உங்கள் பட்டியலுக்குத் திரும்பக் கொண்டுவா',
     archivedOn: '{date} அன்று காப்பகப்படுத்தப்பட்டது',
     nobodyOwes: 'இந்தக் குழுவில் யாரும் யாருக்கும் தர வேண்டியதில்லை.',
     recordedNotMoved: 'பதிவு செய்யப்பட்டது, Waves பணத்தை அனுப்பவில்லை',
@@ -9602,6 +9606,7 @@ const hi: UiStrings = {
     archivedEmpty: 'कुछ भी संग्रहित नहीं',
     archivedEmptyBody: 'आप जो समूह संग्रहित करते हैं वे यहाँ दिखते हैं, वापस लाने के लिए तैयार।',
     unarchive: 'वापस लाएँ',
+    unarchiveHint: 'इसे फिर आपकी सूची में लाएँ',
     archivedOn: '{date} को संग्रहित',
     nobodyOwes: 'इस समूह में किसी पर किसी का कुछ बाकी नहीं है।',
     recordedNotMoved: 'दर्ज किया गया, Waves ने पैसा नहीं भेजा',
@@ -12263,6 +12268,7 @@ const ar: UiStrings = {
     archivedEmpty: 'لا شيء في الأرشيف',
     archivedEmptyBody: 'المجموعات التي تؤرشفها تظهر هنا، جاهزة للاستعادة.',
     unarchive: 'إلغاء الأرشفة',
+    unarchiveHint: 'أعِدها إلى قائمتك',
     archivedOn: 'أُرشفت في {date}',
     nobodyOwes: 'لا أحد يدين لأحد في هذه المجموعة.',
     recordedNotMoved: 'مسجَّل، ولم يحوّل Waves المال',

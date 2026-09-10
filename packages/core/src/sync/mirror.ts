@@ -695,6 +695,34 @@ export function materialiseGroups(
 }
 
 /**
+ * Every group whose ledger still counts — archived included, deleted not.
+ *
+ * The difference between this and {@link materialiseGroups} is the difference
+ * between two questions. "What is going on now" is the dashboard's question, and
+ * a trip you have put away is not part of the answer. "What do I owe Priya" is
+ * not about trips at all, and archiving one does not settle a debt: the money is
+ * real, nobody left the group, and one tap of Unarchive brings it back.
+ *
+ * So the person-to-person balances sum through here. The server's
+ * `waves_people_i_owe` draws the line in the same place, and it has to — the
+ * Friends list is read from the mirror and the person screen behind it from that
+ * RPC, so a number that changed depending on which one answered would be its own
+ * bug (and was: the mirror dropped archived groups while the RPC counted them).
+ *
+ * A deleted group is on neither list. It is a tombstone (ADR-004) that rides the
+ * sync pull so every device learns the group is gone, which is exactly why its
+ * rows are still here to be filtered out.
+ */
+export function materialiseLedgerGroups(
+  state: MirrorState,
+  queue: readonly QueuedMutation[],
+): MirrorGroup[] {
+  return buildGroups(state, queue)
+    .filter((group) => !group.deleted_at)
+    .sort(byNewest((row) => String(row.created_at)));
+}
+
+/**
  * One group by id, archived or not. `materialiseGroups` hides archived groups so
  * they leave the dashboard, but a per-group screen (the plan, its budget) still
  * opens on an archived trip and must see its row — including a queued

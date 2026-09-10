@@ -97,6 +97,56 @@ describe('waves_person_profile', () => {
     expect(Number(row?.shared_groups)).toBe(2);
   });
 
+  it('stops counting a group once it has been deleted', async () => {
+    // A delete is a tombstone (ADR-004) and leaves both memberships in place, so
+    // "2 groups in common" survived the group itself until this was filtered.
+    const first = await seedGroup(client, { memberCount: 2, name: 'Goa' });
+    const [me, them] = first.profileIds;
+
+    const groupId = randomUUID();
+    await client.query(
+      `INSERT INTO groups (id, name, type, default_currency, created_by)
+       VALUES ($1, 'Flat', 'home', 'INR', $2)`,
+      [groupId, me],
+    );
+    for (const profileId of [me, them]) {
+      await client.query(
+        `INSERT INTO group_members (id, group_id, profile_id, role, joined_via)
+         VALUES ($1, $2, $3, 'member', 'invite')`,
+        [randomUUID(), groupId, profileId],
+      );
+    }
+    expect(Number((await profileOf(me!, them!))?.shared_groups)).toBe(2);
+
+    await client.query(`UPDATE groups SET deleted_at = now() WHERE id = $1`, [groupId]);
+    expect(Number((await profileOf(me!, them!))?.shared_groups)).toBe(1);
+  });
+
+  it('goes on counting an archived group, because nobody left it', async () => {
+    // The one place this parts company with the balance RPCs, which drop an
+    // archived group. That question is about which ledgers are live enough to
+    // add up and to open; this one is about whether two people know each other,
+    // and putting a finished trip away does not make them strangers.
+    const group = await seedGroup(client, { memberCount: 2 });
+    const [me, them] = group.profileIds;
+
+    await client.query(`UPDATE groups SET archived_at = now() WHERE id = $1`, [group.groupId]);
+
+    expect(Number((await profileOf(me!, them!))?.shared_groups)).toBe(1);
+  });
+
+  it('will not show a stranger whose only shared group is deleted', async () => {
+    // The count doubles as the permission gate, so filtering tightens the gate
+    // too — and correctly: a group that no longer exists must not be the sole
+    // reason somebody's name, face and phone number come back.
+    const group = await seedGroup(client, { memberCount: 2 });
+    const [me, them] = group.profileIds;
+
+    await client.query(`UPDATE groups SET deleted_at = now() WHERE id = $1`, [group.groupId]);
+
+    expect(await profileOf(me!, them!)).toBeUndefined();
+  });
+
   it('returns nothing at all for somebody you share no group with', async () => {
     const mine = await seedGroup(client, { memberCount: 1 });
     const theirs = await seedGroup(client, { memberCount: 1 });

@@ -17,8 +17,10 @@ import {
   emptyMirror,
   enqueue,
   materialiseCaptures,
+  materialiseArchivedGroups,
   materialiseCategoryTags,
   materialiseGroups,
+  materialiseLedgerGroups,
   materialiseMemberBudgets,
   materialiseMembers,
   materialisePlanItems,
@@ -287,6 +289,105 @@ describe('groups', () => {
       },
     ]).state;
     expect(materialiseGroups(mirror, [])).toHaveLength(0);
+  });
+
+  it('keeps a deleted group out, tombstone and all', () => {
+    // A delete is a tombstone the sync pull carries (ADR-004), so the row does
+    // arrive and it is this filter, not its absence, that keeps it off every
+    // screen.
+    const mirror = reconcile(emptyMirror(), [
+      {
+        table: SyncTable.Groups,
+        groupId: GROUP,
+        seq: 1,
+        row: {
+          id: GROUP,
+          name: 'Splitwise',
+          default_currency: 'INR',
+          created_at: AT,
+          archived_at: null,
+          deleted_at: AT,
+        },
+      },
+    ]).state;
+    expect(materialiseGroups(mirror, [])).toHaveLength(0);
+    // Nor is it hiding in the archive: deleted is not a kind of archived.
+    expect(materialiseArchivedGroups(mirror, [])).toHaveLength(0);
+    // Nor in the set the Friends balances are summed from, which is the one
+    // that turns a stale row into a wrong number rather than a stale row.
+    expect(materialiseLedgerGroups(mirror, [])).toHaveLength(0);
+  });
+});
+
+/**
+ * Which groups still count as money.
+ *
+ * `materialiseGroups` answers "what is going on now" and drops an archived trip;
+ * `materialiseLedgerGroups` answers "what do I owe this person" and keeps it,
+ * because archiving a finished trip does not settle a debt. Both drop a deleted
+ * group. The Friends totals are read through the second one and the server's
+ * `waves_people_i_owe` draws the line in the same place — they have to agree, or
+ * the same question gets two answers depending on which side answered.
+ */
+describe('the groups whose ledger still counts', () => {
+  function mirrorWith(rows: Record<string, unknown>[]) {
+    return reconcile(
+      emptyMirror(),
+      rows.map((row, index) => ({
+        table: SyncTable.Groups,
+        groupId: String(row.id),
+        seq: index + 1,
+        row,
+      })),
+    ).state;
+  }
+
+  it('keeps an archived group in, unlike the dashboard list', () => {
+    const mirror = mirrorWith([
+      { id: 'g-live', name: 'Goa', default_currency: 'INR', created_at: AT, archived_at: null },
+      { id: 'g-old', name: 'Old flat', default_currency: 'INR', created_at: AT, archived_at: AT },
+    ]);
+
+    expect(materialiseGroups(mirror, []).map((row) => row.id)).toEqual(['g-live']);
+    expect(
+      materialiseLedgerGroups(mirror, [])
+        .map((row) => row.id)
+        .sort(),
+    ).toEqual(['g-live', 'g-old']);
+  });
+
+  it('drops a deleted group whether or not it was archived first', () => {
+    const mirror = mirrorWith([
+      {
+        id: 'g-gone',
+        name: 'Splitwise',
+        default_currency: 'INR',
+        created_at: AT,
+        archived_at: null,
+        deleted_at: AT,
+      },
+      {
+        id: 'g-gone-archived',
+        name: 'Splitwise 1',
+        default_currency: 'INR',
+        created_at: AT,
+        archived_at: AT,
+        deleted_at: AT,
+      },
+    ]);
+
+    expect(materialiseLedgerGroups(mirror, [])).toHaveLength(0);
+  });
+
+  it('shows a group started offline, before the server has ever seen it', () => {
+    // A queued `group.create` has no server row to carry a tombstone, so it is
+    // neither archived nor deleted and belongs in both lists — otherwise an
+    // add-person IOU made on a plane would owe nobody anything until it synced.
+    const rows = materialiseLedgerGroups(
+      emptyMirror(),
+      queued(envelope('m-1', MutationKind.GroupCreate, { name: 'Ravi', currency: 'INR' })),
+    );
+    expect(rows.map((row) => row.id)).toEqual([GROUP]);
   });
 });
 

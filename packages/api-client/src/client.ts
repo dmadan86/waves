@@ -410,12 +410,18 @@ export function createWavesClient({ supabase }: WavesClientOptions) {
     // the rows this session may see (ADR-013), so "my groups" is "the groups"
     // and the client never guesses at membership.
 
+    // A deleted group (A49) is a tombstone, not an archive: `waves_delete_group`
+    // stamps `deleted_at` and leaves every row in place so the delete can travel
+    // to other devices, and RLS goes on returning them to a member. So every
+    // read of `groups` here has to say so — otherwise a deleted group comes back
+    // looking exactly like a live one.
     myGroups(): Promise<GroupRow[]> {
       return read<GroupRow>(
         supabase
           .from('groups')
           .select(GROUP_ROW_COLUMNS)
           .is('archived_at', null)
+          .is('deleted_at', null)
           .order('created_at', { ascending: false }),
       );
     },
@@ -423,14 +429,23 @@ export function createWavesClient({ supabase }: WavesClientOptions) {
     /** Every group, archived ones included — the archive shelf reads this. */
     allGroups(): Promise<GroupRow[]> {
       return read<GroupRow>(
-        supabase.from('groups').select(GROUP_ROW_COLUMNS).order('created_at', { ascending: false }),
+        supabase
+          .from('groups')
+          .select(GROUP_ROW_COLUMNS)
+          .is('deleted_at', null)
+          .order('created_at', { ascending: false }),
       );
     },
 
     /** The whole row for one group, not the lean five columns `group` returns. */
     async groupRow(groupId: string): Promise<GroupRow | null> {
       const rows = await read<GroupRow>(
-        supabase.from('groups').select(GROUP_ROW_COLUMNS).eq('id', groupId).limit(1),
+        supabase
+          .from('groups')
+          .select(GROUP_ROW_COLUMNS)
+          .eq('id', groupId)
+          .is('deleted_at', null)
+          .limit(1),
       );
       return rows[0] ?? null;
     },

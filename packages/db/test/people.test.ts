@@ -276,3 +276,110 @@ describe('direction', () => {
     expect(BigInt(rows[0].net)).toBe(-50000n);
   });
 });
+
+/**
+ * A group that has been deleted or archived is out of the money entirely.
+ *
+ * Deleting a group is a tombstone, not an erasure (ADR-004): `deleted_at` is
+ * stamped and every row underneath — the expenses, the `pairwise_balances`, the
+ * memberships, whose `left_at` stays NULL because nobody left — survives to
+ * carry that tombstone out over the sync pull. Which means these two RPCs are
+ * the only thing standing between a deleted group and the balances it still
+ * physically holds. Both used to let it through: one joined `groups` without
+ * ever looking at `deleted_at`, the other never joined `groups` at all.
+ *
+ * Archived is the same test for a different reason. No route in this app opens
+ * an archived group's ledger, and the offline mirror has always dropped archived
+ * groups out of these same sums (`materialiseGroups`), so a server that counted
+ * them handed the person screen a number the Friends list it was reached from
+ * disagreed with — and a row that opens nothing.
+ */
+describe('a dead group owes nobody anything', () => {
+  async function personGroups(profileId: string, personKey: string) {
+    return asUser(profileId, async () => {
+      const { rows } = await client.query(`SELECT * FROM waves_person_group_balances($1)`, [
+        personKey,
+      ]);
+      return rows;
+    });
+  }
+
+  /** Asha and one ghost called Ravi, with Ravi owing her half of `amount`. */
+  async function owing(asha: string, amount: bigint): Promise<{ groupId: string; ghost: string }> {
+    const groupId = await makeGroup(asha);
+    const ghost = await addGhost(asha, groupId, 'Ravi');
+    await expense(asha, groupId, await myMember(groupId, asha), ghost, amount);
+    return { groupId, ghost };
+  }
+
+  it('drops a deleted group out of the total and out of the group count', async () => {
+    const asha = await profile('Asha');
+    const live = await owing(asha, 100000n); // Ravi owes 500
+    const dead = await owing(asha, 40000n); //  Ravi owes 200, until this goes
+
+    // Two ghosts called Ravi are two people (nothing proves otherwise), so what
+    // is checked here is that a row disappears, not that a sum shrinks.
+    expect(await people(asha)).toHaveLength(2);
+
+    await asUser(asha, () => client.query(`SELECT waves_delete_group($1)`, [dead.groupId]));
+
+    const rows = await people(asha);
+    expect(rows).toHaveLength(1);
+    expect(BigInt(rows[0].net)).toBe(50000n);
+    expect(rows[0].only_group_id).toBe(live.groupId);
+  });
+
+  it('keeps a deleted group off the person screen it used to dead-link from', async () => {
+    const asha = await profile('Asha');
+    const { groupId, ghost } = await owing(asha, 100000n);
+
+    expect(await personGroups(asha, ghost)).toHaveLength(1);
+
+    await asUser(asha, () => client.query(`SELECT waves_delete_group($1)`, [groupId]));
+
+    // The row was what was wrong, not the refusal it led to: the client mirror
+    // has always declined to open a tombstoned group, so this row was a link to
+    // "Group not found".
+    expect(await personGroups(asha, ghost)).toHaveLength(0);
+  });
+
+  it('counts a deleted group in neither RPC, so the two still agree', async () => {
+    // The per-group RPC exists to un-collapse the list's total. If one of them
+    // filtered and the other did not, the person screen would contradict the
+    // Friends row that was tapped to reach it.
+    const asha = await profile('Asha');
+    const { groupId, ghost } = await owing(asha, 100000n);
+    await asUser(asha, () => client.query(`SELECT waves_delete_group($1)`, [groupId]));
+
+    expect(await people(asha)).toHaveLength(0);
+    expect(await personGroups(asha, ghost)).toHaveLength(0);
+  });
+
+  it('drops an archived group too, and gives it back when it is unarchived', async () => {
+    const asha = await profile('Asha');
+    const { groupId, ghost } = await owing(asha, 100000n);
+
+    await client.query(`UPDATE groups SET archived_at = now() WHERE id = $1`, [groupId]);
+    expect(await people(asha)).toHaveLength(0);
+    expect(await personGroups(asha, ghost)).toHaveLength(0);
+
+    // Nothing was destroyed by that: the ledger is intact and one Unarchive puts
+    // the balance back into every total at once.
+    await client.query(`UPDATE groups SET archived_at = NULL WHERE id = $1`, [groupId]);
+    const rows = await people(asha);
+    expect(rows).toHaveLength(1);
+    expect(BigInt(rows[0].net)).toBe(50000n);
+  });
+
+  it('leaves a live group alone', async () => {
+    const asha = await profile('Asha');
+    const { groupId, ghost } = await owing(asha, 100000n);
+
+    const rows = await people(asha);
+    expect(rows).toHaveLength(1);
+    expect(BigInt(rows[0].net)).toBe(50000n);
+    expect(rows[0].group_count).toBe(1);
+    expect(rows[0].only_group_id).toBe(groupId);
+    expect(await personGroups(asha, ghost)).toHaveLength(1);
+  });
+});
