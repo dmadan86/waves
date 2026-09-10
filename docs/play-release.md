@@ -80,6 +80,7 @@ already installed against the old one stop hearing about updates for good.
 ```sh
 cd apps/mobile
 npx expo prebuild --clean          # regenerates android/ with every plugin applied
+export SENTRY_AUTH_TOKEN=$(grep '^SENTRY_AUTH_TOKEN=' .env.local | cut -d= -f2-)
 cd android
 ./gradlew bundleRelease            # → app/build/outputs/bundle/release/app-release.aab
 ```
@@ -89,6 +90,16 @@ signing, the App Links intent filter, Sentry's native config — are all applied
 prebuild, and an `android/` directory generated before a plugin was added simply
 does not have it. That is the whole of the "Sentry native configuration is
 missing" warning.
+
+The `export` is not optional once `SENTRY_ORG` and `SENTRY_PROJECT` are set.
+Those two switch on a source-map upload task in the release build, and that task
+is `sentry-cli`, run by Gradle — which never sees `.env.local`, because loading
+that file is Expo's doing and Gradle is not Expo. Without it the build dies at
+`:app:…_SentryUpload_…` with
+
+> error: Auth token is required for this request. Please run `sentry-cli login`
+
+after several minutes of work, having compiled everything first.
 
 An AAB cannot be installed on a phone. To test the exact artefact Play will
 serve, use [bundletool](https://github.com/google/bundletool) to build APKs from
