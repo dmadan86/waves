@@ -156,6 +156,11 @@ export function describeActivity(
         typeof payload.name === 'string' && payload.name.trim() ? payload.name.trim() : null;
       return name ? `${who} created ${name}` : `${who} created the group`;
     }
+    case 'group_deleted': {
+      const name =
+        typeof payload.name === 'string' && payload.name.trim() ? payload.name.trim() : null;
+      return name ? `${who} deleted ${name}` : `${who} deleted the group`;
+    }
     default:
       // An unknown verb is a row written by a newer build than this one. Say
       // what is known rather than dropping it — a feed with holes in it is
