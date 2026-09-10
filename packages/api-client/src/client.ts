@@ -288,6 +288,10 @@ export function createWavesClient({ supabase }: WavesClientOptions) {
           .from('groups')
           .select('id, name, cover_emoji, default_currency, simplify_debts')
           .eq('id', groupId)
+          // Null for a deleted group rather than a row that opens: RLS still
+          // returns it to a member, because the tombstone has to reach every
+          // device (ADR-004), so the caller has to ask.
+          .is('deleted_at', null)
           .limit(1),
       );
       return rows[0] ?? null;
