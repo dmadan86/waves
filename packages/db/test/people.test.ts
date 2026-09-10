@@ -278,7 +278,7 @@ describe('direction', () => {
 });
 
 /**
- * A group that has been deleted or archived is out of the money entirely.
+ * A deleted group owes nobody anything. An archived one still does.
  *
  * Deleting a group is a tombstone, not an erasure (ADR-004): `deleted_at` is
  * stamped and every row underneath — the expenses, the `pairwise_balances`, the
@@ -288,11 +288,10 @@ describe('direction', () => {
  * physically holds. Both used to let it through: one joined `groups` without
  * ever looking at `deleted_at`, the other never joined `groups` at all.
  *
- * Archived is the same test for a different reason. No route in this app opens
- * an archived group's ledger, and the offline mirror has always dropped archived
- * groups out of these same sums (`materialiseGroups`), so a server that counted
- * them handed the person screen a number the Friends list it was reached from
- * disagreed with — and a row that opens nothing.
+ * Archived goes the other way and is tested here beside it so the two cannot be
+ * conflated by the next person to read this file. A trip put away has not
+ * settled up; the ledger is intact, nobody left, and one tap of Unarchive brings
+ * it back. It leaves the dashboard, not the money.
  */
 describe('a dead group owes nobody anything', () => {
   async function personGroups(profileId: string, personKey: string) {
@@ -355,20 +354,40 @@ describe('a dead group owes nobody anything', () => {
     expect(await personGroups(asha, ghost)).toHaveLength(0);
   });
 
-  it('drops an archived group too, and gives it back when it is unarchived', async () => {
+  it('goes on counting an archived group, because the money is still owed', async () => {
+    // The line this migration draws: deleted is gone, archived is put away.
+    // Archiving is offered as the way to clear a finished trip off the dashboard
+    // *without deleting its ledger*, so dropping its debts out of "what do I owe
+    // Ravi" would break that promise quietly — nobody left, the group is one tap
+    // of Unarchive away, and the money is real.
     const asha = await profile('Asha');
     const { groupId, ghost } = await owing(asha, 100000n);
 
     await client.query(`UPDATE groups SET archived_at = now() WHERE id = $1`, [groupId]);
-    expect(await people(asha)).toHaveLength(0);
-    expect(await personGroups(asha, ghost)).toHaveLength(0);
 
-    // Nothing was destroyed by that: the ledger is intact and one Unarchive puts
-    // the balance back into every total at once.
-    await client.query(`UPDATE groups SET archived_at = NULL WHERE id = $1`, [groupId]);
     const rows = await people(asha);
     expect(rows).toHaveLength(1);
     expect(BigInt(rows[0].net)).toBe(50000n);
+    // And the per-group row that explains that total is still there, which it
+    // has to be: it is the only place the archived group's share of the figure
+    // is shown, and the group screen opens an archived group now, so it leads
+    // somewhere.
+    expect(await personGroups(asha, ghost)).toHaveLength(1);
+  });
+
+  it('stops counting an archived group once it is deleted as well', async () => {
+    // Archived is not a weaker delete and delete is not a stronger archive:
+    // whichever order they happen in, the tombstone is what decides.
+    const asha = await profile('Asha');
+    const { groupId, ghost } = await owing(asha, 100000n);
+
+    await client.query(`UPDATE groups SET archived_at = now() WHERE id = $1`, [groupId]);
+    expect(await people(asha)).toHaveLength(1);
+
+    await asUser(asha, () => client.query(`SELECT waves_delete_group($1)`, [groupId]));
+
+    expect(await people(asha)).toHaveLength(0);
+    expect(await personGroups(asha, ghost)).toHaveLength(0);
   });
 
   it('leaves a live group alone', async () => {
