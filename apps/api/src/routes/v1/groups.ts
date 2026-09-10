@@ -77,6 +77,13 @@ groups.get('/groups', requireScope('groups.read'), async (c) => {
     .order('id', { ascending: false })
     .limit(limit + 1);
   if (!includeArchived) query = query.is('archived_at', null);
+  // No `include_deleted` to go with `include_archived`, and there should not be
+  // one. Archiving puts a group away and can be undone, so a script has reason
+  // to ask for those; a delete is a tombstone the group is never coming back
+  // from, and its rows survive only so the delete can reach other devices
+  // (ADR-004). Serving them over an API would be offering a ledger the app
+  // itself refuses to open.
+  query = query.is('deleted_at', null);
   if (cursor) query = query.or(keysetFilter(cursor, 'created_at'));
 
   const { data, error } = await query;
@@ -144,6 +151,10 @@ groups.get('/groups/:groupId', requireScope('groups.read'), async (c) => {
     .from('groups')
     .select(GROUP_COLUMNS)
     .eq('id', c.req.param('groupId'))
+    // A deleted group answers `not_found` below, which is the truth as far as
+    // anything outside the database is concerned. RLS still hands the row over
+    // — the tombstone has to reach every device — so the filter is here.
+    .is('deleted_at', null)
     .limit(1);
   if (error) throw error;
   const row = (data ?? [])[0] as unknown as GroupRow | undefined;

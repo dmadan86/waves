@@ -304,6 +304,10 @@ model Group {
   storageObjects     StorageObject[]
 
   @@index([archivedAt])
+  /// The twin of the one above, and it earned its place the same way: every
+  /// sweep and every balance read now has to prove the group is not a tombstone,
+  /// so `deleted_at IS NULL` appears in as many predicates as `archived_at` does.
+  @@index([deletedAt])
   /// The nudge job only ever looks at groups that have said when they are
   /// happening, which is a small minority of them.
   @@index([startDate, endDate], map: "groups_reminder_window_idx")

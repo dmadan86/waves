@@ -113,10 +113,22 @@ export function Overview({ profileId, query }: { profileId: string; query: strin
   }, [groups, byGroup, membersByGroup, pendingGroups]);
 
   // Overall, totalled per currency and never across them.
-  const overall = useMemo(
-    () => totalsByCurrency(myBalances.map((row) => [row.currency, BigInt(row.balance)] as const)),
-    [myBalances],
-  );
+  //
+  // Scoped to the groups this screen is actually showing, which is not what
+  // `myBalances` returns: that reads `group_balances` with no join to `groups`
+  // at all, and RLS hands back rows for every group the reader is a member of —
+  // archived ones, and deleted ones too, since a delete is a tombstone that
+  // leaves the balances in place (ADR-004). So the hero was quietly totalling
+  // groups that are not on the list beneath it, including ones the reader had
+  // deleted. The sum and the rows now come from the same set.
+  const overall = useMemo(() => {
+    const shown = new Set(groups.map((group) => group.id));
+    return totalsByCurrency(
+      myBalances
+        .filter((row) => shown.has(row.group_id))
+        .map((row) => [row.currency, BigInt(row.balance)] as const),
+    );
+  }, [myBalances, groups]);
 
   // The hero's single answer: the currency the reader is furthest from square
   // in leads, the rest fold into "+N more". Net, never a sum across currencies

@@ -25,6 +25,8 @@ import {
   materialiseExpenses,
   materialiseGroup,
   materialiseGroups,
+  materialiseLedgerGroupIds,
+  materialiseLedgerGroups,
   materialiseMemberBudgets,
   materialiseMembers,
   materialiseExpenseAttachments,
@@ -493,6 +495,9 @@ function lastActivityByMember(
  *
  * Only groups you are still in are read: the merge RPC refuses a member of a
  * group you are not in, so offering one would be a merge that cannot go through.
+ * Archived ones count — a ghost in a finished trip is still a person, and this
+ * screen is reached from Friends, which now shows their balance. A deleted group
+ * does not: the RPC would refuse it and there is nobody there to point at.
  */
 export function useMergeCandidates(someoneLabel: string): LocalRead<MergeCandidate[]> {
   const { mirror, queue } = useSync();
@@ -503,7 +508,7 @@ export function useMergeCandidates(someoneLabel: string): LocalRead<MergeCandida
     if (!profileId) return [];
     const merges = new Map(ghostMerges(mirror).map((merge) => [merge.member_id, merge]));
     const members: MergeableMember[] = [];
-    for (const group of materialiseGroups(mirror, queue) as unknown as GroupRow[]) {
+    for (const group of materialiseLedgerGroups(mirror, queue) as unknown as GroupRow[]) {
       const rows = materialiseMembers(mirror, queue, {
         groupId: group.id,
       }) as unknown as MemberRow[];
@@ -545,6 +550,11 @@ export function useMergeCandidates(someoneLabel: string): LocalRead<MergeCandida
  * Counted by member row, not by person: a guest in two groups is two here. That
  * is fine for the only question asked of it — is this number zero — and avoids
  * pulling ghost-merge folding (A38) into a check that does not need it.
+ *
+ * Counted over the same groups `usePeopleBalances` sums, archived included:
+ * these two answer halves of one screen, so counting people in a set of groups
+ * the balances are not drawn from would make "no friends yet" appear over a list
+ * of friends.
  */
 export function useKnownPeopleCount(profileId: string | null): LocalRead<number> {
   const { mirror, queue } = useSync();
@@ -552,7 +562,7 @@ export function useKnownPeopleCount(profileId: string | null): LocalRead<number>
   const count = useMemo(() => {
     if (!profileId) return 0;
     let total = 0;
-    for (const group of materialiseGroups(mirror, queue) as unknown as GroupRow[]) {
+    for (const group of materialiseLedgerGroups(mirror, queue) as unknown as GroupRow[]) {
       const members = materialiseMembers(mirror, queue, {
         groupId: group.id,
       }) as unknown as MemberRow[];
@@ -593,6 +603,13 @@ export function useGhostMergePersonIds(): ReadonlyMap<string, string> {
  * queued expense already counts. Gravatar is skipped offline (a hashed email the
  * client does not hold) — a missing photo falls back to initials, as it already
  * does.
+ *
+ * `materialiseLedgerGroups`, not `materialiseGroups`: a debt does not stop being
+ * owed because the trip it came from was put away, and this has to agree with
+ * the RPC, which counts archived groups too. It used to disagree — the Friends
+ * list dropped an archived group's balance while the person screen you reach by
+ * tapping a row in it kept it — and one question with two answers is worse than
+ * either answer. A deleted group is excluded on both sides.
  */
 export function usePeopleBalances(profileId: string | null): LocalRead<PersonBalanceRow[]> {
   const { mirror, queue } = useSync();
@@ -604,7 +621,7 @@ export function usePeopleBalances(profileId: string | null): LocalRead<PersonBal
     const mergeByMember = new Map(ghostMerges(mirror).map((merge) => [merge.member_id, merge]));
 
     const contributions: PersonContribution[] = [];
-    for (const group of materialiseGroups(mirror, queue) as unknown as GroupRow[]) {
+    for (const group of materialiseLedgerGroups(mirror, queue) as unknown as GroupRow[]) {
       const members = materialiseMembers(mirror, queue, {
         groupId: group.id,
       }) as unknown as MemberRow[];
@@ -712,13 +729,23 @@ export function useRecentActivity(myProfileId: string | null = null): RecentActi
   const { mirror } = useSync();
   return useMemo(() => {
     const groups = new Map<string, ActivityGroup>();
+    // Groups the mirror still holds only to carry their tombstone. Their rows
+    // stay in `activity_log` — a delete is a tombstone, not an erasure (ADR-004)
+    // — so without this the feed goes on listing what happened in a group that
+    // is gone, each row linking to the "Group not found" screen.
+    const deleted = new Set<string>();
     for (const row of rowsFor(mirror, SyncTable.Groups)) {
       const g = row as unknown as {
         id: string;
         name: string | null;
         cover_emoji: string | null;
         archived_at: string | null;
+        deleted_at: string | null;
       };
+      if (g.deleted_at) {
+        deleted.add(g.id);
+        continue;
+      }
       groups.set(g.id, {
         id: g.id,
         name: g.name,
@@ -768,14 +795,21 @@ export function useRecentActivity(myProfileId: string | null = null): RecentActi
       }
     }
 
-    return (rowsFor(mirror, SyncTable.ActivityLog) as unknown as ActivityRow[])
-      .map((row) => ({
-        ...row,
-        group: groups.get(row.group_id) ?? null,
-        actor: row.actor_member_id ? (actors.get(row.actor_member_id) ?? null) : null,
-        stake: stakeFor(row, expenseById, myMemberByGroup),
-      }))
-      .sort(byNewest((row) => String(row.created_at)));
+    return (
+      (rowsFor(mirror, SyncTable.ActivityLog) as unknown as ActivityRow[])
+        // A row whose group the mirror has never seen is kept, with a null group —
+        // that is the existing "newer build, unknown group" fallback and it reads
+        // as a plain line. A row whose group the mirror knows to be deleted is
+        // dropped, because there we know the destination is gone.
+        .filter((row) => !deleted.has(row.group_id))
+        .map((row) => ({
+          ...row,
+          group: groups.get(row.group_id) ?? null,
+          actor: row.actor_member_id ? (actors.get(row.actor_member_id) ?? null) : null,
+          stake: stakeFor(row, expenseById, myMemberByGroup),
+        }))
+        .sort(byNewest((row) => String(row.created_at)))
+    );
   }, [mirror, myProfileId]);
 }
 
@@ -822,6 +856,7 @@ export interface DestinationUsage {
 export function useDestinationUsage(): Map<string, DestinationUsage> {
   const { mirror } = useSync();
   return useMemo(() => {
+    const ledgerGroupIds = materialiseLedgerGroupIds(mirror, []);
     const usage = new Map<string, DestinationUsage>();
     for (const row of rowsFor(mirror, SyncTable.Expenses)) {
       const e = row as unknown as {
@@ -829,7 +864,7 @@ export function useDestinationUsage(): Map<string, DestinationUsage> {
         created_at: string;
         deleted_at: string | null;
       };
-      if (e.deleted_at) continue;
+      if (e.deleted_at || !ledgerGroupIds.has(e.group_id)) continue;
       const prev = usage.get(e.group_id);
       if (!prev) {
         usage.set(e.group_id, { lastAt: e.created_at, count: 1 });
@@ -851,10 +886,11 @@ export function useDestinationUsage(): Map<string, DestinationUsage> {
 export function useGroupCreatedAt(): Map<string, string> {
   const { mirror } = useSync();
   return useMemo(() => {
+    const ledgerGroupIds = materialiseLedgerGroupIds(mirror, []);
     const byId = new Map<string, string>();
     for (const row of rowsFor(mirror, SyncTable.Groups)) {
       const g = row as unknown as { id: string; created_at: string };
-      if (g.id && g.created_at) byId.set(g.id, g.created_at);
+      if (g.id && g.created_at && ledgerGroupIds.has(g.id)) byId.set(g.id, g.created_at);
     }
     return byId;
   }, [mirror]);
@@ -871,14 +907,20 @@ export function useGroup(groupId: string) {
   const { mirror, queue } = useSync();
 
   const rows = useMemo(() => {
-    // Build the one group we want instead of materialising, archived-filtering
-    // and sorting every group only to `.find` a single row. `materialiseGroups`
-    // hides archived trips, so preserve that: an archived group resolves to null
-    // here exactly as the old `.find` over the active list did.
+    // Build the one group we want instead of materialising and sorting every
+    // group only to `.find` a single row.
     const built = materialiseGroup(mirror, queue, groupId) as unknown as GroupRow | undefined;
-    // A deleted group (A49) resolves to null exactly as an archived one does, so a
-    // stale deep-link into it lands on the "not found" state, not a live screen.
-    const group = built && !built.archived_at && !built.deleted_at ? built : null;
+    // A deleted group (A49) resolves to null, so a stale deep link into it lands
+    // on the "not found" state rather than a live screen.
+    //
+    // An archived one does not, any more. It used to, on the reasoning that
+    // `materialiseGroups` hides archived trips and this should match — but those
+    // are different questions. Hiding a finished trip from the dashboard is the
+    // point of archiving; refusing to *open* it meant the Friends list could
+    // show a balance owed inside an archived group with nowhere to go, and the
+    // archive shelf in settings could only offer Unarchive, never a look. The
+    // ledger was never deleted; it was only unreachable.
+    const group = built && !built.deleted_at ? built : null;
     const members = materialiseMembers(mirror, queue, { groupId }) as unknown as MemberRow[];
     const settlements = materialiseSettlements(mirror, queue, {
       groupId,

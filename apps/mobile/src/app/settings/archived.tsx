@@ -8,10 +8,16 @@
  * each an Unarchive button; unarchiving is an ordinary group.update clearing
  * `archived_at`, so the row drops out of here and back onto the dashboard the
  * instant it is tapped (ADR-005 — the mirror overlay, not a round trip).
+ *
+ * The row itself now opens the group, which for a long time it could not: the
+ * group screen refused an archived group outright, so the only thing you could
+ * do with a finished trip was put it back on the dashboard you had deliberately
+ * cleared it off. Archiving was always described as not deleting the ledger;
+ * being unable to read that ledger made the description a technicality.
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 
 import { MutationKind, rowsFor, SyncTable } from '@waves/core';
 import {
@@ -94,23 +100,48 @@ export default function ArchivedGroupsScreen() {
                 key={group.id}
                 style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md }}
               >
-                <GroupPhoto photoPath={group.photo_path} emoji={group.cover_emoji} size={44} />
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <Text variant="subheading" numberOfLines={1}>
-                    {groupLabel(group, membersByGroup.get(group.id) ?? [], profile?.id)}
-                  </Text>
-                  {group.archived_at ? (
-                    <Text variant="micro" tone="muted">
-                      {fill(t.group.archivedOn, {
-                        date: new Intl.DateTimeFormat(locale, {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric',
-                        }).format(new Date(group.archived_at)),
-                      })}
+                {/* The photo and the name open the group; the button beside them
+                    brings it back. This shelf used to offer only the second, so
+                    an archived trip's ledger — which archiving explicitly does
+                    not delete — could not be read without first putting the
+                    group back on the dashboard you had cleared it off. The group
+                    screen opens an archived group now, so the row leads
+                    somewhere. */}
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={groupLabel(
+                    group,
+                    membersByGroup.get(group.id) ?? [],
+                    profile?.id,
+                  )}
+                  onPress={() => router.push(`/group/${group.id}`)}
+                  style={({ pressed }) => ({
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: theme.spacing.md,
+                    flex: 1,
+                    minWidth: 0,
+                    opacity: pressed ? 0.7 : 1,
+                  })}
+                >
+                  <GroupPhoto photoPath={group.photo_path} emoji={group.cover_emoji} size={44} />
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text variant="subheading" numberOfLines={1}>
+                      {groupLabel(group, membersByGroup.get(group.id) ?? [], profile?.id)}
                     </Text>
-                  ) : null}
-                </View>
+                    {group.archived_at ? (
+                      <Text variant="micro" tone="muted">
+                        {fill(t.group.archivedOn, {
+                          date: new Intl.DateTimeFormat(locale, {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric',
+                          }).format(new Date(group.archived_at)),
+                        })}
+                      </Text>
+                    ) : null}
+                  </View>
+                </Pressable>
                 <Button
                   label={t.group.unarchive}
                   variant="secondary"
