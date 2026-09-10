@@ -94,6 +94,22 @@ describe('the release signing patch', () => {
     expect(patched).toContain('DEBUG-SIGNED. Sideload only.');
   });
 
+  it('declares the key at project scope, where the guard can also read it', () => {
+    // The bug this pins: declared with `def` inside `android { }`, the flag is a
+    // local of that closure, and the task-graph guard at the foot of the file
+    // cannot see it. Gradle fails at configuration time — "Could not get unknown
+    // property 'wavesHasUploadKey'" — before any task runs, so a passing string
+    // assertion above proves nothing about whether the build works.
+    expect(patched).toContain('ext.wavesHasUploadKey');
+    expect(patched).not.toMatch(/^\s+def wavesHasUploadKey/m);
+    // Declared above `android {`, and read below it in both places.
+    const declared = patched.indexOf('ext.wavesHasUploadKey =');
+    expect(declared).toBeGreaterThan(-1);
+    expect(declared).toBeLessThan(patched.indexOf('android {'));
+    expect(declared).toBeLessThan(patched.indexOf('signingConfig wavesHasUploadKey'));
+    expect(declared).toBeLessThan(patched.indexOf('gradle.taskGraph.whenReady'));
+  });
+
   it('is idempotent, because prebuild is not guaranteed to run once', () => {
     expect(patchBuildGradle(patched)).toBe(patched);
   });
