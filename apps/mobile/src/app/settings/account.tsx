@@ -29,11 +29,20 @@ import {
   useTheme,
 } from '@waves/ui';
 
-import { currencyForCountry, currencySymbol, dialingCodeForCountry } from '@waves/core';
+import {
+  countryFlag,
+  countryName,
+  currencyForCountry,
+  currencySymbol,
+  dialingCodeForCountry,
+} from '@waves/core';
 
 import { CountryCodePicker } from '@/components/CountryCodePicker';
-import { CountryRow } from '@/components/CountryPicker';
+import { EditTextSheet } from '@/components/EditTextSheet';
 import { ProfileAvatar } from '@/components/ProfileAvatar';
+import { SettingsSection } from '@/components/SettingsSection';
+import { useAvatarEditor } from '@/lib/avatarEditor';
+import { requestCountry } from '@/lib/countryPickerBridge';
 import { friendlyError } from '@/lib/errors';
 import { confirmContact, startAddingContact, ContactChannel } from '@/data/api';
 import { deviceCountry, useStrings } from '@/i18n';
@@ -91,6 +100,11 @@ function AccountForm() {
   // profile; the key on this screen's owner keeps it honest across a swap.
   const [name, setName] = useState(profile?.display_name ?? '');
   const [nameStatus, setNameStatus] = useState<string | null>(null);
+  /** Which row's editor is open, or null. */
+  const [editing, setEditing] = useState<'name' | 'address' | null>(null);
+  const [rowSaving, setRowSaving] = useState(false);
+  // The portrait's sheet, shared with Settings so the two cannot drift.
+  const photo = useAvatarEditor();
 
   // Region: the country decides the default currency (and settle rails) and,
   // optionally, a postal address. Seeded from the profile, falling back to the
@@ -103,6 +117,12 @@ function AccountForm() {
   const [addressStatus, setAddressStatus] = useState<string | null>(null);
   // The country drives this: it is what every new group and expense starts on.
   const currency = currencyForCountry(country) ?? profile?.default_currency ?? 'INR';
+  // The list has one place to say something went wrong, so the three writes
+  // behind it share one line rather than each owning a slot in a layout that no
+  // longer has slots.
+  const rowStatus = [nameStatus, regionStatus, addressStatus].find(
+    (line) => line && line !== t.account.saved,
+  );
 
   const [channel, setChannel] = useState<ContactChannel>(ContactChannel.Email);
   const [value, setValue] = useState('');
@@ -170,16 +190,21 @@ function AccountForm() {
     }
   };
 
-  const nameDirty = name.trim() !== (profile?.display_name ?? '');
-
-  const saveName = async (): Promise<void> => {
+  const saveName = async (next: string): Promise<void> => {
     setNameStatus(null);
+    setRowSaving(true);
     try {
       // Only the name. The empty name falls back to "You" so nobody is nameless.
-      await updateProfile({ display_name: name.trim() || t.account.you });
+      await updateProfile({ display_name: next.trim() || t.account.you });
+      setName(next.trim());
       setNameStatus(t.account.saved);
+      // Closed only once the write landed: a sheet that shuts on tap and fails
+      // behind the person's back is how a name silently does not change.
+      setEditing(null);
     } catch (caught) {
       setNameStatus(friendlyError(caught, t.couldNotSave, 'account.saveName'));
+    } finally {
+      setRowSaving(false);
     }
   };
 
@@ -209,15 +234,19 @@ function AccountForm() {
     }
   };
 
-  const addressDirty = address.trim() !== (profile?.address ?? '');
-  const saveAddress = async (): Promise<void> => {
+  const saveAddress = async (next: string): Promise<void> => {
     setAddressStatus(null);
+    setRowSaving(true);
     try {
       // Empty clears it to null rather than storing a blank string.
-      await updateProfile({ address: address.trim() || null });
+      await updateProfile({ address: next.trim() || null });
+      setAddress(next.trim());
       setAddressStatus(t.account.saved);
+      setEditing(null);
     } catch (caught) {
       setAddressStatus(friendlyError(caught, t.couldNotSave, 'account.saveAddress'));
+    } finally {
+      setRowSaving(false);
     }
   };
 
@@ -301,13 +330,14 @@ function AccountForm() {
         }}
         keyboardShouldPersistTaps="handled"
       >
-        {/* A calm identity header: the avatar and name give the screen a focal
-            point that names whose account this is (Mobbin — Slopes, Tesla, Me+,
-            Vivino: a centred portrait over the name and contact). It is a
-            portrait, not a control — the name is edited in the field just below,
-            and the photo owner is (tabs)/profile, so there is no camera badge
-            here. `ProfileAvatar` shows the uploaded photo, or the provider
-            photo, and falls back to initials only when there is neither. */}
+        {/* Who this account is, and the one control the header carries.
+            
+            The portrait is tappable now. Every edit-profile screen worth
+            copying makes it so — Beli, Lyft, BeReal, Binance, Instagram,
+            Shopee all put a camera badge on the avatar right here — and the
+            reason is simply that this is where somebody looks for it. It opens
+            the same sheet the Settings portrait does (`useAvatarEditor`), so
+            there is one behaviour and not two that drift. */}
         <View
           style={{
             alignItems: 'center',
@@ -315,7 +345,13 @@ function AccountForm() {
             paddingTop: theme.spacing.sm,
           }}
         >
-          <ProfileAvatar name={displayName} avatarUrl={avatarUrl} size={96} />
+          <ProfileAvatar
+            name={displayName}
+            avatarUrl={avatarUrl}
+            size={96}
+            onPress={photo.open}
+            busy={photo.busy}
+          />
           <View style={{ alignItems: 'center', gap: theme.spacing.xs }}>
             <Row style={{ gap: theme.spacing.sm }}>
               <Text variant="title">{displayName}</Text>
@@ -330,104 +366,82 @@ function AccountForm() {
                 {accountContact}
               </Text>
             ) : null}
+            {photo.status ? (
+              <Text variant="caption" tone="negative">
+                {photo.status}
+              </Text>
+            ) : null}
           </View>
         </View>
 
-        {/* Your name, and how you appear to everyone else. Folded in from the
-            old "You" screen so the whole account lives on one page. Save appears
-            only once the name has changed, so the resting screen is calm. */}
-        <View style={{ gap: theme.spacing.md }}>
-          <GroupLabel icon="person-outline" title={t.account.displayName} />
-          <Card style={{ gap: theme.spacing.lg }}>
-            <TextInput
-              value={name}
-              onChangeText={setName}
-              accessibilityLabel={t.account.displayName}
-              placeholder={t.common.yourName}
-              placeholderTextColor={theme.color.textFaint}
-              style={fieldStyle}
-            />
-            {nameDirty ? (
-              <Button label={t.common.save} fullWidth onPress={() => void saveName()} />
-            ) : null}
-            {nameStatus ? (
-              <Text
-                variant="caption"
-                tone={nameStatus === t.account.saved ? 'positive' : 'negative'}
-              >
-                {nameStatus}
-              </Text>
-            ) : null}
-          </Card>
-        </View>
+        {/* What you have set, as a list you can read rather than a stack of
+            forms you have to scroll.
 
-        {/* Where you are: the country sets the currency every new group and
-            expense starts on, and the settle rails you are offered. Required —
-            an address may follow, but it never has to. */}
-        <View style={{ gap: theme.spacing.md }}>
-          <GroupLabel icon="location-outline" title={t.account.regionTitle} />
-          <Card style={{ gap: theme.spacing.lg }}>
-            <CountryRow countryCode={country} onChange={(next) => void saveCountry(next)} />
+            This was four cards, each holding one text field and a Save button
+            that appeared when it was dirty, under a label of its own — so the
+            page was mostly the space between things, and you could not see what
+            your details *were* without reading four inputs. Every edit-profile
+            screen on the reference boards is a dense list of label-and-value
+            rows instead, and the value is the point: "Name · Madan" answers the
+            question the screen is open for, at a glance.
 
-            {country ? (
-              <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                <View>
-                  <Text variant="caption" tone="muted">
-                    {t.account.currencyLabel}
-                  </Text>
-                  <Text variant="caption" tone="muted">
-                    {t.account.currencyFromCountry}
-                  </Text>
-                </View>
-                <Text variant="subheading">{`${currencySymbol(currency)} ${currency}`}</Text>
-              </Row>
-            ) : (
-              <Text variant="caption" tone="negative">
-                {t.account.countryRequired}
-              </Text>
-            )}
+            The rows are the same component Settings uses (`SettingsSection`),
+            which is the other half of the ask — two lists one tap apart should
+            not be two designs. Each one opens a focused editor: a sheet for the
+            free text, the existing picker for the country.
 
-            {regionStatus ? (
-              <Text
-                variant="caption"
-                tone={regionStatus === t.account.saved ? 'positive' : 'negative'}
-              >
-                {regionStatus}
-              </Text>
-            ) : null}
+            Currency is the exception and has no press: it is derived from the
+            country above it and is shown because people look for it, not
+            because it can be set. */}
+        <SettingsSection
+          title={t.account.detailsTitle}
+          rows={[
+            {
+              icon: 'person-outline',
+              label: t.account.displayName,
+              value: name.trim() || t.common.yourName,
+              valueMuted: !name.trim(),
+              onPress: () => setEditing('name'),
+            },
+            {
+              icon: 'location-outline',
+              label: t.pickers.country,
+              value: country
+                ? `${countryFlag(country) ?? ''} ${countryName(country) ?? country}`.trim()
+                : t.account.countryRequired,
+              valueMuted: !country,
+              onPress: () => {
+                requestCountry({
+                  initial: country,
+                  onPicked: (next: string | null) => void saveCountry(next),
+                });
+                router.push('/country');
+              },
+            },
+            {
+              icon: 'cash-outline',
+              label: t.account.currencyLabel,
+              hint: t.account.currencyFromCountry,
+              value: `${currencySymbol(currency)} ${currency}`,
+            },
+            {
+              icon: 'home-outline',
+              label: t.account.addressTitle,
+              value: address.trim() || t.account.addressOptional,
+              valueMuted: !address.trim(),
+              onPress: () => setEditing('address'),
+            },
+          ]}
+        />
 
-            <View style={{ gap: theme.spacing.xs }}>
-              <Row style={{ gap: theme.spacing.xs, alignItems: 'center' }}>
-                <Text variant="caption" tone="muted">
-                  {t.account.addressTitle}
-                </Text>
-                <Text variant="caption" tone="faint">
-                  {`· ${t.account.addressOptional}`}
-                </Text>
-              </Row>
-              <TextInput
-                value={address}
-                onChangeText={setAddress}
-                multiline
-                accessibilityLabel={t.account.addressTitle}
-                placeholder={t.account.addressPlaceholder}
-                placeholderTextColor={theme.color.textFaint}
-                style={[fieldStyle, { minHeight: 72, textAlignVertical: 'top' }]}
-              />
-              {addressDirty ? (
-                <Button label={t.common.save} fullWidth onPress={() => void saveAddress()} />
-              ) : null}
-              {addressStatus ? (
-                <Text
-                  variant="caption"
-                  tone={addressStatus === t.account.saved ? 'positive' : 'negative'}
-                >
-                  {addressStatus}
-                </Text>
-              ) : null}
-            </View>
-          </Card>
-        </View>
+        {/* One line of bad news for the rows above, which have no room for their
+            own. Silent when a save worked: the row already shows the new value,
+            and a "Saved" that has to be dismissed is a second thing to read. */}
+        {rowStatus ? (
+          <Text variant="caption" tone="negative">
+            {rowStatus}
+          </Text>
+        ) : null}
 
         {/* The signed-in reassurance is gone: for a member it said nothing they
             did not already know. A guest, or somebody sent here by a limit, gets
@@ -624,6 +638,32 @@ function AccountForm() {
           {t.contact.footnote}
         </Text>
       </ScrollView>
+
+      {/* The editors, over the list. Outside the ScrollView so a sheet is
+          anchored to the screen rather than to a scroll position, and so the
+          keyboard it raises does not push the list it came from. */}
+      <EditTextSheet
+        visible={editing === 'name'}
+        title={t.account.displayName}
+        hint={t.account.displayNameHint}
+        value={name}
+        placeholder={t.common.yourName}
+        saving={rowSaving}
+        onSave={(next) => void saveName(next)}
+        onClose={() => setEditing(null)}
+      />
+      <EditTextSheet
+        visible={editing === 'address'}
+        title={t.account.addressTitle}
+        hint={t.account.addressHint}
+        value={address}
+        placeholder={t.account.addressPlaceholder}
+        multiline
+        autoCapitalize="sentences"
+        saving={rowSaving}
+        onSave={(next) => void saveAddress(next)}
+        onClose={() => setEditing(null)}
+      />
     </Screen>
   );
 }

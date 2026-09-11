@@ -5,32 +5,27 @@ import { ScrollView, View } from 'react-native';
 import {
   Badge,
   Button,
-  Card,
   directionalIcon,
   EmptyState,
   IconButton,
   iconSize,
-  ListRow,
   MoneyText,
   Row,
   Screen,
-  SectionHeader,
   Text,
   useTabBarClearance,
   useTheme,
 } from '@waves/ui';
 
 import { ProfileAvatar } from '@/components/ProfileAvatar';
+import { SettingsSection } from '@/components/SettingsSection';
 import { SignOutSheet } from '@/components/SignOutSheet';
-import { friendlyError } from '@/lib/errors';
 import { SkeletonList } from '@/components/Skeletons';
-import { removeAvatar, uploadAvatar } from '@/data/api';
 import { useSettledTotals } from '@/data/hooks';
 import { isRtlLanguage, LANGUAGE_NAMES, plural, useStrings } from '@/i18n';
 import { useLanguage } from '@/i18n/language';
 import { useAuth } from '@/lib/auth';
-import { useDialog } from '@/lib/dialog';
-import { pickAvatarPhoto } from '@/lib/image';
+import { useAvatarEditor } from '@/lib/avatarEditor';
 import { router } from '@/lib/navigation';
 import { r2Enabled } from '@/lib/storage';
 import { describeGrace, useLock } from '@/lib/lock';
@@ -63,82 +58,6 @@ import { useThemePreference } from '@/lib/theme';
  * the same delete ended up a quiet list row on one screen and a red card on
  * this one.
  */
-interface SettingsRow {
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  hint?: string;
-  route?: string;
-  onPress?: () => void;
-  /** Ends something. Red title, red icon. */
-  destructive?: boolean;
-}
-
-function SettingsSection({ title, rows }: { title?: string; rows: SettingsRow[] }) {
-  const theme = useTheme();
-  return (
-    <View>
-      {title ? <SectionHeader title={title} /> : null}
-      <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
-        {rows.map((item, index) => {
-          const live = Boolean(item.route ?? item.onPress);
-          return (
-            <View key={item.label}>
-              <ListRow
-                title={item.label}
-                subtitle={item.hint}
-                destructive={item.destructive}
-                onPress={
-                  item.onPress ?? (item.route ? () => router.push(item.route as never) : undefined)
-                }
-                leading={
-                  <View
-                    style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: theme.radius.pill,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      backgroundColor: item.destructive
-                        ? theme.color.negativeSoft
-                        : live
-                          ? theme.color.brandSoft
-                          : theme.color.surfaceMuted,
-                    }}
-                  >
-                    <Ionicons
-                      name={item.icon}
-                      size={iconSize.md}
-                      color={
-                        item.destructive
-                          ? theme.color.negative
-                          : live
-                            ? theme.color.brand
-                            : theme.color.textMuted
-                      }
-                    />
-                  </View>
-                }
-                trailing={
-                  item.route ? (
-                    <Ionicons
-                      name={directionalIcon('chevron-forward')}
-                      size={iconSize.md}
-                      color={theme.color.textFaint}
-                    />
-                  ) : null
-                }
-              />
-              {index < rows.length - 1 ? (
-                <View style={{ height: 1, backgroundColor: theme.color.border }} />
-              ) : null}
-            </View>
-          );
-        })}
-      </Card>
-    </View>
-  );
-}
-
 /**
  * What has actually changed hands through you.
  *
@@ -239,8 +158,7 @@ function ProfileForm() {
   const theme = useTheme();
   const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
-  const { session, profile, isGuest, updateProfile, signOut } = useAuth();
-  const { choose } = useDialog();
+  const { session, profile, isGuest, signOut } = useAuth();
   // A Google/Apple sign-in carries a photo in the session's user metadata, but
   // the profile row only holds one if a trigger copied it across — older
   // accounts have a null `avatar_url` and so showed initials here. Fall back to
@@ -264,8 +182,9 @@ function ProfileForm() {
   const { preference: themePreference, overridden: themeOverridden } = useThemePreference();
   const { language, stored: languageChosen, restartNeeded } = useLanguage();
 
-  const [status, setStatus] = useState<string | null>(null);
-  const [photoBusy, setPhotoBusy] = useState(false);
+  // The portrait, its sheet and its spinner are one behaviour shared with the
+  // account screen — see `lib/avatarEditor`.
+  const photo = useAvatarEditor();
   const [signingOut, setSigningOut] = useState(false);
 
   /**
@@ -273,60 +192,6 @@ function ProfileForm() {
    * writes `avatar_url` itself; this repeats it through `updateProfile` so the
    * copy held in context matches without a round trip.
    */
-  const choosePhoto = async (): Promise<void> => {
-    if (!profile) return;
-    const picked = await pickAvatarPhoto();
-    if (!picked) return;
-
-    setStatus(null);
-    setPhotoBusy(true);
-    try {
-      const path = await uploadAvatar({
-        profileId: profile.id,
-        base64: picked.base64,
-        mimeType: picked.mimeType,
-      });
-      await updateProfile({ avatar_url: path });
-    } catch (caught) {
-      setStatus(friendlyError(caught, t.couldNotSave, 'profile.uploadPhoto'));
-    } finally {
-      setPhotoBusy(false);
-    }
-  };
-
-  const clearPhoto = async (): Promise<void> => {
-    if (!profile) return;
-    setPhotoBusy(true);
-    try {
-      await removeAvatar(profile.id, profile.avatar_url);
-      await updateProfile({ avatar_url: null });
-    } catch (caught) {
-      setStatus(friendlyError(caught, t.couldNotSave, 'profile.removePhoto'));
-    } finally {
-      setPhotoBusy(false);
-    }
-  };
-
-  // Three ways forward, so a sheet rather than a dialog — the shape Nextdoor
-  // and Instacart use for a short list of actions, and the one a thumb can
-  // reach. There is nothing to choose between when no photo is set yet, so that
-  // case skips the question entirely and opens the picker.
-  const photoOptions = async (): Promise<void> => {
-    if (!profile?.avatar_url) {
-      void choosePhoto();
-      return;
-    }
-    const picked = await choose({
-      title: t.account.yourPhoto,
-      options: [
-        { id: 'replace', label: t.account.chooseNewPhoto },
-        { id: 'remove', label: t.common.remove, tone: 'danger' },
-      ],
-    });
-    if (picked === 'replace') void choosePhoto();
-    else if (picked === 'remove') void clearPhoto();
-  };
-
   /**
    * The row says the language in its own script. It is the one settings row
    * whose subtitle has to be legible to somebody who cannot read the rest of
@@ -411,8 +276,8 @@ function ProfileForm() {
             name={profile?.display_name ?? t.account.you}
             avatarUrl={profile?.avatar_url || oauthAvatar}
             size={92}
-            onPress={profile ? () => void photoOptions() : undefined}
-            busy={photoBusy}
+            onPress={profile ? photo.open : undefined}
+            busy={photo.busy}
           />
           <View style={{ alignItems: 'center', gap: theme.spacing.sm }}>
             <Row style={{ gap: theme.spacing.sm }}>
@@ -426,9 +291,9 @@ function ProfileForm() {
             </Row>
             <SettledPill profileId={profile?.id ?? null} locale={locale} />
             {/* Photo errors have nowhere else to land now the form is gone. */}
-            {status ? (
+            {photo.status ? (
               <Text variant="caption" tone="negative">
-                {status}
+                {photo.status}
               </Text>
             ) : null}
           </View>
