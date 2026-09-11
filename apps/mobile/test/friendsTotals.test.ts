@@ -10,6 +10,7 @@ import {
   currencyTotals,
   directionGroups,
   personDirection,
+  shownAmounts,
   type CurrencyTotal,
 } from '@/lib/friendsTotals';
 
@@ -114,5 +115,75 @@ describe('personDirection', () => {
   it('treats a zero as neither owed nor owing', () => {
     expect(personDirection([{ currency: 'INR', net: '0' }])).toBeNull();
     expect(personDirection([])).toBeNull();
+  });
+});
+
+describe('shownAmounts', () => {
+  const codes = (rows: readonly { currency: string }[]): string[] =>
+    rows.map((row) => row.currency);
+
+  it('never hides a direction, even when both of that side are small', () => {
+    // The bug this pins: taking the two biggest dropped both of Tom's red
+    // amounts, so a person who owed money as well as being owed it rendered as
+    // purely owed-to-you — a row stating the opposite of the truth.
+    const { shown, hidden } = shownAmounts(
+      [
+        { currency: 'USD', net: '41777' },
+        { currency: 'INR', net: '21000' },
+        { currency: 'JPY', net: '-15487' },
+        { currency: 'EUR', net: '-1830' },
+      ],
+      2,
+    );
+    expect(codes(shown)).toContain('JPY');
+    expect(shown.some((row) => BigInt(row.net) > 0n)).toBe(true);
+    expect(shown.some((row) => BigInt(row.net) < 0n)).toBe(true);
+    expect(hidden).toBe(2);
+  });
+
+  it('takes the two biggest when everything runs one way', () => {
+    const { shown, hidden } = shownAmounts(
+      [
+        { currency: 'INR', net: '100' },
+        { currency: 'USD', net: '900' },
+        { currency: 'EUR', net: '500' },
+      ],
+      2,
+    );
+    expect(codes(shown)).toEqual(['USD', 'EUR']);
+    expect(hidden).toBe(1);
+  });
+
+  it('compares currencies by their major unit, not by raw minor units', () => {
+    // JPY has no minor unit, so ¥27,066 is 27066 while ₹4,614.66 is 461466.
+    // Sorting the raw numbers ranks the rupees above the yen on a hundred-fold
+    // scale error rather than on anything about the money.
+    const { shown } = shownAmounts(
+      [
+        { currency: 'INR', net: '461466' },
+        { currency: 'JPY', net: '27066' },
+      ],
+      1,
+    );
+    expect(codes(shown)).toEqual(['JPY']);
+  });
+
+  it('hides nothing when everything already fits', () => {
+    const { shown, hidden } = shownAmounts([{ currency: 'INR', net: '2239525' }], 2);
+    expect(codes(shown)).toEqual(['INR']);
+    expect(hidden).toBe(0);
+  });
+
+  it('would rather exceed the cap than drop a side', () => {
+    // A row that misstates the direction is not a smaller version of the truth.
+    const { shown, hidden } = shownAmounts(
+      [
+        { currency: 'INR', net: '100' },
+        { currency: 'USD', net: '-100' },
+      ],
+      1,
+    );
+    expect(shown).toHaveLength(2);
+    expect(hidden).toBe(0);
   });
 });

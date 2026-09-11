@@ -66,6 +66,7 @@ import {
   currencyTotals,
   directionGroups,
   personDirection,
+  shownAmounts,
   type CurrencyTotal,
 } from '@/lib/friendsTotals';
 import { PressableScale } from '@/lib/anim';
@@ -1175,28 +1176,24 @@ const PersonRow = memo(function PersonRow({
     .filter(Boolean)
     .join('. ');
 
-  // Biggest currency first when a person spans several.
-  const sortedEntries =
-    entries.length > 1
-      ? [...entries].sort((a, b) =>
-          absBig(BigInt(a.net)) < absBig(BigInt(b.net))
-            ? 1
-            : absBig(BigInt(a.net)) > absBig(BigInt(b.net))
-              ? -1
-              : 0,
-        )
-      : entries;
-
-  /** At most two amounts per row; the rest are counted, never dropped silently. */
-  const shownEntries = sortedEntries.slice(0, MAX_STACKED_AMOUNTS);
-  const hiddenCurrencies = sortedEntries.length - shownEntries.length;
+  // At most two amounts per row, and never at the cost of a direction: a balance
+  // that runs both ways always shows both colours. The rest are counted.
+  const { shown: shownEntries, hidden: hiddenCurrencies } = shownAmounts(
+    entries,
+    MAX_STACKED_AMOUNTS,
+  );
 
   const body = (
     <Row
       style={{
         paddingVertical: theme.spacing.sm,
         paddingHorizontal: theme.spacing.sm,
-        alignItems: 'center',
+        // Top, not centre. Centring a one-line name against a stack of amounts
+        // floats the name to the middle of the stack — it sat level with a
+        // person's *second* currency, so the eye read the name against the wrong
+        // number. Aligned to the top, the name and the amount that leads the row
+        // are on the same line, whatever either side is carrying.
+        alignItems: 'flex-start',
         gap: theme.spacing.md,
         borderTopWidth: divider ? 1 : 0,
         borderTopColor: theme.color.border,
@@ -1256,38 +1253,26 @@ const PersonRow = memo(function PersonRow({
           invite/remind discs sit in one clean column at the edge — rather than
           floating at a different x on every row because the amount width differs. */}
       <View style={{ alignItems: 'flex-end', maxWidth: '46%' }}>
-        {single ? (
+        {/* The first amount is always the same size, whether the person holds one
+            currency or four — it used to drop to caption as soon as there were
+            two, so the column that should read as one row of figures carried
+            16px and 13px side by side. The lead figure is the row's answer; the
+            currencies under it are the detail. Never summed across them. */}
+        {shownEntries.map((entry, index) => (
           <MoneyText
-            amount={BigInt(single.net)}
-            currency={single.currency}
+            key={entry.currency}
+            amount={BigInt(entry.net)}
+            currency={entry.currency}
             locale={locale}
-            variant="subheading"
+            variant={index === 0 ? 'subheading' : 'caption'}
             mode="balance"
           />
-        ) : (
-          // Multi-currency: one small coloured line per currency — never summed.
-          // Only the two biggest are drawn, and the remainder is counted. A row
-          // is a summary, and an unbounded stack made one person four lines tall
-          // next to a neighbour's one, which is what broke the list's rhythm;
-          // the person page splits every currency and group out in full.
-          <>
-            {shownEntries.map((e) => (
-              <MoneyText
-                key={e.currency}
-                amount={BigInt(e.net)}
-                currency={e.currency}
-                locale={locale}
-                variant="caption"
-                mode="balance"
-              />
-            ))}
-            {hiddenCurrencies > 0 ? (
-              <Text variant="micro" tone="faint">
-                {plural(locale, hiddenCurrencies, t.tabs.moreCurrencies)}
-              </Text>
-            ) : null}
-          </>
-        )}
+        ))}
+        {hiddenCurrencies > 0 ? (
+          <Text variant="micro" tone="faint">
+            {plural(locale, hiddenCurrencies, t.tabs.moreCurrencies)}
+          </Text>
+        ) : null}
       </View>
       <View style={{ width: ACTION_SLOT, alignItems: 'center', justifyContent: 'center' }}>
         {!selectMode && person.is_ghost && soloGroup ? (

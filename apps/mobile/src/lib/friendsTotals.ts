@@ -8,6 +8,8 @@
  * renderer to be true — so they live here and `friends.tsx` draws the answers.
  */
 
+import { minorUnitScale } from '@waves/core';
+
 /** The net in one currency. Positive: owed to you. */
 export interface CurrencyTotal {
   currency: string;
@@ -70,6 +72,68 @@ export function directionGroups(totals: readonly CurrencyTotal[]): DirectionGrou
     if (head) groups.push({ owed, head, rest });
   }
   return groups;
+}
+
+/**
+ * How big a figure looks, in hundredths of its own major unit.
+ *
+ * There is no honest ordering across currencies without a rate, and this screen
+ * has none — but comparing raw minor units is not merely imprecise, it is off by
+ * the difference in their exponents: ¥27,066 is 27066 minor units and ₹4,614.66
+ * is 461466, so the yen sorted *below* the rupees on a hundred-fold error rather
+ * than on anything about money. Normalising to the major unit at least compares
+ * the numbers a person actually reads. It decides which currency represents a
+ * direction in a row, never whether that direction is shown.
+ */
+function magnitude(row: NetRow): bigint {
+  const net = BigInt(row.net);
+  return (absBig(net) * 100n) / minorUnitScale(row.currency);
+}
+
+/** Biggest-looking first. See `magnitude` for what "biggest" can and cannot mean. */
+function byMagnitude<T extends NetRow>(entries: readonly T[]): T[] {
+  return [...entries].sort((a, b) => {
+    const left = magnitude(a);
+    const right = magnitude(b);
+    return left < right ? 1 : left > right ? -1 : 0;
+  });
+}
+
+/**
+ * Which amounts a row draws, and how many it had to leave out.
+ *
+ * A row is a summary and cannot grow with the number of currencies somebody
+ * holds — one person four lines tall beside a neighbour's one is what broke the
+ * list's rhythm. But truncating by size alone is worse than the problem: a
+ * person owed in dollars and rupees while owing in yen and euro had both red
+ * lines fall off the bottom, so the row said he owed you and nothing else. A
+ * balance that runs both ways must say so.
+ *
+ * So the biggest of each direction is taken first and the remaining slots go to
+ * whatever is next largest. A mixed balance therefore always shows both colours,
+ * even if that means two lines where `max` asked for fewer, because a row that
+ * misstates the direction is not a smaller version of the truth.
+ */
+export function shownAmounts<T extends NetRow>(
+  entries: readonly T[],
+  max: number,
+): { shown: T[]; hidden: number } {
+  const ranked = byMagnitude(entries);
+  const picked = new Set<T>();
+
+  const biggestOwed = ranked.find((entry) => BigInt(entry.net) > 0n);
+  const biggestOwing = ranked.find((entry) => BigInt(entry.net) < 0n);
+  if (biggestOwed && biggestOwing) {
+    picked.add(biggestOwed);
+    picked.add(biggestOwing);
+  }
+  for (const entry of ranked) {
+    if (picked.size >= max) break;
+    picked.add(entry);
+  }
+
+  const shown = ranked.filter((entry) => picked.has(entry));
+  return { shown, hidden: ranked.length - shown.length };
 }
 
 /** Which way a person's balance runs, or null when it runs both ways. */
