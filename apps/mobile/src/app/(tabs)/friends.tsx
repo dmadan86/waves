@@ -1138,12 +1138,11 @@ const PersonRow = memo(function PersonRow({
   // `avatar_url` is the same across a person's rows, so the first carries it.
   const photoUrl = useAvatarUrl(blocked ? null : (entries[0]?.avatar_url ?? null));
   // One common group can explain several currency rows for the same person: a
-  // traveller may owe a guest in INR and USD from one trip, and that is still
-  // one invite/reminder context. Differing or missing group ids go to the person
-  // page, where the full split is visible.
+  // traveller may owe a guest in INR and USD from one trip, and that is still one
+  // group to invite them to. Differing or missing group ids go to the person
+  // page, where the full split is visible. A nudge is narrower — see `rowAction`.
   const single = entries.length === 1 ? entries[0] : null;
   const soloGroup = commonOnlyGroupId(entries);
-  const remindRow = entries.find((entry) => BigInt(entry.net) > 0n && entry.only_group_id === soloGroup);
 
   // One group explains it: open that group. Otherwise the person page splits the
   // balance back out per group and currency.
@@ -1290,7 +1289,10 @@ const PersonRow = memo(function PersonRow({
             locale={locale}
             variant={index === 0 ? 'subheading' : 'caption'}
             mode="balance"
-            numberOfLines={index === 0 ? 1 : undefined}
+            // Every line, not only the lead: the column is capped at 46% of the
+            // row, and a wrapped amount anywhere in the stack grows the row —
+            // the exact thing this list was fixed to stop doing.
+            numberOfLines={1}
             ellipsizeMode="tail"
           />
         ))}
@@ -1317,12 +1319,11 @@ const PersonRow = memo(function PersonRow({
               label={t.people.invite}
               onPress={() => router.push(`/group/${soloGroup}/invite`)}
             />
-          ) : action === 'remind' && remindRow ? (
+          ) : action === 'remind' && single ? (
             // They owe you and one group explains it — a single pair to nudge, kept
-            // honest by the server at one a day (ADR-010). Several currencies in
-            // that one group still make one pair; the row only needs one currency
-            // row to name the group and person to the API.
-            <RemindButton row={remindRow} />
+            // honest by the server at one a day (ADR-010). One currency, because
+            // the nudge names one: see `rowAction`.
+            <RemindButton row={single} />
           ) : null}
         </View>
       ) : null}

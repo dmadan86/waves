@@ -213,17 +213,28 @@ describe('rowAction', () => {
     expect(commonOnlyGroupId([])).toBeNull();
   });
 
-  it('offers a nudge when one group explains the debt, even across currencies', () => {
+  it('offers a nudge when one group and one currency explain the debt', () => {
     expect(rowAction({ is_ghost: false, entries: [entry('500', 'g1')] })).toBe('remind');
-    expect(
-      rowAction({ is_ghost: false, entries: [entry('500', 'g1'), entry('-20', 'g1')] }),
-    ).toBe('remind');
     // Spread over several groups: there is no single pair to nudge, so the row
     // carries nothing — which is why a list of such people reserved a column it
     // never filled and pushed every amount away from the edge.
     expect(rowAction({ is_ghost: false, entries: [entry('500', null)] })).toBeNull();
     expect(
       rowAction({ is_ghost: false, entries: [entry('500', 'g1'), entry('20', 'g2')] }),
+    ).toBeNull();
+  });
+
+  it('will not nudge across currencies, because the nudge names one', () => {
+    // `waves_nudge_to_settle` takes a currency alongside the group and the
+    // person, so there is no single request that means "remind them" about two
+    // debts — only a silent choice of which one to raise, made by whichever row
+    // is picked first, with nothing on screen saying which was sent. The person
+    // page splits them out and asks properly.
+    expect(
+      rowAction({ is_ghost: false, entries: [entry('500', 'g1'), entry('-20', 'g1')] }),
+    ).toBeNull();
+    expect(
+      rowAction({ is_ghost: false, entries: [entry('500', 'g1'), entry('20', 'g1')] }),
     ).toBeNull();
   });
 
@@ -234,9 +245,9 @@ describe('rowAction', () => {
   it('offers a guest their invite, whichever way the same-group balance runs', () => {
     expect(rowAction({ is_ghost: true, entries: [entry('-500', 'g1')] })).toBe('invite');
     expect(rowAction({ is_ghost: true, entries: [entry('500', 'g1')] })).toBe('invite');
-    expect(
-      rowAction({ is_ghost: true, entries: [entry('500', 'g1'), entry('-20', 'g1')] }),
-    ).toBe('invite');
+    expect(rowAction({ is_ghost: true, entries: [entry('500', 'g1'), entry('-20', 'g1')] })).toBe(
+      'invite',
+    );
   });
 
   it('offers nothing when several currencies do not share one group', () => {

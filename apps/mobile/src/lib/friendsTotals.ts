@@ -169,9 +169,16 @@ interface ActionablePerson {
  */
 export function rowAction(person: ActionablePerson): 'invite' | 'remind' | null {
   const groupId = commonOnlyGroupId(person.entries);
-  if (!groupId) return null;
+  if (groupId === null) return null;
+  // An invite is the group's link, so one group is the whole requirement.
   if (person.is_ghost) return 'invite';
-  if (person.entries.some((entry) => BigInt(entry.net) > 0n)) return 'remind';
+  // A nudge is not. `waves_nudge_to_settle` takes a currency alongside the group
+  // and the person, so "remind them" across two currencies is not one request —
+  // it is a choice of which debt to raise, made silently by whichever row is
+  // picked first, and the button gives no way to tell which was sent. One
+  // currency, or the row offers nothing and the person page does it properly.
+  const single = person.entries.length === 1 ? person.entries[0] : null;
+  if (single && BigInt(single.net) > 0n) return 'remind';
   return null;
 }
 
