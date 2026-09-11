@@ -18,10 +18,11 @@ import { useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { useDialog } from '@/lib/dialog';
 import { friendlyError } from '@/lib/errors';
+import { avatarPhotoActions, type AvatarPhotoAction } from '@/lib/avatarActions';
 import { pickAvatarPhoto, type PhotoSource } from '@/lib/image';
 
 export interface AvatarEditor {
-  /** Open the sheet — or, with no photo set, go straight to the library. */
+  /** Open the sheet that asks where the photo should come from. */
   readonly open: () => void;
   /** A picture is uploading or being removed. */
   readonly busy: boolean;
@@ -83,24 +84,13 @@ export function useAvatarEditor(): AvatarEditor {
    * row carries a glyph, which is what lets three short rows be told apart
    * without reading all three, and the row that takes something away carries a
    * red one — so it reads as destructive before the words do.
-   *
-   * No question at all when there is no photo yet: nothing to remove, nothing
-   * to replace, so a first tap opens the library.
    */
   const open = useCallback((): void => {
     void (async () => {
-      if (!profile?.avatar_url) {
-        await choosePhoto('library');
-        return;
-      }
-      const picked = await choose({
+      const picked = (await choose({
         title: t.account.yourPhoto,
-        options: [
-          { id: 'camera', label: t.account.takeNewPhoto, icon: 'camera-outline' },
-          { id: 'library', label: t.account.chooseFromLibrary, icon: 'images-outline' },
-          { id: 'remove', label: t.account.removePhoto, icon: 'trash-outline', tone: 'danger' },
-        ],
-      });
+        options: avatarPhotoActions(t.account, Boolean(profile?.avatar_url)),
+      })) as AvatarPhotoAction | null;
       if (picked === 'camera') await choosePhoto('camera');
       else if (picked === 'library') await choosePhoto('library');
       else if (picked === 'remove') await clearPhoto();
