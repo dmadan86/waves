@@ -138,6 +138,8 @@ export interface ChooseOption {
   readonly label: string;
   /** Marks the one that takes something away, so it is not drawn as a peer. */
   readonly tone?: 'danger';
+  /** An Ionicons glyph before the label — see `DialogAction.icon`. */
+  readonly icon?: string;
 }
 
 /** More than two ways forward — an action list, drawn as a bottom sheet. */
@@ -273,6 +275,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
           ...options.options.map((option) => ({
             id: `${OPTION_PREFIX}${option.id}`,
             label: option.label,
+            icon: option.icon,
             tone: option.tone === 'danger' ? ('dangerQuiet' as const) : ('quiet' as const),
           })),
           { id: DIALOG_CANCEL, label: options.cancelLabel ?? t.common.cancel, tone: 'ghost' },

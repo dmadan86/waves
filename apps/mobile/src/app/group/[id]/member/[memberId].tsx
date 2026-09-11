@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams } from 'expo-router';
-import { ScrollView, TextInput, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 
-import { currencyExposure, isValidVpa } from '@waves/core';
+import { currencyExposure, format, isValidVpa, money, type CurrencyCode } from '@waves/core';
 import {
   Avatar,
   Badge,
@@ -23,6 +23,9 @@ import {
   useTheme,
 } from '@waves/ui';
 
+import { EditTextSheet } from '@/components/EditTextSheet';
+import { ProfileAvatar } from '@/components/ProfileAvatar';
+import { SettingsSection, type SettingsRow } from '@/components/SettingsSection';
 import { useGroup, useGroupLedger, useSetMemberRole, useUpdateMember } from '@/data/hooks';
 import { friendlyError } from '@/lib/errors';
 import { expenseTitle } from '@/data/expenseTitle';
@@ -57,6 +60,8 @@ export default function MemberScreen() {
   const [name, setName] = useState(member?.ghost_name ?? '');
   const [vpa, setVpa] = useState(member?.vpa ?? '');
   const [status, setStatus] = useState<string | null>(null);
+  /** Which editable row has its sheet open, or null. */
+  const [editing, setEditing] = useState<'name' | 'vpa' | null>(null);
 
   // Seed the editors from the member the moment the query resolves, and again
   // if the row identity changes — synced in render (the app's idiom for
@@ -84,7 +89,6 @@ export default function MemberScreen() {
   // action. Blocking is display-only; it never touches the balance shown here.
   const shownName = displayName(member, profile?.id, blockedIds, t.misc.someone);
   const realName = member.profile?.display_name ?? member.ghost_name ?? t.misc.someone;
-  const vpaValid = vpa.trim() === '' || isValidVpa(vpa.trim());
 
   const confirmBlock = async (): Promise<void> => {
     if (!member.profile_id) return;
@@ -106,6 +110,52 @@ export default function MemberScreen() {
   // pair keeps the amount readable on the tint.
   const heroTint = balance > 0n ? 'mint' : balance < 0n ? 'pink' : 'lilac';
   const heroInk = theme.tint[heroTint].ink;
+
+  /**
+   * Promote, demote, block, unblock — whichever of them apply to this person.
+   *
+   * Built as a list so the section can be omitted entirely when none apply,
+   * rather than drawing a heading over nothing. That is the case for yourself,
+   * and for a ghost seen by a non-admin.
+   */
+  const manageRows: SettingsRow[] = [
+    ...(iAmAdmin && !isMe
+      ? [
+          {
+            icon: (member.role === 'admin' ? 'shield-outline' : 'shield-checkmark-outline') as
+              'shield-outline' | 'shield-checkmark-outline',
+            label: member.role === 'admin' ? t.people.removeAdmin : t.people.makeAdmin,
+            hint: ghost ? t.people.adminNeedsAccount : t.people.adminNote,
+            onPress:
+              ghost || setRole.isPending
+                ? undefined
+                : () =>
+                    setRole.mutate(
+                      {
+                        memberId: member.id,
+                        role: member.role === 'admin' ? 'member' : 'admin',
+                      },
+                      {
+                        onSuccess: () => setStatus(t.account.saved),
+                        onError: (caught) =>
+                          setStatus(friendlyError(caught, t.couldNotSave, 'member.setRole')),
+                      },
+                    ),
+          },
+        ]
+      : []),
+    ...(!isMe && !ghost && member.profile_id
+      ? [
+          {
+            icon: (blocked ? 'eye-outline' : 'ban-outline') as 'eye-outline' | 'ban-outline',
+            label: blocked ? t.blocked.unblock : t.blocked.action,
+            hint: t.blocked.note,
+            destructive: !blocked,
+            onPress: blocked ? () => unblock(member.profile_id!) : () => void confirmBlock(),
+          },
+        ]
+      : []),
+  ];
 
   // Expenses this person is actually part of.
   const involved = expenses.rows.filter((expense) =>
@@ -168,6 +218,20 @@ export default function MemberScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
+        {/* Who, how much, and which way round.
+            
+            The amount used to stand alone: a number in a tinted card with no
+            word next to it, so "¥58,039" could as easily have been money owed
+            to this person as money they owe. The colour said which — and colour
+            alone is the one thing a balance must never rely on (ADR-009 and the
+            #191 regression this app already had once). Splitwise puts the
+            direction in words above the figure; bunq labels the hero outright.
+            So does this now, in the same words the Friends tab already uses.
+
+            The portrait is `ProfileAvatar`, so a member who has a photo shows
+            it. `Avatar` drew initials and nothing else, which meant the one
+            screen entirely about a person was the one screen that never showed
+            their face. */}
         <TintCard
           tint={heroTint}
           style={{
@@ -177,7 +241,16 @@ export default function MemberScreen() {
             padding: theme.spacing.xl,
           }}
         >
-          <Avatar name={shownName} ghost={ghost || blocked} size={78} />
+          <ProfileAvatar
+            name={shownName}
+            avatarUrl={ghost || blocked ? null : (member.profile?.avatar_url ?? null)}
+            size={78}
+          />
+          {balance !== 0n ? (
+            <Text variant="caption" style={{ color: heroInk, opacity: 0.85 }}>
+              {balance > 0n ? t.tabs.owesYou : t.tabs.youOweThem}
+            </Text>
+          ) : null}
           <MoneyText
             amount={balance}
             currency={currency}
@@ -187,167 +260,113 @@ export default function MemberScreen() {
             tone="default"
             style={{ color: heroInk }}
           />
-          <Row style={{ gap: theme.spacing.sm }}>
+          {balance === 0n ? (
+            <Text variant="caption" style={{ color: heroInk, opacity: 0.85 }}>
+              {t.tabs.allSquare}
+            </Text>
+          ) : null}
+          <Row style={{ gap: theme.spacing.sm, flexWrap: 'wrap', justifyContent: 'center' }}>
             {ghost ? <Badge label={t.notJoinedYet} /> : null}
             {blocked ? <Badge label={t.blocked.badge} /> : null}
             {member.role === 'admin' ? <Badge label={t.people.admin} tone="brand" /> : null}
             {isMe ? <Badge label={t.people.you} tone="positive" /> : null}
           </Row>
           {balance !== 0n && !isMe ? (
-            <Button label={t.settleUp} onPress={() => router.push(`/group/${groupId}/settle`)} />
+            // Full width, and the only filled button on the screen. It was a
+            // content-width pill sitting against the leading edge of a centred
+            // card, which read as an afterthought rather than as the thing this
+            // screen is for.
+            <Button
+              label={t.settleUp}
+              fullWidth
+              onPress={() => router.push(`/group/${groupId}/settle`)}
+            />
           ) : null}
         </TintCard>
 
-        {paidExposure.length > 0 ? (
-          <Card style={{ gap: theme.spacing.sm }}>
-            <Text variant="caption" tone="muted">
-              {t.people.paidAcross}
-            </Text>
-            <View
-              style={{
-                flexDirection: 'row',
-                flexWrap: 'wrap',
-                alignItems: 'center',
-                gap: theme.spacing.md,
-              }}
-            >
-              {paidExposure.map((entry) => (
-                <MoneyText
-                  key={entry.currency}
-                  amount={entry.amountMinor}
-                  currency={entry.currency}
-                  locale={locale}
-                  variant="subheading"
-                  mode="plain"
-                />
-              ))}
-            </View>
-          </Card>
-        ) : null}
-
-        {ghost ? (
-          <Card style={{ gap: theme.spacing.md }}>
-            <Text variant="caption" tone="muted">
-              {t.common.name}
-            </Text>
-            <Row>
-              <TextInput
-                value={name}
-                onChangeText={setName}
-                accessibilityLabel={t.people.memberName}
-                placeholderTextColor={theme.color.textFaint}
-                style={{
-                  flex: 1,
-                  fontSize: 18,
-                  fontWeight: '600',
-                  color: theme.color.text,
-                  paddingVertical: theme.spacing.sm,
-                }}
-              />
-              <Button
-                label={t.common.save}
-                size="sm"
-                variant="secondary"
-                disabled={!name.trim() || name.trim() === member.ghost_name}
-                onPress={() => save({ ghost_name: name.trim() })}
-              />
-            </Row>
-            <Text variant="micro" tone="muted">
-              {t.people.ghostNote}
-            </Text>
-          </Card>
-        ) : null}
-
-        {isMe ? (
-          <Card style={{ gap: theme.spacing.md }}>
-            <Text variant="caption" tone="muted">
-              {t.people.upiForGroup}
-            </Text>
-            <Row>
-              <TextInput
-                value={vpa}
-                onChangeText={setVpa}
-                autoCapitalize="none"
-                accessibilityLabel={t.people.upiForGroup}
-                placeholder={profile?.default_vpa ?? 'you@bank'}
-                placeholderTextColor={theme.color.textFaint}
-                style={{
-                  flex: 1,
-                  fontSize: 18,
-                  fontWeight: '600',
-                  color: vpaValid ? theme.color.text : theme.color.negative,
-                  paddingVertical: theme.spacing.sm,
-                }}
-              />
-              <Button
-                label={t.common.save}
-                size="sm"
-                variant="secondary"
-                disabled={!vpaValid || vpa.trim() === (member.vpa ?? '')}
-                onPress={() => save({ vpa: vpa.trim() === '' ? null : vpa.trim() })}
-              />
-            </Row>
-            <Text variant="micro" tone="muted">
-              {t.people.upiForGroupNote}
-            </Text>
-          </Card>
-        ) : null}
-
-        {/* An admin can make another member an admin, or take it back — for
-            anyone but themselves. A ghost still shows the card, but disabled
-            with the reason: no account means nothing to act as an admin with,
-            which the server enforces (GHOST_CANNOT_ADMIN). Showing it greyed
-            beats hiding it, so the capability is discoverable rather than a
-            secret. The server refuses demoting the last admin — the button
-            offers it, the RPC is what actually keeps the rule. */}
-        {iAmAdmin && !isMe ? (
-          <Card style={{ gap: theme.spacing.sm }}>
-            <Text variant="caption" tone="muted">
-              {t.people.role}
-            </Text>
-            <Button
-              label={member.role === 'admin' ? t.people.removeAdmin : t.people.makeAdmin}
-              variant="secondary"
-              disabled={ghost || setRole.isPending}
-              onPress={() =>
-                setRole.mutate(
+        {/* What this person has actually put in, as rows rather than a card per
+            figure. Two facts read down a column in the time it takes to read
+            one sentence, which is the bunq and Wanderlog shape. Paid stays
+            per-currency and unsummed (ADR-004): a trip that touched yen and
+            dollars has no single true total. */}
+        <SettingsSection
+          title={t.people.inThisGroup}
+          rows={[
+            ...(paidExposure.length > 0
+              ? [
                   {
-                    memberId: member.id,
-                    role: member.role === 'admin' ? 'member' : 'admin',
+                    icon: 'card-outline' as const,
+                    label: t.people.paidAcross,
+                    value: paidExposure
+                      .map((entry) =>
+                        format(money(entry.amountMinor, entry.currency as CurrencyCode), {
+                          locale,
+                          compactFraction: true,
+                        }),
+                      )
+                      .join(' · '),
                   },
-                  {
-                    onSuccess: () => setStatus(t.account.saved),
-                    onError: (caught) =>
-                      setStatus(friendlyError(caught, t.couldNotSave, 'member.setRole')),
-                  },
-                )
-              }
-            />
-            <Text variant="micro" tone="muted">
-              {ghost ? t.people.adminNeedsAccount : t.people.adminNote}
-            </Text>
-          </Card>
+                ]
+              : []),
+            {
+              icon: 'receipt-outline' as const,
+              label: t.people.expensesLabel,
+              value: String(involved.length),
+            },
+          ]}
+        />
+
+        {/* The two editable facts, as rows that open a sheet — the same pattern
+            the account screen uses, so a field is one line until somebody wants
+            to change it. A ghost's name is editable by anyone in the group; the
+            UPI override is yours alone. */}
+        {ghost || isMe ? (
+          <SettingsSection
+            rows={[
+              ...(ghost
+                ? [
+                    {
+                      icon: 'person-outline' as const,
+                      label: t.people.memberName,
+                      hint: t.people.ghostNote,
+                      value: name.trim() || t.misc.someone,
+                      valueMuted: !name.trim(),
+                      onPress: () => setEditing('name'),
+                    },
+                  ]
+                : []),
+              ...(isMe
+                ? [
+                    {
+                      icon: 'wallet-outline' as const,
+                      label: t.people.upiForGroup,
+                      hint: t.people.upiForGroupNote,
+                      value: vpa.trim() || (profile?.default_vpa ?? 'you@bank'),
+                      valueMuted: !vpa.trim(),
+                      onPress: () => setEditing('vpa'),
+                    },
+                  ]
+                : []),
+            ]}
+          />
         ) : null}
 
-        {/* Block or unblock this person. Only offered for a real account that is
-            not you: a ghost has no cross-group identity to block, and blocking
-            yourself is meaningless. It only changes how they are shown — the
-            balance above is untouched — so it lives here as a quiet control
-            rather than a destructive headline. */}
-        {!isMe && !ghost && member.profile_id ? (
-          <Card style={{ gap: theme.spacing.sm }}>
-            <Text variant="caption" tone="muted">
-              {t.blocked.title}
-            </Text>
-            <Button
-              label={blocked ? t.blocked.unblock : t.blocked.action}
-              variant={blocked ? 'secondary' : 'ghostDanger'}
-              onPress={blocked ? () => unblock(member.profile_id!) : () => void confirmBlock()}
-            />
-            <Text variant="micro" tone="muted">
-              {t.blocked.note}
-            </Text>
-          </Card>
+        {/* Managing this person: one section of rows rather than a card each.
+            
+            These were two cards, each a caption over a button over a note, at
+            two different weights — a soft lavender "Make admin" and a red
+            "Block" — for two things that are both just controls. GoPay files
+            exactly this under one "More action" heading of icon rows, and the
+            note each one carried becomes the row's second line, which is where
+            a sentence explaining a control belongs.
+
+            An admin can promote or demote anyone but themselves. A ghost shows
+            the row disabled with the reason rather than hiding it, so the
+            capability stays discoverable — the server enforces the rule either
+            way (GHOST_CANNOT_ADMIN, and the last admin cannot be demoted).
+            Blocking is display-only and never touches the balance above. */}
+        {manageRows.length > 0 ? (
+          <SettingsSection title={t.people.manageTitle} rows={manageRows} />
         ) : null}
 
         {status ? (
@@ -402,6 +421,44 @@ export default function MemberScreen() {
           </Card>
         </View>
       </ScrollView>
+
+      {/* The editors, over the list rather than inside it — see the account
+          screen for why a row beats a field with a Save button beside it. */}
+      <EditTextSheet
+        visible={editing === 'name'}
+        title={t.people.memberName}
+        hint={t.people.ghostNote}
+        value={name}
+        saving={updateMember.isPending}
+        onSave={(next) => {
+          setName(next);
+          save({ ghost_name: next });
+          setEditing(null);
+        }}
+        onClose={() => setEditing(null)}
+      />
+      <EditTextSheet
+        visible={editing === 'vpa'}
+        title={t.people.upiForGroup}
+        hint={t.people.upiForGroupNote}
+        value={vpa}
+        placeholder={profile?.default_vpa ?? 'you@bank'}
+        autoCapitalize="none"
+        saving={updateMember.isPending}
+        onSave={(next) => {
+          // An empty field clears the override rather than storing a blank —
+          // and an unparseable handle is refused here, since the sheet is the
+          // only door and the ledger should never hold one.
+          if (next.trim() !== '' && !isValidVpa(next.trim())) {
+            setStatus(t.people.upiInvalid);
+            return;
+          }
+          setVpa(next);
+          save({ vpa: next.trim() === '' ? null : next.trim() });
+          setEditing(null);
+        }}
+        onClose={() => setEditing(null)}
+      />
     </Screen>
   );
 }

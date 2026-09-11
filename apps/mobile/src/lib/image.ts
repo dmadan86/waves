@@ -264,17 +264,38 @@ async function readUnshrunk(
   return { base64, uri, mimeType: undefined };
 }
 
+/** Where a square photo comes from. The camera is the answer for a face. */
+export type PhotoSource = 'library' | 'camera';
+
 /**
  * Ask for a square photo — a profile picture or a group cover.
  *
  * Returns null when the person changes their mind or declines access. Both are
  * ordinary answers, not errors to report.
+ *
+ * `source` is asked for by name rather than guessed. A profile photo is most
+ * often taken there and then, and the sheet that calls this now offers the
+ * camera and the library as two separate choices — which is what every app
+ * whose photo sheet is worth copying does, because "choose a new one" makes
+ * somebody open a picker to find out it is not the one they wanted.
+ *
+ * A declined camera falls back to nothing rather than silently opening the
+ * library: they asked for the camera, and quietly showing them their photo roll
+ * instead is answering a question nobody put.
  */
-export async function pickSquarePhoto(maxEdge: number): Promise<PickedImage | null> {
-  const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+export async function pickSquarePhoto(
+  maxEdge: number,
+  source: PhotoSource = 'library',
+): Promise<PickedImage | null> {
+  const permission =
+    source === 'camera'
+      ? await ImagePicker.requestCameraPermissionsAsync()
+      : await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (!permission.granted) return null;
 
-  const result = await ImagePicker.launchImageLibraryAsync({
+  const launch =
+    source === 'camera' ? ImagePicker.launchCameraAsync : ImagePicker.launchImageLibraryAsync;
+  const result = await launch({
     mediaTypes: ['images'],
     allowsEditing: true,
     aspect: [1, 1],
@@ -299,7 +320,8 @@ export async function pickSquarePhoto(maxEdge: number): Promise<PickedImage | nu
   return { base64: shrunk.base64, mimeType: shrunk.mimeType ?? 'image/jpeg', uri: shrunk.uri };
 }
 
-export const pickAvatarPhoto = () => pickSquarePhoto(AVATAR_MAX_EDGE);
+export const pickAvatarPhoto = (source: PhotoSource = 'library') =>
+  pickSquarePhoto(AVATAR_MAX_EDGE, source);
 export const pickGroupPhoto = () => pickSquarePhoto(COVER_MAX_EDGE);
 
 /** Longest edge for an album photo — big enough to look good full-screen,

@@ -852,6 +852,12 @@ export interface UiStrings {
     otherCurrencies: PluralForms;
     saved: string;
     displayName: string;
+    /** One line in the name editor: who sees it. */
+    displayNameHint: string;
+    /** The heading over the account list. */
+    detailsTitle: string;
+    /** One line in the address editor: why it is asked for. */
+    addressHint: string;
     regionTitle: string;
     currencyLabel: string;
     currencyFromCountry: string;
@@ -865,6 +871,12 @@ export interface UiStrings {
     addYourDetails: string;
     yourPhoto: string;
     chooseNewPhoto: string;
+    /** Take a new one with the camera, rather than picking a saved one. */
+    takeNewPhoto: string;
+    /** Pick one already on the phone. */
+    chooseFromLibrary: string;
+    /** Take the current photo away, leaving initials. */
+    removePhoto: string;
     howPeoplePayYou: string;
     yourRailDetails: string;
     handleWrong: string;
@@ -1982,6 +1994,14 @@ export interface UiStrings {
     memberName: string;
     /** Member detail: label over their per-currency outlay (currency exposure). */
     paidAcross: string;
+    /** Heading over what this person put into this group. */
+    inThisGroup: string;
+    /** How many expenses they are part of. */
+    expensesLabel: string;
+    /** Heading over role and blocking. */
+    manageTitle: string;
+    /** Said when a typed UPI handle is not a handle. */
+    upiInvalid: string;
     ghostNote: string;
     upiForGroup: string;
     upiForGroupNote: string;
@@ -3631,6 +3651,9 @@ const en: UiStrings = {
     otherCurrencies: { one: 'and {n} other currency', other: 'and {n} other currencies' },
     saved: 'Saved',
     displayName: 'Display name',
+    displayNameHint: 'Everyone you share a group with sees this.',
+    detailsTitle: 'Your details',
+    addressHint: 'Never posted to. Kept for your own records.',
     regionTitle: 'Region',
     currencyLabel: 'Currency',
     currencyFromCountry: 'Set from your country',
@@ -3645,6 +3668,9 @@ const en: UiStrings = {
     addYourDetails: 'Add your details',
     yourPhoto: 'Your photo',
     chooseNewPhoto: 'Choose a new one',
+    takeNewPhoto: 'Take a photo',
+    chooseFromLibrary: 'Choose from library',
+    removePhoto: 'Remove photo',
     howPeoplePayYou: 'How people pay you',
     yourRailDetails: 'Your {rail} details',
     handleWrong: 'That does not look like {hint}.',
@@ -4568,6 +4594,10 @@ const en: UiStrings = {
     you: 'you',
     memberName: 'Member name',
     paidAcross: 'Paid',
+    inThisGroup: 'In this group',
+    expensesLabel: 'Expenses',
+    manageTitle: 'Manage',
+    upiInvalid: 'That does not look like a UPI ID.',
     ghostNote: 'This person holds real balances. When they join, they can claim this history.',
     upiForGroup: 'UPI ID for this group',
     upiForGroupNote:
@@ -6197,6 +6227,9 @@ const ta: UiStrings = {
     otherCurrencies: { one: 'மேலும் {n} நாணயம்', other: 'மேலும் {n} நாணயங்கள்' },
     saved: 'சேமிக்கப்பட்டது',
     displayName: 'காட்டப்படும் பெயர்',
+    displayNameHint: 'நீங்கள் குழு பகிரும் அனைவரும் இதைப் பார்ப்பார்கள்.',
+    detailsTitle: 'உங்கள் விவரங்கள்',
+    addressHint: 'இதற்கு எதுவும் அனுப்பப்படாது. உங்கள் பதிவுக்காக மட்டும்.',
     regionTitle: 'பகுதி',
     currencyLabel: 'நாணயம்',
     currencyFromCountry: 'உங்கள் நாட்டிலிருந்து அமைக்கப்படுகிறது',
@@ -6212,6 +6245,9 @@ const ta: UiStrings = {
     addYourDetails: 'உங்கள் விவரங்களைச் சேர்',
     yourPhoto: 'உங்கள் புகைப்படம்',
     chooseNewPhoto: 'புதிதாக ஒன்றைத் தேர்ந்தெடு',
+    takeNewPhoto: 'புகைப்படம் எடு',
+    chooseFromLibrary: 'கேலரியில் இருந்து தேர்ந்தெடு',
+    removePhoto: 'புகைப்படத்தை நீக்கு',
     howPeoplePayYou: 'உங்களுக்கு எப்படிப் பணம் தருவது',
     yourRailDetails: 'உங்கள் {rail} விவரங்கள்',
     handleWrong: 'இது {hint} போல் தெரியவில்லை.',
@@ -7181,6 +7217,10 @@ const ta: UiStrings = {
     you: 'நீங்கள்',
     memberName: 'உறுப்பினர் பெயர்',
     paidAcross: 'செலுத்தியது',
+    inThisGroup: 'இந்தக் குழுவில்',
+    expensesLabel: 'செலவுகள்',
+    manageTitle: 'நிர்வகி',
+    upiInvalid: 'இது UPI ஐடி போலத் தெரியவில்லை.',
     ghostNote:
       'இவருக்கு உண்மையான இருப்புகள் உள்ளன. அவர்கள் சேரும்போது இந்த வரலாற்றைத் தங்களுடையதாக்கிக் கொள்ளலாம்.',
     upiForGroup: 'இந்தக் குழுவுக்கான UPI ID',
@@ -8861,6 +8901,9 @@ const hi: UiStrings = {
     otherCurrencies: { one: 'और {n} अन्य मुद्रा', other: 'और {n} अन्य मुद्राएँ' },
     saved: 'सेव हो गया',
     displayName: 'दिखने वाला नाम',
+    displayNameHint: 'जिन ग्रुप में आप हैं, उनमें सब यही देखते हैं।',
+    detailsTitle: 'आपकी जानकारी',
+    addressHint: 'यहाँ कुछ नहीं भेजा जाता। सिर्फ़ आपके रिकॉर्ड के लिए।',
     regionTitle: 'क्षेत्र',
     currencyLabel: 'मुद्रा',
     currencyFromCountry: 'आपके देश से सेट',
@@ -8875,6 +8918,9 @@ const hi: UiStrings = {
     addYourDetails: 'अपनी जानकारी जोड़ें',
     yourPhoto: 'आपकी फ़ोटो',
     chooseNewPhoto: 'नई चुनें',
+    takeNewPhoto: 'फ़ोटो लें',
+    chooseFromLibrary: 'गैलरी से चुनें',
+    removePhoto: 'फ़ोटो हटाएँ',
     howPeoplePayYou: 'लोग आपको कैसे भुगतान करें',
     yourRailDetails: 'आपकी {rail} जानकारी',
     handleWrong: 'यह {hint} जैसा नहीं लगता।',
@@ -9799,6 +9845,10 @@ const hi: UiStrings = {
     you: 'आप',
     memberName: 'सदस्य का नाम',
     paidAcross: 'चुकाया',
+    inThisGroup: 'इस ग्रुप में',
+    expensesLabel: 'खर्च',
+    manageTitle: 'प्रबंधित करें',
+    upiInvalid: 'यह UPI आईडी जैसी नहीं लगती।',
     ghostNote: 'इस व्यक्ति का असली हिसाब है। जुड़ने पर वे यह इतिहास अपने नाम कर सकते हैं।',
     upiForGroup: 'इस समूह के लिए UPI ID',
     upiForGroupNote:
@@ -11493,6 +11543,9 @@ const ar: UiStrings = {
     },
     saved: 'تم الحفظ',
     displayName: 'الاسم الظاهر',
+    displayNameHint: 'يراه كل من تشاركه مجموعة.',
+    detailsTitle: 'بياناتك',
+    addressHint: 'لا يُرسل إليه شيء. محفوظ لسجلك فقط.',
     regionTitle: 'المنطقة',
     currencyLabel: 'العملة',
     currencyFromCountry: 'يُضبط حسب بلدك',
@@ -11507,6 +11560,9 @@ const ar: UiStrings = {
     addYourDetails: 'أضف بياناتك',
     yourPhoto: 'صورتك',
     chooseNewPhoto: 'اختر صورة جديدة',
+    takeNewPhoto: 'التقط صورة',
+    chooseFromLibrary: 'اختر من المعرض',
+    removePhoto: 'إزالة الصورة',
     howPeoplePayYou: 'كيف يدفع لك الناس',
     yourRailDetails: 'بيانات {rail} الخاصة بك',
     handleWrong: 'هذا لا يبدو مثل {hint}.',
@@ -12502,6 +12558,10 @@ const ar: UiStrings = {
     you: 'أنت',
     memberName: 'اسم العضو',
     paidAcross: 'دفع',
+    inThisGroup: 'في هذه المجموعة',
+    expensesLabel: 'المصاريف',
+    manageTitle: 'إدارة',
+    upiInvalid: 'لا يبدو هذا معرّف UPI صالحًا.',
     ghostNote: 'لهذا الشخص أرصدة حقيقية. حين ينضم يمكنه أن يطالب بهذا السجل.',
     upiForGroup: 'معرّف الدفع لهذه المجموعة',
     upiForGroupNote: 'يتجاوز معرّف حسابك هنا فقط — مفيد حين تُسوّى مجموعة إلى حساب مختلف.',
