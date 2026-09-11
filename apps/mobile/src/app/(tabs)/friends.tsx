@@ -62,6 +62,12 @@ import { useBlockedUsers } from '@/data/blocked';
 import { defaultMergeName } from '@/data/mergePeople';
 import { useKnownPeopleCount, usePeopleBalances } from '@/data/hooks';
 import { useAuth } from '@/lib/auth';
+import {
+  currencyTotals,
+  directionGroups,
+  personDirection,
+  type CurrencyTotal,
+} from '@/lib/friendsTotals';
 import { PressableScale } from '@/lib/anim';
 import { router } from '@/lib/navigation';
 import { useReducedMotion } from '@/lib/reducedMotion';
@@ -174,22 +180,6 @@ function sortPersons(people: PersonGroup[], key: SortKey, dir: SortDir): PersonG
   return [...people].sort(cmp);
 }
 
-export interface CurrencyTotal {
-  currency: string;
-  net: bigint;
-}
-
-/** The net you are up or down in each currency, summed over everyone. Positive:
- *  owed to you. Never summed across currencies (ADR-003). Biggest first. */
-function currencyTotals(rows: PersonBalanceRow[]): CurrencyTotal[] {
-  const m = new Map<string, bigint>();
-  for (const row of rows) m.set(row.currency, (m.get(row.currency) ?? 0n) + BigInt(row.net));
-  return [...m.entries()]
-    .filter(([, net]) => net !== 0n)
-    .map(([currency, net]) => ({ currency, net }))
-    .sort((a, b) => (absBig(a.net) < absBig(b.net) ? 1 : absBig(a.net) > absBig(b.net) ? -1 : 0));
-}
-
 /**
  * The Friends hero wash — a saturated indigo, the same proven two-stop diagonal
  * the dashboard's month slide rides, so the two tabs read as one system and the
@@ -203,6 +193,17 @@ const FRIENDS_GRADIENT = ['#463F86', '#221C46'] as const;
     even when there is no action — so every amount's right edge lines up and the
     invite/remind discs form one clean column instead of floating with the amount. */
 const ACTION_SLOT = 34;
+
+/**
+ * How many currencies a single row will draw before it starts counting them.
+ *
+ * Two, because a row has to stay roughly one height: a person holding four
+ * currencies was drawing four stacked lines beside a neighbour's one, and a list
+ * whose rows are 1x and 4x tall has no rhythm for the eye to follow. Two is
+ * enough to show that a balance runs both ways — the common reason a person has
+ * more than one — and the rest are named as a count rather than hidden.
+ */
+const MAX_STACKED_AMOUNTS = 2;
 
 /**
  * Which guests are probably the same person seen twice.
@@ -774,26 +775,55 @@ function FriendsHero({
           <Text variant="micro" tone="onBrand" style={{ letterSpacing: 1, opacity: 0.7 }}>
             {t.tabs.overall.toUpperCase()}
           </Text>
-          {totals.map((total) => (
-            <Row
-              key={total.currency}
-              style={{
-                justifyContent: 'space-between',
-                alignItems: 'flex-end',
-                gap: theme.spacing.md,
-              }}
-            >
-              <Text variant="body" tone="onBrand" style={{ opacity: 0.85 }}>
-                {total.net > 0n ? t.tabs.youAreOwed : t.tabs.youOweThem}
-              </Text>
-              <MoneyText
-                amount={total.net < 0n ? -total.net : total.net}
-                currency={total.currency}
-                locale={locale}
-                tone="onBrand"
-                style={{ fontSize: 32, lineHeight: 38, fontWeight: '800' }}
-              />
-            </Row>
+          {directionGroups(totals).map((group) => (
+            <View key={group.owed ? 'owed' : 'owing'} style={{ gap: 2 }}>
+              <Row
+                style={{
+                  justifyContent: 'space-between',
+                  // Baseline, not flex-end: the label is 16px and the amount is
+                  // 32, so aligning the bottoms of two boxes that tall sits the
+                  // word below the digits it belongs to. This is the line the
+                  // eye reads across.
+                  alignItems: 'baseline',
+                  gap: theme.spacing.md,
+                }}
+              >
+                <Text variant="body" tone="onBrand" style={{ opacity: 0.85 }}>
+                  {group.owed ? t.tabs.youAreOwed : t.tabs.youOweThem}
+                </Text>
+                <MoneyText
+                  amount={group.head.net < 0n ? -group.head.net : group.head.net}
+                  currency={group.head.currency}
+                  locale={locale}
+                  tone="onBrand"
+                  style={{ fontSize: 32, lineHeight: 38, fontWeight: '800' }}
+                />
+              </Row>
+              {group.rest.length > 0 ? (
+                // The same direction's other currencies, small and under the
+                // number they belong to. Wrapped rather than clipped — six
+                // currencies costs a second line here instead of six headlines.
+                <Row
+                  style={{
+                    justifyContent: 'flex-end',
+                    flexWrap: 'wrap',
+                    columnGap: theme.spacing.sm,
+                  }}
+                >
+                  {group.rest.map((total) => (
+                    <MoneyText
+                      key={total.currency}
+                      amount={total.net < 0n ? -total.net : total.net}
+                      currency={total.currency}
+                      locale={locale}
+                      variant="caption"
+                      tone="onBrand"
+                      style={{ opacity: 0.8 }}
+                    />
+                  ))}
+                </Row>
+              ) : null}
+            </View>
           ))}
         </Reanimated.View>
       ) : null}
@@ -1117,10 +1147,17 @@ const PersonRow = memo(function PersonRow({
       ? plural(locale, single.group_count, t.tabs.acrossGroups)
       : null;
   // The caption folds direction and scope onto one line, so the right edge no
-  // longer stacks a micro-label over the amount. Multi-currency people have no
-  // single direction (owed in one, owing in another) — their stacked coloured
-  // amounts carry it, so the caption is just the scope, if any.
-  const direction = single ? (BigInt(single.net) > 0n ? t.tabs.owesYou : t.tabs.youOweThem) : null;
+  // longer stacks a micro-label over the amount.
+  //
+  // Direction is knowable whenever every currency points the same way, not only
+  // when there is one of them — somebody who owes you in rupees and in dollars
+  // still simply owes you. Gating this on `single` left every multi-currency
+  // person with no caption at all, so a dense list alternated between rows with
+  // a second line and rows without, and the names stopped sitting on a common
+  // grid. A genuinely mixed balance still says nothing: no word is true of both
+  // halves, and the coloured amounts are the honest answer there.
+  const runs = personDirection(entries);
+  const direction = runs === 'owed' ? t.tabs.owesYou : runs === 'owing' ? t.tabs.youOweThem : null;
   const caption = [direction, scope].filter(Boolean).join(' · ') || null;
 
   // What a screen reader hears: who, then each currency's spoken direction and
@@ -1149,6 +1186,10 @@ const PersonRow = memo(function PersonRow({
               : 0,
         )
       : entries;
+
+  /** At most two amounts per row; the rest are counted, never dropped silently. */
+  const shownEntries = sortedEntries.slice(0, MAX_STACKED_AMOUNTS);
+  const hiddenCurrencies = sortedEntries.length - shownEntries.length;
 
   const body = (
     <Row
@@ -1214,7 +1255,7 @@ const PersonRow = memo(function PersonRow({
           rows with no action, so every amount's right edge lines up and the
           invite/remind discs sit in one clean column at the edge — rather than
           floating at a different x on every row because the amount width differs. */}
-      <View style={{ alignItems: 'flex-end' }}>
+      <View style={{ alignItems: 'flex-end', maxWidth: '46%' }}>
         {single ? (
           <MoneyText
             amount={BigInt(single.net)}
@@ -1225,16 +1266,27 @@ const PersonRow = memo(function PersonRow({
           />
         ) : (
           // Multi-currency: one small coloured line per currency — never summed.
-          sortedEntries.map((e) => (
-            <MoneyText
-              key={e.currency}
-              amount={BigInt(e.net)}
-              currency={e.currency}
-              locale={locale}
-              variant="caption"
-              mode="balance"
-            />
-          ))
+          // Only the two biggest are drawn, and the remainder is counted. A row
+          // is a summary, and an unbounded stack made one person four lines tall
+          // next to a neighbour's one, which is what broke the list's rhythm;
+          // the person page splits every currency and group out in full.
+          <>
+            {shownEntries.map((e) => (
+              <MoneyText
+                key={e.currency}
+                amount={BigInt(e.net)}
+                currency={e.currency}
+                locale={locale}
+                variant="caption"
+                mode="balance"
+              />
+            ))}
+            {hiddenCurrencies > 0 ? (
+              <Text variant="micro" tone="faint">
+                {plural(locale, hiddenCurrencies, t.tabs.moreCurrencies)}
+              </Text>
+            ) : null}
+          </>
         )}
       </View>
       <View style={{ width: ACTION_SLOT, alignItems: 'center', justifyContent: 'center' }}>
