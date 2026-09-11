@@ -1994,6 +1994,14 @@ export interface UiStrings {
     memberName: string;
     /** Member detail: label over their per-currency outlay (currency exposure). */
     paidAcross: string;
+    /** Heading over what this person put into this group. */
+    inThisGroup: string;
+    /** How many expenses they are part of. */
+    expensesLabel: string;
+    /** Heading over role and blocking. */
+    manageTitle: string;
+    /** Said when a typed UPI handle is not a handle. */
+    upiInvalid: string;
     ghostNote: string;
     upiForGroup: string;
     upiForGroupNote: string;
@@ -4586,6 +4594,10 @@ const en: UiStrings = {
     you: 'you',
     memberName: 'Member name',
     paidAcross: 'Paid',
+    inThisGroup: 'In this group',
+    expensesLabel: 'Expenses',
+    manageTitle: 'Manage',
+    upiInvalid: 'That does not look like a UPI ID.',
     ghostNote: 'This person holds real balances. When they join, they can claim this history.',
     upiForGroup: 'UPI ID for this group',
     upiForGroupNote:
@@ -7205,6 +7217,10 @@ const ta: UiStrings = {
     you: 'நீங்கள்',
     memberName: 'உறுப்பினர் பெயர்',
     paidAcross: 'செலுத்தியது',
+    inThisGroup: 'இந்தக் குழுவில்',
+    expensesLabel: 'செலவுகள்',
+    manageTitle: 'நிர்வகி',
+    upiInvalid: 'இது UPI ஐடி போலத் தெரியவில்லை.',
     ghostNote:
       'இவருக்கு உண்மையான இருப்புகள் உள்ளன. அவர்கள் சேரும்போது இந்த வரலாற்றைத் தங்களுடையதாக்கிக் கொள்ளலாம்.',
     upiForGroup: 'இந்தக் குழுவுக்கான UPI ID',
@@ -9829,6 +9845,10 @@ const hi: UiStrings = {
     you: 'आप',
     memberName: 'सदस्य का नाम',
     paidAcross: 'चुकाया',
+    inThisGroup: 'इस ग्रुप में',
+    expensesLabel: 'खर्च',
+    manageTitle: 'प्रबंधित करें',
+    upiInvalid: 'यह UPI आईडी जैसी नहीं लगती।',
     ghostNote: 'इस व्यक्ति का असली हिसाब है। जुड़ने पर वे यह इतिहास अपने नाम कर सकते हैं।',
     upiForGroup: 'इस समूह के लिए UPI ID',
     upiForGroupNote:
@@ -12538,6 +12558,10 @@ const ar: UiStrings = {
     you: 'أنت',
     memberName: 'اسم العضو',
     paidAcross: 'دفع',
+    inThisGroup: 'في هذه المجموعة',
+    expensesLabel: 'المصاريف',
+    manageTitle: 'إدارة',
+    upiInvalid: 'لا يبدو هذا معرّف UPI صالحًا.',
     ghostNote: 'لهذا الشخص أرصدة حقيقية. حين ينضم يمكنه أن يطالب بهذا السجل.',
     upiForGroup: 'معرّف الدفع لهذه المجموعة',
     upiForGroupNote: 'يتجاوز معرّف حسابك هنا فقط — مفيد حين تُسوّى مجموعة إلى حساب مختلف.',
