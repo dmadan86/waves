@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams } from 'expo-router';
-import { ActivityIndicator, ScrollView, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, TextInput, View } from 'react-native';
 
 import {
   Avatar,
@@ -303,56 +303,113 @@ export default function MembersScreen() {
           ))}
         </Card>
 
-        {/* ADR-006: a name is enough to start splitting with someone. */}
-        <Card style={{ gap: theme.spacing.md }}>
+        {/* Adding somebody, with the two doors first and the typing second.
+            
+            It used to be two bare text fields stacked on top of each other —
+            neither labelled, only placeheld — with a small Add beside the first
+            that also committed the second, and "Browse my contacts" as a ghost
+            button underneath them both. So the fastest way in was the last thing
+            you saw, and the invite link was a text link in a different card
+            further down the page, shown only once a ghost already existed.
+
+            Every add-members screen worth copying puts the doors at the top as
+            a row of tiles — Teams (share link / QR / camera), Discord (share /
+            copy link / Messages / Gmail), GroupMe, Abode. Typing a name is the
+            fallback, under a divider, which is what it actually is: ADR-006
+            says a name alone is enough, not that a name alone is the first
+            thing to reach for.
+
+            Two tiles rather than the three or four those apps show, because our
+            link and our QR are the same screen. A third tile pointing at the
+            same place would be the second door that this app keeps deciding not
+            to build. */}
+        <Card style={{ gap: theme.spacing.lg }}>
           <Text variant="caption" tone="muted">
             {t.people.addSomeone}
           </Text>
-          <Row>
-            <TextInput
-              value={ghostName}
-              onChangeText={setGhostName}
-              placeholder={t.people.namePlaceholder}
-              placeholderTextColor={theme.color.textFaint}
-              accessibilityLabel={t.common.name}
-              onSubmitEditing={add}
-              style={{
-                flex: 1,
-                fontSize: 17,
-                fontWeight: '600',
-                color: theme.color.text,
-                paddingVertical: theme.spacing.sm,
-              }}
+
+          <Row style={{ gap: theme.spacing.sm }}>
+            <AddTile
+              icon="people-outline"
+              label={t.people.browseContacts}
+              onPress={openContactPicker}
             />
-            <Button
-              label={t.add}
-              size="sm"
-              variant="secondary"
-              disabled={(!ghostName.trim() && !ghostContact.trim()) || addGhost.isPending}
-              onPress={add}
+            <AddTile
+              icon="link-outline"
+              label={t.people.shareInvite}
+              onPress={() => router.push(`/group/${groupId}/invite`)}
             />
           </Row>
 
-          <TextInput
-            value={ghostContact}
-            onChangeText={setGhostContact}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            placeholder={t.people.contactPlaceholder}
-            placeholderTextColor={theme.color.textFaint}
-            accessibilityLabel={t.common.emailOrPhone}
-            onSubmitEditing={add}
-            style={{
-              fontSize: 15,
-              color: theme.color.text,
-              paddingVertical: theme.spacing.sm,
-            }}
-          />
+          {/* A rule with the alternative written into it, so the fields below
+              read as the other way rather than as the only way. */}
+          <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+            <View style={{ flex: 1, height: 1, backgroundColor: theme.color.border }} />
+            <Text variant="micro" tone="faint">
+              {t.people.orByName}
+            </Text>
+            <View style={{ flex: 1, height: 1, backgroundColor: theme.color.border }} />
+          </Row>
 
-          <Button label={t.people.browseContacts} variant="ghost" onPress={openContactPicker} />
-          <Text variant="micro" tone="muted">
-            {t.misc.nameAloneBody}
-          </Text>
+          <View style={{ gap: theme.spacing.sm }}>
+            <Row style={{ gap: theme.spacing.sm, alignItems: 'center' }}>
+              <TextInput
+                value={ghostName}
+                onChangeText={setGhostName}
+                placeholder={t.people.namePlaceholder}
+                placeholderTextColor={theme.color.textFaint}
+                accessibilityLabel={t.common.name}
+                onSubmitEditing={add}
+                returnKeyType="done"
+                style={{
+                  flex: 1,
+                  fontSize: 17,
+                  fontWeight: '600',
+                  color: theme.color.text,
+                  borderWidth: 1,
+                  borderColor: theme.color.border,
+                  borderRadius: theme.radius.lg,
+                  paddingHorizontal: theme.spacing.md,
+                  paddingVertical: theme.spacing.sm,
+                }}
+              />
+              <Button
+                label={t.add}
+                size="sm"
+                disabled={(!ghostName.trim() && !ghostContact.trim()) || addGhost.isPending}
+                onPress={add}
+              />
+            </Row>
+
+            {/* The contact is optional and looked compulsory: a second field of
+                the same weight directly under the first reads as the rest of the
+                form. It is a quieter, smaller row now, and says so in its own
+                placeholder. */}
+            <TextInput
+              value={ghostContact}
+              onChangeText={setGhostContact}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              placeholder={t.people.contactPlaceholder}
+              placeholderTextColor={theme.color.textFaint}
+              accessibilityLabel={t.common.emailOrPhone}
+              onSubmitEditing={add}
+              returnKeyType="done"
+              style={{
+                fontSize: 15,
+                color: theme.color.text,
+                borderWidth: 1,
+                borderColor: theme.color.border,
+                borderRadius: theme.radius.lg,
+                paddingHorizontal: theme.spacing.md,
+                paddingVertical: theme.spacing.sm,
+              }}
+            />
+            <Text variant="micro" tone="muted">
+              {t.misc.nameAloneBody}
+            </Text>
+          </View>
+
           {addGhost.isPending || adding ? <ActivityIndicator color={theme.color.brand} /> : null}
           {error ? <Callout tone="negative">{error}</Callout> : null}
         </Card>
@@ -371,5 +428,47 @@ export default function MembersScreen() {
         ) : null}
       </ScrollView>
     </Screen>
+  );
+}
+
+/**
+ * One of the ways in, as a tile rather than a line of text.
+ *
+ * Half the width each and the same weight as each other, because they are two
+ * answers to one question and neither is the recommended one — which is the
+ * shape the reference boards all use for this row. A glyph over a label, so the
+ * pair reads as a choice at a glance instead of two sentences to compare.
+ */
+function AddTile({
+  icon,
+  label,
+  onPress,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  onPress: () => void;
+}) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        flex: 1,
+        alignItems: 'center',
+        gap: theme.spacing.xs,
+        paddingVertical: theme.spacing.md,
+        paddingHorizontal: theme.spacing.sm,
+        borderRadius: theme.radius.lg,
+        backgroundColor: theme.color.brandSoft,
+        opacity: pressed ? 0.7 : 1,
+      })}
+    >
+      <Ionicons name={icon} size={iconSize.lg} color={theme.color.brand} />
+      <Text variant="caption" tone="brand" numberOfLines={1} style={{ fontWeight: '700' }}>
+        {label}
+      </Text>
+    </Pressable>
   );
 }
