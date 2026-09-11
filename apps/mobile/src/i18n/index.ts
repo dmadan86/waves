@@ -852,6 +852,12 @@ export interface UiStrings {
     otherCurrencies: PluralForms;
     saved: string;
     displayName: string;
+    /** One line in the name editor: who sees it. */
+    displayNameHint: string;
+    /** The heading over the account list. */
+    detailsTitle: string;
+    /** One line in the address editor: why it is asked for. */
+    addressHint: string;
     regionTitle: string;
     currencyLabel: string;
     currencyFromCountry: string;
@@ -3637,6 +3643,9 @@ const en: UiStrings = {
     otherCurrencies: { one: 'and {n} other currency', other: 'and {n} other currencies' },
     saved: 'Saved',
     displayName: 'Display name',
+    displayNameHint: 'Everyone you share a group with sees this.',
+    detailsTitle: 'Your details',
+    addressHint: 'Never posted to. Kept for your own records.',
     regionTitle: 'Region',
     currencyLabel: 'Currency',
     currencyFromCountry: 'Set from your country',
@@ -6206,6 +6215,9 @@ const ta: UiStrings = {
     otherCurrencies: { one: 'மேலும் {n} நாணயம்', other: 'மேலும் {n} நாணயங்கள்' },
     saved: 'சேமிக்கப்பட்டது',
     displayName: 'காட்டப்படும் பெயர்',
+    displayNameHint: 'நீங்கள் குழு பகிரும் அனைவரும் இதைப் பார்ப்பார்கள்.',
+    detailsTitle: 'உங்கள் விவரங்கள்',
+    addressHint: 'இதற்கு எதுவும் அனுப்பப்படாது. உங்கள் பதிவுக்காக மட்டும்.',
     regionTitle: 'பகுதி',
     currencyLabel: 'நாணயம்',
     currencyFromCountry: 'உங்கள் நாட்டிலிருந்து அமைக்கப்படுகிறது',
@@ -8873,6 +8885,9 @@ const hi: UiStrings = {
     otherCurrencies: { one: 'और {n} अन्य मुद्रा', other: 'और {n} अन्य मुद्राएँ' },
     saved: 'सेव हो गया',
     displayName: 'दिखने वाला नाम',
+    displayNameHint: 'जिन ग्रुप में आप हैं, उनमें सब यही देखते हैं।',
+    detailsTitle: 'आपकी जानकारी',
+    addressHint: 'यहाँ कुछ नहीं भेजा जाता। सिर्फ़ आपके रिकॉर्ड के लिए।',
     regionTitle: 'क्षेत्र',
     currencyLabel: 'मुद्रा',
     currencyFromCountry: 'आपके देश से सेट',
@@ -11508,6 +11523,9 @@ const ar: UiStrings = {
     },
     saved: 'تم الحفظ',
     displayName: 'الاسم الظاهر',
+    displayNameHint: 'يراه كل من تشاركه مجموعة.',
+    detailsTitle: 'بياناتك',
+    addressHint: 'لا يُرسل إليه شيء. محفوظ لسجلك فقط.',
     regionTitle: 'المنطقة',
     currencyLabel: 'العملة',
     currencyFromCountry: 'يُضبط حسب بلدك',
