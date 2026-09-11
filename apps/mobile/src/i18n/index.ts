@@ -2027,6 +2027,8 @@ export interface UiStrings {
     emailSubject: string;
     hideContacts: string;
     browseContacts: string;
+    /** The rule between the invite tiles and the by-name fields. */
+    orByName: string;
     /** Short label for the phone-contacts entry point. */
     contacts: string;
     /** Reminding somebody who owes you to settle, gently (ADR-010). */
@@ -4619,6 +4621,7 @@ const en: UiStrings = {
     emailSubject: 'Join {group} on Waves',
     hideContacts: 'Hide contacts',
     browseContacts: 'Browse my contacts',
+    orByName: 'or add by name',
     contacts: 'Contacts',
     remind: 'Remind',
     reminded: 'Reminded',
@@ -7247,6 +7250,7 @@ const ta: UiStrings = {
     emailSubject: 'Waves-ல் {group} குழுவில் சேரவும்',
     hideContacts: 'தொடர்புகளை மறை',
     browseContacts: 'என் தொடர்புகளைப் பார்',
+    orByName: 'அல்லது பெயரால் சேர்',
     contacts: 'தொடர்புகள்',
     remind: 'நினைவூட்டு',
     reminded: 'நினைவூட்டப்பட்டது',
@@ -9874,6 +9878,7 @@ const hi: UiStrings = {
     emailSubject: 'Waves पर {group} में शामिल हों',
     hideContacts: 'संपर्क छिपाएँ',
     browseContacts: 'मेरे संपर्क देखें',
+    orByName: 'या नाम से जोड़ें',
     contacts: 'संपर्क',
     remind: 'याद दिलाएँ',
     reminded: 'याद दिला दिया',
@@ -12589,6 +12594,7 @@ const ar: UiStrings = {
     emailSubject: 'انضم إلى {group} على Waves',
     hideContacts: 'إخفاء جهات الاتصال',
     browseContacts: 'تصفّح جهات اتصالي',
+    orByName: 'أو أضف بالاسم',
     contacts: 'جهات الاتصال',
     remind: 'ذكّر',
     reminded: 'تم التذكير',
