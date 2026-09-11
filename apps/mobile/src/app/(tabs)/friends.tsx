@@ -62,6 +62,15 @@ import { useBlockedUsers } from '@/data/blocked';
 import { defaultMergeName } from '@/data/mergePeople';
 import { useKnownPeopleCount, usePeopleBalances } from '@/data/hooks';
 import { useAuth } from '@/lib/auth';
+import {
+  commonOnlyGroupId,
+  currencyTotals,
+  directionGroups,
+  personDirection,
+  rowAction,
+  shownAmounts,
+  type CurrencyTotal,
+} from '@/lib/friendsTotals';
 import { PressableScale } from '@/lib/anim';
 import { router } from '@/lib/navigation';
 import { useReducedMotion } from '@/lib/reducedMotion';
@@ -174,22 +183,6 @@ function sortPersons(people: PersonGroup[], key: SortKey, dir: SortDir): PersonG
   return [...people].sort(cmp);
 }
 
-export interface CurrencyTotal {
-  currency: string;
-  net: bigint;
-}
-
-/** The net you are up or down in each currency, summed over everyone. Positive:
- *  owed to you. Never summed across currencies (ADR-003). Biggest first. */
-function currencyTotals(rows: PersonBalanceRow[]): CurrencyTotal[] {
-  const m = new Map<string, bigint>();
-  for (const row of rows) m.set(row.currency, (m.get(row.currency) ?? 0n) + BigInt(row.net));
-  return [...m.entries()]
-    .filter(([, net]) => net !== 0n)
-    .map(([currency, net]) => ({ currency, net }))
-    .sort((a, b) => (absBig(a.net) < absBig(b.net) ? 1 : absBig(a.net) > absBig(b.net) ? -1 : 0));
-}
-
 /**
  * The Friends hero wash — a saturated indigo, the same proven two-stop diagonal
  * the dashboard's month slide rides, so the two tabs read as one system and the
@@ -203,6 +196,17 @@ const FRIENDS_GRADIENT = ['#463F86', '#221C46'] as const;
     even when there is no action — so every amount's right edge lines up and the
     invite/remind discs form one clean column instead of floating with the amount. */
 const ACTION_SLOT = 34;
+
+/**
+ * How many currencies a single row will draw before it starts counting them.
+ *
+ * Two, because a row has to stay roughly one height: a person holding four
+ * currencies was drawing four stacked lines beside a neighbour's one, and a list
+ * whose rows are 1x and 4x tall has no rhythm for the eye to follow. Two is
+ * enough to show that a balance runs both ways — the common reason a person has
+ * more than one — and the rest are named as a count rather than hidden.
+ */
+const MAX_STACKED_AMOUNTS = 2;
 
 /**
  * Which guests are probably the same person seen twice.
@@ -399,6 +403,16 @@ export default function FriendsScreen() {
     [rows, sortKey, sortDir],
   );
 
+  // Whether the trailing control column is worth its width. Reserved when
+  // anybody on the list has an invite or a nudge to offer, so those discs line
+  // up; dropped entirely when nobody does, rather than holding 34dp open on
+  // every row for a control that never comes. Never in selection mode, where the
+  // controls are hidden anyway.
+  const actionSlot = useMemo(
+    () => !selectMode && persons.some((person) => rowAction(person) !== null),
+    [persons, selectMode],
+  );
+
   // The headline's figures: the net you are up or down in each currency, summed
   // across everyone. Never across currencies — there is no honest single number
   // without a rate (ADR-003), so a mixed wallet shows one line per currency.
@@ -454,7 +468,12 @@ export default function FriendsScreen() {
         {people.isLoading ? (
           <PeopleSkeleton />
         ) : rows.length === 0 ? (
-          <View style={{ flex: 1, justifyContent: 'center' }}>
+          // Centred in what can be seen, not in what is laid out: the box runs
+          // on under the tab bar, so without its clearance the artwork settles
+          // below the middle of the visible screen. The list branch below pays
+          // the same clearance on its own content, and the dashboard already
+          // does this — this branch was the one that missed it.
+          <View style={{ flex: 1, justifyContent: 'center', paddingBottom: clearance }}>
             <EmptyFriends hasPeople={known.data > 0} t={t} />
           </View>
         ) : (
@@ -525,6 +544,7 @@ export default function FriendsScreen() {
                     duplicate={duplicates.keys.has(item.person_key)}
                     selectMode={selectMode}
                     selected={selectedKeys.has(item.person_key)}
+                    actionSlot={actionSlot}
                     onEnterSelect={enterSelect}
                     onToggleSelect={toggleSelect}
                   />
@@ -774,26 +794,55 @@ function FriendsHero({
           <Text variant="micro" tone="onBrand" style={{ letterSpacing: 1, opacity: 0.7 }}>
             {t.tabs.overall.toUpperCase()}
           </Text>
-          {totals.map((total) => (
-            <Row
-              key={total.currency}
-              style={{
-                justifyContent: 'space-between',
-                alignItems: 'flex-end',
-                gap: theme.spacing.md,
-              }}
-            >
-              <Text variant="body" tone="onBrand" style={{ opacity: 0.85 }}>
-                {total.net > 0n ? t.tabs.youAreOwed : t.tabs.youOweThem}
-              </Text>
-              <MoneyText
-                amount={total.net < 0n ? -total.net : total.net}
-                currency={total.currency}
-                locale={locale}
-                tone="onBrand"
-                style={{ fontSize: 32, lineHeight: 38, fontWeight: '800' }}
-              />
-            </Row>
+          {directionGroups(totals).map((group) => (
+            <View key={group.owed ? 'owed' : 'owing'} style={{ gap: 2 }}>
+              <Row
+                style={{
+                  justifyContent: 'space-between',
+                  // Baseline, not flex-end: the label is 16px and the amount is
+                  // 32, so aligning the bottoms of two boxes that tall sits the
+                  // word below the digits it belongs to. This is the line the
+                  // eye reads across.
+                  alignItems: 'baseline',
+                  gap: theme.spacing.md,
+                }}
+              >
+                <Text variant="body" tone="onBrand" style={{ opacity: 0.85 }}>
+                  {group.owed ? t.tabs.youAreOwed : t.tabs.youOweThem}
+                </Text>
+                <MoneyText
+                  amount={group.head.net < 0n ? -group.head.net : group.head.net}
+                  currency={group.head.currency}
+                  locale={locale}
+                  tone="onBrand"
+                  style={{ fontSize: 32, lineHeight: 38, fontWeight: '800' }}
+                />
+              </Row>
+              {group.rest.length > 0 ? (
+                // The same direction's other currencies, small and under the
+                // number they belong to. Wrapped rather than clipped — six
+                // currencies costs a second line here instead of six headlines.
+                <Row
+                  style={{
+                    justifyContent: 'flex-end',
+                    flexWrap: 'wrap',
+                    columnGap: theme.spacing.sm,
+                  }}
+                >
+                  {group.rest.map((total) => (
+                    <MoneyText
+                      key={total.currency}
+                      amount={total.net < 0n ? -total.net : total.net}
+                      currency={total.currency}
+                      locale={locale}
+                      variant="caption"
+                      tone="onBrand"
+                      style={{ opacity: 0.8 }}
+                    />
+                  ))}
+                </Row>
+              ) : null}
+            </View>
           ))}
         </Reanimated.View>
       ) : null}
@@ -1052,6 +1101,7 @@ const PersonRow = memo(function PersonRow({
   duplicate,
   selectMode,
   selected,
+  actionSlot,
   onEnterSelect,
   onToggleSelect,
 }: {
@@ -1065,6 +1115,8 @@ const PersonRow = memo(function PersonRow({
   duplicate: boolean;
   selectMode: boolean;
   selected: boolean;
+  /** Any row on this list has a trailing control, so every row reserves the column. */
+  actionSlot: boolean;
   onEnterSelect: (personKey: string) => void;
   onToggleSelect: (personKey: string) => void;
 }): React.JSX.Element {
@@ -1085,14 +1137,15 @@ const PersonRow = memo(function PersonRow({
   // hidden behind the ghost name and face, so a photo must not leak it. The
   // `avatar_url` is the same across a person's rows, so the first carries it.
   const photoUrl = useAvatarUrl(blocked ? null : (entries[0]?.avatar_url ?? null));
-  // The common case: a person with a single balance. It carries the direction,
-  // the group scope and the action; a multi-currency person leans on the stacked
-  // amounts instead.
+  // One common group can explain several currency rows for the same person: a
+  // traveller may owe a guest in INR and USD from one trip, and that is still one
+  // group to invite them to. Differing or missing group ids go to the person
+  // page, where the full split is visible. A nudge is narrower — see `rowAction`.
   const single = entries.length === 1 ? entries[0] : null;
-  const soloGroup = single?.only_group_id ?? null;
+  const soloGroup = commonOnlyGroupId(entries);
 
-  // One group and one currency explains it: open that group. Otherwise the
-  // person page splits the balance back out per group and currency.
+  // One group explains it: open that group. Otherwise the person page splits the
+  // balance back out per group and currency.
   const navigate = soloGroup
     ? () => router.push(`/group/${soloGroup}`)
     : () =>
@@ -1117,10 +1170,18 @@ const PersonRow = memo(function PersonRow({
       ? plural(locale, single.group_count, t.tabs.acrossGroups)
       : null;
   // The caption folds direction and scope onto one line, so the right edge no
-  // longer stacks a micro-label over the amount. Multi-currency people have no
-  // single direction (owed in one, owing in another) — their stacked coloured
-  // amounts carry it, so the caption is just the scope, if any.
-  const direction = single ? (BigInt(single.net) > 0n ? t.tabs.owesYou : t.tabs.youOweThem) : null;
+  // longer stacks a micro-label over the amount.
+  //
+  // Direction is knowable whenever every currency points the same way, not only
+  // when there is one of them — somebody who owes you in rupees and in dollars
+  // still simply owes you. Gating this on `single` left every multi-currency
+  // person with no caption at all, so a dense list alternated between rows with
+  // a second line and rows without, and the names stopped sitting on a common
+  // grid. A genuinely mixed balance still says nothing: no word is true of both
+  // halves, and the coloured amounts are the honest answer there.
+  const action = selectMode ? null : rowAction(person);
+  const runs = personDirection(entries);
+  const direction = runs === 'owed' ? t.tabs.owesYou : runs === 'owing' ? t.tabs.youOweThem : null;
   const caption = [direction, scope].filter(Boolean).join(' · ') || null;
 
   // What a screen reader hears: who, then each currency's spoken direction and
@@ -1138,24 +1199,24 @@ const PersonRow = memo(function PersonRow({
     .filter(Boolean)
     .join('. ');
 
-  // Biggest currency first when a person spans several.
-  const sortedEntries =
-    entries.length > 1
-      ? [...entries].sort((a, b) =>
-          absBig(BigInt(a.net)) < absBig(BigInt(b.net))
-            ? 1
-            : absBig(BigInt(a.net)) > absBig(BigInt(b.net))
-              ? -1
-              : 0,
-        )
-      : entries;
+  // At most two amounts per row, and never at the cost of a direction: a balance
+  // that runs both ways always shows both colours. The rest are counted.
+  const { shown: shownEntries, hidden: hiddenCurrencies } = shownAmounts(
+    entries,
+    MAX_STACKED_AMOUNTS,
+  );
 
   const body = (
     <Row
       style={{
         paddingVertical: theme.spacing.sm,
         paddingHorizontal: theme.spacing.sm,
-        alignItems: 'center',
+        // Top, not centre. Centring a one-line name against a stack of amounts
+        // floats the name to the middle of the stack — it sat level with a
+        // person's *second* currency, so the eye read the name against the wrong
+        // number. Aligned to the top, the name and the amount that leads the row
+        // are on the same line, whatever either side is carrying.
+        alignItems: 'flex-start',
         gap: theme.spacing.md,
         borderTopWidth: divider ? 1 : 0,
         borderTopColor: theme.color.border,
@@ -1214,44 +1275,58 @@ const PersonRow = memo(function PersonRow({
           rows with no action, so every amount's right edge lines up and the
           invite/remind discs sit in one clean column at the edge — rather than
           floating at a different x on every row because the amount width differs. */}
-      <View style={{ alignItems: 'flex-end' }}>
-        {single ? (
+      <View style={{ alignItems: 'flex-end', maxWidth: '46%' }}>
+        {/* The first amount is always the same size, whether the person holds one
+            currency or four — it used to drop to caption as soon as there were
+            two, so the column that should read as one row of figures carried
+            16px and 13px side by side. The lead figure is the row's answer; the
+            currencies under it are the detail. Never summed across them. */}
+        {shownEntries.map((entry, index) => (
           <MoneyText
-            amount={BigInt(single.net)}
-            currency={single.currency}
+            key={entry.currency}
+            amount={BigInt(entry.net)}
+            currency={entry.currency}
             locale={locale}
-            variant="subheading"
+            variant={index === 0 ? 'subheading' : 'caption'}
             mode="balance"
+            // Every line, not only the lead: the column is capped at 46% of the
+            // row, and a wrapped amount anywhere in the stack grows the row —
+            // the exact thing this list was fixed to stop doing.
+            numberOfLines={1}
+            ellipsizeMode="tail"
           />
-        ) : (
-          // Multi-currency: one small coloured line per currency — never summed.
-          sortedEntries.map((e) => (
-            <MoneyText
-              key={e.currency}
-              amount={BigInt(e.net)}
-              currency={e.currency}
-              locale={locale}
-              variant="caption"
-              mode="balance"
-            />
-          ))
-        )}
-      </View>
-      <View style={{ width: ACTION_SLOT, alignItems: 'center', justifyContent: 'center' }}>
-        {!selectMode && person.is_ghost && soloGroup ? (
-          // A guest with no account yet: the useful action is the invite link that
-          // also lets them claim this balance (A25). One group, one link.
-          <RowAction
-            icon="paper-plane-outline"
-            label={t.people.invite}
-            onPress={() => router.push(`/group/${soloGroup}/invite`)}
-          />
-        ) : !selectMode && single && BigInt(single.net) > 0n && single.only_group_id ? (
-          // They owe you and one group explains it — a single pair to nudge, kept
-          // honest by the server at one a day (ADR-010).
-          <RemindButton row={single} />
+        ))}
+        {hiddenCurrencies > 0 ? (
+          <Text variant="micro" tone="faint">
+            {plural(locale, hiddenCurrencies, t.tabs.moreCurrencies)}
+          </Text>
         ) : null}
       </View>
+      {/* The trailing slot, reserved only when somebody on this list actually has
+          a control to put in it. It exists so the invite and remind discs form one
+          column instead of floating at a different x on every row — but when no
+          row offers either, it is 34dp of nothing holding every amount away from
+          the edge, which is how the list ended up with its figures marooned in
+          the middle. `actionSlot` is the list's answer to the same `rowAction`
+          this row asks, so the two cannot disagree. */}
+      {actionSlot ? (
+        <View style={{ width: ACTION_SLOT, alignItems: 'center', justifyContent: 'center' }}>
+          {action === 'invite' && soloGroup ? (
+            // A guest with no account yet: the useful action is the invite link that
+            // also lets them claim this balance (A25). One group, one link.
+            <RowAction
+              icon="paper-plane-outline"
+              label={t.people.invite}
+              onPress={() => router.push(`/group/${soloGroup}/invite`)}
+            />
+          ) : action === 'remind' && single ? (
+            // They owe you and one group explains it — a single pair to nudge, kept
+            // honest by the server at one a day (ADR-010). One currency, because
+            // the nudge names one: see `rowAction`.
+            <RemindButton row={single} />
+          ) : null}
+        </View>
+      ) : null}
     </Row>
   );
 
