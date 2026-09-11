@@ -49,6 +49,14 @@ const CERT_FINGERPRINTS = [
   // builds are the one place an invite link still opens the browser, which is
   // exactly where a link is most likely to be tested.
   'CD:72:24:BE:46:44:D1:0F:BC:11:31:04:B8:CD:96:2F:60:12:02:52:1D:03:07:B1:E2:31:43:6D:02:4D:EA:3E',
+  // The EAS-managed upload key, generated when the first cloud production build
+  // ran and now the key that signs what goes to Play. It is listed alongside the
+  // one above rather than instead of it: release APKs built locally are still
+  // signed with `~/keys/waves-upload.jks`, and those installs stay on phones.
+  // Both are upload certificates, so neither is what a Play install presents —
+  // but both are what a sideloaded build presents, and a link has to open in
+  // either.
+  'AE:F2:B8:46:40:A1:61:AA:3B:42:F0:FF:B1:7B:A3:20:34:38:9F:5A:06:8B:D3:F5:93:0F:BA:20:A3:B5:DE:F1',
 ];
 
 export const runtime = 'nodejs';

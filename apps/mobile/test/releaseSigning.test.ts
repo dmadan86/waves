@@ -16,9 +16,12 @@
 import { describe, expect, it } from 'vitest';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const { patchBuildGradle } = require('../plugins/withReleaseSigning.js') as {
+const withReleaseSigning = require('../plugins/withReleaseSigning.js') as ((
+  config: object,
+) => object) & {
   patchBuildGradle: (contents: string) => string;
 };
+const { patchBuildGradle } = withReleaseSigning;
 
 const TEMPLATE = `android {
     namespace 'app.waves.mobile'
@@ -112,6 +115,25 @@ describe('the release signing patch', () => {
 
   it('is idempotent, because prebuild is not guaranteed to run once', () => {
     expect(patchBuildGradle(patched)).toBe(patched);
+  });
+
+  it('stands down on EAS, where the keystore is not ours to install', () => {
+    // The bug this pins: EAS holds the key and patches the stock
+    // `signingConfigs.release` to reach it. Patch the file first and that block
+    // is ours, guarded by a `wavesHasUploadKey` that is false on a hosted
+    // builder — so the guard stopped `bundleRelease` with a message about
+    // gradle properties nobody can set there. Build 2362155a died exactly that
+    // way. On EAS the plugin returns the config untouched, leaving Expo's own
+    // template for EAS to sign.
+    const config = { name: 'Waves' };
+    const before = process.env.EAS_BUILD;
+    try {
+      process.env.EAS_BUILD = 'true';
+      expect(withReleaseSigning(config)).toBe(config);
+    } finally {
+      if (before === undefined) delete process.env.EAS_BUILD;
+      else process.env.EAS_BUILD = before;
+    }
   });
 
   it('refuses to patch a template it does not recognise', () => {
