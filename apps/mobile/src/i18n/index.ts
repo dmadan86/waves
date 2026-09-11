@@ -865,6 +865,12 @@ export interface UiStrings {
     addYourDetails: string;
     yourPhoto: string;
     chooseNewPhoto: string;
+    /** Take a new one with the camera, rather than picking a saved one. */
+    takeNewPhoto: string;
+    /** Pick one already on the phone. */
+    chooseFromLibrary: string;
+    /** Take the current photo away, leaving initials. */
+    removePhoto: string;
     howPeoplePayYou: string;
     yourRailDetails: string;
     handleWrong: string;
@@ -3645,6 +3651,9 @@ const en: UiStrings = {
     addYourDetails: 'Add your details',
     yourPhoto: 'Your photo',
     chooseNewPhoto: 'Choose a new one',
+    takeNewPhoto: 'Take a photo',
+    chooseFromLibrary: 'Choose from library',
+    removePhoto: 'Remove photo',
     howPeoplePayYou: 'How people pay you',
     yourRailDetails: 'Your {rail} details',
     handleWrong: 'That does not look like {hint}.',
@@ -6212,6 +6221,9 @@ const ta: UiStrings = {
     addYourDetails: 'உங்கள் விவரங்களைச் சேர்',
     yourPhoto: 'உங்கள் புகைப்படம்',
     chooseNewPhoto: 'புதிதாக ஒன்றைத் தேர்ந்தெடு',
+    takeNewPhoto: 'புகைப்படம் எடு',
+    chooseFromLibrary: 'கேலரியில் இருந்து தேர்ந்தெடு',
+    removePhoto: 'புகைப்படத்தை நீக்கு',
     howPeoplePayYou: 'உங்களுக்கு எப்படிப் பணம் தருவது',
     yourRailDetails: 'உங்கள் {rail} விவரங்கள்',
     handleWrong: 'இது {hint} போல் தெரியவில்லை.',
@@ -8875,6 +8887,9 @@ const hi: UiStrings = {
     addYourDetails: 'अपनी जानकारी जोड़ें',
     yourPhoto: 'आपकी फ़ोटो',
     chooseNewPhoto: 'नई चुनें',
+    takeNewPhoto: 'फ़ोटो लें',
+    chooseFromLibrary: 'गैलरी से चुनें',
+    removePhoto: 'फ़ोटो हटाएँ',
     howPeoplePayYou: 'लोग आपको कैसे भुगतान करें',
     yourRailDetails: 'आपकी {rail} जानकारी',
     handleWrong: 'यह {hint} जैसा नहीं लगता।',
@@ -11507,6 +11522,9 @@ const ar: UiStrings = {
     addYourDetails: 'أضف بياناتك',
     yourPhoto: 'صورتك',
     chooseNewPhoto: 'اختر صورة جديدة',
+    takeNewPhoto: 'التقط صورة',
+    chooseFromLibrary: 'اختر من المعرض',
+    removePhoto: 'إزالة الصورة',
     howPeoplePayYou: 'كيف يدفع لك الناس',
     yourRailDetails: 'بيانات {rail} الخاصة بك',
     handleWrong: 'هذا لا يبدو مثل {hint}.',

@@ -30,7 +30,7 @@ import { isRtlLanguage, LANGUAGE_NAMES, plural, useStrings } from '@/i18n';
 import { useLanguage } from '@/i18n/language';
 import { useAuth } from '@/lib/auth';
 import { useDialog } from '@/lib/dialog';
-import { pickAvatarPhoto } from '@/lib/image';
+import { pickAvatarPhoto, type PhotoSource } from '@/lib/image';
 import { router } from '@/lib/navigation';
 import { r2Enabled } from '@/lib/storage';
 import { describeGrace, useLock } from '@/lib/lock';
@@ -273,9 +273,9 @@ function ProfileForm() {
    * writes `avatar_url` itself; this repeats it through `updateProfile` so the
    * copy held in context matches without a round trip.
    */
-  const choosePhoto = async (): Promise<void> => {
+  const choosePhoto = async (source: PhotoSource = 'library'): Promise<void> => {
     if (!profile) return;
-    const picked = await pickAvatarPhoto();
+    const picked = await pickAvatarPhoto(source);
     if (!picked) return;
 
     setStatus(null);
@@ -307,10 +307,28 @@ function ProfileForm() {
     }
   };
 
-  // Three ways forward, so a sheet rather than a dialog — the shape Nextdoor
-  // and Instacart use for a short list of actions, and the one a thumb can
-  // reach. There is nothing to choose between when no photo is set yet, so that
-  // case skips the question entirely and opens the picker.
+  /**
+   * The photo sheet: where it comes from, and how to take it away.
+   *
+   * It used to ask one vague question — "Choose a new one" — and draw the three
+   * rows at three different weights: a filled pill, a line of red text and a
+   * line of brand text, for three things that are all just choices. Against the
+   * sheets this pattern has settled into elsewhere (Linktree, Flighty, Yubo,
+   * Beli), two things were missing and one was wrong.
+   *
+   * Missing, first: the camera and the library are separate choices everywhere
+   * it is done well, because a profile photo is usually taken there and then,
+   * and "choose a new one" makes somebody open a picker to find out it was not
+   * the door they wanted. Missing, second: a glyph per row, which is what lets
+   * three short rows be told apart without reading all three.
+   *
+   * Wrong: the weights. These are peers. The dialog draws them as peers now,
+   * with the one that takes something away in red — its own glyph included, so
+   * it does not look like the other two until the words are read.
+   *
+   * Still no question when there is no photo yet: there is nothing to remove
+   * and nothing to replace, so a first tap opens the library directly.
+   */
   const photoOptions = async (): Promise<void> => {
     if (!profile?.avatar_url) {
       void choosePhoto();
@@ -319,11 +337,18 @@ function ProfileForm() {
     const picked = await choose({
       title: t.account.yourPhoto,
       options: [
-        { id: 'replace', label: t.account.chooseNewPhoto },
-        { id: 'remove', label: t.common.remove, tone: 'danger' },
+        { id: 'camera', label: t.account.takeNewPhoto, icon: 'camera-outline' },
+        { id: 'library', label: t.account.chooseFromLibrary, icon: 'images-outline' },
+        {
+          id: 'remove',
+          label: t.account.removePhoto,
+          icon: 'trash-outline',
+          tone: 'danger',
+        },
       ],
     });
-    if (picked === 'replace') void choosePhoto();
+    if (picked === 'camera') void choosePhoto('camera');
+    else if (picked === 'library') void choosePhoto('library');
     else if (picked === 'remove') void clearPhoto();
   };
 

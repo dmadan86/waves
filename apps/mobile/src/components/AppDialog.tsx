@@ -271,6 +271,19 @@ function DialogContent({
             key={action.id}
             label={action.label}
             variant={variantFor(action)}
+            icon={
+              action.icon ? (
+                <Ionicons
+                  name={action.icon as keyof typeof Ionicons.glyphMap}
+                  size={iconSize.md}
+                  // The glyph belongs to its row, so it takes the row's colour:
+                  // red on the one that takes something away, brand on a peer.
+                  // A single neutral grey across all three would make the
+                  // destructive row look like the others until you read it.
+                  color={action.tone === 'dangerQuiet' ? theme.color.negative : theme.color.brand}
+                />
+              ) : undefined
+            }
             fullWidth
             onPress={() => onChoose(action.id)}
           />

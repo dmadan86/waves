@@ -86,6 +86,19 @@ export interface DialogAction {
   readonly id: string;
   readonly label: string;
   readonly tone?: DialogActionTone;
+  /**
+   * An Ionicons glyph name, drawn before the label.
+   *
+   * For a *menu* rather than a question. Three soft rows of the same weight are
+   * told apart by reading all three; a glyph says which is which at a glance,
+   * and it is the difference between "Take a photo" and "Choose from library"
+   * being one decision instead of two lines of prose. A confirmation's doors
+   * take none — there the words are the whole content.
+   *
+   * Typed loosely on purpose: this module is the queue, and it must not import
+   * a vector-icon package to name a string that the renderer resolves.
+   */
+  readonly icon?: string;
 }
 
 /**
