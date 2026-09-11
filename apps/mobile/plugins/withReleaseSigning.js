@@ -160,6 +160,21 @@ function patchBuildGradle(contents) {
 }
 
 module.exports = function withReleaseSigning(config) {
+  // On EAS Build, signing is not ours to arrange.
+  //
+  // EAS holds the keystore, hands it to the builder, and patches the stock
+  // `signingConfigs.release` to point at it. Ours is the block it would be
+  // patching — wrapped in `if (wavesHasUploadKey)`, which is false there
+  // because the key never arrives as `WAVES_UPLOAD_STORE_FILE` in
+  // `~/.gradle/gradle.properties`. The guard then reads that same false and
+  // stops `bundleRelease` with a message about properties nobody can set on a
+  // hosted builder. That is what failed build 2362155a.
+  //
+  // `expo prebuild` runs on the builder too, so this is decided at the same
+  // moment there as it is here, and the generated `build.gradle` is simply
+  // Expo's own — which is exactly what EAS knows how to sign.
+  if (process.env.EAS_BUILD === 'true') return config;
+
   return withAppBuildGradle(config, (gradleConfig) => {
     gradleConfig.modResults.contents = patchBuildGradle(gradleConfig.modResults.contents);
     return gradleConfig;
