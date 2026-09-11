@@ -29,7 +29,9 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   AccessibilityInfo,
   Animated,
+  Keyboard,
   Modal,
+  Platform,
   Pressable,
   StyleSheet,
   useWindowDimensions,
@@ -194,6 +196,36 @@ function SheetCard({
  * swallows the tap so a press inside never dismisses. Rounded top corners, a
  * grab handle, and the safe-area inset folded into the bottom padding.
  */
+/**
+ * How much of the screen the keyboard is currently covering.
+ *
+ * A `Modal` on Android is its own native window, and `adjustResize` — which the
+ * app sets for its main window — does not reach it. So the keyboard opens
+ * *over* a bottom-anchored sheet and hides the field being typed into along
+ * with both of its buttons. (iOS does not resize a modal either; it just tends
+ * to hurt less, because sheets there are usually shorter.)
+ *
+ * `will` events on iOS so the lift runs with the keyboard rather than after it;
+ * Android only emits the `did` pair, and emits them early enough to look right.
+ */
+function useKeyboardInset(): number {
+  const [inset, setInset] = useState(0);
+  useEffect(() => {
+    const ios = Platform.OS === 'ios';
+    const show = Keyboard.addListener(ios ? 'keyboardWillShow' : 'keyboardDidShow', (event) =>
+      setInset(event.endCoordinates.height),
+    );
+    const hide = Keyboard.addListener(ios ? 'keyboardWillHide' : 'keyboardDidHide', () =>
+      setInset(0),
+    );
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
+  return inset;
+}
+
 export function Sheet({
   visible,
   onClose,
@@ -207,6 +239,7 @@ export function Sheet({
   const reduceMotion = useReduceMotion();
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const { mounted, progress } = useOverlay(visible);
+  const keyboard = useKeyboardInset();
   // The sheet's own height, measured on layout, so it travels exactly its own
   // distance rather than a guess. Until the first measure a screen-height
   // fallback keeps the first frame off-screen instead of flashing in place.
@@ -264,7 +297,19 @@ export function Sheet({
             accessibilityLabel={closeLabel}
             style={StyleSheet.absoluteFill}
           />
-          <View pointerEvents="box-none" style={{ flex: 1, justifyContent: 'flex-end' }}>
+          <View
+            pointerEvents="box-none"
+            style={{
+              flex: 1,
+              justifyContent: 'flex-end',
+              // Lift the card clear of the keyboard. The card already reserves
+              // the navigation bar at its foot, and the keyboard covers that
+              // bar — so padding by the raw keyboard height would leave a strip
+              // of scrim the width of the nav bar under the card. Subtracting
+              // what is already reserved lands the card exactly on the keyboard.
+              paddingBottom: keyboard > 0 ? Math.max(keyboard - insets.bottom, 0) : 0,
+            }}
+          >
             <Animated.View style={{ transform: [{ translateY }] }}>
               <SheetCard handle={handle} padded={padded} style={style} onLayout={setHeight}>
                 {children}
