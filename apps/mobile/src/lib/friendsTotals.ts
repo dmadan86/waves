@@ -136,6 +136,32 @@ export function shownAmounts<T extends NetRow>(
   return { shown, hidden: ranked.length - shown.length };
 }
 
+/** A person's row as the action rule needs to see it. */
+interface ActionablePerson {
+  is_ghost: boolean;
+  entries: readonly { net: string | bigint; only_group_id: string | null }[];
+}
+
+/**
+ * The one control a row may carry at its trailing edge, if any.
+ *
+ * Both offers need a single group to act on: an invite link belongs to one
+ * group, and a nudge is one pair in one group (ADR-010). Somebody spread across
+ * three groups has no such thing, so their row carries nothing.
+ *
+ * Stated here rather than inside the row because the list has to reserve the
+ * column before any row draws, and a list that guesses differently from the row
+ * either holds space for a control that never appears — 34dp of nothing pushing
+ * every amount off the right edge — or draws one with nowhere to sit.
+ */
+export function rowAction(person: ActionablePerson): 'invite' | 'remind' | null {
+  const single = person.entries.length === 1 ? person.entries[0] : null;
+  if (!single) return null;
+  if (person.is_ghost && single.only_group_id) return 'invite';
+  if (BigInt(single.net) > 0n && single.only_group_id) return 'remind';
+  return null;
+}
+
 /** Which way a person's balance runs, or null when it runs both ways. */
 export type PersonDirection = 'owed' | 'owing' | null;
 

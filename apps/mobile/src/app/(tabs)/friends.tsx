@@ -66,6 +66,7 @@ import {
   currencyTotals,
   directionGroups,
   personDirection,
+  rowAction,
   shownAmounts,
   type CurrencyTotal,
 } from '@/lib/friendsTotals';
@@ -401,6 +402,16 @@ export default function FriendsScreen() {
     [rows, sortKey, sortDir],
   );
 
+  // Whether the trailing control column is worth its width. Reserved when
+  // anybody on the list has an invite or a nudge to offer, so those discs line
+  // up; dropped entirely when nobody does, rather than holding 34dp open on
+  // every row for a control that never comes. Never in selection mode, where the
+  // controls are hidden anyway.
+  const actionSlot = useMemo(
+    () => !selectMode && persons.some((person) => rowAction(person) !== null),
+    [persons, selectMode],
+  );
+
   // The headline's figures: the net you are up or down in each currency, summed
   // across everyone. Never across currencies — there is no honest single number
   // without a rate (ADR-003), so a mixed wallet shows one line per currency.
@@ -527,6 +538,7 @@ export default function FriendsScreen() {
                     duplicate={duplicates.keys.has(item.person_key)}
                     selectMode={selectMode}
                     selected={selectedKeys.has(item.person_key)}
+                    actionSlot={actionSlot}
                     onEnterSelect={enterSelect}
                     onToggleSelect={toggleSelect}
                   />
@@ -1083,6 +1095,7 @@ const PersonRow = memo(function PersonRow({
   duplicate,
   selectMode,
   selected,
+  actionSlot,
   onEnterSelect,
   onToggleSelect,
 }: {
@@ -1096,6 +1109,8 @@ const PersonRow = memo(function PersonRow({
   duplicate: boolean;
   selectMode: boolean;
   selected: boolean;
+  /** Any row on this list has a trailing control, so every row reserves the column. */
+  actionSlot: boolean;
   onEnterSelect: (personKey: string) => void;
   onToggleSelect: (personKey: string) => void;
 }): React.JSX.Element {
@@ -1157,6 +1172,7 @@ const PersonRow = memo(function PersonRow({
   // a second line and rows without, and the names stopped sitting on a common
   // grid. A genuinely mixed balance still says nothing: no word is true of both
   // halves, and the coloured amounts are the honest answer there.
+  const action = selectMode ? null : rowAction(person);
   const runs = personDirection(entries);
   const direction = runs === 'owed' ? t.tabs.owesYou : runs === 'owing' ? t.tabs.youOweThem : null;
   const caption = [direction, scope].filter(Boolean).join(' · ') || null;
@@ -1274,21 +1290,30 @@ const PersonRow = memo(function PersonRow({
           </Text>
         ) : null}
       </View>
-      <View style={{ width: ACTION_SLOT, alignItems: 'center', justifyContent: 'center' }}>
-        {!selectMode && person.is_ghost && soloGroup ? (
-          // A guest with no account yet: the useful action is the invite link that
-          // also lets them claim this balance (A25). One group, one link.
-          <RowAction
-            icon="paper-plane-outline"
-            label={t.people.invite}
-            onPress={() => router.push(`/group/${soloGroup}/invite`)}
-          />
-        ) : !selectMode && single && BigInt(single.net) > 0n && single.only_group_id ? (
-          // They owe you and one group explains it — a single pair to nudge, kept
-          // honest by the server at one a day (ADR-010).
-          <RemindButton row={single} />
-        ) : null}
-      </View>
+      {/* The trailing slot, reserved only when somebody on this list actually has
+          a control to put in it. It exists so the invite and remind discs form one
+          column instead of floating at a different x on every row — but when no
+          row offers either, it is 34dp of nothing holding every amount away from
+          the edge, which is how the list ended up with its figures marooned in
+          the middle. `actionSlot` is the list's answer to the same `rowAction`
+          this row asks, so the two cannot disagree. */}
+      {actionSlot ? (
+        <View style={{ width: ACTION_SLOT, alignItems: 'center', justifyContent: 'center' }}>
+          {action === 'invite' && soloGroup ? (
+            // A guest with no account yet: the useful action is the invite link that
+            // also lets them claim this balance (A25). One group, one link.
+            <RowAction
+              icon="paper-plane-outline"
+              label={t.people.invite}
+              onPress={() => router.push(`/group/${soloGroup}/invite`)}
+            />
+          ) : action === 'remind' && single ? (
+            // They owe you and one group explains it — a single pair to nudge, kept
+            // honest by the server at one a day (ADR-010).
+            <RemindButton row={single} />
+          ) : null}
+        </View>
+      ) : null}
     </Row>
   );
 

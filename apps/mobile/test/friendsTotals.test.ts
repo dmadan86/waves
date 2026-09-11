@@ -10,6 +10,7 @@ import {
   currencyTotals,
   directionGroups,
   personDirection,
+  rowAction,
   shownAmounts,
   type CurrencyTotal,
 } from '@/lib/friendsTotals';
@@ -185,5 +186,32 @@ describe('shownAmounts', () => {
     );
     expect(shown).toHaveLength(2);
     expect(hidden).toBe(0);
+  });
+});
+
+describe('rowAction', () => {
+  const entry = (net: string, only_group_id: string | null) => ({ net, only_group_id });
+
+  it('offers a nudge only when one group explains the debt', () => {
+    expect(rowAction({ is_ghost: false, entries: [entry('500', 'g1')] })).toBe('remind');
+    // Spread over several groups: there is no single pair to nudge, so the row
+    // carries nothing — which is why a list of such people reserved a column it
+    // never filled and pushed every amount away from the edge.
+    expect(rowAction({ is_ghost: false, entries: [entry('500', null)] })).toBeNull();
+  });
+
+  it('offers nothing to somebody you owe', () => {
+    expect(rowAction({ is_ghost: false, entries: [entry('-500', 'g1')] })).toBeNull();
+  });
+
+  it('offers a guest their invite, whichever way the balance runs', () => {
+    expect(rowAction({ is_ghost: true, entries: [entry('-500', 'g1')] })).toBe('invite');
+    expect(rowAction({ is_ghost: true, entries: [entry('500', 'g1')] })).toBe('invite');
+  });
+
+  it('offers nothing across several currencies — neither control has one group', () => {
+    expect(
+      rowAction({ is_ghost: true, entries: [entry('500', 'g1'), entry('-20', 'g1')] }),
+    ).toBeNull();
   });
 });
