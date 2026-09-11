@@ -1398,6 +1398,7 @@ export interface UiStrings {
     youAreNotBehind: string;
     inOneGroup: string;
     acrossGroups: PluralForms;
+    moreCurrencies: PluralForms;
     notJoined: string;
     group: string;
   };
@@ -4082,6 +4083,7 @@ const en: UiStrings = {
     youAreNotBehind: 'All settled up — you owe nobody right now.',
     inOneGroup: 'in one group',
     acrossGroups: { one: 'across {n} group', other: 'across {n} groups' },
+    moreCurrencies: { one: '+{n} more currency', other: '+{n} more currencies' },
     notJoined: 'Not joined',
     group: 'Group',
   },
@@ -6678,6 +6680,7 @@ const ta: UiStrings = {
     youAreNotBehind: 'நீங்கள் யாருக்கும் பாக்கி வைத்திருக்கவில்லை.',
     inOneGroup: 'ஒரு குழுவில்',
     acrossGroups: { one: '{n} குழுவில்', other: '{n} குழுக்களில்' },
+    moreCurrencies: { one: '+{n} நாணயம்', other: '+{n} நாணயங்கள்' },
     notJoined: 'சேரவில்லை',
     group: 'குழு',
   },
@@ -9332,6 +9335,7 @@ const hi: UiStrings = {
     youAreNotBehind: 'आप पर किसी का कुछ बाकी नहीं है।',
     inOneGroup: 'एक समूह में',
     acrossGroups: { one: '{n} समूह में', other: '{n} समूहों में' },
+    moreCurrencies: { one: '+{n} और मुद्रा', other: '+{n} और मुद्राएँ' },
     notJoined: 'शामिल नहीं',
     group: 'समूह',
   },
@@ -11979,6 +11983,14 @@ const ar: UiStrings = {
       few: 'في {n} مجموعات',
       many: 'في {n} مجموعة',
       other: 'في {n} مجموعة',
+    },
+    moreCurrencies: {
+      zero: '+{n} عملة',
+      one: '+عملة واحدة',
+      two: '+عملتان',
+      few: '+{n} عملات',
+      many: '+{n} عملة',
+      other: '+{n} عملة',
     },
     notJoined: 'لم ينضم',
     group: 'مجموعة',
