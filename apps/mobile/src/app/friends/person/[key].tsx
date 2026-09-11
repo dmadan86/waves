@@ -63,6 +63,7 @@ import { PeopleSkeleton } from '@/components/Skeletons';
 import { ViewerButton } from '@/components/ViewerButton';
 import { ZoomableGallery } from '@/components/ZoomableGallery';
 import { currencyTotals, directionGroups, type CurrencyTotal } from '@/lib/friendsTotals';
+import { personAvatarPath } from '@/lib/personDetail';
 import { fill, plural, useStrings } from '@/i18n';
 import { router } from '@/lib/navigation';
 import { useDialog } from '@/lib/dialog';
@@ -175,7 +176,7 @@ export default function PersonDetailScreen() {
   // A blocked person is the app's anonymous ghost everywhere, so their photo is
   // never even signed for — not merely hidden once it has been fetched.
   const masked = !ready || blocked;
-  const photo = useAvatarUrl(masked ? null : profile?.avatar_url);
+  const photo = useAvatarUrl(personAvatarPath(profile, masked));
 
   return (
     <Screen>
