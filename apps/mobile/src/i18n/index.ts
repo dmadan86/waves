@@ -2043,6 +2043,11 @@ export interface UiStrings {
   person: {
     title: string;
     you: string;
+    /** Opens the person's photo full-screen. Read aloud, never drawn. */
+    viewPhoto: string;
+    /** Owed in one group, owing in another, and the two cancel: square overall
+     *  even though the groups below each carry a figure. */
+    squareOverall: string;
     sharedGroups: PluralForms;
     contact: string;
     phone: string;
@@ -4633,6 +4638,8 @@ const en: UiStrings = {
   person: {
     title: 'Profile',
     you: 'You',
+    viewPhoto: 'View photo',
+    squareOverall: 'Nothing owed either way — the groups below cancel out.',
     sharedGroups: { one: '{n} group in common', other: '{n} groups in common' },
     contact: 'Contact',
     phone: 'Phone',
@@ -7263,6 +7270,8 @@ const ta: UiStrings = {
   person: {
     title: 'சுயவிவரம்',
     you: 'நீங்கள்',
+    viewPhoto: 'புகைப்படத்தைப் பார்க்க',
+    squareOverall: 'இருபுறமும் பாக்கி இல்லை — கீழுள்ள குழுக்கள் ஒன்றையொன்று ஈடுசெய்கின்றன.',
     sharedGroups: { one: 'பொதுவாக {n} குழு', other: 'பொதுவாக {n} குழுக்கள்' },
     contact: 'தொடர்பு',
     phone: 'தொலைபேசி',
@@ -9892,6 +9901,8 @@ const hi: UiStrings = {
   person: {
     title: 'प्रोफ़ाइल',
     you: 'आप',
+    viewPhoto: 'फ़ोटो देखें',
+    squareOverall: 'दोनों तरफ़ कुछ बाक़ी नहीं — नीचे के समूह आपस में कट जाते हैं।',
     sharedGroups: { one: '{n} साझा समूह', other: '{n} साझा समूह' },
     contact: 'संपर्क',
     phone: 'फ़ोन',
@@ -12616,6 +12627,8 @@ const ar: UiStrings = {
   person: {
     title: 'الملف الشخصي',
     you: 'أنت',
+    viewPhoto: 'عرض الصورة',
+    squareOverall: 'لا شيء مستحق في أي من الاتجاهين — المجموعات أدناه يلغي بعضها بعضًا.',
     sharedGroups: {
       zero: 'لا مجموعات مشتركة',
       one: 'مجموعة مشتركة واحدة',
