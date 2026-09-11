@@ -9,6 +9,21 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 10
+    # React Native is pinned by the Expo SDK, not by us, and its 0.x numbering
+    # makes a breaking release look like a minor one — so it lands in the
+    # "routine noise" group and is merged on a green CI that cannot see the
+    # problem. This has already happened once: 0.86 to 0.87 went in as #199 and
+    # came straight back out as #200, because Expo SDK 57 cannot build it
+    # natively (AGP/Kotlin/Gradle break the autolinking plugin, and worklets
+    # 0.12 breaks reanimated 4.5.3). CI is JS-only, so nothing caught it until
+    # somebody ran `gradlew`.
+    #
+    # These move when the Expo SDK moves, deliberately and with an APK built to
+    # prove it. `expo install --check` is the tool for that, not Dependabot.
+    ignore:
+      - dependency-name: react-native
+      - dependency-name: react-native-worklets
+      - dependency-name: '@react-native/*'
     groups:
       # One PR for the routine patch/minor noise instead of dozens; majors still
       # come as their own reviewable PRs.
