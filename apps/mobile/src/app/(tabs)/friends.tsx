@@ -467,7 +467,12 @@ export default function FriendsScreen() {
         {people.isLoading ? (
           <PeopleSkeleton />
         ) : rows.length === 0 ? (
-          <View style={{ flex: 1, justifyContent: 'center' }}>
+          // Centred in what can be seen, not in what is laid out: the box runs
+          // on under the tab bar, so without its clearance the artwork settles
+          // below the middle of the visible screen. The list branch below pays
+          // the same clearance on its own content, and the dashboard already
+          // does this — this branch was the one that missed it.
+          <View style={{ flex: 1, justifyContent: 'center', paddingBottom: clearance }}>
             <EmptyFriends hasPeople={known.data > 0} t={t} />
           </View>
         ) : (

@@ -474,7 +474,11 @@ export default function ActivityScreen() {
   if (listData.length === 0) {
     return (
       <Screen>
-        <View style={{ flex: 1, paddingHorizontal: theme.spacing.xl }}>
+        {/* The same bottom clearance the feed's rows get. Without it this box
+            runs on underneath the tab bar, and centring inside it puts the
+            artwork below the middle of the part you can actually see — the
+            further down the screen, the more of the box is hidden. */}
+        <View style={{ flex: 1, paddingHorizontal: theme.spacing.xl, paddingBottom: clearance }}>
           {header}
           {empty}
         </View>
