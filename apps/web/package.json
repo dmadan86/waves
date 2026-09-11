@@ -14,8 +14,8 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0",
-    "@sentry/nextjs": "^10.70.0",
-    "@supabase/supabase-js": "^2.112.3",
+    "@sentry/nextjs": "^10.73.0",
+    "@supabase/supabase-js": "^2.116.0",
     "@waves/agent-mcp": "workspace:*",
     "@waves/api-client": "workspace:*",
     "@waves/core": "workspace:*",
@@ -25,13 +25,13 @@
     "react-dom": "19.2.8"
   },
   "devDependencies": {
-    "@playwright/test": "^1.62.1",
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4.3.3",
-    "@types/node": "^26.3.0",
+    "@types/node": "^26.5.0",
     "@types/react": "~19.2.2",
-    "@types/react-dom": "~19.2.2",
-    "eslint": "^10.9.1",
-    "eslint-config-next": "^16.3.0",
+    "@types/react-dom": "~19.2.7",
+    "eslint": "^10.10.0",
+    "eslint-config-next": "^16.3.4",
     "tailwindcss": "^4.3.3",
     "typescript": "~5.9.2",
     "vitest": "^4.1.10"
