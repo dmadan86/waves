@@ -27,6 +27,24 @@ function absBig(v: bigint): bigint {
 }
 
 /**
+ * The single group shared by every entry, if there is exactly one.
+ *
+ * `PersonBalanceRow` is one row per currency, not one row per group. A rider or
+ * traveller can owe a guest in INR and USD from the same trip; that is still one
+ * invite link. Missing or differing group ids mean there is no single action to
+ * offer.
+ */
+export function commonOnlyGroupId(
+  entries: readonly { readonly only_group_id: string | null }[],
+): string | null {
+  const [first, ...rest] = entries;
+  if (!first?.only_group_id) return null;
+  return rest.every((entry) => entry.only_group_id === first.only_group_id)
+    ? first.only_group_id
+    : null;
+}
+
+/**
  * The net you are up or down in each currency, summed over everyone.
  *
  * Never summed *across* currencies (ADR-003): there is no such thing as a total
@@ -75,28 +93,23 @@ export function directionGroups(totals: readonly CurrencyTotal[]): DirectionGrou
 }
 
 /**
- * How big a figure looks, in hundredths of its own major unit.
+ * Compare two figures by the major-unit number a person reads.
  *
  * There is no honest ordering across currencies without a rate, and this screen
  * has none — but comparing raw minor units is not merely imprecise, it is off by
- * the difference in their exponents: ¥27,066 is 27066 minor units and ₹4,614.66
- * is 461466, so the yen sorted *below* the rupees on a hundred-fold error rather
- * than on anything about money. Normalising to the major unit at least compares
- * the numbers a person actually reads. It decides which currency represents a
- * direction in a row, never whether that direction is shown.
+ * the difference in their exponents. Normalising by each currency's scale at
+ * least compares the displayed numbers. The comparison stays exact: truncating
+ * to hundredths makes KWD 0.101 tie USD 0.10 even though the first is larger.
  */
-function magnitude(row: NetRow): bigint {
-  const net = BigInt(row.net);
-  return (absBig(net) * 100n) / minorUnitScale(row.currency);
+function compareMagnitude(a: NetRow, b: NetRow): number {
+  const left = absBig(BigInt(a.net)) * minorUnitScale(b.currency);
+  const right = absBig(BigInt(b.net)) * minorUnitScale(a.currency);
+  return left < right ? 1 : left > right ? -1 : 0;
 }
 
-/** Biggest-looking first. See `magnitude` for what "biggest" can and cannot mean. */
+/** Biggest-looking first. See `compareMagnitude` for what "biggest" can and cannot mean. */
 function byMagnitude<T extends NetRow>(entries: readonly T[]): T[] {
-  return [...entries].sort((a, b) => {
-    const left = magnitude(a);
-    const right = magnitude(b);
-    return left < right ? 1 : left > right ? -1 : 0;
-  });
+  return [...entries].sort(compareMagnitude);
 }
 
 /**
@@ -155,10 +168,10 @@ interface ActionablePerson {
  * every amount off the right edge — or draws one with nowhere to sit.
  */
 export function rowAction(person: ActionablePerson): 'invite' | 'remind' | null {
-  const single = person.entries.length === 1 ? person.entries[0] : null;
-  if (!single) return null;
-  if (person.is_ghost && single.only_group_id) return 'invite';
-  if (BigInt(single.net) > 0n && single.only_group_id) return 'remind';
+  const groupId = commonOnlyGroupId(person.entries);
+  if (!groupId) return null;
+  if (person.is_ghost) return 'invite';
+  if (person.entries.some((entry) => BigInt(entry.net) > 0n)) return 'remind';
   return null;
 }
 

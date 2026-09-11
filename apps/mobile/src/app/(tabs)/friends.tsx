@@ -63,6 +63,7 @@ import { defaultMergeName } from '@/data/mergePeople';
 import { useKnownPeopleCount, usePeopleBalances } from '@/data/hooks';
 import { useAuth } from '@/lib/auth';
 import {
+  commonOnlyGroupId,
   currencyTotals,
   directionGroups,
   personDirection,
@@ -1136,14 +1137,16 @@ const PersonRow = memo(function PersonRow({
   // hidden behind the ghost name and face, so a photo must not leak it. The
   // `avatar_url` is the same across a person's rows, so the first carries it.
   const photoUrl = useAvatarUrl(blocked ? null : (entries[0]?.avatar_url ?? null));
-  // The common case: a person with a single balance. It carries the direction,
-  // the group scope and the action; a multi-currency person leans on the stacked
-  // amounts instead.
+  // One common group can explain several currency rows for the same person: a
+  // traveller may owe a guest in INR and USD from one trip, and that is still
+  // one invite/reminder context. Differing or missing group ids go to the person
+  // page, where the full split is visible.
   const single = entries.length === 1 ? entries[0] : null;
-  const soloGroup = single?.only_group_id ?? null;
+  const soloGroup = commonOnlyGroupId(entries);
+  const remindRow = entries.find((entry) => BigInt(entry.net) > 0n && entry.only_group_id === soloGroup);
 
-  // One group and one currency explains it: open that group. Otherwise the
-  // person page splits the balance back out per group and currency.
+  // One group explains it: open that group. Otherwise the person page splits the
+  // balance back out per group and currency.
   const navigate = soloGroup
     ? () => router.push(`/group/${soloGroup}`)
     : () =>
@@ -1287,6 +1290,8 @@ const PersonRow = memo(function PersonRow({
             locale={locale}
             variant={index === 0 ? 'subheading' : 'caption'}
             mode="balance"
+            numberOfLines={index === 0 ? 1 : undefined}
+            ellipsizeMode="tail"
           />
         ))}
         {hiddenCurrencies > 0 ? (
@@ -1312,10 +1317,12 @@ const PersonRow = memo(function PersonRow({
               label={t.people.invite}
               onPress={() => router.push(`/group/${soloGroup}/invite`)}
             />
-          ) : action === 'remind' && single ? (
+          ) : action === 'remind' && remindRow ? (
             // They owe you and one group explains it — a single pair to nudge, kept
-            // honest by the server at one a day (ADR-010).
-            <RemindButton row={single} />
+            // honest by the server at one a day (ADR-010). Several currencies in
+            // that one group still make one pair; the row only needs one currency
+            // row to name the group and person to the API.
+            <RemindButton row={remindRow} />
           ) : null}
         </View>
       ) : null}

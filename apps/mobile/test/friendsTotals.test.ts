@@ -7,6 +7,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  commonOnlyGroupId,
   currencyTotals,
   directionGroups,
   personDirection,
@@ -169,6 +170,19 @@ describe('shownAmounts', () => {
     expect(codes(shown)).toEqual(['JPY']);
   });
 
+  it('keeps exponent-3 precision when ranking close currencies', () => {
+    // KWD 0.101 and USD 0.10 both truncated to 10 hundredths before, so input
+    // order could hide the slightly larger KWD balance.
+    const { shown } = shownAmounts(
+      [
+        { currency: 'USD', net: '10' },
+        { currency: 'KWD', net: '101' },
+      ],
+      1,
+    );
+    expect(codes(shown)).toEqual(['KWD']);
+  });
+
   it('hides nothing when everything already fits', () => {
     const { shown, hidden } = shownAmounts([{ currency: 'INR', net: '2239525' }], 2);
     expect(codes(shown)).toEqual(['INR']);
@@ -192,26 +206,42 @@ describe('shownAmounts', () => {
 describe('rowAction', () => {
   const entry = (net: string, only_group_id: string | null) => ({ net, only_group_id });
 
-  it('offers a nudge only when one group explains the debt', () => {
+  it('finds the common group across several currency rows', () => {
+    expect(commonOnlyGroupId([entry('500', 'trip'), entry('-20', 'trip')])).toBe('trip');
+    expect(commonOnlyGroupId([entry('500', 'trip'), entry('-20', 'ride')])).toBeNull();
+    expect(commonOnlyGroupId([entry('500', 'trip'), entry('-20', null)])).toBeNull();
+    expect(commonOnlyGroupId([])).toBeNull();
+  });
+
+  it('offers a nudge when one group explains the debt, even across currencies', () => {
     expect(rowAction({ is_ghost: false, entries: [entry('500', 'g1')] })).toBe('remind');
+    expect(
+      rowAction({ is_ghost: false, entries: [entry('500', 'g1'), entry('-20', 'g1')] }),
+    ).toBe('remind');
     // Spread over several groups: there is no single pair to nudge, so the row
     // carries nothing — which is why a list of such people reserved a column it
     // never filled and pushed every amount away from the edge.
     expect(rowAction({ is_ghost: false, entries: [entry('500', null)] })).toBeNull();
+    expect(
+      rowAction({ is_ghost: false, entries: [entry('500', 'g1'), entry('20', 'g2')] }),
+    ).toBeNull();
   });
 
   it('offers nothing to somebody you owe', () => {
     expect(rowAction({ is_ghost: false, entries: [entry('-500', 'g1')] })).toBeNull();
   });
 
-  it('offers a guest their invite, whichever way the balance runs', () => {
+  it('offers a guest their invite, whichever way the same-group balance runs', () => {
     expect(rowAction({ is_ghost: true, entries: [entry('-500', 'g1')] })).toBe('invite');
     expect(rowAction({ is_ghost: true, entries: [entry('500', 'g1')] })).toBe('invite');
-  });
-
-  it('offers nothing across several currencies — neither control has one group', () => {
     expect(
       rowAction({ is_ghost: true, entries: [entry('500', 'g1'), entry('-20', 'g1')] }),
+    ).toBe('invite');
+  });
+
+  it('offers nothing when several currencies do not share one group', () => {
+    expect(
+      rowAction({ is_ghost: true, entries: [entry('500', 'g1'), entry('-20', 'g2')] }),
     ).toBeNull();
   });
 });
