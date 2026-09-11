@@ -20,10 +20,22 @@ updates:
     #
     # These move when the Expo SDK moves, deliberately and with an APK built to
     # prove it. `expo install --check` is the tool for that, not Dependabot.
+    #
+    # The same is true of every native module the SDK pins. Dependabot proposed
+    # reanimated 4.6.0 in #764: green CI, and a peer range of `react-native-worklets:
+    # 0.12.x` against the 0.10.1 the SDK gives us. Nothing in a JS test run can see
+    # that, and the first symptom is a build on somebody's machine.
     ignore:
       - dependency-name: react-native
       - dependency-name: react-native-worklets
       - dependency-name: '@react-native/*'
+      - dependency-name: react-native-reanimated
+      - dependency-name: react-native-gesture-handler
+      - dependency-name: react-native-screens
+      - dependency-name: react-native-safe-area-context
+      - dependency-name: react-native-svg
+      - dependency-name: react-native-maps
+      - dependency-name: '@react-native-community/datetimepicker'
     groups:
       # One PR for the routine patch/minor noise instead of dozens; majors still
       # come as their own reviewable PRs.
