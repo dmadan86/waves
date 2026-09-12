@@ -49,7 +49,6 @@ import {
   Callout,
   Card,
   ChipRow,
-  Divider,
   EmptyState,
   iconSize,
   MoneyText,
@@ -71,7 +70,8 @@ import { COMMON_CURRENCIES, CurrencyRate } from '@/components/CurrencyRate';
 import { DescriptionField } from '@/components/expense/DescriptionField';
 import { ExpenseHero } from '@/components/expense/ExpenseHero';
 import { splitIcon } from '@/components/expense/splitIcon';
-import { ChoiceRow, SettingRow, SheetOverlay } from '@/components/expense/SheetOverlay';
+import { ChoiceRow, SheetOverlay } from '@/components/expense/SheetOverlay';
+import { DetailRow, DetailRows } from '@/components/DetailRows';
 import {
   canAddReceipt,
   expenseReceiptPath,
@@ -1799,45 +1799,46 @@ export default function AddExpenseScreen() {
 
             Category is here as well as on the hero badge above: the badge shows
             the guess, which is what you want while typing the note, but it is
-            not a control — this row is where the guess is overruled. */}
-          <Card style={{ paddingVertical: theme.spacing.xs, gap: 0 }}>
-            <SettingRow
-              label={t.captures.date}
-              value={showDate(expenseDate, locale)}
-              leading={
-                <Ionicons
-                  name="calendar-outline"
-                  size={iconSize.md}
-                  color={theme.color.textMuted}
-                />
-              }
-              onPress={() => setEditingDate(true)}
-            />
-            <Divider />
-            <CategoryRow
-              value={category}
-              meta={categoryMeta}
-              onPress={() => setPickingCategory(true)}
-            />
-            <Divider />
-            <PaymentMethodRow value={paymentMethod} onPress={() => setPickingPayment(true)} />
-            <Divider />
-            {/* What it was paid in, as a named row rather than only as the pill
-              in the header. The pill is still there and still works — but it is
-              a hairline outline on a gradient beside a large amount, and "there
-              is no currency selection" is what somebody looking for one
-              reported. This names the field and opens the same sheet. */}
-            <SettingRow
-              label={t.captures.currencyLabel}
-              value={`${currencySymbol(currency)} ${currency}`}
-              leading={
-                // Not `cash-outline`: the rail row directly above wears that
-                // glyph whenever the answer is cash, which is the default — two
-                // rows with the same icon read as one repeated question.
-                <Ionicons name="globe-outline" size={iconSize.md} color={theme.color.textMuted} />
-              }
-              onPress={() => setPickingCurrency(true)}
-            />
+            not a control — this row is where the guess is overruled.
+
+            Literally the same card, now: `DetailRows` inside a `Card` with no
+            padding of its own is the markup the expense screen uses, down to the
+            hairlines it puts in the gaps rather than between siblings. These
+            rows used to be drawn the other way up — the question in full weight,
+            the answer muted beside it — so a bill you had just filed came back
+            reading as a different screen's idea of the same four facts. The
+            answers are what somebody scans for on both, so the answers are the
+            loud half on both. */}
+          <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
+            <DetailRows>
+              <DetailRow
+                icon="calendar-outline"
+                label={t.captures.date}
+                value={showDate(expenseDate, locale)}
+                onPress={() => setEditingDate(true)}
+              />
+              <CategoryRow
+                value={category}
+                meta={categoryMeta}
+                onPress={() => setPickingCategory(true)}
+              />
+              <PaymentMethodRow value={paymentMethod} onPress={() => setPickingPayment(true)} />
+              {/* What it was paid in, as a named row rather than only as the pill
+                in the header. The pill is still there and still works — but it is
+                a hairline outline on a gradient beside a large amount, and "there
+                is no currency selection" is what somebody looking for one
+                reported. This names the field and opens the same sheet.
+
+                Not `cash-outline`: the rail row directly above wears that glyph
+                whenever the answer is cash, which is the default — two rows with
+                the same mark read as one repeated question. */}
+              <DetailRow
+                icon="globe-outline"
+                label={t.captures.currencyLabel}
+                value={`${currencySymbol(currency)} ${currency}`}
+                onPress={() => setPickingCurrency(true)}
+              />
+            </DetailRows>
           </Card>
 
           {editingDate ? (
