@@ -1719,6 +1719,11 @@ export interface UiStrings {
     statusChecking: string;
     statusOff: string;
     statusReady: string;
+    /** The card on a linked phone that holds nothing yet — a new phone, where
+     *  the only sensible button is the one that brings the ledger back. */
+    statusFresh: string;
+    /** That button. */
+    restoreNow: string;
     statusOn: string;
     statusSealedStandard: string;
     statusSealedExtra: string;
@@ -4351,6 +4356,8 @@ const en: UiStrings = {
     statusChecking: 'Checking…',
     statusOff: 'Not backing up yet',
     statusReady: 'Ready to back up',
+    statusFresh: 'Nothing on this phone yet',
+    restoreNow: 'Restore my data',
     statusOn: 'Backed up',
     statusSealedStandard: 'Locked with a key kept in your Google account',
     statusSealedExtra: 'Locked with a key only you have',
@@ -6967,6 +6974,8 @@ const ta: UiStrings = {
     statusChecking: 'பார்க்கிறது…',
     statusOff: 'இன்னும் காப்பு எடுக்கப்படவில்லை',
     statusReady: 'காப்பு எடுக்கத் தயார்',
+    statusFresh: 'இந்த ஃபோனில் இன்னும் எதுவும் இல்லை',
+    restoreNow: 'என் தரவை மீட்டெடு',
     statusOn: 'காப்பு எடுக்கப்பட்டது',
     statusSealedStandard: 'உங்கள் Google கணக்கில் வைக்கப்பட்ட சாவியால் பூட்டப்பட்டது',
     statusSealedExtra: 'உங்களிடம் மட்டுமே உள்ள சாவியால் பூட்டப்பட்டது',
@@ -9615,6 +9624,8 @@ const hi: UiStrings = {
     statusChecking: 'देखा जा रहा है…',
     statusOff: 'अभी बैकअप नहीं हो रहा',
     statusReady: 'बैकअप के लिए तैयार',
+    statusFresh: 'इस फ़ोन पर अभी कुछ नहीं है',
+    restoreNow: 'मेरा डेटा वापस लाएँ',
     statusOn: 'बैकअप हो गया',
     statusSealedStandard: 'आपके Google खाते में रखी चाबी से बंद',
     statusSealedExtra: 'सिर्फ़ आपके पास मौजूद चाबी से बंद',
@@ -12298,6 +12309,8 @@ const ar: UiStrings = {
     statusChecking: 'يتحقق…',
     statusOff: 'لا نسخ احتياطي بعد',
     statusReady: 'جاهز للنسخ',
+    statusFresh: 'لا يوجد شيء على هذا الهاتف بعد',
+    restoreNow: 'استعادة بياناتي',
     statusOn: 'تم النسخ',
     statusSealedStandard: 'مقفل بمفتاح محفوظ في حساب Google الخاص بك',
     statusSealedExtra: 'مقفل بمفتاح لا يملكه سواك',

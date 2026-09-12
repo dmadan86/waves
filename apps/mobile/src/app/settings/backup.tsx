@@ -617,6 +617,21 @@ export default function BackupSettingsScreen() {
    * the one sentence on this screen that must never be shown wrongly.
    */
   const settled = !backup.loading;
+
+  /**
+   * A linked phone with nothing on it is a new phone, and the one thing it
+   * wants is its ledger back.
+   *
+   * So the card offers that instead of "Back up now" — which on an empty phone
+   * is the one button that must not be pressed, because it would write nothing
+   * over the copy the person came here for. Restore stops being a section
+   * somebody has to find and understand, and becomes the only thing on offer at
+   * the moment it is the only thing that makes sense. Once anything at all has
+   * been entered the card goes back to backing up, and restore steps down to a
+   * single row further down for the rare case of wanting it anyway.
+   */
+  const restoreFirst = settled && setup.complete && backup.recordCount === 0;
+
   const statusTone: 'warning' | 'brand' | 'positive' =
     !settled || (setup.complete && !last) ? 'brand' : setup.complete ? 'positive' : 'warning';
   const statusColor =
@@ -631,7 +646,9 @@ export default function BackupSettingsScreen() {
     : setup.complete
       ? last
         ? t.backup.statusOn
-        : t.backup.statusReady
+        : restoreFirst
+          ? t.backup.statusFresh
+          : t.backup.statusReady
       : t.backup.statusOff;
 
   const statusDetail = !settled
@@ -829,23 +846,33 @@ export default function BackupSettingsScreen() {
             <>
               <Divider />
               <View style={{ gap: theme.spacing.md }}>
+                {/* One button, and which of the two it is was not left to the
+                    person to work out — see `restoreFirst`. */}
                 <Button
-                  label={t.backup.backUpNow}
-                  onPress={() => void onBackUpNow()}
+                  label={restoreFirst ? t.backup.restoreNow : t.backup.backUpNow}
+                  onPress={() => void (restoreFirst ? onCheckForBackup() : onBackUpNow())}
                   disabled={busy || running}
                   fullWidth
                   icon={
-                    running || pending === 'backup' ? (
+                    running || pending === 'backup' || pending === 'scan' ? (
                       <ActivityIndicator size="small" color={theme.color.onBrand} />
                     ) : (
                       <Ionicons
-                        name="cloud-upload-outline"
+                        name={restoreFirst ? 'cloud-download-outline' : 'cloud-upload-outline'}
                         size={iconSize.md}
                         color={theme.color.onBrand}
                       />
                     )
                   }
                 />
+                {/* Where the look ended up, under the button that would look
+                    again — "there is no backup on this Drive account yet" is
+                    often a slow folder rather than an empty one. */}
+                {restoreFirst && restoreNote ? (
+                  <Text variant="micro" tone="muted" align="center">
+                    {restoreNote}
+                  </Text>
+                ) : null}
                 {/* A run in progress says which part it is on; the gap between
                     the tap and the first phase — network checks and a token
                     refresh — says something rather than nothing; and a finished
@@ -1124,66 +1151,87 @@ export default function BackupSettingsScreen() {
           </Card>
         </View>
 
-        {/* Getting it back. Last, and deliberately not beside "Back up now". */}
-        <View style={{ gap: theme.spacing.sm }}>
-          <SectionHeader title={t.backup.restoreSection} />
-          <Card style={{ gap: theme.spacing.md }}>
-            <Text variant="micro" tone="muted">
-              {t.backup.restoreIntro}
-            </Text>
-            {restored !== null ? (
-              <Text variant="body" tone="muted">
-                {plural(locale, restored, t.backup.restoreDone)}
-              </Text>
-            ) : null}
-            <Button
-              label={t.backup.restoreCheck}
-              variant="secondary"
-              onPress={() => void onCheckForBackup()}
-              disabled={restoreReason !== null || busy}
-              icon={pending === 'scan' ? spinner(false) : undefined}
-              fullWidth
-            />
+        {/* Getting it back, for the phone that is not obviously asking for it.
+            A phone with nothing on it has already been offered this as the
+            card's own button, so here it would be the same tap twice.
+            Otherwise it is one row and no paragraph: somebody who wants it
+            knows what the word means, and somebody who does not should not have
+            to read three lines to find out it is not for them. */}
+        {!restoreFirst ? (
+          <View style={{ gap: theme.spacing.sm }}>
+            <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
+              <ListRow
+                title={t.backup.restoreSection}
+                // A row with no `onPress` is drawn but not pressable, which is
+                // what a blocked restore wants: the reason sits under it and
+                // the way back stays visible even while it cannot be taken.
+                onPress={restoreReason !== null || busy ? undefined : () => void onCheckForBackup()}
+                leading={
+                  <Ionicons
+                    name="cloud-download-outline"
+                    size={iconSize.xl}
+                    color={theme.color.text}
+                  />
+                }
+                trailing={
+                  pending === 'scan' ? (
+                    <ActivityIndicator size="small" color={theme.color.textFaint} />
+                  ) : (
+                    <Ionicons
+                      name={directionalIcon('chevron-forward')}
+                      size={iconSize.md}
+                      color={theme.color.textFaint}
+                    />
+                  )
+                }
+              />
+            </Card>
             {restoreReason ? (
-              <Text variant="micro" tone="faint" align="center">
+              <Text variant="micro" tone="faint">
                 {restoreReason}
               </Text>
             ) : restoreNote ? (
-              // Where the last look ended up, under the button that would look
-              // again. "There is no backup on this Drive account yet" is often
-              // a slow folder rather than an empty one.
-              <Text variant="micro" tone="muted" align="center">
+              <Text variant="micro" tone="muted">
                 {restoreNote}
               </Text>
+            ) : restored !== null ? (
+              <Text variant="micro" tone="muted">
+                {plural(locale, restored, t.backup.restoreDone)}
+              </Text>
             ) : null}
-            {/* The way out of the one blocked state that has one, right here,
-                so nobody has to go looking for it in the checklist — where the
-                other button is the one that would cost them the backup.
-                On Standard it appears only once a scan has actually found a
-                backup this phone cannot open: offering "I already have a key"
-                to somebody who was never given one is a question with no
-                answer, and it would quietly undercut the tier's promise that
-                nothing has to be kept. */}
-            {settled &&
-            backup.configured &&
-            backup.connected &&
-            !backup.hasKey &&
-            (extra || needsOldKey) ? (
-              <Button
-                label={t.backup.keyEnter}
-                variant="secondary"
-                onPress={onEnterKey}
-                disabled={busy}
-                fullWidth
-              />
-            ) : null}
-          </Card>
-        </View>
+          </View>
+        ) : null}
 
-        {/* Extra protection: the opt-in tier, last on the screen and set apart,
-            where WhatsApp puts its end-to-end row. One line saying Off or On,
-            one footnote, and a door — never a tap that does the thing. */}
-        {settled && !setup.unavailable ? (
+        {/* The way out of the one blocked state that has one. On Standard it
+            appears only once a scan has actually found a backup this phone
+            cannot open: offering "I already have a key" to somebody who was
+            never given one is a question with no answer, and it would quietly
+            undercut the tier's promise that nothing has to be kept. */}
+        {settled &&
+        backup.configured &&
+        backup.connected &&
+        !backup.hasKey &&
+        (extra || needsOldKey) ? (
+          <Button
+            label={t.backup.keyEnter}
+            variant="secondary"
+            onPress={onEnterKey}
+            disabled={busy}
+            fullWidth
+          />
+        ) : null}
+
+        {/* Extra protection: no longer offered, and deliberately not removed.
+            It is the tier whose key lives only on this phone, and it asks
+            somebody to keep 64 characters safe for ever — a fair trade for a
+            person who wants it, and a trap for everybody who does not read the
+            sheet, which on a screen meant to be obvious is most people. So the
+            door is gone for anybody not already through it.
+
+            It is still drawn for anybody who *is*, and that is not politeness:
+            their backup is sealed under a key this screen is the only way back
+            to, so hiding the row would strand the Drive file for good. */}
+        {settled && !setup.unavailable && extra ? (
           <View style={{ gap: theme.spacing.sm }}>
             <SectionHeader title={t.backup.extraSection} />
             <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
