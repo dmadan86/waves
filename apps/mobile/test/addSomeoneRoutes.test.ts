@@ -30,14 +30,24 @@ function href(
 
 describe('the ways into a group', () => {
   it('offers contacts first and the join link second on a phone', () => {
-    const routes = addSomeoneRoutes({ groupId: 'trip-group', t: en, addressBook: true });
+    const routes = addSomeoneRoutes({
+      groupId: 'trip-group',
+      t: en,
+      addressBook: true,
+      otherGroupPeople: false,
+    });
     // Order is the claim, not a coincidence: most people added to a group are
     // already in the phone, and the link is for the ones who are not.
     expect(routes.map((route) => route.key)).toEqual(['contacts', 'inviteLink']);
   });
 
   it('sends each row at the flow it names', () => {
-    const routes = addSomeoneRoutes({ groupId: 'trip-group', t: en, addressBook: true });
+    const routes = addSomeoneRoutes({
+      groupId: 'trip-group',
+      t: en,
+      addressBook: true,
+      otherGroupPeople: false,
+    });
     expect(href(routes, 'contacts')).toBe('/contact-picker');
     expect(href(routes, 'inviteLink')).toBe('/group/trip-group/invite');
   });
@@ -46,25 +56,45 @@ describe('the ways into a group', () => {
     // The picker is a shared screen driven by the bridge, not a per-group one.
     // A groupId baked into its path would be a second, silently ignored source
     // of truth about who the ticked people are being added to.
-    const routes = addSomeoneRoutes({ groupId: 'trip-group', t: en, addressBook: true });
+    const routes = addSomeoneRoutes({
+      groupId: 'trip-group',
+      t: en,
+      addressBook: true,
+      otherGroupPeople: false,
+    });
     expect(href(routes, 'contacts')).not.toContain('trip-group');
   });
 
   it('drops the contacts row where there is no address book to read', () => {
     // Web has no expo-contacts at all, so that row could only ever apologise.
-    const routes = addSomeoneRoutes({ groupId: 'trip-group', t: en, addressBook: false });
+    const routes = addSomeoneRoutes({
+      groupId: 'trip-group',
+      t: en,
+      addressBook: false,
+      otherGroupPeople: false,
+    });
     expect(routes.map((route) => route.key)).toEqual(['inviteLink']);
   });
 
   it('leaves the other ways in alone when contacts are unavailable', () => {
     // A device that cannot read an address book can still hand somebody a link
     // — the point of dropping one row rather than the section.
-    const routes = addSomeoneRoutes({ groupId: 'trip-group', t: en, addressBook: false });
+    const routes = addSomeoneRoutes({
+      groupId: 'trip-group',
+      t: en,
+      addressBook: false,
+      otherGroupPeople: false,
+    });
     expect(href(routes, 'inviteLink')).toBe('/group/trip-group/invite');
   });
 
   it('gives every row a name, a hint and a spoken label that carries both', () => {
-    const routes = addSomeoneRoutes({ groupId: 'trip-group', t: en, addressBook: true });
+    const routes = addSomeoneRoutes({
+      groupId: 'trip-group',
+      t: en,
+      addressBook: true,
+      otherGroupPeople: false,
+    });
     for (const route of routes) {
       expect(route.title.trim(), route.key).not.toBe('');
       expect(route.hint.trim(), route.key).not.toBe('');
@@ -79,7 +109,12 @@ describe('the ways into a group', () => {
   it('names the contacts row exactly as the screen it opens is titled', () => {
     // The row and the picker's own heading say the same words, so arriving
     // confirms the tap rather than surprising it.
-    const routes = addSomeoneRoutes({ groupId: 'trip-group', t: en, addressBook: true });
+    const routes = addSomeoneRoutes({
+      groupId: 'trip-group',
+      t: en,
+      addressBook: true,
+      otherGroupPeople: false,
+    });
     expect(routes[0]?.title).toBe(en.misc.fromYourContacts);
   });
 
@@ -88,7 +123,12 @@ describe('the ways into a group', () => {
     // inside `people` is caught by nothing else.
     for (const language of LANGUAGES) {
       const t = STRINGS_BY_LANGUAGE[language];
-      for (const route of addSomeoneRoutes({ groupId: 'trip-group', t, addressBook: true })) {
+      for (const route of addSomeoneRoutes({
+        groupId: 'trip-group',
+        t,
+        addressBook: true,
+        otherGroupPeople: false,
+      })) {
         expect(route.title.trim(), `${language}.${route.key}.title`).not.toBe('');
         expect(route.hint.trim(), `${language}.${route.key}.hint`).not.toBe('');
       }
@@ -109,4 +149,23 @@ describe('the ways into a group', () => {
     );
     expect(new Set(said).size).toBe(LANGUAGES.length);
   });
+});
+it('offers the other-groups door only when another group has somebody to take', () => {
+  const without = addSomeoneRoutes({
+    groupId: 'trip-group',
+    t: en,
+    addressBook: true,
+    otherGroupPeople: false,
+  });
+  expect(without.map((route) => route.key)).not.toContain('fromAnotherGroup');
+
+  const with_ = addSomeoneRoutes({
+    groupId: 'trip-group',
+    t: en,
+    addressBook: true,
+    otherGroupPeople: true,
+  });
+  // Between the address book and the link: the bigger net first, the door for
+  // somebody with no account last.
+  expect(with_.map((route) => route.key)).toEqual(['contacts', 'fromAnotherGroup', 'inviteLink']);
 });

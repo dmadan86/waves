@@ -30,6 +30,8 @@ import { type CurrencyCode } from '@waves/core';
 
 import { GroupPhoto } from '@/components/GroupPhoto';
 import { type PickedContact } from '@/components/ContactPicker';
+import { offerFromOtherGroups } from '@/lib/addFromAnotherGroup';
+import { requestAddFromAnotherGroup } from '@/lib/addFromAnotherGroupBridge';
 import { addSomeoneRoutes, type AddSomeoneRoute } from '@/lib/addSomeoneRoutes';
 import { friendlyError } from '@/lib/errors';
 import { groupDeleteWarning, orderDebtsForWarning } from '@/lib/groupDeleteWarning';
@@ -49,9 +51,11 @@ import {
   useDeleteGroup,
   useGroup,
   useGroupLedger,
+  useGroups,
   useLeaveGroup,
   useUpdateGroup,
 } from '@/data/hooks';
+import { useKnownContacts } from '@/data/knownContacts';
 import { fill, plural, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { useFavorites } from '@/lib/favorites';
@@ -230,8 +234,6 @@ export default function GroupSettingsScreen() {
    * dropped; a phone that *can* be asked keeps the row whatever the answer
    * turns out to be, because the answer is the picker's to get.
    */
-  const routes = addSomeoneRoutes({ groupId, t, addressBook: Platform.OS !== 'web' });
-
   /**
    * Follow one of them.
    *
@@ -254,7 +256,66 @@ export default function GroupSettingsScreen() {
         onPicked: (people) => void addPicked(people),
       });
     }
+    // Same shape, same reason: the picker is a pushed route and cannot hand a
+    // value back, so the intent is left with the bridge before navigating and
+    // the ticked people arrive through `addPicked` like every other way in.
+    if (route.key === 'fromAnotherGroup') {
+      requestAddFromAnotherGroup({ groupId, onPicked: (people) => void addPicked(people) });
+    }
     router.push(route.href as never);
+  };
+
+  /**
+   * The other route in from `lib/addFromAnotherGroup`: the people already in
+   * your other groups — the same five friends, a new trip. `addSomeoneRoutes`
+   * (PR #784) names this gap and deliberately returns no row for it because
+   * nothing built it yet; this is that flow, wired in ahead of that screen's
+   * merge (see the header comment on `lib/addFromAnotherGroup` for the full
+   * shape and the identity/consent decisions behind it).
+   *
+   * Whether the row is worth drawing at all is decided the same way that
+   * module decides everything else — run the real selection, not a proxy
+   * like "is in more than one group", since a lone other group made up of
+   * real-account members alone (nobody to copy) must not offer a door that
+   * opens onto an empty list.
+   */
+  const { membersByGroup } = useKnownContacts();
+  const otherGroups = useGroups();
+  const sourceGroups = (otherGroups.data ?? []).map((sourceGroup) => {
+    const raw = membersByGroup.get(sourceGroup.id) ?? [];
+    return {
+      groupId: sourceGroup.id,
+      groupLabel: groupLabel(sourceGroup, raw, profile?.id ?? null),
+      members: raw.map((member) => ({
+        memberId: member.id,
+        profileId: member.profile_id,
+        name: displayName(member, profile?.id ?? null),
+        email: member.invite_email ?? null,
+        phone: member.invite_phone ?? null,
+        leftAt: member.left_at,
+      })),
+    };
+  });
+  const fromAnotherGroupOffer = offerFromOtherGroups({
+    currentGroupId: groupId,
+    viewerProfileId: profile?.id ?? null,
+    groups: sourceGroups,
+  });
+
+  // Leaves its intent with the bridge, same as the contacts row — the ticked
+  // people come back through the very same `addPicked`, so a batch from
+  // another group fails and reports exactly the way a batch from contacts
+  // already does (see `addPicked` above).
+  const routes = addSomeoneRoutes({
+    groupId,
+    t,
+    addressBook: Platform.OS !== 'web',
+    otherGroupPeople: fromAnotherGroupOffer.length > 0,
+  });
+
+  const openAddFromAnotherGroup = (): void => {
+    requestAddFromAnotherGroup({ groupId, onPicked: (people) => void addPicked(people) });
+    router.push('/add-from-another-group');
   };
 
   const [name, setName] = useState(group.data?.name ?? '');
@@ -912,9 +973,10 @@ export default function GroupSettingsScreen() {
               />
             </Row>
 
-            {/* Both add paths drive the one mutation, so the one spinner and
-                the one error line sit at the foot of the whole card rather than
-                beside whichever of them started it. */}
+            {/* Every way in is a row above; what is left at the foot of the
+                card is the one spinner and the one error line, because all of
+                them drive the same mutation and beside-the-button would mean
+                three of each. */}
             {addingContacts ? <ActivityIndicator color={theme.color.brand} /> : null}
             {addError ? <Callout tone="negative">{addError}</Callout> : null}
           </Card>
