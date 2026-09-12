@@ -33,7 +33,14 @@ import {
   useTheme,
 } from '@waves/ui';
 
-import { useCaptures, useGroups, useHomeSummary } from '@/data/hooks';
+import {
+  useCaptures,
+  useGroups,
+  useHomeSummary,
+  usePinnedGroupIds,
+  useSetGroupPin,
+} from '@/data/hooks';
+import { orderByPin } from '@/lib/groupPinOrder';
 import { plural, useStrings, type UiStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { foldedCaptureCount } from '@/lib/captureBatch';
@@ -71,6 +78,11 @@ export default function HomeScreen() {
   const avatarUrl = useAvatarUrl(profile?.avatar_url);
 
   const groups = useGroups();
+  // Which groups this person has pinned, and the mutation that flips one. Read
+  // once here rather than per row: every row asks the same `Set.has`, and the
+  // preview's own order depends on it before any row exists to ask.
+  const pinnedIds = usePinnedGroupIds();
+  const setGroupPin = useSetGroupPin();
   const summary = useHomeSummary(profile?.id ?? null);
   // Unassigned captures now live as a badged inbox glyph in the toolbar rather
   // than a section in the feed.
@@ -110,7 +122,15 @@ export default function HomeScreen() {
   });
   const displayName = profile?.display_name ?? t.account.you;
 
-  const list = groups.data ?? [];
+  // Pinned first, in the order they'd already have; everyone else, in the
+  // order they'd already have (see `orderByPin`). Applied *before* the
+  // GROUPS_PREVIEW slice below — the whole point of pinning is deciding which
+  // groups get the dashboard's limited slots, so a pin made on a group that
+  // would otherwise fall off the preview has to win that slot right here.
+  const list = useMemo(
+    () => orderByPin(groups.data ?? [], (group) => pinnedIds.has(group.id)),
+    [groups.data, pinnedIds],
+  );
   // Two states, not one, because they deserve different answers.
   //
   // `hydrating` is "there is nothing to paint": the mirror has not been read off
@@ -565,6 +585,15 @@ export default function HomeScreen() {
                       // a confident wrong ₹0 that then jumps to the real figure.
                       pendingBalance={group.id === justAddedId && !summary.hasLedger(group.id)}
                       onPress={() => router.push(`/group/${group.id}`)}
+                      // Long-press is the fast path to pin/unpin (the ••• menu
+                      // on the group's own screen is the discoverable one); a
+                      // custom accessibility action carries the same toggle to
+                      // a screen reader, which has no long-press gesture.
+                      pinned={pinnedIds.has(group.id)}
+                      pinLabel={`${pinnedIds.has(group.id) ? t.group.unpin : t.group.pin} ${groupLabel(group, members, profile?.id)}`}
+                      onTogglePin={() =>
+                        setGroupPin.mutate({ groupId: group.id, pinned: !pinnedIds.has(group.id) })
+                      }
                     />
                   );
                 })}
@@ -1610,6 +1639,9 @@ function GroupRow({
   pendingBalance = false,
   hidden = false,
   onPress,
+  pinned = false,
+  pinLabel,
+  onTogglePin,
 }: {
   title: string;
   memberLabel: string;
@@ -1634,9 +1666,22 @@ function GroupRow({
       into place on mount rather than blinking in. */
   enter?: boolean;
   onPress: () => void;
+  /** Sorted to the top by `orderByPin`; carries the small pin glyph and is
+      announced in the row's accessibility label — a glyph alone says nothing
+      to a screen reader. */
+  pinned?: boolean;
+  /** "Pin Goa trip" / "Unpin Goa trip" — what a screen reader announces for the
+      long-press action below. Required whenever `onTogglePin` is passed. */
+  pinLabel?: string;
+  /** Long-press: the fast path to pin/unpin. Also reachable as a named action
+      in the accessibility rotor, since a long-press gesture has no equivalent
+      for a screen-reader user. The discoverable path — a Pin/Unpin row in the
+      ••• menu — lives on the group's own screen, not here. */
+  onTogglePin?: () => void;
 }) {
   const theme = useTheme();
   const reduceMotion = useReducedMotion();
+  const { t } = useStrings();
 
   // The entrance: start dropped and clear, settle into place. Only for a row
   // flagged `enter` (a just-imported group), and never under reduce motion —
@@ -1665,8 +1710,22 @@ function GroupRow({
     >
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`${title}. ${statusLabel}`}
+        // Pinned is spoken, not just drawn: a screen reader never sees the
+        // glyph below, so the state has to be in the label itself.
+        accessibilityLabel={
+          pinned ? `${title}. ${t.group.pinnedBadge}. ${statusLabel}` : `${title}. ${statusLabel}`
+        }
         onPress={onPress}
+        onLongPress={onTogglePin}
+        // The rotor equivalent of the long-press gesture above — a screen
+        // reader has no long-press, so the toggle needs its own named action,
+        // carrying the same "which it will do" label the ••• menu item would.
+        accessibilityActions={
+          onTogglePin && pinLabel ? [{ name: 'togglePin', label: pinLabel }] : undefined
+        }
+        onAccessibilityAction={(event) => {
+          if (event.nativeEvent.actionName === 'togglePin') onTogglePin?.();
+        }}
         style={({ pressed }) => ({
           flexDirection: 'row',
           alignItems: 'center',
@@ -1692,6 +1751,7 @@ function GroupRow({
         </View>
         <View style={{ flex: 1, gap: 2 }}>
           <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
+            {pinned ? <Ionicons name="pin" size={12} color={theme.color.textMuted} /> : null}
             <Text variant="body" numberOfLines={1} style={{ flexShrink: 1, fontWeight: '600' }}>
               {title}
             </Text>

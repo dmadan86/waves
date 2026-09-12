@@ -1907,6 +1907,14 @@ export interface UiStrings {
     loading: string;
     settings: string;
     more: string;
+    /** The ••• menu's Pin/Unpin row and the row-level accessibility action
+     *  (long-press). Concatenated with the group's own label at the call site
+     *  — "Pin Goa trip" / "Unpin Goa trip" — so the word itself stays short. */
+    pin: string;
+    unpin: string;
+    /** Spoken after a pinned row's name, since the pin glyph itself is
+     *  invisible to a screen reader. */
+    pinnedBadge: string;
     confirmReceived: string;
     /** Heading over an incoming settlement claim; `{name}` is the payer. */
     saysTheyPaidYou: string;
@@ -4572,6 +4580,9 @@ const en: UiStrings = {
     loading: 'Loading…',
     settings: 'Group settings',
     more: 'More',
+    pin: 'Pin',
+    unpin: 'Unpin',
+    pinnedBadge: 'Pinned',
     confirmReceived: 'Confirm received',
     saysTheyPaidYou: '{name} says they paid you',
     saysTheyPaidYouWindow: '{name} says they paid you ({window})',
@@ -7226,6 +7237,9 @@ const ta: UiStrings = {
     loading: 'ஏற்றப்படுகிறது…',
     settings: 'குழு அமைப்புகள்',
     more: 'மேலும்',
+    pin: 'பின் செய்',
+    unpin: 'பின் நீக்கு',
+    pinnedBadge: 'பின் செய்யப்பட்டது',
     confirmReceived: 'கிடைத்தது என்று உறுதிப்படுத்து',
     saysTheyPaidYou: '{name} உங்களுக்குப் பணம் கொடுத்ததாகச் சொல்கிறார்',
     saysTheyPaidYouWindow: '{name} உங்களுக்குப் பணம் கொடுத்ததாகச் சொல்கிறார் ({window})',
@@ -9892,6 +9906,9 @@ const hi: UiStrings = {
     loading: 'आ रहा है…',
     settings: 'समूह सेटिंग्स',
     more: 'और',
+    pin: 'पिन करें',
+    unpin: 'अनपिन करें',
+    pinnedBadge: 'पिन किया गया',
     confirmReceived: 'मिलने की पुष्टि करें',
     saysTheyPaidYou: '{name} कहते हैं कि उन्होंने आपको भुगतान किया',
     saysTheyPaidYouWindow: '{name} कहते हैं कि उन्होंने आपको भुगतान किया ({window})',
@@ -12623,6 +12640,9 @@ const ar: UiStrings = {
     loading: 'جارٍ التحميل…',
     settings: 'إعدادات المجموعة',
     more: 'المزيد',
+    pin: 'تثبيت',
+    unpin: 'إلغاء التثبيت',
+    pinnedBadge: 'مثبّتة',
     confirmReceived: 'أكّد الاستلام',
     saysTheyPaidYou: 'يقول {name} إنه دفع لك',
     saysTheyPaidYouWindow: 'يقول {name} إنه دفع لك ({window})',
