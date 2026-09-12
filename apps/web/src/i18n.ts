@@ -214,6 +214,7 @@ export interface WebStrings {
     signInTitle: string;
     signInBody: string;
     continueWithGoogle: string;
+    continueWithApple: string;
     orDivider: string;
     emailPlaceholder: string;
     passwordPlaceholder: string;
@@ -667,6 +668,7 @@ const en: WebStrings = {
     signInTitle: 'Waves',
     signInBody: 'Split expenses without the argument at the end.',
     continueWithGoogle: 'Continue with Google',
+    continueWithApple: 'Continue with Apple',
     orDivider: 'or',
     emailPlaceholder: 'you@email.com',
     passwordPlaceholder: 'Password',
@@ -1136,6 +1138,7 @@ const ta: WebStrings = {
     signInTitle: 'Waves',
     signInBody: 'கடைசியில் வாக்குவாதம் இல்லாமல் செலவுகளைப் பிரியுங்கள்.',
     continueWithGoogle: 'Google மூலம் தொடரவும்',
+    continueWithApple: 'Apple மூலம் தொடரவும்',
     orDivider: 'அல்லது',
     emailPlaceholder: 'you@email.com',
     passwordPlaceholder: 'கடவுச்சொல்',
@@ -1613,6 +1616,7 @@ const hi: WebStrings = {
     signInTitle: 'Waves',
     signInBody: 'आख़िर में बहस किए बिना खर्च बाँटें।',
     continueWithGoogle: 'Google से जारी रखें',
+    continueWithApple: 'Apple से जारी रखें',
     orDivider: 'या',
     emailPlaceholder: 'you@email.com',
     passwordPlaceholder: 'पासवर्ड',
@@ -2092,6 +2096,7 @@ const ar: WebStrings = {
     signInTitle: 'Waves',
     signInBody: 'قسّموا المصاريف دون خلاف في النهاية.',
     continueWithGoogle: 'المتابعة عبر Google',
+    continueWithApple: 'المتابعة عبر Apple',
     orDivider: 'أو',
     emailPlaceholder: 'you@email.com',
     passwordPlaceholder: 'كلمة المرور',
