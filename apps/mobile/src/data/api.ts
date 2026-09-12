@@ -1781,6 +1781,38 @@ export async function fetchReleasePolicy(platform: 'ios' | 'android'): Promise<R
   return (data as ReleaseRow | null) ?? null;
 }
 
+/**
+ * Whatever the operator is currently saying — maintenance, an incident, an
+ * announcement.
+ *
+ * Returned raw and `unknown`, not typed into a shape this function asserts. The
+ * decision lives in `appState` from @waves/core, which treats every field as
+ * suspect precisely because this is a network read from a server that may be
+ * the thing having the bad day. A cast here would launder a malformed row into
+ * something that looks trustworthy two files later.
+ *
+ * Signed out included, for the same reason as the release policy above: the
+ * person watching a sign-in spin forever is exactly the person who should be
+ * told the server is down.
+ *
+ * No time filter here, deliberately. Every window is applied once, by the pure
+ * decider, against the device clock — which is the clock the sentence has to be
+ * written in anyway ("maintenance starts in two hours" is a statement about the
+ * reader's afternoon). Filtering here as well would mean two clocks deciding
+ * the same question and disagreeing on a phone whose time is wrong. The newest
+ * twenty is the whole payload: a table that ever holds more than that has a
+ * housekeeping problem, not a delivery problem.
+ */
+export async function fetchAppNotices(): Promise<unknown[]> {
+  const { data, error } = await backend
+    .from('app_notices')
+    .select('id, kind, starts_at, ends_at, visible_from, visible_until, platforms, countries, body')
+    .order('visible_from', { ascending: false })
+    .limit(20);
+  if (error) throw new Error(error.message);
+  return (data ?? []) as unknown[];
+}
+
 // ───────────────────────────────────────────── the trip plan (timeline) ──
 
 export interface PlanItemRow {

@@ -75,6 +75,28 @@ export function PromptQueueProvider({ children }: { children: ReactNode }) {
 }
 
 /**
+ * Whether the screen is currently free of one-at-a-time prompts.
+ *
+ * Read-only participation in the queue, for a surface that is not a popup and
+ * therefore should not *claim* a slot: the status banner sits at the top of
+ * whatever screen is showing and would happily coexist with most things, but
+ * stacking it over the tip sheet or the push ask is noise. So it stands aside
+ * while somebody else has the screen and comes back when they release it.
+ *
+ * Deliberately not a claim. A banner can be live for the three hours of a
+ * maintenance window, and a claim held that long would starve every prompt
+ * below it — the guest prompt and the daily tip would simply stop appearing,
+ * which is not a trade anybody asked for.
+ *
+ * Outside a provider it answers "clear": a surface rendered in a tree with no
+ * queue has nothing to wait for.
+ */
+export function usePromptQueueClear(): boolean {
+  const ctx = useContext(PromptQueueContext);
+  return ctx ? ctx.winnerId === null : true;
+}
+
+/**
  * Claim a slot in the prompt queue while `active`, and learn whether this slot
  * is cleared to show right now.
  *

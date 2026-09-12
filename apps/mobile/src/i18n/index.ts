@@ -2991,6 +2991,30 @@ export interface UiStrings {
     body: string;
     action: string;
   };
+  /** What the operator is currently saying to every running app: a newer build,
+   *  a maintenance window, an incident, an announcement. The *shape* of each
+   *  message is translated here; the operator's own words, when there are any,
+   *  arrive from the server untranslated and are labelled with the language
+   *  they were written in (`writtenIn`). */
+  status: {
+    /** Titles, one per kind. */
+    maintenancePlanned: string;
+    maintenanceNow: string;
+    incident: string;
+    announcement: string;
+    /** Bodies composed from the window, with no operator text involved. */
+    maintenanceFrom: string;
+    maintenanceUntil: string;
+    maintenanceSoon: string;
+    incidentBody: string;
+    /** The sentence that must be on every one of them. */
+    keepGoing: string;
+    /** "Written in English." — shown when the operator wrote in another language. */
+    writtenIn: string;
+    dismiss: string;
+    /** Screen-reader announcement when the version wall takes the screen. */
+    blockedAnnouncement: string;
+  };
   /** The private personal-finance ledger (A48): the "Me" tab and its screens —
    *  solo expenses/income, recurring rules, loans and monthly budgets. */
   personal: {
@@ -5588,6 +5612,21 @@ const en: UiStrings = {
     title: 'Something went wrong',
     body: 'That screen hit an error. Nothing you saved is lost — go back and try again.',
     action: 'Back to home',
+  },
+  status: {
+    maintenancePlanned: 'Planned maintenance',
+    maintenanceNow: 'Maintenance under way',
+    incident: 'Syncing is having trouble',
+    announcement: 'From Waves',
+    maintenanceFrom: 'Waves servers pause from {from} to {to}.',
+    maintenanceUntil: 'Waves servers are paused until {to}.',
+    maintenanceSoon: 'Waves servers pause shortly, until {to}.',
+    incidentBody: 'Syncing may be slow or failing. We are on it.',
+    keepGoing:
+      'Keep adding expenses as usual — they are saved on this phone and sync on their own once it is back.',
+    writtenIn: 'Written in {language}.',
+    dismiss: 'Got it',
+    blockedAnnouncement: 'Waves needs updating before it can be used.',
   },
   personal: {
     tab: 'Personal',
@@ -8312,6 +8351,22 @@ const ta: UiStrings = {
     body: 'அந்தத் திரையில் பிழை ஏற்பட்டது. நீங்கள் சேமித்தது எதுவும் இழக்கப்படவில்லை — திரும்பிச் சென்று மீண்டும் முயலுங்கள்.',
     action: 'முகப்புக்குத் திரும்பு',
   },
+  status: {
+    maintenancePlanned: 'திட்டமிட்ட பராமரிப்பு',
+    maintenanceNow: 'பராமரிப்பு நடந்துகொண்டிருக்கிறது',
+    incident: 'ஒத்திசைவில் சிக்கல்',
+    announcement: 'Waves-இலிருந்து',
+    maintenanceFrom: 'Waves சேவையகங்கள் {from} முதல் {to} வரை இடைநிறுத்தப்படும்.',
+    maintenanceUntil: '{to} வரை Waves சேவையகங்கள் இடைநிறுத்தப்பட்டுள்ளன.',
+    maintenanceSoon: 'Waves சேவையகங்கள் விரைவில் {to} வரை இடைநிறுத்தப்படும்.',
+    incidentBody:
+      'ஒத்திசைவு மெதுவாக இருக்கலாம் அல்லது தோல்வியடையலாம். நாங்கள் சரிசெய்து வருகிறோம்.',
+    keepGoing:
+      'வழக்கம்போல் செலவுகளைச் சேர்த்துக்கொண்டே இருங்கள் — அவை இந்த ஃபோனில் சேமிக்கப்படுகின்றன, சேவை திரும்பியதும் தாமாகவே ஒத்திசைக்கும்.',
+    writtenIn: '{language} மொழியில் எழுதப்பட்டது.',
+    dismiss: 'சரி',
+    blockedAnnouncement: 'Waves-ஐப் பயன்படுத்த முதலில் புதுப்பிக்க வேண்டும்.',
+  },
   personal: {
     tab: 'தனிப்பட்டது',
     title: 'தனிப்பட்டது',
@@ -10923,6 +10978,21 @@ const hi: UiStrings = {
     title: 'कुछ गड़बड़ हो गई',
     body: 'उस स्क्रीन में कोई त्रुटि आ गई। आपका सहेजा हुआ कुछ भी नहीं खोया — वापस जाकर फिर कोशिश करें।',
     action: 'होम पर वापस',
+  },
+  status: {
+    maintenancePlanned: 'नियोजित रखरखाव',
+    maintenanceNow: 'रखरखाव चल रहा है',
+    incident: 'सिंक में दिक्कत आ रही है',
+    announcement: 'Waves की ओर से',
+    maintenanceFrom: 'Waves सर्वर {from} से {to} तक रुके रहेंगे।',
+    maintenanceUntil: 'Waves सर्वर {to} तक रुके हुए हैं।',
+    maintenanceSoon: 'Waves सर्वर थोड़ी देर में {to} तक रुक जाएँगे।',
+    incidentBody: 'सिंक धीमा हो सकता है या विफल हो सकता है। हम इस पर काम कर रहे हैं।',
+    keepGoing:
+      'हमेशा की तरह ख़र्च जोड़ते रहें — वे इसी फ़ोन में सहेजे जाते हैं और सेवा लौटते ही अपने आप सिंक हो जाएँगे।',
+    writtenIn: '{language} में लिखा गया।',
+    dismiss: 'ठीक है',
+    blockedAnnouncement: 'Waves इस्तेमाल करने से पहले उसे अपडेट करना ज़रूरी है।',
   },
   personal: {
     tab: 'निजी',
@@ -13872,6 +13942,21 @@ const ar: UiStrings = {
     title: 'حدث خطأ ما',
     body: 'واجهت تلك الشاشة خطأ. لم يُفقد أي شيء حفظته — ارجع وحاول مرة أخرى.',
     action: 'العودة إلى الرئيسية',
+  },
+  status: {
+    maintenancePlanned: 'صيانة مُجدولة',
+    maintenanceNow: 'الصيانة جارية',
+    incident: 'هناك مشكلة في المزامنة',
+    announcement: 'من Waves',
+    maintenanceFrom: 'تتوقف خوادم Waves من {from} إلى {to}.',
+    maintenanceUntil: 'خوادم Waves متوقفة حتى {to}.',
+    maintenanceSoon: 'تتوقف خوادم Waves بعد قليل حتى {to}.',
+    incidentBody: 'قد تكون المزامنة بطيئة أو متعثرة. نحن نعمل على ذلك.',
+    keepGoing:
+      'واصل إضافة المصروفات كالمعتاد — فهي محفوظة على هذا الهاتف وتتزامن تلقائيًا فور عودة الخدمة.',
+    writtenIn: 'مكتوب بـ{language}.',
+    dismiss: 'حسنًا',
+    blockedAnnouncement: 'يجب تحديث Waves قبل استخدامه.',
   },
   personal: {
     tab: 'الشخصي',

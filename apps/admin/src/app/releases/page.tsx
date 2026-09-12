@@ -47,6 +47,7 @@ export default async function Releases({
         minimumVersion: String(formData.get('minimum') ?? ''),
         storeUrl: String(formData.get('store_url') ?? ''),
         message: String(formData.get('message') ?? ''),
+        confirmMinimum: String(formData.get('confirm_minimum') ?? ''),
       });
     } catch (caught) {
       failure = caught instanceof Error ? caught.message : String(caught);
@@ -67,7 +68,10 @@ export default async function Releases({
         <strong>Minimum is a lockout, not a nudge</strong> — it is checked before anybody signs in,
         so every install under it is out of the product until that store has the newer build.
         Latest, by contrast, is only what the app compares against to say &ldquo;there is an
-        update&rdquo;. Both take effect on the next launch; there is nothing to deploy.
+        update&rdquo;. Both take effect on the next launch; there is nothing to deploy. Raising a
+        minimum asks you to type the number twice — the accident that strands everybody is not a
+        minimum above the latest (the database refuses that) but both numbers typed above every
+        build that exists.
       </Lede>
 
       {rows.length === 0 ? (
@@ -147,6 +151,25 @@ function ReleaseCard({
             required
             size={10}
             aria-label={`Minimum allowed ${row.platform} version`}
+          />
+        </Field>
+
+        {/* The guard against the accident the CHECK cannot see: raising both
+            numbers together. `minimum = latest = 11.4.0` for a build called
+            1.4.0 passes every ordering test and strands the entire install
+            base, because the store has nothing above it to install. Typing the
+            number a second time is a dull hurdle placed at the one moment
+            somebody is moving fast. Lowering a minimum needs nothing — it
+            cannot lock anybody out, and an operator undoing a mistake at 2am
+            should not have to type anything twice. */}
+        <Field label="Confirm minimum" hint="only needed when raising it">
+          <input
+            type="text"
+            name="confirm_minimum"
+            pattern="[0-9]+(\.[0-9]+){0,3}"
+            size={10}
+            placeholder={row.minimum_version}
+            aria-label={`Retype the new minimum ${row.platform} version to confirm`}
           />
         </Field>
 
