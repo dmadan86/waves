@@ -1825,6 +1825,20 @@ export interface UiStrings {
      *  one would let the next run overwrite that backup. */
     restoreNeedsKey: string;
 
+    /** The dashboard's one-time offer to bring a backup back after a fresh
+     *  sign-in (`lib/backup/restorePrompt`). The body has two forms because an
+     *  unlinked phone is about to be handed a Google consent sheet and must be
+     *  told so; the tap is the same either way. `restorePromptWhere` is what
+     *  makes declining cheap — it names where restore lives afterwards. */
+    restorePromptTitle: string;
+    restorePromptBody: string;
+    restorePromptBodyLink: string;
+    /** Spoken label for the primary, which reads only "Restore my data". */
+    restorePromptRestoreLabel: string;
+    restorePromptLater: string;
+    restorePromptLaterLabel: string;
+    restorePromptWhere: string;
+
     /** Why a run did nothing. Each one is a different way out. */
     refusedNotConnected: string;
     refusedNoKey: string;
@@ -4461,6 +4475,16 @@ const en: UiStrings = {
     restoreNeedsKey:
       'Enter the key from the phone that made this backup. A new key will not open it.',
 
+    restorePromptTitle: 'Bring your records back?',
+    restorePromptBody:
+      'There is nothing on this phone yet. Your Google Drive backup can put your personal records back.',
+    restorePromptBodyLink:
+      'There is nothing on this phone yet. Link your Google Drive and Waves will put your personal records back.',
+    restorePromptRestoreLabel: 'Restore my records from the Google Drive backup',
+    restorePromptLater: 'Not now',
+    restorePromptLaterLabel: 'Not now. Restore later from the Backup screen.',
+    restorePromptWhere: 'You can do this later: tap the ••• menu on Home, then Backup.',
+
     refusedNotConnected: 'Link a Google account first.',
     refusedNoKey: 'Create your backup key first.',
     refusedNeedsKey: 'That backup is under extra protection. Only its key opens it.',
@@ -7082,6 +7106,18 @@ const ta: UiStrings = {
     restoreIsExtra:
       'இந்தக் காப்பு கூடுதல் பாதுகாப்பில் உள்ளது. அதை உருவாக்கிய ஃபோனின் சாவியை உள்ளிடுங்கள்; புதிய சாவி அதைத் திறக்காது.',
     restoreNeedsKey: 'காப்பு எடுத்த ஃபோனின் சாவியை உள்ளிடுங்கள். புதிய சாவி அதைத் திறக்காது.',
+
+    restorePromptTitle: 'உங்கள் பதிவுகளைத் திரும்பக் கொண்டுவரவா?',
+    restorePromptBody:
+      'இந்த ஃபோனில் இன்னும் எதுவும் இல்லை. உங்கள் Google Drive காப்பு உங்கள் தனிப்பட்ட பதிவுகளைத் திரும்பக் கொண்டுவரும்.',
+    restorePromptBodyLink:
+      'இந்த ஃபோனில் இன்னும் எதுவும் இல்லை. உங்கள் Google Drive-ஐ இணையுங்கள்; Waves உங்கள் தனிப்பட்ட பதிவுகளைத் திரும்பக் கொண்டுவரும்.',
+    restorePromptRestoreLabel: 'Google Drive காப்பிலிருந்து என் பதிவுகளை மீட்டெடு',
+    restorePromptLater: 'இப்போது வேண்டாம்',
+    restorePromptLaterLabel:
+      'இப்போது வேண்டாம். பின்னர் காப்புப்பிரதி திரையிலிருந்து மீட்டெடுக்கலாம்.',
+    restorePromptWhere:
+      'இதைப் பின்னரும் செய்யலாம்: முகப்பில் ••• மெனுவைத் தட்டி, காப்புப்பிரதி என்பதைத் தேர்ந்தெடுங்கள்.',
 
     refusedNotConnected: 'முதலில் ஒரு Google கணக்கை இணையுங்கள்.',
     refusedNoKey: 'முதலில் உங்கள் காப்புச் சாவியை உருவாக்குங்கள்.',
@@ -9727,6 +9763,16 @@ const hi: UiStrings = {
     restoreIsExtra:
       'यह बैकअप अतिरिक्त सुरक्षा में है। जिस फ़ोन ने इसे बनाया था, उसी की चाबी डालें। नई चाबी इसे नहीं खोलेगी।',
     restoreNeedsKey: 'जिस फ़ोन ने यह बैकअप बनाया, उसी की चाबी डालें। नई चाबी इसे नहीं खोलेगी।',
+
+    restorePromptTitle: 'अपने रिकॉर्ड वापस लाएँ?',
+    restorePromptBody:
+      'इस फ़ोन पर अभी कुछ नहीं है। आपका Google Drive बैकअप आपके निजी रिकॉर्ड वापस ला सकता है।',
+    restorePromptBodyLink:
+      'इस फ़ोन पर अभी कुछ नहीं है। अपना Google Drive जोड़ें, Waves आपके निजी रिकॉर्ड वापस ले आएगा।',
+    restorePromptRestoreLabel: 'Google Drive बैकअप से मेरे रिकॉर्ड वापस लाएँ',
+    restorePromptLater: 'अभी नहीं',
+    restorePromptLaterLabel: 'अभी नहीं। बाद में बैकअप स्क्रीन से वापस ला सकते हैं।',
+    restorePromptWhere: 'यह बाद में भी कर सकते हैं: होम पर ••• मेन्यू दबाएँ, फिर बैकअप चुनें।',
 
     refusedNotConnected: 'पहले एक Google खाता जोड़ें।',
     refusedNoKey: 'पहले अपनी बैकअप चाबी बनाएँ।',
@@ -12427,6 +12473,17 @@ const ar: UiStrings = {
     restoreIsExtra:
       'هذه النسخة تحت الحماية الإضافية. أدخل المفتاح من الهاتف الذي أنشأها؛ المفتاح الجديد لن يفتحها.',
     restoreNeedsKey: 'أدخل مفتاح الهاتف الذي أنشأ هذه النسخة. المفتاح الجديد لن يفتحها.',
+
+    restorePromptTitle: 'هل تريد استعادة سجلاتك؟',
+    restorePromptBody:
+      'لا يوجد شيء على هذا الهاتف بعد. يمكن لنسخة Google Drive الاحتياطية إعادة سجلاتك الخاصة.',
+    restorePromptBodyLink:
+      'لا يوجد شيء على هذا الهاتف بعد. اربط حساب Google Drive وستعيد Waves سجلاتك الخاصة.',
+    restorePromptRestoreLabel: 'استعادة سجلاتي من نسخة Google Drive الاحتياطية',
+    restorePromptLater: 'ليس الآن',
+    restorePromptLaterLabel: 'ليس الآن. يمكنك الاستعادة لاحقًا من شاشة النسخ الاحتياطي.',
+    restorePromptWhere:
+      'يمكنك فعل ذلك لاحقًا: اضغط قائمة ••• في الصفحة الرئيسية، ثم النسخ الاحتياطي.',
 
     refusedNotConnected: 'اربط حساب Google أولًا.',
     refusedNoKey: 'أنشئ مفتاح النسخة أولًا.',
