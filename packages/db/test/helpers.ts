@@ -172,6 +172,8 @@ export async function addEqualSplitExpense(
 
 export interface AddSplitExpenseOptions {
   groupId: string;
+  /** The member who typed/imported the expense; defaults to the first participant. */
+  authorMemberId?: string;
   /** memberId → amount paid. Must sum to `amount`. */
   payers: Record<string, bigint>;
   /** The members the cost is split across — a subset of the group is fine, and
@@ -199,6 +201,7 @@ export async function addSplitExpense(
 ): Promise<{ expenseId: string; versionId: string; shares: Map<string, bigint> }> {
   const {
     groupId,
+    authorMemberId,
     payers,
     participants,
     amount,
@@ -209,6 +212,7 @@ export async function addSplitExpense(
     category = null,
   } = options;
 
+  const author = authorMemberId ?? participants[0] ?? null;
   const expenseId = randomUUID();
   const versionId = randomUUID();
   const shares = computeShares({ amount, currency, params, participants, seed: expenseId });
@@ -217,7 +221,7 @@ export async function addSplitExpense(
   await client.query(`INSERT INTO expenses (id, group_id, created_by) VALUES ($1, $2, $3)`, [
     expenseId,
     groupId,
-    participants[0] ?? null,
+    author,
   ]);
   await client.query(
     `INSERT INTO expense_versions
@@ -227,7 +231,7 @@ export async function addSplitExpense(
     [
       versionId,
       expenseId,
-      participants[0] ?? null,
+      author,
       description,
       category,
       date,
