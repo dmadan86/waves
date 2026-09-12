@@ -30,6 +30,7 @@ import {
 import { balanceDirection, copyFor, format, money, moneyAccessibilityLabel } from '@waves/core';
 
 import { CategoryBadge } from '@/components/Category';
+import { DetailRow, DetailRows } from '@/components/DetailRows';
 import { useAvatarUrl } from '@/components/ProfileAvatar';
 import { MapPreview } from '@/components/MapPreview';
 import { ExpenseReceipts } from '@/components/ExpenseReceipts';
@@ -85,45 +86,6 @@ function MemberAvatar({
 }): React.JSX.Element {
   const url = useAvatarUrl(photo);
   return <Avatar name={name} photoUrl={url} ghost={ghost} size={size} />;
-}
-
-/** One labelled row of the bill's detail card — a glyph and muted label on the
- *  left, its value on the right. The stacked "paid by · date · split" caption
- *  the hero used to carry, given room to breathe as a proper key/value list.
- *
- *  The glyph is what makes the card scannable: four rows of grey words read as
- *  a paragraph, and the split row's icon is the same one the form's chips wear,
- *  so "how was this split" is answered by a mark rather than only by a word. */
-function DetailLine({
-  label,
-  value,
-  icon,
-}: {
-  label: string;
-  value: string;
-  icon: keyof typeof Ionicons.glyphMap;
-}): React.JSX.Element {
-  const theme = useTheme();
-  return (
-    <Row
-      style={{
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        gap: theme.spacing.md,
-        paddingVertical: theme.spacing.md,
-      }}
-    >
-      <Row style={{ alignItems: 'center', gap: theme.spacing.sm, flexShrink: 0 }}>
-        <Ionicons name={icon} size={iconSize.md} color={theme.color.textMuted} />
-        <Text variant="caption" tone="muted">
-          {label}
-        </Text>
-      </Row>
-      <Text variant="body" numberOfLines={1} style={{ flexShrink: 1, textAlign: 'right' }}>
-        {value}
-      </Text>
-    </Row>
-  );
 }
 
 export default function ExpenseDetailScreen() {
@@ -587,38 +549,37 @@ export default function ExpenseDetailScreen() {
                 used to wear. The group it belongs to leads the list so the bill
                 is placed without crowding the hero. */}
             <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
-              <DetailLine
-                icon="people-circle-outline"
-                label={t.expense.detailGroup}
-                value={groupLabel(group.data, members.data ?? [], profile?.id)}
-              />
-              <View style={{ height: 1, backgroundColor: theme.color.border }} />
-              <DetailLine
-                icon="wallet-outline"
-                label={t.paidBy}
-                value={
-                  version.payers.length > 1
-                    ? plural(locale, version.payers.length, t.misc.peopleCount)
-                    : nameOf(version.payers[0]?.member_id ?? null)
-                }
-              />
-              <View style={{ height: 1, backgroundColor: theme.color.border }} />
-              <DetailLine
-                icon="calendar-outline"
-                label={t.expense.detailDate}
-                value={new Intl.DateTimeFormat(locale, {
-                  day: 'numeric',
-                  month: 'long',
-                  year: 'numeric',
-                  timeZone: 'UTC',
-                }).format(new Date(version.expense_date))}
-              />
-              <View style={{ height: 1, backgroundColor: theme.color.border }} />
-              <DetailLine
-                icon={splitIcon(version.split_type)}
-                label={t.expense.detailSplit}
-                value={splitLabels(t)[version.split_type] ?? version.split_type}
-              />
+              <DetailRows>
+                <DetailRow
+                  icon="people-circle-outline"
+                  label={t.expense.detailGroup}
+                  value={groupLabel(group.data, members.data ?? [], profile?.id)}
+                />
+                <DetailRow
+                  icon="wallet-outline"
+                  label={t.paidBy}
+                  value={
+                    version.payers.length > 1
+                      ? plural(locale, version.payers.length, t.misc.peopleCount)
+                      : nameOf(version.payers[0]?.member_id ?? null)
+                  }
+                />
+                <DetailRow
+                  icon="calendar-outline"
+                  label={t.expense.detailDate}
+                  value={new Intl.DateTimeFormat(locale, {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric',
+                    timeZone: 'UTC',
+                  }).format(new Date(version.expense_date))}
+                />
+                <DetailRow
+                  icon={splitIcon(version.split_type)}
+                  label={t.expense.detailSplit}
+                  value={splitLabels(t)[version.split_type] ?? version.split_type}
+                />
+              </DetailRows>
             </Card>
 
             {/* The full note, when the clamped hero heading could not have shown
