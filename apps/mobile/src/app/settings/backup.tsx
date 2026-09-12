@@ -339,7 +339,16 @@ export default function BackupSettingsScreen() {
     // locale tables. Until then it reads as an ordinary failure, which is at
     // least not wrong.
     const sentence = caught.fault === 'not-set-up' ? t.backup.unavailable : t.backup.connectFailed;
-    return __DEV__ && caught.status ? `${sentence} (${caught.status})` : sentence;
+    // The code is shown in release builds too, and that is deliberate. Every
+    // fault here is a *configuration* one only the operator can fix — a signing
+    // certificate never registered against an Android OAuth client, a stale Play
+    // services, the wrong Cloud project — and they all arrive as the same
+    // sentence. On a release build with no Sentry DSN the person holding the
+    // phone is the only channel the diagnosis has, and "it says 10" is the whole
+    // difference between guessing and knowing. It is a short status code from
+    // Play services, not an exception message, and it is bounded here so it
+    // stays a reference rather than becoming developer English on a screen.
+    return caught.status ? `${sentence} (${String(caught.status).slice(0, 24)})` : sentence;
   };
 
   const onConnect = async (): Promise<void> => {
