@@ -1205,6 +1205,12 @@ const PersonRow = memo(function PersonRow({
     entries,
     MAX_STACKED_AMOUNTS,
   );
+  // Whether the right column is a single line. Asked of both halves of the
+  // answer rather than of `entries`, because it is the cap that turns four
+  // currencies into two figures and a count — a person can hold one currency
+  // and still draw two lines if that ever changes. This decides how the column
+  // sits against the name beside it; see the row's alignment below.
+  const oneFigure = shownEntries.length === 1 && hiddenCurrencies === 0;
 
   const body = (
     <Row
@@ -1216,6 +1222,15 @@ const PersonRow = memo(function PersonRow({
         // person's *second* currency, so the eye read the name against the wrong
         // number. Aligned to the top, the name and the amount that leads the row
         // are on the same line, whatever either side is carrying.
+        //
+        // Top is the rule for the two columns anybody *reads* — the name and the
+        // figures — and only those. Everything else here is furniture with no
+        // line to share: the avatar, the selection tick, the trailing control.
+        // Pinned to the top alongside them, that furniture was stranded against
+        // a tall stack of currencies, the gap beneath it growing with every
+        // extra line the amounts took. It centres itself instead, so each of
+        // those overrides its own alignment below rather than the row deciding
+        // for all four columns at once.
         alignItems: 'flex-start',
         gap: theme.spacing.md,
         borderTopWidth: divider ? 1 : 0,
@@ -1229,9 +1244,16 @@ const PersonRow = memo(function PersonRow({
           name={selected ? 'checkmark-circle' : 'ellipse-outline'}
           size={iconSize.xl}
           color={selected ? theme.color.brand : theme.color.textFaint}
+          // Furniture: a checkbox reads against the whole person, not against
+          // the first line of them.
+          style={{ alignSelf: 'center' }}
         />
       ) : null}
-      <View>
+      {/* The face centres against whatever the row turns out to be. Left at the
+          row's top alignment it sat proud of a person carrying three lines of
+          currencies, with a band of empty surface under it — the same stranding
+          the amounts column suffers when it is the shorter side. */}
+      <View style={{ alignSelf: 'center' }}>
         <PersonAvatar
           name={shownName}
           size={44}
@@ -1260,6 +1282,11 @@ const PersonRow = memo(function PersonRow({
           </View>
         ) : null}
       </View>
+      {/* The name column keeps the row's top alignment, deliberately, even when
+          it is the shorter side and leaves white space under a lone name: the
+          name has to stay on the lead figure's line. Centred against a stack it
+          lands beside the *second* currency, which is the misreading this row
+          was fixed for once already. */}
       <View style={{ flex: 1 }}>
         <Text variant="body" numberOfLines={1} style={{ fontWeight: '600' }}>
           {shownName}
@@ -1274,8 +1301,21 @@ const PersonRow = memo(function PersonRow({
           trailing slot for the action glyph. The slot is always present, even on
           rows with no action, so every amount's right edge lines up and the
           invite/remind discs sit in one clean column at the edge — rather than
-          floating at a different x on every row because the amount width differs. */}
-      <View style={{ alignItems: 'flex-end', maxWidth: '46%' }}>
+          floating at a different x on every row because the amount width differs.
+
+          The figures keep the row's top alignment while there is a stack of
+          them, so the lead figure lands on the name's line — but a person
+          holding one currency has no stack, and their single amount hanging at
+          the top of a two-line name-and-caption block left the row lopsided,
+          the figure floating above the middle of the person it belongs to.
+          With nothing underneath it to be mistaken for, it centres instead. */}
+      <View
+        style={{
+          alignItems: 'flex-end',
+          alignSelf: oneFigure ? 'center' : 'flex-start',
+          maxWidth: '46%',
+        }}
+      >
         {/* The first amount is always the same size, whether the person holds one
             currency or four — it used to drop to caption as soon as there were
             two, so the column that should read as one row of figures carried
@@ -1310,7 +1350,17 @@ const PersonRow = memo(function PersonRow({
           the middle. `actionSlot` is the list's answer to the same `rowAction`
           this row asks, so the two cannot disagree. */}
       {actionSlot ? (
-        <View style={{ width: ACTION_SLOT, alignItems: 'center', justifyContent: 'center' }}>
+        <View
+          style={{
+            width: ACTION_SLOT,
+            alignItems: 'center',
+            justifyContent: 'center',
+            // Furniture again: the disc is a thumb target, not a line of the
+            // row, so it centres rather than riding the top of a three-line
+            // stack of currencies.
+            alignSelf: 'center',
+          }}
+        >
           {action === 'invite' && soloGroup ? (
             // A guest with no account yet: the useful action is the invite link that
             // also lets them claim this balance (A25). One group, one link.

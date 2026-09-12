@@ -22,6 +22,7 @@ export * from './notifications/index';
 export * from './sms/index';
 export * from './import/index';
 export * from './auth/identity';
+export * from './auth/firebaseToken';
 export * from './auth/guestLimits';
 export * from './observability/index';
 export * from './version/index';
