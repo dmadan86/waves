@@ -1201,6 +1201,15 @@ export interface UiStrings {
     failNotConfigured: string;
     failSaveFailed: string;
     footnote: string;
+    /**
+     * The one group on this screen our servers never see: reminders this phone
+     * raises itself, out of what it already holds. Its own section because "we
+     * send you this" and "your phone reminds you" are different promises, and
+     * because this one keeps working with no signal and no push credentials.
+     */
+    localSection: string;
+    savedForLater: string;
+    savedForLaterBody: string;
   };
   /** Attaching an email or phone to the account you already have (ADR-006). */
   contact: {
@@ -1627,6 +1636,14 @@ export interface UiStrings {
     savedOnDevice: string;
     couldNotSave: string;
     save: string;
+    /**
+     * The reminder this phone sets for itself when drafts have been waiting a
+     * day. It says how many are waiting and nothing else: a lock screen is
+     * readable without unlocking the phone, so no amount, no note and no
+     * category may ever be interpolated into either of these.
+     */
+    nudgeTitle: PluralForms;
+    nudgeBody: PluralForms;
   };
   /** Attaching where a spend happened (A43): the opt-in control on the expense
    *  forms and the tappable place on the expense detail. */
@@ -3942,6 +3959,10 @@ const en: UiStrings = {
     failSaveFailed: 'Could not save this phone. Check your connection and try again.',
     footnote:
       'Email delivery is still to come. Everything here is also in your inbox, which is the record of what Waves has told you whether or not a notification arrived.',
+    localSection: 'From this phone',
+    savedForLater: 'Expenses saved for later',
+    savedForLaterBody:
+      'If one is still waiting for a group a day later, this phone reminds you in the evening. Once a day at most, and never when nothing is waiting.',
   },
   contact: {
     title: 'Your account',
@@ -4311,6 +4332,14 @@ const en: UiStrings = {
     savedOnDevice: 'Saved on this device',
     couldNotSave: "Couldn't save this — please try again in a moment.",
     save: 'Save',
+    nudgeTitle: {
+      one: 'You saved {n} expense for later',
+      other: 'You saved {n} expenses for later',
+    },
+    nudgeBody: {
+      one: 'It still needs a group. Tap to add it.',
+      other: 'They still need a group. Tap to add them.',
+    },
   },
   location: {
     label: 'Location',
@@ -6549,6 +6578,10 @@ const ta: UiStrings = {
     failSaveFailed: 'இந்த ஃபோனைச் சேமிக்க முடியவில்லை. இணைப்பைச் சரிபார்த்து மீண்டும் முயலவும்.',
     footnote:
       'மின்னஞ்சல் இன்னும் வரவில்லை. இங்குள்ள அனைத்தும் உங்கள் அஞ்சல் பெட்டியிலும் இருக்கும் — அறிவிப்பு வந்ததா இல்லையா என்பதைப் பொருட்படுத்தாமல் Waves உங்களிடம் சொன்னதற்கான பதிவு அதுவே.',
+    localSection: 'இந்த ஃபோனிலிருந்து',
+    savedForLater: 'பிறகு சேமித்த செலவுகள்',
+    savedForLaterBody:
+      'ஒரு நாள் கழித்தும் ஒரு செலவு குழுவுக்காகக் காத்திருந்தால், இந்த ஃபோன் மாலையில் நினைவூட்டும். நாளொன்றுக்கு ஒரு முறை மட்டுமே; காத்திருப்பது எதுவும் இல்லாதபோது ஒருபோதும் இல்லை.',
   },
   contact: {
     title: 'உங்கள் கணக்கு',
@@ -6932,6 +6965,14 @@ const ta: UiStrings = {
     savedOnDevice: 'இந்தச் சாதனத்தில் சேமிக்கப்பட்டது',
     couldNotSave: 'இதைச் சேமிக்க முடியவில்லை — சிறிது நேரத்தில் மீண்டும் முயற்சிக்கவும்.',
     save: 'சேமி',
+    nudgeTitle: {
+      one: '{n} செலவைப் பிறகு சேமித்தீர்கள்',
+      other: '{n} செலவுகளைப் பிறகு சேமித்தீர்கள்',
+    },
+    nudgeBody: {
+      one: 'அதற்கு இன்னும் ஒரு குழு வேண்டும். சேர்க்கத் தட்டுங்கள்.',
+      other: 'அவற்றுக்கு இன்னும் ஒரு குழு வேண்டும். சேர்க்கத் தட்டுங்கள்.',
+    },
   },
   location: {
     label: 'இடம்',
@@ -9232,6 +9273,10 @@ const hi: UiStrings = {
     failSaveFailed: 'यह फ़ोन सेव नहीं हो सका। कनेक्शन जाँचकर दोबारा कोशिश करें।',
     footnote:
       'ईमेल अभी आना बाकी है। यहाँ का सब कुछ आपके इनबॉक्स में भी है, और सूचना पहुँची या नहीं, Waves ने आपसे क्या कहा उसका रिकॉर्ड वही है।',
+    localSection: 'इस फ़ोन से',
+    savedForLater: 'बाद के लिए सहेजे गए खर्च',
+    savedForLaterBody:
+      'अगर कोई खर्च एक दिन बाद भी किसी समूह का इंतज़ार कर रहा हो, तो यह फ़ोन शाम को याद दिलाता है। दिन में ज़्यादा से ज़्यादा एक बार, और जब कुछ बाकी न हो तो कभी नहीं।',
   },
   contact: {
     title: 'आपका खाता',
@@ -9601,6 +9646,14 @@ const hi: UiStrings = {
     savedOnDevice: 'इस डिवाइस पर सहेजा गया',
     couldNotSave: 'इसे सहेजा नहीं जा सका — कृपया थोड़ी देर में फिर से कोशिश करें।',
     save: 'सहेजें',
+    nudgeTitle: {
+      one: 'आपने {n} खर्च बाद के लिए सहेजा है',
+      other: 'आपने {n} खर्च बाद के लिए सहेजे हैं',
+    },
+    nudgeBody: {
+      one: 'इसे अब भी एक समूह चाहिए। जोड़ने के लिए टैप करें।',
+      other: 'इन्हें अब भी एक समूह चाहिए। जोड़ने के लिए टैप करें।',
+    },
   },
   location: {
     label: 'स्थान',
@@ -11900,6 +11953,10 @@ const ar: UiStrings = {
     failSaveFailed: 'تعذّر حفظ هذا الهاتف. تحقق من اتصالك وحاول مرة أخرى.',
     footnote:
       'البريد لم يصل بعد. كل ما هنا موجود أيضًا في صندوقك، وهو سجل ما أخبرك به Waves سواء وصل إشعار أم لا.',
+    localSection: 'من هذا الهاتف',
+    savedForLater: 'مصاريف محفوظة لوقت لاحق',
+    savedForLaterBody:
+      'إذا بقي مصروف ينتظر مجموعة بعد يوم كامل، يذكّرك هذا الهاتف مساءً. مرة واحدة في اليوم على الأكثر، ولا شيء إطلاقًا حين لا ينتظر شيء.',
   },
   contact: {
     title: 'حسابك',
@@ -12298,6 +12355,21 @@ const ar: UiStrings = {
     savedOnDevice: 'محفوظ على هذا الجهاز',
     couldNotSave: 'تعذّر حفظ هذا — يُرجى المحاولة مرة أخرى بعد قليل.',
     save: 'حفظ',
+    // Arabic counts in six categories, and this is one of the few strings in the
+    // app that can genuinely land in all of them, so all of them are written
+    // out rather than falling through to `other` with the wrong agreement.
+    nudgeTitle: {
+      one: 'حفظت مصروفًا واحدًا لوقت لاحق',
+      two: 'حفظت مصروفين لوقت لاحق',
+      few: 'حفظت {n} مصاريف لوقت لاحق',
+      many: 'حفظت {n} مصروفًا لوقت لاحق',
+      other: 'حفظت {n} مصروف لوقت لاحق',
+    },
+    nudgeBody: {
+      one: 'ما زال بحاجة إلى مجموعة. اضغط لإضافته.',
+      two: 'ما زالا بحاجة إلى مجموعة. اضغط لإضافتهما.',
+      other: 'ما زالت بحاجة إلى مجموعة. اضغط لإضافتها.',
+    },
   },
   location: {
     label: 'الموقع',

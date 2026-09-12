@@ -29,8 +29,16 @@ import {
 import { useStrings, type UiStrings } from '@/i18n';
 import { friendlyError } from '@/lib/errors';
 import { useAuth } from '@/lib/auth';
+import { loadCaptureNudgeEnabled, saveCaptureNudgeEnabled } from '@/lib/captureNudge/settings';
+import { useCaptureNudgePass, useNudgePassInputs } from '@/lib/captureNudge/useNudgePass';
 import { router } from '@/lib/navigation';
-import { enablePush, PushFailure, PushPermission, pushPermission } from '@/lib/push';
+import {
+  enablePush,
+  ensureLocalNotificationPermission,
+  PushFailure,
+  PushPermission,
+  pushPermission,
+} from '@/lib/push';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
 type PrefRow = { key: keyof NotificationPrefs; title: string; body: string; icon: IconName };
@@ -119,6 +127,27 @@ export default function NotificationSettingsScreen() {
   const [permission, setPermission] = useState<PushPermission>(PushPermission.Undetermined);
   const [asking, setAsking] = useState(false);
 
+  // The one switch on this screen that is not a server preference: the reminder
+  // this phone raises itself about expenses saved for later. It is stored on
+  // the device, because the device is the only thing that can obey it — see
+  // `lib/captureNudge/settings.ts`. `null` means "still reading", which keeps
+  // the switch from flicking on and then off again on a phone where it is off.
+  const [nudge, setNudge] = useState<boolean | null>(null);
+  const nudgeInputs = useNudgePassInputs();
+  const runNudgePass = useCaptureNudgePass(nudgeInputs);
+
+  useEffect(() => {
+    const ownerId = profile?.id;
+    if (!ownerId) return;
+    let active = true;
+    void loadCaptureNudgeEnabled(ownerId).then((value) => {
+      if (active) setNudge(value);
+    });
+    return () => {
+      active = false;
+    };
+  }, [profile?.id]);
+
   useEffect(() => {
     let active = true;
     void pushPermission().then((value) => {
@@ -161,6 +190,46 @@ export default function NotificationSettingsScreen() {
       active = false;
     };
   }, [profile?.id]);
+
+  /**
+   * The device-side switch.
+   *
+   * Turning it **on** asks the operating system first, and only when it has to
+   * — a control the person has just touched, having read what it is for, which
+   * is the same door `enablePush` and the soft ask use and the only one this
+   * app ever opens. A refusal puts the switch back rather than leaving it on
+   * over a permission that will silently swallow every reminder.
+   *
+   * Either way a pass runs immediately afterwards, so turning it off clears
+   * tonight's reminder now and turning it on sets one now. A switch whose
+   * effect waits for the next foreground is a switch people press twice.
+   */
+  const toggleNudge = async (value: boolean): Promise<void> => {
+    const ownerId = profile?.id;
+    if (!ownerId) {
+      setStatus(t.notifications.failNotSignedIn);
+      return;
+    }
+    setStatus(null);
+    if (value) {
+      const allowed = await ensureLocalNotificationPermission();
+      setPermission(await pushPermission());
+      if (!allowed) {
+        setNudge(false);
+        setStatus(t.notifications.failDenied);
+        return;
+      }
+    }
+    setNudge(value);
+    try {
+      await saveCaptureNudgeEnabled(ownerId, value);
+    } catch (caught: unknown) {
+      setNudge(!value);
+      setStatus(friendlyError(caught, t.notifications.failSaveFailed, 'notifications.saveNudge'));
+      return;
+    }
+    runNudgePass();
+  };
 
   const toggle = (key: keyof NotificationPrefs, value: boolean): void => {
     const previous = prefs;
@@ -264,6 +333,40 @@ export default function NotificationSettingsScreen() {
               <SectionHeader title={t.notifications.pushSection} />
               <PrefSection rows={pushRows(t)} prefs={prefs} onToggle={toggle} />
             </View>
+            {/* Its own section because it is a different promise. Everything
+                above is something our servers send; this is the phone setting
+                an alarm on itself, out of what it already holds — nothing about
+                these drafts is read by anything but this device. Grouping it
+                with the four above would quietly claim otherwise. */}
+            <View style={{ gap: theme.spacing.sm }}>
+              <SectionHeader title={t.notifications.localSection} />
+              <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
+                <Row gap={theme.spacing.md} style={{ paddingVertical: theme.spacing.md }}>
+                  <Ionicons
+                    name="file-tray-outline"
+                    size={iconSize.xl}
+                    color={theme.color.textMuted}
+                  />
+                  <View style={{ flex: 1 }}>
+                    <Text variant="subheading">{t.notifications.savedForLater}</Text>
+                    <Text variant="caption" tone="muted">
+                      {t.notifications.savedForLaterBody}
+                    </Text>
+                  </View>
+                  <Toggle
+                    // `null` is "still reading the stored value", which reads as
+                    // off rather than flashing on; the switch is disabled until
+                    // it is known so a tap cannot race the read and save the
+                    // default back over a person's own choice.
+                    value={nudge === true}
+                    disabled={nudge === null}
+                    onValueChange={(value) => void toggleNudge(value)}
+                    accessibilityLabel={t.notifications.savedForLater}
+                  />
+                </Row>
+              </Card>
+            </View>
+
             <View style={{ gap: theme.spacing.sm }}>
               <SectionHeader title={t.notifications.emailSection} />
               <PrefSection rows={emailRows(t)} prefs={prefs} onToggle={toggle} />

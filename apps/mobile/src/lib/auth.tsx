@@ -15,6 +15,8 @@ import {
   type Viewer,
 } from '@waves/core';
 
+import { cancelNudges } from './captureNudge/schedule';
+import { clearCaptureNudge } from './captureNudge/settings';
 import { appleNativeSignIn, googleNativeSignIn } from './nativeIdentity';
 import { identifyForReporting, reportHandled } from './observability';
 import { claimCode } from './oauthClaim';
@@ -660,6 +662,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // the revocation to, and the token would keep receiving notifications
         // for an account nobody is signed in on.
         await revokePushToken();
+        // And the reminders this phone set for itself. A local alarm survives
+        // the session that created it, so leaving one scheduled means a phone
+        // nobody is signed in on announcing "you saved 3 expenses for later" —
+        // about drafts that are no longer on it. The stored switch and the
+        // marker go with it, scoped to the account that is leaving.
+        const leaving = session?.user?.id ?? '';
+        await cancelNudges().catch(() => {});
+        await clearCaptureNudge(leaving).catch(() => {});
         // The private ledger's unlock belongs to whoever proved they were
         // holding the phone, not to the phone. It does not survive the account
         // it was granted under.
