@@ -111,9 +111,10 @@
  * wrong is worse than any other mistake available on this screen.
  */
 
-import { useCallback, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Clipboard from 'expo-clipboard';
+import { useLocalSearchParams } from 'expo-router';
 import { ActivityIndicator, ScrollView, TextInput, View } from 'react-native';
 
 import {
@@ -169,6 +170,22 @@ const STEP_MARK = 26;
 const KEY_SHEET_MAX_HEIGHT = 460;
 
 /**
+ * The `?restore=` nonces already acted on, at module scope so the set survives a
+ * remount.
+ *
+ * The dashboard's restore prompt opens this screen with `?restore=<nonce>`
+ * meaning "link if you must, then go and look". Linking hands control to
+ * Google's consent activity, and Android recreates the JS activity on the way
+ * back — remounting this screen with the same URL, nonce and all. A `useRef`
+ * guard would reset there and start the whole thing again, in a loop. Recording
+ * the nonce the first time it is seen makes it exactly once, while a genuinely
+ * new tap carries a fresh one and still works. Lifted verbatim from
+ * `capture.tsx`'s `consumedScans`, which was written for the same Android
+ * behaviour.
+ */
+const consumedStarts = new Set<string>();
+
+/**
  * Which action is in flight, rather than a bare `busy` flag.
  *
  * A screen-wide boolean greys every button at once and says nothing about any
@@ -222,6 +239,24 @@ export default function BackupSettingsScreen() {
   const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
   const backup = useBackup();
+  /**
+   * The dashboard's restore prompt sends its nonce here to mean "link if you
+   * must, then look" — see `consumedStarts` and `onStartRestore`. Absent on
+   * every ordinary visit, which is every visit that is not a fresh sign-in.
+   */
+  const { restore: restoreStart } = useLocalSearchParams<{ restore?: string }>();
+
+  /**
+   * Whether the stored state has been read yet.
+   *
+   * The hook's first pass reads three local stores — the settings, the key, the
+   * tokens — so until it lands a fully configured phone would show "Not backing
+   * up yet" and correct itself a second later, the one sentence on this screen
+   * that must never be shown wrongly. It is declared this high because the
+   * auto-start effect below cannot ask Google to link an account before it
+   * knows whether one already is.
+   */
+  const settled = !backup.loading;
 
   const [pending, setPending] = useState<PendingAction | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -559,6 +594,53 @@ export default function BackupSettingsScreen() {
     }
   };
 
+  /**
+   * The dashboard's offer, carried out: link the account if nothing is linked,
+   * then look for a backup — one instruction, because that is what was promised
+   * on the popup that sent us here.
+   *
+   * It is the two existing halves in order and not a third path: the link is
+   * `backup.connect` with the same failure sentence `onConnect` uses, and the
+   * look is `onCheckForBackup` untouched, so every outcome past "found it" —
+   * nothing on Drive, a backup wanting a key, a dead grant — lands in the same
+   * sheets and notes it always has, and the confirmation before anything is
+   * written is the same one.
+   *
+   * A cancelled consent page stops here and says nothing. It is an answer, not
+   * a failure, and the screen behind this is already the whole of the restore
+   * offered by hand.
+   */
+  const onStartRestore = async (): Promise<void> => {
+    if (!backup.connected) {
+      setPending('connect');
+      setError(null);
+      try {
+        if (!(await backup.connect())) return;
+      } catch (caught) {
+        setError(connectFailure(caught));
+        return;
+      } finally {
+        setPending(null);
+      }
+    }
+    await onCheckForBackup();
+  };
+
+  // Waits for `settled` because until the stored state is read this screen does
+  // not know whether an account is linked, and would ask Google to link one that
+  // already is. See `consumedStarts` for why the guard is a module-level set.
+  useEffect(() => {
+    if (!restoreStart || !settled || consumedStarts.has(restoreStart)) return;
+    consumedStarts.add(restoreStart);
+    // Deferred a microtask so the `setPending` the run opens with does not fire
+    // synchronously inside the effect body — the same shape `capture.tsx` uses
+    // for its one-shot. The link still starts effectively at once.
+    void Promise.resolve().then(() => onStartRestore());
+    // A one-shot on the nonce; the handlers are recreated every render and
+    // listing them would re-run this on every keystroke elsewhere on the screen.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [restoreStart, settled]);
+
   const onUnlink = async (): Promise<void> => {
     setUnlinking(false);
     setPending('disconnect');
@@ -608,15 +690,6 @@ export default function BackupSettingsScreen() {
    */
   const checklist = setup.total > 1;
   const last = backup.settings.last;
-
-  /**
-   * The status card's face. `loading` gets its own one rather than borrowing
-   * "not set up": the hook's first pass reads two stores *and* asks Drive who
-   * the linked account is, so on a slow network a fully configured phone would
-   * otherwise open on "Not backing up yet" and correct itself a second later —
-   * the one sentence on this screen that must never be shown wrongly.
-   */
-  const settled = !backup.loading;
 
   /**
    * A linked phone with nothing on it is a new phone, and the one thing it
