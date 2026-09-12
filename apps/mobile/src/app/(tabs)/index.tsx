@@ -197,6 +197,15 @@ export default function HomeScreen() {
         route: '/settings/archived',
         section: 'data',
       },
+      // Backup sits with the other data rows rather than three taps down under
+      // the profile screen, because the moment somebody wants it is the moment
+      // they are worried about losing something.
+      {
+        icon: 'cloud-upload-outline',
+        label: t.backup.title,
+        route: '/settings/backup',
+        section: 'data',
+      },
       { icon: 'language-outline', label: t.language, route: '/settings/language', section: 'app' },
       {
         icon: 'contrast-outline',
