@@ -26,7 +26,8 @@ import { Pressable, ScrollView, View } from 'react-native';
 import { guessIcon, normaliseTint, resolveCategory, type CategoryMeta } from '@waves/core';
 import { iconSize, Text, useTheme } from '@waves/ui';
 
-import { ChoiceRow, SettingRow, SheetOverlay } from '@/components/expense/SheetOverlay';
+import { DetailRow } from '@/components/DetailRows';
+import { ChoiceRow, SheetOverlay } from '@/components/expense/SheetOverlay';
 import { useCategoryCatalog } from '@/data/hooks';
 import { useStrings } from '@/i18n';
 
@@ -167,8 +168,14 @@ export function CategoryPicker({
 }
 
 /**
- * The chosen category as one row of a settings list: the field's name, then the
- * tag's own glyph and label, then a chevron into {@link CategorySheet}.
+ * The chosen category as one row of a settings list: the tag's own glyph, the
+ * field's name, the tag's label, then a chevron into {@link CategorySheet}.
+ *
+ * A {@link DetailRow}, which is the row the expense screen states a bill's facts
+ * in — so "what for" is asked on the form in the shape the answer comes back in
+ * afterwards. The glyph leads the row rather than trailing the value, and it
+ * keeps the tag's own ink: the mark here belongs to the answer, not to the
+ * question.
  *
  * The value is read from the person's catalog first — that is where a renamed
  * or re-coloured built-in lives — and only falls back to resolving the stored
@@ -199,16 +206,11 @@ export function CategoryRow({
   const tint = theme.tint[entry ? normaliseTint(entry.tint) : resolved.tint];
 
   return (
-    <SettingRow
+    <DetailRow
+      icon={(entry?.icon ?? resolved.icon) as keyof typeof Ionicons.glyphMap}
+      iconColor={tint.ink}
       label={t.whatFor}
       value={label}
-      leading={
-        <Ionicons
-          name={(entry?.icon ?? resolved.icon) as keyof typeof Ionicons.glyphMap}
-          size={iconSize.md}
-          color={tint.ink}
-        />
-      }
       onPress={onPress}
     />
   );

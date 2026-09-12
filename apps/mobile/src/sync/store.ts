@@ -16,6 +16,8 @@
 
 import type { MirrorRow, QueuedMutation, SyncTable } from '@waves/core';
 
+import type { RetainedWork } from './retention';
+
 export interface StoredRow {
   table: SyncTable;
   id: string;
@@ -47,6 +49,21 @@ export interface LocalStore {
   forgetGroup(groupId: string, queue: readonly QueuedMutation[]): Promise<void>;
   /** Signing out must leave nothing of the previous account behind. */
   reset(): Promise<void>;
+  /**
+   * A session that ended without anybody asking for it (see `retention.ts`).
+   *
+   * Drops the mirror and the cursors — the server's copy of the ledger, which
+   * it will hand back on the next sign-in — and keeps the queue, the drafts and
+   * the encryption key that opens them, because nothing else holds those. The
+   * owner is stamped in the same transaction: work that cannot say whose it is
+   * can never be adopted, so writing the stamp and clearing the mirror have to
+   * commit together or not at all.
+   */
+  retainUnsent(ownerId: string, retainedAt: string): Promise<void>;
+  /** Whose the retained work is, or null when nothing is being held. */
+  readRetained(): Promise<RetainedWork | null>;
+  /** Adopted: the same account came back, and the queue is theirs again. */
+  clearRetained(): Promise<void>;
 }
 
 /**

@@ -24,6 +24,10 @@ import { confirmPhoneCode, sendPhoneCode } from './phoneAuth';
 import { lockPersonal, syncPersonalAccount } from './personalLock';
 import { refreshPushToken, revokePushToken } from './push';
 import { backend } from './backend';
+// A leaf module with no imports of its own, reached directly rather than
+// through `@/sync` — the sync barrel pulls in `SyncProvider`, which imports
+// this file, and that circle is not worth one function.
+import { markDeliberateSignOut } from '@/sync/retention';
 
 /**
  * What @waves/core needs to know to pick the right call. The distinction that
@@ -674,6 +678,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // holding the phone, not to the phone. It does not survive the account
         // it was granted under.
         lockPersonal();
+        // The one bit `SyncProvider` cannot work out for itself. Every way a
+        // session ends arrives at `onAuthStateChange` as the same `SIGNED_OUT`
+        // with the same null session — a revoked token looks exactly like this
+        // — and only one of them earns the wipe that destroys the unsent queue.
+        // Marked here, immediately before the call, so the window in which it
+        // could be mistaken for a later involuntary loss is as narrow as the
+        // call itself. See `sync/retention.ts`.
+        markDeliberateSignOut();
         await backend.auth.signOut();
       },
     }),

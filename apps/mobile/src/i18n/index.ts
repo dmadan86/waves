@@ -1907,6 +1907,14 @@ export interface UiStrings {
     loading: string;
     settings: string;
     more: string;
+    /** The ••• menu's Pin/Unpin row and the row-level accessibility action
+     *  (long-press). Concatenated with the group's own label at the call site
+     *  — "Pin Goa trip" / "Unpin Goa trip" — so the word itself stays short. */
+    pin: string;
+    unpin: string;
+    /** Spoken after a pinned row's name, since the pin glyph itself is
+     *  invisible to a screen reader. */
+    pinnedBadge: string;
     confirmReceived: string;
     /** Heading over an incoming settlement claim; `{name}` is the payer. */
     saysTheyPaidYou: string;
@@ -1950,8 +1958,6 @@ export interface UiStrings {
     simplifyDebtsBody: string;
     simplifyDebtsHint: string;
     membersHint: string;
-    invitePeople: string;
-    invitePeopleHint: string;
     bringThingsIn: string;
     importMessages: string;
     importMessagesHint: string;
@@ -2074,6 +2080,11 @@ export interface UiStrings {
     emailSubject: string;
     hideContacts: string;
     browseContacts: string;
+    /** The line under "From your contacts", saying which book is read. */
+    fromContactsHint: string;
+    /** The way in for somebody who joins themselves: link or QR. */
+    shareJoinLink: string;
+    shareJoinLinkHint: string;
     /** The rule between the invite tiles and the by-name fields. */
     orByName: string;
     /** Short label for the phone-contacts entry point. */
@@ -4581,6 +4592,9 @@ const en: UiStrings = {
     loading: 'Loading…',
     settings: 'Group settings',
     more: 'More',
+    pin: 'Pin',
+    unpin: 'Unpin',
+    pinnedBadge: 'Pinned',
     confirmReceived: 'Confirm received',
     saysTheyPaidYou: '{name} says they paid you',
     saysTheyPaidYouWindow: '{name} says they paid you ({window})',
@@ -4616,8 +4630,6 @@ const en: UiStrings = {
       'Suggest the fewest payments that settle the group. The real who-owes-whom ledger is never rewritten.',
     simplifyDebtsHint: 'Fewest payments to settle up',
     membersHint: 'Add people, rename, set UPI IDs',
-    invitePeople: 'Invite people',
-    invitePeopleHint: 'Share a link — no install needed to join',
     bringThingsIn: 'Bring things in',
     importMessages: 'Import from messages',
     importMessagesHint: 'Paste bank messages — read on this phone, confirmed by you',
@@ -4715,6 +4727,9 @@ const en: UiStrings = {
     emailSubject: 'Join {group} on Waves',
     hideContacts: 'Hide contacts',
     browseContacts: 'Browse my contacts',
+    fromContactsHint: 'Pick names out of this phone’s address book',
+    shareJoinLink: 'Share a join link',
+    shareJoinLinkHint: 'Send the link or show the QR — they join themselves',
     orByName: 'or add by name',
     contacts: 'Contacts',
     remind: 'Remind',
@@ -7240,6 +7255,9 @@ const ta: UiStrings = {
     loading: 'ஏற்றப்படுகிறது…',
     settings: 'குழு அமைப்புகள்',
     more: 'மேலும்',
+    pin: 'பின் செய்',
+    unpin: 'பின் நீக்கு',
+    pinnedBadge: 'பின் செய்யப்பட்டது',
     confirmReceived: 'கிடைத்தது என்று உறுதிப்படுத்து',
     saysTheyPaidYou: '{name} உங்களுக்குப் பணம் கொடுத்ததாகச் சொல்கிறார்',
     saysTheyPaidYouWindow: '{name} உங்களுக்குப் பணம் கொடுத்ததாகச் சொல்கிறார் ({window})',
@@ -7275,8 +7293,6 @@ const ta: UiStrings = {
       'குழுவைத் தீர்க்கும் மிகக் குறைந்த பணப்பரிமாற்றங்களைப் பரிந்துரைக்கும். யார் யாருக்குத் தர வேண்டும் என்ற உண்மையான கணக்கு மாற்றப்படுவதே இல்லை.',
     simplifyDebtsHint: 'தீர்க குறைந்தபட்ச பணம் செலுத்தல்கள்',
     membersHint: 'ஆட்களைச் சேர், பெயர் மாற்று, UPI ID அமை',
-    invitePeople: 'ஆட்களை அழை',
-    invitePeopleHint: 'ஒரு இணைப்பைப் பகிருங்கள் — சேர ஆப் நிறுவத் தேவையில்லை',
     bringThingsIn: 'கொண்டுவருதல்',
     importMessages: 'செய்திகளிலிருந்து இறக்குமதி',
     importMessagesHint:
@@ -7383,6 +7399,9 @@ const ta: UiStrings = {
     emailSubject: 'Waves-ல் {group} குழுவில் சேரவும்',
     hideContacts: 'தொடர்புகளை மறை',
     browseContacts: 'என் தொடர்புகளைப் பார்',
+    fromContactsHint: 'இந்த போனின் தொடர்புப் பட்டியலிலிருந்து பெயர்களைத் தேர்ந்தெடு',
+    shareJoinLink: 'சேரும் இணைப்பைப் பகிர்',
+    shareJoinLinkHint: 'இணைப்பை அனுப்பு அல்லது QR-ஐக் காட்டு — அவர்களே சேர்ந்துகொள்வார்கள்',
     orByName: 'அல்லது பெயரால் சேர்',
     contacts: 'தொடர்புகள்',
     remind: 'நினைவூட்டு',
@@ -9911,6 +9930,9 @@ const hi: UiStrings = {
     loading: 'आ रहा है…',
     settings: 'समूह सेटिंग्स',
     more: 'और',
+    pin: 'पिन करें',
+    unpin: 'अनपिन करें',
+    pinnedBadge: 'पिन किया गया',
     confirmReceived: 'मिलने की पुष्टि करें',
     saysTheyPaidYou: '{name} कहते हैं कि उन्होंने आपको भुगतान किया',
     saysTheyPaidYouWindow: '{name} कहते हैं कि उन्होंने आपको भुगतान किया ({window})',
@@ -9946,8 +9968,6 @@ const hi: UiStrings = {
       'समूह को निपटाने के सबसे कम भुगतान सुझाता है। किस पर किसका बाकी है, वह असली हिसाब कभी नहीं बदला जाता।',
     simplifyDebtsHint: 'सेटल करने के लिए कम से कम भुगतान',
     membersHint: 'लोग जोड़ें, नाम बदलें, UPI ID सेट करें',
-    invitePeople: 'लोगों को बुलाएँ',
-    invitePeopleHint: 'एक लिंक साझा करें — जुड़ने के लिए कुछ इंस्टॉल करने की ज़रूरत नहीं',
     bringThingsIn: 'बाहर से लाएँ',
     importMessages: 'मैसेज से आयात',
     importMessagesHint: 'बैंक मैसेज पेस्ट करें — इसी फ़ोन पर पढ़े जाते हैं, पुष्टि आप करते हैं',
@@ -10048,6 +10068,9 @@ const hi: UiStrings = {
     emailSubject: 'Waves पर {group} में शामिल हों',
     hideContacts: 'संपर्क छिपाएँ',
     browseContacts: 'मेरे संपर्क देखें',
+    fromContactsHint: 'इस फ़ोन की संपर्क सूची से नाम चुनें',
+    shareJoinLink: 'जुड़ने का लिंक साझा करें',
+    shareJoinLinkHint: 'लिंक भेजें या QR दिखाएँ — वे खुद जुड़ जाएँगे',
     orByName: 'या नाम से जोड़ें',
     contacts: 'संपर्क',
     remind: 'याद दिलाएँ',
@@ -12646,6 +12669,9 @@ const ar: UiStrings = {
     loading: 'جارٍ التحميل…',
     settings: 'إعدادات المجموعة',
     more: 'المزيد',
+    pin: 'تثبيت',
+    unpin: 'إلغاء التثبيت',
+    pinnedBadge: 'مثبّتة',
     confirmReceived: 'أكّد الاستلام',
     saysTheyPaidYou: 'يقول {name} إنه دفع لك',
     saysTheyPaidYouWindow: 'يقول {name} إنه دفع لك ({window})',
@@ -12699,8 +12725,6 @@ const ar: UiStrings = {
       'يقترح أقل عدد من الدفعات لتسوية المجموعة. أما دفتر من يدين لمن فلا يُعاد كتابته أبدًا.',
     simplifyDebtsHint: 'أقل عدد من المدفوعات للتسوية',
     membersHint: 'أضف أشخاصًا، غيّر الأسماء، اضبط معرّفات الدفع',
-    invitePeople: 'ادعُ أشخاصًا',
-    invitePeopleHint: 'شارك رابطًا — لا حاجة لتثبيت شيء للانضمام',
     bringThingsIn: 'استيراد',
     importMessages: 'استيراد من الرسائل',
     importMessagesHint: 'ألصق رسائل المصرف — تُقرأ على هذا الهاتف وتؤكدها أنت',
@@ -12815,6 +12839,9 @@ const ar: UiStrings = {
     emailSubject: 'انضم إلى {group} على Waves',
     hideContacts: 'إخفاء جهات الاتصال',
     browseContacts: 'تصفّح جهات اتصالي',
+    fromContactsHint: 'اختر أسماءً من دفتر عناوين هذا الهاتف',
+    shareJoinLink: 'شارك رابط الانضمام',
+    shareJoinLinkHint: 'أرسل الرابط أو اعرض رمز QR — وسينضمّون بأنفسهم',
     orByName: 'أو أضف بالاسم',
     contacts: 'جهات الاتصال',
     remind: 'ذكّر',

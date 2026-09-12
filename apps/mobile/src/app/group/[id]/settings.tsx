@@ -1,8 +1,8 @@
-import { useState, type ReactNode } from 'react';
+import { Fragment, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useQuery } from '@tanstack/react-query';
 import { useLocalSearchParams } from 'expo-router';
-import { ActivityIndicator, ScrollView, TextInput, View } from 'react-native';
+import { ActivityIndicator, Platform, ScrollView, TextInput, View } from 'react-native';
 
 import {
   Avatar,
@@ -32,6 +32,7 @@ import { GroupPhoto } from '@/components/GroupPhoto';
 import { type PickedContact } from '@/components/ContactPicker';
 import { offerFromOtherGroups } from '@/lib/addFromAnotherGroup';
 import { requestAddFromAnotherGroup } from '@/lib/addFromAnotherGroupBridge';
+import { addSomeoneRoutes, type AddSomeoneRoute } from '@/lib/addSomeoneRoutes';
 import { friendlyError } from '@/lib/errors';
 import { groupDeleteWarning, orderDebtsForWarning } from '@/lib/groupDeleteWarning';
 import { GROUP_DESCRIPTION_MAX, normaliseGroupDescription } from '@/lib/groupDescription';
@@ -223,16 +224,45 @@ export default function GroupSettingsScreen() {
     ),
   );
 
-  // Opens the address book on its own screen rather than unfolding it inline —
-  // a thousand-name list needs the whole height (ADR-006: no book is uploaded).
-  // The ticked people come back through the bridge into `addPicked`.
-  const openContactPicker = (): void => {
-    requestContacts({
-      initial: [],
-      existing: alreadyAdded,
-      onPicked: (people) => void addPicked(people),
-    });
-    router.push('/contact-picker');
+  /**
+   * The ways in, named: what each row of the "add someone" section offers and
+   * where it leads. The list itself is decided in `lib/addSomeoneRoutes` so it
+   * can be read — and tested — without a renderer.
+   *
+   * `addressBook` is the device question, not the permission one. Web has no
+   * `expo-contacts` at all, so that row would be a door into an apology and is
+   * dropped; a phone that *can* be asked keeps the row whatever the answer
+   * turns out to be, because the answer is the picker's to get.
+   */
+  /**
+   * Follow one of them.
+   *
+   * The contacts row leaves its intent with the bridge before navigating,
+   * because the picker is a pushed route and cannot hand a value back the way
+   * an inline callback could; the ticked people come back through `addPicked`.
+   * It also means the OS permission sheet is never raised cold — it is asked on
+   * the way into the screen this row has just opened, and a refusal is answered
+   * there, leaving every other way in this section exactly as it was.
+   *
+   * The address book is read on the device and stays on it: only the people
+   * ticked are sent anywhere, and only as the name and address needed to invite
+   * them (ADR-006).
+   */
+  const openRoute = (route: AddSomeoneRoute): void => {
+    if (route.key === 'contacts') {
+      requestContacts({
+        initial: [],
+        existing: alreadyAdded,
+        onPicked: (people) => void addPicked(people),
+      });
+    }
+    // Same shape, same reason: the picker is a pushed route and cannot hand a
+    // value back, so the intent is left with the bridge before navigating and
+    // the ticked people arrive through `addPicked` like every other way in.
+    if (route.key === 'fromAnotherGroup') {
+      requestAddFromAnotherGroup({ groupId, onPicked: (people) => void addPicked(people) });
+    }
+    router.push(route.href as never);
   };
 
   /**
@@ -276,6 +306,13 @@ export default function GroupSettingsScreen() {
   // people come back through the very same `addPicked`, so a batch from
   // another group fails and reports exactly the way a batch from contacts
   // already does (see `addPicked` above).
+  const routes = addSomeoneRoutes({
+    groupId,
+    t,
+    addressBook: Platform.OS !== 'web',
+    otherGroupPeople: fromAnotherGroupOffer.length > 0,
+  });
+
   const openAddFromAnotherGroup = (): void => {
     requestAddFromAnotherGroup({ groupId, onPicked: (people) => void addPicked(people) });
     router.push('/add-from-another-group');
@@ -821,12 +858,91 @@ export default function GroupSettingsScreen() {
             ))}
           </Card>
 
-          {/* Add a member before the share row — the common case (someone with a
-              name, not a link) shouldn't require the invite flow. */}
-          <Card style={{ gap: theme.spacing.sm }}>
+          {/* The ways in, each one named.
+
+              This section used to ask you to guess. A text field with nothing
+              over it but the words "Add someone", a ghost button under it
+              reading "Browse my contacts", and — four rows further down the
+              page, in a card of its own — the invite link. Three different ways
+              of getting a person into the group, and none of the three said
+              where that person was coming from before you pressed it; the one
+              most people actually want (send a link, they join themselves) did
+              not look like part of adding anybody at all.
+
+              So the doors come first, as rows with a mark, a name and a line
+              saying what the tap does, ordered by how often each is the right
+              answer rather than alphabetically. Typing a name follows under a
+              rule, as the fallback it is — the same shape the members screen
+              settled on, drawn in this screen's own row idiom.
+
+              `ListRow` rather than a `DetailRow`: these are entries you *open*,
+              each with a name and a subtitle, not facts about the group with a
+              value on the right. That is the row this screen already wears for
+              duplicate, favourite and the three ways out, so the section reads
+              as part of the page instead of introducing a fourth kind of row.
+
+              Missing, and worth saying out loud: the people already in your
+              other groups — the same friends, a new trip — which is very likely
+              the commonest reason this section is opened. No flow exists for it
+              yet, and a row leading nowhere is worse than no row, so none is
+              drawn (see `lib/addSomeoneRoutes`). */}
+          <Card style={{ gap: theme.spacing.md }}>
             <Text variant="caption" tone="muted">
               {t.people.addSomeone}
             </Text>
+
+            {/* The hairline belongs to the gap, not to the row: drawn by the
+                row itself it would leave a stray line under the last one. Keyed
+                off the position in the list that was actually returned, so a
+                row that is absent (no address book) takes its divider with it
+                rather than leaving a line with nothing on one side of it. */}
+            <View>
+              {routes.map((route, index) => (
+                <Fragment key={route.key}>
+                  {index > 0 ? (
+                    <View style={{ height: 1, backgroundColor: theme.color.border }} />
+                  ) : null}
+                  <ListRow
+                    title={route.title}
+                    subtitle={route.hint}
+                    // The name alone says a place, not an act. A reader hears
+                    // both halves — "From your contacts, pick names out of this
+                    // phone's address book" — which is the whole point of the
+                    // rewrite and would be lost to a label of just the title.
+                    accessibilityLabel={route.spoken}
+                    leading={
+                      <Ionicons
+                        name={route.icon}
+                        size={iconSize.xl}
+                        color={theme.color.textMuted}
+                      />
+                    }
+                    onPress={() => openRoute(route)}
+                    trailing={
+                      <Ionicons
+                        // Content, not layout: RN mirrors the row in RTL but
+                        // leaves the glyph pointing whichever way it was drawn.
+                        name={directionalIcon('chevron-forward')}
+                        size={iconSize.md}
+                        color={theme.color.textFaint}
+                      />
+                    }
+                  />
+                </Fragment>
+              ))}
+            </View>
+
+            {/* A rule with the alternative written into it, so the field below
+                reads as the other way rather than as the only way — the same
+                divider, and the same string, the members screen uses. */}
+            <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+              <View style={{ flex: 1, height: 1, backgroundColor: theme.color.border }} />
+              <Text variant="micro" tone="faint">
+                {t.people.orByName}
+              </Text>
+              <View style={{ flex: 1, height: 1, backgroundColor: theme.color.border }} />
+            </Row>
+
             <Row style={{ gap: theme.spacing.sm }}>
               <TextInput
                 value={newName}
@@ -857,53 +973,12 @@ export default function GroupSettingsScreen() {
               />
             </Row>
 
-            {/* The fuller add — the same address-book picker the members screen
-                and new-group flow open, so adding somebody already in your phone
-                no longer means retyping their name here. */}
-            <Button
-              label={t.people.browseContacts}
-              variant="ghost"
-              disabled={addingContacts || addGhost.isPending}
-              onPress={openContactPicker}
-            />
-            {/* The other door: people already written down in your other
-                groups — the same trip's friends, next month. Dropped rather
-                than drawn disabled when there is nobody to offer (see
-                `fromAnotherGroupOffer` above), the same rule
-                `addSomeoneRoutes.ts` (PR #784) states for every row in this
-                card: a row leading nowhere is worse than no row. This is a
-                plain ghost button for now, matching the card's current
-                shape — once #784 lands it belongs in `addSomeoneRoutes.ts`
-                as a named, hinted row like the other two. */}
-            {fromAnotherGroupOffer.length > 0 ? (
-              <Button
-                label={t.people.fromAnotherGroup}
-                variant="ghost"
-                disabled={addingContacts || addGhost.isPending}
-                onPress={openAddFromAnotherGroup}
-              />
-            ) : null}
+            {/* Every way in is a row above; what is left at the foot of the
+                card is the one spinner and the one error line, because all of
+                them drive the same mutation and beside-the-button would mean
+                three of each. */}
             {addingContacts ? <ActivityIndicator color={theme.color.brand} /> : null}
             {addError ? <Callout tone="negative">{addError}</Callout> : null}
-          </Card>
-
-          {/* Share a link for anyone who should join themselves. */}
-          <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
-            <ListRow
-              title={t.group.invitePeople}
-              subtitle={t.group.invitePeopleHint}
-              leading={
-                <Ionicons name="share-outline" size={iconSize.xl} color={theme.color.textMuted} />
-              }
-              onPress={() => router.push(`/group/${groupId}/invite`)}
-              trailing={
-                <Ionicons
-                  name={directionalIcon('chevron-forward')}
-                  size={iconSize.md}
-                  color={theme.color.textFaint}
-                />
-              }
-            />
           </Card>
 
           {/* Make another group from this one, and star it so it sits at the top

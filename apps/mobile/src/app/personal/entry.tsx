@@ -17,10 +17,11 @@
  * carrying an editor of its own.
  *
  * The fields below the amount are the rows the expense screens use — the same
- * `SettingRow` in the same `Card` that add-expense folds its date, category,
- * rail and currency into. A short answer already filled in, changed from a
- * sheet, read down one column. The private ledger was the last place still
- * asking those questions as stacked captions and chip lanes.
+ * `DetailRows` in the same `Card` that add-expense folds its date, category,
+ * rail and currency into, and that the expense screen states a filed bill's
+ * facts in. A short answer already filled in, changed from a sheet, read down
+ * one column. The private ledger was the last place still asking those
+ * questions as stacked captions and chip lanes.
  *
  * Reached from the Me tab's add buttons, from the ledger's "+", from the
  * recurring list (`repeats=1` to create, `recurringId` to edit), and — with a
@@ -48,7 +49,6 @@ import {
   Button,
   Card,
   directionalIcon,
-  Divider,
   IconButton,
   iconSize,
   Row,
@@ -60,7 +60,8 @@ import {
 } from '@waves/ui';
 
 import { CategoryRow, CategorySheet } from '@/components/Category';
-import { ChoiceRow, SettingRow, SheetOverlay } from '@/components/expense/SheetOverlay';
+import { ChoiceRow, SheetOverlay } from '@/components/expense/SheetOverlay';
+import { DetailRow, DetailRows } from '@/components/DetailRows';
 import { SourceRow, SourceSheet } from '@/components/IncomeSource';
 import { PersonalNoteField } from '@/components/PersonalNoteField';
 import {
@@ -327,48 +328,38 @@ function EntryForm({
             Income asks where the money came from and an expense asks what it was
             spent on. The two are different questions and once shared one picker,
             which is how a salary ended up filed under "Other". */}
-        <Card style={{ paddingVertical: theme.spacing.xs, gap: 0 }}>
-          {loanId ? null : (
-            <>
-              {kind === 'income' ? (
-                <SourceRow value={category} onPress={() => setPicking('what')} />
-              ) : (
-                <CategoryRow value={category} onPress={() => setPicking('what')} />
-              )}
-              <Divider />
-            </>
-          )}
+        <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
+          <DetailRows>
+            {loanId ? null : kind === 'income' ? (
+              <SourceRow value={category} onPress={() => setPicking('what')} />
+            ) : (
+              <CategoryRow value={category} onPress={() => setPicking('what')} />
+            )}
 
-          <SettingRow
-            label={repeat ? t.personal.startsOn : t.personal.date}
-            value={showDate(date, locale)}
-            leading={
-              <Ionicons name="calendar-outline" size={iconSize.md} color={theme.color.textMuted} />
-            }
-            onPress={() => setShowDatePicker(true)}
-          />
+            <DetailRow
+              icon="calendar-outline"
+              label={repeat ? t.personal.startsOn : t.personal.date}
+              value={showDate(date, locale)}
+              onPress={() => setShowDatePicker(true)}
+            />
 
-          {canRepeat || editingRule ? (
-            <>
-              <Divider />
-              <SettingRow
+            {canRepeat || editingRule ? (
+              <DetailRow
+                icon={repeat ? 'repeat' : 'repeat-outline'}
+                // Brand green only once it actually repeats: the mark is then
+                // saying something the word beside it also says, which is the
+                // one place a coloured glyph earns its colour on this card.
+                iconColor={repeat ? theme.color.brand : undefined}
                 label={t.personal.repeats}
                 value={
                   repeat
                     ? frequencyLabel(t, repeat.frequency, repeat.interval)
                     : t.personal.repeatsNever
                 }
-                leading={
-                  <Ionicons
-                    name={repeat ? 'repeat' : 'repeat-outline'}
-                    size={iconSize.md}
-                    color={repeat ? theme.color.brand : theme.color.textMuted}
-                  />
-                }
                 onPress={() => setPicking('repeat')}
               />
-            </>
-          ) : null}
+            ) : null}
+          </DetailRows>
         </Card>
 
         {showDatePicker ? (
