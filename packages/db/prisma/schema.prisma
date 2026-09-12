@@ -1741,6 +1741,9 @@ model AppConfig {
 /// claiming deletes it in the same statement so two callers cannot both hold it.
 model OtpRelay {
   phone       String   @id
+  /// Which exchange owns this row. Two devices signing in on one number would
+  /// otherwise share it, and the loser would claim a code minted for the winner.
+  exchange    String   @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   code        String?
   requestedAt DateTime @default(now()) @map("requested_at") @db.Timestamptz(6)
 
