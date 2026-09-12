@@ -29,9 +29,11 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useQuery } from '@tanstack/react-query';
 import * as Clipboard from 'expo-clipboard';
 import { useLocalSearchParams } from 'expo-router';
-import { Linking, Pressable, ScrollView, View } from 'react-native';
+import { Linking, Modal, Pressable, ScrollView, StatusBar, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
+  Avatar,
   Badge,
   Button,
   Card,
@@ -56,18 +58,25 @@ import {
   type PersonProfileRow,
 } from '@/data/api';
 import { useBlockedUsers } from '@/data/blocked';
-import { ProfileAvatar } from '@/components/ProfileAvatar';
+import { useAvatarUrl } from '@/components/ProfileAvatar';
 import { PeopleSkeleton } from '@/components/Skeletons';
+import { ViewerButton } from '@/components/ViewerButton';
+import { ZoomableGallery } from '@/components/ZoomableGallery';
+import { currencyTotals, directionGroups, type CurrencyTotal } from '@/lib/friendsTotals';
+import { personAvatarPath } from '@/lib/personDetail';
 import { fill, plural, useStrings } from '@/i18n';
 import { router } from '@/lib/navigation';
 import { useDialog } from '@/lib/dialog';
 
-/** A person's balance in one group: the group, and one net per currency in it. */
+/**
+ * A person's balance in one group: the group, and one net per currency in it,
+ * biggest first so the row's lead figure is the one that matters.
+ */
 interface GroupBlock {
   groupId: string;
   groupName: string | null;
   coverEmoji: string | null;
-  lines: PersonGroupBalanceRow[];
+  lines: CurrencyTotal[];
 }
 
 export default function PersonDetailScreen() {
@@ -75,7 +84,9 @@ export default function PersonDetailScreen() {
   const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
   const { confirm } = useDialog();
+  const insets = useSafeAreaInsets();
   const { key, name } = useLocalSearchParams<{ key: string; name?: string }>();
+  const [photoOpen, setPhotoOpen] = useState(false);
 
   const who = useQuery({
     queryKey: ['person', key, 'profile'],
@@ -128,29 +139,60 @@ export default function PersonDetailScreen() {
   // One block per group (a group can carry two currencies), and the per-currency
   // total across all of them — the figure the Friends list showed, restated here
   // with the groups it was summed from underneath it.
+  //
+  // Both go through `currencyTotals`, which is the same arithmetic the Friends
+  // list uses and brings two things this screen was doing without: an order (the
+  // biggest figure leads, rather than whatever the server's `ORDER BY currency`
+  // happened to put first), and no zeroes. The rows arrive non-zero *per group*,
+  // so a person you are owed ₹500 by on a trip and owe ₹500 to at home netted to
+  // nothing across the two — and the headline announced "Owes you ₹0".
   const { groups, totals } = useMemo(() => {
-    const byGroup = new Map<string, GroupBlock>();
-    const byCurrency = new Map<string, bigint>();
+    const byGroup = new Map<string, PersonGroupBalanceRow[]>();
     for (const row of rows) {
-      const block = byGroup.get(row.group_id) ?? {
-        groupId: row.group_id,
-        groupName: row.group_name,
-        coverEmoji: row.cover_emoji,
-        lines: [],
-      };
-      block.lines.push(row);
-      byGroup.set(row.group_id, block);
-      byCurrency.set(row.currency, (byCurrency.get(row.currency) ?? 0n) + BigInt(row.net));
+      const lines = byGroup.get(row.group_id) ?? [];
+      lines.push(row);
+      byGroup.set(row.group_id, lines);
     }
-    return { groups: [...byGroup.values()], totals: [...byCurrency.entries()] };
+    return {
+      groups: [...byGroup.values()].flatMap<GroupBlock>((lines) => {
+        const head = lines[0];
+        if (!head) return [];
+        return [
+          {
+            groupId: head.group_id,
+            groupName: head.group_name,
+            coverEmoji: head.cover_emoji,
+            lines: currencyTotals(lines),
+          },
+        ];
+      }),
+      totals: currencyTotals(rows),
+    };
   }, [rows]);
 
   const loading = who.isLoading || person.isLoading;
   const failed = who.isError && person.isError;
 
+  // A blocked person is the app's anonymous ghost everywhere, so their photo is
+  // never even signed for — not merely hidden once it has been fetched.
+  const masked = !ready || blocked;
+  const photo = useAvatarUrl(personAvatarPath(profile, masked));
+
   return (
     <Screen>
-      <Row style={{ paddingHorizontal: theme.spacing.xl, paddingTop: theme.spacing.md }}>
+      {/* The bar carries the face and the name, the way WhatsApp's contact info
+          and this app's own dashboard greeting do. The name used to be said
+          twice — centred here, then again under a portrait in the card below —
+          and between them they cost the first screenful before a single balance
+          appeared. One title, at the top, with the person's face in it. */}
+      <Row
+        style={{
+          paddingHorizontal: theme.spacing.xl,
+          paddingTop: theme.spacing.md,
+          gap: theme.spacing.sm,
+          alignItems: 'center',
+        }}
+      >
         <IconButton label={t.common.back} onPress={() => router.back()}>
           <Ionicons
             name={directionalIcon('chevron-back')}
@@ -158,10 +200,43 @@ export default function PersonDetailScreen() {
             color={theme.color.text}
           />
         </IconButton>
-        <View style={{ flex: 1, alignItems: 'center' }}>
-          <Text variant="heading" numberOfLines={1}>
-            {title}
-          </Text>
+        {/* Tapping the face opens it full-screen, as it does in WhatsApp,
+            Telegram and Signal. Only when there is something to open: a set of
+            initials enlarged to fill a black screen is a tap that punishes
+            curiosity. */}
+        {photo ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t.person.viewPhoto}
+            onPress={() => setPhotoOpen(true)}
+            style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+          >
+            <Avatar name={title} size={40} photoUrl={photo} />
+          </Pressable>
+        ) : (
+          // Somebody who has not joined wears the ghost mark here too, as they
+          // do in the Friends list and on a group's balances.
+          <Avatar
+            name={masked ? t.misc.someone : title}
+            size={40}
+            ghost={masked || Boolean(profile?.is_ghost)}
+          />
+        )}
+        <View style={{ flex: 1 }}>
+          <Row style={{ gap: theme.spacing.sm, alignItems: 'center' }}>
+            <Text variant="heading" numberOfLines={1} style={{ flexShrink: 1 }}>
+              {title}
+            </Text>
+            {profile?.is_you ? <Badge label={t.person.you} /> : null}
+          </Row>
+          {profile ? (
+            <Text variant="caption" tone="muted" numberOfLines={1}>
+              {plural(locale, profile.shared_groups, t.person.sharedGroups).replace(
+                '{n}',
+                String(profile.shared_groups),
+              )}
+            </Text>
+          ) : null}
         </View>
         {isRealPerson && !profile?.is_you ? (
           <IconButton
@@ -212,34 +287,78 @@ export default function PersonDetailScreen() {
           <EmptyState title={t.person.notFound} body={t.person.notFoundBody} />
         ) : (
           <>
-            {profile ? (
-              <IdentityCard profile={profile} masked={!ready || blocked} name={title} />
-            ) : null}
-
             {profile && !blocked && ready ? <ContactCard profile={profile} /> : null}
 
             {totals.length > 0 ? (
+              // Each direction said once, however many currencies it holds —
+              // the rule the dashboard headline and the Friends hero already
+              // follow. One row per currency meant reading "Owes you" three
+              // times down a card whose whole job is to state two facts.
               <Card style={{ gap: theme.spacing.md }}>
-                {totals.map(([currency, net]) => (
-                  <Row key={currency} style={{ justifyContent: 'space-between' }}>
-                    <Text variant="subheading" tone="muted">
-                      {net > 0n ? t.tabs.owesYou : t.tabs.youOweThem}
-                    </Text>
-                    <MoneyText
-                      amount={net}
-                      currency={currency}
-                      locale={locale}
-                      variant="heading"
-                      mode="balance"
-                    />
-                  </Row>
+                {directionGroups(totals).map((group) => (
+                  <View key={group.owed ? 'owed' : 'owing'} style={{ gap: 2 }}>
+                    <Row
+                      style={{
+                        justifyContent: 'space-between',
+                        // Baseline, not centre: the label is body-sized and the
+                        // amount is a heading, so it is the line the eye reads
+                        // across that has to match, not the boxes' middles.
+                        alignItems: 'baseline',
+                        gap: theme.spacing.md,
+                      }}
+                    >
+                      <Text variant="subheading" tone="muted">
+                        {group.owed ? t.tabs.owesYou : t.tabs.youOweThem}
+                      </Text>
+                      <MoneyText
+                        amount={group.head.net}
+                        currency={group.head.currency}
+                        locale={locale}
+                        variant="heading"
+                        mode="balance"
+                        numberOfLines={1}
+                      />
+                    </Row>
+                    {group.rest.length > 0 ? (
+                      // The same direction's other currencies, small and under
+                      // the figure they belong to. Wrapped, not clipped: six
+                      // currencies costs a second line here, not six headlines.
+                      <Row
+                        style={{
+                          justifyContent: 'flex-end',
+                          flexWrap: 'wrap',
+                          columnGap: theme.spacing.sm,
+                        }}
+                      >
+                        {group.rest.map((total) => (
+                          <MoneyText
+                            key={total.currency}
+                            amount={total.net}
+                            currency={total.currency}
+                            locale={locale}
+                            variant="caption"
+                            mode="balance"
+                            numberOfLines={1}
+                          />
+                        ))}
+                      </Row>
+                    ) : null}
+                  </View>
                 ))}
               </Card>
             ) : (
               // Square, not broken — and now the person is still here to say so
               // to, which is the whole reason identity got its own call.
+              //
+              // Two different kinds of square, and they must not share a
+              // sentence: nothing outstanding anywhere, or an amount in one
+              // group answered by the opposite amount in another. "All settled"
+              // over a list of live figures reads as a contradiction, and the
+              // person checking is checking precisely because they can see one.
               <Card>
-                <Text tone="muted">{t.allSettled}</Text>
+                <Text tone="muted">
+                  {groups.length > 0 ? t.person.squareOverall : t.allSettled}
+                </Text>
               </Card>
             )}
 
@@ -253,101 +372,135 @@ export default function PersonDetailScreen() {
                   }
                 />
                 <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
-                  {groups.map((group, index) => (
-                    <View key={group.groupId}>
-                      <Pressable
-                        accessibilityRole="button"
-                        accessibilityLabel={group.groupName ?? undefined}
-                        onPress={() => router.push(`/group/${group.groupId}`)}
-                        style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
-                      >
-                        <Row style={{ paddingVertical: theme.spacing.sm, alignItems: 'center' }}>
-                          <View
+                  {groups.map((group, index) => {
+                    // The group's biggest figure leads on the row's own line,
+                    // level with its name and its emoji; anything else it holds
+                    // hangs underneath. Stacking every currency inside the row
+                    // instead centred the name against the middle of the stack,
+                    // so a two-currency group read with its name beside the
+                    // second amount and its emoji beside neither.
+                    const [head, ...rest] = group.lines;
+                    return (
+                      <View key={group.groupId}>
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel={group.groupName ?? undefined}
+                          onPress={() => router.push(`/group/${group.groupId}`)}
+                          style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+                        >
+                          <Row style={{ paddingTop: theme.spacing.sm, alignItems: 'center' }}>
+                            <View
+                              style={{
+                                width: 44,
+                                height: 44,
+                                borderRadius: theme.radius.pill,
+                                backgroundColor: theme.color.surfaceMuted,
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                              }}
+                            >
+                              <Text style={{ fontSize: 22 }}>{group.coverEmoji ?? '👥'}</Text>
+                            </View>
+                            <Text
+                              variant="subheading"
+                              numberOfLines={1}
+                              style={{ flex: 1, marginHorizontal: theme.spacing.md }}
+                            >
+                              {group.groupName ?? t.tabs.group}
+                            </Text>
+                            {/* Capped and clipped: a long figure in a wide
+                                currency must not wrap and grow the row, which
+                                is the same thing that broke the Friends list. */}
+                            {head ? (
+                              <View style={{ alignItems: 'flex-end', maxWidth: '42%' }}>
+                                <MoneyText
+                                  amount={head.net}
+                                  currency={head.currency}
+                                  locale={locale}
+                                  variant="subheading"
+                                  mode="balance"
+                                  numberOfLines={1}
+                                  ellipsizeMode="tail"
+                                />
+                              </View>
+                            ) : null}
+                            <Ionicons
+                              name={directionalIcon('chevron-forward')}
+                              size={iconSize.md}
+                              color={theme.color.textFaint}
+                              style={{ marginLeft: theme.spacing.sm }}
+                            />
+                          </Row>
+                          <Row
                             style={{
-                              width: 44,
-                              height: 44,
-                              borderRadius: theme.radius.pill,
-                              backgroundColor: theme.color.surfaceMuted,
-                              alignItems: 'center',
-                              justifyContent: 'center',
+                              justifyContent: 'flex-end',
+                              flexWrap: 'wrap',
+                              columnGap: theme.spacing.sm,
+                              paddingBottom: theme.spacing.sm,
+                              // Clear of the chevron column, so the small
+                              // figures end where the big one above them does.
+                              paddingEnd: iconSize.md + theme.spacing.sm,
                             }}
                           >
-                            <Text style={{ fontSize: 22 }}>{group.coverEmoji ?? '👥'}</Text>
-                          </View>
-                          <Text
-                            variant="subheading"
-                            numberOfLines={1}
-                            style={{ flex: 1, marginHorizontal: theme.spacing.md }}
-                          >
-                            {group.groupName ?? t.tabs.group}
-                          </Text>
-                          <View style={{ alignItems: 'flex-end', gap: 2 }}>
-                            {group.lines.map((line) => (
+                            {rest.map((line) => (
                               <MoneyText
                                 key={line.currency}
-                                amount={BigInt(line.net)}
+                                amount={line.net}
                                 currency={line.currency}
                                 locale={locale}
-                                variant="subheading"
+                                variant="caption"
                                 mode="balance"
+                                numberOfLines={1}
                               />
                             ))}
-                          </View>
-                          <Ionicons
-                            name={directionalIcon('chevron-forward')}
-                            size={iconSize.md}
-                            color={theme.color.textFaint}
-                            style={{ marginLeft: theme.spacing.sm }}
-                          />
-                        </Row>
-                      </Pressable>
-                      {index < groups.length - 1 ? <Divider /> : null}
-                    </View>
-                  ))}
+                          </Row>
+                        </Pressable>
+                        {index < groups.length - 1 ? <Divider /> : null}
+                      </View>
+                    );
+                  })}
                 </Card>
               </View>
             ) : null}
           </>
         )}
       </ScrollView>
+
+      {/* The face, full-screen: the gesture WhatsApp, Telegram and Signal all
+          answer, on the same dark immersive viewer the receipts already use — so
+          pinch-zoom, the floating close button and the black backdrop behave
+          identically wherever a picture opens in this app. Mounted only while
+          open, because a Modal that starts hidden never presents on Android. */}
+      {photoOpen && photo ? (
+        <Modal visible animationType="fade" onRequestClose={() => setPhotoOpen(false)}>
+          <View style={{ flex: 1, backgroundColor: '#000' }}>
+            <StatusBar barStyle="light-content" />
+            <ZoomableGallery pages={[{ url: photo }]} index={0} onIndexChange={() => {}} />
+            <Row
+              style={{
+                position: 'absolute',
+                top: insets.top + theme.spacing.sm,
+                left: theme.spacing.xl,
+                right: theme.spacing.xl,
+                gap: theme.spacing.md,
+                alignItems: 'center',
+              }}
+            >
+              <ViewerButton
+                icon="close"
+                label={t.common.close}
+                onPress={() => setPhotoOpen(false)}
+              />
+              {/* Whose face it is, over the picture — the one thing the viewer
+                  has to say, and the reason the bar is not just a close button. */}
+              <Text variant="subheading" numberOfLines={1} style={{ flex: 1, color: '#FFFFFF' }}>
+                {title}
+              </Text>
+            </Row>
+          </View>
+        </Modal>
+      ) : null}
     </Screen>
-  );
-}
-
-/** Face, name, and the one fact that says how you know them. */
-function IdentityCard({
-  profile,
-  masked,
-  name,
-}: {
-  profile: PersonProfileRow;
-  masked: boolean;
-  name: string;
-}) {
-  const theme = useTheme();
-  const { t, locale } = useStrings();
-
-  return (
-    <View style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-      {/* A blocked person keeps the app's ghost avatar here as everywhere else:
-          the point of a block is that you stop seeing who they are. */}
-      <ProfileAvatar
-        name={masked ? t.misc.someone : name}
-        avatarUrl={masked ? null : profile.avatar_url}
-      />
-      <Row style={{ gap: theme.spacing.sm, alignItems: 'center' }}>
-        <Text variant="heading" numberOfLines={1}>
-          {masked ? t.misc.someone : name}
-        </Text>
-        {profile.is_you ? <Badge label={t.person.you} /> : null}
-      </Row>
-      <Text variant="caption" tone="muted">
-        {plural(locale, profile.shared_groups, t.person.sharedGroups).replace(
-          '{n}',
-          String(profile.shared_groups),
-        )}
-      </Text>
-    </View>
   );
 }
 
