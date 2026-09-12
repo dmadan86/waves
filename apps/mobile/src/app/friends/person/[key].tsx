@@ -388,7 +388,19 @@ export default function PersonDetailScreen() {
                           onPress={() => router.push(`/group/${group.groupId}`)}
                           style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
                         >
-                          <Row style={{ paddingTop: theme.spacing.sm, alignItems: 'center' }}>
+                          <Row
+                            style={{
+                              paddingTop: theme.spacing.sm,
+                              // The row's own bottom padding, unless the extra
+                              // currencies below are carrying it. Said here
+                              // rather than left to an empty wrapper: a group
+                              // holding one currency used to render a `Row` with
+                              // no children whose only job was its padding, and
+                              // padding is not a thing to express as a component.
+                              paddingBottom: rest.length > 0 ? 0 : theme.spacing.sm,
+                              alignItems: 'center',
+                            }}
+                          >
                             <View
                               style={{
                                 width: 44,
@@ -431,29 +443,31 @@ export default function PersonDetailScreen() {
                               style={{ marginLeft: theme.spacing.sm }}
                             />
                           </Row>
-                          <Row
-                            style={{
-                              justifyContent: 'flex-end',
-                              flexWrap: 'wrap',
-                              columnGap: theme.spacing.sm,
-                              paddingBottom: theme.spacing.sm,
-                              // Clear of the chevron column, so the small
-                              // figures end where the big one above them does.
-                              paddingEnd: iconSize.md + theme.spacing.sm,
-                            }}
-                          >
-                            {rest.map((line) => (
-                              <MoneyText
-                                key={line.currency}
-                                amount={line.net}
-                                currency={line.currency}
-                                locale={locale}
-                                variant="caption"
-                                mode="balance"
-                                numberOfLines={1}
-                              />
-                            ))}
-                          </Row>
+                          {rest.length > 0 ? (
+                            <Row
+                              style={{
+                                justifyContent: 'flex-end',
+                                flexWrap: 'wrap',
+                                columnGap: theme.spacing.sm,
+                                paddingBottom: theme.spacing.sm,
+                                // Clear of the chevron column, so the small
+                                // figures end where the big one above them does.
+                                paddingEnd: iconSize.md + theme.spacing.sm,
+                              }}
+                            >
+                              {rest.map((line) => (
+                                <MoneyText
+                                  key={line.currency}
+                                  amount={line.net}
+                                  currency={line.currency}
+                                  locale={locale}
+                                  variant="caption"
+                                  mode="balance"
+                                  numberOfLines={1}
+                                />
+                              ))}
+                            </Row>
+                          ) : null}
                         </Pressable>
                         {index < groups.length - 1 ? <Divider /> : null}
                       </View>
