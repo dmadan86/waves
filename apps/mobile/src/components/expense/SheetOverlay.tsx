@@ -1,11 +1,22 @@
 /**
- * The sheet and row primitives the expense forms share.
+ * The sheet primitive the expense forms share, and the row a sheet's choices
+ * are listed in.
  *
  * Both the capture screen and the group add-expense screen present their
  * pickers (currency, destination) as a bottom sheet over the form, and list
  * their choices as a leading glyph + label + check. Pulling them here means the
  * two screens present, dismiss, and read the same rather than each carrying its
  * own copy that could drift apart.
+ *
+ * This file used to also hold the row a sheet's *result* was stated in —
+ * `FieldRow` (name stacked over value) and `SettingRow` (name and value on one
+ * line, the shape this file was named for). Both are gone: every caller of
+ * either now uses `DetailRow` from `@/components/DetailRows`, which is the
+ * shape the expense screen already stated a filed bill's facts in. A field
+ * asked on a form and read back on the receipt now looks like the same
+ * question both times. See that file's header for the fuller reasoning and
+ * for what still stays a different row (`ListRow` in `@waves/ui`, for an entry
+ * you open rather than a fact you're told).
  */
 
 import { type ReactNode } from 'react';
@@ -20,142 +31,10 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { directionalIcon, iconSize, Row, Text, useTheme } from '@waves/ui';
+import { iconSize, Text, useTheme } from '@waves/ui';
 
 import { useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
-
-/**
- * A labelled tap-row: a leading icon, the field name over its value, a chevron.
- * The rows an expense's meta (group, date) share, so they read as one block
- * inside a single card rather than a stack of near-identical cards.
- */
-export function FieldRow({
-  icon,
-  iconColor,
-  label,
-  value,
-  valueMuted = false,
-  onPress,
-  accessibilityLabel,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  iconColor?: string;
-  label: string;
-  value: string;
-  valueMuted?: boolean;
-  onPress: () => void;
-  accessibilityLabel: string;
-}): React.JSX.Element {
-  const theme = useTheme();
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel}
-      onPress={onPress}
-      style={({ pressed }) => ({
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: theme.spacing.md,
-        paddingVertical: theme.spacing.md,
-        opacity: pressed ? 0.6 : 1,
-      })}
-    >
-      <Ionicons name={icon} size={iconSize.md} color={iconColor ?? theme.color.textMuted} />
-      <View style={{ flex: 1, gap: 2 }}>
-        <Text variant="caption" tone="muted">
-          {label}
-        </Text>
-        <Text variant="subheading" numberOfLines={1} tone={valueMuted ? 'muted' : undefined}>
-          {value}
-        </Text>
-      </View>
-      <Ionicons name="chevron-forward" size={iconSize.md} color={theme.color.textFaint} />
-    </Pressable>
-  );
-}
-
-/**
- * A settings-style tap-row: the field's name on the left, what is currently
- * chosen on the right — its glyph and its label — and a chevron into the sheet
- * that changes it.
- *
- * The one-line sibling of {@link FieldRow}. That one stacks the name over its
- * value, which suits meta a person reads on the way past (which group, which
- * date). This one keeps the pair on a single line, which is what a short answer
- * picked from a sheet wants: a column of names you scan down the left and the
- * answers down the right, so two settings read as a list of two rather than as
- * two more blocks in a long form.
- */
-export function SettingRow({
-  label,
-  value,
-  leading,
-  onPress,
-}: {
-  label: string;
-  value: string;
-  /** The chosen option's glyph, drawn immediately before its label. */
-  leading?: ReactNode;
-  onPress: () => void;
-}): React.JSX.Element {
-  const theme = useTheme();
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`${label}: ${value}`}
-      onPress={onPress}
-      style={({ pressed }) => ({
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: theme.spacing.md,
-        paddingVertical: theme.spacing.md,
-        opacity: pressed ? 0.6 : 1,
-      })}
-    >
-      {/* Both sides shrink and clip rather than wrap: the names here are whole
-          questions ("What kind of expense") and in Tamil or Arabic either half
-          can outrun a narrow phone. A row that grows to two lines would break
-          the list's rhythm for the one language it happened in.
-
-          They must shrink *in proportion*, which is why the value's side is
-          `flexGrow`/`flexShrink`/`flexBasis: 'auto'` and not the `flex: 1` it
-          started as. `flex: 1` in React Native means a zero flex-basis, so once
-          the label's own text outran the row there was no free space left to
-          grow back from, and the value settled at zero width — the row drew the
-          question and the chevron with nothing between them, which is worse
-          than a truncated answer and exactly what a long Tamil label or a large
-          font scale produced. With a content basis on both halves the shrink is
-          shared and each keeps a readable fraction. `minWidth: 0` on both is
-          what lets either shrink below its text at all. */}
-      <Text variant="body" numberOfLines={1} style={{ flexShrink: 1, minWidth: 0 }}>
-        {label}
-      </Text>
-      <Row
-        style={{
-          gap: theme.spacing.xs,
-          flexGrow: 1,
-          flexShrink: 1,
-          flexBasis: 'auto',
-          minWidth: 0,
-          justifyContent: 'flex-end',
-        }}
-      >
-        {leading}
-        <Text variant="body" tone="muted" numberOfLines={1} style={{ flexShrink: 1, minWidth: 0 }}>
-          {value}
-        </Text>
-      </Row>
-      {/* The chevron is content, not layout: RN mirrors the row itself in RTL
-          but leaves the glyph pointing whichever way it was drawn. */}
-      <Ionicons
-        name={directionalIcon('chevron-forward')}
-        size={iconSize.md}
-        color={theme.color.textFaint}
-      />
-    </Pressable>
-  );
-}
 
 /**
  * A bottom sheet over the form: a dimmed backdrop that closes on tap, a rounded

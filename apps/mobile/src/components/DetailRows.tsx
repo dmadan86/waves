@@ -28,9 +28,31 @@ import { directionalIcon, iconSize, Row, Text, useTheme } from '@waves/ui';
  * Ionicons glyph name, which is why it is here in the app rather than in
  * @waves/ui: that package takes no icon dependency, by design, and every
  * component there that draws a glyph takes it as a render prop instead.
+ *
+ * It used to have a twin. `SettingRow`, in `expense/SheetOverlay.tsx`, drew the
+ * same pair the other way up — the field's name in full body weight on the
+ * left, the answer muted on the right, the glyph beside the answer — and the
+ * expense form, the capture form (as `FieldRow`, a third shape again) and the
+ * private ledger all wore that one while the expense *screen* wore this. Which
+ * meant filing a bill and reading it back afterwards looked like two different
+ * applications, and a person who had just chosen a date on one screen had to
+ * re-find it on the other.
+ *
+ * They are one row, not two, and this is the way up that survives: what you go
+ * looking for in a stack of facts is the answers, so the answers are the loud
+ * half and the names are the quiet index down the left. That is as true of a
+ * form as of a receipt — the only difference between the two is `onPress`,
+ * which this row already models, and which is what earns the chevron.
+ *
+ * Two things came across from the twin when it was folded in. `iconColor`,
+ * because the glyph is not always the *field's* mark: a category row wears the
+ * tag's own icon in the tag's own ink, and the split row on the expense screen
+ * wears the split's. And the proportional shrink below, which is the bug that
+ * twin had already been through.
  */
 export function DetailRow({
   icon,
+  iconColor,
   label,
   subtitle,
   value,
@@ -41,6 +63,11 @@ export function DetailRow({
   accessibilityLabel,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
+  /** When the glyph belongs to the *answer* rather than to the question — a
+   *  category tag's own ink, brand green for a destination that has been picked
+   *  — say so here. Left off, it is the muted grey every plain field mark
+   *  wears, which is what a row naming a fact rather than colouring one wants. */
+  iconColor?: string;
   label: string;
   /** One line under the label, for a fact whose name does not explain it —
    *  "simplify debts" being the case this exists for. Most rows need none, and
@@ -96,11 +123,21 @@ export function DetailRow({
           // A bare label is as wide as its word and the value takes the rest;
           // a label with a hint under it is the wordy half, so it takes the
           // room instead and the value shrinks around it.
-          flexShrink: subtitle ? 1 : 0,
+          //
+          // Either way it *can* shrink, which it could not before the forms
+          // moved onto this row. Their labels are not nouns like "Date" but
+          // whole questions — "What kind of expense" — and in Tamil or Arabic
+          // either half can outrun a narrow phone on its own. A label pinned at
+          // `flexShrink: 0` simply pushed the value off the end of the row, so
+          // the question and the chevron were drawn with nothing between them.
+          // `minWidth: 0` is what lets a flex child go narrower than its text at
+          // all; without it the shrink is declared and never happens.
+          flexShrink: 1,
+          minWidth: 0,
           flex: subtitle ? 1 : undefined,
         }}
       >
-        <Ionicons name={icon} size={iconSize.md} color={theme.color.textMuted} />
+        <Ionicons name={icon} size={iconSize.md} color={iconColor ?? theme.color.textMuted} />
         <View style={{ gap: 2, flexShrink: 1 }}>
           <Text variant="caption" tone="muted">
             {label}
@@ -112,13 +149,28 @@ export function DetailRow({
           ) : null}
         </View>
       </Row>
-      <Row style={{ alignItems: 'center', gap: theme.spacing.xs, flexShrink: 1 }}>
+      {/* Both halves shrink from a *content* basis, never from the zero basis
+          `flex: 1` means in React Native. With a zero basis there is no free
+          space left to grow back from once the label's own text has taken the
+          row, and the answer settles at zero width — the question and the
+          chevron drawn with nothing between them. A truncated answer is a worse
+          row than a full one; no answer at all is not a row. */}
+      <Row
+        style={{
+          alignItems: 'center',
+          gap: theme.spacing.xs,
+          flexShrink: 1,
+          flexBasis: 'auto',
+          minWidth: 0,
+          justifyContent: 'flex-end',
+        }}
+      >
         {value === undefined ? null : (
           <Text
             variant="body"
             tone={placeholder ? 'muted' : undefined}
             numberOfLines={1}
-            style={{ flexShrink: 1, textAlign: 'right' }}
+            style={{ flexShrink: 1, minWidth: 0, textAlign: 'right' }}
           >
             {value}
           </Text>

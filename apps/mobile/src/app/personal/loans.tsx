@@ -35,6 +35,7 @@ import {
   useTheme,
 } from '@waves/ui';
 
+import { DetailRow } from '@/components/DetailRows';
 import {
   localIsoDate,
   todayIso,
@@ -297,22 +298,25 @@ function LoanEditor({
           hints={counterpart.trim() ? [counterpart.trim()] : undefined}
         />
 
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => setShowDate(true)}
+        {/* The same `DetailRow` the expense and personal-entry forms state their
+            date in. This used to be a bare box with the raw value and a glyph
+            on the wrong side and no label at all — a screen reader had nothing
+            to say for it beyond the date itself, which does not say it is a
+            date. */}
+        <View
           style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            paddingVertical: theme.spacing.md,
-            paddingHorizontal: theme.spacing.lg,
             backgroundColor: theme.color.surfaceMuted,
             borderRadius: theme.radius.md,
+            paddingHorizontal: theme.spacing.lg,
           }}
         >
-          <Text variant="body">{startDate}</Text>
-          <Ionicons name="calendar-outline" size={iconSize.md} color={theme.color.textMuted} />
-        </Pressable>
+          <DetailRow
+            icon="calendar-outline"
+            label={t.personal.startsOn}
+            value={startDate}
+            onPress={() => setShowDate(true)}
+          />
+        </View>
         {showDate ? (
           <DateTimePicker
             value={new Date(`${startDate}T00:00:00`)}

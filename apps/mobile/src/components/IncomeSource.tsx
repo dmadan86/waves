@@ -29,7 +29,8 @@ import {
 } from '@waves/core';
 import { iconSize, useTheme } from '@waves/ui';
 
-import { ChoiceRow, SettingRow, SheetOverlay } from '@/components/expense/SheetOverlay';
+import { DetailRow } from '@/components/DetailRows';
+import { ChoiceRow, SheetOverlay } from '@/components/expense/SheetOverlay';
 import { useCategoryTags } from '@/data/hooks';
 import { useStrings, type UiStrings } from '@/i18n';
 
@@ -90,6 +91,14 @@ export function SourceGlyph({ id, size = 40 }: { id: string | null; size?: numbe
  * already filled in, changed from a sheet. Drawn as a lane of chips for one and
  * a row for the other, the same form would have looked like two forms depending
  * on which way the money went.
+ *
+ * Identical now down to the glyph. It used to wear {@link SourceGlyph}, the
+ * filled circle a source gets in a *list*, shrunk to 24 and parked beside the
+ * value; the category row beside it wore a bare mark in the tag's ink. Two rows
+ * one above the other in the same card, asking the same question of the same
+ * form, and only one of them had a disc behind its icon. The circle is right
+ * where a source is the subject of its own row, which is the sources list, and
+ * wrong where it is one answer among four.
  */
 export function SourceRow({
   value,
@@ -98,13 +107,17 @@ export function SourceRow({
   value: string | null;
   onPress: () => void;
 }): React.JSX.Element {
+  const theme = useTheme();
   const { t } = useStrings();
   const label = useSourceLabel()(value);
+  const source = incomeSource(value);
+  const tint = source ? theme.tint[source.tint] : theme.tint.mint;
   return (
-    <SettingRow
+    <DetailRow
+      icon={(source?.icon ?? 'cash-outline') as keyof typeof Ionicons.glyphMap}
+      iconColor={tint.ink}
       label={t.personal.source}
       value={label ?? t.personal.sources.other}
-      leading={<SourceGlyph id={value} size={24} />}
       onPress={onPress}
     />
   );
