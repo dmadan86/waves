@@ -48,6 +48,8 @@ export interface PhoneVerifyDeps {
   service: () => SupabaseClient;
   fetchImpl: typeof fetch;
   env: (key: string) => string | undefined;
+  /** The caller's own profile id, from their Supabase session, or null. */
+  callerId: (request: Request) => Promise<string | null>;
   now?: () => number;
 }
 
@@ -141,8 +143,16 @@ export async function handlePhoneVerify(
   if (body === null) return fail(413, 'TOO_LARGE', 'That request is too large');
 
   let idToken = '';
+  let mode: 'signin' | 'attach' = 'signin';
   try {
-    idToken = String((JSON.parse(body ?? '{}') as { idToken?: unknown }).idToken ?? '');
+    const parsed = JSON.parse(body ?? '{}') as { idToken?: unknown; mode?: unknown };
+    idToken = String(parsed.idToken ?? '');
+    // Asked for by name, never inferred from whether an Authorization header
+    // happens to be present. `functions.invoke` attaches the current session to
+    // every call, so inferring it would mean somebody signed in as one account,
+    // signing in by phone as another, silently attaching the second number to
+    // the first — a data-losing surprise with no error anywhere.
+    if (parsed.mode === 'attach') mode = 'attach';
   } catch {
     return fail(400, 'BAD_REQUEST', 'Body is not JSON');
   }
@@ -182,6 +192,38 @@ export async function handlePhoneVerify(
 
   const service = deps.service();
   const auth = `${supabaseUrl}/auth/v1`;
+
+  // Attaching, not signing in: somebody already holding an account has proved a
+  // number and wants it on that account. ADR-006's point exactly — the account
+  // keeps its id, so every group, expense and balance stays where it is, and the
+  // number becomes a second way back to the same place.
+  if (mode === 'attach') {
+    const caller = await deps.callerId(request);
+    if (!caller) return fail(401, 'NOT_AUTHENTICATED', 'Sign in first');
+
+    const { error: attachError } = await service.auth.admin.updateUserById(caller, {
+      phone,
+      phone_confirm: true,
+    });
+    if (attachError) {
+      // A number already on another account is the one refusal worth naming: it
+      // is not a fault the person can fix by retrying, and silently doing
+      // nothing would leave them convinced it had worked.
+      if (/already|registered|duplicate/i.test(attachError.message)) {
+        return fail(409, 'PHONE_TAKEN', 'That number is already on another Waves account');
+      }
+      console.error('phone-verify could not attach the number:', attachError.message);
+      return fail(502, 'UPSTREAM', 'Could not add that number just now');
+    }
+
+    const { error: clearedError } = await service.rpc('waves_phone_verified', { p_phone: phone });
+    if (clearedError) console.error('phone-verify could not clear the day:', clearedError.message);
+
+    return new Response(JSON.stringify({ attached: true }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
 
   // Open the exchange *before* asking for the code, or the hook will have sent
   // it by the time there is anywhere to park it.

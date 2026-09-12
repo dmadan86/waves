@@ -59,9 +59,15 @@ function deps(
     parkedCode?: string | null;
     gateAllowed?: boolean;
     gateErrored?: boolean;
+    callerId?: string | null;
+    attachError?: { message: string };
     jwksOk?: boolean;
   } = {},
-): PhoneVerifyDeps & { rpc: ReturnType<typeof vi.fn>; fetchImpl: ReturnType<typeof vi.fn> } {
+): PhoneVerifyDeps & {
+  rpc: ReturnType<typeof vi.fn>;
+  fetchImpl: ReturnType<typeof vi.fn>;
+  updateUserById: ReturnType<typeof vi.fn>;
+} {
   const rpc = vi.fn((name: string) => {
     if (name === 'waves_phone_gate') {
       if (overrides.gateErrored) {
@@ -108,10 +114,16 @@ function deps(
     throw new Error(`unexpected fetch: ${url}`);
   });
 
+  const updateUserById = vi.fn(() =>
+    Promise.resolve({ data: null, error: overrides.attachError ?? null }),
+  );
+
   const env = { ...ENV, ...(overrides.env ?? {}) };
   return {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    service: () => ({ rpc }) as any,
+    service: () => ({ rpc, auth: { admin: { updateUserById } } }) as any,
+    callerId: () => Promise.resolve(overrides.callerId ?? null),
+    updateUserById,
     fetchImpl: fetchImpl as unknown as typeof fetch,
     env: (key: string) => env[key],
     rpc,
@@ -296,5 +308,65 @@ describe('the request itself', () => {
   it('refuses to run unconfigured', async () => {
     const d = deps({ env: { FIREBASE_PROJECT_ID: '' } });
     expect((await handlePhoneVerify(request(), d)).status).toBe(500);
+  });
+});
+
+/**
+ * Attaching a proved number to an account somebody already holds — ADR-006's
+ * other half, and the reason signing in by phone ever finds anything: without
+ * this, no account has a number and every sign-in is a refusal.
+ */
+describe('attaching a number to an account', () => {
+  const attach = () => request({ idToken: 'a.b.c', mode: 'attach' });
+
+  it('puts the number on the caller’s own account, keeping its id', async () => {
+    const d = deps({ callerId: 'user-1' });
+    const response = await handlePhoneVerify(attach(), d);
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ attached: true });
+    expect(d.updateUserById).toHaveBeenCalledWith('user-1', {
+      phone: '+919876543210',
+      phone_confirm: true,
+    });
+    // No session is minted and no code is relayed: they are already signed in.
+    expect(rpcNames(d)).not.toContain('waves_otp_relay_open');
+  });
+
+  it('refuses when nobody is signed in', async () => {
+    const d = deps({ callerId: null });
+    const response = await handlePhoneVerify(attach(), d);
+
+    expect(response.status).toBe(401);
+    expect(d.updateUserById).not.toHaveBeenCalled();
+  });
+
+  it('names the one refusal a person cannot fix by retrying', async () => {
+    const d = deps({
+      callerId: 'user-1',
+      attachError: { message: 'Phone number already registered' },
+    });
+    const response = await handlePhoneVerify(attach(), d);
+
+    expect(response.status).toBe(409);
+    expect((await response.json()).code).toBe('PHONE_TAKEN');
+  });
+
+  it('never attaches on a request that did not ask to', async () => {
+    // `functions.invoke` sends the current session with every call, so if the
+    // mode were inferred from the header, somebody signed in as one account and
+    // signing in by phone as another would silently move the number.
+    const d = deps({ callerId: 'user-1' });
+    await handlePhoneVerify(request({ idToken: 'a.b.c' }), d);
+
+    expect(d.updateUserById).not.toHaveBeenCalled();
+  });
+
+  it('still counts against the daily gate', async () => {
+    const d = deps({ callerId: 'user-1', gateAllowed: false });
+    const response = await handlePhoneVerify(attach(), d);
+
+    expect(response.status).toBe(429);
+    expect(d.updateUserById).not.toHaveBeenCalled();
   });
 });
