@@ -3009,6 +3009,8 @@ export interface UiStrings {
     addRecurring: string;
     editRecurring: string;
     repeats: string;
+    /** The "Repeats" row's answer when the entry happens once. */
+    repeatsNever: string;
     weekly: string;
     monthly: string;
     yearly: string;
@@ -5590,6 +5592,7 @@ const en: UiStrings = {
     addRecurring: 'Add recurring',
     editRecurring: 'Edit recurring',
     repeats: 'Repeats',
+    repeatsNever: 'Never',
     weekly: 'Weekly',
     monthly: 'Monthly',
     yearly: 'Yearly',
@@ -8299,6 +8302,7 @@ const ta: UiStrings = {
     addRecurring: 'மீண்டும் வருவதைச் சேர்',
     editRecurring: 'மீண்டும் வருவதைத் திருத்து',
     repeats: 'திரும்பும்',
+    repeatsNever: 'திரும்பாது',
     weekly: 'வாராந்திரம்',
     monthly: 'மாதந்தோறும்',
     yearly: 'ஆண்டுதோறும்',
@@ -10897,6 +10901,7 @@ const hi: UiStrings = {
     addRecurring: 'आवर्ती जोड़ें',
     editRecurring: 'आवर्ती संपादित करें',
     repeats: 'दोहराव',
+    repeatsNever: 'कभी नहीं',
     weekly: 'साप्ताहिक',
     monthly: 'मासिक',
     yearly: 'वार्षिक',
@@ -13825,6 +13830,7 @@ const ar: UiStrings = {
     addRecurring: 'إضافة متكرر',
     editRecurring: 'تعديل المتكرر',
     repeats: 'يتكرر',
+    repeatsNever: 'أبدًا',
     weekly: 'أسبوعياً',
     monthly: 'شهرياً',
     yearly: 'سنوياً',

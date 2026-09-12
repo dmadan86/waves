@@ -49,7 +49,7 @@ import {
   useTheme,
 } from '@waves/ui';
 
-import { frequencyLabel } from '@/app/personal/recurring';
+import { frequencyLabel } from '@/lib/frequencyLabel';
 import { SourceGlyph, useSourceLabel } from '@/components/IncomeSource';
 import {
   localIsoDate,
