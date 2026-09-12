@@ -36,6 +36,7 @@ const h = vi.hoisted(() => ({
     >(),
     cursors: {} as Record<string, number>,
     queue: [] as QueuedMutation[],
+    retained: null as { ownerId: string; retainedAt: string } | null,
   },
 }));
 
@@ -95,6 +96,19 @@ vi.mock('../src/sync/store', () => ({
       h.disk.rows.clear();
       h.disk.cursors = {};
       h.disk.queue = [];
+      h.disk.retained = null;
+    },
+    // The other ending (see src/sync/retention.ts): the ledger goes because the
+    // server will hand it back, the queue stays because nobody else has it, and
+    // the hold is stamped with whose it is.
+    retainUnsent: async (ownerId: string, retainedAt: string) => {
+      h.disk.rows.clear();
+      h.disk.cursors = {};
+      h.disk.retained = { ownerId, retainedAt };
+    },
+    readRetained: async () => h.disk.retained,
+    clearRetained: async () => {
+      h.disk.retained = null;
     },
   }),
 }));
@@ -142,6 +156,7 @@ beforeEach(() => {
   h.disk.rows.clear();
   h.disk.cursors = {};
   h.disk.queue = [];
+  h.disk.retained = null;
 });
 
 describe('runFlush on a fresh install', () => {
@@ -769,5 +784,120 @@ describe('queue and draft controls', () => {
     await expect(engine.readDraft('expense:new')).resolves.toBeNull();
     await expect(engine.listDrafts()).resolves.toEqual([]);
     await expect(engine.clearDraft('expense:new')).resolves.toBeUndefined();
+  });
+});
+
+/**
+ * Two launches of the app across a session that ended on its own, reading the
+ * same "disk" — the shape that proves the queue really survived rather than
+ * merely staying in memory until the process died.
+ */
+describe('a session that ended without anybody asking', () => {
+  const ANA = 'ana-0000-0000-0000-000000000001';
+  const BEN = 'ben-0000-0000-0000-000000000002';
+
+  const unsentExpense = (id: string) => ({
+    clientMutationId: id,
+    kind: 'expense.create' as never,
+    groupId: 'g-goa',
+    clientCreatedAt: '2026-08-09T00:00:00.000Z',
+    payload: { amount: '450' },
+  });
+
+  it('leaves the unsent expense on disk, and takes the ledger it can re-fetch', async () => {
+    offline();
+    const engine = new SyncEngine();
+    h.disk.rows.set('groups:g-goa', {
+      table: 'groups',
+      id: 'g-goa',
+      groupId: 'g-goa',
+      seq: 1,
+      row: { id: 'g-goa' },
+    });
+    h.disk.cursors = { 'g-goa': 1 };
+    await engine.enqueue(unsentExpense('dead-zone-dinner'));
+
+    await engine.retainUnsent(ANA);
+
+    // On disk: the one thing the server has never seen is still there.
+    expect(h.disk.queue.map((item) => item.clientMutationId)).toEqual(['dead-zone-dinner']);
+    expect([...h.disk.rows.keys()]).toEqual([]);
+    expect(h.disk.cursors).toEqual({});
+    // In memory it looks like a signed-out app, because that is what is about to
+    // be rendered — a pending count belonging to nobody must not be on screen.
+    expect(engine.getState().queue).toEqual([]);
+  });
+
+  it('drains that expense when the same person signs back in', async () => {
+    offline();
+    const first = new SyncEngine();
+    await first.enqueue(unsentExpense('dead-zone-dinner'));
+    await first.retainUnsent(ANA);
+
+    // The next launch: same phone, same account, and the hold is theirs.
+    const hold = await first.retainedWork();
+    expect(hold?.ownerId).toBe(ANA);
+
+    const next = new SyncEngine();
+    await next.adoptRetained();
+    await next.hydrate();
+    expect(next.getState().queue.map((item) => item.clientMutationId)).toEqual([
+      'dead-zone-dinner',
+    ]);
+
+    online();
+    h.invoke.mockResolvedValue({
+      data: {
+        outcomes: [{ clientMutationId: 'dead-zone-dinner', status: 'applied' }],
+        changes: [],
+        cursors: { 'g-goa': 3 },
+        serverTime: '2026-08-09T09:27:00.000Z',
+      },
+      error: null,
+    });
+    await next.flush();
+
+    // Sent, acknowledged, and gone from the queue: the expense reached the
+    // ledger it was written for rather than being deleted on the way.
+    expect(h.invoke).toHaveBeenCalled();
+    expect(next.getState().queue).toEqual([]);
+    expect(h.disk.queue).toEqual([]);
+    expect(await next.retainedWork()).toBeNull();
+  });
+
+  it('hands somebody else nothing, however the hold got there', async () => {
+    offline();
+    const engine = new SyncEngine();
+    await engine.enqueue(unsentExpense('anas-dinner'));
+    await engine.retainUnsent(ANA);
+
+    // Ben signing in on Ana's phone. `SyncProvider` asks `retentionVerdict`
+    // before it hydrates, and a mismatch means the wipe runs first — so what
+    // Ben's session can ever see is what `clear` leaves, which is nothing.
+    const bensLaunch = new SyncEngine();
+    const hold = await bensLaunch.retainedWork();
+    expect(hold?.ownerId).toBe(ANA);
+    expect(hold?.ownerId).not.toBe(BEN);
+
+    await bensLaunch.clear();
+    await bensLaunch.hydrate();
+
+    expect(bensLaunch.getState().queue).toEqual([]);
+    expect(h.disk.queue).toEqual([]);
+    expect(await bensLaunch.retainedWork()).toBeNull();
+
+    // And nothing of Ana's is sent under Ben's session.
+    online();
+    h.invoke.mockResolvedValue({
+      data: { outcomes: [], changes: [], cursors: {}, serverTime: 'now' },
+      error: null,
+    });
+    await bensLaunch.flush();
+    const sent = h.invoke.mock.calls.flatMap(
+      (call) =>
+        ((call[1] as { body?: { mutations?: { clientMutationId: string }[] } })?.body?.mutations ??
+          []) as { clientMutationId: string }[],
+    );
+    expect(sent).toEqual([]);
   });
 });
