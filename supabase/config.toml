@@ -198,8 +198,28 @@ enable_confirmations = true
 
 # Programmable Messaging — not used. Verify below is the provider; this block
 # stays present and disabled so nobody wires the cheaper one by accident.
+# Enabled, and it is *not* what sends the message — the hook below is.
+#
+# GoTrue will not accept a phone sign-in at all unless it has an SMS provider
+# configured. With every provider off, `signInWithOtp({ phone })` is refused
+# before the hook is ever consulted, so this block is the switch that opens the
+# door and `otp-send` decides what actually travels and over which rail. That is
+# why the earlier note here — "Programmable Messaging is not used" — was wrong in
+# a way nothing caught: the hook cannot be reached without it.
+#
+# All three come from `supabase/.env`, the account SID included — GitHub's push
+# protection refuses a Twilio SID in a tracked file, and it is right to: on its
+# own it names the account to anyone who finds a token.
+#
+# `message_service_sid` is a placeholder. It is never read, because the hook
+# intercepts delivery before GoTrue would use it; if the hook is ever disabled
+# this block does not become a working fallback, it becomes a failing send. Turn
+# the hook off and this off together.
 [auth.sms.twilio]
-enabled = false
+enabled = true
+account_sid = "env(SUPABASE_AUTH_SMS_TWILIO_ACCOUNT_SID)"
+message_service_sid = "env(SUPABASE_AUTH_SMS_TWILIO_MESSAGE_SERVICE_SID)"
+auth_token = "env(SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN)"
 
 # Twilio Verify — off, and not the plan. Verify mints and checks its own code,
 # which cannot work behind the send hook below: the hook exists because GoTrue
@@ -209,18 +229,22 @@ enabled = false
 [auth.sms.twilio_verify]
 enabled = false
 
-# The code travels over WhatsApp, not SMS, and the `otp-send` edge function is
-# what sends it. Three reasons, in order of weight:
+# The code is delivered by the `otp-send` edge function rather than by GoTrue's
+# own provider. Two reasons:
 #
-#   1. India is the first market, and A2P SMS there is gated on DLT registration
-#      with the operators through TRAI — unregistered traffic is dropped by the
-#      carrier, not by Supabase. WhatsApp business messaging is not A2P SMS and
-#      carries none of that paperwork.
-#   2. A per-number daily cap can only be enforced somewhere the client cannot
+#   1. A per-number daily cap can only be enforced somewhere the client cannot
 #      skip. The app calls GoTrue directly, so a limit written into the app is
 #      advice; in the hook it is the only door.
-#   3. It is markedly cheaper per message, and the code lands in an app people
-#      already have open.
+#   2. The rail becomes a setting. `OTP_CHANNEL` picks `sms` or `whatsapp` and
+#      nothing else in the system knows the difference.
+#
+# WhatsApp is the default, and the reason matters if the channel is switched:
+# A2P SMS to an Indian number is gated on DLT registration with the operators
+# through TRAI — an entity, a six-character header and the exact message text,
+# each registered, and unregistered traffic is dropped by the carrier *after*
+# Twilio has accepted and billed it. That failure is invisible from here and from
+# Twilio's console. WhatsApp business messaging is not A2P SMS and carries none
+# of it. See docs/phone-otp.md before choosing.
 #
 # STILL OFF, deliberately. Enabled with the function undeployed or its Twilio
 # secrets unset, every send fails and somebody sits on the code screen waiting
@@ -236,9 +260,19 @@ enabled = false
 #
 #        supabase secrets set SEND_SMS_HOOK_SECRET=v1,whsec_...  \
 #                             TWILIO_ACCOUNT_SID=AC...           \
-#                             TWILIO_AUTH_TOKEN=...              \
+#                             TWILIO_API_KEY_SID=SK...           \
+#                             TWILIO_API_KEY_SECRET=...          \
 #                             TWILIO_WHATSAPP_FROM=whatsapp:+... \
 #                             TWILIO_OTP_CONTENT_SID=HX...
+#
+#      For SMS instead, the same first four plus:
+#
+#                             OTP_CHANNEL=sms                    \
+#                             TWILIO_MESSAGING_SERVICE_SID=MG... \
+#                             TWILIO_SMS_BODY='{code} is your ...'
+#
+#      The service is what carries an Indian sender ID and its DLT
+#      registration, and the body must match the registered template exactly.
 #
 #   2. GoTrue, which creates the signature. That is the `env(...)` below, read
 #      from `supabase/.env` (gitignored) when this file is pushed — exactly like
@@ -250,7 +284,7 @@ enabled = false
 #
 # Same value in both, or every genuine request is answered 401.
 [auth.hook.send_sms]
-enabled = false
+enabled = true
 uri = "https://ywojpnfyxxltvihqmcni.supabase.co/functions/v1/otp-send"
 secrets = "env(SEND_SMS_HOOK_SECRETS)"
 

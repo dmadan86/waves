@@ -1,6 +1,6 @@
 /**
  * Coverage for otp-send — the Send SMS Hook that delivers the sign-in code over
- * WhatsApp and caps a number at four codes a day.
+ * WhatsApp and caps a number at three codes a day.
  *
  * The handler is a pure function over injected boundaries (a Supabase client, a
  * fetch, an env reader and the signature verifier), so these tests drive it with
@@ -16,7 +16,13 @@
 
 import { describe, expect, it, vi } from 'vitest';
 
-import { handleOtpSend, hookSecret, OTP_DAILY_LIMIT, type OtpSendDeps } from './handler.ts';
+import {
+  handleOtpSend,
+  hookSecret,
+  OTP_DAILY_LIMIT,
+  smsBody,
+  type OtpSendDeps,
+} from './handler.ts';
 
 /**
  * Built rather than written out. As a literal, `whsec_<base64>` is a webhook
@@ -87,6 +93,15 @@ function deps(
   } as any;
 }
 
+/**
+ * The gate is what spends somebody's daily allowance. Other RPCs — the relay
+ * handshake — cost nothing and may legitimately run first, so a test that means
+ * "no code was burnt" has to say exactly that rather than "no RPC at all".
+ */
+function gateWasCalled(d: { rpc: ReturnType<typeof vi.fn> }): boolean {
+  return d.rpc.mock.calls.some((call) => call[0] === 'waves_phone_gate');
+}
+
 describe('otp-send', () => {
   it('refuses a caller with no signature headers, and never reads the body', async () => {
     const d = deps();
@@ -94,7 +109,7 @@ describe('otp-send', () => {
     const response = await handleOtpSend(bare, d);
 
     expect(response.status).toBe(401);
-    expect(d.rpc).not.toHaveBeenCalled();
+    expect(gateWasCalled(d)).toBe(false);
     expect(d.fetchImpl).not.toHaveBeenCalled();
   });
 
@@ -135,12 +150,7 @@ describe('otp-send', () => {
     const d = deps();
     await handleOtpSend(request(), d);
 
-    expect(d.rpc).toHaveBeenCalledWith('waves_rate_limit', {
-      p_subject: 'phone:+919876543210',
-      p_bucket: 'otp-send',
-      p_limit: OTP_DAILY_LIMIT,
-      p_window_seconds: 86400,
-    });
+    expect(d.rpc).toHaveBeenCalledWith('waves_phone_gate', { p_phone: '+919876543210' });
   });
 
   it.each([
@@ -155,10 +165,7 @@ describe('otp-send', () => {
     expect(response.status).toBe(200);
     const [, init] = d.fetchImpl.mock.calls[0] as [string, RequestInit];
     expect(new URLSearchParams(init.body as string).get('To')).toBe(`whatsapp:${phone}`);
-    expect(d.rpc).toHaveBeenCalledWith(
-      'waves_rate_limit',
-      expect.objectContaining({ p_subject: `phone:${phone}` }),
-    );
+    expect(d.rpc).toHaveBeenCalledWith('waves_phone_gate', { p_phone: phone });
   });
 
   it('refuses past the daily cap and sends nothing', async () => {
@@ -170,7 +177,11 @@ describe('otp-send', () => {
 
     const payload = (await response.json()) as { error: { http_code: number; message: string } };
     expect(payload.error.http_code).toBe(429);
-    expect(payload.error.message).toContain(String(OTP_DAILY_LIMIT));
+    // Neither the cap nor the reason: the cap is an admin knob that would date
+    // the sentence, and telling somebody whether a number is blocked or merely
+    // spent is exactly what a prober wants to learn.
+    expect(payload.error.message).not.toContain(String(OTP_DAILY_LIMIT));
+    expect(payload.error.message.toLowerCase()).not.toContain('block');
   });
 
   it('fails open when the limiter itself errors, so a database blip is not a lockout', async () => {
@@ -186,7 +197,7 @@ describe('otp-send', () => {
     const response = await handleOtpSend(request(JSON.stringify({ sms: { otp: '1' } })), d);
 
     expect(response.status).toBe(400);
-    expect(d.rpc).not.toHaveBeenCalled();
+    expect(gateWasCalled(d)).toBe(false);
     expect(d.fetchImpl).not.toHaveBeenCalled();
   });
 
@@ -215,8 +226,8 @@ describe('otp-send', () => {
     expect(response.status).toBe(500);
     expect(d.fetchImpl).not.toHaveBeenCalled();
     // The point of the check's position: a deploy missing its Twilio secrets
-    // must not spend somebody's four codes on sends it could never make.
-    expect(d.rpc).not.toHaveBeenCalled();
+    // must not spend somebody's three codes on sends it could never make.
+    expect(gateWasCalled(d)).toBe(false);
   });
 
   it('prefers an API key over the account auth token, and still bills the account', async () => {
@@ -251,7 +262,7 @@ describe('otp-send', () => {
 
     expect(response.status).toBe(500);
     expect(d.fetchImpl).not.toHaveBeenCalled();
-    expect(d.rpc).not.toHaveBeenCalled();
+    expect(gateWasCalled(d)).toBe(false);
   });
 
   it('refuses an oversized body before buffering it, and before any spend', async () => {
@@ -263,7 +274,7 @@ describe('otp-send', () => {
     const response = await handleOtpSend(request(huge), d);
 
     expect(response.status).toBe(413);
-    expect(d.rpc).not.toHaveBeenCalled();
+    expect(gateWasCalled(d)).toBe(false);
     expect(d.fetchImpl).not.toHaveBeenCalled();
   });
 
@@ -373,5 +384,186 @@ describe('otp-send signature verification', () => {
 
     expect(response.status).toBe(401);
     expect(d.fetchSpy).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * The SMS rail.
+ *
+ * The hook exists so the channel is a setting rather than a rewrite, and these
+ * pin the parts of that which are easy to get subtly wrong: the `whatsapp:`
+ * prefix must not survive onto an SMS, the DLT-registered body must be the
+ * operator's text and not ours, and a half-configured switch must refuse rather
+ * than send something malformed on somebody's daily allowance.
+ */
+describe('otp-send over SMS', () => {
+  const SMS_ENV = {
+    OTP_CHANNEL: 'sms',
+    TWILIO_SMS_FROM: '+14155238886',
+    // Left set deliberately: a deployment that switches rails keeps its old
+    // secrets, and they must not leak into the new one.
+    TWILIO_WHATSAPP_FROM: 'whatsapp:+14155238886',
+    TWILIO_OTP_CONTENT_SID: 'HX999',
+  };
+
+  it('sends plain text to a bare E.164 number, with no whatsapp prefix anywhere', async () => {
+    const d = deps({ env: SMS_ENV });
+    const response = await handleOtpSend(request(), d);
+
+    expect(response.status).toBe(200);
+    const [, init] = d.fetchImpl.mock.calls[0] as [string, RequestInit];
+    const sent = new URLSearchParams(init.body as string);
+    expect(sent.get('To')).toBe('+919876543210');
+    expect(sent.get('From')).toBe('+14155238886');
+    expect(sent.get('Body')).toContain('123456');
+    // The template fields belong to the other rail; sending them alongside a
+    // Body is how a switched deployment ends up posting a WhatsApp template to
+    // an SMS number and getting a 400 nobody can read.
+    expect(sent.get('ContentSid')).toBeNull();
+    expect(sent.get('ContentVariables')).toBeNull();
+  });
+
+  it('prefers a Messaging Service, which is what carries an Indian sender ID', async () => {
+    const d = deps({ env: { ...SMS_ENV, TWILIO_MESSAGING_SERVICE_SID: 'MG123' } });
+    await handleOtpSend(request(), d);
+
+    const [, init] = d.fetchImpl.mock.calls[0] as [string, RequestInit];
+    const sent = new URLSearchParams(init.body as string);
+    expect(sent.get('MessagingServiceSid')).toBe('MG123');
+    expect(sent.get('From')).toBeNull();
+  });
+
+  it('keeps whitespace a DLT template was approved with', async () => {
+    // Trimming looks harmless and is not: the operators match the registered
+    // text character for character, so a stripped leading space is a message
+    // Twilio bills for and the carrier drops, having spent a code on nothing.
+    const d = deps({ env: { ...SMS_ENV, TWILIO_SMS_BODY: '  {code} is your code.\n' } });
+    await handleOtpSend(request(), d);
+
+    const [, init] = d.fetchImpl.mock.calls[0] as [string, RequestInit];
+    expect(new URLSearchParams(init.body as string).get('Body')).toBe('  123456 is your code.\n');
+  });
+
+  it('falls back to the default only when the body is absent or blank', async () => {
+    for (const value of [undefined, '', '   ']) {
+      const d = deps({ env: { ...SMS_ENV, TWILIO_SMS_BODY: value as string } });
+      await handleOtpSend(request(), d);
+      const [, init] = d.fetchImpl.mock.calls[0] as [string, RequestInit];
+      expect(new URLSearchParams(init.body as string).get('Body')).toContain('Waves');
+    }
+  });
+
+  it('sends the registered body exactly, because the carrier matches on it', async () => {
+    // An Indian DLT template is approved character by character. Anything this
+    // function adds — a trailing full stop, a different word for "code" — is a
+    // message the operator drops after Twilio has accepted and billed it.
+    const d = deps({
+      env: { ...SMS_ENV, TWILIO_SMS_BODY: 'Your Waves OTP is {code}. Do not share it.' },
+    });
+    await handleOtpSend(request(), d);
+
+    const [, init] = d.fetchImpl.mock.calls[0] as [string, RequestInit];
+    expect(new URLSearchParams(init.body as string).get('Body')).toBe(
+      'Your Waves OTP is 123456. Do not share it.',
+    );
+  });
+
+  it('requires exactly one code placeholder in the SMS body', () => {
+    expect(smsBody('Your Waves OTP is {code}', '123456')).toBe('Your Waves OTP is 123456');
+    expect(smsBody('Your Waves OTP is 123456', '123456')).toBeNull();
+    expect(smsBody('{code} is your code {code}', '123456')).toBeNull();
+  });
+
+  it('refuses an invalid SMS body before spending an attempt', async () => {
+    const d = deps({ env: { ...SMS_ENV, TWILIO_SMS_BODY: 'Your Waves OTP is 123456' } });
+    const response = await handleOtpSend(request(), d);
+
+    expect(response.status).toBe(500);
+    expect(d.fetchImpl).not.toHaveBeenCalled();
+    expect(gateWasCalled(d)).toBe(false);
+  });
+
+  it('refuses before spending an attempt when the rail has no sender', async () => {
+    const d = deps({ env: { OTP_CHANNEL: 'sms', TWILIO_SMS_FROM: '', TWILIO_WHATSAPP_FROM: '' } });
+    const response = await handleOtpSend(request(), d);
+
+    expect(response.status).toBe(500);
+    expect(d.fetchImpl).not.toHaveBeenCalled();
+    // The gate runs ahead of the limiter, so a misconfigured deploy cannot eat
+    // somebody's three codes for sends it was never capable of making.
+    expect(gateWasCalled(d)).toBe(false);
+  });
+
+  it('stays on WhatsApp for any value that is not sms', async () => {
+    // Including an empty or misspelled one. The default is the rail that needs
+    // no operator paperwork, so a typo fails towards the one that works rather
+    // than towards the one the carrier silently drops.
+    for (const value of ['', 'whatsapp', 'text', 'smsx']) {
+      const d = deps({ env: { OTP_CHANNEL: value } });
+      await handleOtpSend(request(), d);
+      const [, init] = d.fetchImpl.mock.calls[0] as [string, RequestInit];
+      expect(new URLSearchParams(init.body as string).get('ContentSid')).toBe('HX999');
+    }
+  });
+
+  it('reads the channel past whitespace and case', async () => {
+    const d = deps({ env: { ...SMS_ENV, OTP_CHANNEL: '  SMS  ' } });
+    await handleOtpSend(request(), d);
+
+    const [, init] = d.fetchImpl.mock.calls[0] as [string, RequestInit];
+    expect(new URLSearchParams(init.body as string).get('Body')).toContain('123456');
+  });
+});
+
+/**
+ * The sandbox rail.
+ *
+ * Twilio's WhatsApp sandbox is the one place a code can be delivered with no
+ * approved template, no Meta business verification and no sender of one's own —
+ * because joining it *is* the recipient-initiated message that opens Meta's
+ * 24-hour free-form window. It is how this gets tested before any of the
+ * paperwork exists, and it must not be reachable by accident in production.
+ */
+describe('otp-send over the WhatsApp sandbox', () => {
+  const SANDBOX = {
+    TWILIO_WHATSAPP_FROM: 'whatsapp:+14155238886',
+    TWILIO_OTP_CONTENT_SID: '',
+    TWILIO_WHATSAPP_FREEFORM: 'true',
+  };
+
+  it('sends the code as plain text to a whatsapp address', async () => {
+    const d = deps({ env: SANDBOX });
+    const response = await handleOtpSend(request(), d);
+
+    expect(response.status).toBe(200);
+    const [, init] = d.fetchImpl.mock.calls[0] as [string, RequestInit];
+    const sent = new URLSearchParams(init.body as string);
+    expect(sent.get('To')).toBe('whatsapp:+919876543210');
+    expect(sent.get('From')).toBe('whatsapp:+14155238886');
+    expect(sent.get('Body')).toContain('123456');
+    expect(sent.get('ContentSid')).toBeNull();
+  });
+
+  it('refuses free-form unless it is asked for by name', async () => {
+    // A production deployment that lost its Content SID must fail loudly rather
+    // than quietly start sending messages Meta refuses outside the window.
+    const d = deps({ env: { ...SANDBOX, TWILIO_WHATSAPP_FREEFORM: '' } });
+    const response = await handleOtpSend(request(), d);
+
+    expect(response.status).toBe(500);
+    expect(d.fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it('still prefers the template when there is one', async () => {
+    // Both set is not a contradiction to resolve by guessing: an approved
+    // template is always the better message, and the flag only ever widens what
+    // is allowed when there is no template to send.
+    const d = deps({ env: { ...SANDBOX, TWILIO_OTP_CONTENT_SID: 'HX999' } });
+    await handleOtpSend(request(), d);
+
+    const [, init] = d.fetchImpl.mock.calls[0] as [string, RequestInit];
+    const sent = new URLSearchParams(init.body as string);
+    expect(sent.get('ContentSid')).toBe('HX999');
+    expect(sent.get('Body')).toBeNull();
   });
 });

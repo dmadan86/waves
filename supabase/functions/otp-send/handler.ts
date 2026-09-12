@@ -1,21 +1,27 @@
 /**
- * otp-send — Supabase's Send SMS Hook, delivering the sign-in code over
- * WhatsApp instead of SMS.
+ * otp-send — Supabase's Send SMS Hook, which is where this app decides how a
+ * sign-in code reaches somebody.
  *
  * GoTrue normally posts the code to a configured SMS provider itself. With
  * `[auth.hook.send_sms]` pointed here it posts to us instead, handing over the
- * code it generated, and we decide how it travels. Three things come out of
- * owning that step:
+ * code it generated, and we decide how it travels. Two things come out of owning
+ * that step:
  *
- * 1. **WhatsApp, not SMS.** India is the first market and A2P SMS there is
- *    gated on DLT registration with the operators — unregistered traffic is
- *    dropped by the carrier, not by us. WhatsApp business messaging is not A2P
- *    SMS and carries none of that; it is also far cheaper per message and the
- *    code arrives in the app people already have open.
- * 2. **A cap we can actually enforce.** The app calls GoTrue directly, so any
+ * 1. **A cap we can actually enforce.** The app calls GoTrue directly, so any
  *    per-day limit written into the client is advice a modified client ignores.
  *    Here it is the server, keyed on the number, and there is no other door.
- * 3. **One place to add SMS fallback later** without touching the app.
+ * 2. **The rail is a setting, not a rewrite.** `OTP_CHANNEL` picks WhatsApp or
+ *    SMS and nothing else in the system knows the difference — the app sends the
+ *    same `signInWithOtp` and verifies the same `type: 'sms'` either way.
+ *
+ * WhatsApp is the default, and the reason is worth keeping in view if the
+ * channel is ever switched: India is the first market, and A2P SMS there is
+ * gated on DLT registration with the operators through TRAI. Unregistered
+ * traffic is dropped by the carrier after Twilio has accepted the request and
+ * charged for it, so it fails where nothing in this function can see it.
+ * WhatsApp business messaging is not A2P SMS and carries none of that paperwork.
+ * SMS is the right answer anyway when the registration exists, or outside India
+ * where it does not apply — which is why both rails live here rather than one.
  *
  * This is why the Twilio *Verify* provider is switched off in config.toml.
  * Verify mints and checks its own code; inside a send hook that would mean two
@@ -34,12 +40,12 @@ import { verifyWebhookSignature } from '../_shared/core.js';
 import { LIMITS } from '../_shared/rateLimit.ts';
 
 /**
- * Four codes to a number a day. Read from the shared `LIMITS` table rather than
- * written here, so there stays one list of every ceiling in the system even
- * though this function calls the limiter RPC itself (see the note there).
+ * Three codes to a number a day, read from the shared `LIMITS` table so there
+ * stays one list of every ceiling in the system. The database is what actually
+ * enforces it (`waves_phone_gate`, and the `otp_daily_cap` knob it reads); this
+ * is here for the sentence shown to whoever ran out.
  */
 export const OTP_DAILY_LIMIT = LIMITS['otp-send'].limit;
-const OTP_WINDOW_SECONDS = LIMITS['otp-send'].windowSeconds;
 
 /**
  * GoTrue reads a refusal from this envelope, not from an HTTP status alone, and
@@ -133,6 +139,118 @@ function isE164(phone: string): boolean {
   return /^\+[1-9]\d{6,14}$/.test(phone);
 }
 
+/** Which rail the code travels on. */
+export type OtpChannel = 'whatsapp' | 'sms';
+
+/**
+ * WhatsApp unless the environment says otherwise.
+ *
+ * Read from one explicit variable rather than inferred from which secrets
+ * happen to be present. A deployment that still holds its WhatsApp secrets
+ * while an operator adds SMS ones should not quietly change rail because of the
+ * order somebody typed things in; the channel is a decision, so it is written
+ * down as one.
+ */
+export function otpChannel(env: (key: string) => string | undefined): OtpChannel {
+  return env('OTP_CHANNEL')?.trim().toLowerCase() === 'sms' ? 'sms' : 'whatsapp';
+}
+
+/**
+ * The SMS text, when the code travels as SMS.
+ *
+ * Configurable, and it has to be: an SMS to an Indian number must match a
+ * template registered on the operators' DLT portal *exactly*, down to the
+ * punctuation, or the carrier drops it — silently, after Twilio has accepted the
+ * request and charged for it. A body compiled into this file would mean a
+ * redeploy every time a registration is amended, and a mismatch nobody can see
+ * from here. `{code}` is the only placeholder.
+ */
+const DEFAULT_SMS_BODY = '{code} is your Waves verification code. It expires in 10 minutes.';
+
+export function smsBody(template: string | undefined, otp: string): string | null {
+  // The configured body is used *verbatim* — not trimmed. A DLT-registered
+  // template is matched character for character at delivery, and a leading space
+  // or a trailing newline can be part of what was approved; trimming it produces
+  // a message Twilio accepts, bills for, and the carrier silently drops, having
+  // spent one of somebody's three codes on nothing. Only a body that is absent
+  // or entirely blank falls back to the default.
+  const shape = (template ?? '').trim() === '' ? DEFAULT_SMS_BODY : (template as string);
+  const parts = shape.split('{code}');
+  if (parts.length !== 2) return null;
+  return parts.join(otp);
+}
+
+/**
+ * The message Twilio is asked to send, or null when this deployment is not
+ * configured to send one.
+ *
+ * Separated from the sending so the "are we configured" question can be
+ * answered before the daily allowance is spent — see the note at the call site.
+ *
+ * The two rails differ in more than a prefix. WhatsApp must be an approved
+ * template referenced by its Content SID, because a business-initiated message
+ * is only allowed to be free text inside a 24-hour window a sign-in has no
+ * reason to be in. SMS is the free text, and for India its shape is fixed by the
+ * DLT registration instead. Either can name a Messaging Service rather than a
+ * single sender — which is the usual arrangement for India, since the service is
+ * what carries the registered sender ID.
+ */
+export function sendParams(
+  env: (key: string) => string | undefined,
+  phone: string,
+  otp: string,
+): URLSearchParams | null {
+  const form = new URLSearchParams();
+  const service = env('TWILIO_MESSAGING_SERVICE_SID');
+
+  if (otpChannel(env) === 'sms') {
+    const from = env('TWILIO_SMS_FROM');
+    if (!service && !from) return null;
+    const body = smsBody(env('TWILIO_SMS_BODY'), otp);
+    if (!body) return null;
+    form.set('To', phone);
+    if (service) form.set('MessagingServiceSid', service);
+    else form.set('From', from as string);
+    form.set('Body', body);
+    return form;
+  }
+
+  const from = env('TWILIO_WHATSAPP_FROM');
+  const contentSid = env('TWILIO_OTP_CONTENT_SID');
+  if (!service && !from) return null;
+  // Free-form WhatsApp, which Meta allows only inside the 24-hour window opened
+  // by the *recipient* messaging the business first. A sign-in has no reason to
+  // be in that window — except in Twilio's sandbox, where joining is exactly
+  // that message, which is what makes the sandbox testable with no approved
+  // template, no Meta business verification and no sender of one's own.
+  //
+  // Behind its own flag rather than inferred from a missing Content SID: a
+  // production deployment that lost that secret would otherwise quietly start
+  // sending messages Meta refuses, and the difference between the two would be
+  // a typo. Saying `true` here is a decision about which Twilio account this is.
+  if (!contentSid && env('TWILIO_WHATSAPP_FREEFORM')?.trim().toLowerCase() !== 'true') return null;
+
+  form.set('To', `whatsapp:${phone}`);
+  if (service) form.set('MessagingServiceSid', service);
+  else
+    form.set(
+      'From',
+      (from as string).startsWith('whatsapp:') ? (from as string) : `whatsapp:${from}`,
+    );
+
+  if (contentSid) {
+    form.set('ContentSid', contentSid);
+    // The template's one placeholder is the code.
+    form.set('ContentVariables', JSON.stringify({ '1': otp }));
+    return form;
+  }
+
+  const body = smsBody(env('TWILIO_SMS_BODY'), otp);
+  if (!body) return null;
+  form.set('Body', body);
+  return form;
+}
+
 /**
  * Supabase issues a hook secret as `v1,whsec_<base64>`, and that whole string is
  * what lands in the environment. `verifyWebhookSignature` strips `whsec_` — the
@@ -182,14 +300,39 @@ export async function handleOtpSend(request: Request, deps: OtpSendDeps): Promis
   const otp = payload.sms?.otp?.trim() ?? '';
   if (!isE164(phone) || !otp) return hookError(400, 'Missing a phone number or a code');
 
+  // An exchange in flight: `phone-verify` has already proved, against Google's
+  // signing keys, that somebody is holding this number, and asked GoTrue for a
+  // code purely so a session can be minted from it. Nobody is waiting for an
+  // SMS — sending one would be a message to a person who has already finished
+  // signing in, and a charge for it. So the code is parked for the function that
+  // asked, and this returns success having sent nothing.
+  //
+  // Nothing about this weakens the ordinary path. `waves_otp_relay_park` only
+  // answers true for a row opened seconds earlier by a service-role caller that
+  // had a verified Firebase token in hand; with no such row it answers false and
+  // the code goes out exactly as before.
+  const { data: parked, error: parkError } = await deps
+    .service()
+    .rpc('waves_otp_relay_park', { p_phone: phone, p_code: otp });
+  if (parkError) {
+    // Not fatal: the relay is one way in among several, and a database blip here
+    // must not take down the ordinary send with it. Worst case the code travels
+    // as an SMS nobody reads and the exchange times out.
+    console.error('otp-send relay park failed, sending normally:', parkError.message);
+  } else if (parked === true) {
+    return new Response(JSON.stringify({}), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
   // Configuration is checked before the quota is spent. A provider outage still
   // burns an attempt below — the gate deliberately runs ahead of the spend — but
   // a deploy that is simply missing its Twilio secrets should not consume all
-  // four of somebody's daily codes for a send this function was never capable of
+  // three of somebody's daily codes for a send this function was never capable of
   // making.
   const accountSid = deps.env('TWILIO_ACCOUNT_SID');
-  const from = deps.env('TWILIO_WHATSAPP_FROM');
-  const contentSid = deps.env('TWILIO_OTP_CONTENT_SID');
+  const form = sendParams(deps.env, phone, otp);
 
   // Twilio takes either the account's own auth token or an API key pair, and
   // the pair is the better credential: it is scoped, it can be revoked on its
@@ -206,8 +349,8 @@ export async function handleOtpSend(request: Request, deps: OtpSendDeps): Promis
   const user = keySid && keySecret ? keySid : accountSid;
   const authSecret = keySid && keySecret ? keySecret : deps.env('TWILIO_AUTH_TOKEN');
 
-  if (!accountSid || !user || !authSecret || !from || !contentSid) {
-    return hookError(500, 'WhatsApp sending is not configured');
+  if (!accountSid || !user || !authSecret || !form) {
+    return hookError(500, 'Code sending is not configured');
   }
 
   // Counted before the message is sent, matching `receipt-parse`, where the
@@ -218,38 +361,39 @@ export async function handleOtpSend(request: Request, deps: OtpSendDeps): Promis
   // Keyed on the number rather than a profile id: `auth.sms.enable_signup` is
   // off, so one number is one account, and the number is the only identity that
   // exists at the moment a code is asked for.
-  const { data, error } = await deps.service().rpc('waves_rate_limit', {
-    p_subject: `phone:${phone}`,
-    p_bucket: 'otp-send',
-    p_limit: OTP_DAILY_LIMIT,
-    p_window_seconds: OTP_WINDOW_SECONDS,
-  });
+  // `waves_phone_gate`, not the generic limiter: a window that resets at
+  // midnight is no answer to a number that spends its whole allowance every day
+  // and never once signs in. That shape is SMS pumping — the codes are never
+  // read, because nobody is there to read them — and the gate answers it by
+  // blocking the number outright rather than letting it start again tomorrow.
+  // The daily count, the strike and the block are one call because they have to
+  // be: a concurrent second ask would otherwise read a count about to change.
+  const { data, error } = await deps.service().rpc('waves_phone_gate', { p_phone: phone });
 
   if (error) {
     // Fails open, the same trade the shared limiter makes: the only way this
     // happens is the database being unreachable, and refusing every sign-in
     // during a database blip does more damage than the abuse it guards against.
-    console.error('otp-send rate limit check failed, allowing:', error.message);
+    console.error('otp-send gate check failed, allowing:', error.message);
   } else {
-    const decision = data as { allowed?: boolean; retryAfter?: number } | null;
+    const decision = data as { allowed?: boolean; reason?: string } | null;
     if (decision && decision.allowed === false) {
+      // One sentence for both refusals. A blocked number and a spent one are
+      // told the same thing, because the difference is exactly what somebody
+      // probing for numbers worth attacking would like to learn — and because a
+      // person in either case has the same three doors left.
+      console.warn('otp-send refused', decision.reason ?? 'unknown');
+      // Deliberately says neither the number nor the reason. The cap is an
+      // `app_config` knob an admin can move, so a sentence naming three codes is
+      // a sentence that goes stale the moment it is changed — and a refusal that
+      // distinguishes "you have used today's codes" from "this number is
+      // blocked" tells somebody probing which numbers are worth attacking.
       return hookError(
         429,
-        `That is ${OTP_DAILY_LIMIT} codes today. Try again tomorrow, or sign in another way.`,
+        'Too many sign-in codes for that number. Try again later, or sign in another way.',
       );
     }
   }
-
-  // A business-initiated WhatsApp message must be a template Meta has approved,
-  // referenced by its Content SID; free-form text is only allowed inside a
-  // 24-hour window a sign-in has no reason to be in. `ContentVariables` fills
-  // the template's one placeholder with the code.
-  const form = new URLSearchParams({
-    To: `whatsapp:${phone}`,
-    From: from.startsWith('whatsapp:') ? from : `whatsapp:${from}`,
-    ContentSid: contentSid,
-    ContentVariables: JSON.stringify({ '1': otp }),
-  });
 
   // A refused connection, a DNS failure or a timeout rejects rather than
   // answering, and an exception escaping here would leave GoTrue with a bare 500
@@ -275,7 +419,7 @@ export async function handleOtpSend(request: Request, deps: OtpSendDeps): Promis
       },
     );
   } catch (caught) {
-    console.error('twilio whatsapp request failed', caught);
+    console.error('twilio request failed', caught);
     return hookError(502, 'Could not send the code just now. Try again in a moment.');
   }
 
@@ -283,7 +427,7 @@ export async function handleOtpSend(request: Request, deps: OtpSendDeps): Promis
     // Twilio's own message is logged, never returned: it can name the sender
     // and the account, and this text is shown to whoever asked for the code.
     const detail = await response.text().catch(() => '');
-    console.error('twilio whatsapp send failed', response.status, detail);
+    console.error('twilio send failed', response.status, detail);
     return hookError(502, 'Could not send the code just now. Try again in a moment.');
   }
 
