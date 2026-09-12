@@ -25,6 +25,16 @@ const ENV: Record<string, string> = {
   SUPABASE_ANON_KEY: 'anon-key',
 };
 
+/**
+ * Matched exactly rather than by substring, and not only because CodeQL says so:
+ * `url.includes('googleapis.com')` is the shape that treats
+ * `https://evil.example/?x=googleapis.com` as Google. It is a test double here,
+ * so nothing was reachable — but a routing mock that matches loosely also hides
+ * a typo in the URL under test by quietly falling through to another branch.
+ */
+const JWKS_URL =
+  'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
+
 const JWKS = { keys: [{ kid: 'key-1', kty: 'RSA', n: 'n', e: 'AQAB', alg: 'RS256' }] };
 
 function request(body: unknown = { idToken: 'a.b.c' }): Request {
@@ -68,24 +78,27 @@ function deps(
   });
 
   const fetchImpl = vi.fn((url: string) => {
-    if (url.includes('googleapis.com')) {
+    if (url === JWKS_URL) {
       return Promise.resolve(
         new Response(JSON.stringify(JWKS), { status: overrides.jwksOk === false ? 500 : 200 }),
       );
     }
-    if (url.endsWith('/auth/v1/otp')) {
+    if (url === `${ENV.SUPABASE_URL}/auth/v1/otp`) {
       return Promise.resolve(
         new Response(overrides.otpBody ?? '{}', { status: overrides.otpStatus ?? 200 }),
       );
     }
-    return Promise.resolve(
-      new Response(
-        JSON.stringify(
-          overrides.verifyBody ?? { access_token: 'access-1', refresh_token: 'refresh-1' },
+    if (url === `${ENV.SUPABASE_URL}/auth/v1/verify`) {
+      return Promise.resolve(
+        new Response(
+          JSON.stringify(
+            overrides.verifyBody ?? { access_token: 'access-1', refresh_token: 'refresh-1' },
+          ),
+          { status: overrides.verifyStatus ?? 200 },
         ),
-        { status: overrides.verifyStatus ?? 200 },
-      ),
-    );
+      );
+    }
+    throw new Error(`unexpected fetch: ${url}`);
   });
 
   const env = { ...ENV, ...(overrides.env ?? {}) };
@@ -153,8 +166,8 @@ describe('a verified token', () => {
     expect(opened).toBeGreaterThanOrEqual(0);
     expect(opened).toBeLessThan(claimed);
 
-    const askedAt = d.fetchImpl.mock.calls.findIndex((call) =>
-      String(call[0]).endsWith('/auth/v1/otp'),
+    const askedAt = d.fetchImpl.mock.calls.findIndex(
+      (call) => call[0] === `${ENV.SUPABASE_URL}/auth/v1/otp`,
     );
     expect(askedAt).toBeGreaterThanOrEqual(0);
   });
@@ -181,9 +194,7 @@ describe('a token that does not verify', () => {
     expect(response.status).toBe(401);
     expect(rpcNames(d)).toEqual([]);
     // The JWKS fetch is the only call it should have made.
-    expect(d.fetchImpl.mock.calls.every((call) => String(call[0]).includes('googleapis'))).toBe(
-      true,
-    );
+    expect(d.fetchImpl.mock.calls.every((call) => call[0] === JWKS_URL)).toBe(true);
   });
 
   it('says nothing about why', async () => {
