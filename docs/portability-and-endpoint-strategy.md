@@ -78,8 +78,9 @@ throws at module load if either is missing. Changing them means a new deployment
 `@supabase/ssr`, no middleware and no runtime-config indirection anywhere in the
 repo; env reaches the build through `vercel pull` in
 `.github/workflows/vercel-deploy.yml:100` and is frozen at `vercel build`
-(`:119`). Note that `apps/web` also mounts `@waves/agent-mcp` at `/api/mcp`, so
-the web deployment's `NEXT_PUBLIC_*` are that server's Supabase config too.
+(`:119`). The web-hosted HTTP MCP route at `apps/web/src/app/api/mcp/route.ts`
+currently reads the same `NEXT_PUBLIC_*` pair in that deployment's server
+runtime, so changing _that_ endpoint follows the web deploy contract.
 
 **Admin (`apps/admin`): env var and a redeploy.**
 `apps/admin/src/lib/data.ts:28-29` reads `SUPABASE_URL` /
@@ -91,9 +92,14 @@ with `import 'server-only'`). No bundle inlining, no browser exposure.
 address is an environment variable. This is the shape the rest of the system
 should copy.
 
-**Agent MCP (`apps/agent-mcp`): runtime env.**
-`apps/agent-mcp/src/supabase.ts:28-29` reads `WAVES_SUPABASE_URL` (falling back
-to `EXPO_PUBLIC_SUPABASE_URL`).
+**Agent MCP (`apps/agent-mcp`): runtime env, separate from web.**
+The stdio/standalone package is not configured by `NEXT_PUBLIC_*` at all:
+`apps/agent-mcp/src/supabase.ts:28-30` reads `WAVES_SUPABASE_URL` /
+`WAVES_SUPABASE_ANON_KEY`, falling back to `EXPO_PUBLIC_SUPABASE_URL` /
+`EXPO_PUBLIC_SUPABASE_ANON_KEY`, plus the caller's access token. Changing those
+values requires restarting the MCP process or serverless deployment that owns
+that runtime environment; rebuilding the web client does not update an already
+running standalone MCP server.
 
 **Is a forced store release ever genuinely required?** Yes, for a specific
 class: anything that changes the _native_ side of the app. Concretely — the
@@ -262,7 +268,11 @@ Three tiers, most-specific wins:
    timeout, that can update tier 2.
 
 The endpoint and the key travel together and are versioned together. A pointer
-that gives a URL without its key is useless.
+that gives a URL without its key is useless. In production every accepted URL in
+every tier must be `https:` before a client is constructed. A resolver must
+reject `http:` endpoints and `http:` redirects, and it must never forward bearer
+tokens across an insecure redirect; a signature on the pointer and pairing the
+URL with its key protect integrity, not transport confidentiality.
 
 ### Where the pointer lives, and the bootstrap problem stated honestly
 
@@ -293,6 +303,15 @@ anyone who can take the domain or the CDN can point every installed copy of
 Waves at a server of theirs and harvest live sessions — which is a considerably
 worse failure than needing a store release. **An unsigned pointer is not
 acceptable; do not ship one.**
+
+One more trust boundary matters: if the verifier itself is ordinary JavaScript,
+then an OTA update can replace it. The secure version keeps endpoint selection
+and signature verification outside the OTA-replaceable bundle (native code), or
+turns on native-verified signing for the whole OTA update so a compromised update
+cannot ship a resolver that skips the Ed25519 check. If we decide that whoever
+can publish OTAs is fully trusted to change endpoints, that narrower trust model
+has to be stated explicitly; otherwise the previous endpoint remains the fallback
+for unsigned or invalid documents.
 
 Two further rules, both cheap and both load-bearing:
 
@@ -352,9 +371,13 @@ transaction and then crypto-erases the key. For an intentional sign-out on a
 shared phone that is exactly right and should not change.
 
 But `session` also goes null when `onAuthStateChange` reports `SIGNED_OUT`
-(`apps/mobile/src/lib/auth.tsx:385-394`), and supabase-js emits that when a
-token refresh is **definitively rejected** by the auth server — not on a network
-error, but on a real answer saying "I do not know this refresh token".
+(`apps/mobile/src/lib/auth.tsx:385-394`). Current Supabase Auth distinguishes
+retryable failures and a still-valid access token from the terminal case: DNS,
+timeout and other network failures should retry, and an invalid refresh token
+while the access token is still valid should not immediately force a local wipe.
+The dangerous path is the one after the access token has expired and refresh is
+definitively rejected by the auth server — a real answer saying "I do not know
+this refresh token".
 
 **A moved auth server is precisely the machine that gives that answer.**
 `infra/self-host/scripts/dump-from-supabase.sh` dumps `auth.users` and
@@ -382,6 +405,10 @@ Three fixes, in order of importance:
 3. **Announce a write freeze and flush first.** `MIGRATION.md` §7 already asks
    for this. Add: the client should not accept a new endpoint while
    `pendingCount > 0`.
+4. **Test both invalid-token branches.** Coverage should prove that an invalid
+   refresh token leaves local data alone while the access token is still usable,
+   and that the post-expiry invalid-token path stops sync without deleting the
+   mirror or queue until a deliberate sign-out or account switch.
 
 And the honest residue: **if the destination is a different auth product (Path
 C), sessions cannot be carried at all.** Everyone signs in again. That makes fix
@@ -392,10 +419,16 @@ and "sign in again, and your unsent expenses are gone".
 
 Anyone who never takes the OTA keeps talking to the old host. Plan for it:
 
-- **Keep the old endpoint answering** — proxying to the new one if possible,
-  otherwise read-only — for at least one release cycle. `MIGRATION.md` §7 says
-  "keep the Supabase project paused, not deleted"; paused is not answering.
-  Prefer a redirect or a thin proxy over a pause.
+- **Keep the old endpoint answering** for at least one release cycle. The
+  default should be a protocol-aware reverse proxy to the new stack, because the
+  old mobile clients still need authenticated refresh, PostgREST writes, Storage
+  uploads and signed URLs, and Realtime subscribe/reconnect to behave like the
+  old host. A 307/308 redirect is acceptable only after those four paths have
+  been tested with bearer tokens and uploads; never redirect to `http:` and never
+  forward credentials across an insecure hop. If writes cannot be supported,
+  document the endpoint as read-only and preserve existing sessions rather than
+  swapping in a different auth product. `MIGRATION.md` §7 says "keep the
+  Supabase project paused, not deleted"; paused is not answering.
 - The update gate (`app_releases`) **cannot help here**, because it is served by
   the host being left. If old builds must be forced forward, the minimum-version
   row has to be set on the **old** host before the flip, not after.
@@ -452,12 +485,16 @@ after this we _could_ move in a weekend, and several current bugs are fixed.
 uploads land on R2 while old ones dual-read. Removes the largest byte-volume
 dependency and is independently useful (cost, and the storage cap becomes real).
 
-**Stage 2 — take the database (1–2 weeks).** Move Postgres to the target
-provider (managed or our own). Keep GoTrue, PostgREST, Storage and the Edge
-runtime running against it — self-hosted or still Supabase's, depending on the
-target. Replace `pg_net` with the external fan-out worker, and `pg_cron` with
-the provider's scheduler, if the target lacks them. Data via
-`infra/self-host/scripts`, UUIDs and sessions preserved. **App code unchanged.**
+**Stage 2 — take the database (2–4 weeks).** Move Postgres to the target
+provider (managed or our own). If the primary database leaves hosted Supabase,
+assume the gateway services move with it: self-host GoTrue, PostgREST, Storage,
+Realtime and the Edge runtime against that database, as the `infra/self-host`
+stack already models. Do not plan on hosted Supabase's GoTrue/PostgREST/Storage
+using an arbitrary external primary unless that topology is explicitly supported
+and rehearsed. Replace `pg_net` with the external fan-out worker, and `pg_cron`
+with the provider's scheduler, if the target lacks them. Data via
+`infra/self-host/scripts`, UUIDs and sessions preserved. **App code unchanged,
+but the gateway now has to be operated by us.**
 
 One thing to fix on the way: no CI workflow runs `prisma migrate deploy` — the
 production schema is applied by hand from a laptop (`pnpm db:migrate`). That is
@@ -465,9 +502,11 @@ survivable on Supabase and dangerous on a fresh target, where "did the whole
 history apply?" is the question the squash lesson above says nobody can answer
 by looking.
 
-**Stage 3 — take the gateway (1–2 weeks).** Self-host GoTrue + PostgREST +
-Storage + Realtime behind Kong, exactly as `infra/self-host/docker-compose.yml`
-already describes, on the target's compute. Flip the endpoint via the resolver
+**Stage 3 — take the public gateway and edge compute (1–2 weeks).** Put the
+self-hosted GoTrue + PostgREST + Storage + Realtime + Edge runtime behind the
+production Kong/custom-domain front door, exactly as
+`infra/self-host/docker-compose.yml` already describes, on the target's compute.
+Flip the endpoint via the resolver
 from Stage 0. Register the new OAuth callbacks first. **App code unchanged.**
 
 At the end of Stage 3 Waves runs on DigitalOcean, GCP or AWS with no Supabase
