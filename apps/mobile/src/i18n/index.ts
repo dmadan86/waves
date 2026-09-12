@@ -2084,6 +2084,18 @@ export interface UiStrings {
     remindedToday: string;
     /** Spoken hint on a tappable person row: where the tap goes. */
     seeSharedGroups: string;
+    /** Entry-point row and screen heading for adding people out of one of the
+     *  user's other groups — the "same five friends, a new trip" case. */
+    fromAnotherGroup: string;
+    /** The line under that row, saying what pressing it does. */
+    fromAnotherGroupHint: string;
+    /** Spoken only, on a pickable row: which group this person came from.
+     *  Carries `{group}`. */
+    fromGroupLabel: string;
+    /** Empty state on the "from another group" screen — nobody to offer
+     *  because there is no other group yet. */
+    noOtherGroupsTitle: string;
+    noOtherGroupsBody: string;
   };
   /** One person's profile, finding a person, and your own say in both. */
   person: {
@@ -4709,6 +4721,12 @@ const en: UiStrings = {
     reminded: 'Reminded',
     remindedToday: 'Nudged today',
     seeSharedGroups: 'Opens the groups you share with them',
+    fromAnotherGroup: 'From another group',
+    fromAnotherGroupHint: 'Add people already in one of your other groups',
+    fromGroupLabel: 'From {group}',
+    noOtherGroupsTitle: 'No other groups yet',
+    noOtherGroupsBody:
+      'People from your other groups will show up here once you have more than one.',
   },
   person: {
     title: 'Profile',
@@ -7371,6 +7389,12 @@ const ta: UiStrings = {
     reminded: 'நினைவூட்டப்பட்டது',
     remindedToday: 'இன்று நினைவூட்டிவிட்டீர்கள்',
     seeSharedGroups: 'நீங்கள் இருவரும் பகிரும் குழுக்களைத் திறக்கும்',
+    fromAnotherGroup: 'மற்றொரு குழுவிலிருந்து',
+    fromAnotherGroupHint: 'உங்கள் மற்ற குழுக்களில் ஏற்கனவே உள்ளவர்களைச் சேர்க்கவும்',
+    fromGroupLabel: '{group} இலிருந்து',
+    noOtherGroupsTitle: 'இன்னும் வேறு குழுக்கள் இல்லை',
+    noOtherGroupsBody:
+      'ஒன்றுக்கும் மேற்பட்ட குழுக்கள் உங்களிடம் இருந்தவுடன், உங்கள் மற்ற குழுக்களைச் சேர்ந்தவர்கள் இங்கே தோன்றுவார்கள்.',
   },
   person: {
     title: 'சுயவிவரம்',
@@ -10030,6 +10054,11 @@ const hi: UiStrings = {
     reminded: 'याद दिला दिया',
     remindedToday: 'आज याद दिला चुके',
     seeSharedGroups: 'उनके साथ साझा किए गए समूह खोलता है',
+    fromAnotherGroup: 'किसी दूसरे समूह से',
+    fromAnotherGroupHint: 'अपने दूसरे समूहों में पहले से मौजूद लोगों को जोड़ें',
+    fromGroupLabel: '{group} से',
+    noOtherGroupsTitle: 'अभी कोई और समूह नहीं है',
+    noOtherGroupsBody: 'एक से ज़्यादा समूह होने पर आपके दूसरे समूहों के लोग यहाँ दिखेंगे.',
   },
   person: {
     title: 'प्रोफ़ाइल',
@@ -12792,6 +12821,11 @@ const ar: UiStrings = {
     reminded: 'تم التذكير',
     remindedToday: 'ذُكّر اليوم',
     seeSharedGroups: 'يفتح المجموعات المشتركة معكما',
+    fromAnotherGroup: 'من مجموعة أخرى',
+    fromAnotherGroupHint: 'أضف أشخاصًا موجودين بالفعل في إحدى مجموعاتك الأخرى',
+    fromGroupLabel: 'من {group}',
+    noOtherGroupsTitle: 'لا توجد مجموعات أخرى بعد',
+    noOtherGroupsBody: 'سيظهر هنا أشخاص من مجموعاتك الأخرى بمجرد أن تنضم إلى أكثر من مجموعة واحدة.',
   },
   person: {
     title: 'الملف الشخصي',

@@ -30,6 +30,8 @@ import { type CurrencyCode } from '@waves/core';
 
 import { GroupPhoto } from '@/components/GroupPhoto';
 import { type PickedContact } from '@/components/ContactPicker';
+import { offerFromOtherGroups } from '@/lib/addFromAnotherGroup';
+import { requestAddFromAnotherGroup } from '@/lib/addFromAnotherGroupBridge';
 import { friendlyError } from '@/lib/errors';
 import { groupDeleteWarning, orderDebtsForWarning } from '@/lib/groupDeleteWarning';
 import { GROUP_DESCRIPTION_MAX, normaliseGroupDescription } from '@/lib/groupDescription';
@@ -48,9 +50,11 @@ import {
   useDeleteGroup,
   useGroup,
   useGroupLedger,
+  useGroups,
   useLeaveGroup,
   useUpdateGroup,
 } from '@/data/hooks';
+import { useKnownContacts } from '@/data/knownContacts';
 import { fill, plural, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { useFavorites } from '@/lib/favorites';
@@ -229,6 +233,52 @@ export default function GroupSettingsScreen() {
       onPicked: (people) => void addPicked(people),
     });
     router.push('/contact-picker');
+  };
+
+  /**
+   * The other route in from `lib/addFromAnotherGroup`: the people already in
+   * your other groups — the same five friends, a new trip. `addSomeoneRoutes`
+   * (PR #784) names this gap and deliberately returns no row for it because
+   * nothing built it yet; this is that flow, wired in ahead of that screen's
+   * merge (see the header comment on `lib/addFromAnotherGroup` for the full
+   * shape and the identity/consent decisions behind it).
+   *
+   * Whether the row is worth drawing at all is decided the same way that
+   * module decides everything else — run the real selection, not a proxy
+   * like "is in more than one group", since a lone other group made up of
+   * real-account members alone (nobody to copy) must not offer a door that
+   * opens onto an empty list.
+   */
+  const { membersByGroup } = useKnownContacts();
+  const otherGroups = useGroups();
+  const sourceGroups = (otherGroups.data ?? []).map((sourceGroup) => {
+    const raw = membersByGroup.get(sourceGroup.id) ?? [];
+    return {
+      groupId: sourceGroup.id,
+      groupLabel: groupLabel(sourceGroup, raw, profile?.id ?? null),
+      members: raw.map((member) => ({
+        memberId: member.id,
+        profileId: member.profile_id,
+        name: displayName(member, profile?.id ?? null),
+        email: member.invite_email ?? null,
+        phone: member.invite_phone ?? null,
+        leftAt: member.left_at,
+      })),
+    };
+  });
+  const fromAnotherGroupOffer = offerFromOtherGroups({
+    currentGroupId: groupId,
+    viewerProfileId: profile?.id ?? null,
+    groups: sourceGroups,
+  });
+
+  // Leaves its intent with the bridge, same as the contacts row — the ticked
+  // people come back through the very same `addPicked`, so a batch from
+  // another group fails and reports exactly the way a batch from contacts
+  // already does (see `addPicked` above).
+  const openAddFromAnotherGroup = (): void => {
+    requestAddFromAnotherGroup({ groupId, onPicked: (people) => void addPicked(people) });
+    router.push('/add-from-another-group');
   };
 
   const [name, setName] = useState(group.data?.name ?? '');
@@ -816,6 +866,23 @@ export default function GroupSettingsScreen() {
               disabled={addingContacts || addGhost.isPending}
               onPress={openContactPicker}
             />
+            {/* The other door: people already written down in your other
+                groups — the same trip's friends, next month. Dropped rather
+                than drawn disabled when there is nobody to offer (see
+                `fromAnotherGroupOffer` above), the same rule
+                `addSomeoneRoutes.ts` (PR #784) states for every row in this
+                card: a row leading nowhere is worse than no row. This is a
+                plain ghost button for now, matching the card's current
+                shape — once #784 lands it belongs in `addSomeoneRoutes.ts`
+                as a named, hinted row like the other two. */}
+            {fromAnotherGroupOffer.length > 0 ? (
+              <Button
+                label={t.people.fromAnotherGroup}
+                variant="ghost"
+                disabled={addingContacts || addGhost.isPending}
+                onPress={openAddFromAnotherGroup}
+              />
+            ) : null}
             {addingContacts ? <ActivityIndicator color={theme.color.brand} /> : null}
             {addError ? <Callout tone="negative">{addError}</Callout> : null}
           </Card>
