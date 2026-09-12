@@ -640,6 +640,18 @@
     @apply border border-line-strong bg-white text-[#1f1f1f];
     box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
   }
+  /* Sign in with Apple, at Apple's colours rather than ours: black field, white
+     mark and white words. Fixed hex, not a theme token, for the same reason the
+     glyph beside it is fixed — this button is Apple's, and one that followed our
+     palette would stop being the button their guidelines describe. It keeps the
+     shared .btn geometry, so it and the Google button above it are the same
+     size and corner, which is the other half of what those guidelines ask. */
+  .btn.apple {
+    @apply border border-black bg-black text-white;
+  }
+  .btn.apple:hover {
+    @apply bg-[#1a1a1a];
+  }
 
   .split-input {
     @apply flex items-center gap-[10px] border-t border-line py-2;
