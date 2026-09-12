@@ -1,12 +1,14 @@
-import { useMemo, useRef, useState } from 'react';
+import { memo, useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, TextInput, View } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   Button,
   directionalIcon,
   EmptyState,
+  Gradient,
   IconButton,
   iconSize,
   MoneyText,
@@ -19,8 +21,9 @@ import {
 
 import { useGroups, useHomeSummary } from '@/data/hooks';
 import { groupLabel } from '@/data/types';
-import { plural, useStrings } from '@/i18n';
+import { plural, useStrings, type UiStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
+import { PressableScale } from '@/lib/anim';
 import { GroupMark } from '@/components/GroupMark';
 import { SkeletonList } from '@/components/Skeletons';
 import { router } from '@/lib/navigation';
@@ -32,7 +35,25 @@ import { router } from '@/lib/navigation';
  */
 const SEARCH_THRESHOLD = 6;
 
+/**
+ * The All-groups wash — the *same* two diagonal stops the dashboard's net-balance
+ * slide rides, not a fourth hue invented for this screen.
+ *
+ * Friends deliberately earns its own indigo, because it is a destination you can
+ * land on cold and the colour is how you know which tab you are on. This screen
+ * is not a destination of its own: it is the dashboard's capped group list opened
+ * in full, reached only by tapping "All groups ›" on a green hero. Carrying that
+ * same green through the push makes the door and the room behind it read as one
+ * place, and tells the reader they are still looking at their groups rather than
+ * at somewhere new.
+ */
+const GROUPS_GRADIENT = ['#1F6B49', '#0C3A27'] as const;
+
 const absBig = (n: bigint): bigint => (n < 0n ? -n : n);
+
+/** The quieter white on the wash — placeholder and field furniture, dimmed
+    enough to sit behind the typed text but still well clear of the green. */
+const HERO_INK_FAINT = 'rgba(255,255,255,0.72)';
 
 /**
  * The full, browsable list of every group — the "All groups" door off the
@@ -48,6 +69,24 @@ const absBig = (n: bigint): bigint => (n < 0n ? -n : n);
  * where a new-thing button belongs — top-right, and again inside the empty
  * state, so the first-time reader is never staring at "No groups yet" with no
  * way forward.
+ *
+ * What it looked like was the part that had not kept up. The sorting was right
+ * and the screen still read as a system dialog: a plain back-chevron bar over
+ * bare rows on the page colour, hairlines running edge to edge, nothing that
+ * said which app this was. Every other list in Waves had by then settled on one
+ * shape — a saturated hero panel bled up under the status bar carrying the title
+ * and the screen's controls, and the rows beneath it on a single bordered,
+ * hairline-divided card (the dashboard's group list, then Friends). This screen
+ * now wears that shape too: same hero geometry, same card, same 44dp mark and
+ * the same row rhythm the dashboard's `GroupRow` and Friends' `PersonRow` use,
+ * so the full roster looks like the preview it was opened from.
+ *
+ * Nothing about *what* it shows moved — the same rows, the same order, the same
+ * destinations, the same words. The hero deliberately carries no headline figure
+ * the way the dashboard's and Friends' do: a total across groups would be new
+ * information on a screen that was only meant to be repainted, and there is no
+ * honest single number across currencies anyway (ADR-003). The search field
+ * rides the wash instead, which is the one control this screen genuinely has.
  */
 export default function AllGroupsScreen() {
   const theme = useTheme();
@@ -121,28 +160,235 @@ export default function AllGroupsScreen() {
   // without the per-render churn an inline array would cause.
   const listExtraData = useMemo(() => ({ locale, theme }), [locale, theme]);
 
-  const header = (
-    <View style={{ paddingTop: theme.spacing.md, gap: theme.spacing.lg }}>
+  const empty = loading ? (
+    <SkeletonList rows={5} />
+  ) : trimmed ? (
+    // A search that matched nothing — the reason the list is empty is the query,
+    // so the mark and words say "nothing matched", not "you have no groups".
+    <EmptyState
+      icon={<Ionicons name="search-outline" size={iconSize.xxl} color={theme.color.brand} />}
+      title={t.noGroupsMatch}
+    />
+  ) : (
+    // The true first-run empty: reassure, explain lightly what a "group" is for,
+    // and hand over the one action that moves you off this screen.
+    <EmptyState
+      icon={<Ionicons name="people-outline" size={iconSize.xxl} color={theme.color.brand} />}
+      title={t.tabs.noGroups}
+      body={t.noGroupsBody}
+      action={<Button label={t.newGroup} onPress={() => router.push('/new-group')} />}
+    />
+  );
+
+  return (
+    // No safe-area edge of its own: the hero paints its own top inset so the
+    // colour runs up behind the status bar instead of stopping at a white strip.
+    <Screen edges={[]}>
+      {/* Fixed above the scroll, like the dashboard's and Friends' heroes — only
+          the roster below it moves. */}
+      <GroupsHero
+        t={t}
+        showSearch={showSearch}
+        query={query}
+        onQuery={setQuery}
+        searchRef={searchRef}
+      />
+
+      <View
+        style={{
+          flex: 1,
+          paddingHorizontal: theme.spacing.lg,
+          paddingTop: theme.spacing.lg,
+        }}
+      >
+        {loading || rows.length === 0 ? (
+          // Centred in what can be *seen*, not in what is laid out: the box runs
+          // on under the tab bar, so without its clearance the artwork settles
+          // below the middle of the visible screen. The skeleton sits at the top
+          // instead — it is standing in for rows, and rows start at the top.
+          <View
+            style={{
+              flex: 1,
+              justifyContent: loading ? 'flex-start' : 'center',
+              paddingBottom: clearance,
+            }}
+          >
+            {empty}
+          </View>
+        ) : (
+          // The roster as one clean list on a single card — the same surface,
+          // border, radius and clipped corners the dashboard's groups card and
+          // the Friends list use. Each row draws its own hairline, so the card
+          // reads as one divided list rather than a stack of loose rows.
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: theme.color.surface,
+              borderRadius: theme.radius.lg,
+              borderWidth: 1,
+              borderColor: theme.color.border,
+              overflow: 'hidden',
+            }}
+          >
+            <FlashList
+              data={rows}
+              keyExtractor={(row) => (row.kind === 'header' ? 'settled-header' : row.item.group.id)}
+              getItemType={(row) => row.kind}
+              // The group-ledger settings: render well ahead of the viewport so a
+              // fast fling doesn't flash blank rows. The row items already carry
+              // their own balance/pending/count (baked in the memo above), so a
+              // money change flows through `data`; the outside a row reads —
+              // locale and theme — rides the memoised `listExtraData`, which
+              // changes identity only on a real language or light/dark switch,
+              // not every render.
+              drawDistance={1500}
+              extraData={listExtraData}
+              contentContainerStyle={{ paddingBottom: clearance }}
+              showsVerticalScrollIndicator={false}
+              // With the search keyboard open, a tap on a result row should open
+              // it in one go, not be eaten by the keyboard dismiss (FlashList
+              // defaults this to "never").
+              keyboardShouldPersistTaps="handled"
+              renderItem={({ item: row, index }) => {
+                if (row.kind === 'header') {
+                  return <SectionBand label={row.label} divider={index > 0} />;
+                }
+
+                const { group, balance, pending, count } = row.item;
+                const statusLabel =
+                  balance === 0n ? t.allSettled : balance > 0n ? t.youAreOwed : t.youOwe;
+                // Status first, member count second: the reader's question is "do
+                // I owe or am I owed?", not "how many people". Pending keeps its
+                // context rather than replacing it — it used to swallow the member
+                // count whole.
+                const subtitle = pending
+                  ? `${t.pendingConfirmation} · ${plural(locale, count, t.memberCount)}`
+                  : `${statusLabel} · ${plural(locale, count, t.memberCount)}`;
+
+                return (
+                  <GroupListRow
+                    groupId={group.id}
+                    label={row.item.label}
+                    coverEmoji={group.cover_emoji}
+                    balance={balance}
+                    currency={group.default_currency}
+                    locale={locale}
+                    subtitle={subtitle}
+                    // Settled groups are present, not urgent: dimmed so the eye
+                    // lands on the rows that still need something.
+                    dim={!row.item.needsAction}
+                    // A hairline above every row except the first, and except the
+                    // one that follows the "Settled" band — the band already draws
+                    // its own edges, and a second line under it reads as a stray
+                    // double rule.
+                    divider={index > 0 && rows[index - 1]?.kind === 'group'}
+                  />
+                );
+              }}
+            />
+          </View>
+        )}
+      </View>
+    </Screen>
+  );
+}
+
+/**
+ * The All-groups hero — the dashboard's account panel, carrying the top of the
+ * screen: the way back, the title, the door to a new group, and (once the roster
+ * is long enough to need it) the search field. One green wash bled edge to edge
+ * and up under the status bar, its bottom corners rounded, the white body sliding
+ * in beneath.
+ *
+ * Unlike the dashboard's and Friends' heroes it shows no figure. That is
+ * deliberate: this screen was only ever meant to be repainted, and a total across
+ * every group would be a number nobody had asked it to compute — and could not
+ * compute honestly across currencies anyway (ADR-003). The search field takes the
+ * space a balance would have had, which is the right trade for the one screen in
+ * the app whose job is finding a group rather than reading one.
+ */
+function GroupsHero({
+  t,
+  showSearch,
+  query,
+  onQuery,
+  searchRef,
+}: {
+  t: UiStrings;
+  /** The roster is long enough that the search field is earning its space. */
+  showSearch: boolean;
+  query: string;
+  onQuery: (next: string) => void;
+  searchRef: React.RefObject<TextInput | null>;
+}): React.JSX.Element {
+  const theme = useTheme();
+  const insets = useSafeAreaInsets();
+
+  return (
+    <View
+      style={{
+        paddingTop: insets.top + theme.spacing.md,
+        paddingHorizontal: theme.spacing.xl,
+        // A hero with a search field under its title already has two rows of
+        // height; one with only a title needs the extra breath, or the panel
+        // collapses to something that reads as a toolbar rather than a header.
+        paddingBottom: showSearch ? theme.spacing.lg : theme.spacing.xxl,
+        borderBottomLeftRadius: theme.radius.xxl,
+        borderBottomRightRadius: theme.radius.xxl,
+        gap: theme.spacing.lg,
+        overflow: 'hidden',
+      }}
+    >
+      {/* The wash, clipped to the hero's rounded corner. Flat-falls to its first
+          stop if the native gradient is unavailable — still white on green. */}
+      <Gradient
+        colors={GROUPS_GRADIENT}
+        radius={0}
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+      />
+      <HeroArt />
+
       <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+        {/* Mirrored with the writing direction: in Arabic the way back is to the
+            right, and a hard-coded chevron would point at the wrong edge. */}
         <IconButton label={t.common.back} onPress={() => router.back()}>
           <Ionicons
             name={directionalIcon('chevron-back')}
             size={iconSize.xxl}
-            color={theme.color.text}
+            color={theme.color.onBrand}
           />
         </IconButton>
-        <Text variant="title" style={{ flex: 1 }}>
+        <Text variant="title" tone="onBrand" style={{ flex: 1 }} numberOfLines={1}>
           {t.groupsTitle}
         </Text>
-        {/* The new-group door, where a new-thing button belongs. It repeats in
-            the empty state below, so it's reachable whether or not any group
-            exists yet. */}
-        <IconButton label={t.newGroup} onPress={() => router.push('/new-group')}>
-          <Ionicons name="add" size={iconSize.xxl} color={theme.color.brand} />
-        </IconButton>
+        {/* The new-group door, where a new-thing button belongs. A solid white
+            disc with the hero's green glyph — a real button, the same one Friends
+            puts in its hero — rather than a bare icon that disappears into the
+            wash. It repeats in the empty state below, so it is reachable whether
+            or not any group exists yet. */}
+        <PressableScale
+          accessibilityRole="button"
+          accessibilityLabel={t.newGroup}
+          onPress={() => router.push('/new-group')}
+          hitSlop={10}
+          style={{
+            width: 38,
+            height: 38,
+            borderRadius: 19,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: theme.color.onBrand,
+          }}
+        >
+          <Ionicons name="add" size={iconSize.xl} color={GROUPS_GRADIENT[0]} />
+        </PressableScale>
       </Row>
 
       {showSearch ? (
+        // The field rides the colour rather than sitting on the page below it: a
+        // translucent white pill, the hero's own control. A grey field on white
+        // would have pushed the roster down a whole row and left the panel a bare
+        // title bar.
         <Pressable
           onPress={() => searchRef.current?.focus()}
           accessible={false}
@@ -153,174 +399,209 @@ export default function AllGroupsScreen() {
             height: 44,
             paddingHorizontal: theme.spacing.lg,
             borderRadius: theme.radius.pill,
-            backgroundColor: theme.color.surfaceMuted,
+            backgroundColor: 'rgba(255,255,255,0.16)',
           }}
         >
-          <Ionicons name="search" size={iconSize.md} color={theme.color.textFaint} />
+          <Ionicons name="search" size={iconSize.md} color={HERO_INK_FAINT} />
           <TextInput
             ref={searchRef}
             value={query}
-            onChangeText={setQuery}
+            onChangeText={onQuery}
             autoCapitalize="none"
             accessibilityRole="search"
             accessibilityLabel={t.searchGroups}
             placeholder={t.searchGroups}
-            placeholderTextColor={theme.color.textFaint}
-            style={{ flex: 1, fontSize: 16, color: theme.color.text, paddingVertical: 0 }}
+            placeholderTextColor={HERO_INK_FAINT}
+            // A white caret too — the platform default is the accent colour, and
+            // a dark caret on the wash is invisible while you type.
+            selectionColor={theme.color.onBrand}
+            style={{ flex: 1, fontSize: 16, color: theme.color.onBrand, paddingVertical: 0 }}
           />
           {query ? (
             <Pressable
-              onPress={() => setQuery('')}
+              onPress={() => onQuery('')}
               accessibilityRole="button"
               accessibilityLabel={t.pickers.clearSearch}
               hitSlop={8}
             >
-              <Ionicons name="close-circle" size={iconSize.md} color={theme.color.textFaint} />
+              <Ionicons name="close-circle" size={iconSize.md} color={HERO_INK_FAINT} />
             </Pressable>
           ) : null}
         </Pressable>
       ) : null}
     </View>
   );
+}
 
-  const empty = loading ? (
-    <View style={{ paddingTop: theme.spacing.xl }}>
-      <SkeletonList rows={5} />
-    </View>
-  ) : trimmed ? (
-    // A search that matched nothing — the reason the list is empty is the query,
-    // so the mark and words say "nothing matched", not "you have no groups".
-    <View style={{ paddingTop: theme.spacing.xxxl }}>
-      <EmptyState
-        icon={<Ionicons name="search-outline" size={iconSize.xxl} color={theme.color.brand} />}
-        title={t.noGroupsMatch}
-      />
-    </View>
-  ) : (
-    // The true first-run empty: reassure, explain lightly what a "group" is for,
-    // and hand over the one action that moves you off this screen.
-    <View style={{ paddingTop: theme.spacing.xxxl }}>
-      <EmptyState
-        icon={<Ionicons name="people-outline" size={iconSize.xxl} color={theme.color.brand} />}
-        title={t.tabs.noGroups}
-        body={t.noGroupsBody}
-        action={<Button label={t.newGroup} onPress={() => router.push('/new-group')} />}
-      />
-    </View>
+/**
+ * The hero's artwork — depth without an illustration pipeline. A big faint stack
+ * of cards bled off the bottom-right corner (a roster of groups, one behind the
+ * next) and a couple of translucent rings over the wash, so the panel reads as a
+ * designed surface rather than a flat rectangle of colour. All white at low
+ * alpha, so it sits the same on the green in either theme; `pointerEvents none`
+ * so it never intercepts a tap.
+ */
+function HeroArt(): React.JSX.Element {
+  const ring = (size: number, top: number, left: number, alpha: number): React.JSX.Element => (
+    <View
+      style={{
+        position: 'absolute',
+        top,
+        left,
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        borderWidth: 2,
+        borderColor: `rgba(255,255,255,${alpha})`,
+      }}
+    />
   );
-
   return (
-    <Screen>
-      <View style={{ flex: 1 }}>
-        {/* The nav header is a fixed sibling above the list, so only the roster
-            scrolls under it. Padded to line up with the list rows below. */}
-        <View style={{ paddingHorizontal: theme.spacing.xl }}>{header}</View>
-        <FlashList
-          data={rows}
-          keyExtractor={(row) => (row.kind === 'header' ? 'settled-header' : row.item.group.id)}
-          getItemType={(row) => row.kind}
-          // The group-ledger settings: render well ahead of the viewport so a fast
-          // fling doesn't flash blank rows. The row items already carry their own
-          // balance/pending/count (baked in the memo above), so a money change
-          // flows through `data`; the outside a row reads — locale and theme —
-          // rides the memoised `listExtraData`, which changes identity only on a
-          // real language or light/dark switch, not every render.
-          drawDistance={1500}
-          extraData={listExtraData}
-          contentContainerStyle={{
-            paddingHorizontal: theme.spacing.xl,
-            paddingBottom: clearance,
-          }}
-          showsVerticalScrollIndicator={false}
-          // With the search keyboard open, a tap on a result row should open it in
-          // one go, not be eaten by the keyboard dismiss (FlashList defaults this
-          // to "never").
-          keyboardShouldPersistTaps="handled"
-          ListEmptyComponent={empty}
-          ItemSeparatorComponent={() => (
-            <View style={{ height: 1, backgroundColor: theme.color.border }} />
-          )}
-          renderItem={({ item: row }) => {
-            if (row.kind === 'header') {
-              return (
-                <Text
-                  variant="caption"
-                  tone="muted"
-                  style={{ paddingTop: theme.spacing.lg, paddingBottom: theme.spacing.xs }}
-                >
-                  {row.label}
-                </Text>
-              );
-            }
-
-            const { group, balance, pending, count } = row.item;
-            const statusLabel =
-              balance === 0n ? t.allSettled : balance > 0n ? t.youAreOwed : t.youOwe;
-            // Status first, member count second: the reader's question is "do I
-            // owe or am I owed?", not "how many people". Pending keeps its context
-            // rather than replacing it — it used to swallow the member count whole.
-            const subtitle = pending
-              ? `${t.pendingConfirmation} · ${plural(locale, count, t.memberCount)}`
-              : `${statusLabel} · ${plural(locale, count, t.memberCount)}`;
-            // Settled groups are present, not urgent: dimmed so the eye lands on
-            // the rows that still need something.
-            const dim = !row.item.needsAction;
-
-            return (
-              <Pressable
-                accessibilityRole="button"
-                // The full subtitle, not just the status word: a pending group at a
-                // zero balance would otherwise be read out as "All settled",
-                // hiding the very state that needs attention.
-                accessibilityLabel={`${row.item.label}. ${subtitle}`}
-                onPress={() => router.push(`/group/${group.id}`)}
-                style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
-              >
-                <Row
-                  style={{
-                    gap: theme.spacing.md,
-                    alignItems: 'center',
-                    paddingVertical: theme.spacing.sm,
-                    opacity: dim ? 0.55 : 1,
-                  }}
-                >
-                  {/* The activity feed's row tile — a 40×40 rounded square — so the
-                    two lists read as one family. Activity tints its tile by the
-                    verb; a group carries an emoji cover instead, so the tile stays
-                    neutral and the emoji is the identity. */}
-                  <View
-                    style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: theme.radius.md,
-                      backgroundColor: theme.color.surfaceMuted,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <GroupMark emoji={group.cover_emoji} size={22} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text variant="body" numberOfLines={2}>
-                      {row.item.label}
-                    </Text>
-                    <Text variant="caption" tone="muted" numberOfLines={1} style={{ marginTop: 2 }}>
-                      {subtitle}
-                    </Text>
-                  </View>
-                  <MoneyText
-                    amount={balance}
-                    currency={group.default_currency as never}
-                    locale={locale}
-                    mode="balance"
-                    variant="subheading"
-                  />
-                </Row>
-              </Pressable>
-            );
-          }}
-        />
+    <View
+      pointerEvents="none"
+      style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+    >
+      {ring(150, -60, -40, 0.1)}
+      {ring(90, 20, -30, 0.08)}
+      <View style={{ position: 'absolute', right: -26, bottom: -44 }}>
+        <Ionicons name="albums" size={170} color="rgba(255,255,255,0.09)" />
       </View>
-    </Screen>
+      <View style={{ position: 'absolute', right: 62, top: -14 }}>
+        <Ionicons name="people" size={26} color="rgba(255,255,255,0.12)" />
+      </View>
+    </View>
   );
 }
+
+/**
+ * The "Settled" band between the two halves of the list.
+ *
+ * A bare caption floating on the card read as a row with its text missing. Given
+ * the muted fill and its own hairlines it reads as what it is — the seam where
+ * the groups that still want something end and the quiet ones begin — the way a
+ * grouped settings list marks a section.
+ */
+function SectionBand({ label, divider }: { label: string; divider: boolean }): React.JSX.Element {
+  const theme = useTheme();
+  return (
+    <View
+      style={{
+        paddingHorizontal: theme.spacing.md,
+        paddingVertical: theme.spacing.xs,
+        backgroundColor: theme.color.surfaceMuted,
+        borderTopWidth: divider ? 1 : 0,
+        borderBottomWidth: 1,
+        borderColor: theme.color.border,
+      }}
+    >
+      {/* Upper-cased for the small-caps look a section label wants. A no-op in
+          Tamil, Hindi and Arabic, which have no case — so the band is the same
+          shape in every language rather than shouting in one. */}
+      <Text variant="micro" tone="muted" style={{ letterSpacing: 1 }}>
+        {label.toUpperCase()}
+      </Text>
+    </View>
+  );
+}
+
+/**
+ * One group as a clean list row — the group's mark in a 44dp disc, the name over
+ * its standing and member count, the balance to the right coloured and signed by
+ * who owes whom. Deliberately the dashboard's `GroupRow` and Friends' `PersonRow`
+ * geometry, down to the disc size and the paddings, so the full roster and the
+ * preview it was opened from are recognisably the same list.
+ *
+ * The amount keeps `MoneyText`'s `balance` mode, which is where owe-versus-owed
+ * lives: colour *and* sign together. Flattening those into one neutral figure is
+ * a mistake this app has already made and reverted once — a settled row is dimmed
+ * instead, which quietens it without telling the reader the wrong direction.
+ *
+ * Memoized, because it lives in a virtualized list: a recycled row that lands on
+ * the same group does no work when the parent re-renders. Every prop is a
+ * primitive, so the shallow compare actually holds and a fast fling never
+ * re-renders a row it already drew.
+ */
+const GroupListRow = memo(function GroupListRow({
+  groupId,
+  label,
+  coverEmoji,
+  balance,
+  currency,
+  locale,
+  subtitle,
+  dim,
+  divider,
+}: {
+  groupId: string;
+  label: string;
+  coverEmoji: string | null;
+  balance: bigint;
+  currency: string;
+  locale: string;
+  subtitle: string;
+  /** Nothing owed and nothing pending — present, but not competing for the eye. */
+  dim: boolean;
+  /** A hairline above the row, so the card reads as one divided list. */
+  divider: boolean;
+}): React.JSX.Element {
+  const theme = useTheme();
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      // The full subtitle, not just the status word: a pending group at a zero
+      // balance would otherwise be read out as "All settled", hiding the very
+      // state that needs attention.
+      accessibilityLabel={`${label}. ${subtitle}`}
+      onPress={() => router.push(`/group/${groupId}`)}
+      style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+    >
+      <Row
+        style={{
+          gap: theme.spacing.md,
+          alignItems: 'center',
+          paddingVertical: theme.spacing.sm,
+          paddingHorizontal: theme.spacing.sm,
+          borderTopWidth: divider ? 1 : 0,
+          borderTopColor: theme.color.border,
+          opacity: dim ? 0.6 : 1,
+        }}
+      >
+        {/* The dashboard's group disc — 44dp, round, muted, the group's own mark
+            at its centre. It was a 40dp rounded square borrowed from the activity
+            feed, which is the one place in the app groups are *not* drawn that
+            way. */}
+        <View
+          style={{
+            width: 44,
+            height: 44,
+            borderRadius: 22,
+            backgroundColor: theme.color.surfaceMuted,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <GroupMark emoji={coverEmoji} size={22} />
+        </View>
+        <View style={{ flex: 1, gap: 2 }}>
+          {/* Two lines, not one: this is the screen you come to when you cannot
+              find a group, so a long name is worth a second line here even though
+              the dashboard's preview clips it at one. */}
+          <Text variant="body" numberOfLines={2} style={{ fontWeight: '600' }}>
+            {label}
+          </Text>
+          <Text variant="caption" tone="muted" numberOfLines={1}>
+            {subtitle}
+          </Text>
+        </View>
+        <MoneyText
+          amount={balance}
+          currency={currency as never}
+          locale={locale}
+          mode="balance"
+          variant="subheading"
+        />
+      </Row>
+    </Pressable>
+  );
+});
