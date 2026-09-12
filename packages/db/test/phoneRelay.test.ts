@@ -173,33 +173,38 @@ describe('the exchange, from the gate to a session', () => {
 });
 
 describe('two devices on one number', () => {
-  it('does not let the displaced exchange take the newcomer’s code', async () => {
-    // The defect the exchange id exists for. One row per number, so the second
-    // `open` replaces the first's — and without an id to match on, the first
-    // caller claims a code minted for the second and signs in with it.
+  it('refuses a second exchange while the first is still live', async () => {
+    // Two devices, one number, at the same moment. The exchange id already stops
+    // the loser *stealing* a code, but displacement left a subtler mess: the
+    // second open replaced the first's row, so the code GoTrue minted for the
+    // first request was parked into the second's and signed the second device
+    // in on it. Same account either way, so never a breach — but a code answering
+    // a request nobody made. Refusing the overlap removes the question.
     const phone = aNumber();
     const first = await open(phone);
-    const second = await open(phone);
-    expect(first).not.toBe(second);
+    expect(first).toBeTruthy();
 
+    await expect(open(phone)).rejects.toThrow(/OTP_RELAY_BUSY/);
+
+    // And the first exchange is untouched by the attempt — it still owns its row.
     await park(phone, '222222');
-
-    expect(await claim(phone, first)).toBeNull();
-    expect(await claim(phone, second)).toBe('222222');
+    expect(await claim(phone, first)).toBe('222222');
   });
 
-  it('does not let the displaced exchange delete the newcomer’s row', async () => {
-    // The same defect in the other direction, and the more expensive one: the
-    // loser's `finally` tidies up, takes the winner's row with it, and the code
-    // GoTrue minted goes out as an SMS to somebody who was never sent one.
+  it('lets the next device through the moment the first is done', async () => {
+    // The cost of refusing an overlap is a door that stays shut too long, so the
+    // close has to open it again immediately — a person whose first attempt died
+    // is the most likely caller of the second.
     const phone = aNumber();
     const first = await open(phone);
-    const second = await open(phone);
-
     await close(phone, first);
 
-    await park(phone, '222222');
-    expect(await claim(phone, second)).toBe('222222');
+    const second = await open(phone);
+    expect(second).toBeTruthy();
+    expect(second).not.toBe(first);
+
+    await park(phone, '333333');
+    expect(await claim(phone, second)).toBe('333333');
   });
 
   it('hands the code to exactly one of two callers racing for it', async () => {

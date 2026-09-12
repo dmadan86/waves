@@ -410,7 +410,11 @@ export async function handlePhoneVerify(
   if (openError) {
     await giveItBack();
     if ((openError.message ?? '').includes('OTP_RELAY_BUSY')) {
-      return fail(429, 'TOO_MANY', 'A sign-in code is already being checked for that number. Try again in a moment.');
+      return fail(
+        429,
+        'TOO_MANY',
+        'A sign-in code is already being checked for that number. Try again in a moment.',
+      );
     }
     return fail(500, 'INTERNAL', 'Could not sign you in just now');
   }

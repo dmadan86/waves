@@ -302,9 +302,9 @@ describe('when the exchange goes wrong', () => {
       code: 'TOO_MANY',
       message: 'A sign-in code is already being checked for that number. Try again in a moment.',
     });
-    expect(d.fetchImpl.mock.calls.some((call) => call[0] === `${ENV.SUPABASE_URL}/auth/v1/otp`)).toBe(
-      false,
-    );
+    expect(
+      d.fetchImpl.mock.calls.some((call) => call[0] === `${ENV.SUPABASE_URL}/auth/v1/otp`),
+    ).toBe(false);
     expect(rpcNames(d)).toContain('waves_firebase_assertion_release');
     expect(rpcNames(d)).toContain('waves_phone_gate_refund');
   });
@@ -314,9 +314,9 @@ describe('when the exchange goes wrong', () => {
     const response = await handlePhoneVerify(request(), d);
 
     expect(response.status).toBe(500);
-    expect(d.fetchImpl.mock.calls.some((call) => call[0] === `${ENV.SUPABASE_URL}/auth/v1/otp`)).toBe(
-      false,
-    );
+    expect(
+      d.fetchImpl.mock.calls.some((call) => call[0] === `${ENV.SUPABASE_URL}/auth/v1/otp`),
+    ).toBe(false);
     expect(rpcNames(d)).toContain('waves_firebase_assertion_release');
     expect(rpcNames(d)).toContain('waves_phone_gate_refund');
   });

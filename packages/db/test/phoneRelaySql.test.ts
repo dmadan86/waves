@@ -18,14 +18,19 @@ const originalRelayMigration = readFileSync(
   'utf8',
 );
 const concurrentRelayMigration = readFileSync(
-  join(__dirname, '../prisma/migrations/20260912160000_refuse_concurrent_phone_relay/migration.sql'),
+  join(
+    __dirname,
+    '../prisma/migrations/20260912160000_refuse_concurrent_phone_relay/migration.sql',
+  ),
   'utf8',
 );
 
 describe('phone OTP relay SQL', () => {
   it('refuses a second live exchange instead of replacing it', () => {
-    expect(concurrentRelayMigration).toContain('CREATE OR REPLACE FUNCTION public.waves_otp_relay_open');
-    expect(concurrentRelayMigration).toContain("LANGUAGE plpgsql SECURITY DEFINER");
+    expect(concurrentRelayMigration).toContain(
+      'CREATE OR REPLACE FUNCTION public.waves_otp_relay_open',
+    );
+    expect(concurrentRelayMigration).toContain('LANGUAGE plpgsql SECURITY DEFINER');
     expect(concurrentRelayMigration).toContain(
       "WHERE public.otp_relay.requested_at <= now() - interval '30 seconds'",
     );
