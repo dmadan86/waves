@@ -18,8 +18,8 @@ things come from owning the delivery step instead:
 
 1. **A cap that can actually be enforced.** The app calls GoTrue directly, so a
    per-day limit written into the app is advice a modified client ignores. In the
-   hook it is the server, keyed on the number, and there is no other door. Four
-   codes to a number a day, from `LIMITS['otp-send']`.
+   hook it is the server, keyed on the number, and there is no other door. Three
+   codes to a number a day, from `LIMITS['otp-send']` and the `otp_daily_cap` knob.
 2. **The rail is a setting, not a rewrite.** `OTP_CHANNEL` picks SMS or WhatsApp.
    Nothing else in the system knows the difference — the app calls the same
    `signInWithOtp` and verifies the same `type: 'sms'` either way.
@@ -88,23 +88,31 @@ Outside India none of this applies and step 1 is: buy a number.
 - A **Messaging Service** (Console → Messaging → Services) holding it. For India
   this is what carries the DLT registration, which is why the handler prefers
   `TWILIO_MESSAGING_SERVICE_SID` over a bare `From`.
-- Console → Account → API keys & tokens → create a **standard API key**. The
-  handler prefers `TWILIO_API_KEY_SID`/`TWILIO_API_KEY_SECRET` over the account
-  auth token: a key is scoped, revokable on its own, and losing it does not mean
-  rotating the token every other integration shares. The account SID is still
-  required either way — a key says who is calling, never which account is billed.
+- Console → Account → API keys & tokens → create a **Restricted API key** with
+  only the Messaging permissions needed to create messages, if your Twilio
+  account supports restricted keys. If it does not, use a **Standard API key**
+  knowingly: it is broad-access across Twilio APIs, not scoped, but still
+  revokable on its own. The handler prefers `TWILIO_API_KEY_SID`/
+  `TWILIO_API_KEY_SECRET` over the account auth token so losing the send key does
+  not mean rotating the token every other integration shares. The account SID is
+  still required either way — a key says who is calling, never which account is
+  billed.
 
 ## 3. Secrets
 
 ```sh
+cat > supabase/.env.otp-send <<'EOF'
+SEND_SMS_HOOK_SECRET=v1,whsec_...
+OTP_CHANNEL=sms
+TWILIO_ACCOUNT_SID=AC...
+TWILIO_API_KEY_SID=SK...
+TWILIO_API_KEY_SECRET=...
+TWILIO_MESSAGING_SERVICE_SID=MG...
+TWILIO_SMS_BODY={code} is your Waves verification code.
+EOF
+chmod 600 supabase/.env.otp-send
 npx supabase secrets set --project-ref ywojpnfyxxltvihqmcni \
-  SEND_SMS_HOOK_SECRET=v1,whsec_...           \
-  OTP_CHANNEL=sms                             \
-  TWILIO_ACCOUNT_SID=AC...                    \
-  TWILIO_API_KEY_SID=SK...                    \
-  TWILIO_API_KEY_SECRET=...                   \
-  TWILIO_MESSAGING_SERVICE_SID=MG...          \
-  TWILIO_SMS_BODY='{code} is your Waves verification code.'
+  --env-file ./supabase/.env.otp-send
 ```
 
 `TWILIO_SMS_BODY` must be the DLT-registered text with `{code}` where `{#var#}`
@@ -121,7 +129,10 @@ The other rail, and the default when `OTP_CHANNEL` is unset. It sidesteps DLT
 entirely — WhatsApp business messaging is not A2P SMS — at the cost of a
 different queue: a Meta Business Manager account, a phone number with no WhatsApp
 account on it, and **Meta business verification**, which is also measured in
-weeks and caps you at 250 unique recipients per 24h until it clears.
+weeks. Do not assume a universal pre-verification recipient count: Meta/Twilio
+limits depend on the sender and Business Portfolio state, and Twilio documents a
+250 business-initiated-conversation restriction for specific rejected-display-name
+states. Check this account's sender limit in Twilio/Meta before relying on volume.
 
 1. Twilio Console → Messaging → Senders → WhatsApp senders → sign up a sender.
 2. Content Template Builder → type **Authentication**
@@ -202,7 +213,7 @@ npx supabase functions logs otp-send --project-ref ywojpnfyxxltvihqmcni
 | `500 SEND_SMS_HOOK_SECRET is not set`           | The edge-function secret is missing entirely.                                                                                                          |
 | `500 Code sending is not configured`            | The rail has no sender: no Messaging Service and no `From`, or WhatsApp without a Content SID.                                                         |
 | `502` + `twilio send failed`                    | Twilio refused it. The reason is in the log line beside it — never returned to the caller, because it can name the sender and the account.             |
-| `429`                                           | Four codes to that number today.                                                                                                                       |
+| `429`                                           | Three codes to that number today, or the number is blocked for repeated unverified sends.                                                              |
 | Nothing at all                                  | GoTrue never called us: the hook is still disabled, or pointed at the wrong URL.                                                                       |
 | A `201` from Twilio and no message on the phone | On an Indian number, DLT. The text did not match the registered template, or the header is not attached to the service. Twilio cannot see this either. |
 
@@ -213,15 +224,15 @@ error 30008 or an India-specific code.
 
 ## The cap
 
-Four codes to a number a day, counted **before** the message is sent. A provider
+Three codes to a number a day, counted **before** the message is sent. A provider
 outage therefore still burns an attempt; the alternative — send first, count
 after — lets a script spend the whole day's allowance before the first count
 lands.
 
-If the limiter itself errors it fails open, the same trade the shared limiter
-makes everywhere: the only way that happens is the database being unreachable,
-and refusing every sign-in during a database blip does more damage than the abuse
-it guards against.
+If `waves_phone_gate` returns any error, the hook fails open and the request
+proceeds, the same trade the shared limiter makes everywhere. In practice the
+usual cause is a database or RPC outage; refusing every sign-in during that blip
+does more damage than the abuse it guards against.
 
 ## If you want a different provider
 

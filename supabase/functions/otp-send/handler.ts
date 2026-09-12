@@ -167,9 +167,11 @@ export function otpChannel(env: (key: string) => string | undefined): OtpChannel
  */
 const DEFAULT_SMS_BODY = '{code} is your Waves verification code. It expires in 10 minutes.';
 
-export function smsBody(template: string | undefined, otp: string): string {
+export function smsBody(template: string | undefined, otp: string): string | null {
   const shape = template?.trim() || DEFAULT_SMS_BODY;
-  return shape.split('{code}').join(otp);
+  const parts = shape.split('{code}');
+  if (parts.length !== 2) return null;
+  return parts.join(otp);
 }
 
 /**
@@ -198,10 +200,12 @@ export function sendParams(
   if (otpChannel(env) === 'sms') {
     const from = env('TWILIO_SMS_FROM');
     if (!service && !from) return null;
+    const body = smsBody(env('TWILIO_SMS_BODY'), otp);
+    if (!body) return null;
     form.set('To', phone);
     if (service) form.set('MessagingServiceSid', service);
     else form.set('From', from as string);
-    form.set('Body', smsBody(env('TWILIO_SMS_BODY'), otp));
+    form.set('Body', body);
     return form;
   }
 
@@ -273,7 +277,7 @@ export async function handleOtpSend(request: Request, deps: OtpSendDeps): Promis
   // Configuration is checked before the quota is spent. A provider outage still
   // burns an attempt below — the gate deliberately runs ahead of the spend — but
   // a deploy that is simply missing its Twilio secrets should not consume all
-  // four of somebody's daily codes for a send this function was never capable of
+  // three of somebody's daily codes for a send this function was never capable of
   // making.
   const accountSid = deps.env('TWILIO_ACCOUNT_SID');
   const form = sendParams(deps.env, phone, otp);

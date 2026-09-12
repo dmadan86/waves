@@ -1,6 +1,6 @@
 /**
  * Coverage for otp-send — the Send SMS Hook that delivers the sign-in code over
- * WhatsApp and caps a number at four codes a day.
+ * WhatsApp and caps a number at three codes a day.
  *
  * The handler is a pure function over injected boundaries (a Supabase client, a
  * fetch, an env reader and the signature verifier), so these tests drive it with
@@ -16,7 +16,7 @@
 
 import { describe, expect, it, vi } from 'vitest';
 
-import { handleOtpSend, hookSecret, OTP_DAILY_LIMIT, type OtpSendDeps } from './handler.ts';
+import { handleOtpSend, hookSecret, OTP_DAILY_LIMIT, smsBody, type OtpSendDeps } from './handler.ts';
 
 /**
  * Built rather than written out. As a literal, `whsec_<base64>` is a webhook
@@ -207,7 +207,7 @@ describe('otp-send', () => {
     expect(response.status).toBe(500);
     expect(d.fetchImpl).not.toHaveBeenCalled();
     // The point of the check's position: a deploy missing its Twilio secrets
-    // must not spend somebody's four codes on sends it could never make.
+    // must not spend somebody's three codes on sends it could never make.
     expect(d.rpc).not.toHaveBeenCalled();
   });
 
@@ -429,6 +429,21 @@ describe('otp-send over SMS', () => {
     );
   });
 
+  it('requires exactly one code placeholder in the SMS body', () => {
+    expect(smsBody('Your Waves OTP is {code}', '123456')).toBe('Your Waves OTP is 123456');
+    expect(smsBody('Your Waves OTP is 123456', '123456')).toBeNull();
+    expect(smsBody('{code} is your code {code}', '123456')).toBeNull();
+  });
+
+  it('refuses an invalid SMS body before spending an attempt', async () => {
+    const d = deps({ env: { ...SMS_ENV, TWILIO_SMS_BODY: 'Your Waves OTP is 123456' } });
+    const response = await handleOtpSend(request(), d);
+
+    expect(response.status).toBe(500);
+    expect(d.fetchImpl).not.toHaveBeenCalled();
+    expect(d.rpc).not.toHaveBeenCalled();
+  });
+
   it('refuses before spending an attempt when the rail has no sender', async () => {
     const d = deps({ env: { OTP_CHANNEL: 'sms', TWILIO_SMS_FROM: '', TWILIO_WHATSAPP_FROM: '' } });
     const response = await handleOtpSend(request(), d);
@@ -436,7 +451,7 @@ describe('otp-send over SMS', () => {
     expect(response.status).toBe(500);
     expect(d.fetchImpl).not.toHaveBeenCalled();
     // The gate runs ahead of the limiter, so a misconfigured deploy cannot eat
-    // somebody's four codes for sends it was never capable of making.
+    // somebody's three codes for sends it was never capable of making.
     expect(d.rpc).not.toHaveBeenCalled();
   });
 
