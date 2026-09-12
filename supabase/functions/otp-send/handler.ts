@@ -1,21 +1,27 @@
 /**
- * otp-send — Supabase's Send SMS Hook, delivering the sign-in code over
- * WhatsApp instead of SMS.
+ * otp-send — Supabase's Send SMS Hook, which is where this app decides how a
+ * sign-in code reaches somebody.
  *
  * GoTrue normally posts the code to a configured SMS provider itself. With
  * `[auth.hook.send_sms]` pointed here it posts to us instead, handing over the
- * code it generated, and we decide how it travels. Three things come out of
- * owning that step:
+ * code it generated, and we decide how it travels. Two things come out of owning
+ * that step:
  *
- * 1. **WhatsApp, not SMS.** India is the first market and A2P SMS there is
- *    gated on DLT registration with the operators — unregistered traffic is
- *    dropped by the carrier, not by us. WhatsApp business messaging is not A2P
- *    SMS and carries none of that; it is also far cheaper per message and the
- *    code arrives in the app people already have open.
- * 2. **A cap we can actually enforce.** The app calls GoTrue directly, so any
+ * 1. **A cap we can actually enforce.** The app calls GoTrue directly, so any
  *    per-day limit written into the client is advice a modified client ignores.
  *    Here it is the server, keyed on the number, and there is no other door.
- * 3. **One place to add SMS fallback later** without touching the app.
+ * 2. **The rail is a setting, not a rewrite.** `OTP_CHANNEL` picks WhatsApp or
+ *    SMS and nothing else in the system knows the difference — the app sends the
+ *    same `signInWithOtp` and verifies the same `type: 'sms'` either way.
+ *
+ * WhatsApp is the default, and the reason is worth keeping in view if the
+ * channel is ever switched: India is the first market, and A2P SMS there is
+ * gated on DLT registration with the operators through TRAI. Unregistered
+ * traffic is dropped by the carrier after Twilio has accepted the request and
+ * charged for it, so it fails where nothing in this function can see it.
+ * WhatsApp business messaging is not A2P SMS and carries none of that paperwork.
+ * SMS is the right answer anyway when the registration exists, or outside India
+ * where it does not apply — which is why both rails live here rather than one.
  *
  * This is why the Twilio *Verify* provider is switched off in config.toml.
  * Verify mints and checks its own code; inside a send hook that would mean two
@@ -133,6 +139,88 @@ function isE164(phone: string): boolean {
   return /^\+[1-9]\d{6,14}$/.test(phone);
 }
 
+/** Which rail the code travels on. */
+export type OtpChannel = 'whatsapp' | 'sms';
+
+/**
+ * WhatsApp unless the environment says otherwise.
+ *
+ * Read from one explicit variable rather than inferred from which secrets
+ * happen to be present. A deployment that still holds its WhatsApp secrets
+ * while an operator adds SMS ones should not quietly change rail because of the
+ * order somebody typed things in; the channel is a decision, so it is written
+ * down as one.
+ */
+export function otpChannel(env: (key: string) => string | undefined): OtpChannel {
+  return env('OTP_CHANNEL')?.trim().toLowerCase() === 'sms' ? 'sms' : 'whatsapp';
+}
+
+/**
+ * The SMS text, when the code travels as SMS.
+ *
+ * Configurable, and it has to be: an SMS to an Indian number must match a
+ * template registered on the operators' DLT portal *exactly*, down to the
+ * punctuation, or the carrier drops it — silently, after Twilio has accepted the
+ * request and charged for it. A body compiled into this file would mean a
+ * redeploy every time a registration is amended, and a mismatch nobody can see
+ * from here. `{code}` is the only placeholder.
+ */
+const DEFAULT_SMS_BODY = '{code} is your Waves verification code. It expires in 10 minutes.';
+
+export function smsBody(template: string | undefined, otp: string): string {
+  const shape = template?.trim() || DEFAULT_SMS_BODY;
+  return shape.split('{code}').join(otp);
+}
+
+/**
+ * The message Twilio is asked to send, or null when this deployment is not
+ * configured to send one.
+ *
+ * Separated from the sending so the "are we configured" question can be
+ * answered before the daily allowance is spent — see the note at the call site.
+ *
+ * The two rails differ in more than a prefix. WhatsApp must be an approved
+ * template referenced by its Content SID, because a business-initiated message
+ * is only allowed to be free text inside a 24-hour window a sign-in has no
+ * reason to be in. SMS is the free text, and for India its shape is fixed by the
+ * DLT registration instead. Either can name a Messaging Service rather than a
+ * single sender — which is the usual arrangement for India, since the service is
+ * what carries the registered sender ID.
+ */
+export function sendParams(
+  env: (key: string) => string | undefined,
+  phone: string,
+  otp: string,
+): URLSearchParams | null {
+  const form = new URLSearchParams();
+  const service = env('TWILIO_MESSAGING_SERVICE_SID');
+
+  if (otpChannel(env) === 'sms') {
+    const from = env('TWILIO_SMS_FROM');
+    if (!service && !from) return null;
+    form.set('To', phone);
+    if (service) form.set('MessagingServiceSid', service);
+    else form.set('From', from as string);
+    form.set('Body', smsBody(env('TWILIO_SMS_BODY'), otp));
+    return form;
+  }
+
+  const from = env('TWILIO_WHATSAPP_FROM');
+  const contentSid = env('TWILIO_OTP_CONTENT_SID');
+  if (!contentSid || (!service && !from)) return null;
+  form.set('To', `whatsapp:${phone}`);
+  if (service) form.set('MessagingServiceSid', service);
+  else
+    form.set(
+      'From',
+      (from as string).startsWith('whatsapp:') ? (from as string) : `whatsapp:${from}`,
+    );
+  form.set('ContentSid', contentSid);
+  // The template's one placeholder is the code.
+  form.set('ContentVariables', JSON.stringify({ '1': otp }));
+  return form;
+}
+
 /**
  * Supabase issues a hook secret as `v1,whsec_<base64>`, and that whole string is
  * what lands in the environment. `verifyWebhookSignature` strips `whsec_` — the
@@ -188,8 +276,7 @@ export async function handleOtpSend(request: Request, deps: OtpSendDeps): Promis
   // four of somebody's daily codes for a send this function was never capable of
   // making.
   const accountSid = deps.env('TWILIO_ACCOUNT_SID');
-  const from = deps.env('TWILIO_WHATSAPP_FROM');
-  const contentSid = deps.env('TWILIO_OTP_CONTENT_SID');
+  const form = sendParams(deps.env, phone, otp);
 
   // Twilio takes either the account's own auth token or an API key pair, and
   // the pair is the better credential: it is scoped, it can be revoked on its
@@ -206,8 +293,8 @@ export async function handleOtpSend(request: Request, deps: OtpSendDeps): Promis
   const user = keySid && keySecret ? keySid : accountSid;
   const authSecret = keySid && keySecret ? keySecret : deps.env('TWILIO_AUTH_TOKEN');
 
-  if (!accountSid || !user || !authSecret || !from || !contentSid) {
-    return hookError(500, 'WhatsApp sending is not configured');
+  if (!accountSid || !user || !authSecret || !form) {
+    return hookError(500, 'Code sending is not configured');
   }
 
   // Counted before the message is sent, matching `receipt-parse`, where the
@@ -240,17 +327,6 @@ export async function handleOtpSend(request: Request, deps: OtpSendDeps): Promis
     }
   }
 
-  // A business-initiated WhatsApp message must be a template Meta has approved,
-  // referenced by its Content SID; free-form text is only allowed inside a
-  // 24-hour window a sign-in has no reason to be in. `ContentVariables` fills
-  // the template's one placeholder with the code.
-  const form = new URLSearchParams({
-    To: `whatsapp:${phone}`,
-    From: from.startsWith('whatsapp:') ? from : `whatsapp:${from}`,
-    ContentSid: contentSid,
-    ContentVariables: JSON.stringify({ '1': otp }),
-  });
-
   // A refused connection, a DNS failure or a timeout rejects rather than
   // answering, and an exception escaping here would leave GoTrue with a bare 500
   // and the caller with whatever a stack trace renders as. A network failure and
@@ -275,7 +351,7 @@ export async function handleOtpSend(request: Request, deps: OtpSendDeps): Promis
       },
     );
   } catch (caught) {
-    console.error('twilio whatsapp request failed', caught);
+    console.error('twilio request failed', caught);
     return hookError(502, 'Could not send the code just now. Try again in a moment.');
   }
 
@@ -283,7 +359,7 @@ export async function handleOtpSend(request: Request, deps: OtpSendDeps): Promis
     // Twilio's own message is logged, never returned: it can name the sender
     // and the account, and this text is shown to whoever asked for the code.
     const detail = await response.text().catch(() => '');
-    console.error('twilio whatsapp send failed', response.status, detail);
+    console.error('twilio send failed', response.status, detail);
     return hookError(502, 'Could not send the code just now. Try again in a moment.');
   }
 

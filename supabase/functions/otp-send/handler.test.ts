@@ -375,3 +375,96 @@ describe('otp-send signature verification', () => {
     expect(d.fetchSpy).not.toHaveBeenCalled();
   });
 });
+
+/**
+ * The SMS rail.
+ *
+ * The hook exists so the channel is a setting rather than a rewrite, and these
+ * pin the parts of that which are easy to get subtly wrong: the `whatsapp:`
+ * prefix must not survive onto an SMS, the DLT-registered body must be the
+ * operator's text and not ours, and a half-configured switch must refuse rather
+ * than send something malformed on somebody's daily allowance.
+ */
+describe('otp-send over SMS', () => {
+  const SMS_ENV = {
+    OTP_CHANNEL: 'sms',
+    TWILIO_SMS_FROM: '+14155238886',
+    // Left set deliberately: a deployment that switches rails keeps its old
+    // secrets, and they must not leak into the new one.
+    TWILIO_WHATSAPP_FROM: 'whatsapp:+14155238886',
+    TWILIO_OTP_CONTENT_SID: 'HX999',
+  };
+
+  it('sends plain text to a bare E.164 number, with no whatsapp prefix anywhere', async () => {
+    const d = deps({ env: SMS_ENV });
+    const response = await handleOtpSend(request(), d);
+
+    expect(response.status).toBe(200);
+    const [, init] = d.fetchImpl.mock.calls[0] as [string, RequestInit];
+    const sent = new URLSearchParams(init.body as string);
+    expect(sent.get('To')).toBe('+919876543210');
+    expect(sent.get('From')).toBe('+14155238886');
+    expect(sent.get('Body')).toContain('123456');
+    // The template fields belong to the other rail; sending them alongside a
+    // Body is how a switched deployment ends up posting a WhatsApp template to
+    // an SMS number and getting a 400 nobody can read.
+    expect(sent.get('ContentSid')).toBeNull();
+    expect(sent.get('ContentVariables')).toBeNull();
+  });
+
+  it('prefers a Messaging Service, which is what carries an Indian sender ID', async () => {
+    const d = deps({ env: { ...SMS_ENV, TWILIO_MESSAGING_SERVICE_SID: 'MG123' } });
+    await handleOtpSend(request(), d);
+
+    const [, init] = d.fetchImpl.mock.calls[0] as [string, RequestInit];
+    const sent = new URLSearchParams(init.body as string);
+    expect(sent.get('MessagingServiceSid')).toBe('MG123');
+    expect(sent.get('From')).toBeNull();
+  });
+
+  it('sends the registered body exactly, because the carrier matches on it', async () => {
+    // An Indian DLT template is approved character by character. Anything this
+    // function adds — a trailing full stop, a different word for "code" — is a
+    // message the operator drops after Twilio has accepted and billed it.
+    const d = deps({
+      env: { ...SMS_ENV, TWILIO_SMS_BODY: 'Your Waves OTP is {code}. Do not share it.' },
+    });
+    await handleOtpSend(request(), d);
+
+    const [, init] = d.fetchImpl.mock.calls[0] as [string, RequestInit];
+    expect(new URLSearchParams(init.body as string).get('Body')).toBe(
+      'Your Waves OTP is 123456. Do not share it.',
+    );
+  });
+
+  it('refuses before spending an attempt when the rail has no sender', async () => {
+    const d = deps({ env: { OTP_CHANNEL: 'sms', TWILIO_SMS_FROM: '', TWILIO_WHATSAPP_FROM: '' } });
+    const response = await handleOtpSend(request(), d);
+
+    expect(response.status).toBe(500);
+    expect(d.fetchImpl).not.toHaveBeenCalled();
+    // The gate runs ahead of the limiter, so a misconfigured deploy cannot eat
+    // somebody's four codes for sends it was never capable of making.
+    expect(d.rpc).not.toHaveBeenCalled();
+  });
+
+  it('stays on WhatsApp for any value that is not sms', async () => {
+    // Including an empty or misspelled one. The default is the rail that needs
+    // no operator paperwork, so a typo fails towards the one that works rather
+    // than towards the one the carrier silently drops.
+    for (const value of ['', 'whatsapp', 'text', 'smsx']) {
+      const d = deps({ env: { OTP_CHANNEL: value } });
+      await handleOtpSend(request(), d);
+      const [, init] = d.fetchImpl.mock.calls[0] as [string, RequestInit];
+      expect(new URLSearchParams(init.body as string).get('ContentSid')).toBe('HX999');
+    }
+  });
+
+  it('reads the channel past whitespace and case', async () => {
+    const d = deps({ env: { ...SMS_ENV, OTP_CHANNEL: '  SMS  ' } });
+    await handleOtpSend(request(), d);
+
+    const [, init] = d.fetchImpl.mock.calls[0] as [string, RequestInit];
+    expect(new URLSearchParams(init.body as string).get('Body')).toContain('123456');
+  });
+});
