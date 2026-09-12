@@ -32,6 +32,7 @@ import { GroupPhoto } from '@/components/GroupPhoto';
 import { type PickedContact } from '@/components/ContactPicker';
 import { friendlyError } from '@/lib/errors';
 import { groupDeleteWarning, orderDebtsForWarning } from '@/lib/groupDeleteWarning';
+import { GROUP_DESCRIPTION_MAX, normaliseGroupDescription } from '@/lib/groupDescription';
 import { pickGroupPhoto } from '@/lib/image';
 import { requestContacts } from '@/lib/contactPickerBridge';
 import { router } from '@/lib/navigation';
@@ -239,16 +240,30 @@ export default function GroupSettingsScreen() {
   // group query is still catching up (see `commitName`). Cleared alongside the
   // field whenever a different group is loaded into this screen.
   const [sentName, setSentName] = useState<string | null>(null);
+  // The description follows the name exactly: same seeding, same
+  // commit-on-blur, same guard against the double trigger. It is the other half
+  // of what the group says about itself, so it is edited the same way rather
+  // than acquiring a Save button of its own.
+  const [description, setDescription] = useState(group.data?.description ?? '');
+  // `undefined` is "nothing sent yet", and it has to be distinguishable from
+  // the `null` a cleared description normalises to — otherwise the very first
+  // clear would compare equal to "nothing sent" and be swallowed, and the
+  // description would be unclearable. The name field gets away with a plain
+  // null here only because its empty value is '' rather than null.
+  const [sentDescription, setSentDescription] = useState<string | null | undefined>(undefined);
   if (group.data && seededId !== group.data.id) {
     setSeededId(group.data.id);
     setName(group.data.name ?? '');
     setSentName(null);
+    setDescription(group.data.description ?? '');
+    setSentDescription(undefined);
   }
   const [status, setStatus] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   // Whether the name is being edited (the rule under it lights up) and whether
   // the cover sheet is open. Both are about the identity row at the top.
   const [naming, setNaming] = useState(false);
+  const [describing, setDescribing] = useState(false);
   const [coverOpen, setCoverOpen] = useState(false);
 
   /**
@@ -272,6 +287,22 @@ export default function GroupSettingsScreen() {
     if (next === (group.data?.name ?? '') || next === sentName) return;
     setSentName(next);
     updateGroup.mutate({ name: next || null }, { onSuccess: () => setStatus(t.account.saved) });
+  };
+
+  /**
+   * Save the description, on the same two triggers and with the same two
+   * guards as the name above.
+   *
+   * The comparison is against the normalised form on both sides, not against
+   * the raw field: a description that differs from the stored one only by the
+   * whitespace somebody left at the end is not a change, and queueing it would
+   * put a mutation on the wire and a "Saved" on the screen for nothing.
+   */
+  const commitDescription = (): void => {
+    const next = normaliseGroupDescription(description);
+    if (next === (group.data?.description ?? null) || next === sentDescription) return;
+    setSentDescription(next);
+    updateGroup.mutate({ description: next }, { onSuccess: () => setStatus(t.account.saved) });
   };
 
   // A group photo is a paid feature; the cover emoji is free. The group may
@@ -559,6 +590,43 @@ export default function GroupSettingsScreen() {
               />
             </View>
           </Row>
+
+          {/* What the group is for, under what it is called — the same pair, in
+              the same card, that the create screen opens with. It sits across
+              the full width rather than beside the mark: a sentence needs the
+              room, and the mark belongs to the name. */}
+          <View style={{ gap: theme.spacing.xs, marginTop: theme.spacing.lg }}>
+            <Text variant="caption" tone="muted">
+              {t.group.descriptionOptional}
+            </Text>
+            <TextInput
+              value={description}
+              onChangeText={setDescription}
+              onFocus={() => setDescribing(true)}
+              onBlur={() => {
+                setDescribing(false);
+                commitDescription();
+              }}
+              accessibilityLabel={t.group.groupDescription}
+              placeholder={t.group.descriptionPlaceholder}
+              placeholderTextColor={theme.color.textFaint}
+              maxLength={GROUP_DESCRIPTION_MAX}
+              // Multiline, so there is no "done" key to submit on — blur is the
+              // only commit here, which is why `returnKeyType` is not set the
+              // way the name's is. A return inside a description is a line
+              // break, not a save.
+              multiline
+              style={{
+                fontSize: 15,
+                color: theme.color.text,
+                paddingVertical: theme.spacing.sm,
+                minHeight: 48,
+                textAlignVertical: 'top',
+                borderBottomWidth: 1.5,
+                borderBottomColor: describing ? theme.color.brand : theme.color.border,
+              }}
+            />
+          </View>
         </Card>
 
         {/* Opened by the mark above and nothing else, so there is one door to

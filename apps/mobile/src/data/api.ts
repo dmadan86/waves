@@ -48,9 +48,9 @@ import type {
 } from './types';
 
 const GROUP_SELECT = `
-  id, name, type, country_code, default_currency, simplify_debts, cover_emoji, photo_path,
-  start_date, end_date, time_zone, remind_daily, remind_morning_at, remind_evening_at,
-  archived_at, deleted_at, created_at
+  id, name, description, type, country_code, default_currency, simplify_debts, cover_emoji,
+  photo_path, start_date, end_date, time_zone, remind_daily, remind_morning_at,
+  remind_evening_at, archived_at, deleted_at, created_at
 `;
 
 // profiles is embedded by its FK column (profile_id): ghost_merges references
@@ -885,6 +885,9 @@ export async function updateGroup(
   groupId: string,
   patch: Partial<{
     name: string | null;
+    /** Normalise through `normaliseGroupDescription` before sending: NULL, not
+     *  '', and never longer than the column's CHECK allows. */
+    description: string | null;
     type: GroupType;
     cover_emoji: string | null;
     photo_path: string | null;

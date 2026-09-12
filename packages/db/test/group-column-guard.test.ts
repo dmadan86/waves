@@ -152,6 +152,7 @@ describe('the columns the app actually writes still go through', () => {
     const member = profileIds[1]!;
 
     await patch(member, groupId, 'name', 'Goa 2026');
+    await patch(member, groupId, 'description', 'January, the four of us');
     await patch(member, groupId, 'cover_emoji', '🏖️');
     await patch(member, groupId, 'start_date', '2026-01-01');
     await patch(member, groupId, 'end_date', '2026-01-08');
@@ -162,11 +163,50 @@ describe('the columns the app actually writes still go through', () => {
     await patch(member, groupId, 'country_code', 'IN');
 
     const { rows } = await client.query(
-      `SELECT name, cover_emoji, remind_daily FROM groups WHERE id = $1`,
+      `SELECT name, description, cover_emoji, remind_daily FROM groups WHERE id = $1`,
       [groupId],
     );
     expect(rows[0]?.name).toBe('Goa 2026');
+    expect(rows[0]?.description).toBe('January, the four of us');
     expect(rows[0]?.remind_daily).toBe(false);
+  });
+
+  it('caps a description at 280 characters, and lets exactly 280 through', async () => {
+    // The cap is the column's, not the input's. The client's `maxLength` stops
+    // a paragraph being typed, but the client is not the only writer — a
+    // PostgREST PATCH is the same door the tests above use, and a description
+    // longer than the column allows has to be refused there rather than stored.
+    //
+    // `char_length`, so the cap means the same number of characters in every
+    // script the app speaks. A Tamil description of 280 characters is 280, not
+    // the 93 an octet cap would have allowed.
+    const { groupId, profileIds } = await seedGroup(client, { memberCount: 2 });
+    const member = profileIds[1]!;
+
+    await patch(member, groupId, 'description', 'a'.repeat(280));
+    await patch(member, groupId, 'description', 'கோ'.repeat(140));
+
+    const message = await expectDenied(patch(member, groupId, 'description', 'a'.repeat(281)));
+    expect(message).toMatch(/groups_description_length/);
+
+    // Refused, so the last accepted write is what the column still holds.
+    const { rows } = await client.query(`SELECT description FROM groups WHERE id = $1`, [groupId]);
+    expect(rows[0]?.description).toBe('கோ'.repeat(140));
+  });
+
+  it('lets a member clear a description back to NULL', async () => {
+    // Clearing is an ordinary edit, not a special case — the group goes back to
+    // saying nothing about itself. It has to reach the column as NULL rather
+    // than '', which is what the `/sync` boundary normalises, but the guard
+    // must not stand in the way of either.
+    const { groupId, profileIds } = await seedGroup(client, { memberCount: 2 });
+    const member = profileIds[1]!;
+
+    await patch(member, groupId, 'description', 'January, the four of us');
+    await patch(member, groupId, 'description', null);
+
+    const { rows } = await client.query(`SELECT description FROM groups WHERE id = $1`, [groupId]);
+    expect(rows[0]?.description).toBeNull();
   });
 
   it('lets a member archive and unarchive, which is deliberate', async () => {

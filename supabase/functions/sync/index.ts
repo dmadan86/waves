@@ -134,6 +134,7 @@ interface MutationEnvelope {
 /** Columns a member is allowed to set via `group.update` (mirrors client `updateGroup`). */
 const GROUP_UPDATABLE_FIELDS = [
   'name',
+  'description',
   'type',
   'cover_emoji',
   'photo_path',
@@ -525,6 +526,14 @@ export class SyncSession {
         // how the two ends drift apart. Only when the key is actually there, so
         // a patch that never mentioned the name is untouched.
         if ('name' in patch) patch.name = optionalString(patch.name, 'name');
+        // The description reads the same way, and for the same reason: clearing
+        // it has to reach the column as NULL, because '' is a blank line in
+        // every reader rather than an absent one. The length is not checked
+        // here — the column's CHECK is the boundary for that, and a second
+        // number in a second place is the drift this file has been bitten by
+        // before (see GROUP_UPDATABLE_FIELDS vs the guard trigger).
+        if ('description' in patch)
+          patch.description = optionalString(patch.description, 'description');
         const { error } = await this.caller.from('groups').update(patch).eq('id', mutation.groupId);
         if (error) throw new HttpError(400, 'VALIDATION_FAILED', error.message);
         return { groupId: mutation.groupId };

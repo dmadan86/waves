@@ -27,6 +27,11 @@ export interface GroupRow {
   id: string;
   /** Optional — an unnamed group is labelled by who is in it (see groupLabel). */
   name: string | null;
+  /** What the group is for, in the maker's own words. Optional, capped at
+   *  GROUP_DESCRIPTION_MAX by both the input and a CHECK on the column. NULL,
+   *  never '' — an empty string would render as a blank line everywhere this is
+   *  shown, where an absent one renders as nothing. */
+  description: string | null;
   type: GroupType;
   /**
    * ISO-3166 alpha-2 — where this group settles, which decides which payment

@@ -18,19 +18,19 @@ import {
   Callout,
   Card,
   ChipRow,
-  Divider,
   IconButton,
   iconSize,
   Row,
   Screen,
   Text,
-  type TintName,
   Toggle,
   useTheme,
 } from '@waves/ui';
 
+import { DetailRow, DetailRows } from '@/components/DetailRows';
 import { GroupPhoto } from '@/components/GroupPhoto';
 import { friendlyError } from '@/lib/errors';
+import { GROUP_DESCRIPTION_MAX, normaliseGroupDescription } from '@/lib/groupDescription';
 import { router } from '@/lib/navigation';
 import { isPhoneCountryError, normaliseContactPhone } from '@/lib/phone';
 import { type PickedContact } from '@/components/ContactPicker';
@@ -75,131 +75,6 @@ const iconFor =
   // eslint-disable-next-line react/display-name
   (color: string): ReactNode => <Ionicons name={name} size={iconSize.base} color={color} />;
 
-/** The leading colour tile of a grouped row — a pastel square with an inked
- *  glyph, the way each Apple Wallet row is led by its own coloured icon. */
-const TILE = 38;
-function IconTile({ tint, icon }: { tint: TintName; icon: keyof typeof Ionicons.glyphMap }) {
-  const theme = useTheme();
-  const pair = theme.tint[tint];
-  return (
-    <View
-      style={{
-        width: TILE,
-        height: TILE,
-        borderRadius: theme.radius.md,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: pair.bg,
-      }}
-    >
-      <Ionicons name={icon} size={iconSize.md} color={pair.ink} />
-    </View>
-  );
-}
-
-/**
- * One row of the grouped attributes card, Apple-Wallet style: a leading colour
- * tile, a bold label (with an optional one-line hint under it), and its control
- * — a value pill or a toggle — at the far right.
- */
-function AttrRow({
-  tint,
-  icon,
-  label,
-  subtitle,
-  children,
-}: {
-  tint: TintName;
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  subtitle?: string;
-  children: ReactNode;
-}) {
-  const theme = useTheme();
-  return (
-    <Row
-      style={{
-        alignItems: 'center',
-        gap: theme.spacing.md,
-        paddingHorizontal: theme.spacing.lg,
-        paddingVertical: theme.spacing.md,
-      }}
-    >
-      <IconTile tint={tint} icon={icon} />
-      <View style={{ flex: 1, gap: 2 }}>
-        <Text variant="subheading" style={{ fontWeight: '600' }}>
-          {label}
-        </Text>
-        {subtitle ? (
-          <Text variant="caption" tone="muted">
-            {subtitle}
-          </Text>
-        ) : null}
-      </View>
-      {children}
-    </Row>
-  );
-}
-
-/** The hairline between grouped rows, inset past the colour tile so it starts
- *  under the label the way a native grouped list draws it. */
-function InsetDivider() {
-  const theme = useTheme();
-  return (
-    <View style={{ paddingLeft: theme.spacing.lg + TILE + theme.spacing.md }}>
-      <Divider />
-    </View>
-  );
-}
-
-/**
- * The tappable value at the right of an AttrRow: the current value and a chevron
- * that flips while its editor is unfolded below. It sits on a solid chip so it
- * reads against the tinted group fill, and lights up in the brand tint open.
- */
-function Pill({
-  label,
-  placeholder = false,
-  expanded,
-  onPress,
-  accessibilityLabel,
-}: {
-  label: string;
-  placeholder?: boolean;
-  expanded: boolean;
-  onPress: () => void;
-  accessibilityLabel: string;
-}) {
-  const theme = useTheme();
-  const ink = expanded ? theme.color.brand : placeholder ? theme.color.textMuted : theme.color.text;
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ expanded }}
-      accessibilityLabel={accessibilityLabel}
-      onPress={onPress}
-      style={({ pressed }) => ({
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: theme.spacing.xs,
-        paddingLeft: theme.spacing.md,
-        paddingRight: theme.spacing.sm,
-        height: 36,
-        borderRadius: theme.radius.pill,
-        backgroundColor: expanded ? theme.color.brandSoft : theme.color.surface,
-        borderWidth: 1,
-        borderColor: expanded ? theme.color.brand : theme.color.border,
-        opacity: pressed ? 0.7 : 1,
-      })}
-    >
-      <Text variant="subheading" style={{ fontWeight: '600', color: ink }}>
-        {label}
-      </Text>
-      <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={iconSize.sm} color={ink} />
-    </Pressable>
-  );
-}
-
 /**
  * Making a group, wearing the same clothes as the settings that edit one.
  *
@@ -239,6 +114,10 @@ export default function NewGroupScreen() {
   const captures = useCaptures();
 
   const [name, setName] = useState('');
+  // A sentence about the group, under its name and in the same card, because it
+  // is part of naming the thing rather than a setting about it. Optional, and
+  // capped — see `groupDescription.ts` for why at that number.
+  const [description, setDescription] = useState('');
   // The group cover is an emoji icon, chosen by tapping the avatar. Photos are
   // a paid feature edited from group settings, not part of creating one.
   const [iconOpen, setIconOpen] = useState(false);
@@ -247,12 +126,17 @@ export default function NewGroupScreen() {
   // group called "Goa" still becomes one, "Dinner" does not, and an untyped
   // name falls back to Other rather than dragging trip fields in behind it.
   const [pickedType, setPickedType] = useState<GroupType | null>(null);
-  // Kind, dates, budget and simplify all live behind one collapsed row: the
-  // shortest path is name, people, create, and everything here is optional.
-  const [showMore, setShowMore] = useState(false);
-  // Which attribute row of the combined card is unfolded, if any — one at a
+  // Which attribute row of the settings card is unfolded, if any — one at a
   // time, so the card stays a short list until you open the one you want.
-  const [openAttr, setOpenAttr] = useState<'dates' | 'budget' | null>(null);
+  //
+  // These used to sit behind a "More options" disclosure, which hid four
+  // already-answered facts behind a row that said nothing about any of them. A
+  // group has a kind whether or not you open anything, so the screen now states
+  // it — the same way the expense screen states who paid and how a bill was
+  // split, as a stack of named facts with their values, each one a tap from
+  // being changed. Nothing here is required; the point is that the screen reads
+  // as already filled in rather than as a form still to be completed.
+  const [openAttr, setOpenAttr] = useState<'kind' | 'dates' | 'budget' | null>(null);
   const [ghostName, setGhostName] = useState('');
   // People to add on Create — a typed name carries no address, a contact carries
   // whatever the phone had. Same shape either way, so the create loop treats
@@ -314,6 +198,10 @@ export default function NewGroupScreen() {
     // same shape GroupPhoto's signed-URL fetch uses).
     void Promise.resolve().then(() => {
       setName(group.name ? fill(t.clone.copyOf, { name: group.name }) : '');
+      // The description comes across as-is. It describes what the group is for,
+      // and a clone is for the same thing — it is the name that needs "copy of"
+      // on it to tell the two apart, not the sentence explaining them both.
+      setDescription(group.description ?? '');
       setPickedType(group.type);
       setPickedEmoji(group.cover_emoji ?? null);
       setSimplify(group.simplify_debts);
@@ -431,6 +319,27 @@ export default function NewGroupScreen() {
         });
       }
 
+      // The description rides behind the create as an ordinary group.update,
+      // the same way the trip dates below do, rather than being added to
+      // `waves_create_group`.
+      //
+      // That is deliberate and is the safer of the two shapes. `group.create`
+      // is the one mutation in the app whose refusal takes something away: the
+      // queue overlay is the only place a group exists until it syncs, so a
+      // create the server will not accept ends with the person dropping it and
+      // the group going with it. Giving the create a new argument gives it a new
+      // way to be refused — by a server that has not yet learned the column, by
+      // a length the client let through — for the sake of a field nobody needs
+      // the group to have. Behind the create, the worst case is a description
+      // that did not save on a group that did.
+      //
+      // Only sent when something was actually typed, so the ordinary path
+      // (create a group, do not describe it) queues exactly what it did before.
+      const trimmedDescription = normaliseGroupDescription(description);
+      if (trimmedDescription) {
+        await mutate(MutationKind.GroupUpdate, groupId, { description: trimmedDescription });
+      }
+
       // Trip dates are not part of the create call, so they ride behind it as
       // an update on the same ordered queue — only when a trip was actually
       // given a start and end, since that is what turns the reminders on.
@@ -545,7 +454,11 @@ export default function NewGroupScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* One compact row: the cover — tapped to choose an icon — with the
-            name inline beside it and a clear (×) once there is a name. */}
+            name inline beside it and a clear (×) once there is a name; and
+            under it, in the same card, the sentence that says what the group is
+            for. The two belong together: they are both the group's own account
+            of itself, where everything below is a setting about how it behaves.
+            Splitting them into two cards would have said otherwise. */}
         <Card style={{ paddingVertical: theme.spacing.md }}>
           <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
             <Pressable
@@ -583,6 +496,45 @@ export default function NewGroupScreen() {
               </Pressable>
             ) : null}
           </Row>
+
+          {/* Inset past the cover so it lines up with the name rather than with
+              the mark, which is what makes the two read as one block of writing
+              about the group instead of two unrelated fields.
+
+              Multiline and auto-growing: a description is a sentence, and a
+              sentence that scrolls inside two lines of a text box is a sentence
+              nobody re-reads before saving. `maxLength` is the same cap the
+              column carries, so the field simply stops accepting keystrokes
+              rather than letting somebody type a paragraph the database will
+              refuse — a refusal they would only meet after tapping Create. */}
+          <View
+            style={{
+              marginTop: theme.spacing.md,
+              paddingTop: theme.spacing.md,
+              marginStart: 44 + theme.spacing.md,
+              borderTopWidth: 1,
+              borderTopColor: theme.color.border,
+            }}
+          >
+            <TextInput
+              value={description}
+              onChangeText={setDescription}
+              placeholder={t.group.descriptionPlaceholder}
+              placeholderTextColor={theme.color.textFaint}
+              accessibilityLabel={t.group.groupDescription}
+              maxLength={GROUP_DESCRIPTION_MAX}
+              multiline
+              style={{
+                fontSize: 15,
+                color: theme.color.text,
+                paddingVertical: 0,
+                // Two lines of room before it grows, so the field looks like
+                // somewhere to write rather than a one-line input.
+                minHeight: 40,
+                textAlignVertical: 'top',
+              }}
+            />
+          </View>
         </Card>
 
         {/* Controlled by the avatar tap above — no trigger of its own. */}
@@ -676,150 +628,110 @@ export default function NewGroupScreen() {
           ) : null}
         </Card>
 
-        {/* Everything that is not name-people-create folds behind one row, so
-            the screen opens as a short path and the settings are there for who
-            wants them. The collapsed row still shows the current kind, so a
-            wrong guess from the name is visible without opening it.
+        {/* The group's settings, stated rather than hidden.
 
-            Dates and budget are trip-only; the budget, left at zero, sets
+            This was a "More options" disclosure: one row that named none of the
+            four things behind it, with the kind of group — already decided,
+            already guessed from the name — sitting unread on its right. The
+            shape it wears now is the expense screen's: a stack of named facts
+            with their current values, hairlines between, each one a tap from
+            being changed. The screen reads as a group that already exists and
+            can be adjusted, which is what it is, instead of a form with a
+            drawer of unanswered questions in it.
+
+            Kind and simplify are always here; dates and budget are trip-only,
+            so a dinner or a flat never sees them. The budget, left at zero, sets
             nothing; entered, it seeds the planner's overall cap on create.
             ADR-009: simplification is presentation only — the pairwise ledger
             underneath is untouched. */}
-        <Card
-          flat
-          padded={false}
-          style={{ backgroundColor: theme.color.surfaceMuted, overflow: 'hidden' }}
-        >
-          <Pressable
-            accessibilityRole="button"
-            accessibilityState={{ expanded: showMore }}
-            // The explicit label overrides the descendant text, so the current
-            // kind shown on the right of the collapsed row is announced here too
-            // — a screen reader would otherwise never hear it.
-            accessibilityLabel={`${t.extras.moreOptions}, ${currentType.label}`}
-            onPress={() => setShowMore((current) => !current)}
-            style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
-          >
-            <Row
-              style={{
-                alignItems: 'center',
-                gap: theme.spacing.md,
-                paddingHorizontal: theme.spacing.lg,
-                paddingVertical: theme.spacing.md,
-              }}
-            >
-              <IconTile tint="lilac" icon="options-outline" />
-              <View style={{ flex: 1, gap: 2 }}>
-                <Text variant="subheading" style={{ fontWeight: '600' }}>
-                  {t.extras.moreOptions}
-                </Text>
-                <Text variant="caption" tone="muted">
-                  {t.extras.moreOptionsHint}
-                </Text>
-              </View>
-              {!showMore ? (
-                <Text variant="caption" tone="muted">
-                  {currentType.label}
-                </Text>
-              ) : null}
-              <Ionicons
-                name={showMore ? 'chevron-up' : 'chevron-down'}
-                size={iconSize.base}
-                color={theme.color.textFaint}
+        <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
+          <DetailRows>
+            {/* Row plus the editor it unfolds, as one child, so the divider
+                between rows lands above the row and not between a row and its
+                own open editor. Same shape for the three that unfold. */}
+            <View>
+              <DetailRow
+                icon={currentType.icon}
+                label={t.extras.groupKind}
+                value={currentType.label}
+                expanded={openAttr === 'kind'}
+                accessibilityLabel={`${t.extras.groupKind}, ${currentType.label}`}
+                onPress={() => setOpenAttr((current) => (current === 'kind' ? null : 'kind'))}
               />
-            </Row>
-          </Pressable>
-
-          {showMore ? (
-            <>
-              <InsetDivider />
-              <AttrRow tint="lilac" icon={currentType.icon} label={t.extras.groupKind}>
-                <View />
-              </AttrRow>
-              <View
-                style={{ paddingHorizontal: theme.spacing.lg, paddingBottom: theme.spacing.md }}
-              >
-                <ChipRow<GroupType>
-                  value={type}
-                  onChange={setPickedType}
-                  options={typeOptions.map((option) => ({
-                    value: option.value,
-                    label: option.label,
-                    icon: iconFor(option.icon),
-                  }))}
-                />
-              </View>
-
-              {type === GroupType.Trip ? (
-                <>
-                  <InsetDivider />
-                  <AttrRow tint="sky" icon="calendar-outline" label={t.misc.tripDatesTitle}>
-                    <Pill
-                      label={dateSummary}
-                      placeholder={!tripDates.start_date || !tripDates.end_date}
-                      expanded={openAttr === 'dates'}
-                      accessibilityLabel={t.misc.tripDatesTitle}
-                      onPress={() =>
-                        setOpenAttr((current) => (current === 'dates' ? null : 'dates'))
-                      }
-                    />
-                  </AttrRow>
-                  {openAttr === 'dates' ? (
-                    <View
-                      style={{
-                        paddingHorizontal: theme.spacing.lg,
-                        paddingBottom: theme.spacing.md,
-                      }}
-                    >
-                      <TripDates
-                        group={tripDates}
-                        locale={locale}
-                        embedded
-                        onChange={(patch) => setTripDates((current) => ({ ...current, ...patch }))}
-                      />
-                    </View>
-                  ) : null}
-
-                  <InsetDivider />
-                  <AttrRow tint="mint" icon="wallet-outline" label={t.extras.tripBudget}>
-                    <Pill
-                      label={budgetSummary}
-                      placeholder={budget <= 0n}
-                      expanded={openAttr === 'budget'}
-                      accessibilityLabel={t.extras.tripBudgetOptional}
-                      onPress={() =>
-                        setOpenAttr((current) => (current === 'budget' ? null : 'budget'))
-                      }
-                    />
-                  </AttrRow>
-                  {openAttr === 'budget' ? (
-                    <View
-                      style={{
-                        paddingHorizontal: theme.spacing.lg,
-                        paddingBottom: theme.spacing.md,
-                      }}
-                    >
-                      <AmountField currency={currency} value={budget} onChange={setBudget} />
-                    </View>
-                  ) : null}
-                </>
+              {openAttr === 'kind' ? (
+                <View style={{ paddingBottom: theme.spacing.md }}>
+                  <ChipRow<GroupType>
+                    value={type}
+                    onChange={setPickedType}
+                    options={typeOptions.map((option) => ({
+                      value: option.value,
+                      label: option.label,
+                      icon: iconFor(option.icon),
+                    }))}
+                  />
+                </View>
               ) : null}
+            </View>
 
-              <InsetDivider />
-              <AttrRow
-                tint="peach"
-                icon="flash-outline"
-                label={t.group.simplifyDebts}
-                subtitle={t.group.simplifyDebtsHint}
-              >
+            {type === GroupType.Trip ? (
+              <View>
+                <DetailRow
+                  icon="calendar-outline"
+                  label={t.misc.tripDatesTitle}
+                  value={dateSummary}
+                  placeholder={!tripDates.start_date || !tripDates.end_date}
+                  expanded={openAttr === 'dates'}
+                  accessibilityLabel={`${t.misc.tripDatesTitle}, ${dateSummary}`}
+                  onPress={() => setOpenAttr((current) => (current === 'dates' ? null : 'dates'))}
+                />
+                {openAttr === 'dates' ? (
+                  <View style={{ paddingBottom: theme.spacing.md }}>
+                    <TripDates
+                      group={tripDates}
+                      locale={locale}
+                      embedded
+                      onChange={(patch) => setTripDates((current) => ({ ...current, ...patch }))}
+                    />
+                  </View>
+                ) : null}
+              </View>
+            ) : null}
+
+            {type === GroupType.Trip ? (
+              <View>
+                <DetailRow
+                  icon="wallet-outline"
+                  label={t.extras.tripBudget}
+                  value={budgetSummary}
+                  placeholder={budget <= 0n}
+                  expanded={openAttr === 'budget'}
+                  accessibilityLabel={`${t.extras.tripBudgetOptional}, ${budgetSummary}`}
+                  onPress={() => setOpenAttr((current) => (current === 'budget' ? null : 'budget'))}
+                />
+                {openAttr === 'budget' ? (
+                  <View style={{ paddingBottom: theme.spacing.md }}>
+                    <AmountField currency={currency} value={budget} onChange={setBudget} />
+                  </View>
+                ) : null}
+              </View>
+            ) : null}
+
+            {/* The one row that is not tappable, because its control says the
+                value and changes it in the same gesture. A chevron here would
+                promise a second place to go that does not exist. */}
+            <DetailRow
+              icon="flash-outline"
+              label={t.group.simplifyDebts}
+              subtitle={t.group.simplifyDebtsHint}
+              trailing={
                 <Toggle
                   value={effectiveSimplify}
                   onValueChange={setSimplify}
                   accessibilityLabel={t.group.simplifyDebts}
                 />
-              </AttrRow>
-            </>
-          ) : null}
+              }
+            />
+          </DetailRows>
         </Card>
 
         {/* Seed the whole form from a group you already have — a power move, so
