@@ -193,7 +193,13 @@ export async function handlePhoneVerify(
   const { data: exchange, error: openError } = await service.rpc('waves_otp_relay_open', {
     p_phone: phone,
   });
-  if (openError || typeof exchange !== 'string') {
+  if (openError) {
+    if ((openError.message ?? '').includes('OTP_RELAY_BUSY')) {
+      return fail(429, 'TOO_MANY', 'A sign-in code is already being checked for that number. Try again in a moment.');
+    }
+    return fail(500, 'INTERNAL', 'Could not sign you in just now');
+  }
+  if (typeof exchange !== 'string') {
     return fail(500, 'INTERNAL', 'Could not sign you in just now');
   }
 
