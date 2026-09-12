@@ -65,6 +65,19 @@ describe('parse and render', () => {
     expect(format(money(4200n, 'JPY'), { locale: 'en-IN' })).not.toContain('.');
   });
 
+  it('keeps padding in locale and currency variants a traveller or financer reads', () => {
+    // Decimal commas and trailing symbols still need the same visual contract:
+    // whole amounts line up with fractional ones instead of looking truncated.
+    const euros = formatParts(money(42000n, 'EUR'), { locale: 'de-DE' });
+    expect(euros.fraction).toBe(',00');
+    expect(euros.trail).toContain('€');
+
+    // Exponent-3 currencies keep all three places, not just the two most common
+    // paise/cents digits.
+    expect(formatParts(money(4200n, 'KWD'), { locale: 'en-IN' }).fraction).toBe('.200');
+    expect(formatParts(money(4000n, 'KWD'), { locale: 'en-IN' }).fraction).toBe('.000');
+  });
+
   it('splits an amount at the decimal point the locale actually uses', () => {
     const rupees = formatParts(money(151753n, 'INR'), { locale: 'en-IN' });
     expect(rupees.lead).toBe('₹1,517');
