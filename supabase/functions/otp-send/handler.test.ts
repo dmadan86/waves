@@ -93,6 +93,15 @@ function deps(
   } as any;
 }
 
+/**
+ * The gate is what spends somebody's daily allowance. Other RPCs — the relay
+ * handshake — cost nothing and may legitimately run first, so a test that means
+ * "no code was burnt" has to say exactly that rather than "no RPC at all".
+ */
+function gateWasCalled(d: { rpc: ReturnType<typeof vi.fn> }): boolean {
+  return d.rpc.mock.calls.some((call) => call[0] === 'waves_phone_gate');
+}
+
 describe('otp-send', () => {
   it('refuses a caller with no signature headers, and never reads the body', async () => {
     const d = deps();
@@ -100,7 +109,7 @@ describe('otp-send', () => {
     const response = await handleOtpSend(bare, d);
 
     expect(response.status).toBe(401);
-    expect(d.rpc).not.toHaveBeenCalled();
+    expect(gateWasCalled(d)).toBe(false);
     expect(d.fetchImpl).not.toHaveBeenCalled();
   });
 
@@ -184,7 +193,7 @@ describe('otp-send', () => {
     const response = await handleOtpSend(request(JSON.stringify({ sms: { otp: '1' } })), d);
 
     expect(response.status).toBe(400);
-    expect(d.rpc).not.toHaveBeenCalled();
+    expect(gateWasCalled(d)).toBe(false);
     expect(d.fetchImpl).not.toHaveBeenCalled();
   });
 
@@ -214,7 +223,7 @@ describe('otp-send', () => {
     expect(d.fetchImpl).not.toHaveBeenCalled();
     // The point of the check's position: a deploy missing its Twilio secrets
     // must not spend somebody's three codes on sends it could never make.
-    expect(d.rpc).not.toHaveBeenCalled();
+    expect(gateWasCalled(d)).toBe(false);
   });
 
   it('prefers an API key over the account auth token, and still bills the account', async () => {
@@ -249,7 +258,7 @@ describe('otp-send', () => {
 
     expect(response.status).toBe(500);
     expect(d.fetchImpl).not.toHaveBeenCalled();
-    expect(d.rpc).not.toHaveBeenCalled();
+    expect(gateWasCalled(d)).toBe(false);
   });
 
   it('refuses an oversized body before buffering it, and before any spend', async () => {
@@ -261,7 +270,7 @@ describe('otp-send', () => {
     const response = await handleOtpSend(request(huge), d);
 
     expect(response.status).toBe(413);
-    expect(d.rpc).not.toHaveBeenCalled();
+    expect(gateWasCalled(d)).toBe(false);
     expect(d.fetchImpl).not.toHaveBeenCalled();
   });
 
@@ -447,7 +456,7 @@ describe('otp-send over SMS', () => {
 
     expect(response.status).toBe(500);
     expect(d.fetchImpl).not.toHaveBeenCalled();
-    expect(d.rpc).not.toHaveBeenCalled();
+    expect(gateWasCalled(d)).toBe(false);
   });
 
   it('refuses before spending an attempt when the rail has no sender', async () => {
@@ -458,7 +467,7 @@ describe('otp-send over SMS', () => {
     expect(d.fetchImpl).not.toHaveBeenCalled();
     // The gate runs ahead of the limiter, so a misconfigured deploy cannot eat
     // somebody's three codes for sends it was never capable of making.
-    expect(d.rpc).not.toHaveBeenCalled();
+    expect(gateWasCalled(d)).toBe(false);
   });
 
   it('stays on WhatsApp for any value that is not sms', async () => {

@@ -1731,6 +1731,23 @@ model AppConfig {
   @@schema("public")
 }
 
+/// A sign-in code in flight between `phone-verify` and `otp-send`.
+///
+/// Firebase can prove somebody holds a number but cannot mint a Supabase
+/// session, and the admin API has no call that does. So the session is minted by
+/// completing a phone OTP: `phone-verify` asks GoTrue for a code, the send hook
+/// parks it here instead of paying to send an SMS nobody is waiting for, and the
+/// caller claims it. One row per number, seconds old, service-role only, and
+/// claiming deletes it in the same statement so two callers cannot both hold it.
+model OtpRelay {
+  phone       String   @id
+  code        String?
+  requestedAt DateTime @default(now()) @map("requested_at") @db.Timestamptz(6)
+
+  @@map("otp_relay")
+  @@schema("public")
+}
+
 /// A day on which one phone number spent its whole sign-in-code allowance.
 /// Deleted the moment a code is actually used (`waves_phone_verified`), so a
 /// row still standing at the cap is a day nobody signed in on — which is the

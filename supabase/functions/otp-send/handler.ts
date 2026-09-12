@@ -294,6 +294,32 @@ export async function handleOtpSend(request: Request, deps: OtpSendDeps): Promis
   const otp = payload.sms?.otp?.trim() ?? '';
   if (!isE164(phone) || !otp) return hookError(400, 'Missing a phone number or a code');
 
+  // An exchange in flight: `phone-verify` has already proved, against Google's
+  // signing keys, that somebody is holding this number, and asked GoTrue for a
+  // code purely so a session can be minted from it. Nobody is waiting for an
+  // SMS — sending one would be a message to a person who has already finished
+  // signing in, and a charge for it. So the code is parked for the function that
+  // asked, and this returns success having sent nothing.
+  //
+  // Nothing about this weakens the ordinary path. `waves_otp_relay_park` only
+  // answers true for a row opened seconds earlier by a service-role caller that
+  // had a verified Firebase token in hand; with no such row it answers false and
+  // the code goes out exactly as before.
+  const { data: parked, error: parkError } = await deps
+    .service()
+    .rpc('waves_otp_relay_park', { p_phone: phone, p_code: otp });
+  if (parkError) {
+    // Not fatal: the relay is one way in among several, and a database blip here
+    // must not take down the ordinary send with it. Worst case the code travels
+    // as an SMS nobody reads and the exchange times out.
+    console.error('otp-send relay park failed, sending normally:', parkError.message);
+  } else if (parked === true) {
+    return new Response(JSON.stringify({}), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
   // Configuration is checked before the quota is spent. A provider outage still
   // burns an attempt below — the gate deliberately runs ahead of the spend — but
   // a deploy that is simply missing its Twilio secrets should not consume all
