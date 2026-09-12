@@ -30,6 +30,15 @@ import { clearReceiptQueue, flushReceiptQueue } from '@/lib/receiptQueue';
 import { clearImageCache } from '@/lib/storage/imageCache';
 
 import { syncEngine, type SyncState } from './engine';
+import {
+  destroyedBy,
+  forgetSignOutMark,
+  Retention,
+  retentionExpired,
+  retentionVerdict,
+  takeSessionEnd,
+  type SessionEnd,
+} from './retention';
 
 interface SyncContextValue extends SyncState {
   /** Queue a mutation. Resolves once it is durably on disk, not once it syncs. */
@@ -79,6 +88,89 @@ async function clearLocalPrivateData(ownerId: string): Promise<void> {
 }
 
 /**
+ * Close out a session, destroying exactly what its ending earns.
+ *
+ * The two endings are not the same event, and running one wipe for both is the
+ * bug `retention.ts` documents at length: a revoked token used to arrive here
+ * as an indistinguishable null session and take the unsent queue with it.
+ * `destroyedBy` answers the question once, in a pure function that is tested;
+ * this only carries the answer out.
+ *
+ * A deliberate departure is unchanged, deliberately — same wipe, same order,
+ * same crypto-erase. What is new is the other branch, which keeps the three
+ * things nothing else in the world holds a copy of: the mutation queue, the
+ * drafts, and the receipt bytes taken from a bill that is already in the bin.
+ */
+async function endSession(ownerId: string, reason: SessionEnd): Promise<void> {
+  const scope = destroyedBy(reason);
+  if (scope.unsent) {
+    // `clearLocalPrivateData` is the whole wipe — queue, drafts, receipts,
+    // credentials, cache and key — and the only path that reaches it.
+    await clearLocalPrivateData(ownerId);
+    return;
+  }
+
+  const failures: unknown[] = [];
+  // Stamped with the owner in the same transaction that drops the mirror: work
+  // that cannot say whose it is may never be adopted by anybody.
+  await syncEngine.retainUnsent(ownerId).catch((error: unknown) => failures.push(error));
+  if (scope.cache) {
+    try {
+      clearImageCache();
+    } catch (error) {
+      failures.push(error);
+    }
+  }
+  if (failures.length > 0) throw failures[0];
+}
+
+/**
+ * Decide what the account now signing in inherits from the last one.
+ *
+ * Three answers, and two of them are cheap. Nothing held: the common case, and
+ * the only one on a phone that has never lost a session. The same account back
+ * inside the window: drop the stamp and let `hydrate` read its own queue.
+ * Anybody else, or too long ago: destroy it *before* this session hydrates,
+ * because a queue drained under the wrong session would write one person's
+ * expenses into another person's groups — a worse outcome than the loss this
+ * whole change exists to prevent.
+ *
+ * The verdict is pure and tested; the failure path is not silent, because a
+ * device that cannot read its own stamp is holding data nobody can attribute.
+ */
+async function settleRetainedWork(signingInAs: string): Promise<void> {
+  const retained = await syncEngine.retainedWork().catch((error: unknown) => {
+    reportHandled(error, 'sync.readRetained');
+    return null;
+  });
+  const verdict = retentionVerdict(retained, signingInAs, Date.now());
+  if (verdict === Retention.Nothing || !retained) return;
+  if (verdict === Retention.Adopt) {
+    await syncEngine.adoptRetained().catch((error: unknown) => {
+      reportHandled(error, 'sync.adoptRetained');
+    });
+    return;
+  }
+  await clearLocalPrivateData(retained.ownerId).catch((error: unknown) => {
+    reportHandled(error, 'sync.discardRetained');
+  });
+}
+
+/**
+ * A launch with nobody signed in, where the last session ended on its own.
+ *
+ * This is the only moment the window in `retention.ts` can be enforced for
+ * somebody who never comes back: every other check hangs off a sign-in, and a
+ * phone left in a drawer has none. Anything still held past the window goes,
+ * under the id it was stamped with.
+ */
+async function sweepExpiredRetention(): Promise<void> {
+  const retained = await syncEngine.retainedWork().catch(() => null);
+  if (!retained || !retentionExpired(retained, Date.now())) return;
+  await clearLocalPrivateData(retained.ownerId);
+}
+
+/**
  * Send whatever receipt captures are still parked on this device.
  *
  * A receipt is the one thing the app takes from somebody that it cannot re-ask
@@ -111,31 +203,42 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<SyncState>(() => syncEngine.getState());
   const signedIn = Boolean(session);
   const ownerId = session?.user?.id ?? null;
-  // Who is signed in, held across the render in which they stop being — the
-  // sign-out wipe needs the id, and by the time it runs the session is gone.
-  // Null when signed out, which is also the "was anybody here?" test the old
-  // boolean served.
+  // Who is signed in, held across the render in which they stop being — both
+  // endings need the id (one to wipe under, one to stamp the hold with), and by
+  // the time either runs the session is gone. Null when signed out, which is
+  // also the "was anybody here?" test the old boolean served.
   const lastOwnerId = useRef<string | null>(ownerId);
-  // The in-flight sign-out cleanup, if any. Sign-out does not block on it, but
-  // the next sign-in must: the receipt queue and image cache are device-global,
-  // so a cleanup still deleting when a new account signs in would wipe the new
-  // session's freshly-hydrated data. Awaiting it first serialises the two.
+  // The in-flight cleanup, if any — the wipe, the retain, or the expiry sweep a
+  // signed-out launch runs. Leaving does not block on it, but the next sign-in
+  // must: the receipt queue and image cache are device-global, so a cleanup
+  // still deleting when a new account signs in would wipe the new session's
+  // freshly-hydrated data. Awaiting it first serialises the two.
   const pendingCleanup = useRef<Promise<void> | null>(null);
 
   useEffect(() => syncEngine.subscribe(setState), []);
 
   useEffect(() => {
     if (!signedIn) {
-      // Signing out wipes the mirror: the next person to use this phone must
-      // not find the previous account's ledger in it. Worth reporting rather
-      // than swallowing — a wipe that failed is a privacy problem, not a
-      // cosmetic one — but not worth throwing at a screen mid-sign-out. The
-      // promise is kept (never rejects — the catch resolves it) so the next
-      // sign-in can await its completion before hydrating.
+      // The session is gone — but *why* it is gone decides what may be deleted,
+      // and this is the last place that knows. `takeSessionEnd` spends the mark
+      // `lib/auth`'s `signOut` leaves; anything unmarked is a session nobody
+      // asked to end, and keeps the work that has reached nobody (retention.ts).
+      //
+      // Worth reporting rather than swallowing — a wipe that failed is a privacy
+      // problem, not a cosmetic one — but not worth throwing at a screen
+      // mid-sign-out. The promise is kept (never rejects — the catch resolves
+      // it) so the next sign-in can await its completion before hydrating.
       const departing = lastOwnerId.current;
       if (departing !== null) {
-        pendingCleanup.current = clearLocalPrivateData(departing).catch((error: unknown) =>
-          reportHandled(error, 'sync.clearPrivateData'),
+        pendingCleanup.current = endSession(departing, takeSessionEnd()).catch((error: unknown) =>
+          reportHandled(error, 'sync.endSession'),
+        );
+      } else {
+        // A launch onto the sign-in door. The one moment a hold left by a
+        // session that ended months ago, on a phone nobody came back to, can be
+        // noticed at all.
+        pendingCleanup.current = sweepExpiredRetention().catch((error: unknown) =>
+          reportHandled(error, 'sync.sweepRetention'),
         );
       }
       lastOwnerId.current = null;
@@ -144,6 +247,9 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     }
 
     lastOwnerId.current = ownerId;
+    // A mark that was never spent — a `signOut` that threw before the session
+    // actually ended — must not sit armed waiting for the next revoked token.
+    forgetSignOutMark();
     let cancelled = false;
     void (async () => {
       // A prior sign-out's cleanup may still be deleting the device-global
@@ -155,6 +261,13 @@ export function SyncProvider({ children }: { children: ReactNode }) {
         pendingCleanup.current = null;
         if (cancelled) return;
       }
+      // Before anything is read off disk: is what is on disk this account's?
+      // A queue held for somebody else is destroyed here, while there is still
+      // nothing of this session's to confuse it with — and crucially before
+      // `flush`, which would otherwise send the previous owner's mutations
+      // under this session's token.
+      if (ownerId !== null) await settleRetainedWork(ownerId);
+      if (cancelled) return;
       // Nothing awaits this, so anything thrown here would surface as an
       // uncaught promise rejection over whatever screen happens to be up.
       // `flush` hydrates too, and records the failure where the banner can

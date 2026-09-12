@@ -39,6 +39,7 @@ import { reportHandled } from '@/lib/observability';
 import { backend } from '@/lib/backend';
 import { loadSyncNetworkPreference, networkAllows, SyncNetworkPreference } from '@/lib/syncNetwork';
 
+import type { RetainedWork } from './retention';
 import { createLocalStore, type LocalStore, type StoredRow } from './store';
 
 export enum SyncStatus {
@@ -222,7 +223,55 @@ export class SyncEngine {
 
   /** Sign-out: nothing of the previous account may survive on the device. */
   async clear(): Promise<void> {
+    await this.settleFlush();
     await this.store.reset();
+    this.forgetInMemory();
+  }
+
+  /**
+   * A session lost rather than left (`retention.ts`): keep the unsent work.
+   *
+   * In memory this looks exactly like `clear` — the tree is about to render a
+   * signed-out app, and a queue count or a ledger belonging to an account that
+   * is no longer signed in must not be on screen. On disk it is the opposite:
+   * the queue, the drafts and the key stay, stamped with `ownerId`, and the
+   * next `hydrate` by that same account reads them straight back.
+   */
+  async retainUnsent(ownerId: string): Promise<void> {
+    await this.settleFlush();
+    await this.store.retainUnsent(ownerId, new Date().toISOString());
+    this.forgetInMemory();
+  }
+
+  /**
+   * Let an in-flight flush land before the disk is rewritten underneath it.
+   *
+   * The same wait `forgetGroup` takes, for the same reason and one more. A
+   * flush's `reconcile` and `putRows` run *after* its network await, so a pull
+   * that was already on the wire can write ledger rows back moments after a
+   * wipe decided they should be gone — signed-out data, readable on disk,
+   * arriving by a door the wipe had already locked. It also hydrates when the
+   * engine is cold, which would restore the very queue that was just cleared.
+   *
+   * `flushing` never rejects (see `flush`), and is capped by the flush's own
+   * timeout, so this cannot hang a sign-out indefinitely.
+   */
+  private async settleFlush(): Promise<void> {
+    await this.flushing;
+  }
+
+  /** Whose unsent work, if any, this device is holding for a lost session. */
+  retainedWork(): Promise<RetainedWork | null> {
+    return this.store.readRetained();
+  }
+
+  /** The owner came back: the queue is an ordinary queue again. */
+  adoptRetained(): Promise<void> {
+    return this.store.clearRetained();
+  }
+
+  /** Drop everything this engine holds in memory. Says nothing about disk. */
+  private forgetInMemory(): void {
     this.set({
       mirror: emptyMirror(),
       queue: [],
