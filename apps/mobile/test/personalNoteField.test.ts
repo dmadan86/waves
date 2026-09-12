@@ -37,7 +37,10 @@ describe('the private ledger’s note', () => {
   it('is typed on the screens this test knows about', () => {
     // A guard on the guard: if the section is restructured and nothing matches
     // any more, the assertions below would pass by looking at nothing at all.
-    expect(editors.sort()).toEqual(['entry.tsx', 'loans.tsx', 'recurring.tsx']);
+    // Two, not three: the recurring screen's own editor folded into `entry.tsx`
+    // when the private ledger collapsed to one form, so the rules list no longer
+    // types a note of its own.
+    expect(editors.sort()).toEqual(['entry.tsx', 'loans.tsx']);
   });
 
   it('goes through the shared field on every one of them, so it carries a mic', () => {
