@@ -45,6 +45,7 @@ import {
 import { useDefaultCurrency } from '@/lib/currency';
 import { useStrings } from '@/i18n';
 import { PersonalGuard } from '@/components/PersonalGuard';
+import { PersonalNoteField } from '@/components/PersonalNoteField';
 import { useBottomClearance } from '@/lib/clearance';
 import { router } from '@/lib/navigation';
 import { useDialog } from '@/lib/dialog';
@@ -285,19 +286,15 @@ function LoanEditor({
           />
         </View>
 
-        <TextInput
+        {/* The person the loan is with is handed to the recogniser: "lent to
+            Ravi for the deposit" is exactly the sentence a general model turns
+            into a name that was never said. */}
+        <PersonalNoteField
           value={note}
-          onChangeText={setNote}
+          onChange={setNote}
           placeholder={t.personal.notePlaceholder}
-          placeholderTextColor={theme.color.textFaint}
-          style={{
-            fontSize: 16,
-            color: theme.color.text,
-            paddingVertical: theme.spacing.md,
-            paddingHorizontal: theme.spacing.lg,
-            backgroundColor: theme.color.surfaceMuted,
-            borderRadius: theme.radius.md,
-          }}
+          accessibilityLabel={t.personal.note}
+          hints={counterpart.trim() ? [counterpart.trim()] : undefined}
         />
 
         <Pressable

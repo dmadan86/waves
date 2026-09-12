@@ -9,7 +9,7 @@ import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useLocalSearchParams } from 'expo-router';
-import { ActivityIndicator, Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, ScrollView, View } from 'react-native';
 
 import { encodeTxn, type CategoryMeta, type PersonalTxn, type TxnKind } from '@waves/core';
 import {
@@ -27,6 +27,7 @@ import {
 
 import { CategoryPicker } from '@/components/Category';
 import { SourcePicker } from '@/components/IncomeSource';
+import { PersonalNoteField } from '@/components/PersonalNoteField';
 import {
   localIsoDate,
   todayIso,
@@ -220,25 +221,13 @@ function EntryForm({
           <AmountField currency={currency} value={amount} onChange={setAmount} />
         </View>
 
-        <View style={{ gap: theme.spacing.sm }}>
-          <Text variant="caption" tone="muted">
-            {t.personal.note}
-          </Text>
-          <TextInput
-            value={note}
-            onChangeText={setNote}
-            placeholder={t.personal.notePlaceholder}
-            placeholderTextColor={theme.color.textFaint}
-            style={{
-              fontSize: 16,
-              color: theme.color.text,
-              paddingVertical: theme.spacing.md,
-              paddingHorizontal: theme.spacing.lg,
-              backgroundColor: theme.color.surfaceMuted,
-              borderRadius: theme.radius.md,
-            }}
-          />
-        </View>
+        <PersonalNoteField
+          value={note}
+          onChange={setNote}
+          label={t.personal.note}
+          placeholder={t.personal.notePlaceholder}
+          accessibilityLabel={t.personal.note}
+        />
 
         {/* A repayment is not everyday spend, so it carries no category. Income
             asks where the money came from instead of what it was spent on —
