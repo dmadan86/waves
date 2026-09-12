@@ -168,7 +168,13 @@ export function otpChannel(env: (key: string) => string | undefined): OtpChannel
 const DEFAULT_SMS_BODY = '{code} is your Waves verification code. It expires in 10 minutes.';
 
 export function smsBody(template: string | undefined, otp: string): string | null {
-  const shape = template?.trim() || DEFAULT_SMS_BODY;
+  // The configured body is used *verbatim* — not trimmed. A DLT-registered
+  // template is matched character for character at delivery, and a leading space
+  // or a trailing newline can be part of what was approved; trimming it produces
+  // a message Twilio accepts, bills for, and the carrier silently drops, having
+  // spent one of somebody's three codes on nothing. Only a body that is absent
+  // or entirely blank falls back to the default.
+  const shape = (template ?? '').trim() === '' ? DEFAULT_SMS_BODY : (template as string);
   const parts = shape.split('{code}');
   if (parts.length !== 2) return null;
   return parts.join(otp);
@@ -377,9 +383,14 @@ export async function handleOtpSend(request: Request, deps: OtpSendDeps): Promis
       // probing for numbers worth attacking would like to learn — and because a
       // person in either case has the same three doors left.
       console.warn('otp-send refused', decision.reason ?? 'unknown');
+      // Deliberately says neither the number nor the reason. The cap is an
+      // `app_config` knob an admin can move, so a sentence naming three codes is
+      // a sentence that goes stale the moment it is changed — and a refusal that
+      // distinguishes "you have used today's codes" from "this number is
+      // blocked" tells somebody probing which numbers are worth attacking.
       return hookError(
         429,
-        `That is ${OTP_DAILY_LIMIT} codes today. Try again tomorrow, or sign in another way.`,
+        'Too many sign-in codes for that number. Try again later, or sign in another way.',
       );
     }
   }

@@ -177,7 +177,11 @@ describe('otp-send', () => {
 
     const payload = (await response.json()) as { error: { http_code: number; message: string } };
     expect(payload.error.http_code).toBe(429);
-    expect(payload.error.message).toContain(String(OTP_DAILY_LIMIT));
+    // Neither the cap nor the reason: the cap is an admin knob that would date
+    // the sentence, and telling somebody whether a number is blocked or merely
+    // spent is exactly what a prober wants to learn.
+    expect(payload.error.message).not.toContain(String(OTP_DAILY_LIMIT));
+    expect(payload.error.message.toLowerCase()).not.toContain('block');
   });
 
   it('fails open when the limiter itself errors, so a database blip is not a lockout', async () => {
@@ -427,6 +431,26 @@ describe('otp-send over SMS', () => {
     const sent = new URLSearchParams(init.body as string);
     expect(sent.get('MessagingServiceSid')).toBe('MG123');
     expect(sent.get('From')).toBeNull();
+  });
+
+  it('keeps whitespace a DLT template was approved with', async () => {
+    // Trimming looks harmless and is not: the operators match the registered
+    // text character for character, so a stripped leading space is a message
+    // Twilio bills for and the carrier drops, having spent a code on nothing.
+    const d = deps({ env: { ...SMS_ENV, TWILIO_SMS_BODY: '  {code} is your code.\n' } });
+    await handleOtpSend(request(), d);
+
+    const [, init] = d.fetchImpl.mock.calls[0] as [string, RequestInit];
+    expect(new URLSearchParams(init.body as string).get('Body')).toBe('  123456 is your code.\n');
+  });
+
+  it('falls back to the default only when the body is absent or blank', async () => {
+    for (const value of [undefined, '', '   ']) {
+      const d = deps({ env: { ...SMS_ENV, TWILIO_SMS_BODY: value as string } });
+      await handleOtpSend(request(), d);
+      const [, init] = d.fetchImpl.mock.calls[0] as [string, RequestInit];
+      expect(new URLSearchParams(init.body as string).get('Body')).toContain('Waves');
+    }
   });
 
   it('sends the registered body exactly, because the carrier matches on it', async () => {

@@ -27,6 +27,13 @@
 
 CREATE TABLE public.otp_relay (
   phone        text        NOT NULL,
+  -- Which exchange this row belongs to. One number can be signed in on two
+  -- devices at once, and without this the second `open` silently replaces the
+  -- first's row: the first then claims a code minted for somebody else, or
+  -- deletes the second's on its way out and sends that person's code to an SMS
+  -- nobody asked for. The claim matches on it, so an exchange can only ever take
+  -- its own code and a loser fails cleanly instead of stealing.
+  exchange     uuid        NOT NULL DEFAULT gen_random_uuid(),
   code         text,
   requested_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT otp_relay_pkey PRIMARY KEY (phone),
@@ -42,18 +49,21 @@ REVOKE ALL ON TABLE public.otp_relay FROM PUBLIC, anon, authenticated;
 
 -- ───────────────────────────────────────────── open the exchange ──
 
--- Says "the next code for this number is mine, do not send it". Replaces any
--- row already there: a half-finished exchange from a minute ago is not something
--- to keep, and leaving it would let a stale code be claimed instead of the fresh
--- one.
+-- Says "the next code for this number is mine, do not send it", and returns the
+-- token that says which "mine". Replaces any row already there — a half-finished
+-- exchange from a minute ago is not worth keeping — but the replacement gets a
+-- new id, so the exchange it displaced can no longer claim or close anything and
+-- discovers that rather than quietly taking the newcomer's code.
 CREATE FUNCTION public.waves_otp_relay_open(p_phone text)
-RETURNS void
+RETURNS uuid
 LANGUAGE sql SECURITY DEFINER
 SET search_path TO 'public', 'pg_temp'
 AS $$
-  INSERT INTO public.otp_relay (phone, code, requested_at)
-  VALUES (p_phone, NULL, now())
-  ON CONFLICT (phone) DO UPDATE SET code = NULL, requested_at = now();
+  INSERT INTO public.otp_relay (phone, exchange, code, requested_at)
+  VALUES (p_phone, gen_random_uuid(), NULL, now())
+  ON CONFLICT (phone) DO UPDATE
+    SET exchange = gen_random_uuid(), code = NULL, requested_at = now()
+  RETURNING exchange;
 $$;
 
 REVOKE ALL ON FUNCTION public.waves_otp_relay_open(text) FROM PUBLIC, anon, authenticated;
@@ -94,32 +104,33 @@ GRANT EXECUTE ON FUNCTION public.waves_otp_relay_park(text, text) TO service_rol
 -- Read and delete in one statement. Two callers racing for the same number must
 -- not both come away holding a live code, and a `SELECT` followed by a `DELETE`
 -- is exactly the shape that lets them.
-CREATE FUNCTION public.waves_otp_relay_claim(p_phone text)
+CREATE FUNCTION public.waves_otp_relay_claim(p_phone text, p_exchange uuid)
 RETURNS text
 LANGUAGE sql SECURITY DEFINER
 SET search_path TO 'public', 'pg_temp'
 AS $$
   DELETE FROM public.otp_relay
    WHERE phone = p_phone
+     AND exchange = p_exchange
      AND code IS NOT NULL
      AND requested_at > now() - interval '30 seconds'
   RETURNING code;
 $$;
 
-REVOKE ALL ON FUNCTION public.waves_otp_relay_claim(text) FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.waves_otp_relay_claim(text) TO service_role;
+REVOKE ALL ON FUNCTION public.waves_otp_relay_claim(text, uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.waves_otp_relay_claim(text, uuid) TO service_role;
 
 -- ──────────────────────────────────────────────────── give up ──
 
 -- Called when the exchange fails, so a row that was never claimed does not sit
 -- holding a live code until something else happens to that number.
-CREATE FUNCTION public.waves_otp_relay_close(p_phone text)
+CREATE FUNCTION public.waves_otp_relay_close(p_phone text, p_exchange uuid)
 RETURNS void
 LANGUAGE sql SECURITY DEFINER
 SET search_path TO 'public', 'pg_temp'
 AS $$
-  DELETE FROM public.otp_relay WHERE phone = p_phone;
+  DELETE FROM public.otp_relay WHERE phone = p_phone AND exchange = p_exchange;
 $$;
 
-REVOKE ALL ON FUNCTION public.waves_otp_relay_close(text) FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.waves_otp_relay_close(text) TO service_role;
+REVOKE ALL ON FUNCTION public.waves_otp_relay_close(text, uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.waves_otp_relay_close(text, uuid) TO service_role;

@@ -58,15 +58,22 @@ function deps(
     verifyBody?: unknown;
     parkedCode?: string | null;
     gateAllowed?: boolean;
+    gateErrored?: boolean;
     jwksOk?: boolean;
   } = {},
 ): PhoneVerifyDeps & { rpc: ReturnType<typeof vi.fn>; fetchImpl: ReturnType<typeof vi.fn> } {
   const rpc = vi.fn((name: string) => {
     if (name === 'waves_phone_gate') {
+      if (overrides.gateErrored) {
+        return Promise.resolve({ data: null, error: { message: 'database unreachable' } });
+      }
       return Promise.resolve({
         data: { allowed: overrides.gateAllowed ?? true, reason: 'ok' },
         error: null,
       });
+    }
+    if (name === 'waves_otp_relay_open') {
+      return Promise.resolve({ data: 'exchange-1', error: null });
     }
     if (name === 'waves_otp_relay_claim') {
       return Promise.resolve({
@@ -232,6 +239,28 @@ describe('the daily gate', () => {
 });
 
 describe('when the exchange goes wrong', () => {
+  it('refuses when the gate cannot be evaluated at all', async () => {
+    // The opposite of otp-send, and on purpose: here the gate is the only thing
+    // between a blocked number and a session, so an unreadable gate is a refusal
+    // rather than a shrug.
+    const d = deps({ gateErrored: true });
+    const response = await handlePhoneVerify(request(), d);
+
+    expect(response.status).toBe(503);
+    expect(rpcNames(d)).not.toContain('waves_otp_relay_open');
+  });
+
+  it('claims and closes with the exchange it opened', async () => {
+    // Two sign-ins on one number must not be able to take each other's code.
+    const d = deps();
+    await handlePhoneVerify(request(), d);
+
+    const claim = d.rpc.mock.calls.find((call) => call[0] === 'waves_otp_relay_claim');
+    const close = d.rpc.mock.calls.find((call) => call[0] === 'waves_otp_relay_close');
+    expect(claim?.[1]).toEqual({ p_phone: '+919876543210', p_exchange: 'exchange-1' });
+    expect(close?.[1]).toEqual({ p_phone: '+919876543210', p_exchange: 'exchange-1' });
+  });
+
   it('does not hand back a session when no code was parked', async () => {
     const d = deps({ parkedCode: null });
     const response = await handlePhoneVerify(request(), d);

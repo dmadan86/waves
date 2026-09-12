@@ -183,7 +183,12 @@ BEGIN
   RETURN jsonb_build_object(
     'allowed', false,
     'reason', 'spent',
-    'retryAfter', extract(epoch FROM (((v_today + 1)::text)::timestamptz - now()))::integer
+    -- `(date)::timestamp AT TIME ZONE 'utc'`, not a cast through text: a plain
+    -- cast to timestamptz reads the *session's* time zone, so on a connection
+    -- that is not UTC this points at midnight somewhere else and can come back
+    -- negative — a "try again in -3 hours" on the one screen somebody is stuck on.
+    'retryAfter',
+    extract(epoch FROM (((v_today + 1)::timestamp AT TIME ZONE 'utc') - now()))::integer
   );
 END;
 $$;

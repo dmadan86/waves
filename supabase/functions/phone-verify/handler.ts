@@ -166,8 +166,17 @@ export async function handlePhoneVerify(
     .service()
     .rpc('waves_phone_gate', { p_phone: phone });
   if (gateError) {
-    console.error('phone-verify gate check failed, allowing:', gateError.message);
-  } else if ((gate as { allowed?: boolean } | null)?.allowed === false) {
+    // Closed, not open — and deliberately the opposite of `otp-send`, which lets a
+    // send through when the limiter is unreachable. There, failing open keeps
+    // everybody's sign-in working through a database blip and the worst case is
+    // an uncounted code. Here the gate is the only thing standing between a
+    // blocked number and a session, and the exchange below cannot complete
+    // without the database anyway, so failing open buys nothing and waives the
+    // block for whoever can make this query fail.
+    console.error('phone-verify gate check failed, refusing:', gateError.message);
+    return fail(503, 'UNAVAILABLE', 'Could not sign you in just now. Try again.');
+  }
+  if ((gate as { allowed?: boolean } | null)?.allowed === false) {
     return fail(429, 'TOO_MANY', 'That is too many sign-in attempts today. Try again tomorrow.');
   }
 
@@ -176,8 +185,17 @@ export async function handlePhoneVerify(
 
   // Open the exchange *before* asking for the code, or the hook will have sent
   // it by the time there is anywhere to park it.
-  const { error: openError } = await service.rpc('waves_otp_relay_open', { p_phone: phone });
-  if (openError) return fail(500, 'INTERNAL', 'Could not sign you in just now');
+  // The id says which exchange this is. Two devices signing in on one number at
+  // the same moment would otherwise share a single row: the second `open` wipes
+  // the first's, and the first then claims a code minted for somebody else or
+  // deletes the second's on its way out, sending that person's code to an SMS
+  // nobody asked for.
+  const { data: exchange, error: openError } = await service.rpc('waves_otp_relay_open', {
+    p_phone: phone,
+  });
+  if (openError || typeof exchange !== 'string') {
+    return fail(500, 'INTERNAL', 'Could not sign you in just now');
+  }
 
   try {
     const asked = await deps.fetchImpl(`${auth}/otp`, {
@@ -200,8 +218,9 @@ export async function handlePhoneVerify(
       return fail(502, 'UPSTREAM', 'Could not sign you in just now');
     }
 
-    const code = (await service.rpc('waves_otp_relay_claim', { p_phone: phone })).data as
-      string | null;
+    const code = (
+      await service.rpc('waves_otp_relay_claim', { p_phone: phone, p_exchange: exchange })
+    ).data as string | null;
     if (!code) {
       // The hook never parked it: either it is not pointed here, or it decided
       // this was an ordinary send. Either way an SMS may be on its way, and the
@@ -228,7 +247,13 @@ export async function handlePhoneVerify(
 
     // A code was used, so today was a real sign-in and not an attempt nobody
     // ever completed — which is what keeps honest mistyping off the strike list.
-    await service.rpc('waves_phone_verified', { p_phone: phone }).catch?.(() => undefined);
+    // `rpc` resolves with `{ error }` rather than rejecting, so a `.catch` here
+    // would have watched for a failure that never arrives and left a strike
+    // standing against somebody who did sign in. Logged rather than fatal: they
+    // are through, and refusing a completed sign-in over a bookkeeping row would
+    // be the larger harm.
+    const { error: clearError } = await service.rpc('waves_phone_verified', { p_phone: phone });
+    if (clearError) console.error('phone-verify could not clear the day:', clearError.message);
 
     return new Response(
       JSON.stringify({
@@ -239,6 +264,6 @@ export async function handlePhoneVerify(
     );
   } finally {
     // Whatever happened, no live code is left sitting in the relay.
-    await service.rpc('waves_otp_relay_close', { p_phone: phone });
+    await service.rpc('waves_otp_relay_close', { p_phone: phone, p_exchange: exchange });
   }
 }
