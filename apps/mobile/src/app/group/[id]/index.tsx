@@ -32,6 +32,8 @@ import {
   useGroupLedger,
   useGroupRealtime,
   useOpenReceipts,
+  usePinnedGroupIds,
+  useSetGroupPin,
 } from '@/data/hooks';
 import {
   activityHeadline,
@@ -59,6 +61,7 @@ import { useBlockedUsers } from '@/data/blocked';
 import {
   actorName,
   displayName,
+  groupLabel,
   isBlockedMember,
   isGhost,
   payableAt,
@@ -474,6 +477,11 @@ export default function GroupScreen() {
 
   const { group, members, expenses, settlements, activity } = useGroup(groupId);
   const ledger = useGroupLedger(groupId, profile?.id ?? null);
+  // Pin/Unpin lives in this screen's own ••• menu — the discoverable path; a
+  // long-press on the group's row (dashboard or All groups) is the fast one.
+  const pinnedIds = usePinnedGroupIds();
+  const isPinned = pinnedIds.has(groupId);
+  const setGroupPin = useSetGroupPin();
   const disputes = useDisputes(groupId);
   const openReceipts = useOpenReceipts(groupId);
   const openDisputes = useMemo(
@@ -804,6 +812,18 @@ export default function GroupScreen() {
     welcome === 'trip' && groupData.type === 'trip' && !groupData.start_date && !tripNudgeDismissed;
 
   const menuItems: OverflowMenuItem[] = [
+    // Pinning has one effect — it sorts this group to the top of the
+    // dashboard and All-groups lists — so it belongs beside the other ways
+    // of changing how the group behaves, not the ones that navigate away.
+    // Label carries which it will do rather than a static "Pin", so a
+    // screen reader (which reads the button text as the label here, same
+    // as every other row) hears the same "Pin Goa trip" the row's own
+    // long-press action does.
+    {
+      icon: isPinned ? 'pin' : 'pin-outline',
+      label: `${isPinned ? t.group.unpin : t.group.pin} ${groupLabel(groupData, members.data, profile?.id)}`,
+      onPress: () => setGroupPin.mutate({ groupId, pinned: !isPinned }),
+    },
     { icon: 'pie-chart-outline', label: t.spending, route: `/group/${groupId}/insights` },
     ...(groupData.type === 'trip'
       ? [

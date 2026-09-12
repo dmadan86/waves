@@ -85,7 +85,11 @@ type MutationKind =
   // The trip's shared exchange rate — group-scoped, admin-gated in its RPC.
   | 'group_fx_rate.set'
   | 'pack.install'
-  | 'pack.uninstall';
+  | 'pack.uninstall'
+  // One person's pin on one group (see the `group_pins` migration): personal
+  // like captures, under its own suffixed scope so it keeps a separate cursor.
+  | 'group_pin.set'
+  | 'group_pin.clear';
 
 /** True for the kinds whose scope is a user, not a group. */
 function isPersonalKind(kind: MutationKind): boolean {
@@ -100,7 +104,9 @@ function isPersonalKind(kind: MutationKind): boolean {
     kind === 'personal.upsert' ||
     kind === 'personal.delete' ||
     kind === 'pack.install' ||
-    kind === 'pack.uninstall'
+    kind === 'pack.uninstall' ||
+    kind === 'group_pin.set' ||
+    kind === 'group_pin.clear'
   );
 }
 
@@ -121,6 +127,12 @@ function personalScope(profileId: string): string {
  *  client's `packInstallsScope`; suffixed so it keeps its own cursor. */
 function packInstallsScope(profileId: string): string {
   return `${profileId}:pack_installs`;
+}
+
+/** The personal-scope key for the groups a user has pinned. Must match the
+ *  client's `groupPinsScope`; suffixed so it keeps its own cursor. */
+function groupPinsScope(profileId: string): string {
+  return `${profileId}:group_pins`;
 }
 
 interface MutationEnvelope {
@@ -555,6 +567,10 @@ export class SyncSession {
         return await this.installPack(mutation);
       case 'pack.uninstall':
         return await this.uninstallPack(mutation);
+      case 'group_pin.set':
+        return await this.setGroupPin(mutation);
+      case 'group_pin.clear':
+        return await this.clearGroupPin(mutation);
       case 'personal.upsert':
         return await this.upsertPersonal(mutation);
       case 'personal.delete':
@@ -1152,6 +1168,53 @@ export class SyncSession {
     return { installId };
   }
 
+  // ────────────────────────────────── pinned groups ──
+  // A pin's scope is suffixed (`<profileId>:group_pins`), like a tag's — see
+  // the `group_pins` migration for why the table carries no foreign key to
+  // `groups` and why writing it is a plain RLS-scoped upsert rather than a
+  // SECURITY DEFINER RPC (ADR-013: a definer function is for doing what your
+  // own grants would not allow, and writing a row you already own is not
+  // that). `this.caller`, not `this.service`, so RLS is what actually holds.
+  private requireGroupPinScope(mutation: MutationEnvelope): void {
+    if (mutation.groupId !== groupPinsScope(this.profileId)) {
+      throw new HttpError(403, 'NOT_OWNER', 'A pin may only be written under its own owner');
+    }
+  }
+
+  /** Pin a group. Upsert by `pinId` — the client derives it from (owner,
+   *  group), so two devices pinning the same group offline write the same
+   *  row and the second is a no-op replay of the first, never a duplicate. */
+  private async setGroupPin(mutation: MutationEnvelope): Promise<unknown> {
+    this.requireGroupPinScope(mutation);
+    const pinId = requireString(mutation.payload.pinId, 'pinId');
+    const groupId = requireString(mutation.payload.groupId, 'groupId');
+    const { error } = await this.caller.from('group_pins').upsert(
+      {
+        id: pinId,
+        owner_user_id: this.profileId,
+        group_id: groupId,
+        deleted_at: null,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'id' },
+    );
+    if (error) throw new HttpError(400, 'VALIDATION_FAILED', error.message);
+    return { pinId, groupId };
+  }
+
+  /** Unpin. A soft delete, so the tombstone reaches the owner's other devices
+   *  through the cursor rather than only vanishing from this one. */
+  private async clearGroupPin(mutation: MutationEnvelope): Promise<unknown> {
+    this.requireGroupPinScope(mutation);
+    const pinId = requireString(mutation.payload.pinId, 'pinId');
+    const { error } = await this.caller
+      .from('group_pins')
+      .update({ deleted_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+      .eq('id', pinId);
+    if (error) throw new HttpError(400, 'VALIDATION_FAILED', error.message);
+    return { pinId };
+  }
+
   private async upsertPersonal(mutation: MutationEnvelope): Promise<unknown> {
     this.requirePersonalScope(mutation);
     const payload = mutation.payload as {
@@ -1249,6 +1312,11 @@ async function pull(
   // equal `packInstallsScope(profileId)` in @waves/core.
   const packScope = `${profileId}:pack_installs`;
   groupIds.delete(packScope);
+
+  // Pinned groups ride a sixth personal scope, its own suffixed key. Must
+  // equal `groupPinsScope(profileId)` in @waves/core.
+  const pinScope = groupPinsScope(profileId);
+  groupIds.delete(pinScope);
 
   // Every group's own row in one query rather than one lookup per group. The
   // per-group `maybeSingle` was the first of twelve serial round trips each
@@ -1367,7 +1435,7 @@ async function pull(
   }
 
   /**
-   * The four personal scopes, fetched together.
+   * The personal scopes, fetched together.
    *
    * Each is one owner-filtered table on its own cursor, with nothing to say to
    * the others — so they were four serial round trips for no reason. Read as the
@@ -1403,6 +1471,16 @@ async function pull(
       column: 'owner_user_id',
       scope: packScope,
       as: 'pack_installs',
+    },
+    // The groups this person has pinned. `group_pins` carries no foreign key
+    // to `groups` (see the migration), so a pin naming a group the puller
+    // cannot see is pulled anyway — the client's own join against the groups
+    // it already has is what makes that invisible rather than wrong.
+    {
+      table: 'group_pins',
+      column: 'owner_user_id',
+      scope: pinScope,
+      as: 'group_pins',
     },
   ] as const;
 

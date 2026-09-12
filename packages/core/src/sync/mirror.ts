@@ -22,6 +22,7 @@ import type { ExpenseSnapshot } from '../balances/types';
 
 import {
   categoryTagsScope,
+  groupPinsScope,
   MutationKind,
   packInstallsScope,
   parseAmount,
@@ -38,6 +39,8 @@ import type {
   ExpenseCreatePayload,
   ExpenseDeletePayload,
   ExpenseLocation,
+  GroupPinClearPayload,
+  GroupPinSetPayload,
   MemberBudgetSetPayload,
   MutationEnvelope,
   PersonalDeletePayload,
@@ -82,6 +85,7 @@ const TABLES: readonly SyncTable[] = [
   SyncTable.ExpenseComments,
   SyncTable.ExpenseImageEvents,
   SyncTable.PersonalRecords,
+  SyncTable.GroupPins,
 ];
 
 export function emptyMirror(): MirrorState {
@@ -1421,4 +1425,82 @@ export function materialisePackInstalls(
   }
 
   return [...byId.values()].filter((row) => row.deleted_at === null);
+}
+
+/** One row of `group_pins`, as the mirror holds it. */
+export interface MirrorGroupPin extends MirrorRow {
+  readonly id: string;
+  readonly owner_user_id: string;
+  readonly group_id: string;
+  readonly deleted_at: string | null;
+  readonly pending?: boolean;
+}
+
+/**
+ * The groups this person has pinned, with the queue replayed on top.
+ *
+ * This is what makes a pin work with no signal: the tap queues a mutation, this
+ * overlay reports the group as pinned from that instant, and the lists reorder
+ * before anything has left the device. The flush later replaces the pending row
+ * with the server's; a reader cannot tell the difference and should not have to.
+ *
+ * Note what this function cannot do, because it is the whole safety argument for
+ * the feature. It reads and writes `group_pins` rows and nothing else. A pin
+ * mutation never appears in `materialiseGroups`, and no pin — pending, refused
+ * or discarded — can add, remove or alter a group. That is deliberate: this app
+ * has already shipped the bug where dropping a refused mutation deleted the
+ * thing it made, because the queue overlay *was* the only local copy of it. A
+ * group's only copy is its own mirror row plus its own `group.create`; a pin is
+ * a separate opinion about a group that already exists, so the worst a refused
+ * pin can cost is the pin.
+ */
+export function materialiseGroupPins(
+  state: MirrorState,
+  queue: readonly QueuedMutation[],
+  options: { readonly ownerId: string },
+): MirrorGroupPin[] {
+  const scope = groupPinsScope(options.ownerId);
+  const byId = new Map<string, MirrorGroupPin>();
+  for (const row of rowsFor(state, SyncTable.GroupPins) as unknown as MirrorGroupPin[]) {
+    if (row.owner_user_id !== options.ownerId) continue;
+    byId.set(row.id, row);
+  }
+
+  for (const mutation of [...queue].sort((a, b) => a.seq - b.seq)) {
+    if (mutation.groupId !== scope) continue;
+    if (mutation.kind === MutationKind.GroupPinSet) {
+      const payload = mutation.payload as unknown as GroupPinSetPayload;
+      byId.set(payload.pinId, {
+        id: payload.pinId,
+        owner_user_id: options.ownerId,
+        group_id: payload.groupId,
+        deleted_at: null,
+        pending: true,
+      });
+    } else if (mutation.kind === MutationKind.GroupPinClear) {
+      const { pinId } = mutation.payload as unknown as GroupPinClearPayload;
+      const existing = byId.get(pinId);
+      // Only tombstones a pin it can see. An unpin of something that was never
+      // pinned here is a no-op rather than a phantom deleted row, which keeps a
+      // replayed queue idempotent.
+      if (existing) {
+        byId.set(pinId, { ...existing, deleted_at: mutation.clientCreatedAt, pending: true });
+      }
+    }
+  }
+
+  return [...byId.values()].filter((row) => row.deleted_at === null);
+}
+
+/**
+ * Just the group ids, which is all any list actually asks for. A Set because
+ * every caller's question is "is this one pinned?", asked once per row while a
+ * list is being sorted.
+ */
+export function pinnedGroupIds(
+  state: MirrorState,
+  queue: readonly QueuedMutation[],
+  options: { readonly ownerId: string },
+): Set<string> {
+  return new Set(materialiseGroupPins(state, queue, options).map((row) => row.group_id));
 }

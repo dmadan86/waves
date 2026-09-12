@@ -8,6 +8,7 @@
  * network can never double-post an expense.
  */
 
+import { deterministicId } from '../ids';
 import { MoneyError, MoneyErrorCode, type CurrencyCode } from '../money/currency';
 import type { CategoryMeta } from '../category/catalog';
 import type { MemberId, SplitParams } from '../split/types';
@@ -72,6 +73,15 @@ export enum MutationKind {
   PackUninstall = 'pack.uninstall',
   PersonalUpsert = 'personal.upsert',
   PersonalDelete = 'personal.delete',
+  // One person's pin on one group, under its own suffixed scope
+  // (`groupPinsScope`). A pin is a preference about a group, not a property of
+  // it: it sorts that group to the top of *this* person's lists and the other
+  // members never learn it exists, which is why it cannot live on the shared
+  // `groups` row. Set is an upsert keyed by a pin id the client derives from
+  // (owner, group), so two devices pinning offline write the same row; clear is
+  // a soft tombstone, so an unpin reaches the person's other devices.
+  GroupPinSet = 'group_pin.set',
+  GroupPinClear = 'group_pin.clear',
 }
 
 export interface MutationEnvelope<K extends MutationKind = MutationKind, P = unknown> {
@@ -363,6 +373,26 @@ export interface PersonalDeletePayload {
   readonly recordId: string;
 }
 
+/**
+ * Pinning one group to the top of this person's lists.
+ *
+ * `pinId` is derived from (owner, group) rather than drawn at random — see
+ * `groupPinId`. That is what makes two devices pinning the same group while
+ * both offline converge on one row instead of racing to create two, and it is
+ * why the payload carries the group id as well: the id alone is a hash and
+ * cannot be read back, so the row has to say what it is about.
+ */
+export interface GroupPinSetPayload {
+  readonly pinId: string;
+  readonly groupId: string;
+}
+
+/** Unpinning. A soft tombstone, so it reaches the person's other devices —
+ *  a row that simply vanished would never be pulled anywhere. */
+export interface GroupPinClearPayload {
+  readonly pinId: string;
+}
+
 export interface SyncRequest {
   readonly deviceId: string;
   readonly mutations: readonly MutationEnvelope[];
@@ -456,6 +486,10 @@ export enum SyncTable {
   PersonalRecords = 'personal_records',
   /** Which packs this person has installed, under `packInstallsScope`. */
   PackInstalls = 'pack_installs',
+  /** Which groups this person has pinned to the top of their lists, under
+   * `groupPinsScope`. Read + write, one row per pinned group. Personal: a pin
+   * is never pulled to anybody but its owner. */
+  GroupPins = 'group_pins',
 }
 
 /**
@@ -490,6 +524,32 @@ export function personalScope(profileId: string): string {
  *  the others so it keeps its own cursor. */
 export function packInstallsScope(profileId: string): string {
   return `${profileId}:pack_installs`;
+}
+
+/**
+ * The personal-scope key for the groups a person has pinned. Suffixed like the
+ * others so it keeps its own cursor — and, less obviously, so a pin can never
+ * block anything that matters. `nextBatch` holds a scope behind its own stuck
+ * mutation; a pin sharing a group's scope would mean a refused preference
+ * stopping that group's expenses from sending. On its own key the worst a
+ * wedged pin can hold up is another pin.
+ */
+export function groupPinsScope(profileId: string): string {
+  return `${profileId}:group_pins`;
+}
+
+/**
+ * The row id for one person's pin on one group, derived rather than drawn.
+ *
+ * Two devices, both offline, both pinning the same group: with random ids that
+ * is two rows racing for one partial unique index, and the loser is a refusal
+ * over something the person did nothing wrong to cause. Derived, it is the same
+ * id twice and the second write is an upsert of the first — the convergence
+ * rule is "last write the server receives wins", and there is only ever one row
+ * for it to win on.
+ */
+export function groupPinId(ownerId: string, groupId: string): string {
+  return deterministicId(`group_pin:${ownerId}:${groupId}`);
 }
 
 /** bigint ↔ string at the wire boundary; JSON has no integers this size. */
