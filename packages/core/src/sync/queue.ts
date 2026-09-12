@@ -355,6 +355,29 @@ function targetOf(mutation: MutationEnvelope): MutationTarget | null {
     };
   }
 
+  // A pin, so that unpinning a refused one *removes* it rather than queueing a
+  // clear behind a permanent blocker. This is the rule the feature is built
+  // around: a refusal must cost the pin and nothing else. Without this case the
+  // refused `group_pin.set` sits in the queue for ever, holding the pin scope
+  // shut, while the person watches an unpin that never takes — and the fix they
+  // would reach for is Discard, which is the gesture that once took a group with
+  // it. `mergeCorrection` is false because a pin has no fields to merge: it is
+  // on or it is off, and a second set of the same pin simply replaces the first.
+  const pinId = stringPayloadField(mutation.payload, 'pinId');
+  if (
+    pinId &&
+    (mutation.kind === MutationKind.GroupPinSet || mutation.kind === MutationKind.GroupPinClear)
+  ) {
+    return {
+      primaryKind: MutationKind.GroupPinSet,
+      correctionKinds: [MutationKind.GroupPinSet],
+      removalKinds: [MutationKind.GroupPinClear],
+      groupId: mutation.groupId,
+      id: pinId,
+      mergeCorrection: false,
+    };
+  }
+
   return null;
 }
 

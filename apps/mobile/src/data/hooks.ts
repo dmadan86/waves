@@ -19,6 +19,8 @@ import {
   computeNetBalances,
   computePairwiseBalances,
   ghostMerges,
+  groupPinId,
+  groupPinsScope,
   materialiseArchivedGroups,
   materialiseCaptures,
   materialiseCategoryTags,
@@ -40,6 +42,7 @@ import {
   openCaptures,
   openPlanItems,
   overlayPending,
+  pinnedGroupIds,
   rowsFor,
   simplify,
   SyncTable,
@@ -177,6 +180,57 @@ export function useGroups(): LocalRead<GroupRow[]> {
     [mirror, queue],
   );
   return useLocalRead(groups);
+}
+
+// ────────────────────────────────────────────────────── group pins ──
+//
+// A pin rides its own personal scope (`groupPinsScope`), independent of the
+// group's own scope, on purpose — see the `group_pins` migration. That keeps
+// this feature's queue traffic from ever blocking, or being blocked by, the
+// group's own mutations, and it is why reading "which groups are pinned" is
+// nothing more than `pinnedGroupIds`, the overlay a dashboard-shaped hook.
+
+/** The groups this person has pinned, as a set of ids — cheap to check once
+ *  per row while a list orders itself (`orderByPin`, `pinnedIds.has(id)`). */
+export function usePinnedGroupIds(): Set<string> {
+  const { session } = useAuth();
+  const ownerId = session?.user?.id ?? '';
+  const { mirror, queue } = useSync();
+  return useMemo(
+    () => (ownerId ? pinnedGroupIds(mirror, queue, { ownerId }) : new Set<string>()),
+    [mirror, queue, ownerId],
+  );
+}
+
+/**
+ * Pin or unpin a group.
+ *
+ * One mutation kind either way: pinning is an upsert keyed by
+ * `groupPinId(owner, group)`, derived rather than drawn, so two devices
+ * pinning the same group while both offline write the *same* row instead of
+ * racing to create two; unpinning is that row's soft tombstone, so it reaches
+ * the person's other devices rather than only vanishing from this one.
+ *
+ * Nothing here touches the group itself — a pin is a separate opinion about a
+ * group that already exists, materialised by its own overlay
+ * (`materialiseGroupPins`) that `materialiseGroups` never reads from. That is
+ * what keeps a refused pin's worst case to the pin: see the collapse rule in
+ * `@waves/core`'s sync queue for how discarding one behaves.
+ */
+export function useSetGroupPin() {
+  const { mutate } = useSync();
+  const { session } = useAuth();
+  return useMutation({
+    mutationFn: async ({ groupId, pinned }: { groupId: string; pinned: boolean }) => {
+      const ownerId = session?.user?.id;
+      if (!ownerId) throw new Error('Sign in first');
+      const pinId = groupPinId(ownerId, groupId);
+      const kind = pinned ? MutationKind.GroupPinSet : MutationKind.GroupPinClear;
+      const payload = pinned ? { pinId, groupId } : { pinId };
+      await mutate(kind, groupPinsScope(ownerId), payload);
+      return pinId;
+    },
+  });
 }
 
 /**

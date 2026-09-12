@@ -19,11 +19,12 @@ import {
   useTheme,
 } from '@waves/ui';
 
-import { useGroups, useHomeSummary } from '@/data/hooks';
+import { useGroups, useHomeSummary, usePinnedGroupIds, useSetGroupPin } from '@/data/hooks';
 import { groupLabel } from '@/data/types';
 import { plural, useStrings, type UiStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { PressableScale } from '@/lib/anim';
+import { orderByPin } from '@/lib/groupPinOrder';
 import { GroupMark } from '@/components/GroupMark';
 import { SkeletonList } from '@/components/Skeletons';
 import { router } from '@/lib/navigation';
@@ -97,6 +98,8 @@ export default function AllGroupsScreen() {
   const groups = useGroups();
   const list = useMemo(() => groups.data ?? [], [groups.data]);
   const loading = groups.isLoading || summary.isLoading;
+  const pinnedIds = usePinnedGroupIds();
+  const setGroupPin = useSetGroupPin();
 
   const [query, setQuery] = useState('');
   const searchRef = useRef<TextInput>(null);
@@ -142,16 +145,40 @@ export default function AllGroupsScreen() {
       });
     const settled = filtered.filter((d) => !d.needsAction);
 
+    // Pinning sits in front of all of the above, not inside it: a pinned group
+    // that is fully settled still belongs at the very top, which is the one
+    // thing money-first sorting can never do for it (see `group_pins`'s
+    // migration header). `orderByPin` is a stable partition — it moves the
+    // pinned entries to the front in the order they already had (active first,
+    // by balance, then settled) and leaves everyone else in exactly the order
+    // this screen would have given them anyway.
+    const flat = [...active, ...settled];
+    const ordered = orderByPin(flat, (entry) => pinnedIds.has(entry.group.id));
+    const pinnedCount = ordered.filter((entry) => pinnedIds.has(entry.group.id)).length;
+    const rest = ordered.slice(pinnedCount);
+    // Stable partitioning a list that was already active-then-settled keeps
+    // that property inside `rest` too, so its own needsAction values are still
+    // every `true` before every `false` — this just finds where they flip.
+    const restActiveCount = rest.findIndex((entry) => !entry.needsAction);
+    const restSettledCount = restActiveCount === -1 ? 0 : rest.length - restActiveCount;
+
     type Entry = (typeof decorated)[number];
     type Row = { kind: 'group'; item: Entry } | { kind: 'header'; label: string };
-    const out: Row[] = active.map((item) => ({ kind: 'group', item }));
-    // Only announce "Settled" when there's a mix above it — a screen that is all
-    // settled doesn't need a header telling it so.
-    if (settled.length && active.length) out.push({ kind: 'header', label: t.settledHeader });
-    for (const item of settled) out.push({ kind: 'group', item });
+    const out: Row[] = ordered
+      .slice(0, pinnedCount)
+      .map((item) => ({ kind: 'group', item }) as Row);
+    for (let i = 0; i < rest.length; i += 1) {
+      // Only announce "Settled" when there's a mix left in the unpinned rest —
+      // a rest that is all settled (or all active) doesn't need a header
+      // telling it so, the same rule the unpinned screen always followed.
+      if (i === restActiveCount && restActiveCount > 0 && restSettledCount > 0) {
+        out.push({ kind: 'header', label: t.settledHeader });
+      }
+      out.push({ kind: 'group', item: rest[i]! });
+    }
 
     return out;
-  }, [list, summary, profile?.id, trimmed, t.settledHeader]);
+  }, [list, summary, profile?.id, trimmed, pinnedIds, t.settledHeader]);
 
   // What a rendered row reads from outside its own data: the locale (money and
   // member-count formatting) and the theme (its colours). Both hold identity
@@ -265,6 +292,7 @@ export default function AllGroupsScreen() {
                   ? `${t.pendingConfirmation} · ${plural(locale, count, t.memberCount)}`
                   : `${statusLabel} · ${plural(locale, count, t.memberCount)}`;
 
+                const pinned = pinnedIds.has(group.id);
                 return (
                   <GroupListRow
                     groupId={group.id}
@@ -282,6 +310,9 @@ export default function AllGroupsScreen() {
                     // its own edges, and a second line under it reads as a stray
                     // double rule.
                     divider={index > 0 && rows[index - 1]?.kind === 'group'}
+                    pinned={pinned}
+                    pinLabel={`${pinned ? t.group.unpin : t.group.pin} ${row.item.label}`}
+                    onTogglePin={() => setGroupPin.mutate({ groupId: group.id, pinned: !pinned })}
                   />
                 );
               }}
@@ -531,6 +562,9 @@ const GroupListRow = memo(function GroupListRow({
   subtitle,
   dim,
   divider,
+  pinned = false,
+  pinLabel,
+  onTogglePin,
 }: {
   groupId: string;
   label: string;
@@ -543,17 +577,38 @@ const GroupListRow = memo(function GroupListRow({
   dim: boolean;
   /** A hairline above the row, so the card reads as one divided list. */
   divider: boolean;
+  /** Sorted to the top by `orderByPin`; carries the small pin glyph and is
+      announced in the row's accessibility label. */
+  pinned?: boolean;
+  /** "Pin Goa trip" / "Unpin Goa trip" — required whenever `onTogglePin` is
+      passed; what a screen reader announces for the toggle below. */
+  pinLabel?: string;
+  /** Long-press: the fast path to pin/unpin. Mirrors the dashboard's
+      `GroupRow` — same gesture, same accessibility action, same discoverable
+      alternative (the ••• menu on the group's own screen). */
+  onTogglePin?: () => void;
 }): React.JSX.Element {
   const theme = useTheme();
+  const { t } = useStrings();
 
   return (
     <Pressable
       accessibilityRole="button"
       // The full subtitle, not just the status word: a pending group at a zero
       // balance would otherwise be read out as "All settled", hiding the very
-      // state that needs attention.
-      accessibilityLabel={`${label}. ${subtitle}`}
+      // state that needs attention. Pinned is spoken too — a screen reader
+      // never sees the glyph the row draws below.
+      accessibilityLabel={
+        pinned ? `${label}. ${t.group.pinnedBadge}. ${subtitle}` : `${label}. ${subtitle}`
+      }
       onPress={() => router.push(`/group/${groupId}`)}
+      onLongPress={onTogglePin}
+      accessibilityActions={
+        onTogglePin && pinLabel ? [{ name: 'togglePin', label: pinLabel }] : undefined
+      }
+      onAccessibilityAction={(event) => {
+        if (event.nativeEvent.actionName === 'togglePin') onTogglePin?.();
+      }}
       style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
     >
       <Row
@@ -587,9 +642,12 @@ const GroupListRow = memo(function GroupListRow({
           {/* Two lines, not one: this is the screen you come to when you cannot
               find a group, so a long name is worth a second line here even though
               the dashboard's preview clips it at one. */}
-          <Text variant="body" numberOfLines={2} style={{ fontWeight: '600' }}>
-            {label}
-          </Text>
+          <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
+            {pinned ? <Ionicons name="pin" size={12} color={theme.color.textMuted} /> : null}
+            <Text variant="body" numberOfLines={2} style={{ flexShrink: 1, fontWeight: '600' }}>
+              {label}
+            </Text>
+          </Row>
           <Text variant="caption" tone="muted" numberOfLines={1}>
             {subtitle}
           </Text>

@@ -171,6 +171,9 @@ model Profile {
   /// Per-owner counter behind installed category packs, the captures equivalent
   /// for `pack_installs`. Bumped by `waves_next_pack_install_seq`.
   packInstallsSeq     BigInt   @default(0) @map("pack_installs_seq")
+  /// Per-owner counter behind the groups this person has pinned, the captures
+  /// equivalent for `group_pins`. Bumped by `waves_next_group_pin_seq`.
+  groupPinsSeq        BigInt   @default(0) @map("group_pins_seq")
   createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt           DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
@@ -180,6 +183,7 @@ model Profile {
   personalRecords     PersonalRecord[]
   packInstalls        PackInstall[]
   packRequests        PackRequest[]
+  groupPins           GroupPin[]
   agentWrites         AgentWrite[]
   pushTokens          PushToken[]
   notifications       Notification[]
@@ -1043,6 +1047,41 @@ model PersonalRecord {
 
   @@index([ownerUserId, updatedSeq], map: "personal_records_owner_user_id_updated_seq_idx")
   @@map("personal_records")
+  @@schema("public")
+}
+
+/// One person's pin on one group (sorts to the top of their own lists; the
+/// other members never see it). Owner-scoped and seq-stamped like `Capture`,
+/// `CategoryTag` and `PackInstall`, so it rides the personal sync scope —
+/// nothing about `Group` changes and `waves_guard_group_columns` is untouched.
+///
+/// `groupId` deliberately carries no relation to `Group`: a pin rides its own
+/// scope (`<user>:group_pins`), independent of the group's own scope, so a
+/// group made offline and pinned in the same breath can have its pin reach the
+/// server first. A foreign key would refuse that pin until the group existed,
+/// and a refusal here is not quiet — it stops the pin scope and asks the
+/// person to decide. A pin that outlives the group it named costs a dangling
+/// row nobody reads (every reader joins pins against the groups it already
+/// has); that is cheaper than a wrongly refused tidy-up.
+///
+/// The one-pin-per-(owner, group) rule lives in a partial unique index
+/// (`group_pins_owner_group_idx`, `WHERE deleted_at IS NULL`) rather than an
+/// `@@unique` here, for the same reason `MemberClaim` above documents:
+/// Prisma's datamodel cannot express a partial index, and one it cannot see is
+/// a permanently failing `db:drift`.
+model GroupPin {
+  id          String    @id @db.Uuid
+  ownerUserId String    @map("owner_user_id") @db.Uuid
+  groupId     String    @map("group_id") @db.Uuid
+  updatedSeq  BigInt    @default(0) @map("updated_seq")
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  owner Profile @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+
+  @@index([ownerUserId, updatedSeq], map: "group_pins_owner_user_id_updated_seq_idx")
+  @@map("group_pins")
   @@schema("public")
 }
 
