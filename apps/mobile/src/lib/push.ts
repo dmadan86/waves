@@ -77,6 +77,58 @@ export async function pushPermission(): Promise<PushPermission> {
 }
 
 /**
+ * Whether the phone may raise a notification *this app* schedules.
+ *
+ * Deliberately not `pushPermission()`, which answers a different question. That
+ * one reports `denied` on a simulator, because a simulator has no push token to
+ * give — true of the server's notifications and irrelevant to a local alarm,
+ * which a simulator delivers perfectly well. Asking the token question about a
+ * notification that needs no token would make every reminder in this app
+ * untestable on a simulator for no reason.
+ *
+ * Never asks. This is the read the scheduler does on every pass.
+ */
+export async function localNotificationsAllowed(): Promise<boolean> {
+  if (!pushSupported) return false;
+  try {
+    const { status } = await Notifications.getPermissionsAsync();
+    return status === 'granted';
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Permission for a notification this device raises itself: no token, no EAS
+ * project id, no FCM — a local alarm needs none of that, and `enablePush` would
+ * report `not_configured` on a build that lacks them while the alarm would have
+ * worked fine.
+ *
+ * Raises the OS dialog, so it is only ever called from a control somebody has
+ * just touched having read what it is for — the same doctrine as `enablePush`
+ * and `NotificationPrompt`. Never on launch, never from the scheduler: on iOS a
+ * denial is close to permanent, and the one shot is not this feature's to
+ * spend on somebody who has not asked for anything.
+ */
+export async function ensureLocalNotificationPermission(): Promise<boolean> {
+  if (!pushSupported) return false;
+  try {
+    const existing = await Notifications.getPermissionsAsync();
+    const status =
+      existing.status === 'granted'
+        ? existing.status
+        : (await Notifications.requestPermissionsAsync()).status;
+    if (status !== 'granted') return false;
+    // Android delivers silently without a channel, which looks exactly like a
+    // bug — and the channel has to exist before anything is scheduled on it.
+    await ensureAndroidChannel();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Why registering did not happen. Only `denied` is the person's doing; the
  * others are this app's, and telling somebody to check their phone settings
  * when the real problem is a missing Firebase key sends them somewhere that
