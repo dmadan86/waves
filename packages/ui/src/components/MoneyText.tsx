@@ -26,7 +26,6 @@ export interface MoneyTextProps extends Omit<TextProps, 'children' | 'tone'> {
   mode?: 'balance' | 'plain';
   /** Force the direction instead of deriving it from the sign. */
   direction?: BalanceDirection;
-  compactFraction?: boolean;
   showSign?: boolean;
   /**
    * Override the colour the mode would choose. Only for surfaces that own
@@ -64,7 +63,6 @@ export function MoneyText({
   variant = 'subheading',
   mode = 'plain',
   direction,
-  compactFraction = true,
   showSign = false,
   tone,
   fadeFraction = true,
@@ -78,7 +76,6 @@ export function MoneyText({
   const shown = mode === 'balance' ? { ...money, minor: abs(amount) } : money;
   const options = {
     locale,
-    compactFraction,
     signDisplay: (showSign && mode !== 'balance' ? 'always' : 'auto') as 'always' | 'auto',
   };
   const parts = formatParts(shown, options);
@@ -107,10 +104,7 @@ export function MoneyText({
       tabular
       accessibilityLabel={
         mode === 'balance'
-          ? moneyAccessibilityLabel(money, resolvedDirection, strings, {
-              locale,
-              compactFraction,
-            })
+          ? moneyAccessibilityLabel(money, resolvedDirection, strings, { locale })
           : parts.text
       }
       {...rest}

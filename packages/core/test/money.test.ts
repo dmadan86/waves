@@ -57,9 +57,12 @@ describe('parse and render', () => {
   it('formats for the locale without ever touching float arithmetic', () => {
     const formatted = format(money(42050n, 'INR'), { locale: 'en-IN' });
     expect(formatted).toContain('420.50');
-    expect(format(money(42000n, 'INR'), { locale: 'en-IN', compactFraction: true })).not.toContain(
-      '.00',
-    );
+  });
+
+  it('keeps the minor units on a whole amount, so a column of figures lines up', () => {
+    expect(format(money(42000n, 'INR'), { locale: 'en-IN' })).toContain('420.00');
+    // A currency with no minor unit still gets none — there is nothing to pad.
+    expect(format(money(4200n, 'JPY'), { locale: 'en-IN' })).not.toContain('.');
   });
 
   it('splits an amount at the decimal point the locale actually uses', () => {
@@ -75,10 +78,9 @@ describe('parse and render', () => {
     expect(euros.trail).toContain('€');
   });
 
-  it('leaves nothing to fade when the amount is whole or the currency has no minor unit', () => {
-    expect(
-      formatParts(money(42000n, 'INR'), { locale: 'en-IN', compactFraction: true }).fraction,
-    ).toBe('');
+  it('leaves nothing to fade only when the currency has no minor unit', () => {
+    // A whole rupee amount still has a fraction to fade: `.00`.
+    expect(formatParts(money(42000n, 'INR'), { locale: 'en-IN' }).fraction).toBe('.00');
     expect(formatParts(money(4200n, 'JPY'), { locale: 'en-IN' }).fraction).toBe('');
   });
 
@@ -88,10 +90,9 @@ describe('parse and render', () => {
         fc.bigInt({ min: -(10n ** 10n), max: 10n ** 10n }),
         fc.constantFrom('en-IN', 'ta-IN', 'de-DE'),
         fc.constantFrom('INR', 'USD', 'JPY', 'KWD' as const),
-        fc.boolean(),
-        (minor, locale, currency, compactFraction) => {
+        (minor, locale, currency) => {
           const amount = money(minor, currency as 'INR');
-          const options = { locale, compactFraction };
+          const options = { locale };
           expect(formatParts(amount, options).text).toBe(format(amount, options));
         },
       ),
@@ -104,10 +105,7 @@ describe('parse and render', () => {
       money(42000n, 'INR'),
       BalanceDirection.OwedToYou,
       strings,
-      {
-        locale: 'en-IN',
-        compactFraction: true,
-      },
+      { locale: 'en-IN' },
     );
     expect(label).toMatch(/^You are owed/);
     expect(balanceDirection(-1n)).toBe('you_owe');

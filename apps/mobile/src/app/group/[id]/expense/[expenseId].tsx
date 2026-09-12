@@ -686,7 +686,6 @@ export default function ExpenseDetailScreen() {
                               '{amount}',
                               format(money(BigInt(payer.amount), currency), {
                                 locale,
-                                compactFraction: true,
                               }),
                             )}
                           leading={
@@ -765,7 +764,6 @@ export default function ExpenseDetailScreen() {
                   // rest of the app already uses for your own money.
                   const spokenAmount = format(money(row.net < 0n ? -row.net : row.net, currency), {
                     locale,
-                    compactFraction: true,
                   });
                   const spokenName = nameOf(row.memberId);
                   const isMe = Boolean(member?.profile_id && member.profile_id === profile?.id);
@@ -774,7 +772,7 @@ export default function ExpenseDetailScreen() {
                         { minor: row.net, currency },
                         balanceDirection(row.net),
                         copyFor(locale).money,
-                        { locale, compactFraction: true },
+                        { locale },
                       )
                     : row.net > 0n
                       ? fill(t.expense.rowOwed, { name: spokenName, amount: spokenAmount })

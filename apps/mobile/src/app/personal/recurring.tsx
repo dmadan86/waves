@@ -226,7 +226,6 @@ function RecurringScreenBody() {
                         {income ? '+' : '−'}
                         {format(money(rule.amount, rule.currency), {
                           locale,
-                          compactFraction: true,
                         })}
                       </Text>
                     </Row>

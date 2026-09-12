@@ -1586,7 +1586,7 @@ export default function AddExpenseScreen() {
       : evenEach !== null && amount > 0n
         ? plural(locale, participants.length, t.expense.oweEach).replace(
             '{amount}',
-            format(money(evenEach, currency), { locale, compactFraction: true }),
+            format(money(evenEach, currency), { locale }),
           )
         : plural(locale, participants.length, t.memberCount);
 

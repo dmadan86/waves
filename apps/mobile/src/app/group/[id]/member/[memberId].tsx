@@ -301,7 +301,6 @@ export default function MemberScreen() {
                       .map((entry) =>
                         format(money(entry.amountMinor, entry.currency as CurrencyCode), {
                           locale,
-                          compactFraction: true,
                         }),
                       )
                       .join(' · '),

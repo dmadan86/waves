@@ -10,7 +10,7 @@ const LIMIT = 200;
 function amount(minor: string | null, currency: string | null): string {
   if (minor === null || currency === null) return '—';
   try {
-    return format(money(BigInt(minor), currency as CurrencyCode), { compactFraction: true });
+    return format(money(BigInt(minor), currency as CurrencyCode));
   } catch {
     return `${minor} ${currency}`;
   }
