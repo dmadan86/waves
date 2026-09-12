@@ -41,9 +41,24 @@ const KEY_SEEN_KEY = 'waves.backup.key_seen';
  * apart, and why the caller writes the answer down the first time it asks.
  */
 const TIER_KEY = 'waves.backup.tier';
+/**
+ * Set once this account has answered the dashboard's offer to restore — by
+ * taking it or by declining it, which are the same answer to "shall I ask?".
+ * It lives here rather than beside the prompt so it joins `ALL_KEYS` below and
+ * is therefore wiped by sign-out, which is what bounds the dismissal to this
+ * sign-in. See `restorePrompt.ts` for why that is the right boundary.
+ */
+const RESTORE_PROMPT_KEY = 'waves.backup.restore_prompt';
 
 /** Every stored key, for the sign-out wipe. */
-const ALL_KEYS = [FREQUENCY_KEY, NETWORK_KEY, LAST_KEY, KEY_SEEN_KEY, TIER_KEY] as const;
+const ALL_KEYS = [
+  FREQUENCY_KEY,
+  NETWORK_KEY,
+  LAST_KEY,
+  KEY_SEEN_KEY,
+  TIER_KEY,
+  RESTORE_PROMPT_KEY,
+] as const;
 
 const scoped = (base: string, ownerId: string): string => `${base}.${ownerId}`;
 
@@ -164,6 +179,25 @@ export async function saveLastBackup(ownerId: string, last: LastBackup): Promise
 export async function markKeySeen(ownerId: string): Promise<void> {
   if (!ownerId) return;
   await AsyncStorage.setItem(scoped(KEY_SEEN_KEY, ownerId), '1');
+}
+
+/**
+ * Whether the restore offer has been answered for this account on this device.
+ *
+ * Deliberately not folded into `BackupSettings`: that object is read by the
+ * Backup screen and the sign-out guard on every open, and neither of them has
+ * any business knowing what the dashboard has already asked. A one-key read is
+ * also all the dashboard wants, and it wants it before it paints.
+ */
+export async function loadRestorePromptDismissed(ownerId: string): Promise<boolean> {
+  if (!ownerId) return false;
+  const raw = await AsyncStorage.getItem(scoped(RESTORE_PROMPT_KEY, ownerId)).catch(() => null);
+  return raw === '1';
+}
+
+export async function markRestorePromptDismissed(ownerId: string): Promise<void> {
+  if (!ownerId) return;
+  await AsyncStorage.setItem(scoped(RESTORE_PROMPT_KEY, ownerId), '1');
 }
 
 /**

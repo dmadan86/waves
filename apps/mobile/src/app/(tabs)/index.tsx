@@ -52,6 +52,7 @@ import { useDefaultCurrency } from '@/lib/currency';
 import { captureInboxActionState } from '@/lib/dashboardActions';
 import { QuickAddSheet, useQuickAddActions } from '@/components/QuickAddSheet';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
+import { RestorePrompt } from '@/components/RestorePrompt';
 import { useAvatarUrl } from '@/components/ProfileAvatar';
 import { groupLabel, GroupType } from '@/data/types';
 import { usePullRefresh } from '@/lib/pullRefresh';
@@ -572,6 +573,14 @@ export default function HomeScreen() {
           )}
         </View>
       </ScrollView>
+
+      {/* Signed in on a phone that holds no personal ledger — a new handset, a
+          reinstall, a sign-out and back in — and asked once whether to bring the
+          Drive backup back. It decides for itself whether it applies, and stays
+          silent for everybody whose records are already here; see
+          `lib/backup/restorePrompt` for every condition and why each one is
+          there. Outranks the guest and tip prompts in the queue. */}
+      <RestorePrompt />
 
       {/* Guests are nudged to secure their account as an animated popup rather
           than an inline banner — once a day, dismissible. Held back while the
