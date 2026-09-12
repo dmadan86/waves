@@ -42,6 +42,7 @@ import { useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { friendlyError } from '@/lib/errors';
 import { router } from '@/lib/navigation';
+import { phoneSignInAvailable } from '@/lib/phoneAuth';
 
 /** The door's green wash — a light stop into the base green (#65B63E) into a
     darker one, top to bottom, matching the splash. A local screen colour, not a
@@ -235,15 +236,22 @@ export default function WelcomeScreen() {
               }}
             >
               {appleFirst ? googleTile : appleTile}
-              <SocialTile
-                testID="auth-phone"
-                provider="phone"
-                field="brand"
-                accessibilityLabel={t.signIn.continuePhone}
-                caption={t.signIn.providerPhone}
-                disabled={busy}
-                onPress={() => router.push('/phone')}
-              />
+              {/* Only where the build can actually do it. Firebase sends the
+                  code and Firebase is a native module, so a JavaScript-only
+                  update landing on a binary made before it existed would draw
+                  this tile over nothing — a door offered and then dead under the
+                  finger, which is worse than no door. */}
+              {phoneSignInAvailable() ? (
+                <SocialTile
+                  testID="auth-phone"
+                  provider="phone"
+                  field="brand"
+                  accessibilityLabel={t.signIn.continuePhone}
+                  caption={t.signIn.providerPhone}
+                  disabled={busy}
+                  onPress={() => router.push('/phone')}
+                />
+              ) : null}
               <SocialTile
                 testID="auth-email"
                 provider="email"

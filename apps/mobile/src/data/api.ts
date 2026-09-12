@@ -31,6 +31,7 @@ import {
 import { activeStrings } from '@/i18n';
 import type { DeviceIdentity } from '@/lib/device';
 import { normaliseContactPhone } from '@/lib/phone';
+import { attachPhoneCode, sendPhoneCode } from '@/lib/phoneAuth';
 import { imageUrl, putImage, removeImage } from '@/lib/storage';
 import { backend } from '@/lib/backend';
 import type {
@@ -1354,10 +1355,15 @@ export async function startAddingContact(channel: ContactChannel, value: string)
   // auth service says about it — and it is the same rule the invite columns
   // enforce in the database, so one form cannot accept what another rejects.
   const normalised = channel === 'email' ? normaliseEmail(value) : normalisePhone(value);
-  const { error } =
-    channel === 'email'
-      ? await backend.auth.updateUser({ email: normalised })
-      : await backend.auth.updateUser({ phone: normalised });
+  // A phone number is proved by Firebase, the same way signing in with one is.
+  // Not by GoTrue: it would send the code through whatever SMS provider the
+  // project has, which is the arrangement this app deliberately does not have —
+  // and two ways of verifying a number is how they drift into disagreeing.
+  if (channel === 'phone') {
+    await sendPhoneCode(normalised);
+    return;
+  }
+  const { error } = await backend.auth.updateUser({ email: normalised });
   if (error) throw new Error(describeAuthError(error.message, channel));
 }
 
@@ -1367,11 +1373,15 @@ export async function confirmContact(
   token: string,
 ): Promise<void> {
   const normalised = channel === 'email' ? normaliseEmail(value) : normalisePhone(value);
-  const { error } = await backend.auth.verifyOtp(
-    channel === 'email'
-      ? { email: normalised, token: token.trim(), type: 'email_change' }
-      : { phone: normalised, token: token.trim(), type: 'phone_change' },
-  );
+  if (channel === 'phone') {
+    await attachPhoneCode(normalised, token.trim());
+    return;
+  }
+  const { error } = await backend.auth.verifyOtp({
+    email: normalised,
+    token: token.trim(),
+    type: 'email_change',
+  });
   if (error) throw new Error(error.message);
 }
 

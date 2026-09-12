@@ -18,6 +18,7 @@ import {
 import { appleNativeSignIn, googleNativeSignIn } from './nativeIdentity';
 import { identifyForReporting, reportHandled } from './observability';
 import { claimCode } from './oauthClaim';
+import { confirmPhoneCode, sendPhoneCode } from './phoneAuth';
 import { lockPersonal, syncPersonalAccount } from './personalLock';
 import { refreshPushToken, revokePushToken } from './push';
 import { backend } from './backend';
@@ -503,24 +504,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
       isGuest: session?.user?.is_anonymous === true,
 
+      // Firebase sends the code, not Supabase — the only way to deliver an SMS
+      // worldwide without a registered company, a DLT filing per country and a
+      // monthly bill. What it proves is the number; `phone-verify` turns that
+      // proof into a session. See `lib/phoneAuth` for why the module is loaded
+      // lazily, and the `phone-verify` handler for why a session cannot simply
+      // be minted from a Firebase token.
+      //
+      // ADR-006 is enforced where it always was, on the server: that function
+      // asks GoTrue with `create_user: false`, so a number nobody owns is a
+      // refusal rather than a new account. Firebase having verified a number
+      // does not make it one.
       async sendOtp(phone) {
-        // `shouldCreateUser` is false for the same reason it is on the login
-        // door's email path below: a mistyped number would otherwise mint an
-        // empty account and send a code to a stranger, and every OTP to an
-        // unknown number is a message we pay for — the surface SMS-pumping
-        // fraud aims at. It also matches ADR-006, where a phone number is a way
-        // to keep an account and never the way to get one; `auth.sms` in
-        // config.toml refuses the signup server-side regardless.
-        const { error } = await backend.auth.signInWithOtp({
-          phone,
-          options: { shouldCreateUser: false },
-        });
-        if (error) throw error;
+        await sendPhoneCode(phone);
       },
 
       async verifyOtp(phone, token) {
-        const { error } = await backend.auth.verifyOtp({ phone, token, type: 'sms' });
-        if (error) throw error;
+        await confirmPhoneCode(phone, token);
       },
 
       async sendEmailOtp(email, createUser) {

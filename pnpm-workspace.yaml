@@ -24,6 +24,13 @@ allowBuilds:
   '@parcel/watcher': false
   core-js: false
   postman-code-generators: false
+  # Two more that arrived with @react-native-firebase, declined for the same
+  # reason: phone sign-in runs against the *native* Firebase SDKs, so neither
+  # JavaScript postinstall is on any path this app takes. @firebase/util's
+  # generates an ESM/CJS shim for the web SDK; protobufjs's compiles its
+  # reflection types for code generation nothing here does.
+  '@firebase/util': false
+  protobufjs: false
 minimumReleaseAgeExclude:
   - '@expo/cli@57.0.12 || 57.0.13 || 57.0.14'
   - '@expo/router-server@57.0.5'

@@ -45,6 +45,16 @@ type BackendAuth = Pick<
   | 'linkIdentity'
   | 'signInWithIdToken'
   | 'exchangeCodeForSession'
+  // Phone sign-in mints its session on the server — Firebase proves the number,
+  // `phone-verify` trades that for a session — so the client is handed tokens
+  // rather than earning them through a call here. Any adapter has to offer some
+  // way to adopt a session it did not create.
+  | 'setSession'
+  // Attaching a phone changes the user *server-side*, so the copy in this
+  // device's storage is stale until the access token next rolls — up to an
+  // hour of the account screen still offering to add the number somebody just
+  // added. `getSession` reads the cache; only this asks again.
+  | 'refreshSession'
   | 'signOut'
   | 'resend'
 >;

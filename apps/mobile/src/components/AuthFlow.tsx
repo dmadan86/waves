@@ -49,6 +49,7 @@ import { useStrings, type UiStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { friendlyError } from '@/lib/errors';
 import { router, useGoBack } from '@/lib/navigation';
+import { phoneSignInAvailable } from '@/lib/phoneAuth';
 
 export type AuthFlowKind = 'login' | 'signup';
 
@@ -431,7 +432,14 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
               busy={busy}
               onGoogle={() => void run(withGoogle)}
               onApple={() => void run(withApple)}
-              onPhone={isSignup ? undefined : () => router.push('/phone')}
+              // Absent from sign-up by the rule below, and absent from a build
+              // that cannot do it at all. Firebase is a native module: a
+              // JavaScript-only update onto a binary made before it existed
+              // leaves this tile drawn and every tap behind it dead, which is
+              // worse than a door that was never offered.
+              onPhone={
+                isSignup || !phoneSignInAvailable() ? undefined : () => router.push('/phone')
+              }
               t={t}
             />
             {/* ADR-006 addendum: the guest way in belongs to the sign-up page —

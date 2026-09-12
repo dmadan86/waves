@@ -1731,6 +1731,24 @@ model AppConfig {
   @@schema("public")
 }
 
+/// A Firebase sign-in already traded for a session or an attachment.
+///
+/// One proof, one use. Keyed on the Firebase user and the moment they actually
+/// entered the code rather than on the token, because an ID token is
+/// refreshable: a fresh one minted from the same sign-in is the same proof, and
+/// without this a single captured token buys both a session as the number's
+/// owner and an attachment of that number to a second account.
+model FirebaseAssertion {
+  uid      String
+  authTime BigInt   @map("auth_time")
+  usedAt   DateTime @default(now()) @map("used_at") @db.Timestamptz(6)
+
+  @@id([uid, authTime])
+  @@index([usedAt])
+  @@map("firebase_assertions")
+  @@schema("public")
+}
+
 /// A sign-in code in flight between `phone-verify` and `otp-send`.
 ///
 /// Firebase can prove somebody holds a number but cannot mint a Supabase
