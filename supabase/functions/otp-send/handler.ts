@@ -40,12 +40,12 @@ import { verifyWebhookSignature } from '../_shared/core.js';
 import { LIMITS } from '../_shared/rateLimit.ts';
 
 /**
- * Four codes to a number a day. Read from the shared `LIMITS` table rather than
- * written here, so there stays one list of every ceiling in the system even
- * though this function calls the limiter RPC itself (see the note there).
+ * Three codes to a number a day, read from the shared `LIMITS` table so there
+ * stays one list of every ceiling in the system. The database is what actually
+ * enforces it (`waves_phone_gate`, and the `otp_daily_cap` knob it reads); this
+ * is here for the sentence shown to whoever ran out.
  */
 export const OTP_DAILY_LIMIT = LIMITS['otp-send'].limit;
-const OTP_WINDOW_SECONDS = LIMITS['otp-send'].windowSeconds;
 
 /**
  * GoTrue reads a refusal from this envelope, not from an HTTP status alone, and
@@ -305,21 +305,28 @@ export async function handleOtpSend(request: Request, deps: OtpSendDeps): Promis
   // Keyed on the number rather than a profile id: `auth.sms.enable_signup` is
   // off, so one number is one account, and the number is the only identity that
   // exists at the moment a code is asked for.
-  const { data, error } = await deps.service().rpc('waves_rate_limit', {
-    p_subject: `phone:${phone}`,
-    p_bucket: 'otp-send',
-    p_limit: OTP_DAILY_LIMIT,
-    p_window_seconds: OTP_WINDOW_SECONDS,
-  });
+  // `waves_phone_gate`, not the generic limiter: a window that resets at
+  // midnight is no answer to a number that spends its whole allowance every day
+  // and never once signs in. That shape is SMS pumping — the codes are never
+  // read, because nobody is there to read them — and the gate answers it by
+  // blocking the number outright rather than letting it start again tomorrow.
+  // The daily count, the strike and the block are one call because they have to
+  // be: a concurrent second ask would otherwise read a count about to change.
+  const { data, error } = await deps.service().rpc('waves_phone_gate', { p_phone: phone });
 
   if (error) {
     // Fails open, the same trade the shared limiter makes: the only way this
     // happens is the database being unreachable, and refusing every sign-in
     // during a database blip does more damage than the abuse it guards against.
-    console.error('otp-send rate limit check failed, allowing:', error.message);
+    console.error('otp-send gate check failed, allowing:', error.message);
   } else {
-    const decision = data as { allowed?: boolean; retryAfter?: number } | null;
+    const decision = data as { allowed?: boolean; reason?: string } | null;
     if (decision && decision.allowed === false) {
+      // One sentence for both refusals. A blocked number and a spent one are
+      // told the same thing, because the difference is exactly what somebody
+      // probing for numbers worth attacking would like to learn — and because a
+      // person in either case has the same three doors left.
+      console.warn('otp-send refused', decision.reason ?? 'unknown');
       return hookError(
         429,
         `That is ${OTP_DAILY_LIMIT} codes today. Try again tomorrow, or sign in another way.`,

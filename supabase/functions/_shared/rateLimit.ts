@@ -59,16 +59,17 @@ export const LIMITS = {
    */
   'account-delete': { limit: 5, windowSeconds: 3600 },
   /**
-   * Sign-in codes over WhatsApp, four to a number a day. Unlike every other
-   * bucket here this one is a product rule rather than an abuse ceiling — four
-   * is roughly "you mistyped, you waited, you tried the other phone", and a
-   * fifth is somebody else's problem. `otp-send` calls `waves_rate_limit`
-   * directly rather than through `enforceRateLimit`, because the subject is a
-   * phone number (nobody has signed in yet) and the refusal has to come back in
-   * GoTrue's error envelope, not ours — the limit lives here so there is still
-   * one list of every ceiling in the system.
+   * Sign-in codes, three to a number a day.
+   *
+   * Not enforced here any more, and the entry stays only so this file remains
+   * the one list of every ceiling in the system. The counting moved into
+   * `waves_phone_gate`, because a window that resets at midnight is no answer to
+   * a number that spends its whole allowance every day and never once signs in —
+   * that shape is SMS pumping, and the gate blocks it rather than letting it
+   * start again tomorrow. The live number is the `otp_daily_cap` knob in
+   * `app_config`; this is the value that ships.
    */
-  'otp-send': { limit: 4, windowSeconds: 86400 },
+  'otp-send': { limit: 3, windowSeconds: 86400 },
 } as const;
 
 export type Bucket = keyof typeof LIMITS;

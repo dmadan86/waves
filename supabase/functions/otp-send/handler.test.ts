@@ -135,12 +135,7 @@ describe('otp-send', () => {
     const d = deps();
     await handleOtpSend(request(), d);
 
-    expect(d.rpc).toHaveBeenCalledWith('waves_rate_limit', {
-      p_subject: 'phone:+919876543210',
-      p_bucket: 'otp-send',
-      p_limit: OTP_DAILY_LIMIT,
-      p_window_seconds: 86400,
-    });
+    expect(d.rpc).toHaveBeenCalledWith('waves_phone_gate', { p_phone: '+919876543210' });
   });
 
   it.each([
@@ -155,10 +150,7 @@ describe('otp-send', () => {
     expect(response.status).toBe(200);
     const [, init] = d.fetchImpl.mock.calls[0] as [string, RequestInit];
     expect(new URLSearchParams(init.body as string).get('To')).toBe(`whatsapp:${phone}`);
-    expect(d.rpc).toHaveBeenCalledWith(
-      'waves_rate_limit',
-      expect.objectContaining({ p_subject: `phone:${phone}` }),
-    );
+    expect(d.rpc).toHaveBeenCalledWith('waves_phone_gate', { p_phone: phone });
   });
 
   it('refuses past the daily cap and sends nothing', async () => {

@@ -126,53 +126,53 @@ enum DeliveryStatus {
 /// Mirrors auth.users 1:1. No FK across schemas — Supabase owns `auth`; the
 /// row is created by a trigger on auth.users (see migration SQL).
 model Profile {
-  id                String   @id @db.Uuid
-  displayName       String   @map("display_name")
-  avatarUrl         String?  @map("avatar_url")
+  id                  String   @id @db.Uuid
+  displayName         String   @map("display_name")
+  avatarUrl           String?  @map("avatar_url")
   /// Optional UPI ID used to build settlement intents (ADR-007). Superseded by
   /// `paymentRail` + `paymentHandle`, which say the same thing for a country
   /// that does not have UPI. Kept until the screens reading it move over.
-  defaultVpa        String?  @map("default_vpa")
+  defaultVpa          String?  @map("default_vpa")
   /// Which rail they are paid on — see `RailId` in `@waves/core`. A handle
   /// without it is unusable abroad: a phone number is an Aani number, a PayNow
   /// number or a Zelle number, and only the rail says which.
-  paymentRail       String?  @map("payment_rail")
-  paymentHandle     String?  @map("payment_handle")
+  paymentRail         String?  @map("payment_rail")
+  paymentHandle       String?  @map("payment_handle")
   /// ISO-3166 alpha-2. Decides which rails they are offered and the default
   /// currency (see `currencyForCountry`).
-  countryCode       String?  @map("country_code") @db.Char(2)
+  countryCode         String?  @map("country_code") @db.Char(2)
   /// Optional postal address, one free-text field — Waves never posts to it, so
   /// it is never parsed into lines. Null until the owner types one.
-  address           String?  @map("address")
-  defaultCurrency   String   @default("INR") @map("default_currency") @db.Char(3)
-  locale            String   @default("en")
-  notificationPrefs Json     @default("{}") @map("notification_prefs")
+  address             String?  @map("address")
+  defaultCurrency     String   @default("INR") @map("default_currency") @db.Char(3)
+  locale              String   @default("en")
+  notificationPrefs   Json     @default("{}") @map("notification_prefs")
   /// Can somebody who types this account's exact phone number find it
   /// (`waves_find_person`)? Search only — it does not affect being recognised
   /// by a person who is adding you to their group.
-  discoverableByPhone Boolean @default(true) @map("discoverable_by_phone")
+  discoverableByPhone Boolean  @default(true) @map("discoverable_by_phone")
   /// The same, for an exact email address.
-  discoverableByEmail Boolean @default(true) @map("discoverable_by_email")
+  discoverableByEmail Boolean  @default(true) @map("discoverable_by_email")
   /// Who may read this account's email and phone off its profile:
   /// `nobody`, or `groups` (people it shares a group with). A separate axis
   /// from discoverability — one is search, this is display.
-  contactVisibility   String  @default("groups") @map("contact_visibility")
+  contactVisibility   String   @default("groups") @map("contact_visibility")
   /// Per-owner monotonic counter behind the personal sync scope (TDR A34), the
   /// captures equivalent of `groups.updated_seq`. Bumped under row lock by
   /// `waves_next_capture_seq`.
-  capturesSeq       BigInt   @default(0) @map("captures_seq")
-  ghostMergesSeq    BigInt   @default(0) @map("ghost_merges_seq")
+  capturesSeq         BigInt   @default(0) @map("captures_seq")
+  ghostMergesSeq      BigInt   @default(0) @map("ghost_merges_seq")
   /// Per-owner counter behind the personal category-tag catalog scope, the
   /// captures equivalent for `category_tags`. Bumped by `waves_next_category_tag_seq`.
-  categoryTagsSeq   BigInt   @default(0) @map("category_tags_seq")
+  categoryTagsSeq     BigInt   @default(0) @map("category_tags_seq")
   /// Per-owner counter behind the personal-finance scope (A48), covering every
   /// `personal_records` row. Bumped by `waves_next_personal_seq`.
-  personalSeq       BigInt   @default(0) @map("personal_seq")
+  personalSeq         BigInt   @default(0) @map("personal_seq")
   /// Per-owner counter behind installed category packs, the captures equivalent
   /// for `pack_installs`. Bumped by `waves_next_pack_install_seq`.
-  packInstallsSeq   BigInt   @default(0) @map("pack_installs_seq")
-  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt         DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  packInstallsSeq     BigInt   @default(0) @map("pack_installs_seq")
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   memberships         GroupMember[]
   captures            Capture[]
@@ -184,7 +184,7 @@ model Profile {
   pushTokens          PushToken[]
   notifications       Notification[]
   emailEvents         EmailEvent[]
-  createdInvites      Invite[]             @relation("InviteCreatedBy")
+  createdInvites      Invite[]               @relation("InviteCreatedBy")
   usageEvents         UsageEvent[]
   subscriptions       Subscription[]
   promoRedemptions    PromoRedemption[]
@@ -254,7 +254,7 @@ model Group {
   /// "no pinned rates". Written only via `waves_set_group_fx_rate`; a person's
   /// own card rate and a per-bill override live off the group (device-local and
   /// on `expense_versions.fx` respectively).
-  fxRates         Json?   @map("fx_rates")
+  fxRates Json? @map("fx_rates")
 
   /// When the trip is. Both ends inclusive — the last day of a trip is the one
   /// with the most unrecorded spending on it.
@@ -1701,20 +1701,20 @@ model RateLimitSetting {
 /// policy, so an agent cannot forge its own trail or attribute a write to a
 /// different client than its token names.
 model AgentWrite {
-  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  profileId   String    @map("profile_id") @db.Uuid
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  profileId   String   @map("profile_id") @db.Uuid
   /// The OAuth client, kept verbatim so one assistant can be told from another.
-  clientId    String    @map("client_id")
+  clientId    String   @map("client_id")
   /// In the app's words: expense.add, expense.edit, expense.delete, settlement.record.
   action      String
-  groupId     String?   @map("group_id") @db.Uuid
-  objectId    String?   @map("object_id") @db.Uuid
+  groupId     String?  @map("group_id") @db.Uuid
+  objectId    String?  @map("object_id") @db.Uuid
   /// Minor units. Null for actions that move no amount.
-  amountMinor BigInt?   @map("amount_minor")
-  currency    String?   @db.Char(3)
-  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  amountMinor BigInt?  @map("amount_minor")
+  currency    String?  @db.Char(3)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  profile     Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@index([profileId, createdAt(sort: Desc)], map: "agent_writes_profile_created_idx")
   @@map("agent_writes")
@@ -1728,6 +1728,37 @@ model AppConfig {
   updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@map("app_config")
+  @@schema("public")
+}
+
+/// A day on which one phone number spent its whole sign-in-code allowance.
+/// Deleted the moment a code is actually used (`waves_phone_verified`), so a
+/// row still standing at the cap is a day nobody signed in on — which is the
+/// shape SMS pumping makes and an honest mistyper does not. Three of them
+/// inside the window and the number is blocked.
+model PhoneOtpStrike {
+  phone     String
+  /// No default, for the reason spelled out on `PersonLookup.day`.
+  day       DateTime @db.Date
+  hits      Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@id([phone, day])
+  @@map("phone_otp_strikes")
+  @@schema("public")
+}
+
+/// Numbers no sign-in code will be sent to. A block is on the SMS, not the
+/// person: email, Google, Apple, a guest session and an invite link all stay
+/// open to whoever holds the phone. `until` null means indefinitely.
+model PhoneBlock {
+  phone     String    @id
+  reason    String
+  blockedAt DateTime  @default(now()) @map("blocked_at") @db.Timestamptz(6)
+  until     DateTime? @db.Timestamptz(6)
+
+  @@index([until])
+  @@map("phone_blocks")
   @@schema("public")
 }
 
@@ -1887,7 +1918,7 @@ model ApiApp {
   createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt        DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  owner  Profile               @relation(fields: [ownerProfileId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  owner  Profile                @relation(fields: [ownerProfileId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   tokens ApiToken[]
   codes  ApiAuthorizationCode[]
 
