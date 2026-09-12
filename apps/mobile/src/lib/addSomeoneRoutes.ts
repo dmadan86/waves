@@ -36,7 +36,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 
 import type { UiStrings } from '@/i18n';
 
-export type AddSomeoneRouteKey = 'contacts' | 'inviteLink';
+export type AddSomeoneRouteKey = 'contacts' | 'fromAnotherGroup' | 'inviteLink';
 
 export interface AddSomeoneRoute {
   /** Stable id — what the screen switches on, never what it draws. */
@@ -68,12 +68,21 @@ export interface AddSomeoneContext {
    * every other way in this section untouched.
    */
   readonly addressBook: boolean;
+  /**
+   * Whether any of the viewer's *other* groups holds somebody this one could
+   * take. Decided by running the real selection rather than a proxy like "is in
+   * more than one group": a lone other group made up entirely of real account
+   * holders has nobody to copy, and a row opening onto an empty list is the
+   * dead end this module exists to refuse.
+   */
+  readonly otherGroupPeople: boolean;
 }
 
 export function addSomeoneRoutes({
   groupId,
   t,
   addressBook,
+  otherGroupPeople,
 }: AddSomeoneContext): readonly AddSomeoneRoute[] {
   const routes: AddSomeoneRoute[] = [];
 
@@ -90,6 +99,21 @@ export function addSomeoneRoutes({
       hint: t.people.fromContactsHint,
       spoken: `${t.misc.fromYourContacts}, ${t.people.fromContactsHint}`,
       href: '/contact-picker',
+    });
+  }
+
+  // Second rather than first, though it is the case people describe when asked
+  // — "the same friends, a new trip". The address book is the bigger net and
+  // the one that works for somebody whose first group this nearly is; this row
+  // only has anything to offer once there is a second group to take from.
+  if (otherGroupPeople) {
+    routes.push({
+      key: 'fromAnotherGroup',
+      icon: 'albums-outline',
+      title: t.people.fromAnotherGroup,
+      hint: t.people.fromAnotherGroupHint,
+      spoken: `${t.people.fromAnotherGroup}, ${t.people.fromAnotherGroupHint}`,
+      href: '/add-from-another-group',
     });
   }
 
