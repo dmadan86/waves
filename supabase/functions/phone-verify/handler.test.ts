@@ -57,6 +57,7 @@ function deps(
     verifyStatus?: number;
     verifyBody?: unknown;
     parkedCode?: string | null;
+    openError?: string;
     gateAllowed?: boolean;
     gateErrored?: boolean;
     callerId?: string | null;
@@ -92,6 +93,9 @@ function deps(
       });
     }
     if (name === 'waves_otp_relay_open') {
+      if (overrides.openError) {
+        return Promise.resolve({ data: null, error: { message: overrides.openError } });
+      }
       return overrides.relayOpenErrored
         ? Promise.resolve({ data: null, error: { message: 'no relay' } })
         : Promise.resolve({ data: 'exchange-1', error: null });
@@ -287,6 +291,34 @@ describe('when the exchange goes wrong', () => {
 
     expect(response.status).toBe(503);
     expect(rpcNames(d)).not.toContain('waves_otp_relay_open');
+  });
+
+  it('answers a concurrent live exchange as a retry, not a server error', async () => {
+    const d = deps({ openError: 'OTP_RELAY_BUSY: an exchange is already open for this phone' });
+    const response = await handlePhoneVerify(request(), d);
+
+    expect(response.status).toBe(429);
+    expect(await response.json()).toMatchObject({
+      code: 'TOO_MANY',
+      message: 'A sign-in code is already being checked for that number. Try again in a moment.',
+    });
+    expect(d.fetchImpl.mock.calls.some((call) => call[0] === `${ENV.SUPABASE_URL}/auth/v1/otp`)).toBe(
+      false,
+    );
+    expect(rpcNames(d)).toContain('waves_firebase_assertion_release');
+    expect(rpcNames(d)).toContain('waves_phone_gate_refund');
+  });
+
+  it('keeps an unexpected relay-open error internal after giving the attempt back', async () => {
+    const d = deps({ openError: 'permission denied' });
+    const response = await handlePhoneVerify(request(), d);
+
+    expect(response.status).toBe(500);
+    expect(d.fetchImpl.mock.calls.some((call) => call[0] === `${ENV.SUPABASE_URL}/auth/v1/otp`)).toBe(
+      false,
+    );
+    expect(rpcNames(d)).toContain('waves_firebase_assertion_release');
+    expect(rpcNames(d)).toContain('waves_phone_gate_refund');
   });
 
   it('claims and closes with the exchange it opened', async () => {
