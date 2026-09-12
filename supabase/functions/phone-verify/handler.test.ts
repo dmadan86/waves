@@ -57,6 +57,7 @@ function deps(
     verifyStatus?: number;
     verifyBody?: unknown;
     parkedCode?: string | null;
+    openError?: string;
     gateAllowed?: boolean;
     gateErrored?: boolean;
     jwksOk?: boolean;
@@ -79,6 +80,9 @@ function deps(
       });
     }
     if (name === 'waves_otp_relay_open') {
+      if (overrides.openError) {
+        return Promise.resolve({ data: null, error: { message: overrides.openError } });
+      }
       return Promise.resolve({ data: 'exchange-1', error: null });
     }
     if (name === 'waves_otp_relay_claim') {
@@ -258,6 +262,26 @@ describe('when the exchange goes wrong', () => {
 
     expect(response.status).toBe(503);
     expect(rpcNames(d)).not.toContain('waves_otp_relay_open');
+  });
+
+  it('answers a concurrent live exchange as a retry, not a server error', async () => {
+    const d = deps({ openError: 'OTP_RELAY_BUSY: an exchange is already open for this phone' });
+    const response = await handlePhoneVerify(request(), d);
+
+    expect(response.status).toBe(429);
+    expect(await response.json()).toMatchObject({
+      code: 'TOO_MANY',
+      message: 'A sign-in code is already being checked for that number. Try again in a moment.',
+    });
+    expect(d.events).not.toContain(`fetch:${ENV.SUPABASE_URL}/auth/v1/otp`);
+  });
+
+  it('keeps an unexpected relay-open error internal', async () => {
+    const d = deps({ openError: 'permission denied' });
+    const response = await handlePhoneVerify(request(), d);
+
+    expect(response.status).toBe(500);
+    expect(d.events).not.toContain(`fetch:${ENV.SUPABASE_URL}/auth/v1/otp`);
   });
 
   it('claims and closes with the exchange it opened', async () => {
