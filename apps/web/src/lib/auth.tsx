@@ -32,6 +32,7 @@ interface AuthValue {
   isGuest: boolean;
   loading: boolean;
   signInWithGoogle: () => Promise<void>;
+  signInWithApple: () => Promise<void>;
   signInWithEmail: (email: string) => Promise<void>;
   withPassword: (email: string, password: string, intent: 'sign_in' | 'sign_up') => Promise<void>;
   signOut: () => Promise<void>;
@@ -69,6 +70,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await waves.signInWithGoogle(`${window.location.origin}/auth/callback`);
   }, []);
 
+  const signInWithApple = useCallback(async () => {
+    // Apple's own round trip is `form_post` to Supabase, not to us, so by the
+    // time the browser is handed back it looks exactly like Google's: the same
+    // callback route, the same one-time code. Nothing here is Apple-shaped.
+    await waves.signInWithApple(`${window.location.origin}/auth/callback`);
+  }, []);
+
   const signInWithEmail = useCallback(async (email: string) => {
     // The mailed link lands on the same callback route as Google does.
     await waves.signInWithEmail(email, `${window.location.origin}/auth/callback`);
@@ -94,11 +102,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isGuest: session?.user.is_anonymous === true,
       loading,
       signInWithGoogle,
+      signInWithApple,
       signInWithEmail,
       withPassword,
       signOut,
     }),
-    [session, loading, signInWithGoogle, signInWithEmail, withPassword, signOut],
+    [session, loading, signInWithGoogle, signInWithApple, signInWithEmail, withPassword, signOut],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 /**
  * The front door. With no session, `/` routes to the sign-in card (AppFrame),
- * which offers the three ways in ADR-006 names — Google, an email-and-password
+ * which offers the ways in ADR-006 names — Google, Apple, an email-and-password
  * account, and a passwordless email link — plus the note that an invite link is
  * the guest way in.
  *
@@ -12,10 +12,14 @@ import { test, expect } from '@playwright/test';
  * it.
  */
 test.describe('sign-in (the unauthenticated front door)', () => {
-  test('offers Google, password, and the email magic link', async ({ page }) => {
+  test('offers Google, Apple, password, and the email magic link', async ({ page }) => {
     await page.goto('/');
 
     await expect(page.getByRole('button', { name: /continue with google/i })).toBeVisible();
+    // Apple is a button with words, not a bare glyph: the mark is decorative
+    // and the accessible name is the sentence, so this query is also the
+    // assertion that a screen reader has something to announce.
+    await expect(page.getByRole('button', { name: /continue with apple/i })).toBeVisible();
     await expect(page.getByPlaceholder('you@email.com')).toBeVisible();
     await expect(page.getByPlaceholder('Password')).toBeVisible();
     await expect(page.getByRole('button', { name: /^sign in$/i })).toBeVisible();

@@ -22,6 +22,7 @@ import {
   AuthMethod,
   buildExpenseWriteBody,
   checkPassword,
+  OAuthMethod,
   planAuth,
   readIdentifier,
   type CategoryMeta,
@@ -137,6 +138,61 @@ export function createWavesClient({ supabase }: WavesClientOptions) {
     return data as T;
   }
 
+  /**
+   * Who is signed in right now, in the shape @waves/core's `planAuth` reads.
+   *
+   * Asked fresh each time rather than remembered. Between one button and the
+   * next an invite link opened in another tab may have minted a guest, and a
+   * stale `nobody` here is the whole difference between upgrading that account
+   * and quietly replacing it.
+   */
+  async function currentViewer(): Promise<Viewer> {
+    const { data } = await supabase.auth.getSession();
+    const user = data.session?.user;
+    if (!user) return { kind: 'nobody' };
+    return user.is_anonymous === true
+      ? { kind: 'guest', userId: user.id }
+      : { kind: 'user', userId: user.id };
+  }
+
+  /**
+   * Start a provider sign-in — and make it the *right* one.
+   *
+   * This was a single `signInWithOAuth` for a long time, whatever the session.
+   * On the sign-in card that is correct, because there is nobody to lose. On
+   * the two places the web client actually offers it — the guest banner and
+   * the guest panel in settings, both of which say in so many words that
+   * signing in is how you keep what you have — it was exactly backwards.
+   * `signInWithOAuth` under an anonymous session does not attach the provider
+   * to that account; it signs into a different one. The guest's groups are not
+   * deleted, they are simply somebody else's now, and the anonymous session
+   * that was the only route back has just been overwritten. Nothing errors,
+   * and nothing on screen suggests anything happened at all.
+   *
+   * So the choice is not made here. `planAuth` makes it — @waves/core sets out
+   * why at length — and this performs it: `linkIdentity` for anybody already
+   * signed in, guest or not, and `signInWithOAuth` only for nobody.
+   *
+   * Both navigate the browser away, so there is no success to return. Note
+   * what that costs the caller, because it is not obvious: `linkIdentity`
+   * comes back to `redirectTo` with **no code**, since the session it just
+   * attached an identity to is the one already in this browser. A callback
+   * route that reads an empty redirect as a failure will therefore report an
+   * error on the one path that worked.
+   */
+  async function startOAuth(method: OAuthMethod, redirectTo: string): Promise<void> {
+    const isGoogle = method === OAuthMethod.Google;
+    const action = planAuth(await currentViewer(), isGoogle ? AuthMethod.Google : AuthMethod.Apple);
+    // A string enum is nominal to TypeScript and supabase-js wants its own
+    // `Provider` union, so the one crossing between the two lives here.
+    const provider = isGoogle ? 'google' : 'apple';
+    const { error } =
+      action.call === 'linkIdentity'
+        ? await supabase.auth.linkIdentity({ provider, options: { redirectTo } })
+        : await supabase.auth.signInWithOAuth({ provider, options: { redirectTo } });
+    if (error) throw new WavesApiError(error.message);
+  }
+
   return {
     /**
      * A guest is a real account with no credentials on it yet (ADR-006). It is
@@ -154,19 +210,36 @@ export function createWavesClient({ supabase }: WavesClientOptions) {
     /**
      * The real login (ADR-006 names Google among the upgrade providers). An
      * anonymous guest who does this keeps the same user id, so the groups and
-     * expenses made as a guest come with them — Supabase links the identity in
-     * place rather than minting a second account.
+     * expenses made as a guest come with them — which is `startOAuth`'s doing,
+     * not something Supabase arranges on its own.
      *
-     * Returns nothing useful: `signInWithOAuth` navigates the browser to
-     * Google and control does not come back here — it comes back to
-     * `redirectTo` with the session in the URL.
+     * Returns nothing useful: the call navigates the browser to Google, and
+     * control does not come back here — it comes back to `redirectTo`.
      */
     async signInWithGoogle(redirectTo: string): Promise<void> {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: { redirectTo },
-      });
-      if (error) throw new WavesApiError(error.message);
+      await startOAuth(OAuthMethod.Google, redirectTo);
+    },
+
+    /**
+     * The same door, through Apple.
+     *
+     * On a phone this is Apple's own sheet and an identity token
+     * (`appleNativeSignIn` in the app); a browser has no sheet, so it is the
+     * ordinary redirect Google already uses. Apple answers that one with
+     * `response_mode=form_post` to Supabase's own `/auth/v1/callback`, which
+     * then sends the browser on to `redirectTo` carrying the same one-time
+     * code — so nothing downstream of here has to know which provider it was.
+     *
+     * One thing genuinely differs, and it stays invisible until somebody's
+     * name is blank: Apple hands over a display name on the **first**
+     * authorization only, and on the web that name is posted to Supabase
+     * rather than to this client. There is no web equivalent of the app's
+     * `persistAppleName`, and no second authorization to recover it from, so
+     * somebody whose very first Waves sign-in was Apple-in-a-browser arrives
+     * with a name still to fill in.
+     */
+    async signInWithApple(redirectTo: string): Promise<void> {
+      await startOAuth(OAuthMethod.Apple, redirectTo);
     },
 
     /**
@@ -206,13 +279,7 @@ export function createWavesClient({ supabase }: WavesClientOptions) {
       const method = who.kind === 'email' ? AuthMethod.EmailPassword : AuthMethod.PhonePassword;
       const credential = who.kind === 'email' ? { email: who.value } : { phone: who.value };
 
-      const { data } = await supabase.auth.getSession();
-      const viewer: Viewer = !data.session?.user
-        ? { kind: 'nobody' }
-        : data.session.user.is_anonymous === true
-          ? { kind: 'guest', userId: data.session.user.id }
-          : { kind: 'user', userId: data.session.user.id };
-      const action = planAuth(viewer, method, intent);
+      const action = planAuth(await currentViewer(), method, intent);
 
       if (action.call === 'updateUser') {
         // The upgrade: same user id, so the groups stay put (ADR-006).
