@@ -4,15 +4,13 @@
  * TDR §11: all money/date formatting is locale-aware.
  */
 
-import { minorUnitExponent, minorUnitScale, type CurrencyCode } from './currency';
+import { minorUnitExponent, type CurrencyCode } from './currency';
 import { toMajorString, type Money } from './money';
 
 export type Locale = 'en-IN' | 'ta-IN' | 'hi-IN' | (string & {});
 
 export interface FormatOptions {
   locale?: Locale;
-  /** Drop the fraction when the amount is a whole unit (₹420 instead of ₹420.00). */
-  compactFraction?: boolean;
   /** Render the sign explicitly (+₹420). Negatives always show their sign. */
   signDisplay?: 'auto' | 'always' | 'never';
 }
@@ -65,10 +63,14 @@ export function formatParts(amount: Money, options: FormatOptions = {}): MoneyPa
 }
 
 function parts(amount: Money, options: FormatOptions): Intl.NumberFormatPart[] {
-  const { locale = DEFAULT_LOCALE, compactFraction = false, signDisplay = 'auto' } = options;
-  const exponent = minorUnitExponent(amount.currency);
-  const isWhole = amount.minor % minorUnitScale(amount.currency) === 0n;
-  const fractionDigits = compactFraction && isWhole ? 0 : exponent;
+  const { locale = DEFAULT_LOCALE, signDisplay = 'auto' } = options;
+  // Always the currency's own number of minor digits, whole amount or not.
+  // There used to be an option to drop `.00`, and in a list it misreads: a
+  // column of ₹24,182.42 and ₹80,100 invites the eye to line up 80,100 with
+  // 24,182 and lose a digit, and the faint-fraction styling makes the short
+  // one look truncated rather than round. A currency with no minor unit (JPY)
+  // is unaffected — its exponent is already 0.
+  const fractionDigits = minorUnitExponent(amount.currency);
 
   const magnitude = signDisplay === 'never' && amount.minor < 0n ? -amount.minor : amount.minor;
 

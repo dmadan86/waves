@@ -140,7 +140,7 @@ function SourceTimelineScreenBody() {
                   style={{ color: income ? theme.color.positive : theme.color.text }}
                 >
                   {income ? '+' : '−'}
-                  {format(money(rule.amount, rule.currency), { locale, compactFraction: true })}
+                  {format(money(rule.amount, rule.currency), { locale })}
                 </Text>
               </Row>
             </Card>
@@ -279,7 +279,7 @@ function PeriodRow({
                   : theme.color.textMuted,
               }}
             >
-              {format(money(shown, currency), { locale, compactFraction: true })}
+              {format(money(shown, currency), { locale })}
             </Text>
             {/* Only worth saying when it differs — a payment that matched needs
                 no commentary. */}
@@ -288,7 +288,6 @@ function PeriodRow({
                 {fill(t.personal.ofExpected, {
                   amount: format(money(occurrence.expected, currency), {
                     locale,
-                    compactFraction: true,
                   }),
                 })}
               </Text>

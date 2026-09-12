@@ -222,7 +222,7 @@ function CurrencySection({
           // A custom tag names itself; a built-in is named through the table.
           label: resolved.custom ? resolved.label : labels[resolved.builtinId ?? 'other'],
           value,
-          formatted: format({ minor: value, currency }, { locale, compactFraction: true }),
+          formatted: format({ minor: value, currency }, { locale }),
           tint: resolved.tint,
           leading: <CategoryBadge category={id} meta={meta} size={26} />,
         };
@@ -244,7 +244,7 @@ function CurrencySection({
         // label January as December.
         label: monthLabel(month, locale),
         value,
-        formatted: format({ minor: value, currency }, { locale, compactFraction: true }),
+        formatted: format({ minor: value, currency }, { locale }),
       }));
   }, [rows, locale, currency]);
 

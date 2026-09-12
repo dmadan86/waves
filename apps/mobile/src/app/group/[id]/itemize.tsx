@@ -804,7 +804,7 @@ export default function ItemizeScreen() {
             <Text variant="micro" tone="muted">
               {t.itemize.taxAndTipShared.replace(
                 '{amount}',
-                format({ minor: taxes + tip, currency }, { locale, compactFraction: true }),
+                format({ minor: taxes + tip, currency }, { locale }),
               )}
             </Text>
           ) : null}

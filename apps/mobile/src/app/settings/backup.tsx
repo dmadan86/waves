@@ -234,6 +234,7 @@ export default function BackupSettingsScreen() {
   /** "What is a backup key?", opened from inside the entry sheet. */
   const [explaining, setExplaining] = useState(false);
   const [unlinking, setUnlinking] = useState(false);
+  const [about, setAbout] = useState(false);
   const [found, setFound] = useState<FoundBackup | null>(null);
   const [restored, setRestored] = useState<number | null>(null);
   /** The Extra-protection pitch, before any key has been minted. */
@@ -339,7 +340,16 @@ export default function BackupSettingsScreen() {
     // locale tables. Until then it reads as an ordinary failure, which is at
     // least not wrong.
     const sentence = caught.fault === 'not-set-up' ? t.backup.unavailable : t.backup.connectFailed;
-    return __DEV__ && caught.status ? `${sentence} (${caught.status})` : sentence;
+    // The code is shown in release builds too, and that is deliberate. Every
+    // fault here is a *configuration* one only the operator can fix — a signing
+    // certificate never registered against an Android OAuth client, a stale Play
+    // services, the wrong Cloud project — and they all arrive as the same
+    // sentence. On a release build with no Sentry DSN the person holding the
+    // phone is the only channel the diagnosis has, and "it says 10" is the whole
+    // difference between guessing and knowing. It is a short status code from
+    // Play services, not an exception message, and it is bounded here so it
+    // stays a reference rather than becoming developer English on a screen.
+    return caught.status ? `${sentence} (${String(caught.status).slice(0, 24)})` : sentence;
   };
 
   const onConnect = async (): Promise<void> => {
@@ -739,7 +749,13 @@ export default function BackupSettingsScreen() {
         <View style={{ flex: 1, alignItems: 'center' }}>
           <Text variant="heading">{t.backup.title}</Text>
         </View>
-        <View style={{ width: 44 }} />
+        <IconButton label={t.backup.aboutLabel} onPress={() => setAbout(true)}>
+          <Ionicons
+            name="information-circle-outline"
+            size={iconSize.lg}
+            color={theme.color.textMuted}
+          />
+        </IconButton>
       </Row>
 
       <ScrollView
@@ -933,11 +949,6 @@ export default function BackupSettingsScreen() {
           ) : null}
         </Card>
 
-        {/* The promise, in whichever of its two forms is true. */}
-        <Text variant="body" tone="muted">
-          {extra ? t.backup.introExtra : t.backup.introStandard}
-        </Text>
-
         {/* Which Google account. Rendered whenever one is linked *and* the
             checklist is not itself asking for one — so the two never offer the
             same tap, and a build that has lost `configured` under a linked
@@ -945,24 +956,37 @@ export default function BackupSettingsScreen() {
         {backup.connected && setup.outstanding !== BackupStep.Account ? (
           <View style={{ gap: theme.spacing.sm }}>
             <SectionHeader title={t.backup.accountSection} />
-            <Card style={{ gap: theme.spacing.md }}>
-              <Row style={{ gap: theme.spacing.md }}>
+            <Card>
+              <Row gap={theme.spacing.md}>
                 <Ionicons name="logo-google" size={iconSize.xl} color={theme.color.brand} />
-                {/* The linked address when Drive will say who it is, and the
-                    destination's own name when it will not — never a guess, and
-                    never a blank row that reads as "not connected". */}
-                <Text variant="body" style={{ flex: 1 }}>
-                  {backup.account ?? PROVIDER_LABEL}
-                </Text>
+                {/* The destination is the constant and the address is what
+                    varies, so the destination is the line that is always there
+                    and the address sits under it — never a guess, and never a
+                    blank row that reads as "not connected". */}
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text variant="body">{PROVIDER_LABEL}</Text>
+                  {backup.account ? (
+                    <Text variant="caption" tone="muted" numberOfLines={1}>
+                      {backup.account}
+                    </Text>
+                  ) : null}
+                </View>
+                {/* Trailing and small, which is where every app that manages a
+                    linked account puts this — Canva, Uber Eats, Yubo all read
+                    as one row. It was a full-width red block under the address,
+                    which is the weight a settings screen gives deleting the
+                    account, not unlinking a backup destination that can be
+                    relinked in two taps. The confirmation it opens is unchanged
+                    and still carries the cost in full. */}
+                <Button
+                  label={t.backup.disconnect}
+                  variant="ghostDanger"
+                  size="sm"
+                  onPress={() => setUnlinking(true)}
+                  disabled={busy}
+                  icon={pending === 'disconnect' ? spinner(false) : undefined}
+                />
               </Row>
-              <Button
-                label={t.backup.disconnect}
-                variant="ghostDanger"
-                onPress={() => setUnlinking(true)}
-                disabled={busy}
-                icon={pending === 'disconnect' ? spinner(false) : undefined}
-                fullWidth
-              />
             </Card>
           </View>
         ) : null}
@@ -1526,6 +1550,21 @@ export default function BackupSettingsScreen() {
           ) : null}
         </View>
       </Sheet>
+
+      {/* What the screen used to say in a paragraph under the status card.
+          It is the promise, so it may not be dropped — but it answers "how does
+          this work", which is a question asked once, and it was sitting between
+          the button somebody came for and the account they came to check. The
+          status card already carries the half that has to be read every time:
+          which key locks this, and therefore who can open it. */}
+      <Popup visible={about} onClose={() => setAbout(false)} closeLabel={t.common.close}>
+        <View style={{ gap: theme.spacing.md }}>
+          <Text variant="heading">{t.backup.aboutTitle}</Text>
+          <Text variant="body" tone="muted">
+            {extra ? t.backup.introExtra : t.backup.introStandard}
+          </Text>
+        </View>
+      </Popup>
 
       <Popup visible={unlinking} onClose={() => setUnlinking(false)} closeLabel={t.common.close}>
         <View style={{ gap: theme.spacing.md }}>

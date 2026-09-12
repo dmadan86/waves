@@ -122,7 +122,7 @@ function PersonalTransactionsScreenBody() {
                     }}
                   >
                     {income ? '+' : '−'}
-                    {format(money(txn.amount, txn.currency), { locale, compactFraction: true })}
+                    {format(money(txn.amount, txn.currency), { locale })}
                   </Text>
                 </Row>
               </Card>

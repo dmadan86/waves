@@ -28,7 +28,7 @@ const pct = (part: number, whole: number) =>
 
 function amount(minor: string, currency: string): string {
   try {
-    return format(money(BigInt(minor), currency as CurrencyCode), { compactFraction: true });
+    return format(money(BigInt(minor), currency as CurrencyCode));
   } catch {
     return `${minor} ${currency}`;
   }

@@ -143,7 +143,6 @@ function LoansScreenBody() {
                         {borrowed ? t.personal.borrowed : t.personal.lent} ·{' '}
                         {format(money(loan.principal, loan.currency), {
                           locale,
-                          compactFraction: true,
                         })}
                       </Text>
                     </View>
@@ -152,7 +151,7 @@ function LoansScreenBody() {
                         {settled ? t.personal.paidOff : t.personal.outstanding}
                       </Text>
                       <Text variant="body" style={{ fontWeight: '700' }}>
-                        {format(money(left, loan.currency), { locale, compactFraction: true })}
+                        {format(money(left, loan.currency), { locale })}
                       </Text>
                     </View>
                   </Row>

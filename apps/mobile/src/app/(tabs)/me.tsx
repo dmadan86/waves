@@ -163,8 +163,7 @@ export default function MeScreen() {
     .filter((loan) => loan.currency === dc)
     .reduce((sum, loan) => sum + loanOutstanding(loan, ledger.txns), 0n);
 
-  const fmt = (amount: bigint): string =>
-    format(money(amount, dc), { locale, compactFraction: true });
+  const fmt = (amount: bigint): string => format(money(amount, dc), { locale });
 
   // Where the month's money went — the biggest categories, each with its share,
   // capped so the list stays a glance rather than a scroll. Personal txns carry
@@ -335,7 +334,6 @@ export default function MeScreen() {
                         {rule.txnKind === 'income' ? '+' : '−'}
                         {format(money(occurrence.expected, rule.currency), {
                           locale,
-                          compactFraction: true,
                         })}
                       </Text>
                     </Row>
@@ -605,8 +603,7 @@ function MeHero({
   const insets = useSafeAreaInsets();
 
   const saved = net >= 0n;
-  const fmt = (amount: bigint): string =>
-    format(money(amount, currency), { locale, compactFraction: true });
+  const fmt = (amount: bigint): string => format(money(amount, currency), { locale });
 
   // The wash is the verdict of the month: blue kept, red lost.
   const wash = saved ? SAVED_WASH : OVERSPENT_WASH;
@@ -993,8 +990,7 @@ function CashflowStrip({
   const abs = (n: bigint): bigint => (n < 0n ? -n : n);
   const largest = trend.reduce((max, m) => (abs(m.net) > max ? abs(m.net) : max), 0n);
   const barsHeight = 72;
-  const fmt = (amount: bigint): string =>
-    format(money(amount, currency), { locale, compactFraction: true });
+  const fmt = (amount: bigint): string => format(money(amount, currency), { locale });
 
   return (
     <View style={{ gap: theme.spacing.sm }}>
@@ -1130,7 +1126,7 @@ function TxnRow({
 }) {
   const income = txn.kind === 'income';
   const title = txn.note?.trim() || labelFor(txn.category) || '—';
-  const amount = format(money(txn.amount, txn.currency), { locale, compactFraction: true });
+  const amount = format(money(txn.amount, txn.currency), { locale });
   return (
     <Pressable
       accessibilityRole="button"

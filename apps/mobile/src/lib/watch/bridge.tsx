@@ -71,7 +71,6 @@ export function buildRecentItems(
       amountText: parsed
         ? formatMoney(toMoney(parsed.amount, parsed.currency), {
             locale: opts.locale,
-            compactFraction: true,
           })
         : '',
       whenText: relativeTime(opts.locale, row.created_at, opts.now),
