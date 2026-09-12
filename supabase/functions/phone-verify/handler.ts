@@ -177,7 +177,7 @@ export async function handlePhoneVerify(
     return fail(503, 'UNAVAILABLE', 'Could not sign you in just now. Try again.');
   }
   if ((gate as { allowed?: boolean } | null)?.allowed === false) {
-    return fail(429, 'TOO_MANY', 'That is too many sign-in attempts today. Try again tomorrow.');
+    return fail(429, 'TOO_MANY', 'Too many sign-in attempts for that number. Try again later.');
   }
 
   const service = deps.service();

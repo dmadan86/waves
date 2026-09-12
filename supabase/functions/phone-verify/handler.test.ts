@@ -61,8 +61,14 @@ function deps(
     gateErrored?: boolean;
     jwksOk?: boolean;
   } = {},
-): PhoneVerifyDeps & { rpc: ReturnType<typeof vi.fn>; fetchImpl: ReturnType<typeof vi.fn> } {
+): PhoneVerifyDeps & {
+  events: string[];
+  rpc: ReturnType<typeof vi.fn>;
+  fetchImpl: ReturnType<typeof vi.fn>;
+} {
+  const events: string[] = [];
   const rpc = vi.fn((name: string) => {
+    events.push(`rpc:${name}`);
     if (name === 'waves_phone_gate') {
       if (overrides.gateErrored) {
         return Promise.resolve({ data: null, error: { message: 'database unreachable' } });
@@ -85,6 +91,7 @@ function deps(
   });
 
   const fetchImpl = vi.fn((url: string) => {
+    events.push(`fetch:${url}`);
     if (url === JWKS_URL) {
       return Promise.resolve(
         new Response(JSON.stringify(JWKS), { status: overrides.jwksOk === false ? 500 : 200 }),
@@ -114,6 +121,7 @@ function deps(
     service: () => ({ rpc }) as any,
     fetchImpl: fetchImpl as unknown as typeof fetch,
     env: (key: string) => env[key],
+    events,
     rpc,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any;
@@ -167,16 +175,14 @@ describe('a verified token', () => {
     const d = deps();
     await handlePhoneVerify(request(), d);
 
-    const names = rpcNames(d);
-    const opened = names.indexOf('waves_otp_relay_open');
-    const claimed = names.indexOf('waves_otp_relay_claim');
+    const opened = d.events.indexOf('rpc:waves_otp_relay_open');
+    const askedAt = d.events.indexOf(`fetch:${ENV.SUPABASE_URL}/auth/v1/otp`);
+    const claimed = d.events.indexOf('rpc:waves_otp_relay_claim');
     expect(opened).toBeGreaterThanOrEqual(0);
-    expect(opened).toBeLessThan(claimed);
-
-    const askedAt = d.fetchImpl.mock.calls.findIndex(
-      (call) => call[0] === `${ENV.SUPABASE_URL}/auth/v1/otp`,
-    );
     expect(askedAt).toBeGreaterThanOrEqual(0);
+    expect(claimed).toBeGreaterThanOrEqual(0);
+    expect(opened).toBeLessThan(askedAt);
+    expect(askedAt).toBeLessThan(claimed);
   });
 
   it('clears the day, because a code was actually used', async () => {
@@ -234,6 +240,10 @@ describe('the daily gate', () => {
     const response = await handlePhoneVerify(request(), d);
 
     expect(response.status).toBe(429);
+    const body = (await response.json()) as { message: string };
+    expect(body.message).toBe('Too many sign-in attempts for that number. Try again later.');
+    expect(body.message).not.toContain('today');
+    expect(body.message).not.toContain('tomorrow');
     expect(rpcNames(d)).not.toContain('waves_otp_relay_open');
   });
 });
