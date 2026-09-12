@@ -1,15 +1,23 @@
 /**
- * Where money came from — the income counterpart of `CategoryPicker`.
+ * Where money came from — the income counterpart of the spend catalog.
  *
- * Deliberately the same chip, the same size, the same selected state as the
- * spend picker next door: choosing a source is the same gesture as choosing a
- * category, and making it look like a different kind of control would suggest
- * it is a different kind of decision. What differs is only the vocabulary —
- * `INCOME_SOURCES` rather than the spend categories — because filing a salary
- * under "Food & drink" was the whole problem.
+ * `SourceRow` + `SourceSheet` mirror `CategoryRow` + `CategorySheet` one file
+ * over, deliberately and to the pixel: a settings row that names the field and
+ * shows what is chosen, and the sheet of options behind it. Choosing a source
+ * is the same gesture as choosing a category, and drawing it as a different
+ * kind of control would suggest it is a different kind of decision. What
+ * differs is only the vocabulary — `INCOME_SOURCES` rather than the spend
+ * categories — because filing a salary under "Food & drink" was the whole
+ * problem.
+ *
+ * There used to be a `SourcePicker` here as well: the same catalog as a lane of
+ * chips, for the private ledger's form before it folded its details into rows.
+ * It went when the last caller did rather than staying as a second way to
+ * answer the same question — the two would have drifted, and a form that asked
+ * "what for" as a row and "where from" as a chip lane looked like two forms.
  */
 
-import { Pressable, ScrollView, View } from 'react-native';
+import { View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 import {
@@ -19,8 +27,9 @@ import {
   type CatalogEntry,
   type IncomeSource,
 } from '@waves/core';
-import { iconSize, Text, useTheme } from '@waves/ui';
+import { iconSize, useTheme } from '@waves/ui';
 
+import { ChoiceRow, SettingRow, SheetOverlay } from '@/components/expense/SheetOverlay';
 import { useCategoryTags } from '@/data/hooks';
 import { useStrings, type UiStrings } from '@/i18n';
 
@@ -42,101 +51,6 @@ export function useSourceLabel(): (id: string | null) => string | null {
     // tag that has not synced to this device yet.
     return tags.find((tag) => tag.id === id)?.label ?? id;
   };
-}
-
-export function SourcePicker({
-  value,
-  onChange,
-}: {
-  value: string | null;
-  onChange: (id: string) => void;
-}) {
-  const theme = useTheme();
-  const { t } = useStrings();
-  // The fifteen we ship, then the person's own — from a pack, or made by hand.
-  // Theirs come second rather than mixed in, so the list somebody learned does
-  // not reorder itself the first time they install something.
-  const mine = incomeTags(useCategoryTags().data).filter((entry) => !entry.hidden);
-
-  return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      keyboardShouldPersistTaps="handled"
-      contentContainerStyle={{ gap: theme.spacing.sm, paddingRight: theme.spacing.xl }}
-    >
-      {INCOME_SOURCES.map((source: IncomeSource) => {
-        const selected = source.id === value;
-        const label = t.personal.sources[labelKey(source.id)];
-        return (
-          <Pressable
-            key={source.id}
-            accessibilityRole="radio"
-            accessibilityState={{ selected }}
-            accessibilityLabel={label}
-            onPress={() => onChange(source.id)}
-            style={({ pressed }) => ({
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: theme.spacing.xs,
-              minHeight: 44,
-              paddingVertical: theme.spacing.sm,
-              paddingHorizontal: theme.spacing.md,
-              borderRadius: theme.radius.md,
-              borderWidth: 1,
-              borderColor: selected ? theme.color.brand : theme.color.border,
-              backgroundColor: selected ? theme.color.brandSoft : theme.color.surface,
-              opacity: pressed ? 0.7 : 1,
-            })}
-          >
-            <Ionicons
-              name={source.icon as keyof typeof Ionicons.glyphMap}
-              size={iconSize.md}
-              color={selected ? theme.color.brand : theme.color.textMuted}
-            />
-            <Text variant="body" style={{ color: selected ? theme.color.brand : theme.color.text }}>
-              {label}
-            </Text>
-          </Pressable>
-        );
-      })}
-
-      {mine.map((entry: CatalogEntry) => {
-        const selected = entry.key === value;
-        return (
-          <Pressable
-            key={entry.key}
-            accessibilityRole="radio"
-            accessibilityState={{ selected }}
-            accessibilityLabel={entry.label}
-            onPress={() => onChange(entry.key)}
-            style={({ pressed }) => ({
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: theme.spacing.xs,
-              minHeight: 44,
-              paddingVertical: theme.spacing.sm,
-              paddingHorizontal: theme.spacing.md,
-              borderRadius: theme.radius.md,
-              borderWidth: 1,
-              borderColor: selected ? theme.color.brand : theme.color.border,
-              backgroundColor: selected ? theme.color.brandSoft : theme.color.surface,
-              opacity: pressed ? 0.7 : 1,
-            })}
-          >
-            <Ionicons
-              name={entry.icon as keyof typeof Ionicons.glyphMap}
-              size={iconSize.md}
-              color={selected ? theme.color.brand : theme.color.textMuted}
-            />
-            <Text variant="body" style={{ color: selected ? theme.color.brand : theme.color.text }}>
-              {entry.label}
-            </Text>
-          </Pressable>
-        );
-      })}
-    </ScrollView>
-  );
 }
 
 /** The small round glyph a source wears in a list, tinted like its chip. */
@@ -163,5 +77,83 @@ export function SourceGlyph({ id, size = 40 }: { id: string | null; size?: numbe
         color={tint.ink}
       />
     </View>
+  );
+}
+
+/**
+ * The chosen source as one row of a settings list: the field's name, then the
+ * source's own glyph and label, then a chevron into {@link SourceSheet}.
+ *
+ * The sibling of `CategoryRow`, and deliberately identical to it. The private
+ * ledger's form asks "what for" of an expense and "where from" of an income,
+ * and those are different questions with the same shape — a short answer,
+ * already filled in, changed from a sheet. Drawn as a lane of chips for one and
+ * a row for the other, the same form would have looked like two forms depending
+ * on which way the money went.
+ */
+export function SourceRow({
+  value,
+  onPress,
+}: {
+  value: string | null;
+  onPress: () => void;
+}): React.JSX.Element {
+  const { t } = useStrings();
+  const label = useSourceLabel()(value);
+  return (
+    <SettingRow
+      label={t.personal.source}
+      value={label ?? t.personal.sources.other}
+      leading={<SourceGlyph id={value} size={24} />}
+      onPress={onPress}
+    />
+  );
+}
+
+/**
+ * The sources as a sheet of options — the fifteen built in, then the person's
+ * own from a pack or made by hand, one per line with a check against the one in
+ * force.
+ *
+ * Theirs come second rather than mixed in, so the list somebody learned does not
+ * reorder itself the first time they install something.
+ */
+export function SourceSheet({
+  value,
+  onChange,
+  onClose,
+}: {
+  value: string | null;
+  onChange: (id: string) => void;
+  onClose: () => void;
+}): React.JSX.Element {
+  const theme = useTheme();
+  const { t } = useStrings();
+  const mine = incomeTags(useCategoryTags().data).filter((entry) => !entry.hidden);
+
+  return (
+    <SheetOverlay title={t.personal.source} onClose={onClose}>
+      <View style={{ gap: theme.spacing.xs }}>
+        {INCOME_SOURCES.map((source: IncomeSource) => (
+          <ChoiceRow
+            key={source.id}
+            label={t.personal.sources[labelKey(source.id)]}
+            selected={source.id === value}
+            leading={<SourceGlyph id={source.id} size={32} />}
+            onPress={() => onChange(source.id)}
+          />
+        ))}
+
+        {mine.map((entry: CatalogEntry) => (
+          <ChoiceRow
+            key={entry.key}
+            label={entry.label}
+            selected={entry.key === value}
+            leading={<SourceGlyph id={entry.key} size={32} />}
+            onPress={() => onChange(entry.key)}
+          />
+        ))}
+      </View>
+    </SheetOverlay>
   );
 }
