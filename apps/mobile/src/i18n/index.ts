@@ -1705,6 +1705,11 @@ export interface UiStrings {
      *  Standard the key is in the Google account the backup goes to. */
     introStandard: string;
     introExtra: string;
+    /** The header's info button, and the sheet it opens — where the two
+     *  paragraphs above now live. They are the promise and may not be dropped,
+     *  but they answer "how does this work", which is asked once. */
+    aboutLabel: string;
+    aboutTitle: string;
     /** Shown when this build carries no Drive OAuth client id. */
     unavailable: string;
 
@@ -4339,6 +4344,8 @@ const en: UiStrings = {
       'Your private Me ledger, copied to a hidden folder in your own Google Drive and locked with a key kept there too — so a new phone signed in to the same Google account opens it by itself. Waves cannot read it. Anyone who can get into your Google account can.',
     introExtra:
       'Your private Me ledger, copied to your own Google Drive and locked with a key only you hold. Neither Waves nor Google can read it, and nothing opens it without your key.',
+    aboutLabel: 'How this works',
+    aboutTitle: 'How backup works',
     unavailable: 'Backup is not available in this build.',
 
     statusChecking: 'Checking…',
@@ -6953,6 +6960,8 @@ const ta: UiStrings = {
       'உங்கள் தனிப்பட்ட "நான்" கணக்கு, உங்கள் சொந்த Google Drive-இல் ஒரு மறைவான கோப்புறைக்கு நகலெடுக்கப்பட்டு, அங்கேயே வைக்கப்படும் சாவியால் பூட்டப்படுகிறது — அதே Google கணக்கில் நுழையும் புதிய ஃபோன் தானாகவே அதைத் திறக்கும். Waves-ஆல் அதைப் படிக்க முடியாது; உங்கள் Google கணக்கை அணுகும் எவரும் படிக்க முடியும்.',
     introExtra:
       'உங்கள் தனிப்பட்ட "நான்" கணக்கு, உங்கள் சொந்த Google Drive-க்கு நகலெடுக்கப்பட்டு, உங்களிடம் மட்டுமே உள்ள சாவியால் பூட்டப்படுகிறது. Waves-ஆலும் Google-ஆலும் அதைப் படிக்க முடியாது; உங்கள் சாவி இல்லாமல் அதை எதுவும் திறக்காது.',
+    aboutLabel: 'இது எப்படி வேலை செய்கிறது',
+    aboutTitle: 'காப்புப்பிரதி எப்படி வேலை செய்கிறது',
     unavailable: 'இந்தப் பதிப்பில் காப்புப்பிரதி கிடைக்கவில்லை.',
 
     statusChecking: 'பார்க்கிறது…',
@@ -9599,6 +9608,8 @@ const hi: UiStrings = {
       'आपका निजी "मैं" खाता, आपकी अपनी Google Drive के एक छिपे फ़ोल्डर में कॉपी होता है और वहीं रखी एक चाबी से बंद रहता है — इसलिए उसी Google खाते में साइन इन किया नया फ़ोन इसे खुद ही खोल लेता है। Waves इसे नहीं पढ़ सकता। आपके Google खाते तक पहुँचने वाला कोई भी पढ़ सकता है।',
     introExtra:
       'आपका निजी "मैं" खाता, आपकी अपनी Google Drive पर कॉपी होता है और सिर्फ़ आपके पास मौजूद चाबी से बंद रहता है। इसे न Waves पढ़ सकता है, न Google — और आपकी चाबी के बिना इसे कुछ भी नहीं खोलता।',
+    aboutLabel: 'यह कैसे काम करता है',
+    aboutTitle: 'बैकअप कैसे काम करता है',
     unavailable: 'इस बिल्ड में बैकअप उपलब्ध नहीं है।',
 
     statusChecking: 'देखा जा रहा है…',
@@ -12280,6 +12291,8 @@ const ar: UiStrings = {
       'دفترك الخاص في تبويب "أنا"، يُنسخ إلى مجلد مخفي داخل Google Drive الخاص بك ويُقفل بمفتاح محفوظ هناك أيضًا — فيفتحه وحده أي هاتف جديد يسجّل الدخول إلى حساب Google نفسه. لا يستطيع Waves قراءته، أما من يصل إلى حساب Google الخاص بك فيستطيع.',
     introExtra:
       'دفترك الخاص في تبويب "أنا"، يُنسخ إلى Google Drive الخاص بك ويُقفل بمفتاح لا يملكه سواك. لا يستطيع Waves ولا Google قراءته، ولا شيء يفتحه دون مفتاحك.',
+    aboutLabel: 'كيف يعمل هذا',
+    aboutTitle: 'كيف يعمل النسخ الاحتياطي',
     unavailable: 'النسخ الاحتياطي غير متاح في هذه النسخة.',
 
     statusChecking: 'يتحقق…',

@@ -14,7 +14,7 @@ const num = (value: number | string) => Number(value).toLocaleString('en-IN');
 /** Minor units through the ledger's own formatter, so the console cannot disagree with the app. */
 function amount(minor: string, currency: string): string {
   try {
-    return format(money(BigInt(minor), currency as CurrencyCode), { compactFraction: true });
+    return format(money(BigInt(minor), currency as CurrencyCode));
   } catch {
     // An unknown currency is not worth a 500 on a dashboard.
     return `${minor} ${currency}`;
