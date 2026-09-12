@@ -24,7 +24,8 @@ import { Pressable, ScrollView, View } from 'react-native';
 import { type PaymentMethod } from '@waves/core';
 import { iconSize, Text, useTheme } from '@waves/ui';
 
-import { ChoiceRow, SettingRow, SheetOverlay } from '@/components/expense/SheetOverlay';
+import { DetailRow } from '@/components/DetailRows';
+import { ChoiceRow, SheetOverlay } from '@/components/expense/SheetOverlay';
 import { deviceSupportsUpi, useStrings } from '@/i18n';
 import { offeredPaymentMethods } from '@/lib/paymentMethods';
 
@@ -135,8 +136,11 @@ export function PaymentMethodPicker(props: PaymentMethodPickerProps) {
 }
 
 /**
- * The rail in force as one row of a settings list: the field's name, the rail's
- * glyph and label, a chevron into {@link PaymentMethodSheet}.
+ * The rail in force as one row of a settings list: the rail's glyph, the field's
+ * name, the rail's label, a chevron into {@link PaymentMethodSheet}.
+ *
+ * A {@link DetailRow}, the row the expense screen states a bill's facts in, so
+ * "paid with" is asked in the shape it is read back in.
  *
  * Only the non-deselectable shape: a list row has to show *something* on its
  * right, and "not said" is a state the chip lane can express by having nothing
@@ -149,7 +153,6 @@ export function PaymentMethodRow({
   value: PaymentMethod;
   onPress: () => void;
 }) {
-  const theme = useTheme();
   const { t } = useStrings();
   const label = usePaymentMethodLabel();
   const method = offeredPaymentMethods({ upiSupported: deviceSupportsUpi(), current: value }).find(
@@ -157,18 +160,13 @@ export function PaymentMethodRow({
   );
 
   return (
-    <SettingRow
+    <DetailRow
+      // A rail the region does not offer still has to draw *some* mark, or the
+      // row loses the column the stack next to it is read down. The wallet is
+      // the field's own glyph, standing in for the answer's.
+      icon={method ? PAYMENT_METHOD_ICONS[method] : 'wallet-outline'}
       label={t.captures.paidWith}
       value={label(value)}
-      leading={
-        method ? (
-          <Ionicons
-            name={PAYMENT_METHOD_ICONS[method]}
-            size={iconSize.md}
-            color={theme.color.textMuted}
-          />
-        ) : null
-      }
       onPress={onPress}
     />
   );

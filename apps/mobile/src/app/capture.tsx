@@ -43,7 +43,8 @@ import { COMMON_CURRENCIES } from '@/components/CurrencyRate';
 import { AmountHeader } from '@/components/expense/AmountHeader';
 import { DescriptionField } from '@/components/expense/DescriptionField';
 import { ExpenseHeader } from '@/components/expense/ExpenseHeader';
-import { ChoiceRow, FieldRow, SheetOverlay } from '@/components/expense/SheetOverlay';
+import { ChoiceRow, SheetOverlay } from '@/components/expense/SheetOverlay';
+import { DetailRow, DetailRows } from '@/components/DetailRows';
 import { useCreateCapture, useGroups, useHomeSummary, useUpdateCapture } from '@/data/hooks';
 import { groupLabel, GroupType, type GroupRow, type MemberRow } from '@/data/types';
 import { useAuth } from '@/lib/auth';
@@ -568,35 +569,49 @@ export default function CaptureScreen() {
         {/* Destination and date, folded into one card of divided rows rather than
             two stacked cards — the meta a capture carries, grouped so it reads as
             one block. "Decide later" is the default group: the split, and who is
-            in it, is chosen when the capture is assigned. */}
-        <Card style={{ paddingVertical: theme.spacing.xs, gap: 0 }}>
-          <FieldRow
-            icon={targetGroup ? 'people' : 'people-outline'}
-            iconColor={targetGroup ? theme.color.brand : theme.color.textMuted}
-            label={t.captures.group}
-            value={targetGroupName}
-            valueMuted={!targetGroup}
-            onPress={() => setPickingGroup(true)}
-            accessibilityLabel={`${t.captures.group}: ${targetGroupName}`}
-          />
-          <Divider />
-          <FieldRow
-            icon="calendar-outline"
-            label={t.captures.date}
-            value={showDate(date, locale)}
-            onPress={() => setEditingDate(true)}
-            accessibilityLabel={`${t.captures.date}: ${showDate(date, locale)}`}
-          />
-          {editingDate ? (
-            <DateTimePicker
-              value={dateFrom(date)}
-              mode="date"
-              onChange={applyDate}
-              // A capture is caught now or in the recent past — a spend cannot
-              // have happened tomorrow.
-              maximumDate={new Date()}
+            in it, is chosen when the capture is assigned.
+
+            The same `DetailRows` the expense form and the expense screen wear.
+            These two used to stack the field's name over its answer, which made
+            a two-row card three text sizes tall and, more to the point, made a
+            capture's date look nothing like the same date on the form it is
+            assigned into. One line each, name left and answer right.
+
+            The picker is wrapped with its row rather than left as a sibling:
+            `DetailRows` puts a hairline in every gap between its children, so an
+            unfolded date wheel counted as a row of its own would be ruled off
+            from the row that opened it. */}
+        <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
+          <DetailRows>
+            <DetailRow
+              icon={targetGroup ? 'people' : 'people-outline'}
+              iconColor={targetGroup ? theme.color.brand : theme.color.textMuted}
+              label={t.captures.group}
+              value={targetGroupName}
+              placeholder={!targetGroup}
+              onPress={() => setPickingGroup(true)}
+              accessibilityLabel={`${t.captures.group}: ${targetGroupName}`}
             />
-          ) : null}
+            <View>
+              <DetailRow
+                icon="calendar-outline"
+                label={t.captures.date}
+                value={showDate(date, locale)}
+                onPress={() => setEditingDate(true)}
+                accessibilityLabel={`${t.captures.date}: ${showDate(date, locale)}`}
+              />
+              {editingDate ? (
+                <DateTimePicker
+                  value={dateFrom(date)}
+                  mode="date"
+                  onChange={applyDate}
+                  // A capture is caught now or in the recent past — a spend cannot
+                  // have happened tomorrow.
+                  maximumDate={new Date()}
+                />
+              ) : null}
+            </View>
+          </DetailRows>
         </Card>
 
         {/* The bill, for the times pointing a camera is easier than typing. The
