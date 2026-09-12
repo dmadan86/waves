@@ -8,7 +8,7 @@
 import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
+import { Platform, Pressable, ScrollView, View } from 'react-native';
 
 import {
   encodeRecurring,
@@ -57,6 +57,7 @@ import {
 import { useDefaultCurrency } from '@/lib/currency';
 import { fill, useStrings } from '@/i18n';
 import { PersonalGuard } from '@/components/PersonalGuard';
+import { PersonalNoteField } from '@/components/PersonalNoteField';
 import { useBottomClearance } from '@/lib/clearance';
 import { router } from '@/lib/navigation';
 import { useDialog } from '@/lib/dialog';
@@ -433,19 +434,11 @@ function RecurringEditor({
           <AmountField currency={rule?.currency ?? currency} value={amount} onChange={setAmount} />
         </View>
 
-        <TextInput
+        <PersonalNoteField
           value={note}
-          onChangeText={setNote}
+          onChange={setNote}
           placeholder={t.personal.notePlaceholder}
-          placeholderTextColor={theme.color.textFaint}
-          style={{
-            fontSize: 16,
-            color: theme.color.text,
-            paddingVertical: theme.spacing.md,
-            paddingHorizontal: theme.spacing.lg,
-            backgroundColor: theme.color.surfaceMuted,
-            borderRadius: theme.radius.md,
-          }}
+          accessibilityLabel={t.personal.note}
         />
 
         {txnKind === 'expense' ? (
