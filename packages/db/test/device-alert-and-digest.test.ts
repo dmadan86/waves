@@ -252,11 +252,11 @@ describe('the weekly digest', () => {
     expect(digest!.payload).toMatchObject({ count: '1', currency: 'INR' });
   });
 
-  it('counts payer-only financers and share-only riders/travellers, not bystander users', async () => {
-    const group = await seedGroup(client, { memberCount: 4 });
-    const [financerProfile, riderProfile, travellerProfile, bystanderProfile] =
-      group.profileIds as [string, string, string, string];
-    const [financer, rider, traveller] = group.memberIds as [string, string, string, string];
+  it('counts the authoring user, payer-only financers, and share-only riders/travellers, but not bystanders', async () => {
+    const group = await seedGroup(client, { memberCount: 5 });
+    const [userProfile, financerProfile, riderProfile, travellerProfile, bystanderProfile] =
+      group.profileIds as [string, string, string, string, string];
+    const [user, financer, rider, traveller] = group.memberIds as [string, string, string, string];
     for (const profileId of group.profileIds) {
       await setEmail(profileId, `${profileId}@example.test`);
       await optIn(profileId);
@@ -264,6 +264,7 @@ describe('the weekly digest', () => {
 
     await addSplitExpense(client, {
       groupId: group.groupId,
+      authorMemberId: user,
       payers: { [financer]: 12000n },
       participants: [rider, traveller],
       amount: 12000n,
@@ -273,13 +274,16 @@ describe('the weekly digest', () => {
 
     await runDigest();
 
+    expect(await digestsFor(userProfile)).toHaveLength(1);
     expect(await digestsFor(financerProfile)).toHaveLength(1);
     expect(await digestsFor(riderProfile)).toHaveLength(1);
     expect(await digestsFor(travellerProfile)).toHaveLength(1);
     expect(await digestsFor(bystanderProfile)).toHaveLength(0);
+    const [userDigest] = await digestsFor(userProfile);
     const [financerDigest] = await digestsFor(financerProfile);
     const [riderDigest] = await digestsFor(riderProfile);
     const [travellerDigest] = await digestsFor(travellerProfile);
+    expect(userDigest!.payload).toMatchObject({ count: '1', amount: '0' });
     expect(financerDigest!.payload).toMatchObject({ count: '1', amount: '12000' });
     expect(riderDigest!.payload).toMatchObject({ count: '1', amount: '-7000' });
     expect(travellerDigest!.payload).toMatchObject({ count: '1', amount: '-5000' });
