@@ -18,6 +18,7 @@ import { reportHandled } from '@/lib/observability';
 import { mapYielding } from './hydrateChunk';
 import { DATABASE_NAME, migrateLegacyDatabaseFile } from './legacyDatabase';
 import { decryptWith, destroyKey, encryptWith, isSealed, loadKey } from './rowCipher';
+import type { RetainedWork } from './retention';
 import { Serial } from './serial';
 import type { LocalStore, StoredRow } from './store';
 
@@ -111,6 +112,22 @@ CREATE TABLE IF NOT EXISTS drafts (
   key      TEXT PRIMARY KEY,
   json     TEXT NOT NULL,
   saved_at TEXT NOT NULL
+);
+
+-- Whose unsent work this file is holding after a session ended without anybody
+-- asking (see retention.ts). At most one row, ever: this is a property of the
+-- database, not a list.
+--
+-- Deliberately not sealed, unlike every json column above. It is an account id
+-- and a timestamp — no ledger content — and it has to stay readable in exactly
+-- the case where the key is the question being asked. It lives in this file
+-- rather than the keystore so the stamp and the rows it describes share one
+-- fate: a marker that outlived its data, or data that outlived its marker,
+-- would be the one state with no safe answer.
+CREATE TABLE IF NOT EXISTS retained_work (
+  id          INTEGER PRIMARY KEY CHECK (id = 1),
+  owner_id    TEXT NOT NULL,
+  retained_at TEXT NOT NULL
 );
 `;
 
@@ -515,6 +532,10 @@ class SqliteStore implements LocalStore {
         await database.runAsync(`DELETE FROM pending_mutations WHERE 1 = 1`);
         await database.runAsync(`DELETE FROM sync_cursors WHERE 1 = 1`);
         await database.runAsync(`DELETE FROM drafts WHERE 1 = 1`);
+        // Any claim on this file goes with the thing it was claiming. A stamp
+        // left behind would point at a queue that no longer exists, and the
+        // next account's sign-in would spend a check on nothing.
+        await database.runAsync(`DELETE FROM retained_work WHERE 1 = 1`);
       });
       this.quarantinedQueueIds = [];
       // Crypto-erase: with the rows gone, drop the key too. Any ciphertext still
@@ -522,6 +543,54 @@ class SqliteStore implements LocalStore {
       // next account on this device mints a fresh key rather than inheriting this
       // one. `secure_delete` handled the bytes; this handles the key.
       await destroyKey();
+    });
+  }
+
+  /**
+   * The other ending: a session that stopped without anybody asking.
+   *
+   * Note what is *not* here. No `DELETE FROM pending_mutations`, no
+   * `DELETE FROM drafts`, and no `destroyKey` — those three lines are the
+   * difference between this and `reset`, and each of them would destroy
+   * something no other copy of exists. What does go is the mirror and the
+   * cursors: the server holds that ledger and will hand it back on the next
+   * sign-in, so keeping it on a phone nobody is signed into is cost without
+   * benefit.
+   *
+   * One transaction, for the same reason `reset` is one: the stamp is what
+   * makes the surviving queue attributable, and a queue on disk with no stamp
+   * beside it is data nobody may adopt. Written together or not at all.
+   */
+  retainUnsent(ownerId: string, retainedAt: string): Promise<void> {
+    return this.serial.run(async () => {
+      const database = await this.db();
+      await database.withTransactionAsync(async () => {
+        await database.runAsync(`DELETE FROM mirror_rows WHERE 1 = 1`);
+        await database.runAsync(`DELETE FROM sync_cursors WHERE 1 = 1`);
+        await database.runAsync(
+          `INSERT INTO retained_work (id, owner_id, retained_at) VALUES (1, ?, ?)
+           ON CONFLICT (id) DO UPDATE SET
+             owner_id = excluded.owner_id, retained_at = excluded.retained_at`,
+          [ownerId, retainedAt],
+        );
+      });
+    });
+  }
+
+  readRetained(): Promise<RetainedWork | null> {
+    return this.serial.run(async () => {
+      const database = await this.db();
+      const row = await database.getFirstAsync<{ owner_id: string; retained_at: string }>(
+        `SELECT owner_id, retained_at FROM retained_work WHERE id = 1`,
+      );
+      return row ? { ownerId: row.owner_id, retainedAt: row.retained_at } : null;
+    });
+  }
+
+  clearRetained(): Promise<void> {
+    return this.serial.run(async () => {
+      const database = await this.db();
+      await database.runAsync(`DELETE FROM retained_work WHERE 1 = 1`);
     });
   }
 }

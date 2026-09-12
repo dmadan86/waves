@@ -26,6 +26,7 @@ import type { QueuedMutation } from '@waves/core';
 
 import { legacyKeysMigrated } from '@/lib/legacyKeys';
 
+import type { RetainedWork } from './retention';
 import { Serial } from './serial';
 import type { LocalStore, StoredRow } from './store';
 
@@ -34,6 +35,8 @@ const WEB_KEYS = {
   cursors: 'waves:cursors',
   queue: 'waves:queue',
   drafts: 'waves:drafts',
+  /** Whose unsent work survived a session ending nobody asked for. */
+  retained: 'waves:retained',
 } as const;
 
 class AsyncStorageStore implements LocalStore {
@@ -145,6 +148,39 @@ class AsyncStorageStore implements LocalStore {
 
   reset(): Promise<void> {
     return this.serial.run(() => AsyncStorage.removeMany(Object.values(WEB_KEYS)));
+  }
+
+  /**
+   * The same line native draws (see `driver.ts`): drop what the server will
+   * hand back, keep what only this browser has, and stamp whose it is.
+   *
+   * There is no key to keep here — the web store is plaintext on purpose, for
+   * the reason at the top of this file — so the trade this makes on native does
+   * not arise. What does carry over is the owner stamp, because the rule it
+   * enforces is not about encryption: a queue must never drain into an account
+   * that did not write it, and a shared browser is exactly where that would
+   * otherwise happen.
+   */
+  retainUnsent(ownerId: string, retainedAt: string): Promise<void> {
+    return this.serial.run(async () => {
+      await AsyncStorage.removeMany([WEB_KEYS.rows, WEB_KEYS.cursors]);
+      await AsyncStorage.setItem(WEB_KEYS.retained, JSON.stringify({ ownerId, retainedAt }));
+    });
+  }
+
+  readRetained(): Promise<RetainedWork | null> {
+    return this.serial.run(async () => {
+      const held = await this.read<RetainedWork | null>(WEB_KEYS.retained, null);
+      // A blob that parsed but is not a stamp claims nothing (see
+      // `retentionVerdict`: an unattributable hold is discarded, not adopted).
+      return held && typeof held.ownerId === 'string' && typeof held.retainedAt === 'string'
+        ? held
+        : null;
+    });
+  }
+
+  clearRetained(): Promise<void> {
+    return this.serial.run(() => AsyncStorage.removeItem(WEB_KEYS.retained));
   }
 }
 

@@ -38,6 +38,8 @@ class FakeDatabase {
   >();
   readonly cursors = new Map<string, number>();
   readonly drafts = new Map<string, { key: string; json: string; saved_at: string }>();
+  /** The single-row hold stamp. Null when nothing is being kept. */
+  retained: { owner_id: string; retained_at: string } | null = null;
   // Defaults to the current schema version so the one-time encryption migration
   // (driver.migrate) is a no-op for these tests; the migration is exercised on
   // its own below by seeding a fresh DB at version 0.
@@ -160,6 +162,15 @@ class FakeDatabase {
         }
         return;
       }
+      if (statement === 'INSERT INTO retained_work') {
+        const [ownerId, retainedAt] = params as [string, string];
+        this.retained = { owner_id: ownerId, retained_at: retainedAt };
+        return;
+      }
+      if (statement === 'DELETE FROM retained_work') {
+        this.retained = null;
+        return;
+      }
       // Used only by the one-time encryption migration.
       if (statement === 'UPDATE mirror_rows SET') {
         const [json, tableName, id] = params as [string, string, string];
@@ -204,6 +215,7 @@ class FakeDatabase {
     return this.enter(async () => {
       await tick();
       if (source.includes('user_version')) return { user_version: this.userVersion } as T;
+      if (source.includes('FROM retained_work')) return (this.retained as T | null) ?? null;
       const [key] = params as [string];
       return (this.drafts.get(key) as T | undefined) ?? null;
     });
@@ -450,6 +462,73 @@ describe('native local store lifecycle', () => {
     expect(await store.readCursors()).toEqual({});
     expect(await store.readQueue()).toEqual([]);
     expect(await store.listDrafts()).toEqual([]);
+  });
+
+  it('keeps the queue, the drafts and the key when a session is lost, not left', async () => {
+    // The data-loss bug in one assertion. `retainUnsent` is what a revoked
+    // token now reaches instead of `reset`: the ledger goes, because the server
+    // has it, and the two things nothing else in the world holds stay exactly
+    // where they are.
+    const DEK = 'waves.mirror.dek.v1';
+    const store = createLocalStore();
+    await store.putRows([
+      { table: 'expenses', id: 'e1', groupId: 'g1', seq: 1, row: { id: 'e1' } },
+    ] as never);
+    await store.writeCursors({ g1: 1 });
+    await store.writeQueue([mutation('a'), mutation('b')]);
+    await store.writeDraft('expense:new', { amount: 100 });
+
+    const deletesBefore = secure.deletes.filter((key) => key === DEK).length;
+    await store.retainUnsent('ana', '2026-09-12T10:00:00.000Z');
+
+    expect((await store.readQueue()).map((entry) => entry.clientMutationId)).toEqual(['a', 'b']);
+    expect(await store.readDraft('expense:new')).toEqual({ amount: 100 });
+    // No crypto-erase: a queue kept under a destroyed key is a queue nobody can
+    // read, which would be the same loss by a slower route.
+    expect(secure.deletes.filter((key) => key === DEK).length).toBe(deletesBefore);
+    // And the ledger is gone, exactly as on a sign-out.
+    expect(await store.readRows()).toEqual([]);
+    expect(await store.readCursors()).toEqual({});
+  });
+
+  it('stamps the hold with its owner in the same transaction that drops the mirror', async () => {
+    // Both or neither. Unsent work on disk with no stamp beside it is work
+    // nobody may adopt, so a kill between the two must not be able to produce
+    // one — the store's only defence is the transaction.
+    const store = createLocalStore();
+    await store.putRows([
+      { table: 'expenses', id: 'e1', groupId: 'g1', seq: 1, row: { id: 'e1' } },
+    ] as never);
+    await store.writeQueue([mutation('a')]);
+
+    await store.retainUnsent('ana', '2026-09-12T10:00:00.000Z');
+
+    const begins = database.statements.filter((statement) => statement === 'BEGIN').length;
+    expect(begins).toBeGreaterThan(0);
+    expect(await store.readRetained()).toEqual({
+      ownerId: 'ana',
+      retainedAt: '2026-09-12T10:00:00.000Z',
+    });
+  });
+
+  it('drops the stamp when the owner comes back, and when anyone wipes', async () => {
+    const store = createLocalStore();
+    await store.retainUnsent('ana', '2026-09-12T10:00:00.000Z');
+
+    await store.clearRetained();
+    expect(await store.readRetained()).toBeNull();
+
+    // A wipe takes the stamp with it too: one left behind would point at a
+    // queue that no longer exists.
+    await store.retainUnsent('ana', '2026-09-12T10:00:00.000Z');
+    await store.reset();
+    expect(await store.readRetained()).toBeNull();
+  });
+
+  it('reports nothing held on a phone that has never lost a session', async () => {
+    const store = createLocalStore();
+    await store.ready();
+    expect(await store.readRetained()).toBeNull();
   });
 
   it('hydrates a large mirror without dropping rows on the chunked parse path', async () => {
