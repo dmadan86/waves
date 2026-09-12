@@ -211,7 +211,19 @@ export function sendParams(
 
   const from = env('TWILIO_WHATSAPP_FROM');
   const contentSid = env('TWILIO_OTP_CONTENT_SID');
-  if (!contentSid || (!service && !from)) return null;
+  if (!service && !from) return null;
+  // Free-form WhatsApp, which Meta allows only inside the 24-hour window opened
+  // by the *recipient* messaging the business first. A sign-in has no reason to
+  // be in that window — except in Twilio's sandbox, where joining is exactly
+  // that message, which is what makes the sandbox testable with no approved
+  // template, no Meta business verification and no sender of one's own.
+  //
+  // Behind its own flag rather than inferred from a missing Content SID: a
+  // production deployment that lost that secret would otherwise quietly start
+  // sending messages Meta refuses, and the difference between the two would be
+  // a typo. Saying `true` here is a decision about which Twilio account this is.
+  if (!contentSid && env('TWILIO_WHATSAPP_FREEFORM')?.trim().toLowerCase() !== 'true') return null;
+
   form.set('To', `whatsapp:${phone}`);
   if (service) form.set('MessagingServiceSid', service);
   else
@@ -219,9 +231,17 @@ export function sendParams(
       'From',
       (from as string).startsWith('whatsapp:') ? (from as string) : `whatsapp:${from}`,
     );
-  form.set('ContentSid', contentSid);
-  // The template's one placeholder is the code.
-  form.set('ContentVariables', JSON.stringify({ '1': otp }));
+
+  if (contentSid) {
+    form.set('ContentSid', contentSid);
+    // The template's one placeholder is the code.
+    form.set('ContentVariables', JSON.stringify({ '1': otp }));
+    return form;
+  }
+
+  const body = smsBody(env('TWILIO_SMS_BODY'), otp);
+  if (!body) return null;
+  form.set('Body', body);
   return form;
 }
 

@@ -16,7 +16,13 @@
 
 import { describe, expect, it, vi } from 'vitest';
 
-import { handleOtpSend, hookSecret, OTP_DAILY_LIMIT, smsBody, type OtpSendDeps } from './handler.ts';
+import {
+  handleOtpSend,
+  hookSecret,
+  OTP_DAILY_LIMIT,
+  smsBody,
+  type OtpSendDeps,
+} from './handler.ts';
 
 /**
  * Built rather than written out. As a literal, `whsec_<base64>` is a webhook
@@ -473,5 +479,58 @@ describe('otp-send over SMS', () => {
 
     const [, init] = d.fetchImpl.mock.calls[0] as [string, RequestInit];
     expect(new URLSearchParams(init.body as string).get('Body')).toContain('123456');
+  });
+});
+
+/**
+ * The sandbox rail.
+ *
+ * Twilio's WhatsApp sandbox is the one place a code can be delivered with no
+ * approved template, no Meta business verification and no sender of one's own —
+ * because joining it *is* the recipient-initiated message that opens Meta's
+ * 24-hour free-form window. It is how this gets tested before any of the
+ * paperwork exists, and it must not be reachable by accident in production.
+ */
+describe('otp-send over the WhatsApp sandbox', () => {
+  const SANDBOX = {
+    TWILIO_WHATSAPP_FROM: 'whatsapp:+14155238886',
+    TWILIO_OTP_CONTENT_SID: '',
+    TWILIO_WHATSAPP_FREEFORM: 'true',
+  };
+
+  it('sends the code as plain text to a whatsapp address', async () => {
+    const d = deps({ env: SANDBOX });
+    const response = await handleOtpSend(request(), d);
+
+    expect(response.status).toBe(200);
+    const [, init] = d.fetchImpl.mock.calls[0] as [string, RequestInit];
+    const sent = new URLSearchParams(init.body as string);
+    expect(sent.get('To')).toBe('whatsapp:+919876543210');
+    expect(sent.get('From')).toBe('whatsapp:+14155238886');
+    expect(sent.get('Body')).toContain('123456');
+    expect(sent.get('ContentSid')).toBeNull();
+  });
+
+  it('refuses free-form unless it is asked for by name', async () => {
+    // A production deployment that lost its Content SID must fail loudly rather
+    // than quietly start sending messages Meta refuses outside the window.
+    const d = deps({ env: { ...SANDBOX, TWILIO_WHATSAPP_FREEFORM: '' } });
+    const response = await handleOtpSend(request(), d);
+
+    expect(response.status).toBe(500);
+    expect(d.fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it('still prefers the template when there is one', async () => {
+    // Both set is not a contradiction to resolve by guessing: an approved
+    // template is always the better message, and the flag only ever widens what
+    // is allowed when there is no template to send.
+    const d = deps({ env: { ...SANDBOX, TWILIO_OTP_CONTENT_SID: 'HX999' } });
+    await handleOtpSend(request(), d);
+
+    const [, init] = d.fetchImpl.mock.calls[0] as [string, RequestInit];
+    const sent = new URLSearchParams(init.body as string);
+    expect(sent.get('ContentSid')).toBe('HX999');
+    expect(sent.get('Body')).toBeNull();
   });
 });
