@@ -1914,6 +1914,11 @@ export interface UiStrings {
     photoUpdated: string;
     nameOptional: string;
     groupName: string;
+    /** The group's own sentence about itself, under its name on both the create
+     *  and the settings screen. Optional, capped at GROUP_DESCRIPTION_MAX. */
+    descriptionOptional: string;
+    groupDescription: string;
+    descriptionPlaceholder: string;
     /** The cover sheet, reached by tapping the group's mark: pick one of the
      *  drawn marks, put a photo from the phone in its place (a Plus feature),
      *  or drop a photo already set. */
@@ -2916,8 +2921,6 @@ export interface UiStrings {
   extras: {
     blankNameHint: string;
     tripBudgetOptional: string;
-    moreOptions: string;
-    moreOptionsHint: string;
     tripWelcomeTitle: string;
     tripWelcomeBody: string;
     tripWelcomeAddDates: string;
@@ -4555,6 +4558,9 @@ const en: UiStrings = {
     photoUpdated: 'Photo updated',
     nameOptional: 'Name (optional)',
     groupName: 'Group name',
+    descriptionOptional: 'Description (optional)',
+    groupDescription: 'Group description',
+    descriptionPlaceholder: 'What is this group for?',
     changeCover: 'Group cover',
     chooseIcon: 'Choose an icon',
     chooseIconHint: 'One of the drawn marks',
@@ -5492,8 +5498,6 @@ const en: UiStrings = {
   extras: {
     blankNameHint: 'Leave it blank and the group is named after whoever is in it.',
     tripBudgetOptional: 'Trip budget (optional)',
-    moreOptions: 'More options',
-    moreOptionsHint: 'Type, dates, budget',
     tripWelcomeTitle: 'Want to plan this trip?',
     tripWelcomeBody: 'Add dates to turn on daily reminders, or set a budget to track spending.',
     tripWelcomeAddDates: 'Add dates',
@@ -7194,6 +7198,9 @@ const ta: UiStrings = {
     photoUpdated: 'புகைப்படம் புதுப்பிக்கப்பட்டது',
     nameOptional: 'பெயர் (விருப்பம்)',
     groupName: 'குழுவின் பெயர்',
+    descriptionOptional: 'விவரம் (விருப்பம்)',
+    groupDescription: 'குழுவின் விவரம்',
+    descriptionPlaceholder: 'இந்தக் குழு எதற்காக?',
     changeCover: 'குழுவின் அட்டை',
     chooseIcon: 'ஐகானைத் தேர்ந்தெடு',
     chooseIconHint: 'வரையப்பட்ட அடையாளங்களில் ஒன்று',
@@ -8198,8 +8205,6 @@ const ta: UiStrings = {
   extras: {
     blankNameHint: 'காலியாக விட்டால், குழுவில் உள்ளவர்களின் பெயரில் குழு அமையும்.',
     tripBudgetOptional: 'பயண பட்ஜெட் (விருப்பம்)',
-    moreOptions: 'மேலும் விருப்பங்கள்',
-    moreOptionsHint: 'வகை, தேதிகள், பட்ஜெட்',
     tripWelcomeTitle: 'இந்தப் பயணத்தைத் திட்டமிடலாமா?',
     tripWelcomeBody:
       'தினசரி நினைவூட்டல்களை இயக்க தேதிகளைச் சேர்க்கவும், அல்லது செலவைக் கண்காணிக்க பட்ஜெட் அமைக்கவும்.',
@@ -9845,6 +9850,9 @@ const hi: UiStrings = {
     photoUpdated: 'फ़ोटो बदल गई',
     nameOptional: 'नाम (वैकल्पिक)',
     groupName: 'समूह का नाम',
+    descriptionOptional: 'विवरण (वैकल्पिक)',
+    groupDescription: 'समूह का विवरण',
+    descriptionPlaceholder: 'यह समूह किसलिए है?',
     changeCover: 'समूह का कवर',
     chooseIcon: 'आइकन चुनें',
     chooseIconHint: 'बने-बनाए चिह्नों में से एक',
@@ -10799,8 +10807,6 @@ const hi: UiStrings = {
   extras: {
     blankNameHint: 'खाली छोड़ दें तो समूह का नाम उसमें शामिल लोगों पर रख दिया जाएगा।',
     tripBudgetOptional: 'ट्रिप बजट (वैकल्पिक)',
-    moreOptions: 'और विकल्प',
-    moreOptionsHint: 'प्रकार, तारीखें, बजट',
     tripWelcomeTitle: 'इस ट्रिप की योजना बनाएँ?',
     tripWelcomeBody:
       'रोज़ाना रिमाइंडर चालू करने के लिए तारीखें जोड़ें, या खर्च देखने के लिए बजट सेट करें।',
@@ -12572,6 +12578,9 @@ const ar: UiStrings = {
     photoUpdated: 'تم تحديث الصورة',
     nameOptional: 'الاسم (اختياري)',
     groupName: 'اسم المجموعة',
+    descriptionOptional: 'الوصف (اختياري)',
+    groupDescription: 'وصف المجموعة',
+    descriptionPlaceholder: 'ما الغرض من هذه المجموعة؟',
     changeCover: 'غلاف المجموعة',
     chooseIcon: 'اختر أيقونة',
     chooseIconHint: 'أحد الرموز المرسومة',
@@ -13727,8 +13736,6 @@ const ar: UiStrings = {
   extras: {
     blankNameHint: 'اتركه فارغًا فتُسمّى المجموعة بأسماء من فيها.',
     tripBudgetOptional: 'ميزانية الرحلة (اختياري)',
-    moreOptions: 'خيارات إضافية',
-    moreOptionsHint: 'النوع، التواريخ، الميزانية',
     tripWelcomeTitle: 'هل تريد التخطيط لهذه الرحلة؟',
     tripWelcomeBody: 'أضِف التواريخ لتشغيل التذكيرات اليومية، أو حدّد ميزانية لتتبّع الإنفاق.',
     tripWelcomeAddDates: 'أضف التواريخ',

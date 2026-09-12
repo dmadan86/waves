@@ -542,6 +542,11 @@ export function materialiseMembers(
 export interface MirrorGroup extends MirrorRow {
   readonly id: string;
   readonly name: string | null;
+  /** What the group is for, in the maker's own words — or NULL. Optional here
+   *  because the row the `group.create` overlay builds has never carried one:
+   *  a description is written by the `group.update` that rides behind the
+   *  create, which the overlay below spreads onto the row the moment it queues. */
+  readonly description?: string | null;
   readonly default_currency: string;
   readonly created_at: string;
   readonly archived_at: string | null;

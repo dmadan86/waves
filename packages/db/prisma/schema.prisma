@@ -214,6 +214,14 @@ model Group {
   /// Optional: starting a group should cost one tap, and the people in it
   /// identify it better than a name does. NULL means "unnamed", not "".
   name            String?
+  /// Optional: what the group is *for*, in the maker's own words — "Goa, Jan
+  /// 2026, flights already settled". A name says which group this is; a
+  /// description says why it exists, and the two are different questions.
+  /// Capped at 280 characters by `groups_description_length` — long enough for
+  /// a sentence or two, short enough to stay a caption under the name. NULL
+  /// means "none given"; '' never reaches the column (both the `/sync`
+  /// boundary and the client normalise an emptied field back to NULL).
+  description     String?
   /// Object path in the private `group-photos` bucket, read via a signed URL.
   photoPath       String?   @map("photo_path")
   /// The raw token of the group's durable join link (WhatsApp-style), re-showable
