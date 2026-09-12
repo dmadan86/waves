@@ -61,14 +61,27 @@ function deps(
     gateErrored?: boolean;
     callerId?: string | null;
     attachError?: { message: string };
+    /** The number already on the caller's account, as GoTrue stores it: no `+`. */
+    callerPhone?: string | null;
+    /** False makes the proof a replay — the same Firebase sign-in, seen twice. */
+    firstUse?: boolean;
+    assertionErrored?: boolean;
+    relayOpenErrored?: boolean;
     jwksOk?: boolean;
   } = {},
 ): PhoneVerifyDeps & {
   rpc: ReturnType<typeof vi.fn>;
   fetchImpl: ReturnType<typeof vi.fn>;
   updateUserById: ReturnType<typeof vi.fn>;
+  getUserById: ReturnType<typeof vi.fn>;
 } {
   const rpc = vi.fn((name: string) => {
+    if (name === 'waves_firebase_assertion_use') {
+      if (overrides.assertionErrored) {
+        return Promise.resolve({ data: null, error: { message: 'database unreachable' } });
+      }
+      return Promise.resolve({ data: overrides.firstUse ?? true, error: null });
+    }
     if (name === 'waves_phone_gate') {
       if (overrides.gateErrored) {
         return Promise.resolve({ data: null, error: { message: 'database unreachable' } });
@@ -79,7 +92,9 @@ function deps(
       });
     }
     if (name === 'waves_otp_relay_open') {
-      return Promise.resolve({ data: 'exchange-1', error: null });
+      return overrides.relayOpenErrored
+        ? Promise.resolve({ data: null, error: { message: 'no relay' } })
+        : Promise.resolve({ data: 'exchange-1', error: null });
     }
     if (name === 'waves_otp_relay_claim') {
       return Promise.resolve({
@@ -118,12 +133,24 @@ function deps(
     Promise.resolve({ data: null, error: overrides.attachError ?? null }),
   );
 
+  /**
+   * What the account already carries. GoTrue answers with the number stripped of
+   * its `+`, which is the whole reason the handler compares digits.
+   */
+  const getUserById = vi.fn(() =>
+    Promise.resolve({
+      data: { user: { id: overrides.callerId ?? 'user-1', phone: overrides.callerPhone ?? null } },
+      error: null,
+    }),
+  );
+
   const env = { ...ENV, ...(overrides.env ?? {}) };
   return {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    service: () => ({ rpc, auth: { admin: { updateUserById } } }) as any,
+    service: () => ({ rpc, auth: { admin: { updateUserById, getUserById } } }) as any,
     callerId: () => Promise.resolve(overrides.callerId ?? null),
     updateUserById,
+    getUserById,
     fetchImpl: fetchImpl as unknown as typeof fetch,
     env: (key: string) => env[key],
     rpc,
@@ -368,5 +395,220 @@ describe('attaching a number to an account', () => {
 
     expect(response.status).toBe(429);
     expect(d.updateUserById).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * The mode is a name, and only two names exist.
+ *
+ * The first version read the mode as "attach, or else sign in", which made every
+ * misspelling of the word a silent request for the *other* thing. That is the
+ * same data-losing surprise the mode exists to prevent, arriving through a
+ * capital letter.
+ */
+describe('the mode', () => {
+  it('refuses a word it does not know rather than reading it as a sign-in', async () => {
+    const d = deps({ callerId: 'user-1' });
+    const response = await handlePhoneVerify(request({ idToken: 'a.b.c', mode: 'Attach' }), d);
+
+    expect(response.status).toBe(400);
+    // Neither thing happened: no number moved, and nobody was signed in as
+    // somebody else while believing they were adding a number to their own.
+    expect(d.updateUserById).not.toHaveBeenCalled();
+    expect(rpcNames(d)).not.toContain('waves_otp_relay_open');
+  });
+
+  it('takes the sign-in spelled out as readily as the one left unsaid', async () => {
+    const d = deps();
+    const response = await handlePhoneVerify(request({ idToken: 'a.b.c', mode: 'signin' }), d);
+    expect(response.status).toBe(200);
+  });
+});
+
+/**
+ * One proof, one use.
+ *
+ * A Firebase ID token stays good for ten minutes after the code was entered, and
+ * it is refreshable, so "the same token twice" is not the only replay — a second
+ * token minted from the same Firebase session is the same proof wearing a
+ * different signature. Both are the same sign-in, and both are refused after the
+ * first, because one proof buying both a session *and* an attachment to a second
+ * account is two irreversible things from one SMS.
+ */
+describe('a proof already spent', () => {
+  it('is refused, and the person is told to ask for a new code', async () => {
+    const d = deps({ firstUse: false });
+    const response = await handlePhoneVerify(request(), d);
+
+    expect(response.status).toBe(401);
+    expect((await response.json()).code).toBe('ALREADY_USED');
+  });
+
+  it('is refused before the gate, so a replay cannot spend the allowance', async () => {
+    // The other order is the attack: somebody holding one captured token replays
+    // it three times and the number's real owner cannot sign in until tomorrow.
+    const d = deps({ firstUse: false });
+    await handlePhoneVerify(request(), d);
+
+    expect(rpcNames(d)).not.toContain('waves_phone_gate');
+    expect(rpcNames(d)).not.toContain('waves_otp_relay_open');
+  });
+
+  it('is claimed against the sign-in, not the token', async () => {
+    // `auth_time` is what makes a refreshed token the same proof. Recording
+    // anything derived from the token itself would pin nothing.
+    const d = deps();
+    await handlePhoneVerify(request(), d);
+
+    const claim = d.rpc.mock.calls.find((call) => call[0] === 'waves_firebase_assertion_use');
+    expect(claim?.[1]).toEqual({ p_uid: 'firebase-1', p_auth_time: 1 });
+  });
+
+  it('goes back when the gate could not be reached, so the code can be retyped', async () => {
+    // Nothing was counted and nothing was sent; sending somebody back to
+    // Firebase for a second SMS because our database blinked is a charge for our
+    // own outage.
+    const d = deps({ gateErrored: true });
+    const response = await handlePhoneVerify(request(), d);
+
+    expect(response.status).toBe(503);
+    expect(rpcNames(d)).toContain('waves_firebase_assertion_release');
+    // No refund: the call that would have counted the ask is the one that just
+    // failed, so a refund here would take away an *earlier* attempt.
+    expect(rpcNames(d)).not.toContain('waves_phone_gate_refund');
+  });
+});
+
+/**
+ * Whose failure it was decides who pays for it.
+ *
+ * Firebase has already sent and billed for the SMS by the time this function
+ * runs, so the value of handing an attempt back is precisely that the same code
+ * can be typed again — no second message, no second charge. What must never be
+ * handed back is an attempt that ended in an answer.
+ */
+describe('an attempt nobody could have avoided', () => {
+  it('is given back when the relay would not open', async () => {
+    const d = deps({ relayOpenErrored: true });
+    const response = await handlePhoneVerify(request(), d);
+
+    expect(response.status).toBe(500);
+    expect(rpcNames(d)).toContain('waves_phone_gate_refund');
+    expect(rpcNames(d)).toContain('waves_firebase_assertion_release');
+  });
+
+  it('is given back when the hook never parked a code', async () => {
+    const d = deps({ parkedCode: null });
+    await handlePhoneVerify(request(), d);
+    expect(rpcNames(d)).toContain('waves_phone_gate_refund');
+  });
+
+  it('is given back when GoTrue would not complete the exchange', async () => {
+    const d = deps({ verifyStatus: 502 });
+    await handlePhoneVerify(request(), d);
+    expect(rpcNames(d)).toContain('waves_phone_gate_refund');
+  });
+
+  it('is kept when the answer was an answer', async () => {
+    // ADR-006 refusing a number with no account is a reply, not a fault. Giving
+    // the attempt back here would make walking the numbers free, and every walk
+    // is a Firebase SMS somebody was billed for.
+    const d = deps({ otpStatus: 422, otpBody: '{"error_code":"otp_disabled"}' });
+    const response = await handlePhoneVerify(request(), d);
+
+    expect(response.status).toBe(404);
+    expect(rpcNames(d)).not.toContain('waves_phone_gate_refund');
+    expect(rpcNames(d)).not.toContain('waves_firebase_assertion_release');
+  });
+
+  it('is kept when the sign-in completed', async () => {
+    const d = deps();
+    await handlePhoneVerify(request(), d);
+    expect(rpcNames(d)).not.toContain('waves_phone_gate_refund');
+  });
+});
+
+/**
+ * The guest half of ADR-006, which is the half that was missing.
+ *
+ * Attaching an email runs through GoTrue's own change-verification and clears
+ * `is_anonymous` on the way past. Attaching a phone runs through the admin API,
+ * which sets the number and nothing else — so the same person, through the other
+ * door, kept the guest ceilings (one group, ten days, read-only after) while
+ * holding a proved contact.
+ */
+describe('a guest who attaches a number', () => {
+  const attach = () => request({ idToken: 'a.b.c', mode: 'attach' });
+
+  it('stops being a guest', async () => {
+    const d = deps({ callerId: 'user-1' });
+    await handlePhoneVerify(attach(), d);
+
+    const promote = d.rpc.mock.calls.find((call) => call[0] === 'waves_promote_guest');
+    expect(promote?.[1]).toEqual({ p_user: 'user-1' });
+  });
+
+  it('is not promoted when the number went somewhere else', async () => {
+    const d = deps({
+      callerId: 'user-1',
+      attachError: { message: 'Phone number already registered' },
+    });
+    await handlePhoneVerify(attach(), d);
+
+    expect(rpcNames(d)).not.toContain('waves_promote_guest');
+  });
+});
+
+/** Attaching a number the account already has is a success, not a collision. */
+describe('attaching the same number twice', () => {
+  const attach = () => request({ idToken: 'a.b.c', mode: 'attach' });
+
+  it('is a quiet success, without asking GoTrue to set it again', async () => {
+    // Somebody whose connection dropped between the attach and the answer will
+    // press the button again. Telling them the number in their hand belongs to
+    // "another account" — theirs — is both wrong and unfixable from there.
+    const d = deps({ callerId: 'user-1', callerPhone: '919876543210' });
+    const response = await handlePhoneVerify(attach(), d);
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ attached: true });
+    expect(d.updateUserById).not.toHaveBeenCalled();
+  });
+
+  it('compares digits, because GoTrue stores the number without its plus', async () => {
+    // The naive comparison is `user.phone === '+919876543210'`, which never
+    // matches anything GoTrue returns, so the check above silently never fires.
+    const d = deps({ callerId: 'user-1', callerPhone: '+919876543210' });
+    expect((await handlePhoneVerify(attach(), d)).status).toBe(200);
+    expect(d.updateUserById).not.toHaveBeenCalled();
+  });
+
+  it('reads "already registered" as "by you" when it is', async () => {
+    // GoTrue's duplicate check does not reliably exclude the caller, so the
+    // message alone cannot tell "somebody else has it" from "you do" — and one
+    // of those is a 409 shown to the person who owns the number.
+    const d = deps({ callerId: 'user-1', attachError: { message: 'already registered' } });
+    d.getUserById
+      .mockResolvedValueOnce({ data: { user: { id: 'user-1', phone: null } }, error: null })
+      .mockResolvedValueOnce({
+        data: { user: { id: 'user-1', phone: '919876543210' } },
+        error: null,
+      });
+
+    expect((await handlePhoneVerify(attach(), d)).status).toBe(200);
+  });
+});
+
+/** Attaching must cost nothing until we know who is asking. */
+describe('an attach with nobody signed in', () => {
+  it('spends none of the number’s allowance on its way to a 401', async () => {
+    // The cheapest request there is: no session, a token for somebody else's
+    // number. Three of them used to take that number's whole day.
+    const d = deps({ callerId: null });
+    const response = await handlePhoneVerify(request({ idToken: 'a.b.c', mode: 'attach' }), d);
+
+    expect(response.status).toBe(401);
+    expect(rpcNames(d)).not.toContain('waves_phone_gate');
+    expect(rpcNames(d)).not.toContain('waves_firebase_assertion_use');
   });
 });

@@ -12,24 +12,24 @@
  * shaped the way it is. Requiring it at the top level would mean an app whose
  * JavaScript was updated over the air, on a binary built before this change,
  * dies at launch — not on the phone screen, at launch, with nothing local to
- * catch it. So it is required lazily, behind a check that cannot throw, and
+ * catch it. So it is required lazily (in `lib/firebaseModule`, which exists to
+ * hold that one require), behind a check that cannot throw, and
  * `phoneSignInAvailable()` is the honest answer to "can this build do this at
- * all" for anything that would otherwise offer a door to nowhere.
+ * all" for anything that would otherwise offer a door to nowhere. Every screen
+ * that offers the door asks it: the welcome tiles, the sign-in tiles, and the
+ * phone chip on the account screen.
+ *
+ * Which of the two things a proved number becomes is not decided here either.
+ * `planAuth` has decided that for every door since ADR-006, and it says the same
+ * thing for all of them: somebody already holding an account — a guest very much
+ * included — is *adding* a way in, never trading the account they are holding
+ * for the one that owns the number.
  */
 
+import { AuthMethod, planAuth, type Viewer } from '@waves/core';
+
 import { backend } from '@/lib/backend';
-
-/** What Firebase hands back between sending a code and checking it. */
-interface PhoneConfirmation {
-  confirm(code: string): Promise<{ user: { getIdToken(): Promise<string> } } | null>;
-}
-
-interface FirebaseAuth {
-  (): {
-    signInWithPhoneNumber(phone: string): Promise<PhoneConfirmation>;
-    signOut(): Promise<void>;
-  };
-}
+import { loadFirebaseAuth, type FirebaseAuth, type PhoneConfirmation } from '@/lib/firebaseModule';
 
 /**
  * `undefined` means nobody has looked yet; `null` means we looked and this build
@@ -40,13 +40,7 @@ let module_: FirebaseAuth | null | undefined;
 
 function firebaseAuth(): FirebaseAuth | null {
   if (module_ !== undefined) return module_;
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const loaded = require('@react-native-firebase/auth') as { default?: FirebaseAuth };
-    module_ = loaded.default ?? null;
-  } catch {
-    module_ = null;
-  }
+  module_ = loadFirebaseAuth();
   return module_;
 }
 
@@ -80,14 +74,6 @@ export async function sendPhoneCode(phone: string): Promise<void> {
 }
 
 /**
- * Check the code with Firebase, then trade its assertion for a Waves session.
- *
- * The Firebase session is signed out immediately afterwards, and deliberately:
- * it was only ever a way to prove the number, this app keeps no state in it, and
- * leaving one signed in means a token sitting on the device that `phone-verify`
- * would accept as proof for the next ten minutes.
- */
-/**
  * Check the code with Firebase and come away with its signed assertion.
  *
  * Shared by both things a proved number can be used for, because the proving is
@@ -119,13 +105,61 @@ async function proveNumber(phone: string, code: string): Promise<string> {
   }
 }
 
+/**
+ * What `phone-verify` actually said.
+ *
+ * `functions.invoke` collapses every non-2xx into one sentence about a non-2xx
+ * status code, so without this a number already on somebody else's account, a
+ * code already used and a database outage all reach the screen as the same
+ * unreadable line — and two of those three are things the person can act on.
+ * The body is ours and its `message` is written to be read.
+ */
+async function explain(error: unknown, fallback: string): Promise<Error> {
+  const response = (error as { context?: unknown })?.context;
+  if (response instanceof Response) {
+    try {
+      const body = (await response.clone().json()) as { message?: unknown };
+      if (typeof body.message === 'string' && body.message) return new Error(body.message);
+    } catch {
+      // A body that is not our JSON says nothing worth showing.
+    }
+  }
+  return new Error(fallback);
+}
+
+/** Who is holding the phone right now, in the shape `planAuth` reads. */
+async function currentViewer(): Promise<Viewer> {
+  const { data } = await backend.auth.getSession();
+  const user = data.session?.user;
+  if (!user) return { kind: 'nobody' };
+  return user.is_anonymous === true
+    ? { kind: 'guest', userId: user.id }
+    : { kind: 'user', userId: user.id };
+}
+
 export async function confirmPhoneCode(phone: string, code: string): Promise<void> {
+  // Which call a proved number turns into is never the screen's decision —
+  // `planAuth` has decided it for every other door since ADR-006, and this is
+  // the door that was making the decision itself.
+  //
+  // The case that matters is a guest. They are *already signed in*, to an
+  // anonymous account holding a trip, and `setSession` would quietly swap it for
+  // whoever owns the number: everything entered as a guest is still on the
+  // server, under an account with no way back into it. So for anybody already
+  // holding an account the number is an addition to it, and only somebody
+  // holding nothing is signed in by it.
+  const plan = planAuth(await currentViewer(), AuthMethod.PhoneOtp);
+  if (plan.call === 'updateUser') {
+    await attachProof(await proveNumber(phone, code));
+    return;
+  }
+
   const idToken = await proveNumber(phone, code);
 
   const { data, error } = await backend.functions.invoke('phone-verify', {
-    body: { idToken },
+    body: { idToken, mode: 'signin' },
   });
-  if (error) throw error;
+  if (error) throw await explain(error, 'Could not sign you in just now.');
 
   const session = data as { access_token?: string; refresh_token?: string } | null;
   if (!session?.access_token || !session.refresh_token) {
@@ -148,11 +182,20 @@ export async function confirmPhoneCode(phone: string, code: string): Promise<voi
  * and the number becomes a second way back to the same place (ADR-006).
  */
 export async function attachPhoneCode(phone: string, code: string): Promise<void> {
-  const idToken = await proveNumber(phone, code);
+  await attachProof(await proveNumber(phone, code));
+}
+
+/**
+ * The attach half, once the number is proved.
+ *
+ * Split out because a guest signing in by phone lands here too: the proving is
+ * identical and the account they keep is the whole point.
+ */
+async function attachProof(idToken: string): Promise<void> {
   const { data, error } = await backend.functions.invoke('phone-verify', {
     body: { idToken, mode: 'attach' },
   });
-  if (error) throw error;
+  if (error) throw await explain(error, 'Could not add that number just now.');
   if (!(data as { attached?: boolean } | null)?.attached) {
     throw new Error('Could not add that number just now.');
   }
@@ -161,6 +204,11 @@ export async function attachPhoneCode(phone: string, code: string): Promise<void
   // device was read before the number existed, so without this the account
   // screen goes on offering to add a phone that is already attached, until the
   // access token happens to roll. Refreshing is the whole of "seamless" here.
+  //
+  // It carries the other half of the upgrade too. A guest who attaches a number
+  // stops being one, and `is_anonymous` lives in the access token: until it is
+  // reissued the app goes on drawing the ceilings — one group, ten days — around
+  // somebody who has just lifted them.
   await backend.auth.refreshSession();
 }
 

@@ -18,15 +18,25 @@
  * an SMS nobody is waiting for; we claim it and verify it. The code exists for
  * about a second, in a service-role-only table, single use.
  *
- * Two rules this function does not get to bend:
+ * Three rules this function does not get to bend:
  *
  *   * **ADR-006.** A phone number signs somebody back in or attaches to the
  *     account in hand. It never opens a new one, which is why GoTrue is asked
  *     with `create_user: false` and a number nobody owns simply fails. Firebase
- *     having verified the number does not make it an account.
+ *     having verified the number does not make it an account. The other half of
+ *     the same ADR is the in-place upgrade: a guest who attaches a number stops
+ *     being a guest, because a proved contact is exactly what the ceilings on an
+ *     unclaimed account are waiting for.
  *   * **The daily gate.** `waves_phone_gate` counts this the same as any other
  *     ask, so the three-a-day ceiling and the block list apply to a Firebase
- *     sign-in exactly as they apply to an SMS one.
+ *     sign-in exactly as they apply to an SMS one. What it does not count is a
+ *     failure of ours: a relay that never filled or a GoTrue that answered 502
+ *     hands the attempt back, so three of our own bad minutes cannot lock
+ *     somebody out for the day.
+ *   * **One proof, one use.** The assertion is good for ten minutes, and in that
+ *     window the same one could otherwise be presented twice — once to sign in
+ *     as the number's owner, again to move that number onto a second account.
+ *     The Firebase sign-in behind it is recorded and refused thereafter.
  */
 
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2';
@@ -126,6 +136,60 @@ async function readBoundedText(request: Request, limit: number): Promise<string 
   return new TextDecoder().decode(joined);
 }
 
+/**
+ * Digits and nothing else.
+ *
+ * GoTrue stores a number without its `+`, so the obvious comparison — the E.164
+ * string we were handed against the one on the account — never matches, and the
+ * "you already have this number" check silently never fires.
+ */
+function digitsOf(value: string | null | undefined): string {
+  return (value ?? '').replace(/\D/g, '');
+}
+
+/** Attached just now, already there, spoken for by somebody else, or broken. */
+type AttachOutcome = 'attached' | 'already' | 'taken' | 'failed';
+
+/**
+ * Put the proved number on the account in hand.
+ *
+ * Reads the account first, because the same number attached twice must be a
+ * quiet success and not an error: somebody whose network dropped between the
+ * attach and the answer will press the button again, and telling them the number
+ * they are holding is "already on another account" — theirs — is both wrong and
+ * unfixable from where they are standing.
+ *
+ * The duplicate message is then re-checked against the account rather than
+ * trusted, because GoTrue's duplicate check does not reliably exclude the
+ * caller: "already registered" can mean "by you", and the two cases read
+ * identically from here.
+ */
+async function attachNumber(
+  service: SupabaseClient,
+  caller: string,
+  phone: string,
+): Promise<AttachOutcome> {
+  const holdsIt = async (): Promise<boolean> => {
+    const { data, error } = await service.auth.admin.getUserById(caller);
+    if (error) return false;
+    return digitsOf(data?.user?.phone) === digitsOf(phone);
+  };
+
+  if (await holdsIt()) return 'already';
+
+  const { error } = await service.auth.admin.updateUserById(caller, {
+    phone,
+    phone_confirm: true,
+  });
+  if (!error) return 'attached';
+
+  if (/already|registered|duplicate|exists/i.test(error.message)) {
+    return (await holdsIt()) ? 'already' : 'taken';
+  }
+  console.error('phone-verify could not attach the number:', error.message);
+  return 'failed';
+}
+
 export async function handlePhoneVerify(
   request: Request,
   deps: PhoneVerifyDeps,
@@ -152,7 +216,20 @@ export async function handlePhoneVerify(
     // every call, so inferring it would mean somebody signed in as one account,
     // signing in by phone as another, silently attaching the second number to
     // the first — a data-losing surprise with no error anywhere.
-    if (parsed.mode === 'attach') mode = 'attach';
+    //
+    // And the names are a closed set, which matters more than it looks. The
+    // first version read "anything that is not the word attach" as a sign-in, so
+    // `mode: 'Attach'` — a capital letter, a typo, an older client spelling it
+    // differently — was silently the *other* mode: somebody asking to add a
+    // number to the account in their hand would instead be signed out of it and
+    // into whoever owns that number. That is precisely the data-losing surprise
+    // the paragraph above exists to prevent, arriving through the spelling.
+    if (parsed.mode !== undefined && parsed.mode !== null) {
+      if (parsed.mode !== 'attach' && parsed.mode !== 'signin') {
+        return fail(400, 'BAD_REQUEST', 'Ask for signin or attach');
+      }
+      mode = parsed.mode;
+    }
   } catch {
     return fail(400, 'BAD_REQUEST', 'Body is not JSON');
   }
@@ -169,12 +246,75 @@ export async function handlePhoneVerify(
     console.warn('phone-verify rejected a token:', verdict.reason);
     return fail(401, 'NOT_VERIFIED', 'That sign-in could not be verified');
   }
-  const phone = verdict.identity.phone;
+  const { phone, uid, signedInAt } = verdict.identity;
+
+  const service = deps.service();
+
+  // Attaching needs to know *who* before anything is spent. It used to ask after
+  // the gate, which meant a request with no session at all — the easiest request
+  // in the world to make — took one of that number's three codes for the day on
+  // its way to a 401. Three of those and the number's real owner cannot sign in
+  // until tomorrow, from an attacker who never proved anything.
+  let caller: string | null = null;
+  if (mode === 'attach') {
+    caller = await deps.callerId(request);
+    if (!caller) return fail(401, 'NOT_AUTHENTICATED', 'Sign in first');
+  }
+
+  // One proof, one use. The token stays valid for ten minutes after the code was
+  // entered, and nothing until now stopped the same one being presented twice —
+  // once to sign in as the number's owner, and again, from a second account, to
+  // put that number on it. What is recorded is the Firebase sign-in rather than
+  // the token, because an ID token is refreshable: a fresh one minted from the
+  // same Firebase session carries the same `auth_time`, so pinning the token
+  // would pin nothing at all.
+  //
+  // Ahead of the gate on purpose. The other order lets somebody holding one
+  // captured token spend a number's whole daily allowance by replaying it.
+  const { data: firstUse, error: useError } = await service.rpc('waves_firebase_assertion_use', {
+    p_uid: uid,
+    p_auth_time: signedInAt,
+  });
+  if (useError) {
+    // Closed, for the same reason the gate below is: single use is the only
+    // thing standing between one captured proof and an unlimited supply of them.
+    console.error('phone-verify could not claim the assertion:', useError.message);
+    return fail(503, 'UNAVAILABLE', 'Could not sign you in just now. Try again.');
+  }
+  if (firstUse !== true) {
+    // Said as a thing to do rather than as a diagnosis: to anybody honest this
+    // is a screen that got resubmitted, and the answer is the same either way.
+    return fail(401, 'ALREADY_USED', 'That code has been used. Ask for a new one.');
+  }
+
+  /**
+   * Hand back what a failure on our side took.
+   *
+   * Called only after the gate has actually counted the ask, and only for a
+   * failure nobody asking could have avoided — a database that would not answer,
+   * a relay that never filled, a GoTrue that returned 502. Firebase has already
+   * sent and billed for the SMS by the time this function runs, so the value of
+   * the refund is precisely that the *same* code can be typed again: no second
+   * message, no second charge.
+   *
+   * Never after an answer. A number already on another account, a blocked
+   * number, a number with no account — those are all replies, and the proof was
+   * spent getting them.
+   */
+  const giveItBack = async (): Promise<void> => {
+    const { error } = await service.rpc('waves_firebase_assertion_release', {
+      p_uid: uid,
+      p_auth_time: signedInAt,
+    });
+    if (error) console.error('phone-verify could not release the assertion:', error.message);
+    const { error: refundError } = await service.rpc('waves_phone_gate_refund', { p_phone: phone });
+    if (refundError) console.error('phone-verify could not refund the day:', refundError.message);
+  };
 
   // The same ceiling as every other way of asking, and the same block list.
-  const { data: gate, error: gateError } = await deps
-    .service()
-    .rpc('waves_phone_gate', { p_phone: phone });
+  const { data: gate, error: gateError } = await service.rpc('waves_phone_gate', {
+    p_phone: phone,
+  });
   if (gateError) {
     // Closed, not open — and deliberately the opposite of `otp-send`, which lets a
     // send through when the limiter is unreachable. There, failing open keeps
@@ -184,13 +324,22 @@ export async function handlePhoneVerify(
     // without the database anyway, so failing open buys nothing and waives the
     // block for whoever can make this query fail.
     console.error('phone-verify gate check failed, refusing:', gateError.message);
+    // The proof goes back, but nothing is refunded: the call that would have
+    // counted the ask is the one that just failed, so there is no hit to hand
+    // back and a refund here would take away somebody's *earlier* attempt.
+    const { error: releaseError } = await service.rpc('waves_firebase_assertion_release', {
+      p_uid: uid,
+      p_auth_time: signedInAt,
+    });
+    if (releaseError) {
+      console.error('phone-verify could not release the assertion:', releaseError.message);
+    }
     return fail(503, 'UNAVAILABLE', 'Could not sign you in just now. Try again.');
   }
   if ((gate as { allowed?: boolean } | null)?.allowed === false) {
     return fail(429, 'TOO_MANY', 'That is too many sign-in attempts today. Try again tomorrow.');
   }
 
-  const service = deps.service();
   const auth = `${supabaseUrl}/auth/v1`;
 
   // Attaching, not signing in: somebody already holding an account has proved a
@@ -198,22 +347,37 @@ export async function handlePhoneVerify(
   // keeps its id, so every group, expense and balance stays where it is, and the
   // number becomes a second way back to the same place.
   if (mode === 'attach') {
-    const caller = await deps.callerId(request);
-    if (!caller) return fail(401, 'NOT_AUTHENTICATED', 'Sign in first');
-
-    const { error: attachError } = await service.auth.admin.updateUserById(caller, {
-      phone,
-      phone_confirm: true,
-    });
-    if (attachError) {
+    const attached = await attachNumber(service, caller!, phone);
+    if (attached === 'taken') {
       // A number already on another account is the one refusal worth naming: it
       // is not a fault the person can fix by retrying, and silently doing
-      // nothing would leave them convinced it had worked.
-      if (/already|registered|duplicate/i.test(attachError.message)) {
-        return fail(409, 'PHONE_TAKEN', 'That number is already on another Waves account');
-      }
-      console.error('phone-verify could not attach the number:', attachError.message);
+      // nothing would leave them convinced it had worked. Two devices attaching
+      // the same number to two different accounts at the same moment land here
+      // too: GoTrue's unique index decides, one comes away holding the number
+      // and the other is told plainly that it is spoken for.
+      return fail(409, 'PHONE_TAKEN', 'That number is already on another Waves account');
+    }
+    if (attached === 'failed') {
+      await giveItBack();
       return fail(502, 'UPSTREAM', 'Could not add that number just now');
+    }
+
+    // ADR-006's in-place upgrade, and the reason it needs saying out loud here.
+    // Attaching an email goes through GoTrue's own change-verification, which
+    // clears `is_anonymous` on the way past; the admin call above sets the
+    // number and nothing else. Without this a guest who added a phone kept the
+    // guest ceilings — one group, ten days, read-only after — while holding a
+    // proved contact, which is the exact opposite of what the upgrade path
+    // promises. The function re-checks the confirmed contact itself, so it
+    // cannot be used to lift the ceiling on an account that has not earned it.
+    //
+    // Logged rather than fatal: the number is on the account either way, and
+    // refusing an attachment that worked over a flag would be the larger harm.
+    // The flag is in the access token, so the client refreshes its session
+    // afterwards and the ceiling lifts on the next read.
+    const { error: promoteError } = await service.rpc('waves_promote_guest', { p_user: caller });
+    if (promoteError) {
+      console.error('phone-verify could not lift the guest ceiling:', promoteError.message);
     }
 
     const { error: clearedError } = await service.rpc('waves_phone_verified', { p_phone: phone });
@@ -232,10 +396,19 @@ export async function handlePhoneVerify(
   // the first's, and the first then claims a code minted for somebody else or
   // deletes the second's on its way out, sending that person's code to an SMS
   // nobody asked for.
+  //
+  // The relay's thirty seconds are left where they are, deliberately. Everything
+  // between the open and the claim is bounded by the fifteen-second timeout on
+  // the GoTrue call below, so the window is already twice the longest the
+  // exchange can legitimately take; widening it would only mean a live code
+  // sitting fillable for longer. What a slow GoTrue costs is the attempt, and
+  // that is what `giveItBack` is for — the fix is the refund, not a bigger
+  // window.
   const { data: exchange, error: openError } = await service.rpc('waves_otp_relay_open', {
     p_phone: phone,
   });
   if (openError || typeof exchange !== 'string') {
+    await giveItBack();
     return fail(500, 'INTERNAL', 'Could not sign you in just now');
   }
 
@@ -257,6 +430,7 @@ export async function handlePhoneVerify(
         return fail(404, 'NO_ACCOUNT', 'No Waves account uses that number yet');
       }
       console.error('phone-verify could not ask for a code:', asked.status, detail.slice(0, 200));
+      await giveItBack();
       return fail(502, 'UPSTREAM', 'Could not sign you in just now');
     }
 
@@ -268,6 +442,7 @@ export async function handlePhoneVerify(
       // this was an ordinary send. Either way an SMS may be on its way, and the
       // honest answer is that this route did not work rather than a stuck spinner.
       console.error('phone-verify found no code parked for the exchange');
+      await giveItBack();
       return fail(502, 'UPSTREAM', 'Could not sign you in just now');
     }
 
@@ -279,11 +454,13 @@ export async function handlePhoneVerify(
     });
     if (!verified.ok) {
       console.error('phone-verify could not complete the exchange:', verified.status);
+      await giveItBack();
       return fail(502, 'UPSTREAM', 'Could not sign you in just now');
     }
 
     const session = (await verified.json()) as Session;
     if (!session.access_token || !session.refresh_token) {
+      await giveItBack();
       return fail(502, 'UPSTREAM', 'Could not sign you in just now');
     }
 

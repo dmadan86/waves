@@ -48,6 +48,7 @@ import { confirmContact, startAddingContact, ContactChannel } from '@/data/api';
 import { deviceCountry, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { router } from '@/lib/navigation';
+import { phoneSignInAvailable } from '@/lib/phoneAuth';
 
 export default function AccountScreen() {
   const { profile, profileSettled, reloadProfile } = useAuth();
@@ -471,10 +472,18 @@ function AccountForm() {
                 setError(null);
                 setValue('');
               }}
-              options={[
-                { value: ContactChannel.Email, label: t.contact.email },
-                { value: ContactChannel.Phone, label: t.contact.phone },
-              ]}
+              // Phone only where the build can prove one. The code comes from
+              // Firebase, which is a native module, so a JavaScript-only update
+              // onto an older binary would leave this chip selectable and the
+              // "send code" under it dead — an offer the app cannot keep.
+              options={
+                phoneSignInAvailable()
+                  ? [
+                      { value: ContactChannel.Email, label: t.contact.email },
+                      { value: ContactChannel.Phone, label: t.contact.phone },
+                    ]
+                  : [{ value: ContactChannel.Email, label: t.contact.email }]
+              }
             />
 
             {existing ? (
