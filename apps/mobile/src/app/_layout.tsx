@@ -44,6 +44,7 @@ import { UpdateBanner, UpdateGate } from '@/components/UpdateGate';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { AutoBackup } from '@/lib/backup/AutoBackup';
 import { backendConfigured } from '@/lib/backend';
+import { CaptureNudge } from '@/lib/captureNudge/CaptureNudge';
 import { DeviceSessionProvider } from '@/lib/deviceSession';
 import { useFlagEnabled } from '@/lib/flags';
 import { isRtl, isRtlLanguage, useStrings } from '@/i18n';
@@ -263,6 +264,14 @@ function RootLayout() {
                                 have stopped trusting, and must not decrypt a
                                 ledger while the app is still locked. */}
                                           <AutoBackup />
+                                          {/* Renders nothing: it decides whether this phone
+                                should remind anybody about the expenses they
+                                saved for later, and sets or cancels the local
+                                alarm that does it. Beside the backup and inside
+                                the same gates — the count it speaks about is
+                                read from the mirror, which must not be touched
+                                while the app is still locked. */}
+                                          <CaptureNudge />
                                           {/* Inside the lock so the two-device gate never
                                 paints over the lock screen, and past auth so it
                                 only ever asks a signed-in account. */}
