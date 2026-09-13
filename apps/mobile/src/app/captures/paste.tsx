@@ -14,6 +14,22 @@
  * Everything downstream of that button — the found list, the ticking, the
  * writing — is this screen, unchanged.
  *
+ * WHO THIS IS FOR. Somebody who has never used an expense app, and may never
+ * have deliberately copied text on a phone before. Everything on the screen is
+ * measured against that: no codes, no jargon, no rule about blank lines to get
+ * wrong, and never a guess dressed up as a fact.
+ *
+ * - The sender is a telecom routing header (`JM-ICICIT-S`), so it is turned
+ *   into "ICICI Bank" by `lib/smsPlain.ts` — and when that table does not know
+ *   the id, the line is simply not there. A code on screen is worse than a
+ *   blank.
+ * - A merchant that is plainly not a name — a phone number, a bare "VPA" —
+ *   does not become the title. "Payment from Axis Bank" is less specific and
+ *   entirely true, which is the trade this screen always makes.
+ * - A row the parser was unsure of says *what* it was unsure of, in a sentence,
+ *   and every pasted row can be opened to read the message it was made from.
+ *   "Check this" with nothing to check against is not a warning, it is a worry.
+ *
  * WHERE THINGS GO. Each ticked payment becomes a `captures` row: an expense
  * with no group yet, which is what the Review tab has held since A34. Not a
  * second inbox (#565 undid that once already), not an expense in a group —
@@ -24,10 +40,12 @@
  * account tail, a balance and sometimes a one-time password. The text of a
  * pasted message rides along as `rawText` the way a scanned receipt's OCR does
  * — a person put it there themselves. The text of a *read* message never does;
- * `lib/smsDrafts.ts` is where that is decided, and a test pins it. And nothing
- * on this screen reports anything at all: no Sentry event, no Clarity event,
- * not even a count. A paste that parses badly is said to the person in front of
- * it, and to nobody else.
+ * `lib/smsDrafts.ts` is where that is decided, and a test pins it. The same
+ * function decides what may be *shown*, so the message a person can open on a
+ * row is exactly the message that will be kept, and a read one is neither. And
+ * nothing on this screen reports anything at all: no Sentry event, no Clarity
+ * event, not even a count. A paste that parses badly is said to the person in
+ * front of it, and to nobody else.
  *
  * WHY IT IS A FLASHLIST. A month of statements is a hundred rows, and this is
  * the screen the plan points the backfill at. The paste box and the intro ride
@@ -42,7 +60,12 @@ import * as Clipboard from 'expo-clipboard';
 import { useFocusEffect } from 'expo-router';
 import { Pressable, TextInput, View } from 'react-native';
 
-import { proposeFromSms, type ExpenseCandidate, type SmsMessage } from '@waves/core';
+import {
+  proposeFromSms,
+  SMS_LOW_CONFIDENCE,
+  type ExpenseCandidate,
+  type SmsMessage,
+} from '@waves/core';
 import {
   Badge,
   Button,
@@ -55,7 +78,6 @@ import {
   MoneyText,
   Row,
   Screen,
-  SectionHeader,
   Text,
   useTheme,
 } from '@waves/ui';
@@ -71,95 +93,230 @@ import { router } from '@/lib/navigation';
 import { smsCaptureId } from '@/lib/smsCaptureId';
 import {
   bodiesByKey,
+  bodyForDisplay,
   planSmsDrafts,
   splitMessages,
   unreadableCount,
   type SmsDraftProvenance,
 } from '@/lib/smsDrafts';
 import { useSmsInboxReader } from '@/lib/smsFeature';
+import { bankFromSender, bankFromText, merchantName } from '@/lib/smsPlain';
 import { takeReadMessages } from '@/lib/smsReadBridge';
 
-/** A day heading, or one payment under it. */
+/**
+ * A day heading, or one payment under it.
+ *
+ * The body rides on the item rather than being looked up in the renderer, so
+ * the rule about which bodies may be seen is applied once, where the list is
+ * built, instead of at every recycle.
+ */
 type FoundItem =
   | { kind: 'day'; key: string; at: string }
-  | { kind: 'candidate'; key: string; candidate: ExpenseCandidate };
+  | { kind: 'candidate'; key: string; candidate: ExpenseCandidate; body: string | null };
+
+/** A comfortable target for a thumb that is not aiming carefully. */
+const ROW_MIN_HEIGHT = 60;
 
 /**
- * One found payment: a tick, the shop, the amount.
+ * What to call this payment, and who said so.
  *
- * The date is not on the row — the day heading above it already carries that,
- * which is the point of grouping. What the row's second line carries instead is
- * everything that would make a person hesitate: which bank said it, which card
- * it was, and — the one that matters most on a trip — whether the day came from
- * the message or was only the day it arrived.
+ * Never the raw sender and never a merchant that is obviously not a merchant —
+ * both judgements live in `lib/smsPlain.ts` and are pinned by its test. The
+ * order of the fallbacks is the order of decreasing specificity and constant
+ * truthfulness: the shop if we have one, otherwise the bank, otherwise the
+ * plainest thing that is still certainly true.
+ */
+function describe(
+  candidate: ExpenseCandidate,
+  body: string | null,
+  t: UiStrings,
+): { title: string; from: string | null } {
+  const bank = bankFromSender(candidate.sender) ?? bankFromText(body);
+  const shop = merchantName(candidate.merchant);
+  if (shop) return { title: shop, from: bank };
+  if (bank) return { title: t.smsImport.paymentFromBank.replace('{bank}', bank), from: null };
+  return { title: t.smsImport.aPayment, from: null };
+}
+
+/**
+ * Why a row is not already ticked, in words.
+ *
+ * `preselect` is false for exactly two reasons and this says which: a message
+ * that named no day, and a message the parser only half understood. A flag
+ * without a reason asks a person to check something they cannot see.
+ */
+function doubts(candidate: ExpenseCandidate, t: UiStrings): string[] {
+  const reasons: string[] = [];
+  if (candidate.dateInferred) reasons.push(t.smsImport.dateNotInMessage);
+  if (candidate.confidence < SMS_LOW_CONFIDENCE) reasons.push(t.smsImport.hardToRead);
+  return reasons;
+}
+
+/**
+ * One found payment: a tick, who it was, the amount — and, underneath, the
+ * message it was made from.
+ *
+ * The date is not on the row; the day heading above it carries that, which is
+ * the point of grouping. The second line carries who the bank says it was and
+ * which card, in words rather than in the bank's own shorthand.
+ *
+ * The whole row toggles the tick, so the target is the row and not the little
+ * box. "Read the message" is a separate, smaller target underneath precisely so
+ * that reaching for it cannot tick anything by accident.
  */
 function FoundRow({
   candidate,
+  body,
   picked,
+  open,
   locale,
   t,
   onToggle,
+  onOpen,
 }: {
   candidate: ExpenseCandidate;
+  body: string | null;
   picked: boolean;
+  open: boolean;
   locale: string;
   t: UiStrings;
   onToggle: () => void;
+  onOpen: () => void;
 }): React.JSX.Element {
   const theme = useTheme();
-  const title = candidate.merchant ?? t.smsImport.cardPayment;
+  const { title, from } = describe(candidate, body, t);
   const parts: string[] = [];
-  if (candidate.sender) parts.push(candidate.sender);
-  if (candidate.accountTail) parts.push(`⋯${candidate.accountTail}`);
-  if (candidate.dateInferred) parts.push(t.smsImport.dateNotInMessage);
+  if (from) parts.push(from);
+  if (candidate.accountTail)
+    parts.push(t.smsImport.cardEnding.replace('{tail}', candidate.accountTail));
   const subtitle = parts.join(' · ');
+  const reasons = doubts(candidate, t);
 
   return (
-    <Pressable
-      accessibilityRole="checkbox"
-      accessibilityState={{ checked: picked }}
-      accessibilityLabel={`${title}, ${picked ? t.smsImport.selected : t.smsImport.notSelected}`}
-      onPress={onToggle}
-      style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
-    >
-      <Row
+    <View>
+      <Pressable
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: picked }}
+        accessibilityLabel={`${title}, ${picked ? t.smsImport.selected : t.smsImport.notSelected}`}
+        onPress={onToggle}
+        style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+      >
+        <Row
+          style={{
+            gap: theme.spacing.md,
+            alignItems: 'center',
+            paddingVertical: theme.spacing.md,
+            minHeight: ROW_MIN_HEIGHT,
+          }}
+        >
+          {/* Never colour alone: the tick is a different glyph, not just a
+              different shade, and the a11y state says it a third way (#191). */}
+          <Ionicons
+            name={picked ? 'checkbox' : 'square-outline'}
+            size={iconSize.jumbo}
+            color={picked ? theme.color.brand : theme.color.textFaint}
+          />
+          <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+            <Text variant="subheading" numberOfLines={2}>
+              {title}
+            </Text>
+            {subtitle ? (
+              <Text variant="caption" tone="muted" numberOfLines={1}>
+                {subtitle}
+              </Text>
+            ) : null}
+            {/* An icon as well as the words, so the uncertainty is not carried
+                by colour (#191) — and the words themselves, so "check this"
+                names something a person can actually go and check. */}
+            {reasons.map((reason) => (
+              <Row key={reason} gap={theme.spacing.xs} style={{ alignItems: 'flex-start' }}>
+                <Ionicons
+                  name="alert-circle-outline"
+                  size={iconSize.sm}
+                  color={theme.color.warning}
+                  style={{ marginTop: 2 }}
+                />
+                <Text variant="caption" tone="muted" style={{ flex: 1 }}>
+                  {reason}
+                </Text>
+              </Row>
+            ))}
+          </View>
+          <View style={{ alignItems: 'flex-end', gap: theme.spacing.xs }}>
+            <MoneyText
+              amount={candidate.amount.minor}
+              currency={candidate.amount.currency}
+              locale={locale}
+              variant="subheading"
+            />
+            {/* A row "select all" swept in is still marked, so nobody is
+                carried past a doubt without seeing it. */}
+            {candidate.preselect ? null : <Badge label={t.smsImport.checkThis} />}
+          </View>
+        </Row>
+      </Pressable>
+
+      {/* Only ever a pasted message. `bodyForDisplay` is the same function that
+          decides what may be stored, so what can be read here is exactly what
+          will be kept — and a message read out of the inbox is neither. */}
+      {body ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ expanded: open }}
+          onPress={onOpen}
+          hitSlop={8}
+          style={({ pressed }) => ({
+            alignSelf: 'flex-start',
+            paddingVertical: theme.spacing.sm,
+            opacity: pressed ? 0.7 : 1,
+          })}
+        >
+          <Row gap={theme.spacing.xs}>
+            <Ionicons
+              name={open ? 'chevron-up' : 'chevron-down'}
+              size={iconSize.sm}
+              color={theme.color.brand}
+            />
+            <Text variant="caption" tone="brand">
+              {open ? t.smsImport.hideMessage : t.smsImport.showMessage}
+            </Text>
+          </Row>
+        </Pressable>
+      ) : null}
+      {open && body ? (
+        <Card flat style={{ padding: theme.spacing.lg, marginBottom: theme.spacing.md }}>
+          <Text variant="caption" tone="muted" selectable>
+            {body}
+          </Text>
+        </Card>
+      ) : null}
+    </View>
+  );
+}
+
+/** One line of the three-step path in, for somebody who has never done this. */
+function Step({ index, text }: { index: number; text: string }): React.JSX.Element {
+  const theme = useTheme();
+  return (
+    <Row gap={theme.spacing.md} style={{ alignItems: 'flex-start' }}>
+      <View
         style={{
-          gap: theme.spacing.md,
+          width: 22,
+          height: 22,
+          borderRadius: theme.radius.pill,
+          backgroundColor: theme.color.brandSoft,
           alignItems: 'center',
-          paddingVertical: theme.spacing.sm,
-          minHeight: 52,
+          justifyContent: 'center',
         }}
       >
-        {/* Never colour alone: the tick is a different glyph, not just a
-            different shade, and the a11y state says it a third way (#191). */}
-        <Ionicons
-          name={picked ? 'checkbox' : 'square-outline'}
-          size={iconSize.xxl}
-          color={picked ? theme.color.brand : theme.color.textFaint}
-        />
-        <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-          <Text variant="subheading" numberOfLines={1}>
-            {title}
-          </Text>
-          {subtitle ? (
-            <Text variant="micro" tone="muted" numberOfLines={1}>
-              {subtitle}
-            </Text>
-          ) : null}
-        </View>
-        <View style={{ alignItems: 'flex-end', gap: 2 }}>
-          <MoneyText
-            amount={candidate.amount.minor}
-            currency={candidate.amount.currency}
-            locale={locale}
-            variant="subheading"
-          />
-          {/* A message we only half understood is not pre-ticked, and says so
-              rather than simply sitting there unticked for no visible reason. */}
-          {candidate.preselect ? null : <Badge label={t.smsImport.checkThis} />}
-        </View>
-      </Row>
-    </Pressable>
+        <Text variant="micro" tone="brand">
+          {String(index)}
+        </Text>
+      </View>
+      <Text variant="caption" style={{ flex: 1 }}>
+        {text}
+      </Text>
+    </Row>
   );
 }
 
@@ -185,6 +342,8 @@ export default function PasteMessagesScreen(): React.JSX.Element {
   // Explicit ticks, over the parser's own pre-selection. Absent means "whatever
   // `preselect` said", so a person who ticks nothing still gets the sensible set.
   const [ticks, setTicks] = useState<Record<string, boolean>>({});
+  // Which rows have their message open. Per row, and forgotten on leaving.
+  const [opened, setOpened] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [added, setAdded] = useState<number | null>(null);
@@ -272,6 +431,8 @@ export default function PasteMessagesScreen(): React.JSX.Element {
     return keys;
   }, [fresh, ticks]);
 
+  const allChosen = fresh.length > 0 && chosen.size === fresh.length;
+
   const feed = useMemo((): FoundItem[] => {
     const items: FoundItem[] = [];
     let day = '';
@@ -281,19 +442,56 @@ export default function PasteMessagesScreen(): React.JSX.Element {
         day = candidateDay;
         items.push({ kind: 'day', key: `day-${candidateDay}`, at: candidate.at });
       }
-      items.push({ kind: 'candidate', key: candidate.dedupeKey, candidate });
+      items.push({
+        kind: 'candidate',
+        key: candidate.dedupeKey,
+        candidate,
+        body: bodyForDisplay(candidate.dedupeKey, bodies, readKeys),
+      });
     }
     return items;
-  }, [fresh]);
+  }, [bodies, fresh, readKeys]);
 
   const toggle = useCallback((key: string, next: boolean): void => {
     setTicks((current) => ({ ...current, [key]: next }));
   }, []);
 
+  const openMessage = useCallback((key: string): void => {
+    setOpened((current) => ({ ...current, [key]: !current[key] }));
+  }, []);
+
+  /**
+   * One control, two states — the Wallet pattern.
+   *
+   * "Select all" takes the uncertain rows too. Somebody who asks for all of
+   * them has asked for all of them, and quietly holding two back would be the
+   * screen overruling a person who said what they wanted. What it must not do
+   * is sweep them in *invisibly*, so the "Check this" mark and the sentence
+   * under each one stay exactly as they were: still selectable, still
+   * questioned, and one tap away from being put back.
+   */
+  const toggleAll = useCallback((): void => {
+    const next: Record<string, boolean> = {};
+    for (const item of fresh) next[item.dedupeKey] = !allChosen;
+    setTicks((current) => ({ ...current, ...next }));
+  }, [allChosen, fresh]);
+
+  /** Typing or pasting again puts the screen back to work, so "done" clears. */
+  const edit = useCallback((text: string): void => {
+    setBlob(text);
+    setAdded(null);
+    setError(null);
+  }, []);
+
   const paste = useCallback(async (): Promise<void> => {
     const text = await Clipboard.getStringAsync();
     if (!text.trim()) return;
+    // Joined with a blank line, which is the separator this screen no longer
+    // asks anybody to know about: `splitMessages` finds the boundaries itself,
+    // and the Paste button puts the clearest one in for free.
     setBlob((current) => (current ? `${current}\n\n${text}` : text));
+    setAdded(null);
+    setError(null);
   }, []);
 
   /**
@@ -334,6 +532,7 @@ export default function PasteMessagesScreen(): React.JSX.Element {
       setAdded(placed);
       setBlob('');
       setTicks({});
+      setOpened({});
       setReadMessages([]);
     } catch (caught) {
       setAdded(placed > 0 ? placed : null);
@@ -353,26 +552,38 @@ export default function PasteMessagesScreen(): React.JSX.Element {
     t.captures.couldNotSave,
   ]);
 
+  // Nothing handed over and nothing done yet: the one moment the three steps
+  // are worth the room. They go away the instant there is anything to look at.
+  const firstRun = blob.length === 0 && readMessages.length === 0 && added === null;
+  const done = added !== null && error === null && fresh.length === 0;
+
   const header = (
     <View style={{ gap: theme.spacing.lg, paddingBottom: theme.spacing.md }}>
       <Row style={{ paddingTop: theme.spacing.md, alignItems: 'center' }}>
         <IconButton label={t.common.close} onPress={() => router.back()}>
           <Ionicons name="close" size={iconSize.xl} color={theme.color.text} />
         </IconButton>
-        <Text variant="subheading" style={{ marginLeft: theme.spacing.md, flex: 1 }}>
+        {/* `marginStart`, not `marginLeft`: the title sits beside the close
+            button on both sides of the world. */}
+        <Text variant="heading" style={{ marginStart: theme.spacing.md, flex: 1 }}>
           {t.smsImport.title}
         </Text>
       </Row>
 
-      <Card style={{ gap: theme.spacing.sm }}>
-        <Text variant="caption" tone="muted">
-          {t.smsImport.howToDrafts}
-        </Text>
+      <Card style={{ gap: theme.spacing.md }}>
+        <Text variant="body">{t.smsImport.howToDrafts}</Text>
+        {firstRun ? (
+          <View style={{ gap: theme.spacing.sm }}>
+            <Step index={1} text={t.smsImport.howToSteps.open} />
+            <Step index={2} text={t.smsImport.howToSteps.copy} />
+            <Step index={3} text={t.smsImport.howToSteps.comeBack} />
+          </View>
+        ) : null}
         {/* Why there is no switch for this. Said only where it is true: a build
             that can read the inbox has the button below instead, and the
             sentence would contradict it. */}
         {readerOffered ? null : (
-          <Text variant="micro" tone="muted">
+          <Text variant="caption" tone="muted">
             {t.smsImport.whyNotAutomatic}
           </Text>
         )}
@@ -388,11 +599,11 @@ export default function PasteMessagesScreen(): React.JSX.Element {
               <Ionicons name="chatbubbles-outline" size={iconSize.md} color={theme.color.brand} />
             }
           />
-          <Text variant="micro" tone="muted">
+          <Text variant="caption" tone="muted">
             {t.smsImport.readOnAndroid}
           </Text>
           {readMessages.length > 0 ? (
-            <Text variant="micro" tone="muted">
+            <Text variant="caption" tone="muted">
               {plural(locale, readMessages.length, t.smsImport.readCount)}
             </Text>
           ) : null}
@@ -400,11 +611,10 @@ export default function PasteMessagesScreen(): React.JSX.Element {
       ) : null}
 
       <View style={{ gap: theme.spacing.sm }}>
-        <SectionHeader title={t.smsImport.messagesSection} />
         <Card style={{ gap: theme.spacing.sm }}>
           <TextInput
             value={blob}
-            onChangeText={setBlob}
+            onChangeText={edit}
             multiline
             autoCapitalize="none"
             accessibilityLabel={t.smsImport.pasteLabel}
@@ -412,20 +622,34 @@ export default function PasteMessagesScreen(): React.JSX.Element {
             placeholderTextColor={theme.color.textFaint}
             style={{
               minHeight: 140,
-              fontSize: 15,
+              fontSize: 16,
               color: theme.color.text,
               textAlignVertical: 'top',
             }}
           />
           <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text variant="micro" tone="muted">
+            <Text variant="caption" tone="muted">
               {pastedBlocks.length === 0
                 ? t.smsImport.nothingPasted
                 : plural(locale, pastedBlocks.length, t.smsImport.messageCount)}
             </Text>
-            <Button label={t.smsImport.paste} variant="ghost" onPress={() => void paste()} />
+            {/* The only control while the box is empty, so it leads rather than
+                sits in the corner as a ghost. */}
+            <Button
+              label={t.smsImport.paste}
+              variant={blob.length === 0 ? 'secondary' : 'ghost'}
+              onPress={() => void paste()}
+            />
           </Row>
         </Card>
+        {/* The blank-line rule, demoted. `splitMessages` finds the boundaries
+            on its own now, so this is a hint offered once something has
+            actually gone unread — never an instruction to get wrong up front. */}
+        {notPayments > 0 ? (
+          <Text variant="micro" tone="muted">
+            {t.smsImport.runTogether}
+          </Text>
+        ) : null}
       </View>
 
       {/* Only over a list that has something in it. With nothing found, the
@@ -433,21 +657,34 @@ export default function PasteMessagesScreen(): React.JSX.Element {
           them twice. */}
       {fresh.length > 0 ? (
         <View style={{ gap: theme.spacing.xs }}>
-          {/* An eyebrow over a question, not a noun over a list: the list has
-              one thing to ask and the button below is the answer. */}
-          <Text variant="micro" tone="muted" style={{ textTransform: 'uppercase' }}>
-            {t.smsImport.foundSection}
+          {/* The count is the headline and the control sits beside it — one
+              button with two labels rather than two buttons (Wallet). The
+              count is live, and the button at the foot says the same number
+              back as the thing it is about to do. */}
+          <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text variant="title" style={{ flex: 1 }}>
+              {chosen.size === 0
+                ? t.smsImport.nothingSelected
+                : plural(locale, chosen.size, t.smsImport.chosenCount)}
+            </Text>
+            <Button
+              label={allChosen ? t.smsImport.unselectAll : t.smsImport.selectAll}
+              variant="ghost"
+              onPress={toggleAll}
+            />
+          </Row>
+          <Text variant="caption" tone="muted">
+            {plural(locale, fresh.length, t.smsImport.foundCount)}
           </Text>
-          <Text variant="heading">{t.smsImport.foundQuestion}</Text>
           {/* Everything the parser could not use, said plainly. A screen that
               quietly shows four rows for six messages reads as broken. */}
           {notPayments > 0 ? (
-            <Text variant="micro" tone="muted">
+            <Text variant="caption" tone="muted">
               {plural(locale, notPayments, t.smsImport.someNotParsed)}
             </Text>
           ) : null}
           {alreadyCount > 0 ? (
-            <Text variant="micro" tone="muted">
+            <Text variant="caption" tone="muted">
               {plural(locale, alreadyCount, t.smsImport.alreadyAdded)}
             </Text>
           ) : null}
@@ -462,17 +699,23 @@ export default function PasteMessagesScreen(): React.JSX.Element {
       {added !== null ? (
         <Callout tone="positive">{plural(locale, added, t.smsImport.addedDraftCount)}</Callout>
       ) : null}
-      <Button
-        label={
-          saving
-            ? t.smsImport.adding
-            : chosen.size === 0
-              ? t.smsImport.nothingSelected
-              : plural(locale, chosen.size, t.smsImport.addDraftCount)
-        }
-        onPress={() => void add()}
-        disabled={chosen.size === 0 || saving}
-      />
+      {/* Where they went, and a way to go there. A screen that says "added" and
+          leaves a person on the same page has told them half of it. */}
+      {done ? (
+        <Button label={t.smsImport.openReview} onPress={() => router.replace('/captures')} />
+      ) : (
+        <Button
+          label={
+            saving
+              ? t.smsImport.adding
+              : chosen.size === 0
+                ? t.smsImport.nothingSelected
+                : plural(locale, chosen.size, t.smsImport.addDraftCount)
+          }
+          onPress={() => void add()}
+          disabled={chosen.size === 0 || saving}
+        />
+      )}
     </View>
   );
 
@@ -498,17 +741,24 @@ export default function PasteMessagesScreen(): React.JSX.Element {
         <View>
           <FoundRow
             candidate={item.candidate}
+            body={item.body}
             picked={picked}
+            open={opened[item.candidate.dedupeKey] ?? false}
             locale={locale}
             t={t}
             onToggle={() => toggle(item.candidate.dedupeKey, !picked)}
+            onOpen={() => openMessage(item.candidate.dedupeKey)}
           />
           <Divider />
         </View>
       );
     },
-    [chosen, locale, t, theme.spacing.md, theme.spacing.xs, toggle],
+    [chosen, locale, openMessage, opened, t, theme.spacing.md, theme.spacing.xs, toggle],
   );
+
+  // One object so a tick *or* an opened message re-renders a row FlashList
+  // would otherwise recycle unchanged.
+  const listState = useMemo(() => ({ chosen, opened }), [chosen, opened]);
 
   return (
     <Screen edges={['top']}>
@@ -520,7 +770,7 @@ export default function PasteMessagesScreen(): React.JSX.Element {
         // The group-ledger settings: `extraData` because a tick changes a row
         // that FlashList would otherwise recycle unchanged, and the drop
         // distance so a pasted month scrolls without blanking.
-        extraData={chosen}
+        extraData={listState}
         drawDistance={1500}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
@@ -532,8 +782,9 @@ export default function PasteMessagesScreen(): React.JSX.Element {
         ListFooterComponent={footer}
         ListEmptyComponent={
           // Nothing handed over yet is not an empty result; it is a screen
-          // waiting to be used, and the paste box above already says so.
-          pastedBlocks.length === 0 && readMessages.length === 0 ? null : (
+          // waiting to be used, and the paste box above already says so. Nor is
+          // a finished run: the footer is already saying where those went.
+          (pastedBlocks.length === 0 && readMessages.length === 0) || done ? null : (
             <EmptyState
               title={t.smsImport.nothingToImport}
               // Why there is nothing, in the honest order: because you have
