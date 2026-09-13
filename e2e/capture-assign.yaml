@@ -26,12 +26,14 @@ appId: app.waves.mobile
 - assertVisible: 'Decide later'
 - tapOn: 'Save capture'
 
-# Back on the dashboard the captures action now carries a count (local-first, no
-# server round-trip). Wait for it, then open the inbox.
+# The drafts inbox is a bar tab now ("Review"), badged with the folded count —
+# it used to be a dashboard hero circle before Activity took that spot. Wait
+# for the dashboard to settle back into view (the save is local-first, no
+# server round-trip needed) before switching to it.
 - extendedWaitUntilVisible:
-    text: 'Captures. 1'
+    text: 'Your groups'
     timeout: 20000
-- tapOn: 'Captures. 1'
+- tapOn: 'Review'
 
 # The waiting capture is listed; assign it to the seeded group.
 - assertVisible: 'Auto to airport'

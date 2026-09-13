@@ -10,6 +10,17 @@
  * fold into a single collapsible "N expenses" row with the running total, and
  * that row's ⋯ can place the whole cluster in one group at once — one answer to
  * "where does this go?" instead of the same answer once per row.
+ *
+ * This is the bar's "Review" tab, promoted from a screen you were pushed onto
+ * (traded places with Activity — see `(tabs)/_layout.tsx` and `app/activity.tsx`).
+ * The route is unchanged: this file still resolves at `/captures`, because a
+ * `(tabs)` group folder contributes no path segment of its own. It is also the
+ * screen `docs/plan-drafts-and-rules.md` names as the one true drafts hub —
+ * whatever arrives by paste, share or statement in a later phase is one more
+ * source feeding these same rows, not a second inbox beside them (the mistake
+ * #565 already undid once). Nothing from that plan is built here; the point of
+ * writing it down is that landing it later should mean adding to this screen,
+ * not rebuilding it.
  */
 
 import { useCallback, useMemo, useRef, useState } from 'react';
@@ -21,7 +32,6 @@ import { Pressable, RefreshControl, ScrollView, useWindowDimensions, View } from
 import { MutationKind, peopleSignatureKey } from '@waves/core';
 import {
   Button,
-  directionalIcon,
   Divider,
   EmptyState,
   IconButton,
@@ -1018,29 +1028,31 @@ export default function CapturesScreen() {
   );
 
   return (
-    <Screen edges={['top', 'bottom']}>
-      {/* The plain back-plus-centred-title bar every pushed screen wears
-          (Friends person, Merge, …), so Drafts reads as one of the family
-          rather than its own thing: a back chevron on the left, the title
-          optically centred, and a 44pt spacer on the right to balance the back
-          button. No leading glyph and no trailing add — starting a capture
-          lives on the dashboard, not here. */}
+    <Screen edges={['top']}>
+      {/* Review is a bar destination now, not a screen somebody was pushed onto
+          — so, like the other three tabs, it wears no back chevron: there is
+          nowhere "back" from a tab, and a chevron that did nothing (or popped
+          somewhere unrelated) would be worse than none. The icon-plus-title
+          row instead matches `ActivityScreen`'s own header, the tab this one
+          traded places with. The waiting count rides under the title exactly
+          as it did before the move.
+
+          `edges` drops `'bottom'`: the screen used to add its own bottom
+          safe-area padding on top of `useTabBarClearance()` below, shrinking
+          the list's own viewport by the inset for no gain — the FlashList's
+          `paddingBottom: clearance` already reserves the room the tab bar
+          needs, top edge is all `Screen` has to add. */}
       <Row
         style={{
           paddingHorizontal: theme.spacing.xl,
           paddingTop: theme.spacing.md,
           alignItems: 'center',
+          gap: theme.spacing.sm,
         }}
       >
-        <IconButton label={t.common.back} onPress={() => router.back()}>
-          <Ionicons
-            name={directionalIcon('chevron-back')}
-            size={iconSize.lg}
-            color={theme.color.text}
-          />
-        </IconButton>
-        <View style={{ flex: 1, alignItems: 'center' }}>
-          <Text variant="heading" numberOfLines={1}>
+        <Ionicons name="file-tray-full-outline" size={iconSize.xl} color={theme.color.brand} />
+        <View style={{ flex: 1 }}>
+          <Text variant="title" numberOfLines={1}>
             {t.captures.title}
           </Text>
           {/* How many are waiting, right under the title — so the screen answers
@@ -1052,7 +1064,6 @@ export default function CapturesScreen() {
             </Text>
           ) : null}
         </View>
-        <View style={{ width: 44 }} />
       </Row>
 
       {/* One virtualized scroll region for every state, the way `ActivityScreen`

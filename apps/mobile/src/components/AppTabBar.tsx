@@ -28,8 +28,11 @@ import { Platform, Vibration } from 'react-native';
 
 import { iconSize, PillTabBar, type PillTabAction, type PillTabItem } from '@waves/ui';
 
-import { isRtl, useStrings } from '@/i18n';
+import { useCaptures } from '@/data/hooks';
+import { isRtl, plural, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
+import { foldedCaptureCount } from '@/lib/captureBatch';
+import { captureInboxActionState } from '@/lib/dashboardActions';
 import { router, switchTab } from '@/lib/navigation';
 import { pushToTalk } from '@/lib/pushToTalk';
 import { resolveTabBar, tabBarRouteForSelection } from '@/lib/tabBar';
@@ -61,7 +64,7 @@ function buzz(ms: number): void {
 
 /** Renders the persistent bottom navigation bar and routes tab selections without stacking duplicates. */
 export function AppTabBar() {
-  const { t } = useStrings();
+  const { t, locale } = useStrings();
   const { session } = useAuth();
   // `useSegments` is typed as a union of fixed-length route tuples, so indexing
   // past the first element trips the tuple bounds check under the CI tsconfig.
@@ -78,6 +81,17 @@ export function AppTabBar() {
   // legal line is the one place it used to leak onto a signed-out screen.
   const { hidden, activeKey } = resolveTabBar(segments, !session);
 
+  // The Review tab's badge — the same folded count the dashboard hero's inbox
+  // circle showed before Activity took its place there (see `(tabs)/index.tsx`).
+  // Read here rather than passed down, because the bar is mounted once at the
+  // root and outlives whichever screen is on top of it; reusing
+  // `foldedCaptureCount`/`captureInboxActionState` rather than a second count
+  // is the whole point — a badge that disagreed with the screen it opens would
+  // be worse than none.
+  const captures = useCaptures();
+  const waitingCount = foldedCaptureCount(captures.data ?? []);
+  const captureBadge = captureInboxActionState(waitingCount).badge;
+
   const items = useMemo<PillTabItem[]>(
     () => [
       {
@@ -91,9 +105,20 @@ export function AppTabBar() {
         icon: (color) => <Ionicons name="people" size={iconSize.lg} color={color} />,
       },
       {
-        key: 'activity',
-        label: t.activity,
-        icon: (color) => <Ionicons name="pulse" size={iconSize.lg} color={color} />,
+        key: 'captures',
+        label: t.review,
+        // The visible pill has room for one short word; a screen reader gets
+        // the count too, in the same sentence the inbox's own empty/non-empty
+        // states already speak (`captures.unassignedBody`) — one wording for
+        // "how many are waiting", not a second one invented for the tab.
+        accessibilityLabel:
+          waitingCount > 0
+            ? `${t.review} — ${plural(locale, waitingCount, t.captures.unassignedBody)}`
+            : t.review,
+        icon: (color) => (
+          <Ionicons name="file-tray-full-outline" size={iconSize.lg} color={color} />
+        ),
+        badge: captureBadge,
       },
       {
         key: 'me',
@@ -101,7 +126,16 @@ export function AppTabBar() {
         icon: (color) => <Ionicons name="wallet-outline" size={iconSize.lg} color={color} />,
       },
     ],
-    [t.activity, t.friends, t.home, t.personal.tab],
+    [
+      captureBadge,
+      locale,
+      t.captures.unassignedBody,
+      t.friends,
+      t.home,
+      t.personal.tab,
+      t.review,
+      waitingCount,
+    ],
   );
 
   // All bar destinations are tabs now. `navigate` switches to the existing tab
