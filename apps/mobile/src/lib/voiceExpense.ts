@@ -14,7 +14,13 @@
  * and the group are cheap and certain here, and everyone gets them.
  */
 
-import { CATEGORIES, isCurrencyCode, minorUnitScale, type CategoryId } from '@waves/core';
+import {
+  CATEGORIES,
+  isCurrencyCode,
+  minorUnitScale,
+  normaliseDigits,
+  type CategoryId,
+} from '@waves/core';
 
 /** Above this, a voice parse is more likely corrupted or misheard than safe to book. */
 export const MAX_VOICE_AMOUNT_MAJOR = 1_000_000_000;
@@ -1131,20 +1137,14 @@ export function detectBalanceQuery(transcript: string): VoiceBalanceQuery | null
 
 /**
  * Native numerals to ASCII, so "५०० रुपये" and "௫" and "٥" all read as numbers.
- * Devanagari, Tamil, Arabic-Indic and Eastern-Arabic (Persian/Urdu) digits are
- * the ones this app's four locales and their neighbours actually type or speak.
+ *
+ * The table moved to `@waves/core` when the SMS parser needed the same one: the
+ * bank messages this app reads are written in the same scripts its users speak
+ * in, and two copies of a numeral table is two places for a script to go
+ * missing. Re-exported under the name this module has always used so nothing
+ * that imports it from here has to move.
  */
-const NATIVE_DIGIT_BLOCKS: readonly number[] = [0x0966, 0x0be6, 0x0660, 0x06f0];
-
-export function normalizeDigits(text: string): string {
-  return text.replace(/[०-९௦-௯٠-٩۰-۹]/g, (ch) => {
-    const code = ch.codePointAt(0) ?? 0;
-    for (const base of NATIVE_DIGIT_BLOCKS) {
-      if (code >= base && code <= base + 9) return String(code - base);
-    }
-    return ch;
-  });
-}
+export const normalizeDigits = normaliseDigits;
 
 function normalizeCurrencyPrefixes(text: string): string {
   return text.replace(/\b(rp|idr)\.?\s*(?=\d)/gi, '$1 ');
