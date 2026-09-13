@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { CaptureStatus, type CaptureRow } from '../src/data/types';
 import {
   assignCaptureHref,
+  captureDraftFields,
   capturePaymentMethod,
   matchesAssignGroupQuery,
 } from '../src/lib/captureAssign';
@@ -57,6 +58,74 @@ describe('assignCaptureHref', () => {
   it('says nothing about payment when the draft named none', () => {
     const href = assignCaptureHref(capture({ payment_method: null }), 'group-1');
     expect(href.params).not.toHaveProperty('paymentMethod');
+  });
+});
+
+describe('captureDraftFields', () => {
+  // The capture screen's own hand-off: picking a group there before Save is
+  // ever pressed must carry every field already typed, exactly as if the
+  // draft had been saved as a capture first and assigned from the inbox
+  // afterwards — the two are meant to be indistinguishable to the group's
+  // add-expense form.
+  function draft(overrides: Partial<Parameters<typeof captureDraftFields>[0]> = {}) {
+    return {
+      captureId: 'draft-1',
+      description: '  taxi to airport  ',
+      amount: 125000n,
+      category: 'travel',
+      categoryMeta: null,
+      location: { name: 'Terminal 2', lat: 19.0896, lng: 72.8656 },
+      paymentMethod: null,
+      date: '2026-09-08',
+      ...overrides,
+    };
+  }
+
+  it('carries everything typed on the capture screen into the same shape assignCaptureHref expects', () => {
+    expect(captureDraftFields(draft())).toEqual({
+      id: 'draft-1',
+      description: 'taxi to airport',
+      amount: '125000',
+      category: 'travel',
+      category_meta: null,
+      location: { name: 'Terminal 2', lat: 19.0896, lng: 72.8656 },
+      payment_method: null,
+      expense_date: '2026-09-08',
+    });
+  });
+
+  it('feeds straight into assignCaptureHref, before the draft has ever been saved as a capture', () => {
+    const href = assignCaptureHref(
+      captureDraftFields(draft({ paymentMethod: 'credit' })),
+      'group-1',
+    );
+    expect(href).toMatchObject({
+      pathname: '/group/[id]/add-expense',
+      params: {
+        id: 'group-1',
+        // The id a fresh draft hands off with is the one it minted for itself
+        // before Save — never saved anywhere, so the assign this triggers on
+        // save matches no row and is a harmless no-op server-side.
+        captureId: 'draft-1',
+        description: 'taxi to airport',
+        amount: '125000',
+        category: 'travel',
+        location: JSON.stringify({ name: 'Terminal 2', lat: 19.0896, lng: 72.8656 }),
+        paymentMethod: 'credit',
+        expenseDate: '2026-09-08',
+      },
+    });
+  });
+
+  it('says nothing about category, place or payment when none was ever entered', () => {
+    const href = assignCaptureHref(
+      captureDraftFields(draft({ category: null, location: null, paymentMethod: null })),
+      'group-1',
+    );
+    expect(href.params).not.toHaveProperty('categoryMeta');
+    expect(href.params).not.toHaveProperty('location');
+    expect(href.params).not.toHaveProperty('paymentMethod');
+    expect(href.params.category).toBe('');
   });
 });
 
