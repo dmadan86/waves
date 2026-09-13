@@ -4291,7 +4291,7 @@ const en: UiStrings = {
     decideLater: 'Decide later',
     groupPickerTitle: 'Add to a group',
     groupPickerBody:
-      'Tag the group this belongs to. You can still change it — and choose the split — when you assign it.',
+      "Picking a group takes you there to say who paid and how it's split. Decide later leaves it just like this.",
     groupSectionCurrentTrip: 'Current trip',
     groupSectionRecent: 'Recently used',
     groupSectionAll: 'All groups',
@@ -6934,7 +6934,7 @@ const ta: UiStrings = {
     decideLater: 'பிறகு முடிவு செய்யலாம்',
     groupPickerTitle: 'ஒரு குழுவில் சேர்க்கவும்',
     groupPickerBody:
-      'இது சேர வேண்டிய குழுவைக் குறியிடுங்கள். ஒதுக்கும்போது அதை மாற்றலாம் — பங்கீட்டையும் தேர்வு செய்யலாம்.',
+      'ஒரு குழுவைத் தேர்ந்தெடுத்தால், யார் கொடுத்தார், எப்படி பங்கிடுவது என்பதைச் சொல்ல அங்கே அழைத்துச் செல்லும். பிறகு முடிவு செய்யலாம் எனில் இது இப்படியே இருக்கும்.',
     groupSectionCurrentTrip: 'நடப்புப் பயணம்',
     groupSectionRecent: 'சமீபத்தில் பயன்படுத்தியவை',
     groupSectionAll: 'அனைத்துக் குழுக்களும்',
@@ -9630,7 +9630,7 @@ const hi: UiStrings = {
     decideLater: 'बाद में तय करें',
     groupPickerTitle: 'किसी समूह में जोड़ें',
     groupPickerBody:
-      'यह जिस समूह का है उसे चुनें। असाइन करते समय इसे बदल सकते हैं — और बँटवारा भी चुन सकते हैं।',
+      'कोई समूह चुनने पर आप वहाँ पहुँच जाएँगे, जहाँ बताया जाता है किसने भुगतान किया और कैसे बाँटा जाए। बाद में तय करें चुनने पर यह ऐसे ही रहेगा।',
     groupSectionCurrentTrip: 'चल रही यात्रा',
     groupSectionRecent: 'हाल में इस्तेमाल किए',
     groupSectionAll: 'सभी समूह',
@@ -12333,7 +12333,7 @@ const ar: UiStrings = {
     decideLater: 'قرّر لاحقًا',
     groupPickerTitle: 'أضِف إلى مجموعة',
     groupPickerBody:
-      'حدِّد المجموعة التي ينتمي إليها. يمكنك تغييرها — واختيار طريقة التقسيم — عند الإسناد.',
+      'عند اختيار مجموعة، ستُنقَل إليها لتحديد من دفع وكيفية التقسيم. قرّر لاحقًا يُبقيها كما هي.',
     groupSectionCurrentTrip: 'الرحلة الحالية',
     groupSectionRecent: 'المستخدمة مؤخرًا',
     groupSectionAll: 'كل المجموعات',

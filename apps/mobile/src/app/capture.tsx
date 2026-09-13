@@ -50,6 +50,7 @@ import { groupLabel, GroupType, type GroupRow, type MemberRow } from '@/data/typ
 import { useAuth } from '@/lib/auth';
 import { useDefaultCurrency } from '@/lib/currency';
 import { plural, useStrings, type UiStrings } from '@/i18n';
+import { assignCaptureHref, captureDraftFields } from '@/lib/captureAssign';
 import { dateFrom, isoDate, showDate } from '@/lib/expenseDay';
 import { captureReceipt, type PickedImage } from '@/lib/image';
 import { router } from '@/lib/navigation';
@@ -144,12 +145,25 @@ const consumedScans = new Set<string>();
  * Catch an expense before it has a group.
  *
  * Deliberately the short version of add-expense: an amount, a note, a category,
- * a date, how it was paid, and optionally a photo of the bill — but no payer,
- * no participants, no split, because none of those exist until the capture is
- * assigned to a group. A group can be *tagged* here as the intended destination
- * (`targetGroupId`), but that only pre-aims it; who splits it, and how, is still
- * decided at assignment. The photo is read on the phone (A5) so its text can
- * ride along as `rawText` for the group form to reuse later.
+ * a date, how it was paid, and optionally a photo of the bill — never a payer
+ * or a split, because those describe how a bill is shared among a group's
+ * members, and there is no group here by default. "Decide later" (`null`) is
+ * that default, and it stays exactly this short.
+ *
+ * Picking a real group in the facts card below is a different thing entirely:
+ * it hands the draft straight to that group's own add-expense form (the same
+ * hand-off the inbox uses to assign a capture — `captureDraftFields` +
+ * `assignCaptureHref`), where payer and split live already. That screen was
+ * the honest place to ask them even before this hand-off existed — assigning a
+ * capture always finished there — so a capture that already knows its group
+ * now walks straight into the same form it was always going to end up on,
+ * carrying everything typed here so far, rather than asking a shorter version
+ * of the same two questions twice in two different shapes. The photo is read
+ * on the phone (A5) so its text can ride along as `rawText` if the capture
+ * stays here (no group); a group hand-off carries neither the photo nor that
+ * text, matching the inbox's own assign, which has never carried them either —
+ * a bill attached at capture time is not yet reachable from the expense the
+ * hand-off is about to create.
  */
 export default function CaptureScreen() {
   const theme = useTheme();
@@ -660,10 +674,12 @@ export default function CaptureScreen() {
             keeps reading as the same two facts rather than restating them in a
             different shape.
 
-            "Decide later" is the default group: the split, and who is in it, is
-            chosen when the capture is assigned — so this card asks four things
-            about a capture and nothing about splitting, which does not exist
-            here yet.
+            "Decide later" is the default group, and with it chosen this card
+            asks four things about a capture and nothing about splitting — there
+            is nobody to split it among yet. Picking any other group from this
+            row's sheet does not stay on this card at all: it hands the draft
+            straight to that group's add-expense form, where who paid and how it
+            is split are asked for real (see this screen's own header comment).
 
             The date picker is wrapped with its row rather than left as a
             sibling: `DetailRows` puts a hairline in every gap between its
@@ -810,7 +826,17 @@ export default function CaptureScreen() {
       {/* Destination picker, as a sheet over the form rather than a route away:
           "Decide later" pinned at the top so the default is always reachable,
           then a running trip if one is on today, the groups used most recently,
-          and the rest — so the group you mean is usually one of the first taps. */}
+          and the rest — so the group you mean is usually one of the first taps.
+
+          Picking "Decide later" is the only choice that stays a choice on this
+          screen — it just records the null destination, same as ever. Picking
+          any real group hands off instead: `captureDraftFields` reads whatever
+          is typed so far off this screen's own state, and `assignCaptureHref`
+          turns that into the exact params the inbox's assign already sends the
+          group's add-expense form, so the two arrive at that screen the same
+          way. Pushed, not replaced — backing out of add-expense with nothing
+          saved returns here with this draft untouched, the group row still
+          reading whatever it read before the tap. */}
       {pickingGroup ? (
         <SheetOverlay title={t.captures.groupPickerTitle} onClose={() => setPickingGroup(false)}>
           <Text variant="caption" tone="muted" style={{ marginBottom: theme.spacing.sm }}>
@@ -823,8 +849,26 @@ export default function CaptureScreen() {
             membersFor={summary.membersFor}
             t={t}
             onPick={(id) => {
-              setTargetGroupId(id);
               setPickingGroup(false);
+              if (id === null) {
+                setTargetGroupId(null);
+                return;
+              }
+              router.push(
+                assignCaptureHref(
+                  captureDraftFields({
+                    captureId,
+                    description,
+                    amount,
+                    category,
+                    categoryMeta,
+                    location,
+                    paymentMethod,
+                    date,
+                  }),
+                  id,
+                ),
+              );
             }}
           />
         </SheetOverlay>
