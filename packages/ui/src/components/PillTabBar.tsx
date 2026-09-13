@@ -10,8 +10,22 @@ import { Text } from './Text';
 export interface PillTabItem {
   key: string;
   label: string;
+  /**
+   * What a screen reader says instead of `label`, when a bare word is not
+   * enough — the Review tab reads its waiting count this way ("Review, 7
+   * waiting") while the pill under it still shows the one short word a tab
+   * has room for. Falls back to `label` when absent, so every existing item
+   * needs no change.
+   */
+  accessibilityLabel?: string;
   /** Receives the resolved colour so icons match the active/inactive state. */
   icon: (color: string, focused: boolean) => ReactNode;
+  /**
+   * A small count drawn over the icon. Undefined renders nothing — never a
+   * bare dot or a zero — so a caller folds "is there anything waiting" into
+   * the same number it passes here rather than this component guessing.
+   */
+  badge?: number;
 }
 
 /**
@@ -399,7 +413,7 @@ const TabItem = memo(function TabItem({
     <Pressable
       accessibilityRole="tab"
       accessibilityState={{ selected: focused }}
-      accessibilityLabel={item.label}
+      accessibilityLabel={item.accessibilityLabel ?? item.label}
       onPress={() => {
         if (!focused) onSelect(item.key);
       }}
@@ -415,21 +429,59 @@ const TabItem = memo(function TabItem({
           transform: [{ scale }],
         }}
       >
-        <View
-          style={{
-            width: INDICATOR_WIDTH,
-            height: INDICATOR_HEIGHT,
-            // A fixed stadium radius, larger than the box, so the ends stay
-            // fully round however the box is measured — half-the-height reads as
-            // square for the frame before layout settles the exact height.
-            borderRadius: 999,
-            alignItems: 'center',
-            justifyContent: 'center',
-            overflow: 'hidden',
-            backgroundColor: focused ? theme.color.brandSoft : 'transparent',
-          }}
-        >
-          {item.icon(ink, focused)}
+        {/* `position: relative` gives the badge below a frame of its own to sit
+            outside without pushing the indicator pill's own layout around. */}
+        <View style={{ position: 'relative' }}>
+          <View
+            style={{
+              width: INDICATOR_WIDTH,
+              height: INDICATOR_HEIGHT,
+              // A fixed stadium radius, larger than the box, so the ends stay
+              // fully round however the box is measured — half-the-height reads as
+              // square for the frame before layout settles the exact height.
+              borderRadius: 999,
+              alignItems: 'center',
+              justifyContent: 'center',
+              overflow: 'hidden',
+              backgroundColor: focused ? theme.color.brandSoft : 'transparent',
+            }}
+          >
+            {item.icon(ink, focused)}
+          </View>
+          {/* Sits at the icon's own corner, not the wider indicator pill's — the
+              pill only exists to carry the focused tint and is nearly twice the
+              icon's width, so anchoring to it would float the badge well clear
+              of the glyph it is meant to be attached to. A negative-margin ring
+              in the bar's own surface colour separates it from whatever sits
+              behind (the bar's flat fill, or the focused pill's soft tint),
+              matching the ring `HeroCircle` draws on the dashboard for the same
+              count. Never rendered at zero — `badge` is `undefined` then, not
+              `0`, so there is no dot with nothing behind it. */}
+          {item.badge ? (
+            <View
+              style={{
+                position: 'absolute',
+                top: -4,
+                right: INDICATOR_WIDTH / 2 - 16,
+                minWidth: 16,
+                height: 16,
+                borderRadius: 8,
+                paddingHorizontal: 3,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: theme.color.negative,
+                borderWidth: 1.5,
+                borderColor: theme.color.surface,
+              }}
+            >
+              <Text
+                variant="micro"
+                style={{ color: '#FFFFFF', fontSize: 9, lineHeight: 11, fontWeight: '800' }}
+              >
+                {item.badge > 99 ? '99+' : String(item.badge)}
+              </Text>
+            </View>
+          ) : null}
         </View>
         <Text
           variant="micro"

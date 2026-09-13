@@ -1,26 +1,20 @@
 /**
- * Small dashboard action decisions kept out of the component so interaction
- * affordances can be pinned without rendering the whole home screen.
+ * The capture inbox's badge math, kept out of any component so it can be
+ * shared and tested without rendering one.
+ *
+ * This used to decide the dashboard's own inbox circle, back when it disabled
+ * and dimmed itself at zero — a visible control that did nothing when tapped.
+ * The circle has since moved onto the bar as the "Review" tab (see
+ * `AppTabBar`), which is always tappable whether or not anything is waiting,
+ * so there is nothing left to disable; what survives here is the one thing
+ * both surfaces needed the same answer to — the badge, absent at zero so there
+ * is never a red dot standing for nothing.
  */
-
 export interface CaptureInboxActionState {
-  /** The badge shown on the inbox glyph; absent at zero so there is no red dot. */
+  /** The badge to show; absent at zero. */
   badge: number | undefined;
-  /** A visible inbox glyph should never be a dead target; empty inbox still opens. */
-  disabled: false;
 }
 
-/**
- * The dashboard's capture inbox button.
- *
- * It used to dim and disable itself at zero, leaving a visible control that did
- * nothing when tapped. Opening the empty inbox is the more honest empty state:
- * a user, rider, traveller or financer can still learn where drafts would land,
- * and the button no longer behaves like the dead gap reported beside the mic.
- */
 export function captureInboxActionState(captureCount: number): CaptureInboxActionState {
-  return {
-    badge: captureCount > 0 ? captureCount : undefined,
-    disabled: false,
-  };
+  return { badge: captureCount > 0 ? captureCount : undefined };
 }

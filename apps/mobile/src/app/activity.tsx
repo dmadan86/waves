@@ -7,6 +7,7 @@ import { FlashList } from '@shopify/flash-list';
 import {
   Badge,
   Button,
+  directionalIcon,
   EmptyState,
   IconButton,
   iconSize,
@@ -328,6 +329,17 @@ export default function ActivityScreen() {
     <View>
       <Row style={{ paddingTop: theme.spacing.md, justifyContent: 'space-between' }}>
         <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+          {/* Activity pushes now rather than tabs (it moved off the bar to make
+              room for Review, see `(tabs)/_layout.tsx`), so — like every other
+              pushed screen — it needs its own way back. Mirrored with the
+              writing direction, the same as `groups.tsx`'s header. */}
+          <IconButton label={t.common.back} onPress={() => router.back()}>
+            <Ionicons
+              name={directionalIcon('chevron-back')}
+              size={iconSize.xl}
+              color={theme.color.text}
+            />
+          </IconButton>
           <Ionicons name="pulse" size={iconSize.xl} color={theme.color.brand} />
           <Text variant="title">{t.activity}</Text>
         </Row>
