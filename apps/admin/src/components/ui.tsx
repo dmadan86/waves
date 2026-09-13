@@ -266,21 +266,29 @@ export function Field({
   );
 }
 
-/** A checkbox with its words beside it rather than above. */
+/**
+ * A checkbox with its words beside it rather than above.
+ *
+ * `value` is for the several-boxes-one-name case — a scope list read back with
+ * `formData.getAll(name)`. Without it a browser submits the string "on" for
+ * every ticked box, which is indistinguishable between them.
+ */
 export function Check({
   name,
   label,
+  value,
   defaultChecked,
   plain,
 }: {
   name: string;
   label: string;
+  value?: string;
   defaultChecked?: boolean;
   plain?: boolean;
 }) {
   return (
     <label className={plain ? 'check plain' : 'check'}>
-      <input type="checkbox" name={name} defaultChecked={defaultChecked} />
+      <input type="checkbox" name={name} value={value} defaultChecked={defaultChecked} />
       <span>{label}</span>
     </label>
   );

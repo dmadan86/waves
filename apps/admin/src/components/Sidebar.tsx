@@ -44,6 +44,7 @@ export const NAV: NavSection[] = [
       { href: '/config', label: 'Limits', icon: Icon.sliders },
       { href: '/services', label: 'Services', icon: Icon.server },
       { href: '/releases', label: 'Releases', icon: Icon.smartphone },
+      { href: '/notices', label: 'Status messages', icon: Icon.alert },
       { href: '/countries', label: 'Countries', icon: Icon.globe },
       { href: '/rate-limits', label: 'Rate limits', icon: Icon.gauge },
     ],

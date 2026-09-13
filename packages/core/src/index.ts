@@ -26,6 +26,7 @@ export * from './auth/firebaseToken';
 export * from './auth/guestLimits';
 export * from './observability/index';
 export * from './version/index';
+export * from './appState/index';
 export * from './billing/index';
 export * from './session/index';
 export * from './trip/index';

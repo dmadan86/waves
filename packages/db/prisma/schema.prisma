@@ -1175,6 +1175,46 @@ model AppRelease {
   @@schema("public")
 }
 
+/// Something the operator needs to say to every running app at once:
+/// maintenance, an incident, an announcement. Public read — signed out
+/// included, because the person who cannot sign in is the one who needs to know
+/// the server is down — and service-role write, like `app_releases`.
+///
+/// Deliberately incapable of stopping anybody adding an expense. The whole
+/// vocabulary is a kind, a window, a scope and some words; there is no
+/// `read_only` column and there must never be one. `app_releases.minimum_version`
+/// stays the single thing in this database that can gate the app.
+///
+/// `starts_at`/`ends_at` are the window *described*; `visible_from`/
+/// `visible_until` are when to say it — maintenance is announced a day ahead.
+/// `body` is optional per-language prose (`{"en": "...", "ta": "..."}`); the
+/// structured half composes itself in all four languages with no operator text
+/// at all. CHECK constraints on kind, ordering, scope shape and body shape live
+/// in `20260912180000_app_notices` and are not expressible here.
+model AppNotice {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  /// 'maintenance' | 'incident' | 'notice'.
+  kind         String
+  startsAt     DateTime? @map("starts_at") @db.Timestamptz(6)
+  endsAt       DateTime? @map("ends_at") @db.Timestamptz(6)
+  visibleFrom  DateTime  @default(now()) @map("visible_from") @db.Timestamptz(6)
+  visibleUntil DateTime? @map("visible_until") @db.Timestamptz(6)
+  /// Null or empty means every platform. Entries are ios/android/web.
+  platforms    String[]
+  /// Null or empty means everywhere. Entries are ISO-3166 alpha-2.
+  countries    String[]
+  body         Json      @default("{}")
+  /// Why the row exists, for whoever finds it open three weeks later. Operators
+  /// only; never shown to anybody using the app.
+  note         String    @default("")
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime  @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  @@index([visibleFrom(sort: Desc)], map: "app_notices_live_idx")
+  @@map("app_notices")
+  @@schema("public")
+}
+
 /// A feature switch, and the experiment running behind it.
 ///
 /// Readable by every client and writable by none of them: with RLS on and no
