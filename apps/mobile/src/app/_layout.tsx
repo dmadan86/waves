@@ -684,12 +684,12 @@ function AuthGate() {
             <Stack.Screen name="paywall" options={slide} />
           </Stack.Protected>
           <Stack.Screen name="capture" options={slide} />
-          {/* The drafts screen keeps the bottom bar, so a person leaves it by
-              tapping a tab — which should cut straight across the way a tab does,
-              not slide the draft card out first. `none` makes leaving it (and
-              arriving on it) instant, the same treatment the inbox destination
-              had before it became a tab. */}
-          <Stack.Screen name="captures" options={{ animation: 'none' }} />
+          {/* Activity, out of the tab group and onto this stack — the mirror
+              image of the move `captures` made the other way (see
+              `(tabs)/_layout.tsx`). It is reached from the dashboard hero now,
+              not the bar, so it pushes and slides like `profile` and `groups`
+              rather than cutting instantly the way a tab switch does. */}
+          <Stack.Screen name="activity" options={slide} />
           <Stack.Screen name="groups" options={slide} />
           <Stack.Screen name="group/[id]/index" options={slide} />
           <Stack.Screen name="group/[id]/add-expense" options={slide} />
@@ -745,10 +745,10 @@ function AuthGate() {
           <Stack.Screen name="settings/account" />
           <Stack.Screen name="settings/feedback" />
           <Stack.Screen name="settings/delete-account" />
-          {/* The inbox is a tab-navigator destination now (see `(tabs)/inbox`),
-              so it is no longer a screen on this root stack — a tap on it from
-              anywhere is an instant tab swap rather than a push that re-reveals
-              and thaws the whole tab tree. */}
+          {/* The drafts inbox is a tab-navigator destination now (see
+              `(tabs)/captures.tsx`), so it is no longer a screen on this root
+              stack — a tap on it from anywhere is an instant tab swap rather
+              than a push that re-reveals and thaws the whole tab tree. */}
           <Stack.Screen name="voice" options={slide} />
         </Stack.Protected>
         {/* Reachable with or without a session, so they belong to neither

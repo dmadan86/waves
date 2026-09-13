@@ -33,17 +33,10 @@ import {
   useTheme,
 } from '@waves/ui';
 
-import {
-  useCaptures,
-  useGroups,
-  useHomeSummary,
-  usePinnedGroupIds,
-  useSetGroupPin,
-} from '@/data/hooks';
+import { useGroups, useHomeSummary, usePinnedGroupIds, useSetGroupPin } from '@/data/hooks';
 import { orderByPin } from '@/lib/groupPinOrder';
 import { plural, useStrings, type UiStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
-import { foldedCaptureCount } from '@/lib/captureBatch';
 import { useGuestGuard } from '@/lib/guestGuard';
 import { router } from '@/lib/navigation';
 import { usePromptSlot } from '@/lib/promptQueue';
@@ -56,7 +49,6 @@ import { SkeletonList } from '@/components/Skeletons';
 import { useImportedGroupId } from '@/lib/importProgress';
 import { useReducedMotion } from '@/lib/reducedMotion';
 import { useDefaultCurrency } from '@/lib/currency';
-import { captureInboxActionState } from '@/lib/dashboardActions';
 import { QuickAddSheet, useQuickAddActions } from '@/components/QuickAddSheet';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { RestorePrompt } from '@/components/RestorePrompt';
@@ -84,12 +76,6 @@ export default function HomeScreen() {
   const pinnedIds = usePinnedGroupIds();
   const setGroupPin = useSetGroupPin();
   const summary = useHomeSummary(profile?.id ?? null);
-  // Unassigned captures now live as a badged inbox glyph in the toolbar rather
-  // than a section in the feed.
-  const captures = useCaptures();
-  // A voice batch counts as one draft on the inbox glyph, not one per item.
-  const captureCount = foldedCaptureCount(captures.data ?? []);
-  const captureInboxAction = captureInboxActionState(captureCount);
   const guard = useGuestGuard();
   const tour = useTour();
 
@@ -423,8 +409,13 @@ export default function HomeScreen() {
             />
           )}
 
-          {/* The add actions: one white "add expense" pill and the inbox
-                circle. Starting a group moved up to the header cluster. */}
+          {/* The add actions: one white "add expense" pill and, since Review
+                took the drafts inbox onto the bar (a real tab now, always one
+                tap away with its own badge — see `AppTabBar`), a circle for
+                Activity instead. It carries no badge of its own: the feed has
+                no unread concept today, so a badge here would have nothing
+                honest to count — this circle is a shortcut, not a counter.
+                Starting a group moved up to the header cluster. */}
           {/* Buttons and the pager travel together as one block, so the pager
                 sits just under the buttons rather than a full hero-gap away. */}
           <View style={{ gap: theme.spacing.md }}>
@@ -440,11 +431,9 @@ export default function HomeScreen() {
               </TourTarget>
               <Row style={{ marginLeft: 'auto', gap: theme.spacing.sm }}>
                 <HeroCircle
-                  icon="file-tray-outline"
-                  label={t.captures.title}
-                  badge={captureInboxAction.badge}
-                  disabled={captureInboxAction.disabled}
-                  onPress={() => router.navigate('/captures')}
+                  icon="pulse-outline"
+                  label={t.activity}
+                  onPress={() => router.navigate('/activity')}
                 />
               </Row>
             </Row>

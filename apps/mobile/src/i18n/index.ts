@@ -207,8 +207,14 @@ export interface UiStrings {
   /** A small tag on a group whose trip is running today. */
   tagOnTrip: string;
   newGroup: string;
+  /** The Activity screen's own title, still used there (it moved off the bar
+   *  onto a dashboard hero control, `app/activity.tsx`). */
   activity: string;
   friends: string;
+  /** The bar's Review tab — the drafts inbox that replaced Activity there.
+   *  Short on purpose; a tab has room for one word, and a screen reader is
+   *  handed the waiting count separately (see `AppTabBar`). */
+  review: string;
   /** The Friends list sort menu — the header, and its three keys. */
   sort: {
     by: string;
@@ -3211,6 +3217,7 @@ const en: UiStrings = {
   newGroup: 'New group',
   activity: 'Activity',
   friends: 'Friends',
+  review: 'Review',
   sort: { by: 'Sort by', amount: 'Amount', date: 'Recent activity', name: 'Name' },
   addPerson: {
     title: 'Add a person',
@@ -5823,6 +5830,7 @@ const ta: UiStrings = {
   newGroup: 'புதிய குழு',
   activity: 'செயல்பாடு',
   friends: 'நண்பர்கள்',
+  review: 'மறுபார்வை',
   sort: { by: 'வரிசைப்படுத்து', amount: 'தொகை', date: 'சமீபத்திய செயல்பாடு', name: 'பெயர்' },
   addPerson: {
     title: 'ஒருவரைச் சேர்',
@@ -8549,6 +8557,7 @@ const hi: UiStrings = {
   newGroup: 'नया समूह',
   activity: 'गतिविधि',
   friends: 'दोस्त',
+  review: 'समीक्षा',
   sort: { by: 'क्रमबद्ध करें', amount: 'राशि', date: 'हाल की गतिविधि', name: 'नाम' },
   addPerson: {
     title: 'एक व्यक्ति जोड़ें',
@@ -11182,6 +11191,7 @@ const ar: UiStrings = {
   newGroup: 'مجموعة جديدة',
   activity: 'النشاط',
   friends: 'الأصدقاء',
+  review: 'مراجعة',
   sort: { by: 'ترتيب حسب', amount: 'المبلغ', date: 'النشاط الأخير', name: 'الاسم' },
   addPerson: {
     title: 'إضافة شخص',

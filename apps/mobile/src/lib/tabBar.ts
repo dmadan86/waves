@@ -43,7 +43,7 @@ export interface TabBarState {
   readonly activeKey: string;
 }
 
-export type TabBarRoute = '/' | '/friends' | '/activity' | '/me';
+export type TabBarRoute = '/' | '/friends' | '/captures' | '/me';
 
 /**
  * The route a bottom-bar tap should navigate to, or null when the destination is
@@ -59,8 +59,8 @@ export function tabBarRouteForSelection(
   switch (selectedKey) {
     case 'friends':
       return '/friends';
-    case 'activity':
-      return '/activity';
+    case 'captures':
+      return '/captures';
     case 'me':
       return '/me';
     default:

@@ -10,6 +10,17 @@ import { Tabs } from 'expo-router';
  * the `animation: 'none'` below — so opening it from the dashboard cut to it in
  * one frame while every other pushed screen slid in. It is a root stack screen
  * now, and pushes like the rest.
+ *
+ * `captures` (labelled "Review" on the bar) replaced `activity` here: the
+ * inbox of expenses waiting to be filed is something every session touches,
+ * where the cross-group feed is something you check in on — so the drafts
+ * screen earned the bar slot and Activity moved to a dashboard control instead
+ * (`(tabs)/index.tsx`'s hero, `app/activity.tsx`). The route this file names is
+ * still `captures`, matching the file it renders (`(tabs)/captures.tsx`,
+ * formerly the root `app/captures.tsx`) — a group folder in parentheses
+ * contributes no path segment, so `/captures` resolves exactly as it did
+ * before the move and every existing push, `navigate` and deep link into it
+ * keeps working unchanged.
  */
 export default function TabsLayout() {
   return (
@@ -44,7 +55,7 @@ export default function TabsLayout() {
     >
       <Tabs.Screen name="index" />
       <Tabs.Screen name="friends" />
-      <Tabs.Screen name="activity" />
+      <Tabs.Screen name="captures" />
       <Tabs.Screen name="me" />
     </Tabs>
   );
