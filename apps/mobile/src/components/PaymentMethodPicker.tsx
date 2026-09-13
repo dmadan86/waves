@@ -1,28 +1,31 @@
 /**
- * How a spend was paid — a horizontal row of chips (cash, UPI, card, …).
+ * How a spend was paid — the rail's own glyph and label, wherever the field is
+ * asked or answered.
  *
  * The id is what persists to the free-text `payment_method` column, so any of
  * these is safe to store; the icon and label are UI. Debit wears the filled
- * card so it reads apart from credit's outline at chip size. `upi` is offered
- * only where the rail exists (see `deviceSupportsUpi`); everywhere else the row
- * is the region rails a person would recognise. One row that scrolls sideways
- * rather than wrapping, so the block keeps a fixed height however many rails a
- * region offers.
+ * card so it reads apart from credit's outline. `upi` is offered only where the
+ * rail exists (see `deviceSupportsUpi`); everywhere else the row is the region
+ * rails a person would recognise.
  *
- * Shared so the capture screen, add-expense, and add-person all speak the same
- * language for the same field.
- *
- * `PaymentMethodRow` + `PaymentMethodSheet` are the same rails as a list: a
- * settings row naming the field and showing the rail in force, and the options
- * behind it. Same ids, same labels, same order — only the presentation differs,
- * for forms that read as a list of settings rather than a stack of chip lanes.
+ * `PaymentMethodRow` + `PaymentMethodSheet` are the field as a settings row and
+ * the sheet of options behind it — a settings row naming the field and showing
+ * the rail in force, one per line with a check against the one chosen. Shared
+ * so the capture screen and add-expense both fold "paid with" into the same
+ * card of facts the expense screen states a filed bill's answers in, rather
+ * than each screen drawing its own idea of the same question. Add-expense
+ * always has a rail chosen (cash by default) and only ever swaps it; capture
+ * lets "not said" stand as a real answer — a person who has not decided yet
+ * should not have to guess — so both the row and the sheet carry the same
+ * `allowDeselect` shape `DetailRow`'s own picker siblings use: tapping the rail
+ * already chosen clears it back to unsaid instead of doing nothing.
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, ScrollView, View } from 'react-native';
+import { View } from 'react-native';
 
 import { type PaymentMethod } from '@waves/core';
-import { iconSize, Text, useTheme } from '@waves/ui';
+import { iconSize, useTheme } from '@waves/ui';
 
 import { DetailRow } from '@/components/DetailRows';
 import { ChoiceRow, SheetOverlay } from '@/components/expense/SheetOverlay';
@@ -38,25 +41,9 @@ const PAYMENT_METHOD_ICONS: Readonly<Record<PaymentMethod, keyof typeof Ionicons
 };
 
 /**
- * Two shapes, one picker. The group add-expense screen always has a method
- * chosen (cash by default) and only ever swaps it, so its `onChange` never sees
- * null. The capture screen lets "not said" be a valid answer — tapping the
- * chosen chip again clears it — so under `allowDeselect` the same tap can hand
- * back null. The discriminated union keeps each caller's `onChange` honest about
- * which it will receive.
- */
-type PaymentMethodPickerProps =
-  | { value: PaymentMethod | null; onChange: (value: PaymentMethod) => void; allowDeselect?: false }
-  | {
-      value: PaymentMethod | null;
-      onChange: (value: PaymentMethod | null) => void;
-      allowDeselect: true;
-    };
-
-/**
  * The rail's name, in the phone's language. A hook rather than a free function
  * because the strings come from context, and every presentation of this field —
- * chips, row, sheet — must name a rail the same way.
+ * row, sheet — must name a rail the same way.
  */
 function usePaymentMethodLabel(): (id: PaymentMethod) => string {
   const { t } = useStrings();
@@ -76,112 +63,72 @@ function usePaymentMethodLabel(): (id: PaymentMethod) => string {
   };
 }
 
-export function PaymentMethodPicker(props: PaymentMethodPickerProps) {
-  const { value } = props;
-  const theme = useTheme();
-  const label = usePaymentMethodLabel();
-  const methods = offeredPaymentMethods({ upiSupported: deviceSupportsUpi(), current: value });
-
-  return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      keyboardShouldPersistTaps="handled"
-      contentContainerStyle={{ gap: theme.spacing.sm, paddingRight: theme.spacing.xl }}
-    >
-      {methods.map((method) => {
-        const active = value === method;
-        return (
-          <Pressable
-            key={method}
-            accessibilityRole="radio"
-            accessibilityState={{ selected: active }}
-            accessibilityLabel={label(method)}
-            onPress={() => {
-              if (props.allowDeselect) {
-                props.onChange(active ? null : method);
-              } else {
-                props.onChange(method);
-              }
-            }}
-            style={({ pressed }) => ({
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: theme.spacing.xs,
-              // Match the category chips: a 44pt floor so the tap target clears
-              // the iOS 44 / Android 48 minimum (padding alone left it ~37pt).
-              minHeight: 44,
-              paddingVertical: theme.spacing.sm,
-              paddingHorizontal: theme.spacing.md,
-              borderRadius: theme.radius.md,
-              borderWidth: 1,
-              borderColor: active ? theme.color.brand : theme.color.border,
-              backgroundColor: active ? theme.color.brandSoft : theme.color.surface,
-              opacity: pressed ? 0.7 : 1,
-            })}
-          >
-            <Ionicons
-              name={PAYMENT_METHOD_ICONS[method]}
-              size={iconSize.md}
-              color={active ? theme.color.brand : theme.color.textMuted}
-            />
-            <Text variant="body" style={{ color: active ? theme.color.brand : theme.color.text }}>
-              {label(method)}
-            </Text>
-          </Pressable>
-        );
-      })}
-    </ScrollView>
-  );
-}
-
 /**
  * The rail in force as one row of a settings list: the rail's glyph, the field's
  * name, the rail's label, a chevron into {@link PaymentMethodSheet}.
  *
  * A {@link DetailRow}, the row the expense screen states a bill's facts in, so
- * "paid with" is asked in the shape it is read back in.
- *
- * Only the non-deselectable shape: a list row has to show *something* on its
- * right, and "not said" is a state the chip lane can express by having nothing
- * lit but a row cannot. The screens that allow "not said" keep the chips.
+ * "paid with" is asked in the shape it is read back in. A null value — capture's
+ * "not said", never reachable from add-expense's always-chosen state — draws
+ * the same placeholder styling {@link DetailRows}'s group row uses for "decide
+ * later": a faint answer rather than a blank one, so the row still says there
+ * is a question here to answer.
  */
 export function PaymentMethodRow({
   value,
   onPress,
 }: {
-  value: PaymentMethod;
+  value: PaymentMethod | null;
   onPress: () => void;
 }) {
   const { t } = useStrings();
   const label = usePaymentMethodLabel();
-  const method = offeredPaymentMethods({ upiSupported: deviceSupportsUpi(), current: value }).find(
-    (it) => it === value,
-  );
+  const method = value
+    ? offeredPaymentMethods({ upiSupported: deviceSupportsUpi(), current: value }).find(
+        (it) => it === value,
+      )
+    : null;
 
   return (
     <DetailRow
-      // A rail the region does not offer still has to draw *some* mark, or the
-      // row loses the column the stack next to it is read down. The wallet is
-      // the field's own glyph, standing in for the answer's.
+      // A rail the region does not offer, or none chosen at all, still has to
+      // draw *some* mark, or the row loses the column the stack next to it is
+      // read down. The wallet is the field's own glyph, standing in for the
+      // answer's.
       icon={method ? PAYMENT_METHOD_ICONS[method] : 'wallet-outline'}
       label={t.captures.paidWith}
-      value={label(value)}
+      value={value ? label(value) : t.captures.paidNotSaid}
+      placeholder={!value}
       onPress={onPress}
     />
   );
 }
 
-/** The same rails as a sheet of options, one per line, checked where chosen. */
-export function PaymentMethodSheet({
-  value,
-  onChange,
-  onClose,
-}: {
-  value: PaymentMethod | null;
-  onChange: (value: PaymentMethod) => void;
-  onClose: () => void;
-}) {
+/**
+ * The same rails as a sheet of options, one per line, checked where chosen.
+ *
+ * Two shapes, like the row above it: add-expense's `onChange` never sees null,
+ * because that screen always has a rail chosen and only ever swaps it. Capture
+ * allows "not said", so under `allowDeselect` tapping the rail already checked
+ * clears it rather than re-choosing the same thing — the sheet's equivalent of
+ * the old chip lane's "tap the lit one again" gesture.
+ */
+type PaymentMethodSheetProps =
+  | {
+      value: PaymentMethod;
+      onChange: (value: PaymentMethod) => void;
+      allowDeselect?: false;
+      onClose: () => void;
+    }
+  | {
+      value: PaymentMethod | null;
+      onChange: (value: PaymentMethod | null) => void;
+      allowDeselect: true;
+      onClose: () => void;
+    };
+
+export function PaymentMethodSheet(props: PaymentMethodSheetProps): React.JSX.Element {
+  const { value, onClose } = props;
   const theme = useTheme();
   const { t } = useStrings();
   const label = usePaymentMethodLabel();
@@ -209,7 +156,13 @@ export function PaymentMethodSheet({
                     />
                   </View>
                 }
-                onPress={() => onChange(method)}
+                onPress={() => {
+                  if (props.allowDeselect) {
+                    props.onChange(active ? null : method);
+                  } else {
+                    props.onChange(method);
+                  }
+                }}
               />
             );
           },

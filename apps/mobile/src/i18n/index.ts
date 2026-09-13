@@ -1570,6 +1570,9 @@ export interface UiStrings {
     payDebit: string;
     payForex: string;
     payUpi: string;
+    /** The "paid with" row's answer when nobody has said — a real answer, not a
+     *  blank, for the one field capture lets stand undecided. */
+    paidNotSaid: string;
     group: string;
     decideLater: string;
     groupPickerTitle: string;
@@ -4283,6 +4286,7 @@ const en: UiStrings = {
     payDebit: 'Debit card',
     payForex: 'Forex',
     payUpi: 'UPI',
+    paidNotSaid: 'Not said',
     group: 'Group',
     decideLater: 'Decide later',
     groupPickerTitle: 'Add to a group',
@@ -6925,6 +6929,7 @@ const ta: UiStrings = {
     payDebit: 'டெபிட் கார்டு',
     payForex: 'அன்னியச் செலாவணி',
     payUpi: 'UPI',
+    paidNotSaid: 'குறிப்பிடவில்லை',
     group: 'குழு',
     decideLater: 'பிறகு முடிவு செய்யலாம்',
     groupPickerTitle: 'ஒரு குழுவில் சேர்க்கவும்',
@@ -9620,6 +9625,7 @@ const hi: UiStrings = {
     payDebit: 'डेबिट कार्ड',
     payForex: 'विदेशी मुद्रा',
     payUpi: 'UPI',
+    paidNotSaid: 'नहीं बताया',
     group: 'समूह',
     decideLater: 'बाद में तय करें',
     groupPickerTitle: 'किसी समूह में जोड़ें',
@@ -12322,6 +12328,7 @@ const ar: UiStrings = {
     payDebit: 'بطاقة خصم',
     payForex: 'عملة أجنبية',
     payUpi: 'UPI',
+    paidNotSaid: 'لم يُذكر',
     group: 'المجموعة',
     decideLater: 'قرّر لاحقًا',
     groupPickerTitle: 'أضِف إلى مجموعة',
