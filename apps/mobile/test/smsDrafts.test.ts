@@ -13,7 +13,13 @@ import { describe, expect, it } from 'vitest';
 
 import { proposeFromSms, type SmsMessage } from '@waves/core';
 
-import { bodiesByKey, planSmsDrafts, splitMessages, unreadableCount } from '@/lib/smsDrafts';
+import {
+  bodiesByKey,
+  bodyForDisplay,
+  planSmsDrafts,
+  splitMessages,
+  unreadableCount,
+} from '@/lib/smsDrafts';
 
 const SWIGGY = 'Rs.1,250.00 debited from a/c XX4471 on 02-03-26 at SWIGGY. UPI Ref: 412703998812';
 const CAFE = 'Rs.240 debited at BLUE TOKAI on 03-03-26. Ref: 998877665544';
@@ -47,6 +53,26 @@ describe('splitting a paste into messages', () => {
   it('gives nothing for nothing', () => {
     expect(splitMessages('')).toEqual([]);
     expect(splitMessages('   \n  \n ')).toEqual([]);
+  });
+
+  // The blank line used to be a rule a person had to know. It is now a hint:
+  // cutting a block up only wins when the finer cut reads *better*, so this can
+  // find messages the old splitter ran together and can never lose one.
+  it('separates two messages a person pasted with no blank line', () => {
+    expect(splitMessages(`${SWIGGY}\n${CAFE}`)).toEqual([SWIGGY, CAFE]);
+  });
+
+  it('cuts at the sender header a messages app stamps on each one', () => {
+    const lump = `JM-ICICIT-S\n${SWIGGY}\nAX-AXISBK-S\n${CAFE}`;
+    expect(splitMessages(lump)).toEqual([`JM-ICICIT-S\n${SWIGGY}`, `AX-AXISBK-S\n${CAFE}`]);
+  });
+
+  it('leaves a message that wraps over several lines whole', () => {
+    // The safety property: a tie goes to the coarser cut, so half a message —
+    // which parses to nothing, or worse to a smaller amount — is never made.
+    const wrapped =
+      'Rs.1,250.00 debited from a/c XX4471\non 02-03-26 at SWIGGY.\nUPI Ref: 412703998812';
+    expect(splitMessages(wrapped)).toEqual([wrapped]);
   });
 });
 
@@ -152,8 +178,9 @@ describe('what a draft is made of', () => {
   });
 
   it('leaves a message with no shop unnamed rather than inventing a word', () => {
-    // The screen shows "Card payment"; the row keeps the truth, because a
-    // description is a thing a person typed or a bank said.
+    // The screen says "Payment from HDFC Bank", which is true of the message;
+    // the row keeps the truth, because a description is a thing a person typed
+    // or a bank said.
     const bare = proposeFromSms([sms('Rs.500 debited on 02-03-26')]);
     const [draft] = planSmsDrafts({
       candidates: bare,
@@ -167,6 +194,47 @@ describe('what a draft is made of', () => {
     const one = planSmsDrafts({ candidates, chosen: new Set([candidates[0]!.dedupeKey]) });
     expect(one).toHaveLength(1);
     expect(planSmsDrafts({ candidates, chosen: new Set() })).toEqual([]);
+  });
+
+  it('does not file a phone number as the name of a shop', () => {
+    // A person ticks a row that reads "Payment from your bank". It must not
+    // arrive in Review called 9215676766 — the same guard decides both, so
+    // what was read and what was kept cannot drift apart.
+    //
+    // The junk merchant is handed in directly rather than coaxed out of the
+    // parser. Both layers now refuse a bare number, and an earlier version of
+    // this test asserted the *parser* still produced one as its setup — so
+    // tightening the parser broke a test about the app-layer guard, which was
+    // never what it was measuring. Two defences, tested where each one lives.
+    const [real] = proposeFromSms([sms('Rs.300 debited on 02-03-26 to SWIGGY')]);
+    const junk = { ...real!, merchant: '9215676766' };
+    const [draft] = planSmsDrafts({
+      candidates: [junk],
+      chosen: new Set([junk.dedupeKey]),
+    });
+    expect(draft?.description).toBe('');
+    expect(draft?.category).toBeNull();
+  });
+});
+
+describe('the message a person may read is the message that will be kept', () => {
+  const messages = [sms(SWIGGY)];
+  const key = proposeFromSms(messages)[0]!.dedupeKey;
+  const bodies = bodiesByKey(messages);
+
+  it('hands back a pasted body', () => {
+    expect(bodyForDisplay(key, bodies, new Set())).toBe(SWIGGY);
+  });
+
+  it('hands back nothing for a message read out of the inbox', () => {
+    // Not merely "is not stored" — not shown either, and by the same function,
+    // so the disclosure's promise cannot be undone by a screen.
+    expect(bodyForDisplay(key, bodies, new Set([key]))).toBeNull();
+  });
+
+  it('hands back nothing when there is no body to hand back', () => {
+    expect(bodyForDisplay('amt:INR:1:2026-03-02:?', bodies, undefined)).toBeNull();
+    expect(bodyForDisplay(key, undefined, undefined)).toBeNull();
   });
 });
 

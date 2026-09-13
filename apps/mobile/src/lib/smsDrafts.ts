@@ -39,6 +39,8 @@ import {
   type SmsMessage,
 } from '@waves/core';
 
+import { merchantName } from './smsPlain';
+
 /** Where a draft's message came from. The two are not treated alike. */
 export type SmsDraftChannel = 'paste' | 'inbox';
 
@@ -100,19 +102,92 @@ export interface PlanSmsDraftsInput {
 }
 
 /**
- * Messages are separated by a blank line.
+ * A line that looks like the first line of a *new* message.
  *
- * A single SMS wraps over several lines of its own, so splitting on every
- * newline would cut most of them in half — and half a message parses to either
- * nothing or, worse, a smaller amount. The count is shown before anything is
- * parsed so a bad paste is visible rather than silently producing two
- * candidates from six messages.
+ * Two shapes, both put there by the messages app rather than by the bank: a DLT
+ * sender header (`JM-ICICIT-S`, with or without the punctuation after it) and a
+ * date stamp of the kind a copy-several-messages action stamps each one with.
+ */
+const STARTS_A_MESSAGE =
+  /^(?:[A-Z]{2}-[A-Z][A-Z0-9]{2,9}(?:-[A-Z])?\b|\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b|\d{1,2}:\d{2}\s*(?:[AaPp][Mm])?\s*[-–—]\s)/;
+
+/** Split before every line that announces a new message. */
+function splitAtStarts(block: string): string[] {
+  const lines = block.split('\n');
+  const parts: string[] = [];
+  let current: string[] = [];
+  const flush = (): void => {
+    const joined = current.join('\n').trim();
+    if (joined) parts.push(joined);
+    current = [];
+  };
+  for (const line of lines) {
+    if (STARTS_A_MESSAGE.test(line.trim()) && current.some((held) => held.trim())) flush();
+    current.push(line);
+  }
+  flush();
+  return parts;
+}
+
+/** How many of these pieces the parser can read as a transaction at all. */
+function readableCount(parts: readonly string[]): number {
+  let readable = 0;
+  for (const part of parts) {
+    if (parseSms(part)) readable += 1;
+  }
+  return readable;
+}
+
+/**
+ * One pasted block, cut up only if cutting it up demonstrably reads better.
+ *
+ * The blank line between messages used to be a rule a person had to know, which
+ * is exactly the sort of rule somebody gets wrong and then feels stupid about.
+ * It is now a hint: three ways of cutting the block are tried — leave it whole,
+ * cut at the lines that announce a new message, cut at every line — and the one
+ * that yields the most *readable* messages wins.
+ *
+ * Ties go to the coarser split, deliberately. A single SMS wraps over several
+ * lines, and half a message parses either to nothing or, worse, to a smaller
+ * amount; so this can only ever find more messages than leaving the block
+ * alone, never fewer. That one-way property is what makes it safe to do without
+ * asking.
+ */
+function bestSplit(block: string): string[] {
+  let best = [block];
+  let bestScore = readableCount(best);
+
+  for (const attempt of [splitAtStarts(block), block.split('\n')]) {
+    const parts = attempt.map((part) => part.trim()).filter((part) => part.length > 0);
+    if (parts.length < 2) continue;
+    const score = readableCount(parts);
+    if (score > bestScore) {
+      best = parts;
+      bestScore = score;
+    }
+  }
+
+  return best;
+}
+
+/**
+ * A paste, as messages.
+ *
+ * A blank line is still the clearest separator and the one the Paste button
+ * writes for you, but nothing here depends on a person knowing that — see
+ * {@link bestSplit}. The count is shown before anything is parsed so a paste
+ * that came out wrong is visible rather than silently producing two candidates
+ * from six messages.
  */
 export function splitMessages(blob: string): string[] {
-  return blob
+  const blocks = blob
     .split(/\n\s*\n+/)
     .map((part) => part.trim())
     .filter((part) => part.length > 0);
+
+  const messages: string[] = [];
+  for (const block of blocks) messages.push(...bestSplit(block));
+  return messages;
 }
 
 /**
@@ -158,6 +233,25 @@ export function bodiesByKey(messages: readonly SmsMessage[]): Map<string, string
   return bodies;
 }
 
+/**
+ * The body a person may be shown for one candidate, or null.
+ *
+ * The same rule as {@link planSmsDrafts}'s `rawText`, in one function so that
+ * "what you can read on the screen" and "what gets written down" cannot drift
+ * apart: a read message's body is neither stored nor displayed, because the one
+ * copy of it lives in the phone's own Messages app and that is enough. A pasted
+ * message's body is both, because the person put it there and will want to
+ * check it against the row this screen made of it.
+ */
+export function bodyForDisplay(
+  key: string,
+  bodies: ReadonlyMap<string, string> | undefined,
+  readKeys: ReadonlySet<string> | undefined,
+): string | null {
+  if (readKeys?.has(key)) return null;
+  return bodies?.get(key) ?? null;
+}
+
 /** The ticked candidates, as drafts. Order is the candidates' own. */
 export function planSmsDrafts(input: PlanSmsDraftsInput): SmsDraft[] {
   const drafts: SmsDraft[] = [];
@@ -168,14 +262,18 @@ export function planSmsDrafts(input: PlanSmsDraftsInput): SmsDraft[] {
     // matter what the caller passed in `bodies`.
     const read = input.readKeys?.has(candidate.dedupeKey) ?? false;
     const channel: SmsDraftChannel = read ? 'inbox' : 'paste';
-    const rawText = read ? null : (input.bodies?.get(candidate.dedupeKey) ?? null);
+    const rawText = bodyForDisplay(candidate.dedupeKey, input.bodies, input.readKeys);
 
     // The merchant is the description, the way it is for every other capture.
     // With no merchant the draft has no name — the amount and the day are what
     // the message gave us, and inventing "Card payment" as *stored* text would
     // put a word into the ledger the bank never said. The screen shows that
     // wording; the row keeps the truth.
-    const description = candidate.merchant?.trim() ?? '';
+    //
+    // `merchantName` is the same guard the row's title uses, so a payment shown
+    // as "Payment from Axis Bank" cannot arrive in Review named "9215676766".
+    // A person ticks what they read.
+    const description = merchantName(candidate.merchant) ?? '';
 
     drafts.push({
       dedupeKey: candidate.dedupeKey,
