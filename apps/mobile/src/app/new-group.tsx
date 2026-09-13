@@ -137,6 +137,30 @@ export default function NewGroupScreen() {
   // being changed. Nothing here is required; the point is that the screen reads
   // as already filled in rather than as a form still to be completed.
   const [openAttr, setOpenAttr] = useState<'kind' | 'dates' | 'budget' | null>(null);
+
+  /**
+   * Bring an unfolded row back into view.
+   *
+   * These rows open *in place*, near the foot of a scroll that already has a
+   * pinned button under it — and the budget one raises a numeric keypad in the
+   * same gesture that reveals the field. Android resizes the window for the
+   * keyboard (`adjustResize`), which shrinks this scroll rather than moving it,
+   * so the field that just appeared is left underneath the keypad with nothing
+   * scrolling it back. Nobody can type into what they cannot see.
+   *
+   * Scrolling to the end rather than measuring the row: the only thing below
+   * any of these is the simplify toggle, so the end *is* the unfolded row plus
+   * one row of context, and it needs no layout maths that would go stale the
+   * moment a row above it grows. The delay lets the unfolded content lay out
+   * and the keyboard finish its own resize first — scrolling to an end that has
+   * not happened yet scrolls nowhere.
+   */
+  const scrollRef = useRef<ScrollView>(null);
+  useEffect(() => {
+    if (openAttr === null) return;
+    const id = setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 160);
+    return () => clearTimeout(id);
+  }, [openAttr]);
   const [ghostName, setGhostName] = useState('');
   // People to add on Create — a typed name carries no address, a contact carries
   // whatever the phone had. Same shape either way, so the create loop treats
@@ -443,6 +467,7 @@ export default function NewGroupScreen() {
         <View style={{ width: 44 }} />
       </Row>
       <ScrollView
+        ref={scrollRef}
         style={{ flex: 1 }}
         contentContainerStyle={{
           paddingHorizontal: theme.spacing.xl,
