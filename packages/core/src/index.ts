@@ -7,6 +7,7 @@
  */
 
 export * from './ids';
+export * from './text/index';
 export * from './time/index';
 export * from './money/index';
 export * from './split/index';

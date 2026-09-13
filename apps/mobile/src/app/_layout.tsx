@@ -684,6 +684,12 @@ function AuthGate() {
             <Stack.Screen name="paywall" options={slide} />
           </Stack.Protected>
           <Stack.Screen name="capture" options={slide} />
+          {/* The Review tab lives at `(tabs)/captures.tsx` and resolves at
+              `/captures`; these two are pushed on top of it, so a `captures/`
+              folder beside the tab group is exactly right and collides with
+              nothing. */}
+          <Stack.Screen name="captures/paste" options={slide} />
+          <Stack.Screen name="captures/messages" options={slide} />
           {/* Activity, out of the tab group and onto this stack — the mirror
               image of the move `captures` made the other way (see
               `(tabs)/_layout.tsx`). It is reached from the dashboard hero now,

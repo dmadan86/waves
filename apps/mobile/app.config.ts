@@ -98,6 +98,20 @@ function googleSignInPlugin(): [string, { iosUrlScheme: string }] | undefined {
   ];
 }
 
+/**
+ * Whether this build declares `android.permission.READ_SMS`.
+ *
+ * The same one-spelling switch `plugins/withSmsReader.js` reads, recorded into
+ * `extra` so the running app can tell without guessing. Asking the native module
+ * whether it loaded is not the same question: the module autolinks into every
+ * Android build, and a build without the manifest entry would get as far as the
+ * system permission dialog before failing — which is precisely the dialog a
+ * default build must never show. `src/lib/smsFeature.ts` reads this.
+ */
+function smsReaderBuild(): boolean {
+  return process.env.WAVES_SMS_READER === '1';
+}
+
 export default ({ config: fromAppJson }: ConfigContext): ExpoConfig => {
   // `app.json` arrives here already parsed, rather than being imported: that is
   // the shape `expo-doctor` recognises as "the dynamic config uses the static
@@ -117,6 +131,7 @@ export default ({ config: fromAppJson }: ConfigContext): ExpoConfig => {
   const iosKey = googleMapsKey('ios');
   const withPush: ExpoConfig = {
     ...config,
+    extra: { ...config.extra, smsReader: smsReaderBuild() },
     android: androidKey
       ? { ...androidBase, config: { ...androidBase?.config, googleMaps: { apiKey: androidKey } } }
       : androidBase,

@@ -323,6 +323,10 @@ export function proposeFromEmail(
       accountTail: null,
       reference: null,
       occurredAt,
+      // An email line is read with its own rules, not the SMS parser's, so
+      // nothing here is an inference the SMS module would want to flag. The
+      // field exists on the shared shape; an empty list is the honest value.
+      inferred: [],
       confidence: Math.min(1, Number(confidence.toFixed(2))),
     };
 
