@@ -200,12 +200,18 @@ describe('what a draft is made of', () => {
     // A person ticks a row that reads "Payment from your bank". It must not
     // arrive in Review called 9215676766 — the same guard decides both, so
     // what was read and what was kept cannot drift apart.
-    const junk = proposeFromSms([sms('Rs.300 debited on 02-03-26 to 9215676766')]);
+    //
+    // The junk merchant is handed in directly rather than coaxed out of the
+    // parser. Both layers now refuse a bare number, and an earlier version of
+    // this test asserted the *parser* still produced one as its setup — so
+    // tightening the parser broke a test about the app-layer guard, which was
+    // never what it was measuring. Two defences, tested where each one lives.
+    const [real] = proposeFromSms([sms('Rs.300 debited on 02-03-26 to SWIGGY')]);
+    const junk = { ...real!, merchant: '9215676766' };
     const [draft] = planSmsDrafts({
-      candidates: junk,
-      chosen: new Set(junk.map((item) => item.dedupeKey)),
+      candidates: [junk],
+      chosen: new Set([junk.dedupeKey]),
     });
-    expect(junk[0]?.merchant).toBe('9215676766');
     expect(draft?.description).toBe('');
     expect(draft?.category).toBeNull();
   });
