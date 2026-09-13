@@ -40,7 +40,7 @@ import { CampaignPopup } from '@/components/CampaignPopup';
 import { NotificationPrompt } from '@/components/NotificationPrompt';
 import { TourOverlay } from '@/components/TourOverlay';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { UpdateBanner, UpdateGate } from '@/components/UpdateGate';
+import { StatusBanner, UpdateGate } from '@/components/AppStatus';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { AutoBackup } from '@/lib/backup/AutoBackup';
 import { backendConfigured } from '@/lib/backend';
@@ -64,7 +64,7 @@ import { SyncNetworkProvider } from '@/lib/syncNetwork';
 import { ThemePreferenceProvider, useThemePreference } from '@/lib/theme';
 import { DialogProvider } from '@/lib/dialog';
 import { ToastProvider } from '@/lib/toast';
-import { UpdateProvider } from '@/lib/update';
+import { AppStatusProvider } from '@/lib/appStatus';
 import { initClarity } from '@/lib/clarity';
 import { initObservability, withObservability } from '@/lib/observability';
 import { ensureAndroidChannel, pushSupported, routeForNotification } from '@/lib/push';
@@ -213,7 +213,7 @@ function RootLayout() {
               <SyncProvider>
                 <LockProvider>
                   <SyncNetworkProvider>
-                    <UpdateProvider>
+                    <AppStatusProvider>
                       <ThemePreferenceProvider>
                         <ReducedMotionProvider>
                           <TourProvider>
@@ -293,7 +293,7 @@ function RootLayout() {
                                         <TourOverlay />
                                         {/* Last, so it paints over the screen rather than
                               under it. */}
-                                        <UpdateBanner />
+                                        <StatusBanner />
                                       </UpdateGate>
                                       {/* Topmost of all: the launch field, painting over
                                   the whole app until it fades itself out. Native
@@ -307,7 +307,7 @@ function RootLayout() {
                           </TourProvider>
                         </ReducedMotionProvider>
                       </ThemePreferenceProvider>
-                    </UpdateProvider>
+                    </AppStatusProvider>
                   </SyncNetworkProvider>
                 </LockProvider>
               </SyncProvider>

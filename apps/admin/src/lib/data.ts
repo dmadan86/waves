@@ -1084,9 +1084,28 @@ function atMost(a: string, b: string): boolean {
  * `minimum_version` is the sharpest control in the whole database: the app
  * checks it before anybody signs in, so raising it past a build locks every
  * install on that build out of the product until the store has the new one.
- * The database has a CHECK that minimum never exceeds latest; it is repeated
- * here so the refusal arrives as a sentence beside the field rather than as a
- * constraint violation.
+ *
+ * Three guards, because a single typo here strands the entire install base and
+ * each one catches a different typo:
+ *
+ *   1. **Minimum may not exceed latest.** A CHECK in the database
+ *      (`app_releases_minimum_not_above_latest`), repeated here so the refusal
+ *      arrives as a sentence beside the field, and repeated a third time in
+ *      `appState` so a policy that somehow got past both is ignored by the app
+ *      rather than obeyed. This catches `minumum = 9.0.0` while the store has
+ *      1.4.
+ *   2. **Raising the minimum has to be retyped.** The accident the CHECK cannot
+ *      see is raising *both* numbers together — `latest = 11.4.0` for a build
+ *      called 1.4.0 passes every ordering test and locks out everybody, because
+ *      the store has nothing above it to install. So a save that increases the
+ *      minimum must carry the same version typed a second time by hand. It is a
+ *      deliberately dull hurdle at the one moment somebody is moving fast.
+ *   3. **A version that is not a version is refused.** Both fields are matched
+ *      against the same shape the column is constrained to.
+ *
+ * Lowering a minimum, or leaving it alone, needs no confirmation: neither can
+ * lock anybody out, and an operator undoing a mistake at 2am should not have to
+ * type anything twice.
  *
  * An UPDATE, not an upsert: the two platform rows are seeded by the migration
  * and `app_releases_platform_check` allows no third.
@@ -1097,6 +1116,8 @@ export async function saveAppRelease(input: {
   minimumVersion: string;
   storeUrl: string;
   message: string;
+  /** Retyped by hand when the minimum is going up. See below. */
+  confirmMinimum: string;
 }): Promise<void> {
   await requireSession();
 
@@ -1111,6 +1132,26 @@ export async function saveAppRelease(input: {
   if (!atMost(minimum, latest)) {
     throw new Error(
       `The minimum (${minimum}) cannot be above the latest release (${latest}) — that would lock out everybody, including people already on the newest build.`,
+    );
+  }
+
+  // Read the row we are about to overwrite, so "is this a raise?" is answered
+  // against what is actually live rather than against whatever the form was
+  // rendered from — two operators in two tabs during an incident is exactly
+  // when this matters.
+  const { data: current, error: readError } = await client()
+    .from('app_releases')
+    .select('minimum_version')
+    .eq('platform', platform)
+    .maybeSingle();
+  if (readError) throw new Error(`reading the ${platform} release failed: ${readError.message}`);
+  const live = (current as { minimum_version?: string } | null)?.minimum_version ?? '0.0.0';
+
+  if (!atMost(minimum, live) && input.confirmMinimum.trim() !== minimum) {
+    throw new Error(
+      `Raising the minimum from ${live} to ${minimum} locks out every install below ${minimum}, ` +
+        'and there is no way back for them until the store has a build at or above it. ' +
+        `Type ${minimum} into the confirmation box to go ahead.`,
     );
   }
 
@@ -1174,4 +1215,213 @@ export async function agentWrites(limit = 200): Promise<AgentWriteRow[]> {
     throw new Error(`reading agent_writes failed: ${error.message}`);
   }
   return (data ?? []) as AgentWriteRow[];
+}
+
+// ──────────────────────────── what the operator is telling every running app ──
+
+export interface AppNoticeRow {
+  id: string;
+  kind: string;
+  starts_at: string | null;
+  ends_at: string | null;
+  visible_from: string;
+  visible_until: string | null;
+  platforms: string[] | null;
+  countries: string[] | null;
+  body: Record<string, string>;
+  note: string;
+  updated_at: string;
+  /** Whether the app is saying this right now. Derived here — see below. */
+  live: boolean;
+  /** Whether it ever started. A queued row is neither live nor over. */
+  started: boolean;
+}
+
+/** The three kinds the app has wording for. A fourth would reach nobody. */
+export const NOTICE_KINDS = ['maintenance', 'incident', 'notice'] as const;
+
+/** The languages the app ships, and therefore the only keys `body` may carry. */
+export const NOTICE_LANGUAGES = ['en', 'ta', 'hi', 'ar'] as const;
+
+/**
+ * Everything in the table, newest first — expired rows included.
+ *
+ * The dead ones are shown deliberately: the question an operator asks the
+ * morning after an incident is "what did we tell people, and when did we stop",
+ * and a list that silently drops anything answered cannot answer it.
+ */
+export async function appNotices(): Promise<AppNoticeRow[]> {
+  await requireSession();
+  const { data, error } = await client()
+    .from('app_notices')
+    .select(
+      'id, kind, starts_at, ends_at, visible_from, visible_until, platforms, countries, body, note, updated_at',
+    )
+    .order('visible_from', { ascending: false })
+    .limit(100);
+  if (error) {
+    if (error.code === TABLE_MISSING) return [];
+    throw new Error(`reading app_notices failed: ${error.message}`);
+  }
+
+  // "Is this live" is answered here rather than in the page, because reading a
+  // clock during a render is not something a component may do — and because the
+  // question belongs beside the query anyway. It is the same test the app
+  // applies: inside the visibility window, and not past the end of the window
+  // it describes.
+  const now = Date.now();
+  return (data ?? []).map((raw) => {
+    const row = raw as Omit<AppNoticeRow, 'live' | 'started'>;
+    const started = Date.parse(row.visible_from) <= now;
+    const stopped =
+      (row.visible_until !== null && Date.parse(row.visible_until) <= now) ||
+      (row.ends_at !== null && Date.parse(row.ends_at) <= now);
+    return { ...row, started, live: started && !stopped };
+  });
+}
+
+/** An ISO instant from a `datetime-local` field, or null for a blank one. */
+function instantOrNull(value: string, field: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const parsed = new Date(trimmed);
+  if (Number.isNaN(parsed.getTime())) throw new Error(`${field} is not a date and time.`);
+  return parsed.toISOString();
+}
+
+/**
+ * A scope list, or null for "everybody".
+ *
+ * Empty means the same as null, and that is the safe direction: a maintenance
+ * notice that reaches everybody when it meant to reach Android is noise, and
+ * one that reaches nobody because the box was left blank is an outage nobody
+ * was told about.
+ */
+function scopeOrNull(
+  values: string[],
+  allowed: readonly string[] | null,
+  field: string,
+): string[] | null {
+  const cleaned = values.map((value) => value.trim()).filter(Boolean);
+  if (cleaned.length === 0) return null;
+  for (const value of cleaned) {
+    if (allowed && !allowed.includes(value)) throw new Error(`"${value}" is not a ${field}.`);
+    if (!allowed && !/^[A-Z]{2}$/.test(value)) {
+      throw new Error(`"${value}" is not a two-letter country code like IN or AE.`);
+    }
+  }
+  return [...new Set(cleaned)];
+}
+
+/**
+ * Post a notice to every running app.
+ *
+ * Validated here as well as in the database so a refusal arrives as a sentence
+ * beside the field rather than as a constraint name. The rules worth stating:
+ *
+ *   * **Maintenance needs a window.** Without a start and an end there is
+ *     nothing to say beyond "something, sometime" — which is what a plain
+ *     announcement is for, and an announcement needs words instead.
+ *   * **An announcement needs words.** The app composes maintenance and
+ *     incident wording out of the structure alone, in all four languages, with
+ *     no operator text at all; an announcement is *only* its text, and one with
+ *     none is dropped silently by the client. Better refused here than
+ *     published blank.
+ *   * **English is required whenever there is any text.** It is the fallback
+ *     every other language resolves to, so a notice written only in Tamil would
+ *     reach a Hindi reader as Tamil. Writing the other three is encouraged and
+ *     never required: the app labels what it had to fall back to rather than
+ *     pretending the reader asked for it.
+ *
+ * What is deliberately *not* validated here: anything about blocking the app.
+ * There is no field that could — see the migration header. The one control that
+ * can gate Waves is `app_releases.minimum_version`, and it has its own guards.
+ */
+export async function createAppNotice(input: {
+  kind: string;
+  startsAt: string;
+  endsAt: string;
+  visibleFrom: string;
+  visibleUntil: string;
+  platforms: string[];
+  countries: string[];
+  body: Record<string, string>;
+  note: string;
+}): Promise<void> {
+  await requireSession();
+
+  const kind = input.kind.trim();
+  if (!(NOTICE_KINDS as readonly string[]).includes(kind)) {
+    throw new Error(`"${kind}" is not one of ${NOTICE_KINDS.join(', ')}.`);
+  }
+
+  const startsAt = instantOrNull(input.startsAt, 'The start');
+  const endsAt = instantOrNull(input.endsAt, 'The end');
+  const visibleUntil = instantOrNull(input.visibleUntil, 'The moment to stop showing it');
+  const visibleFrom =
+    instantOrNull(input.visibleFrom, 'The moment to start showing it') ?? new Date().toISOString();
+
+  if (kind === 'maintenance' && (!startsAt || !endsAt)) {
+    throw new Error('A maintenance notice needs both a start and an end — that is what it says.');
+  }
+  if (startsAt && endsAt && endsAt <= startsAt) {
+    throw new Error('The window has to end after it starts.');
+  }
+  if (visibleUntil && visibleUntil <= visibleFrom) {
+    throw new Error('Stop showing it after you start showing it, not before.');
+  }
+  if (endsAt && visibleFrom >= endsAt) {
+    throw new Error('This would only start being shown once the window it describes is over.');
+  }
+
+  const body: Record<string, string> = {};
+  for (const language of NOTICE_LANGUAGES) {
+    const text = (input.body[language] ?? '').trim();
+    if (!text) continue;
+    if (text.length > 500) throw new Error(`The ${language} text is 500 characters or fewer.`);
+    body[language] = text;
+  }
+  if (Object.keys(body).length > 0 && !body.en) {
+    throw new Error(
+      'English is the fallback every other language resolves to, so a notice with any text needs it.',
+    );
+  }
+  if (kind === 'notice' && !body.en) {
+    throw new Error('An announcement is only its words. Write something for it to say.');
+  }
+
+  const { error } = await client()
+    .from('app_notices')
+    .insert({
+      kind,
+      starts_at: startsAt,
+      ends_at: endsAt,
+      visible_from: visibleFrom,
+      visible_until: visibleUntil,
+      platforms: scopeOrNull(input.platforms, ['ios', 'android', 'web'], 'platform'),
+      countries: scopeOrNull(input.countries, null, 'country'),
+      body,
+      note: input.note.trim().slice(0, 500),
+    });
+  if (error) throw new Error(`posting the notice failed: ${error.message}`);
+}
+
+/**
+ * Stop saying it, now.
+ *
+ * An update rather than a delete: `visible_until` moves to this instant, the
+ * row stays, and the morning-after question still has an answer. Ending is also
+ * the only edit the console offers — a notice is a short-lived statement, and
+ * rewriting one in place would leave everybody who already read the old wording
+ * with no way to know it changed.
+ */
+export async function endAppNotice(id: string): Promise<void> {
+  await requireSession();
+  if (!UUID.test(id.trim())) throw new Error('That is not a notice id.');
+
+  const { error } = await client()
+    .from('app_notices')
+    .update({ visible_until: new Date().toISOString() })
+    .eq('id', id.trim());
+  if (error) throw new Error(`ending the notice failed: ${error.message}`);
 }
