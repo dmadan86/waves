@@ -124,6 +124,7 @@
       "./plugins/withGradleMemory",
       "./plugins/withSideBySideDebug",
       "./plugins/withReleaseSigning",
+      "./plugins/withSmsReader",
       "./plugins/withWavesWidgets",
       "./plugins/withWavesWear",
       "@bacons/apple-targets",

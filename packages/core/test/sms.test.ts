@@ -11,7 +11,13 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { SMS_LOW_CONFIDENCE, parseSms, proposeFromSms, type SmsMessage } from '../src/index.js';
+import {
+  SMS_LOW_CONFIDENCE,
+  parseSms,
+  proposeFromSms,
+  senderHeader,
+  type SmsMessage,
+} from '../src/index.js';
 
 const sms = (body: string, receivedAt = '2026-03-02T10:00:00.000Z'): SmsMessage => ({
   body,
@@ -249,6 +255,43 @@ describe('what a person is asked to look at', () => {
   });
 });
 
+describe('a drafts list has no trip to bound by', () => {
+  const old = sms('Rs.400 debited at CAFE on 05-01-24', '2024-01-05T09:00:00.000Z');
+  const recent = sms('Rs.900 debited at SWIGGY on 02-03-26');
+
+  it('proposes everything when no window is given at all', () => {
+    // The paste flow has no trip: the person already chose which messages to
+    // hand over, and a window would drop some of them invisibly.
+    const proposed = proposeFromSms([old, recent]);
+    expect(proposed.map((item) => item.amount.minor)).toEqual([40000n, 90000n]);
+  });
+
+  it('takes one bound on its own', () => {
+    expect(proposeFromSms([old, recent], { from: '2026-01-01' })).toHaveLength(1);
+    expect(proposeFromSms([old, recent], { to: '2025-01-01' })).toHaveLength(1);
+  });
+
+  it('treats an unparseable bound as no bound, rather than dropping everything', () => {
+    // A half-typed date in a field must not silently empty the list.
+    expect(proposeFromSms([old, recent], { from: '2026-0', to: '' })).toHaveLength(2);
+  });
+
+  it('still dedupes and still refuses credits with no window', () => {
+    const proposed = proposeFromSms([
+      recent,
+      { ...recent },
+      sms('Rs.2,000 credited to a/c XX4471 from RAVI on 02-03-26'),
+    ]);
+    expect(proposed).toHaveLength(1);
+  });
+
+  it('honours alreadyImported with no window', () => {
+    const first = proposeFromSms([recent]);
+    const key = first[0]!.dedupeKey;
+    expect(proposeFromSms([recent], { alreadyImported: new Set([key]) })).toHaveLength(0);
+  });
+});
+
 describe('no float ever exists between the text and the amount (ADR-003)', () => {
   it('parses amounts that a float would round wrong', () => {
     for (const [text, minor] of [
@@ -260,5 +303,547 @@ describe('no float ever exists between the text and the amount (ADR-003)', () =>
     ] as const) {
       expect(parseSms(text)?.amount.minor).toBe(minor);
     }
+  });
+});
+
+/* ================================================================== *
+ * The five messages the coverage study measured as failures.
+ * ================================================================== */
+
+describe('the formats that used to be dropped', () => {
+  it('reads SBI, which quotes no currency at all', () => {
+    // India's largest bank writes "debited by 150.0" with no Rs, no INR and no
+    // symbol. Requiring a currency token lost every one of its UPI alerts.
+    const parsed = parseSms(
+      'Dear UPI user A/C X1234 debited by 150.0 on date 12Sep26 trf to SWIGGY Refno 526012345678',
+      { region: 'IN' },
+    );
+    expect(parsed?.direction).toBe('debit');
+    expect(parsed?.amount.minor).toBe(15000n);
+    expect(parsed?.amount.currency).toBe('INR');
+    expect(parsed?.merchant).toBe('SWIGGY');
+    expect(parsed?.occurredAt?.slice(0, 10)).toBe('2026-09-12');
+  });
+
+  it('reads ICICI, which names both sides of the transfer', () => {
+    // "debited … ; SWIGGY credited" is one ordinary debit described from both
+    // ends. Bailing whenever both words appear lost the whole format; the verb
+    // nearest the amount is the one that means something.
+    const parsed = parseSms(
+      'ICICI Bank Acct XX123 debited for Rs 500.00 on 12-Sep-26; SWIGGY credited. UPI:526012345678',
+      { region: 'IN' },
+    );
+    expect(parsed?.direction).toBe('debit');
+    expect(parsed?.amount.minor).toBe(50000n);
+    expect(parsed?.merchant).toBe('SWIGGY');
+  });
+
+  it('does not read the word "credit" inside "Credit Card" as money coming in', () => {
+    // The only failure in the set that wrote a wrong ledger entry: a ₹2,500
+    // purchase booked as ₹2,500 received, looking entirely deliberate.
+    const parsed = parseSms(
+      'Your ICICI Bank Credit Card XX1234 has been used for a transaction of INR 2,500.00 on 12-Sep-26 at AMAZON.',
+    );
+    expect(parsed?.direction).toBe('debit');
+    expect(parsed?.amount.minor).toBe(250000n);
+    expect(parsed?.merchant).toBe('AMAZON');
+  });
+
+  it('reads a refund, whichever way the bank conjugates it', () => {
+    for (const text of [
+      'Rs.599.00 refunded to your HDFC Card xx1234 by AMAZON on 12-09-26',
+      'Rs.599.00 refund credited to your HDFC Card xx1234 on 12-09-26',
+    ]) {
+      expect(parseSms(text)?.direction).toBe('credit');
+    }
+  });
+
+  it('reads a currency written after the number', () => {
+    const parsed = parseSms('Your A/c XX1234 is debited with 350.00 INR on 12-09-26 at UBER.');
+    expect(parsed?.amount.minor).toBe(35000n);
+    expect(parsed?.amount.currency).toBe('INR');
+    expect(parsed?.merchant).toBe('UBER');
+  });
+});
+
+describe('who was actually paid', () => {
+  it('reads a capitalised preposition', () => {
+    // HDFC writes "To SWIGGY". A missing `i` flag meant it never matched.
+    expect(
+      parseSms('Sent Rs.245.00 From HDFC Bank A/C x1234 To SWIGGY On 12/09/26')?.merchant,
+    ).toBe('SWIGGY');
+  });
+
+  it('reads a lowercase merchant', () => {
+    expect(parseSms('rs.250 debited from a/c xx1234 at bigbasket on 12-09-26')?.merchant).toBe(
+      'bigbasket',
+    );
+  });
+
+  it('reads the handle out of a UPI address, not the word VPA', () => {
+    const parsed = parseSms('Rs.75.00 debited from A/c XX1234 to VPA swiggy@icici on 12-09-26');
+    expect(parsed?.merchant).toBe('swiggy');
+  });
+
+  it('never returns the "A" of "A/c" as a shop', () => {
+    // A row reading "A" is worse than a row reading nothing: it looks parsed,
+    // and somebody has to notice it is nonsense.
+    const parsed = parseSms('INR 85,000.00 credited to A/c XX1234 on 01-09-26 by NEFT');
+    expect(parsed?.merchant).toBeNull();
+  });
+
+  it('stops the name at the bank’s own words', () => {
+    expect(parseSms('Paid Rs.120 to SWIGGY using Paytm UPI. Txn ID 526012345678')?.merchant).toBe(
+      'SWIGGY',
+    );
+    expect(
+      parseSms('Rp 150.000 didebet dari rekening 1234 di TOKOPEDIA pada 12/09/2026', {
+        region: 'ID',
+      })?.merchant,
+    ).toBe('TOKOPEDIA');
+  });
+
+  it('does not score an implausible merchant, so it cannot be pre-selected on one', () => {
+    // The old score counted fields found, so the VPA bug scored 1.0.
+    const withName = parseSms('Rs.500 debited at CAFE on 02-03-26', { region: 'IN' });
+    const withNonsense = parseSms('Rs.500 debited to A/c XX1234 on 02-03-26', { region: 'IN' });
+    expect(withNonsense?.merchant).toBeNull();
+    expect(withNonsense!.confidence).toBeLessThan(withName!.confidence);
+  });
+});
+
+/* ================================================================== *
+ * Hazard A — the decimal comma. A silent 1000x error.
+ * ================================================================== */
+
+describe('a comma can be the decimal point', () => {
+  it('reads 1.234,56 as one thousand two hundred, not as one twenty-three', () => {
+    // Half of Europe and most of Latin America write it this way. Read as an
+    // English number it is €1.23 — a thousandfold error that looks valid.
+    for (const region of ['DE', 'ES', 'BR', 'ID', 'TR', undefined]) {
+      expect(parseSms('EUR 1.234,56 belastet Konto 3456', { region })?.amount.minor).toBe(123456n);
+    }
+  });
+
+  it('reads 1,234.56 the English way in the same breath', () => {
+    expect(parseSms('EUR 1,234.56 debited at IKEA', { region: 'IE' })?.amount.minor).toBe(123456n);
+  });
+
+  it('reads a lone dot with three digits after it as grouping, not as decimals', () => {
+    // "EUR 1.234" cannot be €1.234: the euro has two minor digits. The
+    // currency's own exponent settles this without needing a locale at all.
+    expect(parseSms('EUR 1.234 belastet Konto 3456', { region: 'DE' })?.amount.minor).toBe(123400n);
+    expect(parseSms('EUR 1.234 belastet Konto 3456')?.amount.minor).toBe(123400n);
+    expect(parseSms('EUR 1.234 belastet Konto 3456')?.inferred).not.toContain('decimalSeparator');
+  });
+
+  it('reads a space or a non-breaking space as grouping', () => {
+    const nbsp = String.fromCharCode(0x00a0);
+    expect(
+      parseSms('Votre compte 1234 a ete debite de 1 234,56 EUR le 12/09/2026', { region: 'FR' })
+        ?.amount.minor,
+    ).toBe(123456n);
+    expect(
+      parseSms(`Votre compte 1234 a ete debite de 1${nbsp}234,56 EUR le 12/09/2026`, {
+        region: 'FR',
+      })?.amount.minor,
+    ).toBe(123456n);
+  });
+
+  it('reads the Swiss apostrophe as grouping', () => {
+    expect(
+      parseSms("CHF 1'234.50 belastet Konto 4471 bei MIGROS", { region: 'CH' })?.amount.minor,
+    ).toBe(123450n);
+  });
+
+  it('reads Arabic’s own separators', () => {
+    // U+066B is the decimal separator and U+066C the thousands separator — the
+    // mirror image of the Latin habit.
+    const decimal = String.fromCharCode(0x066b);
+    expect(
+      parseSms(`AED 250${decimal}50 debited from Card 4471`, { region: 'AE' })?.amount.minor,
+    ).toBe(25050n);
+  });
+
+  it('still reads India’s two-digit grouping', () => {
+    expect(parseSms('Rs 1,23,456.78 debited at HOTEL TAJ')?.amount.minor).toBe(12345678n);
+  });
+});
+
+/* ================================================================== *
+ * Hazard B — the currency's exponent.
+ * ================================================================== */
+
+describe('a currency decides how many decimals it has', () => {
+  it('keeps all three digits of a Kuwaiti dinar', () => {
+    // KWD, BHD, OMR, JOD and TND have three minor digits. Capping the fraction
+    // at two silently turned 12.345 into 12.340.
+    const parsed = parseSms('KWD 12.345 debited from Account XX1234 at LULU', { region: 'KW' });
+    expect(parsed?.amount.minor).toBe(12345n);
+    expect(parsed?.inferred).not.toContain('decimalSeparator');
+  });
+
+  it('says so when three decimals could equally have been grouping', () => {
+    // With no locale, "KWD 12.345" is genuinely either twelve dinars and a bit
+    // or twelve thousand. It is answered, and it says it guessed.
+    const parsed = parseSms('KWD 12.345 debited from Account XX1234 at LULU');
+    expect(parsed?.amount.minor).toBe(12345n);
+    expect(parsed?.inferred).toContain('decimalSeparator');
+    expect(parsed!.confidence).toBeLessThan(
+      parseSms('KWD 12.345 debited from Account XX1234 at LULU', { region: 'KW' })!.confidence,
+    );
+  });
+
+  it('never gives a zero-decimal currency phantom minor units', () => {
+    expect(parseSms('JPY 1,234 spent on card 1234 at LAWSON')?.amount.minor).toBe(1234n);
+    expect(parseSms('JPY 1,234.00 spent on card 1234 at LAWSON')?.amount.minor).toBe(1234n);
+    expect(parseSms('KRW 50,000 spent at OLIVE YOUNG')?.amount.minor).toBe(50000n);
+  });
+});
+
+/* ================================================================== *
+ * Hazard C — day-first or month-first.
+ * ================================================================== */
+
+describe('08/05/2026 is two different days', () => {
+  const body = 'USD 42.50 spent on card ending 1234 at TARGET on 08/05/2026';
+
+  it('is the 5th of August in the United States', () => {
+    expect(parseSms(body, { region: 'US' })?.occurredAt?.slice(0, 10)).toBe('2026-08-05');
+  });
+
+  it('is the 8th of May in India', () => {
+    expect(parseSms(body, { region: 'IN' })?.occurredAt?.slice(0, 10)).toBe('2026-05-08');
+  });
+
+  it('falls back to day-first when nobody said, and says that it did', () => {
+    const parsed = parseSms(body);
+    expect(parsed?.occurredAt?.slice(0, 10)).toBe('2026-05-08');
+    expect(parsed?.inferred).toContain('dateOrder');
+    expect(parsed!.confidence).toBeLessThan(parseSms(body, { region: 'IN' })!.confidence);
+  });
+
+  it('does not guess when a component is over twelve', () => {
+    const parsed = parseSms('Rs.400 debited at CAFE on 28/02/26');
+    expect(parsed?.occurredAt?.slice(0, 10)).toBe('2026-02-28');
+    expect(parsed?.inferred).not.toContain('dateOrder');
+  });
+
+  it('takes an explicit order over the region', () => {
+    expect(parseSms(body, { region: 'IN', dateOrder: 'mdy' })?.occurredAt?.slice(0, 10)).toBe(
+      '2026-08-05',
+    );
+  });
+
+  it('reads an ISO date, which used to match nothing at all', () => {
+    expect(parseSms('EUR 20.00 debited from account 1234 at IKEA on 2026-09-12')?.occurredAt).toBe(
+      '2026-09-12T00:00:00.000Z',
+    );
+    expect(
+      parseSms("You've spent Rs.1500.00 via Debit Card xx1234 at AMAZON on 2026-09-12:14:23:05.")
+        ?.occurredAt,
+    ).toBe('2026-09-12T14:23:05.000Z');
+  });
+
+  it('reads a month name in either order', () => {
+    expect(parseSms('USD 42.50 spent at STARBUCKS on Sep 12, 2026')?.occurredAt?.slice(0, 10)).toBe(
+      '2026-09-12',
+    );
+    expect(parseSms('USD 42.50 spent at STARBUCKS on 12-Sep-2026')?.occurredAt?.slice(0, 10)).toBe(
+      '2026-09-12',
+    );
+    expect(parseSms('Rs 500 debited at CAFE on date 12Sep26')?.occurredAt?.slice(0, 10)).toBe(
+      '2026-09-12',
+    );
+  });
+
+  it('reads a month name in another language', () => {
+    for (const [text, day] of [
+      ['EUR 20,00 belastet Konto 1234 bei IKEA am 12. Okt 2026', '2026-10-12'],
+      ['EUR 20,00 debitado da conta 1234 em 12 de dezembro de 2026', '2026-12-12'],
+      ['EUR 20,00 debite du compte 1234 le 12 juillet 2026', '2026-07-12'],
+      ['EUR 20,00 debite du compte 1234 le 12 juin 2026', '2026-06-12'],
+      ['TRY 20,00 harcama 12 Agustos 2026 kart 1234', '2026-08-12'],
+    ] as const) {
+      expect(parseSms(text, { region: 'DE' })?.occurredAt?.slice(0, 10)).toBe(day);
+    }
+  });
+});
+
+/* ================================================================== *
+ * Hazard D — the language the bank is writing in.
+ * ================================================================== */
+
+describe('banks do not all write in English', () => {
+  it('reads a debit in the languages Waves ships in and the ones it banks in', () => {
+    for (const [text, context] of [
+      ['Ihr Konto DE12 wurde mit EUR 1.234,56 belastet am 12.09.2026 bei REWE.', { region: 'DE' }],
+      ['Compra de EUR 45,90 en MERCADONA con tarjeta 1234 el 12/09/2026', { region: 'ES' }],
+      ['Compra aprovada: R$ 1.234,56 em MERCADO LIVRE em 12/09/2026', { region: 'BR' }],
+      ['Votre compte 1234 a ete debite de 45,00 EUR le 12/09/2026 chez FNAC', { region: 'FR' }],
+      ['Rp 150.000 didebet dari rekening 1234 di TOKOPEDIA pada 12/09/2026', { region: 'ID' }],
+      ['Hesabinizdan 250,75 TL harcama yapildi. Kart 1234, 12.09.2026', { region: 'TR' }],
+      ['Akaun 1234 didebit RM 125.50 di MYDIN pada 12/09/2026', { region: 'MY' }],
+      ['Tai khoan 1234 ghi no 1.250.000 VND tai HIGHLANDS ngay 12/09/2026', { region: 'VN' }],
+      ['Kortkop 1 234,50 kr hos ICA 12/09/2026 kort 1234', { region: 'SE' }],
+    ] as const) {
+      expect(parseSms(text, context), text).not.toBeNull();
+      expect(parseSms(text, context)?.direction, text).toBe('debit');
+    }
+  });
+
+  it('reads Thai, which separates nothing with spaces', () => {
+    const parsed = parseSms('บัญชี 1234 ถูกหัก THB 1,250.00 ที่ 7-ELEVEN 12/09/2026', {
+      region: 'TH',
+    });
+    expect(parsed?.direction).toBe('debit');
+    expect(parsed?.amount.minor).toBe(125000n);
+    expect(parsed?.merchant).toBe('7-ELEVEN');
+  });
+
+  it('refuses the same six kinds of message in those languages too', () => {
+    // A false accept is worse than a false reject, and internationalising the
+    // debit verbs without internationalising these would internationalise the
+    // parser's worst false positive rather than its usefulness.
+    for (const [text, context] of [
+      [
+        'Su codigo de verificacion es 445566 para una compra de EUR 250,00 en ZARA.',
+        { region: 'ES' },
+      ],
+      ['Ihr Konto wird mit EUR 49,90 belastet am 15.09.2026 fuer NETFLIX.', { region: 'DE' }],
+      ['Votre transaction de 45,00 EUR chez FNAC a ete refusee.', { region: 'FR' }],
+      ['Saldo rekening 1234 adalah Rp 1.250.000 pada 12/09/2026.', { region: 'ID' }],
+      ['Kredi karti 1234 son odeme tarihi 18.09.2026, tutar 1.250,00 TL.', { region: 'TR' }],
+      ['Sua compra de R$ 250,00 foi recusada por saldo insuficiente.', { region: 'BR' }],
+    ] as const) {
+      expect(parseSms(text, context), text).toBeNull();
+    }
+  });
+});
+
+describe('right-to-left text', () => {
+  const isolateStart = String.fromCharCode(0x2066);
+  const isolateEnd = String.fromCharCode(0x2069);
+
+  it('reads an Arabic debit', () => {
+    const parsed = parseSms('تم خصم 250.50 د.إ من البطاقة 4471 لدى كارفور 12-09-2026', {
+      region: 'AE',
+    });
+    expect(parsed?.direction).toBe('debit');
+    expect(parsed?.amount.currency).toBe('AED');
+    expect(parsed?.amount.minor).toBe(25050n);
+    expect(parsed?.accountTail).toBe('4471');
+  });
+
+  it('is not defeated by an invisible bidi isolate around the amount', () => {
+    // An Arabic alert wraps its amount so the digits render left-to-right
+    // inside a right-to-left sentence. The marks are invisible; a parser that
+    // does not strip them simply fails to see a number that is plainly there.
+    const wrapped = `تم خصم ${isolateStart}AED 250.50${isolateEnd} من الحساب 4471`;
+    expect(parseSms(wrapped, { region: 'AE' })?.amount.minor).toBe(25050n);
+  });
+
+  it('refuses an Arabic one-time password', () => {
+    expect(parseSms('رمز التحقق 445566 لعملية شراء بقيمة 250.00 د.إ', { region: 'AE' })).toBeNull();
+  });
+});
+
+/* ================================================================== *
+ * Hazard E — numerals that are not 0-9.
+ * ================================================================== */
+
+describe('numerals that are not ASCII', () => {
+  it('reads Devanagari digits', () => {
+    const parsed = parseSms('आपके खाते XX1234 से ५००.०० रुपये डेबिट किए गए 12-09-2026', {
+      region: 'IN',
+    });
+    expect(parsed?.direction).toBe('debit');
+    expect(parsed?.amount.currency).toBe('INR');
+    expect(parsed?.amount.minor).toBe(50000n);
+  });
+
+  it('reads Arabic-Indic digits', () => {
+    const parsed = parseSms('تم خصم ٢٥٠.٥٠ د.إ من البطاقة ٤٤٧١', { region: 'AE' });
+    expect(parsed?.amount.minor).toBe(25050n);
+    expect(parsed?.accountTail).toBe('4471');
+  });
+});
+
+/* ================================================================== *
+ * Hazard F — currency coverage, and the symbols that are shared.
+ * ================================================================== */
+
+describe('a symbol is not a currency', () => {
+  const body = '$42.50 spent on card ending 1234 at STARBUCKS on 12-09-2026';
+
+  it('reads the dollar of the country it was told about', () => {
+    expect(parseSms(body, { region: 'CA' })?.amount.currency).toBe('CAD');
+    expect(parseSms(body, { region: 'AU' })?.amount.currency).toBe('AUD');
+    expect(parseSms(body, { region: 'SG' })?.amount.currency).toBe('SGD');
+    expect(parseSms(body, { region: 'CA' })?.inferred).not.toContain('currency');
+  });
+
+  it('falls back to the dollar most people mean, and says it guessed', () => {
+    const parsed = parseSms(body);
+    expect(parsed?.amount.currency).toBe('USD');
+    expect(parsed?.inferred).toContain('currency');
+  });
+
+  it('reads a qualified symbol without needing a region at all', () => {
+    expect(parseSms('R$ 1.234,56 debitado do cartao 1234')?.amount.currency).toBe('BRL');
+    expect(parseSms('S$ 42.50 spent on card 1234 at NTUC')?.amount.currency).toBe('SGD');
+  });
+
+  it('reads the Nordic krone by country', () => {
+    expect(
+      parseSms('Kortkop 1 234,50 kr hos ICA kort 1234', { region: 'SE' })?.amount.currency,
+    ).toBe('SEK');
+    expect(
+      parseSms('Kortkop 1 234,50 kr hos REMA kort 1234', { region: 'NO' })?.amount.currency,
+    ).toBe('NOK');
+  });
+
+  it('reads both the symbol and the code for the currencies Waves supports', () => {
+    for (const [text, code] of [
+      ['₹ 500 debited at CAFE', 'INR'],
+      ['INR 500 debited at CAFE', 'INR'],
+      ['€ 20,00 belastet bei IKEA', 'EUR'],
+      ['£ 20.00 debited at TESCO', 'GBP'],
+      ['AED 89.00 debited at CARREFOUR', 'AED'],
+      ['MYR 125.50 debited at MYDIN', 'MYR'],
+      ['RM 125.50 didebit di MYDIN', 'MYR'],
+      ['Rp 150.000 didebet di TOKOPEDIA', 'IDR'],
+      ['THB 1,250.00 debited at 7-ELEVEN', 'THB'],
+      ['฿ 1,250.00 debited at 7-ELEVEN', 'THB'],
+      ['VND 1.250.000 debited at HIGHLANDS', 'VND'],
+      ['ZAR 250.00 debited at WOOLWORTHS', 'ZAR'],
+      ['CHF 20.00 belastet bei MIGROS', 'CHF'],
+      ['TRY 250,75 harcama MIGROS', 'TRY'],
+      ['LKR 500 debited at KEELLS', 'LKR'],
+    ] as const) {
+      expect(parseSms(text, { region: undefined })?.amount.currency, text).toBe(code);
+    }
+  });
+
+  it('takes a caller’s default when the message names nothing', () => {
+    const parsed = parseSms('Account XX1234 debited by 150.0 at CAFE on 12-09-2026', {
+      defaultCurrency: 'GBP',
+    });
+    expect(parsed?.amount.currency).toBe('GBP');
+    expect(parsed?.amount.minor).toBe(15000n);
+    expect(parsed?.inferred).not.toContain('currency');
+  });
+
+  it('takes the region’s currency before falling back to rupees', () => {
+    expect(
+      parseSms('Account XX1234 debited by 150.0 at CAFE', { region: 'DE' })?.amount.currency,
+    ).toBe('EUR');
+    const nothing = parseSms('Account XX1234 debited by 150.0 at CAFE');
+    expect(nothing?.amount.currency).toBe('INR');
+    expect(nothing?.inferred).toContain('currency');
+  });
+});
+
+/* ================================================================== *
+ * Hazard G — the sender.
+ * ================================================================== */
+
+describe('the sender is a hint, never a filter', () => {
+  it('strips the operator prefix, which differs by carrier and circle', () => {
+    expect(senderHeader('AD-HDFCBK')).toBe('HDFCBK');
+    expect(senderHeader('VM-HDFCBK')).toBe('HDFCBK');
+    expect(senderHeader('JD-HDFCBK-S')).toBe('HDFCBK');
+    // Nothing here assumes the Indian shape: a bare short code is itself.
+    expect(senderHeader('SANTANDER')).toBe('SANTANDER');
+    expect(senderHeader('')).toBeNull();
+  });
+
+  it('raises confidence when the sender looks like a bank', () => {
+    const body = 'Rs.500 debited at CAFE on 02-03-26';
+    const known = parseSms(body, { region: 'IN', sender: 'AD-HDFCBK' });
+    const unknown = parseSms(body, { region: 'IN', sender: '+919876543210' });
+    expect(known!.confidence).toBeGreaterThan(unknown!.confidence);
+  });
+
+  it('never drops a message because the sender is not recognised', () => {
+    // A bank the list has not heard of is still a bank, and a person who pasted
+    // a message has already decided it is worth reading.
+    for (const sender of ['ZZ-NEVERHEARDOF', '+441234567890', undefined]) {
+      expect(parseSms('EUR 20.00 debited at IKEA on 12-09-2026', { sender })).not.toBeNull();
+    }
+  });
+});
+
+/* ================================================================== *
+ * Two amounts, and which one is the transaction.
+ * ================================================================== */
+
+describe('a message that quotes a balance as well', () => {
+  it('takes the transaction even when the balance comes first', () => {
+    // The old parser took the first number and was right by luck, because
+    // Indian banks quote the transaction first.
+    const parsed = parseSms(
+      'Avl Bal Rs 9,999.00. Rs.450.00 debited from A/c XX1234 at DOMINOS on 12-09-26',
+      { region: 'IN' },
+    );
+    expect(parsed?.amount.minor).toBe(45000n);
+    expect(parsed?.merchant).toBe('DOMINOS');
+  });
+
+  it('still takes the transaction when the balance trails', () => {
+    expect(
+      parseSms('Rs.450.00 debited from A/c XX1234 at DOMINOS on 12-09-26. Avl Bal: Rs.9,999.00')
+        ?.amount.minor,
+    ).toBe(45000n);
+  });
+});
+
+/* ================================================================== *
+ * The rule the whole file is written around.
+ * ================================================================== */
+
+describe('never guess silently', () => {
+  it('reports nothing as inferred when every signal was present', () => {
+    const parsed = parseSms(
+      'INR 1,234.00 debited from A/c no. XX3456 on 2026-09-12 at AMAZON. Ref: 412703998812',
+      { region: 'IN' },
+    );
+    expect(parsed?.inferred).toEqual([]);
+    expect(parsed?.confidence).toBeGreaterThanOrEqual(SMS_LOW_CONFIDENCE);
+  });
+
+  it('names each field it had to decide for itself', () => {
+    const parsed = parseSms('$ 1.234 debited at CAFE on 08/05/26');
+    expect(parsed?.inferred).toContain('currency');
+    expect(parsed?.inferred).toContain('dateOrder');
+  });
+
+  it('lowers confidence far enough that a guessed row is not pre-selected', () => {
+    const proposed = proposeFromSms([
+      { body: 'KWD 12.345 debited on 08/05/26', receivedAt: '2026-05-08T10:00:00.000Z' },
+    ]);
+    expect(proposed[0]?.preselect).toBe(false);
+    expect(proposed[0]?.inferred).toContain('decimalSeparator');
+  });
+
+  it('passes the caller’s context to every message, and the sender on top', () => {
+    const proposed = proposeFromSms(
+      [
+        {
+          body: '$42.50 spent on card ending 1234 at TARGET on 08/05/2026',
+          receivedAt: '2026-08-05T10:00:00.000Z',
+          sender: 'CHASE',
+        },
+      ],
+      { context: { region: 'US' } },
+    );
+    expect(proposed[0]?.amount.currency).toBe('USD');
+    expect(proposed[0]?.at.slice(0, 10)).toBe('2026-08-05');
+    expect(proposed[0]?.inferred).toEqual([]);
+    expect(proposed[0]?.preselect).toBe(true);
+  });
+
+  it('refuses a pathological body rather than thinking about it', () => {
+    expect(parseSms(`Rs ${'1'.repeat(5000)} debited at CAFE`)).not.toBeUndefined();
   });
 });
