@@ -34,9 +34,9 @@ import {
 } from '@waves/ui';
 
 import { GroupMark } from '@/components/GroupMark';
-import { CategoryPicker } from '@/components/Category';
+import { CategoryRow, CategorySheet } from '@/components/Category';
 import { TagEditorSheet } from '@/components/TagEditorSheet';
-import { PaymentMethodPicker } from '@/components/PaymentMethodPicker';
+import { PaymentMethodRow, PaymentMethodSheet } from '@/components/PaymentMethodPicker';
 import { LocationField } from '@/components/LocationField';
 import { ZoomableImage } from '@/components/ZoomableImage';
 import { COMMON_CURRENCIES } from '@/components/CurrencyRate';
@@ -240,8 +240,14 @@ export default function CaptureScreen() {
   // On an edit the category is already the draft's own — treat it as chosen so
   // the description guesser below does not move it out from under the person.
   const [categoryChosen, setCategoryChosen] = useState(() => isEditing);
-  // The create-tag sheet, opened from the "＋ New tag" chip in the picker.
+  // The create-tag sheet, opened from the "＋ New tag" row in the category
+  // sheet.
   const [editingTag, setEditingTag] = useState(false);
+  // The category and payment-rail pickers, opened from their row in the facts
+  // card below rather than drawn as a lane of chips — see that card's own
+  // comment for why.
+  const [pickingCategory, setPickingCategory] = useState(false);
+  const [pickingPayment, setPickingPayment] = useState(false);
   const [date, setDate] = useState<string>(() => dateParam ?? todayIso());
   // A stored bill's path and the OCR text and parsed blob that rode with the
   // draft — kept as-is through an edit so saving never wipes the receipt, the
@@ -299,10 +305,11 @@ export default function CaptureScreen() {
     : t.captures.decideLater;
 
   // Category starts on Food & drink — the most common capture, one fewer tap for
-  // it. The guess then follows the description until a chip is tapped, at which
-  // point it stops moving under the user's finger (the same rule add-expense
-  // uses). Seeding guessedFrom to the initial empty description means the guess
-  // does not fire on mount, so that default survives until the person types.
+  // it. The guess then follows the description until the row is tapped and a
+  // choice made in its sheet, at which point it stops moving under the user's
+  // finger (the same rule add-expense uses). Seeding guessedFrom to the initial
+  // empty description means the guess does not fire on mount, so that default
+  // survives until the person types.
   // Seeded to the carried-in note (or empty) so the category guesser does not
   // fire on mount and overwrite the Food default before the person types.
   const [guessedFrom, setGuessedFrom] = useState<string | null>(() => descParam ?? '');
@@ -310,7 +317,7 @@ export default function CaptureScreen() {
     setGuessedFrom(description);
     // Keep the current category when the description matches no bucket:
     // guessCategory returns null for unrecognised text, and clearing on null
-    // would wipe the Food default (or a prior guess) leaving no chip selected.
+    // would wipe the Food default (or a prior guess) leaving the row blank.
     const guess = guessCategory(description);
     if (guess) {
       setCategory(guess);
@@ -518,106 +525,21 @@ export default function CaptureScreen() {
           onPressCurrency={() => setPickingCurrency(true)}
         />
 
-        {/* Description, as a single underlined field rather than a boxed card —
-            it sits right under the amount so the two things a person always fills
-            in are together, with the mic to speak it instead of type (A5). Group
-            names are handed to the recogniser as hints — a general model mangles
-            Indian names, and a note like "dinner with Ravi" is exactly where they
-            turn up. */}
-        <DescriptionField
-          value={description}
-          onChange={setDescription}
-          placeholder={t.captures.descriptionPlaceholder}
-          accessibilityLabel={t.captures.description}
-          hints={groupNameHints}
-        />
+        {/* The bill, right under the amount — the order add-expense reads a bill
+            in, and for the same reason: scanning one fills in the amount above
+            and the note below, so it belongs before the fields it populates, not
+            after them. It used to sit at the foot of this form, last of
+            everything, which meant the one shortcut that saves the most typing
+            was the one thing a person had to scroll past six other fields to
+            find.
 
-        {/* What it was for. The guess follows the description until a chip is
-            tapped; the chips are the picker, unchanged. */}
-        <View style={{ gap: theme.spacing.sm }}>
-          <Text variant="caption" tone="muted">
-            {t.captures.category}
-          </Text>
-          <CategoryPicker
-            value={category}
-            onChange={(picked, meta) => {
-              setCategory(picked);
-              setCategoryMeta(meta);
-              setCategoryChosen(true);
-            }}
-            onCreate={() => setEditingTag(true)}
-          />
-        </View>
-
-        {/* How it was paid. Single-select tags, icon + word; cash is chosen by
-            default, tapping the chosen one again clears it ("not said" stays a
-            valid answer). UPI only appears where the region settles over it. One
-            row that scrolls sideways rather than wrapping to a second line, so the
-            block keeps a fixed height however many rails the region offers. */}
-        <View style={{ gap: theme.spacing.sm }}>
-          <Text variant="caption" tone="muted">
-            {t.captures.paidWith}
-          </Text>
-          {/* Shared with add-expense; capture lets "not said" stand, so a tap on
-              the chosen chip clears it (allowDeselect). */}
-          <PaymentMethodPicker value={paymentMethod} onChange={setPaymentMethod} allowDeselect />
-        </View>
-
-        {/* Where it happened (A43) — optional, opt-in, never a background track. */}
-        <LocationField value={location} onChange={setLocation} />
-
-        {/* Destination and date, folded into one card of divided rows rather than
-            two stacked cards — the meta a capture carries, grouped so it reads as
-            one block. "Decide later" is the default group: the split, and who is
-            in it, is chosen when the capture is assigned.
-
-            The same `DetailRows` the expense form and the expense screen wear.
-            These two used to stack the field's name over its answer, which made
-            a two-row card three text sizes tall and, more to the point, made a
-            capture's date look nothing like the same date on the form it is
-            assigned into. One line each, name left and answer right.
-
-            The picker is wrapped with its row rather than left as a sibling:
-            `DetailRows` puts a hairline in every gap between its children, so an
-            unfolded date wheel counted as a row of its own would be ruled off
-            from the row that opened it. */}
-        <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
-          <DetailRows>
-            <DetailRow
-              icon={targetGroup ? 'people' : 'people-outline'}
-              iconColor={targetGroup ? theme.color.brand : theme.color.textMuted}
-              label={t.captures.group}
-              value={targetGroupName}
-              placeholder={!targetGroup}
-              onPress={() => setPickingGroup(true)}
-              accessibilityLabel={`${t.captures.group}: ${targetGroupName}`}
-            />
-            <View>
-              <DetailRow
-                icon="calendar-outline"
-                label={t.captures.date}
-                value={showDate(date, locale)}
-                onPress={() => setEditingDate(true)}
-                accessibilityLabel={`${t.captures.date}: ${showDate(date, locale)}`}
-              />
-              {editingDate ? (
-                <DateTimePicker
-                  value={dateFrom(date)}
-                  mode="date"
-                  onChange={applyDate}
-                  // A capture is caught now or in the recent past — a spend cannot
-                  // have happened tomorrow.
-                  maximumDate={new Date()}
-                />
-              ) : null}
-            </View>
-          </DetailRows>
-        </Card>
-
-        {/* The bill, for the times pointing a camera is easier than typing. The
-            photo is kept and its text read on the phone; the amount stays the
-            user's to enter, because reading it needs a group this row does not
-            have yet. */}
+            Simpler than add-expense's pair of buttons on purpose: this capture
+            has no group yet, so there is no metered `scanReceipt` edge function
+            to call and no per-group receipt cap to draw around it — only the
+            on-device camera and OCR (A5), which is `addReceipt` below. Nor is
+            there a gallery to attach an existing photo from; a capture is
+            usually filed at the till, camera in hand, not from an old
+            screenshot. */}
         <Card style={{ gap: theme.spacing.md }}>
           <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
             <Text variant="subheading">{t.captures.receipt}</Text>
@@ -707,6 +629,84 @@ export default function CaptureScreen() {
             <Callout tone="info">{t.captures.couldNotRead}</Callout>
           ) : null}
         </Card>
+
+        {/* Description, as a single underlined field rather than a boxed card —
+            with the mic to speak it instead of type (A5). Group names are handed
+            to the recogniser as hints — a general model mangles Indian names,
+            and a note like "dinner with Ravi" is exactly where they turn up. */}
+        <DescriptionField
+          value={description}
+          onChange={setDescription}
+          placeholder={t.captures.descriptionPlaceholder}
+          accessibilityLabel={t.captures.description}
+          hints={groupNameHints}
+        />
+
+        {/* Where it happened (A43) — optional, opt-in, never a background track. */}
+        <LocationField value={location} onChange={setLocation} />
+
+        {/* What for, paid with, destination and date, folded into one card of
+            divided rows rather than four scattered controls — the facts a
+            capture carries, grouped so it reads as one block, the same
+            `DetailRows` the group expense form and the expense screen wear.
+
+            What for and paid with used to be lanes of chips under the
+            description — a picker each, so choosing them read as a different
+            kind of question from the group and the date sitting in their own
+            card below. Now all four are the same kind of row: a short,
+            already-chosen answer, changed from a sheet. `CategoryRow` and
+            `PaymentMethodRow` are the exact rows add-expense's own facts card
+            uses for the same two fields, so a capture assigned into a group
+            keeps reading as the same two facts rather than restating them in a
+            different shape.
+
+            "Decide later" is the default group: the split, and who is in it, is
+            chosen when the capture is assigned — so this card asks four things
+            about a capture and nothing about splitting, which does not exist
+            here yet.
+
+            The date picker is wrapped with its row rather than left as a
+            sibling: `DetailRows` puts a hairline in every gap between its
+            children, so an unfolded date wheel counted as a row of its own
+            would be ruled off from the row that opened it. */}
+        <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
+          <DetailRows>
+            <CategoryRow
+              value={category}
+              meta={categoryMeta}
+              onPress={() => setPickingCategory(true)}
+            />
+            <PaymentMethodRow value={paymentMethod} onPress={() => setPickingPayment(true)} />
+            <DetailRow
+              icon={targetGroup ? 'people' : 'people-outline'}
+              iconColor={targetGroup ? theme.color.brand : theme.color.textMuted}
+              label={t.captures.group}
+              value={targetGroupName}
+              placeholder={!targetGroup}
+              onPress={() => setPickingGroup(true)}
+              accessibilityLabel={`${t.captures.group}: ${targetGroupName}`}
+            />
+            <View>
+              <DetailRow
+                icon="calendar-outline"
+                label={t.captures.date}
+                value={showDate(date, locale)}
+                onPress={() => setEditingDate(true)}
+                accessibilityLabel={`${t.captures.date}: ${showDate(date, locale)}`}
+              />
+              {editingDate ? (
+                <DateTimePicker
+                  value={dateFrom(date)}
+                  mode="date"
+                  onChange={applyDate}
+                  // A capture is caught now or in the recent past — a spend cannot
+                  // have happened tomorrow.
+                  maximumDate={new Date()}
+                />
+              ) : null}
+            </View>
+          </DetailRows>
+        </Card>
       </ScrollView>
 
       <View
@@ -735,6 +735,42 @@ export default function CaptureScreen() {
           onPress={() => void submit()}
         />
       </View>
+
+      {/* What it was for, from the facts card's row. Picking one closes the
+          sheet; "＋ New tag" swaps this sheet for the tag editor rather than
+          stacking one over the other — the same handoff add-expense uses. */}
+      {pickingCategory ? (
+        <CategorySheet
+          value={category}
+          onChange={(picked, meta) => {
+            setCategory(picked);
+            setCategoryMeta(meta);
+            // A tap of their own, so the description guess stops moving it.
+            setCategoryChosen(true);
+            setPickingCategory(false);
+          }}
+          onCreate={() => {
+            setPickingCategory(false);
+            setEditingTag(true);
+          }}
+          onClose={() => setPickingCategory(false)}
+        />
+      ) : null}
+
+      {/* How it was paid, from the facts card's row. `allowDeselect` keeps "not
+          said" reachable: tapping the rail already chosen clears it, exactly as
+          the chip lane this replaced let a second tap on the lit chip do. */}
+      {pickingPayment ? (
+        <PaymentMethodSheet
+          value={paymentMethod}
+          allowDeselect
+          onChange={(picked) => {
+            setPaymentMethod(picked);
+            setPickingPayment(false);
+          }}
+          onClose={() => setPickingPayment(false)}
+        />
+      ) : null}
 
       {/* Currency picker, as a sheet over the form. The shortlist is the same one
           the group expense form offers (COMMON_CURRENCIES), so a person meets the
@@ -824,7 +860,7 @@ export default function CaptureScreen() {
         </View>
       </Modal>
 
-      {/* Make a tag on the spot, from the picker's "＋ New tag" chip. */}
+      {/* Make a tag on the spot, from the category sheet's "＋ New tag" row. */}
       <TagEditorSheet open={editingTag} onClose={() => setEditingTag(false)} />
     </Screen>
   );
