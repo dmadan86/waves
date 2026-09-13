@@ -49,11 +49,18 @@ const POLICY_HELPERS = [
 ];
 
 /**
- * The three things that have to answer before there is a session: the version
- * gate the app reads before its own sign-in screen, the country denylist on the
- * phone sign-in screen, and public feature configuration.
+ * The four things that have to answer before there is a session: the notice the
+ * app shows when the service is down, the version gate it reads before its own
+ * sign-in screen, the country denylist on the phone sign-in screen, and public
+ * feature configuration.
+ *
+ * `app_notices` is on this list on purpose. A maintenance notice that only a
+ * signed-in caller can read cannot do the one thing it exists for — a person
+ * stuck on the sign-in screen because the service is down is exactly who needs
+ * to be told. It is SELECT-only for anon, like the rest, and carries no
+ * per-person content.
  */
-const PRE_SIGN_IN_TABLES = ['app_releases', 'country_settings', 'feature_flags'];
+const PRE_SIGN_IN_TABLES = ['app_notices', 'app_releases', 'country_settings', 'feature_flags'];
 
 describe('the signed-out surface', () => {
   it('exposes exactly the RLS helpers, and no other SECURITY DEFINER function', async () => {
@@ -72,7 +79,7 @@ describe('the signed-out surface', () => {
     expect(rows.map((row) => row.proname)).toEqual(POLICY_HELPERS);
   });
 
-  it('exposes exactly the three pre-sign-in tables, and each of them read-only', async () => {
+  it('exposes exactly the four pre-sign-in tables, and each of them read-only', async () => {
     const { rows } = await client.query<{ table_name: string; privileges: string }>(`
       SELECT table_name, string_agg(DISTINCT privilege_type, ',' ORDER BY privilege_type) privileges
         FROM information_schema.role_table_grants
