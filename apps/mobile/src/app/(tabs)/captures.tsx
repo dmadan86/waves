@@ -18,9 +18,12 @@
  * screen `docs/plan-drafts-and-rules.md` names as the one true drafts hub —
  * whatever arrives by paste, share or statement in a later phase is one more
  * source feeding these same rows, not a second inbox beside them (the mistake
- * #565 already undid once). Nothing from that plan is built here; the point of
- * writing it down is that landing it later should mean adding to this screen,
- * not rebuilding it.
+ * #565 already undid once). The first of those sources has now landed: the
+ * header's chat glyph opens `captures/paste`, where bank messages are pasted
+ * (or, on a build that has the reader, read) and become `captures` rows that
+ * arrive in this very list. No filter, no second tab, no new row shape — that
+ * is phase 2's business, and the point of this one is that it needed none of
+ * it.
  */
 
 import { useCallback, useMemo, useRef, useState } from 'react';
@@ -1064,6 +1067,18 @@ export default function CapturesScreen() {
             </Text>
           ) : null}
         </View>
+        {/* The second way a draft gets here: a bank message. A single labelled
+            glyph rather than a ⋯ holding one item — an overflow with nothing to
+            overflow hides the only thing in it. When the plan's later phases
+            add their own header actions, this is the one that folds behind the
+            ⋯ with them. */}
+        <IconButton label={t.captures.fromMessage} onPress={() => router.push('/captures/paste')}>
+          <Ionicons
+            name="chatbubble-ellipses-outline"
+            size={iconSize.md}
+            color={theme.color.text}
+          />
+        </IconButton>
       </Row>
 
       {/* One virtualized scroll region for every state, the way `ActivityScreen`
@@ -1095,7 +1110,18 @@ export default function CapturesScreen() {
                 title={t.captures.emptyTitle}
                 body={t.captures.emptyBody}
                 action={
-                  <Button label={t.captures.captureCta} onPress={() => router.push('/capture')} />
+                  // Two ways in, with the ranking said by weight rather than by
+                  // order alone: type one out, or hand over the messages your
+                  // bank already sent you. The second is quiet because it is
+                  // the less obvious of the two, not the lesser.
+                  <View style={{ gap: theme.spacing.xs, alignItems: 'center' }}>
+                    <Button label={t.captures.captureCta} onPress={() => router.push('/capture')} />
+                    <Button
+                      label={t.captures.fromMessage}
+                      variant="ghost"
+                      onPress={() => router.push('/captures/paste')}
+                    />
+                  </View>
                 }
               />
             </View>

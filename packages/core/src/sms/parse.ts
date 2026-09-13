@@ -263,9 +263,20 @@ export interface ExpenseCandidate extends ParsedSms {
 }
 
 export interface ProposeOptions {
-  /** Trip window, inclusive. ISO dates or instants. */
-  readonly from: string;
-  readonly to: string;
+  /**
+   * Trip window, inclusive. ISO dates or instants.
+   *
+   * Both ends are optional, and an absent end means "no bound that way". The
+   * window was mandatory while this only ever ran inside a group, where the
+   * trip's own dates were the obvious fence. The drafts inbox has no trip: a
+   * person pastes the messages they chose, and a window would then silently
+   * drop some of them — the one failure mode a paste flow must not have, since
+   * what went missing is invisible. An unparseable bound is treated as absent
+   * for the same reason: dropping everything because a date field held nonsense
+   * would be worse than proposing too much, which a person can simply untick.
+   */
+  readonly from?: string;
+  readonly to?: string;
   /**
    * Dedupe keys already on the ledger. A candidate matching one of these is
    * dropped — re-scanning the inbox must not re-propose what was confirmed.
@@ -273,16 +284,23 @@ export interface ProposeOptions {
   readonly alreadyImported?: ReadonlySet<string>;
 }
 
+/** A window bound as a number, or ±Infinity when there is no usable bound. */
+function bound(value: string | undefined, edge: (value: string) => string, fallback: number) {
+  if (!value) return fallback;
+  const stamp = Date.parse(edge(value));
+  return Number.isNaN(stamp) ? fallback : stamp;
+}
+
 /**
- * The whole feature, as one pure function: an inbox and a trip window in,
- * candidates out. Nothing is written and nothing is sent anywhere.
+ * The whole feature, as one pure function: an inbox and (optionally) a trip
+ * window in, candidates out. Nothing is written and nothing is sent anywhere.
  */
 export function proposeFromSms(
   messages: readonly SmsMessage[],
-  options: ProposeOptions,
+  options: ProposeOptions = {},
 ): ExpenseCandidate[] {
-  const from = Date.parse(startOfDay(options.from));
-  const to = Date.parse(endOfDay(options.to));
+  const from = bound(options.from, startOfDay, -Infinity);
+  const to = bound(options.to, endOfDay, Infinity);
   const seen = new Set<string>();
   const candidates: ExpenseCandidate[] = [];
 

@@ -1570,6 +1570,9 @@ export interface UiStrings {
   captures: {
     title: string;
     captureCta: string;
+    /** The Review tab's second way in: a bank message, pasted (or, on a build that
+     *  has the reader, read). Leads to `captures/paste`. */
+    fromMessage: string;
     paidWith: string;
     payCash: string;
     payCredit: string;
@@ -2576,6 +2579,42 @@ export interface UiStrings {
     };
     /** Note under a candidate whose date was inferred, not read from the text. */
     dateNotInMessage: string;
+    /**
+     * The drafts version of `howTo`. This screen files drafts for later rather
+     * than expenses into a group, and it has no trip to bound the messages by,
+     * so the older sentence's "this trip" would be a lie on it.
+     */
+    howToDrafts: string;
+    /** The found list's own title — a question, because the answer is one tap. */
+    foundQuestion: string;
+    /** Said plainly rather than hidden: how many pasted blocks were not a payment. */
+    someNotParsed: PluralForms;
+    /** How many of the payments found are already waiting in Review. */
+    alreadyAdded: PluralForms;
+    /**
+     * The primary button, and what it says once they land. A draft is not an
+     * expense, so these are not `addCount`/`addedCount` — those say "expense"
+     * and belong to the per-group import this screen replaced.
+     */
+    addDraftCount: PluralForms;
+    addedDraftCount: PluralForms;
+    /** Under the window chips on the read screen — why there is a window at all. */
+    readWindowNote: string;
+    /**
+     * The disclosure shown BEFORE Android's own permission dialog, in the app's
+     * own words. Google Play requires a prominent disclosure for a sensitive
+     * permission, and a rationale attached to the system prompt is not one —
+     * `permissionRationale` above is what that system dialog then says.
+     */
+    disclosure: {
+      title: string;
+      intro: string;
+      readsWhat: string;
+      staysHere: string;
+      neverSent: string;
+      /** Names what the *next* screen asks, so the system dialog is no surprise. */
+      nextScreen: string;
+    };
   };
   /** Splitting one bill line by line, on one phone or several. */
   itemize: {
@@ -4287,6 +4326,7 @@ const en: UiStrings = {
   captures: {
     title: 'Saved for later',
     captureCta: 'Save an expense',
+    fromMessage: 'Add from a message',
     paidWith: 'Paid with',
     payCash: 'Cash',
     payCredit: 'Credit card',
@@ -5185,6 +5225,37 @@ const en: UiStrings = {
       notNow: 'Not now',
     },
     dateNotInMessage: 'date not in the message',
+    howToDrafts:
+      'Open your messages app, pick the bank messages you want, copy them, and paste them here. Waves reads them on this phone and turns each payment into a draft you can file into a group later.',
+    foundQuestion: 'Add these to Review?',
+    someNotParsed: {
+      one: '{n} of those did not look like a payment, so it was left out.',
+      other: '{n} of those did not look like payments, so they were left out.',
+    },
+    alreadyAdded: {
+      one: '{n} is already waiting in Review.',
+      other: '{n} are already waiting in Review.',
+    },
+    addDraftCount: { one: 'Add {n} draft', other: 'Add {n} drafts' },
+    addedDraftCount: {
+      one: '{n} draft is waiting in Review. It is saved on this phone and will sync when there is a connection.',
+      other:
+        '{n} drafts are waiting in Review. They are saved on this phone and will sync when there is a connection.',
+    },
+    readWindowNote:
+      'Waves only looks at this stretch of your inbox. Everything older stays untouched.',
+    disclosure: {
+      title: 'Let Waves read your bank messages',
+      intro:
+        'Instead of copying them over one by one, Waves can look through the bank messages already on this phone and turn the payments into drafts for you.',
+      readsWhat: 'It reads message text looking for payments — an amount, a shop and a date.',
+      staysHere:
+        'The reading happens on this phone. The message itself is never saved and never sent to Waves.',
+      neverSent:
+        'Only the drafts you keep are synced, and nothing is added to a group until you say so.',
+      nextScreen:
+        'On the next screen Android asks whether Waves may read your messages. You can say no — pasting them still works.',
+    },
   },
   itemize: {
     title: 'Split by item',
@@ -6931,6 +7002,7 @@ const ta: UiStrings = {
   captures: {
     title: 'பிறகுக்காகச் சேமித்தவை',
     captureCta: 'ஒரு செலவைச் சேமியுங்கள்',
+    fromMessage: 'செய்தியிலிருந்து சேர்',
     paidWith: 'எப்படிச் செலுத்தினீர்கள்',
     payCash: 'பணம்',
     payCredit: 'கிரெடிட் கார்டு',
@@ -7886,6 +7958,37 @@ const ta: UiStrings = {
       notNow: 'இப்போது வேண்டாம்',
     },
     dateNotInMessage: 'செய்தியில் தேதி இல்லை',
+    howToDrafts:
+      'உங்கள் செய்தி செயலியைத் திறந்து, வேண்டிய வங்கிச் செய்திகளைத் தேர்ந்தெடுத்து, நகலெடுத்து இங்கே ஒட்டுங்கள். Waves அவற்றை இந்த ஃபோனிலேயே படித்து, ஒவ்வொரு கொடுப்பனவையும் பிறகு ஒரு குழுவில் சேர்க்கக்கூடிய வரைவாக மாற்றும்.',
+    foundQuestion: 'இவற்றை மறுபார்வையில் சேர்க்கவா?',
+    someNotParsed: {
+      one: 'அவற்றில் {n} கொடுப்பனவாகத் தெரியவில்லை, அது விடப்பட்டது.',
+      other: 'அவற்றில் {n} கொடுப்பனவாகத் தெரியவில்லை, அவை விடப்பட்டன.',
+    },
+    alreadyAdded: {
+      one: '{n} ஏற்கனவே மறுபார்வையில் காத்திருக்கிறது.',
+      other: '{n} ஏற்கனவே மறுபார்வையில் காத்திருக்கின்றன.',
+    },
+    addDraftCount: { one: '{n} வரைவைச் சேர்', other: '{n} வரைவுகளைச் சேர்' },
+    addedDraftCount: {
+      one: '{n} வரைவு மறுபார்வையில் காத்திருக்கிறது. அது இந்த ஃபோனில் சேமிக்கப்பட்டுள்ளது, இணைப்பு கிடைத்ததும் ஒத்திசைக்கும்.',
+      other:
+        '{n} வரைவுகள் மறுபார்வையில் காத்திருக்கின்றன. அவை இந்த ஃபோனில் சேமிக்கப்பட்டுள்ளன, இணைப்பு கிடைத்ததும் ஒத்திசைக்கும்.',
+    },
+    readWindowNote:
+      'உங்கள் இன்பாக்ஸில் இந்தப் பகுதியை மட்டுமே Waves பார்க்கும். அதற்கு முந்தையவை தொடப்படாது.',
+    disclosure: {
+      title: 'உங்கள் வங்கிச் செய்திகளைப் படிக்க Waves-க்கு அனுமதி',
+      intro:
+        'ஒவ்வொன்றாக நகலெடுப்பதற்குப் பதிலாக, இந்த ஃபோனில் ஏற்கனவே உள்ள வங்கிச் செய்திகளை Waves பார்த்து, கொடுப்பனவுகளை வரைவுகளாக மாற்றித் தரும்.',
+      readsWhat: 'கொடுப்பனவைத் தேடிச் செய்தியின் உரையைப் படிக்கும் — தொகை, கடை, தேதி.',
+      staysHere:
+        'படிப்பது இந்த ஃபோனிலேயே நடக்கும். செய்தி எங்கும் சேமிக்கப்படாது, Waves-க்கும் அனுப்பப்படாது.',
+      neverSent:
+        'நீங்கள் வைத்துக்கொள்ளும் வரைவுகள் மட்டுமே ஒத்திசைக்கப்படும், நீங்கள் சொல்லும் வரை எதுவும் ஒரு குழுவில் சேராது.',
+      nextScreen:
+        'அடுத்த திரையில், உங்கள் செய்திகளை Waves படிக்கலாமா என்று Android கேட்கும். வேண்டாம் எனச் சொல்லலாம் — ஒட்டுவது அப்போதும் வேலை செய்யும்.',
+    },
   },
   itemize: {
     title: 'பொருள் வாரியாகப் பிரி',
@@ -9628,6 +9731,7 @@ const hi: UiStrings = {
   captures: {
     title: 'बाद के लिए सहेजे',
     captureCta: 'एक खर्च सहेजें',
+    fromMessage: 'संदेश से जोड़ें',
     paidWith: 'कैसे चुकाया',
     payCash: 'नकद',
     payCredit: 'क्रेडिट कार्ड',
@@ -10537,6 +10641,36 @@ const hi: UiStrings = {
       notNow: 'अभी नहीं',
     },
     dateNotInMessage: 'संदेश में तारीख नहीं थी',
+    howToDrafts:
+      'अपना मैसेज ऐप खोलें, जो बैंक संदेश चाहिए उन्हें चुनें, कॉपी करें और यहाँ पेस्ट करें। Waves उन्हें इसी फ़ोन पर पढ़ता है और हर भुगतान को एक ड्राफ़्ट बना देता है, जिसे बाद में किसी समूह में डाला जा सकता है।',
+    foundQuestion: 'इन्हें समीक्षा में जोड़ें?',
+    someNotParsed: {
+      one: 'उनमें से {n} भुगतान जैसा नहीं लगा, इसलिए छोड़ दिया गया।',
+      other: 'उनमें से {n} भुगतान जैसे नहीं लगे, इसलिए छोड़ दिए गए।',
+    },
+    alreadyAdded: {
+      one: '{n} पहले से समीक्षा में इंतज़ार कर रहा है।',
+      other: '{n} पहले से समीक्षा में इंतज़ार कर रहे हैं।',
+    },
+    addDraftCount: { one: '{n} ड्राफ़्ट जोड़ें', other: '{n} ड्राफ़्ट जोड़ें' },
+    addedDraftCount: {
+      one: '{n} ड्राफ़्ट समीक्षा में इंतज़ार कर रहा है। यह इसी फ़ोन पर सेव है और कनेक्शन मिलते ही सिंक हो जाएगा।',
+      other:
+        '{n} ड्राफ़्ट समीक्षा में इंतज़ार कर रहे हैं। ये इसी फ़ोन पर सेव हैं और कनेक्शन मिलते ही सिंक हो जाएँगे।',
+    },
+    readWindowNote:
+      'Waves आपके इनबॉक्स का सिर्फ़ इतना हिस्सा देखता है। इससे पुराना सब कुछ अछूता रहता है।',
+    disclosure: {
+      title: 'Waves को अपने बैंक संदेश पढ़ने दें',
+      intro:
+        'एक-एक करके कॉपी करने के बजाय, Waves इसी फ़ोन पर मौजूद बैंक संदेशों को देख सकता है और भुगतानों को आपके लिए ड्राफ़्ट बना सकता है।',
+      readsWhat: 'यह भुगतान ढूँढ़ने के लिए संदेश का टेक्स्ट पढ़ता है — रकम, दुकान और तारीख़।',
+      staysHere: 'पढ़ना इसी फ़ोन पर होता है। संदेश न कभी सेव होता है, न Waves को भेजा जाता है।',
+      neverSent:
+        'सिर्फ़ वही ड्राफ़्ट सिंक होते हैं जो आप रखते हैं, और जब तक आप न कहें कुछ भी किसी समूह में नहीं जुड़ता।',
+      nextScreen:
+        'अगली स्क्रीन पर Android पूछेगा कि Waves आपके संदेश पढ़ सकता है या नहीं। आप मना कर सकते हैं — पेस्ट करना तब भी काम करता है।',
+    },
   },
   itemize: {
     title: 'चीज़-वार बाँटें',
@@ -12332,6 +12466,7 @@ const ar: UiStrings = {
   captures: {
     title: 'محفوظة لوقت لاحق',
     captureCta: 'احفظ مصروفًا',
+    fromMessage: 'أضف من رسالة',
     paidWith: 'طريقة الدفع',
     payCash: 'نقدًا',
     payCredit: 'بطاقة ائتمان',
@@ -13389,6 +13524,53 @@ const ar: UiStrings = {
       notNow: 'ليس الآن',
     },
     dateNotInMessage: 'التاريخ غير مذكور في الرسالة',
+    howToDrafts:
+      'افتح تطبيق الرسائل، واختر رسائل البنك التي تريدها، وانسخها والصقها هنا. يقرأها Waves على هذا الهاتف ويحوّل كل دفعة إلى مسوّدة يمكنك إضافتها إلى مجموعة لاحقًا.',
+    foundQuestion: 'أتضيف هذه إلى المراجعة؟',
+    someNotParsed: {
+      zero: 'لم يُستبعد شيء.',
+      one: 'واحدة منها لم تبدُ دفعة، فاستُبعدت.',
+      two: 'اثنتان منها لم تبدوا دفعتين، فاستُبعدتا.',
+      few: '{n} منها لم تبدُ دفعات، فاستُبعدت.',
+      many: '{n} منها لم تبدُ دفعات، فاستُبعدت.',
+      other: '{n} منها لم تبدُ دفعات، فاستُبعدت.',
+    },
+    alreadyAdded: {
+      zero: 'لا شيء منها في المراجعة بعد.',
+      one: 'واحدة منها تنتظر في المراجعة بالفعل.',
+      two: 'اثنتان منها تنتظران في المراجعة بالفعل.',
+      few: '{n} منها تنتظر في المراجعة بالفعل.',
+      many: '{n} منها تنتظر في المراجعة بالفعل.',
+      other: '{n} منها تنتظر في المراجعة بالفعل.',
+    },
+    addDraftCount: {
+      zero: 'لا شيء لإضافته',
+      one: 'أضف مسوّدة واحدة',
+      two: 'أضف مسوّدتين',
+      few: 'أضف {n} مسوّدات',
+      many: 'أضف {n} مسوّدة',
+      other: 'أضف {n} مسوّدة',
+    },
+    addedDraftCount: {
+      zero: 'لم تُضف أي مسوّدة.',
+      one: 'مسوّدة واحدة تنتظر في المراجعة. إنها محفوظة على هذا الهاتف وستُزامَن عند توفّر اتصال.',
+      two: 'مسوّدتان تنتظران في المراجعة. إنهما محفوظتان على هذا الهاتف وستُزامَنان عند توفّر اتصال.',
+      few: '{n} مسوّدات تنتظر في المراجعة. إنها محفوظة على هذا الهاتف وستُزامَن عند توفّر اتصال.',
+      many: '{n} مسوّدة تنتظر في المراجعة. إنها محفوظة على هذا الهاتف وستُزامَن عند توفّر اتصال.',
+      other: '{n} مسوّدة تنتظر في المراجعة. إنها محفوظة على هذا الهاتف وستُزامَن عند توفّر اتصال.',
+    },
+    readWindowNote: 'لا ينظر Waves إلا في هذا الجزء من صندوق رسائلك، ويبقى كل ما هو أقدم دون مساس.',
+    disclosure: {
+      title: 'اسمح لـ Waves بقراءة رسائل بنكك',
+      intro:
+        'بدلًا من نسخها واحدة واحدة، يمكن لـ Waves أن يتصفّح رسائل البنك الموجودة على هذا الهاتف ويحوّل المدفوعات إلى مسوّدات نيابةً عنك.',
+      readsWhat: 'يقرأ نص الرسائل بحثًا عن المدفوعات — مبلغ ومتجر وتاريخ.',
+      staysHere: 'القراءة تجري على هذا الهاتف. الرسالة نفسها لا تُحفظ أبدًا ولا تُرسل إلى Waves.',
+      neverSent:
+        'لا يُزامَن إلا ما تحتفظ به من مسوّدات، ولا يُضاف شيء إلى مجموعة حتى تقول أنت ذلك.',
+      nextScreen:
+        'في الشاشة التالية سيسألك أندرويد إن كان يحقّ لـ Waves قراءة رسائلك. يمكنك الرفض — واللصق يظل يعمل.',
+    },
   },
   itemize: {
     title: 'التقسيم حسب الصنف',

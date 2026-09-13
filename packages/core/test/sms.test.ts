@@ -249,6 +249,43 @@ describe('what a person is asked to look at', () => {
   });
 });
 
+describe('a drafts list has no trip to bound by', () => {
+  const old = sms('Rs.400 debited at CAFE on 05-01-24', '2024-01-05T09:00:00.000Z');
+  const recent = sms('Rs.900 debited at SWIGGY on 02-03-26');
+
+  it('proposes everything when no window is given at all', () => {
+    // The paste flow has no trip: the person already chose which messages to
+    // hand over, and a window would drop some of them invisibly.
+    const proposed = proposeFromSms([old, recent]);
+    expect(proposed.map((item) => item.amount.minor)).toEqual([40000n, 90000n]);
+  });
+
+  it('takes one bound on its own', () => {
+    expect(proposeFromSms([old, recent], { from: '2026-01-01' })).toHaveLength(1);
+    expect(proposeFromSms([old, recent], { to: '2025-01-01' })).toHaveLength(1);
+  });
+
+  it('treats an unparseable bound as no bound, rather than dropping everything', () => {
+    // A half-typed date in a field must not silently empty the list.
+    expect(proposeFromSms([old, recent], { from: '2026-0', to: '' })).toHaveLength(2);
+  });
+
+  it('still dedupes and still refuses credits with no window', () => {
+    const proposed = proposeFromSms([
+      recent,
+      { ...recent },
+      sms('Rs.2,000 credited to a/c XX4471 from RAVI on 02-03-26'),
+    ]);
+    expect(proposed).toHaveLength(1);
+  });
+
+  it('honours alreadyImported with no window', () => {
+    const first = proposeFromSms([recent]);
+    const key = first[0]!.dedupeKey;
+    expect(proposeFromSms([recent], { alreadyImported: new Set([key]) })).toHaveLength(0);
+  });
+});
+
 describe('no float ever exists between the text and the amount (ADR-003)', () => {
   it('parses amounts that a float would round wrong', () => {
     for (const [text, minor] of [
