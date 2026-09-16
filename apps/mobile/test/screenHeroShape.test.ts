@@ -127,6 +127,33 @@ describe('Review is ticked, not swiped', () => {
     expect(captures).not.toMatch(/suppressTabBar\(\)/);
   });
 
+  /**
+   * The other half of the same disappearance, found on a device after the claim
+   * was fixed: the navigation came back, and the *action bar* went instead.
+   *
+   * It was mounted when something was ticked and animated with `entering` /
+   * `exiting`. A layout animation is driven by mount and unmount, and this
+   * screen is a tab whose rendering the navigator freezes while it is blurred
+   * (`(tabs)/_layout.tsx`). Going out to the voice screen and straight back ran
+   * the exit and never brought the bar back: the ticks were still there, "2
+   * selected" was still there, and the only way to reach "Just me" or "Add to a
+   * group" again was to clear the selection and tick the rows a second time.
+   *
+   * So the bar is mounted for as long as the ticking tab is open and shown by
+   * animating a shared value — the same crossfade the panel above it uses, and
+   * the reason that one survived the same trip. Pinned here because the code
+   * reads fine either way and the difference only shows on a device.
+   */
+  it('shows the action bar with a value, never with a layout animation', () => {
+    expect(captures).not.toMatch(/entering=|exiting=/);
+    expect(captures).not.toMatch(/SlideInDown|SlideOutDown/);
+    // Mounted on the tab, not on the selection, and kept out of the way of the
+    // list by `pointerEvents` rather than by being absent.
+    expect(captures).toMatch(/\{ticking \? \(/);
+    expect(captures).toMatch(/pointerEvents=\{selecting \? 'auto' : 'none'\}/);
+    expect(captures).toMatch(/const actionBarAnim = useAnimatedStyle\(/);
+  });
+
   it('has no swipe left to disagree with the tick', () => {
     // A drag that both ticks a row and files it somewhere is two answers to one
     // gesture, and the one it wins is whichever way the finger moved further.
