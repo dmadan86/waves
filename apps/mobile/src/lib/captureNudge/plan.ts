@@ -62,6 +62,26 @@
  * is the next chance — the app does not raise its voice.
  */
 
+/**
+ * Which of the two things the evening reminder can be about.
+ *
+ * One slot, one reminder, one switch: a phone that had something to say about
+ * unfiled drafts *and* wanted to ask about the day would otherwise raise two
+ * notifications in the same evening, which is how a helpful app becomes a noisy
+ * one. Drafts win when both apply — a specific thing somebody left unfinished
+ * beats a general invitation.
+ */
+export enum NudgeKind {
+  /** Drafts have been sitting unfiled. Names how many. */
+  Captures = 'captures',
+  /**
+   * Nothing is waiting and the app has not been opened today: an invitation to
+   * put the day's spending in before it is forgotten. Says nothing factual
+   * about what was or was not spent, because the phone does not know.
+   */
+  CheckIn = 'checkIn',
+}
+
 /** What the next pass should do with the reminder this phone holds. */
 export enum NudgeAction {
   /** Leave things exactly as they are. The overwhelmingly common answer. */
@@ -100,6 +120,12 @@ export interface PendingNudge {
   readonly count: number;
   /** The language its text was written in. */
   readonly locale: string;
+  /**
+   * Which sentence it carries. Part of the comparison below, because a held
+   * "3 expenses still need a group" and a held "anything to split today?" are
+   * different reminders even when they are due at the same minute.
+   */
+  readonly kind: NudgeKind;
 }
 
 /** Everything that bears on whether to speak, and what to say. */
@@ -123,6 +149,18 @@ export interface NudgeInput {
    * cannot have spent the ceiling.
    */
   readonly lastFiredAt: number | null;
+  /**
+   * When this phone last ran a pass — which it does whenever the app comes to
+   * the foreground, so it is "when Waves was last opened" with no extra
+   * bookkeeping. Null on a phone that has never run one.
+   */
+  readonly lastSeenAt: number | null;
+  /**
+   * Whether this account is in any group at all. Somebody with nowhere to put
+   * an expense is not being invited to add one; the first thing they need is a
+   * group, and a notification is not how that conversation should start.
+   */
+  readonly hasGroup: boolean;
   /** What the OS is currently holding for us, if anything. */
   readonly pending: PendingNudge | null;
   /** The app's current language, which the text is baked in. */
@@ -132,7 +170,12 @@ export interface NudgeInput {
 export type NudgePlan =
   | { readonly action: NudgeAction.Keep }
   | { readonly action: NudgeAction.Cancel }
-  | { readonly action: NudgeAction.Schedule; readonly fireAt: number; readonly count: number };
+  | {
+      readonly action: NudgeAction.Schedule;
+      readonly fireAt: number;
+      readonly count: number;
+      readonly kind: NudgeKind;
+    };
 
 /**
  * The next `NUDGE_HOUR` on the local clock, strictly after `now`.
@@ -172,13 +215,9 @@ export function planCaptureNudge(input: NudgeInput): NudgePlan {
   // on Android a granted-then-revoked permission leaves live alarms behind.
   if (!input.enabled || !input.permitted) return silence();
 
-  // Nothing for zero. Also the cancel that matters: this is the branch somebody
-  // lands in the moment they finish placing their last draft.
-  if (input.waitingCount <= 0 || input.oldestWaitingAt === null) return silence();
-
-  // Nothing has been *sitting* yet — everything waiting was saved today, and
-  // the person who saved it has seen the screen that says so.
-  if (input.now - input.oldestWaitingAt < SETTLE_MS) return silence();
+  // Drafts first, the day's invitation second — and only one of them, ever.
+  const kind = whatToSay(input);
+  if (kind === null) return silence();
 
   let fireAt = nextNudgeSlot(input.now);
   if (input.lastFiredAt !== null) {
@@ -191,11 +230,13 @@ export function planCaptureNudge(input: NudgeInput): NudgePlan {
 
   // Already holding exactly this. Rescheduling an identical reminder would tear
   // down and rebuild an OS alarm on every foreground for no visible change.
+  const count = kind === NudgeKind.Captures ? input.waitingCount : 0;
   if (
     input.pending &&
     input.pending.fireAt === fireAt &&
-    input.pending.count === input.waitingCount &&
-    input.pending.locale === input.locale
+    input.pending.count === count &&
+    input.pending.locale === input.locale &&
+    input.pending.kind === kind
   ) {
     return { action: NudgeAction.Keep };
   }
@@ -205,5 +246,60 @@ export function planCaptureNudge(input: NudgeInput): NudgePlan {
   // stale. A notification that says three when two are waiting is worse than
   // no notification, and one in a language the person has just switched away
   // from is the app forgetting a setting it was told about.
-  return { action: NudgeAction.Schedule, fireAt, count: input.waitingCount };
+  return { action: NudgeAction.Schedule, fireAt, count, kind };
+}
+
+/**
+ * Which sentence this evening deserves, or null for silence.
+ *
+ * The two conditions are deliberately different in kind. The drafts one is a
+ * claim about work somebody left unfinished, and every guard on it exists so
+ * the claim is true when it is made. The check-in makes no claim at all: it
+ * asks whether anything needs splitting, which is a question this phone is
+ * entitled to ask without knowing the answer.
+ *
+ * What the check-in *does* need is a reason to believe it is not interrupting.
+ * "The app has not been opened today" is the honest one, and it is free —
+ * `lastSeenAt` is written by the pass itself, which runs when the app comes
+ * forward. Somebody who used Waves this afternoon is not asked in the evening
+ * whether they remembered to use Waves.
+ */
+function whatToSay(input: NudgeInput): NudgeKind | null {
+  // Drafts, when something has actually been sitting. Zero waiting is not a
+  // reminder; it is an app that lies — and this is also the branch somebody
+  // lands in the moment they place their last draft, which is what makes the
+  // cancel above correct.
+  const waiting = input.waitingCount > 0 && input.oldestWaitingAt !== null;
+  // Nothing has been *sitting* yet: everything waiting was saved today, and the
+  // person who saved it has seen the screen that says so.
+  const settled = waiting && input.now - (input.oldestWaitingAt ?? 0) >= SETTLE_MS;
+  if (settled) return NudgeKind.Captures;
+
+  // Nowhere to put an expense means no invitation to add one.
+  if (!input.hasGroup) return null;
+  // Never on a day the app has been opened. A phone that has never run a pass
+  // cannot have been opened today either, so null qualifies — but in practice
+  // the first pass writes the stamp, so this is the second evening at the
+  // earliest.
+  if (input.lastSeenAt !== null && isSameLocalDay(input.lastSeenAt, input.now)) return null;
+  return NudgeKind.CheckIn;
+}
+
+/**
+ * Whether two instants fall on the same day by the phone's own clock.
+ *
+ * Local, and by calendar date rather than by a 24-hour window: "have I opened
+ * this today" is a question about the day a person is living in, and a
+ * millisecond subtraction answers a different one. The same reasoning as
+ * `nextNudgeSlot`, and the same trap `localIsoDate` exists for in the personal
+ * ledger.
+ */
+function isSameLocalDay(a: number, b: number): boolean {
+  const first = new Date(a);
+  const second = new Date(b);
+  return (
+    first.getFullYear() === second.getFullYear() &&
+    first.getMonth() === second.getMonth() &&
+    first.getDate() === second.getDate()
+  );
 }

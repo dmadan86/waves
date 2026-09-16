@@ -1742,6 +1742,10 @@ export interface UiStrings {
      */
     nudgeTitle: string;
     nudgeBody: PluralForms;
+    /** The evening check-in, on a day the app has not been opened. Asks; never
+     *  claims anything about what was spent, because the phone does not know. */
+    checkInTitle: string;
+    checkInBody: string;
   };
   /** Attaching where a spend happened (A43): the opt-in control on the expense
    *  forms and the tappable place on the expense detail. */
@@ -4341,7 +4345,7 @@ const en: UiStrings = {
     localSection: 'From this phone',
     savedForLater: 'Expenses saved for later',
     savedForLaterBody:
-      'If one is still waiting for a group a day later, this phone reminds you in the evening. Once a day at most, and never when nothing is waiting.',
+      'If one is still waiting for a group a day later, this phone reminds you in the evening. On a day you have not opened Waves at all, it asks instead whether anything needs splitting. Once a day at most, and only ever one of the two.',
   },
   contact: {
     title: 'Your account',
@@ -4752,6 +4756,8 @@ const en: UiStrings = {
       one: '{n} expense still needs a group. Tap to add it.',
       other: '{n} expenses still need a group. Tap to add them.',
     },
+    checkInTitle: 'Anything to split today?',
+    checkInBody: 'Add it now — it is harder to remember on Sunday.',
   },
   location: {
     label: 'Location',
@@ -7196,7 +7202,7 @@ const ta: UiStrings = {
     localSection: 'இந்த ஃபோனிலிருந்து',
     savedForLater: 'பிறகு சேமித்த செலவுகள்',
     savedForLaterBody:
-      'ஒரு நாள் கழித்தும் ஒரு செலவு குழுவுக்காகக் காத்திருந்தால், இந்த ஃபோன் மாலையில் நினைவூட்டும். நாளொன்றுக்கு ஒரு முறை மட்டுமே; காத்திருப்பது எதுவும் இல்லாதபோது ஒருபோதும் இல்லை.',
+      'ஒரு நாள் கழித்தும் ஒரு செலவு குழுவுக்காகக் காத்திருந்தால், இந்த ஃபோன் மாலையில் நினைவூட்டும். நீங்கள் Waves-ஐத் திறக்காத நாளில், பிரிக்க ஏதேனும் உள்ளதா என்று கேட்கும். நாளொன்றுக்கு ஒரு முறை மட்டுமே; இரண்டில் ஒன்று மட்டுமே.',
   },
   contact: {
     title: 'உங்கள் கணக்கு',
@@ -7622,6 +7628,8 @@ const ta: UiStrings = {
       one: '{n} செலவுக்கு இன்னும் ஒரு குழு வேண்டும். சேர்க்கத் தட்டுங்கள்.',
       other: '{n} செலவுகளுக்கு இன்னும் ஒரு குழு வேண்டும். சேர்க்கத் தட்டுங்கள்.',
     },
+    checkInTitle: 'இன்று பிரிக்க ஏதேனும் உள்ளதா?',
+    checkInBody: 'இப்போதே சேர்த்து விடுங்கள் — ஞாயிறு அன்று நினைவில் இருக்காது.',
   },
   location: {
     label: 'இடம்',
@@ -10142,7 +10150,7 @@ const hi: UiStrings = {
     localSection: 'इस फ़ोन से',
     savedForLater: 'बाद के लिए सहेजे गए खर्च',
     savedForLaterBody:
-      'अगर कोई खर्च एक दिन बाद भी किसी समूह का इंतज़ार कर रहा हो, तो यह फ़ोन शाम को याद दिलाता है। दिन में ज़्यादा से ज़्यादा एक बार, और जब कुछ बाकी न हो तो कभी नहीं।',
+      'अगर कोई खर्च एक दिन बाद भी किसी समूह का इंतज़ार कर रहा हो, तो यह फ़ोन शाम को याद दिलाता है। जिस दिन आपने Waves खोला ही न हो, उस दिन यह पूछता है कि बाँटने के लिए कुछ है क्या। दिन में ज़्यादा से ज़्यादा एक बार, और दोनों में से सिर्फ़ एक।',
   },
   contact: {
     title: 'आपका खाता',
@@ -10553,6 +10561,8 @@ const hi: UiStrings = {
       one: '{n} खर्च को अब भी एक समूह चाहिए। जोड़ने के लिए टैप करें।',
       other: '{n} खर्चों को अब भी एक समूह चाहिए। जोड़ने के लिए टैप करें।',
     },
+    checkInTitle: 'आज कुछ बाँटना है?',
+    checkInBody: 'अभी जोड़ लें — रविवार को याद रखना मुश्किल होगा।',
   },
   location: {
     label: 'स्थान',
@@ -13055,7 +13065,7 @@ const ar: UiStrings = {
     localSection: 'من هذا الهاتف',
     savedForLater: 'مصاريف محفوظة لوقت لاحق',
     savedForLaterBody:
-      'إذا بقي مصروف ينتظر مجموعة بعد يوم كامل، يذكّرك هذا الهاتف مساءً. مرة واحدة في اليوم على الأكثر، ولا شيء إطلاقًا حين لا ينتظر شيء.',
+      'إذا بقي مصروف ينتظر مجموعة بعد يوم كامل، يذكّرك هذا الهاتف مساءً. وفي يوم لم تفتح فيه Waves إطلاقًا، يسألك بدلًا من ذلك إن كان هناك ما تريد تقسيمه. مرة واحدة في اليوم على الأكثر، وواحد من الاثنين فقط.',
   },
   contact: {
     title: 'حسابك',
@@ -13522,6 +13532,8 @@ const ar: UiStrings = {
       many: '{n} مصروفًا ما زالت بحاجة إلى مجموعة. اضغط لإضافتها.',
       other: '{n} مصروف ما زال بحاجة إلى مجموعة. اضغط لإضافته.',
     },
+    checkInTitle: 'هل من شيء لتقسيمه اليوم؟',
+    checkInBody: 'أضفه الآن — تذكُّره يوم الأحد أصعب.',
   },
   location: {
     label: 'الموقع',

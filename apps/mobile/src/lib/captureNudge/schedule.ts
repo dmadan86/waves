@@ -47,7 +47,7 @@ import * as Notifications from 'expo-notifications';
 
 import { ensureAndroidChannel, pushSupported } from '@/lib/push';
 
-import type { PendingNudge } from './plan';
+import { NudgeKind, type PendingNudge } from './plan';
 
 /**
  * Stamped into every reminder this feature schedules, so the sweep below can
@@ -91,15 +91,19 @@ export async function pendingNudge(): Promise<PendingNudge | null> {
   const [first] = await ourRequests();
   if (!first) return null;
   const data = first.content.data as
-    { fireAt?: unknown; count?: unknown; locale?: unknown } | undefined;
+    { fireAt?: unknown; count?: unknown; locale?: unknown; kind?: unknown } | undefined;
   const fireAt = Number(data?.fireAt);
   const count = Number(data?.count);
   const locale = typeof data?.locale === 'string' ? data.locale : '';
+  // An older build wrote no kind, and everything it wrote was about drafts.
+  const kind = data?.kind === NudgeKind.CheckIn ? NudgeKind.CheckIn : NudgeKind.Captures;
   // A payload we cannot read is one we cannot compare against a plan, so it is
   // reported as "something is scheduled, and it is not what you want" — the
   // fire time of 0 can never equal a real slot, so the caller replaces it.
-  if (!Number.isFinite(fireAt) || !Number.isFinite(count)) return { fireAt: 0, count: -1, locale };
-  return { fireAt, count, locale };
+  if (!Number.isFinite(fireAt) || !Number.isFinite(count)) {
+    return { fireAt: 0, count: -1, locale, kind };
+  }
+  return { fireAt, count, locale, kind };
 }
 
 /**
@@ -196,6 +200,7 @@ export async function scheduleNudge(input: {
   readonly fireAt: number;
   readonly count: number;
   readonly locale: string;
+  readonly kind: NudgeKind;
   readonly text: NudgeText;
 }): Promise<boolean> {
   if (!pushSupported) return false;
@@ -217,6 +222,8 @@ export async function scheduleNudge(input: {
         // what the thing *is*, instead of spending it on a figure that then
         // truncates. It is still in the body, where there is room to say what
         // the number counts; the badge only repeats it at a glance.
+        // Zero for the check-in: it counts nothing, and a "1" on the icon for a
+        // question would be a number standing for no fact at all.
         badge: input.count,
         // No amount, and no description of any single draft: a lock screen is
         // readable without unlocking the phone, and the count is the whole of
@@ -227,6 +234,7 @@ export async function scheduleNudge(input: {
           fireAt: input.fireAt,
           count: input.count,
           locale: input.locale,
+          kind: input.kind,
         },
       },
       trigger: {
