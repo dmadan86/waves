@@ -27,6 +27,8 @@ FLOWS=(
   change-logo
   capture-assign
   review-selection-back
+  tab-bar-returns
+  back-through-the-stack
   custom-tags
   locale-switch
   sign-out-privacy
