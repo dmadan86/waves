@@ -283,15 +283,23 @@ jobs:
           printf 'EXPO_PUBLIC_SUPABASE_URL=%s\nEXPO_PUBLIC_SUPABASE_ANON_KEY=%s\n' \
             "${{ secrets.E2E_SUPABASE_URL }}" "${{ secrets.E2E_SUPABASE_ANON_KEY }}" \
             > apps/mobile/.env
-      # Prebuild regenerates android/ from app config; --clean wipes it, so the
-      # Firebase file must land AFTER prebuild and before the Gradle build.
+      # BEFORE prebuild, and into apps/mobile — not after, and not into
+      # android/app. `app.json` sets `android.googleServicesFile` to
+      # `./google-services.json`, so prebuild reads that file and copies it into
+      # android/app itself; with the restore afterwards there was nothing for it
+      # to read and prebuild died outright:
+      #   [android.dangerous]: withAndroidDangerousBaseMod: Cannot copy
+      #   google-services.json from apps/mobile/google-services.json
+      # The comment that used to stand here reasoned that --clean wipes android/
+      # so the file must land after it. True of android/app/google-services.json
+      # — and beside the point, because the file prebuild needs lives outside
+      # android/ and nothing wipes it.
+      - name: Restore Waves google-services.json
+        run: |
+          echo "${{ secrets.GOOGLE_SERVICES_JSON_B64 }}" | base64 -d > apps/mobile/google-services.json
       - name: Prebuild the Android project
         working-directory: apps/mobile
         run: npx expo prebuild --platform android --clean
-      - name: Restore Waves google-services.json
-        run: |
-          echo "${{ secrets.GOOGLE_SERVICES_JSON_B64 }}" | base64 -d \
-            > apps/mobile/android/app/google-services.json
       - name: Assemble debug APK
         working-directory: apps/mobile/android
         run: ./gradlew :app:assembleDebug --no-daemon

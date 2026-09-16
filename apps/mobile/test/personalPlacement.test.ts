@@ -225,7 +225,7 @@ describe('carrying the plan out', () => {
  * everything below is genuinely unreadable.
  */
 describe('a pile with one draft this code cannot read', () => {
-  const HOSTILE: ReadonlyArray<readonly [string, unknown]> = [
+  const HOSTILE: readonly (readonly [string, unknown])[] = [
     ['nothing at all', null],
     ['a key the row never carried', undefined],
     ['an amount that is not a number', 'nine hundred'],
