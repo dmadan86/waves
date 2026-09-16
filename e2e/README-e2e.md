@@ -2,14 +2,34 @@
 
 The flows in this directory drive the real app on a device/emulator. They are
 the only tests that exercise rendering, navigation and the offline mirror end to
-end. The CI job that runs them is `e2e (Maestro)` in `.github/workflows/ci.yml`.
+end. They run from their own workflow, `.github/workflows/e2e.yml`.
 
-**Status: on.** The staging project `emyjuhazbynzwjqcfloh` (`waves-staging`,
-ap-south-1) was provisioned on 2026-09-16 — migrations applied, all 17 edge
-functions deployed — and `E2E_ENABLED` is set, so the job runs on every push and
-pull request. It is deliberately **not** in the branch ruleset's required
-checks: these flows drive a real emulator and a real backend, so a flake must
-not be able to hold the repository shut.
+**Status: on, nightly.** The staging project `emyjuhazbynzwjqcfloh`
+(`waves-staging`, ap-south-1) was provisioned on 2026-09-16 — migrations
+applied, all 17 edge functions deployed — and `E2E_ENABLED` is set.
+
+Not on every pull request, and that is deliberate. The run builds the Android
+app from source and then drives twenty flows one at a time with a reseed between
+each: three quarters of an hour, against the two minutes the rest of CI takes.
+In front of every review that is a check nobody can wait for, and the only
+honest ways to read it are to ignore it or to be slowed by it. So:
+
+| when                                  | what runs                                                     |
+| ------------------------------------- | ------------------------------------------------------------- |
+| nightly, 19:00 UTC                    | the full suite against `main`                                 |
+| **Actions → e2e → Run workflow**      | the full suite against any branch — use this before a release |
+| the **`e2e`** label on a pull request | the full suite against that branch                            |
+
+The label fires when it is _applied_, so pushing more commits afterwards does
+not re-run it — take the label off and put it back, or dispatch it. Worth
+applying to anything that touches navigation, the mirror, or the shape of a
+screen, where waiting for the nightly means finding out after it has merged.
+This repo is public, so a fork's pull request gets none of the secrets; the
+label only works on a branch in this repository.
+
+Deliberately **not** in the branch ruleset's required checks: these flows drive
+an emulator and a network, so they can fail for reasons that are not the code's,
+and a check that can do that must not be able to hold the repository shut.
 
 The job seeds but does not migrate. When a migration lands, apply it to staging
 too, or the seed fails against a schema older than the fixture:
