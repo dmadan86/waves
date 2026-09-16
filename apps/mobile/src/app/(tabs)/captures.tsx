@@ -2143,6 +2143,14 @@ export default function CapturesScreen() {
            same gesture, and the reason that one survived the same trip. */
         <Reanimated.View
           pointerEvents={selecting ? 'auto' : 'none'}
+          // `pointerEvents` stops a finger and nothing else: a bar at zero
+          // opacity keeps its buttons in the accessibility tree, where a screen
+          // reader will happily read out "Just me" and activate it with no rows
+          // ticked. Invisible on the screen and present to the reader is the
+          // worst of both, so the descendants are hidden outright — one prop
+          // per platform, because iOS and Android spell this differently.
+          accessibilityElementsHidden={!selecting}
+          importantForAccessibility={selecting ? 'auto' : 'no-hide-descendants'}
           style={[
             {
               position: 'absolute',
@@ -2211,6 +2219,14 @@ export default function CapturesScreen() {
                 style={{ flex: 1 }}
                 onPress={() => {
                   const items = chosenRows;
+                  // The bar is mounted while this tab is open, whether or not
+                  // anything is ticked, so "nothing is ticked" has to be an
+                  // answer this button knows how to give. `items[0]!.id` on an
+                  // empty selection is a crash, and the non-null assertion is
+                  // exactly the kind that reads as safe right up until some
+                  // route nobody pictured — an accessibility service, a stray
+                  // tap during the fade — arrives with an empty list.
+                  if (items.length === 0) return;
                   // Same rule as the sheet's own "Just me": untick what landed,
                   // leave what refused where a person can see and retry it.
                   void placeInPersonal({ lockKey: items[0]!.id, items }).then((done) =>

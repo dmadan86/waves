@@ -154,6 +154,27 @@ describe('Review is ticked, not swiped', () => {
     expect(captures).toMatch(/const actionBarAnim = useAnimatedStyle\(/);
   });
 
+  /**
+   * Mounting the bar at zero opacity buys the fix above and owes this: a view a
+   * finger cannot reach is still in the accessibility tree, and a screen reader
+   * will read out "Just me" and activate it with nothing ticked. Invisible on
+   * screen and live to the reader is the worst of the two states.
+   */
+  it('hides the inactive action bar from a screen reader too, not just from a finger', () => {
+    expect(captures).toMatch(/accessibilityElementsHidden=\{!selecting\}/);
+    expect(captures).toMatch(
+      /importantForAccessibility=\{selecting \? 'auto' : 'no-hide-descendants'\}/,
+    );
+  });
+
+  it('refuses "Just me" on an empty selection rather than indexing into nothing', () => {
+    // `items[0]!.id` is a crash for an empty list, and the assertion reads as
+    // safe right up until some route nobody pictured arrives with one.
+    const justMe = captures.match(/const items = chosenRows;[\s\S]*?placeInPersonal\(/);
+    expect(justMe, 'captures should hand the selection to placeInPersonal').not.toBeNull();
+    expect(justMe![0]).toMatch(/if \(items\.length === 0\) return;/);
+  });
+
   it('has no swipe left to disagree with the tick', () => {
     // A drag that both ticks a row and files it somewhere is two answers to one
     // gesture, and the one it wins is whichever way the finger moved further.

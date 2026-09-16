@@ -71,22 +71,6 @@ appId: app.waves.mobile
 # Back closed the sheet and left the selection where it was.
 - assertVisible: '1 selected'
 
-# ── away and back with the selection live, and the bar is still there ─────
-# The second half of the same bug, found on a device after the first fix: the
-# navigation came back and the *selection's own bar* went instead. It was
-# mounted on the selection and animated with `entering`/`exiting`, and a layout
-# animation is driven by mount and unmount — which this navigator does to a tab
-# it freezes on blur. The ticks survived the trip and the buttons did not, so
-# the only way to act on the selection was to clear it and start again.
-- tapOn: 'Friends'
-- extendedWaitUntil:
-    visible: 'Review'
-    timeout: 20000
-- tapOn: 'Review'
-- assertVisible: '1 selected'
-- assertVisible: 'Add to a group'
-- assertVisible: 'Just me'
-
 # ── the bug: leave the tab with the selection still live ──────────────────
 - back
 - extendedWaitUntil:
@@ -101,6 +85,22 @@ appId: app.waves.mobile
 - tapOn: 'Friends'
 - assertVisible: 'Review'
 - tapOn: 'Review'
+
+# ── and the selection's own bar came back with it ─────────────────────────
+# The second half of the same bug, found on a device once the navigation was
+# fixed: the bar went instead. It was mounted on the selection and animated
+# with `entering`/`exiting`, and a layout animation is driven by mount and
+# unmount — which is what this navigator does to a tab it freezes on blur. The
+# ticks survived the trip out and back and the buttons did not, so the only way
+# to act on the selection was to clear it and tick the rows again.
+#
+# Asserted here rather than by walking out to another tab and back, because
+# while rows are ticked there is no tab bar to walk out *on*: that is the point
+# of the claim above. This is the same trip — blur, freeze, focus — taken by the
+# one route a person actually has.
+- assertVisible: '1 selected'
+- assertVisible: 'Add to a group'
+- assertVisible: 'Just me'
 
 # ── "Just me" files the drafts instead of refusing them ───────────────────
 - tapOn: 'SMS'

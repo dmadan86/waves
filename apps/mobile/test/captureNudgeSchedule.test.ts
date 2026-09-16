@@ -15,9 +15,12 @@ const notifications = vi.hoisted(() => ({
   dismissed: [] as string[],
 }));
 
+/** Whether the OS currently allows local notifications, per test. */
+let permitted = true;
+
 vi.mock('@/lib/push', () => ({
   ensureAndroidChannel: vi.fn(),
-  localNotificationsAllowed: async () => true,
+  localNotificationsAllowed: async () => permitted,
   pushSupported: true,
 }));
 
@@ -52,6 +55,7 @@ describe('capture nudge scheduler', () => {
     notifications.scheduled = [];
     notifications.presented = [];
     notifications.dismissed = [];
+    permitted = true;
   });
 
   it('clears the app badge when cancelling the waiting-captures reminder', async () => {
@@ -122,6 +126,29 @@ describe('capture nudge scheduler', () => {
     });
 
     expect(notifications.dismissed).toEqual(['old-nudge']);
+  });
+
+  /**
+   * A cancel is the feature being switched off — the reminder turned off in
+   * settings, or notification permission withdrawn. Putting the live count back
+   * on the icon after that would leave a notification signal standing for a
+   * notification somebody has just refused.
+   */
+  it('leaves the icon clear when the reminder is cancelled with drafts still waiting', async () => {
+    notifications.requests = [OUR_NUDGE];
+    permitted = false;
+
+    await syncCaptureNudge({
+      ownerId: 'user',
+      waitingCount: 129,
+      oldestWaitingAt: 1_799_000_000_000,
+      locale: 'en',
+      now: 1_800_000_000_000,
+      text: (count) => ({ title: 'Waiting on you', body: `${count} expenses are waiting.` }),
+    });
+
+    expect(notifications.cancelled).toEqual(['ours']);
+    expect(notifications.badgeCounts.at(-1)).toBe(0);
   });
 
   it('writes the waiting count onto the scheduled reminder badge', async () => {

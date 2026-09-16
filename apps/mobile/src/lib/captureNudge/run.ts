@@ -83,7 +83,15 @@ export async function syncCaptureNudge(input: NudgeRunInput): Promise<NudgePlan>
   // it. Written from here on every pass, so it carries what is waiting *now*
   // rather than the figure some earlier reminder happened to be scheduled with;
   // see `setNudgeBadge` for why that reminder's own badge was not enough.
-  if (input.waitingCount > 0 && input.oldestWaitingAt !== null) {
+  //
+  // Never over a cancel, though. A cancel is this feature being switched off —
+  // the reminder turned off in settings, or notification permission withdrawn —
+  // and putting the count straight back on the icon would leave a notification
+  // signal standing for a notification somebody has just refused. The badge
+  // belongs to the reminder; when there is no reminder there is no badge.
+  if (plan.action === NudgeAction.Cancel) {
+    // `cancelNudges` above already cleared it.
+  } else if (input.waitingCount > 0 && input.oldestWaitingAt !== null) {
     await setNudgeBadge(input.waitingCount);
   } else {
     await clearNudgeBadge();
