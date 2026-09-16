@@ -61,7 +61,19 @@ jobs:
       ${{ vars.E2E_ENABLED == 'true'
       && (github.event_name != 'pull_request'
       || github.event.label.name == 'e2e') }}
-    timeout-minutes: 45
+    # Sized from the first run in which the flows actually executed. That run
+    # spent 28 minutes in Gradle and 14 more booting the emulator and fetching
+    # Maestro, so the 45-minute cap expired 80 seconds into the *first* flow —
+    # the job was killed with nineteen still to go and reported no failure,
+    # which is the least useful thing a test run can do.
+    #
+    # The old number was not wrong when it was written; it was sized against a
+    # suite where every flow was refused in about a second (see
+    # `test/e2eFlowCommands.test.ts` for why). Now that they run, the flows
+    # themselves are the long part: twenty of them, each reseeding the backend
+    # first. Two hours leaves room for that and for a slow runner, and costs
+    # nothing on a nightly that nobody is waiting on.
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
