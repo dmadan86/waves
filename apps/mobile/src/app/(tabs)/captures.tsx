@@ -137,7 +137,7 @@ import { useGuestGuard, usePersonalOffered } from '@/lib/guestGuard';
 import { suggestGroup, tripWindowsOf, type GroupSuggestion } from '@/lib/groupSuggestion';
 import { router } from '@/lib/navigation';
 import { usePullRefresh } from '@/lib/pullRefresh';
-import { suppressTabBar } from '@/lib/tabBarSuppress';
+import { useTabBarStandDown } from '@/lib/useTabBarStandDown';
 import {
   blockEdges,
   buildReviewFeed,
@@ -980,16 +980,15 @@ export default function CapturesScreen() {
    * move out of the other's way by the usual rule; the bar takes a second input
    * instead (`lib/tabBarSuppress`).
    *
-   * An effect rather than a render-time call, because it is exactly what an
-   * effect is for: a subscription to something outside React, released on the
-   * way out. The cleanup matters — walking away mid-selection must put the
-   * navigation back, or a person is left on another tab with no way to leave it.
+   * Through `useTabBarStandDown` rather than a bare effect, because the release
+   * has to be tied to *focus*, not to unmounting. This screen is a tab and a tab
+   * does not unmount when you leave it: the effect this replaced held its claim
+   * until the ticks cleared, so pressing back with two drafts ticked landed on
+   * the dashboard with no navigation anywhere in the app and nothing left on
+   * screen able to give it back.
    */
   const bottomBarStandsDown = ticking && chosenRows.length > 0;
-  useEffect(() => {
-    if (!bottomBarStandsDown) return;
-    return suppressTabBar();
-  }, [bottomBarStandsDown]);
+  useTabBarStandDown(bottomBarStandsDown);
   const toggleSelected = useCallback((id: string): void => {
     setSelected((current) => {
       const next = new Set(current);

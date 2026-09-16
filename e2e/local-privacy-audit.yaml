@@ -6,8 +6,8 @@ appId: app.waves.mobile
 
 # Open the debug audit screen directly; the screen is disabled outside dev builds.
 - openLink: waves:///dev/local-privacy
-- extendedWaitUntilVisible:
-    element:
+- extendedWaitUntil:
+    visible:
       id: 'local-privacy-audit-ready'
     timeout: 10000
 - assertVisible: 'mirrorKeyPresent:false'

@@ -1,0 +1,100 @@
+# Pushing in and backing out, all the way, without losing the app on the way.
+#
+# The bugs this guards against are the ones no feature flow notices, because
+# every feature flow walks forwards: it opens a screen, asserts what it came for
+# and ends there. Nothing asserted what the app looked like on the way *back* —
+# so a screen that pops to the wrong place, an overlay that takes the system
+# back button and never gives it up, or a back press that unwinds two levels
+# instead of one, all shipped silently.
+#
+# Three separate things get walked here:
+#
+#  1. **Depth.** Home → group → expense → back → back, one level per press.
+#  2. **Overlays.** A menu opened over a screen must close on back and leave
+#     that screen where it was, not navigate away underneath it.
+#  3. **The tabs.** Every tab, there and back, still rendering and still able to
+#     reach the next one — the "is the menu still there" sweep.
+appId: app.waves.mobile
+---
+- runFlow: login.yaml
+- assertVisible: 'Your groups'
+
+# ── 1. depth: one level per press, landing where you came from ────────────
+- tapOn: 'Goa trip'
+- extendedWaitUntil:
+    visible: 'Beach shack dinner'
+    timeout: 20000
+
+- tapOn: 'Beach shack dinner'
+# The detail screen, not the ledger it was tapped from. Asserted by something
+# only the detail carries — the ledger has no "Delete expense" — so a push that
+# never happened cannot read as a pass.
+- extendedWaitUntil:
+    visible: 'Delete expense'
+    timeout: 20000
+
+- back
+# One level, not two: back on the expense lands on the group's ledger, never
+# straight out to the dashboard.
+- assertVisible: 'Beach shack dinner'
+- assertNotVisible: 'Your groups'
+
+- back
+- extendedWaitUntil:
+    visible: 'Your groups'
+    timeout: 20000
+- assertVisible: 'Friends'
+
+# ── 2. an overlay takes back, and gives the screen back ───────────────────
+- tapOn: 'Goa trip'
+- extendedWaitUntil:
+    visible: 'Beach shack dinner'
+    timeout: 20000
+
+- tapOn: 'More'
+- assertVisible: 'Group settings'
+- back
+# The menu closed. What it must *not* have done is close and pop the group with
+# it — an overlay that lets its back press fall through leaves somebody two
+# screens from where they were after one press.
+- assertNotVisible: 'Group settings'
+- assertVisible: 'Beach shack dinner'
+
+# And the screen underneath still works, rather than being left inert behind a
+# scrim that is gone from the screen but not from the tree.
+- tapOn: 'More'
+- assertVisible: 'Group settings'
+- back
+- tapOn: 'Beach shack dinner'
+- extendedWaitUntil:
+    visible: 'Delete expense'
+    timeout: 20000
+- back
+- back
+- extendedWaitUntil:
+    visible: 'Your groups'
+    timeout: 20000
+
+# ── 3. every tab, there and back ──────────────────────────────────────────
+# Each tab has to render its own screen and still offer the way to the next one.
+# A bar that survives as furniture but stops routing looks fine in a screenshot.
+# Each assertion names something only that tab's own screen carries — the tab
+# *labels* are in the bar on every screen, so asserting those would pass without
+# any of these having rendered.
+- tapOn: 'Friends'
+- assertVisible: 'Merge people'
+- tapOn: 'Review'
+- assertVisible: 'Added by you'
+- tapOn: 'Personal'
+- assertVisible: 'Your own money'
+- tapOn: 'Home'
+- extendedWaitUntil:
+    visible: 'Your groups'
+    timeout: 20000
+- assertVisible: 'Friends'
+
+# Back from the dashboard is the app's own root. Whatever it does — nothing, or
+# leaving — it must not strand somebody on a signed-out or empty shell while the
+# session is still live.
+- back
+- assertNotVisible: 'Sign in'

@@ -22,8 +22,8 @@ appId: app.waves.mobile
 - tapOn: 'Save tag'
 
 # Back in the manager the new tag is listed.
-- extendedWaitUntilVisible:
-    element: 'Client dinner'
+- extendedWaitUntil:
+    visible: 'Client dinner'
     timeout: 20000
 
 # Back to home, into the seeded group, and open add-expense.
@@ -48,6 +48,6 @@ appId: app.waves.mobile
 
 # Back in the group ledger, the undescribed expense is named by its tag — proof
 # the tag was created, chosen, written and rendered end to end.
-- extendedWaitUntilVisible:
-    element: 'Client dinner'
+- extendedWaitUntil:
+    visible: 'Client dinner'
     timeout: 20000

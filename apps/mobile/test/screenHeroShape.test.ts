@@ -113,8 +113,18 @@ describe('Review is ticked, not swiped', () => {
     // The bar is an in-tree view and the navigation is drawn at the root over
     // the whole stack, so without this they stack up and the raised mic lands
     // on the button somebody is reaching for.
-    expect(captures).toMatch(/suppressTabBar\(\)/);
+    expect(captures).toMatch(/useTabBarStandDown\(bottomBarStandsDown\)/);
     expect(captures).toMatch(/const bottomBarStandsDown = ticking && chosenRows\.length > 0;/);
+  });
+
+  it('gives it back on the way out, because a tab never unmounts', () => {
+    // Held in a bare effect keyed on the selection, the claim outlived the
+    // screen: this is a tab, leaving it does not unmount it, and pressing back
+    // with two drafts ticked landed on the dashboard with the navigation gone
+    // from every screen in the app. `useTabBarStandDown` ties the claim to
+    // focus; going around it and calling the counter directly brings the bug
+    // back, so the direct call is what this forbids.
+    expect(captures).not.toMatch(/suppressTabBar\(\)/);
   });
 
   it('has no swipe left to disagree with the tick', () => {

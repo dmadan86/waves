@@ -2,9 +2,44 @@
 
 The flows in this directory drive the real app on a device/emulator. They are
 the only tests that exercise rendering, navigation and the offline mirror end to
-end. The CI job that runs them (`e2e (Maestro)` in `.github/workflows/ci.yml`)
-is **gated off by default** and turns on once the prerequisites below exist —
-until then it is a clean skip, not a failure.
+end. They run from their own workflow, `.github/workflows/e2e.yml`.
+
+**Status: on, nightly.** The staging project `emyjuhazbynzwjqcfloh`
+(`waves-staging`, ap-south-1) was provisioned on 2026-09-16 — migrations
+applied, all 17 edge functions deployed — and `E2E_ENABLED` is set.
+
+Not on every pull request, and that is deliberate. The run builds the Android
+app from source and then drives twenty flows one at a time with a reseed between
+each: three quarters of an hour, against the two minutes the rest of CI takes.
+In front of every review that is a check nobody can wait for, and the only
+honest ways to read it are to ignore it or to be slowed by it. So:
+
+| when                                  | what runs                                                     |
+| ------------------------------------- | ------------------------------------------------------------- |
+| nightly, 19:00 UTC                    | the full suite against `main`                                 |
+| **Actions → e2e → Run workflow**      | the full suite against any branch — use this before a release |
+| the **`e2e`** label on a pull request | the full suite against that branch                            |
+
+The label fires when it is _applied_, so pushing more commits afterwards does
+not re-run it — take the label off and put it back, or dispatch it. Worth
+applying to anything that touches navigation, the mirror, or the shape of a
+screen, where waiting for the nightly means finding out after it has merged.
+This repo is public, so a fork's pull request gets none of the secrets; the
+label only works on a branch in this repository.
+
+Deliberately **not** in the branch ruleset's required checks: these flows drive
+an emulator and a network, so they can fail for reasons that are not the code's,
+and a check that can do that must not be able to hold the repository shut.
+
+The job seeds but does not migrate. When a migration lands, apply it to staging
+too, or the seed fails against a schema older than the fixture:
+
+```bash
+DIRECT_URL="postgresql://postgres.emyjuhazbynzwjqcfloh:<password>@aws-0-ap-south-1.pooler.supabase.com:5432/postgres?sslmode=require"   pnpm --filter @waves/db migrate:deploy
+```
+
+Edge functions are the same story — `pnpm edge:deploy` targets whichever project
+is linked, so pass `--project-ref emyjuhazbynzwjqcfloh` when staging needs them.
 
 ## What the flows expect
 
@@ -19,12 +54,14 @@ asserts against a **deterministic fixture** created by `e2e/seed-e2e.mjs`:
 Because the fixture is fixed, the flow assertions are real (`assertVisible: 'Goa
 trip'`), not `optional` "screen renders" stubs.
 
-## Enabling it in CI
+## How it was enabled (and how to redo it elsewhere)
 
 1. **Create a staging Supabase project** (never point this at production — the
    seeder refuses the prod ref and rewrites data freely). Apply the same
    migrations to it (`pnpm --filter @waves/db migrate:deploy` with its
-   `DIRECT_URL`).
+   `DIRECT_URL`), and deploy the edge functions (`pnpm edge:deploy
+--project-ref <ref>`) — the app's sync goes through `sync`, so a project with
+   tables and no functions gets a signed-in app that never loads anything.
 
 2. **Add the Waves Android build profile.** The flows use `appId:
 app.waves.mobile`; the build needs `android/app/google-services.json`

@@ -26,8 +26,8 @@ appId: app.waves.mobile
     id: 'auth-email-code'
 
 # The sheet turns to its code face.
-- extendedWaitUntilVisible:
-    element:
+- extendedWaitUntil:
+    visible:
       id: 'auth-code'
     timeout: 30000
 - assertVisible: 'Use a password instead'

@@ -114,7 +114,7 @@ import { useSmsInboxReader } from '@/lib/smsFeature';
 import { smsRowAsCapture, splitPlaceable } from '@/lib/smsPlacement';
 import { useToast } from '@/lib/toast';
 import { usePlaceInPersonal } from '@/lib/usePlaceInPersonal';
-import { suppressTabBar } from '@/lib/tabBarSuppress';
+import { useTabBarStandDown } from '@/lib/useTabBarStandDown';
 import { useSync } from '@/sync';
 
 export default function SmsInboxScreen(): React.JSX.Element | null {
@@ -194,10 +194,7 @@ export default function SmsInboxScreen(): React.JSX.Element | null {
    * pill or the three buttons.
    */
   const selecting = chosen.length > 0;
-  useEffect(() => {
-    if (!selecting) return;
-    return suppressTabBar();
-  }, [selecting]);
+  useTabBarStandDown(selecting);
 
   // ─────────────────────────────────────────────── where things go ──
 

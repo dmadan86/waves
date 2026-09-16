@@ -99,20 +99,46 @@ async function findUserByEmail(email) {
   return null;
 }
 
+/**
+ * Retire any prior fixture, so a re-run lands the same known state.
+ *
+ * Retire, not delete. This used to hard-delete the groups the fixture user
+ * created and lean on the cascade to take their expenses with them — and the
+ * ledger will not allow that: `expenses` is append-only by trigger (ADR-004),
+ * so the delete comes back as
+ * `APPEND_ONLY: expenses rows cannot be delete. Insert a new version or set
+ * deleted_at.` and the seeder stops before it has rebuilt anything. A ledger
+ * whose history can be erased by whoever holds a service key is not a ledger,
+ * so the rule is right and the seeder was wrong.
+ *
+ * Soft-deleting is enough for what a fixture needs. A group with `deleted_at`
+ * set is out of the dashboard, out of balances and out of every list the flows
+ * assert against, so the rebuilt "Goa trip" is unambiguously the only one on
+ * screen. The retired rows stay in a staging database nobody reads, which is
+ * the correct price for keeping the append-only guarantee honest.
+ *
+ * The user itself is still deleted outright: `auth.users` carries no history
+ * worth keeping, and removing it is what lets `createUser` mint the login again
+ * with the password this run was given.
+ */
 async function reset() {
   const existing = await findUserByEmail(EMAIL);
-  if (existing) {
-    // Delete any groups this user created first (cascades to members, expenses,
-    // versions, payers, shares, settlements), then the user (cascades profile).
-    const { data: groups } = await db.from('groups').select('id').eq('created_by', existing.id);
-    for (const g of groups ?? []) {
-      const { error } = await db.from('groups').delete().eq('id', g.id);
-      if (error) die(`deleting group ${g.id} failed`, error);
-    }
-    const { error } = await db.auth.admin.deleteUser(existing.id);
-    if (error) die('deleteUser failed', error);
-    console.log(`· reset: removed prior fixture user ${EMAIL}`);
+  if (!existing) return;
+
+  const { data: groups } = await db.from('groups').select('id').eq('created_by', existing.id);
+  for (const g of groups ?? []) {
+    const { error } = await db
+      .from('groups')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', g.id);
+    if (error) die(`retiring group ${g.id} failed`, error);
   }
+
+  const { error } = await db.auth.admin.deleteUser(existing.id);
+  if (error) die('deleteUser failed', error);
+  console.log(
+    `· reset: retired ${groups?.length ?? 0} prior fixture group(s) and removed ${EMAIL}`,
+  );
 }
 
 // ── 2. build the fixture ──────────────────────────────────────────────────────
@@ -122,7 +148,49 @@ async function insert(table, row) {
   if (error) die(`insert into ${table} failed`, error);
 }
 
-// One expense: `payer` paid `amount`, split equally among `shareMembers`.
+/**
+ * Insert a row that something else may already have made, and make it ours.
+ *
+ * One row here is not the seeder's to create: `profiles`. A trigger on
+ * `auth.users` writes a profile the moment `createUser` returns (restored in
+ * #667 — a squashed baseline had dropped it, and new accounts came up with no
+ * profile at all, a blank avatar and a settings page that spun forever). So the
+ * seeder's own insert lands on a primary key that already exists and the whole
+ * fixture dies on its first row, which is what a fresh staging project did the
+ * first time anybody stood one up.
+ *
+ * Upserting rather than skipping, because the trigger's row and the fixture's
+ * are not the same row: the trigger knows an id and an email, and the fixture
+ * wants a display name and a currency the flows assert against.
+ */
+async function upsert(table, row) {
+  const { error } = await db.from(table).upsert(row);
+  if (error) die(`upsert into ${table} failed`, error);
+}
+
+/**
+ * One expense: `payer` paid `amount`, split equally among `shareMembers`.
+ *
+ * Through `waves_apply_expense`, the same routine the app's own writes land in
+ * (`supabase/functions/expense-write`), and not by inserting the version, its
+ * payers and its shares one table at a time — which is what this used to do,
+ * and which cannot work.
+ *
+ * `expense_versions`, `expense_payers` and `expense_shares` each carry a
+ * **deferred** constraint trigger (`*_totals_match`) checking that the payers
+ * and the shares both sum to the expense. Deferred means it fires at COMMIT,
+ * which is exactly right for the app: it writes all three inside one
+ * transaction and the sums are whole by the time anything is checked. But
+ * PostgREST gives every request its own transaction, so the version committed
+ * on its own with no payers yet and the trigger refused it —
+ * `PAYER_MISMATCH: payers sum to 0 but the expense is 120000`. There is no
+ * ordering that fixes it, because no order makes the intermediate states
+ * balance.
+ *
+ * Going through the RPC is better than a workaround anyway: the fixture is now
+ * built by the code path the app uses, so a fixture that seeds is also a
+ * statement that the write path works.
+ */
 async function insertExpense({
   groupId,
   payer,
@@ -133,42 +201,37 @@ async function insertExpense({
   date,
 }) {
   const expenseId = randomUUID();
-  const versionId = randomUUID();
-  await insert('expenses', { id: expenseId, group_id: groupId, created_by: payer });
-  await insert('expense_versions', {
-    id: versionId,
-    expense_id: expenseId,
-    version_no: 1,
-    author_member_id: payer,
-    description,
-    category,
-    expense_date: date,
-    currency: 'INR',
-    amount: amount.toString(),
-    split_type: 'equal',
-    split_params: { kind: 'equal' },
-    source: 'manual',
-  });
-  await insert('expense_payers', {
-    id: randomUUID(),
-    expense_version_id: versionId,
-    member_id: payer,
-    amount: amount.toString(),
-  });
   const shares = equalShares(amount, shareMembers.length);
-  for (let i = 0; i < shareMembers.length; i += 1) {
-    await insert('expense_shares', {
-      id: randomUUID(),
-      expense_version_id: versionId,
-      member_id: shareMembers[i],
+  const { error } = await db.rpc('waves_apply_expense', {
+    p_group_id: groupId,
+    p_expense_id: expenseId,
+    p_author_member_id: payer,
+    p_description: description,
+    p_category: category ?? null,
+    p_expense_date: date,
+    p_currency: 'INR',
+    p_amount: amount.toString(),
+    p_split_type: 'equal',
+    p_split_params: { kind: 'equal' },
+    p_payers: [{ memberId: payer, amount: amount.toString() }],
+    p_shares: shareMembers.map((memberId, i) => ({
+      memberId,
       amount: shares[i].toString(),
-    });
-  }
-  const { error } = await db
-    .from('expenses')
-    .update({ current_version_id: versionId })
-    .eq('id', expenseId);
-  if (error) die('setting current_version_id failed', error);
+    })),
+    p_client_mutation_id: randomUUID(),
+    p_notes: null,
+    p_receipt_id: null,
+    p_base_version_no: null,
+    p_fx: null,
+    p_payment_method: null,
+    p_receipt_share_url: null,
+    p_category_meta: null,
+    p_location: null,
+  });
+  // The database speaks in its own vocabulary here — UNKNOWN_MEMBER,
+  // WRONG_GROUP, SHARE_MISMATCH — and those names are the useful part of a
+  // failed seed, so they are passed through rather than summarised.
+  if (error) die('waves_apply_expense failed', error);
 }
 
 // A small group where the focus user shares an unsettled balance with one named
@@ -219,7 +282,8 @@ async function seed() {
   });
   if (userErr) die('createUser failed', userErr);
   const userId = created.user.id;
-  await insert('profiles', { id: userId, display_name: 'You', default_currency: 'INR' });
+  // Upsert: the `auth.users` trigger has already written this profile.
+  await upsert('profiles', { id: userId, display_name: 'You', default_currency: 'INR' });
 
   // The group.
   const groupId = randomUUID();
@@ -257,44 +321,18 @@ async function seed() {
   // the focus user — so the focus user's net balance is zero and `leave-group`
   // can leave without settling first, while `home-to-add-expense` still sees
   // the expense and the ghost.
-  const participants = GHOSTS.map((n) => ghostIds[n]);
-  const shares = equalShares(AMOUNT_MINOR, participants.length);
-  const expenseId = randomUUID();
-  const versionId = randomUUID();
-  await insert('expenses', { id: expenseId, group_id: groupId, created_by: ghostIds.Priya });
-  await insert('expense_versions', {
-    id: versionId,
-    expense_id: expenseId,
-    version_no: 1,
-    author_member_id: ghostIds.Priya,
+  // Through the same RPC as every other expense here — see `insertExpense` for
+  // why a table-at-a-time insert cannot work against the deferred totals
+  // triggers.
+  await insertExpense({
+    groupId,
+    payer: ghostIds.Priya,
+    amount: AMOUNT_MINOR,
+    shareMembers: GHOSTS.map((n) => ghostIds[n]),
     description: EXPENSE_DESC,
     category: 'food',
-    expense_date: '2026-08-01',
-    currency: 'INR',
-    amount: AMOUNT_MINOR.toString(),
-    split_type: 'equal',
-    split_params: { kind: 'equal' },
-    source: 'manual',
+    date: '2026-08-01',
   });
-  await insert('expense_payers', {
-    id: randomUUID(),
-    expense_version_id: versionId,
-    member_id: ghostIds.Priya,
-    amount: AMOUNT_MINOR.toString(),
-  });
-  for (let i = 0; i < participants.length; i += 1) {
-    await insert('expense_shares', {
-      id: randomUUID(),
-      expense_version_id: versionId,
-      member_id: participants[i],
-      amount: shares[i].toString(),
-    });
-  }
-  const { error: curErr } = await db
-    .from('expenses')
-    .update({ current_version_id: versionId })
-    .eq('id', expenseId);
-  if (curErr) die('setting current_version_id failed', curErr);
 
   // The mergeable pair for friends-merge-guests: the same ghost "Reeya" in two
   // groups, each with a balance so she appears twice on Friends and can be

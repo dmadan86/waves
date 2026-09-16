@@ -52,13 +52,50 @@ export interface PersonalPlan {
    * went has no way to notice that five did.
    */
   readonly unusable: readonly CaptureRow[];
+  /**
+   * Why the first unplannable draft could not be planned, where there was an
+   * exception to keep. Null when every refusal was an ordinary one — an amount
+   * that is not a positive whole number of minor units needs no explanation
+   * beyond being counted.
+   *
+   * It exists because planning used to be allowed to throw, and a throw here
+   * escaped every guard downstream: `runPersonalPlacement` protects each draft
+   * individually, but it never gets to run, so the caller's outermost `catch`
+   * failed the whole selection with one generic sentence and no way to find out
+   * what had actually happened. Planning is total now, and the reason travels
+   * with the count instead of replacing it.
+   */
+  readonly firstError: unknown;
 }
 
-/** A stored minor-unit amount, or null when the row carries something else. */
-function minorAmount(value: string): bigint | null {
-  if (!/^-?\d+$/.test(value.trim())) return null;
+/**
+ * A stored minor-unit amount, or null when the row carries something else.
+ *
+ * Typed `unknown` rather than `string` on purpose. `CaptureRow.amount` is
+ * declared a string because that is how PostgREST sends a BIGINT, and for a row
+ * that came down the wire it always is one — but this function is the boundary
+ * where a row stops being trusted, and it used to call `.trim()` on the value
+ * first thing. Anything that was not a string reached that call as a
+ * `TypeError`, which is thrown out of `planPersonalPlacement`, past the
+ * per-draft guard in `runPersonalPlacement` that exists so one bad row cannot
+ * take the others down, and into the caller's outermost `catch` — where the
+ * whole selection fails at once with "try again in a moment", advice that is
+ * false because the next attempt does exactly the same thing.
+ *
+ * So the shapes a minor-unit amount legitimately travels in are all read here,
+ * and everything else is null — a row counted as unusable, which is what the
+ * plan already has a word for.
+ */
+function minorAmount(value: unknown): bigint | null {
+  const text =
+    typeof value === 'string'
+      ? value.trim()
+      : typeof value === 'bigint' || typeof value === 'number'
+        ? String(value)
+        : null;
+  if (text === null || !/^-?\d+$/.test(text)) return null;
   try {
-    const amount = BigInt(value.trim());
+    const amount = BigInt(text);
     return amount <= 0n ? null : amount;
   } catch {
     return null;
@@ -85,32 +122,46 @@ export function planPersonalPlacement(input: {
   const writes: PersonalWrite[] = [];
   const unusable: CaptureRow[] = [];
 
+  let firstError: unknown = null;
+
   for (const capture of input.captures) {
-    const amount = minorAmount(capture.amount);
-    if (amount === null) {
+    // Every draft is planned inside its own guard, for the same reason every
+    // draft is *written* inside its own guard one function down: a pile that
+    // contains one row this code cannot read is still a pile of good rows, and
+    // failing all of them because of one is both wrong and — since the message
+    // says to try again — untrue. A row that throws is a row that is unusable;
+    // that is a count the plan already carries.
+    try {
+      const amount = minorAmount(capture.amount);
+      if (amount === null) {
+        unusable.push(capture);
+        continue;
+      }
+      const note = typeof capture.description === 'string' ? capture.description.trim() : '';
+      const description = note || input.fallbackDescription;
+      writes.push({
+        captureId: capture.id,
+        recordId: capture.id,
+        data: encodeTxn({
+          kind: 'expense',
+          amount,
+          currency: capture.currency as CurrencyCode,
+          category: capture.category ?? guessCategory(description),
+          note: description,
+          date: capture.expense_date,
+          // Neither applies to a draft filed by hand: it repays no loan, and no
+          // recurring rule minted it.
+          loanId: null,
+          recurringId: null,
+        }),
+      });
+    } catch (caught) {
       unusable.push(capture);
-      continue;
+      if (firstError === null) firstError = caught;
     }
-    const note = capture.description?.trim() || input.fallbackDescription;
-    writes.push({
-      captureId: capture.id,
-      recordId: capture.id,
-      data: encodeTxn({
-        kind: 'expense',
-        amount,
-        currency: capture.currency as CurrencyCode,
-        category: capture.category ?? guessCategory(note),
-        note,
-        date: capture.expense_date,
-        // Neither applies to a draft filed by hand: it repays no loan, and no
-        // recurring rule minted it.
-        loanId: null,
-        recurringId: null,
-      }),
-    });
   }
 
-  return { writes, unusable };
+  return { writes, unusable, firstError };
 }
 
 /**
@@ -158,7 +209,10 @@ export async function runPersonalPlacement(input: {
   // A draft whose amount the ledger cannot take never had a write to try, so it
   // starts out already counted as a failure rather than being skipped silently.
   let failed = input.plan.unusable.length;
-  let firstError: unknown = undefined;
+  // Seeded from the plan, so a draft that could not even be *planned* carries
+  // its reason into the same report as one the queue refused. Undefined rather
+  // than null is what "nothing to say" means here, matching the loop below.
+  let firstError: unknown = input.plan.firstError ?? undefined;
 
   for (const write of input.plan.writes) {
     try {

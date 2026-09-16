@@ -30,9 +30,9 @@ appId: app.waves.mobile
 
 # The dashboard appears once the first sync has pulled the seeded group. Give it
 # room — a cold sign-in does an auth round-trip and a full cursor pull.
-- extendedWaitUntilVisible:
-    element: 'Your groups'
+- extendedWaitUntil:
+    visible: 'Your groups'
     timeout: 40000
-- extendedWaitUntilVisible:
-    element: 'Goa trip'
+- extendedWaitUntil:
+    visible: 'Goa trip'
     timeout: 40000

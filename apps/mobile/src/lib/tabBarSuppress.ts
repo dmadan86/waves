@@ -78,3 +78,44 @@ export function resetTabBarSuppression(): void {
   claims = 0;
   emit();
 }
+
+/**
+ * One screen's claim, held only while it is *both* asking and on screen.
+ *
+ * The counter above is correct and was never the bug. The bug was in how the
+ * two screens that use it decided when to let go: each held its claim in a
+ * `useEffect` keyed on "are rows ticked", and trusted the cleanup to run when a
+ * person walked away mid-selection. That is true of a pushed screen, which
+ * unmounts when it is popped — and false of a tab, which does not unmount when
+ * you leave it. Review is a tab. So ticking two drafts there and pressing back
+ * left the claim standing, and the navigation stayed hidden on every other
+ * screen in the app with no way to get it back short of killing the process.
+ *
+ * Focus is the missing input, so it is an input here rather than a rule each
+ * screen re-derives. `set` is idempotent: calling it with the same pair twice
+ * neither double-claims nor double-releases, which is what lets a hook call it
+ * from an effect that runs on every render.
+ */
+export interface StandDown {
+  /** Claim or release to match `active && focused`. Safe to call repeatedly. */
+  set: (active: boolean, focused: boolean) => void;
+  /** Let go of whatever is held. For an unmount, and safe to call twice. */
+  dispose: () => void;
+}
+
+export function createStandDown(claim: () => () => void = suppressTabBar): StandDown {
+  let release: (() => void) | null = null;
+  const dispose = (): void => {
+    if (!release) return;
+    release();
+    release = null;
+  };
+  return {
+    set: (active, focused) => {
+      const wanted = active && focused;
+      if (wanted && !release) release = claim();
+      else if (!wanted) dispose();
+    },
+    dispose,
+  };
+}
