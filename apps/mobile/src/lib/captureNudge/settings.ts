@@ -55,9 +55,19 @@ const ENABLED_KEY = 'waves.capture_nudge.enabled';
  * fired notification simply vanishes from the scheduled list.
  */
 const PLANNED_KEY = 'waves.capture_nudge.planned_at';
+/**
+ * When a pass last ran, which is when the app was last opened.
+ *
+ * The pass runs on foreground, so this needs no listener of its own and makes
+ * no claim beyond what was observed: Waves was in front of somebody at this
+ * moment. The evening check-in asks "anything to split today?" only on a day
+ * this says nothing about, so that the question is never put to somebody who
+ * has already been in the app that day.
+ */
+const SEEN_KEY = 'waves.capture_nudge.last_seen_at';
 
 /** Every stored key, for the sign-out wipe. */
-const ALL_KEYS = [ENABLED_KEY, PLANNED_KEY] as const;
+const ALL_KEYS = [ENABLED_KEY, PLANNED_KEY, SEEN_KEY] as const;
 
 const scoped = (base: string, ownerId: string): string => `${base}.${ownerId}`;
 
@@ -97,6 +107,26 @@ export async function savePlannedNudge(ownerId: string, fireAt: number | null): 
   await (fireAt === null
     ? AsyncStorage.removeItem(key)
     : AsyncStorage.setItem(key, String(fireAt)));
+}
+
+/**
+ * When this phone last ran a pass for this account, or null.
+ *
+ * Unreadable or absent is null, which reads as "not today" — the direction that
+ * costs at most one extra question rather than silencing the feature for ever.
+ */
+export async function loadLastSeen(ownerId: string): Promise<number | null> {
+  if (!ownerId) return null;
+  const stored = await AsyncStorage.getItem(scoped(SEEN_KEY, ownerId)).catch(() => null);
+  if (stored === null) return null;
+  const at = Number(stored);
+  return Number.isFinite(at) && at > 0 ? at : null;
+}
+
+/** Records that the app is in front of somebody right now. */
+export async function saveLastSeen(ownerId: string, at: number): Promise<void> {
+  if (!ownerId) return;
+  await AsyncStorage.setItem(scoped(SEEN_KEY, ownerId), String(at)).catch(() => {});
 }
 
 /** On the way out. Best effort: signing out must succeed whether or not this does. */

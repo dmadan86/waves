@@ -15,6 +15,7 @@ import {
   CEILING_MS,
   NUDGE_HOUR,
   NudgeAction,
+  NudgeKind,
   nextNudgeSlot,
   planCaptureNudge,
   SETTLE_MS,
@@ -45,6 +46,11 @@ function input(overrides: Partial<NudgeInput> = {}): NudgeInput {
     oldestWaitingAt: NOW - 2 * SETTLE_MS,
     now: NOW,
     lastFiredAt: null,
+    // Opened today by default, so the check-in stays out of the way of every
+    // test that is about the drafts reminder. The cases that are about the
+    // check-in say so.
+    lastSeenAt: NOW,
+    hasGroup: true,
     pending: null,
     locale: 'en',
     ...overrides,
@@ -97,7 +103,7 @@ describe('planCaptureNudge', () => {
       input({
         waitingCount: 0,
         oldestWaitingAt: null,
-        pending: { fireAt: at(2026, 3, 10, 19), count: 3, locale: 'en' },
+        pending: { fireAt: at(2026, 3, 10, 19), count: 3, locale: 'en', kind: NudgeKind.Captures },
       }),
     );
     expect(plan).toEqual({ action: NudgeAction.Cancel });
@@ -109,7 +115,12 @@ describe('planCaptureNudge', () => {
       planCaptureNudge(
         input({
           enabled: false,
-          pending: { fireAt: at(2026, 3, 10, 19), count: 3, locale: 'en' },
+          pending: {
+            fireAt: at(2026, 3, 10, 19),
+            count: 3,
+            locale: 'en',
+            kind: NudgeKind.Captures,
+          },
         }),
       ),
     ).toEqual({ action: NudgeAction.Cancel });
@@ -121,7 +132,12 @@ describe('planCaptureNudge', () => {
       planCaptureNudge(
         input({
           permitted: false,
-          pending: { fireAt: at(2026, 3, 10, 19), count: 3, locale: 'en' },
+          pending: {
+            fireAt: at(2026, 3, 10, 19),
+            count: 3,
+            locale: 'en',
+            kind: NudgeKind.Captures,
+          },
         }),
       ),
     ).toEqual({ action: NudgeAction.Cancel });
@@ -177,7 +193,14 @@ describe('planCaptureNudge', () => {
   describe('churn', () => {
     it('leaves an identical reminder alone', () => {
       const plan = planCaptureNudge(
-        input({ pending: { fireAt: at(2026, 3, 10, 19), count: 3, locale: 'en' } }),
+        input({
+          pending: {
+            fireAt: at(2026, 3, 10, 19),
+            count: 3,
+            locale: 'en',
+            kind: NudgeKind.Captures,
+          },
+        }),
       );
       expect(plan).toEqual({ action: NudgeAction.Keep });
     });
@@ -187,7 +210,12 @@ describe('planCaptureNudge', () => {
       const plan = planCaptureNudge(
         input({
           waitingCount: 3,
-          pending: { fireAt: at(2026, 3, 10, 19), count: 5, locale: 'en' },
+          pending: {
+            fireAt: at(2026, 3, 10, 19),
+            count: 5,
+            locale: 'en',
+            kind: NudgeKind.Captures,
+          },
         }),
       );
       expect(plan.action).toBe(NudgeAction.Schedule);
@@ -201,7 +229,12 @@ describe('planCaptureNudge', () => {
       const plan = planCaptureNudge(
         input({
           locale: 'ta',
-          pending: { fireAt: at(2026, 3, 10, 19), count: 3, locale: 'en' },
+          pending: {
+            fireAt: at(2026, 3, 10, 19),
+            count: 3,
+            locale: 'en',
+            kind: NudgeKind.Captures,
+          },
         }),
       );
       expect(plan.action).toBe(NudgeAction.Schedule);
@@ -210,7 +243,9 @@ describe('planCaptureNudge', () => {
     it('replaces a reminder whose payload could not be read', () => {
       // `pendingNudge` reports an unreadable one as fireAt 0 / count -1, which
       // can never match a real plan, so it is always swept away.
-      const plan = planCaptureNudge(input({ pending: { fireAt: 0, count: -1, locale: '' } }));
+      const plan = planCaptureNudge(
+        input({ pending: { fireAt: 0, count: -1, locale: '', kind: NudgeKind.Captures } }),
+      );
       expect(plan.action).toBe(NudgeAction.Schedule);
     });
   });
@@ -247,5 +282,114 @@ describe('the stored switch', () => {
     expect(await loadPlannedNudge('owner-marked')).toBe(1_700_000_000_000);
     await savePlannedNudge('owner-marked', null);
     expect(await loadPlannedNudge('owner-marked')).toBeNull();
+  });
+});
+
+describe('the evening check-in', () => {
+  /**
+   * The Splitwise-shaped half of this feature: at the end of a day nobody has
+   * opened the app, ask whether anything needs splitting. It asks rather than
+   * claims — the phone does not know what was spent — and it never lands on a
+   * day somebody has already been in Waves.
+   */
+  it('asks on a day the app has not been opened', () => {
+    const plan = planCaptureNudge(
+      input({ waitingCount: 0, oldestWaitingAt: null, lastSeenAt: NOW - 3 * SETTLE_MS }),
+    );
+
+    expect(plan).toMatchObject({ action: NudgeAction.Schedule, kind: NudgeKind.CheckIn, count: 0 });
+  });
+
+  it('stays quiet on a day the app has been opened', () => {
+    const plan = planCaptureNudge(
+      input({ waitingCount: 0, oldestWaitingAt: null, lastSeenAt: NOW - 60 * 60 * 1000 }),
+    );
+
+    expect(plan.action).toBe(NudgeAction.Keep);
+  });
+
+  /**
+   * Same calendar day, and not a 24-hour window: somebody who opened the app at
+   * nine this morning has been in it *today*, whatever the arithmetic says.
+   */
+  it('reads "today" by the local calendar, not by a 24-hour window', () => {
+    const lateLastNight = at(2026, 3, 9, 23, 30);
+    const thisMorning = at(2026, 3, 10, 9);
+
+    expect(
+      planCaptureNudge(input({ waitingCount: 0, oldestWaitingAt: null, lastSeenAt: lateLastNight }))
+        .action,
+    ).toBe(NudgeAction.Schedule);
+    expect(
+      planCaptureNudge(input({ waitingCount: 0, oldestWaitingAt: null, lastSeenAt: thisMorning }))
+        .action,
+    ).toBe(NudgeAction.Keep);
+  });
+
+  it('never asks somebody who has nowhere to put an expense', () => {
+    const plan = planCaptureNudge(
+      input({
+        waitingCount: 0,
+        oldestWaitingAt: null,
+        lastSeenAt: NOW - 3 * SETTLE_MS,
+        hasGroup: false,
+      }),
+    );
+
+    expect(plan.action).toBe(NudgeAction.Keep);
+  });
+
+  /**
+   * One slot, one reminder. A phone with drafts sitting *and* a quiet day has
+   * two things it could say; saying both would be two notifications in one
+   * evening, and the specific one wins.
+   */
+  it('yields to the drafts reminder when both apply', () => {
+    const plan = planCaptureNudge(input({ lastSeenAt: NOW - 3 * SETTLE_MS }));
+
+    expect(plan).toMatchObject({
+      action: NudgeAction.Schedule,
+      kind: NudgeKind.Captures,
+      count: 3,
+    });
+  });
+
+  it('replaces a held check-in when drafts start waiting', () => {
+    const fireAt = at(2026, 3, 10, NUDGE_HOUR);
+    const plan = planCaptureNudge(
+      input({
+        lastSeenAt: NOW - 3 * SETTLE_MS,
+        pending: { fireAt, count: 0, locale: 'en', kind: NudgeKind.CheckIn },
+      }),
+    );
+
+    expect(plan).toMatchObject({ action: NudgeAction.Schedule, kind: NudgeKind.Captures });
+  });
+
+  it('keeps a check-in it is already holding', () => {
+    const fireAt = at(2026, 3, 10, NUDGE_HOUR);
+    const plan = planCaptureNudge(
+      input({
+        waitingCount: 0,
+        oldestWaitingAt: null,
+        lastSeenAt: NOW - 3 * SETTLE_MS,
+        pending: { fireAt, count: 0, locale: 'en', kind: NudgeKind.CheckIn },
+      }),
+    );
+
+    expect(plan.action).toBe(NudgeAction.Keep);
+  });
+
+  it('is switched off by the same switch as the drafts reminder', () => {
+    const plan = planCaptureNudge(
+      input({
+        enabled: false,
+        waitingCount: 0,
+        oldestWaitingAt: null,
+        lastSeenAt: NOW - 3 * SETTLE_MS,
+      }),
+    );
+
+    expect(plan.action).toBe(NudgeAction.Keep);
   });
 });
