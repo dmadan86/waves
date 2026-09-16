@@ -1,0 +1,105 @@
+# Leaving Review mid-selection must give the navigation back, and "Just me" must
+# actually save.
+#
+# Two bugs found on a real phone on 2026-09-16, both on this one screen, and
+# neither reachable by any test that existed:
+#
+#  1. **The navigation disappeared for the rest of the session.** Review's
+#     selection bar asks the root tab bar to stand down while rows are ticked
+#     (`lib/tabBarSuppress`), and released the claim in an effect cleanup. That
+#     works for a pushed screen, which unmounts when it is popped, and not for a
+#     tab, which does not unmount when you leave it. Ticking two drafts and
+#     pressing back landed on the dashboard with no bottom bar anywhere in the
+#     app and nothing left on screen able to give it back.
+#
+#  2. **"Just me" failed the whole batch** with "Couldn't save this — please try
+#     again in a moment", which was not true: every retry did the same thing.
+#
+# The flow reaches the ticking tab the way a person without the SMS permission
+# does — by pasting bank messages, which is also the only route an emulator has,
+# since it has no inbox to read. The two message bodies below are checked
+# pinned against the real parser in `apps/mobile/test/reviewSelectionBackFlow.
+# test.ts`: both are read as INR debits and both arrive pre-ticked, so a parser
+# change that stopped recognising them fails there loudly rather than leaving
+# this flow with no rows to tick and nothing to assert.
+appId: app.waves.mobile
+---
+- runFlow: login.yaml
+- assertVisible: 'Your groups'
+
+# The bottom bar is on screen to begin with. "Friends" is the discriminator used
+# throughout this flow: on the dashboard the word appears in the tab bar and
+# nowhere else, so it stands for "the navigation is there".
+- assertVisible: 'Friends'
+
+# ── put two SMS-sourced drafts in Review ──────────────────────────────────
+- tapOn: 'Review'
+- tapOn: 'Add from bank messages'
+- tapOn: 'Paste bank messages'
+- inputText: 'Rs.970.00 debited from A/c XX4521 on 14-09-26 to M M RAITHARA TRADERS. UPI Ref 528913447120. -Axis Bank'
+- hideKeyboard
+- tapOn: 'Paste'
+
+- tapOn: 'Paste bank messages'
+- inputText: 'Rs.20.00 debited from A/c XX4521 on 14-09-26 to M M RAITHARA THE SHOP. UPI Ref 528913447999. -Axis Bank'
+- hideKeyboard
+- tapOn: 'Paste'
+
+- assertVisible: 'We found 2 payments in what you pasted.'
+- tapOn: 'Add 2 to Review'
+- extendedWaitUntilVisible:
+    text: 'Open Review'
+    timeout: 20000
+- tapOn: 'Open Review'
+
+# ── tick one, and the screen takes the bottom of the phone ────────────────
+# The tick boxes belong to the SMS tab only; the drafts somebody added by hand
+# have none. Both drafts landed there.
+- tapOn: 'SMS'
+- assertVisible: 'M M RAITHARA TRADERS'
+- tapOn: 'M M RAITHARA TRADERS'
+
+- assertVisible: '1 selected'
+- assertVisible: 'Add to a group'
+# The navigation has stood down — this is the intended half of the behaviour.
+- assertNotVisible: 'Friends'
+
+# ── the destination sheet, and backing out of it ──────────────────────────
+- tapOn: 'Add to a group'
+- assertVisible: 'GROUPS'
+- back
+# Back closed the sheet and left the selection where it was.
+- assertVisible: '1 selected'
+
+# ── the bug: leave the tab with the selection still live ──────────────────
+- back
+- extendedWaitUntilVisible:
+    text: 'Your groups'
+    timeout: 20000
+# The claim must have been released on the way out. Before the fix this failed:
+# the dashboard rendered with no bottom bar, and there was no way to get one
+# back short of killing the app.
+- assertVisible: 'Friends'
+
+# And it is a real bar, not a leftover: the other tabs still answer.
+- tapOn: 'Friends'
+- assertVisible: 'Review'
+- tapOn: 'Review'
+
+# ── "Just me" files the drafts instead of refusing them ───────────────────
+- tapOn: 'SMS'
+- tapOn: 'M M RAITHARA TRADERS'
+- assertVisible: '1 selected'
+- tapOn: 'Just me'
+
+# The failure the phone showed. Asserted by its own words, because the whole
+# point is that the message was both generic and wrong — any batch that fails
+# whole lands here.
+- assertNotVisible: "Couldn't save this — please try again in a moment."
+# A filed draft leaves the pile it was waiting in.
+- extendedWaitUntilNotVisible:
+    text: 'M M RAITHARA TRADERS'
+    timeout: 20000
+
+# Nothing is ticked any more, so the navigation is back without having to leave.
+- assertVisible: 'Friends'
