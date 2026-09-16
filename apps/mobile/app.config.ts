@@ -131,6 +131,37 @@ function smsReaderBuild(): boolean {
   return process.env.WAVES_SMS_READER === '1';
 }
 
+/**
+ * The commit this binary was built from, short form, or null.
+ *
+ * Two builds of the same version are indistinguishable on a phone — same name,
+ * same version, same `versionCode` if nobody thought to bump it — so "is the
+ * fix in the build I am holding?" had no answer except to try to reproduce the
+ * bug and guess from the result. That is a bad way to find out, and it cost a
+ * round of "it is still broken" on a build that did not contain the fix.
+ *
+ * Read from git at config time, which is where the answer is: `EAS_BUILD_GIT_COMMIT_HASH`
+ * on EAS, `git rev-parse` on a development machine, and nothing at all in a
+ * tarball with no git directory — in which case the stamp simply shows the
+ * version, exactly as before.
+ */
+function commit(): string | null {
+  const fromEas = process.env.EAS_BUILD_GIT_COMMIT_HASH;
+  if (fromEas) return fromEas.slice(0, 7);
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { execFileSync } = require('node:child_process') as typeof import('node:child_process');
+    const hash = execFileSync('git', ['rev-parse', '--short=7', 'HEAD'], {
+      cwd: __dirname,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+    return hash.trim() || null;
+  } catch {
+    return null;
+  }
+}
+
 export default ({ config: fromAppJson }: ConfigContext): ExpoConfig => {
   // `app.json` arrives here already parsed, rather than being imported: that is
   // the shape `expo-doctor` recognises as "the dynamic config uses the static
@@ -153,7 +184,7 @@ export default ({ config: fromAppJson }: ConfigContext): ExpoConfig => {
   const iosKey = googleMapsKey('ios');
   const withPush: ExpoConfig = {
     ...config,
-    extra: { ...config.extra, smsReader: smsReaderBuild() },
+    extra: { ...config.extra, smsReader: smsReaderBuild(), commit: commit() },
     android: androidKey
       ? { ...androidBase, config: { ...androidBase?.config, googleMaps: { apiKey: androidKey } } }
       : androidBase,

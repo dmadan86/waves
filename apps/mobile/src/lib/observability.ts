@@ -23,6 +23,8 @@ import * as Sentry from '@sentry/react-native';
 
 import { scrub } from '@waves/core';
 
+import { buildIdentity } from './buildIdentity';
+
 /**
  * A DSN is public by design — it only permits *writing* events, which is why it
  * ships in every binary that reports a crash. It is `EXPO_PUBLIC_` for the same
@@ -41,6 +43,21 @@ export function initObservability(): void {
   Sentry.init({
     dsn: DSN,
     environment: process.env.EXPO_PUBLIC_ENV ?? (__DEV__ ? 'development' : 'production'),
+
+    // Which build this event came from, by commit.
+    //
+    // The SDK already sets a release from the native version, and two builds of
+    // the same version share it — so a stack trace from a phone could not say
+    // whether it predated a fix. That cost a round: a `TypeError` in the
+    // personal-placement planner was read as a live bug when its line numbers
+    // belonged to a build from before the fix, which only the line numbers gave
+    // away. A tag says it outright.
+    //
+    // A tag, deliberately, and not `dist`: source maps are uploaded against the
+    // release and dist the native build reports, and overriding either would
+    // leave every future stack trace unsymbolicated — which is a far worse
+    // trade than the one it buys.
+    initialScope: { tags: { commit: buildIdentity().commit ?? 'unknown' } },
 
     // The one number TDR §11 is actually about.
     enableAutoSessionTracking: true,

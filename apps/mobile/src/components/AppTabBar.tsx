@@ -85,7 +85,13 @@ export function AppTabBar() {
   // Review does it while drafts are ticked, so its action bar has the bottom of
   // the phone to itself rather than stacking on top of the navigation with the
   // raised mic over the button somebody is reaching for. See `tabBarSuppress`.
-  const suppressed = useTabBarSuppressed();
+  //
+  // Asked about *this* route, never in general. A claim belongs to the screen
+  // that made it, and walking away from that screen ends it — otherwise a
+  // screen that failed to let go (Review is a tab: it does not unmount, and it
+  // does not even re-render while blurred) takes the navigation away from the
+  // whole app, with nothing left on screen able to give it back.
+  const suppressed = useTabBarSuppressed(segments.join('/'));
 
   // The Review tab's badge — the same folded count the dashboard hero's inbox
   // circle showed before Activity took its place there (see `(tabs)/index.tsx`).

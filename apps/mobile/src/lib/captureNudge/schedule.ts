@@ -110,12 +110,59 @@ export async function pendingNudge(): Promise<PendingNudge | null> {
  * explicitly takes it down, so cancellation and zero-waiting passes both do.
  */
 export async function clearNudgeBadge(): Promise<void> {
+  await setNudgeBadge(0);
+}
+
+/**
+ * Put the true number of waiting drafts on the app icon.
+ *
+ * The reminder carries a `badge` in its payload, which is the count as it was
+ * *when the reminder was scheduled* and the only number the icon ever had. That
+ * is wrong twice over. It goes stale the moment anything is filed, and on the
+ * launchers that ignore a notification's own number — a great many Android
+ * ones — the icon instead shows how many of our notifications are sitting in
+ * the shade. Two reminders left unread read as "2" on an inbox holding a
+ * hundred and twenty-nine drafts, which is not a small number rendered badly;
+ * it is a different fact.
+ *
+ * So the count is written directly, from the foreground, every time a pass runs
+ * with a fresh figure. Where the launcher honours it the icon agrees with the
+ * app; where it does not, nothing is worse than before.
+ */
+export async function setNudgeBadge(count: number): Promise<void> {
   if (!pushSupported) return;
   try {
-    await Notifications.setBadgeCountAsync(0);
+    await Notifications.setBadgeCountAsync(Math.max(0, count));
   } catch {
-    // Badges are advisory. A device that refuses the reset must not make the
-    // foreground sync fail; the next successful pass will try again.
+    // Badges are advisory. A device that refuses must not make the foreground
+    // sync fail; the next successful pass will try again.
+  }
+}
+
+/**
+ * Take down reminders of ours that have already been delivered.
+ *
+ * `cancelNudges` cancels what is *scheduled*; a reminder that already fired has
+ * left that list and is sitting in the notification shade instead, where it
+ * stays until somebody swipes it. They accumulate — last night's "you have 2
+ * waiting" under tonight's "you have 129 waiting" — and on a launcher that
+ * badges by notification count, that pile *is* the number on the icon.
+ *
+ * One reminder at a time, always the current one. Ours only: matched on the
+ * same `key` the scheduled sweep uses, so a settle-up push or an invite is
+ * never dismissed from under somebody.
+ */
+export async function dismissDeliveredNudges(): Promise<void> {
+  if (!pushSupported) return;
+  try {
+    for (const delivered of await Notifications.getPresentedNotificationsAsync()) {
+      const data = delivered.request.content.data as { key?: unknown } | null;
+      if (data?.key !== NUDGE_KEY) continue;
+      await Notifications.dismissNotificationAsync(delivered.request.identifier);
+    }
+  } catch {
+    // Same as the badge: advisory. A device that will not enumerate or dismiss
+    // its own shade leaves the old card there, which is where it already was.
   }
 }
 

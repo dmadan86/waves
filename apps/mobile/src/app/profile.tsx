@@ -26,6 +26,7 @@ import { isRtlLanguage, LANGUAGE_NAMES, plural, useStrings } from '@/i18n';
 import { useLanguage } from '@/i18n/language';
 import { useAuth } from '@/lib/auth';
 import { useAvatarEditor } from '@/lib/avatarEditor';
+import { buildStamp } from '@/lib/buildIdentity';
 import { router } from '@/lib/navigation';
 import { r2Enabled } from '@/lib/storage';
 import { describeGrace, useLock } from '@/lib/lock';
@@ -507,6 +508,20 @@ function ProfileForm() {
             },
           ]}
         />
+
+        {/* Which build this is — version, build number, and the commit it came
+            from. Faint, at the very bottom, under the danger zone: nobody is
+            looking for it until somebody asks them for it.
+
+            It is here because two builds of the same version look identical on
+            a phone, so "does the build I am holding contain the fix?" could
+            only be answered by trying to reproduce the bug — and a wrong guess
+            sends everybody back to debugging code that was already fixed.
+            Deliberately untranslated: it is a version, a number and a hash, and
+            every word in it would be the same in every language. */}
+        <Text variant="micro" tone="faint" align="center" selectable>
+          {buildStamp()}
+        </Text>
       </ScrollView>
 
       {/* Signing out is a confirmation the OS cannot draw: it wipes this

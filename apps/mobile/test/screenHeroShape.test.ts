@@ -127,6 +127,54 @@ describe('Review is ticked, not swiped', () => {
     expect(captures).not.toMatch(/suppressTabBar\(\)/);
   });
 
+  /**
+   * The other half of the same disappearance, found on a device after the claim
+   * was fixed: the navigation came back, and the *action bar* went instead.
+   *
+   * It was mounted when something was ticked and animated with `entering` /
+   * `exiting`. A layout animation is driven by mount and unmount, and this
+   * screen is a tab whose rendering the navigator freezes while it is blurred
+   * (`(tabs)/_layout.tsx`). Going out to the voice screen and straight back ran
+   * the exit and never brought the bar back: the ticks were still there, "2
+   * selected" was still there, and the only way to reach "Just me" or "Add to a
+   * group" again was to clear the selection and tick the rows a second time.
+   *
+   * So the bar is mounted for as long as the ticking tab is open and shown by
+   * animating a shared value — the same crossfade the panel above it uses, and
+   * the reason that one survived the same trip. Pinned here because the code
+   * reads fine either way and the difference only shows on a device.
+   */
+  it('shows the action bar with a value, never with a layout animation', () => {
+    expect(captures).not.toMatch(/entering=|exiting=/);
+    expect(captures).not.toMatch(/SlideInDown|SlideOutDown/);
+    // Mounted on the tab, not on the selection, and kept out of the way of the
+    // list by `pointerEvents` rather than by being absent.
+    expect(captures).toMatch(/\{ticking \? \(/);
+    expect(captures).toMatch(/pointerEvents=\{selecting \? 'auto' : 'none'\}/);
+    expect(captures).toMatch(/const actionBarAnim = useAnimatedStyle\(/);
+  });
+
+  /**
+   * Mounting the bar at zero opacity buys the fix above and owes this: a view a
+   * finger cannot reach is still in the accessibility tree, and a screen reader
+   * will read out "Just me" and activate it with nothing ticked. Invisible on
+   * screen and live to the reader is the worst of the two states.
+   */
+  it('hides the inactive action bar from a screen reader too, not just from a finger', () => {
+    expect(captures).toMatch(/accessibilityElementsHidden=\{!selecting\}/);
+    expect(captures).toMatch(
+      /importantForAccessibility=\{selecting \? 'auto' : 'no-hide-descendants'\}/,
+    );
+  });
+
+  it('refuses "Just me" on an empty selection rather than indexing into nothing', () => {
+    // `items[0]!.id` is a crash for an empty list, and the assertion reads as
+    // safe right up until some route nobody pictured arrives with one.
+    const justMe = captures.match(/const items = chosenRows;[\s\S]*?placeInPersonal\(/);
+    expect(justMe, 'captures should hand the selection to placeInPersonal').not.toBeNull();
+    expect(justMe![0]).toMatch(/if \(items\.length === 0\) return;/);
+  });
+
   it('has no swipe left to disagree with the tick', () => {
     // A drag that both ticks a row and files it somewhere is two answers to one
     // gesture, and the one it wins is whichever way the finger moved further.

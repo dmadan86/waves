@@ -21,8 +21,10 @@ import { NudgeAction, planCaptureNudge, type NudgePlan } from './plan';
 import {
   cancelNudges,
   clearNudgeBadge,
+  dismissDeliveredNudges,
   pendingNudge,
   scheduleNudge,
+  setNudgeBadge,
   type NudgeText,
 } from './schedule';
 import { loadCaptureNudgeEnabled, loadPlannedNudge, savePlannedNudge } from './settings';
@@ -61,13 +63,6 @@ export async function syncCaptureNudge(input: NudgeRunInput): Promise<NudgePlan>
     locale: input.locale,
   });
 
-  if (
-    plan.action !== NudgeAction.Cancel &&
-    (input.waitingCount <= 0 || input.oldestWaitingAt === null)
-  ) {
-    await clearNudgeBadge();
-  }
-
   if (plan.action === NudgeAction.Cancel) {
     await cancelNudges();
     if (planned !== null && planned > input.now) await savePlannedNudge(input.ownerId, null);
@@ -82,6 +77,31 @@ export async function syncCaptureNudge(input: NudgeRunInput): Promise<NudgePlan>
     // the OS refused would spend the ceiling on silence.
     if (set) await savePlannedNudge(input.ownerId, plan.fireAt);
   }
+
+  // The icon, last — after the OS work rather than before it, because setting a
+  // reminder cancels the one we held and cancelling takes the badge down with
+  // it. Written from here on every pass, so it carries what is waiting *now*
+  // rather than the figure some earlier reminder happened to be scheduled with;
+  // see `setNudgeBadge` for why that reminder's own badge was not enough.
+  //
+  // Never over a cancel, though. A cancel is this feature being switched off —
+  // the reminder turned off in settings, or notification permission withdrawn —
+  // and putting the count straight back on the icon would leave a notification
+  // signal standing for a notification somebody has just refused. The badge
+  // belongs to the reminder; when there is no reminder there is no badge.
+  if (plan.action === NudgeAction.Cancel) {
+    // `cancelNudges` above already cleared it.
+  } else if (input.waitingCount > 0 && input.oldestWaitingAt !== null) {
+    await setNudgeBadge(input.waitingCount);
+  } else {
+    await clearNudgeBadge();
+  }
+
+  // And only ever one reminder in the shade. Yesterday's card, left unread, is
+  // a stale count on a lock screen — and on the launchers that badge by
+  // notification count rather than by the number a notification carries, the
+  // pile of them is the number on the icon.
+  await dismissDeliveredNudges();
 
   return plan;
 }
