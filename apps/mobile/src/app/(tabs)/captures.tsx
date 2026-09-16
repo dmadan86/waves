@@ -75,13 +75,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { FlashList } from '@shopify/flash-list';
 import { randomUUID } from 'expo-crypto';
 import { Pressable, RefreshControl, ScrollView, useWindowDimensions, View } from 'react-native';
-import Reanimated, {
-  SlideInDown,
-  SlideOutDown,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from 'react-native-reanimated';
+import Reanimated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { MutationKind, peopleSignatureKey } from '@waves/core';
@@ -968,6 +962,13 @@ export default function CapturesScreen() {
   const selectAnim = useAnimatedStyle(() => ({
     opacity: sel.get(),
     transform: [{ translateY: (1 - sel.get()) * 6 }],
+  }));
+  // The action bar at the foot of the screen, on the same value. It travels
+  // further than the panel's crossfade because it comes from off the bottom
+  // edge — the navigation's own height — rather than shifting in place.
+  const actionBarAnim = useAnimatedStyle(() => ({
+    opacity: sel.get(),
+    transform: [{ translateY: (1 - sel.get()) * 72 }],
   }));
 
   /**
@@ -2114,33 +2115,63 @@ export default function CapturesScreen() {
           Both buttons hand the ticked rows to machinery that already existed
           for a spoken batch: one destination for several drafts, everybody in,
           split equally. Nothing new decides anything here. */}
-      {ticking && chosenRows.length > 0 ? (
+      {ticking ? (
         /* It rises rather than appearing. The bar takes the navigation's place
            the instant a row is ticked, and a panel that simply *is* there reads
            as a redraw — something went wrong and the screen repainted — where
            one that slides up from the edge reads as an answer to the tap. Out
            the same way, so the navigation coming back is a handover rather than
-           a flicker. Off entirely when the phone asks for less motion. */
+           a flicker. Off entirely when the phone asks for less motion — `sel`
+           jumps rather than eases then.
+
+           Mounted whenever this tab is the ticking one, shown by animating
+           `sel`, rather than mounted when something is ticked and animated in
+           and out by `entering`/`exiting`. The difference matters here and is
+           not a matter of taste:
+
+           This screen is a tab, and the navigator freezes a blurred tab's
+           rendering (`(tabs)/_layout.tsx`). A layout animation is driven by
+           mount and unmount, and going away while the bar was up ran its
+           `exiting` — after which coming back did not bring it back. Two drafts
+           ticked, out to the voice screen and straight back, and the bar was
+           gone with the selection still live and its own buttons unreachable:
+           the ticks were there, "2 selected" was there, and the only way to act
+           on them was to clear the selection and tick them again.
+
+           An always-mounted view driven by a shared value has no such state to
+           lose — it is the same crossfade the panel above already uses for the
+           same gesture, and the reason that one survived the same trip. */
         <Reanimated.View
-          entering={reduceMotion ? undefined : SlideInDown.duration(220)}
-          exiting={reduceMotion ? undefined : SlideOutDown.duration(180)}
-          style={{
-            position: 'absolute',
-            left: 0,
-            right: 0,
-            bottom: 0,
-            paddingHorizontal: theme.spacing.xl,
-            paddingTop: theme.spacing.md,
-            // The navigation is gone while this is up (`suppressTabBar` below),
-            // so the bar clears the system's own gesture pill and nothing else.
-            // Using the tab-bar clearance here would reserve room for a bar
-            // that is not there and leave a band of empty surface.
-            paddingBottom: insets.bottom + theme.spacing.md,
-            gap: theme.spacing.sm,
-            backgroundColor: theme.color.surface,
-            borderTopWidth: 1,
-            borderTopColor: theme.color.border,
-          }}
+          pointerEvents={selecting ? 'auto' : 'none'}
+          // `pointerEvents` stops a finger and nothing else: a bar at zero
+          // opacity keeps its buttons in the accessibility tree, where a screen
+          // reader will happily read out "Just me" and activate it with no rows
+          // ticked. Invisible on the screen and present to the reader is the
+          // worst of both, so the descendants are hidden outright — one prop
+          // per platform, because iOS and Android spell this differently.
+          accessibilityElementsHidden={!selecting}
+          importantForAccessibility={selecting ? 'auto' : 'no-hide-descendants'}
+          style={[
+            {
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              bottom: 0,
+              paddingHorizontal: theme.spacing.xl,
+              paddingTop: theme.spacing.md,
+              // The navigation is gone while this is up (`suppressTabBar`
+              // below), so the bar clears the system's own gesture pill and
+              // nothing else. Using the tab-bar clearance here would reserve
+              // room for a bar that is not there and leave a band of empty
+              // surface.
+              paddingBottom: insets.bottom + theme.spacing.md,
+              gap: theme.spacing.sm,
+              backgroundColor: theme.color.surface,
+              borderTopWidth: 1,
+              borderTopColor: theme.color.border,
+            },
+            actionBarAnim,
+          ]}
         >
           {/* One row, and everything in it is an *action*. The count and
               "select all" moved into the panel above, which is what the rest
@@ -2188,6 +2219,14 @@ export default function CapturesScreen() {
                 style={{ flex: 1 }}
                 onPress={() => {
                   const items = chosenRows;
+                  // The bar is mounted while this tab is open, whether or not
+                  // anything is ticked, so "nothing is ticked" has to be an
+                  // answer this button knows how to give. `items[0]!.id` on an
+                  // empty selection is a crash, and the non-null assertion is
+                  // exactly the kind that reads as safe right up until some
+                  // route nobody pictured — an accessibility service, a stray
+                  // tap during the fade — arrives with an empty list.
+                  if (items.length === 0) return;
                   // Same rule as the sheet's own "Just me": untick what landed,
                   // leave what refused where a person can see and retry it.
                   void placeInPersonal({ lockKey: items[0]!.id, items }).then((done) =>

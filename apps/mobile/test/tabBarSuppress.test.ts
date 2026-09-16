@@ -7,38 +7,83 @@ import {
   tabBarSuppressedSnapshot,
 } from '@/lib/tabBarSuppress';
 
+/** What the bar asks: "is the screen I am painted over asking me to go?" */
+function suppressedOn(scope: string): boolean {
+  return tabBarSuppressedSnapshot().includes(scope);
+}
+
+const REVIEW = '(tabs)/captures';
+const HOME = '(tabs)';
+const MESSAGES = 'captures/sms';
+
 describe('tabBar suppression claims', () => {
   afterEach(() => {
     resetTabBarSuppression();
   });
 
   it('keeps the bar suppressed until every claimant releases', () => {
-    const releaseSelection = suppressTabBar();
-    const releaseSheet = suppressTabBar();
+    const releaseSelection = suppressTabBar(REVIEW);
+    const releaseSheet = suppressTabBar(REVIEW);
 
-    expect(tabBarSuppressedSnapshot()).toBe(true);
+    expect(suppressedOn(REVIEW)).toBe(true);
     releaseSelection();
-    expect(tabBarSuppressedSnapshot()).toBe(true);
+    expect(suppressedOn(REVIEW)).toBe(true);
     releaseSheet();
-    expect(tabBarSuppressedSnapshot()).toBe(false);
+    expect(suppressedOn(REVIEW)).toBe(false);
   });
 
   it('makes release idempotent, so cleanup can run twice safely', () => {
-    const release = suppressTabBar();
+    const release = suppressTabBar(REVIEW);
 
     release();
     release();
 
-    expect(tabBarSuppressedSnapshot()).toBe(false);
+    expect(suppressedOn(REVIEW)).toBe(false);
+  });
+
+  /**
+   * The guarantee this module exists for, and the one the old counter could not
+   * make. A claim is only good on the screen that made it, so a screen that
+   * fails to let go — Review is a tab, so it neither unmounts nor re-renders
+   * once you have left it — cannot take the navigation away from anywhere else.
+   *
+   * Without this, the app is one missed release away from having no navigation
+   * at all, on every screen, with nothing left able to put it back.
+   */
+  it('never hides the bar on a screen that did not ask', () => {
+    suppressTabBar(REVIEW);
+
+    expect(suppressedOn(REVIEW)).toBe(true);
+    expect(suppressedOn(HOME)).toBe(false);
+    expect(suppressedOn(MESSAGES)).toBe(false);
+  });
+
+  it('releases one claim of a scope, not every claim sharing it', () => {
+    const releaseSelection = suppressTabBar(REVIEW);
+    suppressTabBar(REVIEW);
+
+    releaseSelection();
+
+    expect(suppressedOn(REVIEW)).toBe(true);
   });
 
   it('forgets every outstanding claim', () => {
-    suppressTabBar();
-    suppressTabBar();
+    suppressTabBar(REVIEW);
+    suppressTabBar(MESSAGES);
 
     resetTabBarSuppression();
 
-    expect(tabBarSuppressedSnapshot()).toBe(false);
+    expect(tabBarSuppressedSnapshot()).toEqual([]);
+  });
+
+  it('keeps the snapshot stable between changes, as useSyncExternalStore needs', () => {
+    const release = suppressTabBar(REVIEW);
+    const first = tabBarSuppressedSnapshot();
+
+    expect(tabBarSuppressedSnapshot()).toBe(first);
+
+    release();
+    expect(tabBarSuppressedSnapshot()).not.toBe(first);
   });
 });
 
@@ -50,11 +95,11 @@ describe('one screen standing the bar down', () => {
   it('holds the claim only while the screen is both asking and on screen', () => {
     const standDown = createStandDown();
 
-    standDown.set(true, true);
-    expect(tabBarSuppressedSnapshot()).toBe(true);
+    standDown.set(true, true, REVIEW);
+    expect(suppressedOn(REVIEW)).toBe(true);
 
-    standDown.set(false, true);
-    expect(tabBarSuppressedSnapshot()).toBe(false);
+    standDown.set(false, true, REVIEW);
+    expect(suppressedOn(REVIEW)).toBe(false);
   });
 
   /**
@@ -66,54 +111,69 @@ describe('one screen standing the bar down', () => {
    */
   it('releases when the screen loses focus with the selection still live', () => {
     const standDown = createStandDown();
-    standDown.set(true, true);
+    standDown.set(true, true, REVIEW);
 
-    standDown.set(true, false);
+    standDown.set(true, false, REVIEW);
 
-    expect(tabBarSuppressedSnapshot()).toBe(false);
+    expect(suppressedOn(REVIEW)).toBe(false);
   });
 
   it('takes the claim back when the screen is returned to, still selecting', () => {
     const standDown = createStandDown();
-    standDown.set(true, true);
-    standDown.set(true, false);
+    standDown.set(true, true, REVIEW);
+    standDown.set(true, false, REVIEW);
 
-    standDown.set(true, true);
+    standDown.set(true, true, REVIEW);
 
-    expect(tabBarSuppressedSnapshot()).toBe(true);
+    expect(suppressedOn(REVIEW)).toBe(true);
   });
 
   it('claims once however often it is told the same thing', () => {
     const standDown = createStandDown();
 
-    standDown.set(true, true);
-    standDown.set(true, true);
-    standDown.set(true, true);
+    standDown.set(true, true, REVIEW);
+    standDown.set(true, true, REVIEW);
+    standDown.set(true, true, REVIEW);
     standDown.dispose();
 
-    expect(tabBarSuppressedSnapshot()).toBe(false);
+    expect(suppressedOn(REVIEW)).toBe(false);
+  });
+
+  /**
+   * A screen whose own route changed under it (a param it navigated to itself)
+   * must not be left holding a claim under the route it used to be, which the
+   * bar would never ask about again.
+   */
+  it('moves its claim when the screen it is on changes route', () => {
+    const standDown = createStandDown();
+    standDown.set(true, true, 'group/1');
+
+    standDown.set(true, true, 'group/2');
+
+    expect(suppressedOn('group/1')).toBe(false);
+    expect(suppressedOn('group/2')).toBe(true);
   });
 
   it('lets go on unmount, and does not mind being disposed twice', () => {
     const standDown = createStandDown();
-    standDown.set(true, true);
+    standDown.set(true, true, MESSAGES);
 
     standDown.dispose();
     standDown.dispose();
 
-    expect(tabBarSuppressedSnapshot()).toBe(false);
+    expect(suppressedOn(MESSAGES)).toBe(false);
   });
 
   it('keeps two screens independent — one leaving does not free the other', () => {
     const review = createStandDown();
     const messages = createStandDown();
-    review.set(true, true);
-    messages.set(true, true);
+    review.set(true, true, REVIEW);
+    messages.set(true, true, MESSAGES);
 
-    review.set(true, false);
-    expect(tabBarSuppressedSnapshot()).toBe(true);
+    review.set(true, false, REVIEW);
+    expect(suppressedOn(MESSAGES)).toBe(true);
 
-    messages.set(true, false);
-    expect(tabBarSuppressedSnapshot()).toBe(false);
+    messages.set(true, false, MESSAGES);
+    expect(suppressedOn(MESSAGES)).toBe(false);
   });
 });
