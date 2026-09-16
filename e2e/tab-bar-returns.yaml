@@ -29,8 +29,8 @@ appId: app.waves.mobile
 - assertVisible: 'Capture an expense'
 - assertNotVisible: 'Friends'
 - back
-- extendedWaitUntilVisible:
-    text: 'Your groups'
+- extendedWaitUntil:
+    visible: 'Your groups'
     timeout: 20000
 - assertVisible: 'Friends'
 
@@ -38,8 +38,8 @@ appId: app.waves.mobile
 - tapOn: 'New group'
 - assertNotVisible: 'Friends'
 - back
-- extendedWaitUntilVisible:
-    text: 'Your groups'
+- extendedWaitUntil:
+    visible: 'Your groups'
     timeout: 20000
 - assertVisible: 'Friends'
 
@@ -49,8 +49,8 @@ appId: app.waves.mobile
 # bar is present with nothing current, which is easy to break in either
 # direction.
 - tapOn: 'Goa trip'
-- extendedWaitUntilVisible:
-    text: 'Beach shack dinner'
+- extendedWaitUntil:
+    visible: 'Beach shack dinner'
     timeout: 20000
 - assertVisible: 'Friends'
 
@@ -58,15 +58,15 @@ appId: app.waves.mobile
 - assertVisible: 'What was it for?'
 - assertNotVisible: 'Friends'
 - back
-- extendedWaitUntilVisible:
-    text: 'Beach shack dinner'
+- extendedWaitUntil:
+    visible: 'Beach shack dinner'
     timeout: 20000
 - assertVisible: 'Friends'
 
 # Back out of the group too, and the bar is still the real one.
 - back
-- extendedWaitUntilVisible:
-    text: 'Your groups'
+- extendedWaitUntil:
+    visible: 'Your groups'
     timeout: 20000
 - tapOn: 'Friends'
 - assertVisible: 'Review'

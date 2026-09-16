@@ -27,6 +27,6 @@ appId: app.waves.mobile
 
 # The guest way in navigates to the guest doorway (no session yet).
 - tapOn: 'Continue as guest'
-- extendedWaitUntilVisible:
-    element: 'Start splitting with'
+- extendedWaitUntil:
+    visible: 'Start splitting with'
     timeout: 10000

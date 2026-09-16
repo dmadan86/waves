@@ -21,6 +21,6 @@ appId: app.waves.mobile
 
 # Skip is the guest way in: it navigates to the guest doorway (no session yet).
 - tapOn: 'Skip'
-- extendedWaitUntilVisible:
-    element: 'Start splitting with'
+- extendedWaitUntil:
+    visible: 'Start splitting with'
     timeout: 10000

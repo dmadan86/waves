@@ -21,16 +21,16 @@ appId: app.waves.mobile
 
 # ── 1. depth: one level per press, landing where you came from ────────────
 - tapOn: 'Goa trip'
-- extendedWaitUntilVisible:
-    text: 'Beach shack dinner'
+- extendedWaitUntil:
+    visible: 'Beach shack dinner'
     timeout: 20000
 
 - tapOn: 'Beach shack dinner'
 # The detail screen, not the ledger it was tapped from. Asserted by something
 # only the detail carries — the ledger has no "Delete expense" — so a push that
 # never happened cannot read as a pass.
-- extendedWaitUntilVisible:
-    text: 'Delete expense'
+- extendedWaitUntil:
+    visible: 'Delete expense'
     timeout: 20000
 
 - back
@@ -40,15 +40,15 @@ appId: app.waves.mobile
 - assertNotVisible: 'Your groups'
 
 - back
-- extendedWaitUntilVisible:
-    text: 'Your groups'
+- extendedWaitUntil:
+    visible: 'Your groups'
     timeout: 20000
 - assertVisible: 'Friends'
 
 # ── 2. an overlay takes back, and gives the screen back ───────────────────
 - tapOn: 'Goa trip'
-- extendedWaitUntilVisible:
-    text: 'Beach shack dinner'
+- extendedWaitUntil:
+    visible: 'Beach shack dinner'
     timeout: 20000
 
 - tapOn: 'More'
@@ -66,13 +66,13 @@ appId: app.waves.mobile
 - assertVisible: 'Group settings'
 - back
 - tapOn: 'Beach shack dinner'
-- extendedWaitUntilVisible:
-    text: 'Delete expense'
+- extendedWaitUntil:
+    visible: 'Delete expense'
     timeout: 20000
 - back
 - back
-- extendedWaitUntilVisible:
-    text: 'Your groups'
+- extendedWaitUntil:
+    visible: 'Your groups'
     timeout: 20000
 
 # ── 3. every tab, there and back ──────────────────────────────────────────
@@ -88,8 +88,8 @@ appId: app.waves.mobile
 - tapOn: 'Personal'
 - assertVisible: 'Your own money'
 - tapOn: 'Home'
-- extendedWaitUntilVisible:
-    text: 'Your groups'
+- extendedWaitUntil:
+    visible: 'Your groups'
     timeout: 20000
 - assertVisible: 'Friends'
 

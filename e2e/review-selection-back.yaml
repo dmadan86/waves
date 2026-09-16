@@ -47,8 +47,8 @@ appId: app.waves.mobile
 
 - assertVisible: 'We found 2 payments in what you pasted.'
 - tapOn: 'Add 2 to Review'
-- extendedWaitUntilVisible:
-    text: 'Open Review'
+- extendedWaitUntil:
+    visible: 'Open Review'
     timeout: 20000
 - tapOn: 'Open Review'
 
@@ -73,8 +73,8 @@ appId: app.waves.mobile
 
 # ── the bug: leave the tab with the selection still live ──────────────────
 - back
-- extendedWaitUntilVisible:
-    text: 'Your groups'
+- extendedWaitUntil:
+    visible: 'Your groups'
     timeout: 20000
 # The claim must have been released on the way out. Before the fix this failed:
 # the dashboard rendered with no bottom bar, and there was no way to get one
@@ -97,8 +97,8 @@ appId: app.waves.mobile
 # whole lands here.
 - assertNotVisible: "Couldn't save this — please try again in a moment."
 # A filed draft leaves the pile it was waiting in.
-- extendedWaitUntilNotVisible:
-    text: 'M M RAITHARA TRADERS'
+- extendedWaitUntil:
+    notVisible: 'M M RAITHARA TRADERS'
     timeout: 20000
 
 # Nothing is ticked any more, so the navigation is back without having to leave.

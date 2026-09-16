@@ -30,8 +30,8 @@ appId: app.waves.mobile
 # it used to be a dashboard hero circle before Activity took that spot. Wait
 # for the dashboard to settle back into view (the save is local-first, no
 # server round-trip needed) before switching to it.
-- extendedWaitUntilVisible:
-    text: 'Your groups'
+- extendedWaitUntil:
+    visible: 'Your groups'
     timeout: 20000
 - tapOn: 'Review'
 
