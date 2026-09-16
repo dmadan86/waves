@@ -206,3 +206,110 @@ describe('carrying the plan out', () => {
     expect(outcome.failed).toBe(1);
   });
 });
+
+/**
+ * The batch that failed whole, on a phone, with "please try again in a moment"
+ * — advice that was false, because every retry did exactly the same thing.
+ *
+ * Planning was allowed to throw, and a throw from planning escapes every guard
+ * downstream: `runPersonalPlacement` protects each draft individually but never
+ * gets to run, so the caller's outermost `catch` failed the entire selection
+ * with one sentence that named nothing. A row this code cannot read is a row it
+ * cannot read; it is not a reason to refuse the rows next to it.
+ *
+ * These feed the planner the shapes a real `captures` row has turned up in —
+ * the declared type says `amount: string`, and that is true of anything that
+ * came down the wire, but the type is a claim about the wire and not a
+ * guarantee about the object in hand. A number and a `bigint` are the two that
+ * are the same money in a different coat, so they are read rather than refused;
+ * everything below is genuinely unreadable.
+ */
+describe('a pile with one draft this code cannot read', () => {
+  const HOSTILE: readonly (readonly [string, unknown])[] = [
+    ['nothing at all', null],
+    ['a key the row never carried', undefined],
+    ['an amount that is not a number', 'nine hundred'],
+    ['an object', { minor: 970 }],
+  ];
+
+  for (const [name, amount] of HOSTILE) {
+    it(`plans the rest of the pile when one row carries ${name}`, () => {
+      const plan = planPersonalPlacement({
+        captures: [
+          draft({ id: 'good-1', amount: '970' }),
+          draft({ id: 'bad', amount: amount as CaptureRow['amount'] }),
+          draft({ id: 'good-2', amount: '2000' }),
+        ],
+        fallbackDescription: 'Unassigned',
+      });
+
+      expect(plan.writes.map((write) => write.captureId)).toEqual(['good-1', 'good-2']);
+      expect(plan.unusable.map((row) => row.id)).toEqual(['bad']);
+    });
+  }
+
+  /**
+   * The two shapes that are genuinely the same money, just not as a string.
+   * Reading them is not leniency for its own sake: `smsDrafts` carries the
+   * amount as a `bigint` right up until `serialiseCapture` stringifies it, so
+   * the value is one `.toString()` away from the wire format at every point.
+   */
+  it('reads a number and a bigint as the money they are', () => {
+    const plan = planPersonalPlacement({
+      captures: [
+        draft({ id: 'as-number', amount: 970 as unknown as string }),
+        draft({ id: 'as-bigint', amount: 2000n as unknown as string }),
+      ],
+      fallbackDescription: 'Unassigned',
+    });
+
+    expect(plan.unusable).toEqual([]);
+    expect(plan.writes.map((write) => write.data.amount)).toEqual(['970', '2000']);
+  });
+
+  it('survives a description that is not a string, and names the draft anyway', () => {
+    const plan = planPersonalPlacement({
+      captures: [draft({ description: 42 as unknown as string })],
+      fallbackDescription: 'Unassigned',
+    });
+
+    expect(plan.unusable).toEqual([]);
+    expect(plan.writes[0]?.data.note).toBe('Unassigned');
+  });
+
+  it('never throws, whatever the row is', () => {
+    expect(() =>
+      planPersonalPlacement({
+        captures: [null as unknown as CaptureRow, draft()],
+        fallbackDescription: 'Unassigned',
+      }),
+    ).not.toThrow();
+  });
+
+  it('keeps the reason the row could not be planned, for the report', () => {
+    const plan = planPersonalPlacement({
+      captures: [null as unknown as CaptureRow],
+      fallbackDescription: 'Unassigned',
+    });
+
+    expect(plan.unusable).toHaveLength(1);
+    expect(plan.firstError).toBeInstanceOf(TypeError);
+  });
+
+  it('carries that reason into the outcome, so the caller can report it', async () => {
+    const plan = planPersonalPlacement({
+      captures: [null as unknown as CaptureRow, draft({ id: 'good' })],
+      fallbackDescription: 'Unassigned',
+    });
+
+    const outcome = await runPersonalPlacement({
+      plan,
+      upsert: () => Promise.resolve(),
+      close: () => Promise.resolve(),
+    });
+
+    expect(outcome.done).toEqual(['good']);
+    expect(outcome.failed).toBe(1);
+    expect(outcome.firstError).toBeInstanceOf(TypeError);
+  });
+});

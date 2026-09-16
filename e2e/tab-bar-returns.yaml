@@ -1,0 +1,72 @@
+# Every screen that takes the bottom bar has to give it back.
+#
+# The navigation is one bar rendered at the root over the whole stack, and it
+# decides where to show from two inputs: the route (`lib/tabBar`'s
+# TAB_BAR_HIDDEN_ROUTES — add-expense, capture, new-group, voice, settle and the
+# rest) and a live count of screens asking it to stand down while they are on
+# top (`lib/tabBarSuppress`). Both are ways for the bar to go away, so both are
+# ways for it to stay away, and when it does the app has no navigation at all
+# until it is killed — which is exactly what shipped in 2026-09 from the second
+# of the two.
+#
+# This walks the first input: enter each route that hides the bar, confirm it is
+# actually gone (a flow that never hid it would pass without testing anything),
+# leave, and confirm it is back *and works*. The suppression half is
+# `review-selection-back.yaml`.
+#
+# "Friends" is the discriminator throughout: on the dashboard the word appears
+# in the tab bar and nowhere else, so it stands for "the navigation is there".
+appId: app.waves.mobile
+---
+- runFlow: login.yaml
+- assertVisible: 'Your groups'
+- assertVisible: 'Friends'
+
+# ── /capture — the dashboard's own add button ─────────────────────────────
+# Tapped by its accessibility label ("Add expense"), not the pill's one-word
+# face ("Expense"), which Maestro would match inside other text on the screen.
+- tapOn: 'Add expense'
+- assertVisible: 'Capture an expense'
+- assertNotVisible: 'Friends'
+- back
+- extendedWaitUntil:
+    visible: 'Your groups'
+    timeout: 20000
+- assertVisible: 'Friends'
+
+# ── /new-group — the circle beside it ─────────────────────────────────────
+- tapOn: 'New group'
+- assertNotVisible: 'Friends'
+- back
+- extendedWaitUntil:
+    visible: 'Your groups'
+    timeout: 20000
+- assertVisible: 'Friends'
+
+# ── a group's own add-expense ─────────────────────────────────────────────
+# Inside a group the bar still shows — `group` is not a hidden route, it simply
+# has no tab of its own to highlight. Worth asserting: it is the case where the
+# bar is present with nothing current, which is easy to break in either
+# direction.
+- tapOn: 'Goa trip'
+- extendedWaitUntil:
+    visible: 'Beach shack dinner'
+    timeout: 20000
+- assertVisible: 'Friends'
+
+- tapOn: 'Add expense'
+- assertVisible: 'What was it for?'
+- assertNotVisible: 'Friends'
+- back
+- extendedWaitUntil:
+    visible: 'Beach shack dinner'
+    timeout: 20000
+- assertVisible: 'Friends'
+
+# Back out of the group too, and the bar is still the real one.
+- back
+- extendedWaitUntil:
+    visible: 'Your groups'
+    timeout: 20000
+- tapOn: 'Friends'
+- assertVisible: 'Review'

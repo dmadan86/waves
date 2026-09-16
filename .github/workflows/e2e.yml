@@ -1,0 +1,141 @@
+# The Maestro flows: the real app, on a real emulator, against a real backend.
+#
+# Its own workflow, on a schedule, because of what it costs. The run builds the
+# Android app from source and then drives twenty flows one at a time with a
+# reseed between each — three quarters of an hour, against the two minutes every
+# other check here takes. On `pull_request` that sat in front of every review as
+# a check nobody could wait for, and the only honest ways to read it were to
+# ignore it or to be slowed by it. Neither is worth having.
+#
+# Nightly instead, on `main`, where a regression is found within a day and the
+# search space is a day of commits rather than one diff. Two ways to ask for it
+# sooner:
+#
+#   • **workflow_dispatch** — run it by hand, from the Actions tab, on any
+#     branch. This is the one to use before a release.
+#   • **the `e2e` label** — put it on a pull request and the flows run against
+#     that branch. For a change that touches navigation, the mirror, or the
+#     shape of a screen, where waiting for the nightly means finding out after
+#     it has merged. It fires when the label is *applied*, so pushing more
+#     commits afterwards does not re-run it: take the label off and put it back,
+#     or dispatch it.
+#
+# What it needs is in e2e/README-e2e.md — a staging Supabase project kept in
+# step with main's migrations and edge functions, the repo variable
+# `E2E_ENABLED`, and the six `E2E_*` / `GOOGLE_SERVICES_JSON_B64` secrets.
+# This repo is public, so a fork's pull request receives none of them; the label
+# only works on a branch in this repository.
+#
+# Deliberately not in the branch ruleset's required checks. These flows drive an
+# emulator and a network, so they can fail for reasons that are not the code's,
+# and a check that can do that must not be able to hold the repository shut.
+name: e2e
+
+on:
+  schedule:
+    # 19:00 UTC — half past midnight in IST, so a failure is waiting in the
+    # morning rather than interrupting the evening.
+    - cron: '0 19 * * *'
+  workflow_dispatch:
+  pull_request:
+    types: [labeled]
+
+concurrency:
+  # One at a time, and never two against the same staging project: the seeder
+  # resets the fixture between flows, so a second run would pull the ledger out
+  # from under the first one mid-flow.
+  group: e2e-maestro
+  cancel-in-progress: false
+
+jobs:
+  e2e:
+    name: e2e (Maestro)
+    runs-on: ubuntu-latest
+    # `E2E_ENABLED` stays as the kill switch: one repo variable turns the whole
+    # thing off without editing this file or touching the schedule, which is
+    # what you want at 3am when the emulator image is broken upstream and the
+    # nightly is failing for reasons nobody here can fix.
+    # The label gate applies only to the `labeled` event; the nightly and a
+    # manual dispatch carry no label and must not be filtered by one.
+    if: >-
+      ${{ vars.E2E_ENABLED == 'true'
+      && (github.event_name != 'pull_request'
+      || github.event.label.name == 'e2e') }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+      - run: pnpm install --frozen-lockfile
+
+      # Seed the deterministic fixture the flows assert (Goa trip, Beach shack
+      # dinner, the ghost Priya) into the staging project.
+      - name: Seed the E2E backend
+        env:
+          E2E_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL }}
+          E2E_SERVICE_KEY: ${{ secrets.E2E_SERVICE_KEY }}
+          E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
+          E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+        run: node e2e/seed-e2e.mjs
+
+      # Build the app against the SAME staging project. The public keys are baked
+      # at bundle time from the env below; app.config reads them via .env.
+      - name: Point the build at staging
+        run: |
+          printf 'EXPO_PUBLIC_SUPABASE_URL=%s\nEXPO_PUBLIC_SUPABASE_ANON_KEY=%s\n' \
+            "${{ secrets.E2E_SUPABASE_URL }}" "${{ secrets.E2E_SUPABASE_ANON_KEY }}" \
+            > apps/mobile/.env
+      # BEFORE prebuild, and into apps/mobile — not after, and not into
+      # android/app. `app.json` sets `android.googleServicesFile` to
+      # `./google-services.json`, so prebuild reads that file and copies it into
+      # android/app itself; with the restore afterwards there was nothing for it
+      # to read and prebuild died outright:
+      #   [android.dangerous]: withAndroidDangerousBaseMod: Cannot copy
+      #   google-services.json from apps/mobile/google-services.json
+      # The comment that used to stand here reasoned that --clean wipes android/
+      # so the file must land after it. True of android/app/google-services.json
+      # — and beside the point, because the file prebuild needs lives outside
+      # android/ and nothing wipes it.
+      - name: Restore Waves google-services.json
+        run: |
+          echo "${{ secrets.GOOGLE_SERVICES_JSON_B64 }}" | base64 -d > apps/mobile/google-services.json
+      - name: Prebuild the Android project
+        working-directory: apps/mobile
+        run: npx expo prebuild --platform android --clean
+      - name: Assemble debug APK
+        working-directory: apps/mobile/android
+        run: ./gradlew :app:assembleDebug --no-daemon
+
+      # Boot an emulator, install Maestro, install the APK, run the flows.
+      - name: Run Maestro flows
+        uses: reactivecircus/android-emulator-runner@v2
+        env:
+          E2E_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL }}
+          E2E_SERVICE_KEY: ${{ secrets.E2E_SERVICE_KEY }}
+          E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
+          E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+        with:
+          api-level: 34
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          # A single line: android-emulator-runner parses `script` line-by-line,
+          # so the loop + reseed logic lives in a committed shell script that
+          # runs as one command. See e2e/run-maestro.sh.
+          script: bash e2e/run-maestro.sh
+      - name: Upload Maestro report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: maestro-report
+          path: |
+            maestro-report.xml
+            ~/.maestro/tests/**
+          if-no-files-found: ignore
