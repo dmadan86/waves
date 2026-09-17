@@ -46,6 +46,12 @@ import { friendlyError } from '@/lib/errors';
 import { money } from '@/lib/money';
 import { waves } from '@/lib/waves';
 
+/** The colour a stake wears: the ledger's own for a real one, quiet otherwise. */
+function toneOf(stake: bigint | null): string {
+  if (stake === null || stake === 0n) return 'zero';
+  return stake > 0n ? 'pos' : 'neg';
+}
+
 /** The bill's own date, read in UTC — a bill dated the 1st is the 1st. */
 function billDate(locale: string, iso: string): string {
   const parsed = Date.parse(iso);
@@ -221,12 +227,18 @@ function MemberDetail({
                       {version.expense_date ? billDate(locale, version.expense_date) : ''}
                     </span>
                   </span>
-                  <span
-                    className={`amount ${stake === null ? 'zero' : stake > 0n ? 'pos' : stake < 0n ? 'neg' : 'zero'}`}
-                  >
-                    {stake === null || stake === 0n
-                      ? money(BigInt(version.amount), version.currency, locale)
-                      : money(stake < 0n ? -stake : stake, version.currency, locale)}
+                  {/* Three different answers, and they must not be collapsed.
+                      A stake of zero is "paid exactly what they owed" — square
+                      on this bill, which the ledger says in words. Null is "in
+                      neither column", a member written into the split for
+                      nothing, where the honest figure is the bill's own total.
+                      Anything else is what the bill moved for them. */}
+                  <span className={`amount ${toneOf(stake)}`}>
+                    {stake === 0n
+                      ? t.group.settledUp
+                      : stake === null
+                        ? money(BigInt(version.amount), version.currency, locale)
+                        : money(stake < 0n ? -stake : stake, version.currency, locale)}
                   </span>
                 </Link>
               );
