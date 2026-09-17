@@ -261,6 +261,40 @@ function GroupSettle({
     }
   }
 
+  /**
+   * The payee's other answer, and the payer's way out.
+   *
+   * Confirming was the only thing either side could do, which made a claim a
+   * one-way street: somebody says they paid you and you either accept it or it
+   * sits there with the balance already moved. Both of these are refused by the
+   * server unless you are the right person — `waves_dispute_settlement` checks
+   * the payee, `waves_cancel_settlement` the payer — so the buttons below are a
+   * courtesy, not the rule.
+   *
+   * Both ask first. Disputing contradicts somebody, and withdrawing takes back
+   * a claim the other side may already have seen.
+   */
+  async function resolve(settlementId: string, how: 'dispute' | 'withdraw') {
+    const question = how === 'dispute' ? t.settle.disputeConfirm : t.settle.withdrawConfirm;
+    if (!window.confirm(question)) return;
+    setBusy(settlementId);
+    setError(null);
+    try {
+      if (how === 'dispute') await waves.disputeSettlement(settlementId);
+      else await waves.cancelSettlement(settlementId);
+      await refresh();
+    } catch (caught) {
+      setError(
+        friendlyError(caught, `web.settle.${how}`, {
+          fallback: t.errors.couldNotSave,
+          offline: t.errors.offline,
+        }),
+      );
+    } finally {
+      setBusy(null);
+    }
+  }
+
   async function nudge(toMemberId: string, currency: string) {
     setBusy(toMemberId);
     setError(null);
@@ -392,20 +426,42 @@ function GroupSettle({
                     {money(BigInt(settlement.amount), settlement.currency, locale)}
                   </span>
                   {mineToConfirm ? (
-                    <button
-                      type="button"
-                      className="btn"
-                      style={{ marginInlineStart: 10 }}
-                      disabled={busy === settlement.id}
-                      onClick={() => void confirm(settlement.id)}
-                    >
-                      {busy === settlement.id ? t.settle.confirming : t.settle.confirm}
-                    </button>
+                    <span className="pending-actions">
+                      <button
+                        type="button"
+                        className="btn"
+                        disabled={busy === settlement.id}
+                        onClick={() => void confirm(settlement.id)}
+                      >
+                        {busy === settlement.id ? t.settle.confirming : t.settle.confirm}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn soft"
+                        disabled={busy === settlement.id}
+                        onClick={() => void resolve(settlement.id, 'dispute')}
+                      >
+                        {busy === settlement.id ? t.settle.disputing : t.settle.dispute}
+                      </button>
+                    </span>
                   ) : (
-                    <span className="faint" style={{ marginInlineStart: 10 }}>
-                      {other
-                        ? t.settle.waitingConfirm.replace('{name}', memberName(other))
-                        : t.settle.pendingHead}
+                    <span className="pending-actions">
+                      <span className="faint">
+                        {other
+                          ? t.settle.waitingConfirm.replace('{name}', memberName(other))
+                          : t.settle.pendingHead}
+                      </span>
+                      {/* Only the payer may withdraw, and only their own claim. */}
+                      {settlement.from_member_id === myMemberId ? (
+                        <button
+                          type="button"
+                          className="btn soft"
+                          disabled={busy === settlement.id}
+                          onClick={() => void resolve(settlement.id, 'withdraw')}
+                        >
+                          {busy === settlement.id ? t.settle.withdrawing : t.settle.withdraw}
+                        </button>
+                      ) : null}
                     </span>
                   )}
                 </div>
