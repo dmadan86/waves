@@ -138,11 +138,14 @@ function Members({ profileId }: { profileId: string }) {
                     <span className="avatar" aria-hidden style={{ width: 38, height: 38 }}>
                       {nameOf(member).charAt(0).toUpperCase()}
                     </span>
+                    {/* The name opens the person: what they owe or are owed
+                        here, and the bills they are on. The row itself stays
+                        put, because the controls beside it are not a link. */}
                     <span className="grow">
-                      <span className="title">
+                      <Link className="title plain-link" href={`/g/${groupId}/member/${member.id}`}>
                         {nameOf(member)}
                         {isMe ? ` · ${t.members.you}` : ''}
-                      </span>
+                      </Link>
                       <span className="meta">
                         {member.role === 'admin' ? t.members.admin : ''}
                         {member.role === 'admin' && isGhost ? ' · ' : ''}

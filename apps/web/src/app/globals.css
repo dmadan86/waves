@@ -1022,6 +1022,38 @@
     background: #000;
   }
 
+  /* One person's standing in a group: the figure, what it means, and what
+     they are. Centred, because the page is about them and nothing else. */
+  .member-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 0 14px;
+    text-align: center;
+  }
+  .member-hero .hero-amount {
+    font-size: var(--w-font-display);
+    line-height: var(--w-leading-display);
+  }
+  .member-hero .badges {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 6px;
+  }
+
+  /* A link that reads as the text around it — the row's own affordance is the
+     row, and a second blue underline inside it would compete with it. */
+  .plain-link {
+    color: inherit;
+    text-decoration: none;
+  }
+  .plain-link:hover {
+    text-decoration: underline;
+  }
+
   /* The answers to a pending settlement, beside its amount. They wrap under
      the row on a phone rather than squeezing the figure they are about. */
   .pending-actions {

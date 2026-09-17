@@ -605,6 +605,17 @@ export interface WebStrings {
   /** One person, un-collapsed into the groups the balance came from. */
   person: {
     acrossGroups: string;
+    /** One member inside one group: the balance, the badges, their bills. */
+    notFound: string;
+    notFoundBody: string;
+    you: string;
+    admin: string;
+    notJoinedYet: string;
+    left: string;
+    /** How many bills this person is on; `{n}` is the count. */
+    onCount: PluralForms;
+    /** Nobody has put them on a bill yet; `{name}` is the person. */
+    noneHere: string;
     squareWith: string;
   };
   /** Taking the ledger away (ADR-012). */
@@ -1152,6 +1163,14 @@ const en: WebStrings = {
   },
   person: {
     acrossGroups: 'Across the groups you share',
+    notFound: 'No such person here',
+    notFoundBody: 'They may have left this group, or the link is wrong.',
+    you: 'You',
+    admin: 'Admin',
+    notJoinedYet: 'Not joined yet',
+    left: 'Left this group',
+    onCount: { one: 'On {n} bill', other: 'On {n} bills' },
+    noneHere: '{name} is not on anything here yet.',
     squareWith: 'You are square with each other.',
   },
   exportData: {
@@ -1727,6 +1746,14 @@ const ta: WebStrings = {
   },
   person: {
     acrossGroups: 'நீங்கள் பகிரும் குழுக்களில்',
+    notFound: 'அப்படி ஒருவர் இங்கு இல்லை',
+    notFoundBody: 'அவர் இந்தக் குழுவை விட்டு விலகியிருக்கலாம், அல்லது இணைப்பு தவறானது.',
+    you: 'நீங்கள்',
+    admin: 'நிர்வாகி',
+    notJoinedYet: 'இன்னும் சேரவில்லை',
+    left: 'குழுவை விட்டு விலகினார்',
+    onCount: { one: '{n} பில்லில்', other: '{n} பில்களில்' },
+    noneHere: '{name} இன்னும் எந்தப் பில்லிலும் இல்லை.',
     squareWith: 'நீங்கள் இருவரும் சரியாக இருக்கிறீர்கள்.',
   },
   exportData: {
@@ -2297,6 +2324,14 @@ const hi: WebStrings = {
   },
   person: {
     acrossGroups: 'आप जिन समूहों में साथ हैं',
+    notFound: 'यहाँ ऐसा कोई नहीं',
+    notFoundBody: 'हो सकता है वे यह ग्रुप छोड़ चुके हों, या लिंक ग़लत हो।',
+    you: 'आप',
+    admin: 'एडमिन',
+    notJoinedYet: 'अभी शामिल नहीं हुए',
+    left: 'ग्रुप छोड़ चुके',
+    onCount: { one: '{n} बिल पर', other: '{n} बिलों पर' },
+    noneHere: '{name} अभी किसी बिल पर नहीं हैं।',
     squareWith: 'आप दोनों बराबर हैं.',
   },
   exportData: {
@@ -2915,6 +2950,14 @@ const ar: WebStrings = {
   },
   person: {
     acrossGroups: 'في المجموعات التي تشاركانها',
+    notFound: 'لا يوجد هذا الشخص هنا',
+    notFoundBody: 'ربما غادر هذه المجموعة، أو أن الرابط غير صحيح.',
+    you: 'أنت',
+    admin: 'مشرف',
+    notJoinedYet: 'لم ينضم بعد',
+    left: 'غادر هذه المجموعة',
+    onCount: { one: 'على فاتورة واحدة', other: 'على {n} فواتير' },
+    noneHere: '{name} ليس على أي فاتورة هنا بعد.',
     squareWith: 'أنتما متعادلان.',
   },
   exportData: {
