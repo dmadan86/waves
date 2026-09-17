@@ -23,6 +23,7 @@ import {
 } from '@waves/api-client';
 
 import { AppFrame } from '@/components/AppFrame';
+import { ExpenseComments } from '@/components/ExpenseComments';
 import { Section } from '@/components/Shell';
 import { SkeletonRows } from '@/components/Skeleton';
 import { waves } from '@/lib/waves';
@@ -239,6 +240,18 @@ function ExpenseDetail({ profileId }: { profileId: string }) {
             ))}
           </div>
         </section>
+
+        {/* The thread. Its own reads and its own failure: "why is this ₹4,800"
+            is the question a shared ledger exists to settle, but it is not what
+            the expense is, and a comment query that fails should cost the
+            conversation rather than the bill. */}
+        <ExpenseComments
+          groupId={groupId}
+          expenseId={expenseId}
+          members={members}
+          myMemberId={myMember?.id ?? null}
+          canModerate={isAdmin}
+        />
 
         {versions.length > 1 ? (
           <section className="panel">

@@ -105,7 +105,7 @@ import { serialiseExpense } from './serialiseExpense';
 import { putImage, removeRestrictedImage } from '@/lib/storage';
 import { pickAlbumPhoto, type PickedImage } from '@/lib/image';
 import { parseAnnotations, type Annotations } from '@/lib/annotations';
-import { sanitizeCommentMarkdown } from '@/lib/commentMarkdown';
+import { sanitizeCommentMarkdown } from '@waves/core';
 import type { VoiceAccess } from '@/lib/voiceAccess';
 import { myStake } from './activity';
 import { isGhost, isViewer, SettlementStatus } from './types';
