@@ -30,9 +30,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { ArrowRight, History, Receipt, Scale } from 'lucide-react';
+import { History, Receipt, Scale } from 'lucide-react';
 
-import { myStake } from '@waves/core';
+import { myStake, simplifyItems, SimplifySide } from '@waves/core';
 import {
   computeLedger,
   nameOf,
@@ -52,7 +52,7 @@ import { waves } from '@/lib/waves';
 import { money } from '@/lib/money';
 import { groupByMonth, monthLabel } from '@/lib/ledgerFeed';
 import { describeActivity, VerbIcon } from '@/lib/activity';
-import { plural } from '@/i18n';
+import { fill, plural } from '@/i18n';
 import { useStrings } from '@/i18n-context';
 import { friendlyError } from '@/lib/errors';
 
@@ -358,29 +358,60 @@ function GroupDetail({
                 <p className="faint" style={{ marginTop: -6, marginBottom: 10 }}>
                   {t.group.whoPaysWhomNote}
                 </p>
+                {/* Split into the payments that touch the reader and everybody
+                    else's, and said as a sentence rather than as two names with
+                    an arrow between them. `simplifyItems` decides both, shared
+                    with the phone so the two screens cannot order the same
+                    ledger differently. */}
                 <div className="list">
-                  {ledger.transfers.map((transfer, index) => (
-                    <div key={index} className="item" style={{ cursor: 'default' }}>
-                      <span className="grow">
-                        <span className="title transfer">
-                          {nameOf(byId.get(transfer.from) ?? fallback(transfer.from))}
-                          {/* The direction of a payment, drawn rather than
-                              typed: an arrow character points the wrong way in
-                              Arabic, where this row reads right to left. */}
-                          <ArrowRight
-                            size={15}
-                            strokeWidth={2}
-                            className="transfer-arrow"
-                            aria-hidden
-                          />
-                          {nameOf(byId.get(transfer.to) ?? fallback(transfer.to))}
+                  {simplifyItems(ledger.transfers, myMember?.id ?? null).map((item) =>
+                    item.kind === 'heading' ? (
+                      <h3 key={item.key} className="row-heading">
+                        {item.section === 'yours' ? t.group.yourPayments : t.group.otherPayments}
+                      </h3>
+                    ) : (
+                      <div key={item.key} className="item" style={{ cursor: 'default' }}>
+                        <span className="grow">
+                          <span className="title sentence">
+                            {item.side === SimplifySide.YouPay
+                              ? fill(t.group.youPayName, {
+                                  name: nameOf(
+                                    byId.get(item.transfer.to) ?? fallback(item.transfer.to),
+                                  ),
+                                })
+                              : item.side === SimplifySide.YouReceive
+                                ? fill(t.group.namePaysYou, {
+                                    name: nameOf(
+                                      byId.get(item.transfer.from) ?? fallback(item.transfer.from),
+                                    ),
+                                  })
+                                : fill(t.group.paysWhom, {
+                                    from: nameOf(
+                                      byId.get(item.transfer.from) ?? fallback(item.transfer.from),
+                                    ),
+                                    to: nameOf(
+                                      byId.get(item.transfer.to) ?? fallback(item.transfer.to),
+                                    ),
+                                  })}
+                          </span>
                         </span>
-                      </span>
-                      <span className="amount">
-                        {money(transfer.amount, transfer.currency, locale)}
-                      </span>
-                    </div>
-                  ))}
+                        {/* Coloured only when the reader is on the row: money
+                            between two other people is not owed to or by them,
+                            and painting it would say it was. */}
+                        <span
+                          className={`amount${
+                            item.side === SimplifySide.YouPay
+                              ? ' neg'
+                              : item.side === SimplifySide.YouReceive
+                                ? ' pos'
+                                : ''
+                          }`}
+                        >
+                          {money(item.transfer.amount, item.transfer.currency, locale)}
+                        </span>
+                      </div>
+                    ),
+                  )}
                 </div>
               </section>
             ) : (
