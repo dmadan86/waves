@@ -700,6 +700,77 @@
     color: var(--w-brand-pressed);
   }
 
+  /* ─────────────────────────────────────────────────────────────
+     Segmented tabs — three readings of one set of rows.
+     ───────────────────────────────────────────────────────────── */
+
+  .tabs {
+    display: flex;
+    gap: 2px;
+    margin-bottom: 16px;
+    padding: 3px;
+    width: fit-content;
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+    border: 1px solid var(--w-border);
+    border-radius: 999px;
+    background: var(--w-surface);
+  }
+  .tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    flex: none;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    padding: 8px 16px;
+    font-size: var(--w-font-caption);
+    font-weight: 600;
+    color: var(--w-text-muted);
+    white-space: nowrap;
+    transition:
+      background var(--w-duration-fast) ease,
+      color var(--w-duration-fast) ease;
+  }
+  .tab:hover {
+    color: var(--w-text);
+  }
+  .tab[aria-selected='true'] {
+    background: var(--w-brand-soft);
+    color: var(--w-brand-pressed);
+  }
+  .tab-count {
+    border-radius: 999px;
+    background: var(--w-surface-muted);
+    padding: 1px 7px;
+    font-size: var(--w-font-micro);
+    font-variant-numeric: tabular-nums;
+  }
+  .tab[aria-selected='true'] .tab-count {
+    background: color-mix(in srgb, var(--w-brand) 18%, transparent);
+  }
+
+  /* A month's worth of the ledger. Quiet — it separates, it does not compete
+     with the rows under it. */
+  .month-head {
+    margin: 14px 0 2px;
+    padding-inline: 8px;
+    font-size: var(--w-font-micro);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--w-text-faint);
+  }
+  .list:first-of-type + .month-head,
+  .panel > div:first-child > .month-head {
+    margin-top: 4px;
+  }
+
   .list {
     display: flex;
     flex-direction: column;
@@ -760,6 +831,41 @@
     display: grid;
     place-items: center;
     color: var(--w-text-faint);
+  }
+
+  /* An expense row's right-hand column: the reader's own stake, and under it
+     the direction in words with the day. Fixed rather than flexible, so a long
+     payer name ellipsizes in the middle and the date always survives. */
+  .row-right {
+    display: flex;
+    flex: none;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 1px;
+    text-align: end;
+  }
+  .row-meta {
+    font-size: var(--w-font-micro);
+    color: var(--w-text-faint);
+    white-space: nowrap;
+  }
+
+  /* Deleted, not gone. Dimmed so the ledger stays visibly append-only. */
+  .expense-row.is-deleted .title,
+  .expense-row.is-deleted .meta,
+  .expense-row.is-deleted .row-right {
+    opacity: 0.55;
+  }
+  .expense-row.is-deleted .title {
+    text-decoration: line-through;
+    text-decoration-thickness: 1px;
+  }
+
+  /* An activity line is a sentence, so it wraps where a title would not. */
+  .item .title.wrap {
+    overflow: visible;
+    white-space: normal;
+    font-weight: 500;
   }
 
   /* Money. Tabular figures so a column lines up on the decimal, and the two
@@ -1517,6 +1623,11 @@
   /* The bar is tight: the action keeps its glyph and sheds its label so the
      title and the search still fit on one line. */
   .topbar-add-label {
+    display: none;
+  }
+  /* At this width the page's own primary action would be the second "Add an
+     expense" within a thumb's reach of the one in the bar. The bar keeps it. */
+  .page-head .people .btn.brand {
     display: none;
   }
   .btn {
