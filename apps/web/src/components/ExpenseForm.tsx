@@ -89,6 +89,27 @@ export function ExpenseForm({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  /**
+   * The id this expense will be written under: the one being edited, or one
+   * minted here for a new one.
+   *
+   * The server seeds its remainder rotation with the expense's id, so a
+   * preview that does not know the id cannot say who absorbs the odd paisa —
+   * and `expectedShares`, which is compared exactly, would be claiming
+   * something the server was free to decide differently. That is a 409 on a
+   * bill that is perfectly correct; ₹100 between three people is enough to hit
+   * it. Minting the id here settles both: the preview is the ledger's answer,
+   * and the claim can be made honestly.
+   *
+   * Supplying an id costs nothing. The write path takes `body.expenseId ??
+   * crypto.randomUUID()`, and the create-or-edit label it derives from the
+   * presence of one is only ever recorded for agent callers — a browser
+   * session has no agent client id. `editing` stays tied to the *prop*, which
+   * is what actually says whether this is an edit.
+   */
+  const [mintedExpenseId] = useState(() => crypto.randomUUID());
+  const targetExpenseId = expenseId ?? mintedExpenseId;
+
   // Where the spend happened (A43). Optional and opt-in: null until the person
   // clicks "Add location" and the browser grants it. Coordinates only on the web
   // (no on-device reverse-geocode — see lib/geo).
@@ -289,12 +310,12 @@ export function ExpenseForm({
         currency,
         params,
         participants,
-        seed: expenseId ?? 'preview',
+        seed: targetExpenseId,
       });
     } catch {
       return null;
     }
-  }, [amount, currency, params, participants, expenseId]);
+  }, [amount, currency, params, participants, targetExpenseId]);
 
   const toggle = useCallback((memberId: string) => {
     setParticipants((current) =>
@@ -311,7 +332,7 @@ export function ExpenseForm({
     try {
       await waves.writeExpense({
         groupId,
-        expenseId: expenseId ?? undefined,
+        expenseId: targetExpenseId,
         description: description.trim() || t.add.defaultDescription,
         expenseDate,
         currency,
@@ -319,13 +340,7 @@ export function ExpenseForm({
         splitParams: serialiseSplitParams(params),
         participants,
         payers: { [payer]: amount },
-        // Only on an edit. `expectedShares` is compared exactly, and the
-        // comparison includes which member absorbs an indivisible remainder —
-        // which rides a seed the server takes from the expense id. Editing, we
-        // have that id and can agree with it; creating, the id does not exist
-        // yet, so the claim would be a guess and a wrong guess is a 409 on a
-        // correct bill. Splitting ₹100 three ways is enough to hit it.
-        expectedShares: expenseId ? Object.fromEntries(preview) : undefined,
+        expectedShares: Object.fromEntries(preview),
         category,
         location,
         clientMutationId: crypto.randomUUID(),
@@ -346,7 +361,7 @@ export function ExpenseForm({
     params,
     preview,
     groupId,
-    expenseId,
+    targetExpenseId,
     description,
     expenseDate,
     currency,

@@ -95,6 +95,20 @@ export function ItemizeForm({ groupId, myProfileId }: { groupId: string; myProfi
     tip: '',
     discounts: '',
   });
+  /**
+   * The id this bill will be written under, minted here rather than by the
+   * server.
+   *
+   * The server seeds its remainder rotation with the expense's id, so the only
+   * way a preview can promise who absorbs the odd paisa is to know that id
+   * first. Supplying one costs nothing: the write path takes `body.expenseId ??
+   * crypto.randomUUID()`, and the create-or-edit label it derives from the
+   * presence of an id is only ever recorded for agent callers — a browser
+   * session has no agent client id, so `waves_record_agent_write` returns
+   * before it writes anything. The phone's add-expense screen has always done
+   * this; this is the same move.
+   */
+  const [expenseId] = useState(() => crypto.randomUUID());
   const [payer, setPayer] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -203,11 +217,10 @@ export function ItemizeForm({ groupId, myProfileId }: { groupId: string; myProfi
           currency,
           params,
           participants,
-          // The server seeds the remainder rotation with the expense's own id,
-          // which does not exist until it writes one. So this preview is exact
-          // to the paisa except for *who* absorbs an indivisible remainder —
-          // see why `expectedShares` is not sent with the write.
-          seed: 'preview',
+          // The same seed the server will use, so the preview is not merely
+          // close: the person who absorbs an indivisible remainder here is the
+          // one who absorbs it in the ledger.
+          seed: expenseId,
         }),
         problem: null as string | null,
       };
@@ -229,6 +242,7 @@ export function ItemizeForm({ groupId, myProfileId }: { groupId: string; myProfi
     participants,
     total,
     currency,
+    expenseId,
     lines,
     minor,
     t.add.notAnAmount,
@@ -242,6 +256,7 @@ export function ItemizeForm({ groupId, myProfileId }: { groupId: string; myProfi
     try {
       await waves.writeExpense({
         groupId,
+        expenseId,
         description: description.trim() || t.itemize.defaultDescription,
         expenseDate,
         currency,
@@ -249,13 +264,12 @@ export function ItemizeForm({ groupId, myProfileId }: { groupId: string; myProfi
         splitParams: serialiseSplitParams(params),
         participants,
         payers: { [payer]: total },
-        // Deliberately not sending `expectedShares`. It exists so the server
-        // can reject a client whose split maths disagrees with its own, and it
-        // is compared exactly — but the comparison includes which member
-        // absorbs an indivisible remainder, and that rides a seed the server
-        // derives from the expense id it is about to mint. A claim made before
-        // that id exists is a guess, and a wrong guess is a 409 on a bill that
-        // is perfectly correct. Splitting ₹100 three ways is enough to hit it.
+        // Safe to claim now, and worth claiming: the server recomputes from
+        // the parameters and refuses the write if its answer differs from this
+        // one, which is the check that catches a client whose split maths has
+        // drifted from the server's. It is compared exactly, remainder
+        // included, which is why both sides have to seed from the same id.
+        expectedShares: Object.fromEntries(outcome.shares),
         clientMutationId: crypto.randomUUID(),
       });
       router.replace(`/g/${groupId}`);
@@ -273,6 +287,7 @@ export function ItemizeForm({ groupId, myProfileId }: { groupId: string; myProfi
     payer,
     outcome,
     groupId,
+    expenseId,
     description,
     expenseDate,
     currency,
