@@ -319,7 +319,13 @@ export function ExpenseForm({
         splitParams: serialiseSplitParams(params),
         participants,
         payers: { [payer]: amount },
-        expectedShares: Object.fromEntries(preview),
+        // Only on an edit. `expectedShares` is compared exactly, and the
+        // comparison includes which member absorbs an indivisible remainder —
+        // which rides a seed the server takes from the expense id. Editing, we
+        // have that id and can agree with it; creating, the id does not exist
+        // yet, so the claim would be a guess and a wrong guess is a 409 on a
+        // correct bill. Splitting ₹100 three ways is enough to hit it.
+        expectedShares: expenseId ? Object.fromEntries(preview) : undefined,
         category,
         location,
         clientMutationId: crypto.randomUUID(),

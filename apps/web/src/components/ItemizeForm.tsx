@@ -47,7 +47,14 @@ import { SkeletonRows } from '@/components/Skeleton';
 import { useStrings } from '@/i18n-context';
 import { fill } from '@/i18n';
 import { friendlyError } from '@/lib/errors';
-import { billTotal, claimants, itemizedParams, unclaimed } from '@/lib/itemize';
+import {
+  billTotal,
+  claimants,
+  extrasUnparseable,
+  itemizedParams,
+  unclaimed,
+  unparseable,
+} from '@/lib/itemize';
 import { money } from '@/lib/money';
 import { waves } from '@/lib/waves';
 
@@ -175,7 +182,19 @@ export function ItemizeForm({ groupId, myProfileId }: { groupId: string; myProfi
   // The preview is the real computation, and its failure is the validation:
   // core refuses an unclaimed line, so there is no second list of rules here
   // that could disagree with the one the server runs.
+  /**
+   * A figure somebody typed that this currency cannot hold — `420.555` in
+   * rupees. The browser's own `step` validation does not run on a button that
+   * is not submitting a form, so without this the line is simply left out of
+   * the bill while staying visible in it.
+   */
+  const badAmounts = useMemo(
+    () => unparseable(lines, minor).length > 0 || extrasUnparseable(extras, minor),
+    [lines, extras, minor],
+  );
+
   const outcome = useMemo(() => {
+    if (badAmounts) return { shares: null, problem: t.add.notAnAmount };
     if (!params || participants.length === 0 || total <= 0n) return null;
     try {
       return {
@@ -184,6 +203,10 @@ export function ItemizeForm({ groupId, myProfileId }: { groupId: string; myProfi
           currency,
           params,
           participants,
+          // The server seeds the remainder rotation with the expense's own id,
+          // which does not exist until it writes one. So this preview is exact
+          // to the paisa except for *who* absorbs an indivisible remainder —
+          // see why `expectedShares` is not sent with the write.
           seed: 'preview',
         }),
         problem: null as string | null,
@@ -200,7 +223,17 @@ export function ItemizeForm({ groupId, myProfileId }: { groupId: string; myProfi
           : t.itemize.cannotSplit,
       };
     }
-  }, [params, participants, total, currency, lines, minor, t.itemize]);
+  }, [
+    badAmounts,
+    params,
+    participants,
+    total,
+    currency,
+    lines,
+    minor,
+    t.add.notAnAmount,
+    t.itemize,
+  ]);
 
   const save = useCallback(async () => {
     if (!params || !payer || !outcome?.shares) return;
@@ -216,7 +249,13 @@ export function ItemizeForm({ groupId, myProfileId }: { groupId: string; myProfi
         splitParams: serialiseSplitParams(params),
         participants,
         payers: { [payer]: total },
-        expectedShares: Object.fromEntries(outcome.shares),
+        // Deliberately not sending `expectedShares`. It exists so the server
+        // can reject a client whose split maths disagrees with its own, and it
+        // is compared exactly — but the comparison includes which member
+        // absorbs an indivisible remainder, and that rides a seed the server
+        // derives from the expense id it is about to mint. A claim made before
+        // that id exists is a guess, and a wrong guess is a 409 on a bill that
+        // is perfectly correct. Splitting ₹100 three ways is enough to hit it.
         clientMutationId: crypto.randomUUID(),
       });
       router.replace(`/g/${groupId}`);

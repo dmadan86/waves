@@ -15,8 +15,10 @@ import { describe, expect, it } from 'vitest';
 import {
   billTotal,
   claimants,
+  extrasUnparseable,
   itemizedParams,
   unclaimed,
+  unparseable,
   type DraftExtras,
   type DraftLine,
 } from '../src/lib/itemize';
@@ -111,6 +113,35 @@ describe('claimants', () => {
       line('Dessert', '', 'meera'),
     ];
     expect(claimants(lines, parse)).toEqual(['asha', 'ravi']);
+  });
+});
+
+describe('unparseable', () => {
+  it('separates a figure this currency cannot hold from a row nobody has typed', () => {
+    // `420.555` is a valid number and not a valid rupee figure. A number input
+    // will accept it, so the editor has to be the one that refuses it —
+    // otherwise the line stays on screen and drops out of the bill.
+    const lines = [line('Starter', '480', 'asha'), line('Beer', '420.555', 'ravi'), line('', '')];
+    const strict = (text: string): bigint | null => {
+      const trimmed = text.trim();
+      if (!trimmed) return null;
+      return /^\d+(\.\d{1,2})?$/.test(trimmed) ? BigInt(Math.round(Number(trimmed) * 100)) : null;
+    };
+
+    expect(unparseable(lines, strict).map((row) => row.label)).toEqual(['Beer']);
+    // The blank row is not one of them: it is somebody about to type.
+    expect(unparseable([line('', '')], strict)).toEqual([]);
+  });
+
+  it('asks the same of the extras', () => {
+    const strict = (text: string): bigint | null => {
+      const trimmed = text.trim();
+      if (!trimmed) return null;
+      return /^\d+(\.\d{1,2})?$/.test(trimmed) ? BigInt(Math.round(Number(trimmed) * 100)) : null;
+    };
+    expect(extrasUnparseable(NONE, strict)).toBe(false);
+    expect(extrasUnparseable({ ...NONE, tip: '20' }, strict)).toBe(false);
+    expect(extrasUnparseable({ ...NONE, tip: '20.555' }, strict)).toBe(true);
   });
 });
 

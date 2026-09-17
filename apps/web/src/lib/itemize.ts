@@ -38,6 +38,25 @@ export function isTyped(line: DraftLine, parse: ParseAmount): boolean {
 }
 
 /**
+ * Amounts somebody has typed that are not amounts.
+ *
+ * A number input accepts more than this currency does — `420.555` is a valid
+ * number and not a valid rupee figure — and `parse` answers null for both "not
+ * typed yet" and "not a figure". Treating the second as the first would drop a
+ * line the person can see in front of them out of the bill, and the total would
+ * quietly disagree with the paper. So they are separated: a blank row is
+ * somebody about to type, and a full one that will not parse blocks the save.
+ */
+export function unparseable(lines: readonly DraftLine[], parse: ParseAmount): DraftLine[] {
+  return lines.filter((line) => line.amountText.trim() !== '' && parse(line.amountText) === null);
+}
+
+/** The same question for the extras, which are typed the same way. */
+export function extrasUnparseable(extras: DraftExtras, parse: ParseAmount): boolean {
+  return Object.values(extras).some((text) => text.trim() !== '' && parse(text) === null);
+}
+
+/**
  * The split parameters for the rows that carry an amount, or null when none
  * do yet.
  */
