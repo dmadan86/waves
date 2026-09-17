@@ -220,6 +220,17 @@ export function planCaptureNudge(input: NudgeInput): NudgePlan {
   if (kind === null) return silence();
 
   let fireAt = nextNudgeSlot(input.now);
+  // A check-in scheduled today must not fire today. The pass that schedules it
+  // *is* somebody opening the app, so this evening is already disqualified —
+  // and nothing guarantees a second pass before the slot to move it on. Without
+  // this, opening Waves once in the morning still earned "anything to split
+  // today?" at seven, which is the one promise this reminder makes.
+  //
+  // Not by writing `lastSeenAt` forward instead: that would suppress every
+  // check-in for ever, since the next pass would always see today.
+  if (kind === NudgeKind.CheckIn && isSameLocalDay(fireAt, input.now)) {
+    fireAt = nextNudgeSlot(fireAt);
+  }
   if (input.lastFiredAt !== null) {
     // The ceiling, enforced on fire times rather than on scheduling passes:
     // this function runs whenever the app comes forward, and a rule counted in
@@ -274,6 +285,11 @@ function whatToSay(input: NudgeInput): NudgeKind | null {
   // person who saved it has seen the screen that says so.
   const settled = waiting && input.now - (input.oldestWaitingAt ?? 0) >= SETTLE_MS;
   if (settled) return NudgeKind.Captures;
+  // Waiting but not yet settled: say nothing at all rather than falling through
+  // to the check-in. Asking "anything to split today?" of somebody who has a
+  // draft sitting in Review is a question the app can already see the answer to,
+  // and tomorrow evening the drafts reminder will say the useful version of it.
+  if (waiting) return null;
 
   // Nowhere to put an expense means no invitation to add one.
   if (!input.hasGroup) return null;

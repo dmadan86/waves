@@ -81,7 +81,10 @@ describe('capture nudge scheduler', () => {
 
     expect(notifications.cancelled).toEqual([]);
     // Zero, and it stays zero: with nothing waiting the pass may still schedule
-    // the evening check-in, which counts nothing and carries no badge.
+    // the evening check-in, which counts nothing and carries no badge. Asserted
+    // as "some, and all of them zero" — `every` alone passes on an empty array,
+    // so a build that stopped touching the badge would slip through it.
+    expect(notifications.badgeCounts.length).toBeGreaterThan(0);
     expect(notifications.badgeCounts.every((count) => count === 0)).toBe(true);
   });
 
