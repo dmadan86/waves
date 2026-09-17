@@ -42,6 +42,7 @@ import {
   type DisputeRow,
   type ExpenseAttachment,
   type ExpenseComment,
+  type ExpenseImageEvent,
   type ExpenseVersionSummary,
   type Receipt,
   type GroupRow,
@@ -428,6 +429,7 @@ export function createWavesClient({ supabase, r2Enabled = false }: WavesClientOp
       return rows[0] ?? null;
     },
 
+    /** Who is in the group now. Somebody who left is not offered a share of it. */
     members(groupId: string): Promise<Member[]> {
       return read<Member>(
         supabase
@@ -435,6 +437,25 @@ export function createWavesClient({ supabase, r2Enabled = false }: WavesClientOp
           .select(MEMBER_COLUMNS)
           .eq('group_id', groupId)
           .is('left_at', null)
+          .order('created_at', { ascending: true }),
+      );
+    },
+
+    /**
+     * Everybody who has ever been in the group, departed members included.
+     *
+     * For reading the past rather than editing the present. The ledger keeps
+     * member ids, not name snapshots, so a history resolved against the current
+     * roster calls whoever has since left "Someone" — on the one screen whose
+     * job is saying who did what. The RLS policy is membership of the group,
+     * not the reader's own standing in it, so these rows are readable.
+     */
+    allMembers(groupId: string): Promise<Member[]> {
+      return read<Member>(
+        supabase
+          .from('group_members')
+          .select(MEMBER_COLUMNS)
+          .eq('group_id', groupId)
           .order('created_at', { ascending: true }),
       );
     },
@@ -457,16 +478,42 @@ export function createWavesClient({ supabase, r2Enabled = false }: WavesClientOp
       return rows[0] ?? null;
     },
 
-    /** The edit history of one expense, newest version first (ADR-004). */
+    /**
+     * The edit history of one expense, newest version first (ADR-004).
+     *
+     * Every field the audit compares comes back, payers and shares included:
+     * the history's job is to say *what* changed, and a projection that stops
+     * at the total cannot tell "₹100 moved from Asha to Ravi" from "nothing
+     * happened".
+     */
     expenseVersions(expenseId: string): Promise<ExpenseVersionSummary[]> {
       return read<ExpenseVersionSummary>(
         supabase
           .from('expense_versions')
           .select(
-            'id, version_no, description, amount, currency, created_at, author_member_id, split_type',
+            'id, version_no, description, amount, currency, created_at, author_member_id, ' +
+              'split_type, category, category_meta, expense_date, location, ' +
+              'payers:expense_payers ( member_id, amount ), ' +
+              'shares:expense_shares ( member_id, amount )',
           )
           .eq('expense_id', expenseId)
           .order('version_no', { ascending: false }),
+      );
+    },
+
+    /**
+     * The image audit for one expense, oldest first (A46).
+     *
+     * Party-only lines simply do not come back for somebody who is not on the
+     * bill — the policy decides that, not a filter here.
+     */
+    expenseImageEvents(expenseId: string): Promise<ExpenseImageEvent[]> {
+      return read<ExpenseImageEvent>(
+        supabase
+          .from('expense_image_events')
+          .select('id, expense_id, actor_member_id, kind, action, visibility, created_at')
+          .eq('expense_id', expenseId)
+          .order('created_at', { ascending: true }),
       );
     },
 

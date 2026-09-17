@@ -133,6 +133,35 @@ export interface ExpenseVersionSummary {
   created_at: string;
   author_member_id: string | null;
   split_type: string;
+  category: string | null;
+  /** The custom-tag snapshot (A42), which carries the tag's own label. */
+  category_meta: { label?: string } | null;
+  expense_date: string;
+  location: { lat: number; lng: number; name?: string | null } | null;
+  /** Who put money in, and how much each of them put in. */
+  payers: { member_id: string; amount: string }[];
+  /** Who is splitting it. */
+  shares: { member_id: string; amount: string }[];
+}
+
+/**
+ * One line of the image audit (A46): who added or removed a receipt or an
+ * attachment, and when.
+ *
+ * The kept bill has no row of its own to soft-delete, so this table is where
+ * "somebody replaced the receipt" is recorded at all. A `parties` line only
+ * reaches a party to the bill — the RLS policy is `is_group_member AND
+ * (visibility = 'group' OR waves_is_expense_party(...))`, so a row that comes
+ * back is a row this reader is allowed to see.
+ */
+export interface ExpenseImageEvent {
+  id: string;
+  expense_id: string;
+  actor_member_id: string | null;
+  kind: 'receipt' | 'attachment';
+  action: 'added' | 'removed';
+  visibility: 'group' | 'parties';
+  created_at: string | null;
 }
 
 /**

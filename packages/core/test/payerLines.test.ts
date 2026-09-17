@@ -10,7 +10,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { paidBy, payerAuditText, payerFactsKey } from '@/lib/payerLines';
+import { paidBy, payerAuditText, payerFactsKey } from '../src/expense/payers';
 
 const rows = (pairs: [string, string][]) =>
   pairs.map(([member_id, amount]) => ({ member_id, amount }));

@@ -1007,6 +1007,145 @@
   }
 
   /* ─────────────────────────────────────────────────────────────
+     The history of an expense (ADR-004 + A46). A timeline: each edit
+     is a node with the fields it moved listed underneath, and the
+     image audit rides the same line.
+     ───────────────────────────────────────────────────────────── */
+
+  .timeline {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .timeline-row {
+    position: relative;
+    display: flex;
+    gap: 12px;
+    padding-block: 12px;
+  }
+  .timeline-row + .timeline-row {
+    border-top: 1px solid var(--w-border);
+  }
+
+  /* The dot is the timeline. A rule down the middle of the column joins
+     one node to the next, stopping at the last so the line does not run
+     off the end of the list. */
+  .timeline-row::before {
+    content: '';
+    position: absolute;
+    top: 42px;
+    bottom: -12px;
+    inset-inline-start: 15px;
+    width: 1px;
+    background: var(--w-border);
+  }
+  .timeline-row:last-child::before {
+    display: none;
+  }
+
+  .timeline-dot {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 31px;
+    height: 31px;
+    border-radius: 50%;
+    background: var(--w-surface-muted);
+    color: var(--w-text-muted);
+  }
+  /* Four kinds of event, four quiet washes — enough to tell a creation
+     from an edit from a removal at a glance, not enough to shout. */
+  .timeline-dot.tone-made {
+    background: var(--w-tint-mint);
+    color: var(--w-tint-mint-ink);
+  }
+  .timeline-dot.tone-edited {
+    background: var(--w-tint-sky);
+    color: var(--w-tint-sky-ink);
+  }
+  .timeline-dot.tone-added {
+    background: var(--w-tint-lilac);
+    color: var(--w-tint-lilac-ink);
+  }
+  .timeline-dot.tone-removed {
+    background: var(--w-tint-coral);
+    color: var(--w-tint-coral-ink);
+  }
+
+  .timeline-body {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .timeline-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .timeline-title {
+    min-width: 0;
+    font-size: var(--w-font-body);
+  }
+  .timeline-head .amount {
+    flex: none;
+    font-size: var(--w-font-caption);
+  }
+
+  /* One "was → is" line per field. The label sits above its pair so a
+     long value wraps under its own heading instead of shoving the next
+     field off the row. */
+  .diff {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 6px 0 0;
+  }
+  .diff-line dt {
+    font-size: var(--w-font-micro);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--w-text-muted);
+  }
+  /* Text flow, not a flex row. Two payers with their amounts is a long
+     value, and as flex items the arrow between them becomes a third item
+     that wraps onto a line of its own — a lone → under a struck-through
+     sentence. Flowing as text, the wrap happens inside the values and the
+     arrow stays where it belongs, between them. */
+  .diff-line dd {
+    margin: 2px 0 0;
+    font-size: var(--w-font-caption);
+    line-height: var(--w-leading-caption);
+  }
+  .diff-was {
+    color: var(--w-text-faint);
+    /* Wrapping rather than clipping: a payer line naming four people is
+       long, and the whole point of the audit is that it is readable. */
+    overflow-wrap: anywhere;
+  }
+  .diff-arrow {
+    margin-inline: 6px;
+    color: var(--w-text-faint);
+  }
+  .diff-now {
+    font-weight: 500;
+    overflow-wrap: anywhere;
+  }
+  .diff-now.pos {
+    color: var(--w-positive);
+  }
+  .diff-now.neg {
+    color: var(--w-negative);
+  }
+
+  /* ─────────────────────────────────────────────────────────────
      Comments on an expense (A46). A thread, not a list of rows: each
      one is a block of prose with a quiet head above it and its
      actions underneath, so a paragraph reads as a paragraph.

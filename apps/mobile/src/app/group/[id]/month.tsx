@@ -16,7 +16,7 @@
 import { useMemo } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { FlashList } from '@shopify/flash-list';
-import { byNewest } from '@waves/core';
+import { byNewest, paidBy } from '@waves/core';
 import { useLocalSearchParams } from 'expo-router';
 import { ActivityIndicator, Pressable, View } from 'react-native';
 
@@ -41,7 +41,7 @@ import { displayName, groupLabel, isViewer, type ExpenseRow } from '@/data/types
 import { fill, plural, useStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
 import { router } from '@/lib/navigation';
-import { paidBy } from '@/lib/payerLines';
+
 import { useBottomClearance } from '@/lib/clearance';
 
 /** One row of the flattened month: the header tile, a day heading, or a bill. */

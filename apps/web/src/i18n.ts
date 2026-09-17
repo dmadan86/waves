@@ -281,6 +281,32 @@ export interface WebStrings {
     splitLabel: string;
     total: string;
     history: string;
+    /** Who wrote a version, on the history timeline. */
+    createdByName: string;
+    editedByName: string;
+    /** An edit whose fields all compare equal — a re-save, or a field the audit
+     *  does not track. Said plainly rather than left blank. */
+    noChanges: string;
+    /** The field-level audit: one label per thing an edit can change. */
+    audit: {
+      /**
+       * The reader's own position on this bill — what they put in beyond their
+       * share, or their share of what somebody else put in. Not a share: the
+       * figure is `paid − share`, so it is signed, and "your share −₹12,050"
+       * is a sentence that cannot be true.
+       */
+      yourShare: string;
+      amount: string;
+      description: string;
+      category: string;
+      split: string;
+      date: string;
+      location: string;
+      payers: string;
+      participants: string;
+      /** The empty end of an arrow — a field that had, or now has, no value. */
+      none: string;
+    };
     versionNo: string;
     edit: string;
     delete: string;
@@ -464,6 +490,17 @@ export interface WebStrings {
     remaining: string;
   };
   /** The bill behind an expense (E2), and anything attached since (A44). */
+  /** Who added or removed a receipt or an attachment (A46). Worded as the
+   *  phone words it — the same event read on two screens should read the same. */
+  imageAudit: {
+    /** One line per event; `{name}` is the actor. */
+    receiptAdded: string;
+    receiptRemoved: string;
+    attachmentAdded: string;
+    attachmentRemoved: string;
+    /** A tag on a party-only attachment's line. */
+    partyOnly: string;
+  };
   receipt: {
     title: string;
     /** The kept bill itself. */
@@ -791,6 +828,21 @@ const en: WebStrings = {
     splitLabel: 'Split',
     total: 'Total',
     history: 'History',
+    createdByName: '{name} added this',
+    editedByName: '{name} edited this',
+    noChanges: 'No tracked field changed',
+    audit: {
+      yourShare: 'Your balance',
+      amount: 'Amount',
+      description: 'Description',
+      category: 'Category',
+      split: 'Split',
+      date: 'Date',
+      location: 'Location',
+      payers: 'Paid by',
+      participants: 'Split between',
+      none: 'None',
+    },
     versionNo: 'Version {n}',
     edit: 'Edit',
     delete: 'Delete',
@@ -965,6 +1017,13 @@ const en: WebStrings = {
     resolve: 'Resolve',
     you: 'You',
     remaining: '{count} left',
+  },
+  imageAudit: {
+    receiptAdded: '{name} added the receipt',
+    receiptRemoved: '{name} removed the receipt',
+    attachmentAdded: '{name} added an attachment',
+    attachmentRemoved: '{name} removed an attachment',
+    partyOnly: 'Private',
   },
   receipt: {
     title: 'Receipt',
@@ -1310,6 +1369,21 @@ const ta: WebStrings = {
     splitLabel: 'பங்கீடு',
     total: 'மொத்தம்',
     history: 'வரலாறு',
+    createdByName: '{name} இதைச் சேர்த்தார்',
+    editedByName: '{name} இதைத் திருத்தினார்',
+    noChanges: 'கண்காணிக்கப்படும் எந்தப் புலமும் மாறவில்லை',
+    audit: {
+      yourShare: 'உங்கள் நிலுவை',
+      amount: 'தொகை',
+      description: 'விவரம்',
+      category: 'வகை',
+      split: 'பிரிப்பு',
+      date: 'தேதி',
+      location: 'இடம்',
+      payers: 'செலுத்தியவர்',
+      participants: 'பிரித்தவர்கள்',
+      none: 'இல்லை',
+    },
     versionNo: 'பதிப்பு {n}',
     edit: 'திருத்து',
     delete: 'நீக்கு',
@@ -1487,6 +1561,13 @@ const ta: WebStrings = {
     resolve: 'தீர்',
     you: 'நீங்கள்',
     remaining: '{count} மீதம்',
+  },
+  imageAudit: {
+    receiptAdded: 'ரசீதை {name} சேர்த்தார்',
+    receiptRemoved: 'ரசீதை {name} அகற்றினார்',
+    attachmentAdded: 'இணைப்பை {name} சேர்த்தார்',
+    attachmentRemoved: 'இணைப்பை {name} அகற்றினார்',
+    partyOnly: 'தனிப்பட்டது',
   },
   receipt: {
     title: 'ரசீது',
@@ -1831,6 +1912,21 @@ const hi: WebStrings = {
     splitLabel: 'बँटवारा',
     total: 'कुल',
     history: 'इतिहास',
+    createdByName: '{name} ने यह जोड़ा',
+    editedByName: '{name} ने इसे बदला',
+    noChanges: 'ट्रैक किया गया कोई फ़ील्ड नहीं बदला',
+    audit: {
+      yourShare: 'आपका हिसाब',
+      amount: 'रकम',
+      description: 'ब्योरा',
+      category: 'श्रेणी',
+      split: 'बँटवारा',
+      date: 'तारीख़',
+      location: 'जगह',
+      payers: 'किसने चुकाया',
+      participants: 'किनमें बँटा',
+      none: 'कुछ नहीं',
+    },
     versionNo: 'संस्करण {n}',
     edit: 'संपादित करें',
     delete: 'हटाएँ',
@@ -2005,6 +2101,13 @@ const hi: WebStrings = {
     resolve: 'हल करें',
     you: 'आप',
     remaining: '{count} बचे',
+  },
+  imageAudit: {
+    receiptAdded: '{name} ने रसीद जोड़ी',
+    receiptRemoved: '{name} ने रसीद हटाई',
+    attachmentAdded: '{name} ने एक अटैचमेंट जोड़ा',
+    attachmentRemoved: '{name} ने एक अटैचमेंट हटाया',
+    partyOnly: 'निजी',
   },
   receipt: {
     title: 'रसीद',
@@ -2377,6 +2480,21 @@ const ar: WebStrings = {
     splitLabel: 'التقسيم',
     total: 'الإجمالي',
     history: 'السجل',
+    createdByName: 'أضافها {name}',
+    editedByName: 'عدّلها {name}',
+    noChanges: 'لم يتغيّر أي حقل متتبَّع',
+    audit: {
+      yourShare: 'رصيدك',
+      amount: 'المبلغ',
+      description: 'الوصف',
+      category: 'الفئة',
+      split: 'التقسيم',
+      date: 'التاريخ',
+      location: 'المكان',
+      payers: 'من دفع',
+      participants: 'مقسومة بين',
+      none: 'لا شيء',
+    },
     versionNo: 'النسخة {n}',
     edit: 'تعديل',
     delete: 'حذف',
@@ -2569,6 +2687,13 @@ const ar: WebStrings = {
     resolve: 'حل',
     you: 'أنت',
     remaining: 'بقي {count}',
+  },
+  imageAudit: {
+    receiptAdded: 'أضاف {name} الإيصال',
+    receiptRemoved: 'أزال {name} الإيصال',
+    attachmentAdded: 'أضاف {name} مرفقًا',
+    attachmentRemoved: 'أزال {name} مرفقًا',
+    partyOnly: 'خاص',
   },
   receipt: {
     title: 'الإيصال',
