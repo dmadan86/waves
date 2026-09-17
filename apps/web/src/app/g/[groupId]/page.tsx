@@ -63,17 +63,34 @@ enum Face {
 }
 
 export default function GroupPage() {
+  const params = useParams<{ groupId: string }>();
+  const groupId = params.groupId;
+
   return (
     <AppFrame current={Section.Groups}>
-      {({ profileId, query }) => <GroupDetail profileId={profileId} query={query} />}
+      {({ profileId, query }) => (
+        // Keyed on the group. Next keeps this route mounted when only the id
+        // changes, and without the key every piece of state below outlives the
+        // group it belongs to: the last group's ledger renders under the new
+        // group's name, and a trail that failed to load for one group hides a
+        // perfectly good one for the next. Remounting is the whole reset, and
+        // it costs nothing a fresh navigation would not have cost anyway.
+        <GroupDetail key={groupId} groupId={groupId} profileId={profileId} query={query} />
+      )}
     </AppFrame>
   );
 }
 
-function GroupDetail({ profileId, query }: { profileId: string; query: string }) {
+function GroupDetail({
+  groupId,
+  profileId,
+  query,
+}: {
+  groupId: string;
+  profileId: string;
+  query: string;
+}) {
   const { t, locale } = useStrings();
-  const params = useParams<{ groupId: string }>();
-  const groupId = params.groupId;
 
   const [group, setGroup] = useState<Group | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
