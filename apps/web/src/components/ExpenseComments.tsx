@@ -71,20 +71,28 @@ export function ExpenseComments({
 
   const composer = useRef<HTMLTextAreaElement>(null);
 
-  const load = useCallback(async () => {
+  // Every refresh takes a ticket. Actions stay live while a request is in
+  // flight, so two can overlap — and the one that *started* first can finish
+  // last, putting its older snapshot over the newer one and making a just-made
+  // edit look like it did not take. Only the newest ticket may write.
+  const ticket = useRef(0);
+
+  const refresh = useCallback(async () => {
+    const mine = ++ticket.current;
     const rows = await waves.expenseComments(expenseId);
-    setComments(rows);
+    if (mine === ticket.current) setComments(rows);
   }, [expenseId]);
 
   useEffect(() => {
     let active = true;
-    // The read is written out here rather than calling `load`, so every state
-    // change lands in a callback. `load` is the same request, for the refresh
-    // after a write — where it is an event handler's work, not an effect's.
+    // The read is written out here rather than calling `refresh`, so every
+    // state change lands in a callback — `refresh` is the same request for the
+    // event handlers, where a synchronous setState is nobody's problem.
+    const mine = ++ticket.current;
     void waves
       .expenseComments(expenseId)
       .then((rows) => {
-        if (active) setComments(rows);
+        if (active && mine === ticket.current) setComments(rows);
       })
       .catch(() => {
         if (active) setFailed(true);
@@ -127,10 +135,9 @@ export function ExpenseComments({
 
     try {
       await waves.addExpenseComment({ groupId, expenseId, commentId, body });
-      await load();
     } catch (caught) {
-      // Take the echo back and hand the text to the composer, so a failed post
-      // costs a retry and not the writing.
+      // The write itself failed. Take the echo back and hand the text to the
+      // composer, so a failed post costs a retry and not the writing.
       setComments((current) => (current ?? []).filter((row) => row.id !== commentId));
       setDraft(body);
       setError(
@@ -139,16 +146,30 @@ export function ExpenseComments({
           offline: t.errors.offline,
         }),
       );
-    } finally {
       setPosting(false);
+      return;
     }
+
+    // Past this line the comment exists on the server, so the refresh below is
+    // not allowed to undo any of it. Rolling back here would put the text back
+    // in the composer for a comment that posted — and the retry would mint a
+    // *new* id, which the server cannot recognise as the same request, so it
+    // would post a second copy. A refresh that fails leaves the optimistic echo
+    // standing; it is the right row, and the next read replaces it.
+    setPosting(false);
+    await refresh().catch(() => undefined);
   }
 
+  /**
+   * Run one write, then re-read. The two are separate on purpose: only the
+   * write's own failure is the action failing, and a refresh that cannot reach
+   * the server afterwards must not be reported as "could not save" for
+   * something that saved.
+   */
   async function act(what: () => Promise<unknown>, where: string) {
     setError(null);
     try {
       await what();
-      await load();
     } catch (caught) {
       setError(
         friendlyError(caught, where, {
@@ -156,7 +177,9 @@ export function ExpenseComments({
           offline: t.errors.offline,
         }),
       );
+      return;
     }
+    await refresh().catch(() => undefined);
   }
 
   const left = MAX_COMMENT_LENGTH - draft.length;
@@ -215,10 +238,17 @@ export function ExpenseComments({
                       <button
                         type="button"
                         className="btn"
+                        // An edit that sanitises to nothing is not an edit. The
+                        // server would refuse it, and the client refuses it
+                        // first so the button never looks like it worked.
+                        disabled={sanitizeCommentMarkdown(editDraft) === ''}
                         onClick={() =>
                           void act(async () => {
-                            await waves.editExpenseComment(comment.id, editDraft);
-                            setEditingId(null);
+                            const saved = await waves.editExpenseComment(comment.id, editDraft);
+                            // Only leave the editor when something was written.
+                            // Closing regardless re-showed the unchanged comment
+                            // and said nothing about why.
+                            if (saved) setEditingId(null);
                           }, 'web.comments.edit')
                         }
                       >
