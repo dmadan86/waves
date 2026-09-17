@@ -93,6 +93,15 @@ export interface WavesClientOptions {
   supabase: SupabaseClient;
 }
 
+/**
+ * Why an identity token was refused: somebody is already signed in, and
+ * attaching Google to *them* is a link, which only the redirect flow can do.
+ *
+ * Exported because the sign-in screen matches on it to fall back quietly —
+ * this is the one rejection that is not worth showing anybody.
+ */
+export const GOOGLE_CREDENTIAL_NEEDS_REDIRECT = 'google_credential_needs_redirect';
+
 export class WavesApiError extends Error {
   constructor(
     message: string,
@@ -218,6 +227,46 @@ export function createWavesClient({ supabase }: WavesClientOptions) {
      */
     async signInWithGoogle(redirectTo: string): Promise<void> {
       await startOAuth(OAuthMethod.Google, redirectTo);
+    },
+
+    /**
+     * The same door, without leaving the page.
+     *
+     * `signInWithGoogle` above is a redirect: the browser goes to Supabase's
+     * own domain, then to Google, then back. It works, and somebody watching
+     * the address bar sees a hostname that is neither ours nor Google's on the
+     * way to their own account. Google Identity Services avoids the whole trip
+     * — its button or One Tap returns an **identity token** in the page, and
+     * that token is what this exchanges. Nothing navigates; on success the
+     * session simply exists.
+     *
+     * Two things this deliberately refuses to do.
+     *
+     * **It will not touch an existing session.** `signInWithIdToken` has no
+     * `linkIdentity` form, so for a guest it would do precisely the damage
+     * `startOAuth` exists to prevent (ADR-006): sign into a *different*
+     * account and overwrite the anonymous session that was the only way back
+     * to the first. `planAuth` is asked, and anything other than a plain
+     * sign-in is refused here rather than handled — the caller has the
+     * redirect flow, which links correctly, and is expected to use it.
+     *
+     * **It does not generate the nonce.** Google must be given the SHA-256 of
+     * it before the token exists, so the pair is made where the sheet is
+     * configured and the raw half is passed back here. Supabase hashes this
+     * and compares, which is what stops a token obtained by some other site
+     * from being a sign-in to Waves.
+     */
+    async signInWithGoogleCredential(idToken: string, nonce: string): Promise<void> {
+      const action = planAuth(await currentViewer(), AuthMethod.Google);
+      if (action.call !== 'signInWithOAuth') {
+        throw new WavesApiError(GOOGLE_CREDENTIAL_NEEDS_REDIRECT);
+      }
+      const { error } = await supabase.auth.signInWithIdToken({
+        provider: 'google',
+        token: idToken,
+        nonce,
+      });
+      if (error) throw new WavesApiError(error.message);
     },
 
     /**

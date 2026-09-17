@@ -843,3 +843,21 @@
     display: none;
   }
 }
+
+/*
+ * Where Google draws its own button.
+ *
+ * GIS renders an iframe it styles itself, so this sets position and nothing
+ * else: centred, and given the same bottom margin the pills beside it carry so
+ * the stack keeps its rhythm whichever of the two is showing. It is `hidden`
+ * until Google has drawn, and `[hidden]` must win over the flex display.
+ */
+.gsi-host {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.gsi-host[hidden] {
+  display: none;
+}
