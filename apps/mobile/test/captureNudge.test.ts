@@ -300,6 +300,47 @@ describe('the evening check-in', () => {
     expect(plan).toMatchObject({ action: NudgeAction.Schedule, kind: NudgeKind.CheckIn, count: 0 });
   });
 
+  /**
+   * The promise this reminder makes is "not on a day you opened Waves", and the
+   * pass that schedules it *is* somebody opening Waves. Today's slot is
+   * therefore already spent — and nothing guarantees a second pass before seven
+   * to move it on, so opening the app once in the morning used to still earn
+   * "anything to split today?" that evening.
+   */
+  it('never lands on the day of the pass that scheduled it', () => {
+    const morning = at(2026, 3, 10, 9);
+    const plan = planCaptureNudge(
+      input({
+        waitingCount: 0,
+        oldestWaitingAt: null,
+        now: morning,
+        lastSeenAt: morning - 2 * SETTLE_MS,
+      }),
+    );
+
+    expect(plan.action).toBe(NudgeAction.Schedule);
+    if (plan.action !== NudgeAction.Schedule) return;
+    expect(new Date(plan.fireAt).getDate()).toBe(11);
+    expect(new Date(plan.fireAt).getHours()).toBe(NUDGE_HOUR);
+  });
+
+  /**
+   * A draft saved yesterday evening is not yet old enough for the drafts
+   * reminder, and is exactly the wrong moment to ask a generic question: the
+   * app can see what is waiting, and tomorrow it will say so properly.
+   */
+  it('says nothing at all when a draft is waiting but not yet settled', () => {
+    const plan = planCaptureNudge(
+      input({
+        waitingCount: 1,
+        oldestWaitingAt: NOW - SETTLE_MS / 2,
+        lastSeenAt: NOW - 3 * SETTLE_MS,
+      }),
+    );
+
+    expect(plan.action).toBe(NudgeAction.Keep);
+  });
+
   it('stays quiet on a day the app has been opened', () => {
     const plan = planCaptureNudge(
       input({ waitingCount: 0, oldestWaitingAt: null, lastSeenAt: NOW - 60 * 60 * 1000 }),
@@ -367,7 +408,9 @@ describe('the evening check-in', () => {
   });
 
   it('keeps a check-in it is already holding', () => {
-    const fireAt = at(2026, 3, 10, NUDGE_HOUR);
+    // Tomorrow's slot, not today's: today is the day of this pass, and a
+    // check-in never fires on the day it was scheduled.
+    const fireAt = at(2026, 3, 11, NUDGE_HOUR);
     const plan = planCaptureNudge(
       input({
         waitingCount: 0,

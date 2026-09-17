@@ -71,10 +71,13 @@ export function useNudgePassInputs(): NudgePassInputs {
     waitingCount,
     oldestWaitingAt,
     locale,
-    // Any group at all, archived ones included: somebody whose only group is
-    // last year's trip still has somewhere to put a bill, and the question is
-    // about whether the app is any use to them tonight rather than about which
-    // group they would pick.
+    // Live groups only. `useGroups` materialises what the group picker shows,
+    // which is the right list for this: archived groups are filtered out of it,
+    // and somebody whose only group is last year's trip — archived, finished,
+    // settled — is not somebody to ask in the evening whether they have a bill
+    // to split. It is a coarse gate on purpose; the cost of it being briefly
+    // wrong (a membership the mirror has not caught up on) is one gentle
+    // question, which is why it is not worth a second membership query here.
     hasGroup: (groups.data ?? []).length > 0,
     ready: ownerId !== '' && !captures.isLoading && !groups.isLoading,
   };
