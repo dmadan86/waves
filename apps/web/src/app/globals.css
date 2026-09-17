@@ -825,6 +825,22 @@
     font-weight: 600;
     color: var(--w-text);
   }
+  /* A row whose title is a sentence rather than a label — "You pay {name}".
+     Truncating it puts the ellipsis through somebody's name, which is the one
+     thing the row exists to tell you, so it wraps to a second line instead.
+     The phone learned this the same way. */
+  .item .title.sentence {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+    /* Wrapping only happens where there is somewhere to wrap, and a name is
+       whatever somebody typed — one long unbroken run of letters would sit
+       across the amount beside it. This breaks inside the word rather than
+       letting it escape the row. */
+    overflow-wrap: anywhere;
+    font-weight: 500;
+    line-height: var(--w-leading-body);
+  }
   .item .meta {
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1004,6 +1020,21 @@
     object-fit: contain;
     border-radius: var(--w-radius-sm);
     background: #000;
+  }
+
+  /* A heading inside a list, separating one run of rows from the next —
+     "your payments" from everybody else's. Quiet, because the rows below
+     it already say whose they are; it only has to mark the seam. */
+  .row-heading {
+    margin: 14px 0 2px;
+    font-size: var(--w-font-micro);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--w-text-muted);
+  }
+  .list > .row-heading:first-child {
+    margin-top: 2px;
   }
 
   /* ─────────────────────────────────────────────────────────────
