@@ -24,6 +24,7 @@ import { SkeletonRows } from '@/components/Skeleton';
 import { plural } from '@/i18n';
 import { useStrings } from '@/i18n-context';
 import { friendlyError } from '@/lib/errors';
+import { ChevronRight } from 'lucide-react';
 
 export default function AddPage() {
   return (
@@ -126,7 +127,7 @@ function Picker({ profileId }: { profileId: string }) {
                       </span>
                     </span>
                     <span className="item-go" aria-hidden>
-                      →
+                      <ChevronRight size={18} strokeWidth={1.75} />
                     </span>
                   </Link>
                 );

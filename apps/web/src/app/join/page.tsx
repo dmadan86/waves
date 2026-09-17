@@ -54,7 +54,7 @@ export default function JoinHashPage() {
 
   if (token === undefined) {
     return (
-      <main>
+      <main className="guest">
         <div className="card">
           <p className="muted">{t.join.opening}</p>
         </div>
@@ -64,7 +64,7 @@ export default function JoinHashPage() {
 
   if (token === '') {
     return (
-      <main>
+      <main className="guest">
         <div className="card">
           <h1>{t.join.linkBroken}</h1>
           <p className="faint">{t.join.linkBrokenBody}</p>

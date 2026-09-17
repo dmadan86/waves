@@ -21,6 +21,8 @@ import { SkeletonRows } from '@/components/Skeleton';
 import { waves } from '@/lib/waves';
 import { describeActivity, verbEmoji } from '@/lib/activity';
 import { useStrings } from '@/i18n-context';
+import { Activity } from 'lucide-react';
+import { EmptyState } from '@/components/EmptyState';
 
 type FeedRow = ActivityRow & { group: ActivityGroup | null };
 
@@ -68,7 +70,7 @@ function ActivityFeed({ profileId, query }: { profileId: string; query: string }
           {loading ? (
             <SkeletonRows rows={7} amount={false} />
           ) : shown.length === 0 ? (
-            <p className="muted">{t.activity.empty}</p>
+            <EmptyState Icon={Activity} title={t.activity.empty} />
           ) : (
             <div className="list">
               {shown.map((entry) => {

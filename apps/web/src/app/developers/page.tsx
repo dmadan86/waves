@@ -55,6 +55,7 @@ import {
   type DeveloperToken,
   type ScopeInfo,
 } from '@/lib/developerApi';
+import { KeyRound, Link2, Puzzle, TriangleAlert } from 'lucide-react';
 
 export default function DevelopersPage() {
   return <AppFrame current={Section.Developers}>{() => <Developers />}</AppFrame>;
@@ -345,7 +346,7 @@ function Developers() {
                       <div className="item-pair" key={token.id}>
                         <div className="item" style={{ cursor: 'default' }}>
                           <span className="tile-emoji" aria-hidden>
-                            🔑
+                            <KeyRound size={18} strokeWidth={1.75} />
                           </span>
                           <span className="grow">
                             <span className="title">
@@ -431,7 +432,7 @@ function Developers() {
                       style={{ cursor: 'default', alignItems: 'flex-start', flexWrap: 'wrap' }}
                     >
                       <span className="tile-emoji" aria-hidden>
-                        🧩
+                        <Puzzle size={18} strokeWidth={1.75} />
                       </span>
                       <span className="grow">
                         <span className="title">
@@ -534,7 +535,7 @@ function Developers() {
                       <div className="item-pair" key={connection.app_id}>
                         <div className="item" style={{ cursor: 'default' }}>
                           <span className="tile-emoji" aria-hidden>
-                            🔗
+                            <Link2 size={18} strokeWidth={1.75} />
                           </span>
                           <span className="grow">
                             <span className="title">{connection.name}</span>
@@ -601,7 +602,7 @@ function ShownOnce({
   return (
     <div className="banner" role="status">
       <span className="tile-emoji" aria-hidden>
-        ⚠️
+        <TriangleAlert size={18} strokeWidth={1.75} />
       </span>
       <span className="grow">
         <span className="b-title">{title}</span>

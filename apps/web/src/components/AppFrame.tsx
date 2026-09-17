@@ -10,6 +10,7 @@
  */
 
 import { useState, type ReactNode } from 'react';
+import { Sparkles } from 'lucide-react';
 
 import { useAccount, useAuth } from '@/lib/auth';
 import { useStrings } from '@/i18n-context';
@@ -60,10 +61,10 @@ function GuestBanner() {
   const { t } = useStrings();
   const { signInWithGoogle } = useAuth();
   return (
-    <div style={{ padding: '18px 24px 0' }}>
+    <div className="guest-banner">
       <div className="banner">
         <span className="tile-emoji" aria-hidden>
-          ✨
+          <Sparkles size={18} strokeWidth={1.75} />
         </span>
         <span className="grow">
           <span className="b-title">{t.dash.guestTitle}</span>

@@ -31,6 +31,7 @@ import { coordLabel, mapsUrl } from '@/lib/geo';
 import { fill } from '@/i18n';
 import { useStrings } from '@/i18n-context';
 import { friendlyError } from '@/lib/errors';
+import { MapPin } from 'lucide-react';
 
 export default function ExpensePage() {
   return (
@@ -194,7 +195,7 @@ function ExpenseDetail({ profileId }: { profileId: string }) {
               rel="noreferrer"
               style={{ display: 'flex', alignItems: 'center', gap: 8 }}
             >
-              <span aria-hidden>📍</span>
+              <MapPin size={18} strokeWidth={1.75} aria-hidden />
               <span className="grow">
                 <span className="title">
                   {version.location.name?.trim() || coordLabel(version.location)}
