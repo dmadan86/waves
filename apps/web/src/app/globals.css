@@ -833,6 +833,11 @@
     overflow: visible;
     text-overflow: clip;
     white-space: normal;
+    /* Wrapping only happens where there is somewhere to wrap, and a name is
+       whatever somebody typed — one long unbroken run of letters would sit
+       across the amount beside it. This breaks inside the word rather than
+       letting it escape the row. */
+    overflow-wrap: anywhere;
     font-weight: 500;
     line-height: var(--w-leading-body);
   }

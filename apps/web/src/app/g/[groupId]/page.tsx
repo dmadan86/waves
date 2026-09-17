@@ -215,6 +215,19 @@ function GroupDetail({
   const currency = group.default_currency;
   const ledger = computeLedger(expenses, settlements, currency);
   const byId = new Map(members.map((member) => [member.id, member]));
+  /**
+   * A member's name for a sentence about them.
+   *
+   * A settling payment can name somebody the member list does not have — a
+   * departed member, or a row that arrived before the roster did. That has to
+   * be said in the reader's language: `nameOf` answers a hardcoded English
+   * "Someone", which inside an otherwise-Tamil sentence is worse than the gap
+   * it fills.
+   */
+  const who = (memberId: string) => {
+    const member = byId.get(memberId);
+    return member ? nameOf(member) : t.join.someone;
+  };
   const live = expenses.filter((expense) => !expense.deleted_at && expense.currentVersion);
   const deletedCount = expenses.filter((expense) => expense.deleted_at).length;
 
@@ -375,23 +388,15 @@ function GroupDetail({
                           <span className="title sentence">
                             {item.side === SimplifySide.YouPay
                               ? fill(t.group.youPayName, {
-                                  name: nameOf(
-                                    byId.get(item.transfer.to) ?? fallback(item.transfer.to),
-                                  ),
+                                  name: who(item.transfer.to),
                                 })
                               : item.side === SimplifySide.YouReceive
                                 ? fill(t.group.namePaysYou, {
-                                    name: nameOf(
-                                      byId.get(item.transfer.from) ?? fallback(item.transfer.from),
-                                    ),
+                                    name: who(item.transfer.from),
                                   })
                                 : fill(t.group.paysWhom, {
-                                    from: nameOf(
-                                      byId.get(item.transfer.from) ?? fallback(item.transfer.from),
-                                    ),
-                                    to: nameOf(
-                                      byId.get(item.transfer.to) ?? fallback(item.transfer.to),
-                                    ),
+                                    from: who(item.transfer.from),
+                                    to: who(item.transfer.to),
                                   })}
                           </span>
                         </span>
@@ -573,13 +578,3 @@ function ExpenseRow({
 }
 
 /** A member who has left is still on old expenses; the transfer still names them. */
-function fallback(memberId: string): Member {
-  return {
-    id: memberId,
-    group_id: '',
-    profile_id: null,
-    ghost_name: null,
-    left_at: null,
-    profile: null,
-  };
-}
