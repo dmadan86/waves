@@ -188,14 +188,34 @@ function describeChanges(
           ),
         };
       }
-      case 'members':
+      case 'members': {
+        // A changed set of people is a list of names. A reallocation between
+        // the same people is only legible with the figures beside them — the
+        // names on their own would read "Asha, Ravi → Asha, Ravi".
+        const spend = (currency: string) => (minor: bigint) =>
+          formatMoney(coreMoney(minor, currency as CurrencyCode), { locale });
         return {
           key: change.field,
           label: t.expense.audit.participants,
           kind: 'text',
-          oldText: names(change.oldMemberIds),
-          newText: names(change.newMemberIds),
+          oldText: change.membersChanged
+            ? names(change.oldShares.map((row) => row.member_id))
+            : payerAuditText(
+                change.oldShares,
+                nameOf,
+                spend(change.oldCurrency),
+                t.expense.audit.none,
+              ),
+          newText: change.membersChanged
+            ? names(change.newShares.map((row) => row.member_id))
+            : payerAuditText(
+                change.newShares,
+                nameOf,
+                spend(change.newCurrency),
+                t.expense.audit.none,
+              ),
         };
+      }
     }
   });
 }

@@ -289,6 +289,12 @@ export interface WebStrings {
     noChanges: string;
     /** The field-level audit: one label per thing an edit can change. */
     audit: {
+      /**
+       * The reader's own position on this bill — what they put in beyond their
+       * share, or their share of what somebody else put in. Not a share: the
+       * figure is `paid − share`, so it is signed, and "your share −₹12,050"
+       * is a sentence that cannot be true.
+       */
       yourShare: string;
       amount: string;
       description: string;
@@ -826,7 +832,7 @@ const en: WebStrings = {
     editedByName: '{name} edited this',
     noChanges: 'No tracked field changed',
     audit: {
-      yourShare: 'Your share',
+      yourShare: 'Your balance',
       amount: 'Amount',
       description: 'Description',
       category: 'Category',
@@ -1367,7 +1373,7 @@ const ta: WebStrings = {
     editedByName: '{name} இதைத் திருத்தினார்',
     noChanges: 'கண்காணிக்கப்படும் எந்தப் புலமும் மாறவில்லை',
     audit: {
-      yourShare: 'உங்கள் பங்கு',
+      yourShare: 'உங்கள் நிலுவை',
       amount: 'தொகை',
       description: 'விவரம்',
       category: 'வகை',
@@ -1910,7 +1916,7 @@ const hi: WebStrings = {
     editedByName: '{name} ने इसे बदला',
     noChanges: 'ट्रैक किया गया कोई फ़ील्ड नहीं बदला',
     audit: {
-      yourShare: 'आपका हिस्सा',
+      yourShare: 'आपका हिसाब',
       amount: 'रकम',
       description: 'ब्योरा',
       category: 'श्रेणी',
@@ -2478,7 +2484,7 @@ const ar: WebStrings = {
     editedByName: 'عدّلها {name}',
     noChanges: 'لم يتغيّر أي حقل متتبَّع',
     audit: {
-      yourShare: 'حصتك',
+      yourShare: 'رصيدك',
       amount: 'المبلغ',
       description: 'الوصف',
       category: 'الفئة',

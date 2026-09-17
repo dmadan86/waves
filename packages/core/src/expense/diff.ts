@@ -21,6 +21,12 @@
 import { myStake } from '../balances/stake';
 import { payerFactsKey, type PayerRow } from './payers';
 
+/** One person's side of the split: who, and what they owe of it. */
+export interface ShareRow {
+  readonly member_id: string;
+  readonly amount: string;
+}
+
 /** A point on the map, as an expense carries it (A43). */
 export interface DiffLocation {
   readonly lat: number;
@@ -47,7 +53,7 @@ export interface DiffVersion {
   readonly expense_date: string;
   readonly location?: DiffLocation | null;
   readonly payers: readonly PayerRow[];
-  readonly shares: readonly { readonly member_id: string; readonly amount: string }[];
+  readonly shares: readonly ShareRow[];
 }
 
 /**
@@ -120,14 +126,43 @@ export type ExpenseChange =
   | {
       readonly field: 'participants';
       readonly kind: 'members';
-      readonly oldMemberIds: readonly string[];
-      readonly newMemberIds: readonly string[];
+      readonly oldShares: readonly ShareRow[];
+      readonly newShares: readonly ShareRow[];
+      /**
+       * Whether the *people* changed, or only what each of them owes.
+       *
+       * Both are edits to the split and both belong in the audit, but they read
+       * differently: a changed set is a list of names, while a reallocation
+       * between the same people is only legible with the figures beside them.
+       * The client picks its wording from this rather than comparing the sets
+       * again to find out which happened.
+       */
+      readonly membersChanged: boolean;
+      readonly oldCurrency: string;
+      readonly newCurrency: string;
     };
 
 /** The set of member ids on a side, sorted, as a stable comparison key. */
 function memberKey(rows: readonly { readonly member_id: string }[]): string {
   return rows
     .map((row) => row.member_id)
+    .sort()
+    .join(',');
+}
+
+/**
+ * The split as facts: who owes, and how much each of them owes.
+ *
+ * The amounts belong in the key for the same reason they belong in the payers'
+ * one. An exact split moving from 500/500 to 600/400 leaves the total alone, so
+ * there is no amount line, and leaves the set of names alone, so a comparison
+ * of names only found nothing — the audit said "no tracked field changed" about
+ * somebody's share doubling. For a third person on the bill, whose own stake
+ * never moved, that was the entire record of the edit.
+ */
+function shareFactsKey(rows: readonly ShareRow[]): string {
+  return rows
+    .map((row) => `${row.member_id}:${row.amount}`)
     .sort()
     .join(',');
 }
@@ -264,17 +299,36 @@ export function diffExpenseVersions(
     });
   }
 
-  // Participants: who is splitting the bill, by name — the same treatment as
-  // payers. Named rather than counted, so replacing one person with another
-  // (the set changes but the count does not) reads as a real change instead of
-  // an identical "3 → 3". Amount-only edits keep the same set, so they never
-  // show here.
-  if (memberKey(prev.shares) !== memberKey(cur.shares)) {
+  // Participants: who is splitting the bill and what each of them owes.
+  //
+  // Named rather than counted, so replacing one person with another (the set
+  // changes but the count does not) reads as a real change instead of an
+  // identical "3 → 3".
+  //
+  // The amounts count too, but only when the bill's total held still. A
+  // reallocation on an unchanged total — 500/500 becoming 600/400 — moves no
+  // other field at all, so without this the audit said "no tracked field
+  // changed" about somebody's share going up by ₹100; for a third person on
+  // the bill, whose own stake never moved, that was the whole record of the
+  // edit. When the total *did* move, every share moves with it on an equal
+  // split, and repeating that under its own heading only restates the amount
+  // line in more words. So a rescale is left to the amount line, and this line
+  // is kept for money moving between people.
+  const membersChanged = memberKey(prev.shares) !== memberKey(cur.shares);
+  const total = (rows: readonly ShareRow[]) =>
+    rows.reduce((sum, row) => sum + BigInt(row.amount), 0n);
+  const reallocated =
+    shareFactsKey(prev.shares) !== shareFactsKey(cur.shares) &&
+    total(prev.shares) === total(cur.shares);
+  if (membersChanged || reallocated) {
     changes.push({
       field: 'participants',
       kind: 'members',
-      oldMemberIds: prev.shares.map((row) => row.member_id),
-      newMemberIds: cur.shares.map((row) => row.member_id),
+      oldShares: prev.shares,
+      newShares: cur.shares,
+      membersChanged,
+      oldCurrency: prev.currency,
+      newCurrency: cur.currency,
     });
   }
 

@@ -429,6 +429,7 @@ export function createWavesClient({ supabase, r2Enabled = false }: WavesClientOp
       return rows[0] ?? null;
     },
 
+    /** Who is in the group now. Somebody who left is not offered a share of it. */
     members(groupId: string): Promise<Member[]> {
       return read<Member>(
         supabase
@@ -436,6 +437,25 @@ export function createWavesClient({ supabase, r2Enabled = false }: WavesClientOp
           .select(MEMBER_COLUMNS)
           .eq('group_id', groupId)
           .is('left_at', null)
+          .order('created_at', { ascending: true }),
+      );
+    },
+
+    /**
+     * Everybody who has ever been in the group, departed members included.
+     *
+     * For reading the past rather than editing the present. The ledger keeps
+     * member ids, not name snapshots, so a history resolved against the current
+     * roster calls whoever has since left "Someone" — on the one screen whose
+     * job is saying who did what. The RLS policy is membership of the group,
+     * not the reader's own standing in it, so these rows are readable.
+     */
+    allMembers(groupId: string): Promise<Member[]> {
+      return read<Member>(
+        supabase
+          .from('group_members')
+          .select(MEMBER_COLUMNS)
+          .eq('group_id', groupId)
           .order('created_at', { ascending: true }),
       );
     },

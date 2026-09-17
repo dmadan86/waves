@@ -57,6 +57,22 @@ describe('diffExpenseVersions', () => {
     expect(fields(diffExpenseVersions(before, after, ASHA))).toEqual(['stake', 'amount', 'payers']);
   });
 
+  it('leaves a doubled bill to the amount line rather than restating it', () => {
+    const before = version();
+    const after = version({
+      amount: '200000',
+      payers: [{ member_id: ASHA, amount: '200000' }],
+      shares: [
+        { member_id: ASHA, amount: '100000' },
+        { member_id: RAVI, amount: '100000' },
+      ],
+    });
+
+    // Every share moves when the total does, on an equal split. Saying so again
+    // under "split between" only repeats the amount line in more words.
+    expect(fields(diffExpenseVersions(before, after, MEERA))).toEqual(['amount', 'payers']);
+  });
+
   it('leaves the stake line out for somebody the bill does not involve', () => {
     const before = version();
     const after = version({ amount: '200000', payers: [{ member_id: ASHA, amount: '200000' }] });
@@ -96,6 +112,50 @@ describe('diffExpenseVersions', () => {
     // The total never moves, and for Asha the stake does — but the payer line
     // is the one that records what actually happened.
     expect(fields(diffExpenseVersions(before, after, MEERA))).toEqual(['payers']);
+  });
+
+  it('notices a reallocation between the same participants', () => {
+    const before = version();
+    const after = version({
+      shares: [
+        { member_id: ASHA, amount: '60000' },
+        { member_id: RAVI, amount: '40000' },
+      ],
+    });
+
+    // The total is untouched, so there is no amount line, and the set of names
+    // is untouched, so comparing names alone found nothing at all. For Meera,
+    // who is on neither side of this bill, that left the audit empty about
+    // somebody's share moving by ₹100.
+    const changes = diffExpenseVersions(before, after, MEERA);
+    expect(fields(changes)).toEqual(['participants']);
+    expect(changes[0]).toMatchObject({
+      membersChanged: false,
+      oldShares: [
+        { member_id: ASHA, amount: '50000' },
+        { member_id: RAVI, amount: '50000' },
+      ],
+      newShares: [
+        { member_id: ASHA, amount: '60000' },
+        { member_id: RAVI, amount: '40000' },
+      ],
+    });
+  });
+
+  it('separates a changed set of people from a changed allocation', () => {
+    const swapped = version({
+      shares: [
+        { member_id: ASHA, amount: '50000' },
+        { member_id: MEERA, amount: '50000' },
+      ],
+    });
+
+    // Both are edits to the split, but they read differently: one is a list of
+    // names, the other is only legible with the figures beside them.
+    const changes = diffExpenseVersions(version(), swapped, ASHA);
+    expect(changes.find((change) => change.field === 'participants')).toMatchObject({
+      membersChanged: true,
+    });
   });
 
   it('notices one participant swapped for another', () => {

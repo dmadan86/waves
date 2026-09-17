@@ -284,6 +284,7 @@ function ExpenseDetail({
         {/* The audit: every version after the first spells out which fields
             moved, with the image audit folded into the same timeline. */}
         <ExpenseHistory
+          groupId={groupId}
           expenseId={expenseId}
           versions={versions}
           members={members}

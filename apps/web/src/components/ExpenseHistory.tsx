@@ -115,7 +115,9 @@ function describe(
   changes: ExpenseChange[],
 ): Line[] {
   const names = (ids: readonly string[]) => ids.map(who).join(', ') || t.expense.audit.none;
-  const payers = (rows: readonly PayerRow[], currency: string) =>
+  // Names, or names with their figures when there is more than one — the same
+  // printer for who paid and for who owes, because the question is the same.
+  const withAmounts = (rows: readonly PayerRow[], currency: string) =>
     payerAuditText(rows, who, (minor) => money(minor, currency, locale), t.expense.audit.none);
 
   return changes.map((change): Line => {
@@ -176,16 +178,23 @@ function describe(
           key: change.field,
           label: t.expense.audit.payers,
           kind: 'text',
-          oldText: payers(change.oldPayers, change.oldCurrency),
-          newText: payers(change.newPayers, change.newCurrency),
+          oldText: withAmounts(change.oldPayers, change.oldCurrency),
+          newText: withAmounts(change.newPayers, change.newCurrency),
         };
       case 'members':
+        // A changed set of people is a list of names. A reallocation between
+        // the same people is only legible with the figures beside them — the
+        // names on their own would read "Asha, Ravi → Asha, Ravi".
         return {
           key: change.field,
           label: t.expense.audit.participants,
           kind: 'text',
-          oldText: names(change.oldMemberIds),
-          newText: names(change.newMemberIds),
+          oldText: change.membersChanged
+            ? names(change.oldShares.map((row) => row.member_id))
+            : withAmounts(change.oldShares, change.oldCurrency),
+          newText: change.membersChanged
+            ? names(change.newShares.map((row) => row.member_id))
+            : withAmounts(change.newShares, change.newCurrency),
         };
     }
   });
@@ -220,14 +229,17 @@ function imageAuditLine(t: WebStrings, event: ExpenseImageEvent, name: string): 
 }
 
 export function ExpenseHistory({
+  groupId,
   expenseId,
   versions,
   members,
   myMemberId,
 }: {
+  groupId: string;
   expenseId: string;
   /** Newest version first, as `waves.expenseVersions` returns them. */
   versions: ExpenseVersionSummary[];
+  /** The group as it stands. Names for the past come from `allMembers` below. */
   members: Member[];
   /** The reader, so an edit can say what it did to their side of the bill.
    *  Null for somebody with no membership row — the stake line is then left out
@@ -236,10 +248,16 @@ export function ExpenseHistory({
 }) {
   const { t, locale } = useStrings();
   const [imageEvents, setImageEvents] = useState<ExpenseImageEvent[]>([]);
+  // Everybody who was ever in this group. The page's own member list is the
+  // group as it stands, which is the wrong roster for reading the past:
+  // somebody who has left is still the author of the edit they made, and
+  // resolving them against the current members turns the record of what they
+  // did into "Someone".
+  const [past, setPast] = useState<Member[] | null>(null);
 
-  // Fetched here, and a failure is silence rather than an error: the image
-  // audit is an addition to the history, and losing it must not cost the
-  // reader the field-level audit beside it.
+  // Both reads fail quietly: they are additions to the history, and losing
+  // either must not cost the reader the field-level audit beside it. A failed
+  // roster falls back to the members the page already has.
   useEffect(() => {
     let active = true;
     waves
@@ -248,13 +266,20 @@ export function ExpenseHistory({
         if (active) setImageEvents(rows);
       })
       .catch(() => undefined);
+    waves
+      .allMembers(groupId)
+      .then((rows) => {
+        if (active) setPast(rows);
+      })
+      .catch(() => undefined);
     return () => {
       active = false;
     };
-  }, [expenseId]);
+  }, [expenseId, groupId]);
 
+  const roster = past ?? members;
   const who = (id: string | null) => {
-    const member = members.find((row) => row.id === id);
+    const member = roster.find((row) => row.id === id);
     return member ? nameOf(member) : t.join.someone;
   };
 
