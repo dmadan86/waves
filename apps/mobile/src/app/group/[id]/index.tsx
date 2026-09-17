@@ -55,6 +55,7 @@ import {
   deadLettered,
   formatParts,
   moneyAccessibilityLabel,
+  paidBy,
   type MemberId,
 } from '@waves/core';
 import { useBlockedUsers } from '@/data/blocked';
@@ -76,7 +77,7 @@ import { fill, plural, useStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
 import { canRemindFromBalanceRow } from '@/lib/balanceRowActions';
 import { router, useGoBack } from '@/lib/navigation';
-import { paidBy } from '@/lib/payerLines';
+
 import { CategoryBadge } from '@/components/Category';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { GroupHero } from '@/components/GroupHero';
