@@ -27,7 +27,7 @@ import { totalsByCurrency, type CurrencyTotals } from '@waves/core';
 import { waves } from '@/lib/waves';
 import { SkeletonRows } from '@/components/Skeleton';
 import { money } from '@/lib/money';
-import { describeActivity, verbEmoji } from '@/lib/activity';
+import { describeActivity, VerbIcon } from '@/lib/activity';
 import { plural, type PluralForms } from '@/i18n';
 import { useStrings } from '@/i18n-context';
 import { friendlyError } from '@/lib/errors';
@@ -269,7 +269,7 @@ export function Overview({ profileId, query }: { profileId: string; query: strin
               {filteredActivity.slice(0, 6).map((entry) => (
                 <div key={entry.id} className="item" style={{ cursor: 'default' }}>
                   <span className="tile-emoji" aria-hidden>
-                    {verbEmoji(entry.verb)}
+                    <VerbIcon verb={entry.verb} />
                   </span>
                   <span className="grow">
                     <span className="title" style={{ fontWeight: 500, whiteSpace: 'normal' }}>

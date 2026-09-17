@@ -766,6 +766,25 @@ export function createWavesClient({ supabase }: WavesClientOptions) {
       );
     },
 
+    /**
+     * One group's activity, newest first.
+     *
+     * The unscoped `recentActivity` above is the dashboard's feed and reads
+     * across every group the viewer can see. A group screen wants only its own,
+     * and asking for sixty rows across every group to show three of them is the
+     * wrong shape of request once somebody is in twenty groups.
+     */
+    groupActivity(groupId: string, limit = 60): Promise<ActivityRow[]> {
+      return read<ActivityRow>(
+        supabase
+          .from('activity_log')
+          .select(ACTIVITY_COLUMNS)
+          .eq('group_id', groupId)
+          .order('created_at', { ascending: false })
+          .limit(limit),
+      );
+    },
+
     /** Groups with a settlement still waiting on someone to confirm (ADR-007). */
     pendingSettlements(): Promise<{ group_id: string; id: string }[]> {
       return read<{ group_id: string; id: string }>(

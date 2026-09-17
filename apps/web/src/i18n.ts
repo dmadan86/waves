@@ -157,6 +157,15 @@ export interface WebStrings {
     yourGroup: string;
     peopleCount: PluralForms;
     expenseCount: PluralForms;
+    /** The three faces of the group screen. */
+    tabExpenses: string;
+    tabBalances: string;
+    tabActivity: string;
+    /** The ledger is append-only: a deleted row is hidden, never gone. */
+    showDeleted: string;
+    hideDeleted: string;
+    noneYet: string;
+    noneYetBody: string;
     whereEveryoneStands: string;
     settledUp: string;
     isSettledUp: string;
@@ -264,6 +273,10 @@ export interface WebStrings {
   /** One expense, in full: who paid, the split, the history, disputes. */
   expense: {
     notFound: string;
+    /** What one bill did to your own balance, said in words. */
+    youLent: string;
+    youBorrowed: string;
+    notInvolved: string;
     paidBy: string;
     splitLabel: string;
     total: string;
@@ -620,6 +633,13 @@ const en: WebStrings = {
     yourGroup: 'Your group',
     peopleCount: { one: '{n} person', other: '{n} people' },
     expenseCount: { one: '{n} expense', other: '{n} expenses' },
+    tabExpenses: 'Expenses',
+    tabBalances: 'Balances',
+    tabActivity: 'Activity',
+    showDeleted: 'Show deleted',
+    hideDeleted: 'Hide deleted',
+    noneYet: 'Nothing here yet',
+    noneYetBody: 'The first expense somebody adds will show up here.',
     whereEveryoneStands: 'Where everyone stands',
     settledUp: 'settled up',
     isSettledUp: 'is settled up',
@@ -722,6 +742,9 @@ const en: WebStrings = {
   },
   expense: {
     notFound: 'This expense is not here — it may have been removed, or it is not yours to see.',
+    youLent: 'you lent',
+    youBorrowed: 'you borrowed',
+    notInvolved: 'not involved',
     paidBy: 'Paid by',
     splitLabel: 'Split',
     total: 'Total',
@@ -1094,6 +1117,13 @@ const ta: WebStrings = {
     yourGroup: 'உங்கள் குழு',
     peopleCount: { one: '{n} நபர்', other: '{n} நபர்கள்' },
     expenseCount: { one: '{n} செலவு', other: '{n} செலவுகள்' },
+    tabExpenses: 'செலவுகள்',
+    tabBalances: 'நிலுவைகள்',
+    tabActivity: 'நடவடிக்கை',
+    showDeleted: 'நீக்கியதைக் காட்டு',
+    hideDeleted: 'நீக்கியதை மறை',
+    noneYet: 'இன்னும் எதுவும் இல்லை',
+    noneYetBody: 'யாராவது சேர்க்கும் முதல் செலவு இங்கே தெரியும்.',
     whereEveryoneStands: 'யார் எங்கே நிற்கிறார்கள்',
     settledUp: 'தீர்ந்தது',
     isSettledUp: 'கணக்கு தீர்ந்தது',
@@ -1201,6 +1231,9 @@ const ta: WebStrings = {
   expense: {
     notFound:
       'இந்தச் செலவு இங்கே இல்லை — நீக்கப்பட்டிருக்கலாம், அல்லது இதைப் பார்க்க உங்களுக்கு உரிமை இல்லை.',
+    youLent: 'நீங்கள் கொடுத்தது',
+    youBorrowed: 'நீங்கள் வாங்கியது',
+    notInvolved: 'சம்பந்தம் இல்லை',
     paidBy: 'கொடுத்தவர்',
     splitLabel: 'பங்கீடு',
     total: 'மொத்தம்',
@@ -1580,6 +1613,13 @@ const hi: WebStrings = {
     yourGroup: 'आपका समूह',
     peopleCount: { one: '{n} व्यक्ति', other: '{n} लोग' },
     expenseCount: { one: '{n} खर्च', other: '{n} खर्च' },
+    tabExpenses: 'खर्च',
+    tabBalances: 'हिसाब',
+    tabActivity: 'गतिविधि',
+    showDeleted: 'हटाए हुए दिखाएँ',
+    hideDeleted: 'हटाए हुए छिपाएँ',
+    noneYet: 'अभी यहाँ कुछ नहीं',
+    noneYetBody: 'कोई पहला खर्च जोड़ेगा तो यहाँ दिखेगा।',
     whereEveryoneStands: 'किसका क्या हिसाब है',
     settledUp: 'हिसाब बराबर',
     isSettledUp: 'का हिसाब बराबर है',
@@ -1682,6 +1722,9 @@ const hi: WebStrings = {
   },
   expense: {
     notFound: 'यह खर्च यहाँ नहीं है — शायद हटा दिया गया, या इसे देखना आपके लिए नहीं है।',
+    youLent: 'आपने दिए',
+    youBorrowed: 'आपने लिए',
+    notInvolved: 'आप शामिल नहीं',
     paidBy: 'किसने दिया',
     splitLabel: 'बँटवारा',
     total: 'कुल',
@@ -2067,6 +2110,13 @@ const ar: WebStrings = {
       many: '{n} مصروفًا',
       other: '{n} مصروف',
     },
+    tabExpenses: 'المصروفات',
+    tabBalances: 'الأرصدة',
+    tabActivity: 'النشاط',
+    showDeleted: 'إظهار المحذوف',
+    hideDeleted: 'إخفاء المحذوف',
+    noneYet: 'لا شيء هنا بعد',
+    noneYetBody: 'أول مصروف يضيفه أحدهم سيظهر هنا.',
     whereEveryoneStands: 'أين يقف كل واحد',
     settledUp: 'مسوّى',
     isSettledUp: 'حسابه مسوّى',
@@ -2188,6 +2238,9 @@ const ar: WebStrings = {
   },
   expense: {
     notFound: 'هذا المصروف غير موجود هنا — ربما حُذف، أو ليس من حقّك الاطلاع عليه.',
+    youLent: 'أنت أقرضت',
+    youBorrowed: 'أنت اقترضت',
+    notInvolved: 'لست طرفًا',
     paidBy: 'دفعه',
     splitLabel: 'التقسيم',
     total: 'الإجمالي',
