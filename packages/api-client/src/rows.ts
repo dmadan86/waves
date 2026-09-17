@@ -136,6 +136,38 @@ export interface ExpenseVersionSummary {
 }
 
 /**
+ * A kept bill (E2). One per expense at most, group-readable: the receipt for a
+ * bill everybody is paying a share of is not a private document.
+ *
+ * `storage_path` is a key inside a private bucket and is never a URL — see
+ * `imageUrl`, which resolves it to a short-lived signed one.
+ */
+export interface Receipt {
+  id: string;
+  group_id: string;
+  storage_path: string | null;
+  created_at: string | null;
+}
+
+/**
+ * An image attached to an expense after the fact (A44/A46).
+ *
+ * `visibility` is the whole point of the row: `group` behaves like the receipt
+ * above, `parties` is visible only to the people on the bill. The RLS policy
+ * enforces both, so a read that returns the row is a read that was allowed —
+ * this client does no gating of its own.
+ */
+export interface ExpenseAttachment {
+  id: string;
+  expense_id: string;
+  group_id: string;
+  uploader_member_id: string;
+  storage_path: string;
+  visibility: 'group' | 'parties';
+  created_at: string | null;
+}
+
+/**
  * One comment on an expense (A46).
  *
  * `author_member_id` is a group member, not a profile — a comment outlives the

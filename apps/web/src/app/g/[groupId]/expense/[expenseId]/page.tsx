@@ -24,6 +24,7 @@ import {
 
 import { AppFrame } from '@/components/AppFrame';
 import { ExpenseComments } from '@/components/ExpenseComments';
+import { ExpenseReceipts } from '@/components/ExpenseReceipts';
 import { Section } from '@/components/Shell';
 import { SkeletonRows } from '@/components/Skeleton';
 import { waves } from '@/lib/waves';
@@ -263,6 +264,10 @@ function ExpenseDetail({
             ))}
           </div>
         </section>
+
+        {/* The bill itself, above the conversation about it — people look
+            before they argue. */}
+        <ExpenseReceipts expenseId={expenseId} version={version} />
 
         {/* The thread. Its own reads and its own failure: "why is this ₹4,800"
             is the question a shared ledger exists to settle, but it is not what
