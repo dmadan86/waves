@@ -34,6 +34,7 @@ import type { ExpenseVersion } from '@waves/api-client';
 
 import { ImageViewer } from '@/components/ImageViewer';
 import { useStrings } from '@/i18n-context';
+import { httpUrl } from '@/lib/safeUrl';
 import { waves } from '@/lib/waves';
 
 interface Tile {
@@ -56,46 +57,73 @@ export function ExpenseReceipts({
   const [open, setOpen] = useState<Tile | null>(null);
 
   const receiptId = version.receipt_id ?? null;
-  const shareUrl = version.receipt_share_url ?? null;
+  // Somebody else's cloud link, written by a group member. What it is allowed
+  // to be is the browser's decision, not the writer's — see `httpUrl`.
+  const shareUrl = httpUrl(version.receipt_share_url);
 
   useEffect(() => {
     let active = true;
 
     void (async () => {
-      const found: Tile[] = [];
+      // Which images exist. Two independent reads, so they go together.
+      const [row, attachments] = await Promise.all([
+        receiptId ? waves.receipt(receiptId).catch(() => null) : null,
+        waves.expenseAttachments(expenseId).catch(() => []),
+      ]);
+      if (!active) return;
+
+      // Every URL here is separately signed, and a signature is a round trip.
+      // Awaiting them in a row would add those trips together and hold every
+      // tile behind the slowest one, so the grid is laid out first — each tile
+      // in its resolving state — and each fills in as its own answer lands.
+      const pending: { tile: Tile; sign: () => Promise<string | null> }[] = [];
 
       // The kept bill, if there is one. A receipt row with no path is a scan
       // that never finished uploading; it is not a tile.
-      if (receiptId) {
-        const row = await waves.receipt(receiptId).catch(() => null);
-        if (row?.storage_path) {
-          const url = await waves.imageUrl('receipts', row.storage_path);
-          found.push({
+      if (row?.storage_path) {
+        const path = row.storage_path;
+        pending.push({
+          tile: {
             key: `receipt-${row.id}`,
-            url,
+            url: undefined,
             label: t.receipt.theBill,
             partyOnly: false,
-          });
-        }
+          },
+          sign: () => waves.imageUrl('receipts', path),
+        });
       }
 
       // Anything attached since. A row that comes back is a row this reader is
       // allowed to see — the policy already decided that.
-      const attachments = await waves.expenseAttachments(expenseId).catch(() => []);
-      for (const row of attachments) {
-        const url =
-          row.visibility === 'parties'
-            ? await waves.restrictedImageUrl('expense-attachments', expenseId, row.storage_path)
-            : await waves.imageUrl('expense-attachments', row.storage_path);
-        found.push({
-          key: `attachment-${row.id}`,
-          url,
-          label: row.visibility === 'parties' ? t.receipt.partyOnly : t.receipt.attachment,
-          partyOnly: row.visibility === 'parties',
+      for (const attachment of attachments) {
+        const partyOnly = attachment.visibility === 'parties';
+        const path = attachment.storage_path;
+        pending.push({
+          tile: {
+            key: `attachment-${attachment.id}`,
+            url: undefined,
+            label: partyOnly ? t.receipt.partyOnly : t.receipt.attachment,
+            partyOnly,
+          },
+          sign: () =>
+            partyOnly
+              ? waves.restrictedImageUrl('expense-attachments', expenseId, path)
+              : waves.imageUrl('expense-attachments', path),
         });
       }
 
-      if (active) setTiles(found);
+      setTiles(pending.map((entry) => entry.tile));
+
+      await Promise.all(
+        pending.map(async ({ tile, sign }) => {
+          const url = await sign().catch(() => null);
+          if (!active) return;
+          setTiles(
+            (current) =>
+              current?.map((each) => (each.key === tile.key ? { ...each, url } : each)) ?? current,
+          );
+        }),
+      );
     })();
 
     return () => {

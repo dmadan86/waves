@@ -40,9 +40,20 @@ export function ImageViewer({
   // Whatever had focus when this opened, so it can be handed back on close.
   const opener = useRef<Element | null>(null);
 
-  const close = useCallback(() => {
-    onClose();
+  // The caller passes a fresh arrow every render (`onClose={() => setOpen(null)}`
+  // is the natural way to write it), so binding the effect below to `onClose`
+  // itself would tear the dialog down and set it up again on every parent
+  // render: focus handed back to the tile mid-life, the keydown listener
+  // rebound, the page's scroll lock released and retaken. The effect wants to
+  // run once, which means the callback it closes over has to be stable — so the
+  // latest one is kept on a ref and `close` never changes identity.
+  const latest = useRef(onClose);
+  useEffect(() => {
+    latest.current = onClose;
   }, [onClose]);
+  const close = useCallback(() => {
+    latest.current();
+  }, []);
 
   useEffect(() => {
     opener.current = document.activeElement;
