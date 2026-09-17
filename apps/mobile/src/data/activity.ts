@@ -19,8 +19,6 @@ import { isCurrencyCode } from '@waves/core';
 
 import { actorName, type ActivityRow } from './types';
 
-import type { MemberId } from '@waves/core';
-
 /**
  * An activity `payload` is an untyped JSON blob, so a bad amount must render as
  * no amount, not as a crashed feed. Shared by both feed screens so they parse
