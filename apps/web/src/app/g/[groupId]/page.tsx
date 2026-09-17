@@ -50,6 +50,7 @@ import { SegmentedTabs } from '@/components/SegmentedTabs';
 import { SkeletonRows } from '@/components/Skeleton';
 import { waves } from '@/lib/waves';
 import { money } from '@/lib/money';
+import { groupByMonth, monthLabel } from '@/lib/ledgerFeed';
 import { describeActivity, VerbIcon } from '@/lib/activity';
 import { plural } from '@/i18n';
 import { useStrings } from '@/i18n-context';
@@ -78,7 +79,8 @@ function GroupDetail({ profileId, query }: { profileId: string; query: string })
   const [members, setMembers] = useState<Member[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [settlements, setSettlements] = useState<Settlement[]>([]);
-  const [activity, setActivity] = useState<ActivityRow[]>([]);
+  const [activity, setActivity] = useState<ActivityRow[] | null>(null);
+  const [activityFailed, setActivityFailed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -89,19 +91,22 @@ function GroupDetail({ profileId, query }: { profileId: string; query: string })
     let active = true;
     void (async () => {
       try {
-        const [g, m, e, s, a] = await Promise.all([
+        // The four the ledger cannot be drawn without. The trail is not one of
+        // them, so it is fetched beside this rather than inside it: in a single
+        // `Promise.all` one rejected activity query took the whole page down to
+        // "not your group", which is a sentence that means something else
+        // entirely and would have sent somebody to ask why they were removed.
+        const [g, m, e, s] = await Promise.all([
           waves.group(groupId),
           waves.members(groupId),
           waves.expenses(groupId),
           waves.settlements(groupId),
-          waves.groupActivity(groupId),
         ]);
         if (!active) return;
         setGroup(g);
         setMembers(m);
         setExpenses(e);
         setSettlements(s);
-        setActivity(a);
       } catch (caught) {
         if (active)
           setError(
@@ -118,6 +123,23 @@ function GroupDetail({ profileId, query }: { profileId: string; query: string })
       active = false;
     };
   }, [groupId, t.errors.couldNotLoad, t.errors.offline]);
+
+  // The group's trail, on its own errand. Failing it costs the Activity tab and
+  // nothing else.
+  useEffect(() => {
+    let active = true;
+    void waves
+      .groupActivity(groupId)
+      .then((rows) => {
+        if (active) setActivity(rows);
+      })
+      .catch(() => {
+        if (active) setActivityFailed(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, [groupId]);
 
   // Built once per locale. Constructing an Intl formatter is expensive, and a
   // feed re-runs its headings and its dates on every render.
@@ -359,23 +381,46 @@ function GroupDetail({ profileId, query }: { profileId: string; query: string })
             id={`panel-${Face.Activity}`}
             aria-labelledby={`tab-${Face.Activity}`}
           >
-            {activity.length === 0 ? (
+            {activityFailed ? (
+              <EmptyState Icon={History} title={t.errors.couldNotLoad} />
+            ) : activity === null ? (
+              <SkeletonRows rows={6} amount={false} />
+            ) : activity.length === 0 ? (
               <EmptyState Icon={History} title={t.activity.empty} />
             ) : (
               <div className="list">
-                {activity.map((entry) => (
-                  <div key={entry.id} className="item" style={{ cursor: 'default' }}>
-                    <span className="tile-emoji" aria-hidden>
-                      <VerbIcon verb={entry.verb} />
-                    </span>
-                    <span className="grow">
-                      <span className="title wrap">{describeActivity(entry, profileId)}</span>
-                      {entry.created_at ? (
-                        <span className="meta">{dayFormat.format(new Date(entry.created_at))}</span>
-                      ) : null}
-                    </span>
-                  </div>
-                ))}
+                {activity.map((entry) => {
+                  const line = (
+                    <>
+                      <span className="tile-emoji" aria-hidden>
+                        <VerbIcon verb={entry.verb} />
+                      </span>
+                      <span className="grow">
+                        <span className="title wrap">{describeActivity(entry, profileId)}</span>
+                        {entry.created_at ? (
+                          <span className="meta">
+                            {dayFormat.format(new Date(entry.created_at))}
+                          </span>
+                        ) : null}
+                      </span>
+                    </>
+                  );
+                  // A row about an expense opens it, the same rule the
+                  // dashboard's feed follows. The rest are not destinations.
+                  return entry.object_type === 'expense' && entry.object_id ? (
+                    <Link
+                      key={entry.id}
+                      className="item"
+                      href={`/g/${groupId}/expense/${entry.object_id}`}
+                    >
+                      {line}
+                    </Link>
+                  ) : (
+                    <div key={entry.id} className="item" style={{ cursor: 'default' }}>
+                      {line}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </section>
@@ -477,52 +522,6 @@ function ExpenseRow({
       </span>
     </Link>
   );
-}
-
-interface MonthSection {
-  key: string;
-  /** A date inside the month, for the heading. Null for the undated bucket. */
-  date: string | null;
-  rows: Expense[];
-}
-
-/** The ledger cut into calendar months, in the order the rows arrived. */
-function groupByMonth(items: readonly Expense[]): MonthSection[] {
-  const order: string[] = [];
-  const buckets = new Map<string, Expense[]>();
-  for (const item of items) {
-    const date = item.currentVersion?.expense_date ?? null;
-    // "~" is the sortless bucket for the rare undated row, kept at its natural
-    // position rather than pushed to one end.
-    const key = date ? date.slice(0, 7) : '~';
-    let bucket = buckets.get(key);
-    if (!bucket) {
-      bucket = [];
-      buckets.set(key, bucket);
-      order.push(key);
-    }
-    bucket.push(item);
-  }
-  return order.map((key) => {
-    const rows = buckets.get(key)!;
-    return { key, date: rows[0]?.currentVersion?.expense_date ?? null, rows };
-  });
-}
-
-/**
- * "November", or "November 2024" once the year is not this one. The date is a
- * plain calendar date with no zone, so it is read in UTC to match the day the
- * rows beside it print.
- */
-function monthLabel(
-  formats: { sameYear: Intl.DateTimeFormat; withYear: Intl.DateTimeFormat },
-  isoDate: string,
-): string {
-  const parsed = Date.parse(isoDate);
-  if (Number.isNaN(parsed)) return isoDate;
-  const date = new Date(parsed);
-  const thisYear = date.getUTCFullYear() === new Date().getUTCFullYear();
-  return (thisYear ? formats.sameYear : formats.withYear).format(date);
 }
 
 /** A member who has left is still on old expenses; the transfer still names them. */
