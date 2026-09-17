@@ -42,6 +42,13 @@ export interface ExpenseVersion {
   split_params: SplitParams;
   /** Where the spend happened (A43): a {lat, lng, name} snapshot, or null. */
   location?: ExpenseLocation | null;
+  /** The kept bill (E2), when one was kept. Resolve it with `receipt`. */
+  receipt_id?: string | null;
+  /**
+   * A view-only link to the author's OWN cloud copy of the bill (E3). Not ours
+   * and not signed by us — it is shown as a link out, never loaded as an image.
+   */
+  receipt_share_url?: string | null;
   payers: { member_id: MemberId; amount: string }[];
   shares: { member_id: MemberId; amount: string }[];
 }

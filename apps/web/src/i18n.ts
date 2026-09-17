@@ -463,6 +463,25 @@ export interface WebStrings {
     /** The cap the server enforces, shown as the composer fills up. */
     remaining: string;
   };
+  /** The bill behind an expense (E2), and anything attached since (A44). */
+  receipt: {
+    title: string;
+    /** The kept bill itself. */
+    theBill: string;
+    /** An image added to the expense afterwards. */
+    attachment: string;
+    /** An attachment only the people on the bill may see. */
+    partyOnly: string;
+    /** The image is gone, or was never uploaded. */
+    missing: string;
+    /** The image exists but this client cannot resolve it (R2 is off). */
+    notAvailableHere: string;
+    /** Open the full-resolution file in a new tab. */
+    openOriginal: string;
+    /** Follow the author's own cloud link (E3). */
+    openShared: string;
+    close: string;
+  };
   settings: {
     title: string;
     profile: string;
@@ -946,6 +965,17 @@ const en: WebStrings = {
     resolve: 'Resolve',
     you: 'You',
     remaining: '{count} left',
+  },
+  receipt: {
+    title: 'Receipt',
+    theBill: 'The bill',
+    attachment: 'Attachment',
+    partyOnly: 'Only for people on this bill',
+    missing: 'This image is no longer here',
+    notAvailableHere: 'Not viewable in the browser yet',
+    openOriginal: 'Open original',
+    openShared: 'Open the shared copy',
+    close: 'Close',
   },
   settings: {
     title: 'Settings',
@@ -1458,6 +1488,17 @@ const ta: WebStrings = {
     you: 'நீங்கள்',
     remaining: '{count} மீதம்',
   },
+  receipt: {
+    title: 'ரசீது',
+    theBill: 'பில்',
+    attachment: 'இணைப்பு',
+    partyOnly: 'இந்த பில்லில் உள்ளவர்களுக்கு மட்டும்',
+    missing: 'இந்தப் படம் இப்போது இல்லை',
+    notAvailableHere: 'உலாவியில் இன்னும் பார்க்க முடியாது',
+    openOriginal: 'மூலப் படத்தைத் திற',
+    openShared: 'பகிர்ந்த நகலைத் திற',
+    close: 'மூடு',
+  },
   settings: {
     title: 'அமைப்புகள்',
     profile: 'நீங்கள்',
@@ -1964,6 +2005,17 @@ const hi: WebStrings = {
     resolve: 'हल करें',
     you: 'आप',
     remaining: '{count} बचे',
+  },
+  receipt: {
+    title: 'रसीद',
+    theBill: 'बिल',
+    attachment: 'संलग्न',
+    partyOnly: 'सिर्फ़ इस बिल वालों के लिए',
+    missing: 'यह तस्वीर अब यहाँ नहीं है',
+    notAvailableHere: 'ब्राउज़र में अभी नहीं दिखती',
+    openOriginal: 'मूल फ़ाइल खोलें',
+    openShared: 'साझा प्रति खोलें',
+    close: 'बंद करें',
   },
   settings: {
     title: 'सेटिंग',
@@ -2517,6 +2569,17 @@ const ar: WebStrings = {
     resolve: 'حل',
     you: 'أنت',
     remaining: 'بقي {count}',
+  },
+  receipt: {
+    title: 'الإيصال',
+    theBill: 'الفاتورة',
+    attachment: 'مرفق',
+    partyOnly: 'لأطراف هذه الفاتورة فقط',
+    missing: 'لم تعد هذه الصورة هنا',
+    notAvailableHere: 'غير قابلة للعرض في المتصفح بعد',
+    openOriginal: 'فتح الأصل',
+    openShared: 'فتح النسخة المشتركة',
+    close: 'إغلاق',
   },
   settings: {
     title: 'الإعدادات',

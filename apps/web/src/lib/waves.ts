@@ -36,4 +36,12 @@ export const supabase = createClient(url, anonKey, {
   },
 });
 
-export const waves: WavesClient = createWavesClient({ supabase });
+/**
+ * Where images live (A44). Off is the old Supabase Storage path, which is what
+ * production still runs — the flag exists so the browser starts resolving from
+ * R2 the day the phone does, without a second seam growing here in the
+ * meantime.
+ */
+const r2Enabled = process.env.NEXT_PUBLIC_R2_ENABLED === 'true';
+
+export const waves: WavesClient = createWavesClient({ supabase, r2Enabled });
