@@ -43,6 +43,7 @@ import { waves } from '@/lib/waves';
 import { money } from '@/lib/money';
 import { useStrings } from '@/i18n-context';
 import { friendlyError } from '@/lib/errors';
+import { openSettlements, settlementActions } from '@/lib/settlementActions';
 
 export default function SettlePage() {
   return (
@@ -221,7 +222,10 @@ function GroupSettle({
 
   const iOwe = ledger.transfers.filter((transfer) => transfer.from === myMemberId);
   const owesMe = ledger.transfers.filter((transfer) => transfer.to === myMemberId);
-  const pending = settlements.filter((settlement) => settlement.status === 'initiated');
+  // Everything still answerable, not just what is waiting to be confirmed: a
+  // settlement that confirmed itself is one nobody actively agreed to, and its
+  // payee may still say it never arrived.
+  const pending = openSettlements(settlements);
 
   // A failed initial load leaves the ledger empty, which looks identical to a
   // genuinely settled group. Skip the all-settled fallback when an error is
@@ -243,46 +247,26 @@ function GroupSettle({
     setSettlements(s);
   }
 
-  async function confirm(settlementId: string) {
-    setBusy(settlementId);
-    setError(null);
-    try {
-      await waves.confirmSettlement(settlementId);
-      await refresh();
-    } catch (caught) {
-      setError(
-        friendlyError(caught, 'web.settle.confirm', {
-          fallback: t.errors.couldNotSave,
-          offline: t.errors.offline,
-        }),
-      );
-    } finally {
-      setBusy(null);
-    }
-  }
-
   /**
-   * The payee's other answer, and the payer's way out.
+   * Answer a settlement, then reread the group.
    *
-   * Confirming was the only thing either side could do, which made a claim a
-   * one-way street: somebody says they paid you and you either accept it or it
-   * sits there with the balance already moved. Both of these are refused by the
-   * server unless you are the right person — `waves_dispute_settlement` checks
-   * the payee, `waves_cancel_settlement` the payer — so the buttons below are a
-   * courtesy, not the rule.
-   *
-   * Both ask first. Disputing contradicts somebody, and withdrawing takes back
-   * a claim the other side may already have seen.
+   * The two halves are deliberately separate. Once the RPC returns, the change
+   * is committed — so a failed reread afterwards must not be reported as "could
+   * not save", which would have somebody trying again to do a thing that has
+   * already happened. Only the write's own failure is an error; a stale list is
+   * just a stale list, and the next refresh fixes it.
    */
-  async function resolve(settlementId: string, how: 'dispute' | 'withdraw') {
-    const question = how === 'dispute' ? t.settle.disputeConfirm : t.settle.withdrawConfirm;
-    if (!window.confirm(question)) return;
+  async function answer(settlementId: string, how: 'confirm' | 'dispute' | 'withdraw') {
+    if (how !== 'confirm') {
+      const question = how === 'dispute' ? t.settle.disputeConfirm : t.settle.withdrawConfirm;
+      if (!window.confirm(question)) return;
+    }
     setBusy(settlementId);
     setError(null);
     try {
-      if (how === 'dispute') await waves.disputeSettlement(settlementId);
+      if (how === 'confirm') await waves.confirmSettlement(settlementId);
+      else if (how === 'dispute') await waves.disputeSettlement(settlementId);
       else await waves.cancelSettlement(settlementId);
-      await refresh();
     } catch (caught) {
       setError(
         friendlyError(caught, `web.settle.${how}`, {
@@ -290,9 +274,13 @@ function GroupSettle({
           offline: t.errors.offline,
         }),
       );
-    } finally {
       setBusy(null);
+      return;
     }
+    // Past this line the server has it, so nothing below may raise an error
+    // about saving.
+    await refresh().catch(() => undefined);
+    setBusy(null);
   }
 
   async function nudge(toMemberId: string, currency: string) {
@@ -413,10 +401,14 @@ function GroupSettle({
           </div>
           <div className="list">
             {pending.map((settlement) => {
-              const mineToConfirm = settlement.to_member_id === myMemberId;
+              const actions = settlementActions(settlement, myMemberId);
+              // The row is about the other person: whoever is not the reader.
               const other = byId.get(
-                mineToConfirm ? settlement.from_member_id : settlement.to_member_id,
+                actions.canConfirm || actions.canDispute
+                  ? settlement.from_member_id
+                  : settlement.to_member_id,
               );
+              const working = busy === settlement.id;
               return (
                 <div key={settlement.id} className="item" style={{ cursor: 'default' }}>
                   <span className="grow">
@@ -425,45 +417,48 @@ function GroupSettle({
                   <span className="amount">
                     {money(BigInt(settlement.amount), settlement.currency, locale)}
                   </span>
-                  {mineToConfirm ? (
-                    <span className="pending-actions">
-                      <button
-                        type="button"
-                        className="btn"
-                        disabled={busy === settlement.id}
-                        onClick={() => void confirm(settlement.id)}
-                      >
-                        {busy === settlement.id ? t.settle.confirming : t.settle.confirm}
-                      </button>
-                      <button
-                        type="button"
-                        className="btn soft"
-                        disabled={busy === settlement.id}
-                        onClick={() => void resolve(settlement.id, 'dispute')}
-                      >
-                        {busy === settlement.id ? t.settle.disputing : t.settle.dispute}
-                      </button>
-                    </span>
-                  ) : (
-                    <span className="pending-actions">
+                  <span className="pending-actions">
+                    {/* Whose move it is, whenever it is not the reader's. The
+                        payer sees it beside their own withdraw button; somebody
+                        watching sees it alone. */}
+                    {!actions.canConfirm && !actions.canDispute ? (
                       <span className="faint">
                         {other
                           ? t.settle.waitingConfirm.replace('{name}', memberName(other))
                           : t.settle.pendingHead}
                       </span>
-                      {/* Only the payer may withdraw, and only their own claim. */}
-                      {settlement.from_member_id === myMemberId ? (
-                        <button
-                          type="button"
-                          className="btn soft"
-                          disabled={busy === settlement.id}
-                          onClick={() => void resolve(settlement.id, 'withdraw')}
-                        >
-                          {busy === settlement.id ? t.settle.withdrawing : t.settle.withdraw}
-                        </button>
-                      ) : null}
-                    </span>
-                  )}
+                    ) : null}
+                    {actions.canConfirm ? (
+                      <button
+                        type="button"
+                        className="btn"
+                        disabled={working}
+                        onClick={() => void answer(settlement.id, 'confirm')}
+                      >
+                        {working ? t.settle.confirming : t.settle.confirm}
+                      </button>
+                    ) : null}
+                    {actions.canDispute ? (
+                      <button
+                        type="button"
+                        className="btn soft"
+                        disabled={working}
+                        onClick={() => void answer(settlement.id, 'dispute')}
+                      >
+                        {working ? t.settle.disputing : t.settle.dispute}
+                      </button>
+                    ) : null}
+                    {actions.canWithdraw ? (
+                      <button
+                        type="button"
+                        className="btn soft"
+                        disabled={working}
+                        onClick={() => void answer(settlement.id, 'withdraw')}
+                      >
+                        {working ? t.settle.withdrawing : t.settle.withdraw}
+                      </button>
+                    ) : null}
+                  </span>
                 </div>
               );
             })}
