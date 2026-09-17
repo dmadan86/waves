@@ -23,22 +23,24 @@ import { CommentMarkdown } from '../src/components/CommentMarkdown';
 const html = (source: string) => renderToStaticMarkup(<CommentMarkdown source={source} />);
 /** Every element the renderer actually emitted, in order. */
 const tags = (source: string) => (html(source).match(/<[a-z]+/g) ?? []).map((tag) => tag.slice(1));
-/** What a reader actually sees, with the markup stripped back off. */
-const text = (source: string) =>
-  html(source)
-    .replace(/<[^>]*>/g, '')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&amp;/g, '&')
-    .replace(/&#x27;/g, "'")
-    .replace(/&quot;/g, '"');
+
+/**
+ * There is deliberately no "strip the markup and compare the text" helper here.
+ *
+ * The obvious one — replace `<[^>]*>` with nothing, then turn `&lt;` back into
+ * `<` — is a hand-rolled unescaper, and CodeQL was right to flag it (a single
+ * pass leaves `<scr<script>ipt`, and unescaping `&amp;` after `&lt;` can
+ * re-create an entity). Writing one correctly in a test that exists to prove
+ * escaping works would be its own small joke. So the assertions below check the
+ * escaped output directly: it is what the browser receives, and it is exact
+ * where a round-trip through a stripper is lossy.
+ */
 
 describe('a comment cannot reach the page', () => {
   it('renders a script tag as characters, not as a script', () => {
     const out = html('<script>alert(1)</script>');
     expect(tags('<script>alert(1)</script>')).toEqual(['div', 'p']);
-    expect(out).toContain('&lt;script&gt;');
-    expect(text('<script>alert(1)</script>')).toContain('<script>alert(1)</script>');
+    expect(out).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
   });
 
   it('renders an img onerror as characters', () => {
@@ -68,7 +70,7 @@ describe('a comment cannot reach the page', () => {
     // element list does. Two elements out means the one in the comment stayed
     // text, and the text round-trips unchanged.
     expect(tags('a < b and <div still text')).toEqual(['div', 'p']);
-    expect(text('a < b and <div still text')).toBe('a < b and <div still text');
+    expect(html('a < b and <div still text')).toContain('a &lt; b and &lt;div still text');
   });
 });
 
@@ -88,7 +90,7 @@ describe('the supported subset', () => {
 
   it('leaves an unmatched marker as literal text', () => {
     // The failure this guards: an unbalanced `**` swallowing the paragraph.
-    expect(text('a ** b')).toBe('a ** b');
+    expect(html('a ** b')).toContain('<p>a ** b</p>');
     expect(html('a ** b')).not.toContain('<strong>');
   });
 
@@ -112,7 +114,7 @@ describe('the supported subset', () => {
   });
 
   it('renders nothing for an empty body', () => {
-    expect(text('')).toBe('');
+    expect(html('')).toBe('<div class="comment-body"></div>');
   });
 
   it('survives a long run of markers without recursing on itself', () => {
