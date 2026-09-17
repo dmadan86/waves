@@ -4,17 +4,20 @@ import { View } from 'react-native';
 import { Badge, directionalIcon, iconSize, MoneyText, Row, Text, useTheme } from '@waves/ui';
 
 import {
+  diffExpenseVersions,
   format as formatMoney,
   money as coreMoney,
+  payerAuditText,
   type CurrencyCode,
+  type DiffLocation,
+  type ExpenseChange,
   type MemberId,
 } from '@waves/core';
 
 import type { ExpenseVersionAudit } from '@/data/api';
 import type { ExpenseImageEventRow } from '@/data/hooks';
-import { type ActivityTint, dayHeading, groupByDay, myStake, relativeTime } from '@/data/activity';
+import { type ActivityTint, dayHeading, groupByDay, relativeTime } from '@/data/activity';
 import { coordLabel } from '@/lib/location';
-import { payerAuditText, payerFactsKey } from '@/lib/payerLines';
 import { fill, type UiStrings } from '@/i18n';
 
 /**
@@ -27,6 +30,13 @@ import { fill, type UiStrings } from '@/i18n';
  * The bug this fixes: the old history was a flat list of versions showing only
  * each version's amount, so editing 30,000 → 300 left no trace of *what*
  * happened. Now each edit spells out `Amount  30,000 → 300`.
+ *
+ * The comparison itself is `diffExpenseVersions` in `@waves/core`. It used to
+ * live here, and moved when the browser grew the same screen: two copies of
+ * "what counts as a change" is two answers to one question, and the drift would
+ * show up as one client recording an edit the other did not. What stays here is
+ * presentation — a translated label per field, each value formatted for this
+ * locale, and the timeline they hang on.
  */
 
 function splitLabel(t: UiStrings, splitType: string): string {
@@ -41,16 +51,14 @@ function splitLabel(t: UiStrings, splitType: string): string {
   return map[splitType] ?? splitType;
 }
 
-function categoryLabel(t: UiStrings, version: ExpenseVersionAudit): string {
+/** A category as somebody reads it: the custom tag's own label if it has one,
+ *  else the built-in's translation, else the raw code. */
+function categoryLabel(t: UiStrings, code: string | null, label: string | null): string {
   const builtins = t.categories as Record<string, string>;
-  return (
-    version.category_meta?.label ??
-    (version.category ? (builtins[version.category] ?? version.category) : t.expense.audit.none)
-  );
+  return label ?? (code ? (builtins[code] ?? code) : t.expense.audit.none);
 }
 
-function locationLabel(t: UiStrings, version: ExpenseVersionAudit): string {
-  const location = version.location;
+function locationLabel(t: UiStrings, location: DiffLocation | null): string {
   if (!location) return t.expense.audit.none;
   return location.name?.trim() || coordLabel(location);
 }
@@ -66,14 +74,8 @@ function dateLabel(locale: string, iso: string): string {
   }).format(new Date(iso));
 }
 
-/** The set of member ids on a side, sorted, as a stable comparison key. */
-function memberKey(rows: { member_id: string }[]): string {
-  return rows
-    .map((row) => row.member_id)
-    .sort()
-    .join(',');
-}
-
+/** One line of the diff as this screen draws it: a field name, then two values.
+ *  Money renders through MoneyText; everything else is text. */
 type Change =
   | {
       key: string;
@@ -95,136 +97,107 @@ type Change =
     }
   | { key: string; label: string; kind: 'text'; oldText: string; newText: string };
 
-function diffVersions(
+/**
+ * The core's field-level comparison, said in this reader's language.
+ *
+ * `diffExpenseVersions` decides *what* moved — it is shared with the browser,
+ * which shows the same audit, so the rules for what counts as a change cannot
+ * drift between the two. Everything below is presentation: a translated label
+ * per field, and each end of the arrow formatted for this locale.
+ */
+function describeChanges(
   t: UiStrings,
   locale: string,
   nameOf: (id: string | null) => string,
-  prev: ExpenseVersionAudit,
-  cur: ExpenseVersionAudit,
-  myMemberId: MemberId | null,
+  changes: ExpenseChange[],
 ): Change[] {
-  const changes: Change[] = [];
+  const names = (ids: readonly string[]) =>
+    ids.map((id) => nameOf(id)).join(', ') || t.expense.audit.none;
 
-  // What the edit did to *you*, in the colour the Activity feed uses for the
-  // same quantity. The audit lists the bill's totals, which is the honest record
-  // but not the question somebody scrolling their own history is asking — "did
-  // this edit cost me anything?" was only answerable by doing the arithmetic
-  // against two versions of the split.
-  //
-  // `myStake` is the feed's own function (paid − share), so the number and its
-  // colour cannot drift from the row that announced the edit.
-  const oldStake = myStake(prev, myMemberId);
-  const newStake = myStake(cur, myMemberId);
-  // The currency counts as a change to your stake for the same reason it counts
-  // as a change to the amount: ₹500 becoming $500 is not the same stake, and
-  // comparing minor units alone would call it one. It only counts for somebody
-  // who has a stake, though — `myStake` returns null for a viewer the bill does
-  // not involve, and a re-denomination must not hand them a "your share 0 → 0".
-  const involved = oldStake !== null || newStake !== null;
-  if ((oldStake ?? 0n) !== (newStake ?? 0n) || (involved && prev.currency !== cur.currency)) {
-    changes.push({
-      key: 'stake',
-      label: t.expense.audit.yourShare,
-      kind: 'money',
-      oldAmount: oldStake ?? 0n,
-      newAmount: newStake ?? 0n,
-      oldCurrency: prev.currency,
-      newCurrency: cur.currency,
-      balance: true,
-    });
-  }
-
-  if (prev.amount !== cur.amount || prev.currency !== cur.currency) {
-    changes.push({
-      key: 'amount',
-      label: t.expense.audit.amount,
-      kind: 'money',
-      oldAmount: BigInt(prev.amount),
-      newAmount: BigInt(cur.amount),
-      oldCurrency: prev.currency,
-      newCurrency: cur.currency,
-    });
-  }
-  if ((prev.description ?? '').trim() !== (cur.description ?? '').trim()) {
-    changes.push({
-      key: 'description',
-      label: t.expense.audit.description,
-      kind: 'text',
-      oldText: (prev.description ?? '').trim() || t.expense.audit.none,
-      newText: (cur.description ?? '').trim() || t.expense.audit.none,
-    });
-  }
-  if (
-    (prev.category ?? '') !== (cur.category ?? '') ||
-    prev.category_meta?.label !== cur.category_meta?.label
-  ) {
-    changes.push({
-      key: 'category',
-      label: t.expense.audit.category,
-      kind: 'text',
-      oldText: categoryLabel(t, prev),
-      newText: categoryLabel(t, cur),
-    });
-  }
-  if (prev.split_type !== cur.split_type) {
-    changes.push({
-      key: 'split',
-      label: t.expense.audit.split,
-      kind: 'text',
-      oldText: splitLabel(t, prev.split_type),
-      newText: splitLabel(t, cur.split_type),
-    });
-  }
-  if (prev.expense_date !== cur.expense_date) {
-    changes.push({
-      key: 'date',
-      label: t.expense.audit.date,
-      kind: 'text',
-      oldText: dateLabel(locale, prev.expense_date),
-      newText: dateLabel(locale, cur.expense_date),
-    });
-  }
-  if (locationLabel(t, prev) !== locationLabel(t, cur)) {
-    changes.push({
-      key: 'location',
-      label: t.expense.audit.location,
-      kind: 'text',
-      oldText: locationLabel(t, prev),
-      newText: locationLabel(t, cur),
-    });
-  }
-  // Who paid, and how much each of them put in — both, because on a bill with
-  // several payers the amounts are the only thing that need change. Moving ₹100
-  // from Asha to Ravi leaves the total alone (so there is no Amount line) and
-  // the set of names alone, and comparing names only meant that edit vanished
-  // from the one screen whose job is to record edits.
-  if (payerFactsKey(prev.payers) !== payerFactsKey(cur.payers)) {
-    const money = (version: ExpenseVersionAudit) => (minor: bigint) =>
-      formatMoney(coreMoney(minor, version.currency as CurrencyCode), { locale });
-    changes.push({
-      key: 'payers',
-      label: t.expense.audit.payers,
-      kind: 'text',
-      oldText: payerAuditText(prev.payers, nameOf, money(prev), t.expense.audit.none),
-      newText: payerAuditText(cur.payers, nameOf, money(cur), t.expense.audit.none),
-    });
-  }
-  // Participants: who is splitting the bill, by name — the same treatment as
-  // payers. Named rather than counted, so replacing one person with another
-  // (the set changes but the count does not) reads as a real change instead of
-  // an identical "3 → 3". Amount-only edits keep the same set, so they never
-  // show here.
-  if (memberKey(prev.shares) !== memberKey(cur.shares)) {
-    changes.push({
-      key: 'participants',
-      label: t.expense.audit.participants,
-      kind: 'text',
-      oldText: prev.shares.map((s) => nameOf(s.member_id)).join(', ') || t.expense.audit.none,
-      newText: cur.shares.map((s) => nameOf(s.member_id)).join(', ') || t.expense.audit.none,
-    });
-  }
-
-  return changes;
+  return changes.map((change): Change => {
+    switch (change.kind) {
+      case 'money':
+        return {
+          key: change.field,
+          label: change.field === 'stake' ? t.expense.audit.yourShare : t.expense.audit.amount,
+          kind: 'money',
+          oldAmount: change.oldAmount,
+          newAmount: change.newAmount,
+          oldCurrency: change.oldCurrency,
+          newCurrency: change.newCurrency,
+          balance: change.balance,
+        };
+      case 'text':
+        return {
+          key: change.field,
+          label: t.expense.audit.description,
+          kind: 'text',
+          oldText: change.oldText || t.expense.audit.none,
+          newText: change.newText || t.expense.audit.none,
+        };
+      case 'category':
+        return {
+          key: change.field,
+          label: t.expense.audit.category,
+          kind: 'text',
+          oldText: categoryLabel(t, change.oldCategory, change.oldLabel),
+          newText: categoryLabel(t, change.newCategory, change.newLabel),
+        };
+      case 'split':
+        return {
+          key: change.field,
+          label: t.expense.audit.split,
+          kind: 'text',
+          oldText: splitLabel(t, change.oldSplit),
+          newText: splitLabel(t, change.newSplit),
+        };
+      case 'date':
+        return {
+          key: change.field,
+          label: t.expense.audit.date,
+          kind: 'text',
+          oldText: dateLabel(locale, change.oldIso),
+          newText: dateLabel(locale, change.newIso),
+        };
+      case 'location':
+        return {
+          key: change.field,
+          label: t.expense.audit.location,
+          kind: 'text',
+          oldText: locationLabel(t, change.oldLocation),
+          newText: locationLabel(t, change.newLocation),
+        };
+      case 'payers': {
+        const spend = (currency: string) => (minor: bigint) =>
+          formatMoney(coreMoney(minor, currency as CurrencyCode), { locale });
+        return {
+          key: change.field,
+          label: t.expense.audit.payers,
+          kind: 'text',
+          oldText: payerAuditText(
+            change.oldPayers,
+            nameOf,
+            spend(change.oldCurrency),
+            t.expense.audit.none,
+          ),
+          newText: payerAuditText(
+            change.newPayers,
+            nameOf,
+            spend(change.newCurrency),
+            t.expense.audit.none,
+          ),
+        };
+      }
+      case 'members':
+        return {
+          key: change.field,
+          label: t.expense.audit.participants,
+          kind: 'text',
+          oldText: names(change.oldMemberIds),
+          newText: names(change.newMemberIds),
+        };
+    }
+  });
 }
 
 /** One "old → new" line: a field name, then the two values with a direction
@@ -360,7 +333,12 @@ export function ExpenseHistory({
       money: { amount: BigInt(version.amount), currency: version.currency },
       changes: created
         ? []
-        : diffVersions(t, locale, nameOf, ascending[index - 1]!, version, myMemberId),
+        : describeChanges(
+            t,
+            locale,
+            nameOf,
+            diffExpenseVersions(ascending[index - 1]!, version, myMemberId),
+          ),
       created,
     };
   });

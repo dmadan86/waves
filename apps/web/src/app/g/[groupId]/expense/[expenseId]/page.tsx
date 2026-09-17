@@ -24,13 +24,13 @@ import {
 
 import { AppFrame } from '@/components/AppFrame';
 import { ExpenseComments } from '@/components/ExpenseComments';
+import { ExpenseHistory } from '@/components/ExpenseHistory';
 import { ExpenseReceipts } from '@/components/ExpenseReceipts';
 import { Section } from '@/components/Shell';
 import { SkeletonRows } from '@/components/Skeleton';
 import { waves } from '@/lib/waves';
 import { money } from '@/lib/money';
 import { coordLabel, mapsUrl } from '@/lib/geo';
-import { fill } from '@/i18n';
 import { useStrings } from '@/i18n-context';
 import { friendlyError } from '@/lib/errors';
 import { MapPin } from 'lucide-react';
@@ -281,26 +281,14 @@ function ExpenseDetail({
           canModerate={isAdmin}
         />
 
-        {versions.length > 1 ? (
-          <section className="panel">
-            <div className="panel-head">
-              <h2>{t.expense.history}</h2>
-            </div>
-            <div className="list">
-              {versions.map((v) => (
-                <div key={v.id} className="item" style={{ cursor: 'default' }}>
-                  <span className="grow">
-                    <span className="title" style={{ fontWeight: 500 }}>
-                      {fill(t.expense.versionNo, { n: v.version_no })} · {v.description}
-                    </span>
-                    <span className="meta">{new Date(v.created_at).toLocaleString(locale)}</span>
-                  </span>
-                  <span className="amount">{money(BigInt(v.amount), v.currency, locale)}</span>
-                </div>
-              ))}
-            </div>
-          </section>
-        ) : null}
+        {/* The audit: every version after the first spells out which fields
+            moved, with the image audit folded into the same timeline. */}
+        <ExpenseHistory
+          expenseId={expenseId}
+          versions={versions}
+          members={members}
+          myMemberId={myMember?.id ?? null}
+        />
 
         {error ? <p className="error">{error}</p> : null}
       </div>

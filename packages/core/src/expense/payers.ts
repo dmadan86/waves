@@ -7,9 +7,10 @@
  * the whole thing on one of them, in a list somebody reads to remember what
  * happened.
  *
- * The rules live here as plain functions so the group ledger, the month
- * drill-down and the audit trail cannot drift apart, and so they can be tested
- * without a screen (mobile's vitest renders nothing by design).
+ * This lived in the phone's lib until the browser grew the same screens. The
+ * rules are plain functions so the group ledger, the month drill-down and the
+ * audit trail cannot drift apart on either client, and so they can be tested
+ * without rendering anything.
  */
 
 /** The payer rows as every read model carries them: id and minor amount. */
