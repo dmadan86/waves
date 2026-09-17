@@ -1084,6 +1084,35 @@ export function createWavesClient({ supabase, r2Enabled = false }: WavesClientOp
       );
     },
 
+    /**
+     * "No, that never reached me." Only the payee may dispute, and only while
+     * the settlement is still initiated or auto-confirmed (server-checked).
+     *
+     * The other half of confirming. Without it a claim that somebody paid you
+     * is a one-way street: you either accept it or it sits there, and the
+     * balance it moved stays moved.
+     */
+    disputeSettlement(settlementId: string, reason?: string): Promise<void> {
+      return rpc('waves_dispute_settlement', {
+        p_settlement_id: settlementId,
+        p_reason: reason ?? null,
+      }).then(() => undefined);
+    },
+
+    /**
+     * "I did not actually send that." Only the person who recorded the payment
+     * may cancel it (server-checked).
+     *
+     * A settlement is a claim, and the person who made it is the one who can
+     * withdraw it — a mistyped amount or the wrong payee should not need the
+     * other side to reject it before it can be fixed.
+     */
+    cancelSettlement(settlementId: string): Promise<void> {
+      return rpc('waves_cancel_settlement', { p_settlement_id: settlementId }).then(
+        () => undefined,
+      );
+    },
+
     /** A gentle poke to someone who owes you in a currency (ADR-010 prefs apply). */
     nudgeToSettle(input: { groupId: string; toMemberId: string; currency: string }): Promise<void> {
       return rpc('waves_nudge_to_settle', {

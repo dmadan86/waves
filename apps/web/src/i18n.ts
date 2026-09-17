@@ -402,6 +402,15 @@ export interface WebStrings {
     confirm: string;
     confirming: string;
     waitingConfirm: string;
+    /** The payee's other answer: it never arrived. */
+    dispute: string;
+    disputing: string;
+    /** Asked before disputing, because it contradicts somebody. */
+    disputeConfirm: string;
+    /** The payer withdrawing their own claim. */
+    withdraw: string;
+    withdrawing: string;
+    withdrawConfirm: string;
     nudge: string;
     nudged: string;
     loading: string;
@@ -960,6 +969,12 @@ const en: WebStrings = {
     confirm: 'Confirm it reached you',
     confirming: 'Confirming…',
     waitingConfirm: 'Waiting for {name} to confirm',
+    dispute: 'It never arrived',
+    disputing: 'Marking…',
+    disputeConfirm: 'Say this payment never reached you?',
+    withdraw: 'Withdraw',
+    withdrawing: 'Withdrawing…',
+    withdrawConfirm: 'Withdraw this payment?',
     nudge: 'Nudge',
     nudged: 'Nudged',
     loading: 'Loading…',
@@ -1527,6 +1542,12 @@ const ta: WebStrings = {
     confirm: 'உங்களுக்கு வந்ததை உறுதிசெய்',
     confirming: 'உறுதிசெய்கிறது…',
     waitingConfirm: '{name} உறுதிசெய்ய காத்திருக்கிறது',
+    dispute: 'இது வரவில்லை',
+    disputing: 'குறிக்கிறது…',
+    disputeConfirm: 'இந்தப் பணம் உங்களுக்கு வரவில்லை எனச் சொல்லவா?',
+    withdraw: 'திரும்பப் பெறு',
+    withdrawing: 'திரும்பப் பெறுகிறது…',
+    withdrawConfirm: 'இந்தக் கொடுப்பனவைத் திரும்பப் பெறவா?',
     nudge: 'நினைவூட்டு',
     nudged: 'நினைவூட்டப்பட்டது',
     loading: 'ஏற்றுகிறது…',
@@ -2095,6 +2116,12 @@ const hi: WebStrings = {
     confirm: 'पुष्टि करें कि मिल गया',
     confirming: 'पुष्टि हो रही है…',
     waitingConfirm: '{name} की पुष्टि का इंतज़ार',
+    dispute: 'यह मुझ तक नहीं पहुँचा',
+    disputing: 'दर्ज हो रहा है…',
+    disputeConfirm: 'कहें कि यह भुगतान आप तक नहीं पहुँचा?',
+    withdraw: 'वापस लें',
+    withdrawing: 'वापस ले रहे हैं…',
+    withdrawConfirm: 'यह भुगतान वापस लें?',
     nudge: 'याद दिलाएँ',
     nudged: 'याद दिला दिया',
     loading: 'लोड हो रहा है…',
@@ -2694,6 +2721,12 @@ const ar: WebStrings = {
     confirm: 'أكّد أنه وصلك',
     confirming: 'جارٍ التأكيد…',
     waitingConfirm: 'بانتظار تأكيد {name}',
+    dispute: 'لم تصلني',
+    disputing: 'جارٍ التسجيل…',
+    disputeConfirm: 'هل تقول إن هذه الدفعة لم تصلك؟',
+    withdraw: 'سحب',
+    withdrawing: 'جارٍ السحب…',
+    withdrawConfirm: 'سحب هذه الدفعة؟',
     nudge: 'تذكير',
     nudged: 'تم التذكير',
     loading: 'جارٍ التحميل…',

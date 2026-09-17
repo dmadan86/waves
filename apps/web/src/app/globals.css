@@ -1022,6 +1022,36 @@
     background: #000;
   }
 
+  /* The answers to a pending settlement, beside its amount. They wrap under
+     the row on a phone rather than squeezing the figure they are about. */
+  .pending-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-inline-start: 10px;
+  }
+  .pending-actions .faint {
+    text-align: end;
+  }
+  /* A row carrying answers is taller than one that does not, and on a small
+     phone the buttons cannot share a line with the figure they are about. They
+     take a line of their own instead of squeezing it. */
+  .item:has(> .pending-actions) {
+    flex-wrap: wrap;
+  }
+  @media (max-width: 420px) {
+    .pending-actions {
+      flex-basis: 100%;
+      justify-content: flex-start;
+      margin-inline-start: 0;
+    }
+    .pending-actions .faint {
+      text-align: start;
+    }
+  }
+
   /* A heading inside a list, separating one run of rows from the next —
      "your payments" from everybody else's. Quiet, because the rows below
      it already say whose they are; it only has to mark the seam. */
