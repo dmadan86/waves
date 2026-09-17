@@ -23,6 +23,7 @@ import {
 } from '@waves/api-client';
 
 import { AppFrame } from '@/components/AppFrame';
+import { ExpenseComments } from '@/components/ExpenseComments';
 import { Section } from '@/components/Shell';
 import { SkeletonRows } from '@/components/Skeleton';
 import { waves } from '@/lib/waves';
@@ -34,18 +35,41 @@ import { friendlyError } from '@/lib/errors';
 import { MapPin } from 'lucide-react';
 
 export default function ExpensePage() {
+  const params = useParams<{ groupId: string; expenseId: string }>();
+  const { groupId, expenseId } = params;
+
   return (
     <AppFrame current={Section.Groups}>
-      {({ profileId }) => <ExpenseDetail profileId={profileId} />}
+      {({ profileId }) => (
+        // Keyed on the expense, for the same reason the group screen is keyed
+        // on the group: Next keeps this route mounted when only the id in the
+        // path changes, so without it the last expense's payers, history,
+        // disputes and comments all render under the new expense's name while
+        // the reads are in flight — and a comment read that failed for one
+        // expense would keep hiding a good one for the next, because the failed
+        // state is rendered before the loaded one. Remounting is the reset.
+        <ExpenseDetail
+          key={expenseId}
+          groupId={groupId}
+          expenseId={expenseId}
+          profileId={profileId}
+        />
+      )}
     </AppFrame>
   );
 }
 
-function ExpenseDetail({ profileId }: { profileId: string }) {
+function ExpenseDetail({
+  groupId,
+  expenseId,
+  profileId,
+}: {
+  groupId: string;
+  expenseId: string;
+  profileId: string;
+}) {
   const { t, locale } = useStrings();
-  const params = useParams<{ groupId: string; expenseId: string }>();
   const router = useRouter();
-  const { groupId, expenseId } = params;
 
   const [expense, setExpense] = useState<Expense | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
@@ -239,6 +263,18 @@ function ExpenseDetail({ profileId }: { profileId: string }) {
             ))}
           </div>
         </section>
+
+        {/* The thread. Its own reads and its own failure: "why is this ₹4,800"
+            is the question a shared ledger exists to settle, but it is not what
+            the expense is, and a comment query that fails should cost the
+            conversation rather than the bill. */}
+        <ExpenseComments
+          groupId={groupId}
+          expenseId={expenseId}
+          members={members}
+          myMemberId={myMember?.id ?? null}
+          canModerate={isAdmin}
+        />
 
         {versions.length > 1 ? (
           <section className="panel">

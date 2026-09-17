@@ -25,6 +25,7 @@ import {
   OAuthMethod,
   planAuth,
   readIdentifier,
+  sanitizeCommentMarkdown,
   type CategoryMeta,
   type ExpenseLocation,
   type FxRecord,
@@ -39,6 +40,7 @@ import {
   type ActivityRow,
   type BalanceRow,
   type DisputeRow,
+  type ExpenseComment,
   type ExpenseVersionSummary,
   type GroupRow,
   type GroupType,
@@ -453,6 +455,78 @@ export function createWavesClient({ supabase }: WavesClientOptions) {
           .eq('expense_id', expenseId)
           .order('version_no', { ascending: false }),
       );
+    },
+
+    // ───────────────────────────────────────── comments on an expense (A46) ──
+    // Reads go straight at the table, which grants SELECT to `authenticated`
+    // behind an `is_group_member` policy; every write is a SECURITY DEFINER RPC
+    // that decides for itself who may do what (any member may add and flag, an
+    // author may edit or delete their own, an admin may delete any). The phone
+    // reads these from its offline mirror instead — the web has none, so it
+    // asks the server, and both end up at the same rows under the same policy.
+
+    /** The comments on one expense, oldest first. Deleted ones are not returned. */
+    expenseComments(expenseId: string): Promise<ExpenseComment[]> {
+      return read<ExpenseComment>(
+        supabase
+          .from('expense_comments')
+          .select(
+            'id, group_id, expense_id, author_member_id, body, edited_at, flagged_at, flagged_by, created_at',
+          )
+          .eq('expense_id', expenseId)
+          .is('deleted_at', null)
+          .order('created_at', { ascending: true }),
+      );
+    },
+
+    /**
+     * Add a comment. Any member may.
+     *
+     * The id is the caller's to choose and is the idempotency key: a retried
+     * request with the same id returns the existing row rather than posting the
+     * comment twice. The server refuses an id that belongs to somebody else's
+     * comment rather than echoing it back, so a guessed id leaks nothing.
+     *
+     * The body is normalised before it is sent — the same sanitiser the phone
+     * runs, so a comment written in a browser and one written on a phone are
+     * stored in the same shape. An empty result is refused here rather than at
+     * the server, so a composer holding only whitespace costs no round trip.
+     */
+    async addExpenseComment(input: {
+      groupId: string;
+      expenseId: string;
+      commentId: string;
+      body: string;
+    }): Promise<string | null> {
+      const body = sanitizeCommentMarkdown(input.body);
+      if (body === '') return null;
+      return rpc<string>('waves_add_expense_comment', {
+        p_group_id: input.groupId,
+        p_expense_id: input.expenseId,
+        p_comment_id: input.commentId,
+        p_body: body,
+      });
+    },
+
+    /** Edit your own comment. The server stamps `edited_at`. */
+    async editExpenseComment(commentId: string, body: string): Promise<boolean> {
+      const clean = sanitizeCommentMarkdown(body);
+      if (clean === '') return false;
+      await rpc('waves_edit_expense_comment', { p_comment_id: commentId, p_body: clean });
+      return true;
+    },
+
+    /** Delete your own comment; an admin may delete any. A soft delete. */
+    deleteExpenseComment(commentId: string): Promise<void> {
+      return rpc('waves_delete_expense_comment', { p_comment_id: commentId }).then(() => undefined);
+    },
+
+    /** Flag a comment, or take the flag back. Any member may. */
+    flagExpenseComment(commentId: string, flag: boolean): Promise<void> {
+      return rpc('waves_flag_expense_comment', {
+        p_comment_id: commentId,
+        p_flag: flag,
+      }).then(() => undefined);
     },
 
     /**
