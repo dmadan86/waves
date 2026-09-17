@@ -19,7 +19,7 @@ import { AppFrame } from '@/components/AppFrame';
 import { Section } from '@/components/Shell';
 import { SkeletonRows } from '@/components/Skeleton';
 import { waves } from '@/lib/waves';
-import { describeActivity, verbEmoji } from '@/lib/activity';
+import { describeActivity, VerbIcon } from '@/lib/activity';
 import { useStrings } from '@/i18n-context';
 import { Activity } from 'lucide-react';
 import { EmptyState } from '@/components/EmptyState';
@@ -77,7 +77,7 @@ function ActivityFeed({ profileId, query }: { profileId: string; query: string }
                 const line = (
                   <>
                     <span className="tile-emoji" aria-hidden>
-                      {verbEmoji(entry.verb)}
+                      <VerbIcon verb={entry.verb} />
                     </span>
                     <span className="grow">
                       <span className="title" style={{ fontWeight: 500, whiteSpace: 'normal' }}>
