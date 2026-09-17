@@ -17,7 +17,7 @@
 
 import { localNotificationsAllowed } from '@/lib/push';
 
-import { NudgeAction, planCaptureNudge, type NudgePlan } from './plan';
+import { NudgeAction, NudgeKind, planCaptureNudge, type NudgePlan } from './plan';
 import {
   cancelNudges,
   clearNudgeBadge,
@@ -27,7 +27,13 @@ import {
   setNudgeBadge,
   type NudgeText,
 } from './schedule';
-import { loadCaptureNudgeEnabled, loadPlannedNudge, savePlannedNudge } from './settings';
+import {
+  loadCaptureNudgeEnabled,
+  loadLastSeen,
+  loadPlannedNudge,
+  savePlannedNudge,
+  saveLastSeen,
+} from './settings';
 
 export interface NudgeRunInput {
   readonly ownerId: string;
@@ -37,19 +43,22 @@ export interface NudgeRunInput {
   readonly oldestWaitingAt: number | null;
   readonly locale: string;
   readonly now: number;
+  /** Whether this account is in any group — see `whatToSay` in the planner. */
+  readonly hasGroup: boolean;
   /** The reminder's words, in the app's current language. */
-  readonly text: (count: number) => NudgeText;
+  readonly text: (kind: NudgeKind, count: number) => NudgeText;
 }
 
 /** Runs one pass and reports what it decided, which is what the tests read. */
 export async function syncCaptureNudge(input: NudgeRunInput): Promise<NudgePlan> {
   if (!input.ownerId) return { action: NudgeAction.Keep };
 
-  const [enabled, planned, permitted, pending] = await Promise.all([
+  const [enabled, planned, permitted, pending, lastSeenAt] = await Promise.all([
     loadCaptureNudgeEnabled(input.ownerId),
     loadPlannedNudge(input.ownerId),
     localNotificationsAllowed(),
     pendingNudge(),
+    loadLastSeen(input.ownerId),
   ]);
 
   const plan = planCaptureNudge({
@@ -59,6 +68,10 @@ export async function syncCaptureNudge(input: NudgeRunInput): Promise<NudgePlan>
     oldestWaitingAt: input.oldestWaitingAt,
     now: input.now,
     lastFiredAt: planned !== null && planned <= input.now ? planned : null,
+    // Read before it is written below, so "has the app been opened today"
+    // answers about the days before this pass rather than about this pass.
+    lastSeenAt,
+    hasGroup: input.hasGroup,
     pending,
     locale: input.locale,
   });
@@ -71,7 +84,8 @@ export async function syncCaptureNudge(input: NudgeRunInput): Promise<NudgePlan>
       fireAt: plan.fireAt,
       count: plan.count,
       locale: input.locale,
-      text: input.text(plan.count),
+      kind: plan.kind,
+      text: input.text(plan.kind, plan.count),
     });
     // Only once something really is scheduled. A marker written for a reminder
     // the OS refused would spend the ceiling on silence.
@@ -96,6 +110,11 @@ export async function syncCaptureNudge(input: NudgeRunInput): Promise<NudgePlan>
   } else {
     await clearNudgeBadge();
   }
+
+  // The app is in front of somebody now. Written after the decision above has
+  // read the previous value, and on every pass rather than only on the ones
+  // that schedule something — it is a record of use, not of reminders.
+  await saveLastSeen(input.ownerId, input.now);
 
   // And only ever one reminder in the shade. Yesterday's card, left unread, is
   // a stale count on a lock screen — and on the launchers that badge by

@@ -14,12 +14,13 @@
 
 import { useCallback } from 'react';
 
-import { useCaptures } from '@/data/hooks';
+import { useCaptures, useGroups } from '@/data/hooks';
 import { plural, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { foldedCaptureCount } from '@/lib/captureBatch';
 import { reportHandled } from '@/lib/observability';
 
+import { NudgeKind } from './plan';
 import { syncCaptureNudge } from './run';
 
 /** What the pass is about to be told, so a caller can key an effect on it. */
@@ -30,6 +31,11 @@ export interface NudgePassInputs {
   /** When the oldest of them was saved, epoch ms. Null when none is waiting. */
   readonly oldestWaitingAt: number | null;
   readonly locale: string;
+  /**
+   * Whether this account is in any group. Somebody with nowhere to put an
+   * expense is never asked in the evening whether they have one to add.
+   */
+  readonly hasGroup: boolean;
   /**
    * The mirror is off disk. Until it is, the count is "we have not looked", not
    * "nothing is waiting" — and acting on it would cancel this evening's
@@ -43,6 +49,7 @@ export function useNudgePassInputs(): NudgePassInputs {
   const { session } = useAuth();
   const ownerId = session?.user?.id ?? '';
   const captures = useCaptures();
+  const groups = useGroups();
   const { locale } = useStrings();
 
   const rows = captures.data;
@@ -64,14 +71,19 @@ export function useNudgePassInputs(): NudgePassInputs {
     waitingCount,
     oldestWaitingAt,
     locale,
-    ready: ownerId !== '' && !captures.isLoading,
+    // Any group at all, archived ones included: somebody whose only group is
+    // last year's trip still has somewhere to put a bill, and the question is
+    // about whether the app is any use to them tonight rather than about which
+    // group they would pick.
+    hasGroup: (groups.data ?? []).length > 0,
+    ready: ownerId !== '' && !captures.isLoading && !groups.isLoading,
   };
 }
 
 /** Runs a pass with whatever is true right now. Safe to call from an event handler. */
 export function useCaptureNudgePass(inputs: NudgePassInputs): () => void {
   const { t } = useStrings();
-  const { ownerId, waitingCount, oldestWaitingAt, locale, ready } = inputs;
+  const { ownerId, waitingCount, oldestWaitingAt, locale, ready, hasGroup } = inputs;
 
   return useCallback(() => {
     if (!ready) return;
@@ -84,12 +96,18 @@ export function useCaptureNudgePass(inputs: NudgePassInputs): () => void {
       // Rendered here, in the app's current language, because the words are
       // baked into the OS alarm at schedule time. `planCaptureNudge` reschedules
       // on a language change for exactly that reason.
-      text: (count) => ({
-        // The title never counts — the badge does, and the body says what the
-        // badge is counting. See `captures.nudgeTitle` for why.
-        title: t.captures.nudgeTitle,
-        body: plural(locale, count, t.captures.nudgeBody),
-      }),
+      hasGroup,
+      text: (kind, count) =>
+        kind === NudgeKind.CheckIn
+          ? // A question, not a claim: this phone does not know whether anything
+            // was spent today, so the words never say that anything was.
+            { title: t.captures.checkInTitle, body: t.captures.checkInBody }
+          : {
+              // The title never counts — the badge does, and the body says what
+              // the badge is counting. See `captures.nudgeTitle` for why.
+              title: t.captures.nudgeTitle,
+              body: plural(locale, count, t.captures.nudgeBody),
+            },
     }).catch((error: unknown) => reportHandled(error, 'captureNudge.sync'));
-  }, [ready, ownerId, waitingCount, oldestWaitingAt, locale, t]);
+  }, [ready, ownerId, waitingCount, oldestWaitingAt, locale, hasGroup, t]);
 }

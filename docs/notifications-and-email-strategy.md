@@ -197,6 +197,31 @@ Beyond `notifications` there are two other mail paths:
 
 ### 2.4 Local notifications
 
+> **Updated 2026-09-16.** This section said "None" when it was written. One local
+> reminder has shipped since, and it now carries two sentences rather than one:
+>
+> - **Unfiled drafts** (candidate 4.3). `lib/captureNudge` — a pure planner
+>   (`plan.ts`), an OS layer (`schedule.ts`), owner-scoped storage, one switch on
+>   the notifications screen, and a cancel on sign-out. Fires at 19:00 local, at
+>   most one in any 20 hours, only about drafts that have been sitting ≥ 24 hours,
+>   and never when nothing is waiting.
+> - **The evening check-in** (new; not in the candidate list below, and the
+>   closest thing in the product to what Splitwise sends at the end of a day).
+>   Same slot, same switch, same ceiling. Asks "anything to split today?" on a day
+>   the app has **not been opened at all**, and only for somebody who is in at
+>   least one group. It asks rather than claims: the phone does not know what was
+>   spent, so the words never say that anything was. Drafts win when both apply —
+>   one evening, one reminder.
+> - **The icon badge** is written from the foreground on every pass, so it carries
+>   what is waiting _now_ rather than the count some earlier reminder was
+>   scheduled with; delivered reminders are dismissed so they cannot stack (many
+>   Android launchers badge by _notification count_, which is how an inbox of 129
+>   drafts showed a "2"); and a cancel — the switch turned off, permission
+>   withdrawn — leaves the badge clear rather than putting the count straight back.
+>
+> Everything below about the _other_ local candidates (4.1, 4.2, 4.4) still
+> stands: none of them exists.
+
 None. `grep scheduleNotificationAsync` returns nothing. What exists on the device
 is:
 
@@ -598,6 +623,59 @@ FALSE)` read in `waves_enqueue_weekly_digest`: a boolean cast of the string
   a stated bargain.
 - The per-rule "remind me about this one" toggle stays on the rule editor; this
   screen holds only the master for that class.
+
+### 6.1 What the best-in-class screens do that this one does not
+
+> Added 2026-09-16, from a survey of shipped iOS notification settings on Mobbin.
+> The screen we have already matches the good shape — icon, title, a one-line
+> description of what each switch governs, grouped into push / email / this
+> phone — which is the [NYTimes](https://mobbin.com/screens/2eb2f3b8-3992-4c41-bbca-e469d3bb6c61)
+> and [Rocket Money](https://mobbin.com/screens/af032fab-a852-42da-ac78-e6054f9fb800)
+> pattern. Four things are genuinely missing, in the order they are worth doing.
+
+**R1. Pause, and the thing it unblocks.** Every mature app offers a temporary
+mute — [Coinbase](https://mobbin.com/screens/a258908d-f302-466c-9760-a085122f8280)
+and [Crypto.com](https://mobbin.com/screens/392fa18c-8cbe-44ae-93b6-4a40ef0ee71b)
+call it "Take a break" (8 hours / 1 day / 1 week, with "email is not affected"
+said outright), [Slack](https://mobbin.com/screens/fcec9b98-df68-459e-8eda-0c48d5887377)
+and [GroupMe](https://mobbin.com/screens/30fa0885-e86c-4142-aa61-7573f861cf9c)
+offer durations, [Instagram](https://mobbin.com/screens/783a5b88-4956-4bf7-bc1a-16a404cf5ee0)
+pairs it with "you will still see them when you open the app".
+
+This matters here beyond parity, because **a pause is an absolute instant and
+quiet hours are a wall clock.** §7.1 says the schema has no per-user timezone and
+that this blocks quiet hours — true, and it does not block a pause. A
+`notifications_paused_until timestamptz` on the profile is readable by the fanout
+with no timezone anywhere, and the local reminders can clamp against the same
+value. It is the 80% of quiet hours that ships without the migration everyone has
+been waiting for, and it is strictly better than the alternative somebody
+annoyed at 11pm actually reaches for: turning off notifications at the OS level,
+which takes the settle-up requests with it and never gets turned back on.
+
+**R2. The permission state as a row, not only as an error.** [Crypto.com](https://mobbin.com/screens/392fa18c-8cbe-44ae-93b6-4a40ef0ee71b)
+puts "Device Permission" at the top of the list as a first-class row. Ours
+surfaces the OS state only when something fails (`pushFailureCopy`), so a person
+whose permission is fine sees nothing, and a person who denied it months ago sees
+an error phrased as a failure rather than as a state they can change.
+
+**R3. Say the channel on the row.** Crypto.com and Coinbase print "via Push,
+Email, In-app" under each topic; Rocket Money goes further and gives each topic a
+push column and an email column. Ours implies routing by which section a switch
+sits in, which is only true because each topic currently has exactly one
+transport. The moment one topic has two, the section grouping lies. Printing the
+transports is the cheap half; the two-column matrix is the expensive half and is
+not worth it while the mapping stays one-to-one.
+
+**R4. A section-level "turn all off"** ([Weverse](https://mobbin.com/screens/a96818cc-8537-4ff1-bb75-d67cc8917521)).
+Cheap, and the same argument as R1: give the annoyed person a big switch inside
+the app, or they will use the OS's bigger one.
+
+**Not worth copying.** Asana's [do-not-disturb schedule](https://mobbin.com/screens/6becc4af-9dd6-408f-8102-01edc32630ea)
+with from/to and days off is the full wall-clock version — it needs 7.1's column
+and a repeating evaluation, and R1 buys most of its value for none of that. The
+per-topic push/email matrix is the same trade: real, expensive, and premature
+while every topic has one transport.
+
 - **Nothing here can turn off `new_device_login`**, and the screen says so.
 - Web parity: the web client cannot schedule local notifications, so the first
   section must be **absent** there rather than shown and inert.
@@ -649,7 +727,11 @@ through `toISOString()`.
 
 ### 7.3 Quiet hours
 
-None exist. Proposal, in the order that keeps each step honest:
+None exist. **And see R1 in §6.1:** a _pause until_ is an absolute instant, so it
+needs none of 7.1's timezone column and should ship before any of the wall-clock
+work below. What follows is the wall-clock version, which is still blocked.
+
+Proposal, in the order that keeps each step honest:
 
 1. **Local notifications get quiet hours nearly for free** — the device schedules
    them, so a rule's own time of day (default 09:00) is already the answer. Clamp
@@ -743,16 +825,18 @@ for building the local half first: it is the half that can be true this week.
 Each phase ships something true on its own. **JS** = reaches phones by OTA.
 **Deploy-gated** = a migration, an edge deploy, or a `cron.schedule` run by hand.
 
-| phase  | what                                                                                                                                                                                                                                                              | gate                                                     |
-| ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| **P0** | **Turn push on** (§8 steps 1-7) and verify a real device receives a `settlement_confirm_request`. No code. Instantly un-silences nine kinds that are already written and translated.                                                                              | console + **native rebuild** (not OTA)                   |
-| **P1** | **Local personal reminders** — the pure planner, the diff/sync lib, `ensureLocalNotificationPermission`, the high-importance Android channel, the headless component, the per-rule toggle, sign-out cancel-all. Exactly `docs/plan-recurring-money-events.md` P3. | **JS only**                                              |
-| **P2** | **Settings screen reshape** (§6) — three sections, the local section, `weeklyEmail` → `off/weekly/monthly` read-both-shapes.                                                                                                                                      | JS for the screen; **migration** for the monthly enqueue |
-| **P3** | **Trip ended → settle up.** New kind, copy ×4, pref mapping, a `waves_trip_recap` job shaped like `waves_trip_nudges`, plus the E7 mail if wanted (both whitelists).                                                                                              | **migration + cron**                                     |
-| **P4** | **Expense activity, coalesced.** An `involvesMe`-scoped producer with a bucketed `dedupe_key`, plus the per-recipient hourly ceiling from §7.4. Do not ship the producer without the ceiling.                                                                     | **migration + edge**                                     |
-| **P5** | **Invite-accepted / ghost-claimed producers.** One `waves_notify` call each; copy already exists.                                                                                                                                                                 | **migration**                                            |
-| **P6** | **Budget thresholds (local)**, then **captures (local)**, then the shared local cap of 48.                                                                                                                                                                        | **JS only**                                              |
-| **P7** | **`profiles.time_zone` + quiet hours.** Blocks automatic dunning (4.7) and any wall-clock server push.                                                                                                                                                            | **migration** + a settings row                           |
+| phase   | what                                                                                                                                                                                                                                                              | gate                                                     |
+| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| **P0**  | **Turn push on** (§8 steps 1-7) and verify a real device receives a `settlement_confirm_request`. No code. Instantly un-silences nine kinds that are already written and translated.                                                                              | console + **native rebuild** (not OTA)                   |
+| **P1**  | **Local personal reminders** — the pure planner, the diff/sync lib, `ensureLocalNotificationPermission`, the high-importance Android channel, the headless component, the per-rule toggle, sign-out cancel-all. Exactly `docs/plan-recurring-money-events.md` P3. | **JS only**                                              |
+| **P2**  | **Settings screen reshape** (§6) — three sections, the local section, `weeklyEmail` → `off/weekly/monthly` read-both-shapes.                                                                                                                                      | JS for the screen; **migration** for the monthly enqueue |
+| **P3**  | **Trip ended → settle up.** New kind, copy ×4, pref mapping, a `waves_trip_recap` job shaped like `waves_trip_nudges`, plus the E7 mail if wanted (both whitelists).                                                                                              | **migration + cron**                                     |
+| **P4**  | **Expense activity, coalesced.** An `involvesMe`-scoped producer with a bucketed `dedupe_key`, plus the per-recipient hourly ceiling from §7.4. Do not ship the producer without the ceiling.                                                                     | **migration + edge**                                     |
+| **P5**  | **Invite-accepted / ghost-claimed producers.** One `waves_notify` call each; copy already exists.                                                                                                                                                                 | **migration**                                            |
+| **P6**  | ~~**Budget thresholds (local)**, then **captures (local)**~~ — captures shipped 2026-09-16 (§2.4), with the evening check-in and the badge rules. Budget thresholds and the shared local cap of 48 remain.                                                        | **JS only**                                              |
+| **P6b** | **Pause ("take a break")** — R1 in §6.1. A `notifications_paused_until timestamptz` honoured by the fanout and clamped against by the local planner, plus the row on the settings screen. Ships without 7.1's timezone column, which is the point.                | **migration + edge + JS**                                |
+| **P6c** | **Permission row (R2), transports named per row (R3), section-level off (R4).** Screen only, no schema.                                                                                                                                                           | **JS only**                                              |
+| **P7**  | **`profiles.time_zone` + quiet hours.** Blocks automatic dunning (4.7) and any wall-clock server push.                                                                                                                                                            | **migration** + a settings row                           |
 
 P0 and P1 are independent and should run in parallel — one is console work, the
 other is code.

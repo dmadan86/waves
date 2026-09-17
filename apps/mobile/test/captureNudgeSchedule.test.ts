@@ -1,4 +1,5 @@
 import { syncCaptureNudge } from '@/lib/captureNudge/run';
+import { NudgeKind } from '@/lib/captureNudge/plan';
 import { cancelNudges, scheduleNudge } from '@/lib/captureNudge/schedule';
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -73,12 +74,15 @@ describe('capture nudge scheduler', () => {
       waitingCount: 0,
       oldestWaitingAt: null,
       locale: 'en',
+      hasGroup: true,
       now: 1_800_000_000_000,
-      text: (count) => ({ title: 'Waiting on you', body: `${count} expenses are waiting.` }),
+      text: (_kind, count) => ({ title: 'Waiting on you', body: `${count} expenses are waiting.` }),
     });
 
     expect(notifications.cancelled).toEqual([]);
-    expect(notifications.badgeCounts).toEqual([0]);
+    // Zero, and it stays zero: with nothing waiting the pass may still schedule
+    // the evening check-in, which counts nothing and carries no badge.
+    expect(notifications.badgeCounts.every((count) => count === 0)).toBe(true);
   });
 
   /**
@@ -94,8 +98,9 @@ describe('capture nudge scheduler', () => {
       waitingCount: 129,
       oldestWaitingAt: 1_799_000_000_000,
       locale: 'en',
+      hasGroup: true,
       now: 1_800_000_000_000,
-      text: (count) => ({ title: 'Waiting on you', body: `${count} expenses are waiting.` }),
+      text: (_kind, count) => ({ title: 'Waiting on you', body: `${count} expenses are waiting.` }),
     });
 
     // The last word, not the only one: replacing the reminder cancels the old
@@ -121,8 +126,9 @@ describe('capture nudge scheduler', () => {
       waitingCount: 129,
       oldestWaitingAt: 1_799_000_000_000,
       locale: 'en',
+      hasGroup: true,
       now: 1_800_000_000_000,
-      text: (count) => ({ title: 'Waiting on you', body: `${count} expenses are waiting.` }),
+      text: (_kind, count) => ({ title: 'Waiting on you', body: `${count} expenses are waiting.` }),
     });
 
     expect(notifications.dismissed).toEqual(['old-nudge']);
@@ -143,8 +149,9 @@ describe('capture nudge scheduler', () => {
       waitingCount: 129,
       oldestWaitingAt: 1_799_000_000_000,
       locale: 'en',
+      hasGroup: true,
       now: 1_800_000_000_000,
-      text: (count) => ({ title: 'Waiting on you', body: `${count} expenses are waiting.` }),
+      text: (_kind, count) => ({ title: 'Waiting on you', body: `${count} expenses are waiting.` }),
     });
 
     expect(notifications.cancelled).toEqual(['ours']);
@@ -156,6 +163,7 @@ describe('capture nudge scheduler', () => {
       fireAt: 1_800_000_000_000,
       count: 4,
       locale: 'en',
+      kind: NudgeKind.Captures,
       text: { title: 'Waiting on you', body: '4 expenses are waiting.' },
     });
 
