@@ -24,6 +24,7 @@ import { Section } from '@/components/Shell';
 import { waves } from '@/lib/waves';
 import { useStrings } from '@/i18n-context';
 import { friendlyError } from '@/lib/errors';
+import { X } from 'lucide-react';
 
 /** The currencies the picker offers. Anything else is set on the phone. */
 const CURRENCIES = ['INR', 'USD', 'EUR', 'GBP', 'AED', 'SGD', 'AUD', 'CAD', 'JPY'] as const;
@@ -213,7 +214,8 @@ function NewGroup() {
                   onClick={() => setPeople((current) => current.filter((_, at) => at !== index))}
                   aria-label={`${t.members.remove} ${who}`}
                 >
-                  {who} ✕
+                  {who}
+                  <X size={14} strokeWidth={2.25} aria-hidden />
                 </button>
               ))}
             </div>

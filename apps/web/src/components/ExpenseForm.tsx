@@ -37,6 +37,7 @@ import { captureLocation, coordLabel, geolocationSupported, LocationFailure } fr
 import { fill } from '@/i18n';
 import { useStrings } from '@/i18n-context';
 import { friendlyError } from '@/lib/errors';
+import { MapPin } from 'lucide-react';
 
 enum SplitKind {
   Equal = 'equal',
@@ -458,7 +459,7 @@ export function ExpenseForm({
             </div>
             {location ? (
               <div className="row" style={{ alignItems: 'center', gap: 8 }}>
-                <span aria-hidden>📍</span>
+                <MapPin size={18} strokeWidth={1.75} aria-hidden />
                 <span style={{ flex: 1 }}>{location.name?.trim() || coordLabel(location)}</span>
                 <button
                   type="button"

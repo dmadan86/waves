@@ -323,7 +323,12 @@ export function SignIn() {
                 aria-label={t.dash.passwordPlaceholder}
                 style={{ textAlign: 'start' }}
               />
-              <button type="submit" className="btn block" disabled={busy !== null}>
+              {/* The card's one action wears the brand rather than the ink:
+                  Apple's button is black by their guidelines and sits three
+                  rows above, so a black submit below it reads as the same
+                  control twice — and on the dark card a near-black button all
+                  but disappears. */}
+              <button type="submit" className="btn brand block" disabled={busy !== null}>
                 {busy === 'password'
                   ? t.dash.signingIn
                   : mode === 'sign_up'

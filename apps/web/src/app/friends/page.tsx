@@ -21,6 +21,8 @@ import { waves } from '@/lib/waves';
 import { money } from '@/lib/money';
 import { plural } from '@/i18n';
 import { useStrings } from '@/i18n-context';
+import { UserRound } from 'lucide-react';
+import { EmptyState } from '@/components/EmptyState';
 
 interface Person {
   key: string;
@@ -72,7 +74,7 @@ function Friends({ query }: { query: string }) {
           {loading ? (
             <SkeletonRows rows={6} />
           ) : shown.length === 0 ? (
-            <p className="muted">{t.friends.empty}</p>
+            <EmptyState Icon={UserRound} title={t.friends.empty} />
           ) : (
             <div className="list">
               {shown.map((person) => (
@@ -82,7 +84,7 @@ function Friends({ query }: { query: string }) {
                 <div key={person.key} className="item-pair">
                   <Link href={`/friends/${encodeURIComponent(person.key)}`} className="item grow">
                     <span className="avatar" aria-hidden style={{ width: 38, height: 38 }}>
-                      {person.name.trim().charAt(0).toUpperCase() || '🙂'}
+                      {person.name.trim().charAt(0).toUpperCase() || '?'}
                     </span>
                     <span className="grow">
                       <span className="title">{person.name}</span>

@@ -105,7 +105,7 @@ export function JoinFlow({ token }: { token: string }) {
 
   if (error && !preview) {
     return (
-      <main>
+      <main className="guest">
         <div className="card">
           <h1>{t.join.linkBroken}</h1>
           {/* The two sentences around this used to have the backend's own
@@ -120,7 +120,7 @@ export function JoinFlow({ token }: { token: string }) {
 
   if (!preview) {
     return (
-      <main>
+      <main className="guest">
         <div className="card">
           <p className="muted">{t.join.opening}</p>
         </div>
@@ -134,13 +134,14 @@ export function JoinFlow({ token }: { token: string }) {
 
   if (pending) {
     return (
-      <main>
+      <main className="guest">
         <div className="card">
           <h1>{t.join.waitingTitle}</h1>
           <p>{fill(t.join.waitingBody, { group: groupName, name: claimedName })}</p>
         </div>
         <button
           type="button"
+          className="btn soft block"
           onClick={() => {
             setClaimId(null);
             setPending(false);
@@ -155,7 +156,7 @@ export function JoinFlow({ token }: { token: string }) {
   }
 
   return (
-    <main>
+    <main className="guest">
       <div className="card">
         <h1>
           {preview.group?.cover_emoji ? `${preview.group.cover_emoji} ` : ''}
@@ -208,7 +209,7 @@ export function JoinFlow({ token }: { token: string }) {
 
       {error ? <p className="error">{error}</p> : null}
 
-      <button type="button" onClick={() => void join()} disabled={joining}>
+      <button type="button" className="btn block lg" onClick={() => void join()} disabled={joining}>
         {joining
           ? t.join.joining
           : claimId

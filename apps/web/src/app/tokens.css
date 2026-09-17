@@ -1,0 +1,241 @@
+/*
+ * GENERATED FILE — do not edit.
+ *
+ * Written by apps/web/scripts/generate-tokens.mjs from packages/ui/src/themes.ts
+ * and tokens.ts, which is where a Waves colour, radius or type step is decided.
+ * Change it there and run `pnpm --filter @waves/web tokens`.
+ *
+ * Three blocks, because a viewer has three states and not two: no preference
+ * (the bare :root plus the media query), an explicit light choice (which must
+ * beat a dark operating system, hence the :not()), and an explicit dark one.
+ */
+
+:root {
+  --w-bg: #F3F1FB;
+  --w-surface: #FFFFFF;
+  --w-surface-muted: #F5F2FF;
+  --w-border: #EDEDF5;
+  --w-text: #14142B;
+  --w-text-muted: #54566B;
+  --w-text-faint: #7B7B8F;
+  --w-brand: #6C4EE3;
+  --w-brand-pressed: #5638C4;
+  --w-brand-soft: #E9E4FF;
+  --w-on-brand: #FFFFFF;
+  --w-button-primary: #181818;
+  --w-button-primary-pressed: #2E2E2E;
+  --w-on-button-primary: #FFFFFF;
+  --w-skeleton: #D9DAE6;
+  --w-positive: #2563EB;
+  --w-positive-soft: #DCE1FF;
+  --w-negative: #E84A66;
+  --w-negative-soft: #F8D7DA;
+  --w-warning: #D98218;
+  --w-warning-soft: #FBE0C4;
+  --w-brand-solid: #6C4EE3;
+  --w-brand-solid-hover: #5638C4;
+  --w-button-primary-border: transparent;
+  --w-border-strong: #D9DAE6;
+  --w-gradient-brand: linear-gradient(135deg, #4326A6, #5B3FD1, #6C4EE3);
+  --w-gradient-accent: linear-gradient(135deg, #C2410C, #EA580C, #F97316);
+  --w-gradient-positive: linear-gradient(135deg, #1E3A8A, #1D4ED8, #2563EB);
+  --w-gradient-negative: linear-gradient(135deg, #8C1D3F, #B01D50, #D22C63);
+  --w-tint-lilac: #DCD9FB;
+  --w-tint-lilac-ink: #413792;
+  --w-tint-lilac-ink-muted: #4B3FA8;
+  --w-tint-pink: #F8D7DA;
+  --w-tint-pink-ink: #964450;
+  --w-tint-pink-ink-muted: #964450;
+  --w-tint-mint: #DCE1FF;
+  --w-tint-mint-ink: #2E3A8C;
+  --w-tint-mint-ink-muted: #3B47A0;
+  --w-tint-peach: #FBE0C4;
+  --w-tint-peach-ink: #674215;
+  --w-tint-peach-ink-muted: #8E5A1D;
+  --w-tint-sky: #CFE6FA;
+  --w-tint-sky-ink: #154C77;
+  --w-tint-sky-ink-muted: #1D68A3;
+  --w-tint-coral: #FFC5C5;
+  --w-tint-coral-ink: #963B2F;
+  --w-tint-coral-ink-muted: #963B2F;
+  --w-rail: #0E0E1A;
+  --w-rail-raised: #1E1E36;
+  --w-rail-ink: #C3C8D4;
+  --w-rail-ink-faint: #7C8393;
+  --w-rail-line: rgb(255 255 255 / 0.08);
+  --w-shadow-soft: 0 8px 24px rgb(30 20 80 / 0.080);
+  --w-shadow-lifted: 0 12px 28px rgb(30 20 80 / 0.160);
+  --w-shadow-hairline: 0 1px 2px rgb(30 20 80 / 0.060);
+  --w-shadow-menu: 0 10px 30px rgb(30 20 80 / 0.180);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --w-bg: #0E0E1A;
+    --w-surface: #16162A;
+    --w-surface-muted: #1E1E36;
+    --w-border: #2A2A47;
+    --w-text: #F4F3FF;
+    --w-text-muted: #9E9EB8;
+    --w-text-faint: #6B6B85;
+    --w-brand: #8B6FF0;
+    --w-brand-pressed: #6C4EE3;
+    --w-brand-soft: #2A2250;
+    --w-on-brand: #FFFFFF;
+    --w-button-primary: #181818;
+    --w-button-primary-pressed: #2E2E2E;
+    --w-on-button-primary: #FFFFFF;
+    --w-skeleton: #2A2A47;
+    --w-positive: #60A5FA;
+    --w-positive-soft: #17325C;
+    --w-negative: #FF7088;
+    --w-negative-soft: #4A2A31;
+    --w-warning: #E8A54B;
+    --w-warning-soft: #463020;
+    --w-brand-solid: #6C4EE3;
+    --w-brand-solid-hover: #8B6FF0;
+    --w-button-primary-border: rgb(255 255 255 / 0.2);
+    --w-border-strong: #2A2A47;
+    --w-gradient-brand: linear-gradient(135deg, #2E1E6B, #4326A6, #5B3FD1);
+    --w-gradient-accent: linear-gradient(135deg, #7C2D12, #B4471C, #EA580C);
+    --w-gradient-positive: linear-gradient(135deg, #13275E, #1E40AF, #2563EB);
+    --w-gradient-negative: linear-gradient(135deg, #611228, #8C1D3F, #A81F4C);
+    --w-tint-lilac: #2E2A57;
+    --w-tint-lilac-ink: #C9C2FF;
+    --w-tint-lilac-ink-muted: #9993CB;
+    --w-tint-pink: #4A2A31;
+    --w-tint-pink-ink: #FFC2CA;
+    --w-tint-pink-ink-muted: #C59199;
+    --w-tint-mint: #26306B;
+    --w-tint-mint-ink: #C7CEFF;
+    --w-tint-mint-ink-muted: #9AA1DC;
+    --w-tint-peach: #463020;
+    --w-tint-peach-ink: #F7CFA2;
+    --w-tint-peach-ink-muted: #BB9976;
+    --w-tint-sky: #1B3A52;
+    --w-tint-sky-ink: #AFD8F7;
+    --w-tint-sky-ink-muted: #81A7C4;
+    --w-tint-coral: #4C2A28;
+    --w-tint-coral-ink: #FFB3AE;
+    --w-tint-coral-ink-muted: #CF8E8A;
+    --w-rail: #16162A;
+    --w-rail-raised: #2A2A47;
+    --w-rail-ink: #C6C6DA;
+    --w-rail-ink-faint: #83839C;
+    --w-rail-line: rgb(255 255 255 / 0.1);
+    --w-shadow-soft: 0 8px 24px rgb(0 0 0 / 0.192);
+    --w-shadow-lifted: 0 12px 28px rgb(0 0 0 / 0.384);
+    --w-shadow-hairline: 0 1px 2px rgb(0 0 0 / 0.144);
+    --w-shadow-menu: 0 10px 30px rgb(0 0 0 / 0.432);
+  }
+}
+
+:root[data-theme='dark'] {
+  --w-bg: #0E0E1A;
+  --w-surface: #16162A;
+  --w-surface-muted: #1E1E36;
+  --w-border: #2A2A47;
+  --w-text: #F4F3FF;
+  --w-text-muted: #9E9EB8;
+  --w-text-faint: #6B6B85;
+  --w-brand: #8B6FF0;
+  --w-brand-pressed: #6C4EE3;
+  --w-brand-soft: #2A2250;
+  --w-on-brand: #FFFFFF;
+  --w-button-primary: #181818;
+  --w-button-primary-pressed: #2E2E2E;
+  --w-on-button-primary: #FFFFFF;
+  --w-skeleton: #2A2A47;
+  --w-positive: #60A5FA;
+  --w-positive-soft: #17325C;
+  --w-negative: #FF7088;
+  --w-negative-soft: #4A2A31;
+  --w-warning: #E8A54B;
+  --w-warning-soft: #463020;
+  --w-brand-solid: #6C4EE3;
+  --w-brand-solid-hover: #8B6FF0;
+  --w-button-primary-border: rgb(255 255 255 / 0.2);
+  --w-border-strong: #2A2A47;
+  --w-gradient-brand: linear-gradient(135deg, #2E1E6B, #4326A6, #5B3FD1);
+  --w-gradient-accent: linear-gradient(135deg, #7C2D12, #B4471C, #EA580C);
+  --w-gradient-positive: linear-gradient(135deg, #13275E, #1E40AF, #2563EB);
+  --w-gradient-negative: linear-gradient(135deg, #611228, #8C1D3F, #A81F4C);
+  --w-tint-lilac: #2E2A57;
+  --w-tint-lilac-ink: #C9C2FF;
+  --w-tint-lilac-ink-muted: #9993CB;
+  --w-tint-pink: #4A2A31;
+  --w-tint-pink-ink: #FFC2CA;
+  --w-tint-pink-ink-muted: #C59199;
+  --w-tint-mint: #26306B;
+  --w-tint-mint-ink: #C7CEFF;
+  --w-tint-mint-ink-muted: #9AA1DC;
+  --w-tint-peach: #463020;
+  --w-tint-peach-ink: #F7CFA2;
+  --w-tint-peach-ink-muted: #BB9976;
+  --w-tint-sky: #1B3A52;
+  --w-tint-sky-ink: #AFD8F7;
+  --w-tint-sky-ink-muted: #81A7C4;
+  --w-tint-coral: #4C2A28;
+  --w-tint-coral-ink: #FFB3AE;
+  --w-tint-coral-ink-muted: #CF8E8A;
+  --w-rail: #16162A;
+  --w-rail-raised: #2A2A47;
+  --w-rail-ink: #C6C6DA;
+  --w-rail-ink-faint: #83839C;
+  --w-rail-line: rgb(255 255 255 / 0.1);
+  --w-shadow-soft: 0 8px 24px rgb(0 0 0 / 0.192);
+  --w-shadow-lifted: 0 12px 28px rgb(0 0 0 / 0.384);
+  --w-shadow-hairline: 0 1px 2px rgb(0 0 0 / 0.144);
+  --w-shadow-menu: 0 10px 30px rgb(0 0 0 / 0.432);
+}
+
+:root {
+  --w-radius-sm: 12px;
+  --w-radius-md: 16px;
+  --w-radius-lg: 20px;
+  --w-radius-xl: 24px;
+  --w-radius-xxl: 32px;
+  --w-radius-pill: 999px;
+  --w-space-xs: 4px;
+  --w-space-sm: 8px;
+  --w-space-md: 12px;
+  --w-space-lg: 16px;
+  --w-space-xl: 20px;
+  --w-space-xxl: 24px;
+  --w-space-xxxl: 32px;
+  --w-icon-micro: 10px;
+  --w-icon-xs: 12px;
+  --w-icon-sm: 14px;
+  --w-icon-base: 16px;
+  --w-icon-md: 18px;
+  --w-icon-lg: 20px;
+  --w-icon-xl: 22px;
+  --w-icon-xxl: 24px;
+  --w-icon-xxxl: 26px;
+  --w-icon-jumbo: 30px;
+  --w-icon-huge: 36px;
+  --w-icon-hero: 40px;
+  --w-font-display: 34px;
+  --w-leading-display: 40px;
+  --w-weight-display: 700;
+  --w-font-title: 24px;
+  --w-leading-title: 30px;
+  --w-weight-title: 700;
+  --w-font-heading: 19px;
+  --w-leading-heading: 25px;
+  --w-weight-heading: 700;
+  --w-font-subheading: 16px;
+  --w-leading-subheading: 22px;
+  --w-weight-subheading: 600;
+  --w-font-body: 15px;
+  --w-leading-body: 21px;
+  --w-weight-body: 500;
+  --w-font-caption: 13px;
+  --w-leading-caption: 18px;
+  --w-weight-caption: 500;
+  --w-font-micro: 11px;
+  --w-leading-micro: 15px;
+  --w-weight-micro: 600;
+  --w-duration-fast: 140ms;
+  --w-duration-normal: 220ms;
+}

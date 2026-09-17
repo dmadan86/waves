@@ -207,7 +207,7 @@ export function Overview({ profileId, query }: { profileId: string; query: strin
             </section>
           ) : (
             <section className="hero hero-flat">
-              <div className="hero-amount hero-flat-line">🎉 {t.dash.allSettled}</div>
+              <div className="hero-amount hero-flat-line">{t.dash.allSettled}</div>
             </section>
           )
         ) : null}

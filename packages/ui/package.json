@@ -6,6 +6,8 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
+    "./tokens": "./src/tokens.ts",
+    "./themes": "./src/themes.ts",
     "./curve": "./src/curve.ts",
     "./press": "./src/press.ts",
     "./useSingleAction": "./src/useSingleAction.ts",
