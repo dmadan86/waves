@@ -9,7 +9,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { SimplifySide, simplifyItems, type SimplifyTransfer } from '@/lib/simplifyRows';
+import { SimplifySide, simplifyItems, type SimplifyTransfer } from '../src/simplify/rows';
 
 const transfer = (from: string, to: string, amount = 500n): SimplifyTransfer => ({
   from,

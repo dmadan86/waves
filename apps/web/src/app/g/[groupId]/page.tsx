@@ -30,9 +30,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { ArrowRight, History, Receipt, Scale } from 'lucide-react';
+import { History, Receipt, Scale } from 'lucide-react';
 
-import { myStake } from '@waves/core';
+import { myStake, simplifyItems, SimplifySide } from '@waves/core';
 import {
   computeLedger,
   nameOf,
@@ -52,7 +52,7 @@ import { waves } from '@/lib/waves';
 import { money } from '@/lib/money';
 import { groupByMonth, monthLabel } from '@/lib/ledgerFeed';
 import { describeActivity, VerbIcon } from '@/lib/activity';
-import { plural } from '@/i18n';
+import { fill, plural } from '@/i18n';
 import { useStrings } from '@/i18n-context';
 import { friendlyError } from '@/lib/errors';
 
@@ -215,6 +215,19 @@ function GroupDetail({
   const currency = group.default_currency;
   const ledger = computeLedger(expenses, settlements, currency);
   const byId = new Map(members.map((member) => [member.id, member]));
+  /**
+   * A member's name for a sentence about them.
+   *
+   * A settling payment can name somebody the member list does not have — a
+   * departed member, or a row that arrived before the roster did. That has to
+   * be said in the reader's language: `nameOf` answers a hardcoded English
+   * "Someone", which inside an otherwise-Tamil sentence is worse than the gap
+   * it fills.
+   */
+  const who = (memberId: string) => {
+    const member = byId.get(memberId);
+    return member ? nameOf(member) : t.join.someone;
+  };
   const live = expenses.filter((expense) => !expense.deleted_at && expense.currentVersion);
   const deletedCount = expenses.filter((expense) => expense.deleted_at).length;
 
@@ -358,29 +371,52 @@ function GroupDetail({
                 <p className="faint" style={{ marginTop: -6, marginBottom: 10 }}>
                   {t.group.whoPaysWhomNote}
                 </p>
+                {/* Split into the payments that touch the reader and everybody
+                    else's, and said as a sentence rather than as two names with
+                    an arrow between them. `simplifyItems` decides both, shared
+                    with the phone so the two screens cannot order the same
+                    ledger differently. */}
                 <div className="list">
-                  {ledger.transfers.map((transfer, index) => (
-                    <div key={index} className="item" style={{ cursor: 'default' }}>
-                      <span className="grow">
-                        <span className="title transfer">
-                          {nameOf(byId.get(transfer.from) ?? fallback(transfer.from))}
-                          {/* The direction of a payment, drawn rather than
-                              typed: an arrow character points the wrong way in
-                              Arabic, where this row reads right to left. */}
-                          <ArrowRight
-                            size={15}
-                            strokeWidth={2}
-                            className="transfer-arrow"
-                            aria-hidden
-                          />
-                          {nameOf(byId.get(transfer.to) ?? fallback(transfer.to))}
+                  {simplifyItems(ledger.transfers, myMember?.id ?? null).map((item) =>
+                    item.kind === 'heading' ? (
+                      <h3 key={item.key} className="row-heading">
+                        {item.section === 'yours' ? t.group.yourPayments : t.group.otherPayments}
+                      </h3>
+                    ) : (
+                      <div key={item.key} className="item" style={{ cursor: 'default' }}>
+                        <span className="grow">
+                          <span className="title sentence">
+                            {item.side === SimplifySide.YouPay
+                              ? fill(t.group.youPayName, {
+                                  name: who(item.transfer.to),
+                                })
+                              : item.side === SimplifySide.YouReceive
+                                ? fill(t.group.namePaysYou, {
+                                    name: who(item.transfer.from),
+                                  })
+                                : fill(t.group.paysWhom, {
+                                    from: who(item.transfer.from),
+                                    to: who(item.transfer.to),
+                                  })}
+                          </span>
                         </span>
-                      </span>
-                      <span className="amount">
-                        {money(transfer.amount, transfer.currency, locale)}
-                      </span>
-                    </div>
-                  ))}
+                        {/* Coloured only when the reader is on the row: money
+                            between two other people is not owed to or by them,
+                            and painting it would say it was. */}
+                        <span
+                          className={`amount${
+                            item.side === SimplifySide.YouPay
+                              ? ' neg'
+                              : item.side === SimplifySide.YouReceive
+                                ? ' pos'
+                                : ''
+                          }`}
+                        >
+                          {money(item.transfer.amount, item.transfer.currency, locale)}
+                        </span>
+                      </div>
+                    ),
+                  )}
                 </div>
               </section>
             ) : (
@@ -542,13 +578,3 @@ function ExpenseRow({
 }
 
 /** A member who has left is still on old expenses; the transfer still names them. */
-function fallback(memberId: string): Member {
-  return {
-    id: memberId,
-    group_id: '',
-    profile_id: null,
-    ghost_name: null,
-    left_at: null,
-    profile: null,
-  };
-}

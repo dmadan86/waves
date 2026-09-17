@@ -25,7 +25,10 @@ import {
   BalanceDirection,
   format as formatMoney,
   money as coreMoney,
+  simplifyItems,
+  SimplifySide,
   type CurrencyCode,
+  type SimplifyItem,
 } from '@waves/core';
 
 import { memberLookup, useGhostMergePersonIds, useGroup, useGroupLedger } from '@/data/hooks';
@@ -43,7 +46,6 @@ import { fill, plural, useStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
 import { router } from '@/lib/navigation';
 import { usePullRefresh } from '@/lib/pullRefresh';
-import { SimplifySide, simplifyItems, type SimplifyItem } from '@/lib/simplifyRows';
 
 /**
  * One proposed payment.

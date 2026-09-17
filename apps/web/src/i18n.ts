@@ -173,6 +173,13 @@ export interface WebStrings {
     owes: string;
     whoPaysWhom: string;
     whoPaysWhomNote: string;
+    /** The who-pays-whom rows, worded as the phone words them. */
+    youPayName: string;
+    namePaysYou: string;
+    paysWhom: string;
+    /** Section headings, shown only when there is something on both sides. */
+    yourPayments: string;
+    otherPayments: string;
     recent: string;
     addAnExpense: string;
     installNote: string;
@@ -755,6 +762,11 @@ const en: WebStrings = {
     whoPaysWhom: 'Who pays whom',
     whoPaysWhomNote:
       'The fewest payments that settle everybody. Nobody is made to pay somebody they never split anything with.',
+    youPayName: 'You pay {name}',
+    namePaysYou: '{name} pays you',
+    paysWhom: '{from} pays {to}',
+    yourPayments: 'Your payments',
+    otherPayments: 'Between other people',
     recent: 'Recent',
     addAnExpense: 'Add an expense',
     installNote:
@@ -1311,6 +1323,11 @@ const ta: WebStrings = {
     whoPaysWhom: 'யார் யாருக்குத் தருவது',
     whoPaysWhomNote:
       'அனைவரையும் தீர்க்கும் மிகக் குறைந்த கொடுப்பனவுகள். எதையும் சேர்ந்து பிரிக்காத ஒருவருக்கு யாரும் பணம் தர வேண்டியதில்லை.',
+    youPayName: 'நீங்கள் {name}க்குச் செலுத்துகிறீர்கள்',
+    namePaysYou: '{name} உங்களுக்குச் செலுத்துகிறார்',
+    paysWhom: '{from} {to}க்குச் செலுத்துகிறார்',
+    yourPayments: 'உங்கள் பரிமாற்றங்கள்',
+    otherPayments: 'மற்றவர்களுக்கு இடையே',
     recent: 'சமீபத்தியவை',
     addAnExpense: 'ஒரு செலவைச் சேர்',
     installNote:
@@ -1879,6 +1896,11 @@ const hi: WebStrings = {
     whoPaysWhom: 'कौन किसे देगा',
     whoPaysWhomNote:
       'सबका हिसाब बराबर करने वाले सबसे कम भुगतान। किसी को ऐसे व्यक्ति को पैसे देने के लिए नहीं कहा जाता जिसके साथ उसने कभी कुछ बाँटा ही नहीं।',
+    youPayName: 'आप {name} को भुगतान करते हैं',
+    namePaysYou: '{name} आपको भुगतान करते हैं',
+    paysWhom: '{from} {to} को भुगतान करते हैं',
+    yourPayments: 'आपके भुगतान',
+    otherPayments: 'बाकी लोगों के बीच',
     recent: 'हाल के',
     addAnExpense: 'खर्च जोड़ें',
     installNote:
@@ -2448,6 +2470,11 @@ const ar: WebStrings = {
     whoPaysWhom: 'من يدفع لمن',
     whoPaysWhomNote:
       'أقل عدد من الدفعات يسوّي حساب الجميع. ولا يُطلب من أحد أن يدفع لشخص لم يقسّم معه شيئًا قط.',
+    youPayName: 'تدفع لـ {name}',
+    namePaysYou: 'يدفع لك {name}',
+    paysWhom: 'يدفع {from} لـ {to}',
+    yourPayments: 'دفعاتك',
+    otherPayments: 'بين أشخاص آخرين',
     recent: 'الأحدث',
     addAnExpense: 'أضف مصروفًا',
     installNote: 'ثبّت Waves لمسح الإيصالات والتسوية عبر UPI ولكي يعمل هذا دون اتصال.',
