@@ -40,8 +40,10 @@ import {
   type ActivityRow,
   type BalanceRow,
   type DisputeRow,
+  type ExpenseAttachment,
   type ExpenseComment,
   type ExpenseVersionSummary,
+  type Receipt,
   type GroupRow,
   type GroupType,
   type ExportResult,
@@ -81,11 +83,14 @@ const MEMBER_COLUMNS = `
   profile:profiles!profile_id ( display_name )
 `;
 
+/** How long a signed image URL lives. Matches the phone's. */
+const SIGNED_URL_TTL_SECONDS = 60 * 60;
+
 const EXPENSE_COLUMNS = `
   id, group_id, deleted_at, created_at,
   currentVersion:expense_versions!expenses_current_version_id_fkey (
     id, version_no, description, category, expense_date, currency, amount,
-    split_type, split_params, location,
+    split_type, split_params, location, receipt_id, receipt_share_url,
     payers:expense_payers ( member_id, amount ),
     shares:expense_shares ( member_id, amount )
   )
@@ -93,6 +98,14 @@ const EXPENSE_COLUMNS = `
 
 export interface WavesClientOptions {
   supabase: SupabaseClient;
+  /**
+   * Whether images live in R2 (A44). Passed in rather than read from the
+   * environment: the phone spells its flag `EXPO_PUBLIC_R2_ENABLED` and the web
+   * `NEXT_PUBLIC_R2_ENABLED`, and a shared package should not have to know
+   * either. Off means the old Supabase Storage path, which is what production
+   * still runs.
+   */
+  r2Enabled?: boolean;
 }
 
 /**
@@ -114,7 +127,7 @@ export class WavesApiError extends Error {
   }
 }
 
-export function createWavesClient({ supabase }: WavesClientOptions) {
+export function createWavesClient({ supabase, r2Enabled = false }: WavesClientOptions) {
   /**
    * PostgREST answers "you may not see this" with an empty list, not an error
    * — that is RLS doing its job. Only a real failure throws.
@@ -455,6 +468,102 @@ export function createWavesClient({ supabase }: WavesClientOptions) {
           .eq('expense_id', expenseId)
           .order('version_no', { ascending: false }),
       );
+    },
+
+    // ────────────────────────────────────────── the bill behind an expense ──
+
+    /** The kept bill for one expense, or null. Group-readable under RLS. */
+    async receipt(receiptId: string): Promise<Receipt | null> {
+      const rows = await read<Receipt>(
+        supabase
+          .from('receipts')
+          .select('id, group_id, storage_path, created_at')
+          .eq('id', receiptId)
+          .limit(1),
+      );
+      return rows[0] ?? null;
+    },
+
+    /**
+     * Images attached to one expense, oldest first.
+     *
+     * The party-only ones simply do not come back for somebody who is not on
+     * the bill — that is the RLS policy's job, not a filter here. Deleted rows
+     * are left out.
+     */
+    expenseAttachments(expenseId: string): Promise<ExpenseAttachment[]> {
+      return read<ExpenseAttachment>(
+        supabase
+          .from('expense_attachments')
+          .select(
+            'id, expense_id, group_id, uploader_member_id, storage_path, visibility, created_at',
+          )
+          .eq('expense_id', expenseId)
+          .is('deleted_at', null)
+          .order('created_at', { ascending: true }),
+      );
+    },
+
+    // ───────────────────────────────────────────── resolving an image (A44) ──
+    // Images have two homes: Cloudflare R2 for everything uploaded since the
+    // cut-over, Supabase Storage for anything before it. A caller must not have
+    // to care which, so both of these take a path and hand back a URL — or null,
+    // because a missing image is a blank space and never a thrown screen.
+    //
+    // This is the read half of the seam the phone has in `lib/storage`. The
+    // write half stays there: the browser uploads nothing yet.
+
+    /**
+     * A short-lived URL for a group-readable object — a receipt, a group photo,
+     * an avatar.
+     */
+    async imageUrl(bucket: string, path: string | null): Promise<string | null> {
+      if (!path) return null;
+
+      if (!r2Enabled) {
+        const { data, error } = await supabase.storage
+          .from(bucket)
+          .createSignedUrl(path, SIGNED_URL_TTL_SECONDS);
+        if (error) return null;
+        return data?.signedUrl ?? null;
+      }
+
+      try {
+        const { data, error } = await supabase.functions.invoke('r2-sign', {
+          body: { action: 'get', bucket, path },
+        });
+        if (error) return null;
+        return (data as { url?: string } | null)?.url ?? null;
+      } catch {
+        return null;
+      }
+    },
+
+    /**
+     * A short-lived URL for a party-only object — an expense attachment, a
+     * settlement proof.
+     *
+     * Addressed by *subject* (the expense or settlement), not by path: the edge
+     * function re-checks that the caller is a party to it before signing, so a
+     * leaked key is not a readable object. These live only on R2, so with R2 off
+     * there is nothing to resolve and this answers null rather than reaching for
+     * a bucket that would not gate the read.
+     */
+    async restrictedImageUrl(
+      bucket: string,
+      subjectId: string,
+      path: string | null,
+    ): Promise<string | null> {
+      if (!path || !r2Enabled) return null;
+      try {
+        const { data, error } = await supabase.functions.invoke('r2-sign', {
+          body: { action: 'get', bucket, subjectId, path },
+        });
+        if (error) return null;
+        return (data as { url?: string } | null)?.url ?? null;
+      } catch {
+        return null;
+      }
     },
 
     // ───────────────────────────────────────── comments on an expense (A46) ──
