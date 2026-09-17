@@ -7,8 +7,9 @@
  * painted "owed to you" in a green the design system had already replaced with
  * a blue, and nothing anywhere said so.
  *
- * So: regenerate into a scratch copy and compare. If they differ, somebody
- * changed a token and did not run `pnpm --filter @waves/web tokens`.
+ * So: regenerate and compare. Into a scratch file, never over the committed
+ * one — a test that repairs the thing it is checking reports a pass on the
+ * second run and leaves an unexplained edit in the working tree on the first.
  *
  * The second test is narrower and blunter. It asserts the one rule the system
  * states in prose — that the palette carries no green, and that money owed to
@@ -18,16 +19,16 @@
  */
 
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
 const GENERATOR = fileURLToPath(new URL('../scripts/generate-tokens.mjs', import.meta.url));
 const TOKENS = fileURLToPath(new URL('../src/app/tokens.css', import.meta.url));
 
-function committed(): string {
-  return readFileSync(TOKENS, 'utf8');
-}
+const committed = (): string => readFileSync(TOKENS, 'utf8');
 
 /** Every colour the stylesheet declares, as lowercase six-digit hex. */
 function hexes(css: string): string[] {
@@ -46,13 +47,17 @@ function isGreen(hex: string): boolean {
 
 describe('tokens.css', () => {
   it('is what the generator would write today', () => {
-    const before = committed();
-    execFileSync(process.execPath, [GENERATOR], { stdio: 'pipe' });
-    const after = committed();
-    expect(
-      after,
-      'tokens.css is stale — run `pnpm --filter @waves/web tokens` and commit the result',
-    ).toBe(before);
+    const scratch = mkdtempSync(join(tmpdir(), 'waves-tokens-'));
+    try {
+      const fresh = join(scratch, 'tokens.css');
+      execFileSync(process.execPath, [GENERATOR, fresh], { stdio: 'pipe' });
+      expect(
+        committed(),
+        'tokens.css is stale — run `pnpm --filter @waves/web tokens` and commit the result',
+      ).toBe(readFileSync(fresh, 'utf8'));
+    } finally {
+      rmSync(scratch, { recursive: true, force: true });
+    }
   });
 
   it('carries no green, because the palette is green-free', () => {

@@ -21,7 +21,7 @@
 
 import { existsSync, writeFileSync } from 'node:fs';
 import { registerHooks } from 'node:module';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 // The design system is written the way TypeScript wants it — `import './tokens'`
@@ -48,7 +48,12 @@ const ui = (file) =>
 const { darkTheme, lightTheme } = await import(ui('themes.ts'));
 const { duration, iconSize, palette, radius, spacing, typography } = await import(ui('tokens.ts'));
 
-const OUT = join(here, '..', 'src', 'app', 'tokens.css');
+// Where to write. The committed path by default; a caller may name another,
+// which is how the freshness test generates a throwaway copy to compare
+// against instead of overwriting the very file it is checking.
+const OUT = process.argv[2]
+  ? resolve(process.argv[2])
+  : join(here, '..', 'src', 'app', 'tokens.css');
 
 /** `surfaceMuted` → `surface-muted`, so a token reads like CSS rather than JS. */
 const kebab = (name) => name.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);

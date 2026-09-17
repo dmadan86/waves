@@ -474,12 +474,26 @@
 
   .app-main {
     min-width: 0;
+    width: 100%;
+    /* Wide enough for a dense table, narrow enough that a list of names does
+       not run the width of a 27-inch monitor. */
+    max-width: 1180px;
     padding: 24px 28px 48px;
   }
 
   .detail {
     border-inline-start: 1px solid var(--w-border);
     padding: 24px 20px 48px;
+  }
+
+  /* Most pages render `<aside className="detail" />` and put nothing in it.
+     Empty, it should take no column beside the canvas and — once the tiers
+     stack it — leave no bordered strip of padding under the page either. */
+  .detail:empty {
+    display: none;
+  }
+  .app-body:has(> .detail:empty) {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   /* The page says its own name. The old file hid every `h1` in favour of a word

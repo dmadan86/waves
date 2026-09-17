@@ -63,11 +63,19 @@ function readChoice(): ThemeChoice {
 
 function subscribeChoice(onChange: () => void): () => void {
   watchers.add(onChange);
-  // Another tab changing the preference should move this one too.
-  window.addEventListener('storage', onChange);
+  // Another tab changing the preference should move this one too — and moving
+  // means re-stamping the document, not only re-rendering. Without the stamp
+  // the switch here would report Light while the page stayed dark until a
+  // reload, because `data-theme` is only ever written by whoever made the
+  // change. `setChoice` stamps for the tab it runs in; this stamps for the rest.
+  const fromAnotherTab = () => {
+    stamp(readChoice());
+    onChange();
+  };
+  window.addEventListener('storage', fromAnotherTab);
   return () => {
     watchers.delete(onChange);
-    window.removeEventListener('storage', onChange);
+    window.removeEventListener('storage', fromAnotherTab);
   };
 }
 
