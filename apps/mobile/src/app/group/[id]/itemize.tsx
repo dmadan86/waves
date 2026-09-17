@@ -109,6 +109,20 @@ export default function ItemizeScreen() {
   const claims = useItemClaims(sharedId);
   const [publishing, setPublishing] = useState(false);
 
+  /**
+   * The id this bill will be written under, chosen here rather than by the
+   * server.
+   *
+   * It seeds the remainder rotation (ADR-009), so previewing under one id and
+   * writing under another puts the extra paisa on a different person and the
+   * server rightly refuses the write as a SHARE_MISMATCH — which is what this
+   * screen did: it previewed under a fixed 'itemize-draft' and then claimed
+   * those shares in `expectedShares`. Splitting ₹100 between three people was
+   * enough to hit it. Add-expense, voice and capture-assign have all chosen
+   * their own id for exactly this reason.
+   */
+  const [newExpenseId] = useState(() => randomUUID());
+
   const [description, setDescription] = useState('');
   const [items, setItems] = useState<DraftItem[]>([]);
   const [label, setLabel] = useState('');
@@ -318,12 +332,14 @@ export default function ItemizeScreen() {
         currency,
         params: splitParams,
         participants,
-        seed: 'itemize-draft',
+        // The id the write will carry, so this preview is the ledger's own
+        // answer and the claim below can be made honestly.
+        seed: newExpenseId,
       });
     } catch {
       return null;
     }
-  }, [shown, unclaimed.length, participants, grandTotal, currency, splitParams]);
+  }, [shown, unclaimed.length, participants, grandTotal, currency, splitParams, newExpenseId]);
 
   if (group.isLoading || members.isLoading) {
     // Shell first: the header paints instantly on navigation; only the items
@@ -460,6 +476,7 @@ export default function ItemizeScreen() {
     }
     try {
       await writeExpense.mutateAsync({
+        expenseId: newExpenseId,
         description: description.trim() || t.itemize.defaultDescription,
         expenseDate: new Date().toISOString().slice(0, 10),
         currency,
