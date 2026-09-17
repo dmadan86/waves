@@ -420,6 +420,13 @@ export interface WebStrings {
     changedElsewhere: string;
     danger: string;
   };
+  /** Light, dark, or whatever the machine is set to (the phone's Appearance). */
+  theme: {
+    label: string;
+    system: string;
+    light: string;
+    dark: string;
+  };
   settings: {
     title: string;
     profile: string;
@@ -868,6 +875,12 @@ const en: WebStrings = {
     changedElsewhere:
       'Somebody else changed this group while this page was open. Their version is above — check it, then save again.',
     danger: 'Careful',
+  },
+  theme: {
+    label: 'Appearance',
+    system: 'Device',
+    light: 'Light',
+    dark: 'Dark',
   },
   settings: {
     title: 'Settings',
@@ -1345,6 +1358,12 @@ const ta: WebStrings = {
       'இந்தப் பக்கம் திறந்திருந்தபோது வேறு ஒருவர் இந்தக் குழுவை மாற்றியுள்ளார். அவர்களின் பதிப்பு மேலே உள்ளது — பார்த்துவிட்டு மீண்டும் சேமிக்கவும்.',
     danger: 'கவனம்',
   },
+  theme: {
+    label: 'தோற்றம்',
+    system: 'சாதனம்',
+    light: 'வெளிச்சம்',
+    dark: 'இருள்',
+  },
   settings: {
     title: 'அமைப்புகள்',
     profile: 'நீங்கள்',
@@ -1816,6 +1835,12 @@ const hi: WebStrings = {
     changedElsewhere:
       'यह पेज खुला रहते हुए किसी और ने इस समूह में बदलाव किया। उनका संस्करण ऊपर है — देखकर फिर से सेव करें।',
     danger: 'सावधान',
+  },
+  theme: {
+    label: 'रूप-रंग',
+    system: 'डिवाइस',
+    light: 'हल्का',
+    dark: 'गहरा',
   },
   settings: {
     title: 'सेटिंग',
@@ -2334,6 +2359,12 @@ const ar: WebStrings = {
     changedElsewhere:
       'غيّر شخص آخر هذه المجموعة بينما كانت هذه الصفحة مفتوحة. نسخته ظاهرة أعلاه — راجعها ثم احفظ من جديد.',
     danger: 'انتبه',
+  },
+  theme: {
+    label: 'المظهر',
+    system: 'الجهاز',
+    light: 'فاتح',
+    dark: 'داكن',
   },
   settings: {
     title: 'الإعدادات',

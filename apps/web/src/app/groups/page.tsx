@@ -21,6 +21,8 @@ import { waves } from '@/lib/waves';
 import { plural } from '@/i18n';
 import { useStrings } from '@/i18n-context';
 import { friendlyError } from '@/lib/errors';
+import { Users } from 'lucide-react';
+import { EmptyState } from '@/components/EmptyState';
 
 export default function GroupsPage() {
   return <AppFrame current={Section.Groups}>{({ query }) => <Groups query={query} />}</AppFrame>;
@@ -124,10 +126,12 @@ function Groups({ query }: { query: string }) {
               </button>
             </>
           ) : live.length === 0 ? (
-            <>
-              <p className="muted">{t.groups.empty}</p>
-              <p className="faint">{t.groups.emptyBody}</p>
-            </>
+            <EmptyState
+              Icon={Users}
+              title={t.groups.empty}
+              body={t.groups.emptyBody}
+              action={{ label: t.groups.newGroup, href: '/new' }}
+            />
           ) : (
             <div className="list">{live.map(row)}</div>
           )}

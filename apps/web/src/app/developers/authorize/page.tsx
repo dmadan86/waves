@@ -43,6 +43,7 @@ import {
   serverSentence,
   type ConsentPreview,
 } from '@/lib/developerApi';
+import { Check } from 'lucide-react';
 
 export default function AuthorizePage() {
   return (
@@ -232,7 +233,7 @@ function Authorize() {
                 {preview.scope_descriptions.map((entry) => (
                   <div className="item" key={entry.scope} style={{ cursor: 'default' }}>
                     <span className="tile-emoji" aria-hidden>
-                      ✓
+                      <Check size={18} strokeWidth={2} />
                     </span>
                     <span className="grow">
                       <span className="title">{words[entry.scope] ?? entry.description}</span>

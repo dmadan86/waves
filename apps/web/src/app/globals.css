@@ -1,104 +1,191 @@
 /*
- * Tailwind v4, configured in CSS.
+ * The web client's stylesheet.
  *
- * The pastel palette that used to be a wall of hand-written custom properties
- * is now the Tailwind theme (@theme) — every colour, radius and shadow below is
- * a real token, so `bg-app-surface`, `text-ink`, `rounded-card` and friends are
- * generated utilities. The component classes the pages use are rebuilt from
- * those utilities with @apply rather than raw declarations, so there is one
- * source of truth for a spacing step or an ink tone.
+ * Every colour, radius, type step and duration below comes from `tokens.css`,
+ * which is generated from `packages/ui/src/themes.ts` — the same module the
+ * phone renders from. Nothing here invents a value. That is the whole point of
+ * the rewrite: the hand-copied palette this file used to carry had drifted far
+ * enough that the web painted "owed to you" green while the design system said
+ * in so many words that the palette is green-free and owed money is blue.
  *
- * The values still mirror packages/ui/src/tokens.ts and the mobile bold-card /
- * UX-colour-audit decisions; money colour stays semantic (owed-to-you green,
- * you-owe raspberry) and is used for nothing decorative.
+ * Structure, top to bottom:
+ *
+ *   1. The Tailwind theme, mapped `inline` onto the custom properties so every
+ *      generated utility follows the light/dark switch for free.
+ *   2. A base layer: a reset, focus, motion, and neutral defaults for the bare
+ *      elements. Buttons get *no* appearance here — the old file made every
+ *      `<button>` a full-width purple block, which is why forms read like a
+ *      wireframe. Text-like controls do keep a base style, because thirty-odd
+ *      of them across the app are written without a class and a boxed control
+ *      is the right default for all of them.
+ *   3. A component layer, in rough reading order: the shell, then the widgets
+ *      inside it, then forms, then the signed-out pages.
+ *   4. The layout tiers. Three of them, and the smallest is a bottom tab bar
+ *      carrying the same destinations the phone's tab bar carries.
  */
 
 @import 'tailwindcss';
-
-@theme {
-  --font-sans:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-
-  /* Guest-link palette (mirrors packages/ui) */
-  --color-brand: #7a5af8;
-  --color-brand-600: #6c4ee3;
-  --color-brand-100: #e9e4ff;
-  --color-bg: #f3f1fb;
-  --color-surface: #ffffff;
-  --color-text: #14142b;
-  --color-text-muted: #54566b;
-  --color-text-faint: #7b7b8f;
-  --color-border: #ededf5;
-  --color-positive: #0e9f6e;
-  --color-negative: #e5484d;
-
-  /* ── Full web client: the developer-portal palette (Port) ──
-   * A dark left rail against a light canvas of white, hairline-bordered
-   * widgets. One indigo accent owns every active state and primary action;
-   * money colour stays semantic (owed green, you-owe raspberry). */
-  --color-canvas: #f4f5f7; /* the page behind the cards (flat fallback) */
-  /* The canvas itself: a soft lavender→pink wash the white widgets float on. */
-  --gradient-canvas: linear-gradient(135deg, #dcd9fb 0%, #cfcbf6 28%, #e6d3ee 60%, #f9dcec 100%);
-  --color-app-surface: #ffffff; /* a card */
-  --color-panel: #f8f9fb; /* an inset inside a card */
-  --color-ink: #171a23;
-  --color-ink-muted: #5a6472;
-  --color-ink-faint: #98a1b0;
-  --color-line: #e7e9ee;
-  --color-line-strong: #d7dae1;
-  --color-pill: #eef0f4; /* hover wash / chips */
-
-  --color-accent: #5b50f0; /* the one indigo */
-  --color-accent-600: #4a3fe0;
-  --color-accent-soft: #eeecfe;
-
-  --color-sidebar: #14161f; /* the dark rail */
-  --color-sidebar-2: #1f222e; /* a hovered rail item */
-  --color-sidebar-ink: #c3c8d4;
-  --color-sidebar-faint: #7c8393;
-
-  --color-owed: #0e9f6e; /* owed-to-you, the one green */
-  --color-owe: #d21f5b; /* you-owe, raspberry (UX/color audit) */
-
-  --radius-app: 14px;
-  --radius-card: 12px;
-
-  --shadow-card: 0 1px 2px rgb(17 20 30 / 0.06), 0 1px 3px rgb(17 20 30 / 0.05);
-  --shadow-app: 0 1px 3px rgb(17 20 30 / 0.06);
-  --shadow-signin: 0 10px 40px rgb(17 20 30 / 0.12);
-  --shadow-menu: 0 10px 30px rgb(17 20 30 / 0.18);
-}
+@import './tokens.css';
 
 /*
- * Gradient tints stay plain custom properties: they are background-images, not
- * colours, so they are kept out of @theme (which would mint colour utilities of
- * them) and applied through the tint helpers.
+ * `inline` matters here. Without it a utility emits `var(--color-surface)`,
+ * which resolves where `--color-surface` was declared — the root — and a
+ * subtree that redefines the theme would be ignored. With it the utility emits
+ * the *value*, `var(--w-surface)`, which resolves where it is used. It is also
+ * what makes one set of utilities serve both themes.
  */
-:root {
-  --tint-paper: linear-gradient(160deg, #f4ebe4 0%, #efd9cb 100%);
-  --tint-peach: linear-gradient(150deg, #fbe6ce, #f6d3b2);
-  --tint-blue: linear-gradient(150deg, #d9e8fb, #bfd8f5);
-  --tint-lilac: linear-gradient(150deg, #e8dcf7, #d6c5f0);
-  --tint-rose: linear-gradient(150deg, #fad3de, #f4b9cc);
-  --tint-mint: linear-gradient(150deg, #d6efe0, #bfe6cf);
-  --tint-amber: linear-gradient(150deg, #fdecc8, #f8d99b);
+@theme inline {
+  --font-sans: var(--font-waves), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  --color-canvas: var(--w-bg);
+  --color-surface: var(--w-surface);
+  --color-panel: var(--w-surface-muted);
+  --color-line: var(--w-border);
+  --color-line-strong: var(--w-border-strong);
+  --color-ink: var(--w-text);
+  --color-ink-muted: var(--w-text-muted);
+  --color-ink-faint: var(--w-text-faint);
+
+  --color-brand: var(--w-brand);
+  --color-brand-pressed: var(--w-brand-pressed);
+  --color-brand-soft: var(--w-brand-soft);
+  --color-on-brand: var(--w-on-brand);
+
+  --color-solid: var(--w-button-primary);
+  --color-solid-pressed: var(--w-button-primary-pressed);
+  --color-on-solid: var(--w-on-button-primary);
+
+  /* The two money colours, and nothing else may use them. */
+  --color-owed: var(--w-positive);
+  --color-owed-soft: var(--w-positive-soft);
+  --color-owe: var(--w-negative);
+  --color-owe-soft: var(--w-negative-soft);
+  --color-warn: var(--w-warning);
+  --color-warn-soft: var(--w-warning-soft);
+
+  --color-rail: var(--w-rail);
+  --color-rail-raised: var(--w-rail-raised);
+  --color-rail-ink: var(--w-rail-ink);
+  --color-rail-ink-faint: var(--w-rail-ink-faint);
+
+  --radius-control: var(--w-radius-sm);
+  --radius-card: var(--w-radius-md);
+  --radius-app: var(--w-radius-lg);
+
+  --shadow-hairline: var(--w-shadow-hairline);
+  --shadow-soft: var(--w-shadow-soft);
+  --shadow-lifted: var(--w-shadow-lifted);
+  --shadow-menu: var(--w-shadow-menu);
 }
 
 @layer base {
-  :where(
-    a,
-    button,
-    input,
-    select,
-    textarea,
-    [role='button'],
-    .button,
-    .btn,
-    .side-link,
-    .item
-  ):focus-visible {
-    outline: 3px solid var(--color-accent);
-    outline-offset: 3px;
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    margin: 0;
+    height: 100%;
+  }
+
+  body {
+    background: var(--w-bg);
+    color: var(--w-text);
+    font-family: var(--font-sans);
+    font-size: var(--w-font-body);
+    line-height: var(--w-leading-body);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* One ramp, taken from the design system, instead of thirty hand-nudged
+     sizes. A heading is a heading on both clients or the two drift again. */
+  h1 {
+    margin: 0;
+    font-size: var(--w-font-title);
+    line-height: var(--w-leading-title);
+    font-weight: var(--w-weight-title);
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+  h2 {
+    margin: 0;
+    font-size: var(--w-font-heading);
+    line-height: var(--w-leading-heading);
+    font-weight: var(--w-weight-heading);
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+  h3 {
+    margin: 0;
+    font-size: var(--w-font-subheading);
+    line-height: var(--w-leading-subheading);
+    font-weight: var(--w-weight-subheading);
+  }
+  p {
+    margin: 0;
+    color: var(--w-text-muted);
+  }
+
+  /* A button gets no appearance from its tag. `.btn` and friends decide what a
+     button looks like, and a button with no class is a button somebody meant to
+     look like nothing. */
+  button {
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+  }
+  button:disabled {
+    cursor: default;
+  }
+
+  /* Text-like controls do take a base style: a boxed field, not the old
+     underline. Thirty of them across the app carry no class, and a box is the
+     right answer for every one. 16px on the smallest screens because iOS Safari
+     zooms the page when a field under 16px takes focus. */
+  input:not([type='checkbox']):not([type='radio']):not([type='range']),
+  select,
+  textarea {
+    width: 100%;
+    font: inherit;
+    font-size: var(--w-font-subheading);
+    color: var(--w-text);
+    background: var(--w-surface);
+    border: 1px solid var(--w-border-strong);
+    border-radius: var(--w-radius-sm);
+    padding: 10px 12px;
+    transition: border-color var(--w-duration-fast) ease;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--w-text-faint);
+  }
+
+  input:focus,
+  select:focus,
+  textarea:focus {
+    outline: none;
+    border-color: var(--w-brand);
+  }
+
+  input:disabled,
+  select:disabled,
+  textarea:disabled {
+    opacity: 0.55;
+    cursor: default;
+  }
+
+  input[type='checkbox'],
+  input[type='radio'] {
+    accent-color: var(--w-brand);
+    width: auto;
+  }
+
+  :where(a, button, input, select, textarea, [role='button'], .btn, .side-link, .item, .tab-link):focus-visible {
+    outline: 2px solid var(--w-brand);
+    outline-offset: 2px;
+    border-radius: var(--w-radius-sm);
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -111,399 +198,1023 @@
       transition-duration: 0.01ms !important;
     }
   }
-
-  * {
-    box-sizing: border-box;
-  }
-  html,
-  body {
-    margin: 0;
-    @apply bg-bg text-text font-sans antialiased;
-  }
-  h1 {
-    @apply m-0 text-[26px] leading-[1.2];
-  }
-  h2 {
-    @apply m-0 text-[17px];
-  }
-  p {
-    @apply m-0 text-text-muted leading-[1.5];
-  }
 }
 
 @layer components {
-  /* Guest-link pages */
-  main {
-    @apply mx-auto flex max-w-[520px] flex-col gap-5 px-5 pb-16 pt-6;
-  }
-  .card {
-    @apply flex flex-col gap-3 rounded-[20px] bg-surface p-5 shadow-card;
-  }
-  .muted {
-    @apply text-[14px] text-text-muted;
-  }
-  .faint {
-    @apply text-[13px] text-text-faint;
-  }
-  .error {
-    @apply text-[14px] text-negative;
-  }
+  /* ─────────────────────────────────────────────────────────────
+     The shell: a rail, a top bar, a canvas, and on a narrow screen
+     a bottom bar in the rail's place.
+     ───────────────────────────────────────────────────────────── */
 
-  button,
-  .button {
-    @apply block w-full cursor-pointer appearance-none rounded-full border-0 bg-brand px-5 py-[14px] text-center text-[16px] font-semibold text-white no-underline;
-  }
-  button:active {
-    @apply bg-brand-600;
-  }
-  button:disabled {
-    @apply cursor-default opacity-45;
-  }
-  button.ghost {
-    @apply bg-transparent text-brand;
-  }
-
-  input,
-  select {
-    @apply w-full rounded-none border-0 border-b border-border bg-transparent px-0 py-3 text-[16px] text-text;
-    /* under 16px, iOS Safari zooms the page on focus */
-  }
-  input:focus,
-  select:focus {
-    @apply outline-none;
-    border-bottom-color: var(--color-brand);
-  }
-
-  .row {
-    @apply flex items-center justify-between gap-3;
-  }
-  .row + .row {
-    @apply border-t border-border pt-3;
-  }
-
-  /* Tabular figures so a column of amounts lines up on the decimal. */
-  .money {
-    @apply font-semibold [font-variant-numeric:tabular-nums];
-  }
-  .money.owed {
-    @apply text-positive;
-  }
-  .money.owe {
-    @apply text-negative;
-  }
-
-  .people {
-    @apply flex flex-wrap gap-2;
-  }
-  .chip {
-    @apply inline-block w-auto rounded-full border border-border bg-surface px-[14px] py-2 text-[14px] font-medium text-text;
-  }
-  .chip[aria-pressed='true'] {
-    @apply border-brand bg-brand-100 text-brand-600;
-  }
-
-  /* ── The full web client, a developer-portal dashboard (PLAN.md / ADR-006) ── */
   .app {
-    @apply min-h-screen;
-    background: var(--gradient-canvas) fixed;
+    min-height: 100%;
+    background: var(--w-bg);
   }
+
   .app-shell {
-    @apply grid min-h-screen;
-    grid-template-columns: 244px 1fr;
+    display: grid;
+    min-height: 100vh;
+    grid-template-columns: 248px 1fr;
   }
 
-  /* The wordmark, shared with the sign-in card. */
   .brand {
-    @apply flex items-center gap-[9px] whitespace-nowrap text-[18px] font-bold text-ink;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    white-space: nowrap;
+    font-size: var(--w-font-heading);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--w-text);
   }
 
-  /* The dark left rail: brand, navigation, account. */
-  .sidebar {
-    @apply sticky top-0 flex h-screen flex-col gap-1 px-3 py-4;
-    background: var(--color-sidebar);
-  }
-  .side-brand {
-    @apply mb-3 flex items-center gap-[9px] whitespace-nowrap px-2 text-[18px] font-bold text-white;
-  }
   .brand-mark {
-    @apply grid h-[30px] w-[30px] place-items-center rounded-[9px] text-[15px] font-bold text-white;
-    background: var(--color-accent);
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    flex: none;
+    border-radius: 9px;
+    background: var(--w-gradient-brand);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  .sidebar {
+    position: sticky;
+    top: 0;
+    display: flex;
+    height: 100vh;
+    flex-direction: column;
+    gap: 2px;
+    padding: 16px 12px;
+    background: var(--w-rail);
+  }
+
+  .side-brand {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin-bottom: 14px;
+    padding-inline: 8px;
+    white-space: nowrap;
+    font-size: var(--w-font-heading);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: #fff;
   }
 
   .side-nav {
-    @apply flex flex-1 flex-col gap-[3px];
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 2px;
   }
+
   .side-link {
-    @apply flex items-center gap-3 rounded-[10px] px-3 py-[10px] text-[14px] font-medium no-underline;
-    color: var(--color-sidebar-ink);
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    border-radius: 10px;
+    padding: 9px 12px;
+    font-size: var(--w-font-caption);
+    font-weight: 600;
+    text-decoration: none;
+    color: var(--w-rail-ink);
+    transition: background var(--w-duration-fast) ease;
   }
   .side-link:hover {
-    background: var(--color-sidebar-2);
-    @apply text-white;
+    background: var(--w-rail-raised);
+    color: #fff;
   }
   .side-link[aria-current='true'] {
-    background: var(--color-accent);
-    @apply text-white;
+    background: var(--w-brand);
+    color: #fff;
   }
+
+  /* An icon inherits the row's colour and sits on the icon scale, so the rail
+     is one object rather than a column of little pictures. */
   .side-ico {
-    @apply grid h-[20px] w-[20px] flex-none place-items-center text-[15px];
+    display: grid;
+    place-items: center;
+    width: var(--w-icon-lg);
+    height: var(--w-icon-lg);
+    flex: none;
   }
 
-  /* The account, pinned to the foot of the rail, its menu rising above it. */
-  .side-foot {
-    @apply relative mt-1 border-t pt-2;
-    border-color: rgb(255 255 255 / 0.08);
+  /* ─────────────────────────────────────────────────────────────
+     The account, and its menu. It sits in the top bar rather than the
+     foot of the rail, because the rail is gone below 1024px and one
+     menu that works at every width beats two that each work at one.
+     ───────────────────────────────────────────────────────────── */
+
+  .acct {
+    position: relative;
+    flex: none;
   }
-  .side-account {
-    @apply flex w-full cursor-pointer items-center gap-[10px] rounded-[10px] border-0 bg-transparent px-2 py-2 text-start;
+  .acct-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    padding: 2px;
   }
-  .side-account:hover {
-    background: var(--color-sidebar-2);
+  .acct-button:hover {
+    background: var(--w-surface-muted);
   }
-  .side-account .grow {
-    @apply min-w-0 flex-1;
+  .acct-menu {
+    position: absolute;
+    inset-inline-end: 0;
+    top: calc(100% + 8px);
+    z-index: 40;
+    min-width: 208px;
+    border: 1px solid var(--w-border);
+    border-radius: var(--w-radius-md);
+    background: var(--w-surface);
+    padding: 6px;
+    box-shadow: var(--w-shadow-menu);
   }
-  .side-account-name {
-    @apply block overflow-hidden text-ellipsis whitespace-nowrap text-[13.5px] font-semibold text-white;
+  .acct-who {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    border-bottom: 1px solid var(--w-border);
+    margin-bottom: 4px;
+    padding: 8px 10px 10px;
   }
-  .side-account-role {
-    @apply block text-[11.5px];
-    color: var(--color-sidebar-faint);
+  .acct-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: var(--w-font-caption);
+    font-weight: 700;
+    color: var(--w-text);
   }
-  .side-account-caret {
-    @apply flex-none text-[16px];
-    color: var(--color-sidebar-faint);
+  .acct-role {
+    font-size: var(--w-font-micro);
+    color: var(--w-text-faint);
   }
-  .side-menu {
-    @apply absolute inset-x-2 bottom-[calc(100%+6px)] rounded-[10px] p-1;
-    background: var(--color-sidebar-2);
-    box-shadow: var(--shadow-menu);
+  .acct-item {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    gap: 10px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    padding: 9px 10px;
+    text-align: start;
+    text-decoration: none;
+    font-size: var(--w-font-caption);
+    font-weight: 600;
+    color: var(--w-text);
   }
-  .side-menu-item {
-    @apply block w-full cursor-pointer rounded-[7px] border-0 bg-transparent px-3 py-2 text-start text-[13.5px] font-medium;
-    color: var(--color-sidebar-ink);
+  .acct-item:hover {
+    background: var(--w-surface-muted);
   }
-  .side-menu-item:hover {
-    background: rgb(255 255 255 / 0.06);
-    @apply text-white;
+  .acct-item svg {
+    flex: none;
+    color: var(--w-text-faint);
   }
 
-  /* The light working column: a top bar, then the widgets. */
+  /* Rail destinations that the bottom bar has no room for. Shown only once
+     the rail itself is gone, so nothing is unreachable at any width. */
+  .only-narrow {
+    display: none;
+  }
+
   .main-col {
-    @apply flex min-w-0 flex-col;
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
   }
+
   .topbar {
-    @apply sticky top-0 z-10 flex items-center gap-4 border-b border-line px-7 py-[14px];
-    background: rgb(255 255 255 / 0.85);
-    backdrop-filter: saturate(1.2) blur(8px);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    border-bottom: 1px solid var(--w-border);
+    padding: 12px 28px;
+    background: color-mix(in srgb, var(--w-bg) 82%, transparent);
+    backdrop-filter: saturate(1.4) blur(10px);
   }
+
   .topbar-title {
-    @apply m-0 flex-1 text-[19px] font-bold text-ink [letter-spacing:-0.2px];
+    margin: 0;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: var(--w-font-heading);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--w-text);
   }
+
   .search {
-    @apply flex min-w-[220px] items-center gap-2 rounded-[9px] border border-line bg-panel px-[12px] py-[7px];
-  }
-  .search input {
-    @apply w-full border-0 bg-transparent p-0 text-[14px] text-ink;
-  }
-  .search input:focus {
-    @apply outline-none;
+    display: flex;
+    min-width: 200px;
+    align-items: center;
+    gap: 8px;
+    border-radius: var(--w-radius-sm);
+    border: 1px solid var(--w-border-strong);
+    background: var(--w-surface);
+    padding: 0 12px;
+    color: var(--w-text-faint);
+    transition: border-color var(--w-duration-fast) ease;
   }
   .search:focus-within {
-    border-color: var(--color-accent);
+    border-color: var(--w-brand);
+  }
+  .search input {
+    width: 100%;
+    border: 0;
+    background: transparent;
+    padding: 8px 0;
+    font-size: var(--w-font-caption);
+    color: var(--w-text);
+  }
+  .search input:focus {
+    outline: none;
   }
 
+  /* A round avatar, because a person is round on the phone and a person who
+     changes shape between two clients is two people. */
   .avatar {
-    @apply grid flex-none place-items-center overflow-hidden rounded-[9px] text-[13px] font-semibold text-white;
-    @apply h-[34px] w-[34px];
-    background: var(--color-accent);
+    display: grid;
+    flex: none;
+    place-items: center;
+    overflow: hidden;
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    background: var(--w-gradient-brand);
+    font-size: var(--w-font-caption);
+    font-weight: 700;
+    color: #fff;
   }
   .avatar img {
-    @apply h-full w-full object-cover;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
   }
 
   .app-body {
-    @apply grid grid-cols-[1fr_320px];
-  }
-  .app-main {
-    @apply min-w-0 px-7 pb-10 pt-6;
-  }
-  .detail {
-    @apply border-s border-line px-5 pb-10 pt-6;
-    background: transparent;
+    display: grid;
+    flex: 1;
+    grid-template-columns: minmax(0, 1fr) 320px;
   }
 
-  .page-head {
-    @apply mb-[18px] flex flex-wrap items-baseline justify-between gap-3;
+  .app-main {
+    min-width: 0;
+    padding: 24px 28px 48px;
   }
-  /* The top bar already names the page; the canvas heading would just say it a
-     second time, so it drops out and the subtitle carries the context alone. */
+
+  .detail {
+    border-inline-start: 1px solid var(--w-border);
+    padding: 24px 20px 48px;
+  }
+
+  /* The page says its own name. The old file hid every `h1` in favour of a word
+     in the top bar, which left each page arriving flat and gave a screen reader
+     nothing to land on. */
+  .page-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 6px 16px;
+    margin-bottom: 20px;
+  }
   .page-head h1 {
-    @apply hidden;
+    font-size: var(--w-font-title);
+    line-height: var(--w-leading-title);
   }
   .page-head .sub {
-    @apply text-[14px] text-ink-muted;
+    font-size: var(--w-font-caption);
+    color: var(--w-text-muted);
   }
+
+  /* ─────────────────────────────────────────────────────────────
+     Widgets
+     ───────────────────────────────────────────────────────────── */
 
   .stat-grid {
-    @apply mb-[22px] grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-[14px];
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(178px, 1fr));
+    gap: 14px;
+    margin-bottom: 22px;
   }
+
   .stat {
-    @apply relative flex min-h-[108px] flex-col gap-[6px] rounded-card border border-line bg-app-surface px-[18px] py-4 text-ink shadow-card;
+    position: relative;
+    display: flex;
+    min-height: 106px;
+    flex-direction: column;
+    gap: 6px;
+    border: 1px solid var(--w-border);
+    border-radius: var(--w-radius-md);
+    background: var(--w-surface);
+    padding: 16px 18px;
+    color: var(--w-text);
+    box-shadow: var(--w-shadow-hairline);
   }
-  /* The tint no longer floods the card — it colours the little icon badge, so a
-     row of widgets reads as white cards with a dab of colour each, not blocks. */
+
+  .stat-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: var(--w-font-micro);
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--w-text-muted);
+  }
+
+  /* The tint colours the badge, not the card. A row of white cards each with a
+     dab of colour reads as a set; six full-bleed pastels read as a paint chart. */
+  .stat-badge {
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    flex: none;
+    border-radius: 8px;
+    background: var(--w-surface-muted);
+    color: var(--w-text-muted);
+  }
   .stat.tint-peach .stat-badge {
-    background: var(--tint-peach);
+    background: var(--w-tint-peach);
+    color: var(--w-tint-peach-ink);
   }
-  .stat.tint-blue .stat-badge {
-    background: var(--tint-blue);
+  .stat.tint-sky .stat-badge {
+    background: var(--w-tint-sky);
+    color: var(--w-tint-sky-ink);
   }
   .stat.tint-lilac .stat-badge {
-    background: var(--tint-lilac);
+    background: var(--w-tint-lilac);
+    color: var(--w-tint-lilac-ink);
   }
-  .stat.tint-rose .stat-badge {
-    background: var(--tint-rose);
+  .stat.tint-rose .stat-badge,
+  .stat.tint-pink .stat-badge {
+    background: var(--w-tint-pink);
+    color: var(--w-tint-pink-ink);
   }
   .stat.tint-mint .stat-badge {
-    background: var(--tint-mint);
+    background: var(--w-tint-mint);
+    color: var(--w-tint-mint-ink);
   }
+  .stat.tint-coral .stat-badge {
+    background: var(--w-tint-coral);
+    color: var(--w-tint-coral-ink);
+  }
+  /* The old sheet had an amber tint the design system does not carry; it maps
+     onto peach, which is the warm pastel the phone actually uses. */
   .stat.tint-amber .stat-badge {
-    background: var(--tint-amber);
+    background: var(--w-tint-peach);
+    color: var(--w-tint-peach-ink);
   }
-  .stat-top {
-    @apply flex items-center gap-2 text-[12px] font-semibold uppercase [letter-spacing:0.3px] text-ink-muted;
-  }
-  .stat-badge {
-    @apply grid h-[26px] w-[26px] place-items-center rounded-lg text-[14px];
-    background: var(--color-pill);
-  }
+
   .stat-value {
-    @apply text-[27px] font-bold [font-variant-numeric:tabular-nums] [letter-spacing:-0.5px];
+    font-size: 27px;
+    line-height: 1.1;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
   }
   .stat-sub {
-    @apply text-[12.5px] text-ink-muted;
+    font-size: var(--w-font-caption);
+    color: var(--w-text-muted);
   }
   .stat-extra {
-    @apply text-[12px] text-ink-faint [font-variant-numeric:tabular-nums];
+    font-size: var(--w-font-micro);
+    color: var(--w-text-faint);
+    font-variant-numeric: tabular-nums;
   }
 
-  /* The dashboard's one loud answer: are you up, down, or square. One big tinted
-     card, so the eye lands on the number that matters instead of comparing a row
-     of equal boxes. Owed reads mint, owe reads rose, settled celebrates. */
+  /*
+   * The dashboard's one loud object: are you up, down, or square. It wears the
+   * brand wash when there is nothing to point at and a money wash when there is,
+   * which is the phone's rule — colour appears only when there is a debt. White
+   * text on all three, because every stop of every wash is dark enough for it.
+   */
   .hero {
-    @apply mb-[22px] flex flex-col gap-[5px] rounded-card border border-line px-[24px] py-[22px] shadow-card;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 22px;
+    border-radius: var(--w-radius-lg);
+    padding: 24px 26px;
+    color: #fff;
+    background: var(--w-gradient-brand);
+    box-shadow: var(--w-shadow-soft);
   }
   .hero-owed {
-    background: var(--tint-mint);
+    background: var(--w-gradient-positive);
   }
   .hero-owe {
-    background: var(--tint-rose);
+    background: var(--w-gradient-negative);
   }
   .hero-flat {
-    background: var(--tint-mint);
+    background: var(--w-gradient-brand);
   }
   .hero-label {
-    @apply text-[13px] font-semibold uppercase [letter-spacing:0.4px] text-ink-muted;
+    font-size: var(--w-font-caption);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgb(255 255 255 / 0.76);
   }
   .hero-amount {
-    @apply text-[40px] font-extrabold [font-variant-numeric:tabular-nums] [letter-spacing:-1px] text-ink;
-  }
-  .hero-owed .hero-amount {
-    @apply text-owed;
-  }
-  .hero-owe .hero-amount {
-    @apply text-owe;
+    font-size: clamp(32px, 5vw, 44px);
+    line-height: 1.05;
+    font-weight: 800;
+    letter-spacing: -0.035em;
+    font-variant-numeric: tabular-nums;
+    color: #fff;
   }
   .hero-flat-line {
-    @apply text-[28px] text-ink;
+    font-size: 26px;
+    font-weight: 700;
+    color: #fff;
   }
   .hero-extra {
-    @apply text-[13px] text-ink-muted [font-variant-numeric:tabular-nums];
-  }
-
-  /* The primary action, sitting in the top bar of every page. */
-  .topbar-add {
-    @apply flex-none;
-  }
-  .item-go {
-    @apply flex-none text-[16px] text-ink-faint;
+    font-size: var(--w-font-caption);
+    font-variant-numeric: tabular-nums;
+    color: rgb(255 255 255 / 0.76);
   }
 
   .panel {
-    @apply mb-[18px] rounded-card border border-line bg-app-surface px-[18px] py-[14px] shadow-card;
+    margin-bottom: 18px;
+    border: 1px solid var(--w-border);
+    border-radius: var(--w-radius-md);
+    background: var(--w-surface);
+    padding: 14px 18px;
+    box-shadow: var(--w-shadow-hairline);
   }
   .panel-head {
-    @apply mb-1 flex items-center justify-between border-b border-line pb-[10px];
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 4px;
+    border-bottom: 1px solid var(--w-border);
+    padding-bottom: 10px;
   }
   .panel-head h2 {
-    @apply text-[14px] font-semibold text-ink;
+    font-size: var(--w-font-subheading);
+    font-weight: 700;
   }
   .panel-head .link {
-    @apply w-auto cursor-pointer border-0 bg-none p-0 text-[13px] text-ink-muted no-underline;
+    width: auto;
+    border: 0;
+    background: none;
+    padding: 0;
+    font-size: var(--w-font-caption);
+    font-weight: 600;
+    color: var(--w-brand);
+    text-decoration: none;
   }
   .panel-head .link:hover {
-    @apply text-ink;
+    color: var(--w-brand-pressed);
   }
 
   .list {
-    @apply flex flex-col;
+    display: flex;
+    flex-direction: column;
   }
+
   .item {
-    @apply flex w-full cursor-pointer items-center gap-3 rounded-[10px] border-0 bg-transparent px-2 py-[11px] text-start text-inherit no-underline;
+    display: flex;
+    width: 100%;
+    align-items: center;
+    gap: 12px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    padding: 11px 8px;
+    text-align: start;
+    color: inherit;
+    text-decoration: none;
   }
   .item:hover,
   .item[aria-pressed='true'] {
-    @apply bg-pill;
+    background: var(--w-surface-muted);
   }
   .item + .item {
-    @apply border-t border-line;
+    border-top: 1px solid var(--w-border);
   }
-  /* A row that goes two places: the record itself, and one action beside it.
-     The separator moves out here, because the row is now the pair. */
   .item-pair {
-    @apply flex items-center gap-2 pe-2;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-inline-end: 8px;
   }
   .item-pair + .item-pair {
-    @apply border-t border-line;
+    border-top: 1px solid var(--w-border);
   }
   .item .grow {
-    @apply flex min-w-0 flex-1 flex-col;
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    flex-direction: column;
   }
   .item .title {
-    @apply overflow-hidden text-ellipsis whitespace-nowrap text-[14.5px] font-semibold text-ink;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: var(--w-font-body);
+    font-weight: 600;
+    color: var(--w-text);
   }
   .item .meta {
-    @apply overflow-hidden text-ellipsis whitespace-nowrap text-[12.5px] text-ink-faint;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: var(--w-font-caption);
+    color: var(--w-text-faint);
+  }
+  .item-go {
+    flex: none;
+    display: grid;
+    place-items: center;
+    color: var(--w-text-faint);
+  }
+
+  /* Money. Tabular figures so a column lines up on the decimal, and the two
+     semantic colours — never anything else. */
+  .amount,
+  .money {
+    white-space: nowrap;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
   }
   .amount {
-    @apply whitespace-nowrap text-[14.5px] font-bold [font-variant-numeric:tabular-nums];
+    font-size: var(--w-font-body);
   }
-  .amount.pos {
-    @apply text-owed;
+  .amount.pos,
+  .money.owed {
+    color: var(--w-positive);
   }
-  .amount.neg {
-    @apply text-owe;
+  .amount.neg,
+  .money.owe {
+    color: var(--w-negative);
   }
   .amount.zero {
-    @apply font-semibold text-ink-faint;
+    font-weight: 600;
+    color: var(--w-text-faint);
   }
 
+  /* A row's leading tile. Holds a group's own emoji, which is content and stays
+     an emoji — or an icon, which takes the row's quiet ink. */
   .tile-emoji {
-    @apply grid h-[38px] w-[38px] flex-none place-items-center rounded-[11px] bg-pill text-[18px];
+    display: grid;
+    width: 38px;
+    height: 38px;
+    flex: none;
+    place-items: center;
+    border-radius: 11px;
+    background: var(--w-surface-muted);
+    font-size: 18px;
+    color: var(--w-text-muted);
   }
 
-  /* Skeleton — the dashboard's shape while the server's numbers are still in
-     flight. A shimmer, not a spinner, so the page reads as "this is loading
-     here" rather than a blank hold. Each block stands in for a real element at
-     its real size, so nothing jumps when the data lands. */
+  /* "A pays B" — two names with the direction drawn between them, so the row
+     still reads correctly when the page runs right to left. */
+  .transfer {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-weight: 500;
+  }
+  .transfer-arrow {
+    flex: none;
+    color: var(--w-text-faint);
+  }
+  [dir='rtl'] .transfer-arrow {
+    transform: scaleX(-1);
+  }
+
+  .unread-dot {
+    margin-inline-start: 8px;
+    width: 9px;
+    height: 9px;
+    flex: none;
+    border-radius: 999px;
+    background: var(--w-brand);
+  }
+
+  .pill-badge {
+    display: inline-block;
+    margin-inline-start: 10px;
+    border-radius: 999px;
+    background: var(--w-surface-muted);
+    padding: 3px 9px;
+    vertical-align: middle;
+    font-size: var(--w-font-micro);
+    font-weight: 600;
+    color: var(--w-text-muted);
+  }
+  .pill-badge.warn {
+    background: var(--w-warning-soft);
+    color: var(--w-tint-peach-ink);
+  }
+
+  .banner {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 18px;
+    border-radius: var(--w-radius-md);
+    background: var(--w-warning-soft);
+    padding: 14px 16px;
+    color: var(--w-tint-peach-ink);
+  }
+  .banner .grow {
+    flex: 1;
+    min-width: 0;
+  }
+  .banner .b-title {
+    font-size: var(--w-font-body);
+    font-weight: 700;
+  }
+  .banner .b-body {
+    font-size: var(--w-font-caption);
+    color: var(--w-tint-peach-ink-muted);
+  }
+
+  /* The guest's ceiling, stated above the page rather than inside it. */
+  .guest-banner {
+    padding: 18px 28px 0;
+  }
+
+  .dispute-note {
+    margin-top: 12px;
+    border: 1px solid var(--w-border);
+    border-radius: var(--w-radius-sm);
+    background: var(--w-surface-muted);
+    padding: 12px;
+  }
+  .dispute-note .who {
+    font-size: var(--w-font-caption);
+    font-weight: 700;
+    color: var(--w-text);
+  }
+  .dispute-note .why {
+    margin-top: 4px;
+    font-size: var(--w-font-caption);
+    color: var(--w-text-muted);
+  }
+
+  .settle-form {
+    margin: 4px 6px 12px;
+    border: 1px solid var(--w-border);
+    border-radius: var(--w-radius-md);
+    background: var(--w-surface-muted);
+    padding: 14px 16px;
+  }
+
+  /* A page with nothing on it yet is a designed state, not an accident. */
+  .empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 40px 24px;
+    text-align: center;
+  }
+  .empty-mark {
+    display: grid;
+    place-items: center;
+    width: 46px;
+    height: 46px;
+    border-radius: 999px;
+    background: var(--w-surface-muted);
+    color: var(--w-text-faint);
+  }
+  .empty h3 {
+    color: var(--w-text);
+  }
+  .empty p {
+    max-width: 44ch;
+    font-size: var(--w-font-caption);
+  }
+
+  /* ─────────────────────────────────────────────────────────────
+     The detail column
+     ───────────────────────────────────────────────────────────── */
+
+  .detail-empty {
+    margin-top: 40px;
+    text-align: center;
+    font-size: var(--w-font-caption);
+    color: var(--w-text-faint);
+  }
+  .detail-hero {
+    padding: 8px 0 16px;
+    text-align: center;
+  }
+  .detail-hero .avatar {
+    margin: 0 auto 12px;
+    width: 84px;
+    height: 84px;
+    font-size: 30px;
+  }
+  .detail-hero h3 {
+    margin: 0;
+    font-size: var(--w-font-heading);
+    color: var(--w-text);
+  }
+  .detail-hero .role {
+    margin-top: 2px;
+    font-size: var(--w-font-caption);
+    color: var(--w-text-muted);
+  }
+  .detail-field {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    border-top: 1px solid var(--w-border);
+    padding: 11px 0;
+    font-size: var(--w-font-caption);
+  }
+  .detail-field .k {
+    color: var(--w-text-faint);
+  }
+  .detail-field .v {
+    text-align: end;
+    font-weight: 600;
+    color: var(--w-text);
+  }
+
+  /* ─────────────────────────────────────────────────────────────
+     Buttons. Primary is ink, not purple: the design system reserves the
+     purple for links, glyphs and the active nav row, and puts a near-black
+     under the one action a screen is asking for.
+     ───────────────────────────────────────────────────────────── */
+
+  .btn {
+    display: inline-flex;
+    width: auto;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    appearance: none;
+    border: 1px solid var(--w-button-primary-border);
+    border-radius: var(--w-radius-sm);
+    background: var(--w-button-primary);
+    padding: 10px 18px;
+    font-size: var(--w-font-caption);
+    font-weight: 700;
+    color: var(--w-on-button-primary);
+    text-decoration: none;
+    white-space: nowrap;
+    transition:
+      background var(--w-duration-fast) ease,
+      opacity var(--w-duration-fast) ease;
+  }
+  .btn:hover {
+    background: var(--w-button-primary-pressed);
+  }
+  .btn:disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
+  .btn.block {
+    width: 100%;
+  }
+  .btn.lg {
+    padding: 13px 22px;
+    font-size: var(--w-font-subheading);
+  }
+  /* The one action a page exists for, when it should carry the brand rather
+     than disappear into the ink — the top bar's Add, chiefly. */
+  .btn.brand {
+    border-color: var(--w-brand-solid);
+    background: var(--w-brand-solid);
+    color: var(--w-on-brand);
+  }
+  .btn.brand:hover {
+    border-color: var(--w-brand-solid-hover);
+    background: var(--w-brand-solid-hover);
+  }
+  .btn.soft {
+    background: var(--w-surface-muted);
+    color: var(--w-text);
+    border: 1px solid var(--w-border);
+  }
+  .btn.soft:hover {
+    background: var(--w-brand-soft);
+    border-color: var(--w-brand-soft);
+  }
+  .btn.ghost {
+    border-color: transparent;
+    background: transparent;
+    color: var(--w-brand);
+  }
+  .btn.ghost:hover {
+    background: var(--w-brand-soft);
+  }
+  .btn.danger {
+    border-color: var(--w-negative);
+    background: var(--w-negative);
+    color: #fff;
+  }
+  .btn.danger:hover {
+    opacity: 0.9;
+    background: var(--w-negative);
+  }
+  /* Google's button and Apple's are theirs, at their colours, by their
+     guidelines. They keep the shared geometry so the stack stays even. */
+  .btn.google {
+    border: 1px solid #dadce0;
+    background: #fff;
+    color: #1f1f1f;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
+  }
+  .btn.google:hover {
+    background: #f7f8f8;
+  }
+  .btn.apple {
+    border: 1px solid #000;
+    background: #000;
+    color: #fff;
+  }
+  .btn.apple:hover {
+    background: #1a1a1a;
+  }
+
+  /* A square, quiet button that holds one icon — the theme switch, a row's
+     overflow, a close. */
+  .icon-btn {
+    display: inline-grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    flex: none;
+    border: 1px solid var(--w-border-strong);
+    border-radius: var(--w-radius-sm);
+    background: var(--w-surface);
+    color: var(--w-text-muted);
+    cursor: pointer;
+    transition:
+      color var(--w-duration-fast) ease,
+      background var(--w-duration-fast) ease;
+  }
+  .icon-btn:hover {
+    background: var(--w-surface-muted);
+    color: var(--w-text);
+  }
+
+  .linklike {
+    margin-bottom: 6px;
+    border: 0;
+    background: transparent;
+    padding: 0;
+    font-size: var(--w-font-caption);
+    font-weight: 600;
+    color: var(--w-brand);
+    text-decoration: underline;
+    cursor: pointer;
+  }
+  .linklike:disabled {
+    cursor: default;
+    opacity: 0.6;
+  }
+
+  /* ─────────────────────────────────────────────────────────────
+     Forms
+     ───────────────────────────────────────────────────────────── */
+
+  .field {
+    display: block;
+    margin-bottom: 14px;
+  }
+  .field-label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: var(--w-font-micro);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--w-text-faint);
+  }
+  .row-field {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .row-field > input:not([type='checkbox']):not([type='radio']),
+  .row-field > select {
+    flex: 1;
+  }
+  .textarea {
+    min-height: 88px;
+    font-family: inherit;
+    resize: vertical;
+  }
+
+  .split-input {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-top: 1px solid var(--w-border);
+    padding: 8px 0;
+  }
+  .split-input .grow {
+    flex: 1;
+    min-width: 0;
+    font-size: var(--w-font-body);
+    color: var(--w-text);
+  }
+  .split-input input {
+    width: 104px;
+    flex: none;
+    padding: 7px 10px;
+    text-align: end;
+    font-variant-numeric: tabular-nums;
+  }
+  .split-input .unit {
+    width: 34px;
+    text-align: end;
+    font-size: var(--w-font-caption);
+    color: var(--w-text-faint);
+  }
+
+  .chip {
+    display: inline-flex;
+    width: auto;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid var(--w-border-strong);
+    border-radius: 999px;
+    background: var(--w-surface);
+    padding: 7px 14px;
+    font-size: var(--w-font-caption);
+    font-weight: 600;
+    color: var(--w-text);
+    cursor: pointer;
+  }
+  .chip[aria-pressed='true'] {
+    border-color: var(--w-brand);
+    background: var(--w-brand-soft);
+    color: var(--w-brand-pressed);
+  }
+  .people {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  /* Machine text: a token, a client id, a redirect address. Always
+     left-to-right — in Arabic the page runs the other way and a credential
+     that reorders itself is a credential somebody mistypes. */
+  .code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: var(--w-font-caption);
+    color: var(--w-text-muted);
+    direction: ltr;
+    unicode-bidi: isolate;
+  }
+  .secret {
+    display: block;
+    margin-top: 8px;
+    width: 100%;
+    user-select: all;
+    overflow-wrap: anywhere;
+    border: 1px solid var(--w-border-strong);
+    border-radius: var(--w-radius-sm);
+    background: var(--w-surface-muted);
+    padding: 10px 12px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: var(--w-font-caption);
+    color: var(--w-text);
+    direction: ltr;
+    unicode-bidi: isolate;
+  }
+
+  /* ─────────────────────────────────────────────────────────────
+     Loading. A shimmer, not a spinner: each block stands in for a real
+     element at its real size, so nothing jumps when the data lands.
+     ───────────────────────────────────────────────────────────── */
+
   .sk {
-    @apply block rounded-[7px];
+    display: block;
+    border-radius: 7px;
     background: linear-gradient(
       90deg,
-      var(--color-pill) 25%,
-      var(--color-line) 37%,
-      var(--color-pill) 63%
+      var(--w-skeleton) 25%,
+      var(--w-border) 37%,
+      var(--w-skeleton) 63%
     );
     background-size: 200% 100%;
     animation: sk-shimmer 1.3s ease-in-out infinite;
@@ -519,314 +1230,269 @@
     }
   }
   .sk-badge {
-    @apply h-[26px] w-[26px] rounded-lg;
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
   }
   .sk-emoji {
-    @apply h-[38px] w-[38px] flex-none rounded-[11px];
+    width: 38px;
+    height: 38px;
+    flex: none;
+    border-radius: 11px;
   }
   .sk-sub {
-    @apply h-[14px] w-[120px];
+    width: 120px;
+    height: 14px;
   }
   .sk-value {
-    @apply mt-1 h-[24px] w-[96px];
+    margin-top: 4px;
+    width: 96px;
+    height: 24px;
   }
   .sk-title {
-    @apply mb-[7px] h-[13px] w-[55%];
+    margin-bottom: 7px;
+    width: 55%;
+    height: 13px;
   }
   .sk-meta {
-    @apply h-[11px] w-[34%];
+    width: 34%;
+    height: 11px;
   }
   .sk-amount {
-    @apply h-[15px] w-[64px] flex-none;
+    width: 64px;
+    height: 15px;
+    flex: none;
   }
   .sk-head {
-    @apply h-[14px] w-[128px];
+    width: 128px;
+    height: 14px;
   }
   .sk-avatar {
-    @apply mx-auto mb-3 h-[84px] w-[84px] rounded-full;
+    margin: 0 auto 12px;
+    width: 84px;
+    height: 84px;
+    border-radius: 999px;
   }
   .sk-line {
-    @apply h-[13px];
-  }
-
-  .detail-empty {
-    @apply mt-10 text-center text-[14px] text-ink-faint;
-  }
-  .detail-hero {
-    @apply pb-4 pt-2 text-center;
-  }
-  .detail-hero .avatar {
-    @apply mx-auto mb-3 h-[84px] w-[84px] text-[30px];
-  }
-  .detail-hero h3 {
-    @apply m-0 text-[18px] text-ink;
-  }
-  .detail-hero .role {
-    @apply mt-[2px] text-[13px] text-ink-muted;
-  }
-  .detail-field {
-    @apply flex items-center justify-between gap-[10px] border-t border-line py-[11px] text-[14px];
-  }
-  .detail-field .k {
-    @apply text-[12px] text-ink-faint;
-  }
-  .detail-field .v {
-    @apply text-end font-semibold text-ink;
-  }
-
-  /* A labelled control. The older screens use a bare input with an aria-label,
-     which is right for one obvious box (an amount, a description) and wrong for
-     a settings form where six of them sit in a column and every one needs a
-     name you can read. */
-  .field {
-    @apply mb-[14px] block;
-  }
-  .field-label {
-    @apply mb-[6px] block text-[12px] font-semibold text-ink-faint;
-  }
-  /* A control and its button side by side — "add this person", "save this". */
-  .row-field {
-    @apply flex items-center gap-[10px];
-  }
-  /* Text-like controls take the room; a checkbox keeps its own size, or it
-     stretches across the row and squeezes the label it belongs to. */
-  .row-field > input:not([type='checkbox']):not([type='radio']),
-  .row-field > select {
-    @apply flex-1;
-  }
-  /* A control several lines tall — the redirect addresses, one per line. The
-     shared input rule is a single underline, which reads as one field with a
-     stray box around it once the content wraps. */
-  .textarea {
-    @apply block w-full rounded-[9px] border border-line-strong bg-app-surface px-[11px] py-[9px] text-[14px] text-ink;
-    font-family: inherit;
-  }
-  .textarea:focus {
-    border-color: var(--color-accent);
-  }
-
-  /* Machine text: a token, a client id, a redirect address. Monospaced and
-     always laid out left-to-right — in Arabic the page reads the other way and
-     a credential that reorders itself is a credential somebody mistypes. */
-  .code {
-    @apply text-[12.5px] text-ink-muted;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  }
-  /* The plaintext of a credential, on the one occasion it is ever shown. Its
-     own box, selectable, and wide enough to double-click — nothing about it
-     should look like prose that can be skimmed past. */
-  .secret {
-    @apply mt-2 block w-full select-all break-all rounded-[9px] border border-line-strong bg-app-surface px-3 py-[10px] text-[13px] text-ink;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  }
-
-  .btn {
-    @apply inline-flex w-auto cursor-pointer appearance-none items-center justify-center gap-2 rounded-[9px] border-0 px-[18px] py-[10px] text-[14px] font-semibold text-white no-underline;
-    background: var(--color-accent);
-  }
-  .btn:hover {
-    background: var(--color-accent-600);
-  }
-  .btn.block {
-    @apply w-full;
-  }
-  .btn.soft {
-    @apply bg-pill text-ink;
-  }
-  .btn.soft:hover {
-    @apply bg-pill opacity-90;
-  }
-  .btn.google {
-    @apply border border-line-strong bg-white text-[#1f1f1f];
-    box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
-  }
-  /* Sign in with Apple, at Apple's colours rather than ours: black field, white
-     mark and white words. Fixed hex, not a theme token, for the same reason the
-     glyph beside it is fixed — this button is Apple's, and one that followed our
-     palette would stop being the button their guidelines describe. It keeps the
-     shared .btn geometry, so it and the Google button above it are the same
-     size and corner, which is the other half of what those guidelines ask. */
-  .btn.apple {
-    @apply border border-black bg-black text-white;
-  }
-  .btn.apple:hover {
-    @apply bg-[#1a1a1a];
-  }
-
-  .split-input {
-    @apply flex items-center gap-[10px] border-t border-line py-2;
-  }
-  .split-input .grow {
-    @apply flex-1 text-[14px] text-ink;
-  }
-  .split-input input {
-    @apply w-[96px] border-b border-line-strong py-[6px] text-end text-[15px];
-  }
-  .split-input .unit {
-    @apply w-[34px] text-end text-[13px] text-ink-faint;
-  }
-
-  .settle-form {
-    @apply mx-[6px] mb-3 mt-1 rounded-[14px] border border-line bg-panel px-4 py-[14px];
-  }
-  .unread-dot {
-    @apply ms-2 h-[9px] w-[9px] flex-none rounded-full bg-brand;
-  }
-
-  .pill-badge {
-    @apply ms-[10px] inline-block rounded-full bg-pill px-[9px] py-[3px] align-middle text-[11px] font-semibold text-ink-muted;
-  }
-  .pill-badge.warn {
-    @apply text-[#9a5b18];
-    background: #fbe4c9;
-  }
-
-  .dispute-note {
-    @apply mt-3 rounded-xl border border-line bg-panel p-3;
-  }
-  .dispute-note .who {
-    @apply text-[13px] font-semibold text-ink;
-  }
-  .dispute-note .why {
-    @apply mt-1 text-[13px] text-ink-muted;
-  }
-
-  .banner {
-    @apply mb-[18px] flex items-center gap-[14px] rounded-card px-4 py-[14px];
-    background: var(--tint-amber);
-  }
-  .banner .grow {
-    @apply flex-1;
-  }
-  .banner .b-title {
-    @apply text-[14px] font-bold text-ink;
-  }
-  .banner .b-body {
-    @apply text-[12.5px];
-    color: rgb(32 24 15 / 0.7);
-  }
-
-  .signin-wrap {
-    @apply grid min-h-screen place-items-center p-6;
-    background: var(--gradient-canvas) fixed;
-  }
-  .signin-card {
-    @apply w-full max-w-[400px] rounded-app border border-line bg-app-surface px-[32px] py-[36px] text-center shadow-signin;
-  }
-  .signin-card .brand {
-    @apply mb-2 justify-center text-[22px];
-  }
-  .signin-card p {
-    @apply mb-[22px] text-[14px];
-  }
-  .signin-card .btn {
-    @apply mb-[10px] w-full px-[18px] py-[12px] text-[15px];
-  }
-  /* Port-style boxed fields, overriding the shared underline input. */
-  .signin-card input {
-    @apply mb-3 rounded-[9px] border border-line-strong bg-app-surface px-[13px] py-[11px] text-[15px];
-  }
-  .signin-card input:focus {
-    @apply outline-none;
-    border-color: var(--color-accent);
-  }
-  .signin-or {
-    @apply mx-0 mb-[10px] mt-[14px] text-[12px] text-ink-faint;
-  }
-  .linklike {
-    @apply mb-[6px] cursor-pointer border-0 bg-transparent text-[13px] underline;
-    color: var(--color-accent);
-  }
-  .linklike:disabled {
-    @apply cursor-default opacity-60;
+    height: 13px;
   }
 
   .spinner-page {
-    @apply grid min-h-screen place-items-center text-ink-faint;
-    background: var(--gradient-canvas) fixed;
+    display: grid;
+    min-height: 100vh;
+    place-items: center;
+    background: var(--w-bg);
+    color: var(--w-text-faint);
+  }
+
+  /* ─────────────────────────────────────────────────────────────
+     Signed out. One column on the brand wash — the same wash the
+     dashboard's balance wears, so the app is recognisable before
+     anybody has signed into it.
+     ───────────────────────────────────────────────────────────── */
+
+  .signin-wrap {
+    display: grid;
+    min-height: 100vh;
+    place-items: center;
+    padding: 24px;
+    background: var(--w-gradient-brand) fixed;
+  }
+  .signin-card {
+    width: 100%;
+    max-width: 404px;
+    border: 1px solid var(--w-border);
+    border-radius: var(--w-radius-xl);
+    background: var(--w-surface);
+    padding: 34px 32px;
+    text-align: center;
+    box-shadow: var(--w-shadow-lifted);
+  }
+  .signin-card .brand {
+    justify-content: center;
+    margin-bottom: 8px;
+    font-size: var(--w-font-title);
+  }
+  .signin-card p {
+    margin-bottom: 22px;
+    font-size: var(--w-font-caption);
+  }
+  .signin-card .btn {
+    margin-bottom: 10px;
+    width: 100%;
+    padding: 12px 18px;
+    font-size: var(--w-font-body);
+  }
+  .signin-card input {
+    margin-bottom: 12px;
+    text-align: start;
+  }
+  .signin-or {
+    margin: 14px 0 10px;
+    font-size: var(--w-font-micro);
+    color: var(--w-text-faint);
+  }
+
+  /* The guest-link pages — a join link opened by somebody with no account.
+     One column, no shell. */
+  main.guest {
+    margin: 0 auto;
+    display: flex;
+    max-width: 520px;
+    flex-direction: column;
+    gap: 20px;
+    padding: 24px 20px 64px;
+  }
+  .card {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    border: 1px solid var(--w-border);
+    border-radius: var(--w-radius-lg);
+    background: var(--w-surface);
+    padding: 20px;
+    box-shadow: var(--w-shadow-hairline);
+  }
+  .muted {
+    font-size: var(--w-font-caption);
+    color: var(--w-text-muted);
+  }
+  .faint {
+    font-size: var(--w-font-caption);
+    color: var(--w-text-faint);
+  }
+  .error {
+    font-size: var(--w-font-caption);
+    color: var(--w-negative);
+  }
+  .row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .row + .row {
+    border-top: 1px solid var(--w-border);
+    padding-top: 12px;
+  }
+
+  /* ─────────────────────────────────────────────────────────────
+     The bottom bar. Hidden until the rail goes; it carries the same
+     destinations the phone's tab bar carries, in the same order.
+     ───────────────────────────────────────────────────────────── */
+
+  .bottombar {
+    display: none;
+    position: fixed;
+    inset-inline: 0;
+    bottom: 0;
+    z-index: 30;
+    align-items: stretch;
+    justify-content: space-around;
+    gap: 2px;
+    border-top: 1px solid var(--w-border);
+    background: color-mix(in srgb, var(--w-surface) 92%, transparent);
+    backdrop-filter: saturate(1.4) blur(12px);
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px));
+  }
+  .tab-link {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    padding: 7px 4px;
+    font-size: 10.5px;
+    font-weight: 600;
+    text-decoration: none;
+    color: var(--w-text-faint);
+  }
+  .tab-link span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+  }
+  .tab-link[aria-current='true'] {
+    color: var(--w-brand);
   }
 }
 
 /*
- * Responsive. The base layout is the rail-and-canvas desktop dashboard; these
- * breakpoints fold it down. At the tablet width the rail lies down into a
- * horizontal strip across the top and the right-hand detail panel drops beneath
- * the main column; at the phone width every inset tightens so a 320px screen
- * never has to scroll sideways.
+ * ─────────────────────────────────────────────────────────────────
+ * Three layout tiers.
+ *
+ *   ≥1280  rail · canvas · detail
+ *   1024–1279  rail · canvas, the detail folding under the canvas
+ *   <1024  canvas alone, the rail replaced by a bottom tab bar
+ *
+ * The old sheet folded the rail into a horizontally-scrolling strip at 900px
+ * and kept the 320px detail column all the way down to it, which is exactly
+ * the width band where the column crushes the table beside it.
+ * ─────────────────────────────────────────────────────────────────
  */
-@media (max-width: 900px) {
-  .app-shell {
-    grid-template-columns: 1fr;
-  }
-  .sidebar {
-    position: static;
-    height: auto;
-    flex-direction: row;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-  .sidebar::-webkit-scrollbar {
-    display: none;
-  }
-  .side-brand {
-    margin: 0;
-  }
-  .side-nav {
-    flex: 1;
-    flex-direction: row;
-    gap: 3px;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-  .side-nav::-webkit-scrollbar {
-    display: none;
-  }
-  .side-link {
-    white-space: nowrap;
-    padding: 8px 12px;
-  }
-  .side-foot {
-    margin: 0;
-    border-top: 0;
-    border-inline-start: 1px solid rgb(255 255 255 / 0.08);
-    padding: 0 0 0 8px;
-  }
-  .side-account-name,
-  .side-account-role,
-  .side-account-caret {
-    display: none;
-  }
-  .side-menu {
-    inset-inline: auto;
-    inset-inline-end: 8px;
-    bottom: auto;
-    top: calc(100% + 6px);
-    min-width: 160px;
-  }
+
+@media (max-width: 1279px) {
   .app-body {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .detail {
     border-inline-start: 0;
-    border-top: 1px solid var(--color-line);
+    border-top: 1px solid var(--w-border);
+    padding-inline: 28px;
   }
 }
 
-@media (max-width: 560px) {
+@media (max-width: 1023px) {
+  .app-shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .sidebar {
+    display: none;
+  }
+  .bottombar {
+    display: flex;
+  }
+  .only-narrow {
+    display: flex;
+  }
+  /* Clear of the bar, and of the phone's own home indicator beneath it. */
+  .app-body {
+    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+  }
   .topbar {
+    top: env(safe-area-inset-top, 0px);
+    padding: 10px 18px;
+  }
+  .app-main {
+    padding: 20px 18px 36px;
+  }
+  .guest-banner {
+    padding: 16px 18px 0;
+  }
+  .detail {
+    padding-inline: 18px;
+  }
+}
+
+@media (max-width: 599px) {
+  .topbar {
+    gap: 10px;
     padding: 10px 16px;
   }
   .topbar-title {
-    font-size: 16px;
+    font-size: var(--w-font-subheading);
   }
   .search {
     min-width: 0;
+    flex: 1;
   }
   .app-main {
-    padding: 16px;
+    padding: 16px 16px 32px;
   }
   .detail {
     padding-inline: 16px;
@@ -834,13 +1500,13 @@
   .stat-value {
     font-size: 23px;
   }
-  .hero-amount {
-    font-size: 32px;
-  }
-  /* On a phone the bar is tight: the action keeps its ＋ but sheds its label so
-     the title and search still fit without wrapping. */
+  /* The bar is tight: the action keeps its glyph and sheds its label so the
+     title and the search still fit on one line. */
   .topbar-add-label {
     display: none;
+  }
+  .btn {
+    padding: 10px 14px;
   }
 }
 

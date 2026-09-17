@@ -31,6 +31,7 @@ import { money } from '@/lib/money';
 import { plural } from '@/i18n';
 import { useStrings } from '@/i18n-context';
 import { friendlyError } from '@/lib/errors';
+import { ArrowRight } from 'lucide-react';
 
 export default function GroupPage() {
   return (
@@ -204,8 +205,17 @@ function GroupDetail({ profileId, query }: { profileId: string; query: string })
               {ledger.transfers.map((transfer, index) => (
                 <div key={index} className="item" style={{ cursor: 'default' }}>
                   <span className="grow">
-                    <span className="title" style={{ fontWeight: 500 }}>
-                      {nameOf(byId.get(transfer.from) ?? fallback(transfer.from))} →{' '}
+                    <span className="title transfer">
+                      {nameOf(byId.get(transfer.from) ?? fallback(transfer.from))}
+                      {/* The direction of a payment, drawn rather than typed:
+                          an arrow character points the wrong way in Arabic,
+                          where this row reads right to left. */}
+                      <ArrowRight
+                        size={15}
+                        strokeWidth={2}
+                        className="transfer-arrow"
+                        aria-hidden
+                      />
                       {nameOf(byId.get(transfer.to) ?? fallback(transfer.to))}
                     </span>
                   </span>
