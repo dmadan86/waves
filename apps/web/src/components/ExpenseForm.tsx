@@ -13,6 +13,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 import {
@@ -87,6 +88,27 @@ export function ExpenseForm({
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  /**
+   * The id this expense will be written under: the one being edited, or one
+   * minted here for a new one.
+   *
+   * The server seeds its remainder rotation with the expense's id, so a
+   * preview that does not know the id cannot say who absorbs the odd paisa —
+   * and `expectedShares`, which is compared exactly, would be claiming
+   * something the server was free to decide differently. That is a 409 on a
+   * bill that is perfectly correct; ₹100 between three people is enough to hit
+   * it. Minting the id here settles both: the preview is the ledger's answer,
+   * and the claim can be made honestly.
+   *
+   * Supplying an id costs nothing. The write path takes `body.expenseId ??
+   * crypto.randomUUID()`, and the create-or-edit label it derives from the
+   * presence of one is only ever recorded for agent callers — a browser
+   * session has no agent client id. `editing` stays tied to the *prop*, which
+   * is what actually says whether this is an edit.
+   */
+  const [mintedExpenseId] = useState(() => crypto.randomUUID());
+  const targetExpenseId = expenseId ?? mintedExpenseId;
 
   // Where the spend happened (A43). Optional and opt-in: null until the person
   // clicks "Add location" and the browser grants it. Coordinates only on the web
@@ -288,12 +310,12 @@ export function ExpenseForm({
         currency,
         params,
         participants,
-        seed: expenseId ?? 'preview',
+        seed: targetExpenseId,
       });
     } catch {
       return null;
     }
-  }, [amount, currency, params, participants, expenseId]);
+  }, [amount, currency, params, participants, targetExpenseId]);
 
   const toggle = useCallback((memberId: string) => {
     setParticipants((current) =>
@@ -310,7 +332,7 @@ export function ExpenseForm({
     try {
       await waves.writeExpense({
         groupId,
-        expenseId: expenseId ?? undefined,
+        expenseId: targetExpenseId,
         description: description.trim() || t.add.defaultDescription,
         expenseDate,
         currency,
@@ -339,7 +361,7 @@ export function ExpenseForm({
     params,
     preview,
     groupId,
-    expenseId,
+    targetExpenseId,
     description,
     expenseDate,
     currency,
@@ -527,6 +549,14 @@ export function ExpenseForm({
                 {t.expense.splitKind[k]}
               </button>
             ))}
+            {/* Itemising is a different shape of work — a list you build and
+                then assign, rather than an amount you divide — so it is its own
+                screen rather than a fifth method here. Offered beside the
+                methods because this row is where somebody looking for it
+                looks. */}
+            <Link className="chip" href={`/g/${groupId}/itemize`}>
+              {t.expense.splitKind.itemized}
+            </Link>
           </div>
 
           <div className="people">

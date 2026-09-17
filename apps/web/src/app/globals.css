@@ -1007,6 +1007,63 @@
   }
 
   /* ─────────────────────────────────────────────────────────────
+     Splitting a bill line by line (ADR-008 §3.1). Each row is a
+     thing somebody ordered and the people who had it.
+     ───────────────────────────────────────────────────────────── */
+
+  .lines {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 0 0 12px;
+    padding: 0;
+    list-style: none;
+  }
+
+  .line {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    border: 1px solid var(--w-border);
+    border-radius: var(--w-radius-md);
+    padding: 10px;
+    background: var(--w-surface);
+  }
+
+  .line-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  /* The label takes the room, the amount takes what it needs. Both shrink
+     rather than pushing the delete button off a narrow screen. */
+  .line-label {
+    flex: 1;
+    min-width: 0;
+  }
+  .line-amount {
+    flex: none;
+    width: 7.5rem;
+    max-width: 40%;
+    text-align: end;
+    font-variant-numeric: tabular-nums;
+  }
+  .line .icon-btn {
+    flex: none;
+  }
+
+  /* Tax, service, tip and discount. Four small fields that sit in a row on a
+     desktop and stack into two columns on a phone. */
+  .extras {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px;
+  }
+  .extras .field {
+    margin: 0;
+  }
+
+  /* ─────────────────────────────────────────────────────────────
      The history of an expense (ADR-004 + A46). A timeline: each edit
      is a node with the fields it moved listed underneath, and the
      image audit rides the same line.
