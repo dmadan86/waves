@@ -48,7 +48,6 @@ interface GoogleIdentityApi {
         client_id: string;
         callback: (response: { credential?: string }) => void;
         nonce: string;
-        use_fedcm_for_prompt: boolean;
         auto_select?: boolean;
         itp_support?: boolean;
       }): void;
@@ -143,6 +142,7 @@ export function GoogleIdentity({
   const handler = useRef(onCredential);
   const giveUp = useRef(onUnavailable);
   const drawn = useRef(onReady);
+  const exchanging = useRef(false);
 
   useEffect(() => {
     handler.current = onCredential;
@@ -167,14 +167,22 @@ export function GoogleIdentity({
     gsi.accounts.id.initialize({
       client_id: clientId,
       nonce: hashed,
-      // Chrome has removed third-party cookies; without FedCM the popup is
-      // silently suppressed on exactly the browsers most people use.
-      use_fedcm_for_prompt: true,
+      // No `use_fedcm_for_prompt`: Google deprecated it and now ignores it,
+      // because One Tap goes through FedCM on browsers that have it either
+      // way. Passing it would only suggest this code chooses something.
       auto_select: false,
       itp_support: true,
       callback: (response) => {
         if (!response.credential) return;
-        void handler.current(response.credential, raw);
+        // Google's button stays live while Supabase is being called, and One
+        // Tap can answer over the top of it. Two exchanges of two different
+        // tokens race to set the session, and the later answer wins whichever
+        // account it belongs to — so the second is dropped rather than sent.
+        if (exchanging.current) return;
+        exchanging.current = true;
+        void handler.current(response.credential, raw).finally(() => {
+          exchanging.current = false;
+        });
       },
     });
 
@@ -188,9 +196,6 @@ export function GoogleIdentity({
       width: Math.round(Math.min(400, host.current.getBoundingClientRect().width || 320)),
       locale,
     });
-    setReady(true);
-    drawn.current();
-
     // One Tap: the card that drops into the top corner naming the Google
     // account already signed into this browser, so the common case is one tap
     // and no sheet at all. It is the same credential and the same callback as
@@ -198,9 +203,25 @@ export function GoogleIdentity({
     //
     // It is allowed to decline silently. Google suppresses the card if it was
     // dismissed too often, if there is no Google session, or if the browser
-    // refuses FedCM, and none of those is a fault: the button underneath is
-    // still there and still works.
+    // has no FedCM, and none of those is a fault. Asked for before the button
+    // is checked below, so a rejected *button* does not also cost the card.
     gsi.accounts.id.prompt();
+
+    // `renderButton` resolves nothing and throws nothing when Google declines
+    // the client id or the origin — it simply leaves the host empty. Taken as
+    // success that is the worst outcome available: the pill is hidden on the
+    // strength of a button that is not there, and the card then offers no way
+    // in at all. So what is on screen decides, one frame later, because the
+    // button is Google's to insert and not necessarily inserted by the time
+    // the call returns.
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    if (!host.current?.childElementCount) {
+      giveUp.current();
+      return;
+    }
+
+    setReady(true);
+    drawn.current();
   }, [clientId, locale]);
 
   useEffect(() => {
