@@ -13,6 +13,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 import {
@@ -527,6 +528,14 @@ export function ExpenseForm({
                 {t.expense.splitKind[k]}
               </button>
             ))}
+            {/* Itemising is a different shape of work — a list you build and
+                then assign, rather than an amount you divide — so it is its own
+                screen rather than a fifth method here. Offered beside the
+                methods because this row is where somebody looking for it
+                looks. */}
+            <Link className="chip" href={`/g/${groupId}/itemize`}>
+              {t.expense.splitKind.itemized}
+            </Link>
           </div>
 
           <div className="people">

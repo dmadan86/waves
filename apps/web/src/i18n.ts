@@ -201,6 +201,34 @@ export interface WebStrings {
   };
   /** Attaching where a spend happened (A43). Coordinates only on the web — the
    *  browser has no on-device reverse-geocoder. */
+  /** Splitting a bill line by line (ADR-008 §3.1). */
+  itemize: {
+    title: string;
+    /** What the expense is called when nobody types a description. */
+    defaultDescription: string;
+    lines: string;
+    linePlaceholder: string;
+    /** A line with an amount but no name, when one has to be named in a message. */
+    untitledLine: string;
+    addLine: string;
+    removeLine: string;
+    extras: string;
+    /** Why the extras are not simply divided. */
+    extrasNote: string;
+    taxes: string;
+    serviceCharge: string;
+    tip: string;
+    discounts: string;
+    preview: string;
+    /** Nothing typed yet, so there is nothing to divide. */
+    startTyping: string;
+    /** Named lines nobody has claimed; `{lines}` is the list. */
+    unclaimed: string;
+    /** The split is refused for a reason this screen cannot name precisely. */
+    cannotSplit: string;
+    /** A group with nobody in it cannot have a bill split across it. */
+    noMembers: string;
+  };
   location: {
     label: string;
     add: string;
@@ -753,6 +781,26 @@ const en: WebStrings = {
     runningSum: '{sum} of {total}',
     cannotEditSplit: 'This bill was split in a way the web cannot edit yet — open it in the app.',
   },
+  itemize: {
+    title: 'Split by item',
+    defaultDescription: 'Itemised bill',
+    lines: 'What was on the bill',
+    linePlaceholder: 'Item',
+    untitledLine: 'an unnamed line',
+    addLine: 'Add a line',
+    removeLine: 'Remove this line',
+    extras: 'Tax, service and tip',
+    extrasNote: 'Shared out in proportion to what each person had, not split equally.',
+    taxes: 'Tax',
+    serviceCharge: 'Service',
+    tip: 'Tip',
+    discounts: 'Discount',
+    preview: 'Who owes what',
+    startTyping: 'Add a line and say who had it.',
+    unclaimed: 'Nobody has claimed: {lines}',
+    cannotSplit: 'This bill cannot be split yet.',
+    noMembers: 'Add somebody to this group first.',
+  },
   location: {
     label: 'Location',
     add: 'Add location',
@@ -1290,6 +1338,26 @@ const ta: WebStrings = {
     runningSum: '{total} இல் {sum}',
     cannotEditSplit:
       'இந்த பில் இணையம் இன்னும் திருத்த முடியாத வகையில் பிரிக்கப்பட்டது — செயலியில் திறக்கவும்.',
+  },
+  itemize: {
+    title: 'பொருள் வாரியாகப் பிரி',
+    defaultDescription: 'பொருள் வாரியான பில்',
+    lines: 'பில்லில் இருந்தவை',
+    linePlaceholder: 'பொருள்',
+    untitledLine: 'பெயரிடப்படாத வரி',
+    addLine: 'வரி சேர்',
+    removeLine: 'இந்த வரியை நீக்கு',
+    extras: 'வரி, சேவை, டிப்',
+    extrasNote: 'சமமாகப் பிரிக்காமல், ஒவ்வொருவரும் எடுத்துக்கொண்டதற்கு ஏற்ப பகிரப்படும்.',
+    taxes: 'வரி',
+    serviceCharge: 'சேவை',
+    tip: 'டிப்',
+    discounts: 'தள்ளுபடி',
+    preview: 'யார் எவ்வளவு தர வேண்டும்',
+    startTyping: 'ஒரு வரியைச் சேர்த்து, அதை யார் எடுத்தார் எனச் சொல்லுங்கள்.',
+    unclaimed: 'யாரும் உரிமை கோரவில்லை: {lines}',
+    cannotSplit: 'இந்த பில்லை இன்னும் பிரிக்க முடியாது.',
+    noMembers: 'முதலில் இந்தக் குழுவில் ஒருவரைச் சேருங்கள்.',
   },
   location: {
     label: 'இடம்',
@@ -1836,6 +1904,26 @@ const hi: WebStrings = {
     invalidSplit: 'ये हिस्से अभी पूरे नहीं जुड़ते।',
     runningSum: '{total} में से {sum}',
     cannotEditSplit: 'यह बिल ऐसे बाँटा गया जिसे वेब अभी संपादित नहीं कर सकता — इसे ऐप में खोलें।',
+  },
+  itemize: {
+    title: 'चीज़-वार बाँटें',
+    defaultDescription: 'चीज़-वार बिल',
+    lines: 'बिल में क्या था',
+    linePlaceholder: 'चीज़',
+    untitledLine: 'बिना नाम की एक लाइन',
+    addLine: 'लाइन जोड़ें',
+    removeLine: 'यह लाइन हटाएँ',
+    extras: 'टैक्स, सर्विस और टिप',
+    extrasNote: 'बराबर नहीं — जिसने जितना लिया, उसी अनुपात में बाँटा जाता है।',
+    taxes: 'टैक्स',
+    serviceCharge: 'सर्विस',
+    tip: 'टिप',
+    discounts: 'छूट',
+    preview: 'किसका कितना',
+    startTyping: 'एक लाइन जोड़ें और बताएँ कि वह किसने ली।',
+    unclaimed: 'इन पर किसी ने दावा नहीं किया: {lines}',
+    cannotSplit: 'यह बिल अभी बाँटा नहीं जा सकता।',
+    noMembers: 'पहले इस ग्रुप में किसी को जोड़ें।',
   },
   location: {
     label: 'स्थान',
@@ -2384,6 +2472,26 @@ const ar: WebStrings = {
     invalidSplit: 'هذه الحصص لا تتوافق بعد.',
     runningSum: '{sum} من {total}',
     cannotEditSplit: 'قُسّمت هذه الفاتورة بطريقة لا يمكن للويب تعديلها بعد — افتحها في التطبيق.',
+  },
+  itemize: {
+    title: 'التقسيم حسب الأصناف',
+    defaultDescription: 'فاتورة مفصّلة',
+    lines: 'ما كان في الفاتورة',
+    linePlaceholder: 'صنف',
+    untitledLine: 'سطر بلا اسم',
+    addLine: 'إضافة سطر',
+    removeLine: 'إزالة هذا السطر',
+    extras: 'الضريبة والخدمة والبقشيش',
+    extrasNote: 'تُوزَّع بنسبة ما أخذه كل شخص، لا بالتساوي.',
+    taxes: 'الضريبة',
+    serviceCharge: 'الخدمة',
+    tip: 'البقشيش',
+    discounts: 'الخصم',
+    preview: 'من عليه كم',
+    startTyping: 'أضف سطرًا وقل من أخذه.',
+    unclaimed: 'لم يطالب أحد بـ: {lines}',
+    cannotSplit: 'لا يمكن تقسيم هذه الفاتورة بعد.',
+    noMembers: 'أضف شخصًا إلى هذه المجموعة أولًا.',
   },
   location: {
     label: 'الموقع',
