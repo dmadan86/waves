@@ -15,9 +15,15 @@
  * React Native renders through `<Text>`, which has no DOM and executes no HTML,
  * so a `<script>` in a comment is only ever the five literal characters. The
  * sanitiser still strips HTML-shaped tags so the *stored* value stays clean for
- * any future reader (e.g. an export, or a web client that must render to HTML —
- * where raw HTML would be an XSS vector and must additionally be sanitised at
- * that renderer).
+ * any future reader.
+ *
+ * That future reader now exists, which is why this lives in core rather than in
+ * the phone: the web renders the same bodies. **The web's safety does not come
+ * from this file.** A body written before this sanitiser existed, or by a client
+ * that never ran it, is still whatever it is — so the browser renderer builds
+ * React elements and never sets HTML, which makes a `<script>` in a stored body
+ * five literal characters there too. This module keeps what is *written* clean;
+ * the renderer is what keeps what is *read* safe.
  */
 
 /** Matches the server CHECK (`char_length(body) <= 2000`) and the RPC guard. */

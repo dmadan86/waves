@@ -440,6 +440,29 @@ export interface WebStrings {
     light: string;
     dark: string;
   };
+  /** The conversation on one expense (A46). */
+  comments: {
+    title: string;
+    emptyTitle: string;
+    empty: string;
+    placeholder: string;
+    post: string;
+    posting: string;
+    edit: string;
+    save: string;
+    cancel: string;
+    delete: string;
+    deleteConfirm: string;
+    /** Appended after a comment somebody changed. */
+    edited: string;
+    /** Flag a comment, and take the flag back. */
+    report: string;
+    reported: string;
+    resolve: string;
+    you: string;
+    /** The cap the server enforces, shown as the composer fills up. */
+    remaining: string;
+  };
   settings: {
     title: string;
     profile: string;
@@ -904,6 +927,25 @@ const en: WebStrings = {
     system: 'Device',
     light: 'Light',
     dark: 'Dark',
+  },
+  comments: {
+    title: 'Comments',
+    emptyTitle: 'No comments yet',
+    empty: 'Start the conversation.',
+    placeholder: 'Add a comment…',
+    post: 'Post comment',
+    posting: 'Posting…',
+    edit: 'Edit',
+    save: 'Save',
+    cancel: 'Cancel',
+    delete: 'Delete',
+    deleteConfirm: 'Delete this comment?',
+    edited: 'edited',
+    report: 'Report',
+    reported: 'Reported',
+    resolve: 'Resolve',
+    you: 'You',
+    remaining: '{count} left',
   },
   settings: {
     title: 'Settings',
@@ -1397,6 +1439,25 @@ const ta: WebStrings = {
     light: 'வெளிச்சம்',
     dark: 'இருள்',
   },
+  comments: {
+    title: 'கருத்துகள்',
+    emptyTitle: 'இன்னும் கருத்துகள் இல்லை',
+    empty: 'உரையாடலைத் தொடங்குங்கள்.',
+    placeholder: 'ஒரு கருத்தைச் சேர்…',
+    post: 'கருத்தை இடு',
+    posting: 'இடப்படுகிறது…',
+    edit: 'திருத்து',
+    save: 'சேமி',
+    cancel: 'ரத்து',
+    delete: 'நீக்கு',
+    deleteConfirm: 'இந்தக் கருத்தை நீக்கவா?',
+    edited: 'திருத்தப்பட்டது',
+    report: 'புகார்',
+    reported: 'புகார் அளிக்கப்பட்டது',
+    resolve: 'தீர்',
+    you: 'நீங்கள்',
+    remaining: '{count} மீதம்',
+  },
   settings: {
     title: 'அமைப்புகள்',
     profile: 'நீங்கள்',
@@ -1884,6 +1945,25 @@ const hi: WebStrings = {
     system: 'डिवाइस',
     light: 'हल्का',
     dark: 'गहरा',
+  },
+  comments: {
+    title: 'टिप्पणियाँ',
+    emptyTitle: 'अभी कोई टिप्पणी नहीं',
+    empty: 'बातचीत शुरू करें।',
+    placeholder: 'एक टिप्पणी जोड़ें…',
+    post: 'टिप्पणी भेजें',
+    posting: 'भेजा जा रहा है…',
+    edit: 'बदलें',
+    save: 'सहेजें',
+    cancel: 'रद्द',
+    delete: 'हटाएँ',
+    deleteConfirm: 'यह टिप्पणी हटाएँ?',
+    edited: 'बदली गई',
+    report: 'रिपोर्ट',
+    reported: 'रिपोर्ट की गई',
+    resolve: 'हल करें',
+    you: 'आप',
+    remaining: '{count} बचे',
   },
   settings: {
     title: 'सेटिंग',
@@ -2418,6 +2498,25 @@ const ar: WebStrings = {
     system: 'الجهاز',
     light: 'فاتح',
     dark: 'داكن',
+  },
+  comments: {
+    title: 'التعليقات',
+    emptyTitle: 'لا تعليقات بعد',
+    empty: 'ابدأ المحادثة.',
+    placeholder: 'أضف تعليقًا…',
+    post: 'نشر التعليق',
+    posting: 'جارٍ النشر…',
+    edit: 'تعديل',
+    save: 'حفظ',
+    cancel: 'إلغاء',
+    delete: 'حذف',
+    deleteConfirm: 'حذف هذا التعليق؟',
+    edited: 'مُعدّل',
+    report: 'إبلاغ',
+    reported: 'تم الإبلاغ',
+    resolve: 'حل',
+    you: 'أنت',
+    remaining: 'بقي {count}',
   },
   settings: {
     title: 'الإعدادات',

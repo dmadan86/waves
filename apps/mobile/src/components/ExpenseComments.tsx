@@ -42,7 +42,7 @@ import {
   useExpenseComments,
   type ExpenseCommentRow,
 } from '@/data/hooks';
-import { MAX_COMMENT_LENGTH, sanitizeCommentMarkdown } from '@/lib/commentMarkdown';
+import { MAX_COMMENT_LENGTH, sanitizeCommentMarkdown } from '@waves/core';
 import { useAvatarUrl } from '@/components/ProfileAvatar';
 import { CommentMarkdown } from '@/components/CommentMarkdown';
 import { RichCommentInput } from '@/components/RichCommentInput';

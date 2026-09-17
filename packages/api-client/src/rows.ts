@@ -135,6 +135,30 @@ export interface ExpenseVersionSummary {
   split_type: string;
 }
 
+/**
+ * One comment on an expense (A46).
+ *
+ * `author_member_id` is a group member, not a profile — a comment outlives the
+ * person leaving the group, and the ledger names members everywhere else too.
+ * It is nullable because the server stamps it from the caller's membership and
+ * an import can leave it unset.
+ *
+ * Deleted comments are not returned: the read filters them out rather than
+ * carrying tombstones a renderer would have to know to skip.
+ */
+export interface ExpenseComment {
+  id: string;
+  group_id: string;
+  expense_id: string;
+  author_member_id: string | null;
+  /** Markdown, in the tiny subset @waves/core's sanitiser normalises to. */
+  body: string;
+  edited_at: string | null;
+  flagged_at: string | null;
+  flagged_by: string | null;
+  created_at: string | null;
+}
+
 export enum SettlementMethod {
   Upi = 'upi',
   Cash = 'cash',

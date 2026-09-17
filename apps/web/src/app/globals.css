@@ -686,11 +686,17 @@
     font-size: var(--w-font-subheading);
     font-weight: 700;
   }
+  /* A panel's one secondary action ("Show deleted", "See all"). The vertical
+     padding is what carries it over the 24px a finger needs — at 13px with no
+     padding the box is 21px tall, which is a miss on a phone. */
   .panel-head .link {
+    display: inline-flex;
+    align-items: center;
     width: auto;
+    min-height: 24px;
     border: 0;
     background: none;
-    padding: 0;
+    padding: 2px 0;
     font-size: var(--w-font-caption);
     font-weight: 600;
     color: var(--w-brand);
@@ -859,6 +865,175 @@
   .expense-row.is-deleted .title {
     text-decoration: line-through;
     text-decoration-thickness: 1px;
+  }
+
+  /* ─────────────────────────────────────────────────────────────
+     Comments on an expense (A46). A thread, not a list of rows: each
+     one is a block of prose with a quiet head above it and its
+     actions underneath, so a paragraph reads as a paragraph.
+     ───────────────────────────────────────────────────────────── */
+
+  .comments {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .comment {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    border-radius: 10px;
+    padding: 10px 8px 8px;
+  }
+  .comment + .comment {
+    border-top: 1px solid var(--w-border);
+  }
+  /* A reported comment stays readable — it is flagged for attention, not
+     hidden — but wears the warning tint so it is findable at a glance.
+     Everything inside it takes the tint's own inks: the ordinary faint grey
+     sits at about 3:1 on this background in either theme, and the row where
+     somebody most needs to act is the wrong row to make people squint at. Its
+     controls also skip the quiet-until-hovered rule for the same reason. */
+  .comment.is-flagged {
+    background: var(--w-warning-soft);
+    color: var(--w-tint-peach-ink);
+  }
+  .comment.is-flagged .comment-who,
+  .comment.is-flagged .comment-body {
+    color: var(--w-tint-peach-ink);
+  }
+  .comment.is-flagged .comment-when {
+    color: var(--w-tint-peach-ink-muted);
+  }
+  .comment.is-flagged .comment-body code {
+    background: rgb(0 0 0 / 0.08);
+  }
+  .comment.is-flagged .comment-actions .linklike {
+    color: var(--w-tint-peach-ink);
+    opacity: 1;
+  }
+
+  .comment-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px;
+  }
+  .comment-who {
+    font-size: var(--w-font-caption);
+    font-weight: 700;
+    color: var(--w-text);
+  }
+  .comment-when {
+    font-size: var(--w-font-micro);
+    color: var(--w-text-faint);
+  }
+
+  /* The rendered Markdown. Paragraphs, bullets and four inline marks —
+     see CommentMarkdown, which builds elements and never sets HTML. */
+  .comment-body {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: var(--w-font-body);
+    line-height: 1.55;
+    color: var(--w-text);
+    overflow-wrap: anywhere;
+  }
+  .comment-body p {
+    color: inherit;
+  }
+  .comment-body code {
+    border-radius: 5px;
+    background: var(--w-surface-muted);
+    padding: 1px 5px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.92em;
+  }
+  .comment-list {
+    margin: 0;
+    padding-inline-start: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .comment-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 14px;
+    margin-top: 2px;
+  }
+  /* The row's own controls are quiet until the row is under the pointer or
+     holds focus — a thread of ten comments should not be forty buttons.
+     The padding is not decoration: without it the box is 21px tall, under the
+     24px a finger needs, and these are the controls most likely to be used on
+     a phone. */
+  .comment-actions .linklike {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-height: 24px;
+    margin: 0;
+    padding-block: 4px;
+    font-size: var(--w-font-micro);
+    text-decoration: none;
+    color: var(--w-text-faint);
+    opacity: 0.85;
+  }
+  .comment:hover .comment-actions .linklike,
+  .comment:focus-within .comment-actions .linklike {
+    color: var(--w-text-muted);
+    opacity: 1;
+  }
+  /* A touch screen has no hover, so quiet-until-hovered would mean quiet
+     forever — and these would be the faintest thing on the page on the device
+     most likely to be reading it. On a coarse pointer they simply start
+     legible, and the row spaces them further apart to match. */
+  @media (hover: none) {
+    .comment-actions .linklike {
+      color: var(--w-text-muted);
+      opacity: 1;
+    }
+    .comment-actions {
+      gap: 18px;
+    }
+  }
+  .comment-actions .linklike:hover {
+    color: var(--w-brand);
+    text-decoration: underline;
+  }
+  .comment-actions .linklike.danger:hover {
+    color: var(--w-negative);
+  }
+  .comment-actions .linklike[aria-pressed='true'] {
+    color: var(--w-warning);
+  }
+
+  .comment-edit {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .composer {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    border-top: 1px solid var(--w-border);
+    margin-top: 12px;
+    padding-top: 14px;
+  }
+  .composer-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
   }
 
   /* An activity line is a sentence, so it wraps where a title would not. */
