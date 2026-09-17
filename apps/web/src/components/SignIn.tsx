@@ -21,7 +21,10 @@ import { useState } from 'react';
 
 import { IdentityError } from '@waves/core';
 
+import { GOOGLE_CREDENTIAL_NEEDS_REDIRECT } from '@waves/api-client';
+
 import { useAuth } from '@/lib/auth';
+import { GoogleIdentity } from '@/components/GoogleIdentity';
 import { fill, type WebStrings } from '@/i18n';
 import { useStrings } from '@/i18n-context';
 import { friendlyError } from '@/lib/errors';
@@ -101,14 +104,55 @@ function AppleMark() {
 }
 
 export function SignIn() {
-  const { t } = useStrings();
-  const { signInWithGoogle, signInWithApple, signInWithEmail, withPassword } = useAuth();
+  const { t, locale } = useStrings();
+  const {
+    signInWithGoogle,
+    signInWithGoogleCredential,
+    signInWithApple,
+    signInWithEmail,
+    withPassword,
+    session,
+  } = useAuth();
   const [busy, setBusy] = useState<null | 'google' | 'apple' | 'password' | 'link'>(null);
   const [mode, setMode] = useState<'sign_in' | 'sign_up'>('sign_in');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /**
+   * Whether Google's own button is on screen. Until it is, the pill below
+   * stands in — a browser that blocks the script, or has no client id
+   * configured, keeps a working Google sign-in and never sees a gap where one
+   * used to be. Somebody already signed in never gets the in-page flow at all:
+   * an identity token cannot *link* an account, only replace it (ADR-006).
+   */
+  const [gsiDrawn, setGsiDrawn] = useState(false);
+  const inPageGoogle = session === null;
+
+  async function onGoogleCredential(idToken: string, nonce: string) {
+    setBusy('google');
+    setError(null);
+    try {
+      await signInWithGoogleCredential(idToken, nonce);
+      // No navigation and nothing to clear: `onAuthChange` swaps this card out.
+    } catch (caught) {
+      setBusy(null);
+      // The one refusal that is not a failure: somebody is already signed in,
+      // so this has to be a link, and only the redirect can link. Take it,
+      // rather than telling them something went wrong when nothing did.
+      if (caught instanceof Error && caught.message === GOOGLE_CREDENTIAL_NEEDS_REDIRECT) {
+        await onGoogle();
+        return;
+      }
+      setError(
+        friendlyError(caught, 'web.signIn.googleCredential', {
+          fallback: t.errors.couldNotSignIn,
+          offline: t.errors.offline,
+          tooMany: t.errors.tooMany,
+        }),
+      );
+    }
+  }
 
   async function onGoogle() {
     setBusy('google');
@@ -231,15 +275,26 @@ export function SignIn() {
               without reordering, because both are the same full-width pill at
               the same size and corner; only the order is fixed.
             */}
-            <button
-              type="button"
-              className="btn google"
-              onClick={onGoogle}
-              disabled={busy !== null}
-            >
-              <GoogleMark />
-              {busy === 'google' ? t.dash.signingIn : t.dash.continueWithGoogle}
-            </button>
+            {inPageGoogle ? (
+              <GoogleIdentity
+                onCredential={onGoogleCredential}
+                onReady={() => setGsiDrawn(true)}
+                onUnavailable={() => setGsiDrawn(false)}
+                locale={locale}
+              />
+            ) : null}
+
+            {gsiDrawn ? null : (
+              <button
+                type="button"
+                className="btn google"
+                onClick={onGoogle}
+                disabled={busy !== null}
+              >
+                <GoogleMark />
+                {busy === 'google' ? t.dash.signingIn : t.dash.continueWithGoogle}
+              </button>
+            )}
 
             <button type="button" className="btn apple" onClick={onApple} disabled={busy !== null}>
               <AppleMark />

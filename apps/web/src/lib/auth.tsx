@@ -32,6 +32,8 @@ interface AuthValue {
   isGuest: boolean;
   loading: boolean;
   signInWithGoogle: () => Promise<void>;
+  /** Exchange an identity token from Google's own sheet; never navigates. */
+  signInWithGoogleCredential: (idToken: string, nonce: string) => Promise<void>;
   signInWithApple: () => Promise<void>;
   signInWithEmail: (email: string) => Promise<void>;
   withPassword: (email: string, password: string, intent: 'sign_in' | 'sign_up') => Promise<void>;
@@ -70,6 +72,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await waves.signInWithGoogle(`${window.location.origin}/auth/callback`);
   }, []);
 
+  const signInWithGoogleCredential = useCallback(async (idToken: string, nonce: string) => {
+    // No `redirectTo`: the session lands in this tab, and `onAuthChange`
+    // re-renders the app where it stands.
+    await waves.signInWithGoogleCredential(idToken, nonce);
+  }, []);
+
   const signInWithApple = useCallback(async () => {
     // Apple's own round trip is `form_post` to Supabase, not to us, so by the
     // time the browser is handed back it looks exactly like Google's: the same
@@ -102,12 +110,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isGuest: session?.user.is_anonymous === true,
       loading,
       signInWithGoogle,
+      signInWithGoogleCredential,
       signInWithApple,
       signInWithEmail,
       withPassword,
       signOut,
     }),
-    [session, loading, signInWithGoogle, signInWithApple, signInWithEmail, withPassword, signOut],
+    [
+      session,
+      loading,
+      signInWithGoogle,
+      signInWithGoogleCredential,
+      signInWithApple,
+      signInWithEmail,
+      withPassword,
+      signOut,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
