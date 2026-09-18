@@ -437,6 +437,33 @@ export interface WebStrings {
     historyNote: string;
     couldNotSignOut: string;
   };
+  /**
+   * How findable somebody is, and how much of them their groups can see.
+   *
+   * Real profile columns, so a choice made here is the same choice the phone
+   * reads — unlike the phone's blocked list, which is per-device and has no
+   * browser half to speak of.
+   */
+  discovery: {
+    /** The settings row that leads here. */
+    discoveryRow: string;
+    discoveryRowHint: string;
+    discoveryTitle: string;
+    discoveryIntro: string;
+    /** Heading over the two find-me switches. */
+    findTitle: string;
+    discoveryPhone: string;
+    discoveryPhoneHint: string;
+    discoveryEmail: string;
+    discoveryEmailHint: string;
+    /** What none of these settings can undo. */
+    discoveryFootnote: string;
+    /** The visibility choice, worded for the web. */
+    visibilityTitle: string;
+    visibilityGroups: string;
+    visibilityNobody: string;
+    saved: string;
+  };
   location: {
     label: string;
     add: string;
@@ -1176,6 +1203,25 @@ const en: WebStrings = {
     historyNote: 'Showing the last three months.',
     couldNotSignOut: 'Could not sign the other devices out. Please try again.',
   },
+  discovery: {
+    discoveryRow: 'How people find you',
+    discoveryRowHint: 'Being searched for, and what group-mates can see',
+    discoveryTitle: 'How people find you',
+    discoveryIntro:
+      'Somebody who already has your number or your address can look you up on Waves. Nobody can browse for you, and no search is ever by name.',
+    findTitle: 'Find someone',
+    discoveryPhone: 'Find me by my phone number',
+    discoveryPhoneHint:
+      'Only an exact match. Turning this off does not remove you from groups you are already in.',
+    discoveryEmail: 'Find me by my email address',
+    discoveryEmailHint: 'Only an exact match, and only the address on this account.',
+    discoveryFootnote:
+      'Somebody who found you by typing your number will see that number — they already had it. None of this ever changes who owes what.',
+    visibilityTitle: 'What your groups can see',
+    visibilityGroups: 'People in my groups can see my phone and email',
+    visibilityNobody: 'Nobody can see them',
+    saved: 'Saved',
+  },
   location: {
     label: 'Location',
     add: 'Add location',
@@ -1903,6 +1949,25 @@ const ta: WebStrings = {
     historyNote: 'கடந்த மூன்று மாதங்கள் காட்டப்படுகின்றன.',
     couldNotSignOut: 'மற்ற சாதனங்களை வெளியேற்ற முடியவில்லை. மீண்டும் முயற்சிக்கவும்.',
   },
+  discovery: {
+    discoveryRow: 'மற்றவர்கள் உங்களை எப்படிக் கண்டறிவார்கள்',
+    discoveryRowHint: 'உங்களைத் தேடுவது, குழுவினர் பார்ப்பது',
+    discoveryTitle: 'மற்றவர்கள் உங்களை எப்படிக் கண்டறிவார்கள்',
+    discoveryIntro:
+      'உங்கள் எண்ணையோ முகவரியையோ ஏற்கனவே வைத்திருப்பவர் உங்களை Waves-இல் தேட முடியும். யாரும் உங்களைத் தேடி உலவ முடியாது; பெயரால் தேடுவது என்பது ஒருபோதும் இல்லை.',
+    findTitle: 'ஒருவரைத் தேடுங்கள்',
+    discoveryPhone: 'என் தொலைபேசி எண்ணால் என்னைக் கண்டறியலாம்',
+    discoveryPhoneHint:
+      'சரியான பொருத்தம் மட்டுமே. இதை அணைத்தால், நீங்கள் ஏற்கனவே இருக்கும் குழுக்களிலிருந்து நீக்கப்பட மாட்டீர்கள்.',
+    discoveryEmail: 'என் மின்னஞ்சல் முகவரியால் என்னைக் கண்டறியலாம்',
+    discoveryEmailHint: 'சரியான பொருத்தம் மட்டுமே, இந்தக் கணக்கின் முகவரி மட்டுமே.',
+    discoveryFootnote:
+      'உங்கள் எண்ணைத் தட்டச்சு செய்து உங்களைக் கண்டறிந்தவர் அந்த எண்ணைப் பார்ப்பார் — அது ஏற்கனவே அவரிடம் இருந்தது. இவை எதுவும் யார் யாருக்குக் கடன் என்பதை மாற்றாது.',
+    visibilityTitle: 'உங்கள் குழுக்கள் பார்ப்பது',
+    visibilityGroups: 'என் குழுக்களில் உள்ளவர்கள் என் எண்ணையும் மின்னஞ்சலையும் பார்க்கலாம்',
+    visibilityNobody: 'யாரும் பார்க்க முடியாது',
+    saved: 'சேமிக்கப்பட்டது',
+  },
   location: {
     label: 'இடம்',
     add: 'இடத்தைச் சேர்',
@@ -2629,6 +2694,25 @@ const hi: WebStrings = {
     none: 'इस खाते में कोई फ़ोन साइन इन नहीं है।',
     historyNote: 'पिछले तीन महीने दिखाए जा रहे हैं।',
     couldNotSignOut: 'अन्य डिवाइस साइन आउट नहीं हो सके। कृपया फिर कोशिश करें।',
+  },
+  discovery: {
+    discoveryRow: 'लोग आपको कैसे खोजें',
+    discoveryRowHint: 'खोजा जाना, और समूह वालों को क्या दिखे',
+    discoveryTitle: 'लोग आपको कैसे खोजें',
+    discoveryIntro:
+      'जिसके पास पहले से आपका नंबर या पता है, वह आपको Waves पर खोज सकता है। कोई यूँ ही लोगों में आपको ढूँढ़ नहीं सकता, और नाम से खोज कभी नहीं होती।',
+    findTitle: 'किसी को खोजें',
+    discoveryPhone: 'मेरे फ़ोन नंबर से मुझे खोजा जा सके',
+    discoveryPhoneHint:
+      'सिर्फ़ पूरा मिलान। इसे बंद करने से आप उन समूहों से नहीं हटते जिनमें आप पहले से हैं।',
+    discoveryEmail: 'मेरे ईमेल पते से मुझे खोजा जा सके',
+    discoveryEmailHint: 'सिर्फ़ पूरा मिलान, और सिर्फ़ इस खाते का पता।',
+    discoveryFootnote:
+      'जिसने आपका नंबर लिखकर आपको खोजा, उसे वह नंबर दिखेगा — वह उसके पास पहले से था। इनमें से कुछ भी यह नहीं बदलता कि किस पर कितना बाक़ी है।',
+    visibilityTitle: 'आपके ग्रुप क्या देख सकते हैं',
+    visibilityGroups: 'मेरे ग्रुप के लोग मेरा फ़ोन और ईमेल देख सकते हैं',
+    visibilityNobody: 'कोई नहीं देख सकता',
+    saved: 'सहेजा गया',
   },
   location: {
     label: 'स्थान',
@@ -3380,6 +3464,24 @@ const ar: WebStrings = {
     none: 'لا توجد هواتف مسجّل دخولها إلى هذا الحساب.',
     historyNote: 'تُعرض آخر ثلاثة أشهر.',
     couldNotSignOut: 'تعذّر تسجيل خروج الأجهزة الأخرى. حاول مرة أخرى.',
+  },
+  discovery: {
+    discoveryRow: 'كيف يعثر عليك الآخرون',
+    discoveryRowHint: 'أن يُبحث عنك، وما يراه أفراد مجموعاتك',
+    discoveryTitle: 'كيف يعثر عليك الآخرون',
+    discoveryIntro:
+      'من يملك رقمك أو عنوان بريدك مسبقًا يستطيع البحث عنك على Waves. لا أحد يستطيع تصفّح الأشخاص بحثًا عنك، ولا بحث بالاسم إطلاقًا.',
+    findTitle: 'ابحث عن شخص',
+    discoveryPhone: 'يمكن العثور عليّ برقم هاتفي',
+    discoveryPhoneHint: 'تطابق تام فقط. إيقافه لا يُخرجك من المجموعات التي أنت فيها بالفعل.',
+    discoveryEmail: 'يمكن العثور عليّ ببريدي الإلكتروني',
+    discoveryEmailHint: 'تطابق تام فقط، ولعنوان هذا الحساب وحده.',
+    discoveryFootnote:
+      'من عثر عليك بكتابة رقمك سيرى ذلك الرقم — فقد كان لديه أصلًا. ولا شيء من هذا يغيّر أبدًا من يدين لمن.',
+    visibilityTitle: 'ما يمكن لمجموعاتك رؤيته',
+    visibilityGroups: 'يمكن لمن في مجموعاتي رؤية رقمي وبريدي',
+    visibilityNobody: 'لا أحد يمكنه رؤيتها',
+    saved: 'تم الحفظ',
   },
   location: {
     label: 'الموقع',

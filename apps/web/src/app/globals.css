@@ -2002,6 +2002,21 @@
     color: var(--w-negative);
   }
 
+  /* A switch whose label carries a line of explanation under it. `.grow` only
+     stacks inside `.item`, so without this the title and its hint run together
+     into one sentence that says neither. */
+  .row-field .grow {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .row-field .grow .meta {
+    font-size: var(--w-font-micro);
+    color: var(--w-text-muted);
+  }
+
   /* One signed-in phone: the glyph, what it is, and when it was last seen —
      and, once revoked, a badge saying so. An unlabelled row here would read as
      still signed in. */

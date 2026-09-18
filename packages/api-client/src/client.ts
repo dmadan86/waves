@@ -58,6 +58,9 @@ import {
   type MemberBudgetRow,
   type CategoryTagRecord,
   type ErasurePreview,
+  DEFAULT_DISCOVERY,
+  readContactVisibility,
+  type DiscoverySettings,
 } from './rows';
 
 const PROFILE_COLUMNS =
@@ -1367,6 +1370,51 @@ export function createWavesClient({ supabase, r2Enabled = false }: WavesClientOp
       csvSeparator?: string;
     }): Promise<ExportResult> {
       return callFunction<ExportResult>('export-data', input);
+    },
+
+    /**
+     * How findable this person is, and how much of them shows.
+     *
+     * Read through the strict reader: the column carries a check constraint,
+     * but a value that somehow escaped it must not be read as the more open
+     * setting.
+     */
+    async discovery(): Promise<DiscoverySettings> {
+      const { data: auth } = await supabase.auth.getUser();
+      const id = auth.user?.id;
+      if (!id) throw new WavesApiError('Not signed in');
+      const rows = await read<{
+        discoverable_by_phone: boolean | null;
+        discoverable_by_email: boolean | null;
+        contact_visibility: string | null;
+      }>(
+        supabase
+          .from('profiles')
+          .select('discoverable_by_phone, discoverable_by_email, contact_visibility')
+          .eq('id', id)
+          .limit(1),
+      );
+      const row = rows[0];
+      return {
+        discoverableByPhone: row?.discoverable_by_phone ?? DEFAULT_DISCOVERY.discoverableByPhone,
+        discoverableByEmail: row?.discoverable_by_email ?? DEFAULT_DISCOVERY.discoverableByEmail,
+        contactVisibility: readContactVisibility(row?.contact_visibility),
+      };
+    },
+
+    async saveDiscovery(next: DiscoverySettings): Promise<void> {
+      const { data: auth } = await supabase.auth.getUser();
+      const id = auth.user?.id;
+      if (!id) throw new WavesApiError('Not signed in');
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          discoverable_by_phone: next.discoverableByPhone,
+          discoverable_by_email: next.discoverableByEmail,
+          contact_visibility: next.contactVisibility,
+        })
+        .eq('id', id);
+      if (error) throw new WavesApiError(String((error as { message?: string }).message ?? error));
     },
 
     /**
