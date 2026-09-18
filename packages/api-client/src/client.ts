@@ -54,6 +54,7 @@ import {
   type NotificationRow,
   type PersonBalanceRow,
   type PlanItemRow,
+  type MemberBudgetRow,
 } from './rows';
 
 const PROFILE_COLUMNS =
@@ -62,7 +63,8 @@ const PROFILE_COLUMNS =
 
 const GROUP_ROW_COLUMNS = `
   id, name, type, country_code, default_currency, simplify_debts, cover_emoji, photo_path,
-  start_date, end_date, time_zone, archived_at, created_at, updated_seq
+  start_date, end_date, time_zone, budget_minor, budget_currency,
+  archived_at, created_at, updated_seq
 `;
 
 // profiles is embedded by its FK column (profile_id): ghost_merges references
@@ -523,6 +525,57 @@ export function createWavesClient({ supabase, r2Enabled = false }: WavesClientOp
         p_planned_minor: input.plannedMinor?.toString() ?? null,
         p_currency: input.currency ?? null,
         p_item_id: input.itemId,
+      });
+    },
+
+    /**
+     * Every trip budget in this group the caller is allowed to see.
+     *
+     * A cleared budget is a soft-delete tombstone the phone's sync needs; a
+     * browser wants only the live ones.
+     */
+    memberBudgets(groupId: string): Promise<MemberBudgetRow[]> {
+      return read<MemberBudgetRow>(
+        supabase
+          .from('trip_member_budgets')
+          .select('id, group_id, member_id, amount_minor, currency, visibility')
+          .eq('group_id', groupId)
+          .is('deleted_at', null),
+      );
+    },
+
+    /** Set the caller's own ceiling, and whether the group gets to see it. */
+    async setMyTripBudget(input: {
+      groupId: string;
+      amountMinor: bigint;
+      currency?: string | null;
+      visibility: 'private' | 'group';
+    }): Promise<void> {
+      await rpc<null>('waves_set_my_trip_budget', {
+        p_group_id: input.groupId,
+        p_amount_minor: input.amountMinor.toString(),
+        p_currency: input.currency ?? null,
+        p_visibility: input.visibility,
+      });
+    },
+
+    async clearMyTripBudget(groupId: string): Promise<void> {
+      await rpc<null>('waves_clear_my_trip_budget', { p_group_id: groupId });
+    },
+
+    /**
+     * The whole trip's cap. Admin only — enforced in the RPC, not here. A null
+     * amount clears it.
+     */
+    async setGroupBudget(input: {
+      groupId: string;
+      amountMinor: bigint | null;
+      currency?: string | null;
+    }): Promise<void> {
+      await rpc<null>('waves_set_group_budget', {
+        p_group_id: input.groupId,
+        p_amount_minor: input.amountMinor === null ? null : input.amountMinor.toString(),
+        p_currency: input.currency ?? null,
       });
     },
 

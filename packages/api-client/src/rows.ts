@@ -34,6 +34,12 @@ export interface GroupRow {
   end_date: string | null;
   /** The trip is on ITS day, not the reader's — the planner compares dates in this zone. */
   time_zone: string;
+  /**
+   * The trip's overall cap, in minor units. Null is unset, which is not the
+   * same as a cap of zero and must not draw a bar.
+   */
+  budget_minor: string | null;
+  budget_currency: string | null;
   archived_at: string | null;
   created_at: string;
   /**
@@ -448,4 +454,22 @@ export interface PlanItemRow {
   /** The expense that turned out to be this, once somebody links them. */
   expense_id: string | null;
   position: number;
+}
+
+/**
+ * One member's own ceiling for a trip.
+ *
+ * What comes back is already what the caller may see: the select policy is
+ * `is_group_member AND (visibility = 'group' OR member_id = my member id)`, so
+ * a private row belonging to somebody else never arrives. The client does no
+ * filtering of its own, because a client that filtered would be trusted to.
+ */
+export interface MemberBudgetRow {
+  id: string;
+  group_id: string;
+  member_id: string;
+  /** Minor units as a decimal string. */
+  amount_minor: string;
+  currency: string;
+  visibility: 'private' | 'group';
 }

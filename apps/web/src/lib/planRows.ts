@@ -98,3 +98,83 @@ export function todayIn(timeZone: string): string {
     return new Date().toISOString().slice(0, 10);
   }
 }
+
+/** An expense reduced to who paid and who owes, for the fairness read. */
+export interface ContributionSource {
+  readonly deleted_at?: string | null;
+  readonly currentVersion: {
+    readonly currency: string;
+    readonly payers: readonly { readonly member_id: string; readonly amount: string }[];
+    readonly shares: readonly { readonly member_id: string; readonly amount: string }[];
+  } | null;
+}
+
+/**
+ * Who fronted what, and who owed what, per member per currency.
+ *
+ * The two halves come from different columns and mean different things: paid is
+ * the payers, owed is the shares. Fairness is the difference between them, so
+ * reading either one twice would make every trip look perfectly balanced —
+ * which is exactly the answer nobody would question.
+ */
+export function contributions(
+  expenses: readonly ContributionSource[],
+): { member: string; currency: string; paidMinor: bigint; owedMinor: bigint }[] {
+  const byKey = new Map<
+    string,
+    { member: string; currency: string; paidMinor: bigint; owedMinor: bigint }
+  >();
+  const touch = (member: string, currency: string) => {
+    const key = `${member}|${currency}`;
+    let row = byKey.get(key);
+    if (!row) {
+      row = { member, currency, paidMinor: 0n, owedMinor: 0n };
+      byKey.set(key, row);
+    }
+    return row;
+  };
+
+  for (const expense of expenses) {
+    const version = expense.currentVersion;
+    if (!version || expense.deleted_at) continue;
+    for (const payer of version.payers) {
+      touch(payer.member_id, version.currency).paidMinor += BigInt(payer.amount);
+    }
+    for (const share of version.shares) {
+      touch(share.member_id, version.currency).owedMinor += BigInt(share.amount);
+    }
+  }
+  return [...byKey.values()];
+}
+
+/** An expense reduced to the shares a personal budget is a ceiling on. */
+export interface ShareSource {
+  readonly deleted_at?: string | null;
+  readonly currentVersion: {
+    readonly currency: string;
+    readonly shares: readonly { readonly member_id: string; readonly amount: string }[];
+  } | null;
+}
+
+/**
+ * The live expenses in the shape `spendByMember` reads.
+ *
+ * Shares, not payers: a personal budget caps what somebody's trip *cost them*,
+ * not what passed through their hands. Fronting the hotel and being repaid the
+ * next day does not spend anybody's budget.
+ */
+export function sharedExpenses(
+  expenses: readonly ShareSource[],
+): { currency: string; shares: Record<string, bigint> }[] {
+  const out: { currency: string; shares: Record<string, bigint> }[] = [];
+  for (const expense of expenses) {
+    const version = expense.currentVersion;
+    if (!version || expense.deleted_at) continue;
+    const shares: Record<string, bigint> = {};
+    for (const share of version.shares) {
+      shares[share.member_id] = (shares[share.member_id] ?? 0n) + BigInt(share.amount);
+    }
+    out.push({ currency: version.currency, shares });
+  }
+  return out;
+}
