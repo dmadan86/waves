@@ -595,3 +595,33 @@ export interface FoundPerson {
   avatar_url: string | null;
   already_shared: boolean;
 }
+
+/**
+ * One guest folded under a merged person, for this viewer alone.
+ *
+ * `person_id` is the merged identity: every row sharing it is the same person
+ * as far as this account is concerned. Nobody else sees these rows, and the
+ * ledger does not change — each group keeps its own guest and its own balance.
+ */
+export interface GhostMergeRow {
+  member_id: string;
+  person_id: string;
+  display_name: string;
+}
+
+/**
+ * A guest membership, with the contact detail an invitation carried.
+ *
+ * Separate from `MemberRow` because of `invite_email` / `invite_phone`: the
+ * merge screen needs them to say which guest is the one you already know, and
+ * no other screen should be carrying contact details it never displays.
+ */
+export interface GuestMemberRow {
+  id: string;
+  group_id: string;
+  profile_id: string | null;
+  ghost_name: string | null;
+  left_at: string | null;
+  invite_email: string | null;
+  invite_phone: string | null;
+}

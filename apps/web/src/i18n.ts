@@ -566,6 +566,36 @@ export interface WebStrings {
     halfDone: string;
     openGroup: string;
   };
+  /**
+   * Folding same-person guests into one.
+   *
+   * A guest appears once per group, because a name is no proof that the "Alex"
+   * in one group is the "Alex" in another. This is where the one thing that is
+   * proof — a person saying so — gets recorded. The merge is per-viewer and
+   * never rewrites the ledger: each group keeps its own guest and its own
+   * balance, and only the Friends aggregation folds them into one name.
+   */
+  mergePeople: {
+    entry: string;
+    title: string;
+    subtitle: string;
+    empty: string;
+    nameLabel: string;
+    namePlaceholder: string;
+    hasContact: string;
+    warningTitle: string;
+    warningBody: string;
+    cta: string;
+    /** `{n}`: how many are picked. */
+    selected: PluralForms;
+    errorTooFew: string;
+    errorNotMergeable: string;
+    errorNameRequired: string;
+    errorNotSignedIn: string;
+    errorGeneric: string;
+    /** How far a guest reaches, said on their row. `{n}`: groups they are in. */
+    inGroups: PluralForms;
+  };
   location: {
     label: string;
     add: string;
@@ -1408,6 +1438,27 @@ const en: WebStrings = {
     halfDone: 'The group was made, but the amount was not recorded. Open it and add the amount.',
     openGroup: 'Open the group',
   },
+  mergePeople: {
+    entry: 'Merge people',
+    title: 'Merge people',
+    subtitle:
+      'Pick the guests who are the same person. Their balances are combined under one name.',
+    empty: 'No guests to merge — only people without a Waves account can be merged.',
+    nameLabel: 'Name for the merged person',
+    namePlaceholder: 'e.g. Alex',
+    hasContact: 'You have their contact details',
+    warningTitle: 'This can’t be undone',
+    warningBody:
+      'Their separate balances are combined into one person for good. There’s no way to split them back apart.',
+    cta: 'Merge',
+    selected: { one: '{n} person selected', other: '{n} people selected' },
+    errorTooFew: 'Pick at least two people to merge.',
+    errorNotMergeable: 'You can only merge guests you share a group with.',
+    errorNameRequired: 'Give the merged person a name.',
+    errorNotSignedIn: 'You’re signed out. Sign in and try the merge again.',
+    errorGeneric: 'Could not merge. Please try again.',
+    inGroups: { one: 'In {n} group', other: 'In {n} groups' },
+  },
   location: {
     label: 'Location',
     add: 'Add location',
@@ -2232,6 +2283,30 @@ const ta: WebStrings = {
       'குழு உருவாக்கப்பட்டது, ஆனால் தொகை பதிவாகவில்லை. குழுவைத் திறந்து தொகையைச் சேர்க்கவும்.',
     openGroup: 'குழுவைத் திற',
   },
+  mergePeople: {
+    entry: 'நபர்களை இணை',
+    title: 'நபர்களை இணை',
+    subtitle:
+      'ஒரே நபராக இருக்கும் விருந்தினர்களைத் தேர்ந்தெடுக்கவும். அவர்களின் இருப்புகள் ஒரே பெயரின் கீழ் இணைக்கப்படும்.',
+    empty: 'இணைக்க விருந்தினர்கள் இல்லை — Waves கணக்கு இல்லாதவர்களை மட்டுமே இணைக்க முடியும்.',
+    nameLabel: 'இணைந்த நபருக்கான பெயர்',
+    namePlaceholder: 'எ.கா. அலெக்ஸ்',
+    hasContact: 'உங்களிடம் அவர்களின் தொடர்பு விவரங்கள் உள்ளன',
+    warningTitle: 'இதை மீட்டெடுக்க முடியாது',
+    warningBody:
+      'அவர்களின் தனித்தனி இருப்புகள் நிரந்தரமாக ஒரே நபராக இணைக்கப்படும். மீண்டும் பிரிக்க வழி இல்லை.',
+    cta: 'இணை',
+    selected: {
+      one: '{n} நபர் தேர்ந்தெடுக்கப்பட்டார்',
+      other: '{n} நபர்கள் தேர்ந்தெடுக்கப்பட்டனர்',
+    },
+    errorTooFew: 'இணைக்க குறைந்தது இரண்டு நபர்களைத் தேர்ந்தெடுக்கவும்.',
+    errorNotMergeable: 'நீங்கள் பகிரும் குழுவில் உள்ள விருந்தினர்களை மட்டுமே இணைக்க முடியும்.',
+    errorNameRequired: 'இணைந்த நபருக்கு ஒரு பெயரைக் கொடுக்கவும்.',
+    errorNotSignedIn: 'நீங்கள் வெளியேறிவிட்டீர்கள். உள்நுழைந்து மீண்டும் இணைக்க முயற்சிக்கவும்.',
+    errorGeneric: 'இணைக்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்.',
+    inGroups: { one: '{n} குழுவில்', other: '{n} குழுக்களில்' },
+  },
   location: {
     label: 'இடம்',
     add: 'இடத்தைச் சேர்',
@@ -3050,6 +3125,29 @@ const hi: WebStrings = {
     rowHint: 'कोई जो Waves इस्तेमाल नहीं करता',
     halfDone: 'समूह बन गया, पर राशि दर्ज नहीं हुई। उसे खोलकर राशि जोड़ें।',
     openGroup: 'समूह खोलें',
+  },
+  mergePeople: {
+    entry: 'लोगों को मर्ज करें',
+    title: 'लोगों को मर्ज करें',
+    subtitle:
+      'उन मेहमानों को चुनें जो एक ही व्यक्ति हैं। उनके बैलेंस एक नाम के तहत जोड़ दिए जाएँगे.',
+    empty:
+      'मर्ज करने के लिए कोई मेहमान नहीं — केवल बिना Waves खाते वाले लोग ही मर्ज किए जा सकते हैं.',
+    nameLabel: 'मर्ज किए गए व्यक्ति का नाम',
+    namePlaceholder: 'जैसे एलेक्स',
+    hasContact: 'आपके पास उनके संपर्क विवरण हैं',
+    warningTitle: 'इसे पहले जैसा नहीं किया जा सकता',
+    warningBody:
+      'उनके अलग-अलग बैलेंस हमेशा के लिए एक व्यक्ति में जोड़ दिए जाते हैं। इन्हें वापस अलग करने का कोई तरीका नहीं है.',
+    cta: 'मर्ज करें',
+    selected: { one: '{n} व्यक्ति चुना गया', other: '{n} लोग चुने गए' },
+    errorTooFew: 'मर्ज करने के लिए कम से कम दो लोग चुनें.',
+    errorNotMergeable:
+      'आप केवल उन मेहमानों को मर्ज कर सकते हैं जिनके साथ आप कोई समूह साझा करते हैं.',
+    errorNameRequired: 'मर्ज किए गए व्यक्ति को एक नाम दें.',
+    errorNotSignedIn: 'आप साइन आउट हैं. साइन इन करके फिर से मर्ज करें.',
+    errorGeneric: 'मर्ज नहीं हो सका. कृपया फिर से प्रयास करें.',
+    inGroups: { one: '{n} समूह में', other: '{n} समूहों में' },
   },
   location: {
     label: 'स्थान',
@@ -3890,6 +3988,25 @@ const ar: WebStrings = {
     rowHint: 'شخص لا يستخدم Waves',
     halfDone: 'أُنشئت المجموعة، لكن المبلغ لم يُسجّل. افتحها وأضف المبلغ.',
     openGroup: 'افتح المجموعة',
+  },
+  mergePeople: {
+    entry: 'دمج الأشخاص',
+    title: 'دمج الأشخاص',
+    subtitle: 'اختر الضيوف الذين هم الشخص نفسه. تُجمع أرصدتهم تحت اسم واحد.',
+    empty: 'لا يوجد ضيوف للدمج — يمكن دمج من ليس لديهم حساب Waves فقط.',
+    nameLabel: 'اسم الشخص المدمج',
+    namePlaceholder: 'مثال: أليكس',
+    hasContact: 'لديك بيانات الاتصال الخاصة به',
+    warningTitle: 'لا يمكن التراجع عن هذا',
+    warningBody: 'تُجمع أرصدتهم المنفصلة في شخص واحد نهائيًا. لا توجد طريقة لفصلهم مرة أخرى.',
+    cta: 'دمج',
+    selected: { one: 'تم اختيار شخص واحد', other: 'تم اختيار {n} أشخاص' },
+    errorTooFew: 'اختر شخصين على الأقل للدمج.',
+    errorNotMergeable: 'يمكنك دمج الضيوف الذين تشاركهم مجموعة فقط.',
+    errorNameRequired: 'أعطِ الشخص المدمج اسمًا.',
+    errorNotSignedIn: 'أنت مسجّل الخروج. سجّل الدخول وحاول الدمج مرة أخرى.',
+    errorGeneric: 'تعذّر الدمج. يرجى المحاولة مرة أخرى.',
+    inGroups: { one: 'في مجموعة واحدة', other: 'في {n} مجموعات' },
   },
   location: {
     label: 'الموقع',
