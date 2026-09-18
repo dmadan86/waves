@@ -116,9 +116,14 @@ export function Shell({
             Waves
           </div>
 
-          <nav className="side-nav" aria-label={t.dash.nav.overview}>
+          <nav className="side-nav">
             {nav.map(({ key, label, href, Icon }) => (
-              <Link key={key} href={href} className="side-link" aria-current={key === current}>
+              <Link
+                key={key}
+                href={href}
+                className="side-link"
+                aria-current={key === current ? 'page' : undefined}
+              >
                 <span className="side-ico" aria-hidden>
                   <Icon size={RAIL_ICON} strokeWidth={1.75} />
                 </span>
@@ -165,13 +170,21 @@ export function Shell({
             />
           </header>
 
-          {children}
+          {/* The landmark every page was missing. Screen-reader users could
+              reach the navigation and the header by name and then had nothing
+              to jump to — the content was a div like any other. */}
+          <main id="main">{children}</main>
         </div>
       </div>
 
-      <nav className="bottombar" aria-label={t.dash.nav.overview}>
+      <nav className="bottombar">
         {tabs.map(({ key, label, href, Icon }) => (
-          <Link key={key} href={href} className="tab-link" aria-current={key === current}>
+          <Link
+            key={key}
+            href={href}
+            className="tab-link"
+            aria-current={key === current ? 'page' : undefined}
+          >
             <Icon size={TAB_ICON} strokeWidth={1.75} aria-hidden />
             <span>{label}</span>
           </Link>

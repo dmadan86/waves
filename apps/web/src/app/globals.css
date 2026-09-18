@@ -391,6 +391,17 @@
     min-width: 0;
     flex-direction: column;
   }
+  /* The landmark is a wrapper, and a wrapper in a flex column is a box the
+     chain did not have. `.app-body` carries `flex: 1` and was a direct child
+     of `.main-col`; without this it would size to its content instead of the
+     column, and every page would stop filling the height. Passing the flex
+     through keeps the landmark free of layout consequences. */
+  .main-col > main {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    flex-direction: column;
+  }
 
   .topbar {
     position: sticky;
