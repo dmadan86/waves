@@ -1984,6 +1984,38 @@
     color: var(--w-text-muted);
   }
 
+  /* The four languages, each naming itself. Laid out as a wrapping row of
+     chips rather than a list of radios: four short words read faster side by
+     side, and a language nobody can read is easier to spot by its script. */
+  .lang-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .lang-option {
+    border: 1px solid var(--w-border-strong);
+    border-radius: var(--w-radius-sm);
+    background: var(--w-surface);
+    padding: 8px 14px;
+    font-size: var(--w-font-caption);
+    font-weight: 600;
+    color: var(--w-text);
+    cursor: pointer;
+  }
+  .lang-option:hover:not(:disabled) {
+    background: var(--w-surface-muted);
+  }
+  .lang-option.on {
+    border-color: var(--w-brand);
+    background: var(--w-brand-soft);
+    color: var(--w-brand);
+  }
+  .lang-option:disabled {
+    cursor: default;
+    opacity: 0.6;
+  }
+
   .plan-day-today {
     color: var(--w-brand);
   }
