@@ -30,6 +30,7 @@ import {
   type ExpenseLocation,
   type FxRecord,
   type PaymentMethod,
+  type DeviceSession,
   type Viewer,
 } from '@waves/core';
 
@@ -1366,6 +1367,40 @@ export function createWavesClient({ supabase, r2Enabled = false }: WavesClientOp
       csvSeparator?: string;
     }): Promise<ExportResult> {
       return callFunction<ExportResult>('export-data', input);
+    },
+
+    /**
+     * Every device on this account seen in the last three months, newest first.
+     *
+     * A browser is not one of them: only the phone app registers, so this list
+     * is the phones. Reading it from a laptop is the useful direction — it is
+     * where somebody goes when the phone is the thing they have lost.
+     */
+    async devices(): Promise<DeviceSession[]> {
+      return (await rpc<DeviceSession[] | null>('waves_list_devices', {})) ?? [];
+    },
+
+    /**
+     * Revoke every device except the one named, and tear down the sessions.
+     *
+     * Two halves, and both are needed. The RPC marks the rows revoked, which is
+     * what the devices list reads; `signOut({ scope: 'others' })` ends the
+     * actual sessions. Doing only the first leaves a signed-in phone that the
+     * list calls revoked; doing only the second leaves a list that still shows
+     * it as live.
+     *
+     * The browser has no device id of its own, so it passes a sentinel that
+     * matches nothing and revokes all of them. That is not a loophole — the RPC
+     * is scoped to the caller's own profile and can reach nobody else's rows.
+     */
+    async signOutOtherDevices(exceptDeviceId: string): Promise<number> {
+      const revoked =
+        (await rpc<number | null>('waves_sign_out_other_devices', {
+          p_device_id: exceptDeviceId,
+        })) ?? 0;
+      const { error } = await supabase.auth.signOut({ scope: 'others' });
+      if (error) throw new WavesApiError(error.message);
+      return revoked;
     },
 
     /** What erasure would leave behind, so a screen can say so before the button. */

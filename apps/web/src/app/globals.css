@@ -2002,6 +2002,30 @@
     color: var(--w-negative);
   }
 
+  /* One signed-in phone: the glyph, what it is, and when it was last seen —
+     and, once revoked, a badge saying so. An unlabelled row here would read as
+     still signed in. */
+  .device-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 0;
+  }
+  .device-row + .device-row {
+    border-top: 1px solid var(--w-border);
+  }
+  .device-row .grow {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    flex-direction: column;
+  }
+  .device-row .meta {
+    overflow-wrap: anywhere;
+    font-size: var(--w-font-micro);
+    color: var(--w-text-muted);
+  }
+
   /* What erasure would leave behind, counted. A list, because each line is a
      separate fact somebody may want to go and check. */
   .erasure-counts {
