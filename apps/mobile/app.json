@@ -75,6 +75,7 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+      "./plugins/withForegroundOnlyLocation",
       "@react-native-firebase/app",
       "expo-router",
       "expo-localization",
@@ -118,7 +119,6 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Waves uses your location only when you tap to add a place to an expense, so you can remember where you spent. It is never tracked in the background.",
           "locationWhenInUsePermission": "Waves uses your location only when you tap to add a place to an expense, so you can remember where you spent. It is never tracked in the background.",
           "isAndroidForegroundServiceEnabled": false,
           "isAndroidBackgroundLocationEnabled": false
