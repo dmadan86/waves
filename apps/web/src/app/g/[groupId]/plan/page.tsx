@@ -344,15 +344,17 @@ function Plan({ groupId, myProfileId }: { groupId: string; myProfileId: string }
           forecasts={forecasts}
           fairness={fairnessSignals}
           nameOf={who}
-          onSetOverall={(amountMinor) =>
-            void mutate(() => waves.setGroupBudget({ groupId, amountMinor, currency }))
+          onSetOverall={(amountMinor, denomination) =>
+            void mutate(() =>
+              waves.setGroupBudget({ groupId, amountMinor, currency: denomination }),
+            )
           }
-          onSetMine={(amountMinor, shared) =>
+          onSetMine={(amountMinor, shared, denomination) =>
             void mutate(() =>
               waves.setMyTripBudget({
                 groupId,
                 amountMinor,
-                currency,
+                currency: denomination,
                 visibility: shared ? 'group' : 'private',
               }),
             )

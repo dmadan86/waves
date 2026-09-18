@@ -1930,6 +1930,13 @@
   .budget-form .split-input.bad {
     border-color: var(--w-negative);
   }
+  /* The code this amount is in. A budget need not share the group default. */
+  .budget-denom {
+    flex: none;
+    font-size: var(--w-font-caption);
+    font-variant-numeric: tabular-nums;
+    color: var(--w-text-muted);
+  }
   .budget-share {
     display: flex;
     flex: none;

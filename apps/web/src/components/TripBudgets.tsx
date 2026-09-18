@@ -33,6 +33,7 @@ import {
 } from '@waves/core';
 
 import { BudgetBar } from '@/components/BudgetBar';
+import { budgetDenomination } from '@/lib/budgets';
 import { useStrings } from '@/i18n-context';
 import { fill } from '@/i18n';
 import { money } from '@/lib/money';
@@ -71,8 +72,8 @@ export function TripBudgets({
   forecasts: readonly Forecast[];
   fairness: readonly CurrencyFairness[];
   nameOf: (memberId: string) => string;
-  onSetOverall: (amountMinor: bigint | null) => void;
-  onSetMine: (amountMinor: bigint, shared: boolean) => void;
+  onSetOverall: (amountMinor: bigint | null, currency: string) => void;
+  onSetMine: (amountMinor: bigint, shared: boolean, currency: string) => void;
   onClearMine: () => void;
 }) {
   const { t } = useStrings();
@@ -92,8 +93,8 @@ export function TripBudgets({
         busy={busy}
         progress={overall}
         editable={canSetOverall}
-        onSave={(amountMinor) => onSetOverall(amountMinor)}
-        onClear={() => onSetOverall(null)}
+        onSave={(amountMinor, _shared, denomination) => onSetOverall(amountMinor, denomination)}
+        onClear={() => onSetOverall(null, overall?.currency ?? currency)}
       />
 
       <BudgetRow
@@ -106,7 +107,7 @@ export function TripBudgets({
         withVisibility
         sharedNow={mine?.shared ?? false}
         badge={mine && !mine.shared ? t.budgets.onlyMe : undefined}
-        onSave={(amountMinor, shared) => onSetMine(amountMinor, shared)}
+        onSave={(amountMinor, shared, denomination) => onSetMine(amountMinor, shared, denomination)}
         onClear={onClearMine}
       />
 
@@ -205,7 +206,7 @@ function BudgetRow({
   withVisibility?: boolean;
   sharedNow?: boolean;
   badge?: string;
-  onSave: (amountMinor: bigint, shared: boolean) => void;
+  onSave: (amountMinor: bigint, shared: boolean, currency: string) => void;
   onClear: () => void;
 }) {
   const { t } = useStrings();
@@ -213,6 +214,18 @@ function BudgetRow({
   const [text, setText] = useState('');
   const [shared, setShared] = useState(sharedNow ?? false);
   const [bad, setBad] = useState(false);
+
+  /**
+   * What this amount is denominated in.
+   *
+   * A budget already set keeps its own currency; only a new one takes the
+   * group's default. The database allows the two to differ, and getting this
+   * wrong is not cosmetic: the field is prefilled in the budget's currency, so
+   * parsing it in another applies the wrong minor-unit exponent — ¥15,000 read
+   * as rupees is ₹150.00 stored as 1,500,000 minor, a hundredfold error saved
+   * under a denomination nobody chose.
+   */
+  const denomination = budgetDenomination(progress, currency);
 
   const start = () => {
     // Prefilled with what is there, in major units — somebody changing a budget
@@ -226,12 +239,12 @@ function BudgetRow({
   const save = () => {
     let minor: bigint;
     try {
-      minor = parseMajor(text.trim(), currency).minor;
+      minor = parseMajor(text.trim(), denomination).minor;
     } catch {
       setBad(true);
       return;
     }
-    onSave(minor, shared);
+    onSave(minor, shared, denomination);
     setOpen(false);
   };
 
@@ -272,7 +285,7 @@ function BudgetRow({
             value={text}
             inputMode="decimal"
             autoFocus
-            aria-label={`${label} — ${t.budgets.amount}`}
+            aria-label={`${label} — ${t.budgets.amount} (${denomination})`}
             aria-invalid={bad || undefined}
             placeholder={t.budgets.amount}
             onChange={(event) => {
@@ -280,6 +293,10 @@ function BudgetRow({
               setBad(false);
             }}
           />
+          {/* Named rather than assumed: a budget can be denominated in
+              something other than the group's default, and the number in the
+              field means a different amount in each. */}
+          <span className="budget-denom">{denomination}</span>
           {withVisibility ? (
             <label className="budget-share">
               <input
