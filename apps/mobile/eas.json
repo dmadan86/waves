@@ -51,6 +51,9 @@
   },
   "submit": {
     "production": {
+      "ios": {
+        "appleTeamId": "JBAY4E524Q"
+      },
       "android": {
         "serviceAccountKeyPath": "./google-service-account.json",
         "track": "internal"
