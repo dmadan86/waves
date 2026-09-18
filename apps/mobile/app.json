@@ -76,7 +76,22 @@
     },
     "plugins": [
       "./plugins/withForegroundOnlyLocation",
-      "@react-native-firebase/app",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static"
+          }
+        }
+      ],
+      [
+        "@react-native-firebase/app",
+        {
+          "ios": {
+            "disableSPM": true
+          }
+        }
+      ],
       "expo-router",
       "expo-localization",
       "expo-sqlite",
