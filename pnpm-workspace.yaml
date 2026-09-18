@@ -65,6 +65,7 @@ minimumReleaseAgeExclude:
   - expo-location@57.0.19
   - expo-task-manager@57.0.19
   - expo-contacts@57.0.6
+  - expo-build-properties@57.0.21
 
 # expo-asset pulls its own expo-constants, so pnpm installs two copies. A
 # native build may only contain one version of a native module, and
