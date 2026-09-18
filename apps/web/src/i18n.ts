@@ -915,6 +915,29 @@ export interface WebStrings {
     /** Nobody has put them on a bill yet; `{name}` is the person. */
     noneHere: string;
     squareWith: string;
+    /**
+     * Finding one person by something you already know about them.
+     *
+     * The narrowest search in the app: one exact address or number, and a
+     * result only if that person left the matching channel discoverable. The
+     * refusal never distinguishes "nobody uses that" from "they turned this
+     * off", because a server that answered differently would make the setting
+     * the oracle it exists to close.
+     */
+    findRow: string;
+    findRowHint: string;
+    findTitle: string;
+    findHint: string;
+    findPlaceholder: string;
+    findAction: string;
+    findNoMatch: string;
+    findNoMatchBody: string;
+    /** The one server refusal worth its own sentence: the daily ceiling. */
+    findRateLimited: string;
+    alreadyShared: string;
+    /** Found, but you have never split with them. */
+    notSharedYet: string;
+    startGroup: string;
   };
   /** Taking the ledger away (ADR-012). */
   exportData: {
@@ -1674,6 +1697,18 @@ const en: WebStrings = {
     onCount: { one: 'On {n} bill', other: 'On {n} bills' },
     noneHere: '{name} is not on anything here yet.',
     squareWith: 'You are square with each other.',
+    findRow: 'Find someone',
+    findRowHint: 'By their exact email address or phone number',
+    findTitle: 'Find someone',
+    findHint: 'Type the exact email address or phone number they use on Waves.',
+    findPlaceholder: 'Email or phone',
+    findAction: 'Search',
+    findNoMatch: 'No match',
+    findNoMatchBody: 'Nobody uses that, or they have chosen not to be found by it.',
+    findRateLimited: 'That is enough searching for today. Try again tomorrow.',
+    alreadyShared: 'Already in a group with you',
+    notSharedYet: 'You have not split anything with them yet.',
+    startGroup: 'Start a group',
   },
   exportData: {
     title: 'Export',
@@ -2472,6 +2507,20 @@ const ta: WebStrings = {
     onCount: { one: '{n} பில்லில்', other: '{n} பில்களில்' },
     noneHere: '{name} இன்னும் எந்தப் பில்லிலும் இல்லை.',
     squareWith: 'நீங்கள் இருவரும் சரியாக இருக்கிறீர்கள்.',
+    findRow: 'ஒருவரைத் தேடுங்கள்',
+    findRowHint: 'அவரது சரியான மின்னஞ்சல் முகவரி அல்லது தொலைபேசி எண் மூலம்',
+    findTitle: 'ஒருவரைத் தேடுங்கள்',
+    findHint:
+      'அவர் Waves-இல் பயன்படுத்தும் மின்னஞ்சல் முகவரியையோ தொலைபேசி எண்ணையோ அப்படியே தட்டச்சு செய்யுங்கள்.',
+    findPlaceholder: 'மின்னஞ்சல் அல்லது தொலைபேசி',
+    findAction: 'தேடு',
+    findNoMatch: 'பொருத்தம் இல்லை',
+    findNoMatchBody:
+      'அதை யாரும் பயன்படுத்தவில்லை, அல்லது அதன் மூலம் கண்டறியப்படுவதை அவர் விருமபவில்லை.',
+    findRateLimited: 'இன்றைக்கு இவ்வளவு தேடல் போதும். நாளை மீண்டும் முயற்சியுங்கள்.',
+    alreadyShared: 'ஏற்கனவே உங்களுடன் ஒரு குழுவில் இருக்கிறார்',
+    notSharedYet: 'அவருடன் நீங்கள் இதுவரை எதையும் பகிர்ந்து கொள்ளவில்லை.',
+    startGroup: 'ஒரு குழுவைத் தொடங்குங்கள்',
   },
   exportData: {
     title: 'ஏற்றுமதி',
@@ -3252,6 +3301,18 @@ const hi: WebStrings = {
     onCount: { one: '{n} बिल पर', other: '{n} बिलों पर' },
     noneHere: '{name} अभी किसी बिल पर नहीं हैं।',
     squareWith: 'आप दोनों बराबर हैं.',
+    findRow: 'किसी को खोजें',
+    findRowHint: 'उनके ठीक ईमेल या फ़ोन नंबर से',
+    findTitle: 'किसी को खोजें',
+    findHint: 'वही ईमेल पता या फ़ोन नंबर लिखें जो वे Waves पर इस्तेमाल करते हैं।',
+    findPlaceholder: 'ईमेल या फ़ोन',
+    findAction: 'खोजें',
+    findNoMatch: 'कोई मेल नहीं',
+    findNoMatchBody: 'इसे कोई इस्तेमाल नहीं करता, या उन्होंने इससे खोजे जाने से मना किया है।',
+    findRateLimited: 'आज के लिए इतनी खोज काफ़ी। कल फ़िर कोशिश करें।',
+    alreadyShared: 'पहले से आपके साथ एक समूह में',
+    notSharedYet: 'आपने उनके साथ अब तक कुछ बाँटा नहीं है।',
+    startGroup: 'एक समूह बनाएँ',
   },
   exportData: {
     title: 'निर्यात',
@@ -4101,6 +4162,18 @@ const ar: WebStrings = {
     onCount: { one: 'على فاتورة واحدة', other: 'على {n} فواتير' },
     noneHere: '{name} ليس على أي فاتورة هنا بعد.',
     squareWith: 'أنتما متعادلان.',
+    findRow: 'ابحث عن شخص',
+    findRowHint: 'ببريده الإلكتروني أو رقم هاتفه بالضبط',
+    findTitle: 'ابحث عن شخص',
+    findHint: 'اكتب بالضبط البريد الإلكتروني أو رقم الهاتف الذي يستخدمه على Waves.',
+    findPlaceholder: 'بريد إلكتروني أو هاتف',
+    findAction: 'بحث',
+    findNoMatch: 'لا يوجد تطابق',
+    findNoMatchBody: 'لا أحد يستخدم ذلك، أو أنه اختار ألا يُعثر عليه بهذه الطريقة.',
+    findRateLimited: 'يكفي بحثًا اليوم. حاول مرة أخرى غدًا.',
+    alreadyShared: 'تجمعكما مجموعة بالفعل',
+    notSharedYet: 'لم تقاسم معه شيئًا بعد.',
+    startGroup: 'ابدأ مجموعة',
   },
   exportData: {
     title: 'تصدير',
