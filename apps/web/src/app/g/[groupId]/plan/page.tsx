@@ -72,8 +72,22 @@ function Plan({ groupId }: { groupId: string }) {
   const [addingTo, setAddingTo] = useState<string | null>(null);
   const [title, setTitle] = useState('');
   const [busy, setBusy] = useState(false);
-  /** The id the next add will carry. Survives a failure, so a retry replays. */
+  /**
+   * The id the next add will carry.
+   *
+   * It belongs to one attempt at one item, which is a narrower thing than it
+   * sounds. Keeping it across a straight retry is the whole point: if the
+   * server took the row and only the answer went missing, sending the same id
+   * replays that write instead of adding a second copy.
+   *
+   * But `waves_add_plan_item` answers a known id by returning the existing row
+   * and reading none of the rest — so the same id carrying *different* words,
+   * or the same words on a different day, would be swallowed and the new item
+   * silently lost. So the moment a draft is abandoned or pointed at another
+   * day, it stops being that attempt and gets a fresh id.
+   */
   const [draft, setDraft] = useState(() => crypto.randomUUID());
+  const abandonDraft = () => setDraft(crypto.randomUUID());
 
   const load = useCallback(async () => {
     const [row, bills, plan] = await Promise.all([
@@ -164,13 +178,11 @@ function Plan({ groupId }: { groupId: string }) {
       waves.addPlanItem({ groupId, day, title: text, itemId: draft }),
     );
     submitting.current = false;
-    // A failed add keeps both the words and the id. Clearing them would throw
-    // away what somebody typed *and* the one thing that makes a second attempt
-    // safe: if the server took the row and only the answer went missing,
-    // pressing Add again under the same id replays that write instead of
-    // writing a second copy of it.
+    // A failed add keeps both the words and the id, and leaves the field open:
+    // pressing Add again is the replay. Clearing them would throw away what
+    // somebody typed and the only thing that makes a second attempt safe.
     if (!saved) return;
-    setDraft(crypto.randomUUID());
+    abandonDraft();
     setTitle('');
     setAddingTo(null);
   };
@@ -247,10 +259,12 @@ function Plan({ groupId }: { groupId: string }) {
           onOpenAdd={() => {
             setAddingTo(day.day);
             setTitle('');
+            abandonDraft();
           }}
           onCancelAdd={() => {
             setAddingTo(null);
             setTitle('');
+            abandonDraft();
           }}
           onSubmit={() => void submit(day.day)}
           onToggle={(item) => void mutate(() => waves.setPlanItemDone(item.id, !item.done))}
