@@ -596,6 +596,15 @@ export interface WebStrings {
     /** How far a guest reaches, said on their row. `{n}`: groups they are in. */
     inGroups: PluralForms;
   };
+  /**
+   * Said only to the people who need it said.
+   *
+   * The skip link is invisible until it has focus, so the only person who ever
+   * reads it is somebody moving by keyboard — which is exactly who it is for.
+   */
+  a11y: {
+    skipToContent: string;
+  };
   location: {
     label: string;
     add: string;
@@ -1459,6 +1468,9 @@ const en: WebStrings = {
     errorGeneric: 'Could not merge. Please try again.',
     inGroups: { one: 'In {n} group', other: 'In {n} groups' },
   },
+  a11y: {
+    skipToContent: 'Skip to content',
+  },
   location: {
     label: 'Location',
     add: 'Add location',
@@ -2307,6 +2319,9 @@ const ta: WebStrings = {
     errorGeneric: 'இணைக்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்.',
     inGroups: { one: '{n} குழுவில்', other: '{n} குழுக்களில்' },
   },
+  a11y: {
+    skipToContent: 'உள்ளடக்கத்திற்குச் செல்',
+  },
   location: {
     label: 'இடம்',
     add: 'இடத்தைச் சேர்',
@@ -3148,6 +3163,9 @@ const hi: WebStrings = {
     errorNotSignedIn: 'आप साइन आउट हैं. साइन इन करके फिर से मर्ज करें.',
     errorGeneric: 'मर्ज नहीं हो सका. कृपया फिर से प्रयास करें.',
     inGroups: { one: '{n} समूह में', other: '{n} समूहों में' },
+  },
+  a11y: {
+    skipToContent: 'सामग्री पर जाएँ',
   },
   location: {
     label: 'स्थान',
@@ -4007,6 +4025,9 @@ const ar: WebStrings = {
     errorNotSignedIn: 'أنت مسجّل الخروج. سجّل الدخول وحاول الدمج مرة أخرى.',
     errorGeneric: 'تعذّر الدمج. يرجى المحاولة مرة أخرى.',
     inGroups: { one: 'في مجموعة واحدة', other: 'في {n} مجموعات' },
+  },
+  a11y: {
+    skipToContent: 'انتقل إلى المحتوى',
   },
   location: {
     label: 'الموقع',

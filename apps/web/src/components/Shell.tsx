@@ -107,6 +107,22 @@ export function Shell({
 
   return (
     <div className="app">
+      {/*
+        The first thing a keyboard reaches, on every page.
+
+        Without it, somebody tabbing lands in the sidebar and has to walk the
+        whole of it — every section, the search box, the add button, the theme
+        switch, the account menu — before touching the page they opened. That
+        is the cost on *every* navigation, not once.
+
+        A plain anchor rather than a button, because moving focus to a landmark
+        is what a fragment link already does; `#main` is the landmark the shell
+        now names. It is invisible until focused, so the only person who ever
+        sees it is the one it is for.
+      */}
+      <a className="skip-link" href="#main">
+        {t.a11y.skipToContent}
+      </a>
       <div className="app-shell">
         <aside className="sidebar">
           <div className="side-brand">
