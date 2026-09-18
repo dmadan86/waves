@@ -129,14 +129,21 @@ async function oauthThroughBrowser(
 }
 
 /**
- * Persist the name Apple hands over on the first authorization — the one time
- * it is ever sent. The `profiles` row is created by a trigger on `auth.users`
- * that can land a beat after the session (the same lag the profile-load effect
- * retries around), so a lone `UPDATE` can match zero rows and lose a value that
- * can never be re-fetched. So: write it to user metadata first — that never
- * depends on the row — then retry the profile update until a row is affected.
+ * Write what this person is called, to both places that hold it.
+ *
+ * Named for Apple once, because Apple hands over a name on the first
+ * authorization and never again — but the shape is the general one and the
+ * sign-up door needs it too, so it is no longer Apple's alone.
+ *
+ * The `profiles` row is created by a trigger on `auth.users` that can land a
+ * beat after the session (the same lag the profile-load effect retries
+ * around), so a lone `UPDATE` can match zero rows and lose a value that may
+ * never be offered again. So: write it to user metadata first — that never
+ * depends on the row, and is what the server-side trigger reads when it repairs
+ * a profile still holding the "Guest" placeholder — then retry the profile
+ * update until a row is affected.
  */
-async function persistAppleName(userId: string, name: string): Promise<void> {
+async function persistDisplayName(userId: string, name: string): Promise<void> {
   await backend.auth.updateUser({ data: { display_name: name } }).catch(() => undefined);
   for (let attempt = 0; attempt < 5; attempt += 1) {
     const { data, error } = await backend
@@ -323,6 +330,14 @@ interface AuthValue {
     identifier: string,
     password: string,
     intent: 'sign_in' | 'sign_up',
+    /**
+     * What to call them, asked for on the sign-up door and on the guest
+     * upgrade — the two doors that mint or claim an account. Without it a
+     * profile keeps the `Guest` placeholder its trigger stamped, which is the
+     * word a customer read as their own name on their settings screen. Absent
+     * on the login door, where the account already has whatever name it has.
+     */
+    name?: string,
   ) => Promise<PasswordOutcome>;
   /**
    * Google. The phone's own sheet for a fresh sign-in, the browser when this
@@ -556,26 +571,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (error) throw error;
       },
 
-      async withPassword(identifier, password, intent) {
+      async withPassword(identifier, password, intent, name) {
         const who = readIdentifier(identifier);
         checkPassword(password);
         const method = who.kind === 'email' ? AuthMethod.EmailPassword : AuthMethod.PhonePassword;
         const credential = who.kind === 'email' ? { email: who.value } : { phone: who.value };
         const action = planAuth(viewerFrom(session), method, intent);
+        // Blank is the same as not asked: an empty field must not overwrite a
+        // name with nothing, and must not be carried into the metadata where
+        // the server-side repair would read it as an answer.
+        const chosen = name?.trim() || null;
 
         if (action.call === 'updateUser') {
           // The upgrade. Same user id, so the groups, the expenses and the
           // money owed all stay where they are (ADR-006).
-          const { error } = await backend.auth.updateUser({ ...credential, password });
+          const { error } = await backend.auth.updateUser({
+            ...credential,
+            password,
+            ...(chosen ? { data: { display_name: chosen } } : {}),
+          });
           if (error) throw error;
           const { data } = await backend.auth.getSession();
+          // The profile row is already there, stamped `Guest` when the
+          // anonymous session began, and the trigger that reads metadata only
+          // fires on insert — so the row is written here rather than waited on.
+          if (chosen && data.session?.user) {
+            await persistDisplayName(data.session.user.id, chosen);
+            setProfileState((current) =>
+              current.profile
+                ? { ...current, profile: { ...current.profile, display_name: chosen } }
+                : current,
+            );
+          }
           setSession(data.session);
           return {};
         }
 
         const result =
           action.call === 'signUp'
-            ? await backend.auth.signUp({ ...credential, password })
+            ? await backend.auth.signUp({
+                ...credential,
+                password,
+                // Read by `waves_handle_new_user()` the instant the account is
+                // made. Without it that trigger's COALESCE ladder finds nothing
+                // an email sign-up ever sends and falls through to `Guest`.
+                ...(chosen ? { options: { data: { display_name: chosen } } } : {}),
+              })
             : await backend.auth.signInWithPassword({ ...credential, password });
         if (result.error) throw result.error;
 
@@ -632,7 +673,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // the profile with it before it is gone for good.
             const name = appleFullName(outcome.credential.fullName);
             if (name && data.user) {
-              await persistAppleName(data.user.id, name);
+              await persistDisplayName(data.user.id, name);
             }
             setSession(data.session);
             return;

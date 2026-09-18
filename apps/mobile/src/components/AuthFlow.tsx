@@ -79,7 +79,25 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
   // where that tile is absent would lead exactly where the tile does not go.
   const phoneCodeOffered = !isSignup && phoneSignInAvailable();
 
+  /**
+   * Whether to ask what to call them.
+   *
+   * On the two doors that mint or claim an account, and nowhere else. A
+   * `profiles` row is named once, by a trigger reading the provider's metadata
+   * — and an email-and-password sign-up sends no name at all, so the trigger
+   * falls through to its `Guest` placeholder and nothing in the product ever
+   * revisits it. A customer signed up, confirmed their address, and read
+   * "Guest" as their own name on their settings screen; so did everybody they
+   * split a bill with. The accounts already carrying it are repaired by
+   * migration; this is the door being shut.
+   *
+   * Not on the login door: that account already has whatever name it has, and
+   * a field there would offer to overwrite it as a side effect of signing in.
+   */
+  const askName = isSignup || isGuest;
+
   const [stage, setStage] = useState<Stage>(Stage.Form);
+  const [name, setName] = useState('');
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [passwordShown, setPasswordShown] = useState(false);
@@ -172,7 +190,9 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
 
   const submitPassword = (): void => {
     void (async () => {
-      const outcome = await run(() => withPassword(identifier, password, intent));
+      const outcome = await run(() =>
+        withPassword(identifier, password, intent, askName ? name : undefined),
+      );
       // A confirmation mail went out — send them to check it rather than leave
       // them on a form that looks inert.
       if (outcome?.verifyEmail) {
@@ -278,6 +298,30 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
               style={{ gap: theme.spacing.lg }}
             >
               <View style={cardStyle}>
+                {/* First in the card, because it is the first thing anybody
+                    would say. Optional — it is a name, not a credential, and
+                    refusing to create an account over a blank one would be
+                    picking a fight at the door. Left blank, the profile keeps
+                    its placeholder and settings can rename it later. */}
+                {askName ? (
+                  <>
+                    <View style={rowStyle}>
+                      <TextInput
+                        value={name}
+                        onChangeText={setName}
+                        autoCapitalize="words"
+                        autoCorrect={false}
+                        autoComplete="name"
+                        textContentType="name"
+                        accessibilityLabel={t.common.yourName}
+                        placeholder={t.common.yourName}
+                        placeholderTextColor={theme.color.textFaint}
+                        style={inputStyle}
+                      />
+                    </View>
+                    <View style={hairline} />
+                  </>
+                ) : null}
                 <View style={rowStyle}>
                   <TextInput
                     value={identifier}
