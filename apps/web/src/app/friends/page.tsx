@@ -77,6 +77,9 @@ function Friends({ query }: { query: string }) {
             <Link className="btn soft" href="/friends/find">
               {t.person.findRow}
             </Link>
+            <Link className="btn soft" href="/friends/merge">
+              {t.mergePeople.entry}
+            </Link>
           </div>
         </div>
 
