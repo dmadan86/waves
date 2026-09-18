@@ -309,6 +309,14 @@ function Settings() {
             </span>
             <ChevronRight size={16} strokeWidth={1.75} aria-hidden />
           </Link>
+          {/* No hint under this one: the row says what it is, and the page's
+              own first line is a paragraph rather than a caption. */}
+          <Link className="item" href="/settings/licenses">
+            <span className="grow">
+              <span className="title">{t.licenses.row}</span>
+            </span>
+            <ChevronRight size={16} strokeWidth={1.75} aria-hidden />
+          </Link>
         </section>
 
         <section className="panel">

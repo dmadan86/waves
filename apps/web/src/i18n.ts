@@ -519,6 +519,21 @@ export interface WebStrings {
     kindIdea: string;
     couldNotSend: string;
   };
+  /**
+   * The open-source software this client stands on.
+   *
+   * A flat, honest list of the web app's own direct runtime dependencies —
+   * which is not the phone's list, and saying so is the point: a screen that
+   * copied the mobile one would be attributing software this build does not
+   * ship.
+   */
+  licenses: {
+    row: string;
+    title: string;
+    intro: string;
+    /** Said under the list, because a list of names is not a license. */
+    note: string;
+  };
   location: {
     label: string;
     add: string;
@@ -1313,6 +1328,13 @@ const en: WebStrings = {
     kindIdea: 'An idea',
     couldNotSend: 'That could not be sent just now. Try again in a moment.',
   },
+  licenses: {
+    row: 'Open source licenses',
+    title: 'Open source',
+    intro:
+      'Waves is built on open-source software. Thank you to the people who made and maintain these.',
+    note: 'Each is used under its own license, kept unchanged.',
+  },
   location: {
     label: 'Location',
     add: 'Add location',
@@ -2098,6 +2120,13 @@ const ta: WebStrings = {
     kindIdea: 'ஒரு யோசனை',
     couldNotSend: 'அதை இப்போது அனுப்ப முடியவில்லை. கொஞ்சம் கழித்து மீண்டும் முயற்சிக்கவும்.',
   },
+  licenses: {
+    row: 'திறந்த மூல உரிமங்கள்',
+    title: 'திறந்த மூலம்',
+    intro:
+      'Waves திறந்த மூல மென்பொருளால் கட்டப்பட்டது. இவற்றை உருவாக்கிப் பராமரிப்பவர்களுக்கு நன்றி.',
+    note: 'ஒவ்வொன்றும் அதன் சொந்த உரிமத்தின் கீழ், மாற்றமின்றிப் பயன்படுத்தப்படுகிறது.',
+  },
   location: {
     label: 'இடம்',
     add: 'இடத்தைச் சேர்',
@@ -2878,6 +2907,12 @@ const hi: WebStrings = {
     kindBug: 'कुछ ख़राब है',
     kindIdea: 'एक सुझाव',
     couldNotSend: 'यह अभी भेजा नहीं जा सका। थोड़ी देर में फिर कोशिश करें।',
+  },
+  licenses: {
+    row: 'ओपन सोर्स लाइसेंस',
+    title: 'ओपन सोर्स',
+    intro: 'Waves ओपन-सोर्स सॉफ़्टवेयर पर बना है। इन्हें बनाने और सँभालने वालों का धन्यवाद।',
+    note: 'हर एक अपने लाइसेंस के तहत, बिना बदलाव के इस्तेमाल होती है।',
   },
   location: {
     label: 'स्थान',
@@ -3682,6 +3717,12 @@ const ar: WebStrings = {
     kindBug: 'شيء لا يعمل',
     kindIdea: 'فكرة',
     couldNotSend: 'تعذّر الإرسال الآن. حاول بعد قليل.',
+  },
+  licenses: {
+    row: 'تراخيص المصدر المفتوح',
+    title: 'المصدر المفتوح',
+    intro: 'ُبني Waves على برمجيات مفتوحة المصدر. شكرًا لمن صنعها ويصونها.',
+    note: 'كلٌّ منها يُستخدم بموجب ترخيصه الخاص، دون تغيير.',
   },
   location: {
     label: 'الموقع',
