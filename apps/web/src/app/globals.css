@@ -1022,6 +1022,111 @@
     background: #000;
   }
 
+  /* ─────────────────────────────────────────────────────────────
+     Spending charts (M5). Drawn in CSS: a bar is a filled track, a
+     column is a box with a height. No charting library.
+     ───────────────────────────────────────────────────────────── */
+
+  .bars {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .bar-row {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .bar-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: var(--w-font-caption);
+  }
+  .bar-label {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .bar-value {
+    flex: none;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .bar-track {
+    display: block;
+    height: 8px;
+    border-radius: var(--w-radius-pill);
+    background: var(--w-surface-muted);
+    overflow: hidden;
+  }
+  .bar-fill {
+    display: block;
+    height: 100%;
+    border-radius: var(--w-radius-pill);
+  }
+
+  /* The columns scroll rather than squeeze: six months at 320px would be
+     36px each, which is narrower than the figure above them. */
+  .columns {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+  .column {
+    display: flex;
+    flex: 1 0 64px;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    border-radius: var(--w-radius-md);
+    padding: 8px 4px;
+    color: inherit;
+    text-decoration: none;
+  }
+  .column:hover {
+    background: var(--w-surface-muted);
+  }
+  .column:focus-visible {
+    outline: 2px solid var(--w-brand);
+    outline-offset: 2px;
+  }
+  .column-value {
+    font-size: var(--w-font-micro);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  /* The track is the full height every column is measured against, so the
+     bars share one baseline instead of each filling its own box. */
+  .column-track {
+    display: flex;
+    width: 100%;
+    height: 96px;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .column-fill {
+    display: block;
+    width: 100%;
+    max-width: 38px;
+    border-radius: var(--w-radius-sm) var(--w-radius-sm) 2px 2px;
+    background: var(--w-gradient-brand);
+  }
+  .column-label {
+    font-size: var(--w-font-micro);
+    color: var(--w-text-muted);
+    white-space: nowrap;
+  }
+
   /* One person's standing in a group: the figure, what it means, and what
      they are. Centred, because the page is about them and nothing else. */
   .member-hero {
@@ -1032,9 +1137,19 @@
     padding: 6px 0 14px;
     text-align: center;
   }
-  .member-hero .hero-amount {
+  /* The big figure on a plain panel — a person's standing, a month's total.
+     Its own class rather than `.hero-amount`, which belongs to the dashboard's
+     gradient card and paints itself white for it: reusing the name put white
+     text on a white panel, and the only reason it ever read was that the
+     callers happened to add a tone class that came later in this file. This one
+     states its own colour, and the tones still win on specificity. */
+  .standing-amount {
     font-size: var(--w-font-display);
     line-height: var(--w-leading-display);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    color: var(--w-text);
   }
   .member-hero .badges {
     display: flex;

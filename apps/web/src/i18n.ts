@@ -236,6 +236,24 @@ export interface WebStrings {
     /** A group with nobody in it cannot have a bill split across it. */
     noMembers: string;
   };
+  /** Where the money went (M5, TDR §8) — the charts and their drill-down. */
+  insights: {
+    title: string;
+    /** The scope control: everybody's spending, or only the reader's share. */
+    scopeLabel: string;
+    wholeGroup: string;
+    justMine: string;
+    byCategory: string;
+    byMonth: string;
+    /** What the headline figure is; `{currency}` is its code. */
+    totalIn: string;
+    /** A column is a way in, and somebody has to be told that. */
+    tapMonth: string;
+    nothingYet: string;
+    nothingBody: string;
+    nothingThisMonth: string;
+    nothingThisMonthBody: string;
+  };
   location: {
     label: string;
     add: string;
@@ -833,6 +851,20 @@ const en: WebStrings = {
     cannotSplit: 'This bill cannot be split yet.',
     noMembers: 'Add somebody to this group first.',
   },
+  insights: {
+    title: 'Spending',
+    scopeLabel: 'Whose spending',
+    wholeGroup: 'Everyone',
+    justMine: 'Just mine',
+    byCategory: 'What it went on',
+    byMonth: 'Month by month',
+    totalIn: 'spent in {currency}',
+    tapMonth: 'Open a month to see its days.',
+    nothingYet: 'Nothing to chart yet',
+    nothingBody: 'Add an expense and this fills in.',
+    nothingThisMonth: 'Nothing this month',
+    nothingThisMonthBody: 'No expenses here in this currency.',
+  },
   location: {
     label: 'Location',
     add: 'Add location',
@@ -1409,6 +1441,20 @@ const ta: WebStrings = {
     unclaimed: 'யாரும் உரிமை கோரவில்லை: {lines}',
     cannotSplit: 'இந்த பில்லை இன்னும் பிரிக்க முடியாது.',
     noMembers: 'முதலில் இந்தக் குழுவில் ஒருவரைச் சேருங்கள்.',
+  },
+  insights: {
+    title: 'செலவுகள்',
+    scopeLabel: 'யாருடைய செலவு',
+    wholeGroup: 'அனைவரும்',
+    justMine: 'என்னுடையது மட்டும்',
+    byCategory: 'எதற்குச் சென்றது',
+    byMonth: 'மாதம் வாரியாக',
+    totalIn: '{currency}ல் செலவு',
+    tapMonth: 'நாட்களைப் பார்க்க ஒரு மாதத்தைத் திறக்கவும்.',
+    nothingYet: 'இன்னும் வரைபடத்திற்கு ஒன்றுமில்லை',
+    nothingBody: 'ஒரு செலவைச் சேர்த்தால் இது நிரம்பும்.',
+    nothingThisMonth: 'இந்த மாதம் ஒன்றுமில்லை',
+    nothingThisMonthBody: 'இந்த நாணயத்தில் இங்கு செலவுகள் இல்லை.',
   },
   location: {
     label: 'இடம்',
@@ -1994,6 +2040,20 @@ const hi: WebStrings = {
     unclaimed: 'इन पर किसी ने दावा नहीं किया: {lines}',
     cannotSplit: 'यह बिल अभी बाँटा नहीं जा सकता।',
     noMembers: 'पहले इस ग्रुप में किसी को जोड़ें।',
+  },
+  insights: {
+    title: 'ख़र्च',
+    scopeLabel: 'किसका ख़र्च',
+    wholeGroup: 'सब',
+    justMine: 'सिर्फ़ मेरा',
+    byCategory: 'किस पर गया',
+    byMonth: 'महीने दर महीने',
+    totalIn: '{currency} में ख़र्च',
+    tapMonth: 'दिन देखने के लिए कोई महीना खोलें।',
+    nothingYet: 'अभी दिखाने को कुछ नहीं',
+    nothingBody: 'एक ख़र्च जोड़ें और यह भर जाएगा।',
+    nothingThisMonth: 'इस महीने कुछ नहीं',
+    nothingThisMonthBody: 'इस मुद्रा में यहाँ कोई ख़र्च नहीं।',
   },
   location: {
     label: 'स्थान',
@@ -2581,6 +2641,20 @@ const ar: WebStrings = {
     unclaimed: 'لم يطالب أحد بـ: {lines}',
     cannotSplit: 'لا يمكن تقسيم هذه الفاتورة بعد.',
     noMembers: 'أضف شخصًا إلى هذه المجموعة أولًا.',
+  },
+  insights: {
+    title: 'الإنفاق',
+    scopeLabel: 'إنفاق من',
+    wholeGroup: 'الجميع',
+    justMine: 'إنفاقي فقط',
+    byCategory: 'على ماذا صُرف',
+    byMonth: 'شهرًا بشهر',
+    totalIn: 'أُنفقت بـ {currency}',
+    tapMonth: 'افتح شهرًا لعرض أيامه.',
+    nothingYet: 'لا شيء لعرضه بعد',
+    nothingBody: 'أضف مصروفًا وسيمتلئ هذا.',
+    nothingThisMonth: 'لا شيء هذا الشهر',
+    nothingThisMonthBody: 'لا مصروفات هنا بهذه العملة.',
   },
   location: {
     label: 'الموقع',
