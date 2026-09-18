@@ -60,6 +60,8 @@ import {
   type ErasurePreview,
   type PromoOutcome,
   type FoundPerson,
+  type GhostMergeRow,
+  type GuestMemberRow,
   type FeedbackInput,
   DEFAULT_DISCOVERY,
   readContactVisibility,
@@ -1152,6 +1154,54 @@ export function createWavesClient({ supabase, r2Enabled = false }: WavesClientOp
     /** Every person you are not square with, across every group, per currency. */
     peopleBalances(): Promise<PersonBalanceRow[]> {
       return read<PersonBalanceRow>(supabase.rpc('waves_people_i_owe'));
+    },
+
+    /**
+     * Every guest the viewer shares a group with, for the merge screen.
+     *
+     * One query rather than a members read per group: the RLS policy on
+     * `group_members` already scopes a bare select to groups the caller is in,
+     * so the filter is "is a guest, has not left" and the server does the rest.
+     *
+     * It reads `invite_email` and `invite_phone`, which the shared member
+     * projection deliberately does not — a screen that merges people needs to
+     * say which guest is the one you already have details for, and every other
+     * screen has no business carrying contact details it never shows.
+     */
+    mergeableGuests(): Promise<GuestMemberRow[]> {
+      return read<GuestMemberRow>(
+        supabase
+          .from('group_members')
+          .select('id, group_id, profile_id, ghost_name, left_at, invite_email, invite_phone')
+          .is('profile_id', null)
+          .is('left_at', null),
+      );
+    },
+
+    /** The merges this viewer has recorded. RLS keeps them to their owner. */
+    ghostMerges(): Promise<GhostMergeRow[]> {
+      return read<GhostMergeRow>(
+        supabase.from('ghost_merges').select('member_id, person_id, display_name'),
+      );
+    },
+
+    /**
+     * Say that these guests are one person.
+     *
+     * Per-viewer and irreversible: there is no un-merge, which is why the
+     * screen says so before the button. The RPC refuses anything that is not a
+     * guest the caller shares a group with — a real person is already one
+     * identity by their account and must never be folded under a made-up name
+     * — and refuses the whole merge rather than merging a subset.
+     *
+     * The message comes back raw on purpose: each refusal is a different
+     * sentence to a person, and the caller maps the code.
+     */
+    mergeGhosts(memberIds: readonly string[], name: string): Promise<string> {
+      return rpc<string>('waves_merge_ghosts', {
+        p_member_ids: [...memberIds],
+        p_name: name,
+      });
     },
 
     /**
