@@ -581,3 +581,17 @@ export interface FeedbackInput {
   appVersion: string | null;
   platform: string;
 }
+
+/**
+ * A person found by an exact email address or phone number.
+ *
+ * `already_shared` decides what the next step is: somebody you already split
+ * with has a page of balances to open, and somebody you do not is an invitation
+ * waiting to happen.
+ */
+export interface FoundPerson {
+  profile_id: string;
+  display_name: string;
+  avatar_url: string | null;
+  already_shared: boolean;
+}
