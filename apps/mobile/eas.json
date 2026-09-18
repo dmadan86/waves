@@ -15,6 +15,7 @@
     },
     "development": {
       "extends": "base",
+      "environment": "development",
       "developmentClient": true,
       "distribution": "internal",
       "channel": "development",
@@ -27,6 +28,7 @@
     },
     "preview": {
       "extends": "base",
+      "environment": "preview",
       "distribution": "internal",
       "channel": "preview",
       "android": {
@@ -38,6 +40,7 @@
     },
     "production": {
       "extends": "base",
+      "environment": "production",
       "distribution": "store",
       "channel": "production",
       "autoIncrement": true,
@@ -48,6 +51,9 @@
   },
   "submit": {
     "production": {
+      "ios": {
+        "appleTeamId": "JBAY4E524Q"
+      },
       "android": {
         "serviceAccountKeyPath": "./google-service-account.json",
         "track": "internal"

@@ -29,6 +29,7 @@
     "expo-apple-authentication": "~57.0.2",
     "expo-auth-session": "~57.0.12",
     "expo-background-task": "~57.0.19",
+    "expo-build-properties": "~57.0.20",
     "expo-camera": "~57.0.5",
     "expo-clipboard": "~57.0.2",
     "expo-constants": "57.0.19",
