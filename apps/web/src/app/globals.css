@@ -2817,8 +2817,14 @@
       /* Both columns sized to their content and the pair centred, rather than
          one fraction each: a `1fr` column pushes the text to the far left and
          the card to the far right, so at 1280px they read as two unrelated
-         things at opposite edges instead of one page. */
-      grid-template-columns: minmax(0, 30rem) auto;
+         things at opposite edges instead of one page.
+
+         `auto` and not a fixed track, either. A 30rem track holds its text
+         against the track's own start edge, so the space between the halves
+         was whatever the sentence did not use — about 600px with the Arabic
+         tagline, which is shorter. The measure belongs to `.door-say`, and the
+         gap below is then the real distance between them. */
+      grid-template-columns: auto auto;
       align-items: center;
       justify-content: center;
       justify-items: start;
