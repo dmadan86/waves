@@ -56,6 +56,7 @@ import {
   type PlanItemRow,
   type MemberBudgetRow,
   type CategoryTagRecord,
+  type ErasurePreview,
 } from './rows';
 
 const PROFILE_COLUMNS =
@@ -1365,6 +1366,29 @@ export function createWavesClient({ supabase, r2Enabled = false }: WavesClientOp
       csvSeparator?: string;
     }): Promise<ExportResult> {
       return callFunction<ExportResult>('export-data', input);
+    },
+
+    /** What erasure would leave behind, so a screen can say so before the button. */
+    async erasurePreview(): Promise<ErasurePreview | null> {
+      const rows = await rpc<ErasurePreview[] | null>('waves_my_erasure_preview', {});
+      return rows?.[0] ?? null;
+    },
+
+    /**
+     * Erase the person, keep the ledger.
+     *
+     * Through the `account-delete` edge function rather than the RPC directly,
+     * because the two halves need two different keys. The function runs
+     * `waves_delete_my_account` as the caller — every membership becomes an
+     * unnamed ghost and the profile and everything personal hanging off it is
+     * deleted — and then removes the auth identity with the service key, which
+     * no client holds. The RPC alone would leave an account that could still
+     * sign in to nothing.
+     *
+     * The caller signs out afterwards, and only once the data is gone.
+     */
+    deleteMyAccount(reason: string | null): Promise<{ memberships_anonymised?: number }> {
+      return callFunction<{ memberships_anonymised?: number }>('account-delete', { reason });
     },
 
     notifications(limit = 50): Promise<NotificationRow[]> {
