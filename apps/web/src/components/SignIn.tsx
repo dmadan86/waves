@@ -246,14 +246,35 @@ export function SignIn() {
 
   return (
     <div className="signin-wrap">
-      <div className="signin-card">
-        <div className="brand">
+      {/*
+        The half that says what this is.
+
+        A lone card centred in a field of brand colour is a login box, not a
+        product: at desktop width it was 400px of form adrift in 1280px of
+        purple, which tells somebody who followed a link here nothing about
+        what they have arrived at. This column carries the name and the
+        sentence; below 900px it stacks above the card, where it reads as a
+        heading rather than a second column squeezed thin.
+
+        Deliberately no feature list. Every claim would need saying in four
+        languages, and the phone's own list — works offline, scan a receipt —
+        is not true here: neither ships on the web. An honest name and one
+        honest sentence beat three translated boasts.
+      */}
+      <div className="door-say">
+        <div className="brand door-brand">
           <span className="brand-mark" aria-hidden>
             ₹
           </span>
           {t.dash.signInTitle}
         </div>
+        <p className="door-tagline">{t.dash.signInBody}</p>
+      </div>
 
+      {/* The card is the ways in, and nothing else. The name sits beside it
+          (or above it on a phone), so repeating it here would be the same
+          wordmark twice on one screen. */}
+      <div className="signin-card">
         {sent ? (
           <>
             <h2 style={{ marginBottom: 8 }}>{t.dash.linkSentTitle}</h2>
@@ -261,8 +282,6 @@ export function SignIn() {
           </>
         ) : (
           <>
-            <p>{t.dash.signInBody}</p>
-
             {/*
               Google first, Apple second, on every platform.
 
