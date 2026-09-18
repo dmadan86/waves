@@ -36,6 +36,23 @@ updates:
       - dependency-name: react-native-svg
       - dependency-name: react-native-maps
       - dependency-name: '@react-native-community/datetimepicker'
+      # And the SDK's own packages, for the same reason one layer up. On
+      # 2026-09-18 Dependabot opened seven PRs moving `expo-*` modules to 58.x
+      # while `expo` itself sat at 57.0.24 — because **there is no Expo SDK 58**:
+      # `expo@latest` is 57, and 58 exists only as `canary`. Each PR was green,
+      # and together they put six major-ahead native modules into the app plus a
+      # duplicate `expo-application` (57 from expo-auth-session, 58 from
+      # expo-notifications) — which `expo-doctor` calls out and a JS test run
+      # cannot see.
+      #
+      # Majors only. Patch and minor bumps inside the SDK's line are exactly the
+      # routine noise this file is for, and `expo install --fix` wants them.
+      - dependency-name: 'expo'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'expo-*'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@expo/*'
+        update-types: ['version-update:semver-major']
     groups:
       # One PR for the routine patch/minor noise instead of dozens; majors still
       # come as their own reviewable PRs.
