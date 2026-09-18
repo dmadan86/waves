@@ -23,7 +23,16 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams } from 'expo-router';
 import { ScrollView, View } from 'react-native';
 
-import { format, resolveCategory, type CategoryId, type CategoryMeta } from '@waves/core';
+import {
+  categoryTotals,
+  computeSpendingRows,
+  format,
+  monthTotals,
+  resolveCategory,
+  spendingCurrencies,
+  spendingTotal,
+  type CategoryId,
+} from '@waves/core';
 import {
   BarList,
   Card,
@@ -46,7 +55,6 @@ import {
 import { CategoryBadge } from '@/components/Category';
 import { InsightsSkeleton } from '@/components/Skeletons';
 import type { SpendingRow } from '@/data/api';
-import { computeSpendingRows } from '@/data/spending';
 import { useGroup } from '@/data/hooks';
 import { useStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
@@ -101,12 +109,7 @@ export default function InsightsScreen() {
     return spendingRows;
   }, [spendingRows, scope, myMemberId]);
 
-  const currencies = useMemo(() => {
-    const seen = [...new Set(rows.map((row) => row.currency))];
-    return seen.sort((a, b) =>
-      a === groupCurrency ? -1 : b === groupCurrency ? 1 : a.localeCompare(b),
-    );
-  }, [rows, groupCurrency]);
+  const currencies = useMemo(() => spendingCurrencies(rows, groupCurrency), [rows, groupCurrency]);
 
   const loading = group.isLoading || members.isLoading || expenses.isLoading;
 
@@ -206,68 +209,30 @@ function CurrencySection({
 }) {
   const theme = useTheme();
 
-  const total = rows.reduce((sum, row) => sum + BigInt(row.share_amount), 0n);
+  const total = spendingTotal(rows);
 
-  const categories: BarDatum[] = useMemo(() => {
-    // Bucketed by what a category *resolves to*, never by the raw string on the
-    // row. Those are not the same thing, and the difference was visible: any
-    // value the catalog does not know — a legacy id, a tag whose row never
-    // arrived, an empty string — resolves to the built-in "Other", so a ledger
-    // carrying seven such values drew seven separate bars all labelled "Other",
-    // one of them the largest thing on the screen. Resolving first folds them
-    // into the single "Other" they always were.
-    //
-    // A custom tag's display travels on its rows, and the first *meta* wins
-    // rather than the first row: a tag is only itself while its snapshot is
-    // present, so taking a null from an early row would send the whole tag into
-    // "Other" on the strength of one expense that happened to be saved without
-    // it.
-    const metaByCategory = new Map<string, CategoryMeta | null>();
-    for (const row of rows) {
-      if (row.category_meta && !metaByCategory.get(row.category)) {
-        metaByCategory.set(row.category, row.category_meta);
-      } else if (!metaByCategory.has(row.category)) {
-        metaByCategory.set(row.category, null);
-      }
-    }
-
-    const totals = new Map<string, { value: bigint; raw: string; meta: CategoryMeta | null }>();
-    for (const row of rows) {
-      const meta = metaByCategory.get(row.category) ?? null;
-      const resolved = resolveCategory(row.category, meta);
-      const key = resolved.custom ? `custom:${resolved.key}` : (resolved.builtinId ?? 'other');
-      const seen = totals.get(key);
-      if (seen) seen.value += BigInt(row.share_amount);
-      else totals.set(key, { value: BigInt(row.share_amount), raw: row.category, meta });
-    }
-
-    return [...totals]
-      .sort((a, b) =>
-        b[1].value === a[1].value ? a[0].localeCompare(b[0]) : b[1].value > a[1].value ? 1 : -1,
-      )
-      .map(([key, { value, raw, meta }]) => {
-        const resolved = resolveCategory(raw, meta);
+  // The bucketing is `categoryTotals` in @waves/core — shared with the browser,
+  // which draws the same chart. What is left here is naming and drawing: a
+  // custom tag names itself, a built-in is named through the table.
+  const categories: BarDatum[] = useMemo(
+    () =>
+      categoryTotals(rows).map(({ key, category, meta, value }) => {
+        const resolved = resolveCategory(category, meta);
         return {
           key,
-          // A custom tag names itself; a built-in is named through the table.
           label: resolved.custom ? resolved.label : labels[resolved.builtinId ?? 'other'],
           value,
           formatted: format({ minor: value, currency }, { locale }),
           tint: resolved.tint,
-          leading: <CategoryBadge category={raw} meta={meta} size={26} />,
+          leading: <CategoryBadge category={category} meta={meta} size={26} />,
         };
-      });
-  }, [rows, labels, locale, currency]);
+      }),
+    [rows, labels, locale, currency],
+  );
 
-  const months: ColumnDatum[] = useMemo(() => {
-    const totals = new Map<string, bigint>();
-    for (const row of rows) {
-      totals.set(row.month, (totals.get(row.month) ?? 0n) + BigInt(row.share_amount));
-    }
-    return [...totals]
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .slice(-MONTHS_SHOWN)
-      .map(([month, value]) => ({
+  const months: ColumnDatum[] = useMemo(
+    () =>
+      monthTotals(rows, MONTHS_SHOWN).map(({ month, value }) => ({
         key: month,
         // The month is a plain 'YYYY-MM-DD' from Postgres. Reading it with
         // `new Date(...)` would apply the phone's timezone and, east of UTC,
@@ -275,8 +240,9 @@ function CurrencySection({
         label: monthLabel(month, locale),
         value,
         formatted: format({ minor: value, currency }, { locale }),
-      }));
-  }, [rows, locale, currency]);
+      })),
+    [rows, locale, currency],
+  );
 
   return (
     <View style={{ gap: theme.spacing.lg }}>

@@ -1,12 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { computeSpendingRows } from '@/data/spending';
-import type { ExpenseRow } from '@/data/types';
+import { computeSpendingRows, type SpendingExpense } from '../src/insights/spending';
 
 /**
  * A minimal expense — only the fields the aggregation reads (deleted_at and the
  * current version's currency, category, date and shares). The rest is filled so
- * the shape is a real ExpenseRow.
+ * the shape is a real SpendingExpense.
  */
 function expense(over: {
   id?: string;
@@ -17,7 +16,7 @@ function expense(over: {
   meta?: { label: string; icon: string; tint: string } | null;
   date?: string;
   shares?: { member_id: string; amount: string }[];
-}): ExpenseRow {
+}): SpendingExpense {
   const version =
     over.version === null
       ? null
@@ -44,7 +43,7 @@ function expense(over: {
     deleted_at: over.deleted ? '2026-03-16T00:00:00Z' : null,
     created_at: '2026-03-15T00:00:00Z',
     currentVersion: version,
-  } as unknown as ExpenseRow;
+  } as unknown as SpendingExpense;
 }
 
 /** Find the single row for a (member, category, month, currency) key. */

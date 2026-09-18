@@ -25,6 +25,7 @@ import {
   type ParsedReceipt,
   type PaymentMethod,
   type ReceiptCheck,
+  type SpendingRow,
   type SplitParams,
 } from '@waves/core';
 
@@ -1726,21 +1727,14 @@ export async function nudgeToSettle(input: {
 
 // ─────────────────────────────────────────────── where the money went ──
 
-export interface SpendingRow {
-  member_id: string;
-  currency: string;
-  /** Always set — an expense with no category comes back as 'other'. */
-  category: string;
-  /** A custom tag's {label, icon, tint} snapshot when the category is a user
-   *  tag (extends TDR §8), so insights can label and colour its bar. Absent from
-   *  the server RPC's rows; only the local twin fills it. */
-  category_meta?: CategoryMeta | null;
-  /** First day of the month, 'YYYY-MM-DD'. */
-  month: string;
-  /** This member's share of that category, in minor units. */
-  share_amount: string;
-  expense_count: number;
-}
+/**
+ * One spending total, as both the RPC and its local twin answer it.
+ *
+ * Re-exported from @waves/core rather than declared again: the twin lives there
+ * now (the browser shows the same charts), and two copies of this shape is two
+ * things to keep in step with one SQL function.
+ */
+export type { SpendingRow };
 
 /**
  * One group's spending, at the finest grain the charts need (TDR §8).

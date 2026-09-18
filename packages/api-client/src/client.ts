@@ -90,7 +90,7 @@ const SIGNED_URL_TTL_SECONDS = 60 * 60;
 const EXPENSE_COLUMNS = `
   id, group_id, deleted_at, created_at,
   currentVersion:expense_versions!expenses_current_version_id_fkey (
-    id, version_no, description, category, expense_date, currency, amount,
+    id, version_no, description, category, category_meta, expense_date, currency, amount,
     split_type, split_params, location, receipt_id, receipt_share_url,
     payers:expense_payers ( member_id, amount ),
     shares:expense_shares ( member_id, amount )

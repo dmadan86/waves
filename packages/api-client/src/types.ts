@@ -6,7 +6,7 @@
  * columns nobody renders is asking RLS to prove more than it has to.
  */
 
-import type { ExpenseLocation, SplitParams } from '@waves/core';
+import type { CategoryMeta, ExpenseLocation, SplitParams } from '@waves/core';
 
 export type MemberId = string;
 
@@ -34,6 +34,16 @@ export interface ExpenseVersion {
   version_no: number;
   description: string;
   category: string | null;
+  /**
+   * The custom tag's snapshot (A42), when the category is a user tag rather
+   * than a built-in.
+   *
+   * It travels on the version because a tag is only itself while its snapshot
+   * is present: without this, spending folds every custom tag into the
+   * built-in "Other", which is what the browser did until it started drawing
+   * the charts and the gap became visible.
+   */
+  category_meta?: CategoryMeta | null;
   expense_date: string;
   currency: string;
   /** Minor units as a decimal string — the wire never carries a JS number for money. */
