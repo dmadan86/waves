@@ -1406,15 +1406,26 @@ export function createWavesClient({ supabase, r2Enabled = false }: WavesClientOp
       const { data: auth } = await supabase.auth.getUser();
       const id = auth.user?.id;
       if (!id) throw new WavesApiError('Not signed in');
-      const { error } = await supabase
+      // The trailing `.select('id')` is not decoration: an update that matches
+      // no row is not an error, and this account may genuinely have no profile
+      // row — the
+      // squashed baseline once dropped the new-user trigger and left exactly
+      // that. Without asking for the row back, a write that changed nothing
+      // reports success, and the screen says a privacy setting was saved that
+      // was not. That is the same failing-open this file refuses elsewhere.
+      const { data, error } = await supabase
         .from('profiles')
         .update({
           discoverable_by_phone: next.discoverableByPhone,
           discoverable_by_email: next.discoverableByEmail,
           contact_visibility: next.contactVisibility,
         })
-        .eq('id', id);
+        .eq('id', id)
+        .select('id');
       if (error) throw new WavesApiError(String((error as { message?: string }).message ?? error));
+      if (!data || data.length === 0) {
+        throw new WavesApiError('Your profile could not be found, so nothing was saved.');
+      }
     },
 
     /**
