@@ -804,9 +804,20 @@
   }
   .item-pair {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 8px;
     padding-inline-end: 8px;
+  }
+  /* A row with two destinations is a row and a button, and `.item` is 100%
+     wide — so the button had nowhere to sit but past the right edge, which is
+     where "Settle up" and "View bill" both ended up on a phone. The row takes
+     what is left instead, and gives up and wraps under only when what is left
+     would be unreadably narrow. */
+  .item-pair > .item {
+    width: auto;
+    min-width: 0;
+    flex: 1 1 200px;
   }
   .item-pair + .item-pair {
     border-top: 1px solid var(--w-border);
@@ -1790,6 +1801,22 @@
   .detail-field .v {
     text-align: end;
     font-weight: 600;
+    color: var(--w-text);
+  }
+
+  /* A recap line's left half: the question, and under it what the answer was
+     about. The subject belongs with its label rather than beside the figure —
+     "Biggest bill / the houseboat" reads as one thing, and a long restaurant
+     name then wraps in its own column instead of shoving the money off the end
+     of the row. */
+  .recap-key {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .recap-detail {
+    overflow-wrap: anywhere;
     color: var(--w-text);
   }
 

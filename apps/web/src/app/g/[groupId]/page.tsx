@@ -35,6 +35,7 @@ import { History, Receipt, Scale } from 'lucide-react';
 import { myStake, simplifyItems, SimplifySide } from '@waves/core';
 import {
   computeLedger,
+  GroupType,
   nameOf,
   type ActivityRow,
   type Expense,
@@ -229,6 +230,7 @@ function GroupDetail({
     return member ? nameOf(member) : t.join.someone;
   };
   const live = expenses.filter((expense) => !expense.deleted_at && expense.currentVersion);
+  const hasPlaces = live.some((expense) => expense.currentVersion?.location);
   const deletedCount = expenses.filter((expense) => expense.deleted_at).length;
 
   const myMember = members.find((member) => member.profile_id === profileId) ?? null;
@@ -267,6 +269,20 @@ function GroupDetail({
             <Link className="btn soft" href={`/g/${groupId}/insights`}>
               {t.insights.title}
             </Link>
+            {/* The two trip reads. Both are offered only when there is
+                something behind them: a recap of a flatshare's whole history is
+                a question nobody asked, and Places on a group where nothing
+                carries a location is a link to an empty page. */}
+            {group.type === GroupType.Trip ? (
+              <Link className="btn soft" href={`/g/${groupId}/recap`}>
+                {t.recap.title}
+              </Link>
+            ) : null}
+            {hasPlaces ? (
+              <Link className="btn soft" href={`/g/${groupId}/places`}>
+                {t.places.title}
+              </Link>
+            ) : null}
             <Link className="btn soft" href={`/g/${groupId}/invite`}>
               {t.invite.title}
             </Link>

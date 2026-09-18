@@ -418,7 +418,7 @@ export function createWavesClient({ supabase, r2Enabled = false }: WavesClientOp
       const rows = await read<Group>(
         supabase
           .from('groups')
-          .select('id, name, cover_emoji, default_currency, simplify_debts')
+          .select('id, name, type, cover_emoji, default_currency, simplify_debts')
           .eq('id', groupId)
           // Null for a deleted group rather than a row that opens: RLS still
           // returns it to a member, because the tombstone has to reach every
