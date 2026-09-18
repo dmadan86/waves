@@ -375,6 +375,44 @@ export interface WebStrings {
     /** A tag needs a name; the field says so rather than saving a blank one. */
     nameNeeded: string;
   };
+  /**
+   * Leaving (ADR-012), and the consequence in view before the button.
+   *
+   * Worded exactly as the phone words it, because this is the one screen where
+   * a difference between the two clients would read as one of them hiding
+   * something.
+   */
+  privacy: {
+    /** The settings row that leads here, and its one-line warning. */
+    deleteRow: string;
+    deleteRowHint: string;
+    deleteTitle: string;
+    deleteIntro: string;
+    /** The half people expect. */
+    deleteGoesTitle: string;
+    deleteGoesBody: string;
+    /** The half that surprises them, which is why it is said first on screen. */
+    deleteStaysTitle: string;
+    deleteStaysBody: string;
+    /** Offered above the confirmation: data on the way out, not afterwards. */
+    deleteExportFirst: string;
+    deleteWhyLabel: string;
+    deleteWhyPlaceholder: string;
+    /** Typing the word is the confirmation; a button alone is too easy to hit. */
+    deleteConfirmLabel: string;
+    deleteConfirmWord: string;
+    deleteButton: string;
+    deleteWorking: string;
+    deleteDone: string;
+    /** How many groups they are now a former member of. `{n}` is the count. */
+    deleteSummary: PluralForms;
+    /** What erasure would leave behind, counted. */
+    previewGroups: PluralForms;
+    previewExpenses: PluralForms;
+    previewSettlements: PluralForms;
+    /** `{list}` is the currencies still unsettled. */
+    previewOutstanding: string;
+  };
   location: {
     label: string;
     add: string;
@@ -1061,6 +1099,41 @@ const en: WebStrings = {
     cancel: 'Cancel',
     nameNeeded: 'Give the tag a name.',
   },
+  privacy: {
+    deleteRow: 'Delete my data',
+    deleteRowHint: 'Remove your account and personal details',
+    deleteTitle: 'Delete my data',
+    deleteIntro:
+      'This cannot be undone. Please read what it does and does not remove — the second part is the one that surprises people.',
+    deleteGoesTitle: 'What is removed',
+    deleteGoesBody:
+      'Your name, photo, payment handle, country, language and notification settings. Your sign-in, so this account can no longer be opened. Your devices, notification history, purchases and anything the AI scanner recorded about your usage.',
+    deleteStaysTitle: 'What stays, and why',
+    deleteStaysBody:
+      "The expenses and settlements in your shared groups remain, along with the notes and comments on them and the images you added — receipts, proofs of payment, trip photos — because they are also other people's records — they are what says who owes whom, and removing them would silently change somebody else's balance to settle a debt nobody paid. You become an unnamed former member in those groups. Your name is gone from them; your share of the dinner is not.",
+    deleteExportFirst: 'Export your data first',
+    deleteWhyLabel: 'Why are you leaving? (optional)',
+    deleteWhyPlaceholder: 'It helps to know, and it is kept after your account is gone',
+    deleteConfirmLabel: 'Type DELETE to confirm',
+    deleteConfirmWord: 'DELETE',
+    deleteButton: 'Delete my data',
+    deleteWorking: 'Deleting…',
+    deleteDone: 'Your data has been deleted.',
+    deleteSummary: {
+      one: 'You are now a former member of {n} group.',
+      other: 'You are now a former member of {n} groups.',
+    },
+    previewGroups: { one: 'You are in {n} group.', other: 'You are in {n} groups.' },
+    previewExpenses: {
+      one: 'You entered {n} expense that will stay.',
+      other: 'You entered {n} expenses that will stay.',
+    },
+    previewSettlements: {
+      one: 'You are named in {n} settlement.',
+      other: 'You are named in {n} settlements.',
+    },
+    previewOutstanding: 'You still have an unsettled balance in {list}.',
+  },
   location: {
     label: 'Location',
     add: 'Add location',
@@ -1730,6 +1803,44 @@ const ta: WebStrings = {
     save: 'குறிச்சொல்லைச் சேமி',
     cancel: 'ரத்து',
     nameNeeded: 'குறிச்சொல்லுக்கு ஒரு பெயர் கொடுங்கள்.',
+  },
+  privacy: {
+    deleteRow: 'என் தரவை நீக்கு',
+    deleteRowHint: 'உங்கள் கணக்கையும் தனிப்பட்ட விவரங்களையும் நீக்கு',
+    deleteTitle: 'என் தரவை நீக்கு',
+    deleteIntro:
+      'இதை மீட்டெடுக்க முடியாது. என்ன நீக்கப்படும், என்ன நீக்கப்படாது என்பதைப் படியுங்கள் — இரண்டாவது பகுதிதான் பலரை ஆச்சரியப்படுத்துகிறது.',
+    deleteGoesTitle: 'என்ன நீக்கப்படும்',
+    deleteGoesBody:
+      'உங்கள் பெயர், படம், பணமுகவரி, நாடு, மொழி, அறிவிப்பு அமைப்புகள். உங்கள் உள்நுழைவு — இந்தக் கணக்கை இனி திறக்க முடியாது. உங்கள் சாதனங்கள், அறிவிப்பு வரலாறு, கொள்முதல்கள்.',
+    deleteStaysTitle: 'என்ன இருக்கும், ஏன்',
+    deleteStaysBody:
+      'உங்கள் குழுக்களில் உள்ள செலவுகளும் தீர்வுகளும், அவற்றின் குறிப்புகள், கருத்துகள், நீங்கள் சேர்த்த படங்கள் — ரசீதுகள், பணம் கட்டிய சான்றுகள், பயணப் புகைப்படங்கள் — ஆகியவற்றுடன் இருக்கும், ஏனெனில் அவை மற்றவர்களின் பதிவுகளும் கூட — யார் யாருக்குக் கடன்பட்டவர் என்பதைச் சொல்வது அவைதான். அவற்றை நீக்கினால் யாரும் கட்டாத கடன் தானாகத் தீர்ந்துவிடும். நீங்கள் பெயரில்லாத முன்னாள் உறுப்பினராகிவிடுவீர்கள்.',
+    deleteExportFirst: 'முதலில் உங்கள் தரவை ஏற்றுமதி செய்யுங்கள்',
+    deleteWhyLabel: 'ஏன் விலகுகிறீர்கள்? (விருப்பம்)',
+    deleteWhyPlaceholder: 'தெரிந்தால் உதவும்; கணக்கு போன பிறகும் இது வைக்கப்படும்',
+    deleteConfirmLabel: 'உறுதிப்படுத்த DELETE என தட்டச்சு செய்யுங்கள்',
+    deleteConfirmWord: 'DELETE',
+    deleteButton: 'என் தரவை நீக்கு',
+    deleteWorking: 'நீக்கப்படுகிறது…',
+    deleteDone: 'உங்கள் தரவு நீக்கப்பட்டது.',
+    deleteSummary: {
+      one: 'நீங்கள் இப்போது {n} குழுவின் முன்னாள் உறுப்பினர்.',
+      other: 'நீங்கள் இப்போது {n} குழுக்களின் முன்னாள் உறுப்பினர்.',
+    },
+    previewGroups: {
+      one: 'நீங்கள் {n} குழுவில் உள்ளீர்கள்.',
+      other: 'நீங்கள் {n} குழுக்களில் உள்ளீர்கள்.',
+    },
+    previewExpenses: {
+      one: 'நீங்கள் சேர்த்த {n} செலவு இருக்கும்.',
+      other: 'நீங்கள் சேர்த்த {n} செலவுகள் இருக்கும்.',
+    },
+    previewSettlements: {
+      one: '{n} தீர்வில் உங்கள் பெயர் உள்ளது.',
+      other: '{n} தீர்வுகளில் உங்கள் பெயர் உள்ளது.',
+    },
+    previewOutstanding: '{list} இல் இன்னும் தீராத நிலுவை உள்ளது.',
   },
   location: {
     label: 'இடம்',
@@ -2404,6 +2515,41 @@ const hi: WebStrings = {
     save: 'टैग सहेजें',
     cancel: 'रद्द',
     nameNeeded: 'टैग को एक नाम दीजिए।',
+  },
+  privacy: {
+    deleteRow: 'मेरा डेटा मिटाएँ',
+    deleteRowHint: 'अपना खाता और निजी विवरण हटाएँ',
+    deleteTitle: 'मेरा डेटा मिटाएँ',
+    deleteIntro:
+      'यह वापस नहीं हो सकता। पढ़िए कि क्या हटता है और क्या नहीं — दूसरा हिस्सा ही लोगों को चौंकाता है।',
+    deleteGoesTitle: 'क्या हटता है',
+    deleteGoesBody:
+      'आपका नाम, फ़ोटो, भुगतान पता, देश, भाषा और सूचना सेटिंग्स। आपका साइन-इन, ताकि यह खाता फिर न खुले। आपके उपकरण, सूचना इतिहास और ख़रीद।',
+    deleteStaysTitle: 'क्या रहता है, और क्यों',
+    deleteStaysBody:
+      'आपके साझा समूहों के ख़र्चे और भुगतान, उन पर लिखे नोट और टिप्पणियाँ तथा आपकी जोड़ी हुई तस्वीरें — रसीदें, भुगतान के सबूत, यात्रा की फ़ोटो — रहती हैं, क्योंकि वे दूसरों के भी रिकॉर्ड हैं — वही बताते हैं कि कौन किसका देनदार है। उन्हें हटाने से किसी और का हिसाब चुपचाप बदल जाएगा और वह कर्ज़ चुक जाएगा जो किसी ने चुकाया ही नहीं। आप उन समूहों में एक अनाम पूर्व-सदस्य बन जाते हैं।',
+    deleteExportFirst: 'पहले अपना डेटा निर्यात करें',
+    deleteWhyLabel: 'आप क्यों जा रहे हैं? (वैकल्पिक)',
+    deleteWhyPlaceholder: 'जानना मददगार है; खाता जाने के बाद भी यह रखा जाता है',
+    deleteConfirmLabel: 'पुष्टि के लिए DELETE लिखें',
+    deleteConfirmWord: 'DELETE',
+    deleteButton: 'मेरा डेटा मिटाएँ',
+    deleteWorking: 'मिटाया जा रहा है…',
+    deleteDone: 'आपका डेटा मिटा दिया गया।',
+    deleteSummary: {
+      one: 'अब आप {n} समूह के पूर्व-सदस्य हैं।',
+      other: 'अब आप {n} समूहों के पूर्व-सदस्य हैं।',
+    },
+    previewGroups: { one: 'आप {n} समूह में हैं।', other: 'आप {n} समूहों में हैं।' },
+    previewExpenses: {
+      one: 'आपका डाला {n} ख़र्च बना रहेगा।',
+      other: 'आपके डाले {n} ख़र्चे बने रहेंगे।',
+    },
+    previewSettlements: {
+      one: '{n} भुगतान में आपका नाम है।',
+      other: '{n} भुगतानों में आपका नाम है।',
+    },
+    previewOutstanding: '{list} में अब भी बकाया है।',
   },
   location: {
     label: 'स्थान',
@@ -3080,6 +3226,60 @@ const ar: WebStrings = {
     save: 'حفظ الوسم',
     cancel: 'إلغاء',
     nameNeeded: 'أعطِ الوسم اسمًا.',
+  },
+  privacy: {
+    deleteRow: 'احذف بياناتي',
+    deleteRowHint: 'إزالة حسابك وتفاصيلك الشخصية',
+    deleteTitle: 'احذف بياناتي',
+    deleteIntro:
+      'لا يمكن التراجع عن هذا. اقرأ ما يُحذف وما لا يُحذف — والجزء الثاني هو ما يفاجئ الناس.',
+    deleteGoesTitle: 'ما الذي يُحذف',
+    deleteGoesBody:
+      'اسمك وصورتك وعنوان الدفع والبلد واللغة وإعدادات الإشعارات. وتسجيل دخولك، فلا يُفتح هذا الحساب بعدها. وأجهزتك وسجل إشعاراتك ومشترياتك.',
+    deleteStaysTitle: 'ما الذي يبقى، ولماذا',
+    deleteStaysBody:
+      'تبقى المصروفات والتسويات في مجموعاتك المشتركة، ومعها الملاحظات والتعليقات والصور التي أضفتها — إيصالات وإثباتات دفع وصور رحلات — لأنها سجلات الآخرين أيضًا — وهي ما يحدد من يدين لمن. وحذفها يغيّر حساب شخص آخر بصمت ويُسقط دَينًا لم يسدده أحد. تصبح عضوًا سابقًا بلا اسم في تلك المجموعات.',
+    deleteExportFirst: 'صدّر بياناتك أولًا',
+    deleteWhyLabel: 'لماذا تغادر؟ (اختياري)',
+    deleteWhyPlaceholder: 'معرفة السبب تفيدنا، ويُحتفظ بها بعد زوال الحساب',
+    deleteConfirmLabel: 'اكتب DELETE للتأكيد',
+    deleteConfirmWord: 'DELETE',
+    deleteButton: 'احذف بياناتي',
+    deleteWorking: 'جارٍ الحذف…',
+    deleteDone: 'تم حذف بياناتك.',
+    deleteSummary: {
+      zero: 'أنت الآن عضو سابق في {n} مجموعة.',
+      one: 'أنت الآن عضو سابق في مجموعة واحدة.',
+      two: 'أنت الآن عضو سابق في مجموعتين.',
+      few: 'أنت الآن عضو سابق في {n} مجموعات.',
+      many: 'أنت الآن عضو سابق في {n} مجموعة.',
+      other: 'أنت الآن عضو سابق في {n} مجموعة.',
+    },
+    previewGroups: {
+      zero: 'أنت في {n} مجموعة.',
+      one: 'أنت في مجموعة واحدة.',
+      two: 'أنت في مجموعتين.',
+      few: 'أنت في {n} مجموعات.',
+      many: 'أنت في {n} مجموعة.',
+      other: 'أنت في {n} مجموعة.',
+    },
+    previewExpenses: {
+      zero: 'ستبقى {n} من المصروفات التي أدخلتها.',
+      one: 'سيبقى مصروف واحد أدخلته.',
+      two: 'سيبقى مصروفان أدخلتهما.',
+      few: 'ستبقى {n} مصروفات أدخلتها.',
+      many: 'ستبقى {n} مصروفًا أدخلته.',
+      other: 'ستبقى {n} من المصروفات التي أدخلتها.',
+    },
+    previewSettlements: {
+      zero: 'اسمك مذكور في {n} تسوية.',
+      one: 'اسمك مذكور في تسوية واحدة.',
+      two: 'اسمك مذكور في تسويتين.',
+      few: 'اسمك مذكور في {n} تسويات.',
+      many: 'اسمك مذكور في {n} تسوية.',
+      other: 'اسمك مذكور في {n} تسوية.',
+    },
+    previewOutstanding: 'لا يزال لديك رصيد غير مسوّى بـ {list}.',
   },
   location: {
     label: 'الموقع',

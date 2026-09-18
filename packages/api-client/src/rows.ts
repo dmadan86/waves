@@ -503,3 +503,19 @@ export interface CategoryTagRecord {
   sort_order: number;
   hidden: boolean;
 }
+
+/**
+ * What erasing this account would and would not remove.
+ *
+ * The counts exist so a screen can say the consequence before the button. The
+ * ledger is the part that stays: an expense in a shared group is also other
+ * people's record of what happened, and deleting it would silently change
+ * somebody else's balance to settle a debt nobody paid.
+ */
+export interface ErasurePreview {
+  groups_count: number;
+  expenses_authored: number;
+  settlements_involved: number;
+  /** Currencies this person still has a non-zero balance in. */
+  outstanding_currencies: string[];
+}
