@@ -2047,6 +2047,66 @@
     direction: ltr;
   }
 
+  /* The rating row. A star is the one control here nobody has to touch, so the
+     empty ones take the muted ink rather than the faint one: at 3:1 they read
+     as a choice not yet made, and at less they read as broken. */
+  .stars {
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+    padding: 8px 0;
+  }
+  .star {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    border: 0;
+    border-radius: var(--w-radius-sm);
+    background: none;
+    color: var(--w-text-muted);
+    cursor: pointer;
+  }
+  .star:hover:not(:disabled) {
+    background: var(--w-surface-muted);
+  }
+  .star.on {
+    color: var(--w-brand);
+  }
+  .star:disabled {
+    cursor: default;
+    opacity: 0.55;
+  }
+  /* Right-aligned under the box it counts, and only once there is something to
+     count. */
+  .count {
+    margin-top: 4px;
+    text-align: end;
+  }
+
+  /* What "sent" looks like: the confirmation is the only thing on the screen at
+     that moment, so it occupies it rather than sitting stranded above a page of
+     nothing. The mark is brand, never the money colours. */
+  .sent-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 32px 16px;
+    text-align: center;
+  }
+  .sent-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: var(--w-brand-soft);
+    color: var(--w-brand);
+  }
+
   /* One signed-in phone: the glyph, what it is, and when it was last seen —
      and, once revoked, a badge saying so. An unlabelled row here would read as
      still signed in. */

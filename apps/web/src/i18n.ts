@@ -488,6 +488,37 @@ export interface WebStrings {
     alreadyRedeemed: string;
     couldNotRedeem: string;
   };
+  /**
+   * Saying something back to the people who made this.
+   *
+   * The server takes the message; the rating is a gift rather than a required
+   * field, so it has its own label saying so. Each kind is a different queue to
+   * a reader, which is why the chips are not decoration.
+   */
+  feedback: {
+    /** The settings row that leads here. */
+    row: string;
+    rowHint: string;
+    title: string;
+    hint: string;
+    placeholder: string;
+    send: string;
+    thanks: string;
+    thanksBody: string;
+    another: string;
+    rating: string;
+    /** Said out loud, because a rating nobody gives is not a missing answer. */
+    ratingHint: string;
+    /** `{n}`: the star a control stands for, announced rather than drawn. */
+    starLabel: PluralForms;
+    starClearHint: string;
+    /** What rides along with the message, said before it is sent. */
+    attachNote: string;
+    kindGeneral: string;
+    kindBug: string;
+    kindIdea: string;
+    couldNotSend: string;
+  };
   location: {
     label: string;
     add: string;
@@ -1261,6 +1292,27 @@ const en: WebStrings = {
     alreadyRedeemed: 'You have already used that one.',
     couldNotRedeem: 'The code could not be checked just now. Try again in a moment.',
   },
+  feedback: {
+    row: 'Send feedback',
+    rowHint: 'Tell us what is wrong, or what is missing',
+    title: 'Send feedback',
+    hint: 'Read by a person, not a queue. Say as much or as little as you like — it helps most when it is specific.',
+    placeholder: 'What happened, or what you wish it did',
+    send: 'Send',
+    thanks: 'Thank you — that has been received.',
+    thanksBody: 'A person reads every one of these. We cannot always reply, but nothing is lost.',
+    another: 'Send another',
+    rating: 'How is Waves so far?',
+    ratingHint: 'Optional',
+    starLabel: { one: '{n} star', other: '{n} stars' },
+    starClearHint: 'Choose it again to clear the rating',
+    attachNote:
+      'Which build of the web app you are on comes along, so we can reproduce what you saw. Nothing else.',
+    kindGeneral: 'General',
+    kindBug: 'Something is broken',
+    kindIdea: 'An idea',
+    couldNotSend: 'That could not be sent just now. Try again in a moment.',
+  },
   location: {
     label: 'Location',
     add: 'Add location',
@@ -2024,6 +2076,28 @@ const ta: WebStrings = {
     alreadyRedeemed: 'அதை நீங்கள் ஏற்கனவே பயன்படுத்திவிட்டீர்கள்.',
     couldNotRedeem: 'இப்போது குறியீட்டைச் சரிபார்க்க முடியவில்லை. சிறிது நேரம் கழித்து முயலுங்கள்.',
   },
+  feedback: {
+    row: 'கருத்து அனுப்பு',
+    rowHint: 'என்ன தவறு, அல்லது என்ன இல்லை என்று ச்சோல்லுங்கள்',
+    title: 'கருத்து அனுப்பு',
+    hint: 'ஒரு நபரால் படிக்கப்படும். எவ்வளவு வேண்டுமானாலும் எழுதலாம் — குறிப்பிட்டதாக இருந்தால் அதிகம் உதவும்.',
+    placeholder: 'என்ன நடந்தது, அல்லது என்ன இருக்க வேண்டும் என நினைக்கிறீர்கள்',
+    send: 'அனுப்பு',
+    thanks: 'நன்றி — கிடைத்துவிட்டது.',
+    thanksBody:
+      'ஒவ்வொன்றையும் ஒரு நபர் படிக்கிறார். எப்போதும் பதில் தர முடியாது, ஆனால் எதுவும் தொலைந்து போகாது.',
+    another: 'இன்னொன்று அனுப்பு',
+    rating: 'Waves இதுவரை எப்படி இருக்கிறது?',
+    ratingHint: 'விருப்பம்',
+    starLabel: { one: '{n} நட்சத்திரம்', other: '{n} நட்சத்திரங்கள்' },
+    starClearHint: 'மதிப்பீட்டை அழிக்க மீண்டும் தேர்ந்தெடுக்கவும்',
+    attachNote:
+      'நீங்கள் பார்ததை மீண்டும் உருவாக்க, இணைய ஆப்பின் பதிப்பு உடன் வரும். வேறு எதுவும் இல்லை.',
+    kindGeneral: 'பொது',
+    kindBug: 'ஏதோ வேலை செய்யவில்லை',
+    kindIdea: 'ஒரு யோசனை',
+    couldNotSend: 'அதை இப்போது அனுப்ப முடியவில்லை. கொஞ்சம் கழித்து மீண்டும் முயற்சிக்கவும்.',
+  },
   location: {
     label: 'இடம்',
     add: 'இடத்தைச் சேர்',
@@ -2784,6 +2858,26 @@ const hi: WebStrings = {
     exhausted: 'वह कोड जितनी बार चल सकता था, उतनी बार चल चुका।',
     alreadyRedeemed: 'आप उसे पहले ही इस्तेमाल कर चुके हैं।',
     couldNotRedeem: 'अभी कोड जाँचा नहीं जा सका। थोड़ी देर बाद कोशिश करें।',
+  },
+  feedback: {
+    row: 'सुझाव भेजें',
+    rowHint: 'बताइए क्या ग़लत है, या क्या नहीं है',
+    title: 'सुझाव भेजें',
+    hint: 'इसे एक व्यक्ति पढ़ता है। जितना चाहें लिखें — विशिष्ट होने पर सबसे ज़्यादा मदद मिलती है।',
+    placeholder: 'क्या हुआ, या आप क्या चाहते थे कि यह करे',
+    send: 'भेजें',
+    thanks: 'धन्यवाद — मिल गया।',
+    thanksBody: 'हर संदेश एक इंसान पढ़ता है। जवाब हमेशा नहीं दे पाते, पर कुछ भी खोता नहीं।',
+    another: 'एक और भेजें',
+    rating: 'Waves अब तक कैसा लगा?',
+    ratingHint: 'वैकल्पिक',
+    starLabel: { one: '{n} तारा', other: '{n} तारे' },
+    starClearHint: 'रेटिंग हटाने के लिए फिर से चुनें',
+    attachNote: 'आपने जो देखा उसे दोहरा सकें, इसलिए वेब ऐप का वर्शन साथ आता है। और कुछ नहीं।',
+    kindGeneral: 'सामान्य',
+    kindBug: 'कुछ ख़राब है',
+    kindIdea: 'एक सुझाव',
+    couldNotSend: 'यह अभी भेजा नहीं जा सका। थोड़ी देर में फिर कोशिश करें।',
   },
   location: {
     label: 'स्थान',
@@ -3568,6 +3662,26 @@ const ar: WebStrings = {
     exhausted: 'استُخدم هذا الرمز بالعدد المسموح به.',
     alreadyRedeemed: 'لقد استخدمته من قبل.',
     couldNotRedeem: 'تعذّر التحقق من الرمز الآن. حاول بعد قليل.',
+  },
+  feedback: {
+    row: 'أرسل ملاحظاتك',
+    rowHint: 'أخبرنا بما لا يعمل أو بما ينقص',
+    title: 'أرسل ملاحظاتك',
+    hint: 'يقرأها إنسان. اكتب ما تشاء — وكلما كان محددًا كان أنفع.',
+    placeholder: 'ماذا حدث، أو ما الذي كنت تتمناه',
+    send: 'إرسال',
+    thanks: 'شكرًا — وصلتنا.',
+    thanksBody: 'يقرأ كل رسالة شخص حقيقي. لا نستطيع الرد دائمًا، لكن لا شيء يضيع.',
+    another: 'إرسال رسالة أخرى',
+    rating: 'كيف تجد Waves حتى الآن؟',
+    ratingHint: 'اختياري',
+    starLabel: { one: '{n} نجمة', other: '{n} نجوم' },
+    starClearHint: 'اخترها مرة أخرى لمسح التقييم',
+    attachNote: 'تُرفق نسخة تطبيق الويب حتى نتمكّن من إعادة إنتاج ما رأيته. لا شيء غير ذلك.',
+    kindGeneral: 'عام',
+    kindBug: 'شيء لا يعمل',
+    kindIdea: 'فكرة',
+    couldNotSend: 'تعذّر الإرسال الآن. حاول بعد قليل.',
   },
   location: {
     label: 'الموقع',

@@ -561,3 +561,23 @@ export function readContactVisibility(value: string | null | undefined): 'nobody
 export type PromoOutcome =
   | { ok: true; tier: string; days: number; until: string }
   | { ok: false; reason: 'UNKNOWN_CODE' | 'EXPIRED' | 'EXHAUSTED' | 'ALREADY_REDEEMED' };
+
+/**
+ * A star, where somebody offered one.
+ *
+ * Narrow rather than `number` because the column carries a 1–5 check
+ * constraint, and a range the type system already refuses cannot be sent by
+ * accident from a control that miscounts.
+ */
+export type FeedbackRating = 1 | 2 | 3 | 4 | 5;
+
+/** What somebody is saying, and which queue it belongs in. */
+export interface FeedbackInput {
+  message: string;
+  kind: 'general' | 'bug' | 'idea';
+  /** 1–5 where they offered one; null when they wrote without rating. */
+  rating: FeedbackRating | null;
+  /** The build they were on, or null where the deployment does not say. */
+  appVersion: string | null;
+  platform: string;
+}
