@@ -25,6 +25,16 @@
  * Letting it follow the target name would have silently asked for a new,
  * unprovisioned identifier.
  *
+ * **A watch app needs its own icon.** It is a `.app`, not an extension, so it
+ * carries its own asset catalog and App Store Connect rejects the upload
+ * without one — `90713: A value for the Info.plist key 'CFBundleIconName' is
+ * missing in the bundle 'app.wavs.mobile.watch'` and `90391: No icons found for
+ * watch application`. Nothing in the build warns first: it compiles, archives
+ * and signs, and only the validator on Apple's side objects. Pointing `icon` at
+ * the phone app's own 1024px artwork is what generates the target's
+ * `AppIcon.appiconset` and sets `ASSETCATALOG_COMPILER_APPICON_NAME`; the watch
+ * and the phone are the same product and should look it.
+ *
  * Verified on a Mac with Xcode 27: the two Swift files typecheck against the
  * watchOS SDK, and the project builds with one `Waves.app` in it.
  *
@@ -35,6 +45,7 @@ module.exports = {
   name: 'WavesWatchApp',
   displayName: 'Waves',
   bundleIdentifier: '.watch',
+  icon: '../../assets/images/icon.png',
   deploymentTarget: '10.0',
   colors: {
     $accent: '#7A5AF8',
