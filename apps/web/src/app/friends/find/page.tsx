@@ -28,19 +28,8 @@ import { AppFrame } from '@/components/AppFrame';
 import { Section } from '@/components/Shell';
 import { useStrings } from '@/i18n-context';
 import { friendlyError } from '@/lib/errors';
+import { channelFor } from '@/lib/lookup';
 import { waves } from '@/lib/waves';
-
-/**
- * What the box holds decides which channel is searched — there is no second
- * control, because nobody types an address wondering which kind it is.
- */
-function channelFor(query: string): 'email' | 'phone' | null {
-  const value = query.trim();
-  if (value.includes('@')) return value.length > 2 ? 'email' : null;
-  // Six digits is not a valid number anywhere; it is the floor below which a
-  // search cannot mean anything and should not spend one of the daily few.
-  return value.replace(/[^0-9]/g, '').length >= 6 ? 'phone' : null;
-}
 
 type Outcome =
   { state: 'idle' } | { state: 'found'; person: FoundPerson; typed: string } | { state: 'none' };
