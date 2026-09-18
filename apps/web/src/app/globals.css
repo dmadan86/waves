@@ -2046,6 +2046,13 @@
     text-transform: uppercase;
     direction: ltr;
   }
+  /* A license identifier is machine text too: SPDX strings read the same way
+     in every locale, so they do not get reordered by a right-to-left page. */
+  .meta.code {
+    flex: none;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    direction: ltr;
+  }
 
   /* The rating row. A star is the one control here nobody has to touch, so the
      empty ones take the muted ink rather than the faint one: at 3:1 they read
