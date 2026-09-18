@@ -36,7 +36,7 @@ afterAll(async () => {
 });
 
 /** A profile row as the new-user trigger would have written it. */
-async function seedProfile(displayName: string | null): Promise<string> {
+async function seedProfile(displayName: string): Promise<string> {
   const id = randomUUID();
   await client.query(
     `INSERT INTO profiles (id, display_name, default_currency) VALUES ($1, $2, 'INR')`,
@@ -68,13 +68,18 @@ describe('the name a provider sent, offered to a profile', () => {
     expect(await nameOf(id)).toBe('Priya Raman');
   });
 
-  it('replaces an empty name, and a null one', async () => {
+  /**
+   * The other empty state. The rule's predicate also names `display_name IS
+   * NULL`, copied from the sentinel check in `waves_approve_member_claim` — and
+   * it is unreachable, because the column is `NOT NULL`. Asserting it here was
+   * a test of a row the database will not hold; that is what this comment
+   * replaces. The clause stays in the SQL so the two sentinel checks read
+   * identically, and so it keeps working if the constraint is ever relaxed.
+   */
+  it('replaces an empty name', async () => {
     const blank = await seedProfile('');
-    const missing = await seedProfile(null);
     expect(await offer(blank, { name: 'Arun' })).toBe(true);
-    expect(await offer(missing, { name: 'Arun' })).toBe(true);
     expect(await nameOf(blank)).toBe('Arun');
-    expect(await nameOf(missing)).toBe('Arun');
   });
 
   /**
