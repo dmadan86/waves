@@ -18,6 +18,13 @@ expo-env.d.ts
 *.key
 *.mobileprovision
 
+# Local iOS signing credentials. `credentials.json` holds the p12 passwords in
+# plain text and `credentials/` the certificates themselves; this repo is
+# public. EAS uses remote credentials by default, so neither is needed to build
+# — they are a local convenience only.
+credentials.json
+credentials/
+
 # Metro
 .metro-health-check*
 
