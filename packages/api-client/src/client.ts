@@ -58,6 +58,7 @@ import {
   type MemberBudgetRow,
   type CategoryTagRecord,
   type ErasurePreview,
+  type PromoOutcome,
   DEFAULT_DISCOVERY,
   readContactVisibility,
   type DiscoverySettings,
@@ -1370,6 +1371,18 @@ export function createWavesClient({ supabase, r2Enabled = false }: WavesClientOp
       csvSeparator?: string;
     }): Promise<ExportResult> {
       return callFunction<ExportResult>('export-data', input);
+    },
+
+    /**
+     * Redeem a promotion code.
+     *
+     * The grant is written by the function, never from here: `subscriptions`
+     * is not writable by a client and the RPC is SECURITY DEFINER for exactly
+     * that reason — a paywall a client can insert its own row into is a
+     * paywall with a door in the back.
+     */
+    redeemPromo(code: string): Promise<PromoOutcome> {
+      return rpc<PromoOutcome>('waves_redeem_promo', { p_code: code });
     },
 
     /**
