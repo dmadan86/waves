@@ -519,3 +519,33 @@ export interface ErasurePreview {
   /** Currencies this person still has a non-zero balance in. */
   outstanding_currencies: string[];
 }
+
+/** How findable somebody is, and how much of them their groups can see. */
+export interface DiscoverySettings {
+  discoverableByPhone: boolean;
+  discoverableByEmail: boolean;
+  /**
+   * `nobody` or `groups`. A constrained union, not a free string — the column
+   * carries the same check, and the two must not be able to drift apart.
+   */
+  contactVisibility: 'nobody' | 'groups';
+}
+
+/** What an account starts as: findable, and visible to the groups it is in. */
+export const DEFAULT_DISCOVERY: DiscoverySettings = {
+  discoverableByPhone: true,
+  discoverableByEmail: true,
+  contactVisibility: 'groups',
+};
+
+/**
+ * Read the stored visibility, erring towards the stricter answer.
+ *
+ * Anything the column somehow holds that is not one of the two known values
+ * reads as `nobody`, never as `groups`. A privacy setting that fails open is not
+ * a privacy setting, and "the check constraint prevents it" is an argument about
+ * the database that this client cannot make on its own behalf.
+ */
+export function readContactVisibility(value: string | null | undefined): 'nobody' | 'groups' {
+  return value === 'groups' ? 'groups' : 'nobody';
+}
