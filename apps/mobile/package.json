@@ -61,7 +61,7 @@
     "expo-status-bar": "~57.0.1",
     "expo-symbols": "~57.0.3",
     "expo-system-ui": "~57.0.4",
-    "expo-task-manager": "~57.0.19",
+    "expo-task-manager": "~58.0.2",
     "expo-updates": "~57.0.23",
     "expo-web-browser": "~57.0.3",
     "react": "19.2.8",
