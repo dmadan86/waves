@@ -413,6 +413,30 @@ export interface WebStrings {
     /** `{list}` is the currencies still unsettled. */
     previewOutstanding: string;
   };
+  /**
+   * Where this account is signed in.
+   *
+   * A browser is not a registered device — only the phone app registers — so
+   * this list is the phones, and the browser is the useful place to read it
+   * from: it is where somebody goes when the phone is the thing they have lost.
+   */
+  devices: {
+    title: string;
+    row: string;
+    rowHint: string;
+    intro: string;
+    /** A device already revoked, still listed for the three-month window. */
+    signedOut: string;
+    /** `{when}` is a formatted date. */
+    lastActive: string;
+    signOutAll: string;
+    signOutAllHint: string;
+    /** `{n}` devices were revoked. */
+    signedOutAll: PluralForms;
+    none: string;
+    historyNote: string;
+    couldNotSignOut: string;
+  };
   location: {
     label: string;
     add: string;
@@ -1134,6 +1158,24 @@ const en: WebStrings = {
     },
     previewOutstanding: 'You still have an unsettled balance in {list}.',
   },
+  devices: {
+    title: 'Devices',
+    row: 'Devices',
+    rowHint: 'See where you are signed in',
+    intro:
+      'The phones signed in to this account. A browser is not registered as a device, so this one is not listed.',
+    signedOut: 'Signed out',
+    lastActive: 'Last active {when}',
+    signOutAll: 'Sign out everywhere else',
+    signOutAllHint: 'Signs out every phone, and every other browser. This tab stays signed in.',
+    signedOutAll: {
+      one: 'Signed out {n} device.',
+      other: 'Signed out {n} devices.',
+    },
+    none: 'No phones are signed in to this account.',
+    historyNote: 'Showing the last three months.',
+    couldNotSignOut: 'Could not sign the other devices out. Please try again.',
+  },
   location: {
     label: 'Location',
     add: 'Add location',
@@ -1841,6 +1883,25 @@ const ta: WebStrings = {
       other: '{n} தீர்வுகளில் உங்கள் பெயர் உள்ளது.',
     },
     previewOutstanding: '{list} இல் இன்னும் தீராத நிலுவை உள்ளது.',
+  },
+  devices: {
+    title: 'சாதனங்கள்',
+    row: 'சாதனங்கள்',
+    rowHint: 'எங்கு உள்நுழைந்துள்ளீர்கள் என்பதைப் பார்க்கவும்',
+    intro:
+      'இந்தக் கணக்கில் உள்நுழைந்துள்ள தொலைபேசிகள். உலாவி ஒரு சாதனமாகப் பதிவு செய்யப்படுவதில்லை, எனவே இது பட்டியலில் இல்லை.',
+    signedOut: 'வெளியேற்றப்பட்டது',
+    lastActive: 'கடைசியாகச் செயலில் {when}',
+    signOutAll: 'மற்ற எல்லா இடங்களிலும் வெளியேறு',
+    signOutAllHint:
+      'ஒவ்வொரு தொலைபேசியிலும், மற்ற ஒவ்வொரு உலாவியிலும் வெளியேற்றும். இந்தத் தாவல் உள்நுழைந்தே இருக்கும்.',
+    signedOutAll: {
+      one: '{n} சாதனத்தில் வெளியேற்றப்பட்டது.',
+      other: '{n} சாதனங்களில் வெளியேற்றப்பட்டது.',
+    },
+    none: 'இந்தக் கணக்கில் எந்தத் தொலைபேசியும் உள்நுழையவில்லை.',
+    historyNote: 'கடந்த மூன்று மாதங்கள் காட்டப்படுகின்றன.',
+    couldNotSignOut: 'மற்ற சாதனங்களை வெளியேற்ற முடியவில்லை. மீண்டும் முயற்சிக்கவும்.',
   },
   location: {
     label: 'இடம்',
@@ -2550,6 +2611,24 @@ const hi: WebStrings = {
       other: '{n} भुगतानों में आपका नाम है।',
     },
     previewOutstanding: '{list} में अब भी बकाया है।',
+  },
+  devices: {
+    title: 'डिवाइस',
+    row: 'डिवाइस',
+    rowHint: 'देखें कि आप कहाँ-कहाँ साइन इन हैं',
+    intro:
+      'इस खाते में साइन इन फ़ोन। ब्राउज़र डिवाइस के रूप में दर्ज नहीं होता, इसलिए यह सूची में नहीं है।',
+    signedOut: 'साइन आउट',
+    lastActive: 'आख़िरी बार सक्रिय {when}',
+    signOutAll: 'बाकी हर जगह से साइन आउट करें',
+    signOutAllHint: 'हर फ़ोन और हर दूसरे ब्राउज़र से साइन आउट कर देता है। यह टैब साइन इन रहेगा।',
+    signedOutAll: {
+      one: '{n} डिवाइस से साइन आउट किया।',
+      other: '{n} डिवाइसों से साइन आउट किया।',
+    },
+    none: 'इस खाते में कोई फ़ोन साइन इन नहीं है।',
+    historyNote: 'पिछले तीन महीने दिखाए जा रहे हैं।',
+    couldNotSignOut: 'अन्य डिवाइस साइन आउट नहीं हो सके। कृपया फिर कोशिश करें।',
   },
   location: {
     label: 'स्थान',
@@ -3280,6 +3359,27 @@ const ar: WebStrings = {
       other: 'اسمك مذكور في {n} تسوية.',
     },
     previewOutstanding: 'لا يزال لديك رصيد غير مسوّى بـ {list}.',
+  },
+  devices: {
+    title: 'الأجهزة',
+    row: 'الأجهزة',
+    rowHint: 'اطّلع على أماكن تسجيل دخولك',
+    intro: 'الهواتف المسجّل دخولها إلى هذا الحساب. المتصفح لا يُسجّل كجهاز، لذا لا يظهر هنا.',
+    signedOut: 'تم تسجيل الخروج',
+    lastActive: 'آخر نشاط {when}',
+    signOutAll: 'تسجيل الخروج من كل مكان آخر',
+    signOutAllHint: 'يُسجّل الخروج من كل هاتف ومن كل متصفح آخر. تبقى هذه النافذة مسجّلة الدخول.',
+    signedOutAll: {
+      zero: 'تم تسجيل الخروج من {n} جهاز.',
+      one: 'تم تسجيل الخروج من جهاز واحد.',
+      two: 'تم تسجيل الخروج من جهازين.',
+      few: 'تم تسجيل الخروج من {n} أجهزة.',
+      many: 'تم تسجيل الخروج من {n} جهازًا.',
+      other: 'تم تسجيل الخروج من {n} جهاز.',
+    },
+    none: 'لا توجد هواتف مسجّل دخولها إلى هذا الحساب.',
+    historyNote: 'تُعرض آخر ثلاثة أشهر.',
+    couldNotSignOut: 'تعذّر تسجيل خروج الأجهزة الأخرى. حاول مرة أخرى.',
   },
   location: {
     label: 'الموقع',
