@@ -37,7 +37,7 @@ import {
   type PlanItem,
   type TimelineDay,
 } from '@waves/core';
-import type { Expense, GroupRow, PlanItemRow } from '@waves/api-client';
+import { GroupType, type Expense, type GroupRow, type PlanItemRow } from '@waves/api-client';
 
 import { AppFrame } from '@/components/AppFrame';
 import { EmptyState } from '@/components/EmptyState';
@@ -72,6 +72,8 @@ function Plan({ groupId }: { groupId: string }) {
   const [addingTo, setAddingTo] = useState<string | null>(null);
   const [title, setTitle] = useState('');
   const [busy, setBusy] = useState(false);
+  /** The id the next add will carry. Survives a failure, so a retry replays. */
+  const [draft, setDraft] = useState(() => crypto.randomUUID());
 
   const load = useCallback(async () => {
     const [row, bills, plan] = await Promise.all([
@@ -129,7 +131,7 @@ function Plan({ groupId }: { groupId: string }) {
    * twice. So only the write's own failure is reported; a failed refresh leaves
    * the screen stale, which the next load fixes.
    */
-  const mutate = async (write: () => Promise<unknown>): Promise<void> => {
+  const mutate = async (write: () => Promise<unknown>): Promise<boolean> => {
     setBusy(true);
     setError(null);
     try {
@@ -137,7 +139,7 @@ function Plan({ groupId }: { groupId: string }) {
     } catch (caught) {
       setError(friendlyError(caught, 'web.plan.write', { fallback: t.errors.couldNotSave }));
       setBusy(false);
-      return;
+      return false;
     }
     try {
       await load();
@@ -146,6 +148,7 @@ function Plan({ groupId }: { groupId: string }) {
     } finally {
       setBusy(false);
     }
+    return true;
   };
 
   // `busy` is async state, so a double-click fires two submits in the same tick
@@ -157,15 +160,47 @@ function Plan({ groupId }: { groupId: string }) {
     const text = title.trim();
     if (!text || submitting.current) return;
     submitting.current = true;
-    const itemId = crypto.randomUUID();
-    await mutate(() => waves.addPlanItem({ groupId, day, title: text, itemId }));
+    const saved = await mutate(() =>
+      waves.addPlanItem({ groupId, day, title: text, itemId: draft }),
+    );
     submitting.current = false;
+    // A failed add keeps both the words and the id. Clearing them would throw
+    // away what somebody typed *and* the one thing that makes a second attempt
+    // safe: if the server took the row and only the answer went missing,
+    // pressing Add again under the same id replays that write instead of
+    // writing a second copy of it.
+    if (!saved) return;
+    setDraft(crypto.randomUUID());
     setTitle('');
     setAddingTo(null);
   };
 
   if (!ready) return <SkeletonRows rows={6} />;
   if (failed) return <p className="error">{failed}</p>;
+
+  /**
+   * Only a trip can be planned into — and unlike the recap, which merely reads,
+   * this screen writes. The link is offered for trips only on both clients, and
+   * nothing in the database stops a plan row being attached to a flatshare. So
+   * a row written here from a typed URL on a non-trip group would be a row no
+   * screen ever shows again: work that disappears.
+   *
+   * The plan is still *shown*, because rows that already exist are real and
+   * hiding them would be its own kind of lying. It just cannot be added to.
+   */
+  const canEdit = group?.type === GroupType.Trip;
+
+  /**
+   * The days to draw.
+   *
+   * Normally the timeline's own. The exception is a trip with no dates and
+   * nothing on the ledger yet: `buildTimeline` has no days to give, and every
+   * add control on this screen lives inside a day — so there would be no way to
+   * add the first thing. Today is the day to offer, because a trip being
+   * planned from scratch is being planned from now.
+   */
+  const days =
+    timeline.days.length > 0 ? timeline.days : canEdit ? [blankDay(today)] : ([] as TimelineDay[]);
 
   return (
     <div>
@@ -190,33 +225,38 @@ function Plan({ groupId }: { groupId: string }) {
 
       {timeline.days.length === 0 ? (
         <section className="panel">
-          <EmptyState Icon={CalendarRange} title={t.plan.nothingYet} body={t.plan.nothingBody} />
-        </section>
-      ) : (
-        timeline.days.map((day) => (
-          <Day
-            key={day.day}
-            day={day}
-            isToday={day.day === today}
-            locale={locale}
-            busy={busy}
-            adding={addingTo === day.day}
-            title={title}
-            onTitle={setTitle}
-            onOpenAdd={() => {
-              setAddingTo(day.day);
-              setTitle('');
-            }}
-            onCancelAdd={() => {
-              setAddingTo(null);
-              setTitle('');
-            }}
-            onSubmit={() => void submit(day.day)}
-            onToggle={(item) => void mutate(() => waves.setPlanItemDone(item.id, !item.done))}
-            onRemove={(item) => void mutate(() => waves.removePlanItem(item.id))}
+          <EmptyState
+            Icon={CalendarRange}
+            title={canEdit ? t.plan.nothingYet : t.plan.tripsOnly}
+            body={canEdit ? t.plan.nothingBody : t.plan.tripsOnlyBody}
           />
-        ))
-      )}
+        </section>
+      ) : null}
+
+      {days.map((day) => (
+        <Day
+          key={day.day}
+          day={day}
+          isToday={day.day === today}
+          locale={locale}
+          busy={busy}
+          canEdit={canEdit}
+          adding={addingTo === day.day}
+          title={title}
+          onTitle={setTitle}
+          onOpenAdd={() => {
+            setAddingTo(day.day);
+            setTitle('');
+          }}
+          onCancelAdd={() => {
+            setAddingTo(null);
+            setTitle('');
+          }}
+          onSubmit={() => void submit(day.day)}
+          onToggle={(item) => void mutate(() => waves.setPlanItemDone(item.id, !item.done))}
+          onRemove={(item) => void mutate(() => waves.removePlanItem(item.id))}
+        />
+      ))}
     </div>
   );
 }
@@ -278,6 +318,7 @@ function Day({
   isToday,
   locale,
   busy,
+  canEdit,
   adding,
   title,
   onTitle,
@@ -291,6 +332,8 @@ function Day({
   isToday: boolean;
   locale: string;
   busy: boolean;
+  /** A plan can only be added to on a trip. See the note on `canEdit`. */
+  canEdit: boolean;
   adding: boolean;
   title: string;
   onTitle: (value: string) => void;
@@ -314,14 +357,16 @@ function Day({
               {money(amount, code, locale)}
             </span>
           ))}
-          <button
-            type="button"
-            className="icon-btn"
-            onClick={onOpenAdd}
-            aria-label={`${t.plan.add} — ${label}`}
-          >
-            <Plus size={16} strokeWidth={2} aria-hidden />
-          </button>
+          {canEdit ? (
+            <button
+              type="button"
+              className="icon-btn"
+              onClick={onOpenAdd}
+              aria-label={`${t.plan.add} — ${label}`}
+            >
+              <Plus size={16} strokeWidth={2} aria-hidden />
+            </button>
+          ) : null}
         </span>
       </div>
 
@@ -338,7 +383,7 @@ function Day({
                 <input
                   type="checkbox"
                   checked={item.done}
-                  disabled={busy}
+                  disabled={busy || !canEdit}
                   onChange={() => onToggle(item)}
                 />
                 <span className="plan-tick-box" aria-hidden>
@@ -358,15 +403,17 @@ function Day({
               {item.plannedMinor !== null ? (
                 <span className="amount">{money(item.plannedMinor, item.currency, locale)}</span>
               ) : null}
-              <button
-                type="button"
-                className="icon-btn"
-                disabled={busy}
-                onClick={() => onRemove(item)}
-                aria-label={fill(t.plan.remove, { title: item.title })}
-              >
-                <X size={15} strokeWidth={2} aria-hidden />
-              </button>
+              {canEdit ? (
+                <button
+                  type="button"
+                  className="icon-btn"
+                  disabled={busy}
+                  onClick={() => onRemove(item)}
+                  aria-label={fill(t.plan.remove, { title: item.title })}
+                >
+                  <X size={15} strokeWidth={2} aria-hidden />
+                </button>
+              ) : null}
             </div>
           ))}
 
@@ -416,6 +463,11 @@ function Day({
       )}
     </section>
   );
+}
+
+/** A day with nothing on it — somewhere to put the first thing. */
+function blankDay(day: string): TimelineDay {
+  return { day, items: [], expenses: [], plannedByCurrency: {}, spentByCurrency: {} };
 }
 
 /**

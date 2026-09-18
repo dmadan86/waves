@@ -301,6 +301,9 @@ export interface WebStrings {
     emptyDay: string;
     nothingYet: string;
     nothingBody: string;
+    /** Reached by URL on a group that is not a trip: readable, not writable. */
+    tripsOnly: string;
+    tripsOnlyBody: string;
     /** The inline field, and the two buttons under it. */
     whatIsPlanned: string;
     add: string;
@@ -945,6 +948,8 @@ const en: WebStrings = {
     emptyDay: 'Nothing on this day yet.',
     nothingYet: 'Nothing planned yet',
     nothingBody: 'Add the days and what you mean to do. What it actually costs fills itself in.',
+    tripsOnly: 'Planning is for trips',
+    tripsOnlyBody: 'Make this group a trip in its settings to plan it day by day.',
     whatIsPlanned: 'What are you doing?',
     add: 'Add',
     cancel: 'Cancel',
@@ -1568,6 +1573,8 @@ const ta: WebStrings = {
     nothingYet: 'இன்னும் திட்டம் ஏதுமில்லை',
     nothingBody:
       'நாட்களையும் செய்யப் போவதையும் சேருங்கள். உண்மையில் ஆன செலவு தானே நிரம்பிக்கொள்ளும்.',
+    tripsOnly: 'திட்டமிடல் பயணங்களுக்கு மட்டும்',
+    tripsOnlyBody: 'நாள் வாரியாகத் திட்டமிட, அமைப்புகளில் இந்தக் குழுவைப் பயணமாக மாற்றுங்கள்.',
     whatIsPlanned: 'என்ன செய்யப் போகிறீர்கள்?',
     add: 'சேர்',
     cancel: 'ரத்து',
@@ -2198,6 +2205,8 @@ const hi: WebStrings = {
     emptyDay: 'इस दिन अभी कुछ नहीं।',
     nothingYet: 'अभी कोई योजना नहीं',
     nothingBody: 'दिन और जो करना है वह जोड़िए। असल में जो लगा वह अपने आप भर जाएगा।',
+    tripsOnly: 'योजना ट्रिप के लिए है',
+    tripsOnlyBody: 'दिन-ब-दिन योजना बनाने के लिए सेटिंग्स में इस ग्रुप को ट्रिप बनाइए।',
     whatIsPlanned: 'क्या करना है?',
     add: 'जोड़ें',
     cancel: 'रद्द',
@@ -2830,6 +2839,8 @@ const ar: WebStrings = {
     emptyDay: 'لا شيء في هذا اليوم بعد.',
     nothingYet: 'لا خطة بعد',
     nothingBody: 'أضف الأيام وما تنوي فعله. أما التكلفة الفعلية فتُملأ من تلقاء نفسها.',
+    tripsOnly: 'التخطيط للرحلات',
+    tripsOnlyBody: 'اجعل هذه المجموعة رحلة من إعداداتها للتخطيط يومًا بيوم.',
     whatIsPlanned: 'ماذا ستفعل؟',
     add: 'إضافة',
     cancel: 'إلغاء',
