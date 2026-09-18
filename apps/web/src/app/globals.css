@@ -355,7 +355,7 @@
   }
   .acct-role {
     font-size: var(--w-font-micro);
-    color: var(--w-text-faint);
+    color: var(--w-text-muted);
   }
   .acct-item {
     display: flex;
@@ -427,7 +427,7 @@
     border: 1px solid var(--w-border-strong);
     background: var(--w-surface);
     padding: 0 12px;
-    color: var(--w-text-faint);
+    color: var(--w-text-muted);
     transition: border-color var(--w-duration-fast) ease;
   }
   .search:focus-within {
@@ -609,7 +609,7 @@
   }
   .stat-extra {
     font-size: var(--w-font-micro);
-    color: var(--w-text-faint);
+    color: var(--w-text-muted);
     font-variant-numeric: tabular-nums;
   }
 
@@ -770,7 +770,7 @@
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: var(--w-text-faint);
+    color: var(--w-text-muted);
   }
   .list:first-of-type + .month-head,
   .panel > div:first-child > .month-head {
@@ -857,7 +857,7 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     font-size: var(--w-font-caption);
-    color: var(--w-text-faint);
+    color: var(--w-text-muted);
   }
   .item-go {
     flex: none;
@@ -879,7 +879,7 @@
   }
   .row-meta {
     font-size: var(--w-font-micro);
-    color: var(--w-text-faint);
+    color: var(--w-text-muted);
     white-space: nowrap;
   }
 
@@ -963,7 +963,7 @@
     font-size: var(--w-font-micro);
     line-height: 1.4;
     text-align: center;
-    color: var(--w-text-faint);
+    color: var(--w-text-muted);
   }
 
   .receipt-share {
@@ -1401,7 +1401,7 @@
     line-height: var(--w-leading-caption);
   }
   .diff-was {
-    color: var(--w-text-faint);
+    color: var(--w-text-muted);
     /* Wrapping rather than clipping: a payer line naming four people is
        long, and the whole point of the audit is that it is readable. */
     overflow-wrap: anywhere;
@@ -1484,7 +1484,7 @@
   }
   .comment-when {
     font-size: var(--w-font-micro);
-    color: var(--w-text-faint);
+    color: var(--w-text-muted);
   }
 
   /* The rendered Markdown. Paragraphs, bullets and four inline marks —
@@ -1537,7 +1537,7 @@
     padding-block: 4px;
     font-size: var(--w-font-micro);
     text-decoration: none;
-    color: var(--w-text-faint);
+    color: var(--w-text-muted);
     opacity: 0.85;
   }
   .comment:hover .comment-actions .linklike,
@@ -1618,7 +1618,7 @@
   }
   .amount.zero {
     font-weight: 600;
-    color: var(--w-text-faint);
+    color: var(--w-text-muted);
   }
 
   /* A row's leading tile. Holds a group's own emoji, which is content and stays
@@ -1764,7 +1764,7 @@
     margin-top: 40px;
     text-align: center;
     font-size: var(--w-font-caption);
-    color: var(--w-text-faint);
+    color: var(--w-text-muted);
   }
   .detail-hero {
     padding: 8px 0 16px;
@@ -1796,7 +1796,7 @@
     font-size: var(--w-font-caption);
   }
   .detail-field .k {
-    color: var(--w-text-faint);
+    color: var(--w-text-muted);
   }
   .detail-field .v {
     text-align: end;
@@ -2414,7 +2414,7 @@
   /* Done is faded, not struck through: a line through the text is harder to
      read at exactly the moment somebody is checking what they did. */
   .plan-title.done {
-    color: var(--w-text-faint);
+    color: var(--w-text-muted);
   }
   /* The time and the title are one sentence, so they share a line. */
   .plan-line {
@@ -2611,7 +2611,7 @@
     font-weight: 700;
     letter-spacing: 0.04em;
     text-transform: uppercase;
-    color: var(--w-text-faint);
+    color: var(--w-text-muted);
   }
   .row-field {
     display: flex;
@@ -2652,7 +2652,7 @@
     width: 34px;
     text-align: end;
     font-size: var(--w-font-caption);
-    color: var(--w-text-faint);
+    color: var(--w-text-muted);
   }
 
   .chip {
@@ -2912,7 +2912,7 @@
   .signin-or {
     margin: 14px 0 10px;
     font-size: var(--w-font-micro);
-    color: var(--w-text-faint);
+    color: var(--w-text-muted);
   }
 
   /* The guest-link pages — a join link opened by somebody with no account.
@@ -2941,11 +2941,17 @@
   }
   .faint {
     font-size: var(--w-font-caption);
-    color: var(--w-text-faint);
+    color: var(--w-text-muted);
   }
+  /* The sentence somebody most needs to read is the one that says what went
+     wrong, so it takes the ink made for text rather than the money red. The
+     raspberry stays on amounts, where weight and size clear the 3:1 a mark
+     needs; at caption size on a white surface it reads 3.75:1, under the 4.5
+     a sentence needs. `--w-tint-pink-ink` is the same family a rung down and
+     clears 5.8:1 light, 11.7:1 dark. */
   .error {
     font-size: var(--w-font-caption);
-    color: var(--w-negative);
+    color: var(--w-tint-pink-ink);
   }
   .row {
     display: flex;
@@ -2991,7 +2997,7 @@
     font-size: 10.5px;
     font-weight: 600;
     text-decoration: none;
-    color: var(--w-text-faint);
+    color: var(--w-text-muted);
   }
   .tab-link span {
     overflow: hidden;
