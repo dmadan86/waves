@@ -1841,10 +1841,140 @@
     font-variant-numeric: tabular-nums;
     color: var(--w-text);
   }
-  /* Over budget is the warning colour. Under budget is not a celebration — an
-     under-budget trip is just a trip — so it stays plain ink. */
+
+  /* A budget, and how far into it the trip is. The bar stops at full, so the
+     signed gap beneath it is what carries an overrun — a bar cannot say "25%
+     over". */
+  .budget-row + .budget-row,
+  .budget-row + .budget,
+  .budget + .budget {
+    border-top: 1px solid var(--w-border);
+    margin-top: 12px;
+    padding-top: 12px;
+  }
+  .budget {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .budget-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 4px 10px;
+  }
+  .budget-label {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 6px;
+    overflow-wrap: anywhere;
+    font-size: var(--w-font-caption);
+    font-weight: 600;
+  }
+  .budget-figures {
+    flex: none;
+    font-size: var(--w-font-caption);
+    font-variant-numeric: tabular-nums;
+    color: var(--w-text-muted);
+  }
+  .budget-track {
+    display: block;
+    overflow: hidden;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--w-border);
+  }
+  .budget-fill {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    background: var(--w-positive);
+  }
+  .budget-fill.over {
+    background: var(--w-negative);
+  }
+  .budget-gap {
+    font-size: var(--w-font-micro);
+    font-variant-numeric: tabular-nums;
+    color: var(--w-text-muted);
+  }
+  .budget-gap.over {
+    color: var(--w-negative);
+  }
+  .budget-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-top: 6px;
+  }
+  /* `.linklike` carries a bottom margin for the places it grew up in; in a row
+     of actions that margin is a gap under the row. */
+  .budget-actions .linklike {
+    margin-bottom: 0;
+  }
+  .budget-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  /* Wide enough that the visibility checkbox drops to its own line on a phone
+     rather than being squeezed against the panel edge. */
+  .budget-form .split-input {
+    min-width: 0;
+    flex: 1 1 180px;
+  }
+  .budget-form .split-input.bad {
+    border-color: var(--w-negative);
+  }
+  .budget-share {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 6px;
+    font-size: var(--w-font-caption);
+    cursor: pointer;
+  }
+  .budget-form-actions {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 8px;
+  }
+  .budget-note {
+    margin-top: 12px;
+    border-top: 1px solid var(--w-border);
+    padding-top: 4px;
+  }
+  .budget-note .meta {
+    display: block;
+  }
+  .tone-negative {
+    color: var(--w-negative);
+  }
+  .tone-brand {
+    color: var(--w-brand);
+  }
+  /* `.plan-total-pair .v` sets its own colour and outranks a bare class, so the
+     over-budget figure needs to say so at the same weight or it silently loses
+     the cascade and reads as plain ink. */
   .plan-total-pair .v.tone-negative {
     color: var(--w-negative);
+  }
+
+  /* A word beside a budget's name — "Only me". Quieter than `.chip`, which is a
+     pill built for a list of filters and swamps a label. */
+  .budget-badge {
+    flex: none;
+    border-radius: var(--w-radius-sm);
+    background: var(--w-surface-muted);
+    padding: 1px 6px;
+    font-size: var(--w-font-micro);
+    font-weight: 600;
+    color: var(--w-text-muted);
   }
 
   .plan-day-today {

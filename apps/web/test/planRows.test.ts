@@ -14,10 +14,12 @@
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { buildTimeline, dayNumber } from '@waves/core';
+import { budgetProgress, buildTimeline, dayNumber, fairness, spendByMember } from '@waves/core';
 
 import {
+  contributions,
   planItems,
+  sharedExpenses,
   timelineExpenses,
   todayIn,
   type PlanSource,
@@ -164,5 +166,140 @@ describe('todayIn', () => {
     expect(dayNumber(today, '2026-03-14', '2026-03-20')).toBe(3);
     // Outside the trip is not a day of it.
     expect(dayNumber(today, '2026-04-01', '2026-04-05')).toBeNull();
+  });
+});
+
+describe('contributions', () => {
+  it('reads paid from the payers and owed from the shares', () => {
+    // The two are different columns meaning different things. Read either one
+    // twice and every trip balances perfectly — the one answer nobody queries.
+    const rows = contributions([
+      {
+        deleted_at: null,
+        currentVersion: {
+          currency: 'INR',
+          payers: [{ member_id: 'ravi', amount: '10000' }],
+          shares: [
+            { member_id: 'ravi', amount: '5000' },
+            { member_id: 'asha', amount: '5000' },
+          ],
+        },
+      },
+    ]);
+    const ravi = rows.find((row) => row.member === 'ravi')!;
+    const asha = rows.find((row) => row.member === 'asha')!;
+    expect(ravi.paidMinor).toBe(10000n);
+    expect(ravi.owedMinor).toBe(5000n);
+    expect(asha.paidMinor).toBe(0n);
+    expect(asha.owedMinor).toBe(5000n);
+  });
+
+  it('feeds fairness a trip where one person has been fronting everything', () => {
+    const rows = contributions(
+      ['a', 'b', 'c'].map((id) => ({
+        deleted_at: null,
+        currentVersion: {
+          currency: 'INR',
+          payers: [{ member_id: 'ravi', amount: '9000' }],
+          shares: [
+            { member_id: 'ravi', amount: '3000' },
+            { member_id: 'asha', amount: '3000' },
+            { member_id: 'meera', amount: '3000' },
+          ],
+        },
+        id,
+      })),
+    );
+    const [block] = fairness(rows);
+    expect(block!.overpayer?.member).toBe('ravi');
+    // Somebody who has paid nothing and owes the most goes next.
+    expect(block!.nextPayer).not.toBe('ravi');
+  });
+
+  it('leaves a deleted bill out of both halves', () => {
+    const rows = contributions([
+      {
+        deleted_at: '2026-03-20T00:00:00Z',
+        currentVersion: {
+          currency: 'INR',
+          payers: [{ member_id: 'ravi', amount: '10000' }],
+          shares: [{ member_id: 'asha', amount: '10000' }],
+        },
+      },
+    ]);
+    expect(rows).toEqual([]);
+  });
+
+  it('keeps currencies apart', () => {
+    const rows = contributions([
+      {
+        deleted_at: null,
+        currentVersion: {
+          currency: 'INR',
+          payers: [{ member_id: 'ravi', amount: '1000' }],
+          shares: [{ member_id: 'ravi', amount: '1000' }],
+        },
+      },
+      {
+        deleted_at: null,
+        currentVersion: {
+          currency: 'THB',
+          payers: [{ member_id: 'ravi', amount: '400' }],
+          shares: [{ member_id: 'ravi', amount: '400' }],
+        },
+      },
+    ]);
+    expect(rows.map((row) => row.currency).sort()).toEqual(['INR', 'THB']);
+  });
+});
+
+describe('sharedExpenses', () => {
+  it('measures a personal budget against shares, not against what was fronted', () => {
+    // Ravi fronted the whole 10,000 and is owed half back. His trip cost him
+    // 5,000, and a personal budget is a ceiling on that, not on the cash that
+    // passed through his hands.
+    const spend = spendByMember(
+      sharedExpenses([
+        {
+          deleted_at: null,
+          currentVersion: {
+            currency: 'INR',
+            shares: [
+              { member_id: 'ravi', amount: '5000' },
+              { member_id: 'asha', amount: '5000' },
+            ],
+          },
+        },
+      ]),
+    );
+    expect(spend.get('ravi')).toEqual({ INR: 5000n });
+    expect(
+      budgetProgress({ amountMinor: 8000n, currency: 'INR' }, spend.get('ravi')),
+    ).toMatchObject({ spentMinor: 5000n, remainingMinor: 3000n, over: false });
+  });
+
+  it('adds a member up when one bill splits to them twice', () => {
+    const spend = spendByMember(
+      sharedExpenses([
+        {
+          deleted_at: null,
+          currentVersion: {
+            currency: 'INR',
+            shares: [
+              { member_id: 'ravi', amount: '300' },
+              { member_id: 'ravi', amount: '200' },
+            ],
+          },
+        },
+      ]),
+    );
+    expect(spend.get('ravi')).toEqual({ INR: 500n });
+  });
+
+  it('says nothing about a member with no shares rather than inventing a zero', () => {
+    const spend = spendByMember(sharedExpenses([]));
+    expect(spend.get('ravi')).toBeUndefined();
+    // And an unmeasurable budget is null, not an empty bar.
+    expect(budgetProgress(null, undefined)).toBeNull();
   });
 });
