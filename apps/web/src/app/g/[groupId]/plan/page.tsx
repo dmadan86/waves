@@ -31,15 +31,28 @@ import { useParams } from 'next/navigation';
 import { CalendarRange, Check, Plus, Receipt, X } from 'lucide-react';
 
 import {
+  budgetProgress,
   buildTimeline,
   budgetVariance,
   dayNumber,
+  fairness,
+  forecast,
+  spendByMember,
   type PlanItem,
   type TimelineDay,
 } from '@waves/core';
-import { GroupType, type Expense, type GroupRow, type PlanItemRow } from '@waves/api-client';
+import {
+  GroupType,
+  nameOf,
+  type Expense,
+  type GroupRow,
+  type Member,
+  type MemberBudgetRow,
+  type PlanItemRow,
+} from '@waves/api-client';
 
 import { AppFrame } from '@/components/AppFrame';
+import { TripBudgets, type MemberBudget } from '@/components/TripBudgets';
 import { EmptyState } from '@/components/EmptyState';
 import { Section } from '@/components/Shell';
 import { SkeletonRows } from '@/components/Skeleton';
@@ -47,7 +60,13 @@ import { useStrings } from '@/i18n-context';
 import { fill } from '@/i18n';
 import { friendlyError } from '@/lib/errors';
 import { money } from '@/lib/money';
-import { planItems, timelineExpenses, todayIn } from '@/lib/planRows';
+import {
+  contributions,
+  planItems,
+  sharedExpenses,
+  timelineExpenses,
+  todayIn,
+} from '@/lib/planRows';
 import { waves } from '@/lib/waves';
 
 export default function PlanPage() {
@@ -55,16 +74,20 @@ export default function PlanPage() {
   const groupId = params?.groupId ?? '';
 
   return (
-    <AppFrame current={Section.Groups}>{() => <Plan key={groupId} groupId={groupId} />}</AppFrame>
+    <AppFrame current={Section.Groups}>
+      {({ profileId }) => <Plan key={groupId} groupId={groupId} myProfileId={profileId} />}
+    </AppFrame>
   );
 }
 
-function Plan({ groupId }: { groupId: string }) {
+function Plan({ groupId, myProfileId }: { groupId: string; myProfileId: string }) {
   const { t, locale } = useStrings();
 
   const [group, setGroup] = useState<GroupRow | null>(null);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [rows, setRows] = useState<PlanItemRow[]>([]);
+  const [members, setMembers] = useState<Member[]>([]);
+  const [budgetRows, setBudgetRows] = useState<MemberBudgetRow[]>([]);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -90,14 +113,18 @@ function Plan({ groupId }: { groupId: string }) {
   const abandonDraft = () => setDraft(crypto.randomUUID());
 
   const load = useCallback(async () => {
-    const [row, bills, plan] = await Promise.all([
+    const [row, bills, plan, people, budgets] = await Promise.all([
       waves.groupRow(groupId),
       waves.expenses(groupId),
       waves.planItems(groupId),
+      waves.members(groupId),
+      waves.memberBudgets(groupId),
     ]);
     setGroup(row);
     setExpenses(bills);
     setRows(plan);
+    setMembers(people);
+    setBudgetRows(budgets);
   }, [groupId]);
 
   useEffect(() => {
@@ -136,6 +163,63 @@ function Plan({ groupId }: { groupId: string }) {
   const variance = useMemo(() => budgetVariance(timeline), [timeline]);
   const today = todayIn(group?.time_zone ?? 'Asia/Kolkata');
   const currentDay = dayNumber(today, startDate, endDate);
+
+  const currency = group?.default_currency ?? 'INR';
+  const myMember = members.find((member) => member.profile_id === myProfileId) ?? null;
+
+  /** What each member's trip has cost *them* — the figure a personal cap sits on. */
+  const memberSpend = useMemo(() => spendByMember(sharedExpenses(expenses)), [expenses]);
+
+  /** The trip's own cap, or null when nobody set one. Null is not a cap of zero. */
+  const overallCap =
+    group?.budget_minor != null
+      ? {
+          amountMinor: BigInt(group.budget_minor),
+          currency: group.budget_currency ?? currency,
+        }
+      : null;
+
+  const overallBudget = budgetProgress(overallCap, timeline.spentByCurrency);
+
+  // Mine first, then everybody who shared. A row whose budget measures nothing
+  // is dropped rather than drawn as an empty bar.
+  const memberBudgets = useMemo(() => {
+    const out: MemberBudget[] = [];
+    for (const row of budgetRows) {
+      const progress = budgetProgress(
+        { amountMinor: BigInt(row.amount_minor), currency: row.currency },
+        memberSpend.get(row.member_id),
+      );
+      if (!progress) continue;
+      const member = members.find((person) => person.id === row.member_id) ?? null;
+      out.push({
+        memberId: row.member_id,
+        name: member ? nameOf(member) : t.budgets.someone,
+        isMine: row.member_id === (myMember?.id ?? null),
+        shared: row.visibility === 'group',
+        progress,
+      });
+    }
+    return out.sort((a, b) => Number(b.isMine) - Number(a.isMine));
+  }, [budgetRows, members, memberSpend, myMember?.id, t.budgets.someone]);
+
+  // At this pace, where does the trip land? Empty until the trip has dates and
+  // a day of spend to read a pace from. Not hand-memoized: the compiler does it,
+  // and a dep list that did not match what this reads is what it objected to.
+  const forecasts = forecast({
+    spentByCurrency: timeline.spentByCurrency,
+    budget: overallCap,
+    today,
+    startDate,
+    endDate,
+  });
+
+  // Who has been carrying the fronting. Paid comes from the payers, owed from
+  // the shares — both already on the ledger, neither re-divided here.
+  const fairnessSignals = useMemo(
+    () => fairness(contributions(expenses)).filter((block) => block.overpayer || block.nextPayer),
+    [expenses],
+  );
 
   /**
    * A write, then a re-read — as two separate steps.
@@ -203,6 +287,16 @@ function Plan({ groupId }: { groupId: string }) {
   const canEdit = group?.type === GroupType.Trip;
 
   /**
+   * A member id as a name. Somebody can share a budget or front the most and
+   * then leave, and `nameOf` answers a hardcoded English "Someone" — which
+   * inside an otherwise-Tamil sentence is worse than the gap it fills.
+   */
+  const who = (memberId: string): string => {
+    const member = members.find((person) => person.id === memberId);
+    return member ? nameOf(member) : t.budgets.someone;
+  };
+
+  /**
    * The days to draw.
    *
    * Normally the timeline's own. The exception is a trip with no dates and
@@ -234,6 +328,40 @@ function Plan({ groupId }: { groupId: string }) {
         variance={variance}
         locale={locale}
       />
+
+      {/* Budgets belong to a trip for the same reason the plan does: a ceiling
+          per day means nothing to a flatshare. The RPCs check admin rights and
+          membership themselves; hiding the controls only saves somebody a
+          refusal. */}
+      {canEdit ? (
+        <TripBudgets
+          currency={currency}
+          locale={locale}
+          busy={busy}
+          canSetOverall={myMember?.role === 'admin'}
+          overall={overallBudget}
+          memberBudgets={memberBudgets}
+          forecasts={forecasts}
+          fairness={fairnessSignals}
+          nameOf={who}
+          onSetOverall={(amountMinor, denomination) =>
+            void mutate(() =>
+              waves.setGroupBudget({ groupId, amountMinor, currency: denomination }),
+            )
+          }
+          onSetMine={(amountMinor, shared, denomination) =>
+            void mutate(() =>
+              waves.setMyTripBudget({
+                groupId,
+                amountMinor,
+                currency: denomination,
+                visibility: shared ? 'group' : 'private',
+              }),
+            )
+          }
+          onClearMine={() => void mutate(() => waves.clearMyTripBudget(groupId))}
+        />
+      ) : null}
 
       {timeline.days.length === 0 ? (
         <section className="panel">

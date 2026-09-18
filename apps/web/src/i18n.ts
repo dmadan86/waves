@@ -311,6 +311,43 @@ export interface WebStrings {
     /** Each row's own remove, named so a list of them is not identical. */
     remove: string;
   };
+  /**
+   * Ceilings on a trip (A45), and the two readings taken against them.
+   *
+   * Three kinds: the whole trip's (admin-set), each member's own, and what a
+   * member chose to share. A cap is never mixed across currencies.
+   */
+  budgets: {
+    title: string;
+    /** The whole trip's cap. */
+    overall: string;
+    /** The reader's own. */
+    mine: string;
+    amount: string;
+    /** Whether the rest of the group gets to see this number. */
+    shareWithGroup: string;
+    onlyMe: string;
+    save: string;
+    clear: string;
+    set: string;
+    edit: string;
+    /** Read after the signed gap on a bar: "₹4,000 left" / "₹4,000 over". */
+    left: string;
+    over: string;
+    /** Burn-rate: where the trip lands at this pace. */
+    forecast: string;
+    projectedTotal: string;
+    onTrack: string;
+    /** Who has fronted a lopsided share, and who could take the next bill. */
+    fairness: string;
+    /** `{name}` has fronted `{percent}`% of the trip. */
+    paidShare: string;
+    evenlyMatched: string;
+    /** Suggest `{name}` picks up the next one. */
+    nextUp: string;
+    /** Somebody who shared a budget but is no longer in the group. */
+    someone: string;
+  };
   location: {
     label: string;
     add: string;
@@ -955,6 +992,28 @@ const en: WebStrings = {
     cancel: 'Cancel',
     remove: 'Remove {title}',
   },
+  budgets: {
+    title: 'Budgets',
+    overall: 'Overall',
+    mine: 'My budget',
+    amount: 'Amount',
+    shareWithGroup: 'Share with group',
+    onlyMe: 'Only me',
+    save: 'Save',
+    clear: 'Clear',
+    set: 'Set a budget',
+    edit: 'Change',
+    left: 'left',
+    over: 'over',
+    forecast: 'On this pace',
+    projectedTotal: 'Projected total',
+    onTrack: 'On track',
+    fairness: 'Fairness',
+    paidShare: '{name} has fronted {percent}% of the trip',
+    evenlyMatched: 'Everyone’s chipping in evenly',
+    nextUp: '{name} could pick up the next one',
+    someone: 'Someone',
+  },
   location: {
     label: 'Location',
     add: 'Add location',
@@ -1579,6 +1638,28 @@ const ta: WebStrings = {
     add: 'சேர்',
     cancel: 'ரத்து',
     remove: '{title} அகற்று',
+  },
+  budgets: {
+    title: 'பட்ஜெட்',
+    overall: 'மொத்தம்',
+    mine: 'என் பட்ஜெட்',
+    amount: 'தொகை',
+    shareWithGroup: 'குழுவுடன் பகிர்',
+    onlyMe: 'எனக்கு மட்டும்',
+    save: 'சேமி',
+    clear: 'அழி',
+    set: 'பட்ஜெட் அமை',
+    edit: 'மாற்று',
+    left: 'மீதம்',
+    over: 'அதிகம்',
+    forecast: 'இந்த வேகத்தில்',
+    projectedTotal: 'எதிர்பார்க்கும் மொத்தம்',
+    onTrack: 'சரியான பாதையில்',
+    fairness: 'நியாயம்',
+    paidShare: '{name} பயணத்தில் {percent}% செலுத்தியுள்ளார்',
+    evenlyMatched: 'அனைவரும் சமமாக பங்களிக்கிறார்கள்',
+    nextUp: 'அடுத்த பில்லை {name} எடுக்கலாம்',
+    someone: 'யாரோ',
   },
   location: {
     label: 'இடம்',
@@ -2211,6 +2292,28 @@ const hi: WebStrings = {
     add: 'जोड़ें',
     cancel: 'रद्द',
     remove: '{title} हटाएँ',
+  },
+  budgets: {
+    title: 'बजट',
+    overall: 'कुल',
+    mine: 'मेरा बजट',
+    amount: 'राशि',
+    shareWithGroup: 'ग्रुप के साथ साझा करें',
+    onlyMe: 'सिर्फ़ मैं',
+    save: 'सेव',
+    clear: 'हटाएँ',
+    set: 'बजट तय करें',
+    edit: 'बदलें',
+    left: 'बचा',
+    over: 'ज़्यादा',
+    forecast: 'इस रफ़्तार पर',
+    projectedTotal: 'अनुमानित कुल',
+    onTrack: 'सही राह पर',
+    fairness: 'बराबरी',
+    paidShare: '{name} ने ट्रिप का {percent}% चुकाया है',
+    evenlyMatched: 'सब बराबर योगदान दे रहे हैं',
+    nextUp: 'अगला बिल {name} ले सकते हैं',
+    someone: 'कोई',
   },
   location: {
     label: 'स्थान',
@@ -2845,6 +2948,28 @@ const ar: WebStrings = {
     add: 'إضافة',
     cancel: 'إلغاء',
     remove: 'إزالة {title}',
+  },
+  budgets: {
+    title: 'الميزانية',
+    overall: 'الإجمالي',
+    mine: 'ميزانيتي',
+    amount: 'المبلغ',
+    shareWithGroup: 'مشاركة مع المجموعة',
+    onlyMe: 'لي فقط',
+    save: 'حفظ',
+    clear: 'مسح',
+    set: 'تحديد ميزانية',
+    edit: 'تغيير',
+    left: 'المتبقي',
+    over: 'زيادة',
+    forecast: 'بهذه الوتيرة',
+    projectedTotal: 'الإجمالي المتوقع',
+    onTrack: 'على المسار',
+    fairness: 'الإنصاف',
+    paidShare: 'دفع {name} ‏{percent}٪ من الرحلة',
+    evenlyMatched: 'الجميع يساهمون بالتساوي',
+    nextUp: 'يمكن أن يدفع {name} الفاتورة التالية',
+    someone: 'شخص ما',
   },
   location: {
     label: 'الموقع',
