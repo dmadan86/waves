@@ -2796,12 +2796,83 @@
      anybody has signed into it.
      ───────────────────────────────────────────────────────────── */
 
+  /* The front door.
+     One column on a phone — the name and the sentence, then the ways in.
+     Two from 900px, because a 400px card centred in a 1280px field of brand
+     colour is a login box rather than a product, and the space beside it is
+     where the page gets to say what it is. `align-items: center` rather than
+     stretch: the two halves are different heights and neither should grow to
+     match the other. */
   .signin-wrap {
     display: grid;
     min-height: 100vh;
-    place-items: center;
-    padding: 24px;
+    align-content: center;
+    justify-items: center;
+    gap: 28px;
+    padding: 32px 24px;
     background: var(--w-gradient-brand) fixed;
+  }
+  @media (min-width: 900px) {
+    .signin-wrap {
+      /* Both columns sized to their content and the pair centred, rather than
+         one fraction each: a `1fr` column pushes the text to the far left and
+         the card to the far right, so at 1280px they read as two unrelated
+         things at opposite edges instead of one page. */
+      grid-template-columns: minmax(0, 30rem) auto;
+      align-items: center;
+      justify-content: center;
+      justify-items: start;
+      gap: 72px;
+      padding: 48px;
+    }
+  }
+  /* White on the brand gradient, which is the one place in this app where
+     text sits on colour rather than on a surface. Both tones are fixed rather
+     than tokened for that reason: the ground here does not change with the
+     theme, so neither may the ink. */
+  .door-say {
+    max-width: 30ch;
+    text-align: center;
+    color: #fff;
+  }
+  @media (min-width: 900px) {
+    .door-say {
+      /* Wide enough for the sentence to break where the words allow. At 15ch
+         it broke into five stubs — "Split / expenses / without the / argument
+         at / the end." — which reads as a column of fragments, not a claim. */
+      max-width: 26ch;
+      text-align: start;
+    }
+  }
+  .door-brand {
+    justify-content: center;
+    font-size: var(--w-font-title);
+    color: #fff;
+  }
+  @media (min-width: 900px) {
+    .door-brand {
+      justify-content: flex-start;
+      /* The name carries this column. At the card's own title size it read as
+         a caption beside a form rather than the thing the page is about. */
+      font-size: 42px;
+    }
+  }
+  .door-tagline {
+    margin-top: 10px;
+    font-size: var(--w-font-subheading);
+    line-height: 1.4;
+    /* Not pure white: the name above it is the thing to read first. */
+    color: rgb(255 255 255 / 0.86);
+    text-wrap: balance;
+  }
+  @media (min-width: 900px) {
+    .door-tagline {
+      margin-top: 14px;
+      font-size: 24px;
+      /* Even lines rather than a long one and a stub: this is a headline
+         being read, not a paragraph being skimmed. */
+      text-wrap: balance;
+    }
   }
   .signin-card {
     width: 100%;
