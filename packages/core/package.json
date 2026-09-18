@@ -25,7 +25,7 @@
     "coverage": "vitest run --coverage"
   },
   "devDependencies": {
-    "fast-check": "^4.1.1",
+    "fast-check": "^4.10.0",
     "typescript": "~5.9.2",
     "vitest": "^4.1.10",
     "esbuild": "^0.28.2"
