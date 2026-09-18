@@ -1804,6 +1804,171 @@
     color: var(--w-text);
   }
 
+  /* ─────────────────────────────────────────────────────────────
+     The trip plan. Planned and spent read side by side and are never
+     added together — so the totals strip carries a pair per currency
+     rather than one figure, and a day's own rows keep the plan above
+     the ledger.
+     ───────────────────────────────────────────────────────────── */
+
+  .plan-total {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 22px;
+    padding: 4px 0;
+  }
+  .plan-total + .plan-total {
+    border-top: 1px solid var(--w-border);
+    margin-top: 10px;
+    padding-top: 12px;
+  }
+  .plan-total-pair {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 1px;
+  }
+  .plan-total-pair .k {
+    font-size: var(--w-font-micro);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--w-text-muted);
+  }
+  .plan-total-pair .v {
+    font-size: var(--w-font-body);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--w-text);
+  }
+  /* Over budget is the warning colour. Under budget is not a celebration — an
+     under-budget trip is just a trip — so it stays plain ink. */
+  .plan-total-pair .v.tone-negative {
+    color: var(--w-negative);
+  }
+
+  .plan-day-today {
+    color: var(--w-brand);
+  }
+  .plan-day-right {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  .plan-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 0;
+  }
+  .plan-row + .plan-row {
+    border-top: 1px solid var(--w-border);
+  }
+  /* What the ledger recorded that day, under what was planned for it: quieter,
+     because it is the answer rather than the intention.
+
+     Indented by the width of the tick and its gap, so the receipt glyph does
+     not land in the checkbox column. A small bordered mark at the head of a row
+     in a list of checkboxes reads as an unticked box, whatever shape it is —
+     and a bill that looks like an unfinished plan is a bill somebody will try
+     to tick. */
+  .plan-row.spent {
+    padding-inline-start: 29px;
+    color: var(--w-text-muted);
+    font-size: var(--w-font-caption);
+  }
+  .plan-row.spent .grow {
+    overflow: hidden;
+    min-width: 0;
+    flex: 1;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* A real checkbox, visually hidden and left where the keyboard can reach it;
+     the box beside it is what gets painted. Focus is drawn on the box, because
+     the input itself has no size to draw a ring around. */
+  .plan-tick {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    align-items: flex-start;
+    gap: 10px;
+    cursor: pointer;
+  }
+  .plan-tick input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+  }
+  .plan-tick-box {
+    display: inline-grid;
+    width: 19px;
+    height: 19px;
+    flex: none;
+    margin-top: 1px;
+    place-items: center;
+    border: 1.5px solid var(--w-border-strong);
+    border-radius: 6px;
+    background: var(--w-surface);
+    color: var(--w-surface);
+    transition:
+      background var(--w-duration-fast) ease,
+      border-color var(--w-duration-fast) ease;
+  }
+  .plan-tick input:checked + .plan-tick-box {
+    border-color: var(--w-positive);
+    background: var(--w-positive);
+  }
+  .plan-tick input:focus-visible + .plan-tick-box {
+    outline: 2px solid var(--w-brand);
+    outline-offset: 2px;
+  }
+
+  .plan-title {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 1px;
+    overflow-wrap: anywhere;
+  }
+  /* Done is faded, not struck through: a line through the text is harder to
+     read at exactly the moment somebody is checking what they did. */
+  .plan-title.done {
+    color: var(--w-text-faint);
+  }
+  /* The time and the title are one sentence, so they share a line. */
+  .plan-line {
+    display: block;
+  }
+  .plan-time {
+    margin-inline-end: 7px;
+    font-variant-numeric: tabular-nums;
+    color: var(--w-text-muted);
+  }
+
+  .plan-add {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 0 2px;
+  }
+  .plan-add .split-input {
+    min-width: 0;
+    flex: 1 1 180px;
+  }
+  .plan-add-actions {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 8px;
+  }
+
   /* A recap line's left half: the question, and under it what the answer was
      about. The subject belongs with its label rather than beside the figure —
      "Biggest bill / the houseboat" reads as one thing, and a long restaurant

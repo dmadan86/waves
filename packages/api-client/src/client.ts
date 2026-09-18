@@ -53,6 +53,7 @@ import {
   type ProfileRow,
   type NotificationRow,
   type PersonBalanceRow,
+  type PlanItemRow,
 } from './rows';
 
 const PROFILE_COLUMNS =
@@ -61,7 +62,7 @@ const PROFILE_COLUMNS =
 
 const GROUP_ROW_COLUMNS = `
   id, name, type, country_code, default_currency, simplify_debts, cover_emoji, photo_path,
-  start_date, end_date, archived_at, created_at, updated_seq
+  start_date, end_date, time_zone, archived_at, created_at, updated_seq
 `;
 
 // profiles is embedded by its FK column (profile_id): ghost_merges references
@@ -95,6 +96,11 @@ const EXPENSE_COLUMNS = `
     payers:expense_payers ( member_id, amount ),
     shares:expense_shares ( member_id, amount )
   )
+`;
+
+const PLAN_ITEM_COLUMNS = `
+  id, group_id, day, starts_at, title, note, category, planned_minor, currency,
+  done_at, expense_id, position
 `;
 
 export interface WavesClientOptions {
@@ -468,6 +474,65 @@ export function createWavesClient({ supabase, r2Enabled = false }: WavesClientOp
           .eq('group_id', groupId)
           .order('created_at', { ascending: false }),
       );
+    },
+
+    /**
+     * The trip's plan, live rows only.
+     *
+     * A soft-deleted row is a tombstone the phone's sync needs in order to
+     * propagate the deletion (ADR-005). A browser has no mirror to propagate
+     * anything into, so it asks for what is still there.
+     */
+    planItems(groupId: string): Promise<PlanItemRow[]> {
+      return read<PlanItemRow>(
+        supabase
+          .from('trip_plan_items')
+          .select(PLAN_ITEM_COLUMNS)
+          .eq('group_id', groupId)
+          .is('deleted_at', null)
+          .order('day', { ascending: true })
+          .order('position', { ascending: true }),
+      );
+    },
+
+    /**
+     * Add something to a day.
+     *
+     * The id is minted by the caller, not the server, so that a retry after a
+     * dropped connection replays as the same row rather than posting a second
+     * one (ADR-005). The phone does this because it queues writes; the browser
+     * does it because a click can outlive the request it started.
+     */
+    async addPlanItem(input: {
+      groupId: string;
+      day: string;
+      title: string;
+      startsAt?: string | null;
+      note?: string | null;
+      plannedMinor?: bigint | null;
+      currency?: string | null;
+      itemId: string;
+    }): Promise<string> {
+      return rpc<string>('waves_add_plan_item', {
+        p_group_id: input.groupId,
+        p_day: input.day,
+        p_title: input.title,
+        p_starts_at: input.startsAt ?? null,
+        p_note: input.note ?? null,
+        p_category: null,
+        p_planned_minor: input.plannedMinor?.toString() ?? null,
+        p_currency: input.currency ?? null,
+        p_item_id: input.itemId,
+      });
+    },
+
+    /** Tick it off, or un-tick it. Done means somebody did the thing, not paid for it. */
+    async setPlanItemDone(itemId: string, done: boolean): Promise<void> {
+      await rpc<null>('waves_update_plan_item', { p_item_id: itemId, p_done: done });
+    },
+
+    async removePlanItem(itemId: string): Promise<void> {
+      await rpc<null>('waves_remove_plan_item', { p_item_id: itemId });
     },
 
     /** One expense with its current version (payers and shares), or null. */
