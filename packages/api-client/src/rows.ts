@@ -32,6 +32,8 @@ export interface GroupRow {
   photo_path: string | null;
   start_date: string | null;
   end_date: string | null;
+  /** The trip is on ITS day, not the reader's — the planner compares dates in this zone. */
+  time_zone: string;
   archived_at: string | null;
   created_at: string;
   /**
@@ -417,4 +419,33 @@ export interface ExportResult {
   content: string;
   /** 'base64' when `content` is binary (PDF); text formats omit it. */
   encoding?: 'utf8' | 'base64';
+}
+
+/**
+ * One line of a trip's plan: something somebody intends to do, and what they
+ * think it will cost.
+ *
+ * Not money. A plan item moves nobody's balance, never reaches the export, and
+ * ticking it off is somebody saying they did the thing — not that they paid for
+ * it. `planned_minor` sits beside what the ledger actually recorded; the two are
+ * never added together and never converted into each other (ADR-003).
+ */
+export interface PlanItemRow {
+  id: string;
+  group_id: string;
+  /** 'YYYY-MM-DD', in the trip's own timezone. */
+  day: string;
+  /** 'HH:MM:SS' or null for "sometime that day". */
+  starts_at: string | null;
+  title: string;
+  note: string | null;
+  category: string | null;
+  /** Minor units as a decimal string, or null for "no idea yet". */
+  planned_minor: string | null;
+  currency: string;
+  /** Non-null once somebody ticked it off. */
+  done_at: string | null;
+  /** The expense that turned out to be this, once somebody links them. */
+  expense_id: string | null;
+  position: number;
 }
