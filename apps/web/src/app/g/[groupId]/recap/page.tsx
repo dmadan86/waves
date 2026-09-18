@@ -25,7 +25,7 @@ import { useParams } from 'next/navigation';
 import { Sparkles } from 'lucide-react';
 
 import { recap, resolveCategory } from '@waves/core';
-import { nameOf, type Expense, type GroupRow, type Member } from '@waves/api-client';
+import { GroupType, nameOf, type Expense, type GroupRow, type Member } from '@waves/api-client';
 
 import { AppFrame } from '@/components/AppFrame';
 import { EmptyState } from '@/components/EmptyState';
@@ -140,7 +140,12 @@ function Recap({ groupId }: { groupId: string }) {
     <div>
       <div className="page-head">
         <div>
-          <h1>{t.recap.title}</h1>
+          {/* Only a trip is offered this screen, but only the *link* is gated —
+              the address still resolves for any group, and every figure below
+              is as true of a flatshare as of a fortnight in Goa. So the page
+              does not refuse to show correct numbers; it just stops calling
+              them a trip's. */}
+          <h1>{group?.type === GroupType.Trip ? t.recap.title : t.recap.titleAny}</h1>
           <div className="sub">{group?.name?.trim() || t.recap.subtitle}</div>
         </div>
       </div>

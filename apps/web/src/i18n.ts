@@ -262,6 +262,8 @@ export interface WebStrings {
    */
   recap: {
     title: string;
+    /** The same screen reached by URL on a group that is not a trip. */
+    titleAny: string;
     /** What the screen is for, read under the title. */
     subtitle: string;
     /** The total, spread over the days it was spread over. */
@@ -891,7 +893,8 @@ const en: WebStrings = {
   },
   recap: {
     title: 'Trip recap',
-    subtitle: 'How the trip added up',
+    titleAny: 'Recap',
+    subtitle: 'How it added up',
     perDay: 'Per day',
     biggestBill: 'Biggest bill',
     mostSpentOn: 'Most spent on',
@@ -1496,7 +1499,8 @@ const ta: WebStrings = {
   },
   recap: {
     title: 'பயண சுருக்கம்',
-    subtitle: 'பயணம் எப்படி கூடியது',
+    titleAny: 'சுருக்கம்',
+    subtitle: 'எப்படி கூடியது',
     perDay: 'நாள் ஒன்றுக்கு',
     biggestBill: 'மிகப்பெரிய பில்',
     mostSpentOn: 'அதிகம் செலவழித்தது',
@@ -2109,7 +2113,8 @@ const hi: WebStrings = {
   },
   recap: {
     title: 'ट्रिप का सार',
-    subtitle: 'ट्रिप का हिसाब कैसे बना',
+    titleAny: 'सार',
+    subtitle: 'हिसाब कैसे बना',
     perDay: 'प्रति दिन',
     biggestBill: 'सबसे बड़ा बिल',
     mostSpentOn: 'सबसे ज़्यादा खर्च',
@@ -2724,7 +2729,8 @@ const ar: WebStrings = {
   },
   recap: {
     title: 'ملخص الرحلة',
-    subtitle: 'كيف تجمّعت مصاريف الرحلة',
+    titleAny: 'الملخص',
+    subtitle: 'كيف تجمّعت المصاريف',
     perDay: 'لكل يوم',
     biggestBill: 'أكبر فاتورة',
     mostSpentOn: 'الأكثر إنفاقًا',
