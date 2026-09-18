@@ -254,6 +254,30 @@ export interface WebStrings {
     nothingThisMonth: string;
     nothingThisMonthBody: string;
   };
+  /**
+   * The trip, once it is over, in the few numbers people repeat (A45).
+   *
+   * A trip's own question — "per day" means nothing to a flatshare — so the
+   * screen is offered for trips only.
+   */
+  recap: {
+    title: string;
+    /** What the screen is for, read under the title. */
+    subtitle: string;
+    /** The total, spread over the days it was spread over. */
+    perDay: string;
+    biggestBill: string;
+    mostSpentOn: string;
+    /** Who fronted the most cash. Paid, not owed — a different question. */
+    paidMost: string;
+    noneYet: string;
+  };
+  /** Every expense that carries a location (A43), as a list out to a map. */
+  places: {
+    title: string;
+    empty: string;
+    emptyBody: string;
+  };
   location: {
     label: string;
     add: string;
@@ -865,6 +889,20 @@ const en: WebStrings = {
     nothingThisMonth: 'Nothing this month',
     nothingThisMonthBody: 'No expenses here in this currency.',
   },
+  recap: {
+    title: 'Trip recap',
+    subtitle: 'How the trip added up',
+    perDay: 'Per day',
+    biggestBill: 'Biggest bill',
+    mostSpentOn: 'Most spent on',
+    paidMost: 'Fronted the most',
+    noneYet: 'Nothing to recap yet',
+  },
+  places: {
+    title: 'Places',
+    empty: 'No places yet',
+    emptyBody: 'Add a location to an expense to see it here.',
+  },
   location: {
     label: 'Location',
     add: 'Add location',
@@ -1455,6 +1493,20 @@ const ta: WebStrings = {
     nothingBody: 'ஒரு செலவைச் சேர்த்தால் இது நிரம்பும்.',
     nothingThisMonth: 'இந்த மாதம் ஒன்றுமில்லை',
     nothingThisMonthBody: 'இந்த நாணயத்தில் இங்கு செலவுகள் இல்லை.',
+  },
+  recap: {
+    title: 'பயண சுருக்கம்',
+    subtitle: 'பயணம் எப்படி கூடியது',
+    perDay: 'நாள் ஒன்றுக்கு',
+    biggestBill: 'மிகப்பெரிய பில்',
+    mostSpentOn: 'அதிகம் செலவழித்தது',
+    paidMost: 'அதிகம் செலுத்தியவர்',
+    noneYet: 'இன்னும் சுருக்க எதுவும் இல்லை',
+  },
+  places: {
+    title: 'இடங்கள்',
+    empty: 'இன்னும் இடங்கள் இல்லை',
+    emptyBody: 'ஒரு செலவுக்கு இடத்தைச் சேர்த்தால் அது இங்கே தெரியும்.',
   },
   location: {
     label: 'இடம்',
@@ -2054,6 +2106,20 @@ const hi: WebStrings = {
     nothingBody: 'एक ख़र्च जोड़ें और यह भर जाएगा।',
     nothingThisMonth: 'इस महीने कुछ नहीं',
     nothingThisMonthBody: 'इस मुद्रा में यहाँ कोई ख़र्च नहीं।',
+  },
+  recap: {
+    title: 'ट्रिप का सार',
+    subtitle: 'ट्रिप का हिसाब कैसे बना',
+    perDay: 'प्रति दिन',
+    biggestBill: 'सबसे बड़ा बिल',
+    mostSpentOn: 'सबसे ज़्यादा खर्च',
+    paidMost: 'सबसे ज़्यादा चुकाया',
+    noneYet: 'अभी सार के लिए कुछ नहीं',
+  },
+  places: {
+    title: 'जगहें',
+    empty: 'अभी कोई जगह नहीं',
+    emptyBody: 'किसी खर्च में जगह जोड़ें, वह यहाँ दिखेगी.',
   },
   location: {
     label: 'स्थान',
@@ -2655,6 +2721,20 @@ const ar: WebStrings = {
     nothingBody: 'أضف مصروفًا وسيمتلئ هذا.',
     nothingThisMonth: 'لا شيء هذا الشهر',
     nothingThisMonthBody: 'لا مصروفات هنا بهذه العملة.',
+  },
+  recap: {
+    title: 'ملخص الرحلة',
+    subtitle: 'كيف تجمّعت مصاريف الرحلة',
+    perDay: 'لكل يوم',
+    biggestBill: 'أكبر فاتورة',
+    mostSpentOn: 'الأكثر إنفاقًا',
+    paidMost: 'الأكثر دفعًا',
+    noneYet: 'لا شيء للتلخيص بعد',
+  },
+  places: {
+    title: 'الأماكن',
+    empty: 'لا أماكن بعد',
+    emptyBody: 'أضف موقعًا إلى مصروف لتراه هنا.',
   },
   location: {
     label: 'الموقع',
