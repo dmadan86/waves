@@ -59,6 +59,7 @@ import {
   type CategoryTagRecord,
   type ErasurePreview,
   type PromoOutcome,
+  type FoundPerson,
   type FeedbackInput,
   DEFAULT_DISCOVERY,
   readContactVisibility,
@@ -1151,6 +1152,26 @@ export function createWavesClient({ supabase, r2Enabled = false }: WavesClientOp
     /** Every person you are not square with, across every group, per currency. */
     peopleBalances(): Promise<PersonBalanceRow[]> {
       return read<PersonBalanceRow>(supabase.rpc('waves_people_i_owe'));
+    },
+
+    /**
+     * Find one account by an exact email address or phone number.
+     *
+     * The narrowest search in the app, and the server keeps it that way: no
+     * name search, no prefix, no browse, a daily ceiling per caller, and a
+     * match only where that person left the matching channel discoverable.
+     * Anything looser turns the user table into something a stranger can walk.
+     *
+     * Nothing found and "they are not findable that way" are the same answer
+     * here because they are the same answer from the server. If the two looked
+     * different, the setting would become the oracle it exists to close.
+     */
+    async findPerson(channel: 'email' | 'phone', value: string): Promise<FoundPerson | null> {
+      const rows = await rpc<FoundPerson[] | null>('waves_find_person', {
+        p_channel: channel,
+        p_value: value,
+      });
+      return rows?.[0] ?? null;
     },
 
     // ─────────────────────────────────────────────── settling up (ADR-007) ──

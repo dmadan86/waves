@@ -2053,6 +2053,26 @@
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     direction: ltr;
   }
+  /* An address or a number is Latin text whatever the interface language is,
+     so it keeps its own direction on an Arabic page — both in the box somebody
+     types it into and where it is shown back to them. */
+  .ltr {
+    direction: ltr;
+    text-align: start;
+  }
+  /* The found-person row wraps rather than crushes: at phone width the badge
+     drops to its own line under the name instead of eating it. */
+  .item .pill-badge.shared {
+    margin-inline-start: 0;
+  }
+  @media (max-width: 480px) {
+    .item:has(> .pill-badge.shared) {
+      flex-wrap: wrap;
+    }
+    .item .pill-badge.shared {
+      flex-basis: 100%;
+    }
+  }
 
   /* The rating row. A star is the one control here nobody has to touch, so the
      empty ones take the muted ink rather than the faint one: at 3:1 they read
