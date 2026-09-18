@@ -55,6 +55,7 @@ import {
   type PersonBalanceRow,
   type PlanItemRow,
   type MemberBudgetRow,
+  type CategoryTagRecord,
 } from './rows';
 
 const PROFILE_COLUMNS =
@@ -1263,6 +1264,77 @@ export function createWavesClient({ supabase, r2Enabled = false }: WavesClientOp
     },
 
     /** Change your own row. RLS makes "your own" the only row this can touch. */
+    /**
+     * This person's own category catalog, live rows only.
+     *
+     * No owner filter: the RLS policy is the filter, and one written here would
+     * only be a second opinion about whose rows these are.
+     */
+    categoryTags(): Promise<CategoryTagRecord[]> {
+      return read<CategoryTagRecord>(
+        supabase
+          .from('category_tags')
+          .select('id, owner_user_id, builtin_id, label, icon, tint, sort_order, hidden')
+          .is('deleted_at', null)
+          .order('sort_order', { ascending: true }),
+      );
+    },
+
+    /**
+     * Create or change one catalog row.
+     *
+     * One call covers all three things the manager does, because they are the
+     * same write: a new custom tag, an edit to one, and a built-in that somebody
+     * hid or moved — which lazily gains an override row carrying nothing but its
+     * place and its hidden flag.
+     *
+     * The id is minted by the caller so a retry replays as the same row.
+     */
+    async upsertCategoryTag(input: {
+      id: string;
+      builtinId?: string | null;
+      label?: string | null;
+      icon?: string | null;
+      tint?: string | null;
+      sortOrder: number;
+      hidden?: boolean;
+    }): Promise<void> {
+      const { data: auth } = await supabase.auth.getUser();
+      const owner = auth.user?.id;
+      if (!owner) throw new WavesApiError('Not signed in');
+      const { error } = await supabase.from('category_tags').upsert(
+        {
+          id: input.id,
+          owner_user_id: owner,
+          builtin_id: input.builtinId ?? null,
+          label: input.label ?? null,
+          icon: input.icon ?? null,
+          tint: input.tint ?? null,
+          sort_order: input.sortOrder,
+          hidden: input.hidden ?? false,
+          // A row being written again is a row that is not deleted.
+          deleted_at: null,
+        },
+        { onConflict: 'id' },
+      );
+      if (error) throw new WavesApiError(String((error as { message?: string }).message ?? error));
+    },
+
+    /**
+     * Retire a custom tag.
+     *
+     * A soft delete, and it has to be: every expense ever filed under this tag
+     * carries its own snapshot of the label and colour, and those keep working.
+     * What goes away is the tag's place in the picker, not the history.
+     */
+    async deleteCategoryTag(tagId: string): Promise<void> {
+      const { error } = await supabase
+        .from('category_tags')
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', tagId);
+      if (error) throw new WavesApiError(String((error as { message?: string }).message ?? error));
+    },
+
     async updateProfile(patch: Partial<ProfileRow>): Promise<void> {
       const { data: auth } = await supabase.auth.getUser();
       const id = auth.user?.id;

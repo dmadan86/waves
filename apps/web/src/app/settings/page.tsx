@@ -17,6 +17,8 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import { ChevronRight } from 'lucide-react';
 
 import {
   DEFAULT_NOTIFICATION_PREFS,
@@ -269,6 +271,17 @@ function Settings() {
             waves.updateProfile({ locale: next })
           }
         />
+
+        {/* Settings that are screens of their own rather than a switch. */}
+        <section className="panel">
+          <Link className="item" href="/settings/categories">
+            <span className="grow">
+              <span className="title">{t.tags.settingsRow}</span>
+              <span className="meta">{t.tags.subtitle}</span>
+            </span>
+            <ChevronRight size={16} strokeWidth={1.75} aria-hidden />
+          </Link>
+        </section>
 
         <section className="panel">
           <h2>{t.settings.onlyInApp}</h2>

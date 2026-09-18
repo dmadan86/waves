@@ -1984,6 +1984,130 @@
     color: var(--w-text-muted);
   }
 
+  /* ─────────────────────────────────────────────────────────────
+     The category catalog: one ordered list of the built-ins and this
+     person's own tags, each row carrying its own controls.
+     ───────────────────────────────────────────────────────────── */
+
+  /* A page-head action that is the screen's own primary one, with nothing in
+     the top bar standing in for it. Deliberately not `.people`: that container
+     drops its brand button at phone width, because on the group page the bar
+     already carries "Add an expense" — and borrowing it here would delete the
+     only way to make a tag on a phone. */
+  .head-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .tag-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+    padding: 10px 0;
+  }
+  /* A badge under the name, not a second line of it. */
+  .tag-row .meta {
+    font-size: var(--w-font-micro);
+    color: var(--w-text-muted);
+  }
+  .tag-row .title {
+    overflow-wrap: anywhere;
+  }
+  .tag-row + .tag-row,
+  .list > div + div > .tag-row {
+    border-top: 1px solid var(--w-border);
+  }
+  .tag-row .grow {
+    display: flex;
+    min-width: 0;
+    flex: 1 1 140px;
+    flex-direction: column;
+  }
+  /* The tag's colour, said as a colour. It is the only place the tint appears
+     on this screen, so it is a swatch rather than decoration on a badge. */
+  .tag-dot {
+    width: 14px;
+    height: 14px;
+    flex: none;
+    border-radius: 50%;
+    background: var(--w-border);
+  }
+  .tag-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+  }
+  .tag-actions .linklike {
+    margin-bottom: 0;
+  }
+
+  .tag-editor {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    border-top: 1px solid var(--w-border);
+    padding: 12px 0 4px;
+  }
+  .tag-editor .split-input {
+    min-width: 0;
+    flex: 1 1 180px;
+  }
+  .tag-editor .split-input.bad {
+    border-color: var(--w-negative);
+  }
+  .tag-editor .error {
+    flex: 1 1 100%;
+  }
+  .tag-editor-actions {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .tint-row {
+    display: flex;
+    flex: none;
+    gap: 6px;
+  }
+  .tint-swatch {
+    width: 26px;
+    height: 26px;
+    border: 2px solid transparent;
+    border-radius: 50%;
+    cursor: pointer;
+  }
+  /* The ring, not a tick: a tick in the middle of a pale swatch is unreadable
+     on three of the six, and the ring reads at any colour. */
+  .tint-swatch.on {
+    border-color: var(--w-text);
+    outline: 2px solid var(--w-surface);
+    outline-offset: -4px;
+  }
+
+  .tint-lilac {
+    background: var(--w-tint-lilac);
+  }
+  .tint-pink {
+    background: var(--w-tint-pink);
+  }
+  .tint-mint {
+    background: var(--w-tint-mint);
+  }
+  .tint-peach {
+    background: var(--w-tint-peach);
+  }
+  .tint-sky {
+    background: var(--w-tint-sky);
+  }
+  .tint-coral {
+    background: var(--w-tint-coral);
+  }
+
   /* The four languages, each naming itself. Laid out as a wrapping row of
      chips rather than a list of radios: four short words read faster side by
      side, and a language nobody can read is easier to spot by its script. */
