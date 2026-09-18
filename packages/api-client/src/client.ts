@@ -59,6 +59,7 @@ import {
   type CategoryTagRecord,
   type ErasurePreview,
   type PromoOutcome,
+  type FeedbackInput,
   DEFAULT_DISCOVERY,
   readContactVisibility,
   type DiscoverySettings,
@@ -1383,6 +1384,24 @@ export function createWavesClient({ supabase, r2Enabled = false }: WavesClientOp
      */
     redeemPromo(code: string): Promise<PromoOutcome> {
       return rpc<PromoOutcome>('waves_redeem_promo', { p_code: code });
+    },
+
+    /**
+     * Say something back to the people who made this.
+     *
+     * The RPC is SECURITY DEFINER over a table no client can read: feedback is
+     * somebody else's to read, never to list back. It trims and truncates the
+     * message itself and refuses an empty one, so the screen's own length check
+     * is a courtesy rather than the rule.
+     */
+    async submitFeedback(input: FeedbackInput): Promise<void> {
+      await rpc<string>('waves_submit_feedback', {
+        p_message: input.message,
+        p_kind: input.kind,
+        p_rating: input.rating,
+        p_app_version: input.appVersion,
+        p_platform: input.platform,
+      });
     },
 
     /**

@@ -302,6 +302,13 @@ function Settings() {
             </span>
             <ChevronRight size={16} strokeWidth={1.75} aria-hidden />
           </Link>
+          <Link className="item" href="/settings/feedback">
+            <span className="grow">
+              <span className="title">{t.feedback.row}</span>
+              <span className="meta">{t.feedback.rowHint}</span>
+            </span>
+            <ChevronRight size={16} strokeWidth={1.75} aria-hidden />
+          </Link>
         </section>
 
         <section className="panel">
