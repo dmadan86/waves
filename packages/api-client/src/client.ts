@@ -989,9 +989,15 @@ export function createWavesClient({ supabase, r2Enabled = false }: WavesClientOp
     ): Promise<void> {
       const query = supabase.from('groups').update(patch).eq('id', groupId);
       if (options.ifUpdatedSeq === undefined) {
-        const { error } = await query;
+        // `select` for the same reason the conditional path below needs it: an
+        // update that matched no row is not an error, so without asking for
+        // the row back, "the policy refused this" and "saved" look identical.
+        const { data, error } = await query.select('id');
         if (error)
           throw new WavesApiError(String((error as { message?: string }).message ?? error));
+        if (!data || (data as unknown[]).length === 0) {
+          throw new WavesApiError('That group could not be changed.');
+        }
         return;
       }
 
@@ -1040,8 +1046,15 @@ export function createWavesClient({ supabase, r2Enabled = false }: WavesClientOp
       memberId: string,
       patch: Partial<{ ghost_name: string; vpa: string | null }>,
     ): Promise<void> {
-      const { error } = await supabase.from('group_members').update(patch).eq('id', memberId);
+      const { data, error } = await supabase
+        .from('group_members')
+        .update(patch)
+        .eq('id', memberId)
+        .select('id');
       if (error) throw new WavesApiError(String((error as { message?: string }).message ?? error));
+      if (!data || (data as unknown[]).length === 0) {
+        throw new WavesApiError('That person could not be changed.');
+      }
     },
 
     /**
@@ -1052,13 +1065,24 @@ export function createWavesClient({ supabase, r2Enabled = false }: WavesClientOp
       return rpc<void>('waves_set_member_role', { p_member_id: memberId, p_role: role });
     },
 
-    /** A soft exit: the history stays, the person stops accruing new shares. */
+    /**
+     * A soft exit: the history stays, the person stops accruing new shares.
+     *
+     * The row is asked for back because of what silence would mean here. A
+     * policy that refuses the update returns no error and no rows, so somebody
+     * who was not removed would be told they had left — and would stop
+     * watching a group that is still adding their shares.
+     */
     async leaveGroup(memberId: string): Promise<void> {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('group_members')
         .update({ left_at: new Date().toISOString() })
-        .eq('id', memberId);
+        .eq('id', memberId)
+        .select('id');
       if (error) throw new WavesApiError(String((error as { message?: string }).message ?? error));
+      if (!data || (data as unknown[]).length === 0) {
+        throw new WavesApiError('You were not removed from that group.');
+      }
     },
 
     /**
@@ -1406,19 +1430,46 @@ export function createWavesClient({ supabase, r2Enabled = false }: WavesClientOp
      * What goes away is the tag's place in the picker, not the history.
      */
     async deleteCategoryTag(tagId: string): Promise<void> {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('category_tags')
         .update({ deleted_at: new Date().toISOString() })
-        .eq('id', tagId);
+        .eq('id', tagId)
+        .select('id');
       if (error) throw new WavesApiError(String((error as { message?: string }).message ?? error));
+      if (!data || (data as unknown[]).length === 0) {
+        throw new WavesApiError('That category could not be removed.');
+      }
     },
 
+    /**
+     * Write to the signed-in person's own profile row.
+     *
+     * The trailing `.select('id')` is not decoration. supabase-js returns no
+     * rows from an update by default, and an update that matched nothing is
+     * not an error — so without it, a write that changed no row is
+     * indistinguishable from one that changed a row, and the screen says
+     * "Saved".
+     *
+     * That is not hypothetical here. The squashed baseline dropped the
+     * new-user trigger (#667), so accounts exist whose `profiles` row was
+     * never created; every one of them could set a name, a currency or a
+     * payment handle, be told it was saved, and find it gone on reload. The
+     * same fix landed for the discovery switches in #879; this is the other
+     * caller of the same table.
+     */
     async updateProfile(patch: Partial<ProfileRow>): Promise<void> {
       const { data: auth } = await supabase.auth.getUser();
       const id = auth.user?.id;
       if (!id) throw new WavesApiError('Not signed in');
-      const { error } = await supabase.from('profiles').update(patch).eq('id', id);
+      const { data, error } = await supabase
+        .from('profiles')
+        .update(patch)
+        .eq('id', id)
+        .select('id');
       if (error) throw new WavesApiError(String((error as { message?: string }).message ?? error));
+      if (!data || (data as unknown[]).length === 0) {
+        throw new WavesApiError('Your profile could not be found, so nothing was saved.');
+      }
     },
 
     /**
