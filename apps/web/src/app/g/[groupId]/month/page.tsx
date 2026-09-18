@@ -28,6 +28,7 @@ import { Section } from '@/components/Shell';
 import { SkeletonRows } from '@/components/Skeleton';
 import { useStrings } from '@/i18n-context';
 import { friendlyError } from '@/lib/errors';
+import { byDay, drillTotal, isCurrencyCode, monthRows } from '@/lib/monthDrill';
 import { money } from '@/lib/money';
 import { waves } from '@/lib/waves';
 
@@ -92,41 +93,33 @@ function MonthDrill({ myProfileId }: { myProfileId: string }) {
 
   const myMemberId = members.find((member) => member.profile_id === myProfileId)?.id ?? null;
 
-  // The expenses that make up the tapped column: live, in this currency, in
-  // this month, and — in "mine" scope — ones this person actually had a share
-  // in. Paired with the amount the row should show, so the day maths never
-  // re-reads the scope.
-  const rows = useMemo(() => {
-    const out: { expense: Expense; amount: bigint; day: string }[] = [];
-    for (const expense of expenses) {
-      if (expense.deleted_at) continue;
-      const version = expense.currentVersion;
-      if (!version || version.currency !== currency) continue;
-      if (version.expense_date.slice(0, 7) !== month) continue;
-      const amount = mine ? myShare(version.shares, myMemberId) : BigInt(version.amount);
-      if (mine && amount === 0n) continue;
-      out.push({ expense, amount, day: version.expense_date.slice(0, 10) });
-    }
-    return out;
-  }, [expenses, currency, month, mine, myMemberId]);
-
-  // Newest day first, and newest expense first within a day — a ledger reads
-  // most-recent-down, the same as the group page.
-  const days = useMemo(() => {
-    const byDay = new Map<string, { total: bigint; items: typeof rows }>();
-    for (const row of rows) {
-      const bucket = byDay.get(row.day) ?? { total: 0n, items: [] };
-      bucket.total += row.amount;
-      bucket.items.push(row);
-      byDay.set(row.day, bucket);
-    }
-    return [...byDay.entries()].sort((a, b) => b[0].localeCompare(a[0]));
-  }, [rows]);
-
-  const total = rows.reduce((sum, row) => sum + row.amount, 0n);
+  // The slicing and the day maths are `lib/monthDrill`, tested against the
+  // chart's own `monthTotals` — the screen's whole job is to add up to the
+  // column that was tapped.
+  const rows = useMemo(
+    () => monthRows(expenses, { month, currency, mine, myMemberId }),
+    [expenses, currency, month, mine, myMemberId],
+  );
+  const days = useMemo(() => byDay(rows), [rows]);
+  const total = drillTotal(rows);
 
   if (!ready) return <SkeletonRows rows={5} />;
   if (failed) return <p className="error">{failed}</p>;
+
+  // A link somebody typed, shortened or kept from an older build. Formatting
+  // money in a currency `Intl` has never heard of throws a RangeError, which
+  // takes the whole route down; an unreadable link is an empty month instead.
+  if (!isCurrencyCode(currency) || !/^\d{4}-\d{2}$/.test(month)) {
+    return (
+      <section className="panel">
+        <EmptyState
+          Icon={CalendarDays}
+          title={t.insights.nothingThisMonth}
+          body={t.insights.nothingThisMonthBody}
+        />
+      </section>
+    );
+  }
 
   return (
     <div>
@@ -179,17 +172,6 @@ function MonthDrill({ myProfileId }: { myProfileId: string }) {
       )}
     </div>
   );
-}
-
-/** Sum of this member's shares in a version, in minor units. */
-function myShare(
-  shares: readonly { member_id: string; amount: string }[],
-  memberId: string | null,
-): bigint {
-  if (!memberId) return 0n;
-  return shares
-    .filter((share) => share.member_id === memberId)
-    .reduce((sum, share) => sum + BigInt(share.amount), 0n);
 }
 
 /** 'YYYY-MM' as a month and year, read in UTC. */
