@@ -71,6 +71,9 @@ function Friends({ query }: { query: string }) {
           {/* Above the list rather than under it: somebody who came here to
               find a person has not got a row to tap yet. */}
           <div className="head-actions">
+            <Link className="btn brand" href="/friends/add">
+              {t.addPerson.row}
+            </Link>
             <Link className="btn soft" href="/friends/find">
               {t.person.findRow}
             </Link>

@@ -534,6 +534,38 @@ export interface WebStrings {
     /** Said under the list, because a list of names is not a license. */
     note: string;
   };
+  /**
+   * A debt with somebody who does not use Waves.
+   *
+   * Under it this is still a group — a one-to-one group named after the person,
+   * with one expense that produces the balance — so it folds into the Friends
+   * totals like anything else. Nothing here is a new kind of record.
+   */
+  addPerson: {
+    /** The row on Friends that leads here. */
+    row: string;
+    rowHint: string;
+    title: string;
+    subtitle: string;
+    nameLabel: string;
+    namePlaceholder: string;
+    amountLabel: string;
+    directionQuestion: string;
+    theyOweMe: string;
+    iOweThem: string;
+    noteLabel: string;
+    notePlaceholder: string;
+    save: string;
+    couldNotRecord: string;
+    /**
+     * The state the phone never has to show. There the group, the person and
+     * the amount are one queued unit; here they are three calls, and the group
+     * can exist with no amount in it. Saying so beats a bare failure that hides
+     * a group somebody now has.
+     */
+    halfDone: string;
+    openGroup: string;
+  };
   location: {
     label: string;
     add: string;
@@ -1358,6 +1390,24 @@ const en: WebStrings = {
       'Waves is built on open-source software. Thank you to the people who made and maintain these.',
     note: 'Each is used under its own license, kept unchanged.',
   },
+  addPerson: {
+    title: 'Add a person',
+    subtitle: 'Track what someone owes you — nobody needs the app, and no group to set up.',
+    nameLabel: 'Their name',
+    namePlaceholder: 'e.g. Alex',
+    amountLabel: 'Amount',
+    directionQuestion: 'Which way?',
+    theyOweMe: 'They owe me',
+    iOweThem: 'I owe them',
+    noteLabel: 'Note (optional)',
+    notePlaceholder: 'What is it for?',
+    save: 'Record it',
+    couldNotRecord: 'Could not record this. Please try again.',
+    row: 'Add a person',
+    rowHint: 'Someone who does not use Waves',
+    halfDone: 'The group was made, but the amount was not recorded. Open it and add the amount.',
+    openGroup: 'Open the group',
+  },
   location: {
     label: 'Location',
     add: 'Add location',
@@ -2162,6 +2212,26 @@ const ta: WebStrings = {
       'Waves திறந்த மூல மென்பொருளால் கட்டப்பட்டது. இவற்றை உருவாக்கிப் பராமரிப்பவர்களுக்கு நன்றி.',
     note: 'ஒவ்வொன்றும் அதன் சொந்த உரிமத்தின் கீழ், மாற்றமின்றிப் பயன்படுத்தப்படுகிறது.',
   },
+  addPerson: {
+    title: 'ஒருவரைச் சேர்',
+    subtitle:
+      'யார் உங்களுக்குத் தர வேண்டும் என்பதைக் கண்காணி — அவருக்கு ஆப் தேவையில்லை, குழுவும் தேவையில்லை.',
+    nameLabel: 'அவரது பெயர்',
+    namePlaceholder: 'எ.கா. அலெக்ஸ்',
+    amountLabel: 'தொகை',
+    directionQuestion: 'எந்தப் பக்கம்?',
+    theyOweMe: 'அவர் எனக்குத் தர வேண்டும்',
+    iOweThem: 'நான் அவருக்குத் தர வேண்டும்',
+    noteLabel: 'குறிப்பு (விருப்பம்)',
+    notePlaceholder: 'எதற்காக?',
+    save: 'பதிவு செய்',
+    couldNotRecord: 'இதைப் பதிவு செய்ய முடியவில்லை. மீண்டும் முயற்சிக்கவும்.',
+    row: 'ஒருவரைச் சேர்',
+    rowHint: 'Waves பயன்படுத்தாத ஒருவர்',
+    halfDone:
+      'குழு உருவாக்கப்பட்டது, ஆனால் தொகை பதிவாகவில்லை. குழுவைத் திறந்து தொகையைச் சேர்க்கவும்.',
+    openGroup: 'குழுவைத் திற',
+  },
   location: {
     label: 'இடம்',
     add: 'இடத்தைச் சேர்',
@@ -2962,6 +3032,24 @@ const hi: WebStrings = {
     title: 'ओपन सोर्स',
     intro: 'Waves ओपन-सोर्स सॉफ़्टवेयर पर बना है। इन्हें बनाने और सँभालने वालों का धन्यवाद।',
     note: 'हर एक अपने लाइसेंस के तहत, बिना बदलाव के इस्तेमाल होती है।',
+  },
+  addPerson: {
+    title: 'एक व्यक्ति जोड़ें',
+    subtitle: 'किसी को आप पर कितना देना है, यह रखें — न उन्हें ऐप चाहिए, न कोई समूह बनाना है।',
+    nameLabel: 'उनका नाम',
+    namePlaceholder: 'जैसे एलेक्स',
+    amountLabel: 'राशि',
+    directionQuestion: 'किस ओर?',
+    theyOweMe: 'वे मुझे देंगे',
+    iOweThem: 'मैं उन्हें दूँगा',
+    noteLabel: 'नोट (वैकल्पिक)',
+    notePlaceholder: 'किस लिए?',
+    save: 'दर्ज करें',
+    couldNotRecord: 'यह दर्ज नहीं हो सका। कृपया फिर कोशिश करें।',
+    row: 'एक व्यक्ति जोड़ें',
+    rowHint: 'कोई जो Waves इस्तेमाल नहीं करता',
+    halfDone: 'समूह बन गया, पर राशि दर्ज नहीं हुई। उसे खोलकर राशि जोड़ें।',
+    openGroup: 'समूह खोलें',
   },
   location: {
     label: 'स्थान',
@@ -3784,6 +3872,24 @@ const ar: WebStrings = {
     title: 'المصدر المفتوح',
     intro: 'ُبني Waves على برمجيات مفتوحة المصدر. شكرًا لمن صنعها ويصونها.',
     note: 'كلٌّ منها يُستخدم بموجب ترخيصه الخاص، دون تغيير.',
+  },
+  addPerson: {
+    title: 'إضافة شخص',
+    subtitle: 'تتبّع ما يدين لك به أحدهم — لا يحتاج إلى التطبيق، ولا إلى إنشاء مجموعة.',
+    nameLabel: 'اسمه',
+    namePlaceholder: 'مثال: أليكس',
+    amountLabel: 'المبلغ',
+    directionQuestion: 'في أي اتجاه؟',
+    theyOweMe: 'يدين لي',
+    iOweThem: 'أدين له',
+    noteLabel: 'ملاحظة (اختياري)',
+    notePlaceholder: 'لأجل ماذا؟',
+    save: 'سجّل',
+    couldNotRecord: 'تعذّر تسجيل هذا. حاول مرة أخرى.',
+    row: 'إضافة شخص',
+    rowHint: 'شخص لا يستخدم Waves',
+    halfDone: 'أُنشئت المجموعة، لكن المبلغ لم يُسجّل. افتحها وأضف المبلغ.',
+    openGroup: 'افتح المجموعة',
   },
   location: {
     label: 'الموقع',
