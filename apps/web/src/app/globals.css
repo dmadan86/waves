@@ -1989,6 +1989,32 @@
      person's own tags, each row carrying its own controls.
      ───────────────────────────────────────────────────────────── */
 
+  /* The panel that holds something irreversible. A red edge and nothing else:
+     the warning is the words inside it, and a fully red card would shout over
+     the sentences somebody needs to read. */
+  .panel.danger {
+    border-color: var(--w-negative);
+  }
+  .panel.danger .panel-head h2 {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--w-negative);
+  }
+
+  /* What erasure would leave behind, counted. A list, because each line is a
+     separate fact somebody may want to go and check. */
+  .erasure-counts {
+    margin: 10px 0 0;
+    padding-inline-start: 18px;
+    font-size: var(--w-font-caption);
+    color: var(--w-text-muted);
+  }
+  .erasure-counts li {
+    list-style: disc;
+    padding: 2px 0;
+  }
+
   /* A page-head action that is the screen's own primary one, with nothing in
      the top bar standing in for it. Deliberately not `.people`: that container
      drops its brand button at phone width, because on the group page the bar

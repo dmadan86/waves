@@ -288,6 +288,17 @@ function Settings() {
           <p className="faint">{t.settings.onlyInAppBody}</p>
         </section>
 
+        {/* Last, and set apart: the one thing here that cannot be undone. */}
+        <section className="panel">
+          <Link className="item" href="/settings/delete-account">
+            <span className="grow">
+              <span className="title">{t.privacy.deleteRow}</span>
+              <span className="meta">{t.privacy.deleteRowHint}</span>
+            </span>
+            <ChevronRight size={16} strokeWidth={1.75} aria-hidden />
+          </Link>
+        </section>
+
         <section className="panel">
           <button type="button" className="btn soft" onClick={() => void signOut()}>
             {t.settings.signOut}
