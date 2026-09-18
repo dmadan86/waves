@@ -473,3 +473,33 @@ export interface MemberBudgetRow {
   currency: string;
   visibility: 'private' | 'group';
 }
+
+/**
+ * One row of somebody's own category catalog (`category_tags`), as the
+ * database stores it.
+ *
+ * Named apart from @waves/core's `CategoryTagRow`, which is the same data in
+ * camelCase: a file that reads these and builds a catalog needs both, and two
+ * types with one name is a rename waiting to happen.
+ *
+ * Two kinds in one table. A row with `builtin_id` set is an **override**: it
+ * carries only where one of the ten built-ins sits and whether it is hidden —
+ * the label stays in each client's own string table, so the person's Tamil
+ * stays Tamil. A row without one is a **custom tag**, and its label is the
+ * person's own words, never translated.
+ *
+ * Authorization is the row's own: the policy is `owner_user_id =
+ * waves_current_profile_id()`, for reads and writes alike, so this table needs
+ * no RPC in front of it.
+ */
+export interface CategoryTagRecord {
+  id: string;
+  owner_user_id: string;
+  /** The built-in this row overrides, or null for a custom tag. */
+  builtin_id: string | null;
+  label: string | null;
+  icon: string | null;
+  tint: string | null;
+  sort_order: number;
+  hidden: boolean;
+}

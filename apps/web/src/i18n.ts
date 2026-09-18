@@ -348,6 +348,33 @@ export interface WebStrings {
     /** Somebody who shared a budget but is no longer in the group. */
     someone: string;
   };
+  /**
+   * Somebody's own category catalog (A42): their tags, and what they did with
+   * the ten built-ins.
+   */
+  tags: {
+    title: string;
+    subtitle: string;
+    /** The row in settings that leads here. */
+    settingsRow: string;
+    newTag: string;
+    editTag: string;
+    namePlaceholder: string;
+    colourLabel: string;
+    noCustomTags: string;
+    hide: string;
+    show: string;
+    moveUp: string;
+    moveDown: string;
+    /** A built-in that is hidden from the pickers but still in this list. */
+    hiddenBadge: string;
+    deleteTag: string;
+    deleteConfirm: string;
+    save: string;
+    cancel: string;
+    /** A tag needs a name; the field says so rather than saving a blank one. */
+    nameNeeded: string;
+  };
   location: {
     label: string;
     add: string;
@@ -1014,6 +1041,26 @@ const en: WebStrings = {
     nextUp: '{name} could pick up the next one',
     someone: 'Someone',
   },
+  tags: {
+    title: 'Tags & categories',
+    subtitle: 'Make your own tags, and hide or reorder the built-in ones.',
+    settingsRow: 'Tags & categories',
+    newTag: 'New tag',
+    editTag: 'Edit tag',
+    namePlaceholder: 'e.g. Client dinner',
+    colourLabel: 'Colour',
+    noCustomTags: 'No tags of your own yet. Make one to sort spending your way.',
+    hide: 'Hide',
+    show: 'Show',
+    moveUp: 'Move up',
+    moveDown: 'Move down',
+    hiddenBadge: 'Hidden',
+    deleteTag: 'Delete',
+    deleteConfirm: 'Delete this tag? Past expenses keep it; it just leaves the list.',
+    save: 'Save tag',
+    cancel: 'Cancel',
+    nameNeeded: 'Give the tag a name.',
+  },
   location: {
     label: 'Location',
     add: 'Add location',
@@ -1660,6 +1707,29 @@ const ta: WebStrings = {
     evenlyMatched: 'அனைவரும் சமமாக பங்களிக்கிறார்கள்',
     nextUp: 'அடுத்த பில்லை {name} எடுக்கலாம்',
     someone: 'யாரோ',
+  },
+  tags: {
+    title: 'குறிச்சொற்கள் & வகைகள்',
+    subtitle:
+      'உங்கள் சொந்தக் குறிச்சொற்களை உருவாக்குங்கள், உள்ளமைந்தவற்றை மறைக்கவோ மறுவரிசைப்படுத்தவோ செய்யுங்கள்.',
+    settingsRow: 'குறிச்சொற்கள் & வகைகள்',
+    newTag: 'புதிய குறிச்சொல்',
+    editTag: 'குறிச்சொல்லைத் திருத்து',
+    namePlaceholder: 'எ.கா. வாடிக்கையாளர் இரவு உணவு',
+    colourLabel: 'நிறம்',
+    noCustomTags:
+      'இன்னும் சொந்தக் குறிச்சொற்கள் இல்லை. உங்கள் வழியில் செலவுகளை வகைப்படுத்த ஒன்றை உருவாக்குங்கள்.',
+    hide: 'மறை',
+    show: 'காட்டு',
+    moveUp: 'மேலே நகர்த்து',
+    moveDown: 'கீழே நகர்த்து',
+    hiddenBadge: 'மறைக்கப்பட்டது',
+    deleteTag: 'நீக்கு',
+    deleteConfirm:
+      'இந்தக் குறிச்சொல்லை நீக்கவா? பழைய செலவுகள் அதை வைத்திருக்கும்; பட்டியலிலிருந்து மட்டும் போகும்.',
+    save: 'குறிச்சொல்லைச் சேமி',
+    cancel: 'ரத்து',
+    nameNeeded: 'குறிச்சொல்லுக்கு ஒரு பெயர் கொடுங்கள்.',
   },
   location: {
     label: 'இடம்',
@@ -2314,6 +2384,26 @@ const hi: WebStrings = {
     evenlyMatched: 'सब बराबर योगदान दे रहे हैं',
     nextUp: 'अगला बिल {name} ले सकते हैं',
     someone: 'कोई',
+  },
+  tags: {
+    title: 'टैग और श्रेणियाँ',
+    subtitle: 'अपने टैग बनाएँ, और पहले से मौजूद को छिपाएँ या क्रम बदलें।',
+    settingsRow: 'टैग और श्रेणियाँ',
+    newTag: 'नया टैग',
+    editTag: 'टैग संपादित करें',
+    namePlaceholder: 'जैसे क्लाइंट डिनर',
+    colourLabel: 'रंग',
+    noCustomTags: 'अभी आपका कोई टैग नहीं है। अपने तरीके से खर्च बाँटने के लिए एक बनाएँ।',
+    hide: 'छिपाएँ',
+    show: 'दिखाएँ',
+    moveUp: 'ऊपर ले जाएँ',
+    moveDown: 'नीचे ले जाएँ',
+    hiddenBadge: 'छिपा हुआ',
+    deleteTag: 'हटाएँ',
+    deleteConfirm: 'यह टैग हटाएँ? पुराने खर्च इसे रखेंगे; यह बस सूची से हटेगा।',
+    save: 'टैग सहेजें',
+    cancel: 'रद्द',
+    nameNeeded: 'टैग को एक नाम दीजिए।',
   },
   location: {
     label: 'स्थान',
@@ -2970,6 +3060,26 @@ const ar: WebStrings = {
     evenlyMatched: 'الجميع يساهمون بالتساوي',
     nextUp: 'يمكن أن يدفع {name} الفاتورة التالية',
     someone: 'شخص ما',
+  },
+  tags: {
+    title: 'الوسوم والفئات',
+    subtitle: 'أنشئ وسومك الخاصة، وأخفِ أو أعد ترتيب الوسوم الجاهزة.',
+    settingsRow: 'الوسوم والفئات',
+    newTag: 'وسم جديد',
+    editTag: 'تعديل الوسم',
+    namePlaceholder: 'مثال: عشاء عمل',
+    colourLabel: 'اللون',
+    noCustomTags: 'لا توجد وسوم خاصة بك بعد. أنشئ واحدًا لتصنيف المصروفات بطريقتك.',
+    hide: 'إخفاء',
+    show: 'إظهار',
+    moveUp: 'تحريك لأعلى',
+    moveDown: 'تحريك لأسفل',
+    hiddenBadge: 'مخفي',
+    deleteTag: 'حذف',
+    deleteConfirm: 'حذف هذا الوسم؟ ستحتفظ به المصروفات السابقة؛ يختفي من القائمة فقط.',
+    save: 'حفظ الوسم',
+    cancel: 'إلغاء',
+    nameNeeded: 'أعطِ الوسم اسمًا.',
   },
   location: {
     label: 'الموقع',
