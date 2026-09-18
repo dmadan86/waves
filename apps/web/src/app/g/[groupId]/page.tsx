@@ -264,6 +264,9 @@ function GroupDetail({
             <Link className="btn soft" href={`/g/${groupId}/members`}>
               {t.members.title}
             </Link>
+            <Link className="btn soft" href={`/g/${groupId}/insights`}>
+              {t.insights.title}
+            </Link>
             <Link className="btn soft" href={`/g/${groupId}/invite`}>
               {t.invite.title}
             </Link>

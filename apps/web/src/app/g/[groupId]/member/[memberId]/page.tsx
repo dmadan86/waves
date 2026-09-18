@@ -177,7 +177,7 @@ function MemberDetail({
 
         <div className="member-hero">
           <span
-            className={`amount hero-amount ${balance > 0n ? 'pos' : balance < 0n ? 'neg' : 'zero'}`}
+            className={`amount standing-amount ${balance > 0n ? 'pos' : balance < 0n ? 'neg' : 'zero'}`}
           >
             {balance === 0n
               ? t.group.settledUp

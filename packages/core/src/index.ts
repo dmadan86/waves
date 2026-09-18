@@ -13,6 +13,7 @@ export * from './money/index';
 export * from './split/index';
 export * from './balances/index';
 export * from './expense/index';
+export * from './insights/index';
 export * from './simplify/index';
 export * from './settlement/index';
 export * from './sync/index';
