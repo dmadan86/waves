@@ -549,3 +549,15 @@ export const DEFAULT_DISCOVERY: DiscoverySettings = {
 export function readContactVisibility(value: string | null | undefined): 'nobody' | 'groups' {
   return value === 'groups' ? 'groups' : 'nobody';
 }
+
+/**
+ * What `waves_redeem_promo` answers with.
+ *
+ * Every wrong code comes back as a verdict rather than an exception, because
+ * each one is a different sentence to say to somebody — expired is not the same
+ * as already used, and neither is a crash. The only thing that raises is being
+ * signed out, which is a bug in the caller.
+ */
+export type PromoOutcome =
+  | { ok: true; tier: string; days: number; until: string }
+  | { ok: false; reason: 'UNKNOWN_CODE' | 'EXPIRED' | 'EXHAUSTED' | 'ALREADY_REDEEMED' };

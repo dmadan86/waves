@@ -2017,6 +2017,36 @@
     color: var(--w-text-muted);
   }
 
+  /* The answer to a redeemed code: a glyph, what was granted, and until when. */
+  .promo-result {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 12px;
+    border-radius: var(--w-radius-sm);
+    background: var(--w-surface-muted);
+    padding: 12px;
+  }
+  .promo-result .grow {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .promo-result .meta {
+    font-size: var(--w-font-micro);
+    color: var(--w-text-muted);
+  }
+  /* A code is machine text: capitals, spaced, and never reordered by a
+     right-to-left page. */
+  .split-input.code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    direction: ltr;
+  }
+
   /* One signed-in phone: the glyph, what it is, and when it was last seen —
      and, once revoked, a badge saying so. An unlabelled row here would read as
      still signed in. */
