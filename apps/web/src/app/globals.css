@@ -188,6 +188,39 @@
     border-radius: var(--w-radius-sm);
   }
 
+  /* Out of the way until it is wanted.
+
+     Moved rather than hidden: `display: none` and `visibility: hidden` both
+     take an element out of the focus order, which would make this a link
+     nobody can ever reach — the precise opposite of the point. It sits off the
+     top of the screen and comes back on focus. */
+  .skip-link {
+    position: fixed;
+    top: 0;
+    inset-inline-start: 8px;
+    z-index: 100;
+    transform: translateY(-120%);
+    border-radius: 0 0 var(--w-radius-sm) var(--w-radius-sm);
+    background: var(--w-brand);
+    padding: 10px 16px;
+    font-size: var(--w-font-caption);
+    font-weight: 600;
+    text-decoration: none;
+    color: var(--w-on-brand);
+  }
+  .skip-link:focus-visible {
+    transform: translateY(0);
+    /* The shared focus ring is brand-coloured, and this control's own fill is
+       the brand — a ring nobody can see on the one element that exists to be
+       seen when focused. */
+    outline-color: var(--w-on-brand);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .skip-link {
+      transition: transform var(--w-duration-fast) ease;
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
