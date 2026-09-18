@@ -7,6 +7,7 @@
  */
 
 import type { CategoryMeta, ExpenseLocation, SplitParams } from '@waves/core';
+import type { GroupType } from './rows';
 
 export type MemberId = string;
 
@@ -16,6 +17,12 @@ export interface Group {
   cover_emoji: string | null;
   default_currency: string;
   simplify_debts: boolean;
+  /**
+   * What kind of group this is — read, not decoration: it decides which of the
+   * trip screens a group leads to. Optional because the guest link's own read
+   * predates it and has no use for it.
+   */
+  type?: GroupType;
 }
 
 export interface Member {
