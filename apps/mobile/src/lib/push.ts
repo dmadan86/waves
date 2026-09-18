@@ -29,6 +29,13 @@
 import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
+// Named alongside the namespace, and not for style. expo-notifications 58 ships
+// SWC-transpiled output whose `export *` chain eslint-plugin-import cannot
+// follow, so `Notifications.AndroidImportance` — which TypeScript resolves and
+// which is a real runtime value in the shipped `.js` — is reported as missing
+// from the namespace. A direct named import is the same binding by a route the
+// linter can see, which beats turning the rule off over a false positive.
+import { AndroidImportance } from 'expo-notifications';
 import { Platform } from 'react-native';
 
 import { backend } from './backend';
@@ -49,7 +56,7 @@ export async function ensureAndroidChannel(): Promise<void> {
   if (Platform.OS !== 'android') return;
   await Notifications.setNotificationChannelAsync('default', {
     name: 'Waves',
-    importance: Notifications.AndroidImportance.DEFAULT,
+    importance: AndroidImportance.DEFAULT,
     vibrationPattern: [0, 200, 100, 200],
     lightColor: '#7A5AF8',
   });
