@@ -5,7 +5,8 @@ import { Plus_Jakarta_Sans } from 'next/font/google';
 import { StringsProvider } from '@/i18n-context';
 import { AuthProvider } from '@/lib/auth';
 import { ThemeProvider, THEME_BOOT_SCRIPT } from '@/lib/theme';
-import { isRtlLanguage, localeFor, pickLanguage, stringsFor } from '@/i18n';
+import { isRtlLanguage, localeFor, stringsFor } from '@/i18n';
+import { chooseLanguage, rememberedLanguage } from '@/lib/language';
 
 import './globals.css';
 
@@ -54,8 +55,12 @@ export const viewport: Viewport = {
  * a dark-themed machine.
  */
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const accept = (await headers()).get('accept-language');
-  const language = pickLanguage(accept);
+  const incoming = await headers();
+  const accept = incoming.get('accept-language');
+  // A choice made in settings outranks what the browser asked for. It is read
+  // here, on the server, so `lang` and `dir` are right in the first paint —
+  // which is the whole reason the choice is a cookie and not localStorage.
+  const language = chooseLanguage(rememberedLanguage(incoming.get('cookie') ?? ''), accept);
   const locale = localeFor(language, accept);
   const t = stringsFor(language);
 

@@ -26,6 +26,7 @@ import {
 import { defaultRailFor, railsFor } from '@waves/core';
 
 import { AppFrame } from '@/components/AppFrame';
+import { LanguagePicker } from '@/components/LanguagePicker';
 import { Section } from '@/components/Shell';
 import { SkeletonRows } from '@/components/Skeleton';
 import { waves } from '@/lib/waves';
@@ -260,10 +261,14 @@ function Settings() {
 
         {error ? <p className="error">{error}</p> : null}
 
-        <section className="panel">
-          <h2>{t.settings.language}</h2>
-          <p className="faint">{t.settings.languageBody}</p>
-        </section>
+        <LanguagePicker
+          onPersist={(next) =>
+            // The region is the browser's business, not this picker's: somebody
+            // reading in Hindi from Dubai keeps their Dubai formatting, so only
+            // the language subtag is written.
+            waves.updateProfile({ locale: next })
+          }
+        />
 
         <section className="panel">
           <h2>{t.settings.onlyInApp}</h2>
