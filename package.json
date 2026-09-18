@@ -52,7 +52,7 @@
   },
   "devDependencies": {
     "@vitest/coverage-v8": "4.1.10",
-    "@xmldom/xmldom": "^0.8.15",
+    "@xmldom/xmldom": "^0.9.12",
     "prettier": "^3.4.2",
     "typescript": "~5.9.2",
     "vitest": "^4.1.10"
