@@ -280,6 +280,37 @@ export interface WebStrings {
     empty: string;
     emptyBody: string;
   };
+  /**
+   * The trip, day by day (A45): what was planned, beside what it cost.
+   *
+   * Planned and spent are never added together and never converted into each
+   * other's currency — a plan item is not money.
+   */
+  plan: {
+    title: string;
+    /** Read under the title when the group has no name. */
+    subtitle: string;
+    /** Which day of the trip today is; `{n}` is the number. */
+    dayNumber: string;
+    planned: string;
+    spent: string;
+    /** Labels on the signed gap. Over is the one people came to find. */
+    over: string;
+    under: string;
+    /** A day of the trip with nothing on it — an invitation, not a fault. */
+    emptyDay: string;
+    nothingYet: string;
+    nothingBody: string;
+    /** Reached by URL on a group that is not a trip: readable, not writable. */
+    tripsOnly: string;
+    tripsOnlyBody: string;
+    /** The inline field, and the two buttons under it. */
+    whatIsPlanned: string;
+    add: string;
+    cancel: string;
+    /** Each row's own remove, named so a list of them is not identical. */
+    remove: string;
+  };
   location: {
     label: string;
     add: string;
@@ -906,6 +937,24 @@ const en: WebStrings = {
     empty: 'No places yet',
     emptyBody: 'Add a location to an expense to see it here.',
   },
+  plan: {
+    title: 'Plan',
+    subtitle: 'What is planned, and what it cost',
+    dayNumber: 'day {n}',
+    planned: 'Planned',
+    spent: 'Spent',
+    over: 'Over',
+    under: 'Under',
+    emptyDay: 'Nothing on this day yet.',
+    nothingYet: 'Nothing planned yet',
+    nothingBody: 'Add the days and what you mean to do. What it actually costs fills itself in.',
+    tripsOnly: 'Planning is for trips',
+    tripsOnlyBody: 'Make this group a trip in its settings to plan it day by day.',
+    whatIsPlanned: 'What are you doing?',
+    add: 'Add',
+    cancel: 'Cancel',
+    remove: 'Remove {title}',
+  },
   location: {
     label: 'Location',
     add: 'Add location',
@@ -1511,6 +1560,25 @@ const ta: WebStrings = {
     title: 'இடங்கள்',
     empty: 'இன்னும் இடங்கள் இல்லை',
     emptyBody: 'ஒரு செலவுக்கு இடத்தைச் சேர்த்தால் அது இங்கே தெரியும்.',
+  },
+  plan: {
+    title: 'திட்டம்',
+    subtitle: 'திட்டமிட்டது, ஆன செலவு',
+    dayNumber: 'நாள் {n}',
+    planned: 'திட்டமிட்டது',
+    spent: 'செலவானது',
+    over: 'அதிகம்',
+    under: 'குறைவு',
+    emptyDay: 'இந்த நாளில் இன்னும் ஒன்றுமில்லை.',
+    nothingYet: 'இன்னும் திட்டம் ஏதுமில்லை',
+    nothingBody:
+      'நாட்களையும் செய்யப் போவதையும் சேருங்கள். உண்மையில் ஆன செலவு தானே நிரம்பிக்கொள்ளும்.',
+    tripsOnly: 'திட்டமிடல் பயணங்களுக்கு மட்டும்',
+    tripsOnlyBody: 'நாள் வாரியாகத் திட்டமிட, அமைப்புகளில் இந்தக் குழுவைப் பயணமாக மாற்றுங்கள்.',
+    whatIsPlanned: 'என்ன செய்யப் போகிறீர்கள்?',
+    add: 'சேர்',
+    cancel: 'ரத்து',
+    remove: '{title} அகற்று',
   },
   location: {
     label: 'இடம்',
@@ -2125,6 +2193,24 @@ const hi: WebStrings = {
     title: 'जगहें',
     empty: 'अभी कोई जगह नहीं',
     emptyBody: 'किसी खर्च में जगह जोड़ें, वह यहाँ दिखेगी.',
+  },
+  plan: {
+    title: 'योजना',
+    subtitle: 'क्या तय है, और क्या लगा',
+    dayNumber: 'दिन {n}',
+    planned: 'तय किया',
+    spent: 'खर्च हुआ',
+    over: 'ज़्यादा',
+    under: 'कम',
+    emptyDay: 'इस दिन अभी कुछ नहीं।',
+    nothingYet: 'अभी कोई योजना नहीं',
+    nothingBody: 'दिन और जो करना है वह जोड़िए। असल में जो लगा वह अपने आप भर जाएगा।',
+    tripsOnly: 'योजना ट्रिप के लिए है',
+    tripsOnlyBody: 'दिन-ब-दिन योजना बनाने के लिए सेटिंग्स में इस ग्रुप को ट्रिप बनाइए।',
+    whatIsPlanned: 'क्या करना है?',
+    add: 'जोड़ें',
+    cancel: 'रद्द',
+    remove: '{title} हटाएँ',
   },
   location: {
     label: 'स्थान',
@@ -2741,6 +2827,24 @@ const ar: WebStrings = {
     title: 'الأماكن',
     empty: 'لا أماكن بعد',
     emptyBody: 'أضف موقعًا إلى مصروف لتراه هنا.',
+  },
+  plan: {
+    title: 'الخطة',
+    subtitle: 'ما هو مخطط، وما كلّف',
+    dayNumber: 'اليوم {n}',
+    planned: 'المخطط',
+    spent: 'المصروف',
+    over: 'تجاوز',
+    under: 'أقل',
+    emptyDay: 'لا شيء في هذا اليوم بعد.',
+    nothingYet: 'لا خطة بعد',
+    nothingBody: 'أضف الأيام وما تنوي فعله. أما التكلفة الفعلية فتُملأ من تلقاء نفسها.',
+    tripsOnly: 'التخطيط للرحلات',
+    tripsOnlyBody: 'اجعل هذه المجموعة رحلة من إعداداتها للتخطيط يومًا بيوم.',
+    whatIsPlanned: 'ماذا ستفعل؟',
+    add: 'إضافة',
+    cancel: 'إلغاء',
+    remove: 'إزالة {title}',
   },
   location: {
     label: 'الموقع',

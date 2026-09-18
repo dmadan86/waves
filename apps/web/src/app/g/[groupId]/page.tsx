@@ -274,9 +274,14 @@ function GroupDetail({
                 a question nobody asked, and Places on a group where nothing
                 carries a location is a link to an empty page. */}
             {group.type === GroupType.Trip ? (
-              <Link className="btn soft" href={`/g/${groupId}/recap`}>
-                {t.recap.title}
-              </Link>
+              <>
+                <Link className="btn soft" href={`/g/${groupId}/plan`}>
+                  {t.plan.title}
+                </Link>
+                <Link className="btn soft" href={`/g/${groupId}/recap`}>
+                  {t.recap.title}
+                </Link>
+              </>
             ) : null}
             {hasPlaces ? (
               <Link className="btn soft" href={`/g/${groupId}/places`}>
