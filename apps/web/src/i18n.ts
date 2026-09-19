@@ -628,6 +628,21 @@ export interface WebStrings {
     signInBody: string;
     continueWithGoogle: string;
     continueWithApple: string;
+    /**
+     * The form's own heading, on the right-hand half of the door.
+     *
+     * The wordmark and the claim live on the illustrated half; this greets the
+     * person at the field they are about to type into, so the two halves are
+     * not the same sentence twice.
+     */
+    doorWelcome: string;
+    doorSub: string;
+    /** Real labels above the fields, not placeholders pretending to be labels. */
+    emailLabel: string;
+    passwordLabel: string;
+    /** The eye on the password field. Both said, because it is a toggle. */
+    showPassword: string;
+    hidePassword: string;
     orDivider: string;
     emailPlaceholder: string;
     passwordPlaceholder: string;
@@ -1520,6 +1535,12 @@ const en: WebStrings = {
     signInBody: 'Split expenses without the argument at the end.',
     continueWithGoogle: 'Continue with Google',
     continueWithApple: 'Continue with Apple',
+    doorWelcome: 'Welcome to Waves',
+    doorSub: 'Sign in and pick up where your groups left off.',
+    emailLabel: 'Email',
+    passwordLabel: 'Password',
+    showPassword: 'Show password',
+    hidePassword: 'Hide password',
     orDivider: 'or',
     emailPlaceholder: 'you@email.com',
     passwordPlaceholder: 'Password',
@@ -2383,6 +2404,12 @@ const ta: WebStrings = {
     signInBody: 'கடைசியில் வாக்குவாதம் இல்லாமல் செலவுகளைப் பிரியுங்கள்.',
     continueWithGoogle: 'Google மூலம் தொடரவும்',
     continueWithApple: 'Apple மூலம் தொடரவும்',
+    doorWelcome: 'Waves-க்கு வருக',
+    doorSub: 'உள்நுழைந்து உங்கள் குழுக்கள் நின்ற இடத்திலிருந்து தொடருங்கள்.',
+    emailLabel: 'மின்னஞ்சல்',
+    passwordLabel: 'கடவுச்சொல்',
+    showPassword: 'கடவுச்சொல்லைக் காட்டு',
+    hidePassword: 'கடவுச்சொல்லை மறை',
     orDivider: 'அல்லது',
     emailPlaceholder: 'you@email.com',
     passwordPlaceholder: 'கடவுச்சொல்',
@@ -3241,6 +3268,12 @@ const hi: WebStrings = {
     signInBody: 'आख़िर में बहस किए बिना खर्च बाँटें।',
     continueWithGoogle: 'Google से जारी रखें',
     continueWithApple: 'Apple से जारी रखें',
+    doorWelcome: 'Waves में आपका स्वागत है',
+    doorSub: 'साइन इन करें और जहाँ आपके समूह रुके थे वहीं से आगे बढ़ें।',
+    emailLabel: 'ईमेल',
+    passwordLabel: 'पासवर्ड',
+    showPassword: 'पासवर्ड दिखाएँ',
+    hidePassword: 'पासवर्ड छिपाएँ',
     orDivider: 'या',
     emailPlaceholder: 'you@email.com',
     passwordPlaceholder: 'पासवर्ड',
@@ -4115,6 +4148,12 @@ const ar: WebStrings = {
     signInBody: 'قسّموا المصاريف دون خلاف في النهاية.',
     continueWithGoogle: 'المتابعة عبر Google',
     continueWithApple: 'المتابعة عبر Apple',
+    doorWelcome: 'أهلًا بك في Waves',
+    doorSub: 'سجّل الدخول وتابع من حيث توقّفت مجموعاتك.',
+    emailLabel: 'البريد الإلكتروني',
+    passwordLabel: 'كلمة المرور',
+    showPassword: 'إظهار كلمة المرور',
+    hidePassword: 'إخفاء كلمة المرور',
     orDivider: 'أو',
     emailPlaceholder: 'you@email.com',
     passwordPlaceholder: 'كلمة المرور',
