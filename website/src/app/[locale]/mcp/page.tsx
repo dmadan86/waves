@@ -15,13 +15,10 @@ import { absoluteUrl, site } from '@/lib/site';
  * assistant their money records is owed that in plain words, before any of the
  * setup.
  *
- * It is also written to be *current* rather than aspirational. The sign-in flow
- * for third-party clients is not switched on yet — Supabase's OAuth server is
- * still disabled on the project — so the page says so instead of documenting a
- * flow that would fail. Published instructions that do not work are worse than
- * an honest "not yet": they send people to debug our configuration for us.
- *
- * When that flips, the "Signing in" section is the only one that changes.
+ * It is written to be *current* rather than aspirational. It once said the
+ * sign-in flow was not switched on, because it was not; the OAuth server was
+ * enabled on 2026-09-19 and that section was rewritten in the same change. If
+ * the flow is ever turned off again, this page is part of turning it off.
  *
  * The tool list is the real one, read from `apps/agent-mcp/src/tools.ts`. If a
  * tool is added or removed there, it changes here — a stale list on a page
@@ -87,9 +84,9 @@ const sections: LegalSection[] = [
   {
     heading: 'Signing in',
     body: [
-      'This is the part that is not finished. The server publishes where to authenticate, and the consent screen — the page that asks you, by name, whether a particular application may act for you — is built and deployed. The authorization server it points at is not switched on yet, so a client that follows the discovery chain today reaches the end of it and stops.',
-      'Until it is on, connecting requires supplying a Waves access token to your client yourself. If you are comfortable doing that, write to us and we will tell you how for your particular client rather than publishing a recipe that is easy to get subtly wrong.',
-      'When it is on, this section will say so, and the flow will be the ordinary one: your client sends you to Waves, you read what the application is asking for, you approve or refuse, and the client is handed a token. You can refuse, and refusing is a normal outcome that the client is told about.',
+      'The ordinary OAuth flow, and your client should do all of it for you. It calls the endpoint, is refused, reads from the refusal where to authenticate, and sends you to Waves in a browser.',
+      'You then see a consent screen naming the application, where the code will be delivered, and what it will be able to do. It is a real decision: approving hands that application a session that can read your groups and write expenses as you, and refusing is a normal outcome the application is told about. Waves does not vouch for anybody else\u2019s software, and the screen says so.',
+      'Applications are registered rather than self-serve, for now \u2014 anybody can connect, but the client has to exist on our side first. Write to us with the redirect address your client uses and we will register it.',
     ],
   },
   {
@@ -120,7 +117,7 @@ export default async function McpPage({ params }: { params: Promise<{ locale: st
       title={t.legal.mcpTitle}
       updated={UPDATED}
       note="This guide is published in English."
-      intro={`You can connect an AI assistant to ${site.name} and let it read your groups and add expenses for you. This page says what one can do once connected, what it can never do, and how to sign it in — including the part that is not switched on yet.`}
+      intro={`You can connect an AI assistant to ${site.name} and let it read your groups and add expenses for you. This page says what one can do once connected, what it can never do, and and how to sign it in.`}
       sections={sections}
     />
   );

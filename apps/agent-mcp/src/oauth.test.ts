@@ -24,7 +24,27 @@ describe('the protected-resource document', () => {
   });
 
   it('sends clients to Supabase for a token', () => {
-    expect(metadata.authorization_servers).toEqual(['https://project.supabase.co']);
+    expect(metadata.authorization_servers).toEqual(['https://project.supabase.co/auth/v1']);
+  });
+
+  /**
+   * The `/auth/v1` is load-bearing, and it looks like noise, so it is asserted
+   * on its own with the reason written down.
+   *
+   * GoTrue claims `https://<ref>.supabase.co/auth/v1` as its `issuer`. A client
+   * reads this array and goes looking for that server's metadata, and RFC 8414
+   * §3 inserts the well-known segment *before* the issuer's path — so the
+   * issuer above resolves to `/.well-known/oauth-authorization-server/auth/v1`,
+   * which answers. The project's apex resolves to
+   * `/.well-known/oauth-authorization-server`, which is a 404 on every Supabase
+   * project, and the chain stops one step past our own document.
+   *
+   * Verified against the live project on 2026-09-19: apex 404, `/auth/v1` 200.
+   */
+  it('names the issuer GoTrue claims, not the project apex', () => {
+    const [server] = metadata.authorization_servers;
+    expect(server).toMatch(/\/auth\/v1$/);
+    expect(server).not.toBe('https://project.supabase.co');
   });
 
   it('tolerates trailing slashes on the way in, never on the way out', () => {
@@ -33,7 +53,7 @@ describe('the protected-resource document', () => {
       'https://project.supabase.co/',
     );
     expect(sloppy.resource).toBe('https://app.wavs.co.in/api/mcp');
-    expect(sloppy.authorization_servers).toEqual(['https://project.supabase.co']);
+    expect(sloppy.authorization_servers).toEqual(['https://project.supabase.co/auth/v1']);
   });
 
   it('trims a long slash tail without changing the path itself', () => {
@@ -43,7 +63,7 @@ describe('the protected-resource document', () => {
       `https://project.supabase.co${slashTail}`,
     );
     expect(metadata.resource).toBe('https://app.wavs.co.in/api/mcp');
-    expect(metadata.authorization_servers).toEqual(['https://project.supabase.co']);
+    expect(metadata.authorization_servers).toEqual(['https://project.supabase.co/auth/v1']);
   });
 
   it('accepts the token in a header and nowhere else', () => {
