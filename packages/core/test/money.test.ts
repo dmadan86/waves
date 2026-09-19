@@ -5,6 +5,7 @@ import { minorUnitExponent, MoneyError } from '../src/money/currency.js';
 import {
   format,
   formatParts,
+  currencySymbol,
   balanceDirection,
   moneyAccessibilityLabel,
   BalanceDirection,
@@ -123,6 +124,60 @@ describe('parse and render', () => {
     expect(label).toMatch(/^You are owed/);
     expect(balanceDirection(-1n)).toBe('you_owe');
     expect(balanceDirection(0n)).toBe('settled');
+  });
+});
+
+/**
+ * Runs `body` in an engine without `Intl.NumberFormat.prototype.formatToParts`,
+ * which is what Hermes on iOS is: it implements `format` and not the parts.
+ */
+function withoutFormatToParts<T>(body: () => T): T {
+  const proto = Intl.NumberFormat.prototype;
+  const original = Object.getOwnPropertyDescriptor(proto, 'formatToParts');
+  Object.defineProperty(proto, 'formatToParts', { value: undefined, configurable: true });
+  try {
+    return body();
+  } finally {
+    if (original) Object.defineProperty(proto, 'formatToParts', original);
+  }
+}
+
+describe('formatting on an engine without formatToParts (Hermes on iOS)', () => {
+  it('renders exactly what the parts-aware path renders', () => {
+    fc.assert(
+      fc.property(
+        fc.bigInt({ min: -(10n ** 12n), max: 10n ** 12n }),
+        fc.constantFrom('en-IN', 'ta-IN', 'hi-IN', 'en-US', 'de-DE', 'fr-FR', 'ja-JP'),
+        fc.constantFrom('INR', 'USD', 'EUR', 'JPY', 'KWD' as const),
+        fc.constantFrom('auto', 'always', 'never' as const),
+        (minor, locale, currency, signDisplay) => {
+          const amount = money(minor, currency as 'INR');
+          const options = { locale, signDisplay };
+          const native = { text: format(amount, options), parts: formatParts(amount, options) };
+          const fallback = withoutFormatToParts(() => ({
+            text: format(amount, options),
+            parts: formatParts(amount, options),
+          }));
+          expect(fallback).toEqual(native);
+        },
+      ),
+    );
+  });
+
+  it('still finds the currency symbol', () => {
+    for (const locale of ['en-IN', 'ta-IN', 'hi-IN', 'en-US', 'de-DE', 'fr-FR', 'ja-JP']) {
+      for (const currency of ['INR', 'USD', 'EUR', 'JPY', 'KWD'] as const) {
+        const native = currencySymbol(currency as 'INR', locale);
+        expect(withoutFormatToParts(() => currencySymbol(currency as 'INR', locale))).toBe(native);
+      }
+    }
+  });
+
+  it('proves the engine really is missing it while the helper runs', () => {
+    withoutFormatToParts(() => {
+      expect(typeof new Intl.NumberFormat('en-IN').formatToParts).toBe('undefined');
+    });
+    expect(typeof new Intl.NumberFormat('en-IN').formatToParts).toBe('function');
   });
 });
 
