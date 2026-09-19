@@ -78,24 +78,86 @@ function parts(amount: Money, options: FormatOptions): Intl.NumberFormatPart[] {
   // units ≈ ₹90 trillion) is not a real split, and display is not arithmetic.
   const asNumber = Number(toMajorString({ minor: magnitude, currency: amount.currency }));
 
-  return new Intl.NumberFormat(locale, {
+  const formatter = new Intl.NumberFormat(locale, {
     style: 'currency',
     currency: amount.currency,
     minimumFractionDigits: fractionDigits,
     maximumFractionDigits: fractionDigits,
     signDisplay: signDisplay === 'never' ? 'auto' : signDisplay,
-  }).formatToParts(asNumber);
+  });
+  return numberParts(formatter, asNumber, fractionDigits);
+}
+
+/**
+ * The digits a locale might print. Latin, plus the native digits of the
+ * scripts Waves ships (Devanagari, Tamil) and the Arabic ones, in case a locale
+ * defaults to them — a fraction is found by its digits, so all of them count.
+ */
+const DIGITS = '0-9\\u0660-\\u0669\\u06f0-\\u06f9\\u0966-\\u096f\\u0be6-\\u0bef';
+
+/**
+ * `formatToParts`, or the same parts rebuilt from `format` where the engine
+ * has no `formatToParts`.
+ *
+ * Hermes on Apple platforms implements `Intl.NumberFormat` over Foundation and
+ * gives it `format` but not `formatToParts` — only `DateTimeFormat` has one
+ * there. Android's Hermes and Node both have it, so every test passed and the
+ * Android app worked, while on iOS every amount on screen threw `undefined is
+ * not a function` and the home screen was an error page. The first iOS build
+ * that ever ran showed it.
+ *
+ * Everything the callers read is recoverable from the formatted string: the
+ * fraction is the last run of digits, exactly `fractionDigits` long, and the
+ * character before it is the decimal separator — whichever the locale uses, on
+ * whichever side of the symbol. If the string does not have that shape the whole
+ * of it is returned as one part, which renders the amount unfaded rather than
+ * not at all.
+ */
+function numberParts(
+  formatter: Intl.NumberFormat,
+  value: number,
+  fractionDigits: number,
+): Intl.NumberFormatPart[] {
+  if (typeof formatter.formatToParts === 'function') return formatter.formatToParts(value);
+
+  const text = formatter.format(value);
+  if (fractionDigits > 0) {
+    const split = new RegExp(
+      `^(.*)([^${DIGITS}])([${DIGITS}]{${fractionDigits}})([^${DIGITS}]*)$`,
+    ).exec(text);
+    if (split) {
+      const [, lead = '', separator = '', fraction = '', trail = ''] = split;
+      const rebuilt: Intl.NumberFormatPart[] = [
+        { type: 'integer', value: lead },
+        { type: 'decimal', value: separator },
+        { type: 'fraction', value: fraction },
+      ];
+      if (trail) rebuilt.push({ type: 'literal', value: trail });
+      return rebuilt;
+    }
+  }
+  return [{ type: 'integer', value: text }];
 }
 
 /** Just the currency symbol for the locale ("₹", "$"). */
 export function currencySymbol(currency: CurrencyCode, locale: Locale = DEFAULT_LOCALE): string {
-  const parts = new Intl.NumberFormat(locale, {
+  const formatter = new Intl.NumberFormat(locale, {
     style: 'currency',
     currency,
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-  }).formatToParts(0);
-  return parts.find((part) => part.type === 'currency')?.value ?? currency;
+  });
+  if (typeof formatter.formatToParts === 'function') {
+    const parts = formatter.formatToParts(0);
+    return parts.find((part) => part.type === 'currency')?.value ?? currency;
+  }
+  // No parts to ask (Hermes on iOS — see `numberParts`): zero with no decimals
+  // is the symbol, the digit and some spacing, so what survives removing the
+  // digit, the spacing and any direction marks is the symbol.
+  const symbol = formatter
+    .format(0)
+    .replace(new RegExp(`[${DIGITS}\\s\\u00a0\\u202f\\u200e\\u200f\\u061c]`, 'g'), '');
+  return symbol || currency;
 }
 
 export enum BalanceDirection {
