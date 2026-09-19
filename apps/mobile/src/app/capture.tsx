@@ -63,6 +63,8 @@ import {
 import { useAuth } from '@/lib/auth';
 import { useDefaultCurrency } from '@/lib/currency';
 import { usePersonalOffered } from '@/lib/guestGuard';
+import { ProfileAvatar } from '@/components/ProfileAvatar';
+import { useViewerIdentity } from '@/lib/viewerIdentity';
 import { plural, useStrings, type UiStrings } from '@/i18n';
 import { assignCaptureHref, captureDraftFields } from '@/lib/captureAssign';
 import { planPersonalPlacement } from '@/lib/personalPlacement';
@@ -181,6 +183,10 @@ const consumedScans = new Set<string>();
  * hand-off is about to create.
  */
 export default function CaptureScreen() {
+  // Named apart from the picker's own `viewer` below: this is the same identity,
+  // read in the screen that shows the destination back rather than the one that
+  // offers it.
+  const screenViewer = useViewerIdentity();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   // What the pinned Save bar leaves beneath itself for the system navigation
@@ -338,7 +344,7 @@ export default function CaptureScreen() {
   const groupNameHints = groupRows.map((group) => group.name ?? '').filter(Boolean);
   const targetGroup = groupRows.find((group) => group.id === targetGroupId) ?? null;
   const targetGroupName = justMe
-    ? t.voice.justMe
+    ? screenViewer.name
     : targetGroup
       ? groupLabel(targetGroup, summary.membersFor(targetGroup.id), profile?.id)
       : t.captures.decideLater;
@@ -1085,6 +1091,7 @@ function GroupPicker({
 }): React.JSX.Element {
   const theme = useTheme();
   const personalOffered = usePersonalOffered();
+  const viewer = useViewerIdentity();
 
   const currentTrips = groups.filter(isCurrentTrip);
   const currentTripIds = new Set(currentTrips.map((group) => group.id));
@@ -1135,8 +1142,12 @@ function GroupPicker({
           is: a guest account may not hold one. */}
       {personalOffered ? (
         <ChoiceRow
-          leading={<Text variant="subheading">🧍</Text>}
-          label={t.voice.justMe}
+          // Your own face and name, the same as the destination sheets show --
+          // every other row here names something real, and this one named a
+          // grammatical category. `personalOffered` is `!isGuest`, so this is
+          // only reached by an account that has a name worth showing.
+          leading={<ProfileAvatar name={viewer.name} avatarUrl={viewer.avatarUrl} size={22} />}
+          label={viewer.name}
           selected={justMe}
           onPress={() => onPick({ kind: 'me' })}
         />
