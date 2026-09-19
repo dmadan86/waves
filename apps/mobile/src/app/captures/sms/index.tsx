@@ -913,19 +913,6 @@ export default function SmsInboxScreen(): React.JSX.Element | null {
         style={{ paddingHorizontal: theme.spacing.xl, gap: theme.spacing.md, maxHeight: '80%' }}
       >
         <Text variant="heading">{t.captures.assignTitle}</Text>
-        <Row style={{ alignItems: 'center', justifyContent: 'space-between' }}>
-          <Text variant="caption" tone="muted">
-            {plural(locale, chosen.length, t.smsInbox.selected)}
-          </Text>
-          {chosenTotal.total !== null ? (
-            <MoneyText
-              amount={chosenTotal.total}
-              currency={chosenTotal.currency}
-              locale={locale}
-              variant="subheading"
-            />
-          ) : null}
-        </Row>
         <ScrollView
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
@@ -935,6 +922,26 @@ export default function SmsInboxScreen(): React.JSX.Element | null {
             key={pickerOpen ? 'open' : 'closed'}
             selection={{ kind: 'none' } as DestinationSelection}
             eyebrow={null}
+            // The amount leads and the count follows it, which is the order the
+            // other two screens already use. It read the other way round here --
+            // count first, total pushed to the far edge -- for no reason beyond
+            // this sheet having been built separately.
+            subject={{
+              title:
+                chosenTotal.total !== null ? (
+                  <MoneyText
+                    amount={chosenTotal.total}
+                    currency={chosenTotal.currency}
+                    locale={locale}
+                    variant="subheading"
+                  />
+                ) : null,
+              note: (
+                <Text variant="caption" tone="muted" numberOfLines={1}>
+                  {plural(locale, chosen.length, t.smsInbox.selected)}
+                </Text>
+              ),
+            }}
             // "Unassigned" is not offered: these already sit outside every
             // group, so the row would point at where they already are. "Just
             // me" is — a private personal expense (A48), written through the
