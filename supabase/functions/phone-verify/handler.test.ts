@@ -17,7 +17,12 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { forgetFirebaseKeys, handlePhoneVerify, type PhoneVerifyDeps } from './handler.ts';
+import {
+  forgetFirebaseKeys,
+  forgetPhoneProvider,
+  handlePhoneVerify,
+  type PhoneVerifyDeps,
+} from './handler.ts';
 
 const ENV: Record<string, string> = {
   FIREBASE_PROJECT_ID: 'waves-3e7b8',
@@ -69,6 +74,11 @@ function deps(
     assertionErrored?: boolean;
     relayOpenErrored?: boolean;
     jwksOk?: boolean;
+    /** What `/settings` says about `external.phone`. On unless a test says not. */
+    phoneProvider?: boolean;
+    /** A settings endpoint that will not answer, or answers with nonsense. */
+    settingsStatus?: number;
+    settingsBody?: string;
   } = {},
 ): PhoneVerifyDeps & {
   rpc: ReturnType<typeof vi.fn>;
@@ -113,6 +123,15 @@ function deps(
     if (url === JWKS_URL) {
       return Promise.resolve(
         new Response(JSON.stringify(JWKS), { status: overrides.jwksOk === false ? 500 : 200 }),
+      );
+    }
+    if (url === `${ENV.SUPABASE_URL}/auth/v1/settings`) {
+      return Promise.resolve(
+        new Response(
+          overrides.settingsBody ??
+            JSON.stringify({ external: { phone: overrides.phoneProvider ?? true } }),
+          { status: overrides.settingsStatus ?? 200 },
+        ),
       );
     }
     if (url === `${ENV.SUPABASE_URL}/auth/v1/otp`) {
@@ -185,6 +204,7 @@ const verifyStub = core.verifyFirebaseIdToken as unknown as ReturnType<typeof vi
 
 beforeEach(() => {
   forgetFirebaseKeys();
+  forgetPhoneProvider();
   verifyStub.mockResolvedValue({
     ok: true,
     identity: { uid: 'firebase-1', phone: '+919876543210', signedInAt: 1 },
@@ -268,6 +288,80 @@ describe('ADR-006', () => {
     expect(body.code).toBe('NO_ACCOUNT');
     // And the relay is still cleaned up.
     expect(rpcNames(d)).toContain('waves_otp_relay_close');
+  });
+});
+
+describe('a project with no phone provider', () => {
+  /**
+   * The case this whole check exists for. GoTrue says `otp_disabled` both when
+   * the number has no account and when the project cannot do phone sign-in at
+   * all, so before this the second was reported as the first: "No Waves account
+   * uses that number yet", about a number that may well have one.
+   */
+  it('says what is actually wrong, not that the number is unknown', async () => {
+    const d = deps({ phoneProvider: false });
+    const response = await handlePhoneVerify(request(), d);
+    const body = (await response.json()) as { code: string };
+
+    expect(response.status).toBe(503);
+    expect(body.code).toBe('MISCONFIGURED');
+    expect(body.code).not.toBe('NO_ACCOUNT');
+  });
+
+  it('costs the person nothing', async () => {
+    // The refusal it used to give was charged for: spent assertion, counted
+    // gate, no refund. Three of those and somebody honest is locked out for the
+    // day over a switch nobody told them about.
+    const d = deps({ phoneProvider: false });
+    await handlePhoneVerify(request(), d);
+
+    expect(rpcNames(d)).not.toContain('waves_firebase_assertion_use');
+    expect(rpcNames(d)).not.toContain('waves_phone_gate');
+    expect(rpcNames(d)).not.toContain('waves_otp_relay_open');
+  });
+
+  it('never asks GoTrue for a code it cannot mint', async () => {
+    const d = deps({ phoneProvider: false });
+    await handlePhoneVerify(request(), d);
+
+    const asked = d.fetchImpl.mock.calls.map((call) => call[0] as string);
+    expect(asked).not.toContain(`${ENV.SUPABASE_URL}/auth/v1/otp`);
+  });
+
+  it('still lets a number be attached, which does not need the provider', async () => {
+    // Attaching is an admin write, not a sign-in: it never touches `/otp`, so a
+    // provider that is off has no business blocking it.
+    const d = deps({ phoneProvider: false, callerId: 'user-1' });
+    const response = await handlePhoneVerify(request({ idToken: 'a.b.c', mode: 'attach' }), d);
+
+    expect(response.status).toBe(200);
+  });
+
+  it('does not refuse when it could not tell', async () => {
+    // A settings endpoint having a bad minute must not take down a sign-in that
+    // would otherwise work. The exchange below fails safely on its own.
+    const d = deps({ settingsStatus: 500 });
+    const response = await handlePhoneVerify(request(), d);
+
+    expect(response.status).toBe(200);
+  });
+
+  it('does not refuse on a document it does not recognise', async () => {
+    const d = deps({ settingsBody: '{"external":{}}' });
+    const response = await handlePhoneVerify(request(), d);
+
+    expect(response.status).toBe(200);
+  });
+
+  it('asks once and remembers, rather than on every sign-in', async () => {
+    const d = deps();
+    await handlePhoneVerify(request(), d);
+    await handlePhoneVerify(request(), d);
+
+    const settings = d.fetchImpl.mock.calls.filter(
+      (call) => call[0] === `${ENV.SUPABASE_URL}/auth/v1/settings`,
+    );
+    expect(settings).toHaveLength(1);
   });
 });
 
