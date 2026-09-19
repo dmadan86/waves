@@ -729,9 +729,6 @@ export default function CaptureScreen() {
           hints={groupNameHints}
         />
 
-        {/* Where it happened (A43) — optional, opt-in, never a background track. */}
-        <LocationField value={location} onChange={setLocation} />
-
         {/* What for, paid with, destination and date, folded into one card of
             divided rows rather than four scattered controls — the facts a
             capture carries, grouped so it reads as one block, the same
@@ -796,6 +793,18 @@ export default function CaptureScreen() {
             </View>
           </DetailRows>
         </Card>
+
+        {/* Where it happened (A43) — below the facts, not above them.
+
+            It sat between the note and this card, which put two buttons nobody
+            presses on most expenses directly in the path of the four things
+            everybody fills in. It is still optional and still opt-in; what
+            changed is that it no longer interrupts.
+
+            `autoFill` only does anything for somebody who has already granted
+            the permission on an earlier expense — it never asks — and the cross
+            on the result clears it for good on this form. */}
+        <LocationField value={location} onChange={setLocation} autoFill />
       </ScrollView>
 
       <View

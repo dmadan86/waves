@@ -1668,6 +1668,9 @@ export interface UiStrings {
     groupSectionAll: string;
     splitLaterHint: string;
     currencyLabel: string;
+    /** Spoken label for the amount stepper. */
+    amountUp: string;
+    amountDown: string;
     currencyPickerTitle: string;
     newTitle: string;
     editTitle: string;
@@ -4686,6 +4689,8 @@ const en: UiStrings = {
     groupSectionAll: 'All groups',
     splitLaterHint: "You'll choose who splits this, and how, when you add it to a group.",
     currencyLabel: 'Currency',
+    amountUp: 'Add to the amount',
+    amountDown: 'Take off the amount',
     currencyPickerTitle: 'Choose currency',
     newTitle: 'Save an expense',
     editTitle: 'Edit expense',
@@ -7558,6 +7563,8 @@ const ta: UiStrings = {
     splitLaterHint:
       'இதை ஒரு குழுவில் சேர்க்கும்போது யார், எப்படிப் பங்கிடுவது என்பதைத் தேர்வு செய்யலாம்.',
     currencyLabel: 'நாணயம்',
+    amountUp: 'தொகையைக் கூட்டு',
+    amountDown: 'தொகையைக் குறை',
     currencyPickerTitle: 'நாணயத்தைத் தேர்ந்தெடுங்கள்',
     newTitle: 'ஒரு செலவைச் சேமியுங்கள்',
     editTitle: 'செலவைத் திருத்து',
@@ -10494,6 +10501,8 @@ const hi: UiStrings = {
     groupSectionAll: 'सभी समूह',
     splitLaterHint: 'इसे किसी समूह में जोड़ते समय आप तय करेंगे कि इसे कौन और कैसे बाँटेगा।',
     currencyLabel: 'मुद्रा',
+    amountUp: 'राशि बढ़ाएँ',
+    amountDown: 'राशि घटाएँ',
     currencyPickerTitle: 'मुद्रा चुनें',
     newTitle: 'एक खर्च सहेजें',
     editTitle: 'खर्च बदलें',
@@ -13440,6 +13449,8 @@ const ar: UiStrings = {
     groupSectionAll: 'كل المجموعات',
     splitLaterHint: 'ستختار من يقتسم هذا وكيف عند إضافته إلى مجموعة.',
     currencyLabel: 'العملة',
+    amountUp: 'زيادة المبلغ',
+    amountDown: 'خفض المبلغ',
     currencyPickerTitle: 'اختر العملة',
     newTitle: 'احفظ مصروفًا',
     editTitle: 'تعديل المصروف',
