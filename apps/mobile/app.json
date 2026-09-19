@@ -95,6 +95,7 @@
           }
         }
       ],
+      "@react-native-firebase/app-check",
       "expo-router",
       "expo-localization",
       "expo-sqlite",
