@@ -1981,60 +1981,6 @@ export default function CapturesScreen() {
       >
         <Text variant="heading">{t.captures.assignTitle}</Text>
 
-        {/* What is being placed, so the sheet stands on its own over the list it
-            hides: the amount and its note beside the capture's own glyph. */}
-        {assigningCapture ? (
-          <Row style={{ gap: theme.spacing.md, alignItems: 'center' }}>
-            <CategoryBadge
-              category={assigningCapture.category}
-              meta={assigningCapture.category_meta}
-              description={assigningCapture.description}
-              size={38}
-            />
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <MoneyText
-                amount={BigInt(assigningCapture.amount)}
-                currency={assigningCapture.currency}
-                locale={locale}
-                variant="subheading"
-              />
-              {assigningCapture.description ? (
-                <Text variant="caption" tone="muted" numberOfLines={1}>
-                  {assigningCapture.description}
-                </Text>
-              ) : null}
-            </View>
-          </Row>
-        ) : batchPreview ? (
-          <Row style={{ gap: theme.spacing.md, alignItems: 'center' }}>
-            <View
-              style={{
-                width: 38,
-                height: 38,
-                borderRadius: 12,
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: theme.color.brandSoft,
-              }}
-            >
-              <Ionicons name="layers-outline" size={iconSize.md} color={theme.color.brand} />
-            </View>
-            <View style={{ flex: 1, minWidth: 0 }}>
-              {batchPreview.total !== null ? (
-                <MoneyText
-                  amount={batchPreview.total}
-                  currency={batchPreview.currency}
-                  locale={locale}
-                  variant="subheading"
-                />
-              ) : null}
-              <Text variant="caption" tone="muted" numberOfLines={1}>
-                {plural(locale, batchPreview.count, t.captures.batchExpenses)}
-              </Text>
-            </View>
-          </Row>
-        ) : null}
-
         {/* The same picker the voice review opens, so "where does this go?" is
             one control in the app rather than two that drifted apart.
 
@@ -2059,6 +2005,72 @@ export default function CapturesScreen() {
             }
             selection={pickerSelection}
             eyebrow={null}
+            // What is being placed, so the sheet stands on its own over the list
+            // it hides. Handed to the picker rather than drawn here: the pinned
+            // shortcut shares this row now, and only the picker knows whether
+            // there is one to place.
+            subject={
+              assigningCapture
+                ? {
+                    leading: (
+                      <CategoryBadge
+                        category={assigningCapture.category}
+                        meta={assigningCapture.category_meta}
+                        description={assigningCapture.description}
+                        size={38}
+                      />
+                    ),
+                    title: (
+                      <MoneyText
+                        amount={BigInt(assigningCapture.amount)}
+                        currency={assigningCapture.currency}
+                        locale={locale}
+                        variant="subheading"
+                      />
+                    ),
+                    note: assigningCapture.description ? (
+                      <Text variant="caption" tone="muted" numberOfLines={1}>
+                        {assigningCapture.description}
+                      </Text>
+                    ) : null,
+                  }
+                : batchPreview
+                  ? {
+                      leading: (
+                        <View
+                          style={{
+                            width: 38,
+                            height: 38,
+                            borderRadius: 12,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            backgroundColor: theme.color.brandSoft,
+                          }}
+                        >
+                          <Ionicons
+                            name="layers-outline"
+                            size={iconSize.md}
+                            color={theme.color.brand}
+                          />
+                        </View>
+                      ),
+                      title:
+                        batchPreview.total !== null ? (
+                          <MoneyText
+                            amount={batchPreview.total}
+                            currency={batchPreview.currency}
+                            locale={locale}
+                            variant="subheading"
+                          />
+                        ) : null,
+                      note: (
+                        <Text variant="caption" tone="muted" numberOfLines={1}>
+                          {plural(locale, batchPreview.count, t.captures.batchExpenses)}
+                        </Text>
+                      ),
+                    }
+                  : null
+            }
             // "Unassigned" is not offered: a draft already *is* unassigned, so
             // the row would point at where it already sits. "Just me" is — it
             // files the draft as a private personal expense (A48), through the

@@ -75,6 +75,7 @@ import { useUpsertPersonalRecord } from '@/data/personal';
 import { displayName, groupLabel, GroupType, isViewer, type GroupRow } from '@/data/types';
 import { isRtl, plural, useStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
+import { useViewerIdentity } from '@/lib/viewerIdentity';
 import { useBottomClearance } from '@/lib/clearance';
 import { useDefaultCurrency } from '@/lib/currency';
 import { friendlyError } from '@/lib/errors';
@@ -192,6 +193,9 @@ function toMinor(amount: string, currency: string): bigint | null {
 
 export default function VoiceScreen() {
   const theme = useTheme();
+  // Your own name, for the destination row: the picker offers "me" as your
+  // portrait and name, and the folded selector has to say the same thing back.
+  const viewer = useViewerIdentity();
   // The one canonical foot. `Screen` below takes only the top edge, so nothing
   // else has added the bottom inset — this is where it comes from, once.
   const clearance = useBottomClearance();
@@ -1329,7 +1333,7 @@ export default function VoiceScreen() {
   }
   const singleTotal = draftTotals.size === 1 ? [...draftTotals.entries()][0] : null;
 
-  const current = describeDest(dest, groupRows, t);
+  const current = describeDest(dest, groupRows, t, viewer.name);
 
   // The destination as the picker reads it. The picker only needs to know which
   // row carries the check, so the kinds it has no row for — a spoken settle-up,
@@ -1777,12 +1781,15 @@ function describeDest(
   dest: Dest,
   groups: GroupRow[],
   t: ReturnType<typeof useStrings>['t'],
+  /** What the picker calls the reader, so the folded selector agrees with the
+   *  sheet it was chosen in rather than reverting to "Just me". */
+  viewerName: string,
 ): { label: string; emoji?: string | null; icon: React.ComponentProps<typeof Ionicons>['name'] } {
   if (dest.kind === 'unassigned') {
     return { label: t.captures.unassigned, icon: 'file-tray-full-outline' };
   }
   if (dest.kind === 'me') {
-    return { label: t.voice.justMe, icon: 'person-circle-outline' };
+    return { label: viewerName, icon: 'person-circle-outline' };
   }
   if (dest.kind === 'create') {
     return {

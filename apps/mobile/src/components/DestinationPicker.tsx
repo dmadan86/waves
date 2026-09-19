@@ -25,9 +25,11 @@ import { Pressable, TextInput, View } from 'react-native';
 
 import { Button, Card, Divider, iconSize, Row, SegmentedTabs, Text, useTheme } from '@waves/ui';
 
+import { ProfileAvatar } from '@/components/ProfileAvatar';
 import { groupLabel, GroupType, type GroupRow } from '@/data/types';
 import { matchesAssignGroupQuery } from '@/lib/captureAssign';
 import { usePersonalOffered } from '@/lib/guestGuard';
+import { useViewerIdentity } from '@/lib/viewerIdentity';
 import {
   initialDestinationTab,
   initialPickedPeople,
@@ -71,9 +73,31 @@ type PickerRow = {
   // — the inbox and "new group" rows only ever use an icon.
   icon: React.ComponentProps<typeof Ionicons>['name'];
   emoji?: string | null;
+  // A portrait in place of the glyph, for the one row that stands for a person
+  // rather than a place. Only "me" uses it, and only on a real account — a
+  // guest has no name or face to show.
+  avatarUrl?: string | null;
   selected: boolean;
   onPress: () => void;
 };
+
+/**
+ * What is being filed, drawn once for every screen that opens this picker.
+ *
+ * Each of the three call sites had hand-rolled its own version of this line —
+ * the same badge, amount and note, three times, in three slightly different
+ * shapes. It is here now because it stopped being decoration: the pinned
+ * shortcuts sit on its trailing edge, so the line and the chips have to be laid
+ * out together or they cannot share a row.
+ */
+export interface DestinationSubject {
+  /** The badge, glyph or emoji standing for the thing being filed. */
+  leading?: React.ReactNode;
+  /** The headline — an amount, nearly always. */
+  title: React.ReactNode;
+  /** The quieter second line: a note, a count, a merchant. */
+  note?: React.ReactNode;
+}
 
 /** Past this many groups the Groups tab earns a search field; a short list is
  *  faster to eyeball than to type through. */
@@ -85,6 +109,7 @@ export function DestinationPicker({
   people,
   t,
   eyebrow = null,
+  subject = null,
   pinned = ['unassigned', 'me'],
   createRow = null,
   emptyGroups,
@@ -100,6 +125,9 @@ export function DestinationPicker({
   /** The small caps line above the list ("SAVE TO"). Null where the sheet
    *  already carries a heading of its own and a second one would only repeat it. */
   eyebrow?: string | null;
+  /** What is being filed. Given one, the pinned shortcuts move onto its trailing
+   *  edge rather than taking a row of their own. */
+  subject?: DestinationSubject | null;
   /** Which of the two non-group defaults stay pinned above the tabs. Empty on a
    *  screen where neither is a destination it can write to. */
   pinned?: readonly ('unassigned' | 'me')[];
@@ -117,6 +145,7 @@ export function DestinationPicker({
 }) {
   const theme = useTheme();
   const personalOffered = usePersonalOffered();
+  const viewer = useViewerIdentity();
   // Open on whichever tab the current destination lives in, so the choice reads
   // back: the People tab for a people destination, and also for an existing group
   // that is really a 1:1 contact (its id is one the People tab represents);
@@ -175,7 +204,17 @@ export function DestinationPicker({
   if (pinned.includes('me') && personalOffered) {
     pinnedRows.push({
       key: 'me',
-      label: t.voice.justMe,
+      // Your own name, not the words "Just me".
+      //
+      // Every other row here names something real — a group you made, a person
+      // you know — and this one named a grammatical category. Your name and
+      // your face are what the rest of the app calls you, and a portrait is
+      // recognised without being read, which is the whole job of a shortcut.
+      // `personalOffered` is `!isGuest`, so this is only ever reached by an
+      // account that has a name worth showing.
+      label: viewer.name,
+      avatarUrl: viewer.avatarUrl,
+      // Kept as the fallback for the moment the portrait cannot draw.
       icon: 'person-circle-outline',
       selected: selection.kind === 'me',
       onPress: () => onChoose({ kind: 'me' }),
@@ -280,6 +319,64 @@ export function DestinationPicker({
     </Row>
   );
 
+  /** One pinned shortcut. Extracted because it is now drawn in two places — on
+   *  the subject's trailing edge, or on a row of its own where there is no
+   *  subject — and two copies would have drifted the first time one was tuned. */
+  const renderChip = (row: PickerRow): React.JSX.Element => (
+    <Pressable
+      key={row.key}
+      onPress={row.onPress}
+      accessibilityRole="button"
+      accessibilityState={{ selected: row.selected }}
+      style={({ pressed }) => ({
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.xs,
+        // The 44pt reach floor stands whichever place it is drawn in: this is a
+        // smaller drawing, not a smaller target.
+        minHeight: 44,
+        // A portrait sits flush to the chip's leading edge — the ring is already
+        // its own padding, and a second one reads as a gap.
+        paddingStart: row.avatarUrl !== undefined ? theme.spacing.xs : theme.spacing.md,
+        paddingEnd: theme.spacing.md,
+        borderRadius: theme.radius.pill,
+        borderWidth: 1,
+        borderColor: row.selected ? theme.color.brand : theme.color.border,
+        backgroundColor: row.selected ? theme.color.brandSoft : 'transparent',
+        opacity: pressed ? 0.6 : 1,
+      })}
+    >
+      {/* A person wears their face; everything else wears its glyph. Chosen, a
+          tick replaces whichever it was — a chip has room for one mark, and
+          which one it is *is* the state (#191 — never colour alone). The
+          portrait is the exception: a face replaced by a tick loses the very
+          thing that made the chip recognisable, so it keeps its portrait and
+          takes the tick alongside. */}
+      {row.selected && row.avatarUrl === undefined ? (
+        <Ionicons name="checkmark-circle" size={iconSize.md} color={theme.color.brand} />
+      ) : row.avatarUrl !== undefined ? (
+        <ProfileAvatar name={row.label} avatarUrl={row.avatarUrl} size={28} />
+      ) : (
+        <Ionicons name={row.icon} size={iconSize.md} color={theme.color.textMuted} />
+      )}
+      <Text
+        numberOfLines={1}
+        style={{
+          // A long name must not push the amount off its own row; it runs out
+          // of room and ellipsises instead.
+          flexShrink: 1,
+          color: row.selected ? theme.color.brand : theme.color.text,
+          fontWeight: row.selected ? '600' : '500',
+        }}
+      >
+        {row.label}
+      </Text>
+      {row.selected && row.avatarUrl !== undefined ? (
+        <Ionicons name="checkmark-circle" size={iconSize.sm} color={theme.color.brand} />
+      ) : null}
+    </Pressable>
+  );
+
   const renderRow = (row: PickerRow, showDivider: boolean): React.JSX.Element => (
     <View key={row.key}>
       <Pressable
@@ -305,7 +402,9 @@ export function DestinationPicker({
             backgroundColor: row.selected ? theme.color.brandSoft : theme.color.surfaceMuted,
           }}
         >
-          {row.emoji ? (
+          {row.avatarUrl !== undefined ? (
+            <ProfileAvatar name={row.label} avatarUrl={row.avatarUrl} size={36} />
+          ) : row.emoji ? (
             <Text style={{ fontSize: 18 }}>{row.emoji}</Text>
           ) : (
             <Ionicons
@@ -343,55 +442,35 @@ export function DestinationPicker({
         </Text>
       ) : null}
 
-      {/* The defaults, pinned above the tabs — as chips, not as list rows.
-          They were rows in a card of their own, which gave one shortcut the
-          same weight and nearly the same height as the entire list of groups
-          below it: a 36pt disc, a full row's padding, a card, and a large gap
-          on each side, for a single word. A chip says the same thing in a
-          third of the room and reads as what it is — a shortcut past the list,
-          rather than the first entry in it. The 44pt floor is kept, so the
-          smaller drawing costs nothing in reach. */}
-      {pinnedRows.length > 0 ? (
-        <Row style={{ gap: theme.spacing.sm, flexWrap: 'wrap' }}>
-          {pinnedRows.map((row) => (
-            <Pressable
-              key={row.key}
-              onPress={row.onPress}
-              accessibilityRole="button"
-              accessibilityState={{ selected: row.selected }}
-              style={({ pressed }) => ({
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: theme.spacing.xs,
-                minHeight: 44,
-                paddingHorizontal: theme.spacing.md,
-                borderRadius: theme.radius.pill,
-                borderWidth: 1,
-                borderColor: row.selected ? theme.color.brand : theme.color.border,
-                backgroundColor: row.selected ? theme.color.brandSoft : 'transparent',
-                opacity: pressed ? 0.6 : 1,
-              })}
-            >
-              {/* The tick replaces the glyph when chosen rather than joining it:
-                  a chip has room for one mark, and which one it is *is* the
-                  state (#191 — never colour alone). */}
-              <Ionicons
-                name={row.selected ? 'checkmark-circle' : row.icon}
-                size={iconSize.md}
-                color={row.selected ? theme.color.brand : theme.color.textMuted}
-              />
-              <Text
-                numberOfLines={1}
-                style={{
-                  color: row.selected ? theme.color.brand : theme.color.text,
-                  fontWeight: row.selected ? '600' : '500',
-                }}
-              >
-                {row.label}
-              </Text>
-            </Pressable>
-          ))}
+      {/* What is being filed, and beside it the shortcut past the list.
+
+          "Just me" used to be a chip on a row of its own, directly under this
+          line — a full row of height, and a whole width of empty space, spent
+          on one shortcut. Sharing the subject's row costs nothing: that row was
+          a badge, an amount and a note, and everything past the note was blank.
+          The amount keeps its place at the start, the shortcut sits at the end,
+          and the sheet gets a row back to show groups in.
+
+          `flexShrink` on the text half rather than a fixed split, so a long
+          note yields to the chip instead of pushing it off the edge, and
+          neither has to know the other's width. */}
+      {subject ? (
+        <Row style={{ gap: theme.spacing.md, alignItems: 'center' }}>
+          {subject.leading ?? null}
+          <View style={{ flexShrink: 1, minWidth: 0 }}>
+            {subject.title}
+            {subject.note ?? null}
+          </View>
+          {pinnedRows.length > 0 ? (
+            <Row style={{ gap: theme.spacing.sm, marginStart: 'auto' }}>
+              {pinnedRows.map(renderChip)}
+            </Row>
+          ) : null}
         </Row>
+      ) : pinnedRows.length > 0 ? (
+        // No subject to sit beside — the voice review opens on an eyebrow, not
+        // an amount — so the shortcuts keep the row they always had.
+        <Row style={{ gap: theme.spacing.sm, flexWrap: 'wrap' }}>{pinnedRows.map(renderChip)}</Row>
       ) : null}
 
       {/* Groups and People are their own tab: a flat list of every group then
