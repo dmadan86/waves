@@ -182,7 +182,18 @@
     width: auto;
   }
 
-  :where(a, button, input, select, textarea, [role='button'], .btn, .side-link, .item, .tab-link):focus-visible {
+  :where(
+    a,
+    button,
+    input,
+    select,
+    textarea,
+    [role='button'],
+    .btn,
+    .side-link,
+    .item,
+    .tab-link
+  ):focus-visible {
     outline: 2px solid var(--w-brand);
     outline-offset: 2px;
     border-radius: var(--w-radius-sm);
@@ -2858,6 +2869,15 @@
   .signin-wrap {
     position: relative;
     display: grid;
+    /* `minmax(0, 1fr)` and not the implicit `auto` track.
+       An `auto` track is floored at its content's *min-content* width, and a
+       `.btn` is `white-space: nowrap` — so the longest label ("Email me a
+       sign-in link instead") set a floor wider than a 360px phone and the whole
+       column grew past the viewport, which is a sideways scrollbar on the one
+       screen that can least afford one. It only showed where the web font was
+       missing and a wider fallback was substituted, which is every CI box and
+       no machine here: 362px against a 360px viewport. */
+    grid-template-columns: minmax(0, 1fr);
     min-height: 100vh;
     /* `100dvh` where it is understood: on a phone the browser's own chrome
        eats a slice of `100vh`, which put the last button under the bar. */
@@ -2869,7 +2889,7 @@
       /* The picture gets the larger half and the form a fixed, comfortable
          column — a fraction each would stretch the fields to 700px at 1600px
          wide, and a 700px-wide text input looks broken however correct it is. */
-      grid-template-columns: 1fr minmax(420px, 34rem);
+      grid-template-columns: minmax(0, 1fr) minmax(420px, 34rem);
     }
   }
 
@@ -3110,6 +3130,11 @@
     width: 100%;
     padding: 12px 18px;
     font-size: var(--w-font-body);
+    /* These labels are sentences, not verbs — "Email me a sign-in link
+       instead" — and the shared `.btn` forbids wrapping, which is right for a
+       toolbar and wrong for a full-width button on a phone. Let them wrap
+       rather than push the page wider than the screen. */
+    white-space: normal;
   }
   .signin-card input {
     margin-block-end: 14px;
