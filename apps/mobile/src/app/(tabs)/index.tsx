@@ -159,12 +159,11 @@ export default function HomeScreen() {
           },
         ]
       : []),
-    {
-      icon: 'swap-horizontal',
-      label: t.settleUp,
-      tintKey: 'settle',
-      onPress: () => router.navigate('/friends'),
-    },
+    // No "settle up" tile. It navigated to `/friends`, which is the tab sitting
+    // directly below it in the bar — a second door onto a screen already one tap
+    // away, and the fifth tile that forced the row to scroll and cut itself in
+    // half at the right edge. Four is what the row holds (see
+    // `HomeQuickActions`); Friends keeps settling.
   ];
   const defaultCurrency = useDefaultCurrency();
   const insets = useSafeAreaInsets();
@@ -389,10 +388,13 @@ export default function HomeScreen() {
           style={{
             paddingTop: insets.top + theme.spacing.md,
             paddingHorizontal: theme.spacing.xl,
-            paddingBottom: theme.spacing.lg,
+            paddingBottom: theme.spacing.md,
             borderBottomLeftRadius: theme.radius.xxl,
             borderBottomRightRadius: theme.radius.xxl,
-            gap: theme.spacing.xl,
+            // Was xl. The hero holds three stacked things and paid 20 twice for
+            // the privilege; at lg it still breathes and the groups — the reason
+            // the screen exists — start higher up the glass.
+            gap: theme.spacing.lg,
             overflow: 'hidden',
           }}
         >
@@ -533,12 +535,23 @@ export default function HomeScreen() {
             MyGate and its neighbours put theirs. */}
         <HomeQuickActions actions={quickActions} />
 
+        {/* A hairline under the strip, the way a banking home separates its
+            action rail from the accounts beneath it. Without it the tiles and
+            the list read as one undifferentiated column of things to tap. */}
+        <View
+          style={{
+            height: StyleSheet.hairlineWidth,
+            marginHorizontal: theme.spacing.lg,
+            backgroundColor: theme.color.border,
+          }}
+        />
+
         {/* The white body beneath the hero: the groups list. Tightened to a
             WhatsApp-style side margin (lg) so the list reads dense, not floaty. */}
         <View
           style={{
             paddingHorizontal: theme.spacing.lg,
-            paddingTop: theme.spacing.lg,
+            paddingTop: theme.spacing.md,
             gap: theme.spacing.md,
             flexGrow: 1,
           }}

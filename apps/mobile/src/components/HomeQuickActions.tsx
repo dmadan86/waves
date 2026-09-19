@@ -11,8 +11,7 @@
  * you are and what you owe, and also being a toolbar. The expense screen does
  * not work that way: its hero holds the number, and the things you can do with
  * the number sit in a strip underneath it. This applies that same shape to
- * Home, and widens the strip from two actions to five, the way MyGate and most
- * Indian super-apps open.
+ * Home.
  *
  * What it borrows:
  *
@@ -20,12 +19,21 @@
  *     with the action named beneath it. `tintForKey` is the same function that
  *     sheet uses, so an action that appears in both wears the same colour in
  *     both. "Add expense" and "Scan bill" are the two that do.
- *   - A horizontal scroller rather than a wrapping grid, for the reason the
- *     quick-amount ladder scrolls: five tiles do not divide into a 360pt screen
- *     without either shrinking the targets below 44pt or wrapping to a second
- *     row whose single orphan tile reads as a mistake. Scrolling keeps every
- *     target full size and the block one row tall whatever the locale does to
- *     the labels.
+ *   - The row itself from Revolut Business, N26 and Cleo, all of which spread a
+ *     small fixed set of discs across the width and stop there. None of them
+ *     scrolls: a shortcut you have to find by dragging is not a shortcut, and a
+ *     tile cut in half by the right edge reads as a rendering fault rather than
+ *     an invitation.
+ *
+ * Two consequences of not scrolling, both deliberate:
+ *
+ *   - The set has to stay at four. Whatever is fifth belongs in the hero's
+ *     overflow menu or its own tab, not here.
+ *   - A horizontal `ScrollView` cannot be used even for the overflow case,
+ *     because React Native's base scroll style is `flexGrow: 1` — inside Home's
+ *     `flexGrow: 1` content container that made the strip swallow every spare
+ *     point of the column, opening a dead band between the tiles and "Your
+ *     groups" that nothing in the layout accounted for.
  *
  * Deliberately not overlapping the hero. A card pulled up under a rounded hero
  * corner is the obvious MyGate flourish, and it is how you get a row of buttons
@@ -34,7 +42,7 @@
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, ScrollView, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
 import { iconSize, Text, tintForKey, useTheme } from '@waves/ui';
 
@@ -56,11 +64,12 @@ export interface HomeAction {
 }
 
 /**
- * Wide enough for two words of Tamil or Arabic without clipping, narrow enough
- * that a fifth tile peeks in at 360pt and says the row scrolls.
+ * Smaller than the sheet's disc. The sheet is a menu you are reading; this is a
+ * strip you glance past on the way to the groups, and at 56 it competed with
+ * the hero for the eye. 52 keeps the tap target well over 44 with the label
+ * counted in.
  */
-const TILE = 76;
-const DISC = 56;
+const DISC = 52;
 
 export function HomeQuickActions({
   actions,
@@ -70,13 +79,13 @@ export function HomeQuickActions({
   const theme = useTheme();
 
   return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={{
-        gap: theme.spacing.sm,
+    <View
+      style={{
+        flexDirection: 'row',
         paddingHorizontal: theme.spacing.lg,
-        paddingVertical: theme.spacing.md,
+        paddingTop: theme.spacing.lg,
+        paddingBottom: theme.spacing.sm,
+        gap: theme.spacing.sm,
       }}
     >
       {actions.map((action) => {
@@ -88,7 +97,6 @@ export function HomeQuickActions({
             onPress={action.onPress}
             onLongPress={action.onLongPress}
             style={({ pressed }) => ({
-              width: TILE,
               alignItems: 'center',
               gap: theme.spacing.xs,
               opacity: pressed ? 0.6 : 1,
@@ -108,14 +116,20 @@ export function HomeQuickActions({
             </View>
             {/* Two lines, centred: "Bank messages" and its translations do not
                 fit on one at this width, and a truncated label on a glyph the
-                person has not learned yet is no label at all. */}
+                person has not learned yet is no label at all. The tile takes an
+                equal share of the row (`flex: 1` on the wrapper below), so the
+                width a label has to wrap into is the same in every locale. */}
             <Text variant="caption" numberOfLines={2} style={{ textAlign: 'center' }}>
               {action.label}
             </Text>
           </Pressable>
         );
-        return <View key={action.label}>{action.wrap ? action.wrap(tile) : tile}</View>;
+        return (
+          <View key={action.label} style={{ flex: 1 }}>
+            {action.wrap ? action.wrap(tile) : tile}
+          </View>
+        );
       })}
-    </ScrollView>
+    </View>
   );
 }
