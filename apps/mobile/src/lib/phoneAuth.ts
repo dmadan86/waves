@@ -28,6 +28,7 @@
 
 import { AuthMethod, planAuth, type Viewer } from '@waves/core';
 
+import { ensureAppCheck } from '@/lib/appCheck';
 import { backend } from '@/lib/backend';
 import { loadFirebaseAuth, type FirebaseAuth, type PhoneConfirmation } from '@/lib/firebaseModule';
 
@@ -69,6 +70,18 @@ export class PhoneSignInUnavailable extends Error {
 export async function sendPhoneCode(phone: string): Promise<void> {
   const auth = firebaseAuth();
   if (!auth) throw new PhoneSignInUnavailable();
+  // Attest first, because this is the call that spends money: every send is a
+  // billed SMS, and App Check is what stops that bill belonging to somebody who
+  // read the API key out of the APK. Here rather than at launch on purpose —
+  // most people never open the phone door, and starting Play Integrity for all
+  // of them would be native work at the one moment the app must be fastest.
+  //
+  // Awaited, so the attestation is in hand before the request rather than
+  // racing it; not checked, because a `false` means this build or this device
+  // could not attest, and refusing the sign-in for that would break the thing
+  // App Check is here to protect. Firebase decides, and it decides with the
+  // token if there is one.
+  await ensureAppCheck();
   const confirmation = await auth().signInWithPhoneNumber(phone);
   pending = { phone, confirmation };
 }

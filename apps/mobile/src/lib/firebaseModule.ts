@@ -1,5 +1,5 @@
 /**
- * The one place `@react-native-firebase/auth` is named.
+ * The one place `@react-native-firebase/auth` and `/app-check` are named.
  *
  * It is a **native module**, so importing it at the top of a file means an app
  * whose JavaScript was updated over the air, on a binary built before Firebase
@@ -31,6 +31,55 @@ export function loadFirebaseAuth(): FirebaseAuth | null {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const loaded = require('@react-native-firebase/auth') as { default?: FirebaseAuth };
     return loaded.default ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * What App Check needs from the two modules that set it up.
+ *
+ * Typed structurally rather than imported, for the same reason as everything
+ * above: naming the package in a type position is still naming the package, and
+ * a build without it must not so much as reach for the name.
+ */
+export interface FirebaseAppCheck {
+  getApp: () => unknown;
+  initializeAppCheck: (
+    app: unknown,
+    options: {
+      provider: {
+        providerOptions: {
+          android: { provider: 'debug' | 'playIntegrity' };
+          apple: { provider: 'debug' | 'appAttestWithDeviceCheckFallback' };
+        };
+      };
+      isTokenAutoRefreshEnabled: boolean;
+    },
+  ) => Promise<unknown>;
+}
+
+/**
+ * The App Check pieces, or null on a build without them. Never throws.
+ *
+ * Two requires rather than one because the app handle and the initialiser live
+ * in different packages, and either can be missing independently — an older
+ * binary has `/app` (phone sign-in has needed it since it shipped) but no
+ * `/app-check`. Returning null unless *both* are present is what keeps that
+ * build running instead of dying on a property of undefined.
+ */
+export function loadFirebaseAppCheck(): FirebaseAppCheck | null {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const app = require('@react-native-firebase/app') as { getApp?: () => unknown };
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const check = require('@react-native-firebase/app-check') as {
+      initializeAppCheck?: FirebaseAppCheck['initializeAppCheck'];
+    };
+    if (typeof app.getApp !== 'function' || typeof check.initializeAppCheck !== 'function') {
+      return null;
+    }
+    return { getApp: app.getApp, initializeAppCheck: check.initializeAppCheck };
   } catch {
     return null;
   }
