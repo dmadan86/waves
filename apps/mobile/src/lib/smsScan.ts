@@ -69,8 +69,9 @@ import { smsReaderInBuild } from './smsFeature';
 import { knownKeys, saveMessages } from './smsMessageStore';
 import {
   readSmsGranted,
+  // A value now, not just a type: `deviceGateReason` returns members of it.
+  SmsReadFailure,
   smsPermissionGranted,
-  type SmsReadFailure,
   type SmsWindow,
 } from './smsReader';
 import { draftsFor, scanMaxCount, scanWindow, toIncoming, type ScanScope } from './smsScanPlan';
@@ -142,11 +143,33 @@ const nextFrame = (): Promise<void> =>
  * reader *on*; it can only decline.
  */
 export async function deviceGatesOpen(): Promise<boolean> {
+  return (await deviceGateReason()) === null;
+}
+
+/**
+ * The same two gates, but keeping *which* one shut.
+ *
+ * `deviceGatesOpen` threw that away, and the scan then reported `ok: false`
+ * with no reason at all -- so a phone that had simply never been asked for the
+ * permission was indistinguishable from one that cannot read messages at all.
+ * The sheet, having nothing to tell them apart with, said "Nothing new since
+ * last time." to both.
+ *
+ * Null means both gates are open. Otherwise it is the failure a caller should
+ * report, in the same vocabulary `readSmsInbox` already uses, so one set of
+ * sentences covers both paths.
+ */
+export async function deviceGateReason(): Promise<SmsReadFailure | null> {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { Platform } = require('react-native') as typeof import('react-native');
-  if (Platform.OS !== 'android') return false;
-  if (!smsReaderInBuild()) return false;
-  return smsPermissionGranted();
+  // Neither of these can change without a new binary: an iPhone, or an Android
+  // build made without the reader, will never read messages however often it
+  // is asked.
+  if (Platform.OS !== 'android') return SmsReadFailure.Unsupported;
+  if (!smsReaderInBuild()) return SmsReadFailure.Unsupported;
+  // `Denied` covers "never asked" as well as "said no": this path only checks,
+  // never prompts, and the two look identical from here.
+  return (await smsPermissionGranted()) ? null : SmsReadFailure.Denied;
 }
 
 /**
@@ -280,7 +303,8 @@ export function scanFor(
 export async function runScan(input: ScanInput): Promise<ScanResult> {
   const report = input.onProgress ?? ((): void => {});
   if (!input.ownerId) return NOTHING;
-  if (!(await deviceGatesOpen())) return NOTHING;
+  const shut = await deviceGateReason();
+  if (shut !== null) return { ...NOTHING, failure: shut };
 
   try {
     report({ stage: 'reading' });
