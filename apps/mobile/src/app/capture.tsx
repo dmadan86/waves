@@ -809,8 +809,14 @@ export default function CaptureScreen() {
 
             `autoFill` only does anything for somebody who has already granted
             the permission on an earlier expense — it never asks — and the cross
-            on the result clears it for good on this form. */}
-        <LocationField value={location} onChange={setLocation} autoFill />
+            on the result clears it for good on this form.
+
+            Off while editing. A saved expense already has its answer, including
+            when that answer was "nowhere": reading the phone's fix on an edit
+            would quietly move a restaurant in Goa to the reader's kitchen a
+            week later. The field's own guard only covers an expense that
+            *recorded* a place; this covers the ones that did not. */}
+        <LocationField value={location} onChange={setLocation} autoFill={!isEditing} />
       </ScrollView>
 
       <View
