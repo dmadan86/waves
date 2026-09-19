@@ -18,6 +18,12 @@
  * registers itself. Nobody exchanges an API key, and we never hold one.
  */
 
+/**
+ * Where GoTrue lives under a Supabase project, and therefore the issuer it
+ * claims. Not a guess: it is the `issuer` field of that server's own metadata.
+ */
+const AUTH_PATH = '/auth/v1';
+
 /** RFC 9728 §2 — the document a client fetches to find the authorization server. */
 export interface ProtectedResourceMetadata {
   readonly resource: string;
@@ -35,9 +41,9 @@ export interface ProtectedResourceMetadata {
  * in the wrong place is a mismatch a client reports as an opaque refusal.
  *
  * @param mcpUrl the endpoint, e.g. `https://app.wavs.co.in/api/mcp`
- * @param supabaseUrl the project acting as authorization server, e.g.
- *   `https://<ref>.supabase.co` — its own metadata lives at
- *   `/.well-known/oauth-authorization-server`, which the client fetches next.
+ * @param supabaseUrl the project, e.g. `https://<ref>.supabase.co`. The
+ *   authorization server is GoTrue *under* it — see `AUTH_PATH` below for why
+ *   this function appends a path rather than advertising the apex.
  */
 export function protectedResourceMetadata(
   mcpUrl: string,
@@ -50,7 +56,21 @@ export function protectedResourceMetadata(
     // tokens it mints are ordinary Supabase JWTs, so every RLS policy in this
     // repo applies to an agent's request unchanged. That is the reason this
     // whole thing is small.
-    authorization_servers: [trimSlash(supabaseUrl)],
+    //
+    // `/auth/v1`, and not the project's apex, because that is the issuer GoTrue
+    // actually claims:
+    //
+    //     "issuer": "https://<ref>.supabase.co/auth/v1"
+    //
+    // A client reads this array and goes looking for that server's own
+    // metadata. RFC 8414 §3 builds the URL by inserting the well-known segment
+    // *before* the issuer's path, so the issuer above resolves to
+    // `/.well-known/oauth-authorization-server/auth/v1` — which answers 200.
+    // Advertising the apex sent it to `/.well-known/oauth-authorization-server`
+    // instead, which is a 404 on a Supabase project, and the whole chain stopped
+    // one step after our own document. The refusal a client reports for that is
+    // "no authorization server", which points at the wrong half of the system.
+    authorization_servers: [`${trimSlash(supabaseUrl)}${AUTH_PATH}`],
     bearer_methods_supported: ['header'],
     // The scopes Supabase's OAuth server issues. Waves does not subdivide
     // further: what an agent may do is decided by RLS and by the ceilings in
