@@ -103,6 +103,33 @@ function AppleMark() {
   );
 }
 
+/**
+ * The eye on the password field.
+ *
+ * Drawn rather than imported: this file already carries two brand marks as
+ * paths, and one icon package for one glyph is a dependency for a dependency's
+ * sake. `aria-hidden`, because the button around it carries the words — a
+ * reader that announced the icon as well would say it twice.
+ */
+function EyeMark({ off }: { off: boolean }) {
+  return (
+    <svg width={18} height={18} viewBox="0 0 24 24" aria-hidden focusable="false">
+      <path
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={1.7}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"
+      />
+      <circle cx={12} cy={12} r={3.1} fill="none" stroke="currentColor" strokeWidth={1.7} />
+      {off ? (
+        <path stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" d="M4 20 20 4" />
+      ) : null}
+    </svg>
+  );
+}
+
 export function SignIn() {
   const { t, locale } = useStrings();
   const {
@@ -119,6 +146,12 @@ export function SignIn() {
   const [password, setPassword] = useState('');
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /**
+   * Whether the password is showing. False on every load, deliberately: a
+   * field that remembered it had been revealed would show somebody's password
+   * to whoever opened the laptop next.
+   */
+  const [shown, setShown] = useState(false);
   /**
    * Whether Google's own button is on screen. Until it is, the pill below
    * stands in — a browser that blocks the script, or has no client id
@@ -247,143 +280,218 @@ export function SignIn() {
   return (
     <div className="signin-wrap">
       {/*
-        The half that says what this is.
+        The illustrated half.
 
-        A lone card centred in a field of brand colour is a login box, not a
-        product: at desktop width it was 400px of form adrift in 1280px of
-        purple, which tells somebody who followed a link here nothing about
-        what they have arrived at. This column carries the name and the
-        sentence; below 900px it stacks above the card, where it reads as a
-        heading rather than a second column squeezed thin.
+        A lone card centred in a field of colour is a login box, not a product:
+        somebody who followed a link here learns nothing about what they have
+        arrived at. This half carries the name, one honest sentence, and a drawn
+        picture of the thing itself — a spending bar and a short list of people,
+        which is what the app actually shows you.
+
+        It is decoration, so the picture is `aria-hidden` and the whole half is
+        dropped below 960px: an illustration that pushes the fields under the
+        fold on a phone is worse than no illustration.
 
         Deliberately no feature list. Every claim would need saying in four
-        languages, and the phone's own list — works offline, scan a receipt —
-        is not true here: neither ships on the web. An honest name and one
-        honest sentence beat three translated boasts.
+        languages, and the phone's own list — works offline, scan a receipt — is
+        not true here: neither ships on the web.
       */}
-      <div className="door-say">
-        <div className="brand door-brand">
-          <span className="brand-mark" aria-hidden>
-            ₹
-          </span>
-          {t.dash.signInTitle}
-        </div>
-        <p className="door-tagline">{t.dash.signInBody}</p>
+      {/*
+        One wordmark, outside both halves.
+
+        It used to live inside the illustrated panel, which is hidden below
+        960px — so a phone showed a login form with no name on it at all, to
+        exactly the person most likely to have arrived from a link and to need
+        telling where they are. Out here it is absolutely placed over the
+        picture at desktop width and sits above the card on a phone: one
+        element, one position in the document, two layouts.
+      */}
+      <div className="brand door-brand">
+        <span className="brand-mark" aria-hidden>
+          ₹
+        </span>
+        {t.dash.signInTitle}
       </div>
 
-      {/* The card is the ways in, and nothing else. The name sits beside it
-          (or above it on a phone), so repeating it here would be the same
-          wordmark twice on one screen. */}
-      <div className="signin-card">
-        {sent ? (
-          <>
-            <h2 style={{ marginBottom: 8 }}>{t.dash.linkSentTitle}</h2>
-            <p>{fill(t.dash.linkSentBody, { email: email.trim() })}</p>
-          </>
-        ) : (
-          <>
-            {/*
-              Google first, Apple second, on every platform.
+      <aside className="door-art">
+        <div className="door-stage" aria-hidden>
+          <span className="door-orb" />
+          <span className="door-tile door-tile-a">
+            <span className="door-tile-num" dir="ltr">
+              ₹1,240
+            </span>
+            <span className="door-tile-bars">
+              <i style={{ height: '38%' }} />
+              <i style={{ height: '62%' }} />
+              <i style={{ height: '46%' }} />
+              <i style={{ height: '88%' }} />
+              <i style={{ height: '70%' }} />
+            </span>
+          </span>
+          <span className="door-tile door-tile-b">
+            <span className="door-row">
+              <i className="door-dot" />
+              <i className="door-line" />
+            </span>
+            <span className="door-row">
+              <i className="door-dot door-dot-2" />
+              <i className="door-line door-line-2" />
+            </span>
+            <span className="door-row">
+              <i className="door-dot door-dot-3" />
+              <i className="door-line door-line-3" />
+            </span>
+          </span>
+        </div>
 
-              The app reorders these — Apple leads on iOS, where its guidelines
-              want it at least as prominent as its neighbours — but the app
-              knows what it is running on before it draws anything. This is
-              server-rendered: a platform sniff here would produce one order on
-              the server and possibly another in the browser, and React would
-              throw the markup away and redraw. The guideline is satisfied
-              without reordering, because both are the same full-width pill at
-              the same size and corner; only the order is fixed.
-            */}
-            {inPageGoogle ? (
-              <GoogleIdentity
-                onCredential={onGoogleCredential}
-                onReady={() => setGsiDrawn(true)}
-                onUnavailable={() => setGsiDrawn(false)}
-                locale={locale}
-              />
-            ) : null}
+        <p className="door-tagline">{t.dash.signInBody}</p>
+      </aside>
 
-            {gsiDrawn ? null : (
+      {/* The ways in, and nothing else. The name sits on the other half, so
+          repeating it here would be the same wordmark twice on one screen. */}
+      <div className="door-form">
+        <div className="signin-card">
+          {sent ? (
+            <>
+              <h1 className="door-head">{t.dash.linkSentTitle}</h1>
+              <p className="door-sub">{fill(t.dash.linkSentBody, { email: email.trim() })}</p>
+            </>
+          ) : (
+            <>
+              <h1 className="door-head">{t.dash.doorWelcome}</h1>
+              <p className="door-sub">{t.dash.doorSub}</p>
+
+              <form onSubmit={onPassword} className="door-fields">
+                <label className="door-label" htmlFor="door-email">
+                  {t.dash.emailLabel}
+                </label>
+                <input
+                  id="door-email"
+                  type="email"
+                  inputMode="email"
+                  autoComplete="email"
+                  value={email}
+                  placeholder={t.dash.emailPlaceholder}
+                  onChange={(e) => setEmail(e.target.value)}
+                  style={{ textAlign: 'start' }}
+                />
+
+                <label className="door-label" htmlFor="door-password">
+                  {t.dash.passwordLabel}
+                </label>
+                {/* The eye sits inside the field's own box rather than beside
+                    it, so the row reads as one control. Positioned to the
+                    logical end, so in Arabic it mirrors with the field instead
+                    of sitting over the first letter. */}
+                <div className="door-secret">
+                  <input
+                    id="door-password"
+                    type={shown ? 'text' : 'password'}
+                    autoComplete={mode === 'sign_up' ? 'new-password' : 'current-password'}
+                    value={password}
+                    placeholder={t.dash.passwordPlaceholder}
+                    onChange={(e) => setPassword(e.target.value)}
+                    style={{ textAlign: 'start' }}
+                  />
+                  <button
+                    type="button"
+                    className="door-eye"
+                    onClick={() => setShown((was) => !was)}
+                    aria-label={shown ? t.dash.hidePassword : t.dash.showPassword}
+                    aria-pressed={shown}
+                  >
+                    <EyeMark off={shown} />
+                  </button>
+                </div>
+
+                <button type="submit" className="btn brand block" disabled={busy !== null}>
+                  {busy === 'password'
+                    ? t.dash.signingIn
+                    : mode === 'sign_up'
+                      ? t.dash.passwordSignUp
+                      : t.dash.passwordSignIn}
+                </button>
+              </form>
+
+              <p className="door-swap">
+                <button
+                  type="button"
+                  className="linklike"
+                  onClick={() => {
+                    setError(null);
+                    setMode((m) => (m === 'sign_in' ? 'sign_up' : 'sign_in'));
+                  }}
+                  disabled={busy !== null}
+                >
+                  {mode === 'sign_in' ? t.dash.toggleToSignUp : t.dash.toggleToSignIn}
+                </button>
+              </p>
+
+              <div className="signin-or">{t.dash.orDivider}</div>
+
+              {/*
+                Google first, Apple second, on every platform.
+
+                The app reorders these — Apple leads on iOS, where its
+                guidelines want it at least as prominent as its neighbours — but
+                the app knows what it is running on before it draws anything.
+                This is server-rendered: a platform sniff here would produce one
+                order on the server and possibly another in the browser, and
+                React would throw the markup away and redraw. The guideline is
+                satisfied without reordering, because both are the same
+                full-width pill at the same size and corner; only the order is
+                fixed.
+              */}
+              {inPageGoogle ? (
+                <GoogleIdentity
+                  onCredential={onGoogleCredential}
+                  onReady={() => setGsiDrawn(true)}
+                  onUnavailable={() => setGsiDrawn(false)}
+                  locale={locale}
+                />
+              ) : null}
+
+              {gsiDrawn ? null : (
+                <button
+                  type="button"
+                  className="btn google"
+                  onClick={onGoogle}
+                  disabled={busy !== null}
+                >
+                  <GoogleMark />
+                  {busy === 'google' ? t.dash.signingIn : t.dash.continueWithGoogle}
+                </button>
+              )}
+
               <button
                 type="button"
-                className="btn google"
-                onClick={onGoogle}
+                className="btn apple"
+                onClick={onApple}
                 disabled={busy !== null}
               >
-                <GoogleMark />
-                {busy === 'google' ? t.dash.signingIn : t.dash.continueWithGoogle}
+                <AppleMark />
+                {busy === 'apple' ? t.dash.signingIn : t.dash.continueWithApple}
               </button>
-            )}
 
-            <button type="button" className="btn apple" onClick={onApple} disabled={busy !== null}>
-              <AppleMark />
-              {busy === 'apple' ? t.dash.signingIn : t.dash.continueWithApple}
-            </button>
-
-            <div className="signin-or">{t.dash.orDivider}</div>
-
-            <form onSubmit={onPassword}>
-              <input
-                type="email"
-                inputMode="email"
-                autoComplete="email"
-                value={email}
-                placeholder={t.dash.emailPlaceholder}
-                onChange={(e) => setEmail(e.target.value)}
-                aria-label={t.dash.emailPlaceholder}
-                style={{ textAlign: 'start' }}
-              />
-              <input
-                type="password"
-                autoComplete={mode === 'sign_up' ? 'new-password' : 'current-password'}
-                value={password}
-                placeholder={t.dash.passwordPlaceholder}
-                onChange={(e) => setPassword(e.target.value)}
-                aria-label={t.dash.passwordPlaceholder}
-                style={{ textAlign: 'start' }}
-              />
-              {/* The card's one action wears the brand rather than the ink:
-                  Apple's button is black by their guidelines and sits three
-                  rows above, so a black submit below it reads as the same
-                  control twice — and on the dark card a near-black button all
-                  but disappears. */}
-              <button type="submit" className="btn brand block" disabled={busy !== null}>
-                {busy === 'password'
-                  ? t.dash.signingIn
-                  : mode === 'sign_up'
-                    ? t.dash.passwordSignUp
-                    : t.dash.passwordSignIn}
+              <button
+                type="button"
+                className="btn soft block"
+                onClick={onMagicLink}
+                disabled={busy !== null}
+              >
+                {busy === 'link' ? t.dash.sendingLink : t.dash.sendMagicLink}
               </button>
-            </form>
 
-            <button
-              type="button"
-              className="linklike"
-              onClick={() => {
-                setError(null);
-                setMode((m) => (m === 'sign_in' ? 'sign_up' : 'sign_in'));
-              }}
-              disabled={busy !== null}
-            >
-              {mode === 'sign_in' ? t.dash.toggleToSignUp : t.dash.toggleToSignIn}
-            </button>
+              {error ? (
+                <p className="error" role="alert">
+                  {error}
+                </p>
+              ) : null}
 
-            <div className="signin-or">{t.dash.orDivider}</div>
-
-            <button
-              type="button"
-              className="btn soft block"
-              onClick={onMagicLink}
-              disabled={busy !== null}
-            >
-              {busy === 'link' ? t.dash.sendingLink : t.dash.sendMagicLink}
-            </button>
-
-            {error ? <p className="error">{error}</p> : null}
-
-            <p className="signin-or">{t.dash.guestInstead}</p>
-          </>
-        )}
+              <p className="door-foot">{t.dash.guestInstead}</p>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
