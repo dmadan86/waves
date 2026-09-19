@@ -1105,6 +1105,33 @@ export interface WebStrings {
     };
     scope: ScopeWords;
   };
+  /**
+   * The consent screen for somebody else's agent.
+   *
+   * Supabase's OAuth 2.1 server sends a person here with an `authorization_id`,
+   * and what they approve is not a scope list — it is a Supabase session. The
+   * three scopes the server speaks (`openid`, `email`, `profile`) describe the
+   * identity token and say nothing about the ledger, so a screen that recited
+   * them would be true and useless. These words describe what the token can
+   * actually reach through `/api/mcp`, which is everything RLS lets that person
+   * reach themselves.
+   */
+  agents: {
+    /** `{email}`: whose account is about to be handed over. */
+    signedInAs: string;
+    /** The heading over the real capability list. */
+    willBeAbleTo: string;
+    reads: string;
+    writes: string;
+    /** Said plainly, because the scope names hide it. */
+    asYou: string;
+    /** The one thing it can never do, worth saying on this screen. */
+    neverMoves: string;
+    deny: string;
+    denying: string;
+    /** Shown instead of a client-supplied logo — see the page for why. */
+    unverified: string;
+  };
   errors: {
     couldNotLoad: string;
     couldNotSignIn: string;
@@ -1935,6 +1962,18 @@ const en: WebStrings = {
       'categories.write': 'Add, change and hide your expense categories.',
       offline_access: 'Stay connected without asking you again.',
     },
+  },
+  agents: {
+    signedInAs: 'Signed in as {email}',
+    willBeAbleTo: 'If you approve, it will be able to:',
+    reads: 'Read your groups, expenses, balances and the people you split with',
+    writes: 'Add expenses, create groups and record settlements',
+    asYou: 'It acts as you. It can reach exactly what you can reach, and nothing else.',
+    neverMoves:
+      'It cannot move money. Settlements are recorded; paying stays something you do yourself.',
+    deny: 'Deny',
+    denying: 'Denying…',
+    unverified: 'Waves has not verified this application.',
   },
   errors: {
     couldNotLoad: 'Couldn’t load this. Try again in a moment.',
@@ -2799,6 +2838,19 @@ const ta: WebStrings = {
       offline_access: 'மீண்டும் கேட்காமல் இணைந்திருக்கும்.',
     },
   },
+  agents: {
+    signedInAs: '{email} என உள்நுழைந்துள்ளீர்கள்',
+    willBeAbleTo: 'நீங்கள் ஒப்புதல் அளித்தால், இதனால் முடியும்:',
+    reads: 'உங்கள் குழுக்கள், செலவுகள், இருப்புகள் மற்றும் நீங்கள் பங்கிடுபவர்களைப் படிக்க',
+    writes: 'செலவுகளைச் சேர்க்க, குழுக்களை உருவாக்க, தீர்வுகளைப் பதிவு செய்ய',
+    asYou:
+      'இது உங்களாகவே செயல்படுகிறது. நீங்கள் அணுகக்கூடியதை மட்டுமே அணுக முடியும், வேறு எதுவும் இல்லை.',
+    neverMoves:
+      'இது பணத்தை அனுப்ப முடியாது. தீர்வுகள் பதிவு செய்யப்படுகின்றன; பணம் செலுத்துவது நீங்கள் செய்வதாகவே இருக்கும்.',
+    deny: 'மறு',
+    denying: 'மறுக்கிறது…',
+    unverified: 'இந்தப் பயன்பாட்டை Waves சரிபார்க்கவில்லை.',
+  },
   errors: {
     couldNotLoad: 'இதை ஏற்ற முடியவில்லை. சிறிது நேரத்தில் மீண்டும் முயலவும்.',
     couldNotSignIn: 'உள்நுழைய முடியவில்லை. மீண்டும் முயற்சிக்கவும்.',
@@ -3630,6 +3682,18 @@ const hi: WebStrings = {
       'categories.write': 'आपकी खर्च श्रेणियाँ जोड़ना, बदलना और छिपाना।',
       offline_access: 'दोबारा पूछे बिना जुड़े रहना।',
     },
+  },
+  agents: {
+    signedInAs: '{email} के रूप में साइन इन',
+    willBeAbleTo: 'आपकी मंज़ूरी के बाद यह कर सकेगा:',
+    reads: 'आपके समूह, ख़र्च, बकाया और जिनके साथ आप बाँटते हैं, उन्हें पढ़ना',
+    writes: 'ख़र्च जोड़ना, समूह बनाना और निपटान दर्ज करना',
+    asYou:
+      'यह आपकी ओर से काम करता है। जो आप देख सकते हैं वही यह देख सकता है, इससे ज़्यादा कुछ नहीं।',
+    neverMoves: 'यह पैसे नहीं भेज सकता। निपटान दर्ज होते हैं; भुगतान आप ही करते हैं।',
+    deny: 'मना करें',
+    denying: 'मना कर रहे हैं…',
+    unverified: 'Waves ने इस ऐप्लिकेशन की जाँच नहीं की है।',
   },
   errors: {
     couldNotLoad: 'यह लोड नहीं हो सका। थोड़ी देर में फिर कोशिश करें।',
@@ -4528,6 +4592,17 @@ const ar: WebStrings = {
       'categories.write': 'إضافة فئات مصروفاتك وتغييرها وإخفاؤها.',
       offline_access: 'البقاء متصلًا دون أن يسألك مرة أخرى.',
     },
+  },
+  agents: {
+    signedInAs: 'مسجّل الدخول باسم {email}',
+    willBeAbleTo: 'إذا وافقت، سيكون بإمكانه:',
+    reads: 'قراءة مجموعاتك ومصروفاتك وأرصدتك ومن تتقاسم معهم',
+    writes: 'إضافة مصروفات وإنشاء مجموعات وتسجيل التسويات',
+    asYou: 'يتصرّف نيابة عنك. يصل إلى ما تصل إليه أنت فقط، ولا شيء غير ذلك.',
+    neverMoves: 'لا يمكنه تحويل الأموال. التسويات تُسجَّل فقط؛ الدفع يبقى بيدك.',
+    deny: 'رفض',
+    denying: 'جارٍ الرفض…',
+    unverified: 'لم تتحقّق Waves من هذا التطبيق.',
   },
   errors: {
     couldNotLoad: 'تعذّر تحميل هذا. حاول بعد قليل.',
