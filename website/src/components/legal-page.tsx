@@ -23,6 +23,7 @@ export function LegalPage({
   intro,
   sections,
   t,
+  note,
 }: {
   locale: Locale;
   title: string;
@@ -30,6 +31,12 @@ export function LegalPage({
   intro: string;
   sections: LegalSection[];
   t: Dictionary['legal'];
+  /**
+   * Overrides the "published in English" line. The default names our *legal
+   * documents*, which is the wrong noun on a page that is a guide rather than
+   * a policy — and this shell is now used for both.
+   */
+  note?: string;
 }) {
   return (
     <>
@@ -56,7 +63,7 @@ export function LegalPage({
           <h1 className="mt-4 text-[2.25rem] font-semibold tracking-[-0.035em] text-ink sm:text-[3rem]">
             {title}
           </h1>
-          <p className="mt-3 font-mono text-[0.75rem] text-ink-3">{t.englishOnly}</p>
+          <p className="mt-3 font-mono text-[0.75rem] text-ink-3">{note ?? t.englishOnly}</p>
 
           <div lang="en" dir="ltr" className="mt-12 space-y-10">
             <p className="text-pretty text-[1.0625rem] leading-[1.65] text-ink-2">{intro}</p>

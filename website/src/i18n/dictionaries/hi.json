@@ -667,7 +667,8 @@
     "lastUpdated": "आख़िरी अपडेट",
     "backHome": "होम पर वापस",
     "englishOnly": "हमारे क़ानूनी दस्तावेज़ अंग्रेज़ी में प्रकाशित होते हैं।",
-    "deleteTitle": "खाता हटाना"
+    "deleteTitle": "खाता हटाना",
+    "mcpTitle": "AI एजेंट जोड़ें"
   },
   "currencies": {
     "eyebrow": "हर जगह",

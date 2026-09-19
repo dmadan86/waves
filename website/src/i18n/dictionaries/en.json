@@ -662,7 +662,8 @@
     "lastUpdated": "Last updated",
     "backHome": "Back to home",
     "englishOnly": "Our legal documents are published in English.",
-    "deleteTitle": "Delete your account"
+    "deleteTitle": "Delete your account",
+    "mcpTitle": "Connect an AI agent"
   },
   "currencies": {
     "eyebrow": "Everywhere",
