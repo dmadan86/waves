@@ -182,7 +182,18 @@
     width: auto;
   }
 
-  :where(a, button, input, select, textarea, [role='button'], .btn, .side-link, .item, .tab-link):focus-visible {
+  :where(
+    a,
+    button,
+    input,
+    select,
+    textarea,
+    [role='button'],
+    .btn,
+    .side-link,
+    .item,
+    .tab-link
+  ):focus-visible {
     outline: 2px solid var(--w-brand);
     outline-offset: 2px;
     border-radius: var(--w-radius-sm);
@@ -2847,83 +2858,254 @@
      where the page gets to say what it is. `align-items: center` rather than
      stretch: the two halves are different heights and neither should grow to
      match the other. */
-  .signin-wrap {
-    display: grid;
-    min-height: 100vh;
-    align-content: center;
-    justify-items: center;
-    gap: 28px;
-    padding: 32px 24px;
-    background: var(--w-gradient-brand) fixed;
-  }
-  @media (min-width: 900px) {
-    .signin-wrap {
-      /* Both columns sized to their content and the pair centred, rather than
-         one fraction each: a `1fr` column pushes the text to the far left and
-         the card to the far right, so at 1280px they read as two unrelated
-         things at opposite edges instead of one page.
+  /* ── The door ──────────────────────────────────────────────────────────
+     Two panels: a quiet illustrated one that says what this is, and a plain
+     one holding the ways in. Below 960px the illustration is dropped entirely
+     rather than stacked — on a phone it would push the fields under the fold,
+     and a picture is not worth a scroll before somebody can type.
 
-         `auto` and not a fixed track, either. A 30rem track holds its text
-         against the track's own start edge, so the space between the halves
-         was whatever the sentence did not use — about 600px with the Arabic
-         tagline, which is shorter. The measure belongs to `.door-say`, and the
-         gap below is then the real distance between them. */
-      grid-template-columns: auto auto;
+     Every length here is logical (`inline`/`block`, `start`/`end`), so Arabic
+     mirrors without a second rule. */
+  .signin-wrap {
+    position: relative;
+    display: grid;
+    /* `minmax(0, 1fr)` and not the implicit `auto` track.
+       An `auto` track is floored at its content's *min-content* width, and a
+       `.btn` is `white-space: nowrap` — so the longest label ("Email me a
+       sign-in link instead") set a floor wider than a 360px phone and the whole
+       column grew past the viewport, which is a sideways scrollbar on the one
+       screen that can least afford one. It only showed where the web font was
+       missing and a wider fallback was substituted, which is every CI box and
+       no machine here: 362px against a 360px viewport. */
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 100vh;
+    /* `100dvh` where it is understood: on a phone the browser's own chrome
+       eats a slice of `100vh`, which put the last button under the bar. */
+    min-height: 100dvh;
+    background: var(--w-surface);
+  }
+  @media (min-width: 960px) {
+    .signin-wrap {
+      /* The picture gets the larger half and the form a fixed, comfortable
+         column — a fraction each would stretch the fields to 700px at 1600px
+         wide, and a 700px-wide text input looks broken however correct it is. */
+      grid-template-columns: minmax(0, 1fr) minmax(420px, 34rem);
+    }
+  }
+
+  .door-art {
+    display: none;
+  }
+  @media (min-width: 960px) {
+    .door-art {
+      position: relative;
+      display: flex;
+      overflow: hidden;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      justify-items: start;
-      gap: 72px;
       padding: 48px;
+      /* The one tinted ground in the app. Faint on purpose: the form is what
+         somebody came to use, and a saturated half would pull the eye away
+         from it every time. */
+      background: var(--w-brand-soft);
     }
   }
-  /* White on the brand gradient, which is the one place in this app where
-     text sits on colour rather than on a surface. Both tones are fixed rather
-     than tokened for that reason: the ground here does not change with the
-     theme, so neither may the ink. */
-  .door-say {
-    max-width: 30ch;
-    text-align: center;
-    color: #fff;
-  }
-  @media (min-width: 900px) {
-    .door-say {
-      /* Wide enough for the sentence to break where the words allow. At 15ch
-         it broke into five stubs — "Split / expenses / without the / argument
-         at / the end." — which reads as a column of fragments, not a claim. */
-      max-width: 26ch;
-      text-align: start;
-    }
-  }
+  /* On a phone: above the card, centred, in the normal flow. */
   .door-brand {
     justify-content: center;
+    padding-block-start: 32px;
     font-size: var(--w-font-title);
-    color: #fff;
   }
-  @media (min-width: 900px) {
+  @media (min-width: 960px) {
     .door-brand {
-      justify-content: flex-start;
-      /* The name carries this column. At the card's own title size it read as
-         a caption beside a form rather than the thing the page is about. */
-      font-size: 42px;
+      /* At desktop width: lifted out of the flow and placed over the picture,
+         which is why `.signin-wrap` is a positioning context. */
+      position: absolute;
+      z-index: 1;
+      inset-block-start: 40px;
+      inset-inline-start: 48px;
+      padding-block-start: 0;
     }
   }
   .door-tagline {
-    margin-top: 10px;
-    font-size: var(--w-font-subheading);
-    line-height: 1.4;
-    /* Not pure white: the name above it is the thing to read first. */
-    color: rgb(255 255 255 / 0.86);
+    margin-block-start: 44px;
+    max-width: 24ch;
+    font-size: 26px;
+    line-height: 1.35;
+    color: var(--w-text);
+    text-align: center;
     text-wrap: balance;
   }
-  @media (min-width: 900px) {
-    .door-tagline {
-      margin-top: 14px;
-      font-size: 24px;
-      /* Even lines rather than a long one and a stub: this is a headline
-         being read, not a paragraph being skimmed. */
-      text-wrap: balance;
-    }
+
+  /* The drawn picture. Two floating cards and a soft disc behind them — the
+     app's own furniture, not a stock illustration, and cheap enough to be CSS
+     rather than an image nobody can translate or recolour. */
+  .door-stage {
+    position: relative;
+    display: block;
+    /* Sized in `em` of its own font so the whole picture scales with the
+       panel rather than needing a media query per part. */
+    block-size: 19rem;
+    inline-size: min(26rem, 100%);
   }
+  .door-orb {
+    position: absolute;
+    inset-block-start: 12%;
+    inset-inline-start: 14%;
+    display: block;
+    block-size: 15rem;
+    inline-size: 15rem;
+    border-radius: 50%;
+    background: var(--w-surface);
+    opacity: 0.55;
+  }
+  .door-tile {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    border: 1px solid var(--w-border);
+    border-radius: var(--w-radius-lg);
+    background: var(--w-surface);
+    padding: 16px;
+    box-shadow: var(--w-shadow-lifted);
+  }
+  .door-tile-a {
+    inset-block-start: 0;
+    inset-inline-start: 0;
+    inline-size: 11rem;
+  }
+  .door-tile-b {
+    inset-block-end: 0;
+    inset-inline-end: 0;
+    inline-size: 12rem;
+  }
+  .door-tile-num {
+    font-size: 24px;
+    font-weight: 650;
+    color: var(--w-text);
+    font-variant-numeric: tabular-nums;
+  }
+  .door-tile-bars {
+    display: flex;
+    block-size: 3.5rem;
+    align-items: flex-end;
+    gap: 6px;
+  }
+  .door-tile-bars i {
+    display: block;
+    flex: 1;
+    border-radius: 3px;
+    background: var(--w-brand);
+    opacity: 0.85;
+  }
+  .door-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .door-dot {
+    display: block;
+    block-size: 1.5rem;
+    inline-size: 1.5rem;
+    flex: none;
+    border-radius: 50%;
+    background: var(--w-tint-lilac);
+  }
+  .door-dot-2 {
+    background: var(--w-tint-mint);
+  }
+  .door-dot-3 {
+    background: var(--w-tint-peach);
+  }
+  .door-line {
+    display: block;
+    block-size: 0.5rem;
+    inline-size: 68%;
+    border-radius: 4px;
+    background: var(--w-border);
+  }
+  .door-line-2 {
+    inline-size: 52%;
+  }
+  .door-line-3 {
+    inline-size: 60%;
+  }
+
+  /* The form half. Centred in its column, with the card's own chrome dropped
+     at desktop width: a bordered, shadowed card inside a panel that is already
+     a panel is two boxes saying the same thing. */
+  .door-form {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 24px;
+  }
+  .door-head {
+    font-size: 28px;
+    font-weight: 650;
+    line-height: 1.25;
+    color: var(--w-text);
+    text-wrap: balance;
+  }
+  .door-sub {
+    margin-block-start: 8px;
+    font-size: var(--w-font-body);
+    color: var(--w-text-muted);
+  }
+  .door-fields {
+    margin-block-start: 26px;
+  }
+  .door-label {
+    display: block;
+    margin-block-end: 6px;
+    font-size: var(--w-font-caption);
+    font-weight: 550;
+    color: var(--w-text);
+  }
+  /* The field and its eye are one box. `relative` on the wrapper and the
+     button positioned to the logical end, so the icon mirrors with the field
+     in Arabic instead of sitting over the first letter. */
+  .door-secret {
+    position: relative;
+  }
+  .door-secret input {
+    /* Room for the eye, on whichever side the direction puts it. */
+    padding-inline-end: 44px;
+  }
+  .door-eye {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline-end: 0;
+    display: flex;
+    /* Matches the input's own height, so the two cannot drift apart when the
+       field's padding changes. */
+    block-size: 100%;
+    inline-size: 44px;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: var(--w-radius-md);
+    background: none;
+    color: var(--w-text-muted);
+    cursor: pointer;
+  }
+  .door-eye:hover {
+    color: var(--w-text);
+  }
+  .door-swap {
+    margin-block-start: 14px;
+    text-align: center;
+    font-size: var(--w-font-caption);
+  }
+  .door-foot {
+    margin-block-start: 18px;
+    text-align: center;
+    font-size: var(--w-font-micro);
+    color: var(--w-text-muted);
+  }
+
   .signin-card {
     width: 100%;
     max-width: 404px;
@@ -2931,32 +3113,55 @@
     border-radius: var(--w-radius-xl);
     background: var(--w-surface);
     padding: 34px 32px;
-    text-align: center;
+    text-align: start;
     box-shadow: var(--w-shadow-lifted);
   }
-  .signin-card .brand {
-    justify-content: center;
-    margin-bottom: 8px;
-    font-size: var(--w-font-title);
-  }
-  .signin-card p {
-    margin-bottom: 22px;
-    font-size: var(--w-font-caption);
+  @media (min-width: 960px) {
+    .signin-card {
+      /* Inside its own panel the card needs no second frame. */
+      max-width: 26rem;
+      border: 0;
+      padding: 0;
+      box-shadow: none;
+    }
   }
   .signin-card .btn {
-    margin-bottom: 10px;
+    margin-block-end: 10px;
     width: 100%;
     padding: 12px 18px;
     font-size: var(--w-font-body);
+    /* These labels are sentences, not verbs — "Email me a sign-in link
+       instead" — and the shared `.btn` forbids wrapping, which is right for a
+       toolbar and wrong for a full-width button on a phone. Let them wrap
+       rather than push the page wider than the screen. */
+    white-space: normal;
   }
   .signin-card input {
-    margin-bottom: 12px;
+    margin-block-end: 14px;
     text-align: start;
   }
+  .signin-card .door-secret input {
+    margin-block-end: 14px;
+  }
+  /* A word with a rule either side, rather than a small word alone against the
+     start edge — which is what it had been, and read as a stray label rather
+     than a separator between two ways in. `flex` with the rules as flexible
+     children keeps it centred at any width and in either direction. */
   .signin-or {
-    margin: 14px 0 10px;
-    font-size: var(--w-font-micro);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-block: 18px;
+    font-size: var(--w-font-caption);
     color: var(--w-text-muted);
+    text-align: center;
+  }
+  .signin-or::before,
+  .signin-or::after {
+    block-size: 1px;
+    flex: 1;
+    background: var(--w-border);
+    content: '';
   }
 
   /* The guest-link pages — a join link opened by somebody with no account.
