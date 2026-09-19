@@ -39,10 +39,9 @@ import { TagEditorSheet } from '@/components/TagEditorSheet';
 import { PaymentMethodRow, PaymentMethodSheet } from '@/components/PaymentMethodPicker';
 import { LocationField } from '@/components/LocationField';
 import { ZoomableImage } from '@/components/ZoomableImage';
-import { AmountHeader } from '@/components/expense/AmountHeader';
+import { AmountHeroPanel } from '@/components/expense/AmountHeroPanel';
 import { COMMON_CURRENCIES } from '@/lib/currencyChoices';
 import { DescriptionField } from '@/components/expense/DescriptionField';
-import { ExpenseHeader } from '@/components/expense/ExpenseHeader';
 import { ChoiceRow, SheetOverlay } from '@/components/expense/SheetOverlay';
 import { DetailRow, DetailRows } from '@/components/DetailRows';
 import {
@@ -592,10 +591,20 @@ export default function CaptureScreen() {
   }
 
   return (
-    <Screen edges={['top']}>
-      <View style={{ paddingHorizontal: theme.spacing.xl }}>
-        <ExpenseHeader title={isEditing ? t.captures.editTitle : t.captures.newTitle} />
-      </View>
+    <Screen edges={[]}>
+      {/* THROWAWAY (see `AmountHeroPanel`): the header and the amount become
+          one saturated panel, the way Home, a group, Review and Bank messages
+          all open. `edges={[]}` so the wash can run up under the status bar
+          instead of starting below it. */}
+      <AmountHeroPanel
+        title={isEditing ? t.captures.editTitle : t.captures.newTitle}
+        currency={currency}
+        amount={amount}
+        onAmountChange={setAmount}
+        onPressCurrency={() => setPickingCurrency(true)}
+        onClose={() => router.back()}
+        closeLabel={t.common.close}
+      />
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
@@ -607,17 +616,6 @@ export default function CaptureScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {/* Amount-forward hero: the number is the point of this screen, so it
-            leads — big and centred, with the currency it is counted in a tap
-            below it (the Splitwise/PayPal amount-first pattern). Shared with
-            add-expense. */}
-        <AmountHeader
-          currency={currency}
-          amount={amount}
-          onAmountChange={setAmount}
-          onPressCurrency={() => setPickingCurrency(true)}
-        />
-
         {/* The bill, right under the amount — the order add-expense reads a bill
             in, and for the same reason: scanning one fills in the amount above
             and the note below, so it belongs before the fields it populates, not
@@ -831,10 +829,15 @@ export default function CaptureScreen() {
       >
         {error ? <Callout tone="negative">{error}</Callout> : null}
         {saving ? <ActivityIndicator color={theme.color.brand} /> : null}
+        {/* THROWAWAY: `size="lg"` is already 56pt — the height a primary
+            action is meant to be. This overrides it to 64 purely so the
+            difference is visible side by side; if 56 turns out to have been
+            right, this style prop is the whole of the revert. */}
         <Button
           label={t.captures.save}
           size="lg"
           fullWidth
+          style={{ height: 64 }}
           disabled={amount === 0n || saving}
           onPress={() => void submit()}
         />
