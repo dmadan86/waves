@@ -53,6 +53,8 @@ import { plural, useStrings, type UiStrings } from '@/i18n';
 import { batteryLimitsLikely, deviceMaker, openAppSettings } from '@/lib/smsBattery';
 import { useBackgroundCheck } from '@/lib/useBackgroundCheck';
 import { useReducedMotion } from '@/lib/reducedMotion';
+import { router } from '@/lib/navigation';
+import { failureIsAskable, readFailureMessage } from '@/lib/smsFailureMessage';
 import { ScanScope, scanFor, type ScanProgress, type ScanResult } from '@/lib/smsScan';
 
 /** What the sheet is showing: the choice, the work, or the outcome. */
@@ -261,12 +263,45 @@ export function SmsScanSheet({
         </View>
       ) : (
         <View style={{ gap: theme.spacing.md }}>
+          {/* A scan that could not read is not a scan that found nothing.
+
+              This branch used to look only at `added`, so every failure -- a
+              permission never granted, a revoked one, an iPhone, a build with
+              no reader in it -- came out as "Nothing new since last time." On a
+              phone that had never been asked for the permission that made Scan
+              a button which always reported success and never did anything,
+              with the screen behind it still saying nothing had ever been read.
+
+              `ok` is checked first, because `added === 0` is true in both cases
+              and only one of them is worth saying. */}
           <Text variant="body">
-            {phase.result.added === 0
-              ? t.smsInbox.scanNothingNew
-              : plural(locale, phase.result.added, t.smsInbox.scanFound)}
+            {!phase.result.ok
+              ? phase.result.failure
+                ? readFailureMessage(phase.result.failure, t)
+                : t.smsImport.readFailed
+              : phase.result.added === 0
+                ? t.smsInbox.scanNothingNew
+                : plural(locale, phase.result.added, t.smsInbox.scanFound)}
           </Text>
-          {phase.result.drafted > 0 ? (
+          {/* The one failure somebody can still do something about, with the
+              door to doing it. The scan path only ever *checks* the permission
+              -- asking belongs to the disclosure screen, which is the only
+              place allowed to raise that dialog -- so a sentence alone would
+              leave the reader with no way to act on it.
+
+              The sheet closes first: the screen it opens is a route, and
+              pushing one from under an open sheet leaves the sheet over it. */}
+          {!phase.result.ok && failureIsAskable(phase.result.failure) ? (
+            <Button
+              label={t.smsImport.readMessages}
+              fullWidth
+              onPress={() => {
+                close();
+                router.push('/captures/messages');
+              }}
+            />
+          ) : null}
+          {phase.result.ok && phase.result.drafted > 0 ? (
             <Text variant="caption" tone="muted">
               {plural(locale, phase.result.drafted, t.smsInbox.scanDrafted)}
             </Text>
@@ -274,7 +309,7 @@ export function SmsScanSheet({
           {/* The number most apps of this kind leave out. It is the only signal
               a person has that the parser has a gap, and hiding it would make
               "nothing found" and "nothing understood" look identical. */}
-          {phase.result.unreadable > 0 ? (
+          {phase.result.ok && phase.result.unreadable > 0 ? (
             <Text variant="caption" tone="muted">
               {plural(locale, phase.result.unreadable, t.smsInbox.scanUnreadable)}
             </Text>

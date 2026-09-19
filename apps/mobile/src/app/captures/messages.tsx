@@ -38,11 +38,12 @@ import {
   useTheme,
 } from '@waves/ui';
 
-import { useStrings, type UiStrings } from '@/i18n';
+import { useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
 import { router } from '@/lib/navigation';
 import { useSmsInboxReader } from '@/lib/smsFeature';
 import { offerReadMessages } from '@/lib/smsReadBridge';
+import { readFailureMessage } from '@/lib/smsFailureMessage';
 import { readSms, SmsReadFailure } from '@/lib/smsReader';
 
 /** How far back a read reaches. A month, unless a person narrows it. */
@@ -52,22 +53,6 @@ const DEFAULT_DAYS = 30;
 const today = (): string => new Date().toISOString().slice(0, 10);
 const daysAgo = (days: number): string =>
   new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
-
-/** Why the inbox could not be read, said in a way a person can act on. */
-function readFailureMessage(reason: SmsReadFailure, t: UiStrings): string {
-  switch (reason) {
-    case SmsReadFailure.Denied:
-      return t.smsImport.permissionDenied;
-    case SmsReadFailure.Blocked:
-      return t.smsImport.permissionBlocked;
-    case SmsReadFailure.Unsupported:
-      return t.smsImport.readUnsupported;
-    case SmsReadFailure.Unavailable:
-      return t.smsImport.readUnavailable;
-    case SmsReadFailure.Failed:
-      return t.smsImport.readFailed;
-  }
-}
 
 /** One promise, with a glyph: what is read, where it happens, what is kept. */
 function Bullet({
