@@ -53,6 +53,9 @@ const MAX_BODY_BYTES = 8 * 1024;
 /** How long Google's keys are reused before they are fetched again. */
 const KEY_CACHE_SECONDS = 60 * 60;
 
+/** How long GoTrue's settings document is reused before it is asked for again. */
+const SETTINGS_CACHE_SECONDS = 5 * 60;
+
 export interface PhoneVerifyDeps {
   /** Service-role client: the relay and the gate refuse any other caller. */
   service: () => SupabaseClient;
@@ -107,6 +110,69 @@ export async function firebaseKeys(
 /** Test seam: a cold isolate is the default state, and tests need it back. */
 export function forgetFirebaseKeys(): void {
   cachedKeys = null;
+}
+
+/**
+ * Whether GoTrue will accept a phone sign-in on this project at all.
+ *
+ * `true`, `false`, or `null` for "could not tell" — and the third is not the
+ * second, because only a definite `false` is worth refusing on.
+ *
+ * This exists because of a refusal that lies about itself. GoTrue answers
+ * `POST /otp` with `create_user: false` *identically* in two unrelated cases:
+ * the number has no account, and the project has no phone provider switched on.
+ * Both come back `otp_disabled` / "Signups not allowed for otp", and nothing in
+ * the response separates them. Read as the first — which is all this function
+ * could do before — a project with phone sign-in turned off tells every caller
+ * "No Waves account uses that number yet". That sends whoever is debugging it
+ * to look at the account, and there is nothing wrong with the account.
+ *
+ * The lie also costs the person money and their day. That refusal is reached
+ * only after the assertion has been spent and the gate has counted the ask, and
+ * it is deliberately *not* refunded: a number with no account is an answer, and
+ * paying for answers is what stops somebody walking the number space for free.
+ * Correct when the account is really absent; with the provider off it means
+ * three attempts exhaust a real person's daily allowance over a setting they
+ * cannot see and were told nothing about. Asking here, ahead of every spend,
+ * is what makes that impossible.
+ *
+ * Cached both ways, including the `false`. Flipping the provider on therefore
+ * takes up to `SETTINGS_CACHE_SECONDS` to be believed on a warm isolate, which
+ * is the right trade: the switch is thrown once, and the alternative is a
+ * settings fetch on every sign-in forever.
+ */
+let cachedPhoneProvider: { on: boolean; until: number } | null = null;
+
+export async function phoneSignInSwitchedOn(
+  fetchImpl: typeof fetch,
+  auth: string,
+  anonKey: string,
+  nowSeconds: number,
+): Promise<boolean | null> {
+  if (cachedPhoneProvider && cachedPhoneProvider.until > nowSeconds) {
+    return cachedPhoneProvider.on;
+  }
+  try {
+    const response = await fetchImpl(`${auth}/settings`, {
+      headers: { apikey: anonKey },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!response.ok) return null;
+    const body = (await response.json()) as { external?: { phone?: unknown } };
+    const on = body.external?.phone;
+    // Anything but a boolean is a document we do not recognise, and guessing
+    // from a shape we did not expect is how a working sign-in gets refused.
+    if (typeof on !== 'boolean') return null;
+    cachedPhoneProvider = { on, until: nowSeconds + SETTINGS_CACHE_SECONDS };
+    return on;
+  } catch {
+    return null;
+  }
+}
+
+/** Test seam. A cold isolate is the default, and the flip is when it matters. */
+export function forgetPhoneProvider(): void {
+  cachedPhoneProvider = null;
 }
 
 async function readBoundedText(request: Request, limit: number): Promise<string | null> {
@@ -202,6 +268,7 @@ export async function handlePhoneVerify(
   if (!projectId || !supabaseUrl || !anonKey) {
     return fail(500, 'MISCONFIGURED', 'Phone sign-in is not configured');
   }
+  const auth = `${supabaseUrl}/auth/v1`;
 
   const body = await readBoundedText(request, MAX_BODY_BYTES);
   if (body === null) return fail(413, 'TOO_LARGE', 'That request is too large');
@@ -259,6 +326,24 @@ export async function handlePhoneVerify(
   if (mode === 'attach') {
     caller = await deps.callerId(request);
     if (!caller) return fail(401, 'NOT_AUTHENTICATED', 'Sign in first');
+  }
+
+  // Signing in leans on GoTrue accepting a phone sign-in at all; attaching never
+  // touches that path, so only this mode has to ask. Deliberately ahead of the
+  // assertion and the gate: the whole point is that a provider nobody switched
+  // on costs the person nothing.
+  //
+  // `null` — the settings endpoint could not be reached or did not look like
+  // itself — is not a refusal. A bad minute there must not take down a sign-in
+  // that would otherwise work, and the exchange below still fails safely on its
+  // own if the provider really is off.
+  if (mode === 'signin') {
+    const switchedOn = await phoneSignInSwitchedOn(deps.fetchImpl, auth, anonKey, nowSeconds);
+    if (switchedOn === false) {
+      // Loud, because this one is ours to fix and nobody signing in can.
+      console.error('phone-verify: no phone provider is enabled on this project');
+      return fail(503, 'MISCONFIGURED', 'Phone sign-in is not switched on right now');
+    }
   }
 
   // One proof, one use. The token stays valid for ten minutes after the code was
@@ -339,8 +424,6 @@ export async function handlePhoneVerify(
   if ((gate as { allowed?: boolean } | null)?.allowed === false) {
     return fail(429, 'TOO_MANY', 'That is too many sign-in attempts today. Try again tomorrow.');
   }
-
-  const auth = `${supabaseUrl}/auth/v1`;
 
   // Attaching, not signing in: somebody already holding an account has proved a
   // number and wants it on that account. ADR-006's point exactly — the account
@@ -437,6 +520,11 @@ export async function handlePhoneVerify(
       // never a way to open an account. Said plainly, because the person can act
       // on it — they have an account under an email, or they are new and should
       // start there.
+      //
+      // This string means only that now. GoTrue sends the same `otp_disabled`
+      // when the project has no phone provider at all, which made this line
+      // blame the number for a setting; that case is caught above, before
+      // anything is spent, and reported as what it is.
       if (detail.includes('otp_disabled') || detail.includes('Signups not allowed')) {
         return fail(404, 'NO_ACCOUNT', 'No Waves account uses that number yet');
       }
