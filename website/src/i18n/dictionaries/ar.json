@@ -662,7 +662,8 @@
     "lastUpdated": "آخر تحديث",
     "backHome": "العودة إلى الرئيسية",
     "englishOnly": "تُنشَر مستنداتنا القانونية باللغة الإنجليزية.",
-    "deleteTitle": "حذف حسابك"
+    "deleteTitle": "حذف حسابك",
+    "mcpTitle": "ربط وكيل ذكاء اصطناعي"
   },
   "currencies": {
     "eyebrow": "في كل مكان",

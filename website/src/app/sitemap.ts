@@ -6,7 +6,10 @@ import { absoluteUrl } from '@/lib/site';
 // `/delete-account` is listed on purpose. Google Play requires the deletion URL
 // to be publicly reachable and findable, and a page reachable only by someone
 // who already has the link is neither.
-const paths = ['', '/privacy', '/terms', '/delete-account'] as const;
+// `/mcp` is listed for the same reason as the line above it, minus the
+// obligation: somebody whose assistant refuses to connect goes looking for the
+// page, and a help page nobody can find is a support email instead.
+const paths = ['', '/privacy', '/terms', '/delete-account', '/mcp'] as const;
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return locales.flatMap((locale) =>
