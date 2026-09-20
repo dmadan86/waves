@@ -21,10 +21,8 @@
 
 import { useEffect, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Platform, Pressable, useWindowDimensions, View } from 'react-native';
+import { Platform, Pressable, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
 import Animated, {
   cancelAnimation,
   Easing,
@@ -34,7 +32,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { Callout, directionalIcon, iconSize, Row, Text, useTheme } from '@waves/ui';
+import { Callout, directionalIcon, iconSize, Row, Text, useTheme, type TintName } from '@waves/ui';
 
 import { LegalLine } from '@/components/LegalLine';
 import { ProviderButton, SocialTile } from '@/components/SocialTile';
@@ -42,17 +40,13 @@ import { useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { friendlyError } from '@/lib/errors';
 import { router } from '@/lib/navigation';
+import { useReducedMotion } from '@/lib/reducedMotion';
 import { phoneSignInAvailable } from '@/lib/phoneAuth';
 
-/** The door's green wash — a light stop into the base green (#65B63E) into a
-    darker one, top to bottom, matching the splash. A local screen colour, not a
-    brand token: the app's brand is purple; this entry field is deliberately its
-    own green. */
-const GATEWAY_GRADIENT = ['#7BC94E', '#65B63E', '#4F9A2E'] as const;
-
-/** The Skip pill's face: white at 12% on the green, which reads as a control
-    without becoming a third button competing with the provider below. */
-const SKIP_FACE = 'rgba(255, 255, 255, 0.12)';
+/** The Skip pill's face on the light field: the brand at its softest, which
+    reads as a control without becoming a second button competing with the
+    provider below. */
+const SKIP_FACE = 'brandSoft' as const;
 
 export default function WelcomeScreen() {
   const theme = useTheme();
@@ -97,7 +91,7 @@ export default function WelcomeScreen() {
       key="google"
       testID="auth-google"
       provider="google"
-      field="brand"
+      field="surface"
       accessibilityLabel={t.signIn.continueGoogle}
       caption={t.signIn.providerGoogle}
       disabled={busy}
@@ -109,7 +103,7 @@ export default function WelcomeScreen() {
       key="apple"
       testID="auth-apple"
       provider="apple"
-      field="brand"
+      field="surface"
       accessibilityLabel={t.signIn.continueApple}
       caption={t.signIn.providerApple}
       disabled={busy}
@@ -119,14 +113,14 @@ export default function WelcomeScreen() {
 
   return (
     <View style={{ flex: 1 }}>
-      <LinearGradient
-        colors={GATEWAY_GRADIENT}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-        style={{ flex: 1 }}
-      >
-        {/* Slow, soft waves drifting on the field behind everything — depth, not
-            decoration you look at. Under the content and untouchable. */}
+      {/* A light field, not a coloured one. The door used to be a green wash
+          with white type on it, which makes every word on the screen shout at
+          the same volume; on white the headline is the loudest thing and the
+          ways in sit quietly under it, which is the order somebody meeting the
+          app needs them in. */}
+      <View style={{ flex: 1, backgroundColor: theme.color.bg }}>
+        {/* The scatter drifts behind everything — depth, not decoration you
+            look at. Under the content and untouchable. */}
         <GatewayBackdrop />
         <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
           {/* The header: back when there is somewhere to go back to, otherwise
@@ -164,13 +158,13 @@ export default function WelcomeScreen() {
                 height: 44,
                 paddingHorizontal: theme.spacing.lg,
                 borderRadius: theme.radius.pill,
-                backgroundColor: SKIP_FACE,
+                backgroundColor: theme.color[SKIP_FACE],
                 alignItems: 'center',
                 justifyContent: 'center',
                 opacity: busy ? 0.45 : pressed ? 0.7 : 1,
               })}
             >
-              <Text variant="subheading" style={{ color: theme.color.onBrand, fontWeight: '700' }}>
+              <Text variant="subheading" tone="brand" style={{ fontWeight: '700' }}>
                 {t.common.skip}
               </Text>
             </Pressable>
@@ -179,22 +173,32 @@ export default function WelcomeScreen() {
           {/* The hero rides in the upper third: a small brand tag, the headline
               that says what the app is for, and one line under it. */}
           <View style={{ flex: 0.5 }} />
-          <View style={{ paddingHorizontal: theme.spacing.xxl, gap: theme.spacing.sm }}>
-            <Text style={{ fontSize: 20, fontWeight: '800', color: theme.color.onBrand }}>
+          <View
+            style={{
+              paddingHorizontal: theme.spacing.xxl,
+              gap: theme.spacing.sm,
+              alignItems: 'center',
+            }}
+          >
+            <Text variant="subheading" tone="brand" style={{ fontWeight: '800' }}>
               {t.common.appName}
             </Text>
+            {/* Centred, and the string already carries its own line break, so
+                the two lines break where they were written to break rather than
+                wherever the width runs out. */}
             <Text
               style={{
                 fontSize: 38,
                 lineHeight: 44,
                 fontWeight: '800',
                 letterSpacing: -1,
-                color: theme.color.onBrand,
+                textAlign: 'center',
+                color: theme.color.text,
               }}
             >
               {t.signIn.splitAnything}
             </Text>
-            <Text variant="body" style={{ color: theme.color.onBrand, opacity: 0.85 }}>
+            <Text variant="body" tone="muted" style={{ textAlign: 'center' }}>
               {t.signIn.welcomeBody}
             </Text>
           </View>
@@ -213,8 +217,7 @@ export default function WelcomeScreen() {
 
             <LegalLine
               textStyle={{
-                color: theme.color.onBrand,
-                opacity: 0.95,
+                color: theme.color.textMuted,
                 lineHeight: 20,
                 marginBottom: theme.spacing.xs,
               }}
@@ -245,7 +248,7 @@ export default function WelcomeScreen() {
                 <SocialTile
                   testID="auth-phone"
                   provider="phone"
-                  field="brand"
+                  field="surface"
                   accessibilityLabel={t.signIn.continuePhone}
                   caption={t.signIn.providerPhone}
                   disabled={busy}
@@ -255,7 +258,7 @@ export default function WelcomeScreen() {
               <SocialTile
                 testID="auth-email"
                 provider="email"
-                field="brand"
+                field="surface"
                 accessibilityLabel={t.signIn.continueEmail}
                 caption={t.signIn.providerEmail}
                 disabled={busy}
@@ -271,7 +274,7 @@ export default function WelcomeScreen() {
                 marginTop: theme.spacing.sm,
               }}
             >
-              <Text variant="body" style={{ color: theme.color.onBrand, opacity: 0.85 }}>
+              <Text variant="body" tone="muted">
                 {t.signIn.haveAccountPrompt}
               </Text>
               <Pressable
@@ -284,14 +287,14 @@ export default function WelcomeScreen() {
                 hitSlop={8}
                 style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
               >
-                <Text variant="body" style={{ color: theme.color.onBrand, fontWeight: '700' }}>
+                <Text variant="body" tone="brand" style={{ fontWeight: '700' }}>
                   {t.signIn.signInAction}
                 </Text>
               </Pressable>
             </Row>
           </View>
         </SafeAreaView>
-      </LinearGradient>
+      </View>
     </View>
   );
 }
@@ -321,118 +324,114 @@ function HeaderGlyph({
         opacity: pressed ? 0.6 : 1,
       })}
     >
-      <Ionicons name={icon} size={iconSize.lg} color={theme.color.onBrand} />
+      <Ionicons name={icon} size={iconSize.lg} color={theme.color.text} />
     </Pressable>
   );
 }
 
 /**
- * The moving field behind the door: sine waves flowing across the lower
- * half of the green, stacked so they overlap into a gentle current. It is
- * depth rather than a thing to watch — low-contrast and slow.
+ * The field behind the door: a scatter of the app's own marks, drifting.
  *
- * The trick that keeps it cheap: each wave's path is one full period drawn
- * twice across double the screen width, so sliding it left by exactly one
- * screen width lands on an identical crest. Only that one `translateX` animates
- * — never the SVG path, which would cost a redraw every frame — and it loops
- * seamlessly. Motion-gated: with animation off the waves are still drawn (the
- * flat wash gets its shape) but hold still.
+ * It replaces three sine-wave bands on a green wash. The waves were depth for a
+ * coloured field, and the field is no longer coloured — this door is light now,
+ * the way Family's is, because a white ground lets the headline be the loudest
+ * thing on the screen and a green one never can.
+ *
+ * What is scattered is not confetti: every glyph is a thing the app is for — a
+ * receipt, a plane, a bowl, a house — in the six tints the rest of the app
+ * already dresses its categories in. So the first screen says what the app does
+ * twice, once in the headline and once in the objects around it.
+ *
+ * Each mark bobs on its own clock, slowly and by a few points, out of phase
+ * with its neighbours, which is what keeps a still image from looking like a
+ * still image. Motion-gated: with animation turned off the scatter is drawn and
+ * holds, because the arrangement is the picture and only the drift is decoration.
  */
-/**
- * Baselines are a fraction of screen height, and they sit in the open green
- * between the hero (which ends around 0.42) and the legal line above the
- * providers (around 0.68). That gap is the only place the crests are actually
- * *seen*: lower down they ran behind the buttons and the app named Waves showed
- * none. Each band still fills to the bottom of the screen, so the tint under
- * the controls is unchanged — only the crest lines moved up into the open.
- * Keep the topmost crest (baseline − amplitude) below 0.42 so it never rides
- * into the headline.
- */
-const WAVES = [
-  { amplitude: 0.05, baseline: 0.47, color: '#FFFFFF1F', seconds: 9 },
-  { amplitude: 0.07, baseline: 0.56, color: '#4F9A2E5C', seconds: 13 },
-  { amplitude: 0.06, baseline: 0.65, color: '#FFFFFF1A', seconds: 17 },
-] as const;
+const SCATTER = [
+  { icon: 'receipt-outline', tint: 'peach', x: 0.1, y: 0.06, size: 56, seconds: 7 },
+  { icon: 'airplane-outline', tint: 'sky', x: 0.74, y: 0.04, size: 64, seconds: 9 },
+  { icon: 'fast-food-outline', tint: 'coral', x: 0.42, y: 0.15, size: 48, seconds: 8 },
+  { icon: 'home-outline', tint: 'mint', x: 0.08, y: 0.34, size: 60, seconds: 11 },
+  { icon: 'cafe-outline', tint: 'lilac', x: 0.8, y: 0.3, size: 52, seconds: 6 },
+  { icon: 'card-outline', tint: 'pink', x: 0.52, y: 0.42, size: 58, seconds: 10 },
+  { icon: 'people-outline', tint: 'sky', x: 0.18, y: 0.55, size: 50, seconds: 8 },
+  { icon: 'car-outline', tint: 'peach', x: 0.78, y: 0.56, size: 46, seconds: 12 },
+] as const satisfies readonly {
+  icon: keyof typeof Ionicons.glyphMap;
+  tint: TintName;
+  /** Where the mark sits, as a fraction of the field it is given. */
+  x: number;
+  y: number;
+  /** The disc's diameter. The glyph inside is drawn at 45% of it. */
+  size: number;
+  /** One full bob, up and back. */
+  seconds: number;
+}[];
 
-/**
- * One full sine period across `width`, drawn twice to span `2 * width`, then
- * closed down to `bottom` so it fills as a solid band. Sampled, not curved —
- * enough points that the straight segments read as a smooth wave.
- */
-function wavePath(width: number, amplitude: number, midY: number, bottom: number): string {
-  const total = width * 2;
-  const steps = 48;
-  let d = `M 0 ${midY.toFixed(1)}`;
-  for (let i = 1; i <= steps; i++) {
-    const x = (total / steps) * i;
-    // Wavelength = width, so the crest at x = width matches the one at x = 0.
-    const y = midY + amplitude * Math.sin((x / width) * 2 * Math.PI);
-    d += ` L ${x.toFixed(1)} ${y.toFixed(1)}`;
-  }
-  return `${d} L ${total.toFixed(1)} ${bottom.toFixed(1)} L 0 ${bottom.toFixed(1)} Z`;
-}
+/** How far a mark travels on its bob. Small enough to read as breathing. */
+const DRIFT = 10;
 
 function GatewayBackdrop() {
-  const { width, height } = useWindowDimensions();
+  const reduceMotion = useReducedMotion();
 
   return (
     <View pointerEvents="none" style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
-      {WAVES.map((wave, index) => (
-        <Wave
-          key={index}
-          width={width}
-          height={height}
-          amplitude={wave.amplitude * height}
-          baseline={wave.baseline * height}
-          color={wave.color}
-          durationMs={wave.seconds * 1000}
-        />
+      {SCATTER.map((mark) => (
+        <ScatterMark key={mark.icon} mark={mark} still={reduceMotion} />
       ))}
     </View>
   );
 }
 
-function Wave({
-  width,
-  height,
-  amplitude,
-  baseline,
-  color,
-  durationMs,
+function ScatterMark({
+  mark,
+  still,
 }: {
-  width: number;
-  height: number;
-  amplitude: number;
-  baseline: number;
-  color: string;
-  durationMs: number;
-}) {
-  // 0 → 1 mapped to a slide of one screen width. Linear and repeated, so the
-  // seam where the path repeats passes without a pause.
-  const progress = useSharedValue(0);
+  mark: (typeof SCATTER)[number];
+  still: boolean;
+}): React.JSX.Element {
+  const theme = useTheme();
+  const bob = useSharedValue(0);
 
   useEffect(() => {
-    progress.value = withRepeat(
-      withTiming(1, { duration: durationMs, easing: Easing.linear }),
+    if (still) return;
+    // Reversed rather than restarted, so a mark rises and sinks on one path
+    // instead of snapping back to where it began.
+    bob.value = withRepeat(
+      withTiming(1, { duration: mark.seconds * 1000, easing: Easing.inOut(Easing.quad) }),
       -1,
-      false,
+      true,
     );
-    return () => cancelAnimation(progress);
-  }, [durationMs, progress]);
+    return () => cancelAnimation(bob);
+  }, [bob, mark.seconds, still]);
 
   const style = useAnimatedStyle(() => ({
-    transform: [{ translateX: -width * progress.value }],
+    transform: [{ translateY: -DRIFT * bob.value }],
   }));
 
-  const d = wavePath(width, amplitude, baseline, height);
+  const tint = theme.tint[mark.tint];
 
   return (
     <Animated.View
-      style={[{ position: 'absolute', left: 0, top: 0, width: width * 2, height }, style]}
+      style={[
+        {
+          position: 'absolute',
+          // Percentages rather than measured points: the field is whatever the
+          // screen gives it, and the arrangement should hold on a small phone
+          // and a tablet without either measuring or a second table of numbers.
+          left: `${mark.x * 100}%`,
+          top: `${mark.y * 100}%`,
+          width: mark.size,
+          height: mark.size,
+          borderRadius: mark.size / 2,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: tint.bg,
+        },
+        style,
+      ]}
     >
-      <Svg width={width * 2} height={height}>
-        <Path d={d} fill={color} />
-      </Svg>
+      <Ionicons name={mark.icon} size={Math.round(mark.size * 0.45)} color={tint.ink} />
     </Animated.View>
   );
 }
