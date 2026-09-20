@@ -20,7 +20,13 @@
  * take over without touching a call site.
  */
 
-const DEFAULT_BASE = 'https://pub-waves-art.r2.dev';
+/**
+ * The `waves-art` bucket's public dev URL. It is a constant rather than a
+ * required environment variable on purpose: a build that forgets to set one
+ * should still draw the pictures, and the bucket is public and read-only, so
+ * there is nothing here to keep out of a bundle.
+ */
+const DEFAULT_BASE = 'https://pub-311decd36a1e4e27a4f0dd9d6d71637f.r2.dev';
 
 const BASE = (process.env.EXPO_PUBLIC_ART_BASE_URL ?? DEFAULT_BASE).replace(/\/+$/, '');
 

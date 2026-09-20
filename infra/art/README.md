@@ -51,10 +51,14 @@ wrangler r2 bucket dev-url enable waves-art      # once — this is what makes i
 pnpm art:publish                                 # uploads everything here
 ```
 
-`wrangler r2 bucket dev-url enable` prints the public base
-(`https://pub-<hash>.r2.dev`). Put it in the mobile build's
-`EXPO_PUBLIC_ART_BASE_URL`, or change the default in `lib/art.ts`, and the
-pictures appear without another native build.
+`wrangler r2 bucket dev-url enable` prints the public base. This bucket's is
+already the default in `lib/art.ts`:
+
+    https://pub-311decd36a1e4e27a4f0dd9d6d71637f.r2.dev
+
+`EXPO_PUBLIC_ART_BASE_URL` overrides it — for a staging bucket, a custom domain
+in front of this one, or a local server. Changing either reaches phones without
+another native build.
 
 Re-running the publish overwrites in place, so a redrawn illustration reaches
 every phone as soon as its cache expires — no app release involved.
