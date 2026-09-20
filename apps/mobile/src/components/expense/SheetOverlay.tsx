@@ -19,28 +19,44 @@
  * you open rather than a fact you're told).
  */
 
-import { type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, ScrollView, View } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, {
-  runOnJS,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-  withTiming,
-} from 'react-native-reanimated';
+import { Pressable, ScrollView } from 'react-native';
 
-import { iconSize, Text, useTheme } from '@waves/ui';
+import { iconSize, Sheet, Text, useTheme } from '@waves/ui';
 
 import { useStrings } from '@/i18n';
-import { useBottomClearance } from '@/lib/clearance';
+
+/**
+ * How long to hold the sheet mounted after a dismissal, so its exit is seen.
+ *
+ * Every caller mounts this conditionally — `{picking ? <SheetOverlay …/> : null}`
+ * — so the moment `onClose` reaches the screen the whole thing is unmounted and
+ * any exit animation is lost. Rather than change seven call sites, the wrapper
+ * keeps its own open flag: on dismissal it closes the sheet and tells the
+ * screen a beat later, once the exit has played.
+ */
+const EXIT_MS = 220;
 
 /**
  * A bottom sheet over the form: a dimmed backdrop that closes on tap, a rounded
- * card that swallows its own taps, a grab handle and a title. The pickers on the
- * expense screens (currency, group) share it so they present and dismiss the
- * same way.
+ * card that swallows its own taps, a grab handle and a title.
+ *
+ * It is now a thin wrapper over `Sheet` from `@waves/ui` rather than its own
+ * implementation. The old one was an absolutely-positioned layer *inside the
+ * screen's own tree*, which is the root of what it had to keep working around:
+ * a view inside the page is bounded by the page, so the backdrop could only
+ * ever dim what its parent covered, it needed `elevation: 24` to climb over the
+ * app's raised cards, and it had to ask a route-aware helper whether the app's
+ * bottom bar was going to paint over it. `Sheet` is a real modal window with
+ * `statusBarTranslucent` and `navigationBarTranslucent`, so its scrim covers
+ * the whole display — system bars included — and nothing in the app can paint
+ * above it.
+ *
+ * Everything the pickers had is still here: the handle, the title, tap-to-close
+ * on both, drag-down-to-dismiss (now `PanResponder` inside `Sheet`, because the
+ * design system carries no gesture dependency), the 75% ceiling and the
+ * scrolling list under it.
  */
 export function SheetOverlay({
   title,
@@ -53,121 +69,50 @@ export function SheetOverlay({
 }): React.JSX.Element {
   const theme = useTheme();
   const { t } = useStrings();
-  // The foot this sheet leaves at the bottom edge.
-  //
-  // Route-aware, because this sheet is drawn in the screen's own tree rather
-  // than in a modal window of its own. A modal would be a separate native window
-  // and would cover everything; this is a view inside the page, and the app's
-  // bottom bar is a later sibling at the root — it paints *over* the sheet, scrim
-  // and all. So on any route where the bar is showing (the Activity feed's date
-  // filter, say) the sheet has to clear the bar as well as the system navigation
-  // inset, or its last control ends up behind the bar and cannot be tapped at
-  // all. On a route the bar hides on (add-expense, capture) the plain screen foot
-  // is right, and `useBottomClearance` knows which is which.
-  const foot = useBottomClearance(theme.spacing.xl);
 
-  // Drag the handle down to dismiss. translateY only ever goes positive (down);
-  // past a short threshold or on a quick flick the sheet closes, otherwise it
-  // springs back. The gesture lives on the header, not the whole card, so it
-  // never fights the list's own vertical scroll.
-  const translateY = useSharedValue(0);
-  const dragToClose = Gesture.Pan()
-    // Only engage once the finger has clearly moved vertically, so a plain tap
-    // on the handle still falls through to the Pressable that closes the sheet.
-    .activeOffsetY([-12, 12])
-    .onUpdate((event) => {
-      // Down follows the finger 1:1; an upward pull rubber-bands so the sheet
-      // feels anchored rather than free.
-      translateY.set(event.translationY > 0 ? event.translationY : event.translationY / 4);
-    })
-    .onEnd((event) => {
-      if (translateY.get() > 120 || event.velocityY > 800) {
-        // Carry the flick through: animate the rest of the way out, then close.
-        translateY.set(withTiming(700, { duration: 180 }, () => runOnJS(onClose)()));
-      } else {
-        translateY.set(withSpring(0, { damping: 20, stiffness: 220 }));
-      }
-    });
-  const cardStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: translateY.get() }],
-  }));
+  // Open from the first frame; `Sheet` animates its own arrival from nothing
+  // whether it mounts open or is opened later.
+  const [open, setOpen] = useState(true);
+
+  // A scrim tap and a drag can both land in the same gesture; without this the
+  // screen is told twice, and a caller that pops a route on close pops two.
+  const dismissing = useRef(false);
+  const dismiss = useCallback(() => {
+    if (dismissing.current) return;
+    dismissing.current = true;
+    setOpen(false);
+    setTimeout(onClose, EXIT_MS);
+  }, [onClose]);
+
+  useEffect(
+    () => () => {
+      dismissing.current = true;
+    },
+    [],
+  );
 
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={t.common.close}
-      onPress={onClose}
-      style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(10, 10, 26, 0.55)',
-        justifyContent: 'flex-end',
-        // Being last in the tree is enough on iOS, but not on Android: there a
-        // raised view paints above every unraised sibling whatever the order,
-        // and this app's cards are raised (`shadow.soft` is elevation 4,
-        // `shadow.lifted` 10, the pill tab bar 6). A sheet with no elevation of
-        // its own therefore opened *underneath* the content it covers — the
-        // Activity feed's cards showed through the backdrop. Sit above all of
-        // them, with the matching zIndex so the web build orders it the same.
-        zIndex: 100,
-        elevation: 24,
-      }}
+    <Sheet
+      visible={open}
+      onClose={dismiss}
+      title={title}
+      closeLabel={t.common.close}
+      // A ceiling rather than a height: a three-option sheet stays short, and a
+      // long currency list stops well before the top of the screen.
+      style={{ maxHeight: '75%' }}
     >
-      <Animated.View
-        style={[
-          {
-            backgroundColor: theme.color.surface,
-            borderTopLeftRadius: theme.radius.lg,
-            borderTopRightRadius: theme.radius.lg,
-            padding: theme.spacing.xl,
-            paddingBottom: foot,
-            gap: theme.spacing.md,
-            maxHeight: '75%',
-          },
-          cardStyle,
-        ]}
+      {/* flexShrink lets this scroll: without it the list keeps its full
+          content height and the card's maxHeight clips the overflow instead of
+          scrolling it, so a long group or currency list loses its bottom rows. */}
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        style={{ flexShrink: 1 }}
+        contentContainerStyle={{ gap: theme.spacing.md }}
       >
-        {/* Swallow taps on the card so they never reach the backdrop, which
-            would close the sheet. */}
-        <Pressable onPress={() => {}} style={{ gap: theme.spacing.md, flexShrink: 1 }}>
-          {/* The header is the drag surface AND a tap-to-close target: the grab
-              handle reads as draggable, so make it do something when pushed. */}
-          <GestureDetector gesture={dragToClose}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t.common.close}
-              onPress={onClose}
-              style={{ gap: theme.spacing.md }}
-            >
-              <View
-                style={{
-                  alignSelf: 'center',
-                  width: 40,
-                  height: 4,
-                  borderRadius: 2,
-                  backgroundColor: theme.color.border,
-                }}
-              />
-              <Text variant="heading">{title}</Text>
-            </Pressable>
-          </GestureDetector>
-          {/* flexShrink lets this scroll: without it the list keeps its full
-              content height and the sheet's maxHeight clips the overflow instead
-              of scrolling it, so a long group or currency list loses its bottom
-              rows. */}
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            style={{ flexShrink: 1 }}
-          >
-            {children}
-          </ScrollView>
-        </Pressable>
-      </Animated.View>
-    </Pressable>
+        {children}
+      </ScrollView>
+    </Sheet>
   );
 }
 

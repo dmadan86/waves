@@ -22,17 +22,8 @@
 
 import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  View,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
-import { Avatar, Button, Callout, iconSize, Row, Text, useTheme } from '@waves/ui';
+import { ActivityIndicator, Pressable, View } from 'react-native';
+import { Avatar, Button, Callout, iconSize, Popup, Row, Text, useTheme } from '@waves/ui';
 
 import {
   useAddExpenseComment,
@@ -107,12 +98,11 @@ export function ExpenseComments({
   photoOf?: (memberId: string | null) => string | null;
 }): React.JSX.Element {
   const theme = useTheme();
-  const insets = useSafeAreaInsets();
   const { t, locale } = useStrings();
   const { confirm, choose } = useDialog();
   const toast = useToast();
   // A failed post is said inside the composer, not as a toast: the composer is
-  // a Modal — its own native window — and the toast host is an ordinary view in
+  // a Popup — its own native window — and the toast host is an ordinary view in
   // the app's tree, so a toast raised from here is painted underneath it and
   // nobody sees it. The composer deliberately stays open on failure with the
   // text still in it, so there is a right place to put the sentence.
@@ -449,106 +439,75 @@ export function ExpenseComments({
         })
       )}
 
-      {/* The editor — always mounted, driven by `visible` (a Modal toggled after
-          mount presents reliably on Android only when it stays mounted). A
-          centred card rather than a bottom sheet, so the field sits in the eye's
-          middle; the KeyboardAvoidingView lifts the whole card as the keyboard
-          rises so nothing it covers is lost. Text only: no image control here. */}
-      <Modal transparent animationType="fade" visible={editorOpen} onRequestClose={closeEditor}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={{ flex: 1 }}
-        >
-          <Pressable
-            onPress={closeEditor}
-            accessibilityLabel={t.common.close}
-            style={{
-              flex: 1,
-              backgroundColor: 'rgba(10, 10, 26, 0.55)',
-              justifyContent: 'center',
-              alignItems: 'center',
-              paddingHorizontal: theme.spacing.xl,
-              paddingVertical: theme.spacing.xxl + insets.top,
+      {/* The editor — always mounted, driven by `visible`, as `Popup` wants it.
+          A centred card rather than a bottom sheet, so the field sits in the
+          eye's middle; `Popup` gives up the keyboard's height so the card
+          centres in what is left rather than hiding under it. Text only: no
+          image control here. */}
+      <Popup visible={editorOpen} onClose={closeEditor} closeLabel={t.common.close}>
+        <View style={{ gap: theme.spacing.md }}>
+          <Text variant="heading">
+            {editorCommentId === null ? t.comments.editorTitle : t.comments.editLabel}
+          </Text>
+
+          <RichCommentInput
+            value={editorBody}
+            onChangeText={setEditorBody}
+            onSelectionChange={(e) => {
+              setSel(e.nativeEvent.selection);
+              setForcedSel(null);
             }}
-          >
-            {/* Swallow taps so pressing the card does not dismiss it. */}
-            <Pressable
-              onPress={() => {}}
-              style={{
-                width: '100%',
-                maxWidth: 480,
-                backgroundColor: theme.color.surface,
-                borderRadius: theme.radius.xxl,
-                paddingHorizontal: theme.spacing.xl,
-                paddingTop: theme.spacing.lg,
-                paddingBottom: theme.spacing.lg,
-                gap: theme.spacing.md,
-              }}
-            >
-              <Text variant="heading">
-                {editorCommentId === null ? t.comments.editorTitle : t.comments.editLabel}
-              </Text>
+            selection={forcedSel ?? undefined}
+            autoFocus
+            maxLength={MAX_COMMENT_LENGTH}
+            placeholder={t.comments.placeholder}
+            accessibilityLabel={t.comments.placeholder}
+            style={{
+              minHeight: 96,
+              maxHeight: 200,
+              paddingHorizontal: theme.spacing.md,
+              paddingVertical: theme.spacing.sm,
+              borderRadius: theme.radius.lg,
+              backgroundColor: theme.color.surfaceMuted,
+              color: theme.color.text,
+              textAlignVertical: 'top',
+            }}
+          />
 
-              <RichCommentInput
-                value={editorBody}
-                onChangeText={setEditorBody}
-                onSelectionChange={(e) => {
-                  setSel(e.nativeEvent.selection);
-                  setForcedSel(null);
-                }}
-                selection={forcedSel ?? undefined}
-                autoFocus
-                maxLength={MAX_COMMENT_LENGTH}
-                placeholder={t.comments.placeholder}
-                accessibilityLabel={t.comments.placeholder}
-                style={{
-                  minHeight: 96,
-                  maxHeight: 200,
-                  paddingHorizontal: theme.spacing.md,
-                  paddingVertical: theme.spacing.sm,
-                  borderRadius: theme.radius.lg,
+          {composerError !== null ? <Callout tone="negative">{composerError}</Callout> : null}
+
+          <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
+            {toolbar.map((tool) => (
+              <Pressable
+                key={tool.label}
+                onPress={tool.onPress}
+                accessibilityRole="button"
+                accessibilityLabel={tool.label}
+                hitSlop={6}
+                style={({ pressed }) => ({
+                  width: 38,
+                  height: 38,
+                  borderRadius: theme.radius.md,
+                  alignItems: 'center',
+                  justifyContent: 'center',
                   backgroundColor: theme.color.surfaceMuted,
-                  color: theme.color.text,
-                  textAlignVertical: 'top',
-                }}
-              />
-
-              {composerError !== null ? <Callout tone="negative">{composerError}</Callout> : null}
-
-              <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
-                {toolbar.map((tool) => (
-                  <Pressable
-                    key={tool.label}
-                    onPress={tool.onPress}
-                    accessibilityRole="button"
-                    accessibilityLabel={tool.label}
-                    hitSlop={6}
-                    style={({ pressed }) => ({
-                      width: 38,
-                      height: 38,
-                      borderRadius: theme.radius.md,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      backgroundColor: theme.color.surfaceMuted,
-                      opacity: pressed ? 0.6 : 1,
-                    })}
-                  >
-                    {tool.node}
-                  </Pressable>
-                ))}
-                <View style={{ flex: 1 }} />
-                <Button
-                  label={t.comments.post}
-                  size="sm"
-                  disabled={busy || editorBody.trim() === ''}
-                  onPress={send}
-                />
-                {busy ? <ActivityIndicator color={theme.color.buttonPrimary} /> : null}
-              </Row>
-            </Pressable>
-          </Pressable>
-        </KeyboardAvoidingView>
-      </Modal>
+                  opacity: pressed ? 0.6 : 1,
+                })}
+              >
+                {tool.node}
+              </Pressable>
+            ))}
+            <View style={{ flex: 1 }} />
+            <Button
+              label={t.comments.post}
+              size="sm"
+              disabled={busy || editorBody.trim() === ''}
+              onPress={send}
+            />
+            {busy ? <ActivityIndicator color={theme.color.buttonPrimary} /> : null}
+          </Row>
+        </View>
+      </Popup>
     </View>
   );
 }
