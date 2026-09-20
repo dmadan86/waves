@@ -558,7 +558,7 @@ export default function HomeScreen() {
         {/* THROWAWAY: the quick actions, first thing under the hero and
             scrolling away with the list rather than pinned — which is where
             MyGate and its neighbours put theirs. */}
-        <HomeQuickActions title={t.tabs.quickActions} actions={quickActions} />
+        <HomeQuickActions actions={quickActions} />
 
         {/* A hairline under the grid, the way a banking home separates its
             action board from the accounts beneath it. Without it the grid and

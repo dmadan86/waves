@@ -13,25 +13,25 @@
  * the number sit in a strip underneath it.
  *
  * The shape is MyGate's "Quick Actions" panel, which is the reference asked
- * for: a named section, then a four-column grid two rows deep, each cell a
- * white rounded square holding one glyph with its name underneath, and the last
- * cell a filled accent square that opens everything else. Three things it takes
- * from that panel and one it leaves:
+ * for: a four-column grid of white rounded squares, each holding one glyph with
+ * its name underneath, and the last one filled in an accent colour to open
+ * everything else. What it takes from that panel, and what it leaves:
  *
- *   - **Squares, not discs.** A disc reads as a single control; a grid of
- *     squares reads as a board of them, which is what eight is.
- *   - **A heading.** Without one the grid is furniture you scroll past. With
- *     one it is a place, and the eye can skip it in a glance.
+ *   - **Squares, not discs.** A disc reads as a single control; a row of
+ *     squares reads as a board of them.
  *   - **A "view more" cell that leads somewhere.** MyGate's opens the full
  *     catalogue of services; ours opens the overflow menu, which is the only
  *     other list of everything Home can reach.
- *   - **Not the "Customise" link.** MyGate lets you rearrange the grid. Nothing
- *     here does, and a link that does nothing is worse than no link.
+ *   - **Neither the heading nor the "Customise" link.** MyGate names the panel
+ *     because its home is a stack of a dozen sections and the name is how you
+ *     find this one; Home has the hero, this row and the groups, so a label over
+ *     four labelled icons is a line of text saying what is already plain. The
+ *     link is out because MyGate's rearranges the grid and nothing here does.
  *
  * The glyph keeps the colour it wears in `QuickAddSheet` (`tintForKey`, the
  * same function), so an action that appears in both is the same colour in both
- * — the tint moves from the disc's fill to the glyph itself, because a grid of
- * eight filled discs is a fruit bowl.
+ * — the tint moves from the disc's fill to the glyph itself, because a row of
+ * filled discs is a fruit bowl.
  *
  * Nothing scrolls. A shortcut you have to find by dragging is not a shortcut,
  * and the horizontal `ScrollView` this replaced had a second problem: React
@@ -87,10 +87,8 @@ function rows(actions: readonly HomeAction[]): HomeAction[][] {
 }
 
 export function HomeQuickActions({
-  title,
   actions,
 }: {
-  title: string;
   actions: readonly HomeAction[];
 }): React.JSX.Element {
   const theme = useTheme();
@@ -105,8 +103,6 @@ export function HomeQuickActions({
         gap: theme.spacing.md,
       }}
     >
-      <Text variant="subheading">{title}</Text>
-
       {grid.map((row, index) => (
         <Row
           // The rows are a layout detail of one fixed list, not a list of their
