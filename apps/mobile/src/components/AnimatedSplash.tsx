@@ -50,7 +50,7 @@ import Animated, {
     of apps, which is what GoodRx's yellow and Spotify's black are for. The mark
     on it is the app's ink rather than white, because a white mark on this is
     unreadable. */
-const SPLASH_BG = '#FFE000';
+const SPLASH_BG = '#F5D800';
 
 /** The mark's drawn width, identical to `imageWidth` in `app.json` for the same
     reason: the native half draws the same file, and a mark that changes size
