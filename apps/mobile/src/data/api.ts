@@ -2088,6 +2088,12 @@ export async function submitFeedback(input: {
   rating: FeedbackRating | null;
   appVersion: string | null;
   platform: string;
+  /**
+   * What the message is about, from the card grid. The server filters this
+   * against its own list, so a slug this build knows and the deployment does
+   * not costs the topic, never the message.
+   */
+  topics: readonly string[];
 }): Promise<void> {
   const { error } = await backend.rpc('waves_submit_feedback', {
     p_message: input.message,
@@ -2095,6 +2101,7 @@ export async function submitFeedback(input: {
     p_rating: input.rating,
     p_app_version: input.appVersion,
     p_platform: input.platform,
+    p_topics: [...input.topics],
   });
   if (error) throw new Error(error.message);
 }

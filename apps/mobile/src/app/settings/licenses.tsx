@@ -92,6 +92,19 @@ const LICENSES: readonly { name: string; license: string }[] = [
   { name: 'base64-arraybuffer', license: 'MIT' },
 ];
 
+/**
+ * Artwork, which is not software and not bundled.
+ *
+ * The feedback cards draw illustrations fetched from a public bucket rather
+ * than shipped inside the app (see `lib/art.ts`). They are still ours to
+ * credit: Storyset's free licence requires attribution wherever the art
+ * appears. The screen that shows them says so too; this is the permanent
+ * record, in the place somebody goes looking for one.
+ */
+const ARTWORK: readonly { name: string; license: string }[] = [
+  { name: 'Storyset (Freepik)', license: 'Free with attribution' },
+];
+
 export default function LicensesScreen() {
   const theme = useTheme();
   const clearance = useTabBarClearance();
@@ -145,6 +158,31 @@ export default function LicensesScreen() {
               </Text>
               <Text variant="caption" tone="muted">
                 {lib.license}
+              </Text>
+            </Row>
+          ))}
+        </Card>
+
+        <Text variant="subheading">{t.privacy.artworkTitle}</Text>
+
+        <Card style={{ paddingVertical: theme.spacing.xs }}>
+          {ARTWORK.map((item, index) => (
+            <Row
+              key={item.name}
+              style={{
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                paddingVertical: theme.spacing.md,
+                borderTopWidth: index === 0 ? 0 : 1,
+                borderTopColor: theme.color.border,
+                gap: theme.spacing.md,
+              }}
+            >
+              <Text variant="body" numberOfLines={1} style={{ flex: 1 }}>
+                {item.name}
+              </Text>
+              <Text variant="caption" tone="muted">
+                {item.license}
               </Text>
             </Row>
           ))}
