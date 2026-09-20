@@ -31,6 +31,7 @@ import {
   Animated,
   Keyboard,
   Modal,
+  PanResponder,
   Platform,
   Pressable,
   StyleSheet,
@@ -42,10 +43,22 @@ import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-cont
 
 import { useTheme } from '../theme';
 import { useScreenClearance } from './PillTabBar';
+import { Text } from './Text';
 
-/** The scrim behind every overlay — a near-black wash, enough to sit the surface
- *  off the screen without dimming it to a blackout. */
-const SCRIM = 'rgba(10, 10, 26, 0.55)';
+/**
+ * The scrim behind every overlay.
+ *
+ * Deep enough that what it covers reads as *dimmed*, not as a paler version of
+ * itself. At the old 0.55 a white card under the scrim came out at #787880 and
+ * the lavender page around it at #737380 — five levels apart, which is enough
+ * for the eye to pick the card out as a bright slab floating behind the sheet.
+ * The app is a light one: almost everything behind an overlay is white or near
+ * it, so the wash has to do more work here than it would over a dark app.
+ */
+const SCRIM = 'rgba(10, 10, 26, 0.7)';
+/** Past this far down, or this fast, a drag on the handle dismisses. */
+const DRAG_CLOSE_DISTANCE = 120;
+const DRAG_CLOSE_VELOCITY = 0.8;
 const OPEN_SPRING = { tension: 70, friction: 12 } as const;
 const CLOSE_MS = 160;
 /** How small a Popup starts — a grow into place, not a pop from nothing. */
@@ -80,7 +93,12 @@ function useReduceMotion(): boolean {
  */
 function useOverlay(visible: boolean) {
   const [mounted, setMounted] = useState(visible);
-  const progress = useRef(new Animated.Value(visible ? 1 : 0)).current;
+  // Always from nothing, even for a surface that is mounted already open. A
+  // caller that renders its sheet conditionally — `{picking ? <Sheet …/>}` —
+  // hands us `visible` true on the very first render, and seeding the value at
+  // 1 there meant the sheet appeared already in place with no arrival at all.
+  // Starting at 0 costs the always-mounted callers nothing: they mount closed.
+  const progress = useRef(new Animated.Value(0)).current;
 
   // Mount the moment we open — a state adjustment on the visible prop, done in
   // render rather than in the effect (which then only drives the animation and
@@ -124,6 +142,16 @@ export interface SheetProps {
   style?: ViewStyle;
   /** Screen-reader label for the tap-away scrim. */
   closeLabel?: string;
+  /**
+   * A heading drawn in the sheet's own header, beside the handle.
+   *
+   * Worth being the sheet's business rather than the caller's, because the
+   * header is also the drag surface: a title passed here is part of what you
+   * can pull down, and — like the handle above it — a tap on it closes. A sheet
+   * that renders its own title inside `children` gets neither, and the handle
+   * alone is a 40×4 target to pull.
+   */
+  title?: string;
 }
 
 /**
@@ -137,12 +165,21 @@ function SheetCard({
   handle,
   padded,
   style,
+  title,
+  onClose,
+  closeLabel,
+  dragHandlers,
   onLayout,
   children,
 }: {
   handle: boolean;
   padded: boolean;
   style?: ViewStyle;
+  title?: string;
+  onClose: () => void;
+  closeLabel: string;
+  /** `PanResponder` props for the header, so the sheet can be pulled down. */
+  dragHandlers: Record<string, unknown>;
   onLayout: (height: number) => void;
   children: ReactNode;
 }) {
@@ -173,18 +210,43 @@ function SheetCard({
         style,
       ]}
     >
-      {handle ? (
-        <View
+      {/* The header: handle, optional title, and the whole drag surface.
+          Mounted even for a sheet with neither, because the pan responder has
+          to live somewhere — an empty strip is still a few points of card you
+          can start a pull from, and it costs nothing when there is no handle.
+
+          Deliberately *not* the whole card: a pan responder over the card
+          fights any list inside it, and the loser is whichever one the finger
+          actually meant. The header is the part of a sheet that is never
+          scrollable, so it is the part that can be dragged. */}
+      <View {...dragHandlers}>
+        <Pressable
+          accessibilityRole={title ? 'button' : undefined}
+          accessibilityLabel={title ? closeLabel : undefined}
+          // Tap-to-close only where there is a title to press. A bare handle is
+          // a 4pt bar; making it dismiss on tap turns a mis-aimed scroll into a
+          // closed sheet, which is how you lose a half-filled form.
+          onPress={title ? onClose : undefined}
+          disabled={!title}
           style={{
-            alignSelf: 'center',
-            width: 40,
-            height: 4,
-            borderRadius: 2,
-            backgroundColor: theme.color.border,
-            marginBottom: theme.spacing.sm,
+            gap: theme.spacing.md,
+            marginBottom: handle || title ? theme.spacing.sm : 0,
           }}
-        />
-      ) : null}
+        >
+          {handle ? (
+            <View
+              style={{
+                alignSelf: 'center',
+                width: 40,
+                height: 4,
+                borderRadius: 2,
+                backgroundColor: theme.color.border,
+              }}
+            />
+          ) : null}
+          {title ? <Text variant="heading">{title}</Text> : null}
+        </Pressable>
+      </View>
       {children}
     </Pressable>
   );
@@ -226,6 +288,69 @@ function useKeyboardInset(): number {
   return inset;
 }
 
+/**
+ * Pull the header down to dismiss.
+ *
+ * `PanResponder` rather than a gesture library, for the reason at the top of
+ * this file: the design system carries no animation or gesture dependency, and
+ * this is a single-finger vertical drag — the thing RN's own responder system
+ * was written for.
+ *
+ * The travel is added to the entrance translate rather than replacing it, so a
+ * sheet caught mid-arrival and dragged does not jump: the two offsets simply
+ * sum. Downward follows the finger exactly; upward rubber-bands at a quarter,
+ * which is what makes the sheet feel anchored to the bottom edge instead of
+ * loose.
+ */
+function useSheetDrag(visible: boolean, onClose: () => void) {
+  const drag = useRef(new Animated.Value(0)).current;
+  // The live handler, so the responder (built once) never closes over a stale
+  // `onClose` from the render that created it.
+  const close = useRef(onClose);
+  close.current = onClose;
+
+  useEffect(() => {
+    // A sheet reopened after being flung away must start where sheets start.
+    if (visible) drag.setValue(0);
+  }, [visible, drag]);
+
+  const responder = useRef(
+    PanResponder.create({
+      // Not on *start*: a tap on the header is the close button, and claiming
+      // the touch here would swallow it. Only a deliberate vertical move —
+      // past a few points, and more vertical than horizontal — becomes a drag.
+      onMoveShouldSetPanResponder: (_event, gesture) =>
+        Math.abs(gesture.dy) > 6 && Math.abs(gesture.dy) > Math.abs(gesture.dx),
+      onPanResponderMove: (_event, gesture) => {
+        drag.setValue(gesture.dy > 0 ? gesture.dy : gesture.dy / 4);
+      },
+      onPanResponderRelease: (_event, gesture) => {
+        if (gesture.dy > DRAG_CLOSE_DISTANCE || gesture.vy > DRAG_CLOSE_VELOCITY) {
+          // Let go of it: the overlay's own exit runs from wherever the finger
+          // left the card, so the sheet carries on down rather than snapping
+          // back first and then leaving.
+          close.current();
+          return;
+        }
+        Animated.spring(drag, {
+          toValue: 0,
+          useNativeDriver: true,
+          damping: 20,
+          stiffness: 220,
+          mass: 0.8,
+        }).start();
+      },
+      // An interrupted drag (a call arriving, say) is a drag that did not
+      // happen, not a dismissal.
+      onPanResponderTerminate: () => {
+        Animated.spring(drag, { toValue: 0, useNativeDriver: true, ...OPEN_SPRING }).start();
+      },
+    }),
+  ).current;
+
+  return { drag, handlers: responder.panHandlers as unknown as Record<string, unknown> };
+}
+
 export function Sheet({
   visible,
   onClose,
@@ -234,12 +359,14 @@ export function Sheet({
   padded = true,
   style,
   closeLabel = 'Close',
+  title,
 }: SheetProps) {
   const insets = useSafeAreaInsets();
   const reduceMotion = useReduceMotion();
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const { mounted, progress } = useOverlay(visible);
   const keyboard = useKeyboardInset();
+  const { drag, handlers } = useSheetDrag(visible, onClose);
   // The sheet's own height, measured on layout, so it travels exactly its own
   // distance rather than a guess. Until the first measure a screen-height
   // fallback keeps the first frame off-screen instead of flashing in place.
@@ -247,12 +374,13 @@ export function Sheet({
 
   if (!mounted) return null;
 
-  const translateY = reduceMotion
-    ? 0
-    : progress.interpolate({
-        inputRange: [0, 1],
-        outputRange: [height || screenHeight, 0],
-      });
+  // Reduced motion drops the entrance travel, not the drag: a sheet you are
+  // holding should follow your finger whatever the OS says about animation.
+  const entrance = progress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [reduceMotion ? 0 : height || screenHeight, 0],
+  });
+  const translateY = Animated.add(entrance, drag);
 
   return (
     <Modal
@@ -311,7 +439,16 @@ export function Sheet({
             }}
           >
             <Animated.View style={{ transform: [{ translateY }] }}>
-              <SheetCard handle={handle} padded={padded} style={style} onLayout={setHeight}>
+              <SheetCard
+                handle={handle}
+                padded={padded}
+                style={style}
+                title={title}
+                onClose={onClose}
+                closeLabel={closeLabel}
+                dragHandlers={handlers}
+                onLayout={setHeight}
+              >
                 {children}
               </SheetCard>
             </Animated.View>
@@ -350,6 +487,11 @@ export function Popup({
   const theme = useTheme();
   const reduceMotion = useReduceMotion();
   const { mounted, progress } = useOverlay(visible);
+  // A dialog with a field in it is the common case, and a modal window on
+  // Android never resizes for the keyboard — so the centring box gives up the
+  // keyboard's height and the card centres in what is left, rather than staying
+  // in the middle of a screen whose bottom half is covered.
+  const keyboard = useKeyboardInset();
 
   if (!mounted) return null;
 
@@ -382,6 +524,7 @@ export function Popup({
             alignItems: 'center',
             justifyContent: 'center',
             padding: theme.spacing.xl,
+            paddingBottom: theme.spacing.xl + keyboard,
           }}
         >
           <Animated.View
