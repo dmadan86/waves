@@ -18,7 +18,7 @@
  */
 
 import { useState } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
 import { Button, Row, Sheet, Text, useTheme } from '@waves/ui';
 
@@ -118,33 +118,27 @@ export function ActivityDateFilter({
        the sheet is the system navigation bar — which `Sheet` already leaves a
        foot for. */
     <Sheet visible onClose={onClose} closeLabel={t.common.close} style={{ maxHeight: '90%' }}>
-      {/* flexShrink all the way down, or the scroll never engages: a child at
-          its full content height inside a capped card is clipped, not
-          scrolled. */}
+      {/* Nothing in this sheet scrolls, in either direction, and that is the
+          fix rather than a preference. The calendar used to sit in a vertical
+          ScrollView: on Android a scroller cancels a child's press the moment
+          the finger drifts a pixel or two, so a tap on a day drew its ripple
+          and then went nowhere — "From · Not set" however many days you tapped.
+          The picker was unusable, and the cause was invisible, because the
+          ripple says the tap was seen.
+
+          A month is a known size. Six week rows, a header, a chip row and two
+          buttons fit a phone with room to spare, so the sheet is laid out to
+          fit and every tap in it reaches what it was aimed at. */}
       <View style={{ gap: theme.spacing.lg, flexShrink: 1 }}>
         <Text variant="heading">{t.activityFilter.open}</Text>
 
-        {/* The range is chosen in here and committed by the pinned row below:
-            the calendar is the tall part, so it is the part that scrolls. The
-            two actions never scroll out of reach — a picker whose Apply button
-            has to be hunted for is the bug this sheet was reported with. */}
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          style={{ flexShrink: 1 }}
-          contentContainerStyle={{ gap: theme.spacing.lg }}
-        >
-          {/* One-tap presets — the common ranges, applied immediately. */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            // A gutter past the last chip, the same one the payment rails and the
-            // payer lane carry: the four ranges do not fit a narrow phone, and a
-            // chip sliced off flush at the card's edge reads as a broken layout
-            // rather than as "there is more this way". `paddingEnd`, not
-            // `paddingRight`, so the gutter follows the row when Arabic reverses
-            // it and the cut lands on the trailing side either way.
-            contentContainerStyle={{ gap: theme.spacing.sm, paddingEnd: theme.spacing.xl }}
-          >
+        <View style={{ gap: theme.spacing.lg, flexShrink: 1 }}>
+          {/* One-tap presets — the common ranges, applied immediately. Wrapped
+              rather than scrolled sideways: four chips do not fit one line on a
+              narrow phone, and the fourth used to be sliced in half by the
+              card's edge, which reads as a broken layout rather than as "there
+              is more this way". A second line costs 40pt and shows all four. */}
+          <Row style={{ flexWrap: 'wrap', gap: theme.spacing.sm }}>
             {presets.map((p) => {
               const active = activePreset(p);
               return (
@@ -176,7 +170,7 @@ export function ActivityDateFilter({
                 </Pressable>
               );
             })}
-          </ScrollView>
+          </Row>
 
           {/* The selected range, read-only — it echoes the calendar taps below.
 
@@ -208,7 +202,7 @@ export function ActivityDateFilter({
               setEnd(e);
             }}
           />
-        </ScrollView>
+        </View>
 
         <Row style={{ gap: theme.spacing.sm }}>
           {initial || start ? (

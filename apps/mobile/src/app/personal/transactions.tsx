@@ -20,6 +20,7 @@ import {
 } from '@waves/ui';
 
 import { CategoryBadge } from '@/components/Category';
+import { dayHeading } from '@/data/activity';
 import { usePersonalLedger } from '@/data/personal';
 import { useStrings } from '@/i18n';
 import { PersonalGuard } from '@/components/PersonalGuard';
@@ -94,7 +95,11 @@ function PersonalTransactionsScreenBody() {
               paddingBottom: theme.spacing.xs,
             }}
           >
-            {section.title}
+            {/* The day as a person says it — "Today", "Yesterday", "Friday",
+                then "18 September" — not the ISO key the ledger groups by. The
+                same `dayHeading` the activity feed, the captures inbox and the
+                SMS threads use, so every dated list in the app reads alike. */}
+            {dayHeading(locale, section.title)}
           </Text>
         )}
         renderItem={({ item: txn }) => {
