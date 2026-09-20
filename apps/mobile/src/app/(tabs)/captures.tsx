@@ -104,7 +104,7 @@ import {
   type PersonChoice,
 } from '@/components/DestinationPicker';
 import { PendingMark } from '@/components/PendingMark';
-import { ScreenHero, useHeroStatusBar } from '@/components/ScreenHero';
+import { ScreenHero, useHeroCrossfade, useHeroStatusBar } from '@/components/ScreenHero';
 import { InboxSkeleton } from '@/components/Skeletons';
 import { WatchingLine } from '@/components/WatchingLine';
 import { dayHeading } from '@/data/activity';
@@ -722,6 +722,43 @@ function ActionSheetRow({
   );
 }
 
+/**
+ * Review's watermark — the shell's own `art` slot, filled with this screen's
+ * own imagery rather than Friends' people: the same tray the header glyph
+ * uses, filled rather than outlined so it reads as a bold shape at this size,
+ * bled off the corner behind a couple of translucent rings. The rings are
+ * Friends' own watermark's shape, reused as-is, so the two panels carry the
+ * same kind of depth without one screen borrowing the other's icon.
+ */
+function ReviewHeroArt(): React.JSX.Element {
+  const ring = (size: number, top: number, left: number, alpha: number): React.JSX.Element => (
+    <View
+      style={{
+        position: 'absolute',
+        top,
+        left,
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        borderWidth: 2,
+        borderColor: `rgba(255,255,255,${alpha})`,
+      }}
+    />
+  );
+  return (
+    <View
+      pointerEvents="none"
+      style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+    >
+      {ring(150, -60, -40, 0.1)}
+      {ring(90, 20, -30, 0.08)}
+      <View style={{ position: 'absolute', right: -30, bottom: -46 }}>
+        <Ionicons name="file-tray-full" size={190} color="rgba(255,255,255,0.09)" />
+      </View>
+    </View>
+  );
+}
+
 /** The Review tab: what was found, in two piles, one gesture each. */
 export default function CapturesScreen() {
   const theme = useTheme();
@@ -961,24 +998,19 @@ export default function CapturesScreen() {
   // The panel's two faces, and the ease between them. 0 is what the screen says
   // at rest — how much is waiting — and 1 is what it says while rows are ticked.
   // Both stay mounted, one overlaid on the other, so this is a crossfade rather
-  // than an unmount that cuts: the same value and the same 150ms the Friends
-  // header uses, because it is the same gesture on a different list.
+  // than an unmount that cuts: `useHeroCrossfade` is the same value and the same
+  // 150ms the Friends header's own top-row swap rides, lifted onto `ScreenHero`
+  // so the two panels can't drift apart into separately-tuned gestures.
   const selecting = chosenRows.length > 0;
+  const { restingStyle: restingAnim, overlayStyle: selectAnim } = useHeroCrossfade(selecting);
+  // The action bar at the foot of the screen needs its own instance of the same
+  // value: it travels further than the panel's crossfade — off the bottom edge,
+  // the navigation's own height, rather than shifting in place — so it cannot
+  // share `useHeroCrossfade`'s fixed ±6px range.
   const sel = useSharedValue(selecting ? 1 : 0);
   useEffect(() => {
     sel.set(reduceMotion ? (selecting ? 1 : 0) : withTiming(selecting ? 1 : 0, { duration: 150 }));
   }, [selecting, reduceMotion, sel]);
-  const restingAnim = useAnimatedStyle(() => ({
-    opacity: 1 - sel.get(),
-    transform: [{ translateY: sel.get() * -6 }],
-  }));
-  const selectAnim = useAnimatedStyle(() => ({
-    opacity: sel.get(),
-    transform: [{ translateY: (1 - sel.get()) * 6 }],
-  }));
-  // The action bar at the foot of the screen, on the same value. It travels
-  // further than the panel's crossfade because it comes from off the bottom
-  // edge — the navigation's own height — rather than shifting in place.
   const actionBarAnim = useAnimatedStyle(() => ({
     opacity: sel.get(),
     transform: [{ translateY: (1 - sel.get()) * 72 }],
@@ -1724,6 +1756,10 @@ export default function CapturesScreen() {
       <ScreenHero
         icon="file-tray-full-outline"
         title={t.captures.title}
+        // The shell's own watermark slot — Review's own glyph, not Friends'
+        // people, so the two panels carry the same kind of depth without
+        // literally sharing one screen's imagery.
+        art={<ReviewHeroArt />}
         // The line under the name is a *state*, not an instruction: with
         // something reading, it says so and when it last looked. With nothing
         // reading there is no state to report, and the hero's own count below
@@ -1751,18 +1787,26 @@ export default function CapturesScreen() {
         actions={
           smsReader
             ? [
+                // The inbox is the main path in on a phone that reads its own
+                // messages — the screen's one real button, so it gets the
+                // shell's primary treatment; "look now" stays a bare glyph.
                 {
                   icon: 'chatbubbles-outline',
                   label: t.smsInbox.entryTitle,
                   onPress: () => router.push('/captures/sms'),
+                  primary: true,
                 },
                 { icon: 'refresh', label: t.smsInbox.scan, onPress: () => setScanOpen(true) },
               ]
             : [
+                // The only action here, and the main way a spend arrives on a
+                // phone with no reading API at any tier — primary because
+                // there is nowhere else this screen sends you to add one.
                 {
                   icon: 'chatbubble-ellipses-outline',
                   label: t.captures.fromMessage,
                   onPress: () => router.push('/captures/paste'),
+                  primary: true,
                 },
               ]
         }
