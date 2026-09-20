@@ -94,8 +94,9 @@ const MARK = require('../../assets/images/splash-mark-ink.png');
  * already kept somebody waiting should not then ask for two more seconds of its
  * own admiration.
  */
-const WASH_MS = 420;
-const BREATHE_MS = 420;
+const WASH_MS = 360;
+/** One half of the breath: the mark swells for this long, then settles for it. */
+const BREATHE_MS = 240;
 const HOLD_MS = 120;
 const LIFT_MS = 380;
 /** How far the wash drifts, as a fraction of the screen — a drift, not a swipe. */
@@ -134,7 +135,10 @@ export function AnimatedSplash() {
     // field, so hiding the native splash reveals no gap.
     SplashScreen.hideAsync().catch(() => {});
 
-    const liftAt = WASH_MS + BREATHE_MS + HOLD_MS;
+    // Both halves of the breath, then the hold: the mark has to be back at
+    // rest before the field starts to leave, or the lift begins over a logo
+    // still settling and the two motions read as one smear.
+    const liftAt = WASH_MS + BREATHE_MS * 2 + HOLD_MS;
     const guardAt = liftAt + LIFT_MS + 600;
 
     if (reduceMotion) {
