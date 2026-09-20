@@ -1407,6 +1407,7 @@ export interface UiStrings {
     noGroupsBody: string;
     activityEmptyBody: string;
     quickActions: string;
+    viewMore: string;
     fromContacts: string;
     addFromContacts: string;
     /** Title of the header `+` menu and its primary empty-state button — the
@@ -4510,6 +4511,7 @@ const en: UiStrings = {
     activityEmptyBody:
       'Every expense, edit, deletion and settlement lands here — for everyone in the group.',
     quickActions: 'Quick actions',
+    viewMore: 'View more',
     fromContacts: 'From contacts',
     addFromContacts: 'Add from contacts',
     addSomeone: 'Add someone',
@@ -7376,6 +7378,7 @@ const ta: UiStrings = {
     activityEmptyBody:
       'ஒவ்வொரு செலவும், திருத்தமும், நீக்கமும், தீர்வும் இங்கே வந்து சேரும் — குழுவில் உள்ள அனைவருக்கும்.',
     quickActions: 'விரைவுச் செயல்கள்',
+    viewMore: 'மேலும் பார்க்க',
     fromContacts: 'தொடர்புகளிலிருந்து',
     addFromContacts: 'தொடர்புகளிலிருந்து சேர்',
     addSomeone: 'ஒருவரைச் சேர்',
@@ -10319,6 +10322,7 @@ const hi: UiStrings = {
       'किसी सफ़र, फ़्लैट, या बस आप दोनों के लिए एक शुरू करें। खर्च जोड़ना हमेशा मुफ़्त और असीमित है।',
     activityEmptyBody: 'हर खर्च, बदलाव, हटाना और निपटान यहीं आता है — समूह के हर व्यक्ति के लिए।',
     quickActions: 'त्वरित क्रियाएँ',
+    viewMore: 'और देखें',
     fromContacts: 'संपर्कों से',
     addFromContacts: 'संपर्कों से जोड़ें',
     addSomeone: 'किसी को जोड़ें',
@@ -13229,6 +13233,7 @@ const ar: UiStrings = {
       'ابدأ واحدة لرحلة أو لشقة أو لكما أنتما. إضافة المصروفات مجانية وبلا حدود، دائمًا.',
     activityEmptyBody: 'كل مصروف وتعديل وحذف وتسوية يصل إلى هنا — لكل من في المجموعة.',
     quickActions: 'إجراءات سريعة',
+    viewMore: 'عرض المزيد',
     fromContacts: 'من جهات الاتصال',
     addFromContacts: 'أضف من جهات الاتصال',
     addSomeone: 'إضافة شخص',

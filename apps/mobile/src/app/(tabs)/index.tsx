@@ -159,11 +159,36 @@ export default function HomeScreen() {
           },
         ]
       : []),
-    // No "settle up" tile. It navigated to `/friends`, which is the tab sitting
-    // directly below it in the bar — a second door onto a screen already one tap
-    // away, and the fifth tile that forced the row to scroll and cut itself in
-    // half at the right edge. Four is what the row holds (see
-    // `HomeQuickActions`); Friends keeps settling.
+    // The second row: the things you do weekly rather than daily. Settling is
+    // here rather than in the first four because it is the end of a cycle, not
+    // the middle of one.
+    {
+      icon: 'swap-horizontal',
+      label: t.settleUp,
+      tintKey: 'settle',
+      onPress: () => router.navigate('/friends'),
+    },
+    {
+      icon: 'qr-code-outline',
+      label: t.misc.scanToJoin,
+      tintKey: 'scan',
+      onPress: () => router.push('/scan'),
+    },
+    {
+      icon: 'pulse-outline',
+      label: t.activity,
+      tintKey: 'activity',
+      onPress: () => router.navigate('/activity'),
+    },
+    // The eighth cell. On a build without the SMS reader the grid is seven and
+    // this still lands last, in the bottom-right corner where MyGate's is.
+    {
+      icon: 'grid-outline',
+      label: t.tabs.viewMore,
+      tintKey: 'more',
+      accent: true,
+      onPress: () => setMenuOpen(true),
+    },
   ];
   const defaultCurrency = useDefaultCurrency();
   const insets = useSafeAreaInsets();
@@ -459,15 +484,11 @@ export default function HomeScreen() {
               </Text>
             </Pressable>
             <SyncStatusIcon onBrand />
-            {/* Activity sits up here with the other glyphs that lead somewhere
-                  and change nothing: sync, the menu, the face. It is a shortcut
-                  to a feed you read — the row below is for the two things that
-                  create something, and this was the odd one out among them. */}
-            <HeroIconButton
-              icon="pulse-outline"
-              label={t.activity}
-              onPress={() => router.navigate('/activity')}
-            />
+            {/* THROWAWAY: activity's glyph used to sit here. It is a cell in the
+                  grid below now, and two doors onto one feed, a hand's width
+                  apart, is one door too many. The menu stays: a header overflow
+                  is where everybody reaches for it, and the grid's last cell
+                  opens this same menu. */}
             <HeroIconButton
               icon="ellipsis-vertical"
               label={t.account.faceSettings}
@@ -533,10 +554,10 @@ export default function HomeScreen() {
         {/* THROWAWAY: the quick actions, first thing under the hero and
             scrolling away with the list rather than pinned — which is where
             MyGate and its neighbours put theirs. */}
-        <HomeQuickActions actions={quickActions} />
+        <HomeQuickActions title={t.tabs.quickActions} actions={quickActions} />
 
-        {/* A hairline under the strip, the way a banking home separates its
-            action rail from the accounts beneath it. Without it the tiles and
+        {/* A hairline under the grid, the way a banking home separates its
+            action board from the accounts beneath it. Without it the grid and
             the list read as one undifferentiated column of things to tap. */}
         <View
           style={{

@@ -1,5 +1,5 @@
 /**
- * THROWAWAY — Home's actions, taken out of the hero and laid out as tiles.
+ * THROWAWAY — Home's actions, taken out of the hero and laid out as a grid.
  *
  * Built to be looked at, not to be kept. Nothing else imports it; deleting this
  * file and the block in `app/(tabs)/index.tsx` that renders it puts Home back
@@ -10,30 +10,35 @@
  * starting a group — which means the hero is doing two jobs at once, saying who
  * you are and what you owe, and also being a toolbar. The expense screen does
  * not work that way: its hero holds the number, and the things you can do with
- * the number sit in a strip underneath it. This applies that same shape to
- * Home.
+ * the number sit in a strip underneath it.
  *
- * What it borrows:
+ * The shape is MyGate's "Quick Actions" panel, which is the reference asked
+ * for: a named section, then a four-column grid two rows deep, each cell a
+ * white rounded square holding one glyph with its name underneath, and the last
+ * cell a filled accent square that opens everything else. Three things it takes
+ * from that panel and one it leaves:
  *
- *   - The tile grammar from `QuickAddSheet` — a tinted disc holding the glyph,
- *     with the action named beneath it. `tintForKey` is the same function that
- *     sheet uses, so an action that appears in both wears the same colour in
- *     both. "Add expense" and "Scan bill" are the two that do.
- *   - The row itself from Revolut Business, N26 and Cleo, all of which spread a
- *     small fixed set of discs across the width and stop there. None of them
- *     scrolls: a shortcut you have to find by dragging is not a shortcut, and a
- *     tile cut in half by the right edge reads as a rendering fault rather than
- *     an invitation.
+ *   - **Squares, not discs.** A disc reads as a single control; a grid of
+ *     squares reads as a board of them, which is what eight is.
+ *   - **A heading.** Without one the grid is furniture you scroll past. With
+ *     one it is a place, and the eye can skip it in a glance.
+ *   - **A "view more" cell that leads somewhere.** MyGate's opens the full
+ *     catalogue of services; ours opens the overflow menu, which is the only
+ *     other list of everything Home can reach.
+ *   - **Not the "Customise" link.** MyGate lets you rearrange the grid. Nothing
+ *     here does, and a link that does nothing is worse than no link.
  *
- * Two consequences of not scrolling, both deliberate:
+ * The glyph keeps the colour it wears in `QuickAddSheet` (`tintForKey`, the
+ * same function), so an action that appears in both is the same colour in both
+ * — the tint moves from the disc's fill to the glyph itself, because a grid of
+ * eight filled discs is a fruit bowl.
  *
- *   - The set has to stay at four. Whatever is fifth belongs in the hero's
- *     overflow menu or its own tab, not here.
- *   - A horizontal `ScrollView` cannot be used even for the overflow case,
- *     because React Native's base scroll style is `flexGrow: 1` — inside Home's
- *     `flexGrow: 1` content container that made the strip swallow every spare
- *     point of the column, opening a dead band between the tiles and "Your
- *     groups" that nothing in the layout accounted for.
+ * Nothing scrolls. A shortcut you have to find by dragging is not a shortcut,
+ * and the horizontal `ScrollView` this replaced had a second problem: React
+ * Native's base scroll style is `flexGrow: 1`, and inside Home's `flexGrow: 1`
+ * content container it swallowed every spare point of the column, opening a
+ * dead band between the actions and "Your groups" that nothing in the layout
+ * accounted for.
  *
  * Deliberately not overlapping the hero. A card pulled up under a rounded hero
  * corner is the obvious MyGate flourish, and it is how you get a row of buttons
@@ -44,13 +49,13 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, View } from 'react-native';
 
-import { iconSize, Text, tintForKey, useTheme } from '@waves/ui';
+import { iconSize, Row, Text, tintForKey, useTheme } from '@waves/ui';
 
-/** One tile. Mirrors `QuickAddAction`, but these do not all add something. */
+/** One cell. Mirrors `QuickAddAction`, but these do not all add something. */
 export interface HomeAction {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
-  /** Stable key for the disc's tint, so an action keeps its colour. */
+  /** Stable key for the glyph's tint, so an action keeps its colour. */
   tintKey: string;
   onPress: () => void;
   /**
@@ -59,77 +64,111 @@ export interface HomeAction {
    * dropped that gesture silently.
    */
   onLongPress?: () => void;
-  /** Wraps the tile — the tour anchors on two of these. */
+  /** Wraps the cell — the tour anchors on two of these. */
   wrap?: (tile: React.JSX.Element) => React.JSX.Element;
+  /**
+   * The last cell: filled in the brand colour rather than white, the way
+   * MyGate's "View More" is the one yellow square on the board. At most one
+   * action sets this.
+   */
+  accent?: boolean;
 }
 
-/**
- * Smaller than the sheet's disc. The sheet is a menu you are reading; this is a
- * strip you glance past on the way to the groups, and at 56 it competed with
- * the hero for the eye. 52 keeps the tap target well over 44 with the label
- * counted in.
- */
-const DISC = 52;
+/** Four to a row, the way every super-app on an Indian phone opens. */
+const COLUMNS = 4;
+/** The white square. 64 leaves the label room under it without a third row. */
+const TILE = 64;
+
+/** Chunks the actions into rows of four, last row short if the set is not a multiple. */
+function rows(actions: readonly HomeAction[]): HomeAction[][] {
+  const out: HomeAction[][] = [];
+  for (let i = 0; i < actions.length; i += COLUMNS) out.push(actions.slice(i, i + COLUMNS));
+  return out;
+}
 
 export function HomeQuickActions({
+  title,
   actions,
 }: {
+  title: string;
   actions: readonly HomeAction[];
 }): React.JSX.Element {
   const theme = useTheme();
+  const grid = rows(actions);
 
   return (
     <View
       style={{
-        flexDirection: 'row',
         paddingHorizontal: theme.spacing.lg,
         paddingTop: theme.spacing.lg,
-        paddingBottom: theme.spacing.sm,
-        gap: theme.spacing.sm,
+        paddingBottom: theme.spacing.md,
+        gap: theme.spacing.md,
       }}
     >
-      {actions.map((action) => {
-        const tint = theme.tint[tintForKey(action.tintKey)];
-        const tile = (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={action.label}
-            onPress={action.onPress}
-            onLongPress={action.onLongPress}
-            style={({ pressed }) => ({
-              alignItems: 'center',
-              gap: theme.spacing.xs,
-              opacity: pressed ? 0.6 : 1,
-            })}
-          >
-            <View
-              style={{
-                width: DISC,
-                height: DISC,
-                borderRadius: DISC / 2,
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: tint.bg,
-              }}
-            >
-              <Ionicons name={action.icon} size={iconSize.lg} color={tint.ink} />
-            </View>
-            {/* Two lines, centred: "Bank messages" and its translations do not
-                fit on one at this width, and a truncated label on a glyph the
-                person has not learned yet is no label at all. The tile takes an
-                equal share of the row (`flex: 1` on the wrapper below), so the
-                width a label has to wrap into is the same in every locale. */}
-            <Text variant="caption" numberOfLines={2} style={{ textAlign: 'center' }}>
-              {action.label}
-            </Text>
-          </Pressable>
-        );
-        return (
-          <View key={action.label} style={{ flex: 1 }}>
-            {action.wrap ? action.wrap(tile) : tile}
-          </View>
-        );
-      })}
+      <Text variant="subheading">{title}</Text>
+
+      {grid.map((row, index) => (
+        <Row
+          // The rows are a layout detail of one fixed list, not a list of their
+          // own — index is the only identity they have.
+          key={index}
+          style={{ gap: theme.spacing.sm }}
+        >
+          {row.map((action) => {
+            const tint = theme.tint[tintForKey(action.tintKey)];
+            const tile = (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={action.label}
+                onPress={action.onPress}
+                onLongPress={action.onLongPress}
+                style={({ pressed }) => ({
+                  alignItems: 'center',
+                  gap: theme.spacing.xs,
+                  opacity: pressed ? 0.6 : 1,
+                })}
+              >
+                <View
+                  style={{
+                    width: TILE,
+                    height: TILE,
+                    borderRadius: theme.radius.lg,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: action.accent ? theme.color.brand : theme.color.surface,
+                  }}
+                >
+                  <Ionicons
+                    name={action.icon}
+                    size={iconSize.xxl}
+                    color={action.accent ? theme.color.onBrand : tint.ink}
+                  />
+                </View>
+                {/* Two lines, centred: "Bank messages" and its translations do
+                    not fit on one at this width, and a truncated label on a
+                    glyph the person has not learned yet is no label at all.
+                    Every cell is an equal quarter of the row, so the width a
+                    label wraps into is the same in every locale. */}
+                <Text variant="caption" numberOfLines={2} style={{ textAlign: 'center' }}>
+                  {action.label}
+                </Text>
+              </Pressable>
+            );
+            return (
+              <View key={action.label} style={{ flex: 1 }}>
+                {action.wrap ? action.wrap(tile) : tile}
+              </View>
+            );
+          })}
+          {/* A short last row keeps its cells the same size as a full one, so
+              the columns line up instead of spreading. */}
+          {row.length < COLUMNS
+            ? Array.from({ length: COLUMNS - row.length }, (_, i) => (
+                <View key={`pad-${i}`} style={{ flex: 1 }} />
+              ))
+            : null}
+        </Row>
+      ))}
     </View>
   );
 }
