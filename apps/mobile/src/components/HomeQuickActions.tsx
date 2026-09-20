@@ -1,19 +1,14 @@
 /**
- * THROWAWAY — Home's actions, taken out of the hero and laid out as a grid.
+ * Home's actions, taken out of the hero and laid out as a grid.
  *
- * Built to be looked at, not to be kept. Nothing else imports it; deleting this
- * file and the block in `app/(tabs)/index.tsx` that renders it puts Home back
- * exactly as it was.
+ * The question it answers: Home used to spend a row *inside* the coloured hero
+ * on two controls — a white "add expense" pill and a circle for starting a
+ * group — which made the hero do two jobs at once, saying who you are and what
+ * you owe, and also being a toolbar. The expense screen does not work that way:
+ * its hero holds the number, and the things you can do with the number sit in a
+ * strip underneath it.
  *
- * The question it exists to answer: Home currently spends a row *inside* the
- * coloured hero on two controls — a white "add expense" pill and a circle for
- * starting a group — which means the hero is doing two jobs at once, saying who
- * you are and what you owe, and also being a toolbar. The expense screen does
- * not work that way: its hero holds the number, and the things you can do with
- * the number sit in a strip underneath it.
- *
- * The shape is MyGate's "Quick Actions" panel, which is the reference asked
- * for: a four-column grid of white rounded squares, each holding one glyph with
+ * The shape is MyGate's "Quick Actions" panel: a four-column grid of white rounded squares, each holding one glyph with
  * its name underneath, and the last one filled in an accent colour to open
  * everything else. What it takes from that panel, and what it leaves:
  *

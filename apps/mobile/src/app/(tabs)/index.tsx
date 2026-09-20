@@ -106,7 +106,7 @@ export default function HomeScreen() {
   const quickAddActions = useQuickAddActions();
 
   /**
-   * THROWAWAY: the four tiles under the hero — one line, whatever the build.
+   * The four tiles under the hero — one line, whatever the build.
    *
    * Three things you start, and a way to everything else. The two that were
    * already on Home (add an expense, start a group) keep their routes and their
@@ -266,8 +266,8 @@ export default function HomeScreen() {
       // OverflowMenu draws a divider wherever two adjacent rows fall in
       // different sections.
       //
-      // THROWAWAY: the "actions" rows at the top are the tiles the quick-actions
-      // grid dropped when it came down to a single line. They are things you do
+      // The "actions" rows at the top are the tiles the quick-actions grid
+      // dropped when it came down to a single line. They are things you do
       // rather than places you configure, which is why they sit above the
       // divider and ahead of the account rows.
       {
@@ -526,7 +526,7 @@ export default function HomeScreen() {
             />
           )}
 
-          {/* THROWAWAY (see `HomeQuickActions`): the add pill and the group
+          {/* See `HomeQuickActions`: the add pill and the group
                 circle used to sit here, which made the hero a toolbar as well as
                 a statement of who you are and what you owe. They have moved to a
                 strip of tiles below it, the way the expense screen keeps its
@@ -555,7 +555,7 @@ export default function HomeScreen() {
           />
         }
       >
-        {/* THROWAWAY: the quick actions, first thing under the hero and
+        {/* The quick actions, first thing under the hero and
             scrolling away with the list rather than pinned — which is where
             MyGate and its neighbours put theirs. */}
         <HomeQuickActions actions={quickActions} />

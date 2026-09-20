@@ -288,6 +288,10 @@ function DestinationChip({ name, t }: { name: string | null; t: UiStrings }): Re
  * already frames it — and carries no chip: a batch is one outing with one
  * destination, answered once on the batch's own ⋯.
  */
+/** The batch mark's diameter — `CategoryBadge`'s size on a single row, so the
+    two kinds of row share one left column. */
+const BATCH_MARK = 40;
+
 function CaptureListRow({
   capture,
   locale,
@@ -559,19 +563,28 @@ function BatchGroupCard({
         onPress={onToggle}
         style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
       >
+        {/* The same metrics a single row uses — `sm` padding, `sm` gap, a 40pt
+            mark — because a batch sits in the same list as the rows it stands
+            for. It had `md` padding and a 46pt rounded square, which pushed its
+            title and its amount a few points off every neighbour's: two columns
+            that nearly line up read as a mistake, where either lining up or
+            plainly not would not. */}
         <Row
           style={{
-            gap: theme.spacing.md,
+            gap: theme.spacing.sm,
             alignItems: 'center',
-            paddingVertical: theme.spacing.md,
-            paddingHorizontal: theme.spacing.md,
+            paddingVertical: theme.spacing.sm,
+            paddingHorizontal: theme.spacing.sm,
           }}
         >
           <View
             style={{
-              width: 46,
-              height: 46,
-              borderRadius: 14,
+              width: BATCH_MARK,
+              height: BATCH_MARK,
+              // Round, like the category badge a single row wears. The mark says
+              // "several of these" by its glyph; it does not also need a
+              // different silhouette, which only broke the column.
+              borderRadius: BATCH_MARK / 2,
               alignItems: 'center',
               justifyContent: 'center',
               backgroundColor: theme.color.brandSoft,
