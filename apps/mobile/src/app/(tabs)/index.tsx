@@ -106,22 +106,16 @@ export default function HomeScreen() {
   const quickAddActions = useQuickAddActions();
 
   /**
-   * THROWAWAY: the five tiles under the hero.
+   * THROWAWAY: the four tiles under the hero — one line, whatever the build.
    *
-   * The two that were already on Home keep their routes and their tour anchors
-   * exactly. The three new ones are doors that already existed and were simply
-   * further away: the scan route the add sheet uses, the bank-message inbox from
-   * Review, and settling up.
+   * Three things you start, and a way to everything else. The two that were
+   * already on Home (add an expense, start a group) keep their routes and their
+   * tour anchors exactly; "scan to join" is the standalone QR scanner at
+   * `/scan`, which until now could only be reached from inside a group.
    *
-   * Settling has no destination of its own — a settlement is always with
-   * somebody, so there is no global "settle" screen to open (only
-   * `group/[id]/settle`). The tile goes to Friends, which is where the per-person
-   * balances and their settle buttons live. If this experiment is kept, that is
-   * the tile to argue about.
-   *
-   * Bank messages appears only in a build that can actually read SMS — the same
-   * `smsReaderInBuild()` gate Review's door uses. A tile that opens a screen
-   * telling you the feature is not in this build is worse than no tile.
+   * The rest are in `menuItems` under the "actions" section, which is what the
+   * fourth tile opens: scanning a bill, the bank-message inbox, and settling up.
+   * Nothing was removed from Home, it moved one tap.
    */
   const quickActions: HomeAction[] = [
     {
@@ -133,6 +127,12 @@ export default function HomeScreen() {
       wrap: (tile) => <TourTarget id="addExpense">{tile}</TourTarget>,
     },
     {
+      icon: 'qr-code-outline',
+      label: t.misc.scanToJoin,
+      tintKey: 'scan',
+      onPress: () => router.push('/scan'),
+    },
+    {
       icon: 'people-outline',
       label: t.newGroup,
       tintKey: 'group',
@@ -141,47 +141,10 @@ export default function HomeScreen() {
       onPress: () => openNewGroup(),
       wrap: (tile) => <TourTarget id="addGroup">{tile}</TourTarget>,
     },
-    {
-      icon: 'camera-outline',
-      label: t.scanBill,
-      tintKey: 'scan',
-      // A fresh nonce at press time, never in render: the capture screen's
-      // consume-once guard depends on it.
-      onPress: () => router.push(`/capture?scan=${Date.now()}`),
-    },
-    ...(smsReaderInBuild()
-      ? [
-          {
-            icon: 'chatbubble-ellipses-outline' as const,
-            label: t.smsInbox.title,
-            tintKey: 'bank',
-            onPress: () => router.push('/captures/sms'),
-          },
-        ]
-      : []),
-    // The second row: the things you do weekly rather than daily. Settling is
-    // here rather than in the first four because it is the end of a cycle, not
-    // the middle of one.
-    {
-      icon: 'swap-horizontal',
-      label: t.settleUp,
-      tintKey: 'settle',
-      onPress: () => router.navigate('/friends'),
-    },
-    {
-      icon: 'qr-code-outline',
-      label: t.misc.scanToJoin,
-      tintKey: 'scan',
-      onPress: () => router.push('/scan'),
-    },
-    {
-      icon: 'pulse-outline',
-      label: t.activity,
-      tintKey: 'activity',
-      onPress: () => router.navigate('/activity'),
-    },
-    // The eighth cell. On a build without the SMS reader the grid is seven and
-    // this still lands last, in the bottom-right corner where MyGate's is.
+    // The fourth and last cell, brand-filled in the corner MyGate puts its
+    // yellow one. Everything the row used to carry and no longer does — scan a
+    // bill, read bank messages, settle up — is the first thing in the menu it
+    // opens, so nothing lost a door when the grid came down to one line.
     {
       icon: 'grid-outline',
       label: t.tabs.viewMore,
@@ -299,8 +262,45 @@ export default function HomeScreen() {
   const menuItems: OverflowMenuItem[] = useMemo(
     () => [
       // The `section` keys are internal grouping only (not user-visible): they
-      // cluster the rows into account / data / app / settings, and OverflowMenu
-      // draws a divider wherever two adjacent rows fall in different sections.
+      // cluster the rows into actions / account / data / app / settings, and
+      // OverflowMenu draws a divider wherever two adjacent rows fall in
+      // different sections.
+      //
+      // THROWAWAY: the "actions" rows at the top are the tiles the quick-actions
+      // grid dropped when it came down to a single line. They are things you do
+      // rather than places you configure, which is why they sit above the
+      // divider and ahead of the account rows.
+      {
+        icon: 'camera-outline',
+        label: t.scanBill,
+        // A fresh nonce at press time, never in render: the capture screen's
+        // consume-once guard depends on it.
+        onPress: () => router.push(`/capture?scan=${Date.now()}`),
+        section: 'actions',
+      },
+      // Bank messages appears only in a build that can actually read SMS — the
+      // same `smsReaderInBuild()` gate Review's door uses. A row that opens a
+      // screen saying the feature is not in this build is worse than no row.
+      ...(smsReaderInBuild()
+        ? [
+            {
+              icon: 'chatbubble-ellipses-outline' as const,
+              label: t.smsInbox.title,
+              onPress: () => router.push('/captures/sms'),
+              section: 'actions',
+            },
+          ]
+        : []),
+      // Settling has no destination of its own — a settlement is always with
+      // somebody, so there is no global "settle" screen (only
+      // `group/[id]/settle`). This goes to Friends, where the per-person
+      // balances and their settle buttons live.
+      {
+        icon: 'swap-horizontal',
+        label: t.settleUp,
+        onPress: () => router.navigate('/friends'),
+        section: 'actions',
+      },
       {
         icon: 'person-circle-outline',
         label: t.account.yourAccount,
@@ -484,11 +484,15 @@ export default function HomeScreen() {
               </Text>
             </Pressable>
             <SyncStatusIcon onBrand />
-            {/* THROWAWAY: activity's glyph used to sit here. It is a cell in the
-                  grid below now, and two doors onto one feed, a hand's width
-                  apart, is one door too many. The menu stays: a header overflow
-                  is where everybody reaches for it, and the grid's last cell
-                  opens this same menu. */}
+            {/* Activity sits up here with the other glyphs that lead somewhere
+                  and change nothing: sync, the menu, the face. It is a shortcut
+                  to a feed you read — the grid below is for the things that
+                  create something, and this was the odd one out among them. */}
+            <HeroIconButton
+              icon="pulse-outline"
+              label={t.activity}
+              onPress={() => router.navigate('/activity')}
+            />
             <HeroIconButton
               icon="ellipsis-vertical"
               label={t.account.faceSettings}

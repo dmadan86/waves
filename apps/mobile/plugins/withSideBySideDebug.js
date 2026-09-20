@@ -84,10 +84,7 @@ module.exports = function withSideBySideDebug(config) {
     if (!contents.includes(DEBUG_BUILD_TYPE)) {
       throw new Error('withSideBySideDebug: could not find the debug buildType in build.gradle');
     }
-    gradleConfig.modResults.contents = contents.replace(
-      DEBUG_BUILD_TYPE,
-      DEBUG_BUILD_TYPE_PATCHED,
-    );
+    gradleConfig.modResults.contents = contents.replace(DEBUG_BUILD_TYPE, DEBUG_BUILD_TYPE_PATCHED);
     return gradleConfig;
   });
 
