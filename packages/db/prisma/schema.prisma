@@ -1392,6 +1392,8 @@ model Feedback {
   platform    String?
   locale      String?
   countryCode String?  @map("country_code")
+  /// What the message is about, from a fixed card set. Empty is allowed.
+  topics      String[] @default([])
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   profile Profile? @relation(fields: [profileId], references: [id], onDelete: SetNull)

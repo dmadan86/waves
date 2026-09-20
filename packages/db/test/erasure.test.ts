@@ -242,6 +242,42 @@ describe('feedback', () => {
     });
   });
 
+  it('keeps the topics it knows and quietly drops the rest', async () => {
+    const { profileIds } = await seedGroup(client, { memberCount: 1 });
+    const message = `Scanner notes ${randomUUID().slice(0, 8)}`;
+
+    // 'splitting' twice and a slug from a build the database has never heard
+    // of: the duplicate collapses, the stranger is dropped, and the message
+    // still lands. A rejection here would lose somebody's complaint over a
+    // spelling, which is the one outcome this path must never have.
+    await asProfile(profileIds[0]!, () =>
+      client.query('SELECT public.waves_submit_feedback($1, $2, $3, $4, $5, $6)', [
+        message,
+        'general',
+        null,
+        null,
+        'android',
+        ['receipts', 'splitting', 'splitting', 'teleportation'],
+      ]),
+    );
+
+    const { rows } = await client.query('SELECT * FROM public.feedback WHERE message = $1', [
+      message,
+    ]);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].topics).toEqual(['receipts', 'splitting']);
+  });
+
+  it('refuses a topic written straight into the table', async () => {
+    // The RPC filters; the constraint is the backstop for anything that reaches
+    // the table another way.
+    await expect(
+      client.query(
+        `INSERT INTO public.feedback (kind, message, topics) VALUES ('general', 'hi', ARRAY['teleportation'])`,
+      ),
+    ).rejects.toThrow(/feedback_topics_known/);
+  });
+
   it('does not let a client write or read somebody else’s', async () => {
     const { profileIds } = await seedGroup(client, { memberCount: 2 });
     const mine = profileIds[0]!;

@@ -15,7 +15,6 @@ import {
   Button,
   Callout,
   Card,
-  ChipRow,
   directionalIcon,
   IconButton,
   iconSize,
@@ -26,16 +25,28 @@ import {
   useTheme,
 } from '@waves/ui';
 
+import { FeedbackTopicGrid, type FeedbackTopic } from '@/components/FeedbackTopics';
 import { submitFeedback, type FeedbackRating } from '@/data/api';
 import { plural, useStrings } from '@/i18n';
 import { friendlyError } from '@/lib/errors';
 import { router } from '@/lib/navigation';
 import { useReducedMotion } from '@/lib/reducedMotion';
 
-enum Kind {
-  General = 'general',
-  Bug = 'bug',
-  Idea = 'idea',
+/**
+ * The column the table has always had, now derived rather than asked for.
+ *
+ * `kind` predates the topic cards and still matters — the account-deletion path
+ * writes 'deletion' through the same RPC, and the console groups by it. But
+ * asking somebody to pick "bug or idea" *and* then tell us what it is about was
+ * asking the same question twice in two vocabularies. The two cards that carry
+ * that meaning answer it: anything else is general feedback.
+ */
+type Kind = 'general' | 'bug' | 'idea';
+
+function kindOf(topics: readonly FeedbackTopic[]): Kind {
+  if (topics.includes('bug')) return 'bug';
+  if (topics.includes('idea')) return 'idea';
+  return 'general';
 }
 
 export default function FeedbackScreen() {
@@ -43,7 +54,7 @@ export default function FeedbackScreen() {
   const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
 
-  const [kind, setKind] = useState<Kind>(Kind.General);
+  const [topics, setTopics] = useState<readonly FeedbackTopic[]>([]);
   // 1–5, or null when they write without rating. The table and RPC have always
   // had the column (waves_submit_feedback's p_rating); this is the screen that
   // finally offers it. Tapping a chosen star again clears it — a rating is a
@@ -60,7 +71,8 @@ export default function FeedbackScreen() {
     try {
       await submitFeedback({
         message: message.trim(),
-        kind,
+        kind: kindOf(topics),
+        topics,
         rating,
         // Version and platform go along because "it crashes" is a different
         // report on an old build than on the current one, and asking somebody
@@ -106,7 +118,7 @@ export default function FeedbackScreen() {
             setSent(false);
             setMessage('');
             setRating(null);
-            setKind(Kind.General);
+            setTopics([]);
           }}
         />
       ) : (
@@ -170,17 +182,35 @@ export default function FeedbackScreen() {
               </Row>
             </Card>
 
-            <ChipRow<Kind>
-              value={kind}
-              onChange={(next) => {
-                if (!busy) setKind(next);
-              }}
-              options={[
-                { value: Kind.General, label: t.privacy.kindGeneral },
-                { value: Kind.Bug, label: t.privacy.kindBug },
-                { value: Kind.Idea, label: t.privacy.kindIdea },
-              ]}
-            />
+            {/* The subject line, asked in pictures. Optional, multi-select, and
+                the thing that turns a console full of paragraphs into
+                something you can sort. */}
+            <View style={{ gap: theme.spacing.md }}>
+              <Row style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
+                <Text variant="subheading">{t.privacy.feedbackTopicsTitle}</Text>
+                <Text variant="micro" tone="faint">
+                  {t.privacy.feedbackRatingHint}
+                </Text>
+              </Row>
+              <FeedbackTopicGrid
+                selected={topics}
+                disabled={busy}
+                onToggle={(topic) =>
+                  setTopics((current) =>
+                    current.includes(topic)
+                      ? current.filter((entry) => entry !== topic)
+                      : [...current, topic],
+                  )
+                }
+              />
+              {/* Not decoration: Storyset's licence is free only with a visible
+                  credit, and the screen that shows the art is where it has to
+                  be. It stays even when every card has fallen back to a glyph —
+                  the art is still what the layout was drawn for. */}
+              <Text variant="micro" tone="faint">
+                {t.privacy.feedbackArtCredit}
+              </Text>
+            </View>
 
             <Card style={{ gap: theme.spacing.xs }}>
               <TextInput

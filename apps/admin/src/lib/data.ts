@@ -528,6 +528,15 @@ export interface FeedbackRow {
   platform: string | null;
   locale: string | null;
   country_code: string | null;
+  /**
+   * What the message is about, chosen from the app's card grid. Empty for
+   * everything written before the cards existed, and for anybody who skipped
+   * them — so it narrows a search, it never stands in for one. Null while the
+   * console is newer than the database it is pointed at: the column arrives
+   * with a migration, and a page that crashed until then would take the whole
+   * feedback list down over a decoration.
+   */
+  topics: string[] | null;
   from_deleted_account: boolean;
   created_at: string;
 }

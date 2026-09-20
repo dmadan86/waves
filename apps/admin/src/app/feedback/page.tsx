@@ -12,6 +12,22 @@ const KIND_LABEL: Record<string, string> = {
   deletion: 'Left',
 };
 
+/**
+ * The card slugs, spelled the way the app spells them to a person. An unknown
+ * slug is printed raw rather than hidden: a build newer than this console is
+ * the likeliest reason, and a topic nobody can read still tells you one exists.
+ */
+const TOPIC_LABEL: Record<string, string> = {
+  splitting: 'Splitting',
+  receipts: 'Receipts',
+  voice: 'Voice',
+  groups: 'Groups',
+  speed: 'Speed',
+  design: 'Design',
+  bug: 'Broken',
+  idea: 'Idea',
+};
+
 const KIND_TONE: Record<string, Tone> = {
   general: 'neutral',
   bug: 'danger',
@@ -79,6 +95,15 @@ export default async function FeedbackPage() {
                   {row.locale ? <span>{row.locale}</span> : null}
                   {row.from_deleted_account ? <span className="gone">account deleted</span> : null}
                 </div>
+                {row.topics && row.topics.length > 0 ? (
+                  <div className="meta">
+                    {row.topics.map((topic) => (
+                      <Badge key={topic} tone="neutral">
+                        {TOPIC_LABEL[topic] ?? topic}
+                      </Badge>
+                    ))}
+                  </div>
+                ) : null}
                 <p>{row.message}</p>
               </li>
             ))}
