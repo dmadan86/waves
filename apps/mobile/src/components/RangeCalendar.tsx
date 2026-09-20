@@ -51,6 +51,8 @@ import {
  * cannot cross the gap to the next one.
  */
 const CELL = 40;
+/** The filler row a short month gets, so the grid is always six rows tall. */
+const EMPTY_WEEK: (Date | null)[] = [null, null, null, null, null, null, null];
 
 /**
  * How wide the calendar is allowed to get before it stops growing.
@@ -143,7 +145,16 @@ export function RangeCalendar({
     else onSelect(start, d);
   };
 
-  const weeks = monthGrid(view, weekStart);
+  // Padded to six rows, always. A month needs five or six depending on where
+  // its first day falls, and a grid that changes height changes the height of
+  // whatever holds it — which, in a sheet that no longer scrolls, means the
+  // sheet itself jumping as you page from one month to the next. An empty
+  // trailing row costs 40pt and holds the calendar still.
+  const grid = monthGrid(view, weekStart);
+  const weeks =
+    grid.length < 6
+      ? [...grid, ...Array.from({ length: 6 - grid.length }, () => EMPTY_WEEK)]
+      : grid;
 
   return (
     <View

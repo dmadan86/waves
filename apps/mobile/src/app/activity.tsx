@@ -340,7 +340,7 @@ export default function ActivityScreen() {
               color={theme.color.text}
             />
           </IconButton>
-          <Ionicons name="pulse" size={iconSize.xl} color={theme.color.brand} />
+          <Ionicons name="notifications" size={iconSize.xl} color={theme.color.brand} />
           <Text variant="title">{t.activity}</Text>
         </Row>
         <Row style={{ alignItems: 'center' }}>
@@ -453,7 +453,9 @@ export default function ActivityScreen() {
       <EmptyState
         title={t.nothingYet}
         body={t.tabs.activityEmptyBody}
-        icon={<Ionicons name="pulse" size={iconSize.xxl} color={theme.color.brand} />}
+        icon={
+          <Ionicons name="notifications-outline" size={iconSize.xxl} color={theme.color.brand} />
+        }
         action={
           hasGroups ? (
             <Button label={t.addExpense} onPress={() => router.push('/capture')} />

@@ -68,6 +68,7 @@ import {
 } from '@waves/ui';
 
 import { CategoryBadge } from '@/components/Category';
+import { dayHeading } from '@/data/activity';
 import { PersonalLocked } from '@/components/PersonalGuard';
 import { useSourceLabel } from '@/components/IncomeSource';
 import { SignInWall } from '@/components/SignInWall';
@@ -176,7 +177,7 @@ function MeLedger() {
 
   // The list follows the hero's month: the entries made in it, grouped by day.
   const monthTxns = ledger.txns.filter((txn) => txn.date.slice(0, 7) === month);
-  const days = groupByDay(monthTxns, today, dc, t);
+  const days = groupByDay(monthTxns, today, dc, t, locale);
 
   const dueCount = ledger.recurrings.filter((rule) => isRecurringDue(rule, today)).length;
   const activeLoans = ledger.loans.filter((loan) => loan.status === 'active');
@@ -1214,14 +1215,22 @@ function groupByDay(
   today: string,
   dc: string,
   t: ReturnType<typeof useStrings>['t'],
+  locale: string,
 ): Day[] {
   // One calendar day back, not 86,400,000 ms — a day is not always that many
   // milliseconds across a DST change.
   const y = new Date(`${today}T00:00:00`);
   y.setDate(y.getDate() - 1);
   const yesterday = localIsoDate(y);
+  // Today and Yesterday keep the app's own words; everything older is the day
+  // written the way a person says it ("Friday", "18 September"), not the ISO key
+  // the ledger groups by. `dayHeading` is what every other dated list uses.
   const labelFor = (date: string): string =>
-    date === today ? t.personal.today : date === yesterday ? t.personal.yesterday : date;
+    date === today
+      ? t.personal.today
+      : date === yesterday
+        ? t.personal.yesterday
+        : dayHeading(locale, date);
 
   const days: { date: string; txns: PersonalTxn[] }[] = [];
   for (const txn of txns) {

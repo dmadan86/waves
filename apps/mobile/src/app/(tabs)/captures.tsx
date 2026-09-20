@@ -288,6 +288,10 @@ function DestinationChip({ name, t }: { name: string | null; t: UiStrings }): Re
  * already frames it — and carries no chip: a batch is one outing with one
  * destination, answered once on the batch's own ⋯.
  */
+/** The batch mark's diameter — `CategoryBadge`'s size on a single row, so the
+    two kinds of row share one left column. */
+const BATCH_MARK = 40;
+
 function CaptureListRow({
   capture,
   locale,
@@ -559,19 +563,28 @@ function BatchGroupCard({
         onPress={onToggle}
         style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
       >
+        {/* The same metrics a single row uses — `sm` padding, `sm` gap, a 40pt
+            mark — because a batch sits in the same list as the rows it stands
+            for. It had `md` padding and a 46pt rounded square, which pushed its
+            title and its amount a few points off every neighbour's: two columns
+            that nearly line up read as a mistake, where either lining up or
+            plainly not would not. */}
         <Row
           style={{
-            gap: theme.spacing.md,
+            gap: theme.spacing.sm,
             alignItems: 'center',
-            paddingVertical: theme.spacing.md,
-            paddingHorizontal: theme.spacing.md,
+            paddingVertical: theme.spacing.sm,
+            paddingHorizontal: theme.spacing.sm,
           }}
         >
           <View
             style={{
-              width: 46,
-              height: 46,
-              borderRadius: 14,
+              width: BATCH_MARK,
+              height: BATCH_MARK,
+              // Round, like the category badge a single row wears. The mark says
+              // "several of these" by its glyph; it does not also need a
+              // different silhouette, which only broke the column.
+              borderRadius: BATCH_MARK / 2,
               alignItems: 'center',
               justifyContent: 'center',
               backgroundColor: theme.color.brandSoft,
@@ -1761,7 +1774,15 @@ export default function CapturesScreen() {
               unmounts and ticking a row eases the panel over instead of cutting
               it. Only the face that is showing takes taps. */}
           <View style={{ justifyContent: 'center' }}>
-            <Reanimated.View pointerEvents={selecting ? 'none' : 'auto'} style={restingAnim}>
+            {/* Caption above figure, with the same `theme.spacing.md` breathing
+                room `GroupHero` puts between its own caption and balance — the
+                two texts used to sit flush against each other, which is the
+                one thing that still read as a settings row next to a group's
+                hero. */}
+            <Reanimated.View
+              pointerEvents={selecting ? 'none' : 'auto'}
+              style={[restingAnim, { gap: theme.spacing.md }]}
+            >
               {rows.length > 0 ? (
                 <>
                   <Text variant="caption" tone="onBrand" style={{ opacity: 0.85 }}>
@@ -1781,8 +1802,10 @@ export default function CapturesScreen() {
                 </>
               ) : (
                 /* Review is trying to reach this, so the hero says it plainly
-                   rather than showing a nought. */
-                <Text variant="heading" tone="onBrand">
+                   rather than showing a nought — but still at the `title` step
+                   every other hero's headline uses, so the panel does not
+                   shrink just because there is nothing waiting. */
+                <Text variant="title" tone="onBrand">
                   {t.captures.nothingNeedsYou}
                 </Text>
               )}

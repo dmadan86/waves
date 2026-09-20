@@ -27,16 +27,20 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { AppState, View } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { ActivityIndicator, AppState, View } from 'react-native';
 
 import { type DeviceLimitStatus } from '@waves/core';
-import { Button, Popup, Text, useTheme } from '@waves/ui';
+import { Button, iconSize, Popup, Text, useTheme } from '@waves/ui';
 
-import { useStrings } from '@/i18n';
+import { fill, useStrings } from '@/i18n';
 import { registerDevice, signOutOtherDevices } from '@/data/api';
 import { deviceIdentity } from '@/lib/device';
 import { useAuth } from '@/lib/auth';
 import { backend } from '@/lib/backend';
+
+/** The gate's icon medallion — big enough to read as an illustration, not a bullet. */
+const MEDALLION = 64;
 
 /** How stale a registration may get before a foreground refreshes it. */
 const HEARTBEAT_MS = 60 * 60 * 1000;
@@ -169,16 +173,43 @@ export function DeviceSessionProvider({ children }: { children: ReactNode }) {
     <DeviceSessionContext.Provider value={{ status, signOutOthers, refresh }}>
       {children}
       {showGate ? (
-        <DeviceLimitGate onDismiss={() => setDismissed(true)} onSignOutOthers={signOutOthers} />
+        <DeviceLimitGate
+          status={status}
+          onDismiss={() => setDismissed(true)}
+          onSignOutOthers={signOutOthers}
+        />
       ) : null}
     </DeviceSessionContext.Provider>
   );
 }
 
+/**
+ * The gate itself, built the way the good blocking dialogs are built (Coffee
+ * Meets Bagel, Affirm, Tabby, Wise): a tinted medallion so the dialog is
+ * recognisable before a word of it is read, the title and the reason centred
+ * under it, the number that provoked it stated plainly, and the two ways out as
+ * one full-width button and one quiet one.
+ *
+ * Three things it deliberately does:
+ *
+ *   - **States the count.** "Too many" is the app's word for it; "3 devices · 2
+ *     allowed" is the fact, and the fact is what tells somebody whether they
+ *     already know which third phone this is.
+ *   - **Gives the buttons the same width.** They used to take the width of their
+ *     own labels, so the choice between them read as two unrelated controls of
+ *     different importance rather than one decision with two answers. Full width
+ *     for the action, full width and chromeless for the way out — the hierarchy
+ *     everybody uses, and the second one still has a 48pt target.
+ *   - **Says nothing alarming.** This is a soft gate: the scrim dismisses it,
+ *     "Not now" dismisses it, and nothing is lost by dismissing it. So a brand
+ *     medallion rather than a red warning triangle.
+ */
 function DeviceLimitGate({
+  status,
   onDismiss,
   onSignOutOthers,
 }: {
+  status: DeviceLimitStatus | null;
   onDismiss: () => void;
   onSignOutOthers: () => Promise<number | null>;
 }) {
@@ -191,16 +222,61 @@ function DeviceLimitGate({
       visible
       onClose={onDismiss}
       closeLabel={t.devices.gateDismiss}
-      style={{ gap: theme.spacing.lg }}
+      style={{ gap: theme.spacing.lg, alignItems: 'center' }}
     >
-      <Text variant="heading">{t.devices.gateTitle}</Text>
-      <Text variant="body" tone="muted">
-        {t.devices.gateBody}
-      </Text>
-      <View style={{ gap: theme.spacing.md }}>
+      <View
+        style={{
+          width: MEDALLION,
+          height: MEDALLION,
+          borderRadius: MEDALLION / 2,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: theme.color.brandSoft,
+        }}
+      >
+        <Ionicons name="phone-portrait-outline" size={iconSize.xxxl} color={theme.color.brand} />
+      </View>
+
+      <View style={{ gap: theme.spacing.sm, alignSelf: 'stretch' }}>
+        <Text variant="heading" style={{ textAlign: 'center' }}>
+          {t.devices.gateTitle}
+        </Text>
+        <Text variant="body" tone="muted" style={{ textAlign: 'center' }}>
+          {t.devices.gateBody}
+        </Text>
+      </View>
+
+      {/* The number behind the dialog. Only when the status is actually in hand —
+          the gate can be raised from a cached answer, and an invented count is
+          worse than none. */}
+      {status ? (
+        <View
+          style={{
+            paddingHorizontal: theme.spacing.md,
+            paddingVertical: theme.spacing.xs,
+            borderRadius: theme.radius.pill,
+            backgroundColor: theme.color.surfaceMuted,
+          }}
+        >
+          <Text variant="caption" tone="muted">
+            {fill(t.devices.gateCount, { active: status.activeCount, limit: status.limit })}
+          </Text>
+        </View>
+      ) : null}
+
+      <View style={{ gap: theme.spacing.xs, alignSelf: 'stretch' }}>
         <Button
           label={t.devices.gateAction}
+          fullWidth
           disabled={busy}
+          // The spinner takes the icon slot rather than replacing the label: the
+          // button keeps its width and its name while the sessions are revoked,
+          // which is a second or two on a slow connection.
+          icon={
+            busy ? (
+              <ActivityIndicator size="small" color={theme.color.onButtonPrimary} />
+            ) : undefined
+          }
           onPress={async () => {
             setBusy(true);
             try {
@@ -213,7 +289,7 @@ function DeviceLimitGate({
             }
           }}
         />
-        <Button label={t.devices.gateDismiss} variant="secondary" onPress={onDismiss} />
+        <Button label={t.devices.gateDismiss} variant="ghost" fullWidth onPress={onDismiss} />
       </View>
     </Popup>
   );

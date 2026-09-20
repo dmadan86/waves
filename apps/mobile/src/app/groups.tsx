@@ -226,20 +226,23 @@ export default function AllGroupsScreen() {
           flex: 1,
           paddingHorizontal: theme.spacing.lg,
           paddingTop: theme.spacing.lg,
+          // The foot goes on the box that sizes the card, not on the card and
+          // not on what scrolls inside it. Paid on the list's content alone,
+          // the card itself still ran on under the bottom bar: the rows could
+          // be scrolled clear of it, but the card's own bottom edge and its
+          // rounded corners never came into view, so the screen read as cut off
+          // rather than finished. Paid on the card, it would only pad under the
+          // last row and leave the card running on just the same. Friends
+          // reserves the foot around its people card exactly here.
+          paddingBottom: clearance,
         }}
       >
         {loading || rows.length === 0 ? (
-          // Centred in what can be *seen*, not in what is laid out: the box runs
-          // on under the tab bar, so without its clearance the artwork settles
-          // below the middle of the visible screen. The skeleton sits at the top
-          // instead — it is standing in for rows, and rows start at the top.
-          <View
-            style={{
-              flex: 1,
-              justifyContent: loading ? 'flex-start' : 'center',
-              paddingBottom: clearance,
-            }}
-          >
+          // Centred in what can be *seen*, not in what is laid out — the box
+          // above already holds the bar's foot off, so this branch is centred in
+          // the visible height for free. The skeleton sits at the top instead:
+          // it is standing in for rows, and rows start at the top.
+          <View style={{ flex: 1, justifyContent: loading ? 'flex-start' : 'center' }}>
             {empty}
           </View>
         ) : (
@@ -270,7 +273,6 @@ export default function AllGroupsScreen() {
               // not every render.
               drawDistance={1500}
               extraData={listExtraData}
-              contentContainerStyle={{ paddingBottom: clearance }}
               showsVerticalScrollIndicator={false}
               // With the search keyboard open, a tap on a result row should open
               // it in one go, not be eaten by the keyboard dismiss (FlashList

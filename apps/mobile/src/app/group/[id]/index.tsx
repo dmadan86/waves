@@ -1166,7 +1166,9 @@ export default function GroupScreen() {
               {
                 value: Tab.Activity,
                 label: t.activity,
-                icon: (color) => <Ionicons name="pulse-outline" size={iconSize.md} color={color} />,
+                icon: (color) => (
+                  <Ionicons name="notifications-outline" size={iconSize.md} color={color} />
+                ),
               },
             ]}
           />
@@ -1420,7 +1422,13 @@ export default function GroupScreen() {
               <EmptyState
                 title={t.nothingYet}
                 body={t.group.activityEmptyBody}
-                icon={<Ionicons name="pulse" size={iconSize.xxl} color={theme.color.brand} />}
+                icon={
+                  <Ionicons
+                    name="notifications-outline"
+                    size={iconSize.xxl}
+                    color={theme.color.brand}
+                  />
+                }
               />
             ) : null
           }

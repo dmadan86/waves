@@ -463,17 +463,23 @@ export default function FriendsScreen() {
           flex: 1,
           paddingHorizontal: theme.spacing.lg,
           paddingTop: theme.spacing.lg,
+          // The foot goes on the box, not on what scrolls inside it. Paid on the
+          // list's content alone, the card itself still ran on under the bottom
+          // bar: the rows could be scrolled clear of it, but the card's own
+          // bottom edge and its rounded corners never came into view, so the
+          // screen read as cut off rather than finished. Home reserves the foot
+          // around its groups card the same way, which is why Home ends and this
+          // did not.
+          paddingBottom: clearance,
         }}
       >
         {people.isLoading ? (
           <PeopleSkeleton />
         ) : rows.length === 0 ? (
-          // Centred in what can be seen, not in what is laid out: the box runs
-          // on under the tab bar, so without its clearance the artwork settles
-          // below the middle of the visible screen. The list branch below pays
-          // the same clearance on its own content, and the dashboard already
-          // does this — this branch was the one that missed it.
-          <View style={{ flex: 1, justifyContent: 'center', paddingBottom: clearance }}>
+          // Centred in what can be seen, not in what is laid out. The clearance
+          // is on the box above rather than here, so this branch is centred in
+          // the visible height for free.
+          <View style={{ flex: 1, justifyContent: 'center' }}>
             <EmptyFriends hasPeople={known.data > 0} t={t} />
           </View>
         ) : (
@@ -526,7 +532,8 @@ export default function FriendsScreen() {
                 // like with like rather than reflowing one shape into the other.
                 getItemType={(item) => (item.entries.length === 1 ? 'single' : 'multi')}
                 drawDistance={1500}
-                contentContainerStyle={{ paddingBottom: clearance }}
+                // No foot here: the card it sits in already ends above the bar.
+                contentContainerStyle={{}}
                 showsVerticalScrollIndicator={false}
                 refreshControl={
                   <RefreshControl
@@ -791,57 +798,54 @@ function FriendsHero({
           exiting={reduceMotion ? undefined : FadeOut.duration(100)}
           style={{ gap: theme.spacing.sm }}
         >
-          <Text variant="micro" tone="onBrand" style={{ letterSpacing: 1, opacity: 0.7 }}>
-            {t.tabs.overall.toUpperCase()}
-          </Text>
           {directionGroups(totals).map((group) => (
-            <View key={group.owed ? 'owed' : 'owing'} style={{ gap: 2 }}>
-              <Row
-                style={{
-                  justifyContent: 'space-between',
-                  // Baseline, not flex-end: the label is 16px and the amount is
-                  // 32, so aligning the bottoms of two boxes that tall sits the
-                  // word below the digits it belongs to. This is the line the
-                  // eye reads across.
-                  alignItems: 'baseline',
-                  gap: theme.spacing.md,
-                }}
-              >
-                <Text variant="body" tone="onBrand" style={{ opacity: 0.85 }}>
-                  {group.owed ? t.tabs.youAreOwed : t.tabs.youOweThem}
-                </Text>
+            // Label above the amount, not beside it — the same order GroupHero
+            // reads its own balance in (caption verdict, then the title-sized
+            // figure), rather than a row that made this hero the odd one out.
+            <View key={group.owed ? 'owed' : 'owing'} style={{ gap: theme.spacing.md }}>
+              {/* Home's wording, down to the separator: "Net receivable · INR".
+                  It replaces two lines that between them said less — a standing
+                  "OVERALL" over "You are owed" named the section and the
+                  direction but never the currency the figure was in, which is
+                  the one thing the number below cannot say for itself when a
+                  second currency is stacked under it. */}
+              <Text variant="caption" tone="onBrand" style={{ opacity: 0.85 }}>
+                {`${group.owed ? t.dashHero.netOwed : t.dashHero.netOwe} · ${group.head.currency}`}
+              </Text>
+              <View style={{ gap: 2 }}>
                 <MoneyText
                   amount={group.head.net < 0n ? -group.head.net : group.head.net}
                   currency={group.head.currency}
                   locale={locale}
-                  tone="onBrand"
-                  style={{ fontSize: 32, lineHeight: 38, fontWeight: '800' }}
+                  variant="title"
+                  tone="default"
+                  style={{ color: theme.color.onBrand }}
                 />
-              </Row>
-              {group.rest.length > 0 ? (
-                // The same direction's other currencies, small and under the
-                // number they belong to. Wrapped rather than clipped — six
-                // currencies costs a second line here instead of six headlines.
-                <Row
-                  style={{
-                    justifyContent: 'flex-end',
-                    flexWrap: 'wrap',
-                    columnGap: theme.spacing.sm,
-                  }}
-                >
-                  {group.rest.map((total) => (
-                    <MoneyText
-                      key={total.currency}
-                      amount={total.net < 0n ? -total.net : total.net}
-                      currency={total.currency}
-                      locale={locale}
-                      variant="caption"
-                      tone="onBrand"
-                      style={{ opacity: 0.8 }}
-                    />
-                  ))}
-                </Row>
-              ) : null}
+                {group.rest.length > 0 ? (
+                  // The same direction's other currencies, small and under the
+                  // number they belong to. Wrapped rather than clipped — six
+                  // currencies costs a second line here instead of six headlines.
+                  <Row
+                    style={{
+                      justifyContent: 'flex-start',
+                      flexWrap: 'wrap',
+                      columnGap: theme.spacing.sm,
+                    }}
+                  >
+                    {group.rest.map((total) => (
+                      <MoneyText
+                        key={total.currency}
+                        amount={total.net < 0n ? -total.net : total.net}
+                        currency={total.currency}
+                        locale={locale}
+                        variant="caption"
+                        tone="onBrand"
+                        style={{ opacity: 0.8 }}
+                      />
+                    ))}
+                  </Row>
+                ) : null}
+              </View>
             </View>
           ))}
         </Reanimated.View>

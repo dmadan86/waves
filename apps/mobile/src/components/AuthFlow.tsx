@@ -33,6 +33,7 @@
 import { useEffect, useRef, useState, type ComponentProps } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import {
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -44,6 +45,8 @@ import Animated, { FadeIn, useReducedMotion } from 'react-native-reanimated';
 
 import { Button, Callout, directionalIcon, iconSize, Row, Screen, Text, useTheme } from '@waves/ui';
 
+import { FORM_SCATTER, ScatterBand } from '@/components/ScatterBand';
+import { useBottomClearance } from '@/lib/clearance';
 import { SocialTile } from '@/components/SocialTile';
 import { useStrings, type UiStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
@@ -62,6 +65,11 @@ enum Stage {
 }
 
 const RESEND_SECONDS = 60;
+
+/** The scatter band's height on this page. Shorter than the door's: a sign-in
+    page is a thing somebody is trying to get through, so the picture above it is
+    a nod to the door rather than the door again. */
+const FORM_BAND_HEIGHT = 108;
 
 export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
   const theme = useTheme();
@@ -104,6 +112,22 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const clearance = useBottomClearance(theme.spacing.xxl);
+
+  // Whether the keyboard is up, so the scatter band above the title can stand
+  // down and give the form the room. `KeyboardAvoidingView` moves the content
+  // but cannot know that one part of it is decoration worth dropping.
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+  useEffect(() => {
+    // `Did` rather than `Will` on Android, where the `Will` events do not fire.
+    const show = Keyboard.addListener('keyboardDidShow', () => setKeyboardOpen(true));
+    const hide = Keyboard.addListener('keyboardDidHide', () => setKeyboardOpen(false));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
 
   // Seconds left on the resend cool-down; 0 means "you may send again". A ref
   // holds the interval so a second send does not stack timers.
@@ -261,13 +285,30 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
           />
         </Row>
 
+        {/* The door's scatter, in its quieter form: four small marks instead of
+            six, pushed to the edges, in a band of their own between the header
+            and the title. The door and this page are the same moment — somebody
+            deciding to come in — so they should look like one place, and a form
+            that opens on a bare white field after a page full of the app's own
+            objects reads as a different app.
+
+            The band is hidden once a field has focus. On a phone the keyboard
+            takes half the screen, and a picture is not what somebody typing a
+            password needs the room for. */}
+        {keyboardOpen ? null : <ScatterBand marks={FORM_SCATTER} height={FORM_BAND_HEIGHT} />}
+
         <ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={{
             flexGrow: 1,
             paddingHorizontal: theme.spacing.xxl,
             paddingTop: theme.spacing.lg,
-            paddingBottom: theme.spacing.xxl,
+            // The system navigation bar draws over this screen (the app's own
+            // bar does not — sign-in is in TAB_BAR_HIDDEN_ROUTES), and a fixed
+            // xxl was not enough for it: the Sign in button at the foot of the
+            // form sat half under the gesture bar. `useBottomClearance` asks the
+            // one place that knows and adds the breath on top.
+            paddingBottom: clearance,
           }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"

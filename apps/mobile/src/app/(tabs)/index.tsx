@@ -50,6 +50,8 @@ import { useImportedGroupId } from '@/lib/importProgress';
 import { useReducedMotion } from '@/lib/reducedMotion';
 import { useDefaultCurrency } from '@/lib/currency';
 import { QuickAddSheet, useQuickAddActions } from '@/components/QuickAddSheet';
+import { HomeQuickActions, type HomeAction } from '@/components/HomeQuickActions';
+import { smsReaderInBuild } from '@/lib/smsFeature';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { RestorePrompt } from '@/components/RestorePrompt';
 import { useAvatarUrl } from '@/components/ProfileAvatar';
@@ -102,6 +104,55 @@ export default function HomeScreen() {
   // scan, or speak an expense — the phone-home-screen quick-actions gesture.
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const quickAddActions = useQuickAddActions();
+
+  /**
+   * The four tiles under the hero — one line, whatever the build.
+   *
+   * Three things you start, and a way to everything else. The two that were
+   * already on Home (add an expense, start a group) keep their routes and their
+   * tour anchors exactly; "scan to join" is the standalone QR scanner at
+   * `/scan`, which until now could only be reached from inside a group.
+   *
+   * The rest are in `menuItems` under the "actions" section, which is what the
+   * fourth tile opens: scanning a bill, the bank-message inbox, and settling up.
+   * Nothing was removed from Home, it moved one tap.
+   */
+  const quickActions: HomeAction[] = [
+    {
+      icon: 'add',
+      label: t.addExpense,
+      tintKey: 'add',
+      onPress: () => router.push('/capture'),
+      onLongPress: () => setQuickAddOpen(true),
+      wrap: (tile) => <TourTarget id="addExpense">{tile}</TourTarget>,
+    },
+    {
+      icon: 'qr-code-outline',
+      label: t.misc.scanToJoin,
+      tintKey: 'scan',
+      onPress: () => router.push('/scan'),
+    },
+    {
+      icon: 'people-outline',
+      label: t.newGroup,
+      tintKey: 'group',
+      // Called through, not passed: `openNewGroup` is declared below this list,
+      // and a press cannot happen until long after both exist.
+      onPress: () => openNewGroup(),
+      wrap: (tile) => <TourTarget id="addGroup">{tile}</TourTarget>,
+    },
+    // The fourth and last cell, brand-filled in the corner MyGate puts its
+    // yellow one. Everything the row used to carry and no longer does — scan a
+    // bill, read bank messages, settle up — is the first thing in the menu it
+    // opens, so nothing lost a door when the grid came down to one line.
+    {
+      icon: 'grid-outline',
+      label: t.tabs.viewMore,
+      tintKey: 'more',
+      accent: true,
+      onPress: () => setMenuOpen(true),
+    },
+  ];
   const defaultCurrency = useDefaultCurrency();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
@@ -211,8 +262,45 @@ export default function HomeScreen() {
   const menuItems: OverflowMenuItem[] = useMemo(
     () => [
       // The `section` keys are internal grouping only (not user-visible): they
-      // cluster the rows into account / data / app / settings, and OverflowMenu
-      // draws a divider wherever two adjacent rows fall in different sections.
+      // cluster the rows into actions / account / data / app / settings, and
+      // OverflowMenu draws a divider wherever two adjacent rows fall in
+      // different sections.
+      //
+      // The "actions" rows at the top are the tiles the quick-actions grid
+      // dropped when it came down to a single line. They are things you do
+      // rather than places you configure, which is why they sit above the
+      // divider and ahead of the account rows.
+      {
+        icon: 'camera-outline',
+        label: t.scanBill,
+        // A fresh nonce at press time, never in render: the capture screen's
+        // consume-once guard depends on it.
+        onPress: () => router.push(`/capture?scan=${Date.now()}`),
+        section: 'actions',
+      },
+      // Bank messages appears only in a build that can actually read SMS — the
+      // same `smsReaderInBuild()` gate Review's door uses. A row that opens a
+      // screen saying the feature is not in this build is worse than no row.
+      ...(smsReaderInBuild()
+        ? [
+            {
+              icon: 'chatbubble-ellipses-outline' as const,
+              label: t.smsInbox.title,
+              onPress: () => router.push('/captures/sms'),
+              section: 'actions',
+            },
+          ]
+        : []),
+      // Settling has no destination of its own — a settlement is always with
+      // somebody, so there is no global "settle" screen (only
+      // `group/[id]/settle`). This goes to Friends, where the per-person
+      // balances and their settle buttons live.
+      {
+        icon: 'swap-horizontal',
+        label: t.settleUp,
+        onPress: () => router.navigate('/friends'),
+        section: 'actions',
+      },
       {
         icon: 'person-circle-outline',
         label: t.account.yourAccount,
@@ -325,10 +413,13 @@ export default function HomeScreen() {
           style={{
             paddingTop: insets.top + theme.spacing.md,
             paddingHorizontal: theme.spacing.xl,
-            paddingBottom: theme.spacing.lg,
+            paddingBottom: theme.spacing.md,
             borderBottomLeftRadius: theme.radius.xxl,
             borderBottomRightRadius: theme.radius.xxl,
-            gap: theme.spacing.xl,
+            // Was xl. The hero holds three stacked things and paid 20 twice for
+            // the privilege; at lg it still breathes and the groups — the reason
+            // the screen exists — start higher up the glass.
+            gap: theme.spacing.lg,
             overflow: 'hidden',
           }}
         >
@@ -395,10 +486,10 @@ export default function HomeScreen() {
             <SyncStatusIcon onBrand />
             {/* Activity sits up here with the other glyphs that lead somewhere
                   and change nothing: sync, the menu, the face. It is a shortcut
-                  to a feed you read — the row below is for the two things that
+                  to a feed you read — the grid below is for the things that
                   create something, and this was the odd one out among them. */}
             <HeroIconButton
-              icon="pulse-outline"
+              icon="notifications-outline"
               label={t.activity}
               onPress={() => router.navigate('/activity')}
             />
@@ -435,39 +526,14 @@ export default function HomeScreen() {
             />
           )}
 
-          {/* The add actions, and only actions that add: the white "add
-                expense" pill and a circle for starting a group. Activity used to
-                be the circle here and has swapped up into the header cluster —
-                it leads to a feed you read rather than making anything, which
-                put it out of place in a row about creating. Neither carries a
-                badge: Review owns the count of what is waiting, on the bar. */}
-          {/* Buttons and the pager travel together as one block, so the pager
-                sits just under the buttons rather than a full hero-gap away. */}
-          <View style={{ gap: theme.spacing.md }}>
-            <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
-              <TourTarget id="addExpense">
-                <HeroPill
-                  icon="add"
-                  label={t.expenseShort}
-                  a11yLabel={t.addExpense}
-                  onPress={() => router.push('/capture')}
-                  onLongPress={() => setQuickAddOpen(true)}
-                />
-              </TourTarget>
-              <Row style={{ marginLeft: 'auto', gap: theme.spacing.sm }}>
-                {/* Starting a group belongs beside adding an expense: both make
-                    something new, and the circle beside the pill is where a
-                    person looks for the second one. Still the tour's "add a
-                    group" anchor. */}
-                <TourTarget id="addGroup">
-                  <HeroCircle icon="people-outline" label={t.newGroup} onPress={openNewGroup} />
-                </TourTarget>
-              </Row>
-            </Row>
-
-            {/* The swipe pager, right under the buttons. */}
-            <HeroDots count={deck.length} scrollX={heroScrollX} snap={heroSnap} />
-          </View>
+          {/* See `HomeQuickActions`: the add pill and the group
+                circle used to sit here, which made the hero a toolbar as well as
+                a statement of who you are and what you owe. They have moved to a
+                strip of tiles below it, the way the expense screen keeps its
+                number in the hero and the things you do with it underneath. What
+                is left here is the pager, which belongs to the balance it pages
+                through. */}
+          <HeroDots count={deck.length} scrollX={heroScrollX} snap={heroSnap} />
         </View>
       </TourTarget>
 
@@ -489,12 +555,28 @@ export default function HomeScreen() {
           />
         }
       >
+        {/* The quick actions, first thing under the hero and
+            scrolling away with the list rather than pinned — which is where
+            MyGate and its neighbours put theirs. */}
+        <HomeQuickActions actions={quickActions} />
+
+        {/* A hairline under the grid, the way a banking home separates its
+            action board from the accounts beneath it. Without it the grid and
+            the list read as one undifferentiated column of things to tap. */}
+        <View
+          style={{
+            height: StyleSheet.hairlineWidth,
+            marginHorizontal: theme.spacing.lg,
+            backgroundColor: theme.color.border,
+          }}
+        />
+
         {/* The white body beneath the hero: the groups list. Tightened to a
             WhatsApp-style side margin (lg) so the list reads dense, not floaty. */}
         <View
           style={{
             paddingHorizontal: theme.spacing.lg,
-            paddingTop: theme.spacing.lg,
+            paddingTop: theme.spacing.md,
             gap: theme.spacing.md,
             flexGrow: 1,
           }}
@@ -649,10 +731,6 @@ export default function HomeScreen() {
   );
 }
 
-/** Translucent white on the green hero — the fill the reference gives its
-    on-panel controls, one shade for the circles and the icon buttons. */
-const HERO_CONTROL_BG = 'rgba(255, 255, 255, 0.16)';
-
 /**
  * The face at the top of the hero. With a photo it is the ordinary Avatar; with
  * none it is a person glyph inside a ringed, *transparent* circle — the hero's
@@ -748,124 +826,6 @@ function useBalanceHidden(): { hidden: boolean; ready: boolean; toggle: () => vo
     });
   }, []);
   return { hidden, ready, toggle };
-}
-
-/**
- * The primary add action on the green hero — a white pill with an icon and a
- * label, the reference's "add money" button. A press-and-hold raises the
- * quick-add sheet, the same gesture the circles carry.
- */
-function HeroPill({
-  icon,
-  label,
-  a11yLabel,
-  onPress,
-  onLongPress,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  /** Spoken label; defaults to `label`. The pill shows a short noun ("Expense")
-      but a screen reader still hears the full verb phrase ("Add expense"). */
-  a11yLabel?: string;
-  onPress: () => void;
-  onLongPress?: () => void;
-}) {
-  const theme = useTheme();
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={a11yLabel ?? label}
-      onPress={onPress}
-      onLongPress={onLongPress}
-      delayLongPress={250}
-      style={({ pressed }) => ({
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: theme.spacing.xs,
-        // Padding, not `hitSlop`: the pill is wrapped in the tour's anchor View,
-        // which measures to the pill exactly, and a hit area reaching outside its
-        // own parent is not offered the touch. So the target has to be the box.
-        // Two lots of `md` over a 22pt line clears the 44pt floor.
-        paddingVertical: theme.spacing.md,
-        paddingHorizontal: theme.spacing.lg,
-        borderRadius: theme.radius.pill,
-        backgroundColor: '#FFFFFF',
-        opacity: pressed ? 0.85 : 1,
-      })}
-    >
-      <Ionicons name={icon} size={iconSize.lg} color={HERO_GREEN[0]} />
-      <Text variant="subheading" style={{ color: HERO_GREEN[0] }} numberOfLines={1}>
-        {label}
-      </Text>
-    </Pressable>
-  );
-}
-
-/**
- * One round action on the green hero — a translucent white disc with a white
- * glyph, the reference's on-panel circles (send, swap, more). Optionally a
- * count badge (the inbox) and a dim disabled state (an empty inbox).
- */
-function HeroCircle({
-  icon,
-  label,
-  onPress,
-  onLongPress,
-  badge,
-  disabled,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  onPress: () => void;
-  onLongPress?: () => void;
-  badge?: number;
-  disabled?: boolean;
-}) {
-  const theme = useTheme();
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={badge ? `${label}. ${badge}` : label}
-      accessibilityState={{ disabled: Boolean(disabled) }}
-      disabled={disabled}
-      onPress={onPress}
-      onLongPress={onLongPress}
-      delayLongPress={250}
-      style={({ pressed }) => ({
-        width: 46,
-        height: 46,
-        borderRadius: 23,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: HERO_CONTROL_BG,
-        opacity: disabled ? 0.4 : pressed ? 0.6 : 1,
-      })}
-    >
-      <Ionicons name={icon} size={iconSize.xl} color={theme.color.onBrand} />
-      {badge ? (
-        <View
-          style={{
-            position: 'absolute',
-            top: -2,
-            right: -2,
-            minWidth: 20,
-            height: 20,
-            borderRadius: 10,
-            paddingHorizontal: 5,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: theme.color.negative,
-            borderWidth: 2,
-            borderColor: HERO_GREEN[1],
-          }}
-        >
-          <Text variant="micro" style={{ color: '#FFFFFF', fontSize: 11, fontWeight: '800' }}>
-            {badge > 99 ? '99+' : String(badge)}
-          </Text>
-        </View>
-      ) : null}
-    </Pressable>
-  );
 }
 
 /** A bare white glyph in the hero's top-right cluster — the sync icon's
@@ -1230,11 +1190,6 @@ const SLIDE_STYLE: Record<
   month: { gradient: ['#463F86', '#221C46'], icon: 'calendar-outline' },
 };
 
-/** The net slide's green, reused for the accents that sit on white (the
-    add-expense pill's ink) and the badge ring — a fixed brand green, not the
-    animated hero colour. */
-const HERO_GREEN = SLIDE_STYLE.net.gradient;
-
 /**
  * The hero's two lines, in one place. `HeroBalanceSkeleton` builds itself to
  * exactly these heights so the real figure settles into the placeholder's
@@ -1242,8 +1197,12 @@ const HERO_GREEN = SLIDE_STYLE.net.gradient;
  * holds if both sites read the same numbers, hence the constants.
  */
 const HERO_LABEL_LINE = 18;
-const HERO_AMOUNT_SIZE = 34;
-const HERO_AMOUNT_LINE = 40;
+// The `title` type step (tokens.ts), which is what a group's hero uses for its
+// own balance. Home used to be four points larger, so the same money read as two
+// different orders of importance on two screens a tap apart; the numbers now
+// match, and the hero gives back the height.
+const HERO_AMOUNT_SIZE = 24;
+const HERO_AMOUNT_LINE = 30;
 const HERO_AMOUNT_STYLE = {
   fontSize: HERO_AMOUNT_SIZE,
   lineHeight: HERO_AMOUNT_LINE,

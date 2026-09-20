@@ -858,6 +858,8 @@ export interface UiStrings {
     row: string;
     rowHint: string;
     gateTitle: string;
+    /** The count strip in the gate: how many are signed in against the cap. */
+    gateCount: string;
     gateBody: string;
     gateAction: string;
     gateDismiss: string;
@@ -1407,6 +1409,7 @@ export interface UiStrings {
     noGroupsBody: string;
     activityEmptyBody: string;
     quickActions: string;
+    viewMore: string;
     fromContacts: string;
     addFromContacts: string;
     /** Title of the header `+` menu and its primary empty-state button — the
@@ -4078,6 +4081,7 @@ const en: UiStrings = {
     row: 'Devices',
     rowHint: 'See where you are signed in',
     gateTitle: 'Signed in on too many devices',
+    gateCount: '{active} devices · {limit} allowed',
     gateBody:
       'The free plan covers two devices at a time, and this account is over that. Log out the others to keep using Waves on this one.',
     gateAction: 'Log out other devices',
@@ -4510,6 +4514,7 @@ const en: UiStrings = {
     activityEmptyBody:
       'Every expense, edit, deletion and settlement lands here — for everyone in the group.',
     quickActions: 'Quick actions',
+    viewMore: 'View more',
     fromContacts: 'From contacts',
     addFromContacts: 'Add from contacts',
     addSomeone: 'Add someone',
@@ -6926,6 +6931,7 @@ const ta: UiStrings = {
     row: 'சாதனங்கள்',
     rowHint: 'எங்கு உள்நுழைந்துள்ளீர்கள் என்பதைப் பார்க்கவும்',
     gateTitle: 'மிக அதிக சாதனங்களில் உள்நுழைந்துள்ளது',
+    gateCount: '{active} சாதனங்கள் · {limit} அனுமதி',
     gateBody:
       'இலவசத் திட்டத்தில் ஒரே நேரத்தில் இரண்டு சாதனங்கள் மட்டுமே; இந்தக் கணக்கு அதைத் தாண்டியுள்ளது. இந்தச் சாதனத்தில் Waves-ஐத் தொடர மற்றவற்றில் வெளியேறவும்.',
     gateAction: 'மற்ற சாதனங்களில் வெளியேறு',
@@ -7376,6 +7382,7 @@ const ta: UiStrings = {
     activityEmptyBody:
       'ஒவ்வொரு செலவும், திருத்தமும், நீக்கமும், தீர்வும் இங்கே வந்து சேரும் — குழுவில் உள்ள அனைவருக்கும்.',
     quickActions: 'விரைவுச் செயல்கள்',
+    viewMore: 'மேலும் பார்க்க',
     fromContacts: 'தொடர்புகளிலிருந்து',
     addFromContacts: 'தொடர்புகளிலிருந்து சேர்',
     addSomeone: 'ஒருவரைச் சேர்',
@@ -9889,6 +9896,7 @@ const hi: UiStrings = {
     row: 'डिवाइस',
     rowHint: 'देखें कि आप कहाँ-कहाँ साइन इन हैं',
     gateTitle: 'बहुत ज़्यादा डिवाइस पर साइन इन',
+    gateCount: '{active} डिवाइस · {limit} की अनुमति',
     gateBody:
       'मुफ़्त प्लान में एक साथ दो डिवाइस चलते हैं, और यह अकाउंट उससे ऊपर है। इस डिवाइस पर Waves इस्तेमाल करते रहने के लिए बाकियों से साइन आउट करें।',
     gateAction: 'दूसरे डिवाइस से साइन आउट करें',
@@ -10319,6 +10327,7 @@ const hi: UiStrings = {
       'किसी सफ़र, फ़्लैट, या बस आप दोनों के लिए एक शुरू करें। खर्च जोड़ना हमेशा मुफ़्त और असीमित है।',
     activityEmptyBody: 'हर खर्च, बदलाव, हटाना और निपटान यहीं आता है — समूह के हर व्यक्ति के लिए।',
     quickActions: 'त्वरित क्रियाएँ',
+    viewMore: 'और देखें',
     fromContacts: 'संपर्कों से',
     addFromContacts: 'संपर्कों से जोड़ें',
     addSomeone: 'किसी को जोड़ें',
@@ -12793,6 +12802,7 @@ const ar: UiStrings = {
     row: 'الأجهزة',
     rowHint: 'اطّلع على أماكن تسجيل دخولك',
     gateTitle: 'مسجّل الدخول على أجهزة أكثر من اللازم',
+    gateCount: '{active} أجهزة · {limit} مسموح',
     gateBody:
       'الخطة المجانية تشمل جهازين في وقت واحد، وهذا الحساب تجاوز ذلك. سجّل الخروج من الأجهزة الأخرى لمواصلة استخدام Waves على هذا الجهاز.',
     gateAction: 'تسجيل الخروج من الأجهزة الأخرى',
@@ -13229,6 +13239,7 @@ const ar: UiStrings = {
       'ابدأ واحدة لرحلة أو لشقة أو لكما أنتما. إضافة المصروفات مجانية وبلا حدود، دائمًا.',
     activityEmptyBody: 'كل مصروف وتعديل وحذف وتسوية يصل إلى هنا — لكل من في المجموعة.',
     quickActions: 'إجراءات سريعة',
+    viewMore: 'عرض المزيد',
     fromContacts: 'من جهات الاتصال',
     addFromContacts: 'أضف من جهات الاتصال',
     addSomeone: 'إضافة شخص',
