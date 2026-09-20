@@ -24,6 +24,7 @@
     "docs": "pnpm --filter @waves/docs run dev",
     "admin": "pnpm --filter @waves/admin run dev",
     "api": "pnpm --filter @waves/api run dev",
+    "art:publish": "bash infra/art/publish.sh",
     "db:generate": "pnpm --filter @waves/db run generate",
     "db:migrate": "pnpm --filter @waves/db run migrate:deploy",
     "db:migrate:dev": "pnpm --filter @waves/db run migrate:dev",
