@@ -22,16 +22,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { randomUUID } from 'expo-crypto';
 import { useLocalSearchParams, useNavigation } from 'expo-router';
-import {
-  ActivityIndicator,
-  Keyboard,
-  Modal,
-  Pressable,
-  ScrollView,
-  TextInput,
-  useWindowDimensions,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
@@ -53,6 +44,7 @@ import {
   MoneyText,
   Row,
   Screen,
+  Sheet,
   Text,
   useTheme,
 } from '@waves/ui';
@@ -200,10 +192,6 @@ export default function VoiceScreen() {
   // else has added the bottom inset — this is where it comes from, once.
   const clearance = useBottomClearance();
   const insets = useSafeAreaInsets();
-  const { height: windowHeight } = useWindowDimensions();
-  // The keyboard's height, measured — used to lift the destination sheet above
-  // it (a KeyboardAvoidingView does not resize inside an Android Modal).
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const { t, locale } = useStrings();
 
   // Identity for "which member am I", from the session rather than the profile:
@@ -1051,18 +1039,6 @@ export default function VoiceScreen() {
     })();
   }, [phase]);
 
-  // Track the keyboard's height so the picker sheet can be lifted above it.
-  useEffect(() => {
-    const show = Keyboard.addListener('keyboardDidShow', (event) =>
-      setKeyboardHeight(event.endCoordinates.height),
-    );
-    const hide = Keyboard.addListener('keyboardDidHide', () => setKeyboardHeight(0));
-    return () => {
-      show.remove();
-      hide.remove();
-    };
-  }, []);
-
   /**
    * Say the save worked, once, wherever it leaves the reader.
    *
@@ -1678,99 +1654,60 @@ export default function VoiceScreen() {
         </View>
       ) : null}
 
-      {/* The destination picker, as a dismissible bottom sheet, matching the
-          overflow menu. */}
-      <Modal
-        transparent
+      {/* The destination picker, as a dismissible bottom sheet — the app's one
+          Sheet, so it presents, dims and dismisses exactly like every other
+          sheet, and its scrim is a modal window that covers the system bars
+          rather than a layer inside this screen. */}
+      <Sheet
         visible={pickerOpen}
-        animationType="fade"
-        onRequestClose={() => setPickerOpen(false)}
+        onClose={() => setPickerOpen(false)}
+        closeLabel={t.common.close}
+        style={{
+          // The picker was drawn on the page colour rather than card white, and
+          // the rows inside it are white cards: on `surface` they would vanish.
+          backgroundColor: theme.color.bg,
+          paddingHorizontal: theme.spacing.xl,
+          // A ceiling, so a long list scrolls inside the sheet instead of
+          // pushing its own top off the screen. The keyboard is `Sheet`'s
+          // business now — it lifts the card by the measured height itself.
+          maxHeight: '80%',
+        }}
       >
-        <Pressable
-          onPress={() => setPickerOpen(false)}
-          accessibilityLabel={t.common.close}
-          style={{
-            flex: 1,
-            backgroundColor: 'rgba(10, 10, 26, 0.55)',
-            justifyContent: 'flex-end',
-          }}
-        >
-          {/* Lift the sheet by the keyboard's own height. A KeyboardAvoidingView
-              does not work inside an Android Modal (its own window never resizes),
-              so the height is measured (see keyboardHeight) and the sheet is
-              pushed up above the keyboard — with its cap lowered to the space
-              that remains, so a long list scrolls inside rather than clipping off
-              the top. */}
-          <Pressable
-            onPress={() => {}}
-            style={{
-              backgroundColor: theme.color.bg,
-              borderTopLeftRadius: theme.radius.xxl,
-              borderTopRightRadius: theme.radius.xxl,
-              paddingHorizontal: theme.spacing.xl,
-              paddingTop: theme.spacing.lg,
-              paddingBottom:
-                keyboardHeight > 0 ? theme.spacing.xl : insets.bottom + theme.spacing.xl,
-              gap: theme.spacing.lg,
-              marginBottom: keyboardHeight,
-              // Never taller than the space left above the keyboard (or 80% of
-              // the screen when it is closed): the list scrolls inside the sheet
-              // rather than pushing rows off the top.
-              maxHeight: Math.min(
-                windowHeight * 0.8,
-                windowHeight - keyboardHeight - insets.top - theme.spacing.xl,
-              ),
-              ...theme.shadow.lifted,
+        <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          <DestinationPicker
+            // Remount each time the sheet opens, so the tab and the picked
+            // people re-seed from the current destination rather than keeping
+            // stale state from the last open.
+            key={pickerOpen ? 'open' : 'closed'}
+            selection={pickerSelection}
+            eyebrow={t.voice.saveTo}
+            // The "new group" row is offered whenever a name was heard,
+            // whatever the destination now stands at.
+            createRow={
+              requested ? { label: t.voice.newGroupNamed.replace('{name}', requested.name) } : null
+            }
+            onChoose={(choice) => {
+              // A change of destination is a change of group/ghost to make,
+              // so drop the once-only latches for the new one.
+              groupCreated.current = false;
+              ghostMemberIds.current = null;
+              // 'create' is the picker naming a row, not a destination: the
+              // group id and my member id were minted when the name was
+              // heard, and this screen holds them.
+              if (choice.kind === 'create') {
+                if (requested) setDest({ kind: 'create', ...requested });
+              } else {
+                setDest(choice);
+              }
+              setPickerOpen(false);
             }}
-          >
-            <View
-              style={{
-                alignSelf: 'center',
-                width: 40,
-                height: 4,
-                borderRadius: 2,
-                backgroundColor: theme.color.border,
-              }}
-            />
-            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-              <DestinationPicker
-                // Remount each time the sheet opens, so the tab and the picked
-                // people re-seed from the current destination rather than keeping
-                // stale state from the last open.
-                key={pickerOpen ? 'open' : 'closed'}
-                selection={pickerSelection}
-                eyebrow={t.voice.saveTo}
-                // The "new group" row is offered whenever a name was heard,
-                // whatever the destination now stands at.
-                createRow={
-                  requested
-                    ? { label: t.voice.newGroupNamed.replace('{name}', requested.name) }
-                    : null
-                }
-                onChoose={(choice) => {
-                  // A change of destination is a change of group/ghost to make,
-                  // so drop the once-only latches for the new one.
-                  groupCreated.current = false;
-                  ghostMemberIds.current = null;
-                  // 'create' is the picker naming a row, not a destination: the
-                  // group id and my member id were minted when the name was
-                  // heard, and this screen holds them.
-                  if (choice.kind === 'create') {
-                    if (requested) setDest({ kind: 'create', ...requested });
-                  } else {
-                    setDest(choice);
-                  }
-                  setPickerOpen(false);
-                }}
-                onResolvePeople={resolvePeople}
-                people={peopleChoices}
-                groups={groupRows}
-                t={t}
-              />
-            </ScrollView>
-          </Pressable>
-        </Pressable>
-      </Modal>
+            onResolvePeople={resolvePeople}
+            people={peopleChoices}
+            groups={groupRows}
+            t={t}
+          />
+        </ScrollView>
+      </Sheet>
     </Screen>
   );
 }
