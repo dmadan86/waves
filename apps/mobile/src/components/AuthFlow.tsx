@@ -46,6 +46,7 @@ import Animated, { FadeIn, useReducedMotion } from 'react-native-reanimated';
 import { Button, Callout, directionalIcon, iconSize, Row, Screen, Text, useTheme } from '@waves/ui';
 
 import { FORM_SCATTER, ScatterBand } from '@/components/ScatterBand';
+import { useBottomClearance } from '@/lib/clearance';
 import { SocialTile } from '@/components/SocialTile';
 import { useStrings, type UiStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
@@ -111,6 +112,8 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const clearance = useBottomClearance(theme.spacing.xxl);
 
   // Whether the keyboard is up, so the scatter band above the title can stand
   // down and give the form the room. `KeyboardAvoidingView` moves the content
@@ -292,7 +295,7 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
             The band is hidden once a field has focus. On a phone the keyboard
             takes half the screen, and a picture is not what somebody typing a
             password needs the room for. */}
-        {keyboardOpen ? null : <ScatterBand marks={FORM_SCATTER} minHeight={FORM_BAND_HEIGHT} />}
+        {keyboardOpen ? null : <ScatterBand marks={FORM_SCATTER} height={FORM_BAND_HEIGHT} />}
 
         <ScrollView
           style={{ flex: 1 }}
@@ -300,7 +303,12 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
             flexGrow: 1,
             paddingHorizontal: theme.spacing.xxl,
             paddingTop: theme.spacing.lg,
-            paddingBottom: theme.spacing.xxl,
+            // The system navigation bar draws over this screen (the app's own
+            // bar does not — sign-in is in TAB_BAR_HIDDEN_ROUTES), and a fixed
+            // xxl was not enough for it: the Sign in button at the foot of the
+            // form sat half under the gesture bar. `useBottomClearance` asks the
+            // one place that knows and adds the breath on top.
+            paddingBottom: clearance,
           }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"

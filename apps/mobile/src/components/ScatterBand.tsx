@@ -80,10 +80,10 @@ export const DOOR_SCATTER: readonly ScatterMarkSpec[] = [
  * the middle is left clear for the title that sits under it.
  */
 export const FORM_SCATTER: readonly ScatterMarkSpec[] = [
-  { icon: 'receipt-outline', tint: 'peach', x: 0.04, y: 0.12, size: 44, seconds: 8 },
-  { icon: 'people-outline', tint: 'sky', x: 0.82, y: 0.06, size: 48, seconds: 11 },
-  { icon: 'cafe-outline', tint: 'lilac', x: 0.3, y: 0.46, size: 38, seconds: 7 },
-  { icon: 'card-outline', tint: 'pink', x: 0.66, y: 0.5, size: 40, seconds: 9 },
+  { icon: 'receipt-outline', tint: 'peach', x: 0.04, y: 0.08, size: 44, seconds: 8 },
+  { icon: 'people-outline', tint: 'sky', x: 0.8, y: 0.02, size: 48, seconds: 11 },
+  { icon: 'cafe-outline', tint: 'lilac', x: 0.32, y: 0.3, size: 38, seconds: 7 },
+  { icon: 'card-outline', tint: 'pink', x: 0.62, y: 0.34, size: 40, seconds: 9 },
 ];
 
 /** How far a mark travels on its bob. Small enough to read as breathing. */
@@ -110,20 +110,40 @@ const SETTLE_MS = 400;
 export function ScatterBand({
   marks = DOOR_SCATTER,
   minHeight = 150,
+  height,
 }: {
   marks?: readonly ScatterMarkSpec[];
   /**
-   * The band is `flex: 1` in its column, so it takes whatever is left over and
-   * never pushes its neighbours off. This floor stops it collapsing to nothing
-   * on a short screen, where it would read as a rendering fault rather than as
-   * a smaller picture.
+   * For the flexible band: it takes whatever height is left over in its column,
+   * and this floor stops it collapsing to nothing on a short screen, where it
+   * would read as a rendering fault rather than as a smaller picture.
    */
   minHeight?: number;
+  /**
+   * For a fixed band: exactly this many points, taking no part in how the rest
+   * of the column divides the screen.
+   *
+   * This is not a preference, it is which of two layouts the band is in. The
+   * door has one flexible block — the band — and everything else is its own
+   * height, so `flex: 1` there means "the space left over". A form is the other
+   * way round: the scrolling part is the flexible one, and a second `flex: 1`
+   * beside it does not mean "left over", it means "half each" — which is how
+   * the sign-in page ended up with a sixth of a screen of icons above its
+   * title and its button pushed off the bottom.
+   */
+  height?: number;
 }): React.JSX.Element {
   const still = useReducedMotion();
 
   return (
-    <View pointerEvents="none" style={{ flex: 1, minHeight, overflow: 'hidden' }}>
+    <View
+      pointerEvents="none"
+      style={
+        height === undefined
+          ? { flex: 1, minHeight, overflow: 'hidden' }
+          : { height, overflow: 'hidden' }
+      }
+    >
       {marks.map((mark, index) => (
         <ScatterMark key={`${mark.icon}-${index}`} mark={mark} index={index} still={still} />
       ))}
