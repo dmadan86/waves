@@ -3192,6 +3192,8 @@ export interface UiStrings {
     licensesRow: string;
     licensesTitle: string;
     licensesIntro: string;
+    /** Heading over the artwork credits, below the software list. */
+    artworkTitle: string;
     licenseNote: string;
     previewGroups: PluralForms;
     previewExpenses: PluralForms;
@@ -3215,6 +3217,29 @@ export interface UiStrings {
     /** Read out on the chosen star: a second tap removes the rating. */
     feedbackStarClearHint: string;
     feedbackAttachNote: string;
+    /** The card grid's heading: what a piece of feedback is about. */
+    feedbackTopicsTitle: string;
+    /**
+     * The card labels, keyed by the slug the database stores. Adding a key here
+     * means adding it to `FEEDBACK_TOPICS`, the `feedback_topics_known`
+     * constraint and `waves_submit_feedback`'s filter — all four, or the card
+     * is drawn and then silently dropped on the way in.
+     */
+    feedbackTopics: {
+      splitting: string;
+      receipts: string;
+      voice: string;
+      groups: string;
+      speed: string;
+      design: string;
+      bug: string;
+      idea: string;
+    };
+    /**
+     * Storyset's free licence is free *with attribution*: the credit has to be
+     * visible wherever the illustrations are, which is this screen.
+     */
+    feedbackArtCredit: string;
     kindGeneral: string;
     kindBug: string;
     kindIdea: string;
@@ -6035,6 +6060,7 @@ const en: UiStrings = {
     licensesTitle: 'Open source',
     licensesIntro:
       'Waves is built on open-source software. Thank you to the people who made and maintain these.',
+    artworkTitle: 'Artwork',
     licenseNote: 'Each is used under its own license, kept unchanged.',
     previewGroups: { one: 'You are in {n} group.', other: 'You are in {n} groups.' },
     previewExpenses: {
@@ -6063,6 +6089,18 @@ const en: UiStrings = {
     feedbackStarClearHint: 'Tap again to clear the rating',
     feedbackAttachNote:
       'Your app version and device type come along, so we can reproduce what you saw. Nothing else.',
+    feedbackTopicsTitle: 'What is this about?',
+    feedbackTopics: {
+      splitting: 'Splitting a bill',
+      receipts: 'Scanning receipts',
+      voice: 'Adding by voice',
+      groups: 'Groups & friends',
+      speed: 'Speed',
+      design: 'How it looks',
+      bug: 'Something broke',
+      idea: 'An idea',
+    },
+    feedbackArtCredit: 'Illustrations by Storyset',
     kindGeneral: 'General',
     kindBug: 'Something is broken',
     kindIdea: 'An idea',
@@ -9008,6 +9046,7 @@ const ta: UiStrings = {
     licensesTitle: 'திறந்த மூலம்',
     licensesIntro:
       'Waves திறந்த மூல மென்பொருளால் கட்டப்பட்டது. இவற்றை உருவாக்கிப் பராமரிப்பவர்களுக்கு நன்றி.',
+    artworkTitle: 'Artwork',
     licenseNote: 'ஒவ்வொன்றும் அதன் சொந்த உரிமத்தின் கீழ், மாற்றமின்றிப் பயன்படுத்தப்படுகிறது.',
     previewGroups: {
       one: 'நீங்கள் {n} குழுவில் உள்ளீர்கள்.',
@@ -9039,6 +9078,18 @@ const ta: UiStrings = {
     feedbackStarClearHint: 'மதிப்பீட்டை அழிக்க மீண்டும் தட்டவும்',
     feedbackAttachNote:
       'நீங்கள் பார்த்ததை மீண்டும் உருவாக்க, உங்கள் ஆப் பதிப்பும் சாதன வகையும் உடன் வரும். வேறு எதுவும் இல்லை.',
+    feedbackTopicsTitle: 'What is this about?',
+    feedbackTopics: {
+      splitting: 'Splitting a bill',
+      receipts: 'Scanning receipts',
+      voice: 'Adding by voice',
+      groups: 'Groups & friends',
+      speed: 'Speed',
+      design: 'How it looks',
+      bug: 'Something broke',
+      idea: 'An idea',
+    },
+    feedbackArtCredit: 'Illustrations by Storyset',
     kindGeneral: 'பொது',
     kindBug: 'ஏதோ வேலை செய்யவில்லை',
     kindIdea: 'ஒரு யோசனை',
@@ -11868,6 +11919,7 @@ const hi: UiStrings = {
     licensesTitle: 'ओपन सोर्स',
     licensesIntro:
       'Waves ओपन-सोर्स सॉफ़्टवेयर पर बना है। इन्हें बनाने और सँभालने वालों का धन्यवाद।',
+    artworkTitle: 'Artwork',
     licenseNote: 'हर एक अपने लाइसेंस के तहत, बिना बदलाव के इस्तेमाल होती है।',
     previewGroups: { one: 'आप {n} समूह में हैं।', other: 'आप {n} समूहों में हैं।' },
     previewExpenses: {
@@ -11895,6 +11947,18 @@ const hi: UiStrings = {
     feedbackStarClearHint: 'रेटिंग हटाने के लिए फिर से टैप करें',
     feedbackAttachNote:
       'आपने जो देखा उसे दोहरा सकें, इसलिए आपका ऐप वर्शन और डिवाइस टाइप साथ आते हैं। और कुछ नहीं।',
+    feedbackTopicsTitle: 'What is this about?',
+    feedbackTopics: {
+      splitting: 'Splitting a bill',
+      receipts: 'Scanning receipts',
+      voice: 'Adding by voice',
+      groups: 'Groups & friends',
+      speed: 'Speed',
+      design: 'How it looks',
+      bug: 'Something broke',
+      idea: 'An idea',
+    },
+    feedbackArtCredit: 'Illustrations by Storyset',
     kindGeneral: 'सामान्य',
     kindBug: 'कुछ ख़राब है',
     kindIdea: 'एक सुझाव',
@@ -15146,6 +15210,7 @@ const ar: UiStrings = {
     licensesRow: 'تراخيص المصدر المفتوح',
     licensesTitle: 'المصدر المفتوح',
     licensesIntro: 'بُني بـاقي على برمجيات مفتوحة المصدر. شكرًا لمن صنعها ويصونها.',
+    artworkTitle: 'Artwork',
     licenseNote: 'كلٌّ منها يُستخدم بموجب ترخيصه الخاص، دون تغيير.',
     previewGroups: {
       zero: 'أنت في {n} مجموعة.',
@@ -15187,6 +15252,18 @@ const ar: UiStrings = {
     feedbackStarClearHint: 'انقر مرة أخرى لمسح التقييم',
     feedbackAttachNote:
       'يُرفق إصدار التطبيق ونوع الجهاز حتى نتمكّن من إعادة إنتاج ما رأيته. لا شيء غير ذلك.',
+    feedbackTopicsTitle: 'What is this about?',
+    feedbackTopics: {
+      splitting: 'Splitting a bill',
+      receipts: 'Scanning receipts',
+      voice: 'Adding by voice',
+      groups: 'Groups & friends',
+      speed: 'Speed',
+      design: 'How it looks',
+      bug: 'Something broke',
+      idea: 'An idea',
+    },
+    feedbackArtCredit: 'Illustrations by Storyset',
     kindGeneral: 'عام',
     kindBug: 'شيء لا يعمل',
     kindIdea: 'فكرة',
