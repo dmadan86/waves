@@ -1761,7 +1761,15 @@ export default function CapturesScreen() {
               unmounts and ticking a row eases the panel over instead of cutting
               it. Only the face that is showing takes taps. */}
           <View style={{ justifyContent: 'center' }}>
-            <Reanimated.View pointerEvents={selecting ? 'none' : 'auto'} style={restingAnim}>
+            {/* Caption above figure, with the same `theme.spacing.md` breathing
+                room `GroupHero` puts between its own caption and balance — the
+                two texts used to sit flush against each other, which is the
+                one thing that still read as a settings row next to a group's
+                hero. */}
+            <Reanimated.View
+              pointerEvents={selecting ? 'none' : 'auto'}
+              style={[restingAnim, { gap: theme.spacing.md }]}
+            >
               {rows.length > 0 ? (
                 <>
                   <Text variant="caption" tone="onBrand" style={{ opacity: 0.85 }}>
@@ -1781,8 +1789,10 @@ export default function CapturesScreen() {
                 </>
               ) : (
                 /* Review is trying to reach this, so the hero says it plainly
-                   rather than showing a nought. */
-                <Text variant="heading" tone="onBrand">
+                   rather than showing a nought — but still at the `title` step
+                   every other hero's headline uses, so the panel does not
+                   shrink just because there is nothing waiting. */
+                <Text variant="title" tone="onBrand">
                   {t.captures.nothingNeedsYou}
                 </Text>
               )}
