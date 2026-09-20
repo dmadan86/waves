@@ -463,17 +463,23 @@ export default function FriendsScreen() {
           flex: 1,
           paddingHorizontal: theme.spacing.lg,
           paddingTop: theme.spacing.lg,
+          // The foot goes on the box, not on what scrolls inside it. Paid on the
+          // list's content alone, the card itself still ran on under the bottom
+          // bar: the rows could be scrolled clear of it, but the card's own
+          // bottom edge and its rounded corners never came into view, so the
+          // screen read as cut off rather than finished. Home reserves the foot
+          // around its groups card the same way, which is why Home ends and this
+          // did not.
+          paddingBottom: clearance,
         }}
       >
         {people.isLoading ? (
           <PeopleSkeleton />
         ) : rows.length === 0 ? (
-          // Centred in what can be seen, not in what is laid out: the box runs
-          // on under the tab bar, so without its clearance the artwork settles
-          // below the middle of the visible screen. The list branch below pays
-          // the same clearance on its own content, and the dashboard already
-          // does this — this branch was the one that missed it.
-          <View style={{ flex: 1, justifyContent: 'center', paddingBottom: clearance }}>
+          // Centred in what can be seen, not in what is laid out. The clearance
+          // is on the box above rather than here, so this branch is centred in
+          // the visible height for free.
+          <View style={{ flex: 1, justifyContent: 'center' }}>
             <EmptyFriends hasPeople={known.data > 0} t={t} />
           </View>
         ) : (
@@ -526,7 +532,8 @@ export default function FriendsScreen() {
                 // like with like rather than reflowing one shape into the other.
                 getItemType={(item) => (item.entries.length === 1 ? 'single' : 'multi')}
                 drawDistance={1500}
-                contentContainerStyle={{ paddingBottom: clearance }}
+                // No foot here: the card it sits in already ends above the bar.
+                contentContainerStyle={{}}
                 showsVerticalScrollIndicator={false}
                 refreshControl={
                   <RefreshControl
