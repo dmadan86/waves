@@ -24,19 +24,17 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Platform, Pressable, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, {
-  cancelAnimation,
   Easing,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
-  withRepeat,
-  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 
-import { Callout, directionalIcon, iconSize, Row, Text, useTheme, type TintName } from '@waves/ui';
+import { Callout, directionalIcon, iconSize, Row, Text, useTheme } from '@waves/ui';
 
 import { LegalLine } from '@/components/LegalLine';
+import { ScatterBand } from '@/components/ScatterBand';
 import { ProviderButton, SocialTile } from '@/components/SocialTile';
 import { useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
@@ -211,7 +209,7 @@ export default function WelcomeScreen() {
               backdrop you cannot read the page through is not a backdrop. Given
               its own box it cannot reach the words, and the page keeps the shape
               the reference has: the picture above, everything you read below. */}
-          <ScatterBand still={reduceMotion} />
+          <ScatterBand />
 
           {/* The hero: a small brand tag, the headline that says what the app is
               for, and one line under it. It rises into place once the scatter is
@@ -375,141 +373,5 @@ function HeaderGlyph({
     >
       <Ionicons name={icon} size={iconSize.lg} color={theme.color.text} />
     </Pressable>
-  );
-}
-
-/**
- * The band above the headline: a scatter of the app's own marks, landing and
- * then drifting.
- *
- * It replaced three sine-wave bands on a green wash — waves were depth for a
- * coloured field, and this door is light now. What is scattered is not
- * confetti: every glyph is a thing the app is for, a receipt, a plane, a bowl,
- * a house, in the six tints the rest of the app dresses its categories in. So
- * the first screen says what the app does twice, once in the headline and once
- * in the objects above it.
- *
- * **It lives in a box of its own, and that is the point.** As a backdrop behind
- * the whole screen it put a house through "No account needed to start" and a
- * card through the body copy: a backdrop you cannot read the page through is
- * not a backdrop. Bounded, it cannot reach the words, and the page keeps the
- * shape the reference has — the picture above, everything you read below.
- *
- * Each mark drops in on its own delay, a twelfth of a second apart, then bobs
- * on its own slow clock so the arrangement breathes without becoming something
- * to watch. Motion-gated: with animation off every mark is simply there, in
- * place, because the arrangement is the picture and only the movement is
- * decoration.
- */
-const SCATTER = [
-  { icon: 'receipt-outline', tint: 'peach', x: 0.06, y: 0.1, size: 54, seconds: 7 },
-  { icon: 'airplane-outline', tint: 'sky', x: 0.76, y: 0.04, size: 60, seconds: 9 },
-  { icon: 'fast-food-outline', tint: 'coral', x: 0.4, y: 0.0, size: 46, seconds: 8 },
-  { icon: 'home-outline', tint: 'mint', x: 0.2, y: 0.52, size: 50, seconds: 11 },
-  { icon: 'cafe-outline', tint: 'lilac', x: 0.62, y: 0.45, size: 44, seconds: 6 },
-  { icon: 'card-outline', tint: 'pink', x: 0.86, y: 0.58, size: 42, seconds: 10 },
-] as const satisfies readonly {
-  icon: keyof typeof Ionicons.glyphMap;
-  tint: TintName;
-  /** Where the mark sits, as a fraction of the band it is given. */
-  x: number;
-  y: number;
-  /** The disc's diameter. The glyph inside is drawn at 45% of it. */
-  size: number;
-  /** One full bob, up and back. */
-  seconds: number;
-}[];
-
-/** How far a mark travels on its bob. Small enough to read as breathing. */
-const DRIFT = 10;
-
-/** Between one mark landing and the next. A twelfth of a second reads as a
-    scatter arriving rather than as six separate events. */
-const STAGGER_MS = 80;
-
-/**
- * The band's height. It is `flex: 1` inside the column, so it takes whatever is
- * left between the header and the headline and never pushes either off; this
- * floor keeps the scatter from collapsing to nothing on a short screen, where
- * it would read as a rendering fault rather than as a smaller picture.
- */
-const BAND_MIN_HEIGHT = 150;
-
-function ScatterBand({ still }: { still: boolean }): React.JSX.Element {
-  return (
-    <View pointerEvents="none" style={{ flex: 1, minHeight: BAND_MIN_HEIGHT, overflow: 'hidden' }}>
-      {SCATTER.map((mark, index) => (
-        <ScatterMark key={mark.icon} mark={mark} index={index} still={still} />
-      ))}
-    </View>
-  );
-}
-
-function ScatterMark({
-  mark,
-  index,
-  still,
-}: {
-  mark: (typeof SCATTER)[number];
-  index: number;
-  still: boolean;
-}): React.JSX.Element {
-  const theme = useTheme();
-  const land = useSharedValue(still ? 1 : 0);
-  const bob = useSharedValue(0);
-
-  useEffect(() => {
-    if (still) return;
-    // A spring rather than a curve: a mark that overshoots a little and settles
-    // reads as dropped into place, which is the whole difference between a
-    // scatter arriving and a layer being faded up.
-    land.value = withDelay(index * STAGGER_MS, withSpring(1, { damping: 11, stiffness: 140 }));
-    // The drift starts only once the scatter has landed, so the two motions are
-    // never on screen at the same time and neither muddles the other.
-    bob.value = withDelay(
-      SCATTER.length * STAGGER_MS + 400,
-      withRepeat(
-        // Reversed rather than restarted, so a mark rises and sinks on one path
-        // instead of snapping back to where it began.
-        withTiming(1, { duration: mark.seconds * 1000, easing: Easing.inOut(Easing.quad) }),
-        -1,
-        true,
-      ),
-    );
-    return () => {
-      cancelAnimation(land);
-      cancelAnimation(bob);
-    };
-  }, [bob, index, land, mark.seconds, still]);
-
-  const style = useAnimatedStyle(() => ({
-    opacity: land.value,
-    transform: [{ translateY: -DRIFT * bob.value }, { scale: 0.6 + 0.4 * land.value }],
-  }));
-
-  const tint = theme.tint[mark.tint];
-
-  return (
-    <Animated.View
-      style={[
-        {
-          position: 'absolute',
-          // Percentages rather than measured points: the band is whatever the
-          // screen leaves it, and the arrangement should hold on a small phone
-          // and a tablet without either measuring or a second table of numbers.
-          left: `${mark.x * 100}%`,
-          top: `${mark.y * 100}%`,
-          width: mark.size,
-          height: mark.size,
-          borderRadius: mark.size / 2,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: tint.bg,
-        },
-        style,
-      ]}
-    >
-      <Ionicons name={mark.icon} size={Math.round(mark.size * 0.45)} color={tint.ink} />
-    </Animated.View>
   );
 }
