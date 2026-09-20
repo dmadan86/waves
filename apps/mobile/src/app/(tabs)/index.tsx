@@ -489,7 +489,7 @@ export default function HomeScreen() {
                   to a feed you read — the grid below is for the things that
                   create something, and this was the odd one out among them. */}
             <HeroIconButton
-              icon="pulse-outline"
+              icon="notifications-outline"
               label={t.activity}
               onPress={() => router.navigate('/activity')}
             />
@@ -1197,8 +1197,12 @@ const SLIDE_STYLE: Record<
  * holds if both sites read the same numbers, hence the constants.
  */
 const HERO_LABEL_LINE = 18;
-const HERO_AMOUNT_SIZE = 34;
-const HERO_AMOUNT_LINE = 40;
+// The `title` type step (tokens.ts), which is what a group's hero uses for its
+// own balance. Home used to be four points larger, so the same money read as two
+// different orders of importance on two screens a tap apart; the numbers now
+// match, and the hero gives back the height.
+const HERO_AMOUNT_SIZE = 24;
+const HERO_AMOUNT_LINE = 30;
 const HERO_AMOUNT_STYLE = {
   fontSize: HERO_AMOUNT_SIZE,
   lineHeight: HERO_AMOUNT_LINE,

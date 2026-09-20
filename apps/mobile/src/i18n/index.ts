@@ -858,6 +858,8 @@ export interface UiStrings {
     row: string;
     rowHint: string;
     gateTitle: string;
+    /** The count strip in the gate: how many are signed in against the cap. */
+    gateCount: string;
     gateBody: string;
     gateAction: string;
     gateDismiss: string;
@@ -4079,6 +4081,7 @@ const en: UiStrings = {
     row: 'Devices',
     rowHint: 'See where you are signed in',
     gateTitle: 'Signed in on too many devices',
+    gateCount: '{active} devices · {limit} allowed',
     gateBody:
       'The free plan covers two devices at a time, and this account is over that. Log out the others to keep using Waves on this one.',
     gateAction: 'Log out other devices',
@@ -6928,6 +6931,7 @@ const ta: UiStrings = {
     row: 'சாதனங்கள்',
     rowHint: 'எங்கு உள்நுழைந்துள்ளீர்கள் என்பதைப் பார்க்கவும்',
     gateTitle: 'மிக அதிக சாதனங்களில் உள்நுழைந்துள்ளது',
+    gateCount: '{active} சாதனங்கள் · {limit} அனுமதி',
     gateBody:
       'இலவசத் திட்டத்தில் ஒரே நேரத்தில் இரண்டு சாதனங்கள் மட்டுமே; இந்தக் கணக்கு அதைத் தாண்டியுள்ளது. இந்தச் சாதனத்தில் Waves-ஐத் தொடர மற்றவற்றில் வெளியேறவும்.',
     gateAction: 'மற்ற சாதனங்களில் வெளியேறு',
@@ -9892,6 +9896,7 @@ const hi: UiStrings = {
     row: 'डिवाइस',
     rowHint: 'देखें कि आप कहाँ-कहाँ साइन इन हैं',
     gateTitle: 'बहुत ज़्यादा डिवाइस पर साइन इन',
+    gateCount: '{active} डिवाइस · {limit} की अनुमति',
     gateBody:
       'मुफ़्त प्लान में एक साथ दो डिवाइस चलते हैं, और यह अकाउंट उससे ऊपर है। इस डिवाइस पर Waves इस्तेमाल करते रहने के लिए बाकियों से साइन आउट करें।',
     gateAction: 'दूसरे डिवाइस से साइन आउट करें',
@@ -12797,6 +12802,7 @@ const ar: UiStrings = {
     row: 'الأجهزة',
     rowHint: 'اطّلع على أماكن تسجيل دخولك',
     gateTitle: 'مسجّل الدخول على أجهزة أكثر من اللازم',
+    gateCount: '{active} أجهزة · {limit} مسموح',
     gateBody:
       'الخطة المجانية تشمل جهازين في وقت واحد، وهذا الحساب تجاوز ذلك. سجّل الخروج من الأجهزة الأخرى لمواصلة استخدام Waves على هذا الجهاز.',
     gateAction: 'تسجيل الخروج من الأجهزة الأخرى',
