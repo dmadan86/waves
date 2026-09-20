@@ -28,7 +28,9 @@ import Animated, {
   Easing,
   useAnimatedStyle,
   useSharedValue,
+  withDelay,
   withRepeat,
+  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 
@@ -42,6 +44,14 @@ import { friendlyError } from '@/lib/errors';
 import { router } from '@/lib/navigation';
 import { useReducedMotion } from '@/lib/reducedMotion';
 import { phoneSignInAvailable } from '@/lib/phoneAuth';
+
+/** How long after mount the words start arriving. The scatter is already
+    landing by then, so the two overlap rather than queue. */
+const START_MS = 140;
+
+/** How far the headline and the ways in travel as they arrive. Enough to read
+    as a rise, small enough that nothing is ever far from where it lands. */
+const RISE = 14;
 
 /** The Skip pill's face on the light field: the brand at its softest, which
     reads as a control without becoming a second button competing with the
@@ -58,6 +68,33 @@ export default function WelcomeScreen() {
   // time, and whatever comes back said in words rather than in the SDK's.
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const reduceMotion = useReducedMotion();
+
+  // The door composes itself: the scatter lands first (each mark on its own
+  // delay, inside `ScatterBand`), then the headline rises under it, then the
+  // ways in. The order is the reading order, a third of a second apart, so the
+  // screen arrives the way somebody reads it rather than all at once. The
+  // splash's own field lifts just before this, so the two read as one move.
+  const heroIn = useSharedValue(reduceMotion ? 1 : 0);
+  const waysIn = useSharedValue(reduceMotion ? 1 : 0);
+
+  useEffect(() => {
+    if (reduceMotion) return;
+    const rise = (delay: number) =>
+      withDelay(delay, withTiming(1, { duration: 380, easing: Easing.out(Easing.cubic) }));
+    heroIn.value = rise(START_MS);
+    waysIn.value = rise(START_MS + 120);
+  }, [heroIn, reduceMotion, waysIn]);
+
+  const heroStyle = useAnimatedStyle(() => ({
+    opacity: heroIn.value,
+    transform: [{ translateY: (1 - heroIn.value) * RISE }],
+  }));
+  const waysStyle = useAnimatedStyle(() => ({
+    opacity: waysIn.value,
+    transform: [{ translateY: (1 - waysIn.value) * RISE }],
+  }));
 
   const run = (action: () => Promise<unknown>): void => {
     void (async () => {
@@ -119,9 +156,6 @@ export default function WelcomeScreen() {
           ways in sit quietly under it, which is the order somebody meeting the
           app needs them in. */}
       <View style={{ flex: 1, backgroundColor: theme.color.bg }}>
-        {/* The scatter drifts behind everything — depth, not decoration you
-            look at. Under the content and untouchable. */}
-        <GatewayBackdrop />
         <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
           {/* The header: back when there is somewhere to go back to, otherwise
               the language globe; and Skip, which is the guest way in. */}
@@ -170,15 +204,27 @@ export default function WelcomeScreen() {
             </Pressable>
           </Row>
 
-          {/* The hero rides in the upper third: a small brand tag, the headline
-              that says what the app is for, and one line under it. */}
-          <View style={{ flex: 0.5 }} />
-          <View
-            style={{
-              paddingHorizontal: theme.spacing.xxl,
-              gap: theme.spacing.sm,
-              alignItems: 'center',
-            }}
+          {/* The scatter has a band of its own between the header and the
+              headline, and is clipped to it. It used to be an absolute field
+              behind the whole screen, which put a house over "No account needed
+              to start" and a card through the middle of the body copy — a
+              backdrop you cannot read the page through is not a backdrop. Given
+              its own box it cannot reach the words, and the page keeps the shape
+              the reference has: the picture above, everything you read below. */}
+          <ScatterBand still={reduceMotion} />
+
+          {/* The hero: a small brand tag, the headline that says what the app is
+              for, and one line under it. It rises into place once the scatter is
+              in, so the screen composes itself rather than appearing whole. */}
+          <Animated.View
+            style={[
+              {
+                paddingHorizontal: theme.spacing.xxl,
+                gap: theme.spacing.sm,
+                alignItems: 'center',
+              },
+              heroStyle,
+            ]}
           >
             <Text variant="subheading" tone="brand" style={{ fontWeight: '800' }}>
               {t.common.appName}
@@ -201,17 +247,20 @@ export default function WelcomeScreen() {
             <Text variant="body" tone="muted" style={{ textAlign: 'center' }}>
               {t.signIn.welcomeBody}
             </Text>
-          </View>
+          </Animated.View>
           <View style={{ flex: 1 }} />
 
           {/* The ways in, anchored to the bottom: the legal line, one primary
               provider, the rest as tiles, and the way back for a member. */}
-          <View
-            style={{
-              paddingHorizontal: theme.spacing.xxl,
-              paddingBottom: theme.spacing.xl,
-              gap: theme.spacing.md,
-            }}
+          <Animated.View
+            style={[
+              {
+                paddingHorizontal: theme.spacing.xxl,
+                paddingBottom: theme.spacing.xl,
+                gap: theme.spacing.md,
+              },
+              waysStyle,
+            ]}
           >
             {error ? <Callout tone="negative">{error}</Callout> : null}
 
@@ -292,7 +341,7 @@ export default function WelcomeScreen() {
                 </Text>
               </Pressable>
             </Row>
-          </View>
+          </Animated.View>
         </SafeAreaView>
       </View>
     </View>
@@ -330,36 +379,39 @@ function HeaderGlyph({
 }
 
 /**
- * The field behind the door: a scatter of the app's own marks, drifting.
+ * The band above the headline: a scatter of the app's own marks, landing and
+ * then drifting.
  *
- * It replaces three sine-wave bands on a green wash. The waves were depth for a
- * coloured field, and the field is no longer coloured — this door is light now,
- * the way Family's is, because a white ground lets the headline be the loudest
- * thing on the screen and a green one never can.
+ * It replaced three sine-wave bands on a green wash — waves were depth for a
+ * coloured field, and this door is light now. What is scattered is not
+ * confetti: every glyph is a thing the app is for, a receipt, a plane, a bowl,
+ * a house, in the six tints the rest of the app dresses its categories in. So
+ * the first screen says what the app does twice, once in the headline and once
+ * in the objects above it.
  *
- * What is scattered is not confetti: every glyph is a thing the app is for — a
- * receipt, a plane, a bowl, a house — in the six tints the rest of the app
- * already dresses its categories in. So the first screen says what the app does
- * twice, once in the headline and once in the objects around it.
+ * **It lives in a box of its own, and that is the point.** As a backdrop behind
+ * the whole screen it put a house through "No account needed to start" and a
+ * card through the body copy: a backdrop you cannot read the page through is
+ * not a backdrop. Bounded, it cannot reach the words, and the page keeps the
+ * shape the reference has — the picture above, everything you read below.
  *
- * Each mark bobs on its own clock, slowly and by a few points, out of phase
- * with its neighbours, which is what keeps a still image from looking like a
- * still image. Motion-gated: with animation turned off the scatter is drawn and
- * holds, because the arrangement is the picture and only the drift is decoration.
+ * Each mark drops in on its own delay, a twelfth of a second apart, then bobs
+ * on its own slow clock so the arrangement breathes without becoming something
+ * to watch. Motion-gated: with animation off every mark is simply there, in
+ * place, because the arrangement is the picture and only the movement is
+ * decoration.
  */
 const SCATTER = [
-  { icon: 'receipt-outline', tint: 'peach', x: 0.1, y: 0.06, size: 56, seconds: 7 },
-  { icon: 'airplane-outline', tint: 'sky', x: 0.74, y: 0.04, size: 64, seconds: 9 },
-  { icon: 'fast-food-outline', tint: 'coral', x: 0.42, y: 0.15, size: 48, seconds: 8 },
-  { icon: 'home-outline', tint: 'mint', x: 0.08, y: 0.34, size: 60, seconds: 11 },
-  { icon: 'cafe-outline', tint: 'lilac', x: 0.8, y: 0.3, size: 52, seconds: 6 },
-  { icon: 'card-outline', tint: 'pink', x: 0.52, y: 0.42, size: 58, seconds: 10 },
-  { icon: 'people-outline', tint: 'sky', x: 0.18, y: 0.55, size: 50, seconds: 8 },
-  { icon: 'car-outline', tint: 'peach', x: 0.78, y: 0.56, size: 46, seconds: 12 },
+  { icon: 'receipt-outline', tint: 'peach', x: 0.06, y: 0.1, size: 54, seconds: 7 },
+  { icon: 'airplane-outline', tint: 'sky', x: 0.76, y: 0.04, size: 60, seconds: 9 },
+  { icon: 'fast-food-outline', tint: 'coral', x: 0.4, y: 0.0, size: 46, seconds: 8 },
+  { icon: 'home-outline', tint: 'mint', x: 0.2, y: 0.52, size: 50, seconds: 11 },
+  { icon: 'cafe-outline', tint: 'lilac', x: 0.62, y: 0.45, size: 44, seconds: 6 },
+  { icon: 'card-outline', tint: 'pink', x: 0.86, y: 0.58, size: 42, seconds: 10 },
 ] as const satisfies readonly {
   icon: keyof typeof Ionicons.glyphMap;
   tint: TintName;
-  /** Where the mark sits, as a fraction of the field it is given. */
+  /** Where the mark sits, as a fraction of the band it is given. */
   x: number;
   y: number;
   /** The disc's diameter. The glyph inside is drawn at 45% of it. */
@@ -371,13 +423,23 @@ const SCATTER = [
 /** How far a mark travels on its bob. Small enough to read as breathing. */
 const DRIFT = 10;
 
-function GatewayBackdrop() {
-  const reduceMotion = useReducedMotion();
+/** Between one mark landing and the next. A twelfth of a second reads as a
+    scatter arriving rather than as six separate events. */
+const STAGGER_MS = 80;
 
+/**
+ * The band's height. It is `flex: 1` inside the column, so it takes whatever is
+ * left between the header and the headline and never pushes either off; this
+ * floor keeps the scatter from collapsing to nothing on a short screen, where
+ * it would read as a rendering fault rather than as a smaller picture.
+ */
+const BAND_MIN_HEIGHT = 150;
+
+function ScatterBand({ still }: { still: boolean }): React.JSX.Element {
   return (
-    <View pointerEvents="none" style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
-      {SCATTER.map((mark) => (
-        <ScatterMark key={mark.icon} mark={mark} still={reduceMotion} />
+    <View pointerEvents="none" style={{ flex: 1, minHeight: BAND_MIN_HEIGHT, overflow: 'hidden' }}>
+      {SCATTER.map((mark, index) => (
+        <ScatterMark key={mark.icon} mark={mark} index={index} still={still} />
       ))}
     </View>
   );
@@ -385,28 +447,44 @@ function GatewayBackdrop() {
 
 function ScatterMark({
   mark,
+  index,
   still,
 }: {
   mark: (typeof SCATTER)[number];
+  index: number;
   still: boolean;
 }): React.JSX.Element {
   const theme = useTheme();
+  const land = useSharedValue(still ? 1 : 0);
   const bob = useSharedValue(0);
 
   useEffect(() => {
     if (still) return;
-    // Reversed rather than restarted, so a mark rises and sinks on one path
-    // instead of snapping back to where it began.
-    bob.value = withRepeat(
-      withTiming(1, { duration: mark.seconds * 1000, easing: Easing.inOut(Easing.quad) }),
-      -1,
-      true,
+    // A spring rather than a curve: a mark that overshoots a little and settles
+    // reads as dropped into place, which is the whole difference between a
+    // scatter arriving and a layer being faded up.
+    land.value = withDelay(index * STAGGER_MS, withSpring(1, { damping: 11, stiffness: 140 }));
+    // The drift starts only once the scatter has landed, so the two motions are
+    // never on screen at the same time and neither muddles the other.
+    bob.value = withDelay(
+      SCATTER.length * STAGGER_MS + 400,
+      withRepeat(
+        // Reversed rather than restarted, so a mark rises and sinks on one path
+        // instead of snapping back to where it began.
+        withTiming(1, { duration: mark.seconds * 1000, easing: Easing.inOut(Easing.quad) }),
+        -1,
+        true,
+      ),
     );
-    return () => cancelAnimation(bob);
-  }, [bob, mark.seconds, still]);
+    return () => {
+      cancelAnimation(land);
+      cancelAnimation(bob);
+    };
+  }, [bob, index, land, mark.seconds, still]);
 
   const style = useAnimatedStyle(() => ({
-    transform: [{ translateY: -DRIFT * bob.value }],
+    opacity: land.value,
+    transform: [{ translateY: -DRIFT * bob.value }, { scale: 0.6 + 0.4 * land.value }],
   }));
 
   const tint = theme.tint[mark.tint];
@@ -416,8 +494,8 @@ function ScatterMark({
       style={[
         {
           position: 'absolute',
-          // Percentages rather than measured points: the field is whatever the
-          // screen gives it, and the arrangement should hold on a small phone
+          // Percentages rather than measured points: the band is whatever the
+          // screen leaves it, and the arrangement should hold on a small phone
           // and a tablet without either measuring or a second table of numbers.
           left: `${mark.x * 100}%`,
           top: `${mark.y * 100}%`,
