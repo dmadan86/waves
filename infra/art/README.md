@@ -47,18 +47,22 @@ near a private object.
 ```sh
 wrangler login                                   # once
 wrangler r2 bucket create waves-art              # once
-wrangler r2 bucket dev-url enable waves-art      # once — this is what makes it public
 pnpm art:publish                                 # uploads everything here
 ```
 
-`wrangler r2 bucket dev-url enable` prints the public base. This bucket's is
-already the default in `lib/art.ts`:
+The bucket is served from a custom domain, which is the default in
+`lib/art.ts`:
 
-    https://pub-311decd36a1e4e27a4f0dd9d6d71637f.r2.dev
+    https://assets.wavs.co.in
 
-`EXPO_PUBLIC_ART_BASE_URL` overrides it — for a staging bucket, a custom domain
-in front of this one, or a local server. Changing either reaches phones without
-another native build.
+A custom domain rather than the bucket's `pub-<hash>.r2.dev` address, because
+an r2.dev URL names a bucket on a particular vendor and would be baked into
+every build that ever shipped; this one can be pointed elsewhere without a
+release. (`wrangler r2 bucket dev-url enable waves-art` turns the r2.dev
+address on as well, and `wrangler r2 bucket dev-url get waves-art` prints it.)
+
+`EXPO_PUBLIC_ART_BASE_URL` overrides the default — for a staging bucket or a
+local server. Changing either reaches phones without another native build.
 
 Re-running the publish overwrites in place, so a redrawn illustration reaches
 every phone as soon as its cache expires — no app release involved.

@@ -21,12 +21,16 @@
  */
 
 /**
- * The `waves-art` bucket's public dev URL. It is a constant rather than a
- * required environment variable on purpose: a build that forgets to set one
- * should still draw the pictures, and the bucket is public and read-only, so
- * there is nothing here to keep out of a bundle.
+ * The `waves-art` bucket, on our own domain rather than its r2.dev address. A
+ * constant rather than a required environment variable on purpose: a build that
+ * forgets to set one should still draw the pictures, and the bucket is public
+ * and read-only, so there is nothing here to keep out of a bundle.
+ *
+ * The domain is the part worth keeping: an r2.dev URL names a bucket on a
+ * vendor, and moving off that vendor later would strand it inside every build
+ * ever shipped. This one can be pointed somewhere else without a release.
  */
-const DEFAULT_BASE = 'https://pub-311decd36a1e4e27a4f0dd9d6d71637f.r2.dev';
+const DEFAULT_BASE = 'https://assets.wavs.co.in';
 
 const BASE = (process.env.EXPO_PUBLIC_ART_BASE_URL ?? DEFAULT_BASE).replace(/\/+$/, '');
 
