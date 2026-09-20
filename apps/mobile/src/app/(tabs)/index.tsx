@@ -121,7 +121,6 @@ export default function HomeScreen() {
     {
       icon: 'add',
       label: t.addExpense,
-      tintKey: 'add',
       onPress: () => router.push('/capture'),
       onLongPress: () => setQuickAddOpen(true),
       wrap: (tile) => <TourTarget id="addExpense">{tile}</TourTarget>,
@@ -129,26 +128,23 @@ export default function HomeScreen() {
     {
       icon: 'qr-code-outline',
       label: t.misc.scanToJoin,
-      tintKey: 'scan',
       onPress: () => router.push('/scan'),
     },
     {
       icon: 'people-outline',
       label: t.newGroup,
-      tintKey: 'group',
       // Called through, not passed: `openNewGroup` is declared below this list,
       // and a press cannot happen until long after both exist.
       onPress: () => openNewGroup(),
       wrap: (tile) => <TourTarget id="addGroup">{tile}</TourTarget>,
     },
-    // The fourth and last cell, brand-filled in the corner MyGate puts its
-    // yellow one. Everything the row used to carry and no longer does — scan a
+    // The fourth and last cell, the one disc that wears the brand rather than
+    // the ink. Everything the row used to carry and no longer does — scan a
     // bill, read bank messages, settle up — is the first thing in the menu it
     // opens, so nothing lost a door when the grid came down to one line.
     {
       icon: 'grid-outline',
       label: t.tabs.viewMore,
-      tintKey: 'more',
       accent: true,
       onPress: () => setMenuOpen(true),
     },

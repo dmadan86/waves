@@ -8,25 +8,26 @@
  * its hero holds the number, and the things you can do with the number sit in a
  * strip underneath it.
  *
- * The shape is MyGate's "Quick Actions" panel: a four-column grid of white rounded squares, each holding one glyph with
- * its name underneath, and the last one filled in an accent colour to open
- * everything else. What it takes from that panel, and what it leaves:
+ * The shape is the one every commerce app opens on: a row of quiet discs, each
+ * holding one line-drawn glyph with its name centred underneath. What that
+ * costs and what it buys:
  *
- *   - **Squares, not discs.** A disc reads as a single control; a row of
- *     squares reads as a board of them.
- *   - **A "view more" cell that leads somewhere.** MyGate's opens the full
- *     catalogue of services; ours opens the overflow menu, which is the only
- *     other list of everything Home can reach.
- *   - **Neither the heading nor the "Customise" link.** MyGate names the panel
- *     because its home is a stack of a dozen sections and the name is how you
- *     find this one; Home has the hero, this row and the groups, so a label over
- *     four labelled icons is a line of text saying what is already plain. The
- *     link is out because MyGate's rearranges the grid and nothing here does.
- *
- * The glyph keeps the colour it wears in `QuickAddSheet` (`tintForKey`, the
- * same function), so an action that appears in both is the same colour in both
- * — the tint moves from the disc's fill to the glyph itself, because a row of
- * filled discs is a fruit bowl.
+ *   - **Discs, not squares.** An earlier pass argued the opposite — that a row
+ *     of squares reads as a board of controls and a disc reads as a single one.
+ *     On the screen it did not: the squares read as four cards, competing with
+ *     the group cards below them. A disc has no corners to line up with
+ *     anything, so the row recedes to what it is, a strip of shortcuts.
+ *   - **One ink, not four tints.** The glyphs are monochrome, drawn in the
+ *     body ink. A coloured glyph per action makes each one a thing to identify
+ *     before you can read the row; in one colour, the row is read as a row and
+ *     the *shapes* do the distinguishing, which is what a line drawing is for.
+ *   - **A "view more" cell that leads somewhere.** It opens the overflow menu,
+ *     the only other list of everything Home can reach. It is marked by its
+ *     tint — a brand-soft disc with a brand glyph — rather than by being
+ *     filled in, because a solid block in a row of quiet discs is a button
+ *     sitting in a strip of shortcuts.
+ *   - **No heading.** A label over four labelled icons is a line of text
+ *     saying what is already plain.
  *
  * Nothing scrolls. A shortcut you have to find by dragging is not a shortcut,
  * and the horizontal `ScrollView` this replaced had a second problem: React
@@ -36,22 +37,20 @@
  * accounted for.
  *
  * Deliberately not overlapping the hero. A card pulled up under a rounded hero
- * corner is the obvious MyGate flourish, and it is how you get a row of buttons
- * that cannot be pressed: a view painted outside its parent's bounds is dead
- * there on Android, and nothing about it looks broken until you tap it.
+ * corner is the obvious flourish, and it is how you get a row of buttons that
+ * cannot be pressed: a view painted outside its parent's bounds is dead there
+ * on Android, and nothing about it looks broken until you tap it.
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, View } from 'react-native';
 
-import { iconSize, Row, Text, tintForKey, useTheme } from '@waves/ui';
+import { iconSize, Row, Text, useTheme } from '@waves/ui';
 
 /** One cell. Mirrors `QuickAddAction`, but these do not all add something. */
 export interface HomeAction {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
-  /** Stable key for the glyph's tint, so an action keeps its colour. */
-  tintKey: string;
   onPress: () => void;
   /**
    * Kept because the hero pill this replaces had one: a long press on "add
@@ -62,16 +61,15 @@ export interface HomeAction {
   /** Wraps the cell — the tour anchors on two of these. */
   wrap?: (tile: React.JSX.Element) => React.JSX.Element;
   /**
-   * The last cell: filled in the brand colour rather than white, the way
-   * MyGate's "View More" is the one yellow square on the board. At most one
-   * action sets this.
+   * The last cell: the one disc that carries the brand rather than the ink, so
+   * "everything else" is findable without reading. At most one action sets it.
    */
   accent?: boolean;
 }
 
 /** Four to a row, the way every super-app on an Indian phone opens. */
 const COLUMNS = 4;
-/** The white square. 64 leaves the label room under it without a third row. */
+/** The disc. 64 leaves the label room under it without a third row. */
 const TILE = 64;
 
 /** Chunks the actions into rows of four, last row short if the set is not a multiple. */
@@ -106,7 +104,6 @@ export function HomeQuickActions({
           style={{ gap: theme.spacing.sm }}
         >
           {row.map((action) => {
-            const tint = theme.tint[tintForKey(action.tintKey)];
             const tile = (
               <Pressable
                 accessibilityRole="button"
@@ -123,16 +120,20 @@ export function HomeQuickActions({
                   style={{
                     width: TILE,
                     height: TILE,
-                    borderRadius: theme.radius.lg,
+                    // A true circle, not a generous corner: half the side, so
+                    // the disc stays a disc if `TILE` is ever tuned.
+                    borderRadius: TILE / 2,
                     alignItems: 'center',
                     justifyContent: 'center',
-                    backgroundColor: action.accent ? theme.color.brand : theme.color.surface,
+                    backgroundColor: action.accent
+                      ? theme.color.brandSoft
+                      : theme.color.surfaceMuted,
                   }}
                 >
                   <Ionicons
                     name={action.icon}
                     size={iconSize.xxl}
-                    color={action.accent ? theme.color.onBrand : tint.ink}
+                    color={action.accent ? theme.color.brand : theme.color.text}
                   />
                 </View>
                 {/* Two lines, centred: "Bank messages" and its translations do
