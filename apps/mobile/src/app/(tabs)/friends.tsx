@@ -795,53 +795,47 @@ function FriendsHero({
             {t.tabs.overall.toUpperCase()}
           </Text>
           {directionGroups(totals).map((group) => (
-            <View key={group.owed ? 'owed' : 'owing'} style={{ gap: 2 }}>
-              <Row
-                style={{
-                  justifyContent: 'space-between',
-                  // Baseline, not flex-end: the label is 16px and the amount is
-                  // 32, so aligning the bottoms of two boxes that tall sits the
-                  // word below the digits it belongs to. This is the line the
-                  // eye reads across.
-                  alignItems: 'baseline',
-                  gap: theme.spacing.md,
-                }}
-              >
-                <Text variant="body" tone="onBrand" style={{ opacity: 0.85 }}>
-                  {group.owed ? t.tabs.youAreOwed : t.tabs.youOweThem}
-                </Text>
+            // Label above the amount, not beside it — the same order GroupHero
+            // reads its own balance in (caption verdict, then the title-sized
+            // figure), rather than a row that made this hero the odd one out.
+            <View key={group.owed ? 'owed' : 'owing'} style={{ gap: theme.spacing.md }}>
+              <Text variant="caption" tone="onBrand" style={{ opacity: 0.85 }}>
+                {group.owed ? t.tabs.youAreOwed : t.tabs.youOweThem}
+              </Text>
+              <View style={{ gap: 2 }}>
                 <MoneyText
                   amount={group.head.net < 0n ? -group.head.net : group.head.net}
                   currency={group.head.currency}
                   locale={locale}
-                  tone="onBrand"
-                  style={{ fontSize: 32, lineHeight: 38, fontWeight: '800' }}
+                  variant="title"
+                  tone="default"
+                  style={{ color: theme.color.onBrand }}
                 />
-              </Row>
-              {group.rest.length > 0 ? (
-                // The same direction's other currencies, small and under the
-                // number they belong to. Wrapped rather than clipped — six
-                // currencies costs a second line here instead of six headlines.
-                <Row
-                  style={{
-                    justifyContent: 'flex-end',
-                    flexWrap: 'wrap',
-                    columnGap: theme.spacing.sm,
-                  }}
-                >
-                  {group.rest.map((total) => (
-                    <MoneyText
-                      key={total.currency}
-                      amount={total.net < 0n ? -total.net : total.net}
-                      currency={total.currency}
-                      locale={locale}
-                      variant="caption"
-                      tone="onBrand"
-                      style={{ opacity: 0.8 }}
-                    />
-                  ))}
-                </Row>
-              ) : null}
+                {group.rest.length > 0 ? (
+                  // The same direction's other currencies, small and under the
+                  // number they belong to. Wrapped rather than clipped — six
+                  // currencies costs a second line here instead of six headlines.
+                  <Row
+                    style={{
+                      justifyContent: 'flex-start',
+                      flexWrap: 'wrap',
+                      columnGap: theme.spacing.sm,
+                    }}
+                  >
+                    {group.rest.map((total) => (
+                      <MoneyText
+                        key={total.currency}
+                        amount={total.net < 0n ? -total.net : total.net}
+                        currency={total.currency}
+                        locale={locale}
+                        variant="caption"
+                        tone="onBrand"
+                        style={{ opacity: 0.8 }}
+                      />
+                    ))}
+                  </Row>
+                ) : null}
+              </View>
             </View>
           ))}
         </Reanimated.View>
