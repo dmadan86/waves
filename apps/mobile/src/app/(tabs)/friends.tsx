@@ -791,16 +791,19 @@ function FriendsHero({
           exiting={reduceMotion ? undefined : FadeOut.duration(100)}
           style={{ gap: theme.spacing.sm }}
         >
-          <Text variant="micro" tone="onBrand" style={{ letterSpacing: 1, opacity: 0.7 }}>
-            {t.tabs.overall.toUpperCase()}
-          </Text>
           {directionGroups(totals).map((group) => (
             // Label above the amount, not beside it — the same order GroupHero
             // reads its own balance in (caption verdict, then the title-sized
             // figure), rather than a row that made this hero the odd one out.
             <View key={group.owed ? 'owed' : 'owing'} style={{ gap: theme.spacing.md }}>
+              {/* Home's wording, down to the separator: "Net receivable · INR".
+                  It replaces two lines that between them said less — a standing
+                  "OVERALL" over "You are owed" named the section and the
+                  direction but never the currency the figure was in, which is
+                  the one thing the number below cannot say for itself when a
+                  second currency is stacked under it. */}
               <Text variant="caption" tone="onBrand" style={{ opacity: 0.85 }}>
-                {group.owed ? t.tabs.youAreOwed : t.tabs.youOweThem}
+                {`${group.owed ? t.dashHero.netOwed : t.dashHero.netOwe} · ${group.head.currency}`}
               </Text>
               <View style={{ gap: 2 }}>
                 <MoneyText
