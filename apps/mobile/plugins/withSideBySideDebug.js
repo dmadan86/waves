@@ -11,94 +11,123 @@
  * launcher label, and `-debug` on its version name (visible in Settings → Apps,
  * which is otherwise the only way to tell two identically-named apps apart).
  *
- * **Push does not work in the debug build**, and cannot until somebody registers
- * the suffixed id as a second Android app in the Firebase project. The Google
- * Services gradle plugin fails a build outright when `google-services.json` has
- * no client for the application id being built — so rather than fail, the debug
- * variant skips that task and runs without Firebase config. That is the same
- * no-push mode `app.config.ts` already supports for anybody building this repo
- * without a Firebase account, and it degrades the way `lib/push.ts` describes:
- * registering for push says it cannot, and nothing throws. Release builds are
- * untouched and keep their Firebase config.
+ * **The suffixed id has no client in `google-services.json`**, and the Google
+ * Services gradle plugin fails a build outright rather than skipping when it
+ * cannot find one. This used to be handled by disabling `processDebugGoogleServices`
+ * — the debug build then carried no Firebase config at all, which was survivable
+ * while push was the only thing that wanted it (`lib/push.ts` says it cannot
+ * register, and nothing throws).
  *
- * To give the debug build push as well: add an Android app for
- * `<package>.debug` in the Firebase console, download the regenerated
- * `google-services.json` (it carries both clients), and delete the
- * `whenTaskAdded` block below.
+ * It stopped being survivable when `@react-native-firebase/app-check` arrived.
+ * Its TurboModule calls `FirebaseAppCheck.getInstance()` from its constructor,
+ * which happens while React Native is building the module list, long before any
+ * of this app's JavaScript can decide not to use it. With no config that throws
+ * `Default FirebaseApp is not initialized in this process`, and the debug build
+ * dies on the splash screen — every debug build, whatever is being tested.
+ *
+ * So the config is written instead of skipped: the debug source set gets its own
+ * `google-services.json`, the real one with the client's `package_name` rewritten
+ * to the suffixed id. The Google Services plugin prefers a variant's copy over
+ * the root one, finds its client, and Firebase initialises. Every value in it is
+ * the real project's, so nothing is invented — but Firebase has never heard of
+ * the suffixed application id, so **push and App Check still do not work in a
+ * debug build**: registering for push fails the way it always has, and an App
+ * Check attestation is refused by the server. What changes is that the app now
+ * starts.
+ *
+ * To give the debug build push as well: add an Android app for `<package>.debug`
+ * in the Firebase console and download the regenerated `google-services.json`
+ * (it carries both clients) — the file written here is then redundant, and this
+ * whole mod can go.
  */
 
 const { withAppBuildGradle, withDangerousMod } = require('expo/config-plugins');
-const { mkdirSync, writeFileSync } = require('node:fs');
-const { join } = require('node:path');
+const { existsSync, mkdirSync, readFileSync, writeFileSync } = require('node:fs');
+const { join, resolve } = require('node:path');
 
 const MARKER = 'waves:side-by-side-debug';
 
 /** What the launcher calls the debug build, so the two icons are tellable apart. */
 const DEBUG_LABEL = 'Waves dev';
 
+/** The suffix, in one place: the gradle patch and the config rewrite must agree. */
+const SUFFIX = '.debug';
+
 const DEBUG_BUILD_TYPE = `        debug {
             signingConfig signingConfigs.debug`;
 
 const DEBUG_BUILD_TYPE_PATCHED = `        debug {
             // ${MARKER} — see apps/mobile/plugins/withSideBySideDebug.js
-            applicationIdSuffix '.debug'
+            applicationIdSuffix '${SUFFIX}'
             versionNameSuffix '-debug'
             signingConfig signingConfigs.debug`;
 
-const SKIP_GOOGLE_SERVICES = `
-// ${MARKER} — the debug variant's application id has no Firebase client, and
-// the Google Services plugin fails the build rather than skipping. Push is the
-// only thing that needs it; see apps/mobile/plugins/withSideBySideDebug.js.
-tasks.whenTaskAdded { task ->
-    if (task.name == 'processDebugGoogleServices') task.enabled = false
-}
-`;
+/**
+ * The same resolution `app.config.ts` uses for `android.googleServicesFile`: the
+ * EAS file secret first, the developer's local copy second, nothing if this
+ * machine has neither (in which case the Google Services plugin is not applied
+ * and there is nothing to rewrite).
+ */
+function sourceGoogleServices(projectRoot) {
+  const fromEas = process.env.GOOGLE_SERVICES_JSON;
+  if (fromEas && existsSync(fromEas)) return fromEas;
 
-const GOOGLE_SERVICES_APPLY = "apply plugin: 'com.google.gms.google-services'";
+  const local = resolve(projectRoot, 'google-services.json');
+  return existsSync(local) ? local : undefined;
+}
 
 module.exports = function withSideBySideDebug(config) {
   const withGradle = withAppBuildGradle(config, (gradleConfig) => {
-    let contents = gradleConfig.modResults.contents;
+    const contents = gradleConfig.modResults.contents;
     if (contents.includes(MARKER)) return gradleConfig;
 
     if (!contents.includes(DEBUG_BUILD_TYPE)) {
       throw new Error('withSideBySideDebug: could not find the debug buildType in build.gradle');
     }
-    contents = contents.replace(DEBUG_BUILD_TYPE, DEBUG_BUILD_TYPE_PATCHED);
-
-    // Only where the Google Services plugin is actually applied: a build with no
-    // `google-services.json` never adds the plugin, and has no task to disable.
-    if (contents.includes(GOOGLE_SERVICES_APPLY)) {
-      contents = contents.replace(
-        GOOGLE_SERVICES_APPLY,
-        `${GOOGLE_SERVICES_APPLY}\n${SKIP_GOOGLE_SERVICES}`,
-      );
-    }
-
-    gradleConfig.modResults.contents = contents;
+    gradleConfig.modResults.contents = contents.replace(
+      DEBUG_BUILD_TYPE,
+      DEBUG_BUILD_TYPE_PATCHED,
+    );
     return gradleConfig;
   });
 
-  // The label lives in the debug source set rather than in `strings.xml`, where
-  // it would rename the release build too. A resource defined in a build type's
-  // source set replaces the one in `main` for that variant only.
+  // Both files live in the debug source set rather than in `main`, where they
+  // would change the release build too. A resource or a config defined in a
+  // build type's source set replaces the one in `main` for that variant only.
   return withDangerousMod(withGradle, [
     'android',
     (modConfig) => {
-      const values = join(
-        modConfig.modRequest.platformProjectRoot,
-        'app',
-        'src',
-        'debug',
-        'res',
-        'values',
-      );
+      const debugSrc = join(modConfig.modRequest.platformProjectRoot, 'app', 'src', 'debug');
+
+      const values = join(debugSrc, 'res', 'values');
       mkdirSync(values, { recursive: true });
       writeFileSync(
         join(values, 'strings.xml'),
         `<resources>\n  <string name="app_name">${DEBUG_LABEL}</string>\n</resources>\n`,
         'utf8',
       );
+
+      const source = sourceGoogleServices(modConfig.modRequest.projectRoot);
+      const appId = modConfig.android?.package;
+      if (source && appId) {
+        // Rewritten by walking the parsed object rather than replacing text: the
+        // package name appears in `client_info` for each client, and a blind
+        // string replace would also hit an `oauth_client` entry that names the
+        // same package with a *different* signing certificate, which is a
+        // credential rather than an id.
+        const services = JSON.parse(readFileSync(source, 'utf8'));
+        for (const client of services.client ?? []) {
+          const info = client.client_info?.android_client_info;
+          if (info?.package_name === appId) info.package_name = `${appId}${SUFFIX}`;
+        }
+        mkdirSync(debugSrc, { recursive: true });
+        writeFileSync(
+          join(debugSrc, 'google-services.json'),
+          `${JSON.stringify(services, null, 2)}\n`,
+          'utf8',
+        );
+      }
+
       return modConfig;
     },
   ]);
