@@ -14,16 +14,22 @@
  * full-screen overlay sitting over the app for a second would only get in the
  * way of the layout checks the web build exists for — so it renders nothing.
  *
- * To rebrand: set `GRADIENT`/`SPLASH_BG` to the brand wash and `WORDMARK` (or
- * swap the wordmark <Text> for a logo <Image>). Keep `SPLASH_BG` identical to
- * the `backgroundColor` in `app.json` — the native splash is a solid field, so
- * matching it to this gradient's middle stop keeps the native-to-JS handoff
- * from jumping. The native splash still shows `assets/images/splash-icon.png`.
+ * One flat brand field with the mark in the middle of it, and nothing else —
+ * the shape every app whose launch screen is remembered uses. It replaced a
+ * diagonal navy wash carrying the word "waves" as text, which had a seam in it
+ * nobody could unsee once told: the native half showed the mark and this half
+ * showed the word, so the launch changed its mind halfway through.
+ *
+ * Both halves now draw the same PNG on the same colour at the same width, so
+ * the handoff has nothing left to give away.
+ *
+ * To rebrand: `SPLASH_BG` and `MARK_WIDTH` here, `backgroundColor` and
+ * `imageWidth` in `app.json`'s `expo-splash-screen`. They are two halves of one
+ * picture — change all four together or the seam comes back.
  */
 import { useCallback, useEffect, useState } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Platform, StyleSheet, Text } from 'react-native';
+import { Image, Platform, StyleSheet, View } from 'react-native';
 import Animated, {
   Easing,
   runOnJS,
@@ -34,24 +40,19 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-/** The mid stop of the field. Kept identical to `expo-splash-screen`'s
-    `backgroundColor` in `app.json` so the native splash (a solid field) and the
-    middle of this gradient are the same colour — the handoff shifts as little as
-    possible. Change both together. */
-const SPLASH_BG = '#14162a';
+/** The field. Kept identical to `expo-splash-screen`'s `backgroundColor` in
+    `app.json`, because the native splash is this same flat colour and this one
+    is painted over it — any difference shows as a flash at the handoff. */
+const SPLASH_BG = '#6C4EE3';
 
-/** The field is a diagonal wash, light top-left to deep bottom-right. The stops
-    are the icon's own radial gradient (`#2a2d4a` centre to `#14162a` edge) with
-    a deeper corner, so the launch screen reads as the same object as the icon
-    the person just tapped rather than a second brand colour. It no longer
-    matches the dashboard's indigo wash — the icon ground moved to navy and the
-    native splash with it, and matching the icon matters more at this seam,
-    since the two are on screen consecutively. */
-const GRADIENT = ['#2a2d4a', SPLASH_BG, '#0d0f1c'] as const;
+/** The mark's drawn width, identical to `imageWidth` in `app.json` for the same
+    reason: the native half draws the same file, and a mark that changes size
+    mid-launch is the seam in another form. */
+const MARK_WIDTH = 140;
 
-/** The wordmark drawn on the field. Placeholder text until the brand mark
-    lands. Lowercase to match the reference. */
-const WORDMARK = 'waves';
+/** The mark in white, so it reads on the brand field. Same file the native
+    splash is given. */
+const MARK = require('../../assets/images/splash-mark-white.png');
 
 export function AnimatedSplash() {
   const [done, setDone] = useState(false);
@@ -103,28 +104,26 @@ export function AnimatedSplash() {
       pointerEvents="auto"
       style={[StyleSheet.absoluteFill, fieldStyle]}
     >
-      {/* The diagonal wash fills the field; the wordmark rides on top. The
-          solid SPLASH_BG in app.json matches the middle stop so the native
-          splash flows into this one. */}
-      <LinearGradient
-        colors={GRADIENT}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center' }]}
+      {/* The flat field, with the mark centred on it. */}
+      <View
+        style={[
+          StyleSheet.absoluteFill,
+          { backgroundColor: SPLASH_BG, alignItems: 'center', justifyContent: 'center' },
+        ]}
       >
         <Animated.View style={logoStyle}>
-          <Text
-            style={{
-              fontSize: 56,
-              fontWeight: '700',
-              letterSpacing: -1,
-              color: '#FFFFFF',
-            }}
-          >
-            {WORDMARK}
-          </Text>
+          <Image
+            source={MARK}
+            // Square source, so one dimension is the whole instruction.
+            style={{ width: MARK_WIDTH, height: MARK_WIDTH }}
+            resizeMode="contain"
+            // Decorative: the app's name is announced by the app, and a screen
+            // reader meeting a launch screen should be told nothing it then has
+            // to wait through.
+            accessible={false}
+          />
         </Animated.View>
-      </LinearGradient>
+      </View>
     </Animated.View>
   );
 }
