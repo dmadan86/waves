@@ -109,6 +109,64 @@ describe('a one-off entry', () => {
   });
 });
 
+describe('a field this version has never heard of', () => {
+  // `personal/types.ts` keeps unrecognised fields in `carried` so that an app a
+  // version behind cannot delete what a newer one wrote. That mechanism is
+  // worth nothing unless the form hands them back: this screen rebuilds its
+  // payload from its own state, which is exactly where a carried field goes
+  // missing. These pin the hand-back, not the codec.
+
+  it('survives editing a one-off entry', () => {
+    const editing: PersonalTxn = {
+      id: 't1',
+      kind: 'expense',
+      amount: 125000n,
+      currency: 'INR',
+      category: 'food',
+      note: 'old note',
+      date: '2026-09-01',
+      loanId: null,
+      recurringId: null,
+      carried: { subscriptionKind: 'subscription' },
+    };
+
+    const record = entryRecord({ ...DRAFT, note: 'edited here' }, null, { txn: editing });
+
+    expect(record.data.note).toBe('edited here');
+    expect(record.data.subscriptionKind).toBe('subscription');
+  });
+
+  it('survives editing a repeating rule', () => {
+    const rule: PersonalRecurring = {
+      id: 'r1',
+      txnKind: 'expense',
+      amount: 64900n,
+      currency: 'INR',
+      category: 'entertainment',
+      note: 'Netflix',
+      cadence: 'monthly',
+      interval: 1,
+      secondDay: null,
+      anchorDate: '2026-01-22',
+      nextDate: '2026-10-22',
+      endDate: null,
+      autoPost: true,
+      active: true,
+      carried: { serviceId: 'svc.netflix' },
+    };
+
+    const record = entryRecord({ ...DRAFT, note: 'edited here' }, NEW_REPEAT, { rule });
+
+    expect(record.recordKind).toBe('recurring');
+    expect(record.data.note).toBe('edited here');
+    expect(record.data.serviceId).toBe('svc.netflix');
+  });
+
+  it('adds nothing when a new entry has nothing to carry', () => {
+    expect('carried' in entryRecord(DRAFT, null).data).toBe(false);
+  });
+});
+
 describe('repeating, as a property of the entry', () => {
   it('writes a rule rather than a transaction, with the entry’s date as its start', () => {
     const record = entryRecord(DRAFT, NEW_REPEAT);
