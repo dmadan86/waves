@@ -1,15 +1,22 @@
-"""Bake the still splash mark the native launch screen draws.
+"""Turn the Waves mark's numbers into the things that consume them.
 
-The launch is two pictures: this PNG, which `app.json`'s expo-splash-screen
-shows the instant the process starts, and the animated <Path> in
-AnimatedSplash that takes over once JS is up. They must be the same picture
-at the seam, so both are built from one set of numbers —
-`apps/mobile/assets/brand/wave-mark.json`. Edit the geometry there, re-run
-this, and the two halves stay in step.
+`apps/mobile/assets/brand/wave-mark.json` holds the mark as geometry: the
+points, the stroke, the dot, the lean. This reads it and writes back a
+`derived` block — the scale and offsets that centre and lean the mark, the
+length of the stroke, and a polyline along it — which `WaveMark` needs to
+draw the stroke on and to ride a swell along it. Edit the geometry, re-run
+this, and the component follows.
+
+It also renders the mark as a PNG. Nothing in the app draws that file any
+more: the splash animates the mark instead, so `app.json` gives
+expo-splash-screen a colour and no image. The raster is kept because it is
+the canonical picture of the mark for anywhere outside the app that needs
+one, and because it is how the geometry is checked by eye.
 
     python infra/art/render-splash-mark.py
 
-Writes apps/mobile/assets/images/splash-mark-ink.png.
+Writes apps/mobile/assets/images/splash-mark-ink.png and the `derived`
+block of wave-mark.json.
 """
 
 import json
@@ -97,11 +104,21 @@ def main():
 
     # Hand the animated half the exact placement this PNG used, so the
     # <Path> lands on the same pixels the native splash ends on.
+    # The animated half needs two more things the still one does not: how long
+    # the stroke is, so it can be drawn on with a dash offset, and where it
+    # runs, so a swell can ride along it.
+    poly = sample(g["points"], steps=32)
+    length = sum(
+        ((poly[i + 1][0] - poly[i][0]) ** 2 + (poly[i + 1][1] - poly[i][1]) ** 2) ** 0.5
+        for i in range(len(poly) - 1)
+    )
     g["derived"] = {
         "_": "Written by render-splash-mark.py. Do not hand-edit.",
         "scale": round(s, 6),
         "translate": [round(tx, 4), round(ty, 4)],
         "recentre": [round(offx / SS, 4), round(offy / SS, 4)],
+        "pathLength": round(length, 4),
+        "polyline": [[round(x, 3), round(y, 3)] for x, y in poly],
     }
     GEOM.write_text(json.dumps(g, indent=2) + "\n", encoding="utf-8")
 
