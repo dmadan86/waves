@@ -2,13 +2,13 @@
  * The animated splash — the bridge between the OS splash and the app.
  *
  * The launch has two splashes back to back, and the seam between them is meant
- * to be invisible. First the native one (a solid `SPLASH_BG` field with the
- * logo, configured in `app.json`'s `expo-splash-screen`) shows the instant the
- * process starts, while the JS is still loading. Then this component mounts,
- * hides the native splash, and paints an identical field on top — same colour,
- * same logo, same place — so nothing flickers at the handoff. From there it
- * plays: the logo settles in, holds a beat, and the whole field fades away to
- * reveal the app underneath.
+ * to be invisible. First the native one (a bare `SPLASH_BG` field, configured
+ * in `app.json`'s `expo-splash-screen`) shows the instant the process starts,
+ * while the JS is still loading. Then this component mounts, hides the native
+ * splash, and paints an identical field on top — same colour, nothing on it —
+ * so nothing flickers at the handoff. From there it plays: the mark draws
+ * itself on, holds a beat, and the whole field lifts away to reveal the app
+ * underneath.
  *
  * Native only. On web there is no native splash to hand off from, and a
  * full-screen overlay sitting over the app for a second would only get in the
@@ -20,28 +20,37 @@
  * nobody could unsee once told: the native half showed the mark and this half
  * showed the word, so the launch changed its mind halfway through.
  *
- * Both halves now draw the same PNG on the same colour at the same width, so
- * the handoff has nothing left to give away.
+ * The mark is no longer in the native half at all. It is drawn on here —
+ * the stroke inking itself in, the dot landing, then a swell of weight
+ * travelling back through it (`WaveMark`) — and a logo cannot arrive if the
+ * launch has already spent a second showing it finished. So `app.json` gives
+ * `expo-splash-screen` a colour and no image, and the two halves share only
+ * the field. The seam is a flat colour meeting the same flat colour, which
+ * is the one handoff that cannot show.
  *
- * To rebrand: `SPLASH_BG` and `MARK_WIDTH` here, `backgroundColor` and
- * `imageWidth` in `app.json`'s `expo-splash-screen`. They are two halves of one
- * picture — change all four together or the seam comes back.
+ * The cost, stated plainly: on a slow cold start the launch is bare yellow
+ * for as long as the JS takes to come up. Putting a mark back in `app.json`
+ * buys that back and breaks the arrival — the two cannot both be had.
+ *
+ * To rebrand: `SPLASH_BG` here and `backgroundColor` in `app.json` are the
+ * same colour and must move together. To change the mark itself, edit
+ * `assets/brand/wave-mark.json` and re-run `infra/art/render-splash-mark.py`.
  */
 import { useCallback, useEffect, useState } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as SplashScreen from 'expo-splash-screen';
-import { Image, Platform, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Platform, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, {
   Easing,
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
-  withSequence,
   withTiming,
 } from 'react-native-reanimated';
 
 import { useReducedMotion } from '@/lib/reducedMotion';
+import { WaveMark } from '@/components/WaveMark';
 
 /** The field. Kept identical to `expo-splash-screen`'s `backgroundColor` in
     `app.json`, because the native splash is this same flat colour and this one
@@ -54,33 +63,28 @@ import { useReducedMotion } from '@/lib/reducedMotion';
     unreadable. */
 const SPLASH_BG = '#F5D800';
 
-/** The mark's drawn width, identical to `imageWidth` in `app.json` for the same
-    reason: the native half draws the same file, and a mark that changes size
-    mid-launch is the seam in another form. */
+/** The mark's drawn width. The native half no longer draws a mark, so this is
+    the only place it is sized. */
 const MARK_WIDTH = 140;
-
-/** The mark in the app's ink, which is what reads on yellow. Same file the
-    native splash is given. */
-const MARK = require('../../assets/images/splash-mark-ink.png');
 
 /**
  * The beats, in order.
  *
  * The rule that shapes all of them: **this half opens on the frame the native
- * half ended on.** The native splash is a still image — a flat field with the
- * mark at `imageWidth`, full size, full opacity — and it is on screen for as
- * long as Android takes to start the JS, which on a cold start is most of the
- * launch. So the first frame drawn here has to be that same picture.
+ * half ended on.** The native splash is now a bare `SPLASH_BG` field, held for
+ * as long as Android takes to start the JS. So the first frame drawn here is
+ * that same bare field, and everything on it arrives afterwards.
  *
- * The old version faded the mark up from nothing and sprang it in from 0.72,
- * which after a second of a *static, full-size* mark read as the logo
+ * An older version faded the mark up and sprang it in from 0.72 while the
+ * native half had been showing it static and full-size, which read as the logo
  * flinching: it shrank, dimmed and bounced, all after having already arrived.
- * No amount of easing fixes that — the motion was starting from somewhere the
- * eye had not left it.
+ * The fix is not easing, it is removing the contradiction — either the mark is
+ * already there and must not re-enter, or it is not there yet and may arrive.
+ * This screen now takes the second option.
  *
- * What moves instead is the field. A slow diagonal wash comes up over the flat
- * yellow — a lighter yellow, through the brand colour, to a deeper amber — and
- * drifts across while the mark takes one small breath. The wash starts at zero
+ * The field moves too. A slow diagonal wash comes up over the flat yellow — a
+ * lighter yellow, through the brand colour, to a deeper amber — and drifts
+ * across underneath the mark as it arrives. The wash starts at zero
  * opacity, which is the flat native colour exactly, so there is still nothing
  * to see at the seam; only from the second frame on does the screen begin to
  * move.
@@ -90,13 +94,16 @@ const MARK = require('../../assets/images/splash-mark-ink.png');
  * door's own contents rise a beat later (`welcome.tsx`), which makes the two
  * screens one move.
  *
- * It is also shorter than it was: about 1.3s against 2.1s. A launch that has
- * already kept somebody waiting should not then ask for two more seconds of its
- * own admiration.
+ * The whole thing runs about 1.7s. That is longer than the 1.3s it was, and the
+ * extra is bought deliberately: a mark that draws itself needs time to be read
+ * as drawing rather than as flickering. It is still well under the 2.1s the
+ * screen cost before either was true.
  */
 const WASH_MS = 360;
-/** One half of the breath: the mark swells for this long, then settles for it. */
-const BREATHE_MS = 240;
+/** How long the mark takes to arrive: the stroke drawing itself, the dot
+    landing on it, a beat, then a swell of weight travelling back through it.
+    `WaveMark` owns where each beat falls inside this; here it is one span. */
+const MARK_MS = 1180;
 const HOLD_MS = 120;
 const LIFT_MS = 380;
 /** How far the wash drifts, as a fraction of the screen — a drift, not a swipe. */
@@ -120,8 +127,9 @@ export function AnimatedSplash() {
   // The whole field, and the logo riding on it.
   const fieldOpacity = useSharedValue(1);
   const fieldScale = useSharedValue(1);
-  // The mark starts exactly as the native splash left it: there, and full size.
-  const logoScale = useSharedValue(1);
+  // The mark starts undrawn, which is what the native half is now showing:
+  // the bare field, no logo on it.
+  const markWave = useSharedValue(0);
   // The wash starts invisible, so frame one is the flat field and nothing else.
   const washOpacity = useSharedValue(0);
   const washShift = useSharedValue(0);
@@ -135,14 +143,18 @@ export function AnimatedSplash() {
     // field, so hiding the native splash reveals no gap.
     SplashScreen.hideAsync().catch(() => {});
 
-    // Both halves of the breath, then the hold: the mark has to be back at
-    // rest before the field starts to leave, or the lift begins over a logo
-    // still settling and the two motions read as one smear.
-    const liftAt = WASH_MS + BREATHE_MS * 2 + HOLD_MS;
+    // The whole arrival, then the hold: the mark has to be finished before
+    // the field starts to leave, or the lift begins over a logo still
+    // drawing and the two motions read as one smear.
+    const liftAt = MARK_MS + HOLD_MS;
     const guardAt = liftAt + LIFT_MS + 600;
 
     if (reduceMotion) {
-      // No drift, no breath, no lift: the field simply goes. A colour sliding
+      // The mark is drawn by the animation now, so with the animation off it
+      // has to be placed rather than skipped — otherwise this setting gets a
+      // bare yellow field and no logo at all. Straight to finished, no motion.
+      markWave.value = 1;
+      // No drift, no draw-on, no lift: the field simply goes. A colour sliding
       // across the screen is exactly what that setting is asking us not to do.
       fieldOpacity.value = withDelay(
         liftAt,
@@ -163,15 +175,10 @@ export function AnimatedSplash() {
       duration: liftAt + LIFT_MS,
       easing: Easing.inOut(Easing.quad),
     });
-    // One breath, and a small one: the mark is already where it belongs, so
-    // this is a sign of life rather than an entrance.
-    logoScale.value = withSequence(
-      withDelay(
-        WASH_MS,
-        withTiming(1.045, { duration: BREATHE_MS, easing: Easing.inOut(Easing.quad) }),
-      ),
-      withTiming(1, { duration: BREATHE_MS, easing: Easing.inOut(Easing.quad) }),
-    );
+    // The mark draws itself on. Linear, because the shaping lives inside
+    // `WaveMark` where each beat can be eased on its own terms; easing the
+    // whole span would warp the gaps between them.
+    markWave.value = withTiming(1, { duration: MARK_MS, easing: Easing.linear });
 
     // Fading and growing together: the field pulls away from the viewer's eye
     // rather than dissolving on the spot.
@@ -187,14 +194,11 @@ export function AnimatedSplash() {
     );
     const guard = setTimeout(finish, guardAt);
     return () => clearTimeout(guard);
-  }, [finish, fieldOpacity, fieldScale, logoScale, reduceMotion, washOpacity, washShift]);
+  }, [finish, fieldOpacity, fieldScale, markWave, reduceMotion, washOpacity, washShift]);
 
   const fieldStyle = useAnimatedStyle(() => ({
     opacity: fieldOpacity.value,
     transform: [{ scale: fieldScale.value }],
-  }));
-  const logoStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: logoScale.value }],
   }));
   // The wash is drawn oversized and slid diagonally, so its edges never come
   // into view: what shows is the colour changing, not a rectangle moving.
@@ -246,18 +250,12 @@ export function AnimatedSplash() {
           />
         </Animated.View>
 
-        <Animated.View style={logoStyle}>
-          <Image
-            source={MARK}
-            // Square source, so one dimension is the whole instruction.
-            style={{ width: MARK_WIDTH, height: MARK_WIDTH }}
-            resizeMode="contain"
-            // Decorative: the app's name is announced by the app, and a screen
-            // reader meeting a launch screen should be told nothing it then has
-            // to wait through.
-            accessible={false}
-          />
-        </Animated.View>
+        {/* Decorative: the app's name is announced by the app, and a screen
+            reader meeting a launch screen should be told nothing it then has
+            to wait through. */}
+        <View accessible={false}>
+          <WaveMark size={MARK_WIDTH} progress={markWave} />
+        </View>
       </View>
     </Animated.View>
   );
