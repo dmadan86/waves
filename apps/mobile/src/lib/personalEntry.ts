@@ -113,6 +113,11 @@ export function entryRecord(
         date: draft.date,
         loanId: draft.loanId,
         recurringId: draft.recurringId,
+        // Carried through so editing a txn here never drops a field a newer
+        // version of the app wrote — see personal/types.ts. The form rebuilds
+        // the payload from its own state, so without this the round trip is
+        // exactly the lossy one that mechanism exists to prevent.
+        carried: editing.txn?.carried,
       }),
     };
   }
@@ -136,6 +141,7 @@ export function entryRecord(
       endDate: rule?.endDate ?? null,
       autoPost: repeat.autoPost,
       active: repeat.active,
+      carried: rule?.carried,
     }),
   };
 }

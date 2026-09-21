@@ -224,6 +224,7 @@ function LoanEditor({
         recordId: loan?.id,
         recordKind: 'loan',
         data: encodeLoan({
+          carried: loan?.carried,
           direction,
           counterpart: counterpart.trim(),
           principal,

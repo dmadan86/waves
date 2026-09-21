@@ -107,6 +107,89 @@ describe('a one-off entry', () => {
     expect(record.recordId).toBe('txn-7');
     expect(record.data).toMatchObject({ loanId: 'loan-3', recurringId: 'rule-1' });
   });
+
+  it('preserves future fields when an older app edits a one-off entry', () => {
+    const editing: PersonalTxn = {
+      id: 'txn-7',
+      kind: 'expense',
+      amount: 1n,
+      currency: 'INR',
+      category: null,
+      note: null,
+      date: '2026-09-01',
+      loanId: null,
+      recurringId: null,
+      carried: { subscriptionKind: 'subscription', merchantId: 'svc.netflix' },
+    };
+    const record = entryRecord({ ...DRAFT, note: 'Netflix — shared with Ana' }, null, {
+      txn: editing,
+    });
+
+    expect(record.recordId).toBe('txn-7');
+    expect(record.data).toMatchObject({
+      note: 'Netflix — shared with Ana',
+      subscriptionKind: 'subscription',
+      merchantId: 'svc.netflix',
+    });
+  });
+});
+
+describe('a field this version has never heard of', () => {
+  // `personal/types.ts` keeps unrecognised fields in `carried` so that an app a
+  // version behind cannot delete what a newer one wrote. That mechanism is
+  // worth nothing unless the form hands them back: this screen rebuilds its
+  // payload from its own state, which is exactly where a carried field goes
+  // missing. These pin the hand-back, not the codec.
+
+  it('survives editing a one-off entry', () => {
+    const editing: PersonalTxn = {
+      id: 't1',
+      kind: 'expense',
+      amount: 125000n,
+      currency: 'INR',
+      category: 'food',
+      note: 'old note',
+      date: '2026-09-01',
+      loanId: null,
+      recurringId: null,
+      carried: { subscriptionKind: 'subscription' },
+    };
+
+    const record = entryRecord({ ...DRAFT, note: 'edited here' }, null, { txn: editing });
+
+    expect(record.data.note).toBe('edited here');
+    expect(record.data.subscriptionKind).toBe('subscription');
+  });
+
+  it('survives editing a repeating rule', () => {
+    const rule: PersonalRecurring = {
+      id: 'r1',
+      txnKind: 'expense',
+      amount: 64900n,
+      currency: 'INR',
+      category: 'entertainment',
+      note: 'Netflix',
+      cadence: 'monthly',
+      interval: 1,
+      secondDay: null,
+      anchorDate: '2026-01-22',
+      nextDate: '2026-10-22',
+      endDate: null,
+      autoPost: true,
+      active: true,
+      carried: { serviceId: 'svc.netflix' },
+    };
+
+    const record = entryRecord({ ...DRAFT, note: 'edited here' }, NEW_REPEAT, { rule });
+
+    expect(record.recordKind).toBe('recurring');
+    expect(record.data.note).toBe('edited here');
+    expect(record.data.serviceId).toBe('svc.netflix');
+  });
+
+  it('adds nothing when a new entry has nothing to carry', () => {
+    expect('carried' in entryRecord(DRAFT, null).data).toBe(false);
+  });
 });
 
 describe('repeating, as a property of the entry', () => {
@@ -206,6 +289,19 @@ describe('repeating, as a property of the entry', () => {
     );
 
     expect(record.data).toMatchObject({ active: false, autoPost: true, nextDate: '2026-10-01' });
+  });
+
+  it('preserves future fields when an older app edits a recurring rule', () => {
+    const record = entryRecord(
+      { ...DRAFT, date: RULE.anchorDate },
+      { ...repeatOf(RULE, Frequency.Monthly), active: false },
+      { rule: { ...RULE, carried: { escalation: 'inflation-linked' } } },
+    );
+
+    expect(record.data).toMatchObject({
+      active: false,
+      escalation: 'inflation-linked',
+    });
   });
 });
 
