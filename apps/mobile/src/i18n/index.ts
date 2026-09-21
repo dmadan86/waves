@@ -3467,6 +3467,24 @@ export interface UiStrings {
     left: string;
     over: string;
     noBudgets: string;
+    /**
+     * The line under the amount in the budget sheet: what this category has
+     * actually cost over the last six months, so the cap being typed is a
+     * decision rather than a guess. Four forms, because "₹0" where a total
+     * should be reads as a broken screen rather than as "nothing" — and
+     * because one month of spend is a total worth showing but not an average
+     * worth claiming.
+     */
+    budgetContextNone: string;
+    budgetContextNoneOverall: string;
+    budgetContextTotal: string;
+    budgetContextAverage: string;
+    /** Opens the ledger filtered to this budget's category. */
+    viewTransactions: string;
+    /** The − / + buttons beside the amount; the step is in the label,
+     *  because a button that says only "lower" does not say by how much. */
+    lowerLimit: string;
+    raiseLimit: string;
     justMe: string;
     justMeHint: string;
     deleteConfirm: string;
@@ -3539,6 +3557,21 @@ export interface UiStrings {
     openEntry: string;
     ofExpected: string;
     everySince: string;
+    /**
+     * The Spending screen: one month split three ways, over a six-month chart.
+     * `everyday` is the third row — what was actually decided this month, once
+     * the bills are out — and reads "Spending" like the screen it is on.
+     */
+    /**
+     * Never "saved", and never "left for savings". The app cannot see a savings
+     * account; all it knows is that some money was not spent. `leftOverHint`
+     * says so out loud, under the figure, every time.
+     */
+    /** Under a Bills row of zero, because a recurring rule cannot yet say that
+     *  it is a bill and somebody with rent to pay deserves to know why. */
+    last6Months: string;
+    /** Nothing is converted (ADR-003), so a ledger in more than one currency is
+     *  told which one it is reading. {currency} and {others}. */
   };
   /** The marketplace of installable category and income-source packs. */
   packs: {
@@ -6322,6 +6355,13 @@ const en: UiStrings = {
     left: 'left',
     over: 'over',
     noBudgets: 'No budgets yet.',
+    budgetContextNone: "You haven't spent anything in this category in the last six months.",
+    budgetContextNoneOverall: "You haven't spent anything in the last six months.",
+    budgetContextTotal: '{total} spent in the last six months.',
+    budgetContextAverage: '{total} spent in the last six months — about {average} a month.',
+    viewTransactions: 'View transactions',
+    lowerLimit: 'Lower by {amount}',
+    raiseLimit: 'Raise by {amount}',
     justMe: 'Just me',
     justMeHint: 'A private entry in your own ledger — not shared with anyone.',
     deleteConfirm: 'Delete this entry? This cannot be undone.',
@@ -6386,6 +6426,7 @@ const en: UiStrings = {
     openEntry: 'Open this entry',
     ofExpected: 'of {amount}',
     everySince: 'Since {date}',
+    last6Months: 'Last 6 months',
   },
   packs: {
     title: 'Category packs',
@@ -9315,6 +9356,13 @@ const ta: UiStrings = {
     left: 'மீதம்',
     over: 'அதிகம்',
     noBudgets: 'பட்ஜெட்டுகள் இல்லை.',
+    budgetContextNone: "You haven't spent anything in this category in the last six months.",
+    budgetContextNoneOverall: "You haven't spent anything in the last six months.",
+    budgetContextTotal: '{total} spent in the last six months.',
+    budgetContextAverage: '{total} spent in the last six months — about {average} a month.',
+    viewTransactions: 'View transactions',
+    lowerLimit: 'Lower by {amount}',
+    raiseLimit: 'Raise by {amount}',
     justMe: 'எனக்கு மட்டும்',
     justMeHint: 'உங்கள் சொந்தக் கணக்கில் தனிப்பட்ட பதிவு — யாருடனும் பகிரப்படாது.',
     deleteConfirm: 'இந்தப் பதிவை நீக்கவா? இதை மீட்க முடியாது.',
@@ -9379,6 +9427,7 @@ const ta: UiStrings = {
     openEntry: 'இந்தப் பதிவைத் திற',
     ofExpected: '{amount} இல்',
     everySince: '{date} முதல்',
+    last6Months: 'Last 6 months',
   },
   packs: {
     title: 'வகைத் தொகுப்புகள்',
@@ -12180,6 +12229,13 @@ const hi: UiStrings = {
     left: 'बचा',
     over: 'अधिक',
     noBudgets: 'अभी कोई बजट नहीं।',
+    budgetContextNone: "You haven't spent anything in this category in the last six months.",
+    budgetContextNoneOverall: "You haven't spent anything in the last six months.",
+    budgetContextTotal: '{total} spent in the last six months.',
+    budgetContextAverage: '{total} spent in the last six months — about {average} a month.',
+    viewTransactions: 'View transactions',
+    lowerLimit: 'Lower by {amount}',
+    raiseLimit: 'Raise by {amount}',
     justMe: 'सिर्फ़ मैं',
     justMeHint: 'आपके अपने खाते में निजी प्रविष्टि — किसी के साथ साझा नहीं।',
     deleteConfirm: 'यह प्रविष्टि हटाएँ? इसे वापस नहीं किया जा सकता।',
@@ -12243,6 +12299,7 @@ const hi: UiStrings = {
     openEntry: 'यह प्रविष्टि खोलें',
     ofExpected: '{amount} में से',
     everySince: '{date} से',
+    last6Months: 'Last 6 months',
   },
   packs: {
     title: 'श्रेणी पैक',
@@ -15488,6 +15545,13 @@ const ar: UiStrings = {
     left: 'متبقٍ',
     over: 'تجاوز',
     noBudgets: 'لا ميزانيات بعد.',
+    budgetContextNone: "You haven't spent anything in this category in the last six months.",
+    budgetContextNoneOverall: "You haven't spent anything in the last six months.",
+    budgetContextTotal: '{total} spent in the last six months.',
+    budgetContextAverage: '{total} spent in the last six months — about {average} a month.',
+    viewTransactions: 'View transactions',
+    lowerLimit: 'Lower by {amount}',
+    raiseLimit: 'Raise by {amount}',
     justMe: 'أنا فقط',
     justMeHint: 'إدخال خاص في دفترك أنت — غير مشارَك مع أحد.',
     deleteConfirm: 'حذف هذا الإدخال؟ لا يمكن التراجع.',
@@ -15551,6 +15615,7 @@ const ar: UiStrings = {
     openEntry: 'افتح هذا القيد',
     ofExpected: 'من {amount}',
     everySince: 'منذ {date}',
+    last6Months: 'Last 6 months',
   },
   packs: {
     title: 'حزم التصنيفات',
