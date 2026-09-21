@@ -1,9 +1,19 @@
 /**
  * The full personal ledger (A48): every entry, newest first, grouped by day.
  * Tapping one opens it to edit; the header "+" adds a new one.
+ *
+ * A `category` param narrows it to one category — where the budget sheet's
+ * "View transactions" lands, so a cap that looks wrong can be checked against
+ * the entries behind it. The filter is the ledger's own: every entry filed
+ * under that category, income and loan repayments included. A budget's own
+ * arithmetic excludes some of those (see `personalBudgetProgress`), so this is
+ * deliberately the longer list — "show me what I spent this on" is a question
+ * about the ledger, and a list that quietly hid rows would be the harder thing
+ * to explain.
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { useLocalSearchParams } from 'expo-router';
 import { Pressable, SectionList, View } from 'react-native';
 
 import { format, money, type PersonalTxn } from '@waves/core';
@@ -32,10 +42,13 @@ function PersonalTransactionsScreenBody() {
   const clearance = useBottomClearance();
   const { t, locale } = useStrings();
   const { txns } = usePersonalLedger();
+  const params = useLocalSearchParams<{ category?: string }>();
+  const filter = typeof params.category === 'string' ? params.category : null;
+  const shown = filter ? txns.filter((txn) => txn.category === filter) : txns;
 
   // Group by day; the ledger already comes newest first, so days do too.
   const sections: { title: string; data: PersonalTxn[] }[] = [];
-  for (const txn of txns) {
+  for (const txn of shown) {
     const last = sections[sections.length - 1];
     if (last && last.title === txn.date) last.data.push(txn);
     else sections.push({ title: txn.date, data: [txn] });
@@ -61,7 +74,12 @@ function PersonalTransactionsScreenBody() {
           />
         </IconButton>
         <View style={{ flex: 1, alignItems: 'center' }}>
-          <Text variant="heading">{t.personal.transactions}</Text>
+          {/* The category's own name is the title when one is being shown, so
+              the screen says what it is a list *of* rather than leaving the
+              person to wonder where the rest of their ledger went. */}
+          <Text variant="heading" numberOfLines={1}>
+            {(filter ? labelFor(filter) : null) ?? t.personal.transactions}
+          </Text>
         </View>
         <IconButton
           label={t.personal.add}
