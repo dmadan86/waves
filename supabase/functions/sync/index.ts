@@ -25,10 +25,12 @@
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2';
 
 import {
+  adoptUnstampedEdits,
   buildApplyExpenseArgs,
   computeShares,
   GUEST_TRIAL_DAYS,
   isTagIcon,
+  mergeFields,
   parseSplitParams,
   sanitiseCategoryMeta,
   sanitiseExpenseLocation,
@@ -219,6 +221,18 @@ const SETTLEMENT_SELECT = `
  * still collapsing the serial walk that used to dominate a first sync.
  */
 const GROUP_CONCURRENCY = 4;
+
+/**
+ * How many times a personal-record write will re-read and re-merge before it
+ * gives up and writes the blob whole.
+ *
+ * Three. Each attempt loses only if another request committed to the *same
+ * record* between this one's read and its write, and the loser immediately
+ * re-reads, so three misses in a row means two devices are hammering one record
+ * in the same instant — which is not the case this is protecting, and is not
+ * worth an unbounded loop holding a connection open.
+ */
+const PERSONAL_MERGE_ATTEMPTS = 3;
 
 /**
  * Every group-scoped table one pull walks, with the shape each is read in.
@@ -1215,6 +1229,37 @@ export class SyncSession {
     return { pinId };
   }
 
+  /**
+   * Write a personal record, merging it field by field instead of replacing it.
+   *
+   * This used to be one `upsert` of the whole `data` blob, which meant the last
+   * device to sync silently replaced the other's work even when the two of them
+   * had changed nothing in common — a phone fixing an amount and a tablet
+   * re-categorising the same record in the same minute, and one of those edits
+   * gone, with no conflict and no trace. The merge (`@waves/core`'s `lww.ts`) is
+   * per field, so only a genuine collision on the same field has to pick a
+   * winner.
+   *
+   * WHY A READ THEN A WRITE IS SAFE HERE.
+   *
+   * Merging needs the stored row, and reading it before writing it is a race:
+   * two devices syncing the same record at once would both read the same
+   * version, and the second would overwrite the first's merge — the original bug
+   * wearing a hat. So the write is a compare-and-swap rather than an overwrite.
+   * `personal_records.updated_seq` is assigned by a BEFORE INSERT OR UPDATE
+   * trigger out of a per-owner sequence, so it changes on every write and never
+   * repeats; `.eq('updated_seq', <what we read>)` makes the update conditional
+   * on nothing having happened in between. No rows written means we lost the
+   * race, so we read and merge again — free, because the merge is a CRDT join
+   * and replaying it changes nothing.
+   *
+   * The fallback after the last attempt is deliberate. It is the old
+   * whole-record write, not a rejection: a rejected mutation is one the client
+   * may drop, and dropping it would delete what it made. Losing three
+   * compare-and-swaps in a row on one record means two devices are writing that
+   * record in the same instant, over and over, and the worst this can then cost
+   * is the behaviour that shipped before this paragraph existed.
+   */
   private async upsertPersonal(mutation: MutationEnvelope): Promise<unknown> {
     this.requirePersonalScope(mutation);
     const payload = mutation.payload as {
@@ -1231,9 +1276,69 @@ export class SyncSession {
       payload.data && typeof payload.data === 'object' && !Array.isArray(payload.data)
         ? payload.data
         : {};
-    // Upsert by id, so a create and its edits are one row and a replay is
-    // harmless. `deleted_at: null` lets an upsert un-delete (an edit after a
-    // remove), matching the tag path.
+
+    for (let attempt = 0; attempt < PERSONAL_MERGE_ATTEMPTS; attempt += 1) {
+      const { data: stored, error: readError } = await this.caller
+        .from('personal_records')
+        .select('data, updated_seq')
+        .eq('id', recordId)
+        .maybeSingle();
+      if (readError) throw new HttpError(400, 'VALIDATION_FAILED', readError.message);
+
+      if (!stored) {
+        const { error: insertError } = await this.caller.from('personal_records').insert({
+          id: recordId,
+          owner_user_id: this.profileId,
+          record_kind: recordKind,
+          data,
+          deleted_at: null,
+          updated_at: new Date().toISOString(),
+        });
+        if (!insertError) return { recordId };
+        // Another request inserted the same id between our read and our write.
+        // Not a failure — go round again and merge against what it wrote.
+        if (insertError.code !== '23505') {
+          throw new HttpError(400, 'VALIDATION_FAILED', insertError.message);
+        }
+        continue;
+      }
+
+      const before =
+        stored.data && typeof stored.data === 'object' && !Array.isArray(stored.data)
+          ? (stored.data as Record<string, unknown>)
+          : {};
+      const now = Date.now();
+      // `adoptUnstampedEdits` first, because a client that does not stamp its
+      // own edits sends the whole blob with stale stamps on everything,
+      // including the one field it actually changed. It is the only step that
+      // can tell that change apart from a field the client was merely carrying
+      // along unchanged — see its doc comment. Without it the merge would
+      // discard real edits from every app version already in the field.
+      const merged = mergeFields(
+        before,
+        adoptUnstampedEdits(before, data, { now, deviceId: 'server' }),
+        { now },
+      );
+
+      const { data: written, error: writeError } = await this.caller
+        .from('personal_records')
+        .update({
+          record_kind: recordKind,
+          data: merged,
+          // Lets an edit after a remove un-delete the record, matching the tag
+          // path and the behaviour this replaced.
+          deleted_at: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', recordId)
+        .eq('updated_seq', stored.updated_seq)
+        .select('id');
+      if (writeError) throw new HttpError(400, 'VALIDATION_FAILED', writeError.message);
+      if (written && written.length > 0) return { recordId };
+    }
+
+    // Contended past patience. Write it the old way rather than refusing it,
+    // for the reason in the doc comment above.
     const { error } = await this.caller.from('personal_records').upsert(
       {
         id: recordId,
