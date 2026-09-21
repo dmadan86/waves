@@ -18,3 +18,9 @@ apps/docs/build
 apps/docs/.docusaurus
 apps/docs/.openapi
 apps/docs/docs/api/reference
+
+# Written by infra/art/render-splash-mark.py, which is where the mark's geometry
+# is decided. Prettier would reformat it on every check and the renderer would
+# undo that on every run — and the file is mostly a 99-point polyline that reads
+# better as the renderer lays it out than as one number per line.
+apps/mobile/assets/brand/wave-mark.json
