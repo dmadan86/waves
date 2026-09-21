@@ -221,6 +221,7 @@ describe('the rooms of the private ledger', () => {
       'personal/transactions.tsx',
       'personal/loans.tsx',
       'personal/budgets.tsx',
+      'personal/spending.tsx',
       'personal/source/[id].tsx',
       '(tabs)/me.tsx',
     ]) {
