@@ -113,6 +113,7 @@ export function entryRecord(
         date: draft.date,
         loanId: draft.loanId,
         recurringId: draft.recurringId,
+        carried: editing.txn?.carried,
       }),
     };
   }
@@ -136,6 +137,7 @@ export function entryRecord(
       endDate: rule?.endDate ?? null,
       autoPost: repeat.autoPost,
       active: repeat.active,
+      carried: rule?.carried,
     }),
   };
 }

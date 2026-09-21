@@ -231,6 +231,7 @@ function LoanEditor({
           note: note.trim() || null,
           startDate,
           status: closed ? 'closed' : 'active',
+          carried: loan?.carried,
         }),
       },
       { onSuccess: onClose },
