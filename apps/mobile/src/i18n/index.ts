@@ -3475,9 +3475,16 @@ export interface UiStrings {
      * because one month of spend is a total worth showing but not an average
      * worth claiming.
      */
+    budgetContextNone: string;
+    budgetContextNoneOverall: string;
+    budgetContextTotal: string;
+    budgetContextAverage: string;
     /** Opens the ledger filtered to this budget's category. */
+    viewTransactions: string;
     /** The − / + buttons beside the amount; the step is in the label,
      *  because a button that says only "lower" does not say by how much. */
+    lowerLimit: string;
+    raiseLimit: string;
     justMe: string;
     justMeHint: string;
     deleteConfirm: string;
@@ -6361,6 +6368,13 @@ const en: UiStrings = {
     left: 'left',
     over: 'over',
     noBudgets: 'No budgets yet.',
+    budgetContextNone: "You haven't spent anything in this category in the last six months.",
+    budgetContextNoneOverall: "You haven't spent anything in the last six months.",
+    budgetContextTotal: '{total} spent in the last six months.',
+    budgetContextAverage: '{total} spent in the last six months — about {average} a month.',
+    viewTransactions: 'View transactions',
+    lowerLimit: 'Lower by {amount}',
+    raiseLimit: 'Raise by {amount}',
     justMe: 'Just me',
     justMeHint: 'A private entry in your own ledger — not shared with anyone.',
     deleteConfirm: 'Delete this entry? This cannot be undone.',
@@ -9372,6 +9386,13 @@ const ta: UiStrings = {
     left: 'மீதம்',
     over: 'அதிகம்',
     noBudgets: 'பட்ஜெட்டுகள் இல்லை.',
+    budgetContextNone: "You haven't spent anything in this category in the last six months.",
+    budgetContextNoneOverall: "You haven't spent anything in the last six months.",
+    budgetContextTotal: '{total} spent in the last six months.',
+    budgetContextAverage: '{total} spent in the last six months — about {average} a month.',
+    viewTransactions: 'View transactions',
+    lowerLimit: 'Lower by {amount}',
+    raiseLimit: 'Raise by {amount}',
     justMe: 'எனக்கு மட்டும்',
     justMeHint: 'உங்கள் சொந்தக் கணக்கில் தனிப்பட்ட பதிவு — யாருடனும் பகிரப்படாது.',
     deleteConfirm: 'இந்தப் பதிவை நீக்கவா? இதை மீட்க முடியாது.',
@@ -12255,6 +12276,13 @@ const hi: UiStrings = {
     left: 'बचा',
     over: 'अधिक',
     noBudgets: 'अभी कोई बजट नहीं।',
+    budgetContextNone: "You haven't spent anything in this category in the last six months.",
+    budgetContextNoneOverall: "You haven't spent anything in the last six months.",
+    budgetContextTotal: '{total} spent in the last six months.',
+    budgetContextAverage: '{total} spent in the last six months — about {average} a month.',
+    viewTransactions: 'View transactions',
+    lowerLimit: 'Lower by {amount}',
+    raiseLimit: 'Raise by {amount}',
     justMe: 'सिर्फ़ मैं',
     justMeHint: 'आपके अपने खाते में निजी प्रविष्टि — किसी के साथ साझा नहीं।',
     deleteConfirm: 'यह प्रविष्टि हटाएँ? इसे वापस नहीं किया जा सकता।',
@@ -15581,6 +15609,13 @@ const ar: UiStrings = {
     left: 'متبقٍ',
     over: 'تجاوز',
     noBudgets: 'لا ميزانيات بعد.',
+    budgetContextNone: "You haven't spent anything in this category in the last six months.",
+    budgetContextNoneOverall: "You haven't spent anything in the last six months.",
+    budgetContextTotal: '{total} spent in the last six months.',
+    budgetContextAverage: '{total} spent in the last six months — about {average} a month.',
+    viewTransactions: 'View transactions',
+    lowerLimit: 'Lower by {amount}',
+    raiseLimit: 'Raise by {amount}',
     justMe: 'أنا فقط',
     justMeHint: 'إدخال خاص في دفترك أنت — غير مشارَك مع أحد.',
     deleteConfirm: 'حذف هذا الإدخال؟ لا يمكن التراجع.',
