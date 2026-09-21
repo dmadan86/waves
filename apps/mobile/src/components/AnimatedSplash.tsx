@@ -28,8 +28,9 @@
  * picture — change all four together or the seam comes back.
  */
 import { useCallback, useEffect, useState } from 'react';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as SplashScreen from 'expo-splash-screen';
-import { Image, Platform, StyleSheet, View } from 'react-native';
+import { Image, Platform, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, {
   Easing,
   runOnJS,
@@ -37,9 +38,10 @@ import Animated, {
   useSharedValue,
   withDelay,
   withSequence,
-  withSpring,
   withTiming,
 } from 'react-native-reanimated';
+
+import { useReducedMotion } from '@/lib/reducedMotion';
 
 /** The field. Kept identical to `expo-splash-screen`'s `backgroundColor` in
     `app.json`, because the native splash is this same flat colour and this one
@@ -62,31 +64,67 @@ const MARK_WIDTH = 140;
 const MARK = require('../../assets/images/splash-mark-ink.png');
 
 /**
- * The beats, in order. The native half is a still image — Android decides how
- * long it holds and nothing here can animate it — so every bit of motion this
- * launch has belongs to the half below, and it has to be worth watching or the
- * whole launch reads as frozen. That is what was reported: a mark that appeared
- * and sat there.
+ * The beats, in order.
  *
- * Land, breathe once, lift. The mark drops in on a spring, takes one slow
- * breath so the screen is alive rather than paused, and then the whole field
- * lifts *towards* the viewer as it fades — a scale past 1, not a dissolve — so
- * the app underneath reads as arriving from behind it rather than crossfading
- * into it. The door's own contents rise a beat later (`welcome.tsx`), which
- * makes the two screens one move.
+ * The rule that shapes all of them: **this half opens on the frame the native
+ * half ended on.** The native splash is a still image — a flat field with the
+ * mark at `imageWidth`, full size, full opacity — and it is on screen for as
+ * long as Android takes to start the JS, which on a cold start is most of the
+ * launch. So the first frame drawn here has to be that same picture.
+ *
+ * The old version faded the mark up from nothing and sprang it in from 0.72,
+ * which after a second of a *static, full-size* mark read as the logo
+ * flinching: it shrank, dimmed and bounced, all after having already arrived.
+ * No amount of easing fixes that — the motion was starting from somewhere the
+ * eye had not left it.
+ *
+ * What moves instead is the field. A slow diagonal wash comes up over the flat
+ * yellow — a lighter yellow, through the brand colour, to a deeper amber — and
+ * drifts across while the mark takes one small breath. The wash starts at zero
+ * opacity, which is the flat native colour exactly, so there is still nothing
+ * to see at the seam; only from the second frame on does the screen begin to
+ * move.
+ *
+ * Then the whole field lifts *towards* the viewer as it fades — a scale past 1,
+ * not a dissolve — so the app underneath reads as arriving from behind it. The
+ * door's own contents rise a beat later (`welcome.tsx`), which makes the two
+ * screens one move.
+ *
+ * It is also shorter than it was: about 1.3s against 2.1s. A launch that has
+ * already kept somebody waiting should not then ask for two more seconds of its
+ * own admiration.
  */
-const BREATHE_MS = 520;
-const HOLD_MS = 240;
-const LIFT_MS = 420;
+const WASH_MS = 360;
+/** One half of the breath: the mark swells for this long, then settles for it. */
+const BREATHE_MS = 240;
+const HOLD_MS = 120;
+const LIFT_MS = 380;
+/** How far the wash drifts, as a fraction of the screen — a drift, not a swipe. */
+const WASH_DRIFT = 0.12;
+
+/**
+ * The wash, light to deep through the brand colour.
+ *
+ * The middle stop is `SPLASH_BG` itself, so the wash is a *lean* either side of
+ * the colour the field already is rather than a different colour laid over it.
+ * Both ends are within a few steps of it: a launch screen that visibly changes
+ * colour is a launch screen somebody will remember for the wrong reason.
+ */
+const WASH_COLOURS = ['#FFEE7A', SPLASH_BG, '#E0B800'] as const;
 
 export function AnimatedSplash() {
   const [done, setDone] = useState(false);
+  const reduceMotion = useReducedMotion();
+  const { width, height } = useWindowDimensions();
 
   // The whole field, and the logo riding on it.
   const fieldOpacity = useSharedValue(1);
   const fieldScale = useSharedValue(1);
-  const logoOpacity = useSharedValue(0);
-  const logoScale = useSharedValue(0.72);
+  // The mark starts exactly as the native splash left it: there, and full size.
+  const logoScale = useSharedValue(1);
+  // The wash starts invisible, so frame one is the flat field and nothing else.
+  const washOpacity = useSharedValue(0);
+  const washShift = useSharedValue(0);
 
   const finish = useCallback(() => setDone(true), []);
 
@@ -97,17 +135,44 @@ export function AnimatedSplash() {
     // field, so hiding the native splash reveals no gap.
     SplashScreen.hideAsync().catch(() => {});
 
-    logoOpacity.value = withTiming(1, { duration: 320, easing: Easing.out(Easing.cubic) });
-    // A spring in, then one breath out and back. The overshoot is the part that
-    // reads as motion at a glance; the breath is what stops the screen looking
-    // paused while the app behind it finishes waking up.
+    // Both halves of the breath, then the hold: the mark has to be back at
+    // rest before the field starts to leave, or the lift begins over a logo
+    // still settling and the two motions read as one smear.
+    const liftAt = WASH_MS + BREATHE_MS * 2 + HOLD_MS;
+    const guardAt = liftAt + LIFT_MS + 600;
+
+    if (reduceMotion) {
+      // No drift, no breath, no lift: the field simply goes. A colour sliding
+      // across the screen is exactly what that setting is asking us not to do.
+      fieldOpacity.value = withDelay(
+        liftAt,
+        withTiming(0, { duration: LIFT_MS, easing: Easing.out(Easing.quad) }, (finished) => {
+          if (finished) runOnJS(finish)();
+        }),
+      );
+      // Safety net: a cancelled animation never calls back, and the field would
+      // stay up at zero opacity, eating every touch.
+      const reducedGuard = setTimeout(finish, guardAt);
+      return () => clearTimeout(reducedGuard);
+    }
+
+    washOpacity.value = withTiming(1, { duration: WASH_MS, easing: Easing.out(Easing.quad) });
+    // One continuous drift across the whole life of the screen, so the field is
+    // never still — a splash that pauses is the thing that reads as a freeze.
+    washShift.value = withTiming(1, {
+      duration: liftAt + LIFT_MS,
+      easing: Easing.inOut(Easing.quad),
+    });
+    // One breath, and a small one: the mark is already where it belongs, so
+    // this is a sign of life rather than an entrance.
     logoScale.value = withSequence(
-      withSpring(1, { damping: 9, stiffness: 120 }),
-      withTiming(1.06, { duration: BREATHE_MS, easing: Easing.inOut(Easing.quad) }),
+      withDelay(
+        WASH_MS,
+        withTiming(1.045, { duration: BREATHE_MS, easing: Easing.inOut(Easing.quad) }),
+      ),
       withTiming(1, { duration: BREATHE_MS, easing: Easing.inOut(Easing.quad) }),
     );
 
-    const liftAt = 420 + BREATHE_MS * 2 + HOLD_MS;
     // Fading and growing together: the field pulls away from the viewer's eye
     // rather than dissolving on the spot.
     fieldScale.value = withDelay(
@@ -120,19 +185,25 @@ export function AnimatedSplash() {
         if (finished) runOnJS(finish)();
       }),
     );
-    // Safety net: a cancelled animation never calls back, and the field would
-    // stay up at zero opacity, eating every touch.
-    const guard = setTimeout(finish, liftAt + LIFT_MS + 600);
+    const guard = setTimeout(finish, guardAt);
     return () => clearTimeout(guard);
-  }, [finish, fieldOpacity, fieldScale, logoOpacity, logoScale]);
+  }, [finish, fieldOpacity, fieldScale, logoScale, reduceMotion, washOpacity, washShift]);
 
   const fieldStyle = useAnimatedStyle(() => ({
     opacity: fieldOpacity.value,
     transform: [{ scale: fieldScale.value }],
   }));
   const logoStyle = useAnimatedStyle(() => ({
-    opacity: logoOpacity.value,
     transform: [{ scale: logoScale.value }],
+  }));
+  // The wash is drawn oversized and slid diagonally, so its edges never come
+  // into view: what shows is the colour changing, not a rectangle moving.
+  const washStyle = useAnimatedStyle(() => ({
+    opacity: washOpacity.value,
+    transform: [
+      { translateX: (washShift.value - 0.5) * width * WASH_DRIFT },
+      { translateY: (washShift.value - 0.5) * height * WASH_DRIFT },
+    ],
   }));
 
   if (done || Platform.OS === 'web') return null;
@@ -144,13 +215,37 @@ export function AnimatedSplash() {
       pointerEvents="auto"
       style={[StyleSheet.absoluteFill, fieldStyle]}
     >
-      {/* The flat field, with the mark centred on it. */}
+      {/* The flat field — the exact colour the native splash was drawing. */}
       <View
         style={[
           StyleSheet.absoluteFill,
           { backgroundColor: SPLASH_BG, alignItems: 'center', justifyContent: 'center' },
         ]}
       >
+        {/* The wash, over the flat colour and under the mark. Oversized by the
+            drift on every side, so sliding it never uncovers an edge. */}
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            {
+              position: 'absolute',
+              left: -width * WASH_DRIFT,
+              right: -width * WASH_DRIFT,
+              top: -height * WASH_DRIFT,
+              bottom: -height * WASH_DRIFT,
+            },
+            washStyle,
+          ]}
+        >
+          <LinearGradient
+            colors={WASH_COLOURS}
+            locations={[0, 0.52, 1]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+        </Animated.View>
+
         <Animated.View style={logoStyle}>
           <Image
             source={MARK}
