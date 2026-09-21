@@ -137,6 +137,11 @@ export default function AddFromAnotherGroupScreen(): React.JSX.Element {
   }, [sections]);
 
   const [picked, setPicked] = useState<ReadonlyMap<string, OfferedPerson>>(new Map());
+  // What a recycled row reads from outside its own data: whether it is picked and
+  // the theme its colours come from. A row only re-renders when this changes,
+  // so leaving the theme out strands rows in the scheme they were last drawn
+  // in after a light/dark switch.
+  const listExtraData = useMemo(() => ({ picked, theme }), [picked, theme]);
   const toggle = (person: OfferedPerson): void => {
     setPicked((previous) => {
       const next = new Map(previous);
@@ -197,7 +202,7 @@ export default function AddFromAnotherGroupScreen(): React.JSX.Element {
           >
             <FlashList
               data={entries}
-              extraData={picked}
+              extraData={listExtraData}
               getItemType={(entry) => entry.kind}
               keyExtractor={(entry) => entry.id}
               drawDistance={1500}

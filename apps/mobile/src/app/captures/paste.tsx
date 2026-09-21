@@ -815,7 +815,7 @@ function PasteMessages(): React.JSX.Element {
 
   // One object so a tick *or* an opened message re-renders a row FlashList
   // would otherwise recycle unchanged.
-  const listState = useMemo(() => ({ chosen, opened }), [chosen, opened]);
+  const listState = useMemo(() => ({ chosen, opened, theme }), [chosen, opened, theme]);
 
   return (
     <Screen edges={['top']}>

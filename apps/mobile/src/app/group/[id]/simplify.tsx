@@ -317,7 +317,7 @@ export default function SimplifyScreen() {
         // in this group, from the ghost merges on this phone, and from who you
         // have blocked — so those go here, or a recycled row keeps whatever
         // tappability and whatever name it was first drawn with.
-        extraData={`${locale}|${ledger.myMemberId ?? ''}|${mergePersonIds.size}|${blockedIds.size}`}
+        extraData={`${locale}|${ledger.myMemberId ?? ''}|${mergePersonIds.size}|${blockedIds.size}|${theme.scheme}`}
         keyExtractor={(item) => item.key}
         getItemType={(item) => item.kind}
         renderItem={renderItem}

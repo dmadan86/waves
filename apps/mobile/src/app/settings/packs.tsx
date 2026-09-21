@@ -72,7 +72,7 @@ export default function PacksScreen() {
       <FlashList
         data={packs.data ?? []}
         keyExtractor={(pack) => pack.id}
-        extraData={[locale, theme.scheme, installedIds.size]}
+        extraData={`${locale}|${theme.scheme}|${installedIds.size}`}
         drawDistance={1500}
         contentContainerStyle={{
           paddingHorizontal: theme.spacing.xl,
