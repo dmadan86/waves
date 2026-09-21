@@ -145,6 +145,7 @@
       "./plugins/withGradleMemory",
       "./plugins/withSideBySideDebug",
       "./plugins/withReleaseSigning",
+      "./plugins/withBareSplashField",
       "./plugins/withSmsReader",
       "./plugins/withWavesWidgets",
       "./plugins/withWavesWear",

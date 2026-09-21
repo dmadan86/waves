@@ -41,6 +41,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as SplashScreen from 'expo-splash-screen';
 import { Platform, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, {
+  cancelAnimation,
   Easing,
   runOnJS,
   useAnimatedStyle,
@@ -139,61 +140,97 @@ export function AnimatedSplash() {
   useEffect(() => {
     if (Platform.OS === 'web') return;
 
-    // Hand off from the native splash to this one. This paints an identical
-    // field, so hiding the native splash reveals no gap.
-    SplashScreen.hideAsync().catch(() => {});
-
     // The whole arrival, then the hold: the mark has to be finished before
     // the field starts to leave, or the lift begins over a logo still
     // drawing and the two motions read as one smear.
     const liftAt = MARK_MS + HOLD_MS;
     const guardAt = liftAt + LIFT_MS + 600;
 
-    if (reduceMotion) {
-      // The mark is drawn by the animation now, so with the animation off it
-      // has to be placed rather than skipped — otherwise this setting gets a
-      // bare yellow field and no logo at all. Straight to finished, no motion.
-      markWave.value = 1;
-      // No drift, no draw-on, no lift: the field simply goes. A colour sliding
-      // across the screen is exactly what that setting is asking us not to do.
+    let cancelled = false;
+    let guard: ReturnType<typeof setTimeout> | undefined;
+
+    const begin = () => {
+      if (cancelled) return;
+
+      if (reduceMotion) {
+        // The mark is drawn by the animation now, so with the animation off it
+        // has to be placed rather than skipped — otherwise this setting gets a
+        // bare yellow field and no logo at all. Straight to finished, no motion.
+        markWave.value = 1;
+        // `reduceMotion` is a dependency of this effect, so it can turn on
+        // while the screen is already moving. Put the field back where the
+        // motionless version expects to find it: a wash left half-faded, or a
+        // scale left mid-lift, would otherwise carry on from wherever the
+        // animation it replaced had got to.
+        washOpacity.value = 0;
+        washShift.value = 0;
+        fieldScale.value = 1;
+        // No drift, no draw-on, no lift: the field simply goes. A colour sliding
+        // across the screen is exactly what that setting is asking us not to do.
+        fieldOpacity.value = withDelay(
+          liftAt,
+          withTiming(0, { duration: LIFT_MS, easing: Easing.out(Easing.quad) }, (finished) => {
+            if (finished) runOnJS(finish)();
+          }),
+        );
+        // Safety net: a cancelled animation never calls back, and the field would
+        // stay up at zero opacity, eating every touch.
+        guard = setTimeout(finish, guardAt);
+        return;
+      }
+
+      washOpacity.value = withTiming(1, { duration: WASH_MS, easing: Easing.out(Easing.quad) });
+      // One continuous drift across the whole life of the screen, so the field is
+      // never still — a splash that pauses is the thing that reads as a freeze.
+      washShift.value = withTiming(1, {
+        duration: liftAt + LIFT_MS,
+        easing: Easing.inOut(Easing.quad),
+      });
+      // The mark draws itself on. Linear, because the shaping lives inside
+      // `WaveMark` where each beat can be eased on its own terms; easing the
+      // whole span would warp the gaps between them.
+      markWave.value = withTiming(1, { duration: MARK_MS, easing: Easing.linear });
+
+      // Fading and growing together: the field pulls away from the viewer's eye
+      // rather than dissolving on the spot.
+      fieldScale.value = withDelay(
+        liftAt,
+        withTiming(1.12, { duration: LIFT_MS, easing: Easing.in(Easing.cubic) }),
+      );
       fieldOpacity.value = withDelay(
         liftAt,
-        withTiming(0, { duration: LIFT_MS, easing: Easing.out(Easing.quad) }, (finished) => {
+        withTiming(0, { duration: LIFT_MS, easing: Easing.in(Easing.cubic) }, (finished) => {
           if (finished) runOnJS(finish)();
         }),
       );
-      // Safety net: a cancelled animation never calls back, and the field would
-      // stay up at zero opacity, eating every touch.
-      const reducedGuard = setTimeout(finish, guardAt);
-      return () => clearTimeout(reducedGuard);
-    }
+      guard = setTimeout(finish, guardAt);
+    };
 
-    washOpacity.value = withTiming(1, { duration: WASH_MS, easing: Easing.out(Easing.quad) });
-    // One continuous drift across the whole life of the screen, so the field is
-    // never still — a splash that pauses is the thing that reads as a freeze.
-    washShift.value = withTiming(1, {
-      duration: liftAt + LIFT_MS,
-      easing: Easing.inOut(Easing.quad),
-    });
-    // The mark draws itself on. Linear, because the shaping lives inside
-    // `WaveMark` where each beat can be eased on its own terms; easing the
-    // whole span would warp the gaps between them.
-    markWave.value = withTiming(1, { duration: MARK_MS, easing: Easing.linear });
+    // Nothing starts until the native splash is actually off the screen.
+    //
+    // It used to start on mount, and on a real device that threw the whole
+    // arrival away: the native window sits on top until `hideAsync` resolves,
+    // so the stroke drew itself, the dot landed and the swell ran through —
+    // all of it underneath an opaque field nobody could see. What the phone
+    // showed was the mark already finished, static, for a second and a half.
+    // The animation was never broken; it was just playing to an empty room.
+    //
+    // Either arm starts it: if hiding fails there is no native splash left to
+    // wait for, and a rejected promise must not cost the app its splash.
+    SplashScreen.hideAsync().then(begin, begin);
 
-    // Fading and growing together: the field pulls away from the viewer's eye
-    // rather than dissolving on the spot.
-    fieldScale.value = withDelay(
-      liftAt,
-      withTiming(1.12, { duration: LIFT_MS, easing: Easing.in(Easing.cubic) }),
-    );
-    fieldOpacity.value = withDelay(
-      liftAt,
-      withTiming(0, { duration: LIFT_MS, easing: Easing.in(Easing.cubic) }, (finished) => {
-        if (finished) runOnJS(finish)();
-      }),
-    );
-    const guard = setTimeout(finish, guardAt);
-    return () => clearTimeout(guard);
+    return () => {
+      cancelled = true;
+      if (guard) clearTimeout(guard);
+      // Stop every animation this effect started. Without this a re-run — which
+      // `reduceMotion` can cause at any point — leaves the previous pass still
+      // driving the same shared values, and the two fight over the screen.
+      cancelAnimation(fieldOpacity);
+      cancelAnimation(fieldScale);
+      cancelAnimation(markWave);
+      cancelAnimation(washOpacity);
+      cancelAnimation(washShift);
+    };
   }, [finish, fieldOpacity, fieldScale, markWave, reduceMotion, washOpacity, washShift]);
 
   const fieldStyle = useAnimatedStyle(() => ({
