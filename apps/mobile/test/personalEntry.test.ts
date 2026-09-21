@@ -107,6 +107,31 @@ describe('a one-off entry', () => {
     expect(record.recordId).toBe('txn-7');
     expect(record.data).toMatchObject({ loanId: 'loan-3', recurringId: 'rule-1' });
   });
+
+  it('preserves future fields when an older app edits a one-off entry', () => {
+    const editing: PersonalTxn = {
+      id: 'txn-7',
+      kind: 'expense',
+      amount: 1n,
+      currency: 'INR',
+      category: null,
+      note: null,
+      date: '2026-09-01',
+      loanId: null,
+      recurringId: null,
+      carried: { subscriptionKind: 'subscription', merchantId: 'svc.netflix' },
+    };
+    const record = entryRecord({ ...DRAFT, note: 'Netflix — shared with Ana' }, null, {
+      txn: editing,
+    });
+
+    expect(record.recordId).toBe('txn-7');
+    expect(record.data).toMatchObject({
+      note: 'Netflix — shared with Ana',
+      subscriptionKind: 'subscription',
+      merchantId: 'svc.netflix',
+    });
+  });
 });
 
 describe('a field this version has never heard of', () => {
@@ -264,6 +289,19 @@ describe('repeating, as a property of the entry', () => {
     );
 
     expect(record.data).toMatchObject({ active: false, autoPost: true, nextDate: '2026-10-01' });
+  });
+
+  it('preserves future fields when an older app edits a recurring rule', () => {
+    const record = entryRecord(
+      { ...DRAFT, date: RULE.anchorDate },
+      { ...repeatOf(RULE, Frequency.Monthly), active: false },
+      { rule: { ...RULE, carried: { escalation: 'inflation-linked' } } },
+    );
+
+    expect(record.data).toMatchObject({
+      active: false,
+      escalation: 'inflation-linked',
+    });
   });
 });
 
