@@ -480,9 +480,22 @@ function MeLedger() {
           {/* Where the money went — a ranked bar list of the month's categories. */}
           {breakdownBars.length > 0 ? (
             <View style={{ gap: theme.spacing.sm }}>
-              <Text variant="micro" tone="faint" style={{ letterSpacing: 0.8 }}>
-                {t.personal.whereMoneyWent.toUpperCase()}
-              </Text>
+              {/* The bars answer "which category"; the Spending screen answers
+                  the question under it — how much of the month was ever yours to
+                  decide. Same `seeAll` idiom the entries list uses above. */}
+              <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text variant="micro" tone="faint" style={{ letterSpacing: 0.8 }}>
+                  {t.personal.whereMoneyWent.toUpperCase()}
+                </Text>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => router.push('/personal/spending')}
+                >
+                  <Text variant="caption" tone="brand">
+                    {t.personal.seeAll}
+                  </Text>
+                </Pressable>
+              </Row>
               <Card>
                 <BarList
                   data={breakdownBars}
@@ -506,7 +519,12 @@ function MeLedger() {
 
           {/* The management areas, demoted below the ledger to a quiet tools
               shelf — each tile's figure is the size of that collection, with a
-              coloured qualifier for the one thing that wants attention. */}
+              coloured qualifier for the one thing that wants attention.
+
+              Two rows of two, not one row of four: a fourth tile squeezed into
+              the row left every label truncated, and a truncated label on a tile
+              whose whole job is to be recognised at a glance is worse than a
+              taller shelf. */}
           <View style={{ gap: theme.spacing.sm }}>
             <Text variant="micro" tone="faint" style={{ letterSpacing: 0.8 }}>
               {t.personal.tools.toUpperCase()}
@@ -530,6 +548,8 @@ function MeLedger() {
                 label={t.personal.loans}
                 onPress={() => router.push('/personal/loans')}
               />
+            </Row>
+            <Row style={{ gap: theme.spacing.md }}>
               <StatTile
                 icon="pie-chart-outline"
                 value={String(ledger.budgets.length)}
@@ -537,6 +557,15 @@ function MeLedger() {
                 tone={overBudgets > 0 ? 'negative' : undefined}
                 label={t.personal.budgets}
                 onPress={() => router.push('/personal/budgets')}
+              />
+              {/* The only tile that is not a collection, so its figure is the
+                  month's spend — the same one the hero shows, offered here as
+                  something to open rather than something to read again. */}
+              <StatTile
+                icon="stats-chart-outline"
+                value={fmt(summary.expense)}
+                label={t.personal.spendingTitle}
+                onPress={() => router.push('/personal/spending')}
               />
             </Row>
           </View>
