@@ -55,6 +55,10 @@ export interface Theme {
     readonly negativeSoft: string;
     readonly warning: string;
     readonly warningSoft: string;
+    /** The launch yellow, for glyph discs and chips. Decoration, never meaning. */
+    readonly accent: string;
+    /** The ink that reads on `accent` — the only safe way round for text. */
+    readonly onAccent: string;
   };
   readonly gradient: {
     /** Stops for the brand wash, in paint order. */
@@ -119,6 +123,8 @@ export const lightTheme: Theme = {
     negativeSoft: palette.pink,
     warning: palette.warning,
     warningSoft: palette.peach,
+    accent: palette.accent,
+    onAccent: palette.accentInk,
   },
   gradient: {
     brand: gradients.light,
@@ -158,6 +164,10 @@ export const darkTheme: Theme = {
     negativeSoft: '#4A2A31',
     warning: '#E8A54B',
     warningSoft: '#463020',
+    // The same yellow in the dark: it is the icon's colour, and an accent that
+    // changed with the theme would stop being the thing people recognise.
+    accent: palette.accent,
+    onAccent: palette.accentInk,
   },
   gradient: {
     brand: gradients.dark,

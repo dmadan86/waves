@@ -86,6 +86,16 @@ export const palette = {
   negative: '#E84A66',
   warning: '#D98218',
 
+  // The launch yellow, and the ink that reads on it. This is the app icon's
+  // pair — the colour somebody recognises on a home screen before they read
+  // anything — brought inside as an accent for glyph discs and the odd chip.
+  // It is decoration and never meaning: money keeps `positive`/`negative`, and
+  // a warning keeps `warning`, which is a different, darker orange on purpose.
+  // Nothing sized like body text should be drawn in it; at 4.5:1 against white
+  // it fails, which is why the ink sits on the yellow rather than the reverse.
+  accent: '#F5D800',
+  accentInk: '#2B2B20',
+
   night900: '#0E0E1A',
   night800: '#16162A',
   night700: '#1E1E36',

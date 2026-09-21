@@ -17,15 +17,17 @@
  *     On the screen it did not: the squares read as four cards, competing with
  *     the group cards below them. A disc has no corners to line up with
  *     anything, so the row recedes to what it is, a strip of shortcuts.
- *   - **One ink, not four tints.** The glyphs are monochrome, drawn in the
- *     body ink. A coloured glyph per action makes each one a thing to identify
- *     before you can read the row; in one colour, the row is read as a row and
- *     the *shapes* do the distinguishing, which is what a line drawing is for.
+ *   - **One accent, not four tints.** Every disc is the launch yellow and every
+ *     glyph the ink that reads on it — GoodRx's home screen, where one colour
+ *     sits behind every glyph. A coloured glyph per action makes each one a
+ *     thing to identify before you can read the row; in one colour the row is
+ *     read as a row and the *shapes* do the distinguishing, which is what a line
+ *     drawing is for. The colour is decoration and carries no meaning: money
+ *     keeps its own blue and raspberry, wherever it appears.
  *   - **A "view more" cell that leads somewhere.** It opens the overflow menu,
- *     the only other list of everything Home can reach. It is marked by its
- *     tint — a brand-soft disc with a brand glyph — rather than by being
- *     filled in, because a solid block in a row of quiet discs is a button
- *     sitting in a strip of shortcuts.
+ *     the only other list of everything Home can reach. It is the one inverted
+ *     disc — ink filled, yellow glyph — so the way out of the row is findable
+ *     without reading, and without introducing a second colour to do it.
  *   - **No heading.** A label over four labelled icons is a line of text
  *     saying what is already plain.
  *
@@ -125,15 +127,20 @@ export function HomeQuickActions({
                     borderRadius: TILE / 2,
                     alignItems: 'center',
                     justifyContent: 'center',
-                    backgroundColor: action.accent
-                      ? theme.color.brandSoft
-                      : theme.color.surfaceMuted,
+                    // The launch yellow, the way GoodRx puts one accent behind
+                    // every glyph on its home screen: the row reads as one strip
+                    // of shortcuts, and the colour is the app's own rather than
+                    // a per-action tint nobody has to learn.
+                    backgroundColor: action.accent ? theme.color.onAccent : theme.color.accent,
                   }}
                 >
                   <Ionicons
                     name={action.icon}
                     size={iconSize.xxl}
-                    color={action.accent ? theme.color.brand : theme.color.text}
+                    // "Everything else" is the one inverted disc — ink filled,
+                    // yellow glyph — so the way out of the row is findable
+                    // without reading, and without a second colour.
+                    color={action.accent ? theme.color.accent : theme.color.onAccent}
                   />
                 </View>
                 {/* Two lines, centred: "Bank messages" and its translations do

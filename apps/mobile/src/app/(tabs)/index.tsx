@@ -20,7 +20,6 @@ import {
   Button,
   directionalIcon,
   EmptyState,
-  Gradient,
   iconSize,
   MoneyText,
   Popup,
@@ -31,6 +30,7 @@ import {
   Text,
   useTabBarClearance,
   useTheme,
+  type TextTone,
 } from '@waves/ui';
 
 import { useGroups, useHomeSummary, usePinnedGroupIds, useSetGroupPin } from '@/data/hooks';
@@ -154,14 +154,15 @@ export default function HomeScreen() {
   const { width } = useWindowDimensions();
   // The eye toggle: hide the money on a shared screen, remembered across opens.
   const { hidden: balanceHidden, ready: balanceReady, toggle: toggleBalance } = useBalanceHidden();
-  // The carousel's live scroll offset, owned here so the hero background and the
-  // balance deck share one value: the background crossfades between the slide
-  // colours (SLIDE_STYLE) exactly as the deck moves. Lazy-init, never
-  // re-read through `.current` in render (the ref lint the compiler enforces).
+  // The carousel's live scroll offset, owned here so the deck and its pager
+  // share one value and cannot fall out of step. It used to drive a colour
+  // crossfade behind the hero as well; the hero is white now, so the pager pill
+  // is all that rides on it. Lazy-init, never re-read through `.current` in
+  // render (the ref lint the compiler enforces).
   const [heroScrollX] = useState(() => new Animated.Value(0));
   // Each slide fills the hero's inner width; a slide's snap point is that plus
-  // the gap. Computed here so the same numbers drive the deck's layout and the
-  // background's colour interpolation — one source, so they can never drift.
+  // the gap. Computed here so the same numbers lay out the deck and place the
+  // pager's pill — one source, so they can never drift.
   const heroInner = width - theme.spacing.xl * 2;
   const heroGap = theme.spacing.md;
   const heroSnap = heroInner + heroGap;
@@ -398,20 +399,31 @@ export default function HomeScreen() {
     <Screen edges={[]}>
       {/* The hero is a fixed header — it stays put while only the body below it
           scrolls, matching Friends. */}
-      {/* The hero: one saturated green card that runs edge to edge and up under
-            the status bar — the reference's signature "account panel". It carries
-            the whole top of the screen now: the greeting and face, the swipeable
-            balance, and the add actions. Everything below it is the plain white
-            body. Wrapped as the tour's "hero" anchor so the first coach-mark still
-            spotlights the balance. */}
+      {/* The hero, on the page's own white rather than a colour of its own.
+            It was a saturated gradient panel that crossfaded through four washes
+            as the balance carousel moved, with a watermark glyph bled into the
+            corner — a lot of screen spent saying "this is the top". The reference
+            this now follows (GoodRx's home) does the opposite: white page, ink
+            type, and one accent colour used only behind glyphs, which leaves the
+            balance as the brightest thing on the screen instead of one bright
+            thing among several.
+
+            Two consequences worth naming. The money gets its semantic colour
+            back — on a coloured panel every figure was white, so "you are owed"
+            and "you owe" looked identical and only the caption said which; on
+            white they are the blue and the raspberry they are everywhere else in
+            the app. And the greeting can be the size a greeting is in the
+            reference, because it no longer competes with a wash behind it.
+
+            Still the tour's "hero" anchor, so the first coach-mark spotlights the
+            balance as before. */}
       <TourTarget id="hero">
         <View
           style={{
+            backgroundColor: theme.color.surface,
             paddingTop: insets.top + theme.spacing.md,
             paddingHorizontal: theme.spacing.xl,
             paddingBottom: theme.spacing.md,
-            borderBottomLeftRadius: theme.radius.xxl,
-            borderBottomRightRadius: theme.radius.xxl,
             // Was xl. The hero holds three stacked things and paid 20 twice for
             // the privilege; at lg it still breathes and the groups — the reason
             // the screen exists — start higher up the glass.
@@ -419,45 +431,9 @@ export default function HomeScreen() {
             overflow: 'hidden',
           }}
         >
-          {/* One gradient layer per slide, stacked and clipped to the hero's
-                rounded corner. Each fades in as its slide reaches centre and out
-                as you leave it (opacity peaks at that slide's snap point, zero at
-                its neighbours), so the hero crossfades colour in lock-step with
-                the swipe. Native-driven opacity off the shared scroll value —
-                smooth at 60fps and free at rest. The first layer sits opaque
-                behind everything as the base while the balance loads. */}
-          {deck.map((slide, index) => (
-            <Animated.View
-              key={slide}
-              pointerEvents="none"
-              style={[
-                StyleSheet.absoluteFill,
-                index === 0
-                  ? null
-                  : {
-                      opacity: heroScrollX.interpolate({
-                        inputRange: [
-                          (index - 1) * heroSnap,
-                          index * heroSnap,
-                          (index + 1) * heroSnap,
-                        ],
-                        outputRange: [0, 1, 0],
-                        extrapolate: 'clamp',
-                      }),
-                    },
-              ]}
-            >
-              <Gradient colors={SLIDE_STYLE[slide].gradient} radius={0} style={{ flex: 1 }} />
-            </Animated.View>
-          ))}
-
-          {/* The corner watermark — a faint glyph per slide that crossfades
-                as you swipe, off the same scroll value as the colour. */}
-          <HeroBackdrop slides={deck} scrollX={heroScrollX} snap={heroSnap} />
-
           {/* Greeting row: face + "Hi, {name}" over the time of day, then the
-                white controls the reference tucks top-right — sync, a shortcut to
-                start a group, and the overflow menu. */}
+                glyphs the reference tucks top-right — sync, activity, and the
+                overflow menu — in plain ink now rather than white on a wash. */}
           <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
             <HeroAvatar
               name={displayName}
@@ -472,14 +448,18 @@ export default function HomeScreen() {
               hitSlop={8}
               style={({ pressed }) => ({ flex: 1, opacity: pressed ? 0.5 : 1 })}
             >
-              <Text variant="heading" tone="onBrand" numberOfLines={1}>
+              {/* A size up from `heading`: the greeting is the first line of
+                  the page now, and the reference sets it large enough to be
+                  read as the page's title rather than as a label above the
+                  balance. */}
+              <Text variant="title" numberOfLines={1}>
                 {t.dashHero.hi.replace('{name}', displayName)}
               </Text>
-              <Text variant="caption" tone="onBrand" style={{ opacity: 0.85 }}>
+              <Text variant="caption" tone="muted">
                 {t.dashHero[greetKey]}
               </Text>
             </Pressable>
-            <SyncStatusIcon onBrand />
+            <SyncStatusIcon />
             {/* Activity sits up here with the other glyphs that lead somewhere
                   and change nothing: sync, the menu, the face. It is a shortcut
                   to a feed you read — the grid below is for the things that
@@ -769,13 +749,13 @@ function HeroAvatar({
         borderRadius: 22,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: 'transparent',
-        borderWidth: 2,
-        borderColor: 'rgba(255, 255, 255, 0.55)',
+        backgroundColor: theme.color.surfaceMuted,
+        borderWidth: 1,
+        borderColor: theme.color.border,
         opacity: pressed ? 0.6 : 1,
       })}
     >
-      <Ionicons name="person-outline" size={iconSize.xxl} color={theme.color.onBrand} />
+      <Ionicons name="person-outline" size={iconSize.xxl} color={theme.color.textMuted} />
     </Pressable>
   );
 }
@@ -850,7 +830,7 @@ function HeroIconButton({
       hitSlop={10}
       style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1, padding: theme.spacing.xs })}
     >
-      <Glyph name={icon as never} size={iconSize.xxl} color={theme.color.onBrand} />
+      <Glyph name={icon as never} size={iconSize.xxl} color={theme.color.text} />
     </Pressable>
   );
 }
@@ -1176,16 +1156,6 @@ function todayIn(timeZone: string): string {
  * person (`balanceDeckSlides`) — a two-slide deck must paint its month slide
  * indigo, not inherit whatever colour sat second in a fixed list.
  */
-const SLIDE_STYLE: Record<
-  BalanceSlide,
-  { readonly gradient: readonly [string, string]; readonly icon: keyof typeof Ionicons.glyphMap }
-> = {
-  net: { gradient: ['#1F6B49', '#0C3A27'], icon: 'wallet-outline' },
-  owed: { gradient: ['#12667A', '#06323D'], icon: 'trending-up-outline' },
-  owing: { gradient: ['#8A4B12', '#40220A'], icon: 'trending-down-outline' },
-  month: { gradient: ['#463F86', '#221C46'], icon: 'calendar-outline' },
-};
-
 /**
  * The hero's two lines, in one place. `HeroBalanceSkeleton` builds itself to
  * exactly these heights so the real figure settles into the placeholder's
@@ -1272,18 +1242,27 @@ function HeroBalance({
   // they do.
   const metricFor = (
     slide: BalanceSlide,
-  ): { label: string; amount: bigint; showSign?: boolean } => {
+  ): { label: string; amount: bigint; showSign?: boolean; moneyTone: TextTone } => {
     const label = (heading: string): string => `${heading} · ${primary.currency}`;
     switch (slide) {
       case 'net':
         // Square is square: a "+₹0" would be a direction where there is none.
-        return { label: label(netDirection), amount: primary.net, showSign: primary.net !== 0n };
+        return {
+          label: label(netDirection),
+          amount: primary.net,
+          showSign: primary.net !== 0n,
+          // The one figure whose colour is the answer: blue when it is coming to
+          // you, raspberry when it is going, grey when there is nothing in it.
+          moneyTone: primary.net === 0n ? 'muted' : primary.net > 0n ? 'positive' : 'negative',
+        };
       case 'owed':
-        return { label: label(t.dashHero.owedToYou), amount: primary.owed };
+        return { label: label(t.dashHero.owedToYou), amount: primary.owed, moneyTone: 'positive' };
       case 'owing':
-        return { label: label(t.dashHero.owedByYou), amount: primary.owing };
+        return { label: label(t.dashHero.owedByYou), amount: primary.owing, moneyTone: 'negative' };
       case 'month':
-        return { label: label(t.dashHero.monthSpent), amount: monthAmount };
+        // A total, not a direction: spending is not a debt, and colouring it
+        // raspberry would say it was.
+        return { label: label(t.dashHero.monthSpent), amount: monthAmount, moneyTone: 'default' };
     }
   };
 
@@ -1351,8 +1330,10 @@ function HeroBalance({
 
 /**
  * The dot pager — the "swipe me" signal, rendered by the screen below the action
- * buttons rather than under the balance. A wide white pill marks the active slide
- * over a row of faint dots that read against any of the slide washes.
+ * buttons rather than under the balance. A wide pill in the accent yellow marks
+ * the active slide over a row of hairline-grey dots. It was white-on-wash; on the
+ * white hero the yellow is the one thing in the row that is not ink or grey,
+ * which is exactly what a pager needs to be.
  *
  * The pill slides off the carousel's live `scrollX`, native-driven, so it tracks
  * the finger at 60fps exactly like the hero colour crossfade — not off a React
@@ -1399,7 +1380,7 @@ function HeroDots({
                 width: DOT_SIZE,
                 height: DOT_SIZE,
                 borderRadius: DOT_SIZE / 2,
-                backgroundColor: 'rgba(255, 255, 255, 0.35)',
+                backgroundColor: theme.color.border,
               }}
             />
           ))}
@@ -1414,7 +1395,7 @@ function HeroDots({
             width: DOT_ACTIVE_WIDTH,
             height: DOT_SIZE,
             borderRadius: DOT_SIZE / 2,
-            backgroundColor: '#FFFFFF',
+            backgroundColor: theme.color.accent,
             transform: [{ translateX }],
           }}
         />
@@ -1424,8 +1405,8 @@ function HeroDots({
 }
 
 /**
- * The balance area while it loads — translucent-white bars on the green that
- * stand in for a `MetricSlide`: a label bar and the big figure. It has the same
+ * The balance area while it loads — skeleton bars that stand in for a
+ * `MetricSlide`: a label bar and the big figure. It has the same
  * two lines the loaded slide now has (the sub line is gone).
  *
  * The whole point is that the swap-in is a settle, not a jump, so the skeleton
@@ -1435,9 +1416,10 @@ function HeroDots({
  * the block is the same height either way and the number lands in place
  * instead of shoving the Add-expense button and the group list down (the layout
  * shift the user flagged). Both sites read `HERO_LABEL_LINE` /
- * `HERO_AMOUNT_LINE`, so a change to the type size cannot desync them. A gentle pulse reads as "loading" rather than a dead
- * placeholder. Plain `Skeleton` is themed for light surfaces and would vanish on
- * the green, so these are hand-drawn washes.
+ * `HERO_AMOUNT_LINE`, so a change to the type size cannot desync them. A gentle
+ * pulse reads as "loading" rather than a dead placeholder. The bars are the
+ * theme's own skeleton grey now: they used to be translucent white, which was
+ * what read on the green and is invisible on white.
  */
 function HeroBalanceSkeleton() {
   const theme = useTheme();
@@ -1456,7 +1438,7 @@ function HeroBalanceSkeleton() {
   }, [pulse]);
   const bar = (width: number, height: number) => (
     <View
-      style={{ width, height, borderRadius: height / 2, backgroundColor: 'rgba(255,255,255,0.28)' }}
+      style={{ width, height, borderRadius: height / 2, backgroundColor: theme.color.skeleton }}
     />
   );
   return (
@@ -1470,56 +1452,19 @@ function HeroBalanceSkeleton() {
 }
 
 /**
- * The hero's corner decoration: one faint watermark glyph per balance slide,
- * bled off the bottom-right, that crossfades as the carousel navigates. Each
- * layer peaks in opacity at its own slide's snap point and is zero at its
- * neighbours — the exact interpolation the colour layers use — off the same
- * shared `scrollX`, so the mark swaps in lock-step with the colour and the
- * swipe. Native-driven opacity: smooth at 60fps, free at rest. The hero clips
- * it to the rounded corner (`overflow: 'hidden'`) and `pointerEvents none` so
- * it never eats a tap; white at low alpha reads the same on green/teal/indigo.
- */
-function HeroBackdrop({
-  slides,
-  scrollX,
-  snap,
-}: {
-  slides: readonly BalanceSlide[];
-  scrollX: Animated.Value;
-  snap: number;
-}) {
-  const theme = useTheme();
-  return (
-    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-      {slides.map((slide, index) => (
-        <Animated.View
-          key={slide}
-          style={{
-            position: 'absolute',
-            right: -44,
-            bottom: -52,
-            opacity: scrollX.interpolate({
-              inputRange: [(index - 1) * snap, index * snap, (index + 1) * snap],
-              outputRange: [0, 0.16, 0],
-              extrapolate: 'clamp',
-            }),
-          }}
-        >
-          <Ionicons name={SLIDE_STYLE[slide].icon} size={208} color={theme.color.onBrand} />
-        </Animated.View>
-      ))}
-    </View>
-  );
-}
-
-/**
- * One balance slide, riding transparent on the hero's green — a label with the
+ * One balance slide, riding transparent on the hero — a label with the
  * eye toggle to its right and the money big beneath it. Two lines only: the old
  * third "sub" caption is gone, so the slide is tighter and the hero shorter. The
  * label carries everything the sub used to say — on the net slide it is the
  * owe↔owed verdict itself (see `netDirection` in `HeroBalance`), so dropping the
- * sub loses no direction. White ink throughout, so it reads the same in light
- * and dark like a bank card. The eye masks the figure to dots; the toggle sits
+ * sub loses no direction.
+ *
+ * The figure takes the app's money colours (`moneyTone`), which it could not do
+ * while the hero was a coloured panel: every slide was white then, so owed and
+ * owing were the same picture and only the caption told them apart. The month's
+ * spend is the exception and stays ink — it is a total, not a direction.
+ *
+ * The eye masks the figure to dots; the toggle sits
  * on every slide (it is the same control repeated as you swipe), so the eye is
  * always to hand wherever you land.
  */
@@ -1532,6 +1477,7 @@ function MetricSlide({
   onToggleHide,
   settling,
   showSign = false,
+  moneyTone,
 }: {
   label: string;
   amount: bigint;
@@ -1539,6 +1485,8 @@ function MetricSlide({
   locale: string;
   hidden: boolean;
   onToggleHide: () => void;
+  /** The figure's colour: the money tones for a direction, ink for a total. */
+  moneyTone?: TextTone;
   /** Print the amount's own sign in front of it. Only the net slide sets this:
    *  it is the one figure whose direction is information, and a 40pt number is
    *  what gets read at a glance — not the caption above it. The other two are
@@ -1553,7 +1501,7 @@ function MetricSlide({
   return (
     <View style={{ gap: theme.spacing.sm }}>
       <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-        <Text variant="caption" tone="onBrand" numberOfLines={1} style={{ flexShrink: 1 }}>
+        <Text variant="caption" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
           {label}
         </Text>
         <Pressable
@@ -1566,21 +1514,19 @@ function MetricSlide({
           <Ionicons
             name={hidden ? 'eye-off-outline' : 'eye-outline'}
             size={iconSize.md}
-            color={theme.color.onBrand}
+            color={theme.color.textMuted}
           />
         </Pressable>
-        {settling ? <ActivityIndicator size="small" color={theme.color.onBrand} /> : null}
+        {settling ? <ActivityIndicator size="small" color={theme.color.brand} /> : null}
       </Row>
       {hidden ? (
-        <Text tone="onBrand" style={HERO_AMOUNT_STYLE}>
-          {BALANCE_MASK}
-        </Text>
+        <Text style={HERO_AMOUNT_STYLE}>{BALANCE_MASK}</Text>
       ) : (
         <MoneyText
           amount={amount}
           currency={currency as never}
           locale={locale}
-          tone="onBrand"
+          tone={moneyTone}
           showSign={showSign}
           style={HERO_AMOUNT_STYLE}
         />
