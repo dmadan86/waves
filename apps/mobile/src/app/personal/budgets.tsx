@@ -203,6 +203,7 @@ function BudgetEditor({
           category: chosenCategory,
           limit,
           currency: budget?.currency ?? currency,
+          carried: budget?.carried,
         }),
       },
       { onSuccess: onClose },
