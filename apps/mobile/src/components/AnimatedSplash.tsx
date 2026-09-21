@@ -41,6 +41,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as SplashScreen from 'expo-splash-screen';
 import { Platform, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, {
+  cancelAnimation,
   Easing,
   runOnJS,
   useAnimatedStyle,
@@ -156,6 +157,14 @@ export function AnimatedSplash() {
         // has to be placed rather than skipped — otherwise this setting gets a
         // bare yellow field and no logo at all. Straight to finished, no motion.
         markWave.value = 1;
+        // `reduceMotion` is a dependency of this effect, so it can turn on
+        // while the screen is already moving. Put the field back where the
+        // motionless version expects to find it: a wash left half-faded, or a
+        // scale left mid-lift, would otherwise carry on from wherever the
+        // animation it replaced had got to.
+        washOpacity.value = 0;
+        washShift.value = 0;
+        fieldScale.value = 1;
         // No drift, no draw-on, no lift: the field simply goes. A colour sliding
         // across the screen is exactly what that setting is asking us not to do.
         fieldOpacity.value = withDelay(
@@ -213,6 +222,14 @@ export function AnimatedSplash() {
     return () => {
       cancelled = true;
       if (guard) clearTimeout(guard);
+      // Stop every animation this effect started. Without this a re-run — which
+      // `reduceMotion` can cause at any point — leaves the previous pass still
+      // driving the same shared values, and the two fight over the screen.
+      cancelAnimation(fieldOpacity);
+      cancelAnimation(fieldScale);
+      cancelAnimation(markWave);
+      cancelAnimation(washOpacity);
+      cancelAnimation(washShift);
     };
   }, [finish, fieldOpacity, fieldScale, markWave, reduceMotion, washOpacity, washShift]);
 
