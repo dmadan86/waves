@@ -20,28 +20,33 @@
  * nobody could unsee once told: the native half showed the mark and this half
  * showed the word, so the launch changed its mind halfway through.
  *
- * Both halves now draw the same PNG on the same colour at the same width, so
- * the handoff has nothing left to give away.
+ * Both halves now draw the same mark on the same colour at the same width, so
+ * the handoff has nothing left to give away. They are not the same *file*,
+ * though: the native half draws a baked PNG because it cannot run code, and
+ * this half draws the mark as geometry so a wave can travel through it
+ * (`WaveMark`). Both are generated from one set of numbers —
+ * `assets/brand/wave-mark.json` — so they cannot drift apart.
  *
  * To rebrand: `SPLASH_BG` and `MARK_WIDTH` here, `backgroundColor` and
  * `imageWidth` in `app.json`'s `expo-splash-screen`. They are two halves of one
- * picture — change all four together or the seam comes back.
+ * picture — change all four together or the seam comes back. To change the
+ * mark itself, edit the geometry and re-run `infra/art/render-splash-mark.py`.
  */
 import { useCallback, useEffect, useState } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as SplashScreen from 'expo-splash-screen';
-import { Image, Platform, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Platform, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, {
   Easing,
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
-  withSequence,
   withTiming,
 } from 'react-native-reanimated';
 
 import { useReducedMotion } from '@/lib/reducedMotion';
+import { WaveMark } from '@/components/WaveMark';
 
 /** The field. Kept identical to `expo-splash-screen`'s `backgroundColor` in
     `app.json`, because the native splash is this same flat colour and this one
@@ -59,9 +64,6 @@ const SPLASH_BG = '#F5D800';
     mid-launch is the seam in another form. */
 const MARK_WIDTH = 140;
 
-/** The mark in the app's ink, which is what reads on yellow. Same file the
-    native splash is given. */
-const MARK = require('../../assets/images/splash-mark-ink.png');
 
 /**
  * The beats, in order.
@@ -80,10 +82,11 @@ const MARK = require('../../assets/images/splash-mark-ink.png');
  *
  * What moves instead is the field. A slow diagonal wash comes up over the flat
  * yellow — a lighter yellow, through the brand colour, to a deeper amber — and
- * drifts across while the mark takes one small breath. The wash starts at zero
- * opacity, which is the flat native colour exactly, so there is still nothing
- * to see at the seam; only from the second frame on does the screen begin to
- * move.
+ * drifts across while one crest travels the length of the mark. The wash starts
+ * at zero
+ * opacity, which is the flat native colour exactly, and the wave is enveloped
+ * to nothing at both ends, so there is still nothing to see at the seam; only
+ * from the second frame on does the screen begin to move.
  *
  * Then the whole field lifts *towards* the viewer as it fades — a scale past 1,
  * not a dissolve — so the app underneath reads as arriving from behind it. The
@@ -95,8 +98,10 @@ const MARK = require('../../assets/images/splash-mark-ink.png');
  * own admiration.
  */
 const WASH_MS = 360;
-/** One half of the breath: the mark swells for this long, then settles for it. */
-const BREATHE_MS = 240;
+/** How long one crest takes to travel the length of the mark. Slow enough to
+    read as a wave rather than a twitch, short enough that the launch is not
+    waiting on it. */
+const WAVE_MS = 620;
 const HOLD_MS = 120;
 const LIFT_MS = 380;
 /** How far the wash drifts, as a fraction of the screen — a drift, not a swipe. */
@@ -120,8 +125,9 @@ export function AnimatedSplash() {
   // The whole field, and the logo riding on it.
   const fieldOpacity = useSharedValue(1);
   const fieldScale = useSharedValue(1);
-  // The mark starts exactly as the native splash left it: there, and full size.
-  const logoScale = useSharedValue(1);
+  // The mark starts exactly as the native splash left it: at rest, its wave
+  // flat, which is the shape the still PNG is holding.
+  const markWave = useSharedValue(0);
   // The wash starts invisible, so frame one is the flat field and nothing else.
   const washOpacity = useSharedValue(0);
   const washShift = useSharedValue(0);
@@ -135,14 +141,14 @@ export function AnimatedSplash() {
     // field, so hiding the native splash reveals no gap.
     SplashScreen.hideAsync().catch(() => {});
 
-    // Both halves of the breath, then the hold: the mark has to be back at
-    // rest before the field starts to leave, or the lift begins over a logo
-    // still settling and the two motions read as one smear.
-    const liftAt = WASH_MS + BREATHE_MS * 2 + HOLD_MS;
+    // The whole wave, then the hold: the mark has to be back at rest before
+    // the field starts to leave, or the lift begins over a logo still moving
+    // and the two motions read as one smear.
+    const liftAt = WASH_MS + WAVE_MS + HOLD_MS;
     const guardAt = liftAt + LIFT_MS + 600;
 
     if (reduceMotion) {
-      // No drift, no breath, no lift: the field simply goes. A colour sliding
+      // No drift, no wave, no lift: the field simply goes. A colour sliding
       // across the screen is exactly what that setting is asking us not to do.
       fieldOpacity.value = withDelay(
         liftAt,
@@ -163,14 +169,13 @@ export function AnimatedSplash() {
       duration: liftAt + LIFT_MS,
       easing: Easing.inOut(Easing.quad),
     });
-    // One breath, and a small one: the mark is already where it belongs, so
-    // this is a sign of life rather than an entrance.
-    logoScale.value = withSequence(
-      withDelay(
-        WASH_MS,
-        withTiming(1.045, { duration: BREATHE_MS, easing: Easing.inOut(Easing.quad) }),
-      ),
-      withTiming(1, { duration: BREATHE_MS, easing: Easing.inOut(Easing.quad) }),
+    // One crest, travelling the length of the mark. The mark is already where
+    // it belongs, so this is a sign of life rather than an entrance — and
+    // because the wave is enveloped to zero at both ends (`WaveMark`), it
+    // starts and finishes on the exact shape the native half was holding.
+    markWave.value = withDelay(
+      WASH_MS,
+      withTiming(1, { duration: WAVE_MS, easing: Easing.inOut(Easing.sin) }),
     );
 
     // Fading and growing together: the field pulls away from the viewer's eye
@@ -187,14 +192,11 @@ export function AnimatedSplash() {
     );
     const guard = setTimeout(finish, guardAt);
     return () => clearTimeout(guard);
-  }, [finish, fieldOpacity, fieldScale, logoScale, reduceMotion, washOpacity, washShift]);
+  }, [finish, fieldOpacity, fieldScale, markWave, reduceMotion, washOpacity, washShift]);
 
   const fieldStyle = useAnimatedStyle(() => ({
     opacity: fieldOpacity.value,
     transform: [{ scale: fieldScale.value }],
-  }));
-  const logoStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: logoScale.value }],
   }));
   // The wash is drawn oversized and slid diagonally, so its edges never come
   // into view: what shows is the colour changing, not a rectangle moving.
@@ -246,18 +248,12 @@ export function AnimatedSplash() {
           />
         </Animated.View>
 
-        <Animated.View style={logoStyle}>
-          <Image
-            source={MARK}
-            // Square source, so one dimension is the whole instruction.
-            style={{ width: MARK_WIDTH, height: MARK_WIDTH }}
-            resizeMode="contain"
-            // Decorative: the app's name is announced by the app, and a screen
-            // reader meeting a launch screen should be told nothing it then has
-            // to wait through.
-            accessible={false}
-          />
-        </Animated.View>
+        {/* Decorative: the app's name is announced by the app, and a screen
+            reader meeting a launch screen should be told nothing it then has
+            to wait through. */}
+        <View accessible={false}>
+          <WaveMark size={MARK_WIDTH} progress={markWave} />
+        </View>
       </View>
     </Animated.View>
   );

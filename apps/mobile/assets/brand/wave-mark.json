@@ -1,0 +1,54 @@
+{
+  "_": "The Waves mark, as numbers. One source for two consumers: the animated <Path> in AnimatedSplash, and infra/art/render-splash-mark.py which bakes the still PNG the native splash draws. Change it here or the two halves of the launch drift apart.",
+  "points": [
+    [
+      10,
+      24
+    ],
+    [
+      17,
+      56
+    ],
+    [
+      25,
+      42
+    ],
+    [
+      36,
+      22
+    ],
+    [
+      47,
+      42
+    ],
+    [
+      55,
+      56
+    ],
+    [
+      62,
+      24
+    ]
+  ],
+  "strokeWidth": 6,
+  "dot": {
+    "cx": 62,
+    "cy": 17,
+    "r": 4
+  },
+  "canvas": 512,
+  "inkWidth": 410,
+  "tiltDeg": 10.6,
+  "derived": {
+    "_": "Written by render-splash-mark.py. Do not hand-edit.",
+    "scale": 6.949153,
+    "translate": [
+      2.3559,
+      39.6699
+    ],
+    "recentre": [
+      12.5,
+      5.75
+    ]
+  }
+}
