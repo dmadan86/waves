@@ -9,6 +9,32 @@
  * the app and a decimal string on the wire, like everywhere else; the decoders
  * are defensive so a malformed blob degrades to a sane default rather than
  * throwing in a list render.
+ *
+ * FORWARD COMPATIBILITY, AND WHY `carried` EXISTS.
+ *
+ * These decoders are *total*: every field has a fallback, so a blob written by
+ * an older app always reads, and a field added later simply defaults. That is
+ * what makes adding a field a one-line change with no migration script.
+ *
+ * The hazard is the way back out. A decode that keeps only the fields it knows
+ * about, followed by an encode, is lossy — and in an app where the same ledger
+ * is open on two phones, that is silent data loss caused by nothing worse than
+ * one of them being a version behind:
+ *
+ *     new phone writes  { amount, kind: 'subscription' }
+ *     old phone decodes { amount }                       ← `kind` dropped here
+ *     old phone edits the note and writes back
+ *     → `kind` is now gone, on both phones, for good
+ *
+ * So each decoder keeps whatever it did not recognise in `carried`, and each
+ * encoder writes it back out first — known fields are spread after it, so a
+ * carried value can never shadow one this version actually understands. An old
+ * app now round-trips a new field instead of deleting it.
+ *
+ * The rule for anyone adding a field: add it to the interface, to the decoder,
+ * to the encoder, AND to that kind's `KNOWN_*` set. Miss the last one and the
+ * field is written twice — once by the encoder and once out of `carried` —
+ * which still round-trips correctly but keeps a stale copy alive forever.
  */
 
 import type { CurrencyCode } from '../money/currency';
@@ -46,6 +72,10 @@ export interface PersonalTxn {
   readonly loanId: string | null;
   /** Set when a recurring rule minted this txn (idempotency: rule id + date). */
   readonly recurringId: string | null;
+  /** Fields from the stored blob this version of the app did not recognise,
+   *  kept so that editing a record here never deletes something a newer
+   *  version wrote. Re-emitted by the encoder; see the note at the top. */
+  readonly carried?: Readonly<Record<string, unknown>>;
 }
 
 export interface PersonalRecurring {
@@ -72,6 +102,10 @@ export interface PersonalRecurring {
   /** True → mint the txn automatically when due; false → only remind. */
   readonly autoPost: boolean;
   readonly active: boolean;
+  /** Fields from the stored blob this version of the app did not recognise,
+   *  kept so that editing a record here never deletes something a newer
+   *  version wrote. Re-emitted by the encoder; see the note at the top. */
+  readonly carried?: Readonly<Record<string, unknown>>;
 }
 
 export interface PersonalLoan {
@@ -84,6 +118,10 @@ export interface PersonalLoan {
   readonly note: string | null;
   readonly startDate: string;
   readonly status: 'active' | 'closed';
+  /** Fields from the stored blob this version of the app did not recognise,
+   *  kept so that editing a record here never deletes something a newer
+   *  version wrote. Re-emitted by the encoder; see the note at the top. */
+  readonly carried?: Readonly<Record<string, unknown>>;
 }
 
 export interface PersonalBudget {
@@ -92,6 +130,10 @@ export interface PersonalBudget {
   readonly category: string | null;
   readonly limit: bigint;
   readonly currency: CurrencyCode;
+  /** Fields from the stored blob this version of the app did not recognise,
+   *  kept so that editing a record here never deletes something a newer
+   *  version wrote. Re-emitted by the encoder; see the note at the top. */
+  readonly carried?: Readonly<Record<string, unknown>>;
 }
 
 // ───────────────────────────────────────────────── defensive readers ──
@@ -112,6 +154,85 @@ const oneOf = <T extends string>(v: unknown, allowed: readonly T[], fallback: T)
 const dayOfMonth = (v: unknown): number | null =>
   typeof v === 'number' && Number.isInteger(v) && v >= 1 && v <= 31 ? v : null;
 
+// ──────────────────────────────────────────────── forward compatibility ──
+
+/** Every key each kind's encoder writes. A key here is understood by this
+ *  version and must NOT be carried; a key absent from it is the future's, and
+ *  is. Kept beside the codecs so the three move together. */
+const KNOWN_TXN = [
+  'kind',
+  'amount',
+  'currency',
+  'category',
+  'note',
+  'date',
+  'loanId',
+  'recurringId',
+];
+const KNOWN_RECURRING = [
+  'txnKind',
+  'amount',
+  'currency',
+  'category',
+  'note',
+  'cadence',
+  'interval',
+  'secondDay',
+  'anchorDate',
+  'nextDate',
+  'endDate',
+  'autoPost',
+  'active',
+];
+const KNOWN_LOAN = [
+  'direction',
+  'counterpart',
+  'principal',
+  'currency',
+  'note',
+  'startDate',
+  'status',
+];
+const KNOWN_BUDGET = ['category', 'limit', 'currency'];
+
+/**
+ * Whatever the blob holds that this version has no field for.
+ *
+ * Undefined rather than `{}` when there is nothing, so the common case adds no
+ * key to the decoded record and nothing downstream has to special-case an empty
+ * object.
+ */
+function carry(
+  data: Record<string, unknown>,
+  known: readonly string[],
+): Readonly<Record<string, unknown>> | undefined {
+  let extra: Record<string, unknown> | undefined;
+  for (const key of Object.keys(data)) {
+    if (known.includes(key)) continue;
+    // `id` is the row's, not the blob's — the decoders take it as an argument.
+    // Carrying it would write a second, shadow copy into the payload.
+    if (key === 'id') continue;
+    extra ??= {};
+    extra[key] = data[key];
+  }
+  return extra;
+}
+
+/**
+ * The encoded blob, with the unrecognised fields put back.
+ *
+ * Carried first and known second, so a field this version understands always
+ * wins. The alternative — carried last — would let a stale value from a blob
+ * overwrite the edit the person just made, which is the bug this whole
+ * mechanism exists to prevent, arriving from the other direction.
+ */
+function withCarried(
+  encoded: Record<string, unknown>,
+  carried: Readonly<Record<string, unknown>> | undefined,
+): Record<string, unknown> {
+  return carried ? { ...carried, ...encoded } : encoded;
+}
+
 // ─────────────────────────────────────────────────────────── decoders ──
 
 export function decodeTxn(id: string, data: Record<string, unknown>): PersonalTxn {
@@ -125,6 +246,7 @@ export function decodeTxn(id: string, data: Record<string, unknown>): PersonalTx
     date: str(data.date) ?? '',
     loanId: str(data.loanId),
     recurringId: str(data.recurringId),
+    carried: carry(data, KNOWN_TXN),
   };
 }
 
@@ -152,6 +274,7 @@ export function decodeRecurring(id: string, data: Record<string, unknown>): Pers
     endDate: str(data.endDate),
     autoPost: bool(data.autoPost),
     active: data.active === undefined ? true : bool(data.active),
+    carried: carry(data, KNOWN_RECURRING),
   };
 }
 
@@ -165,6 +288,7 @@ export function decodeLoan(id: string, data: Record<string, unknown>): PersonalL
     note: str(data.note),
     startDate: str(data.startDate) ?? '',
     status: oneOf(data.status, ['active', 'closed'] as const, 'active'),
+    carried: carry(data, KNOWN_LOAN),
   };
 }
 
@@ -174,6 +298,7 @@ export function decodeBudget(id: string, data: Record<string, unknown>): Persona
     category: str(data.category),
     limit: money(data.limit),
     currency: str(data.currency) ?? 'INR',
+    carried: carry(data, KNOWN_BUDGET),
   };
 }
 
@@ -183,52 +308,64 @@ export function decodeBudget(id: string, data: Record<string, unknown>): Persona
 // it in the mirror overlay.
 
 export function encodeTxn(txn: Omit<PersonalTxn, 'id'>): Record<string, unknown> {
-  return {
-    kind: txn.kind,
-    amount: serialiseAmount(txn.amount),
-    currency: txn.currency,
-    category: txn.category,
-    note: txn.note,
-    date: txn.date,
-    loanId: txn.loanId,
-    recurringId: txn.recurringId,
-  };
+  return withCarried(
+    {
+      kind: txn.kind,
+      amount: serialiseAmount(txn.amount),
+      currency: txn.currency,
+      category: txn.category,
+      note: txn.note,
+      date: txn.date,
+      loanId: txn.loanId,
+      recurringId: txn.recurringId,
+    },
+    txn.carried,
+  );
 }
 
 export function encodeRecurring(rule: Omit<PersonalRecurring, 'id'>): Record<string, unknown> {
-  return {
-    txnKind: rule.txnKind,
-    amount: serialiseAmount(rule.amount),
-    currency: rule.currency,
-    category: rule.category,
-    note: rule.note,
-    cadence: rule.cadence,
-    interval: rule.interval,
-    secondDay: rule.secondDay,
-    anchorDate: rule.anchorDate,
-    nextDate: rule.nextDate,
-    endDate: rule.endDate,
-    autoPost: rule.autoPost,
-    active: rule.active,
-  };
+  return withCarried(
+    {
+      txnKind: rule.txnKind,
+      amount: serialiseAmount(rule.amount),
+      currency: rule.currency,
+      category: rule.category,
+      note: rule.note,
+      cadence: rule.cadence,
+      interval: rule.interval,
+      secondDay: rule.secondDay,
+      anchorDate: rule.anchorDate,
+      nextDate: rule.nextDate,
+      endDate: rule.endDate,
+      autoPost: rule.autoPost,
+      active: rule.active,
+    },
+    rule.carried,
+  );
 }
 
 export function encodeLoan(loan: Omit<PersonalLoan, 'id'>): Record<string, unknown> {
-  return {
-    direction: loan.direction,
-    counterpart: loan.counterpart,
-    principal: serialiseAmount(loan.principal),
-    currency: loan.currency,
-    note: loan.note,
-    startDate: loan.startDate,
-    status: loan.status,
-  };
+  return withCarried(
+    {
+      direction: loan.direction,
+      counterpart: loan.counterpart,
+      principal: serialiseAmount(loan.principal),
+      currency: loan.currency,
+      note: loan.note,
+      startDate: loan.startDate,
+      status: loan.status,
+    },
+    loan.carried,
+  );
 }
 
 export function encodeBudget(budget: Omit<PersonalBudget, 'id'>): Record<string, unknown> {
-  return {
-    category: budget.category,
-    limit: serialiseAmount(budget.limit),
-    currency: budget.currency,
-  };
+  return withCarried(
+    {
+      category: budget.category,
+      limit: serialiseAmount(budget.limit),
+      currency: budget.currency,
+    },
+    budget.carried,
+  );
 }
