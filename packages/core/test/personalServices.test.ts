@@ -238,6 +238,21 @@ describe('detectRecurring', () => {
     expect(found.amountVaries).toBe(false);
   });
 
+  it('finds the recurring chain when a same-merchant one-off is interleaved', () => {
+    const found = only(
+      detectRecurring([
+        entry({ id: 'jun', merchant: 'NETFLIX', date: '2026-06-22', amount: 64900n }),
+        entry({ id: 'gift', merchant: 'NETFLIX', date: '2026-07-05', amount: 200000n }),
+        entry({ id: 'jul', merchant: 'NETFLIX', date: '2026-07-22', amount: 64900n }),
+        entry({ id: 'aug', merchant: 'NETFLIX', date: '2026-08-22', amount: 64900n }),
+      ]),
+    );
+
+    expect(found.evidence.map((row) => row.id)).toEqual(['jun', 'jul', 'aug']);
+    expect(found.amount).toBe(64900n);
+    expect(found.amountVaries).toBe(false);
+  });
+
   it('separates the same merchant billed in two currencies', () => {
     const found = detectRecurring([
       ...series('SPOTIFY', ['2026-06-10', '2026-07-10', '2026-08-10'], { amount: 11900n }),

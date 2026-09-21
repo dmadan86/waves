@@ -177,11 +177,6 @@ const BANDS: readonly CadenceBand[] = [
 
 const YMD = /^\d{4}-\d{2}-\d{2}$/;
 
-/** Which band a gap falls in, or -1. */
-function bandFor(days: number): number {
-  return BANDS.findIndex((band) => days >= band.minDays && days <= band.maxDays);
-}
-
 /** Roughly how long one cycle is, for deciding a series has stopped. Rough is
  *  all that is wanted: the staleness test already allows two whole cycles. */
 function cycleDays(cadence: Cadence, interval: number): number {
@@ -297,58 +292,74 @@ function candidateFor(
     return build(key, group, service.cadence, interval, rows, 'low', true, service);
   }
 
-  const votes = new Array<number>(BANDS.length).fill(0);
-  const bands: number[] = [];
-  for (let i = 1; i < rows.length; i += 1) {
-    const band = bandFor(dayDelta(rows[i - 1]!.date, rows[i]!.date));
-    bands.push(band);
-    if (band >= 0) votes[band] = votes[band]! + 1;
-  }
-
-  let winner = -1;
-  let best = 0;
-  for (let i = 0; i < votes.length; i += 1) {
+  let winner: { band: CadenceBand; rows: readonly RecurringEntry[]; gaps: number } | null = null;
+  for (const band of BANDS) {
+    const rowsForBand = cadenceChain(rows, band);
+    const gaps = rowsForBand.length - 1;
+    if (gaps <= 0) continue;
     // Strictly greater, so an equal tally keeps the earlier band — the shortest
     // cycle, which is the guess that comes back soonest to be corrected.
-    if (votes[i]! > best) {
-      winner = i;
-      best = votes[i]!;
-    }
+    if (!winner || gaps > winner.gaps) winner = { band, rows: rowsForBand, gaps };
   }
-  if (winner === -1) return null;
-  if (best < 2 && !service) return null;
+  if (!winner) return null;
+  if (winner.gaps < 2 && !service) return null;
 
   // Only the entries that sit on the winning cadence count. A one-off purchase
   // from a merchant somebody also subscribes to would otherwise appear in the
   // evidence list, widen `amountVaries` and move the median — three separate
-  // ways for a row to look wrong to the one person able to check it.
-  const contributing: RecurringEntry[] = [];
-  const keep = new Set<number>();
-  for (let i = 0; i < bands.length; i += 1) {
-    if (bands[i] !== winner) continue;
-    keep.add(i);
-    keep.add(i + 1);
-  }
-  for (let i = 0; i < rows.length; i += 1) if (keep.has(i)) contributing.push(rows[i]!);
+  // ways for a row to look wrong to the one person able to check it. The search
+  // looks past intervening rows from the same merchant, because buying a gift
+  // card from Netflix on the 5th must not erase the subscription that still
+  // lands on the 22nd.
+  const contributing = winner.rows;
 
   // Percent of the largest, in whole bigints — no floats anywhere near money.
   const { low, high } = spread(contributing);
   if (high > 0n && (high - low) * 100n > tolerance * high) return null;
 
-  const band = BANDS[winner]!;
   const lastDate = contributing[contributing.length - 1]!.date;
-  if (today && stale(lastDate, today, band.cadence, band.interval)) return null;
+  if (today && stale(lastDate, today, winner.band.cadence, winner.band.interval)) return null;
 
   return build(
     key,
     group,
-    band.cadence,
-    band.interval,
+    winner.band.cadence,
+    winner.band.interval,
     contributing,
-    best >= 2 ? 'high' : 'medium',
+    winner.gaps >= 2 ? 'high' : 'medium',
     false,
     service,
   );
+}
+
+/** The longest row chain whose consecutive chosen dates fit one cadence band. */
+function cadenceChain(
+  rows: readonly RecurringEntry[],
+  band: CadenceBand,
+): readonly RecurringEntry[] {
+  const chains = rows.map((row) => [row]);
+  for (let i = 0; i < rows.length; i += 1) {
+    for (let j = 0; j < i; j += 1) {
+      const days = dayDelta(rows[j]!.date, rows[i]!.date);
+      if (days < band.minDays || days > band.maxDays) continue;
+      const candidate = [...chains[j]!, rows[i]!];
+      const current = chains[i]!;
+      if (
+        candidate.length > current.length ||
+        (candidate.length === current.length &&
+          compareStrings(candidate[0]!.date, current[0]!.date) < 0)
+      ) {
+        chains[i] = candidate;
+      }
+    }
+  }
+
+  return chains.reduce((best, chain) => {
+    if (chain.length !== best.length) return chain.length > best.length ? chain : best;
+    const bestLast = best[best.length - 1]!.date;
+    const chainLast = chain[chain.length - 1]!.date;
+    return compareStrings(chainLast, bestLast) > 0 ? chain : best;
+  }, chains[0]!);
 }
 
 /** The smallest and largest amount in a non-empty run. */
