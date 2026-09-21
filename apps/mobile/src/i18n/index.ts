@@ -3467,6 +3467,17 @@ export interface UiStrings {
     left: string;
     over: string;
     noBudgets: string;
+    /**
+     * The line under the amount in the budget sheet: what this category has
+     * actually cost over the last six months, so the cap being typed is a
+     * decision rather than a guess. Four forms, because "₹0" where a total
+     * should be reads as a broken screen rather than as "nothing" — and
+     * because one month of spend is a total worth showing but not an average
+     * worth claiming.
+     */
+    /** Opens the ledger filtered to this budget's category. */
+    /** The − / + buttons beside the amount; the step is in the label,
+     *  because a button that says only "lower" does not say by how much. */
     justMe: string;
     justMeHint: string;
     deleteConfirm: string;
@@ -3539,6 +3550,34 @@ export interface UiStrings {
     openEntry: string;
     ofExpected: string;
     everySince: string;
+    /**
+     * The Spending screen: one month split three ways, over a six-month chart.
+     * `everyday` is the third row — what was actually decided this month, once
+     * the bills are out — and reads "Spending" like the screen it is on.
+     */
+    spendingTitle: string;
+    spendingSub: string;
+    spendingEmpty: string;
+    spendingEmptyBody: string;
+    billsAndSubs: string;
+    everyday: string;
+    /**
+     * Never "saved", and never "left for savings". The app cannot see a savings
+     * account; all it knows is that some money was not spent. `leftOverHint`
+     * says so out loud, under the figure, every time.
+     */
+    leftOver: string;
+    leftOverHint: string;
+    /** Under a Bills row of zero, because a recurring rule cannot yet say that
+     *  it is a bill and somebody with rent to pay deserves to know why. */
+    noBillsMarked: string;
+    earned: string;
+    last6Months: string;
+    includeBills: string;
+    includeBillsHint: string;
+    /** Nothing is converted (ADR-003), so a ledger in more than one currency is
+     *  told which one it is reading. {currency} and {others}. */
+    onlyCurrency: string;
   };
   /** The marketplace of installable category and income-source packs. */
   packs: {
@@ -6386,6 +6425,24 @@ const en: UiStrings = {
     openEntry: 'Open this entry',
     ofExpected: 'of {amount}',
     everySince: 'Since {date}',
+    spendingTitle: 'Spending',
+    spendingSub:
+      'A month taken apart: what came in, what was always going out, and what you chose.',
+    spendingEmpty: 'Nothing here yet',
+    spendingEmptyBody:
+      'Add an expense or some income, and this is where the month gets taken apart.',
+    billsAndSubs: 'Bills & subs',
+    everyday: 'Spending',
+    leftOver: 'Left over',
+    leftOverHint:
+      'What was left of the income after everything above. Not the same as money saved — Waves cannot see a savings account.',
+    noBillsMarked: 'Nothing is marked as a bill yet, so it all counts as spending.',
+    earned: 'Earned',
+    last6Months: 'Last 6 months',
+    includeBills: 'Include bills',
+    includeBillsHint: 'A month the rent lands in looks nothing like one it does not.',
+    onlyCurrency:
+      'Only {currency} is counted here. Entries in {others} are left out — nothing is converted.',
   },
   packs: {
     title: 'Category packs',
@@ -9379,6 +9436,24 @@ const ta: UiStrings = {
     openEntry: 'இந்தப் பதிவைத் திற',
     ofExpected: '{amount} இல்',
     everySince: '{date} முதல்',
+    spendingTitle: 'Spending',
+    spendingSub:
+      'A month taken apart: what came in, what was always going out, and what you chose.',
+    spendingEmpty: 'Nothing here yet',
+    spendingEmptyBody:
+      'Add an expense or some income, and this is where the month gets taken apart.',
+    billsAndSubs: 'Bills & subs',
+    everyday: 'Spending',
+    leftOver: 'Left over',
+    leftOverHint:
+      'What was left of the income after everything above. Not the same as money saved — Waves cannot see a savings account.',
+    noBillsMarked: 'Nothing is marked as a bill yet, so it all counts as spending.',
+    earned: 'Earned',
+    last6Months: 'Last 6 months',
+    includeBills: 'Include bills',
+    includeBillsHint: 'A month the rent lands in looks nothing like one it does not.',
+    onlyCurrency:
+      'Only {currency} is counted here. Entries in {others} are left out — nothing is converted.',
   },
   packs: {
     title: 'வகைத் தொகுப்புகள்',
@@ -12243,6 +12318,24 @@ const hi: UiStrings = {
     openEntry: 'यह प्रविष्टि खोलें',
     ofExpected: '{amount} में से',
     everySince: '{date} से',
+    spendingTitle: 'Spending',
+    spendingSub:
+      'A month taken apart: what came in, what was always going out, and what you chose.',
+    spendingEmpty: 'Nothing here yet',
+    spendingEmptyBody:
+      'Add an expense or some income, and this is where the month gets taken apart.',
+    billsAndSubs: 'Bills & subs',
+    everyday: 'Spending',
+    leftOver: 'Left over',
+    leftOverHint:
+      'What was left of the income after everything above. Not the same as money saved — Waves cannot see a savings account.',
+    noBillsMarked: 'Nothing is marked as a bill yet, so it all counts as spending.',
+    earned: 'Earned',
+    last6Months: 'Last 6 months',
+    includeBills: 'Include bills',
+    includeBillsHint: 'A month the rent lands in looks nothing like one it does not.',
+    onlyCurrency:
+      'Only {currency} is counted here. Entries in {others} are left out — nothing is converted.',
   },
   packs: {
     title: 'श्रेणी पैक',
@@ -15551,6 +15644,24 @@ const ar: UiStrings = {
     openEntry: 'افتح هذا القيد',
     ofExpected: 'من {amount}',
     everySince: 'منذ {date}',
+    spendingTitle: 'Spending',
+    spendingSub:
+      'A month taken apart: what came in, what was always going out, and what you chose.',
+    spendingEmpty: 'Nothing here yet',
+    spendingEmptyBody:
+      'Add an expense or some income, and this is where the month gets taken apart.',
+    billsAndSubs: 'Bills & subs',
+    everyday: 'Spending',
+    leftOver: 'Left over',
+    leftOverHint:
+      'What was left of the income after everything above. Not the same as money saved — Waves cannot see a savings account.',
+    noBillsMarked: 'Nothing is marked as a bill yet, so it all counts as spending.',
+    earned: 'Earned',
+    last6Months: 'Last 6 months',
+    includeBills: 'Include bills',
+    includeBillsHint: 'A month the rent lands in looks nothing like one it does not.',
+    onlyCurrency:
+      'Only {currency} is counted here. Entries in {others} are left out — nothing is converted.',
   },
   packs: {
     title: 'حزم التصنيفات',
