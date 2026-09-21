@@ -43,7 +43,7 @@ function PersonalTransactionsScreenBody() {
   const { t, locale } = useStrings();
   const { txns } = usePersonalLedger();
   const params = useLocalSearchParams<{ category?: string }>();
-  const filter = params.category ?? null;
+  const filter = typeof params.category === 'string' ? params.category : null;
   const shown = filter ? txns.filter((txn) => txn.category === filter) : txns;
 
   // Group by day; the ledger already comes newest first, so days do too.

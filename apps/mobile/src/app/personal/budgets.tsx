@@ -388,31 +388,33 @@ function BudgetEditor({
             ) : null}
           </View>
 
-          <Pressable
-            accessibilityRole="link"
-            accessibilityLabel={t.personal.viewTransactions}
-            onPress={openTransactions}
-            style={({ pressed }) => ({
-              flexDirection: 'row',
-              alignItems: 'center',
-              alignSelf: 'center',
-              gap: theme.spacing.xs,
-              minHeight: 44,
-              paddingHorizontal: theme.spacing.sm,
-              opacity: pressed ? 0.7 : 1,
-            })}
-          >
-            <Text variant="caption" style={{ color: theme.color.brand }}>
-              {t.personal.viewTransactions}
-            </Text>
-            {/* A chevron *is* directional, unlike the stepper's glyphs, so this
-                one goes through the mirror. */}
-            <Ionicons
-              name={directionalIcon('chevron-forward')}
-              size={iconSize.md}
-              color={theme.color.brand}
-            />
-          </Pressable>
+          {measuring ? (
+            <Pressable
+              accessibilityRole="link"
+              accessibilityLabel={t.personal.viewTransactions}
+              onPress={openTransactions}
+              style={({ pressed }) => ({
+                flexDirection: 'row',
+                alignItems: 'center',
+                alignSelf: 'center',
+                gap: theme.spacing.xs,
+                minHeight: 44,
+                paddingHorizontal: theme.spacing.sm,
+                opacity: pressed ? 0.7 : 1,
+              })}
+            >
+              <Text variant="caption" style={{ color: theme.color.brand }}>
+                {t.personal.viewTransactions}
+              </Text>
+              {/* A chevron *is* directional, unlike the stepper's glyphs, so this
+                  one goes through the mirror. */}
+              <Ionicons
+                name={directionalIcon('chevron-forward')}
+                size={iconSize.md}
+                color={theme.color.brand}
+              />
+            </Pressable>
+          ) : null}
         </View>
 
         <Button label={t.personal.save} size="lg" fullWidth onPress={onSave} disabled={!canSave} />
