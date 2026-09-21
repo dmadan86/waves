@@ -566,7 +566,9 @@ interface StoredRow {
 }
 
 function serverWrite(stored: StoredRow | null, incoming: StampedData, now: number): StoredRow {
-  if (stored === null) return { data: incoming, seq: 1 };
+  if (stored === null) {
+    return { data: stampFields(null, incoming, { now, deviceId: 'server' }), seq: 1 };
+  }
   const adopted = adoptUnstampedEdits(stored.data, incoming, { now, deviceId: 'server' });
   return { data: mergeFields(stored.data, adopted, { now }), seq: stored.seq + 1 };
 }
@@ -607,6 +609,18 @@ describe('the server write path', () => {
       edit(held, { kind: 'subscription' }, 2001, 'tablet'),
       2001,
     );
+
+    expect(afterTablet.data.amount).toBe('699.00');
+    expect(afterTablet.data.kind).toBe('subscription');
+    expect(afterTablet.data.note).toBe('Netflix');
+  });
+
+  it('stamps creates, so the first two edits to a new row can merge', () => {
+    const row = serverWrite(null, { amount: '649.00', note: 'Netflix', kind: 'expense' }, 1000);
+    const held = row.data;
+
+    const afterPhone = serverWrite(row, { ...held, amount: '699.00' }, 2000);
+    const afterTablet = serverWrite(afterPhone, { ...held, kind: 'subscription' }, 2001);
 
     expect(afterTablet.data.amount).toBe('699.00');
     expect(afterTablet.data.kind).toBe('subscription');

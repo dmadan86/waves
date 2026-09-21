@@ -34,6 +34,7 @@ import {
   parseSplitParams,
   sanitiseCategoryMeta,
   sanitiseExpenseLocation,
+  stampFields,
   verifyClientShares,
   type FxRecord,
   type SplitParams,
@@ -1286,13 +1287,14 @@ export class SyncSession {
       if (readError) throw new HttpError(400, 'VALIDATION_FAILED', readError.message);
 
       if (!stored) {
+        const now = Date.now();
         const { error: insertError } = await this.caller.from('personal_records').insert({
           id: recordId,
           owner_user_id: this.profileId,
           record_kind: recordKind,
-          data,
+          data: stampFields(null, data, { now, deviceId: 'server' }),
           deleted_at: null,
-          updated_at: new Date().toISOString(),
+          updated_at: new Date(now).toISOString(),
         });
         if (!insertError) return { recordId };
         // Another request inserted the same id between our read and our write.
@@ -1338,15 +1340,17 @@ export class SyncSession {
     }
 
     // Contended past patience. Write it the old way rather than refusing it,
-    // for the reason in the doc comment above.
+    // for the reason in the doc comment above. Stamp the blob we leave behind so
+    // the next edit has a baseline for per-field merging again.
+    const now = Date.now();
     const { error } = await this.caller.from('personal_records').upsert(
       {
         id: recordId,
         owner_user_id: this.profileId,
         record_kind: recordKind,
-        data,
+        data: stampFields(null, data, { now, deviceId: 'server' }),
         deleted_at: null,
-        updated_at: new Date().toISOString(),
+        updated_at: new Date(now).toISOString(),
       },
       { onConflict: 'id' },
     );
