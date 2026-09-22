@@ -48,7 +48,7 @@ import {
 } from 'lucide-react';
 
 import { useStrings } from '@/i18n-context';
-import { useTheme, type ThemeChoice } from '@/lib/theme';
+import { THEME_HIDDEN, useTheme, type ThemeChoice } from '@/lib/theme';
 import { WaveMark } from '@/components/WaveMark';
 
 export enum Section {
@@ -220,7 +220,7 @@ export function Shell({
                 <span className="topbar-action-label">{t.dash.addExpense}</span>
               </Link>
 
-              <ThemeSwitch />
+              {THEME_HIDDEN ? null : <ThemeSwitch />}
 
               <Account
                 userName={userName}

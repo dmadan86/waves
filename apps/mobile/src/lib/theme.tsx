@@ -28,6 +28,20 @@ import { legacyKeysMigrated } from './legacyKeys';
 
 const KEY = 'waves.theme_scheme';
 
+/**
+ * Appearance is off the menu for now: the app is light, everywhere, always.
+ *
+ * Not a deletion. The dark palette, the picker screen and the stored
+ * preference all stay exactly as they were — this masks the choice at the one
+ * boundary every consumer reads it through, so nothing downstream needs to
+ * know the feature is away. Somebody who had already chosen dark keeps that
+ * choice on disk untouched, and gets it back the moment this is false.
+ *
+ * To bring it back: set this to `false`, and drop the two `THEME_HIDDEN`
+ * guards on the settings rows that link to `/settings/theme`.
+ */
+export const THEME_HIDDEN = true;
+
 /** What the user picked. Null means "follow the phone". */
 export enum SchemePreference {
   Light = 'light',
@@ -86,9 +100,13 @@ export function ThemePreferenceProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<ThemeValue>(
     () => ({
-      preference: stored,
-      resolved:
-        stored === SchemePreference.Dark
+      // Light, stated rather than implied. A null preference would mean "follow
+      // the phone", which is a *different* answer that goes dark at sunset —
+      // and the whole point of hiding this is that it does not.
+      preference: THEME_HIDDEN ? SchemePreference.Light : stored,
+      resolved: THEME_HIDDEN
+        ? 'light'
+        : stored === SchemePreference.Dark
           ? 'dark'
           : stored === SchemePreference.Light
             ? 'light'
@@ -96,7 +114,8 @@ export function ThemePreferenceProvider({ children }: { children: ReactNode }) {
       systemScheme,
       loading,
       setPreference,
-      overridden: stored !== null,
+      // Nothing to report as an override while there is nothing to override.
+      overridden: THEME_HIDDEN ? false : stored !== null,
     }),
     [stored, systemScheme, loading, setPreference],
   );

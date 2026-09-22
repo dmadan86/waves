@@ -44,7 +44,7 @@ import { ENDONYM } from '@/components/LanguagePicker';
 import { Section } from '@/components/Shell';
 import { useStrings } from '@/i18n-context';
 import { useAuth } from '@/lib/auth';
-import { useTheme } from '@/lib/theme';
+import { THEME_HIDDEN, useTheme } from '@/lib/theme';
 
 interface RowLink {
   href: string;
@@ -87,7 +87,11 @@ function Settings() {
       title: t.settings.sectionPreferences,
       rows: [
         { href: '/settings/language', title: t.settings.language, hint: ENDONYM[language] },
-        { href: '/settings/theme', title: t.theme.label, hint: appearance },
+        // Appearance is hidden while THEME_HIDDEN stands — see lib/theme. The
+        // page itself still answers on its own URL; it is simply not offered.
+        ...(THEME_HIDDEN
+          ? []
+          : [{ href: '/settings/theme', title: t.theme.label, hint: appearance }]),
         {
           href: '/settings/notifications',
           title: t.notifications.title,

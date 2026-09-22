@@ -42,11 +42,29 @@ const KEY = 'waves.theme';
 const DARK_QUERY = '(prefers-color-scheme: dark)';
 
 /**
+ * Appearance is off the menu for now: the web is light, everywhere, always.
+ * The mobile app hides it the same way, in its own `lib/theme`.
+ *
+ * Nothing is deleted — the dark token block, the picker page and whatever is
+ * in `localStorage` all survive untouched, and come back the moment this is
+ * false. What changes is the answer this module gives: `light`, stated, rather
+ * than the stored choice.
+ *
+ * Stated matters here more than on the phone. Leaving it at `system` would let
+ * `prefers-color-scheme` turn a dark laptop's page dark, which is the exact
+ * thing being hidden — so the boot script stamps `data-theme="light"`, which
+ * `tokens.css` is written to let win over a dark operating system.
+ */
+export const THEME_HIDDEN = true;
+
+/**
  * Applied before first paint by the inline script in `layout.tsx`, and again by
  * `setChoice` below. Kept as a string rather than written out in the layout so
  * there is exactly one copy of the rule.
  */
-export const THEME_BOOT_SCRIPT = `try{var c=localStorage.getItem('${KEY}');if(c==='light'||c==='dark'){document.documentElement.setAttribute('data-theme',c)}}catch(e){}`;
+export const THEME_BOOT_SCRIPT = THEME_HIDDEN
+  ? `try{document.documentElement.setAttribute('data-theme','light')}catch(e){}`
+  : `try{var c=localStorage.getItem('${KEY}');if(c==='light'||c==='dark'){document.documentElement.setAttribute('data-theme',c)}}catch(e){}`;
 
 /** Anyone watching the stored choice — this tab's own writes do not fire `storage`. */
 const watchers = new Set<() => void>();
@@ -123,9 +141,15 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<ThemeValue>(
     () => ({
-      choice,
+      choice: THEME_HIDDEN ? 'light' : choice,
       setChoice,
-      resolved: choice === 'system' ? (systemDark ? 'dark' : 'light') : choice,
+      resolved: THEME_HIDDEN
+        ? 'light'
+        : choice === 'system'
+          ? systemDark
+            ? 'dark'
+            : 'light'
+          : choice,
     }),
     [choice, setChoice, systemDark],
   );
