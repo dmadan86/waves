@@ -75,6 +75,7 @@ import {
   type MemberRow,
 } from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
+import { convertedTotal } from '@/lib/expenseConversion';
 import { useViewerId } from '@/lib/auth';
 import { canRemindFromBalanceRow } from '@/lib/balanceRowActions';
 import { router, useGoBack } from '@/lib/navigation';
@@ -103,6 +104,23 @@ enum Tab {
  * Comfortably more than a screenful on the tallest phone, so the window is never
  * something anybody can scroll to the end of in the frame it exists for.
  */
+/**
+ * The trip plan screen is not offered for now.
+ *
+ * Both of its doors live on this screen — the ⋯ menu's "Plan" row and the
+ * trip welcome card's "Set budget" — so one flag closes them together, and
+ * opening them again is deleting this line and the two `PLAN_HIDDEN` reads.
+ * The route itself is untouched: `/group/[id]/plan` still resolves, so a deep
+ * link or a back stack already holding it is not broken, it is simply not
+ * advertised.
+ *
+ * Worth knowing while it is hidden: that screen is the only place a trip
+ * budget can be set or read after the group is made (the create screen offers
+ * one up front, and group settings has no budget control), so hiding it hides
+ * the budget too.
+ */
+const PLAN_HIDDEN = true;
+
 const SWITCH_WINDOW = 24;
 
 /**
@@ -272,6 +290,7 @@ const ExpenseFeedRow = memo(function ExpenseFeedRow({
   contested,
   myMemberId,
   groupId,
+  groupCurrency,
   locale,
   dateFmt,
   t,
@@ -283,6 +302,8 @@ const ExpenseFeedRow = memo(function ExpenseFeedRow({
   contested: boolean;
   myMemberId: MemberId | null;
   groupId: string;
+  /** What this group counts in, so a foreign bill can say what it came to. */
+  groupCurrency: string;
   locale: string;
   dateFmt: Intl.DateTimeFormat;
   t: ReturnType<typeof useStrings>['t'];
@@ -316,6 +337,15 @@ const ExpenseFeedRow = memo(function ExpenseFeedRow({
             { locale },
           ).text,
         });
+  // What a foreign bill came to in the group's own money, beside what was
+  // actually handed over. Only ever from the rate stored on this expense, so
+  // the row cannot show a figure the balance disagrees with — see
+  // `convertedTotal`. Null for an expense already in the group's currency, and
+  // for a foreign one nobody has given a rate yet.
+  const converted = version ? convertedTotal(version, groupCurrency) : null;
+  const paidLineWithRate = converted
+    ? `${paidLine} (${formatParts(converted, { locale }).text})`
+    : paidLine;
   // What this one expense did to *your* balance: what you put in
   // beyond your share (you lent), or your share of what somebody
   // else put in (you borrowed). The row used to end in the
@@ -402,7 +432,7 @@ const ExpenseFeedRow = memo(function ExpenseFeedRow({
             </Row>
             <Text variant="caption" tone="muted" numberOfLines={1}>
               {[
-                paidLine,
+                paidLineWithRate,
                 expense.deleted_at ? t.expense.deleted : null,
                 (version?.version_no ?? 1) > 1
                   ? plural(locale, version!.version_no - 1, t.expense.editedTimes)
@@ -844,7 +874,7 @@ export default function GroupScreen() {
       onPress: () => setGroupPin.mutate({ groupId, pinned: !isPinned }),
     },
     { icon: 'pie-chart-outline', label: t.spending, route: `/group/${groupId}/insights` },
-    ...(groupData.type === 'trip'
+    ...(!PLAN_HIDDEN && groupData.type === 'trip'
       ? [
           {
             icon: 'map-outline',
@@ -889,6 +919,7 @@ export default function GroupScreen() {
           contested={openDisputes.has(item.expense.id)}
           myMemberId={ledger.myMemberId}
           groupId={groupId}
+          groupCurrency={currency}
           locale={locale}
           dateFmt={dateFmt}
           t={t}
@@ -1302,12 +1333,14 @@ export default function GroupScreen() {
                         size="sm"
                         onPress={() => router.push(`/group/${groupId}/settings`)}
                       />
-                      <Button
-                        label={t.extras.tripWelcomeSetBudget}
-                        size="sm"
-                        variant="secondary"
-                        onPress={() => router.push(`/group/${groupId}/plan`)}
-                      />
+                      {PLAN_HIDDEN ? null : (
+                        <Button
+                          label={t.extras.tripWelcomeSetBudget}
+                          size="sm"
+                          variant="secondary"
+                          onPress={() => router.push(`/group/${groupId}/plan`)}
+                        />
+                      )}
                       <Button
                         label={t.extras.tripWelcomeLater}
                         size="sm"

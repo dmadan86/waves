@@ -53,7 +53,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, ScrollView, View } from 'react-native';
 
-import { encodeTxn, toFxRecord } from '@waves/core';
+import { encodeTxn, toFxRecord, type ExpenseLocation } from '@waves/core';
 import { Button, Divider, iconSize, Row, Sheet, Text, useTheme } from '@waves/ui';
 
 import { DestinationPicker } from '@/components/DestinationPicker';
@@ -73,6 +73,7 @@ import { useViewerId } from '@/lib/auth';
 import { useDefaultCurrency } from '@/lib/currency';
 import { COMMON_CURRENCIES } from '@/lib/currencyChoices';
 import { usePersonalOffered } from '@/lib/guestGuard';
+import { captureLocationIfGranted } from '@/lib/location';
 import { router } from '@/lib/navigation';
 import { tripRateFor } from '@/lib/tripRates';
 import {
@@ -113,6 +114,32 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
   const [pickingCurrency, setPickingCurrency] = useState(false);
 
   /**
+   * Where this was paid, read while the sheet opens and never mentioned.
+   *
+   * `captureLocationIfGranted` is the only honest way to do this in a sheet
+   * meant to be one tap: it reads a fix *if* the person has already said yes on
+   * an explicit "Add location" somewhere else, and otherwise returns null
+   * without ever putting a system prompt on the screen (A43 — permission is
+   * asked for once, deliberately, never sprung on somebody mid-spend).
+   *
+   * Read when the sheet opens rather than when Save is pressed, so a GPS lock
+   * that takes a second takes it while the amount is being typed instead of
+   * standing between the tap and the saved expense. An expense saved before the
+   * fix lands simply carries none, exactly as it did before this existed.
+   */
+  const [place, setPlace] = useState<ExpenseLocation | null>(null);
+  useEffect(() => {
+    if (!visible) return;
+    let live = true;
+    void captureLocationIfGranted().then((fix) => {
+      if (live) setPlace(fix);
+    });
+    return () => {
+      live = false;
+    };
+  }, [visible]);
+
+  /**
    * Closing empties it.
    *
    * The sheet lives as long as the dashboard does — it is mounted there and
@@ -134,6 +161,7 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
     setChosenId(null);
     setPickerOpen(false);
     setPickingCurrency(false);
+    setPlace(null);
     currencyChosen.current = false;
     setCurrency(defaultCurrency);
     onClose();
@@ -348,6 +376,7 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
             group={chosen}
             amount={amount}
             currency={currency}
+            place={place}
             onSaved={closeAndReset}
           />
         ) : (
@@ -406,11 +435,15 @@ function QuickExpenseFooter({
   group,
   amount,
   currency,
+  place,
   onSaved,
 }: {
   group: GroupRow;
   amount: bigint;
   currency: string;
+  /** Where this was paid, when the reader had already granted location. Null
+   *  is the ordinary case and means the row simply carries no place. */
+  place: ExpenseLocation | null;
   onSaved: () => void;
 }) {
   const theme = useTheme();
@@ -493,6 +526,7 @@ function QuickExpenseFooter({
       // Tagged with where it is going, so picking it up again is one tap
       // rather than the "which group was this?" question a second time.
       targetGroupId: group.id,
+      location: place,
     });
     noteDestination(groupDestination(group.id));
     onSaved();
@@ -530,6 +564,7 @@ function QuickExpenseFooter({
         splitParams: { kind: 'equal' },
         participants,
         payers: { [myMemberId]: amount },
+        location: place,
         // The group's own rate when it has one for this pair, and nothing when
         // it does not. `undefined` is not "convert it somehow", it is "this row
         // is in the currency it says" — which the per-currency balances handle.
