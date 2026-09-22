@@ -15,29 +15,37 @@
  *
  * **Tap a step.** For the last nudge — rounding a bill up, adding the tip you
  * forgot. The step is read off the amount (`stepFor`), so it is ₹1 on a chai
- * and ₹100 on a flight, and the button says which, because a control that does
- * something different every time you look at it has to tell you what it is
- * about to do.
+ * and ₹100 on a flight. A line under the row used to say which, on the
+ * grounds that a control doing something different every time you look at it
+ * should say so; on the screen it was a third row of small grey text under a
+ * sheet that is meant to be one glance, and the figure moving when you press
+ * the button says the same thing faster. The spoken labels still name it,
+ * where there is no figure to watch.
  *
- * **Hold, or drag.** Holding a step repeats it, faster after the first second;
- * dragging the figure sideways scrubs it a step at a time. Both exist because
+ * **Hold a step.** Holding repeats it, faster after the first second, because
  * a stepper that only taps is forty taps away from rounding ₹1,300 up to
- * ₹1,500, and the keypad is the wrong tool for a change you are feeling your
- * way towards rather than one you already know.
+ * ₹1,500.
  *
- * None of the three is load-bearing on its own: the keypad alone does
- * everything, which is what keeps the gestures optional rather than something
- * a person has to discover to use the sheet.
+ * The figure itself is not a gesture surface. It was: a horizontal drag on it
+ * scrubbed the amount a step at a time. It came out because the figure is a
+ * text field on a sheet that is itself dragged to dismiss, which put three
+ * readings on one finger — place the caret, scrub the number, close the sheet
+ * — and the drag was the one nobody was reaching for. Nothing is lost: the
+ * hold covers the long distances it was for.
+ *
+ * Neither of the remaining two is load-bearing: the keypad alone does
+ * everything, which is what keeps the hold optional rather than something a
+ * person has to discover to use the sheet.
  */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { PanResponder, Pressable, View, type GestureResponderHandlers } from 'react-native';
+import { Pressable, View } from 'react-native';
 
 import { formatMinorInput, type CurrencyCode } from '@waves/core';
 import { AmountField, iconSize, Row, Text, useTheme } from '@waves/ui';
 
 import { useStrings } from '@/i18n';
-import { nudge, quickAdds, scrub, stepFor } from '@/lib/amountStep';
+import { nudge, quickAdds, stepFor } from '@/lib/amountStep';
 
 /** How long a hold waits before it starts repeating, and how fast it then goes.
     The first beat is slow enough that a normal tap is never read as a hold. */
@@ -78,72 +86,14 @@ export function QuickAmountRow({
   const theme = useTheme();
   const { t } = useStrings();
 
-  // The live amount, for the gesture handlers. A `PanResponder` is built once
-  // and keeps the closures it was built with, so reading the value through a
-  // ref is what stops a drag from starting over at whatever the amount was when
-  // the sheet opened.
+  // The live amount, for the repeating hold. The interval is started inside a
+  // press handler and keeps the closures it was started with, so reading the
+  // value through a ref is what stops each beat from working off the figure as
+  // it was when the finger landed.
   const latest = useRef(value);
   useEffect(() => {
     latest.current = value;
   }, [value]);
-
-  // Where the current drag began. Null between drags. The scrub is reckoned
-  // from this rather than accumulated, so a finger that goes out and comes back
-  // lands exactly where it started.
-  const dragStart = useRef<bigint | null>(null);
-  const [dragging, setDragging] = useState(false);
-
-  // The responder below is built once, so it would otherwise keep the props it
-  // closed over on the first render. These keep it pointed at the current ones.
-  const onChangeRef = useRef(onChange);
-  const currencyRef = useRef(currency);
-  useEffect(() => {
-    onChangeRef.current = onChange;
-    currencyRef.current = currency;
-  }, [onChange, currency]);
-
-  // The drag, built in an effect rather than in render.
-  //
-  // `packages/ui` builds its sheet-drag responder straight into a ref, which is
-  // fine there — this app additionally runs the React Compiler's lint, and it
-  // is right to object: a responder created in render reads `.current` out of
-  // refs that render has no business touching. Built here instead, the
-  // handlers land a frame after the first paint (nothing to drag before then
-  // anyway) and the callbacks may read the refs above freely, because by the
-  // time any of them fires, render is long over.
-  const [handlers, setHandlers] = useState<GestureResponderHandlers | null>(null);
-
-  useEffect(() => {
-    setHandlers(
-      PanResponder.create({
-        // Not on *start*: the figure is a text field and a tap on it belongs to
-        // the keyboard. Only a committed horizontal move becomes a drag — and
-        // it has to out-argue the sheet, which is dragged vertically to close.
-        onMoveShouldSetPanResponder: (_event, gesture) =>
-          Math.abs(gesture.dx) > 6 && Math.abs(gesture.dx) > Math.abs(gesture.dy),
-        onPanResponderGrant: () => {
-          dragStart.current = latest.current;
-          setDragging(true);
-        },
-        onPanResponderMove: (_event, gesture) => {
-          const from = dragStart.current;
-          if (from === null) return;
-          onChangeRef.current(scrub(from, gesture.dx, currencyRef.current));
-        },
-        // Both endings are the same ending: an interrupted drag is a drag that
-        // stopped, and leaving `dragStart` set would make the next one reckon
-        // from a figure that is no longer on screen.
-        onPanResponderRelease: () => {
-          dragStart.current = null;
-          setDragging(false);
-        },
-        onPanResponderTerminate: () => {
-          dragStart.current = null;
-          setDragging(false);
-        },
-      }).panHandlers,
-    );
-  }, []);
 
   // The hold. A timer rather than a gesture library: it is one button repeating
   // itself, and it has to stop on every way a press can end.
@@ -215,10 +165,8 @@ export function QuickAmountRow({
       <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
         {stepper(-1)}
 
-        {/* The figure and its unit, on one line and centred between the steps.
-            The pan lives on this middle block rather than the whole row, so a
-            finger that starts on a step button is pressing it, not scrubbing. */}
-        <View style={{ flex: 1, alignItems: 'center' }} {...(handlers ?? {})}>
+        {/* The figure and its unit, on one line and centred between the steps. */}
+        <View style={{ flex: 1, alignItems: 'center' }}>
           <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
             <AmountField currency={currency} value={value} onChange={onChange} size="hero" />
             <Pressable
@@ -278,13 +226,6 @@ export function QuickAmountRow({
           </Pressable>
         ))}
       </Row>
-
-      {/* What a step is worth, under the control that does it. It changes with
-          the amount, so it is said rather than left to be discovered — and it
-          doubles as the hint that the row can be dragged at all. */}
-      <Text variant="micro" tone={dragging ? 'brand' : 'faint'} align="center">
-        {t.quickExpense.stepHint.replace('{amount}', formatMinorInput(step, currency))}
-      </Text>
     </View>
   );
 }

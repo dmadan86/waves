@@ -44,7 +44,7 @@ import { CountryRow } from '@/components/CountryPicker';
 import { GroupCoverSheet } from '@/components/CoverEmojiPicker';
 import { InfoDisclosure } from '@/components/InfoDisclosure';
 import { TripDates } from '@/components/TripDates';
-import { SettlesInRow, TripRatesCard } from '@/components/TripRates';
+import { SettlesInRow, TripRatesCard, useGroupTripRateStore } from '@/components/TripRates';
 import { photoGateParam, photoGateStatus } from '@/lib/groupPhotoGate';
 import { canEditSettlementCurrency } from '@/lib/currencyChoices';
 import { canUploadGroupPhoto, removeGroupPhoto, uploadGroupPhoto } from '@/data/api';
@@ -151,6 +151,7 @@ export default function GroupSettingsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const groupId = id ?? '';
   const tripRates = useGroupFxRates(groupId);
+  const tripRateStore = useGroupTripRateStore(groupId);
 
   // Identity for "which member am I", from the session rather than the profile:
   // the session is on the device at launch, the profile is a fetch that lands
@@ -809,7 +810,7 @@ export default function GroupSettingsScreen() {
             }
           />
         </View>
-        <TripRatesCard groupId={groupId} groupCurrency={currency} canEdit={isAdmin} />
+        <TripRatesCard store={tripRateStore} groupCurrency={currency} canEdit={isAdmin} />
 
         {/* Trip dates and their nudges only mean anything on a trip, so the
             section appears only for that type and disappears the moment the

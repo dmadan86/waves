@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { randomUUID } from 'expo-crypto';
 import { useLocalSearchParams } from 'expo-router';
@@ -37,6 +37,8 @@ import { type PickedContact } from '@/components/ContactPicker';
 import { CoverEmojiPicker } from '@/components/CoverEmojiPicker';
 import { InfoDisclosure } from '@/components/InfoDisclosure';
 import { TripDates, type TripDatesValue } from '@/components/TripDates';
+import { TripRatesCard, type TripRateStore } from '@/components/TripRates';
+import { type TripRateRow } from '@/lib/tripRates';
 import { requestContacts } from '@/lib/contactPickerBridge';
 import { useCaptures, useCreateGroup, useGroup } from '@/data/hooks';
 import { assignCaptureHref } from '@/lib/captureAssign';
@@ -46,6 +48,16 @@ import { useGuestGuard } from '@/lib/guestGuard';
 import { useSync } from '@/sync';
 import { displayName, GroupType, isViewer } from '@/data/types';
 import { deviceCountry, fill, useStrings } from '@/i18n';
+
+/**
+ * A rate pinned before the group exists, with the currency it was quoted
+ * against. `TripRateRow` has no destination because a stored rate always
+ * converts into its group's own currency — which is exactly what cannot be
+ * assumed here, where that currency can still change under the rate.
+ */
+interface PendingRate extends TripRateRow {
+  readonly to: string;
+}
 
 /**
  * Where the icon comes from when the name has not said anything yet — which is
@@ -142,7 +154,7 @@ export default function NewGroupScreen() {
   // split, as a stack of named facts with their values, each one a tap from
   // being changed. Nothing here is required; the point is that the screen reads
   // as already filled in rather than as a form still to be completed.
-  const [openAttr, setOpenAttr] = useState<'kind' | 'dates' | 'budget' | null>(null);
+  const [openAttr, setOpenAttr] = useState<'kind' | 'dates' | 'budget' | 'rates' | null>(null);
 
   /**
    * Bring an unfolded row back into view.
@@ -184,6 +196,56 @@ export default function NewGroupScreen() {
   const [simplify, setSimplify] = useState<boolean | null>(null);
   // Optional starting budget for a trip, minor units. Zero is "not set".
   const [budget, setBudget] = useState<bigint>(0n);
+  /**
+   * Rates to pin on the group, collected before it exists.
+   *
+   * The same editor group settings uses (`TripRatesCard`), handed a store made
+   * of this state instead of one made of the mirror — there is no group id to
+   * write against until Create is pressed. They are written out afterwards,
+   * queued behind the create like the dates and the budget, so each lands once
+   * the group it belongs to is on disk.
+   *
+   * Worth asking for here rather than only later because the moment somebody
+   * knows they are about to spend in another currency is the moment they are
+   * making the group for the trip — and a rate pinned up front is the
+   * difference between every entry on that trip being counted the same way and
+   * a week of expenses that each need one.
+   */
+  const [pendingRates, setPendingRates] = useState<readonly PendingRate[]>([]);
+  // Only the ones still meaningful. `currency` is read from the profile and can
+  // arrive *after* this screen is already open — the account default landing a
+  // beat late — so a rate pinned in the meantime was quoted against a currency
+  // this group is no longer going to keep its books in. `GroupFxRateSet` never
+  // carries a destination (a pinned rate always converts into the group's own
+  // currency), so writing that ratio afterwards would file a THB→INR number as
+  // THB→AED and quietly misprice the whole trip. Filtered rather than cleared
+  // in an effect: it is the same list either way, and this cannot fight a
+  // render.
+  const liveRates = useMemo(
+    () => pendingRates.filter((row) => row.to === currency),
+    [pendingRates, currency],
+  );
+  const rateStore = useMemo<TripRateStore>(
+    () => ({
+      rows: liveRates,
+      pending: false,
+      set: async ({ from, num, den, source }) => {
+        setPendingRates((rows) => {
+          // Drop anything quoted against a currency this group has stopped
+          // using, at the same time as dropping the key being rewritten.
+          const without = rows.filter((row) => row.to === currency && row.from !== from);
+          // Null clears, which here means simply not carrying that currency.
+          if (num === null || den === null) return without;
+          return [...without, { from, to: currency, num, den, source: source ?? 'manual' }].sort(
+            (a, b) => (a.from < b.from ? -1 : a.from > b.from ? 1 : 0),
+          );
+        });
+      },
+    }),
+    [liveRates, currency],
+  );
+  const ratesSummary =
+    liveRates.length === 0 ? t.fx.addRate : liveRates.map((row) => row.from).join(', ');
   const [tripDates, setTripDates] = useState<TripDatesValue>(() => ({
     start_date: null,
     end_date: null,
@@ -391,6 +453,19 @@ export default function NewGroupScreen() {
         await mutate(MutationKind.GroupBudgetSet, groupId, {
           amountMinor: budget.toString(),
           currency,
+        });
+      }
+
+      // The rates, if any were pinned while the group was being made. Behind
+      // the create in the same ordered pipe as the dates and the budget, so
+      // each lands once the group exists. Admin-only at the RPC, which the
+      // maker of a group always is.
+      for (const row of liveRates) {
+        await mutate(MutationKind.GroupFxRateSet, groupId, {
+          from: row.from,
+          num: row.num.toString(),
+          den: row.den.toString(),
+          source: row.source,
         });
       }
 
@@ -746,6 +821,31 @@ export default function NewGroupScreen() {
                 ) : null}
               </View>
             ) : null}
+
+            {/* Rates for the currencies this group will be paid in. Offered on
+                every group rather than only a trip: a flat shared with somebody
+                paid abroad converts as much as a holiday does, and the group's
+                own currency is the only thing that decides whether a rate is
+                needed at all. */}
+            <View>
+              <DetailRow
+                icon="swap-horizontal-outline"
+                label={t.fx.tripRates}
+                // The codes themselves rather than a count: "THB, VND" says
+                // which trip this is for, where "2 rates" says only that there
+                // are some.
+                value={ratesSummary}
+                placeholder={liveRates.length === 0}
+                expanded={openAttr === 'rates'}
+                accessibilityLabel={`${t.fx.tripRates}, ${ratesSummary}`}
+                onPress={() => setOpenAttr((current) => (current === 'rates' ? null : 'rates'))}
+              />
+              {openAttr === 'rates' ? (
+                <View style={{ paddingBottom: theme.spacing.md }}>
+                  <TripRatesCard store={rateStore} groupCurrency={currency} canEdit />
+                </View>
+              ) : null}
+            </View>
 
             {/* The one row that is not tappable, because its control says the
                 value and changes it in the same gesture. A chevron here would
