@@ -1254,11 +1254,8 @@ export interface WebStrings {
     signInMethodsBody: string;
     signInFootnote: string;
     emailAddress: string;
-    emailPlaceholder: string;
     alreadyAdded: string;
     notAddedYet: string;
-    sendLink: string;
-    linkSent: string;
     link: string;
     linkProvider: string;
     linked: string;
@@ -2252,11 +2249,8 @@ const en: WebStrings = {
     signInFootnote:
       'Waves never asks for this to let you in, and never shares it with anyone in your groups. People see the name you choose, nothing else.',
     emailAddress: 'Email address',
-    emailPlaceholder: 'you@example.com',
     alreadyAdded: 'Already added: {value}',
     notAddedYet: 'Not added yet',
-    sendLink: 'Send me a link',
-    linkSent: 'Check {value} for the link that finishes it.',
     link: 'Link',
     linkProvider: 'Link {provider}',
     linked: 'Linked',
@@ -3283,11 +3277,8 @@ const ta: WebStrings = {
     signInFootnote:
       'உள்ளே விடுவதற்கு Waves இதை ஒருபோதும் கேட்பதில்லை, உங்கள் குழுக்களில் உள்ள யாருடனும் இதைப் பகிர்வதும் இல்லை. நீங்கள் தேர்ந்தெடுத்த பெயரை மட்டுமே மற்றவர்கள் பார்ப்பார்கள்.',
     emailAddress: 'மின்னஞ்சல் முகவரி',
-    emailPlaceholder: 'you@example.com',
     alreadyAdded: 'ஏற்கனவே சேர்க்கப்பட்டது: {value}',
     notAddedYet: 'இன்னும் சேர்க்கப்படவில்லை',
-    sendLink: 'எனக்கு ஒரு இணைப்பை அனுப்பு',
-    linkSent: 'அதை முடிக்கும் இணைப்புக்கு {value} ஐப் பாருங்கள்.',
     link: 'இணை',
     linkProvider: '{provider} ஐ இணை',
     linked: 'இணைக்கப்பட்டது',
@@ -4281,11 +4272,8 @@ const hi: WebStrings = {
     signInFootnote:
       'अंदर आने देने के लिए Waves यह कभी नहीं माँगता, और आपके समूह में किसी के साथ इसे साझा नहीं करता। लोग सिर्फ़ वही नाम देखते हैं जो आप चुनते हैं।',
     emailAddress: 'ईमेल पता',
-    emailPlaceholder: 'you@example.com',
     alreadyAdded: 'पहले से जुड़ा है: {value}',
     notAddedYet: 'अभी जोड़ा नहीं गया',
-    sendLink: 'मुझे एक लिंक भेजें',
-    linkSent: 'उसे पूरा करने वाले लिंक के लिए {value} देखें.',
     link: 'लिंक करें',
     linkProvider: '{provider} लिंक करें',
     linked: 'लिंक किया गया',
@@ -5338,11 +5326,8 @@ const ar: WebStrings = {
     signInFootnote:
       'لا يطلب Waves هذا ليسمح لك بالدخول، ولا يشاركه مع أحد في مجموعاتك. يرى الناس الاسم الذي تختاره، لا غير.',
     emailAddress: 'البريد الإلكتروني',
-    emailPlaceholder: 'you@example.com',
     alreadyAdded: 'مضاف بالفعل: {value}',
     notAddedYet: 'لم يُضَف بعد',
-    sendLink: 'أرسل لي رابطًا',
-    linkSent: 'تحقّق من {value} بحثًا عن الرابط الذي يُتمّ الأمر.',
     link: 'ربط',
     linkProvider: 'ربط {provider}',
     linked: 'مرتبط',

@@ -25,12 +25,15 @@
  * portability promise (ADR-012) is that what you put in comes back out, and a
  * field only one client can fill is a field the other client silently loses.
  *
- * Signing in is the guest-upgrade seam (ADR-006) and is deliberately read-only
- * about identities: the page says which ways in already exist and offers the
- * doors that are missing. Every one of those doors is the same call the sign-in
- * screen makes, which links to the account already signed in rather than
- * minting a second one — that is `planAuth`'s doing inside the client, and
- * nothing here may work around it.
+ * Signing in is the guest-upgrade seam (ADR-006), and the page is careful about
+ * it: it says which ways in already exist and offers only the doors that
+ * provably link to the account already signed in rather than minting a second
+ * one. `planAuth` makes that decision inside the client — Google and Apple go
+ * through `linkIdentity` for anybody with a session — and nothing here may work
+ * around it. The magic link is not offered for the same reason, and the note
+ * beside the provider rows says so: `signInWithOtp` signs into whichever account
+ * owns the address, which for a guest is the wrong one, and the anonymous
+ * session was the only way back to the right one.
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -59,15 +62,13 @@ import { waves } from '@/lib/waves';
  */
 const CURRENCIES = ['INR', 'USD', 'EUR', 'GBP', 'AED', 'SGD', 'AUD', 'CAD', 'JPY'] as const;
 
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
 export default function AccountPage() {
   return <AppFrame current={Section.Settings}>{() => <Account />}</AppFrame>;
 }
 
 function Account() {
   const { t } = useStrings();
-  const { session, isGuest, signInWithGoogle, signInWithApple, signInWithEmail } = useAuth();
+  const { session, isGuest, signInWithGoogle, signInWithApple } = useAuth();
 
   const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [name, setName] = useState('');
@@ -79,9 +80,6 @@ function Account() {
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [email, setEmail] = useState('');
-  const [sent, setSent] = useState(false);
-  const [linking, setLinking] = useState(false);
   const [linkError, setLinkError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -164,19 +162,6 @@ function Account() {
     [session],
   );
   const signedInAs = session?.user.email ?? session?.user.phone ?? null;
-
-  const sendLink = async (): Promise<void> => {
-    setLinking(true);
-    setLinkError(null);
-    try {
-      await signInWithEmail(email.trim());
-      setSent(true);
-    } catch (caught) {
-      setLinkError(friendlyError(caught, 'web.account.email', { fallback: t.errors.couldNotSave }));
-    } finally {
-      setLinking(false);
-    }
-  };
 
   const link = async (provider: 'google' | 'apple'): Promise<void> => {
     setLinkError(null);
@@ -330,38 +315,17 @@ function Account() {
           ))}
         </div>
 
-        {/* The email door, offered only when there is no address on the account
-            yet. Adding a second one is an email *change*, which is a different
-            promise from "another way in" and belongs behind its own confirmation
-            rather than behind a field that looks like this one. */}
-        {session && !session.user.email ? (
-          sent ? (
-            <p className="meta">{fill(t.account.linkSent, { value: email.trim() })}</p>
-          ) : (
-            <>
-              <label className="field">
-                <span className="field-label">{t.account.emailAddress}</span>
-                <input
-                  type="email"
-                  value={email}
-                  inputMode="email"
-                  autoComplete="email"
-                  placeholder={t.account.emailPlaceholder}
-                  onChange={(event) => setEmail(event.target.value)}
-                />
-              </label>
-              <button
-                type="button"
-                className="btn soft"
-                disabled={linking || !EMAIL.test(email.trim())}
-                onClick={() => void sendLink()}
-              >
-                {t.account.sendLink}
-              </button>
-            </>
-          )
-        ) : null}
-
+        {/* There is deliberately no "add an email" field here, and it is worth
+            saying why rather than leaving a gap somebody helpfully fills in.
+            `signInWithEmail` is a plain `signInWithOtp`, which signs into
+            whichever account owns that address — for a guest that is a
+            *different* account, and the anonymous session was the only way back
+            to the first one. That is the exact damage ADR-006 exists to prevent.
+            Linking an address in place is `updateUser({ email })` plus its own
+            confirmation, which the app has on the phone and the browser does not
+            yet. Until it does, the two doors above are the ones that provably
+            link rather than replace — `planAuth` decides that inside the client,
+            and it answers `linkIdentity` for anybody already signed in. */}
         {linkError ? <p className="error">{linkError}</p> : null}
         <p className="faint">{t.account.signInFootnote}</p>
       </section>
