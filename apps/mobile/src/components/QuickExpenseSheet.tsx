@@ -53,13 +53,19 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, ScrollView, View } from 'react-native';
 
-import { encodeTxn } from '@waves/core';
-import { Button, Callout, Divider, iconSize, Row, Sheet, Text, useTheme } from '@waves/ui';
+import { encodeTxn, toFxRecord } from '@waves/core';
+import { Button, Divider, iconSize, Row, Sheet, Text, useTheme } from '@waves/ui';
 
 import { DestinationPicker } from '@/components/DestinationPicker';
 import { QuickAmountRow } from '@/components/QuickAmountRow';
 import { GroupMark } from '@/components/GroupMark';
-import { useCreateCapture, useGroup, useGroups, useWriteExpense } from '@/data/hooks';
+import {
+  useCreateCapture,
+  useGroup,
+  useGroupFxRates,
+  useGroups,
+  useWriteExpense,
+} from '@/data/hooks';
 import { todayIso, useUpsertPersonalRecord } from '@/data/personal';
 import { groupLabel, isGhost, isViewer, type GroupRow } from '@/data/types';
 import { fill, useStrings } from '@/i18n';
@@ -68,6 +74,7 @@ import { useDefaultCurrency } from '@/lib/currency';
 import { COMMON_CURRENCIES } from '@/lib/currencyChoices';
 import { usePersonalOffered } from '@/lib/guestGuard';
 import { router } from '@/lib/navigation';
+import { tripRateFor } from '@/lib/tripRates';
 import {
   groupDestination,
   noteDestination,
@@ -136,8 +143,57 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
   const personalPicked = chosenId === 'personal';
   const chosen = chosenId && !personalPicked ? byId.get(chosenId) : undefined;
 
+  /**
+   * The long way round: the full form for wherever this is headed, carrying what
+   * has been typed.
+   *
+   * It lives here rather than in the footers because it is the one action whose
+   * meaning does not depend on being able to save — it works before a
+   * destination is picked, where there is no footer to put it in. Nothing chosen
+   * is not a dead end: a spend with no home is what the capture screen is for,
+   * and it takes the same amount and currency.
+   */
+  const handOff = (): void => {
+    onClose();
+    if (chosen) {
+      router.push({
+        pathname: '/group/[id]/add-expense',
+        params: {
+          id: chosen.id,
+          amount: amount.toString(),
+          currency,
+          // Says where this came from, which is what lets the form seed the
+          // amount rather than read it as a stale draft and drop it.
+          quick: '1',
+        },
+      });
+      return;
+    }
+    if (personalPicked) {
+      router.push({
+        pathname: '/personal/entry',
+        params: { amount: amount.toString(), currency, kind: 'expense' },
+      });
+      return;
+    }
+    router.push({ pathname: '/capture', params: { amount: amount.toString(), cur: currency } });
+  };
+
   return (
-    <Sheet visible={visible} onClose={onClose} title={t.quickExpense.title}>
+    <Sheet
+      visible={visible}
+      onClose={onClose}
+      title={t.quickExpense.title}
+      titleAction={
+        <Button
+          label={t.quickExpense.advanced}
+          accessibilityLabel={t.quickExpense.advancedLong}
+          variant="ghost"
+          size="sm"
+          onPress={handOff}
+        />
+      }
+    >
       <View style={{ gap: theme.spacing.lg }}>
         <QuickAmountRow
           currency={currency}
@@ -259,19 +315,13 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
         </View>
 
         {personalPicked ? (
-          <QuickPersonalFooter
-            amount={amount}
-            currency={currency}
-            onSaved={onClose}
-            onHandOff={onClose}
-          />
+          <QuickPersonalFooter amount={amount} currency={currency} onSaved={onClose} />
         ) : chosen ? (
           <QuickExpenseFooter
             group={chosen}
             amount={amount}
             currency={currency}
             onSaved={onClose}
-            onHandOff={onClose}
           />
         ) : (
           <Button
@@ -323,13 +373,11 @@ function QuickExpenseFooter({
   amount,
   currency,
   onSaved,
-  onHandOff,
 }: {
   group: GroupRow;
   amount: bigint;
   currency: string;
   onSaved: () => void;
-  onHandOff: () => void;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
@@ -337,6 +385,7 @@ function QuickExpenseFooter({
   const { members } = useGroup(group.id);
   const write = useWriteExpense(group.id);
   const createCapture = useCreateCapture();
+  const fxRates = useGroupFxRates(group.id);
   const [saving, setSaving] = useState(false);
 
   const rows = members.data;
@@ -366,57 +415,75 @@ function QuickExpenseFooter({
     [rows, viewerId],
   );
 
-  // Nothing is converted on its own (ADR-003). An amount in a currency this
-  // group does not keep its books in needs a rate, and the rate card — with the
-  // tier rules behind it — is the full form's. Saying so is better than saving
-  // a number that means something else.
-  //
-  // That is a reason to hold the money, not to refuse it. Refusing costs the
-  // one thing this sheet exists to protect: you paid, you are standing there,
-  // and the alternative is remembering the number later. So it is kept as a
-  // draft against this group instead (A34) — a real row that syncs, waits in
-  // Review, and opens the full form with its rate card when you come back.
-  const needsRate = currency !== group.default_currency;
-  // A draft is a personal row, so it needs neither members nor a payer: nothing
-  // is owed to anybody until it becomes an expense.
-  const canSave = needsRate
-    ? amount > 0n && !saving
-    : amount > 0n && participants.length > 0 && myMemberId !== null && !saving;
+  /**
+   * A foreign amount is saved, not refused — and converted only if the group
+   * already said how.
+   *
+   * ADR-003's rule is that nothing is converted *on its own*, and a rate the
+   * group pinned is not on its own: an admin entered one number for the trip
+   * (`TripRatesCard`), every entry in that currency is counted with it, and the
+   * winner is stored on the expense so moving the rate next week cannot
+   * re-price last week's dinner. So when the group has a rate for this
+   * currency, the sheet uses it and says it did.
+   *
+   * With no pinned rate the expense is still written, in the currency it was
+   * paid in. Balances are kept per currency and never summed across them
+   * (ADR-004), so an unconverted row is not a wrong number anywhere — it is a
+   * second currency standing on its own until somebody gives it a rate. That is
+   * strictly better than the sheet refusing: you paid, you are standing there,
+   * and this is the quick add.
+   */
+  const foreign = currency !== group.default_currency;
+  const tripRate = useMemo(
+    () => (foreign ? tripRateFor(fxRates.data, currency, group.default_currency) : null),
+    [foreign, fxRates.data, currency, group.default_currency],
+  );
 
-  const handOff = (): void => {
-    onHandOff();
-    router.push({
-      pathname: '/group/[id]/add-expense',
-      params: {
-        id: group.id,
-        amount: amount.toString(),
-        currency,
-        // Says where this came from, which is what lets the form seed the
-        // amount rather than read it as a stale draft and drop it.
-        quick: '1',
-      },
+  // The only thing the quick add insists on is something to save. No member
+  // check, no rate check, no participant check: every one of those was a way of
+  // telling somebody who has just paid for dinner that they have filled the
+  // form in wrong. The full form is one tap away through Advanced for the cases
+  // that genuinely need answering.
+  const canSave = amount > 0n && !saving;
+
+  const writeDraft = async (): Promise<void> => {
+    await createCapture.mutateAsync({
+      description: '',
+      expenseDate: new Date().toISOString().slice(0, 10),
+      currency,
+      amount,
+      // Tagged with where it is going, so picking it up again is one tap
+      // rather than the "which group was this?" question a second time.
+      targetGroupId: group.id,
     });
+    noteDestination(groupDestination(group.id));
+    onSaved();
+  };
+
+  const keepDraft = async (): Promise<void> => {
+    if (!canSave) return;
+    setSaving(true);
+    try {
+      await writeDraft();
+    } finally {
+      setSaving(false);
+    }
   };
 
   const save = async (): Promise<void> => {
     if (!canSave) return;
     setSaving(true);
     try {
-      if (needsRate) {
-        await createCapture.mutateAsync({
-          description: '',
-          expenseDate: new Date().toISOString().slice(0, 10),
-          currency,
-          amount,
-          // Tagged with where it is going, so picking it up again is one tap
-          // rather than the "which group was this?" question a second time.
-          targetGroupId: group.id,
-        });
-        noteDestination(groupDestination(group.id));
-        onSaved();
+      // An expense needs somebody to have paid it, and that somebody is the
+      // reader. Where their membership cannot be found there is no payer to
+      // record, so the money is kept against the group as a draft rather than
+      // the sheet arguing with them about it — the row syncs, shows on the
+      // group, and opens the full form when they come back. Silent on purpose:
+      // this is a state the reader did not cause and cannot act on.
+      if (!myMemberId || participants.length === 0) {
+        await writeDraft();
         return;
       }
-      if (!myMemberId) return;
       await write.mutateAsync({
         description: '',
         expenseDate: new Date().toISOString().slice(0, 10),
@@ -425,6 +492,10 @@ function QuickExpenseFooter({
         splitParams: { kind: 'equal' },
         participants,
         payers: { [myMemberId]: amount },
+        // The group's own rate when it has one for this pair, and nothing when
+        // it does not. `undefined` is not "convert it somehow", it is "this row
+        // is in the currency it says" — which the per-currency balances handle.
+        fx: tripRate ? toFxRecord(tripRate) : undefined,
         // The same engine the server runs, seeded with nothing yet — the id is
         // minted inside the write, so the preview here is only a check that the
         // split is computable at all.
@@ -439,28 +510,45 @@ function QuickExpenseFooter({
 
   return (
     <View style={{ gap: theme.spacing.sm }}>
-      {needsRate ? (
-        <Text variant="caption" tone="muted">
-          {fill(t.quickExpense.draftHint, { group: groupLabel(group) })}
-        </Text>
-      ) : myMemberId === null && participants.length > 0 ? (
-        // A grey button with no reason is a button somebody argues with. This
-        // is the one case the sheet cannot resolve on its own: the group has
-        // members, and none of them is you — so there is no payer to record.
-        <Callout tone="warning">{t.quickExpense.cannotSaveNoMember}</Callout>
-      ) : (
-        <Text variant="caption" tone="muted">
-          {fill(t.quickExpense.splitEqually, { count: String(participants.length) })}
-        </Text>
-      )}
-      <Button
-        label={needsRate ? t.quickExpense.saveDraft : t.quickExpense.save}
-        size="lg"
-        fullWidth
-        disabled={!canSave}
-        onPress={() => void save()}
-      />
-      <Button label={t.quickExpense.moreDetails} variant="secondary" fullWidth onPress={handOff} />
+      {/* What is about to happen, never why it cannot. Three sentences, and
+          each of them is about the money rather than about the form: it
+          converts at the group's own rate, or it stays in the currency it was
+          paid in until somebody gives it one, or it splits. */}
+      <Text variant="caption" tone="muted">
+        {tripRate
+          ? fill(t.quickExpense.atGroupRate, {
+              currency,
+              group: groupLabel(group),
+            })
+          : foreign
+            ? fill(t.quickExpense.keptInCurrency, {
+                currency,
+                group: groupLabel(group),
+              })
+            : fill(t.quickExpense.splitEqually, { count: String(participants.length) })}
+      </Text>
+      {/* Side by side, because they are two answers to the same question and
+          neither is the other's fallback. Save is the one with the weight;
+          Draft keeps its own, since in a foreign currency it is the only thing
+          that can happen here. */}
+      <Row style={{ gap: theme.spacing.sm }}>
+        <Button
+          label={t.quickExpense.saveDraft}
+          accessibilityLabel={t.quickExpense.saveDraftLong}
+          variant="secondary"
+          size="lg"
+          style={{ flex: 1 }}
+          disabled={!canSave}
+          onPress={() => void keepDraft()}
+        />
+        <Button
+          label={t.quickExpense.save}
+          size="lg"
+          style={{ flex: 1 }}
+          disabled={!canSave}
+          onPress={() => void save()}
+        />
+      </Row>
     </View>
   );
 }
@@ -478,12 +566,10 @@ function QuickPersonalFooter({
   amount,
   currency,
   onSaved,
-  onHandOff,
 }: {
   amount: bigint;
   currency: string;
   onSaved: () => void;
-  onHandOff: () => void;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
@@ -524,24 +610,16 @@ function QuickPersonalFooter({
       <Text variant="caption" tone="muted">
         {t.quickExpense.justMeHint}
       </Text>
+      {/* One button, not the pair the group footer shows: a draft is a capture,
+          and a capture waits in Review for a group to be chosen. Offering one
+          here would file a spend that is nobody else's business into the place
+          for spends that are. */}
       <Button
         label={t.quickExpense.save}
         size="lg"
         fullWidth
         disabled={!canSave}
         onPress={() => void save()}
-      />
-      <Button
-        label={t.quickExpense.moreDetails}
-        variant="secondary"
-        fullWidth
-        onPress={() => {
-          onHandOff();
-          router.push({
-            pathname: '/personal/entry',
-            params: { amount: amount.toString(), currency, kind: 'expense' },
-          });
-        }}
       />
     </View>
   );

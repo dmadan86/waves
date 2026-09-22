@@ -1590,8 +1590,8 @@ export interface UiStrings {
    * The quick expense sheet: the fastest path from "I just paid for something"
    * to a saved expense. An amount, a currency, a place to put it, and nothing
    * else — everything the full form asks about is one tap away through
-   * `moreDetails`, which carries what has already been typed rather than asking
-   * for it twice.
+   * `advanced`, beside the heading, which carries what has already been typed
+   * rather than asking for it twice.
    */
   quickExpense: {
     title: string;
@@ -1600,8 +1600,13 @@ export interface UiStrings {
     /** Opens the full Groups/People picker the voice review already uses —
      *  everywhere the five chips could not fit. */
     otherPlaces: string;
-    /** Leaves for the full form, carrying the amount, currency and place. */
-    moreDetails: string;
+    /** Beside the heading: leaves for the full form, carrying the amount,
+     *  currency and place. Named for what is on the other side rather than for
+     *  the leaving, because it is the same expense either way. */
+    advanced: string;
+    /** Its spoken form, which can afford the sentence a header-sized button
+     *  cannot. */
+    advancedLong: string;
     save: string;
     /** Under the chips, so the split is never a surprise: shared equally, and
      *  the reader paid it. {count} is how many people share it, reader included. */
@@ -1610,24 +1615,32 @@ export interface UiStrings {
     justMe: string;
     /** Nothing to suggest yet, so the picker is the way through. */
     noPlacesYet: string;
-    /** Under a Save that cannot fire, naming what is missing rather than
-     *  leaving a grey button to be argued with. */
-    cannotSaveNoMember: string;
+    /** Under Save when the amount is in a currency the group has pinned a rate
+     *  for: it converts with the group's own number, so the figure counted is
+     *  worked out rather than typed. {currency} and {group}. */
+    atGroupRate: string;
+    /** Under Save when the currency is not the group's and no rate is pinned:
+     *  it saves anyway, in the currency it was paid in, and counts towards the
+     *  group once somebody gives it a rate. {currency} and {group}. */
+    keptInCurrency: string;
     /** Under Save when the private ledger is the destination: no split, no
      *  payer, nobody owes anybody. */
     justMeHint: string;
-    /** The Save label when the amount is in a currency the group does not keep
-     *  its books in: it cannot become an expense without a rate, so it is kept
-     *  as a draft against that group instead of being refused. */
+    /** The button beside Save: keeps the amount against the chosen group
+     *  without becoming an expense. Always offered, and the only thing offered
+     *  when the currency is not the group's — nothing is converted for you
+     *  (ADR-003), so an expense cannot be written without a rate. Short because
+     *  it shares its line with Save. */
     saveDraft: string;
-    /** Under that button. {group} is where the draft is headed. */
-    draftHint: string;
+    /** Its spoken form, which says what "Draft" is short for. */
+    saveDraftLong: string;
+
     /** The stepper either side of the amount. {amount} is what one tap is
      *  worth, which changes with the size of the figure. */
     stepUp: string;
     stepDown: string;
-    /** Under the stepper, saying what a tap does — and hinting the figure can
-     *  be dragged sideways as well. {amount} is one step. */
+    /** Under the stepper, saying what a tap does and that holding repeats it.
+     *  {amount} is one step. */
     stepHint: string;
     /** The unit pill beside the figure. {currency} is the code it shows. */
     pickCurrency: string;
@@ -4773,19 +4786,20 @@ const en: UiStrings = {
     title: 'Quick expense',
     where: 'Where does it go?',
     otherPlaces: 'Others',
-    moreDetails: 'More details',
-    save: 'Save expense',
+    advanced: 'Advanced',
+    advancedLong: 'Advanced — open the full form with what you have entered',
+    save: 'Save',
     splitEqually: 'Split equally between {count} · you paid',
     justMe: 'Just me',
     noPlacesYet: 'Pick where this belongs',
-    cannotSaveNoMember:
-      'You are not a member of this group, so there is nobody to record as the payer.',
+    atGroupRate: "Counted at {group}'s own rate for {currency}.",
+    keptInCurrency: 'Saved in {currency}. Add a rate to count it towards {group}.',
     justMeHint: 'Goes to your private ledger — not split, and nobody sees it.',
-    saveDraft: 'Keep as a draft',
-    draftHint: 'Waits in {group} until you add the rate — nothing is converted for you.',
+    saveDraft: 'Draft',
+    saveDraftLong: 'Keep as a draft',
     stepUp: 'Add {amount}',
     stepDown: 'Take off {amount}',
-    stepHint: 'Steps of {amount} — hold, or drag the amount',
+    stepHint: 'Steps of {amount} — hold to go faster',
     pickCurrency: 'Currency, {currency}',
   },
   captures: {
@@ -7707,19 +7721,20 @@ const ta: UiStrings = {
     title: 'Quick expense',
     where: 'Where does it go?',
     otherPlaces: 'Others',
-    moreDetails: 'More details',
-    save: 'Save expense',
+    advanced: 'Advanced',
+    advancedLong: 'Advanced — open the full form with what you have entered',
+    save: 'Save',
     splitEqually: 'Split equally between {count} · you paid',
     justMe: 'Just me',
     noPlacesYet: 'Pick where this belongs',
-    cannotSaveNoMember:
-      'You are not a member of this group, so there is nobody to record as the payer.',
+    atGroupRate: "Counted at {group}'s own rate for {currency}.",
+    keptInCurrency: 'Saved in {currency}. Add a rate to count it towards {group}.',
     justMeHint: 'Goes to your private ledger — not split, and nobody sees it.',
-    saveDraft: 'Keep as a draft',
-    draftHint: 'Waits in {group} until you add the rate — nothing is converted for you.',
+    saveDraft: 'Draft',
+    saveDraftLong: 'Keep as a draft',
     stepUp: 'Add {amount}',
     stepDown: 'Take off {amount}',
-    stepHint: 'Steps of {amount} — hold, or drag the amount',
+    stepHint: 'Steps of {amount} — hold to go faster',
     pickCurrency: 'Currency, {currency}',
   },
   captures: {
@@ -10709,19 +10724,20 @@ const hi: UiStrings = {
     title: 'Quick expense',
     where: 'Where does it go?',
     otherPlaces: 'Others',
-    moreDetails: 'More details',
-    save: 'Save expense',
+    advanced: 'Advanced',
+    advancedLong: 'Advanced — open the full form with what you have entered',
+    save: 'Save',
     splitEqually: 'Split equally between {count} · you paid',
     justMe: 'Just me',
     noPlacesYet: 'Pick where this belongs',
-    cannotSaveNoMember:
-      'You are not a member of this group, so there is nobody to record as the payer.',
+    atGroupRate: "Counted at {group}'s own rate for {currency}.",
+    keptInCurrency: 'Saved in {currency}. Add a rate to count it towards {group}.',
     justMeHint: 'Goes to your private ledger — not split, and nobody sees it.',
-    saveDraft: 'Keep as a draft',
-    draftHint: 'Waits in {group} until you add the rate — nothing is converted for you.',
+    saveDraft: 'Draft',
+    saveDraftLong: 'Keep as a draft',
     stepUp: 'Add {amount}',
     stepDown: 'Take off {amount}',
-    stepHint: 'Steps of {amount} — hold, or drag the amount',
+    stepHint: 'Steps of {amount} — hold to go faster',
     pickCurrency: 'Currency, {currency}',
   },
   captures: {
@@ -13701,19 +13717,20 @@ const ar: UiStrings = {
     title: 'Quick expense',
     where: 'Where does it go?',
     otherPlaces: 'Others',
-    moreDetails: 'More details',
-    save: 'Save expense',
+    advanced: 'Advanced',
+    advancedLong: 'Advanced — open the full form with what you have entered',
+    save: 'Save',
     splitEqually: 'Split equally between {count} · you paid',
     justMe: 'Just me',
     noPlacesYet: 'Pick where this belongs',
-    cannotSaveNoMember:
-      'You are not a member of this group, so there is nobody to record as the payer.',
+    atGroupRate: "Counted at {group}'s own rate for {currency}.",
+    keptInCurrency: 'Saved in {currency}. Add a rate to count it towards {group}.',
     justMeHint: 'Goes to your private ledger — not split, and nobody sees it.',
-    saveDraft: 'Keep as a draft',
-    draftHint: 'Waits in {group} until you add the rate — nothing is converted for you.',
+    saveDraft: 'Draft',
+    saveDraftLong: 'Keep as a draft',
     stepUp: 'Add {amount}',
     stepDown: 'Take off {amount}',
-    stepHint: 'Steps of {amount} — hold, or drag the amount',
+    stepHint: 'Steps of {amount} — hold to go faster',
     pickCurrency: 'Currency, {currency}',
   },
   captures: {
