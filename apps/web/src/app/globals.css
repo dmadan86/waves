@@ -927,6 +927,13 @@
   .item[aria-pressed='true'] {
     background: var(--w-surface-muted);
   }
+  /* A settings row used as a radio — Appearance, and anything else that is a
+     list of exclusive choices rather than a list of destinations. The chosen
+     row is tinted, and the row also draws a mark: tint alone is a colour, and a
+     colour is not an answer to "which one is on". */
+  .item[aria-checked='true'] {
+    background: var(--w-brand-soft);
+  }
   .item + .item {
     border-top: 1px solid var(--w-border);
   }

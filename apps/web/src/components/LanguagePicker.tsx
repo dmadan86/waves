@@ -28,8 +28,15 @@ import { Language, LANGUAGES } from '@/i18n';
 import { useStrings } from '@/i18n-context';
 import { rememberLanguage } from '@/lib/language';
 
-/** What each language calls itself. Never translated — that is the point. */
-const ENDONYM: Record<Language, string> = {
+/**
+ * What each language calls itself. Never translated — that is the point.
+ *
+ * Exported because the settings row that leads to this picker has to say the
+ * current language too, and it has to say it in that language's own script: the
+ * person going looking for that row is the person who cannot read the rest of
+ * the screen.
+ */
+export const ENDONYM: Record<Language, string> = {
   [Language.En]: 'English',
   [Language.Ta]: 'தமிழ்',
   [Language.Hi]: 'हिन्दी',
