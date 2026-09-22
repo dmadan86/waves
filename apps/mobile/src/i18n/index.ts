@@ -1623,6 +1623,10 @@ export interface UiStrings {
      *  it saves anyway, in the currency it was paid in, and counts towards the
      *  group once somebody gives it a rate. {currency} and {group}. */
     keptInCurrency: string;
+    /** Under Save when there is nobody to record as the payer, so what gets
+     *  written is a draft rather than an expense. Says what will happen
+     *  instead of what is wrong: the sheet never refuses. {group}. */
+    keptForGroup: string;
     /** Under Save when the private ledger is the destination: no split, no
      *  payer, nobody owes anybody. */
     justMeHint: string;
@@ -4794,6 +4798,7 @@ const en: UiStrings = {
     noPlacesYet: 'Pick where this belongs',
     atGroupRate: "Counted at {group}'s own rate for {currency}.",
     keptInCurrency: 'Saved in {currency}. Add a rate to count it towards {group}.',
+    keptForGroup: 'Kept for {group} — open it to say who paid and how it splits.',
     justMeHint: 'Goes to your private ledger — not split, and nobody sees it.',
     saveDraft: 'Draft',
     saveDraftLong: 'Keep as a draft',
@@ -7728,6 +7733,7 @@ const ta: UiStrings = {
     noPlacesYet: 'Pick where this belongs',
     atGroupRate: "Counted at {group}'s own rate for {currency}.",
     keptInCurrency: 'Saved in {currency}. Add a rate to count it towards {group}.',
+    keptForGroup: 'Kept for {group} — open it to say who paid and how it splits.',
     justMeHint: 'Goes to your private ledger — not split, and nobody sees it.',
     saveDraft: 'Draft',
     saveDraftLong: 'Keep as a draft',
@@ -10730,6 +10736,7 @@ const hi: UiStrings = {
     noPlacesYet: 'Pick where this belongs',
     atGroupRate: "Counted at {group}'s own rate for {currency}.",
     keptInCurrency: 'Saved in {currency}. Add a rate to count it towards {group}.',
+    keptForGroup: 'Kept for {group} — open it to say who paid and how it splits.',
     justMeHint: 'Goes to your private ledger — not split, and nobody sees it.',
     saveDraft: 'Draft',
     saveDraftLong: 'Keep as a draft',
@@ -13722,6 +13729,7 @@ const ar: UiStrings = {
     noPlacesYet: 'Pick where this belongs',
     atGroupRate: "Counted at {group}'s own rate for {currency}.",
     keptInCurrency: 'Saved in {currency}. Add a rate to count it towards {group}.',
+    keptForGroup: 'Kept for {group} — open it to say who paid and how it splits.',
     justMeHint: 'Goes to your private ledger — not split, and nobody sees it.',
     saveDraft: 'Draft',
     saveDraftLong: 'Keep as a draft',

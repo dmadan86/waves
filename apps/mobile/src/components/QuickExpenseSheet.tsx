@@ -379,7 +379,14 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
             onResolvePeople={() => {
               setPickerOpen(false);
               closeAndReset();
-              router.push('/capture');
+              // Carrying what was typed, exactly as Advanced does. The reset
+              // above empties the sheet but not this closure, so the figure
+              // still travels — and arriving at a screen that had forgotten it
+              // is the thing this branch already fixes everywhere else.
+              router.push({
+                pathname: '/capture',
+                params: { amount: amount.toString(), cur: currency },
+              });
             }}
           />
         </Sheet>
@@ -472,6 +479,10 @@ function QuickExpenseFooter({
   // form in wrong. The full form is one tap away through Advanced for the cases
   // that genuinely need answering.
   const canSave = amount > 0n && !saving;
+  // Whether an actual expense can be written, as opposed to a draft. Not a
+  // gate on saving — nothing here refuses — only on what the sentence above
+  // the buttons is allowed to promise.
+  const canWriteExpense = myMemberId !== null && participants.length > 0;
 
   const writeDraft = async (): Promise<void> => {
     await createCapture.mutateAsync({
@@ -552,7 +563,12 @@ function QuickExpenseFooter({
                 currency,
                 group: groupLabel(group),
               })
-            : fill(t.quickExpense.splitEqually, { count: String(participants.length) })}
+            : // No payer to name means no expense to write, so Save keeps a
+              // draft instead (see `save`). "Split equally between 4" here
+              // would be a sentence about money that does not happen.
+              canWriteExpense
+              ? fill(t.quickExpense.splitEqually, { count: String(participants.length) })
+              : fill(t.quickExpense.keptForGroup, { group: groupLabel(group) })}
       </Text>
       {/* Side by side, because they are two answers to the same question and
           neither is the other's fallback. Save is the one with the weight;

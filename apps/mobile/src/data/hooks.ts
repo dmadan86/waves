@@ -439,11 +439,11 @@ export function useHomeSummary(profileId: string | null) {
       let lastActive = activityTime(group.created_at);
       for (const expense of expenses) {
         const row = expense as unknown as ExpenseRow;
-        // A deleted expense is not activity that should hold a slot, but
-        // deleting one is: the row keeps its `created_at`, so this counts the
-        // group as active either way, which is the honest reading of "somebody
-        // was in here".
-        const at = activityTime(row.created_at);
+        // Deleting one is activity too, and more recent than writing it was,
+        // so this takes the later of the two. Ordering a group by the creation
+        // date of an expense somebody has just removed would sink it below
+        // groups nobody has touched since.
+        const at = Math.max(activityTime(row.created_at), activityTime(row.deleted_at));
         if (at > lastActive) lastActive = at;
       }
       for (const settlement of settlements) {

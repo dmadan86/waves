@@ -50,6 +50,16 @@ import { displayName, GroupType, isViewer } from '@/data/types';
 import { deviceCountry, fill, useStrings } from '@/i18n';
 
 /**
+ * A rate pinned before the group exists, with the currency it was quoted
+ * against. `TripRateRow` has no destination because a stored rate always
+ * converts into its group's own currency — which is exactly what cannot be
+ * assumed here, where that currency can still change under the rate.
+ */
+interface PendingRate extends TripRateRow {
+  readonly to: string;
+}
+
+/**
  * Where the icon comes from when the name has not said anything yet — which is
  * the state this screen opens in, and the state a group called "Alex and Sam"
  * stays in. The kind of group is a real answer to "what is this", so it is a
@@ -201,26 +211,41 @@ export default function NewGroupScreen() {
    * difference between every entry on that trip being counted the same way and
    * a week of expenses that each need one.
    */
-  const [pendingRates, setPendingRates] = useState<readonly TripRateRow[]>([]);
+  const [pendingRates, setPendingRates] = useState<readonly PendingRate[]>([]);
+  // Only the ones still meaningful. `currency` is read from the profile and can
+  // arrive *after* this screen is already open — the account default landing a
+  // beat late — so a rate pinned in the meantime was quoted against a currency
+  // this group is no longer going to keep its books in. `GroupFxRateSet` never
+  // carries a destination (a pinned rate always converts into the group's own
+  // currency), so writing that ratio afterwards would file a THB→INR number as
+  // THB→AED and quietly misprice the whole trip. Filtered rather than cleared
+  // in an effect: it is the same list either way, and this cannot fight a
+  // render.
+  const liveRates = useMemo(
+    () => pendingRates.filter((row) => row.to === currency),
+    [pendingRates, currency],
+  );
   const rateStore = useMemo<TripRateStore>(
     () => ({
-      rows: pendingRates,
+      rows: liveRates,
       pending: false,
       set: async ({ from, num, den, source }) => {
         setPendingRates((rows) => {
-          const without = rows.filter((row) => row.from !== from);
+          // Drop anything quoted against a currency this group has stopped
+          // using, at the same time as dropping the key being rewritten.
+          const without = rows.filter((row) => row.to === currency && row.from !== from);
           // Null clears, which here means simply not carrying that currency.
           if (num === null || den === null) return without;
-          return [...without, { from, num, den, source: source ?? 'manual' }].sort((a, b) =>
-            a.from < b.from ? -1 : a.from > b.from ? 1 : 0,
+          return [...without, { from, to: currency, num, den, source: source ?? 'manual' }].sort(
+            (a, b) => (a.from < b.from ? -1 : a.from > b.from ? 1 : 0),
           );
         });
       },
     }),
-    [pendingRates],
+    [liveRates, currency],
   );
   const ratesSummary =
-    pendingRates.length === 0 ? t.fx.addRate : pendingRates.map((row) => row.from).join(', ');
+    liveRates.length === 0 ? t.fx.addRate : liveRates.map((row) => row.from).join(', ');
   const [tripDates, setTripDates] = useState<TripDatesValue>(() => ({
     start_date: null,
     end_date: null,
@@ -435,7 +460,7 @@ export default function NewGroupScreen() {
       // the create in the same ordered pipe as the dates and the budget, so
       // each lands once the group exists. Admin-only at the RPC, which the
       // maker of a group always is.
-      for (const row of pendingRates) {
+      for (const row of liveRates) {
         await mutate(MutationKind.GroupFxRateSet, groupId, {
           from: row.from,
           num: row.num.toString(),
@@ -810,7 +835,7 @@ export default function NewGroupScreen() {
                 // which trip this is for, where "2 rates" says only that there
                 // are some.
                 value={ratesSummary}
-                placeholder={pendingRates.length === 0}
+                placeholder={liveRates.length === 0}
                 expanded={openAttr === 'rates'}
                 accessibilityLabel={`${t.fx.tripRates}, ${ratesSummary}`}
                 onPress={() => setOpenAttr((current) => (current === 'rates' ? null : 'rates'))}
