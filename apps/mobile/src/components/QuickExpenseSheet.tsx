@@ -368,6 +368,9 @@ function QuickExpenseFooter({
         id: group.id,
         amount: amount.toString(),
         currency,
+        // Says where this came from, which is what lets the form seed the
+        // amount rather than read it as a stale draft and drop it.
+        quick: '1',
       },
     });
   };

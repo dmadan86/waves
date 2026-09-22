@@ -363,6 +363,8 @@ export default function AddExpenseScreen() {
     paymentMethod: capturePayment,
     expenseDate: captureExpenseDate,
     focus,
+    currency: handedCurrency,
+    quick,
   } = useLocalSearchParams<{
     id: string;
     expenseId?: string;
@@ -387,6 +389,16 @@ export default function AddExpenseScreen() {
     /** 'amount' when the editor was opened by tapping the total on the expense
      *  screen — the amount field takes focus and raises the keyboard on arrival. */
     focus?: string;
+    /** The currency already chosen elsewhere — the quick sheet hands one over
+     *  when it is not the group's own, which is exactly the case it cannot
+     *  save and this form can (it has the rate card). Without this the choice
+     *  would be silently dropped on the way in and typed twice. */
+    currency?: string;
+    /** '1' when the quick sheet handed this over. It seeds the amount the same
+     *  way a capture or a voice hand-off does — arriving here from that sheet
+     *  is an explicit choice to carry on with what was typed, and without a
+     *  marker the amount is read as a stale draft and dropped. */
+    quick?: string;
   }>();
   const groupId = id ?? '';
 
@@ -497,7 +509,12 @@ export default function AddExpenseScreen() {
     [members.data, viewerId],
   );
 
-  const [expenseCurrency, setExpenseCurrency] = useState<string | null>(null);
+  // Seeded from the hand-off when one came with a currency, so a foreign amount
+  // chosen in the quick sheet arrives here already foreign — which is the whole
+  // reason that sheet sent the person over: this form has the rate card.
+  const [expenseCurrency, setExpenseCurrency] = useState<string | null>(
+    handedCurrency && handedCurrency.length === 3 ? handedCurrency.toUpperCase() : null,
+  );
   const [fx, setFx] = useState<FxRecord | null>(null);
   // The currency is chosen from the header pill's sheet, the same shortlist the
   // capture screen offers. Picking one clears any rate typed for the old
@@ -603,11 +620,11 @@ export default function AddExpenseScreen() {
     setSeededFor(seedKey);
     const version = editing?.currentVersion;
     const draft = restored.draft;
-    if ((captureId || voice) && !editing) {
-      // Seeded from a capture (A34) or the voice quick-add: the passed amount and
-      // description fill the form ahead of any stale draft, since arriving here
-      // that way is an explicit choice to turn what was captured or spoken into
-      // this expense.
+    if ((captureId || voice || quick) && !editing) {
+      // Seeded from a capture (A34), the voice quick-add, or the quick expense
+      // sheet: the passed amount and description fill the form ahead of any
+      // stale draft, since arriving here that way is an explicit choice to turn
+      // what was captured, spoken or typed into this expense.
       setAmount(safeBigInt(captureAmount));
       const memberRows = members.data ?? [];
       // Voice may name who to split with. Match those names to members and keep
