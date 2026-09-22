@@ -534,7 +534,14 @@ export default function HomeScreen() {
             <TourTarget id="addExpense" style={{ flex: 1 }}>
               <HeroPillButton
                 icon="add"
-                label={t.addExpense}
+                // The short word, because the pill is half a phone wide and
+                // "Add expense" runs into the glyph on a 320pt screen in
+                // several of the four languages. The plus already says "add",
+                // so the noun on its own is not missing anything — but heard
+                // alone, out of context, "Expense" could be a heading, so a
+                // screen reader still gets the verb.
+                label={t.expenseShort}
+                spokenLabel={t.addExpense}
                 gradient={heroInk}
                 // The quick sheet, not the capture screen. Most spends know
                 // exactly where they belong and need an amount and a place,

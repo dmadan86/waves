@@ -150,6 +150,7 @@ export function HeroActionCircle({
  */
 export function HeroPillButton({
   label,
+  spokenLabel,
   icon,
   trailingIcon,
   gradient,
@@ -160,6 +161,14 @@ export function HeroPillButton({
   style,
 }: {
   label: string;
+  /**
+   * What a screen reader says, when the drawn label is shortened to fit.
+   * A pill at half a phone's width has room for "Expense" and not for "Add
+   * expense", and the word that fits is the weaker one to hear on its own —
+   * "Expense" could be a heading. Sighted readers get the short label in
+   * context; everyone else gets the whole verb.
+   */
+  spokenLabel?: string;
   icon?: keyof typeof Ionicons.glyphMap;
   trailingIcon?: keyof typeof Ionicons.glyphMap;
   gradient: readonly string[];
@@ -190,7 +199,7 @@ export function HeroPillButton({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={spokenLabel ?? label}
       accessibilityState={{ disabled: Boolean(disabled) }}
       disabled={disabled}
       onPress={onPress}
