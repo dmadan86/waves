@@ -1736,6 +1736,13 @@ function GroupRow({
     return () => run.stop();
   }, [shouldAnimate, anim]);
 
+  // What the row says under its title: who is in it, what is waiting, where it
+  // stands. Named once because both the caption and the label below need it —
+  // a screen reader is given the label instead of the text inside the row, so
+  // anything said only in the caption is not said quietly, it is not said.
+  // Two copies of this expression drifted once already.
+  const detail = pendingLabel ?? [memberLabel, draftLabel, statusLabel].filter(Boolean).join(' · ');
+
   return (
     <Animated.View
       style={{
@@ -1748,7 +1755,7 @@ function GroupRow({
         // Pinned is spoken, not just drawn: a screen reader never sees the
         // glyph below, so the state has to be in the label itself.
         accessibilityLabel={
-          pinned ? `${title}. ${t.group.pinnedBadge}. ${statusLabel}` : `${title}. ${statusLabel}`
+          pinned ? `${title}. ${t.group.pinnedBadge}. ${detail}` : `${title}. ${detail}`
         }
         onPress={onPress}
         onLongPress={onTogglePin}
@@ -1821,7 +1828,7 @@ function GroupRow({
               <AvatarStack names={memberNames} size={18} max={3} />
             ) : null}
             <Text variant="caption" tone="muted" numberOfLines={1} style={{ flex: 1 }}>
-              {pendingLabel ?? [memberLabel, draftLabel, statusLabel].filter(Boolean).join(' · ')}
+              {detail}
             </Text>
           </Row>
         </View>
