@@ -53,7 +53,7 @@ import { useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, ScrollView, View } from 'react-native';
 
-import { currencySymbol } from '@waves/core';
+import { currencySymbol, encodeTxn } from '@waves/core';
 import {
   AmountField,
   Button,
@@ -69,13 +69,20 @@ import {
 import { DestinationPicker } from '@/components/DestinationPicker';
 import { GroupMark } from '@/components/GroupMark';
 import { useGroup, useGroups, useWriteExpense } from '@/data/hooks';
+import { todayIso, useUpsertPersonalRecord } from '@/data/personal';
 import { groupLabel, isViewer, type GroupRow } from '@/data/types';
 import { fill, useStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
 import { useDefaultCurrency } from '@/lib/currency';
 import { COMMON_CURRENCIES } from '@/lib/currencyChoices';
+import { usePersonalOffered } from '@/lib/guestGuard';
 import { router } from '@/lib/navigation';
-import { groupDestination, noteDestination, useRecentDestinations } from '@/lib/recentDestinations';
+import {
+  groupDestination,
+  noteDestination,
+  PERSONAL_DESTINATION,
+  useRecentDestinations,
+} from '@/lib/recentDestinations';
 
 /** How many chips the row offers. More than this and the row stops being a
     glance and starts being a list — which is what the picker is for. */
@@ -90,7 +97,9 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
 
   const [amount, setAmount] = useState(0n);
   const [currency, setCurrency] = useState(defaultCurrency);
-  const [chosenId, setChosenId] = useState<string | null>(null);
+  // Null is "nothing picked yet"; 'personal' is the private ledger, which is
+  // not a group and does not split. Everything else is a group id.
+  const [chosenId, setChosenId] = useState<string | 'personal' | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickingCurrency, setPickingCurrency] = useState(false);
 
@@ -121,7 +130,9 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
     return out;
   }, [recents.keys, byId, rows]);
 
-  const chosen = chosenId ? byId.get(chosenId) : undefined;
+  const personalOffered = usePersonalOffered();
+  const personalPicked = chosenId === 'personal';
+  const chosen = chosenId && !personalPicked ? byId.get(chosenId) : undefined;
 
   return (
     <Sheet visible={visible} onClose={onClose} title={t.quickExpense.title}>
@@ -178,13 +189,44 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
           <Text variant="caption" tone="muted">
             {t.quickExpense.where}
           </Text>
-          {chips.length === 0 ? (
+          {chips.length === 0 && !personalOffered ? (
             <Text variant="caption" tone="faint">
               {t.quickExpense.noPlacesYet}
             </Text>
           ) : (
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <Row style={{ gap: theme.spacing.sm }}>
+                {/* The private ledger, first and always — a spend that is
+                    nobody else's business is the one destination that never
+                    depends on which groups you happen to be in. Hidden from a
+                    guest, who has no private ledger to write to. */}
+                {personalOffered ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: personalPicked }}
+                    onPress={() => setChosenId('personal')}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: theme.spacing.xs,
+                      paddingHorizontal: theme.spacing.md,
+                      paddingVertical: theme.spacing.sm,
+                      borderRadius: theme.radius.pill,
+                      backgroundColor: personalPicked
+                        ? theme.color.brandSoft
+                        : theme.color.surfaceMuted,
+                    }}
+                  >
+                    <Ionicons
+                      name="person-circle-outline"
+                      size={iconSize.sm}
+                      color={personalPicked ? theme.color.brand : theme.color.text}
+                    />
+                    <Text variant="caption" tone={personalPicked ? 'brand' : 'default'}>
+                      {t.quickExpense.justMe}
+                    </Text>
+                  </Pressable>
+                ) : null}
                 {chips.map((group) => (
                   <Pressable
                     key={group.id}
@@ -223,7 +265,14 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
           </Pressable>
         </View>
 
-        {chosen ? (
+        {personalPicked ? (
+          <QuickPersonalFooter
+            amount={amount}
+            currency={currency}
+            onSaved={onClose}
+            onHandOff={onClose}
+          />
+        ) : chosen ? (
           <QuickExpenseFooter
             group={chosen}
             amount={amount}
@@ -351,6 +400,11 @@ function QuickExpenseFooter({
     <View style={{ gap: theme.spacing.sm }}>
       {needsRate ? (
         <Callout tone="warning">{t.quickExpense.needsRate}</Callout>
+      ) : myMemberId === null && participants.length > 0 ? (
+        // A grey button with no reason is a button somebody argues with. This
+        // is the one case the sheet cannot resolve on its own: the group has
+        // members, and none of them is you — so there is no payer to record.
+        <Callout tone="warning">{t.quickExpense.cannotSaveNoMember}</Callout>
       ) : (
         <Text variant="caption" tone="muted">
           {fill(t.quickExpense.splitEqually, { count: String(participants.length) })}
@@ -364,6 +418,88 @@ function QuickExpenseFooter({
         onPress={() => void save()}
       />
       <Button label={t.quickExpense.moreDetails} variant="secondary" fullWidth onPress={handOff} />
+    </View>
+  );
+}
+
+/**
+ * Saving to the private ledger instead of a group.
+ *
+ * A different table, not a different shape of expense: `personal_records` holds
+ * an encrypted blob per record (A48), and nothing about it is split, owed or
+ * shared. So there is no participant count to state and no payer to name — the
+ * money simply left. The one thing this still owes the reader is the sentence
+ * saying so, because the row above it offers groups that do split.
+ */
+function QuickPersonalFooter({
+  amount,
+  currency,
+  onSaved,
+  onHandOff,
+}: {
+  amount: bigint;
+  currency: string;
+  onSaved: () => void;
+  onHandOff: () => void;
+}) {
+  const theme = useTheme();
+  const { t } = useStrings();
+  const upsert = useUpsertPersonalRecord();
+  const [saving, setSaving] = useState(false);
+
+  const canSave = amount > 0n && !saving;
+
+  const save = async (): Promise<void> => {
+    if (!canSave) return;
+    setSaving(true);
+    try {
+      await upsert.mutateAsync({
+        recordKind: 'txn',
+        data: encodeTxn({
+          kind: 'expense',
+          amount,
+          currency,
+          // Undescribed and uncategorised on purpose: the sheet asks for an
+          // amount and a place, and the ledger already names a record with no
+          // description by its category rather than inventing a word for it.
+          category: null,
+          note: null,
+          date: todayIso(),
+          loanId: null,
+          recurringId: null,
+        }),
+      });
+      noteDestination(PERSONAL_DESTINATION);
+      onSaved();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <View style={{ gap: theme.spacing.sm }}>
+      <Text variant="caption" tone="muted">
+        {t.quickExpense.justMeHint}
+      </Text>
+      <Button
+        label={t.quickExpense.save}
+        size="lg"
+        fullWidth
+        disabled={!canSave}
+        onPress={() => void save()}
+      />
+      <Button
+        label={t.quickExpense.moreDetails}
+        variant="secondary"
+        fullWidth
+        onPress={() => {
+          onHandOff();
+          router.push({
+            pathname: '/personal/entry',
+            params: { amount: amount.toString(), kind: 'expense' },
+          });
+        }}
+      />
     </View>
   );
 }

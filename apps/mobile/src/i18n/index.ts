@@ -1610,6 +1610,12 @@ export interface UiStrings {
     /** A currency the group does not keep its books in needs a rate, which is
      *  the full form's job (ADR-003 converts nothing on its own). */
     needsRate: string;
+    /** Under a Save that cannot fire, naming what is missing rather than
+     *  leaving a grey button to be argued with. */
+    cannotSaveNoMember: string;
+    /** Under Save when the private ledger is the destination: no split, no
+     *  payer, nobody owes anybody. */
+    justMeHint: string;
   };
   /** Captures (A34): an expense caught before it has a group, kept in a personal inbox. */
   captures: {
@@ -4752,6 +4758,9 @@ const en: UiStrings = {
     justMe: 'Just me',
     noPlacesYet: 'Pick where this belongs',
     needsRate: 'That currency needs a rate — open the full form.',
+    cannotSaveNoMember:
+      'You are not a member of this group, so there is nobody to record as the payer.',
+    justMeHint: 'Goes to your private ledger — not split, and nobody sees it.',
   },
   captures: {
     watching: 'Not checked yet',
@@ -7675,6 +7684,9 @@ const ta: UiStrings = {
     justMe: 'Just me',
     noPlacesYet: 'Pick where this belongs',
     needsRate: 'That currency needs a rate — open the full form.',
+    cannotSaveNoMember:
+      'You are not a member of this group, so there is nobody to record as the payer.',
+    justMeHint: 'Goes to your private ledger — not split, and nobody sees it.',
   },
   captures: {
     watching: 'இன்னும் பார்க்கவில்லை',
@@ -10666,6 +10678,9 @@ const hi: UiStrings = {
     justMe: 'Just me',
     noPlacesYet: 'Pick where this belongs',
     needsRate: 'That currency needs a rate — open the full form.',
+    cannotSaveNoMember:
+      'You are not a member of this group, so there is nobody to record as the payer.',
+    justMeHint: 'Goes to your private ledger — not split, and nobody sees it.',
   },
   captures: {
     watching: 'अभी तक देखा नहीं',
@@ -13647,6 +13662,9 @@ const ar: UiStrings = {
     justMe: 'Just me',
     noPlacesYet: 'Pick where this belongs',
     needsRate: 'That currency needs a rate — open the full form.',
+    cannotSaveNoMember:
+      'You are not a member of this group, so there is nobody to record as the payer.',
+    justMeHint: 'Goes to your private ledger — not split, and nobody sees it.',
   },
   captures: {
     watching: 'لم يتم التحقق بعد',
