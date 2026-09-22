@@ -17,7 +17,6 @@ import {
 import { balanceDeckSlides, dayNumber, type BalanceSlide, type GuestGate } from '@waves/core';
 import {
   Avatar,
-  AvatarStack,
   Button,
   directionalIcon,
   EmptyState,
@@ -41,6 +40,7 @@ import {
   usePinnedGroupIds,
   useSetGroupPin,
 } from '@/data/hooks';
+import { orderByActivity } from '@/lib/groupActivityOrder';
 import { orderByPin } from '@/lib/groupPinOrder';
 import { plural, useStrings, type UiStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
@@ -64,7 +64,7 @@ import { smsReaderInBuild } from '@/lib/smsFeature';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { RestorePrompt } from '@/components/RestorePrompt';
 import { useAvatarUrl } from '@/components/ProfileAvatar';
-import { displayName as memberName, groupLabel, GroupType } from '@/data/types';
+import { groupLabel, GroupType } from '@/data/types';
 import { usePullRefresh } from '@/lib/pullRefresh';
 
 /** Dashboard route with duplicate-safe jumps to stable primary destinations. */
@@ -153,15 +153,28 @@ export default function HomeScreen() {
   });
   const displayName = profile?.display_name ?? t.account.you;
 
-  // Pinned first, in the order they'd already have; everyone else, in the
-  // order they'd already have (see `orderByPin`). Applied *before* the
-  // GROUPS_PREVIEW slice below — the whole point of pinning is deciding which
-  // groups get the dashboard's limited slots, so a pin made on a group that
-  // would otherwise fall off the preview has to win that slot right here.
-  const list = useMemo(
-    () => orderByPin(groups.data ?? [], (group) => pinnedIds.has(group.id)),
-    [groups.data, pinnedIds],
-  );
+  /**
+   * Most recently used first, then pins in front of that.
+   *
+   * The order groups arrive in is `created_at` — the day you were *added* to
+   * one, which says nothing about whether you use it. With only
+   * GROUPS_PREVIEW slots that meant a trip that ended in March could hold a
+   * row for a year while the flat you settle up in weekly fell off the
+   * bottom, and pinning was the only cure. Ordering by when each ledger last
+   * moved lets a dormant group sink on its own and brings it straight back
+   * the moment somebody spends — without hiding anything, because a settled
+   * group is not a finished one.
+   *
+   * Both steps run *before* the slice: pinning and recency are precisely
+   * arguments about which groups deserve the limited slots, so they have to be
+   * settled while there are still rows to lose.
+   */
+  const list = useMemo(() => {
+    const byActivity = orderByActivity(groups.data ?? [], (group) =>
+      summary.lastActivityFor(group.id),
+    );
+    return orderByPin(byActivity, (group) => pinnedIds.has(group.id));
+  }, [groups.data, pinnedIds, summary]);
   // Two states, not one, because they deserve different answers.
   //
   // `hydrating` is "there is nothing to paint": the mirror has not been read off
@@ -531,11 +544,6 @@ export default function HomeScreen() {
             />
           )}
 
-          {/* The pager, kept with the balance it pages through rather than with
-                the buttons below — it is part of the number, not of the row of
-                things to press. */}
-          <HeroDots count={deck.length} scrollX={heroScrollX} snap={heroSnap} />
-
           {/* The two things you start from Home, on the panel and wearing the
                 group hero's pair of faces: a solid white pill for the expense —
                 the one unmistakable thing to press — and the same pill hollowed
@@ -555,6 +563,11 @@ export default function HomeScreen() {
               expense" collide with its own glyph and need shortening; letting
               it size to its words fixes the fit and matches the screen this
               was taken from. */}
+          {/* The pager rides in the row with the buttons, in the gap the two of
+              them leave between the pill and the disc. On a line of its own it
+              was a third band of hero to get past, and centred there it lined
+              up with nothing; here the row has one horizontal rhythm and the
+              dots sit in the middle of it. */}
           <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
             <TourTarget id="addExpense">
               <HeroPillButton
@@ -574,7 +587,13 @@ export default function HomeScreen() {
                 onLongPress={() => setQuickAddOpen(true)}
               />
             </TourTarget>
-            <Row style={{ marginLeft: 'auto' }}>
+            {/* Takes the slack, so the disc still sits on the shoulder and the
+                dots centre in what is left. */}
+            <View style={{ flex: 1, alignItems: 'center' }}>
+              <HeroDots count={deck.length} scrollX={heroScrollX} snap={heroSnap} />
+            </View>
+
+            <Row>
               <TourTarget id="addGroup">
                 <HeroActionCircle
                   // The mark carries its own plus, so there is no badge on it.
@@ -698,7 +717,6 @@ export default function HomeScreen() {
                       key={group.id}
                       title={groupLabel(group, members, viewerId)}
                       memberLabel={plural(locale, summary.memberCountFor(group.id), t.memberCount)}
-                      memberNames={members.map((member) => memberName(member, viewerId))}
                       draftLabel={
                         draftsByGroup.has(group.id)
                           ? plural(locale, draftsByGroup.get(group.id) ?? 0, t.draftCount)
@@ -1405,9 +1423,10 @@ function HeroBalance({
 }
 
 /**
- * The dot pager — the "swipe me" signal, rendered by the screen below the action
- * buttons rather than under the balance. A wide white pill marks the active slide
- * over a row of faint dots that read against any of the slide washes.
+ * The dot pager — the "swipe me" signal, rendered by the screen in the middle
+ * of the row of buttons under the balance it pages through. A wide white pill
+ * marks the active slide over a row of faint dots that read against any of the
+ * slide washes.
  *
  * The pill slides off the carousel's live `scrollX`, native-driven, so it tracks
  * the finger at 60fps exactly like the hero colour crossfade — not off a React
@@ -1444,6 +1463,11 @@ function HeroDots({
         })
       : 0;
   return (
+    // Centred in whatever room the caller gives it, which on the hero is the
+    // slack between the expense pill and the group disc. Nothing to align to an
+    // edge here: the row it sits in has a button at each end, and the middle is
+    // the only place a pager can be without looking like it belongs to one of
+    // them.
     <Row style={{ justifyContent: 'center' }}>
       <View style={{ width: trackWidth, height: DOT_SIZE }}>
         <Row style={{ position: 'absolute', left: 0, top: 0, gap }}>
@@ -1652,7 +1676,6 @@ function MetricSlide({
 function GroupRow({
   title,
   memberLabel,
-  memberNames,
   draftLabel,
   coverEmoji,
   balance,
@@ -1673,9 +1696,6 @@ function GroupRow({
 }: {
   title: string;
   memberLabel: string;
-  /** Who is in the group, for the faces beside the count. Names rather than
-   *  rows, because the stack draws initials and nothing here needs more. */
-  memberNames: readonly string[];
   /** "2 drafts" when this group has money caught but not yet entered, else
    *  null. Worth a place on the row because a draft is the one thing here that
    *  is waiting on the reader. */
@@ -1817,20 +1837,13 @@ function GroupRow({
               </View>
             ) : null}
           </Row>
-          {/* The faces, then the words. A count says how many; the faces say
-              who, which is what you actually recognise a group by — and it is
-              the same `AvatarStack` the contacts screen uses rather than a
-              second facepile with its own overlap. Hidden while a settlement is
-              waiting, because that line is a different sentence and the faces
-              would only crowd it. */}
-          <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
-            {pendingLabel === null && memberNames.length > 0 ? (
-              <AvatarStack names={memberNames} size={18} max={3} />
-            ) : null}
-            <Text variant="caption" tone="muted" numberOfLines={1} style={{ flex: 1 }}>
-              {detail}
-            </Text>
-          </Row>
+          {/* Words only. A stack of faces sat here for a while, on the theory
+              that you recognise a group by who is in it; on the row it read as
+              clutter beside a line that already says how many and where you
+              stand. */}
+          <Text variant="caption" tone="muted" numberOfLines={1}>
+            {detail}
+          </Text>
         </View>
         {pendingBalance ? (
           <Skeleton width={64} height={16} radius={6} animated={!reduceMotion} />

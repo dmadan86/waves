@@ -152,6 +152,18 @@ export interface SheetProps {
    * alone is a 40×4 target to pull.
    */
   title?: string;
+  /**
+   * One control on the title's line, at the far end — the sheet's own "and the
+   * long way round" escape, which belongs beside the heading rather than under
+   * the thing it is an alternative to.
+   *
+   * It is nested inside the header's close-on-tap surface, which is safe: a
+   * press lands on the innermost responder, so the control fires and the sheet
+   * does not close behind it. Keep it to one small control; the header is also
+   * the drag surface, and a row of them there reads as a toolbar nobody can
+   * pull.
+   */
+  titleAction?: ReactNode;
 }
 
 /**
@@ -166,6 +178,7 @@ function SheetCard({
   padded,
   style,
   title,
+  titleAction,
   onClose,
   closeLabel,
   dragHandlers,
@@ -176,6 +189,7 @@ function SheetCard({
   padded: boolean;
   style?: ViewStyle;
   title?: string;
+  titleAction?: ReactNode;
   onClose: () => void;
   closeLabel: string;
   /** `PanResponder` props for the header, so the sheet can be pulled down. */
@@ -230,7 +244,7 @@ function SheetCard({
           disabled={!title}
           style={{
             gap: theme.spacing.md,
-            marginBottom: handle || title ? theme.spacing.sm : 0,
+            marginBottom: handle || title || titleAction ? theme.spacing.sm : 0,
           }}
         >
           {handle ? (
@@ -244,7 +258,17 @@ function SheetCard({
               }}
             />
           ) : null}
-          {title ? <Text variant="heading">{title}</Text> : null}
+          {title || titleAction ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
+              {/* The heading takes the room and the action keeps its own width,
+                  so a long title truncates rather than pushing the control off
+                  the card. */}
+              <Text variant="heading" numberOfLines={1} style={{ flex: 1 }}>
+                {title ?? ''}
+              </Text>
+              {titleAction}
+            </View>
+          ) : null}
         </Pressable>
       </View>
       {children}
@@ -360,6 +384,7 @@ export function Sheet({
   style,
   closeLabel = 'Close',
   title,
+  titleAction,
 }: SheetProps) {
   const insets = useSafeAreaInsets();
   const reduceMotion = useReduceMotion();
@@ -444,6 +469,7 @@ export function Sheet({
                 padded={padded}
                 style={style}
                 title={title}
+                titleAction={titleAction}
                 onClose={onClose}
                 closeLabel={closeLabel}
                 dragHandlers={handlers}

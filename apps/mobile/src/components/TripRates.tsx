@@ -19,7 +19,7 @@
  * both are offered and either is turned into the single shape storage takes.
  */
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, ScrollView, TextInput, View } from 'react-native';
 
@@ -160,19 +160,73 @@ export function SettlesInRow({
  * bills will be converted with, so hiding them would be hiding the arithmetic —
  * but the rows do not open and the add button is not drawn.
  */
+/**
+ * Where the rates are kept, as the editor needs to see it.
+ *
+ * The card and its sheet used to reach for `useGroupFxRates` and
+ * `useSetGroupFxRate` themselves, which tied them to a group that already
+ * exists. The same controls are wanted on the screen where a group is being
+ * *made*, and there is no id to hang a mutation on until Create is pressed. So
+ * the pair now take the store instead of the group: settings hands over one
+ * backed by the mirror, and the create screen hands over one backed by a piece
+ * of its own state, which it writes out after the group exists.
+ *
+ * Deliberately not a React Query shape — `pending` is the only thing the
+ * editor needs to know beyond the rows themselves, and a local store has
+ * nothing to wait for.
+ */
+export interface TripRateStore {
+  readonly rows: readonly TripRateRow[];
+  /** Pin, move or clear one currency's rate. Null num/den clears it. */
+  set: (input: {
+    from: string;
+    num: bigint | null;
+    den: bigint | null;
+    source?: string;
+  }) => Promise<void>;
+  /** True while a write is in flight, for the buttons that must not double-fire. */
+  readonly pending: boolean;
+}
+
+/**
+ * The store settings uses: the group's own pinned rates, through the mirror.
+ *
+ * A hook rather than a value because it holds two of them, and because this is
+ * the only place that needs to know a rate lives on a group at all.
+ */
+export function useGroupTripRateStore(groupId: string): TripRateStore {
+  const rates = useGroupFxRates(groupId);
+  const setRate = useSetGroupFxRate(groupId);
+  // `data` is never null on a local read and the rows behind it are memoised,
+  // so this identity is stable — which is what keeps the store below from
+  // being a new object on every render.
+  const rows = rates.data;
+  const pending = setRate.isPending;
+  const mutateAsync = setRate.mutateAsync;
+  return useMemo(
+    () => ({
+      rows,
+      pending,
+      set: async (input) => {
+        await mutateAsync(input);
+      },
+    }),
+    [rows, pending, mutateAsync],
+  );
+}
+
 export function TripRatesCard({
-  groupId,
+  store,
   groupCurrency,
   canEdit,
 }: {
-  groupId: string;
+  store: TripRateStore;
   groupCurrency: string;
   canEdit: boolean;
 }) {
   const theme = useTheme();
   const { t, locale } = useStrings();
-  const rates = useGroupFxRates(groupId);
-  const rows: TripRateRow[] = rates.data ?? [];
+  const rows: readonly TripRateRow[] = store.rows;
   /** The currency being edited, or `''` for a rate that does not exist yet. */
   const [editing, setEditing] = useState<string | null>(null);
 
@@ -243,7 +297,7 @@ export function TripRatesCard({
 
       {editing !== null ? (
         <TripRateSheet
-          groupId={groupId}
+          store={store}
           groupCurrency={groupCurrency}
           editingFrom={editing}
           taken={rows.map((row) => row.from)}
@@ -278,13 +332,13 @@ export function TripRatesCard({
  * the number the whole trip is counted with; the per-bill editor keeps it.
  */
 function TripRateSheet({
-  groupId,
+  store,
   groupCurrency,
   editingFrom,
   taken,
   onClose,
 }: {
-  groupId: string;
+  store: TripRateStore;
   groupCurrency: string;
   /** The currency being edited, or `''` when pinning a new one. */
   editingFrom: string;
@@ -293,11 +347,7 @@ function TripRateSheet({
 }) {
   const theme = useTheme();
   const { t, locale } = useStrings();
-  const rates = useGroupFxRates(groupId);
-  const setRate = useSetGroupFxRate(groupId);
-
-  const existing =
-    editingFrom === '' ? null : tripRateFor(rates.data ?? [], editingFrom, groupCurrency);
+  const existing = editingFrom === '' ? null : tripRateFor(store.rows, editingFrom, groupCurrency);
 
   const [from, setFrom] = useState(editingFrom);
   // Which currency holds the bare 1. An existing rate opens the way its number
@@ -353,9 +403,9 @@ function TripRateSheet({
       // two rates where somebody meant to correct one. Clear the old key first,
       // in the same gesture.
       if (editingFrom !== '' && editingFrom !== rate.from) {
-        await setRate.mutateAsync({ from: editingFrom, num: null, den: null });
+        await store.set({ from: editingFrom, num: null, den: null });
       }
-      await setRate.mutateAsync({
+      await store.set({
         // Where the number came from rides with it: a fetched rate says so, a
         // typed one says it was typed, and the list can tell them apart later.
         from: rate.from,
@@ -374,13 +424,10 @@ function TripRateSheet({
     // whatever currency is showing after somebody changed their mind about it.
     const pinned = editingFrom !== '' ? editingFrom : foreign;
     if (!pinned) return;
-    setRate.mutate(
-      { from: pinned, num: null, den: null },
-      {
-        onSuccess: onClose,
-        onError: (caught) => setError(friendlyError(caught, '', 'tripRate.set')),
-      },
-    );
+    store
+      .set({ from: pinned, num: null, den: null })
+      .then(onClose)
+      .catch((caught: unknown) => setError(friendlyError(caught, '', 'tripRate.set')));
   };
 
   const turnAround = (): void => {
@@ -501,7 +548,7 @@ function TripRateSheet({
             label={t.fx.removeRate}
             variant="ghostDanger"
             size="sm"
-            disabled={setRate.isPending}
+            disabled={store.pending}
             onPress={remove}
           />
         ) : null}
@@ -521,12 +568,7 @@ function TripRateSheet({
         </Text>
       )}
 
-      <Button
-        label={t.common.save}
-        fullWidth
-        disabled={!rate || setRate.isPending}
-        onPress={save}
-      />
+      <Button label={t.common.save} fullWidth disabled={!rate || store.pending} onPress={save} />
     </Sheet>
   );
 }

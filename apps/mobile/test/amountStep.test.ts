@@ -10,14 +10,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import {
-  majorUnit,
-  nudge,
-  POINTS_PER_STEP,
-  quickAdds,
-  scrub,
-  stepFor,
-} from '../src/lib/amountStep';
+import { majorUnit, nudge, quickAdds, stepFor } from '../src/lib/amountStep';
 
 /** ₹, to the minor unit: 130000 is ₹1,300.00. */
 const INR = 'INR';
@@ -76,40 +69,6 @@ describe('a tap of the stepper', () => {
 
   it('starts a fresh sheet at one major unit', () => {
     expect(nudge(0n, 1, INR)).toBe(100n);
-  });
-});
-
-describe('dragging the amount', () => {
-  it('does nothing until the finger has travelled far enough to mean it', () => {
-    expect(scrub(130000n, POINTS_PER_STEP - 1, INR)).toBe(130000n);
-  });
-
-  it('moves one step per travel unit', () => {
-    expect(scrub(130000n, POINTS_PER_STEP * 3, INR)).toBe(133000n);
-  });
-
-  it('goes back down the way it came', () => {
-    expect(scrub(130000n, -POINTS_PER_STEP * 2, INR)).toBe(128000n);
-  });
-
-  it('lands exactly where it began when the finger returns', () => {
-    // Reckoned from the start of the drag, not accumulated frame by frame: an
-    // accumulating version drifts, and a drifted amount is a wrong number with
-    // nobody to blame for it.
-    const start = 130000n;
-    const out = scrub(start, POINTS_PER_STEP * 5, INR);
-    expect(out).not.toBe(start);
-    expect(scrub(start, 0, INR)).toBe(start);
-  });
-
-  it('keeps the step the amount started with, so it cannot change under the finger', () => {
-    // ₹1,300 steps by ₹10. Dragging far enough to pass ₹10,000 must not switch
-    // to ₹100 mid-gesture, or the finger's distance stops meaning one thing.
-    expect(scrub(130000n, POINTS_PER_STEP * 900, INR)).toBe(130000n + 900n * 1000n);
-  });
-
-  it('will not drag below nothing', () => {
-    expect(scrub(1000n, -POINTS_PER_STEP * 50, INR)).toBe(0n);
   });
 });
 

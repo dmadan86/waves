@@ -24,7 +24,8 @@
  * is the thing that makes a stepper feel broken rather than helpful.
  *
  * Everything here is in integer minor units, like the rest of the ledger, and
- * everything is pure — the gestures on top are only ways of calling it.
+ * everything is pure — the taps and the repeating hold on top are only ways of
+ * calling it.
  */
 
 import { minorUnitExponent, type CurrencyCode } from '@waves/core';
@@ -70,28 +71,6 @@ export function nudge(value: bigint, direction: 1 | -1, currency: CurrencyCode):
   // An amount cannot go below nothing, and a sheet whose figure can be driven
   // negative is a sheet that can save a negative expense.
   return next < 0n ? 0n : next;
-}
-
-/** How far a finger travels, in points, for one step of the drag. */
-export const POINTS_PER_STEP = 12;
-
-/**
- * The amount a horizontal drag of `dx` points produces.
- *
- * Reckoned from where the drag started rather than applied frame by frame, so
- * a finger that goes out and comes back lands exactly where it began — an
- * accumulating version drifts, and drift on an amount is a wrong number nobody
- * can account for.
- *
- * The step is the one the *starting* amount had, so it does not change under
- * the finger mid-drag.
- */
-export function scrub(start: bigint, dx: number, currency: CurrencyCode): bigint {
-  const steps = BigInt(Math.trunc(dx / POINTS_PER_STEP));
-  if (steps === 0n) return start;
-  const step = stepFor(start, currency);
-  const moved = start + steps * step;
-  return moved < 0n ? 0n : moved;
 }
 
 /**
