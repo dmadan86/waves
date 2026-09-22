@@ -108,14 +108,31 @@ export function useHeroCrossfade(active: boolean) {
  */
 export function HeroActionCircle({
   icon,
+  glyph,
   label,
   onPress,
   disabled,
+  badge = false,
 }: {
-  icon: keyof typeof Ionicons.glyphMap;
+  icon?: keyof typeof Ionicons.glyphMap;
+  /** A drawn mark in place of an Ionicon, for the one action the set has no
+   *  glyph for. Given both, this wins. */
+  glyph?: ReactNode;
   label: string;
   onPress: () => void;
   disabled?: boolean;
+  /**
+   * A small plus on the disc's shoulder, for an action that *makes* something
+   * rather than opening it.
+   *
+   * It is drawn rather than picked because Ionicons has no "add a group" glyph:
+   * the only one carrying a plus is `person-add`, a single figure, and this app
+   * already means something specific and different by adding a person (a 1:1
+   * ledger with them). Pointing that icon at "new group" would name the wrong
+   * feature — so the group glyph keeps its meaning and the plus is composed on
+   * top, which is the same badge the friends list wears for a merged guest.
+   */
+  badge?: boolean;
 }) {
   const theme = useTheme();
   return (
@@ -135,7 +152,31 @@ export function HeroActionCircle({
         opacity: disabled ? 0.5 : pressed ? 0.7 : 1,
       })}
     >
-      <Ionicons name={icon} size={iconSize.lg} color={theme.color.onBrand} />
+      {glyph ?? (
+        <Ionicons name={icon ?? 'ellipse'} size={iconSize.lg} color={theme.color.onBrand} />
+      )}
+      {badge ? (
+        // Opaque, on the panel's own ink, so the plus reads as a mark on the
+        // disc rather than a glyph floating over the wash behind it. Decorative:
+        // the button's label already says what it makes.
+        <View
+          accessible={false}
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            right: -1,
+            bottom: -1,
+            width: 16,
+            height: 16,
+            borderRadius: 8,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: theme.color.onBrand,
+          }}
+        >
+          <Ionicons name="add" size={12} color={theme.color.brand} />
+        </View>
+      ) : null}
     </Pressable>
   );
 }
@@ -150,30 +191,60 @@ export function HeroActionCircle({
  */
 export function HeroPillButton({
   label,
+  spokenLabel,
   icon,
   trailingIcon,
   gradient,
   onPress,
+  onLongPress,
   disabled,
+  variant = 'solid',
   style,
 }: {
   label: string;
+  /**
+   * What a screen reader says, when the drawn label is deliberately shorter
+   * than the action. "Expense" under a plus is unambiguous to look at and
+   * weak to hear on its own — it could be a heading. Sighted readers get the
+   * short word in context; everyone else gets the verb.
+   */
+  spokenLabel?: string;
   icon?: keyof typeof Ionicons.glyphMap;
   trailingIcon?: keyof typeof Ionicons.glyphMap;
   gradient: readonly string[];
   onPress: () => void;
+  /**
+   * A second, faster way into the same thing — the dashboard's add-expense
+   * raises the type/scan/speak sheet on a hold. Given here rather than left to
+   * the caller to wrap, because a hold on a `Pressable` is the pill's own
+   * gesture and wrapping it in another pressable would eat the tap.
+   */
+  onLongPress?: () => void;
   disabled?: boolean;
+  /**
+   * `outline` is the same pill with the fill taken out: white ink inside a
+   * translucent white hairline — the face the group hero's "reject" already
+   * wears beside its solid "confirm". It is what a *second* labelled action on
+   * a panel gets, because two white pills side by side are two primaries and
+   * leave nothing for the eye to land on first.
+   */
+  variant?: 'solid' | 'outline';
   style?: ViewStyle;
 }) {
   const theme = useTheme();
-  const ink = gradient[0] ?? theme.color.brand;
+  const solid = variant === 'solid';
+  // Filled, the ink is the wash's own darkest stop on white; hollow, the pill
+  // *is* the wash, so the ink is the white everything else on the panel uses.
+  const ink = solid ? (gradient[0] ?? theme.color.brand) : theme.color.onBrand;
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={spokenLabel ?? label}
       accessibilityState={{ disabled: Boolean(disabled) }}
       disabled={disabled}
       onPress={onPress}
+      onLongPress={onLongPress}
+      delayLongPress={250}
       style={({ pressed }) => ({
         flexDirection: 'row',
         alignItems: 'center',
@@ -182,7 +253,9 @@ export function HeroPillButton({
         paddingVertical: theme.spacing.sm,
         paddingHorizontal: theme.spacing.lg,
         borderRadius: theme.radius.pill,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: solid ? '#FFFFFF' : 'transparent',
+        borderWidth: solid ? 0 : 1,
+        borderColor: 'rgba(255, 255, 255, 0.5)',
         opacity: disabled ? 0.6 : pressed ? 0.85 : 1,
         ...style,
       })}

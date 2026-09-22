@@ -72,6 +72,7 @@ describe('captureDraftFields', () => {
       captureId: 'draft-1',
       description: '  taxi to airport  ',
       amount: 125000n,
+      currency: 'INR',
       category: 'travel',
       categoryMeta: null,
       location: { name: 'Terminal 2', lat: 19.0896, lng: 72.8656 },
@@ -86,6 +87,7 @@ describe('captureDraftFields', () => {
       id: 'draft-1',
       description: 'taxi to airport',
       amount: '125000',
+      currency: 'INR',
       category: 'travel',
       category_meta: null,
       location: { name: 'Terminal 2', lat: 19.0896, lng: 72.8656 },
@@ -158,5 +160,52 @@ describe('matchesAssignGroupQuery', () => {
 
   it('treats an empty query as all groups for the user', () => {
     expect(matchesAssignGroupQuery('Goa trip', '   ')).toBe(true);
+  });
+});
+
+describe('the currency a draft was kept in', () => {
+  /**
+   * A draft exists at all, in the quick sheet's case, *because* its currency is
+   * not the group's — that is the one thing the form cannot work out for
+   * itself and the reason the rate card has to come up. It used not to travel:
+   * the href carried the amount and not the unit, so a $1,000 draft assigned to
+   * a group keeping its books in rupees became ₹1,000. The same number, a
+   * different amount of money, with nothing on screen to show for it.
+   */
+  it('travels with the amount into the form', () => {
+    const href = assignCaptureHref(
+      captureDraftFields({
+        captureId: 'draft-1',
+        description: 'dinner',
+        amount: 100000n,
+        currency: 'USD',
+        category: null,
+        categoryMeta: null,
+        location: null,
+        paymentMethod: null,
+        date: '2026-09-22',
+      }),
+      'group-9',
+    );
+    expect(href.params.amount).toBe('100000');
+    expect(href.params.currency).toBe('USD');
+  });
+
+  it('travels for a saved row too, not only a draft being typed', () => {
+    const href = assignCaptureHref(
+      {
+        id: 'cap-1',
+        description: 'dinner',
+        amount: '4500',
+        currency: 'THB',
+        category: null,
+        category_meta: null,
+        location: null,
+        payment_method: null,
+        expense_date: '2026-09-22',
+      },
+      'group-9',
+    );
+    expect(href.params.currency).toBe('THB');
   });
 });

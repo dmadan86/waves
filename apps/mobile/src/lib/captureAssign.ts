@@ -27,6 +27,10 @@ export interface CaptureAssignFields {
   id: string;
   description: string;
   amount: string;
+  /** What the amount is *in*. A draft kept because its currency is not the
+   *  group's — which is now the quick sheet's whole reason for making one —
+   *  carries the only fact the form cannot work out for itself. */
+  currency: string;
   category: string | null;
   category_meta: CategoryMeta | null;
   location: ExpenseLocation | null;
@@ -71,6 +75,12 @@ export function assignCaptureHref(capture: CaptureAssignFields, groupId: string)
       description: capture.description,
       // The amount travels as the same minor-unit string the row stores.
       amount: capture.amount,
+      // And what it is in. This did not travel at all until now: a draft in a
+      // currency the group does not keep its books in silently became an
+      // expense in the group's own currency the moment it was assigned — the
+      // same number, a different amount of money. The form seeds
+      // `expenseCurrency` from this and raises its rate card.
+      currency: capture.currency,
       category: capture.category ?? '',
       // A custom tag rides along as JSON so the assigned expense keeps it,
       // rather than dropping to a built-in (extends TDR §8).
@@ -104,6 +114,7 @@ export function captureDraftFields(draft: {
   captureId: string;
   description: string;
   amount: bigint;
+  currency: string;
   category: string | null;
   categoryMeta: CategoryMeta | null;
   location: ExpenseLocation | null;
@@ -114,6 +125,7 @@ export function captureDraftFields(draft: {
     id: draft.captureId,
     description: draft.description.trim(),
     amount: draft.amount.toString(),
+    currency: draft.currency,
     category: draft.category,
     category_meta: draft.categoryMeta,
     location: draft.location,

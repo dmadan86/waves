@@ -32,6 +32,7 @@ import {
   useGroupLedger,
   useGroupRealtime,
   useOpenReceipts,
+  useCaptures,
   usePinnedGroupIds,
   useSetGroupPin,
 } from '@/data/hooks';
@@ -80,12 +81,14 @@ import { router, useGoBack } from '@/lib/navigation';
 
 import { CategoryBadge } from '@/components/Category';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
+import { GroupDrafts } from '@/components/GroupDrafts';
 import { GroupHero } from '@/components/GroupHero';
 import { PendingMark } from '@/components/PendingMark';
 import { SettlementProof } from '@/components/SettlementProof';
 import { SyncBanner } from '@/components/SyncBanner';
 import { useSync } from '@/sync';
 import { usePullRefresh } from '@/lib/pullRefresh';
+import { draftsForGroup } from '@/lib/groupDrafts';
 import { useDialog } from '@/lib/dialog';
 
 enum Tab {
@@ -688,6 +691,15 @@ export default function GroupScreen() {
     const task = InteractionManager.runAfterInteractions(() => setExpandedTab(tab));
     return () => task.cancel();
   }, [tab, expandedTab]);
+  // Drafts (A34) are owned by the person, not the group, so they come from the
+  // captures read rather than the ledger — filtered here to the ones addressed
+  // to this group.
+  const captures = useCaptures();
+  const groupDrafts = useMemo(
+    () => draftsForGroup(captures.data, groupId),
+    [captures.data, groupId],
+  );
+
   const listData: FeedItem[] = useMemo(
     () => (windowed && tabData.length > SWITCH_WINDOW ? tabData.slice(0, SWITCH_WINDOW) : tabData),
     [windowed, tabData],
@@ -1255,6 +1267,12 @@ export default function GroupScreen() {
               queued and in-flight now read from the glyph in the header,
               matching the dashboard. */}
                 {stalledHere ? <SyncBanner groupId={groupId} /> : null}
+
+                {/* Drafts kept for this group — money caught but not an expense
+              yet, usually waiting on a rate. Above everything else on purpose:
+              the only thing a draft needs is somebody to come back and finish
+              it, and nobody comes back to a row below a month of expenses. */}
+                <GroupDrafts groupId={groupId} captures={groupDrafts} />
 
                 {/* The balance cross-check (ADR-004) used to raise a red card
             here. It no longer says anything: the ledger below is the source of
