@@ -50,6 +50,7 @@ import { useImportedGroupId } from '@/lib/importProgress';
 import { useReducedMotion } from '@/lib/reducedMotion';
 import { useDefaultCurrency } from '@/lib/currency';
 import { QuickAddSheet, useQuickAddActions } from '@/components/QuickAddSheet';
+import { QuickExpenseSheet } from '@/components/QuickExpenseSheet';
 import { HomeQuickActions, type HomeAction } from '@/components/HomeQuickActions';
 import { smsReaderInBuild } from '@/lib/smsFeature';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
@@ -103,6 +104,7 @@ export default function HomeScreen() {
   // A press-and-hold on any add icon raises the same quick-add sheet — type,
   // scan, or speak an expense — the phone-home-screen quick-actions gesture.
   const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const [quickExpenseOpen, setQuickExpenseOpen] = useState(false);
   const quickAddActions = useQuickAddActions();
 
   /**
@@ -121,7 +123,11 @@ export default function HomeScreen() {
     {
       icon: 'add',
       label: t.addExpense,
-      onPress: () => router.push('/capture'),
+      // The quick sheet, not the capture screen. Most spends know exactly where
+      // they belong and need an amount and a place, which is what this asks for;
+      // the capture screen is still one tap below, through "More details",
+      // carrying whatever has been typed. The long press is unchanged.
+      onPress: () => setQuickExpenseOpen(true),
       onLongPress: () => setQuickAddOpen(true),
       wrap: (tile) => <TourTarget id="addExpense">{tile}</TourTarget>,
     },
@@ -723,6 +729,8 @@ export default function HomeScreen() {
         onClose={() => setQuickAddOpen(false)}
         actions={quickAddActions}
       />
+
+      <QuickExpenseSheet visible={quickExpenseOpen} onClose={() => setQuickExpenseOpen(false)} />
     </Screen>
   );
 }

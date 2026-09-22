@@ -1584,6 +1584,33 @@ export interface UiStrings {
   groupPhoto: {
     paidHint: string;
   };
+  /**
+   * The quick expense sheet: the fastest path from "I just paid for something"
+   * to a saved expense. An amount, a currency, a place to put it, and nothing
+   * else — everything the full form asks about is one tap away through
+   * `moreDetails`, which carries what has already been typed rather than asking
+   * for it twice.
+   */
+  quickExpense: {
+    title: string;
+    /** Above the row of recent destinations. */
+    where: string;
+    /** Opens the full Groups/People picker the voice review already uses. */
+    otherPlaces: string;
+    /** Leaves for the full form, carrying the amount, currency and place. */
+    moreDetails: string;
+    save: string;
+    /** Under the chips, so the split is never a surprise: shared equally, and
+     *  the reader paid it. {count} is how many people share it, reader included. */
+    splitEqually: string;
+    /** The private ledger — not a group, and not a split. */
+    justMe: string;
+    /** Nothing to suggest yet, so the picker is the way through. */
+    noPlacesYet: string;
+    /** A currency the group does not keep its books in needs a rate, which is
+     *  the full form's job (ADR-003 converts nothing on its own). */
+    needsRate: string;
+  };
   /** Captures (A34): an expense caught before it has a group, kept in a personal inbox. */
   captures: {
     /**
@@ -4715,6 +4742,17 @@ const en: UiStrings = {
   groupPhoto: {
     paidHint: 'Group photos are a Plus feature. Pick an icon, or upgrade to add a photo.',
   },
+  quickExpense: {
+    title: 'Quick expense',
+    where: 'Where does it go?',
+    otherPlaces: 'Somewhere else',
+    moreDetails: 'More details',
+    save: 'Save expense',
+    splitEqually: 'Split equally between {count} · you paid',
+    justMe: 'Just me',
+    noPlacesYet: 'Pick where this belongs',
+    needsRate: 'That currency needs a rate — open the full form.',
+  },
   captures: {
     watching: 'Not checked yet',
     watchingSince: 'Checked {when}',
@@ -7626,6 +7664,17 @@ const ta: UiStrings = {
   groupPhoto: {
     paidHint:
       'குழு புகைப்படங்கள் Plus அம்சம். ஒரு ஐகானைத் தேர்ந்தெடுக்கவும், அல்லது புகைப்படம் சேர்க்க மேம்படுத்தவும்.',
+  },
+  quickExpense: {
+    title: 'Quick expense',
+    where: 'Where does it go?',
+    otherPlaces: 'Somewhere else',
+    moreDetails: 'More details',
+    save: 'Save expense',
+    splitEqually: 'Split equally between {count} · you paid',
+    justMe: 'Just me',
+    noPlacesYet: 'Pick where this belongs',
+    needsRate: 'That currency needs a rate — open the full form.',
   },
   captures: {
     watching: 'இன்னும் பார்க்கவில்லை',
@@ -10607,6 +10656,17 @@ const hi: UiStrings = {
   groupPhoto: {
     paidHint: 'ग्रुप फ़ोटो एक Plus सुविधा है। कोई आइकन चुनें, या फ़ोटो जोड़ने के लिए अपग्रेड करें।',
   },
+  quickExpense: {
+    title: 'Quick expense',
+    where: 'Where does it go?',
+    otherPlaces: 'Somewhere else',
+    moreDetails: 'More details',
+    save: 'Save expense',
+    splitEqually: 'Split equally between {count} · you paid',
+    justMe: 'Just me',
+    noPlacesYet: 'Pick where this belongs',
+    needsRate: 'That currency needs a rate — open the full form.',
+  },
   captures: {
     watching: 'अभी तक देखा नहीं',
     watchingSince: '{when} देखा गया',
@@ -13576,6 +13636,17 @@ const ar: UiStrings = {
   },
   groupPhoto: {
     paidHint: 'صور المجموعة ميزة Plus. اختر أيقونة، أو قم بالترقية لإضافة صورة.',
+  },
+  quickExpense: {
+    title: 'Quick expense',
+    where: 'Where does it go?',
+    otherPlaces: 'Somewhere else',
+    moreDetails: 'More details',
+    save: 'Save expense',
+    splitEqually: 'Split equally between {count} · you paid',
+    justMe: 'Just me',
+    noPlacesYet: 'Pick where this belongs',
+    needsRate: 'That currency needs a rate — open the full form.',
   },
   captures: {
     watching: 'لم يتم التحقق بعد',
