@@ -17,7 +17,6 @@ import {
 import { balanceDeckSlides, dayNumber, type BalanceSlide, type GuestGate } from '@waves/core';
 import {
   Avatar,
-  AvatarStack,
   Button,
   directionalIcon,
   EmptyState,
@@ -64,7 +63,7 @@ import { smsReaderInBuild } from '@/lib/smsFeature';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { RestorePrompt } from '@/components/RestorePrompt';
 import { useAvatarUrl } from '@/components/ProfileAvatar';
-import { displayName as memberName, groupLabel, GroupType } from '@/data/types';
+import { groupLabel, GroupType } from '@/data/types';
 import { usePullRefresh } from '@/lib/pullRefresh';
 
 /** Dashboard route with duplicate-safe jumps to stable primary destinations. */
@@ -698,7 +697,6 @@ export default function HomeScreen() {
                       key={group.id}
                       title={groupLabel(group, members, viewerId)}
                       memberLabel={plural(locale, summary.memberCountFor(group.id), t.memberCount)}
-                      memberNames={members.map((member) => memberName(member, viewerId))}
                       draftLabel={
                         draftsByGroup.has(group.id)
                           ? plural(locale, draftsByGroup.get(group.id) ?? 0, t.draftCount)
@@ -1405,9 +1403,11 @@ function HeroBalance({
 }
 
 /**
- * The dot pager — the "swipe me" signal, rendered by the screen below the action
- * buttons rather than under the balance. A wide white pill marks the active slide
- * over a row of faint dots that read against any of the slide washes.
+ * The dot pager — the "swipe me" signal, rendered by the screen between the
+ * balance it pages through and the buttons below. A wide white pill marks the
+ * active slide over a row of faint dots that read against any of the slide
+ * washes, and the row starts at the panel's edge like everything it sits
+ * between.
  *
  * The pill slides off the carousel's live `scrollX`, native-driven, so it tracks
  * the finger at 60fps exactly like the hero colour crossfade — not off a React
@@ -1444,7 +1444,20 @@ function HeroDots({
         })
       : 0;
   return (
-    <Row style={{ justifyContent: 'center' }}>
+    // Flush with the row of buttons below it and the figure above it, rather
+    // than centred: those are the two things it sits between, and both start at
+    // the panel's edge, which left the pager the only thing in the hero floating
+    // in the middle of its own line.
+    //
+    // Offset by the active pill's overhang, not by nothing. The pill is wider
+    // than a dot and is seated half that difference to the left of the first
+    // dot's box (see `left` below), so an unpadded row would hang the one white
+    // element in the pager past the white button beneath it — aligning the
+    // faint dots by pushing the bright mark out of line. Padding by the same
+    // overhang puts the pill's left edge on the panel's edge while it is on the
+    // first slide, which is the state it is in when the eye is measuring. Read
+    // off the constants so the two cannot drift apart.
+    <Row style={{ justifyContent: 'flex-start', paddingStart: (DOT_ACTIVE_WIDTH - DOT_SIZE) / 2 }}>
       <View style={{ width: trackWidth, height: DOT_SIZE }}>
         <Row style={{ position: 'absolute', left: 0, top: 0, gap }}>
           {Array.from({ length: count }, (_, index) => (
@@ -1652,7 +1665,6 @@ function MetricSlide({
 function GroupRow({
   title,
   memberLabel,
-  memberNames,
   draftLabel,
   coverEmoji,
   balance,
@@ -1673,9 +1685,6 @@ function GroupRow({
 }: {
   title: string;
   memberLabel: string;
-  /** Who is in the group, for the faces beside the count. Names rather than
-   *  rows, because the stack draws initials and nothing here needs more. */
-  memberNames: readonly string[];
   /** "2 drafts" when this group has money caught but not yet entered, else
    *  null. Worth a place on the row because a draft is the one thing here that
    *  is waiting on the reader. */
@@ -1817,20 +1826,13 @@ function GroupRow({
               </View>
             ) : null}
           </Row>
-          {/* The faces, then the words. A count says how many; the faces say
-              who, which is what you actually recognise a group by — and it is
-              the same `AvatarStack` the contacts screen uses rather than a
-              second facepile with its own overlap. Hidden while a settlement is
-              waiting, because that line is a different sentence and the faces
-              would only crowd it. */}
-          <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
-            {pendingLabel === null && memberNames.length > 0 ? (
-              <AvatarStack names={memberNames} size={18} max={3} />
-            ) : null}
-            <Text variant="caption" tone="muted" numberOfLines={1} style={{ flex: 1 }}>
-              {detail}
-            </Text>
-          </Row>
+          {/* Words only. A stack of faces sat here for a while, on the theory
+              that you recognise a group by who is in it; on the row it read as
+              clutter beside a line that already says how many and where you
+              stand. */}
+          <Text variant="caption" tone="muted" numberOfLines={1}>
+            {detail}
+          </Text>
         </View>
         {pendingBalance ? (
           <Skeleton width={64} height={16} radius={6} animated={!reduceMotion} />
