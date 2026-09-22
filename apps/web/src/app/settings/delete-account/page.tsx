@@ -36,6 +36,7 @@ import { SkeletonRows } from '@/components/Skeleton';
 import { useStrings } from '@/i18n-context';
 import { fill, plural } from '@/i18n';
 import { useAuth } from '@/lib/auth';
+import { saveFile } from '@/lib/download';
 import { friendlyError } from '@/lib/errors';
 import { waves } from '@/lib/waves';
 
@@ -78,14 +79,7 @@ function DeleteAccount() {
     setError(null);
     try {
       // No group id: every group this person is in.
-      const file = await waves.exportData({ format: 'json' });
-      const blob = new Blob([file.content], { type: file.contentType });
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement('a');
-      anchor.href = url;
-      anchor.download = file.filename;
-      anchor.click();
-      window.setTimeout(() => URL.revokeObjectURL(url), 0);
+      saveFile(await waves.exportData({ format: 'json' }));
     } catch (caught) {
       setError(
         friendlyError(caught, 'web.deleteAccount.export', {

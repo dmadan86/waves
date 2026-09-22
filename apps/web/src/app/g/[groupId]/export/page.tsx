@@ -10,7 +10,9 @@
  *
  * The download is made from a blob rather than pointed at a URL, because the
  * function replies with the bytes to an authenticated call — there is no
- * address a browser could fetch on its own without carrying the session.
+ * address a browser could fetch on its own without carrying the session. That
+ * is `lib/download`, shared with the account-wide export and with the copy
+ * offered on the way out of the delete screen.
  */
 
 import { useState } from 'react';
@@ -20,6 +22,7 @@ import { AppFrame } from '@/components/AppFrame';
 import { Section } from '@/components/Shell';
 import { waves } from '@/lib/waves';
 import { useStrings } from '@/i18n-context';
+import { saveFile } from '@/lib/download';
 import { friendlyError } from '@/lib/errors';
 
 export default function ExportPage() {
@@ -38,19 +41,7 @@ function ExportGroup() {
     setBusy(true);
     setError(null);
     try {
-      const file = await waves.exportData({ groupId, format });
-      // Text formats come back as text; the base64 case is the PDF, which this
-      // page does not offer — decoding it here would be dead code pretending to
-      // be a feature.
-      const blob = new Blob([file.content], { type: file.contentType });
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement('a');
-      anchor.href = url;
-      anchor.download = file.filename;
-      anchor.click();
-      // Revoked on the next tick: revoking synchronously can beat the click in
-      // some browsers and hand the person an empty file.
-      window.setTimeout(() => URL.revokeObjectURL(url), 0);
+      saveFile(await waves.exportData({ groupId, format }));
     } catch (caught) {
       setError(
         friendlyError(caught, 'web.export.download', {

@@ -412,6 +412,43 @@ export interface WebStrings {
     previewSettlements: PluralForms;
     /** `{list}` is the currencies still unsettled. */
     previewOutstanding: string;
+    /**
+     * The page itself, which the browser did not have: what is held about you,
+     * who else touches it, and how long it stays. Each section is a summary and
+     * a body, in that order — six true sentences for somebody skimming, and the
+     * paragraph behind whichever one they want.
+     *
+     * `protectBody`, `servicesSummary` and `servicesBody` are written for a
+     * browser rather than lifted from the phone: this site carries no analytics
+     * tag and keeps no sealed on-device ledger, and describing the phone's
+     * protections here would be describing protections that are not present.
+     * `{date}` in `lastUpdated` is the policy date.
+     */
+    row: string;
+    rowHint: string;
+    title: string;
+    intro: string;
+    controlsSection: string;
+    expandLabel: string;
+    collapseLabel: string;
+    supportRow: string;
+    supportRowHint: string;
+    lastUpdated: string;
+    storeTitle: string;
+    storeSummary: string;
+    storeBody: string;
+    protectTitle: string;
+    protectSummary: string;
+    protectBody: string;
+    servicesTitle: string;
+    servicesSummary: string;
+    servicesBody: string;
+    retentionTitle: string;
+    retentionSummary: string;
+    retentionBody: string;
+    choicesTitle: string;
+    choicesSummary: string;
+    choicesBody: string;
   };
   /**
    * Where this account is signed in.
@@ -893,6 +930,12 @@ export interface WebStrings {
     system: string;
     light: string;
     dark: string;
+    /** The Appearance page's rows. `{scheme}` in `currently` is Light or Dark. */
+    lightHint: string;
+    darkHint: string;
+    currently: string;
+    systemHint: string;
+    footnote: string;
   };
   /** The conversation on one expense (A46). */
   comments: {
@@ -972,6 +1015,13 @@ export interface WebStrings {
     signOut: string;
     onlyInApp: string;
     onlyInAppBody: string;
+    /** The five group headings on the index, in the phone's words and order. */
+    sectionAccount: string;
+    sectionPreferences: string;
+    sectionData: string;
+    sectionSecurity: string;
+    sectionHelp: string;
+    languageFootnote: string;
   };
   /** The ten built-in categories, worded the same as the phone's. */
   categories: {
@@ -1032,6 +1082,26 @@ export interface WebStrings {
     csv: string;
     json: string;
     working: string;
+    /**
+     * The account-wide export, which is a different offer from the group one
+     * above it: every group you are in, in whichever of the three shapes you
+     * pick. `row`/`rowHint` are the settings row that leads there.
+     */
+    row: string;
+    rowHint: string;
+    accountTitle: string;
+    everythingFree: string;
+    explain: string;
+    format: string;
+    formatJson: string;
+    formatCsv: string;
+    formatPdf: string;
+    whatToExport: string;
+    allMyGroups: string;
+    preparing: string;
+    action: string;
+    ready: string;
+    failed: string;
   };
   /** The developer console: tokens, applications, and the consent screen. */
   developers: {
@@ -1156,6 +1226,98 @@ export interface WebStrings {
     offline: string;
     tooMany: string;
     tryAgain: string;
+  };
+  /**
+   * The two screens the browser had no words for: who you are, and how somebody
+   * hands you money back.
+   *
+   * One namespace rather than two because the phone keeps them under one — they
+   * are two pages of the same row on the profile, and splitting the words would
+   * be the first step towards the two clients describing the same column
+   * differently.
+   */
+  account: {
+    title: string;
+    you: string;
+    yourAccount: string;
+    yourAccountHint: string;
+    guestTitle: string;
+    guestBody: string;
+    detailsTitle: string;
+    displayNameHint: string;
+    countryNotSet: string;
+    currencyFromCountry: string;
+    addressTitle: string;
+    addressHint: string;
+    addressPlaceholder: string;
+    signInMethodsTitle: string;
+    signInMethodsBody: string;
+    signInFootnote: string;
+    emailAddress: string;
+    alreadyAdded: string;
+    notAddedYet: string;
+    link: string;
+    linkProvider: string;
+    linked: string;
+    payingTitle: string;
+    howPeoplePayYou: string;
+    settlesWith: string;
+    handleWrong: string;
+    railLinkNote: string;
+    railManualNote: string;
+    nothingToAdd: string;
+  };
+  /**
+   * The six things Waves is allowed to interrupt you about, each with the
+   * sentence that says what it will and will not do.
+   *
+   * `pushOnWeb` is the one line here with no counterpart on the phone, and it
+   * is the important one: these switches decide what the *app* sends, and a
+   * browser can receive none of it.
+   */
+  notifications: {
+    title: string;
+    rowHint: string;
+    neverSpam: string;
+    pushSection: string;
+    pushOnWeb: string;
+    involvesMe: string;
+    involvesMeBody: string;
+    settlementRequests: string;
+    settlementRequestsBody: string;
+    nudges: string;
+    nudgesBody: string;
+    digest: string;
+    digestBody: string;
+    emailSection: string;
+    emailAll: string;
+    emailAllBody: string;
+    weeklyEmail: string;
+    weeklyEmailBody: string;
+    footnote: string;
+  };
+  /**
+   * What this account is on, and what would ever cost money.
+   *
+   * Not `plan` — that name is taken by the trip planner, and a page about money
+   * and a page about tomorrow's itinerary sharing a namespace is how the wrong
+   * string ends up on the wrong screen. `{free}` in `whatNeverWillBody` is
+   * `freeForever`, lowercased into the sentence.
+   */
+  billing: {
+    row: string;
+    rowHint: string;
+    title: string;
+    nothingToBuy: string;
+    nothingToBuyBody: string;
+    whatWouldCost: string;
+    moreScans: string;
+    moreScansBody: string;
+    biggerTransfers: string;
+    biggerTransfersBody: string;
+    whatNeverWill: string;
+    whatNeverWillBody: string;
+    freeForever: string;
   };
 }
 
@@ -1390,6 +1552,39 @@ const en: WebStrings = {
       other: 'You are named in {n} settlements.',
     },
     previewOutstanding: 'You still have an unsettled balance in {list}.',
+    row: 'Privacy',
+    rowHint: 'What is stored, and how it is kept',
+    title: 'Privacy',
+    intro:
+      'Waves holds as little about you as it can and still work. This describes what that is, in plain terms.',
+    controlsSection: 'Your controls',
+    expandLabel: 'Read more',
+    collapseLabel: 'Show less',
+    supportRow: 'Privacy questions',
+    supportRowHint: 'Write to us — a person answers',
+    lastUpdated: 'Last updated {date}.',
+    storeTitle: 'What is stored',
+    storeSummary: 'Your profile, groups, expenses, receipts, comments, settings and who owes whom.',
+    storeBody:
+      'Your display name, and whichever of a phone number, email or sign-in identity you used. Optionally a payment handle, so somebody can pay you back, and a country, which decides which payment rails you are offered, and an optional postal address if you add one. The groups you are in, the expenses in them, and who owes whom. Nothing else: no contacts are uploaded, and there is no advertising identifier.',
+    protectTitle: 'How it is kept',
+    protectSummary: 'Database rules on every read, private receipt links, scrubbed crash reports.',
+    protectBody:
+      'Every table is behind row-level security in the database, so a request can only ever read rows your own account is entitled to — not a filter applied by the page, but a rule the database enforces. The key this page carries can do nothing your signed-in session could not already do. Receipt images sit in a private bucket reached through short-lived signed links. Crash reports are scrubbed of addresses, phone numbers, payment handles and keys before they leave the browser, and nothing here records your screen. Each receipt can be visible to everybody in the group, or only to the people on that expense — you choose per image.',
+    servicesTitle: 'Who else touches your data',
+    servicesSummary:
+      'Supabase for the database, Sentry for crashes. No analytics tag, nothing sold.',
+    servicesBody:
+      'Waves runs on Supabase — the database and sign-in, on servers we control. Crash reports go to Sentry, scrubbed of your details before they leave the page. This site carries no analytics tag: there is no screen recording, no advertising identifier and no ad networks. Your data is never sold.',
+    retentionTitle: 'How long we keep it',
+    retentionSummary:
+      'Kept while your account is open, deleted after 3 untouched years. Shared records stay on without your name.',
+    retentionBody:
+      "Your data stays while your account is open. If the account goes untouched for 3 years, we delete it and the personal data with it. You never have to wait for that — export or delete everything yourself, any time, from Settings. A group you close and leave untouched for a year and a half is moved to your archive automatically — nothing is deleted, and you can reopen it whenever you like. Some of what you leave behind survives deleting your account, and you should know it before you do. What you added to a shared group stays — the expenses and settlements, the notes and comments on them, and the images you added, whether a receipt, a proof of payment or a trip photo — because it is also the other members' record of who owed whom, and taking it out would silently change somebody else's balance to settle a debt nobody paid. Your name, photo, contact details and payment handles are removed from those groups, where you become an unnamed former member; notifications and activity already written to other people can still carry the name you had at the time. And if you write an answer into the box asking why you are leaving, that answer is kept exactly as you typed it, with the link back to you removed. Nothing is kept for advertising, and nothing is kept because a law obliges us to.",
+    choicesTitle: 'What you can do',
+    choicesSummary: 'Export everything, mute anything, or delete your account.',
+    choicesBody:
+      'Export everything you have entered, at any time, in full fidelity and for free. Turn off any notification. Delete your account and the personal data in it. Export and deletion both live in Settings, and the export is offered again on the way out. Write to us with anything you want changed.',
   },
   devices: {
     title: 'Devices',
@@ -1770,6 +1965,11 @@ const en: WebStrings = {
     system: 'Device',
     light: 'Light',
     dark: 'Dark',
+    lightHint: 'The pale lavender canvas.',
+    darkHint: 'Easier on the eyes at night.',
+    currently: 'Currently {scheme}',
+    systemHint: 'Follows whatever this device is set to.',
+    footnote: 'Following your phone lets the app turn dark when your phone does.',
   },
   comments: {
     title: 'Comments',
@@ -1834,6 +2034,13 @@ const en: WebStrings = {
     onlyInApp: 'In the app',
     onlyInAppBody:
       'Scanning receipts, speaking an expense, offline entry and your private Me ledger live in the phone app.',
+    sectionAccount: 'Account',
+    sectionPreferences: 'Preferences',
+    sectionData: 'Data & privacy',
+    sectionSecurity: 'Security',
+    sectionHelp: 'Help',
+    languageFootnote:
+      "Your phone's language is the default, and choosing one here only changes Waves. Amounts and dates still follow where you are — reading the app in Hindi in Dubai does not move you to India.",
   },
   categories: {
     food: 'Food & drink',
@@ -1877,6 +2084,22 @@ const en: WebStrings = {
     csv: 'Download CSV',
     json: 'Download JSON',
     working: 'Building the file…',
+    row: 'Export data',
+    rowHint: 'JSON + CSV, lossless, free',
+    accountTitle: 'Export your data',
+    everythingFree: 'Everything, always free',
+    explain:
+      'JSON includes every version of every expense, who paid, who owed, settlements with their per-expense allocations, and the activity trail — enough to rebuild your ledger exactly. CSV is the spreadsheet view, including per-person settlement detail.',
+    format: 'Format',
+    formatJson: 'JSON (lossless)',
+    formatCsv: 'CSV (spreadsheet)',
+    formatPdf: 'PDF (printable)',
+    whatToExport: 'What to export',
+    allMyGroups: 'All my groups',
+    preparing: 'Preparing…',
+    action: 'Export',
+    ready: 'Export ready',
+    failed: 'Could not export your data. Please try again.',
   },
   developers: {
     title: 'Developers',
@@ -2005,6 +2228,86 @@ const en: WebStrings = {
     offline: 'You appear to be offline. Check your connection and try again.',
     tooMany: 'Too many tries in a row. Wait a moment, then try again.',
     tryAgain: 'Try again',
+  },
+  account: {
+    title: 'Your account',
+    you: 'You',
+    yourAccount: 'Your account',
+    yourAccountHint: 'Your name, where you are, and the ways in',
+    guestTitle: 'Guest account',
+    guestBody:
+      'Everything you have entered is already saved and yours. Link a Google or Apple account whenever you want to reach it from another device — it keeps this account rather than starting a new one.',
+    detailsTitle: 'Your details',
+    displayNameHint: 'Everyone you share a group with sees this.',
+    countryNotSet: 'Not set',
+    currencyFromCountry: 'Set from your country',
+    addressTitle: 'Address',
+    addressHint: 'Never posted to. Kept for your own records.',
+    addressPlaceholder: 'Street, city, postal code',
+    signInMethodsTitle: 'Ways to sign in',
+    signInMethodsBody: 'Link an account and you can sign in with it next time, on any device.',
+    signInFootnote:
+      'Waves never asks for this to let you in, and never shares it with anyone in your groups. People see the name you choose, nothing else.',
+    emailAddress: 'Email address',
+    alreadyAdded: 'Already added: {value}',
+    notAddedYet: 'Not added yet',
+    link: 'Link',
+    linkProvider: 'Link {provider}',
+    linked: 'Linked',
+    payingTitle: 'Paying',
+    howPeoplePayYou: 'How people pay you',
+    settlesWith: 'Settles with {rails}',
+    handleWrong: 'That does not look like {hint}.',
+    railLinkNote: 'People settling with you get a one-tap payment. Waves never handles the money.',
+    railManualNote:
+      'People settling with you see this to pay you from their own bank app. Waves never handles the money.',
+    nothingToAdd: 'Nothing to add — people will record what they paid you by hand.',
+  },
+  notifications: {
+    title: 'Notifications',
+    rowHint: 'What Waves may interrupt you about',
+    neverSpam:
+      'Waves never emails you about routine expense activity. Only the six things you would actually want in your inbox, each unsubscribable on its own.',
+    pushSection: 'Push',
+    pushOnWeb:
+      'These four decide what the phone app sends you. A browser is not a registered device, so nothing here will ever ring on this one.',
+    involvesMe: 'Only what involves me',
+    involvesMeBody:
+      'Push when you owe, are owed, or are mentioned — not for every expense in every group.',
+    settlementRequests: 'Settlement confirmations',
+    settlementRequestsBody: 'When someone says they paid you, so your balance stays right.',
+    nudges: 'Reminders',
+    nudgesBody:
+      'A friendly nudge about money owed. Limited to one per person per day, in the database.',
+    digest: 'Daily group summary',
+    digestBody: 'Everything else, batched into one notification a day instead of a stream.',
+    emailSection: 'By email',
+    emailAll: 'Email me at all',
+    emailAllBody:
+      'Settlements, reminders and the weekly summary. Security alerts about a new sign-in arrive whatever this says.',
+    weeklyEmail: 'Weekly email digest',
+    weeklyEmailBody: 'Your net balance and pending confirmations, once a week. Off by default.',
+    footnote:
+      'Email delivery is still to come. Everything here is also in your inbox, which is the record of what Waves has told you whether or not a notification arrived.',
+  },
+  billing: {
+    row: 'Plan',
+    rowHint: 'Free plan — everything included, nothing to buy',
+    title: 'Plan',
+    nothingToBuy: 'Nothing to buy yet',
+    nothingToBuyBody:
+      'This is the door, not the shop. When there is something worth paying for it will be here, with the price on it and no surprises.',
+    whatWouldCost: 'What would ever cost money',
+    moreScans: 'More scanned bills',
+    moreScansBody:
+      'Photograph a receipt and have the lines read off it. Every scan costs real money to run, which is the honest reason it is the thing with a limit.',
+    biggerTransfers: 'Bigger exports and imports',
+    biggerTransfersBody:
+      'Your data is yours and leaves in full for free. Larger jobs and scheduled backups are the convenience.',
+    whatNeverWill: 'What never will',
+    whatNeverWillBody:
+      'The ledger. Groups, expenses, splits, balances, settling up, and getting all of it back out again — {free}. A ledger you can only half read is not a ledger.',
+    freeForever: 'Unlimited and free, forever',
   },
 };
 
@@ -2250,6 +2553,42 @@ const ta: WebStrings = {
       other: '{n} தீர்வுகளில் உங்கள் பெயர் உள்ளது.',
     },
     previewOutstanding: '{list} இல் இன்னும் தீராத நிலுவை உள்ளது.',
+    row: 'தனியுரிமை',
+    rowHint: 'என்ன சேமிக்கப்படுகிறது, எப்படி பாதுகாக்கப்படுகிறது',
+    title: 'தனியுரிமை',
+    intro:
+      'Waves வேலை செய்ய எவ்வளவு தேவையோ அவ்வளவு மட்டுமே உங்களைப் பற்றி வைத்திருக்கிறது. அது என்ன என்பது இங்கே.',
+    controlsSection: 'உங்கள் கட்டுப்பாடுகள்',
+    expandLabel: 'மேலும் படிக்க',
+    collapseLabel: 'சுருக்கு',
+    supportRow: 'தனியுரிமைக் கேள்விகள்',
+    supportRowHint: 'எங்களுக்கு எழுதுங்கள் — ஒரு நபர் பதிலளிப்பார்',
+    lastUpdated: 'கடைசியாகப் புதுப்பிக்கப்பட்டது {date}.',
+    storeTitle: 'என்ன சேமிக்கப்படுகிறது',
+    storeSummary:
+      'உங்கள் சுயவிவரம், குழுக்கள், செலவுகள், ரசீதுகள், கருத்துகள், அமைப்புகள், யார் யாருக்குக் கடன்.',
+    storeBody:
+      'உங்கள் பெயர், நீங்கள் பயன்படுத்திய தொலைபேசி எண், மின்னஞ்சல் அல்லது உள்நுழைவு அடையாளம். விருப்பப்படி ஒரு பணப் பரிமாற்ற முகவரி, ஒரு நாடு, மற்றும் நீங்கள் சேர்த்தால் ஒரு அஞ்சல் முகவரி. நீங்கள் இருக்கும் குழுக்கள், அவற்றின் செலவுகள், யார் யாருக்குக் கடன்பட்டவர். வேறு எதுவும் இல்லை: தொடர்புகள் பதிவேற்றப்படுவதில்லை, விளம்பர அடையாளம் இல்லை.',
+    protectTitle: 'எப்படி பாதுகாக்கப்படுகிறது',
+    protectSummary:
+      'ஒவ்வொரு வாசிப்பிலும் தரவுத்தள விதிகள், தனிப்பட்ட ரசீது இணைப்புகள், சுத்தம் செய்யப்பட்ட பிழை அறிக்கைகள்.',
+    protectBody:
+      'ஒவ்வொரு அட்டவணையும் தரவுத்தளத்தின் வரிசை-நிலைப் பாதுகாப்புக்குப் பின்னால் உள்ளது; எனவே ஒரு கோரிக்கை உங்கள் கணக்குக்கு உரிமையுள்ள வரிசைகளை மட்டுமே படிக்க முடியும் — இது பக்கம் செய்யும் வடிகட்டல் அல்ல, தரவுத்தளமே நடைமுறைப்படுத்தும் விதி. இந்தப் பக்கம் கொண்டு செல்லும் திறவுகோல், உள்நுழைந்த உங்கள் அமர்வால் ஏற்கெனவே செய்ய முடியாத எதையும் செய்ய முடியாது. ரசீது படங்கள் குறுகிய கால கையொப்ப இணைப்புகள் வழியாக மட்டும் அடையக்கூடிய தனிப்பட்ட இடத்தில் இருக்கின்றன. செயலிழப்பு அறிக்கைகள் உலாவியை விட்டு வெளியேறும் முன் முகவரிகள், தொலைபேசி எண்கள், கட்டண முகவரிகள், திறவுகோல்கள் நீக்கப்படுகின்றன; இங்கே உங்கள் திரை பதிவு செய்யப்படுவதில்லை. ஒவ்வொரு ரசீதும் குழுவில் உள்ள அனைவருக்கும், அல்லது அந்தச் செலவில் உள்ளவர்களுக்கு மட்டும் தெரியலாம் — படத்துக்குப் படம் நீங்களே முடிவு செய்கிறீர்கள்.',
+    servicesTitle: 'உங்கள் தரவை வேறு யார் தொடுகிறார்கள்',
+    servicesSummary:
+      'தரவுத்தளத்துக்கு Supabase, செயலிழப்புகளுக்கு Sentry. பகுப்பாய்வு குறியீடு இல்லை, எதுவும் விற்கப்படுவதில்லை.',
+    servicesBody:
+      'Waves, Supabase மீது இயங்குகிறது — தரவுத்தளமும் உள்நுழைவும், நாங்கள் கட்டுப்படுத்தும் சேவையகங்களில். செயலிழப்பு அறிக்கைகள் Sentry-க்குச் செல்கின்றன, உங்கள் விவரங்கள் பக்கத்தை விட்டு வெளியேறும் முன் நீக்கப்பட்ட பிறகு. இந்தத் தளத்தில் பகுப்பாய்வு குறியீடு எதுவும் இல்லை: திரைப் பதிவு இல்லை, விளம்பர அடையாளம் இல்லை, விளம்பர வலையமைப்புகள் இல்லை. உங்கள் தரவு ஒருபோதும் விற்கப்படுவதில்லை.',
+    retentionTitle: 'எவ்வளவு காலம் வைத்திருக்கிறோம்',
+    retentionSummary:
+      'கணக்கு திறந்திருக்கும் வரை; 3 ஆண்டுகள் தொடாவிட்டால் நீக்கப்படும். பகிர்ந்த பதிவுகள் உங்கள் பெயர் இல்லாமல் தொடரும்.',
+    retentionBody:
+      'உங்கள் கணக்கு திறந்திருக்கும் வரை தரவு இருக்கும். கணக்கு 3 ஆண்டுகள் தொடப்படாமல் இருந்தால், அதை அதிலுள்ள தனிப்பட்ட தரவுடன் நீக்குகிறோம். அதற்காகக் காத்திருக்க வேண்டாம் — அமைப்புகளில் எப்போது வேண்டுமானாலும் எல்லாவற்றையும் ஏற்றுமதி செய்யலாம் அல்லது நீக்கலாம். நீங்கள் மூடி, ஒன்றரை ஆண்டுகளாகத் தொடாமல் விட்ட குழு தானாகவே உங்கள் காப்பகத்திற்கு நகர்த்தப்படுகிறது — எதுவும் நீக்கப்படாது, எப்போது வேண்டுமானாலும் மீண்டும் திறக்கலாம். கணக்கை நீக்கிய பிறகும் நீங்கள் விட்டுச் செல்வதில் சில தொடரும்; நீக்கும் முன் அதைத் தெரிந்து கொள்ளுங்கள். பகிர்ந்த குழுவில் நீங்கள் சேர்த்தவை — செலவுகள், தீர்வுகள், அவற்றின் குறிப்புகளும் கருத்துகளும், நீங்கள் சேர்த்த படங்கள், அது ரசீதாக இருந்தாலும், பணம் கட்டிய சான்றாக இருந்தாலும், பயணப் புகைப்படமாக இருந்தாலும் — அப்படியே இருக்கும், ஏனெனில் அவை மற்ற உறுப்பினர்களின் பதிவும் கூட; அவற்றை நீக்கினால் யாரும் கட்டாத கடன் தீர்ந்தது போல் இன்னொருவரின் இருப்பு அமைதியாக மாறிவிடும். உங்கள் பெயர், புகைப்படம், தொடர்பு விவரங்கள், பணம் பெறும் முகவரி ஆகியவை அந்தக் குழுக்களிலிருந்து நீக்கப்படும்; அங்கே நீங்கள் பெயரில்லாத முன்னாள் உறுப்பினராகிவிடுவீர்கள். ஆனால் ஏற்கெனவே மற்றவர்களுக்குச் சென்ற அறிவிப்புகளிலும் செயல்பதிவிலும் அப்போது இருந்த உங்கள் பெயர் இருக்கக்கூடும். ஏன் வெளியேறுகிறீர்கள் என்ற கேள்விக்கு நீங்கள் பதில் எழுதினால், அது நீங்கள் எழுதியபடியே, உங்களுடனான தொடர்பு நீக்கப்பட்டு, வைக்கப்படும். விளம்பரத்திற்காக எதுவும் வைக்கப்படுவதில்லை; சட்டம் கட்டாயப்படுத்துவதால் எதுவும் வைக்கப்படுவதில்லை.',
+    choicesTitle: 'நீங்கள் என்ன செய்யலாம்',
+    choicesSummary:
+      'எல்லாவற்றையும் ஏற்றுமதி செய்யுங்கள், அறிவிப்புகளை நிறுத்துங்கள், கணக்கை நீக்குங்கள்.',
+    choicesBody:
+      'நீங்கள் உள்ளிட்ட அனைத்தையும் எப்போது வேண்டுமானாலும், முழுமையாக, இலவசமாக ஏற்றுமதி செய்யலாம். எந்த அறிவிப்பையும் நிறுத்தலாம். உங்கள் கணக்கையும் அதிலுள்ள தனிப்பட்ட தரவையும் நீக்கலாம். ஏற்றுமதியும் நீக்கமும் அமைப்புகளில் உள்ளன; வெளியேறும் வழியிலும் ஏற்றுமதி மீண்டும் வழங்கப்படும்.',
   },
   devices: {
     title: 'சாதனங்கள்',
@@ -2645,6 +2984,11 @@ const ta: WebStrings = {
     system: 'சாதனம்',
     light: 'வெளிச்சம்',
     dark: 'இருள்',
+    lightHint: 'வெளிர் லாவெண்டர் திரை.',
+    darkHint: 'இரவில் கண்களுக்கு எளிது.',
+    currently: 'தற்போது {scheme}',
+    systemHint: 'இந்தச் சாதனம் எதற்கு அமைக்கப்பட்டுள்ளதோ அதையே பின்பற்றும்.',
+    footnote: 'உங்கள் ஃபோனைப் பின்பற்றினால், ஃபோன் இருளும்போது ஆப்பும் இருளும்.',
   },
   comments: {
     title: 'கருத்துகள்',
@@ -2709,6 +3053,13 @@ const ta: WebStrings = {
     onlyInApp: 'செயலியில்',
     onlyInAppBody:
       'ரசீது ஸ்கேன், குரலில் செலவு, இணையம் இல்லாமல் பதிவு, தனிப்பட்ட கணக்கு — இவை போன் செயலியில்.',
+    sectionAccount: 'கணக்கு',
+    sectionPreferences: 'விருப்பங்கள்',
+    sectionData: 'தரவு & தனியுரிமை',
+    sectionSecurity: 'பாதுகாப்பு',
+    sectionHelp: 'உதவி',
+    languageFootnote:
+      'உங்கள் ஃபோனின் மொழியே இயல்புநிலை; இங்கே தேர்ந்தெடுப்பது Waves-ஐ மட்டுமே மாற்றும். தொகைகளும் தேதிகளும் நீங்கள் இருக்கும் இடத்தையே பின்பற்றும் — துபாயில் இந்தியில் படிப்பது உங்களை இந்தியாவுக்கு நகர்த்தாது.',
   },
   categories: {
     food: 'உணவு',
@@ -2754,6 +3105,22 @@ const ta: WebStrings = {
     csv: 'CSV பதிவிறக்கு',
     json: 'JSON பதிவிறக்கு',
     working: 'கோப்பு தயாராகிறது…',
+    row: 'தரவை ஏற்றுமதி செய்',
+    rowHint: 'JSON + CSV, முழுமையானது, இலவசம்',
+    accountTitle: 'உங்கள் தரவை ஏற்றுமதி செய்',
+    everythingFree: 'எல்லாமே, எப்போதும் இலவசம்',
+    explain:
+      'JSON இல் ஒவ்வொரு செலவின் ஒவ்வொரு பதிப்பும், யார் கொடுத்தார்கள், யார் தர வேண்டும், தீர்வுகளும் அவற்றின் செலவு வாரியான பங்கீடும், செயல்பாட்டுப் பதிவும் இருக்கும் — உங்கள் கணக்கை அப்படியே மீண்டும் கட்ட இது போதும். CSV என்பது விரிதாள் பார்வை, ஆள் வாரியான தீர்வு விவரங்களுடன்.',
+    format: 'வடிவம்',
+    formatJson: 'JSON (முழுமையானது)',
+    formatCsv: 'CSV (விரிதாள்)',
+    formatPdf: 'PDF (அச்சிடக்கூடியது)',
+    whatToExport: 'எதை ஏற்றுமதி செய்ய',
+    allMyGroups: 'என் குழுக்கள் அனைத்தும்',
+    preparing: 'தயாராகிறது…',
+    action: 'ஏற்றுமதி',
+    ready: 'ஏற்றுமதி தயார்',
+    failed: 'உங்கள் தரவை ஏற்றுமதி செய்ய முடியவில்லை. மீண்டும் முயற்சிக்கவும்.',
   },
   developers: {
     title: 'உருவாக்குநர்கள்',
@@ -2888,6 +3255,90 @@ const ta: WebStrings = {
     offline: 'நீங்கள் இணைப்பில் இல்லை போலும். இணைப்பைச் சரிபார்த்து மீண்டும் முயலவும்.',
     tooMany: 'தொடர்ச்சியாக அதிக முயற்சிகள். சிறிது காத்திருந்து மீண்டும் முயலவும்.',
     tryAgain: 'மீண்டும் முயலவும்',
+  },
+  account: {
+    title: 'உங்கள் கணக்கு',
+    you: 'நீங்கள்',
+    yourAccount: 'உங்கள் கணக்கு',
+    yourAccountHint: 'உங்கள் பெயர், நீங்கள் இருக்கும் இடம், உள்ளே வரும் வழிகள்',
+    guestTitle: 'விருந்தினர் கணக்கு',
+    guestBody:
+      'நீங்கள் சேர்த்தவை அனைத்தும் ஏற்கனவே சேமிக்கப்பட்டு உங்களுடையவை. வேறு சாதனத்திலிருந்து அணுக விரும்பும்போது Google அல்லது Apple கணக்கை இணைக்கவும் — புதிய கணக்கு தொடங்காமல் இதே கணக்கு தொடரும்.',
+    detailsTitle: 'உங்கள் விவரங்கள்',
+    displayNameHint: 'நீங்கள் குழு பகிரும் அனைவரும் இதைப் பார்ப்பார்கள்.',
+    countryNotSet: 'அமைக்கப்படவில்லை',
+    currencyFromCountry: 'உங்கள் நாட்டிலிருந்து அமைக்கப்படுகிறது',
+    addressTitle: 'முகவரி',
+    addressHint: 'இதற்கு எதுவும் அனுப்பப்படாது. உங்கள் பதிவுக்காக மட்டும்.',
+    addressPlaceholder: 'தெரு, நகரம், அஞ்சல் குறியீடு',
+    signInMethodsTitle: 'உள்நுழையும் வழிகள்',
+    signInMethodsBody:
+      'ஒரு கணக்கை இணைத்தால், அடுத்த முறை எந்தச் சாதனத்திலும் அதைக் கொண்டு உள்நுழையலாம்.',
+    signInFootnote:
+      'உள்ளே விடுவதற்கு Waves இதை ஒருபோதும் கேட்பதில்லை, உங்கள் குழுக்களில் உள்ள யாருடனும் இதைப் பகிர்வதும் இல்லை. நீங்கள் தேர்ந்தெடுத்த பெயரை மட்டுமே மற்றவர்கள் பார்ப்பார்கள்.',
+    emailAddress: 'மின்னஞ்சல் முகவரி',
+    alreadyAdded: 'ஏற்கனவே சேர்க்கப்பட்டது: {value}',
+    notAddedYet: 'இன்னும் சேர்க்கப்படவில்லை',
+    link: 'இணை',
+    linkProvider: '{provider} ஐ இணை',
+    linked: 'இணைக்கப்பட்டது',
+    payingTitle: 'பணம் பெற',
+    howPeoplePayYou: 'உங்களுக்கு எப்படிப் பணம் தருவது',
+    settlesWith: '{rails} மூலம் தீர்க்கப்படும்',
+    handleWrong: 'இது {hint} போல் தெரியவில்லை.',
+    railLinkNote:
+      'உங்களுடன் தீர்ப்பவர்களுக்கு ஒரே தட்டில் பணம் அனுப்ப முடியும். Waves பணத்தைக் கையாள்வதே இல்லை.',
+    railManualNote:
+      'உங்களுடன் தீர்ப்பவர்கள் இதைப் பார்த்து தங்கள் வங்கி ஆப்பிலிருந்து பணம் அனுப்புவார்கள். Waves பணத்தைக் கையாள்வதே இல்லை.',
+    nothingToAdd: 'சேர்க்க ஒன்றுமில்லை — கொடுத்ததை மற்றவர்கள் கையால் பதிவு செய்வார்கள்.',
+  },
+  notifications: {
+    title: 'அறிவிப்புகள்',
+    rowHint: 'Waves உங்களைக் குறுக்கிடக்கூடியவை',
+    neverSpam:
+      'வழக்கமான செலவுச் செயல்பாடுகள் குறித்து Waves உங்களுக்கு மின்னஞ்சல் அனுப்புவதே இல்லை. உங்கள் அஞ்சல் பெட்டியில் நீங்கள் உண்மையிலேயே விரும்பும் ஆறு விஷயங்கள் மட்டுமே, ஒவ்வொன்றையும் தனித்தனியே நிறுத்தலாம்.',
+    pushSection: 'அறிவிப்பு',
+    pushOnWeb:
+      'இந்த நான்கும் தொலைபேசி செயலி உங்களுக்கு அனுப்புவதைத் தீர்மானிக்கின்றன. உலாவி பதிவுசெய்யப்பட்ட சாதனம் அல்ல, எனவே இங்கே எதுவும் இந்தச் சாதனத்தில் ஒலிக்காது.',
+    involvesMe: 'என்னைச் சார்ந்தவை மட்டும்',
+    involvesMeBody:
+      'நீங்கள் தர வேண்டியபோதோ, வர வேண்டியபோதோ, குறிப்பிடப்படும்போதோ அறிவிப்பு — ஒவ்வொரு குழுவின் ஒவ்வொரு செலவுக்கும் அல்ல.',
+    settlementRequests: 'தீர்வு உறுதிப்படுத்தல்கள்',
+    settlementRequestsBody:
+      'உங்களுக்குப் பணம் கொடுத்ததாக யாராவது சொல்லும்போது, உங்கள் பாக்கி சரியாக இருக்க.',
+    nudges: 'நினைவூட்டல்கள்',
+    nudgesBody:
+      'தர வேண்டிய பணம் குறித்த மென்மையான நினைவூட்டல். ஒரு நாளைக்கு ஒருவருக்கு ஒன்று மட்டுமே, தரவுத்தளத்திலேயே வரையறுக்கப்பட்டது.',
+    digest: 'நாள்தோறும் குழுச் சுருக்கம்',
+    digestBody: 'மற்ற அனைத்தும், தொடர்ச்சியாக அல்லாமல் நாளுக்கு ஒரு அறிவிப்பாகத் தொகுத்து.',
+    emailSection: 'மின்னஞ்சல் வழியாக',
+    emailAll: 'மின்னஞ்சல் அனுப்பவும்',
+    emailAllBody:
+      'தீர்வுகள், நினைவூட்டல்கள், வாராந்திரச் சுருக்கம். புதிய உள்நுழைவு பற்றிய பாதுகாப்பு எச்சரிக்கை இது எதுவாக இருந்தாலும் வரும்.',
+    weeklyEmail: 'வாராந்திர மின்னஞ்சல் சுருக்கம்',
+    weeklyEmailBody:
+      'உங்கள் நிகர பாக்கியும் நிலுவையிலுள்ள உறுதிப்படுத்தல்களும், வாரம் ஒருமுறை. இயல்பாக நிறுத்தத்தில்.',
+    footnote:
+      'மின்னஞ்சல் இன்னும் வரவில்லை. இங்குள்ள அனைத்தும் உங்கள் அஞ்சல் பெட்டியிலும் இருக்கும் — அறிவிப்பு வந்ததா இல்லையா என்பதைப் பொருட்படுத்தாமல் Waves உங்களிடம் சொன்னதற்கான பதிவு அதுவே.',
+  },
+  billing: {
+    row: 'திட்டம்',
+    rowHint: 'இலவசத் திட்டம் — எல்லாம் உள்ளடக்கம், வாங்க எதுவுமில்லை',
+    title: 'திட்டம்',
+    nothingToBuy: 'இன்னும் வாங்க எதுவும் இல்லை',
+    nothingToBuyBody:
+      'இது கடை அல்ல, கதவு. பணம் தர மதிப்புள்ள ஏதாவது வரும்போது, விலையுடன் இங்கே இருக்கும் — திடீர் ஆச்சரியங்கள் இல்லை.',
+    whatWouldCost: 'எப்போதாவது பணம் என்ன செலவாகும்',
+    moreScans: 'அதிக ரசீது ஸ்கேன்கள்',
+    moreScansBody:
+      'ஒரு ரசீதைப் புகைப்படம் எடுத்தால் அதன் வரிகள் படிக்கப்படும். ஒவ்வொரு ஸ்கேனுக்கும் உண்மையான செலவு ஆகிறது — அதனால்தான் இதற்கு மட்டும் வரம்பு உள்ளது.',
+    biggerTransfers: 'பெரிய ஏற்றுமதிகளும் இறக்குமதிகளும்',
+    biggerTransfersBody:
+      'உங்கள் தரவு உங்களுடையது, முழுமையாக இலவசமாக வெளியேறும். பெரிய வேலைகளும் திட்டமிட்ட காப்புப் பிரதிகளுமே வசதி.',
+    whatNeverWill: 'எதற்கு ஒருபோதும் இல்லை',
+    whatNeverWillBody:
+      'கணக்கு. குழுக்கள், செலவுகள், பிரிவுகள், இருப்புகள், தீர்த்தல், அனைத்தையும் திரும்பப் பெறுதல் — {free}. பாதி மட்டுமே படிக்கக்கூடிய கணக்கு கணக்கே அல்ல.',
+    freeForever: 'எப்போதும் இலவசம்',
   },
 };
 
@@ -3123,6 +3574,40 @@ const hi: WebStrings = {
       other: '{n} भुगतानों में आपका नाम है।',
     },
     previewOutstanding: '{list} में अब भी बकाया है।',
+    row: 'निजता',
+    rowHint: 'क्या रखा जाता है, और कैसे सुरक्षित रहता है',
+    title: 'निजता',
+    intro:
+      'Waves आपके बारे में उतना ही रखता है जितना काम करने के लिए ज़रूरी है। वह क्या है, सीधे शब्दों में।',
+    controlsSection: 'आपके नियंत्रण',
+    expandLabel: 'और पढ़ें',
+    collapseLabel: 'कम दिखाएँ',
+    supportRow: 'निजता से जुड़े सवाल',
+    supportRowHint: 'हमें लिखें — जवाब एक व्यक्ति देता है',
+    lastUpdated: 'अंतिम बार {date} को अपडेट किया गया।',
+    storeTitle: 'क्या रखा जाता है',
+    storeSummary:
+      'आपकी प्रोफ़ाइल, समूह, ख़र्च, रसीदें, टिप्पणियाँ, सेटिंग्स और कौन किसका देनदार है।',
+    storeBody:
+      'आपका नाम, और फ़ोन नंबर, ईमेल या साइन-इन पहचान में से जो आपने इस्तेमाल किया। वैकल्पिक रूप से एक भुगतान पता, ताकि कोई आपको लौटा सके, एक देश, और यदि आप जोड़ें तो एक डाक पता। आप जिन समूहों में हैं, उनके ख़र्चे, और कौन किसका देनदार है। और कुछ नहीं: कोई संपर्क अपलोड नहीं होते, कोई विज्ञापन पहचानकर्ता नहीं।',
+    protectTitle: 'कैसे सुरक्षित रहता है',
+    protectSummary: 'हर पठन पर डेटाबेस नियम, निजी रसीद लिंक, साफ़ की गई क्रैश रिपोर्ट।',
+    protectBody:
+      'हर टेबल डेटाबेस की रो-लेवल सुरक्षा के पीछे है, इसलिए कोई भी अनुरोध केवल वही पंक्तियाँ पढ़ सकता है जिनका हक़ आपके अपने खाते को है — यह पेज का लगाया फ़िल्टर नहीं, डेटाबेस का लागू किया नियम है. यह पेज जो कुंजी लेकर चलता है वह इससे ज़्यादा कुछ नहीं कर सकती जो आपका साइन-इन सत्र पहले से न कर सकता हो. रसीद की तस्वीरें एक निजी जगह में रहती हैं, जहाँ थोड़ी देर चलने वाले हस्ताक्षरित लिंक से ही पहुँचा जाता है. क्रैश रिपोर्ट से पते, फ़ोन नंबर, भुगतान हैंडल और कुंजियाँ ब्राउज़र छोड़ने से पहले हटा दी जाती हैं, और यहाँ आपकी स्क्रीन कहीं रिकॉर्ड नहीं होती. हर रसीद पूरे समूह को दिख सकती है, या सिर्फ़ उन लोगों को जो उस ख़र्च में हैं — हर तस्वीर के लिए आप तय करते हैं.',
+    servicesTitle: 'आपका डेटा और कौन छूता है',
+    servicesSummary:
+      'डेटाबेस के लिए Supabase, क्रैश के लिए Sentry. कोई एनालिटिक्स टैग नहीं, कुछ भी बेचा नहीं जाता.',
+    servicesBody:
+      'Waves, Supabase पर चलता है — डेटाबेस और साइन-इन, उन सर्वरों पर जो हमारे नियंत्रण में हैं. क्रैश रिपोर्ट Sentry को जाती हैं, आपके ब्योरे पेज छोड़ने से पहले हटा दिए जाने के बाद. इस साइट पर कोई एनालिटिक्स टैग नहीं है: न स्क्रीन रिकॉर्डिंग, न विज्ञापन पहचानकर्ता, न विज्ञापन नेटवर्क. आपका डेटा कभी नहीं बेचा जाता.',
+    retentionTitle: 'हम इसे कब तक रखते हैं',
+    retentionSummary:
+      'खाता खुला रहने तक; 3 साल अछूता रहा तो हटा दिया जाता है। साझा रिकॉर्ड आपके नाम के बिना बने रहते हैं।',
+    retentionBody:
+      'जब तक आपका खाता खुला है, आपका डेटा रहता है। अगर खाता 3 साल तक अछूता रहे, तो हम उसे और उसके निजी डेटा को हटा देते हैं। इसके लिए इंतज़ार करने की ज़रूरत नहीं — सेटिंग्स में कभी भी सब कुछ ख़ुद निर्यात या हटा सकते हैं। जिस समूह को आप बंद कर दें और डेढ़ साल तक न छूएं, वह अपने-आप आपके संग्रह में चला जाता है — कुछ भी नहीं हटता, और आप उसे कभी भी दोबारा खोल सकते हैं। खाता मिटाने के बाद भी आपकी छोड़ी हुई कुछ चीज़ें बनी रहती हैं, और मिटाने से पहले यह जान लेना चाहिए। साझा समूह में आपने जो जोड़ा — ख़र्च और भुगतान, उन पर लिखे नोट और टिप्पणियाँ, और आपकी जोड़ी हुई तस्वीरें, चाहे वह रसीद हो, भुगतान का सबूत हो या यात्रा की फ़ोटो — वह बना रहता है, क्योंकि वह बाक़ी सदस्यों का भी रिकॉर्ड है; उसे हटाने से किसी और का हिसाब चुपचाप बदल जाता, जैसे कोई क़र्ज़ बिना चुकाए चुक गया हो। आपका नाम, फ़ोटो, संपर्क विवरण और भुगतान पता उन समूहों से हटा दिए जाते हैं और वहाँ आप एक अनाम पूर्व सदस्य बन जाते हैं; लेकिन जो सूचनाएँ और गतिविधि पहले ही दूसरों तक पहुँच चुकी हैं, उनमें उस समय का आपका नाम रह सकता है। और अगर आप “क्यों जा रहे हैं” वाले बॉक्स में कुछ लिखते हैं, तो वह जवाब जैसा आपने लिखा वैसा ही रखा जाता है, आपसे उसका नाता हटाकर। विज्ञापन के लिए कुछ नहीं रखा जाता, और किसी क़ानूनी बाध्यता के कारण भी कुछ नहीं रखा जाता।',
+    choicesTitle: 'आप क्या कर सकते हैं',
+    choicesSummary: 'सब कुछ निर्यात करें, कोई भी सूचना बंद करें, या खाता हटाएँ।',
+    choicesBody:
+      'जो कुछ आपने डाला है, कभी भी, पूरा और मुफ़्त निर्यात करें। कोई भी सूचना बंद करें। अपना खाता और उसमें रखा निजी डेटा मिटाएँ। निर्यात और खाता मिटाना, दोनों सेटिंग्स में हैं; जाते समय निर्यात फिर से पूछा जाता है।',
   },
   devices: {
     title: 'डिवाइस',
@@ -3503,6 +3988,11 @@ const hi: WebStrings = {
     system: 'डिवाइस',
     light: 'हल्का',
     dark: 'गहरा',
+    lightHint: 'हल्का लैवेंडर पर्दा।',
+    darkHint: 'रात में आँखों के लिए आसान।',
+    currently: 'अभी {scheme}',
+    systemHint: 'यह डिवाइस जिस पर सेट है, वही अपनाता है.',
+    footnote: 'फ़ोन के अनुसार रखने पर, फ़ोन गहरा होने पर ऐप भी गहरा हो जाता है।',
   },
   comments: {
     title: 'टिप्पणियाँ',
@@ -3566,6 +4056,13 @@ const hi: WebStrings = {
     signOut: 'साइन आउट',
     onlyInApp: 'ऐप में',
     onlyInAppBody: 'रसीद स्कैन, बोलकर ख़र्च, बिना नेट के entry और निजी हिसाब — ये फ़ोन ऐप में हैं.',
+    sectionAccount: 'खाता',
+    sectionPreferences: 'प्राथमिकताएँ',
+    sectionData: 'डेटा और गोपनीयता',
+    sectionSecurity: 'सुरक्षा',
+    sectionHelp: 'सहायता',
+    languageFootnote:
+      'आपके फ़ोन की भाषा ही डिफ़ॉल्ट है, और यहाँ चुनने से सिर्फ़ Waves बदलता है। रकम और तारीखें वहीं के हिसाब से चलती रहेंगी जहाँ आप हैं — दुबई में हिंदी में पढ़ने से आप भारत नहीं पहुँच जाते।',
   },
   categories: {
     food: 'खाना-पीना',
@@ -3609,6 +4106,22 @@ const hi: WebStrings = {
     csv: 'CSV डाउनलोड करें',
     json: 'JSON डाउनलोड करें',
     working: 'फ़ाइल बन रही है…',
+    row: 'डेटा निर्यात',
+    rowHint: 'JSON + CSV, कुछ छूटता नहीं, मुफ़्त',
+    accountTitle: 'अपना डेटा निर्यात करें',
+    everythingFree: 'सब कुछ, हमेशा मुफ़्त',
+    explain:
+      'JSON में हर खर्च का हर संस्करण, किसने दिया, किस पर बाकी था, निपटान और उनका खर्च-वार बँटवारा, और गतिविधि का पूरा ब्योरा होता है — आपका पूरा हिसाब हूबहू दोबारा बनाने के लिए काफ़ी। CSV स्प्रेडशीट वाला रूप है, जिसमें व्यक्ति-वार निपटान का ब्योरा भी है।',
+    format: 'प्रारूप',
+    formatJson: 'JSON (कुछ छूटता नहीं)',
+    formatCsv: 'CSV (स्प्रेडशीट)',
+    formatPdf: 'PDF (प्रिंट करने योग्य)',
+    whatToExport: 'क्या निर्यात करें',
+    allMyGroups: 'मेरे सभी समूह',
+    preparing: 'तैयार हो रहा है…',
+    action: 'निर्यात',
+    ready: 'निर्यात तैयार है',
+    failed: 'आपका डेटा निर्यात नहीं हो सका। कृपया फिर कोशिश करें।',
   },
   developers: {
     title: 'डेवलपर',
@@ -3737,6 +4250,86 @@ const hi: WebStrings = {
     offline: 'लगता है आप ऑफ़लाइन हैं। कनेक्शन जाँचकर फिर कोशिश करें।',
     tooMany: 'लगातार बहुत सारी कोशिशें। थोड़ा रुककर फिर कोशिश करें।',
     tryAgain: 'फिर कोशिश करें',
+  },
+  account: {
+    title: 'आपका खाता',
+    you: 'आप',
+    yourAccount: 'आपका खाता',
+    yourAccountHint: 'आपका नाम, आप कहाँ हैं, और अंदर आने के रास्ते',
+    guestTitle: 'मेहमान खाता',
+    guestBody:
+      'आपने जो कुछ जोड़ा है वह पहले ही सेव है और आपका है। जब भी किसी दूसरे डिवाइस से पहुँचना हो, Google या Apple खाता जोड़ लें — इससे नया खाता नहीं बनता, यही खाता बना रहता है।',
+    detailsTitle: 'आपकी जानकारी',
+    displayNameHint: 'जिन ग्रुप में आप हैं, उनमें सब यही देखते हैं।',
+    countryNotSet: 'तय नहीं',
+    currencyFromCountry: 'आपके देश से सेट',
+    addressTitle: 'पता',
+    addressHint: 'यहाँ कुछ नहीं भेजा जाता। सिर्फ़ आपके रिकॉर्ड के लिए।',
+    addressPlaceholder: 'गली, शहर, पिन कोड',
+    signInMethodsTitle: 'साइन इन करने के तरीके',
+    signInMethodsBody:
+      'कोई खाता जोड़ लें, तो अगली बार किसी भी डिवाइस पर उसी से साइन इन कर सकते हैं.',
+    signInFootnote:
+      'अंदर आने देने के लिए Waves यह कभी नहीं माँगता, और आपके समूह में किसी के साथ इसे साझा नहीं करता। लोग सिर्फ़ वही नाम देखते हैं जो आप चुनते हैं।',
+    emailAddress: 'ईमेल पता',
+    alreadyAdded: 'पहले से जुड़ा है: {value}',
+    notAddedYet: 'अभी जोड़ा नहीं गया',
+    link: 'लिंक करें',
+    linkProvider: '{provider} लिंक करें',
+    linked: 'लिंक किया गया',
+    payingTitle: 'भुगतान',
+    howPeoplePayYou: 'लोग आपको कैसे भुगतान करें',
+    settlesWith: '{rails} से निपटाया जाता है',
+    handleWrong: 'यह {hint} जैसा नहीं लगता।',
+    railLinkNote: 'आपसे हिसाब करने वालों को एक टैप में भुगतान मिलता है। Waves पैसा कभी नहीं छूता।',
+    railManualNote:
+      'आपसे हिसाब करने वाले इसे देखकर अपने बैंक ऐप से भुगतान करते हैं। Waves पैसा कभी नहीं छूता।',
+    nothingToAdd: 'जोड़ने को कुछ नहीं — लोग जो चुकाया है उसे खुद दर्ज करेंगे।',
+  },
+  notifications: {
+    title: 'सूचनाएँ',
+    rowHint: 'Waves किन बातों के लिए आपको टोक सकता है',
+    neverSpam:
+      'रोज़मर्रा की खर्च गतिविधि के लिए Waves कभी ईमेल नहीं करता। सिर्फ़ वे छह चीज़ें जो आप वाकई इनबॉक्स में चाहेंगे, और हर एक अलग से बंद की जा सकती है।',
+    pushSection: 'पुश',
+    pushOnWeb:
+      'ये चार तय करते हैं कि फ़ोन ऐप आपको क्या भेजे. ब्राउज़र कोई पंजीकृत डिवाइस नहीं है, इसलिए यहाँ का कुछ भी इस डिवाइस पर नहीं बजेगा.',
+    involvesMe: 'सिर्फ़ वही जिनसे मेरा वास्ता है',
+    involvesMeBody:
+      'जब आप पर बाकी हो, आपको मिलना हो, या आपका ज़िक्र हो तब सूचना — हर समूह के हर खर्च पर नहीं।',
+    settlementRequests: 'निपटान की पुष्टि',
+    settlementRequestsBody: 'जब कोई कहे कि उसने आपको भुगतान किया, ताकि आपकी बाकी सही रहे।',
+    nudges: 'याद दिलाना',
+    nudgesBody: 'बाकी पैसे की एक विनम्र याद। डेटाबेस में ही सीमित — एक व्यक्ति को दिन में एक बार।',
+    digest: 'दैनिक समूह सारांश',
+    digestBody: 'बाकी सब कुछ, लगातार की जगह दिन में एक सूचना में इकट्ठा।',
+    emailSection: 'ईमेल से',
+    emailAll: 'मुझे ईमेल भेजें',
+    emailAllBody:
+      'हिसाब, याद दिलाने वाले संदेश और साप्ताहिक सारांश। नए साइन-इन की सुरक्षा चेतावनी इससे परे हमेशा आएगी।',
+    weeklyEmail: 'साप्ताहिक ईमेल सारांश',
+    weeklyEmailBody: 'आपकी कुल बाकी और लंबित पुष्टियाँ, हफ़्ते में एक बार। डिफ़ॉल्ट रूप से बंद।',
+    footnote:
+      'ईमेल अभी आना बाकी है। यहाँ का सब कुछ आपके इनबॉक्स में भी है, और सूचना पहुँची या नहीं, Waves ने आपसे क्या कहा उसका रिकॉर्ड वही है।',
+  },
+  billing: {
+    row: 'प्लान',
+    rowHint: 'मुफ़्त प्लान — सब कुछ शामिल, खरीदने को कुछ नहीं',
+    title: 'प्लान',
+    nothingToBuy: 'अभी खरीदने को कुछ नहीं',
+    nothingToBuyBody:
+      'यह दुकान नहीं, दरवाज़ा है। जब कुछ ऐसा होगा जिसके पैसे देने लायक हो, वह यहीं मिलेगा — कीमत लिखी हुई और कोई चौंकाने वाली बात नहीं।',
+    whatWouldCost: 'कभी पैसे किस चीज़ के लगेंगे',
+    moreScans: 'ज़्यादा बिल स्कैन',
+    moreScansBody:
+      'रसीद की फ़ोटो लें और उसकी पंक्तियाँ पढ़ ली जाएँ। हर स्कैन पर सचमुच पैसा लगता है — यही ईमानदार वजह है कि सीमा इसी पर है।',
+    biggerTransfers: 'बड़े निर्यात और आयात',
+    biggerTransfersBody:
+      'आपका डेटा आपका है और पूरा मुफ़्त में बाहर आता है। बड़े काम और तय समय पर बैकअप — यही सुविधा है।',
+    whatNeverWill: 'किसके कभी नहीं',
+    whatNeverWillBody:
+      'हिसाब। समूह, खर्च, बँटवारा, बकाया, निपटान, और यह सब वापस बाहर निकालना — {free}। जो हिसाब आप आधा ही पढ़ सकें, वह हिसाब नहीं।',
+    freeForever: 'हमेशा मुफ़्त',
   },
 };
 
@@ -4005,6 +4598,38 @@ const ar: WebStrings = {
       other: 'اسمك مذكور في {n} تسوية.',
     },
     previewOutstanding: 'لا يزال لديك رصيد غير مسوّى بـ {list}.',
+    row: 'الخصوصية',
+    rowHint: 'ما الذي يُحفظ، وكيف يُحمى',
+    title: 'الخصوصية',
+    intro: 'يحتفظ Waves بأقل قدر ممكن عنك مع بقائه صالحًا للعمل. وهذا بيان بما يحتفظ به.',
+    controlsSection: 'أدواتك',
+    expandLabel: 'اقرأ المزيد',
+    collapseLabel: 'إظهار أقل',
+    supportRow: 'أسئلة عن الخصوصية',
+    supportRowHint: 'راسلنا — يردّ عليك شخص',
+    lastUpdated: 'آخر تحديث {date}.',
+    storeTitle: 'ما الذي يُحفظ',
+    storeSummary: 'ملفك الشخصي ومجموعاتك ومصروفاتك وإيصالاتك وتعليقاتك وإعداداتك ومن يدين لمن.',
+    storeBody:
+      'اسمك، وما استخدمته من رقم هاتف أو بريد أو هوية دخول. واختياريًا عنوان دفع كي يتمكن أحدهم من ردّ المال إليك، وبلد، وعنوان بريدي اختياري إن أضفته. المجموعات التي تشارك فيها ومصروفاتها ومن يدين لمن. لا شيء غير ذلك: لا تُرفع جهات الاتصال، ولا يوجد معرّف إعلاني.',
+    protectTitle: 'كيف يُحمى',
+    protectSummary: 'قواعد قاعدة البيانات عند كل قراءة، وروابط إيصالات خاصة، وتقارير أعطال منقّاة.',
+    protectBody:
+      'كل جدول محميّ بأمان على مستوى الصف داخل قاعدة البيانات، فلا يستطيع أي طلب أن يقرأ إلا الصفوف التي يحق لحسابك الاطلاع عليها — وهذه ليست تصفية تجريها الصفحة، بل قاعدة تفرضها قاعدة البيانات نفسها. والمفتاح الذي تحمله هذه الصفحة لا يفعل شيئًا لم تكن جلستك المسجَّلة قادرة عليه أصلًا. صور الإيصالات محفوظة في مساحة خاصة لا يُوصل إليها إلا عبر روابط موقَّعة قصيرة العمر. وتقارير الأعطال تُنظَّف من العناوين وأرقام الهواتف ومعرِّفات الدفع والمفاتيح قبل أن تغادر المتصفح، ولا شيء هنا يسجّل شاشتك. ويمكن لكل إيصال أن يكون ظاهرًا لكل من في المجموعة، أو لمن في تلك النفقة وحدهم — والاختيار لك صورةً صورة.',
+    servicesTitle: 'من غيرنا يلمس بياناتك',
+    servicesSummary:
+      'قاعدة البيانات على Supabase، وتقارير الأعطال إلى Sentry. لا وسم تحليلات، ولا شيء يُباع.',
+    servicesBody:
+      'يعمل Waves على Supabase — قاعدة البيانات وتسجيل الدخول، على خوادم نتحكم بها. وتذهب تقارير الأعطال إلى Sentry بعد تنظيفها من تفاصيلك قبل مغادرتها الصفحة. لا يحمل هذا الموقع أي وسم تحليلات: لا تسجيل للشاشة، ولا معرِّف إعلاني، ولا شبكات إعلانات. وبياناتك لا تُباع أبدًا.',
+    retentionTitle: 'كم نحتفظ بها',
+    retentionSummary:
+      'يبقى ما دام حسابك مفتوحًا، ويُحذف بعد ثلاث سنوات دون استخدام. وتبقى السجلات المشتركة دون اسمك.',
+    retentionBody:
+      'تبقى بياناتك ما دام حسابك مفتوحًا. إذا بقي الحساب دون استخدام لمدة 3 سنوات، نحذفه ونحذف معه البيانات الشخصية. لا داعي للانتظار — يمكنك تصدير كل شيء أو حذفه بنفسك في أي وقت من الإعدادات. المجموعة التي تغلقها وتتركها دون استخدام لمدة عام ونصف تُنقل تلقائيًا إلى أرشيفك — لا يُحذف شيء، ويمكنك إعادة فتحها في أي وقت. ويبقى بعض ما تتركه خلفك حتى بعد حذف حسابك، ومن حقك معرفته قبل أن تحذف. ما أضفته إلى مجموعة مشتركة — المصروفات والتسويات، والملاحظات والتعليقات عليها، والصور التي أضفتها، سواء كانت إيصالًا أو إثبات دفع أو صورة رحلة — يبقى، لأنه سجلّ بقية الأعضاء أيضًا، وإزالته تغيّر رصيد شخص آخر بصمت وكأن دَينًا سُدّد دون أن يدفعه أحد. أما اسمك وصورتك وبيانات التواصل وعناوين الدفع فتُزال من تلك المجموعات، وتصبح فيها عضوًا سابقًا بلا اسم؛ غير أن الإشعارات وسجل النشاط التي وصلت إلى آخرين من قبل قد تظل تحمل اسمك وقتها. وإذا كتبت شيئًا في خانة سبب المغادرة، فيُحفظ ما كتبته كما هو بعد إزالة ما يربطه بك. لا يُحتفظ بشيء لأغراض إعلانية، ولا يُحتفظ بشيء لأن قانونًا يلزمنا بذلك.',
+    choicesTitle: 'ما الذي يمكنك فعله',
+    choicesSummary: 'صدّر كل شيء، أوقف أي إشعار، أو احذف حسابك.',
+    choicesBody:
+      'تصدير كل ما أدخلته، في أي وقت، كاملًا ومجانًا. إيقاف أي إشعار. حذف حسابك والبيانات الشخصية التي فيه. التصدير والحذف كلاهما في الإعدادات، ويُعرض التصدير مرة أخرى عند المغادرة.',
   },
   devices: {
     title: 'الأجهزة',
@@ -4421,6 +5046,11 @@ const ar: WebStrings = {
     system: 'الجهاز',
     light: 'فاتح',
     dark: 'داكن',
+    lightHint: 'خلفية الخزامى الفاتحة.',
+    darkHint: 'أرفق بالعينين ليلًا.',
+    currently: 'حاليًا {scheme}',
+    systemHint: 'يتبع ما هو مضبوط عليه هذا الجهاز.',
+    footnote: 'اتباع هاتفك يجعل التطبيق يصير داكنًا حين يصير هاتفك داكنًا.',
   },
   comments: {
     title: 'التعليقات',
@@ -4485,6 +5115,13 @@ const ar: WebStrings = {
     onlyInApp: 'في التطبيق',
     onlyInAppBody:
       'مسح الإيصالات، وقول المصروف صوتًا، والإدخال دون إنترنت، وسجلك الخاص — كلها في تطبيق الهاتف.',
+    sectionAccount: 'الحساب',
+    sectionPreferences: 'التفضيلات',
+    sectionData: 'البيانات والخصوصية',
+    sectionSecurity: 'الأمان',
+    sectionHelp: 'المساعدة',
+    languageFootnote:
+      'لغة هاتفك هي الافتراضية، والاختيار هنا يغيّر Waves وحده. تبقى المبالغ والتواريخ تابعة لمكانك — قراءة التطبيق بالهندية في دبي لا تنقلك إلى الهند.',
   },
   categories: {
     food: 'طعام وشراب',
@@ -4528,6 +5165,22 @@ const ar: WebStrings = {
     csv: 'تنزيل CSV',
     json: 'تنزيل JSON',
     working: 'يتم إنشاء الملف…',
+    row: 'تصدير البيانات',
+    rowHint: 'JSON + CSV، بلا فقدان، مجانًا',
+    accountTitle: 'تصدير بياناتك',
+    everythingFree: 'كل شيء، مجانًا دائمًا',
+    explain:
+      'يتضمن JSON كل نسخة من كل مصروف، ومن دفع، ومن عليه، والتسويات مع توزيعها على كل مصروف، وسجل النشاط — بما يكفي لإعادة بناء دفترك تمامًا. أما CSV فهو العرض الجدولي، ويشمل تفاصيل التسوية لكل شخص.',
+    format: 'الصيغة',
+    formatJson: 'JSON (بلا فقدان)',
+    formatCsv: 'CSV (جدول بيانات)',
+    formatPdf: 'PDF (قابل للطباعة)',
+    whatToExport: 'ما الذي تريد تصديره',
+    allMyGroups: 'كل مجموعاتي',
+    preparing: 'جارٍ التحضير…',
+    action: 'تصدير',
+    ready: 'التصدير جاهز',
+    failed: 'تعذّر تصدير بياناتك. حاول مرة أخرى.',
   },
   developers: {
     title: 'المطوّرون',
@@ -4652,6 +5305,83 @@ const ar: WebStrings = {
     offline: 'يبدو أنك غير متصل. تحقّق من اتصالك وحاول مجدداً.',
     tooMany: 'محاولات كثيرة متتالية. انتظر قليلاً ثم حاول مجدداً.',
     tryAgain: 'حاول مجدداً',
+  },
+  account: {
+    title: 'حسابك',
+    you: 'أنت',
+    yourAccount: 'حسابك',
+    yourAccountHint: 'اسمك، وأين أنت، والطرق إلى حسابك',
+    guestTitle: 'حساب ضيف',
+    guestBody:
+      'كل ما أدخلته محفوظ بالفعل وهو ملكك. اربط حساب Google أو Apple متى أردت الوصول إليه من جهاز آخر — سيحتفظ بهذا الحساب بدل أن يبدأ حسابًا جديدًا.',
+    detailsTitle: 'بياناتك',
+    displayNameHint: 'يراه كل من تشاركه مجموعة.',
+    countryNotSet: 'غير محدد',
+    currencyFromCountry: 'يُضبط حسب بلدك',
+    addressTitle: 'العنوان',
+    addressHint: 'لا يُرسل إليه شيء. محفوظ لسجلك فقط.',
+    addressPlaceholder: 'الشارع، المدينة، الرمز البريدي',
+    signInMethodsTitle: 'طرق تسجيل الدخول',
+    signInMethodsBody: 'اربط حسابًا وستتمكّن من تسجيل الدخول به في المرة القادمة، من أي جهاز.',
+    signInFootnote:
+      'لا يطلب Waves هذا ليسمح لك بالدخول، ولا يشاركه مع أحد في مجموعاتك. يرى الناس الاسم الذي تختاره، لا غير.',
+    emailAddress: 'البريد الإلكتروني',
+    alreadyAdded: 'مضاف بالفعل: {value}',
+    notAddedYet: 'لم يُضَف بعد',
+    link: 'ربط',
+    linkProvider: 'ربط {provider}',
+    linked: 'مرتبط',
+    payingTitle: 'الدفع',
+    howPeoplePayYou: 'كيف يدفع لك الناس',
+    settlesWith: 'تُسوَّى عبر {rails}',
+    handleWrong: 'هذا لا يبدو مثل {hint}.',
+    railLinkNote: 'من يسوّي معك يدفع بضغطة واحدة. Waves لا يلمس المال أبدًا.',
+    railManualNote: 'من يسوّي معك يرى هذا ليدفع لك من تطبيق مصرفه. Waves لا يلمس المال أبدًا.',
+    nothingToAdd: 'لا شيء تضيفه — سيسجّل الناس ما دفعوه لك يدويًا.',
+  },
+  notifications: {
+    title: 'الإشعارات',
+    rowHint: 'ما يجوز لـ Waves أن يقاطعك بسببه',
+    neverSpam:
+      'لا يرسل Waves بريدًا عن نشاط المصروفات المعتاد. ستة أشياء فقط قد ترغب فعلًا في وصولها إلى بريدك، ويمكن إيقاف كل منها وحده.',
+    pushSection: 'الإشعارات الفورية',
+    pushOnWeb:
+      'هذه الأربعة تقرّر ما يرسله إليك تطبيق الهاتف. والمتصفّح ليس جهازًا مسجَّلًا، فلا شيء هنا سيرنّ على هذا الجهاز.',
+    involvesMe: 'ما يخصّني فقط',
+    involvesMeBody: 'إشعار حين يكون عليك أو لك أو حين تُذكر — لا لكل مصروف في كل مجموعة.',
+    settlementRequests: 'تأكيدات التسوية',
+    settlementRequestsBody: 'حين يقول أحدهم إنه دفع لك، كي يبقى باقيك صحيحًا.',
+    nudges: 'التذكيرات',
+    nudgesBody: 'تذكير لطيف بالمال المستحق. مرة واحدة لكل شخص يوميًا، بحدٍّ في قاعدة البيانات.',
+    digest: 'ملخص المجموعة اليومي',
+    digestBody: 'كل ما تبقّى، مجمّعًا في إشعار واحد يوميًا بدل تدفق مستمر.',
+    emailSection: 'عبر البريد',
+    emailAll: 'راسلني بالبريد',
+    emailAllBody:
+      'التسويات والتذكيرات والملخص الأسبوعي. تنبيه الأمان عند تسجيل دخول جديد يصل مهما كان هذا الإعداد.',
+    weeklyEmail: 'ملخص أسبوعي بالبريد',
+    weeklyEmailBody: 'صافي باقيك والتأكيدات المعلّقة، مرة كل أسبوع. متوقف افتراضيًا.',
+    footnote:
+      'البريد لم يصل بعد. كل ما هنا موجود أيضًا في صندوقك، وهو سجل ما أخبرك به Waves سواء وصل إشعار أم لا.',
+  },
+  billing: {
+    row: 'الخطة',
+    rowHint: 'خطة مجانية — كل شيء مُتضمَّن، لا شيء للشراء',
+    title: 'الخطة',
+    nothingToBuy: 'لا شيء للشراء بعد',
+    nothingToBuyBody:
+      'هذا هو الباب، لا المتجر. حين يوجد ما يستحق الدفع سيكون هنا، بسعره ودون مفاجآت.',
+    whatWouldCost: 'ما الذي قد يكلّف مالًا يومًا',
+    moreScans: 'مسح فواتير أكثر',
+    moreScansBody:
+      'صوّر إيصالًا لتُقرأ أصنافه. كل عملية مسح تكلّف مالًا حقيقيًا، وهذا هو السبب الصريح لكونها الشيء الوحيد المحدود.',
+    biggerTransfers: 'تصدير واستيراد أكبر',
+    biggerTransfersBody:
+      'بياناتك لك وتخرج كاملة مجانًا. الأعمال الأكبر والنسخ الاحتياطي المجدول هي الراحة التي تُدفع.',
+    whatNeverWill: 'وما لن يكلّف أبدًا',
+    whatNeverWillBody:
+      'الدفتر. المجموعات والمصاريف والتقسيمات والأرصدة والتسوية، وإخراج كل ذلك مرة أخرى — {free}. الدفتر الذي لا تقرأ منه إلا نصفه ليس دفترًا.',
+    freeForever: 'بلا حدود ومجاني، للأبد',
   },
 };
 

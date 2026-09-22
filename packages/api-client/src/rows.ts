@@ -390,6 +390,14 @@ export interface ProfileRow {
   default_vpa: string | null;
   /** ISO-3166 alpha-2 — seeds a new group's country and its currency. */
   country_code: string | null;
+  /**
+   * One free-text postal address, never posted to and kept for the person's own
+   * records. The column has existed since the app asked for it and the export
+   * function has always carried it; the browser could neither read nor write it
+   * until now, which made the account page on web a narrower account than the
+   * one on the phone.
+   */
+  address: string | null;
   default_currency: string;
   locale: string;
   notification_prefs?: NotificationPrefs | null;

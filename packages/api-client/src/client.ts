@@ -70,7 +70,7 @@ import {
 
 const PROFILE_COLUMNS =
   'id, display_name, avatar_url, payment_rail, payment_handle, default_vpa, ' +
-  'country_code, default_currency, locale, notification_prefs';
+  'country_code, address, default_currency, locale, notification_prefs';
 
 const GROUP_ROW_COLUMNS = `
   id, name, type, country_code, default_currency, simplify_debts, cover_emoji, photo_path,
