@@ -51,8 +51,10 @@ import Animated, { useAnimatedStyle, type SharedValue } from 'react-native-reani
 
 import GEOM from '../../assets/brand/wave-mark.json';
 
-/** The ink, matching the `INK` the renderer bakes into the PNG. */
-const INK = '#2B2B20';
+/** The mark's colour, matching the `INK` the renderer bakes into the PNG.
+    White, because the field under it is the brand purple — see `SPLASH_BG` in
+    `AnimatedSplash.tsx`, which this has to be legible on and must move with. */
+const INK = '#FFFFFF';
 
 /**
  * Where each beat sits, as a fraction of `progress`.
