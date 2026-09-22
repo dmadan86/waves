@@ -1687,7 +1687,10 @@ export interface UiStrings {
     lookCount: PluralForms;
     /** The chip on a row with no destination to name. It asks; it never guesses. */
     whichGroup: string;
-    /** The one gesture, in words. Also the ⋯ sheet's first row when it applies. */
+    /** The one gesture, in words. Also the ⋯ sheet's first row when it applies.
+     *  "File to" read as a noun — a document — rather than as the verb it was
+     *  meant to be; the other three dictionaries had been saying "add to" all
+     *  along, so English was the odd one out rather than the standard. */
     fileTo: string;
     /**
      * The other gesture: a credit-card bill, a transfer to yourself, rent nobody
@@ -4817,7 +4820,7 @@ const en: UiStrings = {
     readyCount: { one: '{n} ready', other: '{n} ready' },
     lookCount: { one: '{n} worth a look', other: '{n} worth a look' },
     whichGroup: 'Which group?',
-    fileTo: 'File to {name}',
+    fileTo: 'Add to {name}',
     notAnExpense: 'Not an expense',
     notAnExpenseDone: 'Taken off your list',
     nothingNeedsYou: 'Nothing needs you',
