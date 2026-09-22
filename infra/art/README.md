@@ -70,18 +70,60 @@ every phone as soon as its cache expires — no app release involved.
 ## The brand mark (`brand/`)
 
 `brand/waves-mark-yellow.svg` and `brand/waves-icon-1024.png` are the supplied
-originals of the app mark — the ink "wi" wave on `#F5D800`. They are kept here
-as the source the launcher icons were cut from, not as anything the app loads.
+originals of the app mark — the ink "wi" wave, `#2B2B20` on `#F5D800`. They are
+kept here as the source the launcher icons are cut from, not as anything the app
+loads.
 
-Everything under `apps/mobile/assets/images/` is derived from that 1024 square,
-and can be regenerated from it: the Android foreground and monochrome layers are
-the mark alone at 60% of the canvas (inside the 66% the launcher promises not to
-crop), the background layer is the flat yellow, and the splash mark is the same
-shape at 80%. Two flat colours is what makes the cut clean — each pixel's alpha
-is how far it has travelled from the yellow towards the ink, so the anti-aliased
-edge survives as a gradient.
+**The square must stay yellow.** It is a build input, not a shipped surface.
+`render-splash-mark.py` reads it at build time and recolours it on the fly, and
+to do that it declares the two colours it expects to find (`SOURCE_FIELD` and
+`SOURCE_INK`) and recovers each pixel's ink coverage from how far it has
+travelled between them. Recolour the square and that subtraction reads garbage,
+and the icons come out wrong on the next run.
 
-The yellow is `#F5D800` and the ink `#2B2B20`. Anything that paints the launch —
-`adaptiveIcon.backgroundColor` and the splash plugin in `app.json`, `SPLASH_BG`
-in `AnimatedSplash.tsx` — has to carry that exact yellow, or the handoff from
-the native splash to the JS one shows as a flash of a different colour.
+**The brand the app wears is no longer that yellow.** The field is the brand
+purple, `#6C4EE3` — `brand600` in `packages/ui/src/tokens.ts` — and the mark on
+it is white. Everything that paints the launch carries that purple and must
+carry the same value: `adaptiveIcon.backgroundColor` and the splash plugin in
+`app.json`, and `SPLASH_BG` in `AnimatedSplash.tsx`. The last pair is the one
+that shows if it drifts — the native splash and the JS one paint the same flat
+field back to back, and the handoff is invisible only while they agree.
+`apps/mobile/test/splashColour.test.ts` pins them together.
+
+The launcher icons under `apps/mobile/assets/images/` are derived from that 1024
+square and are regenerated from it by `render-splash-mark.py`, which recolours
+as it goes: the yellow original in, the purple icons out. (Not everything in
+that directory comes from the square — the splash mark does not. See below.)
+
+Two flat colours is what makes the cut clean — every pixel of the original sits
+somewhere on the line from the field to the ink, so how far it has travelled can
+be read back out of it and the mark laid down again in another pair of colours
+with its anti-aliased edge intact. Swapping one colour for the other instead
+would leave the old yellow smeared around every curve.
+
+What that script writes, and from where:
+
+| File                          | Cut from                         |
+| ----------------------------- | -------------------------------- |
+| `icon.png`                    | the 1024 square, recoloured      |
+| `favicon.png`                 | `icon.png`, resampled to 48      |
+| `android-icon-background.png` | the flat field, 432 square       |
+| `android-icon-foreground.png` | the monochrome layer's alpha     |
+| `android-icon-monochrome.png` | never written — Android tints it |
+| `splash-mark-ink.png`         | `assets/brand/wave-mark.json`    |
+
+The foreground borrows its silhouette from the monochrome layer rather than
+being cut from the square again, because a launcher draws whichever of the two
+it asks for and they have to agree to the pixel. That also keeps, for free, the
+60%-of-canvas sizing that holds the mark inside the 66% the launcher promises
+not to crop.
+
+The splash mark is the odd one out: it comes from the geometry in
+`apps/mobile/assets/brand/wave-mark.json`, not from the square, because the
+animated splash has to draw the stroke on rather than reveal a raster. The two
+curves are not the same drawing: overlaid, the rebuilt one is noticeably taller
+for its width, with its dot further off the end of the stroke — bounding-box
+aspect 1.305 against the square's 1.629. That difference is exactly why the
+launcher icons are still cut from the picture rather than redrawn from the
+geometry: recolouring the picture moves them onto the new brand without the mark
+also changing proportion, size and position inside the icon.
