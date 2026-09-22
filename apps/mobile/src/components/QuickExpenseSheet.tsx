@@ -68,7 +68,7 @@ import {
 
 import { DestinationPicker } from '@/components/DestinationPicker';
 import { GroupMark } from '@/components/GroupMark';
-import { useGroup, useGroups, useWriteExpense } from '@/data/hooks';
+import { useCreateCapture, useGroup, useGroups, useWriteExpense } from '@/data/hooks';
 import { todayIso, useUpsertPersonalRecord } from '@/data/personal';
 import { groupLabel, isViewer, type GroupRow } from '@/data/types';
 import { fill, useStrings } from '@/i18n';
@@ -343,6 +343,7 @@ function QuickExpenseFooter({
   const viewerId = useViewerId();
   const { members } = useGroup(group.id);
   const write = useWriteExpense(group.id);
+  const createCapture = useCreateCapture();
   const [saving, setSaving] = useState(false);
 
   const rows = members.data;
@@ -356,9 +357,18 @@ function QuickExpenseFooter({
   // group does not keep its books in needs a rate, and the rate card — with the
   // tier rules behind it — is the full form's. Saying so is better than saving
   // a number that means something else.
+  //
+  // That is a reason to hold the money, not to refuse it. Refusing costs the
+  // one thing this sheet exists to protect: you paid, you are standing there,
+  // and the alternative is remembering the number later. So it is kept as a
+  // draft against this group instead (A34) — a real row that syncs, waits in
+  // Review, and opens the full form with its rate card when you come back.
   const needsRate = currency !== group.default_currency;
-  const canSave =
-    amount > 0n && participants.length > 0 && myMemberId !== null && !needsRate && !saving;
+  // A draft is a personal row, so it needs neither members nor a payer: nothing
+  // is owed to anybody until it becomes an expense.
+  const canSave = needsRate
+    ? amount > 0n && !saving
+    : amount > 0n && participants.length > 0 && myMemberId !== null && !saving;
 
   const handOff = (): void => {
     onHandOff();
@@ -376,9 +386,24 @@ function QuickExpenseFooter({
   };
 
   const save = async (): Promise<void> => {
-    if (!canSave || !myMemberId) return;
+    if (!canSave) return;
     setSaving(true);
     try {
+      if (needsRate) {
+        await createCapture.mutateAsync({
+          description: '',
+          expenseDate: new Date().toISOString().slice(0, 10),
+          currency,
+          amount,
+          // Tagged with where it is going, so picking it up again is one tap
+          // rather than the "which group was this?" question a second time.
+          targetGroupId: group.id,
+        });
+        noteDestination(groupDestination(group.id));
+        onSaved();
+        return;
+      }
+      if (!myMemberId) return;
       await write.mutateAsync({
         description: '',
         expenseDate: new Date().toISOString().slice(0, 10),
@@ -402,7 +427,9 @@ function QuickExpenseFooter({
   return (
     <View style={{ gap: theme.spacing.sm }}>
       {needsRate ? (
-        <Callout tone="warning">{t.quickExpense.needsRate}</Callout>
+        <Text variant="caption" tone="muted">
+          {fill(t.quickExpense.draftHint, { group: groupLabel(group) })}
+        </Text>
       ) : myMemberId === null && participants.length > 0 ? (
         // A grey button with no reason is a button somebody argues with. This
         // is the one case the sheet cannot resolve on its own: the group has
@@ -414,7 +441,7 @@ function QuickExpenseFooter({
         </Text>
       )}
       <Button
-        label={t.quickExpense.save}
+        label={needsRate ? t.quickExpense.saveDraft : t.quickExpense.save}
         size="lg"
         fullWidth
         disabled={!canSave}

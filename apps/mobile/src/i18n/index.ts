@@ -1607,15 +1607,18 @@ export interface UiStrings {
     justMe: string;
     /** Nothing to suggest yet, so the picker is the way through. */
     noPlacesYet: string;
-    /** A currency the group does not keep its books in needs a rate, which is
-     *  the full form's job (ADR-003 converts nothing on its own). */
-    needsRate: string;
     /** Under a Save that cannot fire, naming what is missing rather than
      *  leaving a grey button to be argued with. */
     cannotSaveNoMember: string;
     /** Under Save when the private ledger is the destination: no split, no
      *  payer, nobody owes anybody. */
     justMeHint: string;
+    /** The Save label when the amount is in a currency the group does not keep
+     *  its books in: it cannot become an expense without a rate, so it is kept
+     *  as a draft against that group instead of being refused. */
+    saveDraft: string;
+    /** Under that button. {group} is where the draft is headed. */
+    draftHint: string;
   };
   /** Captures (A34): an expense caught before it has a group, kept in a personal inbox. */
   captures: {
@@ -4757,10 +4760,11 @@ const en: UiStrings = {
     splitEqually: 'Split equally between {count} · you paid',
     justMe: 'Just me',
     noPlacesYet: 'Pick where this belongs',
-    needsRate: 'That currency needs a rate — open the full form.',
     cannotSaveNoMember:
       'You are not a member of this group, so there is nobody to record as the payer.',
     justMeHint: 'Goes to your private ledger — not split, and nobody sees it.',
+    saveDraft: 'Keep as a draft',
+    draftHint: 'Waits in {group} until you add the rate — nothing is converted for you.',
   },
   captures: {
     watching: 'Not checked yet',
@@ -7683,10 +7687,11 @@ const ta: UiStrings = {
     splitEqually: 'Split equally between {count} · you paid',
     justMe: 'Just me',
     noPlacesYet: 'Pick where this belongs',
-    needsRate: 'That currency needs a rate — open the full form.',
     cannotSaveNoMember:
       'You are not a member of this group, so there is nobody to record as the payer.',
     justMeHint: 'Goes to your private ledger — not split, and nobody sees it.',
+    saveDraft: 'Keep as a draft',
+    draftHint: 'Waits in {group} until you add the rate — nothing is converted for you.',
   },
   captures: {
     watching: 'இன்னும் பார்க்கவில்லை',
@@ -10677,10 +10682,11 @@ const hi: UiStrings = {
     splitEqually: 'Split equally between {count} · you paid',
     justMe: 'Just me',
     noPlacesYet: 'Pick where this belongs',
-    needsRate: 'That currency needs a rate — open the full form.',
     cannotSaveNoMember:
       'You are not a member of this group, so there is nobody to record as the payer.',
     justMeHint: 'Goes to your private ledger — not split, and nobody sees it.',
+    saveDraft: 'Keep as a draft',
+    draftHint: 'Waits in {group} until you add the rate — nothing is converted for you.',
   },
   captures: {
     watching: 'अभी तक देखा नहीं',
@@ -13661,10 +13667,11 @@ const ar: UiStrings = {
     splitEqually: 'Split equally between {count} · you paid',
     justMe: 'Just me',
     noPlacesYet: 'Pick where this belongs',
-    needsRate: 'That currency needs a rate — open the full form.',
     cannotSaveNoMember:
       'You are not a member of this group, so there is nobody to record as the payer.',
     justMeHint: 'Goes to your private ledger — not split, and nobody sees it.',
+    saveDraft: 'Keep as a draft',
+    draftHint: 'Waits in {group} until you add the rate — nothing is converted for you.',
   },
   captures: {
     watching: 'لم يتم التحقق بعد',
