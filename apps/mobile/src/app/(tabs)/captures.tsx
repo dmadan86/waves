@@ -1655,7 +1655,10 @@ export default function CapturesScreen() {
 
   // One object so a chip, a fold or a swipe re-renders a row FlashList would
   // otherwise recycle unchanged.
-  const listState = useMemo(() => ({ openBatchIds, destinations }), [openBatchIds, destinations]);
+  const listState = useMemo(
+    () => ({ openBatchIds, destinations, theme }),
+    [openBatchIds, destinations, theme],
+  );
 
   const menuCapture = menu?.kind === 'capture' ? menu.capture : null;
   const menuDestination = menuCapture ? (destinations.get(menuCapture.id) ?? null) : null;

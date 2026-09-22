@@ -54,7 +54,7 @@
  * different sentences, because they are different problems.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { FlashList } from '@shopify/flash-list';
 import { useQuery } from '@tanstack/react-query';
@@ -201,6 +201,16 @@ export default function OfflineVoiceScreen() {
     queryFn: () => speechModels?.listLocales() ?? Promise.resolve(null),
     enabled: speechModels !== null && reportsInstalled,
   });
+
+  // Everything a row reads from outside its own data: the language and theme it
+  // is drawn in, its download progress, whether its section is open, and the
+  // query's last update. Memoised rather than an array literal — a fresh
+  // identity every render re-renders every row on every render, which is the
+  // cost `extraData` exists to avoid.
+  const listExtraData = useMemo(
+    () => ({ locale, theme, progress, openSections, updatedAt: locales.dataUpdatedAt }),
+    [locale, theme, progress, openSections, locales.dataUpdatedAt],
+  );
 
   // A model can land while this screen is not the one in front — the Android 13
   // dialog finishes, a queued download completes on Wi-Fi, somebody adds one in
@@ -463,7 +473,7 @@ export default function OfflineVoiceScreen() {
         // folding a section shuffles which is which — recycling one into the
         // other is how a list starts measuring wrong.
         getItemType={(item) => item.kind}
-        extraData={[locale, theme.scheme, progress, openSections, locales.dataUpdatedAt]}
+        extraData={listExtraData}
         drawDistance={1500}
         contentContainerStyle={{
           paddingHorizontal: theme.spacing.xl,

@@ -299,7 +299,7 @@ export default function SpendingMonthScreen() {
       ) : (
         <FlashList
           data={items}
-          extraData={locale}
+          extraData={`${locale}|${theme.scheme}`}
           keyExtractor={(item) => item.key}
           getItemType={(item) => item.kind}
           renderItem={renderItem}

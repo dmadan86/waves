@@ -152,6 +152,11 @@ export default function SmsInboxScreen(): React.JSX.Element | null {
   const [query, setQuery] = useState('');
   const [date, setDate] = useState<SmsDateFilter>(DEFAULT_DATE_FILTER);
   const [selected, setSelected] = useState<ReadonlySet<string>>(() => new Set());
+  // What a recycled row reads from outside its own data: the tick it wears and
+  // the theme its colours come from. A row only re-renders when this changes,
+  // so leaving the theme out strands rows in the scheme they were last drawn
+  // in after a light/dark switch.
+  const listExtraData = useMemo(() => ({ selected, theme }), [selected, theme]);
   const [scanOpen, setScanOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
   const [placing, setPlacing] = useState(false);
@@ -725,7 +730,7 @@ export default function SmsInboxScreen(): React.JSX.Element | null {
         data={loading ? [] : visible}
         keyExtractor={(item) => item.dedupeKey}
         renderItem={renderRow}
-        extraData={selected}
+        extraData={listExtraData}
         // Half the group ledger's 2500, and the reason is which frame is
         // expensive here rather than how fast anybody flings. Draw distance is
         // paid in full on the *first* paint, and this screen is pushed onto a

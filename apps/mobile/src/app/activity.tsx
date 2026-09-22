@@ -513,9 +513,10 @@ export default function ActivityScreen() {
         <View style={{ paddingHorizontal: theme.spacing.xl }}>{header}</View>
         <FlashList
           data={listData}
-          // The row text is locale-formatted, so a language change has to re-run
-          // renderItem even though the data array is unchanged.
-          extraData={locale}
+          // The row text is locale-formatted and the row's colours come from the
+          // theme, so a language or light/dark switch has to re-run renderItem
+          // even though the data array is unchanged.
+          extraData={`${locale}|${theme.scheme}`}
           keyExtractor={(item) => item.key}
           // Day headings and event rows are structurally different subtrees;
           // typing them lets FlashList recycle like with like.
