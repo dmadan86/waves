@@ -1772,49 +1772,18 @@ function GroupRow({
               </View>
             ) : null}
           </Row>
-          {/* Who is in the group, as one object rather than two.
-              
-              The faces and the count sit inside a single soft chip — Meetup's
-              treatment — so the line reads as ‹who› · ‹how the money stands›
-              instead of three things competing at the same weight. Loose faces
-              followed by loose words made the count look like a caption on the
-              avatars and the status look like a caption on the count.
-              
-              The chip holds its own width against a long group name, and the
-              status after it is what gets truncated, which is the right thing
-              to lose: "All settled" is repeated on every row, and who is in
-              the group is not. */}
+          {/* The faces, then the words. A count says how many; the faces say
+              who, which is what you actually recognise a group by — and it is
+              the same `AvatarStack` the contacts screen uses rather than a
+              second facepile with its own overlap. Hidden while a settlement is
+              waiting, because that line is a different sentence and the faces
+              would only crowd it. */}
           <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
             {pendingLabel === null && memberNames.length > 0 ? (
-              <Row
-                // The chip draws a bare numeral, which is legible beside three
-                // faces and meaningless read aloud. Spoken, it is the whole
-                // phrase — "3 members" — and the parts inside are hidden so it
-                // is not announced twice.
-                accessible
-                accessibilityLabel={memberLabel}
-                style={{
-                  alignItems: 'center',
-                  gap: theme.spacing.xs,
-                  paddingLeft: 2,
-                  paddingRight: theme.spacing.sm,
-                  paddingVertical: 2,
-                  borderRadius: theme.radius.pill,
-                  borderWidth: 1,
-                  borderColor: theme.color.border,
-                  backgroundColor: theme.color.surfaceMuted,
-                }}
-              >
-                {/* The stack the contacts screen uses, not a second facepile
-                    with its own overlap and its own overflow chip. */}
-                <AvatarStack names={memberNames} size={18} max={3} />
-                <Text variant="micro" tone="muted">
-                  {String(memberNames.length)}
-                </Text>
-              </Row>
+              <AvatarStack names={memberNames} size={18} max={3} />
             ) : null}
             <Text variant="caption" tone="muted" numberOfLines={1} style={{ flex: 1 }}>
-              {pendingLabel ?? statusLabel}
+              {pendingLabel ?? `${memberLabel} · ${statusLabel}`}
             </Text>
           </Row>
         </View>
