@@ -31,7 +31,7 @@ import { router } from '@/lib/navigation';
 import { r2Enabled } from '@/lib/storage';
 import { describeGrace, useLock } from '@/lib/lock';
 import { SyncNetworkPreference, useSyncNetwork } from '@/lib/syncNetwork';
-import { useThemePreference } from '@/lib/theme';
+import { THEME_HIDDEN, useThemePreference } from '@/lib/theme';
 
 /**
  * Settings: everything you can change, and the two things you can end.
@@ -357,12 +357,17 @@ function ProfileForm() {
               hint: languageSummary,
               route: '/settings/language',
             },
-            {
-              icon: 'contrast-outline',
-              label: t.account.themeRow,
-              hint: themeSummary,
-              route: '/settings/theme',
-            },
+            // Hidden with THEME_HIDDEN — see lib/theme.
+            ...(THEME_HIDDEN
+              ? []
+              : [
+                  {
+                    icon: 'contrast-outline' as const,
+                    label: t.account.themeRow,
+                    hint: themeSummary,
+                    route: '/settings/theme' as const,
+                  },
+                ]),
             {
               icon: 'notifications-outline',
               label: t.account.notifications,

@@ -55,6 +55,7 @@ import { ImportProgressBanner } from '@/components/ImportProgressBanner';
 import { SkeletonList } from '@/components/Skeletons';
 import { useImportedGroupId } from '@/lib/importProgress';
 import { useReducedMotion } from '@/lib/reducedMotion';
+import { THEME_HIDDEN } from '@/lib/theme';
 import { useDefaultCurrency } from '@/lib/currency';
 import { QuickAddSheet, useQuickAddActions } from '@/components/QuickAddSheet';
 import { QuickExpenseSheet } from '@/components/QuickExpenseSheet';
@@ -328,12 +329,18 @@ export default function HomeScreen() {
         section: 'data',
       },
       { icon: 'language-outline', label: t.language, route: '/settings/language', section: 'app' },
-      {
-        icon: 'contrast-outline',
-        label: t.account.themeRow,
-        route: '/settings/theme',
-        section: 'app',
-      },
+      // Appearance is hidden while THEME_HIDDEN stands; the screen behind it is
+      // still routable, just not offered.
+      ...(THEME_HIDDEN
+        ? []
+        : [
+            {
+              icon: 'contrast-outline' as const,
+              label: t.account.themeRow,
+              route: '/settings/theme' as const,
+              section: 'app' as const,
+            },
+          ]),
       {
         icon: 'settings-outline',
         label: t.account.faceSettings,
