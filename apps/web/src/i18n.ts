@@ -2236,7 +2236,7 @@ const en: WebStrings = {
     yourAccountHint: 'Your name, where you are, and the ways in',
     guestTitle: 'Guest account',
     guestBody:
-      'Everything you have entered is already saved and yours. Add an email or phone number whenever you want to reach it from another phone — it keeps this account rather than starting a new one.',
+      'Everything you have entered is already saved and yours. Link a Google or Apple account whenever you want to reach it from another device — it keeps this account rather than starting a new one.',
     detailsTitle: 'Your details',
     displayNameHint: 'Everyone you share a group with sees this.',
     countryNotSet: 'Not set',
@@ -2265,7 +2265,7 @@ const en: WebStrings = {
   },
   notifications: {
     title: 'Notifications',
-    rowHint: 'Only what involves me',
+    rowHint: 'What Waves may interrupt you about',
     neverSpam:
       'Waves never emails you about routine expense activity. Only the six things you would actually want in your inbox, each unsubscribable on its own.',
     pushSection: 'Push',
@@ -3263,7 +3263,7 @@ const ta: WebStrings = {
     yourAccountHint: 'உங்கள் பெயர், நீங்கள் இருக்கும் இடம், உள்ளே வரும் வழிகள்',
     guestTitle: 'விருந்தினர் கணக்கு',
     guestBody:
-      'நீங்கள் சேர்த்தவை அனைத்தும் ஏற்கனவே சேமிக்கப்பட்டு உங்களுடையவை. வேறு ஃபோனிலிருந்து அணுக விரும்பும்போது மின்னஞ்சலையோ தொலைபேசி எண்ணையோ சேர்க்கவும் — புதிய கணக்கு தொடங்காமல் இதே கணக்கு தொடரும்.',
+      'நீங்கள் சேர்த்தவை அனைத்தும் ஏற்கனவே சேமிக்கப்பட்டு உங்களுடையவை. வேறு சாதனத்திலிருந்து அணுக விரும்பும்போது Google அல்லது Apple கணக்கை இணைக்கவும் — புதிய கணக்கு தொடங்காமல் இதே கணக்கு தொடரும்.',
     detailsTitle: 'உங்கள் விவரங்கள்',
     displayNameHint: 'நீங்கள் குழு பகிரும் அனைவரும் இதைப் பார்ப்பார்கள்.',
     countryNotSet: 'அமைக்கப்படவில்லை',
@@ -3294,7 +3294,7 @@ const ta: WebStrings = {
   },
   notifications: {
     title: 'அறிவிப்புகள்',
-    rowHint: 'என்னைச் சார்ந்தவை மட்டும்',
+    rowHint: 'Waves உங்களைக் குறுக்கிடக்கூடியவை',
     neverSpam:
       'வழக்கமான செலவுச் செயல்பாடுகள் குறித்து Waves உங்களுக்கு மின்னஞ்சல் அனுப்புவதே இல்லை. உங்கள் அஞ்சல் பெட்டியில் நீங்கள் உண்மையிலேயே விரும்பும் ஆறு விஷயங்கள் மட்டுமே, ஒவ்வொன்றையும் தனித்தனியே நிறுத்தலாம்.',
     pushSection: 'அறிவிப்பு',
@@ -4258,7 +4258,7 @@ const hi: WebStrings = {
     yourAccountHint: 'आपका नाम, आप कहाँ हैं, और अंदर आने के रास्ते',
     guestTitle: 'मेहमान खाता',
     guestBody:
-      'आपने जो कुछ जोड़ा है वह पहले ही सेव है और आपका है। जब भी किसी दूसरे फ़ोन से पहुँचना हो, ईमेल या फ़ोन नंबर जोड़ लें — इससे नया खाता नहीं बनता, यही खाता बना रहता है।',
+      'आपने जो कुछ जोड़ा है वह पहले ही सेव है और आपका है। जब भी किसी दूसरे डिवाइस से पहुँचना हो, Google या Apple खाता जोड़ लें — इससे नया खाता नहीं बनता, यही खाता बना रहता है।',
     detailsTitle: 'आपकी जानकारी',
     displayNameHint: 'जिन ग्रुप में आप हैं, उनमें सब यही देखते हैं।',
     countryNotSet: 'तय नहीं',
@@ -4288,7 +4288,7 @@ const hi: WebStrings = {
   },
   notifications: {
     title: 'सूचनाएँ',
-    rowHint: 'सिर्फ़ वही जिनसे मेरा वास्ता है',
+    rowHint: 'Waves किन बातों के लिए आपको टोक सकता है',
     neverSpam:
       'रोज़मर्रा की खर्च गतिविधि के लिए Waves कभी ईमेल नहीं करता। सिर्फ़ वे छह चीज़ें जो आप वाकई इनबॉक्स में चाहेंगे, और हर एक अलग से बंद की जा सकती है।',
     pushSection: 'पुश',
@@ -5313,7 +5313,7 @@ const ar: WebStrings = {
     yourAccountHint: 'اسمك، وأين أنت، والطرق إلى حسابك',
     guestTitle: 'حساب ضيف',
     guestBody:
-      'كل ما أدخلته محفوظ بالفعل وهو ملكك. أضف بريدًا إلكترونيًا أو رقم هاتف متى أردت الوصول إليه من هاتف آخر — سيحتفظ بهذا الحساب بدل أن يبدأ حسابًا جديدًا.',
+      'كل ما أدخلته محفوظ بالفعل وهو ملكك. اربط حساب Google أو Apple متى أردت الوصول إليه من جهاز آخر — سيحتفظ بهذا الحساب بدل أن يبدأ حسابًا جديدًا.',
     detailsTitle: 'بياناتك',
     displayNameHint: 'يراه كل من تشاركه مجموعة.',
     countryNotSet: 'غير محدد',
@@ -5341,7 +5341,7 @@ const ar: WebStrings = {
   },
   notifications: {
     title: 'الإشعارات',
-    rowHint: 'ما يخصّني فقط',
+    rowHint: 'ما يجوز لـ Waves أن يقاطعك بسببه',
     neverSpam:
       'لا يرسل Waves بريدًا عن نشاط المصروفات المعتاد. ستة أشياء فقط قد ترغب فعلًا في وصولها إلى بريدك، ويمكن إيقاف كل منها وحده.',
     pushSection: 'الإشعارات الفورية',
