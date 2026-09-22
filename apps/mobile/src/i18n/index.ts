@@ -278,6 +278,8 @@ export interface UiStrings {
   members: string;
   /** "3 members" under a group. `members` on its own is a heading, not a count. */
   memberCount: PluralForms;
+  /** Drafts waiting against a group — caught, not yet an expense. */
+  draftCount: PluralForms;
   notJoinedYet: string;
   scansLeft: string;
   simplifyOn: string;
@@ -3737,6 +3739,7 @@ const en: UiStrings = {
   settleConfirmTheyPay: 'You will be asked to confirm once they mark it paid.',
   members: 'Members',
   memberCount: { one: '{n} member', other: '{n} members' },
+  draftCount: { one: '{n} draft', other: '{n} drafts' },
   notJoinedYet: 'not joined yet',
   scansLeft: 'scans left',
   simplifyOn: 'Simplify on',
@@ -6641,6 +6644,7 @@ const ta: UiStrings = {
     'அவர் செலுத்தியதாகக் குறித்ததும் நீங்கள் உறுதிப்படுத்தக் கேட்கப்படுவீர்கள்.',
   members: 'உறுப்பினர்கள்',
   memberCount: { one: '{n} உறுப்பினர்', other: '{n} உறுப்பினர்கள்' },
+  draftCount: { one: '{n} draft', other: '{n} drafts' },
   notJoinedYet: 'இன்னும் சேரவில்லை',
   scansLeft: 'ஸ்கேன் மீதம்',
   simplifyOn: 'எளிமையாக்கல் இயக்கத்தில்',
@@ -9670,6 +9674,7 @@ const hi: UiStrings = {
   settleConfirmTheyPay: 'जब वे इसे चुकाया हुआ चिह्नित करेंगे, तब आपसे पुष्टि माँगी जाएगी।',
   members: 'सदस्य',
   memberCount: { one: '{n} सदस्य', other: '{n} सदस्य' },
+  draftCount: { one: '{n} draft', other: '{n} drafts' },
   notJoinedYet: 'अभी शामिल नहीं हुए',
   scansLeft: 'स्कैन बाकी',
   simplifyOn: 'आसान करना चालू',
@@ -12598,6 +12603,7 @@ const ar: UiStrings = {
     many: '{n} عضوًا',
     other: '{n} عضو',
   },
+  draftCount: { one: '{n} draft', other: '{n} drafts' },
   notJoinedYet: 'لم ينضم بعد',
   scansLeft: 'عمليات مسح متبقية',
   simplifyOn: 'التبسيط مفعّل',

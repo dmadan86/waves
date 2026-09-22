@@ -191,6 +191,7 @@ export function HeroActionCircle({
  */
 export function HeroPillButton({
   label,
+  spokenLabel,
   icon,
   trailingIcon,
   gradient,
@@ -201,6 +202,13 @@ export function HeroPillButton({
   style,
 }: {
   label: string;
+  /**
+   * What a screen reader says, when the drawn label is deliberately shorter
+   * than the action. "Expense" under a plus is unambiguous to look at and
+   * weak to hear on its own — it could be a heading. Sighted readers get the
+   * short word in context; everyone else gets the verb.
+   */
+  spokenLabel?: string;
   icon?: keyof typeof Ionicons.glyphMap;
   trailingIcon?: keyof typeof Ionicons.glyphMap;
   gradient: readonly string[];
@@ -231,7 +239,7 @@ export function HeroPillButton({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={spokenLabel ?? label}
       accessibilityState={{ disabled: Boolean(disabled) }}
       disabled={disabled}
       onPress={onPress}

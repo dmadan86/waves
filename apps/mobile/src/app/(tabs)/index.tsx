@@ -34,7 +34,13 @@ import {
   useTheme,
 } from '@waves/ui';
 
-import { useGroups, useHomeSummary, usePinnedGroupIds, useSetGroupPin } from '@/data/hooks';
+import {
+  useCaptures,
+  useGroups,
+  useHomeSummary,
+  usePinnedGroupIds,
+  useSetGroupPin,
+} from '@/data/hooks';
 import { orderByPin } from '@/lib/groupPinOrder';
 import { plural, useStrings, type UiStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
@@ -128,6 +134,19 @@ export default function HomeScreen() {
   // The time-of-day line under the name. The *bucket* is sampled once on mount
   // (lazy init, never a bare Date in render — the React Compiler lints that),
   // then the localised word is read at render so it follows a language change.
+  // Drafts (A34) belong to the person, not the group, so they come from the
+  // captures read and are counted per destination here — one pass, rather than
+  // a filter inside every row.
+  const captures = useCaptures();
+  const draftsByGroup = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const capture of captures.data) {
+      const target = capture.target_group_id;
+      if (target) counts.set(target, (counts.get(target) ?? 0) + 1);
+    }
+    return counts;
+  }, [captures.data]);
+
   const [greetKey] = useState<'morning' | 'afternoon' | 'evening'>(() => {
     const hour = new Date().getHours();
     return hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening';
@@ -540,7 +559,11 @@ export default function HomeScreen() {
             <TourTarget id="addExpense">
               <HeroPillButton
                 icon="add"
-                label={t.addExpense}
+                // The plus is doing the verb's work, so the pill carries the
+                // noun. Spoken it is still the whole action: "Expense" heard
+                // on its own could be a heading.
+                label={t.expenseShort}
+                spokenLabel={t.addExpense}
                 gradient={heroInk}
                 // The quick sheet, not the capture screen. Most spends know
                 // exactly where they belong and need an amount and a place,
@@ -555,7 +578,12 @@ export default function HomeScreen() {
               <TourTarget id="addGroup">
                 <HeroActionCircle
                   // The mark carries its own plus, so there is no badge on it.
-                  glyph={<GroupAddIcon color={theme.color.onBrand} />}
+                  // Smaller than an Ionicon would be in the same disc: this
+                  // mark is three figures and a plus where a glyph is one
+                  // shape, and at icon size that detail needs the air around
+                  // it more than it needs the extra points. The disc keeps its
+                  // own size — it is the touch target.
+                  glyph={<GroupAddIcon size={16} color={theme.color.onBrand} />}
                   label={t.newGroup}
                   onPress={openNewGroup}
                 />
@@ -671,6 +699,11 @@ export default function HomeScreen() {
                       title={groupLabel(group, members, viewerId)}
                       memberLabel={plural(locale, summary.memberCountFor(group.id), t.memberCount)}
                       memberNames={members.map((member) => memberName(member, viewerId))}
+                      draftLabel={
+                        draftsByGroup.has(group.id)
+                          ? plural(locale, draftsByGroup.get(group.id) ?? 0, t.draftCount)
+                          : null
+                      }
                       coverEmoji={group.cover_emoji}
                       balance={balance}
                       currency={group.default_currency}
@@ -1620,6 +1653,7 @@ function GroupRow({
   title,
   memberLabel,
   memberNames,
+  draftLabel,
   coverEmoji,
   balance,
   currency,
@@ -1642,6 +1676,10 @@ function GroupRow({
   /** Who is in the group, for the faces beside the count. Names rather than
    *  rows, because the stack draws initials and nothing here needs more. */
   memberNames: readonly string[];
+  /** "2 drafts" when this group has money caught but not yet entered, else
+   *  null. Worth a place on the row because a draft is the one thing here that
+   *  is waiting on the reader. */
+  draftLabel: string | null;
   coverEmoji: string | null;
   balance: bigint;
   currency: string;
@@ -1783,7 +1821,7 @@ function GroupRow({
               <AvatarStack names={memberNames} size={18} max={3} />
             ) : null}
             <Text variant="caption" tone="muted" numberOfLines={1} style={{ flex: 1 }}>
-              {pendingLabel ?? `${memberLabel} · ${statusLabel}`}
+              {pendingLabel ?? [memberLabel, draftLabel, statusLabel].filter(Boolean).join(' · ')}
             </Text>
           </Row>
         </View>
