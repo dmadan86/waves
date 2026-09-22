@@ -842,7 +842,7 @@ export default function NewGroupScreen() {
               />
               {openAttr === 'rates' ? (
                 <View style={{ paddingBottom: theme.spacing.md }}>
-                  <TripRatesCard store={rateStore} groupCurrency={currency} canEdit />
+                  <TripRatesCard store={rateStore} groupCurrency={currency} canEdit embedded />
                 </View>
               ) : null}
             </View>
