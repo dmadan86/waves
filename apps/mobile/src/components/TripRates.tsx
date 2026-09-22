@@ -219,16 +219,108 @@ export function TripRatesCard({
   store,
   groupCurrency,
   canEdit,
+  embedded = false,
 }: {
   store: TripRateStore;
   groupCurrency: string;
   canEdit: boolean;
+  /**
+   * Drawn inside a row that already names it — the create-group form.
+   *
+   * The same three pieces of chrome that make this readable as a section of
+   * settings are noise there: the heading repeats the row's own label a
+   * centimetre below it, the paragraph explains a feature the person has
+   * already chosen to open, and a card inside a card draws a box round a box.
+   * The note goes too, because it is about bills already saved and a group
+   * being created has none.
+   */
+  embedded?: boolean;
 }) {
   const theme = useTheme();
   const { t, locale } = useStrings();
   const rows: readonly TripRateRow[] = store.rows;
   /** The currency being edited, or `''` for a rate that does not exist yet. */
   const [editing, setEditing] = useState<string | null>(null);
+
+  const list = (
+    <>
+      {rows.length === 0 ? (
+        // Embedded, "Add a currency" sits directly below and says the same
+        // thing as an instruction rather than as a report.
+        embedded && canEdit ? null : (
+          <View style={{ paddingVertical: theme.spacing.md }}>
+            <Text variant="caption" tone="muted">
+              {canEdit ? t.fx.noRates : `${t.fx.noRates} ${t.fx.adminOnly}`}
+            </Text>
+          </View>
+        )
+      ) : (
+        rows.map((row) => {
+          const rate = tripRateFor([row], row.from, groupCurrency);
+          const name = currencyName(row.from, locale);
+          return (
+            <ListRow
+              key={row.from}
+              title={name ? `${name} · ${row.from}` : row.from}
+              subtitle={rate ? rateLine(rate) : undefined}
+              leading={<CurrencyMark code={row.from} />}
+              trailing={
+                canEdit ? (
+                  <Ionicons
+                    name="chevron-forward"
+                    size={iconSize.sm}
+                    color={theme.color.textFaint}
+                  />
+                ) : undefined
+              }
+              onPress={canEdit ? () => setEditing(row.from) : undefined}
+            />
+          );
+        })
+      )}
+
+      {canEdit ? (
+        <ListRow
+          title={t.fx.addRate}
+          leading={
+            <View
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: theme.radius.pill,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: theme.color.brandSoft,
+              }}
+            >
+              <Ionicons name="add" size={iconSize.md} color={theme.color.brand} />
+            </View>
+          }
+          onPress={() => setEditing('')}
+        />
+      ) : null}
+    </>
+  );
+
+  const sheet =
+    editing !== null ? (
+      <TripRateSheet
+        store={store}
+        groupCurrency={groupCurrency}
+        editingFrom={editing}
+        taken={rows.map((row) => row.from)}
+        onClose={() => setEditing(null)}
+      />
+    ) : null;
+
+  if (embedded) {
+    return (
+      <View>
+        {list}
+        {sheet}
+      </View>
+    );
+  }
 
   return (
     <View style={{ gap: theme.spacing.sm }}>
@@ -238,72 +330,14 @@ export function TripRatesCard({
       </Text>
 
       <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
-        {rows.length === 0 ? (
-          <View style={{ paddingVertical: theme.spacing.md }}>
-            <Text variant="caption" tone="muted">
-              {canEdit ? t.fx.noRates : `${t.fx.noRates} ${t.fx.adminOnly}`}
-            </Text>
-          </View>
-        ) : (
-          rows.map((row) => {
-            const rate = tripRateFor([row], row.from, groupCurrency);
-            const name = currencyName(row.from, locale);
-            return (
-              <ListRow
-                key={row.from}
-                title={name ? `${name} · ${row.from}` : row.from}
-                subtitle={rate ? rateLine(rate) : undefined}
-                leading={<CurrencyMark code={row.from} />}
-                trailing={
-                  canEdit ? (
-                    <Ionicons
-                      name="chevron-forward"
-                      size={iconSize.sm}
-                      color={theme.color.textFaint}
-                    />
-                  ) : undefined
-                }
-                onPress={canEdit ? () => setEditing(row.from) : undefined}
-              />
-            );
-          })
-        )}
-
-        {canEdit ? (
-          <ListRow
-            title={t.fx.addRate}
-            leading={
-              <View
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: theme.radius.pill,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: theme.color.brandSoft,
-                }}
-              >
-                <Ionicons name="add" size={iconSize.md} color={theme.color.brand} />
-              </View>
-            }
-            onPress={() => setEditing('')}
-          />
-        ) : null}
+        {list}
       </Card>
 
       <Text variant="micro" tone="faint">
         {t.fx.appliesNote}
       </Text>
 
-      {editing !== null ? (
-        <TripRateSheet
-          store={store}
-          groupCurrency={groupCurrency}
-          editingFrom={editing}
-          taken={rows.map((row) => row.from)}
-          onClose={() => setEditing(null)}
-        />
-      ) : null}
+      {sheet}
     </View>
   );
 }
@@ -377,14 +411,28 @@ function TripRateSheet({
     (code) => code !== groupCurrency && (code === editingFrom || !taken.includes(code)),
   );
 
-  const fetchToday = async (): Promise<void> => {
-    if (!foreign) return;
+  /**
+   * Today's mid-market rate for one currency, straight into the field.
+   *
+   * Takes the code rather than reading `from`, because the moment this matters
+   * most is the instant somebody picks a currency — and the state holding that
+   * choice has not been read back yet when the handler runs.
+   *
+   * It also lands pointing the readable way. A fetched JPY rate is 0.55 rupees
+   * to the yen and 1.8 yen to the rupee; the second is the one a person can
+   * check against what they know, and `homeFirstFor` is what decides which of
+   * those a pair is.
+   */
+  const fetchFor = async (code: string): Promise<void> => {
+    if (!isCurrencyCode(code) || code === groupCurrency) return;
     setError(null);
     setBusy(true);
     try {
-      const fetched = fromFxRecord(await fetchFxRate(foreign, home));
+      const fetched = fromFxRecord(await fetchFxRate(code as CurrencyCode, home));
+      const readable = homeFirstFor(fetched);
       setExact(fetched);
-      setText(shownText(fetched, homeFirst));
+      setHomeFirst(readable);
+      setText(shownText(fetched, readable));
     } catch (caught) {
       setError(
         `${friendlyError(caught, t.misc.rateFetchFailed, 'tripRate.fetch')}${t.misc.rateFetchFailedSuffix}`,
@@ -462,6 +510,11 @@ function TripRateSheet({
               setText('');
               setExact(null);
               setError(null);
+              // The number almost everybody wants is today's, so go and get it
+              // rather than making them find a button and ask. Typing over it
+              // is one tap, and that is the rarer case — this is the sheet
+              // arriving already answered instead of already empty.
+              void fetchFor(code);
             }
             setPicking(false);
           }}
@@ -497,7 +550,7 @@ function TripRateSheet({
           value={text}
           code={rateCode}
           locale={locale}
-          placeholder="312"
+          placeholder={busy ? t.misc.askingRate : '312'}
           onChangeText={(next) => {
             setText(next);
             // Typed over: the number in the field is now the rate itself.
@@ -541,7 +594,7 @@ function TripRateSheet({
           variant="ghost"
           size="sm"
           disabled={busy || !foreign}
-          onPress={() => void fetchToday()}
+          onPress={() => void fetchFor(from)}
         />
         {existing ? (
           <Button
@@ -564,11 +617,19 @@ function TripRateSheet({
         </Text>
       ) : (
         <Text variant="micro" tone="faint">
-          {t.fx.removeConfirm}
+          {/* A number that appeared without being typed has to say so, or it
+              reads as something the app made up. Once it is typed over, `exact`
+              is cleared and this goes back to the standing note. */}
+          {exact && exact.source !== 'manual' ? t.fx.todaysRate : t.fx.removeConfirm}
         </Text>
       )}
 
-      <Button label={t.common.save} fullWidth disabled={!rate || store.pending} onPress={save} />
+      <Button
+        label={t.common.save}
+        fullWidth
+        disabled={!rate || store.pending || busy}
+        onPress={save}
+      />
     </Sheet>
   );
 }
