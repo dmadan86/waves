@@ -40,6 +40,7 @@ import {
   usePinnedGroupIds,
   useSetGroupPin,
 } from '@/data/hooks';
+import { orderByActivity } from '@/lib/groupActivityOrder';
 import { orderByPin } from '@/lib/groupPinOrder';
 import { plural, useStrings, type UiStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
@@ -152,15 +153,28 @@ export default function HomeScreen() {
   });
   const displayName = profile?.display_name ?? t.account.you;
 
-  // Pinned first, in the order they'd already have; everyone else, in the
-  // order they'd already have (see `orderByPin`). Applied *before* the
-  // GROUPS_PREVIEW slice below — the whole point of pinning is deciding which
-  // groups get the dashboard's limited slots, so a pin made on a group that
-  // would otherwise fall off the preview has to win that slot right here.
-  const list = useMemo(
-    () => orderByPin(groups.data ?? [], (group) => pinnedIds.has(group.id)),
-    [groups.data, pinnedIds],
-  );
+  /**
+   * Most recently used first, then pins in front of that.
+   *
+   * The order groups arrive in is `created_at` — the day you were *added* to
+   * one, which says nothing about whether you use it. With only
+   * GROUPS_PREVIEW slots that meant a trip that ended in March could hold a
+   * row for a year while the flat you settle up in weekly fell off the
+   * bottom, and pinning was the only cure. Ordering by when each ledger last
+   * moved lets a dormant group sink on its own and brings it straight back
+   * the moment somebody spends — without hiding anything, because a settled
+   * group is not a finished one.
+   *
+   * Both steps run *before* the slice: pinning and recency are precisely
+   * arguments about which groups deserve the limited slots, so they have to be
+   * settled while there are still rows to lose.
+   */
+  const list = useMemo(() => {
+    const byActivity = orderByActivity(groups.data ?? [], (group) =>
+      summary.lastActivityFor(group.id),
+    );
+    return orderByPin(byActivity, (group) => pinnedIds.has(group.id));
+  }, [groups.data, pinnedIds, summary]);
   // Two states, not one, because they deserve different answers.
   //
   // `hydrating` is "there is nothing to paint": the mirror has not been read off

@@ -107,6 +107,7 @@ import { pickAlbumPhoto, type PickedImage } from '@/lib/image';
 import { parseAnnotations, type Annotations } from '@/lib/annotations';
 import { sanitizeCommentMarkdown } from '@waves/core';
 import type { VoiceAccess } from '@/lib/voiceAccess';
+import { activityTime } from '@/lib/groupActivityOrder';
 import { myStake } from './activity';
 import { isGhost, isViewer, SettlementStatus } from './types';
 import type {
@@ -408,6 +409,11 @@ export function useHomeSummary(profileId: string | null) {
     // so its balance reads a confident 0 until they arrive; this lets the row mask
     // that amount rather than flash a wrong zero (see the dashboard's GroupRow).
     const withLedger = new Set<string>();
+    // When each group's ledger last moved, for the dashboard's ordering. Not
+    // the expense *date* — a receipt from last week typed in this morning is
+    // this morning's activity — so this reads `created_at` on the row and the
+    // settlement's own timestamps. See `groupActivityOrder`.
+    const activityByGroup = new Map<string, number>();
 
     for (const group of materialiseGroups(mirror, queue) as unknown as GroupRow[]) {
       const currency = group.default_currency ?? 'INR';
@@ -419,11 +425,34 @@ export function useHomeSummary(profileId: string | null) {
         groupId: group.id,
       }) as unknown as SettlementRow[];
 
-      const snapshots = materialiseExpenses(mirror, queue, { groupId: group.id })
+      const expenses = materialiseExpenses(mirror, queue, { groupId: group.id });
+      const snapshots = expenses
         .map((expense) => toSnapshot(expense as unknown as ExpenseRow))
         .filter((snapshot): snapshot is ExpenseSnapshot => snapshot !== null);
 
       if (snapshots.length > 0 || settlements.length > 0) withLedger.add(group.id);
+
+      // The group's own creation is the floor, not zero: a group made a minute
+      // ago with nothing in it yet is the most recent thing that happened, and
+      // an empty ledger would otherwise sink it to the bottom of the list on
+      // the very screen its maker is looking at.
+      let lastActive = activityTime(group.created_at);
+      for (const expense of expenses) {
+        const row = expense as unknown as ExpenseRow;
+        // A deleted expense is not activity that should hold a slot, but
+        // deleting one is: the row keeps its `created_at`, so this counts the
+        // group as active either way, which is the honest reading of "somebody
+        // was in here".
+        const at = activityTime(row.created_at);
+        if (at > lastActive) lastActive = at;
+      }
+      for (const settlement of settlements) {
+        const raised = activityTime(settlement.initiated_at);
+        if (raised > lastActive) lastActive = raised;
+        const confirmed = activityTime(settlement.confirmed_at);
+        if (confirmed > lastActive) lastActive = confirmed;
+      }
+      activityByGroup.set(group.id, lastActive);
 
       const net = computeNetBalances(snapshots, toSettlementSnapshots(settlements));
       // Never `member.profile_id === profileId`: with the profile still
@@ -466,7 +495,7 @@ export function useHomeSummary(profileId: string | null) {
       .map(([currency, amount]) => ({ currency, amount }))
       .sort((a, b) => (b.amount > a.amount ? 1 : b.amount < a.amount ? -1 : 0));
 
-    return { byGroup, membersByGroup, awaiting, totals, monthSpent, withLedger };
+    return { byGroup, membersByGroup, awaiting, totals, monthSpent, withLedger, activityByGroup };
   }, [mirror, queue, profileId, monthPrefix]);
 
   // Memoised so the returned object keeps a stable identity across renders that
@@ -484,6 +513,9 @@ export function useHomeSummary(profileId: string | null) {
       /** Whether this group's ledger has materialised yet — false for the brief
        *  window after an import lands the group but before its expenses arrive. */
       hasLedger: (groupId: string) => summary.withLedger.has(groupId),
+      /** When this group's ledger last moved, in ms. Its own creation when
+       *  nothing has happened in it yet. Drives the dashboard's ordering. */
+      lastActivityFor: (groupId: string) => summary.activityByGroup.get(groupId) ?? 0,
       totals: summary.totals,
       /** My share of this month's expenses, per currency, biggest first. */
       monthSpent: summary.monthSpent,
