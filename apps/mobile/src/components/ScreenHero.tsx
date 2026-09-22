@@ -111,11 +111,24 @@ export function HeroActionCircle({
   label,
   onPress,
   disabled,
+  badge = false,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   onPress: () => void;
   disabled?: boolean;
+  /**
+   * A small plus on the disc's shoulder, for an action that *makes* something
+   * rather than opening it.
+   *
+   * It is drawn rather than picked because Ionicons has no "add a group" glyph:
+   * the only one carrying a plus is `person-add`, a single figure, and this app
+   * already means something specific and different by adding a person (a 1:1
+   * ledger with them). Pointing that icon at "new group" would name the wrong
+   * feature — so the group glyph keeps its meaning and the plus is composed on
+   * top, which is the same badge the friends list wears for a merged guest.
+   */
+  badge?: boolean;
 }) {
   const theme = useTheme();
   return (
@@ -136,6 +149,28 @@ export function HeroActionCircle({
       })}
     >
       <Ionicons name={icon} size={iconSize.lg} color={theme.color.onBrand} />
+      {badge ? (
+        // Opaque, on the panel's own ink, so the plus reads as a mark on the
+        // disc rather than a glyph floating over the wash behind it. Decorative:
+        // the button's label already says what it makes.
+        <View
+          accessible={false}
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            right: -1,
+            bottom: -1,
+            width: 16,
+            height: 16,
+            borderRadius: 8,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: theme.color.onBrand,
+          }}
+        >
+          <Ionicons name="add" size={12} color={theme.color.brand} />
+        </View>
+      ) : null}
     </Pressable>
   );
 }

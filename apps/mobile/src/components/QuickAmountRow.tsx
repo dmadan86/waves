@@ -37,15 +37,31 @@ import { formatMinorInput, type CurrencyCode } from '@waves/core';
 import { AmountField, iconSize, Row, Text, useTheme } from '@waves/ui';
 
 import { useStrings } from '@/i18n';
-import { nudge, scrub, stepFor } from '@/lib/amountStep';
+import { nudge, quickAdds, scrub, stepFor } from '@/lib/amountStep';
 
 /** How long a hold waits before it starts repeating, and how fast it then goes.
     The first beat is slow enough that a normal tap is never read as a hold. */
 const HOLD_DELAY_MS = 400;
 const REPEAT_MS = 90;
-/** After this many repeats the step is applied several times per beat, so a
-    long hold crosses a large distance without the finger waiting on it. */
-const ACCELERATE_AFTER = 12;
+/**
+ * How a hold accelerates: one step a beat, then five, then ten.
+ *
+ * A hold that never speeds up is a slow tap, and one that goes straight to ten
+ * overshoots before the eye has read the first figure. Three gears, each about
+ * a second long, is enough to cross ₹1,300 to ₹5,000 without the finger
+ * waiting and without the number becoming a blur.
+ */
+const GEARS = [
+  { after: 0, times: 1n },
+  { after: 10, times: 5n },
+  { after: 22, times: 10n },
+] as const;
+
+function gearFor(beats: number): bigint {
+  let times = 1n;
+  for (const gear of GEARS) if (beats >= gear.after) times = gear.times;
+  return times;
+}
 
 export function QuickAmountRow({
   currency,
@@ -151,9 +167,9 @@ export function QuickAmountRow({
       let beats = 0;
       repeat.current = setInterval(() => {
         beats += 1;
-        const times = beats > ACCELERATE_AFTER ? 5 : 1;
+        const times = gearFor(beats);
         let next = latest.current;
-        for (let i = 0; i < times; i += 1) next = nudge(next, direction, currency);
+        for (let i = 0n; i < times; i += 1n) next = nudge(next, direction, currency);
         onChange(next);
       }, REPEAT_MS);
     }, HOLD_DELAY_MS);
@@ -230,6 +246,37 @@ export function QuickAmountRow({
         </View>
 
         {stepper(1)}
+      </Row>
+
+      {/* Bigger jumps than a single step, and they move with the figure: +₹5
+          on a chai, +₹500 on a flight, recomputed as it grows. Additive rather
+          than absolute because an expense is a number you are topping up —
+          the tip, the extra round — not one you are replacing. */}
+      <Row style={{ justifyContent: 'center', gap: theme.spacing.sm }}>
+        {quickAdds(value, currency).map((add) => (
+          <Pressable
+            key={add.toString()}
+            accessibilityRole="button"
+            accessibilityLabel={t.quickExpense.stepUp.replace(
+              '{amount}',
+              formatMinorInput(add, currency),
+            )}
+            onPress={() => onChange(value + add)}
+            hitSlop={6}
+            style={({ pressed }) => ({
+              minHeight: 32,
+              justifyContent: 'center',
+              paddingHorizontal: theme.spacing.md,
+              borderRadius: theme.radius.pill,
+              backgroundColor: theme.color.surfaceMuted,
+              opacity: pressed ? 0.6 : 1,
+            })}
+          >
+            <Text variant="caption" tone="muted">
+              {`+${formatMinorInput(add, currency)}`}
+            </Text>
+          </Pressable>
+        ))}
       </Row>
 
       {/* What a step is worth, under the control that does it. It changes with

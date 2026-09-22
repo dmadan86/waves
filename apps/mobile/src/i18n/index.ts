@@ -1595,7 +1595,8 @@ export interface UiStrings {
     title: string;
     /** Above the row of recent destinations. */
     where: string;
-    /** Opens the full Groups/People picker the voice review already uses. */
+    /** Opens the full Groups/People picker the voice review already uses —
+     *  everywhere the five chips could not fit. */
     otherPlaces: string;
     /** Leaves for the full form, carrying the amount, currency and place. */
     moreDetails: string;
@@ -4768,7 +4769,7 @@ const en: UiStrings = {
   quickExpense: {
     title: 'Quick expense',
     where: 'Where does it go?',
-    otherPlaces: 'Somewhere else',
+    otherPlaces: 'Others',
     moreDetails: 'More details',
     save: 'Save expense',
     splitEqually: 'Split equally between {count} · you paid',
@@ -7701,7 +7702,7 @@ const ta: UiStrings = {
   quickExpense: {
     title: 'Quick expense',
     where: 'Where does it go?',
-    otherPlaces: 'Somewhere else',
+    otherPlaces: 'Others',
     moreDetails: 'More details',
     save: 'Save expense',
     splitEqually: 'Split equally between {count} · you paid',
@@ -10702,7 +10703,7 @@ const hi: UiStrings = {
   quickExpense: {
     title: 'Quick expense',
     where: 'Where does it go?',
-    otherPlaces: 'Somewhere else',
+    otherPlaces: 'Others',
     moreDetails: 'More details',
     save: 'Save expense',
     splitEqually: 'Split equally between {count} · you paid',
@@ -13693,7 +13694,7 @@ const ar: UiStrings = {
   quickExpense: {
     title: 'Quick expense',
     where: 'Where does it go?',
-    otherPlaces: 'Somewhere else',
+    otherPlaces: 'Others',
     moreDetails: 'More details',
     save: 'Save expense',
     splitEqually: 'Split equally between {count} · you paid',

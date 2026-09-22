@@ -93,3 +93,25 @@ export function scrub(start: bigint, dx: number, currency: CurrencyCode): bigint
   const moved = start + steps * step;
   return moved < 0n ? 0n : moved;
 }
+
+/**
+ * The chips under the figure: bigger jumps than a single step, and they move
+ * with the amount rather than being a fixed menu.
+ *
+ * A fixed set — ₹100, ₹500, ₹1,000 — is right for exactly one size of bill and
+ * silly for every other; offering "+₹500" on a ₹9 chai is the same mistake as
+ * a ₹1 stepper on a flight, in the other direction. These are multiples of the
+ * step the amount already earned, so they say +₹5/+₹10/+₹50 on a small figure
+ * and +₹50/+₹100/+₹500 on a large one, and they change under your thumb as the
+ * figure grows.
+ *
+ * Additive rather than absolute, because on an expense you are topping up a
+ * number you already have — the tip, the extra round — where an investing app's
+ * quick amounts replace it.
+ */
+export const QUICK_MULTIPLES = [5n, 10n, 50n] as const;
+
+export function quickAdds(value: bigint, currency: CurrencyCode): readonly bigint[] {
+  const step = stepFor(value, currency);
+  return QUICK_MULTIPLES.map((multiple) => step * multiple);
+}

@@ -51,7 +51,7 @@ import { useReducedMotion } from '@/lib/reducedMotion';
 import { useDefaultCurrency } from '@/lib/currency';
 import { QuickAddSheet, useQuickAddActions } from '@/components/QuickAddSheet';
 import { QuickExpenseSheet } from '@/components/QuickExpenseSheet';
-import { HeroPillButton } from '@/components/ScreenHero';
+import { HeroActionCircle, HeroPillButton } from '@/components/ScreenHero';
 import { smsReaderInBuild } from '@/lib/smsFeature';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { RestorePrompt } from '@/components/RestorePrompt';
@@ -530,7 +530,7 @@ export default function HomeScreen() {
                 Equal halves rather than the group hero's pill-and-discs, because
                 both actions carry a word and there is no third one to make room
                 for; the halves swap ends under RTL on their own. */}
-          <Row style={{ gap: theme.spacing.md }}>
+          <Row style={{ gap: theme.spacing.md, alignItems: 'center' }}>
             <TourTarget id="addExpense" style={{ flex: 1 }}>
               <HeroPillButton
                 icon="add"
@@ -553,14 +553,18 @@ export default function HomeScreen() {
                 style={heroActionStyle}
               />
             </TourTarget>
-            <TourTarget id="addGroup" style={{ flex: 1 }}>
-              <HeroPillButton
+            {/* A disc, not a second pill. Two labelled pills side by side are
+                two primaries with nothing for the eye to land on first; the
+                group hero settled this already — one pill carries the word and
+                what is left goes on the shoulder as a circle. The plus is
+                composed onto the group glyph rather than picked, because
+                Ionicons has no "add a group": see `HeroActionCircle`. */}
+            <TourTarget id="addGroup">
+              <HeroActionCircle
                 icon="people-outline"
                 label={t.newGroup}
-                variant="outline"
-                gradient={heroInk}
                 onPress={openNewGroup}
-                style={heroActionStyle}
+                badge
               />
             </TourTarget>
           </Row>

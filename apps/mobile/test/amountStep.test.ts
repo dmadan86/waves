@@ -10,7 +10,14 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { majorUnit, nudge, POINTS_PER_STEP, scrub, stepFor } from '../src/lib/amountStep';
+import {
+  majorUnit,
+  nudge,
+  POINTS_PER_STEP,
+  quickAdds,
+  scrub,
+  stepFor,
+} from '../src/lib/amountStep';
 
 /** ₹, to the minor unit: 130000 is ₹1,300.00. */
 const INR = 'INR';
@@ -103,5 +110,26 @@ describe('dragging the amount', () => {
 
   it('will not drag below nothing', () => {
     expect(scrub(1000n, -POINTS_PER_STEP * 50, INR)).toBe(0n);
+  });
+});
+
+describe('the quick-add chips', () => {
+  it('scale with the figure rather than being a fixed menu', () => {
+    // A ₹9 chai steps by ₹1, so the chips are +₹5 / +₹10 / +₹50.
+    expect(quickAdds(900n, INR)).toEqual([500n, 1000n, 5000n]);
+    // A ₹1,300 dinner steps by ₹10, so they become +₹50 / +₹100 / +₹500.
+    expect(quickAdds(130000n, INR)).toEqual([5000n, 10000n, 50000n]);
+  });
+
+  it('offers something on an empty sheet', () => {
+    // Nothing typed yet still steps by one major unit, so the chips are the
+    // small ones rather than nothing at all.
+    expect(quickAdds(0n, INR)).toEqual([500n, 1000n, 5000n]);
+  });
+
+  it('follows the currency, not the number', () => {
+    // ₫1,300,000 steps by ₫10,000 — the chips are three orders of magnitude
+    // larger than the rupee ones and no table said so.
+    expect(quickAdds(1300000n, VND)).toEqual([50000n, 100000n, 500000n]);
   });
 });

@@ -49,7 +49,7 @@
  * goes through the same durable queue every other expense uses, so it saves
  * with no network and syncs later.
  */
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, ScrollView, View } from 'react-native';
 
@@ -329,6 +329,23 @@ function QuickExpenseFooter({
 
   const rows = members.data;
   const participants = useMemo(() => rows.map((member) => member.id), [rows]);
+  // TEMPORARY (quick-expense bring-up): the sheet refuses to save because it
+  // cannot find the reader's own membership, in groups the dashboard lists as
+  // theirs. The lookup is character-for-character the one add-expense uses, so
+  // either the mirror's rows differ from what that screen sees or the identity
+  // does — and one line of evidence from a device settles which. Remove once it
+  // has been read.
+  useEffect(() => {
+    // eslint-disable-next-line no-console
+    console.log(
+      '[quick] group=%s members=%d withProfile=%d viewer=%s match=%d',
+      group.id.slice(0, 8),
+      rows.length,
+      rows.filter((member) => member.profile_id !== null).length,
+      viewerId ? viewerId.slice(0, 8) : 'null',
+      rows.filter((member) => member.profile_id === viewerId).length,
+    );
+  }, [group.id, rows, viewerId]);
   const myMemberId = useMemo(
     () => rows.find((member) => isViewer(member, viewerId))?.id ?? null,
     [rows, viewerId],
