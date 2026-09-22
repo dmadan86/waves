@@ -530,11 +530,6 @@ export default function HomeScreen() {
             />
           )}
 
-          {/* The pager, kept with the balance it pages through rather than with
-                the buttons below — it is part of the number, not of the row of
-                things to press. */}
-          <HeroDots count={deck.length} scrollX={heroScrollX} snap={heroSnap} />
-
           {/* The two things you start from Home, on the panel and wearing the
                 group hero's pair of faces: a solid white pill for the expense —
                 the one unmistakable thing to press — and the same pill hollowed
@@ -554,6 +549,11 @@ export default function HomeScreen() {
               expense" collide with its own glyph and need shortening; letting
               it size to its words fixes the fit and matches the screen this
               was taken from. */}
+          {/* The pager rides in the row with the buttons, in the gap the two of
+              them leave between the pill and the disc. On a line of its own it
+              was a third band of hero to get past, and centred there it lined
+              up with nothing; here the row has one horizontal rhythm and the
+              dots sit in the middle of it. */}
           <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
             <TourTarget id="addExpense">
               <HeroPillButton
@@ -573,7 +573,13 @@ export default function HomeScreen() {
                 onLongPress={() => setQuickAddOpen(true)}
               />
             </TourTarget>
-            <Row style={{ marginLeft: 'auto' }}>
+            {/* Takes the slack, so the disc still sits on the shoulder and the
+                dots centre in what is left. */}
+            <View style={{ flex: 1, alignItems: 'center' }}>
+              <HeroDots count={deck.length} scrollX={heroScrollX} snap={heroSnap} />
+            </View>
+
+            <Row>
               <TourTarget id="addGroup">
                 <HeroActionCircle
                   // The mark carries its own plus, so there is no badge on it.
@@ -1403,11 +1409,10 @@ function HeroBalance({
 }
 
 /**
- * The dot pager — the "swipe me" signal, rendered by the screen between the
- * balance it pages through and the buttons below. A wide white pill marks the
- * active slide over a row of faint dots that read against any of the slide
- * washes, and the row starts at the panel's edge like everything it sits
- * between.
+ * The dot pager — the "swipe me" signal, rendered by the screen in the middle
+ * of the row of buttons under the balance it pages through. A wide white pill
+ * marks the active slide over a row of faint dots that read against any of the
+ * slide washes.
  *
  * The pill slides off the carousel's live `scrollX`, native-driven, so it tracks
  * the finger at 60fps exactly like the hero colour crossfade — not off a React
@@ -1444,20 +1449,12 @@ function HeroDots({
         })
       : 0;
   return (
-    // Flush with the row of buttons below it and the figure above it, rather
-    // than centred: those are the two things it sits between, and both start at
-    // the panel's edge, which left the pager the only thing in the hero floating
-    // in the middle of its own line.
-    //
-    // Offset by the active pill's overhang, not by nothing. The pill is wider
-    // than a dot and is seated half that difference to the left of the first
-    // dot's box (see `left` below), so an unpadded row would hang the one white
-    // element in the pager past the white button beneath it — aligning the
-    // faint dots by pushing the bright mark out of line. Padding by the same
-    // overhang puts the pill's left edge on the panel's edge while it is on the
-    // first slide, which is the state it is in when the eye is measuring. Read
-    // off the constants so the two cannot drift apart.
-    <Row style={{ justifyContent: 'flex-start', paddingStart: (DOT_ACTIVE_WIDTH - DOT_SIZE) / 2 }}>
+    // Centred in whatever room the caller gives it, which on the hero is the
+    // slack between the expense pill and the group disc. Nothing to align to an
+    // edge here: the row it sits in has a button at each end, and the middle is
+    // the only place a pager can be without looking like it belongs to one of
+    // them.
+    <Row style={{ justifyContent: 'center' }}>
       <View style={{ width: trackWidth, height: DOT_SIZE }}>
         <Row style={{ position: 'absolute', left: 0, top: 0, gap }}>
           {Array.from({ length: count }, (_, index) => (
