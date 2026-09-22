@@ -74,6 +74,7 @@ import {
 import { useDefaultCurrency } from '@/lib/currency';
 import { dateFrom, showDate } from '@/lib/expenseDay';
 import { router } from '@/lib/navigation';
+import { routeAmount } from '@/lib/routeAmount';
 import { useSync } from '@/sync';
 import { useStrings } from '@/i18n';
 import { PersonalGuard } from '@/components/PersonalGuard';
@@ -92,6 +93,10 @@ function PersonalEntryScreenBody() {
     loanId?: string;
     recurringId?: string;
     repeats?: string;
+    /** Handed over by the quick sheet's "More details": what was already typed
+        there, so the form opens on it rather than throwing it away. */
+    amount?: string;
+    currency?: string;
   }>();
   const { hydrated } = useSync();
   const { txns, recurrings } = usePersonalLedger();
@@ -143,7 +148,8 @@ function PersonalEntryScreenBody() {
       defaultKind={params.kind === 'income' ? 'income' : 'expense'}
       paramLoanId={typeof params.loanId === 'string' ? params.loanId : null}
       startRepeating={params.repeats === '1'}
-      currency={editingTxn?.currency ?? editingRule?.currency ?? dc}
+      startAmount={routeAmount(params.amount)}
+      currency={editingTxn?.currency ?? editingRule?.currency ?? params.currency ?? dc}
       t={t}
     />
   );
@@ -155,6 +161,7 @@ function EntryForm({
   defaultKind,
   paramLoanId,
   startRepeating,
+  startAmount,
   currency,
   t,
 }: {
@@ -163,6 +170,8 @@ function EntryForm({
   defaultKind: TxnKind;
   paramLoanId: string | null;
   startRepeating: boolean;
+  /** What a hand-off already knows the amount to be; zero for a bare new entry. */
+  startAmount: bigint;
   currency: string;
   t: ReturnType<typeof useStrings>['t'];
 }) {
@@ -177,7 +186,7 @@ function EntryForm({
   const [kind, setKind] = useState<TxnKind>(
     editingTxn?.kind ?? editingRule?.txnKind ?? defaultKind,
   );
-  const [amount, setAmount] = useState<bigint>(editing?.amount ?? 0n);
+  const [amount, setAmount] = useState<bigint>(editing?.amount ?? startAmount);
   const [note, setNote] = useState(editing?.note ?? '');
   const [category, setCategory] = useState<string | null>(editing?.category ?? null);
   // For a one-off this is the day it happened; for a repeating one it is the day

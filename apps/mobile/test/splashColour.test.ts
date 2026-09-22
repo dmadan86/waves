@@ -12,6 +12,7 @@
 
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { inflateSync } from 'node:zlib';
 
 import { describe, expect, it } from 'vitest';
 
@@ -46,12 +47,54 @@ describe('the launch field', () => {
     expect(colourOf(componentSource, 'SPLASH_BG')).toBe(splashPlugin?.[1].backgroundColor);
   });
 
-  it('carries no image on the native half', () => {
+  it('shows nothing on the native half, whatever the config calls it', () => {
     // The mark draws itself on (`WaveMark`), and a logo cannot arrive if the
     // native splash has already spent a second showing it finished. So the
-    // plugin gets a colour and nothing else.
-    expect(splashPlugin?.[1]).not.toHaveProperty('image');
-    expect(splashPlugin?.[1]).not.toHaveProperty('imageWidth');
+    // native half is a bare field.
+    //
+    // It is configured with an `image` all the same, because the plugin does
+    // not treat "no image" as "no image": it deletes the splash drawables and
+    // still writes `@drawable/splashscreen_logo` into the theme, which fails
+    // at resource linking on a clean prebuild. A transparent image is how the
+    // intent is stated in the vocabulary the tool has.
+    //
+    // Which makes the file itself load-bearing: the config alone cannot say
+    // whether anything is drawn. So this decodes it and checks.
+    const image = splashPlugin?.[1].image;
+    expect(typeof image).toBe('string');
+
+    const png = readFileSync(join(__dirname, '..', image as string));
+    expect(png.subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a');
+
+    // Walk the chunks for the header and the pixel data. A 1x1 8-bit RGBA
+    // image is one filter byte and four channel bytes once inflated.
+    let offset = 8;
+    let header: { width: number; height: number; depth: number; colour: number } | null = null;
+    const pixels: Buffer[] = [];
+    while (offset < png.length) {
+      const length = png.readUInt32BE(offset);
+      const type = png.toString('ascii', offset + 4, offset + 8);
+      if (type === 'IHDR') {
+        header = {
+          width: png.readUInt32BE(offset + 8),
+          height: png.readUInt32BE(offset + 12),
+          depth: png[offset + 16],
+          colour: png[offset + 17],
+        };
+      }
+      if (type === 'IDAT') pixels.push(png.subarray(offset + 8, offset + 8 + length));
+      offset += 12 + length;
+    }
+
+    // Colour type 6 is RGBA: an image with no alpha channel could not be
+    // transparent whatever its pixels said.
+    expect(header).toEqual({ width: 1, height: 1, depth: 8, colour: 6 });
+
+    const raw = inflateSync(Buffer.concat(pixels));
+    expect([...raw]).toEqual([0, 0, 0, 0, 0]);
+
+    // One device pixel wide, so nothing is scaled up from that single dot.
+    expect(splashPlugin?.[1].imageWidth).toBe(1);
   });
 
   it('draws a mark that can be seen against it', () => {

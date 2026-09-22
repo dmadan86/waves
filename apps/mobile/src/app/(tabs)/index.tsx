@@ -17,6 +17,7 @@ import {
 import { balanceDeckSlides, dayNumber, type BalanceSlide, type GuestGate } from '@waves/core';
 import {
   Avatar,
+  AvatarStack,
   Button,
   directionalIcon,
   EmptyState,
@@ -33,7 +34,13 @@ import {
   useTheme,
 } from '@waves/ui';
 
-import { useGroups, useHomeSummary, usePinnedGroupIds, useSetGroupPin } from '@/data/hooks';
+import {
+  useCaptures,
+  useGroups,
+  useHomeSummary,
+  usePinnedGroupIds,
+  useSetGroupPin,
+} from '@/data/hooks';
 import { orderByPin } from '@/lib/groupPinOrder';
 import { plural, useStrings, type UiStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
@@ -50,12 +57,14 @@ import { useImportedGroupId } from '@/lib/importProgress';
 import { useReducedMotion } from '@/lib/reducedMotion';
 import { useDefaultCurrency } from '@/lib/currency';
 import { QuickAddSheet, useQuickAddActions } from '@/components/QuickAddSheet';
-import { HomeQuickActions, type HomeAction } from '@/components/HomeQuickActions';
+import { QuickExpenseSheet } from '@/components/QuickExpenseSheet';
+import { GroupAddIcon } from '@/components/GroupAddIcon';
+import { HeroActionCircle, HeroPillButton } from '@/components/ScreenHero';
 import { smsReaderInBuild } from '@/lib/smsFeature';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { RestorePrompt } from '@/components/RestorePrompt';
 import { useAvatarUrl } from '@/components/ProfileAvatar';
-import { groupLabel, GroupType } from '@/data/types';
+import { displayName as memberName, groupLabel, GroupType } from '@/data/types';
 import { usePullRefresh } from '@/lib/pullRefresh';
 
 /** Dashboard route with duplicate-safe jumps to stable primary destinations. */
@@ -103,52 +112,9 @@ export default function HomeScreen() {
   // A press-and-hold on any add icon raises the same quick-add sheet — type,
   // scan, or speak an expense — the phone-home-screen quick-actions gesture.
   const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const [quickExpenseOpen, setQuickExpenseOpen] = useState(false);
   const quickAddActions = useQuickAddActions();
 
-  /**
-   * The four tiles under the hero — one line, whatever the build.
-   *
-   * Three things you start, and a way to everything else. The two that were
-   * already on Home (add an expense, start a group) keep their routes and their
-   * tour anchors exactly; "scan to join" is the standalone QR scanner at
-   * `/scan`, which until now could only be reached from inside a group.
-   *
-   * The rest are in `menuItems` under the "actions" section, which is what the
-   * fourth tile opens: scanning a bill, the bank-message inbox, and settling up.
-   * Nothing was removed from Home, it moved one tap.
-   */
-  const quickActions: HomeAction[] = [
-    {
-      icon: 'add',
-      label: t.addExpense,
-      onPress: () => router.push('/capture'),
-      onLongPress: () => setQuickAddOpen(true),
-      wrap: (tile) => <TourTarget id="addExpense">{tile}</TourTarget>,
-    },
-    {
-      icon: 'qr-code-outline',
-      label: t.misc.scanToJoin,
-      onPress: () => router.push('/scan'),
-    },
-    {
-      icon: 'people-outline',
-      label: t.newGroup,
-      // Called through, not passed: `openNewGroup` is declared below this list,
-      // and a press cannot happen until long after both exist.
-      onPress: () => openNewGroup(),
-      wrap: (tile) => <TourTarget id="addGroup">{tile}</TourTarget>,
-    },
-    // The fourth and last cell, the one disc that wears the brand rather than
-    // the ink. Everything the row used to carry and no longer does — scan a
-    // bill, read bank messages, settle up — is the first thing in the menu it
-    // opens, so nothing lost a door when the grid came down to one line.
-    {
-      icon: 'grid-outline',
-      label: t.tabs.viewMore,
-      accent: true,
-      onPress: () => setMenuOpen(true),
-    },
-  ];
   const defaultCurrency = useDefaultCurrency();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
@@ -168,6 +134,19 @@ export default function HomeScreen() {
   // The time-of-day line under the name. The *bucket* is sampled once on mount
   // (lazy init, never a bare Date in render — the React Compiler lints that),
   // then the localised word is read at render so it follows a language change.
+  // Drafts (A34) belong to the person, not the group, so they come from the
+  // captures read and are counted per destination here — one pass, rather than
+  // a filter inside every row.
+  const captures = useCaptures();
+  const draftsByGroup = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const capture of captures.data) {
+      const target = capture.target_group_id;
+      if (target) counts.set(target, (counts.get(target) ?? 0) + 1);
+    }
+    return counts;
+  }, [captures.data]);
+
   const [greetKey] = useState<'morning' | 'afternoon' | 'evening'>(() => {
     const hour = new Date().getHours();
     return hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening';
@@ -262,10 +241,21 @@ export default function HomeScreen() {
       // OverflowMenu draws a divider wherever two adjacent rows fall in
       // different sections.
       //
-      // The "actions" rows at the top are the tiles the quick-actions grid
-      // dropped when it came down to a single line. They are things you do
-      // rather than places you configure, which is why they sit above the
-      // divider and ahead of the account rows.
+      // The "actions" rows at the top are everything Home can start that the
+      // hero's two buttons do not. They are things you do rather than places you
+      // configure, which is why they sit above the divider and ahead of the
+      // account rows.
+      //
+      // Joining by QR is here because it lost its tile and has nowhere else to
+      // go from this screen: `/scan` is otherwise only reachable from the
+      // Friends tab's add sheet, and "somebody sent me a group" is not a thing
+      // you look for under Friends.
+      {
+        icon: 'qr-code-outline',
+        label: t.misc.scanToJoin,
+        onPress: () => router.push('/scan'),
+        section: 'actions',
+      },
       {
         icon: 'camera-outline',
         label: t.scanBill,
@@ -378,7 +368,26 @@ export default function HomeScreen() {
   // The screen and the deck read the same answer: the colour layers, the
   // watermarks and the dot pager all count this one list.
   const deck = balanceDeckSlides(headline);
-
+  // The ink the hero's solid pill draws its label in: the resting slide's wash,
+  // which is the colour the card wears on load and the one the deck opens on.
+  // Not the *live* slide — the pill sits still while the wash crossfades, and
+  // the scroll value those layers interpolate is native-driven, so a colour that
+  // chased the swipe would have to be read back on the JS side of a value that
+  // no longer reports there. Every stop in SLIDE_STYLE clears AA on white, so
+  // the pill is legible whichever slide is under it either way.
+  const heroInk = SLIDE_STYLE[deck[0] ?? 'net'].gradient;
+  // What the two hero pills add to the shared `HeroPillButton`, and why.
+  //
+  // The height floor is not decoration: each pill is wrapped in the tour's
+  // anchor View, which measures to the pill exactly, and a touch target reaching
+  // outside its own parent is never offered the touch on Android — so `hitSlop`
+  // cannot buy back the last few points here and the box itself has to clear the
+  // 44pt minimum. The pill's own padding around a 22pt line leaves it at 38.
+  //
+  // The narrower side padding is a truncation guard. Each pill is a fixed half of
+  // the row, so its padding is straight off the label's budget rather than added
+  // around it; at the pill's usual `lg` a two-word label runs out of room on a
+  // 320pt screen. Centred in a fixed width, the difference is invisible.
   // The ids of the trips running today, so their rows can wear an "on trip"
   // tag. "Running" is decided in the trip's own timezone, not the phone's — a
   // Goa trip run from Dubai turns over at midnight in Goa (the same rule
@@ -522,14 +531,65 @@ export default function HomeScreen() {
             />
           )}
 
-          {/* See `HomeQuickActions`: the add pill and the group
-                circle used to sit here, which made the hero a toolbar as well as
-                a statement of who you are and what you owe. They have moved to a
-                strip of tiles below it, the way the expense screen keeps its
-                number in the hero and the things you do with it underneath. What
-                is left here is the pager, which belongs to the balance it pages
-                through. */}
+          {/* The pager, kept with the balance it pages through rather than with
+                the buttons below — it is part of the number, not of the row of
+                things to press. */}
           <HeroDots count={deck.length} scrollX={heroScrollX} snap={heroSnap} />
+
+          {/* The two things you start from Home, on the panel and wearing the
+                group hero's pair of faces: a solid white pill for the expense —
+                the one unmistakable thing to press — and the same pill hollowed
+                out for the group beside it.
+
+                Outside the paging deck on purpose. Inside it they would be a set
+                of buttons per slide, scrolling off with the figure and arriving
+                back from the other side, and the tour's anchors would measure
+                whichever copy happened to be on screen.
+
+                Equal halves rather than the group hero's pill-and-discs, because
+                both actions carry a word and there is no third one to make room
+                for; the halves swap ends under RTL on their own. */}
+          {/* The group hero's own row, not a variant of it: one pill that hugs
+              its label, and what is left pushed to the shoulder as a disc. The
+              pill was a forced half-width here, which is what made "Add
+              expense" collide with its own glyph and need shortening; letting
+              it size to its words fixes the fit and matches the screen this
+              was taken from. */}
+          <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+            <TourTarget id="addExpense">
+              <HeroPillButton
+                icon="add"
+                // The plus is doing the verb's work, so the pill carries the
+                // noun. Spoken it is still the whole action: "Expense" heard
+                // on its own could be a heading.
+                label={t.expenseShort}
+                spokenLabel={t.addExpense}
+                gradient={heroInk}
+                // The quick sheet, not the capture screen. Most spends know
+                // exactly where they belong and need an amount and a place,
+                // which is what this asks for; the capture screen is still one
+                // tap below, through "More details", carrying whatever has been
+                // typed. The long press raises type/scan/speak, unchanged.
+                onPress={() => setQuickExpenseOpen(true)}
+                onLongPress={() => setQuickAddOpen(true)}
+              />
+            </TourTarget>
+            <Row style={{ marginLeft: 'auto' }}>
+              <TourTarget id="addGroup">
+                <HeroActionCircle
+                  // The mark carries its own plus, so there is no badge on it.
+                  // Smaller than an Ionicon would be in the same disc: this
+                  // mark is three figures and a plus where a glyph is one
+                  // shape, and at icon size that detail needs the air around
+                  // it more than it needs the extra points. The disc keeps its
+                  // own size — it is the touch target.
+                  glyph={<GroupAddIcon size={16} color={theme.color.onBrand} />}
+                  label={t.newGroup}
+                  onPress={openNewGroup}
+                />
+              </TourTarget>
+            </Row>
+          </Row>
         </View>
       </TourTarget>
 
@@ -551,28 +611,15 @@ export default function HomeScreen() {
           />
         }
       >
-        {/* The quick actions, first thing under the hero and
-            scrolling away with the list rather than pinned — which is where
-            MyGate and its neighbours put theirs. */}
-        <HomeQuickActions actions={quickActions} />
-
-        {/* A hairline under the grid, the way a banking home separates its
-            action board from the accounts beneath it. Without it the grid and
-            the list read as one undifferentiated column of things to tap. */}
-        <View
-          style={{
-            height: StyleSheet.hairlineWidth,
-            marginHorizontal: theme.spacing.lg,
-            backgroundColor: theme.color.border,
-          }}
-        />
-
         {/* The white body beneath the hero: the groups list. Tightened to a
-            WhatsApp-style side margin (lg) so the list reads dense, not floaty. */}
+            WhatsApp-style side margin (lg) so the list reads dense, not floaty.
+            Back to `lg` above it now the list is the first thing under the
+            hero's rounded edge again, rather than sitting under a grid and a
+            hairline that had already opened the gap. */}
         <View
           style={{
             paddingHorizontal: theme.spacing.lg,
-            paddingTop: theme.spacing.md,
+            paddingTop: theme.spacing.lg,
             gap: theme.spacing.md,
             flexGrow: 1,
           }}
@@ -651,6 +698,12 @@ export default function HomeScreen() {
                       key={group.id}
                       title={groupLabel(group, members, viewerId)}
                       memberLabel={plural(locale, summary.memberCountFor(group.id), t.memberCount)}
+                      memberNames={members.map((member) => memberName(member, viewerId))}
+                      draftLabel={
+                        draftsByGroup.has(group.id)
+                          ? plural(locale, draftsByGroup.get(group.id) ?? 0, t.draftCount)
+                          : null
+                      }
                       coverEmoji={group.cover_emoji}
                       balance={balance}
                       currency={group.default_currency}
@@ -723,6 +776,8 @@ export default function HomeScreen() {
         onClose={() => setQuickAddOpen(false)}
         actions={quickAddActions}
       />
+
+      <QuickExpenseSheet visible={quickExpenseOpen} onClose={() => setQuickExpenseOpen(false)} />
     </Screen>
   );
 }
@@ -1597,6 +1652,8 @@ function MetricSlide({
 function GroupRow({
   title,
   memberLabel,
+  memberNames,
+  draftLabel,
   coverEmoji,
   balance,
   currency,
@@ -1616,6 +1673,13 @@ function GroupRow({
 }: {
   title: string;
   memberLabel: string;
+  /** Who is in the group, for the faces beside the count. Names rather than
+   *  rows, because the stack draws initials and nothing here needs more. */
+  memberNames: readonly string[];
+  /** "2 drafts" when this group has money caught but not yet entered, else
+   *  null. Worth a place on the row because a draft is the one thing here that
+   *  is waiting on the reader. */
+  draftLabel: string | null;
   coverEmoji: string | null;
   balance: bigint;
   currency: string;
@@ -1672,6 +1736,13 @@ function GroupRow({
     return () => run.stop();
   }, [shouldAnimate, anim]);
 
+  // What the row says under its title: who is in it, what is waiting, where it
+  // stands. Named once because both the caption and the label below need it —
+  // a screen reader is given the label instead of the text inside the row, so
+  // anything said only in the caption is not said quietly, it is not said.
+  // Two copies of this expression drifted once already.
+  const detail = pendingLabel ?? [memberLabel, draftLabel, statusLabel].filter(Boolean).join(' · ');
+
   return (
     <Animated.View
       style={{
@@ -1684,7 +1755,7 @@ function GroupRow({
         // Pinned is spoken, not just drawn: a screen reader never sees the
         // glyph below, so the state has to be in the label itself.
         accessibilityLabel={
-          pinned ? `${title}. ${t.group.pinnedBadge}. ${statusLabel}` : `${title}. ${statusLabel}`
+          pinned ? `${title}. ${t.group.pinnedBadge}. ${detail}` : `${title}. ${detail}`
         }
         onPress={onPress}
         onLongPress={onTogglePin}
@@ -1746,9 +1817,20 @@ function GroupRow({
               </View>
             ) : null}
           </Row>
-          <Text variant="caption" tone="muted" numberOfLines={1}>
-            {pendingLabel ?? `${memberLabel} · ${statusLabel}`}
-          </Text>
+          {/* The faces, then the words. A count says how many; the faces say
+              who, which is what you actually recognise a group by — and it is
+              the same `AvatarStack` the contacts screen uses rather than a
+              second facepile with its own overlap. Hidden while a settlement is
+              waiting, because that line is a different sentence and the faces
+              would only crowd it. */}
+          <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
+            {pendingLabel === null && memberNames.length > 0 ? (
+              <AvatarStack names={memberNames} size={18} max={3} />
+            ) : null}
+            <Text variant="caption" tone="muted" numberOfLines={1} style={{ flex: 1 }}>
+              {detail}
+            </Text>
+          </Row>
         </View>
         {pendingBalance ? (
           <Skeleton width={64} height={16} radius={6} animated={!reduceMotion} />

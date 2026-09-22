@@ -278,6 +278,8 @@ export interface UiStrings {
   members: string;
   /** "3 members" under a group. `members` on its own is a heading, not a count. */
   memberCount: PluralForms;
+  /** Drafts waiting against a group — caught, not yet an expense. */
+  draftCount: PluralForms;
   notJoinedYet: string;
   scansLeft: string;
   simplifyOn: string;
@@ -1584,6 +1586,52 @@ export interface UiStrings {
   groupPhoto: {
     paidHint: string;
   };
+  /**
+   * The quick expense sheet: the fastest path from "I just paid for something"
+   * to a saved expense. An amount, a currency, a place to put it, and nothing
+   * else — everything the full form asks about is one tap away through
+   * `moreDetails`, which carries what has already been typed rather than asking
+   * for it twice.
+   */
+  quickExpense: {
+    title: string;
+    /** Above the row of recent destinations. */
+    where: string;
+    /** Opens the full Groups/People picker the voice review already uses —
+     *  everywhere the five chips could not fit. */
+    otherPlaces: string;
+    /** Leaves for the full form, carrying the amount, currency and place. */
+    moreDetails: string;
+    save: string;
+    /** Under the chips, so the split is never a surprise: shared equally, and
+     *  the reader paid it. {count} is how many people share it, reader included. */
+    splitEqually: string;
+    /** The private ledger — not a group, and not a split. */
+    justMe: string;
+    /** Nothing to suggest yet, so the picker is the way through. */
+    noPlacesYet: string;
+    /** Under a Save that cannot fire, naming what is missing rather than
+     *  leaving a grey button to be argued with. */
+    cannotSaveNoMember: string;
+    /** Under Save when the private ledger is the destination: no split, no
+     *  payer, nobody owes anybody. */
+    justMeHint: string;
+    /** The Save label when the amount is in a currency the group does not keep
+     *  its books in: it cannot become an expense without a rate, so it is kept
+     *  as a draft against that group instead of being refused. */
+    saveDraft: string;
+    /** Under that button. {group} is where the draft is headed. */
+    draftHint: string;
+    /** The stepper either side of the amount. {amount} is what one tap is
+     *  worth, which changes with the size of the figure. */
+    stepUp: string;
+    stepDown: string;
+    /** Under the stepper, saying what a tap does — and hinting the figure can
+     *  be dragged sideways as well. {amount} is one step. */
+    stepHint: string;
+    /** The unit pill beside the figure. {currency} is the code it shows. */
+    pickCurrency: string;
+  };
   /** Captures (A34): an expense caught before it has a group, kept in a personal inbox. */
   captures: {
     /**
@@ -2131,6 +2179,11 @@ export interface UiStrings {
     cancelConfirm: string;
     /** The dismiss button on both prompts — leaves the settlement untouched. */
     keep: string;
+    /** The drafts kept against this group, above its ledger: money caught but
+     *  not yet an expense, usually because a rate is still missing. */
+    draftsHere: string;
+    /** One line under the heading. {count} is how many are waiting. */
+    draftsHereHint: string;
   };
   /** The people in a group, and the link that brings more in. */
   people: {
@@ -3686,6 +3739,7 @@ const en: UiStrings = {
   settleConfirmTheyPay: 'You will be asked to confirm once they mark it paid.',
   members: 'Members',
   memberCount: { one: '{n} member', other: '{n} members' },
+  draftCount: { one: '{n} draft', other: '{n} drafts' },
   notJoinedYet: 'not joined yet',
   scansLeft: 'scans left',
   simplifyOn: 'Simplify on',
@@ -4715,6 +4769,25 @@ const en: UiStrings = {
   groupPhoto: {
     paidHint: 'Group photos are a Plus feature. Pick an icon, or upgrade to add a photo.',
   },
+  quickExpense: {
+    title: 'Quick expense',
+    where: 'Where does it go?',
+    otherPlaces: 'Others',
+    moreDetails: 'More details',
+    save: 'Save expense',
+    splitEqually: 'Split equally between {count} · you paid',
+    justMe: 'Just me',
+    noPlacesYet: 'Pick where this belongs',
+    cannotSaveNoMember:
+      'You are not a member of this group, so there is nobody to record as the payer.',
+    justMeHint: 'Goes to your private ledger — not split, and nobody sees it.',
+    saveDraft: 'Keep as a draft',
+    draftHint: 'Waits in {group} until you add the rate — nothing is converted for you.',
+    stepUp: 'Add {amount}',
+    stepDown: 'Take off {amount}',
+    stepHint: 'Steps of {amount} — hold, or drag the amount',
+    pickCurrency: 'Currency, {currency}',
+  },
   captures: {
     watching: 'Not checked yet',
     watchingSince: 'Checked {when}',
@@ -5158,6 +5231,8 @@ const en: UiStrings = {
       'Removes the payment you recorded. {name} won’t be asked to confirm it, and no balance changes.',
     cancelConfirm: 'Remove',
     keep: 'Keep',
+    draftsHere: 'Waiting to be finished',
+    draftsHereHint: 'Kept for this group, not in the ledger yet.',
   },
   people: {
     invite: 'Invite',
@@ -6569,6 +6644,7 @@ const ta: UiStrings = {
     'அவர் செலுத்தியதாகக் குறித்ததும் நீங்கள் உறுதிப்படுத்தக் கேட்கப்படுவீர்கள்.',
   members: 'உறுப்பினர்கள்',
   memberCount: { one: '{n} உறுப்பினர்', other: '{n} உறுப்பினர்கள்' },
+  draftCount: { one: '{n} draft', other: '{n} drafts' },
   notJoinedYet: 'இன்னும் சேரவில்லை',
   scansLeft: 'ஸ்கேன் மீதம்',
   simplifyOn: 'எளிமையாக்கல் இயக்கத்தில்',
@@ -7627,6 +7703,25 @@ const ta: UiStrings = {
     paidHint:
       'குழு புகைப்படங்கள் Plus அம்சம். ஒரு ஐகானைத் தேர்ந்தெடுக்கவும், அல்லது புகைப்படம் சேர்க்க மேம்படுத்தவும்.',
   },
+  quickExpense: {
+    title: 'Quick expense',
+    where: 'Where does it go?',
+    otherPlaces: 'Others',
+    moreDetails: 'More details',
+    save: 'Save expense',
+    splitEqually: 'Split equally between {count} · you paid',
+    justMe: 'Just me',
+    noPlacesYet: 'Pick where this belongs',
+    cannotSaveNoMember:
+      'You are not a member of this group, so there is nobody to record as the payer.',
+    justMeHint: 'Goes to your private ledger — not split, and nobody sees it.',
+    saveDraft: 'Keep as a draft',
+    draftHint: 'Waits in {group} until you add the rate — nothing is converted for you.',
+    stepUp: 'Add {amount}',
+    stepDown: 'Take off {amount}',
+    stepHint: 'Steps of {amount} — hold, or drag the amount',
+    pickCurrency: 'Currency, {currency}',
+  },
   captures: {
     watching: 'இன்னும் பார்க்கவில்லை',
     watchingSince: '{when} பார்க்கப்பட்டது',
@@ -8094,6 +8189,8 @@ const ta: UiStrings = {
       'நீங்கள் பதிவு செய்த பணத்தை நீக்கும். {name} உறுதிப்படுத்தக் கேட்கப்பட மாட்டார், எந்த இருப்பும் மாறாது.',
     cancelConfirm: 'நீக்கு',
     keep: 'வைத்திரு',
+    draftsHere: 'Waiting to be finished',
+    draftsHereHint: 'Kept for this group, not in the ledger yet.',
   },
   people: {
     invite: 'அழை',
@@ -9577,6 +9674,7 @@ const hi: UiStrings = {
   settleConfirmTheyPay: 'जब वे इसे चुकाया हुआ चिह्नित करेंगे, तब आपसे पुष्टि माँगी जाएगी।',
   members: 'सदस्य',
   memberCount: { one: '{n} सदस्य', other: '{n} सदस्य' },
+  draftCount: { one: '{n} draft', other: '{n} drafts' },
   notJoinedYet: 'अभी शामिल नहीं हुए',
   scansLeft: 'स्कैन बाकी',
   simplifyOn: 'आसान करना चालू',
@@ -10607,6 +10705,25 @@ const hi: UiStrings = {
   groupPhoto: {
     paidHint: 'ग्रुप फ़ोटो एक Plus सुविधा है। कोई आइकन चुनें, या फ़ोटो जोड़ने के लिए अपग्रेड करें।',
   },
+  quickExpense: {
+    title: 'Quick expense',
+    where: 'Where does it go?',
+    otherPlaces: 'Others',
+    moreDetails: 'More details',
+    save: 'Save expense',
+    splitEqually: 'Split equally between {count} · you paid',
+    justMe: 'Just me',
+    noPlacesYet: 'Pick where this belongs',
+    cannotSaveNoMember:
+      'You are not a member of this group, so there is nobody to record as the payer.',
+    justMeHint: 'Goes to your private ledger — not split, and nobody sees it.',
+    saveDraft: 'Keep as a draft',
+    draftHint: 'Waits in {group} until you add the rate — nothing is converted for you.',
+    stepUp: 'Add {amount}',
+    stepDown: 'Take off {amount}',
+    stepHint: 'Steps of {amount} — hold, or drag the amount',
+    pickCurrency: 'Currency, {currency}',
+  },
   captures: {
     watching: 'अभी तक देखा नहीं',
     watchingSince: '{when} देखा गया',
@@ -11050,6 +11167,8 @@ const hi: UiStrings = {
       'आपके द्वारा दर्ज भुगतान हट जाएगा। {name} से पुष्टि नहीं मांगी जाएगी और कोई बैलेंस नहीं बदलेगा।',
     cancelConfirm: 'हटाएँ',
     keep: 'रखें',
+    draftsHere: 'Waiting to be finished',
+    draftsHereHint: 'Kept for this group, not in the ledger yet.',
   },
   people: {
     invite: 'बुलाएँ',
@@ -12484,6 +12603,7 @@ const ar: UiStrings = {
     many: '{n} عضوًا',
     other: '{n} عضو',
   },
+  draftCount: { one: '{n} draft', other: '{n} drafts' },
   notJoinedYet: 'لم ينضم بعد',
   scansLeft: 'عمليات مسح متبقية',
   simplifyOn: 'التبسيط مفعّل',
@@ -13577,6 +13697,25 @@ const ar: UiStrings = {
   groupPhoto: {
     paidHint: 'صور المجموعة ميزة Plus. اختر أيقونة، أو قم بالترقية لإضافة صورة.',
   },
+  quickExpense: {
+    title: 'Quick expense',
+    where: 'Where does it go?',
+    otherPlaces: 'Others',
+    moreDetails: 'More details',
+    save: 'Save expense',
+    splitEqually: 'Split equally between {count} · you paid',
+    justMe: 'Just me',
+    noPlacesYet: 'Pick where this belongs',
+    cannotSaveNoMember:
+      'You are not a member of this group, so there is nobody to record as the payer.',
+    justMeHint: 'Goes to your private ledger — not split, and nobody sees it.',
+    saveDraft: 'Keep as a draft',
+    draftHint: 'Waits in {group} until you add the rate — nothing is converted for you.',
+    stepUp: 'Add {amount}',
+    stepDown: 'Take off {amount}',
+    stepHint: 'Steps of {amount} — hold, or drag the amount',
+    pickCurrency: 'Currency, {currency}',
+  },
   captures: {
     watching: 'لم يتم التحقق بعد',
     watchingSince: 'تم التحقق {when}',
@@ -14100,6 +14239,8 @@ const ar: UiStrings = {
       'سيؤدي هذا إلى إزالة الدفعة التي سجّلتها. لن يُطلب من {name} تأكيدها، ولا يتغيّر أي رصيد.',
     cancelConfirm: 'إزالة',
     keep: 'إبقاء',
+    draftsHere: 'Waiting to be finished',
+    draftsHereHint: 'Kept for this group, not in the ledger yet.',
   },
   people: {
     invite: 'دعوة',
