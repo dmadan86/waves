@@ -1783,8 +1783,20 @@ export function detectCreateGroup(transcript: string): { name: string; rest: str
  * What people put between two spoken expenses. Captured, not discarded, because
  * a fragment with no amount is folded back into a priced neighbour and the word
  * that joined them belongs in the description.
+ *
+ * The comma will not cut a number in half. "60,000 rupees" was being split into
+ * "60" and "000 rupees" — one expense for sixty, with the currency stranded in
+ * a fragment that was then dropped for holding no amount worth keeping. Indian
+ * grouping made it worse: "1,20,000" came back as two expenses, one rupee and
+ * twenty. A comma with a digit hard against it is a thousands separator, and
+ * `(?!\d)` is the whole of the rule — a real separator has a space, a letter or
+ * the end of the sentence after it, never another digit.
+ *
+ * The cost is "5,10 tea" written without the space, which now reads as five
+ * hundred and ten. That is the rarer sentence, and a grouped amount is what
+ * people actually say.
  */
-const SEGMENT_SEPARATOR = /(\s*,\s*|\s+and\s+|\s*;\s*|\s+then\s+|\n+)/i;
+const SEGMENT_SEPARATOR = /(\s*,(?!\d)\s*|\s+and\s+|\s*;\s*|\s+then\s+|\n+)/i;
 
 /**
  * The mark or word that joined two fragments, written the way it would be typed
