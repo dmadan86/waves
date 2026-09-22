@@ -154,7 +154,9 @@ export function HeroPillButton({
   trailingIcon,
   gradient,
   onPress,
+  onLongPress,
   disabled,
+  variant = 'solid',
   style,
 }: {
   label: string;
@@ -162,11 +164,29 @@ export function HeroPillButton({
   trailingIcon?: keyof typeof Ionicons.glyphMap;
   gradient: readonly string[];
   onPress: () => void;
+  /**
+   * A second, faster way into the same thing — the dashboard's add-expense
+   * raises the type/scan/speak sheet on a hold. Given here rather than left to
+   * the caller to wrap, because a hold on a `Pressable` is the pill's own
+   * gesture and wrapping it in another pressable would eat the tap.
+   */
+  onLongPress?: () => void;
   disabled?: boolean;
+  /**
+   * `outline` is the same pill with the fill taken out: white ink inside a
+   * translucent white hairline — the face the group hero's "reject" already
+   * wears beside its solid "confirm". It is what a *second* labelled action on
+   * a panel gets, because two white pills side by side are two primaries and
+   * leave nothing for the eye to land on first.
+   */
+  variant?: 'solid' | 'outline';
   style?: ViewStyle;
 }) {
   const theme = useTheme();
-  const ink = gradient[0] ?? theme.color.brand;
+  const solid = variant === 'solid';
+  // Filled, the ink is the wash's own darkest stop on white; hollow, the pill
+  // *is* the wash, so the ink is the white everything else on the panel uses.
+  const ink = solid ? (gradient[0] ?? theme.color.brand) : theme.color.onBrand;
   return (
     <Pressable
       accessibilityRole="button"
@@ -174,6 +194,8 @@ export function HeroPillButton({
       accessibilityState={{ disabled: Boolean(disabled) }}
       disabled={disabled}
       onPress={onPress}
+      onLongPress={onLongPress}
+      delayLongPress={250}
       style={({ pressed }) => ({
         flexDirection: 'row',
         alignItems: 'center',
@@ -182,7 +204,9 @@ export function HeroPillButton({
         paddingVertical: theme.spacing.sm,
         paddingHorizontal: theme.spacing.lg,
         borderRadius: theme.radius.pill,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: solid ? '#FFFFFF' : 'transparent',
+        borderWidth: solid ? 0 : 1,
+        borderColor: 'rgba(255, 255, 255, 0.5)',
         opacity: disabled ? 0.6 : pressed ? 0.85 : 1,
         ...style,
       })}

@@ -967,6 +967,7 @@ export default function CaptureScreen() {
                     captureId,
                     description,
                     amount,
+                    currency,
                     category,
                     categoryMeta,
                     location,

@@ -2167,6 +2167,11 @@ export interface UiStrings {
     cancelConfirm: string;
     /** The dismiss button on both prompts — leaves the settlement untouched. */
     keep: string;
+    /** The drafts kept against this group, above its ledger: money caught but
+     *  not yet an expense, usually because a rate is still missing. */
+    draftsHere: string;
+    /** One line under the heading. {count} is how many are waiting. */
+    draftsHereHint: string;
   };
   /** The people in a group, and the link that brings more in. */
   people: {
@@ -5209,6 +5214,8 @@ const en: UiStrings = {
       'Removes the payment you recorded. {name} won’t be asked to confirm it, and no balance changes.',
     cancelConfirm: 'Remove',
     keep: 'Keep',
+    draftsHere: 'Waiting to be finished',
+    draftsHereHint: 'Kept for this group, not in the ledger yet.',
   },
   people: {
     invite: 'Invite',
@@ -8160,6 +8167,8 @@ const ta: UiStrings = {
       'நீங்கள் பதிவு செய்த பணத்தை நீக்கும். {name} உறுதிப்படுத்தக் கேட்கப்பட மாட்டார், எந்த இருப்பும் மாறாது.',
     cancelConfirm: 'நீக்கு',
     keep: 'வைத்திரு',
+    draftsHere: 'Waiting to be finished',
+    draftsHereHint: 'Kept for this group, not in the ledger yet.',
   },
   people: {
     invite: 'அழை',
@@ -11131,6 +11140,8 @@ const hi: UiStrings = {
       'आपके द्वारा दर्ज भुगतान हट जाएगा। {name} से पुष्टि नहीं मांगी जाएगी और कोई बैलेंस नहीं बदलेगा।',
     cancelConfirm: 'हटाएँ',
     keep: 'रखें',
+    draftsHere: 'Waiting to be finished',
+    draftsHereHint: 'Kept for this group, not in the ledger yet.',
   },
   people: {
     invite: 'बुलाएँ',
@@ -14196,6 +14207,8 @@ const ar: UiStrings = {
       'سيؤدي هذا إلى إزالة الدفعة التي سجّلتها. لن يُطلب من {name} تأكيدها، ولا يتغيّر أي رصيد.',
     cancelConfirm: 'إزالة',
     keep: 'إبقاء',
+    draftsHere: 'Waiting to be finished',
+    draftsHereHint: 'Kept for this group, not in the ledger yet.',
   },
   people: {
     invite: 'دعوة',
