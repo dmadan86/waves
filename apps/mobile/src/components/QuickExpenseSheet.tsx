@@ -112,6 +112,33 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickingCurrency, setPickingCurrency] = useState(false);
 
+  /**
+   * Closing empties it.
+   *
+   * The sheet lives as long as the dashboard does — it is mounted there and
+   * only shown or hidden — so without this, everything typed stays put: open it
+   * tomorrow and yesterday's amount is still in the field with yesterday's
+   * group under it. One tap on Save and a number nobody meant to enter again
+   * is an expense.
+   *
+   * Done here rather than in an effect on `visible`, because closing is an
+   * event and not something to be synchronised after the fact — the compiler's
+   * lint says as much, and it is right. Every way out goes through this: the
+   * scrim, the drag, a save, and the hand-off to the full form.
+   *
+   * The currency goes back to following the account default, which is what an
+   * untouched sheet means by "my currency".
+   */
+  const closeAndReset = (): void => {
+    setAmount(0n);
+    setChosenId(null);
+    setPickerOpen(false);
+    setPickingCurrency(false);
+    currencyChosen.current = false;
+    setCurrency(defaultCurrency);
+    onClose();
+  };
+
   const rows = useMemo(() => groups.data ?? [], [groups.data]);
   const byId = useMemo(() => new Map(rows.map((group) => [group.id, group])), [rows]);
 
@@ -154,7 +181,7 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
    * and it takes the same amount and currency.
    */
   const handOff = (): void => {
-    onClose();
+    closeAndReset();
     if (chosen) {
       router.push({
         pathname: '/group/[id]/add-expense',
@@ -182,7 +209,7 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
   return (
     <Sheet
       visible={visible}
-      onClose={onClose}
+      onClose={closeAndReset}
       title={t.quickExpense.title}
       titleAction={
         <Button
@@ -315,13 +342,13 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
         </View>
 
         {personalPicked ? (
-          <QuickPersonalFooter amount={amount} currency={currency} onSaved={onClose} />
+          <QuickPersonalFooter amount={amount} currency={currency} onSaved={closeAndReset} />
         ) : chosen ? (
           <QuickExpenseFooter
             group={chosen}
             amount={amount}
             currency={currency}
-            onSaved={onClose}
+            onSaved={closeAndReset}
           />
         ) : (
           <Button
@@ -351,7 +378,7 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
             // quick, so it goes to the screen built for a spend with no home.
             onResolvePeople={() => {
               setPickerOpen(false);
-              onClose();
+              closeAndReset();
               router.push('/capture');
             }}
           />

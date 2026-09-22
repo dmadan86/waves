@@ -1639,9 +1639,6 @@ export interface UiStrings {
      *  worth, which changes with the size of the figure. */
     stepUp: string;
     stepDown: string;
-    /** Under the stepper, saying what a tap does and that holding repeats it.
-     *  {amount} is one step. */
-    stepHint: string;
     /** The unit pill beside the figure. {currency} is the code it shows. */
     pickCurrency: string;
   };
@@ -4799,7 +4796,6 @@ const en: UiStrings = {
     saveDraftLong: 'Keep as a draft',
     stepUp: 'Add {amount}',
     stepDown: 'Take off {amount}',
-    stepHint: 'Steps of {amount} — hold to go faster',
     pickCurrency: 'Currency, {currency}',
   },
   captures: {
@@ -7734,7 +7730,6 @@ const ta: UiStrings = {
     saveDraftLong: 'Keep as a draft',
     stepUp: 'Add {amount}',
     stepDown: 'Take off {amount}',
-    stepHint: 'Steps of {amount} — hold to go faster',
     pickCurrency: 'Currency, {currency}',
   },
   captures: {
@@ -10737,7 +10732,6 @@ const hi: UiStrings = {
     saveDraftLong: 'Keep as a draft',
     stepUp: 'Add {amount}',
     stepDown: 'Take off {amount}',
-    stepHint: 'Steps of {amount} — hold to go faster',
     pickCurrency: 'Currency, {currency}',
   },
   captures: {
@@ -13730,7 +13724,6 @@ const ar: UiStrings = {
     saveDraftLong: 'Keep as a draft',
     stepUp: 'Add {amount}',
     stepDown: 'Take off {amount}',
-    stepHint: 'Steps of {amount} — hold to go faster',
     pickCurrency: 'Currency, {currency}',
   },
   captures: {

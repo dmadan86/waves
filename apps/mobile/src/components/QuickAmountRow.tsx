@@ -15,9 +15,12 @@
  *
  * **Tap a step.** For the last nudge — rounding a bill up, adding the tip you
  * forgot. The step is read off the amount (`stepFor`), so it is ₹1 on a chai
- * and ₹100 on a flight, and the button says which, because a control that does
- * something different every time you look at it has to tell you what it is
- * about to do.
+ * and ₹100 on a flight. A line under the row used to say which, on the
+ * grounds that a control doing something different every time you look at it
+ * should say so; on the screen it was a third row of small grey text under a
+ * sheet that is meant to be one glance, and the figure moving when you press
+ * the button says the same thing faster. The spoken labels still name it,
+ * where there is no figure to watch.
  *
  * **Hold a step.** Holding repeats it, faster after the first second, because
  * a stepper that only taps is forty taps away from rounding ₹1,300 up to
@@ -223,12 +226,6 @@ export function QuickAmountRow({
           </Pressable>
         ))}
       </Row>
-
-      {/* What a step is worth, under the control that does it. It changes with
-          the amount, so it is said rather than left to be discovered. */}
-      <Text variant="micro" tone="faint" align="center">
-        {t.quickExpense.stepHint.replace('{amount}', formatMinorInput(step, currency))}
-      </Text>
     </View>
   );
 }
