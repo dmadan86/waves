@@ -113,7 +113,7 @@ function SourceTimelineScreenBody() {
       <FlashList
         data={timeline}
         keyExtractor={(item) => item.periodKey}
-        extraData={[locale, theme.scheme]}
+        extraData={`${locale}|${theme.scheme}`}
         drawDistance={1500}
         contentContainerStyle={{
           paddingHorizontal: theme.spacing.xl,

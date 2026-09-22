@@ -198,6 +198,12 @@ export function ContactPicker({
   const [picked, setPicked] = useState<ReadonlyMap<string, PickedContact>>(
     () => new Map((initialSelected ?? []).map((contact) => [keyOf(contact), contact])),
   );
+  // What a recycled row reads from outside its own data: whether it is picked
+  // and the theme its colours come from. A row only re-renders when this
+  // changes, so leaving the theme out strands rows in the scheme they were
+  // last drawn in after a light/dark switch.
+  const listExtraData = useMemo(() => ({ picked, theme }), [picked, theme]);
+
   const cancelled = useRef(false);
 
   const load = useCallback(async (): Promise<void> => {
@@ -529,7 +535,7 @@ export function ContactPicker({
             <FlashList
               ref={listRef}
               data={sections.entries}
-              extraData={picked}
+              extraData={listExtraData}
               // The picker lives inside the members screen's own ScrollView. On
               // Android a parent ScrollView swallows a nested list's vertical
               // drag unless the inner list claims it — without this the contact

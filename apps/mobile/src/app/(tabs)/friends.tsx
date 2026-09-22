@@ -508,7 +508,7 @@ export default function FriendsScreen() {
                 data={persons}
                 // Selection state lives outside the row data, so the list has to be
                 // told to re-render its rows when it changes (the tick, the fill).
-                extraData={`${selectMode}|${[...selectedKeys].join(',')}|${locale}`}
+                extraData={`${selectMode}|${[...selectedKeys].join(',')}|${locale}|${theme.scheme}`}
                 keyExtractor={(item) => item.person_key}
                 // A single-currency row and a multi-currency (stacked amounts) row are
                 // structurally different subtrees; typing them lets FlashList recycle

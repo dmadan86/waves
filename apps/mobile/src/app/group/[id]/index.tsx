@@ -1211,7 +1211,7 @@ export default function GroupScreen() {
           // tappability it was drawn with. `myMemberId` arrives a beat after
           // the members do, and a merge that syncs in mid-scroll only ever adds
           // a row, so its size is enough to notice one landing.
-          extraData={`${showDeleted}|${locale}|${ledger.myMemberId ?? ''}|${mergePersonIds.size}`}
+          extraData={`${showDeleted}|${locale}|${ledger.myMemberId ?? ''}|${mergePersonIds.size}|${theme.scheme}`}
           keyExtractor={(item) => item.key}
           getItemType={(item) => item.kind}
           renderItem={renderFeedItem}

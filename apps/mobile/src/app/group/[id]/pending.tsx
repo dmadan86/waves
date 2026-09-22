@@ -132,7 +132,7 @@ export default function PendingConfirmationsScreen() {
 
         <FlashList
           data={pending}
-          extraData={`${locale}|${pending.length}`}
+          extraData={`${locale}|${pending.length}|${theme.scheme}`}
           keyExtractor={(settlement) => settlement.id}
           drawDistance={1500}
           contentContainerStyle={{ paddingTop: theme.spacing.xl, paddingBottom: clearance }}
