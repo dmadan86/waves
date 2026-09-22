@@ -75,6 +75,7 @@ import {
   type MemberRow,
 } from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
+import { convertedTotal } from '@/lib/expenseConversion';
 import { useViewerId } from '@/lib/auth';
 import { canRemindFromBalanceRow } from '@/lib/balanceRowActions';
 import { router, useGoBack } from '@/lib/navigation';
@@ -289,6 +290,7 @@ const ExpenseFeedRow = memo(function ExpenseFeedRow({
   contested,
   myMemberId,
   groupId,
+  groupCurrency,
   locale,
   dateFmt,
   t,
@@ -300,6 +302,8 @@ const ExpenseFeedRow = memo(function ExpenseFeedRow({
   contested: boolean;
   myMemberId: MemberId | null;
   groupId: string;
+  /** What this group counts in, so a foreign bill can say what it came to. */
+  groupCurrency: string;
   locale: string;
   dateFmt: Intl.DateTimeFormat;
   t: ReturnType<typeof useStrings>['t'];
@@ -333,6 +337,15 @@ const ExpenseFeedRow = memo(function ExpenseFeedRow({
             { locale },
           ).text,
         });
+  // What a foreign bill came to in the group's own money, beside what was
+  // actually handed over. Only ever from the rate stored on this expense, so
+  // the row cannot show a figure the balance disagrees with — see
+  // `convertedTotal`. Null for an expense already in the group's currency, and
+  // for a foreign one nobody has given a rate yet.
+  const converted = version ? convertedTotal(version, groupCurrency) : null;
+  const paidLineWithRate = converted
+    ? `${paidLine} (${formatParts(converted, { locale }).text})`
+    : paidLine;
   // What this one expense did to *your* balance: what you put in
   // beyond your share (you lent), or your share of what somebody
   // else put in (you borrowed). The row used to end in the
@@ -419,7 +432,7 @@ const ExpenseFeedRow = memo(function ExpenseFeedRow({
             </Row>
             <Text variant="caption" tone="muted" numberOfLines={1}>
               {[
-                paidLine,
+                paidLineWithRate,
                 expense.deleted_at ? t.expense.deleted : null,
                 (version?.version_no ?? 1) > 1
                   ? plural(locale, version!.version_no - 1, t.expense.editedTimes)
@@ -906,6 +919,7 @@ export default function GroupScreen() {
           contested={openDisputes.has(item.expense.id)}
           myMemberId={ledger.myMemberId}
           groupId={groupId}
+          groupCurrency={currency}
           locale={locale}
           dateFmt={dateFmt}
           t={t}
