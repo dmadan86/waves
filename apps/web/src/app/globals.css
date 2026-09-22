@@ -272,6 +272,14 @@
     color: var(--w-text);
   }
 
+  /*
+     The app's mark, on the app's field.
+
+     `--w-brand-solid` rather than `--w-brand` or the brand gradient: it is the
+     one purple with the same value in both themes, which is what the launcher
+     icon, the adaptive icon and the splash all carry (`infra/art/README.md`).
+     A logo that changes colour when the machine goes dark is two logos, and a
+     gradient one is a third. */
   .brand-mark {
     display: grid;
     place-items: center;
@@ -279,10 +287,15 @@
     height: 30px;
     flex: none;
     border-radius: 9px;
-    background: var(--w-gradient-brand);
-    color: #fff;
-    font-size: 15px;
-    font-weight: 700;
+    background: var(--w-brand-solid);
+    color: var(--w-on-brand);
+  }
+  /* The mark is drawn on its own 512 canvas and sits inside it exactly as it
+     sits inside the launcher icon, so the chip is the icon rather than a
+     smaller drawing pasted into a square. */
+  .brand-mark > svg {
+    width: 100%;
+    height: 100%;
   }
 
   .sidebar {
@@ -447,6 +460,34 @@
     flex-direction: column;
   }
 
+  /*
+     The canvas — and the hole this sheet had in it.
+
+     Two kinds of page hang off that landmark. A page that wants the detail
+     column renders `.app-body`, a grid of canvas and aside, and each half
+     brings its own padding because the rule between them has to run the full
+     height. Every *other* page — and that is about twenty of them, the whole of
+     Settings, most of a group, the person search — hands `main` a plain div.
+     Those had no padding at all: the heading started hard against the rail and
+     directly under the bar, which is what "the design overlaps the menu" was.
+     Nobody had noticed because the pages that do use `.app-body` look right,
+     and they are the ones anybody opens first.
+
+     The padding goes here rather than into twenty page files, and is withheld
+     from the pages that already pad themselves. */
+  .main-col > main:not(:has(.app-body)) {
+    width: 100%;
+    /* The same measure `.app-main` keeps, so a page does not change width
+       depending on which of the two layouts it happens to use. */
+    max-width: 1180px;
+    padding: 24px 28px 48px;
+  }
+  /* The banner sets its own inset for the full-bleed case; inside a padded
+     canvas it would be indented twice. */
+  .main-col > main:not(:has(.app-body)) > .guest-banner {
+    padding: 0 0 18px;
+  }
+
   .topbar {
     position: sticky;
     top: 0;
@@ -473,9 +514,31 @@
     color: var(--w-text);
   }
 
+  /* The actions, as one group at the end of the bar.
+
+     They were four loose children after the search box, so a flex row put them
+     all at the start and left the right half of a desktop bar empty — with the
+     search pinned at 200px and clipping its own placeholder two words in. The
+     group takes the end, and the search takes what is left. */
+  .topbar-tools {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 10px;
+    margin-inline-start: auto;
+  }
+  .topbar-action {
+    flex: none;
+    white-space: nowrap;
+  }
+
   .search {
     display: flex;
-    min-width: 200px;
+    min-width: 0;
+    /* Enough to hold the placeholder whole, and no more: a search box the width
+       of a 27-inch monitor is not a better search box. */
+    max-width: 420px;
+    flex: 1 1 280px;
     align-items: center;
     gap: 8px;
     border-radius: var(--w-radius-sm);
@@ -488,8 +551,18 @@
   .search:focus-within {
     border-color: var(--w-brand);
   }
+  /* `min-width: 0` is the whole reason the bar fits on a phone.
+
+     A flex item's automatic minimum is its min-content width, and for an
+     `<input>` that is its `size` attribute — about twenty characters, whatever
+     the box around it is told. So the search box had a 200-odd pixel floor no
+     rule on `.search` could get under, the top bar's min-content came out wider
+     than a 390px screen, and the *document* grew to fit it: the page scrolled
+     sideways, the rail walked off the left edge, and the last tab of the bottom
+     bar walked off the right. */
   .search input {
     width: 100%;
+    min-width: 0;
     border: 0;
     background: transparent;
     padding: 8px 0;
@@ -3308,6 +3381,9 @@
   .app-main {
     padding: 20px 18px 36px;
   }
+  .main-col > main:not(:has(.app-body)) {
+    padding: 20px 18px calc(36px + 64px + env(safe-area-inset-bottom, 0px));
+  }
   .guest-banner {
     padding: 16px 18px 0;
   }
@@ -3325,11 +3401,16 @@
     font-size: var(--w-font-subheading);
   }
   .search {
-    min-width: 0;
-    flex: 1;
+    flex: 1 1 0;
+  }
+  .topbar-tools {
+    gap: 8px;
   }
   .app-main {
     padding: 16px 16px 32px;
+  }
+  .main-col > main:not(:has(.app-body)) {
+    padding: 16px 16px calc(32px + 64px + env(safe-area-inset-bottom, 0px));
   }
   .detail {
     padding-inline: 16px;
@@ -3337,10 +3418,15 @@
   .stat-value {
     font-size: 23px;
   }
-  /* The bar is tight: the action keeps its glyph and sheds its label so the
-     title and the search still fit on one line. */
-  .topbar-add-label {
+  /* The bar is tight: an action keeps its glyph and sheds its label, and the
+     pill squares up around it so the search still has a box to type in. The
+     name survives as the button's `aria-label`, so what goes is the drawing of
+     the word and not the word. */
+  .topbar-action-label {
     display: none;
+  }
+  .topbar-action {
+    padding: 9px;
   }
   /* At this width the page's own primary action would be the second "Add an
      expense" within a thumb's reach of the one in the bar. The bar keeps it. */
