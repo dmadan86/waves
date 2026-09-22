@@ -17,6 +17,7 @@ import {
 import { balanceDeckSlides, dayNumber, type BalanceSlide, type GuestGate } from '@waves/core';
 import {
   Avatar,
+  AvatarStack,
   Button,
   directionalIcon,
   EmptyState,
@@ -57,7 +58,7 @@ import { smsReaderInBuild } from '@/lib/smsFeature';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { RestorePrompt } from '@/components/RestorePrompt';
 import { useAvatarUrl } from '@/components/ProfileAvatar';
-import { groupLabel, GroupType } from '@/data/types';
+import { displayName as memberName, groupLabel, GroupType } from '@/data/types';
 import { usePullRefresh } from '@/lib/pullRefresh';
 
 /** Dashboard route with duplicate-safe jumps to stable primary destinations. */
@@ -669,6 +670,7 @@ export default function HomeScreen() {
                       key={group.id}
                       title={groupLabel(group, members, viewerId)}
                       memberLabel={plural(locale, summary.memberCountFor(group.id), t.memberCount)}
+                      memberNames={members.map((member) => memberName(member, viewerId))}
                       coverEmoji={group.cover_emoji}
                       balance={balance}
                       currency={group.default_currency}
@@ -1617,6 +1619,7 @@ function MetricSlide({
 function GroupRow({
   title,
   memberLabel,
+  memberNames,
   coverEmoji,
   balance,
   currency,
@@ -1636,6 +1639,9 @@ function GroupRow({
 }: {
   title: string;
   memberLabel: string;
+  /** Who is in the group, for the faces beside the count. Names rather than
+   *  rows, because the stack draws initials and nothing here needs more. */
+  memberNames: readonly string[];
   coverEmoji: string | null;
   balance: bigint;
   currency: string;
@@ -1766,9 +1772,20 @@ function GroupRow({
               </View>
             ) : null}
           </Row>
-          <Text variant="caption" tone="muted" numberOfLines={1}>
-            {pendingLabel ?? `${memberLabel} · ${statusLabel}`}
-          </Text>
+          {/* The faces, then the words. A count says how many; the faces say
+              who, which is what you actually recognise a group by — and it is
+              the same `AvatarStack` the contacts screen uses rather than a
+              second facepile with its own overlap. Hidden while a settlement is
+              waiting, because that line is a different sentence and the faces
+              would only crowd it. */}
+          <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
+            {pendingLabel === null && memberNames.length > 0 ? (
+              <AvatarStack names={memberNames} size={18} max={3} />
+            ) : null}
+            <Text variant="caption" tone="muted" numberOfLines={1} style={{ flex: 1 }}>
+              {pendingLabel ?? `${memberLabel} · ${statusLabel}`}
+            </Text>
+          </Row>
         </View>
         {pendingBalance ? (
           <Skeleton width={64} height={16} radius={6} animated={!reduceMotion} />

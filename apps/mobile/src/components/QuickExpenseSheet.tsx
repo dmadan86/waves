@@ -61,7 +61,7 @@ import { QuickAmountRow } from '@/components/QuickAmountRow';
 import { GroupMark } from '@/components/GroupMark';
 import { useCreateCapture, useGroup, useGroups, useWriteExpense } from '@/data/hooks';
 import { todayIso, useUpsertPersonalRecord } from '@/data/personal';
-import { groupLabel, isViewer, type GroupRow } from '@/data/types';
+import { groupLabel, isGhost, isViewer, type GroupRow } from '@/data/types';
 import { fill, useStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
 import { useDefaultCurrency } from '@/lib/currency';
@@ -329,21 +329,24 @@ function QuickExpenseFooter({
 
   const rows = members.data;
   const participants = useMemo(() => rows.map((member) => member.id), [rows]);
-  // TEMPORARY (quick-expense bring-up): the sheet refuses to save because it
-  // cannot find the reader's own membership, in groups the dashboard lists as
-  // theirs. The lookup is character-for-character the one add-expense uses, so
-  // either the mirror's rows differ from what that screen sees or the identity
-  // does — and one line of evidence from a device settles which. Remove once it
-  // has been read.
+  // Bring-up diagnostic, dev builds only.
+  //
+  // The sheet refuses to save in groups the dashboard lists as the reader's
+  // own, because it cannot find their membership among the group's members.
+  // The lookup is character-for-character the one `add-expense` uses, against
+  // the same mirror and the same viewer id, so either those rows differ from
+  // what that screen sees or the identity does — and one line from a device
+  // settles which. `__DEV__` is false in every release build, so this cannot
+  // reach anybody; it comes out altogether once the line has been read.
   useEffect(() => {
-    // eslint-disable-next-line no-console
+    if (!__DEV__) return;
     console.log(
-      '[quick] group=%s members=%d withProfile=%d viewer=%s match=%d',
+      '[quick] group=%s members=%d ghosts=%d viewer=%s match=%d',
       group.id.slice(0, 8),
       rows.length,
-      rows.filter((member) => member.profile_id !== null).length,
+      rows.filter((member) => isGhost(member)).length,
       viewerId ? viewerId.slice(0, 8) : 'null',
-      rows.filter((member) => member.profile_id === viewerId).length,
+      rows.filter((member) => isViewer(member, viewerId)).length,
     );
   }, [group.id, rows, viewerId]);
   const myMemberId = useMemo(
