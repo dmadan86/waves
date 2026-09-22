@@ -712,10 +712,14 @@ export default function AddExpenseScreen() {
       setCategoryChosen(version.category !== null);
       // The expense keeps the currency it was paid in — without this, editing a
       // foreign-currency expense reopened on the group currency and quietly
-      // rewrote it. The stored rate is not in the read model, so a foreign
-      // expense asks for its rate again on save.
+      // rewrote it.
       setExpenseCurrency(version.currency);
-      setFx(null);
+      // And it keeps the rate it was written at. That rate used to be
+      // unreadable here — the pull never selected the column — so an edit
+      // opened with an empty rate card and asked for the number again, which
+      // is what "I cannot see where to override it" was. It now opens on what
+      // the bill actually carries, and changing it is an ordinary edit.
+      setFx((version.fx as FxRecord | null) ?? null);
       // Every payer the bill records, not just the first. Flattening a
       // several-payer bill to `payers[0]` on open — and then saving that back —
       // was how an edit silently rewrote who had put money in. They come back
@@ -842,13 +846,18 @@ export default function AddExpenseScreen() {
   // nothing more — the bill can still carry its own, and whichever rate is on
   // the expense when it saves is the one it keeps (ADR-003).
   //
-  // Only ever on a *new* bill. A saved expense's own rate is not in the read
-  // model (see the edit branch above, which is why a foreign expense asks for
-  // its rate again), so defaulting one here would put the trip's number on a
-  // bill that was written with a different one and re-price it on save —
-  // quietly, in the one place this feature promised never to touch. Until the
-  // stored rate is readable, an edit asks, exactly as it did before.
-  const tripRate = editing ? null : tripRateFor(groupFxRates.data ?? [], currency, groupCurrency);
+  /**
+   * The group's pinned rate, offered on the card as one way to fill it.
+   *
+   * This used to be withheld from an edit. The reason was sound while it
+   * lasted: a saved expense's own rate was not in the read model, so putting
+   * the trip's number on the card would have re-priced a bill that was written
+   * at a different one, silently, on save. Now the bill opens carrying its own
+   * rate (`setFx` above), so the trip rate is what it always should have been
+   * here — an offer next to the number already there, taken only if somebody
+   * taps it.
+   */
+  const tripRate = tripRateFor(groupFxRates.data ?? [], currency, groupCurrency);
 
   // ───────────────────────────────────────────────────────── who paid ──
   //
@@ -1204,6 +1213,16 @@ export default function AddExpenseScreen() {
         payers: serialisePayers(payers),
         paymentMethod,
         location,
+        // Carried through an edit rather than left out. The write nulls every
+        // field it is not given (`notes: input.notes ?? null`), so a screen
+        // that does not send these was not leaving them alone — it was
+        // clearing them. The note survived the pull and was dropped on save;
+        // the receipt link was never pulled at all, so an ordinary edit
+        // detached the scanned bill from its expense (ADR-008). A new expense
+        // has neither, and `undefined` is the right nothing for both.
+        notes: editing?.currentVersion?.notes ?? undefined,
+        receiptId: editing?.currentVersion?.receipt_id ?? undefined,
+        receiptShareUrl: editing?.currentVersion?.receipt_share_url ?? undefined,
         expectedShares: preview
           ? Object.fromEntries([...preview].map(([id, share]) => [id, share.toString()]))
           : undefined,

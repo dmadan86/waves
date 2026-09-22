@@ -201,6 +201,7 @@ const EXPENSE_SELECT = `
   currentVersion:expense_versions!expenses_current_version_id_fkey (
     id, version_no, description, category, category_meta, expense_date, currency, amount,
     split_type, split_params, author_member_id, notes, payment_method, receipt_share_url,
+    fx, receipt_id,
     location, created_at,
     payers:expense_payers ( member_id, amount ),
     shares:expense_shares ( member_id, amount )

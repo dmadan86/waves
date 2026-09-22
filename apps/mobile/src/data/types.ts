@@ -1,5 +1,12 @@
 import { payableFor } from '@waves/core';
-import type { CategoryMeta, ExpenseLocation, MemberId, Payable, SplitParams } from '@waves/core';
+import type {
+  CategoryMeta,
+  ExpenseLocation,
+  FxRecord,
+  MemberId,
+  Payable,
+  SplitParams,
+} from '@waves/core';
 
 export enum GroupType {
   Trip = 'trip',
@@ -120,8 +127,34 @@ export interface ExpenseVersionRow {
   payment_method: string | null;
   /** A view-only link to the owner's own cloud copy of the receipt (E3), or null. */
   receipt_share_url: string | null;
+  /**
+   * The scanned receipt this expense is linked to (ADR-008), or null.
+   *
+   * Absent from the pull until now, with the same consequence the missing `fx`
+   * had and worse: a write carries every field or the server nulls it, so an
+   * edit made from a screen that could not see this field detached the receipt
+   * from the expense. Optional for the same reason `fx` is — a row mirrored by
+   * an older pull does not carry it.
+   */
+  receipt_id?: string | null;
   /** Where the spend happened (A43): a {lat, lng, name} snapshot, or null. */
   location: ExpenseLocation | null;
+  /**
+   * The rate this expense was written with, when its currency is not the
+   * group's (ADR-003). Null for an expense in the group's own currency, and
+   * null for a foreign one written before anybody gave it a rate.
+   *
+   * Stored on the version since the beginning and only now read back: the pull
+   * never asked for the column, so the app could not show a saved expense's
+   * rate, could not offer to change it, and could not say what a foreign bill
+   * came to in the group's money. All three were the same missing field.
+   *
+   * Optional rather than `| null` alone, because a row already sitting in a
+   * device's mirror was written by a pull that did not select the column: it
+   * is `undefined` there until the next sync replaces it, which is a third
+   * state from "no rate" and the type should not pretend otherwise.
+   */
+  fx?: FxRecord | null;
   created_at: string;
   payers: { member_id: MemberId; amount: string }[];
   shares: { member_id: MemberId; amount: string }[];
