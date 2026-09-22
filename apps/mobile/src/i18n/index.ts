@@ -1619,6 +1619,15 @@ export interface UiStrings {
     saveDraft: string;
     /** Under that button. {group} is where the draft is headed. */
     draftHint: string;
+    /** The stepper either side of the amount. {amount} is what one tap is
+     *  worth, which changes with the size of the figure. */
+    stepUp: string;
+    stepDown: string;
+    /** Under the stepper, saying what a tap does — and hinting the figure can
+     *  be dragged sideways as well. {amount} is one step. */
+    stepHint: string;
+    /** The unit pill beside the figure. {currency} is the code it shows. */
+    pickCurrency: string;
   };
   /** Captures (A34): an expense caught before it has a group, kept in a personal inbox. */
   captures: {
@@ -4770,6 +4779,10 @@ const en: UiStrings = {
     justMeHint: 'Goes to your private ledger — not split, and nobody sees it.',
     saveDraft: 'Keep as a draft',
     draftHint: 'Waits in {group} until you add the rate — nothing is converted for you.',
+    stepUp: 'Add {amount}',
+    stepDown: 'Take off {amount}',
+    stepHint: 'Steps of {amount} — hold, or drag the amount',
+    pickCurrency: 'Currency, {currency}',
   },
   captures: {
     watching: 'Not checked yet',
@@ -7699,6 +7712,10 @@ const ta: UiStrings = {
     justMeHint: 'Goes to your private ledger — not split, and nobody sees it.',
     saveDraft: 'Keep as a draft',
     draftHint: 'Waits in {group} until you add the rate — nothing is converted for you.',
+    stepUp: 'Add {amount}',
+    stepDown: 'Take off {amount}',
+    stepHint: 'Steps of {amount} — hold, or drag the amount',
+    pickCurrency: 'Currency, {currency}',
   },
   captures: {
     watching: 'இன்னும் பார்க்கவில்லை',
@@ -10696,6 +10713,10 @@ const hi: UiStrings = {
     justMeHint: 'Goes to your private ledger — not split, and nobody sees it.',
     saveDraft: 'Keep as a draft',
     draftHint: 'Waits in {group} until you add the rate — nothing is converted for you.',
+    stepUp: 'Add {amount}',
+    stepDown: 'Take off {amount}',
+    stepHint: 'Steps of {amount} — hold, or drag the amount',
+    pickCurrency: 'Currency, {currency}',
   },
   captures: {
     watching: 'अभी तक देखा नहीं',
@@ -13683,6 +13704,10 @@ const ar: UiStrings = {
     justMeHint: 'Goes to your private ledger — not split, and nobody sees it.',
     saveDraft: 'Keep as a draft',
     draftHint: 'Waits in {group} until you add the rate — nothing is converted for you.',
+    stepUp: 'Add {amount}',
+    stepDown: 'Take off {amount}',
+    stepHint: 'Steps of {amount} — hold, or drag the amount',
+    pickCurrency: 'Currency, {currency}',
   },
   captures: {
     watching: 'لم يتم التحقق بعد',

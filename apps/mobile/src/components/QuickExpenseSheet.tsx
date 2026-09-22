@@ -53,20 +53,11 @@ import { useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, ScrollView, View } from 'react-native';
 
-import { currencySymbol, encodeTxn } from '@waves/core';
-import {
-  AmountField,
-  Button,
-  Callout,
-  Divider,
-  iconSize,
-  Row,
-  Sheet,
-  Text,
-  useTheme,
-} from '@waves/ui';
+import { encodeTxn } from '@waves/core';
+import { Button, Callout, Divider, iconSize, Row, Sheet, Text, useTheme } from '@waves/ui';
 
 import { DestinationPicker } from '@/components/DestinationPicker';
+import { QuickAmountRow } from '@/components/QuickAmountRow';
 import { GroupMark } from '@/components/GroupMark';
 import { useCreateCapture, useGroup, useGroups, useWriteExpense } from '@/data/hooks';
 import { todayIso, useUpsertPersonalRecord } from '@/data/personal';
@@ -137,22 +128,12 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
   return (
     <Sheet visible={visible} onClose={onClose} title={t.quickExpense.title}>
       <View style={{ gap: theme.spacing.lg }}>
-        <View style={{ alignItems: 'center' }}>
-          <AmountField currency={currency} value={amount} onChange={setAmount} autoFocus />
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={currency}
-            onPress={() => setPickingCurrency((open) => !open)}
-            style={{ paddingVertical: theme.spacing.xs }}
-          >
-            <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
-              <Text variant="caption" tone="muted">
-                {currencySymbol(currency)} {currency}
-              </Text>
-              <Ionicons name="chevron-down" size={iconSize.sm} color={theme.color.textMuted} />
-            </Row>
-          </Pressable>
-        </View>
+        <QuickAmountRow
+          currency={currency}
+          value={amount}
+          onChange={setAmount}
+          onPickCurrency={() => setPickingCurrency((open) => !open)}
+        />
 
         {pickingCurrency ? (
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
