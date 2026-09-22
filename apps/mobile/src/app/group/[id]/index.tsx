@@ -103,6 +103,23 @@ enum Tab {
  * Comfortably more than a screenful on the tallest phone, so the window is never
  * something anybody can scroll to the end of in the frame it exists for.
  */
+/**
+ * The trip plan screen is not offered for now.
+ *
+ * Both of its doors live on this screen — the ⋯ menu's "Plan" row and the
+ * trip welcome card's "Set budget" — so one flag closes them together, and
+ * opening them again is deleting this line and the two `PLAN_HIDDEN` reads.
+ * The route itself is untouched: `/group/[id]/plan` still resolves, so a deep
+ * link or a back stack already holding it is not broken, it is simply not
+ * advertised.
+ *
+ * Worth knowing while it is hidden: that screen is the only place a trip
+ * budget can be set or read after the group is made (the create screen offers
+ * one up front, and group settings has no budget control), so hiding it hides
+ * the budget too.
+ */
+const PLAN_HIDDEN = true;
+
 const SWITCH_WINDOW = 24;
 
 /**
@@ -844,7 +861,7 @@ export default function GroupScreen() {
       onPress: () => setGroupPin.mutate({ groupId, pinned: !isPinned }),
     },
     { icon: 'pie-chart-outline', label: t.spending, route: `/group/${groupId}/insights` },
-    ...(groupData.type === 'trip'
+    ...(!PLAN_HIDDEN && groupData.type === 'trip'
       ? [
           {
             icon: 'map-outline',
@@ -1302,12 +1319,14 @@ export default function GroupScreen() {
                         size="sm"
                         onPress={() => router.push(`/group/${groupId}/settings`)}
                       />
-                      <Button
-                        label={t.extras.tripWelcomeSetBudget}
-                        size="sm"
-                        variant="secondary"
-                        onPress={() => router.push(`/group/${groupId}/plan`)}
-                      />
+                      {PLAN_HIDDEN ? null : (
+                        <Button
+                          label={t.extras.tripWelcomeSetBudget}
+                          size="sm"
+                          variant="secondary"
+                          onPress={() => router.push(`/group/${groupId}/plan`)}
+                        />
+                      )}
                       <Button
                         label={t.extras.tripWelcomeLater}
                         size="sm"

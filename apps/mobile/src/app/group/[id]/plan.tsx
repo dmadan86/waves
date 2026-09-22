@@ -23,11 +23,9 @@ import {
   budgetVariance,
   buildTimeline,
   dayNumber,
-  fairness,
   forecast,
   spendByMember,
   type BudgetProgress,
-  type MemberContribution,
   type PlanItem,
   type TimelineExpense,
 } from '@waves/core';
@@ -309,11 +307,6 @@ export default function PlanScreen() {
 
   const isTrip = group.data?.type === 'trip';
 
-  const nameOf = (memberId: string): string => {
-    const member = (members.data ?? []).find((m) => m.id === memberId);
-    return member ? displayName(member, viewerId) : '—';
-  };
-
   // Burn-rate: the pace so far, projected across the whole trip, per currency
   // and against the overall cap in its own currency (ADR-004). Empty until the
   // trip has both dates and a day of spend to read a pace from.
@@ -344,32 +337,6 @@ export default function PlanScreen() {
       currency,
     ],
   );
-
-  // Fairness: who has fronted a lopsided share, and who could pick up the next
-  // bill. Paid comes from the payers, owed from the shares — both already on the
-  // mirrored ledger, never re-divided here.
-  const fairnessSignals = useMemo(() => {
-    if (!isTrip) return [];
-    const byKey = new Map<string, MemberContribution & { paidMinor: bigint; owedMinor: bigint }>();
-    const touch = (member: string, cur: string) => {
-      const key = `${member}|${cur}`;
-      let row = byKey.get(key);
-      if (!row) {
-        row = { member, currency: cur, paidMinor: 0n, owedMinor: 0n };
-        byKey.set(key, row);
-      }
-      return row;
-    };
-    for (const expense of expenses.rows) {
-      const version = expense.currentVersion;
-      if (!version || expense.deleted_at) continue;
-      for (const payer of version.payers)
-        touch(payer.member_id, version.currency).paidMinor += BigInt(payer.amount);
-      for (const share of version.shares)
-        touch(share.member_id, version.currency).owedMinor += BigInt(share.amount);
-    }
-    return fairness([...byKey.values()]).filter((block) => block.overpayer || block.nextPayer);
-  }, [isTrip, expenses.rows]);
 
   // `busy` is async state, so a double-tap can fire two submits in the same tick
   // before it re-renders — each mints a fresh itemId, so both post. A synchronous
@@ -714,29 +681,6 @@ export default function PlanScreen() {
                   </View>
                 ) : null}
               </Row>
-            ))}
-          </Card>
-        ) : null}
-
-        {isTrip && fairnessSignals.length > 0 ? (
-          <Card style={{ gap: theme.spacing.sm }}>
-            <Text variant="subheading">{t.tripInsights.fairness}</Text>
-            {fairnessSignals.map((block) => (
-              <View key={block.currency} style={{ gap: theme.spacing.xs }}>
-                {block.overpayer ? (
-                  <Text variant="caption">
-                    {fill(t.tripInsights.paidShare, {
-                      name: nameOf(block.overpayer.member),
-                      percent: String(Math.round(block.overpayer.paidRatio * 100)),
-                    })}
-                  </Text>
-                ) : null}
-                {block.nextPayer ? (
-                  <Text variant="caption" tone="brand">
-                    {fill(t.tripInsights.nextUp, { name: nameOf(block.nextPayer) })}
-                  </Text>
-                ) : null}
-              </View>
             ))}
           </Card>
         ) : null}
