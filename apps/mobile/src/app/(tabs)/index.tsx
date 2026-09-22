@@ -51,6 +51,7 @@ import { useReducedMotion } from '@/lib/reducedMotion';
 import { useDefaultCurrency } from '@/lib/currency';
 import { QuickAddSheet, useQuickAddActions } from '@/components/QuickAddSheet';
 import { QuickExpenseSheet } from '@/components/QuickExpenseSheet';
+import { GroupAddIcon } from '@/components/GroupAddIcon';
 import { HeroActionCircle, HeroPillButton } from '@/components/ScreenHero';
 import { smsReaderInBuild } from '@/lib/smsFeature';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
@@ -367,8 +368,6 @@ export default function HomeScreen() {
   // the row, so its padding is straight off the label's budget rather than added
   // around it; at the pill's usual `lg` a two-word label runs out of room on a
   // 320pt screen. Centred in a fixed width, the difference is invisible.
-  const heroActionStyle = { minHeight: 44, paddingHorizontal: theme.spacing.md };
-
   // The ids of the trips running today, so their rows can wear an "on trip"
   // tag. "Running" is decided in the trip's own timezone, not the phone's — a
   // Goa trip run from Dubai turns over at midnight in Goa (the same rule
@@ -530,18 +529,17 @@ export default function HomeScreen() {
                 Equal halves rather than the group hero's pill-and-discs, because
                 both actions carry a word and there is no third one to make room
                 for; the halves swap ends under RTL on their own. */}
-          <Row style={{ gap: theme.spacing.md, alignItems: 'center' }}>
-            <TourTarget id="addExpense" style={{ flex: 1 }}>
+          {/* The group hero's own row, not a variant of it: one pill that hugs
+              its label, and what is left pushed to the shoulder as a disc. The
+              pill was a forced half-width here, which is what made "Add
+              expense" collide with its own glyph and need shortening; letting
+              it size to its words fixes the fit and matches the screen this
+              was taken from. */}
+          <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+            <TourTarget id="addExpense">
               <HeroPillButton
                 icon="add"
-                // The short word, because the pill is half a phone wide and
-                // "Add expense" runs into the glyph on a 320pt screen in
-                // several of the four languages. The plus already says "add",
-                // so the noun on its own is not missing anything — but heard
-                // alone, out of context, "Expense" could be a heading, so a
-                // screen reader still gets the verb.
-                label={t.expenseShort}
-                spokenLabel={t.addExpense}
+                label={t.addExpense}
                 gradient={heroInk}
                 // The quick sheet, not the capture screen. Most spends know
                 // exactly where they belong and need an amount and a place,
@@ -550,23 +548,18 @@ export default function HomeScreen() {
                 // typed. The long press raises type/scan/speak, unchanged.
                 onPress={() => setQuickExpenseOpen(true)}
                 onLongPress={() => setQuickAddOpen(true)}
-                style={heroActionStyle}
               />
             </TourTarget>
-            {/* A disc, not a second pill. Two labelled pills side by side are
-                two primaries with nothing for the eye to land on first; the
-                group hero settled this already — one pill carries the word and
-                what is left goes on the shoulder as a circle. The plus is
-                composed onto the group glyph rather than picked, because
-                Ionicons has no "add a group": see `HeroActionCircle`. */}
-            <TourTarget id="addGroup">
-              <HeroActionCircle
-                icon="people-outline"
-                label={t.newGroup}
-                onPress={openNewGroup}
-                badge
-              />
-            </TourTarget>
+            <Row style={{ marginLeft: 'auto' }}>
+              <TourTarget id="addGroup">
+                <HeroActionCircle
+                  // The mark carries its own plus, so there is no badge on it.
+                  glyph={<GroupAddIcon color={theme.color.onBrand} />}
+                  label={t.newGroup}
+                  onPress={openNewGroup}
+                />
+              </TourTarget>
+            </Row>
           </Row>
         </View>
       </TourTarget>

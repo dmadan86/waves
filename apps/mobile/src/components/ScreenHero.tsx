@@ -108,12 +108,16 @@ export function useHeroCrossfade(active: boolean) {
  */
 export function HeroActionCircle({
   icon,
+  glyph,
   label,
   onPress,
   disabled,
   badge = false,
 }: {
-  icon: keyof typeof Ionicons.glyphMap;
+  icon?: keyof typeof Ionicons.glyphMap;
+  /** A drawn mark in place of an Ionicon, for the one action the set has no
+   *  glyph for. Given both, this wins. */
+  glyph?: ReactNode;
   label: string;
   onPress: () => void;
   disabled?: boolean;
@@ -148,7 +152,9 @@ export function HeroActionCircle({
         opacity: disabled ? 0.5 : pressed ? 0.7 : 1,
       })}
     >
-      <Ionicons name={icon} size={iconSize.lg} color={theme.color.onBrand} />
+      {glyph ?? (
+        <Ionicons name={icon ?? 'ellipse'} size={iconSize.lg} color={theme.color.onBrand} />
+      )}
       {badge ? (
         // Opaque, on the panel's own ink, so the plus reads as a mark on the
         // disc rather than a glyph floating over the wash behind it. Decorative:
@@ -185,7 +191,6 @@ export function HeroActionCircle({
  */
 export function HeroPillButton({
   label,
-  spokenLabel,
   icon,
   trailingIcon,
   gradient,
@@ -196,14 +201,6 @@ export function HeroPillButton({
   style,
 }: {
   label: string;
-  /**
-   * What a screen reader says, when the drawn label is shortened to fit.
-   * A pill at half a phone's width has room for "Expense" and not for "Add
-   * expense", and the word that fits is the weaker one to hear on its own —
-   * "Expense" could be a heading. Sighted readers get the short label in
-   * context; everyone else gets the whole verb.
-   */
-  spokenLabel?: string;
   icon?: keyof typeof Ionicons.glyphMap;
   trailingIcon?: keyof typeof Ionicons.glyphMap;
   gradient: readonly string[];
@@ -234,7 +231,7 @@ export function HeroPillButton({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={spokenLabel ?? label}
+      accessibilityLabel={label}
       accessibilityState={{ disabled: Boolean(disabled) }}
       disabled={disabled}
       onPress={onPress}
