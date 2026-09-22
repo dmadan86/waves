@@ -521,6 +521,32 @@ describe('parseVoiceExpenses (several in one breath)', () => {
     expect(result.items.map((item) => item.note)).toEqual(['snacks', 'tea', 'shopping', 'others']);
   });
 
+  it('does not cut a grouped number in half at its thousands comma', () => {
+    // Said "60,000 rupees", got one expense for 60 with no currency at all: the
+    // comma was read as the mark between two expenses, so the sentence became
+    // "60" and "000 rupees" — and the second half, holding the only currency
+    // word, was dropped for having no amount worth keeping.
+    const result = parseVoiceExpenses('60,000 rupees', groups);
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0].amountMajor).toBe(60000);
+    expect(result.items[0].currency).toBe('INR');
+  });
+
+  it('reads Indian grouping as one number, not as several expenses', () => {
+    // Two commas, so "1,20,000" used to come back as an expense for one rupee
+    // and another for twenty.
+    const result = parseVoiceExpenses('1,20,000 rupees', groups);
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0].amountMajor).toBe(120000);
+  });
+
+  it('still splits on a comma that separates two expenses', () => {
+    // The guard is only against a digit hard against the comma. A separator has
+    // a space after it, and that must keep working next to a grouped amount.
+    const result = parseVoiceExpenses('rent 60,000 rupees, tea 50', groups);
+    expect(result.items.map((item) => item.amountMajor)).toEqual([60000, 50]);
+  });
+
   it('carries a currency named once to the later items that name none', () => {
     const result = parseVoiceExpenses('5 rupees snacks, 10 tea, 20 cab', groups);
     expect(result.items.every((item) => item.currency === 'INR')).toBe(true);
