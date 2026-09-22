@@ -22,6 +22,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, View } from 'react-native';
 
+import { format as formatMoney, money as coreMoney, type CurrencyCode } from '@waves/core';
 import {
   Card,
   directionalIcon,
@@ -36,6 +37,7 @@ import {
 import type { CaptureRow } from '@/data/types';
 import { useStrings } from '@/i18n';
 import { assignCaptureHref } from '@/lib/captureAssign';
+import { showDate } from '@/lib/expenseDay';
 import { router } from '@/lib/navigation';
 
 /** What a draft is called when nobody described it. The category would be the
@@ -76,7 +78,17 @@ export function GroupDrafts({
           {index > 0 ? <Divider /> : null}
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={draftTitle(capture, t.expense.untitled)}
+            // A label on the row hides the text inside it, so everything the
+            // eye gets from the three pieces below has to be said here too.
+            // Without the amount and the day, two untitled drafts — which is
+            // what most drafts are — are one repeated word to a screen reader.
+            accessibilityLabel={[
+              draftTitle(capture, t.expense.untitled),
+              formatMoney(coreMoney(BigInt(capture.amount), capture.currency as CurrencyCode), {
+                locale,
+              }),
+              showDate(capture.expense_date, locale),
+            ].join(', ')}
             onPress={() => router.push(assignCaptureHref(capture, groupId))}
             style={({ pressed }) => ({
               flexDirection: 'row',
@@ -92,7 +104,7 @@ export function GroupDrafts({
                 {draftTitle(capture, t.expense.untitled)}
               </Text>
               <Text variant="micro" tone="faint">
-                {capture.expense_date}
+                {showDate(capture.expense_date, locale)}
               </Text>
             </View>
             {/* The amount in the currency it was caught in, which for a draft

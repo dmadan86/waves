@@ -77,6 +77,7 @@ import {
   uploadExpenseReceipt,
 } from '@/data/api';
 import { router } from '@/lib/navigation';
+import { routeAmount } from '@/lib/routeAmount';
 import { receiptCapStatus, receiptTapAction } from '@/lib/receiptCapGate';
 import { tripRateFor } from '@/lib/tripRates';
 import { StorageCapError } from '@/lib/storage';
@@ -284,16 +285,6 @@ function textEntries(
  * applied, which a strip that always has exactly one chip lit has no other way
  * to say. Nothing is stored under it and it is never an option to tap.
  */
-
-// A route param is not a trusted integer string; a throw here is a white screen.
-function safeBigInt(value: string | undefined): bigint {
-  if (!value) return 0n;
-  try {
-    return BigInt(value);
-  } catch {
-    return 0n;
-  }
-}
 
 /**
  * A custom tag's display arrives from the capture hand-off as a JSON route
@@ -620,12 +611,12 @@ export default function AddExpenseScreen() {
     setSeededFor(seedKey);
     const version = editing?.currentVersion;
     const draft = restored.draft;
-    if ((captureId || voice || quick) && !editing) {
+    if ((captureId || voice || quick === '1') && !editing) {
       // Seeded from a capture (A34), the voice quick-add, or the quick expense
       // sheet: the passed amount and description fill the form ahead of any
       // stale draft, since arriving here that way is an explicit choice to turn
       // what was captured, spoken or typed into this expense.
-      setAmount(safeBigInt(captureAmount));
+      setAmount(routeAmount(captureAmount));
       const memberRows = members.data ?? [];
       // Voice may name who to split with. Match those names to members and keep
       // the payer in; anything else — a capture, or a sentence naming nobody —
@@ -671,20 +662,20 @@ export default function AddExpenseScreen() {
       // card payment into cash. A voice hand-off carries none and keeps the
       // default; anything the ledger does not know falls back to it too.
       setPaymentMethod(capturePaymentMethod(capturePayment));
-      seedSolePayer(myMemberId, safeBigInt(captureAmount));
+      seedSolePayer(myMemberId, routeAmount(captureAmount));
     } else if (draft) {
       // A draft outranks the saved version: it is what the user was in the
       // middle of writing when the app went away.
-      setAmount(safeBigInt(draft.amount));
+      setAmount(routeAmount(draft.amount));
       setDescription(draft.description);
       setSplitKind(draft.splitKind);
       // The payer picker is on the edit form too now, so a draft's payers are a
       // change somebody was in the middle of making rather than stale values to
       // discard. `payers` is the current shape; `payer` is what an older build
       // wrote, and is read as a bill paid entirely by that one person.
-      const draftAmount = safeBigInt(draft.amount);
+      const draftAmount = routeAmount(draft.amount);
       if (draft.payers && Object.keys(draft.payers).length > 0) {
-        setPayers(new Map(Object.entries(draft.payers).map(([id, v]) => [id, safeBigInt(v)])));
+        setPayers(new Map(Object.entries(draft.payers).map(([id, v]) => [id, routeAmount(v)])));
         setLockedPayers(new Set(draft.lockedPayers ?? []));
         // `groupCurrency` is derived further down the render; the seeding block
         // runs above it, so the group's default is read straight off the row.
@@ -693,7 +684,7 @@ export default function AddExpenseScreen() {
           Object.fromEntries(
             Object.entries(draft.payers).map(([id, v]) => [
               id,
-              formatMinorInput(safeBigInt(v), draftCurrency as CurrencyCode),
+              formatMinorInput(routeAmount(v), draftCurrency as CurrencyCode),
             ]),
           ),
         );

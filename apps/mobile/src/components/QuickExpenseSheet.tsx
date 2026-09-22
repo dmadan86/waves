@@ -49,7 +49,7 @@
  * goes through the same durable queue every other expense uses, so it saves
  * with no network and syncs later.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, ScrollView, View } from 'react-native';
 
@@ -88,6 +88,17 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
 
   const [amount, setAmount] = useState(0n);
   const [currency, setCurrency] = useState(defaultCurrency);
+
+  // The sheet is mounted with the dashboard, not opened with it, so its first
+  // render can happen before the profile has loaded — and `useDefaultCurrency`
+  // answers with the phone's region until it has. Seeded once, the sheet would
+  // keep that guess for the life of the screen and quietly file a UAE user's
+  // expense in GBP. So the default keeps arriving until the reader overrules
+  // it by choosing one, after which it is theirs and nothing moves it.
+  const currencyChosen = useRef(false);
+  useEffect(() => {
+    if (!currencyChosen.current) setCurrency(defaultCurrency);
+  }, [defaultCurrency]);
   // Null is "nothing picked yet"; 'personal' is the private ledger, which is
   // not a group and does not split. Everything else is a group id.
   const [chosenId, setChosenId] = useState<string | 'personal' | null>(null);
@@ -144,6 +155,7 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
                   accessibilityRole="button"
                   accessibilityState={{ selected: code === currency }}
                   onPress={() => {
+                    currencyChosen.current = true;
                     setCurrency(code);
                     setPickingCurrency(false);
                   }}
@@ -527,7 +539,7 @@ function QuickPersonalFooter({
           onHandOff();
           router.push({
             pathname: '/personal/entry',
-            params: { amount: amount.toString(), kind: 'expense' },
+            params: { amount: amount.toString(), currency, kind: 'expense' },
           });
         }}
       />
