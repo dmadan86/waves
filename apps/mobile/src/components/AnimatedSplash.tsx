@@ -28,9 +28,10 @@
  * the field. The seam is a flat colour meeting the same flat colour, which
  * is the one handoff that cannot show.
  *
- * The cost, stated plainly: on a slow cold start the launch is bare yellow
- * for as long as the JS takes to come up. Putting a mark back in `app.json`
- * buys that back and breaks the arrival — the two cannot both be had.
+ * The cost, stated plainly: on a slow cold start the launch is a bare purple
+ * field for as long as the JS takes to come up. Putting a mark back in
+ * `app.json` buys that back and breaks the arrival — the two cannot both be
+ * had.
  *
  * To rebrand: `SPLASH_BG` here and `backgroundColor` in `app.json` are the
  * same colour and must move together. To change the mark itself, edit
@@ -57,12 +58,14 @@ import { WaveMark } from '@/components/WaveMark';
     `app.json`, because the native splash is this same flat colour and this one
     is painted over it — any difference shows as a flash at the handoff.
 
-    Yellow, and deliberately not one of the app's own colours: a launch screen
-    is the one surface whose job is to be recognised across a home screen full
-    of apps, which is what GoodRx's yellow and Spotify's black are for. The mark
-    on it is the app's ink rather than white, because a white mark on this is
-    unreadable. */
-const SPLASH_BG = '#F5D800';
+    The brand purple, `brand600` in `tokens.ts`, and the mark on it is white.
+    This replaced a yellow field carrying the ink-dark mark. The argument for
+    the yellow was recognition across a crowded home screen; the argument
+    against it, which won, is that the launch then opens on a colour the app
+    itself never uses again — the header you land on, every brand surface
+    behind it, and the icon in the launcher are all this purple. A launch
+    screen that is the app's own colour is the one the app can keep. */
+const SPLASH_BG = '#6C4EE3';
 
 /** The mark's drawn width. The native half no longer draws a mark, so this is
     the only place it is sized. */
@@ -83,8 +86,8 @@ const MARK_WIDTH = 140;
  * already there and must not re-enter, or it is not there yet and may arrive.
  * This screen now takes the second option.
  *
- * The field moves too. A slow diagonal wash comes up over the flat yellow — a
- * lighter yellow, through the brand colour, to a deeper amber — and drifts
+ * The field moves too. A slow diagonal wash comes up over the flat purple — a
+ * step lighter, through the brand colour, to a step deeper — and drifts
  * across underneath the mark as it arrives. The wash starts at zero
  * opacity, which is the flat native colour exactly, so there is still nothing
  * to see at the seam; only from the second frame on does the screen begin to
@@ -115,10 +118,11 @@ const WASH_DRIFT = 0.12;
  *
  * The middle stop is `SPLASH_BG` itself, so the wash is a *lean* either side of
  * the colour the field already is rather than a different colour laid over it.
- * Both ends are within a few steps of it: a launch screen that visibly changes
- * colour is a launch screen somebody will remember for the wrong reason.
+ * Both ends are one step of the brand ramp away — `brand500` and `brand700` —
+ * because a launch screen that visibly changes colour is a launch screen
+ * somebody will remember for the wrong reason.
  */
-const WASH_COLOURS = ['#FFEE7A', SPLASH_BG, '#E0B800'] as const;
+const WASH_COLOURS = ['#7A5AF8', SPLASH_BG, '#5638C4'] as const;
 
 export function AnimatedSplash() {
   const [done, setDone] = useState(false);
@@ -155,7 +159,7 @@ export function AnimatedSplash() {
       if (reduceMotion) {
         // The mark is drawn by the animation now, so with the animation off it
         // has to be placed rather than skipped — otherwise this setting gets a
-        // bare yellow field and no logo at all. Straight to finished, no motion.
+        // bare purple field and no logo at all. Straight to finished, no motion.
         markWave.value = 1;
         // `reduceMotion` is a dependency of this effect, so it can turn on
         // while the screen is already moving. Put the field back where the

@@ -28,8 +28,10 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 GEOM = ROOT / "apps/mobile/assets/brand/wave-mark.json"
 OUT = ROOT / "apps/mobile/assets/images/splash-mark-ink.png"
 
-# The app's ink, which is what reads on the splash yellow.
-INK = (0x2B, 0x2B, 0x20, 255)
+# The mark's colour: white, which is what reads on the splash purple
+# (`SPLASH_BG` in AnimatedSplash.tsx). The PNG's own background is transparent,
+# so the raster has to be looked at on something dark to be seen at all.
+INK = (0xFF, 0xFF, 0xFF, 255)
 # Drawn this many times over and downsampled, so the round caps and the tilt
 # come out smooth without leaning on a vector rasteriser.
 SS = 4
