@@ -21,6 +21,11 @@
  * own `<h1>`. The heading belongs to the page — it is the top of its hierarchy
  * and the thing a screen reader lands on — so the bar carries the brand and the
  * tools instead, and every page says its own name.
+ *
+ * **Everything in the bar sat at its start**, in source order, leaving the
+ * right half of a desktop bar empty and the search box pinned to a width that
+ * clipped its own placeholder. Search takes the room now, and the actions are
+ * a group at the far end.
  */
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
@@ -28,7 +33,6 @@ import Link from 'next/link';
 import {
   Activity,
   ArrowLeftRight,
-  KeyRound,
   LayoutGrid,
   LogOut,
   Monitor,
@@ -38,12 +42,14 @@ import {
   Settings as SettingsIcon,
   Sun,
   UserRound,
+  UserRoundPlus,
   Users,
   type LucideIcon,
 } from 'lucide-react';
 
 import { useStrings } from '@/i18n-context';
 import { useTheme, type ThemeChoice } from '@/lib/theme';
+import { WaveMark } from '@/components/WaveMark';
 
 export enum Section {
   Overview = 'overview',
@@ -51,6 +57,15 @@ export enum Section {
   Activity = 'activity',
   Friends = 'friends',
   Settle = 'settle',
+  /**
+   * The developer console and the OAuth consent screens.
+   *
+   * Still a section — those pages render inside the shell and have to tell it
+   * which row they belong to — but no longer a *row*. Nothing in the navigation
+   * points at `/developers` any more: it is a place you arrive at because an
+   * application sent you there to be asked for consent, or because you went
+   * looking for it, not one every person is offered on every screen.
+   */
   Developers = 'developers',
   Settings = 'settings',
 }
@@ -94,16 +109,13 @@ export function Shell({
     { key: Section.Activity, label: t.dash.nav.activity, href: '/activity', Icon: Activity },
     { key: Section.Friends, label: t.dash.nav.friends, href: '/friends', Icon: UserRound },
     { key: Section.Settle, label: t.dash.nav.settle, href: '/settle', Icon: ArrowLeftRight },
-    { key: Section.Developers, label: t.developers.title, href: '/developers', Icon: KeyRound },
     { key: Section.Settings, label: t.settings.title, href: '/settings', Icon: SettingsIcon },
   ];
 
-  // The five the bottom bar has room for. Settle and Developers are reached
-  // from the account menu at those widths, so nothing becomes unreachable.
-  const tabs = nav.filter((item) => item.key !== Section.Settle && item.key !== Section.Developers);
-  const spare = nav.filter(
-    (item) => item.key === Section.Settle || item.key === Section.Developers,
-  );
+  // The five the bottom bar has room for. Settle is reached from the account
+  // menu at those widths, so nothing becomes unreachable.
+  const tabs = nav.filter((item) => item.key !== Section.Settle);
+  const spare = nav.filter((item) => item.key === Section.Settle);
 
   return (
     <div className="app">
@@ -127,7 +139,7 @@ export function Shell({
         <aside className="sidebar">
           <div className="side-brand">
             <span className="brand-mark" aria-hidden>
-              ₹
+              <WaveMark size={20} />
             </span>
             Waves
           </div>
@@ -154,7 +166,9 @@ export function Shell({
             {/* The brand only appears here once the rail has gone, so the bar
                 is not saying the app's name twice on a desktop. */}
             <span className="brand only-narrow" aria-hidden>
-              <span className="brand-mark">₹</span>
+              <span className="brand-mark">
+                <WaveMark size={20} />
+              </span>
             </span>
 
             <label className="search">
@@ -168,22 +182,54 @@ export function Shell({
               />
             </label>
 
-            {/* The one action a splitting app is for, on every page — no need to
-                open a group first, since the picker at /add does that. */}
-            <Link href="/add" className="btn brand topbar-add">
-              <Plus size={BAR_ICON} strokeWidth={2.25} aria-hidden />
-              <span className="topbar-add-label">{t.dash.addExpense}</span>
-            </Link>
+            {/*
+              The actions, as one group at the end of the bar.
 
-            <ThemeSwitch />
+              They used to be four loose children after the search box, which in
+              a flex row means four things crowded against it and half a desktop
+              bar left empty. Grouping them is what lets the search have the
+              space between.
+            */}
+            <div className="topbar-tools">
+              {/*
+                Starting a group. `/new` has existed since the browser could do
+                it at all and nothing outside the Groups page pointed at it, so
+                on every other screen the app could split a bill but not begin
+                one. The phone offers the same two things side by side on its
+                dashboard — the expense pill, and a disc that starts a group.
+              */}
+              <Link
+                href="/new"
+                className="btn topbar-action"
+                title={t.groups.newGroup}
+                aria-label={t.groups.newGroup}
+              >
+                <UserRoundPlus size={BAR_ICON} strokeWidth={2} aria-hidden />
+                <span className="topbar-action-label">{t.groups.newGroup}</span>
+              </Link>
 
-            <Account
-              userName={userName}
-              avatarUrl={avatarUrl}
-              isGuest={isGuest}
-              spare={spare}
-              onSignOut={onSignOut}
-            />
+              {/* The one action a splitting app is for, on every page — no need
+                  to open a group first, since the picker at /add does that. */}
+              <Link
+                href="/add"
+                className="btn brand topbar-action"
+                title={t.dash.addExpense}
+                aria-label={t.dash.addExpense}
+              >
+                <Plus size={BAR_ICON} strokeWidth={2.25} aria-hidden />
+                <span className="topbar-action-label">{t.dash.addExpense}</span>
+              </Link>
+
+              <ThemeSwitch />
+
+              <Account
+                userName={userName}
+                avatarUrl={avatarUrl}
+                isGuest={isGuest}
+                spare={spare}
+                onSignOut={onSignOut}
+              />
+            </div>
           </header>
 
           {/* The landmark every page was missing. Screen-reader users could

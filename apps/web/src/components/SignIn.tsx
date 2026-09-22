@@ -25,6 +25,7 @@ import { GOOGLE_CREDENTIAL_NEEDS_REDIRECT } from '@waves/api-client';
 
 import { useAuth } from '@/lib/auth';
 import { GoogleIdentity } from '@/components/GoogleIdentity';
+import { WaveMark } from '@/components/WaveMark';
 import { fill, type WebStrings } from '@/i18n';
 import { useStrings } from '@/i18n-context';
 import { friendlyError } from '@/lib/errors';
@@ -308,7 +309,7 @@ export function SignIn() {
       */}
       <div className="brand door-brand">
         <span className="brand-mark" aria-hidden>
-          ₹
+          <WaveMark size={22} />
         </span>
         {t.dash.signInTitle}
       </div>
