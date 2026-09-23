@@ -33,7 +33,6 @@ import {
   useCancelSettlement,
   useGhostMergePersonIds,
   useGroup,
-  useDisputes,
   useGroupLedger,
   useGroupRealtime,
   useOpenReceipts,
@@ -275,8 +274,8 @@ type FeedItem =
  * once per locale — so the shallow `memo` compare holds and the fast fling never
  * has to re-run a row it already drew.
  *
- * `contested` and `myMemberId` are lifted to props (not read from the disputes
- * Set / ledger inside) precisely so this stays a pure function of stable inputs.
+ * `myMemberId` is lifted to a prop (not read from the ledger inside) precisely
+ * so this stays a pure function of stable inputs.
  * The date is formatted with the hoisted `dateFmt`, not a fresh
  * `Intl.DateTimeFormat` per render, which was what made `renderItem` too slow to
  * keep up with recycling and left blank cells on a hard fling.
@@ -284,7 +283,6 @@ type FeedItem =
 const ExpenseFeedRow = memo(function ExpenseFeedRow({
   expense,
   isLast,
-  contested,
   myMemberId,
   groupId,
   groupCurrency,
@@ -296,7 +294,6 @@ const ExpenseFeedRow = memo(function ExpenseFeedRow({
 }: {
   expense: ExpenseRow;
   isLast: boolean;
-  contested: boolean;
   myMemberId: MemberId | null;
   groupId: string;
   /** What this group counts in, so a foreign bill can say what it came to. */
@@ -384,13 +381,7 @@ const ExpenseFeedRow = memo(function ExpenseFeedRow({
       ? formatParts({ minor: stake < 0n ? -stake : stake, currency: version.currency }, { locale })
           .text
       : null;
-  const rowLabel = [
-    title,
-    contested ? t.expense.disputed : null,
-    version ? directionLabel : null,
-    amountA11y,
-    dateStamp,
-  ]
+  const rowLabel = [title, version ? directionLabel : null, amountA11y, dateStamp]
     .filter(Boolean)
     .join(', ');
   return (
@@ -421,12 +412,9 @@ const ExpenseFeedRow = memo(function ExpenseFeedRow({
               and date off the row; the flex swallows the slack so the right
               column can stay at its natural width. */}
           <View style={{ flex: 1, minWidth: 0 }}>
-            <Row style={{ gap: theme.spacing.sm, alignItems: 'center' }}>
-              <Text variant="subheading" numberOfLines={1} style={{ flexShrink: 1 }}>
-                {title}
-              </Text>
-              {contested ? <Badge label={t.expense.disputed} tone="negative" /> : null}
-            </Row>
+            <Text variant="subheading" numberOfLines={1}>
+              {title}
+            </Text>
             <Text variant="caption" tone="muted" numberOfLines={1}>
               {[
                 paidLineWithRate,
@@ -518,15 +506,7 @@ export default function GroupScreen() {
   const pinnedIds = usePinnedGroupIds();
   const isPinned = pinnedIds.has(groupId);
   const setGroupPin = useSetGroupPin();
-  const disputes = useDisputes(groupId);
   const openReceipts = useOpenReceipts(groupId);
-  const openDisputes = useMemo(
-    () =>
-      new Set(
-        (disputes.data ?? []).filter((row) => row.status === 'open').map((row) => row.expense_id),
-      ),
-    [disputes.data],
-  );
   const cancelSettlement = useCancelSettlement(groupId);
 
   const { blockedIds } = useBlockedUsers();
@@ -910,9 +890,6 @@ export default function GroupScreen() {
         <ExpenseFeedRow
           expense={item.expense}
           isLast={item.isLast}
-          // Lifted to a primitive prop so the row does not depend on the disputes
-          // Set — keeps its memo compare cheap and stable.
-          contested={openDisputes.has(item.expense.id)}
           myMemberId={ledger.myMemberId}
           groupId={groupId}
           groupCurrency={currency}
