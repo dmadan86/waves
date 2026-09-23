@@ -12,7 +12,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, View } from 'react-native';
+import { ActivityIndicator, RefreshControl, ScrollView, View } from 'react-native';
 
 import { type DeviceSession } from '@waves/core';
 import {
@@ -71,6 +71,12 @@ export default function DevicesScreen() {
   // would be [] and the screen would say "only this device" — a claim about
   // the other sessions made without having seen them.
   const failed = devices.isError && !devices.data;
+  // Spins only for a pull, not for a background refetch (see `usePullRefresh`).
+  const [pulling, setPulling] = useState(false);
+  const onPull = () => {
+    setPulling(true);
+    void devices.refetch().finally(() => setPulling(false));
+  };
   // Counting before `deviceId()` resolves would count this phone as another
   // session, and offer to sign it out.
   const ready = !devices.isLoading && myDeviceId !== null;
@@ -128,6 +134,9 @@ export default function DevicesScreen() {
           gap: theme.spacing.xl,
         }}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={pulling} onRefresh={onPull} tintColor={theme.color.brand} />
+        }
       >
         <Text variant="caption" tone="muted">
           {t.devices.intro}
@@ -139,11 +148,13 @@ export default function DevicesScreen() {
               title={t.loadError}
               body={friendlyError(devices.error, t.loadErrorBody, 'devices.load')}
             />
-            <Button
-              label={t.retry}
-              disabled={devices.isFetching}
-              onPress={() => void devices.refetch()}
-            />
+            {/* The query stays in 'error' while a retry is in flight, so the
+                fetch itself decides what shows here: a spinner until it lands. */}
+            {devices.isFetching ? (
+              <ActivityIndicator color={theme.color.brand} />
+            ) : (
+              <Button label={t.retry} onPress={() => void devices.refetch()} />
+            )}
           </View>
         ) : !ready ? (
           // Until the list loads, `rows` is empty — showing "only this device"
