@@ -41,7 +41,6 @@ import {
   nextSortOrder,
   openCaptures,
   openPlanItems,
-  overlayPending,
   pinnedGroupIds,
   rowsFor,
   simplify,
@@ -53,7 +52,6 @@ import {
   type ExpenseSnapshot,
   type MemberId,
   type MirrorCategoryTag,
-  type MirrorExpense,
   type SettlementSnapshot,
   type SettlementTransitionPayload,
   type Transfer,
@@ -70,14 +68,12 @@ import {
   createGroup,
   deleteGroup,
   disputeExpense,
-  fetchAllBalances,
   fetchBalances,
   fetchExpenseVersions,
   fetchDisputes,
   fetchItemClaims,
   fetchOpenReceipts,
   fetchReceipt,
-  fetchGroupSpending,
   fetchMemberClaims,
   decideMemberClaim,
   type PlanItemRow,
@@ -123,7 +119,6 @@ export type { RecentActivityRow } from './recentActivity';
 
 export const keys = {
   groups: ['groups'] as const,
-  allBalances: ['balances', 'all'] as const,
   group: (id: string) => ['group', id] as const,
   members: (id: string) => ['group', id, 'members'] as const,
   expenses: (id: string) => ['group', id, 'expenses'] as const,
@@ -131,7 +126,6 @@ export const keys = {
   activity: (id: string) => ['group', id, 'activity'] as const,
   balances: (id: string) => ['group', id, 'balances'] as const,
   disputes: (id: string) => ['group', id, 'disputes'] as const,
-  spending: (id: string) => ['group', id, 'spending'] as const,
   memberClaims: (id: string) => ['group', id, 'member-claims'] as const,
   memberBudgets: (id: string) => ['group', id, 'member-budgets'] as const,
   groupBudget: (id: string) => ['group', id, 'budget'] as const,
@@ -299,17 +293,6 @@ export function useArchivedGroups(): LocalRead<GroupRow[]> {
     [mirror, queue],
   );
   return useLocalRead(groups);
-}
-
-/**
- * The server's own derived balances. Deliberately still a network read and
- * deliberately never rendered: this is the independent second opinion that
- * `useGroupLedger` checks its arithmetic against (ADR-004). Reading it from the
- * mirror would make it agree with the local computation by construction, which
- * is the one thing a cross-check must not do.
- */
-export function useAllBalances() {
-  return useQuery({ queryKey: keys.allBalances, queryFn: fetchAllBalances });
 }
 
 /**
@@ -779,22 +762,6 @@ export function usePeopleBalances(profileId: string | null): LocalRead<PersonBal
 }
 
 /**
- * ADR-005: what the screen shows is the server's rows with the mutation queue
- * replayed on top. Without the overlay an expense the user just entered is
- * invisible until it syncs, which is indistinguishable from losing it.
- */
-export function usePendingAware(groupId: string, expenses: ExpenseRow[]): ExpenseRow[] {
-  const { queue } = useSync();
-  return useMemo(
-    () =>
-      overlayPending(expenses as unknown as MirrorExpense[], queue, {
-        groupId,
-      }) as unknown as ExpenseRow[],
-    [expenses, queue, groupId],
-  );
-}
-
-/**
  * The recent-activity feed, entirely from the mirror — offline-first (ADR-005).
  *
  * `activity_log` is already pulled into the mirror per group, so the global feed
@@ -848,25 +815,6 @@ export function useDestinationUsage(): Map<string, DestinationUsage> {
       }
     }
     return usage;
-  }, [mirror]);
-}
-
-/**
- * Every group's creation timestamp, keyed by id — including the 1:1 groups behind
- * individual people, which the group list does not surface. Lets the review offer
- * a "recently added" person by the age of their 1:1 group, the same way a group's
- * own `created_at` marks a newly made trip.
- */
-export function useGroupCreatedAt(): Map<string, string> {
-  const { mirror } = useSync();
-  return useMemo(() => {
-    const ledgerGroupIds = materialiseLedgerGroupIds(mirror, []);
-    const byId = new Map<string, string>();
-    for (const row of rowsFor(mirror, SyncTable.Groups)) {
-      const g = row as unknown as { id: string; created_at: string };
-      if (g.id && g.created_at && ledgerGroupIds.has(g.id)) byId.set(g.id, g.created_at);
-    }
-    return byId;
   }, [mirror]);
 }
 
@@ -1274,7 +1222,6 @@ export function invalidateGroup(queryClient: QueryClient, groupId: string): void
     .catch(() => undefined)
     .then(() => {
       void queryClient.invalidateQueries({ queryKey: ['group', groupId] });
-      void queryClient.invalidateQueries({ queryKey: keys.allBalances });
     });
 }
 
@@ -1671,15 +1618,6 @@ export function useDeleteTag() {
  * without a query each. A disagreement nobody sees until they open the expense
  * is a disagreement that festers.
  */
-/** Where one group's money went, per member, category, month and currency. */
-export function useGroupSpending(groupId: string) {
-  return useQuery({
-    queryKey: keys.spending(groupId),
-    queryFn: () => fetchGroupSpending(groupId),
-    enabled: Boolean(groupId),
-  });
-}
-
 export function useDisputes(groupId: string) {
   return useQuery({
     queryKey: keys.disputes(groupId),
