@@ -18,7 +18,7 @@
  * the bridge's rule for acting on it.
  */
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 /** Set before each dynamic import; the module reads it once at load. */
 const stub = vi.hoisted(() => ({ native: null as Record<string, unknown> | null }));
@@ -73,6 +73,13 @@ async function loadModule(native: Record<string, unknown> | null) {
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 const RECENT = { t: 'recent' as const, items: [] };
+
+// The first `loadModule` pays the cold transform of `@waves/core`, which on a
+// loaded CI box (or Windows) can exceed the 5s per-test budget and fail
+// whichever test happens to run first. Pay it once here, with room to spare.
+beforeAll(async () => {
+  await import('@/lib/watch/nativeModule');
+}, 60_000);
 
 beforeEach(() => {
   stub.native = null;
