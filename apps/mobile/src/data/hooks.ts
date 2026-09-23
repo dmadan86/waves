@@ -108,19 +108,18 @@ import { parseAnnotations, type Annotations } from '@/lib/annotations';
 import { sanitizeCommentMarkdown } from '@waves/core';
 import type { VoiceAccess } from '@/lib/voiceAccess';
 import { activityTime } from '@/lib/groupActivityOrder';
-import { myStake } from './activity';
+import { recentActivity, type RecentActivityRow } from './recentActivity';
 import { isGhost, isViewer, SettlementStatus } from './types';
 import type {
-  ActivityActor,
-  ActivityGroup,
   ActivityRow,
   CaptureRow,
   ExpenseRow,
-  ExpenseVersionRow,
   GroupRow,
   MemberRow,
   SettlementRow,
 } from './types';
+
+export type { RecentActivityRow } from './recentActivity';
 
 export const keys = {
   groups: ['groups'] as const,
@@ -796,21 +795,6 @@ export function usePendingAware(groupId: string, expenses: ExpenseRow[]): Expens
   );
 }
 
-export type RecentActivityRow = ActivityRow & {
-  group: ActivityGroup | null;
-  /**
-   * What this event did to the reader's own balance, when that is knowable: an
-   * expense event carries the reader's stake in that bill (positive: they lent,
-   * negative: they borrowed) — the same figure the group ledger's expense rows
-   * show, so a coloured amount means one thing across the app.
-   *
-   * Null when the event is not an expense, when the reader is on neither side
-   * of the bill, or when no profile id was given. The row then falls back to
-   * the payload's neutral total, which belongs to nobody in particular.
-   */
-  stake: { amount: bigint; currency: string } | null;
-};
-
 /**
  * The recent-activity feed, entirely from the mirror — offline-first (ADR-005).
  *
@@ -826,115 +810,7 @@ export type RecentActivityRow = ActivityRow & {
  */
 export function useRecentActivity(myProfileId: string | null = null): RecentActivityRow[] {
   const { mirror } = useSync();
-  return useMemo(() => {
-    const groups = new Map<string, ActivityGroup>();
-    // Groups the mirror still holds only to carry their tombstone. Their rows
-    // stay in `activity_log` — a delete is a tombstone, not an erasure (ADR-004)
-    // — so without this the feed goes on listing what happened in a group that
-    // is gone, each row linking to the "Group not found" screen.
-    const deleted = new Set<string>();
-    for (const row of rowsFor(mirror, SyncTable.Groups)) {
-      const g = row as unknown as {
-        id: string;
-        name: string | null;
-        cover_emoji: string | null;
-        archived_at: string | null;
-        deleted_at: string | null;
-      };
-      if (g.deleted_at) {
-        deleted.add(g.id);
-        continue;
-      }
-      groups.set(g.id, {
-        id: g.id,
-        name: g.name,
-        cover_emoji: g.cover_emoji,
-        archived_at: g.archived_at ?? null,
-      });
-    }
-
-    const actors = new Map<string, ActivityActor>();
-    for (const row of rowsFor(mirror, SyncTable.GroupMembers)) {
-      const m = row as unknown as {
-        id: string;
-        profile_id: string | null;
-        ghost_name: string | null;
-        profile?: { display_name: string | null } | null;
-      };
-      actors.set(m.id, {
-        id: m.id,
-        profile_id: m.profile_id,
-        ghost_name: m.ghost_name,
-        profile: m.profile ? { display_name: m.profile.display_name } : null,
-      });
-    }
-
-    // The reader's own member id in each group, so an expense event can be told
-    // apart into "you lent" and "you borrowed". The same person holds a
-    // different member id in every group, hence a map rather than one id.
-    const myMemberByGroup = new Map<string, MemberId>();
-    if (myProfileId) {
-      for (const row of rowsFor(mirror, SyncTable.GroupMembers)) {
-        const m = row as unknown as {
-          id: MemberId;
-          group_id: string;
-          profile_id: string | null;
-          left_at: string | null;
-        };
-        if (isViewer(m, myProfileId) && !m.left_at) myMemberByGroup.set(m.group_id, m.id);
-      }
-    }
-
-    // Every expense the phone holds, by id — an activity row names its object,
-    // so the stake is a map lookup rather than a scan per row.
-    const expenseById = new Map<string, MirrorExpense>();
-    if (myProfileId) {
-      for (const row of rowsFor(mirror, SyncTable.Expenses) as MirrorExpense[]) {
-        expenseById.set(row.id, row);
-      }
-    }
-
-    return (
-      (rowsFor(mirror, SyncTable.ActivityLog) as unknown as ActivityRow[])
-        // A row whose group the mirror has never seen is kept, with a null group —
-        // that is the existing "newer build, unknown group" fallback and it reads
-        // as a plain line. A row whose group the mirror knows to be deleted is
-        // dropped, because there we know the destination is gone.
-        .filter((row) => !deleted.has(row.group_id))
-        .map((row) => ({
-          ...row,
-          group: groups.get(row.group_id) ?? null,
-          actor: row.actor_member_id ? (actors.get(row.actor_member_id) ?? null) : null,
-          stake: stakeFor(row, expenseById, myMemberByGroup),
-        }))
-        .sort(byNewest((row) => String(row.created_at)))
-    );
-  }, [mirror, myProfileId]);
-}
-
-/**
- * The reader's stake in the expense an activity row is about, or null when the
- * row is not about an expense they are on. A settled/confirmed row is left
- * null on purpose: a settlement moves money one way and the balance the other,
- * so colouring it by either sign misreads the other — it keeps the neutral
- * total.
- */
-function stakeFor(
-  row: ActivityRow,
-  expenseById: ReadonlyMap<string, MirrorExpense>,
-  myMemberByGroup: ReadonlyMap<string, MemberId>,
-): { amount: bigint; currency: string } | null {
-  if (row.object_type !== 'expense' || !row.object_id) return null;
-  const version = expenseById.get(row.object_id)?.currentVersion;
-  if (!version) return null;
-  const stake = myStake(
-    version as unknown as ExpenseVersionRow,
-    myMemberByGroup.get(row.group_id) ?? null,
-  );
-  // A square stake (paid exactly what you owed) has no direction to colour, so
-  // it reads as the neutral total rather than a grey zero.
-  if (stake === null || stake === 0n) return null;
-  return { amount: stake, currency: version.currency };
+  return useMemo(() => recentActivity(mirror, myProfileId), [mirror, myProfileId]);
 }
 
 /** How much a destination (group, or a person's 1:1 group) has been used. */
