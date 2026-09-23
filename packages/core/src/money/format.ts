@@ -78,14 +78,48 @@ function parts(amount: Money, options: FormatOptions): Intl.NumberFormatPart[] {
   // units ≈ ₹90 trillion) is not a real split, and display is not arithmetic.
   const asNumber = Number(toMajorString({ minor: magnitude, currency: amount.currency }));
 
-  const formatter = new Intl.NumberFormat(locale, {
-    style: 'currency',
-    currency: amount.currency,
-    minimumFractionDigits: fractionDigits,
-    maximumFractionDigits: fractionDigits,
-    signDisplay: signDisplay === 'never' ? 'auto' : signDisplay,
-  });
+  const formatter = currencyFormatter(
+    locale,
+    amount.currency,
+    fractionDigits,
+    signDisplay === 'never' ? 'auto' : signDisplay,
+  );
   return numberParts(formatter, asNumber, fractionDigits);
+}
+
+/**
+ * One `Intl.NumberFormat` per (locale, currency, digits, sign) — built once,
+ * reused for every amount after.
+ *
+ * Constructing a formatter resolves the locale's data and is far dearer than
+ * formatting with one; a balance list formats hundreds of amounts per render
+ * and every one of them used to build its own. A formatter is immutable, so
+ * sharing it is safe. The key set is small (the locales and currencies a user
+ * actually meets), so the map needs no eviction. A construction that throws
+ * (an unknown currency code) is not cached and throws again next time, as
+ * before.
+ */
+const formatters = new Map<string, Intl.NumberFormat>();
+
+function currencyFormatter(
+  locale: Locale,
+  currency: CurrencyCode,
+  fractionDigits: number,
+  signDisplay: 'auto' | 'always',
+): Intl.NumberFormat {
+  const key = `${locale}|${currency}|${fractionDigits}|${signDisplay}`;
+  let formatter = formatters.get(key);
+  if (!formatter) {
+    formatter = new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency,
+      minimumFractionDigits: fractionDigits,
+      maximumFractionDigits: fractionDigits,
+      signDisplay,
+    });
+    formatters.set(key, formatter);
+  }
+  return formatter;
 }
 
 /**
@@ -141,12 +175,7 @@ function numberParts(
 
 /** Just the currency symbol for the locale ("₹", "$"). */
 export function currencySymbol(currency: CurrencyCode, locale: Locale = DEFAULT_LOCALE): string {
-  const formatter = new Intl.NumberFormat(locale, {
-    style: 'currency',
-    currency,
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  });
+  const formatter = currencyFormatter(locale, currency, 0, 'auto');
   if (typeof formatter.formatToParts === 'function') {
     const parts = formatter.formatToParts(0);
     return parts.find((part) => part.type === 'currency')?.value ?? currency;
