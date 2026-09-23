@@ -2102,17 +2102,9 @@ export default function AddExpenseScreen() {
               </Text>
             ) : null}
 
-            {/* Someone missing from the roster is added on the group's own members
-              screen, then they appear here to be split with. */}
-            <Button
-              label={t.people.addSomeone}
-              variant="secondary"
-              size="sm"
-              onPress={() => router.push(`/group/${groupId}/members`)}
-              icon={
-                <Ionicons name="person-add-outline" size={iconSize.md} color={theme.color.brand} />
-              }
-            />
+            {/* No "Add someone" here: the form splits between the people the
+              group already has. Adding a member is the group's own job, on its
+              members screen, not a detour out of a half-typed expense. */}
           </Card>
 
           {/* What is genuinely optional: where it happened, and — once the
