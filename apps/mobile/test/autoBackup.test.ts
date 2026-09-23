@@ -24,9 +24,9 @@ import {
 } from '@/lib/backup/settings';
 import { BackupTier } from '@/lib/backup/tier';
 
-import { renderHook } from './mocks/fakeReact';
+import { renderHook } from './support/fakeReact';
 
-vi.mock('react', () => import('./mocks/fakeReact'));
+vi.mock('react', async () => (await import('./support/fakeReact')).reactModule());
 
 const h = vi.hoisted(() => ({
   keystore: new Map<string, string>(),

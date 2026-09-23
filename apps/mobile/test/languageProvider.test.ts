@@ -18,11 +18,16 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { FakeElement } from './mocks/fakeReact';
+import type { FakeElement } from './support/fakeReact';
 
-vi.mock('react', () => import('./mocks/fakeReact'));
-vi.mock('react/jsx-runtime', () => import('./mocks/fakeReact'));
-vi.mock('react/jsx-dev-runtime', () => import('./mocks/fakeReact'));
+// The fake runtime rides along on the mocked module, so a test that resets
+// modules can still reach the very instance the code under test is bound to.
+vi.mock('react', async () => {
+  const fake = await import('./support/fakeReact');
+  return { ...fake.reactModule(), __fake: fake };
+});
+vi.mock('react/jsx-runtime', async () => (await import('./support/fakeReact')).jsxModule());
+vi.mock('react/jsx-dev-runtime', async () => (await import('./support/fakeReact')).jsxModule());
 // Through vi.mock rather than the config alias, so the one in-memory store
 // survives the `vi.resetModules` each mount does (mock factories are cached).
 vi.mock('@react-native-async-storage/async-storage', () => import('./mocks/async-storage'));
@@ -64,7 +69,7 @@ vi.mock('expo-localization', () => ({ getLocales: () => h.locales }));
 vi.mock('@/lib/auth', () => ({ useAuth: () => h.auth }));
 
 type LanguageModule = typeof import('@/i18n/language');
-type FakeReactModule = typeof import('./mocks/fakeReact');
+type FakeReactModule = typeof import('./support/fakeReact');
 
 /** Fresh modules, so the direction the app "launched" in is read again. */
 async function load(): Promise<{
@@ -73,9 +78,9 @@ async function load(): Promise<{
   i18n: typeof import('@/i18n');
 }> {
   vi.resetModules();
-  // The mocked `react` — the very instance the modules under test are bound
-  // to. (A fresh import of the fake itself would be a second runtime.)
-  const react = (await import('react')) as unknown as FakeReactModule;
+  // The mocked `react`'s runtime — the very instance the modules under test
+  // are bound to. (A fresh import of the fake itself would be a second one.)
+  const react = ((await import('react')) as unknown as { __fake: FakeReactModule }).__fake;
   const i18n = await import('@/i18n');
   const lang = await import('@/i18n/language');
   return { lang, react, i18n };
@@ -110,12 +115,9 @@ async function mountProvider() {
     i18n,
     value: () => outer().props.value as Value,
     restart: () => inner().props.value as { prompt: unknown; clear: () => void },
-    /** Provide what this render handed down, so the consumer hooks can read it. */
-    provideAll: () => {
-      react.provide(react.contextOf(outer()), outer().props.value);
-      react.provide(react.contextOf(middle()), middle().props.value);
-      react.provide(react.contextOf(inner()), inner().props.value);
-    },
+    /** What this render handed down, as `renderHook` contexts for a consumer. */
+    contexts: (): [unknown, unknown][] =>
+      [outer(), middle(), inner()].map((el) => [react.contextOf(el), el.props.value]),
   };
 }
 
@@ -259,10 +261,11 @@ describe('LanguageProvider', () => {
   it('hands the same value to useStrings and useLanguage', async () => {
     const p = await mountProvider();
     await settle();
-    p.provideAll();
-    expect(p.react.renderHook(() => p.lang.useLanguage()).result.current).toBe(p.value());
-    expect(p.react.renderHook(() => p.i18n.useStrings()).result.current.language).toBe('en');
-    expect(p.react.renderHook(() => p.lang.useRestartPrompt()).result.current).toBe(p.restart());
+    const contexts = p.contexts();
+    const read = <T>(hook: () => T): T => p.react.renderHook(hook, { contexts }).result.current;
+    expect(read(() => p.lang.useLanguage())).toBe(p.value());
+    expect(read(() => p.i18n.useStrings()).language).toBe('en');
+    expect(read(() => p.lang.useRestartPrompt())).toBe(p.restart());
   });
 
   it('refuses useLanguage outside the provider, and has a quiet default prompt', async () => {
@@ -284,14 +287,15 @@ describe('LocaleSync', () => {
       () => lang.LanguageProvider({ children: null }) as unknown as FakeElement,
     );
     const valueCtx = react.contextOf(provider.result.current.props.children);
-    let current = { locale: 'ta-IN', loading: false, ...language };
-    react.provide(valueCtx, current);
-    const rendered = react.renderHook(() => sync.LocaleSync());
+    // One object, mutated in place: the consumer reads its fields each render.
+    const current = { locale: 'ta-IN', loading: false, ...language };
+    const rendered = react.renderHook(() => sync.LocaleSync(), {
+      contexts: [[valueCtx, current]],
+    });
     return {
       rendered,
       set(next: Partial<Value>) {
-        current = { ...current, ...next };
-        react.provide(valueCtx, current);
+        Object.assign(current, next);
         rendered.rerender();
       },
     };

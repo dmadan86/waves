@@ -30,9 +30,9 @@ import {
   useStrings,
 } from '@/i18n';
 
-import { provide, renderHook, resetContexts } from './mocks/fakeReact';
+import { renderHook } from './support/fakeReact';
 
-vi.mock('react', () => import('./mocks/fakeReact'));
+vi.mock('react', async () => (await import('./support/fakeReact')).reactModule());
 
 interface FakeLocale {
   languageCode?: string | null;
@@ -48,7 +48,6 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  resetContexts();
   vi.restoreAllMocks();
 });
 
@@ -196,8 +195,9 @@ describe('useStrings', () => {
   });
 
   it('speaks the chosen language once a provider supplies one', () => {
-    provide(LanguageContext, { language: Language.Ar, locale: 'ar-AE' });
-    const { result } = renderHook(() => useStrings());
+    const { result } = renderHook(() => useStrings(), {
+      contexts: [[LanguageContext, { language: Language.Ar, locale: 'ar-AE' }]],
+    });
     expect(result.current).toEqual({
       t: STRINGS_BY_LANGUAGE[Language.Ar],
       locale: 'ar-AE',

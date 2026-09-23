@@ -8,7 +8,7 @@
  * before a sign-in hydrates, and the foreground/network/timer triggers that make
  * "syncs on connectivity, foreground or push" true.
  *
- * Driven through `test/mocks/fakeReact`, a hook runtime with no renderer: the
+ * Driven through `test/support/fakeReact`, a hook runtime with no renderer: the
  * provider renders nothing but context, so the value it hands down is read
  * straight off the element it returns.
  */
@@ -27,11 +27,11 @@ import {
 } from '@/sync/provider';
 import { forgetSignOutMark, markDeliberateSignOut } from '@/sync/retention';
 
-import { contextOf, provide, renderHook, resetContexts, type FakeElement } from './mocks/fakeReact';
+import { contextOf, renderHook, type FakeElement } from './support/fakeReact';
 
-vi.mock('react', () => import('./mocks/fakeReact'));
-vi.mock('react/jsx-runtime', () => import('./mocks/fakeReact'));
-vi.mock('react/jsx-dev-runtime', () => import('./mocks/fakeReact'));
+vi.mock('react', async () => (await import('./support/fakeReact')).reactModule());
+vi.mock('react/jsx-runtime', async () => (await import('./support/fakeReact')).jsxModule());
+vi.mock('react/jsx-dev-runtime', async () => (await import('./support/fakeReact')).jsxModule());
 
 const h = vi.hoisted(() => {
   type Listener = (value: unknown) => void;
@@ -179,7 +179,6 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  resetContexts();
   vi.useRealTimers();
 });
 
@@ -594,11 +593,15 @@ describe('useSync / useLastSyncedAt', () => {
     const provider = mount();
     const outer = provider.result.current;
     const inner = outer.props.children as FakeElement;
-    provide(contextOf(outer), outer.props.value);
-    provide(contextOf(inner), inner.props.value);
+    const contexts: [unknown, unknown][] = [
+      [contextOf(outer), outer.props.value],
+      [contextOf(inner), inner.props.value],
+    ];
 
-    expect(renderHook(() => useSync()).result.current).toBe(provider.value());
-    expect(renderHook(() => useLastSyncedAt()).result.current).toBe('2026-09-01T00:00:00Z');
+    expect(renderHook(() => useSync(), { contexts }).result.current).toBe(provider.value());
+    expect(renderHook(() => useLastSyncedAt(), { contexts }).result.current).toBe(
+      '2026-09-01T00:00:00Z',
+    );
   });
 });
 
@@ -606,7 +609,7 @@ describe('drafts', () => {
   it('saves a draft 300ms after the last change, and only the last value', async () => {
     vi.useFakeTimers();
     const rendered = renderHook((value: { amount: string }) => useDraft('k', value), {
-      amount: '1',
+      props: { amount: '1' },
     });
     rendered.rerender({ amount: '12' });
     rendered.rerender({ amount: '123' });
@@ -620,7 +623,7 @@ describe('drafts', () => {
   it('does not reset the debounce when the same value is rebuilt', () => {
     vi.useFakeTimers();
     const rendered = renderHook((value: { amount: string }) => useDraft('k', value), {
-      amount: '1',
+      props: { amount: '1' },
     });
     vi.advanceTimersByTime(200);
     rendered.rerender({ amount: '1' });

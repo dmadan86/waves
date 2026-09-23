@@ -14,11 +14,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { buildRecentItems, WatchBridgeProvider } from '@/lib/watch/bridge';
 
-import { renderHook } from './mocks/fakeReact';
+import { renderHook } from './support/fakeReact';
 
-vi.mock('react', () => import('./mocks/fakeReact'));
-vi.mock('react/jsx-runtime', () => import('./mocks/fakeReact'));
-vi.mock('react/jsx-dev-runtime', () => import('./mocks/fakeReact'));
+vi.mock('react', async () => (await import('./support/fakeReact')).reactModule());
+vi.mock('react/jsx-runtime', async () => (await import('./support/fakeReact')).jsxModule());
+vi.mock('react/jsx-dev-runtime', async () => (await import('./support/fakeReact')).jsxModule());
 
 const h = vi.hoisted(() => ({
   available: true,

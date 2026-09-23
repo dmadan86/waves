@@ -20,9 +20,9 @@ import {
   type NudgePassInputs,
 } from '@/lib/captureNudge/useNudgePass';
 
-import { renderHook } from './mocks/fakeReact';
+import { renderHook } from './support/fakeReact';
 
-vi.mock('react', () => import('./mocks/fakeReact'));
+vi.mock('react', async () => (await import('./support/fakeReact')).reactModule());
 
 const h = vi.hoisted(() => ({
   session: { user: { id: 'me' } } as { user: { id: string } } | null,

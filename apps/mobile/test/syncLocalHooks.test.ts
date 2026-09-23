@@ -14,9 +14,9 @@ import { emptyMirror, SyncTable, type MirrorState } from '@waves/core';
 
 import { useLocalGroup, useLocalGroups, useOfflineLedger } from '@/sync/hooks';
 
-import { renderHook } from './mocks/fakeReact';
+import { renderHook } from './support/fakeReact';
 
-vi.mock('react', () => import('./mocks/fakeReact'));
+vi.mock('react', async () => (await import('./support/fakeReact')).reactModule());
 
 const h = vi.hoisted(() => ({ sync: { mirror: null as unknown, queue: [] as unknown[] } }));
 vi.mock('@/sync/provider', () => ({ useSync: () => h.sync }));
