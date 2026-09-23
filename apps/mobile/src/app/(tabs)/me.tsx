@@ -97,7 +97,6 @@ const OVERSPENT_WASH = ['#8C1D3F', '#4A0F20'] as const; // red — money lost
 // One faint watermark glyph, bled off the hero's corner.
 const HERO_GLYPH = 'wallet-outline' as const;
 
-
 /**
  * The account wall stands outside the ledger, not inside it: a guest session
  * cannot be signed back into, so a year of private spending kept under one is a
