@@ -916,6 +916,157 @@ describe('a session that ended without anybody asking', () => {
   });
 });
 
+describe('a quiet poll leaves the disk alone', () => {
+  type Writes = {
+    writeCursors: (cursors: Record<string, number>) => Promise<void>;
+    writeQueue: (queue: readonly QueuedMutation[]) => Promise<void>;
+  };
+  const storeOf = (engine: InstanceType<typeof SyncEngine>) =>
+    (engine as unknown as { store: Writes }).store;
+
+  const quiet = { outcomes: [], changes: [], cursors: { 'g-goa': 2 }, serverTime: 'quiet' };
+
+  it('skips rewriting cursors and queue when neither moved', async () => {
+    online();
+    h.invoke
+      .mockResolvedValueOnce({ data: discoveryResponse(), error: null })
+      .mockResolvedValue({ data: quiet, error: null });
+    const engine = new SyncEngine();
+    await engine.flush();
+    expect(h.disk.cursors).toEqual({ 'g-goa': 2 });
+
+    const store = storeOf(engine);
+    const cursorWrites = vi.spyOn(store, 'writeCursors');
+    const queueWrites = vi.spyOn(store, 'writeQueue');
+    const rejectedBefore = engine.getState().rejected;
+
+    await engine.flush();
+    await engine.flush();
+
+    expect(cursorWrites).not.toHaveBeenCalled();
+    expect(queueWrites).not.toHaveBeenCalled();
+    expect(engine.getState().rejected).toBe(rejectedBefore);
+    expect(engine.getState().lastSyncedAt).toBe('quiet');
+  });
+
+  it('still writes the cursors the moment they move', async () => {
+    online();
+    h.invoke
+      .mockResolvedValueOnce({ data: discoveryResponse(), error: null })
+      .mockResolvedValue({ data: { ...quiet, cursors: { 'g-goa': 7 } }, error: null });
+    const engine = new SyncEngine();
+    await engine.flush();
+
+    const cursorWrites = vi.spyOn(storeOf(engine), 'writeCursors');
+    await engine.flush();
+
+    expect(cursorWrites).toHaveBeenCalledTimes(1);
+    expect(h.disk.cursors).toEqual({ 'g-goa': 7 });
+  });
+
+  it('still writes the queue when a flush drains it', async () => {
+    online();
+    h.invoke.mockResolvedValue({ data: discoveryResponse(), error: null });
+    const engine = new SyncEngine();
+    await engine.hydrate();
+    // Offline for the enqueue, so its own flush does not send it yet.
+    offline();
+    await engine.enqueue({
+      clientMutationId: 'm-1',
+      kind: 'expense.create' as never,
+      groupId: 'g-goa',
+      clientCreatedAt: '2026-08-09T09:00:00.000Z',
+      payload: {},
+    });
+    await engine.flush();
+    expect(h.disk.queue.map((m) => m.clientMutationId)).toEqual(['m-1']);
+
+    online();
+    h.invoke.mockResolvedValue({
+      data: { ...quiet, outcomes: [{ clientMutationId: 'm-1', status: 'applied' }] },
+      error: null,
+    });
+    await engine.flush();
+
+    expect(engine.getState().queue).toEqual([]);
+    expect(h.disk.queue).toEqual([]);
+  });
+
+  it('rewrites after a failed write instead of trusting it landed', async () => {
+    online();
+    h.invoke
+      .mockResolvedValueOnce({ data: discoveryResponse(), error: null })
+      .mockResolvedValue({ data: { ...quiet, cursors: { 'g-goa': 9 } }, error: null });
+    const engine = new SyncEngine();
+    await engine.flush();
+
+    const store = storeOf(engine);
+    const real = store.writeCursors.bind(store);
+    const cursorWrites = vi
+      .spyOn(store, 'writeCursors')
+      .mockRejectedValueOnce(new Error('disk full'))
+      .mockImplementation(real);
+
+    await engine.flush(); // moves to 9, the write fails
+    expect(h.disk.cursors).toEqual({ 'g-goa': 2 });
+    await engine.flush(); // quiet at 9 — but the disk never got it
+    expect(cursorWrites).toHaveBeenCalledTimes(2);
+    expect(h.disk.cursors).toEqual({ 'g-goa': 9 });
+  });
+});
+
+describe('the poll sleeps while the app is in the background', () => {
+  it('pauses and resumes the 30s timer', async () => {
+    vi.useFakeTimers();
+    try {
+      online();
+      h.invoke.mockResolvedValue({ data: discoveryResponse(), error: null });
+      const engine = new SyncEngine();
+      await engine.hydrate();
+
+      engine.start();
+      expect(engine.isPolling()).toBe(true);
+      await vi.advanceTimersByTimeAsync(30_000);
+      expect(h.invoke).toHaveBeenCalledTimes(1);
+
+      engine.pause();
+      expect(engine.isPolling()).toBe(false);
+      await vi.advanceTimersByTimeAsync(120_000);
+      expect(h.invoke).toHaveBeenCalledTimes(1);
+
+      engine.resume();
+      expect(engine.isPolling()).toBe(true);
+      await vi.advanceTimersByTimeAsync(30_000);
+      expect(h.invoke).toHaveBeenCalledTimes(2);
+      engine.stop();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('does not start a poll on resume that no session asked for', () => {
+    const engine = new SyncEngine();
+    engine.resume();
+    expect(engine.isPolling()).toBe(false);
+
+    engine.start();
+    engine.stop();
+    engine.resume();
+    expect(engine.isPolling()).toBe(false);
+  });
+
+  it('holds a poll started while backgrounded until the app returns', () => {
+    const engine = new SyncEngine();
+    engine.pause();
+    engine.start();
+    expect(engine.isPolling()).toBe(false);
+    engine.resume();
+    expect(engine.isPolling()).toBe(true);
+    engine.stop();
+    expect(engine.isPolling()).toBe(false);
+  });
+});
+
 // ─────────────────────────────────────────── bare-phone auto-heal ──
 // A member added with a local number ("9535621101") and no country code is
 // refused by the server on purpose. The engine reads that number in the group's

@@ -134,6 +134,19 @@ function sameQueue(a: readonly QueuedMutation[], b: readonly QueuedMutation[]): 
   return true;
 }
 
+/** Same refusals, same order, same wording. */
+function sameRejections(a: readonly RejectedMutation[], b: readonly RejectedMutation[]): boolean {
+  if (a.length !== b.length) return false;
+  return a.every(
+    (item, i) =>
+      item.clientMutationId === b[i]?.clientMutationId &&
+      item.kind === b[i]?.kind &&
+      item.groupId === b[i]?.groupId &&
+      item.code === b[i]?.code &&
+      item.message === b[i]?.message,
+  );
+}
+
 /**
  * The refusals the queue is holding, as the UI wants to read them.
  *
@@ -166,6 +179,21 @@ export class SyncEngine {
   private listeners = new Set<(state: SyncState) => void>();
   private flushing: Promise<void> | null = null;
   private timer: ReturnType<typeof setInterval> | null = null;
+  /** `start()` was called and `stop()` has not been since: a session wants the poll. */
+  private polling = false;
+  /** The app is in the background: the poll is held until it comes back. */
+  private paused = false;
+
+  /**
+   * What is known to be on disk right now, by reference. `persist` compares the
+   * cursors and queue it is about to write against these and skips a write that
+   * would put back exactly what is already there — the common answer to the 30s
+   * poll. Only a write that succeeded records its value, and anything that
+   * rewrites the disk some other way (a reset, a leave, a retain) forgets them,
+   * so a skip can never hide a change that did not land.
+   */
+  private persistedCursors: Record<string, number> | null = null;
+  private persistedQueue: readonly QueuedMutation[] | null = null;
 
   subscribe(listener: (state: SyncState) => void): () => void {
     this.listeners.add(listener);
@@ -204,6 +232,8 @@ export class SyncEngine {
     // A refusal is part of the queue on disk now, so it survives a restart —
     // and so must the list the UI reads from it, or the group would be back on
     // screen with nothing explaining why it is not syncing.
+    this.persistedCursors = cursors;
+    this.persistedQueue = queue;
     this.set({
       hydrated: true,
       mirror: { cursors, tables },
@@ -212,11 +242,49 @@ export class SyncEngine {
     });
   }
 
+  /** Begin the 30s poll for a signed-in session (held while backgrounded). */
   start(): void {
+    this.polling = true;
+    this.arm();
+  }
+
+  /** End the poll for good — sign-out, or the session effect tearing down. */
+  stop(): void {
+    this.polling = false;
+    this.disarm();
+  }
+
+  /**
+   * The app went to the background. A poll there pulls a ledger nobody is
+   * looking at, wakes the radio every 30s and costs battery; whatever changes
+   * meanwhile is pulled by the flush that runs on coming back.
+   */
+  pause(): void {
+    this.paused = true;
+    this.disarm();
+  }
+
+  /**
+   * Back in the foreground: re-arm the poll, if a session had started it. The
+   * immediate catch-up flush is the caller's (the AppState listener already
+   * sends one on 'active', and did before there was a pause).
+   */
+  resume(): void {
+    this.paused = false;
+    this.arm();
+  }
+
+  /** Whether the poll timer is currently armed. For tests and diagnostics. */
+  isPolling(): boolean {
+    return this.timer !== null;
+  }
+
+  private arm(): void {
+    if (!this.polling || this.paused) return;
     this.timer ??= setInterval(() => void this.flush(), POLL_INTERVAL_MS);
   }
 
-  stop(): void {
+  private disarm(): void {
     if (this.timer) clearInterval(this.timer);
     this.timer = null;
   }
@@ -272,6 +340,8 @@ export class SyncEngine {
 
   /** Drop everything this engine holds in memory. Says nothing about disk. */
   private forgetInMemory(): void {
+    this.persistedCursors = null;
+    this.persistedQueue = null;
     this.set({
       mirror: emptyMirror(),
       queue: [],
@@ -319,6 +389,10 @@ export class SyncEngine {
     const queue = this.state.queue.filter((mutation) => mutation.groupId !== groupId);
 
     this.set({ mirror: { tables, cursors }, queue });
+    // Forgotten before the write, not after: if it fails, the next persist must
+    // not assume the disk already matches.
+    this.persistedCursors = null;
+    this.persistedQueue = null;
     // One durable step: the group's rows, its cursor and its unsent edits go
     // together, so a crash cannot leave the queue replaying against a group the
     // mirror has forgotten.
@@ -332,7 +406,7 @@ export class SyncEngine {
   async enqueue(envelope: MutationEnvelope): Promise<void> {
     const queue = enqueueMutation(this.state.queue, envelope);
     this.set({ queue });
-    await this.store.writeQueue(queue);
+    await this.writeQueue(queue);
     void this.flush();
   }
 
@@ -345,7 +419,7 @@ export class SyncEngine {
       queue,
       rejected: describeRejections(queue),
     });
-    await this.store.writeQueue(queue);
+    await this.writeQueue(queue);
     void this.flush();
   }
 
@@ -368,7 +442,7 @@ export class SyncEngine {
       queue,
       rejected: describeRejections(queue),
     });
-    await this.store.writeQueue(queue);
+    await this.writeQueue(queue);
     // What was discarded was blocking its group — a refused or dead-lettered
     // mutation holds back everything queued behind it, since those depend on
     // it. Removing it makes them sendable, so send them, rather than leaving
@@ -532,8 +606,13 @@ export class SyncEngine {
           : folded.queue.filter((item) => !healedIds.has(item.clientMutationId));
       const queue = sameQueue(this.state.queue, foldedQueue) ? this.state.queue : foldedQueue;
       // Derived from the queue rather than accumulated alongside it, so the list
-      // the UI shows and the mutations actually held can never drift apart.
-      const rejected = describeRejections(queue);
+      // the UI shows and the mutations actually held can never drift apart. When
+      // it says the same as the list already on screen, that list is kept, so a
+      // quiet poll does not hand every reader of `rejected` a new array.
+      const described = describeRejections(queue);
+      const rejected = sameRejections(this.state.rejected, described)
+        ? this.state.rejected
+        : described;
       const madeProgress = mirrorChanged || cursorsChanged;
 
       await this.persist(appliedChanges, mirror, queue);
@@ -572,7 +651,7 @@ export class SyncEngine {
       // Writing down *why* the sync failed must not itself become a louder
       // failure that replaces the reason. The attempt counts are already in
       // memory and the next flush writes them again.
-      await this.store.writeQueue(queue).catch((writeError: unknown) => {
+      await this.writeQueue(queue).catch((writeError: unknown) => {
         reportHandled(writeError, 'sync.markFailed');
       });
     }
@@ -682,8 +761,23 @@ export class SyncEngine {
       });
     }
     await this.store.putRows(rows);
-    await this.store.writeCursors(mirror.cursors);
+    // A quiet poll folds in nothing and keeps the same cursors and queue by
+    // reference (see runFlush); rewriting them would be a DELETE plus an INSERT
+    // per group and per queued mutation, re-encrypted, every 30 seconds.
+    if (mirror.cursors !== this.persistedCursors) {
+      this.persistedCursors = null;
+      await this.store.writeCursors(mirror.cursors);
+      this.persistedCursors = mirror.cursors;
+    }
+    await this.writeQueue(queue);
+  }
+
+  /** Write the queue unless this exact queue is what the disk already holds. */
+  private async writeQueue(queue: readonly QueuedMutation[]): Promise<void> {
+    if (queue === this.persistedQueue) return;
+    this.persistedQueue = null;
     await this.store.writeQueue(queue);
+    this.persistedQueue = queue;
   }
 
   // ───────────────────────────────────────────────────── drafts ──
