@@ -248,7 +248,8 @@ export function GroupHero({
 
             <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
               <HeroPillButton
-                label={t.addExpense}
+                label={t.group.heroExpense}
+                spokenLabel={t.addExpense}
                 icon="add"
                 gradient={heroGradient}
                 onPress={() => router.push(`/group/${groupId}/add-expense`)}
