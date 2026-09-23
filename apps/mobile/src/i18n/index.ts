@@ -2089,6 +2089,8 @@ export interface UiStrings {
      *  invisible to a screen reader. */
     pinnedBadge: string;
     confirmReceived: string;
+    /** The group hero's pill, beside its "+" glyph. Screen readers still hear `addExpense`. */
+    heroExpense: string;
     /** Heading over an incoming settlement claim; `{name}` is the payer. */
     saysTheyPaidYou: string;
     /** The claim heading with the auto-confirm countdown folded in: `{name}` is
@@ -5165,6 +5167,7 @@ const en: UiStrings = {
     unpin: 'Unpin',
     pinnedBadge: 'Pinned',
     confirmReceived: 'Confirm received',
+    heroExpense: 'Expense',
     saysTheyPaidYou: '{name} says they paid you',
     saysTheyPaidYouWindow: '{name} says they paid you ({window})',
     daysToConfirm: { one: '{n} day to confirm', other: '{n} days to confirm' },
@@ -8123,6 +8126,7 @@ const ta: UiStrings = {
     unpin: 'பின் நீக்கு',
     pinnedBadge: 'பின் செய்யப்பட்டது',
     confirmReceived: 'கிடைத்தது என்று உறுதிப்படுத்து',
+    heroExpense: 'Expense', // English placeholder — English-first phase, translation owed
     saysTheyPaidYou: '{name} உங்களுக்குப் பணம் கொடுத்ததாகச் சொல்கிறார்',
     saysTheyPaidYouWindow: '{name} உங்களுக்குப் பணம் கொடுத்ததாகச் சொல்கிறார் ({window})',
     daysToConfirm: { one: 'உறுதிக்கு {n} நாள்', other: 'உறுதிக்கு {n} நாட்கள்' },
@@ -11106,6 +11110,7 @@ const hi: UiStrings = {
     unpin: 'अनपिन करें',
     pinnedBadge: 'पिन किया गया',
     confirmReceived: 'मिलने की पुष्टि करें',
+    heroExpense: 'Expense', // English placeholder — English-first phase, translation owed
     saysTheyPaidYou: '{name} कहते हैं कि उन्होंने आपको भुगतान किया',
     saysTheyPaidYouWindow: '{name} कहते हैं कि उन्होंने आपको भुगतान किया ({window})',
     daysToConfirm: { one: 'पुष्टि के लिए {n} दिन', other: 'पुष्टि के लिए {n} दिन' },
@@ -14157,6 +14162,7 @@ const ar: UiStrings = {
     unpin: 'إلغاء التثبيت',
     pinnedBadge: 'مثبّتة',
     confirmReceived: 'أكّد الاستلام',
+    heroExpense: 'Expense', // English placeholder — English-first phase, translation owed
     saysTheyPaidYou: 'يقول {name} إنه دفع لك',
     saysTheyPaidYouWindow: 'يقول {name} إنه دفع لك ({window})',
     daysToConfirm: {
