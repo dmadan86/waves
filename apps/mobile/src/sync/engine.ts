@@ -541,8 +541,11 @@ export class SyncEngine {
       const response = data as SyncResponseBody;
       const outcomes = response.outcomes ?? [];
 
+      // The queue this flush folds its answer into. `enqueue` does not wait for
+      // a flush, so the live queue can move on past it (see the replay below).
+      const base = this.state.queue;
       const folded = applyOutcomes(
-        this.state.queue,
+        base,
         outcomes.map((outcome) =>
           outcome.status === 'rejected'
             ? {
@@ -604,18 +607,33 @@ export class SyncEngine {
         healedIds.size === 0
           ? folded.queue
           : folded.queue.filter((item) => !healedIds.has(item.clientMutationId));
-      const queue = sameQueue(this.state.queue, foldedQueue) ? this.state.queue : foldedQueue;
+      let queue = sameQueue(base, foldedQueue) ? base : foldedQueue;
       // Derived from the queue rather than accumulated alongside it, so the list
       // the UI shows and the mutations actually held can never drift apart. When
       // it says the same as the list already on screen, that list is kept, so a
       // quiet poll does not hand every reader of `rejected` a new array.
       const described = describeRejections(queue);
-      const rejected = sameRejections(this.state.rejected, described)
+      let rejected = sameRejections(this.state.rejected, described)
         ? this.state.rejected
         : described;
       const madeProgress = mirrorChanged || cursorsChanged;
 
       await this.persist(appliedChanges, mirror, queue);
+
+      // A mutation enqueued while the disk write above was out changed the live
+      // queue after `queue` was folded from it. Setting `queue` as it stands
+      // would drop that expense from memory and, at the next write, from disk.
+      // Replay whatever arrived onto the folded queue and write that instead.
+      const live = this.state.queue;
+      if (live !== base) {
+        const arrived = live.filter((item) => !base.includes(item));
+        if (arrived.length > 0) {
+          for (const item of arrived) queue = enqueueMutation(queue, item);
+          const redescribed = describeRejections(queue);
+          rejected = sameRejections(rejected, redescribed) ? rejected : redescribed;
+          await this.writeQueue(queue);
+        }
+      }
 
       this.set({
         status: SyncStatus.Idle,
