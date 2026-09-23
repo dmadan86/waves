@@ -75,7 +75,7 @@ place in anybody else's group.
   app. _Waves never handles the money._
 - **Address** — optional, and only if you want it stored.
 
-Language, Appearance and the privacy controls live beside it; see
+Language and the privacy controls live beside it; see
 [How people find you](../privacy/discovery-settings.md).
 
 ## Next

@@ -9,9 +9,13 @@
  * the save path already writes — otherwise a chip appears with no label at all.
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { viewerIdentityFrom } from '../src/lib/viewerIdentityCore';
+
+const auth = vi.hoisted(() => ({ value: {} as Record<string, unknown> }));
+vi.mock('@/lib/auth', () => ({ useAuth: () => auth.value }));
+vi.mock('@/i18n', () => ({ useStrings: () => ({ t: { account: { you: 'You (localised)' } } }) }));
 
 const YOU = 'You';
 
@@ -75,5 +79,29 @@ describe('the photo', () => {
     // there must not reach an <Image> source.
     const identity = viewerIdentityFrom(null, { avatar_url: 42, picture: { url: 'x' } }, YOU);
     expect(identity.avatarUrl).toBeNull();
+  });
+});
+
+describe('the hook the pickers call', () => {
+  it('reads the signed-in profile, the provider photo and the guest flag together', async () => {
+    auth.value = {
+      profile: { display_name: '  ', avatar_url: '' },
+      session: { user: { user_metadata: { picture: 'https://provider/pic' } } },
+      isGuest: true,
+    };
+    const { useViewerIdentity } = await import('../src/lib/viewerIdentity');
+
+    expect(useViewerIdentity()).toEqual({
+      name: 'You (localised)',
+      avatarUrl: 'https://provider/pic',
+      isGuest: true,
+    });
+  });
+
+  it('copes with nobody signed in', async () => {
+    auth.value = { profile: null, session: null, isGuest: false };
+    const { useViewerIdentity } = await import('../src/lib/viewerIdentity');
+
+    expect(useViewerIdentity()).toMatchObject({ name: 'You (localised)', avatarUrl: null });
   });
 });

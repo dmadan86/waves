@@ -155,6 +155,22 @@ describe('orderDebtsForWarning', () => {
     ]);
   });
 
+  it('puts the group currency first even when it sorts later, and keeps equal debts stable', () => {
+    const transfers = [
+      debt('asha', 'ravi', 'USD', 500n),
+      debt('meera', 'ravi', 'AED', 700n),
+      debt('zoya', 'asha', 'USD', 500n),
+      debt('kiran', 'asha', 'EUR', 100n),
+    ];
+
+    expect(orderDebtsForWarning(transfers, 'USD')).toEqual([
+      transfers[0],
+      transfers[2],
+      transfers[1],
+      transfers[3],
+    ]);
+  });
+
   it('leaves the caller its own array', () => {
     const transfers = [debt('asha', 'ravi', 'INR', 100n), debt('meera', 'ravi', 'INR', 900n)];
     const before = [...transfers];

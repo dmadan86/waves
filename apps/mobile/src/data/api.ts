@@ -35,18 +35,7 @@ import { normaliseContactPhone } from '@/lib/phone';
 import { attachPhoneCode, sendPhoneCode } from '@/lib/phoneAuth';
 import { imageUrl, putImage, removeImage } from '@/lib/storage';
 import { backend } from '@/lib/backend';
-import type {
-  ActivityGroup,
-  ActivityRow,
-  BalanceRow,
-  ExpenseRow,
-  GroupRow,
-  GroupType,
-  DisputeRow,
-  MemberRow,
-  SettlementMethod,
-  SettlementRow,
-} from './types';
+import type { BalanceRow, GroupRow, GroupType, MemberRow, SettlementMethod } from './types';
 
 const GROUP_SELECT = `
   id, name, description, type, country_code, default_currency, simplify_debts, cover_emoji,
@@ -60,16 +49,6 @@ const GROUP_SELECT = `
 const MEMBER_SELECT = `
   id, group_id, profile_id, ghost_name, role, vpa, payment_rail, payment_handle, left_at,
   profile:profiles!profile_id ( id, display_name, avatar_url, default_vpa, payment_rail, payment_handle )
-`;
-
-const EXPENSE_SELECT = `
-  id, group_id, deleted_at, created_at,
-  currentVersion:expense_versions!expenses_current_version_id_fkey (
-    id, version_no, description, category, expense_date, currency, amount,
-    split_type, split_params, author_member_id, notes, payment_method, created_at,
-    payers:expense_payers ( member_id, amount ),
-    shares:expense_shares ( member_id, amount )
-  )
 `;
 
 function unwrap<T>(result: { data: T | null; error: { message: string } | null }): T {
@@ -93,10 +72,6 @@ export async function fetchGroups(): Promise<GroupRow[]> {
   );
 }
 
-export async function fetchGroup(groupId: string): Promise<GroupRow> {
-  return unwrap(await backend.from('groups').select(GROUP_SELECT).eq('id', groupId).single());
-}
-
 export async function fetchMembers(groupId: string): Promise<MemberRow[]> {
   return unwrap(
     await backend
@@ -106,68 +81,6 @@ export async function fetchMembers(groupId: string): Promise<MemberRow[]> {
       .is('left_at', null)
       .order('created_at', { ascending: true }),
   ) as unknown as MemberRow[];
-}
-
-export async function fetchExpenses(
-  groupId: string,
-  options: { includeDeleted?: boolean } = {},
-): Promise<ExpenseRow[]> {
-  let query = backend
-    .from('expenses')
-    .select(EXPENSE_SELECT)
-    .eq('group_id', groupId)
-    .order('created_at', { ascending: false });
-  if (!options.includeDeleted) query = query.is('deleted_at', null);
-  return unwrap(await query) as unknown as ExpenseRow[];
-}
-
-export async function fetchSettlements(groupId: string): Promise<SettlementRow[]> {
-  return unwrap(
-    await backend
-      .from('settlements')
-      .select(
-        `id, group_id, from_member_id, to_member_id, currency, amount, method, status, note,
-         initiated_at, confirmed_at,
-         allocations:settlement_allocations ( expense_id, amount )`,
-      )
-      .eq('group_id', groupId)
-      .order('initiated_at', { ascending: false }),
-  ) as unknown as SettlementRow[];
-}
-
-export async function fetchActivity(groupId: string, limit = 50): Promise<ActivityRow[]> {
-  return unwrap(
-    await backend
-      .from('activity_log')
-      .select(
-        `id, group_id, actor_member_id, verb, object_type, object_id, payload, created_at,
-         actor:group_members!activity_log_actor_member_id_fkey (
-           id, profile_id, ghost_name, profile:profiles!profile_id ( display_name )
-         )`,
-      )
-      .eq('group_id', groupId)
-      .order('created_at', { ascending: false })
-      .limit(limit),
-  ) as unknown as ActivityRow[];
-}
-
-/** Activity across every group the user can see — RLS does the filtering. */
-export async function fetchRecentActivity(
-  limit = 60,
-): Promise<(ActivityRow & { group: ActivityGroup | null })[]> {
-  return unwrap(
-    await backend
-      .from('activity_log')
-      .select(
-        `id, group_id, actor_member_id, verb, object_type, object_id, payload, created_at,
-         group:groups ( id, name, cover_emoji, archived_at ),
-         actor:group_members!activity_log_actor_member_id_fkey (
-           id, profile_id, ghost_name, profile:profiles!profile_id ( display_name )
-         )`,
-      )
-      .order('created_at', { ascending: false })
-      .limit(limit),
-  ) as unknown as (ActivityRow & { group: ActivityGroup | null })[];
 }
 
 /**
@@ -182,28 +95,6 @@ export async function fetchBalances(groupId: string): Promise<BalanceRow[]> {
       .select('group_id, member_id, currency, balance')
       .eq('group_id', groupId),
   );
-}
-
-export async function fetchAllBalances(): Promise<BalanceRow[]> {
-  return unwrap(
-    await backend.from('group_balances').select('group_id, member_id, currency, balance'),
-  );
-}
-
-/** Just my own balance in each group — one query for the home screen. */
-export async function fetchMyBalances(profileId: string): Promise<BalanceRow[]> {
-  const rows = unwrap(
-    await backend
-      .from('group_balances')
-      .select('group_id, member_id, currency, balance, member:group_members!inner ( profile_id )')
-      .eq('member.profile_id', profileId),
-  ) as unknown as (BalanceRow & { member: { profile_id: string } })[];
-  return rows.map(({ member: _member, ...row }) => row);
-}
-
-/** Groups with a settlement still waiting on someone to confirm (ADR-007). */
-export async function fetchPendingSettlements(): Promise<{ group_id: string; id: string }[]> {
-  return unwrap(await backend.from('settlements').select('id, group_id').eq('status', 'initiated'));
 }
 
 /**
@@ -246,31 +137,6 @@ export async function fetchSettledTotals(profileId: string): Promise<Map<Currenc
     totals.set(row.currency, (totals.get(row.currency) ?? 0n) + BigInt(row.amount));
   }
   return totals;
-}
-
-/**
- * Members of every group I am in, one query. Names as well as counts, because
- * a group with no name is labelled by the people in it (`groupLabel`) and the
- * home screen would otherwise have nothing to call it.
- */
-export async function fetchMembersByGroup(): Promise<Map<string, MemberRow[]>> {
-  const rows = unwrap(
-    await backend
-      .from('group_members')
-      .select(
-        'id, group_id, profile_id, ghost_name, role, vpa, payment_rail, payment_handle, left_at, invite_email, invite_phone, profile:profiles!profile_id ( id, display_name, avatar_url, default_vpa, payment_rail, payment_handle )',
-      )
-      .is('left_at', null)
-      .order('created_at', { ascending: true }),
-  ) as unknown as MemberRow[];
-
-  const byGroup = new Map<string, MemberRow[]>();
-  for (const row of rows) {
-    const list = byGroup.get(row.group_id);
-    if (list) list.push(row);
-    else byGroup.set(row.group_id, [row]);
-  }
-  return byGroup;
 }
 
 // ──────────────────────────────────────────────────────────── writes ──
@@ -909,54 +775,6 @@ export async function updateGroup(
   if (error) throw new Error(error.message);
 }
 
-// ─────────────────────────────────────── declining an expense (ADR-004) ──
-// A decline is a claim, not a mutation: it is recorded and everybody sees it,
-// and the numbers move only when somebody edits the expense. Every write goes
-// through an RPC — the table itself is read-only to clients, which is what
-// stops a dispute being filed in somebody else's name.
-
-export async function fetchDisputes(groupId: string): Promise<DisputeRow[]> {
-  return unwrap(
-    await backend
-      .from('expense_disputes')
-      .select(
-        'id, expense_id, member_id, reason, status, resolved_by_member_id, resolution_note, created_at, resolved_at, expense:expenses!inner ( group_id )',
-      )
-      .eq('expense.group_id', groupId)
-      .order('created_at', { ascending: false }),
-  ) as unknown as DisputeRow[];
-}
-
-export async function disputeExpense(input: {
-  expenseId: string;
-  reason?: string | null;
-}): Promise<string> {
-  const { data, error } = await backend.rpc('waves_dispute_expense', {
-    p_expense_id: input.expenseId,
-    p_reason: input.reason?.trim() || null,
-  });
-  if (error) throw new Error(error.message);
-  return String(data);
-}
-
-export async function withdrawDispute(expenseId: string): Promise<void> {
-  const { error } = await backend.rpc('waves_withdraw_dispute', { p_expense_id: expenseId });
-  if (error) throw new Error(error.message);
-}
-
-export async function resolveDispute(input: {
-  disputeId: string;
-  accept: boolean;
-  note?: string | null;
-}): Promise<void> {
-  const { error } = await backend.rpc('waves_resolve_dispute', {
-    p_dispute_id: input.disputeId,
-    p_accept: input.accept,
-    p_note: input.note?.trim() || null,
-  });
-  if (error) throw new Error(error.message);
-}
-
 /** Rename a ghost, or set a per-group VPA override on your own membership. */
 export async function updateMember(
   memberId: string,
@@ -1026,22 +844,6 @@ export async function deleteGroup(groupId: string): Promise<void> {
 // for the site's domain, shared with the QR scanner's host allowlist so the
 // two can never drift apart. See that file for why.
 export { INVITE_BASE, groupJoinLink } from '@/lib/webUrl';
-
-export interface MintedInvite {
-  inviteId: string;
-  token: string;
-  expiresAt: string;
-  maxUses: number;
-  groupName: string;
-}
-
-export async function mintInvite(groupId: string, expiresInDays = 7): Promise<MintedInvite> {
-  const { data, error } = await backend.functions.invoke('invite-mint', {
-    body: { groupId, expiresInDays },
-  });
-  if (error) throw new Error(await readFunctionError(error));
-  return data as MintedInvite;
-}
 
 export interface InvitePreview {
   group: { id: string; name: string; cover_emoji: string | null; default_currency: string } | null;
@@ -1122,41 +924,6 @@ export async function decideMemberClaim(
   return (data ?? { ok: false }) as { ok: boolean; reason?: string; status?: string };
 }
 
-export interface MyClaim {
-  id: string;
-  group_id: string;
-  group_name: string | null;
-  ghost_name: string | null;
-  status: 'pending' | 'approved' | 'declined' | 'withdrawn';
-  created_at: string;
-  decided_at: string | null;
-}
-
-/** Carries the group's name: somebody still waiting cannot read the group. */
-export async function fetchMyClaims(): Promise<MyClaim[]> {
-  const { data, error } = await backend.rpc('waves_my_member_claims');
-  if (error) throw new Error(error.message);
-  return (data ?? []) as MyClaim[];
-}
-
-/** The way out of waiting on an admin who never opens the app. */
-export async function withdrawMemberClaim(claimId: string): Promise<boolean> {
-  const { data, error } = await backend.rpc('waves_withdraw_member_claim', {
-    p_claim_id: claimId,
-  });
-  if (error) throw new Error(error.message);
-  return (data as { ok?: boolean } | null)?.ok === true;
-}
-
-/** Links are revocable at any time (ADR-006). */
-export async function revokeInvite(inviteId: string): Promise<void> {
-  const { error } = await backend
-    .from('invites')
-    .update({ revoked_at: new Date().toISOString() })
-    .eq('id', inviteId);
-  if (error) throw new Error(error.message);
-}
-
 /**
  * The group's durable join link (WhatsApp-style): a stable, re-showable token,
  * made on first use. Any member may fetch it; it is the same token on every call
@@ -1164,15 +931,6 @@ export async function revokeInvite(inviteId: string): Promise<void> {
  */
 export async function ensureGroupJoinToken(groupId: string): Promise<string> {
   const { data, error } = await backend.rpc('waves_ensure_group_join_token', {
-    p_group_id: groupId,
-  });
-  if (error) throw new Error(error.message);
-  return data as string;
-}
-
-/** Rotate the durable link (admin only) — the old QR and every shared copy die. */
-export async function resetGroupJoinToken(groupId: string): Promise<string> {
-  const { data, error } = await backend.rpc('waves_reset_group_join_token', {
     p_group_id: groupId,
   });
   if (error) throw new Error(error.message);
@@ -1476,16 +1234,6 @@ export async function scanReceiptText(input: {
   return data as ScanResult;
 }
 
-export async function fetchScanQuota(): Promise<{
-  used: number;
-  limit: number;
-  remaining: number;
-}> {
-  const { data, error } = await backend.rpc('waves_receipt_scan_quota');
-  if (error) throw new Error(error.message);
-  return data as { used: number; limit: number; remaining: number };
-}
-
 // ───────────────────────────────────────────── exchange rates ──
 
 /**
@@ -1522,19 +1270,6 @@ export interface PersonBalanceRow {
   only_group_id: string | null;
   /** Newest expense/settlement touching this person; null if none is visible. */
   last_activity_at: string | null;
-}
-
-/**
- * Every person you are not square with, across every group.
- *
- * One row per person *per currency* — a single total would need a rate nobody
- * chose (ADR-003) — and ghosts are never merged across groups, because a name
- * is not proof that two records are one human.
- */
-export async function fetchPeopleBalances(): Promise<PersonBalanceRow[]> {
-  const { data, error } = await backend.rpc('waves_people_i_owe');
-  if (error) throw new Error(error.message);
-  return (data ?? []) as PersonBalanceRow[];
 }
 
 /** One group's worth of a single person's balance, for the person-detail screen. */
@@ -1736,19 +1471,6 @@ export async function nudgeToSettle(input: {
  */
 export type { SpendingRow };
 
-/**
- * One group's spending, at the finest grain the charts need (TDR §8).
- *
- * Per member, per category, per month, per currency — deliberately not summed
- * server-side, because the same rows answer both "what did this group spend"
- * and "what did I spend", and the second cannot be recovered from the first.
- */
-export async function fetchGroupSpending(groupId: string): Promise<SpendingRow[]> {
-  const { data, error } = await backend.rpc('waves_group_spending', { p_group_id: groupId });
-  if (error) throw new Error(error.message);
-  return (data ?? []) as SpendingRow[];
-}
-
 // ────────────────────────────────────────── which builds may still run ──
 
 export interface ReleaseRow {
@@ -1824,61 +1546,6 @@ export interface PlanItemRow {
   position: number;
 }
 
-export async function fetchPlanItems(groupId: string): Promise<PlanItemRow[]> {
-  const { data, error } = await backend
-    .from('trip_plan_items')
-    .select(
-      'id, group_id, day, starts_at, title, note, category, planned_minor, currency, done_at, expense_id, position',
-    )
-    .eq('group_id', groupId)
-    // Soft-deleted rows are tombstones for sync (ADR-005); a direct read wants
-    // only what is live. The pull query stays unfiltered so it can propagate them.
-    .is('deleted_at', null)
-    .order('day', { ascending: true })
-    .order('position', { ascending: true });
-  if (error) throw new Error(error.message);
-  return (data ?? []) as PlanItemRow[];
-}
-
-export async function addPlanItem(input: {
-  groupId: string;
-  day: string;
-  title: string;
-  startsAt?: string | null;
-  note?: string | null;
-  plannedMinor?: bigint | null;
-  currency?: string | null;
-  /** Chosen here so a retry after a dropped connection replays (ADR-005). */
-  itemId?: string;
-}): Promise<string> {
-  const { data, error } = await backend.rpc('waves_add_plan_item', {
-    p_group_id: input.groupId,
-    p_day: input.day,
-    p_title: input.title,
-    p_starts_at: input.startsAt ?? null,
-    p_note: input.note ?? null,
-    p_category: null,
-    p_planned_minor: input.plannedMinor?.toString() ?? null,
-    p_currency: input.currency ?? null,
-    p_item_id: input.itemId ?? randomUUID(),
-  });
-  if (error) throw new Error(error.message);
-  return data as string;
-}
-
-export async function setPlanItemDone(itemId: string, done: boolean): Promise<void> {
-  const { error } = await backend.rpc('waves_update_plan_item', {
-    p_item_id: itemId,
-    p_done: done,
-  });
-  if (error) throw new Error(error.message);
-}
-
-export async function removePlanItem(itemId: string): Promise<void> {
-  const { error } = await backend.rpc('waves_remove_plan_item', { p_item_id: itemId });
-  if (error) throw new Error(error.message);
-}
-
 // ─────────────────────────────────────────────────────────── trip budgets ──
 
 /**
@@ -1896,69 +1563,10 @@ export interface MemberBudgetRow {
   visibility: 'private' | 'group';
 }
 
-export async function fetchMemberBudgets(groupId: string): Promise<MemberBudgetRow[]> {
-  const { data, error } = await backend
-    .from('trip_member_budgets')
-    .select('id, group_id, member_id, amount_minor, currency, visibility')
-    .eq('group_id', groupId)
-    // Live budgets only; a cleared one is a soft-delete tombstone (ADR-005).
-    .is('deleted_at', null);
-  if (error) throw new Error(error.message);
-  return (data ?? []) as MemberBudgetRow[];
-}
-
 /** The overall trip budget, read straight off the group. NULL amount is unset. */
 export interface GroupBudget {
   amountMinor: bigint | null;
   currency: string | null;
-}
-
-export async function fetchGroupBudget(groupId: string): Promise<GroupBudget> {
-  const { data, error } = await backend
-    .from('groups')
-    .select('budget_minor, budget_currency')
-    .eq('id', groupId)
-    .single();
-  if (error) throw new Error(error.message);
-  return {
-    amountMinor: data?.budget_minor == null ? null : BigInt(data.budget_minor),
-    currency: data?.budget_currency ?? null,
-  };
-}
-
-/** Set or change the caller's own budget, and whether the group can see it. */
-export async function setMyTripBudget(input: {
-  groupId: string;
-  amountMinor: bigint;
-  currency?: string | null;
-  visibility: 'private' | 'group';
-}): Promise<void> {
-  const { error } = await backend.rpc('waves_set_my_trip_budget', {
-    p_group_id: input.groupId,
-    p_amount_minor: input.amountMinor.toString(),
-    p_currency: input.currency ?? null,
-    p_visibility: input.visibility,
-  });
-  if (error) throw new Error(error.message);
-}
-
-export async function clearMyTripBudget(groupId: string): Promise<void> {
-  const { error } = await backend.rpc('waves_clear_my_trip_budget', { p_group_id: groupId });
-  if (error) throw new Error(error.message);
-}
-
-/** Admin only, enforced in the RPC. NULL amount clears the overall budget. */
-export async function setGroupBudget(input: {
-  groupId: string;
-  amountMinor: bigint | null;
-  currency?: string | null;
-}): Promise<void> {
-  const { error } = await backend.rpc('waves_set_group_budget', {
-    p_group_id: input.groupId,
-    p_amount_minor: input.amountMinor == null ? null : input.amountMinor.toString(),
-    p_currency: input.currency ?? null,
-  });
-  if (error) throw new Error(error.message);
 }
 
 // ──────────────────────────────── splitting one bill from several phones ──

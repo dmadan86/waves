@@ -53,16 +53,32 @@ vi.mock('@/lib/backend', () => ({
  * is reached by a `require` and a `require` cannot be substituted — which is the
  * reason that one line lives in a file of its own.
  */
-vi.mock('@/lib/firebaseModule', () => ({
-  loadFirebaseAuth: () => () => ({
-    signInWithPhoneNumber: async () => ({
-      confirm: async () => ({ user: { getIdToken: async () => 'id-token' } }),
-    }),
-    signOut: async () => undefined,
-  }),
+const firebase = vi.hoisted(() => ({
+  /** False for a build that carries no Firebase at all. */
+  present: true,
+  /** What confirming the code gives back; null is a code Firebase refused. */
+  credential: { user: { getIdToken: async () => 'id-token' } } as unknown,
 }));
 
-const { confirmPhoneCode, phoneSignInAvailable, sendPhoneCode } = await import('@/lib/phoneAuth');
+vi.mock('@/lib/firebaseModule', () => ({
+  loadFirebaseAuth: () =>
+    firebase.present
+      ? () => ({
+          signInWithPhoneNumber: async () => ({
+            confirm: async () => firebase.credential,
+          }),
+          signOut: async () => undefined,
+        })
+      : null,
+}));
+
+const {
+  attachPhoneCode,
+  confirmPhoneCode,
+  forgetPendingPhoneCode,
+  phoneSignInAvailable,
+  sendPhoneCode,
+} = await import('@/lib/phoneAuth');
 
 beforeEach(() => {
   world.user = null;
@@ -70,6 +86,9 @@ beforeEach(() => {
   world.answer = { data: { access_token: 'access', refresh_token: 'refresh' }, error: null };
   world.setSession.mockClear();
   world.refreshSession.mockClear();
+  firebase.present = true;
+  firebase.credential = { user: { getIdToken: async () => 'id-token' } };
+  forgetPendingPhoneCode();
 });
 
 describe('whether this build can do it at all', () => {
@@ -156,6 +175,102 @@ describe('what the person is told when it fails', () => {
     await sendPhoneCode('+919876543210');
     await expect(confirmPhoneCode('+919876543210', '123456')).rejects.toThrow(
       'That number is already on another Waves account',
+    );
+  });
+
+  it('falls back to a plain sentence when the body is not ours to read', async () => {
+    world.user = { id: 'user-1', is_anonymous: false };
+    world.answer = {
+      data: null,
+      error: Object.assign(new Error('non-2xx'), {
+        context: new Response('<html>502</html>', { status: 502 }),
+      }),
+    };
+    await sendPhoneCode('+919876543210');
+    await expect(confirmPhoneCode('+919876543210', '1')).rejects.toThrow(
+      'Could not add that number just now.',
+    );
+
+    world.answer = { data: null, error: new Error('network') };
+    await sendPhoneCode('+919876543210');
+    await expect(attachPhoneCode('+919876543210', '1')).rejects.toThrow(
+      'Could not add that number just now.',
+    );
+  });
+
+  it('refuses an attach the server did not confirm', async () => {
+    world.answer = { data: { attached: false }, error: null };
+    await sendPhoneCode('+919876543210');
+    await expect(attachPhoneCode('+919876543210', '123456')).rejects.toThrow(
+      'Could not add that number just now.',
+    );
+    expect(world.refreshSession).not.toHaveBeenCalled();
+  });
+
+  it('refuses a sign-in that came back without both tokens', async () => {
+    world.answer = { data: { access_token: 'only-one' }, error: null };
+    await sendPhoneCode('+919876543210');
+    await expect(confirmPhoneCode('+919876543210', '1')).rejects.toThrow(
+      'Could not sign you in just now.',
+    );
+
+    world.answer = { data: null, error: new Error('down') };
+    await sendPhoneCode('+919876543210');
+    await expect(confirmPhoneCode('+919876543210', '1')).rejects.toThrow(
+      'Could not sign you in just now.',
+    );
+    expect(world.setSession).not.toHaveBeenCalled();
+  });
+
+  it('surfaces a session the client would not store', async () => {
+    world.setSession.mockResolvedValueOnce({ error: new Error('bad jwt') } as never);
+    await sendPhoneCode('+919876543210');
+    await expect(confirmPhoneCode('+919876543210', '1')).rejects.toThrow('bad jwt');
+  });
+
+  it('says the code did not work when Firebase refused it', async () => {
+    firebase.credential = null;
+    await sendPhoneCode('+919876543210');
+    await expect(confirmPhoneCode('+919876543210', '000000')).rejects.toThrow(
+      'That code did not work.',
+    );
+  });
+});
+
+describe('a code screen that lost its verification', () => {
+  it('asks for a new code when none was sent, or it was sent to another number', async () => {
+    await expect(confirmPhoneCode('+919876543210', '1')).rejects.toThrow('Ask for a new code.');
+
+    await sendPhoneCode('+919876543210');
+    await expect(confirmPhoneCode('+911111111111', '1')).rejects.toThrow('Ask for a new code.');
+  });
+
+  it('forgets a verification when the screen starts over', async () => {
+    await sendPhoneCode('+919876543210');
+    forgetPendingPhoneCode();
+    await expect(attachPhoneCode('+919876543210', '1')).rejects.toThrow('Ask for a new code.');
+  });
+
+  it('spends a verification once', async () => {
+    world.answer = { data: { attached: true }, error: null };
+    await sendPhoneCode('+919876543210');
+    await attachPhoneCode('+919876543210', '1');
+    await expect(attachPhoneCode('+919876543210', '1')).rejects.toThrow('Ask for a new code.');
+  });
+});
+
+describe('a build with no Firebase in it', () => {
+  it('says so, and refuses both halves with a sentence rather than a crash', async () => {
+    vi.resetModules();
+    firebase.present = false;
+    const fresh = await import('@/lib/phoneAuth');
+
+    expect(fresh.phoneSignInAvailable()).toBe(false);
+    await expect(fresh.sendPhoneCode('+919876543210')).rejects.toBeInstanceOf(
+      fresh.PhoneSignInUnavailable,
+    );
+    await expect(fresh.confirmPhoneCode('+919876543210', '1')).rejects.toThrow(
+      'cannot sign in by phone',
     );
   });
 });

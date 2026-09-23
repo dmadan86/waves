@@ -1,11 +1,16 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   createStandDown,
   resetTabBarSuppression,
   suppressTabBar,
   tabBarSuppressedSnapshot,
+  useTabBarSuppressed,
 } from '@/lib/tabBarSuppress';
+
+import { renderHook } from './support/fakeReact';
+
+vi.mock('react', async () => (await import('./support/fakeReact')).reactModule());
 
 /** What the bar asks: "is the screen I am painted over asking me to go?" */
 function suppressedOn(scope: string): boolean {
@@ -175,5 +180,31 @@ describe('one screen standing the bar down', () => {
 
     messages.set(true, false, MESSAGES);
     expect(suppressedOn(MESSAGES)).toBe(false);
+  });
+});
+
+describe('useTabBarSuppressed', () => {
+  afterEach(() => {
+    resetTabBarSuppression();
+  });
+
+  it('re-renders the bar when the route it is painted over claims and releases it', () => {
+    const bar = renderHook(() => useTabBarSuppressed(REVIEW));
+    expect(bar.result.current).toBe(false);
+
+    const release = suppressTabBar(REVIEW);
+    expect(bar.result.current).toBe(true);
+
+    release();
+    release();
+    expect(bar.result.current).toBe(false);
+    bar.unmount();
+  });
+
+  it('ignores a claim from any other route', () => {
+    const bar = renderHook(() => useTabBarSuppressed(HOME));
+    suppressTabBar(REVIEW);
+    expect(bar.result.current).toBe(false);
+    bar.unmount();
   });
 });

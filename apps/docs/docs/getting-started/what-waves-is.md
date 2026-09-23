@@ -31,7 +31,7 @@ Along the bottom of the app there are four destinations and a mic.
 
 | Tab          | What lives there                                                                         |
 | ------------ | ---------------------------------------------------------------------------------------- |
-| **Home**     | Your groups, your overall balance, and the **+** that starts a new expense.              |
+| **Home**     | Your groups, your overall balance, and **+ Expense**, which starts a new one.            |
 | **Friends**  | People rather than groups: who owes you, who you owe, across everything.                 |
 | **Activity** | Every expense, edit, deletion and settlement, for everyone in your groups.               |
 | **Personal** | Your own money — solo spending, income, recurring bills, loans, budgets. Private to you. |
@@ -42,8 +42,12 @@ you to check. It listens on the device.
 
 There is no Settings tab. Settings live behind your photo in the Home header,
 and behind the **•••** menu on Home, which holds **Your account**,
-**Notifications**, **Archived groups**, **Language**, **Appearance**,
-**Settings** and **Take the tour again**.
+**Notifications**, **Archived groups**, **Backup**, **Language**, **Settings**
+and **Take the tour again**.
+
+The menu is settings and places only. Scanning a group's invite QR is under
+**+ Friend** on Friends, scanning a bill is behind a long press on
+**+ Expense**, and settling up happens inside the group you are settling.
 
 ## What it does without a signal
 

@@ -3,7 +3,16 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DEFAULT_RECENT_COUNT } from '@waves/core';
 
-import { loadStoredRecentCount, saveStoredRecentCount } from '../src/lib/recentCount';
+import {
+  loadStoredRecentCount,
+  RecentCountProvider,
+  saveStoredRecentCount,
+  useRecentCount,
+} from '../src/lib/recentCount';
+import { firstProvider, flush, renderHook } from './support/fakeReact';
+
+vi.mock('react', async () => (await import('./support/fakeReact')).reactModule());
+vi.mock('react/jsx-runtime', async () => (await import('./support/fakeReact')).jsxModule());
 
 const KEY = 'recent.count';
 
@@ -43,5 +52,60 @@ describe('recent count storage', () => {
     const values = await Promise.all(Array.from({ length: 200 }, () => loadStoredRecentCount()));
 
     expect(new Set(values)).toEqual(new Set([10]));
+  });
+});
+
+type Provided = { count: number; loading: boolean; setCount: (n: 3 | 5 | 10) => Promise<void> };
+
+describe('the recent-count provider', () => {
+  beforeEach(async () => {
+    vi.restoreAllMocks();
+    await AsyncStorage.clear();
+  });
+
+  const provided = (tree: unknown) => firstProvider(tree)!.value as Provided;
+
+  it('starts at the default while loading, then shows the stored size', async () => {
+    await AsyncStorage.setItem(KEY, '10');
+    const view = renderHook(() => RecentCountProvider({ children: null }));
+    expect(provided(view.result.current)).toMatchObject({
+      count: DEFAULT_RECENT_COUNT,
+      loading: true,
+    });
+
+    await flush();
+
+    expect(provided(view.result.current)).toMatchObject({ count: 10, loading: false });
+  });
+
+  it('keeps a choice made during the load instead of the stored value landing on it', async () => {
+    await AsyncStorage.setItem(KEY, '10');
+    const view = renderHook(() => RecentCountProvider({ children: null }));
+
+    await provided(view.result.current).setCount(3);
+    await flush();
+
+    expect(provided(view.result.current)).toMatchObject({ count: 3, loading: false });
+    await expect(AsyncStorage.getItem(KEY)).resolves.toBe('3');
+  });
+
+  it('drops the late load after unmount', async () => {
+    await AsyncStorage.setItem(KEY, '10');
+    const view = renderHook(() => RecentCountProvider({ children: null }));
+    view.unmount();
+    await flush();
+    expect(provided(view.result.current)).toMatchObject({
+      count: DEFAULT_RECENT_COUNT,
+      loading: true,
+    });
+  });
+
+  it('hands consumers the provided value, and refuses to run outside a provider', () => {
+    const tree = renderHook(() => RecentCountProvider({ children: null })).result.current;
+    const { ctx, value } = firstProvider(tree)!;
+    expect(renderHook(() => useRecentCount(), { contexts: [[ctx, value]] }).result.current).toBe(
+      value,
+    );
+    expect(() => renderHook(() => useRecentCount())).toThrow(/inside RecentCountProvider/);
   });
 });
