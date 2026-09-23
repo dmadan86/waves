@@ -44,7 +44,11 @@ export interface ParsedReceipt {
   readonly grandTotal: number;
 }
 
-/** A line the model was unsure about, or one the arithmetic disagrees with. */
+/**
+ * A line the model was unsure about, or one the arithmetic disagrees with.
+ * Screens translate `kind` (with `itemIndex` naming the line); `message` is the
+ * English sentence for logs, never shown as-is.
+ */
 export interface ReceiptProblem {
   readonly kind: 'low_confidence' | 'does_not_reconcile' | 'no_items' | 'negative_line';
   readonly itemIndex?: number;

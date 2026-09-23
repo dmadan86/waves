@@ -346,12 +346,13 @@ describe('a Waves export, read back', () => {
     );
     expect(parsed.groups).toEqual([]);
     expect(parsed.problems[0]!.message).toContain('newer version');
+    expect(parsed.problems[0]!.kind).toBe('newer_format');
   });
 
   it('says what a file is not', () => {
     expect(isWavesExport('date,description,cost\n2026-01-01,Dinner,300')).toBe(false);
     expect(isWavesExport('{')).toBe(false);
-    expect(parseWavesExport('not json at all').problems[0]!.kind).toBe('unparseable_row');
+    expect(parseWavesExport('not json at all').problems[0]!.kind).toBe('not_an_export');
     expect(isWavesExport(exportFile({ members: [asha], expenses: [] }))).toBe(true);
   });
 

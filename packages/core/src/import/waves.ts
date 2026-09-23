@@ -139,7 +139,7 @@ export function parseWavesExport(text: string): WavesImport {
       groups: [],
       problems: [
         {
-          kind: ImportProblemKind.UnparseableRow,
+          kind: ImportProblemKind.NotAnExport,
           row: null,
           message: 'That file is not a Waves export.',
         },
@@ -162,7 +162,7 @@ export function parseWavesExport(text: string): WavesImport {
     // silently drop, and dropping half of somebody's ledger without saying so
     // is exactly what this whole module exists to avoid.
     problems.push({
-      kind: ImportProblemKind.UnparseableRow,
+      kind: ImportProblemKind.NewerFormat,
       row: null,
       message: `That file was written by a newer version of Waves (format ${schemaVersion}). Update the app and try again.`,
     });

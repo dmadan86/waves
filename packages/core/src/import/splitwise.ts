@@ -34,8 +34,16 @@ export enum ImportProblemKind {
   NonPositiveCost = 'non_positive_cost',
   NoPeople = 'no_people',
   NoRows = 'no_rows',
+  /** The file is not a Waves export at all (it did not parse as one). */
+  NotAnExport = 'not_an_export',
+  /** A Waves export written by a newer app than this one; update to read it. */
+  NewerFormat = 'newer_format',
 }
 
+/**
+ * `kind` is what a screen should branch on and translate; `message` is the
+ * English sentence for logs and the server-side import report, never for UI.
+ */
 export interface ImportProblem {
   readonly kind: ImportProblemKind;
   /** 1-based row in the file, as a spreadsheet would number it. Null for file-level problems. */

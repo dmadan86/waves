@@ -33,6 +33,7 @@ import {
 
 import { captureReceipt } from '@/lib/image';
 import { friendlyError } from '@/lib/errors';
+import { receiptProblemText } from '@/lib/problemText';
 import {
   canAddReceipt,
   publishReceiptItems,
@@ -257,7 +258,13 @@ export default function ItemizeScreen() {
       setScanNote(
         result.check.reconciles && result.check.problems.length === 0
           ? plural(locale, result.parsed.items.length, t.itemize.scanReadItems)
-          : (result.check.problems[0]?.message ?? t.itemize.scanCheckLines),
+          : result.check.problems[0]
+            ? receiptProblemText(
+                result.check.problems[0],
+                t.itemize,
+                result.parsed.items.map((item) => item.label),
+              )
+            : t.itemize.scanCheckLines,
       );
     } catch (caught) {
       setError(friendlyError(caught, t.couldNotScan, 'itemize.scan'));
