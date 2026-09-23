@@ -18,8 +18,21 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { QueuedMutation } from '@waves/core';
 
-/** A pause long enough for another caller to interleave, if it can. */
-const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
+/**
+ * A pause long enough for another caller to interleave, if it can.
+ *
+ * `setTimeout(0)` by default, because the concurrency cases below want a real
+ * timer turn. The two bulk cases (a thousand statements each) switch to
+ * `setImmediate`: still a macrotask, so callers can still interleave, but free
+ * of the timer clamp — on a loaded Windows machine that clamp is ~15ms, and a
+ * thousand of them under `--coverage` ran those tests into their timeout.
+ */
+const ticks = { immediate: false };
+const tick = () =>
+  new Promise((resolve) => {
+    if (ticks.immediate) setImmediate(resolve);
+    else setTimeout(resolve, 0);
+  });
 
 class FakeDatabase {
   inTransaction = false;
@@ -314,6 +327,7 @@ const mutation = (id: string): QueuedMutation =>
   }) as unknown as QueuedMutation;
 
 beforeEach(() => {
+  ticks.immediate = false;
   database = new FakeDatabase();
   openCalls = 0;
   failNextOpen = false;
@@ -532,6 +546,11 @@ describe('native local store lifecycle', () => {
   });
 
   it('hydrates a large mirror without dropping rows on the chunked parse path', async () => {
+    // 1,025 rows is three HYDRATE_CHUNKs (512) with a remainder of one, so the
+    // parse yields twice and the last chunk is a single row. What is under
+    // test is the chunked read, not the timer, so each fake statement yields
+    // with setImmediate rather than a clamped setTimeout (see `tick`).
+    ticks.immediate = true;
     const store = createLocalStore();
     const rows = Array.from({ length: 1_025 }, (_, index) => ({
       table: 'expenses',
@@ -550,11 +569,10 @@ describe('native local store lifecycle', () => {
     expect(hydrated[1024]).toEqual(rows[1024]);
     expect(openCalls).toBe(1);
     expect(secure.gets).toBeLessThanOrEqual(2);
-    // Generous timeout: 1k fake statements each yield a macrotask, plus a real
-    // encrypt/decrypt per row — slow on a loaded Windows timer, not a defect.
-  }, 20000);
+  });
 
   it('round-trips a large encrypted offline queue with one keystore load', async () => {
+    ticks.immediate = true;
     const store = createLocalStore();
     const queue = Array.from({ length: 1_000 }, (_, index) => mutation(`m${index}`));
 
@@ -565,7 +583,7 @@ describe('native local store lifecycle', () => {
     expect(read[0]?.clientMutationId).toBe('m0');
     expect(read[999]?.clientMutationId).toBe('m999');
     expect(secure.gets).toBeLessThanOrEqual(2);
-  }, 20000);
+  });
 
   it('does not open SQLite when asked to persist no rows', async () => {
     const store = createLocalStore();

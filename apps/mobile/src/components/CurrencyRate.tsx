@@ -405,8 +405,11 @@ export function CurrencyRate({
   );
 }
 
-/** "4562.50" → 456250 minor units. Parsed as digits, never as a float. */
-function parseMinor(text: string, currency: string): bigint {
+/**
+ * "4562.50" → 456250 minor units. Parsed as digits, never as a float.
+ * Exported only so `test/currencyRate.test.ts` can reach it.
+ */
+export function parseMinor(text: string, currency: string): bigint {
   const trimmed = text.trim().replace(/,/g, '');
   if (!/^\d+(\.\d+)?$/.test(trimmed)) throw new Error('not an amount');
   const exponent = minorUnitExponent(currency);

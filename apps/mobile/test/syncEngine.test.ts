@@ -29,6 +29,9 @@ const h = vi.hoisted(() => ({
   net: vi.fn(),
   syncPreference: vi.fn(),
   invoke: vi.fn(),
+  report: vi.fn(),
+  /** Make the next disk writes/reads fail, to reach the engine's error paths. */
+  faults: { writeQueue: null as Error | null, readRows: null as Error | null },
   disk: {
     rows: new Map<
       string,
@@ -61,7 +64,9 @@ vi.mock('@/lib/syncNetwork', () => ({
 }));
 
 // Keep Sentry out of a unit test; the engine only ever calls `reportHandled`.
-vi.mock('@/lib/observability', () => ({ reportHandled: () => {} }));
+vi.mock('@/lib/observability', () => ({
+  reportHandled: (error: unknown, where: string) => h.report(error, where),
+}));
 
 // A faithful-enough LocalStore: durable across instances (shared `h.disk`),
 // honest about nothing else. Two `new SyncEngine()`s reading it is two launches
@@ -72,13 +77,17 @@ vi.mock('../src/sync/store', () => ({
     putRows: async (rows: { table: string; id: string }[]) => {
       for (const row of rows) h.disk.rows.set(`${row.table}:${row.id}`, row as never);
     },
-    readRows: async () => [...h.disk.rows.values()],
+    readRows: async () => {
+      if (h.faults.readRows) throw h.faults.readRows;
+      return [...h.disk.rows.values()];
+    },
     readCursors: async () => ({ ...h.disk.cursors }),
     writeCursors: async (cursors: Record<string, number>) => {
       h.disk.cursors = { ...cursors };
     },
     readQueue: async () => [...h.disk.queue],
     writeQueue: async (queue: QueuedMutation[]) => {
+      if (h.faults.writeQueue) throw h.faults.writeQueue;
       h.disk.queue = [...queue];
     },
     readDraft: async () => null,
@@ -157,6 +166,8 @@ beforeEach(() => {
   h.disk.cursors = {};
   h.disk.queue = [];
   h.disk.retained = null;
+  h.faults.writeQueue = null;
+  h.faults.readRows = null;
 });
 
 describe('runFlush on a fresh install', () => {
@@ -899,5 +910,194 @@ describe('a session that ended without anybody asking', () => {
           []) as { clientMutationId: string }[],
     );
     expect(sent).toEqual([]);
+  });
+});
+
+// ─────────────────────────────────────────── bare-phone auto-heal ──
+// A member added with a local number ("9535621101") and no country code is
+// refused by the server on purpose. The engine reads that number in the group's
+// own region and re-queues the add once, under a derived `:healed` id — and
+// must never keep re-healing a number that is still refused.
+
+describe('healing a refused add-member with a bare local phone', () => {
+  const GHOST = 'add-ravi';
+
+  /** The group as the mirror holds it, carrying the region to read numbers in. */
+  function seedGroup(countryCode: string | null) {
+    h.disk.rows.set('groups:g-goa', {
+      table: 'groups',
+      id: 'g-goa',
+      groupId: 'g-goa',
+      seq: 1,
+      row: { id: 'g-goa', name: 'Goa Trip', default_currency: 'INR', country_code: countryCode },
+    });
+  }
+
+  function rejected(clientMutationId: string, code: string) {
+    return {
+      data: {
+        outcomes: [{ clientMutationId, status: 'rejected', code, message: 'Add a country code' }],
+        changes: [],
+        cursors: {},
+        serverTime: 'reject',
+      },
+      error: null,
+    };
+  }
+
+  type SentMutation = { clientMutationId: string; payload: { phone?: string } };
+  const sent = (): SentMutation[] =>
+    h.invoke.mock.calls.flatMap(
+      ([, options]) => (options as { body: { mutations: SentMutation[] } }).body.mutations,
+    );
+
+  /** Let the follow-up flush the heal schedules on a 0ms timer run, then settle it. */
+  const settle = async (engine: InstanceType<typeof SyncEngine>) => {
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    await engine.flush();
+  };
+
+  const addGhost = (engine: InstanceType<typeof SyncEngine>) =>
+    engine.enqueue({
+      clientMutationId: GHOST,
+      kind: 'member.add_ghost' as never,
+      groupId: 'g-goa',
+      clientCreatedAt: '2026-09-01T00:00:00.000Z',
+      payload: { memberId: 'm-ravi', name: 'Ravi', phone: '9535621101' },
+    });
+
+  it('re-queues exactly one :healed add with an E.164 phone, and drops the original', async () => {
+    online();
+    seedGroup('IN');
+    // Given the server refuses the bare number once…
+    h.invoke.mockResolvedValueOnce(rejected(GHOST, 'PHONE_NEEDS_COUNTRY_CODE'));
+    // …and any later round is a quiet pull.
+    h.invoke.mockResolvedValue({
+      data: { outcomes: [], changes: [], cursors: {}, serverTime: 'later' },
+      error: null,
+    });
+    const engine = new SyncEngine();
+    await engine.hydrate();
+
+    // When flush runs.
+    await addGhost(engine);
+    await engine.flush();
+
+    // Then the queue holds the healed copy only — never the marked original,
+    // which would block the group forever from in front of it.
+    const queue = engine.getState().queue;
+    expect(queue.map((item) => item.clientMutationId)).toEqual([`${GHOST}:healed`]);
+    expect((queue[0]?.payload as { phone: string }).phone).toBe('+919535621101');
+    expect((queue[0]?.payload as { memberId: string }).memberId).toBe('m-ravi');
+    expect(queue[0]?.rejection ?? null).toBeNull();
+    expect(engine.getState().rejected).toEqual([]);
+    // And it is on disk, so a force-kill keeps the correction.
+    expect(h.disk.queue.map((item) => item.clientMutationId)).toEqual([`${GHOST}:healed`]);
+
+    // The outbound copy of the bare number was already read in the group's
+    // region (healGhostPhonePayload) — the stored original was not rewritten.
+    expect(sent()[0]).toMatchObject({
+      clientMutationId: GHOST,
+      payload: { phone: '+919535621101' },
+    });
+
+    // Drain the follow-up send the heal scheduled, so its timer cannot fire
+    // into the next test's mocks.
+    await settle(engine);
+  });
+
+  it('does not heal a second time when the healed add is refused too', async () => {
+    online();
+    seedGroup('IN');
+    h.invoke.mockResolvedValueOnce(rejected(GHOST, 'PHONE_NEEDS_COUNTRY_CODE'));
+    // The healed copy is refused as well — a number that is simply not valid.
+    h.invoke.mockResolvedValue(rejected(`${GHOST}:healed`, 'PHONE_NOT_VALID'));
+    const engine = new SyncEngine();
+    await engine.hydrate();
+
+    await addGhost(engine);
+    await engine.flush();
+    await settle(engine);
+
+    // No `:healed:healed`, no loop: the refusal stays put and is shown instead.
+    const ids = engine.getState().queue.map((item) => item.clientMutationId);
+    expect(ids).toEqual([`${GHOST}:healed`]);
+    expect(engine.getState().queue[0]?.rejection?.code).toBe('PHONE_NOT_VALID');
+    expect(engine.getState().rejected.map((item) => item.clientMutationId)).toEqual([
+      `${GHOST}:healed`,
+    ]);
+    expect(sent().some((m) => m.clientMutationId.endsWith(':healed:healed'))).toBe(false);
+    // One send of the original, one of the healed copy — and nothing after.
+    expect(sent().filter((m) => m.clientMutationId === `${GHOST}:healed`)).toHaveLength(1);
+  });
+
+  it('leaves the refusal for a person when the group has no region to read it in', async () => {
+    online();
+    seedGroup(null);
+    h.invoke.mockResolvedValue(rejected(GHOST, 'PHONE_NEEDS_COUNTRY_CODE'));
+    const engine = new SyncEngine();
+    await engine.hydrate();
+
+    await addGhost(engine);
+    await engine.flush();
+
+    // No blind +91: the bare number went out as typed and comes back refused.
+    expect(sent()[0]?.payload.phone).toBe('9535621101');
+    const queue = engine.getState().queue;
+    expect(queue.map((item) => item.clientMutationId)).toEqual([GHOST]);
+    expect(queue[0]?.rejection?.code).toBe('PHONE_NEEDS_COUNTRY_CODE');
+  });
+});
+
+// ────────────────────────────────────────────── flush error paths ──
+
+describe('a flush that fails twice over', () => {
+  const edit = {
+    clientMutationId: 'edit-1',
+    kind: 'group.update' as never,
+    groupId: 'g-goa',
+    clientCreatedAt: '2026-09-01T00:00:00.000Z',
+    payload: { name: 'Goa' },
+  };
+
+  it('keeps the transport error, not the disk error, when recording the failure also fails', async () => {
+    // Queue it while offline, so nothing is sent yet.
+    offline();
+    const engine = new SyncEngine();
+    await engine.enqueue(edit);
+    await engine.flush();
+    expect(h.disk.queue[0]?.attempts).toBe(0);
+
+    // Given the transport throws and writing the queue back rejects too.
+    online();
+    h.invoke.mockRejectedValue(new Error('socket hang up'));
+    h.faults.writeQueue = new Error('disk full');
+
+    // When flush runs, it still resolves — nobody awaits a background flush.
+    await expect(engine.flush()).resolves.toBeUndefined();
+
+    // Then the banner carries the reason the sync failed…
+    const state = engine.getState();
+    expect(state.status).toBe('error');
+    expect(state.lastError).toBe('socket hang up');
+    // …the attempt is counted in memory (the next flush writes it down)…
+    expect(state.queue[0]?.attempts).toBe(1);
+    expect(state.queue[0]?.lastError).toBe('socket hang up');
+    // …the disk still has the old copy, and the write failure was reported.
+    expect(h.disk.queue[0]?.attempts).toBe(0);
+    expect(h.report).toHaveBeenCalledWith(h.faults.writeQueue, 'sync.markFailed');
+  });
+
+  it('turns a hydration failure into an error status instead of an unhandled rejection', async () => {
+    online();
+    h.faults.readRows = new Error('database is locked');
+    const engine = new SyncEngine();
+
+    await expect(engine.flush()).resolves.toBeUndefined();
+
+    expect(engine.getState().status).toBe('error');
+    expect(engine.getState().lastError).toBe('database is locked');
+    expect(h.invoke).not.toHaveBeenCalled();
+    expect(h.report).toHaveBeenCalledWith(h.faults.readRows, 'sync.flush');
   });
 });
