@@ -314,6 +314,12 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   // moved on without us.
   useEffect(() => {
     if (!signedIn) return;
+    // Start from where the app is now, not from the last event this listener
+    // saw: a session that ended while backgrounded took its listener with it,
+    // so the 'active' that would have resumed the poll was never heard, and a
+    // fresh sign-in would otherwise inherit the pause for the whole session.
+    if (AppState.currentState === 'background') syncEngine.pause();
+    else syncEngine.resume();
     const subscription = AppState.addEventListener('change', (next) => {
       if (next === 'active') {
         syncEngine.resume();
