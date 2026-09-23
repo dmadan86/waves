@@ -348,6 +348,50 @@ describe('a replacement records the truth rather than orphaning uncounted bytes'
   });
 });
 
+describe('a replacement keeps the image’s owner', () => {
+  const owner = async (path: string) =>
+    (
+      await client.query(
+        `SELECT owner_profile_id, bytes, pending FROM storage_objects WHERE path = $1`,
+        [path],
+      )
+    ).rows[0];
+
+  it('an admin replacing a member’s committed bill leaves the member as its uploader', async () => {
+    const admin = await makeProfile();
+    const member = await makeProfile();
+    const g = await makeGroup(admin);
+    const path = `${g}/bill.jpg`;
+
+    await reserve(member, g, 'receipts', path, 1 * MB);
+    await record(member, g, 'receipts', path, 1 * MB);
+    // The admin replaces it: r2-sign lets an admin do this, but it must not
+    // make the admin the uploader — the member would lose the right to change
+    // their own bill, and the admin would be charged for it.
+    await reserve(admin, g, 'receipts', path, 2 * MB);
+    await record(admin, g, 'receipts', path, 2 * MB);
+
+    const row = await owner(path);
+    expect(row.owner_profile_id).toBe(member);
+    expect(big(row.bytes)).toBe(BigInt(2 * MB));
+    expect(row.pending).toBe(false);
+    expect(await countedSum(member)).toBe(BigInt(2 * MB));
+    expect(await countedSum(admin)).toBe(0n);
+  });
+
+  it('a first commit still records whoever uploaded it', async () => {
+    const admin = await makeProfile();
+    const member = await makeProfile();
+    const g = await makeGroup(admin);
+    const path = `${g}/scan.webp`;
+
+    await reserve(member, g, 'receipts', path, 1 * MB); // pending, not yet committed
+    await record(member, g, 'receipts', path, 1 * MB);
+
+    expect((await owner(path)).owner_profile_id).toBe(member);
+  });
+});
+
 describe('recount reconciles a size changed out of band', () => {
   it('rewrites a committed object’s size and recomputes counted', async () => {
     const p = await makeProfile();

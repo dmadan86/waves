@@ -18,7 +18,8 @@ vi.mock('@/lib/backend', () => ({
   backendConfigured: true,
 }));
 
-const { removeRestrictedImage } = await import('../src/lib/storage');
+const { NotUploaderError, putImage, removeImage, removeRestrictedImage } =
+  await import('../src/lib/storage');
 
 const ORIGINAL_R2_ENABLED = process.env.EXPO_PUBLIC_R2_ENABLED;
 
@@ -78,5 +79,40 @@ describe('removeRestrictedImage — best-effort delete', () => {
       removeRestrictedImage('expense-attachments', 'expense-3', 'expense-3/photo.webp'),
     ).resolves.toBeUndefined();
     expect(h.invoke).not.toHaveBeenCalled();
+  });
+});
+
+describe('a receipt somebody else kept', () => {
+  /** How supabase-js reports a non-2xx edge response: the raw Response rides on `context`. */
+  const refused = (code: string) => ({
+    data: null,
+    error: {
+      message: 'Edge Function returned a non-2xx status code',
+      context: new Response(JSON.stringify({ code, message: 'refused' }), { status: 403 }),
+    },
+  });
+
+  it('surfaces NOT_UPLOADER as a NotUploaderError, so the screen can stop retrying', async () => {
+    h.invoke.mockResolvedValue(refused('NOT_UPLOADER'));
+
+    await expect(
+      putImage({
+        bucket: 'receipts',
+        path: 'group-1/expense-1.jpg',
+        base64: 'aGk=',
+        contentType: 'image/jpeg',
+        groupId: 'group-1',
+      }),
+    ).rejects.toBeInstanceOf(NotUploaderError);
+    // Refused at `put`: nothing was reserved, so nothing to release or commit.
+    expect(h.invoke).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps any other refusal a plain error', async () => {
+    h.invoke.mockResolvedValue(refused('NOT_A_MEMBER'));
+
+    const failure = removeImage('receipts', 'group-1/expense-1.jpg');
+    await expect(failure).rejects.toThrow('refused');
+    await expect(failure).rejects.not.toBeInstanceOf(NotUploaderError);
   });
 });

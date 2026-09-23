@@ -234,11 +234,53 @@ async function sharesGroup(service: SupabaseClient, a: string, b: string): Promi
   return data === true;
 }
 
+/** The mutating actions `authorizeWrite` guards. */
+type WriteAction = 'put' | 'commit' | 'release' | 'delete';
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /**
- * An existing group object may only be overwritten, deleted or released by the
- * person who uploaded it (the `owner_profile_id` the storage ledger recorded at
- * reserve/commit) or by an admin of its group. A path the ledger has no row for
- * has no owner to protect — a fresh upload — so any member may write it.
+ * The expense a group receipt path names, if it names one. A kept bill lives at
+ * `<groupId>/<expenseId>.jpg` (`expenseReceiptPath` in the app); a scan uses a
+ * fresh random id instead, which no expense carries. Only a UUID is returned,
+ * so a malformed name never reaches a uuid column as a query error.
+ */
+export function receiptExpenseId(path: string): string | null {
+  const segments = path.split('/');
+  if (segments.length !== 2) return null;
+  const id = (segments[1] as string).replace(/\.[^.]+$/, '');
+  return UUID.test(id) ? id : null;
+}
+
+async function isGroupAdmin(caller: SupabaseClient, groupId: string): Promise<boolean> {
+  // Asked as the caller: `is_group_admin` keys off the session's own profile.
+  const { data, error } = await caller.rpc('is_group_admin', { p_group_id: groupId });
+  if (error) throw new HttpError(500, 'INTERNAL', error.message);
+  return data === true;
+}
+
+function notUploader(): HttpError {
+  return new HttpError(
+    403,
+    'NOT_UPLOADER',
+    'Only the person who added this image, or a group admin, can change it',
+  );
+}
+
+/**
+ * Who may write, replace or remove a group receipt / album photo, beyond plain
+ * membership. A group admin always may. Otherwise:
+ *
+ *   1. The storage ledger recorded an owner (`owner_profile_id`, stamped at
+ *      reserve/commit): only that uploader.
+ *   2. No ledger row, but the path is an expense's kept bill
+ *      (`<groupId>/<expenseId>.jpg`): only the member who created the expense.
+ *      Expense ids are visible to the whole group, so without this anybody
+ *      could plant the first "bill" on somebody else's expense and own it.
+ *   3. No ledger row and no expense (a scan's or album photo's fresh random
+ *      id): any member may upload; `delete` / `release` take an admin. Nothing
+ *      recorded means nobody to vouch for the caller, and a delete here would
+ *      still reach a legacy Supabase-Storage object from before R2.
  *
  * Group photos (the cover) are deliberately not routed here: the cover is a
  * shared group setting any member may change (`groups_update` is member-wide),
@@ -248,9 +290,11 @@ async function requireUploaderOrAdmin(
   caller: SupabaseClient,
   service: SupabaseClient,
   uid: string,
+  memberId: string,
   bucket: LogicalBucket,
   path: string,
   groupId: string,
+  action: WriteAction,
 ): Promise<void> {
   const { data, error } = await service
     .from('storage_objects')
@@ -259,20 +303,31 @@ async function requireUploaderOrAdmin(
     .eq('path', path)
     .maybeSingle();
   if (error) throw new HttpError(500, 'INTERNAL', error.message);
-  if (!data) return;
-  if ((data as { owner_profile_id: string | null }).owner_profile_id === uid) return;
+  if (data) {
+    if ((data as { owner_profile_id: string | null }).owner_profile_id === uid) return;
+    if (await isGroupAdmin(caller, groupId)) return;
+    throw notUploader();
+  }
 
-  // Asked as the caller: `is_group_admin` keys off the session's own profile.
-  const { data: isAdmin, error: adminError } = await caller.rpc('is_group_admin', {
-    p_group_id: groupId,
-  });
-  if (adminError) throw new HttpError(500, 'INTERNAL', adminError.message);
-  if (isAdmin === true) return;
-  throw new HttpError(
-    403,
-    'NOT_UPLOADER',
-    'Only the person who added this image, or a group admin, can change it',
-  );
+  const expenseId = bucket === 'receipts' ? receiptExpenseId(path) : null;
+  if (expenseId) {
+    const { data: expense, error: expenseError } = await service
+      .from('expenses')
+      .select('created_by')
+      .eq('id', expenseId)
+      .eq('group_id', groupId)
+      .maybeSingle();
+    if (expenseError) throw new HttpError(500, 'INTERNAL', expenseError.message);
+    if (expense) {
+      if ((expense as { created_by: string | null }).created_by === memberId) return;
+      if (await isGroupAdmin(caller, groupId)) return;
+      throw notUploader();
+    }
+  }
+
+  if (action === 'put' || action === 'commit') return;
+  if (await isGroupAdmin(caller, groupId)) return;
+  throw notUploader();
 }
 
 /**
@@ -287,6 +342,7 @@ async function authorizeWrite(
   bucket: LogicalBucket,
   path: string,
   subjectId: string | null,
+  action: WriteAction,
 ): Promise<{ groupId: string | null }> {
   // A restricted object is authorised by its subject, not its path: the caller
   // must be a live member of the subject's group AND a party to it. Membership
@@ -328,8 +384,8 @@ async function authorizeWrite(
     // recorded owner takes that uploader or a group admin. Without this, anyone
     // who joined through the reusable group link could swap or erase the bill
     // behind somebody else's (possibly disputed) expense.
-    await requireMembership(caller, groupId);
-    await requireUploaderOrAdmin(caller, service, uid, bucket, path, groupId);
+    const { memberId } = await requireMembership(caller, groupId);
+    await requireUploaderOrAdmin(caller, service, uid, memberId, bucket, path, groupId, action);
     return { groupId };
   }
 
@@ -423,7 +479,15 @@ export async function handleR2Sign(request: Request, deps: R2SignDeps): Promise<
 
     // ── mint a presigned PUT ──────────────────────────────────────────────
     if (action === 'put') {
-      const { groupId } = await authorizeWrite(caller, service, uid, bucket, path, subjectId);
+      const { groupId } = await authorizeWrite(
+        caller,
+        service,
+        uid,
+        bucket,
+        path,
+        subjectId,
+        'put',
+      );
 
       const declared = Number(body.contentLength);
       if (!Number.isFinite(declared) || declared <= 0) {
@@ -480,7 +544,15 @@ export async function handleR2Sign(request: Request, deps: R2SignDeps): Promise<
 
     // ── record the object once the PUT has landed ─────────────────────────
     if (action === 'commit') {
-      const { groupId } = await authorizeWrite(caller, service, uid, bucket, path, subjectId);
+      const { groupId } = await authorizeWrite(
+        caller,
+        service,
+        uid,
+        bucket,
+        path,
+        subjectId,
+        'commit',
+      );
       const contentType = typeof body.contentType === 'string' ? body.contentType : 'image/webp';
       if (!ALLOWED_CONTENT_TYPES.has(contentType)) {
         throw new HttpError(415, 'BAD_CONTENT_TYPE', 'Only image uploads are allowed');
@@ -571,7 +643,7 @@ export async function handleR2Sign(request: Request, deps: R2SignDeps): Promise<
     // was actually removed — so a failed *replacement*, which never held a
     // pending row, cannot take the committed image down with it.
     if (action === 'release') {
-      await authorizeWrite(caller, service, uid, bucket, path, subjectId);
+      await authorizeWrite(caller, service, uid, bucket, path, subjectId, 'release');
       const { data: removed, error } = await service.rpc('waves_storage_release_reservation', {
         p_logical_bucket: bucket,
         p_path: path,
@@ -585,7 +657,7 @@ export async function handleR2Sign(request: Request, deps: R2SignDeps): Promise<
 
     // ── delete an object and forget it ────────────────────────────────────
     if (action === 'delete') {
-      await authorizeWrite(caller, service, uid, bucket, path, subjectId);
+      await authorizeWrite(caller, service, uid, bucket, path, subjectId, 'delete');
       // authorizeWrite proves party + subject-scoped path, but not that this
       // exact object is a live attachment/proof the caller may take down. For a
       // restricted bucket, require a live row that references this path (the same
