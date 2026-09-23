@@ -115,7 +115,7 @@ In CI this loop lives in `e2e/run-maestro.sh`.
 | ----------------------------- | ------------------------------------------------------------------------------------ |
 | `home-to-add-expense.yaml`    | launch → balance → open group → see expense + ghost → add-expense calculator         |
 | `edit-expense.yaml`           | edit the seeded expense → the ledger reflects the new value                          |
-| `delete-restore-expense.yaml` | delete → gone from the default view → Show deleted → Restore → back                  |
+| `delete-restore-expense.yaml` | delete → gone from the feed → Activity entry → Restore → back                         |
 | `rename-archive-group.yaml`   | rename a group (persists) → archive → gone from Home                                 |
 | `change-logo.yaml`            | open Group settings → cover-emoji picker → pick a new icon → applies, sheet closes   |
 | `capture-assign.yaml`         | capture with no group → find it in the inbox → assign → add-expense prefilled        |
