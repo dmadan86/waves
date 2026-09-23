@@ -40,10 +40,10 @@ class FakeDatabase {
   readonly drafts = new Map<string, { key: string; json: string; saved_at: string }>();
   /** The single-row hold stamp. Null when nothing is being kept. */
   retained: { owner_id: string; retained_at: string } | null = null;
-  // Defaults to the current schema version so the one-time encryption migration
-  // (driver.migrate) is a no-op for these tests; the migration is exercised on
-  // its own below by seeding a fresh DB at version 0.
-  userVersion = 1;
+  // Defaults to the current schema version so the one-time migrations
+  // (driver.migrate) are a no-op for these tests; each step is exercised on its
+  // own below by seeding an older version.
+  userVersion = 2;
 
   private async enter<T>(run: () => Promise<T>): Promise<T> {
     this.live += 1;
@@ -627,7 +627,7 @@ describe('at-rest encryption', () => {
     // Migrated in place: now sealed, version bumped, WAL flushed.
     expect(database.mirrorRows.get('expenses:e1')?.json.startsWith('v1:')).toBe(true);
     expect(database.drafts.get('d1')?.json.startsWith('v1:')).toBe(true);
-    expect(database.userVersion).toBe(1);
+    expect(database.userVersion).toBe(2);
     expect(database.statements).toContain('PRAGMA wal_checkpoint(TRUNCATE)');
 
     // And the seeded plaintext still reads correctly through the decrypt path.
@@ -635,6 +635,47 @@ describe('at-rest encryption', () => {
       { table: 'expenses', id: 'e1', groupId: 'g1', seq: 1, row: { id: 'e1', amount: '100' } },
     ]);
     expect(await store.readDraft('d1')).toEqual({ note: 'legacy' });
+  });
+
+  it('re-pulls everything once when the pull learned new columns, keeping rows and unsent work', async () => {
+    // An install from before the pull carried `fx`: already sealed (v1), with
+    // cursors that would only ever hand back what changed since.
+    database.userVersion = 1;
+    database.cursors.set('g1', 42);
+    database.cursors.set('g2', 7);
+    database.mirrorRows.set('expenses:e1', {
+      table_name: 'expenses',
+      id: 'e1',
+      group_id: 'g1',
+      seq: 1,
+      json: JSON.stringify({ id: 'e1', amount: '100' }),
+    });
+    database.pendingMutations.set('m1', {
+      client_mutation_id: 'm1',
+      seq: 1,
+      json: JSON.stringify({ clientMutationId: 'm1' }),
+    });
+    database.drafts.set('d1', {
+      key: 'd1',
+      json: JSON.stringify({ note: 'unsent' }),
+      saved_at: '2026-01-01T00:00:00.000Z',
+    });
+
+    const store = createLocalStore();
+    await store.ready();
+
+    expect(database.userVersion).toBe(2);
+    // Cursors gone, so the next pull starts from the beginning of every group...
+    expect(await store.readCursors()).toEqual({});
+    // ...but the screens keep their rows meanwhile, and nothing unsent moves.
+    expect(database.mirrorRows.has('expenses:e1')).toBe(true);
+    expect(database.pendingMutations.has('m1')).toBe(true);
+    expect(database.drafts.has('d1')).toBe(true);
+
+    // Once, not on every open.
+    database.cursors.set('g1', 43);
+    await createLocalStore().ready();
+    expect(database.cursors.get('g1')).toBe(43);
   });
 
   /**

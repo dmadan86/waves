@@ -23,8 +23,12 @@ import { Serial } from './serial';
 import type { LocalStore, StoredRow } from './store';
 
 // The mirror stores the whole ledger; every `json` payload is sealed at rest
-// (see rowCipher.ts). Bump when the migration below needs to run again.
-const SCHEMA_VERSION = 1;
+// (see rowCipher.ts). Bump when a step in `migrate` below needs to run again.
+//   1 — seal pre-encryption plaintext.
+//   2 — pull everything once more: the pull started carrying `fx` and
+//       `receipt_id` on expense versions (#935), and cursors only ever hand
+//       back what changed, so rows already mirrored would never get them.
+const SCHEMA_VERSION = 2;
 
 // Associated data bound into each sealed payload: the table plus the row's
 // identity. It is authenticated, not encrypted, so a ciphertext copied to a
@@ -178,17 +182,33 @@ class SqliteStore implements LocalStore {
   }
 
   /**
-   * Seal any pre-encryption plaintext left by an install that predates
-   * at-rest encryption, once. Guarded by `PRAGMA user_version`: on a fresh
-   * install (or after this has run) the version is already current and this is
-   * a single cheap read. Reads pass legacy plaintext through transparently
-   * (see `decryptWith`), so this is about not *leaving* plaintext on disk, not
-   * about correctness of reads.
+   * Bring an older mirror up to `SCHEMA_VERSION`, each step once. Guarded by
+   * `PRAGMA user_version`: on a fresh install (or after this has run) the
+   * version is already current and this is a single cheap read.
    */
   private async migrate(database: SQLite.SQLiteDatabase): Promise<void> {
     const current = await database.getFirstAsync<{ user_version: number }>(`PRAGMA user_version`);
-    if ((current?.user_version ?? 0) >= SCHEMA_VERSION) return;
+    const from = current?.user_version ?? 0;
+    if (from >= SCHEMA_VERSION) return;
+    if (from < 1) await this.sealPlaintext(database);
+    if (from < 2) {
+      // Forget where each group's pull got to, and keep the rows: the screens
+      // stay full while the next sync hands every row back with the columns the
+      // pull now asks for, and each one overwrites its older copy by id. Only
+      // the cursors — nothing unsent (queue, drafts) is touched.
+      await database.runAsync(`DELETE FROM sync_cursors WHERE 1 = 1`);
+    }
+    // `user_version` takes a literal, not a bound parameter.
+    await database.execAsync(`PRAGMA user_version = ${SCHEMA_VERSION}`);
+  }
 
+  /**
+   * Seal any pre-encryption plaintext left by an install that predates
+   * at-rest encryption. Reads pass legacy plaintext through transparently (see
+   * `decryptWith`), so this is about not *leaving* plaintext on disk, not about
+   * correctness of reads.
+   */
+  private async sealPlaintext(database: SQLite.SQLiteDatabase): Promise<void> {
     const key = await loadKey();
     // `cols` are selected to rebuild both the primary key (for the UPDATE) and
     // the associated-data binding (see the *Aad helpers). `aad` reproduces the
@@ -229,8 +249,6 @@ class SqliteStore implements LocalStore {
         }
       }
     });
-    // `user_version` takes a literal, not a bound parameter.
-    await database.execAsync(`PRAGMA user_version = ${SCHEMA_VERSION}`);
     // Flush the WAL so any plaintext that lived there is truncated away rather
     // than kept alongside the now-sealed main file.
     await database.execAsync(`PRAGMA wal_checkpoint(TRUNCATE)`);
