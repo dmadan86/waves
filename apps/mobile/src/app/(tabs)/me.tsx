@@ -97,7 +97,6 @@ const OVERSPENT_WASH = ['#8C1D3F', '#4A0F20'] as const; // red — money lost
 // One faint watermark glyph, bled off the hero's corner.
 const HERO_GLYPH = 'wallet-outline' as const;
 
-const HERO_CONTROL_BG = 'rgba(255, 255, 255, 0.16)';
 
 /**
  * The account wall stands outside the ledger, not inside it: a guest session
@@ -870,22 +869,21 @@ function HeroShell({ wash, children }: { wash: readonly string[]; children: Reac
   );
 }
 
-/** The two ways into the ledger, side by side on the hero. */
+/**
+ * The way into the ledger on the hero: one "+ Expense" pill, the dashboard's
+ * and a group's own. Income is not a second button — the entry screen opens on
+ * an Expense / Income switch, so an earning is one tap further in.
+ */
 function AddActions({ t }: { t: ReturnType<typeof useStrings>['t'] }) {
   const theme = useTheme();
   return (
     <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
       <HeroPill
-        tone="solid"
         icon="add"
-        label={t.personal.addExpense}
+        // The plus does the verb's work; spoken, it is still the whole action.
+        label={t.expenseShort}
+        spokenLabel={t.personal.addExpense}
         onPress={() => router.push({ pathname: '/personal/entry', params: { kind: 'expense' } })}
-      />
-      <HeroPill
-        tone="ghost"
-        icon="add"
-        label={t.personal.addIncome}
-        onPress={() => router.push({ pathname: '/personal/entry', params: { kind: 'income' } })}
       />
     </Row>
   );
@@ -979,24 +977,23 @@ function HeroFigure({
 function HeroPill({
   icon,
   label,
+  spokenLabel,
   onPress,
-  tone = 'solid',
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
+  spokenLabel?: string;
   onPress: () => void;
-  tone?: 'solid' | 'ghost';
 }) {
   const theme = useTheme();
-  const ghost = tone === 'ghost';
-  const ink = ghost ? theme.color.onBrand : theme.color.brand;
+  const ink = theme.color.brand;
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={spokenLabel ?? label}
       onPress={onPress}
+      // Hugs its word, like the dashboard's pill, rather than filling the row.
       style={({ pressed }) => ({
-        flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
@@ -1004,9 +1001,9 @@ function HeroPill({
         // Two lots of `md` over a 22pt line: 46pt, clear of the 44pt floor a
         // finger needs. The dashboard's pill is built to the same measure.
         paddingVertical: theme.spacing.md,
-        paddingHorizontal: theme.spacing.md,
+        paddingHorizontal: theme.spacing.lg,
         borderRadius: theme.radius.pill,
-        backgroundColor: ghost ? HERO_CONTROL_BG : '#FFFFFF',
+        backgroundColor: '#FFFFFF',
         opacity: pressed ? 0.85 : 1,
       })}
     >
