@@ -13,13 +13,20 @@ import { AppState } from 'react-native';
  * mint is old enough to be worth spending a request on — so a URL that is
  * actually on screen never rots to a 401.
  *
+ * The resolvers answer from a shared cache (`signedUrlCache`): a URL may reach
+ * this hook already up to 45 minutes old, so the hook cannot time the refresh
+ * from its own mount. It re-asks often instead — a cache hit costs no request
+ * and, being the same string, no re-render — and the cache mints a new URL once
+ * the old one is past its serving window, a quarter of an hour before expiry.
+ *
  * The stale URL is cleared during render on a key change (not in an effect), so
  * the previous path's image never flashes for a frame under a new key.
  */
 const LIFETIME_MS = 60 * 60 * 1000;
-// Comfortably inside the hour, so the replacement is minted and loaded before
-// the one on screen can expire.
-const REFRESH_MS = 50 * 60 * 1000;
+// How often to re-ask the resolver. Well inside the 15 minutes the cache leaves
+// on any URL it serves, so the replacement is loaded before the one on screen
+// can expire.
+const REFRESH_MS = 5 * 60 * 1000;
 
 export function useSignedUrl(
   key: string | null | undefined,
@@ -39,7 +46,6 @@ export function useSignedUrl(
   useEffect(() => {
     if (!path) return;
     let active = true;
-    let lastMintAt = 0;
     // mint() fires from three places — the initial call, the timer and the
     // foreground listener — so several can be in flight at once. A slower older
     // request must not resolve after a newer one and overwrite the fresh URL
@@ -52,12 +58,11 @@ export function useSignedUrl(
       void resolve(path)
         .then((url) => {
           if (!active || ticket !== latest) return;
-          // Advance the clock only on a real URL, so a failed mint (a null from
-          // the resolver, or a rejection) leaves `lastMintAt` where it was —
-          // then the next foreground retries at once instead of the broken image
-          // sitting for the full refresh window before another attempt.
-          if (url) lastMintAt = Date.now();
-          setResolved({ key: path, url });
+          // The same URL back (a cache hit) keeps the same state, so a refresh
+          // that changed nothing does not re-render the image.
+          setResolved((prev) =>
+            prev.key === path && prev.url === url ? prev : { key: path, url },
+          );
         })
         .catch(() => {
           if (active && ticket === latest) setResolved({ key: path, url: null });
@@ -67,9 +72,11 @@ export function useSignedUrl(
     mint();
     const timer = setInterval(mint, REFRESH_MS);
     const subscription = AppState.addEventListener('change', (state) => {
-      // Only spend a request on resume if the URL on screen is old enough to be
-      // near or past expiry — a quick app switch should not re-mint everything.
-      if (state === 'active' && Date.now() - lastMintAt >= REFRESH_MS) mint();
+      // On resume the URL on screen may have expired while the app slept. Ask
+      // again: the cache answers a quick app switch without a request, and
+      // mints a fresh URL only for one that is near or past expiry. A failed
+      // mint is never cached, so a broken image retries here at once.
+      if (state === 'active') mint();
     });
 
     return () => {
