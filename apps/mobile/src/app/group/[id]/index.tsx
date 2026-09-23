@@ -504,7 +504,6 @@ export default function GroupScreen() {
   // `lib/auth.useViewerId`.
   const viewerId = useViewerId();
   const [tab, setTab] = useState<Tab>(Tab.Expenses);
-  const [showDeleted, setShowDeleted] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [tripNudgeDismissed, setTripNudgeDismissed] = useState(false);
 
@@ -630,9 +629,13 @@ export default function GroupScreen() {
   // The feed, memoized so a re-render that leaves the ledger untouched does not
   // re-filter and re-section every expense. Hoisted above the loading/error
   // guards below so these hooks run in the same order on every render.
+  // A deleted expense leaves the feed. It is not gone — the ledger is
+  // append-only and the Activity tab still says who removed what — but the
+  // feed is what the group owes today, and a "Show deleted" switch above it
+  // was one more control for a question almost nobody asks.
   const visibleExpenses = useMemo(
-    () => expenses.rows.filter((expense) => showDeleted || !expense.deleted_at),
-    [expenses.rows, showDeleted],
+    () => expenses.rows.filter((expense) => !expense.deleted_at),
+    [expenses.rows],
   );
   const expenseSections = useMemo(() => groupExpensesByMonth(visibleExpenses), [visibleExpenses]);
   // Every expense by id, so an activity row (which names its object) can show
@@ -827,10 +830,6 @@ export default function GroupScreen() {
       : ledger.myBalance < 0n
         ? theme.gradient.negative
         : theme.gradient.brand;
-  // The show/hide-deleted toggle only earns its place once something has been
-  // deleted. On a group whose ledger has never lost a row it is an answer to a
-  // question nobody asked.
-  const hasDeleted = expenses.rows.some((expense) => Boolean(expense.deleted_at));
   // The two sync states that still earn an inline card, because both need a
   // decision the header glyph cannot offer: a change the server refused, and a
   // change that has stopped retrying (which also blocks everything queued
@@ -1215,30 +1214,6 @@ export default function GroupScreen() {
               },
             ]}
           />
-
-          {tab === Tab.Expenses && hasDeleted ? (
-            <Row style={{ justifyContent: 'flex-end' }}>
-              {/* A real button, not a text with an onPress: a screen reader hears
-                  a control, and the 44pt floor plus hitSlop makes the caption a
-                  tap target rather than a hairline of text. */}
-              <Pressable
-                accessibilityRole="button"
-                accessibilityState={{ expanded: showDeleted }}
-                accessibilityLabel={showDeleted ? t.group.hideDeleted : t.group.showDeleted}
-                onPress={() => setShowDeleted((current) => !current)}
-                hitSlop={8}
-                style={({ pressed }) => ({
-                  minHeight: 44,
-                  justifyContent: 'center',
-                  opacity: pressed ? 0.6 : 1,
-                })}
-              >
-                <Text variant="caption" tone="muted">
-                  {showDeleted ? t.group.hideDeleted : t.group.showDeleted}
-                </Text>
-              </Pressable>
-            </Row>
-          ) : null}
         </View>
 
         <FlashList
@@ -1254,7 +1229,7 @@ export default function GroupScreen() {
           // tappability it was drawn with. `myMemberId` arrives a beat after
           // the members do, and a merge that syncs in mid-scroll only ever adds
           // a row, so its size is enough to notice one landing.
-          extraData={`${showDeleted}|${locale}|${ledger.myMemberId ?? ''}|${mergePersonIds.size}|${theme.scheme}`}
+          extraData={`${locale}|${ledger.myMemberId ?? ''}|${mergePersonIds.size}|${theme.scheme}`}
           keyExtractor={(item) => item.key}
           getItemType={(item) => item.kind}
           renderItem={renderFeedItem}

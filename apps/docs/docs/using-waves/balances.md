@@ -75,8 +75,8 @@ individual expense converts — not how balances are totalled.
 > Every expense, edit, deletion and settlement lands here — for everyone in the
 > group.
 
-Entries are grouped by day. A deleted expense stays in the feed with a
-_deleted_ tag; **Show deleted** and **Hide deleted** control whether you see it.
+Entries are grouped by day. A deleted expense leaves the **Expenses** list, but
+its deletion stays here — tap it to open the expense and restore it.
 
 Nothing in the feed is ever rewritten:
 

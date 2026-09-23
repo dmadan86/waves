@@ -17,8 +17,13 @@ appId: app.waves.mobile
 # Back on the ledger it is gone from the default view.
 - assertNotVisible: 'Beach shack dinner'
 
-# Reveal deleted, reopen it, restore it.
-- tapOn: 'Show deleted'
-- tapOn: 'Beach shack dinner'
+# The feed no longer lists deleted expenses at all; the way back is the
+# Activity entry for the delete, which opens the expense itself.
+- tapOn: '(?i)^activity$'
+- tapOn:
+    text: '.*Beach shack dinner.*'
+    index: 0
 - tapOn: 'Restore this expense'
+- back
+- tapOn: '(?i)^expenses$'
 - assertVisible: 'Beach shack dinner'
