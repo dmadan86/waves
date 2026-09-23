@@ -71,6 +71,13 @@ export function GroupPhoto({
       ) : source ? (
         <Image
           source={{ uri: source }}
+          // In a recycled list row, a different group's cover clears at once
+          // instead of showing the previous row's until the new one loads.
+          // Deliberately no `cacheKey={photoPath}`: a cover is overwritten in
+          // place at `<groupId>/cover.<ext>`, so a path key would keep showing
+          // the old photo from disk after it is replaced. The shared signed URL
+          // (`signedUrlCache`) is what keeps the cache warm between mounts.
+          recyclingKey={photoPath ?? localUri ?? undefined}
           style={{ width: '100%', height: '100%' }}
           contentFit="cover"
           transition={150}

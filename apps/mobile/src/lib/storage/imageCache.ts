@@ -19,6 +19,8 @@ import { randomUUID } from 'expo-crypto';
 import { fetch as expoFetch } from 'expo/fetch';
 import { Directory, File, Paths } from 'expo-file-system';
 
+import { signedUrls } from '@/lib/signedUrlCache';
+
 import type { LogicalBucket } from './index';
 
 /** Subdirectory under the OS cache dir that holds every cached receipt image. */
@@ -199,6 +201,9 @@ export function clearImageCache(): void {
   // Move the generation first, so any download already awaiting a response sees
   // the change and skips its write even if it resolves after this returns.
   cacheGeneration += 1;
+  // The signed URLs of the account that is leaving go too; they are bearer
+  // links to its private images.
+  signedUrls.clear();
   try {
     const dir = new Directory(Paths.cache, CACHE_DIR);
     if (dir.exists) dir.delete();

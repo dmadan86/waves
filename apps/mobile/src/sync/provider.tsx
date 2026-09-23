@@ -218,6 +218,10 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    // One account swapped for another with no signed-out frame between: the
+    // leaving account's cached images and signed URLs are bearer links to its
+    // private photos, so the arriving one must not be served them.
+    if (lastOwnerId.current !== null && lastOwnerId.current !== ownerId) clearImageCache();
     lastOwnerId.current = ownerId;
     // A mark that was never spent — a `signOut` that threw before the session
     // actually ended — must not sit armed waiting for the next revoked token.
