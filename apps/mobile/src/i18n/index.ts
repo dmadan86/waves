@@ -1882,6 +1882,8 @@ export interface UiStrings {
     unlimited: string;
     unlimitedBody: string;
     full: string;
+    /** A receipt somebody else kept: only they, or a group admin, may replace it. */
+    notUploader: string;
     upgrade: string;
   };
   /**
@@ -4986,6 +4988,7 @@ const en: UiStrings = {
     unlimited: 'Unlimited',
     unlimitedBody: 'Your plan includes unlimited photo and receipt storage.',
     full: 'You\u2019ve reached your free storage limit.',
+    notUploader: 'Only the person who added this receipt, or a group admin, can replace it.',
     upgrade: 'Upgrade for unlimited',
   },
   backup: {
@@ -7931,6 +7934,7 @@ const ta: UiStrings = {
     unlimitedBody:
       '\u0b89\u0b99\u0bcd\u0b95\u0bb3\u0bcd \u0ba4\u0bbf\u0b9f\u0bcd\u0b9f\u0ba4\u0bcd\u0ba4\u0bbf\u0bb2\u0bcd \u0bb5\u0bb0\u0bae\u0bcd\u0baa\u0bbf\u0bb2\u0bcd\u0bb2\u0bbe \u0baa\u0b9f \u0bae\u0bb1\u0bcd\u0bb1\u0bc1\u0bae\u0bcd \u0bb0\u0b9a\u0bc0\u0ba4\u0bc1 \u0b9a\u0bc7\u0bae\u0bbf\u0baa\u0bcd\u0baa\u0bc1 \u0b85\u0b9f\u0b99\u0bcd\u0b95\u0bc1\u0bae\u0bcd.',
     full: '\u0b89\u0b99\u0bcd\u0b95\u0bb3\u0bcd \u0b87\u0bb2\u0bb5\u0b9a \u0b9a\u0bc7\u0bae\u0bbf\u0baa\u0bcd\u0baa\u0bc1 \u0bb5\u0bb0\u0bae\u0bcd\u0baa\u0bc8 \u0b85\u0b9f\u0bc8\u0ba8\u0bcd\u0ba4\u0bc1\u0bb5\u0bbf\u0b9f\u0bcd\u0b9f\u0bc0\u0bb0\u0bcd\u0b95\u0bb3\u0bcd.',
+    notUploader: 'Only the person who added this receipt, or a group admin, can replace it.',
     upgrade:
       '\u0bb5\u0bb0\u0bae\u0bcd\u0baa\u0bbf\u0bb2\u0bcd\u0bb2\u0bbe\u0ba4\u0ba4\u0bb1\u0bcd\u0b95\u0bc1 \u0bae\u0bc7\u0bae\u0bcd\u0baa\u0b9f\u0bc1\u0ba4\u0bcd\u0ba4\u0bc1',
   },
@@ -10921,6 +10925,7 @@ const hi: UiStrings = {
     unlimitedBody:
       '\u0906\u092a\u0915\u0947 \u092a\u094d\u0932\u093e\u0928 \u092e\u0947\u0902 \u0905\u0938\u0940\u092e\u093f\u0924 \u092b\u093c\u094b\u091f\u094b \u0914\u0930 \u0930\u0938\u0940\u0926 \u0938\u094d\u091f\u094b\u0930\u0947\u091c \u0936\u093e\u092e\u093f\u0932 \u0939\u0948\u0964',
     full: '\u0906\u092a \u0905\u092a\u0928\u0940 \u092e\u0941\u092b\u093c\u094d\u0924 \u0938\u094d\u091f\u094b\u0930\u0947\u091c \u0938\u0940\u092e\u093e \u0924\u0915 \u092a\u0939\u0941\u0902\u091a \u0917\u090f \u0939\u0948\u0902\u0964',
+    notUploader: 'Only the person who added this receipt, or a group admin, can replace it.',
     upgrade:
       '\u0905\u0938\u0940\u092e\u093f\u0924 \u0915\u0947 \u0932\u093f\u090f \u0905\u092a\u0917\u094d\u0930\u0947\u0921 \u0915\u0930\u0947\u0902',
   },
@@ -13955,6 +13960,7 @@ const ar: UiStrings = {
     unlimitedBody:
       '\u062a\u062a\u0636\u0645\u0646 \u0628\u0627\u0642\u062a\u0643 \u062a\u062e\u0632\u064a\u0646\u064b\u0627 \u063a\u064a\u0631 \u0645\u062d\u062f\u0648\u062f \u0644\u0644\u0635\u0648\u0631 \u0648\u0627\u0644\u0625\u064a\u0635\u0627\u0644\u0627\u062a.',
     full: '\u0644\u0642\u062f \u0648\u0635\u0644\u062a \u0625\u0644\u0649 \u062d\u062f \u0627\u0644\u062a\u062e\u0632\u064a\u0646 \u0627\u0644\u0645\u062c\u0627\u0646\u064a.',
+    notUploader: 'Only the person who added this receipt, or a group admin, can replace it.',
     upgrade:
       '\u0627\u0644\u062a\u0631\u0642\u064a\u0629 \u0644\u063a\u064a\u0631 \u0645\u062d\u062f\u0648\u062f',
   },

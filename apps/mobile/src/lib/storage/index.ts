@@ -51,6 +51,18 @@ export class StorageCapError extends Error {
   }
 }
 
+/**
+ * `r2-sign` refused to replace or remove a group receipt / album photo because
+ * the caller neither uploaded it nor administers the group (NOT_UPLOADER).
+ * Retrying cannot help, so a caller should say so and stop, not loop.
+ */
+export class NotUploaderError extends Error {
+  constructor(message = 'Only the person who added this image, or a group admin, can change it.') {
+    super(message);
+    this.name = 'NotUploaderError';
+  }
+}
+
 export function r2Enabled(): boolean {
   return process.env.EXPO_PUBLIC_R2_ENABLED === 'true';
 }
@@ -68,6 +80,7 @@ async function asStorageError(error: unknown): Promise<Error> {
     try {
       const parsed = (await context.clone().json()) as { code?: string; message?: string };
       if (parsed.code === 'STORAGE_CAP') return new StorageCapError(parsed.message);
+      if (parsed.code === 'NOT_UPLOADER') return new NotUploaderError(parsed.message);
       if (parsed.message) return new Error(parsed.message);
     } catch {
       // Not JSON — fall through to the generic message below.
