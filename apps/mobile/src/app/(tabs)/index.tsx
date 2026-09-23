@@ -61,7 +61,6 @@ import { QuickAddSheet, useQuickAddActions } from '@/components/QuickAddSheet';
 import { QuickExpenseSheet } from '@/components/QuickExpenseSheet';
 import { GroupAddIcon } from '@/components/GroupAddIcon';
 import { HeroActionCircle, HeroPillButton } from '@/components/ScreenHero';
-import { smsReaderInBuild } from '@/lib/smsFeature';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { RestorePrompt } from '@/components/RestorePrompt';
 import { useAvatarUrl } from '@/components/ProfileAvatar';
@@ -251,56 +250,13 @@ export default function HomeScreen() {
   const menuItems: OverflowMenuItem[] = useMemo(
     () => [
       // The `section` keys are internal grouping only (not user-visible): they
-      // cluster the rows into actions / account / data / app / settings, and
+      // cluster the rows into account / data / app / settings, and
       // OverflowMenu draws a divider wherever two adjacent rows fall in
       // different sections.
       //
-      // The "actions" rows at the top are everything Home can start that the
-      // hero's two buttons do not. They are things you do rather than places you
-      // configure, which is why they sit above the divider and ahead of the
-      // account rows.
-      //
-      // Joining by QR is here because it lost its tile and has nowhere else to
-      // go from this screen: `/scan` is otherwise only reachable from the
-      // Friends tab's add sheet, and "somebody sent me a group" is not a thing
-      // you look for under Friends.
-      {
-        icon: 'qr-code-outline',
-        label: t.misc.scanToJoin,
-        onPress: () => router.push('/scan'),
-        section: 'actions',
-      },
-      {
-        icon: 'camera-outline',
-        label: t.scanBill,
-        // A fresh nonce at press time, never in render: the capture screen's
-        // consume-once guard depends on it.
-        onPress: () => router.push(`/capture?scan=${Date.now()}`),
-        section: 'actions',
-      },
-      // Bank messages appears only in a build that can actually read SMS — the
-      // same `smsReaderInBuild()` gate Review's door uses. A row that opens a
-      // screen saying the feature is not in this build is worse than no row.
-      ...(smsReaderInBuild()
-        ? [
-            {
-              icon: 'chatbubble-ellipses-outline' as const,
-              label: t.smsInbox.title,
-              onPress: () => router.push('/captures/sms'),
-              section: 'actions',
-            },
-          ]
-        : []),
-      // Settling has no destination of its own — a settlement is always with
-      // somebody, so there is no global "settle" screen (only
-      // `group/[id]/settle`). This goes to Friends, where the per-person
-      // balances and their settle buttons live.
-      {
-        icon: 'swap-horizontal',
-        label: t.settleUp,
-        onPress: () => router.navigate('/friends'),
-        section: 'actions',
-      },
+      // No "actions" rows: scan to join, scan bill, bank messages and settle up
+      // all have homes of their own (Friends' add sheet, the + Expense hold,
+      // Review, a group's settle), so the menu is settings and destinations only.
       {
         icon: 'person-circle-outline',
         label: t.account.yourAccount,
