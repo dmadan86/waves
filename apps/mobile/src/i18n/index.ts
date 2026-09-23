@@ -2443,9 +2443,6 @@ export interface UiStrings {
     deleteQuestion: string;
     deleteBody: string;
     deleted: string;
-    /** Badge on a list row somebody has disputed — a flag alone is silent to
-     *  a screen reader and easy to miss. */
-    disputed: string;
     /** An expense nobody described, shown when it has no category to fall back on. */
     untitled: string;
     /** "Asha paid" under a row. The name comes first in English and may not elsewhere. */
@@ -2647,7 +2644,7 @@ export interface UiStrings {
     followMyPhone: string;
     currentlyLanguage: string;
     rightToLeft: string;
-    // Settle payment alerts, dispute panel, trip dates, currency-rate note,
+    // Settle payment alerts, trip dates, currency-rate note,
     // dictation status, country picker, update footer, campaign popup,
     // insights note, members note, and the CSV currency mismatch.
     withLabel: string;
@@ -2660,11 +2657,6 @@ export interface UiStrings {
     recordYes: string;
     recordNo: string;
     recordIt: string;
-    noReasonGiven: string;
-    disputeStands: string;
-    neverMind: string;
-    whatsWrongWithIt: string;
-    somethingsWrong: string;
     tripDatesTitle: string;
     aboutTripDates: string;
     tripDatesBody: string;
@@ -2695,10 +2687,6 @@ export interface UiStrings {
     rateSourceImplied: string;
     rateSourceYou: string;
     noRateNote: string;
-    // DisputePanel.
-    thinkThisOff: PluralForms;
-    sending: string;
-    tellThem: string;
     // The update wall's fallback body and the banner's title.
     versionStoppedBody: string;
     newWavesOut: string;
@@ -3150,19 +3138,6 @@ export interface UiStrings {
     thisMonth: string;
     noneTitle: string;
     noneBody: string;
-  };
-  /** Somebody saying an expense is wrong, and the answer to it. */
-  dispute: {
-    yourReply: string;
-    replyPlaceholder: string;
-    saving: string;
-    theyAreRight: string;
-    itIsCorrect: string;
-    answerThis: string;
-    youSaidWrong: string;
-    whatIsWrong: string;
-    reasonPlaceholder: string;
-    reasonOptional: string;
   };
   /** The door where a paid tier would be, and what stays free. */
   upgradeScreen: {
@@ -5467,7 +5442,6 @@ const en: UiStrings = {
     deleteBody:
       'It stops counting towards balances but stays in the activity feed, and anyone in the group can restore it for 30 days.',
     deleted: 'deleted',
-    disputed: 'Disputed',
     untitled: 'Untitled',
     paidByName: '{name} paid',
     paidByNameAmount: '{name} paid {amount}',
@@ -5646,12 +5620,6 @@ const en: UiStrings = {
     recordYes: 'Yes, record it',
     recordNo: 'No',
     recordIt: 'Record it',
-    noReasonGiven: 'No reason given',
-    disputeStands:
-      'Nothing has changed yet — your share stands until the expense is corrected. That is deliberate: a share anybody could drop on their own would not be a ledger.',
-    neverMind: 'Never mind, it’s fine',
-    whatsWrongWithIt: 'What’s wrong with it?',
-    somethingsWrong: 'Something’s wrong',
     tripDatesTitle: 'Trip dates',
     aboutTripDates: 'About trip dates',
     tripDatesBody:
@@ -5687,9 +5655,6 @@ const en: UiStrings = {
     rateSourceYou: 'you',
     noRateNote:
       'Without a rate the expense still saves — it just stays in {currency}, and the group keeps a separate {currency} balance.',
-    thinkThisOff: { one: 'Someone thinks this is off', other: '{n} people think this is off' },
-    sending: 'Sending…',
-    tellThem: 'Tell them',
     versionStoppedBody:
       'This version can no longer talk to Waves, so it has been stopped rather than left to show you numbers that might be wrong.',
     newWavesOut: 'A new Waves is out',
@@ -6096,19 +6061,6 @@ const en: UiStrings = {
     thisMonth: 'This month',
     noneTitle: 'Nothing in this range',
     noneBody: 'No activity falls on the dates you picked. Try a wider range or clear the filter.',
-  },
-  dispute: {
-    yourReply: 'Your reply',
-    replyPlaceholder: 'Optional — what actually happened',
-    saving: 'Saving…',
-    theyAreRight: 'They’re right — I’ll fix it',
-    itIsCorrect: 'It’s correct',
-    answerThis: 'Answer this',
-    youSaidWrong: 'You said this is wrong',
-    whatIsWrong: 'What is wrong with this expense',
-    reasonPlaceholder: 'I left before dessert · the total was ₹1,800',
-    reasonOptional:
-      'A reason is optional, but it is the difference between a fix and a conversation.',
   },
   upgradeScreen: {
     moreScans: 'More scanned bills',
@@ -8451,7 +8403,6 @@ const ta: UiStrings = {
     deleteBody:
       'இது இருப்புக் கணக்கில் சேராது, ஆனால் செயல்பாட்டுப் பட்டியலில் இருக்கும், 30 நாட்களுக்குள் குழுவில் யார் வேண்டுமானாலும் மீட்கலாம்.',
     deleted: 'நீக்கப்பட்டது',
-    disputed: 'மறுப்பு',
     untitled: 'பெயரிடப்படாதது',
     paidByName: '{name} கொடுத்தார்',
     paidByNameAmount: '{name} {amount} கொடுத்தார்',
@@ -8641,12 +8592,6 @@ const ta: UiStrings = {
     recordYes: 'ஆம், பதிவு செய்',
     recordNo: 'இல்லை',
     recordIt: 'பதிவு செய்',
-    noReasonGiven: 'காரணம் எதுவும் தரப்படவில்லை',
-    disputeStands:
-      'இன்னும் எதுவும் மாறவில்லை — செலவு திருத்தப்படும் வரை உங்கள் பங்கு நிலைக்கும். இது வேண்டுமென்றே: யாரும் தாமாகவே நீக்கக்கூடிய பங்கு ஒரு கணக்கேடாக இருக்காது.',
-    neverMind: 'பரவாயில்லை, சரிதான்',
-    whatsWrongWithIt: 'இதில் என்ன தவறு?',
-    somethingsWrong: 'ஏதோ தவறு',
     tripDatesTitle: 'பயணத் தேதிகள்',
     aboutTripDates: 'பயணத் தேதிகள் பற்றி',
     tripDatesBody:
@@ -8684,12 +8629,6 @@ const ta: UiStrings = {
     rateSourceYou: 'நீங்கள்',
     noRateNote:
       'விகிதம் இல்லாமலும் செலவு சேமிக்கப்படும் — அது {currency} இல் இருக்கும், மேலும் குழு ஒரு தனி {currency} இருப்பை வைத்திருக்கும்.',
-    thinkThisOff: {
-      one: 'இது சரியில்லை என ஒருவர் நினைக்கிறார்',
-      other: 'இது சரியில்லை என {n} பேர் நினைக்கிறார்கள்',
-    },
-    sending: 'அனுப்புகிறது…',
-    tellThem: 'அவர்களிடம் சொல்',
     versionStoppedBody:
       'இந்தப் பதிப்பால் இனி Waves-உடன் தொடர்பு கொள்ள முடியாது, எனவே தவறாக இருக்கக்கூடிய எண்களைக் காட்டுவதற்குப் பதிலாக அது நிறுத்தப்பட்டுள்ளது.',
     newWavesOut: 'புதிய Waves வெளியாகிவிட்டது',
@@ -9131,19 +9070,6 @@ const ta: UiStrings = {
     noneTitle: 'இந்த வரம்பில் ஒன்றுமில்லை',
     noneBody:
       'நீங்கள் தேர்ந்தெடுத்த தேதிகளில் எந்தச் செயல்பாடும் இல்லை. பரந்த வரம்பை முயற்சிக்கவும் அல்லது வடிப்பானை அழிக்கவும்.',
-  },
-  dispute: {
-    yourReply: 'உங்கள் பதில்',
-    replyPlaceholder: 'விருப்பம் — உண்மையில் என்ன நடந்தது',
-    saving: 'சேமிக்கிறது…',
-    theyAreRight: 'அவர்கள் சொல்வது சரி — நான் திருத்துகிறேன்',
-    itIsCorrect: 'இது சரியானது',
-    answerThis: 'இதற்குப் பதில் சொல்',
-    youSaidWrong: 'இது தவறு என்று நீங்கள் சொன்னீர்கள்',
-    whatIsWrong: 'இந்தச் செலவில் என்ன தவறு',
-    reasonPlaceholder: 'இனிப்புக்கு முன்பே கிளம்பிவிட்டேன் · மொத்தம் ₹1,800',
-    reasonOptional:
-      'காரணம் விருப்பம்தான், ஆனால் ஒரு திருத்தத்துக்கும் ஒரு உரையாடலுக்கும் இடையிலான வேறுபாடு அதுவே.',
   },
   upgradeScreen: {
     moreScans: 'அதிக ரசீது ஸ்கேன்கள்',
@@ -11428,7 +11354,6 @@ const hi: UiStrings = {
     deleteBody:
       'यह हिसाब में गिनना बंद कर देगा पर गतिविधि में बना रहेगा, और समूह का कोई भी 30 दिन तक इसे वापस ला सकता है।',
     deleted: 'हटाया गया',
-    disputed: 'विवादित',
     untitled: 'बिना नाम',
     paidByName: '{name} ने भुगतान किया',
     paidByNameAmount: '{name} ने {amount} दिए',
@@ -11610,12 +11535,6 @@ const hi: UiStrings = {
     recordYes: 'हाँ, दर्ज करें',
     recordNo: 'नहीं',
     recordIt: 'दर्ज करें',
-    noReasonGiven: 'कोई कारण नहीं दिया गया',
-    disputeStands:
-      'अभी कुछ नहीं बदला — खर्च ठीक होने तक आपका हिस्सा बना रहता है। यह जानबूझकर है: जिस हिस्से को कोई अकेले हटा सके, वह बहीखाता नहीं होगा।',
-    neverMind: 'कोई बात नहीं, ठीक है',
-    whatsWrongWithIt: 'इसमें क्या गलत है?',
-    somethingsWrong: 'कुछ गलत है',
     tripDatesTitle: 'यात्रा की तारीखें',
     aboutTripDates: 'यात्रा की तारीखों के बारे में',
     tripDatesBody:
@@ -11651,12 +11570,6 @@ const hi: UiStrings = {
     rateSourceYou: 'आप',
     noRateNote:
       'दर के बिना भी खर्च सहेजा जाता है — यह {currency} में ही रहता है, और समूह एक अलग {currency} बैलेंस रखता है।',
-    thinkThisOff: {
-      one: 'किसी को लगता है कि यह ठीक नहीं है',
-      other: '{n} लोगों को लगता है कि यह ठीक नहीं है',
-    },
-    sending: 'भेज रहे हैं…',
-    tellThem: 'उन्हें बताएँ',
     versionStoppedBody:
       'यह संस्करण अब Waves से बात नहीं कर सकता, इसलिए ग़लत आँकड़े दिखाने के बजाय इसे रोक दिया गया है।',
     newWavesOut: 'नया Waves आ गया है',
@@ -12066,18 +11979,6 @@ const hi: UiStrings = {
     thisMonth: 'इस महीने',
     noneTitle: 'इस दायरे में कुछ नहीं',
     noneBody: 'आपकी चुनी तारीख़ों में कोई गतिविधि नहीं है. बड़ा दायरा चुनें या फ़िल्टर हटाएँ.',
-  },
-  dispute: {
-    yourReply: 'आपका जवाब',
-    replyPlaceholder: 'वैकल्पिक — असल में क्या हुआ',
-    saving: 'सेव हो रहा है…',
-    theyAreRight: 'वे सही हैं — मैं ठीक कर दूँगा',
-    itIsCorrect: 'यह सही है',
-    answerThis: 'इसका जवाब दें',
-    youSaidWrong: 'आपने कहा यह ग़लत है',
-    whatIsWrong: 'इस खर्च में क्या ग़लत है',
-    reasonPlaceholder: 'मैं मिठाई से पहले निकल गया · कुल ₹1,800 था',
-    reasonOptional: 'वजह देना ज़रूरी नहीं, पर सुधार और बहस के बीच का फ़र्क़ यही है।',
   },
   upgradeScreen: {
     moreScans: 'ज़्यादा बिल स्कैन',
@@ -14532,7 +14433,6 @@ const ar: UiStrings = {
     deleteBody:
       'سيتوقف احتسابه في الأرصدة لكنه يبقى في سجل النشاط، ويمكن لأي عضو استرجاعه خلال 30 يومًا.',
     deleted: 'محذوف',
-    disputed: 'متنازع عليه',
     untitled: 'بلا عنوان',
     paidByName: 'دفع {name}',
     paidByNameAmount: 'دفع {name} {amount}',
@@ -14749,12 +14649,6 @@ const ar: UiStrings = {
     recordYes: 'نعم، سجِّلها',
     recordNo: 'لا',
     recordIt: 'سجِّلها',
-    noReasonGiven: 'لم يُذكر سبب',
-    disputeStands:
-      'لم يتغيّر شيء بعد — يبقى نصيبك قائمًا حتى يُصحَّح المصروف. هذا مقصود: نصيب يستطيع أي شخص إسقاطه بمفرده لن يكون دفترًا.',
-    neverMind: 'لا بأس، الأمر جيّد',
-    whatsWrongWithIt: 'ما الخطأ فيه؟',
-    somethingsWrong: 'هناك خطأ ما',
     tripDatesTitle: 'تواريخ الرحلة',
     aboutTripDates: 'حول تواريخ الرحلة',
     tripDatesBody:
@@ -14790,16 +14684,6 @@ const ar: UiStrings = {
     rateSourceYou: 'أنت',
     noRateNote:
       'يُحفظ المصروف حتى بدون سعر — يبقى بعملة {currency}، وتحتفظ المجموعة برصيد {currency} منفصل.',
-    thinkThisOff: {
-      zero: 'لا أحد يظن أن هذا غير صحيح',
-      one: 'يظن أحدهم أن هذا غير صحيح',
-      two: 'يظن شخصان أن هذا غير صحيح',
-      few: 'يظن {n} أشخاص أن هذا غير صحيح',
-      many: 'يظن {n} شخصًا أن هذا غير صحيح',
-      other: 'يظن {n} شخص أن هذا غير صحيح',
-    },
-    sending: 'جارٍ الإرسال…',
-    tellThem: 'أخبرهم',
     versionStoppedBody:
       'لم يعد بإمكان هذه النسخة التواصل مع Waves، لذا أُوقفت بدلًا من أن تعرض عليك أرقامًا قد تكون خاطئة.',
     newWavesOut: 'صدر إصدار جديد من Waves',
@@ -15418,18 +15302,6 @@ const ar: UiStrings = {
     thisMonth: 'هذا الشهر',
     noneTitle: 'لا شيء في هذا النطاق',
     noneBody: 'لا يوجد نشاط في التواريخ التي اخترتها. جرّب نطاقًا أوسع أو امسح التصفية.',
-  },
-  dispute: {
-    yourReply: 'ردّك',
-    replyPlaceholder: 'اختياري — ما الذي حدث فعلًا',
-    saving: 'جارٍ الحفظ…',
-    theyAreRight: 'معهم حق — سأصحّحه',
-    itIsCorrect: 'إنه صحيح',
-    answerThis: 'ردّ على هذا',
-    youSaidWrong: 'قلت إن هذا خطأ',
-    whatIsWrong: 'ما الخطأ في هذا المصروف',
-    reasonPlaceholder: 'غادرت قبل الحلوى · كان المجموع ١٨٠٠',
-    reasonOptional: 'السبب اختياري، لكنه الفرق بين تصحيحٍ ونقاش.',
   },
   upgradeScreen: {
     moreScans: 'مسح فواتير أكثر',
