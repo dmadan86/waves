@@ -19,11 +19,19 @@ const state = vi.hoisted(() => ({
   session: null as { user: { id: string } } | null,
 }));
 
-vi.mock('react', () => ({ useMemo: (fn: () => unknown) => fn() }));
+vi.mock('react', () => ({
+  useMemo: (fn: () => unknown) => fn(),
+  useEffect: () => undefined,
+  useSyncExternalStore: (_subscribe: unknown, get: () => unknown) => get(),
+}));
+vi.mock('@/lib/smsDraftStore', async () =>
+  (await import('./support/memoryDraftStore')).memoryDraftStoreModule(),
+);
 vi.mock('@/lib/auth', () => ({ useAuth: () => ({ session: state.session }) }));
 vi.mock('@/sync', () => ({ useSync: () => ({ mirror: state.mirror, queue: state.queue }) }));
 
 const { useFiledThisWeek, useSuggestionIndex } = await import('@/data/reviewSources');
+const { smsDrafts } = await import('@/lib/smsDraftStore');
 
 const OWNER = 'user-1';
 const NOW = Date.parse('2026-09-20T12:00:00.000Z');
@@ -144,6 +152,25 @@ describe('useFiledThisWeek', () => {
       },
     });
     expect(useFiledThisWeek(NOW)).toBe(2);
+  });
+
+  it('counts SMS drafts filed from this device, which never reach the mirror', async () => {
+    state.session = { user: { id: OWNER } };
+    state.mirror = withRows({ captures: { c1: capture('c1', {}) } });
+    const row = (id: string, created_at: string) =>
+      ({ id, owner_user_id: OWNER, created_at, parsed: { source: 'sms' } }) as never;
+    await smsDrafts.put(OWNER, row('recent', new Date(NOW - 2 * DAY).toISOString()));
+    await smsDrafts.put(OWNER, row('old', new Date(NOW - 9 * DAY).toISOString()));
+    await smsDrafts.put(OWNER, row('waiting', new Date(NOW - DAY).toISOString()));
+    await smsDrafts.hold(OWNER, 'recent', 'g', 'e1');
+    await smsDrafts.file(OWNER, 'recent');
+    await smsDrafts.hold(OWNER, 'old', 'g', 'e2');
+    await smsDrafts.file(OWNER, 'old');
+
+    // The synced one, plus the recently filed local one — not the old one, not
+    // the one still waiting.
+    expect(useFiledThisWeek(NOW)).toBe(2);
+    await smsDrafts.forgetOwner(OWNER);
   });
 
   it('is zero when signed out', () => {

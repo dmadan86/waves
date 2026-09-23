@@ -820,6 +820,9 @@ export interface UiStrings {
     refusedHint: string;
     receiptsUnsent: PluralForms;
     draftsUnsent: PluralForms;
+    /** Drafts made from bank messages. They never sync, so this phone holds
+     *  the only copy and sign-out deletes it. */
+    smsDraftsOnPhone: PluralForms;
     /** The backup recovery key, which this device holds and sign-out forgets.
      *  Not part of the unsent work: it is lost even when everything has synced,
      *  so its row is shown whether or not anything is queued. */
@@ -4196,6 +4199,10 @@ const en: UiStrings = {
       one: '{n} expense you were still typing',
       other: '{n} expenses you were still typing',
     },
+    smsDraftsOnPhone: {
+      one: '{n} bank-message draft is only on this phone',
+      other: '{n} bank-message drafts are only on this phone',
+    },
     backupKeyTitle: 'Your backup key is only on this device',
     backupKeyWarning:
       'Write it down before you go — without it nothing can open the backup on Drive again, not even you.',
@@ -5774,9 +5781,8 @@ const en: UiStrings = {
     },
     addDraftCount: { one: 'Add {n} to Review', other: 'Add {n} to Review' },
     addedDraftCount: {
-      one: '{n} payment is waiting in Review. It is saved on this phone and will sync when there is a connection.',
-      other:
-        '{n} payments are waiting in Review. They are saved on this phone and will sync when there is a connection.',
+      one: '{n} payment is waiting in Review. It stays on this phone until you use it.',
+      other: '{n} payments are waiting in Review. They stay on this phone until you use them.',
     },
     readWindowNote:
       'Waves only looks at this stretch of your inbox. Everything older stays untouched.',
@@ -5788,7 +5794,7 @@ const en: UiStrings = {
       staysHere:
         'The reading happens on this phone. The message itself is never saved and never sent to Waves.',
       neverSent:
-        'Only the drafts you keep are synced, and nothing is added to a group until you say so.',
+        'Drafts stay on this phone until you use them. Only the expenses you make from them are synced, and nothing is added to a group until you say so.',
       nextScreen:
         'On the next screen Android asks whether Waves may read your messages. You can say no — pasting them still works.',
     },
@@ -7103,6 +7109,10 @@ const ta: UiStrings = {
     draftsUnsent: {
       one: 'நீங்கள் இன்னும் தட்டச்சு செய்துகொண்டிருந்த {n} செலவு',
       other: 'நீங்கள் இன்னும் தட்டச்சு செய்துகொண்டிருந்த {n} செலவுகள்',
+    },
+    smsDraftsOnPhone: {
+      one: '{n} bank-message draft is only on this phone',
+      other: '{n} bank-message drafts are only on this phone',
     },
     backupKeyTitle: 'உங்கள் காப்புப்பிரதி விசை இந்தச் சாதனத்தில் மட்டுமே உள்ளது',
     backupKeyWarning:
@@ -8770,9 +8780,8 @@ const ta: UiStrings = {
       other: '{n} ஐ மறுபார்வையில் சேர்',
     },
     addedDraftCount: {
-      one: '{n} கொடுப்பனவு மறுபார்வையில் காத்திருக்கிறது. அது இந்த ஃபோனில் சேமிக்கப்பட்டுள்ளது, இணைப்பு கிடைத்ததும் ஒத்திசைக்கும்.',
-      other:
-        '{n} கொடுப்பனவுகள் மறுபார்வையில் காத்திருக்கின்றன. அவை இந்த ஃபோனில் சேமிக்கப்பட்டுள்ளன, இணைப்பு கிடைத்ததும் ஒத்திசைக்கும்.',
+      one: '{n} payment is waiting in Review. It stays on this phone until you use it.',
+      other: '{n} payments are waiting in Review. They stay on this phone until you use them.',
     },
     readWindowNote:
       'உங்கள் இன்பாக்ஸில் இந்தப் பகுதியை மட்டுமே Waves பார்க்கும். அதற்கு முந்தையவை தொடப்படாது.',
@@ -8784,7 +8793,7 @@ const ta: UiStrings = {
       staysHere:
         'படிப்பது இந்த ஃபோனிலேயே நடக்கும். செய்தி எங்கும் சேமிக்கப்படாது, Waves-க்கும் அனுப்பப்படாது.',
       neverSent:
-        'நீங்கள் வைத்துக்கொள்ளும் வரைவுகள் மட்டுமே ஒத்திசைக்கப்படும், நீங்கள் சொல்லும் வரை எதுவும் ஒரு குழுவில் சேராது.',
+        'Drafts stay on this phone until you use them. Only the expenses you make from them are synced, and nothing is added to a group until you say so.',
       nextScreen:
         'அடுத்த திரையில், உங்கள் செய்திகளை Waves படிக்கலாமா என்று Android கேட்கும். வேண்டாம் எனச் சொல்லலாம் — ஒட்டுவது அப்போதும் வேலை செய்யும்.',
     },
@@ -10126,6 +10135,10 @@ const hi: UiStrings = {
     draftsUnsent: {
       one: '{n} ख़र्च जो आप अब भी लिख रहे थे',
       other: '{n} ख़र्च जो आप अब भी लिख रहे थे',
+    },
+    smsDraftsOnPhone: {
+      one: '{n} bank-message draft is only on this phone',
+      other: '{n} bank-message drafts are only on this phone',
     },
     backupKeyTitle: 'आपकी बैकअप कुंजी सिर्फ़ इसी डिवाइस पर है',
     backupKeyWarning:
@@ -11715,9 +11728,8 @@ const hi: UiStrings = {
     },
     addDraftCount: { one: '{n} को समीक्षा में जोड़ें', other: '{n} को समीक्षा में जोड़ें' },
     addedDraftCount: {
-      one: '{n} भुगतान समीक्षा में इंतज़ार कर रहा है। यह इसी फ़ोन पर सेव है और कनेक्शन मिलते ही सिंक हो जाएगा।',
-      other:
-        '{n} भुगतान समीक्षा में इंतज़ार कर रहे हैं। ये इसी फ़ोन पर सेव हैं और कनेक्शन मिलते ही सिंक हो जाएँगे।',
+      one: '{n} payment is waiting in Review. It stays on this phone until you use it.',
+      other: '{n} payments are waiting in Review. They stay on this phone until you use them.',
     },
     readWindowNote:
       'Waves आपके इनबॉक्स का सिर्फ़ इतना हिस्सा देखता है। इससे पुराना सब कुछ अछूता रहता है।',
@@ -11728,7 +11740,7 @@ const hi: UiStrings = {
       readsWhat: 'यह भुगतान ढूँढ़ने के लिए संदेश का टेक्स्ट पढ़ता है — रकम, दुकान और तारीख़।',
       staysHere: 'पढ़ना इसी फ़ोन पर होता है। संदेश न कभी सेव होता है, न Waves को भेजा जाता है।',
       neverSent:
-        'सिर्फ़ वही ड्राफ़्ट सिंक होते हैं जो आप रखते हैं, और जब तक आप न कहें कुछ भी किसी समूह में नहीं जुड़ता।',
+        'Drafts stay on this phone until you use them. Only the expenses you make from them are synced, and nothing is added to a group until you say so.',
       nextScreen:
         'अगली स्क्रीन पर Android पूछेगा कि Waves आपके संदेश पढ़ सकता है या नहीं। आप मना कर सकते हैं — पेस्ट करना तब भी काम करता है।',
     },
@@ -13086,6 +13098,10 @@ const ar: UiStrings = {
       few: '{n} مصروفات كنت ما زلت تكتبها',
       many: '{n} مصروفًا كنت ما زلت تكتبه',
       other: '{n} مصروف كنت ما زلت تكتبه',
+    },
+    smsDraftsOnPhone: {
+      one: '{n} bank-message draft is only on this phone',
+      other: '{n} bank-message drafts are only on this phone',
     },
     backupKeyTitle: 'مفتاح نسختك الاحتياطية على هذا الجهاز وحده',
     backupKeyWarning:
@@ -14895,11 +14911,11 @@ const ar: UiStrings = {
     },
     addedDraftCount: {
       zero: 'لم تُضف أي دفعة.',
-      one: 'دفعة واحدة تنتظر في المراجعة. إنها محفوظة على هذا الهاتف وستُزامَن عند توفّر اتصال.',
-      two: 'دفعتان تنتظران في المراجعة. إنهما محفوظتان على هذا الهاتف وستُزامَنان عند توفّر اتصال.',
-      few: '{n} دفعات تنتظر في المراجعة. إنها محفوظة على هذا الهاتف وستُزامَن عند توفّر اتصال.',
-      many: '{n} دفعة تنتظر في المراجعة. إنها محفوظة على هذا الهاتف وستُزامَن عند توفّر اتصال.',
-      other: '{n} دفعة تنتظر في المراجعة. إنها محفوظة على هذا الهاتف وستُزامَن عند توفّر اتصال.',
+      one: '{n} payment is waiting in Review. It stays on this phone until you use it.',
+      two: '{n} payments are waiting in Review. They stay on this phone until you use them.',
+      few: '{n} payments are waiting in Review. They stay on this phone until you use them.',
+      many: '{n} payments are waiting in Review. They stay on this phone until you use them.',
+      other: '{n} payments are waiting in Review. They stay on this phone until you use them.',
     },
     readWindowNote: 'لا ينظر Waves إلا في هذا الجزء من صندوق رسائلك، ويبقى كل ما هو أقدم دون مساس.',
     disclosure: {
@@ -14909,7 +14925,7 @@ const ar: UiStrings = {
       readsWhat: 'يقرأ نص الرسائل بحثًا عن المدفوعات — مبلغ ومتجر وتاريخ.',
       staysHere: 'القراءة تجري على هذا الهاتف. الرسالة نفسها لا تُحفظ أبدًا ولا تُرسل إلى Waves.',
       neverSent:
-        'لا يُزامَن إلا ما تحتفظ به من مسوّدات، ولا يُضاف شيء إلى مجموعة حتى تقول أنت ذلك.',
+        'Drafts stay on this phone until you use them. Only the expenses you make from them are synced, and nothing is added to a group until you say so.',
       nextScreen:
         'في الشاشة التالية سيسألك أندرويد إن كان يحقّ لـ Waves قراءة رسائلك. يمكنك الرفض — واللصق يظل يعمل.',
     },

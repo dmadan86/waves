@@ -9,10 +9,14 @@
  * over, and its text rides along as `rawText` exactly as a scanned receipt's
  * OCR does — the capture form can show it, and an edit can correct against it.
  * A message this app *read out of the inbox* is not that. Nobody handed it
- * over; the app went and got it. So a read draft syncs its parsed fields — what
+ * over; the app went and got it. So a read draft keeps its parsed fields — what
  * it cost, roughly what for, when — and its body is never written down at all:
- * not into the capture, not into the queue, not to the server. The phone's own
+ * not into the draft, not into the queue, not to the server. The phone's own
  * Messages app is where that text lives, and one copy of it is enough.
+ *
+ * AND NO DRAFT SYNCS. Either kind stays on the device that made it
+ * (`lib/smsDraftStore`, sealed) until the person turns it into an expense; only
+ * that expense reaches the server. `lib/smsLocalDrafts.ts` has the reasoning.
  *
  * That is enforced structurally rather than by remembering: `planSmsDrafts`
  * ignores `bodies` outright for anything in `readKeys`, so a caller that passes

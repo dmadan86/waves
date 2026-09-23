@@ -7,11 +7,12 @@
  * claim, and this only gathers what it decides over.
  */
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useSyncExternalStore } from 'react';
 
 import { materialiseCaptures, materialiseLedgerGroupIds, rowsFor, SyncTable } from '@waves/core';
 
 import { useAuth } from '@/lib/auth';
+import { smsDrafts } from '@/lib/smsDraftStore';
 import {
   buildSuggestionIndex,
   type FiledExpense,
@@ -66,20 +67,33 @@ export function useSuggestionIndex(): SuggestionIndex {
  * itself yet — and never a total that quietly counts spends this screen never
  * saw. `now` is handed in so a screen that already holds a ticking clock does
  * not start a second one.
+ *
+ * SMS drafts never sync, so the ones filed from this device are counted from
+ * the device's own draft store (a filed draft keeps only when it was caught).
  */
 export function useFiledThisWeek(now: number): number {
   const { session } = useAuth();
   const ownerId = session?.user?.id ?? '';
   const { mirror, queue } = useSync();
+  useEffect(() => {
+    if (ownerId) void smsDrafts.ensureLoaded(ownerId).catch(() => {});
+  }, [ownerId]);
+  const localFiled = useSyncExternalStore(smsDrafts.subscribe, () =>
+    smsDrafts.filedCaughtAt(ownerId),
+  );
   return useMemo(() => {
     if (!ownerId) return 0;
     const since = now - A_WEEK;
+    const inWeek = (at: string): boolean => {
+      const caught = Date.parse(at);
+      return Number.isFinite(caught) && caught >= since;
+    };
     let filed = 0;
     for (const capture of materialiseCaptures(mirror, queue, { ownerId })) {
       if (capture.status !== 'assigned' || capture.deleted_at !== null) continue;
-      const caught = Date.parse(capture.created_at);
-      if (Number.isFinite(caught) && caught >= since) filed += 1;
+      if (inWeek(capture.created_at)) filed += 1;
     }
+    for (const at of localFiled) if (inWeek(at)) filed += 1;
     return filed;
-  }, [mirror, queue, ownerId, now]);
+  }, [mirror, queue, ownerId, now, localFiled]);
 }

@@ -26,18 +26,21 @@
  * **Every message goes to the device store** (`smsMessageStore`), whichever
  * pile it fell in — expense, income, or neither. That store never syncs.
  *
- * **Only confident expenses become captures.** A capture syncs, and it appears
- * in Review, which is the list of things waiting on a person. Putting every
- * half-read message there would make Review a place to avoid, and a draft made
- * from a message the parser only half understood is a question, not an answer.
- * Those stay on the Bank messages screen, where somebody can tick them
- * deliberately. Nothing is lost either way: the message is on the device and
- * the screen shows it.
+ * **Only confident expenses become drafts.** A draft appears in Review, which
+ * is the list of things waiting on a person. Putting every half-read message
+ * there would make Review a place to avoid, and a draft made from a message the
+ * parser only half understood is a question, not an answer. Those stay on the
+ * Bank messages screen, where somebody can tick them deliberately. Nothing is
+ * lost either way: the message is on the device and the screen shows it.
  *
- * **A capture made here still carries no message body**, exactly as before.
- * `planSmsDrafts` is handed every key as a read key and no bodies at all, so
- * `rawText` is null by construction — twice over, since it ignores bodies for
- * read keys anyway.
+ * **A draft never syncs.** It goes to this phone's sealed draft store
+ * (`smsDraftStore`), not onto the sync queue as a capture — so the iPad, the
+ * web and every other device on the account never see it. Only when the person
+ * turns it into an expense does *that* sync (`lib/smsLocalDrafts.ts`).
+ *
+ * **A draft made here carries no message body.** `planSmsDrafts` is handed
+ * every key as a read key and no bodies at all, so `rawText` is null by
+ * construction — twice over, since it ignores bodies for read keys anyway.
  *
  * ## What it never does
  *
@@ -48,15 +51,11 @@
  * them has anywhere useful to put an exception.
  */
 
-import { randomUUID } from 'expo-crypto';
-
 import {
   classifySms,
   materialiseCaptures,
-  MutationKind,
   SmsKind,
   type ClassifiedSms,
-  type MutationEnvelope,
   type SmsMessage,
 } from '@waves/core';
 
@@ -64,7 +63,9 @@ import { serialiseCapture } from '@/data/hooks';
 import { syncEngine } from '@/sync';
 
 import { smsCaptureId } from './smsCaptureId';
+import { smsDrafts } from './smsDraftStore';
 import type { SmsDraft } from './smsDrafts';
+import { draftRowFromPayload, type SerialisedCapture } from './smsLocalDrafts';
 import { smsReaderInBuild } from './smsFeature';
 import { knownKeys, saveMessages } from './smsMessageStore';
 import {
@@ -214,53 +215,61 @@ async function ensureHydrated(): Promise<void> {
 }
 
 /**
- * Every dedupe key this account already has a capture for.
+ * Every dedupe key this account already has a capture or a local draft for.
  *
  * Deliberately not just the open ones: a draft already filed into a group, or
  * deleted, is still a message that has been dealt with, and re-proposing it
- * would put somebody's already-entered dinner back in Review every hour.
+ * would put somebody's already-entered dinner back in Review every hour. The
+ * synced captures still count — drafts made before they stayed on the phone,
+ * and the ones the one-time move took off the server, are there as rows.
  */
-function captureKeys(ownerId: string): Set<string> {
+export async function captureKeys(ownerId: string): Promise<Set<string>> {
   const { mirror, queue } = syncEngine.getState();
   const keys = new Set<string>();
   for (const capture of materialiseCaptures(mirror, queue, { ownerId })) {
     const key = (capture.parsed as { dedupeKey?: unknown } | null)?.dedupeKey;
     if (typeof key === 'string') keys.add(key);
   }
+  await smsDrafts.ensureLoaded(ownerId);
+  for (const draft of smsDrafts.openDrafts(ownerId)) {
+    const key = (draft.parsed as { dedupeKey?: unknown } | null)?.dedupeKey;
+    if (typeof key === 'string') keys.add(key);
+  }
   return keys;
 }
 
 /**
- * One draft onto the queue, under the id the message itself determines.
+ * One draft into this phone's draft store, under the id the message itself
+ * determines. Never onto the sync queue.
  *
  * Not through `useCreateCapture` because a WorkManager wake-up has no React
  * tree — but through the same `serialiseCapture` the hook uses, so an automatic
  * draft and a hand-made one are the same row by construction.
+ *
+ * Returns the id, or null when this device already has the draft or has
+ * already answered it (a tombstone — used or dismissed). The tombstones are
+ * what the dedupe keys above cannot see: a dismissed draft keeps no key.
  */
-export async function writeDraft(ownerId: string, draft: SmsDraft): Promise<string> {
+export async function writeDraft(ownerId: string, draft: SmsDraft): Promise<string | null> {
   const captureId = await smsCaptureId(ownerId, draft.dedupeKey);
-  const envelope: MutationEnvelope = {
-    clientMutationId: randomUUID(),
-    kind: MutationKind.CaptureCreate,
-    // The personal sync scope: a capture belongs to an account, not a group.
-    groupId: ownerId,
-    clientCreatedAt: new Date().toISOString(),
-    payload: serialiseCapture(
-      {
-        description: draft.description,
-        category: draft.category,
-        expenseDate: draft.expenseDate,
-        currency: draft.currency,
-        amount: draft.amount,
-        // Null, always, on this path.
-        rawText: draft.rawText,
-        parsed: { ...draft.parsed },
-      },
-      captureId,
-    ),
-  };
-  await syncEngine.enqueue(envelope);
-  return captureId;
+  const payload = serialiseCapture(
+    {
+      description: draft.description,
+      category: draft.category,
+      expenseDate: draft.expenseDate,
+      currency: draft.currency,
+      amount: draft.amount,
+      // Null, always, on the read path.
+      rawText: draft.rawText,
+      parsed: { ...draft.parsed },
+    },
+    captureId,
+  ) as unknown as SerialisedCapture;
+  const added = await smsDrafts.put(
+    ownerId,
+    draftRowFromPayload(ownerId, payload, new Date().toISOString()),
+  );
+  return added ? captureId : null;
 }
 
 export interface ScanInput {
@@ -326,14 +335,13 @@ export async function runScan(input: ScanInput): Promise<ScanResult> {
     // device store's dedupe does not cover this: a phone restored from a backup
     // has an empty message store and a full ledger.
     await ensureHydrated();
-    const already = captureKeys(input.ownerId);
+    const already = await captureKeys(input.ownerId);
     const drafts = draftsFor(rows.filter((row) => !already.has(row.dedupeKey)));
 
     let drafted = 0;
     for (const draft of drafts) {
       try {
-        await writeDraft(input.ownerId, draft);
-        drafted += 1;
+        if ((await writeDraft(input.ownerId, draft)) !== null) drafted += 1;
       } catch {
         // One draft that will not go down does not take the rest with it. The
         // message is in the device store either way, so nothing is lost — it

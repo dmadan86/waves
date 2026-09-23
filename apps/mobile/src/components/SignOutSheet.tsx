@@ -6,7 +6,8 @@
  * credentials the moment the session goes, because the next person to hold this
  * phone must not find the last account's ledger on it. Everything the server
  * already has comes back on the next sign-in — but a mutation still in the
- * queue has reached nobody, a refusal is being kept *only* here, an expense
+ * queue has reached nobody, a draft made from a bank message never goes to the
+ * server at all (`lib/smsLocalDrafts.ts`), so this phone holds its only copy, a refusal is being kept *only* here, an expense
  * somebody was still typing was never submitted at all, and the backup recovery
  * key exists in one keystore in the world. A plain "Sign out?" alert over that
  * is a trapdoor.
@@ -64,9 +65,11 @@ import { loadRecoveryKey } from '@/lib/backup/recoveryKey';
 import { loadBackupSettings } from '@/lib/backup/settings';
 import { BackupTier, resolveTier } from '@/lib/backup/tier';
 import { useAuth } from '@/lib/auth';
+import { useLocalSmsDrafts } from '@/data/hooks';
 import { saveDeviceCopy } from '@/lib/deviceCopy';
 import { friendlyError } from '@/lib/errors';
 import { reportHandled } from '@/lib/observability';
+import { signOutAtRiskCount, smsDraftsAsDeviceDrafts } from '@/lib/smsLocalDrafts';
 import {
   flushReceiptQueue,
   getPendingReceiptsSnapshot,
@@ -235,12 +238,19 @@ export function SignOutSheet({
 
   const ownerId = session?.user?.id ?? '';
   const drafts = useDeviceDrafts(visible);
+  // SMS drafts never sync, so sign-out takes the only copy with it.
+  const smsLocal = useLocalSmsDrafts(ownerId);
   const backupKeyAtRisk = useUnconfirmedBackupKey(visible, ownerId);
   const work = useMemo(() => unsentWork(queue, ownerId), [queue, ownerId]);
   // A receipt that has been sent stays in the queue a while so its tile keeps
   // its place; only the ones still owed are at risk.
   const unsentReceipts = receipts.filter((item) => item.status !== 'sent').length;
-  const atRisk = work.total + unsentReceipts + drafts.length;
+  const atRisk = signOutAtRiskCount({
+    unsentMutations: work.total,
+    unsentReceipts,
+    formDrafts: drafts.length,
+    smsDrafts: smsLocal.length,
+  });
   // What "Sync now" could actually move. Receipts count: they go out through
   // their own queue, and leaving them out of this gated the button away from a
   // device whose only unsent thing was a photograph it could have sent.
@@ -326,7 +336,9 @@ export function SignOutSheet({
       const result = await saveDeviceCopy({
         mirror,
         queue,
-        drafts,
+        // The autosaved forms and this phone's SMS drafts: neither has a copy
+        // anywhere else once the wipe runs.
+        drafts: [...drafts, ...smsDraftsAsDeviceDrafts(smsLocal)],
         ownerId,
         dialogTitle: t.signOutSheet.copyShareTitle,
       });
@@ -343,7 +355,7 @@ export function SignOutSheet({
     } finally {
       setBusy('none');
     }
-  }, [mirror, queue, drafts, ownerId, t]);
+  }, [mirror, queue, drafts, smsLocal, ownerId, t]);
 
   // Nothing queued and no key to lose is the ordinary case, and it is not a
   // dangerous one — the head mark then says "safe", not "look out".
@@ -451,6 +463,14 @@ export function SignOutSheet({
               <RiskRow
                 icon="document-text-outline"
                 label={plural(locale, drafts.length, t.signOutSheet.draftsUnsent)}
+              />
+            ) : null}
+            {/* SMS drafts stay on the phone until used, so there is no server
+                copy to come back after signing in again. */}
+            {smsLocal.length > 0 ? (
+              <RiskRow
+                icon="chatbox-ellipses-outline"
+                label={plural(locale, smsLocal.length, t.signOutSheet.smsDraftsOnPhone)}
               />
             ) : null}
             {/* Not unsent work: the recovery key is lost on sign-out whether or
