@@ -405,12 +405,19 @@ export function CurrencyRate({
   );
 }
 
-/** "4562.50" → 456250 minor units. Parsed as digits, never as a float. */
-function parseMinor(text: string, currency: string): bigint {
+/**
+ * "4562.50" → 456250 minor units. Parsed as digits, never as a float.
+ * Exported only so `test/currencyRate.test.ts` can reach it.
+ */
+export function parseMinor(text: string, currency: string): bigint {
   const trimmed = text.trim().replace(/,/g, '');
   if (!/^\d+(\.\d+)?$/.test(trimmed)) throw new Error('not an amount');
   const exponent = minorUnitExponent(currency);
   const [whole = '0', fraction = ''] = trimmed.split('.');
+  // Digits past the currency's own decimals are refused, not cut off: a rate
+  // built from "10.999" read as 10.99 is a rate for a figure nobody typed.
+  // Trailing zeros are harmless ("1500.00" JPY is ¥1500).
+  if (/[1-9]/.test(fraction.slice(exponent))) throw new Error('not an amount');
   const padded = (fraction + '0'.repeat(exponent)).slice(0, exponent);
   return BigInt(whole + padded);
 }
