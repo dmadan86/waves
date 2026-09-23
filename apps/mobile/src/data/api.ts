@@ -35,13 +35,7 @@ import { normaliseContactPhone } from '@/lib/phone';
 import { attachPhoneCode, sendPhoneCode } from '@/lib/phoneAuth';
 import { imageUrl, putImage, removeImage } from '@/lib/storage';
 import { backend } from '@/lib/backend';
-import type {
-  BalanceRow,
-  GroupRow,
-  GroupType,
-  MemberRow,
-  SettlementMethod,
-} from './types';
+import type { BalanceRow, GroupRow, GroupType, MemberRow, SettlementMethod } from './types';
 
 const GROUP_SELECT = `
   id, name, description, type, country_code, default_currency, simplify_debts, cover_emoji,
