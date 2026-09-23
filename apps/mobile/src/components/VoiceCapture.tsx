@@ -744,7 +744,9 @@ export function VoiceCapture({
       if (!mounted.current) return give();
       if (!permission.granted) {
         setError(permission.canAskAgain ? t.misc.micPermission : t.misc.micBlocked);
-        setErrorInSettings(true);
+        // Settings is the cure only once the system stops asking; while it can
+        // still ask, tapping the mic again brings the prompt back.
+        setErrorInSettings(!permission.canAskAgain);
         return give();
       }
 

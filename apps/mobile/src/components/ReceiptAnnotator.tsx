@@ -346,10 +346,18 @@ export function ReceiptAnnotator({
                 }}
               />
               <Row style={{ justifyContent: 'flex-end', gap: theme.spacing.md }}>
-                <Pressable onPress={() => setPending(null)} accessibilityRole="button" hitSlop={12}>
+                <Pressable
+                  onPress={() => setPending(null)}
+                  accessibilityRole="button"
+                  hitSlop={{ top: 12, bottom: 12, left: 6, right: 6 }}
+                >
                   <Text tone="muted">{t.common.cancel}</Text>
                 </Pressable>
-                <Pressable onPress={commitText} accessibilityRole="button" hitSlop={12}>
+                <Pressable
+                  onPress={commitText}
+                  accessibilityRole="button"
+                  hitSlop={{ top: 12, bottom: 12, left: 6, right: 6 }}
+                >
                   <Text style={{ color: theme.color.brand, fontWeight: '700' }}>
                     {t.common.done}
                   </Text>
