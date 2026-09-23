@@ -13,8 +13,10 @@
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { FlashList } from '@shopify/flash-list';
 import { useLocalSearchParams } from 'expo-router';
-import { Pressable, SectionList, View } from 'react-native';
+import { useMemo } from 'react';
+import { Pressable, View } from 'react-native';
 
 import { format, money, type PersonalTxn } from '@waves/core';
 import {
@@ -37,6 +39,11 @@ import { PersonalGuard } from '@/components/PersonalGuard';
 import { useBottomClearance } from '@/lib/clearance';
 import { router } from '@/lib/navigation';
 
+/** One row of the flattened ledger: a day heading, or an entry under it. */
+type LedgerItem =
+  | { kind: 'day'; key: string; day: string; first: boolean }
+  | { kind: 'txn'; key: string; txn: PersonalTxn };
+
 function PersonalTransactionsScreenBody() {
   const theme = useTheme();
   const clearance = useBottomClearance();
@@ -44,15 +51,27 @@ function PersonalTransactionsScreenBody() {
   const { txns } = usePersonalLedger();
   const params = useLocalSearchParams<{ category?: string }>();
   const filter = typeof params.category === 'string' ? params.category : null;
-  const shown = filter ? txns.filter((txn) => txn.category === filter) : txns;
 
-  // Group by day; the ledger already comes newest first, so days do too.
-  const sections: { title: string; data: PersonalTxn[] }[] = [];
-  for (const txn of shown) {
-    const last = sections[sections.length - 1];
-    if (last && last.title === txn.date) last.data.push(txn);
-    else sections.push({ title: txn.date, data: [txn] });
-  }
+  /**
+   * Grouped by day, flattened into one recyclable list — a heading item where
+   * the day changes, then its entries. The ledger already comes newest first,
+   * so days do too. It was a SectionList, which keeps every row it has ever
+   * rendered mounted; FlashList recycles each kind against its own pool, the
+   * way the group month screen does.
+   */
+  const items: LedgerItem[] = useMemo(() => {
+    const shown = filter ? txns.filter((txn) => txn.category === filter) : txns;
+    const list: LedgerItem[] = [];
+    let day: string | null = null;
+    for (const txn of shown) {
+      if (txn.date !== day) {
+        list.push({ kind: 'day', key: `day-${txn.date}`, day: txn.date, first: day === null });
+        day = txn.date;
+      }
+      list.push({ kind: 'txn', key: txn.id, txn });
+    }
+    return list;
+  }, [txns, filter]);
 
   const labelFor = (id: string | null): string | null =>
     id ? (t.categories[id as keyof typeof t.categories] ?? null) : null;
@@ -89,13 +108,17 @@ function PersonalTransactionsScreenBody() {
         </IconButton>
       </Row>
 
-      <SectionList
-        sections={sections}
-        keyExtractor={(txn) => txn.id}
+      <FlashList
+        data={items}
+        extraData={`${locale}|${theme.scheme}`}
+        keyExtractor={(item) => item.key}
+        getItemType={(item) => item.kind}
+        // The group ledger's settings: render well beyond the viewport so a hard
+        // fling down a long ledger never outruns recycling and flashes blank rows.
+        drawDistance={1500}
         contentContainerStyle={{
           paddingHorizontal: theme.spacing.xl,
           paddingBottom: clearance,
-          gap: theme.spacing.sm,
         }}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
@@ -103,30 +126,42 @@ function PersonalTransactionsScreenBody() {
             <EmptyState title={t.personal.empty} />
           </View>
         }
-        renderSectionHeader={({ section }) => (
-          <Text
-            variant="micro"
-            tone="faint"
-            style={{
-              letterSpacing: 0.8,
-              paddingTop: theme.spacing.lg,
-              paddingBottom: theme.spacing.xs,
-            }}
-          >
-            {/* The day as a person says it — "Today", "Yesterday", "Friday",
-                then "18 September" — not the ISO key the ledger groups by. The
-                same `dayHeading` the activity feed, the captures inbox and the
-                SMS threads use, so every dated list in the app reads alike. */}
-            {dayHeading(locale, section.title)}
-          </Text>
-        )}
-        renderItem={({ item: txn }) => {
+        // The SectionList's `gap` fell between every cell, including the empty
+        // footer cell it keeps after each day — so a row sat `sm` below the one
+        // above it, a new day `2 × sm` below the last row, and the list ended on
+        // one more `sm`. The same spacing, as margins, since FlashList has no gap.
+        ListFooterComponent={
+          items.length > 0 ? <View style={{ height: theme.spacing.sm }} /> : null
+        }
+        renderItem={({ item }) => {
+          if (item.kind === 'day') {
+            return (
+              <Text
+                variant="micro"
+                tone="faint"
+                style={{
+                  letterSpacing: 0.8,
+                  marginTop: item.first ? 0 : theme.spacing.sm * 2,
+                  paddingTop: theme.spacing.lg,
+                  paddingBottom: theme.spacing.xs,
+                }}
+              >
+                {/* The day as a person says it — "Today", "Yesterday", "Friday",
+                    then "18 September" — not the ISO key the ledger groups by. The
+                    same `dayHeading` the activity feed, the captures inbox and the
+                    SMS threads use, so every dated list in the app reads alike. */}
+                {dayHeading(locale, item.day)}
+              </Text>
+            );
+          }
+          const txn = item.txn;
           const income = txn.kind === 'income';
           const title = txn.note?.trim() || labelFor(txn.category) || '—';
           return (
             <Pressable
               accessibilityRole="button"
               onPress={() => router.push({ pathname: '/personal/entry', params: { id: txn.id } })}
+              style={{ marginTop: theme.spacing.sm }}
             >
               <Card
                 padded={false}

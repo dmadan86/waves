@@ -221,6 +221,22 @@ class FakeDatabase {
     });
   }
 
+  /** Statements compiled with `prepareAsync`, and how many were finalised. */
+  prepared = 0;
+  finalized = 0;
+
+  // A prepared statement runs the same way a one-off `runAsync` does; what the
+  // fake adds is the count, so a test can see one compile serve many rows.
+  async prepareAsync(source: string) {
+    this.prepared += 1;
+    return {
+      executeAsync: (params: unknown[] = []) => this.runAsync(source, params),
+      finalizeAsync: async () => {
+        this.finalized += 1;
+      },
+    };
+  }
+
   // Copied in shape from expo-sqlite's own implementation, which is the whole
   // point: it is not atomic against anything else using this connection.
   async withTransactionAsync(task: () => Promise<void>): Promise<void> {
@@ -574,6 +590,44 @@ describe('native local store lifecycle', () => {
 
     expect(openCalls).toBe(0);
     expect(database.statements).toEqual([]);
+  });
+
+  it('compiles the row upsert once per pull, inside its transaction, and finalises it', async () => {
+    const store = createLocalStore();
+    await store.ready();
+    const before = database.prepared;
+    const rows = Array.from({ length: 50 }, (_, index) => ({
+      table: 'expenses',
+      id: `e${index}`,
+      groupId: 'g1',
+      seq: index + 1,
+      row: { id: `e${index}` },
+    }));
+
+    await store.putRows(rows as never);
+
+    expect(database.prepared - before).toBe(1);
+    expect(database.finalized).toBe(database.prepared);
+    expect(database.mirrorRows.size).toBe(50);
+    const tail = database.statements.slice(-52);
+    expect(tail[0]).toBe('BEGIN');
+    expect(tail.filter((s) => s === 'INSERT INTO mirror_rows')).toHaveLength(50);
+    expect(tail[51]).toBe('COMMIT');
+  });
+
+  it('finalises the statement and rolls back when a row fails mid-pull', async () => {
+    const store = createLocalStore();
+    await store.ready();
+    const rows = [
+      { table: 'expenses', id: 'ok', groupId: 'g1', seq: 1, row: { id: 'ok' } },
+      // JSON.stringify throws on a BigInt, part-way through the loop.
+      { table: 'expenses', id: 'bad', groupId: 'g1', seq: 2, row: { id: 'bad', n: 1n } },
+    ];
+
+    await expect(store.putRows(rows as never)).rejects.toThrow();
+
+    expect(database.finalized).toBe(database.prepared);
+    expect(database.statements.at(-1)).toBe('ROLLBACK');
   });
 });
 
