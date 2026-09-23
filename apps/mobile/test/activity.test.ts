@@ -24,8 +24,10 @@ import {
   describeActivity,
   filterByDayRange,
   parseMoney,
+  groupByDay,
   relativeTime,
   verbIcon,
+  verbTint,
 } from '@/data/activity';
 import type { ActivityActor, ActivityRow } from '@/data/types';
 
@@ -577,5 +579,159 @@ describe('parseMoney', () => {
     expect(parseMoney('1500')).toBeNull();
     expect(parseMoney(undefined)).toBeNull();
     expect(parseMoney({})).toBeNull();
+  });
+});
+
+describe('the rest of the verbs, as sentences', () => {
+  it.each([
+    ['withdrew_dispute', { description: 'Dinner' }, 'Ravi took back their correction to Dinner'],
+    ['withdrew_dispute', {}, 'Ravi took back their correction to an expense'],
+    ['settled', {}, 'Ravi recorded a settlement'],
+    ['confirmed', {}, 'Ravi confirmed a settlement'],
+    ['cancelled', {}, 'Ravi cancelled a recorded payment'],
+    ['settle_disputed', {}, "Ravi says a payment didn't reach them"],
+    [
+      'settle_disputed',
+      { reason: 'Nothing arrived' },
+      'Ravi says a payment didn\'t reach them — "Nothing arrived"',
+    ],
+    ['joined', {}, 'Ravi joined'],
+    ['created', {}, 'Ravi created the group'],
+    ['created', { name: '   ' }, 'Ravi created the group'],
+    ['group_deleted', { name: ' Goa ' }, 'Ravi deleted Goa'],
+    ['group_deleted', {}, 'Ravi deleted the group'],
+  ])('%s %j', (verb, payload, expected) => {
+    // Given a row with this verb and payload, when it is described to another
+    // reader, then it reads as a sentence naming the actor.
+    expect(describeActivity(row({ verb, payload }), 'me')).toBe(expected);
+  });
+});
+
+describe('activityHeadline, every known verb', () => {
+  it.each([
+    ['superseded', 'Edit replaced'],
+    ['withdrew_dispute', 'Correction withdrawn'],
+    ['accepted_dispute', 'Correction accepted'],
+    ['rejected_dispute', 'Marked correct'],
+    ['settled', 'Settlement recorded'],
+    ['confirmed', 'Settlement confirmed'],
+    ['auto_confirmed', 'Settlement auto-confirmed'],
+    ['cancelled', 'Payment cancelled'],
+    ['settle_disputed', 'Payment rejected'],
+    ['joined', 'Joined the group'],
+    ['imported', 'Group imported'],
+    ['auto_archived', 'Group archived'],
+    ['disputed', 'Flagged expense'],
+    ['restored', 'Restored expense'],
+  ])('%s → %s', (verb, expected) => {
+    expect(activityHeadline(row({ verb, payload: {} }))).toBe(expected);
+  });
+
+  it('says "Group created" when the create carries no usable name', () => {
+    expect(activityHeadline(row({ verb: 'created', payload: { name: '  ' } }))).toBe(
+      'Group created',
+    );
+  });
+});
+
+describe('verbIcon, every known verb', () => {
+  it.each([
+    ['added', 'receipt-outline'],
+    ['deleted', 'trash-outline'],
+    ['restored', 'arrow-undo-outline'],
+    ['settled', 'card-outline'],
+    ['confirmed', 'checkmark-circle-outline'],
+    ['rejected_dispute', 'checkmark-circle-outline'],
+    ['disputed', 'flag-outline'],
+    ['settle_disputed', 'flag-outline'],
+    ['cancelled', 'close-circle-outline'],
+    ['joined', 'person-add-outline'],
+    ['created', 'sparkles-outline'],
+  ])('%s → %s', (verb, icon) => {
+    expect(verbIcon(verb)).toBe(icon);
+  });
+});
+
+describe('verbTint', () => {
+  it.each([
+    ['settled', 'mint'],
+    ['restored', 'mint'],
+    ['withdrew_dispute', 'mint'],
+    ['deleted', 'coral'],
+    ['settle_disputed', 'coral'],
+    ['rejected_dispute', 'coral'],
+    ['added', 'sky'],
+    ['joined', 'sky'],
+    ['edited', 'lilac'],
+    ['created', 'lilac'],
+    ['some_future_verb', 'lilac'],
+  ])('%s wears %s', (verb, tint) => {
+    expect(verbTint(verb)).toBe(tint);
+  });
+});
+
+describe('groupByDay', () => {
+  it('cuts a newest-first feed into consecutive day sections, order untouched', () => {
+    // Given three rows across two local days (noon, so no timezone can move them)
+    const a = { id: 'a', created_at: new Date(2026, 7, 15, 12).toISOString() };
+    const b = { id: 'b', created_at: new Date(2026, 7, 15, 9).toISOString() };
+    const c = { id: 'c', created_at: new Date(2026, 7, 14, 12).toISOString() };
+    // When grouped by the default key
+    const sections = groupByDay([a, b, c]);
+    // Then same-day rows share a section and the order is kept
+    expect(sections.map((s) => s.entries.map((e) => e.id))).toEqual([['a', 'b'], ['c']]);
+    expect(sections[0]?.key).toBe('2026-8-15');
+  });
+
+  it('honours a caller-supplied key (the day the money moved)', () => {
+    const rows = [
+      { created_at: '2026-08-15T00:00:00Z', day: 'x' },
+      { created_at: '2026-08-15T00:00:01Z', day: 'y' },
+      { created_at: '2026-08-15T00:00:02Z', day: 'y' },
+    ];
+    const sections = groupByDay(rows, (r) => r.day);
+    expect(sections.map((s) => [s.key, s.entries.length])).toEqual([
+      ['x', 1],
+      ['y', 2],
+    ]);
+  });
+
+  it('is empty for an empty feed', () => {
+    expect(groupByDay([])).toEqual([]);
+  });
+});
+
+describe('unparseable timestamps are passed through, never thrown on', () => {
+  it('dayKey / dayHeading / relativeTime / activityTimestamp return the raw string', () => {
+    expect(dayKey('not a date')).toBe('not a date');
+    expect(dayHeading('en', 'not a date')).toBe('not a date');
+    expect(relativeTime('en', 'not a date')).toBe('not a date');
+    expect(activityTimestamp('en', 'not a date')).toBe('not a date');
+  });
+
+  it('filterByDayRange drops a row whose timestamp cannot be read', () => {
+    const noon = new Date(2026, 7, 15, 12);
+    expect(filterByDayRange([{ created_at: 'garbage' }], noon, noon)).toEqual([]);
+  });
+});
+
+describe('relativeTime, the larger units', () => {
+  const now = Date.parse('2026-08-15T12:00:00Z');
+  const ago = (seconds: number): string =>
+    relativeTime('en', new Date(now - seconds * 1000).toISOString(), now);
+
+  it('uses seconds, hours, weeks, months and years as the span grows', () => {
+    expect(ago(0)).toBe('now');
+    expect(ago(3 * 3600)).toBe('3 hours ago');
+    expect(ago(14 * 86400)).toBe('2 weeks ago');
+    expect(ago(90 * 86400)).toBe('3 months ago');
+    expect(ago(3 * 365 * 86400)).toBe('3 years ago');
+  });
+
+  it('uses a formatter the caller hands in', () => {
+    const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'always' });
+    expect(relativeTime('en', new Date(now - 86400 * 1000).toISOString(), now, rtf)).toBe(
+      '1 day ago',
+    );
   });
 });
