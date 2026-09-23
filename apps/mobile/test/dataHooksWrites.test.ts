@@ -41,6 +41,11 @@ vi.mock(
   async () => (await import('./support/hookHarness')).fakeReactQuery,
 );
 vi.mock('@/sync', async () => (await import('./support/hookHarness')).fakeSync);
+// The data hooks read this device's local SMS drafts; the real store opens
+// SQLite and the keystore, so it is the real cache over memory here.
+vi.mock('@/lib/smsDraftStore', async () =>
+  (await import('./support/memoryDraftStore')).memoryDraftStoreModule(),
+);
 // `@/lib/phone` reads the device region from here; the real module pulls React Native.
 vi.mock('@/i18n', () => ({ deviceCountry: () => null }));
 
@@ -441,6 +446,23 @@ describe('captures', () => {
     expect(calls[1]?.[2]).toMatchObject({ captureId: 'c-1' });
     expect(calls[2]?.[2]).toEqual({ captureId: 'c-2' });
     expect(calls[3]?.[2]).toEqual({ captureId: 'c-3', groupId: 'g-1', expenseId: 'e-1' });
+  });
+
+  it('an SMS draft stays on the device: never queued, and a repeat returns null so it is not counted', async () => {
+    const sms = {
+      ...capture,
+      captureId: 'sms-1',
+      parsed: { source: 'sms', channel: 'paste', dedupeKey: 'k-1' },
+    };
+    const create = mutation<typeof sms, string | null>(() => hooks.useCreateCapture());
+
+    await expect(create.mutationFn(sms)).resolves.toBe('sms-1');
+    // The paste screen counts what landed: the second paste of the same message is null.
+    await expect(create.mutationFn(sms)).resolves.toBeNull();
+    // Dismissing it is local too.
+    await mutation<string, string>(() => hooks.useDeleteCapture()).mutationFn('sms-1');
+
+    expect(sync.mutate).not.toHaveBeenCalled();
   });
 
   it('every capture write refuses without a session', async () => {

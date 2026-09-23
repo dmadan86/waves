@@ -20,6 +20,7 @@ import {
   routeCaptureCreate,
   routeCaptureDelete,
   routeCaptureUpdate,
+  SmsDraftNotEditableError,
   type Mutate,
 } from '@/lib/smsDraftRouting';
 import { moveSyncedSmsDrafts, reconcileHeld } from '@/lib/smsDraftUpkeep';
@@ -29,6 +30,8 @@ import {
   heldOutcome,
   isSmsDerived,
   mergeCaptureLists,
+  signOutAtRiskCount,
+  smsDraftsAsDeviceDrafts,
 } from '@/lib/smsLocalDrafts';
 
 const OWNER = 'owner-1';
@@ -222,7 +225,7 @@ describe('routing: an SMS draft never becomes a synced capture', () => {
     expect(row.created_at).toBe(created);
   });
 
-  it('placing a local draft in a group: the expense syncs, the draft is removed once it lands', async () => {
+  it('placing a local draft in a group: the expense syncs, the draft is filed once it lands', async () => {
     const drafts = createDraftCache(memoryBackend());
     const mutate = recordingMutate();
     await routeCaptureCreate({ ownerId: OWNER, drafts, mutate }, smsPayload('c1'));
@@ -241,9 +244,9 @@ describe('routing: an SMS draft never becomes a synced capture', () => {
     // Off Review straight away…
     expect(drafts.openDrafts(OWNER)).toEqual([]);
 
-    // …and once the server has the expense, the draft is gone for good.
+    // …and once the server has the expense, the draft is filed for good.
     const queue = [{ payload: { expenseId: 'e1' } }] as unknown as QueuedMutation[];
-    const missing = new Map<string, string | null>();
+    const missing = new Map<string, (string | null)[]>();
     await reconcileHeld({
       ownerId: OWNER,
       drafts,
@@ -265,41 +268,87 @@ describe('routing: an SMS draft never becomes a synced capture', () => {
     expect(await drafts.heldDrafts(OWNER)).toEqual([]);
     expect(drafts.openDrafts(OWNER)).toEqual([]);
     expect(await drafts.isLocalDraft(OWNER, 'c1')).toBe(false);
+    expect(await drafts.stateOf(OWNER, 'c1')).toBe('filed');
+    // A filed draft keeps when it was caught (for "filed this week") and no fact.
+    expect(drafts.filedCaughtAt(OWNER)).toHaveLength(1);
+  });
+
+  it('a create for a draft this phone already has is a duplicate, and does not count', async () => {
+    const drafts = createDraftCache(memoryBackend());
+    const mutate = recordingMutate();
+    const deps = { ownerId: OWNER, drafts, mutate };
+
+    expect(await routeCaptureCreate(deps, smsPayload('c1'))).toBe('local');
+    expect(await routeCaptureCreate(deps, smsPayload('c1'))).toBe('duplicate');
+    await routeCaptureDelete(deps, 'c1');
+    expect(await routeCaptureCreate(deps, smsPayload('c1'))).toBe('duplicate');
+    expect(mutate.calls).toEqual([]);
+  });
+
+  it('an edit to a draft already placed in a group is refused out loud, never dropped or sent', async () => {
+    const drafts = createDraftCache(memoryBackend());
+    const mutate = recordingMutate();
+    const deps = { ownerId: OWNER, drafts, mutate };
+    await routeCaptureCreate(deps, smsPayload('c1'));
+    await routeCaptureAssign(deps, { captureId: 'c1', groupId: 'g', expenseId: 'e1' });
+
+    await expect(
+      routeCaptureUpdate(deps, 'c1', smsPayload('c1', { description: 'late edit' })),
+    ).rejects.toBeInstanceOf(SmsDraftNotEditableError);
+    // And never a capture.update for a row the server does not have.
+    expect(mutate.calls).toEqual([]);
+
+    await routeCaptureDelete(deps, 'c1');
+    await expect(routeCaptureUpdate(deps, 'c1', smsPayload('c1'))).rejects.toBeInstanceOf(
+      SmsDraftNotEditableError,
+    );
+    expect(mutate.calls).toEqual([]);
   });
 });
 
 describe('held drafts: a refusal is not a deletion', () => {
-  it('brings a draft back when its expense was discarded — but only after a later sync', async () => {
+  function heldHarness() {
     const drafts = createDraftCache(memoryBackend());
-    const mutate = recordingMutate();
-    await routeCaptureCreate({ ownerId: OWNER, drafts, mutate }, smsPayload('c1'));
-    await drafts.hold(OWNER, 'c1', 'group-1', 'e1');
-    const missing = new Map<string, string | null>();
-    const run = (syncMark: string) =>
-      reconcileHeld({
-        ownerId: OWNER,
-        drafts,
-        isConfirmed: () => false,
-        queue: [],
-        syncMark,
-        missing,
-      });
+    const missing = new Map<string, (string | null)[]>();
+    const run = (syncMark: string, isConfirmed: (id: string) => boolean = () => false) =>
+      reconcileHeld({ ownerId: OWNER, drafts, isConfirmed, queue: [], syncMark, missing });
+    return { drafts, run };
+  }
 
-    // Not in the mirror, not on the queue — but that is also what the moment
-    // between an acknowledgement and the pull looks like, so it waits…
+  it('brings a draft back when its expense was discarded — only after two further syncs', async () => {
+    const { drafts, run } = heldHarness();
+    await drafts.put(OWNER, draftRowFromPayload(OWNER, smsPayload('c1'), '2026-03-10T00:00:00Z'));
+    await drafts.hold(OWNER, 'c1', 'group-1', 'e1');
+
+    // Not in the mirror, not on the queue — but an acknowledged expense whose
+    // group has not been pulled yet looks exactly like that, so it waits…
     await run('t1');
     await run('t1');
+    await run('t2');
     expect(drafts.openDrafts(OWNER)).toEqual([]);
 
-    // …and only a sync later, still missing, does it come back to Review.
-    await run('t2');
+    // …and only still missing after a second further sync does it come back.
+    await run('t3');
     expect(drafts.openDrafts(OWNER).map((row) => row.id)).toEqual(['c1']);
   });
 
-  it('heldOutcome: remove when confirmed, wait while queued, missing otherwise', () => {
+  it('files, never reopens, a draft whose expense shows up late', async () => {
+    const { drafts, run } = heldHarness();
+    await drafts.put(OWNER, draftRowFromPayload(OWNER, smsPayload('c1'), '2026-03-10T00:00:00Z'));
+    await drafts.hold(OWNER, 'c1', 'group-1', 'e1');
+
+    await run('t1');
+    await run('t2'); // one sync that did not bring the group's expenses
+    await run('t3', (id) => id === 'e1');
+
+    expect(drafts.openDrafts(OWNER)).toEqual([]);
+    expect(await drafts.stateOf(OWNER, 'c1')).toBe('filed');
+  });
+
+  it('heldOutcome: file when confirmed, wait while queued, missing otherwise', () => {
     const held = { captureId: 'c1', groupId: 'g', expenseId: 'e1' };
     const queued = [{ payload: { expenseId: 'e1' } }] as unknown as QueuedMutation[];
-    expect(heldOutcome(held, new Set(['e1']), [])).toBe('remove');
+    expect(heldOutcome(held, new Set(['e1']), [])).toBe('file');
     expect(heldOutcome(held, new Set(), queued)).toBe('wait');
     expect(heldOutcome(held, new Set(), [])).toBe('missing');
   });
@@ -327,6 +376,19 @@ describe('the draft cache', () => {
 
     expect(await drafts.put(OWNER, row)).toBe(false);
     expect(drafts.openDrafts(OWNER)).toEqual([]);
+  });
+
+  it('a filed draft keeps no fact about the spend', async () => {
+    const backend = memoryBackend();
+    const drafts = createDraftCache(backend);
+    await drafts.put(OWNER, draftRowFromPayload(OWNER, smsPayload('c1'), '2026-03-10T00:00:00Z'));
+    await drafts.hold(OWNER, 'c1', 'g', 'e1');
+    await drafts.file(OWNER, 'c1');
+
+    const stored = JSON.stringify(backend.disk.get(OWNER)?.get('c1'));
+    for (const fact of ['SWIGGY', '45000', 'AX-HDFCBK', '1234', 'key-c1']) {
+      expect(stored).not.toContain(fact);
+    }
   });
 
   it('keeps accounts apart and forgets only the one signing out', async () => {
@@ -373,8 +435,33 @@ describe('mergeCaptureLists', () => {
   });
 });
 
+describe('sign-out: local SMS drafts are the only copy', () => {
+  it('counts them among what sign-out would lose', () => {
+    expect(
+      signOutAtRiskCount({ unsentMutations: 0, unsentReceipts: 0, formDrafts: 0, smsDrafts: 3 }),
+    ).toBe(3);
+    expect(
+      signOutAtRiskCount({ unsentMutations: 2, unsentReceipts: 1, formDrafts: 1, smsDrafts: 3 }),
+    ).toBe(7);
+    expect(
+      signOutAtRiskCount({ unsentMutations: 0, unsentReceipts: 0, formDrafts: 0, smsDrafts: 0 }),
+    ).toBe(0);
+  });
+
+  it('carries them into the device copy, one entry each', () => {
+    const row = draftRowFromPayload(OWNER, smsPayload('c1'), '2026-03-10T09:00:00.000Z');
+
+    expect(smsDraftsAsDeviceDrafts([row])).toEqual([
+      { key: 'sms-draft:c1', value: row, savedAt: '2026-03-10T09:00:00.000Z' },
+    ]);
+  });
+});
+
 describe('the one-time move', () => {
-  function harness(captures: MirrorCapture[]) {
+  /** Keys of the messages this device read — its own message store. */
+  const MINE = new Set(['key-open', 'key-a', 'key-b', 'key-used', 'key-gone', 'key-assigned']);
+
+  function harness(captures: MirrorCapture[], localKeys: ReadonlySet<string> = MINE) {
     const backend = memoryBackend();
     const drafts = createDraftCache(backend);
     const deleted: string[] = [];
@@ -382,6 +469,7 @@ describe('the one-time move', () => {
     const input = {
       ownerId: OWNER,
       captures,
+      localKeys,
       drafts,
       deleteServerCapture: vi.fn(async (id: string) => {
         deleted.push(id);
@@ -394,7 +482,7 @@ describe('the one-time move', () => {
     return { backend, drafts, deleted, input, isDone: () => done };
   }
 
-  it('takes open SMS captures only, copying each before queueing its delete', async () => {
+  it('takes open SMS captures this device read, copying each before queueing its delete', async () => {
     const assigned = mirrorCapture('assigned', { status: 'assigned', assigned_expense_id: 'e9' });
     const typed = mirrorCapture('typed', { parsed: { source: 'voice' } });
     const gone = mirrorCapture('gone', { deleted_at: '2026-03-04T00:00:00Z' });
@@ -408,12 +496,51 @@ describe('the one-time move', () => {
 
     const result = await moveSyncedSmsDrafts(h.input);
 
-    expect(result).toEqual({ moved: 1, done: true });
+    expect(result).toEqual({ moved: 1, tombstoned: 2, done: true });
     expect(h.deleted).toEqual(['open']);
     expect(h.drafts.openDrafts(OWNER).map((row) => row.id)).toEqual(['open']);
     // Copied as it was — no body invented.
     expect(h.drafts.openDrafts(OWNER)[0]!.raw_text).toBeNull();
-    expect(capturesToMove([assigned, typed, gone, open]).map((c) => c.id)).toEqual(['open']);
+    expect(capturesToMove([assigned, typed, gone, open], MINE).map((c) => c.id)).toEqual(['open']);
+  });
+
+  it('never moves another device’s SMS capture onto this one', async () => {
+    // Made from a message some other phone read — not in this device's store.
+    const theirs = mirrorCapture('theirs', { parsed: { source: 'sms', dedupeKey: 'key-theirs' } });
+    // A pasted draft: no proof of where it was made, so not moved either.
+    const pasted = mirrorCapture('pasted', {
+      parsed: { source: 'sms', channel: 'paste' },
+      raw_text: 'Rs 99 debited',
+    });
+    const h = harness([theirs, pasted]);
+
+    const result = await moveSyncedSmsDrafts(h.input);
+
+    expect(result).toEqual({ moved: 0, tombstoned: 0, done: true });
+    expect(h.deleted).toEqual([]);
+    expect(h.drafts.openDrafts(OWNER)).toEqual([]);
+    expect(await h.drafts.handledIds(OWNER)).toEqual(new Set());
+  });
+
+  it('writes tombstones for this device’s already-answered SMS captures, so a scrub cannot bring them back', async () => {
+    const gone = mirrorCapture('gone', { deleted_at: '2026-03-04T00:00:00Z' });
+    const assigned = mirrorCapture('assigned', { status: 'assigned', assigned_expense_id: 'e9' });
+    const theirsGone = mirrorCapture('theirs-gone', {
+      deleted_at: '2026-03-04T00:00:00Z',
+      parsed: { source: 'sms', dedupeKey: 'key-theirs' },
+    });
+    const h = harness([gone, assigned, theirsGone]);
+
+    await moveSyncedSmsDrafts(h.input);
+
+    expect(await h.drafts.stateOf(OWNER, 'gone')).toBe('dismissed');
+    expect(await h.drafts.stateOf(OWNER, 'assigned')).toBe('dismissed');
+    expect(await h.drafts.stateOf(OWNER, 'theirs-gone')).toBeNull();
+    // Nothing queued for them: they are already answered on the server.
+    expect(h.deleted).toEqual([]);
+    // And the reader will not draft them again.
+    const again = draftRowFromPayload(OWNER, smsPayload('gone'), '2026-03-10T00:00:00Z');
+    expect(await h.drafts.put(OWNER, again)).toBe(false);
   });
 
   it('is idempotent: once done it does nothing, and a re-run never writes twice', async () => {
@@ -423,7 +550,7 @@ describe('the one-time move', () => {
 
     const again = await moveSyncedSmsDrafts(h.input);
 
-    expect(again).toEqual({ moved: 0, done: true });
+    expect(again).toEqual({ moved: 0, tombstoned: 0, done: true });
     expect(h.backend.writes.length).toBe(writes);
     expect(h.deleted).toEqual(['open']);
   });

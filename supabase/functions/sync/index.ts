@@ -845,6 +845,20 @@ export class SyncSession {
     };
 
     const captureId = requireString(payload.captureId, 'captureId');
+
+    // A draft made from a bank message stays on the phone that read it until
+    // it becomes an expense (apps/mobile `lib/smsLocalDrafts.ts`); current
+    // builds never send one. Older builds still do, and a capture here is
+    // pulled by every device on the account — which is how a phone's bank
+    // messages reached an iPad. So it is acknowledged and not stored.
+    //
+    // Acknowledged, not refused: a refusal stays in the old phone's queue
+    // behind a banner, and "a refusal is not a deletion" — discarding it
+    // would be the person's only way out. An acknowledgement clears the queue
+    // like any applied write; the draft simply does not come back from the
+    // server, and the expense it becomes still syncs the ordinary way.
+    if (payload.parsed?.source === 'sms') return { captureId, stored: false };
+
     const amount = parseMinor(payload.amount, 'amount');
     if (amount < 0n) throw new HttpError(400, 'INVALID_AMOUNT', 'Amount cannot be negative');
 

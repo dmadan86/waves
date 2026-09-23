@@ -563,7 +563,7 @@ function PasteMessages(): React.JSX.Element {
     try {
       for (const draft of drafts) {
         const captureId = await smsCaptureId(ownerId, draft.dedupeKey);
-        await createCapture.mutateAsync({
+        const landed = await createCapture.mutateAsync({
           captureId,
           description: draft.description,
           category: draft.category,
@@ -573,7 +573,9 @@ function PasteMessages(): React.JSX.Element {
           rawText: draft.rawText,
           parsed: { ...draft.parsed },
         });
-        placed += 1;
+        // Null: this phone already had it, or already used or dismissed it.
+        // The count is what actually landed.
+        if (landed !== null) placed += 1;
       }
       setAdded(placed);
       setBlob('');

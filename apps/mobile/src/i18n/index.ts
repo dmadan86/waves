@@ -820,6 +820,9 @@ export interface UiStrings {
     refusedHint: string;
     receiptsUnsent: PluralForms;
     draftsUnsent: PluralForms;
+    /** Drafts made from bank messages. They never sync, so this phone holds
+     *  the only copy and sign-out deletes it. */
+    smsDraftsOnPhone: PluralForms;
     /** The backup recovery key, which this device holds and sign-out forgets.
      *  Not part of the unsent work: it is lost even when everything has synced,
      *  so its row is shown whether or not anything is queued. */
@@ -4196,6 +4199,10 @@ const en: UiStrings = {
       one: '{n} expense you were still typing',
       other: '{n} expenses you were still typing',
     },
+    smsDraftsOnPhone: {
+      one: '{n} bank-message draft is only on this phone',
+      other: '{n} bank-message drafts are only on this phone',
+    },
     backupKeyTitle: 'Your backup key is only on this device',
     backupKeyWarning:
       'Write it down before you go — without it nothing can open the backup on Drive again, not even you.',
@@ -7102,6 +7109,10 @@ const ta: UiStrings = {
     draftsUnsent: {
       one: 'நீங்கள் இன்னும் தட்டச்சு செய்துகொண்டிருந்த {n} செலவு',
       other: 'நீங்கள் இன்னும் தட்டச்சு செய்துகொண்டிருந்த {n} செலவுகள்',
+    },
+    smsDraftsOnPhone: {
+      one: '{n} bank-message draft is only on this phone',
+      other: '{n} bank-message drafts are only on this phone',
     },
     backupKeyTitle: 'உங்கள் காப்புப்பிரதி விசை இந்தச் சாதனத்தில் மட்டுமே உள்ளது',
     backupKeyWarning:
@@ -10125,6 +10136,10 @@ const hi: UiStrings = {
       one: '{n} ख़र्च जो आप अब भी लिख रहे थे',
       other: '{n} ख़र्च जो आप अब भी लिख रहे थे',
     },
+    smsDraftsOnPhone: {
+      one: '{n} bank-message draft is only on this phone',
+      other: '{n} bank-message drafts are only on this phone',
+    },
     backupKeyTitle: 'आपकी बैकअप कुंजी सिर्फ़ इसी डिवाइस पर है',
     backupKeyWarning:
       'जाने से पहले उसे लिख लें — उसके बिना Drive पर रखे बैकअप को कोई दोबारा नहीं खोल सकता, आप भी नहीं।',
@@ -13083,6 +13098,10 @@ const ar: UiStrings = {
       few: '{n} مصروفات كنت ما زلت تكتبها',
       many: '{n} مصروفًا كنت ما زلت تكتبه',
       other: '{n} مصروف كنت ما زلت تكتبه',
+    },
+    smsDraftsOnPhone: {
+      one: '{n} bank-message draft is only on this phone',
+      other: '{n} bank-message drafts are only on this phone',
     },
     backupKeyTitle: 'مفتاح نسختك الاحتياطية على هذا الجهاز وحده',
     backupKeyWarning:

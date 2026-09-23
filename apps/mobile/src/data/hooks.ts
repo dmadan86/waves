@@ -1473,15 +1473,17 @@ export function useCreateCapture() {
   const { mutate } = useSync();
   const { session } = useAuth();
   return useMutation({
-    mutationFn: async (input: CaptureInput) => {
+    mutationFn: async (input: CaptureInput): Promise<string | null> => {
       const ownerId = session?.user?.id;
       if (!ownerId) throw new Error('Sign in to capture an expense');
       const captureId = input.captureId ?? randomUUID();
-      await routeCaptureCreate(
+      const where = await routeCaptureCreate(
         { ownerId, drafts: smsDrafts, mutate },
         serialiseCapture(input, captureId),
       );
-      return captureId;
+      // Null: an SMS draft this device already has, or already answered.
+      // Nothing was written, so a caller counting what landed skips it.
+      return where === 'duplicate' ? null : captureId;
     },
   });
 }

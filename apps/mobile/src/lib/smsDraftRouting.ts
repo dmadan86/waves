@@ -38,13 +38,18 @@ export interface RouteDeps {
   readonly now?: () => string;
 }
 
-/** A new capture: SMS-derived ones stay here, everything else is queued. */
+/**
+ * A new capture: SMS-derived ones stay here, everything else is queued.
+ * `duplicate` means this device already has that draft, or already used or
+ * dismissed it — nothing was written, and a caller counting drafts must not
+ * count it.
+ */
 export async function routeCaptureCreate(
   deps: RouteDeps,
   payload: Record<string, unknown>,
-): Promise<'local' | 'queued'> {
+): Promise<'local' | 'duplicate' | 'queued'> {
   if (isSmsDerived(payload.parsed)) {
-    await deps.drafts.put(
+    const added = await deps.drafts.put(
       deps.ownerId,
       draftRowFromPayload(
         deps.ownerId,
@@ -52,20 +57,38 @@ export async function routeCaptureCreate(
         (deps.now ?? (() => new Date().toISOString()))(),
       ),
     );
-    return 'local';
+    return added ? 'local' : 'duplicate';
   }
   await deps.mutate(MutationKind.CaptureCreate, deps.ownerId, payload);
   return 'queued';
 }
 
-/** An edit: a local draft is edited in place, a synced capture is queued. */
+/** Thrown when an edit reaches a local draft that can no longer be edited. */
+export class SmsDraftNotEditableError extends Error {
+  constructor(readonly state: 'held' | 'filed' | 'dismissed') {
+    super(
+      state === 'held'
+        ? 'This draft is already being added to a group, so it cannot be edited.'
+        : 'This draft has already been used or removed.',
+    );
+    this.name = 'SmsDraftNotEditableError';
+  }
+}
+
+/**
+ * An edit: an open local draft is edited in place, a synced capture is
+ * queued. A draft already placed in a group (or used, or dismissed) refuses
+ * the edit out loud rather than dropping it — and it is never sent to the
+ * server as a `capture.update` for a row the server does not have.
+ */
 export async function routeCaptureUpdate(
   deps: RouteDeps,
   captureId: string,
   payload: Record<string, unknown>,
 ): Promise<'local' | 'queued'> {
-  if (await deps.drafts.isLocalDraft(deps.ownerId, captureId)) {
-    await deps.drafts.update(deps.ownerId, captureId, (row) =>
+  const state = await deps.drafts.stateOf(deps.ownerId, captureId);
+  if (state === 'open') {
+    const updated = await deps.drafts.update(deps.ownerId, captureId, (row) =>
       draftRowFromPayload(
         deps.ownerId,
         payload as unknown as SerialisedCapture,
@@ -73,8 +96,10 @@ export async function routeCaptureUpdate(
         row,
       ),
     );
+    if (!updated) throw new SmsDraftNotEditableError('held');
     return 'local';
   }
+  if (state !== null) throw new SmsDraftNotEditableError(state);
   await deps.mutate(MutationKind.CaptureUpdate, deps.ownerId, payload);
   return 'queued';
 }
@@ -84,10 +109,13 @@ export async function routeCaptureDelete(
   deps: RouteDeps,
   captureId: string,
 ): Promise<'local' | 'queued'> {
-  if (await deps.drafts.isLocalDraft(deps.ownerId, captureId)) {
+  const state = await deps.drafts.stateOf(deps.ownerId, captureId);
+  if (state === 'open' || state === 'held') {
     await deps.drafts.remove(deps.ownerId, captureId);
     return 'local';
   }
+  // Already filed or dismissed here: nothing on the server to tell.
+  if (state !== null) return 'local';
   await deps.mutate(MutationKind.CaptureDelete, deps.ownerId, { captureId });
   return 'queued';
 }
@@ -97,10 +125,12 @@ export async function routeCaptureAssign(
   deps: RouteDeps,
   input: { captureId: string; groupId: string; expenseId: string },
 ): Promise<'local' | 'queued'> {
-  if (await deps.drafts.isLocalDraft(deps.ownerId, input.captureId)) {
+  const state = await deps.drafts.stateOf(deps.ownerId, input.captureId);
+  if (state === 'open' || state === 'held') {
     await deps.drafts.hold(deps.ownerId, input.captureId, input.groupId, input.expenseId);
     return 'local';
   }
+  if (state !== null) return 'local';
   await deps.mutate(MutationKind.CaptureAssign, deps.ownerId, {
     captureId: input.captureId,
     groupId: input.groupId,

@@ -48,9 +48,15 @@ phone.
 
 Earlier versions synced SMS drafts to your account, which is how they could
 show up on another device. After you update, the first time the Android phone
-syncs it moves any SMS drafts you had not used yet back onto that phone and
-removes the synced copies, so your other devices drop them. Drafts you had
-already added to a group were already expenses, and stay exactly as they are.
+that read your messages syncs, it moves the SMS drafts it made and you had not
+used yet back onto itself and removes the synced copies, so your other devices
+drop them. Drafts you had already added to a group were already expenses, and
+stay exactly as they are. Drafts made on another phone, or pasted, are not
+copied onto this one.
+
+Signing out warns you if SMS drafts are waiting, because there is no copy to
+come back when you sign in again. **Save a copy** on the sign-out sheet
+includes them.
 
 ## What is never sent
 

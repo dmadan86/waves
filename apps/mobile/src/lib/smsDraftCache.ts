@@ -12,10 +12,18 @@
  * rules — what a tombstone is, what "already handled" means, what a held draft
  * is — live here, once, and are tested against a fake backend.
  *
- * A **tombstone** is a capture id with nothing else: the draft was used or
- * dismissed. It is kept so the reader never re-proposes a message somebody
- * already answered — the id is a SHA-256 of the account and the message's
- * dedupe key (`smsCaptureId`), so it says nothing about the message itself.
+ * A draft is in one of five states:
+ *
+ *   * **open** — waiting in Review;
+ *   * **held** — placed in a group, its expense not yet confirmed by the server;
+ *   * **filed** — its expense is confirmed. Only the id and the time it was
+ *     caught are kept (every fact is blanked), so Review's "filed this week"
+ *     line can count it and the reader never drafts that message again;
+ *   * **dismissed** — a tombstone: the id and nothing else;
+ *   * unknown — never seen on this device.
+ *
+ * The ids are `smsCaptureId` — a SHA-256 of the account and the message's
+ * dedupe key — so a tombstone says nothing about the message itself.
  */
 
 import { Serial } from '@/sync/serial';
@@ -24,10 +32,13 @@ import type { CaptureRow } from '@/data/types';
 
 import type { HeldDraft } from './smsLocalDrafts';
 
-/** One draft as the backend keeps it. `held` is set while its expense is unconfirmed. */
+/** One draft as the backend keeps it. */
 export interface DraftEntry {
   readonly row: CaptureRow;
+  /** Set while its expense is unconfirmed. */
   readonly held: { readonly groupId: string; readonly expenseId: string } | null;
+  /** True once its expense is confirmed; the row is then blanked. */
+  readonly filed?: boolean;
 }
 
 /** Persistence for one device. `null` is a tombstone. */
@@ -38,7 +49,10 @@ export interface DraftBackend {
   forgetEverything(): Promise<void>;
 }
 
-const EMPTY: readonly CaptureRow[] = [];
+export type DraftState = 'open' | 'held' | 'filed' | 'dismissed' | null;
+
+const EMPTY_ROWS: readonly CaptureRow[] = [];
+const EMPTY_TIMES: readonly string[] = [];
 
 export interface DraftCache {
   /** Load an account's drafts from the backend, once. */
@@ -47,10 +61,14 @@ export interface DraftCache {
   refresh(ownerId: string): Promise<void>;
   /** Open drafts, newest first; empty until loaded. Stable between writes. */
   openDrafts(ownerId: string): readonly CaptureRow[];
+  /** When each filed draft was caught (its `created_at`). Stable between writes. */
+  filedCaughtAt(ownerId: string): readonly string[];
   /** Drafts placed in a group whose expense is not confirmed yet. */
   heldDrafts(ownerId: string): Promise<HeldDraft[]>;
-  /** Every id this device has a draft or a tombstone for. */
+  /** Every id this device has a draft, a filing or a tombstone for. */
   handledIds(ownerId: string): Promise<Set<string>>;
+  /** Where this id stands on this device. */
+  stateOf(ownerId: string, captureId: string): Promise<DraftState>;
   /** Is this id an open or held local draft? */
   isLocalDraft(ownerId: string, captureId: string): Promise<boolean>;
   /** Add a draft. False (and nothing written) if the id is already known. */
@@ -65,8 +83,12 @@ export interface DraftCache {
   hold(ownerId: string, captureId: string, groupId: string, expenseId: string): Promise<void>;
   /** Its expense was discarded: back to Review. */
   reopen(ownerId: string, captureId: string): Promise<void>;
+  /** Its expense is confirmed: blank it, remember only that it was filed. */
+  file(ownerId: string, captureId: string): Promise<void>;
   /** Used or dismissed: forget the draft, keep a tombstone. */
   remove(ownerId: string, captureId: string): Promise<void>;
+  /** A tombstone for an id this device has never seen; a known id is left alone. */
+  markHandled(ownerId: string, captureId: string): Promise<boolean>;
   /** Sign-out: this account's drafts and tombstones, gone. */
   forgetOwner(ownerId: string): Promise<void>;
   forgetEverything(): Promise<void>;
@@ -76,15 +98,51 @@ export interface DraftCache {
 const newestFirst = (a: CaptureRow, b: CaptureRow): number =>
   a.created_at < b.created_at ? 1 : a.created_at > b.created_at ? -1 : 0;
 
+/** A filed draft keeps its id and when it was caught; every fact is blanked. */
+function blanked(row: CaptureRow): CaptureRow {
+  return {
+    id: row.id,
+    owner_user_id: row.owner_user_id,
+    description: '',
+    category: null,
+    category_meta: null,
+    expense_date: '',
+    currency: '',
+    amount: '0',
+    notes: null,
+    photo_path: null,
+    raw_text: null,
+    parsed: null,
+    payment_method: null,
+    target_group_id: null,
+    location: null,
+    status: row.status,
+    assigned_expense_id: null,
+    assigned_group_id: null,
+    created_at: row.created_at,
+    local: true,
+  };
+}
+
+function stateOfEntry(entry: DraftEntry | null | undefined): DraftState {
+  if (entry === undefined) return null;
+  if (entry === null) return 'dismissed';
+  if (entry.filed) return 'filed';
+  if (entry.held) return 'held';
+  return 'open';
+}
+
 export function createDraftCache(backend: DraftBackend): DraftCache {
   const serial = new Serial();
   const byOwner = new Map<string, Map<string, DraftEntry | null>>();
   const loading = new Map<string, Promise<void>>();
   const openCache = new Map<string, readonly CaptureRow[]>();
+  const filedCache = new Map<string, readonly string[]>();
   const listeners = new Set<() => void>();
 
   const changed = (ownerId: string): void => {
     openCache.delete(ownerId);
+    filedCache.delete(ownerId);
     for (const listener of listeners) listener();
   };
 
@@ -111,6 +169,12 @@ export function createDraftCache(backend: DraftBackend): DraftCache {
   const entries = async (ownerId: string): Promise<Map<string, DraftEntry | null>> => {
     await ensureLoaded(ownerId);
     return byOwner.get(ownerId) ?? new Map();
+  };
+
+  const stateOf = async (ownerId: string, captureId: string): Promise<DraftState> => {
+    if (!ownerId) return null;
+    const map = await entries(ownerId);
+    return stateOfEntry(map.has(captureId) ? map.get(captureId) : undefined);
   };
 
   /**
@@ -148,11 +212,11 @@ export function createDraftCache(backend: DraftBackend): DraftCache {
 
     openDrafts(ownerId) {
       const map = byOwner.get(ownerId);
-      if (!map) return EMPTY;
+      if (!map) return EMPTY_ROWS;
       let open = openCache.get(ownerId);
       if (!open) {
         open = [...map.values()]
-          .filter((entry): entry is DraftEntry => entry !== null && entry.held === null)
+          .filter((entry): entry is DraftEntry => stateOfEntry(entry) === 'open')
           .map((entry) => entry.row)
           .sort(newestFirst);
         openCache.set(ownerId, open);
@@ -160,10 +224,25 @@ export function createDraftCache(backend: DraftBackend): DraftCache {
       return open;
     },
 
+    filedCaughtAt(ownerId) {
+      const map = byOwner.get(ownerId);
+      if (!map) return EMPTY_TIMES;
+      let filed = filedCache.get(ownerId);
+      if (!filed) {
+        filed = [...map.values()]
+          .filter((entry): entry is DraftEntry => stateOfEntry(entry) === 'filed')
+          .map((entry) => entry.row.created_at);
+        filedCache.set(ownerId, filed);
+      }
+      return filed;
+    },
+
     async heldDrafts(ownerId) {
       const held: HeldDraft[] = [];
       for (const [captureId, entry] of await entries(ownerId)) {
-        if (entry?.held) held.push({ captureId, ...entry.held });
+        if (stateOfEntry(entry) === 'held' && entry?.held) {
+          held.push({ captureId, ...entry.held });
+        }
       }
       return held;
     },
@@ -172,9 +251,11 @@ export function createDraftCache(backend: DraftBackend): DraftCache {
       return new Set((await entries(ownerId)).keys());
     },
 
+    stateOf,
+
     async isLocalDraft(ownerId, captureId) {
-      if (!ownerId) return false;
-      return (await entries(ownerId)).get(captureId) != null;
+      const state = await stateOf(ownerId, captureId);
+      return state === 'open' || state === 'held';
     },
 
     put(ownerId, row) {
@@ -185,26 +266,42 @@ export function createDraftCache(backend: DraftBackend): DraftCache {
 
     update(ownerId, captureId, next) {
       return writeIf(ownerId, captureId, (current) =>
-        current && !current.held
+        stateOfEntry(current) === 'open' && current
           ? { row: { ...next(current.row), local: true }, held: null }
           : undefined,
       );
     },
 
     async hold(ownerId, captureId, groupId, expenseId) {
-      await writeIf(ownerId, captureId, (current) =>
-        current ? { row: current.row, held: { groupId, expenseId } } : undefined,
-      );
+      await writeIf(ownerId, captureId, (current) => {
+        const state = stateOfEntry(current);
+        return (state === 'open' || state === 'held') && current
+          ? { row: current.row, held: { groupId, expenseId } }
+          : undefined;
+      });
     },
 
     async reopen(ownerId, captureId) {
       await writeIf(ownerId, captureId, (current) =>
-        current?.held ? { row: current.row, held: null } : undefined,
+        stateOfEntry(current) === 'held' && current ? { row: current.row, held: null } : undefined,
       );
+    },
+
+    async file(ownerId, captureId) {
+      await writeIf(ownerId, captureId, (current) => {
+        const state = stateOfEntry(current);
+        return (state === 'open' || state === 'held') && current
+          ? { row: blanked(current.row), held: null, filed: true }
+          : undefined;
+      });
     },
 
     async remove(ownerId, captureId) {
       await writeIf(ownerId, captureId, (current) => (current === null ? undefined : null));
+    },
+
+    markHandled(ownerId, captureId) {
+      return writeIf(ownerId, captureId, (current) => (current === undefined ? null : undefined));
     },
 
     async forgetOwner(ownerId) {

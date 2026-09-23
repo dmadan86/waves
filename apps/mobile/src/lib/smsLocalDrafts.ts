@@ -137,15 +137,63 @@ export function mergeCaptureLists(
   return [...local, ...synced.filter((row) => !localIds.has(row.id))].sort(newestFirst);
 }
 
+/** The dedupe key a capture's `parsed` blob carries, if any. */
+export function dedupeKeyOf(parsed: unknown): string | null {
+  const key = (parsed as { dedupeKey?: unknown } | null)?.dedupeKey;
+  return typeof key === 'string' ? key : null;
+}
+
+/**
+ * Was this SMS capture made from a message *this device* read?
+ *
+ * The one-time move runs on every Android device on the account, and a
+ * synced SMS capture may have been made on another phone. Copying that into
+ * this device's store would re-create the very leak this change closes — a
+ * second phone holding the first phone's bank messages — and duplicate the
+ * draft. The only proof a capture belongs here is its dedupe key in this
+ * device's own message store (`smsMessageStore.knownKeys`): the inbox reader
+ * saves every message it reads there. A pasted draft carries no such proof
+ * (the paste screen keeps nothing on the device), so it is not moved; the
+ * server cleanup script handles it instead. When in doubt, do not move.
+ */
+export function readOnThisDevice(capture: MirrorCapture, localKeys: ReadonlySet<string>): boolean {
+  const key = dedupeKeyOf(capture.parsed);
+  return key !== null && localKeys.has(key);
+}
+
 /**
  * The synced captures the one-time move takes: open, not deleted, made from a
- * bank message. A capture already turned into an expense is `assigned` and is
- * left exactly where it is.
+ * bank message this device read. A capture already turned into an expense is
+ * `assigned` and is left exactly where it is.
  */
-export function capturesToMove(captures: readonly MirrorCapture[]): MirrorCapture[] {
+export function capturesToMove(
+  captures: readonly MirrorCapture[],
+  localKeys: ReadonlySet<string>,
+): MirrorCapture[] {
   return captures.filter(
     (capture) =>
-      capture.status === 'open' && capture.deleted_at === null && isSmsDerived(capture.parsed),
+      capture.status === 'open' &&
+      capture.deleted_at === null &&
+      isSmsDerived(capture.parsed) &&
+      readOnThisDevice(capture, localKeys),
+  );
+}
+
+/**
+ * Synced SMS captures from this device that are already answered — dismissed
+ * (deleted) or turned into an expense (assigned). The move writes a local
+ * tombstone for each, because the server cleanup scrubs their `parsed` blob,
+ * and after that nothing else would stop the reader re-proposing the message.
+ */
+export function capturesToTombstone(
+  captures: readonly MirrorCapture[],
+  localKeys: ReadonlySet<string>,
+): MirrorCapture[] {
+  return captures.filter(
+    (capture) =>
+      (capture.deleted_at !== null || capture.status === 'assigned') &&
+      isSmsDerived(capture.parsed) &&
+      readOnThisDevice(capture, localKeys),
   );
 }
 
@@ -156,7 +204,7 @@ export interface HeldDraft {
   readonly expenseId: string;
 }
 
-export type HeldOutcome = 'remove' | 'missing' | 'wait';
+export type HeldOutcome = 'file' | 'missing' | 'wait';
 
 /**
  * What to do with a draft placed in a group, now.
@@ -168,23 +216,60 @@ export type HeldOutcome = 'remove' | 'missing' | 'wait';
  * refused and the person discards it, the draft must come back rather than
  * having been thrown away the moment the expense was queued.
  *
- *   * the expense is in the mirror — the server has it — so the draft goes;
+ *   * the expense is in the mirror — the server has it — so the draft is filed;
  *   * the expense is still on the queue — wait;
  *   * neither — `missing`. Usually that means it was discarded and the draft
- *     should come back to Review; but the moment between an acknowledgement
- *     and the pull that brings the row down looks the same, so the caller only
- *     reopens a draft that is still missing after a later sync has finished
- *     (`smsDraftSync.reconcileHeld`).
+ *     should come back to Review; but an acknowledged expense whose row has
+ *     not been pulled yet looks the same, and reopening it then would invite a
+ *     second copy of the same spend. So the caller only reopens a draft that
+ *     is still missing after two further completed syncs
+ *     (`smsDraftUpkeep.reconcileHeld`).
  */
 export function heldOutcome(
   held: HeldDraft,
   confirmedExpenseIds: ReadonlySet<string>,
   queue: readonly QueuedMutation[],
 ): HeldOutcome {
-  if (confirmedExpenseIds.has(held.expenseId)) return 'remove';
+  if (confirmedExpenseIds.has(held.expenseId)) return 'file';
   const queued = queue.some(
     (mutation) =>
       (mutation.payload as { expenseId?: unknown } | null)?.expenseId === held.expenseId,
   );
   return queued ? 'wait' : 'missing';
+}
+
+// ─────────────────────────────────────────────────────────── sign-out ──
+
+/** The key prefix a local SMS draft carries in the sign-out device copy. */
+export const SMS_DRAFT_COPY_PREFIX = 'sms-draft:';
+
+/**
+ * Local SMS drafts as entries in the sign-out copy (`saveDeviceCopy`).
+ *
+ * They never synced, so after sign-out this file is the only copy — the same
+ * standing as a half-typed expense form, and carried the same way.
+ */
+export function smsDraftsAsDeviceDrafts(
+  rows: readonly CaptureRow[],
+): { key: string; value: unknown; savedAt: string }[] {
+  return rows.map((row) => ({
+    key: `${SMS_DRAFT_COPY_PREFIX}${row.id}`,
+    value: row,
+    savedAt: row.created_at,
+  }));
+}
+
+/**
+ * How many things sign-out would lose that the account has never seen.
+ *
+ * Local SMS drafts count: sign-out wipes them (`sync/localWipe.ts`) and there
+ * is no server copy to come back on the next sign-in.
+ */
+export function signOutAtRiskCount(input: {
+  readonly unsentMutations: number;
+  readonly unsentReceipts: number;
+  readonly formDrafts: number;
+  readonly smsDrafts: number;
+}): number {
+  return input.unsentMutations + input.unsentReceipts + input.formDrafts + input.smsDrafts;
 }

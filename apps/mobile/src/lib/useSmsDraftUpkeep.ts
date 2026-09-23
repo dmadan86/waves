@@ -17,6 +17,7 @@ import { useLastSyncedAt, useSync } from '@/sync';
 
 import { smsDrafts } from './smsDraftStore';
 import { moveSyncedSmsDrafts, reconcileHeld } from './smsDraftUpkeep';
+import { knownKeys } from './smsMessageStore';
 
 const MOVED_KEY = (ownerId: string): string => `waves.sms_drafts.moved.${ownerId}`;
 
@@ -42,7 +43,7 @@ export function useSmsDraftUpkeep(): void {
   const ownerId = session?.user?.id ?? '';
   const { hasSynced, mirror, queue, mutate } = useSync();
   const lastSyncedAt = useLastSyncedAt();
-  const missing = useRef(new Map<string, string | null>());
+  const missing = useRef(new Map<string, (string | null)[]>());
 
   // A headless WorkManager wake-up writes drafts from its own JavaScript
   // context; coming back to the app re-reads the file so they show.
@@ -61,18 +62,24 @@ export function useSmsDraftUpkeep(): void {
     if (loading || !ownerId || !hasSynced || Platform.OS !== 'android') return;
     if (attempted.has(ownerId)) return;
     attempted.add(ownerId);
-    void moveSyncedSmsDrafts({
-      ownerId,
-      captures: materialiseCaptures(mirror, queue, { ownerId }),
-      drafts: smsDrafts,
-      deleteServerCapture: async (captureId) => {
-        // Straight to the queue, never through `useDeleteCapture`: the id is a
-        // local draft by now, and that hook would answer it locally.
-        await mutate(MutationKind.CaptureDelete, ownerId, { captureId });
-      },
-      isDone: moveDone,
-      markDone: markMoveDone,
-    })
+    const captures = materialiseCaptures(mirror, queue, { ownerId });
+    void knownKeys(ownerId)
+      .then((localKeys) =>
+        moveSyncedSmsDrafts({
+          ownerId,
+          captures,
+          // Only what this phone read: another device's drafts stay put.
+          localKeys,
+          drafts: smsDrafts,
+          deleteServerCapture: async (captureId) => {
+            // Straight to the queue, never through `useDeleteCapture`: the id is a
+            // local draft by now, and that hook would answer it locally.
+            await mutate(MutationKind.CaptureDelete, ownerId, { captureId });
+          },
+          isDone: moveDone,
+          markDone: markMoveDone,
+        }),
+      )
       .then((result) => {
         // A run that could not finish gets another go next launch.
         if (!result.done) attempted.delete(ownerId);

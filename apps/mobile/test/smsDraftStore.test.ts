@@ -35,6 +35,12 @@ const state = vi.hoisted(() => {
         else this.rows.push({ owner_id: owner, capture_id: id, sealed });
         return { changes: 1 };
       }
+      if (/DELETE FROM sms_drafts WHERE owner_id = \? AND capture_id = \?/i.test(source)) {
+        const [owner, id] = params as [string, string];
+        const before = this.rows.length;
+        this.rows = this.rows.filter((r) => !(r.owner_id === owner && r.capture_id === id));
+        return { changes: before - this.rows.length };
+      }
       if (/DELETE FROM sms_drafts WHERE owner_id = \?/i.test(source)) {
         const before = this.rows.length;
         this.rows = this.rows.filter((r) => r.owner_id !== params[0]);
@@ -127,14 +133,24 @@ describe('smsDraftStore', () => {
 
   it('reads back what it sealed, bound to the row it was written for', async () => {
     await smsDrafts.put(OWNER, draft('c1'));
-    // A row copied under another id does not open.
+    await smsDrafts.refresh(OWNER);
+
+    expect(smsDrafts.openDrafts(OWNER).map((row) => [row.id, row.local])).toEqual([['c1', true]]);
+  });
+
+  it('a draft that will not open is deleted, not tombstoned, so a rescan can re-propose it', async () => {
+    await smsDrafts.put(OWNER, draft('c1'));
+    // A row copied under another id fails its seal — as every row would if
+    // the key were lost.
     state.database.rows.push({ ...state.database.rows[0]!, capture_id: 'c2' });
 
     await smsDrafts.refresh(OWNER);
 
-    expect(smsDrafts.openDrafts(OWNER).map((row) => [row.id, row.local])).toEqual([['c1', true]]);
-    // …and the one that would not open counts as handled, not as a new draft.
-    expect(await smsDrafts.handledIds(OWNER)).toEqual(new Set(['c1', 'c2']));
+    // Gone from disk…
+    expect(state.database.rows.map((r) => r.capture_id)).toEqual(['c1']);
+    // …and not "handled": the reader is free to draft that message again.
+    expect(await smsDrafts.handledIds(OWNER)).toEqual(new Set(['c1']));
+    expect(await smsDrafts.put(OWNER, draft('c2'))).toBe(true);
   });
 
   it('a dismissed draft leaves a tombstone with nothing in it', async () => {

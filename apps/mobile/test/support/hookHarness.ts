@@ -52,6 +52,9 @@ export const fakeReact = {
   useEffect: (effect: Effect): void => {
     slots.effects.push(effect);
   },
+  // No subscription: a hook render here is one call, so the snapshot is read
+  // as it stands (the local SMS draft store, for `useCaptures`).
+  useSyncExternalStore: <T>(_subscribe: unknown, getSnapshot: () => T): T => getSnapshot(),
 };
 
 /** One render: refs persist from the previous render, effects run after. */

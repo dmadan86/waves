@@ -89,7 +89,7 @@ async function cipherKey(): Promise<MirrorKey> {
 export function sealEntry(sealingKey: MirrorKey, ownerId: string, entry: DraftEntry): string {
   return encryptWith(
     sealingKey,
-    JSON.stringify({ row: entry.row, held: entry.held }),
+    JSON.stringify({ row: entry.row, held: entry.held, filed: entry.filed === true }),
     draftAad(ownerId, entry.row.id),
   );
 }
@@ -103,9 +103,14 @@ function openEntry(
   const parsed = JSON.parse(decryptWith(sealingKey, sealed, draftAad(ownerId, captureId))) as {
     row: CaptureRow;
     held: DraftEntry['held'];
+    filed?: boolean;
   };
-  if (!parsed?.row || parsed.row.id !== captureId) return null;
-  return { row: { ...parsed.row, local: true }, held: parsed.held ?? null };
+  if (!parsed?.row || parsed.row.id !== captureId) throw new Error('draft row mismatch');
+  return {
+    row: { ...parsed.row, local: true },
+    held: parsed.held ?? null,
+    filed: parsed.filed === true,
+  };
 }
 
 const sqliteBackend: DraftBackend = {
@@ -117,20 +122,30 @@ const sqliteBackend: DraftBackend = {
       ownerId,
     );
     const map = new Map<string, DraftEntry | null>();
+    const unreadable: string[] = [];
     for (const row of rows) {
       if (row.sealed === null) {
         map.set(row.capture_id, null);
         continue;
       }
       try {
-        const entry = openEntry(sealingKey, ownerId, row.capture_id, row.sealed);
-        // A draft that will not open is kept as "handled" rather than lost
-        // silently into a re-proposal: the message is still on the Bank
-        // messages screen if somebody wants it.
-        map.set(row.capture_id, entry);
+        map.set(row.capture_id, openEntry(sealingKey, ownerId, row.capture_id, row.sealed));
       } catch {
-        map.set(row.capture_id, null);
+        unreadable.push(row.capture_id);
       }
+    }
+    // A draft that will not open — the key was lost (a reinstall, a Keystore
+    // reset), or the row is damaged — is deleted and left out, not turned into
+    // a tombstone. A tombstone would block the reader from ever proposing that
+    // message again; deleted, the next scan re-drafts it from the phone's
+    // inbox, which still has it. A pasted draft is simply gone, as its
+    // ciphertext already was.
+    for (const captureId of unreadable) {
+      await connection.runAsync(
+        `DELETE FROM sms_drafts WHERE owner_id = ? AND capture_id = ?`,
+        ownerId,
+        captureId,
+      );
     }
     return map;
   },

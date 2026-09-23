@@ -1,41 +1,56 @@
 -- ---------------------------------------------------------------------------
--- Take SMS-derived drafts off the server.
+-- Take what bank messages left on the server off it.
 --
 -- SMS drafts now stay on the phone until they are used (apps/mobile
 -- `lib/smsLocalDrafts.ts`). Before that, every draft made from a bank message
 -- — read from the Android inbox or pasted — was a `captures` row, synced to
--- every device on the account with the amount, the shop, the day, the sender id
--- and the card's last digits in `parsed`. The app now does not write those
--- rows, and on upgrade the Android phone moves its unused ones back onto itself
--- and removes the server copies with the ordinary `capture.delete`.
+-- every device on the account with the amount, the shop, the day, the bank's
+-- sender id and the card's last digits in `parsed`. Current app builds do not
+-- write those rows, the sync function acknowledges and drops them from older
+-- builds, and on upgrade each Android phone moves the unused drafts *it* read
+-- back onto itself and queues the ordinary `capture.delete` for them.
 --
--- What that leaves on the server, and what this script is for:
+-- `capture.delete` only sets `deleted_at`. The row — every fact in it — stays
+-- on the server, and in every other device's mirror, until this script runs.
+-- The leak is not closed server-side until it has been applied.
 --
---   * open SMS captures of anybody who has not upgraded yet (or whose phone
---     never runs the move — an iPhone that pasted, a phone that was lost);
---   * the soft-deleted rows the move itself leaves behind — `capture.delete`
---     only stamps `deleted_at`, so the facts are still in the row.
+-- What this script does, to every capture whose `parsed->>'source'` is 'sms'
+-- (optionally for one account), in one transaction:
 --
--- It **scrubs and tombstones** every capture whose `parsed->>'source'` is
--- 'sms' and which was never turned into an expense (`status = 'open'`):
--- the facts are blanked, `parsed` is cut down to `{"source":"sms","scrubbed":
--- true}`, and `deleted_at` is set if it was not already. The UPDATE bumps
--- `updated_seq` (trigger `captures_stamp_seq`), so every device pulls the
--- tombstone and drops the draft from Review on its next sync.
+--   * OPEN rows (never turned into an expense — live, or deleted by the move,
+--     or dismissed): scrubbed and tombstoned. description, category,
+--     category_meta, notes, raw_text, photo_path, payment_method,
+--     target_group_id and location go to NULL or empty; amount to 0;
+--     expense_date to 1970-01-01; currency to 'XXX' (ISO 4217 "no currency");
+--     parsed to {"source":"sms","scrubbed":true}; deleted_at is set if it was
+--     not already.
+--   * ASSIGNED rows (already turned into an expense): the expense in the group
+--     is the record of that spend and is not touched, and neither is the
+--     capture's status or assigned_group_id / assigned_expense_id. Only what
+--     came from the message goes: raw_text to NULL and parsed to
+--     {"source":"sms","scrubbed":true} — the sender id, card tail and dedupe
+--     key.
 --
--- Captures that became expenses (`status = 'assigned'`) are not touched: they
--- are the history of a spend that is now in a ledger.
+-- Every UPDATE bumps `updated_seq` (trigger `captures_stamp_seq`), so each
+-- device pulls the scrubbed row on its next sync and its mirror copy is
+-- overwritten; open rows leave Review. It is idempotent: rows already marked
+-- `scrubbed` are skipped.
 --
 -- Why not a hard DELETE: sync is pull-by-sequence. A row that vanishes never
--- reaches a device that already has it, and that device would show the draft
--- forever. The scrubbed tombstone is what tells it to let go. STEP 2 below can
--- remove the tombstones later, once every device has had time to pull them.
+-- reaches a device that already has it, and that device would keep the full
+-- row in its mirror forever. The scrubbed tombstone is what overwrites it.
+-- STEP 2 below can remove the tombstones later.
+--
+-- Photos: an SMS draft is not normally given a photo, but one edited on the
+-- capture form could have been. Blanking photo_path orphans that object in the
+-- `captures` bucket (Cloudflare R2 / storage). The count below lists them
+-- first; remove those objects separately if any are reported.
 --
 -- BEFORE RUNNING ON PROD: this needs the owner's go-ahead. An open SMS draft
--- that has not been moved yet is lost for good when scrubbed — the message is
--- still in the phone's inbox and on its Bank messages screen, but the draft in
--- Review goes. Best run some weeks after the release, when the upgraded phones
--- have done their move.
+-- a phone has not moved yet is lost for good when scrubbed (its message is
+-- still in that phone's inbox, and on its Bank messages screen, so the next
+-- scan there re-drafts it on the device). Best run once the release has been
+-- out long enough for upgraded phones to have done their move.
 --
 -- ── running it ─────────────────────────────────────────────────────────────
 --
@@ -70,67 +85,86 @@ BEGIN;
 
 -- ── count: what is about to be scrubbed ────────────────────────────────────
 
-SELECT count(*)                                         AS sms_open_captures,
-       count(*) FILTER (WHERE deleted_at IS NULL)       AS still_live,
-       count(*) FILTER (WHERE deleted_at IS NOT NULL)   AS already_tombstoned,
+SELECT status,
+       count(*)                                         AS rows,
+       count(*) FILTER (WHERE deleted_at IS NULL)       AS live,
+       count(*) FILTER (WHERE deleted_at IS NOT NULL)   AS tombstoned,
+       count(*) FILTER (WHERE photo_path IS NOT NULL)   AS with_photo,
        count(DISTINCT owner_user_id)                    AS owners
   FROM public.captures
  WHERE parsed->>'source' = 'sms'
    AND coalesce(parsed->>'scrubbed', 'false') <> 'true'
+   AND (NULLIF(:'owner_id', '')::uuid IS NULL OR owner_user_id = NULLIF(:'owner_id', '')::uuid)
+ GROUP BY status
+ ORDER BY status;
+
+-- The photo objects blanking photo_path will orphan (open rows only; an
+-- assigned row keeps its photo_path).
+SELECT id, owner_user_id, photo_path
+  FROM public.captures
+ WHERE parsed->>'source' = 'sms'
+   AND coalesce(parsed->>'scrubbed', 'false') <> 'true'
+   AND status = 'open'
+   AND photo_path IS NOT NULL
+   AND (NULLIF(:'owner_id', '')::uuid IS NULL OR owner_user_id = NULLIF(:'owner_id', '')::uuid);
+
+-- ── STEP 1a — open rows: scrub and tombstone ───────────────────────────────
+
+UPDATE public.captures
+   SET description     = '',
+       category        = NULL,
+       category_meta   = NULL,
+       expense_date    = DATE '1970-01-01',
+       currency        = 'XXX',
+       amount          = 0,
+       notes           = NULL,
+       photo_path      = NULL,
+       raw_text        = NULL,
+       parsed          = '{"source":"sms","scrubbed":true}'::jsonb,
+       payment_method  = NULL,
+       target_group_id = NULL,
+       location        = NULL,
+       deleted_at      = coalesce(deleted_at, now()),
+       updated_at      = now()
+ WHERE parsed->>'source' = 'sms'
+   AND coalesce(parsed->>'scrubbed', 'false') <> 'true'
    AND status = 'open'
    AND (NULLIF(:'owner_id', '')::uuid IS NULL OR owner_user_id = NULLIF(:'owner_id', '')::uuid);
 
--- For contrast: the ones that became expenses, which this script leaves alone.
-SELECT count(*) AS sms_assigned_captures_untouched
-  FROM public.captures
+-- ── STEP 1b — assigned rows: drop what came from the message ───────────────
+
+UPDATE public.captures
+   SET raw_text   = NULL,
+       parsed     = '{"source":"sms","scrubbed":true}'::jsonb,
+       updated_at = now()
  WHERE parsed->>'source' = 'sms'
+   AND coalesce(parsed->>'scrubbed', 'false') <> 'true'
    AND status = 'assigned'
    AND (NULLIF(:'owner_id', '')::uuid IS NULL OR owner_user_id = NULLIF(:'owner_id', '')::uuid);
 
--- ── STEP 1 — scrub and tombstone ───────────────────────────────────────────
+-- ── count: after (should be zero for both statuses) ────────────────────────
 
-UPDATE public.captures
-   SET description   = '',
-       category      = NULL,
-       category_meta = NULL,
-       amount        = 0,
-       notes         = NULL,
-       photo_path    = NULL,
-       raw_text      = NULL,
-       parsed        = '{"source":"sms","scrubbed":true}'::jsonb,
-       payment_method = NULL,
-       target_group_id = NULL,
-       location      = NULL,
-       deleted_at    = coalesce(deleted_at, now()),
-       updated_at    = now()
- WHERE parsed->>'source' = 'sms'
-   AND coalesce(parsed->>'scrubbed', 'false') <> 'true'
-   AND status = 'open'
-   AND (NULLIF(:'owner_id', '')::uuid IS NULL OR owner_user_id = NULLIF(:'owner_id', '')::uuid);
-
--- ── count: after ───────────────────────────────────────────────────────────
-
-SELECT count(*) AS sms_open_captures_left_unscrubbed
+SELECT status, count(*) AS left_unscrubbed
   FROM public.captures
  WHERE parsed->>'source' = 'sms'
    AND coalesce(parsed->>'scrubbed', 'false') <> 'true'
-   AND status = 'open'
-   AND (NULLIF(:'owner_id', '')::uuid IS NULL OR owner_user_id = NULLIF(:'owner_id', '')::uuid);
+   AND (NULLIF(:'owner_id', '')::uuid IS NULL OR owner_user_id = NULLIF(:'owner_id', '')::uuid)
+ GROUP BY status;
 
 \if :apply
   COMMIT;
-  \echo 'Applied: SMS captures scrubbed and tombstoned.'
+  \echo 'Applied: SMS captures scrubbed.'
 \else
   ROLLBACK;
   \echo 'Dry run: rolled back. Nothing changed. Re-run with -v apply=1 to apply.'
 \endif
 
--- ── STEP 2 — remove the tombstones (optional, weeks later) ─────────────────
+-- ── STEP 2 — remove the open tombstones (optional, weeks later) ────────────
 --
--- Commented out on purpose. Only once every device has pulled the tombstones
--- above — a device that has not would keep the (already scrubbed) draft on
--- screen. Captures are not part of the append-only ledger, so no trigger
--- stands in the way.
+-- Commented out on purpose. Only once every device has pulled the scrubbed
+-- rows above — a device that has not would keep its full, unscrubbed copy.
+-- Captures are not part of the append-only ledger, so no trigger stands in
+-- the way. Assigned rows are kept: they link a capture to its expense.
 --
 -- BEGIN;
 -- DELETE FROM public.captures
