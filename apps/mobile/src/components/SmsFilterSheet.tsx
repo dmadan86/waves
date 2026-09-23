@@ -24,7 +24,17 @@ import { useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, ScrollView, View } from 'react-native';
 
-import { Button, Chip, Divider, iconSize, Row, Sheet, Text, useTheme } from '@waves/ui';
+import {
+  Button,
+  Chip,
+  directionalIcon,
+  Divider,
+  iconSize,
+  Row,
+  Sheet,
+  Text,
+  useTheme,
+} from '@waves/ui';
 
 import { RangeCalendar } from '@/components/RangeCalendar';
 import { useStrings } from '@/i18n';
@@ -163,7 +173,11 @@ export function SmsFilterSheet({
             onPress={() => older && setMonth(older)}
             style={{ opacity: older === null ? 0.3 : 1, padding: theme.spacing.xs }}
           >
-            <Ionicons name="chevron-back" size={iconSize.md} color={theme.color.text} />
+            <Ionicons
+              name={directionalIcon('chevron-back')}
+              size={iconSize.md}
+              color={theme.color.text}
+            />
           </Pressable>
 
           <Pressable
@@ -187,7 +201,11 @@ export function SmsFilterSheet({
             onPress={() => newer && setMonth(newer)}
             style={{ opacity: newer === null ? 0.3 : 1, padding: theme.spacing.xs }}
           >
-            <Ionicons name="chevron-forward" size={iconSize.md} color={theme.color.text} />
+            <Ionicons
+              name={directionalIcon('chevron-forward')}
+              size={iconSize.md}
+              color={theme.color.text}
+            />
           </Pressable>
         </Row>
       </View>
