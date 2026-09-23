@@ -86,6 +86,7 @@ const TABLES: readonly SyncTable[] = [
   SyncTable.ExpenseImageEvents,
   SyncTable.PersonalRecords,
   SyncTable.GroupPins,
+  SyncTable.PackInstalls,
 ];
 
 export function emptyMirror(): MirrorState {
