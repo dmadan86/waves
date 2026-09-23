@@ -21,6 +21,7 @@ import {
   Card,
   directionalIcon,
   Divider,
+  EmptyState,
   IconButton,
   iconSize,
   Row,
@@ -66,6 +67,10 @@ export default function DevicesScreen() {
   // The server already returns the last three months, newest first.
   const devices = useQuery({ queryKey: ['devices'], queryFn: fetchDevices });
   const rows = devices.data ?? [];
+  // A failed fetch with nothing cached is not an empty list: offline, `rows`
+  // would be [] and the screen would say "only this device" — a claim about
+  // the other sessions made without having seen them.
+  const failed = devices.isError && !devices.data;
   // Counting before `deviceId()` resolves would count this phone as another
   // session, and offer to sign it out.
   const ready = !devices.isLoading && myDeviceId !== null;
@@ -128,7 +133,19 @@ export default function DevicesScreen() {
           {t.devices.intro}
         </Text>
 
-        {!ready ? (
+        {failed ? (
+          <View style={{ gap: theme.spacing.lg }}>
+            <EmptyState
+              title={t.loadError}
+              body={friendlyError(devices.error, t.loadErrorBody, 'devices.load')}
+            />
+            <Button
+              label={t.retry}
+              disabled={devices.isFetching}
+              onPress={() => void devices.refetch()}
+            />
+          </View>
+        ) : !ready ? (
           // Until the list loads, `rows` is empty — showing "only this device"
           // here would tell people they have no other sessions before we know.
           <View style={{ padding: theme.spacing.xl }}>
@@ -161,7 +178,7 @@ export default function DevicesScreen() {
           </>
         )}
 
-        {ready && otherLiveCount > 0 ? (
+        {ready && !failed && otherLiveCount > 0 ? (
           <Card style={{ gap: theme.spacing.md }}>
             <Text variant="caption" tone="muted">
               {t.devices.signOutOthersHint}
