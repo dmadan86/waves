@@ -92,12 +92,14 @@ describe('parseMinor (the charged amount)', () => {
     expect(parseMinor('1.234', 'KWD')).toBe(1_234n);
   });
 
-  // Open question, reported rather than pinned: today a charged amount with
-  // more decimals than the currency has is silently truncated — "10.999" INR
-  // reads as ₹10.99, "1500.9" JPY as ¥1500 — and the card stores a rate implied
-  // by a figure the person never typed. Refusing it ("not an amount") like any
-  // other malformed input looks like the intended behaviour.
-  it.todo('refuses a charged amount with more decimals than the currency has');
+  // A rate built from "10.999" read as ₹10.99 would be for a figure nobody typed.
+  it('refuses a charged amount with more decimals than the currency has', () => {
+    expect(() => parseMinor('10.999', 'INR')).toThrow('not an amount');
+    expect(() => parseMinor('1500.9', 'JPY')).toThrow('not an amount');
+    // Trailing zeros past the currency's decimals change nothing.
+    expect(parseMinor('1500.00', 'JPY')).toBe(1500n);
+    expect(parseMinor('10.990', 'INR')).toBe(1099n);
+  });
 
   it('refuses anything that is not plainly an amount', () => {
     for (const text of ['', '   ', 'abc', '-5', '1e3', '.5', '5.', '12.3.4', '₹100']) {

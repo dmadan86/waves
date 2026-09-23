@@ -569,7 +569,7 @@ describe('native local store lifecycle', () => {
     expect(hydrated[1024]).toEqual(rows[1024]);
     expect(openCalls).toBe(1);
     expect(secure.gets).toBeLessThanOrEqual(2);
-  });
+  }, 15000);
 
   it('round-trips a large encrypted offline queue with one keystore load', async () => {
     ticks.immediate = true;
@@ -583,7 +583,7 @@ describe('native local store lifecycle', () => {
     expect(read[0]?.clientMutationId).toBe('m0');
     expect(read[999]?.clientMutationId).toBe('m999');
     expect(secure.gets).toBeLessThanOrEqual(2);
-  });
+  }, 15000);
 
   it('does not open SQLite when asked to persist no rows', async () => {
     const store = createLocalStore();

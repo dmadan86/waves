@@ -161,6 +161,9 @@ const groupIds = (mirror: MirrorState, queue: QueuedMutation[] = []) =>
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // clearAllMocks keeps a mock's queued responses; the heal and double-failure
+  // tests set them, so reset invoke outright or they leak into the next test.
+  h.invoke.mockReset();
   h.syncPreference.mockResolvedValue('both');
   h.disk.rows.clear();
   h.disk.cursors = {};
