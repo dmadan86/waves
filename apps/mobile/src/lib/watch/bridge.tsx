@@ -23,18 +23,21 @@ import {
 } from '@waves/core';
 
 import { describeActivity, parseMoney, relativeTime } from '@/data/activity';
-import {
-  useCreateCapture,
-  useGroups,
-  useRecentActivity,
-  type RecentActivityRow,
-} from '@/data/hooks';
+import { useCreateCapture, useGroups, type RecentActivityRow } from '@/data/hooks';
+import { recentActivity } from '@/data/recentActivity';
 import { useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { useDefaultCurrency } from '@/lib/currency';
 import { useRecentCount } from '@/lib/recentCount';
 import { parseVoiceExpenses, type VoiceGroupRef } from '@/lib/voiceExpense';
-import { onWatchMessage, onWatchSendFailed, sendToWatch, watchAvailable } from './nativeModule';
+import { useSync } from '@/sync';
+import {
+  onWatchMessage,
+  onWatchSendFailed,
+  sendToWatch,
+  watchAvailable,
+  watchReachable,
+} from './nativeModule';
 
 function pad2(n: number): string {
   return n < 10 ? `0${n}` : String(n);
@@ -80,7 +83,11 @@ export function buildRecentItems(
 
 export function WatchBridgeProvider({ children }: { children?: ReactNode }) {
   const createCapture = useCreateCapture();
-  const recent = useRecentActivity();
+  // The mirror, not the joined feed: the feed is built only when a list is
+  // actually about to be sent, and then only its newest `count` rows. Most
+  // phones have no watch, and joining every activity row on every sync for a
+  // payload nobody receives was pure cost.
+  const { mirror } = useSync();
   const groups = useGroups();
   const { count } = useRecentCount();
   const { session } = useAuth();
@@ -90,7 +97,7 @@ export function WatchBridgeProvider({ children }: { children?: ReactNode }) {
   // The message handler is bound once; it reads the latest of everything through
   // this ref so a new recent list or a changed setting never re-subscribes.
   const stateRef = useRef({
-    recent,
+    mirror,
     groups: groups.data ?? [],
     count,
     myProfileId: session?.user?.id ?? null,
@@ -107,7 +114,7 @@ export function WatchBridgeProvider({ children }: { children?: ReactNode }) {
   // once-bound message handler reads the latest of everything through them.
   useEffect(() => {
     stateRef.current = {
-      recent,
+      mirror,
       groups: groups.data ?? [],
       count,
       myProfileId: session?.user?.id ?? null,
@@ -131,8 +138,17 @@ export function WatchBridgeProvider({ children }: { children?: ReactNode }) {
    */
   const relayRecent = useCallback((n: number, opts?: { force?: boolean }) => {
     if (!watchAvailable()) return;
+    // An automatic push only while the transport reports a reachable watch,
+    // checked before anything is built, so an iPhone with no watch app awake
+    // never joins or serialises the list. The watch asks for it (`requestRecent`,
+    // forced) whenever its Home or Recent screen appears, so a push skipped here
+    // is caught up the moment it is looked at. Android's transport reports
+    // reachable unconditionally (its probe is async), so it is unchanged there.
+    if (!opts?.force && !watchReachable()) return;
     const s = stateRef.current;
-    const items = buildRecentItems(s.recent, n, {
+    // Only the newest `n`, and with no profile: the watch shows each row's
+    // neutral total, never the reader's stake, so there is none to compute.
+    const items = buildRecentItems(recentActivity(s.mirror, null, n), n, {
       myProfileId: s.myProfileId,
       locale: s.locale,
       fallbackCurrency: s.defaultCurrency,
@@ -188,7 +204,7 @@ export function WatchBridgeProvider({ children }: { children?: ReactNode }) {
     // identity each render and would run this on every one.
   }, [
     relayRecent,
-    recent,
+    mirror,
     count,
     defaultCurrency,
     locale,
