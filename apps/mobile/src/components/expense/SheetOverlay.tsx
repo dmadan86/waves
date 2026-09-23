@@ -21,7 +21,7 @@
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, ScrollView } from 'react-native';
+import { Keyboard, Pressable, ScrollView } from 'react-native';
 
 import { iconSize, Sheet, Text, useTheme } from '@waves/ui';
 
@@ -90,6 +90,16 @@ export function SheetOverlay({
     },
     [],
   );
+
+  // Every sheet built on this is a list of choices — none has a field to type
+  // into — so the keyboard has no business staying up behind it. Left up (the
+  // form opens with the amount focused), `Sheet` lifts the card to clear it;
+  // the keyboard then drops behind the modal window without the hide reaching
+  // the sheet, and the card stays parked above a strip of scrim. Put it away
+  // first; the hide is heard, and the card sits on the bottom edge.
+  useEffect(() => {
+    Keyboard.dismiss();
+  }, []);
 
   return (
     <Sheet
