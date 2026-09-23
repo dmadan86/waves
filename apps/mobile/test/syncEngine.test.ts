@@ -32,6 +32,8 @@ const h = vi.hoisted(() => ({
   report: vi.fn(),
   /** Make the next disk writes/reads fail, to reach the engine's error paths. */
   faults: { writeQueue: null as Error | null, readRows: null as Error | null },
+  /** Runs inside `putRows`, to act while a flush is mid-way through its disk write. */
+  duringPutRows: null as null | (() => Promise<void>),
   disk: {
     rows: new Map<
       string,
@@ -76,6 +78,9 @@ vi.mock('../src/sync/store', () => ({
     ready: async () => {},
     putRows: async (rows: { table: string; id: string }[]) => {
       for (const row of rows) h.disk.rows.set(`${row.table}:${row.id}`, row as never);
+      const during = h.duringPutRows;
+      h.duringPutRows = null;
+      if (during) await during();
     },
     readRows: async () => {
       if (h.faults.readRows) throw h.faults.readRows;
@@ -171,6 +176,7 @@ beforeEach(() => {
   h.disk.retained = null;
   h.faults.writeQueue = null;
   h.faults.readRows = null;
+  h.duringPutRows = null;
 });
 
 describe('runFlush on a fresh install', () => {
@@ -1253,5 +1259,29 @@ describe('a flush that fails twice over', () => {
     expect(engine.getState().lastError).toBe('database is locked');
     expect(h.invoke).not.toHaveBeenCalled();
     expect(h.report).toHaveBeenCalledWith(h.faults.readRows, 'sync.flush');
+  });
+});
+
+describe('a mutation queued while a sync is writing to disk', () => {
+  it('is kept, in memory and on disk, when the sync finishes', async () => {
+    online();
+    h.invoke.mockResolvedValue({ data: discoveryResponse(), error: null });
+    const engine = new SyncEngine();
+    const late = {
+      clientMutationId: 'late-1',
+      kind: 'group.update' as never,
+      groupId: 'g-goa',
+      clientCreatedAt: '2026-09-01T00:00:00.000Z',
+      payload: { name: 'Goa' },
+    };
+
+    // Given an expense is saved while the flush is part-way through persisting
+    // what the server sent back…
+    h.duringPutRows = () => engine.enqueue(late);
+    await engine.flush();
+
+    // …then it survives the flush setting its own queue afterwards.
+    expect(engine.getState().queue.map((m) => m.clientMutationId)).toContain('late-1');
+    expect(h.disk.queue.map((m) => m.clientMutationId)).toContain('late-1');
   });
 });
