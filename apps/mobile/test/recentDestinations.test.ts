@@ -21,9 +21,13 @@ import {
   PERSONAL_DESTINATION,
   recentDestinations,
   subscribeRecentDestinations,
+  useRecentDestinations,
   withMostRecent,
   type DestinationKey,
 } from '../src/lib/recentDestinations';
+import { flush, renderHook } from './support/fakeReact';
+
+vi.mock('react', async () => (await import('./support/fakeReact')).reactModule());
 
 beforeEach(async () => {
   __resetRecentDestinationsForTest();
@@ -129,5 +133,30 @@ describe('across a restart', () => {
     await loadRecentDestinations();
 
     expect(recentDestinations()).toEqual([groupDestination('new')]);
+  });
+});
+
+describe('useRecentDestinations', () => {
+  it('holds the chips back until the stored order lands, then shows it', async () => {
+    await AsyncStorage.setItem('recent.destinations', JSON.stringify([groupDestination('flat')]));
+    const sheet = renderHook(() => useRecentDestinations());
+    expect(sheet.result.current).toEqual({ ready: false, keys: [] });
+
+    await flush();
+
+    expect(sheet.result.current).toEqual({ ready: true, keys: [groupDestination('flat')] });
+  });
+
+  it('re-renders with the new order when somewhere files an expense, until unmounted', async () => {
+    const sheet = renderHook(() => useRecentDestinations());
+    await flush();
+
+    noteDestination(PERSONAL_DESTINATION);
+    expect(sheet.result.current.keys).toEqual([PERSONAL_DESTINATION]);
+
+    sheet.unmount();
+    const renders = sheet.renders;
+    noteDestination(groupDestination('trip'));
+    expect(sheet.renders).toBe(renders);
   });
 });

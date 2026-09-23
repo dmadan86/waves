@@ -4,7 +4,7 @@
  * spends it — see `src/lib/oauthClaim.ts` for why both arrivals exist.
  */
 
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { claimCode, resetClaimedCodes, setClaimedCodeClock } from '../src/lib/oauthClaim';
 
@@ -46,5 +46,19 @@ describe('claiming an authorization code', () => {
     // recent callback remains protected against the legitimate duplicate route.
     expect(claimCode('oldest')).toBe(true);
     expect(claimCode('flood-255')).toBe(false);
+  });
+
+  it('goes back to the wall clock after a reset', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      vi.setSystemTime(new Date('2026-09-01T00:00:00Z'));
+      resetClaimedCodes();
+      expect(claimCode('clocked')).toBe(true);
+      vi.setSystemTime(new Date('2026-09-01T00:10:01Z'));
+      // The replay window is measured on the real clock again, not the stub.
+      expect(claimCode('clocked')).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

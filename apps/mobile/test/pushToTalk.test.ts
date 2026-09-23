@@ -127,4 +127,15 @@ describe('pushToTalk', () => {
     // re-render the screen holding the mic.
     expect(gesture.getSnapshot()).not.toBe(before);
   });
+
+  it('forgets a pending ending and the hold when reset, as a sign-out does', () => {
+    const gesture = new PushToTalk();
+    gesture.begin(0);
+    gesture.release(1000);
+    gesture.reset();
+    expect(gesture.getSnapshot()).toEqual({ holding: false, ended: null });
+    expect(gesture.take()).toBeNull();
+    // A release with no hold after the reset is only a tap.
+    expect(gesture.release(5000)).toBe('tap');
+  });
 });

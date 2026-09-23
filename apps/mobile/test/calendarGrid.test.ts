@@ -176,4 +176,42 @@ describe('gregorianFormatter', () => {
     const formatter = gregorianFormatter('en-GB', { month: 'long', year: 'numeric' });
     expect(formatter?.format(dayAt(2026, 9, 4))).toContain('October');
   });
+
+  it('drops the calendar option when the engine refuses it, and gives up only when both fail', () => {
+    const engine = Intl as unknown as { DateTimeFormat: unknown };
+    const real = Intl.DateTimeFormat;
+    const calls: Intl.DateTimeFormatOptions[] = [];
+    let refuseAll = false;
+    engine.DateTimeFormat = function (locale: string, options: Intl.DateTimeFormatOptions) {
+      calls.push(options);
+      if (refuseAll || options.calendar) throw new RangeError('unsupported');
+      return new real(locale, options);
+    };
+    try {
+      const fallback = gregorianFormatter('en-GB', { month: 'long' });
+      expect(fallback?.format(dayAt(2026, 9, 4))).toBe('October');
+      expect(calls.map((o) => o.calendar)).toEqual(['gregory', undefined]);
+
+      refuseAll = true;
+      expect(gregorianFormatter('xx', { month: 'long' })).toBeNull();
+    } finally {
+      engine.DateTimeFormat = real;
+    }
+  });
+});
+
+describe('firstWeekday without engine week data', () => {
+  it('reads bare English, Hindi and Tamil tags as Sunday, and anything else as Monday', () => {
+    const engine = Intl as unknown as { Locale: unknown };
+    const real = engine.Locale;
+    engine.Locale = undefined;
+    try {
+      expect(firstWeekday('en')).toBe(0);
+      expect(firstWeekday('hi')).toBe(0);
+      expect(firstWeekday('ta')).toBe(0);
+      expect(firstWeekday('de')).toBe(1);
+    } finally {
+      engine.Locale = real;
+    }
+  });
 });

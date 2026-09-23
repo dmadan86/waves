@@ -92,6 +92,22 @@ describe('sharing an invite card image', () => {
     expect(fallback).toHaveBeenCalledTimes(1);
   });
 
+  it('falls back to the link when the capture comes back empty', async () => {
+    capture.mockResolvedValue('');
+    const fallback = vi.fn();
+
+    await shareInviteCard({
+      cardRef: null,
+      filename: 'invite.png',
+      dialogTitle: 'Invite',
+      fallback,
+    });
+
+    expect(files).toEqual([]);
+    expect(sharing.shareAsync).not.toHaveBeenCalled();
+    expect(fallback).toHaveBeenCalledTimes(1);
+  });
+
   it('falls back to the link when card capture fails', async () => {
     capture.mockRejectedValue(new Error('capture failed'));
     const fallback = vi.fn();

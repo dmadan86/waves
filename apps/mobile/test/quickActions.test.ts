@@ -8,12 +8,15 @@
  * tests are what says so.
  */
 
+import { createRequire } from 'node:module';
+
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   SHORTCUT_ACTIONS,
   actionForId,
   clearQuickActions,
+  onQuickAction,
   routeForShortcut,
   setQuickActionsModuleForTests,
   syncQuickActions,
@@ -23,6 +26,14 @@ import {
 vi.mock('react-native', () => ({ Platform: { OS: 'ios' } }));
 
 const TITLES = { add: 'Add an expense', scan: 'Scan a receipt', voice: 'Speak an expense' };
+
+// The real module is reached by `require`, which `vi.mock` does not intercept.
+const nodeRequire = createRequire(import.meta.url);
+function stubRequire(specifier: string, exports: unknown): string {
+  const path = nodeRequire.resolve(specifier);
+  nodeRequire.cache[path] = { id: path, filename: path, loaded: true, exports } as never;
+  return path;
+}
 
 /** A stand-in for `expo-quick-actions`, launched from the scan shortcut. */
 function fakeModule(launchedFrom: string | null = 'waves.shortcut.scan') {
@@ -112,6 +123,71 @@ describe('app-icon quick shortcuts', () => {
 
     await clearQuickActions();
     expect(quickActions.published.at(-1)).toEqual([]);
+  });
+
+  it('forwards taps on a shortcut while running, and stops on unsubscribe', () => {
+    let listener: ((item: { id?: string }) => void) | null = null;
+    const remove = vi.fn();
+    setQuickActionsModuleForTests({
+      ...fakeModule(),
+      addListener(fn) {
+        listener = fn;
+        return { remove };
+      },
+    });
+    const seen: string[] = [];
+    const off = onQuickAction((id) => seen.push(id));
+
+    listener!({ id: 'waves.shortcut.voice' });
+    listener!({});
+    expect(seen).toEqual(['waves.shortcut.voice']);
+
+    off();
+    expect(remove).toHaveBeenCalledTimes(1);
+  });
+
+  it('gives a no-op unsubscribe when the module cannot listen', () => {
+    expect(onQuickAction(() => {})).toBeTypeOf('function');
+    setQuickActionsModuleForTests(null);
+    expect(() => onQuickAction(() => {})()).not.toThrow();
+  });
+
+  it('swallows a launcher that refuses shortcuts', async () => {
+    setQuickActionsModuleForTests({
+      setItems: () => Promise.reject(new Error('unsupported launcher')),
+    });
+    await expect(syncQuickActions(TITLES)).resolves.toBeUndefined();
+    await expect(clearQuickActions()).resolves.toBeUndefined();
+  });
+
+  it('loads the real module lazily, preferring its default export', async () => {
+    const real = fakeModule('waves.shortcut.add');
+    const path = stubRequire('expo-quick-actions', { default: real });
+    try {
+      setQuickActionsModuleForTests(undefined as never);
+      await syncQuickActions(TITLES);
+      expect(real.published).toHaveLength(1);
+      expect(takeInitialQuickAction()).toBe('waves.shortcut.add');
+    } finally {
+      delete nodeRequire.cache[path];
+    }
+  });
+
+  it('treats a module that will not load as absent', async () => {
+    const path = nodeRequire.resolve('expo-quick-actions');
+    Object.defineProperty(nodeRequire.cache, path, {
+      configurable: true,
+      get() {
+        throw new Error('native module missing');
+      },
+    });
+    try {
+      setQuickActionsModuleForTests(undefined as never);
+      await expect(syncQuickActions(TITLES)).resolves.toBeUndefined();
+      expect(takeInitialQuickAction()).toBeNull();
+    } finally {
+      delete nodeRequire.cache[path];
+    }
   });
 
   it('stays quiet on a build whose binary has no quick-actions module', async () => {

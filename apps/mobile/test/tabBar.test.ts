@@ -18,6 +18,10 @@ describe('tabBarRouteForSelection', () => {
 });
 
 describe('resolveTabBar', () => {
+  it('draws no bar at all for someone signed out, whatever the route', () => {
+    expect(resolveTabBar(['(tabs)', 'index'], true)).toEqual({ hidden: true, activeKey: '' });
+  });
+
   it('lights the current tab inside the tabs group', () => {
     expect(resolveTabBar(['(tabs)', 'index'])).toEqual({ hidden: false, activeKey: 'index' });
     expect(resolveTabBar(['(tabs)', 'friends'])).toEqual({ hidden: false, activeKey: 'friends' });

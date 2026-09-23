@@ -45,4 +45,28 @@ describe('friendlyError', () => {
     // rate-limited, because the rate-limit branch is checked first.
     expect(friendly({ status: 429, message: 'request failed: rate limit' })).toBe(TOO_MANY);
   });
+
+  it('falls back when the session has gone mid-action', () => {
+    expect(friendly({ message: 'JWT expired' })).toBe(FALLBACK);
+    expect(friendly('NOT_SIGNED_IN')).toBe(FALLBACK);
+  });
+
+  it('falls back for anything the database rejected by name', () => {
+    expect(friendly({ message: 'new row violates row-level security policy' })).toBe(FALLBACK);
+    expect(friendly({ message: 'relation "groups" does not exist' })).toBe(FALLBACK);
+  });
+
+  it('reads a rate-limit error code even when the message says nothing', () => {
+    expect(friendly({ code: 'over_request_rate_limit' })).toBe(TOO_MANY);
+  });
+
+  it('uses the fallback where the caller has no offline or too-many sentence', () => {
+    expect(friendlyError({ status: 429 }, FALLBACK, 'test')).toBe(FALLBACK);
+    expect(friendlyError({ message: 'Network request failed' }, FALLBACK, 'test')).toBe(FALLBACK);
+  });
+
+  it('copes with nothing thrown at all', () => {
+    expect(friendly(null)).toBe(FALLBACK);
+    expect(friendly(undefined)).toBe(FALLBACK);
+  });
 });

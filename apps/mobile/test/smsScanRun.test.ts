@@ -21,6 +21,8 @@ const h = vi.hoisted(() => ({
   saveMessages: vi.fn(),
   enqueue: vi.fn(),
   capturedKeys: [] as string[],
+  hydrated: true,
+  hydrate: vi.fn(async () => {}),
 }));
 
 // `deviceGateReason` reaches React Native through a runtime `require` (so an
@@ -70,8 +72,8 @@ vi.mock('@/data/hooks', () => ({
 }));
 vi.mock('@/sync', () => ({
   syncEngine: {
-    getState: () => ({ hydrated: true, mirror: {}, queue: [] }),
-    hydrate: async () => {},
+    getState: () => ({ hydrated: h.hydrated, mirror: {}, queue: [] }),
+    hydrate: h.hydrate,
     enqueue: h.enqueue,
   },
 }));
@@ -82,7 +84,8 @@ vi.mock('@waves/core', async (importOriginal) => ({
   materialiseCaptures: () => h.capturedKeys.map((dedupeKey) => ({ parsed: { dedupeKey } })),
 }));
 
-const { runScan } = await import('@/lib/smsScan');
+const { deviceGatesOpen, runScan, scanFor } = await import('@/lib/smsScan');
+const { ScanScope, scanMaxCount, scanWindow } = await import('@/lib/smsScanPlan');
 
 const sms = (body: string): SmsMessage => ({
   body,
@@ -113,6 +116,8 @@ beforeEach(() => {
   h.saveMessages.mockReset().mockImplementation(async (_owner, rows: unknown[]) => rows.length);
   h.enqueue.mockReset().mockResolvedValue(undefined);
   h.capturedKeys = [];
+  h.hydrated = true;
+  h.hydrate.mockClear();
 });
 
 describe('runScan', () => {
@@ -186,5 +191,44 @@ describe('runScan', () => {
 
     expect(result.ok).toBe(false);
     expect(h.read).not.toHaveBeenCalled();
+  });
+
+  it('loads the queue from disk before appending drafts to it', async () => {
+    h.hydrated = false;
+    h.read.mockResolvedValue({ ok: true, messages: [FRESH_A] });
+
+    await runScan({ ownerId: 'owner-1', window: WINDOW, maxCount: 50 });
+
+    expect(h.hydrate).toHaveBeenCalledTimes(1);
+    expect(h.hydrate.mock.invocationCallOrder[0]!).toBeLessThan(
+      h.enqueue.mock.invocationCallOrder[0]!,
+    );
+  });
+});
+
+describe('deviceGatesOpen', () => {
+  it('is open on an Android build with the reader and a granted permission, shut elsewhere', async () => {
+    expect(await deviceGatesOpen()).toBe(true);
+    reactNative.Platform.OS = 'ios';
+    expect(await deviceGatesOpen()).toBe(false);
+  });
+});
+
+describe('scanFor', () => {
+  it('reads the window and cap the chosen scope stands for', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-03-10T09:00:00.000Z'));
+    try {
+      h.read.mockResolvedValue({ ok: true, messages: [] });
+      for (const scope of [ScanScope.Recent, ScanScope.Everything]) {
+        h.read.mockClear();
+
+        await scanFor('owner-1', scope);
+
+        expect(h.read).toHaveBeenCalledWith(scanWindow(scope, Date.now()), scanMaxCount(scope));
+      }
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
