@@ -2,8 +2,10 @@
 -- Undo for `packages/db/scripts/seed-account.mjs`.
 --
 -- Removes exactly the groups that seeder created and nothing else. It finds
--- them by the marker in their name (default "[demo] ") — set :marker below if
--- the seed ran with a different SEED_MARKER.
+-- them by the marker in their name (default "[demo] ") AND by the seeded
+-- account as `created_by` (default apptest@gmail.com) — the marker alone would
+-- also match a real user's group called "[demo] …". Set :marker / :owner if the
+-- seed ran with a different SEED_MARKER / SEED_TARGET_EMAIL.
 --
 -- It touches no row that was not created by the seed run: no profile, no auth
 -- user, no group without the marker, and nothing belonging to anybody else.
@@ -30,7 +32,7 @@
 --
 -- ── running it ─────────────────────────────────────────────────────────────
 --
---   psql "$DIRECT_URL" -v marker='[demo] %' -f scripts/demo-seed-cleanup.sql
+--   psql "$DIRECT_URL" -v marker='[demo] %' -v owner='apptest@gmail.com' -f scripts/demo-seed-cleanup.sql
 --
 -- or from the repo, which needs no psql on PATH:
 --
@@ -42,6 +44,13 @@
 
 \set ON_ERROR_STOP on
 \if :{?marker} \else \set marker '[demo] %' \endif
+\if :{?owner} \else \set owner 'apptest@gmail.com' \endif
+
+-- The seeded account. No such account → no owner_id, so the next query fails
+-- and ON_ERROR_STOP halts before anything is touched.
+SELECT p.id AS owner_id
+  FROM public.profiles p JOIN auth.users u ON u.id = p.id
+ WHERE lower(u.email) = lower(:'owner') \gset
 
 -- ── what is about to go ────────────────────────────────────────────────────
 
@@ -53,7 +62,7 @@ SELECT g.id,
        (SELECT count(*) FROM public.expenses e     WHERE e.group_id = g.id) AS expenses,
        (SELECT count(*) FROM public.settlements s  WHERE s.group_id = g.id) AS settlements
   FROM public.groups g
- WHERE g.name LIKE :'marker'
+ WHERE g.name LIKE :'marker' AND g.created_by = :'owner_id'
  ORDER BY g.created_at;
 
 -- ── STEP 1 — the soft delete (the app's own) ───────────────────────────────
@@ -62,13 +71,13 @@ BEGIN;
 
 UPDATE public.groups
    SET deleted_at = now()
- WHERE name LIKE :'marker'
+ WHERE name LIKE :'marker' AND created_by = :'owner_id'
    AND deleted_at IS NULL;
 
 -- Proof: no seeded group is live any more, and no seeded balance is counted.
 SELECT count(*) AS still_live
   FROM public.groups
- WHERE name LIKE :'marker' AND deleted_at IS NULL;
+ WHERE name LIKE :'marker' AND created_by = :'owner_id' AND deleted_at IS NULL;
 
 COMMIT;
 
@@ -92,7 +101,7 @@ COMMIT;
 -- -- One statement. `groups` cascades to group_members, expenses,
 -- -- expense_versions, expense_payers, expense_shares, settlements,
 -- -- group_balances, pairwise_balances and activity_log.
--- DELETE FROM public.groups WHERE name LIKE :'marker';
+-- DELETE FROM public.groups WHERE name LIKE :'marker' AND created_by = :'owner_id';
 --
 -- ALTER TABLE public.expenses         ENABLE TRIGGER expenses_no_hard_delete;
 -- ALTER TABLE public.expense_versions ENABLE TRIGGER expense_versions_append_only;
@@ -107,4 +116,4 @@ SELECT count(*) FILTER (WHERE deleted_at IS NULL) AS live,
        count(*) FILTER (WHERE deleted_at IS NOT NULL) AS tombstoned,
        count(*) AS total
   FROM public.groups
- WHERE name LIKE :'marker';
+ WHERE name LIKE :'marker' AND created_by = :'owner_id';

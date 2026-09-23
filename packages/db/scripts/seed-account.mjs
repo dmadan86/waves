@@ -35,7 +35,9 @@
  *
  * ── reversibility ──────────────────────────────────────────────────────────
  *
- * Every group it creates is named with `SEED_MARKER` (default "[demo] ").
+ * Every group it creates is named with `SEED_MARKER` (default "[demo] ") and
+ * has the target account as `created_by`. Both have to match — the marker alone
+ * would also catch a real user who happened to name a group "[demo] …".
  * `scripts/demo-seed-cleanup.sql` removes exactly those groups and nothing else.
  *
  * ── running it ─────────────────────────────────────────────────────────────
@@ -56,7 +58,6 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import dotenv from 'dotenv';
-import pg from 'pg';
 
 import {
   CATEGORIES,
@@ -64,6 +65,8 @@ import {
   minorUnitExponent,
   serialiseSplitParams,
 } from '../../core/dist/core.js';
+
+import { PROD_REF, openSeedClient } from './seed-connection.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.resolve(HERE, '..', '.env'), quiet: true });
@@ -73,9 +76,6 @@ dotenv.config({ path: path.resolve(HERE, '..', '.env'), quiet: true });
 const CONNECTION_STRING = process.env.SEED_DATABASE_URL ?? process.env.DIRECT_URL;
 const TARGET_EMAIL = (process.env.SEED_TARGET_EMAIL ?? 'apptest@gmail.com').toLowerCase();
 const MARKER = process.env.SEED_MARKER ?? '[demo] ';
-
-/** The production project. Named so the guard below can say what it is guarding. */
-const PROD_REF = 'ywojpnfyxxltvihqmcni';
 
 const ARGS = new Set(process.argv.slice(2));
 const CANARY_ONLY = ARGS.has('--canary');
@@ -552,7 +552,7 @@ async function findTargetProfile(client) {
  * connection can pick up where it stopped rather than leaving one group short
  * forever. Returns null when the group does not exist yet.
  */
-async function existingGroup(client, name) {
+async function existingGroup(client, name, profileId) {
   const { rows } = await client.query(
     `SELECT g.id,
             (SELECT m.id FROM public.group_members m
@@ -560,8 +560,8 @@ async function existingGroup(client, name) {
               LIMIT 1) AS owner_member_id,
             (SELECT count(*)::int FROM public.expenses e WHERE e.group_id = g.id) AS expenses
        FROM public.groups g
-      WHERE g.name = $1 AND g.deleted_at IS NULL`,
-    [name],
+      WHERE g.name = $1 AND g.created_by = $2 AND g.deleted_at IS NULL`,
+    [name, profileId],
   );
   if (rows.length === 0) return null;
   const { rows: members } = await client.query(
@@ -583,7 +583,7 @@ async function buildGroup(client, spec, profile) {
   // Resume a group a previous run left half-full rather than starting a second
   // copy of it. Membership is created in one transaction with the group, so a
   // group that exists has all its people.
-  const resume = await existingGroup(client, name);
+  const resume = await existingGroup(client, name, profile.id);
   if (resume) {
     if (resume.expenses >= spec.expenses) return null; // already complete
     return fillGroup(client, spec, resume, spec.expenses - resume.expenses, true);
@@ -808,9 +808,9 @@ async function verify(client, profileId) {
             (SELECT count(*) FROM public.expenses e
               WHERE e.group_id = g.id AND e.deleted_at IS NULL) AS live_expenses
        FROM public.groups g
-      WHERE g.name LIKE $1 AND g.deleted_at IS NULL
+      WHERE g.name LIKE $1 AND g.created_by = $2 AND g.deleted_at IS NULL
       ORDER BY g.created_at`,
-    [`${MARKER}%`],
+    [`${MARKER}%`, profileId],
   );
 
   // 1. Does the target account actually see them? Membership, not just existence.
@@ -818,7 +818,7 @@ async function verify(client, profileId) {
     `SELECT count(*)::int AS n
        FROM public.groups g
        JOIN public.group_members m ON m.group_id = g.id
-      WHERE g.name LIKE $1 AND g.deleted_at IS NULL
+      WHERE g.name LIKE $1 AND g.created_by = $2 AND g.deleted_at IS NULL
         AND m.profile_id = $2 AND m.left_at IS NULL AND m.role = 'admin'`,
     [`${MARKER}%`, profileId],
   );
@@ -839,12 +839,12 @@ async function verify(client, profileId) {
        FROM public.expense_versions ev
        JOIN public.expenses e ON e.id = ev.expense_id AND e.current_version_id = ev.id
        JOIN public.groups g ON g.id = e.group_id
-      WHERE g.name LIKE $1
+      WHERE g.name LIKE $1 AND g.created_by = $2
         AND ((SELECT COALESCE(sum(amount), 0) FROM public.expense_payers p
                WHERE p.expense_version_id = ev.id) <> ev.amount
           OR (SELECT COALESCE(sum(amount), 0) FROM public.expense_shares s
                WHERE s.expense_version_id = ev.id) <> ev.amount)`,
-    [`${MARKER}%`],
+    [`${MARKER}%`, profileId],
   );
   for (const row of mismatched) {
     problems.push(
@@ -859,10 +859,10 @@ async function verify(client, profileId) {
     `SELECT b.group_id, g.name, b.currency, sum(b.balance) AS total, count(*)::int AS rows
        FROM public.group_balances b
        JOIN public.groups g ON g.id = b.group_id
-      WHERE g.name LIKE $1
+      WHERE g.name LIKE $1 AND g.created_by = $2
       GROUP BY b.group_id, g.name, b.currency
       ORDER BY g.name, b.currency`,
-    [`${MARKER}%`],
+    [`${MARKER}%`, profileId],
   );
   for (const row of sums) {
     if (BigInt(row.total) !== 0n) {
@@ -876,9 +876,9 @@ async function verify(client, profileId) {
        CROSS JOIN LATERAL public.waves_group_balances_truth(g.id) t
        LEFT JOIN public.group_balances b
          ON b.group_id = g.id AND b.member_id = t.member_id AND b.currency = t.currency
-      WHERE g.name LIKE $1
+      WHERE g.name LIKE $1 AND g.created_by = $2
         AND (b.balance IS NULL OR b.balance <> t.balance)`,
-    [`${MARKER}%`],
+    [`${MARKER}%`, profileId],
   );
   for (const row of drift) {
     problems.push(
@@ -917,45 +917,7 @@ function report(summaries) {
 // ── entry ──────────────────────────────────────────────────────────────────
 
 async function main() {
-  if (!CONNECTION_STRING) {
-    throw new Error('No SEED_DATABASE_URL and no DIRECT_URL. Nothing to connect to.');
-  }
-
-  const parsed = new URL(CONNECTION_STRING.replace(/^postgres(ql)?:/, 'http:'));
-  const host = parsed.hostname;
-  const isLocal = host === 'localhost' || host === '127.0.0.1' || host === '::1';
-  const isProd = CONNECTION_STRING.includes(PROD_REF);
-
-  if (!isLocal && process.env.SEED_ALLOW_REMOTE !== '1') {
-    throw new Error(
-      `Refusing a non-local host (${host}) without SEED_ALLOW_REMOTE=1. This writes ` +
-        `rows into whatever it is pointed at.`,
-    );
-  }
-  if (isProd && process.env.SEED_ALLOW_PROD !== '1') {
-    throw new Error(
-      `That is the production project (${PROD_REF}). Set SEED_ALLOW_PROD=1 as well if ` +
-        `you really mean it.`,
-    );
-  }
-
-  // pg now reads sslmode=require as verify-full, which the Supabase pooler's
-  // chain does not satisfy. Strip it and be explicit instead.
-  const connectionString = CONNECTION_STRING.replace(/([?&])sslmode=[^&]*/g, '$1').replace(
-    /[?&]$/,
-    '',
-  );
-  const client = new pg.Client({
-    connectionString,
-    ssl: isLocal ? undefined : { rejectUnauthorized: false },
-    application_name: 'waves-demo-seed',
-  });
-  await client.connect();
-  // The Supabase CLI's temporary login role (`cli_login_postgres`) is a member
-  // of postgres but does not inherit it, so it has to assume the role itself.
-  if (process.env.SEED_SET_ROLE) {
-    await client.query(`set role ${pg.escapeIdentifier(process.env.SEED_SET_ROLE)}`);
-  }
+  const { client, host, isProd } = await openSeedClient(CONNECTION_STRING, 'waves-demo-seed');
 
   console.log(`host      ${host}`);
   console.log(`project   ${isProd ? `${PROD_REF} (PRODUCTION)` : host}`);

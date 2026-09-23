@@ -3,8 +3,12 @@
  * Undo for `seed-account.mjs`. Same thing `scripts/demo-seed-cleanup.sql` does,
  * runnable without psql on PATH — which on Windows is most of the time.
  *
- * It removes exactly the groups the seeder created, found by the marker in
- * their name, and nothing else. No profile, no auth user, no unmarked group.
+ * It removes exactly the groups the seeder created — the marker in the name AND
+ * the target account (SEED_TARGET_EMAIL) as `created_by` — and nothing else. No
+ * profile, no auth user, no unmarked group, no other user's "[demo] …" group.
+ *
+ * Connection guards are the seeder's own (`seed-connection.mjs`): a remote host
+ * needs SEED_ALLOW_REMOTE=1, production needs SEED_ALLOW_PROD=1 as well.
  *
  *   node packages/db/scripts/demo-seed-cleanup.mjs           # list, then tombstone
  *   node packages/db/scripts/demo-seed-cleanup.mjs --dry-run # list only
@@ -26,12 +30,14 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import dotenv from 'dotenv';
-import pg from 'pg';
+
+import { openSeedClient } from './seed-connection.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.resolve(HERE, '..', '.env'), quiet: true });
 
 const CONNECTION_STRING = process.env.SEED_DATABASE_URL ?? process.env.DIRECT_URL;
+const TARGET_EMAIL = (process.env.SEED_TARGET_EMAIL ?? 'apptest@gmail.com').toLowerCase();
 const MARKER = process.env.SEED_MARKER ?? '[demo] ';
 const LIKE = `${MARKER}%`;
 
@@ -49,35 +55,33 @@ const APPEND_ONLY_TRIGGERS = [
 ];
 
 async function main() {
-  if (!CONNECTION_STRING) throw new Error('No SEED_DATABASE_URL and no DIRECT_URL.');
-
-  const parsed = new URL(CONNECTION_STRING.replace(/^postgres(ql)?:/, 'http:'));
-  const isLocal = ['localhost', '127.0.0.1', '::1'].includes(parsed.hostname);
-  const connectionString = CONNECTION_STRING.replace(/([?&])sslmode=[^&]*/g, '$1').replace(
-    /[?&]$/,
-    '',
-  );
-
-  const client = new pg.Client({
-    connectionString,
-    ssl: isLocal ? undefined : { rejectUnauthorized: false },
-    application_name: 'waves-demo-seed-cleanup',
-  });
-  await client.connect();
+  const { client, host } = await openSeedClient(CONNECTION_STRING, 'waves-demo-seed-cleanup');
 
   try {
+    // A group counts as seeded only if it carries the marker AND the target
+    // account created it. The marker alone would also match a real user's
+    // group that happens to be called "[demo] …".
+    const { rows: owners } = await client.query(
+      `SELECT p.id FROM public.profiles p JOIN auth.users u ON u.id = p.id
+        WHERE lower(u.email) = $1`,
+      [TARGET_EMAIL],
+    );
+    if (owners.length === 0) throw new Error(`No profile for ${TARGET_EMAIL}.`);
+    const owner = owners[0].id;
+
     const { rows } = await client.query(
       `SELECT g.id, g.name, g.default_currency, g.deleted_at,
               (SELECT count(*) FROM public.group_members m WHERE m.group_id = g.id) AS members,
               (SELECT count(*) FROM public.expenses e     WHERE e.group_id = g.id) AS expenses,
               (SELECT count(*) FROM public.settlements s  WHERE s.group_id = g.id) AS settlements
          FROM public.groups g
-        WHERE g.name LIKE $1
+        WHERE g.name LIKE $1 AND g.created_by = $2
         ORDER BY g.created_at`,
-      [LIKE],
+      [LIKE, owner],
     );
 
-    console.log(`host    ${parsed.hostname}`);
+    console.log(`host    ${host}`);
+    console.log(`account ${TARGET_EMAIL}`);
     console.log(`marker  "${MARKER}"`);
     console.log(`\n${rows.length} group(s) match:`);
     for (const g of rows) {
@@ -99,8 +103,8 @@ async function main() {
     if (RESTORE) {
       const restored = await client.query(
         `UPDATE public.groups SET deleted_at = NULL
-          WHERE name LIKE $1 AND deleted_at IS NOT NULL RETURNING id`,
-        [LIKE],
+          WHERE name LIKE $1 AND created_by = $2 AND deleted_at IS NOT NULL RETURNING id`,
+        [LIKE, owner],
       );
       console.log(`\nRestored ${restored.rowCount} group(s).`);
       return;
@@ -109,8 +113,8 @@ async function main() {
     await client.query('BEGIN');
     const tombstoned = await client.query(
       `UPDATE public.groups SET deleted_at = now()
-        WHERE name LIKE $1 AND deleted_at IS NULL RETURNING id`,
-      [LIKE],
+        WHERE name LIKE $1 AND created_by = $2 AND deleted_at IS NULL RETURNING id`,
+      [LIKE, owner],
     );
     await client.query('COMMIT');
     console.log(`\nTombstoned ${tombstoned.rowCount} group(s). They are off every screen now.`);
@@ -124,8 +128,8 @@ async function main() {
         // One statement: groups cascades to members, expenses, versions,
         // payers, shares, settlements, both balance tables and activity_log.
         const deleted = await client.query(
-          `DELETE FROM public.groups WHERE name LIKE $1 RETURNING id`,
-          [LIKE],
+          `DELETE FROM public.groups WHERE name LIKE $1 AND created_by = $2 RETURNING id`,
+          [LIKE, owner],
         );
         for (const [table, trigger] of APPEND_ONLY_TRIGGERS) {
           await client.query(`ALTER TABLE ${table} ENABLE TRIGGER ${trigger}`);
@@ -143,8 +147,8 @@ async function main() {
       `SELECT count(*) FILTER (WHERE deleted_at IS NULL)     AS live,
               count(*) FILTER (WHERE deleted_at IS NOT NULL) AS tombstoned,
               count(*)                                       AS total
-         FROM public.groups WHERE name LIKE $1`,
-      [LIKE],
+         FROM public.groups WHERE name LIKE $1 AND created_by = $2`,
+      [LIKE, owner],
     );
     console.log(
       `\nRemaining: ${left.rows[0].total} marked group(s) — ${left.rows[0].live} live, ${left.rows[0].tombstoned} tombstoned.`,
