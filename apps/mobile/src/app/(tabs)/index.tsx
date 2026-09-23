@@ -609,7 +609,11 @@ export default function HomeScreen() {
                   // shape, and at icon size that detail needs the air around
                   // it more than it needs the extra points. The disc keeps its
                   // own size — it is the touch target.
-                  glyph={<GroupAddIcon size={16} color={theme.color.onBrand} />}
+                  glyph={<GroupAddIcon size={16} color={heroInk[0] ?? theme.color.brand} />}
+                  // White like the pill beside it: the dim disc all but
+                  // vanished on the lighter stops of the wash.
+                  solid
+                  ink={heroInk[0]}
                   label={t.newGroup}
                   onPress={openNewGroup}
                 />
@@ -735,6 +739,13 @@ export default function HomeScreen() {
                       locale={locale}
                       statusLabel={
                         balance === 0n ? t.allSettled : balance > 0n ? t.youAreOwed : t.youOwe
+                      }
+                      directionLabel={
+                        balance === 0n
+                          ? t.group.rowSettled
+                          : balance > 0n
+                            ? t.group.rowOwed
+                            : t.group.rowYouOwe
                       }
                       pendingLabel={summary.hasPending(group.id) ? t.pendingConfirmation : null}
                       tag={tag}
@@ -1689,6 +1700,7 @@ function GroupRow({
   currency,
   locale,
   statusLabel,
+  directionLabel,
   pendingLabel,
   tag,
   tagTone,
@@ -1711,7 +1723,10 @@ function GroupRow({
   balance: bigint;
   currency: string;
   locale: string;
+  /** "You are owed" — spoken, in the row's accessibility label. */
   statusLabel: string;
+  /** "owed" — the same standing, drawn small under the amount it describes. */
+  directionLabel: string;
   pendingLabel: string | null;
   tag: string | null;
   tagTone: 'positive' | 'brand';
@@ -1763,12 +1778,14 @@ function GroupRow({
     return () => run.stop();
   }, [shouldAnimate, anim]);
 
-  // What the row says under its title: who is in it, what is waiting, where it
-  // stands. Named once because both the caption and the label below need it —
-  // a screen reader is given the label instead of the text inside the row, so
-  // anything said only in the caption is not said quietly, it is not said.
-  // Two copies of this expression drifted once already.
-  const detail = pendingLabel ?? [memberLabel, draftLabel, statusLabel].filter(Boolean).join(' · ');
+  // What the row says under its title: who is in it and what is waiting. Where
+  // it stands moved under the amount — "owed" beside the figure it describes,
+  // the way an expense row says "you lent" — rather than "You are owed" on
+  // every line of the list. The spoken label still carries it in full: a screen
+  // reader is given the label instead of the text inside the row, so anything
+  // said only on screen is not said quietly, it is not said.
+  const detail = pendingLabel ?? [memberLabel, draftLabel].filter(Boolean).join(' · ');
+  const spoken = pendingLabel ?? [memberLabel, draftLabel, statusLabel].filter(Boolean).join(' · ');
 
   return (
     <Animated.View
@@ -1782,7 +1799,7 @@ function GroupRow({
         // Pinned is spoken, not just drawn: a screen reader never sees the
         // glyph below, so the state has to be in the label itself.
         accessibilityLabel={
-          pinned ? `${title}. ${t.group.pinnedBadge}. ${detail}` : `${title}. ${detail}`
+          pinned ? `${title}. ${t.group.pinnedBadge}. ${spoken}` : `${title}. ${spoken}`
         }
         onPress={onPress}
         onLongPress={onTogglePin}
@@ -1854,23 +1871,31 @@ function GroupRow({
         </View>
         {pendingBalance ? (
           <Skeleton width={64} height={16} radius={6} animated={!reduceMotion} />
-        ) : hidden ? (
-          <Text tone="muted" style={{ fontWeight: '700' }}>
-            {BALANCE_MASK}
-          </Text>
         ) : (
-          // `balance` mode is money's own rule in one place: it takes the
-          // magnitude, colours by the sign (owed-to-you positive, you-owe
-          // negative, square quiet) and speaks the direction aloud — which the
-          // hand-rolled abs + tone did not, so a screen reader heard a bare
-          // number with no side to it.
-          <MoneyText
-            amount={balance}
-            currency={currency as never}
-            locale={locale}
-            mode="balance"
-            style={{ fontWeight: '700' }}
-          />
+          <View style={{ alignItems: 'flex-end', gap: 2 }}>
+            {hidden ? (
+              <Text tone="muted" style={{ fontWeight: '700' }}>
+                {BALANCE_MASK}
+              </Text>
+            ) : (
+              // `balance` mode is money's own rule in one place: it takes the
+              // magnitude, colours by the sign (owed-to-you positive, you-owe
+              // negative, square quiet) and speaks the direction aloud.
+              <MoneyText
+                amount={balance}
+                currency={currency as never}
+                locale={locale}
+                mode="balance"
+                style={{ fontWeight: '700' }}
+              />
+            )}
+            {/* The standing in words, under the figure. The amount carries no
+                sign, so without this the direction would be colour alone. Kept
+                when the eye is shut: the figure is private, the side is not. */}
+            <Text variant="micro" tone="muted" numberOfLines={1}>
+              {directionLabel}
+            </Text>
+          </View>
         )}
       </Pressable>
     </Animated.View>

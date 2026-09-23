@@ -286,13 +286,22 @@ export default function AllGroupsScreen() {
                 const { group, balance, pending, count } = row.item;
                 const statusLabel =
                   balance === 0n ? t.allSettled : balance > 0n ? t.youAreOwed : t.youOwe;
-                // Status first, member count second: the reader's question is "do
-                // I owe or am I owed?", not "how many people". Pending keeps its
-                // context rather than replacing it — it used to swallow the member
-                // count whole.
-                const subtitle = pending
-                  ? `${t.pendingConfirmation} · ${plural(locale, count, t.memberCount)}`
-                  : `${statusLabel} · ${plural(locale, count, t.memberCount)}`;
+                const members = plural(locale, count, t.memberCount);
+                // The standing is drawn under the amount ("owed"), so the line
+                // under the name is the group's own detail. Pending keeps its
+                // place ahead of the count — it is the one state waiting on you.
+                const subtitle = pending ? `${t.pendingConfirmation} · ${members}` : members;
+                // Spoken in full: "You are owed" never reaches a screen reader
+                // from the small label, which is read as part of this instead.
+                const spoken = pending
+                  ? `${t.pendingConfirmation} · ${members}`
+                  : `${statusLabel} · ${members}`;
+                const direction =
+                  balance === 0n
+                    ? t.group.rowSettled
+                    : balance > 0n
+                      ? t.group.rowOwed
+                      : t.group.rowYouOwe;
 
                 const pinned = pinnedIds.has(group.id);
                 return (
@@ -304,6 +313,8 @@ export default function AllGroupsScreen() {
                     currency={group.default_currency}
                     locale={locale}
                     subtitle={subtitle}
+                    spoken={spoken}
+                    direction={direction}
                     // Settled groups are present, not urgent: dimmed so the eye
                     // lands on the rows that still need something.
                     dim={!row.item.needsAction}
@@ -562,6 +573,8 @@ const GroupListRow = memo(function GroupListRow({
   currency,
   locale,
   subtitle,
+  spoken,
+  direction,
   dim,
   divider,
   pinned = false,
@@ -575,6 +588,10 @@ const GroupListRow = memo(function GroupListRow({
   currency: string;
   locale: string;
   subtitle: string;
+  /** The row's accessibility text: the subtitle with the standing in full. */
+  spoken: string;
+  /** "owed" / "you owe" / "settled", drawn small under the amount. */
+  direction: string;
   /** Nothing owed and nothing pending — present, but not competing for the eye. */
   dim: boolean;
   /** A hairline above the row, so the card reads as one divided list. */
@@ -601,7 +618,7 @@ const GroupListRow = memo(function GroupListRow({
       // state that needs attention. Pinned is spoken too — a screen reader
       // never sees the glyph the row draws below.
       accessibilityLabel={
-        pinned ? `${label}. ${t.group.pinnedBadge}. ${subtitle}` : `${label}. ${subtitle}`
+        pinned ? `${label}. ${t.group.pinnedBadge}. ${spoken}` : `${label}. ${spoken}`
       }
       onPress={() => router.push(`/group/${groupId}`)}
       onLongPress={onTogglePin}
@@ -654,13 +671,18 @@ const GroupListRow = memo(function GroupListRow({
             {subtitle}
           </Text>
         </View>
-        <MoneyText
-          amount={balance}
-          currency={currency as never}
-          locale={locale}
-          mode="balance"
-          variant="subheading"
-        />
+        <View style={{ alignItems: 'flex-end', gap: 2 }}>
+          <MoneyText
+            amount={balance}
+            currency={currency as never}
+            locale={locale}
+            mode="balance"
+            variant="subheading"
+          />
+          <Text variant="micro" tone="muted" numberOfLines={1}>
+            {direction}
+          </Text>
+        </View>
       </Row>
     </Pressable>
   );

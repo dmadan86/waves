@@ -113,6 +113,8 @@ export function HeroActionCircle({
   onPress,
   disabled,
   badge = false,
+  solid = false,
+  ink,
 }: {
   icon?: keyof typeof Ionicons.glyphMap;
   /** A drawn mark in place of an Ionicon, for the one action the set has no
@@ -133,8 +135,18 @@ export function HeroActionCircle({
    * top, which is the same badge the friends list wears for a merged guest.
    */
   badge?: boolean;
+  /**
+   * The white disc of `HeroPillButton`'s solid face instead of the dim
+   * translucent one: for a disc that is an action in its own right beside the
+   * pill (the dashboard's new group), where 18% white on a light stop of the
+   * wash all but vanished. `ink` is then the glyph's colour — the same darkest
+   * gradient stop the pill writes in; a caller-drawn `glyph` takes it itself.
+   */
+  solid?: boolean;
+  ink?: string;
 }) {
   const theme = useTheme();
+  const glyphInk = solid ? (ink ?? theme.color.brand) : theme.color.onBrand;
   return (
     <Pressable
       accessibilityRole="button"
@@ -148,13 +160,11 @@ export function HeroActionCircle({
         borderRadius: 21,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: 'rgba(255, 255, 255, 0.18)',
+        backgroundColor: solid ? '#FFFFFF' : 'rgba(255, 255, 255, 0.18)',
         opacity: disabled ? 0.5 : pressed ? 0.7 : 1,
       })}
     >
-      {glyph ?? (
-        <Ionicons name={icon ?? 'ellipse'} size={iconSize.lg} color={theme.color.onBrand} />
-      )}
+      {glyph ?? <Ionicons name={icon ?? 'ellipse'} size={iconSize.lg} color={glyphInk} />}
       {badge ? (
         // Opaque, on the panel's own ink, so the plus reads as a mark on the
         // disc rather than a glyph floating over the wash behind it. Decorative:
