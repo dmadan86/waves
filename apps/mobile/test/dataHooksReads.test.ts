@@ -91,24 +91,18 @@ vi.mock('@/lib/backend', () => ({ backend: realtime.client }));
 const api = vi.hoisted(() => ({
   createGroup: vi.fn(),
   deleteGroup: vi.fn(),
-  disputeExpense: vi.fn(),
-  fetchAllBalances: vi.fn(),
   fetchBalances: vi.fn(() => Promise.resolve([])),
   fetchExpenseVersions: vi.fn(() => Promise.resolve([])),
-  fetchDisputes: vi.fn(() => Promise.resolve([])),
   fetchItemClaims: vi.fn(() => Promise.resolve([])),
   fetchOpenReceipts: vi.fn(() => Promise.resolve([])),
   fetchReceipt: vi.fn(() => Promise.resolve(null)),
-  fetchGroupSpending: vi.fn(),
   fetchMemberClaims: vi.fn(() => Promise.resolve([])),
   decideMemberClaim: vi.fn(),
   recordSettlement: vi.fn(),
-  resolveDispute: vi.fn(),
   leaveGroup: vi.fn(),
   updateGroup: vi.fn(),
   updateMember: vi.fn(),
   setMemberRole: vi.fn(),
-  withdrawDispute: vi.fn(),
   removeExpenseReceipt: vi.fn(),
 }));
 vi.mock('@/data/api', () => api);
@@ -1281,13 +1275,6 @@ describe('network queries', () => {
     await q.queryFn();
     expect(api.fetchExpenseVersions).toHaveBeenCalledWith('e-1');
     expect(opts(render(() => hooks.useExpenseVersions(''))).enabled).toBe(false);
-  });
-
-  it('useDisputes reads per group', async () => {
-    const q = opts(render(() => hooks.useDisputes('g-1')));
-    expect(q.queryKey).toEqual(['group', 'g-1', 'disputes']);
-    await q.queryFn();
-    expect(api.fetchDisputes).toHaveBeenCalledWith('g-1');
   });
 
   it('useMemberClaims reads per group and is off for an empty id', async () => {
