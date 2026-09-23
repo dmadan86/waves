@@ -69,11 +69,9 @@ import { syncEngine, useLastSyncedAt, useSync } from '@/sync';
 import {
   createGroup,
   deleteGroup,
-  disputeExpense,
   fetchAllBalances,
   fetchBalances,
   fetchExpenseVersions,
-  fetchDisputes,
   fetchItemClaims,
   fetchOpenReceipts,
   fetchReceipt,
@@ -84,12 +82,10 @@ import {
   type MemberBudgetRow,
   type GroupBudget,
   recordSettlement,
-  resolveDispute,
   leaveGroup,
   updateGroup,
   updateMember,
   setMemberRole,
-  withdrawDispute,
   removeExpenseReceipt,
   type PersonBalanceRow,
   type WriteExpenseInput,
@@ -130,7 +126,6 @@ export const keys = {
   settlements: (id: string) => ['group', id, 'settlements'] as const,
   activity: (id: string) => ['group', id, 'activity'] as const,
   balances: (id: string) => ['group', id, 'balances'] as const,
-  disputes: (id: string) => ['group', id, 'disputes'] as const,
   spending: (id: string) => ['group', id, 'spending'] as const,
   memberClaims: (id: string) => ['group', id, 'member-claims'] as const,
   memberBudgets: (id: string) => ['group', id, 'member-budgets'] as const,
@@ -1260,7 +1255,7 @@ export function useGroupRealtime(groupId: string): void {
  *
  * Most of what a group screen shows now comes from the mirror, so the sync is
  * the part that matters; the invalidations cover what sync does not carry —
- * the server's cross-check balances, receipts, disputes and spending.
+ * the server's cross-check balances, receipts and spending.
  *
  * The invalidations wait for the flush. They used to fire alongside it, which
  * meant the refetched balances could describe the moment *before* the write
@@ -1677,38 +1672,6 @@ export function useGroupSpending(groupId: string) {
     queryKey: keys.spending(groupId),
     queryFn: () => fetchGroupSpending(groupId),
     enabled: Boolean(groupId),
-  });
-}
-
-export function useDisputes(groupId: string) {
-  return useQuery({
-    queryKey: keys.disputes(groupId),
-    queryFn: () => fetchDisputes(groupId),
-    enabled: Boolean(groupId),
-  });
-}
-
-export function useDisputeExpense(groupId: string) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: disputeExpense,
-    onSuccess: () => invalidateGroup(queryClient, groupId),
-  });
-}
-
-export function useWithdrawDispute(groupId: string) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: withdrawDispute,
-    onSuccess: () => invalidateGroup(queryClient, groupId),
-  });
-}
-
-export function useResolveDispute(groupId: string) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: resolveDispute,
-    onSuccess: () => invalidateGroup(queryClient, groupId),
   });
 }
 
