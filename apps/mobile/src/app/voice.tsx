@@ -1588,7 +1588,12 @@ export default function VoiceScreen() {
                 onPress={() => runAutoCommit(autoBanner.fallback)}
               />
             ) : null}
-            <Button label={t.voice.autoUndo} variant="secondary" onPress={cancelAutoCommit} />
+            {/* Gone once the write has started (Confirm pressed, or the timer
+                fired): an Undo then would reset the screen while the save still
+                lands. */}
+            {autoBanner ? (
+              <Button label={t.voice.autoUndo} variant="secondary" onPress={cancelAutoCommit} />
+            ) : null}
           </View>
         ) : phase === 'answer' ? (
           // A read-only answer to a spoken balance question. One line, and a mic
