@@ -19,6 +19,7 @@
 import { decode } from 'base64-arraybuffer';
 
 import { backend } from '@/lib/backend';
+import { signedUrlKey, signedUrls } from '@/lib/signedUrlCache';
 
 /** The four private buckets. Values match the R2 namespace and the old bucket. */
 export type LogicalBucket =
@@ -103,6 +104,19 @@ export interface PutImageInput {
  * @throws {StorageCapError} when a free account is out of storage.
  */
 export async function putImage(input: PutImageInput): Promise<string> {
+  // Covers and avatars are overwritten in place at the same path, so a URL
+  // minted for the old bytes must not be handed out again — expo-image would
+  // show them from its cache. Dropped again once the upload settles, in case a
+  // reader minted in between.
+  signedUrls.invalidate(signedUrlKey(input.bucket, input.path));
+  try {
+    return await uploadImage(input);
+  } finally {
+    signedUrls.invalidate(signedUrlKey(input.bucket, input.path));
+  }
+}
+
+async function uploadImage(input: PutImageInput): Promise<string> {
   const bytes = decode(input.base64);
 
   if (RESTRICTED_BUCKETS.has(input.bucket)) {
@@ -215,7 +229,13 @@ export async function removeRestrictedImage(
  */
 export async function imageUrl(bucket: LogicalBucket, path: string | null): Promise<string | null> {
   if (!path) return null;
+  // One URL per object, shared by every reader until it nears expiry (see
+  // `signedUrlCache`) — so a list of avatars is one request per person, not per
+  // row per mount, and the same URL keeps expo-image's cache warm.
+  return signedUrls.get(signedUrlKey(bucket, path), () => mintImageUrl(bucket, path));
+}
 
+async function mintImageUrl(bucket: LogicalBucket, path: string): Promise<string | null> {
   if (!r2Enabled()) {
     const { data, error } = await backend.storage
       .from(bucket)
@@ -240,6 +260,7 @@ export async function imageUrl(bucket: LogicalBucket, path: string | null): Prom
  */
 export async function removeImage(bucket: LogicalBucket, path: string | null): Promise<void> {
   if (!path) return;
+  signedUrls.invalidate(signedUrlKey(bucket, path));
 
   if (!r2Enabled()) {
     const { error } = await backend.storage.from(bucket).remove([path]);
