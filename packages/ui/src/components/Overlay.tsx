@@ -283,6 +283,21 @@ function SheetCard({
  * grab handle, and the safe-area inset folded into the bottom padding.
  */
 /**
+ * `style` with a percentage `maxHeight` turned into points of `screenHeight`.
+ * Anything else — a number, no ceiling at all — passes through untouched.
+ */
+export function resolveSheetHeight(
+  style: ViewStyle | undefined,
+  screenHeight: number,
+): ViewStyle | undefined {
+  const ceiling = style?.maxHeight;
+  if (typeof ceiling !== 'string' || !ceiling.endsWith('%')) return style;
+  const share = Number.parseFloat(ceiling) / 100;
+  if (!Number.isFinite(share)) return style;
+  return { ...style, maxHeight: Math.round(screenHeight * share) };
+}
+
+/**
  * How much of the screen the keyboard is currently covering.
  *
  * A `Modal` on Android is its own native window, and `adjustResize` — which the
@@ -399,6 +414,13 @@ export function Sheet({
 
   if (!mounted) return null;
 
+  // A percentage ceiling means a share of the *screen*. Handed to the card as
+  // is, it resolved against the card's own wrapper instead — whose height is
+  // the card's natural height — so every sheet came out at 75% (or 88%, 90%…)
+  // of itself: the last rows clipped, and the missing quarter left as a band
+  // of scrim under a card that no longer reached the bottom edge.
+  const cardStyle = resolveSheetHeight(style, screenHeight);
+
   // Reduced motion drops the entrance travel, not the drag: a sheet you are
   // holding should follow your finger whatever the OS says about animation.
   const entrance = progress.interpolate({
@@ -467,7 +489,7 @@ export function Sheet({
               <SheetCard
                 handle={handle}
                 padded={padded}
-                style={style}
+                style={cardStyle}
                 title={title}
                 titleAction={titleAction}
                 onClose={onClose}
