@@ -259,12 +259,16 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
 
         {pickingCurrency ? (
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <Row style={{ gap: theme.spacing.sm }}>
+            <Row style={{ gap: theme.spacing.sm, paddingVertical: 6 }}>
               {COMMON_CURRENCIES.map((code) => (
                 <Pressable
                   key={code}
                   accessibilityRole="button"
                   accessibilityState={{ selected: code === currency }}
+                  // ~32 tall chips; the slop takes the touch to 44. The row's
+                  // vertical padding gives the slop room inside the scroll view,
+                  // which on Android drops touches outside its own bounds.
+                  hitSlop={{ top: 6, bottom: 6 }}
                   onPress={() => {
                     currencyChosen.current = true;
                     setCurrency(code);
@@ -362,7 +366,13 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
             </ScrollView>
           )}
 
-          <Pressable accessibilityRole="button" onPress={() => setPickerOpen(true)}>
+          <Pressable
+            accessibilityRole="button"
+            // A one-line caption link: the slop gives it a 44pt touch, but only
+            // 6 upward — the group chips sit 8 above and must keep their taps.
+            hitSlop={{ top: 6, bottom: 14, left: 14, right: 14 }}
+            onPress={() => setPickerOpen(true)}
+          >
             <Text variant="caption" tone="brand">
               {t.quickExpense.otherPlaces}
             </Text>

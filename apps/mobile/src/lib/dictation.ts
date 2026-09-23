@@ -494,6 +494,15 @@ export function mergeTranscript(before: string, transcript: string): string {
 }
 
 /**
+ * Whether an error code is one the phone's settings can cure — the mic or the
+ * speech service refused permission. Only these get the "Open settings" way
+ * out; a dropped network or a silent room is not fixed in Settings.
+ */
+export function isPermissionError(code: string): boolean {
+  return code === 'not-allowed' || code === 'service-not-allowed';
+}
+
+/**
  * Every error this can end on, in words.
  *
  * The codes are the Web Speech API's, which both native implementations are

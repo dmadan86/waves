@@ -715,6 +715,8 @@ export default function NewGroupScreen() {
                   key={`${keyOfGhost(ghost)}-${index}`}
                   accessibilityRole="button"
                   accessibilityLabel={fill(t.itemize.removeItem, { label: ghost.name })}
+                  // The chip is 32 tall; the slop takes the touch to 44.
+                  hitSlop={{ top: 6, bottom: 6 }}
                   onPress={() => setGhosts((current) => current.filter((_, i) => i !== index))}
                   style={{
                     flexDirection: 'row',

@@ -11,6 +11,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   dictationError,
   englishSpeechLocale,
+  isPermissionError,
   mergeTranscript,
   offlineDownloadReason,
   offlineVoiceKnowledge,
@@ -473,5 +474,15 @@ describe('withConfirmedInstalls', () => {
     const one = withConfirmedInstalls(models, ['en-IN']);
     expect(one.alsoInstalled[0]?.state).toBe('installed');
     expect(one.downloadable[0]?.state).toBe('missing');
+  });
+});
+
+describe('isPermissionError', () => {
+  it('is true only for the refusals Settings can cure', () => {
+    expect(isPermissionError('not-allowed')).toBe(true);
+    expect(isPermissionError('service-not-allowed')).toBe(true);
+    for (const code of ['network', 'no-speech', 'audio-capture', 'aborted', 'whatever']) {
+      expect(isPermissionError(code)).toBe(false);
+    }
   });
 });
