@@ -2280,6 +2280,8 @@ export interface UiStrings {
     remind: string;
     reminded: string;
     remindedToday: string;
+    /** A reminder that did not go — not a load failure. */
+    remindFailed: string;
     /** Spoken hint on a tappable person row: where the tap goes. */
     seeSharedGroups: string;
     /** Entry-point row and screen heading for adding people out of one of the
@@ -5320,6 +5322,7 @@ const en: UiStrings = {
     remind: 'Remind',
     reminded: 'Reminded',
     remindedToday: 'Nudged today',
+    remindFailed: "Couldn't send the reminder",
     seeSharedGroups: 'Opens the groups you share with them',
     fromAnotherGroup: 'From another group',
     fromAnotherGroupHint: 'Add people already in one of your other groups',
@@ -8292,6 +8295,7 @@ const ta: UiStrings = {
     remind: 'நினைவூட்டு',
     reminded: 'நினைவூட்டப்பட்டது',
     remindedToday: 'இன்று நினைவூட்டிவிட்டீர்கள்',
+    remindFailed: "Couldn't send the reminder",
     seeSharedGroups: 'நீங்கள் இருவரும் பகிரும் குழுக்களைத் திறக்கும்',
     fromAnotherGroup: 'மற்றொரு குழுவிலிருந்து',
     fromAnotherGroupHint: 'உங்கள் மற்ற குழுக்களில் ஏற்கனவே உள்ளவர்களைச் சேர்க்கவும்',
@@ -11274,6 +11278,7 @@ const hi: UiStrings = {
     remind: 'याद दिलाएँ',
     reminded: 'याद दिला दिया',
     remindedToday: 'आज याद दिला चुके',
+    remindFailed: "Couldn't send the reminder",
     seeSharedGroups: 'उनके साथ साझा किए गए समूह खोलता है',
     fromAnotherGroup: 'किसी दूसरे समूह से',
     fromAnotherGroupHint: 'अपने दूसरे समूहों में पहले से मौजूद लोगों को जोड़ें',
@@ -14362,6 +14367,7 @@ const ar: UiStrings = {
     remind: 'ذكّر',
     reminded: 'تم التذكير',
     remindedToday: 'ذُكّر اليوم',
+    remindFailed: "Couldn't send the reminder",
     seeSharedGroups: 'يفتح المجموعات المشتركة معكما',
     fromAnotherGroup: 'من مجموعة أخرى',
     fromAnotherGroupHint: 'أضف أشخاصًا موجودين بالفعل في إحدى مجموعاتك الأخرى',
