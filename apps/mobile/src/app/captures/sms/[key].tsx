@@ -42,9 +42,10 @@ import {
   Badge,
   Button,
   Card,
+  directionalIcon,
   Divider,
-  iconSize,
   IconButton,
+  iconSize,
   MoneyText,
   Row,
   Screen,
@@ -138,7 +139,11 @@ export default function SmsMessageScreen(): React.JSX.Element | null {
       <Screen edges={['top']}>
         <Row style={{ padding: theme.spacing.xl, alignItems: 'center', gap: theme.spacing.sm }}>
           <IconButton label={t.common.back} onPress={() => router.back()}>
-            <Ionicons name="chevron-back" size={iconSize.md} color={theme.color.text} />
+            <Ionicons
+              name={directionalIcon('chevron-back')}
+              size={iconSize.md}
+              color={theme.color.text}
+            />
           </IconButton>
           <Text variant="title">{t.smsInbox.detailTitle}</Text>
         </Row>
@@ -162,7 +167,11 @@ export default function SmsMessageScreen(): React.JSX.Element | null {
         }}
       >
         <IconButton label={t.common.back} onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={iconSize.md} color={theme.color.text} />
+          <Ionicons
+            name={directionalIcon('chevron-back')}
+            size={iconSize.md}
+            color={theme.color.text}
+          />
         </IconButton>
         <Text variant="title" style={{ flex: 1 }} numberOfLines={1}>
           {t.smsInbox.detailTitle}

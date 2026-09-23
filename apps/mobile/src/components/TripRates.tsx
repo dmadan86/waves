@@ -109,7 +109,11 @@ export function SettlesInRow({
                 {currency}
               </Text>
               {locked ? null : (
-                <Ionicons name="chevron-forward" size={iconSize.sm} color={theme.color.textFaint} />
+                <Ionicons
+                  name={directionalIcon('chevron-forward')}
+                  size={iconSize.sm}
+                  color={theme.color.textFaint}
+                />
               )}
             </Row>
           }
@@ -267,7 +271,7 @@ export function TripRatesCard({
               trailing={
                 canEdit ? (
                   <Ionicons
-                    name="chevron-forward"
+                    name={directionalIcon('chevron-forward')}
                     size={iconSize.sm}
                     color={theme.color.textFaint}
                   />
