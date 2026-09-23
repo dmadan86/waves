@@ -360,3 +360,22 @@ describe('Apple, and the nonce that binds the token to this request', () => {
     expect(appleNativeAvailable()).toBe(false);
   });
 });
+
+describe('reaching for the real native modules', () => {
+  // With no stand-in, the module does its own lazy `require`. Under node that
+  // either loads a JavaScript shell or throws; either way the check must answer
+  // rather than blow up — the whole reason the require is lazy.
+  it('answers without throwing, and keeps the answer', () => {
+    setGoogleSigninForTests(undefined as unknown as null);
+    setAppleAuthForTests(undefined as unknown as null);
+    platform.OS = 'ios';
+    process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_IOS = 'ios-client.apps.googleusercontent.com';
+
+    const google = googleNativeAvailable();
+    const apple = appleNativeAvailable();
+    expect(typeof google).toBe('boolean');
+    expect(typeof apple).toBe('boolean');
+    expect(googleNativeAvailable()).toBe(google);
+    expect(appleNativeAvailable()).toBe(apple);
+  });
+});

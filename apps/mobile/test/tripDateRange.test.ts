@@ -7,6 +7,22 @@ import {
   tripDateToIso,
 } from '../src/lib/tripDateRange';
 
+describe('reading a stored trip day', () => {
+  it('reads no day, or a malformed one, as no date rather than an invalid one', () => {
+    expect(tripDateFromIso(null)).toBeNull();
+    expect(tripDateFromIso('')).toBeNull();
+    expect(tripDateFromIso('2026-10')).toBeNull();
+    expect(tripDateFromIso('not-a-day')).toBeNull();
+  });
+
+  it('reads a stored day as local noon on that day', () => {
+    const date = tripDateFromIso('2026-10-04');
+    expect([date?.getFullYear(), date?.getMonth(), date?.getDate(), date?.getHours()]).toEqual([
+      2026, 9, 4, 12,
+    ]);
+  });
+});
+
 describe('trip date range helpers', () => {
   it('stores the earlier tapped day first, so traveller return-before-departure taps still save a valid range', () => {
     const patch = tripDateRangePatch(

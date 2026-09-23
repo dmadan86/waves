@@ -26,6 +26,8 @@ import {
   matchesQuery,
   monthsPresent,
   reachedReview,
+  reasonsPresent,
+  selectedRows,
   smsInboxRows,
   stepMonth,
   sumOf,
@@ -314,5 +316,32 @@ describe('what the ticked rows come to', () => {
 
   it('is nothing for nothing', () => {
     expect(sumOf([])).toEqual({ count: 0, total: null, currency: '', uncounted: 0 });
+  });
+});
+
+describe('the filter sheet’s reason chips', () => {
+  it('offers each reason present once, in a stable order, and none for rows without one', () => {
+    const rows = [
+      row({ kind: SmsKind.Other, reason: 'refund' as StoredSms['reason'] }),
+      row({ kind: SmsKind.Other, reason: 'card-bill' as StoredSms['reason'] }),
+      row({ kind: SmsKind.Other, reason: 'refund' as StoredSms['reason'] }),
+      row(),
+    ];
+
+    expect(reasonsPresent(rows)).toEqual(['card-bill', 'refund']);
+    expect(reasonsPresent([row()])).toEqual([]);
+  });
+});
+
+describe('the ticked rows', () => {
+  it('are the visible rows that are ticked, in list order — never a hidden one', () => {
+    const a = row();
+    const b = row();
+    const c = row();
+    const hidden = row();
+
+    const picked = selectedRows([c, a, b], new Set([a.dedupeKey, c.dedupeKey, hidden.dedupeKey]));
+
+    expect(picked).toEqual([c, a]);
   });
 });
