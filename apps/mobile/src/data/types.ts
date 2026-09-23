@@ -214,6 +214,11 @@ export interface CaptureRow {
   created_at: string;
   /** True while this row exists only in the local queue (ADR-005). */
   pending?: boolean;
+  /**
+   * An SMS draft kept on this device only (`lib/smsDraftStore`). It never
+   * syncs; every action on it — edit, place, dismiss — is answered locally.
+   */
+  local?: boolean;
 }
 
 export interface SettlementRow {

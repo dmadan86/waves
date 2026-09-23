@@ -37,6 +37,7 @@ const sidebars: SidebarsConfig = {
         'using-waves/balances',
         'using-waves/settle-up',
         'using-waves/receipts',
+        'using-waves/bank-messages',
         'using-waves/personal-ledger',
       ],
     },

@@ -46,6 +46,7 @@ import { AutoBackup } from '@/lib/backup/AutoBackup';
 import { backendConfigured } from '@/lib/backend';
 import { CaptureNudge } from '@/lib/captureNudge/CaptureNudge';
 import { SmsAutoRead } from '@/lib/smsAutoRead';
+import { SmsDraftUpkeep } from '@/lib/useSmsDraftUpkeep';
 import { DeviceSessionProvider } from '@/lib/deviceSession';
 import { useFlagEnabled } from '@/lib/flags';
 import { isRtl, isRtlLanguage, useStrings } from '@/i18n';
@@ -282,6 +283,9 @@ function RootLayout() {
                                 reading anybody's inbox, and nothing should touch
                                 the mirror while the app is still locked. */}
                                           <SmsAutoRead />
+                                          {/* Local SMS drafts: the one-time move off the server, and
+                                              closing drafts once their expense has synced. */}
+                                          <SmsDraftUpkeep />
                                           {/* Inside the lock so the two-device gate never
                                 paints over the lock screen, and past auth so it
                                 only ever asks a signed-in account. */}

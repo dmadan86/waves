@@ -9,7 +9,7 @@
  * instrument, not the group's problem to read about.
  */
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { randomUUID } from 'expo-crypto';
 
@@ -63,6 +63,14 @@ import { useAuth } from '@/lib/auth';
 import { reportHandled } from '@/lib/observability';
 import { normaliseContactPhone } from '@/lib/phone';
 import { backend } from '@/lib/backend';
+import { smsDrafts } from '@/lib/smsDraftStore';
+import {
+  routeCaptureAssign,
+  routeCaptureCreate,
+  routeCaptureDelete,
+  routeCaptureUpdate,
+} from '@/lib/smsDraftRouting';
+import { mergeCaptureLists } from '@/lib/smsLocalDrafts';
 import { syncEngine, useLastSyncedAt, useSync } from '@/sync';
 import {
   createGroup,
@@ -1368,17 +1376,41 @@ export function useDisputeSettlement(groupId: string) {
 // offline-first, replayed-on-top, force-kill-safe — is the same queue the group
 // mutations use.
 
-/** The inbox: this person's open, unassigned captures, newest first. */
+/**
+ * This device's SMS drafts for one account, open ones only, newest first.
+ *
+ * They never sync (`lib/smsLocalDrafts.ts` says why), so they come from the
+ * device store rather than the mirror — loaded once, then kept current by the
+ * store's own subscription.
+ */
+export function useLocalSmsDrafts(ownerId: string): readonly CaptureRow[] {
+  useEffect(() => {
+    if (ownerId) void smsDrafts.ensureLoaded(ownerId).catch(() => {});
+  }, [ownerId]);
+  return useSyncExternalStore(smsDrafts.subscribe, () => smsDrafts.openDrafts(ownerId));
+}
+
+/**
+ * The inbox: this person's open, unassigned captures, newest first — and this
+ * device's SMS drafts beside them, marked `local`. Every capture action below
+ * answers a local draft locally, so a screen treats the merged list as one.
+ */
 export function useCaptures(): LocalRead<CaptureRow[]> {
   const { session } = useAuth();
   const ownerId = session?.user?.id ?? '';
   const { mirror, queue } = useSync();
+  const local = useLocalSmsDrafts(ownerId);
   const captures = useMemo(
     () =>
       ownerId
-        ? (openCaptures(materialiseCaptures(mirror, queue, { ownerId })) as unknown as CaptureRow[])
+        ? mergeCaptureLists(
+            openCaptures(
+              materialiseCaptures(mirror, queue, { ownerId }),
+            ) as unknown as CaptureRow[],
+            local,
+          )
         : [],
-    [mirror, queue, ownerId],
+    [mirror, queue, ownerId, local],
   );
   return useLocalRead(captures);
 }
@@ -1432,6 +1464,11 @@ export function serialiseCapture(input: CaptureInput, captureId: string): Record
   };
 }
 
+// Every capture write goes through `lib/smsDraftRouting`: an SMS-derived draft
+// stays on this device and is answered there; everything else is queued. The
+// rule is kept on the one path every screen writes through, so no caller can
+// forget it (`lib/smsLocalDrafts.ts` says why).
+
 export function useCreateCapture() {
   const { mutate } = useSync();
   const { session } = useAuth();
@@ -1440,7 +1477,10 @@ export function useCreateCapture() {
       const ownerId = session?.user?.id;
       if (!ownerId) throw new Error('Sign in to capture an expense');
       const captureId = input.captureId ?? randomUUID();
-      await mutate(MutationKind.CaptureCreate, ownerId, serialiseCapture(input, captureId));
+      await routeCaptureCreate(
+        { ownerId, drafts: smsDrafts, mutate },
+        serialiseCapture(input, captureId),
+      );
       return captureId;
     },
   });
@@ -1453,7 +1493,11 @@ export function useUpdateCapture() {
     mutationFn: async (input: CaptureInput & { captureId: string }) => {
       const ownerId = session?.user?.id;
       if (!ownerId) throw new Error('Sign in first');
-      await mutate(MutationKind.CaptureUpdate, ownerId, serialiseCapture(input, input.captureId));
+      await routeCaptureUpdate(
+        { ownerId, drafts: smsDrafts, mutate },
+        input.captureId,
+        serialiseCapture(input, input.captureId),
+      );
       return input.captureId;
     },
   });
@@ -1466,7 +1510,7 @@ export function useDeleteCapture() {
     mutationFn: async (captureId: string) => {
       const ownerId = session?.user?.id;
       if (!ownerId) throw new Error('Sign in first');
-      await mutate(MutationKind.CaptureDelete, ownerId, { captureId });
+      await routeCaptureDelete({ ownerId, drafts: smsDrafts, mutate }, captureId);
       return captureId;
     },
   });
@@ -1475,7 +1519,9 @@ export function useDeleteCapture() {
 /**
  * Close a capture once it has become a real expense. The expense is an ordinary
  * `expense.create` on the group's scope (the add-expense flow already made it);
- * this only marks the capture assigned, which removes it from the inbox.
+ * this only marks the capture assigned, which removes it from the inbox. A
+ * local SMS draft is held off Review instead, and removed once its expense is
+ * confirmed (`lib/smsDraftUpkeep.ts`).
  */
 export function useAssignCapture() {
   const { mutate } = useSync();
@@ -1484,11 +1530,7 @@ export function useAssignCapture() {
     mutationFn: async (input: { captureId: string; groupId: string; expenseId: string }) => {
       const ownerId = session?.user?.id;
       if (!ownerId) throw new Error('Sign in first');
-      await mutate(MutationKind.CaptureAssign, ownerId, {
-        captureId: input.captureId,
-        groupId: input.groupId,
-        expenseId: input.expenseId,
-      });
+      await routeCaptureAssign({ ownerId, drafts: smsDrafts, mutate }, input);
       return input.captureId;
     },
   });

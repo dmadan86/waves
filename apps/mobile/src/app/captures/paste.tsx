@@ -41,16 +41,20 @@
  *   and every pasted row can be opened to read the message it was made from.
  *   "Check this" with nothing to check against is not a warning, it is a worry.
  *
- * WHERE THINGS GO. Each ticked payment becomes a `captures` row: an expense
- * with no group yet, which is what the Review tab has held since A34. Not a
- * second inbox (#565 undid that once already), not an expense in a group —
- * nothing here knows who was there, and the parser deliberately does not guess
- * at a split.
+ * WHERE THINGS GO. Each ticked payment becomes a draft in the Review tab: an
+ * expense with no group yet. Not a second inbox (#565 undid that once already),
+ * not an expense in a group — nothing here knows who was there, and the parser
+ * deliberately does not guess at a split. The draft stays **on this device**
+ * (`lib/smsDraftStore`) and never syncs as a capture; `useCreateCapture` sends
+ * anything with `parsed.source === 'sms'` there. Only the expense it becomes
+ * syncs (`lib/smsLocalDrafts.ts`).
  *
  * WHAT IS NOT SENT. Parsing is on-device (ADR-013): a bank message carries an
  * account tail, a balance and sometimes a one-time password. The text of a
- * pasted message rides along as `rawText` the way a scanned receipt's OCR does
- * — a person put it there themselves. The text of a *read* message never does;
+ * pasted message is kept with its draft as `rawText` — sealed, on this device —
+ * the way a scanned receipt's OCR is, because a person put it there themselves
+ * and will want to check the row against it. The text of a *read* message never
+ * is;
  * `lib/smsDrafts.ts` is where that is decided, and a test pins it. The same
  * function decides what may be *shown*, so the message a person can open on a
  * row is exactly the message that will be kept, and a read one is neither. And
@@ -440,11 +444,11 @@ function PasteMessages(): React.JSX.Element {
   //
   // This is the *visible* half of the guarantee and only covers drafts still
   // open — `useCaptures` drops the ones already filed into a group. The durable
-  // half is the id: `smsCaptureId` derives it from the message, so a payment
-  // that has since become an expense is written again as the same row id, and
-  // `capture.create` answers that with the success it already achieved rather
-  // than a second draft. Re-pasting a whole month is safe; it just cannot say
-  // "already added" about the part of it that has since been filed.
+  // half is the id: `smsCaptureId` derives it from the message, and the device
+  // draft store keeps a tombstone for every draft already used or dismissed,
+  // so the same id is never drafted twice. Re-pasting a whole month is safe; it
+  // just cannot say "already added" about the part of it that has since been
+  // filed.
   const alreadyKeys = useMemo(() => {
     const keys = new Set<string>();
     for (const row of captures.data ?? []) {
@@ -540,7 +544,8 @@ function PasteMessages(): React.JSX.Element {
    *
    * Each id is derived from the message (`smsCaptureId`), so pasting the same
    * statement next week produces the same ids and the second run writes nothing
-   * — the database is what enforces that, not this screen's memory of it. Each
+   * — the device draft store is what enforces that, not this screen's memory of
+   * it. The drafts stay on this device; `useCreateCapture` never queues one. Each
    * draft is its own attempt: one that refuses does not take the others down,
    * and the count that is reported is the count that actually landed.
    */
