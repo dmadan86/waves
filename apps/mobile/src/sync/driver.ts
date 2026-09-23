@@ -286,7 +286,9 @@ class SqliteStore implements LocalStore {
             ]);
           }
         } finally {
-          await upsert.finalizeAsync();
+          // A failing finalize must not replace the insert error that got us
+          // here; the transaction's rollback is what matters.
+          await upsert.finalizeAsync().catch(() => undefined);
         }
       });
     });
