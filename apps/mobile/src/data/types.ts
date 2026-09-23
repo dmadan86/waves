@@ -216,29 +216,6 @@ export interface CaptureRow {
   pending?: boolean;
 }
 
-export enum DisputeStatus {
-  Open = 'open',
-  Resolved = 'resolved',
-  Withdrawn = 'withdrawn',
-  Rejected = 'rejected',
-}
-
-/**
- * Somebody saying an expense is wrong. Never changes a balance on its own —
- * a share you could remove unilaterally would be a debt you could delete.
- */
-export interface DisputeRow {
-  id: string;
-  expense_id: string;
-  member_id: MemberId;
-  reason: string | null;
-  status: DisputeStatus;
-  resolved_by_member_id: MemberId | null;
-  resolution_note: string | null;
-  created_at: string;
-  resolved_at: string | null;
-}
-
 export interface SettlementRow {
   id: string;
   group_id: string;
