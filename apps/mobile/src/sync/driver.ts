@@ -262,13 +262,18 @@ class SqliteStore implements LocalStore {
       // One transaction: a pull is one fact, and half of it landing after a kill
       // would leave the mirror ahead of its own cursor.
       await database.withTransactionAsync(async () => {
-        for (const row of rows) {
-          await database.runAsync(
-            `INSERT INTO mirror_rows (table_name, id, group_id, seq, json)
-             VALUES (?, ?, ?, ?, ?)
-             ON CONFLICT (table_name, id) DO UPDATE SET
-               group_id = excluded.group_id, seq = excluded.seq, json = excluded.json`,
-            [
+        // Compiled once for the whole pull, not once per row: a first sync on a
+        // big account is thousands of rows, and `runAsync` prepares, runs and
+        // finalises a fresh statement for every one of them.
+        const upsert = await database.prepareAsync(
+          `INSERT INTO mirror_rows (table_name, id, group_id, seq, json)
+           VALUES (?, ?, ?, ?, ?)
+           ON CONFLICT (table_name, id) DO UPDATE SET
+             group_id = excluded.group_id, seq = excluded.seq, json = excluded.json`,
+        );
+        try {
+          for (const row of rows) {
+            await upsert.executeAsync([
               row.table,
               row.id,
               row.groupId,
@@ -278,8 +283,12 @@ class SqliteStore implements LocalStore {
                 JSON.stringify(row.row),
                 mirrorAad(row.table, row.id, row.groupId, row.seq),
               ),
-            ],
-          );
+            ]);
+          }
+        } finally {
+          // A failing finalize must not replace the insert error that got us
+          // here; the transaction's rollback is what matters.
+          await upsert.finalizeAsync().catch(() => undefined);
         }
       });
     });

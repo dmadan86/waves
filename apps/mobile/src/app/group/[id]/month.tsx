@@ -43,6 +43,7 @@ import { useViewerId } from '@/lib/auth';
 import { router } from '@/lib/navigation';
 
 import { useBottomClearance } from '@/lib/clearance';
+import { dateTimeFormat } from '@/lib/dateTimeFormat';
 
 /** One row of the flattened month: the header tile, a day heading, or a bill. */
 type MonthItem =
@@ -130,7 +131,7 @@ export default function SpendingMonthScreen() {
   const monthStart = new Date(Date.UTC(Number(year), Number(monthNo) - 1, 1));
   const monthTitle = Number.isNaN(monthStart.getTime())
     ? ''
-    : new Intl.DateTimeFormat(locale, {
+    : dateTimeFormat(locale, {
         month: 'long',
         year: 'numeric',
         timeZone: 'UTC',
@@ -140,7 +141,7 @@ export default function SpendingMonthScreen() {
   // not label the 1st as the last of the month before.
   const dayLabel = (day: string): string => {
     const [y, m, d] = day.split('-');
-    return new Intl.DateTimeFormat(locale, {
+    return dateTimeFormat(locale, {
       weekday: 'short',
       day: 'numeric',
       month: 'short',

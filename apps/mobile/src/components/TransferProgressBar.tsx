@@ -13,7 +13,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { Animated, View } from 'react-native';
+import { Animated, I18nManager, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTheme } from '@waves/ui';
@@ -48,13 +48,13 @@ export function TransferProgressBar(): React.JSX.Element | null {
           // floor keeps the bar visibly moving before any step has completed.
           toValue: Math.max(fraction, 0.08),
           duration: 300,
-          useNativeDriver: false,
+          useNativeDriver: true,
         }),
       ]).start();
     } else if (wasActive.current) {
       wasActive.current = false;
       Animated.sequence([
-        Animated.timing(progress, { toValue: 1, duration: 150, useNativeDriver: false }),
+        Animated.timing(progress, { toValue: 1, duration: 150, useNativeDriver: true }),
         Animated.timing(opacity, { toValue: 0, duration: 250, useNativeDriver: true }),
       ]).start(({ finished }) => {
         if (finished) progress.setValue(0);
@@ -77,14 +77,19 @@ export function TransferProgressBar(): React.JSX.Element | null {
       }}
     >
       <Animated.View
+        // A full-width bar scaled along x from its start edge, rather than an
+        // animated `width`: a width is layout, which the native driver cannot
+        // animate, so every frame of it ran on the JS thread — exactly while an
+        // upload keeps that thread busy. A transform runs on the UI thread.
+        // `transformOrigin` is physical, so the start edge is picked by the
+        // layout direction, as the width used to grow from it.
         style={{
           height: BAR_HEIGHT,
+          width: '100%',
           opacity,
           backgroundColor: theme.color.brand,
-          width: progress.interpolate({
-            inputRange: [0, 1],
-            outputRange: ['0%', '100%'],
-          }),
+          transformOrigin: I18nManager.isRTL ? 'right' : 'left',
+          transform: [{ scaleX: progress }],
         }}
       />
     </View>

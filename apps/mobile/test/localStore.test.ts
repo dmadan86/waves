@@ -18,8 +18,21 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { QueuedMutation } from '@waves/core';
 
-/** A pause long enough for another caller to interleave, if it can. */
-const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
+/**
+ * A pause long enough for another caller to interleave, if it can.
+ *
+ * `setTimeout(0)` by default, because the concurrency cases below want a real
+ * timer turn. The two bulk cases (a thousand statements each) switch to
+ * `setImmediate`: still a macrotask, so callers can still interleave, but free
+ * of the timer clamp — on a loaded Windows machine that clamp is ~15ms, and a
+ * thousand of them under `--coverage` ran those tests into their timeout.
+ */
+const ticks = { immediate: false };
+const tick = () =>
+  new Promise((resolve) => {
+    if (ticks.immediate) setImmediate(resolve);
+    else setTimeout(resolve, 0);
+  });
 
 class FakeDatabase {
   inTransaction = false;
@@ -221,6 +234,22 @@ class FakeDatabase {
     });
   }
 
+  /** Statements compiled with `prepareAsync`, and how many were finalised. */
+  prepared = 0;
+  finalized = 0;
+
+  // A prepared statement runs the same way a one-off `runAsync` does; what the
+  // fake adds is the count, so a test can see one compile serve many rows.
+  async prepareAsync(source: string) {
+    this.prepared += 1;
+    return {
+      executeAsync: (params: unknown[] = []) => this.runAsync(source, params),
+      finalizeAsync: async () => {
+        this.finalized += 1;
+      },
+    };
+  }
+
   // Copied in shape from expo-sqlite's own implementation, which is the whole
   // point: it is not atomic against anything else using this connection.
   async withTransactionAsync(task: () => Promise<void>): Promise<void> {
@@ -314,6 +343,7 @@ const mutation = (id: string): QueuedMutation =>
   }) as unknown as QueuedMutation;
 
 beforeEach(() => {
+  ticks.immediate = false;
   database = new FakeDatabase();
   openCalls = 0;
   failNextOpen = false;
@@ -532,6 +562,11 @@ describe('native local store lifecycle', () => {
   });
 
   it('hydrates a large mirror without dropping rows on the chunked parse path', async () => {
+    // 1,025 rows is three HYDRATE_CHUNKs (512) with a remainder of one, so the
+    // parse yields twice and the last chunk is a single row. What is under
+    // test is the chunked read, not the timer, so each fake statement yields
+    // with setImmediate rather than a clamped setTimeout (see `tick`).
+    ticks.immediate = true;
     const store = createLocalStore();
     const rows = Array.from({ length: 1_025 }, (_, index) => ({
       table: 'expenses',
@@ -550,11 +585,10 @@ describe('native local store lifecycle', () => {
     expect(hydrated[1024]).toEqual(rows[1024]);
     expect(openCalls).toBe(1);
     expect(secure.gets).toBeLessThanOrEqual(2);
-    // Generous timeout: 1k fake statements each yield a macrotask, plus a real
-    // encrypt/decrypt per row — slow on a loaded Windows timer, not a defect.
-  }, 20000);
+  }, 15000);
 
   it('round-trips a large encrypted offline queue with one keystore load', async () => {
+    ticks.immediate = true;
     const store = createLocalStore();
     const queue = Array.from({ length: 1_000 }, (_, index) => mutation(`m${index}`));
 
@@ -565,7 +599,7 @@ describe('native local store lifecycle', () => {
     expect(read[0]?.clientMutationId).toBe('m0');
     expect(read[999]?.clientMutationId).toBe('m999');
     expect(secure.gets).toBeLessThanOrEqual(2);
-  }, 20000);
+  }, 15000);
 
   it('does not open SQLite when asked to persist no rows', async () => {
     const store = createLocalStore();
@@ -574,6 +608,44 @@ describe('native local store lifecycle', () => {
 
     expect(openCalls).toBe(0);
     expect(database.statements).toEqual([]);
+  });
+
+  it('compiles the row upsert once per pull, inside its transaction, and finalises it', async () => {
+    const store = createLocalStore();
+    await store.ready();
+    const before = database.prepared;
+    const rows = Array.from({ length: 50 }, (_, index) => ({
+      table: 'expenses',
+      id: `e${index}`,
+      groupId: 'g1',
+      seq: index + 1,
+      row: { id: `e${index}` },
+    }));
+
+    await store.putRows(rows as never);
+
+    expect(database.prepared - before).toBe(1);
+    expect(database.finalized).toBe(database.prepared);
+    expect(database.mirrorRows.size).toBe(50);
+    const tail = database.statements.slice(-52);
+    expect(tail[0]).toBe('BEGIN');
+    expect(tail.filter((s) => s === 'INSERT INTO mirror_rows')).toHaveLength(50);
+    expect(tail[51]).toBe('COMMIT');
+  });
+
+  it('finalises the statement and rolls back when a row fails mid-pull', async () => {
+    const store = createLocalStore();
+    await store.ready();
+    const rows = [
+      { table: 'expenses', id: 'ok', groupId: 'g1', seq: 1, row: { id: 'ok' } },
+      // JSON.stringify throws on a BigInt, part-way through the loop.
+      { table: 'expenses', id: 'bad', groupId: 'g1', seq: 2, row: { id: 'bad', n: 1n } },
+    ];
+
+    await expect(store.putRows(rows as never)).rejects.toThrow();
+
+    expect(database.finalized).toBe(database.prepared);
+    expect(database.statements.at(-1)).toBe('ROLLBACK');
   });
 });
 
