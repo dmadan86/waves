@@ -50,7 +50,8 @@ import {
 
 import { balanceDirection, copyFor, moneyAccessibilityLabel } from '@waves/core';
 
-import { nudgeToSettle, type PersonBalanceRow } from '@/data/api';
+import { type PersonBalanceRow } from '@/data/api';
+import { sendNudge } from '@/lib/nudge';
 import { useBlockedUsers } from '@/data/blocked';
 import { defaultMergeName } from '@/data/mergePeople';
 import { useKnownPeopleCount, usePeopleBalances } from '@/data/hooks';
@@ -1528,26 +1529,13 @@ function RemindButton({ row }: { row: PersonBalanceRow }): React.JSX.Element | n
     const gen = (genRef.current += 1);
     const fresh = (): boolean => genRef.current === gen;
     setState({ phase: 'pending' });
-    nudgeToSettle({
-      groupId: row.only_group_id ?? '',
-      toMemberId: row.member_id,
-      currency: row.currency,
-    })
-      .then(() => {
-        if (fresh()) setState({ phase: 'done', ok: true, label: t.people.reminded });
-      })
-      .catch((error: unknown) => {
-        if (!fresh()) return;
-        const message = error instanceof Error ? error.message : String(error);
-        // A backend message is neither translated nor meant for the person being
-        // nudged. The limit case already went, so it reads as done, not an error.
-        const limited = message.includes('NUDGE_RATE_LIMIT');
-        setState({
-          phase: 'done',
-          ok: limited,
-          label: limited ? t.people.remindedToday : t.loadError,
-        });
-      });
+    void sendNudge(
+      { groupId: row.only_group_id ?? '', memberId: row.member_id, currency: row.currency },
+      t,
+    ).then((result) => {
+      // The row may have been recycled onto someone else while this was out.
+      if (fresh()) setState({ phase: 'done', ok: result.ok, label: result.label });
+    });
   };
 
   if (state.phase === 'done') {

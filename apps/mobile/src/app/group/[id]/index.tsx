@@ -1,8 +1,13 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useMutation } from '@tanstack/react-query';
 import { useLocalSearchParams, type Href } from 'expo-router';
-import { InteractionManager, Pressable, RefreshControl, View } from 'react-native';
+import {
+  AccessibilityInfo,
+  InteractionManager,
+  Pressable,
+  RefreshControl,
+  View,
+} from 'react-native';
 import { FlashList, type FlashListRef } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
 
@@ -46,7 +51,7 @@ import {
   verbIcon,
   verbTint,
 } from '@/data/activity';
-import { nudgeToSettle } from '@/data/api';
+import { sendNudge, useNudge } from '@/lib/nudge';
 import { expenseTitle } from '@/data/expenseTitle';
 import { personKeyOf } from '@/data/peopleBalances';
 import { GroupSkeleton } from '@/components/Skeletons';
@@ -140,16 +145,8 @@ function RemindChip({
   currency: string;
 }) {
   const { t } = useStrings();
-  const [note, setNote] = useState<string | null>(null);
-
-  const nudge = useMutation({
-    mutationFn: () => nudgeToSettle({ groupId, toMemberId: memberId, currency }),
-    onSuccess: () => setNote(t.people.reminded),
-    onError: (error) => {
-      const message = error instanceof Error ? error.message : String(error);
-      setNote(message.includes('NUDGE_RATE_LIMIT') ? t.people.remindedToday : t.loadError);
-    },
-  });
+  const nudge = useNudge({ groupId, memberId, currency });
+  const note = nudge.outcome?.label ?? null;
 
   if (note) {
     return (
@@ -161,12 +158,12 @@ function RemindChip({
 
   return (
     <Pressable
-      onPress={() => nudge.mutate()}
-      disabled={nudge.isPending}
+      onPress={nudge.send}
+      disabled={nudge.pending}
       accessibilityRole="button"
       accessibilityLabel={t.people.remind}
       hitSlop={10}
-      style={({ pressed }) => ({ opacity: pressed || nudge.isPending ? 0.6 : 1 })}
+      style={({ pressed }) => ({ opacity: pressed || nudge.pending ? 0.6 : 1 })}
     >
       <Badge label={t.people.remind} tone="brand" />
     </Pressable>
@@ -1033,8 +1030,10 @@ export default function GroupScreen() {
               }
               onAccessibilityAction={(event) => {
                 if (event.nativeEvent.actionName === 'remind') {
-                  nudgeToSettle({ groupId, toMemberId: member.id, currency }).catch(
-                    () => undefined,
+                  // Said aloud either way: a screen reader has no badge to
+                  // watch change.
+                  void sendNudge({ groupId, memberId: member.id, currency }, t).then((result) =>
+                    AccessibilityInfo.announceForAccessibility(result.label),
                   );
                 }
               }}
