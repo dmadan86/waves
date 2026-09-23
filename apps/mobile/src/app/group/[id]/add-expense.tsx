@@ -61,6 +61,7 @@ import { PaymentMethodRow, PaymentMethodSheet } from '@/components/PaymentMethod
 import { LocationField } from '@/components/LocationField';
 import { captureLocationIfGranted } from '@/lib/location';
 import { friendlyError } from '@/lib/errors';
+import { receiptProblemText } from '@/lib/problemText';
 import { CurrencyRate } from '@/components/CurrencyRate';
 import { DescriptionField } from '@/components/expense/DescriptionField';
 import { COMMON_CURRENCIES } from '@/lib/currencyChoices';
@@ -80,7 +81,7 @@ import { router } from '@/lib/navigation';
 import { routeAmount } from '@/lib/routeAmount';
 import { receiptCapStatus, receiptTapAction } from '@/lib/receiptCapGate';
 import { tripRateFor } from '@/lib/tripRates';
-import { StorageCapError } from '@/lib/storage';
+import { NotUploaderError, StorageCapError } from '@/lib/storage';
 import { useAssignCapture, useGroup, useGroupFxRates } from '@/data/hooks';
 import { displayName, groupLabel, isGhost, isViewer } from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
@@ -1253,6 +1254,14 @@ export default function AddExpenseScreen() {
           });
           setPendingReceipt(null);
         } catch (uploadError) {
+          if (uploadError instanceof NotUploaderError) {
+            // Somebody else kept this expense's bill. Saving again would only be
+            // refused again, so the new photo is dropped and the reason shown;
+            // the expense itself is already saved.
+            setPendingReceipt(null);
+            setScanNote(t.storage.notUploader);
+            return;
+          }
           setScanNote(uploadError instanceof StorageCapError ? t.storage.full : t.couldNotSave);
           return;
         }
@@ -1390,7 +1399,13 @@ export default function AddExpenseScreen() {
       setScanNote(
         result.check.reconciles && result.check.problems.length === 0
           ? t.expense.scanReconciles
-          : (result.check.problems[0]?.message ?? t.expense.scanCheckTotal),
+          : result.check.problems[0]
+            ? receiptProblemText(
+                result.check.problems[0],
+                t.itemize,
+                result.parsed.items.map((item) => item.label),
+              )
+            : t.expense.scanCheckTotal,
       );
 
       // The receipt just landed, so the cached cap count is now stale. Refresh

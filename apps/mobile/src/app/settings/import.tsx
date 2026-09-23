@@ -56,6 +56,7 @@ import {
 import { createGroup, fetchMembers, importLedger, type ImportPerson } from '@/data/api';
 import { beginImport } from '@/lib/importProgress';
 import { friendlyError } from '@/lib/errors';
+import { importProblemLine, importProblemText } from '@/lib/problemText';
 import { plural, useStrings, type UiStrings } from '@/i18n';
 import { router } from '@/lib/navigation';
 import { useReducedMotion } from '@/lib/reducedMotion';
@@ -255,7 +256,7 @@ export default function ImportScreen() {
       if (isWavesExport(text)) {
         const result = parseWavesExport(text);
         if (result.problems.length > 0) {
-          setError(result.problems[0]!.message);
+          setError(importProblemText(result.problems[0]!, t.importLedger));
           return;
         }
         const fallback = asset.name.replace(/\.json$/i, '');
@@ -602,7 +603,7 @@ export default function ImportScreen() {
                 </Text>
                 {parsed.problems.slice(0, 6).map((problem) => (
                   <Text key={`${problem.kind}-${problem.row}`} variant="caption" tone="muted">
-                    {problem.message}
+                    {importProblemLine(problem, t.importLedger)}
                   </Text>
                 ))}
                 {parsed.problems.length > 6 ? (

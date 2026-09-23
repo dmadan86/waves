@@ -17,7 +17,14 @@ import {
   getImportedGroupId,
   getImportSnapshot,
   type ImportResult,
+  subscribeImport,
+  useImportedGroupId,
+  useImportProgress,
 } from '@/lib/importProgress';
+
+import { renderHook } from './support/fakeReact';
+
+vi.mock('react', async () => (await import('./support/fakeReact')).reactModule());
 
 // Hoisted above the imports by vitest, so the store sees the mock — we drive
 // "online" / "offline" from each test through `netMock`.
@@ -191,5 +198,96 @@ describe('importProgress store', () => {
     await flush();
     expect(getImportSnapshot().phase).toBe('idle');
     expect(getImportedGroupId()).toBeNull();
+  });
+
+  it('runs rather than parks when the reachability check itself fails', async () => {
+    netMock.mockRejectedValue(new Error('no network module'));
+    const run = vi.fn(() => deferred<ImportResult>().promise);
+    beginImport({ name: 'Goa', run });
+    await flush();
+    expect(run).toHaveBeenCalledTimes(1);
+    expect(getImportSnapshot().phase).toBe('running');
+  });
+
+  it('shows a failure that is not an Error as its text', async () => {
+    const d = deferred<ImportResult>();
+    beginImport({ name: 'Goa', run: () => d.promise });
+    await flush();
+    d.reject('quota exceeded');
+    await flush();
+    expect(getImportSnapshot()).toMatchObject({ phase: 'error', error: 'quota exceeded' });
+  });
+
+  it('keeps polling while still offline, and stops for good once dismissed', async () => {
+    netMock.mockResolvedValue(OFFLINE);
+    const run = vi.fn(() => deferred<ImportResult>().promise);
+    beginImport({ name: 'Goa', run });
+    await flush();
+    await vi.advanceTimersByTimeAsync(NET_POLL_MS * 2);
+    expect(getImportSnapshot().phase).toBe('waiting');
+    expect(run).not.toHaveBeenCalled();
+
+    dismissImport();
+    netMock.mockResolvedValue(ONLINE);
+    await vi.advanceTimersByTimeAsync(NET_POLL_MS * 2);
+    expect(run).not.toHaveBeenCalled();
+    expect(getImportSnapshot().phase).toBe('idle');
+  });
+
+  it('refuses a second start while one is parked offline', async () => {
+    netMock.mockResolvedValue(OFFLINE);
+    beginImport({ name: 'One', run: () => deferred<ImportResult>().promise });
+    await flush();
+    expect(beginImport({ name: 'Two', run: () => deferred<ImportResult>().promise })).toBe(false);
+  });
+
+  it('drops a failure from a job dismissed while it was still being checked', async () => {
+    const d = deferred<ImportResult>();
+    beginImport({ name: 'Goa', run: () => d.promise });
+    await flush();
+    const net = deferred<typeof ONLINE>();
+    netMock.mockReturnValueOnce(net.promise);
+    d.reject(new Error('boom'));
+    await flush();
+    dismissImport();
+    net.resolve(ONLINE);
+    await flush();
+    expect(getImportSnapshot().phase).toBe('idle');
+  });
+});
+
+describe('importProgress subscriptions', () => {
+  it('tells subscribers about each transition until they unsubscribe', async () => {
+    const heard: string[] = [];
+    const unsubscribe = subscribeImport(() => heard.push(getImportSnapshot().phase));
+    const d = deferred<ImportResult>();
+    beginImport({ name: 'Goa', run: () => d.promise });
+    await flush();
+    d.resolve(result('g1'));
+    await flush();
+    unsubscribe();
+    dismissImport();
+
+    expect(heard).toContain('running');
+    expect(heard.at(-1)).toBe('success');
+  });
+
+  it('re-renders the banner and the landed-group hooks as the import advances', async () => {
+    const banner = renderHook(() => useImportProgress());
+    const landed = renderHook(() => useImportedGroupId());
+    expect(banner.result.current.phase).toBe('idle');
+
+    const d = deferred<ImportResult>();
+    beginImport({ name: 'Goa', run: () => d.promise });
+    await flush();
+    expect(banner.result.current).toMatchObject({ phase: 'running', groupName: 'Goa' });
+    expect(landed.result.current).toBeNull();
+
+    d.resolve(result('g7'));
+    await flush();
+    expect(banner.result.current.phase).toBe('success');
+    expect(landed.result.current).toBe('g7');
+    banner.unmount();
+    landed.unmount();
   });
 });

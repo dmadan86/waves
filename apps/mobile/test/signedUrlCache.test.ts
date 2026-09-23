@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { createSignedUrlCache } from '../src/lib/signedUrlCache';
+import { createSignedUrlCache, signedUrlKey } from '../src/lib/signedUrlCache';
 
 const MIN = 60 * 1000;
 
@@ -118,5 +118,12 @@ describe('signed URL cache', () => {
     await cache.get('a', mint);
     await cache.get('b', mint);
     expect(mint).toHaveBeenCalledTimes(4);
+  });
+});
+
+describe('the cache key', () => {
+  it('keeps the same path in two buckets apart', () => {
+    expect(signedUrlKey('avatars', 'p1.jpg')).toBe('avatars|p1.jpg');
+    expect(signedUrlKey('avatars', 'p1.jpg')).not.toBe(signedUrlKey('covers', 'p1.jpg'));
   });
 });

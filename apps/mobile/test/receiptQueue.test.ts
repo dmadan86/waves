@@ -96,8 +96,15 @@ class FakeFile {
   async base64(): Promise<string> {
     return Buffer.from(fs.files.get(this.uri) ?? new Uint8Array()).toString('base64');
   }
+
+  async copy(destination: FakeFile): Promise<void> {
+    const bytes = fs.files.get(this.uri);
+    if (!bytes) throw new Error(`no such file: ${this.uri}`);
+    fs.files.set(destination.uri, new Uint8Array(bytes));
+  }
 }
 
+vi.mock('react', async () => (await import('./support/fakeReact')).reactModule());
 vi.mock('@react-native-async-storage/async-storage', () => ({ default: storage }));
 vi.mock('expo-crypto', () => ({
   randomUUID: vi.fn(() => {
@@ -151,10 +158,14 @@ const {
   flushReceiptQueue,
   getPendingReceiptsSnapshot,
   listPendingReceipts,
+  isOnline,
   pendingReceiptUri,
   retryPendingReceipts,
   subscribePendingReceipts,
+  usePendingReceipts,
 } = await import('../src/lib/receiptQueue');
+const Network = await import('expo-network');
+const { flush, renderHook } = await import('./support/fakeReact');
 
 const QUEUE_KEY = 'receipt-upload-queue.v1';
 const pendingPath = (fileName: string) => `document-root/pending-receipts/${fileName}`;
@@ -680,5 +691,179 @@ describe('receipt queue local privacy cleanup', () => {
 
     expect(fs.files.has(pendingPath('a1.jpg'))).toBe(true);
     expect(fs.files.has(pendingPath('orphan.jpg'))).toBe(false);
+  });
+});
+
+describe('what a screen sees of the queue', () => {
+  it('reads the disk on a cold start and shows only the asked-for expense', async () => {
+    parkOnDisk();
+    vi.resetModules();
+    const fresh = await import('../src/lib/receiptQueue');
+    // The mocked `react` the fresh module gets is the one the harness below drives.
+    const harness = { renderHook, flush };
+
+    const mine = harness.renderHook(() => fresh.usePendingReceipts('e1'));
+    const other = harness.renderHook(() => fresh.usePendingReceipts('e2'));
+    const all = harness.renderHook(() => fresh.usePendingReceipts());
+    expect(mine.result.current).toEqual([]);
+
+    await harness.flush();
+
+    expect(mine.result.current.map((entry) => entry.attachmentId)).toEqual(['a1']);
+    expect(other.result.current).toEqual([]);
+    expect(all.result.current).toHaveLength(1);
+  });
+
+  it('does not re-read the disk once the queue has been read this launch', async () => {
+    await listPendingReceipts();
+    storage.getItem.mockClear();
+
+    renderHook(() => usePendingReceipts());
+    await flush();
+
+    expect(storage.getItem).not.toHaveBeenCalled();
+  });
+
+  it('treats a corrupt or wrongly-shaped index as an empty queue', async () => {
+    storage.data.set(QUEUE_KEY, '{not json');
+    await expect(listPendingReceipts()).resolves.toEqual([]);
+
+    storage.data.set(QUEUE_KEY, JSON.stringify({ a1: {} }));
+    await expect(listPendingReceipts()).resolves.toEqual([]);
+    expect(getPendingReceiptsSnapshot()).toEqual([]);
+  });
+});
+
+describe('isOnline', () => {
+  it('trusts reachability first, then the connection', async () => {
+    vi.mocked(Network.getNetworkStateAsync).mockResolvedValueOnce({
+      isConnected: true,
+      isInternetReachable: false,
+    } as never);
+    await expect(isOnline()).resolves.toBe(false);
+
+    vi.mocked(Network.getNetworkStateAsync).mockResolvedValueOnce({
+      isConnected: false,
+      isInternetReachable: null,
+    } as never);
+    await expect(isOnline()).resolves.toBe(false);
+  });
+
+  it('fails open when the network state is unknown or cannot be read', async () => {
+    vi.mocked(Network.getNetworkStateAsync).mockResolvedValueOnce({} as never);
+    await expect(isOnline()).resolves.toBe(true);
+
+    vi.mocked(Network.getNetworkStateAsync).mockRejectedValueOnce(new Error('no binder'));
+    await expect(isOnline()).resolves.toBe(true);
+  });
+});
+
+describe('parking a capture from a file', () => {
+  it.each([
+    ['image/webp', 'webp'],
+    ['image/png', 'png'],
+    ['image/heic', 'heic'],
+    ['image/HEIF', 'heif'],
+    ['image/gif', 'jpg'],
+    ['garbage', 'jpg'],
+  ])('copies a %s file in under a .%s name', async (contentType, ext) => {
+    fs.files.set('cache-root/resized', new Uint8Array([4, 5]));
+
+    const entry = await enqueueReceipt({
+      expenseId: 'e1',
+      groupId: 'g1',
+      visibility: 'parties',
+      sourceUri: 'cache-root/resized',
+      contentType,
+    });
+
+    expect(entry.fileName).toBe(`${entry.attachmentId}.${ext}`);
+    expect(entry.storagePath).toMatch(new RegExp(`^e1/.+\\.${ext}$`));
+    expect(fs.files.get(pendingPath(entry.fileName))).toEqual(new Uint8Array([4, 5]));
+    // Copied, not moved: the caller may still be drawing the source.
+    expect(fs.files.has('cache-root/resized')).toBe(true);
+  });
+
+  it('refuses a capture with no bytes at all, and parks nothing', async () => {
+    await expect(
+      enqueueReceipt({ expenseId: 'e1', groupId: 'g1', visibility: 'group', contentType: 'x' }),
+    ).rejects.toThrow('needs either sourceUri or base64');
+    expect(await listPendingReceipts()).toEqual([]);
+  });
+});
+
+describe('the handover edge cases', () => {
+  it('does nothing for an empty list of settled rows', async () => {
+    parkOnDisk();
+    storage.getItem.mockClear();
+
+    await dropSettledReceipts([]);
+
+    expect(storage.getItem).not.toHaveBeenCalled();
+  });
+
+  it('writes nothing when none of the named rows are settled here', async () => {
+    parkOnDisk();
+    await listPendingReceipts();
+    storage.setItem.mockClear();
+
+    await dropSettledReceipts(['a1', 'zz']); // a1 is parked but not yet sent
+
+    expect(storage.setItem).not.toHaveBeenCalled();
+    expect(await storedQueue()).toHaveLength(1);
+  });
+
+  it('deletes bytes left behind when the cache write failed, even if deleting throws', async () => {
+    world.cacheWrites = false;
+    parkOnDisk();
+    await listPendingReceipts();
+    await flushReceiptQueue();
+    expect(fs.files.has(pendingPath('a1.jpg'))).toBe(true);
+
+    await dropSettledReceipts(['a1']);
+    expect(fs.files.has(pendingPath('a1.jpg'))).toBe(false);
+    expect(await storedQueue()).toEqual([]);
+  });
+
+  it('still lets go of the entry when its leftover bytes cannot be deleted', async () => {
+    world.cacheWrites = false;
+    parkOnDisk();
+    await listPendingReceipts();
+    await flushReceiptQueue();
+    fs.failDelete = true;
+
+    await dropSettledReceipts(['a1']);
+
+    expect(await storedQueue()).toEqual([]);
+  });
+});
+
+describe('flushing', () => {
+  it('asks for nothing to retry when no ids are given', async () => {
+    parkOnDisk();
+    storage.setItem.mockClear();
+
+    await expect(retryPendingReceipts([])).resolves.toMatchObject({
+      uploadedExpenseIds: [],
+      hadPermanentFailure: false,
+    });
+    expect(storage.setItem).not.toHaveBeenCalled();
+  });
+
+  it('has nothing to do for an empty queue', async () => {
+    await expect(flushReceiptQueue()).resolves.toMatchObject({ uploadedExpenseIds: [] });
+    expect(world.put).not.toHaveBeenCalled();
+  });
+
+  it('coalesces overlapping flushes into one run that uploads once', async () => {
+    parkOnDisk();
+    await listPendingReceipts();
+
+    const first = flushReceiptQueue();
+    const second = flushReceiptQueue();
+
+    expect(second).toBe(first);
+    await first;
+    expect(world.put).toHaveBeenCalledTimes(1);
   });
 });

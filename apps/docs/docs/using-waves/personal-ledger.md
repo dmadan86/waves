@@ -29,8 +29,9 @@ the month down by category, and **Last 3 months** puts it in context.
 
 ## Adding an entry
 
-**Add** offers **Add expense** and **Add income**. Both ask for an **Amount**, a
-**Note** (_What was it for?_), a **Date** and a **Category**.
+Tap **+ Expense** on the top panel. The entry screen opens on an **Expense** /
+**Income** switch; pick **Income** for money coming in. Both ask for an
+**Amount**, a **Note** (_What was it for?_), a **Date** and a **Category**.
 
 Income also asks for a **Source**, from a built-in list: Salary, Business,
 Freelance, Rent received, Interest, Dividends, Investment sale, Pension, Bonus,

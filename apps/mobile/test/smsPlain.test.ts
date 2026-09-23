@@ -96,4 +96,16 @@ describe('a merchant is only shown when it is plausibly a name', () => {
     expect(merchantName('   ')).toBeNull();
     expect(merchantName('...')).toBeNull();
   });
+
+  it('refuses a long reference number with a few letters after it', () => {
+    expect(merchantName('412703998812UPI')).toBeNull();
+  });
+});
+
+describe('a paste with nothing in it names no bank', () => {
+  it('is null for an empty or missing body', () => {
+    expect(bankFromText('')).toBeNull();
+    expect(bankFromText(null)).toBeNull();
+    expect(bankFromText(undefined)).toBeNull();
+  });
 });

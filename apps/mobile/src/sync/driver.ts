@@ -204,9 +204,10 @@ class SqliteStore implements LocalStore {
 
   /**
    * Seal any pre-encryption plaintext left by an install that predates
-   * at-rest encryption. Reads pass legacy plaintext through transparently (see
-   * `decryptWith`), so this is about not *leaving* plaintext on disk, not about
-   * correctness of reads.
+   * at-rest encryption. This must finish before anything reads: `decryptWith`
+   * refuses an untagged value as corrupt, so a row this step missed would be
+   * dropped rather than read. `db()` runs it before handing out the
+   * connection, which is what makes that safe.
    */
   private async sealPlaintext(database: SQLite.SQLiteDatabase): Promise<void> {
     const key = await loadKey();

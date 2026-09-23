@@ -69,6 +69,32 @@ describe('localPrivacyAudit', () => {
     });
   });
 
+  it('reports absence rather than failing when the stores or the file system refuse', async () => {
+    secure.getItemAsync.mockRejectedValueOnce(new Error('keychain locked'));
+    storage.getItem.mockRejectedValueOnce(new Error('io'));
+    const exists = vi.spyOn(FakeDirectory.prototype, 'exists', 'get').mockImplementation(() => {
+      throw new Error('no permission');
+    });
+
+    await expect(localPrivacyAudit()).resolves.toEqual({
+      mirrorKeyPresent: false,
+      receiptQueuePresent: false,
+      pendingReceiptFiles: 0,
+      cachedImageFiles: 0,
+    });
+    exists.mockRestore();
+  });
+
+  it('counts nothing in a directory that cannot list itself', async () => {
+    fs.dirs.add('document-root/pending-receipts');
+    const list = vi
+      .spyOn(FakeDirectory.prototype, 'list')
+      .mockReturnValue(undefined as unknown as unknown[]);
+
+    await expect(localPrivacyAudit()).resolves.toMatchObject({ pendingReceiptFiles: 0 });
+    list.mockRestore();
+  });
+
   it('reports clean state after sign-out cleanup has removed private local data', async () => {
     await expect(localPrivacyAudit()).resolves.toEqual({
       mirrorKeyPresent: false,
