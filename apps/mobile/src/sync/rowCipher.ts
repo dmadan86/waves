@@ -36,7 +36,7 @@ import { bytesToUtf8, concatBytes, utf8ToBytes } from '@noble/ciphers/utils.js';
 import * as Crypto from 'expo-crypto';
 import * as SecureStore from 'expo-secure-store';
 
-/** Marks a sealed value. An unprefixed value is legacy plaintext (see `open`). */
+/** Marks a sealed value. An unprefixed value is refused (see `open`). */
 const VERSION_TAG = 'v1:';
 /** XChaCha20 takes a 192-bit (24-byte) nonce — wide enough that a random nonce
  *  per value never collides in practice, so no counter to persist. */
@@ -119,14 +119,29 @@ export function seal(key: MirrorKey, nonce: Uint8Array, plain: string, aad?: str
   return VERSION_TAG + bytesToBase64(concatBytes(nonce, ct));
 }
 
-/** Open a value sealed by {@link seal}, with the identical `aad`. A value
- *  without the version tag is returned unchanged — that is a row written before
- *  encryption existed, and the next write will seal it. A tampered/corrupt
- *  sealed value, or one whose `aad` does not match (e.g. a ciphertext moved to
- *  another row), throws when the AEAD tag fails — exactly as a corrupt plaintext
- *  row would fail `JSON.parse`. */
+/** Thrown by {@link open} for a value that carries no version tag. */
+export class UnsealedValueError extends Error {
+  constructor() {
+    super('Refusing an unsealed value');
+    this.name = 'UnsealedValueError';
+  }
+}
+
+/** Open a value sealed by {@link seal}, with the identical `aad`. A tampered or
+ *  corrupt sealed value, or one whose `aad` does not match (e.g. a ciphertext
+ *  moved to another row), throws when the AEAD tag fails.
+ *
+ *  A value WITHOUT the version tag throws too ({@link UnsealedValueError}). It
+ *  used to be passed through as pre-encryption plaintext, which let anyone who
+ *  could write the app's files plant rows that no key or row identity vouched
+ *  for. Nothing legitimate is untagged any more: the mirror seals its legacy
+ *  plaintext in `driver.ts`'s `migrate` (user_version 1) before its connection
+ *  is handed to any reader, so no `open` can run ahead of that step; the bank-
+ *  message store and backups were sealed from the day they were written. Every
+ *  caller already treats a throw as "this row is corrupt": skipped,
+ *  quarantined, or reported as a key that does not open. */
 export function open(key: MirrorKey, stored: string, aad?: string): string {
-  if (!isSealed(stored)) return stored;
+  if (!isSealed(stored)) throw new UnsealedValueError();
   const raw = base64ToBytes(stored.slice(VERSION_TAG.length));
   const nonce = raw.subarray(0, NONCE_BYTES);
   const ct = raw.subarray(NONCE_BYTES);
@@ -175,8 +190,8 @@ export function encryptWith(key: MirrorKey, plain: string, aad?: string): string
   return seal(key, Crypto.getRandomBytes(NONCE_BYTES), plain, aad);
 }
 
-/** Open `stored` with the identical `aad` (legacy plaintext passes through).
- *  Synchronous given a key. */
+/** Open `stored` with the identical `aad`; an unsealed value throws (see
+ *  {@link open}). Synchronous given a key. */
 export function decryptWith(key: MirrorKey, stored: string, aad?: string): string {
   return open(key, stored, aad);
 }

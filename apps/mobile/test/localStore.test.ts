@@ -904,4 +904,43 @@ describe('at-rest encryption', () => {
       { table: 'expenses', id: 'e2', groupId: 'g1', seq: 1, row: { id: 'e2' } },
     ]);
   });
+
+  it('refuses plaintext planted after the migration, without crashing', async () => {
+    // Already migrated (user_version current), so every legitimate value is
+    // sealed. A row written straight into the file carries no tag: it must read
+    // as corrupt, never as ledger data.
+    const store = createLocalStore();
+    await store.ready();
+    await store.putRows([
+      { table: 'expenses', id: 'e1', groupId: 'g1', seq: 1, row: { id: 'e1' } },
+    ] as never);
+    await store.writeQueue([mutation('real')]);
+
+    database.mirrorRows.set('expenses:planted', {
+      table_name: 'expenses',
+      id: 'planted',
+      group_id: 'g1',
+      seq: 2,
+      json: JSON.stringify({ id: 'planted', amount: '999999' }),
+    });
+    database.pendingMutations.set('planted', {
+      client_mutation_id: 'planted',
+      seq: 2,
+      json: JSON.stringify({ ...mutation('planted'), seq: 2 }),
+    });
+    database.drafts.set('planted', {
+      key: 'planted',
+      json: JSON.stringify({ note: 'planted' }),
+      saved_at: '2026-01-01T00:00:00.000Z',
+    });
+
+    expect(await store.readRows()).toEqual([
+      { table: 'expenses', id: 'e1', groupId: 'g1', seq: 1, row: { id: 'e1' } },
+    ]);
+    expect((await store.readQueue()).map((entry) => entry.clientMutationId)).toEqual(['real']);
+    expect(await store.readDraft('planted')).toBeNull();
+    expect(await store.listDrafts()).toEqual([]);
+    // Not replayed, and not re-sealed into something that would later read as real.
+    expect(database.mirrorRows.get('expenses:planted')?.json.startsWith('v1:')).toBe(false);
+  });
 });
