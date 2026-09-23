@@ -14,8 +14,9 @@
  *   delete → authorise, remove from R2, release the ledger row.
  *
  * Authorisation mirrors the Supabase Storage RLS the buckets used to carry:
- * group objects need group membership, a group photo needs the paid gate to
- * write, personal objects need to be the owner's, and an avatar is readable by
+ * group objects need group membership (and replacing or removing an existing
+ * receipt / album photo needs its uploader or a group admin), a group photo
+ * needs the paid gate to write, personal objects need to be the owner's, and an avatar is readable by
  * anyone sharing a group with its owner.
  *
  * The request handling lives here as a pure function taking its side-effecting
@@ -234,6 +235,47 @@ async function sharesGroup(service: SupabaseClient, a: string, b: string): Promi
 }
 
 /**
+ * An existing group object may only be overwritten, deleted or released by the
+ * person who uploaded it (the `owner_profile_id` the storage ledger recorded at
+ * reserve/commit) or by an admin of its group. A path the ledger has no row for
+ * has no owner to protect — a fresh upload — so any member may write it.
+ *
+ * Group photos (the cover) are deliberately not routed here: the cover is a
+ * shared group setting any member may change (`groups_update` is member-wide),
+ * not one person's evidence.
+ */
+async function requireUploaderOrAdmin(
+  caller: SupabaseClient,
+  service: SupabaseClient,
+  uid: string,
+  bucket: LogicalBucket,
+  path: string,
+  groupId: string,
+): Promise<void> {
+  const { data, error } = await service
+    .from('storage_objects')
+    .select('owner_profile_id')
+    .eq('logical_bucket', bucket)
+    .eq('path', path)
+    .maybeSingle();
+  if (error) throw new HttpError(500, 'INTERNAL', error.message);
+  if (!data) return;
+  if ((data as { owner_profile_id: string | null }).owner_profile_id === uid) return;
+
+  // Asked as the caller: `is_group_admin` keys off the session's own profile.
+  const { data: isAdmin, error: adminError } = await caller.rpc('is_group_admin', {
+    p_group_id: groupId,
+  });
+  if (adminError) throw new HttpError(500, 'INTERNAL', adminError.message);
+  if (isAdmin === true) return;
+  throw new HttpError(
+    403,
+    'NOT_UPLOADER',
+    'Only the person who added this image, or a group admin, can change it',
+  );
+}
+
+/**
  * Authorise a write, and return the group the bytes are charged to. Mirrors the
  * old storage INSERT policies: group membership for group objects (plus the
  * paid gate for a group photo), ownership for personal ones.
@@ -281,8 +323,13 @@ async function authorizeWrite(
   }
 
   if (groupId) {
-    // A group receipt: membership is enough to write it.
+    // A group receipt or album photo: membership is enough to add one at a fresh
+    // path, but replacing, deleting or releasing an object that already has a
+    // recorded owner takes that uploader or a group admin. Without this, anyone
+    // who joined through the reusable group link could swap or erase the bill
+    // behind somebody else's (possibly disputed) expense.
     await requireMembership(caller, groupId);
+    await requireUploaderOrAdmin(caller, service, uid, bucket, path, groupId);
     return { groupId };
   }
 
