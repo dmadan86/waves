@@ -80,6 +80,7 @@ import {
   useUpsertPersonalRecord,
 } from '@/data/personal';
 import { useDefaultCurrency } from '@/lib/currency';
+import { dateTimeFormat } from '@/lib/dateTimeFormat';
 import { useAuth } from '@/lib/auth';
 import { usePersonalGate } from '@/lib/lock';
 import { router } from '@/lib/navigation';
@@ -599,7 +600,7 @@ function monthsBetween(from: string, to: string): number {
 // if the platform has no Intl month names.
 function monthLabel(month: string, locale: string): string {
   try {
-    return new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric' }).format(
+    return dateTimeFormat(locale, { month: 'long', year: 'numeric' }).format(
       new Date(`${month}-01T00:00:00`),
     );
   } catch {
@@ -619,7 +620,7 @@ function whenLabel(
   if (days === 0) return t.personal.today;
   if (days === 1) return t.personal.tomorrow;
   try {
-    return new Intl.DateTimeFormat(locale, { month: 'short', day: 'numeric' }).format(
+    return dateTimeFormat(locale, { month: 'short', day: 'numeric' }).format(
       new Date(`${date}T00:00:00`),
     );
   } catch {
@@ -1215,9 +1216,7 @@ function CashflowStrip({
 // A month's short name (Sep) for the trend axis, timezone-safe.
 function monthShort(month: string, locale: string): string {
   try {
-    return new Intl.DateTimeFormat(locale, { month: 'short' }).format(
-      new Date(`${month}-01T00:00:00`),
-    );
+    return dateTimeFormat(locale, { month: 'short' }).format(new Date(`${month}-01T00:00:00`));
   } catch {
     return month;
   }
