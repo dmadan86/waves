@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import { nudgeToSettle } from '@/data/api';
 import { useStrings, type UiStrings } from '@/i18n';
@@ -36,10 +36,15 @@ export function useNudge(target: NudgeTarget): {
   const { t } = useStrings();
   const [pending, setPending] = useState(false);
   const [outcome, setOutcome] = useState<NudgeOutcome | null>(null);
+  // A ref, not the `pending` state: two taps in one frame both read the state
+  // before it re-renders, and would send two reminders.
+  const inFlight = useRef(false);
   const send = (): void => {
-    if (pending) return;
+    if (inFlight.current) return;
+    inFlight.current = true;
     setPending(true);
     void sendNudge(target, t).then((result) => {
+      inFlight.current = false;
       setPending(false);
       setOutcome(result);
     });
