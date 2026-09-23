@@ -2983,6 +2983,11 @@ export interface UiStrings {
     scanBody: string;
     scanReadItems: PluralForms;
     scanCheckLines: string;
+    problemNoItems: string;
+    /** Receipt check problems; {label} is the line as read off the bill. */
+    problemNegativeLine: string;
+    problemLowConfidence: string;
+    problemDoesNotReconcile: string;
     carriedOver: string;
     notYours: string;
     itemFallback: string;
@@ -3024,6 +3029,17 @@ export interface UiStrings {
     rowsLeftOutNote: string;
     fileWide: string;
     rowNumber: string;
+    /** A row that could not be read (a date, cost or amount that is not a number). */
+    problemUnreadable: string;
+    /** A row whose people's amounts do not sum to its total. */
+    problemDoesNotBalance: string;
+    problemUnknownCurrency: string;
+    problemDuplicatePerson: string;
+    problemNonPositiveCost: string;
+    problemNoPeople: string;
+    problemNoRows: string;
+    problemNotAnExport: string;
+    problemNewerFormat: string;
     whereItGoes: string;
     aNewGroup: string;
     namedAfterFile: string;
@@ -5954,6 +5970,11 @@ const en: UiStrings = {
       other: 'Read {n} items. Check them, then tap who had what.',
     },
     scanCheckLines: 'Some lines need checking before this can be saved.',
+    problemNoItems: 'No line items were found on this receipt.',
+    problemNegativeLine: '“{label}” came out negative — it may be a discount printed as a line.',
+    problemLowConfidence: '“{label}” was hard to read — check the name and amount.',
+    problemDoesNotReconcile:
+      "The lines don't add up to the total on the receipt. Something was misread — check the amounts before saving.",
     carriedOver: 'Carried over from the scan. Check the lines, then tap who had what.',
     notYours: 'They are on Waves — they tap their own lines.',
     itemFallback: 'Item {n}',
@@ -5989,6 +6010,16 @@ const en: UiStrings = {
       'Everything else still imports. These are named so you can add them by hand rather than discover later that they are missing.',
     fileWide: 'File',
     rowNumber: 'Row {n}',
+    problemUnreadable: "Couldn't read this row, so it was left out.",
+    problemDoesNotBalance: "The amounts on this row don't add up, so it was left out.",
+    problemUnknownCurrency: "The currency on this row isn't one Waves knows.",
+    problemDuplicatePerson: 'The same person appears in more than one column.',
+    problemNonPositiveCost: 'The cost on this row must be more than zero.',
+    problemNoPeople: "Couldn't find anybody in this file to import.",
+    problemNoRows: 'There is nothing in this file to import.',
+    problemNotAnExport: "That file isn't a Waves export.",
+    problemNewerFormat:
+      'That file was saved by a newer version of Waves. Update the app and try again.',
     whereItGoes: 'Where it goes',
     aNewGroup: 'A new group',
     namedAfterFile: 'Named after the file',
@@ -8972,6 +9003,11 @@ const ta: UiStrings = {
         '{n} வரிகள் படிக்கப்பட்டன. அவற்றைச் சரிபார்த்து, யார் என்ன சாப்பிட்டார் எனத் தட்டவும்.',
     },
     scanCheckLines: 'சேமிப்பதற்கு முன் சில வரிகளைச் சரிபார்க்க வேண்டும்.',
+    problemNoItems: 'No line items were found on this receipt.',
+    problemNegativeLine: '“{label}” came out negative — it may be a discount printed as a line.',
+    problemLowConfidence: '“{label}” was hard to read — check the name and amount.',
+    problemDoesNotReconcile:
+      "The lines don't add up to the total on the receipt. Something was misread — check the amounts before saving.",
     carriedOver:
       'ஸ்கேனிலிருந்து கொண்டுவரப்பட்டது. வரிகளைச் சரிபார்த்து, யார் என்ன சாப்பிட்டார் எனத் தட்டவும்.',
     notYours: 'அவர்கள் Waves-யில் உள்ளனர் — அவர்கள் தங்கள் வரிகளைத் தாங்களே தட்டுவார்கள்.',
@@ -9010,6 +9046,16 @@ const ta: UiStrings = {
       'மற்ற அனைத்தும் இறக்குமதி ஆகும். பின்னர் இவை இல்லை என்று கண்டுபிடிப்பதற்குப் பதிலாக, கையால் சேர்க்க முடியும் என்பதற்காகவே இவை பெயரிடப்பட்டுள்ளன.',
     fileWide: 'கோப்பு',
     rowNumber: 'வரிசை {n}',
+    problemUnreadable: "Couldn't read this row, so it was left out.",
+    problemDoesNotBalance: "The amounts on this row don't add up, so it was left out.",
+    problemUnknownCurrency: "The currency on this row isn't one Waves knows.",
+    problemDuplicatePerson: 'The same person appears in more than one column.',
+    problemNonPositiveCost: 'The cost on this row must be more than zero.',
+    problemNoPeople: "Couldn't find anybody in this file to import.",
+    problemNoRows: 'There is nothing in this file to import.',
+    problemNotAnExport: "That file isn't a Waves export.",
+    problemNewerFormat:
+      'That file was saved by a newer version of Waves. Update the app and try again.',
     whereItGoes: 'எங்கே சேரும்',
     aNewGroup: 'ஒரு புதிய குழு',
     namedAfterFile: 'கோப்பின் பெயரில்',
@@ -11919,6 +11965,11 @@ const hi: UiStrings = {
       other: '{n} आइटम पढ़े। उन्हें जाँचें, फिर टैप करें कि किसने क्या लिया।',
     },
     scanCheckLines: 'सेव करने से पहले कुछ पंक्तियों की जाँच ज़रूरी है।',
+    problemNoItems: 'No line items were found on this receipt.',
+    problemNegativeLine: '“{label}” came out negative — it may be a discount printed as a line.',
+    problemLowConfidence: '“{label}” was hard to read — check the name and amount.',
+    problemDoesNotReconcile:
+      "The lines don't add up to the total on the receipt. Something was misread — check the amounts before saving.",
     carriedOver: 'स्कैन से लाया गया। पंक्तियाँ जाँचें, फिर टैप करें कि किसने क्या लिया।',
     notYours: 'वे Waves पर हैं — वे अपनी पंक्तियाँ ख़ुद टैप करते हैं।',
     itemFallback: 'आइटम {n}',
@@ -11954,6 +12005,16 @@ const hi: UiStrings = {
       'बाकी सब फिर भी आयात होता है। इनके नाम इसलिए दिए हैं ताकि आप इन्हें हाथ से जोड़ सकें, न कि बाद में पता चले कि ये गायब हैं।',
     fileWide: 'फ़ाइल',
     rowNumber: 'पंक्ति {n}',
+    problemUnreadable: "Couldn't read this row, so it was left out.",
+    problemDoesNotBalance: "The amounts on this row don't add up, so it was left out.",
+    problemUnknownCurrency: "The currency on this row isn't one Waves knows.",
+    problemDuplicatePerson: 'The same person appears in more than one column.',
+    problemNonPositiveCost: 'The cost on this row must be more than zero.',
+    problemNoPeople: "Couldn't find anybody in this file to import.",
+    problemNoRows: 'There is nothing in this file to import.',
+    problemNotAnExport: "That file isn't a Waves export.",
+    problemNewerFormat:
+      'That file was saved by a newer version of Waves. Update the app and try again.',
     whereItGoes: 'कहाँ जाएगा',
     aNewGroup: 'एक नया समूह',
     namedAfterFile: 'फ़ाइल के नाम पर',
@@ -15189,6 +15250,11 @@ const ar: UiStrings = {
       other: 'قرأنا {n} بند. تحقّق منها ثم اضغط لمن كان ماذا.',
     },
     scanCheckLines: 'بعض البنود تحتاج مراجعة قبل الحفظ.',
+    problemNoItems: 'No line items were found on this receipt.',
+    problemNegativeLine: '“{label}” came out negative — it may be a discount printed as a line.',
+    problemLowConfidence: '“{label}” was hard to read — check the name and amount.',
+    problemDoesNotReconcile:
+      "The lines don't add up to the total on the receipt. Something was misread — check the amounts before saving.",
     carriedOver: 'منقول من المسح. تحقّق من البنود ثم اضغط لمن كان ماذا.',
     notYours: 'هم على Waves — يضغطون بنودهم بأنفسهم.',
     itemFallback: 'بند {n}',
@@ -15224,6 +15290,16 @@ const ar: UiStrings = {
       'كل ما عداها يُستورد. ذُكرت بأسمائها لتضيفها يدويًا بدل أن تكتشف غيابها لاحقًا.',
     fileWide: 'الملف',
     rowNumber: 'الصف {n}',
+    problemUnreadable: "Couldn't read this row, so it was left out.",
+    problemDoesNotBalance: "The amounts on this row don't add up, so it was left out.",
+    problemUnknownCurrency: "The currency on this row isn't one Waves knows.",
+    problemDuplicatePerson: 'The same person appears in more than one column.',
+    problemNonPositiveCost: 'The cost on this row must be more than zero.',
+    problemNoPeople: "Couldn't find anybody in this file to import.",
+    problemNoRows: 'There is nothing in this file to import.',
+    problemNotAnExport: "That file isn't a Waves export.",
+    problemNewerFormat:
+      'That file was saved by a newer version of Waves. Update the app and try again.',
     whereItGoes: 'إلى أين يذهب',
     aNewGroup: 'مجموعة جديدة',
     namedAfterFile: 'باسم الملف',
