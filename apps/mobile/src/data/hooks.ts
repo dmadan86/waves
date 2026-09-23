@@ -65,7 +65,7 @@ import { useAuth } from '@/lib/auth';
 import { reportHandled } from '@/lib/observability';
 import { normaliseContactPhone } from '@/lib/phone';
 import { backend } from '@/lib/backend';
-import { syncEngine, useSync } from '@/sync';
+import { syncEngine, useLastSyncedAt, useSync } from '@/sync';
 import {
   createGroup,
   deleteGroup,
@@ -386,7 +386,7 @@ function useLocalMonthPrefix(): string {
  * already in them, because `materialiseExpenses` replays the queue on top.
  */
 export function useHomeSummary(profileId: string | null) {
-  const { mirror, queue, hydrated, status, lastSyncedAt, flush } = useSync();
+  const { mirror, queue, hydrated, status, hasSynced, flush } = useSync();
   const monthPrefix = useLocalMonthPrefix();
 
   const summary = useMemo(() => {
@@ -547,11 +547,10 @@ export function useHomeSummary(profileId: string | null) {
       // (offline/metered/error). In those states there is nothing better than the
       // local snapshot, so fall through and show it at once rather than shimmer
       // forever — local-first still wins whenever the network can't answer.
-      pendingFirstSync:
-        hydrated && lastSyncedAt === null && (status === 'idle' || status === 'syncing'),
+      pendingFirstSync: hydrated && !hasSynced && (status === 'idle' || status === 'syncing'),
       refetch: () => void flush(),
     }),
-    [summary, hydrated, status, lastSyncedAt, flush, profileId],
+    [summary, hydrated, status, hasSynced, flush, profileId],
   );
 }
 
@@ -1145,7 +1144,8 @@ export interface GroupLedger {
 
 export function useGroupLedger(groupId: string, myProfileId: string | null): GroupLedger {
   const { group, members, expenses, settlements, balances } = useGroup(groupId);
-  const { queue, status, lastSyncedAt } = useSync();
+  const { queue, status } = useSync();
+  const lastSyncedAt = useLastSyncedAt();
 
   // Is the server's snapshot even comparable with ours right now? See
   // `isCrossCheckComparable` — every false alarm this fixes was a timing gap,

@@ -41,7 +41,15 @@ import {
   type SessionEnd,
 } from './retention';
 
-interface SyncContextValue extends SyncState {
+/**
+ * Everything but `lastSyncedAt`, which moves on every 30s poll even when the
+ * poll changed nothing. Carrying it here re-rendered every `useSync()` reader
+ * in the app twice a minute; the few that care read `hasSynced` (did this
+ * session's first sync land?) or `useLastSyncedAt()` for the time itself.
+ */
+interface SyncContextValue extends Omit<SyncState, 'lastSyncedAt'> {
+  /** This session's first sync has succeeded (`lastSyncedAt` is set). */
+  hasSynced: boolean;
   /** Queue a mutation. Resolves once it is durably on disk, not once it syncs. */
   mutate: (
     kind: MutationKind,
@@ -59,6 +67,7 @@ interface SyncContextValue extends SyncState {
 }
 
 const SyncContext = createContext<SyncContextValue | null>(null);
+const LastSyncedContext = createContext<string | null>(null);
 
 /**
  * Everything of the departing account's that lives on this device.
@@ -307,8 +316,14 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     if (!signedIn) return;
     const subscription = AppState.addEventListener('change', (next) => {
       if (next === 'active') {
+        syncEngine.resume();
         void syncEngine.flush();
         void resumeReceiptUploads();
+      } else if (next === 'background') {
+        // No poll while nobody is looking; the flush above catches up on return.
+        // Not on 'inactive' — that is a pulled-down notification shade or an
+        // incoming call, and the app is still on screen.
+        syncEngine.pause();
       }
     });
     return () => subscription.remove();
@@ -346,29 +361,64 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     [],
   );
 
-  const value = useMemo<SyncContextValue>(
+  // The engine methods never change, so neither do these: a screen that only
+  // mutates, or lists `flush` in an effect's dependencies, is not re-run by a
+  // sync landing.
+  const actions = useMemo(
     () => ({
-      ...state,
       mutate,
       flush: (groupIds?: string[]) => syncEngine.flush({ groupIds }),
       retry: (id: string) => syncEngine.retry(id),
       discard: (id: string) => syncEngine.discard(id),
       forgetGroup: (groupId: string) => syncEngine.forgetGroup(groupId),
+    }),
+    [mutate],
+  );
+
+  // Keyed on each field, not on `state`: every engine update is a new `state`
+  // object, and a quiet poll is one that changes only `lastSyncedAt` (the
+  // engine keeps `mirror`, `queue` and `rejected` by reference when nothing
+  // moved) — so that tick no longer reaches the readers of this context.
+  const { status, hydrated, mirror, queue, rejected, lastError, lastSyncedAt } = state;
+  const hasSynced = lastSyncedAt !== null;
+  const value = useMemo<SyncContextValue>(
+    () => ({
+      status,
+      hydrated,
+      mirror,
+      queue,
+      rejected,
+      lastError,
+      hasSynced,
+      ...actions,
       // What is genuinely still on its way. A refused mutation stays in the
       // queue so its row stays on screen, but it is not in flight — counting it
       // as pending would show a "sending…" that never finishes.
-      pendingCount: pendingMutations(state.queue).length,
+      pendingCount: pendingMutations(queue).length,
     }),
-    [state, mutate],
+    [status, hydrated, mirror, queue, rejected, lastError, hasSynced, actions],
   );
 
-  return <SyncContext.Provider value={value}>{children}</SyncContext.Provider>;
+  return (
+    <SyncContext.Provider value={value}>
+      <LastSyncedContext.Provider value={lastSyncedAt}>{children}</LastSyncedContext.Provider>
+    </SyncContext.Provider>
+  );
 }
 
 export function useSync(): SyncContextValue {
   const value = useContext(SyncContext);
   if (!value) throw new Error('useSync must be used inside SyncProvider');
   return value;
+}
+
+/**
+ * When this session last synced successfully (server time), or null before the
+ * first. Its own context, so only the readers that need the time itself
+ * re-render when a poll lands.
+ */
+export function useLastSyncedAt(): string | null {
+  return useContext(LastSyncedContext);
 }
 
 /**
