@@ -713,7 +713,14 @@ function FriendsHero({
         >
           <Animated.ScrollView
             horizontal
-            pagingEnabled
+            // Home's deck, not `pagingEnabled`: paging snaps by the platform's
+            // slower page fling, which is what made this carousel feel heavier
+            // than the dashboard's. A snap step plus the fast deceleration, one
+            // slide per flick, is the same feel.
+            snapToInterval={slideW}
+            snapToAlignment="start"
+            decelerationRate="fast"
+            disableIntervalMomentum
             showsHorizontalScrollIndicator={false}
             scrollEnabled={deck.length > 1}
             scrollEventThrottle={16}
@@ -721,59 +728,83 @@ function FriendsHero({
               useNativeDriver: true,
             })}
           >
-            {deck.map((group) => (
+            {deck.map((group, index) => (
               // Label above the amount, not beside it — the same order GroupHero
               // reads its own balance in (caption verdict, then the title-sized
               // figure), rather than a row that made this hero the odd one out.
-              <View
+              //
+              // The slide being dragged in grows and brightens into focus as it
+              // reaches centre, exactly as Home's do. Transform and opacity only,
+              // both native-driven off the same `scrollX` the dots read.
+              <Animated.View
                 key={group.owed ? 'owed' : 'owing'}
-                // Home's rhythm: `sm` between the label and the figure.
-                style={{ width: slideW, gap: theme.spacing.sm }}
+                style={{
+                  width: slideW,
+                  opacity: scrollX.interpolate({
+                    inputRange: [(index - 1) * slideW, index * slideW, (index + 1) * slideW],
+                    outputRange: [0.75, 1, 0.75],
+                    extrapolate: 'clamp',
+                  }),
+                  transform: [
+                    {
+                      scale: scrollX.interpolate({
+                        inputRange: [(index - 1) * slideW, index * slideW, (index + 1) * slideW],
+                        outputRange: [0.94, 1, 0.94],
+                        extrapolate: 'clamp',
+                      }),
+                    },
+                  ],
+                }}
               >
-                {/* Home's wording, down to the separator: "Net receivable · INR".
+                <View
+                  // Home's rhythm: `sm` between the label and the figure.
+                  style={{ gap: theme.spacing.sm }}
+                >
+                  {/* Home's wording, down to the separator: "Net receivable · INR".
                     It replaces two lines that between them said less — a standing
                     "OVERALL" over "You are owed" named the section and the
                     direction but never the currency the figure was in, which is
                     the one thing the number below cannot say for itself when a
                     second currency is stacked under it. */}
-                <Text variant="caption" tone="onBrand" style={{ opacity: 0.85 }}>
-                  {`${group.owed ? t.dashHero.netOwed : t.dashHero.netOwe} · ${group.head.currency}`}
-                </Text>
-                <View style={{ gap: 2 }}>
-                  <MoneyText
-                    amount={group.head.net < 0n ? -group.head.net : group.head.net}
-                    currency={group.head.currency}
-                    locale={locale}
-                    variant="title"
-                    tone="default"
-                    style={{ color: theme.color.onBrand }}
-                  />
-                  {group.rest.length > 0 ? (
-                    // The same direction's other currencies, small and under the
-                    // number they belong to. Wrapped rather than clipped — six
-                    // currencies costs a second line here instead of six headlines.
-                    <Row
-                      style={{
-                        justifyContent: 'flex-start',
-                        flexWrap: 'wrap',
-                        columnGap: theme.spacing.sm,
-                      }}
-                    >
-                      {group.rest.map((total) => (
-                        <MoneyText
-                          key={total.currency}
-                          amount={total.net < 0n ? -total.net : total.net}
-                          currency={total.currency}
-                          locale={locale}
-                          variant="caption"
-                          tone="onBrand"
-                          style={{ opacity: 0.8 }}
-                        />
-                      ))}
-                    </Row>
-                  ) : null}
+                  <Text variant="caption" tone="onBrand" style={{ opacity: 0.85 }}>
+                    {`${group.owed ? t.dashHero.netOwed : t.dashHero.netOwe} · ${group.head.currency}`}
+                  </Text>
+                  <View style={{ gap: 2 }}>
+                    <MoneyText
+                      amount={group.head.net < 0n ? -group.head.net : group.head.net}
+                      currency={group.head.currency}
+                      locale={locale}
+                      variant="title"
+                      tone="default"
+                      style={{ color: theme.color.onBrand }}
+                    />
+                    {group.rest.length > 0 ? (
+                      // The same direction's other currencies, small and under the
+                      // number they belong to. Wrapped rather than clipped — six
+                      // currencies costs a second line here instead of six headlines.
+                      <Row
+                        style={{
+                          justifyContent: 'flex-start',
+                          flexWrap: 'wrap',
+                          columnGap: theme.spacing.sm,
+                        }}
+                      >
+                        {group.rest.map((total) => (
+                          <MoneyText
+                            key={total.currency}
+                            amount={total.net < 0n ? -total.net : total.net}
+                            currency={total.currency}
+                            locale={locale}
+                            variant="caption"
+                            tone="onBrand"
+                            style={{ opacity: 0.8 }}
+                          />
+                        ))}
+                      </Row>
+                    ) : null}
+                  </View>
                 </View>
-              </View>
+              </Animated.View>
             ))}
           </Animated.ScrollView>
         </Reanimated.View>
