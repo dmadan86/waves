@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useMutation } from '@tanstack/react-query';
 import { useLocalSearchParams } from 'expo-router';
 import { ActivityIndicator, Linking, Pressable, ScrollView, View } from 'react-native';
 
@@ -35,9 +34,9 @@ import {
   useScreenClearance,
 } from '@waves/ui';
 
+import { useNudge } from '@/lib/nudge';
 import { toSnapshot, useGroup, useGroupLedger, useRecordSettlement } from '@/data/hooks';
 import { friendlyError } from '@/lib/errors';
-import { nudgeToSettle } from '@/data/api';
 import { expenseTitle } from '@/data/expenseTitle';
 import { displayName, isGhost, payableAt, type MemberRow } from '@/data/types';
 import { fill, useStrings } from '@/i18n';
@@ -488,16 +487,8 @@ function RemindRow({
   currency: string;
 }) {
   const { t } = useStrings();
-  const [note, setNote] = useState<string | null>(null);
-
-  const nudge = useMutation({
-    mutationFn: () => nudgeToSettle({ groupId, toMemberId: memberId, currency }),
-    onSuccess: () => setNote(t.people.reminded),
-    onError: (error) => {
-      const message = error instanceof Error ? error.message : String(error);
-      setNote(message.includes('NUDGE_RATE_LIMIT') ? t.people.remindedToday : t.loadError);
-    },
-  });
+  const nudge = useNudge({ groupId, memberId, currency });
+  const note = nudge.outcome?.label ?? null;
 
   if (note) {
     return (
@@ -515,8 +506,8 @@ function RemindRow({
       variant="secondary"
       size="lg"
       fullWidth
-      disabled={nudge.isPending}
-      onPress={() => nudge.mutate()}
+      disabled={nudge.pending}
+      onPress={nudge.send}
     />
   );
 }
