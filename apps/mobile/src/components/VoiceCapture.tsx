@@ -29,10 +29,10 @@ import Reanimated, {
 } from 'react-native-reanimated';
 import Svg, { Defs, LinearGradient, Path, Stop } from 'react-native-svg';
 
-import { iconSize, Text, useTheme, type Theme } from '@waves/ui';
+import { Button, iconSize, Text, useTheme, type Theme } from '@waves/ui';
 
 import { useStrings } from '@/i18n';
-import { dictationError, englishSpeechLocale } from '@/lib/dictation';
+import { dictationError, englishSpeechLocale, isPermissionError } from '@/lib/dictation';
 import { useReducedMotion } from '@/lib/reducedMotion';
 import { speechMic } from '@/lib/speechMic';
 
@@ -516,6 +516,10 @@ export function VoiceCapture({
   const [listening, setListening] = useState(false);
   const [live, setLive] = useState('');
   const [error, setError] = useState<string | null>(null);
+  // The error on show is a refused permission, so Settings is the cure and the
+  // panel offers a button for it. Every other error is just text: tapping
+  // "dictation failed" used to open Settings too, which fixed nothing.
+  const [errorInSettings, setErrorInSettings] = useState(false);
   // The mic ran but heard nothing intelligible. Local to the panel — the screen
   // never saw a transcript to parse — and drives the same recovery copy a parsed
   // miss (`missed`) does, so "didn't catch that" and "didn't catch an amount"
@@ -653,7 +657,10 @@ export function VoiceCapture({
     clearMaxListen();
     clearProgress();
     const message = dictationError(event.error, t.misc.dictationErrors);
-    if (message) setError(message);
+    if (message) {
+      setError(message);
+      setErrorInSettings(isPermissionError(event.error));
+    }
     setListening(false);
     level.set(withTiming(0, { duration: 150 }));
     // Ownership is held for the `end` that follows, so it is still recognised as
@@ -702,6 +709,7 @@ export function VoiceCapture({
       // teardown rather than opening a second recogniser on top of it.
       if (speechMic.owns(session)) speechMic.release(session);
       setError(null);
+      setErrorInSettings(false);
       // Speaking again is the retry: clear both miss states as the mic opens, and
       // let the screen drop any parsed miss it is still holding.
       setEmptyMiss(false);
@@ -723,6 +731,7 @@ export function VoiceCapture({
       if (!claimed) {
         starting.current = false;
         setError(t.misc.dictationFailed);
+        setErrorInSettings(false);
         return;
       }
 
@@ -735,6 +744,7 @@ export function VoiceCapture({
       if (!mounted.current) return give();
       if (!permission.granted) {
         setError(permission.canAskAgain ? t.misc.micPermission : t.misc.micBlocked);
+        setErrorInSettings(true);
         return give();
       }
 
@@ -823,6 +833,7 @@ export function VoiceCapture({
           setListening(false);
           level.set(withTiming(0, { duration: 150 }));
           setError(t.misc.dictationFailed);
+          setErrorInSettings(false);
           speechMic.release(session);
         }, STALL_MS);
 
@@ -849,6 +860,7 @@ export function VoiceCapture({
       } catch {
         setListening(false);
         setError(t.misc.dictationFailed);
+        setErrorInSettings(false);
         give();
       }
     },
@@ -1149,11 +1161,19 @@ export function VoiceCapture({
       </View>
 
       {error ? (
-        <Pressable onPress={() => void Linking.openSettings()} accessibilityRole="button">
+        <View style={{ alignItems: 'center', gap: theme.spacing.sm }}>
           <Text variant="caption" tone="negative" align="center">
             {error}
           </Text>
-        </Pressable>
+          {errorInSettings ? (
+            <Button
+              label={t.pickers.openSettings}
+              size="sm"
+              variant="secondary"
+              onPress={() => void Linking.openSettings()}
+            />
+          ) : null}
+        </View>
       ) : null}
 
       {/* The panel's footer: the on-device setup offer, at the foot of the screen.

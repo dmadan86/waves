@@ -265,6 +265,8 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
                   key={code}
                   accessibilityRole="button"
                   accessibilityState={{ selected: code === currency }}
+                  // ~32 tall chips; the slop takes the touch to 44.
+                  hitSlop={{ top: 6, bottom: 6 }}
                   onPress={() => {
                     currencyChosen.current = true;
                     setCurrency(code);
@@ -362,7 +364,12 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
             </ScrollView>
           )}
 
-          <Pressable accessibilityRole="button" onPress={() => setPickerOpen(true)}>
+          <Pressable
+            accessibilityRole="button"
+            // A one-line caption link: the slop gives it a 44pt touch.
+            hitSlop={14}
+            onPress={() => setPickerOpen(true)}
+          >
             <Text variant="caption" tone="brand">
               {t.quickExpense.otherPlaces}
             </Text>
