@@ -814,7 +814,7 @@
     font-size: var(--w-font-subheading);
     font-weight: 700;
   }
-  /* A panel's one secondary action ("Show deleted", "See all"). The vertical
+  /* A panel's one secondary action ("See all"). The vertical
      padding is what carries it over the 24px a finger needs — at 13px with no
      padding the box is 21px tall, which is a miss on a phone. */
   .panel-head .link {
@@ -1016,17 +1016,6 @@
     font-size: var(--w-font-micro);
     color: var(--w-text-muted);
     white-space: nowrap;
-  }
-
-  /* Deleted, not gone. Dimmed so the ledger stays visibly append-only. */
-  .expense-row.is-deleted .title,
-  .expense-row.is-deleted .meta,
-  .expense-row.is-deleted .row-right {
-    opacity: 0.55;
-  }
-  .expense-row.is-deleted .title {
-    text-decoration: line-through;
-    text-decoration-thickness: 1px;
   }
 
   /* ─────────────────────────────────────────────────────────────

@@ -17,8 +17,8 @@
  * **Expenses** is the ledger, cut into months, and each row answers the
  * question somebody actually opens a ledger with — what this bill did to *my*
  * balance, not what it cost the group. The group's total keeps its place in the
- * subtitle. Deleted rows hide behind a switch rather than being dropped: the
- * ledger is append-only and being able to see that is the point.
+ * subtitle. Deleted expenses are left out of the list, as on mobile (#945): the
+ * deletion stays in Activity, which opens the expense to restore it.
  *
  * **Balances** is every member's net, then the shortest set of payments that
  * clears them.
@@ -103,7 +103,6 @@ function GroupDetail({
   const [error, setError] = useState<string | null>(null);
 
   const [face, setFace] = useState<Face>(Face.Expenses);
-  const [showDeleted, setShowDeleted] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -231,7 +230,6 @@ function GroupDetail({
   };
   const live = expenses.filter((expense) => !expense.deleted_at && expense.currentVersion);
   const hasPlaces = live.some((expense) => expense.currentVersion?.location);
-  const deletedCount = expenses.filter((expense) => expense.deleted_at).length;
 
   const myMember = members.find((member) => member.profile_id === profileId) ?? null;
   const myMemberId = myMember?.id ?? null;
@@ -239,8 +237,7 @@ function GroupDetail({
 
   const q = query.trim().toLowerCase();
   const inView = expenses.filter((expense) => {
-    if (!expense.currentVersion) return false;
-    if (expense.deleted_at && !showDeleted) return false;
+    if (!expense.currentVersion || expense.deleted_at) return false;
     return q ? expense.currentVersion.description.toLowerCase().includes(q) : true;
   });
   const months = groupByMonth(inView);
@@ -318,20 +315,6 @@ function GroupDetail({
             id={`panel-${Face.Expenses}`}
             aria-labelledby={`tab-${Face.Expenses}`}
           >
-            {deletedCount > 0 ? (
-              <div className="panel-head">
-                <h2>{t.group.recent}</h2>
-                <button
-                  type="button"
-                  className="link"
-                  onClick={() => setShowDeleted((was) => !was)}
-                  aria-pressed={showDeleted}
-                >
-                  {showDeleted ? t.group.hideDeleted : t.group.showDeleted}
-                </button>
-              </div>
-            ) : null}
-
             {months.length === 0 ? (
               <EmptyState Icon={Receipt} title={t.group.noneYet} body={t.group.noneYetBody} />
             ) : (
@@ -561,7 +544,6 @@ function ExpenseRow({
   const version = expense.currentVersion;
   if (!version) return null;
 
-  const deleted = Boolean(expense.deleted_at);
   const stake = myStake(version, myMemberId);
   const direction =
     stake === null
@@ -576,15 +558,9 @@ function ExpenseRow({
   const total = money(BigInt(version.amount), version.currency, locale);
 
   return (
-    <Link
-      className={`item expense-row${deleted ? ' is-deleted' : ''}`}
-      href={`/g/${groupId}/expense/${expense.id}`}
-    >
+    <Link className="item expense-row" href={`/g/${groupId}/expense/${expense.id}`}>
       <span className="grow">
-        <span className="title">
-          {version.description}
-          {deleted ? <span className="pill-badge">{t.expense.deletedBadge}</span> : null}
-        </span>
+        <span className="title">{version.description}</span>
         <span className="meta">{total}</span>
       </span>
       <span className="row-right">
