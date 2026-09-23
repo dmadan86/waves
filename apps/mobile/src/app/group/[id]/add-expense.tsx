@@ -81,7 +81,7 @@ import { router } from '@/lib/navigation';
 import { routeAmount } from '@/lib/routeAmount';
 import { receiptCapStatus, receiptTapAction } from '@/lib/receiptCapGate';
 import { tripRateFor } from '@/lib/tripRates';
-import { StorageCapError } from '@/lib/storage';
+import { NotUploaderError, StorageCapError } from '@/lib/storage';
 import { useAssignCapture, useGroup, useGroupFxRates } from '@/data/hooks';
 import { displayName, groupLabel, isGhost, isViewer } from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
@@ -1254,6 +1254,14 @@ export default function AddExpenseScreen() {
           });
           setPendingReceipt(null);
         } catch (uploadError) {
+          if (uploadError instanceof NotUploaderError) {
+            // Somebody else kept this expense's bill. Saving again would only be
+            // refused again, so the new photo is dropped and the reason shown;
+            // the expense itself is already saved.
+            setPendingReceipt(null);
+            setScanNote(t.storage.notUploader);
+            return;
+          }
           setScanNote(uploadError instanceof StorageCapError ? t.storage.full : t.couldNotSave);
           return;
         }

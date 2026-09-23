@@ -15,7 +15,14 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { handleR2Sign, locate, readBucket, readPath, type R2SignDeps } from './handler.ts';
+import {
+  handleR2Sign,
+  locate,
+  readBucket,
+  readPath,
+  receiptExpenseId,
+  type R2SignDeps,
+} from './handler.ts';
 
 /** A `.from(table)` query builder: every filter returns itself; the terminals resolve. */
 function chain(result: { data: unknown; error: unknown }) {
@@ -373,6 +380,8 @@ describe('release — undo a failed upload', () => {
   it('deletes the R2 object only when a pending reservation was actually removed', async () => {
     const service = client({
       rpc: { waves_storage_release_reservation: { data: true, error: null } },
+      // The caller's own reservation: release is the uploader's to make.
+      from: { storage_objects: { data: { owner_profile_id: 'user-1' }, error: null } },
     });
     const r2fetch = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
     const { deps } = makeDeps({ caller: memberCaller(), service, r2fetch });
@@ -387,6 +396,8 @@ describe('release — undo a failed upload', () => {
   it('does not touch R2 when there was no pending reservation to remove', async () => {
     const service = client({
       rpc: { waves_storage_release_reservation: { data: false, error: null } },
+      // A committed image of the caller's own, which release must leave alone.
+      from: { storage_objects: { data: { owner_profile_id: 'user-1' }, error: null } },
     });
     const r2fetch = vi.fn();
     const { deps } = makeDeps({ caller: memberCaller(), service, r2fetch });
@@ -519,6 +530,250 @@ describe('authorisation', () => {
       expect(sign).toHaveBeenCalledOnce();
       const signedRequest = sign.mock.calls[0][0] as Request;
       expect(new URL(signedRequest.url).searchParams.get('X-Amz-Expires')).toBe('60');
+    },
+  );
+});
+
+describe('group objects — only the uploader or an admin may replace or remove', () => {
+  /** A member of group-1, optionally an admin of it. */
+  function member(id: string, admin = false) {
+    return client({
+      user: { id },
+      rpc: {
+        waves_my_member_id: { data: `member-${id}` },
+        is_group_admin: { data: admin },
+      },
+    });
+  }
+
+  /**
+   * The service view: `owner` is the storage ledger's recorded uploader of the
+   * path (null = no row), and `expenseCreator` the member who created the
+   * expense a receipt path names (null = no such expense in the group).
+   */
+  function ledger(owner: string | null, expenseCreator: string | null = null) {
+    return client({
+      rpc: {
+        waves_storage_reserve: { data: null, error: null },
+        waves_storage_record: { data: null, error: null },
+        waves_storage_release: { data: null, error: null },
+        waves_storage_release_reservation: { data: true, error: null },
+      },
+      from: {
+        storage_objects: {
+          data: owner === null ? null : { owner_profile_id: owner },
+          error: null,
+        },
+        expenses: {
+          data: expenseCreator === null ? null : { created_by: expenseCreator },
+          error: null,
+        },
+      },
+    });
+  }
+
+  const request = (action: string, bucket = 'receipts', path = 'group-1/exp-1.jpg') =>
+    post({
+      action,
+      bucket,
+      path,
+      contentType: 'image/jpeg',
+      contentLength: 1024,
+    });
+
+  /** A kept bill's path: `<groupId>/<expenseId>.jpg`, as `expenseReceiptPath` builds it. */
+  const EXPENSE_ID = '6f1c2b1e-9a4d-4c3b-8e2f-0a1b2c3d4e5f';
+  const BILL = `group-1/${EXPENSE_ID}.jpg`;
+
+  it.each(['put', 'commit', 'delete', 'release'])(
+    'lets the original uploader %s their own receipt',
+    async (action) => {
+      const { deps } = makeDeps({ caller: member('user-1'), service: ledger('user-1') });
+      const response = await handleR2Sign(request(action), deps);
+      expect(response.status).toBe(200);
+    },
+  );
+
+  it.each(['put', 'commit', 'delete', 'release'])(
+    'refuses another member who tries to %s it, touching nothing',
+    async (action) => {
+      const { deps, service, sign, r2fetch } = makeDeps({
+        caller: member('user-2'),
+        service: ledger('user-1'),
+      });
+      const response = await handleR2Sign(request(action), deps);
+      expect(response.status).toBe(403);
+      expect((await response.json()).code).toBe('NOT_UPLOADER');
+      expect(sign).not.toHaveBeenCalled();
+      expect(r2fetch).not.toHaveBeenCalled();
+      expect(service.rpc).not.toHaveBeenCalled();
+    },
+  );
+
+  it('refuses another member overwriting an album photo too', async () => {
+    const { deps } = makeDeps({ caller: member('user-2'), service: ledger('user-1') });
+    const response = await handleR2Sign(request('put', 'trip-photos'), deps);
+    expect(response.status).toBe(403);
+    expect((await response.json()).code).toBe('NOT_UPLOADER');
+  });
+
+  it.each(['put', 'delete'])('lets a group admin %s a member’s receipt', async (action) => {
+    const { deps, caller } = makeDeps({
+      caller: member('admin-1', true),
+      service: ledger('user-1'),
+    });
+    const response = await handleR2Sign(request(action), deps);
+    expect(response.status).toBe(200);
+    expect(caller.rpc).toHaveBeenCalledWith('is_group_admin', { p_group_id: 'group-1' });
+  });
+
+  it('lets any member upload to a path the ledger has no owner for', async () => {
+    const { deps, caller, service } = makeDeps({
+      caller: member('user-2'),
+      service: ledger(null),
+    });
+    const response = await handleR2Sign(request('put'), deps);
+    expect(response.status).toBe(200);
+    expect(service.rpc).toHaveBeenCalledWith(
+      'waves_storage_reserve',
+      expect.objectContaining({ p_profile_id: 'user-2', p_path: 'group-1/exp-1.jpg' }),
+    );
+    // No owner to protect, so no admin lookup either.
+    expect(caller.rpc).not.toHaveBeenCalledWith('is_group_admin', expect.anything());
+  });
+
+  it('leaves the shared group cover member-editable', async () => {
+    const caller = client({
+      user: { id: 'user-2' },
+      rpc: {
+        waves_my_member_id: { data: 'member-2' },
+        waves_can_upload_group_photo: { data: true },
+        is_group_admin: { data: false },
+      },
+    });
+    const { deps } = makeDeps({ caller, service: ledger('user-1') });
+    const response = await handleR2Sign(request('put', 'group-photos'), deps);
+    expect(response.status).toBe(200);
+  });
+
+  it('keeps personal files owner-only, with no ledger lookup', async () => {
+    const { deps, service } = makeDeps({
+      caller: client({ user: { id: 'user-1' } }),
+      service: ledger('someone-else'),
+    });
+    const response = await handleR2Sign(
+      post({ action: 'delete', bucket: 'captures', path: 'user-1/c.webp' }),
+      deps,
+    );
+    expect(response.status).toBe(200);
+    expect(service.from).not.toHaveBeenCalledWith('storage_objects');
+  });
+
+  describe('a bill nobody has kept yet', () => {
+    it('refuses a member planting the first bill on somebody else’s expense', async () => {
+      const { deps, sign, service } = makeDeps({
+        caller: member('user-2'),
+        service: ledger(null, 'member-user-1'),
+      });
+      const response = await handleR2Sign(request('put', 'receipts', BILL), deps);
+      expect(response.status).toBe(403);
+      expect((await response.json()).code).toBe('NOT_UPLOADER');
+      expect(sign).not.toHaveBeenCalled();
+      expect(service.rpc).not.toHaveBeenCalled();
+    });
+
+    it('lets the expense’s creator keep its first bill', async () => {
+      const { deps, service } = makeDeps({
+        caller: member('user-1'),
+        service: ledger(null, 'member-user-1'),
+      });
+      const response = await handleR2Sign(request('put', 'receipts', BILL), deps);
+      expect(response.status).toBe(200);
+      expect(service.from).toHaveBeenCalledWith('expenses');
+      expect(service.rpc).toHaveBeenCalledWith(
+        'waves_storage_reserve',
+        expect.objectContaining({ p_profile_id: 'user-1', p_path: BILL }),
+      );
+    });
+
+    it('lets a group admin keep a bill on anybody’s expense', async () => {
+      const { deps } = makeDeps({
+        caller: member('admin-1', true),
+        service: ledger(null, 'member-user-1'),
+      });
+      const response = await handleR2Sign(request('put', 'receipts', BILL), deps);
+      expect(response.status).toBe(200);
+    });
+
+    it('lets any member upload a scan under a fresh id no expense carries', async () => {
+      const { deps } = makeDeps({
+        caller: member('user-2'),
+        service: ledger(null, null),
+      });
+      const response = await handleR2Sign(
+        request('put', 'receipts', 'group-1/0b7d6f5e-1c2a-4b3c-9d8e-7f6a5b4c3d2e.webp'),
+        deps,
+      );
+      expect(response.status).toBe(200);
+    });
+  });
+
+  describe('a legacy object the ledger never recorded', () => {
+    it.each([
+      ['on somebody else’s expense', BILL, 'member-user-1'],
+      ['under no expense', 'group-1/legacy.webp', null],
+    ])('refuses a member deleting it (%s)', async (_label, path, creator) => {
+      const { deps, service, r2fetch } = makeDeps({
+        caller: member('user-2'),
+        service: ledger(null, creator),
+      });
+      const response = await handleR2Sign(request('delete', 'receipts', path), deps);
+      expect(response.status).toBe(403);
+      expect((await response.json()).code).toBe('NOT_UPLOADER');
+      expect(r2fetch).not.toHaveBeenCalled();
+      expect(service.storage.from).not.toHaveBeenCalled();
+      expect(service.rpc).not.toHaveBeenCalled();
+    });
+
+    it('refuses a member releasing it', async () => {
+      const { deps, service } = makeDeps({
+        caller: member('user-2'),
+        service: ledger(null, null),
+      });
+      const response = await handleR2Sign(
+        request('release', 'trip-photos', 'group-1/photo.webp'),
+        deps,
+      );
+      expect(response.status).toBe(403);
+      expect(service.rpc).not.toHaveBeenCalled();
+    });
+
+    it('lets a group admin delete it', async () => {
+      const { deps, service } = makeDeps({
+        caller: member('admin-1', true),
+        service: ledger(null, null),
+      });
+      const response = await handleR2Sign(
+        request('delete', 'receipts', 'group-1/legacy.webp'),
+        deps,
+      );
+      expect(response.status).toBe(200);
+      expect(service.storage.from).toHaveBeenCalledWith('receipts');
+    });
+  });
+});
+
+describe('receiptExpenseId', () => {
+  it('reads the expense id out of a kept bill’s path', () => {
+    expect(receiptExpenseId('group-1/6f1c2b1e-9a4d-4c3b-8e2f-0a1b2c3d4e5f.jpg')).toBe(
+      '6f1c2b1e-9a4d-4c3b-8e2f-0a1b2c3d4e5f',
+    );
+  });
+
+  it.each(['group-1/r.webp', 'group-1/a/6f1c2b1e-9a4d-4c3b-8e2f-0a1b2c3d4e5f.jpg', 'x'])(
+    'names no expense for %j',
+    (path) => {
+      expect(receiptExpenseId(path)).toBeNull();
     },
   );
 });
