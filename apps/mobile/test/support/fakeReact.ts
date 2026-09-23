@@ -519,6 +519,13 @@ export function firstProvider(
   return { ctx: type.$$provider ?? type, value: provider.props.value };
 }
 
+/** The context behind one `<Ctx.Provider value>` element, for nested providers. */
+export function contextOf(element: unknown): FakeContext<unknown> {
+  const type = (element as FakeElement).type as { $$provider?: FakeContext<unknown> };
+  if (!type?.$$provider) throw new Error('fakeReact: not a context Provider element');
+  return type.$$provider;
+}
+
 /** Find the single element whose props match, or throw with what was there. */
 export function findOne(tree: unknown, predicate: (node: FakeElement) => boolean): FakeElement {
   const found = findAll(tree, predicate);
