@@ -21,6 +21,7 @@ import {
   ActivityIndicator,
   Animated,
   BackHandler,
+  I18nManager,
   Image,
   Modal,
   Pressable,
@@ -466,7 +467,14 @@ export default function FriendsScreen() {
           </View>
         ) : rows.length === 0 ? (
           // Centred in what can be seen: the clearance comes off the foot.
-          <View style={{ flex: 1, justifyContent: 'center', paddingBottom: clearance }}>
+          <View
+            style={{
+              flex: 1,
+              justifyContent: 'center',
+              paddingHorizontal: theme.spacing.lg,
+              paddingBottom: clearance,
+            }}
+          >
             <EmptyFriends hasPeople={known.data > 0} t={t} />
           </View>
         ) : (
@@ -814,7 +822,7 @@ function FriendsHero({
                   justifyContent: 'center',
                   backgroundColor: theme.color.negative,
                   borderWidth: 2,
-                  borderColor: '#FFFFFF',
+                  borderColor: theme.color.onBrand,
                 }}
               >
                 <Text variant="micro" style={{ color: '#FFFFFF', fontWeight: '700' }}>
@@ -1516,18 +1524,24 @@ function RemindButton({ row }: { row: PersonBalanceRow }): React.JSX.Element | n
       <View
         accessible
         accessibilityLabel={state.label}
-        style={{ width: 32, height: 32, alignItems: 'center', justifyContent: 'center' }}
+        // The disc's own 26: the verdict replaces it on the name's line, and a
+        // bigger glyph there would push the caption down as it lands.
+        style={{ width: 26, height: 26, alignItems: 'center', justifyContent: 'center' }}
       >
         <Ionicons
           name={state.ok ? 'checkmark-circle' : 'alert-circle-outline'}
-          size={iconSize.lg}
+          size={iconSize.md}
           color={state.ok ? theme.color.positive : theme.color.negative}
         />
       </View>
     );
   }
   if (state.phase === 'pending')
-    return <ActivityIndicator size="small" color={theme.color.brand} />;
+    return (
+      <View style={{ width: 26, height: 26, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator size="small" color={theme.color.brand} />
+      </View>
+    );
 
   return <RowAction icon="notifications-outline" label={t.people.remind} onPress={run} />;
 }
@@ -1661,15 +1675,19 @@ function AddMenu({
   // pulled back in if that would run it off the far side (the pill sits on the
   // right under RTL). Window coordinates, so the Modal below is drawn
   // edge-to-edge (translucent bars) to share the same origin.
+  // `measureInWindow` is physical (from the left edge) while `start` is
+  // logical, so under RTL the pill's leading edge is its distance from the
+  // right: the window width less its far edge.
+  const leading = anchor ? (I18nManager.isRTL ? windowW - (anchor.x + anchor.width) : anchor.x) : 0;
   const place = anchor
     ? {
         top: anchor.y + anchor.height + theme.spacing.sm,
-        left: Math.max(
+        start: Math.max(
           theme.spacing.lg,
-          Math.min(anchor.x, windowW - ADD_MENU_WIDTH - theme.spacing.lg),
+          Math.min(leading, windowW - ADD_MENU_WIDTH - theme.spacing.lg),
         ),
       }
-    : { top: insets.top + 56, right: theme.spacing.xl };
+    : { top: insets.top + 56, end: theme.spacing.xl };
 
   const go = (path: string): void => {
     onClose();
