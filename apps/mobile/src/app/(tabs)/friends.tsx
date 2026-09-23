@@ -1178,13 +1178,18 @@ const PersonRow = memo(function PersonRow({
           </View>
         ) : null}
       </View>
-      {/* The name column keeps the row's top alignment, deliberately, even when
-          it is the shorter side and leaves white space under a lone name: the
-          name has to stay on the lead figure's line. Centred against a stack it
-          lands beside the *second* currency, which is the misreading this row
-          was fixed for once already. */}
-      <View style={{ flex: 1 }}>
-        <Text variant="body" numberOfLines={1} style={{ fontWeight: '600' }}>
+      {/* With a caption the name column keeps the row's top alignment, so the
+          name stays on the lead figure's line. Without one — a balance that
+          runs both ways, where no single word is true — a lone name pinned to
+          the top of a three-line stack of currencies left a band of empty row
+          under it. It centres there instead, a size up, so the person reads as
+          the row's subject rather than a label stranded in a corner. */}
+      <View style={{ flex: 1, alignSelf: caption ? 'flex-start' : 'center' }}>
+        <Text
+          variant={caption ? 'body' : 'subheading'}
+          numberOfLines={1}
+          style={{ fontWeight: '600' }}
+        >
           {shownName}
         </Text>
         {caption ? (
