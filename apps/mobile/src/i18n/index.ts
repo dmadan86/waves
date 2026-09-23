@@ -2117,8 +2117,6 @@ export interface UiStrings {
     /** Prompt body for Confirm all; `{count}` is how many. */
     confirmAllBody: string;
     autoConfirms: string;
-    hideDeleted: string;
-    showDeleted: string;
     activityEmptyBody: string;
     photoUpdated: string;
     nameOptional: string;
@@ -5172,8 +5170,6 @@ const en: UiStrings = {
     confirmAll: 'Confirm all',
     confirmAllBody: 'Mark all {count} payments as received?',
     autoConfirms: 'Auto-confirms in 7 days if nobody responds.',
-    hideDeleted: 'Hide deleted',
-    showDeleted: 'Show deleted',
     activityEmptyBody: 'Everything that happens here shows up in this feed.',
     photoUpdated: 'Photo updated',
     nameOptional: 'Name (optional)',
@@ -8114,8 +8110,6 @@ const ta: UiStrings = {
     confirmAll: 'அனைத்தையும் உறுதிப்படுத்து',
     confirmAllBody: 'அனைத்து {count} பணமும் கிடைத்ததாகக் குறிக்கவா?',
     autoConfirms: 'யாரும் பதிலளிக்காவிட்டால் 7 நாட்களில் தானாகவே உறுதியாகும்.',
-    hideDeleted: 'நீக்கியவற்றை மறை',
-    showDeleted: 'நீக்கியவற்றைக் காட்டு',
     activityEmptyBody: 'இங்கே நடக்கும் அனைத்தும் இந்தப் பட்டியலில் தோன்றும்.',
     photoUpdated: 'புகைப்படம் புதுப்பிக்கப்பட்டது',
     nameOptional: 'பெயர் (விருப்பம்)',
@@ -11078,8 +11072,6 @@ const hi: UiStrings = {
     confirmAll: 'सभी पुष्ट करें',
     confirmAllBody: 'सभी {count} भुगतान प्राप्त के रूप में चिह्नित करें?',
     autoConfirms: 'कोई जवाब न दे तो 7 दिन में अपने आप पुष्ट हो जाएगा।',
-    hideDeleted: 'हटाए हुए छिपाएँ',
-    showDeleted: 'हटाए हुए दिखाएँ',
     activityEmptyBody: 'यहाँ जो कुछ होगा वह इसी फ़ीड में दिखेगा।',
     photoUpdated: 'फ़ोटो बदल गई',
     nameOptional: 'नाम (वैकल्पिक)',
@@ -14129,8 +14121,6 @@ const ar: UiStrings = {
     confirmAll: 'تأكيد الكل',
     confirmAllBody: 'وضع علامة استلام على كل الدفعات ({count})؟',
     autoConfirms: 'يتأكد تلقائيًا خلال 7 أيام إن لم يردّ أحد.',
-    hideDeleted: 'إخفاء المحذوف',
-    showDeleted: 'إظهار المحذوف',
     activityEmptyBody: 'كل ما يحدث هنا يظهر في هذا السجل.',
     photoUpdated: 'تم تحديث الصورة',
     nameOptional: 'الاسم (اختياري)',

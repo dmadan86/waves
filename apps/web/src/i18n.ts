@@ -161,9 +161,6 @@ export interface WebStrings {
     tabExpenses: string;
     tabBalances: string;
     tabActivity: string;
-    /** The ledger is append-only: a deleted row is hidden, never gone. */
-    showDeleted: string;
-    hideDeleted: string;
     noneYet: string;
     noneYetBody: string;
     whereEveryoneStands: string;
@@ -180,7 +177,6 @@ export interface WebStrings {
     /** Section headings, shown only when there is something on both sides. */
     yourPayments: string;
     otherPayments: string;
-    recent: string;
     addAnExpense: string;
     installNote: string;
   };
@@ -1366,8 +1362,6 @@ const en: WebStrings = {
     tabExpenses: 'Expenses',
     tabBalances: 'Balances',
     tabActivity: 'Activity',
-    showDeleted: 'Show deleted',
-    hideDeleted: 'Hide deleted',
     noneYet: 'Nothing here yet',
     noneYetBody: 'The first expense somebody adds will show up here.',
     whereEveryoneStands: 'Where everyone stands',
@@ -1383,7 +1377,6 @@ const en: WebStrings = {
     paysWhom: '{from} pays {to}',
     yourPayments: 'Your payments',
     otherPayments: 'Between other people',
-    recent: 'Recent',
     addAnExpense: 'Add an expense',
     installNote:
       'Install Waves to scan receipts, settle over UPI and keep this working without a signal.',
@@ -2358,8 +2351,6 @@ const ta: WebStrings = {
     tabExpenses: 'செலவுகள்',
     tabBalances: 'நிலுவைகள்',
     tabActivity: 'நடவடிக்கை',
-    showDeleted: 'நீக்கியதைக் காட்டு',
-    hideDeleted: 'நீக்கியதை மறை',
     noneYet: 'இன்னும் எதுவும் இல்லை',
     noneYetBody: 'யாராவது சேர்க்கும் முதல் செலவு இங்கே தெரியும்.',
     whereEveryoneStands: 'யார் எங்கே நிற்கிறார்கள்',
@@ -2375,7 +2366,6 @@ const ta: WebStrings = {
     paysWhom: '{from} {to}க்குச் செலுத்துகிறார்',
     yourPayments: 'உங்கள் பரிமாற்றங்கள்',
     otherPayments: 'மற்றவர்களுக்கு இடையே',
-    recent: 'சமீபத்தியவை',
     addAnExpense: 'ஒரு செலவைச் சேர்',
     installNote:
       'ரசீதுகளை ஸ்கேன் செய்ய, UPI மூலம் தீர்க்க, சிக்னல் இல்லாமலும் இது வேலை செய்ய — Waves ஐ நிறுவுங்கள்.',
@@ -3388,8 +3378,6 @@ const hi: WebStrings = {
     tabExpenses: 'खर्च',
     tabBalances: 'हिसाब',
     tabActivity: 'गतिविधि',
-    showDeleted: 'हटाए हुए दिखाएँ',
-    hideDeleted: 'हटाए हुए छिपाएँ',
     noneYet: 'अभी यहाँ कुछ नहीं',
     noneYetBody: 'कोई पहला खर्च जोड़ेगा तो यहाँ दिखेगा।',
     whereEveryoneStands: 'किसका क्या हिसाब है',
@@ -3405,7 +3393,6 @@ const hi: WebStrings = {
     paysWhom: '{from} {to} को भुगतान करते हैं',
     yourPayments: 'आपके भुगतान',
     otherPayments: 'बाकी लोगों के बीच',
-    recent: 'हाल के',
     addAnExpense: 'खर्च जोड़ें',
     installNote:
       'रसीदें स्कैन करने, UPI से निपटाने और बिना सिग्नल भी यह चलाने के लिए Waves इंस्टॉल करें।',
@@ -4394,8 +4381,6 @@ const ar: WebStrings = {
     tabExpenses: 'المصروفات',
     tabBalances: 'الأرصدة',
     tabActivity: 'النشاط',
-    showDeleted: 'إظهار المحذوف',
-    hideDeleted: 'إخفاء المحذوف',
     noneYet: 'لا شيء هنا بعد',
     noneYetBody: 'أول مصروف يضيفه أحدهم سيظهر هنا.',
     whereEveryoneStands: 'أين يقف كل واحد',
@@ -4411,7 +4396,6 @@ const ar: WebStrings = {
     paysWhom: 'يدفع {from} لـ {to}',
     yourPayments: 'دفعاتك',
     otherPayments: 'بين أشخاص آخرين',
-    recent: 'الأحدث',
     addAnExpense: 'أضف مصروفًا',
     installNote: 'ثبّت Waves لمسح الإيصالات والتسوية عبر UPI ولكي يعمل هذا دون اتصال.',
   },
