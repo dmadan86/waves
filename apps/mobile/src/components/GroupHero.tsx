@@ -1,6 +1,13 @@
 import { useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { I18nManager, Platform, Pressable, ScrollView, View } from 'react-native';
+import {
+  I18nManager,
+  Platform,
+  Pressable,
+  ScrollView,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
@@ -97,7 +104,13 @@ export function GroupHero({
   const confirmSettlement = useConfirmSettlement(groupId);
   const disputeSettlement = useDisputeSettlement(groupId);
 
+  const { width: windowW } = useWindowDimensions();
   const [heroSlideW, setHeroSlideW] = useState(0);
+  // Until the deck measures itself, size each slide from the window: the hero
+  // spans the screen, less its own side padding. Left undefined, a slide in a
+  // horizontal ScrollView shrinks to its content for that first frame, so the
+  // settle / who-pays-whom pair sat beside "Add expense" and then jumped right.
+  const slideW = heroSlideW || windowW - theme.spacing.xl * 2;
   const [heroPage, setHeroPage] = useState(0);
   const heroDeckRef = useRef<ScrollView>(null);
 
@@ -215,7 +228,7 @@ export function GroupHero({
           }}
         >
           {/* Slide 0 — balance as a verdict, then the three hero actions. */}
-          <View style={{ width: heroSlideW || undefined, gap: theme.spacing.md }}>
+          <View style={{ width: slideW, gap: theme.spacing.md }}>
             <Row style={{ justifyContent: 'space-between' }}>
               <Text variant="caption" tone="onBrand" style={{ opacity: 0.85 }}>
                 {myBalance === 0n ? t.allSettled : myBalance > 0n ? t.youAreOwed : t.youOwe}
@@ -258,10 +271,7 @@ export function GroupHero({
           {/* Exactly one claim: the fast path, amount and the two answers inline. */}
           {pendingForMe.length === 1 &&
             pendingForMe.map((settlement) => (
-              <View
-                key={settlement.id}
-                style={{ width: heroSlideW || undefined, gap: theme.spacing.md }}
-              >
+              <View key={settlement.id} style={{ width: slideW, gap: theme.spacing.md }}>
                 <Text variant="caption" tone="onBrand" style={{ opacity: 0.85 }} numberOfLines={1}>
                   {fill(t.group.saysTheyPaidYouWindow, {
                     name: nameOf(settlement.from_member_id),
@@ -348,7 +358,7 @@ export function GroupHero({
 
           {/* Two or more: a summary that opens the full review list. */}
           {pendingForMe.length >= 2 ? (
-            <View style={{ width: heroSlideW || undefined, gap: theme.spacing.md }}>
+            <View style={{ width: slideW, gap: theme.spacing.md }}>
               <Text variant="caption" tone="onBrand" style={{ opacity: 0.85 }} numberOfLines={1}>
                 {plural(locale, pendingForMe.length, t.group.peopleSaidPaid)}
               </Text>
