@@ -18,7 +18,7 @@
  * the bridge's rule for acting on it.
  */
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 /** Set before each dynamic import; the module reads it once at load. */
 const stub = vi.hoisted(() => ({ native: null as Record<string, unknown> | null }));
@@ -73,6 +73,13 @@ async function loadModule(native: Record<string, unknown> | null) {
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 const RECENT = { t: 'recent' as const, items: [] };
+
+// The first cold import transforms @waves/core, which alone can outlast the 5s
+// test timeout when the whole suite is loading the machine. Pay it once here,
+// under a hook budget, so each test's re-import only re-evaluates.
+beforeAll(async () => {
+  await import('@/lib/watch/nativeModule');
+}, 30_000);
 
 beforeEach(() => {
   stub.native = null;

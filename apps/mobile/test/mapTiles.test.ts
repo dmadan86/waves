@@ -7,7 +7,7 @@
  * and the tile grid actually covers the viewport it is asked to fill.
  */
 
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   clampLat,
@@ -140,5 +140,62 @@ describe('tileUrl', () => {
     // tiles actually served (EXPO_PUBLIC_MAP_TILE_ATTRIBUTION overrides it).
     expect(TILE_ATTRIBUTION).toContain('OpenStreetMap');
     expect(TILE_ATTRIBUTION).toContain('CARTO');
+  });
+});
+
+describe('googleStaticMapUrl', () => {
+  // The key and the overrides are read once, when the module loads, so each case
+  // loads a fresh copy under its own environment.
+  async function loadWith(env: Record<string, string>) {
+    vi.resetModules();
+    for (const [name, value] of Object.entries(env)) vi.stubEnv(name, value);
+    return import('@/lib/mapTiles');
+  }
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('stays dark — no Google request at all — without a key', async () => {
+    const { googleStaticMapUrl } = await loadWith({ EXPO_PUBLIC_GOOGLE_MAPS_API_KEY: '' });
+    expect(googleStaticMapUrl({ lat: 1, lng: 2 }, 15, 300, 200)).toBeNull();
+  });
+
+  it('builds one retina Static Maps image for the viewport once a key is set', async () => {
+    const { googleStaticMapUrl } = await loadWith({ EXPO_PUBLIC_GOOGLE_MAPS_API_KEY: 'k123' });
+
+    const url = new URL(googleStaticMapUrl({ lat: 12.97, lng: 77.64 }, 15.4, 300.6, 200.2)!);
+
+    expect(url.origin + url.pathname).toBe('https://maps.googleapis.com/maps/api/staticmap');
+    expect(Object.fromEntries(url.searchParams)).toEqual({
+      center: '12.97,77.64',
+      zoom: '15',
+      size: '301x200',
+      scale: '2',
+      key: 'k123',
+    });
+  });
+
+  it('clamps an oversized frame and zoom to what Google will serve', async () => {
+    const { googleStaticMapUrl } = await loadWith({ EXPO_PUBLIC_GOOGLE_MAPS_API_KEY: 'k' });
+
+    const url = new URL(googleStaticMapUrl({ lat: 0, lng: 0 }, 40, 2000, 0.2)!);
+    expect(url.searchParams.get('size')).toBe('640x1');
+    expect(url.searchParams.get('zoom')).toBe('19');
+  });
+
+  it('asks for nothing when the frame has no area yet', async () => {
+    const { googleStaticMapUrl } = await loadWith({ EXPO_PUBLIC_GOOGLE_MAPS_API_KEY: 'k' });
+    expect(googleStaticMapUrl({ lat: 0, lng: 0 }, 15, 0, 200)).toBeNull();
+    expect(googleStaticMapUrl({ lat: 0, lng: 0 }, 15, 300, -1)).toBeNull();
+  });
+
+  it('lets a deployment point the tiles and their credit at its own provider', async () => {
+    const lib = await loadWith({
+      EXPO_PUBLIC_MAP_TILE_URL: 'https://tiles.mine/{z}/{x}/{y}.png',
+      EXPO_PUBLIC_MAP_TILE_ATTRIBUTION: '© Mine',
+    });
+    expect(lib.DEFAULT_TILE_URL).toBe('https://tiles.mine/{z}/{x}/{y}.png');
+    expect(lib.TILE_ATTRIBUTION).toBe('© Mine');
   });
 });
