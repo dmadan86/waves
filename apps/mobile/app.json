@@ -29,6 +29,7 @@
     },
     "android": {
       "package": "app.waves.mobile",
+      "allowBackup": false,
       "versionCode": 6,
       "permissions": [],
       "blockedPermissions": [
