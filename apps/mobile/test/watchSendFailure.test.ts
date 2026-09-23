@@ -74,12 +74,12 @@ const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 const RECENT = { t: 'recent' as const, items: [] };
 
-// The first `loadModule` pays the cold transform of `@waves/core`, which on a
-// loaded CI box (or Windows) can exceed the 5s per-test budget and fail
-// whichever test happens to run first. Pay it once here, with room to spare.
+// The first cold import transforms @waves/core, which alone can outlast the 5s
+// test timeout when the whole suite is loading the machine. Pay it once here,
+// under a hook budget, so each test's re-import only re-evaluates.
 beforeAll(async () => {
   await import('@/lib/watch/nativeModule');
-}, 60_000);
+}, 30_000);
 
 beforeEach(() => {
   stub.native = null;

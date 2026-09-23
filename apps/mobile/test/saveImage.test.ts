@@ -80,6 +80,63 @@ describe('saveImageToDevice', () => {
     expect(fs.files.has('cache-root/receipt.png')).toBe(true);
   });
 
+  it.each([
+    ['image/webp', 'webp'],
+    ['image/heic', 'heic'],
+    ['image/jpeg', 'jpg'],
+    [null, 'jpg'],
+  ])('names a %s download with a .%s extension', async (contentType, ext) => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: true,
+        headers: { get: () => contentType },
+        arrayBuffer: async () => new Uint8Array([1]).buffer,
+      })),
+    );
+
+    await expect(saveImageToDevice('https://signed.example/r')).resolves.toBe('shared');
+
+    expect(sharing.share).toHaveBeenCalledWith(`cache-root/receipt.${ext}`, {
+      mimeType: contentType ?? 'image/jpeg',
+      dialogTitle: 'Save receipt',
+    });
+  });
+
+  it('replaces a leftover file of the same name rather than failing on it', async () => {
+    fs.files.set('cache-root/receipt.png', new Uint8Array([9, 9]));
+
+    await expect(saveImageToDevice('https://signed.example/receipt')).resolves.toBe('shared');
+    expect(sharing.share).toHaveBeenCalledTimes(1);
+  });
+
+  it('says unavailable, and fetches nothing, where there is no share sheet', async () => {
+    sharing.available = false;
+
+    await expect(saveImageToDevice('https://signed.example/receipt')).resolves.toBe('unavailable');
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('reports an error for a refused fetch or an empty body, and shares nothing', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({ ok: false, headers: { get: () => null } })),
+    );
+    await expect(saveImageToDevice('https://signed.example/expired')).resolves.toBe('error');
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: true,
+        headers: { get: () => 'image/png' },
+        arrayBuffer: async () => new ArrayBuffer(0),
+      })),
+    );
+    await expect(saveImageToDevice('https://signed.example/empty')).resolves.toBe('error');
+
+    expect(sharing.share).not.toHaveBeenCalled();
+  });
+
   it('deletes the temp file when sharing throws, then returns error', async () => {
     sharing.share.mockRejectedValueOnce(new Error('share failed'));
 

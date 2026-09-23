@@ -162,6 +162,48 @@ describe('reviewItemKey', () => {
     const keys = items.map(reviewItemKey);
     expect(new Set(keys).size).toBe(keys.length);
   });
+
+  it('keys a day by its heading, a batch by its batch id and a draft by its own id', () => {
+    const items = buildReviewFeed([
+      capture('spoken-1', '2026-09-10T10:00:00Z', { voiceBatchId: 'v1' }),
+      capture('spoken-2', '2026-09-10T09:59:00Z', { voiceBatchId: 'v1' }),
+      capture('older', '2026-09-08T09:00:00Z'),
+    ]);
+    expect(items.map(reviewItemKey)).toEqual([
+      'day-2026-09-10',
+      'batch-v1',
+      'day-2026-09-08',
+      'older',
+    ]);
+  });
+});
+
+describe('a row whose spend day is not a plain date', () => {
+  it('files it under the local day it was written instead', () => {
+    const written = '2026-09-05T12:00:00';
+    const items = buildReviewFeed([
+      capture('odd', written, null, 'sometime'),
+      capture('dated', '2026-09-10T10:00:00Z'),
+    ]);
+    const local = new Date(written);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const day = `${local.getFullYear()}-${pad(local.getMonth() + 1)}-${pad(local.getDate())}`;
+    expect(items).toMatchObject([
+      { kind: 'day', key: 'day-2026-09-10' },
+      { kind: 'single', capture: { id: 'dated' } },
+      { kind: 'day', key: `day-${day}` },
+      { kind: 'single', capture: { id: 'odd' } },
+    ]);
+  });
+
+  it('keeps what it has when the written time is unreadable too', () => {
+    const row = { ...capture('odd', 'never'), expense_date: null } as unknown as CaptureRow;
+    const items = buildReviewFeed([row, capture('dated', '2026-09-10T10:00:00Z')]);
+    expect(items.filter((item) => item.kind === 'day').map(reviewItemKey)).toEqual([
+      'day-2026-09-10',
+      'day-',
+    ]);
+  });
 });
 
 describe('which tab a draft belongs to', () => {

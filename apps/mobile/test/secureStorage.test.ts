@@ -123,4 +123,36 @@ describe('secureAuthStorage', () => {
     expect(secure.data.has('session.p1')).toBe(false);
     expect(secure.data.has('session.p2')).toBe(false);
   });
+
+  it('removes a session that was never stored without touching anything else', async () => {
+    secure.data.set('other.pn', '1');
+
+    await secureAuthStorage.removeItem('session');
+
+    expect(secure.deleteItemAsync).toHaveBeenCalledWith('session.pn');
+    expect(secure.data.get('other.pn')).toBe('1');
+  });
+
+  it('reads nothing, and migrates nothing, when there is neither a secure nor a legacy session', async () => {
+    await expect(secureAuthStorage.getItem('session')).resolves.toBeNull();
+    expect(secure.setItemAsync).not.toHaveBeenCalled();
+  });
+});
+
+describe('secureAuthStorage on web', () => {
+  it('keeps the session in AsyncStorage, where there is no keystore', async () => {
+    vi.resetModules();
+    vi.doMock('react-native', () => ({ Platform: { OS: 'web' } }));
+    const web = (await import('../src/lib/secureStorage')).secureAuthStorage;
+
+    await web.setItem('session', 'token');
+    expect(asyncStorage.data.get('session')).toBe('token');
+    await expect(web.getItem('session')).resolves.toBe('token');
+    await web.removeItem('session');
+    expect(asyncStorage.data.has('session')).toBe(false);
+
+    expect(secure.getItemAsync).not.toHaveBeenCalled();
+    expect(secure.setItemAsync).not.toHaveBeenCalled();
+    vi.doUnmock('react-native');
+  });
 });
