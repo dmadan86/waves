@@ -19,11 +19,13 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import {
   ActivityIndicator,
+  Animated,
   BackHandler,
   Image,
   Modal,
   Pressable,
   RefreshControl,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { FlashList, useRecyclingState } from '@shopify/flash-list';
@@ -66,7 +68,8 @@ import { PressableScale } from '@/lib/anim';
 import { router } from '@/lib/navigation';
 import { useReducedMotion } from '@/lib/reducedMotion';
 import { useAvatarUrl } from '@/components/ProfileAvatar';
-import { ScreenHero } from '@/components/ScreenHero';
+import { HeroDots } from '@/components/HeroDots';
+import { HeroPillButton, ScreenHero } from '@/components/ScreenHero';
 import { PeopleSkeleton } from '@/components/Skeletons';
 import { plural, useStrings, type UiStrings } from '@/i18n';
 import { usePullRefresh } from '@/lib/pullRefresh';
@@ -600,6 +603,16 @@ function FriendsHero({
 }): React.JSX.Element {
   const theme = useTheme();
   const reduceMotion = useReducedMotion();
+  // The balance pages like Home's: one slide per direction ("Net receivable",
+  // "You owe"), swiped, with the dot pager between the pill and the edge. Two
+  // stacked blocks made the hero tall and cramped. Until the deck measures
+  // itself, a slide is the window less the hero's side padding, so the first
+  // frame does not shrink a slide to its text and then jump.
+  const { width: windowW } = useWindowDimensions();
+  const [measuredW, setMeasuredW] = useState(0);
+  const slideW = measuredW || windowW - theme.spacing.xl * 2;
+  const [scrollX] = useState(() => new Animated.Value(0));
+  const deck = directionGroups(totals);
 
   return (
     <ScreenHero
@@ -610,10 +623,8 @@ function FriendsHero({
       // rectangle of colour — this hero's own art, passed to the shared shell.
       art={<HeroArt />}
       actions={[
-        // Everything that adds a person (type a name, pull from contacts,
-        // scan an invite QR) lives behind this one `+` — the screen's one
-        // real button, so it gets the shell's primary treatment.
-        { icon: 'add', label: t.tabs.addSomeone, onPress: onAdd, primary: true },
+        // Adding a person moved down to the "+ Friend" pill under the balance,
+        // where Home keeps its "+ Expense": the title row keeps only sort.
         {
           // Sort wears its own state — the active key's glyph and the
           // direction arrow — so a glance says how the list is ordered. No
@@ -684,63 +695,96 @@ function FriendsHero({
             />
           </Row>
         </View>
-      ) : !selectMode && totals.length > 0 ? (
+      ) : !selectMode && deck.length > 0 ? (
         <Reanimated.View
           entering={reduceMotion ? undefined : FadeIn.duration(160)}
           exiting={reduceMotion ? undefined : FadeOut.duration(100)}
-          style={{ gap: theme.spacing.sm }}
+          onLayout={(event) => setMeasuredW(event.nativeEvent.layout.width)}
         >
-          {directionGroups(totals).map((group) => (
-            // Label above the amount, not beside it — the same order GroupHero
-            // reads its own balance in (caption verdict, then the title-sized
-            // figure), rather than a row that made this hero the odd one out.
-            <View key={group.owed ? 'owed' : 'owing'} style={{ gap: theme.spacing.md }}>
-              {/* Home's wording, down to the separator: "Net receivable · INR".
-                  It replaces two lines that between them said less — a standing
-                  "OVERALL" over "You are owed" named the section and the
-                  direction but never the currency the figure was in, which is
-                  the one thing the number below cannot say for itself when a
-                  second currency is stacked under it. */}
-              <Text variant="caption" tone="onBrand" style={{ opacity: 0.85 }}>
-                {`${group.owed ? t.dashHero.netOwed : t.dashHero.netOwe} · ${group.head.currency}`}
-              </Text>
-              <View style={{ gap: 2 }}>
-                <MoneyText
-                  amount={group.head.net < 0n ? -group.head.net : group.head.net}
-                  currency={group.head.currency}
-                  locale={locale}
-                  variant="title"
-                  tone="default"
-                  style={{ color: theme.color.onBrand }}
-                />
-                {group.rest.length > 0 ? (
-                  // The same direction's other currencies, small and under the
-                  // number they belong to. Wrapped rather than clipped — six
-                  // currencies costs a second line here instead of six headlines.
-                  <Row
-                    style={{
-                      justifyContent: 'flex-start',
-                      flexWrap: 'wrap',
-                      columnGap: theme.spacing.sm,
-                    }}
-                  >
-                    {group.rest.map((total) => (
-                      <MoneyText
-                        key={total.currency}
-                        amount={total.net < 0n ? -total.net : total.net}
-                        currency={total.currency}
-                        locale={locale}
-                        variant="caption"
-                        tone="onBrand"
-                        style={{ opacity: 0.8 }}
-                      />
-                    ))}
-                  </Row>
-                ) : null}
+          <Animated.ScrollView
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            scrollEnabled={deck.length > 1}
+            scrollEventThrottle={16}
+            onScroll={Animated.event([{ nativeEvent: { contentOffset: { x: scrollX } } }], {
+              useNativeDriver: true,
+            })}
+          >
+            {deck.map((group) => (
+              // Label above the amount, not beside it — the same order GroupHero
+              // reads its own balance in (caption verdict, then the title-sized
+              // figure), rather than a row that made this hero the odd one out.
+              <View
+                key={group.owed ? 'owed' : 'owing'}
+                style={{ width: slideW, gap: theme.spacing.md }}
+              >
+                {/* Home's wording, down to the separator: "Net receivable · INR".
+                    It replaces two lines that between them said less — a standing
+                    "OVERALL" over "You are owed" named the section and the
+                    direction but never the currency the figure was in, which is
+                    the one thing the number below cannot say for itself when a
+                    second currency is stacked under it. */}
+                <Text variant="caption" tone="onBrand" style={{ opacity: 0.85 }}>
+                  {`${group.owed ? t.dashHero.netOwed : t.dashHero.netOwe} · ${group.head.currency}`}
+                </Text>
+                <View style={{ gap: 2 }}>
+                  <MoneyText
+                    amount={group.head.net < 0n ? -group.head.net : group.head.net}
+                    currency={group.head.currency}
+                    locale={locale}
+                    variant="title"
+                    tone="default"
+                    style={{ color: theme.color.onBrand }}
+                  />
+                  {group.rest.length > 0 ? (
+                    // The same direction's other currencies, small and under the
+                    // number they belong to. Wrapped rather than clipped — six
+                    // currencies costs a second line here instead of six headlines.
+                    <Row
+                      style={{
+                        justifyContent: 'flex-start',
+                        flexWrap: 'wrap',
+                        columnGap: theme.spacing.sm,
+                      }}
+                    >
+                      {group.rest.map((total) => (
+                        <MoneyText
+                          key={total.currency}
+                          amount={total.net < 0n ? -total.net : total.net}
+                          currency={total.currency}
+                          locale={locale}
+                          variant="caption"
+                          tone="onBrand"
+                          style={{ opacity: 0.8 }}
+                        />
+                      ))}
+                    </Row>
+                  ) : null}
+                </View>
               </View>
-            </View>
-          ))}
+            ))}
+          </Animated.ScrollView>
         </Reanimated.View>
+      ) : null}
+      {!selectMode ? (
+        // Home's row: the white pill that hugs its word, the pager centred in
+        // the slack beside it. Everything that adds a person (type a name, pull
+        // from contacts, scan an invite QR) is behind this one pill.
+        <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+          <HeroPillButton
+            icon="add"
+            label={t.tabs.friendShort}
+            spokenLabel={t.tabs.addSomeone}
+            gradient={theme.gradient.brand}
+            onPress={onAdd}
+          />
+          <View style={{ flex: 1, alignItems: 'center' }}>
+            {deck.length > 1 ? (
+              <HeroDots count={deck.length} scrollX={scrollX} snap={slideW} />
+            ) : null}
+          </View>
+        </Row>
       ) : null}
     </ScreenHero>
   );
