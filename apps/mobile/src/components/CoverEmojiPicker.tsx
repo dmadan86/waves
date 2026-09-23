@@ -194,6 +194,8 @@ export function CoverEmojiPicker({
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={t.group.chooseIcon}
+          // 32 tall; the slop takes the touch to 44.
+          hitSlop={{ top: 6, bottom: 6 }}
           onPress={() => setOpen(true)}
           style={({ pressed }) => ({
             flexDirection: 'row',
