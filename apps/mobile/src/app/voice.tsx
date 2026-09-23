@@ -273,6 +273,9 @@ export default function VoiceScreen() {
   const [autoBanner, setAutoBanner] = useState<{
     label: string;
     fallback: 'review' | 'listening';
+    /** Held for an explicit Confirm instead of a timer: the words came in on a
+        link, not from this person's own mic. */
+    needsConfirm?: boolean;
   } | null>(null);
   // What the next transcript does — set the moment the mic is opened (opening
   // capture, "add more", or a single row's re-dictation), read when it returns.
@@ -325,6 +328,15 @@ export default function VoiceScreen() {
   // over navigation — so the leave-guard below stands aside instead of writing
   // the captures a second time.
   const committed = useRef(false);
+  // The transcript being interpreted arrived on a `waves://voice?heard=` link
+  // rather than from the mic on this screen. Anything can open that link — a web
+  // page, a chat message — so its words are never allowed to write on a timer:
+  // a "settle up with Ravi" planted in a link would otherwise record a
+  // settlement unless the reader hit Undo within four seconds. Cleared the
+  // moment the reader starts a capture of their own.
+  const heardFromLink = useRef(false);
+  // A write from the armed command is in flight.
+  const autoRunning = useRef(false);
   // The review reads the current location once per batch and pins it. Latched so
   // the read fires once (not on every render, and not again after the reader
   // clears or moves the pin); reset when a fresh parse opens a new review.
@@ -388,27 +400,47 @@ export default function VoiceScreen() {
   const beginAutoCommit = (banner: { label: string; fallback: 'review' | 'listening' }): void => {
     if (autoTimer.current) clearTimeout(autoTimer.current);
     setNoAmount(false);
-    setAutoBanner(banner);
     setPhase('committing');
+    // Words from a link wait for a tap; only the reader's own voice acts alone.
+    if (heardFromLink.current) {
+      autoTimer.current = null;
+      setAutoBanner({ ...banner, needsConfirm: true });
+      return;
+    }
+    setAutoBanner(banner);
     autoTimer.current = setTimeout(() => {
       autoTimer.current = null;
-      setAutoBanner(null);
-      void (async () => {
-        await commitRef.current?.();
-        // save() navigates on success (committed=true). If it failed it set an
-        // error and left us on the spinner — drop to the fallback so the error
-        // is readable: the review (a batch to retry) or the mic (nothing to).
-        if (committed.current) return;
-        if (banner.fallback === 'listening') {
-          setRequested(null);
-          setDest({ kind: 'unassigned' });
-          setDrafts([]);
-          setPhase('listening');
-        } else {
-          setPhase('review');
-        }
-      })();
+      runAutoCommit(banner.fallback);
     }, AUTO_COMMIT_MS);
+  };
+
+  // Write the armed command — when the Undo window elapses, or on Confirm for
+  // one that came in on a link.
+  const runAutoCommit = (fallback: 'review' | 'listening'): void => {
+    // A double tap on Confirm lands twice before the banner re-renders away;
+    // one armed command is one write.
+    if (autoRunning.current) return;
+    autoRunning.current = true;
+    setAutoBanner(null);
+    void (async () => {
+      try {
+        await commitRef.current?.();
+      } finally {
+        autoRunning.current = false;
+      }
+      // save() navigates on success (committed=true). If it failed it set an
+      // error and left us on the spinner — drop to the fallback so the error
+      // is readable: the review (a batch to retry) or the mic (nothing to).
+      if (committed.current) return;
+      if (fallback === 'listening') {
+        setRequested(null);
+        setDest({ kind: 'unassigned' });
+        setDrafts([]);
+        setPhase('listening');
+      } else {
+        setPhase('review');
+      }
+    })();
   };
 
   // Undo the pending write. A single expense drops to the review so it can be
@@ -805,6 +837,7 @@ export default function VoiceScreen() {
     if (consumedHn.current === nonce) return;
     consumedHn.current = nonce;
     captureActive.current = true;
+    heardFromLink.current = true;
     setMicMode('replace');
     handleTranscript(widgetHeard);
     // handleTranscript is a fresh closure each render but reads live refs/state;
@@ -1545,10 +1578,16 @@ export default function VoiceScreen() {
           <View
             style={{ alignItems: 'center', gap: theme.spacing.xl, paddingTop: theme.spacing.xxl }}
           >
-            <ActivityIndicator color={theme.color.brand} />
+            {autoBanner?.needsConfirm ? null : <ActivityIndicator color={theme.color.brand} />}
             <Text variant="title" style={{ textAlign: 'center' }}>
               {autoBanner?.label ?? ''}
             </Text>
+            {autoBanner?.needsConfirm ? (
+              <Button
+                label={t.voice.autoConfirm}
+                onPress={() => runAutoCommit(autoBanner.fallback)}
+              />
+            ) : null}
             <Button label={t.voice.autoUndo} variant="secondary" onPress={cancelAutoCommit} />
           </View>
         ) : phase === 'answer' ? (
@@ -1587,6 +1626,7 @@ export default function VoiceScreen() {
                 // A capture the reader actually started — mark it live so its
                 // transcript is accepted (and a dismissed one's is not).
                 captureActive.current = true;
+                heardFromLink.current = false;
                 setNoAmount(false);
               }}
             />
