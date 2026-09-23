@@ -22,6 +22,17 @@ function contribution(over: Partial<PersonContribution> = {}): PersonContributio
 }
 
 describe('aggregatePeopleBalances', () => {
+  it('orders the largest balance first, then by name when two are equal in size', () => {
+    // Given two people with the same absolute balance and one with a larger one
+    const rows = aggregatePeopleBalances([
+      contribution({ memberId: 'z', displayName: 'Zoya', net: -500n }),
+      contribution({ memberId: 'a', displayName: 'Anil', net: 500n }),
+      contribution({ memberId: 'b', displayName: 'Bina', net: 900n }),
+    ]);
+    // Then the larger one leads and the tie is broken alphabetically
+    expect(rows.map((r) => r.display_name)).toEqual(['Bina', 'Anil', 'Zoya']);
+  });
+
   it('keeps the sign: positive = they owe you, negative = you owe', () => {
     const rows = aggregatePeopleBalances([
       contribution({ memberId: 'a', net: 500n }),
