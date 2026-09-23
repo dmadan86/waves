@@ -88,5 +88,11 @@ describe('money formatter cache', () => {
     countConstructions();
     expect(() => format(money(1n, 'NOPE' as 'INR'), { locale: 'en-GB' })).toThrow();
     expect(() => format(money(1n, 'NOPE' as 'INR'), { locale: 'en-GB' })).toThrow();
+    // A malformed locale gets as far as the constructor, which throws; both
+    // calls must try to build one, so the failure was not cached.
+    constructed = 0;
+    expect(() => format(money(1n, 'INR'), { locale: 'not a locale!' })).toThrow();
+    expect(() => format(money(1n, 'INR'), { locale: 'not a locale!' })).toThrow();
+    expect(constructed).toBe(2);
   });
 });
