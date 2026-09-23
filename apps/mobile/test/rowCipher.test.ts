@@ -20,6 +20,7 @@ import {
   loadKey,
   open,
   seal,
+  UnsealedValueError,
 } from '../src/sync/rowCipher';
 
 // vi.mock is hoisted above the imports by vitest, so the stand-ins are in place
@@ -73,10 +74,14 @@ describe('seal / open (pure)', () => {
     expect(open(KEY, sealed)).toBe(plain);
   });
 
-  it('passes legacy plaintext through unchanged', () => {
-    const legacy = JSON.stringify({ id: 'e1' });
-    expect(isSealed(legacy)).toBe(false);
-    expect(open(KEY, legacy)).toBe(legacy);
+  it('refuses an untagged value instead of passing it through as plaintext', () => {
+    // A value somebody wrote straight into the file: no tag, no AEAD, no binding
+    // to its row. It must read as corrupt, not as data.
+    const planted = JSON.stringify({ id: 'e1', amount: '1' });
+    expect(isSealed(planted)).toBe(false);
+    expect(() => open(KEY, planted)).toThrow(UnsealedValueError);
+    expect(() => open(KEY, planted, 'mirror_rowse1g15')).toThrow(UnsealedValueError);
+    expect(() => open(KEY, '')).toThrow(UnsealedValueError);
   });
 
   it('throws on a tampered ciphertext', () => {
