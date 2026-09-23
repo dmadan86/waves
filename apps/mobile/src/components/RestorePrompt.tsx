@@ -144,7 +144,7 @@ export function RestorePrompt(): React.JSX.Element | null {
   const ownerId = session?.user?.id ?? '';
 
   const records = usePersonalRecords();
-  const { hydrated, status, lastSyncedAt } = useSync();
+  const { hydrated, status, hasSynced } = useSync();
   const { reads, dismiss } = useAccountReads(ownerId);
 
   // A build with no OAuth client id can neither back up nor restore, so there is
@@ -164,8 +164,7 @@ export function RestorePrompt(): React.JSX.Element | null {
    * or to a status that says the network cannot answer, and in the second case
    * the local snapshot is the best there is and the question becomes fair again.
    */
-  const firstSyncPending =
-    hydrated && lastSyncedAt === null && (status === 'idle' || status === 'syncing');
+  const firstSyncPending = hydrated && !hasSynced && (status === 'idle' || status === 'syncing');
   const settled = reads?.owner === ownerId && hydrated && !firstSyncPending;
 
   const offer = restoreOffer({
