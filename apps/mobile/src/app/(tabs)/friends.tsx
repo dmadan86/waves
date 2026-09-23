@@ -21,6 +21,7 @@ import {
   ActivityIndicator,
   Animated,
   BackHandler,
+  I18nManager,
   Image,
   Modal,
   Pressable,
@@ -34,7 +35,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   Button,
-  directionalIcon,
   EmptyState,
   iconSize,
   initialsOf,
@@ -70,7 +70,7 @@ import { router } from '@/lib/navigation';
 import { useReducedMotion } from '@/lib/reducedMotion';
 import { useAvatarUrl } from '@/components/ProfileAvatar';
 import { HeroDots } from '@/components/HeroDots';
-import { HeroPillButton, ScreenHero } from '@/components/ScreenHero';
+import { HeroActionCircle, HeroPillButton, ScreenHero } from '@/components/ScreenHero';
 import { PeopleSkeleton } from '@/components/Skeletons';
 import { plural, useStrings, type UiStrings } from '@/i18n';
 import { usePullRefresh } from '@/lib/pullRefresh';
@@ -179,10 +179,15 @@ function sortPersons(people: PersonGroup[], key: SortKey, dir: SortDir): PersonG
   return [...people].sort(cmp);
 }
 
-/** The fixed-width trailing slot each row reserves for its action glyph, present
-    even when there is no action — so every amount's right edge lines up and the
-    invite/remind discs form one clean column instead of floating with the amount. */
-const ACTION_SLOT = 34;
+/** Where a menu's trigger sits on screen (window coordinates). */
+interface MenuAnchor {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+const ADD_MENU_WIDTH = 220;
 
 /**
  * How many currencies a single row will draw before it starts counting them.
@@ -274,6 +279,8 @@ export default function FriendsScreen() {
   // QR — folded behind one `+` so the header reads as a title row, not a
   // five-icon toolbar of mystery glyphs.
   const [addOpen, setAddOpen] = useState(false);
+  // Where the "+ Friend" pill sits on screen, so its menu opens right under it.
+  const [addAnchor, setAddAnchor] = useState<MenuAnchor | null>(null);
 
   const pickSort = (key: SortKey): void => {
     if (key === sortKey) {
@@ -390,15 +397,15 @@ export default function FriendsScreen() {
     [rows, sortKey, sortDir],
   );
 
-  // Whether the trailing control column is worth its width. Reserved when
-  // anybody on the list has an invite or a nudge to offer, so those discs line
-  // up; dropped entirely when nobody does, rather than holding 34dp open on
-  // every row for a control that never comes. Never in selection mode, where the
-  // controls are hidden anyway.
-  const actionSlot = useMemo(
-    () => !selectMode && persons.some((person) => rowAction(person) !== null),
-    [persons, selectMode],
-  );
+  // Folds the biggest cluster of likely duplicates straight into the merge
+  // screen; with no cluster to offer, the screen opens empty to pick by hand.
+  const openDuplicates = (): void => {
+    const p = duplicates.prefill;
+    if (!p) return router.push('/friends/merge' as never);
+    const keyParam = p.keys.map(encodeURIComponent).join(',');
+    const nameParam = encodeURIComponent(p.name);
+    router.push(`/friends/merge?keys=${keyParam}&name=${nameParam}` as never);
+  };
 
   // The headline's figures: the net you are up or down in each currency, summed
   // across everyone. Never across currencies — there is no honest single number
@@ -418,8 +425,13 @@ export default function FriendsScreen() {
         t={t}
         sortKey={sortKey}
         sortDir={sortDir}
-        onAdd={() => setAddOpen(true)}
+        onAdd={(anchor) => {
+          setAddAnchor(anchor);
+          setAddOpen(true);
+        }}
         onSort={() => setSortOpen(true)}
+        duplicateCount={duplicates.count >= 2 && !selectMode ? duplicates.count : 0}
+        onDuplicates={openDuplicates}
         selectMode={selectMode}
         selectedCount={selectedKeys.size}
         onExitSelect={exitSelect}
@@ -427,7 +439,7 @@ export default function FriendsScreen() {
         loading={people.isLoading}
       />
 
-      <AddMenu open={addOpen} onClose={() => setAddOpen(false)} t={t} />
+      <AddMenu open={addOpen} anchor={addAnchor} onClose={() => setAddOpen(false)} t={t} />
 
       <SortMenu
         open={sortOpen}
@@ -438,114 +450,97 @@ export default function FriendsScreen() {
         t={t}
       />
 
-      {/* Only this scrolls — the list, beneath the fixed header. The rows sit in
-          one bordered, hairline-divided card with the dashboard's `lg` side
-          margin, so the friends list reads exactly like the groups list at home.
-          It carries the motion the hero deliberately does not: when the balance
-          collapses on entering selection, the hero curve snaps and this whole
-          card glides up (`layout`) to fill the freed space. */}
+      {/* Only this scrolls — the list, beneath the fixed header. It runs to the
+          foot of the screen and under the bottom bar, the way Home's groups do:
+          the rows scroll behind the bar, and the clearance is paid on the
+          content, so at the end of the list the card's rounded foot comes to
+          rest above the bar. Boxing the card short of the bar instead left a
+          band of empty background under the last row at every scroll position.
+          The card is drawn per row (the first rounds the top, the last rounds
+          the foot) so it scrolls inside the FlashList instead of clipping it. */}
       <Reanimated.View
         layout={reduceMotion ? undefined : LinearTransition.duration(160)}
-        style={{
-          flex: 1,
-          paddingHorizontal: theme.spacing.lg,
-          paddingTop: theme.spacing.lg,
-          // The foot goes on the box, not on what scrolls inside it. Paid on the
-          // list's content alone, the card itself still ran on under the bottom
-          // bar: the rows could be scrolled clear of it, but the card's own
-          // bottom edge and its rounded corners never came into view, so the
-          // screen read as cut off rather than finished. Home reserves the foot
-          // around its groups card the same way, which is why Home ends and this
-          // did not.
-          paddingBottom: clearance,
-        }}
+        style={{ flex: 1 }}
       >
         {people.isLoading ? (
-          <PeopleSkeleton />
+          <View style={{ paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.lg }}>
+            <PeopleSkeleton />
+          </View>
         ) : rows.length === 0 ? (
-          // Centred in what can be seen, not in what is laid out. The clearance
-          // is on the box above rather than here, so this branch is centred in
-          // the visible height for free.
-          <View style={{ flex: 1, justifyContent: 'center' }}>
+          // Centred in what can be seen: the clearance comes off the foot.
+          <View
+            style={{
+              flex: 1,
+              justifyContent: 'center',
+              paddingHorizontal: theme.spacing.lg,
+              paddingBottom: clearance,
+            }}
+          >
             <EmptyFriends hasPeople={known.data > 0} t={t} />
           </View>
         ) : (
-          <>
-            {/* The merge strip rides above the card — a duplicate is the only
-                thing merge fixes, so it appears only when there is one, and points
-                at the count in one slim line. Hidden mid-selection, where merging
-                is already under way. */}
-            {duplicates.count >= 2 && !selectMode ? (
-              <View style={{ marginBottom: theme.spacing.md }}>
-                <DuplicateStrip
-                  count={duplicates.count}
-                  locale={locale}
-                  t={t}
-                  onPress={() => {
-                    const p = duplicates.prefill;
-                    if (!p) return router.push('/friends/merge' as never);
-                    const keyParam = p.keys.map(encodeURIComponent).join(',');
-                    const nameParam = encodeURIComponent(p.name);
-                    router.push(`/friends/merge?keys=${keyParam}&name=${nameParam}` as never);
+          // The only virtualized list on this screen — same FlashList setup the
+          // group ledger uses (recycled rows, a wide draw distance so a fast fling
+          // never outruns recycling into blank rows).
+          <FlashList
+            data={persons}
+            // Selection state lives outside the row data, so the list has to be
+            // told to re-render its rows when it changes (the tick, the fill).
+            // The length rides along because the last row draws the card's foot.
+            extraData={`${selectMode}|${[...selectedKeys].join(',')}|${locale}|${theme.scheme}|${persons.length}`}
+            keyExtractor={(item) => item.person_key}
+            // A single-currency row and a multi-currency (stacked amounts) row are
+            // structurally different subtrees; typing them lets FlashList recycle
+            // like with like rather than reflowing one shape into the other.
+            getItemType={(item) => (item.entries.length === 1 ? 'single' : 'multi')}
+            drawDistance={1500}
+            contentContainerStyle={{
+              paddingHorizontal: theme.spacing.lg,
+              paddingTop: theme.spacing.lg,
+              paddingBottom: clearance,
+            }}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={pull.refreshing}
+                onRefresh={pull.onRefresh}
+                tintColor={theme.color.brand}
+              />
+            }
+            renderItem={({ item, index }) => {
+              const first = index === 0;
+              const last = index === persons.length - 1;
+              return (
+                <View
+                  style={{
+                    backgroundColor: theme.color.surface,
+                    borderColor: theme.color.border,
+                    borderLeftWidth: 1,
+                    borderRightWidth: 1,
+                    borderTopWidth: first ? 1 : 0,
+                    borderBottomWidth: last ? 1 : 0,
+                    borderTopLeftRadius: first ? theme.radius.lg : 0,
+                    borderTopRightRadius: first ? theme.radius.lg : 0,
+                    borderBottomLeftRadius: last ? theme.radius.lg : 0,
+                    borderBottomRightRadius: last ? theme.radius.lg : 0,
+                    overflow: 'hidden',
                   }}
-                />
-              </View>
-            ) : null}
-            {/* The people as one clean list on a single card — the same surface,
-                border, radius and clipped corners the dashboard's groups card
-                uses; each PersonRow draws its own hairline divider. */}
-            <View
-              style={{
-                flex: 1,
-                backgroundColor: theme.color.surface,
-                borderRadius: theme.radius.lg,
-                borderWidth: 1,
-                borderColor: theme.color.border,
-                overflow: 'hidden',
-              }}
-            >
-              {/* The only virtualized list on this screen — same FlashList setup the
-                  group ledger uses (recycled rows, a wide draw distance so a fast fling
-                  never outruns recycling into blank rows). Only what is on screen is
-                  mounted, which is what keeps a long friends list scrolling smoothly. */}
-              <FlashList
-                data={persons}
-                // Selection state lives outside the row data, so the list has to be
-                // told to re-render its rows when it changes (the tick, the fill).
-                extraData={`${selectMode}|${[...selectedKeys].join(',')}|${locale}|${theme.scheme}`}
-                keyExtractor={(item) => item.person_key}
-                // A single-currency row and a multi-currency (stacked amounts) row are
-                // structurally different subtrees; typing them lets FlashList recycle
-                // like with like rather than reflowing one shape into the other.
-                getItemType={(item) => (item.entries.length === 1 ? 'single' : 'multi')}
-                drawDistance={1500}
-                // No foot here: the card it sits in already ends above the bar.
-                contentContainerStyle={{}}
-                showsVerticalScrollIndicator={false}
-                refreshControl={
-                  <RefreshControl
-                    refreshing={pull.refreshing}
-                    onRefresh={pull.onRefresh}
-                    tintColor={theme.color.brand}
-                  />
-                }
-                renderItem={({ item, index }) => (
+                >
                   <PersonRow
                     person={item}
                     locale={locale}
                     t={t}
-                    divider={index > 0}
+                    divider={!first}
                     duplicate={duplicates.keys.has(item.person_key)}
                     selectMode={selectMode}
                     selected={selectedKeys.has(item.person_key)}
-                    actionSlot={actionSlot}
                     onEnterSelect={enterSelect}
                     onToggleSelect={toggleSelect}
                   />
-                )}
-              />
-            </View>
-          </>
+                </View>
+              );
+            }}
+          />
         )}
       </Reanimated.View>
     </Screen>
@@ -578,6 +573,8 @@ function FriendsHero({
   sortDir,
   onAdd,
   onSort,
+  duplicateCount,
+  onDuplicates,
   selectMode,
   selectedCount,
   onExitSelect,
@@ -589,8 +586,12 @@ function FriendsHero({
   t: UiStrings;
   sortKey: SortKey;
   sortDir: SortDir;
-  onAdd: () => void;
+  /** Opens the add menu, told where the pill is so the menu drops from it. */
+  onAdd: (anchor: MenuAnchor | null) => void;
   onSort: () => void;
+  /** Likely duplicate guests; 0 hides the merge disc. */
+  duplicateCount: number;
+  onDuplicates: () => void;
   /** Merge selection is a mode inside the hero — its title line swaps to the
       close / count / Merge controls while it runs, on the same indigo panel. */
   selectMode: boolean;
@@ -613,6 +614,14 @@ function FriendsHero({
   const [measuredW, setMeasuredW] = useState(0);
   const slideW = measuredW || windowW - theme.spacing.xl * 2;
   const [scrollX] = useState(() => new Animated.Value(0));
+  const pillRef = useRef<View>(null);
+  const openAdd = (): void => {
+    const pill = pillRef.current;
+    if (!pill) return onAdd(null);
+    pill.measureInWindow((x, y, width, height) =>
+      onAdd(width > 0 ? { x, y, width, height } : null),
+    );
+  };
   const deck = directionGroups(totals);
 
   return (
@@ -718,7 +727,8 @@ function FriendsHero({
               // figure), rather than a row that made this hero the odd one out.
               <View
                 key={group.owed ? 'owed' : 'owing'}
-                style={{ width: slideW, gap: theme.spacing.md }}
+                // Home's rhythm: `sm` between the label and the figure.
+                style={{ width: slideW, gap: theme.spacing.sm }}
               >
                 {/* Home's wording, down to the separator: "Net receivable · INR".
                     It replaces two lines that between them said less — a standing
@@ -770,21 +780,58 @@ function FriendsHero({
       ) : null}
       {!selectMode ? (
         // Home's row: the white pill that hugs its word, the pager centred in
-        // the slack beside it. Everything that adds a person (type a name, pull
-        // from contacts, scan an invite QR) is behind this one pill.
+        // the slack, and a white disc on the shoulder — here the merge, wearing
+        // the count of likely duplicates the way a notification wears its
+        // number. Everything that adds a person (type a name, pull from
+        // contacts, scan an invite QR) is behind the pill.
         <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
-          <HeroPillButton
-            icon="add"
-            label={t.tabs.friendShort}
-            spokenLabel={t.tabs.addSomeone}
-            gradient={theme.gradient.brand}
-            onPress={onAdd}
-          />
+          <View ref={pillRef} collapsable={false}>
+            <HeroPillButton
+              icon="add"
+              label={t.tabs.friendShort}
+              spokenLabel={t.tabs.addSomeone}
+              gradient={theme.gradient.brand}
+              onPress={openAdd}
+            />
+          </View>
           <View style={{ flex: 1, alignItems: 'center' }}>
             {deck.length > 1 ? (
               <HeroDots count={deck.length} scrollX={scrollX} snap={slideW} />
             ) : null}
           </View>
+          {duplicateCount > 0 ? (
+            <View>
+              <HeroActionCircle
+                icon="git-merge-outline"
+                solid
+                ink={theme.gradient.brand[0]}
+                label={`${plural(locale, duplicateCount, t.mergePeople.duplicates)}. ${t.mergePeople.entry}`}
+                onPress={onDuplicates}
+              />
+              <View
+                accessible={false}
+                pointerEvents="none"
+                style={{
+                  position: 'absolute',
+                  top: -4,
+                  right: -4,
+                  minWidth: 20,
+                  height: 20,
+                  paddingHorizontal: 5,
+                  borderRadius: 10,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: theme.color.negative,
+                  borderWidth: 2,
+                  borderColor: theme.color.onBrand,
+                }}
+              >
+                <Text variant="micro" style={{ color: '#FFFFFF', fontWeight: '700' }}>
+                  {duplicateCount > 99 ? '99+' : String(duplicateCount)}
+                </Text>
+              </View>
+            </View>
+          ) : null}
         </Row>
       ) : null}
     </ScreenHero>
@@ -960,67 +1007,6 @@ function Face({
 }
 
 /**
- * The one figure group-by-group navigation can never show: across every group
- * and person, am I up or down — and by how much. One line per currency, because
- * there is no honest single number across currencies without a rate (ADR-003).
- * Nets to nothing overall? Then it says nothing and the rows below carry it.
- */
-/**
- * The slim duplicate strip — one line, not a paragraph.
- *
- * Merge only ever fixes one thing: the same guest added twice, in two groups.
- * The old card asked about that in a full sentence with an icon medallion and a
- * chevron, and fired on any two guests at all. This says only how many likely
- * duplicates were spotted and offers the fix in a single row you can skip past —
- * a small merge glyph, the count, an arrow. Tapping folds the biggest cluster
- * straight into the merge screen. The duplicate rows below wear a matching mark,
- * so this points at something the eye can also find.
- */
-function DuplicateStrip({
-  count,
-  locale,
-  t,
-  onPress,
-}: {
-  count: number;
-  locale: string;
-  t: UiStrings;
-  onPress: () => void;
-}): React.JSX.Element {
-  const theme = useTheme();
-  return (
-    <PressableScale
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={plural(locale, count, t.mergePeople.duplicates)}
-      accessibilityHint={t.mergePeople.hint}
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: theme.spacing.sm,
-        paddingVertical: theme.spacing.sm,
-        paddingHorizontal: theme.spacing.md,
-        borderRadius: theme.radius.md,
-        backgroundColor: theme.color.brandSoft,
-      }}
-    >
-      <Ionicons name="git-merge-outline" size={iconSize.md} color={theme.color.brand} />
-      <Text variant="caption" tone="brand" style={{ flex: 1, fontWeight: '600' }} numberOfLines={1}>
-        {plural(locale, count, t.mergePeople.duplicates)}
-      </Text>
-      <Text variant="caption" tone="brand" style={{ fontWeight: '700' }}>
-        {t.mergePeople.entry}
-      </Text>
-      <Ionicons
-        name={directionalIcon('chevron-forward')}
-        size={iconSize.sm}
-        color={theme.color.brand}
-      />
-    </PressableScale>
-  );
-}
-
-/**
  * One person, one compact row on the shared list card — an avatar, the name over
  * its direction line, the balance to the right (the dashboard's group row, applied
  * to people). Direction lives in the caption ("Owes you" / "You owe") so the right
@@ -1042,7 +1028,6 @@ const PersonRow = memo(function PersonRow({
   duplicate,
   selectMode,
   selected,
-  actionSlot,
   onEnterSelect,
   onToggleSelect,
 }: {
@@ -1056,8 +1041,6 @@ const PersonRow = memo(function PersonRow({
   duplicate: boolean;
   selectMode: boolean;
   selected: boolean;
-  /** Any row on this list has a trailing control, so every row reserves the column. */
-  actionSlot: boolean;
   onEnterSelect: (personKey: string) => void;
   onToggleSelect: (personKey: string) => void;
 }): React.JSX.Element {
@@ -1230,13 +1213,31 @@ const PersonRow = memo(function PersonRow({
           under it. It centres there instead, a size up, so the person reads as
           the row's subject rather than a label stranded in a corner. */}
       <View style={{ flex: 1, alignSelf: caption ? 'flex-start' : 'center' }}>
-        <Text
-          variant={caption ? 'body' : 'subheading'}
-          numberOfLines={1}
-          style={{ fontWeight: '600' }}
-        >
-          {shownName}
-        </Text>
+        {/* The invite / remind glyph rides beside the name it acts on, rather
+            than in a column of its own at the far edge — there it read as a
+            control for the amount, and the column cost every row its width. */}
+        <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+          <Text
+            variant={caption ? 'body' : 'subheading'}
+            numberOfLines={1}
+            style={{ fontWeight: '600', flexShrink: 1 }}
+          >
+            {shownName}
+          </Text>
+          {action === 'invite' && soloGroup ? (
+            // A guest with no account yet: the useful action is the invite link
+            // that also lets them claim this balance (A25). One group, one link.
+            <RowAction
+              icon="paper-plane-outline"
+              label={t.people.invite}
+              onPress={() => router.push(`/group/${soloGroup}/invite`)}
+            />
+          ) : action === 'remind' && single ? (
+            // They owe you and one group explains it — a single pair to nudge,
+            // kept honest by the server at one a day (ADR-010).
+            <RemindButton row={single} />
+          ) : null}
+        </Row>
         {caption ? (
           <Text variant="caption" tone="muted" numberOfLines={1}>
             {caption}
@@ -1288,41 +1289,6 @@ const PersonRow = memo(function PersonRow({
           </Text>
         ) : null}
       </View>
-      {/* The trailing slot, reserved only when somebody on this list actually has
-          a control to put in it. It exists so the invite and remind discs form one
-          column instead of floating at a different x on every row — but when no
-          row offers either, it is 34dp of nothing holding every amount away from
-          the edge, which is how the list ended up with its figures marooned in
-          the middle. `actionSlot` is the list's answer to the same `rowAction`
-          this row asks, so the two cannot disagree. */}
-      {actionSlot ? (
-        <View
-          style={{
-            width: ACTION_SLOT,
-            alignItems: 'center',
-            justifyContent: 'center',
-            // Furniture again: the disc is a thumb target, not a line of the
-            // row, so it centres rather than riding the top of a three-line
-            // stack of currencies.
-            alignSelf: 'center',
-          }}
-        >
-          {action === 'invite' && soloGroup ? (
-            // A guest with no account yet: the useful action is the invite link that
-            // also lets them claim this balance (A25). One group, one link.
-            <RowAction
-              icon="paper-plane-outline"
-              label={t.people.invite}
-              onPress={() => router.push(`/group/${soloGroup}/invite`)}
-            />
-          ) : action === 'remind' && single ? (
-            // They owe you and one group explains it — a single pair to nudge, kept
-            // honest by the server at one a day (ADR-010). One currency, because
-            // the nudge names one: see `rowAction`.
-            <RemindButton row={single} />
-          ) : null}
-        </View>
-      ) : null}
     </Row>
   );
 
@@ -1473,17 +1439,18 @@ function RowAction({
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={label}
+      // Drawn small to sit on the name's line; the slop keeps a 44pt touch.
       hitSlop={10}
       style={{
-        width: 32,
-        height: 32,
-        borderRadius: 16,
+        width: 26,
+        height: 26,
+        borderRadius: 13,
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: theme.color.brandSoft,
       }}
     >
-      <Ionicons name={icon} size={iconSize.md} color={theme.color.brand} />
+      <Ionicons name={icon} size={iconSize.sm} color={theme.color.brand} />
     </PressableScale>
   );
 }
@@ -1545,18 +1512,24 @@ function RemindButton({ row }: { row: PersonBalanceRow }): React.JSX.Element | n
       <View
         accessible
         accessibilityLabel={state.label}
-        style={{ width: 32, height: 32, alignItems: 'center', justifyContent: 'center' }}
+        // The disc's own 26: the verdict replaces it on the name's line, and a
+        // bigger glyph there would push the caption down as it lands.
+        style={{ width: 26, height: 26, alignItems: 'center', justifyContent: 'center' }}
       >
         <Ionicons
           name={state.ok ? 'checkmark-circle' : 'alert-circle-outline'}
-          size={iconSize.lg}
+          size={iconSize.md}
           color={state.ok ? theme.color.positive : theme.color.negative}
         />
       </View>
     );
   }
   if (state.phase === 'pending')
-    return <ActivityIndicator size="small" color={theme.color.brand} />;
+    return (
+      <View style={{ width: 26, height: 26, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator size="small" color={theme.color.brand} />
+      </View>
+    );
 
   return <RowAction icon="notifications-outline" label={t.people.remind} onPress={run} />;
 }
@@ -1673,15 +1646,36 @@ function SortMenu({
  */
 function AddMenu({
   open,
+  anchor,
   onClose,
   t,
 }: {
   open: boolean;
+  /** The pill it opens from; null falls back to the header corner. */
+  anchor: MenuAnchor | null;
   onClose: () => void;
   t: UiStrings;
 }): React.JSX.Element {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const { width: windowW } = useWindowDimensions();
+  // Dropped from the pill it belongs to, its leading edge under the pill's,
+  // pulled back in if that would run it off the far side (the pill sits on the
+  // right under RTL). Window coordinates, so the Modal below is drawn
+  // edge-to-edge (translucent bars) to share the same origin.
+  // `measureInWindow` is physical (from the left edge) while `start` is
+  // logical, so under RTL the pill's leading edge is its distance from the
+  // right: the window width less its far edge.
+  const leading = anchor ? (I18nManager.isRTL ? windowW - (anchor.x + anchor.width) : anchor.x) : 0;
+  const place = anchor
+    ? {
+        top: anchor.y + anchor.height + theme.spacing.sm,
+        start: Math.max(
+          theme.spacing.lg,
+          Math.min(leading, windowW - ADD_MENU_WIDTH - theme.spacing.lg),
+        ),
+      }
+    : { top: insets.top + 56, end: theme.spacing.xl };
 
   const go = (path: string): void => {
     onClose();
@@ -1730,7 +1724,14 @@ function AddMenu({
   ];
 
   return (
-    <Modal visible={open} transparent animationType="fade" onRequestClose={onClose}>
+    <Modal
+      visible={open}
+      transparent
+      animationType="fade"
+      statusBarTranslucent
+      navigationBarTranslucent
+      onRequestClose={onClose}
+    >
       <Pressable
         onPress={onClose}
         accessibilityRole="button"
@@ -1740,9 +1741,8 @@ function AddMenu({
         <View
           style={{
             position: 'absolute',
-            top: insets.top + 56,
-            right: theme.spacing.xl,
-            minWidth: 220,
+            ...place,
+            minWidth: ADD_MENU_WIDTH,
             borderRadius: theme.radius.lg,
             ...theme.shadow.lifted,
           }}
