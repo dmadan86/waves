@@ -6,10 +6,12 @@ settings:
 
 overrides:
   expo-constants: 57.0.19
+  decode-uri-component: ^0.5.0
 
 packageExtensionsChecksum: sha256-JdGVH/MPbTDqIS2VCmpiXKZw1GpAMl9t/i4VsL8gZoU=
 
 patchedDependencies:
+  query-string@7.1.3: b2070d136d026a0ae3a2e98eaef9c0a1d14892cae7b8d26bc33e4a61c6fe7637
   react-native-get-sms-android@2.1.0: e72c594803865c47c2f801d4365965e702516c309f10d38bfe3a48a8c2c1f05d
 
 importers:
@@ -6386,9 +6388,9 @@ packages:
   decode-named-character-reference@1.3.0:
     resolution: {integrity: sha512-GtpQYB283KrPp6nRw50q3U9/VfOutZOe103qlN7BPP6Ad27xYnOIWv4lPzo8HCAL+mMZofJ9KEy30fq6MfaK6Q==}
 
-  decode-uri-component@0.2.2:
-    resolution: {integrity: sha512-FqUYQ+8o158GyGTrMFJms9qh3CqTKvAqgqsTnkLI8sKu0028orqBhxNMFkFen0zGyg6epACD32pjVk58ngIErQ==}
-    engines: {node: '>=0.10'}
+  decode-uri-component@0.5.0:
+    resolution: {integrity: sha512-1BiQVoK8C9gUbQU6NzAtO/tkz2qOFpEObMWpcFvhx4fYnj4Oc5yzaJN/LD36ihkVUdXyh5ZekzX+yM+ty/SrPg==}
+    engines: {node: '>=14.16'}
 
   decompress-response@6.0.0:
     resolution: {integrity: sha512-aW35yZM6Bb/4oJlZncMH2LCoZtJXTRxES17vE3hoRiowU2kWHaJKFkSBDnDR+cm9J+9QhXmREyIfv0pji9ejCQ==}
@@ -19484,7 +19486,7 @@ snapshots:
     dependencies:
       character-entities: 2.0.2
 
-  decode-uri-component@0.2.2: {}
+  decode-uri-component@0.5.0: {}
 
   decompress-response@6.0.0:
     dependencies:
@@ -20619,7 +20621,7 @@ snapshots:
       fast-deep-equal: 3.1.3
       invariant: 2.2.4
       nanoid: 3.3.19
-      query-string: 7.1.3
+      query-string: 7.1.3(patch_hash=b2070d136d026a0ae3a2e98eaef9c0a1d14892cae7b8d26bc33e4a61c6fe7637)
       react: 19.3.0
       react-fast-compare: 3.2.2
       react-is: 19.2.8
@@ -24303,9 +24305,9 @@ snapshots:
       es-define-property: 1.0.1
       side-channel: 1.1.1
 
-  query-string@7.1.3:
+  query-string@7.1.3(patch_hash=b2070d136d026a0ae3a2e98eaef9c0a1d14892cae7b8d26bc33e4a61c6fe7637):
     dependencies:
-      decode-uri-component: 0.2.2
+      decode-uri-component: 0.5.0
       filter-obj: 1.1.0
       split-on-first: 1.1.0
       strict-uri-encode: 2.0.0
