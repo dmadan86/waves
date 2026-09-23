@@ -1075,6 +1075,8 @@ export interface UiStrings {
     autoAddingPerson: string;
     /** The button on the auto-act banner that cancels the pending write. */
     autoUndo: string;
+    /** The tap a linked-in command needs before it writes: a link never acts on its own. */
+    autoConfirm: string;
     /** The header of the read-only answer to a spoken balance question. */
     ansTitle: string;
     /** A person balance answer. '{name}' and '{amount}'. */
@@ -4397,6 +4399,7 @@ const en: UiStrings = {
     autoReminding: 'Reminding {name}',
     autoAddingPerson: 'Adding {name} to {group}',
     autoUndo: 'Undo',
+    autoConfirm: 'Confirm',
     ansTitle: 'Balance',
     ansTheyOweYou: '{name} owes you {amount}',
     ansYouOwe: 'You owe {name} {amount}',
@@ -7321,6 +7324,7 @@ const ta: UiStrings = {
     autoReminding: '{name} க்கு நினைவூட்டல்',
     autoAddingPerson: '{group} இல் {name} சேர்க்கிறது',
     autoUndo: 'செயல்தவிர்',
+    autoConfirm: 'உறுதிப்படுத்து',
     ansTitle: 'இருப்பு',
     ansTheyOweYou: '{name} உங்களுக்கு {amount} தர வேண்டும்',
     ansYouOwe: 'நீங்கள் {name} க்கு {amount} தர வேண்டும்',
@@ -10347,6 +10351,7 @@ const hi: UiStrings = {
     autoReminding: '{name} को याद दिला रहे हैं',
     autoAddingPerson: '{group} में {name} जोड़ रहे हैं',
     autoUndo: 'पूर्ववत करें',
+    autoConfirm: 'पुष्टि करें',
     ansTitle: 'बैलेंस',
     ansTheyOweYou: '{name} आप पर {amount} बकाया है',
     ansYouOwe: 'आप {name} को {amount} देते हैं',
@@ -13332,6 +13337,7 @@ const ar: UiStrings = {
     autoReminding: 'تذكير {name}',
     autoAddingPerson: 'إضافة {name} إلى {group}',
     autoUndo: 'تراجع',
+    autoConfirm: 'تأكيد',
     ansTitle: 'الرصيد',
     ansTheyOweYou: '{name} يدين لك بمبلغ {amount}',
     ansYouOwe: 'أنت تدين لـ {name} بمبلغ {amount}',
