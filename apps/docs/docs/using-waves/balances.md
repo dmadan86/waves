@@ -51,8 +51,20 @@ Either way the underlying record is the same. This is a view, not an edit.
 **Net payable** — with **{n} groups** underneath it. **Hide balance** covers it
 up for reading the app in public.
 
-**Friends** is the same money arranged by person rather than by group: **Owes
-you**, **You owe**, and **Overall**. When there is nothing to show:
+**Friends** is the same money arranged by person rather than by group. The
+balance at the top reads the way Home's does — **Net receivable · INR** for what
+you are owed, **Net payable · INR** for what you owe — and when you are both
+owed and owing, swipe it sideways to see the other one. Other currencies sit
+underneath the figure in small type.
+
+Under the balance, **+ Friend** is how you add somebody: **Add a person**,
+**From contacts**, **Find someone**, or **Scan to join**. When Waves spots the
+same guest in more than one of your groups, a merge button appears beside it
+with the number of possible duplicates on it; see
+[Merging duplicates](./people-and-placeholders.md#merging-duplicates).
+
+Each person in the list says **Owes you** or **You owe**, and across how many
+groups. When there is nothing to show:
 
 > **All square.** Nobody owes you and you owe nobody. New balances show up here.
 

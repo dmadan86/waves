@@ -5,8 +5,12 @@ description: The add-expense screen field by field, plus adding one by voice, by
 sidebar_position: 1
 ---
 
-The **+** on Home starts a new expense. So does **Add expense** inside a group,
-the mic in the middle of the bottom bar, and the camera on the scan card.
+**+ Expense** on Home starts a new expense: a **Quick expense** sheet that asks
+for the amount and **Where does it go?** — a group, or **Just me** — with
+**Advanced** a tap away for the full form, carrying what you typed.
+Hold **+ Expense** instead and it offers **Add expense**, **Scan bill** and
+**Speak an expense**. **Add expense** inside a group and the mic in the middle
+of the bottom bar start one too.
 
 ## The screen, field by field
 
@@ -70,8 +74,9 @@ than saving a guess.
 
 ## By scanning the bill
 
-**Scan** on the scan card photographs a bill and reads the total and the name of
-the place off it:
+Hold **+ Expense** on Home and pick **Scan bill**, or tap **Scan receipt** under
+the amount on the add-expense screen. Either photographs a bill and reads the
+total and the name of the place off it:
 
 > The total and the name of the place come out filled in. Check them — entering
 > them by hand is always free.
