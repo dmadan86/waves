@@ -375,3 +375,41 @@ describe('buildGroupExportWorkbook', () => {
     expect(base64.startsWith('UEs')).toBe(true);
   });
 });
+
+describe('edge rows', () => {
+  it('renders an expense with no version as an empty, zero row in the group currency', () => {
+    // Given an expense whose current version never arrived
+    const bare = { ...expense('e-3', { amount: '0', payer: 'm-asha', shares: ['m-asha'] }) };
+    bare.currentVersion = null as unknown as ExpenseRow['currentVersion'];
+    const input: GroupExportInput = { ...makeInput(), expenses: [bare] };
+    // When the model is built
+    const row = buildGroupExportModel(input).expenses[0]!;
+    // Then it carries no date, no payer, and a zero amount — and it is not totalled
+    expect(row.dateText).toBe('');
+    expect(row.paidBy).toBe('');
+    expect(row.participantCount).toBe(0);
+    expect(row.amount.minor).toBe(0n);
+    expect(row.amount.currency).toBe('INR');
+    expect(buildGroupExportModel(input).totals).toEqual([]);
+  });
+
+  it('keeps an unparseable date as written and names an unknown member "someone"', () => {
+    const input: GroupExportInput = {
+      ...makeInput(),
+      expenses: [
+        expense('e-4', { amount: '100', payer: 'm-stranger', shares: ['m-asha'], date: 'soon' }),
+      ],
+    };
+    const row = buildGroupExportModel(input).expenses[0]!;
+    expect(row.dateText).toBe('soon');
+    expect(row.paidBy).toBe('Someone');
+  });
+
+  it('shows the "nothing here yet" row in every table when the group is empty', () => {
+    const input: GroupExportInput = { ...makeInput(), members: [], expenses: [], settlements: [] };
+    const html = renderGroupExportHtml(buildGroupExportModel(input), PDF_LABELS);
+    // expenses, settlements, balances and members tables each get the placeholder
+    expect(html.match(/class="empty"/g)?.length).toBe(4);
+    expect(html).toContain('Nothing here yet');
+  });
+});
