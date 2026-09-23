@@ -15,11 +15,14 @@ const state = vi.hoisted(() => {
   class FakeSmsDatabase {
     readonly execs: string[] = [];
     readonly deletedOwners: string[] = [];
+    /** The table's rows, reduced to the primary key a delete filters on. */
+    rows: { owner_id: string; dedupe_key: string }[] = [];
     dropped = false;
 
     reset(): void {
       this.execs.length = 0;
       this.deletedOwners.length = 0;
+      this.rows = [];
       this.dropped = false;
     }
 
@@ -30,8 +33,11 @@ const state = vi.hoisted(() => {
 
     async runAsync(source: string, ...params: unknown[]): Promise<{ changes: number }> {
       if (/DELETE FROM sms_messages WHERE owner_id = \?/i.test(source)) {
-        this.deletedOwners.push(params[0] as string);
-        return { changes: 1 };
+        const owner = params[0] as string;
+        this.deletedOwners.push(owner);
+        const before = this.rows.length;
+        this.rows = this.rows.filter((row) => row.owner_id !== owner);
+        return { changes: before - this.rows.length };
       }
       return { changes: 0 };
     }
@@ -83,6 +89,22 @@ describe('forgetMessagesForOwner', () => {
     expect(state.database.deletedOwners).toEqual(['traveller']);
     expect(state.database.dropped).toBe(false);
     expect(state.database.execs).toContain('PRAGMA wal_checkpoint(TRUNCATE)');
+  });
+
+  it('removes that owner’s rows and leaves every other account’s on the phone', async () => {
+    state.database.rows = [
+      { owner_id: 'rider', dedupe_key: 'k1' },
+      { owner_id: 'traveller', dedupe_key: 'k1' },
+      { owner_id: 'traveller', dedupe_key: 'k2' },
+      { owner_id: 'financer', dedupe_key: 'k3' },
+    ];
+
+    await store.forgetMessagesForOwner('traveller');
+
+    expect(state.database.rows).toEqual([
+      { owner_id: 'rider', dedupe_key: 'k1' },
+      { owner_id: 'financer', dedupe_key: 'k3' },
+    ]);
   });
 
   it('does nothing when there is no owner to clear', async () => {

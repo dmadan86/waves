@@ -23,6 +23,7 @@ import {
   dayKey,
   describeActivity,
   filterByDayRange,
+  parseMoney,
   relativeTime,
   verbIcon,
 } from '@/data/activity';
@@ -533,5 +534,48 @@ describe('filterByDayRange', () => {
 
   it('returns nothing when the range misses every row', () => {
     expect(filterByDayRange(feed, day('2026-08-11'), day('2026-08-13'))).toEqual([]);
+  });
+});
+
+// An activity payload is untyped JSON: a bad amount must render as no amount,
+// never as a crashed feed, and a missing or malformed currency falls back to
+// the caller's default.
+describe('parseMoney', () => {
+  it('trims a padded amount and reads it as minor units', () => {
+    expect(parseMoney({ amount: ' 1500 ', currency: 'EUR' })).toEqual({
+      amount: 1500n,
+      currency: 'EUR',
+    });
+  });
+
+  it('falls back to the caller’s currency when the payload has none, or a malformed one', () => {
+    expect(parseMoney({ amount: '1500' }, 'AED')).toEqual({ amount: 1500n, currency: 'AED' });
+    expect(parseMoney({ amount: '1500', currency: 'inr' }, 'AED')?.currency).toBe('AED');
+    expect(parseMoney({ amount: '1500', currency: 'Rupees' })?.currency).toBe('INR');
+    expect(parseMoney({ amount: '1500', currency: 42 })?.currency).toBe('INR');
+  });
+
+  it('keeps any well-formed three-letter code, known or not', () => {
+    // The check is ISO-4217 *shape*, not a registry lookup — so 'XXX' (the ISO
+    // "no currency" code) is carried through rather than replaced.
+    expect(parseMoney({ amount: ' 1500 ', currency: 'XXX' }, 'INR')).toEqual({
+      amount: 1500n,
+      currency: 'XXX',
+    });
+  });
+
+  it('returns null for an amount that is not an integer string', () => {
+    expect(parseMoney({ amount: '1.5' })).toBeNull();
+    expect(parseMoney({ amount: 12 })).toBeNull();
+    expect(parseMoney({ amount: '' })).toBeNull();
+    expect(parseMoney({ amount: '   ' })).toBeNull();
+    expect(parseMoney({ amount: '12abc' })).toBeNull();
+  });
+
+  it('returns null for a payload that is not an object', () => {
+    expect(parseMoney(null)).toBeNull();
+    expect(parseMoney('1500')).toBeNull();
+    expect(parseMoney(undefined)).toBeNull();
+    expect(parseMoney({})).toBeNull();
   });
 });
