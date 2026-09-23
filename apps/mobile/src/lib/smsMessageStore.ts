@@ -21,8 +21,9 @@
  *     the two cannot end up in different states.
  *
  * WHAT SYNCS INSTEAD. When somebody ticks rows here and places them in a group,
- * the *facts* become captures and expenses the ordinary way — amount, shop,
- * day, card tail. The body stays here. `lib/smsDrafts.ts` states that rule at
+ * the *facts* become an expense the ordinary way — amount, shop, day. The body
+ * stays here, and so do the drafts made from these messages until they are
+ * used (`lib/smsDraftStore`). `lib/smsDrafts.ts` states that rule at
  * length and enforces it; this is where the other half of it lives, which is
  * that a body has somewhere to be other than nowhere.
  *

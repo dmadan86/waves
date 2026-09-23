@@ -3,9 +3,10 @@
  *
  * `smsScan.test.ts` covers the decisions a scan makes; this covers the wiring
  * that strings them together in `runScan`: what the device store already knows
- * is not re-sorted, what the account already has a capture for is not drafted
- * again, one draft that will not go down does not take the others with it, and
- * none of it ever throws — the callers are a screen, a foreground effect and a
+ * is not re-sorted, what the account already has a capture or a local draft for
+ * is not drafted again, one draft that will not go down does not take the
+ * others with it, drafts go to this phone's draft store and never onto the
+ * sync queue, and none of it ever throws — the callers are a screen, a foreground effect and a
  * headless WorkManager wake-up, and none of them can do anything with one.
  */
 
@@ -23,6 +24,9 @@ const h = vi.hoisted(() => ({
   capturedKeys: [] as string[],
   hydrated: true,
   hydrate: vi.fn(async () => {}),
+  /** Draft-store disk writes, in order; `failNext` makes the next one throw. */
+  draftWrites: vi.fn(),
+  failNextDraftWrite: false,
 }));
 
 // `deviceGateReason` reaches React Native through a runtime `require` (so an
@@ -70,6 +74,35 @@ vi.mock('@/data/hooks', () => ({
     description: input.description,
   }),
 }));
+// The real draft cache over a memory backend: what `runScan` writes is then
+// visible through the same API Review reads.
+vi.mock('@/lib/smsDraftStore', async () => {
+  const { createDraftCache } = await import('@/lib/smsDraftCache');
+  const disk = new Map<string, Map<string, unknown>>();
+  return {
+    smsDrafts: createDraftCache({
+      async load(ownerId) {
+        return new Map((disk.get(ownerId) ?? new Map()) as Map<string, never>);
+      },
+      async write(ownerId, captureId, entry) {
+        h.draftWrites(captureId, entry);
+        if (h.failNextDraftWrite) {
+          h.failNextDraftWrite = false;
+          throw new Error('draft store write failed');
+        }
+        let map = disk.get(ownerId);
+        if (!map) disk.set(ownerId, (map = new Map()));
+        map.set(captureId, entry);
+      },
+      async forgetOwner(ownerId) {
+        disk.delete(ownerId);
+      },
+      async forgetEverything() {
+        disk.clear();
+      },
+    }),
+  };
+});
 vi.mock('@/sync', () => ({
   syncEngine: {
     getState: () => ({ hydrated: h.hydrated, mirror: {}, queue: [] }),
@@ -85,6 +118,7 @@ vi.mock('@waves/core', async (importOriginal) => ({
 }));
 
 const { deviceGatesOpen, runScan, scanFor } = await import('@/lib/smsScan');
+const { smsDrafts } = await import('@/lib/smsDraftStore');
 const { ScanScope, scanMaxCount, scanWindow } = await import('@/lib/smsScanPlan');
 
 const sms = (body: string): SmsMessage => ({
@@ -109,7 +143,10 @@ const keyOf = (message: SmsMessage): string => {
 
 const WINDOW = { from: '2026-03-01', to: '2026-03-10' };
 
-beforeEach(() => {
+beforeEach(async () => {
+  await smsDrafts.forgetEverything();
+  h.draftWrites.mockReset();
+  h.failNextDraftWrite = false;
   reactNative.Platform.OS = 'android';
   h.read.mockReset();
   h.knownKeys.mockReset().mockResolvedValue([]);
@@ -127,7 +164,7 @@ describe('runScan', () => {
     h.read.mockResolvedValue({ ok: true, messages: [KNOWN, CAPTURED, FRESH_A, FRESH_B] });
     h.knownKeys.mockResolvedValue([keyOf(KNOWN)]);
     h.capturedKeys = [keyOf(CAPTURED)];
-    h.enqueue.mockRejectedValueOnce(new Error('queue write failed'));
+    h.failNextDraftWrite = true;
     const progress: string[] = [];
 
     // When the scan runs…
@@ -149,8 +186,10 @@ describe('runScan', () => {
     expect(result.expenses).toBe(3);
     expect(result.income).toBe(0);
     // Two drafts were attempted (the captured one never was), one went down.
-    expect(h.enqueue).toHaveBeenCalledTimes(2);
+    expect(h.draftWrites).toHaveBeenCalledTimes(2);
     expect(result.drafted).toBe(1);
+    // And not one of them went near the sync queue.
+    expect(h.enqueue).not.toHaveBeenCalled();
     expect(result.finishedAt).not.toBeNull();
     expect(progress[0]).toBe('reading');
     expect(progress).toContain('sorting');
@@ -193,7 +232,7 @@ describe('runScan', () => {
     expect(h.read).not.toHaveBeenCalled();
   });
 
-  it('loads the queue from disk before appending drafts to it', async () => {
+  it('loads the mirror from disk before deciding what is already drafted', async () => {
     h.hydrated = false;
     h.read.mockResolvedValue({ ok: true, messages: [FRESH_A] });
 
@@ -201,8 +240,50 @@ describe('runScan', () => {
 
     expect(h.hydrate).toHaveBeenCalledTimes(1);
     expect(h.hydrate.mock.invocationCallOrder[0]!).toBeLessThan(
-      h.enqueue.mock.invocationCallOrder[0]!,
+      h.draftWrites.mock.invocationCallOrder[0]!,
     );
+  });
+
+  it('writes drafts to this phone only: into the draft store, never a capture.create', async () => {
+    h.read.mockResolvedValue({ ok: true, messages: [FRESH_A, FRESH_B] });
+
+    const result = await runScan({ ownerId: 'owner-1', window: WINDOW, maxCount: 50 });
+
+    expect(result.drafted).toBe(2);
+    expect(h.enqueue).not.toHaveBeenCalled();
+    const drafts = smsDrafts.openDrafts('owner-1');
+    expect(drafts.map((row) => row.id).sort()).toEqual(
+      [`capture-${keyOf(FRESH_A)}`, `capture-${keyOf(FRESH_B)}`].sort(),
+    );
+    // An inbox draft carries no body.
+    expect(drafts.every((row) => row.raw_text === null && row.local === true)).toBe(true);
+  });
+
+  it('does not re-draft a message this phone already holds a draft for', async () => {
+    // Given a local draft for FRESH_A, already waiting in Review under another id
+    // (a paste, say) — only its dedupe key says which message it is.
+    await smsDrafts.put('owner-1', {
+      id: 'pasted-earlier',
+      created_at: '2026-03-05T00:00:00.000Z',
+      parsed: { source: 'sms', dedupeKey: keyOf(FRESH_A) },
+    } as never);
+    h.read.mockResolvedValue({ ok: true, messages: [FRESH_A, FRESH_B] });
+
+    const result = await runScan({ ownerId: 'owner-1', window: WINDOW, maxCount: 50 });
+
+    expect(result.drafted).toBe(1);
+    expect(h.draftWrites).toHaveBeenCalledTimes(2); // the seed above, and FRESH_B
+  });
+
+  it('does not re-draft a message whose draft was already used or dismissed', async () => {
+    // A tombstone keeps no dedupe key — only the id the message determines.
+    await smsDrafts.remove('owner-1', `capture-${keyOf(FRESH_B)}`);
+    h.read.mockResolvedValue({ ok: true, messages: [FRESH_B] });
+
+    const result = await runScan({ ownerId: 'owner-1', window: WINDOW, maxCount: 50 });
+
+    expect(result.drafted).toBe(0);
+    expect(smsDrafts.openDrafts('owner-1')).toEqual([]);
   });
 });
 

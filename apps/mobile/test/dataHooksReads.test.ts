@@ -39,6 +39,11 @@ vi.mock(
   async () => (await import('./support/hookHarness')).fakeReactQuery,
 );
 vi.mock('@/sync', async () => (await import('./support/hookHarness')).fakeSync);
+// The data hooks read this device's local SMS drafts; the real store opens
+// SQLite and the keystore, so it is the real cache over memory here.
+vi.mock('@/lib/smsDraftStore', async () =>
+  (await import('./support/memoryDraftStore')).memoryDraftStoreModule(),
+);
 vi.mock('expo-crypto', () => ({ randomUUID: () => 'uuid-fixed' }));
 // `@/lib/phone` reads the device region from here; the real module pulls React Native.
 vi.mock('@/i18n', () => ({ deviceCountry: () => 'IN' }));

@@ -226,3 +226,42 @@ describe('capture.assign against the expense it names', () => {
     expect(scoped.update).not.toHaveBeenCalled();
   });
 });
+
+describe('capture.create of an SMS draft from an older app build', () => {
+  function smsCreate(clientMutationId: string) {
+    const envelope = createCapture(clientMutationId) as unknown as {
+      payload: Record<string, unknown>;
+    };
+    envelope.payload = {
+      ...envelope.payload,
+      description: 'SWIGGY',
+      parsed: { source: 'sms', channel: 'inbox', sender: 'AX-HDFCBK', accountTail: '1234' },
+    };
+    return envelope as never;
+  }
+
+  it('acknowledges it as applied, so the old phone’s queue clears, and stores nothing', async () => {
+    const scoped = caller();
+    const session = new SyncSession(scoped.client, service().client, OWNER);
+
+    const outcome = await session.apply(smsCreate('mutation-sms-1'));
+
+    // Applied — never rejected: a refusal would sit in the old app's queue.
+    expect(outcome).toMatchObject({ status: 'applied', result: { captureId: CAPTURE_ID } });
+    // And no row, so no other device on the account ever pulls it.
+    expect(scoped.insert).not.toHaveBeenCalled();
+  });
+
+  it('still stores a capture from any other source', async () => {
+    const scoped = caller();
+    const session = new SyncSession(scoped.client, service().client, OWNER);
+    const envelope = createCapture('mutation-voice-1') as unknown as {
+      payload: Record<string, unknown>;
+    };
+    envelope.payload = { ...envelope.payload, parsed: { source: 'voice' } };
+
+    await session.apply(envelope as never);
+
+    expect(scoped.insert).toHaveBeenCalledTimes(1);
+  });
+});
