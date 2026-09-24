@@ -23,7 +23,7 @@ import { claimCode } from './oauthClaim';
 import { confirmPhoneCode, sendPhoneCode } from './phoneAuth';
 import { lockPersonal, syncPersonalAccount } from './personalLock';
 import { refreshPushToken, revokePushToken } from './push';
-import { backend } from './backend';
+import { backend, peekSession } from './backend';
 // A leaf module with no imports of its own, reached directly rather than
 // through `@/sync` — the sync barrel pulls in `SyncProvider`, which imports
 // this file, and that circle is not worth one function.
@@ -389,14 +389,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // ran on the happy path. A failure to read a session is a signed-out
     // launch, not a dead one: clear it and let the auth gate send them to
     // sign-in.
+    // Open on the session saved on this phone, straight from the keystore,
+    // rather than waiting for `getSession` — which refreshes an expired token
+    // over the network first, and held the launch on a spinner for as long as
+    // that took. `getSession` still lands below and has the final word; this
+    // only answers "who is signed in" sooner. `settled` stops a slow peek from
+    // overwriting what the real answer has already said.
+    let settled = false;
+    void peekSession().then((stored) => {
+      if (!active || settled || !stored) return;
+      syncPersonalAccount(stored.user.id);
+      setSession(stored);
+      setLoading(false);
+    });
+
     backend.auth
       .getSession()
       .then(({ data }) => {
+        settled = true;
         if (!active) return;
         syncPersonalAccount(data.session?.user?.id ?? null);
         setSession(data.session);
       })
       .catch((caught) => {
+        settled = true;
         reportHandled(caught, 'auth.getSession');
       })
       .finally(() => {
@@ -411,6 +427,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // ledger's unlock is module-scoped, so it would outlive the unmounted
       // tree and greet the next account with no check at all. Keyed on the user
       // id, so a switch of account counts too and a token refresh does not.
+      settled = true;
       syncPersonalAccount(next?.user?.id ?? null);
       setSession(next);
     });

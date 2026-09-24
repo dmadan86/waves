@@ -1,6 +1,6 @@
 import 'react-native-url-polyfill/auto';
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type Session } from '@supabase/supabase-js';
 import { AppState, Platform } from 'react-native';
 
 import { secureAuthStorage } from './secureStorage';
@@ -70,4 +70,47 @@ if (!isServer && supabaseConfigured) {
     if (state === 'active') void supabase.auth.startAutoRefresh();
     else void supabase.auth.stopAutoRefresh();
   });
+}
+
+/**
+ * The session this phone saved last time, read straight from the keystore
+ * without going to the network.
+ *
+ * `getSession` refreshes an expired access token before it resolves, and the
+ * access token lives an hour — so every launch after a phone has sat for a
+ * while waited on a network round trip before the app could decide it was
+ * signed in. On a slow connection that was seconds of spinner in front of a
+ * dashboard whose data was already on the device.
+ *
+ * Who is signed in is enough to open the app: every network call goes through
+ * the client, which refreshes the token itself before it sends anything. So
+ * this answers the gate at once, and `getSession` still lands afterwards and
+ * has the final word — a refresh token the server refused signs them out then.
+ *
+ * Null for anything it does not recognise as a whole session. Never throws.
+ */
+export async function peekStoredSession(): Promise<Session | null> {
+  if (isServer || !supabaseConfigured) return null;
+  try {
+    // The client's own key (`sb-<project>-auth-token`); read it rather than
+    // re-derive it, so a custom `storageKey` later cannot drift from this.
+    const key = (supabase.auth as unknown as { storageKey?: unknown }).storageKey;
+    if (typeof key !== 'string') return null;
+    const raw = await secureAuthStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { currentSession?: unknown } | null;
+    // Older clients wrapped the session as `{ currentSession, expiresAt }`.
+    const candidate = (parsed?.currentSession ?? parsed) as Partial<Session> | null;
+    if (
+      !candidate ||
+      typeof candidate.access_token !== 'string' ||
+      typeof candidate.refresh_token !== 'string' ||
+      typeof candidate.user?.id !== 'string'
+    ) {
+      return null;
+    }
+    return candidate as Session;
+  } catch {
+    return null;
+  }
 }
