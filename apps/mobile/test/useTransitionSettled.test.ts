@@ -50,6 +50,24 @@ describe('useTransitionSettled', () => {
     expect(view.result.current).toBe(false);
   });
 
+  it('waits past the short fallback while a push is still sliding in', () => {
+    const view = renderHook(() => useTransitionSettled(450, 1500));
+    nav.listeners.get('transitionStart')!({ data: { closing: false } });
+    vi.advanceTimersByTime(1000);
+    expect(view.result.current).toBe(false);
+    nav.listeners.get('transitionEnd')!({ data: { closing: false } });
+    expect(view.result.current).toBe(true);
+  });
+
+  it('settles on the long cap if a started push never reports its end', () => {
+    const view = renderHook(() => useTransitionSettled(450, 1500));
+    nav.listeners.get('transitionStart')!({ data: { closing: false } });
+    vi.advanceTimersByTime(1499);
+    expect(view.result.current).toBe(false);
+    vi.advanceTimersByTime(1);
+    expect(view.result.current).toBe(true);
+  });
+
   it('settles on the fallback when no transition event ever comes', () => {
     const view = renderHook(() => useTransitionSettled(450));
     vi.advanceTimersByTime(449);

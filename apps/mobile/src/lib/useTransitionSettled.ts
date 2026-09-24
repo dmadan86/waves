@@ -7,33 +7,46 @@
  * and lurches the rest of the way. Rendering a light placeholder until this
  * turns true, and the real content after, keeps the slide on its own frames.
  *
- * Listens for the stack's `transitionEnd`. A fallback timer covers any path
- * where that never arrives (no animation, a deep link that mounts the screen
- * without a push, a navigator that does not emit it), so content is never held
- * back for more than `fallbackMs`.
+ * Listens for the stack's `transitionEnd`. A short fallback covers a screen that
+ * was never pushed (no animation, a deep link); once a push has started, only
+ * its end settles it, with a long cap (`activeCapMs`) in case that event is
+ * ever lost, so content is never held back indefinitely.
  */
 import { useEffect, useState } from 'react';
 import { useNavigation } from 'expo-router';
 
-export function useTransitionSettled(fallbackMs = 450): boolean {
+export function useTransitionSettled(fallbackMs = 450, activeCapMs = 1500): boolean {
   const navigation = useNavigation();
   const [settled, setSettled] = useState(false);
 
   useEffect(() => {
     if (settled) return undefined;
-    const timer = setTimeout(() => setSettled(true), fallbackMs);
-    const unsubscribe = navigation.addListener(
-      // Typed per navigator; every stack emits it.
+    // Short: covers a screen that was never pushed (no animation, a deep link).
+    let timer = setTimeout(() => setSettled(true), fallbackMs);
+    type Event = { data?: { closing?: boolean } };
+    // A push is under way: the short timer would fire mid-slide on a slow
+    // phone and put the heavy work right back on the animation's frames. Wait
+    // for its end instead, with a long cap in case that event is ever lost.
+    const offStart = navigation.addListener(
+      'transitionStart' as never,
+      ((event: Event) => {
+        if (event?.data?.closing) return;
+        clearTimeout(timer);
+        timer = setTimeout(() => setSettled(true), activeCapMs);
+      }) as never,
+    );
+    const offEnd = navigation.addListener(
       'transitionEnd' as never,
-      ((event: { data?: { closing?: boolean } }) => {
+      ((event: Event) => {
         if (!event?.data?.closing) setSettled(true);
       }) as never,
     );
     return () => {
       clearTimeout(timer);
-      unsubscribe();
+      offStart();
+      offEnd();
     };
-  }, [navigation, settled, fallbackMs]);
+  }, [navigation, settled, fallbackMs, activeCapMs]);
 
   return settled;
 }
