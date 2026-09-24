@@ -2484,6 +2484,8 @@ export interface UiStrings {
     notInvolved: string;
     /** Detail-screen banner title when you are not a party to the bill. */
     notInvolvedTitle: string;
+    /** The small tag beside the total; the title and body are its spoken label. */
+    notInvolvedChip: string;
     /** Detail-screen banner body: this bill does not touch your balance. */
     notInvolvedBody: string;
     /** "edited twice" — the count is edits, so it starts at one. */
@@ -5482,6 +5484,7 @@ const en: UiStrings = {
     youBorrowed: 'you borrowed',
     notInvolved: 'not involved',
     notInvolvedTitle: "You're not in this split",
+    notInvolvedChip: 'Not in this split',
     notInvolvedBody: "You're viewing this as a group member — nothing here touches your balance.",
     editedTimes: { one: 'edited once', other: 'edited {n} times' },
     inCount: { one: 'In {n} expense', other: 'In {n} expenses' },
@@ -8460,6 +8463,7 @@ const ta: UiStrings = {
     youBorrowed: 'நீங்கள் வாங்கியது',
     notInvolved: 'உங்களுக்கு தொடர்பில்லை',
     notInvolvedTitle: 'இந்த பங்கீட்டில் நீங்கள் இல்லை',
+    notInvolvedChip: 'Not in this split',
     notInvolvedBody:
       'நீங்கள் குழு உறுப்பினராக இதைப் பார்க்கிறீர்கள் — இதில் எதுவும் உங்கள் இருப்பைத் தொடாது.',
     editedTimes: { one: 'ஒருமுறை திருத்தப்பட்டது', other: '{n} முறை திருத்தப்பட்டது' },
@@ -11428,6 +11432,7 @@ const hi: UiStrings = {
     youBorrowed: 'आपने लिए',
     notInvolved: 'आप इसमें नहीं',
     notInvolvedTitle: 'आप इस बँटवारे में नहीं हैं',
+    notInvolvedChip: 'Not in this split',
     notInvolvedBody:
       'आप इसे समूह सदस्य के रूप में देख रहे हैं — इसमें कुछ भी आपके बैलेंस को नहीं बदलता।',
     editedTimes: { one: 'एक बार संपादित', other: '{n} बार संपादित' },
@@ -14524,6 +14529,7 @@ const ar: UiStrings = {
     youBorrowed: 'اقترضت',
     notInvolved: 'لست ضمنها',
     notInvolvedTitle: 'أنت لست ضمن هذه القسمة',
+    notInvolvedChip: 'Not in this split',
     notInvolvedBody: 'أنت تشاهدها كعضو في المجموعة — لا شيء هنا يؤثّر على رصيدك.',
     editedTimes: {
       zero: 'لم يُعدّل',
