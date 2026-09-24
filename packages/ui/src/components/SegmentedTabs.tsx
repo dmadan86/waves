@@ -14,6 +14,13 @@ export interface SegmentedTab<T extends string> {
    * for every tab or for none.
    */
   readonly icon?: (color: string) => ReactNode;
+  /**
+   * How many things are behind the tab, drawn as a small pill after the word
+   * rather than written into it. "ADDED BY YOU 3" read as one long label and
+   * left its tab looking crowded next to a short neighbour; a pill reads as a
+   * count at a glance. Zero or absent draws nothing.
+   */
+  readonly count?: number;
 }
 
 /**
@@ -39,6 +46,12 @@ export function SegmentedTabs<T extends string>({
   tabs: readonly SegmentedTab<T>[];
 }) {
   const theme = useTheme();
+  // Three or more tabs with a glyph each do not fit side by side on a phone:
+  // at iPhone width a third of the row is ~117pt, and a glyph, its gap and an
+  // upper-case word take nearly all of it, so the labels ran into each other.
+  // Those stack the glyph over the word, the fixed-tab layout Material uses,
+  // which gives each word its tab's whole width. Two tabs have room inline.
+  const stacked = tabs.length >= 3 && tabs.every((tab) => tab.icon);
 
   return (
     <View
@@ -57,25 +70,59 @@ export function SegmentedTabs<T extends string>({
             onPress={() => onChange(tab.value)}
             accessibilityRole="tab"
             accessibilityState={{ selected: live }}
-            accessibilityLabel={tab.label}
+            accessibilityLabel={tab.count ? `${tab.label}, ${tab.count}` : tab.label}
             style={({ pressed }) => ({
               flex: 1,
-              flexDirection: 'row',
+              flexDirection: stacked ? 'column' : 'row',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: theme.spacing.sm,
-              paddingVertical: theme.spacing.md,
+              gap: stacked ? theme.spacing.xs : theme.spacing.sm,
+              paddingVertical: stacked ? theme.spacing.sm : theme.spacing.md,
+              paddingHorizontal: theme.spacing.xs,
               opacity: pressed ? 0.6 : 1,
             })}
           >
             {tab.icon?.(live ? theme.color.brand : theme.color.textFaint)}
-            <Text
-              variant="caption"
-              tone={live ? 'brand' : 'faint'}
-              style={{ letterSpacing: 0.8, fontWeight: live ? '700' : '600' }}
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: theme.spacing.xs,
+                flexShrink: 1,
+              }}
             >
-              {tab.label.toUpperCase()}
-            </Text>
+              <Text
+                variant="caption"
+                tone={live ? 'brand' : 'faint'}
+                numberOfLines={1}
+                style={{ letterSpacing: 0.8, fontWeight: live ? '700' : '600', flexShrink: 1 }}
+              >
+                {tab.label.toUpperCase()}
+              </Text>
+              {tab.count ? (
+                <View
+                  style={{
+                    minWidth: 20,
+                    height: 20,
+                    paddingHorizontal: 6,
+                    borderRadius: 10,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: live ? theme.color.brand : theme.color.surfaceMuted,
+                  }}
+                >
+                  <Text
+                    variant="micro"
+                    style={{
+                      fontWeight: '700',
+                      color: live ? theme.color.onBrand : theme.color.textMuted,
+                    }}
+                  >
+                    {tab.count > 99 ? '99+' : String(tab.count)}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
             {/* Drawn whether or not it is live, so the label does not shift by
                 two points as you move between tabs. */}
             <View

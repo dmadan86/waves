@@ -195,10 +195,6 @@ const CLOCK_TICK = 60_000;
  * own words and possibly a photograph of the bill, so it keeps the confirm it
  * has always had.
  */
-/** "Found for you · 14" — the count beside the word, never instead of it. */
-function countLabel(word: string, count: number): string {
-  return count === 0 ? word : `${word} ${count}`;
-}
 
 function wasFound(capture: CaptureRow): boolean {
   const parsed = capture.parsed;
@@ -1521,6 +1517,21 @@ export default function CapturesScreen() {
   );
 
   const closeMenu = useCallback((): void => setMenu(null), []);
+  // What a menu row does, held until the menu has actually closed. On iOS a
+  // sheet opened while this one is still closing (the group picker, a confirm)
+  // is presented on top of it and then dismissed along with it, which left the
+  // whole screen deaf to taps. So a row closes the menu and hands its action
+  // here; the menu's `onClosed` runs it.
+  const afterMenu = useRef<(() => void) | null>(null);
+  const closeMenuThen = useCallback((action: () => void): void => {
+    afterMenu.current = action;
+    setMenu(null);
+  }, []);
+  const runAfterMenu = useCallback((): void => {
+    const action = afterMenu.current;
+    afterMenu.current = null;
+    action?.();
+  }, []);
   const openCaptureMenu = useCallback(
     (capture: CaptureRow): void => setMenu({ kind: 'capture', capture }),
     [],
@@ -1932,7 +1943,8 @@ export default function CapturesScreen() {
                 // First, because it is the one this screen opens on: the finite
                 // half, the spends this person caught on purpose.
                 value: 'added' as ReviewTabId,
-                label: countLabel(t.captures.tabAdded, byTab.added.length),
+                label: t.captures.tabAdded,
+                count: byTab.added.length,
                 icon: (color) => (
                   <Ionicons name="create-outline" size={iconSize.md} color={color} />
                 ),
@@ -1946,7 +1958,8 @@ export default function CapturesScreen() {
                 // from was a bank message, so the source is a true name on both
                 // and a more useful one than the favour: it says at a glance
                 // which half of Review fills itself.
-                label: countLabel(t.captures.tabSms, byTab.found.length),
+                label: t.captures.tabSms,
+                count: byTab.found.length,
                 icon: (color) => (
                   <Ionicons name="chatbubbles-outline" size={iconSize.md} color={color} />
                 ),
@@ -2359,6 +2372,7 @@ export default function CapturesScreen() {
       <Sheet
         visible={menu !== null}
         onClose={closeMenu}
+        onClosed={runAfterMenu}
         padded={false}
         closeLabel={t.common.close}
         style={{ paddingHorizontal: theme.spacing.xl, gap: theme.spacing.xs }}
@@ -2380,8 +2394,7 @@ export default function CapturesScreen() {
                   tone="brand"
                   onPress={() => {
                     const capture = menuCapture;
-                    setMenu(null);
-                    fileWhereItSays(capture);
+                    closeMenuThen(() => fileWhereItSays(capture));
                   }}
                 />
                 <Divider />
@@ -2393,8 +2406,7 @@ export default function CapturesScreen() {
               tone={menuDestinationName ? 'default' : 'brand'}
               onPress={() => {
                 const capture = menuCapture;
-                setMenu(null);
-                openAssign(capture);
+                closeMenuThen(() => openAssign(capture));
               }}
             />
             <Divider />
@@ -2413,8 +2425,9 @@ export default function CapturesScreen() {
                   label={t.smsInbox.seeMessage}
                   onPress={() => {
                     const key = menuMessageKey;
-                    setMenu(null);
-                    router.push(`/captures/sms/${encodeURIComponent(key)}` as never);
+                    closeMenuThen(() =>
+                      router.push(`/captures/sms/${encodeURIComponent(key)}` as never),
+                    );
                   }}
                 />
                 <Divider />
@@ -2425,8 +2438,7 @@ export default function CapturesScreen() {
               label={t.captures.edit}
               onPress={() => {
                 const capture = menuCapture;
-                setMenu(null);
-                openEdit(capture);
+                closeMenuThen(() => openEdit(capture));
               }}
             />
             <Divider />
@@ -2436,8 +2448,7 @@ export default function CapturesScreen() {
               tone="negative"
               onPress={() => {
                 const capture = menuCapture;
-                setMenu(null);
-                void dismiss(capture);
+                closeMenuThen(() => void dismiss(capture));
               }}
             />
           </>
@@ -2454,8 +2465,7 @@ export default function CapturesScreen() {
               tone="brand"
               onPress={() => {
                 const items = menu.items;
-                setMenu(null);
-                openAssignBatch(items);
+                closeMenuThen(() => openAssignBatch(items));
               }}
             />
             <Divider />
@@ -2465,8 +2475,7 @@ export default function CapturesScreen() {
               tone="negative"
               onPress={() => {
                 const items = menu.items;
-                setMenu(null);
-                void confirmDeleteBatch(items);
+                closeMenuThen(() => void confirmDeleteBatch(items));
               }}
             />
           </>
