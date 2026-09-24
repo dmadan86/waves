@@ -464,7 +464,7 @@ export default function FriendsScreen() {
         style={{ flex: 1 }}
       >
         {people.isLoading ? (
-          <View style={{ paddingHorizontal: theme.spacing.xl, paddingTop: theme.spacing.lg }}>
+          <View style={{ paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.lg }}>
             <PeopleSkeleton />
           </View>
         ) : rows.length === 0 ? (
@@ -473,7 +473,7 @@ export default function FriendsScreen() {
             style={{
               flex: 1,
               justifyContent: 'center',
-              paddingHorizontal: theme.spacing.xl,
+              paddingHorizontal: theme.spacing.lg,
               paddingBottom: clearance,
             }}
           >
@@ -496,7 +496,7 @@ export default function FriendsScreen() {
             getItemType={(item) => (item.entries.length === 1 ? 'single' : 'multi')}
             drawDistance={1500}
             contentContainerStyle={{
-              paddingHorizontal: theme.spacing.xl,
+              paddingHorizontal: theme.spacing.lg,
               paddingTop: theme.spacing.lg,
               paddingBottom: clearance,
             }}
