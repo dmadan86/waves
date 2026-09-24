@@ -22,6 +22,7 @@
       "supportsTablet": false,
       "bundleIdentifier": "app.wavs.mobile",
       "appleTeamId": "JBAY4E524Q",
+      "associatedDomains": ["applinks:app.wavs.co.in"],
       "usesAppleSignIn": true,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
