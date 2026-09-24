@@ -102,6 +102,7 @@
       "expo-sqlite",
       "expo-apple-authentication",
       "expo-quick-actions",
+      "./plugins/withAnimatedSplashMark",
       [
         "expo-splash-screen",
         {
@@ -148,7 +149,6 @@
       "./plugins/withGradleMemory",
       "./plugins/withSideBySideDebug",
       "./plugins/withReleaseSigning",
-      "./plugins/withBareSplashField",
       "./plugins/withSmsReader",
       "./plugins/withWavesWidgets",
       "./plugins/withWavesWear",

@@ -47,10 +47,10 @@ describe('the launch field', () => {
     expect(colourOf(componentSource, 'SPLASH_BG')).toBe(splashPlugin?.[1].backgroundColor);
   });
 
-  it('shows nothing on the native half, whatever the config calls it', () => {
-    // The mark draws itself on (`WaveMark`), and a logo cannot arrive if the
-    // native splash has already spent a second showing it finished. So the
-    // native half is a bare field.
+  it('gives expo-splash-screen an image that draws nothing', () => {
+    // The native half's mark is the animated drawable written by
+    // plugins/withAnimatedSplashMark.js (see splashNativeMark.test.ts), not an
+    // image from this config, so the configured image must paint nothing.
     //
     // It is configured with an `image` all the same, because the plugin does
     // not treat "no image" as "no image": it deletes the splash drawables and
