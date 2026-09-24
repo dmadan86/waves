@@ -818,7 +818,7 @@ function FriendsHero({
         <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
           <View ref={pillRef} collapsable={false}>
             <HeroPillButton
-              icon="add"
+              icon="person-add-outline"
               label={t.tabs.friendShort}
               spokenLabel={t.tabs.addSomeone}
               gradient={theme.gradient.brand}
@@ -1671,9 +1671,10 @@ function SortMenu({
 }
 
 /**
- * The `+` menu — the same corner dropdown SortMenu uses, holding the three ways
- * to add a person: type a name, pull from contacts, scan an invite QR. One door
- * in place of the header's former row of bare glyphs.
+ * The "Add people" menu, dropped from its pill: pull from contacts, find by
+ * address or number, scan an invite QR. Typing a bare name is not here — it
+ * lives on the empty Friends screen and inside the contacts picker ("someone
+ * not in my contacts"), where it is the answer rather than a first choice.
  */
 function AddMenu({
   open,
@@ -1719,12 +1720,6 @@ function AddMenu({
     icon: React.ReactNode;
     onPress: () => void;
   }[] = [
-    {
-      key: 'add',
-      label: t.addPerson.title,
-      icon: <Ionicons name="person-add-outline" size={iconSize.lg} color={theme.color.text} />,
-      onPress: () => go('/friends/add-person'),
-    },
     {
       key: 'contacts',
       label: t.tabs.fromContacts,

@@ -57,8 +57,8 @@ you are owed, **Net payable · INR** for what you owe — and when you are both
 owed and owing, swipe it sideways to see the other one. Other currencies sit
 underneath the figure in small type.
 
-Under the balance, **+ Friend** is how you add somebody: **Add a person**,
-**From contacts**, **Find someone**, or **Scan to join**. When Waves spots the
+Under the balance, **Add people** is how you add somebody: **From contacts**,
+**Find someone**, or **Scan to join**. When Waves spots the
 same guest in more than one of your groups, a merge button appears beside it
 with the number of possible duplicates on it; see
 [Merging duplicates](./people-and-placeholders.md#merging-duplicates).
