@@ -16,20 +16,13 @@
 
 import { memo, useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import {
-  Pressable,
-  ScrollView,
-  useWindowDimensions,
-  View,
-  type NativeScrollEvent,
-  type NativeSyntheticEvent,
-} from 'react-native';
+import { Animated, Pressable, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { directionalIcon, iconSize, isRtlLayout, Text, type TintName, useTheme } from '@waves/ui';
 
+import { TourPager, type TourPagerHandle } from '@/components/TourPager';
 import { useStrings } from '@/i18n';
-import { pageForSlide, pageOrder, slideForPage } from '@/lib/carousel';
 
 interface Slide {
   readonly tint: TintName;
@@ -54,48 +47,35 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
   const insets = useSafeAreaInsets();
   const { t } = useStrings();
   const { width, height } = useWindowDimensions();
-  const scroller = useRef<ScrollView>(null);
+  const pager = useRef<TourPagerHandle>(null);
+  // The card the pager has settled on: it decides the button's label.
   const [index, setIndex] = useState(0);
+  // Where the pager is between cards, continuously, so the dots move with the
+  // page under the thumb rather than jumping once it lands — or, from the
+  // arrow, before it has even moved.
+  const [progress] = useState(() => new Animated.Value(0));
   const rtl = isRtlLayout();
-  const placed = useRef(false);
 
   const goTo = (next: number) => {
     if (next >= SLIDES.length) {
       onDone();
       return;
     }
-    setIndex(next);
-    scroller.current?.scrollTo({
-      x: pageForSlide(next, SLIDES.length, rtl) * width,
-      animated: true,
-    });
-  };
-
-  // The page under the thumb decides the index, so a drag and a tap on the
-  // arrow cannot disagree about which card is showing.
-  //
-  // Driven by scroll position rather than by the momentum-end event: a slow
-  // drag that is released without a flick never produces momentum, and the
-  // dots would sit under the wrong card until the next tap.
-  const onScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const page = Math.round(event.nativeEvent.contentOffset.x / width);
-    const slide = slideForPage(page, SLIDES.length, rtl);
-    if (slide !== index) setIndex(slide);
-  };
-
-  // Right to left the first card is the rightmost one, so the pager does not
-  // start where it is scrolled to. Done on content size rather than on layout:
-  // at layout time the three cards have not been measured and scrolling to the
-  // last of them is a no-op.
-  const onContentSizeChange = () => {
-    if (placed.current || !rtl) return;
-    placed.current = true;
-    scroller.current?.scrollTo({ x: pageForSlide(0, SLIDES.length, rtl) * width, animated: false });
+    pager.current?.goTo(next);
   };
 
   const isLast = index === SLIDES.length - 1;
-  // The dots take the ink of the card they sit over — that is the current one.
-  const activeInk = theme.tint[SLIDES[index]!.tint].ink;
+  // The dots take the ink of the card they sit over, blending between two as
+  // the page moves.
+  const inks = SLIDES.map((slide) => theme.tint[slide.tint].ink);
+  const dotInk =
+    SLIDES.length > 1
+      ? progress.interpolate({
+          inputRange: SLIDES.map((_, slideIndex) => slideIndex),
+          outputRange: inks,
+          extrapolate: 'clamp',
+        })
+      : inks[0]!;
 
   // The three cards, built once and held stable across `index` changes. Without
   // this the `.map` reran on every drag that crossed a page boundary (that is
@@ -105,7 +85,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
   // only the dots overlay below tracks it, and it lives in its own subtree.
   const cards = useMemo(
     () =>
-      pageOrder(SLIDES, rtl).map(({ slide, index: slideIndex }) => {
+      SLIDES.map((slide, slideIndex) => {
         // The words live in the string table; this file only knows the look.
         const copy = t.onboarding[slideIndex] ?? t.onboarding[0]!;
         return (
@@ -131,28 +111,14 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
 
   return (
     <View style={{ flex: 1 }}>
-      <ScrollView
-        ref={scroller}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        onScroll={onScroll}
-        onContentSizeChange={onContentSizeChange}
-        scrollEventThrottle={16}
-        // Crisp snap on release rather than a long floaty glide — the default
-        // Android deceleration made a paged tour feel like it was catching up
-        // with the thumb. No rubber-band glow at the ends either; there is
-        // nothing past the first or last card to reveal.
-        decelerationRate="fast"
-        overScrollMode="never"
-        bounces={false}
-        // Pinned left-to-right on purpose: see `@/lib/carousel`. The reversal is
-        // arithmetic there rather than three platforms' disagreeing opinions
-        // about what `contentOffset.x` means in a mirrored scroll view.
-        style={{ flex: 1, direction: 'ltr' }}
+      <TourPager
+        ref={pager}
+        rtl={rtl}
+        onProgress={(slide) => progress.setValue(slide)}
+        onSlideChange={setIndex}
       >
         {cards}
-      </ScrollView>
+      </TourPager>
 
       {/* The dots and the next arrow are the only things that track which card
           is showing, so they live here as one overlay rather than a copy baked
@@ -177,18 +143,25 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
         }}
       >
         <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
-          {SLIDES.map((dot, dotIndex) => (
-            <View
-              key={dot.tint}
-              style={{
-                height: 8,
-                width: dotIndex === index ? 24 : 8,
-                borderRadius: theme.radius.pill,
-                backgroundColor: activeInk,
-                opacity: dotIndex === index ? 1 : 0.3,
-              }}
-            />
-          ))}
+          {SLIDES.map((dot, dotIndex) => {
+            // 1 on this dot's card, falling to 0 a card away either side.
+            const near = {
+              inputRange: [dotIndex - 1, dotIndex, dotIndex + 1],
+              extrapolate: 'clamp' as const,
+            };
+            return (
+              <Animated.View
+                key={dot.tint}
+                style={{
+                  height: 8,
+                  width: progress.interpolate({ ...near, outputRange: [8, 24, 8] }),
+                  borderRadius: theme.radius.pill,
+                  backgroundColor: dotInk,
+                  opacity: progress.interpolate({ ...near, outputRange: [0.3, 1, 0.3] }),
+                }}
+              />
+            );
+          })}
         </View>
 
         {/* Text leads, glyph trails. A new user should read what the button does
