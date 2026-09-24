@@ -5,7 +5,6 @@ import { ActivityIndicator, ScrollView, View } from 'react-native';
 import {
   Badge,
   Button,
-  Callout,
   Card,
   directionalIcon,
   Divider,
@@ -26,6 +25,7 @@ import {
   saveNotificationPrefs,
   type NotificationPrefs,
 } from '@/data/api';
+import { DismissibleCallout } from '@/components/DismissibleCallout';
 import { useStrings, type UiStrings } from '@/i18n';
 import { friendlyError } from '@/lib/errors';
 import { useAuth } from '@/lib/auth';
@@ -279,15 +279,17 @@ export default function NotificationSettingsScreen() {
         {/* ADR-010: the competition is simultaneously spammy and silent. These
             defaults are the fix, and they are all off-switchable. The promise is
             a "read this" note, so it wears the app's canonical Callout shape
-            (info tone) rather than a hand-rolled brand banner. */}
-        <Callout
+            (info tone) rather than a hand-rolled brand banner. It says the
+            same thing on every visit, so it can be closed for good. */}
+        <DismissibleCallout
+          name="notifications.neverSpam"
           tone="info"
           icon={(color) => (
             <Ionicons name="shield-checkmark-outline" size={iconSize.md} color={color} />
           )}
         >
           {t.notifications.neverSpam}
-        </Callout>
+        </DismissibleCallout>
 
         {/* The master switch: nothing below fires until the phone itself is
             allowed to deliver, so this device-permission state leads. */}

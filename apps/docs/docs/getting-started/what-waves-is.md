@@ -46,7 +46,7 @@ and behind the **•••** menu on Home, which holds **Your account**,
 and **Take the tour again**.
 
 The menu is settings and places only. Scanning a group's invite QR is under
-**+ Friend** on Friends, scanning a bill is behind a long press on
+**Add people** on Friends, scanning a bill is behind a long press on
 **+ Expense**, and settling up happens inside the group you are settling.
 
 ## What it does without a signal

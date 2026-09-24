@@ -1422,7 +1422,7 @@ export interface UiStrings {
     /** Title of the header `+` menu and its primary empty-state button — the
         umbrella verb over add-a-person / from-contacts / scan. */
     addSomeone: string;
-    /** The hero pill's word: the plus does the verb. Spoken, the pill says addSomeone. */
+    /** The hero pill's label, beside a person-plus glyph. */
     friendShort: string;
     /** The Friends screen with nobody in it yet — not the same state as being
         square with people you do have, which is `allSquare` below. */
@@ -2484,6 +2484,8 @@ export interface UiStrings {
     notInvolved: string;
     /** Detail-screen banner title when you are not a party to the bill. */
     notInvolvedTitle: string;
+    /** The small tag beside the total; the title and body are its spoken label. */
+    notInvolvedChip: string;
     /** Detail-screen banner body: this bill does not touch your balance. */
     notInvolvedBody: string;
     /** "edited twice" — the count is edits, so it starts at one. */
@@ -4682,7 +4684,7 @@ const en: UiStrings = {
     fromContacts: 'From contacts',
     addFromContacts: 'Add from contacts',
     addSomeone: 'Add someone',
-    friendShort: 'Friend',
+    friendShort: 'Add people',
     noFriends: 'Your circle starts here',
     noFriendsBody:
       'Add the people you share costs with. They do not need the app — a name is enough to start.',
@@ -5490,6 +5492,7 @@ const en: UiStrings = {
     youBorrowed: 'you borrowed',
     notInvolved: 'not involved',
     notInvolvedTitle: "You're not in this split",
+    notInvolvedChip: 'Not in this split',
     notInvolvedBody: "You're viewing this as a group member — nothing here touches your balance.",
     editedTimes: { one: 'edited once', other: 'edited {n} times' },
     inCount: { one: 'In {n} expense', other: 'In {n} expenses' },
@@ -7617,7 +7620,7 @@ const ta: UiStrings = {
     fromContacts: 'தொடர்புகளிலிருந்து',
     addFromContacts: 'தொடர்புகளிலிருந்து சேர்',
     addSomeone: 'ஒருவரைச் சேர்',
-    friendShort: 'Friend',
+    friendShort: 'Add people',
     noFriends: 'உங்கள் வட்டம் இங்கே தொடங்குகிறது',
     noFriendsBody:
       'நீங்கள் செலவுகளைப் பகிர்பவர்களைச் சேருங்கள். அவர்களுக்கு ஆப் தேவையில்லை — ஒரு பெயர் போதும்.',
@@ -8472,6 +8475,7 @@ const ta: UiStrings = {
     youBorrowed: 'நீங்கள் வாங்கியது',
     notInvolved: 'உங்களுக்கு தொடர்பில்லை',
     notInvolvedTitle: 'இந்த பங்கீட்டில் நீங்கள் இல்லை',
+    notInvolvedChip: 'Not in this split',
     notInvolvedBody:
       'நீங்கள் குழு உறுப்பினராக இதைப் பார்க்கிறீர்கள் — இதில் எதுவும் உங்கள் இருப்பைத் தொடாது.',
     editedTimes: { one: 'ஒருமுறை திருத்தப்பட்டது', other: '{n} முறை திருத்தப்பட்டது' },
@@ -10626,7 +10630,7 @@ const hi: UiStrings = {
     fromContacts: 'संपर्कों से',
     addFromContacts: 'संपर्कों से जोड़ें',
     addSomeone: 'किसी को जोड़ें',
-    friendShort: 'Friend',
+    friendShort: 'Add people',
     noFriends: 'आपका सर्कल यहाँ से शुरू होता है',
     noFriendsBody:
       'जिनके साथ आप खर्च बाँटते हैं उन्हें जोड़ें। उन्हें ऐप की ज़रूरत नहीं — बस एक नाम काफ़ी है।',
@@ -11444,6 +11448,7 @@ const hi: UiStrings = {
     youBorrowed: 'आपने लिए',
     notInvolved: 'आप इसमें नहीं',
     notInvolvedTitle: 'आप इस बँटवारे में नहीं हैं',
+    notInvolvedChip: 'Not in this split',
     notInvolvedBody:
       'आप इसे समूह सदस्य के रूप में देख रहे हैं — इसमें कुछ भी आपके बैलेंस को नहीं बदलता।',
     editedTimes: { one: 'एक बार संपादित', other: '{n} बार संपादित' },
@@ -13603,7 +13608,7 @@ const ar: UiStrings = {
     fromContacts: 'من جهات الاتصال',
     addFromContacts: 'أضف من جهات الاتصال',
     addSomeone: 'إضافة شخص',
-    friendShort: 'Friend',
+    friendShort: 'Add people',
     noFriends: 'دائرتك تبدأ من هنا',
     noFriendsBody: 'أضف من تتشارك معهم المصاريف. لا يحتاجون إلى التطبيق — يكفي اسم للبدء.',
     allSquare: 'كل شيء متساوٍ',
@@ -14544,6 +14549,7 @@ const ar: UiStrings = {
     youBorrowed: 'اقترضت',
     notInvolved: 'لست ضمنها',
     notInvolvedTitle: 'أنت لست ضمن هذه القسمة',
+    notInvolvedChip: 'Not in this split',
     notInvolvedBody: 'أنت تشاهدها كعضو في المجموعة — لا شيء هنا يؤثّر على رصيدك.',
     editedTimes: {
       zero: 'لم يُعدّل',
