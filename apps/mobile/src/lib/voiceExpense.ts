@@ -1451,6 +1451,28 @@ function foldMinorUnits(text: string): string {
 }
 
 /**
+ * A minor amount spoken on its own, with no major part before it: "39 cents" is
+ * 0.39, not 39. Runs after {@link foldMinorUnits}, so "20 dollars 99 cents" has
+ * already been folded and never reaches here. Paise and pence each name one
+ * currency, so they become rupees and pounds; cents do not (dollar, euro, …), so
+ * the word is dropped and the group's currency applies. Fils is left alone — it
+ * is a hundredth of a dirham but a thousandth of a dinar.
+ */
+function foldBareMinorUnits(text: string): string {
+  return text.replace(
+    /(?<![\d.,])(\d+)\s+(paise|paisa|cents?|pence)\b/gi,
+    (_match, digits: string, word: string) => {
+      const minor = Number(digits);
+      const amount = `${Math.floor(minor / 100)}.${String(minor % 100).padStart(2, '0')}`;
+      const unit = word.toLowerCase();
+      if (unit.startsWith('pais')) return `${amount} rupees`;
+      if (unit === 'pence') return `${amount} pounds`;
+      return amount;
+    },
+  );
+}
+
+/**
  * Add up one run of number words: "five hundred and fifty" → 550, "hundred
  * point five" → 100.5.
  *
@@ -1632,8 +1654,8 @@ export function normalizeSpokenNumbers(text: string): string {
     return value === null ? run : String(value);
   });
   // Now that both parts are digits, fold a spoken minor amount ("… 50 paise")
-  // into the major one.
-  return foldMinorUnits(digitised);
+  // into the major one, then read one spoken alone ("39 cents") as a fraction.
+  return foldBareMinorUnits(foldMinorUnits(digitised));
 }
 
 /** A minor-unit word, for reading "… fifty paise" as part of an addition term. */

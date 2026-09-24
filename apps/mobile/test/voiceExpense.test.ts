@@ -389,6 +389,13 @@ describe('parseVoiceExpense', () => {
       // A qualified name must fold its cents too, not drop them
       ['twenty canadian dollars ninety nine cents', 20.99],
       ['five rupees five paise', 5.05],
+      // A minor amount on its own is a fraction, not whole units
+      ['39 cents', 0.39],
+      ['thirty nine cents coffee', 0.39],
+      ['coffee 5 cents', 0.05],
+      ['fifty paise toffee', 0.5],
+      ['99 pence gum', 0.99],
+      ['150 cents', 1.5],
       // Written digits with separators and decimals
       ['1,299.50 dollars', 1299.5],
       ['99.99 dollars', 99.99],
