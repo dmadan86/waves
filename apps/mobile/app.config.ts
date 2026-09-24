@@ -178,8 +178,15 @@ export default ({ config: fromAppJson }: ConfigContext): ExpoConfig => {
   const plist = googleServicesPlist();
   const iosBase = plist ? { ...config.ios, googleServicesFile: plist } : config.ios;
 
-  // Fold the native Maps SDK key into each platform's `config` block when one is
-  // set, so `expo prebuild` writes it into the manifest / Info.plist.
+  // The native Maps SDK key, when one is set. Android takes it through Expo's
+  // own `android.config.googleMaps`, which writes the manifest entry.
+  //
+  // iOS does not, any more. Expo's `ios.config.googleMapsApiKey` also adds a
+  // `react-native-google-maps` pod, which react-native-maps stopped shipping
+  // (it is the `react-native-maps/Google` subspec now), so with a key set every
+  // iOS prebuild failed at `pod install`. The library's own config plugin does
+  // the whole job the current way: the subspec, `GMSApiKey` in the Info.plist,
+  // and `GMSServices.provideAPIKey` at launch.
   const androidKey = googleMapsKey('android');
   const iosKey = googleMapsKey('ios');
   const withPush: ExpoConfig = {
@@ -188,9 +195,10 @@ export default ({ config: fromAppJson }: ConfigContext): ExpoConfig => {
     android: androidKey
       ? { ...androidBase, config: { ...androidBase?.config, googleMaps: { apiKey: androidKey } } }
       : androidBase,
-    ios: iosKey
-      ? { ...iosBase, config: { ...iosBase?.config, googleMapsApiKey: iosKey } }
-      : iosBase,
+    ios: iosBase,
+    plugins: iosKey
+      ? [...(config.plugins ?? []), ['react-native-maps', { iosGoogleMapsApiKey: iosKey }]]
+      : config.plugins,
   };
 
   const googleSignIn = googleSignInPlugin();
