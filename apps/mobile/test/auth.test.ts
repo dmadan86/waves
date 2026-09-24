@@ -10,6 +10,8 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { OAuthMethod } from '@waves/core';
+
 import { resetClaimedCodes } from '../src/lib/oauthClaim';
 import { firstProvider, flush, renderHook } from './support/fakeReact';
 
@@ -169,7 +171,7 @@ vi.mock('@/lib/push', () => ({
 }));
 vi.mock('@/sync/retention', () => ({ markDeliberateSignOut: spies.markDeliberateSignOut }));
 
-const { AuthProvider, useAuth, useViewerId } = await import('../src/lib/auth');
+const { AuthProvider, IdentityTakenError, useAuth, useViewerId } = await import('../src/lib/auth');
 
 type AuthValue = ReturnType<typeof useAuth>;
 
@@ -837,6 +839,54 @@ describe('Google', () => {
       provider: 'google',
       options: { redirectTo: 'waves://auth', skipBrowserRedirect: true },
     });
+    expect(auth.value.session).toBe(session);
+  });
+
+  it('says a login that already has an account apart from a failed one', async () => {
+    session = guest('g1');
+    world.browser.mockResolvedValueOnce({
+      type: 'success',
+      url: 'waves://auth?error=server_error&error_code=identity_already_exists&error_description=x',
+    });
+    const auth = await mount();
+
+    const attempt = auth.value.withGoogle();
+    await expect(attempt).rejects.toBeInstanceOf(IdentityTakenError);
+    await expect(attempt).rejects.toMatchObject({ provider: 'google' });
+    // Nothing was exchanged and the guest is still the one signed in.
+    expect(world.auth.exchangeCodeForSession).not.toHaveBeenCalled();
+    expect(auth.value.session).toBe(session);
+  });
+
+  it('switches a guest to the existing account only once the sheet has answered', async () => {
+    session = guest('g1');
+    const auth = await mount();
+    spies.googleNativeSignIn.mockResolvedValueOnce({
+      kind: 'credential',
+      credential: { idToken: 'existing-token' },
+    });
+
+    await expect(auth.value.signInInstead(OAuthMethod.Google)).resolves.toBe(true);
+    await flush();
+
+    // Signed out the ordinary way first — push revoked, sign-out marked — then in.
+    expect(spies.markDeliberateSignOut).toHaveBeenCalledTimes(1);
+    expect(world.order).toEqual(['signOut']);
+    expect(world.auth.signInWithIdToken).toHaveBeenCalledWith({
+      provider: 'google',
+      token: 'existing-token',
+    });
+    expect((auth.value.session as { user: { id: string } }).user.id).toBe('native-1');
+  });
+
+  it('leaves the guest untouched when the switch is backed out of at the sheet', async () => {
+    session = guest('g1');
+    const auth = await mount();
+    spies.googleNativeSignIn.mockResolvedValueOnce({ kind: 'dismissed' });
+
+    await expect(auth.value.signInInstead(OAuthMethod.Google)).resolves.toBe(false);
+
+    expect(world.auth.signOut).not.toHaveBeenCalled();
     expect(auth.value.session).toBe(session);
   });
 
