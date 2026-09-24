@@ -126,10 +126,11 @@ function PersonalTransactionsScreenBody() {
             <EmptyState title={t.personal.empty} />
           </View>
         }
-        // The SectionList's `gap` fell between every cell, including the empty
-        // footer cell it keeps after each day — so a row sat `sm` below the one
-        // above it, a new day `2 × sm` below the last row, and the list ended on
-        // one more `sm`. The same spacing, as margins, since FlashList has no gap.
+        // Rows sit `sm` apart (a margin, since FlashList has no gap). A new day
+        // opens a section's `xl` below the last row (`xs` + the label's `lg`),
+        // and its label sits `sm` above its first row — the screen standard.
+        // (This used to carry the old SectionList's `2 × sm` over, which put
+        // days 32 apart.)
         ListFooterComponent={
           items.length > 0 ? <View style={{ height: theme.spacing.sm }} /> : null
         }
@@ -141,9 +142,9 @@ function PersonalTransactionsScreenBody() {
                 tone="faint"
                 style={{
                   letterSpacing: 0.8,
-                  marginTop: item.first ? 0 : theme.spacing.sm * 2,
+                  marginTop: item.first ? 0 : theme.spacing.xs,
                   paddingTop: theme.spacing.lg,
-                  paddingBottom: theme.spacing.xs,
+                  paddingBottom: 0,
                 }}
               >
                 {/* The day as a person says it — "Today", "Yesterday", "Friday",

@@ -536,15 +536,17 @@ export default function ActivityScreen() {
               tintColor={theme.color.brand}
             />
           }
-          renderItem={({ item }) =>
+          renderItem={({ item, index }) =>
             item.kind === 'header' ? (
               <Text
                 variant="micro"
                 tone="muted"
                 style={{
                   textTransform: 'uppercase',
-                  marginTop: theme.spacing.lg,
-                  marginBottom: theme.spacing.md,
+                  // First heading `lg` under the header, later days a section
+                  // (`xl`) apart, and each heading `sm` above its rows.
+                  marginTop: index === 0 ? theme.spacing.lg : theme.spacing.xl,
+                  marginBottom: theme.spacing.sm,
                 }}
               >
                 {dayHeading(locale, item.date)}

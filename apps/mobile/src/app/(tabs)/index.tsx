@@ -600,7 +600,9 @@ export default function HomeScreen() {
           style={{
             paddingHorizontal: theme.spacing.lg,
             paddingTop: theme.spacing.lg,
-            gap: theme.spacing.md,
+            // Heading → its card. The import banner, when it shows, adds its
+            // own margin so it still sits a full section gap (xl) above.
+            gap: theme.spacing.sm,
             flexGrow: 1,
           }}
         >

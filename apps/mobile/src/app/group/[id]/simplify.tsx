@@ -227,7 +227,7 @@ export default function SimplifyScreen() {
     ({ item }: { item: SimplifyItem }) => {
       if (item.kind === 'heading') {
         return (
-          <View style={{ paddingTop: theme.spacing.lg }}>
+          <View style={{ paddingTop: theme.spacing.sm }}>
             <SectionHeader
               title={item.section === 'yours' ? t.simplifyYourPayments : t.simplifyOtherPayments}
             />
@@ -283,7 +283,7 @@ export default function SimplifyScreen() {
         />
       );
     },
-    [blockedIds, locale, lookup, nameOf, personKeyFor, t, theme.spacing.lg],
+    [blockedIds, locale, lookup, nameOf, personKeyFor, t, theme.spacing.sm],
   );
 
   return (
@@ -337,7 +337,7 @@ export default function SimplifyScreen() {
           />
         }
         ListHeaderComponent={
-          <View style={{ paddingTop: theme.spacing.lg, paddingBottom: theme.spacing.sm }}>
+          <View style={{ paddingTop: theme.spacing.lg, paddingBottom: theme.spacing.md }}>
             <Card style={{ gap: theme.spacing.sm }}>
               <Row style={{ justifyContent: 'space-between' }}>
                 <Text variant="subheading">
