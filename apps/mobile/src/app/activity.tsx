@@ -36,6 +36,7 @@ import { actorName } from '@/data/types';
 import { useBlockedUsers } from '@/data/blocked';
 import { ActivityDateFilter, type DateRange } from '@/components/ActivityDateFilter';
 import { FeedSkeleton } from '@/components/Skeletons';
+import { useTransitionSettled } from '@/lib/useTransitionSettled';
 import { useGroups, useRecentActivity, type RecentActivityRow } from '@/data/hooks';
 import { useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
@@ -243,7 +244,11 @@ export default function ActivityScreen() {
   // (`status` goes to Error while still unhydrated), a retry re-runs it via
   // `flush`, so the screen offers a way out rather than a skeleton forever.
   const { hydrated, status, flush } = useSync();
-  const allEntries = useRecentActivity(myProfileId);
+  // The feed is built once the slide-in has finished, not during it: building
+  // it walks the whole local history, and doing that on the push's frames made
+  // the slide stall halfway and then jump. Until then the skeleton shows.
+  const settled = useTransitionSettled();
+  const allEntries = useRecentActivity(myProfileId, settled);
   // Whether the account has any live group at all — decides the empty-state's
   // next step. A brand-new account with nothing starts a group; an account that
   // has groups but no activity yet wants to add an expense, not make another
@@ -411,61 +416,66 @@ export default function ActivityScreen() {
   // The states the feed can be in when there are no rows to show — mounted as
   // the list's empty component so the header, pull-to-refresh and centred layout
   // all still apply exactly as with a feed present.
-  const empty = !hydrated ? (
-    status === SyncStatus.Error ? (
-      // The mirror read itself failed (a corrupt or unreadable local DB). Rare,
-      // but without this branch the skeleton would sit forever — so offer a
-      // retry, which re-runs hydration through a flush.
+  const empty =
+    !hydrated || !settled ? (
+      hydrated === false && status === SyncStatus.Error ? (
+        // The mirror read itself failed (a corrupt or unreadable local DB). Rare,
+        // but without this branch the skeleton would sit forever — so offer a
+        // retry, which re-runs hydration through a flush.
+        <View style={{ flex: 1, justifyContent: 'center' }}>
+          <EmptyState
+            title={t.loadError}
+            body={t.loadErrorBody}
+            icon={
+              <Ionicons
+                name="cloud-offline-outline"
+                size={iconSize.xxl}
+                color={theme.color.brand}
+              />
+            }
+            action={<Button label={t.retry} variant="secondary" onPress={() => void flush()} />}
+          />
+        </View>
+      ) : (
+        // The ordinary wait: the first read of the on-disk mirror at cold start.
+        // An empty feed after it lands is "nothing yet", not "failed".
+        <FeedSkeleton />
+      )
+    ) : range ? (
+      // A range is in force and nothing fell in it — distinct from "nothing yet",
+      // and the way out is to widen or clear the filter, not to start a group.
       <View style={{ flex: 1, justifyContent: 'center' }}>
         <EmptyState
-          title={t.loadError}
-          body={t.loadErrorBody}
-          icon={
-            <Ionicons name="cloud-offline-outline" size={iconSize.xxl} color={theme.color.brand} />
+          title={t.activityFilter.noneTitle}
+          body={t.activityFilter.noneBody}
+          icon={<Ionicons name="calendar-outline" size={iconSize.xxl} color={theme.color.brand} />}
+          action={
+            <Button
+              label={t.activityFilter.clear}
+              variant="secondary"
+              onPress={() => setRange(null)}
+            />
           }
-          action={<Button label={t.retry} variant="secondary" onPress={() => void flush()} />}
         />
       </View>
     ) : (
-      // The ordinary wait: the first read of the on-disk mirror at cold start.
-      // An empty feed after it lands is "nothing yet", not "failed".
-      <FeedSkeleton />
-    )
-  ) : range ? (
-    // A range is in force and nothing fell in it — distinct from "nothing yet",
-    // and the way out is to widen or clear the filter, not to start a group.
-    <View style={{ flex: 1, justifyContent: 'center' }}>
-      <EmptyState
-        title={t.activityFilter.noneTitle}
-        body={t.activityFilter.noneBody}
-        icon={<Ionicons name="calendar-outline" size={iconSize.xxl} color={theme.color.brand} />}
-        action={
-          <Button
-            label={t.activityFilter.clear}
-            variant="secondary"
-            onPress={() => setRange(null)}
-          />
-        }
-      />
-    </View>
-  ) : (
-    <View style={{ flex: 1, justifyContent: 'center' }}>
-      <EmptyState
-        title={t.nothingYet}
-        body={t.tabs.activityEmptyBody}
-        icon={
-          <Ionicons name="notifications-outline" size={iconSize.xxl} color={theme.color.brand} />
-        }
-        action={
-          hasGroups ? (
-            <Button label={t.addExpense} onPress={() => router.push('/capture')} />
-          ) : (
-            <Button label={t.newGroup} onPress={() => router.push('/new-group')} />
-          )
-        }
-      />
-    </View>
-  );
+      <View style={{ flex: 1, justifyContent: 'center' }}>
+        <EmptyState
+          title={t.nothingYet}
+          body={t.tabs.activityEmptyBody}
+          icon={
+            <Ionicons name="notifications-outline" size={iconSize.xxl} color={theme.color.brand} />
+          }
+          action={
+            hasGroups ? (
+              <Button label={t.addExpense} onPress={() => router.push('/capture')} />
+            ) : (
+              <Button label={t.newGroup} onPress={() => router.push('/new-group')} />
+            )
+          }
+        />
+      </View>
+    );
 
   // The range picker, over the feed. Rendered only when open and only when there
   // is a span to clamp to, so it can seed the picker from real dates.
