@@ -17,17 +17,13 @@ import {
 
 import {
   CategoryId,
-  computeShares,
   currencySymbol,
   format,
   formatMinorInput,
   guessCategory,
   money,
   MutationKind,
-  PayerProblemCode,
   rebalancePayers,
-  sanitiseMinorInput,
-  serialisePayers,
   validatePayers,
   type CategoryMeta,
   type CurrencyCode,
@@ -43,7 +39,6 @@ import {
   Button,
   Callout,
   Card,
-  ChipRow,
   EmptyState,
   iconSize,
   MoneyText,
@@ -66,7 +61,6 @@ import { CurrencyRate } from '@/components/CurrencyRate';
 import { DescriptionField } from '@/components/expense/DescriptionField';
 import { COMMON_CURRENCIES } from '@/lib/currencyChoices';
 import { ExpenseHero } from '@/components/expense/ExpenseHero';
-import { splitIcon } from '@/components/expense/splitIcon';
 import { ChoiceRow, SheetOverlay } from '@/components/expense/SheetOverlay';
 import { DetailRow, DetailRows } from '@/components/DetailRows';
 import {
@@ -104,17 +98,17 @@ import { captureReceipt, pickReceiptImage, type PickedImage } from '@/lib/image'
 import { recogniseReceipt } from '@/lib/ocr';
 import { capturePaymentMethod } from '@/lib/captureAssign';
 import { matchMemberNames, stripMemberNames } from '@/lib/voiceExpense';
+import { fillEntries, SplitKind, type SplitEntries } from '@/lib/split';
 import {
-  entryValues,
-  fillEntries,
-  formatEntry,
-  parseEntry,
-  exactRemainder,
-  exactValues,
-  splitProblem,
-  SplitKind,
-  type SplitEntries,
-} from '@/lib/split';
+  editStateFromVersion,
+  expenseWritePayload,
+  lineAmountFor,
+  payerIssueFor,
+  previewShares,
+  splitIssueFor,
+  splitParamsFor,
+} from '@/lib/expenseEdit';
+import { SplitKindChips, SplitParticipants } from '@/components/expense/SplitEditor';
 import { clearDraft, syncEngine, useDraft, useRestoredDraft, useSync } from '@/sync';
 import { useDialog } from '@/lib/dialog';
 
@@ -185,98 +179,6 @@ interface ExpenseDraft {
   categoryChosen: boolean;
   /** Where the spend happened (A43), when the person attached one. */
   location?: ExpenseLocation | null;
-}
-
-/**
- * The number beside one person in a weighted or exact split.
- *
- * Its own component for two reasons. The obvious one: three kinds of field with
- * three keypads, three suffixes and three spoken labels is a lot of ternaries to
- * read inside a list of people. The load-bearing one: an exact field is *money*,
- * so it has to sanitise each keystroke against the expense's currency — and
- * doing that in the screen's own render meant `currency` was captured by a
- * closure the React Compiler could not prove safe, which cost the split preview
- * and the params their memoisation ("existing memoization could not be
- * preserved"). Held here, the currency is a prop this component reads, and the
- * screen above keeps its memos.
- */
-function SplitEntryField({
-  kind,
-  currency,
-  value,
-  onChange,
-  name,
-}: {
-  kind: SplitKind;
-  currency: string;
-  value: string;
-  /** Called with the text as it should be stored — already sanitised for money. */
-  onChange: (text: string) => void;
-  /** Whose figure this is, for the spoken label. */
-  name: string;
-}): React.JSX.Element {
-  const theme = useTheme();
-  const { t } = useStrings();
-  const exact = kind === SplitKind.Exact;
-  const percent = kind === SplitKind.Percent;
-
-  return (
-    <Row style={{ gap: 2, alignItems: 'center', flexGrow: 0, flexShrink: 0 }}>
-      <TextInput
-        value={value}
-        onChangeText={(text) =>
-          // Money is cleaned on the way in — the currency decides whether a
-          // decimal point is offered at all, and a second one never lands in the
-          // field. A weight or a percentage is stored as typed and judged by
-          // `splitProblem`, which refuses rather than trims.
-          onChange(exact ? sanitiseMinorInput(text, currency as CurrencyCode) : text)
-        }
-        keyboardType={
-          exact ? amountKeyboard(currency as CurrencyCode) : percent ? 'decimal-pad' : 'number-pad'
-        }
-        selectTextOnFocus
-        placeholder={kind === SplitKind.Shares ? '1' : '0'}
-        placeholderTextColor={theme.color.textFaint}
-        accessibilityLabel={
-          exact
-            ? fill(t.expense.exactShareLabel, { name })
-            : percent
-              ? `${name}'s percentage`
-              : `${name}'s shares`
-        }
-        style={{
-          // An amount needs more room than a weight: two decimals and a
-          // thousands' worth of digits do not fit in 72.
-          width: exact ? 104 : 72,
-          // A 44pt floor makes the field a real tap target; `textAlignVertical`
-          // keeps the digit centred in the taller box on Android.
-          minHeight: 44,
-          fontSize: 16,
-          fontWeight: '700',
-          textAlign: 'right',
-          textAlignVertical: 'center',
-          color: theme.color.text,
-          backgroundColor: theme.color.bg,
-          borderRadius: theme.radius.sm,
-          paddingVertical: theme.spacing.sm,
-          paddingHorizontal: theme.spacing.sm,
-        }}
-      />
-      <Text variant="micro" tone="muted">
-        {percent ? '%' : exact ? currencySymbol(currency) : '×'}
-      </Text>
-    </Row>
-  );
-}
-
-/** A saved split's integers, back as the text somebody would have typed. */
-function textEntries(
-  values: Readonly<Record<string, number>>,
-  kind: 'shares' | 'percent',
-): SplitEntries {
-  return Object.fromEntries(
-    Object.entries(values).map(([memberId, value]) => [memberId, formatEntry(kind, value)]),
-  );
 }
 
 /**
@@ -704,79 +606,43 @@ export default function AddExpenseScreen() {
       setCategoryChosen(draft.categoryChosen ?? false);
       setLocation(draft.location ?? null);
     } else if (version) {
-      setAmount(BigInt(version.amount));
-      setDescription(version.description);
+      // The saved version as an edit starts from it — the same seeding the
+      // expense screen's pop-ups use (lib/expenseEdit), so the two write the same
+      // thing for the same change. It keeps the currency the bill was paid in
+      // and the rate it was written at (ADR-003), every payer it records (not
+      // just the first — flattening a several-payer bill on open and saving it
+      // back silently rewrote who put money in), the saved place, and the split
+      // figures back in the fields they were typed into.
+      const seeded = editStateFromVersion(version, myMemberId);
+      setAmount(seeded.amount);
+      setDescription(seeded.description);
       // A saved category is a decision somebody already made. Re-guessing it on
       // open would quietly rewrite their answer.
-      setCategory(version.category ?? null);
-      setCategoryMeta((version.category_meta as CategoryMeta | null) ?? null);
+      setCategory(seeded.category);
+      setCategoryMeta(seeded.categoryMeta);
       setCategoryChosen(version.category !== null);
-      // The expense keeps the currency it was paid in — without this, editing a
-      // foreign-currency expense reopened on the group currency and quietly
-      // rewrote it.
-      setExpenseCurrency(version.currency);
-      // And it keeps the rate it was written at. That rate used to be
-      // unreadable here — the pull never selected the column — so an edit
-      // opened with an empty rate card and asked for the number again, which
-      // is what "I cannot see where to override it" was. It now opens on what
-      // the bill actually carries, and changing it is an ordinary edit.
-      setFx((version.fx as FxRecord | null) ?? null);
-      // Every payer the bill records, not just the first. Flattening a
-      // several-payer bill to `payers[0]` on open — and then saving that back —
-      // was how an edit silently rewrote who had put money in. They come back
-      // locked: those figures are recorded facts, so they survive a change to
-      // the total rather than being quietly re-divided.
-      if (version.payers.length > 0) {
-        setPayers(new Map(version.payers.map((row) => [row.member_id, BigInt(row.amount)])));
-        setLockedPayers(
-          version.payers.length > 1
-            ? new Set(version.payers.map((row) => row.member_id))
-            : EMPTY_LOCKS,
-        );
-        setPaidText(
-          Object.fromEntries(
-            version.payers.map((row) => [
-              row.member_id,
-              formatMinorInput(BigInt(row.amount), version.currency as CurrencyCode),
-            ]),
-          ),
-        );
-        setPayersFor(`${BigInt(version.amount)}:${version.currency}`);
-      } else {
-        seedSolePayer(myMemberId, BigInt(version.amount));
-      }
-      setPaymentMethod((version.payment_method as PaymentMethod | null) ?? 'cash');
-      // A saved place is a decision already made; reopen the edit with it intact
-      // so a save does not silently drop it.
-      setLocation(version.location ?? null);
-      setParticipants(version.shares.map((share) => share.member_id));
-      setSplitKind(
-        version.split_type === 'percent'
-          ? SplitKind.Percent
-          : version.split_type === 'shares'
-            ? SplitKind.Shares
-            : version.split_type === 'exact'
-              ? SplitKind.Exact
-              : SplitKind.Equal,
+      setExpenseCurrency(seeded.currency);
+      setFx(seeded.fx);
+      // Several payers come back locked: those figures are recorded facts, so
+      // they survive a change to the total rather than being quietly re-divided.
+      setPayers(seeded.payers);
+      setLockedPayers(seeded.payers.size > 1 ? new Set(seeded.payers.keys()) : EMPTY_LOCKS);
+      setPaidText(
+        Object.fromEntries(
+          [...seeded.payers].map(([memberId, paid]) => [
+            memberId,
+            formatMinorInput(paid, seeded.currency as CurrencyCode),
+          ]),
+        ),
       );
-      // The numbers somebody chose the first time, back in the fields they were
-      // typed into — an edit that silently re-divided them equally would be a
-      // worse lie than refusing to open.
-      const params = version.split_params;
-      if (params.kind === 'shares') {
-        setWeights(textEntries(params.weights, 'shares'));
-      } else if (params.kind === 'percent') {
-        setPercents(textEntries(params.basisPoints, 'percent'));
-      } else if (params.kind === 'exact') {
-        setExacts(
-          Object.fromEntries(
-            Object.entries(params.amounts).map(([memberId, minor]) => [
-              memberId,
-              formatMinorInput(BigInt(minor), version.currency as CurrencyCode),
-            ]),
-          ),
-        );
-      }
+      setPayersFor(`${seeded.amount}:${seeded.currency}`);
+      setPaymentMethod(seeded.paymentMethod);
+      setLocation(seeded.location);
+      setParticipants(seeded.participants);
+      setSplitKind(seeded.splitKind);
+      setWeights(seeded.weights);
+      setPercents(seeded.percents);
+      setExacts(seeded.exacts);
     } else {
       setParticipants((members.data ?? []).map((member) => member.id));
       seedSolePayer(myMemberId, 0n);
@@ -1088,57 +954,28 @@ export default function AddExpenseScreen() {
     };
   }, [seededFor, editing, captureId, voice, location]);
 
-  const splitParams: SplitParams = useMemo(() => {
-    if (splitKind === SplitKind.Shares) {
-      return { kind: 'shares', weights: entryValues('shares', weights, participants) };
-    }
-    if (splitKind === SplitKind.Percent) {
-      return { kind: 'percent', basisPoints: entryValues('percent', percents, participants) };
-    }
-    if (splitKind === SplitKind.Exact) {
-      return {
-        kind: 'exact',
-        amounts: exactValues(exacts, participants, currency),
-      };
-    }
-    return { kind: 'equal' };
-  }, [splitKind, weights, percents, exacts, currency, participants]);
+  const splitParams: SplitParams = useMemo(
+    () => splitParamsFor({ splitKind, weights, percents, exacts, participants, currency }),
+    [splitKind, weights, percents, exacts, currency, participants],
+  );
 
   // Preview with the same engine the server uses; if they ever disagree the
   // server wins and tells us why (SHARE_MISMATCH).
-  const preview = useMemo(() => {
-    if (participants.length === 0 || amount === 0n) return null;
-    try {
-      return computeShares({
-        amount,
-        currency,
-        params: splitParams,
-        participants,
-        seed: targetExpenseId,
-      });
-    } catch {
-      return null;
-    }
-  }, [amount, currency, splitParams, participants, targetExpenseId]);
+  const preview = useMemo(
+    () =>
+      previewShares({ amount, currency, params: splitParams, participants, seed: targetExpenseId }),
+    [amount, currency, splitParams, participants, targetExpenseId],
+  );
 
-  // What is still unassigned in an exact split, signed like the payer side's
-  // delta: positive is left to hand out, negative is more than the bill. Only
-  // worth saying once there is a bill to measure against — "₹0 left" over an
-  // empty form is noise, not guidance.
-  const exactLeft =
-    splitKind === SplitKind.Exact && amount > 0n
-      ? exactRemainder(exacts, participants, currency, amount)
-      : 0n;
-  const exactIssue =
-    splitKind !== SplitKind.Exact || amount === 0n || participants.length === 0 || exactLeft === 0n
-      ? null
-      : (exactLeft > 0n ? t.expense.paidLeftToAssign : t.expense.paidOverAssigned).replace(
-          '{amount}',
-          format(money(exactLeft < 0n ? -exactLeft : exactLeft, currency), { locale }),
-        );
-  // The exact split's own complaint takes precedence: it is about money, and the
-  // weighted check has nothing to say about a set of typed amounts.
-  const splitIssue = exactIssue ?? splitProblem(splitKind, entries, participants);
+  // Why the split does not add up, if it does not: an exact split's money left
+  // over (or over-assigned) first — only once there is a bill to measure
+  // against — then the weighted check (lib/expenseEdit.splitIssueFor, shared
+  // with the expense screen's split pop-up).
+  const splitIssue = splitIssueFor(
+    { splitKind, weights, percents, exacts, participants, currency, amount },
+    t.expense,
+    locale,
+  );
 
   if (group.isLoading || members.isLoading || restored.loading) {
     // Shell first: the back button and title paint instantly on navigation, and
@@ -1192,44 +1029,41 @@ export default function AddExpenseScreen() {
       // is on disk, so the expense is saved whether or not there is a network.
       // The bill image, if any, was uploaded to R2 the moment it was scanned or
       // attached (persistReceipt) — the ledger write carries only the money.
-      await mutate(expenseId ? MutationKind.ExpenseUpdate : MutationKind.ExpenseCreate, groupId, {
-        expenseId: targetExpenseId,
-        // Blank stays blank. Writing the English word "Expense" here made every
-        // undescribed row identical in the list, and put a word nobody typed
-        // into an append-only ledger, the CSV export and the notification text —
-        // in one language, for an app that speaks four.
-        description: description.trim(),
-        category,
-        categoryMeta,
-        // A chosen day wins outright. Untouched, a capture keeps the day it was
-        // caught, a saved expense keeps the day it has, and only a new one is
-        // today's (expenseDateFor).
-        expenseDate: expenseDate,
-        currency,
-        amount: amount.toString(),
-        fx,
-        splitParams,
-        participants,
-        // Every payer, with anybody down for nothing left out (serialisePayers).
-        payers: serialisePayers(payers),
-        paymentMethod,
-        location,
-        // Carried through an edit rather than left out. The write nulls every
-        // field it is not given (`notes: input.notes ?? null`), so a screen
-        // that does not send these was not leaving them alone — it was
-        // clearing them. The note survived the pull and was dropped on save;
-        // the receipt link was never pulled at all, so an ordinary edit
-        // detached the scanned bill from its expense (ADR-008). A new expense
-        // has neither, and `undefined` is the right nothing for both.
-        notes: editing?.currentVersion?.notes ?? undefined,
-        receiptId: editing?.currentVersion?.receipt_id ?? undefined,
-        receiptShareUrl: editing?.currentVersion?.receipt_share_url ?? undefined,
-        expectedShares: preview
-          ? Object.fromEntries([...preview].map(([id, share]) => [id, share.toString()]))
-          : undefined,
-        // Lets the server tell a concurrent edit from a normal one (TDR §4.4).
-        baseVersionNo: editing?.currentVersion?.version_no ?? null,
-      });
+      //
+      // The payload is built by the same function the expense screen's pop-ups
+      // use (lib/expenseEdit.expenseWritePayload): blank description stays
+      // blank, every payer is serialised, the note and receipt link are carried
+      // through from the version being edited (the write nulls whatever it is
+      // not given), `expectedShares` is seeded with this expense's id, and
+      // `baseVersionNo` lets the server spot a concurrent edit (TDR §4.4).
+      await mutate(
+        expenseId ? MutationKind.ExpenseUpdate : MutationKind.ExpenseCreate,
+        groupId,
+        expenseWritePayload({
+          expenseId: targetExpenseId,
+          state: {
+            amount,
+            description,
+            category,
+            categoryMeta,
+            // A chosen day wins outright. Untouched, a capture keeps the day it
+            // was caught, a saved expense keeps the day it has, and only a new
+            // one is today's (expenseDateFor).
+            expenseDate,
+            currency,
+            fx,
+            splitKind,
+            participants,
+            weights,
+            percents,
+            exacts,
+            payers,
+            paymentMethod,
+            location,
+          },
+          editing: editing?.currentVersion,
+        }),
+      );
       await clearDraft(draftKey);
       // The expense exists now; closing the capture removes it from the inbox
       // and records which expense it became (A34). Done before leaving so a
@@ -1287,13 +1121,8 @@ export default function AddExpenseScreen() {
    * total: 20% of ₹300 is ₹60 whatever the other rows say, and the message
    * under the list is what says the column does not add up yet.
    */
-  const lineAmount = (memberId: MemberId): bigint => {
-    const previewed = preview?.get(memberId);
-    if (previewed !== undefined) return previewed;
-    if (splitKind !== SplitKind.Percent) return 0n;
-    const basisPoints = parseEntry('percent', percents[memberId] ?? '') ?? 0;
-    return (amount * BigInt(basisPoints)) / 10000n;
-  };
+  const lineAmount = (memberId: MemberId): bigint =>
+    lineAmountFor(memberId, preview, { splitKind, percents, amount });
 
   /**
    * Keep the bill (E2): upload it to the group's R2 storage under the expense id
@@ -1432,22 +1261,7 @@ export default function AddExpenseScreen() {
   // transient state, not something to instruct around.
   // The payer side's complaint, in money the person can read. `delta` is signed:
   // positive is still to hand out, negative is more claimed than the bill.
-  const payerMessage =
-    payerProblem === null
-      ? null
-      : payerProblem.code === PayerProblemCode.NoPayers ||
-          payerProblem.code === PayerProblemCode.Negative
-        ? t.expense.chooseWhoPaid
-        : (payerProblem.code === PayerProblemCode.Short
-            ? t.expense.paidLeftToAssign
-            : t.expense.paidOverAssigned
-          ).replace(
-            '{amount}',
-            format(
-              money(payerProblem.delta < 0n ? -payerProblem.delta : payerProblem.delta, currency),
-              { locale },
-            ),
-          );
+  const payerMessage = payerIssueFor({ amount, payers, currency }, t.expense, locale);
 
   const saveHint =
     amount === 0n
@@ -1809,28 +1623,7 @@ export default function AddExpenseScreen() {
               reads as more to the side. Each chip states its own selected state
               to the screen reader; the fill is not the only thing saying which
               one is on. */}
-            <ChipRow<SplitKind>
-              value={splitKind}
-              onChange={(next) => {
-                setSplitKind(next);
-              }}
-              options={[SplitKind.Equal, SplitKind.Shares, SplitKind.Percent, SplitKind.Exact].map(
-                (kind) => ({
-                  value: kind,
-                  label:
-                    kind === SplitKind.Equal
-                      ? t.expense.equally
-                      : kind === SplitKind.Shares
-                        ? t.expense.shares
-                        : kind === SplitKind.Percent
-                          ? t.expense.percent
-                          : t.expense.exactly,
-                  icon: (color: string) => (
-                    <Ionicons name={splitIcon(kind)} size={iconSize.md} color={color} />
-                  ),
-                }),
-              )}
-            />
+            <SplitKindChips value={splitKind} onChange={setSplitKind} />
           </View>
 
           {/* Who paid — on an edit as much as on a new expense, and now as many
@@ -2025,97 +1818,19 @@ export default function AddExpenseScreen() {
           </Card>
 
           <Card style={{ gap: theme.spacing.sm }}>
-            <Row style={{ justifyContent: 'space-between' }}>
-              <Text variant="caption" tone="muted">
-                {t.expense.splitBetween}
-              </Text>
-              <Text variant="micro" tone="muted">
-                {t.expense.ofCount
-                  .replace('{chosen}', String(participants.length))
-                  .replace('{total}', String(members.data?.length ?? 0))}
-              </Text>
-            </Row>
-
-            {(members.data ?? []).map((member) => {
-              const selected = participants.includes(member.id);
-              const name = displayName(member, viewerId);
-              return (
-                <View
-                  key={member.id}
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: theme.spacing.md,
-                    // The avatar is 38pt and the share field has a 44pt floor, so
-                    // the row is tall enough to tap without padding stretching it.
-                    paddingVertical: theme.spacing.xs,
-                  }}
-                >
-                  {/* The name toggles; the field beside it must not, or nobody
-                    could tap into it without dropping the person. */}
-                  <Pressable
-                    accessibilityRole="checkbox"
-                    accessibilityState={{ checked: selected }}
-                    accessibilityLabel={name}
-                    onPress={() => toggleParticipant(member.id)}
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: theme.spacing.md,
-                      flex: 1,
-                    }}
-                  >
-                    <Avatar name={displayName(member)} ghost={isGhost(member)} size={38} />
-                    <View style={{ flex: 1, minWidth: 0 }}>
-                      <Text variant="subheading" numberOfLines={1}>
-                        {name}
-                      </Text>
-                      {selected && amount > 0n ? (
-                        <MoneyText
-                          amount={lineAmount(member.id)}
-                          currency={currency}
-                          locale={locale}
-                          variant="caption"
-                          // This person's share = money owed toward the bill, so it
-                          // wears the owe colour, matching the who-owes-what list and
-                          // the balances elsewhere. Forced red: a positive share
-                          // would read as "owed to you" under sign-derived colour.
-                          tone="negative"
-                        />
-                      ) : null}
-                    </View>
-                  </Pressable>
-
-                  {splitKind !== SplitKind.Equal && selected ? (
-                    <SplitEntryField
-                      kind={splitKind}
-                      currency={currency}
-                      value={entries[member.id] ?? ''}
-                      onChange={(text) => setEntry(member.id, text)}
-                      name={name}
-                    />
-                  ) : null}
-
-                  <Pressable
-                    accessible={false}
-                    onPress={() => toggleParticipant(member.id)}
-                    hitSlop={8}
-                  >
-                    <Ionicons
-                      name={selected ? 'checkmark-circle' : 'ellipse-outline'}
-                      size={iconSize.xl}
-                      color={selected ? theme.color.brand : theme.color.textFaint}
-                    />
-                  </Pressable>
-                </View>
-              );
-            })}
-
-            {splitIssue ? (
-              <Text variant="micro" tone="negative">
-                {splitIssue}
-              </Text>
-            ) : null}
+            <SplitParticipants
+              members={members.data ?? []}
+              viewerId={viewerId}
+              participants={participants}
+              onToggle={toggleParticipant}
+              splitKind={splitKind}
+              entries={entries}
+              onEntryChange={setEntry}
+              currency={currency}
+              amount={amount}
+              lineAmount={lineAmount}
+              splitIssue={splitIssue}
+            />
 
             {/* No "Add someone" here: the form splits between the people the
               group already has. Adding a member is the group's own job, on its

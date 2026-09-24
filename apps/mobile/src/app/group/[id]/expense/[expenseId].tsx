@@ -38,6 +38,7 @@ import { ExpenseComments } from '@/components/ExpenseComments';
 import { ExpenseHistory } from '@/components/ExpenseHistory';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { splitIcon } from '@/components/expense/splitIcon';
+import { ExpenseFieldSheet, type ExpenseField } from '@/components/expense/ExpenseFieldSheet';
 import {
   memberLookup,
   useDeleteExpense,
@@ -57,6 +58,7 @@ import { useBottomClearance } from '@/lib/clearance';
 import { expenseMemberHref } from '@/lib/expenseMemberRows';
 import { router, useGoBack } from '@/lib/navigation';
 import { useDialog } from '@/lib/dialog';
+import { canEditInline } from '@/lib/expenseEdit';
 
 function splitLabels(t: UiStrings): Record<string, string> {
   return {
@@ -112,6 +114,8 @@ export default function ExpenseDetailScreen() {
   // The page has two faces: its breakdown, and its edit history. The hero stays
   // above both; only the body below the tab bar swaps.
   const [tab, setTab] = useState<'details' | 'history'>('details');
+  // The fact being changed in a pop-up, if one is open (ExpenseFieldSheet).
+  const [editingField, setEditingField] = useState<ExpenseField | null>(null);
   const deleteExpense = useDeleteExpense(groupId);
   const restoreExpense = useRestoreExpense(groupId);
 
@@ -295,6 +299,15 @@ export default function ExpenseDetailScreen() {
     if (ok) deleteExpense.mutate(expense.id, { onSuccess: () => router.back() });
   };
 
+  // A fact on this screen is its own door to changing it: a tap opens a small
+  // sheet for that one field, which saves through the full editor's own write
+  // path. Not on a deleted bill (nothing to change until it is restored), and
+  // not on an itemized or adjusted split — those reopen as equal, so a one-field
+  // save would quietly re-split them; the pencil is still the way in there.
+  const inlineEditable = !deleted && canEditInline(version.split_type);
+  const changeOn = (field: ExpenseField): (() => void) | undefined =>
+    inlineEditable ? () => setEditingField(field) : undefined;
+
   const openEditor = (focus?: 'amount'): void => {
     // "Fix the number" is the most common reason a bill is reopened, so tapping
     // the amount carries a focus hint that lands straight in the field with the
@@ -378,17 +391,41 @@ export default function ExpenseDetailScreen() {
               color={theme.color.onBrand}
             />
           </Pressable>
-          <CategoryBadge
-            category={version.category}
-            meta={version.category_meta}
-            description={version.description}
-            size={40}
-          />
+          {/* The badge is the bill's kind; on a bill that can be changed in
+                place, a tap on it changes the kind. */}
+          <Pressable
+            onPress={changeOn('category')}
+            disabled={!inlineEditable}
+            accessible={inlineEditable}
+            accessibilityRole="button"
+            accessibilityLabel={t.whatFor}
+            accessibilityHint={t.expense.detailTapHint}
+            hitSlop={6}
+            style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+          >
+            <CategoryBadge
+              category={version.category}
+              meta={version.category_meta}
+              description={version.description}
+              size={40}
+            />
+          </Pressable>
           <View style={{ flex: 1, gap: 2 }}>
             <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-              <Text variant="subheading" tone="onBrand" numberOfLines={1} style={{ flex: 1 }}>
-                {expenseTitle(version.description, version.category, t, version.category_meta)}
-              </Text>
+              {/* The description is the heading; a tap on it opens the note in a
+                  small sheet — type it, or speak it with the mic. */}
+              <Pressable
+                onPress={changeOn('description')}
+                disabled={!inlineEditable}
+                accessible={inlineEditable}
+                accessibilityRole="button"
+                accessibilityHint={t.expense.detailTapHint}
+                style={({ pressed }) => ({ flex: 1, opacity: pressed ? 0.6 : 1 })}
+              >
+                <Text variant="subheading" tone="onBrand" numberOfLines={1}>
+                  {expenseTitle(version.description, version.category, t, version.category_meta)}
+                </Text>
+              </Pressable>
               {deleted ? <Badge label={t.expense.deleted} tone="negative" /> : null}
             </Row>
             {/* The amount kept in the hero, but at heading — not display — scale:
@@ -408,9 +445,14 @@ export default function ExpenseDetailScreen() {
               />
             ) : (
               <Pressable
-                onPress={() => openEditor('amount')}
+                // The amount pop-up where one fits the bill; an itemized or
+                // adjusted split still goes to the editor, focused on the amount.
+                onPress={
+                  inlineEditable ? () => setEditingField('amount') : () => openEditor('amount')
+                }
                 accessibilityRole="button"
                 accessibilityLabel={`${t.common.edit}: ${format(money(BigInt(version.amount), currency), { locale })}`}
+                accessibilityHint={inlineEditable ? t.expense.detailTapHint : undefined}
                 hitSlop={8}
                 style={({ pressed }) => ({ alignSelf: 'flex-start', opacity: pressed ? 0.6 : 1 })}
               >
@@ -566,6 +608,8 @@ export default function ExpenseDetailScreen() {
                       ? plural(locale, version.payers.length, t.misc.peopleCount)
                       : nameOf(version.payers[0]?.member_id ?? null)
                   }
+                  onPress={changeOn('payer')}
+                  accessibilityHint={t.expense.detailTapHint}
                 />
                 <DetailRow
                   icon="calendar-outline"
@@ -576,11 +620,15 @@ export default function ExpenseDetailScreen() {
                     year: 'numeric',
                     timeZone: 'UTC',
                   }).format(new Date(version.expense_date))}
+                  onPress={changeOn('date')}
+                  accessibilityHint={t.expense.detailTapHint}
                 />
                 <DetailRow
                   icon={splitIcon(version.split_type)}
                   label={t.expense.detailSplit}
                   value={splitLabels(t)[version.split_type] ?? version.split_type}
+                  onPress={changeOn('split')}
+                  accessibilityHint={t.expense.detailTapHint}
                 />
               </DetailRows>
             </Card>
@@ -825,6 +873,23 @@ export default function ExpenseDetailScreen() {
       </ScrollView>
 
       <OverflowMenu visible={menuOpen} onClose={() => setMenuOpen(false)} items={menuItems} />
+
+      {/* One fact, changed in place. Keyed by field so each opening seeds
+          afresh from the version on screen. */}
+      {editingField && inlineEditable ? (
+        <ExpenseFieldSheet
+          key={editingField}
+          field={editingField}
+          groupId={groupId}
+          expenseId={expense.id}
+          version={version}
+          members={members.data ?? []}
+          viewerId={viewerId}
+          myMemberId={myMemberId}
+          onClose={() => setEditingField(null)}
+          onOpenEditor={() => openEditor()}
+        />
+      ) : null}
     </Screen>
   );
 }
