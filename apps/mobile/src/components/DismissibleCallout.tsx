@@ -9,7 +9,7 @@ import { useDismissed } from '@/lib/dismissed';
  * A `Callout` for a note that says the same thing on every visit: it carries a
  * close mark, and once closed it stays closed for this account (lib/dismissed).
  *
- * Renders nothing until the flag has been read, so a note the person already
+ * Renders nothing until auth has resolved and the flag has been read, so a note the person already
  * closed never flashes up for a frame. Not for errors or warnings — those stay
  * a plain `Callout`.
  */
@@ -21,8 +21,10 @@ export function DismissibleCallout({
   name: string;
 }) {
   const { t } = useStrings();
-  const { session } = useAuth();
+  const { session, loading } = useAuth();
   const { dismissed, dismiss } = useDismissed(name, session?.user.id);
-  if (dismissed !== false) return null;
+  // Until auth resolves the owner is unknown, and reading the `device` flag in
+  // the meantime could show a note for a frame that this account already closed.
+  if (loading || dismissed !== false) return null;
   return <Callout {...props} onDismiss={dismiss} dismissLabel={t.common.close} />;
 }
