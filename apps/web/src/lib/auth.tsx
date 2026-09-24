@@ -25,6 +25,7 @@ import {
 import type { Session } from '@supabase/supabase-js';
 
 import { waves } from '@/lib/waves';
+import { rememberProvider } from '@/lib/guestSwitch';
 
 interface AuthValue {
   session: Session | null;
@@ -69,6 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithGoogle = useCallback(async () => {
     // Back to the callback route with the code in the URL; it finishes there.
+    rememberProvider('google');
     await waves.signInWithGoogle(`${window.location.origin}/auth/callback`);
   }, []);
 
@@ -82,6 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Apple's own round trip is `form_post` to Supabase, not to us, so by the
     // time the browser is handed back it looks exactly like Google's: the same
     // callback route, the same one-time code. Nothing here is Apple-shaped.
+    rememberProvider('apple');
     await waves.signInWithApple(`${window.location.origin}/auth/callback`);
   }, []);
 
