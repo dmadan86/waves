@@ -20,7 +20,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ActivityIndicator, Modal, Pressable, ScrollView, StatusBar, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { iconSize, Row, Text, useTheme } from '@waves/ui';
+import { iconSize, Row, Text, useTheme, MODAL_ORIENTATIONS } from '@waves/ui';
 
 import { canAddExpenseAttachment } from '@/data/api';
 import { router } from '@/lib/navigation';
@@ -917,6 +917,7 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
         ) : null}
 
         <Modal
+          supportedOrientations={MODAL_ORIENTATIONS}
           visible={viewing !== null}
           animationType="fade"
           onRequestClose={() => {

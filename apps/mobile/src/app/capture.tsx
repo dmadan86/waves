@@ -31,6 +31,7 @@ import {
   Text,
   useScreenClearance,
   useTheme,
+  MODAL_ORIENTATIONS,
 } from '@waves/ui';
 
 import { GroupMark } from '@/components/GroupMark';
@@ -986,6 +987,7 @@ export default function CaptureScreen() {
           close. Same viewer as the saved receipt, so it reads the same before
           the row exists. */}
       <Modal
+        supportedOrientations={MODAL_ORIENTATIONS}
         visible={previewing && photo !== null}
         transparent
         animationType="fade"

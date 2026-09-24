@@ -37,6 +37,7 @@ import {
   Text,
   useTabBarClearance,
   useTheme,
+  MODAL_ORIENTATIONS,
 } from '@waves/ui';
 
 import { ContactPicker, type PickedContact } from '@/components/ContactPicker';
@@ -468,7 +469,12 @@ export default function AddPersonScreen() {
         {saving ? <ActivityIndicator color={theme.color.brand} /> : null}
       </ScrollView>
 
-      <Modal visible={pickerOpen} animationType="slide" onRequestClose={() => setPickerOpen(false)}>
+      <Modal
+        supportedOrientations={MODAL_ORIENTATIONS}
+        visible={pickerOpen}
+        animationType="slide"
+        onRequestClose={() => setPickerOpen(false)}
+      >
         <Screen edges={['top', 'bottom']} inModal>
           <View
             style={{

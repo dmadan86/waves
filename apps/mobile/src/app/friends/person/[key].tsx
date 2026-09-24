@@ -49,6 +49,7 @@ import {
   Text,
   useTabBarClearance,
   useTheme,
+  MODAL_ORIENTATIONS,
 } from '@waves/ui';
 
 import {
@@ -486,7 +487,12 @@ export default function PersonDetailScreen() {
           identically wherever a picture opens in this app. Mounted only while
           open, because a Modal that starts hidden never presents on Android. */}
       {photoOpen && photo ? (
-        <Modal visible animationType="fade" onRequestClose={() => setPhotoOpen(false)}>
+        <Modal
+          supportedOrientations={MODAL_ORIENTATIONS}
+          visible
+          animationType="fade"
+          onRequestClose={() => setPhotoOpen(false)}
+        >
           <View style={{ flex: 1, backgroundColor: '#000' }}>
             <StatusBar barStyle="light-content" />
             <ZoomableGallery pages={[{ url: photo }]} index={0} onIndexChange={() => {}} />

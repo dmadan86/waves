@@ -21,7 +21,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { ActivityIndicator, Modal, Pressable, View } from 'react-native';
 
-import { Button, IconButton, iconSize, Text, useTheme } from '@waves/ui';
+import { Button, IconButton, iconSize, Text, useTheme, MODAL_ORIENTATIONS } from '@waves/ui';
 
 import { ZoomableImage } from '@/components/ZoomableImage';
 import {
@@ -154,7 +154,12 @@ export function SettlementProof({
         )}
       </Pressable>
 
-      <Modal visible={viewing} animationType="fade" onRequestClose={() => setViewing(false)}>
+      <Modal
+        supportedOrientations={MODAL_ORIENTATIONS}
+        visible={viewing}
+        animationType="fade"
+        onRequestClose={() => setViewing(false)}
+      >
         <View style={{ flex: 1, backgroundColor: theme.color.bg }}>
           <View
             style={{

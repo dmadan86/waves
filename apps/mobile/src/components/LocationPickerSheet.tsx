@@ -21,7 +21,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type MapView from 'react-native-maps';
 
 import type { ExpenseLocation } from '@waves/core';
-import { Button, iconSize, Row, Text, useTheme } from '@waves/ui';
+import { Button, iconSize, Row, Text, useTheme, MODAL_ORIENTATIONS } from '@waves/ui';
 
 import { useStrings } from '@/i18n';
 import {
@@ -162,6 +162,7 @@ export function LocationPickerSheet({
 
   return (
     <Modal
+      supportedOrientations={MODAL_ORIENTATIONS}
       visible={visible}
       animationType="slide"
       onRequestClose={onClose}

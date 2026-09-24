@@ -46,6 +46,7 @@ import {
   tintForKey,
   useTabBarClearance,
   useTheme,
+  MODAL_ORIENTATIONS,
 } from '@waves/ui';
 
 import { balanceDirection, copyFor, moneyAccessibilityLabel } from '@waves/core';
@@ -1589,7 +1590,13 @@ function SortMenu({
   const insets = useSafeAreaInsets();
 
   return (
-    <Modal visible={open} transparent animationType="fade" onRequestClose={onClose}>
+    <Modal
+      supportedOrientations={MODAL_ORIENTATIONS}
+      visible={open}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+    >
       <Pressable
         onPress={onClose}
         accessibilityRole="button"
@@ -1751,6 +1758,7 @@ function AddMenu({
 
   return (
     <Modal
+      supportedOrientations={MODAL_ORIENTATIONS}
       visible={open}
       transparent
       animationType="fade"

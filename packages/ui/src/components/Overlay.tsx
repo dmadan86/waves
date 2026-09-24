@@ -56,6 +56,19 @@ import { Text } from './Text';
  * it, so the wash has to do more work here than it would over a dark app.
  */
 const SCRIM = 'rgba(10, 10, 26, 0.7)';
+
+/**
+ * The orientations every `Modal` in the app must allow on iOS — the same two
+ * the app itself does (`"orientation": "portrait"` in app.json gives iOS both
+ * portrait and upside-down). React Native's `Modal` defaults to portrait alone,
+ * so on a device held upside-down, presenting one rotated the whole app for a
+ * frame or two on the way in and again on the way out: a flicker behind every
+ * sheet and pop-up. Android ignores the prop.
+ */
+export const MODAL_ORIENTATIONS: ('portrait' | 'portrait-upside-down')[] = [
+  'portrait',
+  'portrait-upside-down',
+];
 /** Past this far down, or this fast, a drag on the handle dismisses. */
 const DRAG_CLOSE_DISTANCE = 120;
 const DRAG_CLOSE_VELOCITY = 0.8;
@@ -431,6 +444,7 @@ export function Sheet({
 
   return (
     <Modal
+      supportedOrientations={MODAL_ORIENTATIONS}
       transparent
       statusBarTranslucent
       // A sheet is anchored to the bottom edge, so the *bottom* edge is the one
@@ -549,6 +563,7 @@ export function Popup({
 
   return (
     <Modal
+      supportedOrientations={MODAL_ORIENTATIONS}
       transparent
       statusBarTranslucent
       visible={mounted}
