@@ -79,6 +79,7 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+      "./plugins/withSceneLifecycle",
       "./plugins/withForegroundOnlyLocation",
       [
         "expo-build-properties",
