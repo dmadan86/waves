@@ -39,6 +39,7 @@ const world = vi.hoisted(() => ({
   auth: {} as Record<string, ReturnType<typeof vi.fn>>,
   browser: vi.fn(),
   order: [] as string[],
+  peek: (() => Promise.resolve(null)) as () => Promise<unknown>,
 }));
 
 vi.mock('@/lib/backend', () => {
@@ -83,6 +84,7 @@ vi.mock('@/lib/backend', () => {
     return builder;
   };
   return {
+    peekSession: () => world.peek(),
     backend: {
       auth: new Proxy(
         {},
@@ -223,6 +225,7 @@ beforeEach(() => {
   world.initialUrl = null;
   world.queries = [];
   world.order = [];
+  world.peek = () => Promise.resolve(null);
   world.db = tableOf({}) as never;
   world.browser = vi.fn();
   world.auth = {
@@ -284,6 +287,33 @@ describe('starting up', () => {
     expect(spies.syncPersonalAccount).toHaveBeenCalledWith('u1');
     expect(spies.identifyForReporting).toHaveBeenLastCalledWith('u1');
     expect(spies.refreshPushToken).toHaveBeenCalledTimes(1);
+  });
+
+  it('opens on the session saved on the phone without waiting for the network', async () => {
+    const stored = user('u1');
+    world.peek = () => Promise.resolve(stored);
+    // A refresh that never comes back: an hour-old token on a dead connection.
+    world.auth.getSession!.mockImplementationOnce(() => new Promise(() => {}));
+
+    const auth = await mount();
+
+    expect(auth.value.loading).toBe(false);
+    expect(auth.value.session).toBe(stored);
+    expect(spies.syncPersonalAccount).toHaveBeenCalledWith('u1');
+  });
+
+  it('lets the real session answer over the saved one when it lands', async () => {
+    let releasePeek: (value: unknown) => void = () => {};
+    world.peek = () => new Promise((resolve) => (releasePeek = resolve));
+    session = null;
+
+    const auth = await mount();
+    // The refresh was refused and the saved session arrives late: still signed out.
+    releasePeek(user('stale'));
+    await flush();
+
+    expect(auth.value.loading).toBe(false);
+    expect(auth.value.session).toBeNull();
   });
 
   it('treats a session that cannot be read as a signed-out launch, not a dead one', async () => {
