@@ -1551,8 +1551,10 @@ export default function CapturesScreen() {
                 textTransform: 'uppercase',
                 // Padding, for the same reason as the section heading above:
                 // a margin on a cell root is height FlashList cannot see.
-                paddingTop: theme.spacing.md,
-                paddingBottom: theme.spacing.xs,
+                // The first heading sits right under the list's own top
+                // padding; later ones leave a day's gap after the cards above.
+                paddingTop: index === 0 ? 0 : theme.spacing.sm,
+                paddingBottom: theme.spacing.sm,
               }}
             >
               {dayHeading(locale, item.on)}
@@ -1560,7 +1562,7 @@ export default function CapturesScreen() {
           );
         case 'batch':
           return (
-            <View style={{ paddingVertical: theme.spacing.xs }}>
+            <View style={{ paddingBottom: theme.spacing.md }}>
               <BatchGroupCard
                 items={item.items}
                 locale={locale}
@@ -1612,7 +1614,7 @@ export default function CapturesScreen() {
                the swipe had to go. Both of its answers survive as plain rows in
                the ⋯ sheet, and "not an expense" now also answers a whole ticked
                pile at once, which is what the gesture was really for. */
-            <View style={{ paddingBottom: edges.last ? theme.spacing.sm : 0 }}>
+            <View style={{ paddingBottom: edges.last ? theme.spacing.md : 0 }}>
               <View
                 style={{
                   backgroundColor: theme.color.surface,
@@ -1648,7 +1650,6 @@ export default function CapturesScreen() {
       theme.radius.lg,
       theme.spacing.md,
       theme.spacing.sm,
-      theme.spacing.xs,
       toggleBatch,
     ],
   );
@@ -1975,6 +1976,8 @@ export default function CapturesScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           paddingHorizontal: theme.spacing.xl,
+          // The first card used to sit flush against the tab bar.
+          paddingTop: theme.spacing.lg,
           // Room for whatever is at the foot. With nothing ticked that is the
           // navigation; with something ticked the navigation has stood down and
           // the action bar is there instead — one row of buttons now that the

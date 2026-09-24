@@ -91,7 +91,7 @@ export default function PackScreen() {
         contentContainerStyle={{
           paddingHorizontal: theme.spacing.xl,
           paddingBottom: clearance,
-          gap: theme.spacing.lg,
+          gap: theme.spacing.xl,
         }}
         showsVerticalScrollIndicator={false}
       >

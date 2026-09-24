@@ -135,7 +135,7 @@ export default function PendingConfirmationsScreen() {
           extraData={`${locale}|${pending.length}|${theme.scheme}`}
           keyExtractor={(settlement) => settlement.id}
           drawDistance={1500}
-          contentContainerStyle={{ paddingTop: theme.spacing.xl, paddingBottom: clearance }}
+          contentContainerStyle={{ paddingTop: theme.spacing.lg, paddingBottom: clearance }}
           ItemSeparatorComponent={() => <View style={{ height: theme.spacing.md }} />}
           showsVerticalScrollIndicator={false}
           renderItem={({ item: settlement }) => {

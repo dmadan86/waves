@@ -97,19 +97,24 @@ const UPLOAD_SIGNING_BLOCK = `        // ${MARKER}
  * The guard. A bundle is the Play artefact and nothing else, so a debug-signed
  * one is always a mistake; an APK is how this project hands somebody a build to
  * try, so it is only warned about.
+ *
+ * Task names are matched exactly. AGP runs internal tasks such as
+ * `bundleReleaseResources` and `bundleReleaseClassesToRuntimeJar` inside every
+ * release APK build, so a `startsWith('bundleRelease')` check threw on the
+ * sideload build its own message says still works.
  */
 const BUNDLE_GUARD = `
 // ${MARKER} — an AAB exists to be uploaded to Play, and Play rejects a
 // debug-signed upload. Fail here, in a second, rather than after the upload.
 gradle.taskGraph.whenReady { graph ->
-    if (!wavesHasUploadKey && graph.allTasks.any { it.name.startsWith('bundleRelease') }) {
+    if (!wavesHasUploadKey && graph.allTasks.any { it.name == 'bundleRelease' }) {
         throw new GradleException(
             'No upload key: set WAVES_UPLOAD_STORE_FILE, WAVES_UPLOAD_STORE_PASSWORD, ' +
             'WAVES_UPLOAD_KEY_ALIAS and WAVES_UPLOAD_KEY_PASSWORD in ~/.gradle/gradle.properties. ' +
             'See docs/play-release.md. (assembleRelease still works, debug-signed, for sideloading.)'
         )
     }
-    if (!wavesHasUploadKey && graph.allTasks.any { it.name.startsWith('assembleRelease') }) {
+    if (!wavesHasUploadKey && graph.allTasks.any { it.name == 'assembleRelease' }) {
         logger.lifecycle('waves: no upload key configured — release APK is DEBUG-SIGNED. Sideload only.')
     }
 }

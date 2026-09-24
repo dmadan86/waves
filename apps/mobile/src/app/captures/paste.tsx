@@ -606,7 +606,7 @@ function PasteMessages(): React.JSX.Element {
   const done = added !== null && error === null && fresh.length === 0;
 
   const header = (
-    <View style={{ gap: theme.spacing.lg, paddingBottom: theme.spacing.md }}>
+    <View style={{ gap: theme.spacing.xl }}>
       <Row style={{ paddingTop: theme.spacing.md, alignItems: 'center' }}>
         <IconButton label={t.common.close} onPress={() => router.back()}>
           <Ionicons name="close" size={iconSize.xl} color={theme.color.text} />
@@ -758,7 +758,7 @@ function PasteMessages(): React.JSX.Element {
   );
 
   const footer = (
-    <View style={{ gap: theme.spacing.md, paddingTop: theme.spacing.lg }}>
+    <View style={{ gap: theme.spacing.md, paddingTop: theme.spacing.xl }}>
       {error ? <Callout tone="negative">{error}</Callout> : null}
       {added !== null ? (
         <Callout tone="positive">{plural(locale, added, t.smsImport.addedDraftCount)}</Callout>

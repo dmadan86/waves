@@ -147,7 +147,11 @@ export function SectionHeader({ title, action }: { title: string; action?: React
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        marginBottom: theme.spacing.md,
+        // Closer to its own content than to the section above (screens stack
+        // sections `spacing.xl` apart), so the heading reads as this section's
+        // label. At `md` it sat almost midway between the two and belonged to
+        // neither.
+        marginBottom: theme.spacing.sm,
       }}
     >
       {/* Marked as a header so a screen reader's heading navigation (the iOS

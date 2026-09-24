@@ -240,7 +240,7 @@ export default function CategoriesSettingsScreen() {
             </View>
           }
           ListFooterComponent={
-            <View style={{ gap: theme.spacing.lg, marginTop: theme.spacing.md }}>
+            <View style={{ gap: theme.spacing.xl, marginTop: theme.spacing.md }}>
               {order.length > 0 ? (
                 <Text variant="micro" tone="muted" align="center">
                   {t.tags.reorderHint}

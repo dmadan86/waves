@@ -187,7 +187,7 @@ export default function SmsMessageScreen(): React.JSX.Element | null {
           paddingHorizontal: theme.spacing.xl,
           paddingTop: theme.spacing.lg,
           paddingBottom: clearance,
-          gap: theme.spacing.lg,
+          gap: theme.spacing.xl,
         }}
       >
         {/* What the app made of it: the shop, the amount, the day. This is the

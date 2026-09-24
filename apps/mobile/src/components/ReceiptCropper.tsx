@@ -23,7 +23,7 @@ import {
   type LayoutChangeEvent,
 } from 'react-native';
 
-import { IconButton, iconSize, Row, Text, useTheme } from '@waves/ui';
+import { IconButton, iconSize, Row, Text, useTheme, MODAL_ORIENTATIONS } from '@waves/ui';
 
 import { containRect } from '@/lib/annotations';
 import { transformReceipt, type PickedImage } from '@/lib/image';
@@ -218,7 +218,12 @@ export function ReceiptCropper({
   );
 
   return (
-    <Modal visible animationType="slide" onRequestClose={onCancel}>
+    <Modal
+      supportedOrientations={MODAL_ORIENTATIONS}
+      visible
+      animationType="slide"
+      onRequestClose={onCancel}
+    >
       <View style={{ flex: 1, backgroundColor: '#000' }}>
         <ModalNotice message={error ?? null} onDismiss={() => onDismissError?.()} />
         <Row

@@ -95,7 +95,11 @@ export function ImportProgressBanner(): React.JSX.Element | null {
     success && imp.groupId ? () => router.replace(`/group/${imp.groupId}`) : undefined;
 
   return (
-    <Animated.View style={{ opacity, transform: [{ translateY }] }}>
+    <Animated.View
+      // Home stacks its body `sm` apart (a heading and its card); this is a
+      // section of its own, so it tops that up to a full `xl` below it.
+      style={{ opacity, transform: [{ translateY }], marginBottom: theme.spacing.md }}
+    >
       <Pressable
         onPress={onPress}
         accessibilityRole={onPress ? 'button' : undefined}

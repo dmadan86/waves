@@ -18,7 +18,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Modal, Pressable, ScrollView, TextInput, View } from 'react-native';
 
 import { COUNTRIES, countryFlag, dialingCodeForCountry } from '@waves/core';
-import { iconSize, Row, Screen, Text, useTheme } from '@waves/ui';
+import { iconSize, Row, Screen, Text, useTheme, MODAL_ORIENTATIONS } from '@waves/ui';
 
 import { disabledCountries } from '@/data/api';
 import { useStrings } from '@/i18n';
@@ -138,7 +138,12 @@ export function CountryCodePicker({
         <Ionicons name="chevron-down" size={iconSize.base} color={theme.color.textMuted} />
       </Pressable>
 
-      <Modal visible={open} animationType="slide" onRequestClose={close}>
+      <Modal
+        supportedOrientations={MODAL_ORIENTATIONS}
+        visible={open}
+        animationType="slide"
+        onRequestClose={close}
+      >
         <Screen edges={['top', 'bottom']} inModal>
           <View
             style={{
