@@ -39,3 +39,17 @@ export function initialPickedPeople(
   const person = people.find((candidate) => candidate.groupId === selection.groupId);
   return person ? [person.name] : [];
 }
+
+/**
+ * The Groups tab's order: newest first, since the group you just made is the one
+ * you are most likely saving into. Two groups sharing a timestamp (made in the
+ * same request) fall back to id, so the order is stable across renders.
+ */
+export function groupsNewestFirst<T extends { id: string; created_at: string }>(
+  groups: readonly T[],
+): T[] {
+  return [...groups].sort((a, b) => {
+    if (a.created_at !== b.created_at) return a.created_at < b.created_at ? 1 : -1;
+    return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+  });
+}
