@@ -51,7 +51,6 @@ import {
 import {
   Avatar,
   Button,
-  Callout,
   directionalIcon,
   EmptyState,
   iconSize,
@@ -68,6 +67,7 @@ import {
   type KnownPerson,
 } from '@/lib/contactMatch';
 import { normaliseContactPhone } from '@/lib/phone';
+import { DismissibleCallout } from '@/components/DismissibleCallout';
 import { SkeletonList } from '@/components/Skeletons';
 
 export interface PickedContact {
@@ -493,12 +493,14 @@ export function ContactPicker({
           iOS 18 a "limited" grant means the phone is showing Waves a handful the
           person chose, and the way to widen it is the same settings screen the
           refusal state points at. */}
+      {/* Closable: the grant is a choice the person made, and the note would
+          otherwise return on every picker for as long as it stands. */}
       {limited ? (
-        <Callout tone="info">
+        <DismissibleCallout name="contactPicker.limited" tone="info">
           <Text variant="micro" tone="muted">
             {t.pickers.contactsLimited}
           </Text>
-        </Callout>
+        </DismissibleCallout>
       ) : null}
 
       {!single && chosen.length > 0 ? <PickedStrip chosen={chosen} onRemove={toggle} /> : null}
