@@ -142,7 +142,15 @@ export function AnimatedSplash() {
   const washOpacity = useSharedValue(0);
   const washShift = useSharedValue(0);
 
-  const finish = useCallback(() => setDone(true), []);
+  const finish = useCallback(() => {
+    // The component stays mounted (rendering nothing) once the field is gone,
+    // so the effect that started the endless drift never cleans up on its own.
+    // Stop it here, or it runs on the UI thread for the life of the process.
+    cancelAnimation(washShift);
+    cancelAnimation(washOpacity);
+    cancelAnimation(markWave);
+    setDone(true);
+  }, [markWave, washOpacity, washShift]);
 
   // The splash leaves when two things are true: the mark has finished
   // arriving, and the first real screen is ready underneath it. It used to
