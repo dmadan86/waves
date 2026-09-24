@@ -22,6 +22,7 @@ import type { ExpenseSnapshot } from '../balances/types';
 
 import {
   categoryTagsScope,
+  groupMutesScope,
   groupPinsScope,
   MutationKind,
   packInstallsScope,
@@ -39,6 +40,8 @@ import type {
   ExpenseCreatePayload,
   ExpenseDeletePayload,
   ExpenseLocation,
+  GroupMuteClearPayload,
+  GroupMuteSetPayload,
   GroupPinClearPayload,
   GroupPinSetPayload,
   MemberBudgetSetPayload,
@@ -86,6 +89,7 @@ const TABLES: readonly SyncTable[] = [
   SyncTable.ExpenseImageEvents,
   SyncTable.PersonalRecords,
   SyncTable.GroupPins,
+  SyncTable.GroupMutes,
   SyncTable.PackInstalls,
 ];
 
@@ -1517,4 +1521,64 @@ export function pinnedGroupIds(
   options: { readonly ownerId: string },
 ): Set<string> {
   return new Set(materialiseGroupPins(state, queue, options).map((row) => row.group_id));
+}
+
+/** One row of `group_mutes`, as the mirror holds it. */
+export interface MirrorGroupMute extends MirrorRow {
+  readonly id: string;
+  readonly owner_user_id: string;
+  readonly group_id: string;
+  readonly deleted_at: string | null;
+  readonly pending?: boolean;
+}
+
+/**
+ * The groups this person has muted, with the queue replayed on top — so a mute
+ * shows as on from the tap, with or without signal. The pin overlay's twin,
+ * with its safety argument: it reads and writes `group_mutes` rows and nothing
+ * else, so the worst a refused mute can cost is the mute.
+ */
+export function materialiseGroupMutes(
+  state: MirrorState,
+  queue: readonly QueuedMutation[],
+  options: { readonly ownerId: string },
+): MirrorGroupMute[] {
+  const scope = groupMutesScope(options.ownerId);
+  const byId = new Map<string, MirrorGroupMute>();
+  for (const row of rowsFor(state, SyncTable.GroupMutes) as unknown as MirrorGroupMute[]) {
+    if (row.owner_user_id !== options.ownerId) continue;
+    byId.set(row.id, row);
+  }
+
+  for (const mutation of [...queue].sort((a, b) => a.seq - b.seq)) {
+    if (mutation.groupId !== scope) continue;
+    if (mutation.kind === MutationKind.GroupMuteSet) {
+      const payload = mutation.payload as unknown as GroupMuteSetPayload;
+      byId.set(payload.muteId, {
+        id: payload.muteId,
+        owner_user_id: options.ownerId,
+        group_id: payload.groupId,
+        deleted_at: null,
+        pending: true,
+      });
+    } else if (mutation.kind === MutationKind.GroupMuteClear) {
+      const { muteId } = mutation.payload as unknown as GroupMuteClearPayload;
+      const existing = byId.get(muteId);
+      // Only tombstones a mute it can see, so a replayed queue stays idempotent.
+      if (existing) {
+        byId.set(muteId, { ...existing, deleted_at: mutation.clientCreatedAt, pending: true });
+      }
+    }
+  }
+
+  return [...byId.values()].filter((row) => row.deleted_at === null);
+}
+
+/** Just the muted group ids — the question every reader asks is "is this one muted?". */
+export function mutedGroupIds(
+  state: MirrorState,
+  queue: readonly QueuedMutation[],
+  options: { readonly ownerId: string },
+): Set<string> {
+  return new Set(materialiseGroupMutes(state, queue, options).map((row) => row.group_id));
 }

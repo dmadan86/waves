@@ -50,6 +50,8 @@ import { canEditSettlementCurrency } from '@/lib/currencyChoices';
 import { canUploadGroupPhoto, removeGroupPhoto, uploadGroupPhoto } from '@/data/api';
 import {
   useAddGhostMember,
+  useGroupMuted,
+  useSetGroupMute,
   useDeleteGroup,
   useGroup,
   useGroupFxRates,
@@ -168,6 +170,8 @@ export default function GroupSettingsScreen() {
   const { isFavorite, toggle: toggleFavorite } = useFavorites();
   const { blockedIds } = useBlockedUsers();
   const addGhost = useAddGhostMember(groupId);
+  const muted = useGroupMuted(groupId);
+  const setGroupMute = useSetGroupMute();
 
   // A name is enough to start splitting with someone (ADR-006). Adding by name
   // or from the phone's contacts both live here; the members screen keeps the
@@ -837,6 +841,23 @@ export default function GroupSettingsScreen() {
                 value={group.data.simplify_debts}
                 onValueChange={(value) => updateGroup.mutate({ simplify_debts: value })}
                 accessibilityLabel={t.group.simplifyDebts}
+              />
+            }
+          />
+        </Card>
+
+        {/* This person's own switch, not the group's: pushes about this group
+            stop reaching them, the inbox keeps everything, and the others are
+            never told (the \`group_mutes\` migration). Works offline. */}
+        <Card>
+          <InfoDisclosure
+            title={t.group.muteNotifications}
+            info={t.group.muteNotificationsBody}
+            right={
+              <Toggle
+                value={muted}
+                onValueChange={(value) => setGroupMute.mutate({ groupId, muted: value })}
+                accessibilityLabel={t.group.muteNotifications}
               />
             }
           />

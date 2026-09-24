@@ -92,7 +92,11 @@ type MutationKind =
   // One person's pin on one group (see the `group_pins` migration): personal
   // like captures, under its own suffixed scope so it keeps a separate cursor.
   | 'group_pin.set'
-  | 'group_pin.clear';
+  | 'group_pin.clear'
+  // One person's mute on one group (see the `group_mutes` migration): a pin's
+  // twin, under its own suffixed scope.
+  | 'group_mute.set'
+  | 'group_mute.clear';
 
 /** True for the kinds whose scope is a user, not a group. */
 function isPersonalKind(kind: MutationKind): boolean {
@@ -109,7 +113,9 @@ function isPersonalKind(kind: MutationKind): boolean {
     kind === 'pack.install' ||
     kind === 'pack.uninstall' ||
     kind === 'group_pin.set' ||
-    kind === 'group_pin.clear'
+    kind === 'group_pin.clear' ||
+    kind === 'group_mute.set' ||
+    kind === 'group_mute.clear'
   );
 }
 
@@ -136,6 +142,12 @@ function packInstallsScope(profileId: string): string {
  *  client's `groupPinsScope`; suffixed so it keeps its own cursor. */
 function groupPinsScope(profileId: string): string {
   return `${profileId}:group_pins`;
+}
+
+/** The personal-scope key for the groups a user has muted. Must match the
+ *  client's `groupMutesScope`; suffixed so it keeps its own cursor. */
+function groupMutesScope(profileId: string): string {
+  return `${profileId}:group_mutes`;
 }
 
 interface MutationEnvelope {
@@ -587,6 +599,10 @@ export class SyncSession {
         return await this.setGroupPin(mutation);
       case 'group_pin.clear':
         return await this.clearGroupPin(mutation);
+      case 'group_mute.set':
+        return await this.setGroupMute(mutation);
+      case 'group_mute.clear':
+        return await this.clearGroupMute(mutation);
       case 'personal.upsert':
         return await this.upsertPersonal(mutation);
       case 'personal.delete':
@@ -1245,6 +1261,48 @@ export class SyncSession {
     return { pinId };
   }
 
+  // ─────────────────────────────────── muted groups ──
+  // A pin's twin (see the `group_mutes` migration): the same owner-scoped,
+  // RLS-held upsert and soft delete, written as the caller. What a mute does
+  // lives in `waves_claim_push_notifications`, not here.
+  private requireGroupMuteScope(mutation: MutationEnvelope): void {
+    if (mutation.groupId !== groupMutesScope(this.profileId)) {
+      throw new HttpError(403, 'NOT_OWNER', 'A mute may only be written under its own owner');
+    }
+  }
+
+  /** Mute a group. Upsert by the derived `muteId`, so two devices muting the
+   *  same group offline write one row. */
+  private async setGroupMute(mutation: MutationEnvelope): Promise<unknown> {
+    this.requireGroupMuteScope(mutation);
+    const muteId = requireString(mutation.payload.muteId, 'muteId');
+    const groupId = requireString(mutation.payload.groupId, 'groupId');
+    const { error } = await this.caller.from('group_mutes').upsert(
+      {
+        id: muteId,
+        owner_user_id: this.profileId,
+        group_id: groupId,
+        deleted_at: null,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'id' },
+    );
+    if (error) throw new HttpError(400, 'VALIDATION_FAILED', error.message);
+    return { muteId, groupId };
+  }
+
+  /** Unmute. A soft delete, so it reaches the owner's other devices. */
+  private async clearGroupMute(mutation: MutationEnvelope): Promise<unknown> {
+    this.requireGroupMuteScope(mutation);
+    const muteId = requireString(mutation.payload.muteId, 'muteId');
+    const { error } = await this.caller
+      .from('group_mutes')
+      .update({ deleted_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+      .eq('id', muteId);
+    if (error) throw new HttpError(400, 'VALIDATION_FAILED', error.message);
+    return { muteId };
+  }
+
   /**
    * Write a personal record, merging it field by field instead of replacing it.
    *
@@ -1442,6 +1500,11 @@ async function pull(
   const pinScope = groupPinsScope(profileId);
   groupIds.delete(pinScope);
 
+  // Muted groups ride a seventh personal scope. Must equal
+  // `groupMutesScope(profileId)` in @waves/core.
+  const muteScope = groupMutesScope(profileId);
+  groupIds.delete(muteScope);
+
   // Every group's own row in one query rather than one lookup per group. The
   // per-group `maybeSingle` was the first of twelve serial round trips each
   // group cost, and twelve of anything serial is what made a five-group first
@@ -1605,6 +1668,13 @@ async function pull(
       column: 'owner_user_id',
       scope: pinScope,
       as: 'group_pins',
+    },
+    // The groups this person has muted — like pins, pulled to nobody else.
+    {
+      table: 'group_mutes',
+      column: 'owner_user_id',
+      scope: muteScope,
+      as: 'group_mutes',
     },
   ] as const;
 

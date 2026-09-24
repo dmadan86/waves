@@ -82,6 +82,11 @@ export enum MutationKind {
   // a soft tombstone, so an unpin reaches the person's other devices.
   GroupPinSet = 'group_pin.set',
   GroupPinClear = 'group_pin.clear',
+  // One person's mute on one group, under `groupMutesScope`: pushes about that
+  // group stop reaching them. A pin's twin in shape and for the same reasons —
+  // personal, derived id, soft tombstone — see the `group_mutes` migration.
+  GroupMuteSet = 'group_mute.set',
+  GroupMuteClear = 'group_mute.clear',
 }
 
 export interface MutationEnvelope<K extends MutationKind = MutationKind, P = unknown> {
@@ -393,6 +398,21 @@ export interface GroupPinClearPayload {
   readonly pinId: string;
 }
 
+/**
+ * Muting one group: pushes about it stop reaching this person. `muteId` is
+ * derived from (owner, group) — `groupMuteId` — for the same convergence reason
+ * as a pin's, and the payload carries the group because the id is a hash.
+ */
+export interface GroupMuteSetPayload {
+  readonly muteId: string;
+  readonly groupId: string;
+}
+
+/** Unmuting. A soft tombstone, so it reaches the person's other devices. */
+export interface GroupMuteClearPayload {
+  readonly muteId: string;
+}
+
 export interface SyncRequest {
   readonly deviceId: string;
   readonly mutations: readonly MutationEnvelope[];
@@ -490,6 +510,9 @@ export enum SyncTable {
    * `groupPinsScope`. Read + write, one row per pinned group. Personal: a pin
    * is never pulled to anybody but its owner. */
   GroupPins = 'group_pins',
+  /** Which groups this person has muted, under `groupMutesScope`. Read + write,
+   * one row per muted group. Personal: never pulled to anybody but its owner. */
+  GroupMutes = 'group_mutes',
 }
 
 /**
@@ -550,6 +573,21 @@ export function groupPinsScope(profileId: string): string {
  */
 export function groupPinId(ownerId: string, groupId: string): string {
   return deterministicId(`group_pin:${ownerId}:${groupId}`);
+}
+
+/**
+ * The personal-scope key for the groups a person has muted. Its own key for
+ * the reason `groupPinsScope` gives: a wedged mute can hold up another mute and
+ * nothing else.
+ */
+export function groupMutesScope(profileId: string): string {
+  return `${profileId}:group_mutes`;
+}
+
+/** The row id for one person's mute on one group, derived like `groupPinId`
+ *  so two devices muting the same group offline converge on one row. */
+export function groupMuteId(ownerId: string, groupId: string): string {
+  return deterministicId(`group_mute:${ownerId}:${groupId}`);
 }
 
 /** bigint ↔ string at the wire boundary; JSON has no integers this size. */

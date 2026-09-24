@@ -19,6 +19,8 @@ import {
   computeNetBalances,
   computePairwiseBalances,
   ghostMerges,
+  groupMuteId,
+  groupMutesScope,
   groupPinId,
   groupPinsScope,
   materialiseArchivedGroups,
@@ -41,6 +43,7 @@ import {
   nextSortOrder,
   openCaptures,
   openPlanItems,
+  mutedGroupIds,
   pinnedGroupIds,
   rowsFor,
   simplify,
@@ -226,6 +229,42 @@ export function useSetGroupPin() {
       const payload = pinned ? { pinId, groupId } : { pinId };
       await mutate(kind, groupPinsScope(ownerId), payload);
       return pinId;
+    },
+  });
+}
+
+// ────────────────────────────────────────────────────── group mutes ──
+//
+// A mute is a pin's twin (the `group_mutes` migration): its own personal scope,
+// a derived row id, a soft tombstone. It only changes whether pushes about the
+// group reach this person — the server suppresses them at claim time — so the
+// app reads it for one thing: the switch in the group's settings.
+
+/** Whether this person has muted the group, including a mute still queued. */
+export function useGroupMuted(groupId: string): boolean {
+  const { session } = useAuth();
+  const ownerId = session?.user?.id ?? '';
+  const { mirror, queue } = useSync();
+  return useMemo(
+    () => (ownerId ? mutedGroupIds(mirror, queue, { ownerId }).has(groupId) : false),
+    [mirror, queue, ownerId, groupId],
+  );
+}
+
+/** Mute or unmute a group's notifications for this person. Works offline:
+ *  the switch flips from the queued mutation, and the flush sends it. */
+export function useSetGroupMute() {
+  const { mutate } = useSync();
+  const { session } = useAuth();
+  return useMutation({
+    mutationFn: async ({ groupId, muted }: { groupId: string; muted: boolean }) => {
+      const ownerId = session?.user?.id;
+      if (!ownerId) throw new Error('Sign in first');
+      const muteId = groupMuteId(ownerId, groupId);
+      const kind = muted ? MutationKind.GroupMuteSet : MutationKind.GroupMuteClear;
+      const payload = muted ? { muteId, groupId } : { muteId };
+      await mutate(kind, groupMutesScope(ownerId), payload);
+      return muteId;
     },
   });
 }
