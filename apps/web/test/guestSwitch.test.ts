@@ -5,13 +5,17 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import {
+  clearAfterSignIn,
   guestJoins,
+  MAX_REJOIN_ATTEMPTS,
+  QUEUE_TTL_MS,
   lastProvider,
   queueJoinAfterSignIn,
   queueRejoin,
   rejoin,
   rememberGuestJoin,
   rememberProvider,
+  requeueFailed,
   takeAfterSignIn,
   type KeyValue,
 } from '../src/lib/guestSwitch';
@@ -63,7 +67,7 @@ describe('switching to the account they already have', () => {
     queueRejoin('guest-1', store);
 
     expect(guestJoins('guest-1', store)).toEqual([]);
-    expect(takeAfterSignIn(store)).toEqual({ kind: 'rejoin', tokens: ['tok-a'] });
+    expect(takeAfterSignIn(store)).toEqual({ kind: 'rejoin', tokens: ['tok-a'], attempts: 0 });
     // Read once: a later sign-in does not join them all over again.
     expect(takeAfterSignIn(store)).toBeNull();
   });
@@ -77,14 +81,34 @@ describe('switching to the account they already have', () => {
   it('brings somebody who signed in first back to the join link', () => {
     const store = memoryStore();
     queueJoinAfterSignIn('tok-z', store);
-    expect(takeAfterSignIn(store)).toEqual({ kind: 'join', token: 'tok-z' });
+    expect(takeAfterSignIn(store)).toEqual({ kind: 'join', token: 'tok-z', attempts: 0 });
+  });
+
+  it('drops a switch somebody abandoned, so the next person to sign in is not joined', () => {
+    const store = memoryStore();
+    rememberGuestJoin('guest-1', 'tok-a', store);
+    queueRejoin('guest-1', store, 1_000);
+    expect(takeAfterSignIn(store, 1_000 + QUEUE_TTL_MS + 1)).toBeNull();
+    // Gone, not merely skipped.
+    expect(store.data.has('waves.afterSignIn')).toBe(false);
+  });
+
+  it('can be taken back when the switch does not go ahead', () => {
+    const store = memoryStore();
+    queueJoinAfterSignIn('tok-z', store);
+    clearAfterSignIn(store);
+    expect(takeAfterSignIn(store)).toBeNull();
   });
 
   it('ignores a queue it does not recognise', () => {
     const store = memoryStore();
-    store.data.set('waves.afterSignIn', JSON.stringify({ kind: 'rejoin', tokens: [42] }));
+    const at = Date.now();
+    store.data.set('waves.afterSignIn', JSON.stringify({ kind: 'rejoin', tokens: [42], at }));
     expect(takeAfterSignIn(store)).toBeNull();
-    store.data.set('waves.afterSignIn', JSON.stringify({ kind: 'join', token: '' }));
+    store.data.set('waves.afterSignIn', JSON.stringify({ kind: 'join', token: '', at }));
+    expect(takeAfterSignIn(store)).toBeNull();
+    // No timestamp: an old-format or hand-made entry is not trusted.
+    store.data.set('waves.afterSignIn', JSON.stringify({ kind: 'join', token: 'tok' }));
     expect(takeAfterSignIn(store)).toBeNull();
   });
 });
@@ -92,7 +116,7 @@ describe('switching to the account they already have', () => {
 describe('joining the groups again', () => {
   it('joins every group and lands on the first', async () => {
     const accept = vi.fn(async (token: string) => ({ group: { id: `g-${token}` } }));
-    await expect(rejoin(['a', 'b'], accept)).resolves.toBe('/g/g-a');
+    await expect(rejoin(['a', 'b'], accept)).resolves.toEqual({ to: '/g/g-a', failed: [] });
     expect(accept).toHaveBeenCalledTimes(2);
   });
 
@@ -103,20 +127,33 @@ describe('joining the groups again', () => {
       return { group: { id: `g-${token}` } };
     });
 
-    await expect(rejoin(['revoked', 'ok'], accept, onError)).resolves.toBe('/g/g-ok');
+    await expect(rejoin(['revoked', 'ok'], accept, onError)).resolves.toEqual({
+      to: '/g/g-ok',
+      failed: ['revoked'],
+    });
     expect(onError).toHaveBeenCalledWith(expect.any(Error));
   });
 
   it('does not land on a group still waiting on an admin', async () => {
     const accept = vi.fn(async () => ({ group: { id: 'g-1' }, pending: true }));
-    await expect(rejoin(['a'], accept)).resolves.toBe('/');
+    await expect(rejoin(['a'], accept)).resolves.toEqual({ to: '/', failed: [] });
   });
 
   it('goes home when nothing took', async () => {
     const accept = vi.fn(async () => {
       throw new Error('gone');
     });
-    await expect(rejoin(['a'], accept)).resolves.toBe('/');
+    await expect(rejoin(['a'], accept)).resolves.toEqual({ to: '/', failed: ['a'] });
+  });
+
+  it('keeps the groups that failed for another try, then gives up', () => {
+    const store = memoryStore();
+    requeueFailed(['a'], 0, store);
+    expect(takeAfterSignIn(store)).toEqual({ kind: 'rejoin', tokens: ['a'], attempts: 1 });
+    requeueFailed(['a'], MAX_REJOIN_ATTEMPTS - 1, store);
+    expect(takeAfterSignIn(store)).toBeNull();
+    requeueFailed([], 0, store);
+    expect(takeAfterSignIn(store)).toBeNull();
   });
 });
 

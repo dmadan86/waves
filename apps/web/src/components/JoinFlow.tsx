@@ -88,12 +88,6 @@ export function JoinFlow({ token }: { token: string }) {
           displayName: name.trim() || null,
         });
 
-        // Kept for the guest, so a later sign-in to an account they already
-        // have can join this group again as them (`lib/guestSwitch`).
-        const { data } = await supabase.auth.getSession();
-        const user = data.session?.user;
-        if (user?.is_anonymous === true) rememberGuestJoin(user.id, token);
-
         // Claiming somebody's place only asks now (ADR-006). Routing into the
         // group would land on a page this person cannot read: they are not a
         // member until an admin of the group agrees.
@@ -102,6 +96,13 @@ export function JoinFlow({ token }: { token: string }) {
           setJoining(false);
           return;
         }
+        // Kept for the guest, so a later sign-in to an account they already
+        // have can join this group again as them (`lib/guestSwitch`). Only a
+        // join that went through: a claim still waiting on an admin is not a
+        // membership, and replaying it would skip the admin's answer.
+        const { data } = await supabase.auth.getSession();
+        const user = data.session?.user;
+        if (user?.is_anonymous === true) rememberGuestJoin(user.id, token);
         router.replace(`/g/${accepted.group.id}`);
       } catch (caught) {
         setError(

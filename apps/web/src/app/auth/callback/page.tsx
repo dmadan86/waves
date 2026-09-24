@@ -44,33 +44,36 @@ import { supabase, waves } from '@/lib/waves';
 import { fill, plural } from '@/i18n';
 import { useStrings } from '@/i18n-context';
 import { friendlyError } from '@/lib/errors';
-import { lastProvider, queueRejoin, rememberProvider } from '@/lib/guestSwitch';
+import { clearAfterSignIn, lastProvider, queueRejoin, rememberProvider } from '@/lib/guestSwitch';
 
 /**
  * How many expenses the guest in this browser added themselves. Those stay
  * with the guest when they switch, so the screen says so before they choose.
- * Zero when anything about the question fails: it is a warning, not a gate.
+ * `null` when the question could not be answered: the screen then says it
+ * without a number, rather than reading a failure as "nothing to lose".
  */
-async function guestExpenseCount(guestId: string): Promise<number> {
+async function guestExpenseCount(guestId: string): Promise<number | null> {
   try {
-    const { data: members } = await supabase
+    const { data: members, error: membersError } = await supabase
       .from('group_members')
       .select('id')
       .eq('profile_id', guestId);
+    if (membersError) return null;
     const ids = (members ?? []).map((row: { id: string }) => row.id);
     if (ids.length === 0) return 0;
-    const { count } = await supabase
+    const { count, error } = await supabase
       .from('expenses')
       .select('id', { count: 'exact', head: true })
       .in('created_by', ids)
       .is('deleted_at', null);
-    return count ?? 0;
+    if (error || count === null) return null;
+    return count;
   } catch {
-    return 0;
+    return null;
   }
 }
 
-type Taken = { guestId: string | null; left: number };
+type Taken = { guestId: string | null; left: number | null };
 
 export default function AuthCallback() {
   const router = useRouter();
@@ -126,8 +129,14 @@ export default function AuthCallback() {
     try {
       if (taken.guestId) queueRejoin(taken.guestId);
       // Local only: the guest account stays on the server, still holding what
-      // it added, and still a member of its groups.
-      await supabase.auth.signOut({ scope: 'local' });
+      // it added, and still a member of its groups. If the guest cannot be
+      // signed out, a provider sign-in now would start from the wrong session,
+      // so stop here and take the queue back.
+      const { error: signOutError } = await supabase.auth.signOut({ scope: 'local' });
+      if (signOutError) {
+        clearAfterSignIn();
+        throw signOutError;
+      }
       rememberProvider(provider);
       const redirectTo = `${window.location.origin}/auth/callback`;
       // Nobody is signed in now, so this is a plain sign-in, not a link.
@@ -153,7 +162,9 @@ export default function AuthCallback() {
         <div className="card">
           <h1>{fill(t.join.takenTitle, { provider: providerName })}</h1>
           <p>{t.join.takenBody}</p>
-          {taken.left > 0 ? (
+          {taken.left === null ? (
+            <p className="faint">{t.join.takenLeftBehindUnknown}</p>
+          ) : taken.left > 0 ? (
             <p className="faint">{plural(locale, taken.left, t.join.takenLeftBehind)}</p>
           ) : null}
         </div>
@@ -169,7 +180,10 @@ export default function AuthCallback() {
         <button
           type="button"
           className="btn soft block"
-          onClick={() => router.replace('/')}
+          onClick={() => {
+            clearAfterSignIn();
+            router.replace('/');
+          }}
           disabled={switching}
         >
           {t.join.takenStay}

@@ -9,6 +9,9 @@
  * in first, who is taken back to it. Watching the session rather than living
  * in the callback route is what makes the in-page Google sign-in (One Tap,
  * which never visits the callback) finish the same way.
+ *
+ * A queue is only honoured for `QUEUE_TTL_MS` after it was made, so a switch
+ * somebody abandoned is not applied to whoever signs in on this browser next.
  */
 
 import { useEffect } from 'react';
@@ -16,7 +19,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import * as Sentry from '@sentry/nextjs';
 
 import { useAuth } from '@/lib/auth';
-import { rejoin, takeAfterSignIn } from '@/lib/guestSwitch';
+import { rejoin, requeueFailed, takeAfterSignIn } from '@/lib/guestSwitch';
 import { waves } from '@/lib/waves';
 
 export function AfterSignIn() {
@@ -40,7 +43,10 @@ export function AfterSignIn() {
       next.tokens,
       (token) => waves.acceptInvite({ token, claimMemberId: null }),
       (caught) => Sentry.captureException(caught, { tags: { where: 'web.guestSwitch.rejoin' } }),
-    ).then((to) => router.replace(to));
+    ).then(({ to, failed }) => {
+      requeueFailed(failed, next.attempts);
+      router.replace(to);
+    });
   }, [signedIn, settling, router]);
 
   return null;

@@ -154,6 +154,7 @@ export interface WebStrings {
     takenTitle: string;
     takenBody: string;
     takenLeftBehind: PluralForms;
+    takenLeftBehindUnknown: string;
     takenSwitch: string;
     takenStay: string;
   };
@@ -1365,6 +1366,7 @@ const en: WebStrings = {
       one: 'The {n} expense you added as a guest stays with the guest.',
       other: 'The {n} expenses you added as a guest stay with the guest.',
     },
+    takenLeftBehindUnknown: 'Anything you added as a guest stays with the guest.',
     takenSwitch: 'Switch to my account',
     takenStay: 'Stay as a guest',
   },
@@ -2363,6 +2365,7 @@ const ta: WebStrings = {
       one: 'The {n} expense you added as a guest stays with the guest.',
       other: 'The {n} expenses you added as a guest stay with the guest.',
     },
+    takenLeftBehindUnknown: 'Anything you added as a guest stays with the guest.',
     takenSwitch: 'Switch to my account',
     takenStay: 'Stay as a guest',
   },
@@ -3399,6 +3402,7 @@ const hi: WebStrings = {
       one: 'The {n} expense you added as a guest stays with the guest.',
       other: 'The {n} expenses you added as a guest stay with the guest.',
     },
+    takenLeftBehindUnknown: 'Anything you added as a guest stays with the guest.',
     takenSwitch: 'Switch to my account',
     takenStay: 'Stay as a guest',
   },
@@ -4397,6 +4401,7 @@ const ar: WebStrings = {
       one: 'The {n} expense you added as a guest stays with the guest.',
       other: 'The {n} expenses you added as a guest stay with the guest.',
     },
+    takenLeftBehindUnknown: 'Anything you added as a guest stays with the guest.',
     takenSwitch: 'Switch to my account',
     takenStay: 'Stay as a guest',
   },

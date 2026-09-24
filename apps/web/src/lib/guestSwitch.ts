@@ -83,58 +83,112 @@ export function guestJoins(guestId: string, store: KeyValue | null = browserStor
 }
 
 /**
+ * How long a queued action waits for its sign-in. The switch is one round trip
+ * to Google or Apple; anything older is a switch somebody abandoned, and must
+ * not be applied to whoever signs in on this browser next.
+ */
+export const QUEUE_TTL_MS = 30 * 60 * 1000;
+
+/** How many times a group that would not rejoin is tried again. */
+export const MAX_REJOIN_ATTEMPTS = 3;
+
+/**
  * The guest has chosen to switch accounts: queue their groups to be joined
  * again after the sign-in, and forget the guest's list.
  */
-export function queueRejoin(guestId: string, store: KeyValue | null = browserStore()): void {
+export function queueRejoin(
+  guestId: string,
+  store: KeyValue | null = browserStore(),
+  now: number = Date.now(),
+): void {
   const tokens = guestJoins(guestId, store);
-  write(store, AFTER_SIGN_IN, tokens.length > 0 ? { kind: 'rejoin', tokens } : null);
+  write(
+    store,
+    AFTER_SIGN_IN,
+    tokens.length > 0 ? { kind: 'rejoin', tokens, at: now, attempts: 0 } : null,
+  );
   write(store, GUEST_JOINS, null);
 }
 
 /** Somebody on a join link chose to sign in first: bring them back to it. */
-export function queueJoinAfterSignIn(token: string, store: KeyValue | null = browserStore()): void {
-  write(store, AFTER_SIGN_IN, { kind: 'join', token });
+export function queueJoinAfterSignIn(
+  token: string,
+  store: KeyValue | null = browserStore(),
+  now: number = Date.now(),
+): void {
+  write(store, AFTER_SIGN_IN, { kind: 'join', token, at: now });
 }
 
-/** What was queued for this sign-in, removed as it is read. */
-export function takeAfterSignIn(store: KeyValue | null = browserStore()): AfterSignIn | null {
+/** Drop whatever is queued: the switch it was for did not happen. */
+export function clearAfterSignIn(store: KeyValue | null = browserStore()): void {
+  write(store, AFTER_SIGN_IN, null);
+}
+
+/** What was queued for this sign-in, removed as it is read. Stale queues are dropped. */
+export function takeAfterSignIn(
+  store: KeyValue | null = browserStore(),
+  now: number = Date.now(),
+): (AfterSignIn & { attempts: number }) | null {
   const value = readJson(store, AFTER_SIGN_IN) as {
     kind?: unknown;
     tokens?: unknown;
     token?: unknown;
+    at?: unknown;
+    attempts?: unknown;
   } | null;
   write(store, AFTER_SIGN_IN, null);
-  if (value?.kind === 'rejoin' && isTokenList(value.tokens) && value.tokens.length > 0) {
-    return { kind: 'rejoin', tokens: value.tokens };
+  if (typeof value?.at !== 'number' || now - value.at > QUEUE_TTL_MS || value.at > now) {
+    return null;
   }
-  if (value?.kind === 'join' && typeof value.token === 'string' && value.token !== '') {
-    return { kind: 'join', token: value.token };
+  const attempts = typeof value.attempts === 'number' ? value.attempts : 0;
+  if (value.kind === 'rejoin' && isTokenList(value.tokens) && value.tokens.length > 0) {
+    return { kind: 'rejoin', tokens: value.tokens, attempts };
+  }
+  if (value.kind === 'join' && typeof value.token === 'string' && value.token !== '') {
+    return { kind: 'join', token: value.token, attempts };
   }
   return null;
+}
+
+/**
+ * Put back the groups that would not rejoin, to be tried on the next load:
+ * a dropped connection must not cost somebody their groups. Given up on after
+ * `MAX_REJOIN_ATTEMPTS`, since a revoked or used-up invite will never take.
+ */
+export function requeueFailed(
+  tokens: string[],
+  attempts: number,
+  store: KeyValue | null = browserStore(),
+  now: number = Date.now(),
+): void {
+  if (tokens.length === 0 || attempts + 1 >= MAX_REJOIN_ATTEMPTS) return;
+  write(store, AFTER_SIGN_IN, { kind: 'rejoin', tokens, at: now, attempts: attempts + 1 });
 }
 
 /**
  * Join each queued group again as the signed-in account.
  *
  * One refused token (an invite since revoked, a group since deleted) does not
- * stop the rest. Returns where to go: the first group that took, else home.
+ * stop the rest. Returns where to go (the first group that took, else home)
+ * and the tokens that failed, so they can be tried again.
  */
 export async function rejoin(
   tokens: string[],
   accept: (token: string) => Promise<{ group: { id: string }; pending?: boolean }>,
   onError: (caught: unknown) => void = () => {},
-): Promise<string> {
+): Promise<{ to: string; failed: string[] }> {
   let first: string | null = null;
+  const failed: string[] = [];
   for (const token of tokens) {
     try {
       const accepted = await accept(token);
       if (!first && !accepted.pending) first = `/g/${accepted.group.id}`;
     } catch (caught) {
+      failed.push(token);
       onError(caught);
     }
   }
-  return first ?? '/';
+  return { to: first ?? '/', failed };
 }
 
 const PROVIDER = 'waves.oauthProvider';
