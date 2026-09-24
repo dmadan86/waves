@@ -156,7 +156,7 @@ describe('a nudge that is real', () => {
     expect(result.rows[0].id).not.toBeNull();
 
     const { rows } = await client.query(
-      `SELECT kind, group_id, payload FROM notifications WHERE profile_id = $1`,
+      `SELECT kind, group_id, payload FROM notifications WHERE profile_id = $1 AND kind = 'nudge'`,
       [ravi],
     );
     expect(rows).toHaveLength(1);

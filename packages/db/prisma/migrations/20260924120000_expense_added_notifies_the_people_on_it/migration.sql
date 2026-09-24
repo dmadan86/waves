@@ -234,3 +234,12 @@ BEGIN
   );
 END
 $$;
+
+-- The caller model, restated rather than inherited. This is the ledger's write
+-- path and it is service-role only: the edge functions call it, a signed-in
+-- client never does (see 20260904200000_authenticated_surface_on_hosted, which
+-- had to take it back from `authenticated` on the hosted project once already).
+-- CREATE OR REPLACE keeps the grants an existing function has, but saying so
+-- here is what makes a future signature change fail CI instead of re-opening it.
+REVOKE ALL ON FUNCTION public.waves_apply_expense(p_group_id uuid, p_expense_id uuid, p_author_member_id uuid, p_description text, p_category text, p_expense_date date, p_currency character, p_amount bigint, p_split_type text, p_split_params jsonb, p_payers jsonb, p_shares jsonb, p_client_mutation_id uuid, p_notes text, p_receipt_id uuid, p_base_version_no integer, p_fx jsonb, p_source text, p_payment_method text, p_receipt_share_url text, p_category_meta jsonb, p_location jsonb) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.waves_apply_expense(p_group_id uuid, p_expense_id uuid, p_author_member_id uuid, p_description text, p_category text, p_expense_date date, p_currency character, p_amount bigint, p_split_type text, p_split_params jsonb, p_payers jsonb, p_shares jsonb, p_client_mutation_id uuid, p_notes text, p_receipt_id uuid, p_base_version_no integer, p_fx jsonb, p_source text, p_payment_method text, p_receipt_share_url text, p_category_meta jsonb, p_location jsonb) TO service_role;

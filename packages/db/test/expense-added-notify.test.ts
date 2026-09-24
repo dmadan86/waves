@@ -140,6 +140,27 @@ describe('expense_added', () => {
     expect((await addedFor(expenseId)).map((row) => row.profile_id)).toEqual([profileIds[1]]);
   });
 
+  it('tells a member only once when they both paid and owe', async () => {
+    const { groupId, profileIds, memberIds } = await seedGroup(client, { memberCount: 2 });
+    const [author, other] = memberIds as [string, string];
+
+    const expenseId = await applyExpense({
+      groupId,
+      authorMemberId: author,
+      payers: [
+        { memberId: author, amount: 300n },
+        { memberId: other, amount: 300n },
+      ],
+      shares: [
+        { memberId: author, amount: 300n },
+        { memberId: other, amount: 300n },
+      ],
+      amount: 600n,
+    });
+
+    expect((await addedFor(expenseId)).map((row) => row.profile_id)).toEqual([profileIds[1]]);
+  });
+
   it('does not tell a ghost, somebody who left, or a zero share', async () => {
     const { groupId, profileIds, memberIds } = await seedGroup(client, {
       memberCount: 4,
