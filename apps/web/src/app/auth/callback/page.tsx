@@ -38,11 +38,13 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-import { readOAuthCallback } from '@waves/core';
+import { leaveUntouchedGuestGroups, readOAuthCallback } from '@waves/core';
 
 import { supabase, waves } from '@/lib/waves';
 import { fill, plural } from '@/i18n';
 import { useStrings } from '@/i18n-context';
+import * as Sentry from '@sentry/nextjs';
+
 import { friendlyError } from '@/lib/errors';
 import { clearAfterSignIn, lastProvider, queueRejoin, rememberProvider } from '@/lib/guestSwitch';
 
@@ -71,6 +73,58 @@ async function guestExpenseCount(guestId: string): Promise<number | null> {
   } catch {
     return null;
   }
+}
+
+/**
+ * Whether a membership has anything attached: an expense it created, a share,
+ * a payment or a settlement. Any failed read counts as "yes", so a guest is
+ * only ever taken out of a group it demonstrably never touched.
+ */
+async function memberHasHistory(memberId: string): Promise<boolean> {
+  const counts = await Promise.all([
+    supabase
+      .from('expenses')
+      .select('id', { count: 'exact', head: true })
+      .eq('created_by', memberId),
+    supabase
+      .from('expense_shares')
+      .select('member_id', { count: 'exact', head: true })
+      .eq('member_id', memberId),
+    supabase
+      .from('expense_payers')
+      .select('member_id', { count: 'exact', head: true })
+      .eq('member_id', memberId),
+    supabase
+      .from('settlements')
+      .select('id', { count: 'exact', head: true })
+      .or(`from_member_id.eq.${memberId},to_member_id.eq.${memberId}`),
+  ]);
+  return counts.some(({ count, error }) => Boolean(error) || count === null || count > 0);
+}
+
+/**
+ * Take the guest out of the groups it only joined, before it signs out: the
+ * switch joins the real account to them again, and a guest left behind shows
+ * the same person twice. See `leaveUntouchedGuestGroups` in @waves/core.
+ */
+async function leaveGuestGroups(guestId: string): Promise<void> {
+  await leaveUntouchedGuestGroups({
+    memberships: async () => {
+      const { data, error } = await supabase
+        .from('group_members')
+        .select('id, joined_via')
+        .eq('profile_id', guestId)
+        .is('left_at', null);
+      if (error) throw error;
+      return (data ?? []).map((row: { id: string; joined_via: string | null }) => ({
+        memberId: row.id,
+        joinedVia: row.joined_via,
+      }));
+    },
+    hasHistory: memberHasHistory,
+    leave: (memberId) => waves.leaveGroup(memberId),
+    report: (error) => Sentry.captureException(error, { tags: { where: 'web.guestSwitch.leave' } }),
+  });
 }
 
 type Taken = { guestId: string | null; left: number | null };
@@ -127,7 +181,10 @@ export default function AuthCallback() {
     setSwitching(true);
     setError(null);
     try {
-      if (taken.guestId) queueRejoin(taken.guestId);
+      if (taken.guestId) {
+        queueRejoin(taken.guestId);
+        await leaveGuestGroups(taken.guestId);
+      }
       // Local only: the guest account stays on the server, still holding what
       // it added, and still a member of its groups. If the guest cannot be
       // signed out, a provider sign-in now would start from the wrong session,

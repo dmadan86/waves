@@ -378,7 +378,11 @@ interface AuthValue {
    * changed. The browser fallback cannot ask first, so backing out of *that*
    * leaves them signed out, on the welcome screen.
    */
-  signInInstead: (provider: OAuthMethod) => Promise<boolean>;
+  signInInstead: (
+    provider: OAuthMethod,
+    /** Runs once the provider has said yes, while the guest is still signed in. */
+    beforeSignOut?: () => Promise<void>,
+  ) => Promise<boolean>;
   updateProfile: (patch: Partial<Profile>) => Promise<void>;
   /** Re-read the session after it changes underneath us (e.g. a linked email). */
   refresh: () => Promise<void>;
@@ -783,13 +787,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       signOut: endSession,
 
-      async signInInstead(provider) {
+      async signInInstead(provider, beforeSignOut) {
         // Ask the provider while the guest is still here: a sheet dismissed at
         // this point has changed nothing.
         const native =
           provider === OAuthMethod.Apple ? await appleNativeSignIn() : await googleNativeSignIn();
         if (native.kind === 'dismissed') return false;
 
+        // Never allowed to stop the switch: at worst a guest membership stays.
+        await beforeSignOut?.().catch(() => {});
         await endSession();
         // Let the signed-out render land before the next account arrives. The
         // sync layer only wipes the leaving account on a signed-out frame; two

@@ -13,7 +13,7 @@ vi.mock('react', async () => (await import('./support/fakeReact')).reactModule()
 const world = vi.hoisted(() => ({
   session: { user: { id: 'g1', is_anonymous: true } } as unknown,
   confirm: vi.fn(async (_options: Record<string, unknown>) => true),
-  signInInstead: vi.fn(async (_provider: string) => true),
+  signInInstead: vi.fn(async (_provider: string, _beforeSignOut?: () => Promise<void>) => true),
   acceptInvite: vi.fn(async (input: { token: string }) => ({
     group: { id: `group-${input.token}`, name: 'Trip' },
     memberId: 'm1',
@@ -23,6 +23,7 @@ const world = vi.hoisted(() => ({
   replace: vi.fn(),
   invalidate: vi.fn(async () => {}),
   report: vi.fn(),
+  leaveGuestGroups: vi.fn(async (_guestId: string) => {}),
 }));
 
 class FakeIdentityTakenError extends Error {
@@ -39,6 +40,7 @@ vi.mock('@/lib/dialog', () => ({ useDialog: () => ({ confirm: world.confirm }) }
 vi.mock('@/data/api', () => ({ acceptInvite: world.acceptInvite }));
 vi.mock('@/data/hooks', () => ({ keys: { groups: ['groups'] } }));
 vi.mock('@/lib/guestJoins', () => ({ guestJoins: { read: world.read, clear: world.clear } }));
+vi.mock('@/lib/guestLeave', () => ({ leaveGuestGroups: world.leaveGuestGroups }));
 vi.mock('@/lib/navigation', () => ({ router: { replace: world.replace } }));
 vi.mock('@/lib/observability', () => ({ reportHandled: world.report }));
 vi.mock('@tanstack/react-query', () => ({
@@ -94,7 +96,11 @@ describe('a login that already has an account', () => {
     const left = await resolver()(new FakeIdentityTakenError(OAuthMethod.Google));
 
     expect(left).toBeNull();
-    expect(world.signInInstead).toHaveBeenCalledWith(OAuthMethod.Google);
+    expect(world.signInInstead).toHaveBeenCalledWith(OAuthMethod.Google, expect.any(Function));
+    // The guest steps out of its untouched groups before signing out.
+    const beforeSignOut = world.signInInstead.mock.calls[0]![1] as unknown as () => Promise<void>;
+    await beforeSignOut();
+    expect(world.leaveGuestGroups).toHaveBeenCalledWith('g1');
     expect(world.acceptInvite).toHaveBeenCalledWith({ token: 't1', claimMemberId: null });
     expect(world.clear).toHaveBeenCalledWith('g1');
     expect(world.invalidate).toHaveBeenCalled();
