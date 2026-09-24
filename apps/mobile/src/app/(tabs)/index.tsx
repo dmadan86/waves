@@ -591,14 +591,13 @@ export default function HomeScreen() {
           />
         }
       >
-        {/* The white body beneath the hero: the groups list. Tightened to a
-            WhatsApp-style side margin (lg) so the list reads dense, not floaty.
-            Back to `lg` above it now the list is the first thing under the
-            hero's rounded edge again, rather than sitting under a grid and a
-            hairline that had already opened the gap. */}
+        {/* The white body beneath the hero: the groups list. The app's side
+            gutter (xl), the same as the hero's content above it — it used to
+            be a denser `lg`, which set the list 4pt out of line with the hero.
+            `lg` above it, the gap every screen opens under its header. */}
         <View
           style={{
-            paddingHorizontal: theme.spacing.lg,
+            paddingHorizontal: theme.spacing.xl,
             paddingTop: theme.spacing.lg,
             // Heading → its card. The import banner, when it shows, adds its
             // own margin so it still sits a full section gap (xl) above.
