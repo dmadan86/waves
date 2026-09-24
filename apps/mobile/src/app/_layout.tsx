@@ -42,6 +42,7 @@ import { TourOverlay } from '@/components/TourOverlay';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { StatusBanner, UpdateGate } from '@/components/AppStatus';
 import { AuthProvider, useAuth } from '@/lib/auth';
+import { markLaunchReady } from '@/lib/launchReady';
 import { AutoBackup } from '@/lib/backup/AutoBackup';
 import { backendConfigured } from '@/lib/backend';
 import { CaptureNudge } from '@/lib/captureNudge/CaptureNudge';
@@ -418,6 +419,11 @@ function LockGate({ children }: { children: React.ReactNode }) {
     if (locked) void unlock();
   }, [locked, unlock]);
 
+  // The lock screen is a real screen: the launch splash may hand over to it.
+  useEffect(() => {
+    if (locked) markLaunchReady();
+  }, [locked]);
+
   if (!locked) return <>{children}</>;
 
   return (
@@ -578,6 +584,14 @@ function AuthGate() {
     };
   }, [ownerId]);
   const tourSeen = tourAnswer && tourAnswer.owner === ownerId ? tourAnswer.seen : null;
+
+  // Past the spinners below means a real screen — the intro or the app — is
+  // what renders, so the launch splash may lift onto it. Until then it holds,
+  // which is what keeps that spinner off a cold start.
+  const showingScreen = !loading && !needsRedirect && !(session && ownerId && tourSeen === null);
+  useEffect(() => {
+    if (showingScreen) markLaunchReady();
+  }, [showingScreen]);
 
   if (loading || needsRedirect) {
     return (

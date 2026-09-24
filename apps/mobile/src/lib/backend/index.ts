@@ -24,7 +24,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-import { supabase, supabaseConfigured } from '@/lib/supabase';
+import { peekStoredSession, supabase, supabaseConfigured } from '@/lib/supabase';
 
 /**
  * The auth calls the app actually makes. `startAutoRefresh`/`stopAutoRefresh`
@@ -78,6 +78,9 @@ export const backend: Backend = supabase;
 
 /** Whether the build shipped a usable backend config (see `lib/supabase.ts`). */
 export const backendConfigured = supabaseConfigured;
+
+/** The session saved on this phone, read without the network (see `lib/supabase.ts`). */
+export const peekSession = peekStoredSession;
 
 /**
  * Auth value types re-exported so no screen imports `@supabase/supabase-js`
