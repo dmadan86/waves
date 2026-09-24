@@ -84,7 +84,9 @@ export default function MembersScreen() {
                 ? t.claims.theyAreAlreadyIn
                 : verdict.reason === 'NOT_CLAIMABLE'
                   ? t.claims.placeTaken
-                  : t.claims.decideFailed;
+                  : verdict.reason === 'HAS_HISTORY'
+                    ? t.claims.theyHaveHistory
+                    : t.claims.decideFailed;
           setClaimError(said);
         },
         onError: (caught) =>
