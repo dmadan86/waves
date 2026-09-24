@@ -27,8 +27,9 @@ Their balance is not a placeholder even though they are:
 
 ## Add a person, without a group
 
-On **Friends**, **+ Friend → Add a person** records a one-off debt with no
-group to set up:
+On **Friends**, **Add a person** records a one-off debt with no group to set
+up. It is on the empty Friends screen, and under **Add people → From contacts**
+for someone who is not in your contacts:
 
 > Track what someone owes you — nobody needs the app, and no group to set up.
 
@@ -50,7 +51,7 @@ balance changes.
 ## Merging duplicates
 
 The same person added separately to three groups is three placeholders. Friends
-notices: a merge button appears beside **+ Friend**, carrying the number of
+notices: a merge button appears beside **Add people**, carrying the number of
 possible duplicates, and it opens **Merge people**, which combines them:
 
 > Pick the guests who are the same person. Their balances are combined under one
