@@ -37,10 +37,10 @@
  * that the eye reads it as drawing. A real trim needs path geometry this
  * platform will not animate for us.
  *
- * Because the mark is drawn on, the native splash must NOT also be showing it —
- * see `app.json` and `plugins/withBareSplashField.js`. If a mark is put back
- * there, this component appears to erase the logo the launch had already
- * finished showing and draw it again.
+ * On Android 12+ the native splash draws the first two beats itself, from the
+ * same geometry (`plugins/withAnimatedSplashMark.js`), and `AnimatedSplash`
+ * starts this at `MARK_DRAWN`, so the mark is never erased and drawn again.
+ * Anywhere else the native splash shows an undrawn mark and this draws it all.
  *
  * The numbers all come from `assets/brand/wave-mark.json`, written by
  * `infra/art/render-splash-mark.py`. Edit the geometry there and re-run it.
@@ -65,6 +65,11 @@ const INK = '#FFFFFF';
  */
 const DRAW_END = 0.38;
 const DOT_END = 0.47;
+
+/** Where the mark is whole (stroke drawn, dot landed) and only the swell is to
+    come: the frame Android 12's native splash ends on, which `AnimatedSplash`
+    starts from there (see plugins/withAnimatedSplashMark.js). */
+export const MARK_DRAWN = DOT_END;
 const SWELL_START = 0.62;
 
 /** How far above its resting place the dot starts its fall, in canvas units.

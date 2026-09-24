@@ -53,7 +53,7 @@ import Animated, {
 
 import { useLaunchReady } from '@/lib/launchReady';
 import { useReducedMotion } from '@/lib/reducedMotion';
-import { WaveMark } from '@/components/WaveMark';
+import { MARK_DRAWN, WaveMark } from '@/components/WaveMark';
 
 /** The field. Kept identical to `expo-splash-screen`'s `backgroundColor` in
     `app.json`, because the native splash is this same flat colour and this one
@@ -111,6 +111,20 @@ const WASH_MS = 360;
 const MARK_MS = 900;
 const HOLD_MS = 60;
 const LIFT_MS = 300;
+/**
+ * Whether the native half has already drawn the mark. On Android 12 and later
+ * the OS splash plays an animated vector of the stroke inking on and the dot
+ * landing, from the first frame of the process (plugins/withAnimatedSplashMark.js),
+ * so this half opens on the finished mark and plays only what is left: the
+ * swell, then the lift. Earlier Android shows that drawable's first frame, an
+ * undrawn mark, and this half draws the whole thing as before.
+ */
+const NATIVE_DRAWS_MARK =
+  Platform.OS === 'android' && typeof Platform.Version === 'number' && Platform.Version >= 31;
+
+/** Where the mark starts in this half: finished if the native half drew it. */
+const MARK_START = NATIVE_DRAWS_MARK ? MARK_DRAWN : 0;
+
 /** The longest the splash waits on a screen that has not said it is ready. */
 const MAX_WAIT_MS = 5000;
 /** How far the wash drifts, as a fraction of the screen — a drift, not a swipe. */
@@ -135,9 +149,10 @@ export function AnimatedSplash() {
   // The whole field, and the logo riding on it.
   const fieldOpacity = useSharedValue(1);
   const fieldScale = useSharedValue(1);
-  // The mark starts undrawn, which is what the native half is now showing:
-  // the bare field, no logo on it.
-  const markWave = useSharedValue(0);
+  // The mark starts where the native half left it: finished on Android 12+,
+  // undrawn (a bare field) everywhere else. Either way frame one is the frame
+  // the OS splash ended on, so the handoff cannot show.
+  const markWave = useSharedValue(MARK_START);
   // The wash starts invisible, so frame one is the flat field and nothing else.
   const washOpacity = useSharedValue(0);
   const washShift = useSharedValue(0);
@@ -169,7 +184,10 @@ export function AnimatedSplash() {
     // The whole arrival, then the hold: the mark has to be finished before
     // the field starts to leave, or the lift begins over a logo still
     // drawing and the two motions read as one smear.
-    const liftAt = MARK_MS + HOLD_MS;
+    // Only what is left of the mark: all of it, or just the swell when the
+    // native half has already drawn the rest.
+    const markMs = MARK_MS * (1 - MARK_START);
+    const liftAt = markMs + HOLD_MS;
 
     let cancelled = false;
     let drawnTimer: ReturnType<typeof setTimeout> | undefined;
@@ -208,7 +226,7 @@ export function AnimatedSplash() {
       // The mark draws itself on. Linear, because the shaping lives inside
       // `WaveMark` where each beat can be eased on its own terms; easing the
       // whole span would warp the gaps between them.
-      markWave.value = withTiming(1, { duration: MARK_MS, easing: Easing.linear });
+      markWave.value = withTiming(1, { duration: markMs, easing: Easing.linear });
     };
 
     // Nothing starts until the native splash is actually off the screen.
