@@ -532,9 +532,24 @@ export function Sheet({
             }}
           >
             {/* Reduced motion drops the slide, so the card fades instead — the
-                only arrival it has left. */}
+                only arrival it has left. Otherwise it is fully opaque.
+
+                Always an animated value, never a plain number. `reduceMotion`
+                starts true until the setting loads, so this prop used to begin
+                bound to the natively driven `progress` (near 0) and then switch
+                to `1`. Android keeps the last native value when a prop leaves a
+                native-driven node, so the card stayed invisible, or half-faded,
+                over its scrim — a sheet that opened as a dark screen and nothing
+                else. Interpolating keeps the binding, and only the mapping
+                changes. */}
             <Animated.View
-              style={{ transform: [{ translateY }], opacity: reduceMotion ? progress : 1 }}
+              style={{
+                transform: [{ translateY }],
+                opacity: progress.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: reduceMotion ? [0, 1] : [1, 1],
+                }),
+              }}
             >
               <SheetCard
                 handle={handle}
@@ -593,9 +608,13 @@ export function Popup({
 
   if (!mounted) return null;
 
-  const scale = reduceMotion
-    ? 1
-    : progress.interpolate({ inputRange: [0, 1], outputRange: [POPUP_START_SCALE, 1] });
+  // Always interpolated, never a plain `1`: a native-driven prop that switches
+  // to a static value keeps its last native value on Android (see the Sheet's
+  // card). Under reduced motion the mapping is flat, so nothing grows.
+  const scale = progress.interpolate({
+    inputRange: [0, 1],
+    outputRange: reduceMotion ? [1, 1] : [POPUP_START_SCALE, 1],
+  });
 
   return (
     <Modal
