@@ -38,6 +38,7 @@ import {
 } from '@waves/core';
 
 import { CountryCodePicker } from '@/components/CountryCodePicker';
+import { DismissibleCallout } from '@/components/DismissibleCallout';
 import { EditTextSheet } from '@/components/EditTextSheet';
 import { ProfileAvatar } from '@/components/ProfileAvatar';
 import { SettingsSection } from '@/components/SettingsSection';
@@ -448,10 +449,17 @@ function AccountForm() {
             did not already know. A guest, or somebody sent here by a limit, gets
             the one message that is actually actionable — as a Callout, the app's
             canonical shape for "read this". */}
-        {isGuest || gateBody ? (
-          <Callout tone="info" title={gateBody ? t.contact.gateTitle : undefined}>
-            {gateBody ?? t.contact.guestBody}
+        {/* The limit that sent them here is the reason for the visit, so it
+            stays; the guest reassurance says the same thing every time, so
+            once read it can be closed for good. */}
+        {gateBody ? (
+          <Callout tone="info" title={t.contact.gateTitle}>
+            {gateBody}
           </Callout>
+        ) : isGuest ? (
+          <DismissibleCallout name="account.guestReassurance" tone="info">
+            {t.contact.guestBody}
+          </DismissibleCallout>
         ) : null}
 
         <View style={{ gap: theme.spacing.md }}>

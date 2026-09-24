@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { View, type ViewStyle } from 'react-native';
+import { Pressable, View, type ViewStyle } from 'react-native';
 
 import { useTheme, type Theme } from '../theme';
 import { Text } from './Text';
@@ -20,6 +20,12 @@ import { Text } from './Text';
  * package carries no icon library (the way `PillTabBar` does not). A screen
  * that wants its own glyph passes `icon` and is handed back the tone's colour,
  * so an overriding icon still matches without the caller looking it up.
+ *
+ * `onDismiss` adds a close mark at the trailing edge, for the explanatory kind
+ * that would otherwise sit on a screen for ever. The panel does not remember
+ * anything itself: the caller decides what closing means (the app keeps a
+ * per-account "closed" flag). Errors and warnings should not pass it — a
+ * message that can be closed is a message that can be missed.
  */
 export type CalloutTone = 'negative' | 'warning' | 'positive' | 'info';
 
@@ -86,6 +92,8 @@ export function Callout({
   title,
   children,
   style,
+  onDismiss,
+  dismissLabel = 'Close',
 }: {
   tone?: CalloutTone;
   /**
@@ -98,13 +106,15 @@ export function Callout({
   /** The message. A string in the common case; nodes when it needs a link. */
   children: ReactNode;
   style?: ViewStyle;
+  /** Shows a close mark; called when it is tapped. Omit for a fixed panel. */
+  onDismiss?: () => void;
+  /** The close mark's spoken label — pass the localised "Close". */
+  dismissLabel?: string;
 }) {
   const theme = useTheme();
   const { fg, bg } = calloutColors(theme, tone);
   return (
     <View
-      accessible
-      accessibilityRole={tone === 'negative' ? 'alert' : 'text'}
       style={[
         {
           flexDirection: 'row',
@@ -117,21 +127,56 @@ export function Callout({
         style,
       ]}
     >
-      {/* Nudged onto the first line's optical centre when there is a title
-          stacked above the body; centred with the single line otherwise. */}
-      <View style={{ marginTop: title ? 1 : 0 }}>
-        {icon ? icon(fg) : <CalloutBadge tone={tone} color={fg} />}
-      </View>
-      <View style={{ flex: 1, gap: 2 }}>
-        {title ? (
-          <Text variant="subheading" style={{ color: fg }}>
-            {title}
+      {/* The message is one accessible element; the close mark is a sibling so
+          a screen reader can still reach it (an accessible parent would swallow
+          it). Without a close mark the row reads exactly as it always did. */}
+      <View
+        accessible
+        accessibilityRole={tone === 'negative' ? 'alert' : 'text'}
+        style={{
+          flex: 1,
+          flexDirection: 'row',
+          alignItems: title ? 'flex-start' : 'center',
+          gap: theme.spacing.md,
+        }}
+      >
+        {/* Nudged onto the first line's optical centre when there is a title
+            stacked above the body; centred with the single line otherwise. */}
+        <View style={{ marginTop: title ? 1 : 0 }}>
+          {icon ? icon(fg) : <CalloutBadge tone={tone} color={fg} />}
+        </View>
+        <View style={{ flex: 1, gap: 2 }}>
+          {title ? (
+            <Text variant="subheading" style={{ color: fg }}>
+              {title}
+            </Text>
+          ) : null}
+          <Text variant="caption" style={{ color: fg }}>
+            {children}
           </Text>
-        ) : null}
-        <Text variant="caption" style={{ color: fg }}>
-          {children}
-        </Text>
+        </View>
       </View>
+      {onDismiss ? (
+        // A 24pt mark with 10pt of slop each way: a 44pt target that does not
+        // make the panel any taller than its text.
+        <Pressable
+          onPress={onDismiss}
+          accessibilityRole="button"
+          accessibilityLabel={dismissLabel}
+          hitSlop={10}
+          style={({ pressed }) => ({
+            width: 24,
+            height: 24,
+            alignItems: 'center',
+            justifyContent: 'center',
+            opacity: pressed ? 0.5 : 1,
+          })}
+        >
+          <Text variant="body" style={{ color: fg, fontWeight: '700' }}>
+            ×
+          </Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
