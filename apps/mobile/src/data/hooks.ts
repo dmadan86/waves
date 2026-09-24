@@ -85,6 +85,7 @@ import {
   fetchReceipt,
   fetchMemberClaims,
   decideMemberClaim,
+  claimMemberAsMe,
   type PlanItemRow,
   type MemberBudgetRow,
   type GroupBudget,
@@ -2460,6 +2461,22 @@ export function useDecideMemberClaim(groupId: string) {
   return useMutation({
     mutationFn: ({ claimId, approve }: { claimId: string; approve: boolean }) =>
       decideMemberClaim(claimId, approve),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: keys.memberClaims(groupId) });
+      invalidateGroup(queryClient, groupId);
+    },
+  });
+}
+
+/**
+ * Saying "this is me" about a placeholder in a group you are already in.
+ * Members are invalidated for the same reason as a decision: when an admin
+ * asks, it is approved in the same call.
+ */
+export function useClaimMemberAsMe(groupId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (memberId: string) => claimMemberAsMe(memberId),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: keys.memberClaims(groupId) });
       invalidateGroup(queryClient, groupId);
