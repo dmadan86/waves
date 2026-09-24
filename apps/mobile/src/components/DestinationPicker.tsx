@@ -31,6 +31,7 @@ import { matchesAssignGroupQuery } from '@/lib/captureAssign';
 import { usePersonalOffered } from '@/lib/guestGuard';
 import { useViewerIdentity } from '@/lib/viewerIdentity';
 import {
+  groupsNewestFirst,
   initialDestinationTab,
   initialPickedPeople,
   type DestinationPersonChoice,
@@ -238,19 +239,11 @@ export function DestinationPicker({
   // order. Every row carries its own cover emoji (or a type glyph as a fallback)
   // so a trip, a home and an event are told apart at a glance instead of a
   // column of identical people icons.
-  // A person's 1:1 group is their row on the People tab, not a group in its own
-  // right — showing it in both tabs lists the same conversation twice. So the
-  // groups the People tab already represents are dropped here.
-  const personGroupIds = new Set(people.map((person) => person.groupId));
-  const sorted = [...groups]
-    .filter((group) => !personGroupIds.has(group.id))
-    .sort((a, b) => {
-      // Newest first by creation time; when two groups share a timestamp (made
-      // in the same request), fall back to id so the order is stable across
-      // renders rather than flipping on every re-sort.
-      if (a.created_at !== b.created_at) return a.created_at < b.created_at ? 1 : -1;
-      return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
-    });
+  // Every group is listed, including a 1:1 with no name of its own (labelled
+  // by the other person). It used to be dropped here because the People tab
+  // already shows it as that person, but somebody looking for it under Groups
+  // simply could not find it; listing it twice beats hiding it.
+  const sorted = groupsNewestFirst(groups);
   // Whether the filter is offered is decided by how many groups there are, not
   // by how many survive the filter — otherwise typing past the last match would
   // take the field away with the rows.
