@@ -61,6 +61,7 @@ export function DetailRow({
   onPress,
   expanded,
   accessibilityLabel,
+  accessibilityHint,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   /** When the glyph belongs to the *answer* rather than to the question — a
@@ -94,6 +95,9 @@ export function DetailRow({
    *  the right of the label, and a reader that stops at the label learns half
    *  of it. */
   accessibilityLabel?: string;
+  /** What a tap does, when the chevron alone does not say it — "Double tap to
+   *  change" on a fact that opens a pop-up rather than a screen. */
+  accessibilityHint?: string;
 }) {
   const theme = useTheme();
   const chevron = onPress
@@ -193,6 +197,7 @@ export function DetailRow({
       // there is something here to unfold that never will.
       accessibilityState={expanded === undefined ? undefined : { expanded }}
       accessibilityLabel={accessibilityLabel ?? `${label}${value ? `, ${value}` : ''}`}
+      accessibilityHint={accessibilityHint}
       onPress={onPress}
       style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
     >

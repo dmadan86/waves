@@ -2504,6 +2504,14 @@ export interface UiStrings {
     detailGroup: string;
     detailDate: string;
     detailSplit: string;
+    /** Spoken hint on an expense-screen fact that opens a pop-up to change it. */
+    detailTapHint: string;
+    /** The escape from a one-field pop-up to the full edit screen. */
+    fullEditor: string;
+    /** Shown in the "paid by" pop-up on a bill several people paid for. */
+    severalPayersHint: string;
+    /** Title of the amount pop-up on the expense screen. */
+    amountTitle: string;
     history: string;
     restore: string;
     deleteAction: string;
@@ -5495,6 +5503,10 @@ const en: UiStrings = {
     detailGroup: 'Group',
     detailDate: 'Date',
     detailSplit: 'Split',
+    detailTapHint: 'Double tap to change',
+    fullEditor: 'Full editor',
+    severalPayersHint: 'Several people paid for this. Change who paid what in the full editor.',
+    amountTitle: 'Amount',
     history: 'History',
     restore: 'Restore this expense',
     deleteAction: 'Delete expense',
@@ -8475,6 +8487,10 @@ const ta: UiStrings = {
     detailGroup: 'குழு',
     detailDate: 'தேதி',
     detailSplit: 'பிரிப்பு',
+    detailTapHint: 'Double tap to change',
+    fullEditor: 'Full editor',
+    severalPayersHint: 'Several people paid for this. Change who paid what in the full editor.',
+    amountTitle: 'Amount',
     history: 'வரலாறு',
     restore: 'இந்தச் செலவை மீட்டெடு',
     deleteAction: 'செலவை நீக்கு',
@@ -11444,6 +11460,10 @@ const hi: UiStrings = {
     detailGroup: 'समूह',
     detailDate: 'तारीख़',
     detailSplit: 'बँटवारा',
+    detailTapHint: 'Double tap to change',
+    fullEditor: 'Full editor',
+    severalPayersHint: 'Several people paid for this. Change who paid what in the full editor.',
+    amountTitle: 'Amount',
     history: 'इतिहास',
     restore: 'यह खर्च वापस लाएँ',
     deleteAction: 'खर्च मिटाएँ',
@@ -14554,6 +14574,10 @@ const ar: UiStrings = {
     detailGroup: 'المجموعة',
     detailDate: 'التاريخ',
     detailSplit: 'التقسيم',
+    detailTapHint: 'Double tap to change',
+    fullEditor: 'Full editor',
+    severalPayersHint: 'Several people paid for this. Change who paid what in the full editor.',
+    amountTitle: 'Amount',
     history: 'السجل',
     restore: 'استرجاع هذا المصروف',
     deleteAction: 'حذف المصروف',

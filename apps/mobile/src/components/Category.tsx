@@ -239,42 +239,63 @@ export function CategorySheet({
   onCreate?: () => void;
   onClose: () => void;
 }) {
+  const { t } = useStrings();
+  return (
+    <SheetOverlay title={t.whatFor} onClose={onClose}>
+      <CategoryChoices value={value} onChange={onChange} onCreate={onCreate} />
+    </SheetOverlay>
+  );
+}
+
+/**
+ * The catalog as a list of choice rows — the body of {@link CategorySheet}, on
+ * its own so a sheet with a different frame (the expense screen's category
+ * pop-up, which saves from a button) lists the same entries in the same order.
+ */
+export function CategoryChoices({
+  value,
+  onChange,
+  onCreate,
+}: {
+  value: string | null;
+  onChange: (key: string, meta: CategoryMeta | null) => void;
+  /** Opens the create-tag editor; the "＋ New tag" row shows only when set. */
+  onCreate?: () => void;
+}) {
   const theme = useTheme();
   const { t } = useStrings();
   const { visible } = useCategoryCatalog((id) => t.categories[id as keyof typeof t.categories]);
 
   return (
-    <SheetOverlay title={t.whatFor} onClose={onClose}>
-      <View style={{ gap: theme.spacing.xs }}>
-        {visible.map((entry) => {
-          const display: CategoryMeta = {
-            label: entry.label,
-            icon: entry.icon,
-            tint: normaliseTint(entry.tint),
-          };
-          return (
-            <ChoiceRow
-              key={entry.key}
-              label={entry.label}
-              selected={entry.key === value}
-              leading={<CategoryBadge category={entry.key} meta={display} size={32} />}
-              onPress={() => onChange(entry.key, entry.custom ? display : null)}
-            />
-          );
-        })}
-
-        {onCreate ? (
+    <View style={{ gap: theme.spacing.xs }}>
+      {visible.map((entry) => {
+        const display: CategoryMeta = {
+          label: entry.label,
+          icon: entry.icon,
+          tint: normaliseTint(entry.tint),
+        };
+        return (
           <ChoiceRow
-            label={t.tags.newTag}
-            leading={
-              <View style={{ width: 32, alignItems: 'center' }}>
-                <Ionicons name="add" size={iconSize.md} color={theme.color.brand} />
-              </View>
-            }
-            onPress={onCreate}
+            key={entry.key}
+            label={entry.label}
+            selected={entry.key === value}
+            leading={<CategoryBadge category={entry.key} meta={display} size={32} />}
+            onPress={() => onChange(entry.key, entry.custom ? display : null)}
           />
-        ) : null}
-      </View>
-    </SheetOverlay>
+        );
+      })}
+
+      {onCreate ? (
+        <ChoiceRow
+          label={t.tags.newTag}
+          leading={
+            <View style={{ width: 32, alignItems: 'center' }}>
+              <Ionicons name="add" size={iconSize.md} color={theme.color.brand} />
+            </View>
+          }
+          onPress={onCreate}
+        />
+      ) : null}
+    </View>
   );
 }
