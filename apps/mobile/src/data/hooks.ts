@@ -816,9 +816,22 @@ export function usePeopleBalances(profileId: string | null): LocalRead<PersonBal
  * Newest-first across every group the phone knows about; the screen paginates
  * this local list rather than asking the server for the next page.
  */
-export function useRecentActivity(myProfileId: string | null = null): RecentActivityRow[] {
+const NO_ACTIVITY: RecentActivityRow[] = [];
+
+/**
+ * The activity feed from the mirror. `enabled: false` skips the build entirely,
+ * for a screen that wants its push animation to finish first (see
+ * `useTransitionSettled`): the pass walks the whole local history.
+ */
+export function useRecentActivity(
+  myProfileId: string | null = null,
+  enabled = true,
+): RecentActivityRow[] {
   const { mirror } = useSync();
-  return useMemo(() => recentActivity(mirror, myProfileId), [mirror, myProfileId]);
+  return useMemo(
+    () => (enabled ? recentActivity(mirror, myProfileId) : NO_ACTIVITY),
+    [mirror, myProfileId, enabled],
+  );
 }
 
 /** How much a destination (group, or a person's 1:1 group) has been used. */
