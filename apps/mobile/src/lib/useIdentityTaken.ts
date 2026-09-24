@@ -18,6 +18,7 @@ import { fill, useStrings } from '@/i18n';
 import { IdentityTakenError, useAuth } from '@/lib/auth';
 import { useDialog } from '@/lib/dialog';
 import { guestJoins } from '@/lib/guestJoins';
+import { leaveGuestGroups } from '@/lib/guestLeave';
 import { switchToExistingAccount } from '@/lib/guestSwitch';
 import { router } from '@/lib/navigation';
 import { reportHandled } from '@/lib/observability';
@@ -51,7 +52,9 @@ export function useIdentityTaken(): (caught: unknown) => Promise<unknown> {
           guestId,
           readJoins: (id) => guestJoins.read(id),
           clearJoins: (id) => guestJoins.clear(id),
-          signInInstead: () => signInInstead(caught.provider),
+          // The guest steps out of the groups it only joined before it signs
+          // out, so the rejoin below does not leave the same person twice.
+          signInInstead: () => signInInstead(caught.provider, () => leaveGuestGroups(guestId)),
           accept: async (token) => {
             const joined = await acceptInvite({ token, claimMemberId: null });
             // Still waiting on an admin: not a group they can open yet.
