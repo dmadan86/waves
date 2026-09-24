@@ -591,13 +591,15 @@ export default function HomeScreen() {
           />
         }
       >
-        {/* The white body beneath the hero: the groups list. The app's side
-            gutter (xl), the same as the hero's content above it — it used to
-            be a denser `lg`, which set the list 4pt out of line with the hero.
+        {/* The white body beneath the hero: the groups list. A list gutter
+            (`lg`, 16pt) rather than the page gutter (`xl`): 16pt is the phone
+            margin iOS and Android both default to, and on a 390pt iPhone the
+            extra 8pt of a 20pt gutter came straight out of the group's name,
+            which was cutting off short. Friends lists people the same way.
             `lg` above it, the gap every screen opens under its header. */}
         <View
           style={{
-            paddingHorizontal: theme.spacing.xl,
+            paddingHorizontal: theme.spacing.lg,
             paddingTop: theme.spacing.lg,
             // Heading → its card. The import banner, when it shows, adds its
             // own margin so it still sits a full section gap (xl) above.
