@@ -90,7 +90,11 @@ describe('the release signing patch', () => {
   });
 
   it('fails a bundleRelease with no key rather than uploading something Play refuses', () => {
-    expect(patched).toContain("graph.allTasks.any { it.name.startsWith('bundleRelease') }");
+    expect(patched).toContain("graph.allTasks.any { it.name == 'bundleRelease' }");
+    // Exact, not a prefix: AGP's own `bundleReleaseResources` and
+    // `bundleReleaseClassesToRuntimeJar` run inside every release APK build,
+    // and a prefix match threw on the sideload build too.
+    expect(patched).not.toContain("startsWith('bundleRelease')");
     expect(patched).toContain('throw new GradleException');
     // An APK is how a build is handed to somebody to try, so that one is only
     // warned about — a hard failure there would break every test build.
