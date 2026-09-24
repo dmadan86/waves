@@ -22,7 +22,9 @@ import { useRouter } from 'next/navigation';
 
 import type { InvitePreview } from '@waves/api-client';
 
-import { waves } from '@/lib/waves';
+import { useAuth } from '@/lib/auth';
+import { queueJoinAfterSignIn, rememberGuestJoin } from '@/lib/guestSwitch';
+import { supabase, waves } from '@/lib/waves';
 import { fill, plural } from '@/i18n';
 import { useStrings } from '@/i18n-context';
 import { friendlyError } from '@/lib/errors';
@@ -31,6 +33,11 @@ export function JoinFlow({ token }: { token: string }) {
   const router = useRouter();
 
   const { t, locale } = useStrings();
+  const { session, signInWithGoogle } = useAuth();
+  // Nobody signed in yet: the join would make a guest. Somebody who already
+  // has an account is offered it first, so they join as themselves rather than
+  // as a guest they later have to switch away from.
+  const nobody = !session;
 
   const [preview, setPreview] = useState<InvitePreview | null>(null);
   const [claimId, setClaimId] = useState<string | null>(null);
@@ -89,6 +96,13 @@ export function JoinFlow({ token }: { token: string }) {
           setJoining(false);
           return;
         }
+        // Kept for the guest, so a later sign-in to an account they already
+        // have can join this group again as them (`lib/guestSwitch`). Only a
+        // join that went through: a claim still waiting on an admin is not a
+        // membership, and replaying it would skip the admin's answer.
+        const { data } = await supabase.auth.getSession();
+        const user = data.session?.user;
+        if (user?.is_anonymous === true) rememberGuestJoin(user.id, token);
         router.replace(`/g/${accepted.group.id}`);
       } catch (caught) {
         setError(
@@ -208,6 +222,20 @@ export function JoinFlow({ token }: { token: string }) {
       ) : null}
 
       {error ? <p className="error">{error}</p> : null}
+
+      {nobody ? (
+        <button
+          type="button"
+          className="btn soft block"
+          onClick={() => {
+            queueJoinAfterSignIn(token);
+            void signInWithGoogle();
+          }}
+          disabled={joining}
+        >
+          {t.join.signInFirst}
+        </button>
+      ) : null}
 
       <button type="button" className="btn block lg" onClick={() => void join()} disabled={joining}>
         {joining
