@@ -478,14 +478,22 @@ export function Sheet({
           insets,
         }}
       >
-        <Animated.View style={{ flex: 1, backgroundColor: SCRIM, opacity: progress }}>
-          {/* Underneath, not around: see the note at the top of this file. */}
-          <Pressable
-            onPress={onClose}
-            accessibilityRole="button"
-            accessibilityLabel={closeLabel}
-            style={StyleSheet.absoluteFill}
-          />
+        <View style={{ flex: 1 }}>
+          {/* Only the scrim fades. The card used to sit inside this fading
+              layer, so it came in and went out half see-through, with the
+              screen beneath showing through its rows — a white wash across the
+              page on every open and close. The card now slides in opaque. */}
+          <Animated.View
+            style={[StyleSheet.absoluteFill, { backgroundColor: SCRIM, opacity: progress }]}
+          >
+            {/* Underneath, not around: see the note at the top of this file. */}
+            <Pressable
+              onPress={onClose}
+              accessibilityRole="button"
+              accessibilityLabel={closeLabel}
+              style={StyleSheet.absoluteFill}
+            />
+          </Animated.View>
           <View
             pointerEvents="box-none"
             style={{
@@ -499,7 +507,11 @@ export function Sheet({
               paddingBottom: keyboard > 0 ? Math.max(keyboard - insets.bottom, 0) : 0,
             }}
           >
-            <Animated.View style={{ transform: [{ translateY }] }}>
+            {/* Reduced motion drops the slide, so the card fades instead — the
+                only arrival it has left. */}
+            <Animated.View
+              style={{ transform: [{ translateY }], opacity: reduceMotion ? progress : 1 }}
+            >
               <SheetCard
                 handle={handle}
                 padded={padded}
@@ -515,7 +527,7 @@ export function Sheet({
               </SheetCard>
             </Animated.View>
           </View>
-        </Animated.View>
+        </View>
       </SafeAreaProvider>
     </Modal>
   );
