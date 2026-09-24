@@ -148,6 +148,14 @@ export interface WebStrings {
     waitingTitle: string;
     waitingBody: string;
     joinAsNewInstead: string;
+    /** Offered before the guest door, for somebody who already has an account. */
+    signInFirst: string;
+    /** A guest's Google/Apple login already belongs to another Waves account. */
+    takenTitle: string;
+    takenBody: string;
+    takenLeftBehind: PluralForms;
+    takenSwitch: string;
+    takenStay: string;
   };
   /** The group, in a browser: less than the app, and enough for a trip. */
   group: {
@@ -1350,6 +1358,15 @@ const en: WebStrings = {
     waitingBody:
       'Somebody who runs {group} has to confirm you are {name}. Nothing has changed in the group yet.',
     joinAsNewInstead: 'Join as someone new instead',
+    signInFirst: 'Already on Waves? Sign in',
+    takenTitle: 'This {provider} account already has Waves',
+    takenBody: 'Switch to it and the groups you joined as a guest are joined again, as you.',
+    takenLeftBehind: {
+      one: 'The {n} expense you added as a guest stays with the guest.',
+      other: 'The {n} expenses you added as a guest stay with the guest.',
+    },
+    takenSwitch: 'Switch to my account',
+    takenStay: 'Stay as a guest',
   },
   group: {
     loading: 'Loading…',
@@ -2339,6 +2356,15 @@ const ta: WebStrings = {
     waitingBody:
       'நீங்கள் {name} தானா என்பதை {group} நடத்துபவர் உறுதி செய்ய வேண்டும். குழுவில் இன்னும் எதுவும் மாறவில்லை.',
     joinAsNewInstead: 'புதிய நபராகச் சேருங்கள்',
+    signInFirst: 'Already on Waves? Sign in',
+    takenTitle: 'This {provider} account already has Waves',
+    takenBody: 'Switch to it and the groups you joined as a guest are joined again, as you.',
+    takenLeftBehind: {
+      one: 'The {n} expense you added as a guest stays with the guest.',
+      other: 'The {n} expenses you added as a guest stay with the guest.',
+    },
+    takenSwitch: 'Switch to my account',
+    takenStay: 'Stay as a guest',
   },
   group: {
     loading: 'ஏற்றுகிறது…',
@@ -3366,6 +3392,15 @@ const hi: WebStrings = {
     waitingBody:
       '{group} चलाने वाले किसी को पुष्टि करनी है कि आप {name} हैं। समूह में अभी कुछ नहीं बदला।',
     joinAsNewInstead: 'नए व्यक्ति के रूप में शामिल हों',
+    signInFirst: 'Already on Waves? Sign in',
+    takenTitle: 'This {provider} account already has Waves',
+    takenBody: 'Switch to it and the groups you joined as a guest are joined again, as you.',
+    takenLeftBehind: {
+      one: 'The {n} expense you added as a guest stays with the guest.',
+      other: 'The {n} expenses you added as a guest stay with the guest.',
+    },
+    takenSwitch: 'Switch to my account',
+    takenStay: 'Stay as a guest',
   },
   group: {
     loading: 'लोड हो रहा है…',
@@ -4355,6 +4390,15 @@ const ar: WebStrings = {
     waitingBody:
       'على أحد القائمين على {group} أن يؤكّد أنك {name}. ولم يتغيّر شيء في المجموعة بعد.',
     joinAsNewInstead: 'انضم بصفتك شخصًا جديدًا',
+    signInFirst: 'Already on Waves? Sign in',
+    takenTitle: 'This {provider} account already has Waves',
+    takenBody: 'Switch to it and the groups you joined as a guest are joined again, as you.',
+    takenLeftBehind: {
+      one: 'The {n} expense you added as a guest stays with the guest.',
+      other: 'The {n} expenses you added as a guest stay with the guest.',
+    },
+    takenSwitch: 'Switch to my account',
+    takenStay: 'Stay as a guest',
   },
   group: {
     loading: 'جارٍ التحميل…',
