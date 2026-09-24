@@ -1460,9 +1460,11 @@ function foldMinorUnits(text: string): string {
  */
 function foldBareMinorUnits(text: string): string {
   return text.replace(
-    /(?<![\d.,])(\d+)\s+(paise|paisa|cents?|pence)\b/gi,
+    // Grouped digits too — "1,000 cents", and the Indian "1,00,000 paise" —
+    // or the match skipped them and the amount was read as whole units.
+    /(?<![\d.,])(\d{1,3}(?:,\d{2,3})+|\d+)\s+(paise|paisa|cents?|pence)\b/gi,
     (_match, digits: string, word: string) => {
-      const minor = Number(digits);
+      const minor = Number(digits.replace(/,/g, ''));
       const amount = `${Math.floor(minor / 100)}.${String(minor % 100).padStart(2, '0')}`;
       const unit = word.toLowerCase();
       if (unit.startsWith('pais')) return `${amount} rupees`;

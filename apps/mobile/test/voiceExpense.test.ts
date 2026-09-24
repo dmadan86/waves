@@ -396,6 +396,9 @@ describe('parseVoiceExpense', () => {
       ['fifty paise toffee', 0.5],
       ['99 pence gum', 0.99],
       ['150 cents', 1.5],
+      // Grouped digits, western and Indian
+      ['1,000 cents', 10],
+      ['1,00,000 paise', 1000],
       // Written digits with separators and decimals
       ['1,299.50 dollars', 1299.5],
       ['99.99 dollars', 99.99],

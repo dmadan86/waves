@@ -779,13 +779,15 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
             disabled={preparing !== null}
             accessibilityRole="button"
             accessibilityLabel={t.receipts.add}
-            // The extra touch height is hit slop, not padding: padding added
-            // invisible space above and below the row, so the gaps around it
-            // came out wider than the screen's gaps between sections.
-            hitSlop={{ top: theme.spacing.sm, bottom: theme.spacing.sm }}
+            // Tall enough to be a comfortable target (48, the Android minimum)
+            // and no taller. It used to pad itself `sm` above and below, which
+            // widened the gaps around it past the screen's gaps between
+            // sections. Hit slop can't stand in for that: React Native clips it
+            // to the parent, and the parent here is exactly this row.
             style={({ pressed }) => ({
               flexDirection: 'row',
               alignItems: 'center',
+              minHeight: 48,
               gap: theme.spacing.md,
               opacity: pressed ? 0.6 : 1,
             })}
