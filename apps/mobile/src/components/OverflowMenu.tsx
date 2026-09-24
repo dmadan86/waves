@@ -29,7 +29,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { iconSize, Text, useTheme } from '@waves/ui';
+import { iconSize, Text, useTheme, MODAL_ORIENTATIONS } from '@waves/ui';
 
 import { useStrings } from '@/i18n';
 import { router } from '@/lib/navigation';
@@ -120,7 +120,13 @@ export function OverflowMenu({
   if (!mounted) return null;
 
   return (
-    <Modal visible={mounted} transparent animationType="none" onRequestClose={onClose}>
+    <Modal
+      supportedOrientations={MODAL_ORIENTATIONS}
+      visible={mounted}
+      transparent
+      animationType="none"
+      onRequestClose={onClose}
+    >
       {/* The scrim: a full-screen catcher so a tap anywhere off the card closes
           the menu. Kept barely tinted — the point is to dismiss, not to dim. It
           carries a label so a screen reader announces "Close" rather than a bare

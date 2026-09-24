@@ -46,6 +46,7 @@ import {
   tintForKey,
   useTabBarClearance,
   useTheme,
+  MODAL_ORIENTATIONS,
 } from '@waves/ui';
 
 import { balanceDirection, copyFor, moneyAccessibilityLabel } from '@waves/core';
@@ -463,7 +464,7 @@ export default function FriendsScreen() {
         style={{ flex: 1 }}
       >
         {people.isLoading ? (
-          <View style={{ paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.lg }}>
+          <View style={{ paddingHorizontal: theme.spacing.xl, paddingTop: theme.spacing.lg }}>
             <PeopleSkeleton />
           </View>
         ) : rows.length === 0 ? (
@@ -472,7 +473,7 @@ export default function FriendsScreen() {
             style={{
               flex: 1,
               justifyContent: 'center',
-              paddingHorizontal: theme.spacing.lg,
+              paddingHorizontal: theme.spacing.xl,
               paddingBottom: clearance,
             }}
           >
@@ -495,7 +496,7 @@ export default function FriendsScreen() {
             getItemType={(item) => (item.entries.length === 1 ? 'single' : 'multi')}
             drawDistance={1500}
             contentContainerStyle={{
-              paddingHorizontal: theme.spacing.lg,
+              paddingHorizontal: theme.spacing.xl,
               paddingTop: theme.spacing.lg,
               paddingBottom: clearance,
             }}
@@ -1589,7 +1590,13 @@ function SortMenu({
   const insets = useSafeAreaInsets();
 
   return (
-    <Modal visible={open} transparent animationType="fade" onRequestClose={onClose}>
+    <Modal
+      supportedOrientations={MODAL_ORIENTATIONS}
+      visible={open}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+    >
       <Pressable
         onPress={onClose}
         accessibilityRole="button"
@@ -1751,6 +1758,7 @@ function AddMenu({
 
   return (
     <Modal
+      supportedOrientations={MODAL_ORIENTATIONS}
       visible={open}
       transparent
       animationType="fade"

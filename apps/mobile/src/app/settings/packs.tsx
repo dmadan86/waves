@@ -83,7 +83,7 @@ export default function PacksScreen() {
             variant="caption"
             tone="muted"
             align="center"
-            style={{ paddingVertical: theme.spacing.md }}
+            style={{ paddingTop: theme.spacing.sm, paddingBottom: theme.spacing.lg }}
           >
             {t.packs.subtitle}
           </Text>

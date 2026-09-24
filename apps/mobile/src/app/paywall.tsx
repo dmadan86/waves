@@ -111,7 +111,7 @@ export default function PaywallScreen() {
           paddingHorizontal: theme.spacing.xl,
           paddingTop: theme.spacing.lg,
           paddingBottom: theme.spacing.xxxl,
-          gap: theme.spacing.xxl,
+          gap: theme.spacing.xl,
         }}
         showsVerticalScrollIndicator={false}
       >

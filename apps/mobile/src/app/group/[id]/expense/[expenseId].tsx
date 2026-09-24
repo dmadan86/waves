@@ -569,7 +569,7 @@ export default function ExpenseDetailScreen() {
         contentContainerStyle={{
           paddingHorizontal: theme.spacing.xl,
           paddingBottom: clearance,
-          paddingTop: theme.spacing.xl,
+          paddingTop: theme.spacing.lg,
           gap: theme.spacing.xl,
         }}
         showsVerticalScrollIndicator={false}

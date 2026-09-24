@@ -66,6 +66,7 @@ import {
   Text,
   useTabBarClearance,
   useTheme,
+  MODAL_ORIENTATIONS,
 } from '@waves/ui';
 
 import { ensureGroupJoinToken, groupJoinLink, mergeGhosts } from '@/data/api';
@@ -642,6 +643,7 @@ export default function MergePeopleScreen() {
           Modal keeps its children mounted across a close, so without this gate
           the picker would reopen showing the last pick still ticked. */}
       <Modal
+        supportedOrientations={MODAL_ORIENTATIONS}
         visible={pickingContact}
         animationType="slide"
         onRequestClose={() => setPickingContact(false)}
@@ -673,7 +675,12 @@ export default function MergePeopleScreen() {
           person spans. There is no targeted send in this app — each group has
           one link (see group/[id]/invite) — so inviting them to "all their
           groups" is one Share per group here. */}
-      <Modal visible={inviteFor !== null} animationType="slide" onRequestClose={dismissInvite}>
+      <Modal
+        supportedOrientations={MODAL_ORIENTATIONS}
+        visible={inviteFor !== null}
+        animationType="slide"
+        onRequestClose={dismissInvite}
+      >
         <Screen edges={['top', 'bottom']} inModal>
           <ScrollView
             contentContainerStyle={{

@@ -770,6 +770,9 @@ export default function SmsInboxScreen(): React.JSX.Element | null {
         }
         contentContainerStyle={{
           paddingHorizontal: theme.spacing.xl,
+          // With each row's own `sm` of padding, the first message starts `lg`
+          // under the tabs, as the Review tab's first card does.
+          paddingTop: theme.spacing.sm,
           // The bar is this screen's own while ticking and the navigation is
           // gone under it, so the runway is the system inset plus the bar's own
           // height — not the navigation's clearance on top of it.

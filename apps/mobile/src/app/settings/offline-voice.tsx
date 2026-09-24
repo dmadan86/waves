@@ -488,7 +488,13 @@ export default function OfflineVoiceScreen() {
         refreshing={canRefresh && locales.isFetching}
         onRefresh={canRefresh ? () => void locales.refetch() : undefined}
         ListHeaderComponent={
-          <View style={{ gap: theme.spacing.md, paddingVertical: theme.spacing.lg }}>
+          <View
+            style={{
+              gap: theme.spacing.md,
+              paddingTop: theme.spacing.lg,
+              paddingBottom: theme.spacing.md,
+            }}
+          >
             <Text variant="body" tone="muted">
               {t.offlineVoice.intro}
             </Text>
@@ -542,7 +548,11 @@ export default function OfflineVoiceScreen() {
           );
         }}
         ListFooterComponent={
-          <Text variant="micro" tone="muted" style={{ paddingVertical: theme.spacing.xl }}>
+          <Text
+            variant="micro"
+            tone="muted"
+            style={{ paddingTop: theme.spacing.sm, paddingBottom: theme.spacing.xl }}
+          >
             {t.offlineVoice.footnote}
           </Text>
         }
@@ -591,7 +601,9 @@ function SectionFold({
     <Text
       variant="caption"
       tone="muted"
-      style={{ marginTop: -theme.spacing.sm, marginBottom: theme.spacing.md }}
+      // Pulled up under the heading as its subtitle (4 below it), then the
+      // standard `sm` above the section's first card.
+      style={{ marginTop: -theme.spacing.xs, marginBottom: theme.spacing.sm }}
     >
       {item.hint}
     </Text>
@@ -599,7 +611,8 @@ function SectionFold({
 
   if (!item.fold) {
     return (
-      <View style={{ paddingTop: theme.spacing.lg }}>
+      // With the card above's own `md` below it, sections sit `xl` apart.
+      <View style={{ paddingTop: theme.spacing.sm }}>
         <SectionHeader title={item.title} />
         {hint}
       </View>
@@ -610,7 +623,7 @@ function SectionFold({
   const countText = plural(locale, count, t.offlineVoice.sectionCount);
 
   return (
-    <View style={{ paddingTop: theme.spacing.lg }}>
+    <View style={{ paddingTop: theme.spacing.sm }}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={item.title}

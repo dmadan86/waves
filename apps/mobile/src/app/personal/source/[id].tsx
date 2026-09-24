@@ -120,7 +120,7 @@ function SourceTimelineScreenBody() {
           paddingBottom: clearance,
         }}
         ListHeaderComponent={
-          <View style={{ gap: theme.spacing.md, paddingBottom: theme.spacing.lg }}>
+          <View style={{ gap: theme.spacing.xl, paddingBottom: theme.spacing.sm }}>
             <Card style={{ gap: theme.spacing.sm }}>
               <Row style={{ gap: theme.spacing.md, alignItems: 'center' }}>
                 <SourceGlyph id={rule.category} />
@@ -187,7 +187,7 @@ function Header({ title }: { title: string }) {
       style={{
         paddingHorizontal: theme.spacing.xl,
         paddingTop: theme.spacing.md,
-        paddingBottom: theme.spacing.sm,
+        paddingBottom: theme.spacing.lg,
         alignItems: 'center',
       }}
     >

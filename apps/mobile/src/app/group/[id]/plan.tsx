@@ -433,7 +433,7 @@ export default function PlanScreen() {
           paddingHorizontal: theme.spacing.xl,
           paddingTop: theme.spacing.lg,
           paddingBottom: clearance,
-          gap: theme.spacing.lg,
+          gap: theme.spacing.xl,
         }}
         showsVerticalScrollIndicator={false}
       >

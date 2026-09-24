@@ -56,6 +56,19 @@ import { Text } from './Text';
  * it, so the wash has to do more work here than it would over a dark app.
  */
 const SCRIM = 'rgba(10, 10, 26, 0.7)';
+
+/**
+ * The orientations every `Modal` in the app must allow on iOS — the same two
+ * the app itself does (`"orientation": "portrait"` in app.json gives iOS both
+ * portrait and upside-down). React Native's `Modal` defaults to portrait alone,
+ * so on a device held upside-down, presenting one rotated the whole app for a
+ * frame or two on the way in and again on the way out: a flicker behind every
+ * sheet and pop-up. Android ignores the prop.
+ */
+export const MODAL_ORIENTATIONS: ('portrait' | 'portrait-upside-down')[] = [
+  'portrait',
+  'portrait-upside-down',
+];
 /** Past this far down, or this fast, a drag on the handle dismisses. */
 const DRAG_CLOSE_DISTANCE = 120;
 const DRAG_CLOSE_VELOCITY = 0.8;
@@ -431,6 +444,7 @@ export function Sheet({
 
   return (
     <Modal
+      supportedOrientations={MODAL_ORIENTATIONS}
       transparent
       statusBarTranslucent
       // A sheet is anchored to the bottom edge, so the *bottom* edge is the one
@@ -464,14 +478,22 @@ export function Sheet({
           insets,
         }}
       >
-        <Animated.View style={{ flex: 1, backgroundColor: SCRIM, opacity: progress }}>
-          {/* Underneath, not around: see the note at the top of this file. */}
-          <Pressable
-            onPress={onClose}
-            accessibilityRole="button"
-            accessibilityLabel={closeLabel}
-            style={StyleSheet.absoluteFill}
-          />
+        <View style={{ flex: 1 }}>
+          {/* Only the scrim fades. The card used to sit inside this fading
+              layer, so it came in and went out half see-through, with the
+              screen beneath showing through its rows — a white wash across the
+              page on every open and close. The card now slides in opaque. */}
+          <Animated.View
+            style={[StyleSheet.absoluteFill, { backgroundColor: SCRIM, opacity: progress }]}
+          >
+            {/* Underneath, not around: see the note at the top of this file. */}
+            <Pressable
+              onPress={onClose}
+              accessibilityRole="button"
+              accessibilityLabel={closeLabel}
+              style={StyleSheet.absoluteFill}
+            />
+          </Animated.View>
           <View
             pointerEvents="box-none"
             style={{
@@ -485,7 +507,11 @@ export function Sheet({
               paddingBottom: keyboard > 0 ? Math.max(keyboard - insets.bottom, 0) : 0,
             }}
           >
-            <Animated.View style={{ transform: [{ translateY }] }}>
+            {/* Reduced motion drops the slide, so the card fades instead — the
+                only arrival it has left. */}
+            <Animated.View
+              style={{ transform: [{ translateY }], opacity: reduceMotion ? progress : 1 }}
+            >
               <SheetCard
                 handle={handle}
                 padded={padded}
@@ -501,7 +527,7 @@ export function Sheet({
               </SheetCard>
             </Animated.View>
           </View>
-        </Animated.View>
+        </View>
       </SafeAreaProvider>
     </Modal>
   );
@@ -549,6 +575,7 @@ export function Popup({
 
   return (
     <Modal
+      supportedOrientations={MODAL_ORIENTATIONS}
       transparent
       statusBarTranslucent
       visible={mounted}

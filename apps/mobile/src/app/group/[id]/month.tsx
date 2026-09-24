@@ -185,7 +185,8 @@ export default function SpendingMonthScreen() {
             gap: theme.spacing.xs,
             borderRadius: theme.radius.xl,
             padding: theme.spacing.xl,
-            marginBottom: theme.spacing.xl,
+            // With the first day's own `md` above its heading, a section's `xl`.
+            marginBottom: theme.spacing.sm,
           }}
         >
           <MoneyText amount={total} currency={currency} locale={locale} variant="display" />
@@ -202,7 +203,7 @@ export default function SpendingMonthScreen() {
           style={{
             justifyContent: 'space-between',
             paddingHorizontal: theme.spacing.xs,
-            paddingTop: theme.spacing.lg,
+            paddingTop: theme.spacing.md,
             paddingBottom: theme.spacing.sm,
           }}
         >
@@ -320,7 +321,7 @@ export default function SpendingMonthScreen() {
                 variant="micro"
                 tone="muted"
                 align="center"
-                style={{ marginTop: theme.spacing.xl }}
+                style={{ marginTop: theme.spacing.md }}
               >
                 {t.extras.yourShareNote}
               </Text>

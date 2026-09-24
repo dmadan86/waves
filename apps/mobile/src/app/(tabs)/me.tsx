@@ -302,7 +302,7 @@ function MeLedger() {
         <View
           style={{
             paddingHorizontal: theme.spacing.xl,
-            paddingTop: theme.spacing.xl,
+            paddingTop: theme.spacing.lg,
             gap: theme.spacing.xl,
           }}
         >

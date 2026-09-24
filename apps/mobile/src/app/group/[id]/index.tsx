@@ -836,6 +836,15 @@ export default function GroupScreen() {
   const showTripNudge =
     welcome === 'trip' && groupData.type === 'trip' && !groupData.start_date && !tripNudgeDismissed;
 
+  // Whether the list header has any card in it — it keeps its section gap
+  // below only when it does, so an empty header adds nothing under the tabs.
+  const hasHeaderCards =
+    stalledHere ||
+    groupDrafts.length > 0 ||
+    showTripNudge ||
+    (openReceipts.data?.length ?? 0) > 0 ||
+    pendingByMe.length > 0;
+
   const menuItems: OverflowMenuItem[] = [
     // Pinning has one effect — it sorts this group to the top of the
     // dashboard and All-groups lists — so it belongs beside the other ways
@@ -876,7 +885,7 @@ export default function GroupScreen() {
           tone="muted"
           style={{
             marginTop: index === 0 ? 0 : theme.spacing.xl,
-            marginBottom: theme.spacing.xs,
+            marginBottom: theme.spacing.sm,
             textTransform: 'uppercase',
             letterSpacing: 0.6,
           }}
@@ -1234,10 +1243,12 @@ export default function GroupScreen() {
             // pinned tab bar. The stack used to open on 20pt of top margin plus a
             // 20pt gap plus each card's own padding, which pushed the first
             // expense most of a thumb below the tabs on a screen where nothing
-            // was wrong; `sm` is enough to separate the tabs from the rows and
-            // the cards keep their own breathing room.
-            <View style={{ marginBottom: theme.spacing.md }}>
-              <View style={{ gap: theme.spacing.md, marginTop: theme.spacing.sm }}>
+            // was wrong. Now it follows the screen standard: the first card sits
+            // `lg` under the tabs, cards are separate sections `xl` apart, and
+            // the list starts `xl` below the last one. With no cards the header
+            // takes no room at all and the rows start `lg` under the tabs.
+            <View style={{ marginBottom: hasHeaderCards ? theme.spacing.xl : 0 }}>
+              <View style={{ gap: theme.spacing.xl, marginTop: theme.spacing.lg }}>
                 <OverflowMenu
                   visible={menuOpen}
                   onClose={() => setMenuOpen(false)}

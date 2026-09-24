@@ -30,7 +30,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { iconSize, Row, Text, useTheme } from '@waves/ui';
+import { iconSize, Row, Text, useTheme, MODAL_ORIENTATIONS } from '@waves/ui';
 
 import { ViewerButton } from '@/components/ViewerButton';
 import { AnnotationOverlay } from '@/components/AnnotationOverlay';
@@ -178,7 +178,12 @@ export function ReceiptAnnotator({
   const save = () => onSave(isEmptyAnnotations(annotations) ? EMPTY_ANNOTATIONS : annotations);
 
   return (
-    <Modal visible animationType="slide" onRequestClose={onCancel}>
+    <Modal
+      supportedOrientations={MODAL_ORIENTATIONS}
+      visible
+      animationType="slide"
+      onRequestClose={onCancel}
+    >
       <View style={{ flex: 1, backgroundColor: '#000' }}>
         <StatusBar barStyle="light-content" />
         <ModalNotice message={error ?? null} onDismiss={() => onDismissError?.()} />
@@ -311,6 +316,7 @@ export function ReceiptAnnotator({
 
         {/* Text entry for a dropped note. */}
         <Modal
+          supportedOrientations={MODAL_ORIENTATIONS}
           visible={pending !== null}
           transparent
           animationType="fade"

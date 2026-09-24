@@ -20,7 +20,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ActivityIndicator, Modal, Pressable, ScrollView, StatusBar, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { iconSize, Row, Text, useTheme } from '@waves/ui';
+import { iconSize, Row, Text, useTheme, MODAL_ORIENTATIONS } from '@waves/ui';
 
 import { canAddExpenseAttachment } from '@/data/api';
 import { router } from '@/lib/navigation';
@@ -779,11 +779,16 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
             disabled={preparing !== null}
             accessibilityRole="button"
             accessibilityLabel={t.receipts.add}
+            // Tall enough to be a comfortable target (48, the Android minimum)
+            // and no taller. It used to pad itself `sm` above and below, which
+            // widened the gaps around it past the screen's gaps between
+            // sections. Hit slop can't stand in for that: React Native clips it
+            // to the parent, and the parent here is exactly this row.
             style={({ pressed }) => ({
               flexDirection: 'row',
               alignItems: 'center',
+              minHeight: 48,
               gap: theme.spacing.md,
-              paddingVertical: theme.spacing.sm,
               opacity: pressed ? 0.6 : 1,
             })}
           >
@@ -917,6 +922,7 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
         ) : null}
 
         <Modal
+          supportedOrientations={MODAL_ORIENTATIONS}
           visible={viewing !== null}
           animationType="fade"
           onRequestClose={() => {
