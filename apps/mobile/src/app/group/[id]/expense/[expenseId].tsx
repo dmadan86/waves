@@ -10,7 +10,6 @@ import {
   Avatar,
   Badge,
   Button,
-  Callout,
   Card,
   directionalIcon,
   EmptyState,
@@ -398,22 +397,13 @@ export default function ExpenseDetailScreen() {
                   tapping it opens the editor with the amount already focused, the
                   one-tap path for the change a bill is most often reopened for.
                   A deleted bill cannot be edited, so there it is plain text. */}
-            {deleted ? (
-              <MoneyText
-                amount={BigInt(version.amount)}
-                currency={currency}
-                locale={locale}
-                variant="title"
-                style={{ color: theme.color.onBrand }}
-              />
-            ) : (
-              <Pressable
-                onPress={() => openEditor('amount')}
-                accessibilityRole="button"
-                accessibilityLabel={`${t.common.edit}: ${format(money(BigInt(version.amount), currency), { locale })}`}
-                hitSlop={8}
-                style={({ pressed }) => ({ alignSelf: 'flex-start', opacity: pressed ? 0.6 : 1 })}
-              >
+            {/* A bill you have no stake in — not a payer, no share — says so in a
+                small tag beside its total, the way Splitwise marks "not
+                involved", rather than a banner that took a third of the screen
+                on every visit. The tag is the whole message; its spoken label
+                carries the sentence the banner used to. */}
+            <Row style={{ alignItems: 'center', gap: theme.spacing.sm, flexWrap: 'wrap' }}>
+              {deleted ? (
                 <MoneyText
                   amount={BigInt(version.amount)}
                   currency={currency}
@@ -421,8 +411,44 @@ export default function ExpenseDetailScreen() {
                   variant="title"
                   style={{ color: theme.color.onBrand }}
                 />
-              </Pressable>
-            )}
+              ) : (
+                <Pressable
+                  onPress={() => openEditor('amount')}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${t.common.edit}: ${format(money(BigInt(version.amount), currency), { locale })}`}
+                  hitSlop={8}
+                  style={({ pressed }) => ({ alignSelf: 'flex-start', opacity: pressed ? 0.6 : 1 })}
+                >
+                  <MoneyText
+                    amount={BigInt(version.amount)}
+                    currency={currency}
+                    locale={locale}
+                    variant="title"
+                    style={{ color: theme.color.onBrand }}
+                  />
+                </Pressable>
+              )}
+              {notInvolved ? (
+                <View
+                  accessible
+                  accessibilityLabel={`${t.expense.notInvolvedTitle}. ${t.expense.notInvolvedBody}`}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 4,
+                    paddingHorizontal: theme.spacing.sm,
+                    paddingVertical: 2,
+                    borderRadius: theme.radius.pill,
+                    backgroundColor: 'rgba(255, 255, 255, 0.18)',
+                  }}
+                >
+                  <Ionicons name="eye-outline" size={iconSize.sm} color={theme.color.onBrand} />
+                  <Text variant="micro" tone="onBrand" style={{ fontWeight: '600' }}>
+                    {t.expense.notInvolvedChip}
+                  </Text>
+                </View>
+              ) : null}
+            </Row>
           </View>
           {/* Edit, in the open. It was the first item of the three-dot menu, which
                 made the one action a bill is reopened for something you had to
@@ -516,20 +542,6 @@ export default function ExpenseDetailScreen() {
           />
         ) : (
           <>
-            {/* You are looking at a bill you have no stake in — not a payer, no
-            share. Say so plainly up top so the split below reads as someone
-            else's ledger, the way Splitwise marks it "not involved" rather than
-            letting a zero balance masquerade as "all settled". */}
-            {notInvolved ? (
-              <Callout
-                tone="info"
-                icon={(color) => <Ionicons name="eye-outline" size={iconSize.md} color={color} />}
-                title={t.expense.notInvolvedTitle}
-              >
-                {t.expense.notInvolvedBody}
-              </Callout>
-            ) : null}
-
             {/* Receipts — one gallery, many images, each group-visible or private.
             Folds in the legacy single bill (E2) as its first item. Adding is now
             the hero button (externalAdd), driven through the ref; this section
