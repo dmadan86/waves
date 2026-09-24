@@ -196,11 +196,6 @@ const CLOCK_TICK = 60_000;
  * has always had.
  */
 
-/** "Found for you · 14" — the count beside the word, never instead of it. */
-function countLabel(word: string, count: number): string {
-  return count === 0 ? word : `${word} ${count}`;
-}
-
 function wasFound(capture: CaptureRow): boolean {
   const parsed = capture.parsed;
   return (
@@ -1948,7 +1943,8 @@ export default function CapturesScreen() {
                 // First, because it is the one this screen opens on: the finite
                 // half, the spends this person caught on purpose.
                 value: 'added' as ReviewTabId,
-                label: countLabel(t.captures.tabAdded, byTab.added.length),
+                label: t.captures.tabAdded,
+                count: byTab.added.length,
                 icon: (color) => (
                   <Ionicons name="create-outline" size={iconSize.md} color={color} />
                 ),
@@ -1962,7 +1958,8 @@ export default function CapturesScreen() {
                 // from was a bank message, so the source is a true name on both
                 // and a more useful one than the favour: it says at a glance
                 // which half of Review fills itself.
-                label: countLabel(t.captures.tabSms, byTab.found.length),
+                label: t.captures.tabSms,
+                count: byTab.found.length,
                 icon: (color) => (
                   <Ionicons name="chatbubbles-outline" size={iconSize.md} color={color} />
                 ),
