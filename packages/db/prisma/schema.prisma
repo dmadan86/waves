@@ -174,6 +174,9 @@ model Profile {
   /// Per-owner counter behind the groups this person has pinned, the captures
   /// equivalent for `group_pins`. Bumped by `waves_next_group_pin_seq`.
   groupPinsSeq        BigInt   @default(0) @map("group_pins_seq")
+  /// Per-owner counter behind the groups this person has muted, the same shape
+  /// as `groupPinsSeq` for `group_mutes`. Bumped by `waves_next_group_mute_seq`.
+  groupMutesSeq       BigInt   @default(0) @map("group_mutes_seq")
   createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt           DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
@@ -184,6 +187,7 @@ model Profile {
   packInstalls        PackInstall[]
   packRequests        PackRequest[]
   groupPins           GroupPin[]
+  groupMutes          GroupMute[]
   agentWrites         AgentWrite[]
   pushTokens          PushToken[]
   notifications       Notification[]
@@ -1082,6 +1086,32 @@ model GroupPin {
 
   @@index([ownerUserId, updatedSeq], map: "group_pins_owner_user_id_updated_seq_idx")
   @@map("group_pins")
+  @@schema("public")
+}
+
+/// One person's mute on one group: pushes about that group are not sent to
+/// them (`waves_claim_push_notifications` suppresses them at claim time), while
+/// the notification rows — and so the in-app inbox — are untouched. See the
+/// `20260924130000_group_mutes` migration.
+///
+/// A pin's twin in every way that matters, for the same reasons `GroupPin`
+/// documents: personal (never on `groups` or `group_members`, whose seq would
+/// broadcast it to every member), no foreign key to `groups`, a row id derived
+/// from (owner, group), soft deletes, and the one-live-mute rule in a partial
+/// unique index (`group_mutes_owner_group_idx`) Prisma cannot express.
+model GroupMute {
+  id          String    @id @db.Uuid
+  ownerUserId String    @map("owner_user_id") @db.Uuid
+  groupId     String    @map("group_id") @db.Uuid
+  updatedSeq  BigInt    @default(0) @map("updated_seq")
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  owner Profile @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+
+  @@index([ownerUserId, updatedSeq], map: "group_mutes_owner_user_id_updated_seq_idx")
+  @@map("group_mutes")
   @@schema("public")
 }
 

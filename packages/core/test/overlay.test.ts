@@ -18,11 +18,14 @@ import {
   discard,
   emptyMirror,
   enqueue,
+  groupMuteId,
+  groupMutesScope,
   groupPinId,
   groupPinsScope,
   materialiseCaptures,
   materialiseArchivedGroups,
   materialiseCategoryTags,
+  materialiseGroupMutes,
   materialiseGroupPins,
   materialiseGroups,
   materialiseLedgerGroupIds,
@@ -34,6 +37,7 @@ import {
   MutationKind,
   openCaptures,
   openPlanItems,
+  mutedGroupIds,
   pinnedGroupIds,
   reconcile,
   SyncRejectionCode,
@@ -1195,5 +1199,62 @@ describe('group pins', () => {
     );
     const rows = materialiseGroupPins(emptyMirror(), queued(pin, theirs), { ownerId: OWNER });
     expect(rows.map((r) => r.id)).toEqual([PIN_ID]);
+  });
+});
+
+describe('group mutes', () => {
+  const OWNER = 'user-1';
+  const SCOPE = groupMutesScope(OWNER);
+  const MUTE_ID = groupMuteId(OWNER, GROUP);
+
+  const mute = envelope(
+    'm-1',
+    MutationKind.GroupMuteSet,
+    { muteId: MUTE_ID, groupId: GROUP },
+    SCOPE,
+  );
+
+  it('shows a group muted offline, before it has synced', () => {
+    const rows = materialiseGroupMutes(emptyMirror(), queued(mute), { ownerId: OWNER });
+    expect(rows).toMatchObject([{ id: MUTE_ID, group_id: GROUP, pending: true }]);
+    expect(mutedGroupIds(emptyMirror(), queued(mute), { ownerId: OWNER })).toEqual(
+      new Set([GROUP]),
+    );
+  });
+
+  it('two devices muting the same group offline converge on one row', () => {
+    const second = envelope(
+      'm-2',
+      MutationKind.GroupMuteSet,
+      { muteId: MUTE_ID, groupId: GROUP },
+      SCOPE,
+    );
+    const rows = materialiseGroupMutes(emptyMirror(), queued(mute, second), { ownerId: OWNER });
+    expect(rows).toHaveLength(1);
+  });
+
+  it('unmuting tombstones the row so the group is no longer muted', () => {
+    const unmute = envelope('m-2', MutationKind.GroupMuteClear, { muteId: MUTE_ID }, SCOPE);
+    expect(materialiseGroupMutes(emptyMirror(), queued(mute, unmute), { ownerId: OWNER })).toEqual(
+      [],
+    );
+    expect(mutedGroupIds(emptyMirror(), queued(mute, unmute), { ownerId: OWNER }).size).toBe(0);
+  });
+
+  it('unmuting something never muted here is a no-op, not a phantom row', () => {
+    const unmute = envelope('m-1', MutationKind.GroupMuteClear, { muteId: 'never-muted' }, SCOPE);
+    expect(materialiseGroupMutes(emptyMirror(), queued(unmute), { ownerId: OWNER })).toEqual([]);
+  });
+
+  it('never shows another owner’s mutes, and a mute is not a pin', () => {
+    const theirs = envelope(
+      'm-3',
+      MutationKind.GroupMuteSet,
+      { muteId: groupMuteId('user-2', GROUP), groupId: GROUP },
+      groupMutesScope('user-2'),
+    );
+    const rows = materialiseGroupMutes(emptyMirror(), queued(mute, theirs), { ownerId: OWNER });
+    expect(rows.map((r) => r.id)).toEqual([MUTE_ID]);
+    expect(pinnedGroupIds(emptyMirror(), queued(mute), { ownerId: OWNER }).size).toBe(0);
   });
 });

@@ -2151,6 +2151,9 @@ export interface UiStrings {
     removePhotoHint: string;
     simplifyDebts: string;
     simplifyDebtsBody: string;
+    /** Group settings: the per-group mute switch, and what it does. */
+    muteNotifications: string;
+    muteNotificationsBody: string;
     simplifyDebtsHint: string;
     membersHint: string;
     bringThingsIn: string;
@@ -5236,6 +5239,9 @@ const en: UiStrings = {
     simplifyDebts: 'Fewer repayments',
     simplifyDebtsBody:
       'Suggest the fewest payments that settle the group. The real who-owes-whom ledger is never rewritten.',
+    muteNotifications: 'Mute notifications',
+    muteNotificationsBody:
+      "Stop pushes about this group. You'll still see everything in the app, and no one else is told.",
     simplifyDebtsHint: 'Fewest payments to settle up',
     membersHint: 'Add people, rename, set UPI IDs',
     bringThingsIn: 'Bring things in',
@@ -8205,6 +8211,9 @@ const ta: UiStrings = {
     simplifyDebts: 'குறைந்த திருப்பிச் செலுத்தல்கள்',
     simplifyDebtsBody:
       'குழுவைத் தீர்க்கும் மிகக் குறைந்த பணப்பரிமாற்றங்களைப் பரிந்துரைக்கும். யார் யாருக்குத் தர வேண்டும் என்ற உண்மையான கணக்கு மாற்றப்படுவதே இல்லை.',
+    muteNotifications: 'அறிவிப்புகளை முடக்கு',
+    muteNotificationsBody:
+      'இந்தக் குழுவைப் பற்றிய புஷ் அறிவிப்புகள் உங்களுக்கு வராது. பயன்பாட்டில் எல்லாம் தெரியும்; மற்றவர்களுக்குத் தெரியாது.',
     simplifyDebtsHint: 'தீர்க குறைந்தபட்ச பணம் செலுத்தல்கள்',
     membersHint: 'ஆட்களைச் சேர், பெயர் மாற்று, UPI ID அமை',
     bringThingsIn: 'கொண்டுவருதல்',
@@ -11196,6 +11205,9 @@ const hi: UiStrings = {
     simplifyDebts: 'कम भुगतान',
     simplifyDebtsBody:
       'समूह को निपटाने के सबसे कम भुगतान सुझाता है। किस पर किसका बाकी है, वह असली हिसाब कभी नहीं बदला जाता।',
+    muteNotifications: 'सूचनाएँ म्यूट करें',
+    muteNotificationsBody:
+      'इस ग्रुप की पुश सूचनाएँ आपको नहीं आएँगी। ऐप में सब कुछ दिखता रहेगा, और किसी और को पता नहीं चलेगा।',
     simplifyDebtsHint: 'सेटल करने के लिए कम से कम भुगतान',
     membersHint: 'लोग जोड़ें, नाम बदलें, UPI ID सेट करें',
     bringThingsIn: 'बाहर से लाएँ',
@@ -14274,6 +14286,9 @@ const ar: UiStrings = {
     simplifyDebts: 'مدفوعات أقل',
     simplifyDebtsBody:
       'يقترح أقل عدد من الدفعات لتسوية المجموعة. أما دفتر من يدين لمن فلا يُعاد كتابته أبدًا.',
+    muteNotifications: 'كتم الإشعارات',
+    muteNotificationsBody:
+      'لن تصلك إشعارات عن هذه المجموعة. سترى كل شيء في التطبيق، ولن يعلم أحد غيرك.',
     simplifyDebtsHint: 'أقل عدد من المدفوعات للتسوية',
     membersHint: 'أضف أشخاصًا، غيّر الأسماء، اضبط معرّفات الدفع',
     bringThingsIn: 'استيراد',

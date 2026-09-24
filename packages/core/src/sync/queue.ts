@@ -378,6 +378,23 @@ function targetOf(mutation: MutationEnvelope): MutationTarget | null {
     };
   }
 
+  // A mute, for the pin's reason exactly: unmuting a refused mute removes it
+  // rather than queueing a clear behind a permanent blocker.
+  const muteId = stringPayloadField(mutation.payload, 'muteId');
+  if (
+    muteId &&
+    (mutation.kind === MutationKind.GroupMuteSet || mutation.kind === MutationKind.GroupMuteClear)
+  ) {
+    return {
+      primaryKind: MutationKind.GroupMuteSet,
+      correctionKinds: [MutationKind.GroupMuteSet],
+      removalKinds: [MutationKind.GroupMuteClear],
+      groupId: mutation.groupId,
+      id: muteId,
+      mergeCorrection: false,
+    };
+  }
+
   return null;
 }
 
