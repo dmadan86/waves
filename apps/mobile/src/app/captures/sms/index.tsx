@@ -704,21 +704,24 @@ export default function SmsInboxScreen(): React.JSX.Element | null {
         tabs={[
           {
             value: SmsKind.Expense,
-            label: countLabel(t.smsInbox.tabExpenses, counts[SmsKind.Expense]),
+            label: t.smsInbox.tabExpenses,
+            count: counts[SmsKind.Expense],
             icon: (color) => (
               <Ionicons name="arrow-up-circle-outline" size={iconSize.md} color={color} />
             ),
           },
           {
             value: SmsKind.Income,
-            label: countLabel(t.smsInbox.tabIncome, counts[SmsKind.Income]),
+            label: t.smsInbox.tabIncome,
+            count: counts[SmsKind.Income],
             icon: (color) => (
               <Ionicons name="arrow-down-circle-outline" size={iconSize.md} color={color} />
             ),
           },
           {
             value: SmsKind.Other,
-            label: countLabel(t.smsInbox.tabOther, counts[SmsKind.Other]),
+            label: t.smsInbox.tabOther,
+            count: counts[SmsKind.Other],
             icon: (color) => (
               <Ionicons name="help-circle-outline" size={iconSize.md} color={color} />
             ),
@@ -971,9 +974,4 @@ export default function SmsInboxScreen(): React.JSX.Element | null {
       </Sheet>
     </Screen>
   );
-}
-
-/** "Spent · 14" — the count beside the word, never instead of it. */
-function countLabel(word: string, count: number): string {
-  return count === 0 ? word : `${word} ${count}`;
 }

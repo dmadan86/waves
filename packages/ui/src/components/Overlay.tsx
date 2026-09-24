@@ -104,7 +104,7 @@ function useReduceMotion(): boolean {
  * the scrim that fades on the same value. Returns what both surfaces need to
  * render themselves.
  */
-function useOverlay(visible: boolean) {
+function useOverlay(visible: boolean, onClosed?: () => void) {
   const [mounted, setMounted] = useState(visible);
   // Always from nothing, even for a surface that is mounted already open. A
   // caller that renders its sheet conditionally — `{picking ? <Sheet …/>}` —
@@ -136,6 +136,23 @@ function useOverlay(visible: boolean) {
       });
     }
   }, [visible, mounted, progress]);
+
+  // Told once the surface is really gone: its exit has played and the Modal
+  // holding it has left the screen. Run from an effect, so after the commit that
+  // removed it — which is what makes it safe to open the next overlay from here.
+  // On iOS a Modal is a presented view controller: open a second one while the
+  // first is still closing and it is presented *on* the first, then dismissed
+  // along with it, leaving React holding an overlay that is not on the screen
+  // and a screen that no longer answers a tap.
+  const closed = useRef(onClosed);
+  useEffect(() => {
+    closed.current = onClosed;
+  });
+  const wasMounted = useRef(mounted);
+  useEffect(() => {
+    if (wasMounted.current && !mounted) closed.current?.();
+    wasMounted.current = mounted;
+  }, [mounted]);
 
   return { mounted, progress };
 }
@@ -177,6 +194,12 @@ export interface SheetProps {
    * pull.
    */
   titleAction?: ReactNode;
+  /**
+   * Called once the sheet has finished closing and left the screen. Open the
+   * next overlay from here, not from the tap that closed this one — see
+   * `useOverlay`.
+   */
+  onClosed?: () => void;
 }
 
 /**
@@ -413,11 +436,12 @@ export function Sheet({
   closeLabel = 'Close',
   title,
   titleAction,
+  onClosed,
 }: SheetProps) {
   const insets = useSafeAreaInsets();
   const reduceMotion = useReduceMotion();
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
-  const { mounted, progress } = useOverlay(visible);
+  const { mounted, progress } = useOverlay(visible, onClosed);
   const keyboard = useKeyboardInset();
   const { drag, handlers } = useSheetDrag(visible, onClose);
   // The sheet's own height, measured on layout, so it travels exactly its own
