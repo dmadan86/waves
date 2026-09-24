@@ -297,6 +297,25 @@ describe('one field for either', () => {
 });
 
 describe('what the browser brings back from a provider', () => {
+  it('tells a login already on another account apart from a real server error', () => {
+    const taken =
+      'https://app.wavs.co.in/auth/callback?error=server_error&error_code=identity_already_exists' +
+      '&error_description=Identity+is+already+linked+to+another+user';
+    expect(readOAuthCallback(taken)).toEqual({ kind: 'identity_taken' });
+    // The same answer in the fragment, where some providers put it.
+    expect(
+      readOAuthCallback(
+        'waves://auth#error=server_error&error_code=identity_already_exists&error_description=x',
+      ),
+    ).toEqual({ kind: 'identity_taken' });
+    // A plain server error is still an error.
+    expect(
+      readOAuthCallback(
+        'https://app.wavs.co.in/auth/callback?error=server_error&error_description=boom',
+      ),
+    ).toEqual({ kind: 'error', message: 'boom' });
+  });
+
   it('reads the one-time code out of the query string', () => {
     expect(readOAuthCallback('waves://auth?code=abc-123')).toEqual({
       kind: 'code',

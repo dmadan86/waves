@@ -306,7 +306,15 @@ export function readIdentifier(raw: string): { kind: 'email' | 'phone'; value: s
  * *link* looks like.
  */
 export type OAuthCallback =
-  { kind: 'code'; code: string } | { kind: 'error'; message: string } | { kind: 'none' };
+  | { kind: 'code'; code: string }
+  | { kind: 'error'; message: string }
+  /**
+   * A guest tried to add a Google or Apple login that already belongs to
+   * another Waves account. Not a failure to report: the person *has* an
+   * account, and the useful answer is to offer to switch to it.
+   */
+  | { kind: 'identity_taken' }
+  | { kind: 'none' };
 
 export function readOAuthCallback(url: string): OAuthCallback {
   try {
@@ -342,6 +350,12 @@ function readOAuthParams(params: URLSearchParams): OAuthCallback {
   const code = params.get('code');
   if (code) return { kind: 'code', code };
   const error = params.get('error');
+  // Supabase answers a link whose identity is already on another account with
+  // `error=server_error` — the same word as a real outage — so the specific
+  // `error_code` is the only thing that tells the two apart.
+  if (error && params.get('error_code') === 'identity_already_exists') {
+    return { kind: 'identity_taken' };
+  }
   if (error) {
     const description = params.get('error_description');
     return { kind: 'error', message: description?.trim() || error };
