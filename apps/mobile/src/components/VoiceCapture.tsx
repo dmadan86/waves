@@ -75,6 +75,18 @@ const MAX_LISTEN_MS = 9500;
 const HARD_STOP_MS = 1800;
 
 /**
+ * An engine that says "no speech" this soon after opening has not listened: the
+ * person has barely drawn breath. Android's recogniser does exactly that on a
+ * cold first session (it gives up within a second, before a word is possible),
+ * which read as the mic closing on its own. A miss inside this window, with
+ * nothing heard, is retried once without a word on screen; a real silence,
+ * later than this, still lands on the calm miss.
+ */
+const EARLY_MISS_MS = 3000;
+/** How long to wait for the aborted session's `end` before retrying anyway. */
+const EARLY_RETRY_FALLBACK_MS = 1500;
+
+/**
  * How long an attempt may listen with no transcript at all before it is judged
  * mute. A live recogniser emits interim results within about a second of speech;
  * this beat past that with nothing back means this engine is not transcribing.
@@ -586,6 +598,14 @@ export function VoiceCapture({
   const retried = useRef(false);
   // The no-transcript watchdog (see PROGRESS_MS), armed at open.
   const progress = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // The early-miss retry (see EARLY_MISS_MS): when the recogniser opened, whether
+  // this user-started capture has already spent its one silent retry, and
+  // whether one is waiting on the aborted session's `end`.
+  const openedAt = useRef(0);
+  const earlyRetryUsed = useRef(false);
+  const earlyRetryPending = useRef(false);
+  const autoRetrying = useRef(false);
+  const earlyRetryFallback = useRef<ReturnType<typeof setTimeout> | null>(null);
   const clearProgress = useCallback((): void => {
     if (progress.current === null) return;
     clearTimeout(progress.current);
@@ -651,11 +671,39 @@ export function VoiceCapture({
     level.set(withTiming(norm, { duration: 90 }));
   });
 
+  // Retry the capture once, silently, after an early miss (see EARLY_MISS_MS).
+  // The listening state is kept on throughout, so the screen never flashes a
+  // miss for a session the person never had a chance to speak into.
+  const runEarlyRetry = (): void => {
+    if (earlyRetryFallback.current) clearTimeout(earlyRetryFallback.current);
+    earlyRetryFallback.current = null;
+    if (!earlyRetryPending.current) return;
+    earlyRetryPending.current = false;
+    if (!mounted.current) return;
+    autoRetrying.current = true;
+    void startRef.current(false);
+  };
+
   useSpeechRecognitionEvent('error', (event) => {
     if (!speechMic.owns(session)) return;
     clearStall();
     clearMaxListen();
     clearProgress();
+    const early =
+      (event.error === 'no-speech' || event.error === 'speech-timeout') &&
+      !gotResult.current &&
+      !latest.current.trim() &&
+      !earlyRetryUsed.current &&
+      Date.now() - openedAt.current < EARLY_MISS_MS;
+    if (early) {
+      earlyRetryUsed.current = true;
+      earlyRetryPending.current = true;
+      speechMic.errored(session);
+      // The retry waits for this session's `end`; if that never arrives, it goes
+      // ahead anyway rather than leave the screen on "listening" with no mic.
+      earlyRetryFallback.current = setTimeout(runEarlyRetry, EARLY_RETRY_FALLBACK_MS);
+      return;
+    }
     const message = dictationError(event.error, t.misc.dictationErrors);
     if (message) {
       setError(message);
@@ -681,6 +729,12 @@ export function VoiceCapture({
     clearStall();
     clearMaxListen();
     clearProgress();
+    if (earlyRetryPending.current) {
+      // A beat for the recogniser to let go before it is asked again.
+      if (earlyRetryFallback.current) clearTimeout(earlyRetryFallback.current);
+      earlyRetryFallback.current = setTimeout(runEarlyRetry, 250);
+      return;
+    }
     setListening(false);
     level.set(withTiming(0, { duration: 150 }));
     const said = latest.current.trim();
@@ -700,6 +754,11 @@ export function VoiceCapture({
       // fallback re-entry keeps it spent. Either way, drop the old attempt's
       // watchdogs before opening the next.
       if (!forceNetwork) retried.current = false;
+      // A tap is a fresh capture with its own one early-miss retry; the silent
+      // retry itself must not re-arm it, or a dead mic would loop.
+      if (!autoRetrying.current) earlyRetryUsed.current = false;
+      autoRetrying.current = false;
+      earlyRetryPending.current = false;
       clearStall();
       clearMaxListen();
       clearProgress();
@@ -789,6 +848,7 @@ export function VoiceCapture({
           },
         });
         speechMic.opened(session);
+        openedAt.current = Date.now();
         starting.current = false;
 
         // The finger lifted while this was still opening. Apply that ending now
@@ -1002,6 +1062,9 @@ export function VoiceCapture({
     mounted.current = true;
     return () => {
       mounted.current = false;
+      if (earlyRetryFallback.current) clearTimeout(earlyRetryFallback.current);
+      earlyRetryFallback.current = null;
+      earlyRetryPending.current = false;
       clearStall();
       clearMaxListen();
       clearProgress();
