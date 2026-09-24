@@ -181,6 +181,14 @@ export interface MirrorExpense extends MirrorRow {
     readonly payment_method: string | null;
     readonly receipt_share_url: string | null;
     readonly location: ExpenseLocation | null;
+    /**
+     * The saved conversion record (server `expense_versions.fx`) and the linked
+     * receipt. Optional because a synced row carries them as plain columns; a
+     * pending version must carry them too, or the next edit built from it would
+     * write them back as empty.
+     */
+    readonly fx?: unknown;
+    readonly receipt_id?: string | null;
     readonly created_at: string;
     readonly payers: readonly { member_id: string; amount: string }[];
     readonly shares: readonly { member_id: string; amount: string }[];
@@ -282,6 +290,11 @@ function applyPending(
           payment_method: payload.paymentMethod ?? null,
           receipt_share_url: payload.receiptShareUrl ?? null,
           location: payload.location ?? null,
+          // Carried through, so an edit made on top of this still-queued one
+          // does not load a version without them and send `fx: null` /
+          // no receipt — silently dropping the rate and unlinking the bill.
+          fx: (payload as { fx?: unknown }).fx ?? null,
+          receipt_id: payload.receiptId ?? null,
           created_at: mutation.clientCreatedAt,
           payers: Object.entries(payload.payers).map(([member_id, amount]) => ({
             member_id,
