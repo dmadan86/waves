@@ -101,6 +101,17 @@ describe('a login that already has an account', () => {
     expect(world.replace).toHaveBeenCalledWith('/group/group-t1');
   });
 
+  it('goes home rather than into a group still waiting on an admin', async () => {
+    world.acceptInvite.mockResolvedValueOnce({
+      group: { id: 'group-t1', name: 'Trip' },
+      pending: true,
+    } as never);
+
+    await resolver()(new FakeIdentityTakenError(OAuthMethod.Google));
+
+    expect(world.replace).toHaveBeenCalledWith('/');
+  });
+
   it('does nothing more when they choose to stay a guest', async () => {
     world.confirm.mockResolvedValueOnce(false);
 

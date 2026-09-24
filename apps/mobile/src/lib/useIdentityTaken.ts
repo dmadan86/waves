@@ -54,7 +54,8 @@ export function useIdentityTaken(): (caught: unknown) => Promise<unknown> {
           signInInstead: () => signInInstead(caught.provider),
           accept: async (token) => {
             const joined = await acceptInvite({ token, claimMemberId: null });
-            return joined.group.id;
+            // Still waiting on an admin: not a group they can open yet.
+            return 'pending' in joined ? null : joined.group.id;
           },
           report: reportHandled,
         });

@@ -110,12 +110,6 @@ export default function JoinScreen() {
       // Nobody is forced to register to accept an invite.
       if (!session) await continueAsGuest();
       const result = await acceptInvite({ token, claimMemberId: claim });
-      // A guest's way into this group, kept in case they later find their
-      // Google or Apple login already has an account and switch to it: the link
-      // is how that account joins this group again (`lib/guestSwitch`). Never
-      // allowed to cost the join itself.
-      void rememberGuestJoin(token);
-
       // Claiming somebody's place only asks. Routing into the group here would
       // land on a screen the person cannot read yet, because they are not a
       // member until an admin agrees.
@@ -123,6 +117,14 @@ export default function JoinScreen() {
         setPending(result.group.name);
         return;
       }
+
+      // A guest's way into this group, kept in case they later find their
+      // Google or Apple login already has an account and switch to it: the link
+      // is how that account joins this group again (`lib/guestSwitch`). Only a
+      // join that went through; a claim still waiting on an admin is not a
+      // membership, and replaying it would skip the admin's answer. Never
+      // allowed to cost the join itself.
+      void rememberGuestJoin(token);
 
       await queryClient.invalidateQueries({ queryKey: keys.groups });
       router.replace(`/group/${result.group.id}`);
