@@ -112,7 +112,7 @@ export default function FindPersonScreen() {
           paddingHorizontal: theme.spacing.xl,
           paddingTop: theme.spacing.lg,
           paddingBottom: clearance,
-          gap: theme.spacing.lg,
+          gap: theme.spacing.xl,
         }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}

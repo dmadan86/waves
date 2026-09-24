@@ -278,7 +278,7 @@ function ChooseGroup({
 
   return (
     <ScrollView
-      contentContainerStyle={{ paddingBottom: clearance, gap: theme.spacing.lg }}
+      contentContainerStyle={{ paddingBottom: clearance, gap: theme.spacing.xl }}
       showsVerticalScrollIndicator={false}
     >
       <Card style={{ gap: theme.spacing.xs }}>

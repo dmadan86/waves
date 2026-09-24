@@ -779,11 +779,14 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
             disabled={preparing !== null}
             accessibilityRole="button"
             accessibilityLabel={t.receipts.add}
+            // The extra touch height is hit slop, not padding: padding added
+            // invisible space above and below the row, so the gaps around it
+            // came out wider than the screen's gaps between sections.
+            hitSlop={{ top: theme.spacing.sm, bottom: theme.spacing.sm }}
             style={({ pressed }) => ({
               flexDirection: 'row',
               alignItems: 'center',
               gap: theme.spacing.md,
-              paddingVertical: theme.spacing.sm,
               opacity: pressed ? 0.6 : 1,
             })}
           >

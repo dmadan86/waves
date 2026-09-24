@@ -188,7 +188,7 @@ export default function InviteScreen() {
           // Plus a line's worth, so the closing sentence is not sitting on
           // the navigation bar.
           paddingBottom: clearance + theme.spacing.lg,
-          gap: theme.spacing.lg,
+          gap: theme.spacing.xl,
         }}
         showsVerticalScrollIndicator={false}
       >
