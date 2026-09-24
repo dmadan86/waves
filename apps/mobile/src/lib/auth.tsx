@@ -389,6 +389,14 @@ interface AuthValue {
   signOut: () => Promise<void>;
 }
 
+/**
+ * The longest a sign-out waits on its tidying-up (revoking the push token,
+ * cancelling this phone's reminders) before it signs out anyway. Long enough
+ * for a healthy network to finish; short enough that a stalled one is a pause,
+ * not a sign-out that never happens.
+ */
+const SIGN_OUT_TIDY_UP_MS = 5000;
+
 const AuthContext = createContext<AuthValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -569,18 +577,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // The whole of a deliberate sign-out. Shared by `signOut` and by switching
   // from a guest to an account that already exists, which is a sign-out too.
   const endSession = useCallback(async (): Promise<void> => {
-    // Before the session goes: afterwards there is no identity to attach
-    // the revocation to, and the token would keep receiving notifications
-    // for an account nobody is signed in on.
-    await revokePushToken();
-    // And the reminders this phone set for itself. A local alarm survives
-    // the session that created it, so leaving one scheduled means a phone
-    // nobody is signed in on announcing "you saved 3 expenses for later" —
-    // about drafts that are no longer on it. The stored switch and the
-    // marker go with it, scoped to the account that is leaving.
     const leaving = session?.user?.id ?? '';
-    await cancelNudges().catch(() => {});
-    await clearCaptureNudge(leaving).catch(() => {});
+    // Tidying up, before the session goes — and only ever for so long.
+    //
+    // The push token is revoked first because afterwards there is no identity
+    // to attach the revocation to, and the token would keep receiving
+    // notifications for an account nobody is signed in on. The reminders this
+    // phone set for itself go too: a local alarm survives the session that
+    // created it, so leaving one scheduled means a phone nobody is signed in on
+    // announcing "you saved 3 expenses for later" about drafts that are no
+    // longer on it.
+    //
+    // None of it is worth keeping somebody signed in, and each step can stall
+    // rather than fail: the token lookup waits on Apple's push registration and
+    // then on a request to Expo, neither with a deadline. A stall used to hold
+    // the whole sign-out — the sheet closed and the person was still signed in,
+    // with nothing on screen to say why. So the three run side by side under
+    // one deadline, and the sign-out goes ahead when they finish or when it
+    // passes, whichever is first.
+    await Promise.race([
+      Promise.allSettled([revokePushToken(), cancelNudges(), clearCaptureNudge(leaving)]),
+      new Promise((resolve) => setTimeout(resolve, SIGN_OUT_TIDY_UP_MS)),
+    ]);
     // The private ledger's unlock belongs to whoever proved they were
     // holding the phone, not to the phone. It does not survive the account
     // it was granted under.
