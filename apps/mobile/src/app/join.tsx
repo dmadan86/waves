@@ -26,6 +26,8 @@ import { acceptInvite, previewInvite, type InvitePreview } from '@/data/api';
 import { keys } from '@/data/hooks';
 import { useAuth } from '@/lib/auth';
 import { useGuestGuard } from '@/lib/guestGuard';
+import { backend } from '@/lib/backend';
+import { guestJoins } from '@/lib/guestJoins';
 import { router } from '@/lib/navigation';
 
 /**
@@ -108,6 +110,11 @@ export default function JoinScreen() {
       // Nobody is forced to register to accept an invite.
       if (!session) await continueAsGuest();
       const result = await acceptInvite({ token, claimMemberId: claim });
+      // A guest's way into this group, kept in case they later find their
+      // Google or Apple login already has an account and switch to it: the link
+      // is how that account joins this group again (`lib/guestSwitch`). Never
+      // allowed to cost the join itself.
+      void rememberGuestJoin(token);
 
       // Claiming somebody's place only asks. Routing into the group here would
       // land on a screen the person cannot read yet, because they are not a
@@ -311,4 +318,16 @@ export default function JoinScreen() {
       </ScrollView>
     </Screen>
   );
+}
+
+/** Remembers `token` against the signed-in account, if that account is a guest. */
+async function rememberGuestJoin(token: string): Promise<void> {
+  try {
+    const { data } = await backend.auth.getSession();
+    const user = data.session?.user;
+    if (user?.is_anonymous !== true) return;
+    await guestJoins.remember(user.id, token);
+  } catch {
+    // A lost note costs one rejoin later, never this join.
+  }
 }

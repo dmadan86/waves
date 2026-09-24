@@ -48,6 +48,7 @@ import { friendlyError } from '@/lib/errors';
 import { confirmContact, startAddingContact, ContactChannel } from '@/data/api';
 import { deviceCountry, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
+import { useIdentityTaken } from '@/lib/useIdentityTaken';
 import { router } from '@/lib/navigation';
 import { phoneSignInAvailable } from '@/lib/phoneAuth';
 
@@ -85,6 +86,7 @@ function AccountForm() {
   const clearance = useTabBarClearance();
   const { t } = useStrings();
   const { session, profile, isGuest, refresh, updateProfile, withGoogle, withApple } = useAuth();
+  const resolveIdentityTaken = useIdentityTaken();
 
   // Set when a guest was sent here by a limit rather than arriving on their own
   // (ADR-006 addendum). It only changes the explainer at the top; the linking
@@ -185,8 +187,10 @@ function AccountForm() {
     try {
       await start();
       await refresh();
-    } catch (caught) {
-      setError(friendlyError(caught, t.couldNotSave, 'account.link'));
+    } catch (thrown) {
+      // Already somebody's login: offer the switch instead of an error.
+      const caught = await resolveIdentityTaken(thrown);
+      if (caught !== null) setError(friendlyError(caught, t.couldNotSave, 'account.link'));
     } finally {
       setBusy(false);
     }
