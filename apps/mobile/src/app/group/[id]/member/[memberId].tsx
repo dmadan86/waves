@@ -26,7 +26,13 @@ import {
 import { EditTextSheet } from '@/components/EditTextSheet';
 import { ProfileAvatar } from '@/components/ProfileAvatar';
 import { SettingsSection, type SettingsRow } from '@/components/SettingsSection';
-import { useGroup, useGroupLedger, useSetMemberRole, useUpdateMember } from '@/data/hooks';
+import {
+  useClaimMemberAsMe,
+  useGroup,
+  useGroupLedger,
+  useSetMemberRole,
+  useUpdateMember,
+} from '@/data/hooks';
 import { friendlyError } from '@/lib/errors';
 import { expenseTitle } from '@/data/expenseTitle';
 import { useBlockedUsers } from '@/data/blocked';
@@ -56,16 +62,20 @@ export default function MemberScreen() {
   const ledger = useGroupLedger(groupId, viewerId);
   const updateMember = useUpdateMember(groupId);
   const setRole = useSetMemberRole(groupId);
+  const claimAsMe = useClaimMemberAsMe(groupId);
   const { blockedIds, block, unblock } = useBlockedUsers();
 
   const member = members.data?.find((row) => row.id === memberId);
   const isMe = member ? isViewer(member, viewerId) : false;
-  const iAmAdmin = members.data?.find((row) => isViewer(row, viewerId))?.role === 'admin';
+  const myRow = members.data?.find((row) => isViewer(row, viewerId));
+  const iAmAdmin = myRow?.role === 'admin';
   const currency = group.data?.default_currency ?? 'INR';
 
   const [name, setName] = useState(member?.ghost_name ?? '');
   const [vpa, setVpa] = useState(member?.vpa ?? '');
   const [status, setStatus] = useState<string | null>(null);
+  /** What came of "this is me", in its own line: it can be good news. */
+  const [claimNote, setClaimNote] = useState<{ text: string; ok: boolean } | null>(null);
   /** Which editable row has its sheet open, or null. */
   const [editing, setEditing] = useState<'name' | 'vpa' | null>(null);
 
@@ -109,6 +119,52 @@ export default function MemberScreen() {
       block({ id: profileId, name: realName, avatarUrl: member.profile?.avatar_url ?? null });
     }
   };
+  /**
+   * "This is me": the placeholder somebody added for you, taken from inside
+   * the group. Asked and answered in plain words, because approving moves
+   * every expense filed under that name.
+   */
+  const sayThisIsMe = async (): Promise<void> => {
+    const placeholder = member.ghost_name ?? t.misc.someone;
+    const ok = await confirm({
+      title: fill(t.claims.thisIsMeConfirmTitle, { name: placeholder }),
+      body: fill(iAmAdmin ? t.claims.thisIsMeConfirmBodyAdmin : t.claims.thisIsMeConfirmBody, {
+        name: placeholder,
+      }),
+      confirmLabel: t.claims.thisIsMe,
+    });
+    if (!ok) return;
+    setClaimNote(null);
+    claimAsMe.mutate(member.id, {
+      onSuccess: (verdict) => {
+        if (verdict.ok) {
+          setClaimNote({
+            ok: true,
+            text:
+              verdict.status === 'approved'
+                ? fill(t.claims.thisIsMeDone, { name: placeholder })
+                : t.claims.thisIsMeAsked,
+          });
+          return;
+        }
+        setClaimNote({
+          ok: false,
+          text:
+            verdict.reason === 'HAS_HISTORY'
+              ? t.claims.youHaveHistory
+              : verdict.reason === 'ALREADY_CLAIMED' || verdict.reason === 'NOT_CLAIMABLE'
+                ? t.claims.placeTaken
+                : t.claims.thisIsMeFailed,
+        });
+      },
+      onError: (caught) =>
+        setClaimNote({
+          ok: false,
+          text: friendlyError(caught, t.claims.thisIsMeFailed, 'member.thisIsMe'),
+        }),
+    });
+  };
+
   const balance = ledger.balances.get(member.id) ?? 0n;
   // The hero wears the money colour for its meaning — mint when this person is
   // owed, pink when they owe — and a neutral lilac when they are square, so a
@@ -125,6 +181,18 @@ export default function MemberScreen() {
    * and for a ghost seen by a non-admin.
    */
   const manageRows: SettingsRow[] = [
+    // Anybody in the group can say a placeholder is them; the server decides
+    // whether an admin has to confirm it.
+    ...(ghost && myRow
+      ? [
+          {
+            icon: 'person-circle-outline' as const,
+            label: t.claims.thisIsMe,
+            hint: fill(t.claims.thisIsMeHint, { name: member.ghost_name ?? t.misc.someone }),
+            onPress: claimAsMe.isPending ? undefined : () => void sayThisIsMe(),
+          },
+        ]
+      : []),
     ...(iAmAdmin && !isMe
       ? [
           {
@@ -372,6 +440,12 @@ export default function MemberScreen() {
             Blocking is display-only and never touches the balance above. */}
         {manageRows.length > 0 ? (
           <SettingsSection title={t.people.manageTitle} rows={manageRows} />
+        ) : null}
+
+        {claimNote ? (
+          <Text variant="caption" tone={claimNote.ok ? 'positive' : 'negative'}>
+            {claimNote.text}
+          </Text>
         ) : null}
 
         {status ? (

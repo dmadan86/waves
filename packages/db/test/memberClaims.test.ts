@@ -336,7 +336,10 @@ describe('the ways a claim stops making sense', () => {
     expect(verdict).toMatchObject({ ok: false, reason: 'ALREADY_A_MEMBER' });
   });
 
-  it('refuses approval if they joined by another route while waiting', async () => {
+  it('folds a second route in: the empty row they joined by gives way to the place', async () => {
+    // Before 20260925120000 this was refused (ALREADY_A_MEMBER) and the group
+    // kept the same person twice. Their own row is empty, so it retires and
+    // the place, which is where the history is, becomes theirs.
     const { groupId, memberIds, profileIds } = await seedGroup(client, {
       memberCount: 2,
       ghostCount: 1,
@@ -344,13 +347,22 @@ describe('the ways a claim stops making sense', () => {
     const arrival = await newcomer();
     const { claim_id } = await request(groupId, memberIds[2], arrival);
 
-    await client.query(
-      `INSERT INTO group_members (group_id, profile_id, joined_via) VALUES ($1, $2, 'invite_link')`,
+    const { rows: joined } = await client.query(
+      `INSERT INTO group_members (group_id, profile_id, joined_via)
+       VALUES ($1, $2, 'invite_link') RETURNING id`,
       [groupId, arrival],
     );
 
     const verdict = await decide(claim_id!, true, profileIds[0]);
-    expect(verdict).toMatchObject({ ok: false, reason: 'ALREADY_A_MEMBER' });
+    expect(verdict).toMatchObject({ ok: true, status: 'approved' });
+    expect((await memberRow(memberIds[2])).profile_id).toBe(arrival);
+
+    const { rows: live } = await client.query(
+      `SELECT id FROM group_members WHERE group_id = $1 AND profile_id = $2 AND left_at IS NULL`,
+      [groupId, arrival],
+    );
+    expect(live.map((r) => r.id)).toEqual([memberIds[2]]);
+    expect((await memberRow(joined[0].id)).profile_id).toBeNull();
   });
 
   it('lets the person waiting give up, and nobody else give up for them', async () => {

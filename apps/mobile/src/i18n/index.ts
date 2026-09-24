@@ -3232,6 +3232,17 @@ export interface UiStrings {
     alreadyDecided: string;
     placeTaken: string;
     theyAreAlreadyIn: string;
+    /** "This is me": a member taking the placeholder added for them. */
+    thisIsMe: string;
+    thisIsMeHint: string;
+    thisIsMeConfirmTitle: string;
+    thisIsMeConfirmBody: string;
+    thisIsMeConfirmBodyAdmin: string;
+    thisIsMeAsked: string;
+    thisIsMeDone: string;
+    thisIsMeFailed: string;
+    youHaveHistory: string;
+    theyHaveHistory: string;
   };
   /** The rest: one or two strings each, from a dozen screens. */
   /** Feedback, the policy screens, and erasure. */
@@ -6177,6 +6188,20 @@ const en: UiStrings = {
     alreadyDecided: 'Somebody has already answered this one.',
     placeTaken: 'That place belongs to somebody now.',
     theyAreAlreadyIn: 'They are already in this group.',
+    thisIsMe: 'This is me',
+    thisIsMeHint: 'Everything filed under {name} becomes yours.',
+    thisIsMeConfirmTitle: 'Are you {name}?',
+    thisIsMeConfirmBody:
+      'Everything filed under {name} moves to you, and you appear once in this group. An admin confirms it first.',
+    thisIsMeConfirmBodyAdmin:
+      'Everything filed under {name} moves to you, and you appear once in this group.',
+    thisIsMeAsked: 'Asked. An admin of the group confirms it before anything moves.',
+    thisIsMeDone: 'Done. Everything filed under {name} is yours now.',
+    thisIsMeFailed: 'That could not be sent just now. Try again in a moment.',
+    youHaveHistory:
+      'You already have expenses in this group as yourself, so the two cannot be combined.',
+    theyHaveHistory:
+      'They already have expenses in this group as themselves, so the two cannot be combined.',
   },
   blocked: {
     row: 'Blocked people',
@@ -9218,6 +9243,20 @@ const ta: UiStrings = {
     alreadyDecided: 'இதற்கு ஏற்கனவே ஒருவர் பதிலளித்துவிட்டார்.',
     placeTaken: 'அந்த இடம் இப்போது வேறு ஒருவருக்கு உரியது.',
     theyAreAlreadyIn: 'அவர் ஏற்கனவே இந்தக் குழுவில் இருக்கிறார்.',
+    thisIsMe: 'இது நான்தான்',
+    thisIsMeHint: '{name} பெயரில் பதிவானவை அனைத்தும் உங்களுடையதாகும்.',
+    thisIsMeConfirmTitle: 'நீங்கள்தான் {name} ஆ?',
+    thisIsMeConfirmBody:
+      '{name} பெயரில் பதிவானவை அனைத்தும் உங்களுக்கு மாறும்; இந்தக் குழுவில் நீங்கள் ஒருமுறை மட்டுமே தெரிவீர்கள். முதலில் ஒரு நிர்வாகி உறுதி செய்வார்.',
+    thisIsMeConfirmBodyAdmin:
+      '{name} பெயரில் பதிவானவை அனைத்தும் உங்களுக்கு மாறும்; இந்தக் குழுவில் நீங்கள் ஒருமுறை மட்டுமே தெரிவீர்கள்.',
+    thisIsMeAsked: 'கேட்கப்பட்டது. எதுவும் மாறும் முன் குழுவின் நிர்வாகி உறுதி செய்வார்.',
+    thisIsMeDone: 'முடிந்தது. {name} பெயரில் பதிவானவை அனைத்தும் இப்போது உங்களுடையவை.',
+    thisIsMeFailed: 'இப்போது அனுப்ப முடியவில்லை. சிறிது நேரம் கழித்து முயலுங்கள்.',
+    youHaveHistory:
+      'இந்தக் குழுவில் உங்கள் பெயரிலேயே ஏற்கனவே செலவுகள் உள்ளன, எனவே இரண்டையும் இணைக்க முடியாது.',
+    theyHaveHistory:
+      'இந்தக் குழுவில் அவர் பெயரிலேயே ஏற்கனவே செலவுகள் உள்ளன, எனவே இரண்டையும் இணைக்க முடியாது.',
   },
   blocked: {
     row: 'தடுக்கப்பட்டவர்கள்',
@@ -12155,6 +12194,20 @@ const hi: UiStrings = {
     alreadyDecided: 'इसका जवाब कोई पहले ही दे चुका है।',
     placeTaken: 'वह जगह अब किसी और की है।',
     theyAreAlreadyIn: 'वे पहले से इस समूह में हैं।',
+    thisIsMe: 'यह मैं हूँ',
+    thisIsMeHint: '{name} के नाम दर्ज सब कुछ आपका हो जाएगा।',
+    thisIsMeConfirmTitle: 'क्या आप {name} हैं?',
+    thisIsMeConfirmBody:
+      '{name} के नाम दर्ज सब कुछ आपके नाम हो जाएगा, और इस ग्रुप में आप एक ही बार दिखेंगे। पहले कोई एडमिन इसकी पुष्टि करेगा।',
+    thisIsMeConfirmBodyAdmin:
+      '{name} के नाम दर्ज सब कुछ आपके नाम हो जाएगा, और इस ग्रुप में आप एक ही बार दिखेंगे।',
+    thisIsMeAsked: 'पूछ लिया। कुछ भी बदलने से पहले ग्रुप का एडमिन इसकी पुष्टि करेगा।',
+    thisIsMeDone: 'हो गया। {name} के नाम दर्ज सब कुछ अब आपका है।',
+    thisIsMeFailed: 'अभी भेजा नहीं जा सका। थोड़ी देर बाद फिर कोशिश करें।',
+    youHaveHistory:
+      'इस ग्रुप में आपके अपने नाम से पहले से खर्च हैं, इसलिए दोनों को जोड़ा नहीं जा सकता।',
+    theyHaveHistory:
+      'इस ग्रुप में उनके अपने नाम से पहले से खर्च हैं, इसलिए दोनों को जोड़ा नहीं जा सकता।',
   },
   blocked: {
     row: 'अवरोधित लोग',
@@ -15509,6 +15562,18 @@ const ar: UiStrings = {
     alreadyDecided: 'ردّ أحدهم على هذا من قبل.',
     placeTaken: 'صار ذلك المكان لشخص آخر.',
     theyAreAlreadyIn: 'هو بالفعل في هذه المجموعة.',
+    thisIsMe: 'هذا أنا',
+    thisIsMeHint: 'كل ما سُجّل باسم {name} يصبح لك.',
+    thisIsMeConfirmTitle: 'هل أنت {name}؟',
+    thisIsMeConfirmBody:
+      'كل ما سُجّل باسم {name} سينتقل إليك، وستظهر مرة واحدة في هذه المجموعة. يؤكد ذلك أحد المشرفين أولًا.',
+    thisIsMeConfirmBodyAdmin:
+      'كل ما سُجّل باسم {name} سينتقل إليك، وستظهر مرة واحدة في هذه المجموعة.',
+    thisIsMeAsked: 'تم الطلب. يؤكد مشرف المجموعة ذلك قبل أن يتغير أي شيء.',
+    thisIsMeDone: 'تم. كل ما سُجّل باسم {name} أصبح لك الآن.',
+    thisIsMeFailed: 'تعذّر الإرسال الآن. حاول مرة أخرى بعد قليل.',
+    youHaveHistory: 'لديك مصروفات في هذه المجموعة باسمك بالفعل، لذا لا يمكن دمج الاثنين.',
+    theyHaveHistory: 'لديه مصروفات في هذه المجموعة باسمه بالفعل، لذا لا يمكن دمج الاثنين.',
   },
   blocked: {
     row: 'الأشخاص المحظورون',

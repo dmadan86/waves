@@ -925,6 +925,23 @@ export async function decideMemberClaim(
 }
 
 /**
+ * "This is me": a member already in the group asks for the placeholder that
+ * was added for them. An admin asking is confirmed on the spot (`approved`);
+ * anybody else waits for an admin (`pending`). Refused with `HAS_HISTORY` when
+ * the asker's own row already has money on it, which an append-only ledger
+ * cannot move.
+ */
+export async function claimMemberAsMe(
+  memberId: string,
+): Promise<{ ok: boolean; reason?: string; status?: string }> {
+  const { data, error } = await backend.rpc('waves_claim_member_as_me', {
+    p_member_id: memberId,
+  });
+  if (error) throw new Error(error.message);
+  return (data ?? { ok: false }) as { ok: boolean; reason?: string; status?: string };
+}
+
+/**
  * The group's durable join link (WhatsApp-style): a stable, re-showable token,
  * made on first use. Any member may fetch it; it is the same token on every call
  * while it is live, so the QR is stable across opens and devices.
