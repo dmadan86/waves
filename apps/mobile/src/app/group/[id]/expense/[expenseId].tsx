@@ -58,7 +58,7 @@ import { useBottomClearance } from '@/lib/clearance';
 import { expenseMemberHref } from '@/lib/expenseMemberRows';
 import { router, useGoBack } from '@/lib/navigation';
 import { useDialog } from '@/lib/dialog';
-import { canEditInline } from '@/lib/expenseEdit';
+import { amountEditsInline, canEditInline } from '@/lib/expenseEdit';
 
 function splitLabels(t: UiStrings): Record<string, string> {
   return {
@@ -307,6 +307,11 @@ export default function ExpenseDetailScreen() {
   const inlineEditable = !deleted && canEditInline(version.split_type);
   const changeOn = (field: ExpenseField): (() => void) | undefined =>
     inlineEditable ? () => setEditingField(field) : undefined;
+  // A new total alone cannot be saved when the split is exact or several people
+  // paid: the typed amounts, or the payers' figures, would no longer add up,
+  // and the amount pop-up has no controls to fix either. Those bills go straight
+  // to the full editor (focused on the amount) rather than to a dead-end sheet.
+  const amountInline = inlineEditable && amountEditsInline(version);
 
   const openEditor = (focus?: 'amount'): void => {
     // "Fix the number" is the most common reason a bill is reopened, so tapping
@@ -445,14 +450,14 @@ export default function ExpenseDetailScreen() {
               />
             ) : (
               <Pressable
-                // The amount pop-up where one fits the bill; an itemized or
-                // adjusted split still goes to the editor, focused on the amount.
+                // The amount pop-up where one fits the bill (see `amountInline`);
+                // otherwise the editor, focused on the amount.
                 onPress={
-                  inlineEditable ? () => setEditingField('amount') : () => openEditor('amount')
+                  amountInline ? () => setEditingField('amount') : () => openEditor('amount')
                 }
                 accessibilityRole="button"
                 accessibilityLabel={`${t.common.edit}: ${format(money(BigInt(version.amount), currency), { locale })}`}
-                accessibilityHint={inlineEditable ? t.expense.detailTapHint : undefined}
+                accessibilityHint={amountInline ? t.expense.detailTapHint : undefined}
                 hitSlop={8}
                 style={({ pressed }) => ({ alignSelf: 'flex-start', opacity: pressed ? 0.6 : 1 })}
               >

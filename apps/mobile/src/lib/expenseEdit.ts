@@ -346,6 +346,22 @@ export function editBlocker(
  * on save. Those bills stay read-only on the expense screen; the pencil is the
  * way in, as it always was.
  */
+/**
+ * Whether the amount alone can be changed in a pop-up. Not on an exact split
+ * (the typed amounts would stop adding up) nor on a bill several people paid
+ * (their figures would): the amount pop-up has no controls for either, so the
+ * change belongs on the full editor.
+ */
+export function amountEditsInline(
+  version: Pick<ExpenseVersionRow, 'split_type' | 'payers'>,
+): boolean {
+  return (
+    canEditInline(version.split_type) &&
+    version.split_type !== 'exact' &&
+    version.payers.length <= 1
+  );
+}
+
 export function canEditInline(splitType: SplitParams['kind']): boolean {
   return (
     splitType === 'equal' ||

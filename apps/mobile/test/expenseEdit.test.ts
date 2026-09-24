@@ -21,10 +21,10 @@ import {
   payerIssueFor,
   previewShares,
   splitIssueFor,
-  splitParamsFor,
+  amountEditsInline,
   type ExpenseEditState,
 } from '@/lib/expenseEdit';
-import { SplitKind } from '@/lib/split';
+import { entryValues, exactValues, SplitKind } from '@/lib/split';
 
 const EXPENSE = 'exp-7f3a';
 const STRINGS = {
@@ -72,9 +72,24 @@ function version(overrides: Partial<ExpenseVersionRow> = {}): ExpenseVersionRow 
 function editorPayloadBeforeExtraction(
   expenseId: string,
   state: ExpenseEditState,
-  splitParams: SplitParams,
-  editing: ExpenseVersionRow,
+  editing: ExpenseVersionRow | null,
 ): Record<string, unknown> {
+  // The editor's old `splitParams` useMemo, transcribed — not `splitParamsFor`,
+  // so the reference cannot inherit a bug from the code under test.
+  const { splitKind, weights, percents, exacts, participants, currency } = state;
+  let splitParams: SplitParams;
+  if (splitKind === SplitKind.Shares) {
+    splitParams = { kind: 'shares', weights: entryValues('shares', weights, participants) };
+  } else if (splitKind === SplitKind.Percent) {
+    splitParams = {
+      kind: 'percent',
+      basisPoints: entryValues('percent', percents, participants),
+    };
+  } else if (splitKind === SplitKind.Exact) {
+    splitParams = { kind: 'exact', amounts: exactValues(exacts, participants, currency) };
+  } else {
+    splitParams = { kind: 'equal' };
+  }
   let preview: Map<string, bigint> | null = null;
   if (state.participants.length > 0 && state.amount !== 0n) {
     try {
@@ -103,13 +118,13 @@ function editorPayloadBeforeExtraction(
     payers: serialisePayers(state.payers),
     paymentMethod: state.paymentMethod,
     location: state.location,
-    notes: editing.notes ?? undefined,
-    receiptId: editing.receipt_id ?? undefined,
-    receiptShareUrl: editing.receipt_share_url ?? undefined,
+    notes: editing?.notes ?? undefined,
+    receiptId: editing?.receipt_id ?? undefined,
+    receiptShareUrl: editing?.receipt_share_url ?? undefined,
     expectedShares: preview
       ? Object.fromEntries([...preview].map(([id, share]) => [id, share.toString()]))
       : undefined,
-    baseVersionNo: editing.version_no ?? null,
+    baseVersionNo: editing?.version_no ?? null,
   };
 }
 
@@ -175,13 +190,82 @@ describe('editStateFromVersion', () => {
 });
 
 describe('expenseWritePayload', () => {
-  it('writes what the editor wrote before the extraction', () => {
-    const saved = version();
-    const state = editStateFromVersion(saved, null);
-    expect(expenseWritePayload({ expenseId: EXPENSE, state, editing: saved })).toEqual(
-      editorPayloadBeforeExtraction(EXPENSE, state, splitParamsFor(state), saved),
-    );
-  });
+  const FX = {
+    num: '9000',
+    den: '100',
+    from: 'EUR' as const,
+    to: 'INR' as const,
+    ts: '2026-09-01T00:00:00Z',
+    source: 'manual',
+  };
+  const PARITY_CASES: { name: string; saved: ExpenseVersionRow }[] = [
+    { name: 'equal, one payer', saved: version() },
+    {
+      name: 'shares',
+      saved: version({
+        split_type: 'shares',
+        split_params: { kind: 'shares', weights: { 'm-a': 2, 'm-b': 1, 'm-c': 1 } },
+      }),
+    },
+    {
+      name: 'percent',
+      saved: version({
+        split_type: 'percent',
+        split_params: { kind: 'percent', basisPoints: { 'm-a': 3333, 'm-b': 3333, 'm-c': 3334 } },
+      }),
+    },
+    {
+      name: 'exact',
+      saved: version({
+        split_type: 'exact',
+        split_params: {
+          kind: 'exact',
+          amounts: { 'm-a': 50000n, 'm-b': 25050n, 'm-c': 24950n },
+        },
+      }),
+    },
+    {
+      name: 'several payers',
+      saved: version({
+        payers: [
+          { member_id: 'm-b', amount: '40000' },
+          { member_id: 'm-a', amount: '60000' },
+        ],
+      }),
+    },
+    {
+      name: 'a foreign bill with its rate',
+      saved: version({
+        currency: 'EUR',
+        amount: '5000',
+        fx: FX,
+        payers: [{ member_id: 'm-a', amount: '5000' }],
+      }),
+    },
+  ];
+
+  for (const { name, saved } of PARITY_CASES) {
+    it(`writes what the editor wrote before the extraction — ${name}`, () => {
+      const state = editStateFromVersion(saved, null);
+      expect(expenseWritePayload({ expenseId: EXPENSE, state, editing: saved })).toEqual(
+        editorPayloadBeforeExtraction(EXPENSE, state, saved),
+      );
+      // And the same after a change, so the comparison is not only of a no-op.
+      const changed = { ...state, description: 'Changed', expenseDate: '2026-08-30' };
+      expect(expenseWritePayload({ expenseId: EXPENSE, state: changed, editing: saved })).toEqual(
+        editorPayloadBeforeExtraction(EXPENSE, changed, saved),
+      );
+    });
+
+    it(`writes what the editor wrote before the extraction — ${name}, as a new bill`, () => {
+      const state = editStateFromVersion(saved, null);
+      const payload = expenseWritePayload({ expenseId: EXPENSE, state, editing: null });
+      expect(payload).toEqual(editorPayloadBeforeExtraction(EXPENSE, state, null));
+      expect(payload.baseVersionNo).toBeNull();
+      expect(payload.notes).toBeUndefined();
+      expect(payload.receiptId).toBeUndefined();
+    });
+  }
 
   it('carries the note, receipt link and version number through an edit', () => {
     const payload = expenseWritePayload({
@@ -262,9 +346,7 @@ describe('expenseWritePayload', () => {
       exacts: { 'm-a': '700', 'm-b': '300', 'm-c': '5' },
     };
     const after = expenseWritePayload({ expenseId: EXPENSE, state, editing: saved });
-    expect(after).toEqual(
-      editorPayloadBeforeExtraction(EXPENSE, state, splitParamsFor(state), saved),
-    );
+    expect(after).toEqual(editorPayloadBeforeExtraction(EXPENSE, state, saved));
     // An unticked person's leftover figure is not written.
     expect(after.splitParams).toEqual({
       kind: 'exact',
@@ -396,5 +478,28 @@ describe('canEditInline', () => {
   it('keeps itemized and adjusted bills read-only, so a pop-up cannot re-split them', () => {
     expect(canEditInline('itemized')).toBe(false);
     expect(canEditInline('adjustment')).toBe(false);
+  });
+});
+
+describe('amountEditsInline', () => {
+  it('a one-payer bill on an equal, shares or percent split takes a new total in place', () => {
+    expect(amountEditsInline(version())).toBe(true);
+    expect(amountEditsInline(version({ split_type: 'shares' }))).toBe(true);
+    expect(amountEditsInline(version({ split_type: 'percent' }))).toBe(true);
+  });
+
+  it('an exact split or several payers go to the full editor instead of a dead end', () => {
+    expect(amountEditsInline(version({ split_type: 'exact' }))).toBe(false);
+    expect(
+      amountEditsInline(
+        version({
+          payers: [
+            { member_id: 'm-a', amount: '60000' },
+            { member_id: 'm-b', amount: '40000' },
+          ],
+        }),
+      ),
+    ).toBe(false);
+    expect(amountEditsInline(version({ split_type: 'itemized' }))).toBe(false);
   });
 });
