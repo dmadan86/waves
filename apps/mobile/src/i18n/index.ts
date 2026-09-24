@@ -1401,6 +1401,14 @@ export interface UiStrings {
     enterEmailOrPhoneFirst: string;
     /** Fallback when a sign-in attempt fails with nothing a person can act on. */
     couldNotSignIn: string;
+    /** A guest tried to add a Google/Apple login that already has its own
+        Waves account. Carries {provider}. */
+    accountTakenTitle: string;
+    accountTakenBody: string;
+    /** What stays behind on the guest account. */
+    accountTakenNote: string;
+    switchAccount: string;
+    stayGuest: string;
     restartToMirror: string;
     restartToUnmirror: string;
   };
@@ -4663,6 +4671,11 @@ const en: UiStrings = {
     enterEmailFirst: 'Enter your email first',
     enterEmailOrPhoneFirst: 'Enter your email or phone number first',
     couldNotSignIn: 'Could not sign in. Please try again.',
+    accountTakenTitle: 'This {provider} account already has Waves',
+    accountTakenBody: 'Switch to it and the groups you joined as a guest are joined again, as you.',
+    accountTakenNote: 'Anything you added as a guest stays with the guest account.',
+    switchAccount: 'Switch account',
+    stayGuest: 'Stay as guest',
     restartToMirror: 'Close and open Waves once to mirror the layout.',
     restartToUnmirror: 'Close and open Waves once to turn the layout back.',
   },
@@ -7598,6 +7611,11 @@ const ta: UiStrings = {
     enterEmailFirst: 'முதலில் உங்கள் மின்னஞ்சலை உள்ளிடவும்',
     enterEmailOrPhoneFirst: 'முதலில் உங்கள் மின்னஞ்சல் அல்லது தொலைபேசி எண்ணை உள்ளிடவும்',
     couldNotSignIn: 'உள்நுழைய முடியவில்லை. மீண்டும் முயற்சிக்கவும்.',
+    accountTakenTitle: 'This {provider} account already has Waves',
+    accountTakenBody: 'Switch to it and the groups you joined as a guest are joined again, as you.',
+    accountTakenNote: 'Anything you added as a guest stays with the guest account.',
+    switchAccount: 'Switch account',
+    stayGuest: 'Stay as guest',
     restartToMirror: 'தளவமைப்பைப் பிரதிபலிக்க Waves-ஐ ஒருமுறை மூடித் திறக்கவும்.',
     restartToUnmirror: 'தளவமைப்பை மீண்டும் மாற்ற Waves-ஐ ஒருமுறை மூடித் திறக்கவும்.',
   },
@@ -10609,6 +10627,11 @@ const hi: UiStrings = {
     enterEmailFirst: 'पहले अपना ईमेल दर्ज करें',
     enterEmailOrPhoneFirst: 'पहले अपना ईमेल या फ़ोन नंबर दर्ज करें',
     couldNotSignIn: 'साइन इन नहीं हो सका। फिर से कोशिश करें।',
+    accountTakenTitle: 'This {provider} account already has Waves',
+    accountTakenBody: 'Switch to it and the groups you joined as a guest are joined again, as you.',
+    accountTakenNote: 'Anything you added as a guest stays with the guest account.',
+    switchAccount: 'Switch account',
+    stayGuest: 'Stay as guest',
     restartToMirror: 'लेआउट की दिशा बदलने के लिए Waves को एक बार बंद करके खोलें।',
     restartToUnmirror: 'लेआउट वापस पलटने के लिए Waves को एक बार बंद करके खोलें।',
   },
@@ -13588,6 +13611,11 @@ const ar: UiStrings = {
     enterEmailFirst: 'أدخل بريدك الإلكتروني أولاً',
     enterEmailOrPhoneFirst: 'أدخل بريدك الإلكتروني أو رقم هاتفك أولاً',
     couldNotSignIn: 'تعذّر تسجيل الدخول. حاول مرة أخرى.',
+    accountTakenTitle: 'This {provider} account already has Waves',
+    accountTakenBody: 'Switch to it and the groups you joined as a guest are joined again, as you.',
+    accountTakenNote: 'Anything you added as a guest stays with the guest account.',
+    switchAccount: 'Switch account',
+    stayGuest: 'Stay as guest',
     restartToMirror: 'أغلق Waves وافتحه مرة واحدة لعكس اتجاه الواجهة.',
     restartToUnmirror: 'أغلق Waves وافتحه مرة واحدة لإعادة اتجاه الواجهة.',
   },

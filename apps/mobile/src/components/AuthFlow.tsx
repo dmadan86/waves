@@ -50,6 +50,7 @@ import { useBottomClearance } from '@/lib/clearance';
 import { SocialTile } from '@/components/SocialTile';
 import { useStrings, type UiStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
+import { useIdentityTaken } from '@/lib/useIdentityTaken';
 import { friendlyError } from '@/lib/errors';
 import { router, useGoBack } from '@/lib/navigation';
 import { CodeRoute, codeRouteFor, looksLikePhone } from '@/lib/authCodeRoute';
@@ -77,6 +78,7 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
   const goBack = useGoBack('/welcome');
   const reduceMotion = useReducedMotion();
   const { withPassword, withGoogle, withApple, sendEmailOtp, verifyEmailOtp, isGuest } = useAuth();
+  const resolveIdentityTaken = useIdentityTaken();
 
   const isSignup = flow === 'signup';
   const intent: 'sign_in' | 'sign_up' = isSignup ? 'sign_up' : 'sign_in';
@@ -160,7 +162,11 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
     setError(null);
     try {
       return await action();
-    } catch (caught) {
+    } catch (thrown) {
+      // A guest whose Google or Apple login already has an account is asked
+      // whether to switch to it, rather than told the sign-in failed.
+      const caught = await resolveIdentityTaken(thrown);
+      if (caught === null) return undefined;
       setError(
         friendlyError(
           caught,

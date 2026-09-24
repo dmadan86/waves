@@ -1,4 +1,12 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
 import type { Session } from '@/lib/backend';
 import { makeRedirectUri } from 'expo-auth-session';
 import * as Linking from 'expo-linking';
@@ -57,6 +65,19 @@ async function claimOAuthCode(url: string | null): Promise<Session | null | unde
 }
 
 /**
+ * A guest tried to add a Google or Apple login that already belongs to another
+ * Waves account. Linking is refused by the server — one identity, one account —
+ * and the person plainly *has* that other account, so this is not an error to
+ * print: the screen catches it and offers to switch (`lib/useIdentityTaken`).
+ */
+export class IdentityTakenError extends Error {
+  constructor(readonly provider: OAuthMethod) {
+    super(`${provider} is already linked to another account`);
+    this.name = 'IdentityTakenError';
+  }
+}
+
+/**
  * A provider sign-in that goes through the browser.
  *
  * Every case — a fresh sign-in and *any* upgrade of an account that already
@@ -98,6 +119,7 @@ async function oauthThroughBrowser(
   // token never travels through the URL, so another app that claims the same
   // scheme and catches the redirect gets nothing it can use.
   const callback = readOAuthCallback(result.url);
+  if (callback.kind === 'identity_taken') throw new IdentityTakenError(provider);
   if (callback.kind === 'error') throw new Error(callback.message);
   if (callback.kind === 'none') {
     // A redirect that added nothing means two opposite things depending on
@@ -347,6 +369,16 @@ interface AuthValue {
   withGoogle: () => Promise<void>;
   /** Apple. The same three cases, through the same seam (`lib/nativeIdentity`). */
   withApple: () => Promise<void>;
+  /**
+   * Leave this guest account for the existing account that owns `provider`'s
+   * login (see `IdentityTakenError`). Asks the provider first, while the guest
+   * is still signed in, so backing out of the sheet costs nothing; only then
+   * signs the guest out — the ordinary sign-out, wipe and all — and in as the
+   * other account. Resolves false when the person backed out before anything
+   * changed. The browser fallback cannot ask first, so backing out of *that*
+   * leaves them signed out, on the welcome screen.
+   */
+  signInInstead: (provider: OAuthMethod) => Promise<boolean>;
   updateProfile: (patch: Partial<Profile>) => Promise<void>;
   /** Re-read the session after it changes underneath us (e.g. a linked email). */
   refresh: () => Promise<void>;
@@ -529,6 +561,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       active = false;
     };
   }, [session?.user, profileAttempt]);
+
+  // The whole of a deliberate sign-out. Shared by `signOut` and by switching
+  // from a guest to an account that already exists, which is a sign-out too.
+  const endSession = useCallback(async (): Promise<void> => {
+    // Before the session goes: afterwards there is no identity to attach
+    // the revocation to, and the token would keep receiving notifications
+    // for an account nobody is signed in on.
+    await revokePushToken();
+    // And the reminders this phone set for itself. A local alarm survives
+    // the session that created it, so leaving one scheduled means a phone
+    // nobody is signed in on announcing "you saved 3 expenses for later" —
+    // about drafts that are no longer on it. The stored switch and the
+    // marker go with it, scoped to the account that is leaving.
+    const leaving = session?.user?.id ?? '';
+    await cancelNudges().catch(() => {});
+    await clearCaptureNudge(leaving).catch(() => {});
+    // The private ledger's unlock belongs to whoever proved they were
+    // holding the phone, not to the phone. It does not survive the account
+    // it was granted under.
+    lockPersonal();
+    // The one bit `SyncProvider` cannot work out for itself. Every way a
+    // session ends arrives at `onAuthStateChange` as the same `SIGNED_OUT`
+    // with the same null session — a revoked token looks exactly like this
+    // — and only one of them earns the wipe that destroys the unsent queue.
+    // Marked here, immediately before the call, so the window in which it
+    // could be mistaken for a later involuntary loss is as narrow as the
+    // call itself. See `sync/retention.ts`.
+    markDeliberateSignOut();
+    await backend.auth.signOut();
+  }, [session]);
 
   const value = useMemo<AuthValue>(
     () => ({
@@ -719,35 +781,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(data.session);
       },
 
-      async signOut() {
-        // Before the session goes: afterwards there is no identity to attach
-        // the revocation to, and the token would keep receiving notifications
-        // for an account nobody is signed in on.
-        await revokePushToken();
-        // And the reminders this phone set for itself. A local alarm survives
-        // the session that created it, so leaving one scheduled means a phone
-        // nobody is signed in on announcing "you saved 3 expenses for later" —
-        // about drafts that are no longer on it. The stored switch and the
-        // marker go with it, scoped to the account that is leaving.
-        const leaving = session?.user?.id ?? '';
-        await cancelNudges().catch(() => {});
-        await clearCaptureNudge(leaving).catch(() => {});
-        // The private ledger's unlock belongs to whoever proved they were
-        // holding the phone, not to the phone. It does not survive the account
-        // it was granted under.
-        lockPersonal();
-        // The one bit `SyncProvider` cannot work out for itself. Every way a
-        // session ends arrives at `onAuthStateChange` as the same `SIGNED_OUT`
-        // with the same null session — a revoked token looks exactly like this
-        // — and only one of them earns the wipe that destroys the unsent queue.
-        // Marked here, immediately before the call, so the window in which it
-        // could be mistaken for a later involuntary loss is as narrow as the
-        // call itself. See `sync/retention.ts`.
-        markDeliberateSignOut();
-        await backend.auth.signOut();
+      signOut: endSession,
+
+      async signInInstead(provider) {
+        // Ask the provider while the guest is still here: a sheet dismissed at
+        // this point has changed nothing.
+        const native =
+          provider === OAuthMethod.Apple ? await appleNativeSignIn() : await googleNativeSignIn();
+        if (native.kind === 'dismissed') return false;
+
+        await endSession();
+        // Let the signed-out render land before the next account arrives. The
+        // sync layer only wipes the leaving account on a signed-out frame; two
+        // sessions set back to back can batch into one render and skip it.
+        setSession(null);
+        await new Promise((resolve) => setTimeout(resolve, 50));
+
+        if (native.kind === 'credential') {
+          const { data, error } =
+            'identityToken' in native.credential
+              ? await backend.auth.signInWithIdToken({
+                  provider: 'apple',
+                  token: native.credential.identityToken,
+                  nonce: native.credential.nonce,
+                })
+              : await backend.auth.signInWithIdToken({
+                  provider: 'google',
+                  token: native.credential.idToken,
+                });
+          if (error) throw error;
+          setSession(data.session);
+          return true;
+        }
+        const next = await oauthThroughBrowser(provider, false);
+        if (next === undefined) return false;
+        setSession(next);
+        return true;
       },
     }),
-    [session, profile, loading, profileSettled],
+    [session, profile, loading, profileSettled, endSession],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
