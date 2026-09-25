@@ -696,6 +696,11 @@ export interface WebStrings {
     sendingLink: string;
     linkSentTitle: string;
     linkSentBody: string;
+    codeLabel: string;
+    codeSubmit: string;
+    codeIncomplete: string;
+    codeWrong: string;
+    codeOtherEmail: string;
     notAnEmail: string;
     signingIn: string;
     guestInstead: string;
@@ -1755,10 +1760,15 @@ const en: WebStrings = {
     passwordSignUp: 'Create account',
     toggleToSignUp: 'New here? Create an account',
     toggleToSignIn: 'Already have an account? Sign in',
-    sendMagicLink: 'Email me a sign-in link instead',
+    sendMagicLink: 'Email me a sign-in code instead',
     sendingLink: 'Sending…',
     linkSentTitle: 'Check your inbox',
-    linkSentBody: 'A sign-in link is on its way to {email}. Open it on this device.',
+    linkSentBody: 'We sent a 6-digit code to {email}. Type it here.',
+    codeLabel: 'Sign-in code',
+    codeSubmit: 'Sign in',
+    codeIncomplete: 'Type all 6 digits.',
+    codeWrong: 'That code did not work. Check it, or ask for a new one.',
+    codeOtherEmail: 'Use a different email',
     notAnEmail: 'That does not look like an email address.',
     signingIn: 'Signing in…',
     guestInstead: 'Or open an invite link someone shared with you.',
@@ -2775,10 +2785,15 @@ const ta: WebStrings = {
     passwordSignUp: 'கணக்கை உருவாக்கு',
     toggleToSignUp: 'புதியவரா? கணக்கை உருவாக்குங்கள்',
     toggleToSignIn: 'ஏற்கனவே கணக்கு உள்ளதா? உள்நுழையுங்கள்',
-    sendMagicLink: 'அதற்குப் பதிலாக உள்நுழைவுச் சுட்டியை மின்னஞ்சலில் அனுப்பு',
+    sendMagicLink: 'அதற்குப் பதிலாக உள்நுழைவுக் குறியீட்டை மின்னஞ்சலில் அனுப்பு',
     sendingLink: 'அனுப்புகிறது…',
     linkSentTitle: 'உங்கள் இன்பாக்ஸைப் பாருங்கள்',
-    linkSentBody: '{email} க்கு உள்நுழைவுச் சுட்டி வருகிறது. இந்தச் சாதனத்தில் அதைத் திறக்கவும்.',
+    linkSentBody: '{email} க்கு 6 இலக்கக் குறியீட்டை அனுப்பியுள்ளோம். அதை இங்கே உள்ளிடவும்.',
+    codeLabel: 'உள்நுழைவுக் குறியீடு',
+    codeSubmit: 'உள்நுழை',
+    codeIncomplete: '6 இலக்கங்களையும் உள்ளிடவும்.',
+    codeWrong: 'அந்தக் குறியீடு வேலை செய்யவில்லை. சரிபாருங்கள், அல்லது புதியதைக் கேளுங்கள்.',
+    codeOtherEmail: 'வேறு மின்னஞ்சலைப் பயன்படுத்து',
     notAnEmail: 'அது மின்னஞ்சல் முகவரி போலத் தெரியவில்லை.',
     signingIn: 'உள்நுழைகிறது…',
     guestInstead: 'அல்லது யாராவது பகிர்ந்த அழைப்புச் சுட்டியைத் திறக்கவும்.',
@@ -3792,10 +3807,15 @@ const hi: WebStrings = {
     passwordSignUp: 'खाता बनाएँ',
     toggleToSignUp: 'नए हैं? खाता बनाएँ',
     toggleToSignIn: 'पहले से खाता है? साइन इन करें',
-    sendMagicLink: 'इसके बजाय मुझे साइन-इन लिंक ईमेल करें',
+    sendMagicLink: 'इसके बजाय मुझे साइन-इन कोड ईमेल करें',
     sendingLink: 'भेजा जा रहा है…',
     linkSentTitle: 'अपना इनबॉक्स देखें',
-    linkSentBody: '{email} पर साइन-इन लिंक आ रहा है। इसे इसी डिवाइस पर खोलें।',
+    linkSentBody: 'हमने {email} पर 6 अंकों का कोड भेजा है। उसे यहाँ लिखें।',
+    codeLabel: 'साइन-इन कोड',
+    codeSubmit: 'साइन इन करें',
+    codeIncomplete: 'सभी 6 अंक लिखें।',
+    codeWrong: 'वह कोड काम नहीं किया। जाँचें, या नया कोड माँगें।',
+    codeOtherEmail: 'दूसरा ईमेल इस्तेमाल करें',
     notAnEmail: 'यह ईमेल पते जैसा नहीं लगता।',
     signingIn: 'साइन इन हो रहा है…',
     guestInstead: 'या किसी के साझा किए न्योते का लिंक खोलें।',
@@ -4819,10 +4839,15 @@ const ar: WebStrings = {
     passwordSignUp: 'إنشاء حساب',
     toggleToSignUp: 'جديد هنا؟ أنشئ حسابًا',
     toggleToSignIn: 'لديك حساب بالفعل؟ سجّل الدخول',
-    sendMagicLink: 'أرسِل لي بدلاً من ذلك رابط تسجيل الدخول بالبريد',
+    sendMagicLink: 'أرسل لي رمز تسجيل الدخول بالبريد بدلًا من ذلك',
     sendingLink: 'جارٍ الإرسال…',
     linkSentTitle: 'تحقّق من بريدك',
-    linkSentBody: 'رابط تسجيل الدخول في طريقه إلى {email}. افتحه على هذا الجهاز.',
+    linkSentBody: 'أرسلنا رمزًا من 6 أرقام إلى {email}. اكتبه هنا.',
+    codeLabel: 'رمز تسجيل الدخول',
+    codeSubmit: 'تسجيل الدخول',
+    codeIncomplete: 'اكتب الأرقام الستة كلها.',
+    codeWrong: 'لم ينجح هذا الرمز. تحقّق منه، أو اطلب رمزًا جديدًا.',
+    codeOtherEmail: 'استخدم بريدًا آخر',
     notAnEmail: 'لا يبدو هذا عنوان بريد إلكتروني.',
     signingIn: 'جارٍ تسجيل الدخول…',
     guestInstead: 'أو افتح رابط دعوة شاركه أحدهم معك.',

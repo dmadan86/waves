@@ -3126,6 +3126,13 @@
   .door-fields {
     margin-block-start: 26px;
   }
+  /* The sign-in code: wide-tracked digits, like the mail it came from. */
+  .door-code {
+    font-variant-numeric: tabular-nums;
+    font-size: 24px;
+    letter-spacing: 0.4em;
+    text-align: center;
+  }
   .door-label {
     display: block;
     margin-block-end: 6px;
