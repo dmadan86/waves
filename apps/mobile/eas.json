@@ -10,7 +10,8 @@
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://ywojpnfyxxltvihqmcni.supabase.co",
         "EXPO_PUBLIC_CLARITY_PROJECT_ID": "y0l49bcxl4",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_QmIIZxgp1tNw-OMxATbsfQ_aENGDmNz"
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_QmIIZxgp1tNw-OMxATbsfQ_aENGDmNz",
+        "EXPO_PUBLIC_R2_ENABLED": "true"
       }
     },
     "development": {
