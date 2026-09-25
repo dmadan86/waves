@@ -314,6 +314,8 @@ export default function VoiceScreen() {
   // A new group is created once, not again on a save retry after a partial
   // failure. Flipped true after the create lands; reset when a fresh parse comes.
   const groupCreated = useRef(false);
+  /** The currency the new group was made in, fixed for any retry after an edit. */
+  const [createdGroupCurrency, setCreatedGroupCurrency] = useState<string | null>(null);
   // The ghosts for the brand-new people, minted once on the first save (one per
   // name) and reused on a retry, so a partial failure adds no second set. Reset
   // with a fresh parse or a change of destination.
@@ -1203,17 +1205,19 @@ export default function VoiceScreen() {
       // them in the same breath (the offline-first pattern used elsewhere). The
       // ref guards a second create on a retry: the group exists after the first.
       if ((dest.kind === 'create' || dest.kind === 'people') && !groupCreated.current) {
+        const currency = voiceNewGroupCurrency(
+          drafts.map((draft) => draft.currency),
+          dc,
+        );
         await createGroup.mutateAsync({
           groupId: dest.groupId,
           creatorMemberId: dest.memberId,
           name: dest.name,
           type: GroupType.Other,
-          currency: voiceNewGroupCurrency(
-            drafts.map((draft) => draft.currency),
-            dc,
-          ),
+          currency,
         });
         groupCreated.current = true;
+        setCreatedGroupCurrency(currency);
       }
 
       // The brand-new people each need a ghost in the group — minted once (one
@@ -1230,10 +1234,13 @@ export default function VoiceScreen() {
       const groupCurrency =
         dest.kind === 'existing'
           ? (target.group.data?.default_currency ?? dc)
-          : voiceNewGroupCurrency(
+          : // Once made, the group's currency is what it was made in: a retry
+            // after the drafts were edited must not pick a different one.
+            (createdGroupCurrency ??
+            voiceNewGroupCurrency(
               drafts.map((draft) => draft.currency),
               dc,
-            );
+            ));
       const groupMembers = target.members.data ?? [];
       const payer =
         dest.kind === 'existing'
@@ -1344,10 +1351,11 @@ export default function VoiceScreen() {
       ? null
       : dest.kind === 'existing'
         ? (target.group.data?.default_currency ?? dc)
-        : voiceNewGroupCurrency(
+        : (createdGroupCurrency ??
+          voiceNewGroupCurrency(
             drafts.map((draft) => draft.currency),
             dc,
-          );
+          ));
   const draftTotals = new Map<string, bigint>();
   for (const draft of drafts) {
     const currency = voiceSaveCurrency(draft.currency, destCurrency, dc);
