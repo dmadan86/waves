@@ -450,8 +450,18 @@ export default function SettleScreen() {
                 only thing somebody came here to do — the other half of "settle
                 up" is asking. One tap, the server's one-a-day rule (ADR-010),
                 and no follow-up that reads like a collections notice. */}
+            {/* Only somebody with an account can be reminded: a member added by
+                name has no inbox, and the server refuses (GHOST_NO_INBOX) — which
+                reached people as a bare "Couldn't send the reminder". The group
+                screen already hides Remind for them; this says why instead. */}
             {!iPay ? (
-              <RemindRow groupId={groupId} memberId={counterparty.id} currency={currency} />
+              isGhost(counterparty) ? (
+                <Text variant="caption" tone="muted" align="center">
+                  {sentenceCase(t.notJoinedYet)}
+                </Text>
+              ) : (
+                <RemindRow groupId={groupId} memberId={counterparty.id} currency={currency} />
+              )
             ) : null}
 
             {recordSettlement.isPending ? <ActivityIndicator color={theme.color.brand} /> : null}
@@ -466,6 +476,11 @@ export default function SettleScreen() {
       </ScrollView>
     </Screen>
   );
+}
+
+/** "not joined yet" is written to follow a name; alone it opens a sentence. */
+function sentenceCase(text: string): string {
+  return text.charAt(0).toLocaleUpperCase() + text.slice(1);
 }
 
 function min(a: bigint, b: bigint): bigint {
