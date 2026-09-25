@@ -231,8 +231,8 @@ export async function handlePushFanout(
  *
  * It cannot throw, for the same reason as the email half: the push this run
  * sent already happened, and a receipt check having a bad minute should not
- * turn that into a 500. Claimed tickets are cleared either way — a device that
- * is really gone refuses its next message too, and gets revoked then.
+ * turn that into a 500. Tickets are leased, not taken: they are cleared only
+ * after Expo has answered, so a failed check is retried once the lease lapses.
  */
 export async function checkReceipts(
   service: SupabaseClient,
@@ -255,8 +255,22 @@ export async function checkReceipts(
       headers: { 'content-type': 'application/json', accept: 'application/json' },
       body: JSON.stringify({ ids: pending.map((ticket) => ticket.ticketId) }),
     });
-    const parsed = (await response.json()) as { data?: Record<string, ExpoReceipt> };
-    const outcome = readPushReceipts(pending, parsed.data ?? {});
+    // A refusal is not a clean bill of health. Returning here leaves the
+    // tickets leased, not cleared, so they are asked about again next time.
+    if (!response.ok) {
+      console.error('push receipt request failed:', response.status);
+      return { checked: 0, revoked: 0, error: `EXPO_HTTP_${response.status}` };
+    }
+    const parsed = (await response.json()) as {
+      data?: Record<string, ExpoReceipt>;
+      errors?: { code?: string; message?: string }[];
+    };
+    if (!parsed.data) {
+      const reason = parsed.errors?.[0]?.code ?? parsed.errors?.[0]?.message ?? 'EXPO_NO_DATA';
+      console.error('push receipt request refused:', JSON.stringify(parsed.errors ?? []));
+      return { checked: 0, revoked: 0, error: reason };
+    }
+    const outcome = readPushReceipts(pending, parsed.data);
 
     if (outcome.revoke.length > 0) {
       const { error: revokeError } = await service.rpc('waves_finish_push', {
@@ -266,6 +280,14 @@ export async function checkReceipts(
       });
       if (revokeError) return { checked: pending.length, revoked: 0, error: revokeError.message };
     }
+
+    // Asked and answered: only now does the ticket leave the row. One Expo has
+    // not produced a receipt for yet is cleared too — the next message to that
+    // device brings a fresh ticket, and a dead device refuses it at send time.
+    const { error: clearError } = await service.rpc('waves_clear_push_receipts', {
+      p_ticket_ids: pending.map((ticket) => ticket.ticketId),
+    });
+    if (clearError) console.error('could not clear push receipts:', clearError.message);
     if (outcome.problems.length > 0) {
       console.warn('push receipt problems:', JSON.stringify(outcome.problems));
     }

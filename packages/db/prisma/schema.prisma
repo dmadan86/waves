@@ -784,6 +784,9 @@ model PushToken {
   /// `20260925140000_push_receipts_find_dead_devices`.
   lastTicketId      String?        @map("last_ticket_id")
   lastTicketAt      DateTime?      @map("last_ticket_at") @db.Timestamptz(6)
+  /// Set while a fanout run is asking Expo about `lastTicketId`; a run that
+  /// fails leaves the ticket to be asked again once this lapses.
+  receiptLeaseUntil DateTime?      @map("receipt_lease_until") @db.Timestamptz(6)
 
   profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 

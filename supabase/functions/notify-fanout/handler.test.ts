@@ -348,6 +348,26 @@ describe('push receipts', () => {
       p_failed: [],
       p_revoke: ['ExponentPushToken[gone]'],
     });
+    expect(service.rpc).toHaveBeenCalledWith('waves_clear_push_receipts', {
+      p_ticket_ids: ['a', 'b'],
+    });
+  });
+
+  it('keeps the tickets when Expo refuses, so they are asked about again', async () => {
+    const pending = { data: [{ token: 'ExponentPushToken[a]', ticket_id: 'a' }] };
+    for (const reply of [
+      new Response('busy', { status: 429 }),
+      new Response(JSON.stringify({ errors: [{ code: 'INTERNAL_SERVER_ERROR' }] }), {
+        status: 200,
+      }),
+    ]) {
+      const service = serviceMock({ waves_claim_push_receipts: pending });
+      const fetchImpl = vi.fn().mockResolvedValue(reply);
+      const summary = await checkReceipts(service, fetchImpl as unknown as typeof fetch);
+      expect(summary.error).toBeTruthy();
+      expect(summary.revoked).toBe(0);
+      expect(service.rpc).not.toHaveBeenCalledWith('waves_clear_push_receipts', expect.anything());
+    }
   });
 
   it('does not call Expo when no ticket is due', async () => {
