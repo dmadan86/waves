@@ -16,6 +16,7 @@ const h = vi.hoisted(() => ({
   getExpoPushTokenAsync: vi.fn(),
   getSession: vi.fn(),
   upsert: vi.fn(),
+  rpc: vi.fn(),
   update: vi.fn(),
   eq: vi.fn(),
   from: vi.fn(),
@@ -49,7 +50,7 @@ vi.mock('expo-notifications', () => ({
   getExpoPushTokenAsync: h.getExpoPushTokenAsync,
 }));
 vi.mock('../src/lib/backend', () => ({
-  backend: { auth: { getSession: h.getSession }, from: h.from },
+  backend: { auth: { getSession: h.getSession }, from: h.from, rpc: h.rpc },
 }));
 
 type Push = typeof import('../src/lib/push');
@@ -71,6 +72,7 @@ beforeEach(() => {
   h.getExpoPushTokenAsync.mockResolvedValue({ data: 'ExponentPushToken[abc]' });
   h.getSession.mockResolvedValue({ data: { session: { user: { id: 'profile-1' } } } });
   h.upsert.mockResolvedValue({ error: null });
+  h.rpc.mockResolvedValue({ error: null });
   h.eq.mockResolvedValue({ error: null });
   h.update.mockReturnValue({ eq: h.eq });
   h.from.mockReturnValue({ upsert: h.upsert, update: h.update });
@@ -168,26 +170,24 @@ describe('enablePush', () => {
     h.getPermissionsAsync.mockResolvedValueOnce({ status: 'undetermined' });
     h.requestPermissionsAsync.mockResolvedValueOnce({ status: 'denied' });
     await expect(push.enablePush()).resolves.toEqual({ ok: false, why: 'denied' });
-    expect(h.upsert).not.toHaveBeenCalled();
+    expect(h.rpc).not.toHaveBeenCalled();
   });
 
-  it('asks, then stores the token against the signed-in profile', async () => {
+  it('asks, then registers the token for whoever is signed in', async () => {
     const push = await load();
     h.getPermissionsAsync.mockResolvedValueOnce({ status: 'undetermined' });
     await expect(push.enablePush()).resolves.toEqual({ ok: true });
     expect(h.requestPermissionsAsync).toHaveBeenCalledTimes(1);
     expect(h.setNotificationChannelAsync).toHaveBeenCalled();
-    expect(h.from).toHaveBeenCalledWith('push_tokens');
-    expect(h.upsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        profile_id: 'profile-1',
-        expo_push_token: 'ExponentPushToken[abc]',
-        platform: 'android',
-        device_name: 'Pixel 9',
-        revoked_at: null,
-      }),
-      { onConflict: 'expo_push_token' },
-    );
+    // Through the RPC that moves the token to the signed-in profile — never a
+    // direct upsert, which RLS refused once another account owned the device's
+    // token.
+    expect(h.rpc).toHaveBeenCalledWith('waves_register_push_token', {
+      p_token: 'ExponentPushToken[abc]',
+      p_platform: 'android',
+      p_device_name: 'Pixel 9',
+    });
+    expect(h.upsert).not.toHaveBeenCalled();
   });
 });
 
@@ -217,14 +217,14 @@ describe('refreshPushToken', () => {
       new Error('Default FirebaseApp is not initialized'),
     );
     await expect(push.refreshPushToken()).resolves.toEqual({ ok: false, why: 'not_configured' });
-    expect(h.upsert).not.toHaveBeenCalled();
+    expect(h.rpc).not.toHaveBeenCalled();
   });
 
   it('reports a failed save, and labels an iPhone as ios', async () => {
     const push = await load('ios');
-    h.upsert.mockResolvedValueOnce({ error: { message: 'rls' } });
+    h.rpc.mockResolvedValueOnce({ error: { message: 'NOT_SIGNED_IN' } });
     await expect(push.refreshPushToken()).resolves.toEqual({ ok: false, why: 'save_failed' });
-    expect(h.upsert.mock.calls[0]![0]).toMatchObject({ platform: 'ios' });
+    expect(h.rpc.mock.calls[0]![1]).toMatchObject({ p_platform: 'ios' });
   });
 });
 

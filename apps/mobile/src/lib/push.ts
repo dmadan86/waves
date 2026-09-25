@@ -209,18 +209,17 @@ export async function refreshPushToken(): Promise<PushResult> {
     return { ok: false, why: PushFailure.NotConfigured };
   }
 
-  const { error } = await backend.from('push_tokens').upsert(
-    {
-      profile_id: profileId,
-      expo_push_token: token,
-      platform: Platform.OS === 'ios' ? 'ios' : 'android',
-      device_name: Device.modelName,
-      last_seen_at: new Date().toISOString(),
-      // A token that comes back is the same device returning, not a new one.
-      revoked_at: null,
-    },
-    { onConflict: 'expo_push_token' },
-  );
+  // Through `waves_register_push_token`, not a direct upsert. A token names the
+  // device, not the person: the same token comes back whoever signs in here.
+  // A direct upsert under RLS let only the first account on a device own its
+  // row — the next one's write was refused, it silently got no pushes, and the
+  // first account's pushes kept arriving on a device someone else now holds.
+  // The function hands the token to whoever is signed in now.
+  const { error } = await backend.rpc('waves_register_push_token', {
+    p_token: token,
+    p_platform: Platform.OS === 'ios' ? 'ios' : 'android',
+    p_device_name: Device.modelName ?? null,
+  });
   return error ? { ok: false, why: PushFailure.SaveFailed } : { ok: true };
 }
 
