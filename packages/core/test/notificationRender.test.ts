@@ -108,9 +108,23 @@ describe('an older app reading a newer server', () => {
   });
 
   it('never prints the word undefined at somebody', () => {
-    // A kind that names a fact the row did not carry leaves the placeholder
-    // visible, which is odd but honest; `undefined` is neither.
+    // A kind that names a fact the row did not carry drops it from the
+    // sentence; it never prints `undefined` in its place.
     const rendered = renderNotification('settlement_confirmed', { group: 'Goa' }, 'en-IN');
     expect(`${rendered.title} ${rendered.body}`).not.toContain('undefined');
+  });
+
+  it('never shows a raw placeholder when the expense had no description or group name', () => {
+    // An expense saved without a description, in a 1:1 group nobody named:
+    // the push read "{description} · ₹100.00 in {group}".
+    const bare = { counterparty: 'Madan', amount: '10000', currency: 'INR' };
+    const en = renderNotification('expense_added', bare, 'en-IN');
+    expect(en.body).toBe('An expense · ₹100.00 in your group');
+    for (const lang of SPOKEN) {
+      for (const kind of Object.keys(COPY[lang].notifications)) {
+        const { title, body } = renderNotification(kind, bare, lang);
+        expect(`${title} ${body}`).not.toMatch(/\{\w+\}/);
+      }
+    }
   });
 });
