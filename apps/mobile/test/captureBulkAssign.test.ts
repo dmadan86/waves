@@ -42,6 +42,25 @@ const MEMBERS = [{ id: 'member-me' }, { id: 'member-ravi' }];
 const ME = 'member-me';
 
 describe('planCaptureAssign', () => {
+  it('keeps each draft in its own currency, not the group currency', () => {
+    // The report: "200 dollars for petrol", filed into a rupee group, read ₹200.
+    const plan = planCaptureAssign({
+      captures: [
+        capture({ id: 'petrol', amount: '20000', currency: 'USD' }),
+        capture({ id: 'chai', amount: '9000' }),
+      ],
+      members: MEMBERS,
+      myMemberId: ME,
+      currency: 'INR',
+    });
+
+    expect(plan.writes.map((write) => [write.captureId, write.payload.currency])).toEqual([
+      ['petrol', 'USD'],
+      ['chai', 'INR'],
+    ]);
+    expect(plan.writes[0]?.payload.amount).toBe('20000');
+  });
+
   it('turns every draft in the cluster into an expense for the chosen group', () => {
     const plan = planCaptureAssign({
       captures: [

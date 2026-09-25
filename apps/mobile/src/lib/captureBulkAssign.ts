@@ -112,7 +112,11 @@ export function planCaptureAssign(input: {
   readonly members: readonly AssignMember[];
   /** The viewer's own member id in this group, or null when they have none. */
   readonly myMemberId: string | null;
-  /** The group's own currency — a capture assigned through the form takes it too. */
+  /**
+   * The group's own currency: only for a draft that somehow has none. Every
+   * draft is written in its own currency, as the form does (`assignCaptureHref`)
+   * — "$200 petrol" filed into a rupee group is $200, never ₹200.
+   */
   readonly currency: string;
 }): CaptureAssignPlan {
   const participants = input.members.map((member) => member.id);
@@ -133,9 +137,10 @@ export function planCaptureAssign(input: {
       continue;
     }
     const expenseId = capture.id;
+    const currency = capture.currency || input.currency;
     const shares = computeShares({
       amount,
-      currency: input.currency,
+      currency,
       params: EQUAL,
       participants,
       seed: expenseId,
@@ -152,7 +157,7 @@ export function planCaptureAssign(input: {
         categoryMeta: capture.category_meta,
         // A capture keeps the day it was caught (`expenseDateFor`).
         expenseDate: capture.expense_date,
-        currency: input.currency,
+        currency,
         amount: amount.toString(),
         fx: null,
         splitParams: EQUAL,

@@ -70,6 +70,7 @@ import { useViewerId } from '@/lib/auth';
 import { useViewerIdentity } from '@/lib/viewerIdentity';
 import { useBottomClearance } from '@/lib/clearance';
 import { useDefaultCurrency } from '@/lib/currency';
+import { voiceNewGroupCurrency, voiceSaveCurrency } from '@/lib/voiceCurrency';
 import { friendlyError } from '@/lib/errors';
 import {
   DestinationPicker,
@@ -1207,7 +1208,10 @@ export default function VoiceScreen() {
           creatorMemberId: dest.memberId,
           name: dest.name,
           type: GroupType.Other,
-          currency: dc,
+          currency: voiceNewGroupCurrency(
+            drafts.map((draft) => draft.currency),
+            dc,
+          ),
         });
         groupCreated.current = true;
       }
@@ -1224,7 +1228,12 @@ export default function VoiceScreen() {
       }
 
       const groupCurrency =
-        dest.kind === 'existing' ? (target.group.data?.default_currency ?? dc) : dc;
+        dest.kind === 'existing'
+          ? (target.group.data?.default_currency ?? dc)
+          : voiceNewGroupCurrency(
+              drafts.map((draft) => draft.currency),
+              dc,
+            );
       const groupMembers = target.members.data ?? [];
       const payer =
         dest.kind === 'existing'
@@ -1250,17 +1259,20 @@ export default function VoiceScreen() {
       if (participants.length === 0) throw new Error('no members to split among');
 
       for (const draft of drafts) {
-        const amount = toMinor(draft.amount, groupCurrency);
+        // The currency that was said, not the group's: "200 dollars" is $200 in
+        // a rupee group, never ₹200. Only an unheard currency takes the group's.
+        const currency = voiceSaveCurrency(draft.currency, groupCurrency, dc);
+        const amount = toMinor(draft.amount, currency);
         if (amount === null) continue;
-        // Every spoken expense is "I paid, split it equally" — the group's own
-        // currency, everyone in, me as payer. The reader can refine any of it on
+        // Every spoken expense is "I paid, split it equally" — everyone in, me
+        // as payer. The reader can refine any of it on
         // the expense afterwards; this is the sane default, not a guess to hide.
         // The draft's stable id is the expense id (and the split seed), so a
         // retry appends no duplicate.
         const expenseId = draft.key;
         const shares = computeShares({
           amount,
-          currency: groupCurrency,
+          currency,
           params: EQUAL,
           participants,
           seed: expenseId,
@@ -1273,7 +1285,7 @@ export default function VoiceScreen() {
           description,
           category: draft.category ?? guessCategory(description),
           expenseDate: date,
-          currency: groupCurrency,
+          currency,
           amount,
           splitParams: EQUAL,
           participants,
@@ -1322,20 +1334,23 @@ export default function VoiceScreen() {
     drafts.every((draft) => toMinor(draft.amount, draft.currency ?? dc) !== null);
 
   // The footer total must read in the same currency the Save will persist, or
-  // it lies about what lands. A group save writes every expense in the group's
-  // own currency (see `save`), so the footer totals in that one currency too;
-  // the unassigned inbox keeps each capture's spoken currency, so there the
-  // total is per-currency and a mixed batch shows its count instead — there is
-  // no total across currencies (ADR-004).
+  // it lies about what lands. Every destination keeps each draft's spoken
+  // currency (see `save`); a draft with none takes the group's currency for a
+  // group, else the reader's default. So the total is per-currency, and a mixed
+  // batch shows its count instead — there is no total across currencies
+  // (ADR-004).
   const destCurrency =
     dest.kind === 'unassigned' || dest.kind === 'me'
       ? null
       : dest.kind === 'existing'
         ? (target.group.data?.default_currency ?? dc)
-        : dc;
+        : voiceNewGroupCurrency(
+            drafts.map((draft) => draft.currency),
+            dc,
+          );
   const draftTotals = new Map<string, bigint>();
   for (const draft of drafts) {
-    const currency = destCurrency ?? draft.currency ?? dc;
+    const currency = voiceSaveCurrency(draft.currency, destCurrency, dc);
     const minor = toMinor(draft.amount, currency);
     if (minor === null) continue;
     draftTotals.set(currency, (draftTotals.get(currency) ?? 0n) + minor);
@@ -1469,12 +1484,9 @@ export default function VoiceScreen() {
                   {index > 0 ? <Divider /> : null}
                   <DraftRow
                     draft={draft}
-                    // The currency the row shows must be the one Save will persist:
-                    // a group destination writes in the group's currency, so a USD
-                    // draft dropped into an EUR group reads EUR here, matching the
-                    // footer total and the saved expense. The inbox (no group)
-                    // keeps the draft's own spoken currency.
-                    currency={destCurrency ?? draft.currency ?? dc}
+                    // The currency the row shows is the one Save will persist:
+                    // the spoken one, else the group's, else the default.
+                    currency={voiceSaveCurrency(draft.currency, destCurrency, dc)}
                     onEdit={editDraft}
                     onRemove={removeDraft}
                     fallbackNote={t.voice.anExpense}
