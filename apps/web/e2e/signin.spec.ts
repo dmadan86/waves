@@ -12,7 +12,7 @@ import { test, expect } from '@playwright/test';
  * it.
  */
 test.describe('sign-in (the unauthenticated front door)', () => {
-  test('offers Google, Apple, password, and the email magic link', async ({ page }) => {
+  test('offers Google, Apple, password, and the emailed sign-in code', async ({ page }) => {
     await page.goto('/');
 
     await expect(page.getByRole('button', { name: /continue with google/i })).toBeVisible();
@@ -23,7 +23,7 @@ test.describe('sign-in (the unauthenticated front door)', () => {
     await expect(page.getByPlaceholder('you@email.com')).toBeVisible();
     await expect(page.getByPlaceholder('Password')).toBeVisible();
     await expect(page.getByRole('button', { name: /^sign in$/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /email me a sign-in link/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /email me a sign-in code/i })).toBeVisible();
     // The guest path is signposted, not hidden.
     await expect(page.getByText(/open an invite link/i)).toBeVisible();
   });
@@ -48,7 +48,7 @@ test.describe('sign-in (the unauthenticated front door)', () => {
     // Passes the browser's native type=email check (has an @) but not the app's
     // own regex (no dot), so the client-side guard is what fires — no network.
     await page.getByPlaceholder('you@email.com').fill('foo@bar');
-    await page.getByRole('button', { name: /email me a sign-in link/i }).click();
+    await page.getByRole('button', { name: /email me a sign-in code/i }).click();
 
     await expect(page.getByText(/does not look like an email/i)).toBeVisible();
     // Still on the sign-in screen; nothing navigated or was sent.
