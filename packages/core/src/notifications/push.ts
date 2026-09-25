@@ -120,6 +120,18 @@ export interface PushOutcome {
    * ever show up here, in the reply to a send.
    */
   readonly problems: readonly PushProblem[];
+  /**
+   * The ticket Expo issued for each device that accepted a message, latest per
+   * device. Acceptance is not delivery: the receipt that says the app has been
+   * uninstalled arrives later, against this id (see `readPushReceipts`).
+   */
+  readonly tickets: readonly PushTicketRef[];
+}
+
+/** A device and the Expo ticket for the last message it accepted. */
+export interface PushTicketRef {
+  readonly token: string;
+  readonly ticketId: string;
 }
 
 export interface PushProblem {
@@ -162,6 +174,7 @@ export function readPushTickets(
   const attempted = new Set<string>();
   const revoke = new Set<string>();
   const problems = new Map<string, number>();
+  const ticketByToken = new Map<string, string>();
 
   const note = (error: string): void => {
     problems.set(error, (problems.get(error) ?? 0) + 1);
@@ -180,6 +193,7 @@ export function readPushTickets(
 
     if (ticket.status === 'ok') {
       accepted.add(target.notificationId);
+      if (ticket.id) ticketByToken.set(target.token, ticket.id);
       return;
     }
 
@@ -192,6 +206,58 @@ export function readPushTickets(
     failed: [...attempted].filter((id) => !accepted.has(id)),
     revoke: [...revoke],
     // Commonest first, then by name, so two identical runs read identically.
+    problems: [...problems]
+      .map(([error, count]) => ({ error, count }))
+      .sort((a, b) => b.count - a.count || a.error.localeCompare(b.error)),
+    tickets: [...ticketByToken].map(([token, ticketId]) => ({ token, ticketId })),
+  };
+}
+
+/** Expo's cap on ids per `getReceipts` request. */
+export const EXPO_RECEIPT_CHUNK = 1000;
+
+export interface ExpoReceipt {
+  readonly status?: string;
+  readonly message?: string;
+  readonly details?: { readonly error?: string };
+}
+
+export interface ReceiptOutcome {
+  /** Tokens whose receipt says the app is no longer on that device. */
+  readonly revoke: readonly string[];
+  /** Receipt errors, counted by Expo's code, commonest first. */
+  readonly problems: readonly PushProblem[];
+}
+
+/**
+ * Read the receipts for tickets issued earlier.
+ *
+ * A ticket only says Expo accepted the message. Whether Apple or Google then
+ * took it arrives here, minutes later — and this is where `DeviceNotRegistered`
+ * usually turns up for an app that was uninstalled or reinstalled. Without it a
+ * dead token is "sent" to forever, and its owner's notifications look
+ * delivered while reaching nobody.
+ *
+ * A ticket with no receipt yet is not a failure (it may still be in flight, or
+ * past Expo's 24-hour retention); it is simply not evidence of anything.
+ */
+export function readPushReceipts(
+  pending: readonly PushTicketRef[],
+  receipts: Readonly<Record<string, ExpoReceipt | undefined>>,
+): ReceiptOutcome {
+  const revoke = new Set<string>();
+  const problems = new Map<string, number>();
+
+  for (const { token, ticketId } of pending) {
+    const receipt = receipts[ticketId];
+    if (!receipt || receipt.status === 'ok') continue;
+    const error = receipt.details?.error ?? 'unknown';
+    problems.set(error, (problems.get(error) ?? 0) + 1);
+    if (error === 'DeviceNotRegistered') revoke.add(token);
+  }
+
+  return {
+    revoke: [...revoke],
     problems: [...problems]
       .map(([error, count]) => ({ error, count }))
       .sort((a, b) => b.count - a.count || a.error.localeCompare(b.error)),

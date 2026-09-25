@@ -15,7 +15,7 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { handlePushFanout, type NotifyFanoutDeps } from './handler.ts';
+import { checkReceipts, handlePushFanout, type NotifyFanoutDeps } from './handler.ts';
 import { factsOf } from '../_shared/email.ts';
 import { COPY, renderNotification } from '../_shared/core.js';
 
@@ -297,5 +297,92 @@ describe('claim / finish failures', () => {
     const response = await handlePushFanout(authorizedRequest(), deps);
     expect(response.status).toBe(500);
     expect((await response.json()).code).toBe('FINISH_FAILED');
+  });
+});
+
+describe('push receipts', () => {
+  it('records the ticket each device accepted, for a later receipt check', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(expoResponse([{ status: 'ok', id: 'ticket-1' }]));
+    const { deps, service } = harness({
+      serviceKey: SERVICE_KEY,
+      rpc: {
+        waves_claim_push_notifications: { data: [claimRow('n-1', ['ExponentPushToken[a]'])] },
+      },
+      fetchImpl,
+    });
+    await handlePushFanout(authorizedRequest(), deps);
+    expect(service.rpc).toHaveBeenCalledWith('waves_record_push_tickets', {
+      p_tickets: [{ token: 'ExponentPushToken[a]', ticket_id: 'ticket-1' }],
+    });
+  });
+
+  it('revokes a device whose receipt says the app is gone', async () => {
+    // The ticket said "ok"; the uninstall only shows up in the receipt.
+    const service = serviceMock({
+      waves_claim_push_receipts: {
+        data: [
+          { token: 'ExponentPushToken[live]', ticket_id: 'a' },
+          { token: 'ExponentPushToken[gone]', ticket_id: 'b' },
+        ],
+      },
+    });
+    const fetchImpl = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          data: {
+            a: { status: 'ok' },
+            b: { status: 'error', details: { error: 'DeviceNotRegistered' } },
+          },
+        }),
+        { status: 200 },
+      ),
+    );
+    const summary = await checkReceipts(service, fetchImpl as unknown as typeof fetch);
+    expect(summary).toMatchObject({ checked: 2, revoked: 1 });
+    expect(fetchImpl).toHaveBeenCalledWith(
+      'https://exp.host/--/api/v2/push/getReceipts',
+      expect.objectContaining({ body: JSON.stringify({ ids: ['a', 'b'] }) }),
+    );
+    expect(service.rpc).toHaveBeenCalledWith('waves_finish_push', {
+      p_delivered: [],
+      p_failed: [],
+      p_revoke: ['ExponentPushToken[gone]'],
+    });
+    expect(service.rpc).toHaveBeenCalledWith('waves_clear_push_receipts', {
+      p_ticket_ids: ['a', 'b'],
+    });
+  });
+
+  it('keeps the tickets when Expo refuses, so they are asked about again', async () => {
+    const pending = { data: [{ token: 'ExponentPushToken[a]', ticket_id: 'a' }] };
+    for (const reply of [
+      new Response('busy', { status: 429 }),
+      new Response(JSON.stringify({ errors: [{ code: 'INTERNAL_SERVER_ERROR' }] }), {
+        status: 200,
+      }),
+    ]) {
+      const service = serviceMock({ waves_claim_push_receipts: pending });
+      const fetchImpl = vi.fn().mockResolvedValue(reply);
+      const summary = await checkReceipts(service, fetchImpl as unknown as typeof fetch);
+      expect(summary.error).toBeTruthy();
+      expect(summary.revoked).toBe(0);
+      expect(service.rpc).not.toHaveBeenCalledWith('waves_clear_push_receipts', expect.anything());
+    }
+  });
+
+  it('does not call Expo when no ticket is due', async () => {
+    const fetchImpl = vi.fn();
+    const summary = await checkReceipts(serviceMock(), fetchImpl as unknown as typeof fetch);
+    expect(summary).toEqual({ checked: 0, revoked: 0 });
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it('never throws when Expo is unreachable', async () => {
+    const service = serviceMock({
+      waves_claim_push_receipts: { data: [{ token: 'ExponentPushToken[a]', ticket_id: 'a' }] },
+    });
+    const fetchImpl = vi.fn().mockRejectedValue(new Error('network down'));
+    const summary = await checkReceipts(service, fetchImpl as unknown as typeof fetch);
+    expect(summary).toMatchObject({ checked: 0, revoked: 0, error: 'network down' });
   });
 });
