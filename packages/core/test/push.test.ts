@@ -17,6 +17,7 @@ import {
   buildPushBatch,
   chunk,
   isPushMisconfigured,
+  readPushReceipts,
   readPushTickets,
   type PushableNotification,
 } from '../src/index';
@@ -186,5 +187,50 @@ describe('telling a wrong FCM key apart from a country with its phones off', () 
     ]);
     expect(outcome.problems).toEqual([]);
     expect(isPushMisconfigured(outcome.problems)).toBe(false);
+  });
+});
+
+describe('keeping the ticket to ask about later', () => {
+  it('remembers the latest accepted ticket per device, and none for a refusal', () => {
+    const outcome = readPushTickets(
+      [
+        { notificationId: 'n1', token: 'phone' },
+        { notificationId: 'n2', token: 'phone' },
+        { notificationId: 'n2', token: 'tablet' },
+      ],
+      [
+        { status: 'ok', id: 't1' },
+        { status: 'ok', id: 't2' },
+        { status: 'error', details: { error: 'MessageRateExceeded' } },
+      ],
+    );
+    expect(outcome.tickets).toEqual([{ token: 'phone', ticketId: 't2' }]);
+  });
+});
+
+describe('reading receipts', () => {
+  const pending = [
+    { token: 'live', ticketId: 'a' },
+    { token: 'uninstalled', ticketId: 'b' },
+    { token: 'throttled', ticketId: 'c' },
+    { token: 'no-receipt-yet', ticketId: 'd' },
+  ];
+
+  it('revokes only the device whose receipt says the app is gone', () => {
+    // The receipt is where an uninstall usually shows up; the ticket said "ok".
+    const outcome = readPushReceipts(pending, {
+      a: { status: 'ok' },
+      b: { status: 'error', details: { error: 'DeviceNotRegistered' } },
+      c: { status: 'error', details: { error: 'MessageRateExceeded' } },
+    });
+    expect(outcome.revoke).toEqual(['uninstalled']);
+    expect(outcome.problems).toEqual([
+      { error: 'DeviceNotRegistered', count: 1 },
+      { error: 'MessageRateExceeded', count: 1 },
+    ]);
+  });
+
+  it('reads no receipt as no evidence', () => {
+    expect(readPushReceipts(pending, {})).toEqual({ revoke: [], problems: [] });
   });
 });

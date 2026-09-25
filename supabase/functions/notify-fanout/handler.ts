@@ -24,10 +24,14 @@
 import {
   buildPushBatch,
   chunk,
+  EXPO_RECEIPT_CHUNK,
   isPushMisconfigured,
+  readPushReceipts,
   readPushTickets,
+  type ExpoReceipt,
   type ExpoTicket,
   type PushProblem,
+  type PushTicketRef,
 } from '../_shared/core.js';
 import { errorResponse, HttpError, json, type SupabaseClient } from '../_shared/auth.ts';
 import {
@@ -42,6 +46,7 @@ import {
 } from '../_shared/email.ts';
 
 const EXPO_ENDPOINT = 'https://exp.host/--/api/v2/push/send';
+const EXPO_RECEIPTS_ENDPOINT = 'https://exp.host/--/api/v2/push/getReceipts';
 
 /**
  * Kept well under what one run could manage, because Resend allows two requests
@@ -60,6 +65,13 @@ interface ClaimedRow {
   payload: Record<string, unknown>;
   locale: string;
   tokens: string[];
+}
+
+interface ReceiptSummary {
+  readonly checked: number;
+  readonly revoked: number;
+  readonly problems?: readonly PushProblem[];
+  readonly error?: string;
 }
 
 interface EmailSummary {
@@ -101,7 +113,12 @@ export async function handlePushFanout(
     if (rows.length === 0) {
       // Nobody to buzz does not mean nobody to write to. Somebody with no
       // device at all is exactly the person the email half exists for.
-      return json({ claimed: 0, sent: 0, email: await deps.dispatchEmail(service) });
+      return json({
+        claimed: 0,
+        sent: 0,
+        receipts: await checkReceipts(service, deps.fetchImpl),
+        email: await deps.dispatchEmail(service),
+      });
     }
 
     const batch = buildPushBatch(
@@ -120,6 +137,7 @@ export async function handlePushFanout(
     const delivered: string[] = [];
     const failed: string[] = [];
     const revoke: string[] = [];
+    const acceptedTickets: PushTicketRef[] = [];
     const problems = new Map<string, number>();
 
     const messageChunks = chunk(batch.messages);
@@ -148,6 +166,7 @@ export async function handlePushFanout(
       delivered.push(...outcome.delivered);
       failed.push(...outcome.failed);
       revoke.push(...outcome.revoke);
+      acceptedTickets.push(...outcome.tickets);
       for (const problem of outcome.problems) {
         problems.set(problem.error, (problems.get(problem.error) ?? 0) + problem.count);
       }
@@ -178,6 +197,16 @@ export async function handlePushFanout(
     });
     if (finishError) throw new HttpError(500, 'FINISH_FAILED', finishError.message);
 
+    // Kept so a later run can ask how each device's last message fared. Not
+    // worth failing the run over: the push already went, and the next message
+    // to the device records a fresh ticket.
+    if (acceptedTickets.length > 0) {
+      const { error: ticketError } = await service.rpc('waves_record_push_tickets', {
+        p_tickets: acceptedTickets.map(({ token, ticketId }) => ({ token, ticket_id: ticketId })),
+      });
+      if (ticketError) console.error('could not record push tickets:', ticketError.message);
+    }
+
     return json({
       claimed: rows.length,
       sent: delivered.length,
@@ -185,10 +214,92 @@ export async function handlePushFanout(
       revoked: revoke.length,
       problems: summary,
       misconfigured: isPushMisconfigured(summary),
+      receipts: await checkReceipts(service, deps.fetchImpl),
       email: await deps.dispatchEmail(service),
     });
   } catch (error) {
     return errorResponse(error, { fn: 'notify-fanout' });
+  }
+}
+
+/**
+ * Ask Expo how earlier sends fared, and revoke the devices that are gone.
+ *
+ * A ticket at send time only says Expo took the message; an uninstalled app
+ * usually shows up afterwards, as a `DeviceNotRegistered` receipt. Without this
+ * a dead token is sent to forever and its owner's notifications read "sent".
+ *
+ * It cannot throw, for the same reason as the email half: the push this run
+ * sent already happened, and a receipt check having a bad minute should not
+ * turn that into a 500. Tickets are leased, not taken: they are cleared only
+ * after Expo has answered, so a failed check is retried once the lease lapses.
+ */
+export async function checkReceipts(
+  service: SupabaseClient,
+  fetchImpl: typeof fetch,
+): Promise<ReceiptSummary> {
+  try {
+    const { data, error } = await service.rpc('waves_claim_push_receipts', {
+      p_limit: EXPO_RECEIPT_CHUNK,
+    });
+    if (error) return { checked: 0, revoked: 0, error: error.message };
+
+    const pending = ((data ?? []) as { token: string; ticket_id: string }[]).map((row) => ({
+      token: row.token,
+      ticketId: row.ticket_id,
+    }));
+    if (pending.length === 0) return { checked: 0, revoked: 0 };
+
+    const response = await fetchImpl(EXPO_RECEIPTS_ENDPOINT, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', accept: 'application/json' },
+      body: JSON.stringify({ ids: pending.map((ticket) => ticket.ticketId) }),
+    });
+    // A refusal is not a clean bill of health. Returning here leaves the
+    // tickets leased, not cleared, so they are asked about again next time.
+    if (!response.ok) {
+      console.error('push receipt request failed:', response.status);
+      return { checked: 0, revoked: 0, error: `EXPO_HTTP_${response.status}` };
+    }
+    const parsed = (await response.json()) as {
+      data?: Record<string, ExpoReceipt>;
+      errors?: { code?: string; message?: string }[];
+    };
+    if (!parsed.data) {
+      const reason = parsed.errors?.[0]?.code ?? parsed.errors?.[0]?.message ?? 'EXPO_NO_DATA';
+      console.error('push receipt request refused:', JSON.stringify(parsed.errors ?? []));
+      return { checked: 0, revoked: 0, error: reason };
+    }
+    const outcome = readPushReceipts(pending, parsed.data);
+
+    if (outcome.revoke.length > 0) {
+      const { error: revokeError } = await service.rpc('waves_finish_push', {
+        p_delivered: [],
+        p_failed: [],
+        p_revoke: outcome.revoke,
+      });
+      if (revokeError) return { checked: pending.length, revoked: 0, error: revokeError.message };
+    }
+
+    // Asked and answered: only now does the ticket leave the row. One Expo has
+    // not produced a receipt for yet is cleared too — the next message to that
+    // device brings a fresh ticket, and a dead device refuses it at send time.
+    const { error: clearError } = await service.rpc('waves_clear_push_receipts', {
+      p_ticket_ids: pending.map((ticket) => ticket.ticketId),
+    });
+    if (clearError) console.error('could not clear push receipts:', clearError.message);
+    if (outcome.problems.length > 0) {
+      console.warn('push receipt problems:', JSON.stringify(outcome.problems));
+    }
+
+    return {
+      checked: pending.length,
+      revoked: outcome.revoke.length,
+      ...(outcome.problems.length > 0 ? { problems: outcome.problems } : {}),
+    };
+  } catch (unexpected) {
+    console.error('push receipt check failed:', (unexpected as Error).message);
+    return { checked: 0, revoked: 0, error: (unexpected as Error).message };
   }
 }
 
