@@ -136,6 +136,12 @@ export interface CopyStrings {
     readonly netNegative: string;
   };
   readonly notifications: Readonly<Record<NotificationKind, { title: string; body: string }>>;
+  /**
+   * What a sentence says when the row left a fact out: an expense saved with
+   * no description, or a 1:1 group nobody named. Without these the reader got
+   * the template itself — "{description} · ₹100.00 in {group}".
+   */
+  readonly notificationFallbacks: { readonly description: string; readonly group: string };
   readonly email: EmailChrome;
 }
 
@@ -147,6 +153,7 @@ const en: CopyStrings = {
     netPositive: 'You are owed {amount} overall',
     netNegative: 'Your balance is {amount}',
   },
+  notificationFallbacks: { description: 'An expense', group: 'your group' },
   notifications: {
     [NotificationKind.ExpenseAdded]: {
       title: '{actor} added an expense',
@@ -256,6 +263,7 @@ const ta: CopyStrings = {
     netPositive: 'மொத்தம் உங்களுக்கு {amount} வர வேண்டும்',
     netNegative: 'உங்கள் பாக்கி {amount}',
   },
+  notificationFallbacks: { description: 'ஒரு செலவு', group: 'உங்கள் குழு' },
   notifications: {
     [NotificationKind.ExpenseAdded]: {
       title: '{actor} ஒரு செலவைச் சேர்த்தார்',
@@ -371,6 +379,7 @@ const hi: CopyStrings = {
     netPositive: 'कुल मिलाकर आपको {amount} मिलने हैं',
     netNegative: 'आपकी बाकी {amount} है',
   },
+  notificationFallbacks: { description: 'एक खर्च', group: 'आपका ग्रुप' },
   notifications: {
     [NotificationKind.ExpenseAdded]: {
       title: '{actor} ने खर्च जोड़ा',
@@ -483,6 +492,7 @@ const ar: CopyStrings = {
     netPositive: 'لك {amount} في المجمل',
     netNegative: 'باقيك {amount}',
   },
+  notificationFallbacks: { description: 'مصروف', group: 'مجموعتك' },
   notifications: {
     [NotificationKind.ExpenseAdded]: {
       title: 'أضاف {actor} مصروفًا',

@@ -19,8 +19,9 @@ import { copyFor, interpolate, type NotificationKind } from './copy';
 
 /**
  * The facts a notification row carries. Everything is optional because a kind
- * only uses the ones it names — a missing fact leaves its placeholder visible
- * rather than printing "undefined" at somebody.
+ * only uses the ones it names. A missing description or group reads as the
+ * language's stand-in ("An expense", "your group"); any other missing fact is
+ * dropped from the sentence — never a raw `{placeholder}`, never "undefined".
  */
 export interface NotificationFacts {
   /** Minor units as a decimal string; bigint, so never a JSON number. */
@@ -64,8 +65,8 @@ export function renderNotification(
 
   const values: Record<string, string> = {};
   if (facts.counterparty) values.actor = facts.counterparty;
-  if (facts.group) values.group = facts.group;
-  if (facts.description) values.description = facts.description;
+  values.group = facts.group?.trim() || copy.notificationFallbacks.group;
+  values.description = facts.description?.trim() || copy.notificationFallbacks.description;
   if (facts.count) values.count = facts.count;
   if (facts.name) values.name = facts.name;
   if (facts.device) values.device = facts.device;
@@ -74,9 +75,18 @@ export function renderNotification(
   if (amount) values.amount = amount;
 
   return {
-    title: interpolate(template.title, values),
-    body: interpolate(template.body, values),
+    title: fill(template.title, values),
+    body: fill(template.body, values),
   };
+}
+
+/** Interpolate, then drop whatever placeholder had no fact behind it. */
+function fill(template: string, values: Readonly<Record<string, string>>): string {
+  return interpolate(template, values)
+    .replace(/\{\w+\}/g, '')
+    .replace(/\(\s*\)/g, '')
+    .replace(/^[\s·—-]+|[\s·—-]+$/g, '')
+    .replace(/\s{2,}/g, ' ');
 }
 
 function formatAmount(facts: NotificationFacts, locale: string): string | null {
