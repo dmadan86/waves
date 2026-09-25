@@ -36,7 +36,16 @@ apps that do this well handle it on screen:
   sent to did not come from us.
 
 The hidden `div` at the top is preview text: what an inbox list shows beside the
-subject. Left out, mail clients show the first words of the markup instead.
+subject. Left out, mail clients show the first words of the markup instead. It opens
+with the code for the same reason the subject does.
+
+**The code is in the subject** (`config.toml`): "Use code 123456 to sign in to
+Waves". That wording is what Gmail and the phones' autofill read as a one-time
+code: Gmail draws it above the mail as digit boxes with a Copy button, and it is
+readable in the notification without opening anything. The boxes are Gmail's,
+not ours; the mail itself keeps its single field. GoTrue runs the subject
+through the same Go template as the body, so `{{ .Token }}` works there.
+`apps/mobile/test/otpLength.test.ts` holds every subject to that shape.
 
 The Go template variables GoTrue exposes are `{{ .Token }}`, `{{ .TokenHash }}`,
 `{{ .ConfirmationURL }}`, `{{ .SiteURL }}`, `{{ .Email }}` and `{{ .NewEmail }}`.
