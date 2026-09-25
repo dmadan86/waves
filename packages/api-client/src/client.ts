@@ -327,17 +327,23 @@ export function createWavesClient({ supabase, r2Enabled = false }: WavesClientOp
     },
 
     /**
-     * The passwordless email login, matching the phone's approach: a link is
-     * mailed, and clicking it returns to `redirectTo` (the callback route) with
-     * a code this client exchanges for a session. No password to store, forget
-     * or leak. Like Google, an anonymous guest who does this keeps their id and
-     * their history.
+     * The passwordless email login, matching the phone's approach: a six-digit
+     * code is mailed and typed back in (`verifyEmailCode`). The mail carries no
+     * link at all (supabase/templates/_README.md), so `redirectTo` only matters
+     * to a project still on Supabase's stock link template. No password to
+     * store, forget or leak.
      */
     async signInWithEmail(email: string, redirectTo: string): Promise<void> {
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: { emailRedirectTo: redirectTo },
       });
+      if (error) throw new WavesApiError(error.message);
+    },
+
+    /** The code from that mail, typed back in: on success there is a session. */
+    async verifyEmailCode(email: string, token: string): Promise<void> {
+      const { error } = await supabase.auth.verifyOtp({ email, token, type: 'email' });
       if (error) throw new WavesApiError(error.message);
     },
 

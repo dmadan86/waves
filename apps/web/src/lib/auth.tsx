@@ -37,6 +37,8 @@ interface AuthValue {
   signInWithGoogleCredential: (idToken: string, nonce: string) => Promise<void>;
   signInWithApple: () => Promise<void>;
   signInWithEmail: (email: string) => Promise<void>;
+  /** The six digits from the sign-in mail. */
+  verifyEmailCode: (email: string, code: string) => Promise<void>;
   withPassword: (email: string, password: string, intent: 'sign_in' | 'sign_up') => Promise<void>;
   signOut: () => Promise<void>;
 }
@@ -89,8 +91,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signInWithEmail = useCallback(async (email: string) => {
-    // The mailed link lands on the same callback route as Google does.
+    // The mail carries a code, not a link; the redirect is only a fallback.
     await waves.signInWithEmail(email, `${window.location.origin}/auth/callback`);
+  }, []);
+
+  const verifyEmailCode = useCallback(async (email: string, code: string) => {
+    await waves.verifyEmailCode(email, code);
   }, []);
 
   const withPassword = useCallback(
@@ -116,6 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signInWithGoogleCredential,
       signInWithApple,
       signInWithEmail,
+      verifyEmailCode,
       withPassword,
       signOut,
     }),
@@ -126,6 +133,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signInWithGoogleCredential,
       signInWithApple,
       signInWithEmail,
+      verifyEmailCode,
       withPassword,
       signOut,
     ],

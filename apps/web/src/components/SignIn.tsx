@@ -17,7 +17,7 @@
  * here (see `withPassword`).
  */
 
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 
 import { IdentityError } from '@waves/core';
 
@@ -131,6 +131,9 @@ function EyeMark({ off }: { off: boolean }) {
   );
 }
 
+/** Digits in the sign-in code: `otp_length` in supabase/config.toml. */
+const CODE_LENGTH = 6;
+
 export function SignIn() {
   const { t, locale } = useStrings();
   const {
@@ -138,10 +141,13 @@ export function SignIn() {
     signInWithGoogleCredential,
     signInWithApple,
     signInWithEmail,
+    verifyEmailCode,
     withPassword,
     session,
   } = useAuth();
-  const [busy, setBusy] = useState<null | 'google' | 'apple' | 'password' | 'link'>(null);
+  const [busy, setBusy] = useState<null | 'google' | 'apple' | 'password' | 'link' | 'code'>(null);
+  /** The six digits from the mail, once it has been sent. */
+  const [code, setCode] = useState('');
   const [mode, setMode] = useState<'sign_in' | 'sign_up'>('sign_in');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -254,6 +260,36 @@ export function SignIn() {
     }
   }
 
+  /**
+   * The code from the mail. The mail has carried a code and no link since the
+   * templates were rewritten (supabase/templates/_README.md), and this screen
+   * kept saying "open the link": signing in by email on the web could not be
+   * finished. Now it ends where the phone's does, in six digits.
+   */
+  async function onCode(event: FormEvent) {
+    event.preventDefault();
+    const digits = code.replace(/\D/g, '');
+    if (digits.length !== CODE_LENGTH) {
+      setError(t.dash.codeIncomplete);
+      return;
+    }
+    setBusy('code');
+    setError(null);
+    try {
+      await verifyEmailCode(email.trim(), digits);
+      // No navigation: `onAuthChange` swaps this card out.
+    } catch (caught) {
+      setBusy(null);
+      setError(
+        friendlyError(caught, 'web.signIn.emailCode', {
+          fallback: t.dash.codeWrong,
+          offline: t.errors.offline,
+          tooMany: t.errors.tooMany,
+        }),
+      );
+    }
+  }
+
   async function onMagicLink() {
     const address = email.trim();
     if (!looksLikeEmail(address)) {
@@ -356,6 +392,51 @@ export function SignIn() {
             <>
               <h1 className="door-head">{t.dash.linkSentTitle}</h1>
               <p className="door-sub">{fill(t.dash.linkSentBody, { email: email.trim() })}</p>
+
+              <form onSubmit={onCode} className="door-fields">
+                <label className="door-label" htmlFor="door-code">
+                  {t.dash.codeLabel}
+                </label>
+                {/* `one-time-code` is what lets a browser or a phone offer the
+                    code straight from the mail or the message. */}
+                <input
+                  id="door-code"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  pattern="[0-9]*"
+                  maxLength={CODE_LENGTH}
+                  autoFocus
+                  value={code}
+                  placeholder="123456"
+                  onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, CODE_LENGTH))}
+                  className="door-code"
+                />
+                <button type="submit" className="btn brand block" disabled={busy !== null}>
+                  {busy === 'code' ? t.dash.signingIn : t.dash.codeSubmit}
+                </button>
+              </form>
+
+              <p className="door-swap">
+                <button
+                  type="button"
+                  className="linklike"
+                  onClick={() => {
+                    setSent(false);
+                    setCode('');
+                    setError(null);
+                  }}
+                  disabled={busy !== null}
+                >
+                  {t.dash.codeOtherEmail}
+                </button>
+              </p>
+
+              {error ? (
+                <p className="error" role="alert">
+                  {error}
+                </p>
+              ) : null}
             </>
           ) : (
             <>
