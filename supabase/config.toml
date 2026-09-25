@@ -161,24 +161,30 @@ sender_name = "Waves"
 # here because GoTrue will send its own link-shaped default the moment one
 # appears, and the failure would be silent.
 
+# The code is in every subject, worded "Use code 123456 to ...". That is the
+# shape Gmail (and iOS / Android autofill) read as a one-time code: Gmail
+# draws it as its own digit boxes with a Copy button above the mail, and the
+# code shows in the notification without opening anything. GoTrue executes
+# the subject as a Go template with the same data as the body.
+
 [auth.email.template.magic_link]
-subject = "Your Waves sign-in code"
+subject = "Use code {{ .Token }} to sign in to Waves"
 content_path = "./supabase/templates/magic-link.html"
 
 [auth.email.template.confirmation]
-subject = "Confirm your email for Waves"
+subject = "Use code {{ .Token }} to confirm your email for Waves"
 content_path = "./supabase/templates/confirmation.html"
 
 [auth.email.template.email_change]
-subject = "Confirm your new Waves address"
+subject = "Use code {{ .Token }} to confirm your new Waves address"
 content_path = "./supabase/templates/email-change.html"
 
 [auth.email.template.recovery]
-subject = "Reset your Waves password"
+subject = "Use code {{ .Token }} to reset your Waves password"
 content_path = "./supabase/templates/recovery.html"
 
 [auth.email.template.reauthentication]
-subject = "Confirm it is you"
+subject = "Use code {{ .Token }} to confirm it is you"
 content_path = "./supabase/templates/reauthentication.html"
 
 # ADR-006: guests join a group from a link with no account at all, so phone is a

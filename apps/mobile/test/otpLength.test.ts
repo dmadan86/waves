@@ -81,3 +81,28 @@ describe('how long the code lasts', () => {
     expect(TEMPLATES.length).toBeGreaterThanOrEqual(5);
   });
 });
+
+/**
+ * The code is in the subject, worded the way inboxes read a one-time code:
+ * "Use code 123456 to ...". Gmail then draws the code above the mail with its
+ * own Copy button, and it shows in the notification before anyone opens it.
+ * A subject without it ("Your Waves sign-in code") gets none of that.
+ */
+describe('every code mail subject', () => {
+  const subjects = [
+    ...CONFIG.matchAll(/^\[auth\.email\.template\.(\w+)\]\s*\nsubject = "([^"]*)"/gm),
+  ];
+
+  it('covers every template', () => {
+    expect(subjects.map((match) => match[1]).sort()).toEqual(
+      ['confirmation', 'email_change', 'magic_link', 'reauthentication', 'recovery'].sort(),
+    );
+  });
+
+  it.each(subjects.map((match) => [match[1], match[2]] as const))(
+    '%s starts with "Use code {{ .Token }}"',
+    (_name, subject) => {
+      expect(subject.startsWith('Use code {{ .Token }} to ')).toBe(true);
+    },
+  );
+});
