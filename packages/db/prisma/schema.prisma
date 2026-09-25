@@ -779,6 +779,11 @@ model PushToken {
   /// account only for a caller holding the same install. See
   /// `20260925130000_push_token_follows_the_device`.
   installSecretHash String?        @map("install_secret_hash")
+  /// The Expo ticket for the last message this device accepted, until a later
+  /// fanout run reads its receipt. See
+  /// `20260925140000_push_receipts_find_dead_devices`.
+  lastTicketId      String?        @map("last_ticket_id")
+  lastTicketAt      DateTime?      @map("last_ticket_at") @db.Timestamptz(6)
 
   profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
