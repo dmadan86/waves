@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ScrollView as RNScrollView } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
@@ -57,6 +57,7 @@ import { useBottomClearance } from '@/lib/clearance';
 import { expenseMemberHref } from '@/lib/expenseMemberRows';
 import { router, useGoBack } from '@/lib/navigation';
 import { useDialog } from '@/lib/dialog';
+import { useSync } from '@/sync';
 import { amountEditsInline, canEditInline } from '@/lib/expenseEdit';
 
 function splitLabels(t: UiStrings): Record<string, string> {
@@ -120,6 +121,26 @@ export default function ExpenseDetailScreen() {
 
   const expense = expenses.rows.find((row) => row.id === expenseId);
   const version = expense?.currentVersion;
+
+  // Opened from a push, the expense is usually newer than this phone: the
+  // notification arrives the moment it is added, and the app is launched (or
+  // woken) straight onto it before any pull has brought it down. Reading that
+  // as "not found — deleted more than 30 days ago" for the second the pull
+  // takes was a lie on the one screen people reach from a notification. So a
+  // miss asks the server once, and the screen keeps its loading shell until
+  // that answer is in; only a miss that survives it is "not found".
+  const { flush } = useSync();
+  const missing = !expenses.isLoading && !version;
+  const askedServer = useRef(false);
+  const [serverAnswered, setServerAnswered] = useState(false);
+  useEffect(() => {
+    if (!missing || askedServer.current) return;
+    askedServer.current = true;
+    void flush()
+      .catch(() => {})
+      .finally(() => setServerAnswered(true));
+  }, [missing, flush]);
+  const askingServer = missing && !serverAnswered;
   const { blockedIds } = useBlockedUsers();
 
   // The kept bill (E2), resolved from R2. `expenseReceiptUrl` doubles as the
@@ -200,7 +221,7 @@ export default function ExpenseDetailScreen() {
     return member ? displayName(member, null, blockedIds, t.misc.someone) : t.misc.someone;
   };
 
-  if (expenses.isLoading) {
+  if (expenses.isLoading || askingServer) {
     // Shell first: the back button paints instantly on navigation; the title
     // and body fill in once the mirror read lands (a few ms at launch).
     return (
