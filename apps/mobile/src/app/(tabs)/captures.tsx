@@ -845,9 +845,18 @@ export default function CapturesScreen() {
   // What is being assigned, if anything — drives the destination sheet: one
   // draft, or a whole spoken batch.
   const [assigning, setAssigning] = useState<AssignTarget | null>(null);
+  // What the sheet shows. It stays mounted through its fade-out, and drawing it
+  // from `assigning` (already null by then) swapped a two-draft batch for the
+  // empty single-draft layout mid-fade: "0 selected", a "Just me" row and "New
+  // group" flashing up under the finger that had just chosen a group. The last
+  // target is kept for the fade, synced in render (the app's idiom for
+  // "follow a value until touched").
+  const [lastAssigning, setLastAssigning] = useState<AssignTarget | null>(null);
+  if (assigning !== null && assigning !== lastAssigning) setLastAssigning(assigning);
+  const shownAssigning = assigning ?? lastAssigning;
   // The one draft under the picker, when it is a single one. The batch case has
   // no single capture to preview or pre-aim from.
-  const assigningCapture = assigning?.kind === 'capture' ? assigning.capture : null;
+  const assigningCapture = shownAssigning?.kind === 'capture' ? shownAssigning.capture : null;
   // Writing a draft into a group is several queue writes behind one gesture, and
   // a swipe is easy to repeat by accident. The lock is per target rather than a
   // single flag, so filing one row never swallows the swipe on the next.
@@ -923,8 +932,8 @@ export default function CapturesScreen() {
   // answer: the running total (absent when the drafts are not one currency) and
   // how many drafts it stands for.
   const batchPreview = useMemo(() => {
-    if (assigning?.kind !== 'batch') return null;
-    const items = assigning.items;
+    if (shownAssigning?.kind !== 'batch') return null;
+    const items = shownAssigning.items;
     const currency = items[0]!.currency;
     const sameCurrency = items.every((item) => item.currency === currency);
     return {
@@ -932,7 +941,7 @@ export default function CapturesScreen() {
       currency,
       total: sameCurrency ? items.reduce((sum, item) => sum + BigInt(item.amount), 0n) : null,
     };
-  }, [assigning]);
+  }, [shownAssigning]);
 
   const rows = useMemo(() => captures.data ?? [], [captures.data]);
   // Two errands, two tabs: what the app found in the phone's bank messages,
@@ -2083,10 +2092,10 @@ export default function CapturesScreen() {
             // Remount per draft (or per batch), so the tab and any half-made
             // people selection start fresh on each open.
             key={
-              assigning
-                ? assigning.kind === 'capture'
-                  ? assigning.capture.id
-                  : assigning.items[0]!.id
+              shownAssigning
+                ? shownAssigning.kind === 'capture'
+                  ? shownAssigning.capture.id
+                  : shownAssigning.items[0]!.id
                 : 'closed'
             }
             selection={pickerSelection}
@@ -2161,8 +2170,8 @@ export default function CapturesScreen() {
             // the row would point at where it already sits. "Just me" is — it
             // files the draft as a private personal expense (A48), through the
             // same path the voice review uses (`usePlaceInPersonal`).
-            pinned={assigning?.kind === 'batch' && assigning.viaBar ? [] : ['me']}
-            createRow={assigning?.kind === 'batch' ? null : { label: t.captures.assignNew }}
+            pinned={shownAssigning?.kind === 'batch' && shownAssigning.viaBar ? [] : ['me']}
+            createRow={shownAssigning?.kind === 'batch' ? null : { label: t.captures.assignNew }}
             emptyGroups={t.captures.noGroups}
             labelFor={(group) => groupLabel(group, summary.membersFor(group.id), viewerId)}
             groups={assignableGroups}

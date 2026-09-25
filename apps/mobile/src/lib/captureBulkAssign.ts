@@ -70,11 +70,24 @@ export interface CaptureAssignPlan {
   readonly problem: 'no-members' | null;
 }
 
-/** A stored minor-unit amount, or null when the row carries something else. */
-function minorAmount(value: string): bigint | null {
-  if (!/^-?\d+$/.test(value.trim())) return null;
+/**
+ * A stored minor-unit amount, or null when the row carries something else.
+ *
+ * Typed as a string and not always one: a capture pulled from the server
+ * arrives with the BIGINT as a JSON number, and `.trim()` on that threw before
+ * a single expense was written, so filing those drafts into a group failed with
+ * "Couldn't save this" every time. Read the way `personalPlacement` reads it.
+ */
+function minorAmount(value: unknown): bigint | null {
+  const text =
+    typeof value === 'string'
+      ? value.trim()
+      : typeof value === 'bigint' || typeof value === 'number'
+        ? String(value)
+        : null;
+  if (text === null || !/^-?\d+$/.test(text)) return null;
   try {
-    const amount = BigInt(value.trim());
+    const amount = BigInt(text);
     return amount <= 0n ? null : amount;
   } catch {
     return null;

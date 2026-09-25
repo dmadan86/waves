@@ -537,6 +537,37 @@ describe('captures', () => {
     });
   });
 
+  it('reads a server amount sent as a JSON number as the string the type promises', () => {
+    // PostgREST sends BIGINT as a number. A reader calling `.trim()` on it threw,
+    // and filing those drafts into a group failed every time.
+    const serverRow: SyncChange = {
+      table: SyncTable.Captures,
+      groupId: OWNER,
+      seq: 1,
+      row: {
+        id: 'cap-n',
+        owner_user_id: OWNER,
+        description: 'Jai Singh And Co',
+        category: null,
+        expense_date: '2026-09-13',
+        currency: 'INR',
+        amount: 22500,
+        notes: null,
+        photo_path: null,
+        raw_text: null,
+        parsed: null,
+        status: 'open',
+        assigned_expense_id: null,
+        assigned_group_id: null,
+        created_at: AT,
+        deleted_at: null,
+      },
+    };
+    const { state } = reconcile(emptyMirror(), [serverRow]);
+    const [row] = materialiseCaptures(state, [], { ownerId: OWNER });
+    expect(row?.amount).toBe('22500');
+  });
+
   it('overlays a queued edit on a server row, keyed by the owner scope', () => {
     const serverRow: SyncChange = {
       table: SyncTable.Captures,

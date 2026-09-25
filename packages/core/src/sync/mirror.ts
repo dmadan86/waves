@@ -834,7 +834,9 @@ export function materialiseCaptures(
   // show them just because the queue overlay below is the only thing filtered.
   for (const row of rowsFor(state, SyncTable.Captures) as MirrorCapture[]) {
     if (row.owner_user_id !== options.ownerId) continue;
-    byId.set(row.id, row);
+    // PostgREST sends the BIGINT amount as a JSON number; the type (and every
+    // screen) says string. Made one here, where server rows enter.
+    byId.set(row.id, { ...row, amount: String(row.amount) });
   }
 
   for (const mutation of [...queue].sort((a, b) => a.seq - b.seq)) {

@@ -42,6 +42,21 @@ const MEMBERS = [{ id: 'member-me' }, { id: 'member-ravi' }];
 const ME = 'member-me';
 
 describe('planCaptureAssign', () => {
+  it('takes an amount that arrived from the server as a number', () => {
+    // The report: two bank-message drafts from before they moved onto the
+    // phone, ticked and filed into a group, gave "Couldn't save this" at once.
+    // Their amount was a JSON number and `.trim()` threw before any write.
+    const plan = planCaptureAssign({
+      captures: [capture({ id: 'jai', amount: 22500 as unknown as string })],
+      members: MEMBERS,
+      myMemberId: ME,
+      currency: 'INR',
+    });
+
+    expect(plan.unusable).toEqual([]);
+    expect(plan.writes.map((write) => write.payload.amount)).toEqual(['22500']);
+  });
+
   it('keeps each draft in its own currency, not the group currency', () => {
     // The report: "200 dollars for petrol", filed into a rupee group, read ₹200.
     const plan = planCaptureAssign({

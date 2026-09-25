@@ -107,7 +107,10 @@ function openEntry(
   };
   if (!parsed?.row || parsed.row.id !== captureId) throw new Error('draft row mismatch');
   return {
-    row: { ...parsed.row, local: true },
+    // Drafts moved here from the server before `draftRowFromCapture` made the
+    // amount a string were sealed with a JSON number; read them back as the
+    // string every screen expects.
+    row: { ...parsed.row, amount: String(parsed.row.amount), local: true },
     held: parsed.held ?? null,
     filed: parsed.filed === true,
   };
