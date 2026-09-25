@@ -100,7 +100,9 @@ export function draftRowFromCapture(capture: MirrorCapture): CaptureRow {
     category_meta: capture.category_meta,
     expense_date: capture.expense_date,
     currency: capture.currency,
-    amount: capture.amount,
+    // A server row's amount is a JSON number at runtime, whatever the type
+    // says; the local store keeps the string every reader expects.
+    amount: String(capture.amount),
     notes: capture.notes,
     photo_path: capture.photo_path,
     // Whatever the server row had, and nothing invented: an inbox-read draft
