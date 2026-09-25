@@ -1476,3 +1476,15 @@ describe('detectBalanceQuery', () => {
     expect(detectBalanceQuery('add Ravi to the latest group')).toBeNull();
   });
 });
+
+describe('the closing punctuation the recogniser adds', () => {
+  it('does not end up in the description', () => {
+    // Saved as "petrol." and "food?", and every push about them said so.
+    const note = (spoken: string): string | undefined =>
+      parseVoiceExpenses(spoken, []).items[0]?.note;
+    expect(note('200 for petrol.')).toBe('petrol');
+    expect(note('1000 for food?')).toBe('food');
+    expect(note('Add 30 for coffee!')).toBe('coffee');
+    expect(note('500 for dr. rao')).toBe('dr. rao');
+  });
+});

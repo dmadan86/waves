@@ -880,9 +880,16 @@ function stripCategoryPhrase(text: string): string {
  * ("category food and dinner" → "and dinner"), so the tidy runs after, not
  * before. Only notes go through here — the split/people text is read by
  * machine, not by a person, and is left exactly as spoken.
+ *
+ * The recogniser also ends a sentence the way it would end one in a text
+ * message, so "200 for petrol" arrives as "… petrol." and the expense — and
+ * every notification about it — read "petrol.". A description is a label, not
+ * a sentence: the closing stop, question or exclamation mark goes.
  */
 function finalizeNote(note: string): string {
-  return tidyNoteConjunctions(stripCategoryPhrase(note));
+  return tidyNoteConjunctions(stripCategoryPhrase(note))
+    .replace(/[\s.?!…。।؟]+$/u, '')
+    .trim();
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
