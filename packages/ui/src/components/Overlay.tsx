@@ -29,6 +29,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   AccessibilityInfo,
   Animated,
+  Easing,
   Keyboard,
   Modal,
   PanResponder,
@@ -73,26 +74,46 @@ export const MODAL_ORIENTATIONS: ('portrait' | 'portrait-upside-down')[] = [
 const DRAG_CLOSE_DISTANCE = 120;
 const DRAG_CLOSE_VELOCITY = 0.8;
 const OPEN_SPRING = { tension: 70, friction: 12 } as const;
-const CLOSE_MS = 160;
+/**
+ * Long enough to be seen travelling — at 160 ms a sheet covered its whole height
+ * in two or three frames and read as vanishing, not leaving — and still inside
+ * the 220 ms the screens wait before unmounting one they closed themselves.
+ */
+const CLOSE_MS = 200;
 /** How small a Popup starts — a grow into place, not a pop from nothing. */
 const POPUP_START_SCALE = 0.92;
 
 /**
- * The OS reduce-motion flag, read locally so the design system does not depend
- * on the app's motion context. Starts true so the very first frame never travels
- * before the real value lands.
+ * The OS reduce-motion flag, read once for the whole app rather than by each
+ * surface as it mounts.
+ *
+ * Every sheet used to ask on mount and assume "reduced" until the answer came
+ * back — and most sheets mount at the moment they open. So the answer always
+ * arrived mid-entrance: the first frames took the reduced path (the card fading
+ * in already in place, no travel) and the rest switched to the slide, which is
+ * the stutter a sheet opened with. Asked at import, the answer is in long before
+ * anybody taps anything; until it lands, "reduced" is still the safe guess.
  */
+let reduceMotionNow = true;
+const reduceMotionListeners = new Set<(value: boolean) => void>();
+function setReduceMotionNow(value: boolean): void {
+  if (value === reduceMotionNow) return;
+  reduceMotionNow = value;
+  for (const listener of reduceMotionListeners) listener(value);
+}
+void AccessibilityInfo.isReduceMotionEnabled()
+  .then(setReduceMotionNow)
+  .catch(() => {});
+AccessibilityInfo.addEventListener('reduceMotionChanged', setReduceMotionNow);
+
 function useReduceMotion(): boolean {
-  const [reduce, setReduce] = useState(true);
+  const [reduce, setReduce] = useState(reduceMotionNow);
   useEffect(() => {
-    let alive = true;
-    const sub = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduce);
-    void AccessibilityInfo.isReduceMotionEnabled().then((value) => {
-      if (alive) setReduce(value);
-    });
+    reduceMotionListeners.add(setReduce);
+    // It may have landed between this render and this effect.
+    setReduce(reduceMotionNow);
     return () => {
-      alive = false;
-      sub.remove();
+      reduceMotionListeners.delete(setReduce);
     };
   }, []);
   return reduce;
@@ -130,6 +151,7 @@ function useOverlay(visible: boolean, onClosed?: () => void) {
       Animated.timing(progress, {
         toValue: 0,
         duration: CLOSE_MS,
+        easing: Easing.bezier(0.4, 0, 1, 1),
         useNativeDriver: true,
       }).start(({ finished }) => {
         if (finished) setMounted(false);
