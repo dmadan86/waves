@@ -74,7 +74,7 @@
     "react-native-gesture-handler": "~2.32.0",
     "react-native-get-sms-android": "^2.1.0",
     "react-native-maps": "1.27.2",
-    "react-native-pager-view": "8.0.2",
+    "react-native-pager-view": "9.0.4",
     "react-native-qrcode-styled": "^0.4.0",
     "react-native-qrcode-svg": "^6.3.24",
     "react-native-reanimated": "4.5.3",
