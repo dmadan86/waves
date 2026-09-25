@@ -1431,8 +1431,8 @@ export default function CapturesScreen() {
         label: group ? groupLabel(group, members, viewerId) : '',
         members,
         myMemberId: members.find((member) => isViewer(member, viewerId))?.id ?? null,
-        // A draft assigned through the form takes the group's currency too
-        // (the href carries no currency of its own), so the batch does the same.
+        // Only for a draft with no currency of its own: each draft keeps its
+        // own, as the form does.
         currency: group?.default_currency ?? target.items[0]!.currency,
       });
     },
