@@ -86,7 +86,7 @@ export function ExpenseFieldSheet({
   onClose: () => void;
   /** Leave for the full editor. */
   onOpenEditor: () => void;
-}): React.JSX.Element {
+}): React.JSX.Element | null {
   const theme = useTheme();
   const { t, locale } = useStrings();
   const { mutate } = useSync();
@@ -114,10 +114,12 @@ export function ExpenseFieldSheet({
   const [open, setOpen] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // Android's date picker is its own dialog: the date sheet raises it straight
-  // away, so a tap on the row is a tap to the calendar, and keeps the row to
-  // raise it again. iOS draws the calendar inline in the sheet.
+  // A date is one tap, like everywhere else a date is picked: Android raises its
+  // own calendar dialog with no sheet behind it, iOS shows the calendar inline,
+  // and choosing a day saves it. The sheet (with its row to raise the dialog
+  // again) only appears on Android if that save was refused, to say why.
   const [pickingDate, setPickingDate] = useState(field === 'date' && Platform.OS === 'android');
+  const bareDatePicker = field === 'date' && Platform.OS === 'android' && error === null;
 
   // A scrim tap and a drag can both land in one gesture; the screen hears once.
   const leaving = useRef(false);
@@ -154,15 +156,16 @@ export function ExpenseFieldSheet({
 
   const blocker = editBlocker(state, { ...t.expense }, locale);
 
-  const save = async (): Promise<void> => {
+  const save = async (next: ExpenseEditState = state): Promise<void> => {
     if (saving) return;
     // Read-only once the guest trial is up — the same gate the editor's Save has.
     if (guard.blockWrite()) return;
-    if (blocker) {
-      setError(blocker);
+    const refusal = next === state ? blocker : editBlocker(next, { ...t.expense }, locale);
+    if (refusal) {
+      setError(refusal);
       return;
     }
-    const payload = expenseWritePayload({ expenseId, state, editing: base });
+    const payload = expenseWritePayload({ expenseId, state: next, editing: base });
     if (payloadKey(payload) === unchanged) {
       leave();
       return;
@@ -207,8 +210,14 @@ export function ExpenseFieldSheet({
 
   const applyDate = (event: DateTimePickerEvent, picked?: Date): void => {
     if (Platform.OS === 'android') setPickingDate(false);
-    if (event.type === 'dismissed' || !picked) return;
-    setState((current) => ({ ...current, expenseDate: isoDate(picked) }));
+    if (event.type === 'dismissed' || !picked) {
+      // Backing out of the bare Android dialog is backing out of the edit.
+      if (bareDatePicker) leave();
+      return;
+    }
+    const next = { ...state, expenseDate: isoDate(picked) };
+    setState(next);
+    void save(next);
   };
 
   const nameHints = members
@@ -371,6 +380,17 @@ export function ExpenseFieldSheet({
   // that no longer matches the payers' figures, or an exact split's.
   const inlineIssue = field === 'split' || severalPayers ? null : blocker;
 
+  if (bareDatePicker) {
+    return pickingDate ? (
+      <DateTimePicker
+        value={dateFrom(state.expenseDate)}
+        mode="date"
+        display="default"
+        onChange={applyDate}
+      />
+    ) : null;
+  }
+
   return (
     <Sheet
       visible={open}
@@ -412,7 +432,13 @@ export function ExpenseFieldSheet({
         ) : null}
       </ScrollView>
 
-      {severalPayers ? null : (
+      {field === 'date' ? (
+        error ? (
+          <View style={{ paddingTop: theme.spacing.md }}>
+            <Callout tone="negative">{error}</Callout>
+          </View>
+        ) : null
+      ) : severalPayers ? null : (
         <View style={{ gap: theme.spacing.sm, paddingTop: theme.spacing.md }}>
           {error ? <Callout tone="negative">{error}</Callout> : null}
           <Row style={{ justifyContent: 'flex-end', alignItems: 'center', gap: theme.spacing.md }}>
