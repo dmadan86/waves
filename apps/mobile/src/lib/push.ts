@@ -29,6 +29,8 @@
 import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
+import * as SecureStore from 'expo-secure-store';
+import { randomUUID } from 'expo-crypto';
 // Named alongside the namespace, and not for style. expo-notifications 58 ships
 // SWC-transpiled output whose `export *` chain eslint-plugin-import cannot
 // follow, so `Notifications.AndroidImportance` — which TypeScript resolves and
@@ -60,6 +62,32 @@ export async function ensureAndroidChannel(): Promise<void> {
     vibrationPattern: [0, 200, 100, 200],
     lightColor: '#7A5AF8',
   });
+}
+
+/**
+ * This install's push secret: proof, to `waves_register_push_token`, that the
+ * caller is holding the device the token belongs to.
+ *
+ * A token string alone could be replayed from anywhere by someone who once had
+ * the device. The secret is minted once per install, kept in the keystore, and
+ * — unlike `deviceId()` — never cleared on sign-out and never sent anywhere
+ * else, so the next person to sign in on this install presents the same value
+ * and a former user elsewhere cannot. Null when the keystore will not answer;
+ * the server then only lets the caller register a token that is theirs already.
+ */
+const INSTALL_SECRET_KEY = 'waves.push.installSecret';
+
+async function installSecret(): Promise<string | null> {
+  if (Platform.OS === 'web') return null;
+  try {
+    const existing = await SecureStore.getItemAsync(INSTALL_SECRET_KEY);
+    if (existing) return existing;
+    const fresh = `${randomUUID()}${randomUUID()}`.replace(/-/g, '');
+    await SecureStore.setItemAsync(INSTALL_SECRET_KEY, fresh);
+    return fresh;
+  } catch {
+    return null;
+  }
 }
 
 function projectId(): string | null {
@@ -219,6 +247,7 @@ export async function refreshPushToken(): Promise<PushResult> {
     p_token: token,
     p_platform: Platform.OS === 'ios' ? 'ios' : 'android',
     p_device_name: Device.modelName ?? null,
+    p_install_secret: await installSecret(),
   });
   return error ? { ok: false, why: PushFailure.SaveFailed } : { ok: true };
 }

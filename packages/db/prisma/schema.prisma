@@ -767,14 +767,18 @@ model Reminder {
 }
 
 model PushToken {
-  id            String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  profileId     String         @map("profile_id") @db.Uuid
-  expoPushToken String         @unique @map("expo_push_token")
-  platform      DevicePlatform
-  deviceName    String?        @map("device_name")
-  lastSeenAt    DateTime       @default(now()) @map("last_seen_at") @db.Timestamptz(6)
-  revokedAt     DateTime?      @map("revoked_at") @db.Timestamptz(6)
-  createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  id                String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  profileId         String         @map("profile_id") @db.Uuid
+  expoPushToken     String         @unique @map("expo_push_token")
+  platform          DevicePlatform
+  deviceName        String?        @map("device_name")
+  lastSeenAt        DateTime       @default(now()) @map("last_seen_at") @db.Timestamptz(6)
+  revokedAt         DateTime?      @map("revoked_at") @db.Timestamptz(6)
+  createdAt         DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  /// SHA-256 of the registering install's secret: a token moves to another
+  /// account only for a caller holding the same install. See
+  /// `20260925130000_push_token_follows_the_device`.
+  installSecretHash String?        @map("install_secret_hash")
 
   profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 

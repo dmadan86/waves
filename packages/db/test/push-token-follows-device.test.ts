@@ -8,8 +8,11 @@
  * now held. Pinned here:
  *
  *   - registering a token the caller has never seen stores it for them;
- *   - signing in on the same device moves the token to the new account, and
- *     un-revokes it;
+ *   - signing in on the same install (same install secret) moves the token to
+ *     the new account, and un-revokes it;
+ *   - somebody holding only the token string — a former user elsewhere, with a
+ *     different install secret — is refused, and the device keeps its owner;
+ *   - a row from before install secrets existed is bound by its first claim;
  *   - the push claim then delivers the new account's notifications to it, and
  *     no longer the old account's;
  *   - a signed-out caller, and something that is not an Expo token, are refused.
@@ -37,14 +40,27 @@ async function person(): Promise<string> {
   return id;
 }
 
+/** The install secret the app keeps in the keystore — one per install. */
+const INSTALL = 'a'.repeat(64);
+const OTHER_INSTALL = 'b'.repeat(64);
+
 /** Register as that person, and keep it (`asRole` would roll it back). */
-async function registerFor(profileId: string, token: string, platform = 'ios'): Promise<void> {
+async function registerFor(
+  profileId: string,
+  token: string,
+  secret: string | null = INSTALL,
+  platform = 'ios',
+): Promise<void> {
   await client.query(`SELECT set_config('request.jwt.claims', $1, false)`, [
     JSON.stringify({ sub: profileId, role: 'authenticated' }),
   ]);
   await client.query(`SET ROLE authenticated`);
   try {
-    await client.query(`SELECT waves_register_push_token($1, $2, 'iPad Air')`, [token, platform]);
+    await client.query(`SELECT waves_register_push_token($1, $2, 'iPad Air', $3)`, [
+      token,
+      platform,
+      secret,
+    ]);
   } finally {
     await client.query(`RESET ROLE`);
     await client.query(`SELECT set_config('request.jwt.claims', '', false)`);
@@ -88,6 +104,39 @@ describe('waves_register_push_token', () => {
     expect(rows[0].n).toBe(1);
   });
 
+  it('refuses a takeover from anyone not holding the install', async () => {
+    const holder = await person();
+    const former = await person();
+    const t = token();
+    await registerFor(holder, t, INSTALL);
+    // A former user replays the token from their own install.
+    await expect(registerFor(former, t, OTHER_INSTALL)).rejects.toThrow(/DEVICE_MISMATCH/);
+    await expect(registerFor(former, t, null)).rejects.toThrow(/DEVICE_MISMATCH/);
+    expect(await owner(t)).toEqual({ profile_id: holder, revoked: false });
+  });
+
+  it('binds a row from before install secrets, then holds it to that install', async () => {
+    const first = await person();
+    const second = await person();
+    const third = await person();
+    const t = token();
+    await client.query(
+      `INSERT INTO push_tokens (profile_id, expo_push_token, platform) VALUES ($1, $2, 'ios')`,
+      [first, t],
+    );
+    await registerFor(second, t, INSTALL);
+    expect(await owner(t)).toEqual({ profile_id: second, revoked: false });
+    await expect(registerFor(third, t, OTHER_INSTALL)).rejects.toThrow(/DEVICE_MISMATCH/);
+  });
+
+  it('lets the owner re-register their own token without the secret', async () => {
+    const me = await person();
+    const t = token();
+    await registerFor(me, t, INSTALL);
+    await registerFor(me, t, null);
+    expect(await owner(t)).toEqual({ profile_id: me, revoked: false });
+  });
+
   it('then pushes the new account’s notifications to it, not the old one’s', async () => {
     const first = await person();
     const second = await person();
@@ -118,7 +167,7 @@ describe('waves_register_push_token', () => {
     const t = token();
     await expect(
       asRole(client, 'authenticated', { role: 'authenticated' }, () =>
-        client.query(`SELECT waves_register_push_token($1, 'ios', NULL)`, [t]),
+        client.query(`SELECT waves_register_push_token($1, 'ios', NULL, NULL)`, [t]),
       ),
     ).rejects.toThrow(/NOT_SIGNED_IN/);
   });
@@ -127,7 +176,7 @@ describe('waves_register_push_token', () => {
     const me = await person();
     await expect(
       asRole(client, 'authenticated', { sub: me, role: 'authenticated' }, () =>
-        client.query(`SELECT waves_register_push_token('not-a-token', 'ios', NULL)`),
+        client.query(`SELECT waves_register_push_token('not-a-token', 'ios', NULL, NULL)`),
       ),
     ).rejects.toThrow(/INVALID_TOKEN/);
   });
@@ -136,7 +185,7 @@ describe('waves_register_push_token', () => {
     const t = token();
     await expect(
       asRole(client, 'anon', { role: 'anon' }, () =>
-        client.query(`SELECT waves_register_push_token($1, 'ios', NULL)`, [t]),
+        client.query(`SELECT waves_register_push_token($1, 'ios', NULL, NULL)`, [t]),
       ),
     ).rejects.toThrow(/permission denied/);
   });

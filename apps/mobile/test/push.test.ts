@@ -17,10 +17,19 @@ const h = vi.hoisted(() => ({
   getSession: vi.fn(),
   upsert: vi.fn(),
   rpc: vi.fn(),
+  secureGet: vi.fn(),
+  secureSet: vi.fn(),
   update: vi.fn(),
   eq: vi.fn(),
   from: vi.fn(),
 }));
+
+vi.mock('expo-secure-store', () => ({
+  getItemAsync: h.secureGet,
+  setItemAsync: h.secureSet,
+}));
+
+vi.mock('expo-crypto', () => ({ randomUUID: () => '11111111-2222-3333-4444-555555555555' }));
 
 vi.mock('react-native', () => ({
   Platform: {
@@ -73,6 +82,8 @@ beforeEach(() => {
   h.getSession.mockResolvedValue({ data: { session: { user: { id: 'profile-1' } } } });
   h.upsert.mockResolvedValue({ error: null });
   h.rpc.mockResolvedValue({ error: null });
+  h.secureGet.mockResolvedValue(null);
+  h.secureSet.mockResolvedValue(undefined);
   h.eq.mockResolvedValue({ error: null });
   h.update.mockReturnValue({ eq: h.eq });
   h.from.mockReturnValue({ upsert: h.upsert, update: h.update });
@@ -182,11 +193,16 @@ describe('enablePush', () => {
     // Through the RPC that moves the token to the signed-in profile — never a
     // direct upsert, which RLS refused once another account owned the device's
     // token.
+    // With this install's secret: minted once, kept in the keystore, and the
+    // proof the server needs before a token can move to another account.
+    const secret = '1111111122223333444455555555555511111111222233334444555555555555';
     expect(h.rpc).toHaveBeenCalledWith('waves_register_push_token', {
       p_token: 'ExponentPushToken[abc]',
       p_platform: 'android',
       p_device_name: 'Pixel 9',
+      p_install_secret: secret,
     });
+    expect(h.secureSet).toHaveBeenCalledWith('waves.push.installSecret', secret);
     expect(h.upsert).not.toHaveBeenCalled();
   });
 });
@@ -264,5 +280,26 @@ describe('routeForNotification', () => {
     expect(push.routeForNotification(response(undefined))).toBeNull();
     expect(push.routeForNotification(response({ url: 42 }))).toBeNull();
     expect(push.routeForNotification(response({ url: '' }))).toBeNull();
+  });
+});
+
+describe('the install secret', () => {
+  it('is minted once and reused, never re-minted per sign-in', async () => {
+    const push = await load('ios');
+    h.getPermissionsAsync.mockResolvedValue({ status: 'granted' });
+    h.secureGet.mockResolvedValue('kept-from-the-first-launch-0123456789abcdef');
+    await push.refreshPushToken();
+    expect(h.rpc.mock.calls[0]![1]).toMatchObject({
+      p_install_secret: 'kept-from-the-first-launch-0123456789abcdef',
+    });
+    expect(h.secureSet).not.toHaveBeenCalled();
+  });
+
+  it('is sent as null when the keystore will not answer, rather than failing', async () => {
+    const push = await load('ios');
+    h.getPermissionsAsync.mockResolvedValue({ status: 'granted' });
+    h.secureGet.mockRejectedValue(new Error('keystore locked'));
+    await expect(push.refreshPushToken()).resolves.toEqual({ ok: true });
+    expect(h.rpc.mock.calls[0]![1]).toMatchObject({ p_install_secret: null });
   });
 });
