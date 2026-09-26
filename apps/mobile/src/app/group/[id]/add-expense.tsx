@@ -110,6 +110,7 @@ import {
 } from '@/lib/expenseEdit';
 import { SplitKindChips, SplitParticipants } from '@/components/expense/SplitEditor';
 import { clearDraft, syncEngine, useDraft, useRestoredDraft, useSync } from '@/sync';
+import { discardHeldReceipts, flushReceiptQueue, releaseHeldReceipts } from '@/lib/receiptQueue';
 import { useDialog } from '@/lib/dialog';
 
 /** Shared empty set — a new one per render would defeat every memo below it. */
@@ -232,6 +233,25 @@ function parseLocationParam(value: string | undefined): ExpenseLocation | null {
   }
 }
 
+/**
+ * Let go of the receipts held for a newly saved expense, and send them.
+ *
+ * After the ledger push rather than beside it: the attach RPC needs the expense
+ * row, and a receipt that raced ahead of it would fail and sit out a retry
+ * backoff. Never awaited by the screen — the queue owns them from here, and it
+ * keeps trying on launch, foreground and reconnect if this cannot finish.
+ */
+async function sendHeldReceipts(expenseId: string): Promise<void> {
+  try {
+    if ((await releaseHeldReceipts(expenseId)) === 0) return;
+    await syncEngine.flush();
+    const sent = await flushReceiptQueue();
+    if (sent.uploadedExpenseIds.length > 0) await syncEngine.flush();
+  } catch {
+    // Best-effort; the queue retries on its own.
+  }
+}
+
 export default function AddExpenseScreen() {
   const theme = useTheme();
   // The room the pinned action bar leaves under Save for the system navigation
@@ -320,6 +340,26 @@ export default function AddExpenseScreen() {
   // with no network at all (ADR-005).
   const [newExpenseId] = useState(() => randomUUID());
   const targetExpenseId = expenseId ?? newExpenseId;
+
+  // Receipts added while the expense is still new are parked under its id but
+  // held (`ExpenseReceipts` in draft mode). Saving lets them go; leaving
+  // without saving drops them, so an abandoned add leaves no photographs
+  // behind. `saved` is a ref because the cleanup below runs after the last
+  // render has gone.
+  //
+  // Saved is decided on the way out, not only at the save: a save whose kept
+  // bill then fails to upload leaves the person on this screen, and a picture
+  // added after that is held again. Released on leaving, it goes with the
+  // expense it now belongs to; discarded, it would be a bill somebody watched
+  // themselves attach.
+  const saved = useRef(false);
+  useEffect(
+    () => () => {
+      if (expenseId) return;
+      void (saved.current ? sendHeldReceipts(newExpenseId) : discardHeldReceipts(newExpenseId));
+    },
+    [expenseId, newExpenseId],
+  );
 
   // ADR-005: a crash mid-entry must not cost the user their typing.
   const draftKey = `expense:${groupId}:${expenseId ?? 'new'}`;
@@ -1078,6 +1118,11 @@ export default function AddExpenseScreen() {
         }),
       );
       await clearDraft(draftKey);
+      // The receipts held for a new expense can go now (see sendHeldReceipts).
+      if (!expenseId) {
+        saved.current = true;
+        void sendHeldReceipts(targetExpenseId);
+      }
       // The expense exists now; closing the capture removes it from the inbox
       // and records which expense it became (A34). Done before leaving so a
       // successful save never leaves the capture orphaned in the list.
@@ -1469,15 +1514,15 @@ export default function AddExpenseScreen() {
               expense with four receipts showed one of them on the screen where
               you go to change it.
 
-              Only when editing: attachments are committed against an expense row,
-              and a new expense has no row yet. On a new one the scan/photo
-              shortcuts above are the whole story, and what they capture is
-              uploaded once the save lands. */}
-            {editing ? (
+              On a new expense there is no row to attach to yet, so the gallery
+              runs in draft mode: what is added is parked on the device, held,
+              and sent once the save lands (see `saved` above). */}
+            {editing || !expenseId ? (
               <ExpenseReceipts
                 groupId={groupId}
                 expenseId={targetExpenseId}
-                canManage={isExpenseParty}
+                draft={!expenseId}
+                canManage={editing ? isExpenseParty : true}
                 canRemoveLegacy={isExpenseParty || iAmGroupAdmin}
                 legacyReceiptPath={receiptUri ? receiptPath : null}
                 onLegacyRemoved={() => {
