@@ -186,11 +186,14 @@ export function CategoryRow({
   value,
   meta,
   onPress,
+  accessibilityHint,
 }: {
   value: string | null;
   /** The custom tag's denormalised display, when the value is a custom tag. */
   meta?: CategoryMeta | null;
-  onPress: () => void;
+  /** Absent where the kind is shown but cannot be changed (a bill you may not edit). */
+  onPress?: () => void;
+  accessibilityHint?: string;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
@@ -212,6 +215,7 @@ export function CategoryRow({
       label={t.whatFor}
       value={label}
       onPress={onPress}
+      accessibilityHint={accessibilityHint}
     />
   );
 }

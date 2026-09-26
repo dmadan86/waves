@@ -28,7 +28,7 @@ import {
 
 import { balanceDirection, copyFor, format, money, moneyAccessibilityLabel } from '@waves/core';
 
-import { CategoryBadge } from '@/components/Category';
+import { CategoryBadge, CategoryRow } from '@/components/Category';
 import { DetailRow, DetailRows } from '@/components/DetailRows';
 import { useAvatarUrl } from '@/components/ProfileAvatar';
 import { MapPreview } from '@/components/MapPreview';
@@ -637,6 +637,15 @@ export default function ExpenseDetailScreen() {
                   icon="people-circle-outline"
                   label={t.expense.detailGroup}
                   value={groupLabel(group.data, members.data ?? [], viewerId)}
+                />
+                {/* What kind of bill it is, in words. The badge in the hero
+                    shows it only as an icon, so the name was visible only in
+                    the editor. Same row the editor uses; a tap changes it. */}
+                <CategoryRow
+                  value={version.category}
+                  meta={version.category_meta}
+                  onPress={changeOn('category')}
+                  accessibilityHint={t.expense.detailTapHint}
                 />
                 <DetailRow
                   icon="wallet-outline"
