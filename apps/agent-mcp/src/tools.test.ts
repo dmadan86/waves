@@ -159,6 +159,10 @@ const WRITE_CALLS: { name: string; arguments: Record<string, unknown> }[] = [
       participants: [me, other],
     },
   },
+  {
+    name: 'add_expense_with_person',
+    arguments: { person: 'Renny', description: 'Dinner', amount: '100000', paidBy: 'them' },
+  },
   { name: 'delete_expense', arguments: { expenseId: randomUUID() } },
   {
     name: 'record_settlement',

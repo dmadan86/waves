@@ -3,11 +3,15 @@
  *
  * "Friends" in Waves is not a friend list. There is no such table and nothing to
  * add somebody to: it is the derived answer to "who am I not square with",
- * netted across every group you share with them, per currency. That is why this
- * scope is read-only and why there is no `POST /v1/friends` — adding a person is
- * making a group with them in it, which is `POST /v1/groups` followed by
- * `POST /v1/groups/{id}/members`, and pretending otherwise would invent a
- * concept the ledger does not have.
+ * netted across every group you share with them, per currency. That is why there
+ * is no `POST /v1/friends` — adding a person is making a group with them in it.
+ *
+ * What there is, is `POST /v1/friends/expenses`: an individual expense, the one
+ * thing people most often want to record with a single person. It goes in the
+ * caller's one-to-one group with them — the two-member group the app shows as
+ * that person — found by name, or made the way the app makes one when there is
+ * none (see `server/pair.ts`). The ledger gains no new concept: it is still an
+ * ordinary expense in an ordinary group.
  *
  * Categories are the other half: a person's own tag catalogue, which overrides
  * or extends the built-in set. Owned by one account, never shared, so the whole
@@ -16,14 +20,16 @@
  */
 
 import { Hono } from 'hono';
-import type { PersonBalanceRow } from '@waves/api-client';
+import type { Expense, PersonBalanceRow } from '@waves/api-client';
 import { CATEGORIES } from '@waves/core';
 
 import { caller, requireScope, type ApiEnv } from '../../server/authorize';
 import { ApiError } from '../../server/errors';
-import { boolOrThrow, textOrThrow } from '../../server/fields';
+import { boolOrThrow, currencyOrThrow, dateOrThrow, textOrThrow } from '../../server/fields';
+import { findPair, foldName, loadPairGroups, SELF } from '../../server/pair';
 import { derivedId, jsonBody, mutationIdFor } from '../../server/request';
-import { toCategory, toFriend, type CategoryTagRow } from '../../server/resources';
+import { toCategory, toExpense, toFriend, type CategoryTagRow } from '../../server/resources';
+import { EXPENSE_COLUMNS, minor } from './expenses';
 
 const CATEGORY_COLUMNS = 'id, builtin_id, label, icon, tint, axis, sort_order, hidden';
 
@@ -73,6 +79,169 @@ people.get('/friends', requireScope('friends.read'), async (c) => {
   if (error) throw error;
   const rows = (data ?? []) as unknown as PersonBalanceRow[];
   return c.json({ data: rows.map(toFriend) });
+});
+
+people.post('/friends/expenses', requireScope('expenses.write'), async (c) => {
+  const me = caller(c);
+  const body = await jsonBody(c.req.raw);
+
+  const name = textOrThrow(body.name, 'name', 80);
+  if (SELF.has(foldName(name))) {
+    throw new ApiError(
+      'invalid_request',
+      'name is who the expense is with — somebody other than you.',
+      {},
+      { field: 'name' },
+    );
+  }
+  const description = textOrThrow(body.description, 'description', 200);
+  const amount = minor(body.amount, 'amount');
+  const expenseDate = dateOrThrow(body.expense_date, 'expense_date');
+  if (!expenseDate) throw new ApiError('invalid_request', 'expense_date is required.');
+  const asked = 'currency' in body ? currencyOrThrow(body.currency, 'currency') : null;
+
+  const paidBy = body.paid_by ?? 'me';
+  if (paidBy !== 'me' && paidBy !== 'them') {
+    throw new ApiError('invalid_request', 'paid_by is "me" or "them".', {}, { field: 'paid_by' });
+  }
+
+  // The split names people as "mine" and "theirs" rather than by member id: a
+  // caller starting a one-to-one cannot know the ids of a group that does not
+  // exist yet. Translated to member ids below, then checked by the edge
+  // function like every other split.
+  const split = body.split ?? { kind: 'equal' };
+  let shares: { mine: bigint; theirs: bigint } | null = null;
+  if (typeof split !== 'object' || split === null || Array.isArray(split)) {
+    throw new ApiError('invalid_request', 'split is an object; omit it for half each.');
+  }
+  const kind = (split as { kind?: unknown }).kind;
+  if (kind === 'exact') {
+    const { mine, theirs } = split as { mine?: unknown; theirs?: unknown };
+    shares = { mine: minor(mine, 'split.mine'), theirs: minor(theirs, 'split.theirs') };
+  } else if (kind !== 'equal') {
+    throw new ApiError(
+      'invalid_request',
+      'split is {"kind":"equal"} or {"kind":"exact","mine":"…","theirs":"…"}.',
+      {},
+      { field: 'split' },
+    );
+  }
+
+  const mutationId = mutationIdFor(
+    me.tokenId,
+    'POST /v1/friends/expenses',
+    c.req.header('Idempotency-Key'),
+  );
+
+  const found = findPair(await loadPairGroups(me.supabase), me.profileId, name);
+  if (found.kind === 'ambiguous') {
+    throw new ApiError(
+      'conflict',
+      `You have ${found.candidates.length} one-to-one groups with "${name}". Add the expense to one of them with POST /v1/expenses.`,
+      {},
+      {
+        candidates: found.candidates.map((candidate) => ({
+          group_id: candidate.groupId,
+          name: candidate.name,
+        })),
+      },
+    );
+  }
+
+  let groupId: string;
+  let mine: string;
+  let theirs: string;
+  let theirName: string;
+  let currency: string;
+  if (found.kind === 'found') {
+    groupId = found.group.groupId;
+    mine = found.me.memberId;
+    theirs = found.them.memberId;
+    theirName = found.them.name;
+    currency = asked ?? found.group.currency;
+  } else {
+    // Starting a one-to-one makes a group, so it takes the scope that making a
+    // group takes. An expense in an existing one does not.
+    if (!me.scopes.includes('groups.write')) {
+      throw new ApiError(
+        'insufficient_scope',
+        `You have no one-to-one group with "${name}" yet, and starting one needs the groups.write scope.`,
+      );
+    }
+    if (asked) {
+      currency = asked;
+    } else {
+      const { data } = await me.supabase
+        .from('profiles')
+        .select('default_currency')
+        .eq('id', me.profileId)
+        .maybeSingle();
+      currency = String((data as { default_currency?: string } | null)?.default_currency ?? 'INR');
+    }
+
+    // Every id derives from the idempotency key, so a retry after a failure
+    // halfway finds the pair it already made rather than starting a second.
+    groupId = derivedId(mutationId, 'group');
+    mine = derivedId(mutationId, 'creator-member');
+    theirs = derivedId(mutationId, 'member');
+    theirName = name;
+    const { error: groupError } = await me.supabase.rpc('waves_create_group', {
+      p_name: name,
+      p_type: 'other',
+      p_currency: currency,
+      p_emoji: null,
+      p_simplify: true,
+      p_group_id: groupId,
+      p_photo_path: null,
+      p_country: null,
+      p_creator_member_id: mine,
+    });
+    if (groupError) throw groupError;
+    const { error: ghostError } = await me.supabase.rpc('waves_add_ghost_member', {
+      p_group_id: groupId,
+      p_name: name,
+      p_member_id: theirs,
+      p_email: null,
+      p_phone: null,
+    });
+    if (ghostError) throw ghostError;
+  }
+
+  const result = await me.waves.writeExpense({
+    groupId,
+    description,
+    category: typeof body.category === 'string' ? body.category : null,
+    expenseDate,
+    currency,
+    amount,
+    splitParams: shares
+      ? {
+          kind: 'exact',
+          amounts: { [mine]: String(shares.mine), [theirs]: String(shares.theirs) },
+        }
+      : { kind: 'equal' },
+    participants: [mine, theirs],
+    payers: { [paidBy === 'them' ? theirs : mine]: amount },
+    notes: typeof body.notes === 'string' ? body.notes : null,
+    clientMutationId: mutationId,
+  });
+
+  const { data } = await me.supabase
+    .from('expenses')
+    .select(EXPENSE_COLUMNS)
+    .eq('id', result.expenseId)
+    .limit(1);
+  const expense = toExpense((data ?? [])[0] as unknown as Expense);
+  if (!expense) {
+    throw new ApiError('internal', 'The expense was written but could not be read back.');
+  }
+  c.status(201);
+  return c.json({
+    group_id: groupId,
+    created_group: found.kind === 'none',
+    person: { member_id: theirs, name: theirName },
+    expense,
+  });
 });
 
 people.get('/categories', requireScope('categories.read'), async (c) => {

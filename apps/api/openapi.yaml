@@ -969,9 +969,10 @@ paths:
         Not a friend list — there is no such table and nothing to add somebody
         to. It is the derived answer to "who am I not square with", netted
         across every group you share with them, per currency. That is why there
-        is no write here: adding a person is creating a group with them in it,
-        which is `POST /v1/groups` followed by
-        `POST /v1/groups/{groupId}/members`. Returns the complete list — not
+        is no `POST /v1/friends`: adding a person is creating a group with them
+        in it, which is `POST /v1/groups` followed by
+        `POST /v1/groups/{groupId}/members` — or, for an expense with one
+        person, `POST /v1/friends/expenses`. Returns the complete list — not
         paginated, nothing to loop over.
       security:
         - bearerAuth: []
@@ -986,6 +987,70 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /v1/friends/expenses:
+    post:
+      tags: [Friends]
+      operationId: createFriendExpense
+      summary: Add an individual expense with one person
+      description: |
+        An expense between you and one other person, with no group named — the
+        thing people most often want to record. It goes in your one-to-one
+        group with them: the group with just the two of you, which the Waves
+        app shows as that person on its People tab.
+
+        The person is found by `name` among your one-to-one groups: the whole
+        name first, then — for a single word — the first name, ignoring case
+        and accents, so `"Renny"` finds Renny Benita. When you have none with
+        them, one is made the way the app makes one: a group named after them,
+        of type `other`, with them as a ghost (`created_group` is `true`).
+        That needs the `groups.write` scope as well; an expense in an existing
+        one-to-one needs only `expenses.write`.
+
+        When more than one of your one-to-one groups answers to the name, the
+        request is refused with `409` and the candidates, rather than guessed
+        at — pick one and use `POST /v1/expenses` with its `group_id`.
+
+        Send an `Idempotency-Key`: a retry with the same key returns the same
+        expense, and a retry after a failure part-way finishes the same
+        one-to-one rather than starting a second.
+      security:
+        - bearerAuth: []
+        - oauth2: [expenses.write]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateFriendExpenseRequest'
+      responses:
+        '201':
+          description: The expense as written, and the one-to-one group it went in.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FriendExpense'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403':
+          description: >-
+            The token lacks `expenses.write`, or lacks `groups.write` and there
+            is no one-to-one with this person yet (`insufficient_scope`).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '409':
+          description: >-
+            More than one of your one-to-one groups answers to `name`.
+            `error.details.candidates` lists them as `{group_id, name}`. Or the
+            shares do not reconcile with the amount (`SHARE_MISMATCH`).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
         '500': { $ref: '#/components/responses/InternalError' }
 
@@ -3087,6 +3152,85 @@ components:
           description: Renames a ghost. Has no effect on a member with an account.
       examples:
         - role: admin
+
+    CreateFriendExpenseRequest:
+      type: object
+      required: [name, description, expense_date, amount]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+          description: >-
+            Who it was with, as you would say it — `"Renny"` or
+            `"Renny Benita"`. Not you: `"me"` is refused.
+        description:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: What the money was for. Cannot be empty or blank; trimmed.
+        amount:
+          $ref: '#/components/schemas/UnsignedMoney'
+        expense_date:
+          type: string
+          format: date
+          description: A calendar date, `YYYY-MM-DD`.
+        paid_by:
+          type: string
+          enum: [me, them]
+          default: me
+          description: Who paid the whole amount.
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/Currency'
+          description: >-
+            Defaults to the one-to-one group's currency, or your own default
+            currency when the group is new.
+        split:
+          description: >-
+            Omit for half each. Exact shares are named `mine` and `theirs`
+            rather than by member id, because a new one-to-one's member ids do
+            not exist until the request makes them; they must add up to
+            `amount`.
+          oneOf:
+            - type: object
+              required: [kind]
+              properties:
+                kind: { const: equal }
+            - type: object
+              required: [kind, mine, theirs]
+              properties:
+                kind: { const: exact }
+                mine: { $ref: '#/components/schemas/UnsignedMoney' }
+                theirs: { $ref: '#/components/schemas/UnsignedMoney' }
+        category:
+          type: [string, 'null']
+        notes:
+          type: [string, 'null']
+
+    FriendExpense:
+      type: object
+      required: [group_id, created_group, person, expense]
+      properties:
+        group_id:
+          type: string
+          format: uuid
+          description: The one-to-one group the expense went in.
+        created_group:
+          type: boolean
+          description: True when this request made the one-to-one.
+        person:
+          type: object
+          required: [member_id, name]
+          properties:
+            member_id:
+              type: string
+              format: uuid
+            name:
+              type: string
+              description: Their name in the group, e.g. `"Renny Benita"` for `"Renny"`.
+        expense:
+          $ref: '#/components/schemas/Expense'
 
     CreateExpenseRequest:
       type: object
