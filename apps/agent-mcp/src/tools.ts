@@ -390,11 +390,14 @@ export function buildWavesServer(
   // Registered only when the server is not in read-only mode.
 
   if (!readOnly) {
-    registerWriteTools(server, supabase);
+    registerWriteTools(server, supabase, meId);
   }
 
   return server;
 }
+
+/** What people call themselves when they mean the signed-in person. */
+const SELF = new Set(['me', 'i', 'myself']);
 
 interface ResolvedMember {
   readonly name: string;
@@ -414,9 +417,18 @@ interface ResolvedMember {
  * Raj is a fork in the road, not a detail to guess at — choosing one of them
  * silently puts a real debt on the wrong person, and nothing downstream would
  * ever catch it.
+ *
+ * A name is matched the way people say it, not the way the app stores it:
+ * "me" is the signed-in person, and "Renny" is the one member whose name
+ * starts with Renny. Matching the stored name exactly turned both into new
+ * ghosts — a person called "me", sharing a bill with the person who said it.
+ *
+ * Every name is resolved before any ghost is added, so a request that stops
+ * on its third name has not already added people for its first two.
  */
 async function resolveMembers(
   supabase: SupabaseClient,
+  meId: string,
   groupId: string,
   names: readonly string[],
 ): Promise<ResolvedMember[] | ToolResult> {
@@ -432,21 +444,53 @@ async function resolveMembers(
     return {
       memberId: m.id as string,
       name: (profile?.display_name ?? (m.ghost_name as string | null) ?? 'Unnamed').trim(),
+      isMe: m.profile_id === meId,
     };
   });
 
-  const resolved: ResolvedMember[] = [];
+  const plan: { name: string; memberId: string | null }[] = [];
   for (const raw of names) {
     const name = raw.trim();
     if (!name) continue;
-    const matches = known.filter((m) => m.name.toLowerCase() === name.toLowerCase());
+    const said = name.toLowerCase();
+
+    if (SELF.has(said)) {
+      const me = known.find((m) => m.isMe);
+      if (!me) {
+        return fail(
+          `"${name}" means you, and you are not a member of this group. Pass paidBy and participants as member ids instead.`,
+        );
+      }
+      plan.push({ name, memberId: me.memberId });
+      continue;
+    }
+
+    // The whole name first, so "Raj" is the member called Raj even when a
+    // "Raj Kumar" is in the group too; then the first name, for "Renny".
+    let matches = known.filter((m) => m.name.toLowerCase() === said);
+    if (matches.length === 0 && !/\s/.test(said)) {
+      matches = known.filter((m) => m.name.toLowerCase().split(/\s+/)[0] === said);
+    }
     if (matches.length > 1) {
       return fail(
-        `"${name}" matches ${matches.length} members of this group. Ask which one, and pass their memberId directly.`,
+        `"${name}" matches ${matches.length} members of this group (${matches
+          .map((m) => m.name)
+          .join(', ')}). Ask which one, and pass their memberId directly.`,
       );
     }
-    if (matches.length === 1) {
-      resolved.push({ name, memberId: matches[0]!.memberId, created: false });
+    plan.push({ name, memberId: matches[0]?.memberId ?? null });
+  }
+
+  const resolved: ResolvedMember[] = [];
+  const added = new Map<string, string>();
+  for (const { name, memberId } of plan) {
+    if (memberId) {
+      resolved.push({ name, memberId, created: false });
+      continue;
+    }
+    const again = added.get(name.toLowerCase());
+    if (again) {
+      resolved.push({ name, memberId: again, created: false });
       continue;
     }
     const { data: ghostId, error: ghostError } = await supabase.rpc('waves_add_ghost_member', {
@@ -454,7 +498,7 @@ async function resolveMembers(
       p_name: name,
     });
     if (ghostError) return fail(ghostError.message);
-    known.push({ memberId: ghostId as string, name });
+    added.set(name.toLowerCase(), ghostId as string);
     resolved.push({ name, memberId: ghostId as string, created: true });
   }
   return resolved;
@@ -468,8 +512,9 @@ async function resolveMembers(
  * told "split it with Raj and Priya", a request names two people and means
  * three, and leaving the payer out would have them lending the whole bill.
  */
-async function expenseParty(
+export async function expenseParty(
   supabase: SupabaseClient,
+  meId: string,
   groupId: string,
   input: { people?: string[]; participants?: string[]; paidBy?: string },
 ): Promise<{ participants: string[] | ToolResult; paidBy: string; added: string[] }> {
@@ -485,7 +530,10 @@ async function expenseParty(
 
   let paidBy = input.paidBy;
   if (!paidBy) {
-    const { data, error } = await supabase.rpc('waves_my_member_id_for', { p_group_id: groupId });
+    const { data, error } = await supabase.rpc('waves_my_member_id_for', {
+      p_group_id: groupId,
+      p_profile_id: meId,
+    });
     if (error) return { ...nothing, participants: fail(error.message) };
     if (!data) {
       return {
@@ -499,7 +547,7 @@ async function expenseParty(
   const ids = [...(input.participants ?? [])];
   let added: string[] = [];
   if (input.people?.length) {
-    const resolved = await resolveMembers(supabase, groupId, input.people);
+    const resolved = await resolveMembers(supabase, meId, groupId, input.people);
     if (!Array.isArray(resolved)) return { ...nothing, participants: resolved };
     for (const member of resolved) ids.push(member.memberId);
     added = resolved.filter((m) => m.created).map((m) => m.name);
@@ -508,7 +556,7 @@ async function expenseParty(
   return { participants: [...expenseParticipants(paidBy, ids)], paidBy, added };
 }
 
-function registerWriteTools(server: McpServer, supabase: SupabaseClient): void {
+function registerWriteTools(server: McpServer, supabase: SupabaseClient, meId: string): void {
   server.registerTool(
     'create_group',
     {
@@ -593,7 +641,7 @@ function registerWriteTools(server: McpServer, supabase: SupabaseClient): void {
       const currency = await groupCurrency(supabase, input.groupId);
       if (typeof currency !== 'string') return currency;
 
-      const party = await expenseParty(supabase, input.groupId, input);
+      const party = await expenseParty(supabase, meId, input.groupId, input);
       if (!Array.isArray(party.participants)) return party.participants;
       const { participants, paidBy, added } = party;
 
@@ -774,7 +822,7 @@ function registerWriteTools(server: McpServer, supabase: SupabaseClient): void {
       },
     },
     async ({ groupId, names }): Promise<ToolResult> => {
-      const resolved = await resolveMembers(supabase, groupId, names);
+      const resolved = await resolveMembers(supabase, meId, groupId, names);
       if (!Array.isArray(resolved)) return resolved;
 
       return ok({
