@@ -125,6 +125,7 @@ function recordingSupabase(calls: RpcCall[]): SupabaseClient {
     from: rows,
     rpc: async (fn: string, args: Record<string, unknown>) => {
       calls.push({ fn, args });
+      if (fn === 'waves_my_agent_writes') return { data: [], error: null };
       return { data: fn === 'waves_ensure_group_join_token' ? 'token' : randomUUID(), error: null };
     },
     functions: { invoke: async () => ({ data: {}, error: null }) },
@@ -168,6 +169,11 @@ const WRITE_CALLS: { name: string; arguments: Record<string, unknown> }[] = [
   { name: 'invite_link', arguments: { groupId: group } },
 ];
 
+/** The read tools that go through an RPC rather than a table, held to the same check. */
+const READ_RPC_CALLS: { name: string; arguments: Record<string, unknown> }[] = [
+  { name: 'list_agent_writes', arguments: {} },
+];
+
 async function readOnlyToolNames(): Promise<Set<string>> {
   const server = buildWavesServer(recordingSupabase([]), randomUUID(), true);
   const [clientSide, serverSide] = InMemoryTransport.createLinkedPair();
@@ -191,7 +197,7 @@ async function driveWriteTools(): Promise<RpcCall[]> {
   const reads = await readOnlyToolNames();
   expect(WRITE_CALLS.map((c) => c.name).sort()).toEqual(all.filter((t) => !reads.has(t)).sort());
 
-  for (const call of WRITE_CALLS) {
+  for (const call of [...WRITE_CALLS, ...READ_RPC_CALLS]) {
     const result = await client.callTool(call);
     expect(result.isError, `${call.name}: ${JSON.stringify(result.content)}`).toBeFalsy();
   }
