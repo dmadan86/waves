@@ -23,8 +23,8 @@ import {
 
 import { exportData } from '@/data/api';
 import { friendlyError } from '@/lib/errors';
-import { useGroups } from '@/data/hooks';
-import { groupLabel } from '@/data/types';
+import { useGroupLabeller, useGroups } from '@/data/hooks';
+
 import { useStrings } from '@/i18n';
 import { router } from '@/lib/navigation';
 
@@ -46,6 +46,7 @@ const UTI: Record<Format, string> = {
  * export can rebuild the ledger exactly.
  */
 export default function ExportScreen() {
+  const labelOf = useGroupLabeller();
   const theme = useTheme();
   const clearance = useTabBarClearance();
   const groups = useGroups();
@@ -168,7 +169,7 @@ export default function ExportScreen() {
               { value: 'all', label: t.exportData.allMyGroups },
               ...(groups.data ?? []).map((group) => ({
                 value: group.id,
-                label: groupLabel(group),
+                label: labelOf(group),
               })),
             ]}
           />
