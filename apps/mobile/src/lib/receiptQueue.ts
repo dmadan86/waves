@@ -93,6 +93,19 @@ const SETTLED_TTL_MS = 60 * 60 * 1000;
  */
 const HELD_TTL_MS = 24 * 60 * 60 * 1000;
 
+/**
+ * What the add screen decided for each unsaved expense, once it decided.
+ *
+ * A picked photograph takes a second or more to resize before it is parked, and
+ * the person can press Save — or leave — inside that second. The decision then
+ * runs before the picture exists, and a picture parked held afterwards would
+ * be neither sent nor thrown away. So the decision is remembered here, and a
+ * late arrival follows it: after a save it is parked ready to send, after an
+ * abandoned add it is not kept at all. In memory only: an expense id is fresh
+ * for every add, and a killed app is what the one-day sweep is for.
+ */
+const heldDecisions = new Map<string, 'released' | 'discarded'>();
+
 function backoffFor(attempts: number): number {
   const index = Math.min(Math.max(attempts, 1), RETRY_BACKOFF_MS.length) - 1;
   return RETRY_BACKOFF_MS[index] ?? RETRY_BACKOFF_MS[RETRY_BACKOFF_MS.length - 1] ?? 0;
@@ -217,7 +230,8 @@ function sameQueue(a: readonly PendingReceipt[], b: readonly PendingReceipt[]): 
       entry.lastError === other.lastError &&
       Boolean(entry.permanent) === Boolean(other.permanent) &&
       (entry.nextAttemptAt ?? null) === (other.nextAttemptAt ?? null) &&
-      (entry.sentAt ?? null) === (other.sentAt ?? null)
+      (entry.sentAt ?? null) === (other.sentAt ?? null) &&
+      Boolean(entry.held) === Boolean(other.held)
     );
   });
 }
@@ -389,6 +403,19 @@ async function reapSettled(queue: readonly PendingReceipt[]): Promise<PendingRec
   );
   if (kept.length === queue.length) return [...queue];
   await writeQueue(kept);
+  // A settled entry's bytes normally moved into the view cache already; an
+  // expired held one's never went anywhere. Either way nothing points at them
+  // now, and this sweep also runs from a flush, where the orphan sweep in
+  // `listPendingReceipts` does not.
+  for (const entry of queue) {
+    if (kept.includes(entry)) continue;
+    try {
+      const file = pendingFile(entry);
+      if (file.exists) file.delete();
+    } catch {
+      // Best-effort; a lingering file is reclaimed with the app's document dir.
+    }
+  }
   return kept;
 }
 
@@ -515,6 +542,8 @@ export async function enqueueReceipt(input: {
   /** For an expense not saved yet: park it, but send nothing until released. */
   held?: boolean;
 }): Promise<PendingReceipt> {
+  const decided = input.held ? heldDecisions.get(input.expenseId) : undefined;
+  const held = Boolean(input.held) && decided === undefined;
   const attachmentId = randomUUID();
   const ext = extensionFor(input.contentType);
   const entry: PendingReceipt = {
@@ -532,12 +561,14 @@ export async function enqueueReceipt(input: {
     permanent: false,
     nextAttemptAt: null,
     sentAt: null,
-    ...(input.held ? { held: true } : {}),
+    ...(held ? { held: true } : {}),
   };
 
   if (!input.sourceUri && !input.base64) {
     throw new Error('enqueueReceipt needs either sourceUri or base64.');
   }
+  // The add it was picked for was abandoned while it was being prepared.
+  if (decided === 'discarded') return entry;
 
   // The bytes and the entry that names them go down together, in one turn.
   // Split across turns, the file exists for a moment with nothing in the index
@@ -564,6 +595,7 @@ export async function enqueueReceipt(input: {
  * Returns how many were released.
  */
 export async function releaseHeldReceipts(expenseId: string): Promise<number> {
+  heldDecisions.set(expenseId, 'released');
   return inTurn(async () => {
     const queue = await readQueue();
     let released = 0;
@@ -583,6 +615,9 @@ export async function releaseHeldReceipts(expenseId: string): Promise<number> {
  * held entries go — a released one belongs to a saved expense now.
  */
 export async function discardHeldReceipts(expenseId: string): Promise<void> {
+  // Never overturns a save: a released expense's receipts are the ledger's now.
+  if (heldDecisions.get(expenseId) === 'released') return;
+  heldDecisions.set(expenseId, 'discarded');
   await inTurn(async () => {
     const queue = await readQueue();
     const dropped = queue.filter((entry) => entry.expenseId === expenseId && entry.held);

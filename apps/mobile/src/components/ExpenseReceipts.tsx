@@ -546,9 +546,10 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
       // the queue, before anything touches the network.
       setPreparing(asset.uri);
       void (async () => {
+        let parked: Awaited<ReturnType<typeof enqueueReceipt>>;
         try {
           const file = await prepareReceipt(asset);
-          await enqueueReceipt({
+          parked = await enqueueReceipt({
             expenseId,
             groupId,
             visibility,
@@ -571,8 +572,9 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
         } finally {
           setPreparing(null);
         }
-        // Held until the expense is saved; the add screen sends it then.
-        if (!draft) await sendPending();
+        // Held until the expense is saved; the add screen sends it then. One
+        // that finished preparing after the save came back ready to go.
+        if (!parked.held) await sendPending();
       })();
     };
 
