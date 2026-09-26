@@ -159,6 +159,8 @@ const {
   getPendingReceiptsSnapshot,
   listPendingReceipts,
   isOnline,
+  releaseHeldReceipts,
+  discardHeldReceipts,
   pendingReceiptUri,
   retryPendingReceipts,
   subscribePendingReceipts,
@@ -259,6 +261,84 @@ describe('parking a capture', () => {
     expect(seen.at(-1)).toBe(0);
     expect(seen).toContain(1);
     expect(fs.files.has(pendingPath(entry.fileName))).toBe(false);
+  });
+});
+
+describe('a receipt added to an expense that is not saved yet', () => {
+  const addHeld = (expenseId = 'new-1') =>
+    enqueueReceipt({
+      expenseId,
+      groupId: 'g1',
+      visibility: 'group',
+      base64: Buffer.from([4, 5, 6]).toString('base64'),
+      contentType: 'image/jpeg',
+      held: true,
+    });
+
+  it('is parked and on screen at once, but never sent while held', async () => {
+    const entry = await addHeld();
+
+    expect(fs.files.get(pendingPath(entry.fileName))).toEqual(new Uint8Array([4, 5, 6]));
+    expect(await listPendingReceipts('new-1')).toHaveLength(1);
+    const result = await flushReceiptQueue();
+    // There is no expense row to attach it to yet, so nothing goes up.
+    expect(world.put).not.toHaveBeenCalled();
+    expect(result.uploadedExpenseIds).toEqual([]);
+    expect(await storedQueue()).toEqual([expect.objectContaining({ held: true })]);
+  });
+
+  it('goes up once the expense is saved and it is released', async () => {
+    await addHeld();
+    expect(await releaseHeldReceipts('new-1')).toBe(1);
+
+    const result = await flushReceiptQueue();
+    expect(world.put).toHaveBeenCalledTimes(1);
+    expect(world.rpc).toHaveBeenCalledWith(
+      'waves_attach_expense_attachment',
+      expect.objectContaining({ p_expense_id: 'new-1' }),
+    );
+    expect(result.uploadedExpenseIds).toEqual(['new-1']);
+    expect((await storedQueue())[0]).not.toHaveProperty('held');
+  });
+
+  it("releases only that expense's receipts", async () => {
+    await addHeld('new-1');
+    await addHeld('new-2');
+    expect(await releaseHeldReceipts('new-1')).toBe(1);
+    await flushReceiptQueue();
+    expect(world.rpc).toHaveBeenCalledTimes(1);
+    expect(world.rpc).toHaveBeenCalledWith(
+      'waves_attach_expense_attachment',
+      expect.objectContaining({ p_expense_id: 'new-1' }),
+    );
+  });
+
+  it('is dropped, bytes and all, when the add is abandoned', async () => {
+    const entry = await addHeld();
+    await discardHeldReceipts('new-1');
+    expect(await listPendingReceipts()).toEqual([]);
+    expect(fs.files.has(pendingPath(entry.fileName))).toBe(false);
+  });
+
+  it('leaves a released receipt alone when the add screen closes after saving', async () => {
+    await addHeld();
+    await releaseHeldReceipts('new-1');
+    await discardHeldReceipts('new-1');
+    expect(await listPendingReceipts('new-1')).toHaveLength(1);
+  });
+
+  it('is swept up a day later when the app was killed on the add screen', async () => {
+    parkOnDisk({
+      expenseId: 'never-saved',
+      held: true,
+      createdAt: new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString(),
+    });
+    expect(await listPendingReceipts()).toEqual([]);
+  });
+
+  it('is kept while it is still recent, across a restart', async () => {
+    parkOnDisk({ expenseId: 'still-adding', held: true, createdAt: new Date().toISOString() });
+    expect(await listPendingReceipts('still-adding')).toHaveLength(1);
   });
 });
 

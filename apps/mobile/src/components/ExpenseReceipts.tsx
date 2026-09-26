@@ -306,6 +306,16 @@ interface ExpenseReceiptsProps {
    *  nothing rather than an add row. The gallery of existing receipts still
    *  shows, minus its inline "+" tile. */
   externalAdd?: boolean;
+  /**
+   * The expense is not saved yet — the add screen. Pictures are parked in the
+   * receipt queue at once, so they show and survive the app being killed, but
+   * held: nothing is sent until the screen saves the expense and calls
+   * `releaseHeldReceipts`, because there is no row on the server to attach
+   * them to until then, and the person may still walk away. The per-expense
+   * cap is not asked either, for the same reason; the attach RPC still
+   * enforces it when they go up.
+   */
+  draft?: boolean;
 }
 
 export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceiptsProps>(
@@ -318,6 +328,7 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
       legacyReceiptPath,
       onLegacyRemoved,
       externalAdd = false,
+      draft = false,
     },
     ref,
   ) {
@@ -373,6 +384,7 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
       queryKey: ['attachmentCap', expenseId],
       queryFn: () => canAddExpenseAttachment(expenseId),
       staleTime: 30_000,
+      enabled: !draft,
     });
     const capLocked = !cap.isError && receiptCapStatus(cap.data, cap.isLoading) === 'locked';
     const refreshCap = () =>
@@ -543,6 +555,7 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
             sourceUri: file.uri,
             contentType: file.mimeType,
             preview: file.preview,
+            held: draft,
           });
         } catch {
           // The bytes never reached the disk (a full device, a revoked path), so
@@ -558,7 +571,8 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
         } finally {
           setPreparing(null);
         }
-        await sendPending();
+        // Held until the expense is saved; the add screen sends it then.
+        if (!draft) await sendPending();
       })();
     };
 
@@ -695,9 +709,12 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
     // thing happening, and the per-tile badges say which capture is which.
     // Only the ones still owed to the server: a settled entry is sitting here
     // waiting for its row, and reporting it as unsent would be a lie.
-    const unsent = items.flatMap((it) =>
-      it.kind === 'pending' && it.entry.status !== 'sent' ? [it.entry] : [],
-    );
+    // A held capture is not waiting on anything but the save button, so it is
+    // drawn as a plain receipt — no "waiting to send" veil over a bill the person
+    // is still in the middle of adding.
+    const inFlight = (it: GalleryItem): it is Extract<GalleryItem, { kind: 'pending' }> =>
+      it.kind === 'pending' && it.entry.status !== 'sent' && !it.entry.held;
+    const unsent = items.flatMap((it) => (inFlight(it) ? [it.entry] : []));
     const failedIds = unsent
       .filter((entry) => entry.status === 'failed')
       .map((entry) => entry.attachmentId);
@@ -722,7 +739,7 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
     /** A settled capture is an ordinary receipt as far as the strip is concerned
      *  — no badge, no scrim, nothing to say about it. */
     const badgeStatus = (it: GalleryItem): PendingReceiptStatus | undefined =>
-      it.kind === 'pending' && it.entry.status !== 'sent' ? it.entry.status : undefined;
+      inFlight(it) ? it.entry.status : undefined;
 
     // A capture that did not go up: say what that means and offer the two things
     // worth doing about it. Removing here does not go through `removeAt`'s
@@ -890,9 +907,7 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
                   isPrivate(it)
                     ? `${t.receipts.title} — ${t.receipts.privateTag}`
                     : t.receipts.title,
-                  it.kind === 'pending' && it.entry.status !== 'sent'
-                    ? statusWord(it.entry.status)
-                    : null,
+                  inFlight(it) ? statusWord(it.entry.status) : null,
                 ]
                   .filter(Boolean)
                   .join(' — ')}

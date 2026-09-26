@@ -110,6 +110,7 @@ import {
 } from '@/lib/expenseEdit';
 import { SplitKindChips, SplitParticipants } from '@/components/expense/SplitEditor';
 import { clearDraft, syncEngine, useDraft, useRestoredDraft, useSync } from '@/sync';
+import { discardHeldReceipts, flushReceiptQueue, releaseHeldReceipts } from '@/lib/receiptQueue';
 import { useDialog } from '@/lib/dialog';
 
 /** Shared empty set — a new one per render would defeat every memo below it. */
@@ -320,6 +321,19 @@ export default function AddExpenseScreen() {
   // with no network at all (ADR-005).
   const [newExpenseId] = useState(() => randomUUID());
   const targetExpenseId = expenseId ?? newExpenseId;
+
+  // Receipts added while the expense is still new are parked under its id but
+  // held (`ExpenseReceipts` in draft mode). Saving lets them go; leaving
+  // without saving drops them, so an abandoned add leaves no photographs
+  // behind. `saved` is a ref because the cleanup below runs after the last
+  // render has gone.
+  const saved = useRef(false);
+  useEffect(
+    () => () => {
+      if (!expenseId && !saved.current) void discardHeldReceipts(newExpenseId);
+    },
+    [expenseId, newExpenseId],
+  );
 
   // ADR-005: a crash mid-entry must not cost the user their typing.
   const draftKey = `expense:${groupId}:${expenseId ?? 'new'}`;
@@ -1078,6 +1092,25 @@ export default function AddExpenseScreen() {
         }),
       );
       await clearDraft(draftKey);
+      // The receipts held for a new expense can go now. Sent after the ledger
+      // push rather than beside it: the attach RPC needs the expense row, and a
+      // receipt that raced ahead of it would fail and sit out a retry backoff.
+      // Not awaited — the queue owns them from here, and it keeps trying on
+      // launch, foreground and reconnect if this attempt cannot finish.
+      if (!expenseId) {
+        saved.current = true;
+        if ((await releaseHeldReceipts(targetExpenseId)) > 0) {
+          void (async () => {
+            try {
+              await syncEngine.flush();
+              const sent = await flushReceiptQueue();
+              if (sent.uploadedExpenseIds.length > 0) await syncEngine.flush();
+            } catch {
+              // Best-effort; the queue retries on its own.
+            }
+          })();
+        }
+      }
       // The expense exists now; closing the capture removes it from the inbox
       // and records which expense it became (A34). Done before leaving so a
       // successful save never leaves the capture orphaned in the list.
@@ -1469,15 +1502,15 @@ export default function AddExpenseScreen() {
               expense with four receipts showed one of them on the screen where
               you go to change it.
 
-              Only when editing: attachments are committed against an expense row,
-              and a new expense has no row yet. On a new one the scan/photo
-              shortcuts above are the whole story, and what they capture is
-              uploaded once the save lands. */}
-            {editing ? (
+              On a new expense there is no row to attach to yet, so the gallery
+              runs in draft mode: what is added is parked on the device, held,
+              and sent once the save lands (see `saved` above). */}
+            {editing || !expenseId ? (
               <ExpenseReceipts
                 groupId={groupId}
                 expenseId={targetExpenseId}
-                canManage={isExpenseParty}
+                draft={!expenseId}
+                canManage={editing ? isExpenseParty : true}
                 canRemoveLegacy={isExpenseParty || iAmGroupAdmin}
                 legacyReceiptPath={receiptUri ? receiptPath : null}
                 onLegacyRemoved={() => {
