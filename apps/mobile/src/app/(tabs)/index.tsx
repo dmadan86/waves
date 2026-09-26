@@ -1238,10 +1238,6 @@ const SLIDE_STYLE: Record<
 // match, and the hero gives back the height.
 const HERO_AMOUNT_SIZE = 24;
 const HERO_AMOUNT_LINE = 30;
-// The tag beside the figure: heading over currency code, together exactly the
-// figure's own line, so a slide is one line tall and the skeleton can match it.
-const HERO_TAG_HEADING_LINE = 16;
-const HERO_TAG_CODE_LINE = HERO_AMOUNT_LINE - HERO_TAG_HEADING_LINE;
 
 const HERO_AMOUNT_STYLE = {
   fontSize: HERO_AMOUNT_SIZE,
@@ -1394,11 +1390,11 @@ function HeroBalance({
 
 /**
  * The balance area while it loads — translucent-white bars on the green in the
- * shape of a `MetricSlide`: the figure, then the two-line tag beside it.
+ * shape of a `MetricSlide`: the heading, then the figure beside it.
  *
  * The whole point is that the swap-in is a settle, not a jump, so the skeleton
- * is exactly one slide tall — `HERO_AMOUNT_LINE`, the line both the figure and
- * the tag are pinned to — and the number lands in place instead of shoving the
+ * is exactly one slide tall — `HERO_AMOUNT_LINE`, the line the figure sets —
+ * and the number lands in place instead of shoving the
  * Add-expense button and the group list down. A gentle pulse reads as
  * "loading" rather than a dead placeholder. Plain `Skeleton` is themed for
  * light surfaces and would vanish on the green, so these are hand-drawn washes.
@@ -1433,11 +1429,8 @@ function HeroBalanceSkeleton() {
         opacity: pulse,
       }}
     >
-      {bar(150, 24)}
-      <View style={{ gap: 5 }}>
-        {bar(84, 10)}
-        {bar(34, 8)}
-      </View>
+      {bar(96, 12)}
+      {bar(140, 24)}
     </Animated.View>
   );
 }
@@ -1486,17 +1479,14 @@ function HeroBackdrop({
 }
 
 /**
- * One balance slide, riding transparent on the hero's green, in a single line:
- * the figure first and big, then what it is as a small two-line tag — the
- * heading over the currency code — then the eye.
+ * One balance slide, riding transparent on the hero's green, in a single line
+ * that reads as a sentence: "Net receivable – ₹12,345", then the eye.
  *
  * It used to be two lines, "Net receivable · INR 👁" over the figure, and the
- * label line cost a row of the hero's height to say what the figure's own
- * symbol already half said. Set beside the figure the tag is no taller than
- * the digits, so the slide is one line tall; the code stays because a "$" does
- * not say which dollars. The figure leads because it is what gets read, the
- * way a bank card leads with the balance. A very large figure shrinks a little
- * to keep the line rather than wrapping under its tag.
+ * label line cost a row of the hero's height. The currency code is gone too:
+ * the figure's own symbol says it. The heading is quieter than the figure so
+ * the number still gets read first; a long heading truncates and a very large
+ * figure shrinks a little, so the line never wraps.
  *
  * White ink throughout, so it reads the same in light and dark like a bank
  * card. The eye masks the figure to dots; the toggle sits on every slide (it is
@@ -1521,17 +1511,28 @@ function MetricSlide({
   onToggleHide: () => void;
   /** Print the amount's own sign in front of it. Only the net slide sets this:
    *  it is the one figure whose direction is information, and a big number is
-   *  what gets read at a glance — not the tag beside it. The other two are
+   *  what gets read at a glance — not the heading before it. The other two are
    *  magnitudes (what you are owed, what you spent) where a `+` would be noise. */
   showSign?: boolean;
-  /** Shown with a small spinner beside the currency: this figure is the local
+  /** Shown with a small spinner beside the figure: this figure is the local
    *  one and this session's first sync has not confirmed it yet. */
   settling?: boolean;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
   return (
-    <Row style={{ height: HERO_AMOUNT_LINE, alignItems: 'center', gap: theme.spacing.md }}>
+    <Row style={{ height: HERO_AMOUNT_LINE, alignItems: 'center', gap: theme.spacing.sm }}>
+      <Text
+        variant="body"
+        tone="onBrand"
+        numberOfLines={1}
+        style={{ flexShrink: 1, fontWeight: '600', opacity: 0.85 }}
+      >
+        {heading}
+      </Text>
+      <Text variant="body" tone="onBrand" style={{ opacity: 0.6 }}>
+        –
+      </Text>
       <View style={{ flexShrink: 1 }}>
         {hidden ? (
           <Text tone="onBrand" style={HERO_AMOUNT_STYLE} numberOfLines={1}>
@@ -1551,28 +1552,7 @@ function MetricSlide({
           />
         )}
       </View>
-      {/* The tag: as tall as the figure, so it costs no line of its own. */}
-      <View style={{ flexShrink: 1, minWidth: 64 }}>
-        <Text
-          variant="caption"
-          tone="onBrand"
-          numberOfLines={1}
-          style={{ fontWeight: '600', lineHeight: HERO_TAG_HEADING_LINE }}
-        >
-          {heading}
-        </Text>
-        <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
-          <Text
-            variant="micro"
-            tone="onBrand"
-            numberOfLines={1}
-            style={{ opacity: 0.7, letterSpacing: 0.8, lineHeight: HERO_TAG_CODE_LINE }}
-          >
-            {currency}
-          </Text>
-          {settling ? <ActivityIndicator size="small" color={theme.color.onBrand} /> : null}
-        </Row>
-      </View>
+      {settling ? <ActivityIndicator size="small" color={theme.color.onBrand} /> : null}
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={hidden ? t.dashHero.showBalance : t.dashHero.hideBalance}
