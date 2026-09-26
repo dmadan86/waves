@@ -40,11 +40,17 @@ type View_ = TimelineView;
 export function TimelineBody({
   focusId = null,
   initialView = 'timeline',
+  fixedView,
   lockedGroupId = null,
 }: {
   /** The bill to open on, scrolled into view and marked. */
   focusId?: string | null;
   initialView?: TimelineView;
+  /**
+   * Show only this view, with no list/map switch of its own — for a host that
+   * gives each view its own tab (a group has Timeline and Map side by side).
+   */
+  fixedView?: TimelineView;
   /** Show only this group, with no group filter — a group's own tab. */
   lockedGroupId?: string | null;
 }) {
@@ -53,7 +59,8 @@ export function TimelineBody({
   const { choose } = useDialog();
   const clearance = useBottomClearance();
 
-  const [view, setView] = useState<View_>(initialView);
+  const [chosenView, setView] = useState<View_>(initialView);
+  const view = fixedView ?? chosenView;
   const [filter, setFilter] = useState<TimelineFilter>({
     range: 'all',
     groupId: lockedGroupId,
@@ -154,26 +161,28 @@ export function TimelineBody({
 
   return (
     <View style={{ flex: 1 }}>
-      <View style={{ paddingHorizontal: theme.spacing.xl, paddingTop: theme.spacing.md }}>
-        <SegmentedTabs<View_>
-          value={view}
-          onChange={setView}
-          tabs={[
-            {
-              value: 'timeline',
-              label: t.timeline.viewTimeline,
-              icon: (color) => (
-                <Ionicons name="git-commit-outline" size={iconSize.sm} color={color} />
-              ),
-            },
-            {
-              value: 'map',
-              label: t.timeline.viewMap,
-              icon: (color) => <Ionicons name="map-outline" size={iconSize.sm} color={color} />,
-            },
-          ]}
-        />
-      </View>
+      {fixedView ? null : (
+        <View style={{ paddingHorizontal: theme.spacing.xl, paddingTop: theme.spacing.md }}>
+          <SegmentedTabs<View_>
+            value={view}
+            onChange={setView}
+            tabs={[
+              {
+                value: 'timeline',
+                label: t.timeline.viewTimeline,
+                icon: (color) => (
+                  <Ionicons name="git-commit-outline" size={iconSize.sm} color={color} />
+                ),
+              },
+              {
+                value: 'map',
+                label: t.timeline.viewMap,
+                icon: (color) => <Ionicons name="map-outline" size={iconSize.sm} color={color} />,
+              },
+            ]}
+          />
+        </View>
+      )}
 
       <ScrollView
         horizontal

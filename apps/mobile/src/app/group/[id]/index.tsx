@@ -102,6 +102,7 @@ enum Tab {
   Balances = 'balances',
   Activity = 'activity',
   Timeline = 'timeline',
+  Map = 'map',
 }
 
 /**
@@ -1210,19 +1211,27 @@ export default function GroupScreen() {
                 label: t.timeline.viewTimeline,
                 icon: (color) => <Ionicons name="time-outline" size={iconSize.md} color={color} />,
               },
+              {
+                value: Tab.Map,
+                label: t.timeline.viewMap,
+                icon: (color) => <Ionicons name="map-outline" size={iconSize.md} color={color} />,
+              },
             ]}
-            // Four faces do not share a phone's width evenly with their words
+            // Five faces do not share a phone's width evenly with their words
             // on one line, so the row scrolls rather than stacking each glyph
             // over its word.
             scrollable
           />
         </View>
 
-        {tab === Tab.Timeline ? (
-          // This group's own timeline: the same list and map as the Timeline
-          // screen, held to this group. It owns its scrolling, so it takes the
-          // list's place rather than riding inside it.
-          <TimelineBody lockedGroupId={groupId} />
+        {tab === Tab.Timeline || tab === Tab.Map ? (
+          // This group's own timeline and map: the Timeline screen's list and
+          // map, held to this group, each on its own tab rather than behind a
+          // second switch inside one. They own their scrolling, so they take
+          // the list's place rather than riding inside it. One instance for
+          // both, so a date range or "only mine" set on one carries to the
+          // other.
+          <TimelineBody lockedGroupId={groupId} fixedView={tab === Tab.Map ? 'map' : 'timeline'} />
         ) : (
           <FlashList
             ref={listRef}
