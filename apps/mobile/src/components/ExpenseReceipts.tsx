@@ -13,7 +13,7 @@
  * orphaned; new images are all attachment rows.
  */
 
-import { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -581,6 +581,20 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
       commitAdd(asset, 'group');
     };
 
+    // One camera or library at a time. The sheet that used to come first also
+    // absorbed a second tap; without it, a quick double tap opened the scanner
+    // twice.
+    const opening = useRef(false);
+    const openOnce = (open: () => Promise<PickedAsset | null>) => {
+      if (opening.current) return;
+      opening.current = true;
+      void open()
+        .then(add)
+        .finally(() => {
+          opening.current = false;
+        });
+    };
+
     // A tap goes straight to the camera. It used to open a sheet asking "Scan
     // or Choose photo" first, and nearly every answer was Scan: a bill is in
     // somebody's hand when they tap +. The photo library is a press-and-hold on
@@ -588,12 +602,12 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
     // Android scanner offers no gallery of its own.
     const handleAddPress = () => {
       if (capLocked) showCapUpsell();
-      else void captureReceiptAsset().then(add);
+      else openOnce(captureReceiptAsset);
     };
 
     const handleAddLongPress = () => {
       if (capLocked) showCapUpsell();
-      else void pickReceiptAsset().then(add);
+      else openOnce(pickReceiptAsset);
     };
 
     // Hand the add action up to a parent that renders its own button (the detail
