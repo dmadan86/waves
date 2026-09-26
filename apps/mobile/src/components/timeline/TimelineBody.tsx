@@ -30,7 +30,6 @@ import {
   timelineRows,
   type TimelineEntry,
   type TimelineFilter,
-  type TimelineRange,
   type TimelineRow,
 } from '@/lib/timeline';
 
@@ -104,24 +103,6 @@ export function TimelineBody({
 
   const open = (entry: TimelineEntry) => router.push(`/group/${entry.groupId}/expense/${entry.id}`);
 
-  const rangeLabels: Record<TimelineRange, string> = {
-    all: t.timeline.rangeAll,
-    '7d': t.timeline.range7,
-    '30d': t.timeline.range30,
-    '90d': t.timeline.range90,
-  };
-
-  const pickRange = async () => {
-    const picked = await choose({
-      title: t.timeline.rangeTitle,
-      options: (['all', '7d', '30d', '90d'] as const).map((id) => ({
-        id,
-        label: rangeLabels[id],
-      })),
-    });
-    if (picked) setFilter((f) => ({ ...f, range: picked as TimelineRange }));
-  };
-
   const pickGroup = async () => {
     const picked = await choose({
       title: t.timeline.groupTitle,
@@ -134,24 +115,25 @@ export function TimelineBody({
   };
 
   const chosenGroup = filter.groupId ? groups.data.find((g) => g.id === filter.groupId) : null;
-  // A group's own timeline is filtered to that group by being that group's,
-  // not by a choice anybody made — so it neither counts as filtered nor is
-  // undone by "show all time".
-  const filtered =
-    filter.range !== 'all' || (filter.groupId !== null && !lockedGroupId) || filter.onlyMine;
+  // Always all time and everybody's: the timeline is the whole story, and a
+  // date range or "only mine" on top of it was two more things to undo before
+  // the map made sense. The one cut left is the group, on the screen that spans
+  // them all. A group's own timeline is that group's by being that group's, not
+  // by a choice anybody made — so it never counts as filtered.
+  const filtered = filter.groupId !== null && !lockedGroupId;
 
   const empty = (
     <View style={{ paddingTop: theme.spacing.xxxl }}>
       <EmptyState
         icon={<Ionicons name="time-outline" size={iconSize.huge} color={theme.color.brand} />}
-        title={filtered ? t.timeline.emptyFiltered : t.timeline.empty}
+        title={t.timeline.empty}
         body={filtered ? undefined : t.timeline.emptyBody}
         action={
           filtered ? (
             <Button
-              label={t.timeline.showAllTime}
+              label={t.timeline.allGroups}
               variant="secondary"
-              onPress={() => setFilter({ range: 'all', groupId: lockedGroupId, onlyMine: false })}
+              onPress={() => setFilter((f) => ({ ...f, groupId: null }))}
             />
           ) : undefined
         }
@@ -184,37 +166,26 @@ export function TimelineBody({
         </View>
       )}
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={{ flexGrow: 0 }}
-        contentContainerStyle={{
-          paddingHorizontal: theme.spacing.xl,
-          paddingVertical: theme.spacing.md,
-          gap: theme.spacing.sm,
-        }}
-      >
-        <FilterChip
-          icon="calendar-outline"
-          label={rangeLabels[filter.range]}
-          active={filter.range !== 'all'}
-          onPress={() => void pickRange()}
-        />
-        {lockedGroupId ? null : (
+      {/* Nothing to choose on a group's own tabs: it is that group, all time. */}
+      {lockedGroupId ? null : (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={{ flexGrow: 0 }}
+          contentContainerStyle={{
+            paddingHorizontal: theme.spacing.xl,
+            paddingVertical: theme.spacing.md,
+            gap: theme.spacing.sm,
+          }}
+        >
           <FilterChip
             icon="people-outline"
             label={chosenGroup ? labelOf(chosenGroup) : t.timeline.allGroups}
             active={filter.groupId !== null}
             onPress={() => void pickGroup()}
           />
-        )}
-        <FilterChip
-          icon={filter.onlyMine ? 'checkmark-circle' : 'person-outline'}
-          label={t.timeline.onlyMine}
-          active={filter.onlyMine}
-          onPress={() => setFilter((f) => ({ ...f, onlyMine: !f.onlyMine }))}
-        />
-      </ScrollView>
+        </ScrollView>
+      )}
 
       {view === 'timeline' ? (
         <View style={{ flex: 1 }}>

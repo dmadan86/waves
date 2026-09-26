@@ -3240,8 +3240,6 @@ export interface UiStrings {
     addedLater: string;
     empty: string;
     emptyBody: string;
-    emptyFiltered: string;
-    showAllTime: string;
     backToFocus: string;
     noPlaceTitle: string;
     noPlaceBody: string;
@@ -6235,8 +6233,6 @@ const en: UiStrings = {
     addedLater: 'Added later',
     empty: 'Nothing here yet',
     emptyBody: 'Expenses you add show up here, day by day.',
-    emptyFiltered: 'Nothing in this range',
-    showAllTime: 'Show all time',
     backToFocus: 'Back to this expense',
     noPlaceTitle: 'Not on the map',
     noPlaceBody: 'These have no place. Open one and add where it happened.',
@@ -9330,8 +9326,6 @@ const ta: UiStrings = {
     addedLater: 'பின்னர் சேர்க்கப்பட்டது',
     empty: 'இங்கே இன்னும் எதுவும் இல்லை',
     emptyBody: 'நீங்கள் சேர்க்கும் செலவுகள் நாள்வாரியாக இங்கே வரும்.',
-    emptyFiltered: 'இந்தக் காலத்தில் எதுவும் இல்லை',
-    showAllTime: 'எல்லா காலத்தையும் காட்டு',
     backToFocus: 'இந்தச் செலவுக்குத் திரும்பு',
     noPlaceTitle: 'வரைபடத்தில் இல்லை',
     noPlaceBody: 'இவற்றுக்கு இடம் இல்லை. ஒன்றைத் திறந்து அது நடந்த இடத்தைச் சேர்க்கவும்.',
@@ -12321,8 +12315,6 @@ const hi: UiStrings = {
     addedLater: 'बाद में जोड़ा',
     empty: 'यहाँ अभी कुछ नहीं',
     emptyBody: 'आप जो खर्च जोड़ेंगे, वे यहाँ दिन-ब-दिन दिखेंगे।',
-    emptyFiltered: 'इस अवधि में कुछ नहीं',
-    showAllTime: 'पूरा समय दिखाएँ',
     backToFocus: 'इस खर्च पर वापस',
     noPlaceTitle: 'नक्शे पर नहीं',
     noPlaceBody: 'इनकी कोई जगह नहीं है। किसी को खोलकर वह जगह जोड़ें जहाँ यह हुआ।',
@@ -15729,8 +15721,6 @@ const ar: UiStrings = {
     addedLater: 'أُضيف لاحقًا',
     empty: 'لا شيء هنا بعد',
     emptyBody: 'تظهر المصروفات التي تضيفها هنا يومًا بيوم.',
-    emptyFiltered: 'لا شيء في هذه الفترة',
-    showAllTime: 'عرض كل الوقت',
     backToFocus: 'العودة إلى هذا المصروف',
     noPlaceTitle: 'ليست على الخريطة',
     noPlaceBody: 'لا مكان لهذه. افتح أحدها وأضف المكان الذي حدث فيه.',
