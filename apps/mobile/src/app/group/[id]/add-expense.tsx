@@ -233,6 +233,25 @@ function parseLocationParam(value: string | undefined): ExpenseLocation | null {
   }
 }
 
+/**
+ * Let go of the receipts held for a newly saved expense, and send them.
+ *
+ * After the ledger push rather than beside it: the attach RPC needs the expense
+ * row, and a receipt that raced ahead of it would fail and sit out a retry
+ * backoff. Never awaited by the screen — the queue owns them from here, and it
+ * keeps trying on launch, foreground and reconnect if this cannot finish.
+ */
+async function sendHeldReceipts(expenseId: string): Promise<void> {
+  try {
+    if ((await releaseHeldReceipts(expenseId)) === 0) return;
+    await syncEngine.flush();
+    const sent = await flushReceiptQueue();
+    if (sent.uploadedExpenseIds.length > 0) await syncEngine.flush();
+  } catch {
+    // Best-effort; the queue retries on its own.
+  }
+}
+
 export default function AddExpenseScreen() {
   const theme = useTheme();
   // The room the pinned action bar leaves under Save for the system navigation
@@ -327,10 +346,17 @@ export default function AddExpenseScreen() {
   // without saving drops them, so an abandoned add leaves no photographs
   // behind. `saved` is a ref because the cleanup below runs after the last
   // render has gone.
+  //
+  // Saved is decided on the way out, not only at the save: a save whose kept
+  // bill then fails to upload leaves the person on this screen, and a picture
+  // added after that is held again. Released on leaving, it goes with the
+  // expense it now belongs to; discarded, it would be a bill somebody watched
+  // themselves attach.
   const saved = useRef(false);
   useEffect(
     () => () => {
-      if (!expenseId && !saved.current) void discardHeldReceipts(newExpenseId);
+      if (expenseId) return;
+      void (saved.current ? sendHeldReceipts(newExpenseId) : discardHeldReceipts(newExpenseId));
     },
     [expenseId, newExpenseId],
   );
@@ -1092,24 +1118,10 @@ export default function AddExpenseScreen() {
         }),
       );
       await clearDraft(draftKey);
-      // The receipts held for a new expense can go now. Sent after the ledger
-      // push rather than beside it: the attach RPC needs the expense row, and a
-      // receipt that raced ahead of it would fail and sit out a retry backoff.
-      // Not awaited — the queue owns them from here, and it keeps trying on
-      // launch, foreground and reconnect if this attempt cannot finish.
+      // The receipts held for a new expense can go now (see sendHeldReceipts).
       if (!expenseId) {
         saved.current = true;
-        if ((await releaseHeldReceipts(targetExpenseId)) > 0) {
-          void (async () => {
-            try {
-              await syncEngine.flush();
-              const sent = await flushReceiptQueue();
-              if (sent.uploadedExpenseIds.length > 0) await syncEngine.flush();
-            } catch {
-              // Best-effort; the queue retries on its own.
-            }
-          })();
-        }
+        void sendHeldReceipts(targetExpenseId);
       }
       // The expense exists now; closing the capture removes it from the inbox
       // and records which expense it became (A34). Done before leaving so a
