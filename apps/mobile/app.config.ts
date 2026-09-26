@@ -77,7 +77,9 @@ function googleServicesPlist(): string | undefined {
  * release (Android package + SHA-1, iOS bundle id; and the Maps SDK APIs only).
  * The key is not committed — this repo is public — so it is read at config time,
  * a platform-specific var winning over the shared one. With none set the app
- * still builds; the Google map just renders blank until a key is supplied.
+ * still builds, but on Android the Maps SDK throws the moment a Google map
+ * mounts ("API key not found") and the app dies with it — a release build
+ * must have one.
  */
 function googleMapsKey(platform: 'android' | 'ios'): string | undefined {
   const perPlatform =
@@ -196,9 +198,24 @@ export default ({ config: fromAppJson }: ConfigContext): ExpoConfig => {
       ? { ...androidBase, config: { ...androidBase?.config, googleMaps: { apiKey: androidKey } } }
       : androidBase,
     ios: iosBase,
-    plugins: iosKey
-      ? [...(config.plugins ?? []), ['react-native-maps', { iosGoogleMapsApiKey: iosKey }]]
-      : config.plugins,
+    // Both keys go to the maps plugin, not only iOS's: on Android it *removes*
+    // `com.google.android.geo.API_KEY` from the manifest when it is not handed
+    // `androidGoogleMapsApiKey`, undoing the entry `android.config.googleMaps`
+    // just wrote — and a Google map with no key does not render blank on
+    // Android, it takes the whole app down the moment it mounts.
+    plugins:
+      iosKey || androidKey
+        ? [
+            ...(config.plugins ?? []),
+            [
+              'react-native-maps',
+              {
+                ...(iosKey ? { iosGoogleMapsApiKey: iosKey } : {}),
+                ...(androidKey ? { androidGoogleMapsApiKey: androidKey } : {}),
+              },
+            ],
+          ]
+        : config.plugins,
   };
 
   const googleSignIn = googleSignInPlugin();
