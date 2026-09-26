@@ -954,18 +954,15 @@ export default function GroupScreen() {
             ghost={isGhost(member) || isBlockedMember(member, blockedIds)}
             size={40}
           />
-          {/* The name gets the row's width. It used to share its line with the
+          {/* The name gets the row's width. It used to share its line with an
               admin badge while the Remind chip and the amount sat beside it,
-              which left "Renn…" of "Renny Benita". The badge moves to the line
-              under the name, and Remind sits under the amount. */}
+              which left "Renn…" of "Renny Benita". Who is an admin is a
+              Members-screen fact, not a balance; Remind sits under the amount. */}
           <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
             <Text variant="subheading" numberOfLines={1}>
               {shownName}
             </Text>
             <Row style={{ gap: theme.spacing.xs, alignItems: 'center' }}>
-              {member.role === 'admin' && !isGhost(member) ? (
-                <Badge label={t.people.admin} tone="brand" />
-              ) : null}
               <Text variant="caption" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
                 {isGhost(member)
                   ? t.notJoinedYet
