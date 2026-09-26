@@ -25,7 +25,7 @@ import { useConfirmSettlement, useDisputeSettlement, useSettlementProof } from '
 import { groupLabel, type GroupRow, type MemberRow, type SettlementRow } from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
 import { GroupPhoto } from '@/components/GroupPhoto';
-import { HeroActionCircle, HeroPillButton } from '@/components/ScreenHero';
+import { HeroActionCircle, HeroFigureLine, HeroPillButton } from '@/components/ScreenHero';
 import { SyncStatusIcon } from '@/components/SyncBanner';
 import { router, useGoBack } from '@/lib/navigation';
 import { useDialog } from '@/lib/dialog';
@@ -232,22 +232,25 @@ export function GroupHero({
         >
           {/* Slide 0 — balance as a verdict, then the three hero actions. */}
           <View style={{ width: slideW, gap: theme.spacing.md }}>
-            <Row style={{ justifyContent: 'space-between' }}>
-              <Text variant="caption" tone="onBrand" style={{ opacity: 0.85 }}>
-                {myBalance === 0n ? t.allSettled : myBalance > 0n ? t.youAreOwed : t.youOwe}
-              </Text>
-              {pending !== 0n ? <Badge label={t.pendingConfirmation} tone="brand" /> : null}
-            </Row>
-
-            <MoneyText
-              amount={myBalance}
-              currency={currency}
-              locale={locale}
-              mode="balance"
-              variant="title"
-              tone="default"
-              style={{ color: theme.color.onBrand }}
-            />
+            <HeroFigureLine
+              label={myBalance === 0n ? t.allSettled : myBalance > 0n ? t.youAreOwed : t.youOwe}
+              trailing={
+                pending !== 0n ? <Badge label={t.pendingConfirmation} tone="brand" /> : undefined
+              }
+            >
+              <MoneyText
+                amount={myBalance}
+                currency={currency}
+                locale={locale}
+                mode="balance"
+                variant="title"
+                tone="default"
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.6}
+                style={{ color: theme.color.onBrand }}
+              />
+            </HeroFigureLine>
 
             <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
               <HeroPillButton
