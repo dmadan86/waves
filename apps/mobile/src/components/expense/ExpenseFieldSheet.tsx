@@ -84,8 +84,11 @@ export function ExpenseFieldSheet({
   myMemberId: MemberId | null;
   /** Called once the sheet has finished leaving. */
   onClose: () => void;
-  /** Leave for the full editor. */
-  onOpenEditor: () => void;
+  /**
+   * Leave for the full editor. `'payers'` opens it in several-payer mode,
+   * scrolled to who paid — where the Paid by sheet's "Several people paid" goes.
+   */
+  onOpenEditor: (focus?: 'payers') => void;
 }): React.JSX.Element | null {
   const theme = useTheme();
   const { t, locale } = useStrings();
@@ -240,7 +243,8 @@ export function ExpenseFieldSheet({
   // Several payers are changed on the full editor: their figures have to add
   // up to the total, and that is a form, not a pick. The pop-up says so rather
   // than offering a tap that would silently collapse them to one.
-  const severalPayers = field === 'payer' && state.payers.size > 1;
+  const payerSheet = field === 'payer';
+  const severalPayers = payerSheet && state.payers.size > 1;
 
   let body: ReactNode;
   if (field === 'description') {
@@ -314,7 +318,7 @@ export function ExpenseFieldSheet({
         <Button
           label={t.expense.fullEditor}
           variant="secondary"
-          onPress={() => leave(onOpenEditor)}
+          onPress={() => leave(() => onOpenEditor('payers'))}
         />
       </View>
     ) : (
@@ -399,16 +403,19 @@ export function ExpenseFieldSheet({
       closeLabel={t.common.close}
       style={{ maxHeight: '90%' }}
       titleAction={
+        // On Paid by the way out names the thing people come to the editor
+        // for — several payers — instead of a generic "Full editor" that gave
+        // no hint the sheet's single-choice list was not the whole story.
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={t.expense.fullEditor}
+          accessibilityLabel={payerSheet ? t.expense.paidBySeveral : t.expense.fullEditor}
           onPress={() => {
-            if (!saving) leave(onOpenEditor);
+            if (!saving) leave(() => onOpenEditor(payerSheet ? 'payers' : undefined));
           }}
           hitSlop={{ top: 15, bottom: 15, left: 8, right: 8 }}
         >
           <Text variant="micro" tone="brand" style={{ fontWeight: '700' }}>
-            {t.expense.fullEditor}
+            {payerSheet ? t.expense.paidBySeveral : t.expense.fullEditor}
           </Text>
         </Pressable>
       }
