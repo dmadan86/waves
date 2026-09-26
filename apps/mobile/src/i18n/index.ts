@@ -1699,6 +1699,8 @@ export interface UiStrings {
     tabAdded: string;
     /** The hero's line over the count of drafts still waiting to be filed. */
     heroWaiting: string;
+    /** The hero's figure when nothing is waiting. */
+    heroCaughtUp: string;
     /** One question for a whole ticked pile, rather than one question each. */
     dismissManyConfirm: PluralForms;
     /** Turns the tick boxes on, so several drafts can be placed at once. */
@@ -4871,6 +4873,7 @@ const en: UiStrings = {
     tabSms: 'SMS',
     tabAdded: 'Added by you',
     heroWaiting: 'Waiting on you',
+    heroCaughtUp: 'All caught up',
     dismissManyConfirm: {
       one: 'Take this off your list?',
       other: 'Take all {n} off your list?',
@@ -7836,6 +7839,7 @@ const ta: UiStrings = {
     tabSms: 'எஸ்எம்எஸ்',
     tabAdded: 'நீங்கள் சேர்த்தவை',
     heroWaiting: 'உங்கள் கவனத்திற்கு',
+    heroCaughtUp: 'எல்லாம் முடிந்தது',
     dismissManyConfirm: {
       one: 'இதைப் பட்டியலிலிருந்து நீக்கவா?',
       other: '{n} ஐயும் பட்டியலிலிருந்து நீக்கவா?',
@@ -10866,6 +10870,7 @@ const hi: UiStrings = {
     tabSms: 'एसएमएस',
     tabAdded: 'आपने जोड़े',
     heroWaiting: 'आपके इंतज़ार में',
+    heroCaughtUp: 'सब हो गया',
     dismissManyConfirm: {
       one: 'इसे सूची से हटाएँ?',
       other: 'सभी {n} को सूची से हटाएँ?',
@@ -13887,6 +13892,7 @@ const ar: UiStrings = {
     tabSms: 'الرسائل',
     tabAdded: 'أضفتها أنت',
     heroWaiting: 'بانتظارك',
+    heroCaughtUp: 'لا شيء متبقٍّ',
     dismissManyConfirm: {
       one: 'إزالة هذه من قائمتك؟',
       other: 'إزالة كل الـ {n} من قائمتك؟',

@@ -844,6 +844,8 @@ export default function CapturesScreen() {
 
   // What is being assigned, if anything — drives the destination sheet: one
   // draft, or a whole spoken batch.
+  /** The list's own height, so the empty state can centre in it. */
+  const [listHeight, setListHeight] = useState(0);
   const [assigning, setAssigning] = useState<AssignTarget | null>(null);
   // What the sheet shows. It stays mounted through its fade-out, and drawing it
   // from `assigning` (already null by then) swapped a two-draft batch for the
@@ -1851,11 +1853,14 @@ export default function CapturesScreen() {
               pointerEvents={selecting ? 'none' : 'auto'}
               style={[restingAnim, { gap: theme.spacing.md }]}
             >
+              {/* The caption stays whether or not anything is waiting, so the
+                  panel keeps one shape — caption over figure — like every
+                  other hero, instead of collapsing to a single line. */}
+              <Text variant="caption" tone="onBrand" style={{ opacity: 0.85 }}>
+                {t.captures.heroWaiting}
+              </Text>
               {rows.length > 0 ? (
                 <>
-                  <Text variant="caption" tone="onBrand" style={{ opacity: 0.85 }}>
-                    {t.captures.heroWaiting}
-                  </Text>
                   {/* The whole screen's figure, not the open tab's: a hero
                       number that changed every time you touched a tab would be
                       part of the tab rather than the screen. Counted the way the
@@ -1870,11 +1875,11 @@ export default function CapturesScreen() {
                 </>
               ) : (
                 /* Review is trying to reach this, so the hero says it plainly
-                   rather than showing a nought — but still at the `title` step
-                   every other hero's headline uses, so the panel does not
-                   shrink just because there is nothing waiting. */
-                <Text variant="title" tone="onBrand">
-                  {t.captures.nothingNeedsYou}
+                   rather than showing a nought. Not "Nothing needs you": the
+                   empty state under it says that, and the same sentence twice
+                   on one screen read as a layout mistake. */
+                <Text variant="title" tone="onBrand" numberOfLines={1}>
+                  {t.captures.heroCaughtUp}
                 </Text>
               )}
             </Reanimated.View>
@@ -1996,6 +2001,7 @@ export default function CapturesScreen() {
         // three dozen rows ahead, cheap when each row is light to draw.
         drawDistance={2500}
         showsVerticalScrollIndicator={false}
+        onLayout={(event) => setListHeight(event.nativeEvent.layout.height)}
         contentContainerStyle={{
           paddingHorizontal: theme.spacing.xl,
           // The first card used to sit flush against the tab bar.
@@ -2024,7 +2030,17 @@ export default function CapturesScreen() {
                good week is one where it has none. So it never apologises for
                being empty — it says nothing needs you, and then says how much
                went through anyway. */
-            <View style={{ flex: 1, justifyContent: 'center' }}>
+            // Centred in the space the list has, not in its own height: a
+            // FlashList sizes an empty component to its content, so `flex: 1`
+            // did nothing and the block sat under the header with half the
+            // screen blank beneath it. The reserve at the foot is taken off so
+            // it centres between the header and the navigation.
+            <View
+              style={{
+                minHeight: Math.max(0, listHeight - clearance - theme.spacing.lg),
+                justifyContent: 'center',
+              }}
+            >
               <EmptyState
                 icon={
                   <Ionicons
