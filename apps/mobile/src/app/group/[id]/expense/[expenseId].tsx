@@ -333,7 +333,7 @@ export default function ExpenseDetailScreen() {
   // to the full editor (focused on the amount) rather than to a dead-end sheet.
   const amountInline = inlineEditable && amountEditsInline(version);
 
-  const openEditor = (focus?: 'amount'): void => {
+  const openEditor = (focus?: 'amount' | 'payers'): void => {
     // "Fix the number" is the most common reason a bill is reopened, so tapping
     // the amount carries a focus hint that lands straight in the field with the
     // keyboard up — no hunting for the pencil, then noticing the number is a
@@ -925,7 +925,7 @@ export default function ExpenseDetailScreen() {
           viewerId={viewerId}
           myMemberId={myMemberId}
           onClose={() => setEditingField(null)}
-          onOpenEditor={() => openEditor()}
+          onOpenEditor={(focus) => openEditor(focus)}
         />
       ) : null}
     </Screen>

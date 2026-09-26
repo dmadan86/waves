@@ -281,7 +281,9 @@ export default function AddExpenseScreen() {
     paymentMethod?: string;
     expenseDate?: string;
     /** 'amount' when the editor was opened by tapping the total on the expense
-     *  screen — the amount field takes focus and raises the keyboard on arrival. */
+     *  screen — the amount field takes focus and raises the keyboard on arrival.
+     *  'payers' from the Paid by sheet's "Several people paid": the form opens
+     *  in several-payer mode, scrolled to who paid. */
     focus?: string;
     /** The currency already chosen elsewhere — the quick sheet hands one over
      *  when it is not the group's own, which is exactly the case it cannot
@@ -354,6 +356,12 @@ export default function AddExpenseScreen() {
    * flag says — reopening it must not offer to silently drop one.
    */
   const [payerMode, setPayerMode] = useState<'one' | 'many'>('one');
+  // Arrived from "Several people paid": switch to several payers once the form
+  // is seeded (seeding sets the payers, so switching earlier would be undone),
+  // then bring the who-paid card into view on its first layout.
+  const [payersFocusApplied, setPayersFocusApplied] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
+  const scrolledToPayers = useRef(false);
   // How it was paid — a free-text tag on the expense. Defaults to cash; the
   // picker offers UPI only where the region settles over it.
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
@@ -891,6 +899,11 @@ export default function AddExpenseScreen() {
   // render that shows the new total, with no frame in between where the payers
   // and the amount disagree. Typed figures survive it: only the unlocked ones
   // move (see rebalancePayers).
+  if (focus === 'payers' && seededFor !== null && !payersFocusApplied) {
+    setPayersFocusApplied(true);
+    setPayerMode('many');
+  }
+
   const payersKey = `${amount}:${currency}`;
   if (seededFor !== null && payers.size > 0 && payersKey !== payersFor) {
     applyPayers(payerIds, payers, effectiveLocks, amount);
@@ -1362,6 +1375,7 @@ export default function AddExpenseScreen() {
           autoFocusAmount={focus === 'amount'}
         />
         <ScrollView
+          ref={scrollRef}
           style={{ flex: 1 }}
           // The form is long — amount, note, receipts, split, two rosters — and a
           // 20pt gutter between every block plus each card's own padding meant a
@@ -1639,7 +1653,15 @@ export default function AddExpenseScreen() {
 
             One payer stays exactly one tap: a row of avatars, no figures, no
             arithmetic. The amounts appear only once a second person is on it. */}
-          <Card style={{ gap: theme.spacing.sm }}>
+          <Card
+            style={{ gap: theme.spacing.sm }}
+            onLayout={(event) => {
+              if (focus !== 'payers' || scrolledToPayers.current) return;
+              scrolledToPayers.current = true;
+              const top = Math.max(0, event.nativeEvent.layout.y - theme.spacing.lg);
+              requestAnimationFrame(() => scrollRef.current?.scrollTo({ y: top, animated: true }));
+            }}
+          >
             <Row style={{ justifyContent: 'space-between' }}>
               <Text variant="caption" tone="muted">
                 {t.paidBy}
