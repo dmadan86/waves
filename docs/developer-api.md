@@ -191,7 +191,7 @@ GET|POST   /v1/expenses                          GET|PATCH|DELETE /v1/expenses/{
 POST       /v1/expenses/{id}/restore
 GET|POST   /v1/settlements                       GET /v1/settlements/{id}
 POST       /v1/settlements/{id}/confirm
-GET        /v1/friends
+GET        /v1/friends                           POST  /v1/friends/expenses
 GET|POST   /v1/categories                        PATCH|DELETE /v1/categories/{id}
 ```
 

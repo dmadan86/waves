@@ -1,0 +1,9 @@
+# Findings reviewed and confirmed not to be secrets. Each line is a gitleaks
+# fingerprint (commit:file:rule:line), so it silences that one occurrence and
+# nothing else.
+
+# Idempotency-Key header values in a test ("dinner-with-priya-1/2"): request
+# labels, not credentials. The test now generates them; these are the copies
+# still in the commit that first added the file.
+8b7039df8e97956352c527bfe6f144d4b0bce7f3:apps/api/test/friendsExpenses.test.ts:generic-api-key:286
+8b7039df8e97956352c527bfe6f144d4b0bce7f3:apps/api/test/friendsExpenses.test.ts:generic-api-key:301

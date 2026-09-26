@@ -29,6 +29,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 
 import { buildExpenseWriteBody, expenseParticipants, type AgentSplit } from './expense';
+import { findPair, foldName, pairIds, type PairGroup } from './pair';
 import { pairwiseTransfers, simplifyNet, type Transfer } from './settle';
 
 type ToolResult = {
@@ -789,6 +790,145 @@ export async function expenseParty(
   return { participants: [...expenseParticipants(paidBy, ids)], paidBy, added };
 }
 
+/**
+ * Make your one-to-one group with somebody new: the group, named after them,
+ * then them as a ghost — under ids derived from the two of you (`pairIds`), so
+ * a retry or a parallel call finishes the same pair rather than starting
+ * another.
+ *
+ * A derived group already in `groups` is reused only while nobody but the two
+ * of you is in it. One that is not listed may still exist — deleted, or left —
+ * and `waves_create_group` hands a known id straight back, so a group it
+ * returns is read again before anything goes in it. Either way the next
+ * generation of ids is tried instead.
+ *
+ * If the ghost cannot be added to a group this call made, the group is removed
+ * again rather than left behind as a one-member group with their name on it.
+ */
+async function makePair(
+  supabase: SupabaseClient,
+  meId: string,
+  person: string,
+  currency: string,
+  groups: readonly PairGroup[],
+): Promise<{ groupId: string; mine: string; theirs: string } | ToolResult> {
+  for (let generation = 0; generation < 5; generation += 1) {
+    const ids = pairIds(meId, person, generation);
+    const listed = groups.find((g) => g.groupId === ids.groupId);
+    let mine = ids.myMemberId;
+    let fresh = false;
+
+    if (listed) {
+      const me = listed.members.find((m) => m.profileId === meId);
+      const strangers = listed.members.filter(
+        (m) => m.profileId !== meId && m.memberId !== ids.theirMemberId,
+      );
+      if (!me || strangers.length > 0) continue;
+      mine = me.memberId;
+    } else {
+      const { error } = await supabase.rpc('waves_create_group', {
+        p_name: person,
+        p_type: 'other',
+        p_currency: currency,
+        p_emoji: null,
+        p_simplify: true,
+        p_group_id: ids.groupId,
+        p_photo_path: null,
+        p_country: null,
+        p_creator_member_id: ids.myMemberId,
+      });
+      if (error) {
+        if (/GROUP_EXISTS/.test(error.message)) continue;
+        return fail(error.message);
+      }
+      const { data: live, error: readError } = await supabase
+        .from('groups')
+        .select('id')
+        .eq('id', ids.groupId)
+        .is('deleted_at', null)
+        .maybeSingle();
+      if (readError) return fail(readError.message);
+      if (!live) continue;
+      fresh = true;
+    }
+
+    // Twice: two calls racing to add the same ghost id can both miss it and
+    // one insert then collides, and the second look finds the winner's.
+    let ghost = await supabase.rpc('waves_add_ghost_member', {
+      p_group_id: ids.groupId,
+      p_name: person,
+      p_member_id: ids.theirMemberId,
+    });
+    if (ghost.error) {
+      ghost = await supabase.rpc('waves_add_ghost_member', {
+        p_group_id: ids.groupId,
+        p_name: person,
+        p_member_id: ids.theirMemberId,
+      });
+    }
+    if (ghost.error) {
+      if (fresh) await supabase.rpc('waves_delete_group', { p_group_id: ids.groupId });
+      return fail(ghost.error.message);
+    }
+    return { groupId: ids.groupId, mine, theirs: ghost.data as string };
+  }
+  return fail(
+    `Could not start a one-to-one with "${person}": every group id tried is already in use. Make a group with create_group, then use add_expense.`,
+  );
+}
+
+/**
+ * Every group of yours with its live members, for `findPair` to look through.
+ *
+ * Two reads rather than one embedded query: RLS already limits both tables to
+ * the groups you are in, and a deleted group is dropped here so an individual
+ * expense never lands in something you removed.
+ */
+async function pairGroups(supabase: SupabaseClient): Promise<PairGroup[] | ToolResult> {
+  const { data: groups, error } = await supabase
+    .from('groups')
+    .select('id, name, default_currency')
+    .is('deleted_at', null);
+  if (error) return fail(error.message);
+  if (!groups?.length) return [];
+
+  const { data: rows, error: membersError } = await supabase
+    .from('group_members')
+    .select('id, group_id, profile_id, ghost_name, profile:profiles!profile_id ( display_name )')
+    .in(
+      'group_id',
+      groups.map((g) => g.id as string),
+    )
+    .is('left_at', null);
+  if (membersError) return fail(membersError.message);
+
+  return groups.map((g) => ({
+    groupId: g.id as string,
+    groupName: (g.name as string | null) ?? null,
+    currency: String(g.default_currency),
+    members: (rows ?? [])
+      .filter((m) => m.group_id === g.id)
+      .map((m) => {
+        const profile = m.profile as { display_name?: string } | null;
+        return {
+          memberId: m.id as string,
+          profileId: (m.profile_id as string | null) ?? null,
+          name: (profile?.display_name ?? (m.ghost_name as string | null) ?? 'Unnamed').trim(),
+        };
+      }),
+  }));
+}
+
+/** Your own default currency, for the first expense with somebody new. */
+async function myCurrency(supabase: SupabaseClient, meId: string): Promise<string> {
+  const { data } = await supabase
+    .from('profiles')
+    .select('default_currency')
+    .eq('id', meId)
+    .maybeSingle();
+  return String((data as { default_currency?: string } | null)?.default_currency ?? 'INR');
+}
+
 function registerWriteTools(server: McpServer, supabase: SupabaseClient, meId: string): void {
   server.registerTool(
     'create_group',
@@ -903,6 +1043,126 @@ function registerWriteTools(server: McpServer, supabase: SupabaseClient, meId: s
       });
       if (error) return fail(await edgeError(error));
       return ok({ ...(data as object), expenseId, addedToGroup: added });
+    },
+  );
+
+  server.registerTool(
+    'add_expense_with_person',
+    {
+      description:
+        'Add an individual expense: one between you and one other person, with no group named. It goes in your one-to-one group with them — the group with just the two of you, which the app shows as that person on its People tab — found by their name, or made (named after them, with them added as a ghost) when you have none. If more than one one-to-one group answers to the name it stops and lists them; ask which, then use add_expense with that groupId. This puts a real debt on a real person — confirm the amount, who paid, and who it was with before calling.',
+      inputSchema: {
+        person: z
+          .string()
+          .trim()
+          .min(1)
+          .describe('Who it was with, named the way the user named them, e.g. "Renny".'),
+        description: z.string().min(1).describe('What the expense was for.'),
+        amount: MinorUnits.describe('Total of the expense, in minor units.'),
+        paidBy: z
+          .enum(['me', 'them'])
+          .default('me')
+          .describe('Who paid: you (the signed-in user) or the other person.'),
+        split: z
+          .discriminatedUnion('kind', [
+            z.object({ kind: z.literal('equal') }),
+            z.object({
+              kind: z.literal('exact'),
+              mine: MinorUnits.describe('Your share, in minor units.'),
+              theirs: MinorUnits.describe('Their share, in minor units.'),
+            }),
+          ])
+          .optional()
+          .describe('How to split. Defaults to half each; exact shares must add up to amount.'),
+        currency: Currency.optional().describe(
+          "Defaults to your one-to-one group's currency, or your own default currency when the group is new.",
+        ),
+        expenseDate: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .optional()
+          .describe('YYYY-MM-DD; defaults to today.'),
+        category: z.string().optional(),
+        notes: z.string().optional(),
+      },
+    },
+    async (input): Promise<ToolResult> => {
+      const person = input.person.trim();
+      if (SELF.has(foldName(person))) {
+        return fail(
+          `"${person}" is you. An individual expense is with somebody else — who was it with?`,
+        );
+      }
+
+      const groups = await pairGroups(supabase);
+      if (!Array.isArray(groups)) return groups;
+      const found = findPair(groups, meId, person);
+
+      if (found.kind === 'ambiguous') {
+        return fail(
+          `You have ${found.candidates.length} one-to-one groups with "${person}": ${found.candidates
+            .map((c) => `${c.name} (groupId ${c.groupId})`)
+            .join(', ')}. Ask which one, then use add_expense with that groupId.`,
+        );
+      }
+
+      let groupId: string;
+      let mine: string;
+      let theirs: string;
+      let theirName: string;
+      let currency: string;
+      if (found.kind === 'found') {
+        groupId = found.group.groupId;
+        mine = found.me.memberId;
+        theirs = found.them.memberId;
+        theirName = found.them.name;
+        currency = found.group.currency;
+      } else {
+        // Named after the person, of type `other`, with them as a ghost — the
+        // same group the app's People flow makes, so it shows up there as them.
+        currency = input.currency ?? (await myCurrency(supabase, meId));
+        const made = await makePair(supabase, meId, person, currency, groups);
+        if (!('groupId' in made)) return made;
+        ({ groupId, mine, theirs } = made);
+        theirName = person;
+      }
+
+      const split: AgentSplit | undefined =
+        input.split?.kind === 'exact'
+          ? { kind: 'exact', amounts: { [mine]: input.split.mine, [theirs]: input.split.theirs } }
+          : undefined;
+
+      const expenseId = randomUUID();
+      const { data, error } = await supabase.functions.invoke('expense-write', {
+        body: buildExpenseWriteBody(
+          {
+            groupId,
+            description: input.description,
+            amount: input.amount,
+            currency: input.currency,
+            paidBy: input.paidBy === 'them' ? theirs : mine,
+            participants: [mine, theirs],
+            split,
+            expenseDate: input.expenseDate,
+            category: input.category,
+            notes: input.notes,
+          },
+          {
+            expenseId,
+            clientMutationId: randomUUID(),
+            today: todayIso(),
+            groupCurrency: currency,
+          },
+        ),
+      });
+      if (error) return fail(await edgeError(error));
+      return ok({
+        ...(data as object),
+        expenseId,
+        groupId,
+        createdGroup: found.kind === 'none',
+        person: { memberId: theirs, name: theirName },
+      });
     },
   );
 

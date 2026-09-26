@@ -28,24 +28,25 @@ RLS and the business rules apply to the agent identically to the human.
 
 ## Tools
 
-| Tool                | Kind  | Path                                                                                         |
-| ------------------- | ----- | -------------------------------------------------------------------------------------------- |
-| `whoami`            | read  | `auth.getUser`                                                                               |
-| `list_groups`       | read  | `groups` (RLS)                                                                               |
-| `list_members`      | read  | `group_members` (RLS)                                                                        |
-| `get_balances`      | read  | `group_balances` (RLS), each row named and marked `isYou`                                    |
-| `settlement_plan`   | read  | `group_balances` simplified, or `pairwise_balances` as they stand — plus pending settlements |
-| `list_settlements`  | read  | `settlements` (RLS), both sides named, filterable by status                                  |
-| `list_expenses`     | read  | `expenses` + the version in force (RLS)                                                      |
-| `list_agent_writes` | read  | `rpc('waves_my_agent_writes')` — what assistants did in this person's name                   |
-| `create_group`      | write | `rpc('waves_create_group')`                                                                  |
-| `add_expense`       | write | `functions.invoke('expense-write')` → recomputes split, then `waves_apply_expense`           |
-| `edit_expense`      | write | the same, with `baseVersionNo` — appends a version, never overwrites                         |
-| `delete_expense`    | write | `rpc('waves_delete_expense')` — soft delete                                                  |
-| `record_settlement` | write | `rpc('waves_record_settlement')` — records only; the two sides by name or member id          |
-| `add_people`        | write | `rpc('waves_add_ghost_member')` — names in, member ids out                                   |
-| `invite_link`       | write | `rpc('waves_ensure_group_join_token')` — the group's reusable join link                      |
-| `payment_link`      | pure  | builds a `upi://` or `paypal.me` link — a read, so read-only mode keeps it                   |
+| Tool                      | Kind  | Path                                                                                                                                                      |
+| ------------------------- | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `whoami`                  | read  | `auth.getUser`                                                                                                                                            |
+| `list_groups`             | read  | `groups` (RLS)                                                                                                                                            |
+| `list_members`            | read  | `group_members` (RLS)                                                                                                                                     |
+| `get_balances`            | read  | `group_balances` (RLS), each row named and marked `isYou`                                                                                                 |
+| `settlement_plan`         | read  | `group_balances` simplified, or `pairwise_balances` as they stand — plus pending settlements                                                              |
+| `list_settlements`        | read  | `settlements` (RLS), both sides named, filterable by status                                                                                               |
+| `list_expenses`           | read  | `expenses` + the version in force (RLS)                                                                                                                   |
+| `list_agent_writes`       | read  | `rpc('waves_my_agent_writes')` — what assistants did in this person's name                                                                                |
+| `create_group`            | write | `rpc('waves_create_group')`                                                                                                                               |
+| `add_expense`             | write | `functions.invoke('expense-write')` → recomputes split, then `waves_apply_expense`                                                                        |
+| `add_expense_with_person` | write | an individual expense: finds your one-to-one group with them by name, or makes it (`waves_create_group` + `waves_add_ghost_member`), then `expense-write` |
+| `edit_expense`            | write | the same, with `baseVersionNo` — appends a version, never overwrites                                                                                      |
+| `delete_expense`          | write | `rpc('waves_delete_expense')` — soft delete                                                                                                               |
+| `record_settlement`       | write | `rpc('waves_record_settlement')` — records only; the two sides by name or member id                                                                       |
+| `add_people`              | write | `rpc('waves_add_ghost_member')` — names in, member ids out                                                                                                |
+| `invite_link`             | write | `rpc('waves_ensure_group_join_token')` — the group's reusable join link                                                                                   |
+| `payment_link`            | pure  | builds a `upi://` or `paypal.me` link — a read, so read-only mode keeps it                                                                                |
 
 All amounts are **integer minor units** (paise/cents) as strings — money is
 never a float.

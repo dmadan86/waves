@@ -107,7 +107,10 @@ type RpcCall = { fn: string; args: Record<string, unknown> };
  * A Supabase client that answers every read with something plausible and
  * records every RPC. It does not judge the calls itself — the migrations do.
  */
-function recordingSupabase(calls: RpcCall[]): SupabaseClient {
+function recordingSupabase(
+  calls: RpcCall[],
+  refuse: ReadonlySet<string> = new Set(),
+): SupabaseClient {
   const rows = (table: string) => {
     const result =
       table === 'groups'
@@ -125,6 +128,7 @@ function recordingSupabase(calls: RpcCall[]): SupabaseClient {
     from: rows,
     rpc: async (fn: string, args: Record<string, unknown>) => {
       calls.push({ fn, args });
+      if (refuse.has(fn)) return { data: null, error: { message: `${fn} refused` } };
       if (fn === 'waves_my_agent_writes') return { data: [], error: null };
       return { data: fn === 'waves_ensure_group_join_token' ? 'token' : randomUUID(), error: null };
     },
@@ -159,6 +163,10 @@ const WRITE_CALLS: { name: string; arguments: Record<string, unknown> }[] = [
       paidBy: me,
       participants: [me, other],
     },
+  },
+  {
+    name: 'add_expense_with_person',
+    arguments: { person: 'Renny', description: 'Dinner', amount: '100000', paidBy: 'them' },
   },
   { name: 'delete_expense', arguments: { expenseId: randomUUID() } },
   {
@@ -202,6 +210,23 @@ async function driveWriteTools(): Promise<RpcCall[]> {
     expect(result.isError, `${call.name}: ${JSON.stringify(result.content)}`).toBeFalsy();
   }
   await client.close();
+
+  // The clean-up path only runs when adding the person fails, so drive it on
+  // its own: a new pair whose ghost is refused removes the group it made.
+  const cleanup = buildWavesServer(
+    recordingSupabase(calls, new Set(['waves_add_ghost_member'])),
+    randomUUID(),
+    false,
+  );
+  const [cleanupClient, cleanupServer] = InMemoryTransport.createLinkedPair();
+  const second = new Client({ name: 'test', version: '0.0.0' });
+  await Promise.all([cleanup.connect(cleanupServer), second.connect(cleanupClient)]);
+  const refused = await second.callTool({
+    name: 'add_expense_with_person',
+    arguments: { person: 'Priya', description: 'Coffee', amount: '100' },
+  });
+  expect(refused.isError).toBe(true);
+  await second.close();
   return calls;
 }
 

@@ -31,7 +31,7 @@ import {
 } from '../../server/request';
 import { toExpense, type ExpenseResource } from '../../server/resources';
 
-const EXPENSE_COLUMNS = `
+export const EXPENSE_COLUMNS = `
   id, group_id, deleted_at, created_at,
   currentVersion:expense_versions!expenses_current_version_id_fkey (
     id, version_no, description, category, expense_date, currency, amount,
@@ -44,7 +44,7 @@ const EXPENSE_COLUMNS = `
 export const expenses = new Hono<ApiEnv>();
 
 /** Minor units arrive as decimal strings. A JSON number here is a rounding bug. */
-function minor(value: unknown, field: string): bigint {
+export function minor(value: unknown, field: string): bigint {
   if (typeof value !== 'string' || !/^\d{1,19}$/.test(value)) {
     throw new ApiError(
       'invalid_request',
