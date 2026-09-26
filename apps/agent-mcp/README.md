@@ -28,21 +28,24 @@ RLS and the business rules apply to the agent identically to the human.
 
 ## Tools
 
-| Tool                | Kind  | Path                                                                               |
-| ------------------- | ----- | ---------------------------------------------------------------------------------- |
-| `whoami`            | read  | `auth.getUser`                                                                     |
-| `list_groups`       | read  | `groups` (RLS)                                                                     |
-| `list_members`      | read  | `group_members` (RLS)                                                              |
-| `get_balances`      | read  | `group_balances` (RLS)                                                             |
-| `list_expenses`     | read  | `expenses` + the version in force (RLS)                                            |
-| `create_group`      | write | `rpc('waves_create_group')`                                                        |
-| `add_expense`       | write | `functions.invoke('expense-write')` → recomputes split, then `waves_apply_expense` |
-| `edit_expense`      | write | the same, with `baseVersionNo` — appends a version, never overwrites               |
-| `delete_expense`    | write | `rpc('waves_delete_expense')` — soft delete                                        |
-| `record_settlement` | write | `rpc('waves_record_settlement')` — records only                                    |
-| `add_people`        | write | `rpc('waves_add_ghost_member')` — names in, member ids out                         |
-| `invite_link`       | write | `rpc('waves_ensure_group_join_token')` — the group's reusable join link            |
-| `payment_link`      | pure  | builds a `upi://` or `paypal.me` link — a read, so read-only mode keeps it         |
+| Tool                | Kind  | Path                                                                                         |
+| ------------------- | ----- | -------------------------------------------------------------------------------------------- |
+| `whoami`            | read  | `auth.getUser`                                                                               |
+| `list_groups`       | read  | `groups` (RLS)                                                                               |
+| `list_members`      | read  | `group_members` (RLS)                                                                        |
+| `get_balances`      | read  | `group_balances` (RLS), each row named and marked `isYou`                                    |
+| `settlement_plan`   | read  | `group_balances` simplified, or `pairwise_balances` as they stand — plus pending settlements |
+| `list_settlements`  | read  | `settlements` (RLS), both sides named, filterable by status                                  |
+| `list_expenses`     | read  | `expenses` + the version in force (RLS)                                                      |
+| `list_agent_writes` | read  | `rpc('waves_my_agent_writes')` — what assistants did in this person's name                   |
+| `create_group`      | write | `rpc('waves_create_group')`                                                                  |
+| `add_expense`       | write | `functions.invoke('expense-write')` → recomputes split, then `waves_apply_expense`           |
+| `edit_expense`      | write | the same, with `baseVersionNo` — appends a version, never overwrites                         |
+| `delete_expense`    | write | `rpc('waves_delete_expense')` — soft delete                                                  |
+| `record_settlement` | write | `rpc('waves_record_settlement')` — records only; the two sides by name or member id          |
+| `add_people`        | write | `rpc('waves_add_ghost_member')` — names in, member ids out                                   |
+| `invite_link`       | write | `rpc('waves_ensure_group_join_token')` — the group's reusable join link                      |
+| `payment_link`      | pure  | builds a `upi://` or `paypal.me` link — a read, so read-only mode keeps it                   |
 
 All amounts are **integer minor units** (paise/cents) as strings — money is
 never a float.
@@ -143,17 +146,22 @@ small amount of code rather than a second permission system. It also carries a
 assistant may write, and a record of what it did that the person can read and
 act on.
 
-One thing is owed before this is usable by strangers: **turn on the OAuth 2.1
-server** in the Supabase dashboard (Auth → OAuth server) so
-`/.well-known/oauth-authorization-server` answers on the project. Until it does,
-a client discovers this endpoint and then has nowhere to get a token.
-
-The other half is done. `20260907140000_agent_writes_and_caps` was applied to
-prod on 2026-09-08, so `agent_writes`, the four functions and both `app_config`
-rows are live. That mattered because the ceiling and the audit trail are inert
-without it — and inert here means _absent_, not permissive: with no
-`waves_assert_agent_cap` to call, a write is not refused, it is simply
+Supabase's OAuth 2.1 server is switched on for the project, so
+`/.well-known/oauth-authorization-server` answers and a client that discovers
+this endpoint can get a token. `20260907140000_agent_writes_and_caps` was
+applied to prod on 2026-09-08, so `agent_writes`, the four functions and both
+`app_config` rows are live. That mattered because the ceiling and the audit
+trail are inert without it — and inert here means _absent_, not permissive:
+with no `waves_assert_agent_cap` to call, a write is not refused, it is simply
 unmeasured.
+
+Every write tool leaves a row. Expense adds and edits are recorded by
+`expense-write`, settlements inside `waves_record_settlement`, and — since
+`20260926120000_agent_writes_cover_every_tool` — deletes and restores, new
+groups, new ghost members and newly minted join links by triggers on the rows
+themselves, so a client calling PostgREST directly is on the record too. Only
+the money writes carry an amount, so tidying up never eats into the daily
+ceiling. `list_agent_writes` reads the trail back.
 
 `WAVES_MCP_READONLY=1` on the web deployment offers reads only; the write tools
 are not registered at all, so they never appear in `tools/list`.
@@ -164,9 +172,10 @@ This is Stage 0 of the agent story: stdio, one machine, one account. It is not a
 thing to hand to somebody else — the session on disk is yours, and giving away
 the server gives away your ledger.
 
-Stage 1 is built — see the section above. What is left is the part only a
-person can do: switching the OAuth server on in the Supabase dashboard, and
-deploying the migration that gives the ceiling something to read.
+Stage 1 is built and switched on — see the section above. What is left before
+handing it to strangers is a run end to end against a throwaway account, and a
+screen in the app where a person can see what their assistants did and
+disconnect one.
 
 After that, `login.ts` and `store.ts` can go: nothing should keep a refresh
 token on disk once there is a flow that does not need one. They stay for now
