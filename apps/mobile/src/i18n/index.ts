@@ -2482,7 +2482,6 @@ export interface UiStrings {
     paidBySeveral: string;
     /** Collapses the payer row back to a single person. */
     paidByOne: string;
-    alsoPaid: string;
     /** Asked before a saved several-payer bill is collapsed to one, because the
      *  other payers' recorded amounts go with it. `{name}` is who is kept. */
     collapsePayersTitle: string;
@@ -5515,7 +5514,6 @@ const en: UiStrings = {
     paidOverAssigned: '{amount} too much',
     paidBySeveral: 'Several people paid',
     paidByOne: 'One person paid',
-    alsoPaid: '{name} also paid',
     collapsePayersTitle: 'Collapse to one payer?',
     collapsePayersBody:
       '{name} put in the most, so they will be recorded as paying the whole bill. The other payers and their amounts are removed.',
@@ -8521,7 +8519,6 @@ const ta: UiStrings = {
     paidOverAssigned: '{amount} அதிகம்',
     paidBySeveral: 'பலர் கொடுத்தார்கள்',
     paidByOne: 'ஒருவர் கொடுத்தார்',
-    alsoPaid: '{name} கூடக் கொடுத்தார்',
     collapsePayersTitle: 'ஒருவர் கொடுத்ததாக மாற்றவா?',
     collapsePayersBody:
       '{name} அதிகம் கொடுத்திருக்கிறார், எனவே முழு பில்லையும் அவரே கொடுத்ததாகப் பதிவாகும். மற்ற கொடுத்தவர்களும் அவர்களின் தொகைகளும் நீக்கப்படும்.',
@@ -11517,7 +11514,6 @@ const hi: UiStrings = {
     paidOverAssigned: '{amount} ज़्यादा',
     paidBySeveral: 'कई लोगों ने दिया',
     paidByOne: 'एक व्यक्ति ने दिया',
-    alsoPaid: '{name} ने भी दिया',
     collapsePayersTitle: 'एक ही व्यक्ति ने दिया, ऐसा कर दें?',
     collapsePayersBody:
       '{name} ने सबसे ज़्यादा दिया है, तो पूरा बिल उन्हीं का दिया हुआ दर्ज होगा। बाक़ी देने वाले और उनकी रकमें हट जाएँगी।',
@@ -14641,7 +14637,6 @@ const ar: UiStrings = {
     paidOverAssigned: '{amount} زيادة',
     paidBySeveral: 'دفع عدة أشخاص',
     paidByOne: 'دفع شخص واحد',
-    alsoPaid: 'دفع {name} أيضًا',
     collapsePayersTitle: 'تحويلها إلى دافع واحد؟',
     collapsePayersBody:
       'دفع {name} أكبر مبلغ، لذلك سيُسجَّل أنه دفع الفاتورة كاملة. وستُحذف بقية الدافعين ومبالغهم.',

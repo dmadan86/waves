@@ -24,14 +24,14 @@ import DateTimePicker, { type DateTimePickerEvent } from '@react-native-communit
 import { ActivityIndicator, Platform, Pressable, ScrollView, View } from 'react-native';
 
 import { MutationKind, type CurrencyCode, type MemberId } from '@waves/core';
-import { AmountField, Button, Callout, Row, Sheet, Text, useTheme } from '@waves/ui';
+import { AmountField, Avatar, Button, Callout, Row, Sheet, Text, useTheme } from '@waves/ui';
 
 import { CategoryChoices } from '@/components/Category';
 import { DetailRow } from '@/components/DetailRows';
 import { DescriptionField } from '@/components/expense/DescriptionField';
-import { PayerChooser } from '@/components/expense/PayerChooser';
+import { ChoiceRow } from '@/components/expense/SheetOverlay';
 import { SplitKindChips, SplitParticipants } from '@/components/expense/SplitEditor';
-import { displayName, type ExpenseVersionRow, type MemberRow } from '@/data/types';
+import { displayName, isGhost, type ExpenseVersionRow, type MemberRow } from '@/data/types';
 import { useStrings } from '@/i18n';
 import { friendlyError } from '@/lib/errors';
 import { dateFrom, isoDate, showDate } from '@/lib/expenseDay';
@@ -84,8 +84,11 @@ export function ExpenseFieldSheet({
   myMemberId: MemberId | null;
   /** Called once the sheet has finished leaving. */
   onClose: () => void;
-  /** Leave for the full editor. */
-  onOpenEditor: () => void;
+  /**
+   * Leave for the full editor. `'payers'` opens it in several-payer mode,
+   * scrolled to who paid — where the Paid by sheet's "Several people paid" goes.
+   */
+  onOpenEditor: (focus?: 'payers') => void;
 }): React.JSX.Element | null {
   const theme = useTheme();
   const { t, locale } = useStrings();
@@ -240,6 +243,8 @@ export function ExpenseFieldSheet({
   // Several payers are changed on the full editor: their figures have to add
   // up to the total, and that is a form, not a pick. The pop-up says so rather
   // than offering a tap that would silently collapse them to one.
+  const payerSheet = field === 'payer';
+  const severalPayers = payerSheet && state.payers.size > 1;
 
   let body: ReactNode;
   if (field === 'description') {
@@ -305,16 +310,34 @@ export function ExpenseFieldSheet({
         </View>
       );
   } else if (field === 'payer') {
-    body = (
-      <PayerChooser
-        members={members}
-        viewerId={viewerId}
-        payers={state.payers}
-        amount={state.amount}
-        currency={state.currency}
-        seed={expenseId}
-        onChange={(payers) => setState((current) => ({ ...current, payers }))}
-      />
+    body = severalPayers ? (
+      <View style={{ gap: theme.spacing.md }}>
+        <Text variant="body" tone="muted">
+          {t.expense.severalPayersHint}
+        </Text>
+        <Button
+          label={t.expense.fullEditor}
+          variant="secondary"
+          onPress={() => leave(() => onOpenEditor('payers'))}
+        />
+      </View>
+    ) : (
+      <View style={{ gap: theme.spacing.xs }}>
+        {members.map((member) => (
+          <ChoiceRow
+            key={member.id}
+            leading={<Avatar name={displayName(member)} ghost={isGhost(member)} size={32} />}
+            label={displayName(member, viewerId)}
+            selected={state.payers.has(member.id)}
+            onPress={() =>
+              setState((current) => ({
+                ...current,
+                payers: new Map([[member.id, current.amount]]),
+              }))
+            }
+          />
+        ))}
+      </View>
     );
   } else if (field === 'category') {
     body = (
@@ -359,7 +382,7 @@ export function ExpenseFieldSheet({
   // The split states its own complaint under its list; every other field has
   // none of its own, so what blocks Save is said above the button — an amount
   // that no longer matches the payers' figures, or an exact split's.
-  const inlineIssue = field === 'split' ? null : blocker;
+  const inlineIssue = field === 'split' || severalPayers ? null : blocker;
 
   if (bareDatePicker) {
     return pickingDate ? (
@@ -380,16 +403,19 @@ export function ExpenseFieldSheet({
       closeLabel={t.common.close}
       style={{ maxHeight: '90%' }}
       titleAction={
+        // On Paid by the way out names the thing people come to the editor
+        // for — several payers — instead of a generic "Full editor" that gave
+        // no hint the sheet's single-choice list was not the whole story.
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={t.expense.fullEditor}
+          accessibilityLabel={payerSheet ? t.expense.paidBySeveral : t.expense.fullEditor}
           onPress={() => {
-            if (!saving) leave(onOpenEditor);
+            if (!saving) leave(() => onOpenEditor(payerSheet ? 'payers' : undefined));
           }}
           hitSlop={{ top: 15, bottom: 15, left: 8, right: 8 }}
         >
           <Text variant="micro" tone="brand" style={{ fontWeight: '700' }}>
-            {t.expense.fullEditor}
+            {payerSheet ? t.expense.paidBySeveral : t.expense.fullEditor}
           </Text>
         </Pressable>
       }
@@ -419,7 +445,7 @@ export function ExpenseFieldSheet({
             <Callout tone="negative">{error}</Callout>
           </View>
         ) : null
-      ) : (
+      ) : severalPayers ? null : (
         <View style={{ gap: theme.spacing.sm, paddingTop: theme.spacing.md }}>
           {error ? <Callout tone="negative">{error}</Callout> : null}
           <Row style={{ justifyContent: 'flex-end', alignItems: 'center', gap: theme.spacing.md }}>
