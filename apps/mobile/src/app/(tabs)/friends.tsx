@@ -71,7 +71,12 @@ import { router } from '@/lib/navigation';
 import { useReducedMotion } from '@/lib/reducedMotion';
 import { useAvatarUrl } from '@/components/ProfileAvatar';
 import { HeroDots } from '@/components/HeroDots';
-import { HeroActionCircle, HeroPillButton, ScreenHero } from '@/components/ScreenHero';
+import {
+  HeroActionCircle,
+  HeroFigureLine,
+  HeroPillButton,
+  ScreenHero,
+} from '@/components/ScreenHero';
 import { PeopleSkeleton } from '@/components/Skeletons';
 import { plural, useStrings, type UiStrings } from '@/i18n';
 import { usePullRefresh } from '@/lib/pullRefresh';
@@ -761,24 +766,24 @@ function FriendsHero({
                   // Home's rhythm: `sm` between the label and the figure.
                   style={{ gap: theme.spacing.sm }}
                 >
-                  {/* Home's wording, down to the separator: "Net receivable · INR".
-                    It replaces two lines that between them said less — a standing
-                    "OVERALL" over "You are owed" named the section and the
-                    direction but never the currency the figure was in, which is
-                    the one thing the number below cannot say for itself when a
-                    second currency is stacked under it. */}
-                  <Text variant="caption" tone="onBrand" style={{ opacity: 0.85 }}>
-                    {`${group.owed ? t.dashHero.netOwed : t.dashHero.netOwe} · ${group.head.currency}`}
-                  </Text>
+                  {/* Home's wording and shape: "Net receivable: ₹12,345" on one
+                    line. The symbol says the currency, so the code that used to
+                    trail the label ("· INR") is gone; a second currency stacks
+                    small under the figure it belongs with. */}
                   <View style={{ gap: 2 }}>
-                    <MoneyText
-                      amount={group.head.net < 0n ? -group.head.net : group.head.net}
-                      currency={group.head.currency}
-                      locale={locale}
-                      variant="title"
-                      tone="default"
-                      style={{ color: theme.color.onBrand }}
-                    />
+                    <HeroFigureLine label={group.owed ? t.dashHero.netOwed : t.dashHero.netOwe}>
+                      <MoneyText
+                        amount={group.head.net < 0n ? -group.head.net : group.head.net}
+                        currency={group.head.currency}
+                        locale={locale}
+                        variant="title"
+                        tone="default"
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.6}
+                        style={{ color: theme.color.onBrand }}
+                      />
+                    </HeroFigureLine>
                     {group.rest.length > 0 ? (
                       // The same direction's other currencies, small and under the
                       // number they belong to. Wrapped rather than clipped — six

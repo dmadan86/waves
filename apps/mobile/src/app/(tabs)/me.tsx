@@ -71,6 +71,7 @@ import { CategoryBadge } from '@/components/Category';
 import { dayHeading } from '@/data/activity';
 import { PersonalLocked } from '@/components/PersonalGuard';
 import { useSourceLabel } from '@/components/IncomeSource';
+import { HeroFigureLine } from '@/components/ScreenHero';
 import { SignInWall } from '@/components/SignInWall';
 import {
   localIsoDate,
@@ -732,12 +733,17 @@ function MeHero({
       {/* The month's net, big and static — the label carries the saved/overspent
           direction so the figure itself is shown as an absolute value. */}
       <View style={{ gap: theme.spacing.sm }}>
-        <Text variant="caption" tone="onBrand" numberOfLines={1} style={{ opacity: 0.85 }}>
-          {`${saved ? t.personal.saved : t.personal.overspent} · ${currency}`}
-        </Text>
-        <Text variant="display" tone="onBrand" numberOfLines={1} adjustsFontSizeToFit>
-          {`${net < 0n ? '−' : ''}${fmt(net < 0n ? -net : net)}`}
-        </Text>
+        <HeroFigureLine label={saved ? t.personal.saved : t.personal.overspent}>
+          <Text
+            variant="title"
+            tone="onBrand"
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.6}
+          >
+            {`${net < 0n ? '−' : ''}${fmt(net < 0n ? -net : net)}`}
+          </Text>
+        </HeroFigureLine>
         {/* What the month is still waiting for, said beside the figure rather
             than folded into it. Absent when nothing is outstanding, so a settled
             month stays as quiet as it was. */}

@@ -22,6 +22,8 @@
  *   - `HeroPillButton` — the white pill whose label is drawn in the gradient's
  *     own darkest stop, which is why it takes the stops rather than a colour.
  *   - `HeroActionCircle` — the dim white disc a secondary glyph sits on.
+ *   - `HeroFigureLine` — "Net receivable: ₹12,345", the label and the figure it
+ *     names on one line, the way the dashboard's balance reads.
  *
  * Both controls were `GroupHero`'s and are now shared with it, so a change to
  * how a hero action looks reaches every hero rather than one of them.
@@ -188,6 +190,43 @@ export function HeroActionCircle({
         </View>
       ) : null}
     </Pressable>
+  );
+}
+
+/**
+ * A hero's headline figure and what it is, said as one line: "Net receivable:
+ * ₹12,345". The label used to sit on a line of its own above the figure, with
+ * the currency code tacked on ("Net receivable · INR") — a row of the panel's
+ * height spent saying what the figure's own symbol already says. The label is
+ * quieter than the figure, so the number is still what gets read first; a long
+ * label truncates rather than wrapping, so the line stays one line.
+ *
+ * `children` is the figure (a `MoneyText`, or a count); `trailing` is anything
+ * that rides at the far end of the line, like a status badge.
+ */
+export function HeroFigureLine({
+  label,
+  children,
+  trailing,
+}: {
+  label: string;
+  children: ReactNode;
+  trailing?: ReactNode;
+}) {
+  const theme = useTheme();
+  return (
+    <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+      <Text
+        variant="body"
+        tone="onBrand"
+        numberOfLines={1}
+        style={{ flexShrink: 1, fontWeight: '600', opacity: 0.85 }}
+      >
+        {`${label}:`}
+      </Text>
+      <View style={{ flexShrink: 1 }}>{children}</View>
+      {trailing ? <View style={{ marginStart: 'auto' }}>{trailing}</View> : null}
+    </Row>
   );
 }
 
