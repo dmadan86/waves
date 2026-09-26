@@ -86,10 +86,13 @@ describe('the read-only server', () => {
 
     expect(tools.map((t) => t.name).sort()).toEqual([
       'get_balances',
+      'list_agent_writes',
       'list_expenses',
       'list_groups',
       'list_members',
+      'list_settlements',
       'payment_link',
+      'settlement_plan',
       'whoami',
     ]);
   });
@@ -302,10 +305,22 @@ describe('get_balances', () => {
       { member_id: 'm-me', currency: 'INR', balance: 10000 },
       { member_id: 'm-matt', currency: 'INR', balance: -10000 },
     ];
-    const { client, queries } = fakeSupabase({ group_balances: { data: rows } });
+    const { client, queries } = fakeSupabase({
+      group_balances: { data: rows },
+      group_members: {
+        data: [
+          { id: 'm-me', profile_id: ME, ghost_name: null, profile: { display_name: 'Madan' } },
+          { id: 'm-matt', profile_id: null, ghost_name: 'Matt', profile: null },
+        ],
+      },
+    });
     const { json } = await call(client, 'get_balances', { groupId: GROUP });
 
-    expect(json).toEqual(rows);
+    // Named, so an agent can say "Matt owes you ₹100" without a second call.
+    expect(json).toEqual([
+      { member_id: 'm-me', name: 'Madan', isYou: true, currency: 'INR', balance: 10000 },
+      { member_id: 'm-matt', name: 'Matt', isYou: false, currency: 'INR', balance: -10000 },
+    ]);
     expect(queries[0]!.table).toBe('group_balances');
     expect(queries[0]!.filters).toContainEqual(['eq', 'group_id', GROUP]);
   });

@@ -18,7 +18,7 @@ import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { Client } from 'pg';
 
-import { asRole, connect, seedGroup } from './helpers.js';
+import { addEqualSplitExpense, asRole, connect, seedGroup } from './helpers.js';
 
 let client: Client;
 let profileId: string;
@@ -227,8 +227,11 @@ describe('the record of what an agent did', () => {
           `SELECT waves_record_agent_write('expense.add', $1::uuid, NULL, $2::bigint, 'INR')`,
           [groupId, '125000'],
         );
+        // The group insert files its own `group.create` row; this is about
+        // the one written by hand.
         const result = await client.query(
-          `SELECT client_id, action, amount_minor, currency FROM agent_writes WHERE profile_id = $1`,
+          `SELECT client_id, action, amount_minor, currency FROM agent_writes
+            WHERE profile_id = $1 AND action = 'expense.add'`,
           [profileId],
         );
         return result.rows[0];
@@ -283,6 +286,106 @@ describe('the record of what an agent did', () => {
           [profileId],
         ),
       ).rejects.toThrow();
+    });
+  });
+});
+
+describe('the writes that move no money', () => {
+  /** Every audit row this person has, oldest first, as `action` strings. */
+  const trail = async (
+    profile: string,
+  ): Promise<
+    { action: string; group_id: string; object_id: string; amount_minor: string | null }[]
+  > => {
+    const { rows } = await client.query(
+      `SELECT action, group_id, object_id, amount_minor FROM agent_writes
+        WHERE profile_id = $1 ORDER BY created_at, action`,
+      [profile],
+    );
+    return rows;
+  };
+
+  it('records a group an agent creates, and not the creator joining it', async () => {
+    await asRole(client, 'authenticated', asAgent(profileId), async () => {
+      const { rows } = await client.query(
+        `SELECT waves_create_group('Goa', 'trip', 'INR', NULL, true, NULL, NULL) AS id`,
+      );
+      const groupId = String(rows[0].id);
+      expect(await trail(profileId)).toEqual([
+        { action: 'group.create', group_id: groupId, object_id: groupId, amount_minor: null },
+      ]);
+    });
+  });
+
+  it('records each person an agent adds as a ghost', async () => {
+    const group = await seedGroup(client, { memberCount: 1, name: 'Flat' });
+    const [owner] = group.profileIds as [string];
+
+    await asRole(client, 'authenticated', asAgent(owner), async () => {
+      const { rows } = await client.query(`SELECT waves_add_ghost_member($1, 'Raj') AS id`, [
+        group.groupId,
+      ]);
+      expect(await trail(owner)).toEqual([
+        {
+          action: 'member.add',
+          group_id: group.groupId,
+          object_id: rows[0].id,
+          amount_minor: null,
+        },
+      ]);
+    });
+  });
+
+  it('records a delete and a restore, and neither counts towards the daily cap', async () => {
+    const group = await seedGroup(client, { memberCount: 2, name: 'Dinner club' });
+    const [owner] = group.profileIds as [string, string];
+    const [payer, other] = group.memberIds as [string, string];
+    const { expenseId } = await addEqualSplitExpense(client, {
+      groupId: group.groupId,
+      payers: { [payer]: 400000n },
+      participants: [payer, other],
+      amount: 400000n,
+    });
+
+    await asRole(client, 'authenticated', asAgent(owner), async () => {
+      await client.query(`SELECT waves_delete_expense($1)`, [expenseId]);
+      await client.query(`SELECT waves_restore_expense($1)`, [expenseId]);
+
+      expect(
+        (await trail(owner)).map((row) => [row.action, row.object_id, row.amount_minor]),
+      ).toEqual([
+        ['expense.delete', expenseId, null],
+        ['expense.restore', expenseId, null],
+      ]);
+      // A whole day's allowance is still there: tidying up is not spending.
+      await expect(
+        client.query(`SELECT waves_assert_agent_cap($1::bigint)`, ['5000000']),
+      ).resolves.toBeTruthy();
+    });
+  });
+
+  it('records a join link the first time it is minted, and not when it is handed back', async () => {
+    const group = await seedGroup(client, { memberCount: 1, name: 'Book club' });
+    const [owner] = group.profileIds as [string];
+
+    await asRole(client, 'authenticated', asAgent(owner), async () => {
+      await client.query(`SELECT waves_ensure_group_join_token($1)`, [group.groupId]);
+      await client.query(`SELECT waves_ensure_group_join_token($1)`, [group.groupId]);
+      expect((await trail(owner)).map((row) => row.action)).toEqual(['invite.create']);
+    });
+  });
+
+  it('records none of it for the app', async () => {
+    const group = await seedGroup(client, { memberCount: 1, name: 'Own hands' });
+    const [owner] = group.profileIds as [string];
+
+    await asRole(client, 'authenticated', asApp(owner), async () => {
+      await client.query(
+        `SELECT waves_create_group('Mine', 'trip', 'INR', NULL, true, NULL, NULL)`,
+      );
+      await client.query(`SELECT waves_add_ghost_member($1, 'Priya')`, [group.groupId]);
+      await client.query(`SELECT waves_ensure_group_join_token($1)`, [group.groupId]);
+      expect(await trail(owner)).toEqual([]);
     });
   });
 });
