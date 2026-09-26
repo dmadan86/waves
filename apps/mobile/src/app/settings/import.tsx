@@ -60,8 +60,8 @@ import { importProblemLine, importProblemText } from '@/lib/problemText';
 import { plural, useStrings, type UiStrings } from '@/i18n';
 import { router } from '@/lib/navigation';
 import { useReducedMotion } from '@/lib/reducedMotion';
-import { useGroups } from '@/data/hooks';
-import { displayName, groupLabel, GroupType, isViewer, type MemberRow } from '@/data/types';
+import { useGroupLabeller, useGroups } from '@/data/hooks';
+import { displayName, GroupType, isViewer, type MemberRow } from '@/data/types';
 import { useViewerId } from '@/lib/auth';
 import { useBottomClearance } from '@/lib/clearance';
 
@@ -128,6 +128,7 @@ function fromWaves(group: WavesImportGroup, fallbackName: string): Loaded {
 }
 
 export default function ImportScreen() {
+  const labelOf = useGroupLabeller();
   const theme = useTheme();
   // The bottom bar shows on this screen (it is a settings page, not a modal), and
   // it is opaque — so the scroll has to clear the *bar*, not just the system
@@ -630,7 +631,7 @@ export default function ImportScreen() {
                   {(groups.data ?? []).map((group) => (
                     <TargetRow
                       key={group.id}
-                      label={groupLabel(group)}
+                      label={labelOf(group)}
                       selected={target === group.id}
                       onPress={() => void chooseTarget(group.id)}
                     />

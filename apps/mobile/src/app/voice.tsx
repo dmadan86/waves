@@ -54,6 +54,7 @@ import {
   useCreateCapture,
   useCreateGroup,
   useGroup,
+  useGroupLabeller,
   useGroupLedger,
   useGroupPeopleSignatures,
   useGroups,
@@ -64,7 +65,7 @@ import {
 } from '@/data/hooks';
 import { nudgeToSettle } from '@/data/api';
 import { useUpsertPersonalRecord } from '@/data/personal';
-import { displayName, groupLabel, GroupType, isViewer, type GroupRow } from '@/data/types';
+import { displayName, GroupType, isViewer, type GroupRow } from '@/data/types';
 import { isRtl, plural, useStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
 import { useViewerIdentity } from '@/lib/viewerIdentity';
@@ -185,6 +186,7 @@ function toMinor(amount: string, currency: string): bigint | null {
 }
 
 export default function VoiceScreen() {
+  const labelOf = useGroupLabeller();
   const theme = useTheme();
   // Your own name, for the destination row: the picker offers "me" as your
   // portrait and name, and the folded selector has to say the same thing back.
@@ -1365,7 +1367,7 @@ export default function VoiceScreen() {
   }
   const singleTotal = draftTotals.size === 1 ? [...draftTotals.entries()][0] : null;
 
-  const current = describeDest(dest, groupRows, t, viewer.name);
+  const current = describeDest(dest, groupRows, t, viewer.name, labelOf);
 
   // The destination as the picker reads it. The picker only needs to know which
   // row carries the check, so the kinds it has no row for — a spoken settle-up,
@@ -1786,6 +1788,8 @@ function describeDest(
   /** What the picker calls the reader, so the folded selector agrees with the
    *  sheet it was chosen in rather than reverting to "Just me". */
   viewerName: string,
+  /** Names an unnamed group by its members, as the picker does. */
+  labelOf: (group: GroupRow) => string,
 ): { label: string; emoji?: string | null; icon: React.ComponentProps<typeof Ionicons>['name'] } {
   if (dest.kind === 'unassigned') {
     return { label: t.captures.unassigned, icon: 'file-tray-full-outline' };
@@ -1808,7 +1812,7 @@ function describeDest(
   const group = groups.find((candidate) => candidate.id === dest.groupId);
   if (!group) return { label: t.captures.unassigned, icon: 'people-outline' };
   return {
-    label: groupLabel(group),
+    label: labelOf(group),
     emoji: group.cover_emoji,
     icon: GROUP_TYPE_ICON[group.type] ?? 'people-outline',
   };

@@ -26,7 +26,8 @@ import { Pressable, TextInput, View } from 'react-native';
 import { Button, Card, Divider, iconSize, Row, SegmentedTabs, Text, useTheme } from '@waves/ui';
 
 import { ProfileAvatar } from '@/components/ProfileAvatar';
-import { groupLabel, GroupType, type GroupRow } from '@/data/types';
+import { useGroupLabeller } from '@/data/hooks';
+import { GroupType, type GroupRow } from '@/data/types';
 import { matchesAssignGroupQuery } from '@/lib/captureAssign';
 import { usePersonalOffered } from '@/lib/guestGuard';
 import { useViewerIdentity } from '@/lib/viewerIdentity';
@@ -114,7 +115,7 @@ export function DestinationPicker({
   pinned = ['unassigned', 'me'],
   createRow = null,
   emptyGroups,
-  labelFor = (group) => groupLabel(group),
+  labelFor: labelForProp,
   onChoose,
   onResolvePeople,
 }: {
@@ -144,6 +145,10 @@ export function DestinationPicker({
    *  people already share a group (assign to it) or need a new one. */
   onResolvePeople: (names: string[]) => void;
 }) {
+  // Unnamed groups are named by their members; a caller with its own member
+  // lookup may still pass one.
+  const defaultLabel = useGroupLabeller();
+  const labelFor = labelForProp ?? defaultLabel;
   const theme = useTheme();
   const personalOffered = usePersonalOffered();
   const viewer = useViewerIdentity();

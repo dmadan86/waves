@@ -52,9 +52,9 @@ import { sameAddress } from '@/lib/contactMatch';
 
 import { ContactPicker, type PickedContact } from '@/components/ContactPicker';
 import { addGhostMember } from '@/data/api';
-import { useGroups } from '@/data/hooks';
+import { useGroupLabeller, useGroups } from '@/data/hooks';
 import { useKnownContacts } from '@/data/knownContacts';
-import { groupLabel, type MemberRow } from '@/data/types';
+import { type MemberRow } from '@/data/types';
 import { router } from '@/lib/navigation';
 
 export default function ContactsScreen(): React.JSX.Element {
@@ -271,6 +271,7 @@ function ChooseGroup({
   onCancel: () => void;
   onChoose: (groupId: string) => void;
 }): React.JSX.Element {
+  const labelOf = useGroupLabeller();
   const theme = useTheme();
   const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
@@ -325,7 +326,7 @@ function ChooseGroup({
             return (
               <View key={group.id} style={full ? { opacity: 0.5 } : undefined}>
                 <ListRow
-                  title={groupLabel(group)}
+                  title={labelOf(group)}
                   subtitle={
                     full
                       ? t.misc.everyoneAlreadyIn
@@ -335,7 +336,7 @@ function ChooseGroup({
                   }
                   leading={
                     <Avatar
-                      name={groupLabel(group)}
+                      name={labelOf(group)}
                       emoji={group.cover_emoji ?? undefined}
                       size={40}
                     />
