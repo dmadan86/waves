@@ -157,6 +157,56 @@ describe('the local-read wrapper every mirror hook returns', () => {
   });
 });
 
+describe('useMyTimeline', () => {
+  it('lists every live expense across groups with my share, and skips deleted ones', () => {
+    const lunch = expenseRow('e-lunch', 'g1', {
+      amount: 90000n,
+      payer: 'm-me',
+      shares: { 'm-me': 30000n, 'm-ravi': 60000n },
+      date: '2026-09-14',
+    });
+    (lunch.currentVersion as Record<string, unknown>).location = {
+      lat: 15.5,
+      lng: 73.8,
+      name: 'Fisherman’s Wharf',
+    };
+    sync.mirror = mirrorOf({
+      [SyncTable.Groups]: [groupRow('g1'), groupRow('g2')],
+      [SyncTable.GroupMembers]: [
+        memberRow('m-me', 'g1', OWNER),
+        memberRow('m-ravi', 'g1', 'p-ravi'),
+        memberRow('m-me2', 'g2', OWNER),
+        memberRow('m-asha', 'g2', 'p-asha'),
+      ],
+      [SyncTable.Expenses]: [
+        lunch,
+        expenseRow('e-cab', 'g2', {
+          amount: 40000n,
+          payer: 'm-asha',
+          shares: { 'm-me2': 20000n, 'm-asha': 20000n },
+        }),
+        expenseRow('e-gone', 'g2', {
+          amount: 100n,
+          payer: 'm-asha',
+          shares: { 'm-asha': 100n },
+          deletedAt: '2026-02-02T00:00:00Z',
+        }),
+      ],
+    });
+    const rows = render(() => hooks.useMyTimeline()).data;
+    const byId = new Map(rows.map((row) => [row.id, row]));
+    expect([...byId.keys()].sort()).toEqual(['e-cab', 'e-lunch']);
+    expect(byId.get('e-lunch')).toMatchObject({
+      groupId: 'g1',
+      amount: 90000n,
+      myNet: 60000n,
+      mine: true,
+      place: { lat: 15.5, lng: 73.8, name: 'Fisherman’s Wharf' },
+    });
+    expect(byId.get('e-cab')).toMatchObject({ myNet: -20000n, mine: true, place: null });
+  });
+});
+
 describe('useGroupLabeller', () => {
   // The report: a "Where does it go?" picker listing three unnamed groups as
   // "New group", "New group", "New group", because the label had no members.

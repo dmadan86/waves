@@ -677,6 +677,16 @@ export default function ExpenseDetailScreen() {
                   onPress={changeOn('split')}
                   accessibilityHint={t.expense.detailTapHint}
                 />
+                {/* Where this bill sits among everything else you spent: the
+                    timeline opens on it, and turns into a map from there. */}
+                <DetailRow
+                  icon="git-commit-outline"
+                  label={t.timeline.entryRow}
+                  value={t.timeline.entryRowValue}
+                  onPress={() =>
+                    router.push({ pathname: '/timeline', params: { focus: expenseId ?? '' } })
+                  }
+                />
               </DetailRows>
             </Card>
 
@@ -720,6 +730,31 @@ export default function ExpenseDetailScreen() {
                     />
                   </Row>
                 </Card>
+              </Pressable>
+            ) : null}
+            {location ? (
+              <Pressable
+                accessibilityRole="button"
+                onPress={() =>
+                  router.push({
+                    pathname: '/timeline',
+                    params: { focus: expenseId ?? '', view: 'map' },
+                  })
+                }
+                style={({ pressed }) => ({
+                  alignSelf: 'flex-start',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 6,
+                  marginTop: -theme.spacing.md,
+                  paddingVertical: theme.spacing.xs,
+                  opacity: pressed ? 0.6 : 1,
+                })}
+              >
+                <Ionicons name="map-outline" size={iconSize.sm} color={theme.color.brand} />
+                <Text variant="caption" tone="brand" style={{ fontWeight: '700' }}>
+                  {t.timeline.seeOnMap}
+                </Text>
               </Pressable>
             ) : null}
 

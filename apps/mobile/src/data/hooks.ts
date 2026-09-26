@@ -114,6 +114,7 @@ import type { VoiceAccess } from '@/lib/voiceAccess';
 import { activityTime } from '@/lib/groupActivityOrder';
 import { recentActivity, type RecentActivityRow } from './recentActivity';
 import { groupLabel, isGhost, isViewer, SettlementStatus } from './types';
+import { timeOfDay, type TimelineEntry } from '@/lib/timeline';
 import type {
   ActivityRow,
   CaptureRow,
@@ -438,6 +439,63 @@ export function useGroupLabeller(): (group: Pick<GroupRow, 'id' | 'name'>) => st
       groupLabel(group, membersOfUnnamed.get(group.id) ?? [], viewerId),
     [membersOfUnnamed, viewerId],
   );
+}
+
+/**
+ * Every expense I can see, across every group, as timeline entries.
+ *
+ * Read from the local mirror with the queue replayed per group (the overlay is
+ * per group, so an all-groups read has to ask group by group, as
+ * `useHomeSummary` does). Deleted bills are left out. Each entry carries what I
+ * paid minus what I owe, so the timeline can say "you lent" or "you borrowed"
+ * the way every other list does. The pure half is `lib/timeline.ts`.
+ */
+export function useMyTimeline(): LocalRead<TimelineEntry[]> {
+  const { mirror, queue } = useSync();
+  const viewerId = useViewerId();
+  const rows = useMemo(() => {
+    const out: TimelineEntry[] = [];
+    for (const group of materialiseGroups(mirror, queue) as unknown as GroupRow[]) {
+      const members = materialiseMembers(mirror, queue, {
+        groupId: group.id,
+      }) as unknown as MemberRow[];
+      const me = members.find((member) => isViewer(member, viewerId))?.id ?? null;
+      const groupName = groupLabel(group, members, viewerId);
+      for (const raw of materialiseExpenses(mirror, queue, { groupId: group.id })) {
+        const expense = raw as unknown as ExpenseRow;
+        const version = expense.currentVersion;
+        if (expense.deleted_at || !version) continue;
+        let paid = 0n;
+        let owed = 0n;
+        for (const payer of version.payers)
+          if (payer.member_id === me) paid += BigInt(payer.amount);
+        for (const share of version.shares)
+          if (share.member_id === me) owed += BigInt(share.amount);
+        const place = version.location;
+        out.push({
+          id: expense.id,
+          groupId: group.id,
+          groupName,
+          description: version.description ?? null,
+          category: version.category ?? null,
+          categoryMeta: version.category_meta ?? null,
+          amount: BigInt(version.amount),
+          currency: version.currency,
+          day: version.expense_date,
+          at: timeOfDay(version.expense_date, expense.created_at),
+          place:
+            place && Number.isFinite(place.lat) && Number.isFinite(place.lng)
+              ? { lat: place.lat, lng: place.lng, name: place.name ?? null }
+              : null,
+          mine: paid > 0n || owed > 0n,
+          myNet: paid - owed,
+          pending: expense.pending === true,
+        });
+      }
+    }
+    return out;
+  }, [mirror, queue, viewerId]);
+  return useLocalRead(rows);
 }
 
 export function useHomeSummary(profileId: string | null) {
