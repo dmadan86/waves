@@ -61,13 +61,27 @@ describe('every hero is the same hero', () => {
 
   it('the group hero uses the shared controls rather than its own copies', () => {
     const hero = source('components/GroupHero.tsx');
-    expect(hero).toMatch(
-      /import \{ HeroActionCircle, HeroPillButton \} from '@\/components\/ScreenHero';/,
-    );
+    const shared = hero.match(/import \{([^}]*)\} from '@\/components\/ScreenHero';/);
+    expect(shared?.[1]).toMatch(/\bHeroActionCircle\b/);
+    expect(shared?.[1]).toMatch(/\bHeroPillButton\b/);
     // The white pill and the dim disc were defined here and are now shared. A
     // local `function HeroActionCircle` reappearing means somebody has forked
     // them back apart.
     expect(hero).not.toMatch(/function Hero(ActionCircle|PillButton)\b/);
+  });
+
+  it('every headline figure is said as one "Label: figure" line', () => {
+    // The label used to sit on its own line above the figure ("Net receivable ·
+    // INR"); the shared line puts them together. A hero drawing its own label
+    // row again has drifted from the rest.
+    for (const file of [
+      'components/GroupHero.tsx',
+      'app/(tabs)/friends.tsx',
+      'app/(tabs)/me.tsx',
+      'app/captures/sms/index.tsx',
+    ]) {
+      expect(source(file), file).toMatch(/<HeroFigureLine\b/);
+    }
   });
 });
 

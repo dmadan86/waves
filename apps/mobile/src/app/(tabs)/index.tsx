@@ -1227,18 +1227,18 @@ const SLIDE_STYLE: Record<
 };
 
 /**
- * The hero's two lines, in one place. `HeroBalanceSkeleton` builds itself to
- * exactly these heights so the real figure settles into the placeholder's
- * space instead of shoving the buttons and the group list down — which only
- * holds if both sites read the same numbers, hence the constants.
+ * The hero balance's one line, in one place. `HeroBalanceSkeleton` builds
+ * itself to exactly this height so the real figure settles into the
+ * placeholder's space instead of shoving the buttons and the group list down —
+ * which only holds if both sites read the same numbers, hence the constants.
  */
-const HERO_LABEL_LINE = 18;
 // The `title` type step (tokens.ts), which is what a group's hero uses for its
 // own balance. Home used to be four points larger, so the same money read as two
 // different orders of importance on two screens a tap apart; the numbers now
 // match, and the hero gives back the height.
 const HERO_AMOUNT_SIZE = 24;
 const HERO_AMOUNT_LINE = 30;
+
 const HERO_AMOUNT_STYLE = {
   fontSize: HERO_AMOUNT_SIZE,
   lineHeight: HERO_AMOUNT_LINE,
@@ -1312,18 +1312,17 @@ function HeroBalance({
   // they do.
   const metricFor = (
     slide: BalanceSlide,
-  ): { label: string; amount: bigint; showSign?: boolean } => {
-    const label = (heading: string): string => `${heading} · ${primary.currency}`;
+  ): { heading: string; amount: bigint; showSign?: boolean } => {
     switch (slide) {
       case 'net':
         // Square is square: a "+₹0" would be a direction where there is none.
-        return { label: label(netDirection), amount: primary.net, showSign: primary.net !== 0n };
+        return { heading: netDirection, amount: primary.net, showSign: primary.net !== 0n };
       case 'owed':
-        return { label: label(t.dashHero.owedToYou), amount: primary.owed };
+        return { heading: t.dashHero.owedToYou, amount: primary.owed };
       case 'owing':
-        return { label: label(t.dashHero.owedByYou), amount: primary.owing };
+        return { heading: t.dashHero.owedByYou, amount: primary.owing };
       case 'month':
-        return { label: label(t.dashHero.monthSpent), amount: monthAmount };
+        return { heading: t.dashHero.monthSpent, amount: monthAmount };
     }
   };
 
@@ -1390,20 +1389,15 @@ function HeroBalance({
 }
 
 /**
- * The balance area while it loads — translucent-white bars on the green that
- * stand in for a `MetricSlide`: a label bar and the big figure. It has the same
- * two lines the loaded slide now has (the sub line is gone).
+ * The balance area while it loads — translucent-white bars on the green in the
+ * shape of a `MetricSlide`: the heading, then the figure beside it.
  *
  * The whole point is that the swap-in is a settle, not a jump, so the skeleton
- * is built to the *exact* height a loaded slide fills. Each bar rides inside a
- * wrapper sized to the real line's height — the label to the caption's 18px
- * line, the figure to the money's 46px line, one `spacing.sm` gap between — so
- * the block is the same height either way and the number lands in place
- * instead of shoving the Add-expense button and the group list down (the layout
- * shift the user flagged). Both sites read `HERO_LABEL_LINE` /
- * `HERO_AMOUNT_LINE`, so a change to the type size cannot desync them. A gentle pulse reads as "loading" rather than a dead
- * placeholder. Plain `Skeleton` is themed for light surfaces and would vanish on
- * the green, so these are hand-drawn washes.
+ * is exactly one slide tall — `HERO_AMOUNT_LINE`, the line the figure sets —
+ * and the number lands in place instead of shoving the
+ * Add-expense button and the group list down. A gentle pulse reads as
+ * "loading" rather than a dead placeholder. Plain `Skeleton` is themed for
+ * light surfaces and would vanish on the green, so these are hand-drawn washes.
  */
 function HeroBalanceSkeleton() {
   const theme = useTheme();
@@ -1426,11 +1420,17 @@ function HeroBalanceSkeleton() {
     />
   );
   return (
-    <Animated.View style={{ gap: theme.spacing.sm, opacity: pulse }}>
-      {/* Label line — the caption+eye row's line height. */}
-      <View style={{ height: HERO_LABEL_LINE, justifyContent: 'center' }}>{bar(120, 12)}</View>
-      {/* The figure — the money's own line, so the swap-in is a settle. */}
-      <View style={{ height: HERO_AMOUNT_LINE, justifyContent: 'center' }}>{bar(200, 34)}</View>
+    <Animated.View
+      style={{
+        height: HERO_AMOUNT_LINE,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.md,
+        opacity: pulse,
+      }}
+    >
+      {bar(96, 12)}
+      {bar(140, 24)}
     </Animated.View>
   );
 }
@@ -1479,18 +1479,21 @@ function HeroBackdrop({
 }
 
 /**
- * One balance slide, riding transparent on the hero's green — a label with the
- * eye toggle to its right and the money big beneath it. Two lines only: the old
- * third "sub" caption is gone, so the slide is tighter and the hero shorter. The
- * label carries everything the sub used to say — on the net slide it is the
- * owe↔owed verdict itself (see `netDirection` in `HeroBalance`), so dropping the
- * sub loses no direction. White ink throughout, so it reads the same in light
- * and dark like a bank card. The eye masks the figure to dots; the toggle sits
- * on every slide (it is the same control repeated as you swipe), so the eye is
- * always to hand wherever you land.
+ * One balance slide, riding transparent on the hero's green, in a single line
+ * that reads as a sentence: "Net receivable: ₹12,345", then the eye.
+ *
+ * It used to be two lines, "Net receivable · INR 👁" over the figure, and the
+ * label line cost a row of the hero's height. The currency code is gone too:
+ * the figure's own symbol says it. The heading is quieter than the figure so
+ * the number still gets read first; a long heading truncates and a very large
+ * figure shrinks a little, so the line never wraps.
+ *
+ * White ink throughout, so it reads the same in light and dark like a bank
+ * card. The eye masks the figure to dots; the toggle sits on every slide (it is
+ * the same control repeated as you swipe), so the eye is always to hand.
  */
 function MetricSlide({
-  label,
+  heading,
   amount,
   currency,
   locale,
@@ -1499,59 +1502,68 @@ function MetricSlide({
   settling,
   showSign = false,
 }: {
-  label: string;
+  /** What the figure is — "Net receivable", "This month". */
+  heading: string;
   amount: bigint;
   currency: string;
   locale: string;
   hidden: boolean;
   onToggleHide: () => void;
   /** Print the amount's own sign in front of it. Only the net slide sets this:
-   *  it is the one figure whose direction is information, and a 40pt number is
-   *  what gets read at a glance — not the caption above it. The other two are
+   *  it is the one figure whose direction is information, and a big number is
+   *  what gets read at a glance — not the heading before it. The other two are
    *  magnitudes (what you are owed, what you spent) where a `+` would be noise. */
   showSign?: boolean;
-  /** Shown with a small spinner beside the label: this figure is the local one
-   *  and this session's first sync has not confirmed it yet. */
+  /** Shown with a small spinner beside the figure: this figure is the local
+   *  one and this session's first sync has not confirmed it yet. */
   settling?: boolean;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
   return (
-    <View style={{ gap: theme.spacing.sm }}>
-      <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-        <Text variant="caption" tone="onBrand" numberOfLines={1} style={{ flexShrink: 1 }}>
-          {label}
-        </Text>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={hidden ? t.dashHero.showBalance : t.dashHero.hideBalance}
-          onPress={onToggleHide}
-          hitSlop={10}
-          style={({ pressed }) => ({ opacity: pressed ? 0.5 : 0.85 })}
-        >
-          <Ionicons
-            name={hidden ? 'eye-off-outline' : 'eye-outline'}
-            size={iconSize.md}
-            color={theme.color.onBrand}
+    <Row style={{ height: HERO_AMOUNT_LINE, alignItems: 'center', gap: theme.spacing.sm }}>
+      <Text
+        variant="body"
+        tone="onBrand"
+        numberOfLines={1}
+        style={{ flexShrink: 1, fontWeight: '600', opacity: 0.85 }}
+      >
+        {heading}:
+      </Text>
+      <View style={{ flexShrink: 1 }}>
+        {hidden ? (
+          <Text tone="onBrand" style={HERO_AMOUNT_STYLE} numberOfLines={1}>
+            {BALANCE_MASK}
+          </Text>
+        ) : (
+          <MoneyText
+            amount={amount}
+            currency={currency as never}
+            locale={locale}
+            tone="onBrand"
+            showSign={showSign}
+            style={HERO_AMOUNT_STYLE}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.6}
           />
-        </Pressable>
-        {settling ? <ActivityIndicator size="small" color={theme.color.onBrand} /> : null}
-      </Row>
-      {hidden ? (
-        <Text tone="onBrand" style={HERO_AMOUNT_STYLE}>
-          {BALANCE_MASK}
-        </Text>
-      ) : (
-        <MoneyText
-          amount={amount}
-          currency={currency as never}
-          locale={locale}
-          tone="onBrand"
-          showSign={showSign}
-          style={HERO_AMOUNT_STYLE}
+        )}
+      </View>
+      {settling ? <ActivityIndicator size="small" color={theme.color.onBrand} /> : null}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={hidden ? t.dashHero.showBalance : t.dashHero.hideBalance}
+        onPress={onToggleHide}
+        hitSlop={10}
+        style={({ pressed }) => ({ marginStart: 'auto', opacity: pressed ? 0.5 : 0.85 })}
+      >
+        <Ionicons
+          name={hidden ? 'eye-off-outline' : 'eye-outline'}
+          size={iconSize.md}
+          color={theme.color.onBrand}
         />
-      )}
-    </View>
+      </Pressable>
+    </Row>
   );
 }
 
