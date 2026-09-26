@@ -1,0 +1,515 @@
+/**
+ * Settling up with one person in a group — who, how much, which rail, then the
+ * hand-off and the record — without a screen around it.
+ *
+ * Two homes: the Settle up screen (reached from a balance, a reminder, the
+ * pending list) and a group's own Settle up tab. Moved out of
+ * `app/group/[id]/settle.tsx` whole, so the two cannot drift.
+ */
+
+import { useMemo, useState } from 'react';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { ActivityIndicator, Linking, Pressable, ScrollView, View } from 'react-native';
+
+import {
+  allocateSettlement,
+  BalanceDirection,
+  buildPaymentUri,
+  defaultRailFor,
+  railById,
+  railsFor,
+  toMajorString,
+  type MemberId,
+  type Receivable,
+} from '@waves/core';
+import {
+  Avatar,
+  Badge,
+  Button,
+  Callout,
+  Card,
+  ChipRow,
+  EmptyState,
+  iconSize,
+  MoneyText,
+  Row,
+  Text,
+  TintCard,
+  tintForKey,
+  useTheme,
+  useScreenClearance,
+} from '@waves/ui';
+
+import { useNudge } from '@/lib/nudge';
+import { toSnapshot, useGroup, useGroupLedger, useRecordSettlement } from '@/data/hooks';
+import { friendlyError } from '@/lib/errors';
+import { expenseTitle } from '@/data/expenseTitle';
+import { displayName, isGhost, payableAt, type MemberRow } from '@/data/types';
+import { fill, useStrings } from '@/i18n';
+import { useAuth } from '@/lib/auth';
+import { useGuestGuard } from '@/lib/guestGuard';
+import { router } from '@/lib/navigation';
+import { useDialog } from '@/lib/dialog';
+
+export function SettleBody({
+  groupId,
+  onRecorded,
+}: {
+  groupId: string;
+  /**
+   * What to do once a settlement is recorded. The screen closes itself; a
+   * group's Settle up tab has nowhere to go back to, so it says where to look.
+   */
+  onRecorded?: () => void;
+}) {
+  const theme = useTheme();
+  const clearance = useScreenClearance();
+  const { t, locale } = useStrings();
+  const { confirm, notify } = useDialog();
+  const { profile } = useAuth();
+
+  const { group, members, expenses } = useGroup(groupId);
+  const ledger = useGroupLedger(groupId, profile?.id ?? null);
+  const recordSettlement = useRecordSettlement(groupId);
+  const guard = useGuestGuard();
+
+  const [selected, setSelected] = useState<MemberId | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const currency = group.data?.default_currency ?? 'INR';
+  const settleInk = theme.tint[tintForKey(groupId)].ink;
+  const settleInkMuted = theme.tint[tintForKey(groupId)].inkMuted;
+  /**
+   * Where this group settles decides what it can settle with. A group that
+   * never said still gets bank, cash and the cross-border wallets — never an
+   * empty list, because a group that cannot record a payment is not a group
+   * anybody can use.
+   */
+  const country = group.data?.country_code ?? null;
+  const rails = useMemo(() => railsFor(country), [country]);
+  const [rail, setRail] = useState<string | null>(null);
+  const myMemberId = ledger.myMemberId;
+
+  // Only people on the other side of my ledger can settle with me: if I am owed
+  // overall I can be paid by a debtor, and if I owe I can pay a creditor. Listing
+  // a fellow debtor (or fellow creditor) offered a settlement that nets negative
+  // — the amount below went below zero and the button stayed enabled, so the
+  // server got a payment for a negative sum and refused it in the user's face.
+  const counterparties = useMemo(
+    () =>
+      (members.data ?? []).filter((member) => {
+        if (member.id === myMemberId) return false;
+        const balance = ledger.balances.get(member.id) ?? 0n;
+        if (ledger.myBalance > 0n) return balance < 0n;
+        if (ledger.myBalance < 0n) return balance > 0n;
+        return false;
+      }),
+    [members.data, myMemberId, ledger.balances, ledger.myBalance],
+  );
+
+  const counterparty: MemberRow | undefined =
+    counterparties.find((member) => member.id === selected) ?? counterparties[0];
+
+  /**
+   * The rail this settlement is on.
+   *
+   * Seeded from the payee, not from the group's country. The link is built from
+   * *their* stored rail (`payableAt` below) while `settlements.rail` recorded
+   * whatever the picker said, so the two could disagree: the button read "Pay
+   * via Pix" over a UPI intent, and the row afterwards named a rail nobody
+   * used. One truth, and it is the person being paid — they are the only party
+   * who knows what will actually reach them. The country default is what is
+   * left when they have said nothing at all, and the picker still overrides
+   * both, because cash is always a possibility no profile records.
+   */
+  const payeeRail = counterparty ? (payableAt(counterparty)?.rail ?? null) : null;
+  const method = rail ?? payeeRail ?? defaultRailFor(country);
+
+  const theirBalance = counterparty ? (ledger.balances.get(counterparty.id) ?? 0n) : 0n;
+  const iPay = ledger.myBalance < 0n && theirBalance > 0n;
+  const rawAmount = counterparty
+    ? iPay
+      ? min(-ledger.myBalance, theirBalance)
+      : min(ledger.myBalance, theirBalance < 0n ? -theirBalance : 0n)
+    : 0n;
+  // Never below zero: the counterparty filter already keeps us on opposite sides,
+  // and this is the belt to that braces — a settlement is a positive movement or
+  // it is nothing, and the button below disables on 0.
+  const amount = rawAmount > 0n ? rawAmount : 0n;
+
+  // What the payer still owes the payee, expense by expense — the settle sheet
+  // applies the payment against these oldest-first (ADR-007).
+  const receivables: Receivable[] = useMemo(() => {
+    if (!counterparty || !myMemberId) return [];
+    const from = iPay ? myMemberId : counterparty.id;
+    const to = iPay ? counterparty.id : myMemberId;
+    return expenses.rows
+      .map(toSnapshot)
+      .filter((snapshot): snapshot is NonNullable<typeof snapshot> => snapshot !== null)
+      .map((snapshot) => {
+        const owes = BigInt(snapshot.shares[from] ?? 0n);
+        const paidByOther = BigInt(snapshot.payers[to] ?? 0n);
+        const portion = owes > 0n && paidByOther > 0n ? (owes * paidByOther) / snapshot.amount : 0n;
+        return { expenseId: snapshot.id, date: snapshot.date, amount: portion };
+      })
+      .filter((receivable) => receivable.amount > 0n);
+  }, [expenses.rows, counterparty, myMemberId, iPay]);
+
+  const allocation =
+    amount > 0n && receivables.length > 0
+      ? allocateSettlement({ amount }, receivables)
+      : { allocations: [], unallocated: amount };
+
+  const titleFor = (expenseId: string): string => {
+    const version = expenses.rows.find((expense) => expense.id === expenseId)?.currentVersion;
+    return expenseTitle(version?.description, version?.category, t, version?.category_meta);
+  };
+
+  /**
+   * Whether the button hands off to something before recording.
+   *
+   * Only when I am the one paying, and only on a rail that has somewhere to
+   * send me — either an app to open or a handle to copy. Recording that
+   * somebody *else* paid me never opens anything.
+   */
+  const handsOff = iPay && (railById(method)?.handle ?? 'none') !== 'none';
+
+  const settleLabel = handsOff
+    ? fill(t.payViaRail, { rail: railById(method)?.label ?? '' })
+    : method === 'cash'
+      ? t.paidInCash
+      : t.bankOther;
+
+  const record = async (): Promise<void> => {
+    // A settlement is a write; an expired guest is read-only (ADR-006 addendum).
+    if (guard.blockWrite()) return;
+    if (!counterparty || !myMemberId || amount === 0n) return;
+    setError(null);
+    try {
+      await recordSettlement.mutateAsync({
+        groupId,
+        fromMemberId: iPay ? myMemberId : counterparty.id,
+        toMemberId: iPay ? counterparty.id : myMemberId,
+        amount,
+        rail: method,
+        currency,
+        allocations: allocation.allocations,
+      });
+      if (onRecorded) onRecorded();
+      else router.back();
+    } catch (caught) {
+      setError(friendlyError(caught, t.couldNotSave, 'settle.record'));
+    }
+  };
+
+  /**
+   * Hand off to their payment app if this rail has one, and otherwise show the
+   * handle to copy.
+   *
+   * The second half is not a degraded case — it is the ordinary one. UPI is the
+   * only rail with a scheme we can stand behind, so everywhere except India
+   * this shows a Pix key or a mobile number and the person finishes in their
+   * own bank app. Either way Waves never moves the money (ADR-007); it records
+   * that somebody says they did, and the person paid confirms it.
+   */
+  const payThen = async (): Promise<void> => {
+    if (!counterparty) return;
+
+    const payable = payableAt(counterparty);
+    const railInfo = railById(method);
+
+    if (!payable) {
+      // Why the tap did nothing, so it is a notice with a door rather than a
+      // toast: the next thing to do is go and ask this person for their details.
+      await notify({
+        title: t.misc.settleNoDetailsTitle.replace(
+          '{rail}',
+          railInfo?.label ?? t.misc.settleRailFallback,
+        ),
+        body: t.misc.settleNoDetailsBody.replace('{name}', displayName(counterparty)),
+      });
+      return;
+    }
+
+    // Only when the picker is still on the rail this handle belongs to. A
+    // handle is not portable between rails — somebody who overrides the picker
+    // to Wise has not given us a Wise handle, and building a link out of their
+    // UPI id under a Wise label is a tap that cannot work dressed as one that
+    // can. The fallback below is the honest answer in that case.
+    const uri =
+      method !== payable.rail
+        ? null
+        : buildPaymentUri(
+            {
+              railId: payable.rail,
+              handle: payable.handle,
+              payeeName: displayName(counterparty),
+              amount,
+              currency,
+              note: `Waves ${group.data?.name ?? ''}`.trim(),
+            },
+            (value, code) => toMajorString({ minor: value, currency: code }),
+          );
+
+    // An 'app' scheme is asked about first: a custom scheme with nothing
+    // installed to answer it fails silently, and a tap that looks like it
+    // worked while no money moved is the worst outcome here. An https link
+    // always opens — worst case a web page — so it needs no permission.
+    const canOpen = uri
+      ? uri.kind === 'web' || (await Linking.canOpenURL(uri.uri).catch(() => false))
+      : false;
+    if (uri && canOpen) {
+      await Linking.openURL(uri.uri);
+      const paid = await confirm({
+        title: t.extras.paymentWentThrough,
+        body: t.extras.onlyIfCompleted,
+        confirmLabel: t.misc.recordYes,
+        cancelLabel: t.misc.recordNo,
+      });
+      if (paid) void record();
+      return;
+    }
+
+    const recordIt = await confirm({
+      title: t.misc.settlePayTitle.replace('{name}', displayName(counterparty)),
+      body: t.misc.settlePayBody
+        // `payable.rail`, because the handle underneath belongs to it — naming
+        // the picker's rail here is what let the button say "Pay via Pix" over
+        // a dialog reading "UPI".
+        .replace('{rail}', railById(payable.rail)?.label ?? t.misc.settleSendTo)
+        .replace('{handle}', payable.handle),
+      confirmLabel: t.misc.recordIt,
+    });
+    if (recordIt) void record();
+  };
+
+  if (group.isLoading || members.isLoading) {
+    return (
+      <View style={{ paddingTop: theme.spacing.xxxl, alignItems: 'center' }}>
+        <ActivityIndicator color={theme.color.brand} />
+      </View>
+    );
+  }
+
+  return (
+    <View style={{ flex: 1 }}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{
+          paddingHorizontal: theme.spacing.xl,
+          paddingTop: theme.spacing.lg,
+          paddingBottom: clearance,
+          gap: theme.spacing.xl,
+        }}
+        showsVerticalScrollIndicator={false}
+      >
+        {counterparties.length === 0 || !counterparty ? (
+          <EmptyState
+            title={t.allSettled}
+            body={t.group.nobodyOwes}
+            icon={
+              <Ionicons name="checkmark-circle" size={iconSize.xxl} color={theme.color.positive} />
+            }
+          />
+        ) : (
+          <>
+            <Card style={{ gap: theme.spacing.md }}>
+              <Text variant="caption" tone="muted">
+                {t.misc.withLabel}
+              </Text>
+              {/* Each face carries what settling with them is worth. The picker
+                  used to be names alone, so choosing between three people meant
+                  tapping each one to read the number that decides it. */}
+              <Row style={{ flexWrap: 'wrap', gap: theme.spacing.lg }}>
+                {counterparties.map((member) => {
+                  const theirs = ledger.balances.get(member.id) ?? 0n;
+                  const active = counterparty.id === member.id;
+                  return (
+                    <Pressable
+                      key={member.id}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected: active }}
+                      accessibilityLabel={displayName(member)}
+                      onPress={() => setSelected(member.id)}
+                      style={{ alignItems: 'center', gap: 4, opacity: active ? 1 : 0.45 }}
+                    >
+                      <Avatar name={displayName(member)} ghost={isGhost(member)} size={52} />
+                      <Text variant="micro" tone={active ? 'brand' : 'muted'}>
+                        {displayName(member)}
+                      </Text>
+                      {/* Their balance told from my side: they are on the other
+                          side of my ledger by construction, so a negative of
+                          theirs is money owed to me. */}
+                      <MoneyText
+                        amount={theirs < 0n ? -theirs : theirs}
+                        currency={currency}
+                        locale={locale}
+                        variant="micro"
+                        mode="balance"
+                        direction={
+                          theirs < 0n ? BalanceDirection.OwedToYou : BalanceDirection.YouOwe
+                        }
+                      />
+                    </Pressable>
+                  );
+                })}
+              </Row>
+            </Card>
+
+            {/* The amount being paid, in the group's own colour — a payment, not
+                a balance, so it is neutral (no green/red) and drawn in the tint's
+                ink for contrast. */}
+            <TintCard
+              tint={tintForKey(groupId)}
+              style={{
+                alignItems: 'center',
+                gap: theme.spacing.sm,
+                borderRadius: theme.radius.xl,
+                padding: theme.spacing.xl,
+              }}
+            >
+              <Text variant="caption" style={{ color: settleInkMuted }}>
+                {iPay
+                  ? fill(t.youPayName, { name: displayName(counterparty) })
+                  : fill(t.namePaysYou, { name: displayName(counterparty) })}
+              </Text>
+              <MoneyText
+                amount={amount}
+                currency={currency}
+                locale={locale}
+                variant="display"
+                style={{ color: settleInk }}
+              />
+              <Badge label={t.group.recordedNotMoved} />
+            </TintCard>
+
+            {/* Whatever this country pays with, best first. In India that is
+                still UPI, cash, bank; in the UAE it is Aani, Wise, Revolut,
+                bank, cash — the screen does not know the difference. */}
+            <ChipRow<string>
+              value={method}
+              onChange={setRail}
+              options={rails.map((entry) => ({ value: entry.id, label: entry.label }))}
+            />
+
+            {allocation.allocations.length > 0 ? (
+              <Card style={{ gap: theme.spacing.md }}>
+                <Text variant="caption" tone="muted">
+                  {t.perExpense}
+                </Text>
+                {allocation.allocations.map((entry) => (
+                  <Row key={entry.expenseId} style={{ justifyContent: 'space-between' }}>
+                    <Text variant="body" numberOfLines={1} style={{ flex: 1 }}>
+                      {titleFor(entry.expenseId)}
+                    </Text>
+                    <MoneyText
+                      amount={entry.amount}
+                      currency={currency}
+                      locale={locale}
+                      variant="caption"
+                    />
+                  </Row>
+                ))}
+                {allocation.unallocated > 0n ? (
+                  <Text variant="micro" tone="muted">
+                    {t.extras.restAppliesOverall}
+                  </Text>
+                ) : null}
+              </Card>
+            ) : null}
+
+            {error ? <Callout tone="negative">{error}</Callout> : null}
+
+            <Button
+              label={settleLabel}
+              size="lg"
+              fullWidth
+              disabled={amount === 0n || recordSettlement.isPending}
+              onPress={() => (handsOff ? void payThen() : void record())}
+              icon={
+                handsOff ? (
+                  <Ionicons name="open-outline" size={iconSize.md} color={theme.color.onBrand} />
+                ) : undefined
+              }
+            />
+
+            {/* When the money is coming the other way, recording it is not the
+                only thing somebody came here to do — the other half of "settle
+                up" is asking. One tap, the server's one-a-day rule (ADR-010),
+                and no follow-up that reads like a collections notice. */}
+            {/* Only somebody with an account can be reminded: a member added by
+                name has no inbox, and the server refuses (GHOST_NO_INBOX) — which
+                reached people as a bare "Couldn't send the reminder". The group
+                screen already hides Remind for them; this says why instead. */}
+            {!iPay ? (
+              isGhost(counterparty) ? (
+                <Text variant="caption" tone="muted" align="center">
+                  {sentenceCase(t.notJoinedYet)}
+                </Text>
+              ) : (
+                <RemindRow groupId={groupId} memberId={counterparty.id} currency={currency} />
+              )
+            ) : null}
+
+            {recordSettlement.isPending ? <ActivityIndicator color={theme.color.brand} /> : null}
+
+            <Text variant="micro" tone="muted" align="center">
+              {iPay
+                ? fill(t.settleConfirmYouPay, { name: displayName(counterparty) })
+                : t.settleConfirmTheyPay}
+            </Text>
+          </>
+        )}
+      </ScrollView>
+    </View>
+  );
+}
+
+/** "not joined yet" is written to follow a name; alone it opens a sentence. */
+function sentenceCase(text: string): string {
+  return text.charAt(0).toLocaleUpperCase() + text.slice(1);
+}
+
+function min(a: bigint, b: bigint): bigint {
+  return a < b ? a : b;
+}
+
+/**
+ * The nudge under the settle button, for the case where somebody else is the one
+ * who owes. Same rule and same manner as the Friends tab: it goes once, and the
+ * daily limit reads as "already nudged today" rather than as a failure.
+ */
+function RemindRow({
+  groupId,
+  memberId,
+  currency,
+}: {
+  groupId: string;
+  memberId: MemberId;
+  currency: string;
+}) {
+  const { t } = useStrings();
+  const nudge = useNudge({ groupId, memberId, currency });
+  const note = nudge.outcome?.label ?? null;
+
+  if (note) {
+    return (
+      <Text variant="caption" tone="muted" align="center">
+        {note}
+      </Text>
+    );
+  }
+
+  return (
+    <Button
+      // The name is on the card above; gluing it to the verb here would be a
+      // sentence assembled in English word order and wrong in three locales.
+      label={t.people.remind}
+      variant="secondary"
+      size="lg"
+      fullWidth
+      disabled={nudge.pending}
+      onPress={nudge.send}
+    />
+  );
+}

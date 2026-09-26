@@ -1,6 +1,6 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useLocalSearchParams, type Href } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import {
   AccessibilityInfo,
   InteractionManager,
@@ -40,16 +40,7 @@ import {
   usePinnedGroupIds,
   useSetGroupPin,
 } from '@/data/hooks';
-import {
-  activityHeadline,
-  activityTarget,
-  describeActivity,
-  myStake,
-  parseMoney,
-  relativeTime,
-  verbIcon,
-  verbTint,
-} from '@/data/activity';
+import { myStake } from '@/data/activity';
 import { sendNudge, useNudge } from '@/lib/nudge';
 import { expenseTitle } from '@/data/expenseTitle';
 import { personKeyOf } from '@/data/peopleBalances';
@@ -65,15 +56,12 @@ import {
 } from '@waves/core';
 import { useBlockedUsers } from '@/data/blocked';
 import {
-  actorName,
   displayName,
   groupLabel,
   isBlockedMember,
   isGhost,
   isViewer,
   payableAt,
-  type ActivityActor,
-  type ActivityRow,
   type ExpenseRow,
   type ExpenseVersionRow,
   type MemberRow,
@@ -93,6 +81,7 @@ import { SettlementProof } from '@/components/SettlementProof';
 import { SyncBanner } from '@/components/SyncBanner';
 import { useSync } from '@/sync';
 import { usePullRefresh } from '@/lib/pullRefresh';
+import { SettleBody } from '@/components/settle/SettleBody';
 import { TimelineBody } from '@/components/timeline/TimelineBody';
 import { draftsForGroup } from '@/lib/groupDrafts';
 import { useDialog } from '@/lib/dialog';
@@ -100,7 +89,7 @@ import { useDialog } from '@/lib/dialog';
 enum Tab {
   Expenses = 'expenses',
   Balances = 'balances',
-  Activity = 'activity',
+  Settle = 'settle',
   Timeline = 'timeline',
   Map = 'map',
 }
@@ -260,12 +249,6 @@ type FeedItem =
       readonly key: string;
       readonly member: MemberRow;
       readonly balance: bigint;
-      readonly isLast: boolean;
-    }
-  | {
-      readonly kind: 'activity';
-      readonly key: string;
-      readonly entry: ActivityRow;
       readonly isLast: boolean;
     };
 
@@ -502,7 +485,7 @@ export default function GroupScreen() {
   // ambient offline / syncing states are the header glyph's job now (below).
   const { queue, rejected } = useSync();
 
-  const { group, members, expenses, settlements, activity } = useGroup(groupId);
+  const { group, members, expenses, settlements } = useGroup(groupId);
   const ledger = useGroupLedger(groupId, viewerId);
   // Pin/Unpin lives in this screen's own ••• menu — the discoverable path; a
   // long-press on the group's row (dashboard or All groups) is the fast one.
@@ -559,23 +542,6 @@ export default function GroupScreen() {
     [ledger.myMemberId, mergePersonIds, viewerId],
   );
 
-  // The joined actor an activity row would carry on the cross-group feed, rebuilt
-  // from this group's members — so the mirror-backed group feed can name who did
-  // the thing rather than falling back to "someone".
-  const actorFor = useCallback(
-    (memberId: string | null): ActivityActor | null => {
-      const member = memberId ? lookup.get(memberId) : undefined;
-      if (!member) return null;
-      return {
-        id: member.id,
-        profile_id: member.profile_id,
-        ghost_name: member.ghost_name,
-        profile: member.profile ? { display_name: member.profile.display_name } : null,
-      };
-    },
-    [lookup],
-  );
-
   // Date formatters built once per locale, not per row. Constructing an
   // `Intl.DateTimeFormat` is expensive; doing it inside the row renderer meant a
   // fast fling re-allocated a formatter for every recycled cell, slowing
@@ -594,17 +560,6 @@ export default function GroupScreen() {
     () => new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric', timeZone: 'UTC' }),
     [locale],
   );
-  // The Activity tab's relative-time formatter, built once per locale and handed
-  // to every row — the same reason the date formatters above are hoisted. The
-  // standalone Activity feed already does this; this one used to build an
-  // `Intl.RelativeTimeFormat` per row while rendering the whole feed at once.
-  const activityRtf = useMemo(
-    () =>
-      typeof Intl.RelativeTimeFormat === 'function'
-        ? new Intl.RelativeTimeFormat(locale, { numeric: 'auto' })
-        : undefined,
-    [locale],
-  );
 
   // The feed, memoized so a re-render that leaves the ledger untouched does not
   // re-filter and re-section every expense. Hoisted above the loading/error
@@ -618,13 +573,6 @@ export default function GroupScreen() {
     [expenses.rows],
   );
   const expenseSections = useMemo(() => groupExpensesByMonth(visibleExpenses), [visibleExpenses]);
-  // Every expense by id, so an activity row (which names its object) can show
-  // the reader's own stake in that bill without scanning the ledger per row.
-  // Built from the unfiltered rows: a deleted expense still has an activity row.
-  const expenseById = useMemo(
-    () => new Map(expenses.rows.map((expense) => [expense.id, expense] as const)),
-    [expenses.rows],
-  );
   // The month sections flattened into one recyclable list: a heading item per
   // month, then its expense rows. FlashList mounts only what is on screen, so a
   // group with a thousand bills opens as fast as one with ten.
@@ -660,22 +608,10 @@ export default function GroupScreen() {
       })),
     [members.data, ledger.balances],
   );
-  const activityItems: FeedItem[] = useMemo(
-    () =>
-      (activity.data ?? []).map((entry, index, arr) => ({
-        kind: 'activity',
-        key: `activity-${entry.id}`,
-        entry,
-        isLast: index === arr.length - 1,
-      })),
-    [activity.data],
-  );
-
   // The rows the list shows for the current tab. One source for `data`, so the
   // three tabs are the same list with different contents rather than a list plus
   // two hand-rolled footers.
-  const tabData: FeedItem[] =
-    tab === Tab.Balances ? balanceItems : tab === Tab.Activity ? activityItems : feedItems;
+  const tabData: FeedItem[] = tab === Tab.Balances ? balanceItems : feedItems;
 
   // The tab switch must not cost what the whole tab costs.
   //
@@ -861,6 +797,8 @@ export default function GroupScreen() {
       label: `${isPinned ? t.group.unpin : t.group.pin} ${groupLabel(groupData, members.data, viewerId)}`,
       onPress: () => setGroupPin.mutate({ groupId, pinned: !isPinned }),
     },
+    // The hero's QR used to open this; the hero's corner is Activity now.
+    { icon: 'qr-code-outline', label: t.people.inviteTitle, route: `/group/${groupId}/invite` },
     { icon: 'pie-chart-outline', label: t.spending, route: `/group/${groupId}/insights` },
     ...(!PLAN_HIDDEN && groupData.type === 'trip'
       ? [
@@ -1050,96 +988,7 @@ export default function GroupScreen() {
         </View>
       );
     }
-    // Activity: the same row shape as the Expenses tab, so the three tabs read as
-    // one screen — a soft tinted tile, the event and a relative time beside it,
-    // the amount on the right, hairlines between. The group feed rides the
-    // mirror, where an activity row carries only `actor_member_id` — not the
-    // joined actor the cross-group feed gets — so resolve the actor from this
-    // group's members before wording the row.
-    const { entry, isLast } = item;
-    const money = parseMoney(entry.payload, currency);
-    // The reader's own side of the bill, when they are on it — the same figure
-    // and the same colours as the Expenses tab's rows, so one event does not
-    // read two ways across two tabs of one screen.
-    const stake =
-      entry.object_type === 'expense' && entry.object_id
-        ? myStake(expenseById.get(entry.object_id)?.currentVersion ?? null, ledger.myMemberId)
-        : null;
-    const tint = theme.tint[verbTint(entry.verb)];
-    const resolved = entry.actor ? entry : { ...entry, actor: actorFor(entry.actor_member_id) };
-    // The full sentence stays the spoken label; the visible title leads with the
-    // event and the actor drops to the metadata line, so the feed is skimmable.
-    const label = describeActivity(resolved, viewerId, blockedIds, t.misc.someone);
-    const headline = activityHeadline(entry);
-    // No actor on an auto-event — omit it rather than say "Someone".
-    const who = resolved.actor
-      ? actorName(resolved.actor, viewerId, blockedIds, t.misc.someone)
-      : null;
-    // This feed is flat — no day headings — so the row keeps the full relative
-    // wording ("yesterday", "3 days ago"), the day the reader would otherwise
-    // have no other way to place. The cross-group Activity tab, which is cut into
-    // day sections, uses activityTimestamp to drop that redundant day word.
-    const when = relativeTime(locale, entry.created_at, undefined, activityRtf);
-    return (
-      <View>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={label}
-          onPress={() => router.push(activityTarget(entry) as Href)}
-          style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
-        >
-          <Row
-            style={{
-              gap: theme.spacing.md,
-              alignItems: 'center',
-              paddingVertical: theme.spacing.sm,
-            }}
-          >
-            <View
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: theme.radius.md,
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: tint.bg,
-              }}
-            >
-              <Ionicons name={verbIcon(entry.verb)} size={iconSize.lg} color={tint.ink} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text variant="body" numberOfLines={2}>
-                {headline}
-              </Text>
-              <Text variant="caption" tone="muted" numberOfLines={1}>
-                {who ? `${who} · ${when}` : when}
-              </Text>
-            </View>
-            {stake !== null && stake !== 0n ? (
-              // What the bill did to the reader — lent or borrowed, coloured by
-              // direction, the same as the Expenses tab and the cross-group
-              // feed. A bill between other people, and every settlement, keep
-              // the neutral total below.
-              <MoneyText
-                amount={stake}
-                currency={money?.currency ?? currency}
-                locale={locale}
-                variant="subheading"
-                mode="balance"
-              />
-            ) : money ? (
-              <MoneyText
-                amount={money.amount}
-                currency={money.currency}
-                locale={locale}
-                variant="subheading"
-              />
-            ) : null}
-          </Row>
-        </Pressable>
-        {!isLast ? <View style={{ height: 1, backgroundColor: theme.color.border }} /> : null}
-      </View>
-    );
+    return null;
   };
 
   return (
@@ -1200,10 +1049,10 @@ export default function GroupScreen() {
                 ),
               },
               {
-                value: Tab.Activity,
-                label: t.activity,
+                value: Tab.Settle,
+                label: t.settleUp,
                 icon: (color) => (
-                  <Ionicons name="notifications-outline" size={iconSize.md} color={color} />
+                  <Ionicons name="checkmark-done-outline" size={iconSize.md} color={color} />
                 ),
               },
               {
@@ -1224,7 +1073,12 @@ export default function GroupScreen() {
           />
         </View>
 
-        {tab === Tab.Timeline || tab === Tab.Map ? (
+        {tab === Tab.Settle ? (
+          // Settling up, as a face of the group rather than a button on its
+          // hero: the same flow as the Settle up screen. Recorded, it shows
+          // the balances that just moved.
+          <SettleBody groupId={groupId} onRecorded={() => setTab(Tab.Balances)} />
+        ) : tab === Tab.Timeline || tab === Tab.Map ? (
           // This group's own timeline and map: the Timeline screen's list and
           // map, held to this group, each on its own tab rather than behind a
           // second switch inside one. They own their scrolling, so they take
@@ -1466,18 +1320,6 @@ export default function GroupScreen() {
                       label={t.addExpense}
                       onPress={() => router.push(`/group/${groupId}/add-expense`)}
                       icon={<Ionicons name="add" size={iconSize.md} color={theme.color.onBrand} />}
-                    />
-                  }
-                />
-              ) : tab === Tab.Activity ? (
-                <EmptyState
-                  title={t.nothingYet}
-                  body={t.group.activityEmptyBody}
-                  icon={
-                    <Ionicons
-                      name="notifications-outline"
-                      size={iconSize.xxl}
-                      color={theme.color.brand}
                     />
                   }
                 />
