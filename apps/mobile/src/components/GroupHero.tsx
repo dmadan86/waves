@@ -186,13 +186,16 @@ export function GroupHero({
           </View>
         </Pressable>
         <SyncStatusIcon onBrand groupId={groupId} />
+        {/* The group's activity, up here beside the menu: it is something you
+            glance at, not a face of the page, so it left the tab row. The QR
+            that used to sit here is Invite in the ⋯ menu. */}
         <Pressable
-          onPress={() => router.push(`/group/${groupId}/invite`)}
+          onPress={() => router.push({ pathname: '/activity', params: { group: groupId } })}
           accessibilityRole="button"
-          accessibilityLabel={t.people.inviteTitle}
+          accessibilityLabel={t.activity}
           hitSlop={10}
         >
-          <Ionicons name="qr-code-outline" size={iconSize.xl} color={theme.color.onBrand} />
+          <Ionicons name="notifications-outline" size={iconSize.xl} color={theme.color.onBrand} />
         </Pressable>
         <Pressable
           onPress={onOpenMenu}
@@ -255,11 +258,6 @@ export function GroupHero({
                 onPress={() => router.push(`/group/${groupId}/add-expense`)}
               />
               <Row style={{ marginLeft: 'auto', gap: theme.spacing.sm }}>
-                <HeroActionCircle
-                  icon="swap-horizontal"
-                  label={t.settleUp}
-                  onPress={() => router.push(`/group/${groupId}/settle`)}
-                />
                 <HeroActionCircle
                   icon="git-network-outline"
                   label={group.simplify_debts ? t.simplify : t.whoPaysWhom}

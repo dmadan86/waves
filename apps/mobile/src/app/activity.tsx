@@ -1,6 +1,6 @@
 import { memo, useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { type Href } from 'expo-router';
+import { type Href, useLocalSearchParams } from 'expo-router';
 import { Pressable, RefreshControl, View } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 
@@ -248,14 +248,23 @@ export default function ActivityScreen() {
   // it walks the whole local history, and doing that on the push's frames made
   // the slide stall halfway and then jump. Until then the skeleton shows.
   const settled = useTransitionSettled();
-  const allEntries = useRecentActivity(myProfileId, settled);
+  const feed = useRecentActivity(myProfileId, settled);
+  // Opened from a group's hero, the feed is that group's alone.
+  const params = useLocalSearchParams<{ group?: string }>();
+  const onlyGroup = typeof params.group === 'string' && params.group ? params.group : null;
+  const allEntries = useMemo(
+    () => (onlyGroup ? feed.filter((entry) => entry.group_id === onlyGroup) : feed),
+    [feed, onlyGroup],
+  );
   // Whether the account has any live group at all — decides the empty-state's
   // next step. A brand-new account with nothing starts a group; an account that
   // has groups but no activity yet wants to add an expense, not make another
   // group. `materialiseGroups` already hides archived trips, so an account left
   // with only archived groups is treated as having none — start-a-group is still
   // the right nudge there.
-  const hasGroups = useGroups().data.length > 0;
+  const groups = useGroups().data;
+  const hasGroups = groups.length > 0;
+  const shownGroup = onlyGroup ? groups.find((g) => g.id === onlyGroup) : undefined;
 
   // Filtering a long feed to a date span. The whole history is on the phone, so
   // this is a pure client-side cut — no fetch. `range` is the committed filter
@@ -346,7 +355,14 @@ export default function ActivityScreen() {
             />
           </IconButton>
           <Ionicons name="notifications" size={iconSize.xl} color={theme.color.brand} />
-          <Text variant="title">{t.activity}</Text>
+          <View style={{ flexShrink: 1 }}>
+            <Text variant="title">{t.activity}</Text>
+            {shownGroup ? (
+              <Text variant="caption" tone="muted" numberOfLines={1}>
+                {[shownGroup.cover_emoji, shownGroup.name].filter(Boolean).join(' ')}
+              </Text>
+            ) : null}
+          </View>
         </Row>
         <Row style={{ alignItems: 'center' }}>
           {/* A long feed is easier to read a day or a span at a time — the
