@@ -29,7 +29,8 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 
 import { buildExpenseWriteBody, expenseParticipants, type AgentSplit } from './expense';
-import { findPair, foldName, type PairGroup } from './pair';
+import { findPair, foldName, pairIds, type PairGroup } from './pair';
+import { pairwiseTransfers, simplifyNet, type Transfer } from './settle';
 
 type ToolResult = {
   content: { type: 'text'; text: string }[];
@@ -115,6 +116,120 @@ async function edgeError(error: unknown): Promise<string> {
   return error instanceof Error ? error.message : String(error);
 }
 
+/** A group member as every tool hands one back. */
+interface Member {
+  memberId: string;
+  name: string;
+  isYou: boolean;
+  isGhost: boolean;
+  role: unknown;
+  rail: string | null;
+  handle: string | null;
+  /** @deprecated Superseded by `handle`; kept while callers move over. */
+  vpa: string | null;
+}
+
+/** A group's current members, named, with "you" marked and how each is paid. */
+async function loadMembers(
+  supabase: SupabaseClient,
+  meId: string,
+  groupId: string,
+): Promise<Member[] | ToolResult> {
+  const { data, error } = await supabase
+    .from('group_members')
+    .select(
+      'id, group_id, profile_id, ghost_name, vpa, payment_rail, payment_handle, role, profile:profiles!profile_id ( display_name, default_vpa, payment_rail, payment_handle )',
+    )
+    .eq('group_id', groupId)
+    .is('left_at', null)
+    .order('created_at', { ascending: true });
+  if (error) return fail(error.message);
+  return (data ?? []).map((m) => {
+    const profile = m.profile as {
+      display_name?: string;
+      default_vpa?: string;
+      payment_rail?: string;
+      payment_handle?: string;
+    } | null;
+    // `payableFor` from `@waves/core`, inlined because this server
+    // deliberately depends on nothing in the workspace. Reading
+    // `vpa ?? default_vpa` alone told an agent that a payee on any rail
+    // but UPI had given no details at all. The pairs are taken whole —
+    // a rail from one source with a handle from another is how a UPI
+    // intent gets built around an Australian phone number.
+    const payable =
+      (m.payment_rail && m.payment_handle
+        ? { rail: m.payment_rail, handle: m.payment_handle }
+        : null) ??
+      (m.vpa ? { rail: 'upi', handle: m.vpa } : null) ??
+      (profile?.payment_rail && profile.payment_handle
+        ? { rail: profile.payment_rail, handle: profile.payment_handle }
+        : null) ??
+      (profile?.default_vpa ? { rail: 'upi', handle: profile.default_vpa } : null);
+    return {
+      memberId: m.id as string,
+      name: profile?.display_name ?? (m.ghost_name as string | null) ?? 'Unnamed',
+      isYou: m.profile_id === meId,
+      isGhost: !m.profile_id,
+      role: m.role,
+      rail: (payable?.rail as string | undefined) ?? null,
+      handle: (payable?.handle as string | undefined) ?? null,
+      vpa: (payable?.handle as string | undefined) ?? null,
+    };
+  });
+}
+
+/**
+ * A member id as a person reads it. Somebody who has since left the group
+ * keeps their debts, so they are named as such rather than dropped.
+ */
+function partyOf(members: readonly Member[]) {
+  const byId = new Map(members.map((m) => [m.memberId, m]));
+  return (memberId: string) => {
+    const m = byId.get(memberId);
+    return { memberId, name: m?.name ?? 'Former member', isYou: m?.isYou ?? false };
+  };
+}
+
+/** How to pay a member, for payment_link. */
+function payee(members: readonly Member[], memberId: string) {
+  const m = members.find((x) => x.memberId === memberId);
+  return { rail: m?.rail ?? null, handle: m?.handle ?? null };
+}
+
+/** A group's settlements, newest first, with both sides named. */
+async function loadSettlements(
+  supabase: SupabaseClient,
+  groupId: string,
+  members: readonly Member[],
+  options: { status?: string; limit: number },
+): Promise<Record<string, unknown>[] | ToolResult> {
+  let query = supabase
+    .from('settlements')
+    .select(
+      'id, from_member_id, to_member_id, amount, currency, method, rail, status, note, initiated_at, confirmed_at',
+    )
+    .eq('group_id', groupId);
+  if (options.status) query = query.eq('status', options.status);
+  const { data, error } = await query
+    .order('initiated_at', { ascending: false })
+    .limit(options.limit);
+  if (error) return fail(error.message);
+  const who = partyOf(members);
+  return (data ?? []).map((s) => ({
+    settlementId: s.id,
+    from: who(s.from_member_id as string),
+    to: who(s.to_member_id as string),
+    amount: String(s.amount),
+    currency: s.currency,
+    rail: s.rail ?? s.method,
+    status: s.status,
+    note: s.note ?? null,
+    initiatedAt: s.initiated_at,
+    confirmedAt: s.confirmed_at ?? null,
+  }));
+}
+
 /**
  * Every tool this server offers, over whichever transport is carrying it.
  *
@@ -197,51 +312,8 @@ export function buildWavesServer(
       inputSchema: { groupId: GroupId },
     },
     async ({ groupId }): Promise<ToolResult> => {
-      const { data, error } = await supabase
-        .from('group_members')
-        .select(
-          'id, group_id, profile_id, ghost_name, vpa, payment_rail, payment_handle, role, profile:profiles!profile_id ( display_name, default_vpa, payment_rail, payment_handle )',
-        )
-        .eq('group_id', groupId)
-        .is('left_at', null)
-        .order('created_at', { ascending: true });
-      if (error) return fail(error.message);
-      return ok(
-        (data ?? []).map((m) => {
-          const profile = m.profile as {
-            display_name?: string;
-            default_vpa?: string;
-            payment_rail?: string;
-            payment_handle?: string;
-          } | null;
-          // `payableFor` from `@waves/core`, inlined because this server
-          // deliberately depends on nothing in the workspace. Reading
-          // `vpa ?? default_vpa` alone told an agent that a payee on any rail
-          // but UPI had given no details at all. The pairs are taken whole —
-          // a rail from one source with a handle from another is how a UPI
-          // intent gets built around an Australian phone number.
-          const payable =
-            (m.payment_rail && m.payment_handle
-              ? { rail: m.payment_rail, handle: m.payment_handle }
-              : null) ??
-            (m.vpa ? { rail: 'upi', handle: m.vpa } : null) ??
-            (profile?.payment_rail && profile.payment_handle
-              ? { rail: profile.payment_rail, handle: profile.payment_handle }
-              : null) ??
-            (profile?.default_vpa ? { rail: 'upi', handle: profile.default_vpa } : null);
-          return {
-            memberId: m.id,
-            name: profile?.display_name ?? m.ghost_name ?? 'Unnamed',
-            isYou: m.profile_id === meId,
-            isGhost: !m.profile_id,
-            role: m.role,
-            rail: payable?.rail ?? null,
-            handle: payable?.handle ?? null,
-            /** @deprecated Superseded by `handle`; kept while callers move over. */
-            vpa: payable?.handle ?? null,
-          };
-        }),
-      );
+      const members = await loadMembers(supabase, meId, groupId);
+      return Array.isArray(members) ? ok(members) : members;
     },
   );
 
@@ -249,7 +321,7 @@ export function buildWavesServer(
     'get_balances',
     {
       description:
-        'Who owes what in a group, per member and currency, in minor units. A positive balance is owed to that member; a negative balance is owed by them. Use this to know a settlement amount before recording one.',
+        'Who owes what in a group, per member and currency, in minor units. A positive balance is owed to that member; a negative balance is owed by them. Each row carries the member\'s name and "isYou". Settlements still waiting to be confirmed are not counted yet. For who should pay whom, use settlement_plan.',
       inputSchema: { groupId: GroupId },
     },
     async ({ groupId }): Promise<ToolResult> => {
@@ -258,7 +330,150 @@ export function buildWavesServer(
         .select('member_id, currency, balance')
         .eq('group_id', groupId);
       if (error) return fail(error.message);
-      return ok(data ?? []);
+      const members = await loadMembers(supabase, meId, groupId);
+      if (!Array.isArray(members)) return members;
+      const byId = new Map(members.map((m) => [m.memberId, m]));
+      return ok(
+        (data ?? []).map((row) => ({
+          member_id: row.member_id,
+          name: byId.get(row.member_id)?.name ?? 'Former member',
+          isYou: byId.get(row.member_id)?.isYou ?? false,
+          currency: row.currency,
+          balance: row.balance,
+        })),
+      );
+    },
+  );
+
+  server.registerTool(
+    'settlement_plan',
+    {
+      description:
+        'Who should pay whom, and how much, to settle a group — the same transfers the app suggests. With "simplify debts" on, the fewest payments that settle everyone; with it off, each real debt between two people. Each side carries a name, "isYou", and the payee\'s rail and handle for payment_link. "pending" lists settlements recorded but not yet confirmed: they are not counted in the plan yet, so check it before telling someone to pay again.',
+      inputSchema: { groupId: GroupId },
+    },
+    async ({ groupId }): Promise<ToolResult> => {
+      const { data: group, error: groupError } = await supabase
+        .from('groups')
+        .select('simplify_debts')
+        .eq('id', groupId)
+        .is('deleted_at', null)
+        .single();
+      if (groupError) return fail(groupError.message);
+
+      const members = await loadMembers(supabase, meId, groupId);
+      if (!Array.isArray(members)) return members;
+
+      let transfers: Transfer[];
+      if (group.simplify_debts) {
+        const { data, error } = await supabase
+          .from('group_balances')
+          .select('member_id, currency, balance')
+          .eq('group_id', groupId);
+        if (error) return fail(error.message);
+        transfers = simplifyNet(data ?? []);
+      } else {
+        const { data, error } = await supabase
+          .from('pairwise_balances')
+          .select('from_member_id, to_member_id, currency, amount')
+          .eq('group_id', groupId);
+        if (error) return fail(error.message);
+        transfers = pairwiseTransfers(data ?? []);
+      }
+
+      const pending = await loadSettlements(supabase, groupId, members, {
+        status: 'initiated',
+        limit: 50,
+      });
+      if (!Array.isArray(pending)) return pending;
+
+      const who = partyOf(members);
+      return ok({
+        simplified: Boolean(group.simplify_debts),
+        settled: transfers.length === 0,
+        transfers: transfers.map((t) => ({
+          from: who(t.from),
+          to: { ...who(t.to), ...payee(members, t.to) },
+          amount: t.amount.toString(),
+          currency: t.currency,
+        })),
+        pending,
+      });
+    },
+  );
+
+  server.registerTool(
+    'list_settlements',
+    {
+      description:
+        'Settlements recorded in a group, newest first: who paid whom, how much, by what rail, and whether it has been confirmed. Use it to answer "did I already record paying Matt?" before recording it again. Only confirmed settlements count towards balances.',
+      inputSchema: {
+        groupId: GroupId,
+        status: z
+          .enum(['initiated', 'confirmed', 'auto_confirmed', 'disputed', 'cancelled'])
+          .optional()
+          .describe(
+            'Only settlements in this state. "initiated" means recorded, not yet confirmed.',
+          ),
+        limit: z.number().int().min(1).max(100).default(20),
+      },
+    },
+    async ({ groupId, status, limit }): Promise<ToolResult> => {
+      const members = await loadMembers(supabase, meId, groupId);
+      if (!Array.isArray(members)) return members;
+      const rows = await loadSettlements(supabase, groupId, members, { status, limit });
+      return Array.isArray(rows) ? ok(rows) : rows;
+    },
+  );
+
+  server.registerTool(
+    'list_agent_writes',
+    {
+      description:
+        'Everything an AI assistant has changed in Waves on this person\'s behalf, newest first: expenses added, edited or deleted, settlements recorded, groups created, people added, join links minted. Each row names the assistant (clientId) and the group. Writes the person made in the app themselves are not here. Use it to answer "what did you change today?".',
+      inputSchema: {
+        limit: z.number().int().min(1).max(200).default(50),
+      },
+    },
+    async ({ limit }): Promise<ToolResult> => {
+      const { data, error } = await supabase.rpc('waves_my_agent_writes', { p_limit: limit });
+      if (error) return fail(error.message);
+      const rows = (data ?? []) as {
+        id: string;
+        client_id: string;
+        action: string;
+        group_id: string | null;
+        object_id: string | null;
+        amount_minor: string | number | null;
+        currency: string | null;
+        created_at: string;
+      }[];
+
+      // Names for the groups, read as the person: a group they have since left
+      // stays unnamed rather than being looked up with more than they can see.
+      const groupIds = [...new Set(rows.map((r) => r.group_id).filter((id): id is string => !!id))];
+      const names = new Map<string, string>();
+      if (groupIds.length) {
+        const { data: groups, error: groupsError } = await supabase
+          .from('groups')
+          .select('id, name')
+          .in('id', groupIds);
+        if (groupsError) return fail(groupsError.message);
+        for (const g of groups ?? []) names.set(g.id as string, (g.name as string | null) ?? '');
+      }
+
+      return ok(
+        rows.map((r) => ({
+          at: r.created_at,
+          clientId: r.client_id,
+          action: r.action,
+          groupId: r.group_id,
+          groupName: r.group_id ? (names.get(r.group_id) ?? null) : null,
+          objectId: r.object_id,
+          amount: r.amount_minor === null ? null : String(r.amount_minor),
+          currency: r.currency,
+        })),
+      );
     },
   );
 
@@ -400,6 +615,37 @@ export function buildWavesServer(
 /** What people call themselves when they mean the signed-in person. */
 const SELF = new Set(['me', 'i', 'myself']);
 
+type NameMatch =
+  | { kind: 'one'; memberId: string }
+  | { kind: 'none' }
+  | { kind: 'many'; names: string[] }
+  | { kind: 'not-in-group' };
+
+/**
+ * Which member somebody means by a name, the way people say it: "me" is the
+ * signed-in person, the whole name wins, and otherwise a unique first name —
+ * "Renny" for Renny Benita. Two matches is an answer too: it means ask.
+ */
+function matchMember(
+  known: readonly { memberId: string; name: string; isMe: boolean }[],
+  name: string,
+): NameMatch {
+  const said = name.trim().toLowerCase();
+  if (SELF.has(said)) {
+    const me = known.find((m) => m.isMe);
+    return me ? { kind: 'one', memberId: me.memberId } : { kind: 'not-in-group' };
+  }
+  // The whole name first, so "Raj" is the member called Raj even when a
+  // "Raj Kumar" is in the group too; then the first name, for "Renny".
+  let matches = known.filter((m) => m.name.trim().toLowerCase() === said);
+  if (matches.length === 0 && !/\s/.test(said)) {
+    matches = known.filter((m) => m.name.trim().toLowerCase().split(/\s+/)[0] === said);
+  }
+  if (matches.length > 1) return { kind: 'many', names: matches.map((m) => m.name) };
+  const [only] = matches;
+  return only ? { kind: 'one', memberId: only.memberId } : { kind: 'none' };
+}
+
 interface ResolvedMember {
   readonly name: string;
   readonly memberId: string;
@@ -453,33 +699,20 @@ async function resolveMembers(
   for (const raw of names) {
     const name = raw.trim();
     if (!name) continue;
-    const said = name.toLowerCase();
-
-    if (SELF.has(said)) {
-      const me = known.find((m) => m.isMe);
-      if (!me) {
-        return fail(
-          `"${name}" means you, and you are not a member of this group. Pass paidBy and participants as member ids instead.`,
-        );
-      }
-      plan.push({ name, memberId: me.memberId });
-      continue;
-    }
-
-    // The whole name first, so "Raj" is the member called Raj even when a
-    // "Raj Kumar" is in the group too; then the first name, for "Renny".
-    let matches = known.filter((m) => m.name.toLowerCase() === said);
-    if (matches.length === 0 && !/\s/.test(said)) {
-      matches = known.filter((m) => m.name.toLowerCase().split(/\s+/)[0] === said);
-    }
-    if (matches.length > 1) {
+    const match = matchMember(known, name);
+    if (match.kind === 'not-in-group') {
       return fail(
-        `"${name}" matches ${matches.length} members of this group (${matches
-          .map((m) => m.name)
-          .join(', ')}). Ask which one, and pass their memberId directly.`,
+        `"${name}" means you, and you are not a member of this group. Pass paidBy and participants as member ids instead.`,
       );
     }
-    plan.push({ name, memberId: matches[0]?.memberId ?? null });
+    if (match.kind === 'many') {
+      return fail(
+        `"${name}" matches ${match.names.length} members of this group (${match.names.join(
+          ', ',
+        )}). Ask which one, and pass their memberId directly.`,
+      );
+    }
+    plan.push({ name, memberId: match.kind === 'one' ? match.memberId : null });
   }
 
   const resolved: ResolvedMember[] = [];
@@ -555,6 +788,93 @@ export async function expenseParty(
   }
 
   return { participants: [...expenseParticipants(paidBy, ids)], paidBy, added };
+}
+
+/**
+ * Make your one-to-one group with somebody new: the group, named after them,
+ * then them as a ghost — under ids derived from the two of you (`pairIds`), so
+ * a retry or a parallel call finishes the same pair rather than starting
+ * another.
+ *
+ * A derived group already in `groups` is reused only while nobody but the two
+ * of you is in it. One that is not listed may still exist — deleted, or left —
+ * and `waves_create_group` hands a known id straight back, so a group it
+ * returns is read again before anything goes in it. Either way the next
+ * generation of ids is tried instead.
+ *
+ * If the ghost cannot be added to a group this call made, the group is removed
+ * again rather than left behind as a one-member group with their name on it.
+ */
+async function makePair(
+  supabase: SupabaseClient,
+  meId: string,
+  person: string,
+  currency: string,
+  groups: readonly PairGroup[],
+): Promise<{ groupId: string; mine: string; theirs: string } | ToolResult> {
+  for (let generation = 0; generation < 5; generation += 1) {
+    const ids = pairIds(meId, person, generation);
+    const listed = groups.find((g) => g.groupId === ids.groupId);
+    let mine = ids.myMemberId;
+    let fresh = false;
+
+    if (listed) {
+      const me = listed.members.find((m) => m.profileId === meId);
+      const strangers = listed.members.filter(
+        (m) => m.profileId !== meId && m.memberId !== ids.theirMemberId,
+      );
+      if (!me || strangers.length > 0) continue;
+      mine = me.memberId;
+    } else {
+      const { error } = await supabase.rpc('waves_create_group', {
+        p_name: person,
+        p_type: 'other',
+        p_currency: currency,
+        p_emoji: null,
+        p_simplify: true,
+        p_group_id: ids.groupId,
+        p_photo_path: null,
+        p_country: null,
+        p_creator_member_id: ids.myMemberId,
+      });
+      if (error) {
+        if (/GROUP_EXISTS/.test(error.message)) continue;
+        return fail(error.message);
+      }
+      const { data: live, error: readError } = await supabase
+        .from('groups')
+        .select('id')
+        .eq('id', ids.groupId)
+        .is('deleted_at', null)
+        .maybeSingle();
+      if (readError) return fail(readError.message);
+      if (!live) continue;
+      fresh = true;
+    }
+
+    // Twice: two calls racing to add the same ghost id can both miss it and
+    // one insert then collides, and the second look finds the winner's.
+    let ghost = await supabase.rpc('waves_add_ghost_member', {
+      p_group_id: ids.groupId,
+      p_name: person,
+      p_member_id: ids.theirMemberId,
+    });
+    if (ghost.error) {
+      ghost = await supabase.rpc('waves_add_ghost_member', {
+        p_group_id: ids.groupId,
+        p_name: person,
+        p_member_id: ids.theirMemberId,
+      });
+    }
+    if (ghost.error) {
+      if (fresh) await supabase.rpc('waves_delete_group', { p_group_id: ids.groupId });
+      return fail(ghost.error.message);
+    }
+    return { groupId: ids.groupId, mine, theirs: ghost.data as string };
+  }
+  return fail(
+    `Could not start a one-to-one with "${person}": every group id tried is already in use. Make a group with create_group, then use add_expense.`,
+  );
 }
 
 /**
@@ -734,6 +1054,7 @@ function registerWriteTools(server: McpServer, supabase: SupabaseClient, meId: s
       inputSchema: {
         person: z
           .string()
+          .trim()
           .min(1)
           .describe('Who it was with, named the way the user named them, e.g. "Renny".'),
         description: z.string().min(1).describe('What the expense was for.'),
@@ -800,26 +1121,9 @@ function registerWriteTools(server: McpServer, supabase: SupabaseClient, meId: s
         // Named after the person, of type `other`, with them as a ghost — the
         // same group the app's People flow makes, so it shows up there as them.
         currency = input.currency ?? (await myCurrency(supabase, meId));
-        groupId = randomUUID();
-        mine = randomUUID();
-        const { error } = await supabase.rpc('waves_create_group', {
-          p_name: person,
-          p_type: 'other',
-          p_currency: currency,
-          p_emoji: null,
-          p_simplify: true,
-          p_group_id: groupId,
-          p_photo_path: null,
-          p_country: null,
-          p_creator_member_id: mine,
-        });
-        if (error) return fail(error.message);
-        const { data: ghostId, error: ghostError } = await supabase.rpc('waves_add_ghost_member', {
-          p_group_id: groupId,
-          p_name: person,
-        });
-        if (ghostError) return fail(ghostError.message);
-        theirs = ghostId as string;
+        const made = await makePair(supabase, meId, person, currency, groups);
+        if (!('groupId' in made)) return made;
+        ({ groupId, mine, theirs } = made);
         theirName = person;
       }
 
@@ -948,11 +1252,21 @@ function registerWriteTools(server: McpServer, supabase: SupabaseClient, meId: s
     'record_settlement',
     {
       description:
-        'Record that one member paid another to settle up. This writes a settlement row only — it does NOT move any money. The signed-in user (isYou in list_members) must be one of the two parties. Use payment_link to get the handoff URL a human opens to actually pay.',
+        'Record that one member paid another to settle up. This writes a settlement row only — it does NOT move any money. The signed-in user must be one of the two parties. Name the two sides the way the user did — `from: "Matt", to: "me"` for "Matt paid me back" — or pass member ids. A name must already be in the group; nobody is added, and a name that fits two members is refused so you can ask which. Use payment_link to get the handoff URL a human opens to actually pay.',
       inputSchema: {
         groupId: GroupId,
-        fromMemberId: MemberId.describe('Who paid.'),
-        toMemberId: MemberId.describe('Who received.'),
+        from: z
+          .string()
+          .min(1)
+          .optional()
+          .describe('Who paid, by name — "me" for the signed-in user. Or use fromMemberId.'),
+        to: z
+          .string()
+          .min(1)
+          .optional()
+          .describe('Who received, by name — "me" for the signed-in user. Or use toMemberId.'),
+        fromMemberId: MemberId.optional().describe('Who paid, by member id.'),
+        toMemberId: MemberId.optional().describe('Who received, by member id.'),
         amount: MinorUnits,
         rail: z
           .string()
@@ -964,13 +1278,61 @@ function registerWriteTools(server: McpServer, supabase: SupabaseClient, meId: s
     },
     async ({
       groupId,
-      fromMemberId,
-      toMemberId,
+      from,
+      to,
+      fromMemberId: fromId,
+      toMemberId: toId,
       amount,
       rail,
       currency,
       note,
     }): Promise<ToolResult> => {
+      if (!fromId && !from)
+        return fail('Say who paid: `from` (a name, or "me") or `fromMemberId`.');
+      if (!toId && !to) return fail('Say who received: `to` (a name, or "me") or `toMemberId`.');
+
+      // A settlement is between people already in the ledger, so a name that
+      // matches nobody is a mistake to report, never a ghost to invent.
+      let fromMemberId = fromId;
+      let toMemberId = toId;
+      let members: Member[] = [];
+      if (!fromMemberId || !toMemberId) {
+        const loaded = await loadMembers(supabase, meId, groupId);
+        if (!Array.isArray(loaded)) return loaded;
+        members = loaded;
+        const known = members.map((m) => ({ memberId: m.memberId, name: m.name, isMe: m.isYou }));
+        const pick = (name: string): string | ToolResult => {
+          const match = matchMember(known, name);
+          if (match.kind === 'one') return match.memberId;
+          if (match.kind === 'many') {
+            return fail(
+              `"${name}" matches ${match.names.length} members of this group (${match.names.join(
+                ', ',
+              )}). Ask which one, and pass their memberId.`,
+            );
+          }
+          if (match.kind === 'not-in-group') return fail('You are not a member of this group.');
+          return fail(
+            `Nobody called "${name}" is in this group (${members
+              .map((m) => m.name)
+              .join(', ')}). Check the name with the user.`,
+          );
+        };
+        if (!fromMemberId) {
+          const picked = pick(from as string);
+          if (typeof picked !== 'string') return picked;
+          fromMemberId = picked;
+        }
+        if (!toMemberId) {
+          const picked = pick(to as string);
+          if (typeof picked !== 'string') return picked;
+          toMemberId = picked;
+        }
+      }
+      if (fromMemberId === toMemberId) {
+        return fail('Both sides of that settlement are the same member.');
+      }
+
       const method = (['upi', 'cash', 'bank', 'other'] as const).includes(
         rail as 'upi' | 'cash' | 'bank' | 'other',
       )
@@ -989,8 +1351,10 @@ function registerWriteTools(server: McpServer, supabase: SupabaseClient, meId: s
         p_client_mutation_id: randomUUID(),
       });
       if (error) return fail(error.message);
+      const who = partyOf(members);
       return ok({
         settlementId: data,
+        ...(members.length ? { from: who(fromMemberId), to: who(toMemberId) } : {}),
         status: 'initiated',
         note: 'Recorded only — no money moved. Use payment_link for the payer to complete the transfer.',
       });

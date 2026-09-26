@@ -107,7 +107,10 @@ type RpcCall = { fn: string; args: Record<string, unknown> };
  * A Supabase client that answers every read with something plausible and
  * records every RPC. It does not judge the calls itself — the migrations do.
  */
-function recordingSupabase(calls: RpcCall[]): SupabaseClient {
+function recordingSupabase(
+  calls: RpcCall[],
+  refuse: ReadonlySet<string> = new Set(),
+): SupabaseClient {
   const rows = (table: string) => {
     const result =
       table === 'groups'
@@ -125,6 +128,8 @@ function recordingSupabase(calls: RpcCall[]): SupabaseClient {
     from: rows,
     rpc: async (fn: string, args: Record<string, unknown>) => {
       calls.push({ fn, args });
+      if (refuse.has(fn)) return { data: null, error: { message: `${fn} refused` } };
+      if (fn === 'waves_my_agent_writes') return { data: [], error: null };
       return { data: fn === 'waves_ensure_group_join_token' ? 'token' : randomUUID(), error: null };
     },
     functions: { invoke: async () => ({ data: {}, error: null }) },
@@ -172,6 +177,11 @@ const WRITE_CALLS: { name: string; arguments: Record<string, unknown> }[] = [
   { name: 'invite_link', arguments: { groupId: group } },
 ];
 
+/** The read tools that go through an RPC rather than a table, held to the same check. */
+const READ_RPC_CALLS: { name: string; arguments: Record<string, unknown> }[] = [
+  { name: 'list_agent_writes', arguments: {} },
+];
+
 async function readOnlyToolNames(): Promise<Set<string>> {
   const server = buildWavesServer(recordingSupabase([]), randomUUID(), true);
   const [clientSide, serverSide] = InMemoryTransport.createLinkedPair();
@@ -195,11 +205,28 @@ async function driveWriteTools(): Promise<RpcCall[]> {
   const reads = await readOnlyToolNames();
   expect(WRITE_CALLS.map((c) => c.name).sort()).toEqual(all.filter((t) => !reads.has(t)).sort());
 
-  for (const call of WRITE_CALLS) {
+  for (const call of [...WRITE_CALLS, ...READ_RPC_CALLS]) {
     const result = await client.callTool(call);
     expect(result.isError, `${call.name}: ${JSON.stringify(result.content)}`).toBeFalsy();
   }
   await client.close();
+
+  // The clean-up path only runs when adding the person fails, so drive it on
+  // its own: a new pair whose ghost is refused removes the group it made.
+  const cleanup = buildWavesServer(
+    recordingSupabase(calls, new Set(['waves_add_ghost_member'])),
+    randomUUID(),
+    false,
+  );
+  const [cleanupClient, cleanupServer] = InMemoryTransport.createLinkedPair();
+  const second = new Client({ name: 'test', version: '0.0.0' });
+  await Promise.all([cleanup.connect(cleanupServer), second.connect(cleanupClient)]);
+  const refused = await second.callTool({
+    name: 'add_expense_with_person',
+    arguments: { person: 'Priya', description: 'Coffee', amount: '100' },
+  });
+  expect(refused.isError).toBe(true);
+  await second.close();
   return calls;
 }
 

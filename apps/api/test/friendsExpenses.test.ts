@@ -283,7 +283,7 @@ describe('POST /v1/friends/expenses', () => {
   });
 
   it('a retry with the same Idempotency-Key makes one group and one expense', async () => {
-    const headers = { 'Idempotency-Key': 'dinner-with-priya-1' };
+    const headers = { 'Idempotency-Key': randomUUID() };
 
     const first = await post({ ...DINNER, name: 'Priya' }, headers);
     const again = await post({ ...DINNER, name: 'Priya' }, headers);
@@ -298,7 +298,7 @@ describe('POST /v1/friends/expenses', () => {
   });
 
   it('a retry after failing halfway finishes the same group instead of starting another', async () => {
-    const headers = { 'Idempotency-Key': 'dinner-with-priya-2' };
+    const headers = { 'Idempotency-Key': randomUUID() };
     backend.failNextGhost = true;
 
     const failed = await post({ ...DINNER, name: 'Priya' }, headers);

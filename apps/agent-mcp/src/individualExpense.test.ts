@@ -15,7 +15,7 @@ import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { describe, expect, it } from 'vitest';
 
-import { findPair, foldName, type PairGroup } from './pair';
+import { findPair, foldName, pairIds, type PairGroup } from './pair';
 import { buildWavesServer } from './tools';
 
 const ME = 'profile-me';
@@ -92,7 +92,11 @@ describe('findPair', () => {
  * A Waves with several groups. Each group lists its live members; new groups
  * and ghosts really appear, so a second request finds what the first made.
  */
-function waves(groups: { id?: string; name?: string; currency?: string; others: string[] }[]) {
+function waves(
+  groups: { id?: string; name?: string; currency?: string; others: string[] }[],
+  opts: { ghostFailures?: number } = {},
+) {
+  let ghostFailures = opts.ghostFailures ?? 0;
   const myMember = new Map<string, string>();
   type Row = {
     id: string;
@@ -100,59 +104,77 @@ function waves(groups: { id?: string; name?: string; currency?: string; others: 
     ghost_name: string | null;
     profile: { display_name: string } | null;
   };
-  const state: { id: string; name: string; default_currency: string; members: Row[] }[] =
-    groups.map((g) => {
-      const id = g.id ?? randomUUID();
-      const me = randomUUID();
-      myMember.set(id, me);
-      return {
-        id,
-        name: g.name ?? g.others.join(', '),
-        default_currency: g.currency ?? 'INR',
-        members: [
-          {
-            id: me,
-            profile_id: ME,
-            ghost_name: null,
-            profile: { display_name: 'Madan Deivasigmani' },
-          },
-          ...g.others.map((n) => ({
-            id: randomUUID(),
-            profile_id: null,
-            ghost_name: n,
-            profile: null,
-          })),
-        ],
-      };
-    });
+  const state: {
+    id: string;
+    name: string;
+    default_currency: string;
+    deleted?: boolean;
+    members: Row[];
+  }[] = groups.map((g) => {
+    const id = g.id ?? randomUUID();
+    const me = randomUUID();
+    myMember.set(id, me);
+    return {
+      id,
+      name: g.name ?? g.others.join(', '),
+      default_currency: g.currency ?? 'INR',
+      members: [
+        {
+          id: me,
+          profile_id: ME,
+          ghost_name: null,
+          profile: { display_name: 'Madan Deivasigmani' },
+        },
+        ...g.others.map((n) => ({
+          id: randomUUID(),
+          profile_id: null,
+          ghost_name: n,
+          profile: null,
+        })),
+      ],
+    };
+  });
   const writes = {
     groups: [] as Record<string, unknown>[],
     ghosts: [] as string[],
     expenses: [] as Record<string, unknown>[],
+    deletedGroups: [] as string[],
   };
 
   const query = (table: string) => {
     let groupIds: string[] | null = null;
+    let idIs: string | null = null;
+    const live = () => state.filter((g) => !g.deleted);
     const q: Record<string, unknown> = {
       then: (resolve: (v: unknown) => unknown) => {
         if (table === 'groups') {
           return resolve({
-            data: state.map(({ id, name, default_currency }) => ({ id, name, default_currency })),
+            data: live().map(({ id, name, default_currency }) => ({ id, name, default_currency })),
             error: null,
           });
         }
-        const rows = state
+        const rows = live()
           .filter((g) => !groupIds || groupIds.includes(g.id))
           .flatMap((g) => g.members.map((m) => ({ ...m, group_id: g.id })));
         return resolve({ data: rows, error: null });
       },
-      maybeSingle: async () => ({ data: { default_currency: 'INR' }, error: null }),
+      maybeSingle: async () => {
+        if (table === 'groups' && idIs) {
+          const g = live().find((x) => x.id === idIs);
+          return { data: g ? { id: g.id } : null, error: null };
+        }
+        return { data: { default_currency: 'INR' }, error: null };
+      },
       in: (_col: string, ids: string[]) => {
         groupIds = ids;
         return q;
       },
+      eq: (col: string, value: string) => {
+        if (col === 'id') idIs = value;
+        return q;
+      },
     };
-    for (const m of ['select', 'eq', 'is']) q[m] = () => q;
+    for (const m of ['select', 'is']) q[m] = () => q;
     return q;
   };
 
@@ -160,6 +182,14 @@ function waves(groups: { id?: string; name?: string; currency?: string; others: 
     from: query,
     rpc: async (fn: string, args: Record<string, unknown>) => {
       if (fn === 'waves_create_group') {
+        // As the RPC does: an id already taken comes straight back when you
+        // are in that group (deleted or not), and is refused when you are not.
+        const known = state.find((g) => g.id === args.p_group_id);
+        if (known) {
+          return known.members.some((m) => m.profile_id === ME)
+            ? { data: known.id, error: null }
+            : { data: null, error: { message: 'GROUP_EXISTS: that group id is already taken' } };
+        }
         writes.groups.push(args);
         state.push({
           id: String(args.p_group_id),
@@ -177,12 +207,26 @@ function waves(groups: { id?: string; name?: string; currency?: string; others: 
         return { data: args.p_group_id, error: null };
       }
       if (fn === 'waves_add_ghost_member') {
-        const id = randomUUID();
-        state
-          .find((g) => g.id === args.p_group_id)!
-          .members.push({ id, profile_id: null, ghost_name: String(args.p_name), profile: null });
+        if (ghostFailures > 0) {
+          ghostFailures -= 1;
+          return { data: null, error: { message: 'NOT_A_MEMBER: you are not in that group' } };
+        }
+        const group = state.find((g) => g.id === args.p_group_id)!;
+        const id = (args.p_member_id as string | undefined) ?? randomUUID();
+        if (group.members.some((m) => m.id === id)) return { data: id, error: null };
+        group.members.push({
+          id,
+          profile_id: null,
+          ghost_name: String(args.p_name),
+          profile: null,
+        });
         writes.ghosts.push(String(args.p_name));
         return { data: id, error: null };
+      }
+      if (fn === 'waves_delete_group') {
+        state.find((g) => g.id === args.p_group_id)!.deleted = true;
+        writes.deletedGroups.push(String(args.p_group_id));
+        return { data: null, error: null };
       }
       return { data: null, error: { message: `unexpected rpc ${fn}` } };
     },
@@ -348,5 +392,130 @@ describe('individual expenses that should stop before anything is written', () =
 
     expect(isError).toBe(true);
     nothingWritten(w);
+  });
+});
+
+describe('making a one-to-one survives retries and races', () => {
+  it('refuses a name that is only spaces, before anything is written', async () => {
+    const w = waves([]);
+    const { isError } = await w.say({ person: '   ', description: 'Coffee', amount: '100' });
+    expect(isError).toBe(true);
+    expect(w.writes.groups).toHaveLength(0);
+    expect(w.writes.ghosts).toHaveLength(0);
+  });
+
+  it('derives the same ids for the same person however the name is typed', () => {
+    expect(pairIds(ME, 'Priya', 0)).toEqual(pairIds(ME, '  priya ', 0));
+    expect(pairIds(ME, 'Priya', 0).groupId).not.toBe(pairIds(ME, 'Priya', 1).groupId);
+    expect(pairIds(ME, 'Priya', 0).groupId).not.toBe(pairIds('someone-else', 'Priya', 0).groupId);
+    expect(pairIds(ME, 'Priya', 0).groupId).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+    );
+  });
+
+  it('two requests at once for somebody new make one group between them', async () => {
+    const w = waves([]);
+    const [a, b] = await Promise.all([
+      w.say({ person: 'Priya', description: 'Coffee', amount: '30000' }),
+      w.say({ person: 'Priya', description: 'Cake', amount: '20000' }),
+    ]);
+    expect(a.isError || b.isError).toBe(false);
+    expect(a.json.groupId).toBe(b.json.groupId);
+    expect(w.state.filter((g) => !g.deleted)).toHaveLength(1);
+    expect(w.state[0]!.members).toHaveLength(2);
+    expect(w.writes.expenses).toHaveLength(2);
+  });
+
+  it('a retried add of the person gets through without a second group', async () => {
+    const w = waves([], { ghostFailures: 1 });
+    const { isError, json } = await w.say({
+      person: 'Priya',
+      description: 'Coffee',
+      amount: '100',
+    });
+    expect(isError).toBe(false);
+    expect(json.groupId).toBe(pairIds(ME, 'Priya', 0).groupId);
+    expect(w.state).toHaveLength(1);
+    expect(w.writes.deletedGroups).toHaveLength(0);
+  });
+
+  it('removes the group it made when the person cannot be added, and writes no expense', async () => {
+    const w = waves([], { ghostFailures: 2 });
+    const { isError } = await w.say({ person: 'Priya', description: 'Coffee', amount: '100' });
+    expect(isError).toBe(true);
+    expect(w.writes.deletedGroups).toEqual([pairIds(ME, 'Priya', 0).groupId]);
+    expect(w.state.filter((g) => !g.deleted)).toHaveLength(0);
+    expect(w.writes.expenses).toHaveLength(0);
+
+    // And asking again starts cleanly, under fresh ids.
+    const again = await w.say({ person: 'Priya', description: 'Coffee', amount: '100' });
+    expect(again.isError).toBe(false);
+    expect(again.json.groupId).toBe(pairIds(ME, 'Priya', 1).groupId);
+  });
+
+  it('finishes a pair an earlier call left half made', async () => {
+    const half = pairIds(ME, 'Priya', 0);
+    const w = waves([]);
+    w.state.push({
+      id: half.groupId,
+      name: 'Priya',
+      default_currency: 'INR',
+      members: [
+        {
+          id: half.myMemberId,
+          profile_id: ME,
+          ghost_name: null,
+          profile: { display_name: 'Madan' },
+        },
+      ],
+    });
+    const { json } = await w.say({ person: 'Priya', description: 'Coffee', amount: '100' });
+    expect(json.groupId).toBe(half.groupId);
+    expect(w.writes.groups).toHaveLength(0);
+    expect(w.state[0]!.members.map((m) => m.id)).toEqual([half.myMemberId, half.theirMemberId]);
+  });
+
+  it('does not reuse a derived group that has grown past two people', async () => {
+    const taken = pairIds(ME, 'Priya', 0);
+    const w = waves([]);
+    w.state.push({
+      id: taken.groupId,
+      name: 'Priya and friends',
+      default_currency: 'INR',
+      members: [
+        {
+          id: taken.myMemberId,
+          profile_id: ME,
+          ghost_name: null,
+          profile: { display_name: 'Madan' },
+        },
+        { id: 'raj', profile_id: null, ghost_name: 'Raj', profile: null },
+        { id: 'arun', profile_id: null, ghost_name: 'Arun', profile: null },
+      ],
+    });
+    const { json } = await w.say({ person: 'Priya', description: 'Coffee', amount: '100' });
+    expect(json.groupId).toBe(pairIds(ME, 'Priya', 1).groupId);
+  });
+
+  it('does not put an expense in a deleted group that still answers to the id', async () => {
+    const gone = pairIds(ME, 'Priya', 0);
+    const w = waves([]);
+    w.state.push({
+      id: gone.groupId,
+      name: 'Priya',
+      default_currency: 'INR',
+      deleted: true,
+      members: [
+        {
+          id: gone.myMemberId,
+          profile_id: ME,
+          ghost_name: null,
+          profile: { display_name: 'Madan' },
+        },
+      ],
+    });
+    const { json } = await w.say({ person: 'Priya', description: 'Coffee', amount: '100' });
+    expect(json.groupId).toBe(pairIds(ME, 'Priya', 1).groupId);
+    expect(w.writes.expenses[0]!.groupId).toBe(pairIds(ME, 'Priya', 1).groupId);
   });
 });

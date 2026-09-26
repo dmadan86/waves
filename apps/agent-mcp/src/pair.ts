@@ -13,6 +13,8 @@
  * honest by their tests rather than one import.
  */
 
+import { createHash } from 'node:crypto';
+
 export interface PairMember {
   readonly memberId: string;
   readonly profileId: string | null;
@@ -47,6 +49,40 @@ export type PairLookup =
  */
 export function foldName(name: string): string {
   return name.normalize('NFKD').replace(/\p{M}/gu, '').trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+/**
+ * The ids a new one-to-one with this person is made under, the same on every
+ * call.
+ *
+ * Making a pair takes two writes — the group, then them as a ghost — and an
+ * agent may retry, or send "coffee with Priya" and "cake with Priya" at once.
+ * With fresh random ids, a retry after the first write made a second group
+ * and parallel calls made one each; with these, every attempt lands on the
+ * same group and the same ghost, and the RPCs hand back what is already there.
+ *
+ * `generation` moves on when the ids are spoken for by a group that can no
+ * longer be used — deleted, left, or grown past two people.
+ */
+export function pairIds(
+  meProfileId: string,
+  person: string,
+  generation: number,
+): { groupId: string; myMemberId: string; theirMemberId: string } {
+  const id = (role: string): string => {
+    const hex = createHash('sha256')
+      .update(`waves-pair\0${meProfileId}\0${foldName(person)}\0${generation}\0${role}`)
+      .digest('hex');
+    // Shaped as a version-5-style UUID so it passes as one everywhere.
+    return [
+      hex.slice(0, 8),
+      hex.slice(8, 12),
+      `5${hex.slice(13, 16)}`,
+      `${((parseInt(hex[16]!, 16) & 0x3) | 0x8).toString(16)}${hex.slice(17, 20)}`,
+      hex.slice(20, 32),
+    ].join('-');
+  };
+  return { groupId: id('group'), myMemberId: id('me'), theirMemberId: id('them') };
 }
 
 /**
