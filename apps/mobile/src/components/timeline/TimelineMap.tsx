@@ -21,7 +21,17 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { FlatList, Pressable, ScrollView, useWindowDimensions, View } from 'react-native';
 
 import { format, money, type CurrencyCode } from '@waves/core';
-import { EmptyState, iconSize, ListRow, MoneyText, Row, Sheet, Text, useTheme } from '@waves/ui';
+import {
+  Button,
+  EmptyState,
+  iconSize,
+  ListRow,
+  MoneyText,
+  Row,
+  Sheet,
+  Text,
+  useTheme,
+} from '@waves/ui';
 
 import { CategoryBadge } from '@/components/Category';
 import type { TimelineMapHandle } from '@/components/timeline/TimelineMapSurface';
@@ -222,16 +232,32 @@ export function TimelineMap({
   // Driven by timers from the tap, not by an effect watching the step: each
   // stop selects its bill, moves the camera and schedules the next, and the
   // last hands over to the day-total card.
-  const playFrom = (index: number) => {
-    const step = steps[index];
+  //
+  // A replay is bound to the steps it started with. The day on the map can
+  // change under it (new data, a filter), so each tick checks that the steps
+  // are still the live ones and ends the replay if not, rather than walking an
+  // old day's bills over the new one.
+  const liveSteps = useRef(steps);
+  useEffect(() => {
+    liveSteps.current = steps;
+  }, [steps]);
+
+  const playFrom = (index: number, list = steps) => {
+    const step = list[index];
     if (!step) return;
     setReplayAt(index);
     setEnded(false);
     select(step.entry, 'replay');
     timer.current = setTimeout(
       () => {
-        if (index + 1 < steps.length) {
-          playFrom(index + 1);
+        if (liveSteps.current !== list) {
+          timer.current = null;
+          setReplayAt(null);
+          setEnded(false);
+          return;
+        }
+        if (index + 1 < list.length) {
+          playFrom(index + 1, list);
           return;
         }
         setEnded(true);
@@ -262,6 +288,49 @@ export function TimelineMap({
     );
   }
 
+  // The bills with no place, as a sheet: reachable from the chip over the map,
+  // and from the empty state when nothing in view has a place at all.
+  const noPlaceSheet = (
+    <Sheet
+      visible={noPlaceOpen}
+      onClose={() => setNoPlaceOpen(false)}
+      title={t.timeline.noPlaceTitle}
+    >
+      <Text variant="caption" tone="muted">
+        {t.timeline.noPlaceBody}
+      </Text>
+      <ScrollView style={{ maxHeight: 420 }}>
+        {withoutPlace.map((entry) => (
+          <ListRow
+            key={entry.id}
+            title={expenseTitle(entry.description, entry.category, t, entry.categoryMeta)}
+            subtitle={`${shortDay(entry.day, locale).date} · ${entry.groupName}`}
+            leading={
+              <CategoryBadge
+                category={entry.category}
+                meta={entry.categoryMeta}
+                description={entry.description}
+                size={34}
+              />
+            }
+            trailing={
+              <MoneyText
+                amount={entry.amount}
+                currency={entry.currency}
+                locale={locale}
+                variant="caption"
+              />
+            }
+            onPress={() => {
+              setNoPlaceOpen(false);
+              onOpen(entry);
+            }}
+          />
+        ))}
+      </ScrollView>
+    </Sheet>
+  );
+
   if (withPlace.length === 0) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', padding: theme.spacing.xl }}>
@@ -269,7 +338,20 @@ export function TimelineMap({
           icon={<Ionicons name="location-outline" size={iconSize.huge} color={theme.color.brand} />}
           title={t.timeline.noPins}
           body={t.timeline.noPinsBody}
+          action={
+            withoutPlace.length > 0 ? (
+              <Button
+                label={plural(locale, withoutPlace.length, t.timeline.noPlaceCount).replace(
+                  '{n}',
+                  String(withoutPlace.length),
+                )}
+                variant="secondary"
+                onPress={() => setNoPlaceOpen(true)}
+              />
+            ) : undefined
+          }
         />
+        {noPlaceSheet}
       </View>
     );
   }
@@ -490,44 +572,7 @@ export function TimelineMap({
         />
       </View>
 
-      <Sheet
-        visible={noPlaceOpen}
-        onClose={() => setNoPlaceOpen(false)}
-        title={t.timeline.noPlaceTitle}
-      >
-        <Text variant="caption" tone="muted">
-          {t.timeline.noPlaceBody}
-        </Text>
-        <ScrollView style={{ maxHeight: 420 }}>
-          {withoutPlace.map((entry) => (
-            <ListRow
-              key={entry.id}
-              title={expenseTitle(entry.description, entry.category, t, entry.categoryMeta)}
-              subtitle={`${shortDay(entry.day, locale).date} · ${entry.groupName}`}
-              leading={
-                <CategoryBadge
-                  category={entry.category}
-                  meta={entry.categoryMeta}
-                  description={entry.description}
-                  size={34}
-                />
-              }
-              trailing={
-                <MoneyText
-                  amount={entry.amount}
-                  currency={entry.currency}
-                  locale={locale}
-                  variant="caption"
-                />
-              }
-              onPress={() => {
-                setNoPlaceOpen(false);
-                onOpen(entry);
-              }}
-            />
-          ))}
-        </ScrollView>
-      </Sheet>
+      {noPlaceSheet}
     </View>
   );
 }

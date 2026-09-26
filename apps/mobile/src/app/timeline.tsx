@@ -92,6 +92,9 @@ export default function TimelineScreen() {
   };
   useEffect(() => {
     if (scrolledTo.current || view !== 'timeline' || rows.length === 0) return;
+    // Not done until the focused bill is actually in the rows: the mirror can
+    // land a beat after the first rows do, and a scroll to a missing row is lost.
+    if (focusId && rowIndexOf(rows, focusId) < 0) return;
     scrolledTo.current = true;
     const handle = setTimeout(() => scrollToFocus(false), 60);
     return () => clearTimeout(handle);
