@@ -1480,7 +1480,7 @@ function HeroBackdrop({
 
 /**
  * One balance slide, riding transparent on the hero's green, in a single line
- * that reads as a sentence: "Net receivable – ₹12,345", then the eye.
+ * that reads as a sentence: "Net receivable: ₹12,345", then the eye.
  *
  * It used to be two lines, "Net receivable · INR 👁" over the figure, and the
  * label line cost a row of the hero's height. The currency code is gone too:
@@ -1528,10 +1528,7 @@ function MetricSlide({
         numberOfLines={1}
         style={{ flexShrink: 1, fontWeight: '600', opacity: 0.85 }}
       >
-        {heading}
-      </Text>
-      <Text variant="body" tone="onBrand" style={{ opacity: 0.6 }}>
-        –
+        {heading}:
       </Text>
       <View style={{ flexShrink: 1 }}>
         {hidden ? (
