@@ -954,40 +954,49 @@ export default function GroupScreen() {
             ghost={isGhost(member) || isBlockedMember(member, blockedIds)}
             size={40}
           />
-          <View style={{ flex: 1 }}>
-            <Row style={{ gap: theme.spacing.sm }}>
-              <Text variant="subheading" numberOfLines={1} style={{ flexShrink: 1 }}>
-                {shownName}
-              </Text>
+          {/* The name gets the row's width. It used to share its line with the
+              admin badge while the Remind chip and the amount sat beside it,
+              which left "Renn…" of "Renny Benita". The badge moves to the line
+              under the name, and Remind sits under the amount. */}
+          <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+            <Text variant="subheading" numberOfLines={1}>
+              {shownName}
+            </Text>
+            <Row style={{ gap: theme.spacing.xs, alignItems: 'center' }}>
               {member.role === 'admin' && !isGhost(member) ? (
                 <Badge label={t.people.admin} tone="brand" />
               ) : null}
+              <Text variant="caption" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
+                {isGhost(member)
+                  ? t.notJoinedYet
+                  : isBlockedMember(member, blockedIds)
+                    ? // A payment handle carries a name, an address or a phone
+                      // number — masked for a blocked person.
+                      t.misc.noUpiYet
+                    : // `payableAt`, not `member.vpa ?? profile.default_vpa`: the
+                      // rail pair is where a handle lives now, and reading only
+                      // the old column showed a dash to everybody whose handle is
+                      // a Pix key, a PayID or a Venmo name. With none, words
+                      // rather than a bare dash that read as missing data.
+                      (payableAt(member)?.handle ?? t.misc.noUpiYet)}
+              </Text>
             </Row>
-            <Text variant="caption" tone="muted" numberOfLines={1}>
-              {isGhost(member)
-                ? t.notJoinedYet
-                : isBlockedMember(member, blockedIds)
-                  ? // A payment handle carries a name, an address or a phone
-                    // number — masked for a blocked person.
-                    '—'
-                  : // `payableAt`, not `member.vpa ?? profile.default_vpa`: the
-                    // rail pair is where a handle lives now, and reading only
-                    // the old column showed a dash to everybody whose handle is
-                    // a Pix key, a PayID or a Venmo name.
-                    (payableAt(member)?.handle ?? '—')}
-            </Text>
           </View>
           <Row style={{ gap: theme.spacing.sm, alignItems: 'center' }}>
-            {/* Somebody who owes the group money can be nudged from the row that
-                says so, the way Friends already does. Ghosts have nowhere to
-                send it. Touch keeps the visible chip; screen readers get the
-                same affordance as a custom action on the row below, because a
-                nested accessible button can be hidden by an accessible parent. */}
-            {canRemind ? (
-              <RemindChip groupId={groupId} memberId={member.id} currency={currency} />
-            ) : null}
-            <MoneyText amount={balance} currency={currency} locale={locale} mode="balance" />
-            {member.pending ? <PendingMark /> : null}
+            <View style={{ alignItems: 'flex-end', gap: theme.spacing.xs }}>
+              <Row style={{ gap: theme.spacing.xs, alignItems: 'center' }}>
+                <MoneyText amount={balance} currency={currency} locale={locale} mode="balance" />
+                {member.pending ? <PendingMark /> : null}
+              </Row>
+              {/* Somebody who owes the group money can be nudged from the row
+                  that says so, the way Friends already does. Ghosts have nowhere
+                  to send it. Touch keeps the visible chip; screen readers get the
+                  same affordance as a custom action on the row below, because a
+                  nested accessible button can be hidden by an accessible parent. */}
+              {canRemind ? (
+                <RemindChip groupId={groupId} memberId={member.id} currency={currency} />
+              ) : null}
+            </View>
             {/* A fixed slot at the trailing edge, on every row whether or not it
                 leads anywhere, so the amounts stay in one column instead of
                 sliding left on the rows that have no chevron. The glyph itself
