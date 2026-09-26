@@ -82,6 +82,30 @@ const RETRY_BACKOFF_MS = [30_000, 2 * 60_000, 10 * 60_000, 30 * 60_000] as const
  */
 const SETTLED_TTL_MS = 60 * 60 * 1000;
 
+/**
+ * How long a receipt added to an expense that was never saved stays parked.
+ *
+ * The add screen parks a picked bill as soon as it is picked — held, so it is
+ * never sent — and lets go of it on save or discards it on the way out. This is
+ * the backstop for the way out that never ran: the app killed on that screen.
+ * A day is long enough that nobody loses a bill mid-thought, and short enough
+ * that an abandoned photograph does not sit in the document directory for good.
+ */
+const HELD_TTL_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * What the add screen decided for each unsaved expense, once it decided.
+ *
+ * A picked photograph takes a second or more to resize before it is parked, and
+ * the person can press Save — or leave — inside that second. The decision then
+ * runs before the picture exists, and a picture parked held afterwards would
+ * be neither sent nor thrown away. So the decision is remembered here, and a
+ * late arrival follows it: after a save it is parked ready to send, after an
+ * abandoned add it is not kept at all. In memory only: an expense id is fresh
+ * for every add, and a killed app is what the one-day sweep is for.
+ */
+const heldDecisions = new Map<string, 'released' | 'discarded'>();
+
 function backoffFor(attempts: number): number {
   const index = Math.min(Math.max(attempts, 1), RETRY_BACKOFF_MS.length) - 1;
   return RETRY_BACKOFF_MS[index] ?? RETRY_BACKOFF_MS[RETRY_BACKOFF_MS.length - 1] ?? 0;
@@ -126,6 +150,13 @@ export interface PendingReceipt {
    * again.
    */
   sentAt?: string | null;
+  /**
+   * Parked for an expense that has not been saved yet. No flush sends it: the
+   * expense row it would attach to does not exist, and may never — the person
+   * can still walk away from the add screen. `releaseHeldReceipts` clears it on
+   * save; `discardHeldReceipts` drops it when the add is abandoned.
+   */
+  held?: boolean;
 }
 
 /**
@@ -199,7 +230,8 @@ function sameQueue(a: readonly PendingReceipt[], b: readonly PendingReceipt[]): 
       entry.lastError === other.lastError &&
       Boolean(entry.permanent) === Boolean(other.permanent) &&
       (entry.nextAttemptAt ?? null) === (other.nextAttemptAt ?? null) &&
-      (entry.sentAt ?? null) === (other.sentAt ?? null)
+      (entry.sentAt ?? null) === (other.sentAt ?? null) &&
+      Boolean(entry.held) === Boolean(other.held)
     );
   });
 }
@@ -366,9 +398,24 @@ export async function isOnline(): Promise<boolean> {
  * receipt that may since have been removed from another device.
  */
 async function reapSettled(queue: readonly PendingReceipt[]): Promise<PendingReceipt[]> {
-  const kept = queue.filter((entry) => !settledPast(entry, SETTLED_TTL_MS));
+  const kept = queue.filter(
+    (entry) => !settledPast(entry, SETTLED_TTL_MS) && !heldPast(entry, HELD_TTL_MS),
+  );
   if (kept.length === queue.length) return [...queue];
   await writeQueue(kept);
+  // A settled entry's bytes normally moved into the view cache already; an
+  // expired held one's never went anywhere. Either way nothing points at them
+  // now, and this sweep also runs from a flush, where the orphan sweep in
+  // `listPendingReceipts` does not.
+  for (const entry of queue) {
+    if (kept.includes(entry)) continue;
+    try {
+      const file = pendingFile(entry);
+      if (file.exists) file.delete();
+    } catch {
+      // Best-effort; a lingering file is reclaimed with the app's document dir.
+    }
+  }
   return kept;
 }
 
@@ -383,6 +430,13 @@ async function reapSettled(queue: readonly PendingReceipt[]): Promise<PendingRec
 export function settledPast(entry: Pick<PendingReceipt, 'sentAt'>, age: number): boolean {
   if (!entry.sentAt) return false;
   const at = Date.parse(entry.sentAt);
+  return Number.isNaN(at) || Date.now() - at >= age;
+}
+
+/** Whether a capture has been held for an unsaved expense for longer than `age`. */
+function heldPast(entry: Pick<PendingReceipt, 'held' | 'createdAt'>, age: number): boolean {
+  if (!entry.held) return false;
+  const at = Date.parse(entry.createdAt);
   return Number.isNaN(at) || Date.now() - at >= age;
 }
 
@@ -485,7 +539,11 @@ export async function enqueueReceipt(input: {
   /** The bytes, for callers that already hold them (the OCR path). */
   base64?: string;
   contentType: string;
+  /** For an expense not saved yet: park it, but send nothing until released. */
+  held?: boolean;
 }): Promise<PendingReceipt> {
+  const decided = input.held ? heldDecisions.get(input.expenseId) : undefined;
+  const held = Boolean(input.held) && decided === undefined;
   const attachmentId = randomUUID();
   const ext = extensionFor(input.contentType);
   const entry: PendingReceipt = {
@@ -503,11 +561,14 @@ export async function enqueueReceipt(input: {
     permanent: false,
     nextAttemptAt: null,
     sentAt: null,
+    ...(held ? { held: true } : {}),
   };
 
   if (!input.sourceUri && !input.base64) {
     throw new Error('enqueueReceipt needs either sourceUri or base64.');
   }
+  // The add it was picked for was abandoned while it was being prepared.
+  if (decided === 'discarded') return entry;
 
   // The bytes and the entry that names them go down together, in one turn.
   // Split across turns, the file exists for a moment with nothing in the index
@@ -527,6 +588,50 @@ export async function enqueueReceipt(input: {
     await writeQueue([...queue, entry]);
   });
   return entry;
+}
+
+/**
+ * The expense these were held for has been saved: let them go to the flush.
+ * Returns how many were released.
+ */
+export async function releaseHeldReceipts(expenseId: string): Promise<number> {
+  heldDecisions.set(expenseId, 'released');
+  return inTurn(async () => {
+    const queue = await readQueue();
+    let released = 0;
+    const next = queue.map((entry) => {
+      if (entry.expenseId !== expenseId || !entry.held) return entry;
+      released += 1;
+      const { held: _held, ...rest } = entry;
+      return rest;
+    });
+    if (released > 0) await writeQueue(next);
+    return released;
+  });
+}
+
+/**
+ * The add these were held for was abandoned: drop them and their bytes. Only
+ * held entries go — a released one belongs to a saved expense now.
+ */
+export async function discardHeldReceipts(expenseId: string): Promise<void> {
+  // Never overturns a save: a released expense's receipts are the ledger's now.
+  if (heldDecisions.get(expenseId) === 'released') return;
+  heldDecisions.set(expenseId, 'discarded');
+  await inTurn(async () => {
+    const queue = await readQueue();
+    const dropped = queue.filter((entry) => entry.expenseId === expenseId && entry.held);
+    if (dropped.length === 0) return;
+    for (const entry of dropped) {
+      try {
+        const file = pendingFile(entry);
+        if (file.exists) file.delete();
+      } catch {
+        // Best-effort; the orphan sweep in listPendingReceipts catches leftovers.
+      }
+    }
+    await writeQueue(queue.filter((entry) => !dropped.includes(entry)));
+  });
 }
 
 /** Drop a pending capture the user chose not to keep, deleting its bytes too. */
@@ -649,6 +754,8 @@ async function runFlush(): Promise<FlushResult> {
   const due = queue.filter((entry) => {
     // Already up. It is only still here so the gallery has something to draw.
     if (entry.sentAt) return false;
+    // Its expense is not saved yet; there is nothing on the server to attach to.
+    if (entry.held) return false;
     if (entry.permanent) return false;
     if (!entry.nextAttemptAt) return true;
     const at = Date.parse(entry.nextAttemptAt);
