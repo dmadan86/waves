@@ -54,7 +54,10 @@ const auth = vi.hoisted(() => ({
     profile: { id: string; country_code?: string | null } | null;
   },
 }));
-vi.mock('@/lib/auth', () => ({ useAuth: () => auth.value }));
+vi.mock('@/lib/auth', () => ({
+  useAuth: () => auth.value,
+  useViewerId: () => auth.value.session?.user?.id ?? null,
+}));
 
 const observability = vi.hoisted(() => ({ reportHandled: vi.fn() }));
 vi.mock('@/lib/observability', () => observability);
@@ -151,6 +154,25 @@ describe('the local-read wrapper every mirror hook returns', () => {
     expect(sync.flush).toHaveBeenCalledTimes(1);
     expect(read.isLoading).toBe(false);
     expect(read.isFetching).toBe(false);
+  });
+});
+
+describe('useGroupLabeller', () => {
+  // The report: a "Where does it go?" picker listing three unnamed groups as
+  // "New group", "New group", "New group", because the label had no members.
+  it('names an unnamed group by who else is in it, and keeps a real name', () => {
+    sync.mirror = mirrorOf({
+      [SyncTable.Groups]: [groupRow('g-pair', { name: null }), groupRow('g-named')],
+      [SyncTable.GroupMembers]: [
+        memberRow('m-me', 'g-pair', OWNER),
+        memberRow('m-renny', 'g-pair', 'p-renny', {
+          profile: { id: 'p-renny', display_name: 'Renny Benita', avatar_url: null },
+        }),
+      ],
+    });
+    const labelOf = render(() => hooks.useGroupLabeller());
+    expect(labelOf({ id: 'g-pair', name: null })).toContain('Renny Benita');
+    expect(labelOf({ id: 'g-named', name: 'Group g-named' })).toBe('Group g-named');
   });
 });
 

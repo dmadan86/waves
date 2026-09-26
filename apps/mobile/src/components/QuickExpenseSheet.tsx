@@ -63,11 +63,12 @@ import {
   useCreateCapture,
   useGroup,
   useGroupFxRates,
+  useGroupLabeller,
   useGroups,
   useWriteExpense,
 } from '@/data/hooks';
 import { todayIso, useUpsertPersonalRecord } from '@/data/personal';
-import { groupLabel, isGhost, isViewer, type GroupRow } from '@/data/types';
+import { isGhost, isViewer, type GroupRow } from '@/data/types';
 import { fill, useStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
 import { useDefaultCurrency } from '@/lib/currency';
@@ -92,6 +93,7 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
   const { t } = useStrings();
   const defaultCurrency = useDefaultCurrency();
   const groups = useGroups();
+  const labelOf = useGroupLabeller();
   const recents = useRecentDestinations();
 
   const [amount, setAmount] = useState(0n);
@@ -358,7 +360,7 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
                       numberOfLines={1}
                       tone={group.id === chosenId ? 'brand' : 'default'}
                     >
-                      {groupLabel(group)}
+                      {labelOf(group)}
                     </Text>
                   </Pressable>
                 ))}
@@ -456,6 +458,7 @@ function QuickExpenseFooter({
   place: ExpenseLocation | null;
   onSaved: () => void;
 }) {
+  const labelOf = useGroupLabeller();
   const theme = useTheme();
   const { t } = useStrings();
   const viewerId = useViewerId();
@@ -601,19 +604,19 @@ function QuickExpenseFooter({
         {tripRate
           ? fill(t.quickExpense.atGroupRate, {
               currency,
-              group: groupLabel(group),
+              group: labelOf(group),
             })
           : foreign
             ? fill(t.quickExpense.keptInCurrency, {
                 currency,
-                group: groupLabel(group),
+                group: labelOf(group),
               })
             : // No payer to name means no expense to write, so Save keeps a
               // draft instead (see `save`). "Split equally between 4" here
               // would be a sentence about money that does not happen.
               canWriteExpense
               ? fill(t.quickExpense.splitEqually, { count: String(participants.length) })
-              : fill(t.quickExpense.keptForGroup, { group: groupLabel(group) })}
+              : fill(t.quickExpense.keptForGroup, { group: labelOf(group) })}
       </Text>
       {/* Side by side, because they are two answers to the same question and
           neither is the other's fallback. Save is the one with the weight;

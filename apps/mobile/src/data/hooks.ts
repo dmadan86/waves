@@ -9,7 +9,7 @@
  * instrument, not the group's problem to read about.
  */
 
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { randomUUID } from 'expo-crypto';
 
@@ -62,7 +62,7 @@ import {
 } from '@waves/core';
 
 import { isCrossCheckComparable } from '@/data/crossCheck';
-import { useAuth } from '@/lib/auth';
+import { useAuth, useViewerId } from '@/lib/auth';
 import { reportHandled } from '@/lib/observability';
 import { normaliseContactPhone } from '@/lib/phone';
 import { backend } from '@/lib/backend';
@@ -113,7 +113,7 @@ import { sanitizeCommentMarkdown } from '@waves/core';
 import type { VoiceAccess } from '@/lib/voiceAccess';
 import { activityTime } from '@/lib/groupActivityOrder';
 import { recentActivity, type RecentActivityRow } from './recentActivity';
-import { isGhost, isViewer, SettlementStatus } from './types';
+import { groupLabel, isGhost, isViewer, SettlementStatus } from './types';
 import type {
   ActivityRow,
   CaptureRow,
@@ -410,6 +410,36 @@ function useLocalMonthPrefix(): string {
  * radio off as with it on — and an expense still sitting in the queue is
  * already in them, because `materialiseExpenses` replays the queue on top.
  */
+/**
+ * What to call a group, the way the group list calls it.
+ *
+ * A group with no name is named by who is in it ("You and Renny Benita"), and
+ * that needs its members. `groupLabel(group)` on its own has none, so every
+ * picker that called it showed each unnamed group as "New group": four identical
+ * rows with nothing to tell them apart. This reads the members from the local
+ * mirror, and only for the unnamed groups, since a named one never needs them.
+ */
+export function useGroupLabeller(): (group: Pick<GroupRow, 'id' | 'name'>) => string {
+  const { mirror, queue } = useSync();
+  const viewerId = useViewerId();
+  const membersOfUnnamed = useMemo(() => {
+    const map = new Map<string, MemberRow[]>();
+    for (const group of materialiseGroups(mirror, queue) as unknown as GroupRow[]) {
+      if (group.name?.trim()) continue;
+      map.set(
+        group.id,
+        materialiseMembers(mirror, queue, { groupId: group.id }) as unknown as MemberRow[],
+      );
+    }
+    return map;
+  }, [mirror, queue]);
+  return useCallback(
+    (group: Pick<GroupRow, 'id' | 'name'>) =>
+      groupLabel(group, membersOfUnnamed.get(group.id) ?? [], viewerId),
+    [membersOfUnnamed, viewerId],
+  );
+}
+
 export function useHomeSummary(profileId: string | null) {
   const { mirror, queue, hydrated, status, hasSynced, flush } = useSync();
   const monthPrefix = useLocalMonthPrefix();
