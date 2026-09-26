@@ -245,6 +245,8 @@ export function TripRatesCard({
   const rows: readonly TripRateRow[] = store.rows;
   /** The currency being edited, or `''` for a rate that does not exist yet. */
   const [editing, setEditing] = useState<string | null>(null);
+  /** The explanation under the heading, folded behind the ⓘ like Trip dates'. */
+  const [showInfo, setShowInfo] = useState(false);
 
   const list = (
     <>
@@ -328,18 +330,42 @@ export function TripRatesCard({
 
   return (
     <View style={{ gap: theme.spacing.sm }}>
-      <SectionHeader title={t.fx.tripRates} />
-      <Text variant="caption" tone="muted">
-        {t.fx.tripRatesBody}
-      </Text>
+      {/* The two sentences that explain rates stay folded behind the ⓘ at the
+          heading's end, the way Trip dates does it: the list is what people
+          come here for, and the explanation is for the one time they wonder. */}
+      <Row style={{ justifyContent: 'space-between', alignItems: 'center', gap: theme.spacing.sm }}>
+        <View style={{ flex: 1 }}>
+          <SectionHeader title={t.fx.tripRates} />
+        </View>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ expanded: showInfo }}
+          accessibilityLabel={t.common.about.replace('{title}', t.fx.tripRates)}
+          hitSlop={8}
+          onPress={() => setShowInfo((shown) => !shown)}
+          style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+        >
+          <Ionicons
+            name={showInfo ? 'information-circle' : 'information-circle-outline'}
+            size={iconSize.lg}
+            color={showInfo ? theme.color.brand : theme.color.textFaint}
+          />
+        </Pressable>
+      </Row>
+      {showInfo ? (
+        <View style={{ gap: theme.spacing.xs }}>
+          <Text variant="caption" tone="muted">
+            {t.fx.tripRatesBody}
+          </Text>
+          <Text variant="micro" tone="faint">
+            {t.fx.appliesNote}
+          </Text>
+        </View>
+      ) : null}
 
       <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
         {list}
       </Card>
-
-      <Text variant="micro" tone="faint">
-        {t.fx.appliesNote}
-      </Text>
 
       {sheet}
     </View>
