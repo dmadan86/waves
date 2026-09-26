@@ -3222,6 +3222,45 @@ export interface UiStrings {
    * agreeing to it (ADR-006). Worded as a request throughout, because that is
    * what it now is: approving hands over every expense filed under that name.
    */
+  /** Your timeline: every expense across groups, as a day-by-day list and a map. */
+  timeline: {
+    title: string;
+    viewTimeline: string;
+    viewMap: string;
+    rangeTitle: string;
+    rangeAll: string;
+    range7: string;
+    range30: string;
+    range90: string;
+    groupTitle: string;
+    allGroups: string;
+    onlyMine: string;
+    youLent: string;
+    youBorrowed: string;
+    addedLater: string;
+    empty: string;
+    emptyBody: string;
+    emptyFiltered: string;
+    showAllTime: string;
+    backToFocus: string;
+    noPlaceTitle: string;
+    noPlaceBody: string;
+    noPins: string;
+    noPinsBody: string;
+    mapUnavailable: string;
+    focusNoPlace: string;
+    replay: string;
+    stop: string;
+    soFar: string;
+    dayTotal: string;
+    entryRow: string;
+    entryRowValue: string;
+    seeOnMap: string;
+    openExpense: string;
+    quietFor: PluralForms;
+    noPlaceCount: PluralForms;
+    stops: PluralForms;
+  };
   claims: {
     askToJoinAs: string;
     needsConfirming: string;
@@ -6178,6 +6217,44 @@ const en: UiStrings = {
     exhausted: 'That code has been used as many times as it allows.',
     alreadyRedeemed: 'You have already used that one.',
     couldNotRedeem: 'The code could not be checked just now. Try again in a moment.',
+  },
+  timeline: {
+    title: 'Your timeline',
+    viewTimeline: 'Timeline',
+    viewMap: 'Map',
+    rangeTitle: 'Show',
+    rangeAll: 'All time',
+    range7: 'Last 7 days',
+    range30: 'Last 30 days',
+    range90: 'Last 90 days',
+    groupTitle: 'Which group',
+    allGroups: 'All groups',
+    onlyMine: 'Only mine',
+    youLent: 'you lent {amount}',
+    youBorrowed: 'you borrowed {amount}',
+    addedLater: 'Added later',
+    empty: 'Nothing here yet',
+    emptyBody: 'Expenses you add show up here, day by day.',
+    emptyFiltered: 'Nothing in this range',
+    showAllTime: 'Show all time',
+    backToFocus: 'Back to this expense',
+    noPlaceTitle: 'Not on the map',
+    noPlaceBody: 'These have no place. Open one and add where it happened.',
+    noPins: 'No places yet',
+    noPinsBody: 'Add a location when you save an expense and it lands here.',
+    mapUnavailable: 'The map needs the latest version of the app.',
+    focusNoPlace: 'This one has no place. Here is the rest of that day.',
+    replay: 'Replay the day',
+    stop: 'Stop',
+    soFar: '{amount} so far',
+    dayTotal: 'Day total',
+    entryRow: 'Timeline',
+    entryRowValue: 'See where it fits',
+    seeOnMap: 'See on my map',
+    openExpense: 'Opens the expense',
+    quietFor: { one: '{n} hour later', other: '{n} hours later' },
+    noPlaceCount: { one: '{n} has no place', other: '{n} have no place' },
+    stops: { one: '{n} stop', other: '{n} stops' },
   },
   claims: {
     askToJoinAs: 'Ask to join as {name}',
@@ -9236,6 +9313,44 @@ const ta: UiStrings = {
     alreadyRedeemed: 'அதை நீங்கள் ஏற்கனவே பயன்படுத்திவிட்டீர்கள்.',
     couldNotRedeem: 'இப்போது குறியீட்டைச் சரிபார்க்க முடியவில்லை. சிறிது நேரம் கழித்து முயலுங்கள்.',
   },
+  timeline: {
+    title: 'உங்கள் காலவரிசை',
+    viewTimeline: 'காலவரிசை',
+    viewMap: 'வரைபடம்',
+    rangeTitle: 'காட்டு',
+    rangeAll: 'எல்லா காலமும்',
+    range7: 'கடந்த 7 நாட்கள்',
+    range30: 'கடந்த 30 நாட்கள்',
+    range90: 'கடந்த 90 நாட்கள்',
+    groupTitle: 'எந்தக் குழு',
+    allGroups: 'எல்லாக் குழுக்களும்',
+    onlyMine: 'என்னுடையவை மட்டும்',
+    youLent: 'நீங்கள் கொடுத்தது {amount}',
+    youBorrowed: 'நீங்கள் வாங்கியது {amount}',
+    addedLater: 'பின்னர் சேர்க்கப்பட்டது',
+    empty: 'இங்கே இன்னும் எதுவும் இல்லை',
+    emptyBody: 'நீங்கள் சேர்க்கும் செலவுகள் நாள்வாரியாக இங்கே வரும்.',
+    emptyFiltered: 'இந்தக் காலத்தில் எதுவும் இல்லை',
+    showAllTime: 'எல்லா காலத்தையும் காட்டு',
+    backToFocus: 'இந்தச் செலவுக்குத் திரும்பு',
+    noPlaceTitle: 'வரைபடத்தில் இல்லை',
+    noPlaceBody: 'இவற்றுக்கு இடம் இல்லை. ஒன்றைத் திறந்து அது நடந்த இடத்தைச் சேர்க்கவும்.',
+    noPins: 'இன்னும் இடங்கள் இல்லை',
+    noPinsBody: 'செலவைச் சேமிக்கும்போது இடத்தைச் சேர்த்தால் அது இங்கே வரும்.',
+    mapUnavailable: 'வரைபடத்திற்கு செயலியின் புதிய பதிப்பு தேவை.',
+    focusNoPlace: 'இதற்கு இடம் இல்லை. அந்த நாளின் மற்றவை இதோ.',
+    replay: 'நாளை மீண்டும் இயக்கு',
+    stop: 'நிறுத்து',
+    soFar: 'இதுவரை {amount}',
+    dayTotal: 'நாள் மொத்தம்',
+    entryRow: 'காலவரிசை',
+    entryRowValue: 'இது எங்கே பொருந்துகிறது',
+    seeOnMap: 'என் வரைபடத்தில் பார்',
+    openExpense: 'செலவைத் திறக்கும்',
+    quietFor: { one: '{n} மணி நேரம் கழித்து', other: '{n} மணி நேரம் கழித்து' },
+    noPlaceCount: { one: '{n} க்கு இடம் இல்லை', other: '{n} க்கு இடம் இல்லை' },
+    stops: { one: '{n} இடம்', other: '{n} இடங்கள்' },
+  },
   claims: {
     askToJoinAs: '{name} ஆக சேர அனுமதி கேளுங்கள்',
     needsConfirming: 'குழுவின் நிர்வாகி உறுதி செய்த பிறகே எதுவும் மாறும்.',
@@ -12188,6 +12303,44 @@ const hi: UiStrings = {
     exhausted: 'वह कोड जितनी बार चल सकता था, उतनी बार चल चुका।',
     alreadyRedeemed: 'आप उसे पहले ही इस्तेमाल कर चुके हैं।',
     couldNotRedeem: 'अभी कोड जाँचा नहीं जा सका। थोड़ी देर बाद कोशिश करें।',
+  },
+  timeline: {
+    title: 'आपकी टाइमलाइन',
+    viewTimeline: 'टाइमलाइन',
+    viewMap: 'नक्शा',
+    rangeTitle: 'दिखाएँ',
+    rangeAll: 'पूरा समय',
+    range7: 'पिछले 7 दिन',
+    range30: 'पिछले 30 दिन',
+    range90: 'पिछले 90 दिन',
+    groupTitle: 'कौन सा ग्रुप',
+    allGroups: 'सभी ग्रुप',
+    onlyMine: 'सिर्फ़ मेरे',
+    youLent: 'आपने दिए {amount}',
+    youBorrowed: 'आपने लिए {amount}',
+    addedLater: 'बाद में जोड़ा',
+    empty: 'यहाँ अभी कुछ नहीं',
+    emptyBody: 'आप जो खर्च जोड़ेंगे, वे यहाँ दिन-ब-दिन दिखेंगे।',
+    emptyFiltered: 'इस अवधि में कुछ नहीं',
+    showAllTime: 'पूरा समय दिखाएँ',
+    backToFocus: 'इस खर्च पर वापस',
+    noPlaceTitle: 'नक्शे पर नहीं',
+    noPlaceBody: 'इनकी कोई जगह नहीं है। किसी को खोलकर वह जगह जोड़ें जहाँ यह हुआ।',
+    noPins: 'अभी कोई जगह नहीं',
+    noPinsBody: 'खर्च सहेजते समय जगह जोड़ें, वह यहाँ दिखेगी।',
+    mapUnavailable: 'नक्शे के लिए ऐप का नया संस्करण चाहिए।',
+    focusNoPlace: 'इसकी कोई जगह नहीं है। यह रहा उस दिन का बाक़ी।',
+    replay: 'दिन दोबारा चलाएँ',
+    stop: 'रोकें',
+    soFar: 'अब तक {amount}',
+    dayTotal: 'दिन का कुल',
+    entryRow: 'टाइमलाइन',
+    entryRowValue: 'देखें यह कहाँ आता है',
+    seeOnMap: 'मेरे नक्शे पर देखें',
+    openExpense: 'खर्च खोलता है',
+    quietFor: { one: '{n} घंटे बाद', other: '{n} घंटे बाद' },
+    noPlaceCount: { one: '{n} की कोई जगह नहीं', other: '{n} की कोई जगह नहीं' },
+    stops: { one: '{n} जगह', other: '{n} जगहें' },
   },
   claims: {
     askToJoinAs: '{name} के रूप में शामिल होने की पूछें',
@@ -15558,6 +15711,65 @@ const ar: UiStrings = {
     exhausted: 'استُخدم هذا الرمز بالعدد المسموح به.',
     alreadyRedeemed: 'لقد استخدمته من قبل.',
     couldNotRedeem: 'تعذّر التحقق من الرمز الآن. حاول بعد قليل.',
+  },
+  timeline: {
+    title: 'خطك الزمني',
+    viewTimeline: 'الخط الزمني',
+    viewMap: 'الخريطة',
+    rangeTitle: 'عرض',
+    rangeAll: 'كل الوقت',
+    range7: 'آخر 7 أيام',
+    range30: 'آخر 30 يومًا',
+    range90: 'آخر 90 يومًا',
+    groupTitle: 'أي مجموعة',
+    allGroups: 'كل المجموعات',
+    onlyMine: 'مصروفاتي فقط',
+    youLent: 'أقرضت {amount}',
+    youBorrowed: 'اقترضت {amount}',
+    addedLater: 'أُضيف لاحقًا',
+    empty: 'لا شيء هنا بعد',
+    emptyBody: 'تظهر المصروفات التي تضيفها هنا يومًا بيوم.',
+    emptyFiltered: 'لا شيء في هذه الفترة',
+    showAllTime: 'عرض كل الوقت',
+    backToFocus: 'العودة إلى هذا المصروف',
+    noPlaceTitle: 'ليست على الخريطة',
+    noPlaceBody: 'لا مكان لهذه. افتح أحدها وأضف المكان الذي حدث فيه.',
+    noPins: 'لا أماكن بعد',
+    noPinsBody: 'أضف موقعًا عند حفظ مصروف وسيظهر هنا.',
+    mapUnavailable: 'تحتاج الخريطة إلى أحدث إصدار من التطبيق.',
+    focusNoPlace: 'لا مكان لهذا. إليك بقية ذلك اليوم.',
+    replay: 'أعد تشغيل اليوم',
+    stop: 'إيقاف',
+    soFar: '{amount} حتى الآن',
+    dayTotal: 'إجمالي اليوم',
+    entryRow: 'الخط الزمني',
+    entryRowValue: 'انظر أين يقع',
+    seeOnMap: 'اعرضه على خريطتي',
+    openExpense: 'يفتح المصروف',
+    quietFor: {
+      zero: 'بعد {n} ساعة',
+      one: 'بعد ساعة',
+      two: 'بعد ساعتين',
+      few: 'بعد {n} ساعات',
+      many: 'بعد {n} ساعة',
+      other: 'بعد {n} ساعة',
+    },
+    noPlaceCount: {
+      zero: 'لا مكان لـ {n}',
+      one: 'واحد بلا مكان',
+      two: 'اثنان بلا مكان',
+      few: '{n} بلا مكان',
+      many: '{n} بلا مكان',
+      other: '{n} بلا مكان',
+    },
+    stops: {
+      zero: '{n} محطة',
+      one: 'محطة واحدة',
+      two: 'محطتان',
+      few: '{n} محطات',
+      many: '{n} محطة',
+      other: '{n} محطة',
+    },
   },
   claims: {
     askToJoinAs: 'اطلب الانضمام بصفتك {name}',
