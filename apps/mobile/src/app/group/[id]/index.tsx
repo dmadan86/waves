@@ -93,6 +93,7 @@ import { SettlementProof } from '@/components/SettlementProof';
 import { SyncBanner } from '@/components/SyncBanner';
 import { useSync } from '@/sync';
 import { usePullRefresh } from '@/lib/pullRefresh';
+import { TimelineBody } from '@/components/timeline/TimelineBody';
 import { draftsForGroup } from '@/lib/groupDrafts';
 import { useDialog } from '@/lib/dialog';
 
@@ -100,6 +101,7 @@ enum Tab {
   Expenses = 'expenses',
   Balances = 'balances',
   Activity = 'activity',
+  Timeline = 'timeline',
 }
 
 /**
@@ -1159,7 +1161,7 @@ export default function GroupScreen() {
           nameOf={nameOf}
           onOpenMenu={() => setMenuOpen(true)}
         />
-        {/* The three faces of the page, pinned between the hero and the list.
+        {/* The faces of the page, pinned between the hero and the list.
             It used to ride inside `ListHeaderComponent`, which meant scrolling
             the ledger carried the tab bar off the top of the screen and you had
             to fling back to the beginning to change tab. Fixed here, the tabs
@@ -1203,255 +1205,277 @@ export default function GroupScreen() {
                   <Ionicons name="notifications-outline" size={iconSize.md} color={color} />
                 ),
               },
+              {
+                value: Tab.Timeline,
+                label: t.timeline.viewTimeline,
+                icon: (color) => <Ionicons name="time-outline" size={iconSize.md} color={color} />,
+              },
             ]}
+            // Four faces do not share a phone's width evenly with their words
+            // on one line, so the row scrolls rather than stacking each glyph
+            // over its word.
+            scrollable
           />
         </View>
 
-        <FlashList
-          ref={listRef}
-          data={listData}
-          // Not the tab: switching tabs already hands `data` a different array,
-          // and naming it here only made every mounted cell re-render a second
-          // time for the same switch.
-          //
-          // A Balances row's destination is not in its `data` item — it comes
-          // from who you are in this group and from the ghost merges on the
-          // phone — so those go in here too, or a recycled row keeps whatever
-          // tappability it was drawn with. `myMemberId` arrives a beat after
-          // the members do, and a merge that syncs in mid-scroll only ever adds
-          // a row, so its size is enough to notice one landing.
-          extraData={`${locale}|${ledger.myMemberId ?? ''}|${mergePersonIds.size}|${theme.scheme}`}
-          keyExtractor={(item) => item.key}
-          getItemType={(item) => item.kind}
-          renderItem={renderFeedItem}
-          // Belt-and-suspenders on top of the allocation-light, memoized row:
-          // render well beyond the viewport so a fast fling down a long ledger
-          // never outruns recycling and flashes blank rows (default is 250px,
-          // which a hard fling clears in a frame). ~2500px ≈ three dozen rows
-          // ahead — cheap now that each row barely costs anything to draw, and
-          // 1500 was still being outrun by a hard fling on a long ledger.
-          drawDistance={2500}
-          contentContainerStyle={{
-            paddingHorizontal: theme.spacing.xl,
-            paddingBottom: clearance,
-          }}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={pull.refreshing}
-              onRefresh={pull.onRefresh}
-              tintColor={theme.color.brand}
-            />
-          }
-          ListHeaderComponent={
-            // Alerts, shared receipts and pending settlements — everything that
-            // is about the group rather than about one tab. It scrolls under the
-            // pinned tab bar. The stack used to open on 20pt of top margin plus a
-            // 20pt gap plus each card's own padding, which pushed the first
-            // expense most of a thumb below the tabs on a screen where nothing
-            // was wrong. Now it follows the screen standard: the first card sits
-            // `lg` under the tabs, cards are separate sections `xl` apart, and
-            // the list starts `xl` below the last one. With no cards the header
-            // takes no room at all and the rows start `lg` under the tabs.
-            <View style={{ marginBottom: hasHeaderCards ? theme.spacing.xl : 0 }}>
-              <View style={{ gap: theme.spacing.xl, marginTop: theme.spacing.lg }}>
-                <OverflowMenu
-                  visible={menuOpen}
-                  onClose={() => setMenuOpen(false)}
-                  items={menuItems}
-                />
+        {tab === Tab.Timeline ? (
+          // This group's own timeline: the same list and map as the Timeline
+          // screen, held to this group. It owns its scrolling, so it takes the
+          // list's place rather than riding inside it.
+          <TimelineBody lockedGroupId={groupId} />
+        ) : (
+          <FlashList
+            ref={listRef}
+            data={listData}
+            // Not the tab: switching tabs already hands `data` a different array,
+            // and naming it here only made every mounted cell re-render a second
+            // time for the same switch.
+            //
+            // A Balances row's destination is not in its `data` item — it comes
+            // from who you are in this group and from the ghost merges on the
+            // phone — so those go in here too, or a recycled row keeps whatever
+            // tappability it was drawn with. `myMemberId` arrives a beat after
+            // the members do, and a merge that syncs in mid-scroll only ever adds
+            // a row, so its size is enough to notice one landing.
+            extraData={`${locale}|${ledger.myMemberId ?? ''}|${mergePersonIds.size}|${theme.scheme}`}
+            keyExtractor={(item) => item.key}
+            getItemType={(item) => item.kind}
+            renderItem={renderFeedItem}
+            // Belt-and-suspenders on top of the allocation-light, memoized row:
+            // render well beyond the viewport so a fast fling down a long ledger
+            // never outruns recycling and flashes blank rows (default is 250px,
+            // which a hard fling clears in a frame). ~2500px ≈ three dozen rows
+            // ahead — cheap now that each row barely costs anything to draw, and
+            // 1500 was still being outrun by a hard fling on a long ledger.
+            drawDistance={2500}
+            contentContainerStyle={{
+              paddingHorizontal: theme.spacing.xl,
+              paddingBottom: clearance,
+            }}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={pull.refreshing}
+                onRefresh={pull.onRefresh}
+                tintColor={theme.color.brand}
+              />
+            }
+            ListHeaderComponent={
+              // Alerts, shared receipts and pending settlements — everything that
+              // is about the group rather than about one tab. It scrolls under the
+              // pinned tab bar. The stack used to open on 20pt of top margin plus a
+              // 20pt gap plus each card's own padding, which pushed the first
+              // expense most of a thumb below the tabs on a screen where nothing
+              // was wrong. Now it follows the screen standard: the first card sits
+              // `lg` under the tabs, cards are separate sections `xl` apart, and
+              // the list starts `xl` below the last one. With no cards the header
+              // takes no room at all and the rows start `lg` under the tabs.
+              <View style={{ marginBottom: hasHeaderCards ? theme.spacing.xl : 0 }}>
+                <View style={{ gap: theme.spacing.xl, marginTop: theme.spacing.lg }}>
+                  <OverflowMenu
+                    visible={menuOpen}
+                    onClose={() => setMenuOpen(false)}
+                    items={menuItems}
+                  />
 
-                {/* Only the banners that need a decision survive inline — they
+                  {/* Only the banners that need a decision survive inline — they
               carry the retry / discard buttons the header glyph cannot. Offline,
               queued and in-flight now read from the glyph in the header,
               matching the dashboard. */}
-                {stalledHere ? <SyncBanner groupId={groupId} /> : null}
+                  {stalledHere ? <SyncBanner groupId={groupId} /> : null}
 
-                {/* Drafts kept for this group — money caught but not an expense
+                  {/* Drafts kept for this group — money caught but not an expense
               yet, usually waiting on a rate. Above everything else on purpose:
               the only thing a draft needs is somebody to come back and finish
               it, and nobody comes back to a row below a month of expenses. */}
-                <GroupDrafts groupId={groupId} captures={groupDrafts} />
+                  <GroupDrafts groupId={groupId} captures={groupDrafts} />
 
-                {/* The balance cross-check (ADR-004) used to raise a red card
+                  {/* The balance cross-check (ADR-004) used to raise a red card
             here. It no longer says anything: the ledger below is the source of
             truth, the disagreement was always this device holding a stale
             snapshot of the server's copy, and there was nothing the reader
             could do about it but doubt their own money. `useGroupLedger` now
             refetches and reports it to us instead. */}
 
-                {/* The one-time nudge to plan a fresh trip. Dates and budget were
+                  {/* The one-time nudge to plan a fresh trip. Dates and budget were
             moved off the create screen to keep it short; this is where a trip
             gets offered them, once, on its own group. Later dismisses it for
             this visit; the param is gone next time regardless. */}
-                {showTripNudge ? (
-                  <Card style={{ gap: theme.spacing.md }}>
-                    <Row style={{ gap: theme.spacing.sm, alignItems: 'center' }}>
-                      <Ionicons name="airplane" size={iconSize.md} color={theme.color.brand} />
-                      <Text variant="subheading" style={{ flex: 1 }}>
-                        {t.extras.tripWelcomeTitle}
-                      </Text>
-                    </Row>
-                    <Text variant="caption" tone="muted">
-                      {t.extras.tripWelcomeBody}
-                    </Text>
-                    <Row style={{ gap: theme.spacing.sm, flexWrap: 'wrap' }}>
-                      <Button
-                        label={t.extras.tripWelcomeAddDates}
-                        size="sm"
-                        onPress={() => router.push(`/group/${groupId}/settings`)}
-                      />
-                      {PLAN_HIDDEN ? null : (
-                        <Button
-                          label={t.extras.tripWelcomeSetBudget}
-                          size="sm"
-                          variant="secondary"
-                          onPress={() => router.push(`/group/${groupId}/plan`)}
-                        />
-                      )}
-                      <Button
-                        label={t.extras.tripWelcomeLater}
-                        size="sm"
-                        variant="ghost"
-                        onPress={() => setTripNudgeDismissed(true)}
-                      />
-                    </Row>
-                  </Card>
-                ) : null}
-
-                {/* A bill somebody at this table scanned and shared. Without this the
-            second person has no way to reach it, and the claims CRDT is
-            plumbing with no tap. */}
-                {(openReceipts.data ?? []).map((receipt) => (
-                  <Pressable
-                    key={receipt.id}
-                    accessibilityRole="button"
-                    accessibilityLabel={fill(t.expense.splitBillA11y, {
-                      merchant: receipt.parsed?.merchant ?? t.expense.aBill,
-                    })}
-                    onPress={() => router.push(`/group/${groupId}/itemize?receipt=${receipt.id}`)}
-                  >
-                    <Card style={{ gap: theme.spacing.sm }}>
-                      <Row style={{ gap: theme.spacing.sm }}>
-                        <Ionicons
-                          name="receipt-outline"
-                          size={iconSize.md}
-                          color={theme.color.brand}
-                        />
-                        <Text variant="subheading" style={{ flex: 1 }} numberOfLines={1}>
-                          {receipt.parsed?.merchant ?? t.expense.aBill}
+                  {showTripNudge ? (
+                    <Card style={{ gap: theme.spacing.md }}>
+                      <Row style={{ gap: theme.spacing.sm, alignItems: 'center' }}>
+                        <Ionicons name="airplane" size={iconSize.md} color={theme.color.brand} />
+                        <Text variant="subheading" style={{ flex: 1 }}>
+                          {t.extras.tripWelcomeTitle}
                         </Text>
-                        <Ionicons
-                          name={directionalIcon('chevron-forward')}
-                          size={iconSize.md}
-                          color={theme.color.textFaint}
-                        />
                       </Row>
                       <Text variant="caption" tone="muted">
-                        {receipt.claimed === 0
-                          ? plural(locale, receipt.items, t.expense.receiptClaimedNone)
-                          : fill(t.expense.receiptClaimedSome, {
-                              claimed: receipt.claimed,
-                              items: receipt.items,
-                            })}
+                        {t.extras.tripWelcomeBody}
                       </Text>
+                      <Row style={{ gap: theme.spacing.sm, flexWrap: 'wrap' }}>
+                        <Button
+                          label={t.extras.tripWelcomeAddDates}
+                          size="sm"
+                          onPress={() => router.push(`/group/${groupId}/settings`)}
+                        />
+                        {PLAN_HIDDEN ? null : (
+                          <Button
+                            label={t.extras.tripWelcomeSetBudget}
+                            size="sm"
+                            variant="secondary"
+                            onPress={() => router.push(`/group/${groupId}/plan`)}
+                          />
+                        )}
+                        <Button
+                          label={t.extras.tripWelcomeLater}
+                          size="sm"
+                          variant="ghost"
+                          onPress={() => setTripNudgeDismissed(true)}
+                        />
+                      </Row>
                     </Card>
-                  </Pressable>
-                ))}
+                  ) : null}
 
-                {/* The "they paid you" claims now ride the hero deck above as
+                  {/* A bill somebody at this table scanned and shared. Without this the
+            second person has no way to reach it, and the claims CRDT is
+            plumbing with no tap. */}
+                  {(openReceipts.data ?? []).map((receipt) => (
+                    <Pressable
+                      key={receipt.id}
+                      accessibilityRole="button"
+                      accessibilityLabel={fill(t.expense.splitBillA11y, {
+                        merchant: receipt.parsed?.merchant ?? t.expense.aBill,
+                      })}
+                      onPress={() => router.push(`/group/${groupId}/itemize?receipt=${receipt.id}`)}
+                    >
+                      <Card style={{ gap: theme.spacing.sm }}>
+                        <Row style={{ gap: theme.spacing.sm }}>
+                          <Ionicons
+                            name="receipt-outline"
+                            size={iconSize.md}
+                            color={theme.color.brand}
+                          />
+                          <Text variant="subheading" style={{ flex: 1 }} numberOfLines={1}>
+                            {receipt.parsed?.merchant ?? t.expense.aBill}
+                          </Text>
+                          <Ionicons
+                            name={directionalIcon('chevron-forward')}
+                            size={iconSize.md}
+                            color={theme.color.textFaint}
+                          />
+                        </Row>
+                        <Text variant="caption" tone="muted">
+                          {receipt.claimed === 0
+                            ? plural(locale, receipt.items, t.expense.receiptClaimedNone)
+                            : fill(t.expense.receiptClaimedSome, {
+                                claimed: receipt.claimed,
+                                items: receipt.items,
+                              })}
+                        </Text>
+                      </Card>
+                    </Pressable>
+                  ))}
+
+                  {/* The "they paid you" claims now ride the hero deck above as
                   swipeable slides (confirm / reject up there), so the body no
                   longer carries a full-page confirmation card. */}
 
-                {/* My own recorded payments, waiting on the payee. The place to
+                  {/* My own recorded payments, waiting on the payee. The place to
                   back the claim with a screenshot, and an acknowledgement that
                   it is in flight. */}
-                {pendingByMe.map((settlement) => (
-                  <Card key={settlement.id} style={{ gap: theme.spacing.md }}>
-                    <Text variant="subheading">
-                      {fill(t.proof.youPaid, { name: nameOf(settlement.to_member_id) })}
-                    </Text>
-                    <Row style={{ gap: theme.spacing.sm }}>
-                      <MoneyText
-                        amount={BigInt(settlement.amount)}
-                        currency={settlement.currency}
-                        locale={locale}
-                        variant="title"
-                      />
-                      {settlement.pending ? <PendingMark size={16} /> : null}
-                    </Row>
-                    <Text variant="micro" tone="muted">
-                      {fill(t.proof.awaiting, { name: nameOf(settlement.to_member_id) })}
-                    </Text>
-                    {/* Manage only once the settlement has reached the server:
+                  {pendingByMe.map((settlement) => (
+                    <Card key={settlement.id} style={{ gap: theme.spacing.md }}>
+                      <Text variant="subheading">
+                        {fill(t.proof.youPaid, { name: nameOf(settlement.to_member_id) })}
+                      </Text>
+                      <Row style={{ gap: theme.spacing.sm }}>
+                        <MoneyText
+                          amount={BigInt(settlement.amount)}
+                          currency={settlement.currency}
+                          locale={locale}
+                          variant="title"
+                        />
+                        {settlement.pending ? <PendingMark size={16} /> : null}
+                      </Row>
+                      <Text variant="micro" tone="muted">
+                        {fill(t.proof.awaiting, { name: nameOf(settlement.to_member_id) })}
+                      </Text>
+                      {/* Manage only once the settlement has reached the server:
                       the attach/remove RPCs check party against a real row, and
                       `pending` means it has not synced yet. Until then the card
                       still shows "waiting", just without the attach control. */}
-                    <SettlementProof
-                      groupId={groupId}
-                      settlementId={settlement.id}
-                      canManage={!settlement.pending}
-                    />
-                    {/* Withdraw a payment recorded by mistake or twice. Queued
+                      <SettlementProof
+                        groupId={groupId}
+                        settlementId={settlement.id}
+                        canManage={!settlement.pending}
+                      />
+                      {/* Withdraw a payment recorded by mistake or twice. Queued
                         like every other mutation, so even a still-syncing claim
                         cancels cleanly — the create runs before the cancel in
                         the ordered queue. */}
-                    <Button
-                      label={t.group.cancelSettlement}
-                      variant="secondary"
-                      fullWidth
-                      onPress={() =>
-                        void confirm({
-                          title: t.group.cancelTitle,
-                          body: fill(t.group.cancelBody, { name: nameOf(settlement.to_member_id) }),
-                          confirmLabel: t.group.cancelConfirm,
-                          cancelLabel: t.group.keep,
-                          tone: 'danger',
-                        }).then((ok) => {
-                          if (ok) cancelSettlement.mutate(settlement.id);
-                        })
-                      }
-                      disabled={cancelSettlement.isPending}
-                    />
-                  </Card>
-                ))}
+                      <Button
+                        label={t.group.cancelSettlement}
+                        variant="secondary"
+                        fullWidth
+                        onPress={() =>
+                          void confirm({
+                            title: t.group.cancelTitle,
+                            body: fill(t.group.cancelBody, {
+                              name: nameOf(settlement.to_member_id),
+                            }),
+                            confirmLabel: t.group.cancelConfirm,
+                            cancelLabel: t.group.keep,
+                            tone: 'danger',
+                          }).then((ok) => {
+                            if (ok) cancelSettlement.mutate(settlement.id);
+                          })
+                        }
+                        disabled={cancelSettlement.isPending}
+                      />
+                    </Card>
+                  ))}
+                </View>
               </View>
-            </View>
-          }
-          ListEmptyComponent={
-            tab === Tab.Expenses ? (
-              // An empty list that only describes itself leaves the one thing to
-              // do on the screen to a floating button in the corner. The way out
-              // of an empty state belongs inside it.
-              <EmptyState
-                title={t.nothingYet}
-                body={t.nothingYetBody}
-                icon={
-                  <Ionicons name="receipt-outline" size={iconSize.xxl} color={theme.color.brand} />
-                }
-                action={
-                  <Button
-                    label={t.addExpense}
-                    onPress={() => router.push(`/group/${groupId}/add-expense`)}
-                    icon={<Ionicons name="add" size={iconSize.md} color={theme.color.onBrand} />}
-                  />
-                }
-              />
-            ) : tab === Tab.Activity ? (
-              <EmptyState
-                title={t.nothingYet}
-                body={t.group.activityEmptyBody}
-                icon={
-                  <Ionicons
-                    name="notifications-outline"
-                    size={iconSize.xxl}
-                    color={theme.color.brand}
-                  />
-                }
-              />
-            ) : null
-          }
-        />
+            }
+            ListEmptyComponent={
+              tab === Tab.Expenses ? (
+                // An empty list that only describes itself leaves the one thing to
+                // do on the screen to a floating button in the corner. The way out
+                // of an empty state belongs inside it.
+                <EmptyState
+                  title={t.nothingYet}
+                  body={t.nothingYetBody}
+                  icon={
+                    <Ionicons
+                      name="receipt-outline"
+                      size={iconSize.xxl}
+                      color={theme.color.brand}
+                    />
+                  }
+                  action={
+                    <Button
+                      label={t.addExpense}
+                      onPress={() => router.push(`/group/${groupId}/add-expense`)}
+                      icon={<Ionicons name="add" size={iconSize.md} color={theme.color.onBrand} />}
+                    />
+                  }
+                />
+              ) : tab === Tab.Activity ? (
+                <EmptyState
+                  title={t.nothingYet}
+                  body={t.group.activityEmptyBody}
+                  icon={
+                    <Ionicons
+                      name="notifications-outline"
+                      size={iconSize.xxl}
+                      color={theme.color.brand}
+                    />
+                  }
+                />
+              ) : null
+            }
+          />
+        )}
 
         {/* No FAB: adding an expense now lives on the hero's white pill, the
             same as the dashboard, so a floating button would be a second door
