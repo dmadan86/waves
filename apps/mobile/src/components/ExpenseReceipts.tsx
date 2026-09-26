@@ -13,7 +13,7 @@
  * orphaned; new images are all attachment rows.
  */
 
-import { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -278,7 +278,10 @@ function Thumb({
 /** Imperative handle so a parent (the expense-detail hero) can own the add
  *  button while this component keeps the add flow and the gallery. */
 export interface ExpenseReceiptsHandle {
+  /** Straight to the camera. */
   openAdd: () => void;
+  /** Straight to the photo library. */
+  openPick: () => void;
 }
 
 interface ExpenseReceiptsProps {
@@ -578,31 +581,39 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
       commitAdd(asset, 'group');
     };
 
-    // Camera or library: two ways in and a way out, so a sheet at the thumb
-    // rather than a card in the middle of the screen.
-    const startAdd = () => {
-      void choose({
-        title: t.receipts.add,
-        options: [
-          { id: 'scan', label: t.receipts.scan },
-          { id: 'pick', label: t.receipts.choosePhoto },
-        ],
-      }).then((picked) => {
-        if (picked === 'scan') void captureReceiptAsset().then(add);
-        else if (picked === 'pick') void pickReceiptAsset().then(add);
-      });
+    // One camera or library at a time. The sheet that used to come first also
+    // absorbed a second tap; without it, a quick double tap opened the scanner
+    // twice.
+    const opening = useRef(false);
+    const openOnce = (open: () => Promise<PickedAsset | null>) => {
+      if (opening.current) return;
+      opening.current = true;
+      void open()
+        .then(add)
+        .finally(() => {
+          opening.current = false;
+        });
     };
 
-    // The add affordance's tap: locked → upsell, otherwise the scan/choose sheet.
+    // A tap goes straight to the camera. It used to open a sheet asking "Scan
+    // or Choose photo" first, and nearly every answer was Scan: a bill is in
+    // somebody's hand when they tap +. The photo library is a press-and-hold on
+    // the same control rather than a second question every time, since the
+    // Android scanner offers no gallery of its own.
     const handleAddPress = () => {
       if (capLocked) showCapUpsell();
-      else startAdd();
+      else openOnce(captureReceiptAsset);
+    };
+
+    const handleAddLongPress = () => {
+      if (capLocked) showCapUpsell();
+      else openOnce(pickReceiptAsset);
     };
 
     // Hand the add action up to a parent that renders its own button (the detail
     // hero). Defined here, after handleAddPress and before the sole early return
     // below, so the hook runs on every render and reads the current handler.
-    useImperativeHandle(ref, () => ({ openAdd: handleAddPress }));
+    useImperativeHandle(ref, () => ({ openAdd: handleAddPress, openPick: handleAddLongPress }));
 
     // Nothing to show and cannot add here → render nothing, so a non-party's bill
     // is not cluttered with an empty section. `externalAdd` also counts as "cannot
@@ -776,9 +787,11 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
           // now lines up with.
           <Pressable
             onPress={handleAddPress}
+            onLongPress={handleAddLongPress}
             disabled={preparing !== null}
             accessibilityRole="button"
             accessibilityLabel={t.receipts.add}
+            accessibilityHint={t.receipts.addHint}
             // Tall enough to be a comfortable target (48, the Android minimum)
             // and no taller. It used to pad itself `sm` above and below, which
             // widened the gaps around it past the screen's gaps between
@@ -814,7 +827,7 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text variant="subheading">{t.receipts.add}</Text>
               <Text variant="micro" tone="muted">
-                {`${t.receipts.scan} · ${t.receipts.choosePhoto}`}
+                {t.receipts.addHint}
               </Text>
             </View>
             <Ionicons name="add" size={iconSize.lg} color={theme.color.brand} />
@@ -828,9 +841,11 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
             {canManage && !externalAdd ? (
               <Pressable
                 onPress={handleAddPress}
+                onLongPress={handleAddLongPress}
                 disabled={preparing !== null}
                 accessibilityRole="button"
                 accessibilityLabel={t.receipts.add}
+                accessibilityHint={t.receipts.addHint}
                 style={{
                   width: THUMB,
                   height: THUMB,

@@ -456,6 +456,8 @@ export interface UiStrings {
     /** Add-source choices. */
     scan: string;
     choosePhoto: string;
+    /** Under the add-receipt row: tap is the camera, hold is the library. */
+    addHint: string;
     /** Lock-badge label on a private image. */
     privateTag: string;
     remove: string;
@@ -3927,6 +3929,7 @@ const en: UiStrings = {
     add: 'Add receipt',
     scan: 'Scan',
     choosePhoto: 'Choose photo',
+    addHint: 'Tap to scan · Hold to choose a photo',
     privateTag: 'Private',
     remove: 'Remove',
     removeConfirm: 'Remove this receipt? The change is recorded.',
@@ -6862,6 +6865,7 @@ const ta: UiStrings = {
     add: 'ரசீது சேர்',
     scan: 'ஸ்கேன்',
     choosePhoto: 'படத்தைத் தேர்ந்தெடு',
+    addHint: 'ஸ்கேன் செய்யத் தட்டவும் · படத்தைத் தேர்ந்தெடுக்க அழுத்திப் பிடிக்கவும்',
     privateTag: 'தனிப்பட்டது',
     remove: 'அகற்று',
     removeConfirm: 'இந்த ரசீதை அகற்றவா? இந்த மாற்றம் பதிவு செய்யப்படும்.',
@@ -9919,6 +9923,7 @@ const hi: UiStrings = {
     add: 'रसीद जोड़ें',
     scan: 'स्कैन',
     choosePhoto: 'फ़ोटो चुनें',
+    addHint: 'स्कैन करने के लिए टैप करें · फ़ोटो चुनने के लिए दबाकर रखें',
     privateTag: 'निजी',
     remove: 'हटाएँ',
     removeConfirm: 'यह रसीद हटाएँ? यह बदलाव दर्ज किया जाएगा।',
@@ -12876,6 +12881,7 @@ const ar: UiStrings = {
     add: 'إضافة إيصال',
     scan: 'مسح ضوئي',
     choosePhoto: 'اختيار صورة',
+    addHint: 'انقر للمسح · اضغط مطولًا لاختيار صورة',
     privateTag: 'خاص',
     remove: 'إزالة',
     removeConfirm: 'إزالة هذا الإيصال؟ سيُسجَّل هذا التغيير.',
