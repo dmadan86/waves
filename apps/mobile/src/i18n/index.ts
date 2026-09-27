@@ -1513,6 +1513,7 @@ export interface UiStrings {
     tripCurrency: string;
     addCurrency: string;
     simplifySub: string;
+    suggested: string;
   };
   /** The Save an expense screen's row subtitles, header line and receipt / location tiles. */
   captureForm: {
@@ -4880,7 +4881,7 @@ const en: UiStrings = {
   },
   newGroupForm: {
     title: 'Create a new group',
-    headerSub: 'Start a group and share expenses',
+    headerSub: 'Start a group and share expenses easily with your friends',
     nameExample: 'e.g. Bali Trip',
     whatFor: 'What is this group for?',
     descriptionExample: 'e.g. Friends trip, Weekend getaway',
@@ -4895,6 +4896,7 @@ const en: UiStrings = {
     tripCurrency: 'Trip currency',
     addCurrency: 'Add a currency',
     simplifySub: 'Automatically minimize the number of payments',
+    suggested: 'Suggested',
   },
   captureForm: {
     headerSub: 'Record your spending in a few seconds',
@@ -7949,7 +7951,7 @@ const ta: UiStrings = {
   },
   newGroupForm: {
     title: 'புதிய குழுவை உருவாக்கு',
-    headerSub: 'ஒரு குழுவைத் தொடங்கி செலவுகளைப் பகிருங்கள்',
+    headerSub: 'ஒரு குழுவைத் தொடங்கி நண்பர்களுடன் எளிதாகச் செலவுகளைப் பகிருங்கள்',
     nameExample: 'எ.கா. கோவா பயணம்',
     whatFor: 'இந்தக் குழு எதற்காக?',
     descriptionExample: 'எ.கா. நண்பர்கள் பயணம், வார இறுதி சுற்றுலா',
@@ -7964,6 +7966,7 @@ const ta: UiStrings = {
     tripCurrency: 'பயண நாணயம்',
     addCurrency: 'நாணயம் சேர்',
     simplifySub: 'செலுத்துதல்களின் எண்ணிக்கையைத் தானாகக் குறைக்கும்',
+    suggested: 'பரிந்துரைக்கப்பட்டவை',
   },
   captureForm: {
     headerSub: 'சில நொடிகளில் உங்கள் செலவைப் பதிவு செய்யுங்கள்',
@@ -11090,7 +11093,7 @@ const hi: UiStrings = {
   },
   newGroupForm: {
     title: 'नया समूह बनाएँ',
-    headerSub: 'समूह बनाएँ और खर्च बाँटें',
+    headerSub: 'समूह बनाएँ और दोस्तों के साथ आसानी से खर्च बाँटें',
     nameExample: 'जैसे गोवा ट्रिप',
     whatFor: 'यह समूह किसलिए है?',
     descriptionExample: 'जैसे दोस्तों की ट्रिप, वीकेंड घूमना',
@@ -11105,6 +11108,7 @@ const hi: UiStrings = {
     tripCurrency: 'ट्रिप मुद्रा',
     addCurrency: 'मुद्रा जोड़ें',
     simplifySub: 'भुगतानों की संख्या अपने आप कम करता है',
+    suggested: 'सुझाए गए',
   },
   captureForm: {
     headerSub: 'कुछ ही सेकंड में अपना खर्च दर्ज करें',
@@ -14213,7 +14217,7 @@ const ar: UiStrings = {
   },
   newGroupForm: {
     title: 'إنشاء مجموعة جديدة',
-    headerSub: 'ابدأ مجموعة وتقاسم المصروفات',
+    headerSub: 'ابدأ مجموعة وتقاسم المصروفات بسهولة مع أصدقائك',
     nameExample: 'مثال: رحلة بالي',
     whatFor: 'ما الغرض من هذه المجموعة؟',
     descriptionExample: 'مثال: رحلة أصدقاء، عطلة نهاية الأسبوع',
@@ -14228,6 +14232,7 @@ const ar: UiStrings = {
     tripCurrency: 'عملة الرحلة',
     addCurrency: 'إضافة عملة',
     simplifySub: 'تقليل عدد الدفعات تلقائيًا',
+    suggested: 'مقترحون',
   },
   captureForm: {
     headerSub: 'سجّل مصروفك في ثوانٍ',

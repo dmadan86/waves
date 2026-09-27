@@ -25,7 +25,6 @@ import {
   AmountField,
   Callout,
   directionalIcon,
-  IconButton,
   iconSize,
   Row,
   Screen,
@@ -47,7 +46,9 @@ import { TripDates, type TripDatesValue } from '@/components/TripDates';
 import { TripRatesCard, type TripRateStore } from '@/components/TripRates';
 import { type TripRateRow } from '@/lib/tripRates';
 import { requestContacts } from '@/lib/contactPickerBridge';
-import { useCaptures, useCreateGroup, useGroup } from '@/data/hooks';
+import { useCaptures, useCreateGroup, useGroup, useGroups } from '@/data/hooks';
+import { useKnownContacts } from '@/data/knownContacts';
+import { suggestPeople } from '@/lib/addFromAnotherGroup';
 import { assignCaptureHref } from '@/lib/captureAssign';
 import { useAuth, useViewerId } from '@/lib/auth';
 import { useDefaultCurrency } from '@/lib/currency';
@@ -183,6 +184,29 @@ export default function NewGroupScreen() {
   // whatever the phone had. Same shape either way, so the create loop treats
   // them alike.
   const [ghosts, setGhosts] = useState<PickedContact[]>([]);
+  // People from your other groups to offer on the Suggested row: the
+  // placeholders this screen can add, the ones in the most groups first, and
+  // nobody already picked above.
+  const allGroups = useGroups().data;
+  const { membersByGroup } = useKnownContacts();
+  const suggestions = useMemo(() => {
+    const sources = (allGroups ?? []).map((group) => {
+      const raw = membersByGroup.get(group.id) ?? [];
+      return {
+        groupId: group.id,
+        groupLabel: group.name ?? '',
+        members: raw.map((member) => ({
+          memberId: member.id,
+          profileId: member.profile_id,
+          name: displayName(member, viewerId),
+          email: member.invite_email ?? null,
+          phone: member.invite_phone ?? null,
+          leftAt: member.left_at,
+        })),
+      };
+    });
+    return suggestPeople(sources, viewerId, ghosts);
+  }, [allGroups, membersByGroup, viewerId, ghosts]);
   const [error, setError] = useState<string | null>(null);
   // Not asked on this screen — taken from the account country (which the user
   // sets on "Your account"), falling back to the phone's region. Decides the
@@ -700,9 +724,7 @@ export default function NewGroupScreen() {
                   height: 38,
                   paddingHorizontal: 12,
                   borderRadius: 19,
-                  borderWidth: 1.5,
-                  borderColor: accent(theme),
-                  backgroundColor: theme.scheme === 'dark' ? 'transparent' : '#F8F6FF',
+                  backgroundColor: theme.color.brandSoft,
                   opacity: pressed ? 0.6 : 1,
                 })}
               >
@@ -757,6 +779,37 @@ export default function NewGroupScreen() {
               ) : null}
             </Row>
 
+            {/* People from your other groups, one tap to add. Only placeholders
+                are offered: a real account joins a group by invite. */}
+            {suggestions.length > 0 ? (
+              <View style={{ gap: theme.spacing.sm }}>
+                <Text variant="caption" tone="muted">
+                  {t.newGroupForm.suggested}
+                </Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  keyboardShouldPersistTaps="handled"
+                  contentContainerStyle={{ gap: theme.spacing.md }}
+                >
+                  {suggestions.map((person, index) => (
+                    <SuggestedPersonButton
+                      key={person.key}
+                      name={person.name}
+                      index={index}
+                      label={fill(t.voice.addNamed, { name: person.name })}
+                      onPress={() =>
+                        setGhosts((current) => [
+                          ...current,
+                          { name: person.name, email: person.email, phone: person.phone },
+                        ])
+                      }
+                    />
+                  ))}
+                </ScrollView>
+              </View>
+            ) : null}
+
             {ghosts.length > 0 ? (
               <Row style={{ flexWrap: 'wrap', gap: theme.spacing.sm }}>
                 {ghosts.map((ghost, index) => (
@@ -778,11 +831,22 @@ export default function NewGroupScreen() {
               nearest of the five. */}
           <FormCard style={{ gap: theme.spacing.md }}>
             <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
-              <Ionicons
-                name="airplane"
-                size={28}
-                color={theme.scheme === 'dark' ? theme.color.text : '#1E2A6E'}
-              />
+              <View
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 22,
+                  backgroundColor: theme.color.brandSoft,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Ionicons
+                  name="grid-outline"
+                  size={22}
+                  color={theme.scheme === 'dark' ? theme.color.text : '#1E2A6E'}
+                />
+              </View>
               <View style={{ flex: 1 }}>
                 <Text style={{ fontSize: 19, lineHeight: 24, fontWeight: '600' }}>
                   {t.newGroupForm.groupType}
@@ -1036,12 +1100,12 @@ function NewGroupHeader({ title, subtitle }: { title: string; subtitle: string }
   const { t } = useStrings();
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
-  // The scene takes the right half, so the title's words sit on clear sky.
-  const artWidth = Math.round(screenWidth * 0.5);
+  // The scene fills the right of the header; the title runs over its open sky.
+  const artWidth = Math.round(screenWidth * 0.7);
   const dark = theme.scheme === 'dark';
   return (
     <LinearWash
-      colors={dark ? ['#1B2440', theme.color.bg] : ['#DDF0FF', '#F5F4FF']}
+      colors={dark ? ['#1B2440', theme.color.bg] : ['#BFE3FF', '#E3F2FF', '#F5F4FF']}
       style={{
         paddingTop: insets.top + theme.spacing.sm,
         paddingHorizontal: theme.spacing.lg,
@@ -1057,42 +1121,62 @@ function NewGroupHeader({ title, subtitle }: { title: string; subtitle: string }
         resizeMode="contain"
         style={{
           position: 'absolute',
-          end: 0,
-          bottom: HEADER_OVERLAP - 4,
+          end: -6,
+          bottom: HEADER_OVERLAP - 6,
           // Measured sizes, not a percentage and an aspect ratio: on Android an
           // absolutely placed image sized that way lays out at zero height.
           width: artWidth,
           height: artWidth / HEADER_ART_RATIO,
         }}
       />
-      <IconButton label={t.common.close} onPress={() => router.back()}>
+      {/* Close on a white disc, so it holds its own on the scene. */}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t.common.close}
+        onPress={() => router.back()}
+        hitSlop={6}
+        style={({ pressed }) => ({
+          width: 44,
+          height: 44,
+          borderRadius: 22,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: theme.color.surface,
+          shadowColor: '#1B1340',
+          shadowOpacity: 0.12,
+          shadowRadius: 6,
+          shadowOffset: { width: 0, height: 2 },
+          elevation: 3,
+          opacity: pressed ? 0.7 : 1,
+        })}
+      >
         <Ionicons name="close" size={24} color={theme.color.text} />
-      </IconButton>
+      </Pressable>
+      {/* Two lines — "Create / a new group" — at 32pt, down the left. */}
       <Text
-        numberOfLines={1}
-        adjustsFontSizeToFit
-        minimumFontScale={0.8}
+        numberOfLines={2}
         style={{
-          fontSize: 28,
-          lineHeight: 34,
-          fontWeight: '700',
-          marginTop: 4,
-          maxWidth: '62%',
+          fontSize: 32,
+          lineHeight: 37,
+          fontWeight: '800',
+          marginTop: theme.spacing.md,
+          maxWidth: '58%',
           zIndex: 1,
+          color: theme.color.text,
         }}
       >
         {title}
       </Text>
       <Text
-        numberOfLines={1}
-        adjustsFontSizeToFit
-        minimumFontScale={0.8}
+        numberOfLines={2}
         style={{
-          fontSize: 16,
-          lineHeight: 22,
+          fontSize: 15,
+          lineHeight: 20,
           fontWeight: '500',
-          color: theme.color.textMuted,
+          color: theme.color.text,
+          opacity: 0.75,
           maxWidth: '62%',
+          marginTop: 4,
           zIndex: 1,
         }}
       >
@@ -1356,3 +1440,70 @@ function CreateButton({
 }
 
 const CREATE_WASH = ['#3D63E8', '#7041E8'] as const;
+
+/** A suggested person: an initial in a tinted disc with a small + badge, the
+ *  name under it. One tap adds them. */
+function SuggestedPersonButton({
+  name,
+  index,
+  label,
+  onPress,
+}: {
+  name: string;
+  index: number;
+  label: string;
+  onPress: () => void;
+}) {
+  const theme = useTheme();
+  const tint = theme.tint[SUGGEST_TINTS[index % SUGGEST_TINTS.length] ?? 'lilac'];
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        width: 60,
+        alignItems: 'center',
+        gap: 4,
+        opacity: pressed ? 0.6 : 1,
+      })}
+    >
+      <View
+        style={{
+          width: 52,
+          height: 52,
+          borderRadius: 26,
+          backgroundColor: tint.bg,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Text style={{ fontSize: 20, fontWeight: '700', color: tint.ink }}>
+          {name.trim().charAt(0).toUpperCase()}
+        </Text>
+        <View
+          style={{
+            position: 'absolute',
+            end: -2,
+            bottom: -2,
+            width: 20,
+            height: 20,
+            borderRadius: 10,
+            backgroundColor: accent(theme),
+            borderWidth: 2,
+            borderColor: theme.color.surface,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Ionicons name="add" size={12} color="#FFFFFF" />
+        </View>
+      </View>
+      <Text numberOfLines={1} style={{ fontSize: 13, color: theme.color.text }}>
+        {name}
+      </Text>
+    </Pressable>
+  );
+}
+
+const SUGGEST_TINTS = ['lilac', 'peach', 'mint', 'sky', 'pink', 'coral'] as const;
