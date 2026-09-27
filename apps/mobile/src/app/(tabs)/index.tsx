@@ -418,9 +418,8 @@ export default function HomeScreen() {
             borderBottomRightRadius: theme.radius.xxl,
           }}
         >
-          {/* Face, "Hi, {name} 👋", the time of day and a line on what the app
-              is for; then the glyphs that lead somewhere: sync, activity, the
-              menu. */}
+          {/* Face, "Hi, {name} 👋" over the time of day; then the glyphs that
+              lead somewhere: sync, activity, the menu. */}
           <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
             <HeroAvatar
               name={displayName}
@@ -440,9 +439,6 @@ export default function HomeScreen() {
               </Text>
               <Text variant="body" tone="onBrand" numberOfLines={1} style={{ opacity: 0.9 }}>
                 {`${t.dashHero[greetKey]}!`}
-              </Text>
-              <Text variant="caption" tone="onBrand" numberOfLines={1} style={{ opacity: 0.8 }}>
-                {t.homeDash.greetingSub}
               </Text>
             </Pressable>
             <SyncStatusIcon onBrand />
