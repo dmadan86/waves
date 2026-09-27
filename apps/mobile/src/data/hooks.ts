@@ -112,7 +112,8 @@ import { parseAnnotations, type Annotations } from '@/lib/annotations';
 import { sanitizeCommentMarkdown } from '@waves/core';
 import type { VoiceAccess } from '@/lib/voiceAccess';
 import { activityTime } from '@/lib/groupActivityOrder';
-import { recentActivity, type RecentActivityRow } from './recentActivity';
+import { previousMonthPrefix } from '@/lib/homeDashboard';
+import { newestActivityFromOthers, recentActivity, type RecentActivityRow } from './recentActivity';
 import { groupLabel, isGhost, isViewer, SettlementStatus } from './types';
 import { timeOfDay, type TimelineEntry } from '@/lib/timeline';
 import type {
@@ -517,6 +518,10 @@ export function useHomeSummary(profileId: string | null) {
     // `snapshot.date` comes from `expense_date`, a local date, so a UTC prefix
     // is the wrong month for the hours either side of the 1st.
     const monthByCurrency = new Map<string, bigint>();
+    // The same sum for the calendar month before, so the dashboard can say
+    // whether this month's spend is running ahead of last month's or behind it.
+    const lastMonthPrefix = previousMonthPrefix(monthPrefix);
+    const lastMonthByCurrency = new Map<string, bigint>();
     // Groups that already have a materialised ledger (any expense or settlement).
     // A freshly imported group lands in the mirror a beat before its expenses do,
     // so its balance reads a confident 0 until they arrive; this lets the row mask
@@ -578,17 +583,20 @@ export function useHomeSummary(profileId: string | null) {
         byGroup.set(group.id, net.get(currency)?.get(mine.id) ?? 0n);
         currencyByGroup.set(group.id, currency);
         for (const snapshot of snapshots) {
-          if (snapshot.deletedAt || !snapshot.date.startsWith(monthPrefix)) continue;
+          if (snapshot.deletedAt) continue;
+          const bucket = snapshot.date.startsWith(monthPrefix)
+            ? monthByCurrency
+            : snapshot.date.startsWith(lastMonthPrefix)
+              ? lastMonthByCurrency
+              : null;
+          if (!bucket) continue;
           const myShare = snapshot.shares[mine.id] ?? 0n;
           if (myShare > 0n) {
             // Key by the expense's own currency, not the group default: a USD
             // expense in an INR group holds USD minor units, and bucketing it
             // under INR would render those units labelled as rupees.
             const spendCurrency = snapshot.currency;
-            monthByCurrency.set(
-              spendCurrency,
-              (monthByCurrency.get(spendCurrency) ?? 0n) + myShare,
-            );
+            bucket.set(spendCurrency, (bucket.get(spendCurrency) ?? 0n) + myShare);
           }
         }
       }
@@ -608,7 +616,21 @@ export function useHomeSummary(profileId: string | null) {
       .map(([currency, amount]) => ({ currency, amount }))
       .sort((a, b) => (b.amount > a.amount ? 1 : b.amount < a.amount ? -1 : 0));
 
-    return { byGroup, membersByGroup, awaiting, totals, monthSpent, withLedger, activityByGroup };
+    const lastMonthSpent = [...lastMonthByCurrency].map(([currency, amount]) => ({
+      currency,
+      amount,
+    }));
+
+    return {
+      byGroup,
+      membersByGroup,
+      awaiting,
+      totals,
+      monthSpent,
+      lastMonthSpent,
+      withLedger,
+      activityByGroup,
+    };
   }, [mirror, queue, profileId, monthPrefix]);
 
   // Memoised so the returned object keeps a stable identity across renders that
@@ -632,6 +654,8 @@ export function useHomeSummary(profileId: string | null) {
       totals: summary.totals,
       /** My share of this month's expenses, per currency, biggest first. */
       monthSpent: summary.monthSpent,
+      /** My share of last calendar month's expenses, per currency. */
+      lastMonthSpent: summary.lastMonthSpent,
       isLoading: !hydrated,
       isFetching: status === 'syncing',
       /**
@@ -921,6 +945,12 @@ export function useRecentActivity(
     () => (enabled ? recentActivity(mirror, myProfileId) : NO_ACTIVITY),
     [mirror, myProfileId, enabled],
   );
+}
+
+/** When somebody else last did something in any group, in ms (0: never). */
+export function useNewestActivityFromOthers(myProfileId: string | null): number {
+  const { mirror } = useSync();
+  return useMemo(() => newestActivityFromOthers(mirror, myProfileId), [mirror, myProfileId]);
 }
 
 /** How much a destination (group, or a person's 1:1 group) has been used. */

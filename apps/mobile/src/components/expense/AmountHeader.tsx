@@ -55,17 +55,30 @@ const STEP_MAJOR = 1n;
  */
 const QUICK_MAJOR = [5n, 10n, 50n, 100n, 500n, 1000n] as const;
 
+/**
+ * The flag for a currency, from the country its ISO code starts with — INR →
+ * 🇮🇳, USD → 🇺🇸, EUR → 🇪🇺. Regional-indicator letters, so there is no image
+ * set to ship; a code that does not start with two letters gets no flag.
+ */
+export function flagFor(currency: string): string | null {
+  const country = currency.slice(0, 2).toUpperCase();
+  if (!/^[A-Z]{2}$/.test(country)) return null;
+  return String.fromCodePoint(...[...country].map((letter) => 0x1f1e6 + letter.charCodeAt(0) - 65));
+}
+
 /** A round, 44pt tap target — the floor, not a suggestion. */
 function StepperButton({
   icon,
   label,
   disabled,
   onPress,
+  soft = false,
 }: {
   icon: 'add' | 'remove';
   label: string;
   disabled?: boolean;
   onPress: () => void;
+  soft?: boolean;
 }): React.JSX.Element {
   const theme = useTheme();
   return (
@@ -83,7 +96,7 @@ function StepperButton({
         alignItems: 'center',
         justifyContent: 'center',
         borderRadius: theme.radius.pill,
-        backgroundColor: theme.color.surfaceMuted,
+        backgroundColor: soft ? theme.color.brandSoft : theme.color.surfaceMuted,
         // Disabled is said in ink as well as in state: minus at zero is the
         // only one that ever greys, and it must not read as merely unpressed.
         opacity: disabled ? 0.4 : pressed ? 0.6 : 1,
@@ -92,7 +105,7 @@ function StepperButton({
       <Ionicons
         name={icon}
         size={iconSize.lg}
-        color={disabled ? theme.color.textFaint : theme.color.text}
+        color={disabled ? theme.color.textFaint : soft ? theme.color.brand : theme.color.text}
       />
     </Pressable>
   );
@@ -103,11 +116,17 @@ export function AmountHeader({
   amount,
   onAmountChange,
   onPressCurrency,
+  soft = false,
 }: {
   currency: string;
   amount: bigint;
   onAmountChange: (value: bigint) => void;
   onPressCurrency: () => void;
+  /**
+   * The Save an expense look: steppers and quick amounts in the brand's soft
+   * tint with brand ink, and the currency as an outlined pill with its flag.
+   */
+  soft?: boolean;
 }): React.JSX.Element {
   const theme = useTheme();
   const { t } = useStrings();
@@ -116,6 +135,7 @@ export function AmountHeader({
   // people say out loud and converted once, at the edge. A currency with no
   // minor unit (yen) scales by 1 and the same ladder still reads correctly.
   const scale = minorUnitScale(currency as CurrencyCode);
+  const flag = flagFor(currency);
   const step = STEP_MAJOR * scale;
 
   const bump = (by: bigint): void => {
@@ -138,6 +158,7 @@ export function AmountHeader({
           label={t.captures.amountDown}
           disabled={amount <= 0n}
           onPress={() => bump(-step)}
+          soft={soft}
         />
         <Row
           style={{
@@ -162,19 +183,27 @@ export function AmountHeader({
               // on the form. It keeps it here, where it is smaller still.
               minHeight: 44,
               paddingVertical: theme.spacing.xs,
-              paddingHorizontal: theme.spacing.sm,
+              paddingHorizontal: soft ? theme.spacing.md : theme.spacing.sm,
               borderRadius: theme.radius.pill,
-              backgroundColor: theme.color.surfaceMuted,
+              backgroundColor: soft ? theme.color.surface : theme.color.surfaceMuted,
+              borderWidth: soft ? 1 : 0,
+              borderColor: theme.color.border,
               opacity: pressed ? 0.7 : 1,
             })}
           >
+            {soft && flag ? <Text style={{ fontSize: 16 }}>{flag}</Text> : null}
             <Text variant="caption" style={{ fontWeight: '700', color: theme.color.text }}>
               {currency}
             </Text>
             <Ionicons name="chevron-down" size={iconSize.sm} color={theme.color.textMuted} />
           </Pressable>
         </Row>
-        <StepperButton icon="add" label={t.captures.amountUp} onPress={() => bump(step)} />
+        <StepperButton
+          icon="add"
+          label={t.captures.amountUp}
+          onPress={() => bump(step)}
+          soft={soft}
+        />
       </Row>
 
       {/* The ladder. Horizontal and scrolling rather than wrapped, so it stays
@@ -200,13 +229,19 @@ export function AmountHeader({
                 justifyContent: 'center',
                 paddingHorizontal: theme.spacing.md,
                 borderRadius: theme.radius.pill,
-                borderWidth: 1,
+                borderWidth: soft ? 0 : 1,
                 borderColor: theme.color.border,
-                backgroundColor: theme.color.surface,
+                backgroundColor: soft ? theme.color.brandSoft : theme.color.surface,
                 opacity: pressed ? 0.6 : 1,
               })}
             >
-              <Text variant="caption" style={{ fontWeight: '600', color: theme.color.text }}>
+              <Text
+                variant="caption"
+                style={{
+                  fontWeight: soft ? '700' : '600',
+                  color: soft ? theme.color.brand : theme.color.text,
+                }}
+              >
                 {label}
               </Text>
             </Pressable>

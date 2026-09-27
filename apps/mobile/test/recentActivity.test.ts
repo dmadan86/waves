@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { MirrorState } from '@waves/core';
 
-import { recentActivity } from '@/data/recentActivity';
+import { newestActivityFromOthers, recentActivity } from '@/data/recentActivity';
 
 function mirror(): MirrorState {
   const activity: Record<string, Record<string, unknown>> = {};
@@ -160,5 +160,27 @@ describe('recentActivity — the reader’s stake', () => {
     expect(
       recentActivity(stakeMirror()).find((r) => r.actor_member_id === 'm-ravi')?.group?.archived_at,
     ).toBeNull();
+  });
+});
+
+describe('newestActivityFromOthers', () => {
+  it('is the newest row somebody else wrote, skipping deleted groups', () => {
+    // Ravi writes every row not divisible by 3; deleted-group rows (i % 7 === 0)
+    // are skipped. The newest of Ravi's in a live group is a38 (i=38 → day 29).
+    const newest = recentActivity(mirror(), 'p-me').find((row) => row.actor_member_id === 'm-ravi');
+    expect(newestActivityFromOthers(mirror(), 'p-me')).toBe(Date.parse(String(newest?.created_at)));
+  });
+
+  it('counts my own rows as news only when it does not know who I am', () => {
+    const all = recentActivity(mirror())[0];
+    expect(newestActivityFromOthers(mirror(), null)).toBe(Date.parse(String(all?.created_at)));
+  });
+
+  it('is 0 with nothing in the log', () => {
+    const empty = {
+      cursors: {},
+      tables: { groups: {}, group_members: {}, activity_log: {} },
+    } as unknown as MirrorState;
+    expect(newestActivityFromOthers(empty, 'p-me')).toBe(0);
   });
 });

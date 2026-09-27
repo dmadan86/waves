@@ -9,6 +9,7 @@ import {
   byNewest,
   rowsFor,
   SyncTable,
+  type CategoryMeta,
   type MemberId,
   type MirrorExpense,
   type MirrorState,
@@ -31,6 +32,9 @@ export type RecentActivityRow = ActivityRow & {
    * the payload's neutral total, which belongs to nobody in particular.
    */
   stake: { amount: bigint; currency: string } | null;
+  /** The expense's category as it stands now (key and custom-tag display), for
+   *  the row's glyph; null when the row is not about a known expense. */
+  category: { key: string | null; meta: CategoryMeta | null } | null;
 };
 
 /**
@@ -65,6 +69,7 @@ export function recentActivity(
       cover_emoji: string | null;
       archived_at: string | null;
       deleted_at: string | null;
+      type?: string | null;
     };
     if (g.deleted_at) {
       deleted.add(g.id);
@@ -75,6 +80,7 @@ export function recentActivity(
       name: g.name,
       cover_emoji: g.cover_emoji,
       archived_at: g.archived_at ?? null,
+      type: g.type ?? null,
     });
   }
 
@@ -112,11 +118,11 @@ export function recentActivity(
 
   // Every expense the phone holds, by id — an activity row names its object,
   // so the stake is a map lookup rather than a scan per row.
+  // Built whoever is reading: the row's category glyph needs it as much as
+  // the stake does.
   const expenseById = new Map<string, MirrorExpense>();
-  if (myProfileId) {
-    for (const row of rowsFor(mirror, SyncTable.Expenses) as MirrorExpense[]) {
-      expenseById.set(row.id, row);
-    }
+  for (const row of rowsFor(mirror, SyncTable.Expenses) as MirrorExpense[]) {
+    expenseById.set(row.id, row);
   }
 
   // Sorted before it is joined: the order depends only on `created_at`, which
@@ -134,7 +140,49 @@ export function recentActivity(
     group: groups.get(row.group_id) ?? null,
     actor: row.actor_member_id ? (actors.get(row.actor_member_id) ?? null) : null,
     stake: stakeFor(row, expenseById, myMemberByGroup),
+    category: categoryFor(row, expenseById),
   }));
+}
+
+/** The category of the expense an activity row is about, or null. */
+function categoryFor(
+  row: ActivityRow,
+  expenseById: ReadonlyMap<string, MirrorExpense>,
+): RecentActivityRow['category'] {
+  if (row.object_type !== 'expense' || !row.object_id) return null;
+  const version = expenseById.get(row.object_id)?.currentVersion;
+  if (!version) return null;
+  return { key: version.category ?? null, meta: version.category_meta ?? null };
+}
+
+/**
+ * When somebody *else* last did something the reader can see, in ms — 0 when
+ * nothing has happened. Drives the red dot on the dashboard's bell: a thing you
+ * did yourself is not news. One pass over the log with no sort and no join, so
+ * it is cheap enough to run on the dashboard as the mirror moves. Rows from a
+ * deleted group are skipped, the same as the feed skips them.
+ */
+export function newestActivityFromOthers(mirror: MirrorState, myProfileId: string | null): number {
+  const deleted = new Set<string>();
+  for (const row of rowsFor(mirror, SyncTable.Groups)) {
+    const g = row as unknown as { id: string; deleted_at: string | null };
+    if (g.deleted_at) deleted.add(g.id);
+  }
+  const mine = new Set<string>();
+  if (myProfileId) {
+    for (const row of rowsFor(mirror, SyncTable.GroupMembers)) {
+      const m = row as unknown as { id: MemberId; profile_id: string | null };
+      if (isViewer(m, myProfileId)) mine.add(m.id);
+    }
+  }
+  let newest = 0;
+  for (const row of rowsFor(mirror, SyncTable.ActivityLog) as unknown as ActivityRow[]) {
+    if (deleted.has(row.group_id)) continue;
+    if (row.actor_member_id && mine.has(row.actor_member_id)) continue;
+    const at = Date.parse(String(row.created_at));
+    if (at > newest) newest = at;
+  }
+  return newest;
 }
 
 /**

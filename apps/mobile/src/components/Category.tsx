@@ -187,6 +187,9 @@ export function CategoryRow({
   meta,
   onPress,
   accessibilityHint,
+  label: title,
+  subtitle,
+  tinted = false,
 }: {
   value: string | null;
   /** The custom tag's denormalised display, when the value is a custom tag. */
@@ -194,6 +197,11 @@ export function CategoryRow({
   /** Absent where the kind is shown but cannot be changed (a bill you may not edit). */
   onPress?: () => void;
   accessibilityHint?: string;
+  /** The form look (Save an expense): a title of its own, a subtitle, and the
+   *  kind's glyph in a disc of its own tint. */
+  label?: string;
+  subtitle?: string;
+  tinted?: boolean;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
@@ -212,7 +220,9 @@ export function CategoryRow({
     <DetailRow
       icon={(entry?.icon ?? resolved.icon) as keyof typeof Ionicons.glyphMap}
       iconColor={tint.ink}
-      label={t.whatFor}
+      label={title ?? t.whatFor}
+      subtitle={subtitle}
+      tint={tinted ? tint : undefined}
       value={label}
       onPress={onPress}
       accessibilityHint={accessibilityHint}

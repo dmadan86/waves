@@ -65,7 +65,7 @@ describe('capture folds what-for, paid-with, group and date into one card', () =
   });
 
   it('reads the bill before the fields scanning it fills in, the order add-expense uses', () => {
-    const receiptAt = capture.indexOf('t.captures.receipt');
+    const receiptAt = capture.indexOf('t.captures.addReceipt');
     const descriptionAt = capture.indexOf('<DescriptionField');
     const factsCardAt = capture.indexOf('<DetailRows>');
     expect(receiptAt).toBeGreaterThan(-1);

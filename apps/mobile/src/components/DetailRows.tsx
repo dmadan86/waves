@@ -62,6 +62,7 @@ export function DetailRow({
   expanded,
   accessibilityLabel,
   accessibilityHint,
+  tint,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   /** When the glyph belongs to the *answer* rather than to the question — a
@@ -98,6 +99,10 @@ export function DetailRow({
   /** What a tap does, when the chevron alone does not say it — "Double tap to
    *  change" on a fact that opens a pop-up rather than a screen. */
   accessibilityHint?: string;
+  /** The form look (Save an expense): the glyph sits in a disc of this tint,
+   *  and the label reads as the row's title — bold, in full ink — over its
+   *  subtitle, rather than as a muted caption. */
+  tint?: { bg: string; ink: string };
 }) {
   const theme = useTheme();
   const chevron = onPress
@@ -141,13 +146,34 @@ export function DetailRow({
           flex: subtitle ? 1 : undefined,
         }}
       >
-        <Ionicons name={icon} size={iconSize.md} color={iconColor ?? theme.color.textMuted} />
+        {tint ? (
+          <View
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 22,
+              backgroundColor: tint.bg,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Ionicons name={icon} size={iconSize.lg} color={iconColor ?? tint.ink} />
+          </View>
+        ) : (
+          <Ionicons name={icon} size={iconSize.md} color={iconColor ?? theme.color.textMuted} />
+        )}
         <View style={{ gap: 2, flexShrink: 1 }}>
-          <Text variant="caption" tone="muted">
-            {label}
-          </Text>
+          {tint ? (
+            <Text variant="body" numberOfLines={1} style={{ fontWeight: '600' }}>
+              {label}
+            </Text>
+          ) : (
+            <Text variant="caption" tone="muted">
+              {label}
+            </Text>
+          )}
           {subtitle ? (
-            <Text variant="micro" tone="muted">
+            <Text variant={tint ? 'caption' : 'micro'} tone="muted" numberOfLines={1}>
               {subtitle}
             </Text>
           ) : null}

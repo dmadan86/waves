@@ -143,7 +143,7 @@ export interface OfferedGroup {
 /** Two source rows read as the same target-group member: the rule
  *  `buildKnownIndex` folds by, kept in step with it on purpose (see the
  *  module header) rather than redeclared with its own drift. */
-function sameHuman(
+export function sameHuman(
   a: { readonly name: string; readonly email: string | null; readonly phone: string | null },
   b: { readonly name: string; readonly email: string | null; readonly phone: string | null },
 ): boolean {
@@ -191,4 +191,60 @@ export function offerFromOtherGroups(input: AddFromAnotherGroupInput): readonly 
     }
   }
   return sections;
+}
+
+/** Somebody offered on the new-group screen's Suggested row. */
+export interface SuggestedPerson {
+  readonly key: string;
+  readonly name: string;
+  readonly email: string | null;
+  readonly phone: string | null;
+  /** How many of your groups they are in — the ranking. */
+  readonly groups: number;
+}
+
+/**
+ * The people a brand-new group is most likely to want: the placeholders from
+ * your other groups (the only people this screen can add — a real account is
+ * added by invite), one card per human however many groups they are in, the
+ * ones in the most groups first, and nobody already picked.
+ */
+export function suggestPeople(
+  groups: readonly SourceGroup[],
+  viewerProfileId: string | null,
+  picked: readonly {
+    readonly name: string;
+    readonly email: string | null;
+    readonly phone: string | null;
+  }[],
+  limit = 8,
+): readonly SuggestedPerson[] {
+  const offered = offerFromOtherGroups({ currentGroupId: '', viewerProfileId, groups });
+  const people: {
+    key: string;
+    name: string;
+    email: string | null;
+    phone: string | null;
+    groups: number;
+  }[] = [];
+  for (const section of offered) {
+    for (const person of section.people) {
+      const same = people.find((it) => sameHuman(it, person));
+      if (same) {
+        same.groups += 1;
+        continue;
+      }
+      people.push({
+        key: person.key,
+        name: person.name,
+        email: person.email,
+        phone: person.phone,
+        groups: 1,
+      });
+    }
+  }
+  return people
+    .filter((person) => !picked.some((it) => sameHuman(it, person)))
+    .sort((a, b) => b.groups - a.groups || a.name.localeCompare(b.name))
+    .slice(0, limit);
 }
