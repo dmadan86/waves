@@ -444,7 +444,7 @@ export default function HomeScreen() {
           />
           <LinearGradient
             pointerEvents="none"
-            colors={['rgba(12, 14, 40, 0.38)', 'rgba(12, 14, 40, 0.08)', 'rgba(12, 14, 40, 0)']}
+            colors={['rgba(28, 18, 66, 0.42)', 'rgba(28, 18, 66, 0.1)', 'rgba(28, 18, 66, 0)']}
             locations={[0, 0.6, 1]}
             style={StyleSheet.absoluteFill}
           />

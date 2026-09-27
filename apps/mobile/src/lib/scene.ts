@@ -1,8 +1,9 @@
 /**
- * Which landscape the dashboard's hero wears, from the clock: a bright lake at
- * morning and afternoon, the sun going down at sunset, dusk in the evening, a
- * moon at night — and snow on the daytime scenes in the depth of winter. Pure,
- * so the rule is tested without a clock.
+ * Which landscape the dashboard's hero wears, from the clock: a bright lake in
+ * the morning and afternoon, the sun going down at sunset, dusk in the evening,
+ * the moon at night. Winter dawn is a seasonal theme, not part of the daily
+ * cycle — it is only worn when asked for. Pure, so the rule is tested without a
+ * clock.
  */
 
 export enum Scene {
@@ -14,19 +15,26 @@ export enum Scene {
   Winter = 'winter',
 }
 
-/** The scene for a moment, in the phone's own time. */
-export function sceneFor(now: Date): Scene {
+/**
+ * The scene for a moment, in the phone's own time:
+ *
+ *   06:00–10:00 morning · 10:00–16:00 afternoon · 16:00–18:30 sunset ·
+ *   18:30–20:00 evening · 20:00–06:00 night
+ *
+ * `seasonal` puts winter dawn in place of the daytime scenes (morning and
+ * afternoon) — the optional seasonal theme; off, it never appears.
+ */
+export function sceneFor(now: Date, options: { seasonal?: boolean } = {}): Scene {
   const minutes = now.getHours() * 60 + now.getMinutes();
   let scene: Scene;
-  if (minutes >= 5 * 60 && minutes < 12 * 60) scene = Scene.Morning;
-  else if (minutes >= 12 * 60 && minutes < 16 * 60) scene = Scene.Afternoon;
+  if (minutes >= 6 * 60 && minutes < 10 * 60) scene = Scene.Morning;
+  else if (minutes >= 10 * 60 && minutes < 16 * 60) scene = Scene.Afternoon;
   else if (minutes >= 16 * 60 && minutes < 18 * 60 + 30) scene = Scene.Sunset;
-  else if (minutes >= 18 * 60 + 30 && minutes < 20 * 60 + 30) scene = Scene.Evening;
+  else if (minutes >= 18 * 60 + 30 && minutes < 20 * 60) scene = Scene.Evening;
   else scene = Scene.Night;
-  // December to February, a daytime scene is the snowy one.
-  const month = now.getMonth();
-  const winter = month === 11 || month === 0 || month === 1;
-  if (winter && (scene === Scene.Morning || scene === Scene.Afternoon)) return Scene.Winter;
+  if (options.seasonal && (scene === Scene.Morning || scene === Scene.Afternoon)) {
+    return Scene.Winter;
+  }
   return scene;
 }
 
