@@ -1483,6 +1483,18 @@ export interface UiStrings {
     hideBalance: string;
     showBalance: string;
   };
+  /** The Activity screen: its subtitle, filter chips and row menu. */
+  activityScreen: {
+    subtitle: string;
+    all: string;
+    expenses: string;
+    edits: string;
+    trip: string;
+    more: string;
+    viewDetails: string;
+    openGroup: string;
+    noneForFilter: string;
+  };
   /** Create a new group: header line, field labels and examples, row subtitles. */
   newGroupForm: {
     headerSub: string;
@@ -4854,6 +4866,17 @@ const en: UiStrings = {
     hideBalance: 'Hide balance',
     showBalance: 'Show balance',
   },
+  activityScreen: {
+    subtitle: 'Your recent transactions and updates',
+    all: 'All',
+    expenses: 'Expenses',
+    edits: 'Edits',
+    trip: 'Trip',
+    more: 'More',
+    viewDetails: 'View details',
+    openGroup: 'Open group',
+    noneForFilter: 'Nothing here for this filter yet.',
+  },
   newGroupForm: {
     headerSub: 'Start a group and share expenses',
     nameExample: 'e.g. Bali Trip',
@@ -7910,6 +7933,17 @@ const ta: UiStrings = {
     evening: 'மாலை வணக்கம்',
     hideBalance: 'இருப்பை மறை',
     showBalance: 'இருப்பைக் காட்டு',
+  },
+  activityScreen: {
+    subtitle: 'உங்கள் சமீபத்திய பரிவர்த்தனைகளும் புதுப்பிப்புகளும்',
+    all: 'அனைத்தும்',
+    expenses: 'செலவுகள்',
+    edits: 'திருத்தங்கள்',
+    trip: 'பயணம்',
+    more: 'மேலும்',
+    viewDetails: 'விவரங்களைப் பார்',
+    openGroup: 'குழுவைத் திற',
+    noneForFilter: 'இந்த வடிகட்டிக்கு இன்னும் எதுவும் இல்லை.',
   },
   newGroupForm: {
     headerSub: 'ஒரு குழுவைத் தொடங்கி செலவுகளைப் பகிருங்கள்',
@@ -11040,6 +11074,17 @@ const hi: UiStrings = {
     hideBalance: 'बैलेंस छिपाएँ',
     showBalance: 'बैलेंस दिखाएँ',
   },
+  activityScreen: {
+    subtitle: 'आपके हाल के लेन-देन और अपडेट',
+    all: 'सभी',
+    expenses: 'खर्च',
+    edits: 'बदलाव',
+    trip: 'ट्रिप',
+    more: 'और',
+    viewDetails: 'विवरण देखें',
+    openGroup: 'समूह खोलें',
+    noneForFilter: 'इस फ़िल्टर में अभी कुछ नहीं है।',
+  },
   newGroupForm: {
     headerSub: 'समूह बनाएँ और खर्च बाँटें',
     nameExample: 'जैसे गोवा ट्रिप',
@@ -14150,6 +14195,17 @@ const ar: UiStrings = {
     evening: 'مساء الخير',
     hideBalance: 'إخفاء الرصيد',
     showBalance: 'إظهار الرصيد',
+  },
+  activityScreen: {
+    subtitle: 'معاملاتك وتحديثاتك الأخيرة',
+    all: 'الكل',
+    expenses: 'المصروفات',
+    edits: 'التعديلات',
+    trip: 'الرحلة',
+    more: 'المزيد',
+    viewDetails: 'عرض التفاصيل',
+    openGroup: 'فتح المجموعة',
+    noneForFilter: 'لا شيء هنا لهذا الفلتر بعد.',
   },
   newGroupForm: {
     headerSub: 'ابدأ مجموعة وتقاسم المصروفات',
