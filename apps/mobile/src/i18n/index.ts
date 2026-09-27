@@ -1494,7 +1494,6 @@ export interface UiStrings {
     periodMonth: string;
     youLent: string;
     youOwe: string;
-    splitBill: string;
     settleUp: string;
     newGroup: string;
     addExpense: string;
@@ -4829,7 +4828,6 @@ const en: UiStrings = {
     periodMonth: 'This month',
     youLent: 'You lent',
     youOwe: 'You owe',
-    splitBill: 'Split bill',
     settleUp: 'Settle up',
     newGroup: 'New group',
     addExpense: 'Add expense',
@@ -7853,7 +7851,6 @@ const ta: UiStrings = {
     periodMonth: 'இந்த மாதம்',
     youLent: 'நீங்கள் கொடுத்தது',
     youOwe: 'நீங்கள் தர வேண்டியது',
-    splitBill: 'பில் பிரி',
     settleUp: 'கணக்கு தீர்',
     newGroup: 'புதிய குழு',
     addExpense: 'செலவு சேர்',
@@ -10949,7 +10946,6 @@ const hi: UiStrings = {
     periodMonth: 'इस महीने',
     youLent: 'आपने दिए',
     youOwe: 'आपको देने हैं',
-    splitBill: 'बिल बाँटें',
     settleUp: 'हिसाब चुकाएँ',
     newGroup: 'नया समूह',
     addExpense: 'खर्च जोड़ें',
@@ -14027,7 +14023,6 @@ const ar: UiStrings = {
     periodMonth: 'هذا الشهر',
     youLent: 'أقرضت',
     youOwe: 'عليك',
-    splitBill: 'تقسيم فاتورة',
     settleUp: 'تسوية',
     newGroup: 'مجموعة جديدة',
     addExpense: 'إضافة مصروف',

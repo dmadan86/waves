@@ -1,5 +1,5 @@
 /**
- * The four things you start from Home — add an expense, split a bill, settle
+ * The four things you start from Home — add an expense, the reports, settle
  * up, start a group — as a strip along the foot of the balance card rather than
  * a row of tiles of their own: a small disc over a one-line word in each
  * quarter, so the actions cost the card a band instead of the screen a block.
@@ -33,7 +33,7 @@ interface QuickAction {
 export function HomeQuickActions({
   onAddExpense,
   onAddExpenseLong,
-  onSplitBill,
+  onReports,
   onSettleUp,
   onNewGroup,
   gradient,
@@ -41,7 +41,7 @@ export function HomeQuickActions({
 }: {
   onAddExpense: () => void;
   onAddExpenseLong: () => void;
-  onSplitBill: () => void;
+  onReports: () => void;
   onSettleUp: () => void;
   onNewGroup: () => void;
   /** The hero's wash, so the primary tile is cut from the same cloth. */
@@ -63,10 +63,10 @@ export function HomeQuickActions({
       primary: true,
     },
     {
-      key: 'split',
-      label: t.homeDash.splitBill,
-      glyph: (color) => <Ionicons name="receipt-outline" size={16} color={color} />,
-      onPress: onSplitBill,
+      key: 'reports',
+      label: t.homeDash.reports,
+      glyph: (color) => <Ionicons name="stats-chart" size={16} color={color} />,
+      onPress: onReports,
     },
     {
       key: 'settle',

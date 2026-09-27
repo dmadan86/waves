@@ -368,9 +368,6 @@ export default function HomeScreen() {
   const lastMonthSpent =
     summary.lastMonthSpent.find((entry) => entry.currency === headline.currency)?.amount ?? 0n;
   const openReports = () => router.push('/personal/spending');
-  // "Split bill" is the receipt camera: scan it and split it item by item. A
-  // fresh nonce each time so the capture screen fires the camera exactly once.
-  const openSplitBill = () => router.push(`/capture?scan=${Date.now()}`);
 
   // "Last activity: 2 days ago" under each group, from when its ledger last
   // moved. The formatter is built once per language, not per row.
@@ -496,7 +493,6 @@ export default function HomeScreen() {
               onToggleHide={toggleBalance}
               settling={settling}
               loading={showSkeleton || !balanceReady}
-              onReports={openReports}
               footer={
                 <HomeQuickActions
                   // The quick sheet, not the capture screen: most spends know
@@ -504,7 +500,7 @@ export default function HomeScreen() {
                   // press raises type / scan / speak, unchanged.
                   onAddExpense={() => setQuickExpenseOpen(true)}
                   onAddExpenseLong={() => setQuickAddOpen(true)}
-                  onSplitBill={openSplitBill}
+                  onReports={openReports}
                   onSettleUp={() => setSettleOpen(true)}
                   onNewGroup={openNewGroup}
                   gradient={HERO_WASH}

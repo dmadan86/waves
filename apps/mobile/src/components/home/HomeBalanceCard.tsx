@@ -2,7 +2,7 @@
  * The dashboard's balance card: a white card that rides up over the bottom of
  * the hero's wash, carrying where you stand and the two sides that make it up.
  *
- *   Total you owe                    [Overall ▾] (chart)
+ *   Total you owe                    [Overall ▾]
  *   ₹1,13,689.50
  *   ↑ You lent                  |  ↓ You owe
  *   ₹42,350.00                  |  ₹1,56,039.50
@@ -12,7 +12,7 @@
  *
  * The pill switches the headline between the overall standing and this
  * month's spend (with its change against last month); the two sides below are
- * standings either way, so they stay put. The chart disc opens the reports.
+ * standings either way, so they stay put.
  * The eye masks every figure on the dashboard, not just this card's.
  *
  * All in the primary currency — there is no total across currencies (ADR-004).
@@ -49,7 +49,6 @@ export function HomeBalanceCard({
   onToggleHide,
   settling,
   loading,
-  onReports,
   footer,
 }: {
   net: bigint;
@@ -69,7 +68,6 @@ export function HomeBalanceCard({
   settling: boolean;
   /** Nothing to show yet: bars stand in for the figures. */
   loading: boolean;
-  onReports: () => void;
   /** Drawn along the card's foot, edge to edge — the quick actions. */
   footer?: ReactNode;
 }) {
@@ -182,23 +180,6 @@ export function HomeBalanceCard({
             {month ? t.homeDash.periodMonth : t.homeDash.periodOverall}
           </Text>
           <Ionicons name="chevron-down" size={iconSize.sm} color={theme.color.textMuted} />
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t.homeDash.reports}
-          onPress={onReports}
-          hitSlop={6}
-          style={({ pressed }) => ({
-            width: 40,
-            height: 40,
-            borderRadius: 20,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: theme.color.brandSoft,
-            opacity: pressed ? 0.6 : 1,
-          })}
-        >
-          <Ionicons name="stats-chart" size={iconSize.md} color={theme.color.brand} />
         </Pressable>
       </Row>
 
