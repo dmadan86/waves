@@ -35,6 +35,7 @@ export function LocationField({
   onChange,
   autoFill = false,
   busy: busyExternal = false,
+  tiles = false,
 }: {
   value: ExpenseLocation | null;
   onChange: (location: ExpenseLocation | null) => void;
@@ -58,6 +59,13 @@ export function LocationField({
    * the buttons, so the field reads as working rather than empty while it lands.
    */
   busy?: boolean;
+  /**
+   * The Save an expense look: a "Location (optional)" heading with a pin, and
+   * the two ways in as a pair of tiles side by side — the current place in the
+   * brand's soft tint, the map outlined beside it — rather than two small
+   * buttons.
+   */
+  tiles?: boolean;
 }): React.JSX.Element | null {
   const theme = useTheme();
   const { t } = useStrings();
@@ -137,9 +145,19 @@ export function LocationField({
 
   return (
     <View style={{ gap: theme.spacing.sm }}>
-      <Text variant="caption" tone="muted">
-        {t.location.label}
-      </Text>
+      {tiles ? (
+        <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
+          <Ionicons name="location-outline" size={iconSize.md} color={theme.color.textMuted} />
+          <Text variant="body" style={{ fontWeight: '600' }}>
+            {t.location.label}
+            <Text variant="body" tone="muted">{` ${t.captureForm.optional}`}</Text>
+          </Text>
+        </Row>
+      ) : (
+        <Text variant="caption" tone="muted">
+          {t.location.label}
+        </Text>
+      )}
 
       {value ? (
         <Card style={{ gap: theme.spacing.sm, padding: theme.spacing.sm }}>
@@ -182,6 +200,22 @@ export function LocationField({
         >
           <ActivityIndicator size="small" color={theme.color.brand} />
           <Text tone="muted">{t.location.adding}</Text>
+        </Row>
+      ) : tiles ? (
+        <Row style={{ gap: theme.spacing.sm }}>
+          <LocationTile
+            icon="location"
+            title={t.location.add}
+            subtitle={t.captureForm.addLocationSub}
+            onPress={() => void add()}
+            filled
+          />
+          <LocationTile
+            icon="map-outline"
+            title={t.location.pick}
+            subtitle={t.captureForm.pickOnMapSub}
+            onPress={() => setPickerOpen(true)}
+          />
         </Row>
       ) : (
         <Row style={{ gap: theme.spacing.sm, flexWrap: 'wrap' }}>
@@ -227,5 +261,53 @@ export function LocationField({
         <Callout tone="info">{t.location.unavailable}</Callout>
       ) : null}
     </View>
+  );
+}
+
+/** One of the two ways in, as a tile: a glyph beside a title and a line under it. */
+function LocationTile({
+  icon,
+  title,
+  subtitle,
+  onPress,
+  filled = false,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  title: string;
+  subtitle: string;
+  onPress: () => void;
+  /** The primary way in: filled in the brand's soft tint rather than outlined. */
+  filled?: boolean;
+}): React.JSX.Element {
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={title}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.sm,
+        paddingVertical: theme.spacing.md,
+        paddingHorizontal: theme.spacing.md,
+        borderRadius: theme.radius.lg,
+        backgroundColor: filled ? theme.color.brandSoft : theme.color.surface,
+        borderWidth: filled ? 0 : 1,
+        borderColor: theme.color.border,
+        opacity: pressed ? 0.7 : 1,
+      })}
+    >
+      <Ionicons name={icon} size={iconSize.lg} color={theme.color.brand} />
+      <View style={{ flex: 1 }}>
+        <Text variant="body" tone="brand" numberOfLines={1} style={{ fontWeight: '700' }}>
+          {title}
+        </Text>
+        <Text variant="caption" tone="muted" numberOfLines={1}>
+          {subtitle}
+        </Text>
+      </View>
+    </Pressable>
   );
 }

@@ -254,6 +254,9 @@ export interface ActivityGroup {
    *  row from an archived group is recognisable without opening it. Null on a
    *  live group. */
   archived_at: string | null;
+  /** The kind of group ('trip', 'home', …), for the feed's Trip filter. Absent
+   *  on rows built before it was carried. */
+  type?: string | null;
 }
 
 export interface ActivityRow {

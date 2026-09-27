@@ -1,7 +1,9 @@
-import { memo, useMemo, useState } from 'react';
+import { memo, useCallback, useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { type Href, useLocalSearchParams } from 'expo-router';
-import { Pressable, RefreshControl, View } from 'react-native';
+import { type Href, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
+
+import { guessCategory, resolveCategory } from '@waves/core';
 import { FlashList } from '@shopify/flash-list';
 
 import {
@@ -11,10 +13,10 @@ import {
   EmptyState,
   IconButton,
   iconSize,
-  MoneyText,
   Row,
   Screen,
   Text,
+  type TintName,
   useTabBarClearance,
   useTheme,
 } from '@waves/ui';
@@ -32,11 +34,14 @@ import {
   verbIcon,
   verbTint,
 } from '@/data/activity';
-import { actorName } from '@/data/types';
+import { actorName, GroupType } from '@/data/types';
+import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
+import { SplitMoney } from '@/components/SplitMoney';
 import { useBlockedUsers } from '@/data/blocked';
 import { ActivityDateFilter, type DateRange } from '@/components/ActivityDateFilter';
 import { FeedSkeleton } from '@/components/Skeletons';
 import { useTransitionSettled } from '@/lib/useTransitionSettled';
+import { markActivitySeen } from '@/lib/activitySeen';
 import { useGroups, useRecentActivity, type RecentActivityRow } from '@/data/hooks';
 import { useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
@@ -64,8 +69,11 @@ type RowView = {
   headline: string;
   who: string | null;
   groupLabel: string | null;
+  /** The group as the subtitle names it: its mark, or its name without one. */
+  groupShort: string | null;
+  groupId: string | null;
   timestamp: string;
-  tintKey: ReturnType<typeof verbTint>;
+  tintKey: TintName;
   icon: ReturnType<typeof verbIcon>;
   money: ReturnType<typeof parseMoney>;
   /** The reader's own stake in this expense, when they are on the bill —
@@ -92,6 +100,7 @@ type RowContext = {
 // `activityHeadline`; `rtf` is the hoisted formatter, never rebuilt per row.
 function toRowView(entry: RecentActivityRow, ctx: RowContext): RowView {
   const g = entry.group;
+  const glyph = rowGlyph(entry);
   return {
     href: activityTarget(entry) as Href,
     label: describeActivity(entry, ctx.myProfileId, ctx.blockedIds, ctx.t.misc.someone),
@@ -104,14 +113,36 @@ function toRowView(entry: RecentActivityRow, ctx: RowContext): RowView {
     groupLabel: g
       ? [g.cover_emoji, g.name].filter(Boolean).join(' ').trim() || ctx.t.captures.group
       : null,
+    groupShort: g ? g.cover_emoji?.trim() || g.name?.trim() || null : null,
+    groupId: g?.id ?? null,
     timestamp: activityTimestamp(ctx.locale, entry.created_at, undefined, ctx.rtf),
-    tintKey: verbTint(entry.verb),
-    icon: verbIcon(entry.verb),
+    tintKey: glyph.tint,
+    icon: glyph.icon,
     money: parseMoney(entry.payload),
     stake: entry.stake,
     archived: !!g?.archived_at,
     unavailable: !g,
   };
+}
+
+/**
+ * The glyph a row wears. A bill being added, deleted or restored shows what it
+ * was for — its category's icon and tint, or a guess from its description when
+ * it has none — so "Added Dinner" reads as food at a glance; everything else
+ * (an edit, a settlement, a join) keeps the verb's own mark.
+ */
+function rowGlyph(entry: RecentActivityRow): { icon: RowView['icon']; tint: TintName } {
+  const billVerb = entry.verb === 'added' || entry.verb === 'deleted' || entry.verb === 'restored';
+  if (entry.object_type === 'expense' && billVerb) {
+    const description =
+      typeof entry.payload.description === 'string' ? entry.payload.description : '';
+    const key = entry.category?.key ?? guessCategory(description);
+    if (key || entry.category?.meta) {
+      const resolved = resolveCategory(key, entry.category?.meta ?? null);
+      return { icon: resolved.icon as RowView['icon'], tint: resolved.tint };
+    }
+  }
+  return { icon: verbIcon(entry.verb), tint: verbTint(entry.verb) };
 }
 
 /**
@@ -125,109 +156,133 @@ const ActivityFeedRow = memo(function ActivityFeedRow({
   locale,
   t,
   theme,
+  onMenu,
 }: {
   view: RowView;
   locale: string;
   t: ReturnType<typeof useStrings>['t'];
   theme: ReturnType<typeof useTheme>;
+  onMenu: (view: RowView) => void;
 }) {
-  // A soft rounded-square tile whose tint leans with the verb — the same row the
-  // group's Activity tab and the Expenses tab use, so activity reads one way
-  // everywhere. No timeline rail; the day headings above do the sectioning,
-  // hairlines do the between-row separation.
+  // Each event is its own card: the glyph in a soft tile tinted by what the
+  // bill was for (or by the verb, when it is not a bill), the event as a title,
+  // who · where · when beneath it, and the money on the right in the colour of
+  // the reader's side of it — with a ⋮ for where the event leads.
   const tint = theme.tint[view.tintKey];
+  const amount = view.stake ?? view.money;
+  const ink = view.stake
+    ? view.stake.amount > 0n
+      ? theme.color.positive
+      : view.stake.amount < 0n
+        ? theme.color.negative
+        : theme.color.textMuted
+    : theme.color.text;
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={view.label}
       onPress={() => router.push(view.href)}
-      style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+      style={({ pressed }) => ({
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.sm,
+        paddingVertical: theme.spacing.sm,
+        paddingStart: theme.spacing.sm,
+        paddingEnd: 2,
+        marginBottom: 6,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: theme.color.border,
+        backgroundColor: theme.color.surface,
+        opacity: pressed ? 0.7 : 1,
+      })}
     >
-      <Row
+      <View
         style={{
-          gap: theme.spacing.md,
+          width: 38,
+          height: 38,
+          borderRadius: 11,
           alignItems: 'center',
-          paddingVertical: theme.spacing.sm,
+          justifyContent: 'center',
+          backgroundColor: tint.bg,
         }}
       >
-        <View
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: theme.radius.md,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: tint.bg,
-          }}
+        <Ionicons name={view.icon} size={iconSize.md} color={tint.ink} />
+      </View>
+      <View style={{ flex: 1, gap: 1 }}>
+        <Text
+          numberOfLines={1}
+          style={{ fontSize: 15, lineHeight: 20, fontWeight: '600', color: theme.color.text }}
         >
-          <Ionicons name={view.icon} size={iconSize.lg} color={tint.ink} />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text variant="body" numberOfLines={2}>
-            {view.headline}
-          </Text>
-          {/* Who · which group · when. The actor sits here now, not in the title;
-              the group is named because this is a cross-group feed. An archived
-              group, or one no longer on this device (left or deleted), gets a
-              badge so it is recognisable without opening it. */}
-          <Row
-            style={{
-              gap: theme.spacing.sm,
-              alignItems: 'center',
-              marginTop: 2,
-              flexWrap: 'wrap',
-            }}
+          {view.headline}
+        </Text>
+        {/* Who · which group · when. The group is named by its mark when it has
+            one — the feed spans groups, and the mark is the quickest tell. An
+            archived group, or one no longer on this device, gets a badge. */}
+        <Row style={{ gap: theme.spacing.xs, alignItems: 'center', flexWrap: 'wrap' }}>
+          <Text
+            numberOfLines={1}
+            style={{ flexShrink: 1, fontSize: 12, lineHeight: 16, color: theme.color.textMuted }}
           >
-            {view.who ? (
-              <Text variant="caption" tone="muted">
-                {view.who}
-              </Text>
-            ) : null}
-            {view.groupLabel ? (
-              <Text variant="caption" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
-                {`${view.who ? '· ' : ''}${view.groupLabel}`}
-              </Text>
-            ) : null}
-            <Text variant="caption" tone="muted">
-              {`${view.who || view.groupLabel ? '· ' : ''}${view.timestamp}`}
-            </Text>
-            {view.archived ? (
-              <Badge label={t.misc.archivedGroup} tone="neutral" />
-            ) : view.unavailable ? (
-              <Badge label={t.misc.unavailableGroup} tone="neutral" />
-            ) : null}
-          </Row>
-        </View>
-        {/* An expense the reader is on shows THEIR side of it — what they lent
-            or borrowed — coloured by direction, exactly as the group ledger's
-            expense rows and the Friends balances do. That is the figure that
-            answers "what did this do to me"; the bill's total answers nobody's
-            question and printed in neutral ink it read as disabled.
-
-            Everything else keeps the neutral total: a bill between other people,
-            and a settlement (money moves one way and the balance the other, so
-            either sign misreads the other). `payload` is an untyped JSON blob,
-            so a bad amount must render as no amount, not as a crashed tab. */}
-        {view.stake ? (
-          <MoneyText
-            amount={view.stake.amount}
-            currency={view.stake.currency}
-            locale={locale}
-            variant="subheading"
-            mode="balance"
-          />
-        ) : view.money ? (
-          <MoneyText
-            amount={view.money.amount}
-            currency={view.money.currency}
-            locale={locale}
-            variant="subheading"
-          />
-        ) : null}
-      </Row>
+            {[view.who, view.groupShort, view.timestamp].filter(Boolean).join(' · ')}
+          </Text>
+          {view.archived ? (
+            <Badge label={t.misc.archivedGroup} tone="neutral" />
+          ) : view.unavailable ? (
+            <Badge label={t.misc.unavailableGroup} tone="neutral" />
+          ) : null}
+        </Row>
+      </View>
+      {/* An expense the reader is on shows THEIR side of it, coloured by
+          direction, as the ledger and Friends do; anything else keeps the
+          neutral total. `payload` is untyped JSON, so a bad amount renders as
+          no amount, not a crashed tab. */}
+      {amount ? (
+        <SplitMoney
+          amount={amount.amount}
+          currency={amount.currency}
+          locale={locale}
+          color={ink}
+          fontSize={15}
+        />
+      ) : null}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t.activityScreen.more}
+        onPress={() => onMenu(view)}
+        hitSlop={8}
+        style={({ pressed }) => ({ padding: 4, opacity: pressed ? 0.5 : 1 })}
+      >
+        <Ionicons name="ellipsis-vertical" size={iconSize.sm} color={theme.color.textFaint} />
+      </Pressable>
     </Pressable>
   );
 });
+
+/** The feed's filter chips: everything, bills, edits, or one kind of group. */
+enum FeedKind {
+  All = 'all',
+  Expenses = 'expenses',
+  Edits = 'edits',
+  Trip = 'trip',
+}
+
+const EDIT_VERBS = new Set(['edited', 'superseded']);
+
+/** Whether an entry belongs under a filter chip. */
+function inKind(entry: RecentActivityRow, kind: FeedKind): boolean {
+  switch (kind) {
+    case FeedKind.Expenses:
+      return entry.object_type === 'expense' && !EDIT_VERBS.has(entry.verb);
+    case FeedKind.Edits:
+      return EDIT_VERBS.has(entry.verb);
+    case FeedKind.Trip:
+      return entry.group?.type === GroupType.Trip;
+    case FeedKind.All:
+    default:
+      return true;
+  }
+}
 
 export default function ActivityScreen() {
   const theme = useTheme();
@@ -252,6 +307,18 @@ export default function ActivityScreen() {
   // Opened from a group's hero, the feed is that group's alone.
   const params = useLocalSearchParams<{ group?: string }>();
   const onlyGroup = typeof params.group === 'string' && params.group ? params.group : null;
+  // Looking at the whole feed reads everything in it, so the dashboard bell's
+  // dot goes out — up to the newest row here or now, whichever is later, so a
+  // server clock a little ahead of the phone's cannot leave it lit. Re-marked
+  // as rows arrive while the screen is open. One group's slice of the feed
+  // (opened from a group's hero) is not the whole of it, so it leaves the dot.
+  useFocusEffect(
+    useCallback(() => {
+      if (onlyGroup) return;
+      const newest = feed[0] ? Date.parse(String(feed[0].created_at)) || 0 : 0;
+      markActivitySeen(Math.max(Date.now(), newest));
+    }, [feed, onlyGroup]),
+  );
   const allEntries = useMemo(
     () => (onlyGroup ? feed.filter((entry) => entry.group_id === onlyGroup) : feed),
     [feed, onlyGroup],
@@ -271,6 +338,11 @@ export default function ActivityScreen() {
   // (null = the full feed); `filterOpen` toggles the range-picker sheet.
   const [range, setRange] = useState<DateRange | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
+  // Which kind of event the chips have narrowed the feed to.
+  const [kind, setKind] = useState<FeedKind>(FeedKind.All);
+  // The row whose ⋮ is open. A stable callback, so the memoised rows keep it.
+  const [menuFor, setMenuFor] = useState<RowView | null>(null);
+  const openMenu = useCallback((view: RowView) => setMenuFor(view), []);
 
   // The feed's own start and end, in the phone's timezone. Clamps the picker so
   // a day outside the activity's span cannot be chosen. Null when the feed is
@@ -278,10 +350,11 @@ export default function ActivityScreen() {
   const span = useMemo(() => activityDateSpan(allEntries), [allEntries]);
 
   // The rows actually shown: the whole feed, or the slice inside the range.
-  const visibleEntries = useMemo(
-    () => (range ? filterByDayRange(allEntries, range.start, range.end) : allEntries),
-    [allEntries, range],
-  );
+  const visibleEntries = useMemo(() => {
+    const kinded =
+      kind === FeedKind.All ? allEntries : allEntries.filter((entry) => inKind(entry, kind));
+    return range ? filterByDayRange(kinded, range.start, range.end) : kinded;
+  }, [allEntries, range, kind]);
 
   // One relative-time formatter for the whole feed, rebuilt only when the locale
   // changes — handed to `toRowView` so no `Intl.RelativeTimeFormat` is ever built
@@ -339,54 +412,114 @@ export default function ActivityScreen() {
       : `${showDay(range.start)} – ${showDay(range.end)}`
     : '';
 
+  const kinds: { value: FeedKind; label: string; icon: keyof typeof Ionicons.glyphMap | null }[] = [
+    { value: FeedKind.All, label: t.activityScreen.all, icon: null },
+    { value: FeedKind.Expenses, label: t.activityScreen.expenses, icon: 'wallet-outline' },
+    { value: FeedKind.Edits, label: t.activityScreen.edits, icon: 'create-outline' },
+    { value: FeedKind.Trip, label: t.activityScreen.trip, icon: 'airplane-outline' },
+  ];
+
   const header = (
-    <View>
-      <Row style={{ paddingTop: theme.spacing.md, justifyContent: 'space-between' }}>
-        <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-          {/* Activity pushes now rather than tabs (it moved off the bar to make
-              room for Review, see `(tabs)/_layout.tsx`), so — like every other
-              pushed screen — it needs its own way back. Mirrored with the
-              writing direction, the same as `groups.tsx`'s header. */}
-          <IconButton label={t.common.back} onPress={() => router.back()}>
+    <View style={{ gap: theme.spacing.sm }}>
+      <Row style={{ paddingTop: theme.spacing.sm, alignItems: 'center', gap: theme.spacing.sm }}>
+        {/* Activity is pushed, so it carries its own way back — mirrored with
+            the writing direction, the same as `groups.tsx`'s header. */}
+        <IconButton label={t.common.back} onPress={() => router.back()}>
+          <Ionicons
+            name={directionalIcon('chevron-back')}
+            size={iconSize.xl}
+            color={theme.color.text}
+          />
+        </IconButton>
+        <View style={{ flex: 1 }}>
+          <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+            <Ionicons name="notifications" size={22} color={theme.color.brand} />
+            <Text
+              style={{ fontSize: 24, lineHeight: 30, fontWeight: '800', color: theme.color.text }}
+            >
+              {t.activity}
+            </Text>
+          </Row>
+          <Text variant="caption" tone="muted" numberOfLines={1}>
+            {shownGroup
+              ? [shownGroup.cover_emoji, shownGroup.name].filter(Boolean).join(' ')
+              : t.activityScreen.subtitle}
+          </Text>
+        </View>
+        {/* A long feed is easier to read a day or a span at a time — the
+            calendar opens a range picker clamped to the feed's own start and
+            end. A filled glyph in the brand tint marks an active range. */}
+        {span ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t.activityFilter.open}
+            onPress={() => setFilterOpen(true)}
+            style={({ pressed }) => ({
+              width: 40,
+              height: 40,
+              borderRadius: 12,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: range ? theme.color.brandSoft : theme.color.surface,
+              borderWidth: 1,
+              borderColor: theme.color.border,
+              opacity: pressed ? 0.6 : 1,
+            })}
+          >
             <Ionicons
-              name={directionalIcon('chevron-back')}
-              size={iconSize.xl}
-              color={theme.color.text}
+              name={range ? 'calendar' : 'calendar-outline'}
+              size={iconSize.lg}
+              color={range ? theme.color.brand : theme.color.text}
             />
-          </IconButton>
-          <Ionicons name="notifications" size={iconSize.xl} color={theme.color.brand} />
-          <View style={{ flexShrink: 1 }}>
-            <Text variant="title">{t.activity}</Text>
-            {shownGroup ? (
-              <Text variant="caption" tone="muted" numberOfLines={1}>
-                {[shownGroup.cover_emoji, shownGroup.name].filter(Boolean).join(' ')}
-              </Text>
-            ) : null}
-          </View>
-        </Row>
-        <Row style={{ alignItems: 'center' }}>
-          {/* A long feed is easier to read a day or a span at a time — the
-              calendar opens a range picker clamped to the feed's own start and
-              end. Only offered once there is a feed to narrow. A filled glyph in
-              the brand tint marks an active filter, matching the app's
-              filled/outline idiom. */}
-          {span ? (
-            <IconButton label={t.activityFilter.open} onPress={() => setFilterOpen(true)}>
-              <Ionicons
-                name={range ? 'calendar' : 'calendar-outline'}
-                size={iconSize.lg}
-                color={range ? theme.color.brand : theme.color.text}
-              />
-            </IconButton>
-          ) : null}
-        </Row>
+          </Pressable>
+        ) : null}
       </Row>
+
+      {/* What kind of event: everything, bills, edits, or a trip's. */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ gap: theme.spacing.sm }}
+      >
+        {kinds.map((option) => {
+          const active = option.value === kind;
+          const ink = active ? theme.color.onBrand : theme.color.text;
+          return (
+            <Pressable
+              key={option.value}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: active }}
+              accessibilityLabel={option.label}
+              onPress={() => setKind(option.value)}
+              style={({ pressed }) => ({
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 6,
+                height: 34,
+                paddingHorizontal: option.icon ? theme.spacing.md : theme.spacing.lg,
+                borderRadius: theme.radius.pill,
+                backgroundColor: active
+                  ? theme.color.brand
+                  : theme.scheme === 'dark'
+                    ? theme.color.surfaceMuted
+                    : '#ECEAF6',
+                opacity: pressed ? 0.7 : 1,
+              })}
+            >
+              {option.icon ? <Ionicons name={option.icon} size={iconSize.sm} color={ink} /> : null}
+              <Text style={{ fontSize: 14, color: ink, fontWeight: active ? '700' : '500' }}>
+                {option.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
 
       {/* The active range as a clearable pill: tap the body to adjust it, the ✕
           to drop back to the full feed. Visible state so a narrowed feed never
           looks like a short one. */}
       {range ? (
-        <Row style={{ marginTop: theme.spacing.sm }}>
+        <Row>
           <Row
             style={{
               alignItems: 'center',
@@ -429,6 +562,25 @@ export default function ActivityScreen() {
     </View>
   );
 
+  // The ⋮ on a row: the event's own screen, and its group.
+  const menuItems: OverflowMenuItem[] = menuFor
+    ? [
+        { icon: 'open-outline', label: t.activityScreen.viewDetails, route: menuFor.href },
+        ...(menuFor.groupId
+          ? [
+              {
+                icon: 'people-outline' as const,
+                label: t.activityScreen.openGroup,
+                route: `/group/${menuFor.groupId}` as Href,
+              },
+            ]
+          : []),
+      ]
+    : [];
+  const menu = (
+    <OverflowMenu visible={menuFor !== null} onClose={() => setMenuFor(null)} items={menuItems} />
+  );
+
   // The states the feed can be in when there are no rows to show — mounted as
   // the list's empty component so the header, pull-to-refresh and centred layout
   // all still apply exactly as with a feed present.
@@ -457,6 +609,22 @@ export default function ActivityScreen() {
         // An empty feed after it lands is "nothing yet", not "failed".
         <FeedSkeleton />
       )
+    ) : kind !== FeedKind.All ? (
+      // A chip is narrowing the feed and nothing is of that kind — the way out
+      // is back to everything.
+      <View style={{ flex: 1, justifyContent: 'center' }}>
+        <EmptyState
+          title={t.activityScreen.noneForFilter}
+          icon={<Ionicons name="funnel-outline" size={iconSize.xxl} color={theme.color.brand} />}
+          action={
+            <Button
+              label={t.activityScreen.all}
+              variant="secondary"
+              onPress={() => setKind(FeedKind.All)}
+            />
+          }
+        />
+      </View>
     ) : range ? (
       // A range is in force and nothing fell in it — distinct from "nothing yet",
       // and the way out is to widen or clear the filter, not to start a group.
@@ -523,6 +691,7 @@ export default function ActivityScreen() {
           {empty}
         </View>
         {picker}
+        {menu}
       </Screen>
     );
   }
@@ -536,7 +705,7 @@ export default function ActivityScreen() {
       <View style={{ flex: 1 }}>
         {/* The nav header is a fixed sibling above the feed, so only the rows
             scroll under it. Padded to line up with the feed rows below. */}
-        <View style={{ paddingHorizontal: theme.spacing.xl }}>{header}</View>
+        <View style={{ paddingHorizontal: theme.spacing.lg }}>{header}</View>
         <FlashList
           data={listData}
           // The row text is locale-formatted and the row's colours come from the
@@ -551,7 +720,7 @@ export default function ActivityScreen() {
           // recycling into blank rows (default 250px clears in a frame).
           drawDistance={1500}
           contentContainerStyle={{
-            paddingHorizontal: theme.spacing.xl,
+            paddingHorizontal: theme.spacing.lg,
             paddingBottom: clearance,
           }}
           showsVerticalScrollIndicator={false}
@@ -565,35 +734,35 @@ export default function ActivityScreen() {
           renderItem={({ item, index }) =>
             item.kind === 'header' ? (
               <Text
-                variant="micro"
+                variant="caption"
                 tone="muted"
                 style={{
                   textTransform: 'uppercase',
+                  letterSpacing: 0.6,
+                  fontWeight: '600',
                   // First heading `lg` under the header, later days a section
                   // (`xl`) apart, and each heading `sm` above its rows.
-                  marginTop: index === 0 ? theme.spacing.lg : theme.spacing.xl,
-                  marginBottom: theme.spacing.sm,
+                  marginTop: index === 0 ? theme.spacing.md : theme.spacing.lg,
+                  marginBottom: 6,
                 }}
               >
                 {dayHeading(locale, item.date)}
               </Text>
             ) : (
-              // The between-row hairline rides on the row itself — above every row
-              // but the day's first, so no line falls under a day heading.
-              <View
-                style={
-                  item.firstOfDay
-                    ? undefined
-                    : { borderTopWidth: 1, borderTopColor: theme.color.border }
-                }
-              >
-                <ActivityFeedRow view={item.view} locale={locale} t={t} theme={theme} />
-              </View>
+              // Each event is its own card; the card carries its own spacing.
+              <ActivityFeedRow
+                view={item.view}
+                locale={locale}
+                t={t}
+                theme={theme}
+                onMenu={openMenu}
+              />
             )
           }
         />
       </View>
       {picker}
+      {menu}
     </Screen>
   );
 }

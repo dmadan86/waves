@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../theme';
 import { spacing } from '../tokens';
 import { useSingleAction } from '../useSingleAction';
+import { Gradient } from './Gradient';
 import { Text } from './Text';
 
 export interface PillTabItem {
@@ -71,6 +72,8 @@ const BAR_HEIGHT = 60;
 /** The raised centre button's diameter, and how far it lifts above the bar. */
 const CENTER_SIZE = 58;
 const CENTER_RAISE = 16;
+/** How far the white cradle behind the centre button reaches past its edge. */
+const CENTER_RIM = 5;
 /**
  * The breath left above and below the centre button when it is seated in the
  * row — what the raise lifts it *from*. Both halves of the geometry are derived
@@ -267,6 +270,21 @@ export function PillTabBar({
               paddingTop: CENTER_SEAT,
             }}
           >
+            {/* The cradle: a disc of the bar's own surface a little wider than
+                the button, behind it. Below the bar's edge it disappears into
+                the bar; above it, it is the white rim around the part of the
+                button that rises clear — the bar lifting to hold it. */}
+            <View
+              pointerEvents="none"
+              style={{
+                position: 'absolute',
+                top: CENTER_SEAT - CENTER_RIM,
+                width: CENTER_SIZE + CENTER_RIM * 2,
+                height: CENTER_SIZE + CENTER_RIM * 2,
+                borderRadius: (CENTER_SIZE + CENTER_RIM * 2) / 2,
+                backgroundColor: theme.color.surface,
+              }}
+            />
             <CenterButton action={centerAction} />
           </View>
           <View pointerEvents="none" style={{ flex: right.length }} />
@@ -364,16 +382,33 @@ const CenterButton = memo(function CenterButton({ action }: { action: PillTabAct
         borderRadius: CENTER_SIZE / 2,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: theme.color.buttonPrimary,
+        // The brand's own violet, washed like the dashboard's primary tile, with
+        // a violet glow under it rather than a grey drop shadow. The white rim
+        // is the cradle behind it (see the bar), so it shows only above the bar.
+        backgroundColor: theme.color.brand,
         opacity: pressed ? 0.9 : 1,
-        shadowColor: '#000',
-        shadowOpacity: 0.2,
-        shadowRadius: 8,
-        shadowOffset: { width: 0, height: 4 },
-        elevation: 6,
+        shadowColor: theme.color.brand,
+        shadowOpacity: 0.4,
+        shadowRadius: 10,
+        shadowOffset: { width: 0, height: 6 },
+        elevation: 8,
       })}
     >
-      {action.icon(theme.color.onBrand)}
+      <Gradient
+        colors={theme.gradient.brand}
+        radius={CENTER_SIZE / 2}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        {action.icon(theme.color.onBrand)}
+      </Gradient>
     </Pressable>
   );
 });
