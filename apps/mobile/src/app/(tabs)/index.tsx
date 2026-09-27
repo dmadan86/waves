@@ -47,7 +47,7 @@ import { ImportProgressBanner } from '@/components/ImportProgressBanner';
 import { SkeletonList } from '@/components/Skeletons';
 import { useImportedGroupId } from '@/lib/importProgress';
 import { useReducedMotion } from '@/lib/reducedMotion';
-import { SCENE_SKY, Scene, sceneFor } from '@/lib/scene';
+import { SCENE_CARD_BAND, SCENE_SKY, Scene, sceneFor } from '@/lib/scene';
 import { THEME_HIDDEN } from '@/lib/theme';
 import { useDefaultCurrency } from '@/lib/currency';
 import { QuickAddSheet, useQuickAddActions } from '@/components/QuickAddSheet';
@@ -521,6 +521,7 @@ export default function HomeScreen() {
               settling={settling}
               loading={showSkeleton || !balanceReady}
               background={CARD_ART[scene]}
+              band={SCENE_CARD_BAND[scene]}
               footer={
                 <HomeQuickActions
                   // The quick sheet, not the capture screen: most spends know

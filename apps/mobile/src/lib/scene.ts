@@ -43,3 +43,18 @@ export const SCENE_SKY: Readonly<Record<Scene, string>> = {
   [Scene.Night]: '#1F1F5C',
   [Scene.Winter]: '#8E86C8',
 };
+
+/**
+ * The balance card's band under its landscape, left to right: the picture's own
+ * light left edge running to its softer middle tone, so the card carries the
+ * scene's colour on down under the figures and the actions without the dark
+ * foreground trees it ends in on the right.
+ */
+export const SCENE_CARD_BAND: Readonly<Record<Scene, readonly [string, string]>> = {
+  [Scene.Morning]: ['#F9F4EB', '#DCE8DF'],
+  [Scene.Afternoon]: ['#E1F0FB', '#C4E4FA'],
+  [Scene.Sunset]: ['#F7ECE4', '#E2C4D0'],
+  [Scene.Evening]: ['#E0E2F5', '#C2C2EA'],
+  [Scene.Night]: ['#D5E6FA', '#A9C0E0'],
+  [Scene.Winter]: ['#EAF1FB', '#E0EBFB'],
+};
