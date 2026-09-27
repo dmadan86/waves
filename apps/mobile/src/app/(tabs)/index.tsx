@@ -456,8 +456,18 @@ export default function HomeScreen() {
               picture and the canvas below read as one surface. */}
           <LinearGradient
             pointerEvents="none"
-            colors={[`${theme.color.bg}00`, theme.color.bg]}
-            style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '45%' }}
+            // A long, eased fade — begun high enough that the sky has thinned
+            // before it reaches the card's shoulders, so no edge shows either
+            // side of the card where the scene gives way to the page.
+            colors={[
+              `${theme.color.bg}00`,
+              `${theme.color.bg}33`,
+              `${theme.color.bg}99`,
+              `${theme.color.bg}E6`,
+              theme.color.bg,
+            ]}
+            locations={[0, 0.3, 0.6, 0.85, 1]}
+            style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '70%' }}
           />
           {/* Face, "Hi, {name} 👋" over the time of day; then the glyphs that
               lead somewhere: sync, activity, the menu. */}
