@@ -1,6 +1,6 @@
 /**
- * The dashboard's balance card: a white card that rides up over the bottom of
- * the hero's wash, carrying where you stand and the two sides that make it up.
+ * The dashboard's balance card: a frosted glass card that rides up over the
+ * bottom of the hero's scene, carrying where you stand and the two sides that make it up.
  *
  *   Total you owe                    [Overall ▾]
  *   ₹1,13,689.50
@@ -18,10 +18,10 @@
  * All in the primary currency — there is no total across currencies (ADR-004).
  */
 
-import { useState, type ReactNode } from 'react';
+import { useState, type ReactNode, type RefObject } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { ActivityIndicator, Image, Pressable, StyleSheet, View } from 'react-native';
+import { BlurView } from 'expo-blur';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 
 import { iconSize, Row, Skeleton, Text, useTheme } from '@waves/ui';
 
@@ -52,8 +52,7 @@ export function HomeBalanceCard({
   settling,
   loading,
   footer,
-  background,
-  band,
+  blurTarget,
 }: {
   net: bigint;
   /** Everything owed to you, and everything you owe, before the net. */
@@ -74,16 +73,14 @@ export function HomeBalanceCard({
   loading: boolean;
   /** Drawn along the card's foot, edge to edge — the quick actions. */
   footer?: ReactNode;
-  /** The time of day's card landscape (`lib/scene`), drawn behind the figures. */
-  background?: number;
-  /** Its colours, left to right, carried on down under the rest of the card. */
-  band?: readonly [string, string];
+  /** What the glass blurs on Android — the hero's scene, wrapped in a
+   *  `BlurTargetView`. iOS blurs whatever is behind it without being told. */
+  blurTarget?: RefObject<View | null>;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
   const [period, setPeriod] = useState<Period>(Period.Overall);
-  // The card's width, measured, so the landscape can be drawn whole across it.
-  const [artWidth, setArtWidth] = useState(0);
+  const dark = theme.scheme === 'dark';
   const month = period === Period.Month;
 
   const label = month
@@ -99,77 +96,40 @@ export function HomeBalanceCard({
   return (
     <View
       style={{
-        backgroundColor: theme.color.surface,
         borderRadius: theme.radius.xl,
-        shadowColor: '#3B2A8C',
+        shadowColor: '#322864',
         shadowOpacity: 0.12,
-        shadowRadius: 18,
-        shadowOffset: { width: 0, height: 8 },
-        elevation: 4,
+        shadowRadius: 16,
+        shadowOffset: { width: 0, height: 12 },
       }}
     >
-      {/* The time of day's landscape under the whole card, the action strip
-          included. It fades to white on the left, where the words are, and
-          shows its scene on the right — so it is sized to the card's height and
-          pinned to the right edge, never centre-cropped: a centred crop of a
-          wide picture on a narrower card cut the scene off and left only the
-          fade. The shadow lives on the outer view, the clipping on this one. */}
+      {/* Frosted glass: the scene behind shows through as atmosphere, blurred
+          and mostly washed out, so it never competes with the figures. The
+          shadow lives on the outer view, the clipping on this one. */}
       <View
-        onLayout={(event) => setArtWidth(event.nativeEvent.layout.width)}
-        style={{ borderRadius: theme.radius.xl, overflow: 'hidden' }}
+        style={{
+          borderRadius: theme.radius.xl,
+          overflow: 'hidden',
+          borderWidth: 1,
+          borderColor: dark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.65)',
+        }}
       >
-        {background && band && artWidth > 0 ? (
-          <View
-            pointerEvents="none"
-            style={[StyleSheet.absoluteFill, { opacity: theme.scheme === 'dark' ? 0.4 : 1 }]}
-          >
-            {/* The scene's colours carried on down the whole card. */}
-            <LinearGradient
-              colors={band}
-              start={{ x: 0, y: 0.5 }}
-              end={{ x: 1, y: 0.5 }}
-              style={StyleSheet.absoluteFill}
-            />
-            {/* The picture across the top, whole, at its own shape. */}
-            <Image
-              source={background}
-              resizeMode="cover"
-              accessibilityElementsHidden
-              importantForAccessibility="no-hide-descendants"
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: artWidth,
-                height: artWidth / CARD_ART_RATIO,
-              }}
-            />
-            {/* Its foot faded into the band below, with no line where the
-                picture stops: the band drawn over the lower part of the picture
-                in thin strips, each a little more solid than the one above —
-                a mask's fade, without a masking library. */}
-            {FADE_STEPS.map((step) => {
-              const artHeight = artWidth / CARD_ART_RATIO;
-              const top = artHeight * (FADE_FROM + ((1 - FADE_FROM) * step) / FADE_STEPS.length);
-              return (
-                <LinearGradient
-                  key={step}
-                  colors={band}
-                  start={{ x: 0, y: 0.5 }}
-                  end={{ x: 1, y: 0.5 }}
-                  style={{
-                    position: 'absolute',
-                    left: 0,
-                    width: artWidth,
-                    top,
-                    height: artHeight - top + 1,
-                    opacity: FADE_LAYER_OPACITY,
-                  }}
-                />
-              );
-            })}
-          </View>
-        ) : null}
+        <BlurView
+          intensity={GLASS_BLUR}
+          tint={dark ? 'dark' : 'light'}
+          // Android draws a real blur only when asked; without it the card is
+          // simply translucent, which the fill below already keeps readable.
+          experimentalBlurMethod="dimezisBlurView"
+          blurTarget={blurTarget}
+          style={StyleSheet.absoluteFill}
+        />
+        <View
+          pointerEvents="none"
+          style={[
+            StyleSheet.absoluteFill,
+            { backgroundColor: dark ? 'rgba(28, 26, 44, 0.82)' : 'rgba(255, 255, 255, 0.82)' },
+          ]}
+        />
         <View
           style={{
             paddingTop: theme.spacing.md,
@@ -293,15 +253,8 @@ export function HomeBalanceCard({
   );
 }
 
-/** Where on the picture the fade into the band begins, as a share of its
- *  height, how many strips it is drawn in, and how solid each strip is — the
- *  last strip's stack reaches ~95% band. */
-const FADE_FROM = 0.4;
-const FADE_STEPS = Array.from({ length: 14 }, (_, index) => index);
-const FADE_LAYER_OPACITY = 0.2;
-
-/** The card landscapes' width over height (866 × ~276). */
-const CARD_ART_RATIO = 3.14;
+/** How hard the glass blurs what is behind it. */
+const GLASS_BLUR = 40;
 
 const AMOUNT_STYLE = { fontSize: 30, lineHeight: 36, fontWeight: '800' } as const;
 
