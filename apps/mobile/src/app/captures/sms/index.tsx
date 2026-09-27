@@ -71,7 +71,7 @@ import {
   type DestinationSelection,
   type PersonChoice,
 } from '@/components/DestinationPicker';
-import { ScreenHero, useHeroStatusBar } from '@/components/ScreenHero';
+import { HeroFigureLine, ScreenHero, useHeroStatusBar } from '@/components/ScreenHero';
 import { filterLabel, SmsFilterSheet } from '@/components/SmsFilterSheet';
 import { SignInWall } from '@/components/SignInWall';
 import { SmsMessageRow } from '@/components/SmsMessageRow';
@@ -611,27 +611,30 @@ export default function SmsInboxScreen(): React.JSX.Element | null {
           ) : period.count > 0 ? (
             <Row style={{ alignItems: 'flex-end', gap: theme.spacing.md }}>
               <View style={{ flex: 1 }}>
-                <Text variant="caption" tone="onBrand" style={{ opacity: 0.85 }} numberOfLines={1}>
-                  {/* Which pile, and over what stretch of time. The stretch used
-                      to be a whole band of chips below the panel; it is a fact
-                      about the figure beside it, so it is said here and changed
-                      in the filter sheet the glyph above already opens. */}
-                  {`${kindLabel} · ${filterLabel(date, locale, t)}`}
-                </Text>
-                {period.total !== null && kind !== SmsKind.Other ? (
-                  <MoneyText
-                    amount={period.total}
-                    currency={period.currency}
-                    locale={locale}
-                    variant="title"
-                    tone="default"
-                    style={{ color: theme.color.onBrand }}
-                  />
-                ) : (
-                  <Text variant="title" tone="onBrand">
-                    {plural(locale, period.count, t.smsImport.messageCount)}
-                  </Text>
-                )}
+                {/* Which pile, and over what stretch of time, then the figure —
+                    one line, the way the dashboard's balance reads. The stretch
+                    used to be a whole band of chips below the panel; it is a
+                    fact about the figure, so it is said here and changed in the
+                    filter sheet the glyph above already opens. */}
+                <HeroFigureLine label={`${kindLabel} · ${filterLabel(date, locale, t)}`}>
+                  {period.total !== null && kind !== SmsKind.Other ? (
+                    <MoneyText
+                      amount={period.total}
+                      currency={period.currency}
+                      locale={locale}
+                      variant="title"
+                      tone="default"
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.6}
+                      style={{ color: theme.color.onBrand }}
+                    />
+                  ) : (
+                    <Text variant="title" tone="onBrand" numberOfLines={1}>
+                      {plural(locale, period.count, t.smsImport.messageCount)}
+                    </Text>
+                  )}
+                </HeroFigureLine>
                 {/* Said out loud rather than left to be noticed: a total that
                   quietly skipped rows is a number with nothing to question. */}
                 {period.uncounted > 0 && kind !== SmsKind.Other ? (

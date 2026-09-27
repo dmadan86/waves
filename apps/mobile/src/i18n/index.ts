@@ -1483,6 +1483,76 @@ export interface UiStrings {
     hideBalance: string;
     showBalance: string;
   };
+  /** The Activity screen: its subtitle, filter chips and row menu. */
+  activityScreen: {
+    subtitle: string;
+    all: string;
+    expenses: string;
+    edits: string;
+    trip: string;
+    more: string;
+    viewDetails: string;
+    openGroup: string;
+    noneForFilter: string;
+  };
+  /** Create a new group: header line, field labels and examples, row subtitles. */
+  newGroupForm: {
+    title: string;
+    headerSub: string;
+    nameExample: string;
+    whatFor: string;
+    descriptionExample: string;
+    addFriendsSub: string;
+    addContacts: string;
+    personPlaceholder: string;
+    groupType: string;
+    groupTypeSub: string;
+    datesSub: string;
+    budgetSub: string;
+    ratesSub: string;
+    tripCurrency: string;
+    addCurrency: string;
+    simplifySub: string;
+    suggested: string;
+  };
+  /** The Save an expense screen's row subtitles, header line and receipt / location tiles. */
+  captureForm: {
+    headerSub: string;
+    category: string;
+    categorySub: string;
+    paidWithSub: string;
+    groupSub: string;
+    dateSub: string;
+    receiptSub: string;
+    browse: string;
+    optional: string;
+    addLocationSub: string;
+    pickOnMapSub: string;
+    searchCurrency: string;
+    recentlyUsed: string;
+    allCurrencies: string;
+    noCurrencyMatch: string;
+  };
+  /** The dashboard: the balance card, the action tiles and the groups list. */
+  homeDash: {
+    totalOwed: string;
+    totalOwe: string;
+    totalSettled: string;
+    spentThisMonth: string;
+    vsLastMonth: string;
+    periodOverall: string;
+    periodMonth: string;
+    youLent: string;
+    youOwe: string;
+    settleUp: string;
+    newGroup: string;
+    addExpense: string;
+    reports: string;
+    settleTitle: string;
+    settleEmpty: string;
+    /** "Across 4 groups", under each side of the balance card. */
+    acrossGroups: PluralForms;
+  };
   /** The rotating "did you know" tips card on the dashboard — one useful,
    *  app-specific hint at a time, dismissible for good. */
   tips: {
@@ -4790,6 +4860,71 @@ const en: UiStrings = {
     hideBalance: 'Hide balance',
     showBalance: 'Show balance',
   },
+  activityScreen: {
+    subtitle: 'Your recent transactions and updates',
+    all: 'All',
+    expenses: 'Expenses',
+    edits: 'Edits',
+    trip: 'Trip',
+    more: 'More',
+    viewDetails: 'View details',
+    openGroup: 'Open group',
+    noneForFilter: 'Nothing here for this filter yet.',
+  },
+  newGroupForm: {
+    title: 'Create a new group',
+    headerSub: 'Start a group and share expenses easily with your friends',
+    nameExample: 'e.g. Bali Trip',
+    whatFor: 'What is this group for?',
+    descriptionExample: 'e.g. Friends trip, Weekend getaway',
+    addFriendsSub: 'Add people to start sharing expenses',
+    addContacts: 'Add contacts',
+    personPlaceholder: 'Type a name to add',
+    groupType: 'Group type',
+    groupTypeSub: 'Choose what this group is for',
+    datesSub: 'Set your travel dates (optional)',
+    budgetSub: 'Set a budget for better tracking',
+    ratesSub: 'Choose the currency for this trip',
+    tripCurrency: 'Trip currency',
+    addCurrency: 'Add a currency',
+    simplifySub: 'Automatically minimize the number of payments',
+    suggested: 'Suggested',
+  },
+  captureForm: {
+    headerSub: 'Record your spending in a few seconds',
+    category: 'Category',
+    categorySub: 'What kind of expense?',
+    paidWithSub: 'How did you pay?',
+    groupSub: 'Split with others?',
+    dateSub: 'When did you spend?',
+    receiptSub: 'Take a photo or choose from gallery',
+    browse: 'Browse',
+    optional: '(optional)',
+    addLocationSub: 'Use current or search',
+    pickOnMapSub: 'Select from map',
+    searchCurrency: 'Search currency or country',
+    recentlyUsed: 'Recently used',
+    allCurrencies: 'All currencies',
+    noCurrencyMatch: 'No currency matches',
+  },
+  homeDash: {
+    totalOwed: 'Total you are owed',
+    totalOwe: 'Total you owe',
+    totalSettled: 'You are all settled up',
+    spentThisMonth: 'You spent this month',
+    vsLastMonth: 'vs last month',
+    periodOverall: 'Overall',
+    periodMonth: 'This month',
+    youLent: 'You lent',
+    youOwe: 'You owe',
+    settleUp: 'Settle up',
+    newGroup: 'New group',
+    addExpense: 'Add expense',
+    reports: 'Reports',
+    settleTitle: 'Settle up in',
+    settleEmpty: 'You are square in every group.',
+    acrossGroups: { one: 'Across {n} group', other: 'Across {n} groups' },
+  },
   tips: {
     label: 'Tip',
     action: 'Show me',
@@ -7786,6 +7921,71 @@ const ta: UiStrings = {
     evening: 'மாலை வணக்கம்',
     hideBalance: 'இருப்பை மறை',
     showBalance: 'இருப்பைக் காட்டு',
+  },
+  activityScreen: {
+    subtitle: 'உங்கள் சமீபத்திய பரிவர்த்தனைகளும் புதுப்பிப்புகளும்',
+    all: 'அனைத்தும்',
+    expenses: 'செலவுகள்',
+    edits: 'திருத்தங்கள்',
+    trip: 'பயணம்',
+    more: 'மேலும்',
+    viewDetails: 'விவரங்களைப் பார்',
+    openGroup: 'குழுவைத் திற',
+    noneForFilter: 'இந்த வடிகட்டிக்கு இன்னும் எதுவும் இல்லை.',
+  },
+  newGroupForm: {
+    title: 'புதிய குழுவை உருவாக்கு',
+    headerSub: 'ஒரு குழுவைத் தொடங்கி நண்பர்களுடன் எளிதாகச் செலவுகளைப் பகிருங்கள்',
+    nameExample: 'எ.கா. கோவா பயணம்',
+    whatFor: 'இந்தக் குழு எதற்காக?',
+    descriptionExample: 'எ.கா. நண்பர்கள் பயணம், வார இறுதி சுற்றுலா',
+    addFriendsSub: 'செலவுகளைப் பகிர நபர்களைச் சேர்க்கவும்',
+    addContacts: 'தொடர்புகள்',
+    personPlaceholder: 'சேர்க்க ஒரு பெயரை உள்ளிடுங்கள்',
+    groupType: 'குழு வகை',
+    groupTypeSub: 'இந்தக் குழு எதற்கு என்று தேர்ந்தெடுங்கள்',
+    datesSub: 'பயணத் தேதிகள் (விருப்பம்)',
+    budgetSub: 'சிறந்த கண்காணிப்புக்கு ஒரு பட்ஜெட்',
+    ratesSub: 'இந்தப் பயணத்துக்கான நாணயத்தைத் தேர்ந்தெடுங்கள்',
+    tripCurrency: 'பயண நாணயம்',
+    addCurrency: 'நாணயம் சேர்',
+    simplifySub: 'செலுத்துதல்களின் எண்ணிக்கையைத் தானாகக் குறைக்கும்',
+    suggested: 'பரிந்துரைக்கப்பட்டவை',
+  },
+  captureForm: {
+    headerSub: 'சில நொடிகளில் உங்கள் செலவைப் பதிவு செய்யுங்கள்',
+    category: 'வகை',
+    categorySub: 'எந்த வகைச் செலவு?',
+    paidWithSub: 'எப்படிச் செலுத்தினீர்கள்?',
+    groupSub: 'மற்றவர்களுடன் பிரிக்கவா?',
+    dateSub: 'எப்போது செலவிட்டீர்கள்?',
+    receiptSub: 'புகைப்படம் எடுங்கள் அல்லது கேலரியிலிருந்து தேர்ந்தெடுங்கள்',
+    browse: 'தேர்ந்தெடு',
+    optional: '(விருப்பம்)',
+    addLocationSub: 'தற்போதைய இடம் அல்லது தேடல்',
+    pickOnMapSub: 'வரைபடத்தில் தேர்ந்தெடு',
+    searchCurrency: 'நாணயம் அல்லது நாட்டைத் தேடுங்கள்',
+    recentlyUsed: 'சமீபத்தில் பயன்படுத்தியவை',
+    allCurrencies: 'அனைத்து நாணயங்களும்',
+    noCurrencyMatch: 'பொருந்தும் நாணயம் இல்லை',
+  },
+  homeDash: {
+    totalOwed: 'உங்களுக்கு வர வேண்டிய மொத்தம்',
+    totalOwe: 'நீங்கள் தர வேண்டிய மொத்தம்',
+    totalSettled: 'எல்லாம் தீர்க்கப்பட்டது',
+    spentThisMonth: 'இந்த மாதம் நீங்கள் செலவிட்டது',
+    vsLastMonth: 'கடந்த மாதத்துடன் ஒப்பிட',
+    periodOverall: 'மொத்தம்',
+    periodMonth: 'இந்த மாதம்',
+    youLent: 'நீங்கள் கொடுத்தது',
+    youOwe: 'நீங்கள் தர வேண்டியது',
+    settleUp: 'கணக்கு தீர்',
+    newGroup: 'புதிய குழு',
+    addExpense: 'செலவு சேர்',
+    reports: 'அறிக்கைகள்',
+    settleTitle: 'எந்தக் குழுவில் தீர்க்க வேண்டும்?',
+    settleEmpty: 'எல்லா குழுக்களிலும் கணக்கு சரியாக உள்ளது.',
+    acrossGroups: { one: '{n} குழுவில்', other: '{n} குழுக்களில்' },
   },
   tips: {
     label: 'உதவிக்குறிப்பு',
@@ -10856,6 +11056,71 @@ const hi: UiStrings = {
     hideBalance: 'बैलेंस छिपाएँ',
     showBalance: 'बैलेंस दिखाएँ',
   },
+  activityScreen: {
+    subtitle: 'आपके हाल के लेन-देन और अपडेट',
+    all: 'सभी',
+    expenses: 'खर्च',
+    edits: 'बदलाव',
+    trip: 'ट्रिप',
+    more: 'और',
+    viewDetails: 'विवरण देखें',
+    openGroup: 'समूह खोलें',
+    noneForFilter: 'इस फ़िल्टर में अभी कुछ नहीं है।',
+  },
+  newGroupForm: {
+    title: 'नया समूह बनाएँ',
+    headerSub: 'समूह बनाएँ और दोस्तों के साथ आसानी से खर्च बाँटें',
+    nameExample: 'जैसे गोवा ट्रिप',
+    whatFor: 'यह समूह किसलिए है?',
+    descriptionExample: 'जैसे दोस्तों की ट्रिप, वीकेंड घूमना',
+    addFriendsSub: 'खर्च बाँटने के लिए लोगों को जोड़ें',
+    addContacts: 'संपर्क जोड़ें',
+    personPlaceholder: 'जोड़ने के लिए नाम लिखें',
+    groupType: 'समूह का प्रकार',
+    groupTypeSub: 'चुनें कि यह समूह किसलिए है',
+    datesSub: 'यात्रा की तारीखें (वैकल्पिक)',
+    budgetSub: 'बेहतर हिसाब के लिए बजट तय करें',
+    ratesSub: 'इस ट्रिप की मुद्रा चुनें',
+    tripCurrency: 'ट्रिप मुद्रा',
+    addCurrency: 'मुद्रा जोड़ें',
+    simplifySub: 'भुगतानों की संख्या अपने आप कम करता है',
+    suggested: 'सुझाए गए',
+  },
+  captureForm: {
+    headerSub: 'कुछ ही सेकंड में अपना खर्च दर्ज करें',
+    category: 'श्रेणी',
+    categorySub: 'किस तरह का खर्च?',
+    paidWithSub: 'कैसे भुगतान किया?',
+    groupSub: 'दूसरों के साथ बाँटें?',
+    dateSub: 'कब खर्च किया?',
+    receiptSub: 'फ़ोटो लें या गैलरी से चुनें',
+    browse: 'चुनें',
+    optional: '(वैकल्पिक)',
+    addLocationSub: 'मौजूदा जगह या खोजें',
+    pickOnMapSub: 'मैप से चुनें',
+    searchCurrency: 'मुद्रा या देश खोजें',
+    recentlyUsed: 'हाल में इस्तेमाल',
+    allCurrencies: 'सभी मुद्राएँ',
+    noCurrencyMatch: 'कोई मुद्रा नहीं मिली',
+  },
+  homeDash: {
+    totalOwed: 'आपको कुल मिलने हैं',
+    totalOwe: 'आपको कुल देने हैं',
+    totalSettled: 'सब हिसाब बराबर है',
+    spentThisMonth: 'इस महीने आपने खर्च किए',
+    vsLastMonth: 'पिछले महीने की तुलना में',
+    periodOverall: 'कुल',
+    periodMonth: 'इस महीने',
+    youLent: 'आपने दिए',
+    youOwe: 'आपको देने हैं',
+    settleUp: 'हिसाब चुकाएँ',
+    newGroup: 'नया समूह',
+    addExpense: 'खर्च जोड़ें',
+    reports: 'रिपोर्ट',
+    settleTitle: 'किस समूह में हिसाब चुकाएँ?',
+    settleEmpty: 'हर समूह में हिसाब बराबर है।',
+    acrossGroups: { one: '{n} समूह में', other: '{n} समूहों में' },
+  },
   tips: {
     label: 'सुझाव',
     action: 'दिखाओ',
@@ -13906,6 +14171,78 @@ const ar: UiStrings = {
     evening: 'مساء الخير',
     hideBalance: 'إخفاء الرصيد',
     showBalance: 'إظهار الرصيد',
+  },
+  activityScreen: {
+    subtitle: 'معاملاتك وتحديثاتك الأخيرة',
+    all: 'الكل',
+    expenses: 'المصروفات',
+    edits: 'التعديلات',
+    trip: 'الرحلة',
+    more: 'المزيد',
+    viewDetails: 'عرض التفاصيل',
+    openGroup: 'فتح المجموعة',
+    noneForFilter: 'لا شيء هنا لهذا الفلتر بعد.',
+  },
+  newGroupForm: {
+    title: 'إنشاء مجموعة جديدة',
+    headerSub: 'ابدأ مجموعة وتقاسم المصروفات بسهولة مع أصدقائك',
+    nameExample: 'مثال: رحلة بالي',
+    whatFor: 'ما الغرض من هذه المجموعة؟',
+    descriptionExample: 'مثال: رحلة أصدقاء، عطلة نهاية الأسبوع',
+    addFriendsSub: 'أضف أشخاصًا لبدء تقاسم المصروفات',
+    addContacts: 'إضافة جهات اتصال',
+    personPlaceholder: 'اكتب اسمًا لإضافته',
+    groupType: 'نوع المجموعة',
+    groupTypeSub: 'اختر الغرض من هذه المجموعة',
+    datesSub: 'حدّد تواريخ السفر (اختياري)',
+    budgetSub: 'حدّد ميزانية لتتبع أفضل',
+    ratesSub: 'اختر عملة هذه الرحلة',
+    tripCurrency: 'عملة الرحلة',
+    addCurrency: 'إضافة عملة',
+    simplifySub: 'تقليل عدد الدفعات تلقائيًا',
+    suggested: 'مقترحون',
+  },
+  captureForm: {
+    headerSub: 'سجّل مصروفك في ثوانٍ',
+    category: 'الفئة',
+    categorySub: 'ما نوع المصروف؟',
+    paidWithSub: 'كيف دفعت؟',
+    groupSub: 'تقسيمه مع الآخرين؟',
+    dateSub: 'متى أنفقت؟',
+    receiptSub: 'التقط صورة أو اختر من المعرض',
+    browse: 'استعراض',
+    optional: '(اختياري)',
+    addLocationSub: 'الموقع الحالي أو البحث',
+    pickOnMapSub: 'اختر من الخريطة',
+    searchCurrency: 'ابحث عن عملة أو دولة',
+    recentlyUsed: 'المستخدمة مؤخرًا',
+    allCurrencies: 'كل العملات',
+    noCurrencyMatch: 'لا توجد عملة مطابقة',
+  },
+  homeDash: {
+    totalOwed: 'إجمالي المستحق لك',
+    totalOwe: 'إجمالي المستحق عليك',
+    totalSettled: 'كل الحسابات مسوّاة',
+    spentThisMonth: 'أنفقت هذا الشهر',
+    vsLastMonth: 'مقارنة بالشهر الماضي',
+    periodOverall: 'الإجمالي',
+    periodMonth: 'هذا الشهر',
+    youLent: 'أقرضت',
+    youOwe: 'عليك',
+    settleUp: 'تسوية',
+    newGroup: 'مجموعة جديدة',
+    addExpense: 'إضافة مصروف',
+    reports: 'التقارير',
+    settleTitle: 'التسوية في أي مجموعة؟',
+    settleEmpty: 'حساباتك مسوّاة في كل المجموعات.',
+    acrossGroups: {
+      zero: 'في {n} مجموعة',
+      one: 'في مجموعة واحدة',
+      two: 'في مجموعتين',
+      few: 'في {n} مجموعات',
+      many: 'في {n} مجموعة',
+      other: 'في {n} مجموعة',
+    },
   },
   tips: {
     label: 'نصيحة',

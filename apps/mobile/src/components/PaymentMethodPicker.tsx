@@ -77,10 +77,16 @@ function usePaymentMethodLabel(): (id: PaymentMethod) => string {
 export function PaymentMethodRow({
   value,
   onPress,
+  subtitle,
+  tinted = false,
 }: {
   value: PaymentMethod | null;
   onPress: () => void;
+  /** The form look (Save an expense): a subtitle, and the rail's glyph in a disc. */
+  subtitle?: string;
+  tinted?: boolean;
 }) {
+  const theme = useTheme();
   const { t } = useStrings();
   const label = usePaymentMethodLabel();
   const method = value
@@ -97,6 +103,8 @@ export function PaymentMethodRow({
       // answer's.
       icon={method ? PAYMENT_METHOD_ICONS[method] : 'wallet-outline'}
       label={t.captures.paidWith}
+      subtitle={subtitle}
+      tint={tinted ? theme.tint.mint : undefined}
       value={value ? label(value) : t.captures.paidNotSaid}
       placeholder={!value}
       onPress={onPress}

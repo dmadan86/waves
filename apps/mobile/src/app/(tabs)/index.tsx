@@ -3,24 +3,23 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import {
-  ActivityIndicator,
   Animated,
+  Image,
   Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
-  useWindowDimensions,
   View,
 } from 'react-native';
 
-import { balanceDeckSlides, dayNumber, type BalanceSlide, type GuestGate } from '@waves/core';
+import { dayNumber, type GuestGate } from '@waves/core';
 import {
   Avatar,
   Button,
   directionalIcon,
   EmptyState,
-  Gradient,
   iconSize,
   MoneyText,
   Popup,
@@ -33,7 +32,14 @@ import {
   useTheme,
 } from '@waves/ui';
 
-import { useCaptures, useGroups, useHomeSummary, usePinnedGroupIds } from '@/data/hooks';
+import {
+  useCaptures,
+  useGroups,
+  useHomeSummary,
+  useNewestActivityFromOthers,
+  usePinnedGroupIds,
+} from '@/data/hooks';
+import { hasUnseenActivity, useActivitySeenAt } from '@/lib/activitySeen';
 import { orderByActivity } from '@/lib/groupActivityOrder';
 import { orderByPin } from '@/lib/groupPinOrder';
 import { plural, useStrings, type UiStrings } from '@/i18n';
@@ -46,16 +52,18 @@ import { TourTarget, useTour } from '@/lib/tour';
 import { GroupMark } from '@/components/GroupMark';
 import { SyncStatusIcon } from '@/components/SyncBanner';
 import { ImportProgressBanner } from '@/components/ImportProgressBanner';
-import { HeroDots } from '@/components/HeroDots';
 import { SkeletonList } from '@/components/Skeletons';
 import { useImportedGroupId } from '@/lib/importProgress';
 import { useReducedMotion } from '@/lib/reducedMotion';
+import { SCENE_CARD_BAND, SCENE_SKY, Scene, sceneFor } from '@/lib/scene';
 import { THEME_HIDDEN } from '@/lib/theme';
 import { useDefaultCurrency } from '@/lib/currency';
 import { QuickAddSheet, useQuickAddActions } from '@/components/QuickAddSheet';
 import { QuickExpenseSheet } from '@/components/QuickExpenseSheet';
-import { GroupAddIcon } from '@/components/GroupAddIcon';
-import { HeroActionCircle, HeroPillButton } from '@/components/ScreenHero';
+import { BALANCE_MASK, HomeBalanceCard } from '@/components/home/HomeBalanceCard';
+import { HomeQuickActions } from '@/components/home/HomeQuickActions';
+import { useHeroStatusBar } from '@/components/ScreenHero';
+import { SettlePickerSheet, type SettleCandidate } from '@/components/home/SettlePickerSheet';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { RestorePrompt } from '@/components/RestorePrompt';
 import { useAvatarUrl } from '@/components/ProfileAvatar';
@@ -111,20 +119,8 @@ export default function HomeScreen() {
 
   const defaultCurrency = useDefaultCurrency();
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
   // The eye toggle: hide the money on a shared screen, remembered across opens.
   const { hidden: balanceHidden, ready: balanceReady, toggle: toggleBalance } = useBalanceHidden();
-  // The carousel's live scroll offset, owned here so the hero background and the
-  // balance deck share one value: the background crossfades between the slide
-  // colours (SLIDE_STYLE) exactly as the deck moves. Lazy-init, never
-  // re-read through `.current` in render (the ref lint the compiler enforces).
-  const [heroScrollX] = useState(() => new Animated.Value(0));
-  // Each slide fills the hero's inner width; a slide's snap point is that plus
-  // the gap. Computed here so the same numbers drive the deck's layout and the
-  // background's colour interpolation — one source, so they can never drift.
-  const heroInner = width - theme.spacing.xl * 2;
-  const heroGap = theme.spacing.md;
-  const heroSnap = heroInner + heroGap;
   // The time-of-day line under the name. The *bucket* is sampled once on mount
   // (lazy init, never a bare Date in render — the React Compiler lints that),
   // then the localised word is read at render so it follows a language change.
@@ -331,33 +327,6 @@ export default function HomeScreen() {
     owing: 0n,
   };
 
-  // Which figures the balance deck is worth swiping through, decided from the
-  // headline totals in @waves/core. Two slides for money that runs one way,
-  // three when it runs both — a gross slide appears only where the net is
-  // hiding a side, so no two slides ever carry the same number under two names.
-  // The screen and the deck read the same answer: the colour layers, the
-  // watermarks and the dot pager all count this one list.
-  const deck = balanceDeckSlides(headline);
-  // The ink the hero's solid pill draws its label in: the resting slide's wash,
-  // which is the colour the card wears on load and the one the deck opens on.
-  // Not the *live* slide — the pill sits still while the wash crossfades, and
-  // the scroll value those layers interpolate is native-driven, so a colour that
-  // chased the swipe would have to be read back on the JS side of a value that
-  // no longer reports there. Every stop in SLIDE_STYLE clears AA on white, so
-  // the pill is legible whichever slide is under it either way.
-  const heroInk = SLIDE_STYLE[deck[0] ?? 'net'].gradient;
-  // What the two hero pills add to the shared `HeroPillButton`, and why.
-  //
-  // The height floor is not decoration: each pill is wrapped in the tour's
-  // anchor View, which measures to the pill exactly, and a touch target reaching
-  // outside its own parent is never offered the touch on Android — so `hitSlop`
-  // cannot buy back the last few points here and the box itself has to clear the
-  // 44pt minimum. The pill's own padding around a 22pt line leaves it at 38.
-  //
-  // The narrower side padding is a truncation guard. Each pill is a fixed half of
-  // the row, so its padding is straight off the label's budget rather than added
-  // around it; at the pill's usual `lg` a two-word label runs out of room on a
-  // 320pt screen. Centred in a fixed width, the difference is invisible.
   // The ids of the trips running today, so their rows can wear an "on trip"
   // tag. "Running" is decided in the trip's own timezone, not the phone's — a
   // Goa trip run from Dubai turns over at midnight in Goa (the same rule
@@ -372,71 +341,114 @@ export default function HomeScreen() {
   // in render) so the "New" window is stable across this screen's renders and
   // the React Compiler stays happy — a bare Date.now() in render trips its lint.
   const [nowMs] = useState(() => Date.now());
+  // Which landscape the hero wears, re-read every few minutes so an app left
+  // open across sunset turns with the sky. The scroll offset fades the status
+  // bar's strip in as the scene scrolls away.
+  const [scene, setScene] = useState(() => sceneFor(new Date()));
+  useEffect(() => {
+    const timer = setInterval(() => setScene(sceneFor(new Date())), 5 * 60 * 1000);
+    return () => clearInterval(timer);
+  }, []);
+  // The scene runs up under the status bar, so the clock and battery go white
+  // while Home is the screen in front (and back to the theme's when it is not).
+  useHeroStatusBar();
+
+  // The bell's red dot: somebody else has done something since Activity was
+  // last opened. Your own expenses are not news.
+  const newestFromOthers = useNewestActivityFromOthers(viewerId);
+  const activitySeenAt = useActivitySeenAt();
+  const unseenActivity = hasUnseenActivity(newestFromOthers, activitySeenAt);
+
+  // Settle up from Home asks which group first; these are the ones with money
+  // outstanding either way, largest first.
+  const [settleOpen, setSettleOpen] = useState(false);
+  const settleCandidates: SettleCandidate[] = list
+    .map((group) => ({
+      id: group.id,
+      title: groupLabel(group, summary.membersFor(group.id), viewerId),
+      coverEmoji: group.cover_emoji,
+      balance: summary.balanceFor(group.id),
+      currency: group.default_currency,
+    }))
+    .filter((group) => group.balance !== 0n)
+    .sort((a, b) => {
+      const size = (x: bigint) => (x < 0n ? -x : x);
+      const d = size(b.balance) - size(a.balance);
+      return d > 0n ? 1 : d < 0n ? -1 : 0;
+    });
+  // How many groups each side of the balance card comes from — in the
+  // headline's currency, the one those sides are totalled in.
+  const inHeadline = list.filter(
+    // The same fallback the totals key a group by, so a group with no
+    // currency set is counted where its balance was summed.
+    (group) => (group.default_currency ?? 'INR') === headline.currency,
+  );
+  const owedGroups = inHeadline.filter((group) => summary.balanceFor(group.id) > 0n).length;
+  const owingGroups = inHeadline.filter((group) => summary.balanceFor(group.id) < 0n).length;
+
+  const monthSpent =
+    summary.monthSpent.find((entry) => entry.currency === headline.currency)?.amount ?? 0n;
+  const lastMonthSpent =
+    summary.lastMonthSpent.find((entry) => entry.currency === headline.currency)?.amount ?? 0n;
+  const openReports = () => router.push('/personal/spending');
 
   return (
     <Screen edges={[]}>
-      {/* The hero is a fixed header — it stays put while only the body below it
-          scrolls, matching Friends. */}
-      {/* The hero: one saturated green card that runs edge to edge and up under
-            the status bar — the reference's signature "account panel". It carries
-            the whole top of the screen now: the greeting and face, the swipeable
-            balance, and the add actions. Everything below it is the plain white
-            body. Wrapped as the tour's "hero" anchor so the first coach-mark still
-            spotlights the balance. */}
-      <TourTarget id="hero">
+      {/* Static: the scene, the greeting and the balance card stay put; only
+          the groups list below scrolls. */}
+      <View style={{ flex: 1 }}>
+        {/* The scene: a landscape for the time of day, edge to edge from under
+            the status bar down behind the balance card, fading into the page
+            over the card's own height — so either side of the card it thins
+            out gradually instead of stopping at an edge. A shade across its
+            top keeps the white greeting readable on the brightest skies. */}
         <View
+          pointerEvents="none"
           style={{
-            paddingTop: insets.top + theme.spacing.md,
-            paddingHorizontal: theme.spacing.xl,
-            paddingBottom: theme.spacing.md,
-            borderBottomLeftRadius: theme.radius.xxl,
-            borderBottomRightRadius: theme.radius.xxl,
-            // Was xl. The hero holds three stacked things and paid 20 twice for
-            // the privilege; at lg it still breathes and the groups — the reason
-            // the screen exists — start higher up the glass.
-            gap: theme.spacing.lg,
-            overflow: 'hidden',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: insets.top + SCENE_DEPTH,
+            backgroundColor: SCENE_SKY[scene],
           }}
         >
-          {/* One gradient layer per slide, stacked and clipped to the hero's
-                rounded corner. Each fades in as its slide reaches centre and out
-                as you leave it (opacity peaks at that slide's snap point, zero at
-                its neighbours), so the hero crossfades colour in lock-step with
-                the swipe. Native-driven opacity off the shared scroll value —
-                smooth at 60fps and free at rest. The first layer sits opaque
-                behind everything as the base while the balance loads. */}
-          {deck.map((slide, index) => (
-            <Animated.View
-              key={slide}
-              pointerEvents="none"
-              style={[
-                StyleSheet.absoluteFill,
-                index === 0
-                  ? null
-                  : {
-                      opacity: heroScrollX.interpolate({
-                        inputRange: [
-                          (index - 1) * heroSnap,
-                          index * heroSnap,
-                          (index + 1) * heroSnap,
-                        ],
-                        outputRange: [0, 1, 0],
-                        extrapolate: 'clamp',
-                      }),
-                    },
-              ]}
-            >
-              <Gradient colors={SLIDE_STYLE[slide].gradient} radius={0} style={{ flex: 1 }} />
-            </Animated.View>
-          ))}
+          <Image
+            source={SCENE_ART[scene]}
+            resizeMode="cover"
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            style={StyleSheet.absoluteFill}
+          />
+          <LinearGradient
+            colors={['rgba(28, 18, 66, 0.42)', 'rgba(28, 18, 66, 0.1)', 'rgba(28, 18, 66, 0)']}
+            locations={[0, 0.35, 0.6]}
+            style={StyleSheet.absoluteFill}
+          />
+          <LinearGradient
+            colors={[
+              `${theme.color.bg}00`,
+              `${theme.color.bg}26`,
+              `${theme.color.bg}80`,
+              `${theme.color.bg}D9`,
+              theme.color.bg,
+            ]}
+            locations={[0, 0.25, 0.55, 0.8, 1]}
+            style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '65%' }}
+          />
+        </View>
 
-          {/* The corner watermark — a faint glyph per slide that crossfades
-                as you swipe, off the same scroll value as the colour. */}
-          <HeroBackdrop slides={deck} scrollX={heroScrollX} snap={heroSnap} />
-
-          {/* Greeting row: face + "Hi, {name}" over the time of day, then the
-                white controls the reference tucks top-right — sync, a shortcut to
-                start a group, and the overflow menu. */}
+        {/* The greeting, over the scene. The balance card rides up over its
+            foot. */}
+        <View
+          style={{
+            paddingTop: insets.top + theme.spacing.sm,
+            paddingHorizontal: theme.spacing.lg,
+            paddingBottom: HERO_OVERLAP + theme.spacing.sm,
+          }}
+        >
+          {/* Face, "Hi, {name} 👋" over the time of day; then the glyphs that
+              lead somewhere: sync, activity, the menu. */}
           <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
             <HeroAvatar
               name={displayName}
@@ -451,22 +463,23 @@ export default function HomeScreen() {
               hitSlop={8}
               style={({ pressed }) => ({ flex: 1, opacity: pressed ? 0.5 : 1 })}
             >
-              <Text variant="heading" tone="onBrand" numberOfLines={1}>
-                {t.dashHero.hi.replace('{name}', displayName)}
+              <Text
+                tone="onBrand"
+                numberOfLines={1}
+                style={{ fontSize: 18, lineHeight: 23, fontWeight: '700' }}
+              >
+                {`${t.dashHero.hi.replace('{name}', displayName)} 👋`}
               </Text>
-              <Text variant="caption" tone="onBrand" style={{ opacity: 0.85 }}>
-                {t.dashHero[greetKey]}
+              <Text variant="body" tone="onBrand" numberOfLines={1} style={{ opacity: 0.9 }}>
+                {`${t.dashHero[greetKey]}!`}
               </Text>
             </Pressable>
             <SyncStatusIcon onBrand />
-            {/* Activity sits up here with the other glyphs that lead somewhere
-                  and change nothing: sync, the menu, the face. It is a shortcut
-                  to a feed you read — the grid below is for the things that
-                  create something, and this was the odd one out among them. */}
             <HeroIconButton
               icon="notifications-outline"
-              label={t.activity}
+              label={unseenActivity ? `${t.activity}, ${t.tagNew}` : t.activity}
               onPress={() => router.navigate('/activity')}
+              dot={unseenActivity}
             />
             <HeroIconButton
               icon="ellipsis-vertical"
@@ -474,139 +487,54 @@ export default function HomeScreen() {
               onPress={() => setMenuOpen(true)}
             />
           </Row>
-
-          {/* The swipeable balance — net, then owed, then this month — riding
-                on the hero's colour rather than in its own card (ADR-004: no total
-                across currencies, so each is its own slide). Its scroll drives the
-                background crossfade above. A placeholder stands in only while
-                there is genuinely no figure to show; a figure that is merely
-                unconfirmed is shown at full strength, with a small spinner beside
-                its label. */}
-          {showSkeleton || !balanceReady ? (
-            <HeroBalanceSkeleton />
-          ) : (
-            <HeroBalance
-              slides={deck}
-              primary={headline}
-              monthSpent={summary.monthSpent}
-              locale={locale}
-              t={t}
-              hidden={balanceHidden}
-              onToggleHide={toggleBalance}
-              scrollX={heroScrollX}
-              cardWidth={heroInner}
-              gap={heroGap}
-              snap={heroSnap}
-              settling={settling}
-            />
-          )}
-
-          {/* The two things you start from Home, on the panel and wearing the
-                group hero's pair of faces: a solid white pill for the expense —
-                the one unmistakable thing to press — and the same pill hollowed
-                out for the group beside it.
-
-                Outside the paging deck on purpose. Inside it they would be a set
-                of buttons per slide, scrolling off with the figure and arriving
-                back from the other side, and the tour's anchors would measure
-                whichever copy happened to be on screen.
-
-                Equal halves rather than the group hero's pill-and-discs, because
-                both actions carry a word and there is no third one to make room
-                for; the halves swap ends under RTL on their own. */}
-          {/* The group hero's own row, not a variant of it: one pill that hugs
-              its label, and what is left pushed to the shoulder as a disc. The
-              pill was a forced half-width here, which is what made "Add
-              expense" collide with its own glyph and need shortening; letting
-              it size to its words fixes the fit and matches the screen this
-              was taken from. */}
-          {/* The pager rides in the row with the buttons, in the gap the two of
-              them leave between the pill and the disc. On a line of its own it
-              was a third band of hero to get past, and centred there it lined
-              up with nothing; here the row has one horizontal rhythm and the
-              dots sit in the middle of it. */}
-          <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
-            <TourTarget id="addExpense">
-              <HeroPillButton
-                icon="add"
-                // The plus is doing the verb's work, so the pill carries the
-                // noun. Spoken it is still the whole action: "Expense" heard
-                // on its own could be a heading.
-                label={t.expenseShort}
-                spokenLabel={t.addExpense}
-                gradient={heroInk}
-                // The quick sheet, not the capture screen. Most spends know
-                // exactly where they belong and need an amount and a place,
-                // which is what this asks for; the capture screen is still one
-                // tap below, through "More details", carrying whatever has been
-                // typed. The long press raises type/scan/speak, unchanged.
-                onPress={() => setQuickExpenseOpen(true)}
-                onLongPress={() => setQuickAddOpen(true)}
-              />
-            </TourTarget>
-            {/* Takes the slack, so the disc still sits on the shoulder and the
-                dots centre in what is left. */}
-            <View style={{ flex: 1, alignItems: 'center' }}>
-              <HeroDots count={deck.length} scrollX={heroScrollX} snap={heroSnap} />
-            </View>
-
-            <Row>
-              <TourTarget id="addGroup">
-                <HeroActionCircle
-                  // The mark carries its own plus, so there is no badge on it.
-                  // Smaller than an Ionicon would be in the same disc: this
-                  // mark is three figures and a plus where a glyph is one
-                  // shape, and at icon size that detail needs the air around
-                  // it more than it needs the extra points. The disc keeps its
-                  // own size — it is the touch target.
-                  glyph={<GroupAddIcon size={16} color={heroInk[0] ?? theme.color.brand} />}
-                  // White like the pill beside it: the dim disc all but
-                  // vanished on the lighter stops of the wash.
-                  solid
-                  ink={heroInk[0]}
-                  label={t.newGroup}
-                  onPress={openNewGroup}
-                />
-              </TourTarget>
-            </Row>
-          </Row>
         </View>
-      </TourTarget>
 
-      <OverflowMenu visible={menuOpen} onClose={() => setMenuOpen(false)} items={menuItems} />
-
-      <ScrollView
-        contentContainerStyle={{
-          paddingBottom: clearance,
-          // Fill the viewport so the no-groups empty state can centre itself in
-          // whatever height is left under the hero rather than hugging it.
-          flexGrow: 1,
-        }}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={pull.refreshing}
-            onRefresh={pull.onRefresh}
-            tintColor={theme.color.brand}
-          />
-        }
-      >
-        {/* The white body beneath the hero: the groups list. A list gutter
-            (`lg`, 16pt) rather than the page gutter (`xl`): 16pt is the phone
-            margin iOS and Android both default to, and on a 390pt iPhone the
-            extra 8pt of a 20pt gutter came straight out of the group's name,
-            which was cutting off short. Friends lists people the same way.
-            `lg` above it, the gap every screen opens under its header. */}
+        {/* The body on the lavender canvas. A list gutter (`lg`, 16pt), the
+            phone margin iOS and Android both default to. */}
         <View
           style={{
             paddingHorizontal: theme.spacing.lg,
-            paddingTop: theme.spacing.lg,
-            // Heading → its card. The import banner, when it shows, adds its
-            // own margin so it still sits a full section gap (xl) above.
-            gap: theme.spacing.sm,
-            flexGrow: 1,
+            marginTop: -HERO_OVERLAP,
+            gap: theme.spacing.md,
+            flex: 1,
           }}
         >
+          {/* The tour's "hero" anchor is the balance card, so the first
+              coach-mark still spotlights the balance. */}
+          <TourTarget id="hero">
+            <HomeBalanceCard
+              net={headline.net}
+              owed={headline.owed}
+              owing={headline.owing}
+              owedGroups={owedGroups}
+              owingGroups={owingGroups}
+              monthSpent={monthSpent}
+              lastMonthSpent={lastMonthSpent}
+              currency={headline.currency}
+              locale={locale}
+              hidden={balanceHidden || !balanceReady}
+              onToggleHide={toggleBalance}
+              settling={settling}
+              loading={showSkeleton || !balanceReady}
+              background={CARD_ART[scene]}
+              band={SCENE_CARD_BAND[scene]}
+              footer={
+                <HomeQuickActions
+                  // The quick sheet, not the capture screen: most spends know
+                  // where they belong and need an amount and a place. The long
+                  // press raises type / scan / speak, unchanged.
+                  onAddExpense={() => setQuickExpenseOpen(true)}
+                  onAddExpenseLong={() => setQuickAddOpen(true)}
+                  onReports={openReports}
+                  onSettleUp={() => setSettleOpen(true)}
+                  onNewGroup={openNewGroup}
+                  gradient={HERO_WASH}
+                  radius={theme.radius.xl}
+                />
+              }
+            />
+          </TourTarget>
+
           {/* A background import's progress lands here, just above the groups —
               the person tapped Import, came home, and watches it fill. */}
           <ImportProgressBanner />
@@ -616,8 +544,7 @@ export default function HomeScreen() {
           ) : list.length === 0 ? (
             <View style={{ flex: 1, justifyContent: 'center' }}>
               {/* The one screen where somebody has nothing to act on yet gets
-                  the action spelled out, rather than leaving them to find the
-                  small icon up in the hero's header cluster. */}
+                  the action spelled out. */}
               <EmptyState
                 title={t.tabs.noGroups}
                 body={t.tabs.noGroupsBody}
@@ -628,7 +555,7 @@ export default function HomeScreen() {
               />
             </View>
           ) : (
-            <>
+            <View style={{ gap: theme.spacing.sm, flex: 1 }}>
               {/* The heading carries the door to the full list: the card below is
                   a capped preview, "All groups" opens the whole roster. */}
               <Row style={{ alignItems: 'center', justifyContent: 'space-between' }}>
@@ -659,101 +586,119 @@ export default function HomeScreen() {
                   name and its standing, the balance to the right — the banking-app
                   "recent" list the reference leans on, hairline-divided. Capped to
                   a preview; the full list lives behind "All groups". */}
-              <View
-                style={{
-                  backgroundColor: theme.color.surface,
-                  borderRadius: theme.radius.lg,
-                  borderWidth: 1,
-                  borderColor: theme.color.border,
-                  overflow: 'hidden',
-                }}
+              <ScrollView
+                style={{ flex: 1 }}
+                contentContainerStyle={{ paddingBottom: clearance }}
+                showsVerticalScrollIndicator={false}
+                refreshControl={
+                  <RefreshControl
+                    refreshing={pull.refreshing}
+                    onRefresh={pull.onRefresh}
+                    tintColor={theme.color.brand}
+                  />
+                }
               >
-                {list.slice(0, GROUPS_PREVIEW).map((group, index) => {
-                  const members = summary.membersFor(group.id);
-                  const balance = summary.balanceFor(group.id);
-                  // A running trip earns a live "on trip" tag; failing that, a
-                  // just-made group wears "New" for its first couple of days.
-                  const onTrip = ongoingTripIds.has(group.id);
-                  const isNew = nowMs - Date.parse(group.created_at) < NEW_GROUP_WINDOW_MS;
-                  const tag = onTrip ? t.tagOnTrip : isNew ? t.tagNew : null;
-                  return (
-                    <GroupRow
-                      key={group.id}
-                      title={groupLabel(group, members, viewerId)}
-                      memberLabel={plural(locale, summary.memberCountFor(group.id), t.memberCount)}
-                      draftLabel={
-                        draftsByGroup.has(group.id)
-                          ? plural(locale, draftsByGroup.get(group.id) ?? 0, t.draftCount)
-                          : null
-                      }
-                      coverEmoji={group.cover_emoji}
-                      balance={balance}
-                      currency={group.default_currency}
-                      locale={locale}
-                      statusLabel={
-                        balance === 0n ? t.allSettled : balance > 0n ? t.youAreOwed : t.youOwe
-                      }
-                      directionLabel={
-                        balance === 0n
-                          ? t.group.rowSettled
-                          : balance > 0n
-                            ? t.group.rowOwed
-                            : t.group.rowYouOwe
-                      }
-                      pendingLabel={summary.hasPending(group.id) ? t.pendingConfirmation : null}
-                      tag={tag}
-                      tagTone={onTrip ? 'positive' : 'brand'}
-                      divider={index > 0}
-                      // The eye in the hero shuts the whole screen's money, not
-                      // just the headline: masking one figure while twelve sit
-                      // uncovered below it is privacy theatre. Masked too until
-                      // the saved preference has loaded — `balanceHidden` starts
-                      // false while AsyncStorage resolves, so without the
-                      // `!balanceReady` guard a hidden balance flashes in plain
-                      // before the eye's state lands. The hero is already gated
-                      // this way upstream (it shows its skeleton until ready).
-                      hidden={balanceHidden || !balanceReady}
-                      // The just-imported group slides and fades into place
-                      // rather than blinking in under the success banner.
-                      enter={group.id === justAddedId}
-                      // Its balance materialises a beat after the group row does,
-                      // so mask the amount until the ledger lands rather than show
-                      // a confident wrong ₹0 that then jumps to the real figure.
-                      pendingBalance={group.id === justAddedId && !summary.hasLedger(group.id)}
-                      onPress={() => router.push(`/group/${group.id}`)}
-                      // No long-press pin here: a hold on Home's list pinned by
-                      // accident. Pinning lives on the Groups list and the
-                      // group's own ••• menu; a pinned group still sorts first
-                      // and wears its glyph.
-                      pinned={pinnedIds.has(group.id)}
-                    />
-                  );
-                })}
-              </View>
-            </>
+                <View
+                  style={{
+                    backgroundColor: theme.color.surface,
+                    borderRadius: theme.radius.lg,
+                    borderWidth: 1,
+                    borderColor: theme.color.border,
+                    overflow: 'hidden',
+                  }}
+                >
+                  {list.slice(0, GROUPS_PREVIEW).map((group, index) => {
+                    const members = summary.membersFor(group.id);
+                    const balance = summary.balanceFor(group.id);
+                    // A running trip earns a live "on trip" tag; failing that, a
+                    // just-made group wears "New" for its first couple of days.
+                    const onTrip = ongoingTripIds.has(group.id);
+                    const isNew = nowMs - Date.parse(group.created_at) < NEW_GROUP_WINDOW_MS;
+                    const tag = onTrip ? t.tagOnTrip : isNew ? t.tagNew : null;
+                    return (
+                      <GroupRow
+                        key={group.id}
+                        title={groupLabel(group, members, viewerId)}
+                        memberLabel={plural(
+                          locale,
+                          summary.memberCountFor(group.id),
+                          t.memberCount,
+                        )}
+                        draftLabel={
+                          draftsByGroup.has(group.id)
+                            ? plural(locale, draftsByGroup.get(group.id) ?? 0, t.draftCount)
+                            : null
+                        }
+                        coverEmoji={group.cover_emoji}
+                        balance={balance}
+                        currency={group.default_currency}
+                        locale={locale}
+                        statusLabel={
+                          balance === 0n ? t.allSettled : balance > 0n ? t.youAreOwed : t.youOwe
+                        }
+                        directionLabel={
+                          balance === 0n
+                            ? t.group.rowSettled
+                            : balance > 0n
+                              ? t.group.rowOwed
+                              : t.group.rowYouOwe
+                        }
+                        pendingLabel={summary.hasPending(group.id) ? t.pendingConfirmation : null}
+                        tag={tag}
+                        tagTone={onTrip ? 'positive' : 'brand'}
+                        divider={index > 0}
+                        // The eye in the hero shuts the whole screen's money, not
+                        // just the headline: masking one figure while twelve sit
+                        // uncovered below it is privacy theatre. Masked too until
+                        // the saved preference has loaded — `balanceHidden` starts
+                        // false while AsyncStorage resolves, so without the
+                        // `!balanceReady` guard a hidden balance flashes in plain
+                        // before the eye's state lands. The hero is already gated
+                        // this way upstream (it shows its skeleton until ready).
+                        hidden={balanceHidden || !balanceReady}
+                        // The just-imported group slides and fades into place
+                        // rather than blinking in under the success banner.
+                        enter={group.id === justAddedId}
+                        // Its balance materialises a beat after the group row does,
+                        // so mask the amount until the ledger lands rather than show
+                        // a confident wrong ₹0 that then jumps to the real figure.
+                        pendingBalance={group.id === justAddedId && !summary.hasLedger(group.id)}
+                        onPress={() => router.push(`/group/${group.id}`)}
+                        // No long-press pin here: a hold on Home's list pinned by
+                        // accident. Pinning lives on the Groups list and the
+                        // group's own ••• menu; a pinned group still sorts first
+                        // and wears its glyph.
+                        pinned={pinnedIds.has(group.id)}
+                      />
+                    );
+                  })}
+                </View>
+              </ScrollView>
+            </View>
           )}
         </View>
-      </ScrollView>
+      </View>
+
+      <OverflowMenu visible={menuOpen} onClose={() => setMenuOpen(false)} items={menuItems} />
+      <SettlePickerSheet
+        visible={settleOpen}
+        onClose={() => setSettleOpen(false)}
+        groups={settleCandidates}
+      />
 
       {/* Signed in on a phone that holds no personal ledger — a new handset, a
           reinstall, a sign-out and back in — and asked once whether to bring the
-          Drive backup back. It decides for itself whether it applies, and stays
-          silent for everybody whose records are already here; see
-          `lib/backup/restorePrompt` for every condition and why each one is
-          there. Outranks the guest and tip prompts in the queue. */}
+          Drive backup back. It decides for itself whether it applies; see
+          `lib/backup/restorePrompt`. Outranks the guest and tip prompts. */}
       <RestorePrompt />
 
-      {/* Guests are nudged to secure their account as an animated popup rather
-          than an inline banner — once a day, dismissible. Held back while the
-          tour is up so the two do not stack on a guest's first run. */}
+      {/* Guests are nudged to secure their account as a popup — once a day,
+          dismissible, held back while the tour is up. */}
       {isGuest ? (
         <GuestPopup gate={guard.gate} t={t} onAction={() => router.push('/settings/account')} />
       ) : null}
 
-      {/* The daily tip, surfaced as a sheet on the first Home open of the day —
-          one useful, Waves-specific move at a time, then out of the way until
-          tomorrow. Replaces the inline card so a hint asks for a beat of
-          attention rather than sitting as furniture nobody reads. */}
+      {/* The daily tip, surfaced as a sheet on the first Home open of the day. */}
       <TipSheet t={t} />
 
       <QuickAddSheet
@@ -790,7 +735,7 @@ function HeroAvatar({
     return (
       <Avatar
         name={name}
-        size={44}
+        size={40}
         photoUrl={photoUrl}
         accessibilityLabel={label}
         onPress={onPress}
@@ -804,9 +749,9 @@ function HeroAvatar({
       onPress={onPress}
       hitSlop={8}
       style={({ pressed }) => ({
-        width: 44,
-        height: 44,
-        borderRadius: 22,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: 'transparent',
@@ -815,18 +760,13 @@ function HeroAvatar({
         opacity: pressed ? 0.6 : 1,
       })}
     >
-      <Ionicons name="person-outline" size={iconSize.xxl} color={theme.color.onBrand} />
+      <Ionicons name="person-outline" size={iconSize.lg} color={theme.color.onBrand} />
     </Pressable>
   );
 }
 
 /** The AsyncStorage key remembering whether the balance is hidden behind the eye. */
 const BALANCE_HIDDEN_KEY = 'dashboard:balanceHidden';
-
-/** What stands in for a figure while the eye is shut. One string, because the
-    hero and the group rows have to mask identically or the mask reads as a
-    rendering fault rather than a choice. */
-const BALANCE_MASK = '••••••';
 
 /**
  * The eye toggle's state, remembered across opens. Reads once on mount (so a
@@ -872,10 +812,13 @@ function HeroIconButton({
   label,
   onPress,
   family = 'ionicons',
+  dot = false,
 }: {
   icon: string;
   label: string;
   onPress: () => void;
+  /** A red dot at the glyph's shoulder: something new behind it. */
+  dot?: boolean;
   /** Which glyph set `icon` names — Ionicons by default, Material for the ones
    *  Ionicons lacks (the two-people-plus "group add"). */
   family?: 'ionicons' | 'material';
@@ -891,6 +834,19 @@ function HeroIconButton({
       style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1, padding: theme.spacing.xs })}
     >
       <Glyph name={icon as never} size={iconSize.xxl} color={theme.color.onBrand} />
+      {dot ? (
+        <View
+          style={{
+            position: 'absolute',
+            top: theme.spacing.xs,
+            end: theme.spacing.xs,
+            width: 10,
+            height: 10,
+            borderRadius: 5,
+            backgroundColor: '#FF3B5C',
+          }}
+        />
+      ) : null}
     </Pressable>
   );
 }
@@ -1190,9 +1146,6 @@ function TipSheet({ t }: { t: UiStrings }) {
   );
 }
 
-/** One currency's standing: the net, and the two sides that make it up. */
-type CurrencyTotal = { currency: string; net: bigint; owed: bigint; owing: bigint };
-
 /** Today as `YYYY-MM-DD` in a given timezone, never the server's. */
 function todayIn(timeZone: string): string {
   try {
@@ -1202,358 +1155,38 @@ function todayIn(timeZone: string): string {
   }
 }
 
-/**
- * How each balance slide dresses the hero: one saturated wash so the whole card
- * takes a colour of its own as you swipe — green for where you stand, teal for
- * what is owed to you, copper for what you owe, indigo for what you've spent —
- * and one watermark glyph, a faint oversized outline riding the corner. Each
- * gradient is two diagonal stops, dark enough that the white ink clears AA on
- * either stop in both themes (like a bank card, the hero keeps its colour
- * whichever theme is on). Money's own red/green still lives on the ledger rows
- * below, where owe-vs-owed has to be told apart at a glance.
- *
- * Keyed by slide rather than positional, because the deck itself is decided per
- * person (`balanceDeckSlides`) — a two-slide deck must paint its month slide
- * indigo, not inherit whatever colour sat second in a fixed list.
- */
-const SLIDE_STYLE: Record<
-  BalanceSlide,
-  { readonly gradient: readonly [string, string]; readonly icon: keyof typeof Ionicons.glyphMap }
-> = {
-  net: { gradient: ['#1F6B49', '#0C3A27'], icon: 'wallet-outline' },
-  owed: { gradient: ['#12667A', '#06323D'], icon: 'trending-up-outline' },
-  owing: { gradient: ['#8A4B12', '#40220A'], icon: 'trending-down-outline' },
-  month: { gradient: ['#463F86', '#221C46'], icon: 'calendar-outline' },
+/** The hero's wash: violet running to blue, brighter than the brand's own so
+ *  the white balance card riding over it reads as lifted off the colour. Every
+ *  stop holds white text. */
+const HERO_WASH = ['#4F55E8', '#6A5AEC', '#8469F0'] as const;
+
+/** How far the balance card rides up over the bottom of the hero. */
+const HERO_OVERLAP = 56;
+
+/** How far below the status bar the scene reaches — past the greeting and
+ *  down behind the balance card, so its fade has the card's height to run in. */
+const SCENE_DEPTH = 340;
+
+/** The balance card's six backgrounds, one per scene: light on the left for
+ *  the figures, the scene on the right. */
+const CARD_ART: Readonly<Record<Scene, number>> = {
+  [Scene.Morning]: require('../../../assets/images/scenes/card-morning.webp') as number,
+  [Scene.Afternoon]: require('../../../assets/images/scenes/card-afternoon.webp') as number,
+  [Scene.Sunset]: require('../../../assets/images/scenes/card-sunset.webp') as number,
+  [Scene.Evening]: require('../../../assets/images/scenes/card-evening.webp') as number,
+  [Scene.Night]: require('../../../assets/images/scenes/card-night.webp') as number,
+  [Scene.Winter]: require('../../../assets/images/scenes/card-winter.webp') as number,
 };
 
-/**
- * The hero's two lines, in one place. `HeroBalanceSkeleton` builds itself to
- * exactly these heights so the real figure settles into the placeholder's
- * space instead of shoving the buttons and the group list down — which only
- * holds if both sites read the same numbers, hence the constants.
- */
-const HERO_LABEL_LINE = 18;
-// The `title` type step (tokens.ts), which is what a group's hero uses for its
-// own balance. Home used to be four points larger, so the same money read as two
-// different orders of importance on two screens a tap apart; the numbers now
-// match, and the hero gives back the height.
-const HERO_AMOUNT_SIZE = 24;
-const HERO_AMOUNT_LINE = 30;
-const HERO_AMOUNT_STYLE = {
-  fontSize: HERO_AMOUNT_SIZE,
-  lineHeight: HERO_AMOUNT_LINE,
-  fontWeight: '700',
-} as const;
-
-/**
- * The swipeable balance inside the hero: a few views of where you stand, one per
- * swipe, riding transparent on the hero's colour — net first (the number you see
- * on load), then whichever gross side the net is hiding, then what you have spent
- * this month. All in your primary currency, because a total across currencies is
- * a number that does not exist (ADR-004). A dot pager beneath is the "swipe me"
- * signal; every slide is the same shape, so the block never jumps as you move
- * between them.
- *
- * Which slides those are is `balanceDeckSlides`' call, made once by the screen
- * and passed down — so the deck, the colour washes and the pager cannot disagree
- * about what is in the carousel.
- *
- * The scroll offset (`scrollX`) and the slide geometry (`cardWidth`/`gap`/`snap`)
- * are owned by the screen and passed in, so the same value that lays the deck out
- * also drives the hero's colour crossfade — the two can never fall out of step.
- */
-function HeroBalance({
-  slides,
-  primary,
-  monthSpent,
-  locale,
-  t,
-  hidden,
-  onToggleHide,
-  scrollX,
-  cardWidth,
-  gap,
-  snap,
-  settling,
-}: {
-  /** The deck, in swipe order — the screen's `balanceDeckSlides(primary)`. */
-  slides: readonly BalanceSlide[];
-  primary: CurrencyTotal;
-  /** My share of this month's spend, per currency (from useHomeSummary). */
-  monthSpent: readonly { currency: string; amount: bigint }[];
-  locale: string;
-  t: UiStrings;
-  /** The eye toggle — masks every slide's figure while on. */
-  hidden: boolean;
-  onToggleHide: () => void;
-  /** Shared scroll offset — the screen also reads it to crossfade the hero. */
-  scrollX: Animated.Value;
-  /** One slide's width, the gap between slides, and the snap step (width + gap). */
-  cardWidth: number;
-  gap: number;
-  snap: number;
-  /** The figure is the local one and a fresher answer is on its way. */
-  settling: boolean;
-}) {
-  // Every figure is in the primary currency, which is the one the headline is
-  // already in (no total across currencies, ADR-004).
-  const monthAmount = monthSpent.find((entry) => entry.currency === primary.currency)?.amount ?? 0n;
-  // The net slide is the only one whose sign is information, so it shows that
-  // sign on the figure itself — a signed headline number is what gets read at a
-  // glance, where an 11pt caption does not. The heading still names the verdict
-  // in words (a Title-case phrase matching the other slides' headings); the two
-  // agree, and either one alone would answer "which way do I stand".
-  const netDirection =
-    primary.net === 0n ? t.allSettled : primary.net > 0n ? t.dashHero.netOwed : t.dashHero.netOwe;
-
-  // What one slide says. The gross pair name their whole side — "Receivables",
-  // "Payables" — against the net's "Net receivable": the labels have to say why
-  // two figures differ, because the deck only ever shows them together when
-  // they do.
-  const metricFor = (
-    slide: BalanceSlide,
-  ): { label: string; amount: bigint; showSign?: boolean } => {
-    const label = (heading: string): string => `${heading} · ${primary.currency}`;
-    switch (slide) {
-      case 'net':
-        // Square is square: a "+₹0" would be a direction where there is none.
-        return { label: label(netDirection), amount: primary.net, showSign: primary.net !== 0n };
-      case 'owed':
-        return { label: label(t.dashHero.owedToYou), amount: primary.owed };
-      case 'owing':
-        return { label: label(t.dashHero.owedByYou), amount: primary.owing };
-      case 'month':
-        return { label: label(t.dashHero.monthSpent), amount: monthAmount };
-    }
-  };
-
-  // Each slide fills the hero's inner width (`cardWidth`), snapping one-to-one.
-  // No peek of the next slide: they are transparent on the hero's colour, so a
-  // peek would show the next slide's floating text with no card edge to read it
-  // as "another card". The dot pager carries the "swipe me" signal instead.
-  const rangeFor = (index: number): number[] => [
-    (index - 1) * snap,
-    index * snap,
-    (index + 1) * snap,
-  ];
-
-  return (
-    <Animated.ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      snapToInterval={snap}
-      snapToAlignment="start"
-      decelerationRate="fast"
-      disableIntervalMomentum
-      scrollEventThrottle={16}
-      contentContainerStyle={{ gap }}
-      onScroll={Animated.event([{ nativeEvent: { contentOffset: { x: scrollX } } }], {
-        useNativeDriver: true,
-      })}
-    >
-      {slides.map((slide, index) => (
-        <Animated.View
-          key={slide}
-          style={{
-            width: cardWidth,
-            // The centred slide sits at full size; the one being dragged in
-            // grows and brightens into focus as it reaches centre. Transform +
-            // opacity only, both native-driven.
-            opacity: scrollX.interpolate({
-              inputRange: rangeFor(index),
-              outputRange: [0.75, 1, 0.75],
-              extrapolate: 'clamp',
-            }),
-            transform: [
-              {
-                scale: scrollX.interpolate({
-                  inputRange: rangeFor(index),
-                  outputRange: [0.94, 1, 0.94],
-                  extrapolate: 'clamp',
-                }),
-              },
-            ],
-          }}
-        >
-          <MetricSlide
-            {...metricFor(slide)}
-            currency={primary.currency}
-            locale={locale}
-            hidden={hidden}
-            onToggleHide={onToggleHide}
-            settling={settling}
-          />
-        </Animated.View>
-      ))}
-    </Animated.ScrollView>
-  );
-}
-
-/**
- * The balance area while it loads — translucent-white bars on the green that
- * stand in for a `MetricSlide`: a label bar and the big figure. It has the same
- * two lines the loaded slide now has (the sub line is gone).
- *
- * The whole point is that the swap-in is a settle, not a jump, so the skeleton
- * is built to the *exact* height a loaded slide fills. Each bar rides inside a
- * wrapper sized to the real line's height — the label to the caption's 18px
- * line, the figure to the money's 46px line, one `spacing.sm` gap between — so
- * the block is the same height either way and the number lands in place
- * instead of shoving the Add-expense button and the group list down (the layout
- * shift the user flagged). Both sites read `HERO_LABEL_LINE` /
- * `HERO_AMOUNT_LINE`, so a change to the type size cannot desync them. A gentle pulse reads as "loading" rather than a dead
- * placeholder. Plain `Skeleton` is themed for light surfaces and would vanish on
- * the green, so these are hand-drawn washes.
- */
-function HeroBalanceSkeleton() {
-  const theme = useTheme();
-  // A slow breathe so the bars read as loading. Lazy-init state, never through a
-  // ref in render (the React Compiler lints that), native-driven opacity.
-  const [pulse] = useState(() => new Animated.Value(0.5));
-  useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulse, { toValue: 1, duration: 650, useNativeDriver: true }),
-        Animated.timing(pulse, { toValue: 0.5, duration: 650, useNativeDriver: true }),
-      ]),
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [pulse]);
-  const bar = (width: number, height: number) => (
-    <View
-      style={{ width, height, borderRadius: height / 2, backgroundColor: 'rgba(255,255,255,0.28)' }}
-    />
-  );
-  return (
-    <Animated.View style={{ gap: theme.spacing.sm, opacity: pulse }}>
-      {/* Label line — the caption+eye row's line height. */}
-      <View style={{ height: HERO_LABEL_LINE, justifyContent: 'center' }}>{bar(120, 12)}</View>
-      {/* The figure — the money's own line, so the swap-in is a settle. */}
-      <View style={{ height: HERO_AMOUNT_LINE, justifyContent: 'center' }}>{bar(200, 34)}</View>
-    </Animated.View>
-  );
-}
-
-/**
- * The hero's corner decoration: one faint watermark glyph per balance slide,
- * bled off the bottom-right, that crossfades as the carousel navigates. Each
- * layer peaks in opacity at its own slide's snap point and is zero at its
- * neighbours — the exact interpolation the colour layers use — off the same
- * shared `scrollX`, so the mark swaps in lock-step with the colour and the
- * swipe. Native-driven opacity: smooth at 60fps, free at rest. The hero clips
- * it to the rounded corner (`overflow: 'hidden'`) and `pointerEvents none` so
- * it never eats a tap; white at low alpha reads the same on green/teal/indigo.
- */
-function HeroBackdrop({
-  slides,
-  scrollX,
-  snap,
-}: {
-  slides: readonly BalanceSlide[];
-  scrollX: Animated.Value;
-  snap: number;
-}) {
-  const theme = useTheme();
-  return (
-    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-      {slides.map((slide, index) => (
-        <Animated.View
-          key={slide}
-          style={{
-            position: 'absolute',
-            right: -44,
-            bottom: -52,
-            opacity: scrollX.interpolate({
-              inputRange: [(index - 1) * snap, index * snap, (index + 1) * snap],
-              outputRange: [0, 0.16, 0],
-              extrapolate: 'clamp',
-            }),
-          }}
-        >
-          <Ionicons name={SLIDE_STYLE[slide].icon} size={208} color={theme.color.onBrand} />
-        </Animated.View>
-      ))}
-    </View>
-  );
-}
-
-/**
- * One balance slide, riding transparent on the hero's green — a label with the
- * eye toggle to its right and the money big beneath it. Two lines only: the old
- * third "sub" caption is gone, so the slide is tighter and the hero shorter. The
- * label carries everything the sub used to say — on the net slide it is the
- * owe↔owed verdict itself (see `netDirection` in `HeroBalance`), so dropping the
- * sub loses no direction. White ink throughout, so it reads the same in light
- * and dark like a bank card. The eye masks the figure to dots; the toggle sits
- * on every slide (it is the same control repeated as you swipe), so the eye is
- * always to hand wherever you land.
- */
-function MetricSlide({
-  label,
-  amount,
-  currency,
-  locale,
-  hidden,
-  onToggleHide,
-  settling,
-  showSign = false,
-}: {
-  label: string;
-  amount: bigint;
-  currency: string;
-  locale: string;
-  hidden: boolean;
-  onToggleHide: () => void;
-  /** Print the amount's own sign in front of it. Only the net slide sets this:
-   *  it is the one figure whose direction is information, and a 40pt number is
-   *  what gets read at a glance — not the caption above it. The other two are
-   *  magnitudes (what you are owed, what you spent) where a `+` would be noise. */
-  showSign?: boolean;
-  /** Shown with a small spinner beside the label: this figure is the local one
-   *  and this session's first sync has not confirmed it yet. */
-  settling?: boolean;
-}) {
-  const theme = useTheme();
-  const { t } = useStrings();
-  return (
-    <View style={{ gap: theme.spacing.sm }}>
-      <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-        <Text variant="caption" tone="onBrand" numberOfLines={1} style={{ flexShrink: 1 }}>
-          {label}
-        </Text>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={hidden ? t.dashHero.showBalance : t.dashHero.hideBalance}
-          onPress={onToggleHide}
-          hitSlop={10}
-          style={({ pressed }) => ({ opacity: pressed ? 0.5 : 0.85 })}
-        >
-          <Ionicons
-            name={hidden ? 'eye-off-outline' : 'eye-outline'}
-            size={iconSize.md}
-            color={theme.color.onBrand}
-          />
-        </Pressable>
-        {settling ? <ActivityIndicator size="small" color={theme.color.onBrand} /> : null}
-      </Row>
-      {hidden ? (
-        <Text tone="onBrand" style={HERO_AMOUNT_STYLE}>
-          {BALANCE_MASK}
-        </Text>
-      ) : (
-        <MoneyText
-          amount={amount}
-          currency={currency as never}
-          locale={locale}
-          tone="onBrand"
-          showSign={showSign}
-          style={HERO_AMOUNT_STYLE}
-        />
-      )}
-    </View>
-  );
-}
+/** The hero's six landscapes (see `lib/scene`). */
+const SCENE_ART: Readonly<Record<Scene, number>> = {
+  [Scene.Morning]: require('../../../assets/images/scenes/morning.webp') as number,
+  [Scene.Afternoon]: require('../../../assets/images/scenes/afternoon.webp') as number,
+  [Scene.Sunset]: require('../../../assets/images/scenes/sunset.webp') as number,
+  [Scene.Evening]: require('../../../assets/images/scenes/evening.webp') as number,
+  [Scene.Night]: require('../../../assets/images/scenes/night.webp') as number,
+  [Scene.Winter]: require('../../../assets/images/scenes/winter.webp') as number,
+};
 
 /**
  * One group as a clean list row — an emoji chip, the name over its member count
@@ -1643,7 +1276,6 @@ function GroupRow({
   // every line of the list. The spoken label still carries it in full: a screen
   // reader is given the label instead of the text inside the row, so anything
   // said only on screen is not said quietly, it is not said.
-  const detail = pendingLabel ?? [memberLabel, draftLabel].filter(Boolean).join(' · ');
   const spoken = pendingLabel ?? [memberLabel, draftLabel, statusLabel].filter(Boolean).join(' · ');
 
   return (
@@ -1715,7 +1347,14 @@ function GroupRow({
               clutter beside a line that already says how many and where you
               stand. */}
           <Text variant="caption" tone="muted" numberOfLines={1}>
-            {detail}
+            {pendingLabel ?? memberLabel}
+            {/* A draft is the one thing here waiting on the reader, so it is
+                said in the warning's orange rather than the muted grey. */}
+            {!pendingLabel && draftLabel ? (
+              <Text variant="caption" style={{ color: theme.color.warning, fontWeight: '600' }}>
+                {` · ${draftLabel}`}
+              </Text>
+            ) : null}
           </Text>
         </View>
         {pendingBalance ? (
