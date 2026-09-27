@@ -1497,6 +1497,7 @@ export interface UiStrings {
     datesSub: string;
     budgetSub: string;
     ratesSub: string;
+    tripCurrency: string;
     addCurrency: string;
     simplifySub: string;
   };
@@ -4850,7 +4851,7 @@ const en: UiStrings = {
     showBalance: 'Show balance',
   },
   newGroupForm: {
-    headerSub: 'Plan, split and stay on track together',
+    headerSub: 'Start a group and share expenses',
     nameExample: 'e.g. Bali Trip',
     whatFor: 'What is this group for?',
     descriptionExample: 'e.g. Friends trip, Weekend getaway',
@@ -4861,7 +4862,8 @@ const en: UiStrings = {
     groupTypeSub: 'Choose what this group is for',
     datesSub: 'Set your travel dates (optional)',
     budgetSub: 'Set a budget for better tracking',
-    ratesSub: 'Currencies you will spend in',
+    ratesSub: 'Choose the currency for this trip',
+    tripCurrency: 'Trip currency',
     addCurrency: 'Add a currency',
     simplifySub: 'Automatically minimize the number of payments',
   },
@@ -7902,7 +7904,7 @@ const ta: UiStrings = {
     showBalance: 'இருப்பைக் காட்டு',
   },
   newGroupForm: {
-    headerSub: 'சேர்ந்து திட்டமிடுங்கள், பிரியுங்கள், கணக்கைச் சரியாக வையுங்கள்',
+    headerSub: 'ஒரு குழுவைத் தொடங்கி செலவுகளைப் பகிருங்கள்',
     nameExample: 'எ.கா. கோவா பயணம்',
     whatFor: 'இந்தக் குழு எதற்காக?',
     descriptionExample: 'எ.கா. நண்பர்கள் பயணம், வார இறுதி சுற்றுலா',
@@ -7913,7 +7915,8 @@ const ta: UiStrings = {
     groupTypeSub: 'இந்தக் குழு எதற்கு என்று தேர்ந்தெடுங்கள்',
     datesSub: 'பயணத் தேதிகள் (விருப்பம்)',
     budgetSub: 'சிறந்த கண்காணிப்புக்கு ஒரு பட்ஜெட்',
-    ratesSub: 'நீங்கள் செலவிடும் நாணயங்கள்',
+    ratesSub: 'இந்தப் பயணத்துக்கான நாணயத்தைத் தேர்ந்தெடுங்கள்',
+    tripCurrency: 'பயண நாணயம்',
     addCurrency: 'நாணயம் சேர்',
     simplifySub: 'செலுத்துதல்களின் எண்ணிக்கையைத் தானாகக் குறைக்கும்',
   },
@@ -11026,7 +11029,7 @@ const hi: UiStrings = {
     showBalance: 'बैलेंस दिखाएँ',
   },
   newGroupForm: {
-    headerSub: 'साथ मिलकर योजना बनाएँ, बाँटें और हिसाब सही रखें',
+    headerSub: 'समूह बनाएँ और खर्च बाँटें',
     nameExample: 'जैसे गोवा ट्रिप',
     whatFor: 'यह समूह किसलिए है?',
     descriptionExample: 'जैसे दोस्तों की ट्रिप, वीकेंड घूमना',
@@ -11037,7 +11040,8 @@ const hi: UiStrings = {
     groupTypeSub: 'चुनें कि यह समूह किसलिए है',
     datesSub: 'यात्रा की तारीखें (वैकल्पिक)',
     budgetSub: 'बेहतर हिसाब के लिए बजट तय करें',
-    ratesSub: 'जिन मुद्राओं में खर्च करेंगे',
+    ratesSub: 'इस ट्रिप की मुद्रा चुनें',
+    tripCurrency: 'ट्रिप मुद्रा',
     addCurrency: 'मुद्रा जोड़ें',
     simplifySub: 'भुगतानों की संख्या अपने आप कम करता है',
   },
@@ -14132,7 +14136,7 @@ const ar: UiStrings = {
     showBalance: 'إظهار الرصيد',
   },
   newGroupForm: {
-    headerSub: 'خطّطوا وقسّموا وابقوا على المسار معًا',
+    headerSub: 'ابدأ مجموعة وتقاسم المصروفات',
     nameExample: 'مثال: رحلة بالي',
     whatFor: 'ما الغرض من هذه المجموعة؟',
     descriptionExample: 'مثال: رحلة أصدقاء، عطلة نهاية الأسبوع',
@@ -14143,7 +14147,8 @@ const ar: UiStrings = {
     groupTypeSub: 'اختر الغرض من هذه المجموعة',
     datesSub: 'حدّد تواريخ السفر (اختياري)',
     budgetSub: 'حدّد ميزانية لتتبع أفضل',
-    ratesSub: 'العملات التي ستنفق بها',
+    ratesSub: 'اختر عملة هذه الرحلة',
+    tripCurrency: 'عملة الرحلة',
     addCurrency: 'إضافة عملة',
     simplifySub: 'تقليل عدد الدفعات تلقائيًا',
   },
