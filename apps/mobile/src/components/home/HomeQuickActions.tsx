@@ -87,15 +87,13 @@ export function HomeQuickActions({
   // small disc over a one-line word. Add expense's disc is filled in the wash;
   // the rest are soft brand discs. It carries the card's own bottom corners so
   // it can run edge to edge without the card clipping (and losing its shadow).
-  // See-through, so the card's landscape runs on under the actions.
-  const track = theme.scheme === 'dark' ? 'rgba(255, 255, 255, 0.04)' : 'rgba(255, 255, 255, 0.35)';
+  // No fill and no rule of its own: the card's landscape runs on under the
+  // actions, so the strip reads as part of the card rather than a band cut
+  // off from it.
   return (
     <View
       style={{
         flexDirection: 'row',
-        backgroundColor: track,
-        borderTopWidth: 1,
-        borderTopColor: theme.color.border,
         borderBottomLeftRadius: radius,
         borderBottomRightRadius: radius,
         paddingVertical: theme.spacing.sm,
