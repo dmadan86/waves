@@ -106,8 +106,12 @@ export function CurrencySheet({
   }, []);
 
   const offered: readonly string[] = COMMON_CURRENCIES;
+  // What this person has picked, in the order they picked it. Only before
+  // there is any history does it fall back to the current currency and the
+  // head of the offered list.
   const recentCards = useMemo(() => {
-    const seed = [value, ...recent, ...offered];
+    const picked = recent.filter((code) => offered.includes(code));
+    const seed = picked.length > 0 ? picked : [value, ...offered];
     return [...new Set(seed)].filter((code) => offered.includes(code)).slice(0, RECENT_MAX);
   }, [value, recent, offered]);
 

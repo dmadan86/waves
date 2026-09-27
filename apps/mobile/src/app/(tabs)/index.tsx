@@ -378,7 +378,11 @@ export default function HomeScreen() {
     });
   // How many groups each side of the balance card comes from — in the
   // headline's currency, the one those sides are totalled in.
-  const inHeadline = list.filter((group) => group.default_currency === headline.currency);
+  const inHeadline = list.filter(
+    // The same fallback the totals key a group by, so a group with no
+    // currency set is counted where its balance was summed.
+    (group) => (group.default_currency ?? 'INR') === headline.currency,
+  );
   const owedGroups = inHeadline.filter((group) => summary.balanceFor(group.id) > 0n).length;
   const owingGroups = inHeadline.filter((group) => summary.balanceFor(group.id) < 0n).length;
 
