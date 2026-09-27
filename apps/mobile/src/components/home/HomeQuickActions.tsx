@@ -1,12 +1,13 @@
 /**
- * The four things you start from Home, as a row of compact tiles under the
- * balance card — a glyph over a one-line word, so the row costs little
- * height: add an expense, split a bill, settle up, start a group.
+ * The four things you start from Home — add an expense, split a bill, settle
+ * up, start a group — as a strip along the foot of the balance card rather than
+ * a row of tiles of their own: a small disc over a one-line word in each
+ * quarter, so the actions cost the card a band instead of the screen a block.
  *
- * Add expense is the one filled in the brand wash — it is what Home is opened
- * for most often — and it keeps the long press that raises the type / scan /
- * speak sheet. The others are white tiles with a brand glyph. Add expense and
- * New group keep their tour anchors, so the coach-marks still spotlight them.
+ * Add expense's disc is filled in the hero's wash — it is what Home is opened
+ * for most often — and keeps the long press that raises the type / scan /
+ * speak sheet. Add expense and New group keep their tour anchors, so the
+ * coach-marks still spotlight them.
  */
 
 import type { ReactNode } from 'react';
@@ -36,6 +37,7 @@ export function HomeQuickActions({
   onSettleUp,
   onNewGroup,
   gradient,
+  radius,
 }: {
   onAddExpense: () => void;
   onAddExpenseLong: () => void;
@@ -44,6 +46,8 @@ export function HomeQuickActions({
   onNewGroup: () => void;
   /** The hero's wash, so the primary tile is cut from the same cloth. */
   gradient: readonly string[];
+  /** The card's corner radius, which the strip's bottom corners follow. */
+  radius: number;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
@@ -52,7 +56,7 @@ export function HomeQuickActions({
     {
       key: 'expense',
       label: t.homeDash.addExpense,
-      glyph: (color) => <Ionicons name="add" size={22} color={color} />,
+      glyph: (color) => <Ionicons name="add" size={20} color={color} />,
       onPress: onAddExpense,
       onLongPress: onAddExpenseLong,
       tourId: 'addExpense',
@@ -61,87 +65,111 @@ export function HomeQuickActions({
     {
       key: 'split',
       label: t.homeDash.splitBill,
-      glyph: (color) => <Ionicons name="receipt-outline" size={19} color={color} />,
+      glyph: (color) => <Ionicons name="receipt-outline" size={16} color={color} />,
       onPress: onSplitBill,
     },
     {
       key: 'settle',
       label: t.homeDash.settleUp,
-      glyph: (color) => <Ionicons name="swap-horizontal" size={19} color={color} />,
+      glyph: (color) => <Ionicons name="swap-horizontal" size={16} color={color} />,
       onPress: onSettleUp,
     },
     {
       key: 'group',
       label: t.homeDash.newGroup,
-      glyph: (color) => <GroupAddIcon size={16} color={color} />,
+      glyph: (color) => <GroupAddIcon size={13} color={color} />,
       onPress: onNewGroup,
       tourId: 'addGroup',
     },
   ];
 
+  // The strip along the foot of the balance card: four equal columns, each a
+  // small disc over a one-line word. Add expense's disc is filled in the wash;
+  // the rest are soft brand discs. It carries the card's own bottom corners so
+  // it can run edge to edge without the card clipping (and losing its shadow).
+  const track = theme.scheme === 'dark' ? theme.color.surfaceMuted : '#F6F4FE';
   return (
-    <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
+    <View
+      style={{
+        flexDirection: 'row',
+        backgroundColor: track,
+        borderTopWidth: 1,
+        borderTopColor: theme.color.border,
+        borderBottomLeftRadius: radius,
+        borderBottomRightRadius: radius,
+        paddingVertical: theme.spacing.sm,
+        paddingHorizontal: theme.spacing.xs,
+      }}
+    >
       {actions.map((action) => {
-        const ink = action.primary ? theme.color.onBrand : theme.color.brand;
-        const face = (
+        const disc = (
           <View
             style={{
+              width: DISC,
+              height: DISC,
+              borderRadius: DISC / 2,
               alignItems: 'center',
               justifyContent: 'center',
-              gap: 2,
-              paddingVertical: theme.spacing.sm,
-              paddingHorizontal: theme.spacing.xs,
-              minHeight: 56,
+              backgroundColor: action.primary ? undefined : theme.color.brandSoft,
+              overflow: 'hidden',
             }}
           >
-            {action.glyph(ink)}
-            <Text
-              variant="caption"
-              align="center"
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.8}
-              style={{
-                fontWeight: '600',
-                color: action.primary ? theme.color.onBrand : theme.color.text,
-              }}
-            >
-              {action.label}
-            </Text>
+            {action.primary ? (
+              <Gradient
+                colors={gradient}
+                radius={DISC / 2}
+                style={{
+                  width: DISC,
+                  height: DISC,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                {action.glyph(theme.color.onBrand)}
+              </Gradient>
+            ) : (
+              action.glyph(theme.color.brand)
+            )}
           </View>
         );
-        const tile = (
+        const button = (
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={action.label}
             onPress={action.onPress}
             onLongPress={action.onLongPress}
-            style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+            hitSlop={4}
+            style={({ pressed }) => ({
+              alignItems: 'center',
+              gap: 4,
+              paddingHorizontal: 2,
+              opacity: pressed ? 0.6 : 1,
+            })}
           >
-            {action.primary ? (
-              <Gradient colors={gradient} radius={theme.radius.lg}>
-                {face}
-              </Gradient>
-            ) : (
-              <View
-                style={{
-                  borderRadius: theme.radius.lg,
-                  backgroundColor: theme.color.surface,
-                  borderWidth: 1,
-                  borderColor: theme.color.border,
-                }}
-              >
-                {face}
-              </View>
-            )}
+            {disc}
+            <Text
+              variant="micro"
+              align="center"
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.8}
+              style={{
+                fontWeight: action.primary ? '700' : '600',
+                color: action.primary ? theme.color.brand : theme.color.text,
+              }}
+            >
+              {action.label}
+            </Text>
           </Pressable>
         );
         return (
           <View key={action.key} style={{ flex: 1 }}>
-            {action.tourId ? <TourTarget id={action.tourId}>{tile}</TourTarget> : tile}
+            {action.tourId ? <TourTarget id={action.tourId}>{button}</TourTarget> : button}
           </View>
         );
       })}
     </View>
   );
 }
+
+const DISC = 34;

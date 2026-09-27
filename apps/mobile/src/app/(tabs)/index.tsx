@@ -497,20 +497,22 @@ export default function HomeScreen() {
               settling={settling}
               loading={showSkeleton || !balanceReady}
               onReports={openReports}
+              footer={
+                <HomeQuickActions
+                  // The quick sheet, not the capture screen: most spends know
+                  // where they belong and need an amount and a place. The long
+                  // press raises type / scan / speak, unchanged.
+                  onAddExpense={() => setQuickExpenseOpen(true)}
+                  onAddExpenseLong={() => setQuickAddOpen(true)}
+                  onSplitBill={openSplitBill}
+                  onSettleUp={() => setSettleOpen(true)}
+                  onNewGroup={openNewGroup}
+                  gradient={HERO_WASH}
+                  radius={theme.radius.xl}
+                />
+              }
             />
           </TourTarget>
-
-          <HomeQuickActions
-            // The quick sheet, not the capture screen: most spends know where
-            // they belong and need an amount and a place. The long press
-            // raises type / scan / speak, unchanged.
-            onAddExpense={() => setQuickExpenseOpen(true)}
-            onAddExpenseLong={() => setQuickAddOpen(true)}
-            onSplitBill={openSplitBill}
-            onSettleUp={() => setSettleOpen(true)}
-            onNewGroup={openNewGroup}
-            gradient={HERO_WASH}
-          />
 
           {/* A background import's progress lands here, just above the groups —
               the person tapped Import, came home, and watches it fill. */}

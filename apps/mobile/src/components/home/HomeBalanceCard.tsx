@@ -8,6 +8,8 @@
  *   ₹42,350.00                  |  ₹1,56,039.50
  *   Across 4 groups             |  Across 6 groups
  *
+ * The quick actions ride along its foot as a strip (`footer`).
+ *
  * The pill switches the headline between the overall standing and this
  * month's spend (with its change against last month); the two sides below are
  * standings either way, so they stay put. The chart disc opens the reports.
@@ -16,7 +18,7 @@
  * All in the primary currency — there is no total across currencies (ADR-004).
  */
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { ActivityIndicator, Pressable, View } from 'react-native';
 
@@ -48,6 +50,7 @@ export function HomeBalanceCard({
   settling,
   loading,
   onReports,
+  footer,
 }: {
   net: bigint;
   /** Everything owed to you, and everything you owe, before the net. */
@@ -67,6 +70,8 @@ export function HomeBalanceCard({
   /** Nothing to show yet: bars stand in for the figures. */
   loading: boolean;
   onReports: () => void;
+  /** Drawn along the card's foot, edge to edge — the quick actions. */
+  footer?: ReactNode;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
@@ -88,8 +93,8 @@ export function HomeBalanceCard({
       style={{
         backgroundColor: theme.color.surface,
         borderRadius: theme.radius.xl,
-        padding: theme.spacing.lg,
-        gap: theme.spacing.lg,
+        paddingTop: theme.spacing.md,
+        gap: theme.spacing.md,
         shadowColor: '#3B2A8C',
         shadowOpacity: 0.12,
         shadowRadius: 18,
@@ -97,7 +102,13 @@ export function HomeBalanceCard({
         elevation: 4,
       }}
     >
-      <Row style={{ alignItems: 'flex-start', gap: theme.spacing.sm }}>
+      <Row
+        style={{
+          alignItems: 'flex-start',
+          gap: theme.spacing.sm,
+          paddingHorizontal: theme.spacing.lg,
+        }}
+      >
         <View style={{ flex: 1, gap: 2 }}>
           <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
             <Text variant="body" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
@@ -191,7 +202,7 @@ export function HomeBalanceCard({
         </Pressable>
       </Row>
 
-      <Row style={{ alignItems: 'center' }}>
+      <Row style={{ alignItems: 'center', paddingHorizontal: theme.spacing.lg }}>
         <Side
           icon="arrow-up"
           color={theme.color.positive}
@@ -217,11 +228,12 @@ export function HomeBalanceCard({
           trailing
         />
       </Row>
+      {footer ?? <View style={{ height: theme.spacing.xs }} />}
     </View>
   );
 }
 
-const AMOUNT_STYLE = { fontSize: 32, lineHeight: 40, fontWeight: '800' } as const;
+const AMOUNT_STYLE = { fontSize: 30, lineHeight: 36, fontWeight: '800' } as const;
 
 /** One side of the balance: a small arrow beside what it is — the Me tab's
  *  figure shape, so it costs a line rather than a disc — then the figure and how
