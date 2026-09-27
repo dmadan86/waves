@@ -54,6 +54,7 @@ import { QuickAddSheet, useQuickAddActions } from '@/components/QuickAddSheet';
 import { QuickExpenseSheet } from '@/components/QuickExpenseSheet';
 import { BALANCE_MASK, HomeBalanceCard } from '@/components/home/HomeBalanceCard';
 import { HomeQuickActions } from '@/components/home/HomeQuickActions';
+import { useHeroStatusBar } from '@/components/ScreenHero';
 import { SettlePickerSheet, type SettleCandidate } from '@/components/home/SettlePickerSheet';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { RestorePrompt } from '@/components/RestorePrompt';
@@ -341,6 +342,9 @@ export default function HomeScreen() {
     return () => clearInterval(timer);
   }, []);
   const [scrollY] = useState(() => new Animated.Value(0));
+  // The scene runs up under the status bar, so the clock and battery go white
+  // while Home is the screen in front (and back to the theme's when it is not).
+  useHeroStatusBar();
 
   // The bell's red dot: somebody else has done something since Activity was
   // last opened. Your own expenses are not news.

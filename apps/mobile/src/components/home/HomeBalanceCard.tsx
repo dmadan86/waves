@@ -144,17 +144,30 @@ export function HomeBalanceCard({
                 height: artWidth / CARD_ART_RATIO,
               }}
             />
-            {/* Its foot softened into the band below. */}
-            <LinearGradient
-              colors={['rgba(255, 255, 255, 0)', 'rgba(255, 255, 255, 0.6)']}
-              style={{
-                position: 'absolute',
-                left: 0,
-                width: artWidth,
-                top: (artWidth / CARD_ART_RATIO) * 0.55,
-                height: (artWidth / CARD_ART_RATIO) * 0.45 + 1,
-              }}
-            />
+            {/* Its foot faded into the band below, with no line where the
+                picture stops: the band drawn over the lower part of the picture
+                in thin strips, each a little more solid than the one above —
+                a mask's fade, without a masking library. */}
+            {FADE_STEPS.map((step) => {
+              const artHeight = artWidth / CARD_ART_RATIO;
+              const top = artHeight * (FADE_FROM + ((1 - FADE_FROM) * step) / FADE_STEPS.length);
+              return (
+                <LinearGradient
+                  key={step}
+                  colors={band}
+                  start={{ x: 0, y: 0.5 }}
+                  end={{ x: 1, y: 0.5 }}
+                  style={{
+                    position: 'absolute',
+                    left: 0,
+                    width: artWidth,
+                    top,
+                    height: artHeight - top + 1,
+                    opacity: FADE_LAYER_OPACITY,
+                  }}
+                />
+              );
+            })}
           </View>
         ) : null}
         <View
@@ -279,6 +292,13 @@ export function HomeBalanceCard({
     </View>
   );
 }
+
+/** Where on the picture the fade into the band begins, as a share of its
+ *  height, how many strips it is drawn in, and how solid each strip is — the
+ *  last strip's stack reaches ~95% band. */
+const FADE_FROM = 0.4;
+const FADE_STEPS = Array.from({ length: 14 }, (_, index) => index);
+const FADE_LAYER_OPACITY = 0.2;
 
 /** The card landscapes' width over height (866 × ~276). */
 const CARD_ART_RATIO = 3.14;
