@@ -393,18 +393,19 @@ export default function HomeScreen() {
       {/* Static: the scene, the greeting and the balance card stay put; only
           the groups list below scrolls. */}
       <View style={{ flex: 1 }}>
-        {/* The hero: a landscape for the time of day — a bright lake in the
-            morning and afternoon, the sun going down, dusk, the moon, snow in
-            winter — edge to edge and up under the status bar, carrying the
-            greeting. A shade across its top keeps the white words readable on
-            the brightest skies. The balance card rides up over its bottom
-            edge, so the scene leaves room for it. */}
+        {/* The scene: a landscape for the time of day, edge to edge from under
+            the status bar down behind the balance card, fading into the page
+            over the card's own height — so either side of the card it thins
+            out gradually instead of stopping at an edge. A shade across its
+            top keeps the white greeting readable on the brightest skies. */}
         <View
+          pointerEvents="none"
           style={{
-            paddingTop: insets.top + theme.spacing.sm,
-            paddingHorizontal: theme.spacing.lg,
-            paddingBottom: HERO_OVERLAP + theme.spacing.sm,
-            overflow: 'hidden',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: insets.top + SCENE_DEPTH,
             backgroundColor: SCENE_SKY[scene],
           }}
         >
@@ -416,28 +417,32 @@ export default function HomeScreen() {
             style={StyleSheet.absoluteFill}
           />
           <LinearGradient
-            pointerEvents="none"
             colors={['rgba(28, 18, 66, 0.42)', 'rgba(28, 18, 66, 0.1)', 'rgba(28, 18, 66, 0)']}
-            locations={[0, 0.6, 1]}
+            locations={[0, 0.35, 0.6]}
             style={StyleSheet.absoluteFill}
           />
-          {/* No edge at the foot: the scene fades into the page, so the
-              picture and the canvas below read as one surface. */}
           <LinearGradient
-            pointerEvents="none"
-            // A long, eased fade — begun high enough that the sky has thinned
-            // before it reaches the card's shoulders, so no edge shows either
-            // side of the card where the scene gives way to the page.
             colors={[
               `${theme.color.bg}00`,
-              `${theme.color.bg}33`,
-              `${theme.color.bg}99`,
-              `${theme.color.bg}E6`,
+              `${theme.color.bg}26`,
+              `${theme.color.bg}80`,
+              `${theme.color.bg}D9`,
               theme.color.bg,
             ]}
-            locations={[0, 0.3, 0.6, 0.85, 1]}
-            style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '70%' }}
+            locations={[0, 0.25, 0.55, 0.8, 1]}
+            style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '65%' }}
           />
+        </View>
+
+        {/* The greeting, over the scene. The balance card rides up over its
+            foot. */}
+        <View
+          style={{
+            paddingTop: insets.top + theme.spacing.sm,
+            paddingHorizontal: theme.spacing.lg,
+            paddingBottom: HERO_OVERLAP + theme.spacing.sm,
+          }}
+        >
           {/* Face, "Hi, {name} 👋" over the time of day; then the glyphs that
               lead somewhere: sync, activity, the menu. */}
           <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
@@ -1153,6 +1158,10 @@ const HERO_WASH = ['#4F55E8', '#6A5AEC', '#8469F0'] as const;
 
 /** How far the balance card rides up over the bottom of the hero. */
 const HERO_OVERLAP = 56;
+
+/** How far below the status bar the scene reaches — past the greeting and
+ *  down behind the balance card, so its fade has the card's height to run in. */
+const SCENE_DEPTH = 340;
 
 /** The balance card's six backgrounds, one per scene: light on the left for
  *  the figures, the scene on the right. */
