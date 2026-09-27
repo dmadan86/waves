@@ -99,6 +99,7 @@ import {
   type VoiceParseResult,
 } from '@/lib/voiceExpense';
 import { logVoiceAttempt } from '@/lib/voiceLog';
+import { VoiceFooterScene } from '@/components/VoiceFooterScene';
 
 /** One editable line on the review screen. */
 interface Draft {
@@ -259,6 +260,10 @@ export default function VoiceScreen() {
   // a confident command is writing itself after a short Undo window (see
   // {@link voiceAutoAction}), the banner counting down over the review; 'answer'
   // → a read-only balance question, its answer shown (nothing written).
+  // The scroll view's own height and its content's, so the capture surface
+  // scrolls only when it does not fit (see the ScrollView below).
+  const [viewportHeight, setViewportHeight] = useState(0);
+  const [contentHeight, setContentHeight] = useState(0);
   const [phase, setPhase] = useState<'listening' | 'thinking' | 'review' | 'committing' | 'answer'>(
     widgetHeard ? 'thinking' : 'listening',
   );
@@ -1427,8 +1432,21 @@ export default function VoiceScreen() {
 
   return (
     <Screen>
+      {/* The desk scene along the foot, under everything. Not on the review:
+          that list keeps its pinned Save bar there, and a picture behind the
+          figures being checked would only be in the way. */}
+      {phase === 'review' ? null : <VoiceFooterScene />}
       <ScrollView
         style={{ flex: 1 }}
+        // Capturing is one still screen — the mic, what to say, the scene at the
+        // foot — so it does not scroll or bounce while it fits. It only scrolls
+        // when it has to: the review's list, or a phone too short to show the
+        // capture surface whole, where clipping it would hide the mic.
+        scrollEnabled={phase === 'review' || contentHeight > viewportHeight + 1}
+        bounces={phase === 'review'}
+        overScrollMode={phase === 'review' ? 'auto' : 'never'}
+        onLayout={(event) => setViewportHeight(event.nativeEvent.layout.height)}
+        onContentSizeChange={(_width, height) => setContentHeight(height)}
         contentContainerStyle={{
           paddingHorizontal: theme.spacing.xl,
           paddingBottom: phase === 'review' ? theme.spacing.xl : clearance,
@@ -1640,11 +1658,12 @@ export default function VoiceScreen() {
           // included. A heard-but-amountless try comes back as `missed`; the mic
           // is the retry, and tapping it (via `onListen`) clears the miss. No
           // warning banner and no separate button stacked around it.
-          <View style={{ flexGrow: 1, gap: theme.spacing.lg, paddingTop: theme.spacing.xxl }}>
+          <View style={{ flexGrow: 1, gap: theme.spacing.lg, paddingTop: theme.spacing.md }}>
             <VoiceMicPanel
               key={attempt}
               onDone={handleTranscript}
               hints={hints}
+              groupNames={hints}
               missed={noAmount}
               autoStart={!noAmount}
               endSignal={hold.ended}

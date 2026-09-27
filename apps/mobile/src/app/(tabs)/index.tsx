@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurTargetView } from 'expo-blur';
 import {
@@ -15,7 +14,6 @@ import {
 
 import { dayNumber, type GuestGate } from '@waves/core';
 import {
-  Avatar,
   Button,
   directionalIcon,
   EmptyState,
@@ -54,12 +52,13 @@ import { ImportProgressBanner } from '@/components/ImportProgressBanner';
 import { SkeletonList } from '@/components/Skeletons';
 import { useImportedGroupId } from '@/lib/importProgress';
 import { useReducedMotion } from '@/lib/reducedMotion';
-import { SCENE_ORDER, SCENE_OVERRIDE, Scene, sceneFor } from '@/lib/scene';
+import { useHeroScene } from '@/lib/heroScenePreference';
 import { THEME_HIDDEN } from '@/lib/theme';
 import { useDefaultCurrency } from '@/lib/currency';
 import { QuickAddSheet, useQuickAddActions } from '@/components/QuickAddSheet';
 import { QuickExpenseSheet } from '@/components/QuickExpenseSheet';
 import { BALANCE_MASK, HomeBalanceCard } from '@/components/home/HomeBalanceCard';
+import { HeroAvatar, HeroIconButton } from '@/components/home/HeroControls';
 import { HeroScene } from '@/components/home/HeroScene';
 import { HomeQuickActions } from '@/components/home/HomeQuickActions';
 import { useHeroStatusBar } from '@/components/ScreenHero';
@@ -275,6 +274,7 @@ export default function HomeScreen() {
         section: 'data',
       },
       { icon: 'language-outline', label: t.language, route: '/settings/language', section: 'app' },
+      { icon: 'image-outline', label: t.heroScene.title, route: '/settings/scene', section: 'app' },
       // Appearance is hidden while THEME_HIDDEN stands; the screen behind it is
       // still routable, just not offered.
       ...(THEME_HIDDEN
@@ -341,23 +341,9 @@ export default function HomeScreen() {
   // in render) so the "New" window is stable across this screen's renders and
   // the React Compiler stays happy — a bare Date.now() in render trips its lint.
   const [nowMs] = useState(() => Date.now());
-  // Which landscape the hero wears, re-read every few minutes so an app left
-  // open across sunset turns with the sky. The scroll offset fades the status
-  // bar's strip in as the scene scrolls away.
-  const [scene, setScene] = useState(() => sceneFor(new Date(), { override: SCENE_OVERRIDE }));
-  const [pinnedScene, setPinnedScene] = useState<Scene | null>(SCENE_OVERRIDE);
-  useEffect(() => {
-    const timer = setInterval(
-      () => setScene(sceneFor(new Date(), { override: pinnedScene })),
-      5 * 60 * 1000,
-    );
-    return () => clearInterval(timer);
-  }, [pinnedScene]);
-  const cycleScene = () => {
-    const next = SCENE_ORDER[(SCENE_ORDER.indexOf(scene) + 1) % SCENE_ORDER.length];
-    setPinnedScene(next);
-    setScene(next);
-  };
+  // Which scene the hero wears: the clock's, or the one picked on the
+  // Background screen.
+  const scene = useHeroScene();
   // The hero's geometry, measured: the scene runs from the top of the screen
   // down to the lower part of the balance card, and needs to know where the
   // greeting row ends and where the card begins to place its layers.
@@ -463,9 +449,6 @@ export default function HomeScreen() {
               accessibilityRole="button"
               accessibilityLabel={t.profile}
               onPress={() => router.navigate('/profile')}
-              // Development only: a long press steps through the scenes, to
-              // see each one without waiting for the clock.
-              onLongPress={__DEV__ ? cycleScene : undefined}
               hitSlop={8}
               style={({ pressed }) => ({
                 flex: 1,
@@ -736,59 +719,6 @@ export default function HomeScreen() {
   );
 }
 
-/**
- * The face at the top of the hero. With a photo it is the ordinary Avatar; with
- * none it is a person glyph inside a ringed, *transparent* circle — the hero's
- * colour shows through rather than an initials chip on a tinted disc, so it sits
- * on the wash the way the reference's placeholder does. White glyph and ring, so
- * one treatment reads on green, teal or indigo alike.
- */
-function HeroAvatar({
-  name,
-  photoUrl,
-  onPress,
-  label,
-}: {
-  name: string;
-  photoUrl?: string | null;
-  onPress: () => void;
-  label: string;
-}) {
-  const theme = useTheme();
-  if (photoUrl) {
-    return (
-      <Avatar
-        name={name}
-        size={40}
-        photoUrl={photoUrl}
-        accessibilityLabel={label}
-        onPress={onPress}
-      />
-    );
-  }
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      onPress={onPress}
-      hitSlop={8}
-      style={({ pressed }) => ({
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: 'transparent',
-        borderWidth: 2,
-        borderColor: 'rgba(255, 255, 255, 0.55)',
-        opacity: pressed ? 0.6 : 1,
-      })}
-    >
-      <Ionicons name="person-outline" size={iconSize.lg} color={theme.color.onBrand} />
-    </Pressable>
-  );
-}
-
 /** The AsyncStorage key remembering whether the balance is hidden behind the eye. */
 const BALANCE_HIDDEN_KEY = 'dashboard:balanceHidden';
 
@@ -826,53 +756,6 @@ function useBalanceHidden(): { hidden: boolean; ready: boolean; toggle: () => vo
     });
   }, []);
   return { hidden, ready, toggle };
-}
-
-/** A bare white glyph in the hero's top-right cluster — the sync icon's
-    neighbour, the overflow menu's handle. No disc, so it reads lighter than the
-    action circles below. */
-function HeroIconButton({
-  icon,
-  label,
-  onPress,
-  family = 'ionicons',
-  dot = false,
-}: {
-  icon: string;
-  label: string;
-  onPress: () => void;
-  /** A red dot at the glyph's shoulder: something new behind it. */
-  dot?: boolean;
-  /** Which glyph set `icon` names — Ionicons by default, Material for the ones
-   *  Ionicons lacks (the two-people-plus "group add"). */
-  family?: 'ionicons' | 'material';
-}) {
-  const theme = useTheme();
-  const Glyph = family === 'material' ? MaterialIcons : Ionicons;
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      onPress={onPress}
-      hitSlop={10}
-      style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1, padding: theme.spacing.xs })}
-    >
-      <Glyph name={icon as never} size={iconSize.xxl} color={theme.color.onBrand} />
-      {dot ? (
-        <View
-          style={{
-            position: 'absolute',
-            top: theme.spacing.xs,
-            end: theme.spacing.xs,
-            width: 10,
-            height: 10,
-            borderRadius: 5,
-            backgroundColor: '#FF3B5C',
-          }}
-        />
-      ) : null}
-    </Pressable>
-  );
 }
 
 /** How long after creation a group still counts as "New" — 48 hours. */

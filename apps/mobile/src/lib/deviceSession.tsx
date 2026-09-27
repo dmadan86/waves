@@ -28,19 +28,26 @@ import {
   type ReactNode,
 } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { ActivityIndicator, AppState, View } from 'react-native';
+import {
+  ActivityIndicator,
+  AppState,
+  Image,
+  Pressable,
+  ScrollView,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 
 import { type DeviceLimitStatus } from '@waves/core';
-import { Button, iconSize, Popup, Text, useTheme } from '@waves/ui';
+import { directionalIcon, Popup, Text, useTheme } from '@waves/ui';
 
 import { fill, useStrings } from '@/i18n';
 import { registerDevice, signOutOtherDevices } from '@/data/api';
 import { deviceIdentity } from '@/lib/device';
 import { useAuth } from '@/lib/auth';
 import { backend } from '@/lib/backend';
-
-/** The gate's icon medallion — big enough to read as an illustration, not a bullet. */
-const MEDALLION = 64;
+import { DEVICE_LIMIT_ART, DEVICE_LIMIT_ART_RATIO } from '@/lib/deviceLimitArt';
+import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
 
 /** How stale a registration may get before a foreground refreshes it. */
 const HEARTBEAT_MS = 60 * 60 * 1000;
@@ -184,25 +191,20 @@ export function DeviceSessionProvider({ children }: { children: ReactNode }) {
 }
 
 /**
- * The gate itself, built the way the good blocking dialogs are built (Coffee
- * Meets Bagel, Affirm, Tabby, Wise): a tinted medallion so the dialog is
- * recognisable before a word of it is read, the title and the reason centred
- * under it, the number that provoked it stated plainly, and the two ways out as
- * one full-width button and one quiet one.
+ * The gate itself: an illustration of the devices on the account with one
+ * marked off, the title and the reason under it, the count stated plainly in a
+ * card of its own, and the two ways out — a full-width primary and an outlined
+ * "Not now" of the same width, one decision with two answers.
  *
  * Three things it deliberately does:
  *
- *   - **States the count.** "Too many" is the app's word for it; "3 devices · 2
+ *   - **States the count.** "Too many" is the app's word for it; "4 devices · 2
  *     allowed" is the fact, and the fact is what tells somebody whether they
- *     already know which third phone this is.
- *   - **Gives the buttons the same width.** They used to take the width of their
- *     own labels, so the choice between them read as two unrelated controls of
- *     different importance rather than one decision with two answers. Full width
- *     for the action, full width and chromeless for the way out — the hierarchy
- *     everybody uses, and the second one still has a 48pt target.
- *   - **Says nothing alarming.** This is a soft gate: the scrim dismisses it,
- *     "Not now" dismisses it, and nothing is lost by dismissing it. So a brand
- *     medallion rather than a red warning triangle.
+ *     already know which extra phone this is.
+ *   - **Is easy to leave.** This is a soft gate: the ✕, the scrim and "Not now"
+ *     all dismiss it, and nothing is lost by dismissing it.
+ *   - **Stays calm.** One small red mark on the illustration says what is wrong;
+ *     the rest is the app's own violet, not a warning.
  */
 function DeviceLimitGate({
   status,
@@ -216,81 +218,242 @@ function DeviceLimitGate({
   const theme = useTheme();
   const { t } = useStrings();
   const [busy, setBusy] = useState(false);
+  // The last attempt to sign the others out failed: said on the gate, so the
+  // person knows to try again rather than wondering whether anything happened.
+  const [failed, setFailed] = useState(false);
+  const { height: windowHeight } = useWindowDimensions();
+  const dark = theme.scheme === 'dark';
+  const ink = dark ? theme.color.text : SPEC_INK;
+  const muted = dark ? theme.color.textMuted : SPEC_MUTED;
+  const accent = dark ? theme.color.brand : SPEC_ACCENT;
+  const soft = dark ? theme.color.brandSoft : '#F3F1FF';
 
   return (
     <Popup
       visible
       onClose={onDismiss}
       closeLabel={t.devices.gateDismiss}
-      style={{ gap: theme.spacing.lg, alignItems: 'center' }}
+      // The illustration runs to the card's edges, so the card's own padding
+      // moves inside, under it.
+      style={{ padding: 0, overflow: 'hidden' }}
     >
-      <View
-        style={{
-          width: MEDALLION,
-          height: MEDALLION,
-          borderRadius: MEDALLION / 2,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: theme.color.brandSoft,
-        }}
+      {/* Scrolls when it has to — a short phone, or a large text size — so the
+          two ways out are always reachable; at rest it fits and does not. */}
+      <ScrollView
+        style={{ maxHeight: windowHeight - GATE_MARGIN }}
+        bounces={false}
+        showsVerticalScrollIndicator={false}
       >
-        <Ionicons name="phone-portrait-outline" size={iconSize.xxxl} color={theme.color.brand} />
-      </View>
+        <View style={{ backgroundColor: dark ? theme.color.surfaceMuted : '#F7F6FF' }}>
+          <DeviceLimitArt />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t.common.close}
+            onPress={onDismiss}
+            hitSlop={6}
+            style={({ pressed }) => ({
+              position: 'absolute',
+              top: theme.spacing.md,
+              end: theme.spacing.md,
+              width: 44,
+              height: 44,
+              alignItems: 'center',
+              justifyContent: 'center',
+              opacity: pressed ? 0.5 : 1,
+            })}
+          >
+            <Ionicons name="close" size={28} color={ink} />
+          </Pressable>
+        </View>
 
-      <View style={{ gap: theme.spacing.sm, alignSelf: 'stretch' }}>
-        <Text variant="heading" style={{ textAlign: 'center' }}>
-          {t.devices.gateTitle}
-        </Text>
-        <Text variant="body" tone="muted" style={{ textAlign: 'center' }}>
-          {t.devices.gateBody}
-        </Text>
-      </View>
-
-      {/* The number behind the dialog. Only when the status is actually in hand —
-          the gate can be raised from a cached answer, and an invented count is
-          worse than none. */}
-      {status ? (
+        {/* The white body rises over the illustration's foot in a soft arch. */}
         <View
           style={{
-            paddingHorizontal: theme.spacing.md,
-            paddingVertical: theme.spacing.xs,
-            borderRadius: theme.radius.pill,
-            backgroundColor: theme.color.surfaceMuted,
+            marginTop: -ARCH,
+            borderTopLeftRadius: ARCH * 2,
+            borderTopRightRadius: ARCH * 2,
+            backgroundColor: theme.color.surface,
+            paddingHorizontal: theme.spacing.xl,
+            paddingTop: theme.spacing.xl,
+            paddingBottom: theme.spacing.xl,
+            gap: theme.spacing.lg,
           }}
         >
-          <Text variant="caption" tone="muted">
-            {fill(t.devices.gateCount, { active: status.activeCount, limit: status.limit })}
-          </Text>
-        </View>
-      ) : null}
+          <View style={{ gap: theme.spacing.sm }}>
+            <Text
+              style={{
+                fontSize: 22,
+                lineHeight: 28,
+                fontWeight: '800',
+                color: ink,
+                textAlign: 'center',
+              }}
+            >
+              {t.devices.gateTitle}
+            </Text>
+            <Text style={{ fontSize: 15, lineHeight: 22, color: muted, textAlign: 'center' }}>
+              {t.devices.gateBody}
+            </Text>
+          </View>
 
-      <View style={{ gap: theme.spacing.xs, alignSelf: 'stretch' }}>
-        <Button
-          label={t.devices.gateAction}
-          fullWidth
-          disabled={busy}
-          // The spinner takes the icon slot rather than replacing the label: the
-          // button keeps its width and its name while the sessions are revoked,
-          // which is a second or two on a slow connection.
-          icon={
-            busy ? (
-              <ActivityIndicator size="small" color={theme.color.onButtonPrimary} />
-            ) : undefined
-          }
-          onPress={async () => {
-            setBusy(true);
-            try {
-              await onSignOutOthers();
-            } catch {
-              // The failure is reported on the devices screen; here the gate
-              // simply stays up so the person can try again.
-            } finally {
-              setBusy(false);
-            }
-          }}
-        />
-        <Button label={t.devices.gateDismiss} variant="ghost" fullWidth onPress={onDismiss} />
-      </View>
+          {/* The number behind the dialog. Only when the status is actually in
+            hand — the gate can be raised from a cached answer, and an invented
+            count is worse than none. */}
+          {status ? (
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: theme.spacing.md,
+                padding: theme.spacing.lg,
+                borderRadius: 20,
+                backgroundColor: soft,
+              }}
+            >
+              <DevicesGlyph accent={accent} />
+              <View
+                style={{
+                  width: 1,
+                  alignSelf: 'stretch',
+                  backgroundColor: dark ? theme.color.border : '#DCD6FA',
+                }}
+              />
+              <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+                <Text style={{ fontSize: 17, lineHeight: 22, color: ink }}>
+                  <Text style={{ fontSize: 17, fontWeight: '800', color: accent }}>
+                    {fill(t.devices.gateDevices, { active: status.activeCount })}
+                  </Text>
+                  {`  ·  ${fill(t.devices.gateAllowed, { limit: status.limit })}`}
+                </Text>
+                <Text style={{ fontSize: 13, lineHeight: 18, color: muted }}>
+                  {fill(t.devices.gateDetail, { active: status.activeCount, limit: status.limit })}
+                </Text>
+              </View>
+            </View>
+          ) : null}
+
+          {failed ? (
+            <Text
+              accessibilityLiveRegion="polite"
+              style={{
+                fontSize: 14,
+                lineHeight: 19,
+                color: theme.color.negative,
+                textAlign: 'center',
+              }}
+            >
+              {t.devices.couldNotSignOut}
+            </Text>
+          ) : null}
+
+          <View style={{ gap: theme.spacing.md }}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t.devices.gateAction}
+              accessibilityState={{ disabled: busy, busy }}
+              disabled={busy}
+              onPress={async () => {
+                setBusy(true);
+                setFailed(false);
+                try {
+                  await onSignOutOthers();
+                } catch {
+                  // Nothing was signed out: the gate stays up, says so, and the
+                  // same button is the retry.
+                  setFailed(true);
+                } finally {
+                  setBusy(false);
+                }
+              }}
+              style={({ pressed }) => ({
+                height: 56,
+                borderRadius: 28,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: theme.spacing.sm,
+                backgroundColor: accent,
+                shadowColor: accent,
+                shadowOpacity: 0.3,
+                shadowRadius: 12,
+                shadowOffset: { width: 0, height: 6 },
+                elevation: 4,
+                opacity: busy ? 0.7 : pressed ? 0.85 : 1,
+              })}
+            >
+              <Text style={{ fontSize: 17, fontWeight: '700', color: '#FFFFFF' }}>
+                {t.devices.gateAction}
+              </Text>
+              {/* The spinner takes the arrow's place: the button keeps its width
+                and its name while the sessions are revoked. */}
+              {busy ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Ionicons name={directionalIcon('arrow-forward')} size={20} color="#FFFFFF" />
+              )}
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t.devices.gateDismiss}
+              onPress={onDismiss}
+              style={({ pressed }) => ({
+                height: 52,
+                borderRadius: 26,
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderWidth: 1.5,
+                borderColor: dark ? theme.color.border : '#D9D3F7',
+                backgroundColor: dark ? 'transparent' : '#FAF9FF',
+                opacity: pressed ? 0.6 : 1,
+              })}
+            >
+              <Text style={{ fontSize: 16, fontWeight: '700', color: accent }}>
+                {t.devices.gateDismiss}
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      </ScrollView>
     </Popup>
+  );
+}
+
+/** Room kept around the gate on screen: the popup's own margin, top and bottom. */
+const GATE_MARGIN = 96;
+
+/** How far the white body arches up over the illustration's foot. */
+const ARCH = 22;
+
+/**
+ * The picture at the top: a laptop, a phone and a tablet on a soft dome, each
+ * showing the same signed-in person, with a red mark on the one too many. Drawn
+ * at its own shape across the card (never stretched); its transparent edges
+ * fade into the band behind it.
+ */
+
+function DeviceLimitArt() {
+  return (
+    <Image
+      source={DEVICE_LIMIT_ART}
+      resizeMode="contain"
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={{ width: '100%', aspectRatio: DEVICE_LIMIT_ART_RATIO, marginTop: 8 }}
+    />
+  );
+}
+
+/** The count card's glyph: a laptop with a phone in front of it. */
+function DevicesGlyph({ accent }: { accent: string }) {
+  return (
+    <View style={{ width: 64, height: 48, justifyContent: 'center' }}>
+      <Ionicons name="laptop-outline" size={46} color={accent} />
+      <Ionicons
+        name="phone-portrait-outline"
+        size={28}
+        color={accent}
+        style={{ position: 'absolute', end: 0, bottom: 0 }}
+      />
+    </View>
   );
 }

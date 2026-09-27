@@ -769,6 +769,7 @@ function AuthGate() {
           <Stack.Screen name="settings/blocked" />
           <Stack.Screen name="settings/storage" />
           <Stack.Screen name="settings/theme" />
+          <Stack.Screen name="settings/scene" />
           <Stack.Screen name="settings/categories" />
           <Stack.Screen name="settings/language" />
           <Stack.Screen name="settings/packs" />

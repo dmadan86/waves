@@ -1,20 +1,15 @@
 /**
  * The "Me" tab — the private personal-finance ledger (A48).
  *
- * A person's own money, nothing shared. It wears the same clothes as the
- * dashboard: an edge-to-edge saturated hero that runs up under the status bar,
- * holding this month's net big and, flat beneath it, the three figures the month
- * turns on (income in, spent out, the share kept) plus both add actions. Nothing
- * hides behind a swipe. A month switcher in the hero header steps back through
- * past months so the ledger is a record you can browse, not just today.
+ * A person's own money, nothing shared. It wears Home's clothes: the time of
+ * day's scene runs up under the status bar, carrying the section's name, this
+ * month's spend big with how it compares to last month, and a month picker;
+ * the month's three figures (income, spent, what is left) sit on glass over the
+ * scene's foot. Below, on the plain page, the month reads top-down the way a
+ * person scans it: the budget, what is still due, the top categories, the
+ * latest spends, and the money tools (recurring bills and loans).
  *
- * Below the hero, the white body reads top-down the way a person scans it: what
- * this month is still waiting for, then the month's entries grouped by day like
- * a bank statement, then the summaries drawn from them (category breakdown,
- * three-month trend), and — demoted to a quiet tools shelf at the foot — the
- * three management areas (recurring, loans, budgets). The rows come before the
- * charts on purpose: the ledger is the evidence, the analytics are claims about
- * it. Everything is local-first from the mirror and every figure is computed on
+ * Everything is local-first from the mirror and every figure is computed on
  * the device.
  *
  * Before any of that exists — no entry, no rule, no loan, no budget — the tab
@@ -27,31 +22,25 @@
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { BlurTargetView } from 'expo-blur';
+import { Animated, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
-  cashflowTrend,
   categoryBreakdown,
-  dayDelta,
   dueInMonth,
   format,
-  isRecurringDue,
   loanOutstanding,
   money,
   monthOutlook,
-  nextRecurring,
   personalBudgetProgress,
-  recentMonths,
   resolveCategory,
-  savingsRate,
   spendDelta,
   worstOverBudget,
-  type MonthCashflow,
+  type PersonalRecurring,
   type PersonalTxn,
 } from '@waves/core';
 import {
-  BarList,
   Button,
   Card,
   directionalIcon,
@@ -64,17 +53,19 @@ import {
   Text,
   useTabBarClearance,
   useTheme,
-  type BarDatum,
 } from '@waves/ui';
 
 import { CategoryBadge } from '@/components/Category';
-import { dayHeading } from '@/data/activity';
+import { GlassSurface } from '@/components/home/GlassSurface';
+import { HeroAvatar, HeroIconButton } from '@/components/home/HeroControls';
+import { PersonalHeroBackground } from '@/components/home/PersonalHeroBackground';
+import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { PersonalLocked } from '@/components/PersonalGuard';
+import { useAvatarUrl } from '@/components/ProfileAvatar';
 import { useSourceLabel } from '@/components/IncomeSource';
-import { HeroFigureLine } from '@/components/ScreenHero';
+import { useHeroStatusBar } from '@/components/ScreenHero';
 import { SignInWall } from '@/components/SignInWall';
 import {
-  localIsoDate,
   postDueRecurring,
   todayIso,
   usePersonalLedger,
@@ -85,15 +76,13 @@ import { dateTimeFormat } from '@/lib/dateTimeFormat';
 import { useAuth } from '@/lib/auth';
 import { usePersonalGate } from '@/lib/lock';
 import { router } from '@/lib/navigation';
+import { useHeroScene } from '@/lib/heroScenePreference';
+import { HERO_THEMES } from '@/lib/scene';
 import { useSync } from '@/sync';
-import { fill, useStrings } from '@/i18n';
+import { fill, plural, useStrings } from '@/i18n';
 
-// One saturated wash per hero slide (net, spent, savings), dark corner to light,
-// each deep enough to hold white ink on every corner like a bank card. The net
-// slide's wash is swapped for its verdict at render — blue when you saved, red
-// when you overspent — so the hero opens on the colour of how the month went.
-const SAVED_WASH = ['#1E5A8C', '#0C2E4A'] as const; // blue — money kept
-const OVERSPENT_WASH = ['#8C1D3F', '#4A0F20'] as const; // red — money lost
+// The first run's saturated wash, deep enough to hold white ink on every corner.
+const SAVED_WASH = ['#1E5A8C', '#0C2E4A'] as const;
 
 // One faint watermark glyph, bled off the hero's corner.
 const HERO_GLYPH = 'wallet-outline' as const;
@@ -113,11 +102,14 @@ export default function MeScreen() {
 
 function MeLedger() {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
   const dc = useDefaultCurrency();
   const sourceLabel = useSourceLabel();
   const { hydrated } = useSync();
+  const { profile } = useAuth();
+  const avatarUrl = useAvatarUrl(profile?.avatar_url);
   const ledger = usePersonalLedger();
   const upsert = useUpsertPersonalRecord();
 
@@ -134,16 +126,33 @@ function MeLedger() {
   const [today] = useState(() => todayIso());
   const currentMonth = today.slice(0, 7);
 
-  // Which month the hero and the list are showing. 0 is the current month; each
-  // step back subtracts a month. You cannot step past the current month, nor
-  // back before the first month you have any entry in — wandering into unbounded
-  // empty past months is not browsing a record. The ledger comes newest-first,
-  // so the last txn's month is the earliest represented.
+  // Which month the hero and the sections are showing. 0 is the current month;
+  // each step back subtracts a month. You cannot step past the current month,
+  // nor back before the first month you have any entry in — wandering into
+  // unbounded empty past months is not browsing a record. The ledger comes
+  // newest-first, so the last txn's month is the earliest represented.
   const [monthsBack, setMonthsBack] = useState(0);
+  const [monthMenuOpen, setMonthMenuOpen] = useState(false);
   const earliestMonth =
     ledger.txns.length > 0 ? ledger.txns[ledger.txns.length - 1]!.date.slice(0, 7) : currentMonth;
   const maxBack = Math.max(0, monthsBetween(earliestMonth, currentMonth));
   const month = monthsBack === 0 ? currentMonth : shiftMonth(currentMonth, -monthsBack);
+
+  // The hero wears the scene for the time of day, or the one picked on the
+  // Background screen.
+  const scene = useHeroScene();
+  // How far the page has scrolled, for the status bar's strip (below).
+  const scrollY = useState(() => new Animated.Value(0))[0];
+  const [gearOpen, setGearOpen] = useState(false);
+
+  // The hero's geometry, measured: the scene runs from the top of the screen
+  // down to the lower part of the month tiles, its shade ending where they
+  // begin.
+  const sceneRef = useRef<View>(null);
+  const [heroHeight, setHeroHeight] = useState(insets.top + 220);
+  const [tilesHeight, setTilesHeight] = useState(110);
+  const tilesTop = heroHeight - HERO_OVERLAP;
+  const sceneHeight = tilesTop + tilesHeight * 0.72;
 
   // Post due auto-recurring entries once the mirror has hydrated from disk and
   // there are recurring rules to act on. Gating on `hydrated` (not the raw mount)
@@ -168,35 +177,46 @@ function MeLedger() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready]);
 
-  // Both halves of the month: what actually moved, and what the recurring rules
-  // still expect to. Kept apart all the way to the hero — a total that quietly
-  // included money nobody has received would be the one lie a ledger cannot tell.
+  // What actually moved this month. The recurring rules' still-expected money
+  // stays out of these figures — a total that quietly included money nobody has
+  // received would be the one lie a ledger cannot tell — and is listed below as
+  // what the month is still waiting for.
   const summary = monthOutlook(ledger.txns, ledger.recurrings, month, dc, today);
-  const rate = savingsRate(summary.income, summary.expense);
   const due = dueInMonth(ledger.txns, ledger.recurrings, month, dc, today);
-
-  // The list follows the hero's month: the entries made in it, grouped by day.
-  const monthTxns = ledger.txns.filter((txn) => txn.date.slice(0, 7) === month);
-  const days = groupByDay(monthTxns, today, dc, t, locale);
-
-  const dueCount = ledger.recurrings.filter((rule) => isRecurringDue(rule, today)).length;
-  const activeLoans = ledger.loans.filter((loan) => loan.status === 'active');
-  const overBudgets = ledger.budgets.filter(
-    (budget) => personalBudgetProgress(budget, ledger.txns, month).remaining < 0n,
-  ).length;
-  const outstanding = activeLoans
-    .filter((loan) => loan.currency === dc)
-    .reduce((sum, loan) => sum + loanOutstanding(loan, ledger.txns), 0n);
-
   const fmt = (amount: bigint): string => format(money(amount, dc), { locale });
-
-  // Where the month's money went — the biggest categories, each with its share,
-  // capped so the list stays a glance rather than a scroll. Personal txns carry
-  // no category-meta snapshot, so unknown/custom-tag ids all resolve to the same
-  // built-in "Other"; fold them into one bucket (summing spend and share) BEFORE
-  // sorting and slicing, or several look-alike "Other" rows would crowd real
-  // categories out of the top six.
   const catLabel = labelForCategory(t);
+
+  // Spend against the month before, as a percentage — null when there is no
+  // earlier month to hold it against.
+  const delta = spendDelta(ledger.txns, month, dc);
+  const change =
+    delta && delta.prevExpense > 0n ? Number((delta.delta * 1000n) / delta.prevExpense) / 10 : null;
+
+  // The overall monthly cap, when one is set, and how far into it the month is.
+  const overallBudget = ledger.budgets.find(
+    (budget) => budget.category === null && budget.currency === dc,
+  );
+  const budgetProgress = overallBudget
+    ? personalBudgetProgress(overallBudget, ledger.txns, month)
+    : null;
+  // With no overall cap, the category budgets still have something to say: how
+  // many there are, and the one that has run furthest past its cap.
+  const categoryBudgetCount = ledger.budgets.filter((budget) => budget.category !== null).length;
+  const worstOver = worstOverBudget(ledger.budgets, ledger.txns, month, dc);
+  const worstOverLine = worstOver
+    ? fill(t.personal.dash.overBy, {
+        name: worstOver.budget.category
+          ? (catLabel(worstOver.budget.category) ?? t.categories.other)
+          : t.personal.overall,
+        amount: fmt(worstOver.over),
+      })
+    : null;
+
+  // Where the month's money went — the four biggest categories, each with its
+  // share. Personal txns carry no category-meta snapshot, so unknown/custom-tag
+  // ids all resolve to the same built-in "Other"; fold them into one bucket
+  // (summing spend and share) BEFORE sorting and slicing, or several look-alike
+  // "Other" columns would crowd real categories out.
   const buckets = new Map<string, { spent: bigint; share: number }>();
   for (const row of categoryBreakdown(ledger.txns, month, dc)) {
     const key = resolveCategory(row.category, null).builtinId ?? 'other';
@@ -206,54 +226,28 @@ function MeLedger() {
       share: (prev?.share ?? 0) + row.share,
     });
   }
-  const breakdownBars: BarDatum[] = [...buckets]
+  const topCategories = [...buckets]
     .sort((a, b) =>
       b[1].spent === a[1].spent ? (a[0] < b[0] ? -1 : 1) : b[1].spent > a[1].spent ? 1 : -1,
     )
-    .slice(0, 6)
-    .map(([key, agg]) => ({
-      key,
-      label: catLabel(key) ?? t.categories.other,
-      value: agg.spent,
-      formatted: `${fmt(agg.spent)} · ${Math.round(agg.share * 100)}%`,
-      tint: resolveCategory(key, null).tint,
-      leading: <CategoryBadge category={key} meta={null} size={26} />,
-    }));
+    .slice(0, 4)
+    .map(([key, agg]) => ({ key, ...agg }));
 
-  // The soonest upcoming recurring item, previewed by name and when.
-  const upcoming = nextRecurring(ledger.recurrings, today);
-  const upcomingName = upcoming
-    ? upcoming.rule.note?.trim() || catLabel(upcoming.rule.category) || t.personal.recurring
-    : '';
-  const upcomingWhen = upcoming
-    ? whenLabel(dayDelta(today, upcoming.date), upcoming.date, locale, t)
-    : '';
+  // The month's latest spends, newest first.
+  const recentExpenses = ledger.txns
+    .filter((txn) => txn.kind === 'expense' && txn.date.slice(0, 7) === month)
+    .slice(0, 4);
 
-  // The single worst over-budget category, named — more useful than the count.
-  const worstOver = worstOverBudget(ledger.budgets, ledger.txns, month, dc);
-  const overName = worstOver
-    ? worstOver.budget.category
-      ? (catLabel(worstOver.budget.category) ?? t.categories.other)
-      : t.personal.overall
-    : '';
-
-  // The last three months of cash flow, ending on the browsed month. Hidden
-  // until there is something in the window to draw.
-  const trend = cashflowTrend(ledger.txns, recentMonths(month, 3), dc);
-  const trendActive = trend.some((m) => m.income > 0n || m.expense > 0n);
-
-  // A one-line month-over-month spend insight: how this month compares to the
-  // last month you actually used. null when there is nothing honest to compare.
-  const delta = spendDelta(ledger.txns, month, dc);
-  const deltaAbs = delta ? (delta.delta < 0n ? -delta.delta : delta.delta) : 0n;
-  const deltaLine = delta
-    ? delta.delta === 0n
-      ? t.personal.spentSameAsLast
-      : (delta.delta > 0n ? t.personal.spentMoreThanLast : t.personal.spentLessThanLast).replace(
-          '{amount}',
-          fmt(deltaAbs),
-        )
-    : null;
+  // The tools: what the recurring bills cost a month, and what is still owed on
+  // the open loans.
+  const activeRules = ledger.recurrings.filter((rule) => rule.active);
+  const monthlyBills = activeRules
+    .filter((rule) => rule.txnKind === 'expense' && rule.currency === dc)
+    .reduce((sum, rule) => sum + monthlyEquivalent(rule), 0n);
+  const activeLoans = ledger.loans.filter((loan) => loan.status === 'active');
+  const outstanding = activeLoans
+    .filter((loan) => loan.currency === dc)
+    .reduce((sum, loan) => sum + loanOutstanding(loan, ledger.txns), 0n);
 
   // Private ledger: while the biometric gate is unresolved the whole screen is a
   // shield — no hero, no figures — so nothing is on show behind the OS prompt.
@@ -263,12 +257,9 @@ function MeLedger() {
 
   // Nothing in the section at all — no entry, no recurring rule, no loan, no
   // budget — and the mirror has finished loading, so that is the truth of it
-  // rather than a screen caught mid-hydration. A month of zeroes over an empty
-  // bar, with three tiles reading 0 · — · 0 beneath, is a form to fill in with
-  // no reason attached: it shows a person who has never used this what the
-  // work looks like before telling them what the work is for. The first run
-  // says the promise instead, and everything below comes back the moment there
-  // is one record to draw.
+  // rather than a screen caught mid-hydration. A month of zeroes is a form to
+  // fill in with no reason attached; the first run says the promise instead,
+  // and everything below comes back the moment there is one record to draw.
   const blank =
     hydrated &&
     ledger.txns.length === 0 &&
@@ -277,58 +268,179 @@ function MeLedger() {
     ledger.budgets.length === 0;
   if (blank) return <PersonalFirstRun t={t} />;
 
+  const canBrowse = maxBack > 0;
+  const monthItems: OverflowMenuItem[] = Array.from(
+    // Every month back to the first one with an entry; the menu scrolls.
+    { length: maxBack + 1 },
+    (_, back) => ({
+      icon: back === monthsBack ? 'checkmark' : 'calendar-outline',
+      label: monthLabel(shiftMonth(currentMonth, -back), locale),
+      onPress: () => setMonthsBack(back),
+    }),
+  );
+
   return (
     <Screen edges={[]}>
-      <MeHero
-        net={summary.net}
-        income={summary.income}
-        expense={summary.expense}
-        expectedIncome={summary.expectedIncome}
-        expectedExpense={summary.expectedExpense}
-        rate={rate}
-        currency={dc}
-        locale={locale}
-        t={t}
-        monthLabel={monthLabel(month, locale)}
-        canGoForward={monthsBack > 0}
-        canGoBack={monthsBack < maxBack}
-        onPrevMonth={() => setMonthsBack((back) => Math.min(maxBack, back + 1))}
-        onNextMonth={() => setMonthsBack((back) => Math.max(0, back - 1))}
-      />
-      <ScrollView
+      {/* The scene runs up under the status bar, so the clock goes white — but
+          only here, where the scene is drawn: the lock shield and the first run
+          are plain pages, and keep the theme's own dark icons. */}
+      <HeroStatusBar />
+      <Animated.ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingBottom: clearance }}
         showsVerticalScrollIndicator={false}
+        scrollEventThrottle={16}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
+          useNativeDriver: true,
+        })}
       >
+        {/* The scene, from under the status bar down to the lower part of the
+            month tiles, where it fades into the page. Wrapped as the glass
+            tiles' blur target (Android needs one). */}
+        <BlurTargetView
+          ref={sceneRef}
+          pointerEvents="none"
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, height: sceneHeight }}
+        >
+          <PersonalHeroBackground
+            scene={scene}
+            height={sceneHeight}
+            horizon={tilesTop}
+            pageColor={theme.color.bg}
+          />
+        </BlurTargetView>
+
         <View
+          onLayout={(event) => setHeroHeight(event.nativeEvent.layout.height)}
           style={{
-            paddingHorizontal: theme.spacing.xl,
-            paddingTop: theme.spacing.lg,
+            paddingTop: insets.top + theme.spacing.sm,
+            paddingHorizontal: theme.spacing.lg,
+            paddingBottom: HERO_OVERLAP + theme.spacing.lg,
             gap: theme.spacing.xl,
           }}
         >
-          {/* A one-line month-over-month spend insight, tinted by direction:
-              red when this month ran hotter than last, positive when cooler. */}
-          {deltaLine && delta ? (
-            <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
-              <Ionicons
-                name={
-                  delta.delta > 0n ? 'trending-up' : delta.delta < 0n ? 'trending-down' : 'remove'
-                }
-                size={iconSize.sm}
-                color={
-                  delta.delta > 0n
-                    ? theme.color.negative
-                    : delta.delta < 0n
-                      ? theme.color.positive
-                      : theme.color.textMuted
-                }
-              />
-              <Text variant="caption" tone="muted">
-                {deltaLine}
+          {/* Face, the section's name and its line; then search, add, lock. */}
+          <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+            <HeroAvatar
+              name={profile?.display_name ?? t.account.you}
+              photoUrl={avatarUrl}
+              onPress={() => router.navigate('/profile')}
+              label={t.profile}
+            />
+            <View style={{ flex: 1, minWidth: 0, marginEnd: theme.spacing.xs }}>
+              <Text
+                tone="onBrand"
+                numberOfLines={1}
+                style={{ fontSize: 22, lineHeight: 27, fontWeight: '800' }}
+              >
+                {t.personal.title}
               </Text>
-            </Row>
-          ) : null}
+              <Text variant="caption" tone="onBrand" numberOfLines={1} style={{ opacity: 0.9 }}>
+                {t.personal.dash.tagline}
+              </Text>
+            </View>
+            <HeroIconButton
+              icon="search-outline"
+              label={t.personal.transactions}
+              onPress={() => router.push('/personal/transactions')}
+            />
+            <HeroIconButton
+              icon="add-circle-outline"
+              label={t.personal.addExpense}
+              onPress={() =>
+                router.push({ pathname: '/personal/entry', params: { kind: 'expense' } })
+              }
+            />
+            <HeroIconButton
+              icon="settings-outline"
+              label={t.account.faceSettings}
+              onPress={() => setGearOpen(true)}
+            />
+          </Row>
+
+          {/* The month's spend, big, with how it compares to the month before;
+              the month itself is a picker on the right. */}
+          <Row style={{ alignItems: 'flex-start', gap: theme.spacing.md }}>
+            <View style={{ flex: 1, minWidth: 0, gap: theme.spacing.xs }}>
+              <Text variant="body" tone="onBrand" numberOfLines={1} style={{ opacity: 0.9 }}>
+                {monthsBack === 0
+                  ? t.personal.dash.totalSpentThisMonth
+                  : fill(t.personal.dash.totalSpentIn, { month: monthLabel(month, locale) })}
+              </Text>
+              <Text
+                tone="onBrand"
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.6}
+                style={{ fontSize: 38, lineHeight: 46, fontWeight: '800' }}
+              >
+                {fmt(summary.expense)}
+              </Text>
+              {change !== null ? (
+                <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+                  <ChangePill change={change} />
+                  <Text variant="caption" tone="onBrand" numberOfLines={1} style={{ opacity: 0.9 }}>
+                    {fill(t.personal.dash.vsMonth, {
+                      month: monthShortYear(shiftMonth(month, -1), locale),
+                    })}
+                  </Text>
+                </Row>
+              ) : null}
+            </View>
+            <MonthPill
+              label={monthLabel(month, locale)}
+              spokenLabel={t.personal.dash.pickMonth}
+              onPress={canBrowse ? () => setMonthMenuOpen(true) : undefined}
+            />
+          </Row>
+        </View>
+
+        <View
+          style={{
+            paddingHorizontal: theme.spacing.lg,
+            marginTop: -HERO_OVERLAP,
+            gap: theme.spacing.lg,
+          }}
+        >
+          {/* In, out, and what is left — on glass over the scene's foot. */}
+          <View onLayout={(event) => setTilesHeight(event.nativeEvent.layout.height)}>
+            <GlassSurface blurTarget={sceneRef} style={{ padding: theme.spacing.sm }}>
+              <Row style={{ gap: theme.spacing.sm }}>
+                <FlowTile
+                  icon="wallet-outline"
+                  tone="positive"
+                  label={t.personal.income}
+                  value={fmt(summary.income)}
+                  onPress={() => router.push('/personal/transactions')}
+                />
+                <FlowTile
+                  icon="arrow-up"
+                  tone="negative"
+                  label={t.personal.spent}
+                  value={fmt(summary.expense)}
+                  onPress={() => router.push('/personal/spending')}
+                />
+                <FlowTile
+                  icon="wallet"
+                  tone="brand"
+                  label={t.personal.dash.available}
+                  value={`${summary.net < 0n ? '−' : ''}${fmt(summary.net < 0n ? -summary.net : summary.net)}`}
+                  negative={summary.net < 0n}
+                  onPress={() => router.push('/personal/transactions')}
+                />
+              </Row>
+            </GlassSurface>
+          </View>
+
+          <BudgetCard
+            progress={budgetProgress}
+            categoryCount={categoryBudgetCount}
+            worstOverLine={worstOverLine}
+            locale={locale}
+            fmt={fmt}
+            t={t}
+            onPress={() => router.push('/personal/budgets')}
+          />
 
           {/* What this month is still waiting for. The one screen where a
               missed rent or an unpaid EMI is actually actionable: each row goes
@@ -384,197 +496,150 @@ function MeLedger() {
             </View>
           ) : null}
 
-          {/* Two quiet contextual lines: what recurring item is next, and the
-              category that has run furthest past its cap this month. */}
-          {upcoming || worstOver ? (
-            <View style={{ gap: theme.spacing.sm }}>
-              {upcoming ? (
-                <SignalRow
-                  icon="repeat"
-                  tone="brand"
-                  label={t.personal.upcoming}
-                  title={upcomingName}
-                  value={upcomingWhen}
-                  onPress={() => router.push('/personal/recurring')}
-                />
-              ) : null}
-              {worstOver ? (
-                <SignalRow
-                  icon="alert-circle-outline"
-                  tone="negative"
-                  label={t.personal.overBudget}
-                  title={overName}
-                  value={`+${fmt(worstOver.over)}`}
-                  onPress={() => router.push('/personal/budgets')}
-                />
-              ) : null}
-            </View>
-          ) : null}
-
-          {/* The month's entries, grouped by day like a statement. They sit
-              above the analytics on purpose: a breakdown and a trend are claims
-              about the ledger, and the rows are the ledger — somebody who has
-              just added an expense is looking for that line, not for a bar
-              chart that has quietly folded it in. The summaries read as
-              honest once what they are drawn from is already on screen. */}
-          <View style={{ gap: theme.spacing.sm }}>
-            <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-              <Text variant="micro" tone="faint" style={{ letterSpacing: 0.8 }}>
-                {monthLabel(month, locale).toUpperCase()}
-              </Text>
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => router.push('/personal/transactions')}
-              >
-                <Text variant="caption" tone="brand">
-                  {t.personal.seeAll}
-                </Text>
-              </Pressable>
-            </Row>
-
-            {days.length === 0 ? (
-              <Card>
-                <Text tone="muted" align="center">
-                  {t.personal.empty}
-                </Text>
-              </Card>
-            ) : (
-              days.map((day) => (
-                <View key={day.key} style={{ gap: theme.spacing.xs }}>
-                  <Row
-                    style={{
-                      justifyContent: 'space-between',
-                      alignItems: 'baseline',
-                      paddingTop: theme.spacing.sm,
-                      paddingHorizontal: theme.spacing.xs,
-                    }}
-                  >
-                    <Text variant="micro" tone="muted" style={{ fontWeight: '600' }}>
-                      {day.label}
-                    </Text>
-                    {day.hasNet ? (
-                      <Text variant="micro" tone={day.net < 0n ? 'negative' : 'muted'}>
-                        {day.net < 0n ? '−' : day.net > 0n ? '+' : ''}
-                        {fmt(day.net < 0n ? -day.net : day.net)}
-                      </Text>
-                    ) : null}
-                  </Row>
-                  <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
-                    {day.txns.map((txn, index) => (
-                      <View key={txn.id}>
-                        {index > 0 ? <Divider /> : null}
-                        <TxnRow
-                          txn={txn}
-                          locale={locale}
-                          theme={theme}
-                          labelFor={labelForCategory(t)}
-                        />
-                      </View>
-                    ))}
-                  </Card>
-                </View>
-              ))
-            )}
-          </View>
-
-          {/* Where the money went — a ranked bar list of the month's categories. */}
-          {breakdownBars.length > 0 ? (
-            <View style={{ gap: theme.spacing.sm }}>
-              {/* The bars answer "which category"; the Spending screen answers
-                  the question under it — how much of the month was ever yours to
-                  decide. Same `seeAll` idiom the entries list uses above. */}
-              <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text variant="micro" tone="faint" style={{ letterSpacing: 0.8 }}>
-                  {t.personal.whereMoneyWent.toUpperCase()}
-                </Text>
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={() => router.push('/personal/spending')}
-                >
-                  <Text variant="caption" tone="brand">
-                    {t.personal.seeAll}
-                  </Text>
-                </Pressable>
+          {topCategories.length > 0 ? (
+            <SectionCard
+              icon="bar-chart"
+              title={t.personal.dash.topCategories}
+              action={t.personal.dash.viewAll}
+              onAction={() => router.push('/personal/spending')}
+            >
+              <Row style={{ gap: theme.spacing.sm }}>
+                {topCategories.map((category) => (
+                  <CategoryColumn
+                    key={category.key}
+                    category={category.key}
+                    label={catLabel(category.key) ?? t.categories.other}
+                    amount={fmt(category.spent)}
+                    share={category.share}
+                  />
+                ))}
               </Row>
-              <Card>
-                <BarList
-                  data={breakdownBars}
-                  accessibilityLabelFor={(d) => `${d.label}, ${d.formatted}`}
-                />
-              </Card>
-            </View>
+            </SectionCard>
           ) : null}
 
-          {/* Cash flow over the last three months — a small saved/spent trend. */}
-          {trendActive ? (
-            <View style={{ gap: theme.spacing.sm }}>
-              <Text variant="micro" tone="faint" style={{ letterSpacing: 0.8 }}>
-                {t.personal.last3Months.toUpperCase()}
+          <SectionCard
+            icon="time-outline"
+            title={t.personal.dash.recentExpenses}
+            action={t.personal.seeAll}
+            onAction={() => router.push('/personal/transactions')}
+          >
+            {recentExpenses.length === 0 ? (
+              <Text tone="muted" align="center">
+                {t.personal.dash.noExpenses}
               </Text>
-              <Card>
-                <CashflowStrip trend={trend} currency={dc} locale={locale} />
-              </Card>
-            </View>
-          ) : null}
+            ) : (
+              <View>
+                {recentExpenses.map((txn, index) => (
+                  <View key={txn.id}>
+                    {index > 0 ? <Divider /> : null}
+                    <ExpenseRow
+                      txn={txn}
+                      title={txn.note?.trim() || catLabel(txn.category) || '—'}
+                      categoryLabel={catLabel(txn.category) ?? t.categories.other}
+                      date={txn.date === today ? t.personal.today : dayMonthYear(txn.date, locale)}
+                      locale={locale}
+                    />
+                  </View>
+                ))}
+              </View>
+            )}
+          </SectionCard>
 
-          {/* The management areas, demoted below the ledger to a quiet tools
-              shelf — each tile's figure is the size of that collection, with a
-              coloured qualifier for the one thing that wants attention.
-
-              Two rows of two, not one row of four: a fourth tile squeezed into
-              the row left every label truncated, and a truncated label on a tile
-              whose whole job is to be recognised at a glance is worse than a
-              taller shelf. */}
-          <View style={{ gap: theme.spacing.sm }}>
-            <Text variant="micro" tone="faint" style={{ letterSpacing: 0.8 }}>
-              {t.personal.tools.toUpperCase()}
-            </Text>
-            <Row style={{ gap: theme.spacing.md }}>
-              <StatTile
+          <SectionCard icon="layers-outline" title={t.personal.dash.moneyTools}>
+            <Row style={{ gap: theme.spacing.sm }}>
+              <ToolTile
+                tint="mint"
                 icon="repeat"
-                value={String(ledger.recurrings.length)}
-                hint={dueCount > 0 ? `${dueCount} ${t.personal.due.toLowerCase()}` : undefined}
                 label={t.personal.recurring}
+                value={monthlyBills > 0n ? fmt(monthlyBills) : '—'}
+                unit={monthlyBills > 0n ? t.personal.dash.perMonth : undefined}
+                detail={
+                  activeRules.length > 0
+                    ? fill(t.personal.dash.activeCount, { count: String(activeRules.length) })
+                    : t.personal.dash.noneYet
+                }
+                badges={activeRules.slice(0, 3).map((rule) => rule.category ?? 'other')}
+                more={Math.max(0, activeRules.length - 3)}
                 onPress={() => router.push('/personal/recurring')}
               />
-              <StatTile
-                icon="cash-outline"
-                value={activeLoans.length > 0 ? fmt(outstanding) : '—'}
-                hint={
-                  activeLoans.length > 0
-                    ? `${activeLoans.length} ${t.personal.active.toLowerCase()}`
-                    : undefined
-                }
+              <ToolTile
+                tint="lilac"
+                icon="business-outline"
                 label={t.personal.loans}
+                value={activeLoans.length > 0 ? fmt(outstanding) : '—'}
+                unit={activeLoans.length > 0 ? t.personal.outstanding.toLowerCase() : undefined}
+                detail={
+                  activeLoans.length > 0
+                    ? fill(t.personal.dash.activeCount, { count: String(activeLoans.length) })
+                    : t.personal.dash.noneYet
+                }
                 onPress={() => router.push('/personal/loans')}
               />
             </Row>
-            <Row style={{ gap: theme.spacing.md }}>
-              <StatTile
-                icon="pie-chart-outline"
-                value={String(ledger.budgets.length)}
-                hint={overBudgets > 0 ? `${overBudgets} ${t.personal.over}` : undefined}
-                tone={overBudgets > 0 ? 'negative' : undefined}
-                label={t.personal.budgets}
-                onPress={() => router.push('/personal/budgets')}
-              />
-              {/* The only tile that is not a collection, so its figure is the
-                  month's spend — the same one the hero shows, offered here as
-                  something to open rather than something to read again. */}
-              <StatTile
-                icon="stats-chart-outline"
-                value={fmt(summary.expense)}
-                label={t.personal.spendingTitle}
-                onPress={() => router.push('/personal/spending')}
-              />
-            </Row>
-          </View>
+          </SectionCard>
 
           <PrivateNote />
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
+      {/* The status bar stays light over this tab (the scene is under it at
+          rest), so once the scene has scrolled away a strip of its own sky fades
+          in behind the clock — white icons never sit on the pale page. */}
+      <Animated.View
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: insets.top,
+          backgroundColor: HERO_THEMES[scene].sky[0],
+          opacity: scrollY.interpolate({
+            inputRange: [0, Math.max(1, tilesTop - insets.top)],
+            outputRange: [0, 1],
+            extrapolate: 'clamp',
+          }),
+        }}
+      />
+      <OverflowMenu
+        visible={monthMenuOpen}
+        onClose={() => setMonthMenuOpen(false)}
+        items={monthItems}
+      />
+      <OverflowMenu
+        visible={gearOpen}
+        onClose={() => setGearOpen(false)}
+        items={[
+          { icon: 'image-outline', label: t.heroScene.title, route: '/settings/scene' },
+          { icon: 'lock-closed-outline', label: t.personal.dash.settings, route: '/settings/lock' },
+        ]}
+      />
     </Screen>
   );
+}
+
+/** The light status bar the scenic hero needs, as a component so it applies
+ *  only while the dashboard (and so the scene) is the thing on screen. */
+function HeroStatusBar() {
+  useHeroStatusBar();
+  return null;
+}
+
+/** How far the month tiles ride up over the bottom of the hero. */
+const HERO_OVERLAP = 48;
+
+/** What a recurring rule costs in an average month, whatever its cadence. */
+function monthlyEquivalent(rule: PersonalRecurring): bigint {
+  const every = BigInt(Math.max(1, rule.interval));
+  switch (rule.cadence) {
+    case 'weekly':
+      return (rule.amount * 52n) / (12n * every);
+    case 'semimonthly':
+      return rule.amount * 2n;
+    case 'monthly':
+      return rule.amount / every;
+    case 'yearly':
+      return rule.amount / (12n * every);
+  }
 }
 
 // ─────────────────────────────────────────────────────────────── month ──
@@ -609,230 +674,616 @@ function monthLabel(month: string, locale: string): string {
   }
 }
 
-// When an upcoming item falls, in words: overdue / today / tomorrow, else the
-// short calendar date (Sep 3). `days` is signed days from today to the date.
-function whenLabel(
-  days: number,
-  date: string,
-  locale: string,
-  t: ReturnType<typeof useStrings>['t'],
-): string {
-  if (days < 0) return t.personal.overdue;
-  if (days === 0) return t.personal.today;
-  if (days === 1) return t.personal.tomorrow;
-  try {
-    return dateTimeFormat(locale, { month: 'short', day: 'numeric', timeZone: 'UTC' }).format(
-      new Date(`${date}T00:00:00Z`),
-    );
-  } catch {
-    return date;
-  }
-}
-
 // ─────────────────────────────────────────────────────────────── hero ──
 
-/**
- * The edge-to-edge hero: a static account panel for the private ledger. The
- * month's net rides big on a saturated wash — blue when you saved, red when you
- * overspent — and the three figures that frame it (income in, spent out, the
- * share you kept) read flat beneath a spend-against-income bar, so everything the
- * month turns on is on show at once with nothing behind a swipe. The month
- * switcher steps the whole panel back through past months.
- */
-function MeHero({
-  net,
-  income,
-  expense,
-  expectedIncome,
-  expectedExpense,
-  rate,
-  currency,
-  locale,
-  t,
-  monthLabel: label,
-  canGoForward,
-  canGoBack,
-  onPrevMonth,
-  onNextMonth,
+/** How this month's spend moved against last month's: up is red (more went
+ *  out), down is green. On a near-white chip so it reads on any sky. */
+function ChangePill({ change }: { change: number }) {
+  const theme = useTheme();
+  const up = change > 0;
+  const color = up
+    ? theme.color.negative
+    : change < 0
+      ? theme.color.positive
+      : theme.color.textMuted;
+  return (
+    <Row
+      style={{
+        alignItems: 'center',
+        gap: 4,
+        paddingHorizontal: theme.spacing.sm,
+        paddingVertical: 3,
+        borderRadius: theme.radius.pill,
+        backgroundColor: 'rgba(255, 255, 255, 0.92)',
+      }}
+    >
+      <Ionicons
+        name={up ? 'arrow-up' : change < 0 ? 'arrow-down' : 'remove'}
+        size={iconSize.xs}
+        color={color}
+      />
+      <Text variant="caption" style={{ color, fontWeight: '700' }}>
+        {`${Math.abs(change)}%`}
+      </Text>
+    </Row>
+  );
+}
+
+/** The month on show, as a white pill — a picker when there are other months
+ *  to reach, and just the month's name when there are not. */
+function MonthPill({
+  label,
+  spokenLabel,
+  onPress,
 }: {
-  net: bigint;
-  income: bigint;
-  expense: bigint;
-  expectedIncome: bigint;
-  expectedExpense: bigint;
-  rate: number | null;
-  currency: string;
-  locale: string;
-  t: ReturnType<typeof useStrings>['t'];
-  monthLabel: string;
-  canGoForward: boolean;
-  canGoBack: boolean;
-  onPrevMonth: () => void;
-  onNextMonth: () => void;
+  label: string;
+  spokenLabel: string;
+  onPress?: () => void;
 }) {
   const theme = useTheme();
-
-  const saved = net >= 0n;
-  const fmt = (amount: bigint): string => format(money(amount, currency), { locale });
-
-  // The wash is the verdict of the month: blue kept, red lost.
-  const wash = saved ? SAVED_WASH : OVERSPENT_WASH;
-
-  // Share of income spent, for the bar under the net.
-  const ratio =
-    income > 0n ? Math.min(1, Number((expense * 1000n) / income) / 1000) : expense > 0n ? 1 : 0;
-
-  // A ledger one month old has nowhere to step. Two dimmed chevrons either side
-  // of the month are a control that answers every press with nothing, so when
-  // there is no other month to reach the header is the month's name alone.
-  const canBrowse = canGoBack || canGoForward;
-
   return (
-    <HeroShell wash={wash}>
-      {/* Month switcher — the hero's header, centred, ‹ August 2026 ›. */}
-      <Row style={{ alignItems: 'center', justifyContent: 'center', gap: theme.spacing.md }}>
-        {canBrowse ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t.personal.prevMonth}
-            accessibilityState={{ disabled: !canGoBack }}
-            disabled={!canGoBack}
-            onPress={onPrevMonth}
-            hitSlop={10}
-            style={({ pressed }) => ({ opacity: !canGoBack ? 0.35 : pressed ? 0.5 : 1 })}
-          >
-            <Ionicons
-              name={directionalIcon('chevron-back')}
-              size={iconSize.lg}
-              color={theme.color.onBrand}
-            />
-          </Pressable>
-        ) : null}
-        <Text variant="subheading" tone="onBrand" numberOfLines={1}>
-          {label}
+    <Pressable
+      accessibilityRole={onPress ? 'button' : undefined}
+      accessibilityLabel={onPress ? `${spokenLabel}. ${label}` : label}
+      disabled={!onPress}
+      onPress={onPress}
+      hitSlop={6}
+      style={({ pressed }) => ({
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.xs,
+        paddingHorizontal: theme.spacing.md,
+        paddingVertical: theme.spacing.sm,
+        borderRadius: theme.radius.lg,
+        backgroundColor: theme.color.surface,
+        maxWidth: 180,
+        opacity: pressed ? 0.7 : 1,
+      })}
+    >
+      <Ionicons name="calendar-outline" size={iconSize.sm} color={theme.color.text} />
+      <Text variant="caption" numberOfLines={1} style={{ flexShrink: 1, fontWeight: '700' }}>
+        {label}
+      </Text>
+      {onPress ? (
+        <Ionicons name="chevron-down" size={iconSize.sm} color={theme.color.text} />
+      ) : null}
+    </Pressable>
+  );
+}
+
+/** One of the three month figures on the glass: a tinted disc, what it is, the
+ *  amount, and a chevron — tappable through to where it comes from. */
+function FlowTile({
+  icon,
+  tone,
+  label,
+  value,
+  negative = false,
+  onPress,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  tone: 'positive' | 'negative' | 'brand';
+  label: string;
+  value: string;
+  /** The figure is below zero — drawn in the negative colour. */
+  negative?: boolean;
+  onPress: () => void;
+}) {
+  const theme = useTheme();
+  const ink =
+    tone === 'positive'
+      ? theme.color.positive
+      : tone === 'negative'
+        ? theme.color.negative
+        : theme.color.brand;
+  const soft =
+    tone === 'positive'
+      ? theme.color.positiveSoft
+      : tone === 'negative'
+        ? theme.color.negativeSoft
+        : theme.color.brandSoft;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${label}. ${value}`}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        flex: 1,
+        minWidth: 0,
+        gap: 2,
+        padding: theme.spacing.sm,
+        borderRadius: theme.radius.lg,
+        backgroundColor: soft,
+        opacity: pressed ? 0.7 : 1,
+      })}
+    >
+      <Row style={{ alignItems: 'center', justifyContent: 'space-between' }}>
+        <View
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: 16,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: ink,
+          }}
+        >
+          <Ionicons name={icon} size={iconSize.sm} color="#FFFFFF" />
+        </View>
+        <Ionicons
+          name={directionalIcon('chevron-forward')}
+          size={iconSize.sm}
+          color={theme.color.textMuted}
+        />
+      </Row>
+      <Text variant="caption" numberOfLines={1} style={{ color: ink, marginTop: theme.spacing.xs }}>
+        {label}
+      </Text>
+      <Text
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.7}
+        style={{
+          fontSize: 16,
+          lineHeight: 21,
+          fontWeight: '800',
+          color: negative ? theme.color.negative : theme.color.text,
+        }}
+      >
+        {value}
+      </Text>
+    </Pressable>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────── body ──
+
+/** A white card with a titled header — a tinted disc, the title, and an
+ *  optional "View all" link on the right. */
+function SectionCard({
+  icon,
+  title,
+  action,
+  onAction,
+  trailing,
+  children,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  title: string;
+  action?: string;
+  onAction?: () => void;
+  /** Drawn at the header's end in place of a link. */
+  trailing?: ReactNode;
+  children: ReactNode;
+}) {
+  const theme = useTheme();
+  return (
+    <Card style={{ gap: theme.spacing.lg, padding: theme.spacing.lg }}>
+      <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+        <View
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 18,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: theme.color.brandSoft,
+          }}
+        >
+          <Ionicons name={icon} size={iconSize.md} color={theme.color.brand} />
+        </View>
+        <Text variant="subheading" numberOfLines={1} style={{ flex: 1 }}>
+          {title}
         </Text>
-        {canBrowse ? (
+        {trailing}
+        {action && onAction ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={t.personal.nextMonth}
-            accessibilityState={{ disabled: !canGoForward }}
-            disabled={!canGoForward}
-            onPress={onNextMonth}
-            hitSlop={10}
-            style={({ pressed }) => ({ opacity: !canGoForward ? 0.35 : pressed ? 0.5 : 1 })}
+            accessibilityLabel={`${action}, ${title}`}
+            onPress={onAction}
+            hitSlop={8}
+            style={({ pressed }) => ({
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 2,
+              opacity: pressed ? 0.5 : 1,
+            })}
           >
+            <Text variant="caption" tone="brand" style={{ fontWeight: '600' }}>
+              {action}
+            </Text>
             <Ionicons
               name={directionalIcon('chevron-forward')}
-              size={iconSize.lg}
-              color={theme.color.onBrand}
+              size={iconSize.sm}
+              color={theme.color.brand}
             />
           </Pressable>
         ) : null}
       </Row>
+      {children}
+    </Card>
+  );
+}
 
-      {/* The month's net, big and static — the label carries the saved/overspent
-          direction so the figure itself is shown as an absolute value. */}
-      <View style={{ gap: theme.spacing.sm }}>
-        <HeroFigureLine label={saved ? t.personal.saved : t.personal.overspent}>
-          <Text
-            variant="title"
-            tone="onBrand"
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            minimumFontScale={0.6}
-          >
-            {`${net < 0n ? '−' : ''}${fmt(net < 0n ? -net : net)}`}
-          </Text>
-        </HeroFigureLine>
-        {/* What the month is still waiting for, said beside the figure rather
-            than folded into it. Absent when nothing is outstanding, so a settled
-            month stays as quiet as it was. */}
-        {expectedIncome > 0n || expectedExpense > 0n ? (
-          // What is "still expected" is the recurring rules and nothing else, so
-          // the line goes there — the answer to "expected by whom?" is one tap
-          // away rather than a thing to be worked out.
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`${t.personal.stillExpected}. ${t.personal.recurring}`}
-            onPress={() => router.push('/personal/recurring')}
-            hitSlop={8}
-            style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
-          >
-            <Row style={{ gap: theme.spacing.md, alignItems: 'center' }}>
-              <Text variant="micro" tone="onBrand" numberOfLines={1} style={{ opacity: 0.85 }}>
-                {t.personal.stillExpected}
+/** The overall monthly cap: how much of it the month has used, as a figure and
+ *  a bar. With no cap set, an invitation to set one. */
+function BudgetCard({
+  progress,
+  categoryCount,
+  worstOverLine,
+  locale,
+  fmt,
+  t,
+  onPress,
+}: {
+  progress: { spent: bigint; limit: bigint; ratio: number } | null;
+  /** Budgets on single categories — spoken for when there is no overall cap. */
+  categoryCount: number;
+  /** "Food: ₹2,000 over" for the category furthest past its cap, or null. */
+  worstOverLine: string | null;
+  locale: string;
+  fmt: (amount: bigint) => string;
+  t: ReturnType<typeof useStrings>['t'];
+  onPress: () => void;
+}) {
+  const theme = useTheme();
+  const percent = progress ? Math.round(progress.ratio * 100) : 0;
+  const over = percent > 100;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={
+        progress
+          ? `${t.personal.dash.monthlyBudget}. ${fmt(progress.spent)} ${fill(t.personal.dash.budgetOf, { limit: fmt(progress.limit) })}. ${percent}% ${t.personal.dash.spentShort}`
+          : categoryCount > 0
+            ? `${t.personal.dash.monthlyBudget}. ${plural(locale, categoryCount, t.personal.dash.categoryBudgets)}. ${worstOverLine ?? t.personal.dash.allWithin}`
+            : t.personal.dash.setBudget
+      }
+      onPress={onPress}
+      style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+    >
+      <SectionCard
+        icon="radio-button-on"
+        title={t.personal.dash.monthlyBudget}
+        trailing={
+          progress ? (
+            <Row style={{ alignItems: 'center', gap: 2 }}>
+              <Text variant="caption" numberOfLines={1}>
+                <Text variant="caption" style={{ fontWeight: '800' }}>
+                  {fmt(progress.spent)}
+                </Text>
+                <Text variant="caption" tone="muted">
+                  {` ${fill(t.personal.dash.budgetOf, { limit: fmt(progress.limit) })}`}
+                </Text>
               </Text>
-              {expectedIncome > 0n ? (
-                <Text
-                  variant="micro"
-                  tone="onBrand"
-                  numberOfLines={1}
-                  style={{ fontWeight: '700' }}
-                >
-                  {`+${fmt(expectedIncome)}`}
-                </Text>
-              ) : null}
-              {expectedExpense > 0n ? (
-                <Text
-                  variant="micro"
-                  tone="onBrand"
-                  numberOfLines={1}
-                  style={{ fontWeight: '700' }}
-                >
-                  {`−${fmt(expectedExpense)}`}
-                </Text>
-              ) : null}
               <Ionicons
                 name={directionalIcon('chevron-forward')}
-                size={iconSize.xs}
-                color={theme.color.onBrand}
-                style={{ opacity: 0.85 }}
+                size={iconSize.sm}
+                color={theme.color.textMuted}
               />
             </Row>
-          </Pressable>
-        ) : null}
-      </View>
+          ) : (
+            <Ionicons
+              name={directionalIcon('chevron-forward')}
+              size={iconSize.sm}
+              color={theme.color.brand}
+            />
+          )
+        }
+      >
+        {progress ? (
+          <Row style={{ alignItems: 'center', gap: theme.spacing.lg }}>
+            <View
+              style={{
+                flex: 1,
+                height: 12,
+                borderRadius: 6,
+                backgroundColor: theme.color.surfaceMuted,
+                overflow: 'hidden',
+              }}
+            >
+              <View
+                style={{
+                  width: `${Math.min(100, percent)}%`,
+                  height: 12,
+                  borderRadius: 6,
+                  backgroundColor: over ? theme.color.negative : theme.color.brand,
+                }}
+              />
+            </View>
+            <View style={{ alignItems: 'flex-end' }}>
+              <Text
+                style={{
+                  fontSize: 20,
+                  lineHeight: 24,
+                  fontWeight: '800',
+                  color: over ? theme.color.negative : theme.color.text,
+                }}
+              >
+                {`${percent}%`}
+              </Text>
+              <Text variant="micro" tone="muted">
+                {t.personal.dash.spentShort}
+              </Text>
+            </View>
+          </Row>
+        ) : categoryCount > 0 ? (
+          // No overall cap, but category budgets: say how many, and whether any
+          // has run over — the one thing on this card worth acting on.
+          <View style={{ gap: 2 }}>
+            <Text variant="body" style={{ fontWeight: '700' }}>
+              {plural(locale, categoryCount, t.personal.dash.categoryBudgets)}
+            </Text>
+            <Text
+              variant="caption"
+              style={{
+                color: worstOverLine ? theme.color.negative : theme.color.positive,
+                fontWeight: '600',
+              }}
+            >
+              {worstOverLine ?? t.personal.dash.allWithin}
+            </Text>
+          </View>
+        ) : (
+          <View style={{ gap: 2 }}>
+            <Text variant="body" tone="brand" style={{ fontWeight: '700' }}>
+              {t.personal.dash.setBudget}
+            </Text>
+            <Text variant="caption" tone="muted">
+              {t.personal.dash.setBudgetHint}
+            </Text>
+          </View>
+        )}
+      </SectionCard>
+    </Pressable>
+  );
+}
 
-      {/* Spend against income, then the three flat figures the month turns on:
-          what came in, what went out, and the share kept. */}
-      <View style={{ gap: theme.spacing.sm }}>
+/** One of the month's top categories: its badge, name, amount, share, and a
+ *  small bar in its own colour. */
+function CategoryColumn({
+  category,
+  label,
+  amount,
+  share,
+}: {
+  category: string;
+  label: string;
+  amount: string;
+  share: number;
+}) {
+  const theme = useTheme();
+  const tint = theme.tint[resolveCategory(category, null).tint];
+  const percent = Math.round(share * 100);
+  return (
+    <View
+      accessible
+      accessibilityLabel={`${label}, ${amount}, ${percent}%`}
+      style={{ flex: 1, minWidth: 0, alignItems: 'center', gap: 2 }}
+    >
+      <CategoryBadge category={category} meta={null} size={48} />
+      <Text variant="caption" numberOfLines={1} style={{ marginTop: theme.spacing.xs }}>
+        {label}
+      </Text>
+      <Text
+        variant="body"
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.7}
+        style={{ fontWeight: '700' }}
+      >
+        {amount}
+      </Text>
+      <Text variant="micro" tone="muted">
+        {`${percent}%`}
+      </Text>
+      <View
+        style={{
+          alignSelf: 'stretch',
+          height: 5,
+          borderRadius: 3,
+          marginTop: theme.spacing.xs,
+          backgroundColor: theme.color.surfaceMuted,
+          overflow: 'hidden',
+        }}
+      >
         <View
           style={{
-            height: 6,
+            width: `${Math.min(100, Math.max(percent, 4))}%`,
+            height: 5,
             borderRadius: 3,
-            backgroundColor: 'rgba(255,255,255,0.25)',
-            overflow: 'hidden',
+            backgroundColor: tint.ink,
+          }}
+        />
+      </View>
+    </View>
+  );
+}
+
+/** One recent spend: its badge, what it was and when, its category as a chip,
+ *  and the amount. Opens the entry. */
+function ExpenseRow({
+  txn,
+  title,
+  categoryLabel,
+  date,
+  locale,
+}: {
+  txn: PersonalTxn;
+  title: string;
+  categoryLabel: string;
+  date: string;
+  locale: string;
+}) {
+  const theme = useTheme();
+  const tint = theme.tint[resolveCategory(txn.category ?? 'other', null).tint];
+  const amount = format(money(txn.amount, txn.currency), { locale });
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${title}, ${categoryLabel}, ${date}, ${amount}`}
+      onPress={() => router.push({ pathname: '/personal/entry', params: { id: txn.id } })}
+      style={({ pressed }) => ({
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.md,
+        paddingVertical: theme.spacing.sm,
+        minHeight: 52,
+        opacity: pressed ? 0.6 : 1,
+      })}
+    >
+      <CategoryBadge
+        category={txn.category ?? 'other'}
+        meta={null}
+        description={txn.note}
+        size={40}
+      />
+      <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+        <Text variant="body" numberOfLines={1} style={{ fontWeight: '600' }}>
+          {title}
+        </Text>
+        <Text variant="caption" tone="muted" numberOfLines={1}>
+          {date}
+        </Text>
+      </View>
+      <View
+        style={{
+          paddingHorizontal: theme.spacing.sm,
+          paddingVertical: 2,
+          borderRadius: theme.radius.pill,
+          backgroundColor: tint.bg,
+          maxWidth: 96,
+        }}
+      >
+        <Text variant="micro" numberOfLines={1} style={{ color: tint.ink, fontWeight: '600' }}>
+          {categoryLabel}
+        </Text>
+      </View>
+      <Text variant="body" numberOfLines={1} style={{ fontWeight: '700' }}>
+        {amount}
+      </Text>
+      <Ionicons
+        name={directionalIcon('chevron-forward')}
+        size={iconSize.sm}
+        color={theme.color.textMuted}
+      />
+    </Pressable>
+  );
+}
+
+/** A money tool on a tinted tile: its disc, name, headline figure with its unit,
+ *  how many are active, and — for recurring — the first few rules' badges. */
+function ToolTile({
+  tint: tintName,
+  icon,
+  label,
+  value,
+  unit,
+  detail,
+  badges = [],
+  more = 0,
+  onPress,
+}: {
+  tint: 'mint' | 'lilac';
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  value: string;
+  unit?: string;
+  detail: string;
+  badges?: readonly string[];
+  more?: number;
+  onPress: () => void;
+}) {
+  const theme = useTheme();
+  const tint = theme.tint[tintName];
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${label}. ${value}${unit ? ` ${unit}` : ''}. ${detail}`}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        flex: 1,
+        minWidth: 0,
+        gap: 2,
+        padding: theme.spacing.md,
+        borderRadius: theme.radius.lg,
+        backgroundColor: tint.bg,
+        opacity: pressed ? 0.7 : 1,
+      })}
+    >
+      <Row style={{ alignItems: 'center', justifyContent: 'space-between' }}>
+        <View
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 20,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: theme.color.surface,
           }}
         >
-          <View
-            style={{
-              width: `${Math.round(ratio * 100)}%`,
-              height: 6,
-              backgroundColor: theme.color.onBrand,
-            }}
-          />
+          <Ionicons name={icon} size={iconSize.md} color={tint.ink} />
         </View>
-        <Row style={{ justifyContent: 'space-between' }}>
-          <HeroFigure label={t.personal.income} value={fmt(income)} icon="arrow-down" />
-          <HeroFigure label={t.personal.expenses} value={fmt(expense)} icon="arrow-up" />
-          <HeroFigure
-            label={t.personal.savingsRate}
-            value={rate === null ? '—' : `${Math.round(rate * 100)}%`}
-            icon="trending-up"
-            alignEnd
-          />
+        <Ionicons name={directionalIcon('chevron-forward')} size={iconSize.sm} color={tint.ink} />
+      </Row>
+      <Text variant="caption" numberOfLines={1} style={{ marginTop: theme.spacing.sm }}>
+        {label}
+      </Text>
+      <Text
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.7}
+        style={{ fontSize: 18, lineHeight: 23, fontWeight: '800', color: theme.color.text }}
+      >
+        {value}
+        {unit ? (
+          <Text variant="caption" tone="muted" style={{ fontWeight: '400' }}>
+            {` ${unit}`}
+          </Text>
+        ) : null}
+      </Text>
+      <Text variant="micro" tone="muted" numberOfLines={1}>
+        {detail}
+      </Text>
+      {badges.length > 0 ? (
+        <Row style={{ gap: 4, marginTop: theme.spacing.xs, alignItems: 'center' }}>
+          {badges.map((category, index) => (
+            <CategoryBadge key={`${category}:${index}`} category={category} meta={null} size={24} />
+          ))}
+          {more > 0 ? (
+            <Text variant="micro" style={{ color: tint.ink, fontWeight: '700' }}>
+              {`+${more}`}
+            </Text>
+          ) : null}
         </Row>
-      </View>
-
-      {/* The add actions — both labelled, expense primary, income secondary.
-          The shortcut to the full ledger used to sit on the end as a third
-          control; the month's own entries are the first thing under the hero
-          now, and their heading carries "See all" to the same screen, so the
-          disc was a second door to a room already in view. Two buttons, both
-          wider for it. */}
-      <AddActions t={t} />
-    </HeroShell>
+      ) : null}
+    </Pressable>
   );
+}
+
+// A month as "Aug 2026", for the comparison under the hero figure.
+function monthShortYear(month: string, locale: string): string {
+  try {
+    return dateTimeFormat(locale, { month: 'short', year: 'numeric', timeZone: 'UTC' }).format(
+      new Date(`${month}-01T00:00:00Z`),
+    );
+  } catch {
+    return month;
+  }
+}
+
+// A day as "2 Sep 2026", for the recent expenses.
+function dayMonthYear(date: string, locale: string): string {
+  try {
+    return dateTimeFormat(locale, {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      timeZone: 'UTC',
+    }).format(new Date(`${date}T00:00:00Z`));
+  } catch {
+    return date;
+  }
 }
 
 /**
@@ -949,33 +1400,6 @@ function PersonalFirstRun({ t }: { t: ReturnType<typeof useStrings>['t'] }) {
   );
 }
 
-function HeroFigure({
-  label,
-  value,
-  icon,
-  alignEnd,
-}: {
-  label: string;
-  value: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  alignEnd?: boolean;
-}) {
-  const theme = useTheme();
-  return (
-    <View style={{ gap: 4, alignItems: alignEnd ? 'flex-end' : 'flex-start' }}>
-      <Row style={{ alignItems: 'center', gap: 4 }}>
-        <Ionicons name={icon} size={iconSize.xs} color={theme.color.onBrand} />
-        <Text variant="micro" tone="onBrand" style={{ opacity: 0.85 }}>
-          {label}
-        </Text>
-      </Row>
-      <Text variant="body" tone="onBrand" style={{ fontWeight: '700' }}>
-        {value}
-      </Text>
-    </View>
-  );
-}
-
 /** An add action on the hero — a pill that shares the row evenly. `solid` is the
  *  primary white pill with brand ink; `ghost` is a translucent secondary in white
  *  ink, so both actions read as buttons and neither is an unlabelled glyph. */
@@ -1036,301 +1460,10 @@ function PrivateNote() {
   );
 }
 
-// ──────────────────────────────────────────────────────────────── body ──
-
-/** One of the three management-area tiles under the hero: a glyph, the size of
- *  the collection, an optional coloured qualifier (the one figure that wants
- *  attention), and a label — tappable through to the area's own screen. The big
- *  figure stays neutral; the signal lives in `hint`, tinted by `tone`. */
-function StatTile({
-  icon,
-  value,
-  hint,
-  tone,
-  label,
-  onPress,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  value: string;
-  hint?: string;
-  tone?: 'negative';
-  label: string;
-  onPress: () => void;
-}) {
-  const theme = useTheme();
-  const hintColor = tone === 'negative' ? theme.color.negative : theme.color.brand;
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={hint ? `${label}. ${value}. ${hint}` : `${label}. ${value}`}
-      onPress={onPress}
-      style={({ pressed }) => ({ flex: 1, opacity: pressed ? 0.6 : 1 })}
-    >
-      <Card style={{ gap: theme.spacing.xs, alignItems: 'flex-start', minHeight: 96 }}>
-        <View
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: theme.radius.md,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: theme.color.brandSoft,
-            marginBottom: theme.spacing.xs,
-          }}
-        >
-          <Ionicons name={icon} size={iconSize.sm} color={theme.color.brand} />
-        </View>
-        <Text variant="heading" numberOfLines={1} adjustsFontSizeToFit>
-          {value}
-        </Text>
-        {hint ? (
-          <Text variant="micro" numberOfLines={1} style={{ color: hintColor, fontWeight: '700' }}>
-            {hint}
-          </Text>
-        ) : null}
-        <Text variant="micro" tone="muted" numberOfLines={1}>
-          {label}
-        </Text>
-      </Card>
-    </Pressable>
-  );
-}
-
-/** A compact contextual line under the stat tiles: a tinted glyph, a small label
- *  (Upcoming / Over budget), the thing it names, and a trailing value — tappable
- *  through to the area it belongs to. Kept quiet, one row, never a card of its
- *  own weight. */
-function SignalRow({
-  icon,
-  tone,
-  label,
-  title,
-  value,
-  onPress,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  tone: 'brand' | 'negative';
-  label: string;
-  title: string;
-  value: string;
-  onPress: () => void;
-}) {
-  const theme = useTheme();
-  const accent = tone === 'negative' ? theme.color.negative : theme.color.brand;
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`${label}. ${title}. ${value}`}
-      onPress={onPress}
-      style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
-    >
-      <Card flat style={{ backgroundColor: theme.color.surfaceMuted }}>
-        <Row style={{ gap: theme.spacing.md }}>
-          <Ionicons name={icon} size={iconSize.md} color={accent} />
-          <View style={{ flex: 1 }}>
-            <Text variant="micro" tone="faint" numberOfLines={1}>
-              {label}
-            </Text>
-            <Text variant="body" numberOfLines={1}>
-              {title}
-            </Text>
-          </View>
-          <Text variant="body" style={{ fontWeight: '700', color: accent }} numberOfLines={1}>
-            {value}
-          </Text>
-        </Row>
-      </Card>
-    </Pressable>
-  );
-}
-
-/** The last-three-months trend: one column per month, its height the size of the
- *  month's net and its colour the verdict (kept when in the black, spent when in
- *  the red), with the signed net and the month beneath. Heights scale to the
- *  largest absolute net in the window so the three read against each other. */
-function CashflowStrip({
-  trend,
-  currency,
-  locale,
-}: {
-  trend: readonly MonthCashflow[];
-  currency: string;
-  locale: string;
-}) {
-  const theme = useTheme();
-  const abs = (n: bigint): bigint => (n < 0n ? -n : n);
-  const largest = trend.reduce((max, m) => (abs(m.net) > max ? abs(m.net) : max), 0n);
-  const barsHeight = 72;
-  const fmt = (amount: bigint): string => format(money(amount, currency), { locale });
-
-  return (
-    <View style={{ gap: theme.spacing.sm }}>
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'flex-end',
-          gap: theme.spacing.md,
-          height: barsHeight,
-        }}
-      >
-        {trend.map((m) => {
-          const saved = m.net >= 0n;
-          const percent = largest > 0n ? Number((abs(m.net) * 100n) / largest) : 0;
-          return (
-            <View
-              key={m.month}
-              accessible
-              accessibilityLabel={`${monthShort(m.month, locale)}: ${saved ? '' : '−'}${fmt(abs(m.net))}`}
-              style={{ flex: 1, justifyContent: 'flex-end', alignItems: 'center' }}
-            >
-              <View
-                style={{
-                  width: '100%',
-                  maxWidth: 44,
-                  height: Math.max((percent / 100) * barsHeight, abs(m.net) > 0n ? 4 : 0),
-                  borderRadius: theme.radius.sm,
-                  backgroundColor: saved ? theme.color.positive : theme.color.negative,
-                }}
-              />
-            </View>
-          );
-        })}
-      </View>
-      <Row style={{ gap: theme.spacing.md }}>
-        {trend.map((m) => (
-          <View key={m.month} style={{ flex: 1, alignItems: 'center', gap: 2 }}>
-            <Text
-              variant="micro"
-              numberOfLines={1}
-              style={{ color: m.net < 0n ? theme.color.negative : theme.color.text }}
-            >
-              {m.net < 0n ? '−' : ''}
-              {fmt(abs(m.net))}
-            </Text>
-            <Text variant="micro" tone="faint" numberOfLines={1}>
-              {monthShort(m.month, locale)}
-            </Text>
-          </View>
-        ))}
-      </Row>
-    </View>
-  );
-}
-
-// A month's short name (Sep) for the trend axis, timezone-safe.
-function monthShort(month: string, locale: string): string {
-  try {
-    return dateTimeFormat(locale, { month: 'short', timeZone: 'UTC' }).format(
-      new Date(`${month}-01T00:00:00Z`),
-    );
-  } catch {
-    return month;
-  }
-}
-
-interface Day {
-  readonly key: string;
-  readonly label: string;
-  /** Net (income minus spend) of this day's entries in the default currency —
-   *  minor units. `hasNet` is false when the day has no entry in that currency,
-   *  in which case there is no single figure to show. */
-  readonly net: bigint;
-  readonly hasNet: boolean;
-  readonly txns: readonly PersonalTxn[];
-}
-
-// Group already-newest-first txns into contiguous days, each carrying its net.
-// The label is Today / Yesterday for the two most recent calendar days,
-// otherwise the date as stored. The day net sums only entries in the default
-// currency `dc` — money in two currencies does not add, so a mixed day shows
-// its rows (each in its own currency) but no single net.
-function groupByDay(
-  txns: readonly PersonalTxn[],
-  today: string,
-  dc: string,
-  t: ReturnType<typeof useStrings>['t'],
-  locale: string,
-): Day[] {
-  // One calendar day back, not 86,400,000 ms — a day is not always that many
-  // milliseconds across a DST change.
-  const y = new Date(`${today}T00:00:00`);
-  y.setDate(y.getDate() - 1);
-  const yesterday = localIsoDate(y);
-  // Today and Yesterday keep the app's own words; everything older is the day
-  // written the way a person says it ("Friday", "18 September"), not the ISO key
-  // the ledger groups by. `dayHeading` is what every other dated list uses.
-  const labelFor = (date: string): string =>
-    date === today
-      ? t.personal.today
-      : date === yesterday
-        ? t.personal.yesterday
-        : dayHeading(locale, date);
-
-  const days: { date: string; txns: PersonalTxn[] }[] = [];
-  for (const txn of txns) {
-    const last = days[days.length - 1];
-    if (last && last.date === txn.date) last.txns.push(txn);
-    else days.push({ date: txn.date, txns: [txn] });
-  }
-  return days.map((day) => {
-    const inDc = day.txns.filter((txn) => txn.currency === dc);
-    return {
-      key: day.date,
-      label: labelFor(day.date),
-      net: inDc.reduce((sum, txn) => sum + (txn.kind === 'income' ? txn.amount : -txn.amount), 0n),
-      hasNet: inDc.length > 0,
-      txns: day.txns,
-    };
-  });
-}
-
 // The translated label for a category id (built-in key or custom tag id). Custom
 // tags fall back to their own stored label via the badge; here we only need the
 // built-in names, so an unknown id returns null and the row shows its note.
 function labelForCategory(t: ReturnType<typeof useStrings>['t']) {
   return (id: string | null): string | null =>
     id ? (t.categories[id as keyof typeof t.categories] ?? null) : null;
-}
-
-function TxnRow({
-  txn,
-  locale,
-  theme,
-  labelFor,
-}: {
-  txn: PersonalTxn;
-  locale: string;
-  theme: ReturnType<typeof useTheme>;
-  labelFor: (id: string | null) => string | null;
-}) {
-  const income = txn.kind === 'income';
-  const title = txn.note?.trim() || labelFor(txn.category) || '—';
-  const amount = format(money(txn.amount, txn.currency), { locale });
-  return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={() => router.push({ pathname: '/personal/entry', params: { id: txn.id } })}
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: theme.spacing.md,
-        paddingVertical: theme.spacing.sm,
-        minHeight: 44,
-      }}
-    >
-      <CategoryBadge category={txn.category ?? 'other'} meta={null} size={32} />
-      <View style={{ flex: 1 }}>
-        <Text variant="body" numberOfLines={1}>
-          {title}
-        </Text>
-      </View>
-      <Text
-        variant="body"
-        style={{ fontWeight: '700', color: income ? theme.color.positive : theme.color.text }}
-      >
-        {income ? '+' : '−'}
-        {amount}
-      </Text>
-    </Pressable>
-  );
 }
