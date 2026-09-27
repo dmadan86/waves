@@ -153,13 +153,3 @@ export function sceneFor(
   }
   return scene;
 }
-
-/** The scenes in the order the day runs — what a manual cycle steps through. */
-export const SCENE_ORDER: readonly Scene[] = [
-  Scene.Morning,
-  Scene.Afternoon,
-  Scene.Sunset,
-  Scene.Evening,
-  Scene.Night,
-  Scene.Winter,
-];

@@ -5,6 +5,7 @@ import {
   tripDateFromIso,
   tripDateRangePatch,
   tripDateToIso,
+  savesFirstTap,
 } from '../src/lib/tripDateRange';
 
 describe('reading a stored trip day', () => {
@@ -62,5 +63,20 @@ describe('trip date range helpers', () => {
     expect(tripDateFromIso(null)).toBeNull();
     expect(tripDateFromIso('2026-10')).toBeNull();
     expect(tripDateFromIso('not-a-date')).toBeNull();
+  });
+});
+
+describe('savesFirstTap', () => {
+  it('saves the first tap while the trip has no dates', () => {
+    expect(savesFirstTap(null, null)).toBe(true);
+    expect(savesFirstTap('2026-09-17', null)).toBe(true);
+  });
+
+  it('saves it over a one-day trip, which it only replaces', () => {
+    expect(savesFirstTap('2026-09-08', '2026-09-08')).toBe(true);
+  });
+
+  it('holds it as a draft over a real range, which leaving must keep', () => {
+    expect(savesFirstTap('2026-09-08', '2026-09-12')).toBe(false);
   });
 });

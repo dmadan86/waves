@@ -26,6 +26,8 @@ const world = vi.hoisted(() => ({
 
 vi.mock('react-native', () => ({
   ActivityIndicator: 'ActivityIndicator',
+  Image: 'Image',
+  Pressable: 'Pressable',
   View: 'View',
   AppState: {
     addEventListener: (_: string, fn: (state: string) => void) => {
@@ -40,6 +42,7 @@ vi.mock('react-native', () => ({
 }));
 vi.mock('@waves/ui', () => ({
   Button: 'Button',
+  directionalIcon: (name: string) => name,
   Popup: 'Popup',
   Text: 'Text',
   iconSize: { xxxl: 48 },
@@ -59,8 +62,12 @@ vi.mock('@/i18n', () => ({
         gateTitle: 'Too many phones',
         gateBody: 'Sign the others out',
         gateCount: '{active} devices · {limit} allowed',
+        gateDevices: '{active} devices',
+        gateAllowed: '{limit} allowed',
+        gateDetail: 'You are on {active}, the plan allows {limit}.',
         gateAction: 'Sign out other devices',
       },
+      common: { close: 'Close' },
     },
   }),
 }));
@@ -69,6 +76,7 @@ vi.mock('@/data/api', () => ({
   signOutOtherDevices: (...args: unknown[]) => world.signOutOthersTable(...args),
 }));
 vi.mock('@/lib/device', () => ({ deviceIdentity: () => world.identity() }));
+vi.mock('@/lib/deviceLimitArt', () => ({ DEVICE_LIMIT_ART: 1, DEVICE_LIMIT_ART_RATIO: 2 }));
 vi.mock('@/lib/auth', () => ({ useAuth: () => world.auth }));
 vi.mock('@/lib/backend', () => ({
   backend: { auth: { signOut: (...args: unknown[]) => world.signOut(...args) } },
@@ -188,9 +196,13 @@ describe('the gate', () => {
     expect(gate.props.status).toEqual(OVER);
 
     const rendered = renderHook(() => (gate.type as (p: unknown) => unknown)(gate.props));
-    expect(textOf(rendered.result.current)).toContain('3 devices · 2 allowed');
+    expect(textOf(rendered.result.current)).toContain('3 devices');
+    expect(textOf(rendered.result.current)).toContain('2 allowed');
 
-    const [notNow] = findAll(rendered.result.current, (n) => n.props.label === 'Not now');
+    const [notNow] = findAll(
+      rendered.result.current,
+      (n) => n.props.accessibilityLabel === 'Not now',
+    );
     (notNow!.props.onPress as () => void)();
     expect(app.gate).toBeUndefined();
   });
@@ -220,15 +232,19 @@ describe('the gate', () => {
       (gate.type as (p: unknown) => unknown)({ ...gate.props, onSignOutOthers }),
     );
     const action = () =>
-      findAll(rendered.result.current, (n) => n.props.label === 'Sign out other devices')[0]!;
+      findAll(
+        rendered.result.current,
+        (n) => n.props.accessibilityLabel === 'Sign out other devices',
+      )[0]!;
+    const spinning = () => findAll(action(), (n) => n.type === 'ActivityIndicator').length > 0;
 
     const pressed = (action().props.onPress as () => Promise<void>)();
     expect(action().props.disabled).toBe(true);
-    expect(action().props.icon).toBeTruthy();
+    expect(spinning()).toBe(true);
     finish(1);
     await pressed;
     expect(action().props.disabled).toBe(false);
-    expect(action().props.icon).toBeUndefined();
+    expect(spinning()).toBe(false);
 
     onSignOutOthers.mockRejectedValueOnce(new Error('offline'));
     await expect((action().props.onPress as () => Promise<void>)()).resolves.toBeUndefined();

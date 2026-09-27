@@ -46,3 +46,16 @@ export function tripDateRangePatch(a: Date, b: Date, timeZone: string): TripDate
     time_zone: timeZone,
   };
 }
+
+/**
+ * Whether the first tap of a range should be saved at once, as a one-day trip,
+ * rather than held as a draft until the end is tapped.
+ *
+ * Yes while the trip has no range, or only a single day: then the tap *is* the
+ * trip's dates so far, and walking away before choosing an end must not throw
+ * it away. No once a real range is stored: a first tap is then the start of
+ * changing it, and leaving mid-change keeps the range that was there.
+ */
+export function savesFirstTap(startDate: string | null, endDate: string | null): boolean {
+  return !startDate || !endDate || startDate === endDate;
+}

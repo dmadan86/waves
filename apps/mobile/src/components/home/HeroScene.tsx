@@ -41,6 +41,8 @@ export function HeroScene({
   horizon,
   headerBottom,
   pageColor,
+  branch = true,
+  shadeTo,
 }: {
   scene: Scene;
   /** The hero's size: the screen's width, and down to where the scene ends. */
@@ -52,6 +54,12 @@ export function HeroScene({
   headerBottom: number;
   /** The page behind the hero, which the scene's foot fades into. */
   pageColor: string;
+  /** Draw the branch reaching in from the right. Off where the hero keeps a
+   *  control on that side below the top row (Personal's month picker). */
+  branch?: boolean;
+  /** How far down the readability shade runs. By default it covers the top row;
+   *  a hero with white figures lower down runs it further. */
+  shadeTo?: number;
 }) {
   const theme = HERO_THEMES[scene];
   if (width <= 0 || height <= 0) return null;
@@ -154,15 +162,17 @@ export function HeroScene({
       />
 
       {/* Foreground foliage, with its decorations, each on its own frame. */}
-      <Svg
-        width={branchWidth}
-        height={branchHeight}
-        viewBox={`0 0 ${BRANCH_VIEW.w} ${BRANCH_VIEW.h}`}
-        style={{ position: 'absolute', right: 0, top: branchTop }}
-      >
-        <Branch theme={theme} />
-        <BranchDecorations theme={theme} />
-      </Svg>
+      {branch ? (
+        <Svg
+          width={branchWidth}
+          height={branchHeight}
+          viewBox={`0 0 ${BRANCH_VIEW.w} ${BRANCH_VIEW.h}`}
+          style={{ position: 'absolute', right: 0, top: branchTop }}
+        >
+          <Branch theme={theme} />
+          <BranchDecorations theme={theme} />
+        </Svg>
+      ) : null}
       <Svg
         width={bushWidth}
         height={bushHeight}
@@ -175,7 +185,13 @@ export function HeroScene({
       {/* Readability: a shade across the top, under the greeting and icons. */}
       <LinearGradient
         colors={[theme.overlay, 'rgba(0, 0, 0, 0)']}
-        style={{ position: 'absolute', left: 0, right: 0, top: 0, height: headerBottom + 40 }}
+        style={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          top: 0,
+          height: shadeTo ?? headerBottom + 40,
+        }}
       />
 
       {/* The foot: the scene runs into the page behind the card, gradually. */}

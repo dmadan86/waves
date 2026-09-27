@@ -49,6 +49,7 @@ import { requestContacts } from '@/lib/contactPickerBridge';
 import { useCaptures, useCreateGroup, useGroup, useGroups } from '@/data/hooks';
 import { useKnownContacts } from '@/data/knownContacts';
 import { suggestPeople } from '@/lib/addFromAnotherGroup';
+import { shortPersonNames } from '@/lib/shortPersonName';
 import { assignCaptureHref } from '@/lib/captureAssign';
 import { useAuth, useViewerId } from '@/lib/auth';
 import { useDefaultCurrency } from '@/lib/currency';
@@ -97,6 +98,20 @@ const deviceZone = (): string => Intl.DateTimeFormat().resolvedOptions().timeZon
  */
 export default function NewGroupScreen() {
   const theme = useTheme();
+  // The few measures that step down on a narrow phone (320–359pt): the cover,
+  // and where "Add contacts" sits. Everything else is flex and fits by itself.
+  const { width: screenWidth } = useWindowDimensions();
+  const narrow = screenWidth < NARROW_WIDTH;
+  // "Add contacts" beside the Add friends title only where both fit whole; on
+  // a smaller phone it takes a line of its own rather than truncate the title.
+  const contactsInline = screenWidth >= CONTACTS_INLINE_WIDTH;
+  // "Add a currency" needs a wide row; elsewhere the pill says "Add", like its
+  // neighbours, rather than squeeze the row's title onto two lines.
+  const roomyRows = screenWidth >= ROOMY_ROW_WIDTH;
+  const cover = narrow ? COVER_NARROW : COVER;
+  // The type tiles' row, measured, so five tiles that cannot fit side by side
+  // on a small phone scroll sideways instead of squeezing their labels.
+  const [typeRowWidth, setTypeRowWidth] = useState(0);
   const { t, locale } = useStrings();
   const createGroup = useCreateGroup();
   const { profile } = useAuth();
@@ -207,6 +222,12 @@ export default function NewGroupScreen() {
     });
     return suggestPeople(sources, viewerId, ghosts);
   }, [allGroups, membersByGroup, viewerId, ghosts]);
+  // What each suggestion reads under its face: a clean first name, with an
+  // initial added where two would otherwise read the same.
+  const suggestionLabels = useMemo(
+    () => shortPersonNames(suggestions.map((person) => person.name)),
+    [suggestions],
+  );
   const [error, setError] = useState<string | null>(null);
   // Not asked on this screen — taken from the account country (which the user
   // sets on "Your account"), falling back to the phone's region. Decides the
@@ -565,10 +586,7 @@ export default function NewGroupScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <NewGroupHeader
-          title={cloning ? t.clone.duplicateTitle : t.newGroupForm.title}
-          subtitle={t.newGroupForm.headerSub}
-        />
+        <NewGroupHeader title={cloning ? t.clone.duplicateTitle : t.newGroupForm.title} />
 
         <View
           style={{
@@ -587,8 +605,8 @@ export default function NewGroupScreen() {
               accessibilityLabel={t.group.chooseIcon}
               onPress={() => setIconOpen(true)}
               style={({ pressed }) => ({
-                width: COVER,
-                height: COVER,
+                width: cover,
+                height: cover,
                 borderRadius: 18,
                 backgroundColor: theme.color.brandSoft,
                 alignItems: 'center',
@@ -596,29 +614,34 @@ export default function NewGroupScreen() {
                 opacity: pressed ? 0.7 : 1,
               })}
             >
-              <GroupPhoto photoPath={null} emoji={emoji} size={60} />
+              <GroupPhoto photoPath={null} emoji={emoji} size={Math.round(cover * 0.56)} />
+              {/* The camera as a floating action button on the cover's corner:
+                  the accent disc, a white ring that lifts it off the tile, and a
+                  soft violet shadow. */}
               <View
                 style={{
                   position: 'absolute',
-                  end: -6,
-                  bottom: -6,
-                  width: 40,
-                  height: 40,
-                  borderRadius: 20,
-                  backgroundColor: theme.color.surface,
+                  end: -8,
+                  bottom: -8,
+                  width: CAMERA_FAB,
+                  height: CAMERA_FAB,
+                  borderRadius: CAMERA_FAB / 2,
+                  backgroundColor: accent(theme),
+                  borderWidth: 3,
+                  borderColor: theme.color.surface,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  shadowColor: '#1B1340',
-                  shadowOpacity: 0.15,
-                  shadowRadius: 6,
-                  shadowOffset: { width: 0, height: 2 },
-                  elevation: 3,
+                  shadowColor: ACCENT,
+                  shadowOpacity: 0.3,
+                  shadowRadius: 8,
+                  shadowOffset: { width: 0, height: 4 },
+                  elevation: 4,
                 }}
               >
-                <Ionicons name="camera" size={20} color={theme.color.text} />
+                <Ionicons name="camera" size={19} color="#FFFFFF" />
               </View>
             </Pressable>
-            <View style={{ flex: 1, gap: 6 }}>
+            <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
               <FieldLabel>{t.group.groupName}</FieldLabel>
               <Row style={[fieldBox(theme), { paddingEnd: theme.spacing.sm }]}>
                 <TextInput
@@ -628,7 +651,13 @@ export default function NewGroupScreen() {
                   placeholderTextColor={theme.color.textFaint}
                   accessibilityLabel={t.group.groupName}
                   autoFocus
-                  style={{ flex: 1, fontSize: 16, color: theme.color.text, paddingVertical: 0 }}
+                  style={{
+                    flex: 1,
+                    minWidth: 0,
+                    fontSize: 16,
+                    color: ink(theme),
+                    paddingVertical: 0,
+                  }}
                 />
                 {name.length > 0 ? (
                   <Pressable
@@ -662,9 +691,9 @@ export default function NewGroupScreen() {
                   fieldBox(theme),
                   {
                     fontSize: 16,
-                    color: theme.color.text,
+                    color: ink(theme),
                     textAlignVertical: 'center',
-                    paddingVertical: 12,
+                    paddingVertical: 14,
                   },
                 ]}
               />
@@ -700,43 +729,31 @@ export default function NewGroupScreen() {
                 accessibilityRole="button"
                 accessibilityLabel={`${t.extras.addPeopleByName}. ${t.extras.ghostNote}`}
                 onPress={() => setShowGhostNote((open) => !open)}
-                style={{ flex: 1 }}
+                style={{ flex: 1, minWidth: 0 }}
               >
-                <Text numberOfLines={1} style={{ fontSize: 18, lineHeight: 23, fontWeight: '600' }}>
+                <Text
+                  numberOfLines={1}
+                  style={{ fontSize: 20, lineHeight: 25, fontWeight: '600', color: ink(theme) }}
+                >
                   {t.extras.addPeopleByName}
                 </Text>
-                <Text
-                  numberOfLines={2}
-                  style={{ fontSize: 13, lineHeight: 17, color: theme.color.textMuted }}
-                >
+                <Text style={{ fontSize: 14, lineHeight: 19, color: muted(theme) }}>
                   {t.newGroupForm.addFriendsSub}
                 </Text>
               </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={t.people.browseContacts}
-                onPress={openContactPicker}
-                hitSlop={4}
-                style={({ pressed }) => ({
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 4,
-                  height: 38,
-                  paddingHorizontal: 12,
-                  borderRadius: 19,
-                  backgroundColor: theme.color.brandSoft,
-                  opacity: pressed ? 0.6 : 1,
-                })}
-              >
-                <Ionicons name="person-add-outline" size={16} color={accent(theme)} />
-                <Text
-                  numberOfLines={1}
-                  style={{ fontSize: 14, fontWeight: '600', color: accent(theme) }}
-                >
-                  {t.newGroupForm.addContacts}
-                </Text>
-              </Pressable>
+              {contactsInline ? (
+                <AddContactsButton label={t.newGroupForm.addContacts} onPress={openContactPicker} />
+              ) : null}
             </Row>
+            {/* On a narrow phone the button would squeeze the title to an
+                ellipsis, so it takes a line of its own under it. */}
+            {contactsInline ? null : (
+              <AddContactsButton
+                label={t.newGroupForm.addContacts}
+                onPress={openContactPicker}
+                fullWidth
+              />
+            )}
             {showGhostNote ? (
               <Text variant="caption" tone="muted">
                 {t.extras.ghostNote}
@@ -747,9 +764,9 @@ export default function NewGroupScreen() {
               style={{
                 alignItems: 'center',
                 gap: theme.spacing.md,
-                height: 48,
+                height: 52,
                 paddingHorizontal: theme.spacing.lg,
-                borderRadius: 24,
+                borderRadius: 26,
                 backgroundColor: theme.scheme === 'dark' ? theme.color.surfaceMuted : '#F5F5FA',
               }}
             >
@@ -762,7 +779,13 @@ export default function NewGroupScreen() {
                 accessibilityLabel={t.misc.personName}
                 onSubmitEditing={addTypedGhost}
                 returnKeyType="done"
-                style={{ flex: 1, fontSize: 16, color: theme.color.text, paddingVertical: 0 }}
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  fontSize: 16,
+                  color: ink(theme),
+                  paddingVertical: 0,
+                }}
               />
               {ghostName.trim() ? (
                 <Pressable
@@ -786,16 +809,24 @@ export default function NewGroupScreen() {
                 <Text variant="caption" tone="muted">
                   {t.newGroupForm.suggested}
                 </Text>
+                {/* Scrolls sideways inside the card: the list runs to the card's
+                    own edges (the negative margin undoes the card's padding) so a
+                    face is cut by the card, never by the padding, and the page
+                    itself never scrolls sideways. */}
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
                   keyboardShouldPersistTaps="handled"
-                  contentContainerStyle={{ gap: theme.spacing.md }}
+                  style={{ marginHorizontal: -theme.spacing.lg }}
+                  contentContainerStyle={{
+                    gap: theme.spacing.sm,
+                    paddingHorizontal: theme.spacing.lg,
+                  }}
                 >
                   {suggestions.map((person, index) => (
                     <SuggestedPersonButton
                       key={person.key}
-                      name={person.name}
+                      name={suggestionLabels[index] ?? person.name}
                       index={index}
                       label={fill(t.voice.addNamed, { name: person.name })}
                       onPress={() =>
@@ -806,6 +837,13 @@ export default function NewGroupScreen() {
                       }
                     />
                   ))}
+                  <SuggestedPersonButton
+                    name={t.activityScreen.more}
+                    index={0}
+                    label={t.people.browseContacts}
+                    onPress={openContactPicker}
+                    more
+                  />
                 </ScrollView>
               </View>
             ) : null}
@@ -848,16 +886,26 @@ export default function NewGroupScreen() {
                 />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 19, lineHeight: 24, fontWeight: '600' }}>
+                <Text
+                  style={{ fontSize: 20, lineHeight: 25, fontWeight: '600', color: ink(theme) }}
+                >
                   {t.newGroupForm.groupType}
                 </Text>
-                <Text style={{ fontSize: 14, lineHeight: 19, color: theme.color.textMuted }}>
+                <Text style={{ fontSize: 14, lineHeight: 19, color: muted(theme) }}>
                   {t.newGroupForm.groupTypeSub}
                 </Text>
               </View>
             </Row>
-            <Row style={{ gap: theme.spacing.sm }}>
-              {TILE_TYPES.map((kind) => {
+            {/* Five tiles side by side while each can be at least TILE_MIN wide;
+                below that (a 320pt phone) they keep that width and the row
+                scrolls sideways inside the card rather than crushing "Friends"
+                into an ellipsis. */}
+            {(() => {
+              const gap = theme.spacing.sm;
+              const tilesFit =
+                typeRowWidth === 0 ||
+                (typeRowWidth - gap * (TILE_TYPES.length - 1)) / TILE_TYPES.length >= TILE_MIN;
+              const tiles = TILE_TYPES.map((kind) => {
                 const option = typeOptions.find((it) => it.value === kind);
                 if (!option) return null;
                 const lit = kind === type || (kind === GroupType.Other && type === GroupType.Event);
@@ -867,11 +915,28 @@ export default function NewGroupScreen() {
                     icon={TILE_ICON[kind]}
                     label={option.label}
                     selected={lit}
+                    width={tilesFit ? undefined : TILE_MIN}
                     onPress={() => setPickedType(kind)}
                   />
                 );
-              })}
-            </Row>
+              });
+              return (
+                <View onLayout={(event) => setTypeRowWidth(event.nativeEvent.layout.width)}>
+                  {tilesFit ? (
+                    <Row style={{ gap }}>{tiles}</Row>
+                  ) : (
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      style={{ marginHorizontal: -theme.spacing.lg }}
+                      contentContainerStyle={{ gap, paddingHorizontal: theme.spacing.lg }}
+                    >
+                      {tiles}
+                    </ScrollView>
+                  )}
+                </View>
+              );
+            })()}
           </FormCard>
 
           {/* The group's settings. Dates and budget are trip-only, so a dinner
@@ -930,11 +995,11 @@ export default function NewGroupScreen() {
               {type === GroupType.Trip ? (
                 <View>
                   <SettingRow
-                    icon="server-outline"
+                    icon="cash-outline"
                     title={t.newGroupForm.tripCurrency}
                     subtitle={t.newGroupForm.ratesSub}
                     value={liveRates.length > 0 ? ratesSummary : null}
-                    action={t.newGroupForm.addCurrency}
+                    action={roomyRows ? t.newGroupForm.addCurrency : t.add}
                     expanded={openAttr === 'rates'}
                     onPress={() => setOpenAttr((current) => (current === 'rates' ? null : 'rates'))}
                   />
@@ -1020,10 +1085,28 @@ type Theme = ReturnType<typeof useTheme>;
 const ACCENT = '#6845E8';
 const accent = (theme: Theme): string => (theme.scheme === 'dark' ? theme.color.brand : ACCENT);
 
+/** The spec's text colours for this screen, light theme; dark keeps the theme's. */
+const INK = '#15152F';
+const MUTED = '#69708A';
+const ink = (theme: Theme): string => (theme.scheme === 'dark' ? theme.color.text : INK);
+const muted = (theme: Theme): string => (theme.scheme === 'dark' ? theme.color.textMuted : MUTED);
+
 /** How far the first card rides up over the header's wash. */
 const HEADER_OVERLAP = 24;
-/** The cover tile's side. */
-const COVER = 104;
+/** The cover tile's side — a little smaller on a narrow phone, so the two
+ *  fields beside it keep a usable width. */
+const COVER = 108;
+const COVER_NARROW = 92;
+/** Below this screen width (pt) the layout takes its narrow measures. */
+const NARROW_WIDTH = 360;
+/** From this width "Add contacts" fits beside the Add friends title. */
+const CONTACTS_INLINE_WIDTH = 380;
+/** From this width a setting row has room for "Add a currency ›". */
+const ROOMY_ROW_WIDTH = 400;
+/** The camera button floating on the cover's corner. */
+const CAMERA_FAB = 44;
+/** The narrowest a type tile may be before the row scrolls instead. */
+const TILE_MIN = 52;
 
 /** The five kinds offered as tiles, in the spec's order, with their glyphs. */
 const TILE_TYPES = [
@@ -1045,10 +1128,10 @@ const TILE_ICON: Record<(typeof TILE_TYPES)[number], keyof typeof Ionicons.glyph
 function fieldBox(theme: Theme) {
   return {
     alignItems: 'center' as const,
-    minHeight: 50,
+    minHeight: 54,
     borderWidth: 1,
     borderColor: theme.scheme === 'dark' ? theme.color.border : '#E5E5ED',
-    borderRadius: 12,
+    borderRadius: 13,
     paddingHorizontal: theme.spacing.md,
     backgroundColor: theme.color.surface,
   };
@@ -1056,8 +1139,11 @@ function fieldBox(theme: Theme) {
 
 /** A field's label: 15pt, semibold. */
 function FieldLabel({ children, style }: { children: ReactNode; style?: object }) {
+  const theme = useTheme();
   return (
-    <Text style={[{ fontSize: 15, lineHeight: 20, fontWeight: '600' }, style]}>{children}</Text>
+    <Text style={[{ fontSize: 15, lineHeight: 20, fontWeight: '600', color: ink(theme) }, style]}>
+      {children}
+    </Text>
   );
 }
 
@@ -1089,27 +1175,42 @@ function FormCard({ children, style }: { children: ReactNode; style?: object }) 
  *  transparent ground, 2:1. */
 const HEADER_ART = require('../../assets/images/new-group-header.webp') as number;
 const HEADER_ART_RATIO = 2;
+/** How far above the header's foot the scene stands — the first card covers
+ *  HEADER_OVERLAP of the foot, so the suitcase's base runs behind it. */
+const ART_BELOW_CARD = HEADER_OVERLAP - 16;
+/** How much of the picture lies below the plane's top — the plane starts about a
+ *  third of the way down, so two thirds of the picture sits under it. */
+const ART_BELOW_PLANE = 0.67;
 
 /**
  * The header on a light-blue wash that fades into the page: close, the title at
  * 28pt over its line, and the travel scene on the right, which the first card
  * overlaps. Decoration only, so it is hidden from screen readers.
  */
-function NewGroupHeader({ title, subtitle }: { title: string; subtitle: string }) {
+function NewGroupHeader({ title }: { title: string }) {
   const theme = useTheme();
   const { t } = useStrings();
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
-  // The scene fills the right of the header; the title runs over its open sky.
-  const artWidth = Math.round(screenWidth * 0.7);
+  // The scene sits in the upper right; the title runs over its open sky. Its
+  // width follows the screen (capped on a tablet) and its height follows its
+  // own shape, so it is never stretched.
+  const narrow = screenWidth < NARROW_WIDTH;
+  const artWidth = Math.round(Math.min(screenWidth * (narrow ? 0.5 : 0.6), 330));
+  const artHeight = artWidth / HEADER_ART_RATIO;
+  // Room under the title for the scene: the plane (a third of the way down the
+  // picture) clears the one-line title, and the suitcase still runs behind the
+  // first card. Only the art decides this, so the header is as short as the
+  // scene allows and no shorter.
+  const artRoom = Math.round(ART_BELOW_CARD + ART_BELOW_PLANE * artHeight + 4);
   const dark = theme.scheme === 'dark';
   return (
     <LinearWash
       colors={dark ? ['#1B2440', theme.color.bg] : ['#BFE3FF', '#E3F2FF', '#F5F4FF']}
       style={{
-        paddingTop: insets.top + theme.spacing.sm,
+        paddingTop: insets.top + theme.spacing.xs,
         paddingHorizontal: theme.spacing.lg,
-        paddingBottom: HEADER_OVERLAP + theme.spacing.lg,
+        paddingBottom: Math.max(HEADER_OVERLAP + theme.spacing.sm, artRoom),
       }}
     >
       {/* The travel scene, anchored bottom-right under the title's side of the
@@ -1121,12 +1222,14 @@ function NewGroupHeader({ title, subtitle }: { title: string; subtitle: string }
         resizeMode="contain"
         style={{
           position: 'absolute',
-          end: -6,
-          bottom: HEADER_OVERLAP - 6,
+          end: -20,
+          // The suitcase and the palm's foot run a little behind the first
+          // card, which rides up over the header by HEADER_OVERLAP.
+          bottom: ART_BELOW_CARD,
           // Measured sizes, not a percentage and an aspect ratio: on Android an
           // absolutely placed image sized that way lays out at zero height.
           width: artWidth,
-          height: artWidth / HEADER_ART_RATIO,
+          height: artHeight,
         }}
       />
       {/* Close on a white disc, so it holds its own on the scene. */}
@@ -1152,35 +1255,23 @@ function NewGroupHeader({ title, subtitle }: { title: string; subtitle: string }
       >
         <Ionicons name="close" size={24} color={theme.color.text} />
       </Pressable>
-      {/* Two lines — "Create / a new group" — at 32pt, down the left. */}
+      {/* The title, one line at 28pt, over the scene's open sky. */}
       <Text
-        numberOfLines={2}
+        // One line — "Create a new group" — across the header, shrinking a
+        // little on the narrowest phones rather than breaking onto a second.
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.75}
         style={{
-          fontSize: 32,
-          lineHeight: 37,
+          fontSize: 28,
+          lineHeight: 34,
           fontWeight: '800',
-          marginTop: theme.spacing.md,
-          maxWidth: '58%',
+          marginTop: theme.spacing.sm,
           zIndex: 1,
-          color: theme.color.text,
+          color: ink(theme),
         }}
       >
         {title}
-      </Text>
-      <Text
-        numberOfLines={2}
-        style={{
-          fontSize: 15,
-          lineHeight: 20,
-          fontWeight: '500',
-          color: theme.color.text,
-          opacity: 0.75,
-          maxWidth: '62%',
-          marginTop: 4,
-          zIndex: 1,
-        }}
-      >
-        {subtitle}
       </Text>
     </LinearWash>
   );
@@ -1209,16 +1300,19 @@ function TypeTile({
   icon,
   label,
   selected,
+  width,
   onPress,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   selected: boolean;
+  /** A fixed width when the row scrolls; shares the row evenly when absent. */
+  width?: number;
   onPress: () => void;
 }) {
   const theme = useTheme();
   const dark = theme.scheme === 'dark';
-  const ink = selected ? accent(theme) : dark ? theme.color.textMuted : '#52586C';
+  const tileInk = selected ? accent(theme) : dark ? theme.color.textMuted : '#52586C';
   return (
     <Pressable
       accessibilityRole="radio"
@@ -1226,8 +1320,8 @@ function TypeTile({
       accessibilityLabel={label}
       onPress={onPress}
       style={({ pressed }) => ({
-        flex: 1,
-        height: 96,
+        ...(width ? { width } : { flex: 1, minWidth: 0 }),
+        height: 88,
         alignItems: 'center',
         justifyContent: 'center',
         gap: 6,
@@ -1242,12 +1336,12 @@ function TypeTile({
         opacity: pressed ? 0.7 : 1,
       })}
     >
-      <Ionicons name={icon} size={28} color={ink} />
+      <Ionicons name={icon} size={26} color={tileInk} />
       <Text
         numberOfLines={1}
         adjustsFontSizeToFit
-        minimumFontScale={0.75}
-        style={{ fontSize: 14, fontWeight: selected ? '600' : '500', color: ink }}
+        minimumFontScale={0.85}
+        style={{ fontSize: 14, fontWeight: selected ? '600' : '500', color: tileInk }}
       >
         {label}
       </Text>
@@ -1340,22 +1434,23 @@ function SettingRow({
   const chevron = expanded ? 'chevron-up' : directionalIcon('chevron-forward');
   const body = (
     <Row
-      style={{ alignItems: 'center', gap: theme.spacing.md, minHeight: 68, paddingVertical: 10 }}
+      style={{ alignItems: 'center', gap: theme.spacing.md, minHeight: 74, paddingVertical: 12 }}
     >
-      <Ionicons name={icon} size={26} color={theme.color.text} />
-      <View style={{ flex: 1 }}>
+      {/* A fixed box, so every row's words start on the same line whatever
+          the glyph's own width. */}
+      <View style={{ width: 32, alignItems: 'center' }}>
+        <Ionicons name={icon} size={24} color={ink(theme)} />
+      </View>
+      <View style={{ flex: 1, minWidth: 0 }}>
         <Row style={{ alignItems: 'center', gap: 4 }}>
-          <Text style={{ fontSize: 16, lineHeight: 21, fontWeight: '600' }}>{title}</Text>
+          <Text style={{ fontSize: 16, lineHeight: 21, fontWeight: '600', color: ink(theme) }}>
+            {title}
+          </Text>
           {info ? (
             <Ionicons name="information-circle-outline" size={16} color={theme.color.textMuted} />
           ) : null}
         </Row>
-        <Text
-          numberOfLines={2}
-          style={{ fontSize: 13, lineHeight: 18, color: theme.color.textMuted }}
-        >
-          {subtitle}
-        </Text>
+        <Text style={{ fontSize: 13, lineHeight: 18, color: muted(theme) }}>{subtitle}</Text>
       </View>
       {trailing ??
         (value ? (
@@ -1423,13 +1518,13 @@ function CreateButton({
     >
       <Gradient
         colors={CREATE_WASH}
-        radius={28}
+        radius={29}
         style={{
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'center',
           gap: theme.spacing.sm,
-          height: 56,
+          height: 58,
         }}
       >
         <Text style={{ fontSize: 18, fontWeight: '600', color: '#FFFFFF' }}>{label}</Text>
@@ -1439,20 +1534,23 @@ function CreateButton({
   );
 }
 
-const CREATE_WASH = ['#3D63E8', '#7041E8'] as const;
+const CREATE_WASH = ['#3D63E8', ACCENT] as const;
 
 /** A suggested person: an initial in a tinted disc with a small + badge, the
- *  name under it. One tap adds them. */
+ *  name under it. One tap adds them. `more` draws the list's last tile — a
+ *  dotted disc that opens the contact picker for everyone else. */
 function SuggestedPersonButton({
   name,
   index,
   label,
   onPress,
+  more = false,
 }: {
   name: string;
   index: number;
   label: string;
   onPress: () => void;
+  more?: boolean;
 }) {
   const theme = useTheme();
   const tint = theme.tint[SUGGEST_TINTS[index % SUGGEST_TINTS.length] ?? 'lilac'];
@@ -1462,48 +1560,110 @@ function SuggestedPersonButton({
       accessibilityLabel={label}
       onPress={onPress}
       style={({ pressed }) => ({
-        width: 60,
+        width: SUGGEST_WIDTH,
         alignItems: 'center',
-        gap: 4,
+        gap: 6,
+        paddingTop: 2,
         opacity: pressed ? 0.6 : 1,
       })}
     >
       <View
         style={{
-          width: 52,
-          height: 52,
-          borderRadius: 26,
-          backgroundColor: tint.bg,
+          width: 56,
+          height: 56,
+          borderRadius: 28,
+          backgroundColor: more ? theme.color.surface : tint.bg,
+          borderWidth: more ? 1.5 : 0,
+          borderStyle: more ? 'dashed' : 'solid',
+          borderColor: more ? accent(theme) : 'transparent',
           alignItems: 'center',
           justifyContent: 'center',
         }}
       >
-        <Text style={{ fontSize: 20, fontWeight: '700', color: tint.ink }}>
-          {name.trim().charAt(0).toUpperCase()}
-        </Text>
-        <View
-          style={{
-            position: 'absolute',
-            end: -2,
-            bottom: -2,
-            width: 20,
-            height: 20,
-            borderRadius: 10,
-            backgroundColor: accent(theme),
-            borderWidth: 2,
-            borderColor: theme.color.surface,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Ionicons name="add" size={12} color="#FFFFFF" />
-        </View>
+        {more ? (
+          <Ionicons name="ellipsis-horizontal" size={22} color={accent(theme)} />
+        ) : (
+          <Text style={{ fontSize: 21, fontWeight: '700', color: tint.ink }}>
+            {name.charAt(0).toUpperCase()}
+          </Text>
+        )}
+        {more ? null : (
+          <View
+            style={{
+              position: 'absolute',
+              end: -2,
+              bottom: -2,
+              width: 22,
+              height: 22,
+              borderRadius: 11,
+              backgroundColor: accent(theme),
+              borderWidth: 2,
+              borderColor: theme.color.surface,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Ionicons name="add" size={13} color="#FFFFFF" />
+          </View>
+        )}
       </View>
-      <Text numberOfLines={1} style={{ fontSize: 13, color: theme.color.text }}>
+      <Text
+        numberOfLines={1}
+        ellipsizeMode="tail"
+        style={{
+          maxWidth: SUGGEST_WIDTH,
+          fontSize: 13,
+          lineHeight: 17,
+          color: more ? accent(theme) : ink(theme),
+          fontWeight: more ? '600' : '400',
+        }}
+      >
         {name}
       </Text>
     </Pressable>
   );
 }
 
+/** A suggested person's column: room for "Priya" or "Karthik" under the face. */
+const SUGGEST_WIDTH = 78;
+
 const SUGGEST_TINTS = ['lilac', 'peach', 'mint', 'sky', 'pink', 'coral'] as const;
+
+/** "Add contacts": outlined in the accent, on the Add friends title row — or a
+ *  full-width line of its own under it on a narrow phone. */
+function AddContactsButton({
+  label,
+  onPress,
+  fullWidth = false,
+}: {
+  label: string;
+  onPress: () => void;
+  fullWidth?: boolean;
+}) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      hitSlop={4}
+      style={({ pressed }) => ({
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+        height: fullWidth ? 44 : 40,
+        paddingHorizontal: 14,
+        borderRadius: 22,
+        borderWidth: 1.5,
+        borderColor: accent(theme),
+        opacity: pressed ? 0.6 : 1,
+      })}
+    >
+      <Ionicons name="person-add-outline" size={16} color={accent(theme)} />
+      <Text numberOfLines={1} style={{ fontSize: 14, fontWeight: '600', color: accent(theme) }}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}

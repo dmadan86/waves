@@ -59,9 +59,8 @@ import { friendlyError } from '@/lib/errors';
 import { receiptProblemText } from '@/lib/problemText';
 import { CurrencyRate } from '@/components/CurrencyRate';
 import { DescriptionField } from '@/components/expense/DescriptionField';
-import { COMMON_CURRENCIES } from '@/lib/currencyChoices';
+import { CurrencySheet } from '@/components/expense/CurrencySheet';
 import { ExpenseHero } from '@/components/expense/ExpenseHero';
-import { ChoiceRow, SheetOverlay } from '@/components/expense/SheetOverlay';
 import { DetailRow, DetailRows } from '@/components/DetailRows';
 import {
   canAddReceipt,
@@ -1943,12 +1942,10 @@ export default function AddExpenseScreen() {
             <CurrencyRate
               groupCurrency={groupCurrency}
               currency={currency}
-              onCurrencyChange={setExpenseCurrency}
               amount={amount}
               fx={fx}
               onFxChange={setFx}
               tripRate={tripRate}
-              showCurrencyPicker={false}
             />
           </View>
         </ScrollView>
@@ -2010,37 +2007,15 @@ export default function AddExpenseScreen() {
       {/* Travel split presets, as a sheet over the form (trip groups). Each
           gathers just its inputs, then applies canonical split params through
           the core builders — nothing new is stored. */}
-      {/* Currency picker, as a sheet over the form — the same shortlist and the
-          same sheet the capture screen uses, so a person meets the same
-          currencies in both places. Picking a foreign one reveals the rate card
+      {/* Currency picker — the shared "Choose currency" sheet every currency
+          choice in the app uses, so a person meets the same picker everywhere. Picking a foreign one reveals the rate card
           below the amount (CurrencyRate). */}
       {pickingCurrency ? (
-        <SheetOverlay
-          title={t.captures.currencyPickerTitle}
+        <CurrencySheet
+          value={currency}
+          onPick={chooseCurrency}
           onClose={() => setPickingCurrency(false)}
-        >
-          <View style={{ gap: theme.spacing.xs }}>
-            {COMMON_CURRENCIES.map((code) => (
-              <ChoiceRow
-                key={code}
-                leading={
-                  <Text
-                    variant="subheading"
-                    tone="muted"
-                    numberOfLines={1}
-                    adjustsFontSizeToFit
-                    style={{ width: 36, textAlign: 'center' }}
-                  >
-                    {currencySymbol(code)}
-                  </Text>
-                }
-                label={code}
-                selected={currency === code}
-                onPress={() => chooseCurrency(code)}
-              />
-            ))}
-          </View>
-        </SheetOverlay>
+        />
       ) : null}
 
       {/* What kind of expense, from the "more details" list. Picking one closes

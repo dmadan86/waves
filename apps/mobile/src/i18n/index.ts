@@ -724,6 +724,15 @@ export interface UiStrings {
     followingPhone: string;
     footnote: string;
   };
+  /** The scene behind the Home and Personal heroes, and its picker. */
+  heroScene: {
+    title: string;
+    auto: string;
+    autoHint: string;
+    footnote: string;
+    names: Record<'morning' | 'afternoon' | 'evening' | 'sunset' | 'night' | 'winter', string>;
+    hints: Record<'morning' | 'afternoon' | 'evening' | 'sunset' | 'night' | 'winter', string>;
+  };
   /** Which networks sync may use, and what the banner says while it waits. */
   sync: {
     title: string;
@@ -867,6 +876,10 @@ export interface UiStrings {
     gateTitle: string;
     /** The count strip in the gate: how many are signed in against the cap. */
     gateCount: string;
+    /** The count card: "{active} devices", "{limit} allowed", and the sentence under them. */
+    gateDevices: string;
+    gateAllowed: string;
+    gateDetail: string;
     gateBody: string;
     gateAction: string;
     gateDismiss: string;
@@ -1003,6 +1016,17 @@ export interface UiStrings {
     title: string;
     prompt: string;
     example: string;
+    /** "Try saying…" and three things to say, under the mic. The blanks are
+     *  filled per country and from the reader's own groups (`lib/voiceExamples`). */
+    trySaying: string;
+    /** {amount} of groceries filed to {group}. */
+    tryGroup: string;
+    /** Dinner for {amount} split with {a} and {b}. */
+    trySplit: string;
+    /** A coffee for {amount} kept to the personal ledger. */
+    tryJustMe: string;
+    /** A trip group's name made from a place: "{place} trip". */
+    tripName: string;
     tapToSpeak: string;
     /** Miss recovery headline: heard, but no amount landed. */
     noAmount: string;
@@ -3615,6 +3639,29 @@ export interface UiStrings {
     tab: string;
     title: string;
     subtitle: string;
+    /** The Personal tab's dashboard. */
+    dash: {
+      tagline: string;
+      totalSpentThisMonth: string;
+      totalSpentIn: string;
+      vsMonth: string;
+      available: string;
+      monthlyBudget: string;
+      budgetOf: string;
+      spentShort: string;
+      setBudget: string;
+      setBudgetHint: string;
+      topCategories: string;
+      viewAll: string;
+      recentExpenses: string;
+      noExpenses: string;
+      moneyTools: string;
+      perMonth: string;
+      activeCount: string;
+      noneYet: string;
+      pickMonth: string;
+      settings: string;
+    };
     entryMissing: string;
     thisMonth: string;
     income: string;
@@ -4259,6 +4306,29 @@ const en: UiStrings = {
     followingPhone: 'Following your phone',
     footnote: 'Following your phone lets the app turn dark when your phone does.',
   },
+  heroScene: {
+    title: 'Background',
+    auto: 'Automatic',
+    autoHint: 'Changes with the time of day',
+    footnote:
+      'The scene behind Home and Personal. Your figures always sit on a solid surface, so they read the same in every scene.',
+    names: {
+      morning: 'Morning',
+      afternoon: 'Afternoon',
+      evening: 'Evening',
+      sunset: 'Sunset',
+      night: 'Night',
+      winter: 'Winter',
+    },
+    hints: {
+      morning: 'Fresh and calm start',
+      afternoon: 'Bright and energetic',
+      evening: 'Warm and relaxing',
+      sunset: 'Vibrant and peaceful',
+      night: 'Calm and focused',
+      winter: 'Crisp and serene',
+    },
+  },
   sync: {
     title: 'Sync over',
     wifi: 'Wi‑Fi only',
@@ -4381,6 +4451,9 @@ const en: UiStrings = {
     rowHint: 'See where you are signed in',
     gateTitle: 'Signed in on too many devices',
     gateCount: '{active} devices · {limit} allowed',
+    gateDevices: '{active} devices',
+    gateAllowed: '{limit} allowed',
+    gateDetail: "You're signed in on {active} devices, but your free plan allows {limit}.",
     gateBody:
       'The free plan covers two devices at a time, and this account is over that. Log out the others to keep using Waves on this one.',
     gateAction: 'Log out other devices',
@@ -4500,6 +4573,11 @@ const en: UiStrings = {
     title: 'Speak an expense',
     prompt: 'Say what you spent',
     example: 'e.g. “add 500 to Goa trip”',
+    trySaying: 'Try saying…',
+    tryGroup: '“Groceries {amount} to {group}”',
+    trySplit: '“Dinner {amount} split with {a} and {b}”',
+    tryJustMe: '“Coffee {amount}, just for me”',
+    tripName: '{place} trip',
     tapToSpeak: 'Tap to speak',
     noAmount: 'Didn’t catch an amount',
     missedNothing: 'Didn’t catch that',
@@ -4873,7 +4951,7 @@ const en: UiStrings = {
   },
   newGroupForm: {
     title: 'Create a new group',
-    headerSub: 'Start a group and share expenses easily with your friends',
+    headerSub: 'Start a group and share expenses together',
     nameExample: 'e.g. Bali Trip',
     whatFor: 'What is this group for?',
     descriptionExample: 'e.g. Friends trip, Weekend getaway',
@@ -6672,6 +6750,28 @@ const en: UiStrings = {
     tab: 'Personal',
     title: 'Personal',
     subtitle: 'Your own money — private to you.',
+    dash: {
+      tagline: 'Track your money, live smarter',
+      totalSpentThisMonth: 'Total spent this month',
+      totalSpentIn: 'Total spent in {month}',
+      vsMonth: 'vs {month}',
+      available: 'Available',
+      monthlyBudget: 'Monthly budget',
+      budgetOf: 'of {limit}',
+      spentShort: 'spent',
+      setBudget: 'Set a monthly budget',
+      setBudgetHint: 'See how much of the month is left to spend',
+      topCategories: 'Top categories',
+      viewAll: 'View all',
+      recentExpenses: 'Recent expenses',
+      noExpenses: 'No expenses this month yet',
+      moneyTools: 'Money tools',
+      perMonth: '/ month',
+      activeCount: '{count} active',
+      noneYet: 'None yet',
+      pickMonth: 'Choose month',
+      settings: 'Lock & privacy',
+    },
     entryMissing: 'That entry is no longer here.',
     thisMonth: 'This month',
     income: 'Income',
@@ -7299,6 +7399,29 @@ const ta: UiStrings = {
     followingPhone: 'உங்கள் ஃபோனைப் பின்பற்றுகிறது',
     footnote: 'உங்கள் ஃபோனைப் பின்பற்றினால், ஃபோன் இருளும்போது ஆப்பும் இருளும்.',
   },
+  heroScene: {
+    title: 'பின்னணி',
+    auto: 'தானியங்கி',
+    autoHint: 'நாளின் நேரத்துக்கு ஏற்ப மாறும்',
+    footnote:
+      'முகப்பு மற்றும் தனிப்பட்ட பக்கத்தின் பின்னணிக் காட்சி. உங்கள் தொகைகள் எப்போதும் திடமான பரப்பில் இருப்பதால் எல்லாக் காட்சியிலும் ஒரே மாதிரி படிக்கலாம்.',
+    names: {
+      morning: 'காலை',
+      afternoon: 'மதியம்',
+      evening: 'மாலை',
+      sunset: 'சூரிய அஸ்தமனம்',
+      night: 'இரவு',
+      winter: 'குளிர்காலம்',
+    },
+    hints: {
+      morning: 'புத்துணர்வான அமைதியான தொடக்கம்',
+      afternoon: 'பிரகாசமும் உற்சாகமும்',
+      evening: 'இதமும் ஓய்வும்',
+      sunset: 'துடிப்பும் அமைதியும்',
+      night: 'அமைதியும் கவனமும்',
+      winter: 'தெளிவும் நிம்மதியும்',
+    },
+  },
   sync: {
     title: 'எதன் மூலம் ஒத்திசைவு',
     wifi: 'வைஃபை மட்டும்',
@@ -7424,6 +7547,10 @@ const ta: UiStrings = {
     rowHint: 'எங்கு உள்நுழைந்துள்ளீர்கள் என்பதைப் பார்க்கவும்',
     gateTitle: 'மிக அதிக சாதனங்களில் உள்நுழைந்துள்ளது',
     gateCount: '{active} சாதனங்கள் · {limit} அனுமதி',
+    gateDevices: '{active} சாதனங்கள்',
+    gateAllowed: '{limit} அனுமதி',
+    gateDetail:
+      'நீங்கள் {active} சாதனங்களில் உள்நுழைந்துள்ளீர்கள், ஆனால் இலவசத் திட்டம் {limit} சாதனங்களை மட்டுமே அனுமதிக்கிறது.',
     gateBody:
       'இலவசத் திட்டத்தில் ஒரே நேரத்தில் இரண்டு சாதனங்கள் மட்டுமே; இந்தக் கணக்கு அதைத் தாண்டியுள்ளது. இந்தச் சாதனத்தில் Waves-ஐத் தொடர மற்றவற்றில் வெளியேறவும்.',
     gateAction: 'மற்ற சாதனங்களில் வெளியேறு',
@@ -7548,6 +7675,11 @@ const ta: UiStrings = {
     title: 'செலவைப் பேசு',
     prompt: 'நீங்கள் என்ன செலவழித்தீர்கள் என்று சொல்',
     example: 'உ.தா. “கோவா டிரிப்பில் 500 சேர்”',
+    trySaying: 'இப்படிச் சொல்லிப் பாருங்கள்…',
+    tryGroup: '“{group}-இல் மளிகை {amount}”',
+    trySplit: '“{a}, {b} உடன் இரவு உணவு {amount}”',
+    tryJustMe: '“காபி {amount}, எனக்கு மட்டும்”',
+    tripName: '{place} டிரிப்',
     tapToSpeak: 'பேச தட்டு',
     noAmount: 'தொகை புரியவில்லை',
     missedNothing: 'புரியவில்லை',
@@ -7935,7 +8067,7 @@ const ta: UiStrings = {
   },
   newGroupForm: {
     title: 'புதிய குழுவை உருவாக்கு',
-    headerSub: 'ஒரு குழுவைத் தொடங்கி நண்பர்களுடன் எளிதாகச் செலவுகளைப் பகிருங்கள்',
+    headerSub: 'ஒரு குழுவைத் தொடங்கி செலவுகளை ஒன்றாகப் பகிருங்கள்',
     nameExample: 'எ.கா. கோவா பயணம்',
     whatFor: 'இந்தக் குழு எதற்காக?',
     descriptionExample: 'எ.கா. நண்பர்கள் பயணம், வார இறுதி சுற்றுலா',
@@ -9842,6 +9974,28 @@ const ta: UiStrings = {
     tab: 'தனிப்பட்டது',
     title: 'தனிப்பட்டது',
     subtitle: 'உங்கள் சொந்தப் பணம் — உங்களுக்கு மட்டும் தனிப்பட்டது.',
+    dash: {
+      tagline: 'உங்கள் பணத்தைக் கண்காணியுங்கள், புத்திசாலித்தனமாக வாழுங்கள்',
+      totalSpentThisMonth: 'இந்த மாதம் மொத்தச் செலவு',
+      totalSpentIn: '{month} மொத்தச் செலவு',
+      vsMonth: '{month} உடன் ஒப்பிட',
+      available: 'கையிருப்பு',
+      monthlyBudget: 'மாத பட்ஜெட்',
+      budgetOf: '{limit} இல்',
+      spentShort: 'செலவு',
+      setBudget: 'மாத பட்ஜெட் அமைக்கவும்',
+      setBudgetHint: 'மாதத்தில் இன்னும் எவ்வளவு செலவிடலாம் எனப் பாருங்கள்',
+      topCategories: 'முதன்மை வகைகள்',
+      viewAll: 'அனைத்தும்',
+      recentExpenses: 'சமீபத்திய செலவுகள்',
+      noExpenses: 'இந்த மாதம் இன்னும் செலவுகள் இல்லை',
+      moneyTools: 'பணக் கருவிகள்',
+      perMonth: '/ மாதம்',
+      activeCount: '{count} செயலில்',
+      noneYet: 'இன்னும் இல்லை',
+      pickMonth: 'மாதத்தைத் தேர்வுசெய்க',
+      settings: 'பூட்டு & தனியுரிமை',
+    },
     entryMissing: 'அந்தப் பதிவு இப்போது இல்லை.',
     thisMonth: 'இந்த மாதம்',
     income: 'வருமானம்',
@@ -10456,6 +10610,29 @@ const hi: UiStrings = {
     followingPhone: 'आपके फ़ोन के अनुसार',
     footnote: 'फ़ोन के अनुसार रखने पर, फ़ोन गहरा होने पर ऐप भी गहरा हो जाता है।',
   },
+  heroScene: {
+    title: 'बैकग्राउंड',
+    auto: 'अपने-आप',
+    autoHint: 'दिन के समय के साथ बदलता है',
+    footnote:
+      'होम और पर्सनल के पीछे का दृश्य। आपके आँकड़े हमेशा ठोस सतह पर रहते हैं, इसलिए हर दृश्य में एक जैसे पढ़े जाते हैं।',
+    names: {
+      morning: 'सुबह',
+      afternoon: 'दोपहर',
+      evening: 'शाम',
+      sunset: 'सूर्यास्त',
+      night: 'रात',
+      winter: 'सर्दी',
+    },
+    hints: {
+      morning: 'ताज़ी और शांत शुरुआत',
+      afternoon: 'उजली और ऊर्जावान',
+      evening: 'गर्म और सुकून भरी',
+      sunset: 'जीवंत और शांत',
+      night: 'शांत और एकाग्र',
+      winter: 'साफ़ और निर्मल',
+    },
+  },
   sync: {
     title: 'किस पर सिंक करें',
     wifi: 'केवल वाई‑फ़ाई',
@@ -10579,6 +10756,10 @@ const hi: UiStrings = {
     rowHint: 'देखें कि आप कहाँ-कहाँ साइन इन हैं',
     gateTitle: 'बहुत ज़्यादा डिवाइस पर साइन इन',
     gateCount: '{active} डिवाइस · {limit} की अनुमति',
+    gateDevices: '{active} डिवाइस',
+    gateAllowed: '{limit} की अनुमति',
+    gateDetail:
+      'आप {active} डिवाइस पर साइन इन हैं, लेकिन मुफ़्त प्लान में {limit} डिवाइस की ही अनुमति है।',
     gateBody:
       'मुफ़्त प्लान में एक साथ दो डिवाइस चलते हैं, और यह अकाउंट उससे ऊपर है। इस डिवाइस पर Waves इस्तेमाल करते रहने के लिए बाकियों से साइन आउट करें।',
     gateAction: 'दूसरे डिवाइस से साइन आउट करें',
@@ -10699,6 +10880,11 @@ const hi: UiStrings = {
     title: 'खर्च बोलें',
     prompt: 'बताएँ आपने क्या खर्च किया',
     example: 'जैसे “गोवा ट्रिप में 500 जोड़ें”',
+    trySaying: 'ऐसे बोलकर देखें…',
+    tryGroup: '“{group} में किराना {amount}”',
+    trySplit: '“{a} और {b} के साथ डिनर {amount}”',
+    tryJustMe: '“कॉफ़ी {amount}, सिर्फ़ मेरे लिए”',
+    tripName: '{place} ट्रिप',
     tapToSpeak: 'बोलने के लिए टैप करें',
     noAmount: 'रकम समझ नहीं आई',
     missedNothing: 'समझ नहीं आया',
@@ -11069,7 +11255,7 @@ const hi: UiStrings = {
   },
   newGroupForm: {
     title: 'नया समूह बनाएँ',
-    headerSub: 'समूह बनाएँ और दोस्तों के साथ आसानी से खर्च बाँटें',
+    headerSub: 'ग्रुप बनाएँ और खर्च साथ मिलकर बाँटें',
     nameExample: 'जैसे गोवा ट्रिप',
     whatFor: 'यह समूह किसलिए है?',
     descriptionExample: 'जैसे दोस्तों की ट्रिप, वीकेंड घूमना',
@@ -12885,6 +13071,28 @@ const hi: UiStrings = {
     tab: 'निजी',
     title: 'निजी',
     subtitle: 'आपका अपना पैसा — सिर्फ़ आपके लिए निजी।',
+    dash: {
+      tagline: 'अपने पैसों पर नज़र रखें, समझदारी से जिएँ',
+      totalSpentThisMonth: 'इस महीने कुल खर्च',
+      totalSpentIn: '{month} में कुल खर्च',
+      vsMonth: '{month} की तुलना में',
+      available: 'उपलब्ध',
+      monthlyBudget: 'मासिक बजट',
+      budgetOf: '{limit} में से',
+      spentShort: 'खर्च',
+      setBudget: 'मासिक बजट तय करें',
+      setBudgetHint: 'देखें कि महीने में कितना खर्च बाकी है',
+      topCategories: 'शीर्ष श्रेणियाँ',
+      viewAll: 'सभी देखें',
+      recentExpenses: 'हाल के खर्च',
+      noExpenses: 'इस महीने अभी कोई खर्च नहीं',
+      moneyTools: 'पैसों के टूल',
+      perMonth: '/ महीना',
+      activeCount: '{count} सक्रिय',
+      noneYet: 'अभी कोई नहीं',
+      pickMonth: 'महीना चुनें',
+      settings: 'लॉक और गोपनीयता',
+    },
     entryMissing: 'वह प्रविष्टि अब यहाँ नहीं है।',
     thisMonth: 'इस महीने',
     income: 'आय',
@@ -13514,6 +13722,29 @@ const ar: UiStrings = {
     followingPhone: 'يتبع هاتفك',
     footnote: 'اتباع هاتفك يجعل التطبيق يصير داكنًا حين يصير هاتفك داكنًا.',
   },
+  heroScene: {
+    title: 'الخلفية',
+    auto: 'تلقائي',
+    autoHint: 'تتغيّر مع وقت اليوم',
+    footnote:
+      'المشهد خلف الرئيسية والشخصي. أرقامك دائماً على سطح ثابت، فتُقرأ بالوضوح نفسه في كل مشهد.',
+    names: {
+      morning: 'الصباح',
+      afternoon: 'الظهيرة',
+      evening: 'المساء',
+      sunset: 'الغروب',
+      night: 'الليل',
+      winter: 'الشتاء',
+    },
+    hints: {
+      morning: 'بداية منعشة وهادئة',
+      afternoon: 'مشرق ومفعم بالحيوية',
+      evening: 'دافئ ومريح',
+      sunset: 'نابض بالحياة وهادئ',
+      night: 'هادئ ومركّز',
+      winter: 'صافٍ وساكن',
+    },
+  },
   sync: {
     title: 'المزامنة عبر',
     wifi: 'واي‑فاي فقط',
@@ -13676,6 +13907,9 @@ const ar: UiStrings = {
     rowHint: 'اطّلع على أماكن تسجيل دخولك',
     gateTitle: 'مسجّل الدخول على أجهزة أكثر من اللازم',
     gateCount: '{active} أجهزة · {limit} مسموح',
+    gateDevices: '{active} أجهزة',
+    gateAllowed: 'المسموح {limit}',
+    gateDetail: 'أنت مسجّل الدخول على {active} أجهزة، لكن الخطة المجانية تسمح بـ{limit} فقط.',
     gateBody:
       'الخطة المجانية تشمل جهازين في وقت واحد، وهذا الحساب تجاوز ذلك. سجّل الخروج من الأجهزة الأخرى لمواصلة استخدام Waves على هذا الجهاز.',
     gateAction: 'تسجيل الخروج من الأجهزة الأخرى',
@@ -13801,6 +14035,11 @@ const ar: UiStrings = {
     title: 'انطق مصروفًا',
     prompt: 'قل ماذا أنفقت',
     example: 'مثل: «أضف 500 إلى رحلة جوا»',
+    trySaying: 'جرّب أن تقول…',
+    tryGroup: '«بقالة {amount} إلى {group}»',
+    trySplit: '«عشاء {amount} مع {a} و{b}»',
+    tryJustMe: '«قهوة {amount}، لي فقط»',
+    tripName: 'رحلة {place}',
     tapToSpeak: 'انقر للتحدث',
     noAmount: 'لم أفهم المبلغ',
     missedNothing: 'لم أفهم ذلك',
@@ -14185,7 +14424,7 @@ const ar: UiStrings = {
   },
   newGroupForm: {
     title: 'إنشاء مجموعة جديدة',
-    headerSub: 'ابدأ مجموعة وتقاسم المصروفات بسهولة مع أصدقائك',
+    headerSub: 'ابدأ مجموعة وتقاسموا المصروفات معاً',
     nameExample: 'مثال: رحلة بالي',
     whatFor: 'ما الغرض من هذه المجموعة؟',
     descriptionExample: 'مثال: رحلة أصدقاء، عطلة نهاية الأسبوع',
@@ -16394,6 +16633,28 @@ const ar: UiStrings = {
     tab: 'الشخصي',
     title: 'الشخصي',
     subtitle: 'أموالك الخاصة — خاصة بك وحدك.',
+    dash: {
+      tagline: 'تابع أموالك وعِش بذكاء',
+      totalSpentThisMonth: 'إجمالي الإنفاق هذا الشهر',
+      totalSpentIn: 'إجمالي الإنفاق في {month}',
+      vsMonth: 'مقارنة بـ{month}',
+      available: 'المتاح',
+      monthlyBudget: 'الميزانية الشهرية',
+      budgetOf: 'من {limit}',
+      spentShort: 'مُنفَق',
+      setBudget: 'حدّد ميزانية شهرية',
+      setBudgetHint: 'اعرف كم تبقّى لك لتنفقه هذا الشهر',
+      topCategories: 'أعلى الفئات',
+      viewAll: 'عرض الكل',
+      recentExpenses: 'أحدث المصروفات',
+      noExpenses: 'لا مصروفات هذا الشهر بعد',
+      moneyTools: 'أدوات المال',
+      perMonth: '/ شهر',
+      activeCount: '{count} نشطة',
+      noneYet: 'لا شيء بعد',
+      pickMonth: 'اختر الشهر',
+      settings: 'القفل والخصوصية',
+    },
     entryMissing: 'هذا القيد لم يعد موجودًا.',
     thisMonth: 'هذا الشهر',
     income: 'الدخل',
