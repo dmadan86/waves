@@ -20,7 +20,7 @@
 
 import { useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { ActivityIndicator, Pressable, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, StyleSheet, View } from 'react-native';
 
 import { iconSize, Row, Skeleton, Text, useTheme } from '@waves/ui';
 
@@ -51,6 +51,7 @@ export function HomeBalanceCard({
   settling,
   loading,
   footer,
+  background,
 }: {
   net: bigint;
   /** Everything owed to you, and everything you owe, before the net. */
@@ -71,6 +72,8 @@ export function HomeBalanceCard({
   loading: boolean;
   /** Drawn along the card's foot, edge to edge — the quick actions. */
   footer?: ReactNode;
+  /** The time of day's card landscape (`lib/scene`), drawn behind the figures. */
+  background?: number;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
@@ -92,8 +95,6 @@ export function HomeBalanceCard({
       style={{
         backgroundColor: theme.color.surface,
         borderRadius: theme.radius.xl,
-        paddingTop: theme.spacing.md,
-        gap: theme.spacing.md,
         shadowColor: '#3B2A8C',
         shadowOpacity: 0.12,
         shadowRadius: 18,
@@ -101,115 +102,141 @@ export function HomeBalanceCard({
         elevation: 4,
       }}
     >
-      <Row
+      {/* The figures, over the time of day's landscape when one is given: it
+          fades to white on the left, where the words are, and shows its scene
+          on the right, softened so the figures on it stay readable. */}
+      <View
         style={{
-          alignItems: 'flex-start',
-          gap: theme.spacing.sm,
-          paddingHorizontal: theme.spacing.lg,
+          paddingTop: theme.spacing.md,
+          paddingBottom: theme.spacing.md,
+          gap: theme.spacing.md,
+          borderTopLeftRadius: theme.radius.xl,
+          borderTopRightRadius: theme.radius.xl,
+          borderBottomLeftRadius: footer ? 0 : theme.radius.xl,
+          borderBottomRightRadius: footer ? 0 : theme.radius.xl,
+          overflow: 'hidden',
         }}
       >
-        <View style={{ flex: 1, gap: 2 }}>
-          <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-            <Text variant="body" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
-              {label}
-            </Text>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={hidden ? t.dashHero.showBalance : t.dashHero.hideBalance}
-              onPress={onToggleHide}
-              hitSlop={10}
-              style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
-            >
-              <Ionicons
-                name={hidden ? 'eye-off-outline' : 'eye-outline'}
-                size={iconSize.md}
-                color={theme.color.textMuted}
-              />
-            </Pressable>
-            {settling ? <ActivityIndicator size="small" color={theme.color.brand} /> : null}
-          </Row>
-          {loading ? (
-            <Skeleton width={180} height={32} radius={10} />
-          ) : hidden ? (
-            <Text style={AMOUNT_STYLE} numberOfLines={1}>
-              {BALANCE_MASK}
-            </Text>
-          ) : (
-            <SplitMoney
-              amount={figure}
-              currency={currency}
-              locale={locale}
-              color={theme.color.text}
-              fontSize={AMOUNT_STYLE.fontSize}
-              weight="800"
-            />
-          )}
-          {change !== null && !hidden ? (
-            <Text variant="caption" tone="muted">
-              <Text
-                variant="caption"
-                style={{
-                  fontWeight: '700',
-                  color: change > 0 ? theme.color.negative : theme.color.positive,
-                }}
-              >
-                {`${change > 0 ? '+' : change < 0 ? '−' : ''}${Math.abs(change)}% `}
-              </Text>
-              {t.homeDash.vsLastMonth}
-            </Text>
-          ) : null}
-        </View>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={month ? t.homeDash.periodMonth : t.homeDash.periodOverall}
-          onPress={() => setPeriod(month ? Period.Overall : Period.Month)}
-          hitSlop={6}
-          style={({ pressed }) => ({
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 4,
-            paddingHorizontal: theme.spacing.md,
-            paddingVertical: theme.spacing.sm,
-            borderRadius: theme.radius.pill,
-            borderWidth: 1,
-            borderColor: theme.color.border,
-            opacity: pressed ? 0.6 : 1,
-          })}
+        {background ? (
+          <Image
+            source={background}
+            resizeMode="cover"
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            style={[StyleSheet.absoluteFill, { opacity: theme.scheme === 'dark' ? 0.35 : 0.7 }]}
+          />
+        ) : null}
+        <Row
+          style={{
+            alignItems: 'flex-start',
+            gap: theme.spacing.sm,
+            paddingHorizontal: theme.spacing.lg,
+          }}
         >
-          <Text variant="caption" style={{ fontWeight: '600' }}>
-            {month ? t.homeDash.periodMonth : t.homeDash.periodOverall}
-          </Text>
-          <Ionicons name="chevron-down" size={iconSize.sm} color={theme.color.textMuted} />
-        </Pressable>
-      </Row>
+          <View style={{ flex: 1, gap: 2 }}>
+            <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+              <Text variant="body" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
+                {label}
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={hidden ? t.dashHero.showBalance : t.dashHero.hideBalance}
+                onPress={onToggleHide}
+                hitSlop={10}
+                style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
+              >
+                <Ionicons
+                  name={hidden ? 'eye-off-outline' : 'eye-outline'}
+                  size={iconSize.md}
+                  color={theme.color.textMuted}
+                />
+              </Pressable>
+              {settling ? <ActivityIndicator size="small" color={theme.color.brand} /> : null}
+            </Row>
+            {loading ? (
+              <Skeleton width={180} height={32} radius={10} />
+            ) : hidden ? (
+              <Text style={AMOUNT_STYLE} numberOfLines={1}>
+                {BALANCE_MASK}
+              </Text>
+            ) : (
+              <SplitMoney
+                amount={figure}
+                currency={currency}
+                locale={locale}
+                color={theme.color.text}
+                fontSize={AMOUNT_STYLE.fontSize}
+                weight="800"
+              />
+            )}
+            {change !== null && !hidden ? (
+              <Text variant="caption" tone="muted">
+                <Text
+                  variant="caption"
+                  style={{
+                    fontWeight: '700',
+                    color: change > 0 ? theme.color.negative : theme.color.positive,
+                  }}
+                >
+                  {`${change > 0 ? '+' : change < 0 ? '−' : ''}${Math.abs(change)}% `}
+                </Text>
+                {t.homeDash.vsLastMonth}
+              </Text>
+            ) : null}
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={month ? t.homeDash.periodMonth : t.homeDash.periodOverall}
+            onPress={() => setPeriod(month ? Period.Overall : Period.Month)}
+            hitSlop={6}
+            style={({ pressed }) => ({
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 4,
+              paddingHorizontal: theme.spacing.md,
+              paddingVertical: theme.spacing.sm,
+              borderRadius: theme.radius.pill,
+              borderWidth: 1,
+              borderColor: theme.color.border,
+              backgroundColor: theme.color.surface,
+              opacity: pressed ? 0.6 : 1,
+            })}
+          >
+            <Text variant="caption" style={{ fontWeight: '600' }}>
+              {month ? t.homeDash.periodMonth : t.homeDash.periodOverall}
+            </Text>
+            <Ionicons name="chevron-down" size={iconSize.sm} color={theme.color.textMuted} />
+          </Pressable>
+        </Row>
 
-      <Row style={{ alignItems: 'center', paddingHorizontal: theme.spacing.lg }}>
-        <Side
-          icon="arrow-up"
-          color={theme.color.positive}
-          amount={owed}
-          label={t.homeDash.youLent}
-          detail={plural(locale, owedGroups, t.homeDash.acrossGroups)}
-          currency={currency}
-          locale={locale}
-          hidden={hidden}
-          loading={loading}
-        />
-        <View style={{ width: 1, alignSelf: 'stretch', backgroundColor: theme.color.border }} />
-        <Side
-          icon="arrow-down"
-          color={theme.color.negative}
-          amount={owing}
-          label={t.homeDash.youOwe}
-          detail={plural(locale, owingGroups, t.homeDash.acrossGroups)}
-          currency={currency}
-          locale={locale}
-          hidden={hidden}
-          loading={loading}
-          trailing
-        />
-      </Row>
-      {footer ?? <View style={{ height: theme.spacing.xs }} />}
+        <Row style={{ alignItems: 'center', paddingHorizontal: theme.spacing.lg }}>
+          <Side
+            icon="arrow-up"
+            color={theme.color.positive}
+            amount={owed}
+            label={t.homeDash.youLent}
+            detail={plural(locale, owedGroups, t.homeDash.acrossGroups)}
+            currency={currency}
+            locale={locale}
+            hidden={hidden}
+            loading={loading}
+          />
+          <View style={{ width: 1, alignSelf: 'stretch', backgroundColor: theme.color.border }} />
+          <Side
+            icon="arrow-down"
+            color={theme.color.negative}
+            amount={owing}
+            label={t.homeDash.youOwe}
+            detail={plural(locale, owingGroups, t.homeDash.acrossGroups)}
+            currency={currency}
+            locale={locale}
+            hidden={hidden}
+            loading={loading}
+            trailing
+          />
+        </Row>
+      </View>
+      {footer ?? null}
     </View>
   );
 }

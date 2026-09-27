@@ -520,6 +520,7 @@ export default function HomeScreen() {
               onToggleHide={toggleBalance}
               settling={settling}
               loading={showSkeleton || !balanceReady}
+              background={CARD_ART[scene]}
               footer={
                 <HomeQuickActions
                   // The quick sheet, not the capture screen: most spends know
@@ -1147,6 +1148,17 @@ const HERO_WASH = ['#4F55E8', '#6A5AEC', '#8469F0'] as const;
 
 /** How far the balance card rides up over the bottom of the hero. */
 const HERO_OVERLAP = 56;
+
+/** The balance card's six backgrounds, one per scene: light on the left for
+ *  the figures, the scene on the right. */
+const CARD_ART: Readonly<Record<Scene, number>> = {
+  [Scene.Morning]: require('../../../assets/images/scenes/card-morning.webp') as number,
+  [Scene.Afternoon]: require('../../../assets/images/scenes/card-afternoon.webp') as number,
+  [Scene.Sunset]: require('../../../assets/images/scenes/card-sunset.webp') as number,
+  [Scene.Evening]: require('../../../assets/images/scenes/card-evening.webp') as number,
+  [Scene.Night]: require('../../../assets/images/scenes/card-night.webp') as number,
+  [Scene.Winter]: require('../../../assets/images/scenes/card-winter.webp') as number,
+};
 
 /** The hero's six landscapes (see `lib/scene`). */
 const SCENE_ART: Readonly<Record<Scene, number>> = {
