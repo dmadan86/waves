@@ -8,7 +8,6 @@ import { ActivityIndicator, Modal, Platform, Pressable, ScrollView, View } from 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
-  currencySymbol,
   dayNumber,
   guessCategory,
   parseReceiptText,
@@ -43,7 +42,7 @@ import { PaymentMethodRow, PaymentMethodSheet } from '@/components/PaymentMethod
 import { LocationField } from '@/components/LocationField';
 import { ZoomableImage } from '@/components/ZoomableImage';
 import { AmountHeader } from '@/components/expense/AmountHeader';
-import { COMMON_CURRENCIES } from '@/lib/currencyChoices';
+import { CurrencySheet } from '@/components/expense/CurrencySheet';
 import { DescriptionField } from '@/components/expense/DescriptionField';
 import { ChoiceRow, SheetOverlay } from '@/components/expense/SheetOverlay';
 import { DetailRow, DetailRows } from '@/components/DetailRows';
@@ -943,35 +942,14 @@ export default function CaptureScreen() {
           the group expense form offers (COMMON_CURRENCIES), so a person meets the
           same currencies in both places. */}
       {pickingCurrency ? (
-        <SheetOverlay
-          title={t.captures.currencyPickerTitle}
+        <CurrencySheet
+          value={currency}
+          onPick={(code) => {
+            setPickedCurrency(code);
+            setPickingCurrency(false);
+          }}
           onClose={() => setPickingCurrency(false)}
-        >
-          <View style={{ gap: theme.spacing.xs }}>
-            {COMMON_CURRENCIES.map((code) => (
-              <ChoiceRow
-                key={code}
-                leading={
-                  <Text
-                    variant="subheading"
-                    tone="muted"
-                    numberOfLines={1}
-                    adjustsFontSizeToFit
-                    style={{ width: 36, textAlign: 'center' }}
-                  >
-                    {currencySymbol(code)}
-                  </Text>
-                }
-                label={code}
-                selected={currency === code}
-                onPress={() => {
-                  setPickedCurrency(code);
-                  setPickingCurrency(false);
-                }}
-              />
-            ))}
-          </View>
-        </SheetOverlay>
+        />
       ) : null}
 
       {/* Destination picker, as a sheet over the form rather than a route away:
