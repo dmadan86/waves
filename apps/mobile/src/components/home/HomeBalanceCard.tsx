@@ -4,8 +4,9 @@
  *
  *   Total you owe                    [Overall ▾] (chart)
  *   ₹1,13,689.50
- *   ↗ ₹42,350.00  You lent      |  ↙ ₹1,56,039.50  You owe
- *     Across 4 groups           |    Across 6 groups
+ *   ↑ You lent                  |  ↓ You owe
+ *   ₹42,350.00                  |  ₹1,56,039.50
+ *   Across 4 groups             |  Across 6 groups
  *
  * The pill switches the headline between the overall standing and this
  * month's spend (with its change against last month); the two sides below are
@@ -193,7 +194,7 @@ export function HomeBalanceCard({
       <Row style={{ alignItems: 'center' }}>
         <Side
           icon="arrow-up"
-          tint={theme.tint.mint}
+          color={theme.color.positive}
           amount={owed}
           label={t.homeDash.youLent}
           detail={plural(locale, owedGroups, t.homeDash.acrossGroups)}
@@ -205,7 +206,7 @@ export function HomeBalanceCard({
         <View style={{ width: 1, alignSelf: 'stretch', backgroundColor: theme.color.border }} />
         <Side
           icon="arrow-down"
-          tint={theme.tint.pink}
+          color={theme.color.negative}
           amount={owing}
           label={t.homeDash.youOwe}
           detail={plural(locale, owingGroups, t.homeDash.acrossGroups)}
@@ -222,11 +223,12 @@ export function HomeBalanceCard({
 
 const AMOUNT_STYLE = { fontSize: 32, lineHeight: 40, fontWeight: '800' } as const;
 
-/** One side of the balance: a tinted disc with its arrow, the figure, what it
- *  is and how many groups it comes from. */
+/** One side of the balance: a small arrow beside what it is — the Me tab's
+ *  figure shape, so it costs a line rather than a disc — then the figure and how
+ *  many groups it comes from. */
 function Side({
   icon,
-  tint,
+  color,
   amount,
   label,
   detail,
@@ -237,7 +239,7 @@ function Side({
   trailing = false,
 }: {
   icon: 'arrow-up' | 'arrow-down';
-  tint: { bg: string; ink: string };
+  color: string;
   amount: bigint;
   label: string;
   detail: string;
@@ -250,59 +252,41 @@ function Side({
 }) {
   const theme = useTheme();
   return (
-    <Row
+    <View
       style={{
         flex: 1,
-        alignItems: 'center',
-        gap: theme.spacing.sm,
-        paddingStart: trailing ? theme.spacing.md : 0,
+        gap: 2,
+        paddingStart: trailing ? theme.spacing.lg : 0,
         paddingEnd: trailing ? 0 : theme.spacing.sm,
       }}
     >
-      <View
-        style={{
-          width: 44,
-          height: 44,
-          borderRadius: 22,
-          backgroundColor: tint.bg,
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        {/* Tipped 45° so it reads as money going out (↗) or coming back (↙). */}
-        <Ionicons
-          name={icon}
-          size={iconSize.lg}
-          color={tint.ink}
-          style={{ transform: [{ rotate: '45deg' }] }}
-        />
-      </View>
-      <View style={{ flex: 1 }}>
-        {loading ? (
-          <Skeleton width={80} height={18} radius={6} />
-        ) : hidden ? (
-          <Text variant="subheading" style={{ fontWeight: '700' }}>
-            {BALANCE_MASK}
-          </Text>
-        ) : (
-          <MoneyText
-            amount={amount}
-            currency={currency as never}
-            locale={locale}
-            variant="subheading"
-            style={{ fontWeight: '700' }}
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            minimumFontScale={0.6}
-          />
-        )}
-        <Text variant="caption" numberOfLines={1}>
+      <Row style={{ alignItems: 'center', gap: 4 }}>
+        <Ionicons name={icon} size={iconSize.xs} color={color} />
+        <Text variant="caption" tone="muted" numberOfLines={1}>
           {label}
         </Text>
-        <Text variant="caption" tone="muted" numberOfLines={1}>
-          {detail}
+      </Row>
+      {loading ? (
+        <Skeleton width={80} height={18} radius={6} />
+      ) : hidden ? (
+        <Text variant="subheading" style={{ fontWeight: '700' }}>
+          {BALANCE_MASK}
         </Text>
-      </View>
-    </Row>
+      ) : (
+        <MoneyText
+          amount={amount}
+          currency={currency as never}
+          locale={locale}
+          variant="subheading"
+          style={{ fontWeight: '700' }}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.6}
+        />
+      )}
+      <Text variant="micro" tone="muted" numberOfLines={1}>
+        {detail}
+      </Text>
+    </View>
   );
 }
