@@ -778,8 +778,6 @@ function HeroIconButton({
             height: 10,
             borderRadius: 5,
             backgroundColor: '#FF3B5C',
-            borderWidth: 1.5,
-            borderColor: '#FFFFFF',
           }}
         />
       ) : null}
