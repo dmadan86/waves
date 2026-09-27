@@ -23,7 +23,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { BlurTargetView } from 'expo-blur';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Animated, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
@@ -36,6 +36,7 @@ import {
   personalBudgetProgress,
   resolveCategory,
   spendDelta,
+  worstOverBudget,
   type PersonalRecurring,
   type PersonalTxn,
 } from '@waves/core';
@@ -76,8 +77,9 @@ import { useAuth } from '@/lib/auth';
 import { usePersonalGate } from '@/lib/lock';
 import { router } from '@/lib/navigation';
 import { useHeroScene } from '@/lib/heroScenePreference';
+import { HERO_THEMES } from '@/lib/scene';
 import { useSync } from '@/sync';
-import { fill, useStrings } from '@/i18n';
+import { fill, plural, useStrings } from '@/i18n';
 
 // The first run's saturated wash, deep enough to hold white ink on every corner.
 const SAVED_WASH = ['#1E5A8C', '#0C2E4A'] as const;
@@ -139,6 +141,8 @@ function MeLedger() {
   // The hero wears the scene for the time of day, or the one picked on the
   // Background screen.
   const scene = useHeroScene();
+  // How far the page has scrolled, for the status bar's strip (below).
+  const scrollY = useState(() => new Animated.Value(0))[0];
   const [gearOpen, setGearOpen] = useState(false);
   // The scene runs up under the status bar, so the clock goes white while this
   // tab is in front.
@@ -197,6 +201,18 @@ function MeLedger() {
   );
   const budgetProgress = overallBudget
     ? personalBudgetProgress(overallBudget, ledger.txns, month)
+    : null;
+  // With no overall cap, the category budgets still have something to say: how
+  // many there are, and the one that has run furthest past its cap.
+  const categoryBudgetCount = ledger.budgets.filter((budget) => budget.category !== null).length;
+  const worstOver = worstOverBudget(ledger.budgets, ledger.txns, month, dc);
+  const worstOverLine = worstOver
+    ? fill(t.personal.dash.overBy, {
+        name: worstOver.budget.category
+          ? (catLabel(worstOver.budget.category) ?? t.categories.other)
+          : t.personal.overall,
+        amount: fmt(worstOver.over),
+      })
     : null;
 
   // Where the month's money went — the four biggest categories, each with its
@@ -257,7 +273,8 @@ function MeLedger() {
 
   const canBrowse = maxBack > 0;
   const monthItems: OverflowMenuItem[] = Array.from(
-    { length: Math.min(maxBack, 11) + 1 },
+    // Every month back to the first one with an entry; the menu scrolls.
+    { length: maxBack + 1 },
     (_, back) => ({
       icon: back === monthsBack ? 'checkmark' : 'calendar-outline',
       label: monthLabel(shiftMonth(currentMonth, -back), locale),
@@ -267,10 +284,14 @@ function MeLedger() {
 
   return (
     <Screen edges={[]}>
-      <ScrollView
+      <Animated.ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingBottom: clearance }}
         showsVerticalScrollIndicator={false}
+        scrollEventThrottle={16}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
+          useNativeDriver: true,
+        })}
       >
         {/* The scene, from under the status bar down to the lower part of the
             month tiles, where it fades into the page. Wrapped as the glass
@@ -412,6 +433,9 @@ function MeLedger() {
 
           <BudgetCard
             progress={budgetProgress}
+            categoryCount={categoryBudgetCount}
+            worstOverLine={worstOverLine}
+            locale={locale}
             fmt={fmt}
             t={t}
             onPress={() => router.push('/personal/budgets')}
@@ -555,7 +579,26 @@ function MeLedger() {
 
           <PrivateNote />
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
+      {/* The status bar stays light over this tab (the scene is under it at
+          rest), so once the scene has scrolled away a strip of its own sky fades
+          in behind the clock — white icons never sit on the pale page. */}
+      <Animated.View
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: insets.top,
+          backgroundColor: HERO_THEMES[scene].sky[0],
+          opacity: scrollY.interpolate({
+            inputRange: [0, Math.max(1, tilesTop - insets.top)],
+            outputRange: [0, 1],
+            extrapolate: 'clamp',
+          }),
+        }}
+      />
       <OverflowMenu
         visible={monthMenuOpen}
         onClose={() => setMonthMenuOpen(false)}
@@ -858,11 +901,19 @@ function SectionCard({
  *  a bar. With no cap set, an invitation to set one. */
 function BudgetCard({
   progress,
+  categoryCount,
+  worstOverLine,
+  locale,
   fmt,
   t,
   onPress,
 }: {
   progress: { spent: bigint; limit: bigint; ratio: number } | null;
+  /** Budgets on single categories — spoken for when there is no overall cap. */
+  categoryCount: number;
+  /** "Food: ₹2,000 over" for the category furthest past its cap, or null. */
+  worstOverLine: string | null;
+  locale: string;
   fmt: (amount: bigint) => string;
   t: ReturnType<typeof useStrings>['t'];
   onPress: () => void;
@@ -876,7 +927,9 @@ function BudgetCard({
       accessibilityLabel={
         progress
           ? `${t.personal.dash.monthlyBudget}. ${fmt(progress.spent)} ${fill(t.personal.dash.budgetOf, { limit: fmt(progress.limit) })}. ${percent}% ${t.personal.dash.spentShort}`
-          : t.personal.dash.setBudget
+          : categoryCount > 0
+            ? `${t.personal.dash.monthlyBudget}. ${plural(locale, categoryCount, t.personal.dash.categoryBudgets)}. ${worstOverLine ?? t.personal.dash.allWithin}`
+            : t.personal.dash.setBudget
       }
       onPress={onPress}
       style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
@@ -946,6 +999,23 @@ function BudgetCard({
               </Text>
             </View>
           </Row>
+        ) : categoryCount > 0 ? (
+          // No overall cap, but category budgets: say how many, and whether any
+          // has run over — the one thing on this card worth acting on.
+          <View style={{ gap: 2 }}>
+            <Text variant="body" style={{ fontWeight: '700' }}>
+              {plural(locale, categoryCount, t.personal.dash.categoryBudgets)}
+            </Text>
+            <Text
+              variant="caption"
+              style={{
+                color: worstOverLine ? theme.color.negative : theme.color.positive,
+                fontWeight: '600',
+              }}
+            >
+              {worstOverLine ?? t.personal.dash.allWithin}
+            </Text>
+          </View>
         ) : (
           <View style={{ gap: 2 }}>
             <Text variant="body" tone="brand" style={{ fontWeight: '700' }}>

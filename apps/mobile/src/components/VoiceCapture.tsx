@@ -76,10 +76,6 @@ const STALL_MS = 8000;
 const MAX_LISTEN_MS = 9500;
 const HARD_STOP_MS = 1800;
 
-/** How long after the mic opens a push-to-talk release still counts as a tap
- *  when nothing has been heard — too soon for a sentence to have been said. */
-const TAP_GRACE_MS = 1200;
-
 /** How soon after our own stop an audio error is taken as that stop's echo. */
 const STOP_ECHO_MS = 1500;
 
@@ -876,13 +872,6 @@ export function VoiceCapture({
         if (pendingEnd.current !== null) {
           const ending = pendingEnd.current;
           pendingEnd.current = null;
-          // A "send" that landed before the mic was even open cannot have
-          // carried a word: the finger lifted while the screen was still
-          // arriving, which is a tap that ran a little long, not a finished
-          // hold. Stopping here closed the recogniser a few milliseconds after
-          // opening it — Android answers that with an audio error, read out as
-          // "the microphone is busy". So it is dropped, and the mic keeps
-          // listening, which is what a tap has always done.
           if (ending === 'cancel') {
             clearStall();
             clearMaxListen();
@@ -892,6 +881,7 @@ export function VoiceCapture({
             speechMic.release(session);
             return;
           }
+          speechMic.stop(session);
         }
 
         // No transcript yet; if none arrives by PROGRESS_MS this engine is not
@@ -1027,9 +1017,6 @@ export function VoiceCapture({
       clearMaxListen();
       clearProgress();
       speechMic.release(session);
-    } else if (!gotResult.current && Date.now() - openedAt.current < TAP_GRACE_MS) {
-      // Open, but only just, and nothing heard yet: the same long tap as above.
-      // Keep listening rather than close a session nobody has spoken into.
     } else {
       stop();
     }
@@ -1318,9 +1305,10 @@ export function VoiceCapture({
  *  glyph for what it is about. Read-only — the mic is the way in.
  *
  *  The sentences are drawn fresh each time the screen opens, fitted to the
- *  phone's country and to the reader's own groups (`lib/voiceExamples`); the
- *  draw is held for the life of the panel so the card does not reshuffle while
- *  somebody is reading it, even as the group list finishes loading. */
+ *  phone's country and to the reader's own groups (`lib/voiceExamples`). The
+ *  seed is held for the life of the panel, so the place and the names stay put
+ *  while somebody reads them; when the group list finishes loading, only the
+ *  group line changes, to one of their real groups. */
 function TrySaying({
   t,
   theme,

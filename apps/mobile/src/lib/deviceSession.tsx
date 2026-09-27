@@ -39,6 +39,7 @@ import { deviceIdentity } from '@/lib/device';
 import { useAuth } from '@/lib/auth';
 import { backend } from '@/lib/backend';
 import { DEVICE_LIMIT_ART, DEVICE_LIMIT_ART_RATIO } from '@/lib/deviceLimitArt';
+import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
 
 /** How stale a registration may get before a foreground refreshes it. */
 const HEARTBEAT_MS = 60 * 60 * 1000;
@@ -210,9 +211,9 @@ function DeviceLimitGate({
   const { t } = useStrings();
   const [busy, setBusy] = useState(false);
   const dark = theme.scheme === 'dark';
-  const ink = dark ? theme.color.text : INK;
-  const muted = dark ? theme.color.textMuted : MUTED;
-  const accent = dark ? theme.color.brand : ACCENT;
+  const ink = dark ? theme.color.text : SPEC_INK;
+  const muted = dark ? theme.color.textMuted : SPEC_MUTED;
+  const accent = dark ? theme.color.brand : SPEC_ACCENT;
   const soft = dark ? theme.color.brandSoft : '#F3F1FF';
 
   return (
@@ -380,11 +381,6 @@ function DeviceLimitGate({
     </Popup>
   );
 }
-
-/** The spec's violet and text colours, light theme. */
-const ACCENT = '#6845E8';
-const INK = '#15152F';
-const MUTED = '#69708A';
 
 /** How far the white body arches up over the illustration's foot. */
 const ARCH = 22;

@@ -1017,7 +1017,9 @@ export interface UiStrings {
     prompt: string;
     example: string;
     /** "Try saying…" and three things to say, under the mic. The blanks are
-     *  filled per country and from the reader's own groups (`lib/voiceExamples`). */
+     *  filled per country and from the reader's own groups (`lib/voiceExamples`).
+     *  The sentences stay English in every language: speech is recognised in
+     *  English and the parser's "split with" / "just for me" are English. */
     trySaying: string;
     /** {amount} of groceries filed to {group}. */
     tryGroup: string;
@@ -3651,6 +3653,10 @@ export interface UiStrings {
       spentShort: string;
       setBudget: string;
       setBudgetHint: string;
+      /** No overall cap, but category budgets: how many, and the worst one over. */
+      categoryBudgets: { one: string; other: string };
+      overBy: string;
+      allWithin: string;
       topCategories: string;
       viewAll: string;
       recentExpenses: string;
@@ -6761,6 +6767,9 @@ const en: UiStrings = {
       spentShort: 'spent',
       setBudget: 'Set a monthly budget',
       setBudgetHint: 'See how much of the month is left to spend',
+      categoryBudgets: { one: '{n} category budget', other: '{n} category budgets' },
+      overBy: '{name}: {amount} over',
+      allWithin: 'All within budget',
       topCategories: 'Top categories',
       viewAll: 'View all',
       recentExpenses: 'Recent expenses',
@@ -7676,10 +7685,10 @@ const ta: UiStrings = {
     prompt: 'நீங்கள் என்ன செலவழித்தீர்கள் என்று சொல்',
     example: 'உ.தா. “கோவா டிரிப்பில் 500 சேர்”',
     trySaying: 'இப்படிச் சொல்லிப் பாருங்கள்…',
-    tryGroup: '“{group}-இல் மளிகை {amount}”',
-    trySplit: '“{a}, {b} உடன் இரவு உணவு {amount}”',
-    tryJustMe: '“காபி {amount}, எனக்கு மட்டும்”',
-    tripName: '{place} டிரிப்',
+    tryGroup: '“Groceries {amount} to {group}”',
+    trySplit: '“Dinner {amount} split with {a} and {b}”',
+    tryJustMe: '“Coffee {amount}, just for me”',
+    tripName: '{place} trip',
     tapToSpeak: 'பேச தட்டு',
     noAmount: 'தொகை புரியவில்லை',
     missedNothing: 'புரியவில்லை',
@@ -9985,6 +9994,9 @@ const ta: UiStrings = {
       spentShort: 'செலவு',
       setBudget: 'மாத பட்ஜெட் அமைக்கவும்',
       setBudgetHint: 'மாதத்தில் இன்னும் எவ்வளவு செலவிடலாம் எனப் பாருங்கள்',
+      categoryBudgets: { one: '{n} வகை பட்ஜெட்', other: '{n} வகை பட்ஜெட்கள்' },
+      overBy: '{name}: {amount} அதிகம்',
+      allWithin: 'அனைத்தும் பட்ஜெட்டுக்குள்',
       topCategories: 'முதன்மை வகைகள்',
       viewAll: 'அனைத்தும்',
       recentExpenses: 'சமீபத்திய செலவுகள்',
@@ -10881,10 +10893,10 @@ const hi: UiStrings = {
     prompt: 'बताएँ आपने क्या खर्च किया',
     example: 'जैसे “गोवा ट्रिप में 500 जोड़ें”',
     trySaying: 'ऐसे बोलकर देखें…',
-    tryGroup: '“{group} में किराना {amount}”',
-    trySplit: '“{a} और {b} के साथ डिनर {amount}”',
-    tryJustMe: '“कॉफ़ी {amount}, सिर्फ़ मेरे लिए”',
-    tripName: '{place} ट्रिप',
+    tryGroup: '“Groceries {amount} to {group}”',
+    trySplit: '“Dinner {amount} split with {a} and {b}”',
+    tryJustMe: '“Coffee {amount}, just for me”',
+    tripName: '{place} trip',
     tapToSpeak: 'बोलने के लिए टैप करें',
     noAmount: 'रकम समझ नहीं आई',
     missedNothing: 'समझ नहीं आया',
@@ -13082,6 +13094,9 @@ const hi: UiStrings = {
       spentShort: 'खर्च',
       setBudget: 'मासिक बजट तय करें',
       setBudgetHint: 'देखें कि महीने में कितना खर्च बाकी है',
+      categoryBudgets: { one: '{n} श्रेणी बजट', other: '{n} श्रेणी बजट' },
+      overBy: '{name}: {amount} ज़्यादा',
+      allWithin: 'सब बजट के भीतर',
       topCategories: 'शीर्ष श्रेणियाँ',
       viewAll: 'सभी देखें',
       recentExpenses: 'हाल के खर्च',
@@ -14036,10 +14051,10 @@ const ar: UiStrings = {
     prompt: 'قل ماذا أنفقت',
     example: 'مثل: «أضف 500 إلى رحلة جوا»',
     trySaying: 'جرّب أن تقول…',
-    tryGroup: '«بقالة {amount} إلى {group}»',
-    trySplit: '«عشاء {amount} مع {a} و{b}»',
-    tryJustMe: '«قهوة {amount}، لي فقط»',
-    tripName: 'رحلة {place}',
+    tryGroup: '“Groceries {amount} to {group}”',
+    trySplit: '“Dinner {amount} split with {a} and {b}”',
+    tryJustMe: '“Coffee {amount}, just for me”',
+    tripName: '{place} trip',
     tapToSpeak: 'انقر للتحدث',
     noAmount: 'لم أفهم المبلغ',
     missedNothing: 'لم أفهم ذلك',
@@ -16644,6 +16659,9 @@ const ar: UiStrings = {
       spentShort: 'مُنفَق',
       setBudget: 'حدّد ميزانية شهرية',
       setBudgetHint: 'اعرف كم تبقّى لك لتنفقه هذا الشهر',
+      categoryBudgets: { one: 'ميزانية فئة واحدة', other: '{n} ميزانيات فئات' },
+      overBy: '{name}: تجاوز بـ{amount}',
+      allWithin: 'الكل ضمن الميزانية',
       topCategories: 'أعلى الفئات',
       viewAll: 'عرض الكل',
       recentExpenses: 'أحدث المصروفات',

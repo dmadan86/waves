@@ -33,8 +33,8 @@ import { Scene } from '@/lib/scene';
 const ORDER: readonly Scene[] = [
   Scene.Morning,
   Scene.Afternoon,
-  Scene.Evening,
   Scene.Sunset,
+  Scene.Evening,
   Scene.Night,
   Scene.Winter,
 ];
@@ -98,7 +98,9 @@ export default function SceneSettingsScreen() {
                   // A picker row, not a door: choosing is idempotent and every
                   // tap should land.
                   repeatable
-                  accessibilityLabel={`${row.title}${chosen ? ', selected' : ''}`}
+                  accessibilityLabel={row.title}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: chosen }}
                   leading={
                     row.value ? (
                       <Image

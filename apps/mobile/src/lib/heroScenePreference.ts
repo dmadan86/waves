@@ -17,6 +17,9 @@ import { parseScene, SCENE_OVERRIDE, sceneFor, type Scene } from '@/lib/scene';
 const KEY = 'waves.hero_scene';
 
 let preference: Scene | null = null;
+// Set once the person picks on this run: the stored answer, still being read,
+// must not then land on top of the choice they have just made.
+let pickedThisRun = false;
 const listeners = new Set<() => void>();
 
 // Read once at start-up; until it lands the heroes follow the clock, which is
@@ -24,7 +27,7 @@ const listeners = new Set<() => void>();
 void AsyncStorage.getItem(KEY)
   .then((stored) => {
     const parsed = parseScene(stored ?? undefined);
-    if (parsed && parsed !== preference) {
+    if (!pickedThisRun && parsed && parsed !== preference) {
       preference = parsed;
       listeners.forEach((listener) => listener());
     }
@@ -46,6 +49,7 @@ export function useHeroScenePreference(): {
 }
 
 export function setHeroScenePreference(next: Scene | null): void {
+  pickedThisRun = true;
   preference = next;
   listeners.forEach((listener) => listener());
   const write = next ? AsyncStorage.setItem(KEY, next) : AsyncStorage.removeItem(KEY);

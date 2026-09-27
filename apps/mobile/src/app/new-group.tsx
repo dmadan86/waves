@@ -50,6 +50,7 @@ import { useCaptures, useCreateGroup, useGroup, useGroups } from '@/data/hooks';
 import { useKnownContacts } from '@/data/knownContacts';
 import { suggestPeople } from '@/lib/addFromAnotherGroup';
 import { shortPersonNames } from '@/lib/shortPersonName';
+import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
 import { assignCaptureHref } from '@/lib/captureAssign';
 import { useAuth, useViewerId } from '@/lib/auth';
 import { useDefaultCurrency } from '@/lib/currency';
@@ -1082,12 +1083,12 @@ type Theme = ReturnType<typeof useTheme>;
 
 /** The spec's violet, for the lit tile, the Add contacts outline and the
  *  accents; the theme's own brand on dark, where the light violet is too dim. */
-const ACCENT = '#6845E8';
+const ACCENT = SPEC_ACCENT;
 const accent = (theme: Theme): string => (theme.scheme === 'dark' ? theme.color.brand : ACCENT);
 
 /** The spec's text colours for this screen, light theme; dark keeps the theme's. */
-const INK = '#15152F';
-const MUTED = '#69708A';
+const INK = SPEC_INK;
+const MUTED = SPEC_MUTED;
 const ink = (theme: Theme): string => (theme.scheme === 'dark' ? theme.color.text : INK);
 const muted = (theme: Theme): string => (theme.scheme === 'dark' ? theme.color.textMuted : MUTED);
 

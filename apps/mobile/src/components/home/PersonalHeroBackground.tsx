@@ -1,6 +1,6 @@
 /**
  * The Personal hero's background: one place — mountains over a lake, pines in
- * front — photographed at six moments (morning, afternoon, evening, sunset,
+ * front — photographed at six moments (morning, afternoon, sunset, evening,
  * night, winter). The composition is the same in every one, so a change of
  * scene reads as the same view changing with the day or the season.
  *
@@ -21,8 +21,8 @@ import { HERO_THEMES, Scene } from '@/lib/scene';
 export const SCENE_PHOTOS: Readonly<Record<Scene, number>> = {
   [Scene.Morning]: require('../../../assets/images/scenes/morning.webp') as number,
   [Scene.Afternoon]: require('../../../assets/images/scenes/afternoon.webp') as number,
-  [Scene.Evening]: require('../../../assets/images/scenes/evening.webp') as number,
   [Scene.Sunset]: require('../../../assets/images/scenes/sunset.webp') as number,
+  [Scene.Evening]: require('../../../assets/images/scenes/evening.webp') as number,
   [Scene.Night]: require('../../../assets/images/scenes/night.webp') as number,
   [Scene.Winter]: require('../../../assets/images/scenes/winter.webp') as number,
 };

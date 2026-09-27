@@ -193,10 +193,15 @@ export function voiceExamples(
   const pick = <T>(items: readonly T[]): T => items[Math.floor(random() * items.length)]!;
   const groups = groupNames.map((name) => name.trim()).filter(Boolean);
   const [groceries, dinner, coffee] = flavour.amounts;
+  // The place and the names are drawn first and the group last, so the same
+  // draw gives the same place and names whether or not the groups have loaded
+  // yet: when they arrive, only the group line changes.
+  const place = pick(flavour.places);
+  const names = pick(flavour.names);
   return {
     group: groups.length > 0 ? pick(groups) : null,
-    place: pick(flavour.places),
-    names: pick(flavour.names),
+    place,
+    names,
     groceries: grouped(groceries),
     dinner: grouped(dinner),
     coffee: grouped(coffee),

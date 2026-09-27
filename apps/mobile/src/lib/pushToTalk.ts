@@ -32,7 +32,12 @@
  * "finish now" that early has nothing to finish. Both say: treat it as the tap
  * it looks like and let the screen listen the way it always has.
  */
-export const MIN_HOLD_MS = 250;
+// Half a second, not a quarter: the bar's mic opens the voice screen the moment
+// the finger lands, so an ordinary tap is still down while the screen arrives,
+// and a quarter-second tap was read as a finished hold — its lift stopped the
+// recogniser the instant it opened, which Android reports as a busy microphone.
+// Nothing can be said in under half a second, so nothing is lost as a tap.
+export const MIN_HOLD_MS = 500;
 
 /** How a hold ended, once it is over. */
 export type PushToTalkEnd = 'send' | 'cancel';
