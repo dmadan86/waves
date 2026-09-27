@@ -3,7 +3,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Animated, Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Animated, Image, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 
 import { dayNumber, type GuestGate } from '@waves/core';
 import {
@@ -11,7 +12,6 @@ import {
   Button,
   directionalIcon,
   EmptyState,
-  Gradient,
   iconSize,
   MoneyText,
   Popup,
@@ -47,6 +47,7 @@ import { ImportProgressBanner } from '@/components/ImportProgressBanner';
 import { SkeletonList } from '@/components/Skeletons';
 import { useImportedGroupId } from '@/lib/importProgress';
 import { useReducedMotion } from '@/lib/reducedMotion';
+import { SCENE_SKY, Scene, sceneFor } from '@/lib/scene';
 import { THEME_HIDDEN } from '@/lib/theme';
 import { useDefaultCurrency } from '@/lib/currency';
 import { QuickAddSheet, useQuickAddActions } from '@/components/QuickAddSheet';
@@ -331,6 +332,15 @@ export default function HomeScreen() {
   // in render) so the "New" window is stable across this screen's renders and
   // the React Compiler stays happy — a bare Date.now() in render trips its lint.
   const [nowMs] = useState(() => Date.now());
+  // Which landscape the hero wears, re-read every few minutes so an app left
+  // open across sunset turns with the sky. The scroll offset fades the status
+  // bar's strip in as the scene scrolls away.
+  const [scene, setScene] = useState(() => sceneFor(new Date()));
+  useEffect(() => {
+    const timer = setInterval(() => setScene(sceneFor(new Date())), 5 * 60 * 1000);
+    return () => clearInterval(timer);
+  }, []);
+  const [scrollY] = useState(() => new Animated.Value(0));
 
   // The bell's red dot: somebody else has done something since Activity was
   // last opened. Your own expenses are not news.
@@ -369,15 +379,32 @@ export default function HomeScreen() {
 
   return (
     <Screen edges={[]}>
-      {/* The status bar's own strip of the wash, fixed, so the clock and the
-          battery stay white-on-colour once the hero has scrolled away. */}
-      <Gradient
-        colors={HERO_WASH}
-        radius={0}
-        style={{ position: 'absolute', top: 0, left: 0, right: 0, height: insets.top, zIndex: 2 }}
+      {/* The status bar's own strip, in the scene's sky, fading in as the hero
+          scrolls away under it — so the clock and the battery keep a ground of
+          their own, and at rest the picture runs right up under them. */}
+      <Animated.View
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: insets.top,
+          zIndex: 2,
+          backgroundColor: SCENE_SKY[scene],
+          opacity: scrollY.interpolate({
+            inputRange: [0, 120],
+            outputRange: [0, 1],
+            extrapolate: 'clamp',
+          }),
+        }}
       />
 
-      <ScrollView
+      <Animated.ScrollView
+        scrollEventThrottle={16}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
+          useNativeDriver: true,
+        })}
         contentContainerStyle={{
           paddingBottom: clearance,
           // Fill the viewport so the no-groups empty state can centre itself in
@@ -393,20 +420,36 @@ export default function HomeScreen() {
           />
         }
       >
-        {/* The hero: a violet wash, edge to edge and up under the status bar,
-            carrying the greeting. The balance card below rides up over its
-            bottom edge, so the wash leaves room for it. */}
-        <Gradient
-          colors={HERO_WASH}
-          radius={0}
+        {/* The hero: a landscape for the time of day — a bright lake in the
+            morning and afternoon, the sun going down, dusk, the moon, snow in
+            winter — edge to edge and up under the status bar, carrying the
+            greeting. A shade across its top keeps the white words readable on
+            the brightest skies. The balance card rides up over its bottom
+            edge, so the scene leaves room for it. */}
+        <View
           style={{
             paddingTop: insets.top + theme.spacing.md,
             paddingHorizontal: theme.spacing.lg,
             paddingBottom: HERO_OVERLAP + theme.spacing.xl,
             borderBottomLeftRadius: theme.radius.xxl,
             borderBottomRightRadius: theme.radius.xxl,
+            overflow: 'hidden',
+            backgroundColor: SCENE_SKY[scene],
           }}
         >
+          <Image
+            source={SCENE_ART[scene]}
+            resizeMode="cover"
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            style={StyleSheet.absoluteFill}
+          />
+          <LinearGradient
+            pointerEvents="none"
+            colors={['rgba(12, 14, 40, 0.38)', 'rgba(12, 14, 40, 0.08)', 'rgba(12, 14, 40, 0)']}
+            locations={[0, 0.6, 1]}
+            style={StyleSheet.absoluteFill}
+          />
           {/* Face, "Hi, {name} 👋" over the time of day; then the glyphs that
               lead somewhere: sync, activity, the menu. */}
           <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
@@ -443,7 +486,7 @@ export default function HomeScreen() {
               onPress={() => setMenuOpen(true)}
             />
           </Row>
-        </Gradient>
+        </View>
 
         {/* The body on the lavender canvas. A list gutter (`lg`, 16pt), the
             phone margin iOS and Android both default to. */}
@@ -614,7 +657,7 @@ export default function HomeScreen() {
             </View>
           )}
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
 
       <OverflowMenu visible={menuOpen} onClose={() => setMenuOpen(false)} items={menuItems} />
       <SettlePickerSheet
@@ -1099,6 +1142,16 @@ const HERO_WASH = ['#4F55E8', '#6A5AEC', '#8469F0'] as const;
 
 /** How far the balance card rides up over the bottom of the hero. */
 const HERO_OVERLAP = 56;
+
+/** The hero's six landscapes (see `lib/scene`). */
+const SCENE_ART: Readonly<Record<Scene, number>> = {
+  [Scene.Morning]: require('../../../assets/images/scenes/morning.webp') as number,
+  [Scene.Afternoon]: require('../../../assets/images/scenes/afternoon.webp') as number,
+  [Scene.Sunset]: require('../../../assets/images/scenes/sunset.webp') as number,
+  [Scene.Evening]: require('../../../assets/images/scenes/evening.webp') as number,
+  [Scene.Night]: require('../../../assets/images/scenes/night.webp') as number,
+  [Scene.Winter]: require('../../../assets/images/scenes/winter.webp') as number,
+};
 
 /**
  * One group as a clean list row — an emoji chip, the name over its member count
