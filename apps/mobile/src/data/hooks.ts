@@ -113,7 +113,7 @@ import { sanitizeCommentMarkdown } from '@waves/core';
 import type { VoiceAccess } from '@/lib/voiceAccess';
 import { activityTime } from '@/lib/groupActivityOrder';
 import { previousMonthPrefix } from '@/lib/homeDashboard';
-import { recentActivity, type RecentActivityRow } from './recentActivity';
+import { newestActivityFromOthers, recentActivity, type RecentActivityRow } from './recentActivity';
 import { groupLabel, isGhost, isViewer, SettlementStatus } from './types';
 import { timeOfDay, type TimelineEntry } from '@/lib/timeline';
 import type {
@@ -945,6 +945,12 @@ export function useRecentActivity(
     () => (enabled ? recentActivity(mirror, myProfileId) : NO_ACTIVITY),
     [mirror, myProfileId, enabled],
   );
+}
+
+/** When somebody else last did something in any group, in ms (0: never). */
+export function useNewestActivityFromOthers(myProfileId: string | null): number {
+  const { mirror } = useSync();
+  return useMemo(() => newestActivityFromOthers(mirror, myProfileId), [mirror, myProfileId]);
 }
 
 /** How much a destination (group, or a person's 1:1 group) has been used. */

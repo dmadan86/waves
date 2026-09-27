@@ -138,6 +138,36 @@ export function recentActivity(
 }
 
 /**
+ * When somebody *else* last did something the reader can see, in ms — 0 when
+ * nothing has happened. Drives the red dot on the dashboard's bell: a thing you
+ * did yourself is not news. One pass over the log with no sort and no join, so
+ * it is cheap enough to run on the dashboard as the mirror moves. Rows from a
+ * deleted group are skipped, the same as the feed skips them.
+ */
+export function newestActivityFromOthers(mirror: MirrorState, myProfileId: string | null): number {
+  const deleted = new Set<string>();
+  for (const row of rowsFor(mirror, SyncTable.Groups)) {
+    const g = row as unknown as { id: string; deleted_at: string | null };
+    if (g.deleted_at) deleted.add(g.id);
+  }
+  const mine = new Set<string>();
+  if (myProfileId) {
+    for (const row of rowsFor(mirror, SyncTable.GroupMembers)) {
+      const m = row as unknown as { id: MemberId; profile_id: string | null };
+      if (isViewer(m, myProfileId)) mine.add(m.id);
+    }
+  }
+  let newest = 0;
+  for (const row of rowsFor(mirror, SyncTable.ActivityLog) as unknown as ActivityRow[]) {
+    if (deleted.has(row.group_id)) continue;
+    if (row.actor_member_id && mine.has(row.actor_member_id)) continue;
+    const at = Date.parse(String(row.created_at));
+    if (at > newest) newest = at;
+  }
+  return newest;
+}
+
+/**
  * The reader's stake in the expense an activity row is about, or null when the
  * row is not about an expense they are on. A settled/confirmed row is left
  * null on purpose: a settlement moves money one way and the balance the other,

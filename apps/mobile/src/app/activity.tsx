@@ -1,6 +1,6 @@
-import { memo, useMemo, useState } from 'react';
+import { memo, useCallback, useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { type Href, useLocalSearchParams } from 'expo-router';
+import { type Href, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Pressable, RefreshControl, View } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 
@@ -37,6 +37,7 @@ import { useBlockedUsers } from '@/data/blocked';
 import { ActivityDateFilter, type DateRange } from '@/components/ActivityDateFilter';
 import { FeedSkeleton } from '@/components/Skeletons';
 import { useTransitionSettled } from '@/lib/useTransitionSettled';
+import { markActivitySeen } from '@/lib/activitySeen';
 import { useGroups, useRecentActivity, type RecentActivityRow } from '@/data/hooks';
 import { useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
@@ -252,6 +253,18 @@ export default function ActivityScreen() {
   // Opened from a group's hero, the feed is that group's alone.
   const params = useLocalSearchParams<{ group?: string }>();
   const onlyGroup = typeof params.group === 'string' && params.group ? params.group : null;
+  // Looking at the whole feed reads everything in it, so the dashboard bell's
+  // dot goes out — up to the newest row here or now, whichever is later, so a
+  // server clock a little ahead of the phone's cannot leave it lit. Re-marked
+  // as rows arrive while the screen is open. One group's slice of the feed
+  // (opened from a group's hero) is not the whole of it, so it leaves the dot.
+  useFocusEffect(
+    useCallback(() => {
+      if (onlyGroup) return;
+      const newest = feed[0] ? Date.parse(String(feed[0].created_at)) || 0 : 0;
+      markActivitySeen(Math.max(Date.now(), newest));
+    }, [feed, onlyGroup]),
+  );
   const allEntries = useMemo(
     () => (onlyGroup ? feed.filter((entry) => entry.group_id === onlyGroup) : feed),
     [feed, onlyGroup],

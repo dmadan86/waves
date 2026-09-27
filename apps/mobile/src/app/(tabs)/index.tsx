@@ -25,7 +25,14 @@ import {
   useTheme,
 } from '@waves/ui';
 
-import { useCaptures, useGroups, useHomeSummary, usePinnedGroupIds } from '@/data/hooks';
+import {
+  useCaptures,
+  useGroups,
+  useHomeSummary,
+  useNewestActivityFromOthers,
+  usePinnedGroupIds,
+} from '@/data/hooks';
+import { hasUnseenActivity, useActivitySeenAt } from '@/lib/activitySeen';
 import { orderByActivity } from '@/lib/groupActivityOrder';
 import { orderByPin } from '@/lib/groupPinOrder';
 import { plural, useStrings, type UiStrings } from '@/i18n';
@@ -327,6 +334,12 @@ export default function HomeScreen() {
   // the React Compiler stays happy — a bare Date.now() in render trips its lint.
   const [nowMs] = useState(() => Date.now());
 
+  // The bell's red dot: somebody else has done something since Activity was
+  // last opened. Your own expenses are not news.
+  const newestFromOthers = useNewestActivityFromOthers(viewerId);
+  const activitySeenAt = useActivitySeenAt();
+  const unseenActivity = hasUnseenActivity(newestFromOthers, activitySeenAt);
+
   // Settle up from Home asks which group first; these are the ones with money
   // outstanding either way, largest first.
   const [settleOpen, setSettleOpen] = useState(false);
@@ -444,8 +457,9 @@ export default function HomeScreen() {
             <SyncStatusIcon onBrand />
             <HeroIconButton
               icon="notifications-outline"
-              label={t.activity}
+              label={unseenActivity ? `${t.activity}, ${t.tagNew}` : t.activity}
               onPress={() => router.navigate('/activity')}
+              dot={unseenActivity}
             />
             <HeroIconButton
               icon="ellipsis-vertical"
@@ -732,10 +746,13 @@ function HeroIconButton({
   label,
   onPress,
   family = 'ionicons',
+  dot = false,
 }: {
   icon: string;
   label: string;
   onPress: () => void;
+  /** A red dot at the glyph's shoulder: something new behind it. */
+  dot?: boolean;
   /** Which glyph set `icon` names — Ionicons by default, Material for the ones
    *  Ionicons lacks (the two-people-plus "group add"). */
   family?: 'ionicons' | 'material';
@@ -751,6 +768,21 @@ function HeroIconButton({
       style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1, padding: theme.spacing.xs })}
     >
       <Glyph name={icon as never} size={iconSize.xxl} color={theme.color.onBrand} />
+      {dot ? (
+        <View
+          style={{
+            position: 'absolute',
+            top: theme.spacing.xs,
+            end: theme.spacing.xs,
+            width: 10,
+            height: 10,
+            borderRadius: 5,
+            backgroundColor: '#FF3B5C',
+            borderWidth: 1.5,
+            borderColor: '#FFFFFF',
+          }}
+        />
+      ) : null}
     </Pressable>
   );
 }
