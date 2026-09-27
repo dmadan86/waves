@@ -184,12 +184,12 @@ const ActivityFeedRow = memo(function ActivityFeedRow({
       style={({ pressed }) => ({
         flexDirection: 'row',
         alignItems: 'center',
-        gap: theme.spacing.md,
-        paddingVertical: theme.spacing.md,
-        paddingStart: theme.spacing.md,
-        paddingEnd: theme.spacing.xs,
-        marginBottom: theme.spacing.sm,
-        borderRadius: theme.radius.lg,
+        gap: theme.spacing.sm,
+        paddingVertical: theme.spacing.sm,
+        paddingStart: theme.spacing.sm,
+        paddingEnd: 2,
+        marginBottom: 6,
+        borderRadius: 14,
         borderWidth: 1,
         borderColor: theme.color.border,
         backgroundColor: theme.color.surface,
@@ -198,26 +198,32 @@ const ActivityFeedRow = memo(function ActivityFeedRow({
     >
       <View
         style={{
-          width: 46,
-          height: 46,
-          borderRadius: 14,
+          width: 38,
+          height: 38,
+          borderRadius: 11,
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: tint.bg,
         }}
       >
-        <Ionicons name={view.icon} size={iconSize.lg} color={tint.ink} />
+        <Ionicons name={view.icon} size={iconSize.md} color={tint.ink} />
       </View>
-      <View style={{ flex: 1, gap: 2 }}>
-        <Text variant="body" numberOfLines={1} style={{ fontWeight: '600' }}>
+      <View style={{ flex: 1, gap: 1 }}>
+        <Text
+          numberOfLines={1}
+          style={{ fontSize: 15, lineHeight: 20, fontWeight: '600', color: theme.color.text }}
+        >
           {view.headline}
         </Text>
         {/* Who · which group · when. The group is named by its mark when it has
             one — the feed spans groups, and the mark is the quickest tell. An
             archived group, or one no longer on this device, gets a badge. */}
         <Row style={{ gap: theme.spacing.xs, alignItems: 'center', flexWrap: 'wrap' }}>
-          <Text variant="caption" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
-            {[view.who, view.groupShort, view.timestamp].filter(Boolean).join('  ·  ')}
+          <Text
+            numberOfLines={1}
+            style={{ flexShrink: 1, fontSize: 12, lineHeight: 16, color: theme.color.textMuted }}
+          >
+            {[view.who, view.groupShort, view.timestamp].filter(Boolean).join(' · ')}
           </Text>
           {view.archived ? (
             <Badge label={t.misc.archivedGroup} tone="neutral" />
@@ -238,9 +244,9 @@ const ActivityFeedRow = memo(function ActivityFeedRow({
         accessibilityLabel={t.activityScreen.more}
         onPress={() => onMenu(view)}
         hitSlop={8}
-        style={({ pressed }) => ({ padding: theme.spacing.xs, opacity: pressed ? 0.5 : 1 })}
+        style={({ pressed }) => ({ padding: 4, opacity: pressed ? 0.5 : 1 })}
       >
-        <Ionicons name="ellipsis-vertical" size={iconSize.md} color={theme.color.textMuted} />
+        <Ionicons name="ellipsis-vertical" size={iconSize.sm} color={theme.color.textFaint} />
       </Pressable>
     </Pressable>
   );
@@ -274,7 +280,7 @@ function SplitMoney({
   const whole = cut > 0 ? text.slice(0, cut) : text;
   const minor = cut > 0 ? text.slice(cut) : '';
   return (
-    <Text variant="subheading" numberOfLines={1} style={{ color, fontWeight: '700' }}>
+    <Text numberOfLines={1} style={{ color, fontSize: 15, lineHeight: 20, fontWeight: '700' }}>
       {whole}
       {minor ? <Text style={{ color, fontWeight: '500', opacity: 0.6 }}>{minor}</Text> : null}
     </Text>
@@ -442,10 +448,8 @@ export default function ActivityScreen() {
   ];
 
   const header = (
-    <View style={{ gap: theme.spacing.md }}>
-      <Row
-        style={{ paddingTop: theme.spacing.md, alignItems: 'flex-start', gap: theme.spacing.sm }}
-      >
+    <View style={{ gap: theme.spacing.sm }}>
+      <Row style={{ paddingTop: theme.spacing.sm, alignItems: 'center', gap: theme.spacing.sm }}>
         {/* Activity is pushed, so it carries its own way back — mirrored with
             the writing direction, the same as `groups.tsx`'s header. */}
         <IconButton label={t.common.back} onPress={() => router.back()}>
@@ -457,9 +461,9 @@ export default function ActivityScreen() {
         </IconButton>
         <View style={{ flex: 1 }}>
           <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-            <Ionicons name="notifications" size={26} color={theme.color.brand} />
+            <Ionicons name="notifications" size={22} color={theme.color.brand} />
             <Text
-              style={{ fontSize: 30, lineHeight: 36, fontWeight: '800', color: theme.color.text }}
+              style={{ fontSize: 24, lineHeight: 30, fontWeight: '800', color: theme.color.text }}
             >
               {t.activity}
             </Text>
@@ -479,9 +483,9 @@ export default function ActivityScreen() {
             accessibilityLabel={t.activityFilter.open}
             onPress={() => setFilterOpen(true)}
             style={({ pressed }) => ({
-              width: 46,
-              height: 46,
-              borderRadius: 14,
+              width: 40,
+              height: 40,
+              borderRadius: 12,
               alignItems: 'center',
               justifyContent: 'center',
               backgroundColor: range ? theme.color.brandSoft : theme.color.surface,
@@ -518,9 +522,9 @@ export default function ActivityScreen() {
               style={({ pressed }) => ({
                 flexDirection: 'row',
                 alignItems: 'center',
-                gap: theme.spacing.sm,
-                height: 40,
-                paddingHorizontal: option.icon ? theme.spacing.lg : theme.spacing.xl,
+                gap: 6,
+                height: 34,
+                paddingHorizontal: option.icon ? theme.spacing.md : theme.spacing.lg,
                 borderRadius: theme.radius.pill,
                 backgroundColor: active
                   ? theme.color.brand
@@ -530,8 +534,8 @@ export default function ActivityScreen() {
                 opacity: pressed ? 0.7 : 1,
               })}
             >
-              {option.icon ? <Ionicons name={option.icon} size={iconSize.md} color={ink} /> : null}
-              <Text variant="body" style={{ color: ink, fontWeight: active ? '700' : '500' }}>
+              {option.icon ? <Ionicons name={option.icon} size={iconSize.sm} color={ink} /> : null}
+              <Text style={{ fontSize: 14, color: ink, fontWeight: active ? '700' : '500' }}>
                 {option.label}
               </Text>
             </Pressable>
@@ -729,7 +733,7 @@ export default function ActivityScreen() {
       <View style={{ flex: 1 }}>
         {/* The nav header is a fixed sibling above the feed, so only the rows
             scroll under it. Padded to line up with the feed rows below. */}
-        <View style={{ paddingHorizontal: theme.spacing.xl }}>{header}</View>
+        <View style={{ paddingHorizontal: theme.spacing.lg }}>{header}</View>
         <FlashList
           data={listData}
           // The row text is locale-formatted and the row's colours come from the
@@ -744,7 +748,7 @@ export default function ActivityScreen() {
           // recycling into blank rows (default 250px clears in a frame).
           drawDistance={1500}
           contentContainerStyle={{
-            paddingHorizontal: theme.spacing.xl,
+            paddingHorizontal: theme.spacing.lg,
             paddingBottom: clearance,
           }}
           showsVerticalScrollIndicator={false}
@@ -766,8 +770,8 @@ export default function ActivityScreen() {
                   fontWeight: '600',
                   // First heading `lg` under the header, later days a section
                   // (`xl`) apart, and each heading `sm` above its rows.
-                  marginTop: index === 0 ? theme.spacing.lg : theme.spacing.xl,
-                  marginBottom: theme.spacing.sm,
+                  marginTop: index === 0 ? theme.spacing.md : theme.spacing.lg,
+                  marginBottom: 6,
                 }}
               >
                 {dayHeading(locale, item.date)}
