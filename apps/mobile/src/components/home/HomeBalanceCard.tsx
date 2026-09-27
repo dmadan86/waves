@@ -4,9 +4,8 @@
  *
  *   Total you owe                    [Overall ▾] (chart)
  *   ₹1,13,689.50
- *   ↑ You lent                  |  ↓ You owe
+ *   ↑ You lent                  |  ↓ You owe        (only when both have money)
  *   ₹42,350.00                  |  ₹1,56,039.50
- *   Across 4 groups             |  Across 6 groups
  *
  * The quick actions ride along its foot as a strip (`footer`).
  *
@@ -87,6 +86,12 @@ export function HomeBalanceCard({
         : t.homeDash.totalOwe;
   const figure = month ? monthSpent : net < 0n ? -net : net;
   const change = month ? percentChange(monthSpent, lastMonthSpent) : null;
+  // The two sides earn a row only when money runs both ways. Running one way,
+  // the side that has money *is* the headline — "Total you are owed ₹82,185"
+  // over "You lent ₹82,185" said the same number twice — so a single line
+  // says where it comes from instead.
+  const bothWays = owed > 0n && owing > 0n;
+  const oneWayGroups = owed > 0n ? owedGroups : owingGroups;
 
   return (
     <View
@@ -94,7 +99,7 @@ export function HomeBalanceCard({
         backgroundColor: theme.color.surface,
         borderRadius: theme.radius.xl,
         paddingTop: theme.spacing.md,
-        gap: theme.spacing.md,
+        gap: theme.spacing.sm,
         shadowColor: '#3B2A8C',
         shadowOpacity: 0.12,
         shadowRadius: 18,
@@ -146,6 +151,11 @@ export function HomeBalanceCard({
               minimumFontScale={0.6}
             />
           )}
+          {!month && !bothWays && oneWayGroups > 0 ? (
+            <Text variant="caption" tone="muted" numberOfLines={1}>
+              {plural(locale, oneWayGroups, t.homeDash.acrossGroups)}
+            </Text>
+          ) : null}
           {change !== null && !hidden ? (
             <Text variant="caption" tone="muted">
               <Text
@@ -170,8 +180,8 @@ export function HomeBalanceCard({
             flexDirection: 'row',
             alignItems: 'center',
             gap: 4,
-            paddingHorizontal: theme.spacing.md,
-            paddingVertical: theme.spacing.sm,
+            paddingHorizontal: theme.spacing.sm,
+            paddingVertical: theme.spacing.xs,
             borderRadius: theme.radius.pill,
             borderWidth: 1,
             borderColor: theme.color.border,
@@ -189,61 +199,59 @@ export function HomeBalanceCard({
           onPress={onReports}
           hitSlop={6}
           style={({ pressed }) => ({
-            width: 40,
-            height: 40,
-            borderRadius: 20,
+            width: 32,
+            height: 32,
+            borderRadius: 16,
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: theme.color.brandSoft,
             opacity: pressed ? 0.6 : 1,
           })}
         >
-          <Ionicons name="stats-chart" size={iconSize.md} color={theme.color.brand} />
+          <Ionicons name="stats-chart" size={iconSize.sm} color={theme.color.brand} />
         </Pressable>
       </Row>
 
-      <Row style={{ alignItems: 'center', paddingHorizontal: theme.spacing.lg }}>
-        <Side
-          icon="arrow-up"
-          color={theme.color.positive}
-          amount={owed}
-          label={t.homeDash.youLent}
-          detail={plural(locale, owedGroups, t.homeDash.acrossGroups)}
-          currency={currency}
-          locale={locale}
-          hidden={hidden}
-          loading={loading}
-        />
-        <View style={{ width: 1, alignSelf: 'stretch', backgroundColor: theme.color.border }} />
-        <Side
-          icon="arrow-down"
-          color={theme.color.negative}
-          amount={owing}
-          label={t.homeDash.youOwe}
-          detail={plural(locale, owingGroups, t.homeDash.acrossGroups)}
-          currency={currency}
-          locale={locale}
-          hidden={hidden}
-          loading={loading}
-          trailing
-        />
-      </Row>
+      {bothWays ? (
+        <Row style={{ alignItems: 'center', paddingHorizontal: theme.spacing.lg }}>
+          <Side
+            icon="arrow-up"
+            color={theme.color.positive}
+            amount={owed}
+            label={t.homeDash.youLent}
+            currency={currency}
+            locale={locale}
+            hidden={hidden}
+            loading={loading}
+          />
+          <View style={{ width: 1, alignSelf: 'stretch', backgroundColor: theme.color.border }} />
+          <Side
+            icon="arrow-down"
+            color={theme.color.negative}
+            amount={owing}
+            label={t.homeDash.youOwe}
+            currency={currency}
+            locale={locale}
+            hidden={hidden}
+            loading={loading}
+            trailing
+          />
+        </Row>
+      ) : null}
       {footer ?? <View style={{ height: theme.spacing.xs }} />}
     </View>
   );
 }
 
-const AMOUNT_STYLE = { fontSize: 30, lineHeight: 36, fontWeight: '800' } as const;
+const AMOUNT_STYLE = { fontSize: 28, lineHeight: 34, fontWeight: '800' } as const;
 
-/** One side of the balance: a small arrow beside what it is — the Me tab's
- *  figure shape, so it costs a line rather than a disc — then the figure and how
- *  many groups it comes from. */
+/** One side of the balance, in two short lines: a small arrow beside what it
+ *  is — the Me tab's figure shape — then the figure. */
 function Side({
   icon,
   color,
   amount,
   label,
-  detail,
   currency,
   locale,
   hidden,
@@ -254,7 +262,6 @@ function Side({
   color: string;
   amount: bigint;
   label: string;
-  detail: string;
   currency: string;
   locale: string;
   hidden: boolean;
@@ -267,7 +274,6 @@ function Side({
     <View
       style={{
         flex: 1,
-        gap: 2,
         paddingStart: trailing ? theme.spacing.lg : 0,
         paddingEnd: trailing ? 0 : theme.spacing.sm,
       }}
@@ -281,7 +287,7 @@ function Side({
       {loading ? (
         <Skeleton width={80} height={18} radius={6} />
       ) : hidden ? (
-        <Text variant="subheading" style={{ fontWeight: '700' }}>
+        <Text variant="body" style={{ fontWeight: '700' }}>
           {BALANCE_MASK}
         </Text>
       ) : (
@@ -289,16 +295,13 @@ function Side({
           amount={amount}
           currency={currency as never}
           locale={locale}
-          variant="subheading"
+          variant="body"
           style={{ fontWeight: '700' }}
           numberOfLines={1}
           adjustsFontSizeToFit
           minimumFontScale={0.6}
         />
       )}
-      <Text variant="micro" tone="muted" numberOfLines={1}>
-        {detail}
-      </Text>
     </View>
   );
 }
