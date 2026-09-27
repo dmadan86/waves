@@ -1497,6 +1497,7 @@ export interface UiStrings {
   };
   /** Create a new group: header line, field labels and examples, row subtitles. */
   newGroupForm: {
+    title: string;
     headerSub: string;
     nameExample: string;
     whatFor: string;
@@ -4878,6 +4879,7 @@ const en: UiStrings = {
     noneForFilter: 'Nothing here for this filter yet.',
   },
   newGroupForm: {
+    title: 'Create a new group',
     headerSub: 'Start a group and share expenses',
     nameExample: 'e.g. Bali Trip',
     whatFor: 'What is this group for?',
@@ -7946,6 +7948,7 @@ const ta: UiStrings = {
     noneForFilter: 'இந்த வடிகட்டிக்கு இன்னும் எதுவும் இல்லை.',
   },
   newGroupForm: {
+    title: 'புதிய குழுவை உருவாக்கு',
     headerSub: 'ஒரு குழுவைத் தொடங்கி செலவுகளைப் பகிருங்கள்',
     nameExample: 'எ.கா. கோவா பயணம்',
     whatFor: 'இந்தக் குழு எதற்காக?',
@@ -11086,6 +11089,7 @@ const hi: UiStrings = {
     noneForFilter: 'इस फ़िल्टर में अभी कुछ नहीं है।',
   },
   newGroupForm: {
+    title: 'नया समूह बनाएँ',
     headerSub: 'समूह बनाएँ और खर्च बाँटें',
     nameExample: 'जैसे गोवा ट्रिप',
     whatFor: 'यह समूह किसलिए है?',
@@ -14208,6 +14212,7 @@ const ar: UiStrings = {
     noneForFilter: 'لا شيء هنا لهذا الفلتر بعد.',
   },
   newGroupForm: {
+    title: 'إنشاء مجموعة جديدة',
     headerSub: 'ابدأ مجموعة وتقاسم المصروفات',
     nameExample: 'مثال: رحلة بالي',
     whatFor: 'ما الغرض من هذه المجموعة؟',

@@ -2,9 +2,9 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { randomUUID } from 'expo-crypto';
 import { useLocalSearchParams } from 'expo-router';
-import { Image } from 'expo-image';
 import {
   ActivityIndicator,
+  Image,
   Pressable,
   ScrollView,
   TextInput,
@@ -540,7 +540,7 @@ export default function NewGroupScreen() {
         showsVerticalScrollIndicator={false}
       >
         <NewGroupHeader
-          title={cloning ? t.clone.duplicateTitle : t.misc.createGroup}
+          title={cloning ? t.clone.duplicateTitle : t.newGroupForm.title}
           subtitle={t.newGroupForm.headerSub}
         />
 
@@ -676,10 +676,13 @@ export default function NewGroupScreen() {
                 onPress={() => setShowGhostNote((open) => !open)}
                 style={{ flex: 1 }}
               >
-                <Text style={{ fontSize: 19, lineHeight: 24, fontWeight: '600' }}>
+                <Text numberOfLines={1} style={{ fontSize: 18, lineHeight: 23, fontWeight: '600' }}>
                   {t.extras.addPeopleByName}
                 </Text>
-                <Text style={{ fontSize: 14, lineHeight: 19, color: theme.color.textMuted }}>
+                <Text
+                  numberOfLines={2}
+                  style={{ fontSize: 13, lineHeight: 17, color: theme.color.textMuted }}
+                >
                   {t.newGroupForm.addFriendsSub}
                 </Text>
               </Pressable>
@@ -691,18 +694,21 @@ export default function NewGroupScreen() {
                 style={({ pressed }) => ({
                   flexDirection: 'row',
                   alignItems: 'center',
-                  gap: 6,
-                  height: 44,
-                  paddingHorizontal: theme.spacing.md,
-                  borderRadius: 22,
+                  gap: 4,
+                  height: 38,
+                  paddingHorizontal: 12,
+                  borderRadius: 19,
                   borderWidth: 1.5,
                   borderColor: accent(theme),
                   backgroundColor: theme.scheme === 'dark' ? 'transparent' : '#F8F6FF',
                   opacity: pressed ? 0.6 : 1,
                 })}
               >
-                <Ionicons name="person-add-outline" size={18} color={accent(theme)} />
-                <Text style={{ fontSize: 15, fontWeight: '600', color: accent(theme) }}>
+                <Ionicons name="person-add-outline" size={16} color={accent(theme)} />
+                <Text
+                  numberOfLines={1}
+                  style={{ fontSize: 14, fontWeight: '600', color: accent(theme) }}
+                >
                   {t.newGroupForm.addContacts}
                 </Text>
               </Pressable>
@@ -770,7 +776,11 @@ export default function NewGroupScreen() {
               nearest of the five. */}
           <FormCard style={{ gap: theme.spacing.md }}>
             <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
-              <Ionicons name="airplane" size={28} color={accent(theme)} />
+              <Ionicons
+                name="airplane"
+                size={28}
+                color={theme.scheme === 'dark' ? theme.color.text : '#1E2A6E'}
+              />
               <View style={{ flex: 1 }}>
                 <Text style={{ fontSize: 19, lineHeight: 24, fontWeight: '600' }}>
                   {t.newGroupForm.groupType}
@@ -1039,8 +1049,7 @@ function NewGroupHeader({ title, subtitle }: { title: string; subtitle: string }
         source={HEADER_ART}
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
-        pointerEvents="none"
-        contentFit="contain"
+        resizeMode="contain"
         style={{
           position: 'absolute',
           end: 0,
@@ -1063,13 +1072,15 @@ function NewGroupHeader({ title, subtitle }: { title: string; subtitle: string }
         {title}
       </Text>
       <Text
-        numberOfLines={2}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.8}
         style={{
           fontSize: 16,
           lineHeight: 22,
           fontWeight: '500',
           color: theme.color.textMuted,
-          maxWidth: '64%',
+          maxWidth: '75%',
         }}
       >
         {subtitle}
