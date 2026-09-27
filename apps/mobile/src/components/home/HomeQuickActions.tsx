@@ -1,6 +1,6 @@
 /**
- * The four things you start from Home — add an expense, the reports, settle
- * up, start a group — as a strip along the foot of the balance card rather than
+ * The four things you start from Home — add an expense, start a group, settle
+ * up, the reports — as a strip along the foot of the balance card rather than
  * a row of tiles of their own: a small disc over a one-line word in each
  * quarter, so the actions cost the card a band instead of the screen a block.
  *
@@ -63,10 +63,11 @@ export function HomeQuickActions({
       primary: true,
     },
     {
-      key: 'reports',
-      label: t.homeDash.reports,
-      glyph: (color) => <Ionicons name="stats-chart" size={16} color={color} />,
-      onPress: onReports,
+      key: 'group',
+      label: t.homeDash.newGroup,
+      glyph: (color) => <GroupAddIcon size={13} color={color} />,
+      onPress: onNewGroup,
+      tourId: 'addGroup',
     },
     {
       key: 'settle',
@@ -75,11 +76,10 @@ export function HomeQuickActions({
       onPress: onSettleUp,
     },
     {
-      key: 'group',
-      label: t.homeDash.newGroup,
-      glyph: (color) => <GroupAddIcon size={13} color={color} />,
-      onPress: onNewGroup,
-      tourId: 'addGroup',
+      key: 'reports',
+      label: t.homeDash.reports,
+      glyph: (color) => <Ionicons name="stats-chart" size={16} color={color} />,
+      onPress: onReports,
     },
   ];
 
