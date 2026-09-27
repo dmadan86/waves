@@ -3,7 +3,14 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { randomUUID } from 'expo-crypto';
 import { useLocalSearchParams } from 'expo-router';
 import { Image } from 'expo-image';
-import { ActivityIndicator, Pressable, ScrollView, TextInput, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  TextInput,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
@@ -1014,6 +1021,8 @@ function NewGroupHeader({ title, subtitle }: { title: string; subtitle: string }
   const theme = useTheme();
   const { t } = useStrings();
   const insets = useSafeAreaInsets();
+  const { width: screenWidth } = useWindowDimensions();
+  const artWidth = Math.round(screenWidth * 0.86);
   const dark = theme.scheme === 'dark';
   return (
     <LinearWash
@@ -1036,8 +1045,10 @@ function NewGroupHeader({ title, subtitle }: { title: string; subtitle: string }
           position: 'absolute',
           end: 0,
           bottom: HEADER_OVERLAP - 8,
-          width: '86%',
-          aspectRatio: HEADER_ART_RATIO,
+          // Measured sizes, not a percentage and an aspect ratio: on Android an
+          // absolutely placed image sized that way lays out at zero height.
+          width: artWidth,
+          height: artWidth / HEADER_ART_RATIO,
         }}
       />
       <IconButton label={t.common.close} onPress={() => router.back()}>
