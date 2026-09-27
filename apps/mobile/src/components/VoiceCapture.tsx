@@ -412,6 +412,9 @@ export interface VoiceCaptureProps {
   onDone: (transcript: string) => void;
   /** Names to bias the recogniser towards — group and member names. */
   hints?: readonly string[];
+  /** The reader's own group names, for the "Try saying…" card's group example.
+   *  Separate from `hints`, which may carry any word worth biasing towards. */
+  groupNames?: readonly string[];
   /**
    * The last utterance was heard but carried no amount — the screen parsed it
    * and came back empty. The panel shows a calm "didn't catch an amount" recovery
@@ -519,6 +522,7 @@ async function englishInstalledOnDevice(): Promise<boolean> {
 export function VoiceCapture({
   onDone,
   hints,
+  groupNames = [],
   missed,
   onListen,
   autoStart = true,
@@ -610,6 +614,13 @@ export function VoiceCapture({
   // When this panel last asked the recogniser to stop — so an audio error that
   // is only the echo of that stop is not reported as a busy microphone.
   const stoppedAt = useRef(0);
+  // Every stop this panel asks for goes through here — the stop button, a
+  // push-to-talk release, the hard listening cap — so each one is stamped, and
+  // an audio error that is only its echo is recognised whichever it was.
+  const stopListening = useCallback((): void => {
+    stoppedAt.current = Date.now();
+    speechMic.stop(session);
+  }, [session]);
   const earlyRetryUsed = useRef(false);
   const earlyRetryPending = useRef(false);
   const autoRetrying = useRef(false);
@@ -863,6 +874,7 @@ export function VoiceCapture({
         });
         speechMic.opened(session);
         openedAt.current = Date.now();
+        stoppedAt.current = 0;
         starting.current = false;
 
         // The finger lifted while this was still opening. Apply that ending now
@@ -881,7 +893,7 @@ export function VoiceCapture({
             speechMic.release(session);
             return;
           }
-          speechMic.stop(session);
+          stopListening();
         }
 
         // No transcript yet; if none arrives by PROGRESS_MS this engine is not
@@ -922,7 +934,7 @@ export function VoiceCapture({
         maxListen.current = setTimeout(() => {
           maxListen.current = null;
           if (!mounted.current || !speechMic.owns(session)) return;
-          speechMic.stop(session);
+          stopListening();
           setTimeout(() => {
             if (!mounted.current || !speechMic.owns(session)) return;
             setListening(false);
@@ -940,7 +952,19 @@ export function VoiceCapture({
         give();
       }
     },
-    [clearMaxListen, clearProgress, clearStall, hints, level, locale, onDone, onListen, session, t],
+    [
+      clearMaxListen,
+      clearProgress,
+      clearStall,
+      hints,
+      level,
+      locale,
+      onDone,
+      onListen,
+      session,
+      stopListening,
+      t,
+    ],
   );
 
   // Point the recursion handle at the current start on every change.
@@ -980,9 +1004,8 @@ export function VoiceCapture({
     // Ask the recogniser to finish, but keep the session: `stop()` (unlike
     // `abort()`) still delivers one last `result`, and giving the mic up here
     // would make the handler above drop the words spoken before the tap.
-    stoppedAt.current = Date.now();
-    speechMic.stop(session);
-  }, [session]);
+    stopListening();
+  }, [stopListening]);
 
   /**
    * The one act this screen offers: open the mic, or close it.
@@ -1239,7 +1262,7 @@ export function VoiceCapture({
           with, and "just for me" for the personal ledger. Gone once words are
           arriving, when the sentence forming in the headline is the thing to
           read. */}
-      {live ? null : <TrySaying t={t} theme={theme} groupNames={hints ?? []} />}
+      {live ? null : <TrySaying t={t} theme={theme} groupNames={groupNames} />}
 
       {error ? (
         <View style={{ alignItems: 'center', gap: theme.spacing.sm }}>

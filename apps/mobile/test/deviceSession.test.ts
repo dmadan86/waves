@@ -28,7 +28,9 @@ vi.mock('react-native', () => ({
   ActivityIndicator: 'ActivityIndicator',
   Image: 'Image',
   Pressable: 'Pressable',
+  ScrollView: 'ScrollView',
   View: 'View',
+  useWindowDimensions: () => ({ width: 390, height: 844 }),
   AppState: {
     addEventListener: (_: string, fn: (state: string) => void) => {
       world.appState = fn;
@@ -66,6 +68,7 @@ vi.mock('@/i18n', () => ({
         gateAllowed: '{limit} allowed',
         gateDetail: 'You are on {active}, the plan allows {limit}.',
         gateAction: 'Sign out other devices',
+        couldNotSignOut: 'Could not sign out',
       },
       common: { close: 'Close' },
     },
@@ -246,9 +249,12 @@ describe('the gate', () => {
     expect(action().props.disabled).toBe(false);
     expect(spinning()).toBe(false);
 
+    expect(textOf(rendered.result.current)).not.toContain('Could not sign out');
     onSignOutOthers.mockRejectedValueOnce(new Error('offline'));
     await expect((action().props.onPress as () => Promise<void>)()).resolves.toBeUndefined();
     expect(action().props.disabled).toBe(false);
+    // The failure is said on the gate, and the same button is the retry.
+    expect(textOf(rendered.result.current)).toContain('Could not sign out');
   });
 });
 

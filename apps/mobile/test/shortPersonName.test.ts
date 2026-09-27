@@ -44,4 +44,12 @@ describe('shortPersonNames', () => {
   it('leaves a lone first name as it is', () => {
     expect(shortPersonNames(['Priya', 'Arun Raj'])).toEqual(['Priya', 'Arun']);
   });
+
+  it('never leaves two different people reading the same', () => {
+    expect(shortPersonNames(['Priya Shah', 'Priya Sharma', 'Shah Patel'])).toEqual([
+      'Priya Shah',
+      'Sharma',
+      'Shah Patel',
+    ]);
+  });
 });

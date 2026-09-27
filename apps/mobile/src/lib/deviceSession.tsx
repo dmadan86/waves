@@ -28,7 +28,15 @@ import {
   type ReactNode,
 } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { ActivityIndicator, AppState, Image, Pressable, View } from 'react-native';
+import {
+  ActivityIndicator,
+  AppState,
+  Image,
+  Pressable,
+  ScrollView,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 
 import { type DeviceLimitStatus } from '@waves/core';
 import { directionalIcon, Popup, Text, useTheme } from '@waves/ui';
@@ -210,6 +218,10 @@ function DeviceLimitGate({
   const theme = useTheme();
   const { t } = useStrings();
   const [busy, setBusy] = useState(false);
+  // The last attempt to sign the others out failed: said on the gate, so the
+  // person knows to try again rather than wondering whether anything happened.
+  const [failed, setFailed] = useState(false);
+  const { height: windowHeight } = useWindowDimensions();
   const dark = theme.scheme === 'dark';
   const ink = dark ? theme.color.text : SPEC_INK;
   const muted = dark ? theme.color.textMuted : SPEC_MUTED;
@@ -225,162 +237,189 @@ function DeviceLimitGate({
       // moves inside, under it.
       style={{ padding: 0, overflow: 'hidden' }}
     >
-      <View style={{ backgroundColor: dark ? theme.color.surfaceMuted : '#F7F6FF' }}>
-        <DeviceLimitArt />
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t.common.close}
-          onPress={onDismiss}
-          hitSlop={6}
-          style={({ pressed }) => ({
-            position: 'absolute',
-            top: theme.spacing.md,
-            end: theme.spacing.md,
-            width: 44,
-            height: 44,
-            alignItems: 'center',
-            justifyContent: 'center',
-            opacity: pressed ? 0.5 : 1,
-          })}
-        >
-          <Ionicons name="close" size={28} color={ink} />
-        </Pressable>
-      </View>
-
-      {/* The white body rises over the illustration's foot in a soft arch. */}
-      <View
-        style={{
-          marginTop: -ARCH,
-          borderTopLeftRadius: ARCH * 2,
-          borderTopRightRadius: ARCH * 2,
-          backgroundColor: theme.color.surface,
-          paddingHorizontal: theme.spacing.xl,
-          paddingTop: theme.spacing.xl,
-          paddingBottom: theme.spacing.xl,
-          gap: theme.spacing.lg,
-        }}
+      {/* Scrolls when it has to — a short phone, or a large text size — so the
+          two ways out are always reachable; at rest it fits and does not. */}
+      <ScrollView
+        style={{ maxHeight: windowHeight - GATE_MARGIN }}
+        bounces={false}
+        showsVerticalScrollIndicator={false}
       >
-        <View style={{ gap: theme.spacing.sm }}>
-          <Text
-            style={{
-              fontSize: 22,
-              lineHeight: 28,
-              fontWeight: '800',
-              color: ink,
-              textAlign: 'center',
-            }}
+        <View style={{ backgroundColor: dark ? theme.color.surfaceMuted : '#F7F6FF' }}>
+          <DeviceLimitArt />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t.common.close}
+            onPress={onDismiss}
+            hitSlop={6}
+            style={({ pressed }) => ({
+              position: 'absolute',
+              top: theme.spacing.md,
+              end: theme.spacing.md,
+              width: 44,
+              height: 44,
+              alignItems: 'center',
+              justifyContent: 'center',
+              opacity: pressed ? 0.5 : 1,
+            })}
           >
-            {t.devices.gateTitle}
-          </Text>
-          <Text style={{ fontSize: 15, lineHeight: 22, color: muted, textAlign: 'center' }}>
-            {t.devices.gateBody}
-          </Text>
+            <Ionicons name="close" size={28} color={ink} />
+          </Pressable>
         </View>
 
-        {/* The number behind the dialog. Only when the status is actually in
+        {/* The white body rises over the illustration's foot in a soft arch. */}
+        <View
+          style={{
+            marginTop: -ARCH,
+            borderTopLeftRadius: ARCH * 2,
+            borderTopRightRadius: ARCH * 2,
+            backgroundColor: theme.color.surface,
+            paddingHorizontal: theme.spacing.xl,
+            paddingTop: theme.spacing.xl,
+            paddingBottom: theme.spacing.xl,
+            gap: theme.spacing.lg,
+          }}
+        >
+          <View style={{ gap: theme.spacing.sm }}>
+            <Text
+              style={{
+                fontSize: 22,
+                lineHeight: 28,
+                fontWeight: '800',
+                color: ink,
+                textAlign: 'center',
+              }}
+            >
+              {t.devices.gateTitle}
+            </Text>
+            <Text style={{ fontSize: 15, lineHeight: 22, color: muted, textAlign: 'center' }}>
+              {t.devices.gateBody}
+            </Text>
+          </View>
+
+          {/* The number behind the dialog. Only when the status is actually in
             hand — the gate can be raised from a cached answer, and an invented
             count is worse than none. */}
-        {status ? (
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: theme.spacing.md,
-              padding: theme.spacing.lg,
-              borderRadius: 20,
-              backgroundColor: soft,
-            }}
-          >
-            <DevicesGlyph accent={accent} />
+          {status ? (
             <View
               style={{
-                width: 1,
-                alignSelf: 'stretch',
-                backgroundColor: dark ? theme.color.border : '#DCD6FA',
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: theme.spacing.md,
+                padding: theme.spacing.lg,
+                borderRadius: 20,
+                backgroundColor: soft,
               }}
-            />
-            <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-              <Text style={{ fontSize: 17, lineHeight: 22, color: ink }}>
-                <Text style={{ fontSize: 17, fontWeight: '800', color: accent }}>
-                  {fill(t.devices.gateDevices, { active: status.activeCount })}
+            >
+              <DevicesGlyph accent={accent} />
+              <View
+                style={{
+                  width: 1,
+                  alignSelf: 'stretch',
+                  backgroundColor: dark ? theme.color.border : '#DCD6FA',
+                }}
+              />
+              <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+                <Text style={{ fontSize: 17, lineHeight: 22, color: ink }}>
+                  <Text style={{ fontSize: 17, fontWeight: '800', color: accent }}>
+                    {fill(t.devices.gateDevices, { active: status.activeCount })}
+                  </Text>
+                  {`  ·  ${fill(t.devices.gateAllowed, { limit: status.limit })}`}
                 </Text>
-                {`  ·  ${fill(t.devices.gateAllowed, { limit: status.limit })}`}
-              </Text>
-              <Text style={{ fontSize: 13, lineHeight: 18, color: muted }}>
-                {fill(t.devices.gateDetail, { active: status.activeCount, limit: status.limit })}
-              </Text>
+                <Text style={{ fontSize: 13, lineHeight: 18, color: muted }}>
+                  {fill(t.devices.gateDetail, { active: status.activeCount, limit: status.limit })}
+                </Text>
+              </View>
             </View>
-          </View>
-        ) : null}
+          ) : null}
 
-        <View style={{ gap: theme.spacing.md }}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t.devices.gateAction}
-            accessibilityState={{ disabled: busy, busy }}
-            disabled={busy}
-            onPress={async () => {
-              setBusy(true);
-              try {
-                await onSignOutOthers();
-              } catch {
-                // The failure is reported on the devices screen; here the gate
-                // simply stays up so the person can try again.
-              } finally {
-                setBusy(false);
-              }
-            }}
-            style={({ pressed }) => ({
-              height: 56,
-              borderRadius: 28,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: theme.spacing.sm,
-              backgroundColor: accent,
-              shadowColor: accent,
-              shadowOpacity: 0.3,
-              shadowRadius: 12,
-              shadowOffset: { width: 0, height: 6 },
-              elevation: 4,
-              opacity: busy ? 0.7 : pressed ? 0.85 : 1,
-            })}
-          >
-            <Text style={{ fontSize: 17, fontWeight: '700', color: '#FFFFFF' }}>
-              {t.devices.gateAction}
+          {failed ? (
+            <Text
+              accessibilityLiveRegion="polite"
+              style={{
+                fontSize: 14,
+                lineHeight: 19,
+                color: theme.color.negative,
+                textAlign: 'center',
+              }}
+            >
+              {t.devices.couldNotSignOut}
             </Text>
-            {/* The spinner takes the arrow's place: the button keeps its width
+          ) : null}
+
+          <View style={{ gap: theme.spacing.md }}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t.devices.gateAction}
+              accessibilityState={{ disabled: busy, busy }}
+              disabled={busy}
+              onPress={async () => {
+                setBusy(true);
+                setFailed(false);
+                try {
+                  await onSignOutOthers();
+                } catch {
+                  // Nothing was signed out: the gate stays up, says so, and the
+                  // same button is the retry.
+                  setFailed(true);
+                } finally {
+                  setBusy(false);
+                }
+              }}
+              style={({ pressed }) => ({
+                height: 56,
+                borderRadius: 28,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: theme.spacing.sm,
+                backgroundColor: accent,
+                shadowColor: accent,
+                shadowOpacity: 0.3,
+                shadowRadius: 12,
+                shadowOffset: { width: 0, height: 6 },
+                elevation: 4,
+                opacity: busy ? 0.7 : pressed ? 0.85 : 1,
+              })}
+            >
+              <Text style={{ fontSize: 17, fontWeight: '700', color: '#FFFFFF' }}>
+                {t.devices.gateAction}
+              </Text>
+              {/* The spinner takes the arrow's place: the button keeps its width
                 and its name while the sessions are revoked. */}
-            {busy ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : (
-              <Ionicons name={directionalIcon('arrow-forward')} size={20} color="#FFFFFF" />
-            )}
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t.devices.gateDismiss}
-            onPress={onDismiss}
-            style={({ pressed }) => ({
-              height: 52,
-              borderRadius: 26,
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderWidth: 1.5,
-              borderColor: dark ? theme.color.border : '#D9D3F7',
-              backgroundColor: dark ? 'transparent' : '#FAF9FF',
-              opacity: pressed ? 0.6 : 1,
-            })}
-          >
-            <Text style={{ fontSize: 16, fontWeight: '700', color: accent }}>
-              {t.devices.gateDismiss}
-            </Text>
-          </Pressable>
+              {busy ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Ionicons name={directionalIcon('arrow-forward')} size={20} color="#FFFFFF" />
+              )}
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t.devices.gateDismiss}
+              onPress={onDismiss}
+              style={({ pressed }) => ({
+                height: 52,
+                borderRadius: 26,
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderWidth: 1.5,
+                borderColor: dark ? theme.color.border : '#D9D3F7',
+                backgroundColor: dark ? 'transparent' : '#FAF9FF',
+                opacity: pressed ? 0.6 : 1,
+              })}
+            >
+              <Text style={{ fontSize: 16, fontWeight: '700', color: accent }}>
+                {t.devices.gateDismiss}
+              </Text>
+            </Pressable>
+          </View>
         </View>
-      </View>
+      </ScrollView>
     </Popup>
   );
 }
+
+/** Room kept around the gate on screen: the popup's own margin, top and bottom. */
+const GATE_MARGIN = 96;
 
 /** How far the white body arches up over the illustration's foot. */
 const ARCH = 22;

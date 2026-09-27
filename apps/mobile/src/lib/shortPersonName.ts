@@ -20,8 +20,8 @@ export function shortPersonName(raw: string): string {
  * share takes the initial of the next name ("Priya S.", "Priya N."). Where even
  * that repeats — contacts that all start with the same tag, ".Rvs Amirnath",
  * ".Rvs Arun" — the shared first word is not a name at all, so the second word
- * stands in for it ("Amirnath", "Arun"). Whatever still collides after that is
- * the same name twice, and is left as it is.
+ * stands in for it ("Amirnath", "Arun"). Anything still reading the same after
+ * that takes its first two names; only the same name twice is left as it is.
  */
 export function shortPersonNames(raws: readonly string[]): string[] {
   const words = raws.map((raw) =>
@@ -46,8 +46,18 @@ export function shortPersonNames(raws: readonly string[]): string[] {
     return firstRepeats(first) && next ? `${first} ${next.charAt(0).toUpperCase()}.` : first;
   });
   const initialRepeats = repeats(initialled);
-  return initialled.map((label, index) => {
+  const second = initialled.map((label, index) => {
     const next = words[index]?.[1];
     return initialRepeats(label) && next ? capital(next) : label;
+  });
+  // Last, against the finished row: a label that still reads the same for two
+  // different people ("Shah" for Priya Shah and for Shah Patel) takes its
+  // first two names, which is as much as the row has room for.
+  const finalRepeats = repeats(second);
+  return second.map((label, index) => {
+    const own = words[index] ?? [];
+    return finalRepeats(label) && own.length > 1
+      ? `${capital(own[0]!)} ${capital(own[1]!)}`
+      : label;
   });
 }

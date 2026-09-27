@@ -1663,6 +1663,7 @@ export default function VoiceScreen() {
               key={attempt}
               onDone={handleTranscript}
               hints={hints}
+              groupNames={hints}
               missed={noAmount}
               autoStart={!noAmount}
               endSignal={hold.ended}

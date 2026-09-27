@@ -100,7 +100,7 @@ export default function SceneSettingsScreen() {
                   repeatable
                   accessibilityLabel={row.title}
                   accessibilityRole="radio"
-                  accessibilityState={{ selected: chosen }}
+                  accessibilityState={{ checked: chosen, selected: chosen }}
                   leading={
                     row.value ? (
                       <Image

@@ -144,9 +144,6 @@ function MeLedger() {
   // How far the page has scrolled, for the status bar's strip (below).
   const scrollY = useState(() => new Animated.Value(0))[0];
   const [gearOpen, setGearOpen] = useState(false);
-  // The scene runs up under the status bar, so the clock goes white while this
-  // tab is in front.
-  useHeroStatusBar();
 
   // The hero's geometry, measured: the scene runs from the top of the screen
   // down to the lower part of the month tiles, its shade ending where they
@@ -284,6 +281,10 @@ function MeLedger() {
 
   return (
     <Screen edges={[]}>
+      {/* The scene runs up under the status bar, so the clock goes white — but
+          only here, where the scene is drawn: the lock shield and the first run
+          are plain pages, and keep the theme's own dark icons. */}
+      <HeroStatusBar />
       <Animated.ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingBottom: clearance }}
@@ -614,6 +615,13 @@ function MeLedger() {
       />
     </Screen>
   );
+}
+
+/** The light status bar the scenic hero needs, as a component so it applies
+ *  only while the dashboard (and so the scene) is the thing on screen. */
+function HeroStatusBar() {
+  useHeroStatusBar();
+  return null;
 }
 
 /** How far the month tiles ride up over the bottom of the hero. */

@@ -3654,7 +3654,7 @@ export interface UiStrings {
       setBudget: string;
       setBudgetHint: string;
       /** No overall cap, but category budgets: how many, and the worst one over. */
-      categoryBudgets: { one: string; other: string };
+      categoryBudgets: PluralForms;
       overBy: string;
       allWithin: string;
       topCategories: string;
@@ -16659,7 +16659,14 @@ const ar: UiStrings = {
       spentShort: 'مُنفَق',
       setBudget: 'حدّد ميزانية شهرية',
       setBudgetHint: 'اعرف كم تبقّى لك لتنفقه هذا الشهر',
-      categoryBudgets: { one: 'ميزانية فئة واحدة', other: '{n} ميزانيات فئات' },
+      categoryBudgets: {
+        zero: 'لا ميزانيات فئات',
+        one: 'ميزانية فئة واحدة',
+        two: 'ميزانيتا فئات',
+        few: '{n} ميزانيات فئات',
+        many: '{n} ميزانية فئات',
+        other: '{n} ميزانية فئات',
+      },
       overBy: '{name}: تجاوز بـ{amount}',
       allWithin: 'الكل ضمن الميزانية',
       topCategories: 'أعلى الفئات',
