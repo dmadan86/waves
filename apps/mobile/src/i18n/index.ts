@@ -1483,6 +1483,23 @@ export interface UiStrings {
     hideBalance: string;
     showBalance: string;
   };
+  /** Create a new group: header line, field labels and examples, row subtitles. */
+  newGroupForm: {
+    headerSub: string;
+    nameExample: string;
+    whatFor: string;
+    descriptionExample: string;
+    addFriendsSub: string;
+    addContacts: string;
+    personPlaceholder: string;
+    groupType: string;
+    groupTypeSub: string;
+    datesSub: string;
+    budgetSub: string;
+    ratesSub: string;
+    addCurrency: string;
+    simplifySub: string;
+  };
   /** The Save an expense screen's row subtitles, header line and receipt / location tiles. */
   captureForm: {
     headerSub: string;
@@ -4832,6 +4849,22 @@ const en: UiStrings = {
     hideBalance: 'Hide balance',
     showBalance: 'Show balance',
   },
+  newGroupForm: {
+    headerSub: 'Plan, split and stay on track together',
+    nameExample: 'e.g. Bali Trip',
+    whatFor: 'What is this group for?',
+    descriptionExample: 'e.g. Friends trip, Weekend getaway',
+    addFriendsSub: 'Add people to start sharing expenses',
+    addContacts: 'Add contacts',
+    personPlaceholder: 'Type a name to add',
+    groupType: 'Group type',
+    groupTypeSub: 'Choose what this group is for',
+    datesSub: 'Set your travel dates (optional)',
+    budgetSub: 'Set a budget for better tracking',
+    ratesSub: 'Currencies you will spend in',
+    addCurrency: 'Add a currency',
+    simplifySub: 'Automatically minimize the number of payments',
+  },
   captureForm: {
     headerSub: 'Record your spending in a few seconds',
     category: 'Category',
@@ -7867,6 +7900,22 @@ const ta: UiStrings = {
     evening: 'மாலை வணக்கம்',
     hideBalance: 'இருப்பை மறை',
     showBalance: 'இருப்பைக் காட்டு',
+  },
+  newGroupForm: {
+    headerSub: 'சேர்ந்து திட்டமிடுங்கள், பிரியுங்கள், கணக்கைச் சரியாக வையுங்கள்',
+    nameExample: 'எ.கா. கோவா பயணம்',
+    whatFor: 'இந்தக் குழு எதற்காக?',
+    descriptionExample: 'எ.கா. நண்பர்கள் பயணம், வார இறுதி சுற்றுலா',
+    addFriendsSub: 'செலவுகளைப் பகிர நபர்களைச் சேர்க்கவும்',
+    addContacts: 'தொடர்புகள்',
+    personPlaceholder: 'சேர்க்க ஒரு பெயரை உள்ளிடுங்கள்',
+    groupType: 'குழு வகை',
+    groupTypeSub: 'இந்தக் குழு எதற்கு என்று தேர்ந்தெடுங்கள்',
+    datesSub: 'பயணத் தேதிகள் (விருப்பம்)',
+    budgetSub: 'சிறந்த கண்காணிப்புக்கு ஒரு பட்ஜெட்',
+    ratesSub: 'நீங்கள் செலவிடும் நாணயங்கள்',
+    addCurrency: 'நாணயம் சேர்',
+    simplifySub: 'செலுத்துதல்களின் எண்ணிக்கையைத் தானாகக் குறைக்கும்',
   },
   captureForm: {
     headerSub: 'சில நொடிகளில் உங்கள் செலவைப் பதிவு செய்யுங்கள்',
@@ -10976,6 +11025,22 @@ const hi: UiStrings = {
     hideBalance: 'बैलेंस छिपाएँ',
     showBalance: 'बैलेंस दिखाएँ',
   },
+  newGroupForm: {
+    headerSub: 'साथ मिलकर योजना बनाएँ, बाँटें और हिसाब सही रखें',
+    nameExample: 'जैसे गोवा ट्रिप',
+    whatFor: 'यह समूह किसलिए है?',
+    descriptionExample: 'जैसे दोस्तों की ट्रिप, वीकेंड घूमना',
+    addFriendsSub: 'खर्च बाँटने के लिए लोगों को जोड़ें',
+    addContacts: 'संपर्क जोड़ें',
+    personPlaceholder: 'जोड़ने के लिए नाम लिखें',
+    groupType: 'समूह का प्रकार',
+    groupTypeSub: 'चुनें कि यह समूह किसलिए है',
+    datesSub: 'यात्रा की तारीखें (वैकल्पिक)',
+    budgetSub: 'बेहतर हिसाब के लिए बजट तय करें',
+    ratesSub: 'जिन मुद्राओं में खर्च करेंगे',
+    addCurrency: 'मुद्रा जोड़ें',
+    simplifySub: 'भुगतानों की संख्या अपने आप कम करता है',
+  },
   captureForm: {
     headerSub: 'कुछ ही सेकंड में अपना खर्च दर्ज करें',
     category: 'श्रेणी',
@@ -14065,6 +14130,22 @@ const ar: UiStrings = {
     evening: 'مساء الخير',
     hideBalance: 'إخفاء الرصيد',
     showBalance: 'إظهار الرصيد',
+  },
+  newGroupForm: {
+    headerSub: 'خطّطوا وقسّموا وابقوا على المسار معًا',
+    nameExample: 'مثال: رحلة بالي',
+    whatFor: 'ما الغرض من هذه المجموعة؟',
+    descriptionExample: 'مثال: رحلة أصدقاء، عطلة نهاية الأسبوع',
+    addFriendsSub: 'أضف أشخاصًا لبدء تقاسم المصروفات',
+    addContacts: 'إضافة جهات اتصال',
+    personPlaceholder: 'اكتب اسمًا لإضافته',
+    groupType: 'نوع المجموعة',
+    groupTypeSub: 'اختر الغرض من هذه المجموعة',
+    datesSub: 'حدّد تواريخ السفر (اختياري)',
+    budgetSub: 'حدّد ميزانية لتتبع أفضل',
+    ratesSub: 'العملات التي ستنفق بها',
+    addCurrency: 'إضافة عملة',
+    simplifySub: 'تقليل عدد الدفعات تلقائيًا',
   },
   captureForm: {
     headerSub: 'سجّل مصروفك في ثوانٍ',
