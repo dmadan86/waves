@@ -20,10 +20,12 @@ import {
   byNewest,
 } from '@waves/core';
 import {
-  Button,
   Callout,
   Card,
+  directionalIcon,
   Divider,
+  Gradient,
+  IconButton,
   iconSize,
   MoneyText,
   Row,
@@ -43,7 +45,6 @@ import { ZoomableImage } from '@/components/ZoomableImage';
 import { AmountHeader } from '@/components/expense/AmountHeader';
 import { COMMON_CURRENCIES } from '@/lib/currencyChoices';
 import { DescriptionField } from '@/components/expense/DescriptionField';
-import { ExpenseHeader } from '@/components/expense/ExpenseHeader';
 import { ChoiceRow, SheetOverlay } from '@/components/expense/SheetOverlay';
 import { DetailRow, DetailRows } from '@/components/DetailRows';
 import {
@@ -70,7 +71,7 @@ import { plural, useStrings, type UiStrings } from '@/i18n';
 import { assignCaptureHref, captureDraftFields } from '@/lib/captureAssign';
 import { planPersonalPlacement } from '@/lib/personalPlacement';
 import { dateFrom, isoDate, showDate } from '@/lib/expenseDay';
-import { captureReceipt, type PickedImage } from '@/lib/image';
+import { captureReceipt, pickReceiptImage, type PickedImage } from '@/lib/image';
 import { router } from '@/lib/navigation';
 import { recogniseReceipt } from '@/lib/ocr';
 import { uploadCapturePhoto } from '@/data/api';
@@ -383,7 +384,11 @@ export default function CaptureScreen() {
    * travel with the capture as `rawText`; there is no group here, so nothing is
    * sent to be parsed — the amount stays the user's to type.
    */
-  const addReceipt = async (opts?: { scanEntry?: boolean }): Promise<void> => {
+  const addReceipt = async (opts?: {
+    scanEntry?: boolean;
+    /** "Browse": an existing photo from the gallery rather than the camera. */
+    fromLibrary?: boolean;
+  }): Promise<void> => {
     setError(null);
 
     // The camera and the document scanner are native, and a native failure —
@@ -393,7 +398,7 @@ export default function CaptureScreen() {
     // types the amount, exactly as before this feature existed.
     let picked: PickedImage | null = null;
     try {
-      picked = await captureReceipt();
+      picked = opts?.fromLibrary ? await pickReceiptImage() : await captureReceipt();
     } catch {
       picked = null;
     }
@@ -594,30 +599,37 @@ export default function CaptureScreen() {
 
   return (
     <Screen edges={['top']}>
-      <View style={{ paddingHorizontal: theme.spacing.xl }}>
-        <ExpenseHeader title={isEditing ? t.captures.editTitle : t.captures.newTitle} />
-      </View>
+      <CaptureHeader
+        title={isEditing ? t.captures.editTitle : t.captures.newTitle}
+        subtitle={isEditing ? undefined : t.captureForm.headerSub}
+      />
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
-          paddingHorizontal: theme.spacing.xl,
+          paddingHorizontal: theme.spacing.lg,
           paddingTop: theme.spacing.lg,
           paddingBottom: theme.spacing.xl,
-          gap: theme.spacing.xl,
+          gap: theme.spacing.lg,
         }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {/* Amount-forward hero: the number is the point of this screen, so it
-            leads — big and centred, with the currency it is counted in a tap
-            below it (the Splitwise/PayPal amount-first pattern). Shared with
-            add-expense. */}
-        <AmountHeader
-          currency={currency}
-          amount={amount}
-          onAmountChange={setAmount}
-          onPressCurrency={() => setPickingCurrency(true)}
-        />
+        {/* Amount-forward: the number is the point of this screen, so it leads,
+            on a card of its own with the currency beside it (the
+            Splitwise/PayPal amount-first pattern). Shared with add-expense;
+            `soft` is this screen's brand-tinted steppers, chips and flag. */}
+        <Card style={{ gap: 0 }}>
+          <Text variant="body" tone="muted">
+            {t.captures.amount}
+          </Text>
+          <AmountHeader
+            currency={currency}
+            amount={amount}
+            onAmountChange={setAmount}
+            onPressCurrency={() => setPickingCurrency(true)}
+            soft
+          />
+        </Card>
 
         {/* The bill, right under the amount — the order add-expense reads a bill
             in, and for the same reason: scanning one fills in the amount above
@@ -630,22 +642,58 @@ export default function CaptureScreen() {
             Simpler than add-expense's pair of buttons on purpose: this capture
             has no group yet, so there is no metered `scanReceipt` edge function
             to call and no per-group receipt cap to draw around it — only the
-            on-device camera and OCR (A5), which is `addReceipt` below. Nor is
-            there a gallery to attach an existing photo from; a capture is
-            usually filed at the till, camera in hand, not from an old
-            screenshot. */}
-        <Card style={{ gap: theme.spacing.md }}>
-          <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text variant="subheading">{t.captures.receipt}</Text>
-            <Button
-              label={t.captures.addReceipt}
-              variant="secondary"
-              size="sm"
+            on-device camera and OCR (A5), which is `addReceipt` below. The whole
+            dashed tile opens the camera — a capture is usually filed at the
+            till, camera in hand — and Browse takes one from the gallery. */}
+        <View
+          style={{
+            gap: theme.spacing.md,
+            padding: theme.spacing.md,
+            borderRadius: theme.radius.lg,
+            borderWidth: 1.5,
+            borderStyle: 'dashed',
+            borderColor: theme.scheme === 'dark' ? theme.color.border : '#CFC7F5',
+            backgroundColor: theme.color.surface,
+          }}
+        >
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t.captures.addReceipt}
+            disabled={scanning || saving}
+            onPress={() => void addReceipt()}
+            style={({ pressed }) => ({
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: theme.spacing.md,
+              opacity: pressed ? 0.7 : 1,
+            })}
+          >
+            <ReceiptArt />
+            <View style={{ flex: 1 }}>
+              <Text variant="subheading">{t.captures.addReceipt}</Text>
+              <Text variant="caption" tone="muted" numberOfLines={2}>
+                {t.captureForm.receiptSub}
+              </Text>
+            </View>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t.captureForm.browse}
               disabled={scanning || saving}
-              onPress={() => void addReceipt()}
-              icon={<Ionicons name="camera-outline" size={iconSize.md} color={theme.color.brand} />}
-            />
-          </Row>
+              onPress={() => void addReceipt({ fromLibrary: true })}
+              hitSlop={6}
+              style={({ pressed }) => ({
+                paddingHorizontal: theme.spacing.md,
+                paddingVertical: theme.spacing.sm,
+                borderRadius: theme.radius.pill,
+                backgroundColor: theme.color.brandSoft,
+                opacity: pressed ? 0.6 : 1,
+              })}
+            >
+              <Text variant="body" tone="brand" style={{ fontWeight: '700' }}>
+                {t.captureForm.browse}
+              </Text>
+            </Pressable>
+          </Pressable>
           {scanning ? <ActivityIndicator color={theme.color.brand} /> : null}
           {photo ? (
             // Tap the thumbnail to see the whole bill: the cropped cover view is
@@ -722,7 +770,7 @@ export default function CaptureScreen() {
           ) : parsed && photo ? (
             <Callout tone="info">{t.captures.couldNotRead}</Callout>
           ) : null}
-        </Card>
+        </View>
 
         {/* Description, as a single underlined field rather than a boxed card —
             with the mic to speak it instead of type (A5). Group names are handed
@@ -734,6 +782,7 @@ export default function CaptureScreen() {
           placeholder={t.captures.descriptionPlaceholder}
           accessibilityLabel={t.captures.description}
           hints={groupNameHints}
+          boxed
         />
 
         {/* What for, paid with, destination and date, folded into one card of
@@ -768,11 +817,20 @@ export default function CaptureScreen() {
               value={category}
               meta={categoryMeta}
               onPress={() => setPickingCategory(true)}
+              label={t.captureForm.category}
+              subtitle={t.captureForm.categorySub}
+              tinted
             />
-            <PaymentMethodRow value={paymentMethod} onPress={() => setPickingPayment(true)} />
+            <PaymentMethodRow
+              value={paymentMethod}
+              onPress={() => setPickingPayment(true)}
+              subtitle={t.captureForm.paidWithSub}
+              tinted
+            />
             <DetailRow
-              icon={targetGroup ? 'people' : 'people-outline'}
-              iconColor={targetGroup ? theme.color.brand : theme.color.textMuted}
+              icon="people"
+              tint={theme.tint.sky}
+              subtitle={t.captureForm.groupSub}
               label={t.captures.group}
               value={targetGroupName}
               placeholder={!targetGroup}
@@ -781,7 +839,9 @@ export default function CaptureScreen() {
             />
             <View>
               <DetailRow
-                icon="calendar-outline"
+                icon="calendar"
+                tint={theme.tint.pink}
+                subtitle={t.captureForm.dateSub}
                 label={t.captures.date}
                 value={showDate(date, locale)}
                 onPress={() => setEditingDate(true)}
@@ -817,7 +877,7 @@ export default function CaptureScreen() {
             would quietly move a restaurant in Goa to the reader's kitchen a
             week later. The field's own guard only covers an expense that
             *recorded* a place; this covers the ones that did not. */}
-        <LocationField value={location} onChange={setLocation} autoFill={!isEditing} />
+        <LocationField value={location} onChange={setLocation} autoFill={!isEditing} tiles />
       </ScrollView>
 
       <View
@@ -831,17 +891,13 @@ export default function CaptureScreen() {
           // the bottom of the screen instead of stopping at the Screen's padding.
           paddingBottom: clearance,
           gap: theme.spacing.sm,
-          borderTopWidth: 1,
-          borderTopColor: theme.color.border,
           backgroundColor: theme.color.bg,
         }}
       >
         {error ? <Callout tone="negative">{error}</Callout> : null}
         {saving ? <ActivityIndicator color={theme.color.brand} /> : null}
-        <Button
+        <SaveButton
           label={t.captures.save}
-          size="lg"
-          fullWidth
           disabled={amount === 0n || saving}
           onPress={() => void submit()}
         />
@@ -1195,3 +1251,142 @@ function GroupPicker({
     </View>
   );
 }
+
+/**
+ * The screen's header: close on the left, then a soft brand disc with the
+ * receipt glyph beside the title and a line on what the screen is for.
+ */
+function CaptureHeader({ title, subtitle }: { title: string; subtitle?: string }) {
+  const theme = useTheme();
+  const { t } = useStrings();
+  return (
+    <Row
+      style={{
+        alignItems: 'center',
+        gap: theme.spacing.md,
+        paddingHorizontal: theme.spacing.lg,
+        paddingTop: theme.spacing.md,
+      }}
+    >
+      <IconButton label={t.common.close} onPress={() => router.back()}>
+        <Ionicons name="close" size={iconSize.xl} color={theme.color.text} />
+      </IconButton>
+      <View
+        style={{
+          width: 52,
+          height: 52,
+          borderRadius: 26,
+          backgroundColor: theme.color.brandSoft,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Ionicons name="receipt-outline" size={iconSize.xl} color={theme.color.brand} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text variant="title" numberOfLines={1}>
+          {title}
+        </Text>
+        {subtitle ? (
+          <Text variant="caption" tone="muted" numberOfLines={1}>
+            {subtitle}
+          </Text>
+        ) : null}
+      </View>
+    </Row>
+  );
+}
+
+/** A bill with a camera badge, drawn from views: the receipt tile's picture. */
+function ReceiptArt() {
+  const theme = useTheme();
+  return (
+    <View
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={{ width: 60, height: 60 }}
+    >
+      <View
+        style={{
+          width: 52,
+          height: 56,
+          borderRadius: theme.radius.md,
+          backgroundColor: theme.color.brandSoft,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Ionicons
+          name="document-text"
+          size={28}
+          color={theme.color.brand}
+          style={{ opacity: 0.55 }}
+        />
+      </View>
+      <View
+        style={{
+          position: 'absolute',
+          end: 0,
+          bottom: 0,
+          width: 26,
+          height: 26,
+          borderRadius: 13,
+          backgroundColor: theme.color.brand,
+          borderWidth: 2,
+          borderColor: theme.color.surface,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Ionicons name="camera" size={13} color={theme.color.onBrand} />
+      </View>
+    </View>
+  );
+}
+
+/** Save, as a full-width pill in the brand wash with an arrow after the word. */
+function SaveButton({
+  label,
+  disabled,
+  onPress,
+}: {
+  label: string;
+  disabled: boolean;
+  onPress: () => void;
+}) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled }}
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => ({ opacity: disabled ? 0.5 : pressed ? 0.85 : 1 })}
+    >
+      <Gradient
+        colors={SAVE_WASH}
+        radius={theme.radius.pill}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: theme.spacing.sm,
+          minHeight: 56,
+        }}
+      >
+        <Text variant="subheading" style={{ color: theme.color.onBrand, fontWeight: '700' }}>
+          {label}
+        </Text>
+        <Ionicons
+          name={directionalIcon('arrow-forward')}
+          size={iconSize.lg}
+          color={theme.color.onBrand}
+        />
+      </Gradient>
+    </Pressable>
+  );
+}
+
+/** The dashboard hero's violet-to-blue wash, so Save reads as the same brand. */
+const SAVE_WASH = ['#4F55E8', '#6A5AEC', '#8469F0'] as const;

@@ -1483,6 +1483,20 @@ export interface UiStrings {
     hideBalance: string;
     showBalance: string;
   };
+  /** The Save an expense screen's row subtitles, header line and receipt / location tiles. */
+  captureForm: {
+    headerSub: string;
+    category: string;
+    categorySub: string;
+    paidWithSub: string;
+    groupSub: string;
+    dateSub: string;
+    receiptSub: string;
+    browse: string;
+    optional: string;
+    addLocationSub: string;
+    pickOnMapSub: string;
+  };
   /** The dashboard: the balance card, the action tiles and the groups list. */
   homeDash: {
     totalOwed: string;
@@ -4818,6 +4832,19 @@ const en: UiStrings = {
     hideBalance: 'Hide balance',
     showBalance: 'Show balance',
   },
+  captureForm: {
+    headerSub: 'Record your spending in a few seconds',
+    category: 'Category',
+    categorySub: 'What kind of expense?',
+    paidWithSub: 'How did you pay?',
+    groupSub: 'Split with others?',
+    dateSub: 'When did you spend?',
+    receiptSub: 'Take a photo or choose from gallery',
+    browse: 'Browse',
+    optional: '(optional)',
+    addLocationSub: 'Use current or search',
+    pickOnMapSub: 'Select from map',
+  },
   homeDash: {
     totalOwed: 'Total you are owed',
     totalOwe: 'Total you owe',
@@ -7840,6 +7867,19 @@ const ta: UiStrings = {
     evening: 'மாலை வணக்கம்',
     hideBalance: 'இருப்பை மறை',
     showBalance: 'இருப்பைக் காட்டு',
+  },
+  captureForm: {
+    headerSub: 'சில நொடிகளில் உங்கள் செலவைப் பதிவு செய்யுங்கள்',
+    category: 'வகை',
+    categorySub: 'எந்த வகைச் செலவு?',
+    paidWithSub: 'எப்படிச் செலுத்தினீர்கள்?',
+    groupSub: 'மற்றவர்களுடன் பிரிக்கவா?',
+    dateSub: 'எப்போது செலவிட்டீர்கள்?',
+    receiptSub: 'புகைப்படம் எடுங்கள் அல்லது கேலரியிலிருந்து தேர்ந்தெடுங்கள்',
+    browse: 'தேர்ந்தெடு',
+    optional: '(விருப்பம்)',
+    addLocationSub: 'தற்போதைய இடம் அல்லது தேடல்',
+    pickOnMapSub: 'வரைபடத்தில் தேர்ந்தெடு',
   },
   homeDash: {
     totalOwed: 'உங்களுக்கு வர வேண்டிய மொத்தம்',
@@ -10936,6 +10976,19 @@ const hi: UiStrings = {
     hideBalance: 'बैलेंस छिपाएँ',
     showBalance: 'बैलेंस दिखाएँ',
   },
+  captureForm: {
+    headerSub: 'कुछ ही सेकंड में अपना खर्च दर्ज करें',
+    category: 'श्रेणी',
+    categorySub: 'किस तरह का खर्च?',
+    paidWithSub: 'कैसे भुगतान किया?',
+    groupSub: 'दूसरों के साथ बाँटें?',
+    dateSub: 'कब खर्च किया?',
+    receiptSub: 'फ़ोटो लें या गैलरी से चुनें',
+    browse: 'चुनें',
+    optional: '(वैकल्पिक)',
+    addLocationSub: 'मौजूदा जगह या खोजें',
+    pickOnMapSub: 'मैप से चुनें',
+  },
   homeDash: {
     totalOwed: 'आपको कुल मिलने हैं',
     totalOwe: 'आपको कुल देने हैं',
@@ -14012,6 +14065,19 @@ const ar: UiStrings = {
     evening: 'مساء الخير',
     hideBalance: 'إخفاء الرصيد',
     showBalance: 'إظهار الرصيد',
+  },
+  captureForm: {
+    headerSub: 'سجّل مصروفك في ثوانٍ',
+    category: 'الفئة',
+    categorySub: 'ما نوع المصروف؟',
+    paidWithSub: 'كيف دفعت؟',
+    groupSub: 'تقسيمه مع الآخرين؟',
+    dateSub: 'متى أنفقت؟',
+    receiptSub: 'التقط صورة أو اختر من المعرض',
+    browse: 'استعراض',
+    optional: '(اختياري)',
+    addLocationSub: 'الموقع الحالي أو البحث',
+    pickOnMapSub: 'اختر من الخريطة',
   },
   homeDash: {
     totalOwed: 'إجمالي المستحق لك',
