@@ -1514,7 +1514,6 @@ export interface UiStrings {
     optional: string;
     addLocationSub: string;
     pickOnMapSub: string;
-    currencySub: string;
     searchCurrency: string;
     recentlyUsed: string;
     allCurrencies: string;
@@ -4884,7 +4883,6 @@ const en: UiStrings = {
     optional: '(optional)',
     addLocationSub: 'Use current or search',
     pickOnMapSub: 'Select from map',
-    currencySub: 'Select the currency for this expense',
     searchCurrency: 'Search currency or country',
     recentlyUsed: 'Recently used',
     allCurrencies: 'All currencies',
@@ -7942,7 +7940,6 @@ const ta: UiStrings = {
     optional: '(விருப்பம்)',
     addLocationSub: 'தற்போதைய இடம் அல்லது தேடல்',
     pickOnMapSub: 'வரைபடத்தில் தேர்ந்தெடு',
-    currencySub: 'இந்தச் செலவுக்கான நாணயத்தைத் தேர்ந்தெடுங்கள்',
     searchCurrency: 'நாணயம் அல்லது நாட்டைத் தேடுங்கள்',
     recentlyUsed: 'சமீபத்தில் பயன்படுத்தியவை',
     allCurrencies: 'அனைத்து நாணயங்களும்',
@@ -11072,7 +11069,6 @@ const hi: UiStrings = {
     optional: '(वैकल्पिक)',
     addLocationSub: 'मौजूदा जगह या खोजें',
     pickOnMapSub: 'मैप से चुनें',
-    currencySub: 'इस खर्च की मुद्रा चुनें',
     searchCurrency: 'मुद्रा या देश खोजें',
     recentlyUsed: 'हाल में इस्तेमाल',
     allCurrencies: 'सभी मुद्राएँ',
@@ -14184,7 +14180,6 @@ const ar: UiStrings = {
     optional: '(اختياري)',
     addLocationSub: 'الموقع الحالي أو البحث',
     pickOnMapSub: 'اختر من الخريطة',
-    currencySub: 'اختر عملة هذا المصروف',
     searchCurrency: 'ابحث عن عملة أو دولة',
     recentlyUsed: 'المستخدمة مؤخرًا',
     allCurrencies: 'كل العملات',

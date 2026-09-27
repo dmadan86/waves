@@ -131,10 +131,6 @@ export function CurrencySheet({
 
   return (
     <SheetOverlay title={t.captures.currencyPickerTitle} onClose={onClose}>
-      <Text variant="body" tone="muted" style={{ marginTop: -theme.spacing.sm }}>
-        {t.captureForm.currencySub}
-      </Text>
-
       <Row
         style={{
           alignItems: 'center',
@@ -260,22 +256,11 @@ export function CurrencySheet({
   );
 }
 
-/** The currency's country flag in a round, softly ringed disc. */
+/** The currency's country flag on its own, no disc behind it. */
 function FlagDisc({ code, size }: { code: string; size: number }) {
-  const theme = useTheme();
   const flag = flagFor(code);
   return (
-    <View
-      style={{
-        width: size,
-        height: size,
-        borderRadius: size / 2,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: theme.color.surfaceMuted,
-        overflow: 'hidden',
-      }}
-    >
+    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
       {flag ? (
         <Text style={{ fontSize: size * 0.72, lineHeight: size }}>{flag}</Text>
       ) : (
