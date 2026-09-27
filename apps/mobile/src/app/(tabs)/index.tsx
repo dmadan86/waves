@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Animated, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { Animated, Pressable, RefreshControl, ScrollView, View } from 'react-native';
 
 import { dayNumber, type GuestGate } from '@waves/core';
 import {
@@ -13,14 +13,13 @@ import {
   EmptyState,
   Gradient,
   iconSize,
+  MoneyText,
   Popup,
   Row,
   Screen,
   Sheet,
   Skeleton,
   Text,
-  tints,
-  type TintName,
   useTabBarClearance,
   useTheme,
 } from '@waves/ui';
@@ -43,7 +42,6 @@ import { usePromptSlot } from '@/lib/promptQueue';
 import { useDashboardTips } from '@/lib/tips';
 import { TourTarget, useTour } from '@/lib/tour';
 import { GroupMark } from '@/components/GroupMark';
-import { SplitMoney } from '@/components/SplitMoney';
 import { SyncStatusIcon } from '@/components/SyncBanner';
 import { ImportProgressBanner } from '@/components/ImportProgressBanner';
 import { SkeletonList } from '@/components/Skeletons';
@@ -55,7 +53,6 @@ import { QuickAddSheet, useQuickAddActions } from '@/components/QuickAddSheet';
 import { QuickExpenseSheet } from '@/components/QuickExpenseSheet';
 import { BALANCE_MASK, HomeBalanceCard } from '@/components/home/HomeBalanceCard';
 import { HomeQuickActions } from '@/components/home/HomeQuickActions';
-import { relativeUnit } from '@/lib/homeDashboard';
 import { SettlePickerSheet, type SettleCandidate } from '@/components/home/SettlePickerSheet';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { RestorePrompt } from '@/components/RestorePrompt';
@@ -370,25 +367,6 @@ export default function HomeScreen() {
     summary.lastMonthSpent.find((entry) => entry.currency === headline.currency)?.amount ?? 0n;
   const openReports = () => router.push('/personal/spending');
 
-  // "Last activity: 2 days ago" under each group, from when its ledger last
-  // moved. The formatter is built once per language, not per row.
-  const rtf = useMemo(
-    () =>
-      typeof Intl.RelativeTimeFormat === 'function'
-        ? new Intl.RelativeTimeFormat(locale, { numeric: 'auto' })
-        : undefined,
-    [locale],
-  );
-  const lastActivityLabel = (groupId: string): string | null => {
-    const at = summary.lastActivityFor(groupId);
-    if (!at || !rtf) return null;
-    const ago = relativeUnit(at, nowMs);
-    return t.homeDash.lastActivity.replace(
-      '{when}',
-      ago ? rtf.format(ago.value, ago.unit) : t.homeDash.justNow,
-    );
-  };
-
   return (
     <Screen edges={[]}>
       {/* The status bar's own strip of the wash, fixed, so the clock and the
@@ -531,9 +509,11 @@ export default function HomeScreen() {
               />
             </View>
           ) : (
-            <View style={{ gap: theme.spacing.md }}>
+            <View style={{ gap: theme.spacing.sm }}>
+              {/* The heading carries the door to the full list: the card below is
+                  a capped preview, "All groups" opens the whole roster. */}
               <Row style={{ alignItems: 'center', justifyContent: 'space-between' }}>
-                <Text variant="heading">{t.yourGroups}</Text>
+                <Text variant="subheading">{t.yourGroups}</Text>
                 <Pressable
                   onPress={() => router.navigate('/groups')}
                   accessibilityRole="button"
@@ -546,8 +526,8 @@ export default function HomeScreen() {
                     opacity: pressed ? 0.5 : 1,
                   })}
                 >
-                  <Text variant="body" tone="brand" style={{ fontWeight: '700' }}>
-                    {t.homeDash.seeAll.replace('{n}', String(list.length))}
+                  <Text variant="caption" tone="brand" style={{ fontWeight: '700' }}>
+                    {t.allGroups}
                   </Text>
                   <Ionicons
                     name={directionalIcon('chevron-forward')}
@@ -556,57 +536,81 @@ export default function HomeScreen() {
                   />
                 </Pressable>
               </Row>
-
-              {list.slice(0, GROUPS_PREVIEW).map((group) => {
-                const balance = summary.balanceFor(group.id);
-                // A running trip earns a live "on trip" tag; failing that, a
-                // just-made group wears "New" for its first couple of days.
-                const onTrip = ongoingTripIds.has(group.id);
-                const isNew = nowMs - Date.parse(group.created_at) < NEW_GROUP_WINDOW_MS;
-                const tag = onTrip ? t.tagOnTrip : isNew ? t.tagNew : null;
-                return (
-                  <GroupRow
-                    key={group.id}
-                    id={group.id}
-                    title={groupLabel(group, summary.membersFor(group.id), viewerId)}
-                    memberLabel={plural(locale, summary.memberCountFor(group.id), t.memberCount)}
-                    draftLabel={
-                      draftsByGroup.has(group.id)
-                        ? plural(locale, draftsByGroup.get(group.id) ?? 0, t.draftCount)
-                        : null
-                    }
-                    activityLabel={lastActivityLabel(group.id)}
-                    coverEmoji={group.cover_emoji}
-                    balance={balance}
-                    currency={group.default_currency}
-                    locale={locale}
-                    statusLabel={
-                      balance === 0n ? t.allSettled : balance > 0n ? t.youAreOwed : t.youOwe
-                    }
-                    directionLabel={
-                      balance === 0n
-                        ? t.homeDash.wordSettled
-                        : balance > 0n
-                          ? t.homeDash.wordOwed
-                          : t.homeDash.wordOwe
-                    }
-                    pendingLabel={summary.hasPending(group.id) ? t.pendingConfirmation : null}
-                    tag={tag}
-                    tagTone={onTrip ? 'positive' : 'brand'}
-                    // The eye shuts the whole screen's money, not just the
-                    // headline — and stays shut until the saved choice has
-                    // loaded, so a hidden balance never flashes in plain.
-                    hidden={balanceHidden || !balanceReady}
-                    // The just-imported group slides and fades into place.
-                    enter={group.id === justAddedId}
-                    // Its balance materialises a beat after the row does, so
-                    // mask it until the ledger lands rather than show ₹0.
-                    pendingBalance={group.id === justAddedId && !summary.hasLedger(group.id)}
-                    onPress={() => router.push(`/group/${group.id}`)}
-                    pinned={pinnedIds.has(group.id)}
-                  />
-                );
-              })}
+              {/* The groups as one clean list on a single card — an emoji chip, the
+                  name and its standing, the balance to the right — the banking-app
+                  "recent" list the reference leans on, hairline-divided. Capped to
+                  a preview; the full list lives behind "All groups". */}
+              <View
+                style={{
+                  backgroundColor: theme.color.surface,
+                  borderRadius: theme.radius.lg,
+                  borderWidth: 1,
+                  borderColor: theme.color.border,
+                  overflow: 'hidden',
+                }}
+              >
+                {list.slice(0, GROUPS_PREVIEW).map((group, index) => {
+                  const members = summary.membersFor(group.id);
+                  const balance = summary.balanceFor(group.id);
+                  // A running trip earns a live "on trip" tag; failing that, a
+                  // just-made group wears "New" for its first couple of days.
+                  const onTrip = ongoingTripIds.has(group.id);
+                  const isNew = nowMs - Date.parse(group.created_at) < NEW_GROUP_WINDOW_MS;
+                  const tag = onTrip ? t.tagOnTrip : isNew ? t.tagNew : null;
+                  return (
+                    <GroupRow
+                      key={group.id}
+                      title={groupLabel(group, members, viewerId)}
+                      memberLabel={plural(locale, summary.memberCountFor(group.id), t.memberCount)}
+                      draftLabel={
+                        draftsByGroup.has(group.id)
+                          ? plural(locale, draftsByGroup.get(group.id) ?? 0, t.draftCount)
+                          : null
+                      }
+                      coverEmoji={group.cover_emoji}
+                      balance={balance}
+                      currency={group.default_currency}
+                      locale={locale}
+                      statusLabel={
+                        balance === 0n ? t.allSettled : balance > 0n ? t.youAreOwed : t.youOwe
+                      }
+                      directionLabel={
+                        balance === 0n
+                          ? t.group.rowSettled
+                          : balance > 0n
+                            ? t.group.rowOwed
+                            : t.group.rowYouOwe
+                      }
+                      pendingLabel={summary.hasPending(group.id) ? t.pendingConfirmation : null}
+                      tag={tag}
+                      tagTone={onTrip ? 'positive' : 'brand'}
+                      divider={index > 0}
+                      // The eye in the hero shuts the whole screen's money, not
+                      // just the headline: masking one figure while twelve sit
+                      // uncovered below it is privacy theatre. Masked too until
+                      // the saved preference has loaded — `balanceHidden` starts
+                      // false while AsyncStorage resolves, so without the
+                      // `!balanceReady` guard a hidden balance flashes in plain
+                      // before the eye's state lands. The hero is already gated
+                      // this way upstream (it shows its skeleton until ready).
+                      hidden={balanceHidden || !balanceReady}
+                      // The just-imported group slides and fades into place
+                      // rather than blinking in under the success banner.
+                      enter={group.id === justAddedId}
+                      // Its balance materialises a beat after the group row does,
+                      // so mask the amount until the ledger lands rather than show
+                      // a confident wrong ₹0 that then jumps to the real figure.
+                      pendingBalance={group.id === justAddedId && !summary.hasLedger(group.id)}
+                      onPress={() => router.push(`/group/${group.id}`)}
+                      // No long-press pin here: a hold on Home's list pinned by
+                      // accident. Pinning lives on the Groups list and the
+                      // group's own ••• menu; a pinned group still sorts first
+                      // and wears its glyph.
+                      pinned={pinnedIds.has(group.id)}
+                    />
+                  );
+                })}
+              </View>
             </View>
           )}
         </View>
@@ -1097,28 +1101,14 @@ const HERO_WASH = ['#4F55E8', '#6A5AEC', '#8469F0'] as const;
 const HERO_OVERLAP = 56;
 
 /**
- * A stable tint per group, picked from its id: the same group wears the same
- * colour on every open, and neighbours rarely match.
- */
-function tintFor(id: string): TintName {
-  let hash = 0;
-  for (let i = 0; i < id.length; i += 1) hash = (hash * 31 + id.charCodeAt(i)) | 0;
-  return tints[Math.abs(hash) % tints.length] ?? 'lilac';
-}
-
-/**
- * One group as its own card, washed faintly in the group's own tint — a disc
- * with the group's mark, the name with its "New" / "On trip" tag, who is in it
- * and what is waiting, when it last moved; on the right the balance in the
- * colour of its direction with that direction as a pill under it, and a
- * chevron. The whole card is the tap into the group.
+ * One group as a clean list row — an emoji chip, the name over its member count
+ * and standing, the balance to the right coloured by who owes whom. The banking
+ * "recent" row applied to a group; the whole row is the tap into the group.
  */
 function GroupRow({
-  id,
   title,
   memberLabel,
   draftLabel,
-  activityLabel,
   coverEmoji,
   balance,
   currency,
@@ -1128,53 +1118,56 @@ function GroupRow({
   pendingLabel,
   tag,
   tagTone,
+  divider,
   enter = false,
   pendingBalance = false,
   hidden = false,
   onPress,
   pinned = false,
 }: {
-  id: string;
   title: string;
   memberLabel: string;
-  /** "1 draft" when this group has money caught but not yet entered, else
-   *  null — the one thing on the row that is waiting on the reader. */
+  /** "2 drafts" when this group has money caught but not yet entered, else
+   *  null. Worth a place on the row because a draft is the one thing here that
+   *  is waiting on the reader. */
   draftLabel: string | null;
-  /** "Last activity: 2 days ago", or null when it cannot be said. */
-  activityLabel: string | null;
   coverEmoji: string | null;
   balance: bigint;
   currency: string;
   locale: string;
   /** "You are owed" — spoken, in the row's accessibility label. */
   statusLabel: string;
-  /** "you owe" — the same standing, drawn in a pill under the amount. */
+  /** "owed" — the same standing, drawn small under the amount it describes. */
   directionLabel: string;
   pendingLabel: string | null;
   tag: string | null;
   tagTone: 'positive' | 'brand';
   /** The dashboard's eye is shut: show the mask in place of the amount. The
-      standing stays — it is the figure that is private. */
+      row's standing ("You owe") stays — it is the figure that is private. */
   hidden?: boolean;
   /** True while this group's balance is still materialising (just after an
       import): the amount is masked with a skeleton instead of a wrong zero. */
   pendingBalance?: boolean;
+  /** A hairline above the row — every row but the first, so the card reads as
+      one divided list rather than a stack of loose cards. */
+  divider: boolean;
   /** True for a row that has just arrived (a fresh import): it fades and slides
       into place on mount rather than blinking in. */
   enter?: boolean;
   onPress: () => void;
   /** Sorted to the top by `orderByPin`; carries the small pin glyph and is
-      announced in the row's accessibility label. */
+      announced in the row's accessibility label — a glyph alone says nothing
+      to a screen reader. */
   pinned?: boolean;
 }) {
   const theme = useTheme();
   const reduceMotion = useReducedMotion();
   const { t } = useStrings();
-  const tint = theme.tint[tintFor(id)];
 
   // The entrance: start dropped and clear, settle into place. Only for a row
-  // flagged `enter`, and never under reduce motion. Lazy-init state, never a
-  // ref read in render (the React Compiler lints that), native-driven.
+  // flagged `enter` (a just-imported group), and never under reduce motion —
+  // otherwise the row is static at rest. Lazy-init state, never a ref read in
+  // render (the React Compiler lints that), transform+opacity native-driven.
   const shouldAnimate = enter && !reduceMotion;
   const anim = useState(() => new Animated.Value(shouldAnimate ? 0 : 1))[0];
   useEffect(() => {
@@ -1189,26 +1182,13 @@ function GroupRow({
     return () => run.stop();
   }, [shouldAnimate, anim]);
 
-  // A screen reader is given the label instead of the text inside the row, so
-  // everything the row says on screen is said here too.
-  const spoken = [
-    pendingLabel ?? [memberLabel, draftLabel].filter(Boolean).join(' · '),
-    statusLabel,
-  ]
-    .concat(activityLabel ? [activityLabel] : [])
-    .join(' · ');
-  const ink =
-    balance === 0n
-      ? theme.color.textMuted
-      : balance > 0n
-        ? theme.color.positive
-        : theme.color.negative;
-  const pill =
-    balance === 0n
-      ? theme.color.surfaceMuted
-      : balance > 0n
-        ? theme.color.positiveSoft
-        : theme.color.negativeSoft;
+  // What the row says under its title: who is in it and what is waiting. Where
+  // it stands moved under the amount — "owed" beside the figure it describes,
+  // the way an expense row says "you lent" — rather than "You are owed" on
+  // every line of the list. The spoken label still carries it in full: a screen
+  // reader is given the label instead of the text inside the row, so anything
+  // said only on screen is not said quietly, it is not said.
+  const spoken = pendingLabel ?? [memberLabel, draftLabel, statusLabel].filter(Boolean).join(' · ');
 
   return (
     <Animated.View
@@ -1219,6 +1199,8 @@ function GroupRow({
     >
       <Pressable
         accessibilityRole="button"
+        // Pinned is spoken, not just drawn: a screen reader never sees the
+        // glyph below, so the state has to be in the label itself.
         accessibilityLabel={
           pinned ? `${title}. ${t.group.pinnedBadge}. ${spoken}` : `${title}. ${spoken}`
         }
@@ -1227,46 +1209,37 @@ function GroupRow({
           flexDirection: 'row',
           alignItems: 'center',
           gap: theme.spacing.md,
-          paddingVertical: theme.spacing.md,
-          paddingStart: theme.spacing.md,
-          paddingEnd: theme.spacing.sm,
-          backgroundColor: theme.color.surface,
-          borderRadius: theme.radius.lg,
-          borderWidth: 1,
-          borderColor: theme.color.border,
-          overflow: 'hidden',
-          opacity: pressed ? 0.7 : 1,
+          paddingVertical: theme.spacing.sm,
+          paddingHorizontal: theme.spacing.sm,
+          borderTopWidth: divider ? 1 : 0,
+          borderTopColor: theme.color.border,
+          opacity: pressed ? 0.6 : 1,
         })}
       >
-        {/* The card's faint wash in the group's own tint. */}
-        <View
-          pointerEvents="none"
-          style={[StyleSheet.absoluteFill, { backgroundColor: tint.bg, opacity: 0.35 }]}
-        />
         <View
           style={{
-            width: 52,
-            height: 52,
-            borderRadius: 26,
-            backgroundColor: tint.bg,
+            width: 44,
+            height: 44,
+            borderRadius: 22,
+            backgroundColor: theme.color.surfaceMuted,
             alignItems: 'center',
             justifyContent: 'center',
           }}
         >
-          <GroupMark emoji={coverEmoji} size={26} color={tint.ink} />
+          <GroupMark emoji={coverEmoji} size={22} />
         </View>
         <View style={{ flex: 1, gap: 2 }}>
           <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
             {pinned ? <Ionicons name="pin" size={12} color={theme.color.textMuted} /> : null}
-            <Text variant="body" numberOfLines={1} style={{ flexShrink: 1, fontWeight: '700' }}>
+            <Text variant="body" numberOfLines={1} style={{ flexShrink: 1, fontWeight: '600' }}>
               {title}
             </Text>
             {tag ? (
               <View
                 style={{
-                  paddingHorizontal: 8,
+                  paddingHorizontal: 6,
                   paddingVertical: 1,
-                  borderRadius: theme.radius.pill,
+                  borderRadius: 6,
                   backgroundColor:
                     tagTone === 'positive' ? theme.color.positiveSoft : theme.color.brandSoft,
                 }}
@@ -1281,48 +1254,49 @@ function GroupRow({
               </View>
             ) : null}
           </Row>
+          {/* Words only. A stack of faces sat here for a while, on the theory
+              that you recognise a group by who is in it; on the row it read as
+              clutter beside a line that already says how many and where you
+              stand. */}
           <Text variant="caption" tone="muted" numberOfLines={1}>
-            {pendingLabel ?? [memberLabel, draftLabel].filter(Boolean).join('  ·  ')}
-          </Text>
-          {activityLabel ? (
-            <Row style={{ alignItems: 'center', gap: 4 }}>
-              <Ionicons name="time-outline" size={13} color={theme.color.textMuted} />
-              <Text variant="caption" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
-                {activityLabel}
+            {pendingLabel ?? memberLabel}
+            {/* A draft is the one thing here waiting on the reader, so it is
+                said in the warning's orange rather than the muted grey. */}
+            {!pendingLabel && draftLabel ? (
+              <Text variant="caption" style={{ color: theme.color.warning, fontWeight: '600' }}>
+                {` · ${draftLabel}`}
               </Text>
-            </Row>
-          ) : null}
+            ) : null}
+          </Text>
         </View>
         {pendingBalance ? (
           <Skeleton width={64} height={16} radius={6} animated={!reduceMotion} />
         ) : (
-          <View style={{ alignItems: 'flex-end', gap: theme.spacing.xs, maxWidth: '40%' }}>
+          <View style={{ alignItems: 'flex-end', gap: 2 }}>
             {hidden ? (
-              <Text variant="subheading" tone="muted" style={{ fontWeight: '700' }}>
+              <Text tone="muted" style={{ fontWeight: '700' }}>
                 {BALANCE_MASK}
               </Text>
             ) : (
-              <SplitMoney amount={balance} currency={currency} locale={locale} color={ink} />
+              // `balance` mode is money's own rule in one place: it takes the
+              // magnitude, colours by the sign (owed-to-you positive, you-owe
+              // negative, square quiet) and speaks the direction aloud.
+              <MoneyText
+                amount={balance}
+                currency={currency as never}
+                locale={locale}
+                mode="balance"
+                style={{ fontWeight: '700' }}
+              />
             )}
-            <View
-              style={{
-                paddingHorizontal: theme.spacing.sm,
-                paddingVertical: 2,
-                borderRadius: theme.radius.pill,
-                backgroundColor: pill,
-              }}
-            >
-              <Text variant="caption" numberOfLines={1} style={{ color: ink, fontWeight: '600' }}>
-                {directionLabel}
-              </Text>
-            </View>
+            {/* The standing in words, under the figure. The amount carries no
+                sign, so without this the direction would be colour alone. Kept
+                when the eye is shut: the figure is private, the side is not. */}
+            <Text variant="micro" tone="muted" numberOfLines={1}>
+              {directionLabel}
+            </Text>
           </View>
         )}
-        <Ionicons
-          name={directionalIcon('chevron-forward')}
-          size={iconSize.md}
-          color={theme.color.textMuted}
-        />
       </Pressable>
     </Animated.View>
   );
