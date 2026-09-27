@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Animated, Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import { Animated, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 
 import { dayNumber, format, money, type GuestGate } from '@waves/core';
 import {
@@ -424,9 +424,9 @@ export default function HomeScreen() {
           colors={HERO_WASH}
           radius={0}
           style={{
-            paddingTop: insets.top + theme.spacing.sm,
+            paddingTop: insets.top + theme.spacing.md,
             paddingHorizontal: theme.spacing.lg,
-            paddingBottom: HERO_OVERLAP + theme.spacing.md,
+            paddingBottom: HERO_OVERLAP + theme.spacing.xl,
             borderBottomLeftRadius: theme.radius.xxl,
             borderBottomRightRadius: theme.radius.xxl,
           }}
@@ -447,10 +447,10 @@ export default function HomeScreen() {
               hitSlop={8}
               style={({ pressed }) => ({ flex: 1, opacity: pressed ? 0.5 : 1 })}
             >
-              <Text variant="heading" tone="onBrand" numberOfLines={1}>
+              <Text variant="title" tone="onBrand" numberOfLines={1}>
                 {`${t.dashHero.hi.replace('{name}', displayName)} 👋`}
               </Text>
-              <Text variant="caption" tone="onBrand" numberOfLines={1} style={{ opacity: 0.9 }}>
+              <Text variant="body" tone="onBrand" numberOfLines={1} style={{ opacity: 0.9 }}>
                 {`${t.dashHero[greetKey]}!`}
               </Text>
             </Pressable>
@@ -534,7 +534,7 @@ export default function HomeScreen() {
               />
             </View>
           ) : (
-            <View style={{ gap: theme.spacing.sm }}>
+            <View style={{ gap: theme.spacing.md }}>
               <Row style={{ alignItems: 'center', justifyContent: 'space-between' }}>
                 <Text variant="heading">{t.yourGroups}</Text>
                 <Pressable
@@ -671,7 +671,7 @@ function HeroAvatar({
     return (
       <Avatar
         name={name}
-        size={48}
+        size={64}
         photoUrl={photoUrl}
         accessibilityLabel={label}
         onPress={onPress}
@@ -685,9 +685,9 @@ function HeroAvatar({
       onPress={onPress}
       hitSlop={8}
       style={({ pressed }) => ({
-        width: 48,
-        height: 48,
-        borderRadius: 24,
+        width: 64,
+        height: 64,
+        borderRadius: 32,
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: 'transparent',
@@ -1097,7 +1097,7 @@ function todayIn(timeZone: string): string {
 const HERO_WASH = ['#4F55E8', '#6A5AEC', '#8469F0'] as const;
 
 /** How far the balance card rides up over the bottom of the hero. */
-const HERO_OVERLAP = 40;
+const HERO_OVERLAP = 56;
 
 /**
  * A stable tint per group, picked from its id: the same group wears the same
@@ -1146,11 +1146,11 @@ function SplitAmount({
 }
 
 /**
- * One group as a compact white card — a disc in the group's own tint with its
- * mark, the name with its "New" / "On trip" tag, who is in it and what is
- * waiting, and when it last moved in small print; on the right the balance in
- * the colour of its direction with the words under it. The whole card is the
- * tap into the group.
+ * One group as its own card, washed faintly in the group's own tint — a disc
+ * with the group's mark, the name with its "New" / "On trip" tag, who is in it
+ * and what is waiting, when it last moved; on the right the balance in the
+ * colour of its direction with that direction as a pill under it, and a
+ * chevron. The whole card is the tap into the group.
  */
 function GroupRow({
   id,
@@ -1242,6 +1242,13 @@ function GroupRow({
       : balance > 0n
         ? theme.color.positive
         : theme.color.negative;
+  const pill =
+    balance === 0n
+      ? theme.color.surfaceMuted
+      : balance > 0n
+        ? theme.color.positiveSoft
+        : theme.color.negativeSoft;
+
   return (
     <Animated.View
       style={{
@@ -1259,28 +1266,35 @@ function GroupRow({
           flexDirection: 'row',
           alignItems: 'center',
           gap: theme.spacing.md,
-          paddingVertical: theme.spacing.sm,
-          paddingHorizontal: theme.spacing.md,
+          paddingVertical: theme.spacing.md,
+          paddingStart: theme.spacing.md,
+          paddingEnd: theme.spacing.sm,
           backgroundColor: theme.color.surface,
           borderRadius: theme.radius.lg,
           borderWidth: 1,
           borderColor: theme.color.border,
+          overflow: 'hidden',
           opacity: pressed ? 0.7 : 1,
         })}
       >
+        {/* The card's faint wash in the group's own tint. */}
+        <View
+          pointerEvents="none"
+          style={[StyleSheet.absoluteFill, { backgroundColor: tint.bg, opacity: 0.35 }]}
+        />
         <View
           style={{
-            width: 44,
-            height: 44,
-            borderRadius: 22,
+            width: 52,
+            height: 52,
+            borderRadius: 26,
             backgroundColor: tint.bg,
             alignItems: 'center',
             justifyContent: 'center',
           }}
         >
-          <GroupMark emoji={coverEmoji} size={22} color={tint.ink} />
+          <GroupMark emoji={coverEmoji} size={26} color={tint.ink} />
         </View>
-        <View style={{ flex: 1, gap: 1 }}>
+        <View style={{ flex: 1, gap: 2 }}>
           <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
             {pinned ? <Ionicons name="pin" size={12} color={theme.color.textMuted} /> : null}
             <Text variant="body" numberOfLines={1} style={{ flexShrink: 1, fontWeight: '700' }}>
@@ -1289,9 +1303,9 @@ function GroupRow({
             {tag ? (
               <View
                 style={{
-                  paddingHorizontal: 6,
+                  paddingHorizontal: 8,
                   paddingVertical: 1,
-                  borderRadius: 6,
+                  borderRadius: theme.radius.pill,
                   backgroundColor:
                     tagTone === 'positive' ? theme.color.positiveSoft : theme.color.brandSoft,
                 }}
@@ -1306,24 +1320,13 @@ function GroupRow({
               </View>
             ) : null}
           </Row>
-          {pendingLabel ? (
-            <Text variant="caption" tone="muted" numberOfLines={1}>
-              {pendingLabel}
-            </Text>
-          ) : (
-            <Text variant="caption" tone="muted" numberOfLines={1}>
-              {memberLabel}
-              {draftLabel ? (
-                <Text variant="caption" style={{ color: theme.color.warning, fontWeight: '600' }}>
-                  {`  ·  ${draftLabel}`}
-                </Text>
-              ) : null}
-            </Text>
-          )}
+          <Text variant="caption" tone="muted" numberOfLines={1}>
+            {pendingLabel ?? [memberLabel, draftLabel].filter(Boolean).join('  ·  ')}
+          </Text>
           {activityLabel ? (
-            <Row style={{ alignItems: 'center', gap: 3 }}>
-              <Ionicons name="time-outline" size={11} color={theme.color.textFaint} />
-              <Text variant="micro" tone="faint" numberOfLines={1} style={{ flexShrink: 1 }}>
+            <Row style={{ alignItems: 'center', gap: 4 }}>
+              <Ionicons name="time-outline" size={13} color={theme.color.textMuted} />
+              <Text variant="caption" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
                 {activityLabel}
               </Text>
             </Row>
@@ -1332,7 +1335,7 @@ function GroupRow({
         {pendingBalance ? (
           <Skeleton width={64} height={16} radius={6} animated={!reduceMotion} />
         ) : (
-          <View style={{ alignItems: 'flex-end', gap: 1, maxWidth: '42%' }}>
+          <View style={{ alignItems: 'flex-end', gap: theme.spacing.xs, maxWidth: '40%' }}>
             {hidden ? (
               <Text variant="subheading" tone="muted" style={{ fontWeight: '700' }}>
                 {BALANCE_MASK}
@@ -1340,11 +1343,25 @@ function GroupRow({
             ) : (
               <SplitAmount amount={balance} currency={currency} locale={locale} color={ink} />
             )}
-            <Text variant="caption" tone="muted" numberOfLines={1}>
-              {directionLabel}
-            </Text>
+            <View
+              style={{
+                paddingHorizontal: theme.spacing.sm,
+                paddingVertical: 2,
+                borderRadius: theme.radius.pill,
+                backgroundColor: pill,
+              }}
+            >
+              <Text variant="caption" numberOfLines={1} style={{ color: ink, fontWeight: '600' }}>
+                {directionLabel}
+              </Text>
+            </View>
           </View>
         )}
+        <Ionicons
+          name={directionalIcon('chevron-forward')}
+          size={iconSize.md}
+          color={theme.color.textMuted}
+        />
       </Pressable>
     </Animated.View>
   );

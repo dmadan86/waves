@@ -97,7 +97,7 @@ export function HomeQuickActions({
         borderTopColor: theme.color.border,
         borderBottomLeftRadius: radius,
         borderBottomRightRadius: radius,
-        paddingVertical: 6,
+        paddingVertical: theme.spacing.sm,
         paddingHorizontal: theme.spacing.xs,
       }}
     >
@@ -141,7 +141,7 @@ export function HomeQuickActions({
             hitSlop={4}
             style={({ pressed }) => ({
               alignItems: 'center',
-              gap: 2,
+              gap: 4,
               paddingHorizontal: 2,
               opacity: pressed ? 0.6 : 1,
             })}
@@ -172,4 +172,4 @@ export function HomeQuickActions({
   );
 }
 
-const DISC = 30;
+const DISC = 34;
