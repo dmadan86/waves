@@ -5,7 +5,7 @@
  * screen. A person square everywhere is told so rather than shown an empty list.
  */
 
-import { Pressable, View } from 'react-native';
+import { Pressable, ScrollView, useWindowDimensions, View } from 'react-native';
 
 import { Sheet, Text, useTheme } from '@waves/ui';
 
@@ -33,6 +33,7 @@ export function SettlePickerSheet({
 }) {
   const theme = useTheme();
   const { t, locale } = useStrings();
+  const { height } = useWindowDimensions();
   const open = (id: string) => {
     onClose();
     router.push(`/group/${id}/settle`);
@@ -54,48 +55,65 @@ export function SettlePickerSheet({
           {t.homeDash.settleEmpty}
         </Text>
       ) : (
-        <View>
+        // Compact rows, scrolling when there are many: the sheet is a quick
+        // pick, not a page of its own.
+        <ScrollView style={{ maxHeight: height * 0.55 }} showsVerticalScrollIndicator={false}>
           {groups.map((group, index) => (
-            <Pressable
-              key={group.id}
-              accessibilityRole="button"
-              accessibilityLabel={group.title}
-              onPress={() => open(group.id)}
-              style={({ pressed }) => ({
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: theme.spacing.md,
-                paddingVertical: theme.spacing.md,
-                borderTopWidth: index === 0 ? 0 : 1,
-                borderTopColor: theme.color.border,
-                opacity: pressed ? 0.6 : 1,
-              })}
-            >
-              <View
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 22,
-                  backgroundColor: theme.color.brandSoft,
+            <View key={group.id}>
+              {index > 0 ? (
+                <View
+                  style={{
+                    height: 1,
+                    marginStart: DISC + theme.spacing.md,
+                    backgroundColor: theme.color.border,
+                  }}
+                />
+              ) : null}
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={group.title}
+                onPress={() => open(group.id)}
+                style={({ pressed }) => ({
+                  flexDirection: 'row',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                }}
+                  gap: theme.spacing.md,
+                  paddingVertical: 10,
+                  opacity: pressed ? 0.6 : 1,
+                })}
               >
-                <GroupMark emoji={group.coverEmoji} size={22} color={theme.color.brand} />
-              </View>
-              <Text variant="body" numberOfLines={1} style={{ flex: 1, fontWeight: '600' }}>
-                {group.title}
-              </Text>
-              <SplitMoney
-                amount={group.balance}
-                currency={group.currency}
-                locale={locale}
-                color={group.balance > 0n ? theme.color.positive : theme.color.negative}
-              />
-            </Pressable>
+                <View
+                  style={{
+                    width: DISC,
+                    height: DISC,
+                    borderRadius: DISC / 2,
+                    backgroundColor: theme.color.brandSoft,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <GroupMark emoji={group.coverEmoji} size={18} color={theme.color.brand} />
+                </View>
+                <Text
+                  numberOfLines={1}
+                  style={{ flex: 1, fontSize: 15, fontWeight: '600', color: theme.color.text }}
+                >
+                  {group.title}
+                </Text>
+                <SplitMoney
+                  amount={group.balance}
+                  currency={group.currency}
+                  locale={locale}
+                  color={group.balance > 0n ? theme.color.positive : theme.color.negative}
+                  fontSize={15}
+                />
+              </Pressable>
+            </View>
           ))}
-        </View>
+        </ScrollView>
       )}
     </Sheet>
   );
 }
+
+/** The group mark's disc in a row. */
+const DISC = 36;
