@@ -1032,7 +1032,8 @@ function NewGroupHeader({ title, subtitle }: { title: string; subtitle: string }
   const { t } = useStrings();
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
-  const artWidth = Math.round(screenWidth * 0.86);
+  // The scene takes the right half, so the title's words sit on clear sky.
+  const artWidth = Math.round(screenWidth * 0.5);
   const dark = theme.scheme === 'dark';
   return (
     <LinearWash
@@ -1053,7 +1054,7 @@ function NewGroupHeader({ title, subtitle }: { title: string; subtitle: string }
         style={{
           position: 'absolute',
           end: 0,
-          bottom: HEADER_OVERLAP - 8,
+          bottom: HEADER_OVERLAP - 4,
           // Measured sizes, not a percentage and an aspect ratio: on Android an
           // absolutely placed image sized that way lays out at zero height.
           width: artWidth,
@@ -1067,7 +1068,14 @@ function NewGroupHeader({ title, subtitle }: { title: string; subtitle: string }
         numberOfLines={1}
         adjustsFontSizeToFit
         minimumFontScale={0.8}
-        style={{ fontSize: 28, lineHeight: 34, fontWeight: '700', marginTop: 4, maxWidth: '72%' }}
+        style={{
+          fontSize: 28,
+          lineHeight: 34,
+          fontWeight: '700',
+          marginTop: 4,
+          maxWidth: '62%',
+          zIndex: 1,
+        }}
       >
         {title}
       </Text>
@@ -1080,7 +1088,8 @@ function NewGroupHeader({ title, subtitle }: { title: string; subtitle: string }
           lineHeight: 22,
           fontWeight: '500',
           color: theme.color.textMuted,
-          maxWidth: '75%',
+          maxWidth: '62%',
+          zIndex: 1,
         }}
       >
         {subtitle}
