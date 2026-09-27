@@ -1,148 +1,141 @@
 /**
- * The four things you start from Home, as a row of discs on a frosted panel
- * under the balance card: add an expense, create a group, settle up, and the
- * reports. Each is a disc with its glyph and a word under it, split into equal
- * quarters by hairlines so the row reads as one control strip.
+ * The four things you start from Home, as a row of tiles under the balance
+ * card: add an expense, split a bill, settle up, start a group.
  *
- * Add expense is the one filled in colour — it is what Home is opened for most
- * often — and it keeps the long press that raises the type / scan / speak
- * sheet. The first two keep their tour anchors, so the coach-marks still
- * spotlight them.
+ * Add expense is the one filled in the brand wash — it is what Home is opened
+ * for most often — and it keeps the long press that raises the type / scan /
+ * speak sheet. The others are white tiles with a brand glyph. Add expense and
+ * New group keep their tour anchors, so the coach-marks still spotlight them.
  */
 
 import type { ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, View } from 'react-native';
 
-import { Text, useTheme } from '@waves/ui';
+import { Gradient, Text, useTheme } from '@waves/ui';
 
 import { GroupAddIcon } from '@/components/GroupAddIcon';
 import { useStrings } from '@/i18n';
 import { TourTarget } from '@/lib/tour';
 
-import { FROSTED } from './HomeBalanceCard';
-
-const DISC = 52;
-
 interface QuickAction {
   key: string;
   label: string;
-  /** Spoken in place of the label, when the label alone would be ambiguous. */
-  spoken?: string;
-  glyph: ReactNode;
-  disc: string;
+  glyph: (color: string) => ReactNode;
   onPress: () => void;
   onLongPress?: () => void;
   tourId?: string;
+  primary?: boolean;
 }
 
 export function HomeQuickActions({
   onAddExpense,
   onAddExpenseLong,
-  onCreateGroup,
+  onSplitBill,
   onSettleUp,
-  onReports,
+  onNewGroup,
+  gradient,
 }: {
   onAddExpense: () => void;
   onAddExpenseLong: () => void;
-  onCreateGroup: () => void;
+  onSplitBill: () => void;
   onSettleUp: () => void;
-  onReports: () => void;
+  onNewGroup: () => void;
+  /** The hero's wash, so the primary tile is cut from the same cloth. */
+  gradient: readonly string[];
 }) {
   const theme = useTheme();
   const { t } = useStrings();
-  const brand = theme.gradient.brand[0] ?? theme.color.brand;
 
   const actions: QuickAction[] = [
     {
       key: 'expense',
       label: t.homeDash.addExpense,
-      glyph: <Ionicons name="add" size={30} color="#15803D" />,
-      disc: '#BBF7D0',
+      glyph: (color) => <Ionicons name="add" size={28} color={color} />,
       onPress: onAddExpense,
       onLongPress: onAddExpenseLong,
       tourId: 'addExpense',
+      primary: true,
     },
     {
-      key: 'group',
-      label: t.homeDash.createGroup,
-      glyph: <GroupAddIcon size={22} color={brand} />,
-      disc: '#EDE9FE',
-      onPress: onCreateGroup,
-      tourId: 'addGroup',
+      key: 'split',
+      label: t.homeDash.splitBill,
+      glyph: (color) => <Ionicons name="receipt-outline" size={24} color={color} />,
+      onPress: onSplitBill,
     },
     {
       key: 'settle',
       label: t.homeDash.settleUp,
-      glyph: <Ionicons name="swap-horizontal" size={24} color="#1D4ED8" />,
-      disc: '#DBEAFE',
+      glyph: (color) => <Ionicons name="swap-horizontal" size={24} color={color} />,
       onPress: onSettleUp,
     },
     {
-      key: 'reports',
-      label: t.homeDash.viewReports,
-      glyph: <Ionicons name="stats-chart" size={22} color={brand} />,
-      disc: '#FFFFFF',
-      onPress: onReports,
+      key: 'group',
+      label: t.homeDash.newGroup,
+      glyph: (color) => <GroupAddIcon size={20} color={color} />,
+      onPress: onNewGroup,
+      tourId: 'addGroup',
     },
   ];
 
   return (
-    <View
-      style={{
-        ...FROSTED,
-        borderRadius: theme.radius.xl,
-        paddingVertical: theme.spacing.md,
-        flexDirection: 'row',
-      }}
-    >
-      {actions.map((action, index) => {
-        const button = (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={action.spoken ?? action.label}
-            onPress={action.onPress}
-            onLongPress={action.onLongPress}
-            style={({ pressed }) => ({
+    <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
+      {actions.map((action) => {
+        const ink = action.primary ? theme.color.onBrand : theme.color.brand;
+        const face = (
+          <View
+            style={{
               alignItems: 'center',
-              gap: theme.spacing.sm,
+              justifyContent: 'center',
+              gap: theme.spacing.xs,
+              paddingVertical: theme.spacing.md,
               paddingHorizontal: theme.spacing.xs,
-              opacity: pressed ? 0.6 : 1,
-            })}
+              minHeight: 84,
+            }}
           >
-            <View
-              style={{
-                width: DISC,
-                height: DISC,
-                borderRadius: DISC / 2,
-                backgroundColor: action.disc,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              {action.glyph}
-            </View>
+            {action.glyph(ink)}
             <Text
               variant="caption"
-              tone="onBrand"
               align="center"
               numberOfLines={2}
-              style={{ fontWeight: '600' }}
+              style={{
+                fontWeight: '600',
+                color: action.primary ? theme.color.onBrand : theme.color.text,
+              }}
             >
               {action.label}
             </Text>
+          </View>
+        );
+        const tile = (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={action.label}
+            onPress={action.onPress}
+            onLongPress={action.onLongPress}
+            style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+          >
+            {action.primary ? (
+              <Gradient colors={gradient} radius={theme.radius.lg}>
+                {face}
+              </Gradient>
+            ) : (
+              <View
+                style={{
+                  borderRadius: theme.radius.lg,
+                  backgroundColor: theme.color.surface,
+                  borderWidth: 1,
+                  borderColor: theme.color.border,
+                }}
+              >
+                {face}
+              </View>
+            )}
           </Pressable>
         );
         return (
-          <View
-            key={action.key}
-            style={{
-              flex: 1,
-              borderStartWidth: index === 0 ? 0 : 1,
-              borderStartColor: 'rgba(255, 255, 255, 0.14)',
-            }}
-          >
-            {action.tourId ? <TourTarget id={action.tourId}>{button}</TourTarget> : button}
+          <View key={action.key} style={{ flex: 1 }}>
+            {action.tourId ? <TourTarget id={action.tourId}>{tile}</TourTarget> : tile}
           </View>
         );
       })}

@@ -3,12 +3,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Animated, Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import { Animated, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 
 import { dayNumber, format, money, type GuestGate } from '@waves/core';
 import {
   Avatar,
   Button,
+  directionalIcon,
   EmptyState,
   Gradient,
   iconSize,
@@ -45,11 +46,8 @@ import { useDefaultCurrency } from '@/lib/currency';
 import { QuickAddSheet, useQuickAddActions } from '@/components/QuickAddSheet';
 import { QuickExpenseSheet } from '@/components/QuickExpenseSheet';
 import { BALANCE_MASK, HomeBalanceCard } from '@/components/home/HomeBalanceCard';
-import { HomeActivity } from '@/components/home/HomeActivity';
-import { HomeMonthCard } from '@/components/home/HomeMonthCard';
 import { HomeQuickActions } from '@/components/home/HomeQuickActions';
-import { HomeSwitcher } from '@/components/home/HomeSwitcher';
-import { HomeUpcoming } from '@/components/home/HomeUpcoming';
+import { relativeUnit } from '@/lib/homeDashboard';
 import { SettlePickerSheet, type SettleCandidate } from '@/components/home/SettlePickerSheet';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { RestorePrompt } from '@/components/RestorePrompt';
@@ -329,30 +327,6 @@ export default function HomeScreen() {
   // the React Compiler stays happy — a bare Date.now() in render trips its lint.
   const [nowMs] = useState(() => Date.now());
 
-  // Which list the body shows under the month card. Upcoming reads the private
-  // personal ledger, which a guest does not have, so a guest is offered the
-  // other two.
-  const [section, setSection] = useState<HomeSection>(HomeSection.Groups);
-  const sections = [
-    { value: HomeSection.Groups, label: t.homeDash.tabGroups },
-    ...(isGuest ? [] : [{ value: HomeSection.Upcoming, label: t.homeDash.tabUpcoming }]),
-    { value: HomeSection.Activity, label: t.homeDash.tabActivity },
-  ];
-  // Most recently used first (the default), or the biggest balances first.
-  const [sortByBalance, setSortByBalance] = useState(false);
-  const shown = useMemo(() => {
-    if (!sortByBalance) return list;
-    const size = (id: string) => {
-      const balance = summary.balanceFor(id);
-      return balance < 0n ? -balance : balance;
-    };
-    const bySize = [...list].sort((a, b) => {
-      const d = size(b.id) - size(a.id);
-      return d > 0n ? 1 : d < 0n ? -1 : 0;
-    });
-    return orderByPin(bySize, (group) => pinnedIds.has(group.id));
-  }, [list, sortByBalance, summary, pinnedIds]);
-
   // Settle up from Home asks which group first; these are the ones with money
   // outstanding either way, largest first.
   const [settleOpen, setSettleOpen] = useState(false);
@@ -370,42 +344,46 @@ export default function HomeScreen() {
       const d = size(b.balance) - size(a.balance);
       return d > 0n ? 1 : d < 0n ? -1 : 0;
     });
-
-  // The ⋮ on a group row: the three things you would open the group to do.
-  const [rowMenuFor, setRowMenuFor] = useState<string | null>(null);
-  const rowMenuItems: OverflowMenuItem[] = rowMenuFor
-    ? [
-        {
-          icon: 'add-circle-outline',
-          label: t.homeDash.addExpense,
-          route: `/group/${rowMenuFor}/add-expense`,
-        },
-        {
-          icon: 'swap-horizontal',
-          label: t.homeDash.settleUp,
-          route: `/group/${rowMenuFor}/settle`,
-        },
-        {
-          icon: 'settings-outline',
-          label: t.homeDash.groupSettings,
-          route: `/group/${rowMenuFor}/settings`,
-        },
-      ]
-    : [];
+  // How many groups each side of the balance card comes from — in the
+  // headline's currency, the one those sides are totalled in.
+  const inHeadline = list.filter((group) => group.default_currency === headline.currency);
+  const owedGroups = inHeadline.filter((group) => summary.balanceFor(group.id) > 0n).length;
+  const owingGroups = inHeadline.filter((group) => summary.balanceFor(group.id) < 0n).length;
 
   const monthSpent =
     summary.monthSpent.find((entry) => entry.currency === headline.currency)?.amount ?? 0n;
   const lastMonthSpent =
     summary.lastMonthSpent.find((entry) => entry.currency === headline.currency)?.amount ?? 0n;
   const openReports = () => router.push('/personal/spending');
+  // "Split bill" is the receipt camera: scan it and split it item by item. A
+  // fresh nonce each time so the capture screen fires the camera exactly once.
+  const openSplitBill = () => router.push(`/capture?scan=${Date.now()}`);
+
+  // "Last activity: 2 days ago" under each group, from when its ledger last
+  // moved. The formatter is built once per language, not per row.
+  const rtf = useMemo(
+    () =>
+      typeof Intl.RelativeTimeFormat === 'function'
+        ? new Intl.RelativeTimeFormat(locale, { numeric: 'auto' })
+        : undefined,
+    [locale],
+  );
+  const lastActivityLabel = (groupId: string): string | null => {
+    const at = summary.lastActivityFor(groupId);
+    if (!at || !rtf) return null;
+    const ago = relativeUnit(at, nowMs);
+    return t.homeDash.lastActivity.replace(
+      '{when}',
+      ago ? rtf.format(ago.value, ago.unit) : t.homeDash.justNow,
+    );
+  };
 
   return (
     <Screen edges={[]}>
       {/* The status bar's own strip of the wash, fixed, so the clock and the
-          battery stay white-on-indigo once the hero has scrolled away under
-          them. */}
+          battery stay white-on-colour once the hero has scrolled away. */}
       <Gradient
-        colors={theme.gradient.brand}
+        colors={HERO_WASH}
         radius={0}
         style={{ position: 'absolute', top: 0, left: 0, right: 0, height: insets.top, zIndex: 2 }}
       />
@@ -426,125 +404,109 @@ export default function HomeScreen() {
           />
         }
       >
-        {/* The hero: the brand's indigo wash, edge to edge and up under the
-            status bar, carrying the greeting, the balance card and the quick
-            actions. It scrolls with the page now — three blocks tall, held fixed
-            it would leave the groups a letterbox. Wrapped as the tour's "hero"
-            anchor so the first coach-mark still spotlights the balance. */}
-        <TourTarget id="hero">
-          <Gradient
-            colors={theme.gradient.brand}
-            radius={0}
-            style={{
-              paddingTop: insets.top + theme.spacing.md,
-              paddingHorizontal: theme.spacing.lg,
-              paddingBottom: theme.spacing.lg,
-              borderBottomLeftRadius: theme.radius.xxl,
-              borderBottomRightRadius: theme.radius.xxl,
-              gap: theme.spacing.lg,
-              overflow: 'hidden',
-            }}
-          >
-            {/* Face, "Hi, {name}" over the time of day, then the glyphs that
-                lead somewhere: sync, activity, the menu. */}
-            <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
-              <HeroAvatar
-                name={displayName}
-                photoUrl={avatarUrl}
-                onPress={() => router.navigate('/profile')}
-                label={t.profile}
-              />
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={t.profile}
-                onPress={() => router.navigate('/profile')}
-                hitSlop={8}
-                style={({ pressed }) => ({ flex: 1, opacity: pressed ? 0.5 : 1 })}
-              >
-                <Text variant="title" tone="onBrand" numberOfLines={1}>
-                  {t.dashHero.hi.replace('{name}', displayName)}
-                </Text>
-                <Text variant="body" tone="onBrand" numberOfLines={1} style={{ opacity: 0.85 }}>
-                  {`${t.dashHero[greetKey]} 👋`}
-                </Text>
-              </Pressable>
-              <SyncStatusIcon onBrand />
-              <HeroIconButton
-                icon="notifications-outline"
-                label={t.activity}
-                onPress={() => router.navigate('/activity')}
-              />
-              <HeroIconButton
-                icon="ellipsis-vertical"
-                label={t.account.faceSettings}
-                onPress={() => setMenuOpen(true)}
-              />
-            </Row>
-
-            <HomeBalanceCard
-              net={headline.net}
-              currency={headline.currency}
-              locale={locale}
-              hidden={balanceHidden}
-              onToggleHide={toggleBalance}
-              settling={settling}
-              loading={showSkeleton || !balanceReady}
+        {/* The hero: a violet wash, edge to edge and up under the status bar,
+            carrying the greeting. The balance card below rides up over its
+            bottom edge, so the wash leaves room for it. */}
+        <Gradient
+          colors={HERO_WASH}
+          radius={0}
+          style={{
+            paddingTop: insets.top + theme.spacing.md,
+            paddingHorizontal: theme.spacing.lg,
+            paddingBottom: HERO_OVERLAP + theme.spacing.xl,
+            borderBottomLeftRadius: theme.radius.xxl,
+            borderBottomRightRadius: theme.radius.xxl,
+          }}
+        >
+          {/* Face, "Hi, {name} 👋", the time of day and a line on what the app
+              is for; then the glyphs that lead somewhere: sync, activity, the
+              menu. */}
+          <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+            <HeroAvatar
+              name={displayName}
+              photoUrl={avatarUrl}
+              onPress={() => router.navigate('/profile')}
+              label={t.profile}
             />
-
-            <HomeQuickActions
-              // The quick sheet, not the capture screen: most spends know where
-              // they belong and need an amount and a place. The long press
-              // raises type / scan / speak, unchanged.
-              onAddExpense={() => setQuickExpenseOpen(true)}
-              onAddExpenseLong={() => setQuickAddOpen(true)}
-              onCreateGroup={openNewGroup}
-              onSettleUp={() => setSettleOpen(true)}
-              onReports={openReports}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t.profile}
+              onPress={() => router.navigate('/profile')}
+              hitSlop={8}
+              style={({ pressed }) => ({ flex: 1, opacity: pressed ? 0.5 : 1 })}
+            >
+              <Text variant="title" tone="onBrand" numberOfLines={1}>
+                {`${t.dashHero.hi.replace('{name}', displayName)} 👋`}
+              </Text>
+              <Text variant="body" tone="onBrand" numberOfLines={1} style={{ opacity: 0.9 }}>
+                {`${t.dashHero[greetKey]}!`}
+              </Text>
+              <Text variant="caption" tone="onBrand" numberOfLines={1} style={{ opacity: 0.8 }}>
+                {t.homeDash.greetingSub}
+              </Text>
+            </Pressable>
+            <SyncStatusIcon onBrand />
+            <HeroIconButton
+              icon="notifications-outline"
+              label={t.activity}
+              onPress={() => router.navigate('/activity')}
             />
-          </Gradient>
-        </TourTarget>
+            <HeroIconButton
+              icon="ellipsis-vertical"
+              label={t.account.faceSettings}
+              onPress={() => setMenuOpen(true)}
+            />
+          </Row>
+        </Gradient>
 
-        {/* The body on the lavender canvas: the month, then the switcher and
-            whichever list it has picked. A list gutter (`lg`, 16pt), the phone
-            margin iOS and Android both default to. */}
+        {/* The body on the lavender canvas. A list gutter (`lg`, 16pt), the
+            phone margin iOS and Android both default to. */}
         <View
           style={{
             paddingHorizontal: theme.spacing.lg,
-            paddingTop: theme.spacing.lg,
+            marginTop: -HERO_OVERLAP,
             gap: theme.spacing.lg,
             flexGrow: 1,
           }}
         >
-          {/* A background import's progress lands here, just above the lists —
-              the person tapped Import, came home, and watches it fill. */}
-          <ImportProgressBanner />
-
-          {showSkeleton ? null : (
-            <HomeMonthCard
-              spent={monthSpent}
-              lastSpent={lastMonthSpent}
+          {/* The tour's "hero" anchor is the balance card, so the first
+              coach-mark still spotlights the balance. */}
+          <TourTarget id="hero">
+            <HomeBalanceCard
+              net={headline.net}
               owed={headline.owed}
               owing={headline.owing}
+              owedGroups={owedGroups}
+              owingGroups={owingGroups}
+              monthSpent={monthSpent}
+              lastMonthSpent={lastMonthSpent}
               currency={headline.currency}
               locale={locale}
               hidden={balanceHidden || !balanceReady}
-              onInsights={openReports}
+              onToggleHide={toggleBalance}
+              settling={settling}
+              loading={showSkeleton || !balanceReady}
+              onReports={openReports}
             />
-          )}
+          </TourTarget>
 
-          <HomeSwitcher
-            value={section}
-            onChange={setSection}
-            segments={sections}
-            searchLabel={t.homeDash.searchGroups}
-            onSearch={() => router.navigate('/groups')}
+          <HomeQuickActions
+            // The quick sheet, not the capture screen: most spends know where
+            // they belong and need an amount and a place. The long press
+            // raises type / scan / speak, unchanged.
+            onAddExpense={() => setQuickExpenseOpen(true)}
+            onAddExpenseLong={() => setQuickAddOpen(true)}
+            onSplitBill={openSplitBill}
+            onSettleUp={() => setSettleOpen(true)}
+            onNewGroup={openNewGroup}
+            gradient={HERO_WASH}
           />
 
-          {section === HomeSection.Upcoming ? (
-            <HomeUpcoming />
-          ) : section === HomeSection.Activity ? (
-            <HomeActivity myProfileId={viewerId} />
-          ) : showSkeleton ? (
+          {/* A background import's progress lands here, just above the groups —
+              the person tapped Import, came home, and watches it fill. */}
+          <ImportProgressBanner />
+
+          {showSkeleton ? (
             <SkeletonList rows={3} />
           ) : list.length === 0 ? (
             <View style={{ flex: 1, justifyContent: 'center' }}>
@@ -560,37 +522,33 @@ export default function HomeScreen() {
               />
             </View>
           ) : (
-            <View style={{ gap: theme.spacing.sm }}>
+            <View style={{ gap: theme.spacing.md }}>
               <Row style={{ alignItems: 'center', justifyContent: 'space-between' }}>
-                <Text variant="subheading">
-                  {t.yourGroups}
-                  <Text variant="subheading" tone="muted" style={{ fontWeight: '400' }}>
-                    {`  (${list.length})`}
-                  </Text>
-                </Text>
+                <Text variant="heading">{t.yourGroups}</Text>
                 <Pressable
+                  onPress={() => router.navigate('/groups')}
                   accessibilityRole="button"
-                  accessibilityLabel={
-                    sortByBalance ? t.homeDash.sortBalance : t.homeDash.sortRecent
-                  }
-                  onPress={() => setSortByBalance((was) => !was)}
+                  accessibilityLabel={t.allGroups}
                   hitSlop={8}
                   style={({ pressed }) => ({
                     flexDirection: 'row',
                     alignItems: 'center',
-                    gap: theme.spacing.xs,
+                    gap: 2,
                     opacity: pressed ? 0.5 : 1,
                   })}
                 >
-                  <Ionicons name="swap-vertical" size={iconSize.md} color={theme.color.textMuted} />
-                  <Text variant="caption" tone="muted">
-                    {sortByBalance ? t.homeDash.sortBalance : t.homeDash.sortRecent}
+                  <Text variant="body" tone="brand" style={{ fontWeight: '700' }}>
+                    {t.homeDash.seeAll.replace('{n}', String(list.length))}
                   </Text>
-                  <Ionicons name="chevron-down" size={iconSize.sm} color={theme.color.textMuted} />
+                  <Ionicons
+                    name={directionalIcon('chevron-forward')}
+                    size={iconSize.md}
+                    color={theme.color.brand}
+                  />
                 </Pressable>
               </Row>
 
-              {shown.slice(0, GROUPS_PREVIEW).map((group) => {
+              {list.slice(0, GROUPS_PREVIEW).map((group) => {
                 const balance = summary.balanceFor(group.id);
                 // A running trip earns a live "on trip" tag; failing that, a
                 // just-made group wears "New" for its first couple of days.
@@ -608,6 +566,7 @@ export default function HomeScreen() {
                         ? plural(locale, draftsByGroup.get(group.id) ?? 0, t.draftCount)
                         : null
                     }
+                    activityLabel={lastActivityLabel(group.id)}
                     coverEmoji={group.cover_emoji}
                     balance={balance}
                     currency={group.default_currency}
@@ -635,30 +594,16 @@ export default function HomeScreen() {
                     // mask it until the ledger lands rather than show ₹0.
                     pendingBalance={group.id === justAddedId && !summary.hasLedger(group.id)}
                     onPress={() => router.push(`/group/${group.id}`)}
-                    onMenu={() => setRowMenuFor(group.id)}
                     pinned={pinnedIds.has(group.id)}
                   />
                 );
               })}
-
-              {list.length > GROUPS_PREVIEW ? (
-                <Button
-                  label={t.allGroups}
-                  variant="ghost"
-                  onPress={() => router.navigate('/groups')}
-                />
-              ) : null}
             </View>
           )}
         </View>
       </ScrollView>
 
       <OverflowMenu visible={menuOpen} onClose={() => setMenuOpen(false)} items={menuItems} />
-      <OverflowMenu
-        visible={rowMenuFor !== null}
-        onClose={() => setRowMenuFor(null)}
-        items={rowMenuItems}
-      />
       <SettlePickerSheet
         visible={settleOpen}
         onClose={() => setSettleOpen(false)}
@@ -714,7 +659,7 @@ function HeroAvatar({
     return (
       <Avatar
         name={name}
-        size={56}
+        size={64}
         photoUrl={photoUrl}
         accessibilityLabel={label}
         onPress={onPress}
@@ -728,9 +673,9 @@ function HeroAvatar({
       onPress={onPress}
       hitSlop={8}
       style={({ pressed }) => ({
-        width: 56,
-        height: 56,
-        borderRadius: 28,
+        width: 64,
+        height: 64,
+        borderRadius: 32,
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: 'transparent',
@@ -1118,12 +1063,13 @@ function todayIn(timeZone: string): string {
   }
 }
 
-/** The three lists the dashboard's switcher moves between. */
-enum HomeSection {
-  Groups = 'groups',
-  Upcoming = 'upcoming',
-  Activity = 'activity',
-}
+/** The hero's wash: violet running to blue, brighter than the brand's own so
+ *  the white balance card riding over it reads as lifted off the colour. Every
+ *  stop holds white text. */
+const HERO_WASH = ['#4F55E8', '#6A5AEC', '#8469F0'] as const;
+
+/** How far the balance card rides up over the bottom of the hero. */
+const HERO_OVERLAP = 56;
 
 /**
  * A stable tint per group, picked from its id: the same group wears the same
@@ -1172,17 +1118,18 @@ function SplitAmount({
 }
 
 /**
- * One group as its own card — a tinted disc with the group's mark, the name
- * with its "New" / "On trip" tag over who is in it and what is waiting, the
- * balance on the right in the colour of its direction with the words under it,
- * and a ⋮ for the things you would open the group to do. The whole card is the
- * tap into the group.
+ * One group as its own card, washed faintly in the group's own tint — a disc
+ * with the group's mark, the name with its "New" / "On trip" tag, who is in it
+ * and what is waiting, when it last moved; on the right the balance in the
+ * colour of its direction with that direction as a pill under it, and a
+ * chevron. The whole card is the tap into the group.
  */
 function GroupRow({
   id,
   title,
   memberLabel,
   draftLabel,
+  activityLabel,
   coverEmoji,
   balance,
   currency,
@@ -1196,23 +1143,23 @@ function GroupRow({
   pendingBalance = false,
   hidden = false,
   onPress,
-  onMenu,
   pinned = false,
 }: {
   id: string;
   title: string;
   memberLabel: string;
   /** "1 draft" when this group has money caught but not yet entered, else
-   *  null — the one thing on the row that is waiting on the reader, so it is
-   *  drawn in the warning colour. */
+   *  null — the one thing on the row that is waiting on the reader. */
   draftLabel: string | null;
+  /** "Last activity: 2 days ago", or null when it cannot be said. */
+  activityLabel: string | null;
   coverEmoji: string | null;
   balance: bigint;
   currency: string;
   locale: string;
   /** "You are owed" — spoken, in the row's accessibility label. */
   statusLabel: string;
-  /** "you are owed" — the same standing, drawn small under the amount. */
+  /** "you owe" — the same standing, drawn in a pill under the amount. */
   directionLabel: string;
   pendingLabel: string | null;
   tag: string | null;
@@ -1227,8 +1174,6 @@ function GroupRow({
       into place on mount rather than blinking in. */
   enter?: boolean;
   onPress: () => void;
-  /** The ⋮ — add an expense, settle up, the group's settings. */
-  onMenu: () => void;
   /** Sorted to the top by `orderByPin`; carries the small pin glyph and is
       announced in the row's accessibility label. */
   pinned?: boolean;
@@ -1257,13 +1202,24 @@ function GroupRow({
 
   // A screen reader is given the label instead of the text inside the row, so
   // everything the row says on screen is said here too.
-  const spoken = pendingLabel ?? [memberLabel, draftLabel, statusLabel].filter(Boolean).join(' · ');
+  const spoken = [
+    pendingLabel ?? [memberLabel, draftLabel].filter(Boolean).join(' · '),
+    statusLabel,
+  ]
+    .concat(activityLabel ? [activityLabel] : [])
+    .join(' · ');
   const ink =
     balance === 0n
       ? theme.color.textMuted
       : balance > 0n
         ? theme.color.positive
         : theme.color.negative;
+  const pill =
+    balance === 0n
+      ? theme.color.surfaceMuted
+      : balance > 0n
+        ? theme.color.positiveSoft
+        : theme.color.negativeSoft;
 
   return (
     <Animated.View
@@ -1284,25 +1240,31 @@ function GroupRow({
           gap: theme.spacing.md,
           paddingVertical: theme.spacing.md,
           paddingStart: theme.spacing.md,
-          paddingEnd: theme.spacing.xs,
+          paddingEnd: theme.spacing.sm,
           backgroundColor: theme.color.surface,
           borderRadius: theme.radius.lg,
           borderWidth: 1,
           borderColor: theme.color.border,
+          overflow: 'hidden',
           opacity: pressed ? 0.7 : 1,
         })}
       >
+        {/* The card's faint wash in the group's own tint. */}
+        <View
+          pointerEvents="none"
+          style={[StyleSheet.absoluteFill, { backgroundColor: tint.bg, opacity: 0.35 }]}
+        />
         <View
           style={{
-            width: 48,
-            height: 48,
-            borderRadius: 24,
+            width: 52,
+            height: 52,
+            borderRadius: 26,
             backgroundColor: tint.bg,
             alignItems: 'center',
             justifyContent: 'center',
           }}
         >
-          <GroupMark emoji={coverEmoji} size={24} color={tint.ink} />
+          <GroupMark emoji={coverEmoji} size={26} color={tint.ink} />
         </View>
         <View style={{ flex: 1, gap: 2 }}>
           <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
@@ -1313,9 +1275,9 @@ function GroupRow({
             {tag ? (
               <View
                 style={{
-                  paddingHorizontal: 6,
+                  paddingHorizontal: 8,
                   paddingVertical: 1,
-                  borderRadius: 6,
+                  borderRadius: theme.radius.pill,
                   backgroundColor:
                     tagTone === 'positive' ? theme.color.positiveSoft : theme.color.brandSoft,
                 }}
@@ -1330,25 +1292,22 @@ function GroupRow({
               </View>
             ) : null}
           </Row>
-          {pendingLabel ? (
-            <Text variant="caption" tone="muted" numberOfLines={1}>
-              {pendingLabel}
-            </Text>
-          ) : (
-            <Text variant="caption" tone="muted" numberOfLines={1}>
-              {memberLabel}
-              {draftLabel ? (
-                <Text variant="caption" style={{ color: theme.color.warning, fontWeight: '600' }}>
-                  {`  •  ${draftLabel}`}
-                </Text>
-              ) : null}
-            </Text>
-          )}
+          <Text variant="caption" tone="muted" numberOfLines={1}>
+            {pendingLabel ?? [memberLabel, draftLabel].filter(Boolean).join('  ·  ')}
+          </Text>
+          {activityLabel ? (
+            <Row style={{ alignItems: 'center', gap: 4 }}>
+              <Ionicons name="time-outline" size={13} color={theme.color.textMuted} />
+              <Text variant="caption" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
+                {activityLabel}
+              </Text>
+            </Row>
+          ) : null}
         </View>
         {pendingBalance ? (
           <Skeleton width={64} height={16} radius={6} animated={!reduceMotion} />
         ) : (
-          <View style={{ alignItems: 'flex-end', gap: 2, maxWidth: '42%' }}>
+          <View style={{ alignItems: 'flex-end', gap: theme.spacing.xs, maxWidth: '40%' }}>
             {hidden ? (
               <Text variant="subheading" tone="muted" style={{ fontWeight: '700' }}>
                 {BALANCE_MASK}
@@ -1356,20 +1315,25 @@ function GroupRow({
             ) : (
               <SplitAmount amount={balance} currency={currency} locale={locale} color={ink} />
             )}
-            <Text variant="caption" tone="muted" numberOfLines={1}>
-              {directionLabel}
-            </Text>
+            <View
+              style={{
+                paddingHorizontal: theme.spacing.sm,
+                paddingVertical: 2,
+                borderRadius: theme.radius.pill,
+                backgroundColor: pill,
+              }}
+            >
+              <Text variant="caption" numberOfLines={1} style={{ color: ink, fontWeight: '600' }}>
+                {directionLabel}
+              </Text>
+            </View>
           </View>
         )}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`${t.homeDash.groupOptions}: ${title}`}
-          onPress={onMenu}
-          hitSlop={8}
-          style={({ pressed }) => ({ padding: theme.spacing.xs, opacity: pressed ? 0.5 : 1 })}
-        >
-          <Ionicons name="ellipsis-vertical" size={iconSize.md} color={theme.color.textMuted} />
-        </Pressable>
+        <Ionicons
+          name={directionalIcon('chevron-forward')}
+          size={iconSize.md}
+          color={theme.color.textMuted}
+        />
       </Pressable>
     </Animated.View>
   );

@@ -1483,41 +1483,33 @@ export interface UiStrings {
     hideBalance: string;
     showBalance: string;
   };
-  /** The dashboard: balance card, quick actions, the month card and the
-   *  Groups / Upcoming / Activity switcher. */
+  /** The dashboard: the balance card, the action tiles and the groups list. */
   homeDash: {
     totalOwed: string;
     totalOwe: string;
     totalSettled: string;
+    spentThisMonth: string;
     vsLastMonth: string;
-    createGroup: string;
-    settleUp: string;
-    viewReports: string;
-    thisMonth: string;
-    seeInsights: string;
-    youSpent: string;
-    youAreOwed: string;
+    periodOverall: string;
+    periodMonth: string;
+    youLent: string;
     youOwe: string;
-    tabGroups: string;
-    tabUpcoming: string;
-    tabActivity: string;
-    searchGroups: string;
-    sortBalance: string;
-    sortRecent: string;
+    greetingSub: string;
+    splitBill: string;
+    settleUp: string;
+    newGroup: string;
+    addExpense: string;
+    reports: string;
+    seeAll: string;
+    lastActivity: string;
+    justNow: string;
     settleTitle: string;
     settleEmpty: string;
-    upcomingEmpty: string;
-    upcomingLocked: string;
-    unlock: string;
-    manageRecurring: string;
-    noActivity: string;
-    seeAllActivity: string;
-    groupOptions: string;
-    groupSettings: string;
-    addExpense: string;
     wordOwed: string;
     wordOwe: string;
     wordSettled: string;
+    /** "Across 4 groups", under each side of the balance card. */
+    acrossGroups: PluralForms;
   };
   /** The rotating "did you know" tips card on the dashboard — one useful,
    *  app-specific hint at a time, dismissible for good. */
@@ -4832,35 +4824,27 @@ const en: UiStrings = {
     totalOwed: 'Total you are owed',
     totalOwe: 'Total you owe',
     totalSettled: 'You are all settled up',
+    spentThisMonth: 'You spent this month',
     vsLastMonth: 'vs last month',
-    createGroup: 'Create group',
-    settleUp: 'Settle up',
-    viewReports: 'View reports',
-    thisMonth: 'This month',
-    seeInsights: 'See insights',
-    youSpent: 'You spent',
-    youAreOwed: 'You are owed',
+    periodOverall: 'Overall',
+    periodMonth: 'This month',
+    youLent: 'You lent',
     youOwe: 'You owe',
-    tabGroups: 'Groups',
-    tabUpcoming: 'Upcoming',
-    tabActivity: 'Activity',
-    searchGroups: 'Search groups',
-    sortBalance: 'Sort by balance',
-    sortRecent: 'Sort by recent',
+    greetingSub: 'Stay on top of your shared expenses',
+    splitBill: 'Split bill',
+    settleUp: 'Settle up',
+    newGroup: 'New group',
+    addExpense: 'Add expense',
+    reports: 'Reports',
+    seeAll: 'See all ({n})',
+    lastActivity: 'Last activity: {when}',
+    justNow: 'just now',
     settleTitle: 'Settle up in',
     settleEmpty: 'You are square in every group.',
-    upcomingEmpty: 'No recurring bills or income coming up.',
-    upcomingLocked: 'Your upcoming bills are private.',
-    unlock: 'Unlock',
-    manageRecurring: 'Manage recurring',
-    noActivity: 'No activity yet.',
-    seeAllActivity: 'See all activity',
-    groupOptions: 'Group options',
-    groupSettings: 'Group settings',
-    addExpense: 'Add expense',
     wordOwed: 'you are owed',
     wordOwe: 'you owe',
     wordSettled: 'settled up',
+    acrossGroups: { one: 'Across {n} group', other: 'Across {n} groups' },
   },
   tips: {
     label: 'Tip',
@@ -7865,35 +7849,27 @@ const ta: UiStrings = {
     totalOwed: 'உங்களுக்கு வர வேண்டிய மொத்தம்',
     totalOwe: 'நீங்கள் தர வேண்டிய மொத்தம்',
     totalSettled: 'எல்லாம் தீர்க்கப்பட்டது',
+    spentThisMonth: 'இந்த மாதம் நீங்கள் செலவிட்டது',
     vsLastMonth: 'கடந்த மாதத்துடன் ஒப்பிட',
-    createGroup: 'குழு உருவாக்கு',
-    settleUp: 'கணக்கு தீர்',
-    viewReports: 'அறிக்கைகள்',
-    thisMonth: 'இந்த மாதம்',
-    seeInsights: 'விவரங்கள் காண்க',
-    youSpent: 'நீங்கள் செலவிட்டது',
-    youAreOwed: 'உங்களுக்கு வர வேண்டியது',
+    periodOverall: 'மொத்தம்',
+    periodMonth: 'இந்த மாதம்',
+    youLent: 'நீங்கள் கொடுத்தது',
     youOwe: 'நீங்கள் தர வேண்டியது',
-    tabGroups: 'குழுக்கள்',
-    tabUpcoming: 'வரவிருப்பவை',
-    tabActivity: 'செயல்பாடு',
-    searchGroups: 'குழுக்களைத் தேடு',
-    sortBalance: 'இருப்பின்படி',
-    sortRecent: 'சமீபத்தியவை முதலில்',
+    greetingSub: 'பகிர்ந்த செலவுகளைக் கவனித்துக் கொள்ளுங்கள்',
+    splitBill: 'பில் பிரி',
+    settleUp: 'கணக்கு தீர்',
+    newGroup: 'புதிய குழு',
+    addExpense: 'செலவு சேர்',
+    reports: 'அறிக்கைகள்',
+    seeAll: 'அனைத்தும் ({n})',
+    lastActivity: 'கடைசி செயல்பாடு: {when}',
+    justNow: 'இப்போது',
     settleTitle: 'எந்தக் குழுவில் தீர்க்க வேண்டும்?',
     settleEmpty: 'எல்லா குழுக்களிலும் கணக்கு சரியாக உள்ளது.',
-    upcomingEmpty: 'வரவிருக்கும் தொடர் செலவுகளோ வருமானமோ இல்லை.',
-    upcomingLocked: 'உங்கள் வரவிருக்கும் கட்டணங்கள் தனிப்பட்டவை.',
-    unlock: 'திற',
-    manageRecurring: 'தொடர் பதிவுகளை நிர்வகி',
-    noActivity: 'இன்னும் செயல்பாடு இல்லை.',
-    seeAllActivity: 'அனைத்து செயல்பாடுகளும்',
-    groupOptions: 'குழு விருப்பங்கள்',
-    groupSettings: 'குழு அமைப்புகள்',
-    addExpense: 'செலவு சேர்',
     wordOwed: 'உங்களுக்கு வர வேண்டியது',
     wordOwe: 'நீங்கள் தர வேண்டியது',
     wordSettled: 'தீர்க்கப்பட்டது',
+    acrossGroups: { one: '{n} குழுவில்', other: '{n} குழுக்களில்' },
   },
   tips: {
     label: 'உதவிக்குறிப்பு',
@@ -10970,35 +10946,27 @@ const hi: UiStrings = {
     totalOwed: 'आपको कुल मिलने हैं',
     totalOwe: 'आपको कुल देने हैं',
     totalSettled: 'सब हिसाब बराबर है',
+    spentThisMonth: 'इस महीने आपने खर्च किए',
     vsLastMonth: 'पिछले महीने की तुलना में',
-    createGroup: 'समूह बनाएँ',
-    settleUp: 'हिसाब चुकाएँ',
-    viewReports: 'रिपोर्ट देखें',
-    thisMonth: 'इस महीने',
-    seeInsights: 'विश्लेषण देखें',
-    youSpent: 'आपने खर्च किए',
-    youAreOwed: 'आपको मिलने हैं',
+    periodOverall: 'कुल',
+    periodMonth: 'इस महीने',
+    youLent: 'आपने दिए',
     youOwe: 'आपको देने हैं',
-    tabGroups: 'समूह',
-    tabUpcoming: 'आने वाले',
-    tabActivity: 'गतिविधि',
-    searchGroups: 'समूह खोजें',
-    sortBalance: 'बैलेंस के अनुसार',
-    sortRecent: 'हाल के अनुसार',
+    greetingSub: 'साझा खर्चों पर नज़र रखें',
+    splitBill: 'बिल बाँटें',
+    settleUp: 'हिसाब चुकाएँ',
+    newGroup: 'नया समूह',
+    addExpense: 'खर्च जोड़ें',
+    reports: 'रिपोर्ट',
+    seeAll: 'सभी देखें ({n})',
+    lastActivity: 'पिछली गतिविधि: {when}',
+    justNow: 'अभी',
     settleTitle: 'किस समूह में हिसाब चुकाएँ?',
     settleEmpty: 'हर समूह में हिसाब बराबर है।',
-    upcomingEmpty: 'कोई आने वाला आवर्ती खर्च या आय नहीं।',
-    upcomingLocked: 'आपके आने वाले बिल निजी हैं।',
-    unlock: 'अनलॉक करें',
-    manageRecurring: 'आवर्ती प्रबंधित करें',
-    noActivity: 'अभी कोई गतिविधि नहीं।',
-    seeAllActivity: 'सारी गतिविधि देखें',
-    groupOptions: 'समूह विकल्प',
-    groupSettings: 'समूह सेटिंग्स',
-    addExpense: 'खर्च जोड़ें',
     wordOwed: 'आपको मिलने हैं',
     wordOwe: 'आपको देने हैं',
     wordSettled: 'हिसाब बराबर',
+    acrossGroups: { one: '{n} समूह में', other: '{n} समूहों में' },
   },
   tips: {
     label: 'सुझाव',
@@ -14057,35 +14025,34 @@ const ar: UiStrings = {
     totalOwed: 'إجمالي المستحق لك',
     totalOwe: 'إجمالي المستحق عليك',
     totalSettled: 'كل الحسابات مسوّاة',
+    spentThisMonth: 'أنفقت هذا الشهر',
     vsLastMonth: 'مقارنة بالشهر الماضي',
-    createGroup: 'إنشاء مجموعة',
-    settleUp: 'تسوية',
-    viewReports: 'عرض التقارير',
-    thisMonth: 'هذا الشهر',
-    seeInsights: 'عرض التحليلات',
-    youSpent: 'أنفقت',
-    youAreOwed: 'مستحق لك',
+    periodOverall: 'الإجمالي',
+    periodMonth: 'هذا الشهر',
+    youLent: 'أقرضت',
     youOwe: 'عليك',
-    tabGroups: 'المجموعات',
-    tabUpcoming: 'القادمة',
-    tabActivity: 'النشاط',
-    searchGroups: 'البحث في المجموعات',
-    sortBalance: 'حسب الرصيد',
-    sortRecent: 'الأحدث أولاً',
+    greetingSub: 'تابع مصروفاتك المشتركة',
+    splitBill: 'تقسيم فاتورة',
+    settleUp: 'تسوية',
+    newGroup: 'مجموعة جديدة',
+    addExpense: 'إضافة مصروف',
+    reports: 'التقارير',
+    seeAll: 'عرض الكل ({n})',
+    lastActivity: 'آخر نشاط: {when}',
+    justNow: 'الآن',
     settleTitle: 'التسوية في أي مجموعة؟',
     settleEmpty: 'حساباتك مسوّاة في كل المجموعات.',
-    upcomingEmpty: 'لا توجد مصروفات أو دخل متكرر قادم.',
-    upcomingLocked: 'فواتيرك القادمة خاصة.',
-    unlock: 'فتح القفل',
-    manageRecurring: 'إدارة المتكررة',
-    noActivity: 'لا يوجد نشاط بعد.',
-    seeAllActivity: 'عرض كل النشاط',
-    groupOptions: 'خيارات المجموعة',
-    groupSettings: 'إعدادات المجموعة',
-    addExpense: 'إضافة مصروف',
     wordOwed: 'مستحق لك',
     wordOwe: 'عليك',
     wordSettled: 'مسوّى',
+    acrossGroups: {
+      zero: 'في {n} مجموعة',
+      one: 'في مجموعة واحدة',
+      two: 'في مجموعتين',
+      few: 'في {n} مجموعات',
+      many: 'في {n} مجموعة',
+      other: 'في {n} مجموعة',
+    },
   },
   tips: {
     label: 'نصيحة',

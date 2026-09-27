@@ -1,13 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { PersonalRecurring } from '@waves/core';
-
-import {
-  daysBetween,
-  percentChange,
-  previousMonthPrefix,
-  upcomingRules,
-} from '@/lib/homeDashboard';
+import { percentChange, previousMonthPrefix, relativeUnit } from '@/lib/homeDashboard';
 
 describe('previousMonthPrefix', () => {
   it('steps back one month, across a year', () => {
@@ -33,41 +26,14 @@ describe('percentChange', () => {
   });
 });
 
-describe('upcomingRules', () => {
-  const rule = (over: Partial<PersonalRecurring>): PersonalRecurring =>
-    ({
-      id: 'r',
-      txnKind: 'expense',
-      amount: 100n,
-      currency: 'INR',
-      category: null,
-      note: null,
-      cadence: 'monthly',
-      interval: 1,
-      secondDay: null,
-      anchorDate: '2026-01-01',
-      nextDate: '2026-10-01',
-      endDate: null,
-      autoPost: false,
-      active: true,
-      ...over,
-    }) as PersonalRecurring;
-
-  it('lists active, unfinished rules soonest first', () => {
-    const rules = [
-      rule({ id: 'later', nextDate: '2026-10-20' }),
-      rule({ id: 'paused', nextDate: '2026-10-02', active: false }),
-      rule({ id: 'ended', nextDate: '2026-10-03', endDate: '2026-09-30' }),
-      rule({ id: 'soon', nextDate: '2026-10-05' }),
-    ];
-    expect(upcomingRules(rules).map((r) => r.id)).toEqual(['soon', 'later']);
-  });
-});
-
-describe('daysBetween', () => {
-  it('counts whole days either way', () => {
-    expect(daysBetween('2026-09-27', '2026-09-30')).toBe(3);
-    expect(daysBetween('2026-09-27', '2026-09-25')).toBe(-2);
-    expect(daysBetween('2026-09-27', '2026-09-27')).toBe(0);
+describe('relativeUnit', () => {
+  const now = Date.parse('2026-09-27T12:00:00Z');
+  it('picks the largest whole unit', () => {
+    expect(relativeUnit(now - 30_000, now)).toBeNull();
+    expect(relativeUnit(now - 5 * 60_000, now)).toEqual({ value: -5, unit: 'minute' });
+    expect(relativeUnit(now - 3 * 3_600_000, now)).toEqual({ value: -3, unit: 'hour' });
+    expect(relativeUnit(now - 2 * 86_400_000, now)).toEqual({ value: -2, unit: 'day' });
+    expect(relativeUnit(now - 70 * 86_400_000, now)).toEqual({ value: -2, unit: 'month' });
+    expect(relativeUnit(now - 800 * 86_400_000, now)).toEqual({ value: -2, unit: 'year' });
   });
 });

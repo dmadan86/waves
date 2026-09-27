@@ -389,56 +389,6 @@ export function usePersonalGate(promptMessage: string): PersonalGateValue {
   return { unlocked, checking, failed, retry };
 }
 
-/**
- * The personal ledger's unlock, for a surface *outside* the section that wants
- * to show a little of it — the dashboard's Upcoming list.
- *
- * Unlike `usePersonalGate` it never asks on its own: the dashboard is not a
- * personal screen, and an OS prompt appearing because a tab happened to be
- * selected would be the app asking a question nobody put to it. It reads the
- * same store, so an unlock made in the section shows here and one made here
- * covers the section, and the unlock ages exactly as it does there — time spent
- * outside the section counts against the "Ask again after" window, so the list
- * shuts itself again when that window runs out. `unlock` is for a button the
- * user presses.
- */
-export function usePersonalPeek(promptMessage: string): {
-  unlocked: boolean;
-  unlock: () => Promise<void>;
-} {
-  const { graceSeconds, supported } = useLock();
-  const state = useSyncExternalStore(
-    subscribePersonalLock,
-    getPersonalLockState,
-    getPersonalLockState,
-  );
-  const unlocked = isPersonalUnlocked(state, lockClockNow(), graceSeconds);
-  const asking = useRef(false);
-  const unlock = useCallback(async (): Promise<void> => {
-    if (asking.current) return;
-    asking.current = true;
-    beginPersonalCheck();
-    try {
-      const canAsk =
-        Platform.OS !== 'web' && supported && (await LocalAuthentication.isEnrolledAsync());
-      if (!canAsk) {
-        markPersonalUnlocked();
-        return;
-      }
-      const result = await LocalAuthentication.authenticateAsync({
-        promptMessage,
-        fallbackLabel: 'Use passcode',
-      });
-      if (result.success) markPersonalUnlocked();
-      else lockPersonal();
-    } finally {
-      asking.current = false;
-      endPersonalCheck();
-    }
-  }, [supported, promptMessage]);
-  return { unlocked, unlock };
-}
-
 /** "Straight away", "After 30 seconds" — the words the settings row uses too. */
 export function describeGrace(seconds: number, t: UiStrings, locale: string): string {
   if (seconds <= 0) return t.lock.graceImmediate;
