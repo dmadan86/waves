@@ -135,7 +135,7 @@ export function CurrencySheet({
         style={{
           alignItems: 'center',
           gap: theme.spacing.md,
-          height: 48,
+          height: 44,
           paddingHorizontal: theme.spacing.lg,
           borderRadius: theme.radius.pill,
           backgroundColor: track,
@@ -149,15 +149,13 @@ export function CurrencySheet({
           placeholderTextColor={theme.color.textMuted}
           accessibilityLabel={t.captureForm.searchCurrency}
           autoCorrect={false}
-          style={{ flex: 1, fontSize: 16, color: theme.color.text, paddingVertical: 0 }}
+          style={{ flex: 1, fontSize: 15, color: theme.color.text, paddingVertical: 0 }}
         />
       </Row>
 
       {needle ? null : (
         <View style={{ gap: theme.spacing.sm }}>
-          <Text variant="body" tone="muted" style={{ fontWeight: '600' }}>
-            {t.captureForm.recentlyUsed}
-          </Text>
+          <Text style={SECTION_LABEL(theme)}>{t.captureForm.recentlyUsed}</Text>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -177,21 +175,32 @@ export function CurrencySheet({
                     flexDirection: 'row',
                     alignItems: 'center',
                     gap: theme.spacing.sm,
-                    paddingVertical: theme.spacing.sm,
-                    paddingHorizontal: theme.spacing.md,
-                    borderRadius: theme.radius.lg,
+                    paddingVertical: 8,
+                    paddingStart: theme.spacing.sm,
+                    paddingEnd: theme.spacing.md,
+                    borderRadius: 14,
                     borderWidth: selected ? 1.5 : 1,
                     borderColor: selected ? theme.color.brand : theme.color.border,
                     backgroundColor: selected ? theme.color.brandSoft : theme.color.surface,
                     opacity: pressed ? 0.7 : 1,
                   })}
                 >
-                  <FlagDisc code={code} size={34} />
+                  <FlagDisc code={code} size={24} />
                   <View>
-                    <Text variant="body" style={{ fontWeight: '700' }}>
+                    <Text
+                      style={{
+                        fontSize: 14,
+                        lineHeight: 18,
+                        fontWeight: '700',
+                        color: theme.color.text,
+                      }}
+                    >
                       {code}
                     </Text>
-                    <Text variant="micro" tone="muted" numberOfLines={1}>
+                    <Text
+                      numberOfLines={1}
+                      style={{ fontSize: 11, lineHeight: 14, color: theme.color.textMuted }}
+                    >
                       {titled(names.currency(code))}
                     </Text>
                   </View>
@@ -203,10 +212,8 @@ export function CurrencySheet({
         </View>
       )}
 
-      <View style={{ gap: theme.spacing.xs }}>
-        <Text variant="body" tone="muted" style={{ fontWeight: '600' }}>
-          {t.captureForm.allCurrencies}
-        </Text>
+      <View style={{ gap: 4 }}>
+        <Text style={SECTION_LABEL(theme)}>{t.captureForm.allCurrencies}</Text>
         {rows.length === 0 ? (
           <Text
             variant="body"
@@ -219,35 +226,53 @@ export function CurrencySheet({
         ) : (
           rows.map((code, index) => {
             const selected = code === value;
+            // A hairline between rows, starting at the code rather than under
+            // the flag, and never against the lit row's tint.
+            const rule = index > 0 && !selected && rows[index - 1] !== value;
             return (
-              <Pressable
-                key={code}
-                accessibilityRole="radio"
-                accessibilityState={{ selected }}
-                accessibilityLabel={`${code}, ${titled(names.currency(code))}`}
-                onPress={() => pick(code)}
-                style={({ pressed }) => ({
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: theme.spacing.lg,
-                  paddingVertical: theme.spacing.md,
-                  paddingHorizontal: theme.spacing.md,
-                  borderRadius: theme.radius.md,
-                  backgroundColor: selected ? theme.color.brandSoft : 'transparent',
-                  borderTopWidth: index === 0 || selected ? 0 : 1,
-                  borderTopColor: theme.color.border,
-                  opacity: pressed ? 0.7 : 1,
-                })}
-              >
-                <FlagDisc code={code} size={36} />
-                <Text variant="body" style={{ width: 48, fontWeight: '700' }}>
-                  {code}
-                </Text>
-                <Text variant="body" tone="muted" numberOfLines={1} style={{ flex: 1 }}>
-                  {titled(names.currency(code))}
-                </Text>
-                <Radio selected={selected} />
-              </Pressable>
+              <View key={code}>
+                {rule ? (
+                  <View
+                    style={{
+                      height: 1,
+                      marginStart: theme.spacing.md + ROW_FLAG + theme.spacing.md,
+                      marginEnd: theme.spacing.md,
+                      backgroundColor: theme.color.border,
+                    }}
+                  />
+                ) : null}
+                <Pressable
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected }}
+                  accessibilityLabel={`${code}, ${titled(names.currency(code))}`}
+                  onPress={() => pick(code)}
+                  style={({ pressed }) => ({
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: theme.spacing.md,
+                    minHeight: 44,
+                    paddingVertical: 6,
+                    paddingHorizontal: theme.spacing.md,
+                    borderRadius: 12,
+                    backgroundColor: selected ? theme.color.brandSoft : 'transparent',
+                    opacity: pressed ? 0.7 : 1,
+                  })}
+                >
+                  <FlagDisc code={code} size={ROW_FLAG} />
+                  <Text
+                    style={{ width: 40, fontSize: 15, fontWeight: '700', color: theme.color.text }}
+                  >
+                    {code}
+                  </Text>
+                  <Text
+                    numberOfLines={1}
+                    style={{ flex: 1, fontSize: 15, color: theme.color.textMuted }}
+                  >
+                    {titled(names.currency(code))}
+                  </Text>
+                  <Radio selected={selected} />
+                </Pressable>
+              </View>
             );
           })
         )}
@@ -278,10 +303,10 @@ function Radio({ selected }: { selected: boolean }) {
   return (
     <View
       style={{
-        width: 24,
-        height: 24,
-        borderRadius: 12,
-        borderWidth: 2,
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        borderWidth: 1.5,
         borderColor: selected ? theme.color.brand : theme.color.border,
         alignItems: 'center',
         justifyContent: 'center',
@@ -289,9 +314,16 @@ function Radio({ selected }: { selected: boolean }) {
     >
       {selected ? (
         <View
-          style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: theme.color.brand }}
+          style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: theme.color.brand }}
         />
       ) : null}
     </View>
   );
 }
+
+/** The flag's box in a list row. */
+const ROW_FLAG = 26;
+
+/** "Recently used" / "All currencies": small, quiet, a little weight. */
+const SECTION_LABEL = (theme: ReturnType<typeof useTheme>) =>
+  ({ fontSize: 14, lineHeight: 18, fontWeight: '500', color: theme.color.textMuted }) as const;
