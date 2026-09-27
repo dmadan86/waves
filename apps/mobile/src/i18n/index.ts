@@ -1548,14 +1548,8 @@ export interface UiStrings {
     newGroup: string;
     addExpense: string;
     reports: string;
-    seeAll: string;
-    lastActivity: string;
-    justNow: string;
     settleTitle: string;
     settleEmpty: string;
-    wordOwed: string;
-    wordOwe: string;
-    wordSettled: string;
     /** "Across 4 groups", under each side of the balance card. */
     acrossGroups: PluralForms;
   };
@@ -4929,14 +4923,8 @@ const en: UiStrings = {
     newGroup: 'New group',
     addExpense: 'Add expense',
     reports: 'Reports',
-    seeAll: 'See all ({n})',
-    lastActivity: 'Last activity: {when}',
-    justNow: 'just now',
     settleTitle: 'Settle up in',
     settleEmpty: 'You are square in every group.',
-    wordOwed: 'you are owed',
-    wordOwe: 'you owe',
-    wordSettled: 'settled up',
     acrossGroups: { one: 'Across {n} group', other: 'Across {n} groups' },
   },
   tips: {
@@ -7999,14 +7987,8 @@ const ta: UiStrings = {
     newGroup: 'புதிய குழு',
     addExpense: 'செலவு சேர்',
     reports: 'அறிக்கைகள்',
-    seeAll: 'அனைத்தும் ({n})',
-    lastActivity: 'கடைசி செயல்பாடு: {when}',
-    justNow: 'இப்போது',
     settleTitle: 'எந்தக் குழுவில் தீர்க்க வேண்டும்?',
     settleEmpty: 'எல்லா குழுக்களிலும் கணக்கு சரியாக உள்ளது.',
-    wordOwed: 'உங்களுக்கு வர வேண்டியது',
-    wordOwe: 'நீங்கள் தர வேண்டியது',
-    wordSettled: 'தீர்க்கப்பட்டது',
     acrossGroups: { one: '{n} குழுவில்', other: '{n} குழுக்களில்' },
   },
   tips: {
@@ -11141,14 +11123,8 @@ const hi: UiStrings = {
     newGroup: 'नया समूह',
     addExpense: 'खर्च जोड़ें',
     reports: 'रिपोर्ट',
-    seeAll: 'सभी देखें ({n})',
-    lastActivity: 'पिछली गतिविधि: {when}',
-    justNow: 'अभी',
     settleTitle: 'किस समूह में हिसाब चुकाएँ?',
     settleEmpty: 'हर समूह में हिसाब बराबर है।',
-    wordOwed: 'आपको मिलने हैं',
-    wordOwe: 'आपको देने हैं',
-    wordSettled: 'हिसाब बराबर',
     acrossGroups: { one: '{n} समूह में', other: '{n} समूहों में' },
   },
   tips: {
@@ -14265,14 +14241,8 @@ const ar: UiStrings = {
     newGroup: 'مجموعة جديدة',
     addExpense: 'إضافة مصروف',
     reports: 'التقارير',
-    seeAll: 'عرض الكل ({n})',
-    lastActivity: 'آخر نشاط: {when}',
-    justNow: 'الآن',
     settleTitle: 'التسوية في أي مجموعة؟',
     settleEmpty: 'حساباتك مسوّاة في كل المجموعات.',
-    wordOwed: 'مستحق لك',
-    wordOwe: 'عليك',
-    wordSettled: 'مسوّى',
     acrossGroups: {
       zero: 'في {n} مجموعة',
       one: 'في مجموعة واحدة',

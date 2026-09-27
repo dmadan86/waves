@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { percentChange, previousMonthPrefix, relativeUnit } from '@/lib/homeDashboard';
+import { percentChange, previousMonthPrefix } from '@/lib/homeDashboard';
 
 describe('previousMonthPrefix', () => {
   it('steps back one month, across a year', () => {
@@ -23,17 +23,5 @@ describe('percentChange', () => {
 
   it('has nothing to say without a last month', () => {
     expect(percentChange(500n, 0n)).toBeNull();
-  });
-});
-
-describe('relativeUnit', () => {
-  const now = Date.parse('2026-09-27T12:00:00Z');
-  it('picks the largest whole unit', () => {
-    expect(relativeUnit(now - 30_000, now)).toBeNull();
-    expect(relativeUnit(now - 5 * 60_000, now)).toEqual({ value: -5, unit: 'minute' });
-    expect(relativeUnit(now - 3 * 3_600_000, now)).toEqual({ value: -3, unit: 'hour' });
-    expect(relativeUnit(now - 2 * 86_400_000, now)).toEqual({ value: -2, unit: 'day' });
-    expect(relativeUnit(now - 70 * 86_400_000, now)).toEqual({ value: -2, unit: 'month' });
-    expect(relativeUnit(now - 800 * 86_400_000, now)).toEqual({ value: -2, unit: 'year' });
   });
 });
