@@ -1,6 +1,7 @@
 /**
- * The four things you start from Home, as a row of tiles under the balance
- * card: add an expense, split a bill, settle up, start a group.
+ * The four things you start from Home, as a row of compact tiles under the
+ * balance card — a glyph over a one-line word, so the row costs little
+ * height: add an expense, split a bill, settle up, start a group.
  *
  * Add expense is the one filled in the brand wash — it is what Home is opened
  * for most often — and it keeps the long press that raises the type / scan /
@@ -51,7 +52,7 @@ export function HomeQuickActions({
     {
       key: 'expense',
       label: t.homeDash.addExpense,
-      glyph: (color) => <Ionicons name="add" size={28} color={color} />,
+      glyph: (color) => <Ionicons name="add" size={22} color={color} />,
       onPress: onAddExpense,
       onLongPress: onAddExpenseLong,
       tourId: 'addExpense',
@@ -60,19 +61,19 @@ export function HomeQuickActions({
     {
       key: 'split',
       label: t.homeDash.splitBill,
-      glyph: (color) => <Ionicons name="receipt-outline" size={24} color={color} />,
+      glyph: (color) => <Ionicons name="receipt-outline" size={19} color={color} />,
       onPress: onSplitBill,
     },
     {
       key: 'settle',
       label: t.homeDash.settleUp,
-      glyph: (color) => <Ionicons name="swap-horizontal" size={24} color={color} />,
+      glyph: (color) => <Ionicons name="swap-horizontal" size={19} color={color} />,
       onPress: onSettleUp,
     },
     {
       key: 'group',
       label: t.homeDash.newGroup,
-      glyph: (color) => <GroupAddIcon size={20} color={color} />,
+      glyph: (color) => <GroupAddIcon size={16} color={color} />,
       onPress: onNewGroup,
       tourId: 'addGroup',
     },
@@ -87,17 +88,19 @@ export function HomeQuickActions({
             style={{
               alignItems: 'center',
               justifyContent: 'center',
-              gap: theme.spacing.xs,
-              paddingVertical: theme.spacing.md,
+              gap: 2,
+              paddingVertical: theme.spacing.sm,
               paddingHorizontal: theme.spacing.xs,
-              minHeight: 84,
+              minHeight: 56,
             }}
           >
             {action.glyph(ink)}
             <Text
               variant="caption"
               align="center"
-              numberOfLines={2}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.8}
               style={{
                 fontWeight: '600',
                 color: action.primary ? theme.color.onBrand : theme.color.text,
