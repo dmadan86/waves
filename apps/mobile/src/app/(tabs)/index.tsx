@@ -3,14 +3,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
+import { BlurTargetView } from 'expo-blur';
 import {
   Animated,
-  Image,
   Pressable,
   RefreshControl,
   ScrollView,
-  StyleSheet,
+  useWindowDimensions,
   View,
 } from 'react-native';
 
@@ -55,12 +54,13 @@ import { ImportProgressBanner } from '@/components/ImportProgressBanner';
 import { SkeletonList } from '@/components/Skeletons';
 import { useImportedGroupId } from '@/lib/importProgress';
 import { useReducedMotion } from '@/lib/reducedMotion';
-import { SCENE_CARD_BAND, SCENE_SKY, Scene, sceneFor } from '@/lib/scene';
+import { SCENE_ORDER, SCENE_OVERRIDE, Scene, sceneFor } from '@/lib/scene';
 import { THEME_HIDDEN } from '@/lib/theme';
 import { useDefaultCurrency } from '@/lib/currency';
 import { QuickAddSheet, useQuickAddActions } from '@/components/QuickAddSheet';
 import { QuickExpenseSheet } from '@/components/QuickExpenseSheet';
 import { BALANCE_MASK, HomeBalanceCard } from '@/components/home/HomeBalanceCard';
+import { HeroScene } from '@/components/home/HeroScene';
 import { HomeQuickActions } from '@/components/home/HomeQuickActions';
 import { useHeroStatusBar } from '@/components/ScreenHero';
 import { SettlePickerSheet, type SettleCandidate } from '@/components/home/SettlePickerSheet';
@@ -344,11 +344,30 @@ export default function HomeScreen() {
   // Which landscape the hero wears, re-read every few minutes so an app left
   // open across sunset turns with the sky. The scroll offset fades the status
   // bar's strip in as the scene scrolls away.
-  const [scene, setScene] = useState(() => sceneFor(new Date()));
+  const [scene, setScene] = useState(() => sceneFor(new Date(), { override: SCENE_OVERRIDE }));
+  const [pinnedScene, setPinnedScene] = useState<Scene | null>(SCENE_OVERRIDE);
   useEffect(() => {
-    const timer = setInterval(() => setScene(sceneFor(new Date())), 5 * 60 * 1000);
+    const timer = setInterval(
+      () => setScene(sceneFor(new Date(), { override: pinnedScene })),
+      5 * 60 * 1000,
+    );
     return () => clearInterval(timer);
-  }, []);
+  }, [pinnedScene]);
+  const cycleScene = () => {
+    const next = SCENE_ORDER[(SCENE_ORDER.indexOf(scene) + 1) % SCENE_ORDER.length];
+    setPinnedScene(next);
+    setScene(next);
+  };
+  // The hero's geometry, measured: the scene runs from the top of the screen
+  // down to the lower part of the balance card, and needs to know where the
+  // greeting row ends and where the card begins to place its layers.
+  const { width: windowWidth } = useWindowDimensions();
+  const sceneRef = useRef<View>(null);
+  const [headerHeight, setHeaderHeight] = useState(insets.top + 120);
+  const [greetingHeight, setGreetingHeight] = useState(46);
+  const [cardHeight, setCardHeight] = useState(280);
+  const cardTop = headerHeight - HERO_OVERLAP;
+  const sceneHeight = cardTop + cardHeight * SCENE_INTO_CARD;
   // The scene runs up under the status bar, so the clock and battery go white
   // while Home is the screen in front (and back to the theme's when it is not).
   useHeroStatusBar();
@@ -397,50 +416,29 @@ export default function HomeScreen() {
       {/* Static: the scene, the greeting and the balance card stay put; only
           the groups list below scrolls. */}
       <View style={{ flex: 1 }}>
-        {/* The scene: a landscape for the time of day, edge to edge from under
-            the status bar down behind the balance card, fading into the page
-            over the card's own height — so either side of the card it thins
-            out gradually instead of stopping at an edge. A shade across its
-            top keeps the white greeting readable on the brightest skies. */}
-        <View
+        {/* The scene, in layers (`HeroScene`): from under the status bar down
+            to the lower part of the balance card, where it fades into the
+            page — the groups below sit on the plain page, not on scenery. It
+            is wrapped as the glass card's blur target (Android needs one). */}
+        <BlurTargetView
+          ref={sceneRef}
           pointerEvents="none"
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            height: insets.top + SCENE_DEPTH,
-            backgroundColor: SCENE_SKY[scene],
-          }}
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, height: sceneHeight }}
         >
-          <Image
-            source={SCENE_ART[scene]}
-            resizeMode="cover"
-            accessibilityElementsHidden
-            importantForAccessibility="no-hide-descendants"
-            style={StyleSheet.absoluteFill}
+          <HeroScene
+            scene={scene}
+            width={windowWidth}
+            height={sceneHeight}
+            horizon={cardTop}
+            headerBottom={insets.top + theme.spacing.sm + greetingHeight}
+            pageColor={theme.color.bg}
           />
-          <LinearGradient
-            colors={['rgba(28, 18, 66, 0.42)', 'rgba(28, 18, 66, 0.1)', 'rgba(28, 18, 66, 0)']}
-            locations={[0, 0.35, 0.6]}
-            style={StyleSheet.absoluteFill}
-          />
-          <LinearGradient
-            colors={[
-              `${theme.color.bg}00`,
-              `${theme.color.bg}26`,
-              `${theme.color.bg}80`,
-              `${theme.color.bg}D9`,
-              theme.color.bg,
-            ]}
-            locations={[0, 0.25, 0.55, 0.8, 1]}
-            style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '65%' }}
-          />
-        </View>
+        </BlurTargetView>
 
         {/* The greeting, over the scene. The balance card rides up over its
             foot. */}
         <View
+          onLayout={(event) => setHeaderHeight(event.nativeEvent.layout.height)}
           style={{
             paddingTop: insets.top + theme.spacing.sm,
             paddingHorizontal: theme.spacing.lg,
@@ -449,27 +447,52 @@ export default function HomeScreen() {
         >
           {/* Face, "Hi, {name} 👋" over the time of day; then the glyphs that
               lead somewhere: sync, activity, the menu. */}
-          <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+          <Row
+            onLayout={(event) => setGreetingHeight(event.nativeEvent.layout.height)}
+            style={{ alignItems: 'center', gap: theme.spacing.md }}
+          >
             <HeroAvatar
               name={displayName}
               photoUrl={avatarUrl}
               onPress={() => router.navigate('/profile')}
               label={t.profile}
             />
+            {/* The name gives way first: it shrinks to an ellipsis before it
+                ever reaches the icons, and the wave stays whole after it. */}
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={t.profile}
               onPress={() => router.navigate('/profile')}
+              // Development only: a long press steps through the scenes, to
+              // see each one without waiting for the clock.
+              onLongPress={__DEV__ ? cycleScene : undefined}
               hitSlop={8}
-              style={({ pressed }) => ({ flex: 1, opacity: pressed ? 0.5 : 1 })}
+              style={({ pressed }) => ({
+                flex: 1,
+                minWidth: 0,
+                marginEnd: theme.spacing.xs,
+                opacity: pressed ? 0.5 : 1,
+              })}
             >
-              <Text
-                tone="onBrand"
-                numberOfLines={1}
-                style={{ fontSize: 18, lineHeight: 23, fontWeight: '700' }}
-              >
-                {`${t.dashHero.hi.replace('{name}', displayName)} 👋`}
-              </Text>
+              <Row style={{ alignItems: 'center', minWidth: 0 }}>
+                <Text
+                  tone="onBrand"
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                  style={{
+                    flexShrink: 1,
+                    minWidth: 0,
+                    fontSize: 18,
+                    lineHeight: 23,
+                    fontWeight: '700',
+                  }}
+                >
+                  {t.dashHero.hi.replace('{name}', displayName)}
+                </Text>
+                <Text tone="onBrand" style={{ fontSize: 18, lineHeight: 23 }}>
+                  {' 👋'}
+                </Text>
+              </Row>
               <Text variant="body" tone="onBrand" numberOfLines={1} style={{ opacity: 0.9 }}>
                 {`${t.dashHero[greetKey]}!`}
               </Text>
@@ -501,39 +524,40 @@ export default function HomeScreen() {
         >
           {/* The tour's "hero" anchor is the balance card, so the first
               coach-mark still spotlights the balance. */}
-          <TourTarget id="hero">
-            <HomeBalanceCard
-              net={headline.net}
-              owed={headline.owed}
-              owing={headline.owing}
-              owedGroups={owedGroups}
-              owingGroups={owingGroups}
-              monthSpent={monthSpent}
-              lastMonthSpent={lastMonthSpent}
-              currency={headline.currency}
-              locale={locale}
-              hidden={balanceHidden || !balanceReady}
-              onToggleHide={toggleBalance}
-              settling={settling}
-              loading={showSkeleton || !balanceReady}
-              background={CARD_ART[scene]}
-              band={SCENE_CARD_BAND[scene]}
-              footer={
-                <HomeQuickActions
-                  // The quick sheet, not the capture screen: most spends know
-                  // where they belong and need an amount and a place. The long
-                  // press raises type / scan / speak, unchanged.
-                  onAddExpense={() => setQuickExpenseOpen(true)}
-                  onAddExpenseLong={() => setQuickAddOpen(true)}
-                  onReports={openReports}
-                  onSettleUp={() => setSettleOpen(true)}
-                  onNewGroup={openNewGroup}
-                  gradient={HERO_WASH}
-                  radius={theme.radius.xl}
-                />
-              }
-            />
-          </TourTarget>
+          <View onLayout={(event) => setCardHeight(event.nativeEvent.layout.height)}>
+            <TourTarget id="hero">
+              <HomeBalanceCard
+                net={headline.net}
+                owed={headline.owed}
+                owing={headline.owing}
+                owedGroups={owedGroups}
+                owingGroups={owingGroups}
+                monthSpent={monthSpent}
+                lastMonthSpent={lastMonthSpent}
+                currency={headline.currency}
+                locale={locale}
+                hidden={balanceHidden || !balanceReady}
+                onToggleHide={toggleBalance}
+                settling={settling}
+                loading={showSkeleton || !balanceReady}
+                blurTarget={sceneRef}
+                footer={
+                  <HomeQuickActions
+                    // The quick sheet, not the capture screen: most spends know
+                    // where they belong and need an amount and a place. The long
+                    // press raises type / scan / speak, unchanged.
+                    onAddExpense={() => setQuickExpenseOpen(true)}
+                    onAddExpenseLong={() => setQuickAddOpen(true)}
+                    onReports={openReports}
+                    onSettleUp={() => setSettleOpen(true)}
+                    onNewGroup={openNewGroup}
+                    gradient={HERO_WASH}
+                    radius={theme.radius.xl}
+                  />
+                }
+              />
+            </TourTarget>
+          </View>
 
           {/* A background import's progress lands here, just above the groups —
               the person tapped Import, came home, and watches it fill. */}
@@ -1163,30 +1187,9 @@ const HERO_WASH = ['#4F55E8', '#6A5AEC', '#8469F0'] as const;
 /** How far the balance card rides up over the bottom of the hero. */
 const HERO_OVERLAP = 56;
 
-/** How far below the status bar the scene reaches — past the greeting and
- *  down behind the balance card, so its fade has the card's height to run in. */
-const SCENE_DEPTH = 340;
-
-/** The balance card's six backgrounds, one per scene: light on the left for
- *  the figures, the scene on the right. */
-const CARD_ART: Readonly<Record<Scene, number>> = {
-  [Scene.Morning]: require('../../../assets/images/scenes/card-morning.webp') as number,
-  [Scene.Afternoon]: require('../../../assets/images/scenes/card-afternoon.webp') as number,
-  [Scene.Sunset]: require('../../../assets/images/scenes/card-sunset.webp') as number,
-  [Scene.Evening]: require('../../../assets/images/scenes/card-evening.webp') as number,
-  [Scene.Night]: require('../../../assets/images/scenes/card-night.webp') as number,
-  [Scene.Winter]: require('../../../assets/images/scenes/card-winter.webp') as number,
-};
-
-/** The hero's six landscapes (see `lib/scene`). */
-const SCENE_ART: Readonly<Record<Scene, number>> = {
-  [Scene.Morning]: require('../../../assets/images/scenes/morning.webp') as number,
-  [Scene.Afternoon]: require('../../../assets/images/scenes/afternoon.webp') as number,
-  [Scene.Sunset]: require('../../../assets/images/scenes/sunset.webp') as number,
-  [Scene.Evening]: require('../../../assets/images/scenes/evening.webp') as number,
-  [Scene.Night]: require('../../../assets/images/scenes/night.webp') as number,
-  [Scene.Winter]: require('../../../assets/images/scenes/winter.webp') as number,
-};
+/** How far down the balance card the scene reaches before it has faded into
+ *  the page — its lower part, never on behind the groups. */
+const SCENE_INTO_CARD = 0.72;
 
 /**
  * One group as a clean list row — an emoji chip, the name over its member count
