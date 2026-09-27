@@ -453,8 +453,10 @@ export default function NewGroupScreen() {
       // The rates, if any were pinned while the group was being made. Behind
       // the create in the same ordered pipe as the dates and the budget, so
       // each lands once the group exists. Admin-only at the RPC, which the
-      // maker of a group always is.
-      for (const row of liveRates) {
+      // maker of a group always is. Trips only: the row that sets them is only
+      // offered on a trip, so rates left over from switching the kind away from
+      // Trip are not applied.
+      for (const row of type === GroupType.Trip ? liveRates : []) {
         await mutate(MutationKind.GroupFxRateSet, groupId, {
           from: row.from,
           num: row.num.toString(),
@@ -859,24 +861,26 @@ export default function NewGroupScreen() {
                 </View>
               ) : null}
 
-              {/* The currencies this group will be paid in, each with its rate
-                  against the group's own — on every group, not only a trip. */}
-              <View>
-                <SettingRow
-                  icon="server-outline"
-                  title={t.newGroupForm.tripCurrency}
-                  subtitle={t.newGroupForm.ratesSub}
-                  value={liveRates.length > 0 ? ratesSummary : null}
-                  action={t.newGroupForm.addCurrency}
-                  expanded={openAttr === 'rates'}
-                  onPress={() => setOpenAttr((current) => (current === 'rates' ? null : 'rates'))}
-                />
-                {openAttr === 'rates' ? (
-                  <View style={{ paddingBottom: theme.spacing.md }}>
-                    <TripRatesCard store={rateStore} groupCurrency={currency} canEdit embedded />
-                  </View>
-                ) : null}
-              </View>
+              {/* The currencies a trip will be paid in, each with its rate
+                  against the group's own. Trips only, like dates and budget. */}
+              {type === GroupType.Trip ? (
+                <View>
+                  <SettingRow
+                    icon="server-outline"
+                    title={t.newGroupForm.tripCurrency}
+                    subtitle={t.newGroupForm.ratesSub}
+                    value={liveRates.length > 0 ? ratesSummary : null}
+                    action={t.newGroupForm.addCurrency}
+                    expanded={openAttr === 'rates'}
+                    onPress={() => setOpenAttr((current) => (current === 'rates' ? null : 'rates'))}
+                  />
+                  {openAttr === 'rates' ? (
+                    <View style={{ paddingBottom: theme.spacing.md }}>
+                      <TripRatesCard store={rateStore} groupCurrency={currency} canEdit embedded />
+                    </View>
+                  ) : null}
+                </View>
+              ) : null}
 
               {/* The one row whose control says the value and changes it in the
                   same gesture, so it has no chevron. */}
