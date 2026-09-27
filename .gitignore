@@ -81,3 +81,4 @@ apps/web/playwright/.cache/
 !.env.example
 
 .vercel
+graphify-out

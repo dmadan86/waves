@@ -431,8 +431,6 @@ export default function HomeScreen() {
             paddingTop: insets.top + theme.spacing.md,
             paddingHorizontal: theme.spacing.lg,
             paddingBottom: HERO_OVERLAP + theme.spacing.xl,
-            borderBottomLeftRadius: theme.radius.xxl,
-            borderBottomRightRadius: theme.radius.xxl,
             overflow: 'hidden',
             backgroundColor: SCENE_SKY[scene],
           }}
@@ -449,6 +447,13 @@ export default function HomeScreen() {
             colors={['rgba(12, 14, 40, 0.38)', 'rgba(12, 14, 40, 0.08)', 'rgba(12, 14, 40, 0)']}
             locations={[0, 0.6, 1]}
             style={StyleSheet.absoluteFill}
+          />
+          {/* No edge at the foot: the scene fades into the page, so the
+              picture and the canvas below read as one surface. */}
+          <LinearGradient
+            pointerEvents="none"
+            colors={[`${theme.color.bg}00`, theme.color.bg]}
+            style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '45%' }}
           />
           {/* Face, "Hi, {name} 👋" over the time of day; then the glyphs that
               lead somewhere: sync, activity, the menu. */}
