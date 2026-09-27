@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../theme';
 import { spacing } from '../tokens';
 import { useSingleAction } from '../useSingleAction';
+import { Gradient } from './Gradient';
 import { Text } from './Text';
 
 export interface PillTabItem {
@@ -364,16 +365,35 @@ const CenterButton = memo(function CenterButton({ action }: { action: PillTabAct
         borderRadius: CENTER_SIZE / 2,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: theme.color.buttonPrimary,
+        // The brand's own violet, washed like the dashboard's primary tile and
+        // ringed in the bar's surface so it reads as lifted off the bar, with a
+        // violet glow under it rather than a grey drop shadow.
+        backgroundColor: theme.color.brand,
+        borderWidth: 3,
+        borderColor: theme.color.surface,
         opacity: pressed ? 0.9 : 1,
-        shadowColor: '#000',
-        shadowOpacity: 0.2,
-        shadowRadius: 8,
-        shadowOffset: { width: 0, height: 4 },
-        elevation: 6,
+        shadowColor: theme.color.brand,
+        shadowOpacity: 0.4,
+        shadowRadius: 10,
+        shadowOffset: { width: 0, height: 6 },
+        elevation: 8,
       })}
     >
-      {action.icon(theme.color.onBrand)}
+      <Gradient
+        colors={theme.gradient.brand}
+        radius={CENTER_SIZE / 2}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        {action.icon(theme.color.onBrand)}
+      </Gradient>
     </Pressable>
   );
 });
