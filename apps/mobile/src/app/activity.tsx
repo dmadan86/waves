@@ -3,7 +3,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { type Href, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
 
-import { format, guessCategory, money, resolveCategory } from '@waves/core';
+import { guessCategory, resolveCategory } from '@waves/core';
 import { FlashList } from '@shopify/flash-list';
 
 import {
@@ -36,6 +36,7 @@ import {
 } from '@/data/activity';
 import { actorName, GroupType } from '@/data/types';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
+import { SplitMoney } from '@/components/SplitMoney';
 import { useBlockedUsers } from '@/data/blocked';
 import { ActivityDateFilter, type DateRange } from '@/components/ActivityDateFilter';
 import { FeedSkeleton } from '@/components/Skeletons';
@@ -237,7 +238,13 @@ const ActivityFeedRow = memo(function ActivityFeedRow({
           neutral total. `payload` is untyped JSON, so a bad amount renders as
           no amount, not a crashed tab. */}
       {amount ? (
-        <SplitMoney amount={amount.amount} currency={amount.currency} locale={locale} color={ink} />
+        <SplitMoney
+          amount={amount.amount}
+          currency={amount.currency}
+          locale={locale}
+          color={ink}
+          fontSize={15}
+        />
       ) : null}
       <Pressable
         accessibilityRole="button"
@@ -251,41 +258,6 @@ const ActivityFeedRow = memo(function ActivityFeedRow({
     </Pressable>
   );
 });
-
-/**
- * A money figure with its minor units drawn lighter — "₹4,582" in full ink,
- * ".86" at part strength — so the whole units are what gets read.
- */
-function SplitMoney({
-  amount,
-  currency,
-  locale,
-  color,
-}: {
-  amount: bigint;
-  currency: string;
-  locale: string;
-  color: string;
-}) {
-  const text = format(money(amount < 0n ? -amount : amount, currency as never), { locale });
-  let decimal = '.';
-  try {
-    decimal =
-      new Intl.NumberFormat(locale).formatToParts(1.5).find((part) => part.type === 'decimal')
-        ?.value ?? '.';
-  } catch {
-    // Keep the dot.
-  }
-  const cut = text.lastIndexOf(decimal);
-  const whole = cut > 0 ? text.slice(0, cut) : text;
-  const minor = cut > 0 ? text.slice(cut) : '';
-  return (
-    <Text numberOfLines={1} style={{ color, fontSize: 15, lineHeight: 20, fontWeight: '700' }}>
-      {whole}
-      {minor ? <Text style={{ color, fontWeight: '500', opacity: 0.6 }}>{minor}</Text> : null}
-    </Text>
-  );
-}
 
 /** The feed's filter chips: everything, bills, edits, or one kind of group. */
 enum FeedKind {

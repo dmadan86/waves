@@ -22,9 +22,10 @@ import { useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { ActivityIndicator, Pressable, View } from 'react-native';
 
-import { iconSize, MoneyText, Row, Skeleton, Text, useTheme } from '@waves/ui';
+import { iconSize, Row, Skeleton, Text, useTheme } from '@waves/ui';
 
 import { plural, useStrings } from '@/i18n';
+import { SplitMoney } from '@/components/SplitMoney';
 import { percentChange } from '@/lib/homeDashboard';
 
 /** What stands in for a figure while the eye is shut — shared with the rows. */
@@ -134,14 +135,13 @@ export function HomeBalanceCard({
               {BALANCE_MASK}
             </Text>
           ) : (
-            <MoneyText
+            <SplitMoney
               amount={figure}
-              currency={currency as never}
+              currency={currency}
               locale={locale}
-              style={AMOUNT_STYLE}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.6}
+              color={theme.color.text}
+              fontSize={AMOUNT_STYLE.fontSize}
+              weight="800"
             />
           )}
           {change !== null && !hidden ? (
@@ -266,15 +266,12 @@ function Side({
           {BALANCE_MASK}
         </Text>
       ) : (
-        <MoneyText
+        <SplitMoney
           amount={amount}
-          currency={currency as never}
+          currency={currency}
           locale={locale}
-          variant="subheading"
-          style={{ fontWeight: '700' }}
-          numberOfLines={1}
-          adjustsFontSizeToFit
-          minimumFontScale={0.6}
+          color={theme.color.text}
+          fontSize={18}
         />
       )}
       <Text variant="micro" tone="muted" numberOfLines={1}>

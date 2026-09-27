@@ -5,7 +5,7 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Animated, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 
-import { dayNumber, format, money, type GuestGate } from '@waves/core';
+import { dayNumber, type GuestGate } from '@waves/core';
 import {
   Avatar,
   Button,
@@ -43,6 +43,7 @@ import { usePromptSlot } from '@/lib/promptQueue';
 import { useDashboardTips } from '@/lib/tips';
 import { TourTarget, useTour } from '@/lib/tour';
 import { GroupMark } from '@/components/GroupMark';
+import { SplitMoney } from '@/components/SplitMoney';
 import { SyncStatusIcon } from '@/components/SyncBanner';
 import { ImportProgressBanner } from '@/components/ImportProgressBanner';
 import { SkeletonList } from '@/components/Skeletons';
@@ -1106,42 +1107,6 @@ function tintFor(id: string): TintName {
 }
 
 /**
- * A money figure with its minor units drawn lighter — "₹82,185" in full ink,
- * ".00" behind it at part strength — so the rupees are what gets read. A
- * currency with no minor units prints whole.
- */
-function SplitAmount({
-  amount,
-  currency,
-  locale,
-  color,
-}: {
-  amount: bigint;
-  currency: string;
-  locale: string;
-  color: string;
-}) {
-  const text = format(money(amount < 0n ? -amount : amount, currency as never), { locale });
-  let decimal = '.';
-  try {
-    decimal =
-      new Intl.NumberFormat(locale).formatToParts(1.5).find((part) => part.type === 'decimal')
-        ?.value ?? '.';
-  } catch {
-    // Keep the dot.
-  }
-  const cut = text.lastIndexOf(decimal);
-  const whole = cut > 0 ? text.slice(0, cut) : text;
-  const minor = cut > 0 ? text.slice(cut) : '';
-  return (
-    <Text variant="subheading" numberOfLines={1} style={{ color, fontWeight: '700' }}>
-      {whole}
-      {minor ? <Text style={{ color, fontWeight: '500', opacity: 0.6 }}>{minor}</Text> : null}
-    </Text>
-  );
-}
-
-/**
  * One group as its own card, washed faintly in the group's own tint — a disc
  * with the group's mark, the name with its "New" / "On trip" tag, who is in it
  * and what is waiting, when it last moved; on the right the balance in the
@@ -1337,7 +1302,7 @@ function GroupRow({
                 {BALANCE_MASK}
               </Text>
             ) : (
-              <SplitAmount amount={balance} currency={currency} locale={locale} color={ink} />
+              <SplitMoney amount={balance} currency={currency} locale={locale} color={ink} />
             )}
             <View
               style={{

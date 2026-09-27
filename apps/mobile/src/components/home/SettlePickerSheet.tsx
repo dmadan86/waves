@@ -7,9 +7,10 @@
 
 import { Pressable, View } from 'react-native';
 
-import { MoneyText, Sheet, Text, useTheme } from '@waves/ui';
+import { Sheet, Text, useTheme } from '@waves/ui';
 
 import { GroupMark } from '@/components/GroupMark';
+import { SplitMoney } from '@/components/SplitMoney';
 import { useStrings } from '@/i18n';
 import { router } from '@/lib/navigation';
 
@@ -72,25 +73,24 @@ export function SettlePickerSheet({
             >
               <View
                 style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 20,
-                  backgroundColor: theme.color.surfaceMuted,
+                  width: 44,
+                  height: 44,
+                  borderRadius: 22,
+                  backgroundColor: theme.color.brandSoft,
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
               >
-                <GroupMark emoji={group.coverEmoji} size={20} />
+                <GroupMark emoji={group.coverEmoji} size={22} color={theme.color.brand} />
               </View>
               <Text variant="body" numberOfLines={1} style={{ flex: 1, fontWeight: '600' }}>
                 {group.title}
               </Text>
-              <MoneyText
+              <SplitMoney
                 amount={group.balance}
-                currency={group.currency as never}
+                currency={group.currency}
                 locale={locale}
-                mode="balance"
-                style={{ fontWeight: '700' }}
+                color={group.balance > 0n ? theme.color.positive : theme.color.negative}
               />
             </Pressable>
           ))}
