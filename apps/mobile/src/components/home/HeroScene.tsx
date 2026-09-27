@@ -175,7 +175,13 @@ export function HeroScene({
       {/* Readability: a shade across the top, under the greeting and icons. */}
       <LinearGradient
         colors={[theme.overlay, 'rgba(0, 0, 0, 0)']}
-        style={{ position: 'absolute', left: 0, right: 0, top: 0, height: headerBottom + 40 }}
+        style={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          top: 0,
+          height: headerBottom + 40,
+        }}
       />
 
       {/* The foot: the scene runs into the page behind the card, gradually. */}

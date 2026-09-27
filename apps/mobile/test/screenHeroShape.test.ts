@@ -77,7 +77,8 @@ describe('every hero is the same hero', () => {
     for (const file of [
       'components/GroupHero.tsx',
       'app/(tabs)/friends.tsx',
-      'app/(tabs)/me.tsx',
+      // Personal is left out: its scenic hero says "Total spent this month"
+      // over the figure, the way Home's balance card does.
       'app/captures/sms/index.tsx',
     ]) {
       expect(source(file), file).toMatch(/<HeroFigureLine\b/);

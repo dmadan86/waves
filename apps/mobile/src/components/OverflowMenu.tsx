@@ -19,7 +19,7 @@
 import { useEffect, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { type Href } from 'expo-router';
-import { Modal, Pressable, StyleSheet, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, {
   Easing,
   runOnJS,
@@ -41,6 +41,8 @@ const OPEN_MS = 180;
 const CLOSE_MS = 130;
 /** How small the card starts — a grow from the corner, not a pop from nothing. */
 const START_SCALE = 0.9;
+/** Room kept free under the menu when it runs long. */
+const MENU_FOOT = 24;
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -72,6 +74,7 @@ export function OverflowMenu({
 }) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
   const { t } = useStrings();
   const reduceMotion = useReducedMotion();
 
@@ -176,56 +179,66 @@ export function OverflowMenu({
               overflow: 'hidden',
             }}
           >
-            {items.map((item, index) => {
-              // A divider sits at a section boundary only: both this row and the
-              // one above it name a section, and the two differ. That rules out
-              // a divider before the first row (no row above) and any menu that
-              // leaves `section` unset (the group header), which stays flat.
-              const previous = items[index - 1];
-              const dividerAbove =
-                previous !== undefined &&
-                previous.section !== undefined &&
-                item.section !== undefined &&
-                previous.section !== item.section;
-              return (
-                <View key={item.label}>
-                  {dividerAbove && (
-                    <View
-                      style={{
-                        height: StyleSheet.hairlineWidth,
-                        backgroundColor: theme.color.border,
-                        marginVertical: theme.spacing.xs,
-                      }}
-                    />
-                  )}
-                  <Pressable
-                    onPress={() => activate(item)}
-                    accessibilityRole="button"
-                    accessibilityLabel={item.label}
-                    style={({ pressed }) => ({
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: theme.spacing.md,
-                      // A 44pt floor rather than trusting the padding+text sum to
-                      // clear it — a menu row is a primary tap target.
-                      minHeight: 44,
-                      paddingHorizontal: theme.spacing.lg,
-                      paddingVertical: theme.spacing.md,
-                      backgroundColor: pressed ? theme.color.surfaceMuted : 'transparent',
-                    })}
-                  >
-                    <Ionicons
-                      name={item.icon}
-                      size={iconSize.lg}
-                      color={item.tone === 'danger' ? theme.color.negative : theme.color.textMuted}
-                    />
-                    <Text variant="body" tone={item.tone === 'danger' ? 'negative' : undefined}>
-                      {item.label}
-                    </Text>
-                  </Pressable>
-                </View>
-              );
-            })}
+            {/* A long menu (every month of a ledger) scrolls inside the card,
+                capped to the room below it; a short one never scrolls. */}
+            <ScrollView
+              style={{ maxHeight: windowHeight - (insets.top + 56) - insets.bottom - MENU_FOOT }}
+              bounces={false}
+              showsVerticalScrollIndicator={false}
+            >
+              {items.map((item, index) => {
+                // A divider sits at a section boundary only: both this row and the
+                // one above it name a section, and the two differ. That rules out
+                // a divider before the first row (no row above) and any menu that
+                // leaves `section` unset (the group header), which stays flat.
+                const previous = items[index - 1];
+                const dividerAbove =
+                  previous !== undefined &&
+                  previous.section !== undefined &&
+                  item.section !== undefined &&
+                  previous.section !== item.section;
+                return (
+                  <View key={item.label}>
+                    {dividerAbove && (
+                      <View
+                        style={{
+                          height: StyleSheet.hairlineWidth,
+                          backgroundColor: theme.color.border,
+                          marginVertical: theme.spacing.xs,
+                        }}
+                      />
+                    )}
+                    <Pressable
+                      onPress={() => activate(item)}
+                      accessibilityRole="button"
+                      accessibilityLabel={item.label}
+                      style={({ pressed }) => ({
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: theme.spacing.md,
+                        // A 44pt floor rather than trusting the padding+text sum to
+                        // clear it — a menu row is a primary tap target.
+                        minHeight: 44,
+                        paddingHorizontal: theme.spacing.lg,
+                        paddingVertical: theme.spacing.md,
+                        backgroundColor: pressed ? theme.color.surfaceMuted : 'transparent',
+                      })}
+                    >
+                      <Ionicons
+                        name={item.icon}
+                        size={iconSize.lg}
+                        color={
+                          item.tone === 'danger' ? theme.color.negative : theme.color.textMuted
+                        }
+                      />
+                      <Text variant="body" tone={item.tone === 'danger' ? 'negative' : undefined}>
+                        {item.label}
+                      </Text>
+                    </Pressable>
+                  </View>
+                );
+              })}
+            </ScrollView>
           </View>
         </Animated.View>
       </AnimatedPressable>

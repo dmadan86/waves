@@ -38,7 +38,6 @@ import { Button, Callout, Card, ChipRow, Row, Text, useTheme } from '@waves/ui';
 
 import { useStrings } from '@/i18n';
 import { friendlyError } from '@/lib/errors';
-import { COMMON_CURRENCIES } from '@/lib/currencyChoices';
 import { rateLine } from '@/lib/tripRates';
 
 import { fetchFxRate } from '@/data/api';
@@ -54,7 +53,6 @@ export interface CurrencyRateProps {
   groupCurrency: string;
   /** What this expense was paid in. */
   currency: string;
-  onCurrencyChange: (currency: string) => void;
   /** The expense amount, in minor units of `currency`. */
   amount: bigint;
   fx: FxRecord | null;
@@ -72,32 +70,18 @@ export interface CurrencyRateProps {
    * number is a default, never a rule.
    */
   tripRate?: FxRate | null;
-  /**
-   * Whether this component owns picking the currency, too.
-   *
-   * True (the default) keeps the historical shape: a "Paid in another currency"
-   * ghost button that opens a card carrying both the currency chips and, once a
-   * foreign currency is chosen, the rate. False means the currency is chosen
-   * elsewhere — the add-expense header pill — so this collapses to the rate
-   * alone: nothing at all while the expense is in the group's currency, and only
-   * the rate methods once it is foreign.
-   */
-  showCurrencyPicker?: boolean;
 }
 
 export function CurrencyRate({
   groupCurrency,
   currency,
-  onCurrencyChange,
   amount,
   fx,
   onFxChange,
   tripRate = null,
-  showCurrencyPicker = true,
 }: CurrencyRateProps): React.JSX.Element | null {
   const theme = useTheme();
   const { t } = useStrings();
-  const [open, setOpen] = useState(false);
   const [method, setMethod] = useState<Method>(Method.Charged);
   const [chargedText, setChargedText] = useState('');
   const [rateText, setRateText] = useState('');
@@ -120,22 +104,6 @@ export function CurrencyRate({
   }, [currency, groupCurrency]);
 
   const foreign = currency !== groupCurrency;
-
-  const choose = (next: string): void => {
-    // Invalidate any in-flight fetch synchronously: point `latestPair` at the
-    // pair we are switching to so a response for the old pair is dropped the
-    // moment it returns, and clear the spinner now — the stale fetch's `finally`
-    // is guarded on the pair and would otherwise never release `busy`.
-    latestPair.current = `${next}|${groupCurrency}`;
-    setBusy(false);
-    onCurrencyChange(next);
-    // A rate for the old currency would convert the wrong thing, and the server
-    // rejects it anyway — clearing it here just makes that visible sooner.
-    onFxChange(null);
-    setChargedText('');
-    setRateText('');
-    setError(null);
-  };
 
   const applyCharged = (text: string): void => {
     setChargedText(text);
@@ -168,14 +136,12 @@ export function CurrencyRate({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [amount, method, chargedText, currency, groupCurrency]);
 
-  // When the currency is chosen elsewhere (the header pill), a change to it must
-  // clear a rate typed for the previous currency — the same reset `choose` does
-  // on the legacy in-card chips. Done during render (React's "adjust state when
-  // the input changes" pattern) rather than in an effect, so it never lags a
-  // frame behind the new currency. Guarded to the pill-driven path; the legacy
-  // chips already clear through `choose`.
+  // The currency is chosen on the form (the shared "Choose currency" sheet), so a
+  // change to it must clear a rate typed for the previous currency. Done during
+  // render (React's "adjust state when the input changes" pattern) rather than
+  // in an effect, so it never lags a frame behind the new currency.
   const [ratedFor, setRatedFor] = useState(currency);
-  if (!showCurrencyPicker && ratedFor !== currency) {
+  if (ratedFor !== currency) {
     setRatedFor(currency);
     setChargedText('');
     setRateText('');
@@ -244,20 +210,9 @@ export function CurrencyRate({
 
   const onTripRate = Boolean(pinned && fx && sameRate(fromFxRecord(fx), pinned));
 
-  // The currency lives in the header pill: nothing to show until the expense is
-  // foreign, and then only the rate — never the in-card currency chips.
-  if (!showCurrencyPicker) {
-    if (!foreign) return null;
-  } else if (!open && !foreign) {
-    return (
-      <Button
-        label={t.misc.paidAnotherCurrency}
-        variant="ghost"
-        onPress={() => setOpen(true)}
-        accessibilityHint={t.misc.settlesInHint.replace('{currency}', groupCurrency)}
-      />
-    );
-  }
+  // The currency is picked on the form, never here: nothing to show until the
+  // expense is foreign, and then only the rate.
+  if (!foreign) return null;
 
   // Riding the trip's rate: one line, not a card of controls. What the bill
   // comes to in the group's currency, the rate that said so, and the way out.
@@ -293,13 +248,6 @@ export function CurrencyRate({
       <Text variant="caption" tone="muted">
         {t.extras.paidIn}
       </Text>
-      {showCurrencyPicker ? (
-        <ChipRow<string>
-          value={currency}
-          onChange={choose}
-          options={COMMON_CURRENCIES.map((code) => ({ value: code, label: code }))}
-        />
-      ) : null}
 
       {foreign ? (
         <>

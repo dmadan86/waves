@@ -38,6 +38,7 @@ import {
 } from '@waves/ui';
 
 import { fetchFxRate } from '@/data/api';
+import { CurrencyChoices, CurrencySheet } from '@/components/expense/CurrencySheet';
 import { COMMON_CURRENCIES } from '@/lib/currencyChoices';
 import { useGroupFxRates, useSetGroupFxRate } from '@/data/hooks';
 import { useStrings } from '@/i18n';
@@ -93,7 +94,7 @@ export function SettlesInRow({
   onChange: (currency: string) => void;
 }) {
   const theme = useTheme();
-  const { t, locale } = useStrings();
+  const { t } = useStrings();
   const [open, setOpen] = useState(false);
 
   return (
@@ -121,38 +122,17 @@ export function SettlesInRow({
         />
       </Card>
 
-      <Sheet
-        visible={open}
-        onClose={() => setOpen(false)}
-        closeLabel={t.common.close}
-        style={{ maxHeight: '82%' }}
-      >
-        <Text variant="heading">{t.fx.settlesIn}</Text>
-        <ScrollView showsVerticalScrollIndicator={false} style={{ flexShrink: 1 }}>
-          {COMMON_CURRENCIES.map((code) => {
-            const name = currencyName(code, locale);
-            return (
-              <ListRow
-                key={code}
-                title={name ?? code}
-                subtitle={name ? code : undefined}
-                leading={<CurrencyMark code={code} />}
-                trailing={
-                  code === currency ? (
-                    <Ionicons name="checkmark" size={iconSize.md} color={theme.color.brand} />
-                  ) : undefined
-                }
-                accessibilityRole="radio"
-                accessibilityState={{ selected: code === currency }}
-                onPress={() => {
-                  setOpen(false);
-                  if (code !== currency) onChange(code);
-                }}
-              />
-            );
-          })}
-        </ScrollView>
-      </Sheet>
+      {open ? (
+        <CurrencySheet
+          title={t.fx.settlesIn}
+          value={currency}
+          onPick={(code) => {
+            setOpen(false);
+            if (code !== currency) onChange(code);
+          }}
+          onClose={() => setOpen(false)}
+        />
+      ) : null}
     </>
   );
 }
@@ -532,7 +512,6 @@ function TripRateSheet({
         <CurrencyPane
           choices={choices}
           chosen={from}
-          locale={locale}
           canGoBack={Boolean(foreign)}
           onPick={(code) => {
             if (code !== from) {
@@ -780,14 +759,12 @@ function RateCard({
 function CurrencyPane({
   choices,
   chosen,
-  locale,
   canGoBack,
   onPick,
   onBack,
 }: {
   choices: readonly string[];
   chosen: string;
-  locale: string;
   /** False on a brand-new rate: there is no rate behind this pane to go back to. */
   canGoBack: boolean;
   onPick: (code: string) => void;
@@ -817,26 +794,15 @@ function CurrencyPane({
         <Text variant="heading">{t.captures.currencyPickerTitle}</Text>
       </Row>
 
-      <ScrollView showsVerticalScrollIndicator={false} style={{ flexShrink: 1 }}>
-        {choices.map((code) => {
-          const name = currencyName(code, locale);
-          return (
-            <ListRow
-              key={code}
-              title={name ?? code}
-              subtitle={name ? code : undefined}
-              leading={<CurrencyMark code={code} />}
-              trailing={
-                code === chosen ? (
-                  <Ionicons name="checkmark" size={iconSize.md} color={theme.color.brand} />
-                ) : undefined
-              }
-              accessibilityRole="radio"
-              accessibilityState={{ selected: code === chosen }}
-              onPress={() => onPick(code)}
-            />
-          );
-        })}
+      {/* The shared "Choose currency" picker, narrowed to the currencies that
+          can still take a rate. It stands in this sheet rather than opening its
+          own: a second modal cannot be stacked on this one. */}
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        style={{ flexShrink: 1 }}
+      >
+        <CurrencyChoices value={chosen} options={choices} onPick={onPick} />
       </ScrollView>
     </>
   );

@@ -1,7 +1,8 @@
 /**
- * "Choose currency" for the Save an expense screen: a search over code, name and
- * country, the few currencies this person reaches for as cards along the top,
- * then every offered currency as a row — its flag, code and name, and a radio.
+ * "Choose currency" — the one picker every screen that asks for a currency uses:
+ * a search over code, name and country, the few currencies this person reaches
+ * for as cards along the top, then every offered currency as a row — its flag,
+ * code and name, and a radio.
  *
  * The recent cards are remembered on the phone (most recent first, four at
  * most); before anything has been picked they are simply the head of the
@@ -78,10 +79,40 @@ export function CurrencySheet({
   value,
   onPick,
   onClose,
+  options,
+  title,
 }: {
   value: string;
   onPick: (code: string) => void;
   onClose: () => void;
+  /** Which currencies may be picked; every offered currency by default. */
+  options?: readonly string[];
+  /** The sheet's heading, when the choice has a name of its own ("Settles in"). */
+  title?: string;
+}): React.JSX.Element {
+  const { t } = useStrings();
+  return (
+    <SheetOverlay title={title ?? t.captures.currencyPickerTitle} onClose={onClose}>
+      <CurrencyChoices value={value} onPick={onPick} options={options} />
+    </SheetOverlay>
+  );
+}
+
+/**
+ * The picker itself — search, the recent cards and the full list — without a
+ * sheet around it, for a place that already stands inside one (the quick
+ * expense sheet, a trip rate's sheet), where a second modal cannot be stacked
+ * on the first. Everywhere else, `CurrencySheet` wraps it.
+ */
+export function CurrencyChoices({
+  value,
+  onPick,
+  options,
+}: {
+  value: string;
+  onPick: (code: string) => void;
+  /** Which currencies may be picked; every offered currency by default. */
+  options?: readonly string[];
 }): React.JSX.Element {
   const theme = useTheme();
   const { t, locale } = useStrings();
@@ -105,7 +136,7 @@ export function CurrencySheet({
     };
   }, []);
 
-  const offered: readonly string[] = COMMON_CURRENCIES;
+  const offered: readonly string[] = options ?? COMMON_CURRENCIES;
   // What this person has picked, in the order they picked it. Only before
   // there is any history does it fall back to the current currency and the
   // head of the offered list.
@@ -134,7 +165,7 @@ export function CurrencySheet({
   const track = theme.scheme === 'dark' ? theme.color.surfaceMuted : '#F1F0FA';
 
   return (
-    <SheetOverlay title={t.captures.currencyPickerTitle} onClose={onClose}>
+    <View style={{ gap: theme.spacing.md }}>
       <Row
         style={{
           alignItems: 'center',
@@ -281,7 +312,7 @@ export function CurrencySheet({
           })
         )}
       </View>
-    </SheetOverlay>
+    </View>
   );
 }
 

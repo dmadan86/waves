@@ -72,7 +72,7 @@ import { isGhost, isViewer, type GroupRow } from '@/data/types';
 import { fill, useStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
 import { useDefaultCurrency } from '@/lib/currency';
-import { COMMON_CURRENCIES } from '@/lib/currencyChoices';
+import { CurrencyChoices } from '@/components/expense/CurrencySheet';
 import { usePersonalOffered } from '@/lib/guestGuard';
 import { captureLocationIfGranted } from '@/lib/location';
 import { router } from '@/lib/navigation';
@@ -259,146 +259,137 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
           onPickCurrency={() => setPickingCurrency((open) => !open)}
         />
 
+        {/* The shared "Choose currency" picker, in place of the form below
+            while it is open: this sheet is already a modal, and a second one
+            cannot be stacked on it. Picking puts the form back. */}
         {pickingCurrency ? (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <Row style={{ gap: theme.spacing.sm, paddingVertical: 6 }}>
-              {COMMON_CURRENCIES.map((code) => (
-                <Pressable
-                  key={code}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: code === currency }}
-                  // ~32 tall chips; the slop takes the touch to 44. The row's
-                  // vertical padding gives the slop room inside the scroll view,
-                  // which on Android drops touches outside its own bounds.
-                  hitSlop={{ top: 6, bottom: 6 }}
-                  onPress={() => {
-                    currencyChosen.current = true;
-                    setCurrency(code);
-                    setPickingCurrency(false);
-                  }}
-                  style={{
-                    paddingHorizontal: theme.spacing.md,
-                    paddingVertical: theme.spacing.sm,
-                    borderRadius: theme.radius.pill,
-                    backgroundColor:
-                      code === currency ? theme.color.brandSoft : theme.color.surfaceMuted,
-                  }}
-                >
-                  <Text variant="caption" tone={code === currency ? 'brand' : 'default'}>
-                    {code}
-                  </Text>
-                </Pressable>
-              ))}
-            </Row>
+          <ScrollView
+            style={{ maxHeight: 440 }}
+            keyboardShouldPersistTaps="handled"
+            nestedScrollEnabled
+            showsVerticalScrollIndicator={false}
+          >
+            <CurrencyChoices
+              value={currency}
+              onPick={(code) => {
+                currencyChosen.current = true;
+                setCurrency(code);
+                setPickingCurrency(false);
+              }}
+            />
           </ScrollView>
-        ) : null}
+        ) : (
+          <>
+            <Divider />
 
-        <Divider />
-
-        <View style={{ gap: theme.spacing.sm }}>
-          <Text variant="caption" tone="muted">
-            {t.quickExpense.where}
-          </Text>
-          {chips.length === 0 && !personalOffered ? (
-            <Text variant="caption" tone="faint">
-              {t.quickExpense.noPlacesYet}
-            </Text>
-          ) : (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <Row style={{ gap: theme.spacing.sm }}>
-                {/* The private ledger, first and always — a spend that is
+            <View style={{ gap: theme.spacing.sm }}>
+              <Text variant="caption" tone="muted">
+                {t.quickExpense.where}
+              </Text>
+              {chips.length === 0 && !personalOffered ? (
+                <Text variant="caption" tone="faint">
+                  {t.quickExpense.noPlacesYet}
+                </Text>
+              ) : (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <Row style={{ gap: theme.spacing.sm }}>
+                    {/* The private ledger, first and always — a spend that is
                     nobody else's business is the one destination that never
                     depends on which groups you happen to be in. Hidden from a
                     guest, who has no private ledger to write to. */}
-                {personalOffered ? (
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: personalPicked }}
-                    onPress={() => setChosenId('personal')}
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: theme.spacing.xs,
-                      paddingHorizontal: theme.spacing.md,
-                      paddingVertical: theme.spacing.sm,
-                      borderRadius: theme.radius.pill,
-                      backgroundColor: personalPicked
-                        ? theme.color.brandSoft
-                        : theme.color.surfaceMuted,
-                    }}
-                  >
-                    <Ionicons
-                      name="person-circle-outline"
-                      size={iconSize.sm}
-                      color={personalPicked ? theme.color.brand : theme.color.text}
-                    />
-                    <Text variant="caption" tone={personalPicked ? 'brand' : 'default'}>
-                      {t.quickExpense.justMe}
-                    </Text>
-                  </Pressable>
-                ) : null}
-                {chips.map((group) => (
-                  <Pressable
-                    key={group.id}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: group.id === chosenId }}
-                    onPress={() => setChosenId(group.id)}
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: theme.spacing.xs,
-                      paddingHorizontal: theme.spacing.md,
-                      paddingVertical: theme.spacing.sm,
-                      borderRadius: theme.radius.pill,
-                      backgroundColor:
-                        group.id === chosenId ? theme.color.brandSoft : theme.color.surfaceMuted,
-                    }}
-                  >
-                    <GroupMark emoji={group.cover_emoji} size={20} />
-                    <Text
-                      variant="caption"
-                      numberOfLines={1}
-                      tone={group.id === chosenId ? 'brand' : 'default'}
-                    >
-                      {labelOf(group)}
-                    </Text>
-                  </Pressable>
-                ))}
-              </Row>
-            </ScrollView>
-          )}
+                    {personalOffered ? (
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: personalPicked }}
+                        onPress={() => setChosenId('personal')}
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          gap: theme.spacing.xs,
+                          paddingHorizontal: theme.spacing.md,
+                          paddingVertical: theme.spacing.sm,
+                          borderRadius: theme.radius.pill,
+                          backgroundColor: personalPicked
+                            ? theme.color.brandSoft
+                            : theme.color.surfaceMuted,
+                        }}
+                      >
+                        <Ionicons
+                          name="person-circle-outline"
+                          size={iconSize.sm}
+                          color={personalPicked ? theme.color.brand : theme.color.text}
+                        />
+                        <Text variant="caption" tone={personalPicked ? 'brand' : 'default'}>
+                          {t.quickExpense.justMe}
+                        </Text>
+                      </Pressable>
+                    ) : null}
+                    {chips.map((group) => (
+                      <Pressable
+                        key={group.id}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: group.id === chosenId }}
+                        onPress={() => setChosenId(group.id)}
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          gap: theme.spacing.xs,
+                          paddingHorizontal: theme.spacing.md,
+                          paddingVertical: theme.spacing.sm,
+                          borderRadius: theme.radius.pill,
+                          backgroundColor:
+                            group.id === chosenId
+                              ? theme.color.brandSoft
+                              : theme.color.surfaceMuted,
+                        }}
+                      >
+                        <GroupMark emoji={group.cover_emoji} size={20} />
+                        <Text
+                          variant="caption"
+                          numberOfLines={1}
+                          tone={group.id === chosenId ? 'brand' : 'default'}
+                        >
+                          {labelOf(group)}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </Row>
+                </ScrollView>
+              )}
 
-          <Pressable
-            accessibilityRole="button"
-            // A one-line caption link: the slop gives it a 44pt touch, but only
-            // 6 upward — the group chips sit 8 above and must keep their taps.
-            hitSlop={{ top: 6, bottom: 14, left: 14, right: 14 }}
-            onPress={() => setPickerOpen(true)}
-          >
-            <Text variant="caption" tone="brand">
-              {t.quickExpense.otherPlaces}
-            </Text>
-          </Pressable>
-        </View>
+              <Pressable
+                accessibilityRole="button"
+                // A one-line caption link: the slop gives it a 44pt touch, but only
+                // 6 upward — the group chips sit 8 above and must keep their taps.
+                hitSlop={{ top: 6, bottom: 14, left: 14, right: 14 }}
+                onPress={() => setPickerOpen(true)}
+              >
+                <Text variant="caption" tone="brand">
+                  {t.quickExpense.otherPlaces}
+                </Text>
+              </Pressable>
+            </View>
 
-        {personalPicked ? (
-          <QuickPersonalFooter amount={amount} currency={currency} onSaved={closeAndReset} />
-        ) : chosen ? (
-          <QuickExpenseFooter
-            group={chosen}
-            amount={amount}
-            currency={currency}
-            place={place}
-            onSaved={closeAndReset}
-          />
-        ) : (
-          <Button
-            label={t.quickExpense.save}
-            size="lg"
-            fullWidth
-            disabled
-            onPress={() => undefined}
-          />
+            {personalPicked ? (
+              <QuickPersonalFooter amount={amount} currency={currency} onSaved={closeAndReset} />
+            ) : chosen ? (
+              <QuickExpenseFooter
+                group={chosen}
+                amount={amount}
+                currency={currency}
+                place={place}
+                onSaved={closeAndReset}
+              />
+            ) : (
+              <Button
+                label={t.quickExpense.save}
+                size="lg"
+                fullWidth
+                disabled
+                onPress={() => undefined}
+              />
+            )}
+          </>
         )}
       </View>
 

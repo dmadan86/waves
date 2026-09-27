@@ -13,7 +13,7 @@
  * there.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useFocusEffect } from 'expo-router';
 import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-speech-recognition';
@@ -31,7 +31,9 @@ import Svg, { Defs, LinearGradient, Path, Stop } from 'react-native-svg';
 
 import { Button, iconSize, Text, useTheme, type Theme } from '@waves/ui';
 
-import { useStrings } from '@/i18n';
+import { deviceCountry, fill, useStrings } from '@/i18n';
+import { useDefaultCurrency } from '@/lib/currency';
+import { exampleCountry, voiceExamples } from '@/lib/voiceExamples';
 import { dictationError, englishSpeechLocale, isPermissionError } from '@/lib/dictation';
 import { useReducedMotion } from '@/lib/reducedMotion';
 import { speechMic } from '@/lib/speechMic';
@@ -73,6 +75,9 @@ const STALL_MS = 8000;
  */
 const MAX_LISTEN_MS = 9500;
 const HARD_STOP_MS = 1800;
+
+/** How soon after our own stop an audio error is taken as that stop's echo. */
+const STOP_ECHO_MS = 1500;
 
 /**
  * An engine that says "no speech" this soon after opening has not listened: the
@@ -279,7 +284,7 @@ function useIdleBreath(active: boolean): Animated.Value {
 
 /** The waveform's drawing box. Fixed and centred — the status area centres it. */
 const WAVE_W = 300;
-const WAVE_H = 104;
+const WAVE_H = 72;
 
 /**
  * The listening wave: filled, symmetric lobes mirrored about the centre line, the
@@ -407,6 +412,9 @@ export interface VoiceCaptureProps {
   onDone: (transcript: string) => void;
   /** Names to bias the recogniser towards — group and member names. */
   hints?: readonly string[];
+  /** The reader's own group names, for the "Try saying…" card's group example.
+   *  Separate from `hints`, which may carry any word worth biasing towards. */
+  groupNames?: readonly string[];
   /**
    * The last utterance was heard but carried no amount — the screen parsed it
    * and came back empty. The panel shows a calm "didn't catch an amount" recovery
@@ -514,6 +522,7 @@ async function englishInstalledOnDevice(): Promise<boolean> {
 export function VoiceCapture({
   onDone,
   hints,
+  groupNames = [],
   missed,
   onListen,
   autoStart = true,
@@ -602,6 +611,16 @@ export function VoiceCapture({
   // this user-started capture has already spent its one silent retry, and
   // whether one is waiting on the aborted session's `end`.
   const openedAt = useRef(0);
+  // When this panel last asked the recogniser to stop — so an audio error that
+  // is only the echo of that stop is not reported as a busy microphone.
+  const stoppedAt = useRef(0);
+  // Every stop this panel asks for goes through here — the stop button, a
+  // push-to-talk release, the hard listening cap — so each one is stamped, and
+  // an audio error that is only its echo is recognised whichever it was.
+  const stopListening = useCallback((): void => {
+    stoppedAt.current = Date.now();
+    speechMic.stop(session);
+  }, [session]);
   const earlyRetryUsed = useRef(false);
   const earlyRetryPending = useRef(false);
   const autoRetrying = useRef(false);
@@ -704,7 +723,13 @@ export function VoiceCapture({
       earlyRetryFallback.current = setTimeout(runEarlyRetry, EARLY_RETRY_FALLBACK_MS);
       return;
     }
-    const message = dictationError(event.error, t.misc.dictationErrors);
+    // Android's on-device recogniser answers a stop that came before it had any
+    // audio with ERROR_AUDIO ("audio-capture"), which reads as "the microphone is
+    // busy" — untrue, and alarming. When we asked for the stop a moment ago it is
+    // just an empty capture: the miss below says "Didn't catch that" on its own.
+    const selfInflicted =
+      event.error === 'audio-capture' && Date.now() - stoppedAt.current < STOP_ECHO_MS;
+    const message = selfInflicted ? '' : dictationError(event.error, t.misc.dictationErrors);
     if (message) {
       setError(message);
       setErrorInSettings(isPermissionError(event.error));
@@ -849,6 +874,7 @@ export function VoiceCapture({
         });
         speechMic.opened(session);
         openedAt.current = Date.now();
+        stoppedAt.current = 0;
         starting.current = false;
 
         // The finger lifted while this was still opening. Apply that ending now
@@ -867,7 +893,7 @@ export function VoiceCapture({
             speechMic.release(session);
             return;
           }
-          speechMic.stop(session);
+          stopListening();
         }
 
         // No transcript yet; if none arrives by PROGRESS_MS this engine is not
@@ -908,7 +934,7 @@ export function VoiceCapture({
         maxListen.current = setTimeout(() => {
           maxListen.current = null;
           if (!mounted.current || !speechMic.owns(session)) return;
-          speechMic.stop(session);
+          stopListening();
           setTimeout(() => {
             if (!mounted.current || !speechMic.owns(session)) return;
             setListening(false);
@@ -926,7 +952,19 @@ export function VoiceCapture({
         give();
       }
     },
-    [clearMaxListen, clearProgress, clearStall, hints, level, locale, onDone, onListen, session, t],
+    [
+      clearMaxListen,
+      clearProgress,
+      clearStall,
+      hints,
+      level,
+      locale,
+      onDone,
+      onListen,
+      session,
+      stopListening,
+      t,
+    ],
   );
 
   // Point the recursion handle at the current start on every change.
@@ -966,8 +1004,8 @@ export function VoiceCapture({
     // Ask the recogniser to finish, but keep the session: `stop()` (unlike
     // `abort()`) still delivers one last `result`, and giving the mic up here
     // would make the handler above drop the words spoken before the tap.
-    speechMic.stop(session);
-  }, [session]);
+    stopListening();
+  }, [stopListening]);
 
   /**
    * The one act this screen offers: open the mic, or close it.
@@ -1104,7 +1142,7 @@ export function VoiceCapture({
     // offer below settle on the bottom edge — without being squeezed on a short
     // one, where the screen scrolls instead. See the matching note on the route's
     // scroll container.
-    <View style={{ flexGrow: 1, alignItems: 'center', gap: theme.spacing.xl }}>
+    <View style={{ flexGrow: 1, alignItems: 'center', gap: theme.spacing.lg }}>
       {/* One headline, whatever most needs saying: the sentence forming while
           listening, a calm recovery line after a miss, or the opening prompt at
           rest. Never a warning stacked on top of it. */}
@@ -1116,8 +1154,8 @@ export function VoiceCapture({
           never shove the layout around as they grow. */}
       <View
         style={{
-          width: MIC_SIZE * 2.4,
-          height: MIC_SIZE * 2.4,
+          width: MIC_SIZE * 2.1,
+          height: MIC_SIZE * 2.1,
           alignItems: 'center',
           justifyContent: 'center',
         }}
@@ -1216,14 +1254,15 @@ export function VoiceCapture({
             {listening ? t.misc.listening : showMiss ? t.voice.tapToRetry : t.voice.tapToSpeak}
           </Text>
         </Pressable>
-        {listening && !reduceMotion ? (
-          <Waveform active={listening} level={level} />
-        ) : !listening && !showMiss && !live ? (
-          <Text variant="caption" tone="faint" align="center">
-            {t.voice.example}
-          </Text>
-        ) : null}
+        {listening && !reduceMotion ? <Waveform active={listening} level={level} /> : null}
       </View>
+
+      {/* Things to say, under the wave: three sentences that each show one
+          thing the parser understands — a named group, the people to split
+          with, and "just for me" for the personal ledger. Gone once words are
+          arriving, when the sentence forming in the headline is the thing to
+          read. */}
+      {live ? null : <TrySaying t={t} theme={theme} groupNames={groupNames} />}
 
       {error ? (
         <View style={{ alignItems: 'center', gap: theme.spacing.sm }}>
@@ -1283,4 +1322,92 @@ export function VoiceCapture({
       ) : null}
     </View>
   );
+}
+
+/** The "Try saying…" card: a heading and three example sentences, each with a
+ *  glyph for what it is about. Read-only — the mic is the way in.
+ *
+ *  The sentences are drawn fresh each time the screen opens, fitted to the
+ *  phone's country and to the reader's own groups (`lib/voiceExamples`). The
+ *  seed is held for the life of the panel, so the place and the names stay put
+ *  while somebody reads them; when the group list finishes loading, only the
+ *  group line changes, to one of their real groups. */
+function TrySaying({
+  t,
+  theme,
+  groupNames,
+}: {
+  t: ReturnType<typeof useStrings>['t'];
+  theme: Theme;
+  groupNames: readonly string[];
+}) {
+  const currency = useDefaultCurrency();
+  const [seed] = useState(() => Math.floor(Math.random() * 2147483646) + 1);
+  const groupsKey = groupNames.join('\u0000');
+  const example = useMemo(
+    () => voiceExamples(exampleCountry(currency, deviceCountry()), groupNames, seededRandom(seed)),
+    // Keyed on the names themselves, not the array's identity.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [groupsKey, seed, currency],
+  );
+  const group = example.group ?? fill(t.voice.tripName, { place: example.place });
+  const rows: { icon: keyof typeof Ionicons.glyphMap; text: string }[] = [
+    { icon: 'cart-outline', text: fill(t.voice.tryGroup, { amount: example.groceries, group }) },
+    {
+      icon: 'restaurant-outline',
+      text: fill(t.voice.trySplit, {
+        amount: example.dinner,
+        a: example.names[0],
+        b: example.names[1],
+      }),
+    },
+    { icon: 'cafe-outline', text: fill(t.voice.tryJustMe, { amount: example.coffee }) },
+  ];
+  return (
+    <View
+      style={{
+        alignSelf: 'stretch',
+        gap: theme.spacing.sm,
+        padding: theme.spacing.md,
+        borderRadius: theme.radius.xl,
+        backgroundColor:
+          theme.scheme === 'dark' ? 'rgba(28, 26, 44, 0.78)' : 'rgba(255, 255, 255, 0.72)',
+        borderWidth: 1,
+        borderColor:
+          theme.scheme === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.9)',
+      }}
+    >
+      <Text variant="caption" tone="muted">
+        {t.voice.trySaying}
+      </Text>
+      {rows.map((row) => (
+        <View
+          key={row.icon}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: theme.spacing.md,
+            paddingHorizontal: theme.spacing.md,
+            paddingVertical: theme.spacing.sm + 2,
+            borderRadius: theme.radius.lg,
+            backgroundColor: theme.color.brandSoft,
+          }}
+        >
+          <Ionicons name={row.icon} size={iconSize.md} color={theme.color.brand} />
+          <Text variant="body" style={{ flex: 1 }}>
+            {row.text}
+          </Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+/** A small seeded generator (Park–Miller), so one draw stays one draw. */
+function seededRandom(seed: number): () => number {
+  let state = seed;
+  return () => {
+    state = (state * 16807) % 2147483647;
+    return (state - 1) / 2147483646;
+  };
 }

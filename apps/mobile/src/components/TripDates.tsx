@@ -17,9 +17,13 @@
  * fields survive as a read-out rather than as two doors: they show the start the
  * moment it is picked, which is the whole point of picking on one surface.
  *
- * Nothing is written until both ends are known. A half-chosen range is a local
- * draft, so walking away mid-selection leaves the stored dates exactly as they
- * were, and a completed range is one save rather than two.
+ * A trip with no dates yet (or only one day) keeps its first tap: the day is
+ * saved at once as a one-day trip, and the second tap stretches it to the end. Before, nothing was
+ * written until both ends were known — so somebody who tapped the day they
+ * leave and went back found the trip still asking for dates, the day they had
+ * plainly chosen thrown away. A trip that already has a range is different:
+ * there, a first tap starts *changing* it, and walking away mid-change leaves
+ * the stored range exactly as it was.
  */
 
 import { useMemo, useState } from 'react';
@@ -31,7 +35,12 @@ import { Card, directionalIcon, iconSize, Row, Text, useTheme } from '@waves/ui'
 import { RangeCalendar } from '@/components/RangeCalendar';
 import { plural, useStrings } from '@/i18n';
 import { gregorianFormatter } from '@/lib/calendarGrid';
-import { inclusiveTripDays, tripDateFromIso, tripDateRangePatch } from '@/lib/tripDateRange';
+import {
+  inclusiveTripDays,
+  savesFirstTap,
+  tripDateFromIso,
+  tripDateRangePatch,
+} from '@/lib/tripDateRange';
 
 /**
  * Only the fields this card reads and writes — not a whole `GroupRow`. A saved
@@ -262,10 +271,16 @@ export function TripDates({
           start={shownStart}
           end={shownEnd}
           onSelect={(from, to) => {
-            // A null `to` is the first of the two taps: hold it and wait.
+            // A null `to` is the first of the two taps: hold it and wait for
+            // the end. While the trip has no range (or only one day), the day is
+            // also saved now, as a one-day trip, so leaving before the second
+            // tap keeps it. A stored range stays put until the new one is whole.
             if (!from) return;
             if (!to) {
               setPendingStart(from);
+              if (savesFirstTap(group.start_date, group.end_date)) {
+                onChange(tripDateRangePatch(from, from, group.time_zone));
+              }
               return;
             }
             commit(from, to);
