@@ -2006,6 +2006,14 @@ export interface UiStrings {
   };
   /** Backing up scanned receipts to the user's own cloud drive (Drive/Dropbox/OneDrive). */
   storage: {
+    usedLabel: string;
+    perksTitle: string;
+    perkUnlimited: string;
+    perkUnlimitedSub: string;
+    perkBackup: string;
+    perkBackupSub: string;
+    perkDevices: string;
+    perkDevicesSub: string;
     row: string;
     rowHint: string;
     title: string;
@@ -5374,6 +5382,14 @@ const en: UiStrings = {
     saveTag: 'Save tag',
   },
   storage: {
+    usedLabel: 'Storage used',
+    perksTitle: 'Upgrade to unlock more',
+    perkUnlimited: 'Unlimited storage',
+    perkUnlimitedSub: 'Keep all your photos and receipts',
+    perkBackup: 'Automatic backup',
+    perkBackupSub: 'Your data is always safe',
+    perkDevices: 'Access from all devices',
+    perkDevicesSub: 'View your data anywhere',
     row: 'Storage usage',
     rowHint: 'Photos & receipts in the cloud',
     title: 'Storage usage',
@@ -8576,6 +8592,14 @@ const ta: UiStrings = {
     saveTag: 'குறிச்சொல்லைச் சேமி',
   },
   storage: {
+    usedLabel: 'பயன்படுத்திய சேமிப்பிடம்',
+    perksTitle: 'மேலும் திறக்க மேம்படுத்துங்கள்',
+    perkUnlimited: 'வரம்பற்ற சேமிப்பிடம்',
+    perkUnlimitedSub: 'உங்கள் எல்லா புகைப்படங்களையும் ரசீதுகளையும் வைத்திருங்கள்',
+    perkBackup: 'தானியங்கி காப்புப்பிரதி',
+    perkBackupSub: 'உங்கள் தரவு எப்போதும் பாதுகாப்பாக',
+    perkDevices: 'எல்லா சாதனங்களிலிருந்தும் அணுகல்',
+    perkDevicesSub: 'உங்கள் தரவை எங்கிருந்தும் பாருங்கள்',
     row: '\u0b9a\u0bc7\u0bae\u0bbf\u0baa\u0bcd\u0baa\u0bc1 \u0baa\u0baf\u0ba9\u0bcd\u0baa\u0bbe\u0b9f\u0bc1',
     rowHint:
       '\u0b95\u0bbf\u0bb3\u0bb5\u0bc1\u0b9f\u0bbf\u0bb2\u0bcd \u0b89\u0bb3\u0bcd\u0bb3 \u0baa\u0b9f\u0b99\u0bcd\u0b95\u0bb3\u0bcd & \u0bb0\u0b9a\u0bc0\u0ba4\u0bc1\u0b95\u0bb3\u0bcd',
@@ -11833,6 +11857,14 @@ const hi: UiStrings = {
     saveTag: 'टैग सहेजें',
   },
   storage: {
+    usedLabel: 'इस्तेमाल हुई जगह',
+    perksTitle: 'और पाने के लिए अपग्रेड करें',
+    perkUnlimited: 'असीमित स्टोरेज',
+    perkUnlimitedSub: 'अपनी सारी फ़ोटो और रसीदें रखें',
+    perkBackup: 'अपने-आप बैकअप',
+    perkBackupSub: 'आपका डेटा हमेशा सुरक्षित',
+    perkDevices: 'सभी डिवाइस से पहुँच',
+    perkDevicesSub: 'अपना डेटा कहीं भी देखें',
     row: '\u0938\u094d\u091f\u094b\u0930\u0947\u091c \u0909\u092a\u092f\u094b\u0917',
     rowHint:
       '\u0915\u094d\u0932\u093e\u0909\u0921 \u092e\u0947\u0902 \u092b\u093c\u094b\u091f\u094b \u0914\u0930 \u0930\u0938\u0940\u0926\u0947\u0902',
@@ -15137,6 +15169,14 @@ const ar: UiStrings = {
     saveTag: 'حفظ الوسم',
   },
   storage: {
+    usedLabel: 'المساحة المستخدمة',
+    perksTitle: 'قم بالترقية لفتح المزيد',
+    perkUnlimited: 'تخزين غير محدود',
+    perkUnlimitedSub: 'احتفظ بكل صورك وإيصالاتك',
+    perkBackup: 'نسخ احتياطي تلقائي',
+    perkBackupSub: 'بياناتك آمنة دائمًا',
+    perkDevices: 'الوصول من كل الأجهزة',
+    perkDevicesSub: 'اطّلع على بياناتك من أي مكان',
     row: '\u0627\u0633\u062a\u062e\u062f\u0627\u0645 \u0627\u0644\u062a\u062e\u0632\u064a\u0646',
     rowHint:
       '\u0627\u0644\u0635\u0648\u0631 \u0648\u0627\u0644\u0625\u064a\u0635\u0627\u0644\u0627\u062a \u0641\u064a \u0627\u0644\u0633\u062d\u0627\u0628\u0629',
