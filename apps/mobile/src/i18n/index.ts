@@ -1272,6 +1272,15 @@ export interface UiStrings {
   };
   /** Attaching an email or phone to the account you already have (ADR-006). */
   contact: {
+    unlink: string;
+    unlinkPhoneTitle: string;
+    unlinkPhoneBody: string;
+    unlinkEmailTitle: string;
+    unlinkEmailBody: string;
+    unlinkFrom: string;
+    relinkFrom: string;
+    onlyWayIn: string;
+    addAnother: string;
     title: string;
     securityTitle: string;
     securitySub: string;
@@ -4800,6 +4809,17 @@ const en: UiStrings = {
       'If one is still waiting for a group a day later, this phone reminds you in the evening. On a day you have not opened Waves at all, it asks instead whether anything needs splitting. Once a day at most, and only ever one of the two.',
   },
   contact: {
+    unlink: 'Unlink',
+    unlinkPhoneTitle: 'Unlink this number?',
+    unlinkPhoneBody:
+      "You won't be able to sign in with it, and people won't find you by it. You can add a new number 7 days after unlinking.",
+    unlinkEmailTitle: 'Unlink this email?',
+    unlinkEmailBody:
+      "You won't be able to sign in with it. You can add a new email 7 days after unlinking.",
+    unlinkFrom: 'You can unlink this from {date}',
+    relinkFrom: 'You can add a new one from {date}',
+    onlyWayIn: 'Your only way to sign in, so it stays linked',
+    addAnother: 'Add a way to sign in',
     title: 'Your account',
     securityTitle: 'Sign in & security',
     securitySub: 'Manage how you sign in to your account.',
@@ -7971,6 +7991,17 @@ const ta: UiStrings = {
       'ஒரு நாள் கழித்தும் ஒரு செலவு குழுவுக்காகக் காத்திருந்தால், இந்த ஃபோன் மாலையில் நினைவூட்டும். நீங்கள் Waves-ஐத் திறக்காத நாளில், பிரிக்க ஏதேனும் உள்ளதா என்று கேட்கும். நாளொன்றுக்கு ஒரு முறை மட்டுமே; இரண்டில் ஒன்று மட்டுமே.',
   },
   contact: {
+    unlink: 'இணைப்பை நீக்கு',
+    unlinkPhoneTitle: 'இந்த எண்ணின் இணைப்பை நீக்கவா?',
+    unlinkPhoneBody:
+      'இதைக் கொண்டு உள்நுழைய முடியாது, மற்றவர்களும் இதன் மூலம் உங்களைக் கண்டறிய முடியாது. நீக்கிய 7 நாட்களுக்குப் பிறகு புதிய எண்ணைச் சேர்க்கலாம்.',
+    unlinkEmailTitle: 'இந்த மின்னஞ்சலின் இணைப்பை நீக்கவா?',
+    unlinkEmailBody:
+      'இதைக் கொண்டு உள்நுழைய முடியாது. நீக்கிய 7 நாட்களுக்குப் பிறகு புதிய மின்னஞ்சலைச் சேர்க்கலாம்.',
+    unlinkFrom: '{date} முதல் இதன் இணைப்பை நீக்கலாம்',
+    relinkFrom: '{date} முதல் புதியதைச் சேர்க்கலாம்',
+    onlyWayIn: 'உள்நுழைய இது ஒன்றே வழி, எனவே இணைப்பில் இருக்கும்',
+    addAnother: 'உள்நுழைய ஒரு வழியைச் சேர்',
     title: 'உங்கள் கணக்கு',
     securityTitle: 'உள்நுழைவு & பாதுகாப்பு',
     securitySub: 'உங்கள் கணக்கில் எப்படி உள்நுழைவது என்பதை நிர்வகிக்கவும்.',
@@ -11233,6 +11264,17 @@ const hi: UiStrings = {
       'अगर कोई खर्च एक दिन बाद भी किसी समूह का इंतज़ार कर रहा हो, तो यह फ़ोन शाम को याद दिलाता है। जिस दिन आपने Waves खोला ही न हो, उस दिन यह पूछता है कि बाँटने के लिए कुछ है क्या। दिन में ज़्यादा से ज़्यादा एक बार, और दोनों में से सिर्फ़ एक।',
   },
   contact: {
+    unlink: 'अनलिंक करें',
+    unlinkPhoneTitle: 'यह नंबर अनलिंक करें?',
+    unlinkPhoneBody:
+      'आप इससे साइन इन नहीं कर पाएँगे, और लोग आपको इससे नहीं ढूँढ पाएँगे। अनलिंक करने के 7 दिन बाद नया नंबर जोड़ सकते हैं।',
+    unlinkEmailTitle: 'यह ईमेल अनलिंक करें?',
+    unlinkEmailBody:
+      'आप इससे साइन इन नहीं कर पाएँगे। अनलिंक करने के 7 दिन बाद नया ईमेल जोड़ सकते हैं।',
+    unlinkFrom: 'आप इसे {date} से अनलिंक कर सकते हैं',
+    relinkFrom: 'आप {date} से नया जोड़ सकते हैं',
+    onlyWayIn: 'साइन इन का यही एक तरीका है, इसलिए यह जुड़ा रहेगा',
+    addAnother: 'साइन इन का तरीका जोड़ें',
     title: 'आपका खाता',
     securityTitle: 'साइन इन और सुरक्षा',
     securitySub: 'तय करें कि आप अपने खाते में कैसे साइन इन करते हैं।',
@@ -14461,6 +14503,17 @@ const ar: UiStrings = {
       'إذا بقي مصروف ينتظر مجموعة بعد يوم كامل، يذكّرك هذا الهاتف مساءً. وفي يوم لم تفتح فيه Waves إطلاقًا، يسألك بدلًا من ذلك إن كان هناك ما تريد تقسيمه. مرة واحدة في اليوم على الأكثر، وواحد من الاثنين فقط.',
   },
   contact: {
+    unlink: 'إلغاء الربط',
+    unlinkPhoneTitle: 'إلغاء ربط هذا الرقم؟',
+    unlinkPhoneBody:
+      'لن تتمكن من تسجيل الدخول به، ولن يجدك الآخرون من خلاله. يمكنك إضافة رقم جديد بعد 7 أيام من إلغاء الربط.',
+    unlinkEmailTitle: 'إلغاء ربط هذا البريد؟',
+    unlinkEmailBody:
+      'لن تتمكن من تسجيل الدخول به. يمكنك إضافة بريد جديد بعد 7 أيام من إلغاء الربط.',
+    unlinkFrom: 'يمكنك إلغاء ربطه اعتبارًا من {date}',
+    relinkFrom: 'يمكنك إضافة واحد جديد اعتبارًا من {date}',
+    onlyWayIn: 'طريقتك الوحيدة لتسجيل الدخول، لذا يبقى مرتبطًا',
+    addAnother: 'أضف طريقة لتسجيل الدخول',
     title: 'حسابك',
     securityTitle: 'تسجيل الدخول والأمان',
     securitySub: 'تحكّم في طريقة تسجيل دخولك إلى حسابك.',
