@@ -13,12 +13,14 @@ import { ActivityIndicator, Linking, Pressable, ScrollView, View } from 'react-n
 
 import {
   allocateSettlement,
-  BalanceDirection,
   buildPaymentUri,
   defaultRailFor,
+  format,
+  money,
   railById,
   railsFor,
   toMajorString,
+  type CurrencyCode,
   type MemberId,
   type Receivable,
 } from '@waves/core';
@@ -136,6 +138,19 @@ export function SettleBody({
   // and this is the belt to that braces — a settlement is a positive movement or
   // it is nothing, and the button below disables on 0.
   const amount = rawAmount > 0n ? rawAmount : 0n;
+
+  /** What settling with this person moves: my side of the ledger, capped by
+   *  theirs. The same sum the card below shows once they are picked. */
+  const settleWith = (member: MemberRow): bigint => {
+    const theirs = ledger.balances.get(member.id) ?? 0n;
+    const mine = ledger.myBalance;
+    const worth = mine < 0n ? min(-mine, theirs) : min(mine, theirs < 0n ? -theirs : 0n);
+    return worth > 0n ? worth : 0n;
+  };
+  /** My whole balance in the group, however it is split between people. */
+  const myTotal = ledger.myBalance < 0n ? -ledger.myBalance : ledger.myBalance;
+  const leftOver = myTotal > amount ? myTotal - amount : 0n;
+  const fmt = (value: bigint): string => format(money(value, currency as CurrencyCode), { locale });
 
   // What the payer still owes the payee, expense by expense — the settle sheet
   // applies the payment against these oldest-first (ADR-007).
@@ -314,15 +329,25 @@ export function SettleBody({
         ) : (
           <>
             <Card style={{ gap: theme.spacing.md }}>
-              <Text variant="caption" tone="muted">
-                {t.misc.withLabel}
-              </Text>
-              {/* Each face carries what settling with them is worth. The picker
-                  used to be names alone, so choosing between three people meant
-                  tapping each one to read the number that decides it. */}
+              {/* The total first, then who it can go to. Each face used to carry
+                  that person's balance with the whole group — Nina "₹47,320"
+                  over a card saying "You pay Nina ₹33,274" — which read as a
+                  debt of mine to her that did not exist. */}
+              <View style={{ gap: 2 }}>
+                <Text variant="subheading">
+                  {fill(ledger.myBalance < 0n ? t.misc.settleYouOweTotal : t.misc.settleOwedTotal, {
+                    amount: fmt(myTotal),
+                  })}
+                </Text>
+                <Text variant="caption" tone="muted">
+                  {ledger.myBalance < 0n ? t.misc.settlePickPayee : t.misc.settlePickPayer}
+                </Text>
+              </View>
+              {/* Each face carries what settling with them moves, so choosing
+                  between people never means tapping each one to find out. */}
               <Row style={{ flexWrap: 'wrap', gap: theme.spacing.lg }}>
                 {counterparties.map((member) => {
-                  const theirs = ledger.balances.get(member.id) ?? 0n;
+                  const worth = settleWith(member);
                   const active = counterparty.id === member.id;
                   return (
                     <Pressable
@@ -337,18 +362,14 @@ export function SettleBody({
                       <Text variant="micro" tone={active ? 'brand' : 'muted'}>
                         {displayName(member)}
                       </Text>
-                      {/* Their balance told from my side: they are on the other
-                          side of my ledger by construction, so a negative of
-                          theirs is money owed to me. */}
+                      {/* What this settlement would be, not their balance with
+                          the whole group: a payment, so neutral ink. */}
                       <MoneyText
-                        amount={theirs < 0n ? -theirs : theirs}
+                        amount={worth}
                         currency={currency}
                         locale={locale}
                         variant="micro"
-                        mode="balance"
-                        direction={
-                          theirs < 0n ? BalanceDirection.OwedToYou : BalanceDirection.YouOwe
-                        }
+                        style={{ color: active ? theme.color.text : theme.color.textMuted }}
                       />
                     </Pressable>
                   );
@@ -380,6 +401,13 @@ export function SettleBody({
                 variant="display"
                 style={{ color: settleInk }}
               />
+              <Text variant="caption" align="center" style={{ color: settleInkMuted }}>
+                {leftOver > 0n
+                  ? fill(t.misc.settleLeftOver, { amount: fmt(leftOver) })
+                  : iPay
+                    ? t.misc.settleClearsAll
+                    : t.misc.settleAllOwed}
+              </Text>
               <Badge label={t.group.recordedNotMoved} />
             </TintCard>
 

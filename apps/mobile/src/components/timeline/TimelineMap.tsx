@@ -71,16 +71,36 @@ function shortDay(day: string, locale: string): { weekday: string; date: string 
   };
 }
 
+/** Where the map is looking: carried from the inline map to the full-screen
+ *  one and back, so switching never drops the day, the pin or the camera. */
+export interface TimelineMapView {
+  dayKey: string | null;
+  selectedId: string | null;
+  region: MapRegion;
+}
+
 export function TimelineMap({
   days,
   focusId,
   onOpen,
   bottomInset,
+  fullScreen = false,
+  onToggleFullScreen,
+  view = null,
+  onViewChange,
 }: {
   days: readonly TimelineDay[];
   focusId: string | null;
   onOpen: (entry: TimelineEntry) => void;
   bottomInset: number;
+  /** Drawn over the whole screen, headers hidden; the corner button shrinks it. */
+  fullScreen?: boolean;
+  /** Shows the corner button that opens (or closes) the full-screen map. */
+  onToggleFullScreen?: () => void;
+  /** Where to start looking, if another instance of this map was just open. */
+  view?: TimelineMapView | null;
+  /** Told whenever the day, the pin or the camera moves. */
+  onViewChange?: (view: TimelineMapView) => void;
 }) {
   const theme = useTheme();
   const { t, locale } = useStrings();
@@ -98,6 +118,7 @@ export function TimelineMap({
   // The day on the map: the focused bill's, when it has one on the map, else
   // the newest day with a place.
   const [dayKey, setDayKey] = useState<string | null>(() => {
+    if (view) return view.dayKey;
     if (focus && strip.some((day) => day.day === focus.day)) return focus.day;
     return strip[0]?.day ?? null;
   });
@@ -105,10 +126,11 @@ export function TimelineMap({
   const route = useMemo(() => dayRoute(day), [day]);
 
   const [selectedId, setSelectedId] = useState<string | null>(() =>
-    focus?.place ? focus.id : (route[0]?.id ?? null),
+    view ? view.selectedId : focus?.place ? focus.id : (route[0]?.id ?? null),
   );
 
   const initialRegion = useMemo<MapRegion>(() => {
+    if (view) return view.region;
     if (focus?.place) {
       return {
         latitude: focus.place.lat,
@@ -131,6 +153,11 @@ export function TimelineMap({
   }, []);
 
   const [region, setRegion] = useState<MapRegion>(initialRegion);
+  useEffect(() => {
+    onViewChange?.({ dayKey, selectedId, region });
+    // The callback is the host's setter of a ref; only the view itself counts.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dayKey, selectedId, region]);
   const [mapSize, setMapSize] = useState({ width: screenWidth, height: 400 });
   const clusters = useMemo(
     () => clusterPins(withPlace, region, mapSize),
@@ -388,7 +415,8 @@ export function TimelineMap({
             position: 'absolute',
             top: theme.spacing.md,
             left: theme.spacing.xl,
-            right: theme.spacing.xl,
+            // Clear of the full-screen button in the corner.
+            right: onToggleFullScreen ? theme.spacing.xl + 52 : theme.spacing.xl,
             gap: theme.spacing.sm,
             alignItems: 'flex-start',
           }}
@@ -417,6 +445,40 @@ export function TimelineMap({
             />
           ) : null}
         </View>
+
+        {/* Top-right: the map on its own, over the whole screen, for a small
+            phone where the group's hero and tabs leave it a strip. */}
+        {onToggleFullScreen ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={fullScreen ? t.timeline.exitFullScreen : t.timeline.fullScreen}
+            onPress={onToggleFullScreen}
+            hitSlop={6}
+            style={({ pressed }) => ({
+              position: 'absolute',
+              top: theme.spacing.md,
+              right: theme.spacing.md,
+              width: 42,
+              height: 42,
+              borderRadius: 21,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: theme.color.surface,
+              shadowColor: '#000000',
+              shadowOpacity: 0.15,
+              shadowRadius: 8,
+              shadowOffset: { width: 0, height: 2 },
+              elevation: 4,
+              opacity: pressed ? 0.8 : 1,
+            })}
+          >
+            <Ionicons
+              name={fullScreen ? 'contract-outline' : 'expand-outline'}
+              size={20}
+              color={theme.color.text}
+            />
+          </Pressable>
+        ) : null}
 
         {ended && day ? (
           <View
