@@ -5358,7 +5358,7 @@ const en: UiStrings = {
     benefitEncrypted: 'Encrypted and secure',
     benefitRestore: 'Easy to restore anytime',
     frequencySub: 'Choose how often to back up your data.',
-    freqOffSub: 'You\'ll need to back up manually.',
+    freqOffSub: "You'll need to back up manually.",
     freqDailySub: 'Back up once every day.',
     freqWeeklySub: 'Back up once every week.',
     freqMonthlySub: 'Back up once every month.',
@@ -8538,7 +8538,8 @@ const ta: UiStrings = {
   },
   backup: {
     title: 'காப்புப்பிரதி',
-    subtitle: 'உங்கள் தரவைப் பாதுகாப்பாகவும் எல்லாச் சாதனங்களிலும் கிடைக்கும்படியும் வைத்திருங்கள்.',
+    subtitle:
+      'உங்கள் தரவைப் பாதுகாப்பாகவும் எல்லாச் சாதனங்களிலும் கிடைக்கும்படியும் வைத்திருங்கள்.',
     benefitPrivate: 'உங்கள் தரவு தனிப்பட்டதாகவே இருக்கும்',
     benefitEncrypted: 'மறையாக்கப்பட்டது, பாதுகாப்பானது',
     benefitRestore: 'எப்போது வேண்டுமானாலும் எளிதாக மீட்டெடுக்கலாம்',

@@ -657,8 +657,8 @@ export default function GroupScreen() {
     () => (windowed && tabData.length > SWITCH_WINDOW ? tabData.slice(0, SWITCH_WINDOW) : tabData),
     [windowed, tabData],
   );
-  // The Expenses tab with nothing on it: the empty state fits the screen, so it
-  // doesn't bounce. It still scrolls when drafts, receipts or large text push
+  // The Expenses tab with nothing on it: the empty state fits the screen, so
+  // Android draws no overscroll glow over it. It still scrolls when drafts, receipts or large text push
   // the content past the screen, so nothing below is out of reach.
   const emptyExpenses = tab === Tab.Expenses && listData.length === 0;
 
@@ -1100,7 +1100,8 @@ export default function GroupScreen() {
         ) : (
           <FlashList
             ref={listRef}
-            bounces={!emptyExpenses}
+            // Bounce stays on: on iOS it is what pull-to-refresh pulls.
+            bounces
             overScrollMode={emptyExpenses ? 'never' : 'auto'}
             data={listData}
             // Not the tab: switching tabs already hands `data` a different array,

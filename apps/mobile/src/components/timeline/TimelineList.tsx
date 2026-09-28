@@ -236,7 +236,10 @@ function EntryRow({
   // would say nothing; the group's name on the one that spans them all.
   const people = (() => {
     if (!showPeople || !entry.others) return entry.groupName;
-    const names = [...(entry.mine ? [t.person.you] : []), ...entry.others];
+    const names = [
+      ...(entry.mine ? [t.person.you] : []),
+      ...entry.others.map((name) => name ?? t.misc.someone),
+    ];
     if (names.length === 0) return entry.groupName;
     const shown = names.slice(0, 2).join(', ');
     return names.length > 2 ? `${shown} +${names.length - 2}` : shown;
@@ -274,7 +277,7 @@ function EntryRow({
       <Pressable
         onPress={() => onOpen(entry)}
         accessibilityRole="button"
-        accessibilityLabel={`${title}, ${amount}${share ? `, ${share}` : ''}`}
+        accessibilityLabel={`${title}, ${people}, ${amount}${share ? `, ${share}` : ''}`}
         accessibilityHint={t.timeline.openExpense}
         style={({ pressed }) => ({
           flex: 1,
