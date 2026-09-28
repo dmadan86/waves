@@ -275,6 +275,13 @@ export default function NotificationSettingsScreen() {
             bg: theme.color.surfaceMuted,
           };
 
+  // Denied is past asking, so the button says where it goes instead.
+  const buttonLabel = asking
+    ? t.notifications.asking
+    : permission === 'denied'
+      ? t.location.openSettings
+      : t.notifications.turnOn;
+
   return (
     <Screen>
       <Row
@@ -364,10 +371,13 @@ export default function NotificationSettingsScreen() {
             // so the button takes them to Waves in the phone's own settings.
             <Pressable
               accessibilityRole="button"
+              accessibilityLabel={buttonLabel}
               accessibilityState={{ disabled: asking, busy: asking }}
               disabled={asking}
               onPress={() =>
-                permission === 'denied' ? void Linking.openSettings() : void turnOnPush()
+                permission === 'denied'
+                  ? void Linking.openSettings().catch(() => setStatus(t.notifications.failDenied))
+                  : void turnOnPush()
               }
               style={({ pressed }) => ({
                 height: 44,
@@ -379,7 +389,7 @@ export default function NotificationSettingsScreen() {
               })}
             >
               <Text style={{ fontSize: 15, fontWeight: '700', color: '#FFFFFF' }}>
-                {asking ? t.notifications.asking : t.notifications.turnOn}
+                {buttonLabel}
               </Text>
             </Pressable>
           )}
