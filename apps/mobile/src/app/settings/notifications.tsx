@@ -1,22 +1,19 @@
-import { useEffect, useState, type ComponentProps } from 'react';
+import { useEffect, useState, type ComponentProps, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { ActivityIndicator, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Linking, Pressable, ScrollView, View } from 'react-native';
 
 import {
-  Badge,
-  Button,
-  Card,
   directionalIcon,
   Divider,
   IconButton,
   iconSize,
   Row,
   Screen,
-  SectionHeader,
   Text,
   Toggle,
   useTabBarClearance,
   useTheme,
+  type TintName,
 } from '@waves/ui';
 
 import {
@@ -25,13 +22,13 @@ import {
   saveNotificationPrefs,
   type NotificationPrefs,
 } from '@/data/api';
-import { DismissibleCallout } from '@/components/DismissibleCallout';
 import { useStrings, type UiStrings } from '@/i18n';
 import { friendlyError } from '@/lib/errors';
 import { useAuth } from '@/lib/auth';
 import { loadCaptureNudgeEnabled, saveCaptureNudgeEnabled } from '@/lib/captureNudge/settings';
 import { useCaptureNudgePass, useNudgePassInputs } from '@/lib/captureNudge/useNudgePass';
 import { router } from '@/lib/navigation';
+import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
 import {
   enablePush,
   ensureLocalNotificationPermission,
@@ -41,7 +38,14 @@ import {
 } from '@/lib/push';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
-type PrefRow = { key: keyof NotificationPrefs; title: string; body: string; icon: IconName };
+type PrefRow = {
+  key: keyof NotificationPrefs;
+  title: string;
+  body: string;
+  icon: IconName;
+  /** The disc's pastel, from the theme's tints. */
+  tint: TintName;
+};
 
 /** The push notifications — everything the phone delivers. */
 function pushRows(t: UiStrings): PrefRow[] {
@@ -51,24 +55,28 @@ function pushRows(t: UiStrings): PrefRow[] {
       title: t.notifications.involvesMe,
       body: t.notifications.involvesMeBody,
       icon: 'people-outline',
+      tint: 'lilac',
     },
     {
       key: 'settlementRequests',
       title: t.notifications.settlementRequests,
       body: t.notifications.settlementRequestsBody,
       icon: 'swap-horizontal-outline',
+      tint: 'mint',
     },
     {
       key: 'nudges',
       title: t.notifications.nudges,
       body: t.notifications.nudgesBody,
-      icon: 'hand-left-outline',
+      icon: 'notifications-outline',
+      tint: 'peach',
     },
     {
       key: 'groupActivityDigest',
       title: t.notifications.digest,
       body: t.notifications.digestBody,
       icon: 'newspaper-outline',
+      tint: 'sky',
     },
   ];
 }
@@ -88,12 +96,14 @@ function emailRows(t: UiStrings): PrefRow[] {
       title: t.notifications.emailAll,
       body: t.notifications.emailAllBody,
       icon: 'mail-outline',
+      tint: 'sky',
     },
     {
       key: 'weeklyEmail',
       title: t.notifications.weeklyEmail,
       body: t.notifications.weeklyEmailBody,
-      icon: 'newspaper-outline',
+      icon: 'document-text-outline',
+      tint: 'lilac',
     },
   ];
 }
@@ -250,55 +260,87 @@ export default function NotificationSettingsScreen() {
       });
   };
 
+  const dark = theme.scheme === 'dark';
+  const ink = dark ? theme.color.text : SPEC_INK;
+  const muted = dark ? theme.color.textMuted : SPEC_MUTED;
+  const accent = dark ? theme.color.brand : SPEC_ACCENT;
+  const pill =
+    permission === 'granted'
+      ? { label: t.notifications.granted, fg: theme.color.positive, bg: theme.color.positiveSoft }
+      : permission === 'denied'
+        ? { label: t.notifications.denied, fg: theme.color.negative, bg: theme.color.negativeSoft }
+        : {
+            label: t.notifications.undetermined,
+            fg: theme.color.textMuted,
+            bg: theme.color.surfaceMuted,
+          };
+
   return (
     <Screen>
-      <Row style={{ paddingHorizontal: theme.spacing.xl, paddingTop: theme.spacing.md }}>
+      <Row
+        style={{
+          paddingHorizontal: theme.spacing.lg,
+          paddingTop: theme.spacing.sm,
+          alignItems: 'center',
+          gap: theme.spacing.xs,
+        }}
+      >
         <IconButton label={t.common.back} onPress={() => router.back()}>
-          <Ionicons
-            name={directionalIcon('chevron-back')}
-            size={iconSize.lg}
-            color={theme.color.text}
-          />
+          <Ionicons name={directionalIcon('chevron-back')} size={iconSize.lg} color={ink} />
         </IconButton>
-        <View style={{ flex: 1, alignItems: 'center' }}>
-          <Text variant="heading">{t.notifications.title}</Text>
-        </View>
-        <View style={{ width: 44 }} />
+        <Text style={{ flex: 1, fontSize: 26, lineHeight: 32, fontWeight: '800', color: ink }}>
+          {t.notifications.title}
+        </Text>
       </Row>
 
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
-          paddingHorizontal: theme.spacing.xl,
+          paddingHorizontal: theme.spacing.lg,
           paddingBottom: clearance,
-          paddingTop: theme.spacing.lg,
-          gap: theme.spacing.xl,
+          paddingTop: theme.spacing.md,
+          gap: theme.spacing.md,
         }}
         showsVerticalScrollIndicator={false}
       >
         {/* ADR-010: the competition is simultaneously spammy and silent. These
-            defaults are the fix, and they are all off-switchable. The promise is
-            a "read this" note, so it wears the app's canonical Callout shape
-            (info tone) rather than a hand-rolled brand banner. It says the
-            same thing on every visit, so it can be closed for good. */}
-        <DismissibleCallout
-          name="notifications.neverSpam"
-          tone="info"
-          icon={(color) => (
-            <Ionicons name="shield-checkmark-outline" size={iconSize.md} color={color} />
-          )}
+            defaults are the fix, and they are all off-switchable — said once at
+            the top, on a lavender band with a bell beside it. */}
+        <Row
+          style={{
+            gap: 12,
+            padding: theme.spacing.md,
+            borderRadius: 20,
+            overflow: 'hidden',
+            backgroundColor: dark ? theme.color.surfaceMuted : '#EEEBFC',
+          }}
         >
-          {t.notifications.neverSpam}
-        </DismissibleCallout>
+          <Disc
+            icon="shield-checkmark"
+            color={accent}
+            bg={dark ? theme.color.surface : '#E1DCFA'}
+          />
+          <View style={{ flex: 1, minWidth: 0, gap: 2, paddingEnd: 64 }}>
+            <Text style={{ fontSize: 15, fontWeight: '700', color: ink }}>
+              {t.notifications.importantTitle}
+            </Text>
+            <Text style={{ fontSize: 13, lineHeight: 18, color: muted }}>
+              {t.notifications.neverSpam}
+            </Text>
+          </View>
+          <BellArt />
+        </Row>
 
         {/* The master switch: nothing below fires until the phone itself is
             allowed to deliver, so this device-permission state leads. */}
-        <Card style={{ gap: theme.spacing.md }}>
-          <Row gap={theme.spacing.md}>
-            <Ionicons name="phone-portrait-outline" size={iconSize.xl} color={theme.color.text} />
-            <View style={{ flex: 1 }}>
-              <Text variant="subheading">{t.notifications.onThisPhone}</Text>
-              <Text variant="caption" tone="muted">
+        <SoftCard>
+          <Row style={{ gap: 12, alignItems: 'flex-start' }}>
+            <Disc icon="phone-portrait-outline" color={ink} bg={theme.color.surfaceMuted} />
+            <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+              <Text style={{ fontSize: 16, fontWeight: '700', color: ink }}>
+                {t.notifications.onThisPhone}
+              </Text>
+              <Text style={{ fontSize: 13, lineHeight: 18, color: muted }}>
                 {permission === 'granted'
                   ? t.notifications.permissionOn
                   : permission === 'denied'
@@ -306,73 +348,72 @@ export default function NotificationSettingsScreen() {
                     : t.notifications.permissionUnset}
               </Text>
             </View>
-            <Badge
-              label={
-                permission === 'granted'
-                  ? t.notifications.granted
-                  : permission === 'denied'
-                    ? t.notifications.denied
-                    : t.notifications.undetermined
-              }
-              tone={permission === 'granted' ? 'positive' : undefined}
-            />
+            <View
+              style={{
+                paddingHorizontal: 10,
+                paddingVertical: 4,
+                borderRadius: 12,
+                backgroundColor: pill.bg,
+              }}
+            >
+              <Text style={{ fontSize: 12, fontWeight: '600', color: pill.fg }}>{pill.label}</Text>
+            </View>
           </Row>
           {permission === 'granted' ? null : (
-            <Button
-              label={asking ? t.notifications.asking : t.notifications.turnOn}
-              size="sm"
-              disabled={asking || permission === 'denied'}
-              onPress={() => void turnOnPush()}
-            />
+            // Denied is past asking: the system will not show the prompt again,
+            // so the button takes them to Waves in the phone's own settings.
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ disabled: asking, busy: asking }}
+              disabled={asking}
+              onPress={() =>
+                permission === 'denied' ? void Linking.openSettings() : void turnOnPush()
+              }
+              style={({ pressed }) => ({
+                height: 44,
+                borderRadius: 14,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: accent,
+                opacity: asking ? 0.6 : pressed ? 0.85 : 1,
+              })}
+            >
+              <Text style={{ fontSize: 15, fontWeight: '700', color: '#FFFFFF' }}>
+                {asking ? t.notifications.asking : t.notifications.turnOn}
+              </Text>
+            </Pressable>
           )}
-        </Card>
+        </SoftCard>
 
         {loading ? (
           <ActivityIndicator color={theme.color.brand} />
         ) : (
           <>
-            <View style={{ gap: theme.spacing.sm }}>
-              <SectionHeader title={t.notifications.pushSection} />
-              <PrefSection rows={pushRows(t)} prefs={prefs} onToggle={toggle} />
-            </View>
-            {/* Its own section because it is a different promise. Everything
-                above is something our servers send; this is the phone setting
-                an alarm on itself, out of what it already holds — nothing about
-                these drafts is read by anything but this device. Grouping it
-                with the four above would quietly claim otherwise. */}
-            <View style={{ gap: theme.spacing.sm }}>
-              <SectionHeader title={t.notifications.localSection} />
-              <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
-                <Row gap={theme.spacing.md} style={{ paddingVertical: theme.spacing.md }}>
-                  <Ionicons
-                    name="file-tray-outline"
-                    size={iconSize.xl}
-                    color={theme.color.textMuted}
-                  />
-                  <View style={{ flex: 1 }}>
-                    <Text variant="subheading">{t.notifications.savedForLater}</Text>
-                    <Text variant="caption" tone="muted">
-                      {t.notifications.savedForLaterBody}
-                    </Text>
-                  </View>
-                  <Toggle
-                    // `null` is "still reading the stored value", which reads as
-                    // off rather than flashing on; the switch is disabled until
-                    // it is known so a tap cannot race the read and save the
-                    // default back over a person's own choice.
-                    value={nudge === true}
-                    disabled={nudge === null}
-                    onValueChange={(value) => void toggleNudge(value)}
-                    accessibilityLabel={t.notifications.savedForLater}
-                  />
-                </Row>
-              </Card>
-            </View>
+            <SectionHead title={t.notifications.pushSection} sub={t.notifications.pushSub} />
+            <PrefSection rows={pushRows(t)} prefs={prefs} onToggle={toggle} />
 
-            <View style={{ gap: theme.spacing.sm }}>
-              <SectionHeader title={t.notifications.emailSection} />
-              <PrefSection rows={emailRows(t)} prefs={prefs} onToggle={toggle} />
-            </View>
+            {/* Its own card because it is a different promise. Everything above
+                is something our servers send; this is the phone setting an
+                alarm on itself, out of what it already holds — nothing about
+                these drafts is read by anything but this device. */}
+            <SectionHead title={t.notifications.localSection} />
+            <SoftCard style={{ paddingVertical: 4 }}>
+              <PrefLine
+                icon="file-tray-outline"
+                tint={theme.tint.sky}
+                title={t.notifications.savedForLater}
+                body={t.notifications.savedForLaterBody}
+                // `null` is "still reading the stored value", which reads as off
+                // rather than flashing on; disabled until known so a tap cannot
+                // race the read and save the default over a person's choice.
+                value={nudge === true}
+                disabled={nudge === null}
+                onChange={(value) => void toggleNudge(value)}
+              />
+            </SoftCard>
+
+            <SectionHead title={t.notifications.emailSection} sub={t.notifications.emailSub} />
+            <PrefSection rows={emailRows(t)} prefs={prefs} onToggle={toggle} />
           </>
         )}
 
@@ -382,24 +423,191 @@ export default function NotificationSettingsScreen() {
           </Text>
         ) : null}
 
-        <Text variant="micro" tone="muted" align="center">
-          {t.notifications.footnote}
-        </Text>
+        <Row
+          style={{
+            alignItems: 'center',
+            gap: 10,
+            paddingHorizontal: 12,
+            paddingVertical: 10,
+            borderRadius: 14,
+            backgroundColor: dark ? theme.color.surfaceMuted : '#EEECF7',
+          }}
+        >
+          <Ionicons name="information-circle-outline" size={18} color={muted} />
+          <Text style={{ flex: 1, fontSize: 11, lineHeight: 16, color: muted }}>
+            {t.notifications.footnote}
+          </Text>
+        </Row>
       </ScrollView>
     </Screen>
   );
 }
 
+/** A white card with the redesign's soft corners and lift. */
+function SoftCard({ children, style }: { children: ReactNode; style?: object }) {
+  const theme = useTheme();
+  return (
+    <View
+      style={[
+        {
+          backgroundColor: theme.color.surface,
+          borderRadius: 20,
+          padding: theme.spacing.md,
+          gap: theme.spacing.md,
+          shadowColor: '#2A1E6B',
+          shadowOpacity: theme.scheme === 'dark' ? 0 : 0.06,
+          shadowRadius: 14,
+          shadowOffset: { width: 0, height: 4 },
+          elevation: 2,
+        },
+        style,
+      ]}
+    >
+      {children}
+    </View>
+  );
+}
+
+/** A glyph on its own soft disc. */
+function Disc({ icon, color, bg }: { icon: IconName; color: string; bg: string }) {
+  return (
+    <View
+      style={{
+        width: 42,
+        height: 42,
+        borderRadius: 21,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: bg,
+      }}
+    >
+      <Ionicons name={icon} size={20} color={color} />
+    </View>
+  );
+}
+
+/** A section's bold title with its line under it, above its card. */
+function SectionHead({ title, sub }: { title: string; sub?: string }) {
+  const theme = useTheme();
+  const dark = theme.scheme === 'dark';
+  return (
+    <View style={{ marginTop: theme.spacing.sm, paddingHorizontal: 4 }}>
+      <Text style={{ fontSize: 18, fontWeight: '800', color: dark ? theme.color.text : SPEC_INK }}>
+        {title}
+      </Text>
+      {sub ? (
+        <Text style={{ fontSize: 13, color: dark ? theme.color.textMuted : SPEC_MUTED }}>
+          {sub}
+        </Text>
+      ) : null}
+    </View>
+  );
+}
+
+/** The banner's bell: a violet bell ringing over a card, drawn from glyphs. */
+function BellArt() {
+  const theme = useTheme();
+  const dark = theme.scheme === 'dark';
+  return (
+    <View
+      pointerEvents="none"
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={{ position: 'absolute', right: 8, top: 14, width: 72, height: 76 }}
+    >
+      <View
+        style={{
+          position: 'absolute',
+          right: 0,
+          bottom: 0,
+          width: 56,
+          height: 40,
+          borderRadius: 8,
+          backgroundColor: dark ? theme.color.surface : '#FFFFFF',
+          opacity: 0.8,
+          transform: [{ rotate: '10deg' }],
+        }}
+      />
+      <Ionicons
+        name="notifications"
+        size={42}
+        color={dark ? theme.color.brand : '#7B6CF0'}
+        style={{ position: 'absolute', left: 4, top: 8, transform: [{ rotate: '-14deg' }] }}
+      />
+      {[
+        { top: 2, left: 44, rotate: '20deg' },
+        { top: 12, left: 54, rotate: '55deg' },
+        { top: 26, left: 58, rotate: '85deg' },
+      ].map((ray, index) => (
+        <View
+          key={index}
+          style={{
+            position: 'absolute',
+            top: ray.top,
+            left: ray.left,
+            width: 3,
+            height: 10,
+            borderRadius: 2,
+            backgroundColor: dark ? theme.color.brand : '#7B6CF0',
+            transform: [{ rotate: ray.rotate }],
+          }}
+        />
+      ))}
+    </View>
+  );
+}
+
+/** One preference: its glyph on a tinted disc, the name over what it does, and
+ *  the switch. */
+function PrefLine({
+  icon,
+  tint,
+  title,
+  body,
+  value,
+  disabled,
+  onChange,
+}: {
+  icon: IconName;
+  tint: { bg: string; ink: string };
+  title: string;
+  body: string;
+  value: boolean;
+  disabled?: boolean;
+  onChange: (value: boolean) => void;
+}) {
+  const theme = useTheme();
+  const dark = theme.scheme === 'dark';
+  return (
+    <Row style={{ gap: 12, paddingVertical: 10, alignItems: 'flex-start' }}>
+      <Disc icon={icon} color={tint.ink} bg={tint.bg} />
+      <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+        <Text
+          style={{ fontSize: 15, fontWeight: '700', color: dark ? theme.color.text : SPEC_INK }}
+        >
+          {title}
+        </Text>
+        <Text
+          style={{ fontSize: 13, lineHeight: 18, color: dark ? theme.color.textMuted : SPEC_MUTED }}
+        >
+          {body}
+        </Text>
+      </View>
+      <Toggle
+        value={value}
+        disabled={disabled}
+        onValueChange={onChange}
+        accessibilityLabel={title}
+      />
+    </Row>
+  );
+}
+
 /**
- * One grouped card of preference toggles, shared by the push and email
- * sections. Built from the same primitives the other settings lists use: a
- * `Card` holding a stack of `Row`s with a hairline `Divider` between each, a
- * quiet leading glyph anchoring the left, and a `Toggle` as the trailing
- * control (the pattern the devices and sync screens share).
- *
- * The bodies run to two lines, so each row is a plain `Row` with a
- * full-wrapping caption rather than a single-line `ListRow` that would clip the
- * explanation — the same reason the devices list rolls its own row.
+ * One card of preference toggles, shared by the push and email sections: a
+ * tinted disc leading each row, the name over a full-wrapping line on what it
+ * does (the bodies run to two lines, so not a single-line `ListRow`), a
+ * `Toggle` trailing, and a hairline between rows.
  */
 function PrefSection({
   rows,
@@ -412,26 +620,20 @@ function PrefSection({
 }) {
   const theme = useTheme();
   return (
-    <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
+    <SoftCard style={{ paddingVertical: 4, gap: 0 }}>
       {rows.map((row, index) => (
         <View key={row.key}>
           {index > 0 ? <Divider /> : null}
-          <Row gap={theme.spacing.md} style={{ paddingVertical: theme.spacing.md }}>
-            <Ionicons name={row.icon} size={iconSize.xl} color={theme.color.textMuted} />
-            <View style={{ flex: 1 }}>
-              <Text variant="subheading">{row.title}</Text>
-              <Text variant="caption" tone="muted">
-                {row.body}
-              </Text>
-            </View>
-            <Toggle
-              value={prefs[row.key]}
-              onValueChange={(value) => onToggle(row.key, value)}
-              accessibilityLabel={row.title}
-            />
-          </Row>
+          <PrefLine
+            icon={row.icon}
+            tint={theme.tint[row.tint]}
+            title={row.title}
+            body={row.body}
+            value={prefs[row.key]}
+            onChange={(value) => onToggle(row.key, value)}
+          />
         </View>
       ))}
-    </Card>
+    </SoftCard>
   );
 }

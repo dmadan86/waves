@@ -197,6 +197,7 @@ export function TimelineBody({
             onFocusVisible={setFocusVisible}
             empty={empty}
             bottomInset={clearance}
+            showPeople={lockedGroupId !== null}
           />
           {focusId && !focusVisible && rowIndexOf(rows, focusId) >= 0 ? (
             <Pressable

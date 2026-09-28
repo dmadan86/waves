@@ -7,18 +7,18 @@
  * a new one, so everything entered as a guest comes with them.
  */
 
-import { useRef, useState } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams } from 'expo-router';
-import { ActivityIndicator, Platform, ScrollView, TextInput, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
 
 import {
   Badge,
   Button,
   Callout,
-  Card,
   ChipRow,
   directionalIcon,
+  Divider,
   EmptyState,
   IconButton,
   iconSize,
@@ -41,7 +41,6 @@ import { CountryCodePicker } from '@/components/CountryCodePicker';
 import { DismissibleCallout } from '@/components/DismissibleCallout';
 import { EditTextSheet } from '@/components/EditTextSheet';
 import { ProfileAvatar } from '@/components/ProfileAvatar';
-import { SettingsSection } from '@/components/SettingsSection';
 import { useAvatarEditor } from '@/lib/avatarEditor';
 import { requestCountry } from '@/lib/countryPickerBridge';
 import { friendlyError } from '@/lib/errors';
@@ -50,6 +49,7 @@ import { deviceCountry, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { useIdentityTaken } from '@/lib/useIdentityTaken';
 import { router } from '@/lib/navigation';
+import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
 import { phoneSignInAvailable } from '@/lib/phoneAuth';
 
 export default function AccountScreen() {
@@ -268,19 +268,6 @@ function AccountForm() {
       ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalised)
       : /^\+?[0-9]{8,15}$/.test(normalised);
 
-  // Every text field on this screen wears the same skin — a filled, rounded
-  // surface you can see and aim at — so a field never reads as static text and
-  // the phone number sits flush against the dial-code chip beside it.
-  const fieldStyle = {
-    fontSize: 17,
-    fontWeight: '600' as const,
-    color: theme.color.text,
-    backgroundColor: theme.color.surfaceMuted,
-    borderRadius: theme.radius.md,
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
-  };
-
   const send = async (): Promise<void> => {
     setError(null);
     setBusy(true);
@@ -310,152 +297,209 @@ function AccountForm() {
     }
   };
 
+  const dark = theme.scheme === 'dark';
+  const ink = dark ? theme.color.text : SPEC_INK;
+  const muted = dark ? theme.color.textMuted : SPEC_MUTED;
+  const accent = dark ? theme.color.brand : SPEC_ACCENT;
+  const inputStyle = {
+    fontSize: 15,
+    color: ink,
+    backgroundColor: dark ? theme.color.surfaceMuted : '#F3F2F9',
+    borderRadius: 22,
+    paddingHorizontal: theme.spacing.md,
+    height: 44,
+  };
+  const actionLabel = sent
+    ? t.contact.confirm
+    : channel === ContactChannel.Email
+      ? t.contact.sendCodeEmail
+      : t.contact.sendCodePhone;
+  const actionDisabled = busy || (sent ? code.trim().length < 6 : !looksValid);
+
   return (
     <Screen>
-      <Row style={{ paddingHorizontal: theme.spacing.xl, paddingTop: theme.spacing.md }}>
+      {/* Two faint lavender washes behind the portrait, as on the mockup. */}
+      <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0 }}>
+        <View
+          style={{
+            position: 'absolute',
+            top: 90,
+            left: -80,
+            width: 200,
+            height: 220,
+            borderRadius: 110,
+            backgroundColor: dark ? 'rgba(140,131,255,0.06)' : '#ECE9FB',
+            opacity: 0.8,
+          }}
+        />
+        <View
+          style={{
+            position: 'absolute',
+            top: 110,
+            right: -90,
+            width: 200,
+            height: 220,
+            borderRadius: 110,
+            backgroundColor: dark ? 'rgba(120,170,255,0.05)' : '#E8EEFC',
+            opacity: 0.8,
+          }}
+        />
+      </View>
+
+      <Row
+        style={{
+          paddingHorizontal: theme.spacing.lg,
+          paddingTop: theme.spacing.sm,
+          alignItems: 'center',
+          gap: theme.spacing.xs,
+        }}
+      >
         <IconButton label={t.common.back} onPress={() => router.back()}>
-          <Ionicons
-            name={directionalIcon('chevron-back')}
-            size={iconSize.lg}
-            color={theme.color.text}
-          />
+          <Ionicons name={directionalIcon('chevron-back')} size={iconSize.lg} color={ink} />
         </IconButton>
-        <View style={{ flex: 1, alignItems: 'center' }}>
-          <Text variant="heading">{t.contact.title}</Text>
-        </View>
-        <View style={{ width: 44 }} />
+        <Text style={{ flex: 1, fontSize: 21, lineHeight: 27, fontWeight: '800', color: ink }}>
+          {t.contact.title}
+        </Text>
       </Row>
 
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
-          paddingHorizontal: theme.spacing.xl,
+          paddingHorizontal: theme.spacing.lg,
           paddingBottom: clearance,
-          paddingTop: theme.spacing.lg,
-          gap: theme.spacing.xl,
+          gap: theme.spacing.md,
         }}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        {/* Who this account is, and the one control the header carries.
-            
-            The portrait is tappable now. Every edit-profile screen worth
-            copying makes it so — Beli, Lyft, BeReal, Binance, Instagram,
-            Shopee all put a camera badge on the avatar right here — and the
-            reason is simply that this is where somebody looks for it. It opens
+        {/* Who this account is. The portrait carries the camera badge and opens
             the same sheet the Settings portrait does (`useAvatarEditor`), so
             there is one behaviour and not two that drift. */}
-        <View
-          style={{
-            alignItems: 'center',
-            gap: theme.spacing.md,
-            paddingTop: theme.spacing.sm,
-          }}
-        >
+        <View style={{ alignItems: 'center', gap: 2 }}>
           <ProfileAvatar
             name={displayName}
             avatarUrl={avatarUrl}
-            size={96}
+            size={84}
             onPress={photo.open}
             busy={photo.busy}
+            lightBadge
           />
-          <View style={{ alignItems: 'center', gap: theme.spacing.xs }}>
-            <Row style={{ gap: theme.spacing.sm }}>
-              <Text variant="title">{displayName}</Text>
-              {/* The badge says the account has no email or phone on it. When
-                  somebody has not renamed themselves it repeats the name they
-                  were given, which reads as a bug rather than a fact — so it is
-                  held back for the untouched "Guest" name. */}
-              {isGuest && displayName !== 'Guest' ? <Badge label={t.common.guest} /> : null}
-            </Row>
-            {accountContact ? (
-              <Text variant="caption" tone="muted">
-                {accountContact}
-              </Text>
-            ) : null}
-            {photo.status ? (
-              <Text variant="caption" tone="negative">
-                {photo.status}
-              </Text>
-            ) : null}
-          </View>
+          <Row style={{ gap: theme.spacing.sm, marginTop: theme.spacing.sm }}>
+            <Text style={{ fontSize: 19, fontWeight: '800', color: ink }}>{displayName}</Text>
+            {/* Held back for the untouched "Guest" name, where it would only
+                repeat it and read as a bug. */}
+            {isGuest && displayName !== 'Guest' ? <Badge label={t.common.guest} /> : null}
+          </Row>
+          {accountContact ? (
+            <Text style={{ fontSize: 13, color: muted }}>{accountContact}</Text>
+          ) : null}
+          {photo.status ? (
+            <Text variant="caption" tone="negative">
+              {photo.status}
+            </Text>
+          ) : null}
         </View>
 
-        {/* What you have set, as a list you can read rather than a stack of
-            forms you have to scroll.
-
-            This was four cards, each holding one text field and a Save button
-            that appeared when it was dirty, under a label of its own — so the
-            page was mostly the space between things, and you could not see what
-            your details *were* without reading four inputs. Every edit-profile
-            screen on the reference boards is a dense list of label-and-value
-            rows instead, and the value is the point: "Name · Madan" answers the
-            question the screen is open for, at a glance.
-
-            The rows are the same component Settings uses (`SettingsSection`),
-            which is the other half of the ask — two lists one tap apart should
-            not be two designs. Each one opens a focused editor: a sheet for the
-            free text, the existing picker for the country.
-
-            Currency is the exception and has no press: it is derived from the
-            country above it and is shown because people look for it, not
-            because it can be set. */}
-        <SettingsSection
-          title={t.account.detailsTitle}
-          rows={[
-            {
-              icon: 'person-outline',
-              label: t.account.displayName,
-              value: name.trim() || t.common.yourName,
-              valueMuted: !name.trim(),
-              onPress: () => setEditing('name'),
-            },
-            {
-              icon: 'location-outline',
-              label: t.pickers.country,
-              value: country
+        {/* What you have set, as label-and-value rows you can read at a glance;
+            each opens a focused editor. Currency has no press: it follows the
+            country and is shown because people look for it. */}
+        <SoftCard style={{ paddingVertical: 0, paddingBottom: 4, gap: 0 }}>
+          <Row
+            style={{
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              paddingTop: 12,
+              paddingBottom: 10,
+            }}
+          >
+            <Text
+              accessibilityRole="header"
+              style={{ fontSize: 16, fontWeight: '800', color: ink }}
+            >
+              {t.contact.personalDetails}
+            </Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`${t.common.edit} ${t.account.displayName}`}
+              onPress={() => setEditing('name')}
+              hitSlop={6}
+              style={({ pressed }) => ({
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 4,
+                paddingHorizontal: 10,
+                paddingVertical: 4,
+                borderRadius: 14,
+                backgroundColor: theme.color.brandSoft,
+                opacity: pressed ? 0.7 : 1,
+              })}
+            >
+              <Ionicons name="pencil" size={13} color={accent} />
+              <Text style={{ fontSize: 13, fontWeight: '600', color: accent }}>
+                {t.common.edit}
+              </Text>
+            </Pressable>
+          </Row>
+          <View
+            style={{
+              height: 1,
+              backgroundColor: theme.color.border,
+              marginHorizontal: -theme.spacing.md,
+            }}
+          />
+          <DetailRow
+            icon="person-outline"
+            tint={theme.tint.lilac}
+            label={t.account.displayName}
+            sub={name.trim() || t.common.yourName}
+            onPress={() => setEditing('name')}
+          />
+          <Divider />
+          <DetailRow
+            icon="location-outline"
+            tint={dark ? theme.tint.mint : { bg: '#E3F5EC', ink: '#2E9E6A' }}
+            label={t.pickers.country}
+            value={
+              country
                 ? `${countryFlag(country) ?? ''} ${countryName(country) ?? country}`.trim()
-                : t.account.countryRequired,
-              valueMuted: !country,
-              onPress: () => {
-                requestCountry({
-                  initial: country,
-                  onPicked: (next: string | null) => void saveCountry(next),
-                });
-                router.push('/country');
-              },
-            },
-            {
-              icon: 'cash-outline',
-              label: t.account.currencyLabel,
-              hint: t.account.currencyFromCountry,
-              value: `${currencySymbol(currency)} ${currency}`,
-            },
-            {
-              icon: 'home-outline',
-              label: t.account.addressTitle,
-              value: address.trim() || t.account.addressOptional,
-              valueMuted: !address.trim(),
-              onPress: () => setEditing('address'),
-            },
-          ]}
-        />
+                : t.account.countryRequired
+            }
+            onPress={() => {
+              requestCountry({
+                initial: country,
+                onPicked: (next: string | null) => void saveCountry(next),
+              });
+              router.push('/country');
+            }}
+          />
+          <Divider />
+          <DetailRow
+            icon="cash-outline"
+            tint={theme.tint.sky}
+            label={t.account.currencyLabel}
+            sub={t.account.currencyFromCountry}
+            value={`${currencySymbol(currency)} ${currency}`}
+          />
+          <Divider />
+          <DetailRow
+            icon="home-outline"
+            tint={theme.tint.peach}
+            label={t.account.addressTitle}
+            sub={address.trim() || t.account.addressOptional}
+            onPress={() => setEditing('address')}
+          />
+        </SoftCard>
 
-        {/* One line of bad news for the rows above, which have no room for their
-            own. Silent when a save worked: the row already shows the new value,
-            and a "Saved" that has to be dismissed is a second thing to read. */}
+        {/* One line of bad news for the rows above. Silent when a save worked:
+            the row already shows the new value. */}
         {rowStatus ? (
           <Text variant="caption" tone="negative">
             {rowStatus}
           </Text>
         ) : null}
 
-        {/* The signed-in reassurance is gone: for a member it said nothing they
-            did not already know. A guest, or somebody sent here by a limit, gets
-            the one message that is actually actionable — as a Callout, the app's
-            canonical shape for "read this". */}
         {/* The limit that sent them here is the reason for the visit, so it
-            stays; the guest reassurance says the same thing every time, so
-            once read it can be closed for good. */}
+            stays; the guest reassurance can be closed for good. */}
         {gateBody ? (
           <Callout tone="info" title={t.contact.gateTitle}>
             {gateBody}
@@ -466,17 +510,42 @@ function AccountForm() {
           </DismissibleCallout>
         ) : null}
 
-        <View style={{ gap: theme.spacing.md }}>
-          <GroupLabel icon="log-in-outline" title={t.contact.signInMethodsTitle} />
-          {/* An email or phone, or a linked account — any of them signs you back
-              in on another phone. */}
-          <Card style={{ gap: theme.spacing.lg }}>
+        <View style={{ marginTop: theme.spacing.xs, paddingHorizontal: 4 }}>
+          <Text accessibilityRole="header" style={{ fontSize: 18, fontWeight: '800', color: ink }}>
+            {t.contact.securityTitle}
+          </Text>
+          <Text style={{ fontSize: 13, color: muted }}>{t.contact.securitySub}</Text>
+        </View>
+
+        {/* An email or phone — either signs you back in on another phone. */}
+        <SoftCard>
+          <Row style={{ gap: 12, alignItems: 'center' }}>
+            <Disc
+              icon={channel === ContactChannel.Email ? 'mail-outline' : 'call-outline'}
+              tint={theme.tint.lilac}
+            />
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={{ fontSize: 15, fontWeight: '700', color: ink }}>
+                {channel === ContactChannel.Email ? t.contact.email : t.contact.phone}
+              </Text>
+              <Text numberOfLines={1} style={{ fontSize: 13, color: muted }}>
+                {existing
+                  ? t.contact.alreadyAdded.replace('{value}', existing)
+                  : channel === ContactChannel.Email
+                    ? t.contact.emailAddress
+                    : t.contact.phoneNumber}
+              </Text>
+            </View>
+          </Row>
+
+          {/* Phone only where the build can prove one: the code comes from a
+              native module, so an older binary would leave the chip dead. */}
+          {phoneSignInAvailable() ? (
             <ChipRow<ContactChannel>
               value={channel}
               onChange={(next) => {
-                // Not mid-request: switching the target while a code is in flight
-                // would have confirm() check the code against a different address
-                // than it was sent to.
+                // Not mid-request: switching the target while a code is in
+                // flight would check it against a different address.
                 if (busy) return;
                 setChannel(next);
                 setSent(false);
@@ -484,31 +553,91 @@ function AccountForm() {
                 setError(null);
                 setValue('');
               }}
-              // Phone only where the build can prove one. The code comes from
-              // Firebase, which is a native module, so a JavaScript-only update
-              // onto an older binary would leave this chip selectable and the
-              // "send code" under it dead — an offer the app cannot keep.
-              options={
-                phoneSignInAvailable()
-                  ? [
-                      { value: ContactChannel.Email, label: t.contact.email },
-                      { value: ContactChannel.Phone, label: t.contact.phone },
-                    ]
-                  : [{ value: ContactChannel.Email, label: t.contact.email }]
-              }
+              options={[
+                { value: ContactChannel.Email, label: t.contact.email },
+                { value: ContactChannel.Phone, label: t.contact.phone },
+              ]}
             />
+          ) : null}
 
-            {existing ? (
-              <Text variant="caption" tone="positive">
-                {t.contact.alreadyAdded.replace('{value}', existing)}
-              </Text>
-            ) : null}
-
+          {sent ? (
             <View style={{ gap: theme.spacing.xs }}>
-              <Text variant="caption" tone="muted">
-                {channel === ContactChannel.Email ? t.contact.emailAddress : t.contact.phoneNumber}
+              <Text style={{ fontSize: 12, color: muted }}>
+                {channel === ContactChannel.Email ? t.contact.codeEmailed : t.contact.codeTexted}
               </Text>
-              {channel === ContactChannel.Email ? (
+              <Row style={{ gap: theme.spacing.sm }}>
+                <TextInput
+                  value={code}
+                  onChangeText={setCode}
+                  editable={!busy}
+                  keyboardType="number-pad"
+                  maxLength={6}
+                  // The code has just arrived — let the OS offer the one-tap
+                  // fill: `sms-otp` on Android, `oneTimeCode` on iOS.
+                  autoComplete="sms-otp"
+                  textContentType="oneTimeCode"
+                  accessibilityLabel={t.contact.verificationCode}
+                  placeholder="123456"
+                  placeholderTextColor={theme.color.textFaint}
+                  style={[inputStyle, { flex: 1, fontWeight: '700', letterSpacing: 4 }]}
+                />
+                <PillButton
+                  label={actionLabel}
+                  disabled={actionDisabled}
+                  busy={busy}
+                  onPress={() => void confirm()}
+                />
+              </Row>
+              <Button
+                label={t.contact.useDifferent}
+                variant="ghost"
+                size="sm"
+                onPress={() => setSent(false)}
+              />
+            </View>
+          ) : channel === ContactChannel.Email ? (
+            <Row style={{ gap: theme.spacing.sm }}>
+              <TextInput
+                value={value}
+                onChangeText={(next) => {
+                  setValue(next);
+                  setSent(false);
+                  setDone(false);
+                }}
+                editable={!busy}
+                autoCapitalize="none"
+                autoComplete="email"
+                keyboardType="email-address"
+                accessibilityLabel={t.contact.emailAddress}
+                placeholder={t.contact.emailPlaceholder}
+                placeholderTextColor={theme.color.textFaint}
+                style={[inputStyle, { flex: 1 }]}
+              />
+              <PillButton
+                label={actionLabel}
+                disabled={actionDisabled}
+                busy={busy}
+                onPress={() => void send()}
+              />
+            </Row>
+          ) : (
+            // The dial code is its own control; the field beside it holds only
+            // local digits.
+            <View style={{ gap: theme.spacing.sm }}>
+              <Row style={{ gap: theme.spacing.sm, alignItems: 'stretch' }}>
+                <CountryCodePicker
+                  code={phoneCountry}
+                  onChange={(next) => {
+                    // A new dial code is a new number: any code already sent no
+                    // longer matches. Never mid-request.
+                    if (busy) return;
+                    setPhoneCountry(next);
+                    setSent(false);
+                    setDone(false);
+                    setError(null);
+                    setCode('');
+                  }}
+                />
                 <TextInput
                   value={value}
                   onChangeText={(next) => {
@@ -517,152 +646,87 @@ function AccountForm() {
                     setDone(false);
                   }}
                   editable={!busy}
-                  autoCapitalize="none"
-                  autoComplete="email"
-                  keyboardType="email-address"
-                  accessibilityLabel={t.contact.emailAddress}
-                  placeholder={t.contact.emailPlaceholder}
+                  autoComplete="tel"
+                  keyboardType="phone-pad"
+                  accessibilityLabel={t.contact.phoneNumber}
+                  placeholder={t.contact.phonePlaceholder.replace('{code}', '').trim()}
                   placeholderTextColor={theme.color.textFaint}
-                  style={fieldStyle}
+                  style={[inputStyle, { flex: 1 }]}
                 />
-              ) : (
-                // The dial code is its own control; the field beside it holds
-                // only local digits. This is the country-code picker the phone
-                // flow was missing.
-                <Row style={{ gap: theme.spacing.sm, alignItems: 'stretch' }}>
-                  <CountryCodePicker
-                    code={phoneCountry}
-                    onChange={(next) => {
-                      // Changing the dial code changes the number, so any code
-                      // already sent no longer matches — drop back to sending.
-                      // And never mid-request, for the same reason the channel
-                      // switch is guarded.
-                      if (busy) return;
-                      setPhoneCountry(next);
-                      setSent(false);
-                      setDone(false);
-                      setError(null);
-                      setCode('');
-                    }}
-                  />
-                  <TextInput
-                    value={value}
-                    onChangeText={(next) => {
-                      setValue(next);
-                      setSent(false);
-                      setDone(false);
-                    }}
-                    editable={!busy}
-                    autoComplete="tel"
-                    keyboardType="phone-pad"
-                    accessibilityLabel={t.contact.phoneNumber}
-                    placeholder={t.contact.phonePlaceholder.replace('{code}', '').trim()}
-                    placeholderTextColor={theme.color.textFaint}
-                    style={[fieldStyle, { flex: 1 }]}
-                  />
-                </Row>
-              )}
-            </View>
-
-            {sent ? (
-              <View style={{ gap: theme.spacing.xs }}>
-                <Text variant="caption" tone="muted">
-                  {channel === ContactChannel.Email ? t.contact.codeEmailed : t.contact.codeTexted}
-                </Text>
-                <TextInput
-                  value={code}
-                  onChangeText={setCode}
-                  editable={!busy}
-                  keyboardType="number-pad"
-                  maxLength={6}
-                  // The code has just arrived by SMS or email — let the OS offer
-                  // the one-tap fill rather than making it be retyped by hand.
-                  // `sms-otp` is Android's autofill hint; `oneTimeCode` is iOS's.
-                  autoComplete="sms-otp"
-                  textContentType="oneTimeCode"
-                  accessibilityLabel={t.contact.verificationCode}
-                  placeholder="123456"
-                  placeholderTextColor={theme.color.textFaint}
-                  style={[fieldStyle, { fontSize: 24, fontWeight: '700', letterSpacing: 6 }]}
-                />
-              </View>
-            ) : null}
-
-            {busy ? <ActivityIndicator color={theme.color.brand} /> : null}
-
-            <Button
-              label={
-                sent
-                  ? t.contact.confirm
-                  : channel === ContactChannel.Email
-                    ? t.contact.sendCodeEmail
-                    : t.contact.sendCodePhone
-              }
-              size="lg"
-              fullWidth
-              disabled={busy || (sent ? code.trim().length < 6 : !looksValid)}
-              onPress={() => void (sent ? confirm() : send())}
-            />
-
-            {sent ? (
-              <Button
-                label={t.contact.useDifferent}
-                variant="ghost"
-                onPress={() => setSent(false)}
+              </Row>
+              <PillButton
+                label={actionLabel}
+                disabled={actionDisabled}
+                busy={busy}
+                onPress={() => void send()}
               />
-            ) : null}
-
-            {done ? (
-              <Text variant="caption" tone="positive">
-                {t.contact.added}
-              </Text>
-            ) : null}
-            {error ? <Callout tone="negative">{error}</Callout> : null}
-          </Card>
-
-          {/* Linking a social account, so it can sign this same account in later
-              on another phone — the OAuth complement to the email/phone above.
-              Under the same heading, because it is another way into the same
-              account.
-
-              Apple is offered on Android too, exactly as the sign-in screen
-              offers it: `withApple` only reaches the native sheet for a fresh
-              sign-in on iOS, and a link is always the browser round trip, so
-              there is nothing platform-specific to hide here. The order follows
-              the sign-in screen's — Apple first on iOS, where its guidelines
-              want it at least as prominent as its neighbours. */}
-          <Card style={{ gap: theme.spacing.md }}>
-            <Text variant="caption" tone="muted">
-              {t.contact.signInMethodsBody}
-            </Text>
-            <View style={{ gap: theme.spacing.md }}>
-              {(Platform.OS === 'ios' ? PROVIDERS_APPLE_FIRST : PROVIDERS_GOOGLE_FIRST).map(
-                (provider) => (
-                  <ProviderRow
-                    key={provider.id}
-                    name={provider.name}
-                    icon={provider.icon}
-                    linked={linkedProviders.has(provider.id)}
-                    busy={busy}
-                    linkLabel={t.contact.link}
-                    linkA11yLabel={t.contact.linkProvider.replace('{provider}', provider.name)}
-                    linkedLabel={t.contact.linked}
-                    onLink={() => void link(provider.id === 'apple' ? withApple : withGoogle)}
-                  />
-                ),
-              )}
             </View>
-          </Card>
-        </View>
+          )}
 
-        <Text variant="micro" tone="muted" align="center">
-          {t.contact.footnote}
-        </Text>
+          {done ? (
+            <Text variant="caption" tone="positive">
+              {t.contact.added}
+            </Text>
+          ) : null}
+          {error ? <Callout tone="negative">{error}</Callout> : null}
+        </SoftCard>
+
+        {/* Linking a social account, so it can sign this same account in later
+            on another phone. Apple is offered on Android too, as the sign-in
+            screen does; Apple leads on iOS, per its guidelines. */}
+        <SoftCard>
+          <Row style={{ gap: 12, alignItems: 'flex-start' }}>
+            <Disc icon="link-outline" tint={theme.tint.lilac} />
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={{ fontSize: 15, fontWeight: '700', color: ink }}>
+                {t.contact.linkedAccounts}
+              </Text>
+              <Text style={{ fontSize: 13, lineHeight: 18, color: muted }}>
+                {t.contact.signInMethodsBody}
+              </Text>
+              <View style={{ marginTop: theme.spacing.xs }}>
+                {(Platform.OS === 'ios' ? PROVIDERS_APPLE_FIRST : PROVIDERS_GOOGLE_FIRST).map(
+                  (provider, index) => (
+                    <View key={provider.id}>
+                      {index > 0 ? <Divider /> : null}
+                      <ProviderRow
+                        name={provider.name}
+                        icon={provider.icon}
+                        linked={linkedProviders.has(provider.id)}
+                        busy={busy}
+                        linkLabel={t.contact.link}
+                        linkA11yLabel={t.contact.linkProvider.replace('{provider}', provider.name)}
+                        linkedLabel={t.contact.linked}
+                        onLink={() => void link(provider.id === 'apple' ? withApple : withGoogle)}
+                      />
+                    </View>
+                  ),
+                )}
+              </View>
+            </View>
+          </Row>
+        </SoftCard>
+
+        <Row
+          style={{
+            alignItems: 'center',
+            gap: 10,
+            paddingHorizontal: 12,
+            paddingVertical: 10,
+            borderRadius: 14,
+            backgroundColor: dark ? theme.color.surfaceMuted : '#EEECF7',
+          }}
+        >
+          <Ionicons name="shield-checkmark-outline" size={20} color={accent} />
+          <Text style={{ flex: 1, fontSize: 12, lineHeight: 17, color: muted }}>
+            {t.contact.footnote}
+          </Text>
+        </Row>
       </ScrollView>
 
       {/* The editors, over the list. Outside the ScrollView so a sheet is
-          anchored to the screen rather than to a scroll position, and so the
-          keyboard it raises does not push the list it came from. */}
+          anchored to the screen, and the keyboard it raises does not push the
+          list it came from. */}
       <EditTextSheet
         visible={editing === 'name'}
         title={t.account.displayName}
@@ -689,36 +753,146 @@ function AccountForm() {
   );
 }
 
-/**
- * A section label in the settings grammar: a leading glyph in a soft brand
- * circle beside the heading, matching the rows on (tabs)/profile so this screen
- * reads as one of the settings family rather than a bespoke form. It replaces
- * the bare `SectionHeader` here — the icon gives each grouped card a fast,
- * scannable anchor (Mobbin — Me+, Vivino: grouped rows led by an icon). No
- * chevron: every group below is edited in place, so there is nowhere to go.
- */
-function GroupLabel({ icon, title }: { icon: keyof typeof Ionicons.glyphMap; title: string }) {
+type IconName = keyof typeof Ionicons.glyphMap;
+
+/** A white card with the redesign's soft corners and lift. */
+function SoftCard({ children, style }: { children: ReactNode; style?: object }) {
   const theme = useTheme();
   return (
-    <Row style={{ gap: theme.spacing.md, marginBottom: theme.spacing.xs }}>
-      <View
-        style={{
-          width: 34,
-          height: 34,
-          borderRadius: theme.radius.pill,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: theme.color.brandSoft,
-        }}
-      >
-        <Ionicons name={icon} size={iconSize.md} color={theme.color.brand} />
+    <View
+      style={[
+        {
+          backgroundColor: theme.color.surface,
+          borderRadius: 20,
+          padding: theme.spacing.md,
+          gap: theme.spacing.md,
+          shadowColor: '#2A1E6B',
+          shadowOpacity: theme.scheme === 'dark' ? 0 : 0.06,
+          shadowRadius: 14,
+          shadowOffset: { width: 0, height: 4 },
+          elevation: 2,
+        },
+        style,
+      ]}
+    >
+      {children}
+    </View>
+  );
+}
+
+/** A glyph on its own pastel disc. */
+function Disc({ icon, tint }: { icon: IconName; tint: { bg: string; ink: string } }) {
+  return (
+    <View
+      style={{
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: tint.bg,
+      }}
+    >
+      <Ionicons name={icon} size={17} color={tint.ink} />
+    </View>
+  );
+}
+
+/** A violet pill for the form's one action, with a spinner while it runs. */
+function PillButton({
+  label,
+  disabled,
+  busy,
+  onPress,
+}: {
+  label: string;
+  disabled: boolean;
+  busy: boolean;
+  onPress: () => void;
+}) {
+  const theme = useTheme();
+  const accent = theme.scheme === 'dark' ? theme.color.brand : SPEC_ACCENT;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled, busy }}
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        height: 44,
+        paddingHorizontal: theme.spacing.lg,
+        borderRadius: 22,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: accent,
+        opacity: disabled && !busy ? 0.5 : pressed ? 0.85 : 1,
+      })}
+    >
+      {busy ? (
+        <ActivityIndicator size="small" color="#FFFFFF" />
+      ) : (
+        <Text style={{ fontSize: 14, fontWeight: '700', color: '#FFFFFF' }}>{label}</Text>
+      )}
+    </Pressable>
+  );
+}
+
+/**
+ * One of your details: its glyph on a pastel disc, the label over its value or
+ * hint, the value (if short) on the right, and a chevron when it opens an
+ * editor. A row with no `onPress` is read-only and draws no chevron.
+ */
+function DetailRow({
+  icon,
+  tint,
+  label,
+  sub,
+  value,
+  onPress,
+}: {
+  icon: IconName;
+  tint: { bg: string; ink: string };
+  label: string;
+  sub?: string;
+  value?: string;
+  onPress?: () => void;
+}) {
+  const theme = useTheme();
+  const dark = theme.scheme === 'dark';
+  const ink = dark ? theme.color.text : SPEC_INK;
+  const muted = dark ? theme.color.textMuted : SPEC_MUTED;
+  const body = (
+    <Row style={{ gap: 12, paddingVertical: 8, alignItems: 'center' }}>
+      <Disc icon={icon} tint={tint} />
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text style={{ fontSize: 14, fontWeight: '700', color: ink }}>{label}</Text>
+        {sub ? (
+          <Text numberOfLines={1} style={{ fontSize: 13, color: muted }}>
+            {sub}
+          </Text>
+        ) : null}
       </View>
-      {/* Marked as a header so a screen reader's heading navigation can still
-          jump between sections, exactly as the `SectionHeader` it replaced did. */}
-      <Text variant="heading" accessibilityRole="header">
-        {title}
-      </Text>
+      {value ? (
+        <Text numberOfLines={1} style={{ maxWidth: '45%', fontSize: 14, color: muted }}>
+          {value}
+        </Text>
+      ) : null}
+      {onPress ? (
+        <Ionicons name={directionalIcon('chevron-forward')} size={16} color={muted} />
+      ) : null}
     </Row>
+  );
+  if (!onPress) return body;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={[label, value ?? sub].filter(Boolean).join(', ')}
+      onPress={onPress}
+      style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+    >
+      {body}
+    </Pressable>
   );
 }
 
@@ -734,9 +908,8 @@ const PROVIDERS_APPLE_FIRST = [PROVIDER_APPLE, PROVIDER_GOOGLE];
 const PROVIDERS_GOOGLE_FIRST = [PROVIDER_GOOGLE, PROVIDER_APPLE];
 
 /**
- * One provider in the "ways to sign in" list: its mark, its name, and either a
- * Linked badge or a button to link it. Icon-and-name so the row reads at a
- * glance; the action says exactly what it does.
+ * One provider in the linked-accounts list: its mark, its name, and either a
+ * green Linked pill or a small button to link it.
  */
 function ProviderRow({
   name,
@@ -759,14 +932,30 @@ function ProviderRow({
   onLink: () => void;
 }) {
   const theme = useTheme();
+  const dark = theme.scheme === 'dark';
   return (
-    <Row style={{ justifyContent: 'space-between' }}>
-      <Row style={{ gap: theme.spacing.md }}>
-        <Ionicons name={icon} size={iconSize.xl} color={theme.color.text} />
-        <Text variant="body">{name}</Text>
-      </Row>
+    <Row style={{ gap: 12, paddingVertical: 10, alignItems: 'center' }}>
+      <Ionicons
+        name={icon}
+        size={20}
+        color={icon === 'logo-google' ? '#4285F4' : dark ? theme.color.text : '#000000'}
+      />
+      <Text style={{ flex: 1, fontSize: 15, color: dark ? theme.color.text : SPEC_INK }}>
+        {name}
+      </Text>
       {linked ? (
-        <Badge label={linkedLabel} tone="positive" />
+        <View
+          style={{
+            paddingHorizontal: 10,
+            paddingVertical: 3,
+            borderRadius: 12,
+            backgroundColor: theme.color.positiveSoft,
+          }}
+        >
+          <Text style={{ fontSize: 12, fontWeight: '600', color: theme.color.positive }}>
+            {linkedLabel}
+          </Text>
+        </View>
       ) : (
         <Button
           label={linkLabel}
@@ -774,8 +963,7 @@ function ProviderRow({
           size="sm"
           variant="secondary"
           disabled={busy}
-          // 38pt on its own — hitSlop lifts the target over the 44 floor
-          // without enlarging the small trailing pill.
+          // hitSlop lifts the target over the 44 floor without enlarging the pill.
           hitSlop={8}
           onPress={onLink}
         />

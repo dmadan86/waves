@@ -33,12 +33,15 @@ export function ProfileAvatar({
   size = 78,
   onPress,
   busy = false,
+  lightBadge = false,
 }: {
   name: string;
   avatarUrl: string | null | undefined;
   size?: number;
   onPress?: () => void;
   busy?: boolean;
+  /** A white camera disc with a violet glyph, for a portrait on a pale page. */
+  lightBadge?: boolean;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
@@ -74,12 +77,25 @@ export function ProfileAvatar({
             borderRadius: size,
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: theme.color.buttonPrimary,
+            backgroundColor: lightBadge ? theme.color.surface : theme.color.buttonPrimary,
             borderWidth: 2,
             borderColor: theme.color.surface,
+            ...(lightBadge
+              ? {
+                  shadowColor: '#2A1E6B',
+                  shadowOpacity: 0.18,
+                  shadowRadius: 6,
+                  shadowOffset: { width: 0, height: 2 },
+                  elevation: 3,
+                }
+              : null),
           }}
         >
-          <Ionicons name="camera" size={size * 0.17} color={theme.color.onButtonPrimary} />
+          <Ionicons
+            name="camera"
+            size={size * 0.17}
+            color={lightBadge ? theme.color.brand : theme.color.onButtonPrimary}
+          />
         </View>
       ) : null}
     </View>

@@ -20,16 +20,17 @@ import Reanimated, {
 } from 'react-native-reanimated';
 
 import { format, money, type CurrencyCode } from '@waves/core';
-import { iconSize, MoneyText, Row, Text, useTheme } from '@waves/ui';
+import { directionalIcon, iconSize, Row, Text, useTheme } from '@waves/ui';
 
 import { CategoryBadge } from '@/components/Category';
 import { expenseTitle } from '@/data/expenseTitle';
 import { fill, plural, useStrings } from '@/i18n';
 import { useReducedMotion } from '@/lib/reducedMotion';
+import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
 import type { TimelineDay, TimelineEntry, TimelineRow } from '@/lib/timeline';
 
-const TIME_COL = 52;
-const RAIL_COL = 22;
+const TIME_COL = 40;
+const RAIL_COL = 18;
 
 export interface TimelineListProps {
   rows: readonly TimelineRow[];
@@ -39,11 +40,13 @@ export interface TimelineListProps {
   header?: React.ReactElement | null;
   empty?: React.ReactElement | null;
   bottomInset: number;
+  /** Name the people on each bill rather than its group — a group's own tab. */
+  showPeople?: boolean;
 }
 
 export const TimelineList = forwardRef<FlashListRef<TimelineRow>, TimelineListProps>(
   function TimelineList(
-    { rows, focusId, onOpen, onFocusVisible, header, empty, bottomInset },
+    { rows, focusId, onOpen, onFocusVisible, header, empty, bottomInset, showPeople = false },
     ref,
   ) {
     const theme = useTheme();
@@ -54,12 +57,12 @@ export const TimelineList = forwardRef<FlashListRef<TimelineRow>, TimelineListPr
         keyExtractor={(row) => row.key}
         getItemType={(row) => row.kind}
         drawDistance={2500}
-        extraData={`${focusId ?? ''}|${theme.scheme}`}
+        extraData={`${focusId ?? ''}|${theme.scheme}|${showPeople}`}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={header ?? null}
         ListEmptyComponent={empty ?? null}
         contentContainerStyle={{
-          paddingHorizontal: theme.spacing.xl,
+          paddingHorizontal: theme.spacing.lg,
           paddingBottom: bottomInset,
         }}
         onViewableItemsChanged={
@@ -85,6 +88,7 @@ export const TimelineList = forwardRef<FlashListRef<TimelineRow>, TimelineListPr
               first={item.first}
               last={item.last}
               focused={item.entry.id === focusId}
+              showPeople={showPeople}
               onOpen={onOpen}
             />
           )
@@ -98,8 +102,21 @@ function formatMoney(amount: bigint, currency: string, locale: string): string {
   return format(money(amount, currency as CurrencyCode), { locale });
 }
 
+/** The ink and the quieter grey the redesign draws the timeline in. */
+function useInks() {
+  const theme = useTheme();
+  const dark = theme.scheme === 'dark';
+  return {
+    ink: dark ? theme.color.text : SPEC_INK,
+    muted: dark ? theme.color.textMuted : SPEC_MUTED,
+    rail: dark ? theme.color.border : '#E3E1F0',
+    lent: dark ? '#8FB4FF' : '#2E63E0',
+  };
+}
+
 function DayHeader({ day }: { day: TimelineDay }) {
   const theme = useTheme();
+  const { ink, muted } = useInks();
   const { locale } = useStrings();
   const [y, m, d] = day.day.split('-').map(Number) as [number, number, number];
   const label = new Intl.DateTimeFormat(locale, {
@@ -114,13 +131,17 @@ function DayHeader({ day }: { day: TimelineDay }) {
     <Row
       style={{
         justifyContent: 'space-between',
-        alignItems: 'flex-end',
-        paddingTop: theme.spacing.xl,
-        paddingBottom: theme.spacing.sm,
+        alignItems: 'center',
+        gap: theme.spacing.md,
+        paddingTop: theme.spacing.md,
+        paddingBottom: 2,
       }}
     >
-      <Text variant="subheading">{label}</Text>
-      <Text variant="caption" tone="muted" style={{ fontWeight: '700' }}>
+      <Text style={{ fontSize: 15, fontWeight: '800', color: ink }}>{label}</Text>
+      <Text
+        numberOfLines={1}
+        style={{ flexShrink: 1, fontSize: 13, color: muted, fontVariant: ['tabular-nums'] }}
+      >
         {totals}
       </Text>
     </Row>
@@ -129,25 +150,56 @@ function DayHeader({ day }: { day: TimelineDay }) {
 
 function GapRow({ hours }: { hours: number }) {
   const theme = useTheme();
+  const { muted, rail } = useInks();
   const { t, locale } = useStrings();
   return (
-    <Row style={{ alignItems: 'center', minHeight: 30 }}>
+    <Row style={{ alignItems: 'center', minHeight: 20 }}>
       <View style={{ width: TIME_COL }} />
       <View style={{ width: RAIL_COL, alignItems: 'center', alignSelf: 'stretch' }}>
         <View
           style={{
             flex: 1,
             width: 0,
-            borderLeftWidth: 2,
+            borderLeftWidth: 1.5,
             borderStyle: 'dashed',
-            borderColor: theme.color.border,
+            borderColor: rail,
           }}
         />
       </View>
-      <Text variant="micro" tone="faint" style={{ marginStart: theme.spacing.sm }}>
+      <Text style={{ marginStart: theme.spacing.sm, fontSize: 11, color: muted }}>
         {plural(locale, hours, t.timeline.quietFor).replace('{n}', String(hours))}
       </Text>
     </Row>
+  );
+}
+
+/** "7:00" over "PM": the time and its half of the day on lines of their own,
+ *  so a narrow column never breaks it mid-word. */
+function timeParts(at: number, locale: string): [string, string] {
+  const parts = new Intl.DateTimeFormat(locale, {
+    hour: 'numeric',
+    minute: '2-digit',
+  }).formatToParts(new Date(at));
+  const period = parts.find((part) => part.type === 'dayPeriod')?.value ?? '';
+  const clock = parts
+    .filter((part) => part.type !== 'dayPeriod')
+    .map((part) => part.value)
+    .join('')
+    .trim();
+  return [clock, period];
+}
+
+/** The amount with its minor digits drawn lighter: ₹500 and a quiet .00. */
+function SplitAmount({ text, color }: { text: string; color: string }) {
+  const match = /^(.*\d)([.,]\d{1,3})$/.exec(text);
+  return (
+    <Text
+      numberOfLines={1}
+      style={{ fontSize: 14, fontWeight: '700', color, fontVariant: ['tabular-nums'] }}
+    >
+      {match ? match[1] : text}
+      {match ? <Text style={{ fontWeight: '400', color, fontSize: 14 }}>{match[2]}</Text> : null}
+    </Text>
   );
 }
 
@@ -156,23 +208,22 @@ function EntryRow({
   first,
   last,
   focused,
+  showPeople,
   onOpen,
 }: {
   entry: TimelineEntry;
   first: boolean;
   last: boolean;
   focused: boolean;
+  showPeople: boolean;
   onOpen: (entry: TimelineEntry) => void;
 }) {
   const theme = useTheme();
+  const { ink, muted, rail, lent } = useInks();
   const { t, locale } = useStrings();
   const title = expenseTitle(entry.description, entry.category, t, entry.categoryMeta);
-  const time =
-    entry.at !== null
-      ? new Intl.DateTimeFormat(locale, { hour: 'numeric', minute: '2-digit' }).format(
-          new Date(entry.at),
-        )
-      : null;
+  const time = entry.at !== null ? timeParts(entry.at, locale) : null;
+  const amount = formatMoney(entry.amount, entry.currency, locale);
   const share =
     entry.myNet > 0n
       ? fill(t.timeline.youLent, { amount: formatMoney(entry.myNet, entry.currency, locale) })
@@ -181,97 +232,123 @@ function EntryRow({
             amount: formatMoney(-entry.myNet, entry.currency, locale),
           })
         : null;
+  // "You, Rvs Amirnath +2" on a group's own timeline, where the group's name
+  // would say nothing; the group's name on the one that spans them all.
+  const people = (() => {
+    if (!showPeople || !entry.others) return entry.groupName;
+    const names = [...(entry.mine ? [t.person.you] : []), ...entry.others];
+    if (names.length === 0) return entry.groupName;
+    const shown = names.slice(0, 2).join(', ');
+    return names.length > 2 ? `${shown} +${names.length - 2}` : shown;
+  })();
 
   return (
     <Row style={{ alignItems: 'stretch' }}>
-      <View style={{ width: TIME_COL, paddingTop: theme.spacing.lg }}>
-        <Text variant="micro" tone={time ? 'muted' : 'faint'} numberOfLines={2}>
-          {time ?? t.timeline.addedLater}
-        </Text>
+      <View style={{ width: TIME_COL, paddingTop: theme.spacing.md }}>
+        {time ? (
+          <>
+            <Text style={{ fontSize: 12, lineHeight: 15, color: muted }}>{time[0]}</Text>
+            {time[1] ? (
+              <Text style={{ fontSize: 11, lineHeight: 14, color: muted }}>{time[1]}</Text>
+            ) : null}
+          </>
+        ) : (
+          <Text numberOfLines={2} style={{ fontSize: 11, lineHeight: 14, color: muted }}>
+            {t.timeline.addedLater}
+          </Text>
+        )}
       </View>
       <View style={{ width: RAIL_COL, alignItems: 'center' }}>
         {/* The rail: above the dot unless this is the day's first bill, below
             it unless it is the last, so each day is one continuous line. */}
         <View
           style={{
-            width: 2,
-            height: theme.spacing.lg + 4,
-            backgroundColor: first ? 'transparent' : theme.color.border,
+            width: 1.5,
+            height: theme.spacing.md + 2,
+            backgroundColor: first ? 'transparent' : rail,
           }}
         />
         <Dot focused={focused} />
-        <View
-          style={{ width: 2, flex: 1, backgroundColor: last ? 'transparent' : theme.color.border }}
-        />
+        <View style={{ width: 1.5, flex: 1, backgroundColor: last ? 'transparent' : rail }} />
       </View>
       <Pressable
         onPress={() => onOpen(entry)}
         accessibilityRole="button"
-        accessibilityLabel={`${title}, ${formatMoney(entry.amount, entry.currency, locale)}`}
+        accessibilityLabel={`${title}, ${amount}${share ? `, ${share}` : ''}`}
         accessibilityHint={t.timeline.openExpense}
         style={({ pressed }) => ({
           flex: 1,
+          minWidth: 0,
           marginStart: theme.spacing.sm,
-          marginVertical: theme.spacing.xs,
-          padding: theme.spacing.md,
-          borderRadius: theme.radius.lg,
+          marginVertical: 3,
+          paddingVertical: theme.spacing.sm,
+          paddingStart: theme.spacing.sm + 2,
+          paddingEnd: theme.spacing.xs,
+          borderRadius: 16,
           backgroundColor: focused ? theme.color.brandSoft : theme.color.surface,
-          borderWidth: focused ? 2 : 1,
-          borderColor: focused ? theme.color.brand : theme.color.border,
+          borderWidth: focused ? 1.5 : 0,
+          borderColor: theme.color.brand,
+          shadowColor: '#2A1E6B',
+          shadowOpacity: theme.scheme === 'dark' ? 0 : 0.06,
+          shadowRadius: 12,
+          shadowOffset: { width: 0, height: 3 },
+          elevation: 1,
           opacity: pressed ? 0.7 : 1,
         })}
       >
-        <Row style={{ gap: theme.spacing.md, alignItems: 'center' }}>
+        <Row style={{ gap: theme.spacing.sm + 2, alignItems: 'center' }}>
           <CategoryBadge
             category={entry.category}
             meta={entry.categoryMeta}
             description={entry.description}
-            size={36}
+            size={34}
           />
-          <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-            <Text variant="body" numberOfLines={1} style={{ fontWeight: '600' }}>
-              {title}
-            </Text>
-            <Text variant="micro" tone="muted" numberOfLines={1}>
-              {entry.groupName}
-            </Text>
+          <View style={{ flex: 1, minWidth: 0, gap: 1 }}>
+            <Row style={{ alignItems: 'baseline', gap: theme.spacing.sm }}>
+              <Text
+                numberOfLines={1}
+                style={{ flex: 1, fontSize: 14, fontWeight: '700', color: ink }}
+              >
+                {title}
+              </Text>
+              <SplitAmount text={amount} color={ink} />
+            </Row>
+            <Row style={{ alignItems: 'baseline', gap: theme.spacing.sm }}>
+              <Text numberOfLines={1} style={{ flex: 1, fontSize: 12, color: muted }}>
+                {people}
+              </Text>
+              {share ? (
+                <Text
+                  numberOfLines={1}
+                  style={{
+                    fontSize: 12,
+                    fontWeight: '500',
+                    color: entry.myNet > 0n ? lent : theme.color.negative,
+                  }}
+                >
+                  {share}
+                </Text>
+              ) : null}
+            </Row>
             {entry.place ? (
               <Row style={{ gap: 3, alignItems: 'center' }}>
-                <Ionicons name="location" size={iconSize.xs} color={theme.color.brand} />
-                <Text variant="micro" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
+                <Ionicons name="location-outline" size={iconSize.xs} color={muted} />
+                <Text numberOfLines={1} style={{ flexShrink: 1, fontSize: 11, color: muted }}>
                   {entry.place.name?.trim() ||
                     `${entry.place.lat.toFixed(3)}, ${entry.place.lng.toFixed(3)}`}
                 </Text>
               </Row>
             ) : null}
           </View>
-          <View style={{ alignItems: 'flex-end', gap: 2 }}>
-            <MoneyText
-              amount={entry.amount}
-              currency={entry.currency}
-              locale={locale}
-              variant="body"
-            />
-            {share ? (
-              <Text
-                variant="micro"
-                style={{
-                  color: entry.myNet > 0n ? theme.color.positive : theme.color.negative,
-                  fontWeight: '600',
-                }}
-                numberOfLines={1}
-              >
-                {share}
-              </Text>
-            ) : null}
-          </View>
+          <Ionicons name={directionalIcon('chevron-forward')} size={14} color={muted} />
         </Row>
       </Pressable>
     </Row>
   );
 }
 
-/** The rail's dot. The focused bill's rings once when it comes into view. */
+/** The rail's dot: a hollow violet ring. The focused bill's is filled and rings
+ *  once when it comes into view. */
 function Dot({ focused }: { focused: boolean }) {
   const theme = useTheme();
   const reduce = useReducedMotion();
@@ -284,9 +361,10 @@ function Dot({ focused }: { focused: boolean }) {
     opacity: ring.value === 0 ? 0 : 1 - ring.value,
     transform: [{ scale: 1 + ring.value * 1.6 }],
   }));
-  const size = focused ? 14 : 10;
+  const brand = theme.scheme === 'dark' ? theme.color.brand : SPEC_ACCENT;
+  const size = 11;
   return (
-    <View style={{ width: 22, height: 22, alignItems: 'center', justifyContent: 'center' }}>
+    <View style={{ width: 18, height: 18, alignItems: 'center', justifyContent: 'center' }}>
       <Reanimated.View
         style={[
           {
@@ -294,7 +372,7 @@ function Dot({ focused }: { focused: boolean }) {
             width: size,
             height: size,
             borderRadius: size / 2,
-            backgroundColor: theme.color.brand,
+            backgroundColor: brand,
           },
           ringStyle,
         ]}
@@ -304,9 +382,9 @@ function Dot({ focused }: { focused: boolean }) {
           width: size,
           height: size,
           borderRadius: size / 2,
-          backgroundColor: focused ? theme.color.brand : theme.color.surface,
+          backgroundColor: focused ? brand : theme.color.bg,
           borderWidth: 2,
-          borderColor: theme.color.brand,
+          borderColor: brand,
         }}
       />
     </View>

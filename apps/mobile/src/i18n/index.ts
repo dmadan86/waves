@@ -1226,6 +1226,9 @@ export interface UiStrings {
   /** Notification preferences, and what the phone will and will not allow. */
   notifications: {
     title: string;
+    importantTitle: string;
+    pushSub: string;
+    emailSub: string;
     neverSpam: string;
     onThisPhone: string;
     permissionOn: string;
@@ -1270,6 +1273,10 @@ export interface UiStrings {
   /** Attaching an email or phone to the account you already have (ADR-006). */
   contact: {
     title: string;
+    securityTitle: string;
+    securitySub: string;
+    linkedAccounts: string;
+    personalDetails: string;
     signedIn: string;
     guestBody: string;
     memberBody: string;
@@ -2008,6 +2015,18 @@ export interface UiStrings {
    */
   backup: {
     title: string;
+    subtitle: string;
+    benefitPrivate: string;
+    benefitEncrypted: string;
+    benefitRestore: string;
+    frequencySub: string;
+    freqOffSub: string;
+    freqDailySub: string;
+    freqWeeklySub: string;
+    freqMonthlySub: string;
+    networkSub: string;
+    networkWifiSub: string;
+    networkAnySub: string;
     /** The settings-row label. */
     row: string;
     /** The promise the screen leads with, in whichever form is true. The
@@ -4721,6 +4740,9 @@ const en: UiStrings = {
   },
   notifications: {
     title: 'Notifications',
+    importantTitle: 'Only the important stuff',
+    pushSub: 'Get notified on this device for the things that matter.',
+    emailSub: 'Receive important updates in your inbox.',
     neverSpam:
       'Waves never emails you about routine expense activity. Only the six things you would actually want in your inbox, each unsubscribable on its own.',
     onThisPhone: 'Notifications on this phone',
@@ -4767,6 +4789,10 @@ const en: UiStrings = {
   },
   contact: {
     title: 'Your account',
+    securityTitle: 'Sign in & security',
+    securitySub: 'Manage how you sign in to your account.',
+    linkedAccounts: 'Linked accounts',
+    personalDetails: 'Personal details',
     signedIn: 'Signed in',
     guestBody:
       'Everything you have entered is already saved and yours. Adding an email or phone number is only so you can get back to it from another phone.',
@@ -5327,6 +5353,18 @@ const en: UiStrings = {
   },
   backup: {
     title: 'Backup',
+    subtitle: 'Keep your data safe and accessible across devices.',
+    benefitPrivate: 'Your data stays private',
+    benefitEncrypted: 'Encrypted and secure',
+    benefitRestore: 'Easy to restore anytime',
+    frequencySub: 'Choose how often to back up your data.',
+    freqOffSub: 'You\'ll need to back up manually.',
+    freqDailySub: 'Back up once every day.',
+    freqWeeklySub: 'Back up once every week.',
+    freqMonthlySub: 'Back up once every month.',
+    networkSub: 'Choose the network to use for backups.',
+    networkWifiSub: 'Recommended to save mobile data.',
+    networkAnySub: 'Use mobile data when Wi‑Fi is not available.',
     row: 'Back up to Google Drive',
     introStandard:
       'Your private Me ledger, copied to a hidden folder in your own Google Drive and locked with a key kept there too — so a new phone signed in to the same Google account opens it by itself. Waves cannot read it. Anyone who can get into your Google account can.',
@@ -7860,6 +7898,9 @@ const ta: UiStrings = {
   },
   notifications: {
     title: 'அறிவிப்புகள்',
+    importantTitle: 'முக்கியமானவை மட்டும்',
+    pushSub: 'முக்கியமானவற்றுக்கு இந்தச் சாதனத்தில் அறிவிப்பு பெறுங்கள்.',
+    emailSub: 'முக்கியமான செய்திகளை உங்கள் இன்பாக்ஸில் பெறுங்கள்.',
     neverSpam:
       'வழக்கமான செலவுச் செயல்பாடுகள் குறித்து Waves உங்களுக்கு மின்னஞ்சல் அனுப்புவதே இல்லை. உங்கள் அஞ்சல் பெட்டியில் நீங்கள் உண்மையிலேயே விரும்பும் ஆறு விஷயங்கள் மட்டுமே, ஒவ்வொன்றையும் தனித்தனியே நிறுத்தலாம்.',
     onThisPhone: 'இந்த ஃபோனில் அறிவிப்புகள்',
@@ -7909,6 +7950,10 @@ const ta: UiStrings = {
   },
   contact: {
     title: 'உங்கள் கணக்கு',
+    securityTitle: 'உள்நுழைவு & பாதுகாப்பு',
+    securitySub: 'உங்கள் கணக்கில் எப்படி உள்நுழைவது என்பதை நிர்வகிக்கவும்.',
+    linkedAccounts: 'இணைக்கப்பட்ட கணக்குகள்',
+    personalDetails: 'தனிப்பட்ட விவரங்கள்',
     signedIn: 'உள்நுழைந்துள்ளீர்கள்',
     guestBody:
       'நீங்கள் சேர்த்தவை அனைத்தும் ஏற்கனவே சேமிக்கப்பட்டு உங்களுடையவை. மின்னஞ்சலோ தொலைபேசி எண்ணோ சேர்ப்பது வேறு ஃபோனிலிருந்து இதை அணுகுவதற்காக மட்டுமே.',
@@ -8493,6 +8538,18 @@ const ta: UiStrings = {
   },
   backup: {
     title: 'காப்புப்பிரதி',
+    subtitle: 'உங்கள் தரவைப் பாதுகாப்பாகவும் எல்லாச் சாதனங்களிலும் கிடைக்கும்படியும் வைத்திருங்கள்.',
+    benefitPrivate: 'உங்கள் தரவு தனிப்பட்டதாகவே இருக்கும்',
+    benefitEncrypted: 'மறையாக்கப்பட்டது, பாதுகாப்பானது',
+    benefitRestore: 'எப்போது வேண்டுமானாலும் எளிதாக மீட்டெடுக்கலாம்',
+    frequencySub: 'எத்தனை முறை காப்புப்பிரதி எடுக்க வேண்டும் எனத் தேர்ந்தெடுங்கள்.',
+    freqOffSub: 'நீங்களே காப்புப்பிரதி எடுக்க வேண்டும்.',
+    freqDailySub: 'தினமும் ஒருமுறை காப்புப்பிரதி.',
+    freqWeeklySub: 'வாரம் ஒருமுறை காப்புப்பிரதி.',
+    freqMonthlySub: 'மாதம் ஒருமுறை காப்புப்பிரதி.',
+    networkSub: 'காப்புப்பிரதிக்கான நெட்வொர்க்கைத் தேர்ந்தெடுங்கள்.',
+    networkWifiSub: 'மொபைல் டேட்டாவைச் சேமிக்கப் பரிந்துரைக்கப்படுகிறது.',
+    networkAnySub: 'Wi‑Fi இல்லாதபோது மொபைல் டேட்டாவைப் பயன்படுத்தும்.',
     row: 'Google Drive-இல் காப்பு',
     introStandard:
       'உங்கள் தனிப்பட்ட "நான்" கணக்கு, உங்கள் சொந்த Google Drive-இல் ஒரு மறைவான கோப்புறைக்கு நகலெடுக்கப்பட்டு, அங்கேயே வைக்கப்படும் சாவியால் பூட்டப்படுகிறது — அதே Google கணக்கில் நுழையும் புதிய ஃபோன் தானாகவே அதைத் திறக்கும். Waves-ஆல் அதைப் படிக்க முடியாது; உங்கள் Google கணக்கை அணுகும் எவரும் படிக்க முடியும்.',
@@ -11094,6 +11151,9 @@ const hi: UiStrings = {
   },
   notifications: {
     title: 'सूचनाएँ',
+    importantTitle: 'सिर्फ़ ज़रूरी बातें',
+    pushSub: 'ज़रूरी चीज़ों की सूचना इसी डिवाइस पर पाएँ।',
+    emailSub: 'ज़रूरी अपडेट अपने इनबॉक्स में पाएँ।',
     neverSpam:
       'रोज़मर्रा की खर्च गतिविधि के लिए Waves कभी ईमेल नहीं करता। सिर्फ़ वे छह चीज़ें जो आप वाकई इनबॉक्स में चाहेंगे, और हर एक अलग से बंद की जा सकती है।',
     onThisPhone: 'इस फ़ोन पर सूचनाएँ',
@@ -11139,6 +11199,10 @@ const hi: UiStrings = {
   },
   contact: {
     title: 'आपका खाता',
+    securityTitle: 'साइन इन और सुरक्षा',
+    securitySub: 'तय करें कि आप अपने खाते में कैसे साइन इन करते हैं।',
+    linkedAccounts: 'लिंक किए गए खाते',
+    personalDetails: 'निजी जानकारी',
     signedIn: 'साइन इन हैं',
     guestBody:
       'आपने जो कुछ जोड़ा है वह पहले ही सेव है और आपका है। ईमेल या फ़ोन नंबर जोड़ना सिर्फ़ इसलिए है कि आप इसे किसी दूसरे फ़ोन से भी पा सकें।',
@@ -11703,6 +11767,18 @@ const hi: UiStrings = {
   },
   backup: {
     title: 'बैकअप',
+    subtitle: 'अपना डेटा सुरक्षित और हर डिवाइस पर उपलब्ध रखें।',
+    benefitPrivate: 'आपका डेटा निजी रहता है',
+    benefitEncrypted: 'एन्क्रिप्टेड और सुरक्षित',
+    benefitRestore: 'कभी भी आसानी से रीस्टोर करें',
+    frequencySub: 'चुनें कि कितनी बार बैकअप लेना है।',
+    freqOffSub: 'आपको खुद बैकअप लेना होगा।',
+    freqDailySub: 'हर दिन एक बार बैकअप।',
+    freqWeeklySub: 'हर हफ़्ते एक बार बैकअप।',
+    freqMonthlySub: 'हर महीने एक बार बैकअप।',
+    networkSub: 'बैकअप के लिए नेटवर्क चुनें।',
+    networkWifiSub: 'मोबाइल डेटा बचाने के लिए सुझाया गया।',
+    networkAnySub: 'Wi‑Fi न होने पर मोबाइल डेटा इस्तेमाल करें।',
     row: 'Google Drive पर बैकअप',
     introStandard:
       'आपका निजी "मैं" खाता, आपकी अपनी Google Drive के एक छिपे फ़ोल्डर में कॉपी होता है और वहीं रखी एक चाबी से बंद रहता है — इसलिए उसी Google खाते में साइन इन किया नया फ़ोन इसे खुद ही खोल लेता है। Waves इसे नहीं पढ़ सकता। आपके Google खाते तक पहुँचने वाला कोई भी पढ़ सकता है।',
@@ -14294,6 +14370,9 @@ const ar: UiStrings = {
   },
   notifications: {
     title: 'الإشعارات',
+    importantTitle: 'المهم فقط',
+    pushSub: 'تلقَّ إشعارات على هذا الجهاز بما يهمك.',
+    emailSub: 'استلم التحديثات المهمة في بريدك.',
     neverSpam:
       'لا يرسل Waves بريدًا عن نشاط المصروفات المعتاد. ستة أشياء فقط قد ترغب فعلًا في وصولها إلى بريدك، ويمكن إيقاف كل منها وحده.',
     onThisPhone: 'الإشعارات على هذا الهاتف',
@@ -14336,6 +14415,10 @@ const ar: UiStrings = {
   },
   contact: {
     title: 'حسابك',
+    securityTitle: 'تسجيل الدخول والأمان',
+    securitySub: 'تحكّم في طريقة تسجيل دخولك إلى حسابك.',
+    linkedAccounts: 'الحسابات المرتبطة',
+    personalDetails: 'البيانات الشخصية',
     signedIn: 'مسجّل الدخول',
     guestBody:
       'كل ما أدخلته محفوظ بالفعل وهو ملكك. إضافة بريد إلكتروني أو رقم هاتف هي فقط كي تصل إليه من هاتف آخر.',
@@ -14963,6 +15046,18 @@ const ar: UiStrings = {
   },
   backup: {
     title: 'النسخ الاحتياطي',
+    subtitle: 'احفظ بياناتك بأمان واجعلها متاحة على كل أجهزتك.',
+    benefitPrivate: 'تبقى بياناتك خاصة',
+    benefitEncrypted: 'مشفّرة وآمنة',
+    benefitRestore: 'استعادة سهلة في أي وقت',
+    frequencySub: 'اختر عدد مرات النسخ الاحتياطي.',
+    freqOffSub: 'ستحتاج إلى النسخ الاحتياطي يدويًا.',
+    freqDailySub: 'نسخة احتياطية مرة كل يوم.',
+    freqWeeklySub: 'نسخة احتياطية مرة كل أسبوع.',
+    freqMonthlySub: 'نسخة احتياطية مرة كل شهر.',
+    networkSub: 'اختر الشبكة المستخدمة للنسخ الاحتياطي.',
+    networkWifiSub: 'يُنصح به لتوفير بيانات الجوال.',
+    networkAnySub: 'استخدم بيانات الجوال عند عدم توفر Wi‑Fi.',
     row: 'نسخ احتياطي إلى Google Drive',
     introStandard:
       'دفترك الخاص في تبويب "أنا"، يُنسخ إلى مجلد مخفي داخل Google Drive الخاص بك ويُقفل بمفتاح محفوظ هناك أيضًا — فيفتحه وحده أي هاتف جديد يسجّل الدخول إلى حساب Google نفسه. لا يستطيع Waves قراءته، أما من يصل إلى حساب Google الخاص بك فيستطيع.',

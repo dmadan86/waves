@@ -115,7 +115,8 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Clipboard from 'expo-clipboard';
 import { useLocalSearchParams } from 'expo-router';
-import { ActivityIndicator, ScrollView, TextInput, View } from 'react-native';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { ActivityIndicator, Pressable, ScrollView, TextInput, View } from 'react-native';
 
 import {
   Button,
@@ -148,6 +149,7 @@ import type { RestoreScan } from '@/lib/backup/engine';
 import { CloudAuthError } from '@/lib/cloud/oauth';
 import { friendlyError } from '@/lib/errors';
 import { router } from '@/lib/navigation';
+import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
 import { SyncNetworkPreference } from '@/lib/syncNetwork';
 
 /** A found backup, held while the person decides whether to take it. */
@@ -653,16 +655,48 @@ export default function BackupSettingsScreen() {
     }
   };
 
-  const frequencies: { value: BackupFrequency; label: string }[] = [
-    { value: BackupFrequency.Off, label: t.backup.freqOff },
-    { value: BackupFrequency.Daily, label: t.backup.freqDaily },
-    { value: BackupFrequency.Weekly, label: t.backup.freqWeekly },
-    { value: BackupFrequency.Monthly, label: t.backup.freqMonthly },
+  const frequencies: Choice<BackupFrequency>[] = [
+    {
+      value: BackupFrequency.Off,
+      label: t.backup.freqOff,
+      sub: t.backup.freqOffSub,
+      icon: 'shield',
+    },
+    {
+      value: BackupFrequency.Daily,
+      label: t.backup.freqDaily,
+      sub: t.backup.freqDailySub,
+      icon: 'today',
+    },
+    {
+      value: BackupFrequency.Weekly,
+      label: t.backup.freqWeekly,
+      sub: t.backup.freqWeeklySub,
+      icon: 'calendar',
+    },
+    {
+      value: BackupFrequency.Monthly,
+      label: t.backup.freqMonthly,
+      sub: t.backup.freqMonthlySub,
+      icon: 'calendar-number',
+    },
   ];
 
-  const networks: { value: SyncNetworkPreference; label: string }[] = [
-    { value: SyncNetworkPreference.Wifi, label: t.backup.networkWifi },
-    { value: SyncNetworkPreference.Both, label: t.backup.networkAny },
+  const networks: Choice<SyncNetworkPreference>[] = [
+    {
+      value: SyncNetworkPreference.Wifi,
+      label: t.backup.networkWifi,
+      sub: t.backup.networkWifiSub,
+      icon: 'wifi',
+      iconAtRest: { color: theme.color.textMuted, bg: theme.color.surfaceMuted },
+    },
+    {
+      value: SyncNetworkPreference.Both,
+      label: t.backup.networkAny,
+      sub: t.backup.networkAnySub,
+      icon: 'cellular',
+      iconAtRest: { color: theme.color.textMuted, bg: theme.color.surfaceMuted },
+    },
   ];
 
   const running = backup.phase !== null;
@@ -826,35 +860,42 @@ export default function BackupSettingsScreen() {
           ? t.backup.restoreNeedsKey
           : null;
 
+  const inks = useBackupInks();
+  /** No Drive linked and nothing else to do first: the top card becomes the
+   *  invitation to link one. */
+  const linkFirst =
+    settled && !setup.unavailable && !checklist && setup.outstanding === BackupStep.Account;
+
   return (
     <Screen>
-      <Row style={{ paddingHorizontal: theme.spacing.xl, paddingTop: theme.spacing.md }}>
-        <IconButton label={t.common.back} onPress={() => router.back()}>
-          <Ionicons
-            name={directionalIcon('chevron-back')}
-            size={iconSize.lg}
-            color={theme.color.text}
-          />
-        </IconButton>
-        <View style={{ flex: 1, alignItems: 'center' }}>
-          <Text variant="heading">{t.backup.title}</Text>
-        </View>
-        <IconButton label={t.backup.aboutLabel} onPress={() => setAbout(true)}>
-          <Ionicons
-            name="information-circle-outline"
-            size={iconSize.lg}
-            color={theme.color.textMuted}
-          />
-        </IconButton>
-      </Row>
+      {/* A left-set title with the line on what the screen is for under it,
+          the back arrow before it and "How this works" after. */}
+      <View style={{ paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.sm }}>
+        <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
+          <IconButton label={t.common.back} onPress={() => router.back()}>
+            <Ionicons name={directionalIcon('arrow-back')} size={iconSize.lg} color={inks.ink} />
+          </IconButton>
+          <Text
+            style={{ flex: 1, fontSize: 26, lineHeight: 32, fontWeight: '800', color: inks.ink }}
+          >
+            {t.backup.title}
+          </Text>
+          <IconButton label={t.backup.aboutLabel} onPress={() => setAbout(true)}>
+            <Ionicons name="help-circle-outline" size={iconSize.lg} color={inks.ink} />
+          </IconButton>
+        </Row>
+        <Text style={{ marginStart: 48, fontSize: 13, lineHeight: 18, color: inks.muted }}>
+          {t.backup.subtitle}
+        </Text>
+      </View>
 
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
-          paddingHorizontal: theme.spacing.xl,
+          paddingHorizontal: theme.spacing.lg,
           paddingBottom: clearance,
-          paddingTop: theme.spacing.lg,
-          gap: theme.spacing.xl,
+          paddingTop: theme.spacing.md,
+          gap: theme.spacing.md,
         }}
         showsVerticalScrollIndicator={false}
       >
@@ -862,58 +903,69 @@ export default function BackupSettingsScreen() {
 
         {/* The anchor: where things stand, and — under the same rule — either
             the one step outstanding or the button that is now possible. */}
-        <Card style={{ gap: theme.spacing.lg }}>
-          <Row gap={theme.spacing.md} style={{ alignItems: 'flex-start' }}>
-            <View
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: 22,
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: statusColor.bg,
-              }}
-            >
-              {settled ? (
-                <Ionicons
-                  name={
-                    setup.complete
-                      ? last
-                        ? 'cloud-done'
-                        : 'cloud-upload-outline'
-                      : 'cloud-offline-outline'
-                  }
-                  size={iconSize.xxl}
-                  color={statusColor.fg}
-                />
-              ) : (
-                <ActivityIndicator size="small" color={statusColor.fg} />
-              )}
-            </View>
-            <View style={{ flex: 1, gap: 2 }}>
-              <Text variant="heading">{statusTitle}</Text>
+        <SoftCard>
+          <StatusPill
+            label={statusTitle}
+            loading={!settled}
+            icon={
+              setup.complete
+                ? last
+                  ? 'cloud-done-outline'
+                  : 'cloud-upload-outline'
+                : 'cloud-offline-outline'
+            }
+            fg={statusColor.fg}
+            bg={statusColor.bg}
+          />
+
+          {/* Nothing linked yet, and linking is the only step: the card is the
+              invitation — what it is, why it is safe, and the one button. */}
+          {linkFirst ? (
+            <>
+              <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+                <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
+                  <Text
+                    style={{ fontSize: 20, lineHeight: 25, fontWeight: '800', color: inks.ink }}
+                  >
+                    {t.backup.stepAccountTitle}
+                  </Text>
+                  <Text style={{ fontSize: 13, lineHeight: 18, color: inks.muted }}>
+                    {t.backup.stepAccountBody}
+                  </Text>
+                  <View style={{ gap: 8, marginTop: 8 }}>
+                    <Benefit icon="lock-closed-outline" label={t.backup.benefitPrivate} />
+                    <Benefit icon="shield-checkmark-outline" label={t.backup.benefitEncrypted} />
+                    <Benefit icon="refresh-outline" label={t.backup.benefitRestore} />
+                  </View>
+                </View>
+                <DriveArt />
+              </Row>
+              <LinkDriveButton
+                label={t.backup.connect}
+                onPress={() => void onConnect()}
+                disabled={busy}
+                working={pending === 'connect'}
+              />
+            </>
+          ) : statusDetail || (settled && setup.complete) ? (
+            <View style={{ gap: 2 }}>
               {statusDetail ? (
-                <Text variant="caption" tone="muted">
-                  {statusDetail}
-                </Text>
+                <Text style={{ fontSize: 13, color: inks.muted }}>{statusDetail}</Text>
               ) : null}
               {/* WhatsApp's "End-to-end encrypted" line: the reassurance belongs
-                  where the good news is, not three sections further down. */}
+                  where the good news is, not three sections further down. Two
+                  padlocks, two sentences: the Standard one names where the key
+                  is kept, so nobody reads the stronger promise into it. */}
               {settled && setup.complete ? (
-                <Row gap={theme.spacing.xs} style={{ marginTop: 2 }}>
+                <Row gap={theme.spacing.xs}>
                   <Ionicons name="lock-closed" size={iconSize.xs} color={theme.color.textFaint} />
-                  {/* Two padlocks, two different sentences. The Extra one is
-                      WhatsApp's "End-to-end encrypted"; the Standard one names
-                      where the key is kept, because a line that only said
-                      "locked" would let somebody read the stronger promise into
-                      it. */}
                   <Text variant="micro" tone="faint">
                     {extra ? t.backup.statusSealedExtra : t.backup.statusSealedStandard}
                   </Text>
                 </Row>
               ) : null}
             </View>
-          </Row>
+          ) : null}
 
           {settled && setup.complete ? (
             <>
@@ -971,7 +1023,7 @@ export default function BackupSettingsScreen() {
                 ) : null}
               </View>
             </>
-          ) : settled && !setup.unavailable ? (
+          ) : settled && !setup.unavailable && !linkFirst ? (
             <>
               <Divider />
               <View style={{ gap: theme.spacing.lg }}>
@@ -1047,7 +1099,7 @@ export default function BackupSettingsScreen() {
               </View>
             </>
           ) : null}
-        </Card>
+        </SoftCard>
 
         {/* Which Google account. Rendered whenever one is linked *and* the
             checklist is not itself asking for one — so the two never offer the
@@ -1141,34 +1193,20 @@ export default function BackupSettingsScreen() {
 
         {/* How often — and, when it cannot yet run, saying so rather than
             sitting there reading "Daily" over a key that does not exist. */}
-        <View style={{ gap: theme.spacing.sm }}>
-          <SectionHeader title={t.backup.frequencySection} />
-          <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
-            {frequencies.map((option, index) => {
-              const chosen = backup.settings.frequency === option.value;
-              return (
-                <View key={option.value}>
-                  <ListRow
-                    title={option.label}
-                    onPress={() => void backup.setFrequency(option.value)}
-                    // A picker row, not a door: every tap should land.
-                    repeatable
-                    accessibilityRole="radio"
-                    accessibilityState={{ selected: chosen }}
-                    accessibilityLabel={`${option.label}${chosen ? `, ${t.backup.selected}` : ''}`}
-                    trailing={
-                      chosen ? (
-                        <Ionicons name="checkmark" size={iconSize.lg} color={theme.color.brand} />
-                      ) : null
-                    }
-                  />
-                  {index < frequencies.length - 1 ? (
-                    <View style={{ height: 1, backgroundColor: theme.color.border }} />
-                  ) : null}
-                </View>
-              );
-            })}
-          </Card>
+        <SoftCard>
+          <CardHead
+            icon="calendar"
+            color={inks.accent}
+            bg={theme.color.brandSoft}
+            title={t.backup.frequencySection}
+            sub={t.backup.frequencySub}
+          />
+          <ChoiceList
+            choices={frequencies}
+            value={backup.settings.frequency}
+            onPick={(next) => void backup.setFrequency(next)}
+            selectedLabel={t.backup.selected}
+          />
           {/* Not in a build that cannot back up at all: the card at the top
               already says why, and "the steps above" would point at nothing. */}
           {settled &&
@@ -1177,52 +1215,25 @@ export default function BackupSettingsScreen() {
           backup.settings.frequency !== BackupFrequency.Off ? (
             <Callout tone="warning">{t.backup.frequencyBlocked}</Callout>
           ) : null}
-          <Text variant="micro" tone="faint">
-            {t.backup.frequencyNote}
-          </Text>
-        </View>
+          <InfoNote>{t.backup.frequencyNote}</InfoNote>
+        </SoftCard>
 
         {/* Over which networks. The same vocabulary the sync setting uses. */}
-        <View style={{ gap: theme.spacing.sm }}>
-          <SectionHeader title={t.backup.networkSection} />
-          <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
-            {networks.map((option, index) => {
-              const chosen = backup.settings.network === option.value;
-              return (
-                <View key={option.value}>
-                  <ListRow
-                    title={option.label}
-                    onPress={() => void backup.setNetwork(option.value)}
-                    // A picker row, not a door: every tap should land.
-                    repeatable
-                    accessibilityRole="radio"
-                    accessibilityState={{ selected: chosen }}
-                    accessibilityLabel={`${option.label}${chosen ? `, ${t.backup.selected}` : ''}`}
-                    leading={
-                      <Ionicons
-                        name={
-                          option.value === SyncNetworkPreference.Wifi
-                            ? 'wifi-outline'
-                            : 'globe-outline'
-                        }
-                        size={iconSize.xl}
-                        color={theme.color.text}
-                      />
-                    }
-                    trailing={
-                      chosen ? (
-                        <Ionicons name="checkmark" size={iconSize.lg} color={theme.color.brand} />
-                      ) : null
-                    }
-                  />
-                  {index < networks.length - 1 ? (
-                    <View style={{ height: 1, backgroundColor: theme.color.border }} />
-                  ) : null}
-                </View>
-              );
-            })}
-          </Card>
-        </View>
+        <SoftCard>
+          <CardHead
+            icon="wifi"
+            color={theme.color.positive}
+            bg={theme.color.positiveSoft}
+            title={t.backup.networkSection}
+            sub={t.backup.networkSub}
+          />
+          <ChoiceList
+            choices={networks}
+            value={backup.settings.network}
+            onPick={(next) => void backup.setNetwork(next)}
+            selectedLabel={t.backup.selected}
+          />
+        </SoftCard>
 
         {/* Getting it back, for the phone that is not obviously asking for it.
             A phone with nothing on it has already been offered this as the
@@ -1718,5 +1729,408 @@ export default function BackupSettingsScreen() {
         </View>
       </Popup>
     </Screen>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────── pieces ──
+
+type IconName = keyof typeof Ionicons.glyphMap;
+
+/** The redesign's ink, grey and violet, with the theme's own in dark mode. */
+function useBackupInks() {
+  const theme = useTheme();
+  const dark = theme.scheme === 'dark';
+  return {
+    ink: dark ? theme.color.text : SPEC_INK,
+    muted: dark ? theme.color.textMuted : SPEC_MUTED,
+    accent: dark ? theme.color.brand : SPEC_ACCENT,
+    lavender: dark ? theme.color.surfaceMuted : '#F1EFFC',
+    line: dark ? theme.color.border : '#E7E5F2',
+  };
+}
+
+/** A white card with the redesign's soft corners and lift. */
+function SoftCard({ children, style }: { children: ReactNode; style?: object }) {
+  const theme = useTheme();
+  return (
+    <View
+      style={[
+        {
+          backgroundColor: theme.color.surface,
+          borderRadius: 20,
+          padding: theme.spacing.md,
+          gap: theme.spacing.md,
+          shadowColor: '#2A1E6B',
+          shadowOpacity: theme.scheme === 'dark' ? 0 : 0.06,
+          shadowRadius: 14,
+          shadowOffset: { width: 0, height: 4 },
+          elevation: 2,
+        },
+        style,
+      ]}
+    >
+      {children}
+    </View>
+  );
+}
+
+/** Where things stand, as a small tinted pill with its glyph. */
+function StatusPill({
+  label,
+  icon,
+  fg,
+  bg,
+  loading,
+}: {
+  label: string;
+  icon: IconName;
+  fg: string;
+  bg: string;
+  loading: boolean;
+}) {
+  return (
+    <View
+      style={{
+        alignSelf: 'flex-start',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 10,
+        backgroundColor: bg,
+      }}
+    >
+      {loading ? (
+        <ActivityIndicator size="small" color={fg} />
+      ) : (
+        <Ionicons name={icon} size={15} color={fg} />
+      )}
+      <Text style={{ fontSize: 13, fontWeight: '600', color: fg }}>{label}</Text>
+    </View>
+  );
+}
+
+/** One of the three reassurances under the link card's sentence. */
+function Benefit({ icon, label }: { icon: IconName; label: string }) {
+  const { muted } = useBackupInks();
+  return (
+    <Row style={{ alignItems: 'center', gap: 10 }}>
+      <Ionicons name={icon} size={16} color={muted} />
+      <Text style={{ flex: 1, fontSize: 13, color: muted }}>{label}</Text>
+    </Row>
+  );
+}
+
+/** The link card's picture: a cloud, a photo and a page on their way into a
+ *  Drive disc. Drawn from glyphs, so it themes and costs no asset. */
+function DriveArt() {
+  const theme = useTheme();
+  const dark = theme.scheme === 'dark';
+  return (
+    <View
+      pointerEvents="none"
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={{ width: 104, height: 128 }}
+    >
+      <Ionicons
+        name="cloud"
+        size={96}
+        color={dark ? '#3A3470' : '#D9D2FB'}
+        style={{ position: 'absolute', top: -6, right: -4 }}
+      />
+      <View
+        style={{
+          position: 'absolute',
+          top: 26,
+          left: 6,
+          width: 36,
+          height: 36,
+          borderRadius: 8,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: theme.color.surface,
+          transform: [{ rotate: '-10deg' }],
+          shadowColor: '#2A1E6B',
+          shadowOpacity: 0.12,
+          shadowRadius: 6,
+          shadowOffset: { width: 0, height: 2 },
+          elevation: 2,
+        }}
+      >
+        <Ionicons name="image" size={20} color="#5B8DEF" />
+      </View>
+      <View
+        style={{
+          position: 'absolute',
+          top: 12,
+          left: 36,
+          width: 32,
+          height: 38,
+          borderRadius: 6,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: theme.color.surface,
+          transform: [{ rotate: '8deg' }],
+          shadowColor: '#2A1E6B',
+          shadowOpacity: 0.1,
+          shadowRadius: 6,
+          shadowOffset: { width: 0, height: 2 },
+          elevation: 2,
+        }}
+      >
+        <Ionicons name="document-text" size={18} color="#8C83FF" />
+      </View>
+      <View
+        style={{
+          position: 'absolute',
+          bottom: 0,
+          right: 4,
+          width: 62,
+          height: 62,
+          borderRadius: 31,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: theme.color.surface,
+          shadowColor: '#2A1E6B',
+          shadowOpacity: 0.14,
+          shadowRadius: 10,
+          shadowOffset: { width: 0, height: 4 },
+          elevation: 4,
+        }}
+      >
+        <MaterialCommunityIcons name="google-drive" size={34} color="#1FA463" />
+      </View>
+    </View>
+  );
+}
+
+/** The one button on a phone with no Drive linked: a violet pill with the
+ *  Google mark on a white disc, its words, and a chevron. */
+function LinkDriveButton({
+  label,
+  onPress,
+  disabled,
+  working,
+}: {
+  label: string;
+  onPress: () => void;
+  disabled: boolean;
+  working: boolean;
+}) {
+  const theme = useTheme();
+  const { accent } = useBackupInks();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled, busy: working }}
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.md,
+        height: 52,
+        paddingStart: 8,
+        paddingEnd: theme.spacing.md,
+        borderRadius: 26,
+        backgroundColor: accent,
+        opacity: disabled && !working ? 0.5 : pressed ? 0.85 : 1,
+      })}
+    >
+      <View
+        style={{
+          width: 36,
+          height: 36,
+          borderRadius: 18,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: '#FFFFFF',
+        }}
+      >
+        {working ? (
+          <ActivityIndicator size="small" color={accent} />
+        ) : (
+          <Ionicons name="logo-google" size={20} color="#4285F4" />
+        )}
+      </View>
+      <Text style={{ flex: 1, fontSize: 16, fontWeight: '700', color: '#FFFFFF' }}>{label}</Text>
+      <Ionicons name={directionalIcon('chevron-forward')} size={18} color="#FFFFFF" />
+    </Pressable>
+  );
+}
+
+/** A card's head: its glyph on a tinted disc, the title, and a line under it. */
+function CardHead({
+  icon,
+  color,
+  bg,
+  title,
+  sub,
+}: {
+  icon: IconName;
+  color: string;
+  bg: string;
+  title: string;
+  sub: string;
+}) {
+  const { ink, muted } = useBackupInks();
+  return (
+    <Row style={{ alignItems: 'center', gap: 12 }}>
+      <View
+        style={{
+          width: 44,
+          height: 44,
+          borderRadius: 22,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: bg,
+        }}
+      >
+        <Ionicons name={icon} size={22} color={color} />
+      </View>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text style={{ fontSize: 17, fontWeight: '700', color: ink }}>{title}</Text>
+        <Text style={{ fontSize: 13, color: muted }}>{sub}</Text>
+      </View>
+    </Row>
+  );
+}
+
+interface Choice<T> {
+  value: T;
+  label: string;
+  sub: string;
+  icon: IconName;
+  /** A disc of its own at rest too, not just once chosen (the network rows). */
+  iconAtRest?: { color: string; bg: string };
+}
+
+/**
+ * A set of choices as one bordered list: the chosen row on a lavender band with
+ * its glyph on a white disc and a filled radio; the rest plain, with a hollow
+ * ring where the glyph would be and hairlines between them.
+ */
+function ChoiceList<T extends string>({
+  choices,
+  value,
+  onPick,
+  selectedLabel,
+}: {
+  choices: readonly Choice<T>[];
+  value: T;
+  onPick: (next: T) => void;
+  selectedLabel: string;
+}) {
+  const theme = useTheme();
+  const { ink, muted, accent, lavender, line } = useBackupInks();
+  return (
+    <View style={{ borderWidth: 1, borderColor: line, borderRadius: 16, padding: 4 }}>
+      {choices.map((choice, index) => {
+        const chosen = choice.value === value;
+        const nextChosen = choices[index + 1]?.value === value;
+        const hairline = index < choices.length - 1 && !chosen && !nextChosen;
+        return (
+          <View key={choice.value}>
+            <Pressable
+              accessibilityRole="radio"
+              accessibilityState={{ checked: chosen, selected: chosen }}
+              accessibilityLabel={`${choice.label}. ${choice.sub}${chosen ? `, ${selectedLabel}` : ''}`}
+              onPress={() => onPick(choice.value)}
+              style={({ pressed }) => ({
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 12,
+                paddingVertical: 8,
+                paddingHorizontal: 10,
+                borderRadius: 12,
+                backgroundColor: chosen ? lavender : 'transparent',
+                opacity: pressed ? 0.7 : 1,
+              })}
+            >
+              {chosen || choice.iconAtRest ? (
+                <View
+                  style={{
+                    width: 34,
+                    height: 34,
+                    borderRadius: 17,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: chosen
+                      ? theme.color.surface
+                      : (choice.iconAtRest?.bg ?? theme.color.surface),
+                  }}
+                >
+                  <Ionicons
+                    name={choice.icon}
+                    size={18}
+                    color={chosen ? accent : (choice.iconAtRest?.color ?? muted)}
+                  />
+                </View>
+              ) : (
+                <View style={{ width: 34, alignItems: 'center' }}>
+                  <View
+                    style={{
+                      width: 22,
+                      height: 22,
+                      borderRadius: 11,
+                      borderWidth: 1.5,
+                      borderColor: line,
+                    }}
+                  />
+                </View>
+              )}
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={{ fontSize: 15, fontWeight: '600', color: ink }}>{choice.label}</Text>
+                <Text style={{ fontSize: 12, color: muted }}>{choice.sub}</Text>
+              </View>
+              <View
+                style={{
+                  width: 22,
+                  height: 22,
+                  borderRadius: 11,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderWidth: chosen ? 2 : 1.5,
+                  borderColor: chosen ? accent : '#C9C8D6',
+                  backgroundColor: theme.color.surface,
+                }}
+              >
+                {chosen ? (
+                  <View
+                    style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: accent }}
+                  />
+                ) : null}
+              </View>
+            </Pressable>
+            {hairline ? (
+              <View style={{ height: 1, marginHorizontal: 12, backgroundColor: line }} />
+            ) : null}
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
+/** A quiet note on a lavender band, led by an info glyph. */
+function InfoNote({ children }: { children: string }) {
+  const { muted, lavender } = useBackupInks();
+  return (
+    <Row
+      style={{
+        alignItems: 'center',
+        gap: 10,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        borderRadius: 12,
+        backgroundColor: lavender,
+      }}
+    >
+      <Ionicons name="information-circle-outline" size={18} color={muted} />
+      <Text style={{ flex: 1, fontSize: 12, lineHeight: 17, color: muted }}>{children}</Text>
+    </Row>
   );
 }
