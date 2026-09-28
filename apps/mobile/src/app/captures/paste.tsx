@@ -73,7 +73,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { FlashList } from '@shopify/flash-list';
 import * as Clipboard from 'expo-clipboard';
 import { useFocusEffect } from 'expo-router';
-import { Pressable, TextInput, View } from 'react-native';
+import { Image, Pressable, TextInput, View } from 'react-native';
 
 import {
   proposeFromSms,
@@ -86,9 +86,10 @@ import {
   Button,
   Callout,
   Card,
+  directionalIcon,
   Divider,
   EmptyState,
-  IconButton,
+  Gradient,
   iconSize,
   MoneyText,
   Row,
@@ -120,6 +121,7 @@ import { useSmsAutoRead } from '@/lib/smsAutoRead';
 import { useSmsInboxReader } from '@/lib/smsFeature';
 import { bankFromSender, bankFromText, merchantName } from '@/lib/smsPlain';
 import { takeReadMessages } from '@/lib/smsReadBridge';
+import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
 
 /**
  * A day heading, or one payment under it.
@@ -313,28 +315,158 @@ function FoundRow({
 }
 
 /** One line of the three-step path in, for somebody who has never done this. */
-function Step({ index, text }: { index: number; text: string }): React.JSX.Element {
+function Step({
+  index,
+  icon,
+  text,
+  last = false,
+}: {
+  index: number;
+  icon: keyof typeof Ionicons.glyphMap;
+  text: string;
+  /** The last step draws no dashed line down to a next one. */
+  last?: boolean;
+}): React.JSX.Element {
   const theme = useTheme();
+  const accent = theme.scheme === 'dark' ? theme.color.brand : SPEC_ACCENT;
+  const ink = theme.scheme === 'dark' ? theme.color.text : SPEC_INK;
   return (
-    <Row gap={theme.spacing.md} style={{ alignItems: 'flex-start' }}>
+    <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+      {/* The number, with a dotted rule running down to the next one. */}
+      <View style={{ alignItems: 'center', alignSelf: 'stretch', justifyContent: 'center' }}>
+        <View
+          style={{
+            width: 30,
+            height: 30,
+            borderRadius: 15,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: theme.color.brandSoft,
+          }}
+        >
+          <Text style={{ fontSize: 15, fontWeight: '700', color: accent }}>{String(index)}</Text>
+        </View>
+        {last ? null : (
+          <View
+            style={{
+              position: 'absolute',
+              top: '75%',
+              bottom: -theme.spacing.md,
+              width: 0,
+              borderLeftWidth: 1.5,
+              borderStyle: 'dashed',
+              borderColor: theme.color.brandSoft,
+            }}
+          />
+        )}
+      </View>
       <View
         style={{
-          width: 22,
-          height: 22,
-          borderRadius: theme.radius.pill,
-          backgroundColor: theme.color.brandSoft,
+          width: 44,
+          height: 44,
+          borderRadius: 22,
           alignItems: 'center',
           justifyContent: 'center',
+          backgroundColor: theme.scheme === 'dark' ? theme.color.surfaceMuted : '#EEF1FB',
         }}
       >
-        <Text variant="micro" tone="brand">
-          {String(index)}
-        </Text>
+        <Ionicons name={icon} size={20} color={accent} />
       </View>
-      <Text variant="caption" style={{ flex: 1 }}>
-        {text}
+      <Text style={{ flex: 1, fontSize: 15, lineHeight: 21, color: ink }}>
+        {/* A word the reader has to find on their own screen — Copy, Paste —
+            is bold, marked in the string as **word**. */}
+        {text.split(/(\*\*[^*]+\*\*)/).map((part, i) =>
+          part.startsWith('**') && part.endsWith('**') ? (
+            <Text key={i} style={{ fontWeight: '700' }}>
+              {part.slice(2, -2)}
+            </Text>
+          ) : (
+            part
+          ),
+        )}
       </Text>
     </Row>
+  );
+}
+
+/** The picture beside the headline: a phone with a bank message lifted off
+ *  it, and the chat bubble it was copied from. Decoration, hidden from screen
+ *  readers; sized to its own shape, never stretched. */
+function PasteArt(): React.JSX.Element {
+  return (
+    <Image
+      source={PASTE_ART}
+      resizeMode="contain"
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={{ width: PASTE_ART_WIDTH, height: PASTE_ART_WIDTH / PASTE_ART_RATIO }}
+    />
+  );
+}
+
+const PASTE_ART = require('../../../assets/images/paste-art.webp') as number;
+/** Its width over its height (1225 × 1284), and how wide it sits. */
+const PASTE_ART_RATIO = 1225 / 1284;
+const PASTE_ART_WIDTH = 150;
+
+/** The foot's action: a full-width pill with an arrow — grey while there is
+ *  nothing to add, the brand's blue-to-violet once there is. */
+function AddPill({
+  label,
+  onPress,
+  disabled,
+}: {
+  label: string;
+  onPress: () => void;
+  disabled: boolean;
+}): React.JSX.Element {
+  const theme = useTheme();
+  const body = (
+    <>
+      <Text
+        style={{ flex: 1, textAlign: 'center', fontSize: 18, fontWeight: '700', color: '#FFFFFF' }}
+      >
+        {label}
+      </Text>
+      <Ionicons
+        name={directionalIcon('arrow-forward')}
+        size={22}
+        color="#FFFFFF"
+        style={{ position: 'absolute', end: 24 }}
+      />
+    </>
+  );
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled }}
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
+    >
+      {disabled ? (
+        <View
+          style={{
+            height: 58,
+            borderRadius: 29,
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: theme.scheme === 'dark' ? theme.color.surfaceMuted : '#B7BAC6',
+          }}
+        >
+          {body}
+        </View>
+      ) : (
+        <Gradient
+          colors={['#3D63E8', SPEC_ACCENT]}
+          radius={29}
+          style={{ height: 58, flexDirection: 'row', alignItems: 'center' }}
+        >
+          {body}
+        </Gradient>
+      )}
+    </Pressable>
   );
 }
 
@@ -352,6 +484,10 @@ export default function PasteMessagesScreen(): React.JSX.Element {
 
 function PasteMessages(): React.JSX.Element {
   const theme = useTheme();
+  // The redesign's ink, muted grey and violet (light theme; dark keeps the theme's).
+  const ink = theme.scheme === 'dark' ? theme.color.text : SPEC_INK;
+  const muted = theme.scheme === 'dark' ? theme.color.textMuted : SPEC_MUTED;
+  const accent = theme.scheme === 'dark' ? theme.color.brand : SPEC_ACCENT;
   const clearance = useBottomClearance(theme.spacing.xl);
   const { t, locale } = useStrings();
   const { session } = useAuth();
@@ -606,52 +742,77 @@ function PasteMessages(): React.JSX.Element {
   const done = added !== null && error === null && fresh.length === 0;
 
   const header = (
-    <View style={{ gap: theme.spacing.xl }}>
-      <Row style={{ paddingTop: theme.spacing.md, alignItems: 'center' }}>
-        <IconButton label={t.common.close} onPress={() => router.back()}>
-          <Ionicons name="close" size={iconSize.xl} color={theme.color.text} />
-        </IconButton>
+    <View style={{ gap: theme.spacing.lg }}>
+      <Row style={{ paddingTop: theme.spacing.md, alignItems: 'center', gap: theme.spacing.md }}>
+        {/* Close on a soft disc, so it holds its own against the page. */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t.common.close}
+          onPress={() => router.back()}
+          hitSlop={6}
+          style={({ pressed }) => ({
+            width: 48,
+            height: 48,
+            borderRadius: 24,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: theme.scheme === 'dark' ? theme.color.surfaceMuted : '#ECEBF6',
+            opacity: pressed ? 0.6 : 1,
+          })}
+        >
+          <Ionicons name="close" size={iconSize.lg} color={ink} />
+        </Pressable>
         {/* Named by the door you came through: "Add another way" when the
             messages are already being read for you, and the feature's own name
-            when this is the whole of it. `marginStart`, not `marginLeft`: the
-            title sits beside the close button on both sides of the world. */}
-        <Text variant="heading" style={{ marginStart: theme.spacing.md, flex: 1 }}>
+            when this is the whole of it. */}
+        <Text
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.8}
+          style={{ flex: 1, fontSize: 22, lineHeight: 28, fontWeight: '700', color: ink }}
+        >
           {auto.enabled ? t.captures.addAnotherWay : t.smsImport.title}
         </Text>
       </Row>
 
-      <Card style={{ gap: theme.spacing.md }}>
-        {/* The instruction, or the state. Never both: with a reader running,
-            "open your messages app and copy one" is the sentence a person came
-            here having already been spared. */}
-        {auto.enabled ? (
-          <WatchingLine
-            checking={auto.checking}
-            lastCheckedAt={auto.lastCheckedAt}
-            now={now}
-            locale={locale}
-            t={t}
-            onRefresh={() => void auto.refresh()}
-          />
-        ) : (
-          <Text variant="body">{t.smsImport.howToDrafts}</Text>
-        )}
-        {firstRun ? (
-          <View style={{ gap: theme.spacing.sm }}>
-            <Step index={1} text={t.smsImport.howToSteps.open} />
-            <Step index={2} text={t.smsImport.howToSteps.copy} />
-            <Step index={3} text={t.smsImport.howToSteps.comeBack} />
-          </View>
-        ) : null}
-        {/* Why there is no switch for this. Said only where it is true: a build
-            that can read the inbox has the button below instead, and the
-            sentence would contradict it. */}
-        {readerOffered ? null : (
-          <Text variant="caption" tone="muted">
-            {t.smsImport.whyNotAutomatic}
+      {/* The promise, big, beside a picture of what gets pasted: a phone with
+          a bank message lifted off it. */}
+      <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+        <View style={{ flex: 1, minWidth: 0, gap: theme.spacing.sm }}>
+          <Text style={{ fontSize: 30, lineHeight: 35, fontWeight: '800', color: ink }}>
+            {t.smsImport.heroTitle}
           </Text>
-        )}
-      </Card>
+          {/* The instruction, or the state. Never both: with a reader running,
+              "open your messages app and copy one" is the sentence a person
+              came here having already been spared. */}
+          {auto.enabled ? (
+            <WatchingLine
+              checking={auto.checking}
+              lastCheckedAt={auto.lastCheckedAt}
+              now={now}
+              locale={locale}
+              t={t}
+              onRefresh={() => void auto.refresh()}
+            />
+          ) : (
+            <Text style={{ fontSize: 15, lineHeight: 21, color: muted }}>
+              {t.smsImport.howToDrafts}
+            </Text>
+          )}
+        </View>
+        <PasteArt />
+      </Row>
+
+      {firstRun ? (
+        <Card style={{ gap: theme.spacing.md }}>
+          <Text style={{ fontSize: 19, fontWeight: '700', color: ink }}>
+            {t.smsImport.howToTitle}
+          </Text>
+          <Step index={1} icon="chatbox-ellipses" text={t.smsImport.howToSteps.open} />
+          <Step index={2} icon="copy-outline" text={t.smsImport.howToSteps.copy} />
+          <Step index={3} icon="clipboard-outline" text={t.smsImport.howToSteps.comeBack} last />
+        </Card>
+      ) : null}
 
       {readerOffered ? (
         <View style={{ gap: theme.spacing.sm }}>
@@ -675,7 +836,7 @@ function PasteMessages(): React.JSX.Element {
       ) : null}
 
       <View style={{ gap: theme.spacing.sm }}>
-        <Card style={{ gap: theme.spacing.sm }}>
+        <Card style={{ gap: theme.spacing.md }}>
           <TextInput
             value={blob}
             onChangeText={edit}
@@ -685,25 +846,45 @@ function PasteMessages(): React.JSX.Element {
             placeholder={t.smsImport.pastePlaceholder}
             placeholderTextColor={theme.color.textFaint}
             style={{
-              minHeight: 140,
-              fontSize: 16,
+              minHeight: 120,
+              fontSize: 17,
               color: theme.color.text,
               textAlignVertical: 'top',
             }}
           />
-          <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text variant="caption" tone="muted">
-              {pastedBlocks.length === 0
-                ? t.smsImport.nothingPasted
-                : plural(locale, pastedBlocks.length, t.smsImport.messageCount)}
-            </Text>
+          <Row
+            style={{ justifyContent: 'space-between', alignItems: 'center', gap: theme.spacing.md }}
+          >
+            <Row style={{ flex: 1, minWidth: 0, alignItems: 'center', gap: theme.spacing.sm }}>
+              <Ionicons name="document-text-outline" size={iconSize.md} color={muted} />
+              <Text numberOfLines={1} style={{ flexShrink: 1, fontSize: 15, color: muted }}>
+                {pastedBlocks.length === 0
+                  ? t.smsImport.nothingPasted
+                  : plural(locale, pastedBlocks.length, t.smsImport.messageCount)}
+              </Text>
+            </Row>
             {/* The only control while the box is empty, so it leads rather than
                 sits in the corner as a ghost. */}
-            <Button
-              label={t.smsImport.paste}
-              variant={blob.length === 0 ? 'secondary' : 'ghost'}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t.smsImport.paste}
               onPress={() => void paste()}
-            />
+              style={({ pressed }) => ({
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: theme.spacing.sm,
+                height: 48,
+                paddingHorizontal: theme.spacing.xl,
+                borderRadius: 24,
+                backgroundColor: theme.color.brandSoft,
+                opacity: pressed ? 0.7 : 1,
+              })}
+            >
+              <Ionicons name="clipboard-outline" size={iconSize.md} color={accent} />
+              <Text style={{ fontSize: 17, fontWeight: '700', color: accent }}>
+                {t.smsImport.paste}
+              </Text>
+            </Pressable>
           </Row>
         </Card>
         {/* The blank-line rule, demoted. `splitMessages` finds the boundaries
@@ -715,6 +896,37 @@ function PasteMessages(): React.JSX.Element {
           </Text>
         ) : null}
       </View>
+
+      {/* Why there is no switch for this. Said only where it is true: a build
+          that can read the inbox has the button above instead, and the
+          sentence would contradict it. */}
+      {readerOffered ? null : (
+        <Row
+          style={{
+            alignItems: 'center',
+            gap: theme.spacing.md,
+            padding: theme.spacing.lg,
+            borderRadius: 20,
+            backgroundColor: theme.scheme === 'dark' ? theme.color.surfaceMuted : '#EFEDFA',
+          }}
+        >
+          <View
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: theme.color.brandSoft,
+            }}
+          >
+            <Ionicons name="shield-half" size={20} color={accent} />
+          </View>
+          <Text style={{ flex: 1, fontSize: 14, lineHeight: 20, color: muted }}>
+            {t.smsImport.whyNotAutomatic}
+          </Text>
+        </Row>
+      )}
 
       {/* Only over a list that has something in it. With nothing found, the
           empty state below carries the same two sentences and this would say
@@ -768,7 +980,7 @@ function PasteMessages(): React.JSX.Element {
       {done ? (
         <Button label={t.smsImport.openReview} onPress={() => router.replace('/captures')} />
       ) : (
-        <Button
+        <AddPill
           label={
             saving
               ? t.smsImport.adding

@@ -411,14 +411,26 @@ function MeLedger() {
                   tone="positive"
                   label={t.personal.income}
                   value={fmt(summary.income)}
-                  onPress={() => router.push('/personal/transactions')}
+                  // The month's income, entry by entry.
+                  onPress={() =>
+                    router.push({
+                      pathname: '/personal/transactions',
+                      params: { kind: 'income', month },
+                    })
+                  }
                 />
                 <FlowTile
                   icon="arrow-up"
                   tone="negative"
                   label={t.personal.spent}
                   value={fmt(summary.expense)}
-                  onPress={() => router.push('/personal/spending')}
+                  // The month's spends, entry by entry.
+                  onPress={() =>
+                    router.push({
+                      pathname: '/personal/transactions',
+                      params: { kind: 'expense', month },
+                    })
+                  }
                 />
                 <FlowTile
                   icon="wallet"
@@ -426,7 +438,9 @@ function MeLedger() {
                   label={t.personal.dash.available}
                   value={`${summary.net < 0n ? '−' : ''}${fmt(summary.net < 0n ? -summary.net : summary.net)}`}
                   negative={summary.net < 0n}
-                  onPress={() => router.push('/personal/transactions')}
+                  // What is left and where the rest went: the Spending screen's
+                  // own subject, rather than a third copy of the ledger.
+                  onPress={() => router.push('/personal/spending')}
                 />
               </Row>
             </GlassSurface>
@@ -507,6 +521,17 @@ function MeLedger() {
                 {topCategories.map((category) => (
                   <CategoryColumn
                     key={category.key}
+                    onPress={() =>
+                      router.push({
+                        pathname: '/personal/transactions',
+                        params: {
+                          category: category.key,
+                          categoryMode: 'bucket',
+                          kind: 'expense',
+                          month,
+                        },
+                      })
+                    }
                     category={category.key}
                     label={catLabel(category.key) ?? t.categories.other}
                     amount={fmt(category.spent)}
@@ -1046,20 +1071,30 @@ function CategoryColumn({
   label,
   amount,
   share,
+  onPress,
 }: {
   category: string;
   label: string;
   amount: string;
   share: number;
+  /** Opens the month's spends in this category. */
+  onPress: () => void;
 }) {
   const theme = useTheme();
   const tint = theme.tint[resolveCategory(category, null).tint];
   const percent = Math.round(share * 100);
   return (
-    <View
-      accessible
+    <Pressable
+      accessibilityRole="button"
       accessibilityLabel={`${label}, ${amount}, ${percent}%`}
-      style={{ flex: 1, minWidth: 0, alignItems: 'center', gap: 2 }}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        flex: 1,
+        minWidth: 0,
+        alignItems: 'center',
+        gap: 2,
+        opacity: pressed ? 0.6 : 1,
+      })}
     >
       <CategoryBadge category={category} meta={null} size={48} />
       <Text variant="caption" numberOfLines={1} style={{ marginTop: theme.spacing.xs }}>
@@ -1096,7 +1131,7 @@ function CategoryColumn({
           }}
         />
       </View>
-    </View>
+    </Pressable>
   );
 }
 

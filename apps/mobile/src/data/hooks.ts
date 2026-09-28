@@ -114,6 +114,7 @@ import type { VoiceAccess } from '@/lib/voiceAccess';
 import { activityTime } from '@/lib/groupActivityOrder';
 import { previousMonthPrefix } from '@/lib/homeDashboard';
 import { newestActivityFromOthers, recentActivity, type RecentActivityRow } from './recentActivity';
+import { useBlockedUsers } from './blocked';
 import { groupLabel, isGhost, isViewer, SettlementStatus } from './types';
 import { timeOfDay, type TimelineEntry } from '@/lib/timeline';
 import type {
@@ -454,6 +455,7 @@ export function useGroupLabeller(): (group: Pick<GroupRow, 'id' | 'name'>) => st
 export function useMyTimeline(): LocalRead<TimelineEntry[]> {
   const { mirror, queue } = useSync();
   const viewerId = useViewerId();
+  const { blockedIds } = useBlockedUsers();
   const rows = useMemo(() => {
     const out: TimelineEntry[] = [];
     for (const group of materialiseGroups(mirror, queue) as unknown as GroupRow[]) {
@@ -472,6 +474,26 @@ export function useMyTimeline(): LocalRead<TimelineEntry[]> {
           if (payer.member_id === me) paid += BigInt(payer.amount);
         for (const share of version.shares)
           if (share.member_id === me) owed += BigInt(share.amount);
+        // Who else is on it, as names: payers first, then whoever owes a share.
+        const others: (string | null)[] = [];
+        const seen = new Set<string>();
+        for (const id of [
+          ...version.payers.map((payer) => payer.member_id),
+          ...version.shares.map((share) => share.member_id),
+        ]) {
+          if (id === me || seen.has(id)) continue;
+          seen.add(id);
+          const member = members.find((it) => it.id === id);
+          // A blocked person is never named, here as everywhere else.
+          if (member?.profile_id && blockedIds.has(member.profile_id)) {
+            others.push(null);
+            continue;
+          }
+          const name = (member?.profile?.display_name ?? member?.ghost_name ?? '')
+            .replace(/^[^\p{L}\p{N}]+/u, '')
+            .trim();
+          if (name) others.push(name);
+        }
         const place = version.location;
         out.push({
           id: expense.id,
@@ -491,11 +513,12 @@ export function useMyTimeline(): LocalRead<TimelineEntry[]> {
           mine: paid > 0n || owed > 0n,
           myNet: paid - owed,
           pending: expense.pending === true,
+          others,
         });
       }
     }
     return out;
-  }, [mirror, queue, viewerId]);
+  }, [mirror, queue, viewerId, blockedIds]);
   return useLocalRead(rows);
 }
 

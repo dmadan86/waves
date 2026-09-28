@@ -1226,6 +1226,9 @@ export interface UiStrings {
   /** Notification preferences, and what the phone will and will not allow. */
   notifications: {
     title: string;
+    importantTitle: string;
+    pushSub: string;
+    emailSub: string;
     neverSpam: string;
     onThisPhone: string;
     permissionOn: string;
@@ -1270,6 +1273,10 @@ export interface UiStrings {
   /** Attaching an email or phone to the account you already have (ADR-006). */
   contact: {
     title: string;
+    securityTitle: string;
+    securitySub: string;
+    linkedAccounts: string;
+    personalDetails: string;
     signedIn: string;
     guestBody: string;
     memberBody: string;
@@ -1540,6 +1547,9 @@ export interface UiStrings {
     addCurrency: string;
     simplifySub: string;
     suggested: string;
+    descriptionLabel: string;
+    optional: string;
+    seeAll: string;
   };
   /** The Save an expense screen's row subtitles, header line and receipt / location tiles. */
   captureForm: {
@@ -2005,6 +2015,18 @@ export interface UiStrings {
    */
   backup: {
     title: string;
+    subtitle: string;
+    benefitPrivate: string;
+    benefitEncrypted: string;
+    benefitRestore: string;
+    frequencySub: string;
+    freqOffSub: string;
+    freqDailySub: string;
+    freqWeeklySub: string;
+    freqMonthlySub: string;
+    networkSub: string;
+    networkWifiSub: string;
+    networkAnySub: string;
     /** The settings-row label. */
     row: string;
     /** The promise the screen leads with, in whichever form is true. The
@@ -2818,6 +2840,9 @@ export interface UiStrings {
   };
   /** Pasting bank messages in, and what can be made of them (TDR §10). */
   smsImport: {
+    /** The paste screen's headline and the steps card's title. */
+    heroTitle: string;
+    howToTitle: string;
     title: string;
     howTo: string;
     whyNotAutomatic: string;
@@ -3641,6 +3666,23 @@ export interface UiStrings {
     tab: string;
     title: string;
     subtitle: string;
+    /** The entry form: its header line, sections, note prompt and payment methods. */
+    entryScreen: {
+      expenseSub: string;
+      incomeSub: string;
+      category: string;
+      source: string;
+      viewAll: string;
+      more: string;
+      whatFor: string;
+      notePlaceholder: string;
+      paymentMethod: string;
+      saveExpense: string;
+      saveIncome: string;
+      calculator: string;
+      notSet: string;
+      methods: Record<'cash' | 'upi' | 'card' | 'bank' | 'wallet' | 'other', string>;
+    };
     /** The Personal tab's dashboard. */
     dash: {
       tagline: string;
@@ -3842,6 +3884,10 @@ export interface UiStrings {
     spendingEmpty: string;
     spendingEmptyBody: string;
     billsAndSubs: string;
+    /** The Spending card's row lines: what each figure is. */
+    incomeSub: string;
+    billsSub: string;
+    everydaySub: string;
     everyday: string;
     /**
      * Never "saved", and never "left for savings". The app cannot see a savings
@@ -4694,6 +4740,9 @@ const en: UiStrings = {
   },
   notifications: {
     title: 'Notifications',
+    importantTitle: 'Only the important stuff',
+    pushSub: 'Get notified on this device for the things that matter.',
+    emailSub: 'Receive important updates in your inbox.',
     neverSpam:
       'Waves never emails you about routine expense activity. Only the six things you would actually want in your inbox, each unsubscribable on its own.',
     onThisPhone: 'Notifications on this phone',
@@ -4740,6 +4789,10 @@ const en: UiStrings = {
   },
   contact: {
     title: 'Your account',
+    securityTitle: 'Sign in & security',
+    securitySub: 'Manage how you sign in to your account.',
+    linkedAccounts: 'Linked accounts',
+    personalDetails: 'Personal details',
     signedIn: 'Signed in',
     guestBody:
       'Everything you have entered is already saved and yours. Adding an email or phone number is only so you can get back to it from another phone.',
@@ -4963,9 +5016,9 @@ const en: UiStrings = {
     descriptionExample: 'e.g. Friends trip, Weekend getaway',
     addFriendsSub: 'Add people to start sharing expenses',
     addContacts: 'Add contacts',
-    personPlaceholder: 'Type a name to add',
+    personPlaceholder: 'Search name or phone number',
     groupType: 'Group type',
-    groupTypeSub: 'Choose what this group is for',
+    groupTypeSub: 'Choose a type to personalize your group',
     datesSub: 'Set your travel dates (optional)',
     budgetSub: 'Set a budget for better tracking',
     ratesSub: 'Choose the currency for this trip',
@@ -4973,6 +5026,9 @@ const en: UiStrings = {
     addCurrency: 'Add a currency',
     simplifySub: 'Automatically minimize the number of payments',
     suggested: 'Suggested',
+    descriptionLabel: 'Description (optional)',
+    optional: '(optional)',
+    seeAll: 'See all',
   },
   captureForm: {
     headerSub: 'Record your spending in a few seconds',
@@ -5297,6 +5353,18 @@ const en: UiStrings = {
   },
   backup: {
     title: 'Backup',
+    subtitle: 'Keep your data safe and accessible across devices.',
+    benefitPrivate: 'Your data stays private',
+    benefitEncrypted: 'Encrypted and secure',
+    benefitRestore: 'Easy to restore anytime',
+    frequencySub: 'Choose how often to back up your data.',
+    freqOffSub: "You'll need to back up manually.",
+    freqDailySub: 'Back up once every day.',
+    freqWeeklySub: 'Back up once every week.',
+    freqMonthlySub: 'Back up once every month.',
+    networkSub: 'Choose the network to use for backups.',
+    networkWifiSub: 'Recommended to save mobile data.',
+    networkAnySub: 'Use mobile data when Wi‑Fi is not available.',
     row: 'Back up to Google Drive',
     introStandard:
       'Your private Me ledger, copied to a hidden folder in your own Google Drive and locked with a key kept there too — so a new phone signed in to the same Google account opens it by itself. Waves cannot read it. Anyone who can get into your Google account can.',
@@ -5990,6 +6058,8 @@ const en: UiStrings = {
     wavesVersionOut: 'Waves {latest} is out',
   },
   smsImport: {
+    heroTitle: 'Quickly add payments',
+    howToTitle: 'How to add',
     title: 'Add from bank messages',
     howTo:
       'Open your messages app, select the bank messages from this trip, copy them, and paste them here. Waves reads them on this phone — nothing is sent anywhere until you confirm an expense.',
@@ -6060,8 +6130,8 @@ const en: UiStrings = {
       'Copy a payment message from your messages app and paste it here. Waves reads it on this phone and puts the payment in Review for you.',
     howToSteps: {
       open: 'Open your messages app.',
-      copy: 'Press and hold a bank message, then tap Copy.',
-      comeBack: 'Come back here and tap Paste.',
+      copy: '**Press** and hold a bank message, then tap **Copy**.',
+      comeBack: 'Come back here and tap **Paste**.',
     },
     chosenCount: { one: '{n} chosen', other: '{n} chosen' },
     foundCount: {
@@ -6756,6 +6826,29 @@ const en: UiStrings = {
     tab: 'Personal',
     title: 'Personal',
     subtitle: 'Your own money — private to you.',
+    entryScreen: {
+      expenseSub: 'Track your spending easily',
+      incomeSub: 'Record the money that came in',
+      category: 'Category',
+      source: 'Source',
+      viewAll: 'View all',
+      more: 'More',
+      whatFor: 'What was it for?',
+      notePlaceholder: 'Add a note (e.g. Lunch with friends)',
+      paymentMethod: 'Payment method',
+      saveExpense: 'Save expense',
+      saveIncome: 'Save income',
+      calculator: 'Calculator',
+      notSet: 'Not set',
+      methods: {
+        cash: 'Cash',
+        upi: 'UPI',
+        card: 'Card',
+        bank: 'Bank transfer',
+        wallet: 'Wallet',
+        other: 'Other',
+      },
+    },
     dash: {
       tagline: 'Track your money, live smarter',
       totalSpentThisMonth: 'Total spent this month',
@@ -6932,6 +7025,9 @@ const en: UiStrings = {
     spendingEmptyBody:
       'Add an expense or some income, and this is where the month gets taken apart.',
     billsAndSubs: 'Bills & subs',
+    incomeSub: 'Total money received',
+    billsSub: 'Recurring bills and subscriptions',
+    everydaySub: 'All other expenses',
     everyday: 'Spending',
     leftOver: 'Left over',
     leftOverHint:
@@ -7802,6 +7898,9 @@ const ta: UiStrings = {
   },
   notifications: {
     title: 'அறிவிப்புகள்',
+    importantTitle: 'முக்கியமானவை மட்டும்',
+    pushSub: 'முக்கியமானவற்றுக்கு இந்தச் சாதனத்தில் அறிவிப்பு பெறுங்கள்.',
+    emailSub: 'முக்கியமான செய்திகளை உங்கள் இன்பாக்ஸில் பெறுங்கள்.',
     neverSpam:
       'வழக்கமான செலவுச் செயல்பாடுகள் குறித்து Waves உங்களுக்கு மின்னஞ்சல் அனுப்புவதே இல்லை. உங்கள் அஞ்சல் பெட்டியில் நீங்கள் உண்மையிலேயே விரும்பும் ஆறு விஷயங்கள் மட்டுமே, ஒவ்வொன்றையும் தனித்தனியே நிறுத்தலாம்.',
     onThisPhone: 'இந்த ஃபோனில் அறிவிப்புகள்',
@@ -7851,6 +7950,10 @@ const ta: UiStrings = {
   },
   contact: {
     title: 'உங்கள் கணக்கு',
+    securityTitle: 'உள்நுழைவு & பாதுகாப்பு',
+    securitySub: 'உங்கள் கணக்கில் எப்படி உள்நுழைவது என்பதை நிர்வகிக்கவும்.',
+    linkedAccounts: 'இணைக்கப்பட்ட கணக்குகள்',
+    personalDetails: 'தனிப்பட்ட விவரங்கள்',
     signedIn: 'உள்நுழைந்துள்ளீர்கள்',
     guestBody:
       'நீங்கள் சேர்த்தவை அனைத்தும் ஏற்கனவே சேமிக்கப்பட்டு உங்களுடையவை. மின்னஞ்சலோ தொலைபேசி எண்ணோ சேர்ப்பது வேறு ஃபோனிலிருந்து இதை அணுகுவதற்காக மட்டுமே.',
@@ -8082,9 +8185,9 @@ const ta: UiStrings = {
     descriptionExample: 'எ.கா. நண்பர்கள் பயணம், வார இறுதி சுற்றுலா',
     addFriendsSub: 'செலவுகளைப் பகிர நபர்களைச் சேர்க்கவும்',
     addContacts: 'தொடர்புகள்',
-    personPlaceholder: 'சேர்க்க ஒரு பெயரை உள்ளிடுங்கள்',
+    personPlaceholder: 'பெயர் அல்லது தொலைபேசி எண்ணைத் தேடுங்கள்',
     groupType: 'குழு வகை',
-    groupTypeSub: 'இந்தக் குழு எதற்கு என்று தேர்ந்தெடுங்கள்',
+    groupTypeSub: 'உங்கள் குழுவுக்கு ஏற்ற வகையைத் தேர்வுசெய்யுங்கள்',
     datesSub: 'பயணத் தேதிகள் (விருப்பம்)',
     budgetSub: 'சிறந்த கண்காணிப்புக்கு ஒரு பட்ஜெட்',
     ratesSub: 'இந்தப் பயணத்துக்கான நாணயத்தைத் தேர்ந்தெடுங்கள்',
@@ -8092,6 +8195,9 @@ const ta: UiStrings = {
     addCurrency: 'நாணயம் சேர்',
     simplifySub: 'செலுத்துதல்களின் எண்ணிக்கையைத் தானாகக் குறைக்கும்',
     suggested: 'பரிந்துரைக்கப்பட்டவை',
+    descriptionLabel: 'விளக்கம் (விருப்பத்தேர்வு)',
+    optional: '(விருப்பத்தேர்வு)',
+    seeAll: 'அனைத்தும்',
   },
   captureForm: {
     headerSub: 'சில நொடிகளில் உங்கள் செலவைப் பதிவு செய்யுங்கள்',
@@ -8432,6 +8538,19 @@ const ta: UiStrings = {
   },
   backup: {
     title: 'காப்புப்பிரதி',
+    subtitle:
+      'உங்கள் தரவைப் பாதுகாப்பாகவும் எல்லாச் சாதனங்களிலும் கிடைக்கும்படியும் வைத்திருங்கள்.',
+    benefitPrivate: 'உங்கள் தரவு தனிப்பட்டதாகவே இருக்கும்',
+    benefitEncrypted: 'மறையாக்கப்பட்டது, பாதுகாப்பானது',
+    benefitRestore: 'எப்போது வேண்டுமானாலும் எளிதாக மீட்டெடுக்கலாம்',
+    frequencySub: 'எத்தனை முறை காப்புப்பிரதி எடுக்க வேண்டும் எனத் தேர்ந்தெடுங்கள்.',
+    freqOffSub: 'நீங்களே காப்புப்பிரதி எடுக்க வேண்டும்.',
+    freqDailySub: 'தினமும் ஒருமுறை காப்புப்பிரதி.',
+    freqWeeklySub: 'வாரம் ஒருமுறை காப்புப்பிரதி.',
+    freqMonthlySub: 'மாதம் ஒருமுறை காப்புப்பிரதி.',
+    networkSub: 'காப்புப்பிரதிக்கான நெட்வொர்க்கைத் தேர்ந்தெடுங்கள்.',
+    networkWifiSub: 'மொபைல் டேட்டாவைச் சேமிக்கப் பரிந்துரைக்கப்படுகிறது.',
+    networkAnySub: 'Wi‑Fi இல்லாதபோது மொபைல் டேட்டாவைப் பயன்படுத்தும்.',
     row: 'Google Drive-இல் காப்பு',
     introStandard:
       'உங்கள் தனிப்பட்ட "நான்" கணக்கு, உங்கள் சொந்த Google Drive-இல் ஒரு மறைவான கோப்புறைக்கு நகலெடுக்கப்பட்டு, அங்கேயே வைக்கப்படும் சாவியால் பூட்டப்படுகிறது — அதே Google கணக்கில் நுழையும் புதிய ஃபோன் தானாகவே அதைத் திறக்கும். Waves-ஆல் அதைப் படிக்க முடியாது; உங்கள் Google கணக்கை அணுகும் எவரும் படிக்க முடியும்.',
@@ -9168,6 +9287,8 @@ const ta: UiStrings = {
     wavesVersionOut: 'Waves {latest} வெளியாகிவிட்டது',
   },
   smsImport: {
+    heroTitle: 'பணப்பரிமாற்றங்களை விரைவாகச் சேருங்கள்',
+    howToTitle: 'எப்படிச் சேர்ப்பது',
     title: 'வங்கிச் செய்திகளிலிருந்து சேர்',
     howTo:
       'உங்கள் செய்தி செயலியைத் திறந்து, இந்தப் பயணத்தின் வங்கிச் செய்திகளைத் தேர்ந்தெடுத்து, நகலெடுத்து இங்கே ஒட்டுங்கள். Waves அவற்றை இந்த ஃபோனிலேயே படிக்கும் — நீங்கள் ஒரு செலவை உறுதி செய்யும் வரை எதுவும் எங்கும் அனுப்பப்படாது.',
@@ -9239,8 +9360,8 @@ const ta: UiStrings = {
       'உங்கள் செய்தி செயலியிலிருந்து ஒரு கொடுப்பனவுச் செய்தியை நகலெடுத்து இங்கே ஒட்டுங்கள். Waves அதை இந்த ஃபோனிலேயே படித்து, அந்தக் கொடுப்பனவை மறுபார்வையில் வைக்கும்.',
     howToSteps: {
       open: 'உங்கள் செய்தி செயலியைத் திறங்கள்.',
-      copy: 'ஒரு வங்கிச் செய்தியை அழுத்திப் பிடித்து, நகலெடு என்பதைத் தட்டுங்கள்.',
-      comeBack: 'இங்கே திரும்பி வந்து ஒட்டு என்பதைத் தட்டுங்கள்.',
+      copy: 'ஒரு வங்கிச் செய்தியை **அழுத்திப் பிடித்து**, **நகலெடு** என்பதைத் தட்டுங்கள்.',
+      comeBack: 'இங்கே திரும்பி வந்து **ஒட்டு** என்பதைத் தட்டுங்கள்.',
     },
     chosenCount: {
       one: '{n} தேர்ந்தெடுக்கப்பட்டது',
@@ -9983,6 +10104,29 @@ const ta: UiStrings = {
     tab: 'தனிப்பட்டது',
     title: 'தனிப்பட்டது',
     subtitle: 'உங்கள் சொந்தப் பணம் — உங்களுக்கு மட்டும் தனிப்பட்டது.',
+    entryScreen: {
+      expenseSub: 'உங்கள் செலவுகளை எளிதாகக் கண்காணியுங்கள்',
+      incomeSub: 'வந்த பணத்தைப் பதிவு செய்யுங்கள்',
+      category: 'வகை',
+      source: 'ஆதாரம்',
+      viewAll: 'அனைத்தும்',
+      more: 'மேலும்',
+      whatFor: 'எதற்காக?',
+      notePlaceholder: 'குறிப்பு சேர்க்கவும் (எ.கா. நண்பர்களுடன் மதிய உணவு)',
+      paymentMethod: 'பணம் செலுத்திய முறை',
+      saveExpense: 'செலவைச் சேமி',
+      saveIncome: 'வருமானத்தைச் சேமி',
+      calculator: 'கணிப்பான்',
+      notSet: 'அமைக்கப்படவில்லை',
+      methods: {
+        cash: 'பணம்',
+        upi: 'UPI',
+        card: 'அட்டை',
+        bank: 'வங்கிப் பரிமாற்றம்',
+        wallet: 'வாலெட்',
+        other: 'மற்றவை',
+      },
+    },
     dash: {
       tagline: 'உங்கள் பணத்தைக் கண்காணியுங்கள், புத்திசாலித்தனமாக வாழுங்கள்',
       totalSpentThisMonth: 'இந்த மாதம் மொத்தச் செலவு',
@@ -10159,6 +10303,9 @@ const ta: UiStrings = {
     spendingEmptyBody:
       'Add an expense or some income, and this is where the month gets taken apart.',
     billsAndSubs: 'Bills & subs',
+    incomeSub: 'பெற்ற மொத்தப் பணம்',
+    billsSub: 'தொடர் பில்கள் மற்றும் சந்தாக்கள்',
+    everydaySub: 'மற்ற அனைத்துச் செலவுகள்',
     everyday: 'Spending',
     leftOver: 'Left over',
     leftOverHint:
@@ -11005,6 +11152,9 @@ const hi: UiStrings = {
   },
   notifications: {
     title: 'सूचनाएँ',
+    importantTitle: 'सिर्फ़ ज़रूरी बातें',
+    pushSub: 'ज़रूरी चीज़ों की सूचना इसी डिवाइस पर पाएँ।',
+    emailSub: 'ज़रूरी अपडेट अपने इनबॉक्स में पाएँ।',
     neverSpam:
       'रोज़मर्रा की खर्च गतिविधि के लिए Waves कभी ईमेल नहीं करता। सिर्फ़ वे छह चीज़ें जो आप वाकई इनबॉक्स में चाहेंगे, और हर एक अलग से बंद की जा सकती है।',
     onThisPhone: 'इस फ़ोन पर सूचनाएँ',
@@ -11050,6 +11200,10 @@ const hi: UiStrings = {
   },
   contact: {
     title: 'आपका खाता',
+    securityTitle: 'साइन इन और सुरक्षा',
+    securitySub: 'तय करें कि आप अपने खाते में कैसे साइन इन करते हैं।',
+    linkedAccounts: 'लिंक किए गए खाते',
+    personalDetails: 'निजी जानकारी',
     signedIn: 'साइन इन हैं',
     guestBody:
       'आपने जो कुछ जोड़ा है वह पहले ही सेव है और आपका है। ईमेल या फ़ोन नंबर जोड़ना सिर्फ़ इसलिए है कि आप इसे किसी दूसरे फ़ोन से भी पा सकें।',
@@ -11273,9 +11427,9 @@ const hi: UiStrings = {
     descriptionExample: 'जैसे दोस्तों की ट्रिप, वीकेंड घूमना',
     addFriendsSub: 'खर्च बाँटने के लिए लोगों को जोड़ें',
     addContacts: 'संपर्क जोड़ें',
-    personPlaceholder: 'जोड़ने के लिए नाम लिखें',
+    personPlaceholder: 'नाम या फ़ोन नंबर खोजें',
     groupType: 'समूह का प्रकार',
-    groupTypeSub: 'चुनें कि यह समूह किसलिए है',
+    groupTypeSub: 'अपने ग्रुप के लिए एक प्रकार चुनें',
     datesSub: 'यात्रा की तारीखें (वैकल्पिक)',
     budgetSub: 'बेहतर हिसाब के लिए बजट तय करें',
     ratesSub: 'इस ट्रिप की मुद्रा चुनें',
@@ -11283,6 +11437,9 @@ const hi: UiStrings = {
     addCurrency: 'मुद्रा जोड़ें',
     simplifySub: 'भुगतानों की संख्या अपने आप कम करता है',
     suggested: 'सुझाए गए',
+    descriptionLabel: 'विवरण (वैकल्पिक)',
+    optional: '(वैकल्पिक)',
+    seeAll: 'सभी देखें',
   },
   captureForm: {
     headerSub: 'कुछ ही सेकंड में अपना खर्च दर्ज करें',
@@ -11611,6 +11768,18 @@ const hi: UiStrings = {
   },
   backup: {
     title: 'बैकअप',
+    subtitle: 'अपना डेटा सुरक्षित और हर डिवाइस पर उपलब्ध रखें।',
+    benefitPrivate: 'आपका डेटा निजी रहता है',
+    benefitEncrypted: 'एन्क्रिप्टेड और सुरक्षित',
+    benefitRestore: 'कभी भी आसानी से रीस्टोर करें',
+    frequencySub: 'चुनें कि कितनी बार बैकअप लेना है।',
+    freqOffSub: 'आपको खुद बैकअप लेना होगा।',
+    freqDailySub: 'हर दिन एक बार बैकअप।',
+    freqWeeklySub: 'हर हफ़्ते एक बार बैकअप।',
+    freqMonthlySub: 'हर महीने एक बार बैकअप।',
+    networkSub: 'बैकअप के लिए नेटवर्क चुनें।',
+    networkWifiSub: 'मोबाइल डेटा बचाने के लिए सुझाया गया।',
+    networkAnySub: 'Wi‑Fi न होने पर मोबाइल डेटा इस्तेमाल करें।',
     row: 'Google Drive पर बैकअप',
     introStandard:
       'आपका निजी "मैं" खाता, आपकी अपनी Google Drive के एक छिपे फ़ोल्डर में कॉपी होता है और वहीं रखी एक चाबी से बंद रहता है — इसलिए उसी Google खाते में साइन इन किया नया फ़ोन इसे खुद ही खोल लेता है। Waves इसे नहीं पढ़ सकता। आपके Google खाते तक पहुँचने वाला कोई भी पढ़ सकता है।',
@@ -12313,6 +12482,8 @@ const hi: UiStrings = {
     wavesVersionOut: 'Waves {latest} आ गया है',
   },
   smsImport: {
+    heroTitle: 'भुगतान झटपट जोड़ें',
+    howToTitle: 'कैसे जोड़ें',
     title: 'बैंक संदेशों से जोड़ें',
     howTo:
       'अपना मैसेज ऐप खोलें, इस यात्रा के बैंक संदेश चुनें, कॉपी करें और यहाँ पेस्ट करें। Waves उन्हें इसी फ़ोन पर पढ़ता है — जब तक आप कोई खर्च पक्का नहीं करते, कुछ भी कहीं नहीं भेजा जाता।',
@@ -12381,8 +12552,8 @@ const hi: UiStrings = {
       'अपने मैसेज ऐप से कोई भुगतान वाला संदेश कॉपी करके यहाँ पेस्ट करें। Waves उसे इसी फ़ोन पर पढ़ता है और वह भुगतान आपके लिए समीक्षा में रख देता है।',
     howToSteps: {
       open: 'अपना मैसेज ऐप खोलें।',
-      copy: 'किसी बैंक संदेश को दबाकर रखें, फिर कॉपी दबाएँ।',
-      comeBack: 'यहाँ वापस आकर पेस्ट दबाएँ।',
+      copy: 'किसी बैंक संदेश को **दबाकर रखें**, फिर **कॉपी** दबाएँ।',
+      comeBack: 'यहाँ वापस आकर **पेस्ट** दबाएँ।',
     },
     chosenCount: { one: '{n} चुना', other: '{n} चुने' },
     foundCount: {
@@ -13083,6 +13254,29 @@ const hi: UiStrings = {
     tab: 'निजी',
     title: 'निजी',
     subtitle: 'आपका अपना पैसा — सिर्फ़ आपके लिए निजी।',
+    entryScreen: {
+      expenseSub: 'अपने खर्च आसानी से ट्रैक करें',
+      incomeSub: 'आई हुई रकम दर्ज करें',
+      category: 'श्रेणी',
+      source: 'स्रोत',
+      viewAll: 'सभी देखें',
+      more: 'और',
+      whatFor: 'यह किस लिए था?',
+      notePlaceholder: 'नोट जोड़ें (जैसे दोस्तों के साथ लंच)',
+      paymentMethod: 'भुगतान का तरीका',
+      saveExpense: 'खर्च सहेजें',
+      saveIncome: 'आय सहेजें',
+      calculator: 'कैलकुलेटर',
+      notSet: 'सेट नहीं',
+      methods: {
+        cash: 'नकद',
+        upi: 'UPI',
+        card: 'कार्ड',
+        bank: 'बैंक ट्रांसफ़र',
+        wallet: 'वॉलेट',
+        other: 'अन्य',
+      },
+    },
     dash: {
       tagline: 'अपने पैसों पर नज़र रखें, समझदारी से जिएँ',
       totalSpentThisMonth: 'इस महीने कुल खर्च',
@@ -13258,6 +13452,9 @@ const hi: UiStrings = {
     spendingEmptyBody:
       'Add an expense or some income, and this is where the month gets taken apart.',
     billsAndSubs: 'Bills & subs',
+    incomeSub: 'कुल मिली रकम',
+    billsSub: 'नियमित बिल और सब्सक्रिप्शन',
+    everydaySub: 'बाकी सभी खर्च',
     everyday: 'Spending',
     leftOver: 'Left over',
     leftOverHint:
@@ -14174,6 +14371,9 @@ const ar: UiStrings = {
   },
   notifications: {
     title: 'الإشعارات',
+    importantTitle: 'المهم فقط',
+    pushSub: 'تلقَّ إشعارات على هذا الجهاز بما يهمك.',
+    emailSub: 'استلم التحديثات المهمة في بريدك.',
     neverSpam:
       'لا يرسل Waves بريدًا عن نشاط المصروفات المعتاد. ستة أشياء فقط قد ترغب فعلًا في وصولها إلى بريدك، ويمكن إيقاف كل منها وحده.',
     onThisPhone: 'الإشعارات على هذا الهاتف',
@@ -14216,6 +14416,10 @@ const ar: UiStrings = {
   },
   contact: {
     title: 'حسابك',
+    securityTitle: 'تسجيل الدخول والأمان',
+    securitySub: 'تحكّم في طريقة تسجيل دخولك إلى حسابك.',
+    linkedAccounts: 'الحسابات المرتبطة',
+    personalDetails: 'البيانات الشخصية',
     signedIn: 'مسجّل الدخول',
     guestBody:
       'كل ما أدخلته محفوظ بالفعل وهو ملكك. إضافة بريد إلكتروني أو رقم هاتف هي فقط كي تصل إليه من هاتف آخر.',
@@ -14445,9 +14649,9 @@ const ar: UiStrings = {
     descriptionExample: 'مثال: رحلة أصدقاء، عطلة نهاية الأسبوع',
     addFriendsSub: 'أضف أشخاصًا لبدء تقاسم المصروفات',
     addContacts: 'إضافة جهات اتصال',
-    personPlaceholder: 'اكتب اسمًا لإضافته',
+    personPlaceholder: 'ابحث بالاسم أو رقم الهاتف',
     groupType: 'نوع المجموعة',
-    groupTypeSub: 'اختر الغرض من هذه المجموعة',
+    groupTypeSub: 'اختر نوعاً يناسب مجموعتك',
     datesSub: 'حدّد تواريخ السفر (اختياري)',
     budgetSub: 'حدّد ميزانية لتتبع أفضل',
     ratesSub: 'اختر عملة هذه الرحلة',
@@ -14455,6 +14659,9 @@ const ar: UiStrings = {
     addCurrency: 'إضافة عملة',
     simplifySub: 'تقليل عدد الدفعات تلقائيًا',
     suggested: 'مقترحون',
+    descriptionLabel: 'الوصف (اختياري)',
+    optional: '(اختياري)',
+    seeAll: 'عرض الكل',
   },
   captureForm: {
     headerSub: 'سجّل مصروفك في ثوانٍ',
@@ -14840,6 +15047,18 @@ const ar: UiStrings = {
   },
   backup: {
     title: 'النسخ الاحتياطي',
+    subtitle: 'احفظ بياناتك بأمان واجعلها متاحة على كل أجهزتك.',
+    benefitPrivate: 'تبقى بياناتك خاصة',
+    benefitEncrypted: 'مشفّرة وآمنة',
+    benefitRestore: 'استعادة سهلة في أي وقت',
+    frequencySub: 'اختر عدد مرات النسخ الاحتياطي.',
+    freqOffSub: 'ستحتاج إلى النسخ الاحتياطي يدويًا.',
+    freqDailySub: 'نسخة احتياطية مرة كل يوم.',
+    freqWeeklySub: 'نسخة احتياطية مرة كل أسبوع.',
+    freqMonthlySub: 'نسخة احتياطية مرة كل شهر.',
+    networkSub: 'اختر الشبكة المستخدمة للنسخ الاحتياطي.',
+    networkWifiSub: 'يُنصح به لتوفير بيانات الجوال.',
+    networkAnySub: 'استخدم بيانات الجوال عند عدم توفر Wi‑Fi.',
     row: 'نسخ احتياطي إلى Google Drive',
     introStandard:
       'دفترك الخاص في تبويب "أنا"، يُنسخ إلى مجلد مخفي داخل Google Drive الخاص بك ويُقفل بمفتاح محفوظ هناك أيضًا — فيفتحه وحده أي هاتف جديد يسجّل الدخول إلى حساب Google نفسه. لا يستطيع Waves قراءته، أما من يصل إلى حساب Google الخاص بك فيستطيع.',
@@ -15637,6 +15856,8 @@ const ar: UiStrings = {
     wavesVersionOut: 'صدر Waves {latest}',
   },
   smsImport: {
+    heroTitle: 'أضف المدفوعات بسرعة',
+    howToTitle: 'طريقة الإضافة',
     title: 'الإضافة من رسائل البنك',
     howTo:
       'افتح تطبيق الرسائل، واختر رسائل البنك الخاصة بهذه الرحلة، وانسخها والصقها هنا. يقرأها Waves على هذا الهاتف — ولا يُرسل أي شيء إلى أي مكان حتى تؤكّد مصروفًا.',
@@ -15730,8 +15951,8 @@ const ar: UiStrings = {
       'انسخ رسالة دفع من تطبيق الرسائل وألصقها هنا. يقرأها Waves على هذا الهاتف ويضع الدفعة في المراجعة نيابةً عنك.',
     howToSteps: {
       open: 'افتح تطبيق الرسائل.',
-      copy: 'اضغط مطوّلًا على رسالة من البنك ثم اختر نسخ.',
-      comeBack: 'عُد إلى هنا واضغط لصق.',
+      copy: '**اضغط مطوّلًا** على رسالة من البنك ثم اختر **نسخ**.',
+      comeBack: 'عُد إلى هنا واضغط **لصق**.',
     },
     chosenCount: {
       zero: 'لم يُختَر شيء',
@@ -16648,6 +16869,29 @@ const ar: UiStrings = {
     tab: 'الشخصي',
     title: 'الشخصي',
     subtitle: 'أموالك الخاصة — خاصة بك وحدك.',
+    entryScreen: {
+      expenseSub: 'تتبّع مصروفاتك بسهولة',
+      incomeSub: 'سجّل المال الذي وصلك',
+      category: 'الفئة',
+      source: 'المصدر',
+      viewAll: 'عرض الكل',
+      more: 'المزيد',
+      whatFor: 'لأي غرض؟',
+      notePlaceholder: 'أضف ملاحظة (مثل غداء مع الأصدقاء)',
+      paymentMethod: 'طريقة الدفع',
+      saveExpense: 'احفظ المصروف',
+      saveIncome: 'احفظ الدخل',
+      calculator: 'الآلة الحاسبة',
+      notSet: 'غير محدد',
+      methods: {
+        cash: 'نقداً',
+        upi: 'UPI',
+        card: 'بطاقة',
+        bank: 'تحويل بنكي',
+        wallet: 'محفظة',
+        other: 'أخرى',
+      },
+    },
     dash: {
       tagline: 'تابع أموالك وعِش بذكاء',
       totalSpentThisMonth: 'إجمالي الإنفاق هذا الشهر',
@@ -16830,6 +17074,9 @@ const ar: UiStrings = {
     spendingEmptyBody:
       'Add an expense or some income, and this is where the month gets taken apart.',
     billsAndSubs: 'Bills & subs',
+    incomeSub: 'إجمالي المال المستلم',
+    billsSub: 'الفواتير والاشتراكات المتكررة',
+    everydaySub: 'كل المصروفات الأخرى',
     everyday: 'Spending',
     leftOver: 'Left over',
     leftOverHint:

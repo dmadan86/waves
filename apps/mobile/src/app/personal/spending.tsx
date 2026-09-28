@@ -32,13 +32,15 @@
  * money.
  */
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, ScrollView, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import {
   computePersonalSpending,
   format,
+  minorUnitScale,
   money,
   personalSpendingCurrencies,
   personalSpendingTrend,
@@ -47,7 +49,6 @@ import {
   type PersonalMonthSplit,
 } from '@waves/core';
 import {
-  Card,
   directionalIcon,
   EmptyState,
   IconButton,
@@ -65,6 +66,7 @@ import { fill, useStrings } from '@/i18n';
 import { PersonalGuard } from '@/components/PersonalGuard';
 import { useBottomClearance } from '@/lib/clearance';
 import { router } from '@/lib/navigation';
+import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
 
 /** How many columns the chart draws. Six is two quarters: long enough for a
  *  quarterly bill to appear twice, short enough to read at phone width. */
@@ -98,46 +100,47 @@ function SpendingScreenBody() {
 
   const index = months.indexOf(month);
   const fmt = (amount: bigint): string => format(money(amount, dc), { locale });
+  const dcScale = minorUnitScale(dc);
+  const dark = theme.scheme === 'dark';
+  const ink = dark ? theme.color.text : SPEC_INK;
+  const muted = dark ? theme.color.textMuted : SPEC_MUTED;
+  const accent = dark ? theme.color.brand : SPEC_ACCENT;
 
   return (
     <Screen>
-      <Row
-        style={{
-          paddingHorizontal: theme.spacing.xl,
-          paddingTop: theme.spacing.md,
-          alignItems: 'center',
-        }}
-      >
-        <IconButton label={t.common.back} onPress={() => router.back()}>
-          <Ionicons
-            name={directionalIcon('chevron-back')}
-            size={iconSize.lg}
-            color={theme.color.text}
-          />
-        </IconButton>
-        <View style={{ flex: 1, alignItems: 'center' }}>
-          <Text variant="heading">{t.personal.spendingTitle}</Text>
-        </View>
-        {/* Balances the back button so the title sits centred. */}
-        <View style={{ width: iconSize.lg + theme.spacing.md }} />
-      </Row>
-
       <ScrollView
         contentContainerStyle={{
-          paddingHorizontal: theme.spacing.xl,
+          paddingHorizontal: theme.spacing.lg,
           paddingBottom: clearance,
-          gap: theme.spacing.xl,
+          gap: theme.spacing.md,
         }}
         showsVerticalScrollIndicator={false}
       >
-        <Text
-          variant="caption"
-          tone="muted"
-          align="center"
-          style={{ marginBottom: theme.spacing.xs }}
-        >
-          {t.personal.spendingSub}
-        </Text>
+        {/* The header: back, the title big, the line on what the screen is,
+            and the picture beside them. */}
+        <View style={{ paddingTop: theme.spacing.sm, minHeight: 104 }}>
+          <SpendingArt />
+          <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+            <IconButton label={t.common.back} onPress={() => router.back()}>
+              <Ionicons name={directionalIcon('chevron-back')} size={iconSize.lg} color={ink} />
+            </IconButton>
+            <Text style={{ fontSize: 28, lineHeight: 34, fontWeight: '800', color: ink }}>
+              {t.personal.spendingTitle}
+            </Text>
+          </Row>
+          <Text
+            style={{
+              marginTop: 2,
+              marginStart: 48,
+              maxWidth: '56%',
+              fontSize: 13,
+              lineHeight: 18,
+              color: muted,
+            }}
+          >
+            {t.personal.spendingSub}
+          </Text>
+        </View>
 
         {txns.length === 0 ? (
           // A first run, not a chart of zeroes. Six empty columns and four rows
@@ -152,10 +155,10 @@ function SpendingScreenBody() {
           </View>
         ) : (
           <>
-            <Card style={{ gap: theme.spacing.lg }}>
+            <SoftCard style={{ gap: theme.spacing.sm }}>
               <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text variant="micro" tone="faint" style={{ letterSpacing: 0.8 }}>
-                  {t.personal.last6Months.toUpperCase()}
+                <Text style={{ fontSize: 16, fontWeight: '700', color: ink }}>
+                  {t.personal.last6Months}
                 </Text>
                 <Legend
                   earned={t.personal.earned}
@@ -172,30 +175,36 @@ function SpendingScreenBody() {
                 accessibleAmount={fmt}
                 earnedLabel={t.personal.earned}
                 spentLabel={includeBills ? t.personal.spent : t.personal.everyday}
+                scale={dcScale}
+                locale={locale}
               />
+            </SoftCard>
 
-              <View
-                style={{
-                  height: 1,
-                  backgroundColor: theme.color.border,
-                  marginHorizontal: -theme.spacing.xl,
-                }}
+            {/* The switch that makes the six columns comparable, as a card of its
+                own: a month the rent lands in looks nothing like one it does not. */}
+            <SoftCard
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: theme.spacing.md,
+                paddingVertical: theme.spacing.md,
+              }}
+            >
+              <IconDisc icon="document-text-outline" color={accent} soft={theme.color.brandSoft} />
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={{ fontSize: 15, fontWeight: '700', color: ink }}>
+                  {t.personal.includeBills}
+                </Text>
+                <Text style={{ fontSize: 12, lineHeight: 16, color: muted }}>
+                  {t.personal.includeBillsHint}
+                </Text>
+              </View>
+              <Toggle
+                value={includeBills}
+                onValueChange={setIncludeBills}
+                accessibilityLabel={t.personal.includeBills}
               />
-
-              <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
-                <View style={{ flex: 1 }}>
-                  <Text variant="body">{t.personal.includeBills}</Text>
-                  <Text variant="micro" tone="muted">
-                    {t.personal.includeBillsHint}
-                  </Text>
-                </View>
-                <Toggle
-                  value={includeBills}
-                  onValueChange={setIncludeBills}
-                  accessibilityLabel={t.personal.includeBills}
-                />
-              </Row>
-            </Card>
+            </SoftCard>
 
             <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
               <StepButton
@@ -204,7 +213,16 @@ function SpendingScreenBody() {
                 disabled={index <= 0}
                 onPress={() => setMonth(months[index - 1] ?? month)}
               />
-              <Text variant="subheading" align="center" style={{ flex: 1 }} numberOfLines={1}>
+              <Text
+                numberOfLines={1}
+                style={{
+                  flex: 1,
+                  textAlign: 'center',
+                  fontSize: 16,
+                  fontWeight: '700',
+                  color: ink,
+                }}
+              >
                 {monthLabel(month, locale)}
               </Text>
               <StepButton
@@ -215,51 +233,74 @@ function SpendingScreenBody() {
               />
             </Row>
 
-            <Card style={{ gap: theme.spacing.md }}>
+            <SoftCard style={{ gap: theme.spacing.md }}>
               <SplitRow
+                icon="wallet"
+                tint={theme.tint.lilac}
                 label={t.personal.income}
+                sub={t.personal.incomeSub}
                 amount={fmt(split.income)}
-                tint={theme.tint.mint.ink}
               />
               <SplitRow
+                icon="document-text"
+                tint={theme.tint.sky}
                 label={t.personal.billsAndSubs}
+                sub={split.bills === 0n ? t.personal.noBillsMarked : t.personal.billsSub}
                 amount={fmt(split.bills)}
-                tint={theme.tint.sky.ink}
-                note={split.bills === 0n ? t.personal.noBillsMarked : undefined}
               />
               <SplitRow
+                icon="cart"
+                tint={theme.tint.coral}
                 label={t.personal.everyday}
+                sub={t.personal.everydaySub}
                 amount={fmt(split.spending)}
-                tint={theme.tint.coral.ink}
               />
 
               <View style={{ height: 1, backgroundColor: theme.color.border }} />
 
-              <View style={{ gap: theme.spacing.xs }}>
-                <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
-                  <Text variant="subheading" style={{ flex: 1 }}>
+              {/* What was left, on a soft green panel — the one figure here that
+                  is good news when it is big. Not "saved": the app cannot see a
+                  savings account, and the line under it says so every time. */}
+              <Row
+                style={{
+                  alignItems: 'center',
+                  gap: theme.spacing.md,
+                  paddingHorizontal: theme.spacing.md,
+                  paddingVertical: theme.spacing.sm,
+                  marginHorizontal: -theme.spacing.xs,
+                  borderRadius: 16,
+                  backgroundColor: dark ? 'rgba(40, 180, 110, 0.10)' : '#EEF8F1',
+                }}
+              >
+                <IconDisc
+                  icon="pie-chart"
+                  color={LEFT_OVER_GREEN}
+                  soft={dark ? 'rgba(40,180,110,0.18)' : '#DDF1E4'}
+                />
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={{ fontSize: 15, fontWeight: '700', color: ink }}>
                     {t.personal.leftOver}
                   </Text>
-                  <Text
-                    variant="heading"
-                    tabular
-                    numberOfLines={1}
-                    style={{
-                      color: split.leftOver < 0n ? theme.color.negative : theme.color.text,
-                    }}
-                  >
-                    {split.leftOver < 0n ? '−' : ''}
-                    {fmt(split.leftOver < 0n ? -split.leftOver : split.leftOver)}
+                  <Text style={{ fontSize: 11, lineHeight: 15, color: muted }}>
+                    {t.personal.leftOverHint}
                   </Text>
-                </Row>
-                {/* Said every time, not only when it might mislead: the row is
-                    a number about somebody's life and the limit of what it
-                    knows belongs beside it. */}
-                <Text variant="micro" tone="muted">
-                  {t.personal.leftOverHint}
+                </View>
+                <Text
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.7}
+                  style={{
+                    fontSize: 16,
+                    fontWeight: '800',
+                    fontVariant: ['tabular-nums'],
+                    color: split.leftOver < 0n ? theme.color.negative : LEFT_OVER_GREEN,
+                  }}
+                >
+                  {split.leftOver < 0n ? '−' : ''}
+                  {fmt(split.leftOver < 0n ? -split.leftOver : split.leftOver)}
                 </Text>
-              </View>
-            </Card>
+              </Row>
+            </SoftCard>
 
             {others.length > 0 ? (
               <Text variant="micro" tone="muted" align="center">
@@ -275,19 +316,22 @@ function SpendingScreenBody() {
 
 // ──────────────────────────────────────────────────────────────── chart ──
 
+/** The chart's two series: violet for what came in, coral for what went out. */
+const EARNED = ['#8C83FF', '#6C5CE7'] as const;
+const SPENT = ['#F7A1A1', '#EB6B6B'] as const;
+const LEFT_OVER_GREEN = '#1E9E5A';
+
 /**
- * Six months, two columns each: what came in, and what went out.
+ * Six months, two columns each: what came in, and what went out — against a
+ * scale with its figures on the left and dashed lines across.
  *
- * Both columns scale against the largest figure anywhere in the window, not
- * against their own month — the comparison the chart exists to make is between
- * months, and per-month scaling would draw every month the same height and say
- * nothing. A column that rounds to nothing still gets a sliver, because "almost
- * none" and "none" are different answers (the same rule @waves/ui's BarList
- * follows).
+ * Both columns scale against the same rounded-up top of the scale, not their
+ * own month — the comparison the chart exists to make is between months. A
+ * column that rounds to nothing still gets a sliver, because "almost none" and
+ * "none" are different answers.
  *
- * Tapping a column picks the month the card below reads. The unselected months
- * are dimmed rather than recoloured: a second colour would look like a third
- * series.
+ * Tapping a month picks the one the card below reads; its name goes bold and
+ * what it earned is tagged over its column.
  */
 function EarnedSpentChart({
   trend,
@@ -298,6 +342,8 @@ function EarnedSpentChart({
   accessibleAmount,
   earnedLabel,
   spentLabel,
+  scale,
+  locale,
 }: {
   trend: readonly PersonalMonthSplit[];
   selected: string;
@@ -307,9 +353,15 @@ function EarnedSpentChart({
   accessibleAmount: (amount: bigint) => string;
   earnedLabel: string;
   spentLabel: string;
+  /** Minor units per major unit of the currency, for the axis figures. */
+  scale: bigint;
+  locale: string;
 }) {
   const theme = useTheme();
-  const height = 96;
+  const dark = theme.scheme === 'dark';
+  const ink = dark ? theme.color.text : SPEC_INK;
+  const muted = dark ? theme.color.textMuted : SPEC_MUTED;
+  const height = CHART_HEIGHT;
 
   const pairs = trend.map((split) => ({
     month: split.month,
@@ -320,144 +372,320 @@ function EarnedSpentChart({
     (max, pair) => (pair.earned > max ? pair.earned : pair.spent > max ? pair.spent : max),
     0n,
   );
+  const top = niceTop(largest, scale);
   // Integer percent off bigint; no float ever touches the money.
   const barHeight = (value: bigint): number =>
-    largest > 0n
-      ? Math.max((Number((value * 100n) / largest) / 100) * height, value > 0n ? 3 : 0)
-      : 0;
+    top > 0n ? Math.max((Number((value * 1000n) / top) / 1000) * height, value > 0n ? 3 : 0) : 0;
+  const ticks = [4, 3, 2, 1, 0].map((step) => (top * BigInt(step)) / 4n);
+  const compact = (minor: bigint): string => {
+    try {
+      return new Intl.NumberFormat(locale, {
+        notation: 'compact',
+        maximumFractionDigits: 1,
+      }).format(Number(minor / (scale > 0n ? scale : 1n)));
+    } catch {
+      return String(minor / (scale > 0n ? scale : 1n));
+    }
+  };
+  const chosen = pairs.find((pair) => pair.month === selected);
 
   return (
     <View style={{ gap: theme.spacing.sm }}>
-      <Row style={{ alignItems: 'flex-end', gap: theme.spacing.sm, height }}>
-        {pairs.map((pair) => {
-          const isSelected = pair.month === selected;
-          return (
-            <Pressable
-              key={pair.month}
-              accessibilityRole="button"
-              accessibilityState={{ selected: isSelected }}
-              accessibilityLabel={`${labelFor(pair.month)}. ${earnedLabel} ${accessibleAmount(
-                pair.earned,
-              )}. ${spentLabel} ${accessibleAmount(pair.spent)}`}
-              onPress={() => onSelect(pair.month)}
-              style={({ pressed }) => ({
-                flex: 1,
-                height,
-                justifyContent: 'flex-end',
-                opacity: pressed ? 0.6 : isSelected ? 1 : 0.45,
-              })}
+      <Row style={{ gap: theme.spacing.sm }}>
+        {/* The scale's figures, top to bottom. */}
+        <View style={{ height, justifyContent: 'space-between', width: AXIS_WIDTH }}>
+          {ticks.map((tick, i) => (
+            <Text
+              key={i}
+              numberOfLines={1}
+              style={{ fontSize: 10, lineHeight: 14, color: muted, textAlign: 'right' }}
             >
-              <Row style={{ alignItems: 'flex-end', gap: 3, justifyContent: 'center' }}>
-                <View
-                  style={{
+              {compact(tick)}
+            </Text>
+          ))}
+        </View>
+        <View style={{ flex: 1, height }}>
+          {/* Dashed lines across at each figure. */}
+          {ticks.map((_, i) => (
+            <View
+              key={i}
+              style={{
+                position: 'absolute',
+                left: 0,
+                right: 0,
+                top: (height * i) / 4 + 7,
+                borderTopWidth: 1,
+                borderStyle: i === 4 ? 'solid' : 'dashed',
+                borderColor: theme.color.border,
+              }}
+            />
+          ))}
+          <Row style={{ flex: 1, alignItems: 'flex-end', paddingBottom: 0, marginTop: 7 }}>
+            {pairs.map((pair) => {
+              const isSelected = pair.month === selected;
+              return (
+                <Pressable
+                  key={pair.month}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: isSelected }}
+                  accessibilityLabel={`${labelFor(pair.month)}. ${earnedLabel} ${accessibleAmount(
+                    pair.earned,
+                  )}. ${spentLabel} ${accessibleAmount(pair.spent)}`}
+                  onPress={() => onSelect(pair.month)}
+                  style={({ pressed }) => ({
                     flex: 1,
-                    maxWidth: 16,
-                    height: barHeight(pair.earned),
-                    borderRadius: theme.radius.sm,
-                    backgroundColor: theme.tint.mint.ink,
-                  }}
-                />
-                <View
-                  style={{
-                    flex: 1,
-                    maxWidth: 16,
-                    height: barHeight(pair.spent),
-                    borderRadius: theme.radius.sm,
-                    backgroundColor: theme.tint.coral.ink,
-                  }}
-                />
-              </Row>
-            </Pressable>
-          );
-        })}
+                    height: height - 7,
+                    justifyContent: 'flex-end',
+                    opacity: pressed ? 0.6 : 1,
+                  })}
+                >
+                  <Row style={{ alignItems: 'flex-end', gap: 4, justifyContent: 'center' }}>
+                    <Bar colors={EARNED} height={barHeight(pair.earned)} ring={isSelected} />
+                    <Bar colors={SPENT} height={barHeight(pair.spent)} />
+                  </Row>
+                </Pressable>
+              );
+            })}
+          </Row>
+          {/* The chosen month's earnings, tagged over its column. */}
+          {chosen && chosen.earned > 0n ? (
+            <View
+              pointerEvents="none"
+              style={{
+                position: 'absolute',
+                top: Math.max(0, height - barHeight(chosen.earned) - 42),
+                ...(pairs.indexOf(chosen) >= pairs.length / 2
+                  ? {
+                      right: `${((pairs.length - 1 - pairs.indexOf(chosen)) * 100) / pairs.length}%`,
+                    }
+                  : { left: `${(pairs.indexOf(chosen) * 100) / pairs.length}%` }),
+                paddingHorizontal: 8,
+                paddingVertical: 4,
+                borderRadius: 10,
+                backgroundColor: theme.color.surface,
+                shadowColor: '#2A1E6B',
+                shadowOpacity: 0.1,
+                shadowRadius: 10,
+                shadowOffset: { width: 0, height: 4 },
+                elevation: 3,
+              }}
+            >
+              <Text style={{ fontSize: 10, color: muted }}>{earnedLabel}</Text>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: ink }}>
+                {accessibleAmount(chosen.earned)}
+              </Text>
+            </View>
+          ) : null}
+        </View>
       </Row>
       <Row style={{ gap: theme.spacing.sm }}>
-        {pairs.map((pair) => (
-          <Text
-            key={pair.month}
-            variant="micro"
-            align="center"
-            tone={pair.month === selected ? 'default' : 'faint'}
-            style={{ flex: 1 }}
-            numberOfLines={1}
-          >
-            {labelFor(pair.month)}
-          </Text>
-        ))}
+        <View style={{ width: AXIS_WIDTH }} />
+        <Row style={{ flex: 1 }}>
+          {pairs.map((pair) => {
+            const isSelected = pair.month === selected;
+            return (
+              <Text
+                key={pair.month}
+                numberOfLines={1}
+                style={{
+                  flex: 1,
+                  textAlign: 'center',
+                  fontSize: 12,
+                  fontWeight: isSelected ? '800' : '400',
+                  color: isSelected ? (dark ? theme.color.brand : SPEC_ACCENT) : muted,
+                }}
+              >
+                {labelFor(pair.month)}
+              </Text>
+            );
+          })}
+        </Row>
       </Row>
     </View>
   );
 }
 
-/** Which colour means what, in two dots. Small enough to sit in the chart's
- *  header, where the question is asked. */
-function Legend({ earned, spent }: { earned: string; spent: string }) {
-  const theme = useTheme();
-  const dot = (color: string, label: string) => (
-    <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
-      <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: color }} />
-      <Text variant="micro" tone="muted">
-        {label}
-      </Text>
-    </Row>
-  );
-  return (
-    <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
-      {dot(theme.tint.mint.ink, earned)}
-      {dot(theme.tint.coral.ink, spent)}
-    </Row>
-  );
-}
-
-// ───────────────────────────────────────────────────────────────── rows ──
-
-/**
- * One line of the split: a coloured dot tying the row to its column in the
- * chart, a name, and the money.
- *
- * Not tappable, and the chevron is left off rather than drawn dead: the entries
- * list has no filter to push into, and an affordance that does nothing is worse
- * than none at all. When that list learns to filter, this row is where the tap
- * goes.
- */
-function SplitRow({
-  label,
-  amount,
-  tint,
-  note,
+/** One column: a rounded bar in its series' gradient. The chosen month's
+ *  earned bar wears a small white bead at its top. */
+function Bar({
+  colors,
+  height,
+  ring = false,
 }: {
-  label: string;
-  amount: string;
-  tint: string;
-  note?: string;
+  colors: readonly [string, string];
+  height: number;
+  ring?: boolean;
 }) {
-  const theme = useTheme();
+  if (height <= 0) return <View style={{ width: BAR_WIDTH }} />;
   return (
-    <View style={{ gap: 2 }}>
-      <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
-        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: tint }} />
-        <Text variant="body" style={{ flex: 1 }} numberOfLines={1}>
-          {label}
-        </Text>
-        <Text variant="subheading" tabular numberOfLines={1}>
-          {amount}
-        </Text>
-      </Row>
-      {note ? (
-        <Text variant="micro" tone="faint" style={{ paddingLeft: theme.spacing.lg }}>
-          {note}
-        </Text>
+    <View style={{ width: BAR_WIDTH, height }}>
+      <LinearGradient
+        colors={colors}
+        style={{ width: BAR_WIDTH, height, borderRadius: BAR_WIDTH / 2 }}
+      />
+      {ring ? (
+        <View
+          style={{
+            position: 'absolute',
+            top: 3,
+            alignSelf: 'center',
+            width: BAR_WIDTH - 6,
+            height: BAR_WIDTH - 6,
+            borderRadius: BAR_WIDTH,
+            borderWidth: 2,
+            borderColor: '#FFFFFF',
+          }}
+        />
       ) : null}
     </View>
   );
 }
 
+/** The top of the scale: the largest figure rounded up to a step that divides
+ *  into four round figures (50K steps under 200K, and so on). */
+function niceTop(largest: bigint, scale: bigint): bigint {
+  const unit = scale > 0n ? scale : 1n;
+  const major = largest / unit + (largest % unit > 0n ? 1n : 0n);
+  if (major <= 0n) return 4n * unit;
+  const raw = Number(major) / 4;
+  const magnitude = 10 ** Math.floor(Math.log10(raw));
+  const step = [1, 2, 2.5, 5, 10].map((m) => m * magnitude).find((s) => s >= raw) ?? raw;
+  return BigInt(Math.ceil(step * 4)) * unit;
+}
+
+/** Which colour means what, in two dots. */
+function Legend({ earned, spent }: { earned: string; spent: string }) {
+  const theme = useTheme();
+  const muted = theme.scheme === 'dark' ? theme.color.textMuted : SPEC_INK;
+  const dot = (color: string, label: string) => (
+    <Row style={{ alignItems: 'center', gap: 6 }}>
+      <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: color }} />
+      <Text style={{ fontSize: 12, color: muted }}>{label}</Text>
+    </Row>
+  );
+  return (
+    <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+      {dot(EARNED[1], earned)}
+      {dot(SPENT[1], spent)}
+    </Row>
+  );
+}
+
+const CHART_HEIGHT = 128;
+const AXIS_WIDTH = 30;
+const BAR_WIDTH = 9;
+
+// ───────────────────────────────────────────────────────────────── rows ──
+
+/** A white card with the redesign's soft corners and lift. */
+function SoftCard({ children, style }: { children: ReactNode; style?: object }) {
+  const theme = useTheme();
+  return (
+    <View
+      style={[
+        {
+          backgroundColor: theme.color.surface,
+          borderRadius: 20,
+          padding: theme.spacing.md,
+          shadowColor: '#2A1E6B',
+          shadowOpacity: 0.06,
+          shadowRadius: 14,
+          shadowOffset: { width: 0, height: 4 },
+          elevation: 2,
+        },
+        style,
+      ]}
+    >
+      {children}
+    </View>
+  );
+}
+
+/** A glyph on its own soft disc. */
+function IconDisc({
+  icon,
+  color,
+  soft,
+}: {
+  icon: React.ComponentProps<typeof Ionicons>['name'];
+  color: string;
+  soft: string;
+}) {
+  return (
+    <View
+      style={{
+        width: 38,
+        height: 38,
+        borderRadius: 19,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: soft,
+      }}
+    >
+      <Ionicons name={icon} size={18} color={color} />
+    </View>
+  );
+}
+
 /**
- * A month step. Disabled at the ends of the window rather than hidden, so the
- * month name never jumps sideways as it reaches the edge — and disabled in the
- * way a screen reader can hear, which is why this is a Pressable and not the
- * shared IconButton (that one takes no disabled state; a missing `onPress`
- * would still be announced as a live button).
+ * One line of the split: its glyph on a tinted disc, the name over a line on
+ * what it is, and the money.
+ *
+ * Not tappable, and the chevron is left off rather than drawn dead: the entries
+ * list has no filter to push into, and an affordance that does nothing is worse
+ * than none at all.
+ */
+function SplitRow({
+  icon,
+  tint,
+  label,
+  sub,
+  amount,
+}: {
+  icon: React.ComponentProps<typeof Ionicons>['name'];
+  tint: { bg: string; ink: string };
+  label: string;
+  sub: string;
+  amount: string;
+}) {
+  const theme = useTheme();
+  const dark = theme.scheme === 'dark';
+  return (
+    <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+      <IconDisc icon={icon} color={tint.ink} soft={tint.bg} />
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text
+          numberOfLines={1}
+          style={{ fontSize: 14, fontWeight: '700', color: dark ? theme.color.text : SPEC_INK }}
+        >
+          {label}
+        </Text>
+        <Text
+          numberOfLines={1}
+          style={{ fontSize: 12, color: dark ? theme.color.textMuted : SPEC_MUTED }}
+        >
+          {sub}
+        </Text>
+      </View>
+      <Text
+        numberOfLines={1}
+        style={{
+          fontSize: 15,
+          fontWeight: '800',
+          fontVariant: ['tabular-nums'],
+          color: dark ? theme.color.text : SPEC_INK,
+        }}
+      >
+        {amount}
+      </Text>
+    </Row>
+  );
+}
+
+/**
+ * A month step: a soft round button. Disabled at the ends of the window rather
+ * than hidden, so the month name never jumps sideways as it reaches the edge —
+ * and disabled in the way a screen reader can hear.
  */
 function StepButton({
   icon,
@@ -479,19 +707,53 @@ function StepButton({
       disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => ({
-        width: 44,
-        height: 44,
+        width: 36,
+        height: 36,
+        borderRadius: 18,
         alignItems: 'center',
         justifyContent: 'center',
+        backgroundColor: theme.scheme === 'dark' ? theme.color.surfaceMuted : '#ECEBF6',
         opacity: pressed ? 0.6 : 1,
       })}
     >
       <Ionicons
         name={icon}
-        size={iconSize.lg}
-        color={disabled ? theme.color.textFaint : theme.color.text}
+        size={18}
+        color={
+          disabled ? theme.color.textFaint : theme.scheme === 'dark' ? theme.color.text : SPEC_INK
+        }
       />
     </Pressable>
+  );
+}
+
+/** The header's picture, in the top-right corner behind the title. A stand-in
+ *  until the final artwork (a wallet, coins and a plant). */
+function SpendingArt() {
+  const theme = useTheme();
+  return (
+    <View
+      pointerEvents="none"
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={{
+        position: 'absolute',
+        top: theme.spacing.xs,
+        right: 0,
+        width: 96,
+        height: 96,
+        borderRadius: 48,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: theme.scheme === 'dark' ? 'rgba(255,255,255,0.05)' : '#ECEAFB',
+      }}
+    >
+      <Ionicons
+        name="wallet"
+        size={44}
+        color={theme.scheme === 'dark' ? theme.color.brand : '#7B6CF0'}
+      />
+    </View>
   );
 }
 

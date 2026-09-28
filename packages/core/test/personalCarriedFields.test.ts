@@ -128,3 +128,28 @@ describe('carried fields', () => {
     expect(blob).toEqual(encodeTxn(decodeTxn('t1', futureTxn)));
   });
 });
+
+describe('the payment method on a transaction', () => {
+  const base = {
+    kind: 'expense',
+    amount: '120.00',
+    currency: 'INR',
+    category: 'food',
+    note: null,
+    date: '2026-09-28',
+    loanId: null,
+    recurringId: null,
+  };
+
+  it('round-trips when one was chosen', () => {
+    const txn = decodeTxn('t1', { ...base, paymentMethod: 'upi' });
+    expect(txn.paymentMethod).toBe('upi');
+    expect(encodeTxn(txn).paymentMethod).toBe('upi');
+  });
+
+  it('leaves an entry without one exactly as it was', () => {
+    const txn = decodeTxn('t2', base);
+    expect('paymentMethod' in txn).toBe(false);
+    expect('paymentMethod' in encodeTxn(txn)).toBe(false);
+  });
+});

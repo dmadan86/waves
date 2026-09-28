@@ -4,7 +4,6 @@ import { randomUUID } from 'expo-crypto';
 import { useLocalSearchParams } from 'expo-router';
 import {
   ActivityIndicator,
-  Image,
   Pressable,
   ScrollView,
   TextInput,
@@ -25,6 +24,7 @@ import {
   AmountField,
   Callout,
   directionalIcon,
+  IconButton,
   iconSize,
   Row,
   Screen,
@@ -49,6 +49,9 @@ import { requestContacts } from '@/lib/contactPickerBridge';
 import { useCaptures, useCreateGroup, useGroup, useGroups } from '@/data/hooks';
 import { useKnownContacts } from '@/data/knownContacts';
 import { suggestPeople } from '@/lib/addFromAnotherGroup';
+import { HeroScene } from '@/components/home/HeroScene';
+import { useHeroStatusBar } from '@/components/ScreenHero';
+import { useHeroScene } from '@/lib/heroScenePreference';
 import { shortPersonNames } from '@/lib/shortPersonName';
 import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
 import { assignCaptureHref } from '@/lib/captureAssign';
@@ -103,6 +106,15 @@ export default function NewGroupScreen() {
   // and where "Add contacts" sits. Everything else is flex and fits by itself.
   const { width: screenWidth } = useWindowDimensions();
   const narrow = screenWidth < NARROW_WIDTH;
+  // Home's scene behind the top of the form — the same one, for the same time
+  // of day (or the Background the person picked) — measured so it runs from
+  // under the status bar to just into the first card, where it fades out.
+  const scene = useHeroScene();
+  const [headerHeight, setHeaderHeight] = useState(0);
+  const insetsTop = useSafeAreaInsets().top;
+  // The scene is under the status bar, so the clock goes white while this
+  // screen is in front.
+  useHeroStatusBar();
   // "Add contacts" beside the Add friends title only where both fit whole; on
   // a smaller phone it takes a line of its own rather than truncate the title.
   const contactsInline = screenWidth >= CONTACTS_INLINE_WIDTH;
@@ -229,6 +241,20 @@ export default function NewGroupScreen() {
     () => shortPersonNames(suggestions.map((person) => person.name)),
     [suggestions],
   );
+  // The search box is a search: what is typed narrows the suggestions by name
+  // or by phone number, and Add (or return) still adds the typed name itself.
+  const shownSuggestions = useMemo(() => {
+    const needle = ghostName.trim().toLowerCase();
+    const digits = needle.replace(/\D/g, '');
+    return suggestions
+      .map((person, index) => ({ person, label: suggestionLabels[index] ?? person.name }))
+      .filter(
+        ({ person }) =>
+          !needle ||
+          person.name.toLowerCase().includes(needle) ||
+          (digits.length >= 3 && (person.phone ?? '').replace(/\D/g, '').includes(digits)),
+      );
+  }, [ghostName, suggestions, suggestionLabels]);
   const [error, setError] = useState<string | null>(null);
   // Not asked on this screen — taken from the account country (which the user
   // sets on "Your account"), falling back to the phone's region. Decides the
@@ -587,13 +613,28 @@ export default function NewGroupScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <NewGroupHeader title={cloning ? t.clone.duplicateTitle : t.newGroupForm.title} />
+        {headerHeight > 0 ? (
+          <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0 }}>
+            <HeroScene
+              scene={scene}
+              width={screenWidth}
+              height={headerHeight + SCENE_INTO_CARD}
+              horizon={headerHeight - SCENE_OVERLAP}
+              headerBottom={insetsTop + HEADER_ROW}
+              pageColor={theme.color.bg}
+            />
+          </View>
+        ) : null}
+        <View onLayout={(event) => setHeaderHeight(event.nativeEvent.layout.height)}>
+          <NewGroupHeader title={cloning ? t.clone.duplicateTitle : t.newGroupForm.title} />
+        </View>
 
         <View
           style={{
             paddingHorizontal: theme.spacing.lg,
-            // The first card rides up over the foot of the header's wash.
-            marginTop: -HEADER_OVERLAP,
+            // The first card rides up over the scene's foot, as Home's balance
+            // card does.
+            marginTop: -SCENE_OVERLAP,
             gap: theme.spacing.md,
           }}
         >
@@ -616,34 +657,31 @@ export default function NewGroupScreen() {
               })}
             >
               <GroupPhoto photoPath={null} emoji={emoji} size={Math.round(cover * 0.56)} />
-              {/* The camera as a floating action button on the cover's corner:
-                  the accent disc, a white ring that lifts it off the tile, and a
-                  soft violet shadow. */}
+              {/* The camera as a white disc inside the cover's corner, its glyph in
+                  the accent, lifted by a soft shadow. */}
               <View
                 style={{
                   position: 'absolute',
-                  end: -8,
-                  bottom: -8,
+                  end: 8,
+                  bottom: 8,
                   width: CAMERA_FAB,
                   height: CAMERA_FAB,
                   borderRadius: CAMERA_FAB / 2,
-                  backgroundColor: accent(theme),
-                  borderWidth: 3,
-                  borderColor: theme.color.surface,
+                  backgroundColor: theme.color.surface,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  shadowColor: ACCENT,
-                  shadowOpacity: 0.3,
+                  shadowColor: '#1B1340',
+                  shadowOpacity: 0.18,
                   shadowRadius: 8,
-                  shadowOffset: { width: 0, height: 4 },
+                  shadowOffset: { width: 0, height: 3 },
                   elevation: 4,
                 }}
               >
-                <Ionicons name="camera" size={19} color="#FFFFFF" />
+                <Ionicons name="camera" size={20} color={accent(theme)} />
               </View>
             </Pressable>
             <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
-              <FieldLabel>{t.group.groupName}</FieldLabel>
+              <FieldLabel icon="people-outline">{t.group.groupName}</FieldLabel>
               <Row style={[fieldBox(theme), { paddingEnd: theme.spacing.sm }]}>
                 <TextInput
                   value={name}
@@ -676,28 +714,44 @@ export default function NewGroupScreen() {
                   </Pressable>
                 ) : null}
               </Row>
-              <FieldLabel style={{ marginTop: 4 }}>{t.newGroupForm.whatFor}</FieldLabel>
-              {/* Multiline and auto-growing, capped at the column's own limit so
-                  the field stops taking keystrokes rather than letting somebody
-                  type a paragraph the database would refuse on Create. */}
-              <TextInput
-                value={description}
-                onChangeText={setDescription}
-                placeholder={t.newGroupForm.descriptionExample}
-                placeholderTextColor={theme.color.textFaint}
-                accessibilityLabel={t.group.groupDescription}
-                maxLength={GROUP_DESCRIPTION_MAX}
-                multiline
-                style={[
-                  fieldBox(theme),
-                  {
+              <FieldLabel icon="document-text-outline" style={{ marginTop: 4 }}>
+                {t.newGroupForm.descriptionLabel}
+              </FieldLabel>
+              {/* One line, like the name above it, capped at the column's own limit
+                  so the field stops taking keystrokes rather than letting somebody
+                  type a sentence the database would refuse on Create. */}
+              <Row style={[fieldBox(theme), { paddingEnd: theme.spacing.sm }]}>
+                <TextInput
+                  value={description}
+                  onChangeText={setDescription}
+                  placeholder={t.newGroupForm.descriptionExample}
+                  placeholderTextColor={theme.color.textFaint}
+                  accessibilityLabel={t.group.groupDescription}
+                  maxLength={GROUP_DESCRIPTION_MAX}
+                  style={{
+                    flex: 1,
+                    minWidth: 0,
                     fontSize: 16,
                     color: ink(theme),
-                    textAlignVertical: 'center',
-                    paddingVertical: 14,
-                  },
-                ]}
-              />
+                    paddingVertical: 0,
+                  }}
+                />
+                {description.length > 0 ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={t.entry.clear}
+                    onPress={() => setDescription('')}
+                    hitSlop={8}
+                    style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
+                  >
+                    <Ionicons
+                      name="close-circle"
+                      size={iconSize.md}
+                      color={theme.color.textFaint}
+                    />
+                  </Pressable>
+                ) : null}
+              </Row>
             </View>
           </FormCard>
 
@@ -805,11 +859,25 @@ export default function NewGroupScreen() {
 
             {/* People from your other groups, one tap to add. Only placeholders
                 are offered: a real account joins a group by invite. */}
-            {suggestions.length > 0 ? (
+            {shownSuggestions.length > 0 ? (
               <View style={{ gap: theme.spacing.sm }}>
-                <Text variant="caption" tone="muted">
-                  {t.newGroupForm.suggested}
-                </Text>
+                <Row style={{ alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Text style={{ fontSize: 15, fontWeight: '600', color: muted(theme) }}>
+                    {t.newGroupForm.suggested}
+                  </Text>
+                  {/* Everyone else is in the address book. */}
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={t.people.browseContacts}
+                    onPress={openContactPicker}
+                    hitSlop={8}
+                    style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
+                  >
+                    <Text style={{ fontSize: 15, fontWeight: '600', color: accent(theme) }}>
+                      {t.newGroupForm.seeAll}
+                    </Text>
+                  </Pressable>
+                </Row>
                 {/* Scrolls sideways inside the card: the list runs to the card's
                     own edges (the negative margin undoes the card's padding) so a
                     face is cut by the card, never by the padding, and the page
@@ -824,10 +892,10 @@ export default function NewGroupScreen() {
                     paddingHorizontal: theme.spacing.lg,
                   }}
                 >
-                  {suggestions.map((person, index) => (
+                  {shownSuggestions.map(({ person, label }, index) => (
                     <SuggestedPersonButton
                       key={person.key}
-                      name={suggestionLabels[index] ?? person.name}
+                      name={label}
                       index={index}
                       label={fill(t.voice.addNamed, { name: person.name })}
                       onPress={() =>
@@ -838,13 +906,6 @@ export default function NewGroupScreen() {
                       }
                     />
                   ))}
-                  <SuggestedPersonButton
-                    name={t.activityScreen.more}
-                    index={0}
-                    label={t.people.browseContacts}
-                    onPress={openContactPicker}
-                    more
-                  />
                 </ScrollView>
               </View>
             ) : null}
@@ -880,24 +941,23 @@ export default function NewGroupScreen() {
                   justifyContent: 'center',
                 }}
               >
-                <Ionicons
-                  name="grid-outline"
-                  size={22}
-                  color={theme.scheme === 'dark' ? theme.color.text : '#1E2A6E'}
-                />
+                <Ionicons name="briefcase" size={22} color={accent(theme)} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text
                   style={{ fontSize: 20, lineHeight: 25, fontWeight: '600', color: ink(theme) }}
                 >
                   {t.newGroupForm.groupType}
+                  <Text style={{ fontSize: 15, fontWeight: '400', color: muted(theme) }}>
+                    {` ${t.newGroupForm.optional}`}
+                  </Text>
                 </Text>
                 <Text style={{ fontSize: 14, lineHeight: 19, color: muted(theme) }}>
                   {t.newGroupForm.groupTypeSub}
                 </Text>
               </View>
             </Row>
-            {/* Five tiles side by side while each can be at least TILE_MIN wide;
+            {/* Six tiles side by side while each can be at least TILE_MIN wide;
                 below that (a 320pt phone) they keep that width and the row
                 scrolls sideways inside the card rather than crushing "Friends"
                 into an ellipsis. */}
@@ -909,11 +969,12 @@ export default function NewGroupScreen() {
               const tiles = TILE_TYPES.map((kind) => {
                 const option = typeOptions.find((it) => it.value === kind);
                 if (!option) return null;
-                const lit = kind === type || (kind === GroupType.Other && type === GroupType.Event);
+                const lit = kind === type;
                 return (
                   <TypeTile
                     key={kind}
                     icon={TILE_ICON[kind]}
+                    iconSelected={TILE_ICON_LIT[kind]}
                     label={option.label}
                     selected={lit}
                     width={tilesFit ? undefined : TILE_MIN}
@@ -1092,8 +1153,15 @@ const MUTED = SPEC_MUTED;
 const ink = (theme: Theme): string => (theme.scheme === 'dark' ? theme.color.text : INK);
 const muted = (theme: Theme): string => (theme.scheme === 'dark' ? theme.color.textMuted : MUTED);
 
-/** How far the first card rides up over the header's wash. */
-const HEADER_OVERLAP = 24;
+/** Home's scene behind the header: the room under the title row where its
+ *  landscape shows, how far the first card rides up over its foot, and how far
+ *  it runs on under that card before it has faded into the page. */
+const SCENE_ROOM = 96;
+const SCENE_OVERLAP = 40;
+const SCENE_INTO_CARD = 60;
+/** The header row's own height (the 44pt back button plus its top padding),
+ *  where the scene's readability shade ends. */
+const HEADER_ROW = 52;
 /** The cover tile's side — a little smaller on a narrow phone, so the two
  *  fields beside it keep a usable width. */
 const COVER = 108;
@@ -1109,19 +1177,31 @@ const CAMERA_FAB = 44;
 /** The narrowest a type tile may be before the row scrolls instead. */
 const TILE_MIN = 52;
 
-/** The five kinds offered as tiles, in the spec's order, with their glyphs. */
+/** The kinds offered as tiles, in the spec's order, with their glyphs. Couple
+ *  sits before Other so it can still be picked when a name doesn't imply it. */
 const TILE_TYPES = [
   GroupType.Trip,
   GroupType.Home,
-  GroupType.Couple,
   GroupType.Friends,
+  GroupType.Event,
+  GroupType.Couple,
   GroupType.Other,
 ] as const;
+/** Each tile's glyph: outlined at rest, filled when it is the chosen kind. */
 const TILE_ICON: Record<(typeof TILE_TYPES)[number], keyof typeof Ionicons.glyphMap> = {
+  [GroupType.Trip]: 'airplane-outline',
+  [GroupType.Home]: 'home-outline',
+  [GroupType.Friends]: 'people-outline',
+  [GroupType.Event]: 'sparkles-outline',
+  [GroupType.Couple]: 'heart-outline',
+  [GroupType.Other]: 'ellipsis-horizontal',
+};
+const TILE_ICON_LIT: Record<(typeof TILE_TYPES)[number], keyof typeof Ionicons.glyphMap> = {
   [GroupType.Trip]: 'airplane',
   [GroupType.Home]: 'home',
-  [GroupType.Couple]: 'heart',
   [GroupType.Friends]: 'people',
+  [GroupType.Event]: 'sparkles',
+  [GroupType.Couple]: 'heart',
   [GroupType.Other]: 'ellipsis-horizontal',
 };
 
@@ -1139,12 +1219,32 @@ function fieldBox(theme: Theme) {
 }
 
 /** A field's label: 15pt, semibold. */
-function FieldLabel({ children, style }: { children: ReactNode; style?: object }) {
+function FieldLabel({
+  children,
+  icon,
+  style,
+}: {
+  children: ReactNode;
+  /** A small glyph before the label, saying what the field is at a glance. */
+  icon?: keyof typeof Ionicons.glyphMap;
+  style?: object;
+}) {
   const theme = useTheme();
   return (
-    <Text style={[{ fontSize: 15, lineHeight: 20, fontWeight: '600', color: ink(theme) }, style]}>
-      {children}
-    </Text>
+    <Row style={[{ alignItems: 'center', gap: theme.spacing.sm }, style]}>
+      {icon ? <Ionicons name={icon} size={20} color={muted(theme)} /> : null}
+      <Text
+        style={{
+          flexShrink: 1,
+          fontSize: 15,
+          lineHeight: 20,
+          fontWeight: '600',
+          color: muted(theme),
+        }}
+      >
+        {children}
+      </Text>
+    </Row>
   );
 }
 
@@ -1172,139 +1272,64 @@ function FormCard({ children, style }: { children: ReactNode; style?: object }) 
   );
 }
 
-/** The header's travel scene: a plane, clouds, a palm and a suitcase on a
- *  transparent ground, 2:1. */
-const HEADER_ART = require('../../assets/images/new-group-header.webp') as number;
-const HEADER_ART_RATIO = 2;
-/** How far above the header's foot the scene stands — the first card covers
- *  HEADER_OVERLAP of the foot, so the suitcase's base runs behind it. */
-const ART_BELOW_CARD = HEADER_OVERLAP - 16;
-/** How much of the picture lies below the plane's top — the plane starts about a
- *  third of the way down, so two thirds of the picture sits under it. */
-const ART_BELOW_PLANE = 0.67;
-
 /**
- * The header on a light-blue wash that fades into the page: close, the title at
- * 28pt over its line, and the travel scene on the right, which the first card
- * overlaps. Decoration only, so it is hidden from screen readers.
+ * The header: a back chevron and the title on one line — the Activity screen's
+ * shape — in white over Home's scene, with room under the row for the scene's
+ * landscape to show before the first card rides up over it.
  */
 function NewGroupHeader({ title }: { title: string }) {
   const theme = useTheme();
   const { t } = useStrings();
   const insets = useSafeAreaInsets();
-  const { width: screenWidth } = useWindowDimensions();
-  // The scene sits in the upper right; the title runs over its open sky. Its
-  // width follows the screen (capped on a tablet) and its height follows its
-  // own shape, so it is never stretched.
-  const narrow = screenWidth < NARROW_WIDTH;
-  const artWidth = Math.round(Math.min(screenWidth * (narrow ? 0.5 : 0.6), 330));
-  const artHeight = artWidth / HEADER_ART_RATIO;
-  // Room under the title for the scene: the plane (a third of the way down the
-  // picture) clears the one-line title, and the suitcase still runs behind the
-  // first card. Only the art decides this, so the header is as short as the
-  // scene allows and no shorter.
-  const artRoom = Math.round(ART_BELOW_CARD + ART_BELOW_PLANE * artHeight + 4);
-  const dark = theme.scheme === 'dark';
   return (
-    <LinearWash
-      colors={dark ? ['#1B2440', theme.color.bg] : ['#BFE3FF', '#E3F2FF', '#F5F4FF']}
+    <Row
       style={{
-        paddingTop: insets.top + theme.spacing.xs,
+        paddingTop: insets.top + theme.spacing.sm,
         paddingHorizontal: theme.spacing.lg,
-        paddingBottom: Math.max(HEADER_OVERLAP + theme.spacing.sm, artRoom),
+        // Room under the row for the scene's mountains before the first card
+        // rides up over their foot.
+        paddingBottom: SCENE_ROOM,
+        alignItems: 'center',
+        gap: theme.spacing.sm,
       }}
     >
-      {/* The travel scene, anchored bottom-right under the title's side of the
-          wash: its left half is transparent, so the words sit on sky. */}
-      <Image
-        source={HEADER_ART}
-        accessibilityElementsHidden
-        importantForAccessibility="no-hide-descendants"
-        resizeMode="contain"
-        style={{
-          position: 'absolute',
-          end: -20,
-          // The suitcase and the palm's foot run a little behind the first
-          // card, which rides up over the header by HEADER_OVERLAP.
-          bottom: ART_BELOW_CARD,
-          // Measured sizes, not a percentage and an aspect ratio: on Android an
-          // absolutely placed image sized that way lays out at zero height.
-          width: artWidth,
-          height: artHeight,
-        }}
-      />
-      {/* Close on a white disc, so it holds its own on the scene. */}
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={t.common.close}
-        onPress={() => router.back()}
-        hitSlop={6}
-        style={({ pressed }) => ({
-          width: 44,
-          height: 44,
-          borderRadius: 22,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: theme.color.surface,
-          shadowColor: '#1B1340',
-          shadowOpacity: 0.12,
-          shadowRadius: 6,
-          shadowOffset: { width: 0, height: 2 },
-          elevation: 3,
-          opacity: pressed ? 0.7 : 1,
-        })}
-      >
-        <Ionicons name="close" size={24} color={theme.color.text} />
-      </Pressable>
-      {/* The title, one line at 28pt, over the scene's open sky. */}
+      <IconButton label={t.common.back} onPress={() => router.back()}>
+        <Ionicons
+          name={directionalIcon('chevron-back')}
+          size={iconSize.xl}
+          color={theme.color.onBrand}
+        />
+      </IconButton>
       <Text
-        // One line — "Create a new group" — across the header, shrinking a
-        // little on the narrowest phones rather than breaking onto a second.
         numberOfLines={1}
         adjustsFontSizeToFit
-        minimumFontScale={0.75}
+        minimumFontScale={0.8}
         style={{
-          fontSize: 28,
-          lineHeight: 34,
+          flex: 1,
+          fontSize: 26,
+          lineHeight: 32,
           fontWeight: '800',
-          marginTop: theme.spacing.sm,
-          zIndex: 1,
-          color: ink(theme),
+          color: theme.color.onBrand,
         }}
       >
         {title}
       </Text>
-    </LinearWash>
-  );
-}
-
-/** A top-to-bottom wash — the Gradient kit sweeps diagonally, a header fades
- *  straight down into the page. */
-function LinearWash({
-  colors,
-  style,
-  children,
-}: {
-  colors: readonly string[];
-  style: object;
-  children: ReactNode;
-}) {
-  return (
-    <Gradient colors={colors} radius={0} style={style}>
-      {children}
-    </Gradient>
+    </Row>
   );
 }
 
 /** One kind of group as a tile: its glyph over its name, lit when chosen. */
 function TypeTile({
   icon,
+  iconSelected,
   label,
   selected,
   width,
   onPress,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
+  /** The glyph drawn while this tile is the chosen one. */
+  iconSelected: keyof typeof Ionicons.glyphMap;
   label: string;
   selected: boolean;
   /** A fixed width when the row scrolls; shares the row evenly when absent. */
@@ -1337,7 +1362,7 @@ function TypeTile({
         opacity: pressed ? 0.7 : 1,
       })}
     >
-      <Ionicons name={icon} size={26} color={tileInk} />
+      <Ionicons name={selected ? iconSelected : icon} size={26} color={tileInk} />
       <Text
         numberOfLines={1}
         adjustsFontSizeToFit
@@ -1529,6 +1554,14 @@ function CreateButton({
         }}
       >
         <Text style={{ fontSize: 18, fontWeight: '600', color: '#FFFFFF' }}>{label}</Text>
+        <View
+          style={{
+            width: 1,
+            height: 26,
+            marginHorizontal: theme.spacing.md,
+            backgroundColor: 'rgba(255, 255, 255, 0.45)',
+          }}
+        />
         <Ionicons name={directionalIcon('arrow-forward')} size={22} color="#FFFFFF" />
       </Gradient>
     </Pressable>
