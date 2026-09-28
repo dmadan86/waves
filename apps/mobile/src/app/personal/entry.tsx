@@ -826,6 +826,10 @@ function AmountCard({
 }) {
   const theme = useTheme();
   const [calculating, setCalculating] = useState(false);
+  // The keypad keeps its own pending entry. An amount typed straight into the
+  // field starts it afresh, or the next key would append to the old entry and
+  // overwrite what was just typed.
+  const [keypadRun, setKeypadRun] = useState(0);
   return (
     <View
       style={{
@@ -855,7 +859,10 @@ function AmountCard({
           <AmountField
             currency={currency as CurrencyCode}
             value={amount}
-            onChange={onChange}
+            onChange={(next) => {
+              onChange(next);
+              setKeypadRun((run) => run + 1);
+            }}
             showSymbol={false}
             align="start"
           />
@@ -884,7 +891,12 @@ function AmountCard({
         </Pressable>
       </Row>
       {calculating ? (
-        <AmountKeypad currency={currency as CurrencyCode} value={amount} onChange={onChange} />
+        <AmountKeypad
+          key={keypadRun}
+          currency={currency as CurrencyCode}
+          value={amount}
+          onChange={onChange}
+        />
       ) : null}
     </View>
   );
@@ -906,10 +918,15 @@ function QuickPicks({
   t: ReturnType<typeof useStrings>['t'];
 }) {
   const theme = useTheme();
+  const { width } = useWindowDimensions();
   const sourceLabel = useSourceLabel();
   const income = kind === 'income';
-  const base = income ? QUICK_SOURCES : QUICK_CATEGORIES;
-  const ids = value && !base.includes(value) ? [value, ...base.slice(0, 4)] : base;
+  // Five picks and More need about 320pt before the form's padding; a narrower
+  // phone shows four, so no disc overflows its tile.
+  const shown = width < NARROW_PICKS ? 4 : 5;
+  const all = income ? QUICK_SOURCES : QUICK_CATEGORIES;
+  const base = all.slice(0, shown);
+  const ids = value && !base.includes(value) ? [value, ...base.slice(0, shown - 1)] : base;
   const labelOf = (id: string): string =>
     (income
       ? sourceLabel(id)
@@ -1157,7 +1174,7 @@ function PaymentMethodSheet({
   onClose,
 }: {
   value: string | null;
-  onChange: (next: string) => void;
+  onChange: (next: string | null) => void;
   onClose: () => void;
 }): React.JSX.Element {
   const theme = useTheme();
@@ -1165,6 +1182,19 @@ function PaymentMethodSheet({
   return (
     <SheetOverlay title={t.personal.entryScreen.paymentMethod} onClose={onClose}>
       <View style={{ gap: theme.spacing.xs }}>
+        {/* Unset, so a method picked by mistake can be taken back. */}
+        <ChoiceRow
+          label={t.personal.entryScreen.notSet}
+          selected={value === null}
+          leading={
+            <Ionicons
+              name="remove-circle-outline"
+              size={iconSize.md}
+              color={value === null ? theme.color.brand : theme.color.textMuted}
+            />
+          }
+          onPress={() => onChange(null)}
+        />
         {PAYMENT_METHODS.map((method) => (
           <ChoiceRow
             key={method.id}
@@ -1214,6 +1244,8 @@ const QUICK_SOURCES: readonly string[] = [
 
 /** A quick pick's disc. */
 const PICK_DISC = 50;
+/** Below this window width the quick row offers four picks rather than five. */
+const NARROW_PICKS = 375;
 
 /** The header's picture — a lake at sunrise, a cup of coffee and a notebook on
  *  a table — and its shape (width over height). */

@@ -957,7 +957,7 @@ export default function NewGroupScreen() {
                 </Text>
               </View>
             </Row>
-            {/* Five tiles side by side while each can be at least TILE_MIN wide;
+            {/* Six tiles side by side while each can be at least TILE_MIN wide;
                 below that (a 320pt phone) they keep that width and the row
                 scrolls sideways inside the card rather than crushing "Friends"
                 into an ellipsis. */}
@@ -969,10 +969,7 @@ export default function NewGroupScreen() {
               const tiles = TILE_TYPES.map((kind) => {
                 const option = typeOptions.find((it) => it.value === kind);
                 if (!option) return null;
-                // A kind with no tile of its own (a couple) lights Other, the
-                // nearest of the five.
-                const lit =
-                  kind === type || (kind === GroupType.Other && type === GroupType.Couple);
+                const lit = kind === type;
                 return (
                   <TypeTile
                     key={kind}
@@ -1180,12 +1177,14 @@ const CAMERA_FAB = 44;
 /** The narrowest a type tile may be before the row scrolls instead. */
 const TILE_MIN = 52;
 
-/** The five kinds offered as tiles, in the spec's order, with their glyphs. */
+/** The kinds offered as tiles, in the spec's order, with their glyphs. Couple
+ *  sits before Other so it can still be picked when a name doesn't imply it. */
 const TILE_TYPES = [
   GroupType.Trip,
   GroupType.Home,
   GroupType.Friends,
   GroupType.Event,
+  GroupType.Couple,
   GroupType.Other,
 ] as const;
 /** Each tile's glyph: outlined at rest, filled when it is the chosen kind. */
@@ -1194,6 +1193,7 @@ const TILE_ICON: Record<(typeof TILE_TYPES)[number], keyof typeof Ionicons.glyph
   [GroupType.Home]: 'home-outline',
   [GroupType.Friends]: 'people-outline',
   [GroupType.Event]: 'sparkles-outline',
+  [GroupType.Couple]: 'heart-outline',
   [GroupType.Other]: 'ellipsis-horizontal',
 };
 const TILE_ICON_LIT: Record<(typeof TILE_TYPES)[number], keyof typeof Ionicons.glyphMap> = {
@@ -1201,6 +1201,7 @@ const TILE_ICON_LIT: Record<(typeof TILE_TYPES)[number], keyof typeof Ionicons.g
   [GroupType.Home]: 'home',
   [GroupType.Friends]: 'people',
   [GroupType.Event]: 'sparkles',
+  [GroupType.Couple]: 'heart',
   [GroupType.Other]: 'ellipsis-horizontal',
 };
 
