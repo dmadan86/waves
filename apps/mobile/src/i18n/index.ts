@@ -3698,6 +3698,11 @@ export interface UiStrings {
   /** The private personal-finance ledger (A48): the "Me" tab and its screens —
    *  solo expenses/income, recurring rules, loans and monthly budgets. */
   personal: {
+    addLoanSub: string;
+    noLoansBody: string;
+    loanAmount: string;
+    loanForPlaceholder: string;
+    pickName: string;
     all: string;
     transfers: string;
     searchTransactions: string;
@@ -6902,6 +6907,11 @@ const en: UiStrings = {
   },
 
   personal: {
+    addLoanSub: 'Track money you owe or money you lent.',
+    noLoansBody: 'Add a loan to keep track of money you owe or are owed.',
+    loanAmount: 'Amount',
+    loanForPlaceholder: 'E.g. Personal loan, rent, travel, etc.',
+    pickName: 'Pick someone from earlier loans',
     all: 'All',
     transfers: 'Transfers',
     searchTransactions: 'Search transactions…',
@@ -10226,6 +10236,12 @@ const ta: UiStrings = {
   },
 
   personal: {
+    addLoanSub: 'நீங்கள் கடன் வாங்கியதையும் கொடுத்ததையும் கண்காணியுங்கள்.',
+    noLoansBody:
+      'நீங்கள் தர வேண்டிய அல்லது பெற வேண்டிய பணத்தைக் கண்காணிக்க ஒரு கடனைச் சேர்க்கவும்.',
+    loanAmount: 'தொகை',
+    loanForPlaceholder: 'எ.கா. தனிநபர் கடன், வாடகை, பயணம்',
+    pickName: 'முந்தைய கடன்களில் இருந்து ஒருவரைத் தேர்ந்தெடுக்கவும்',
     all: 'அனைத்தும்',
     transfers: 'பரிமாற்றங்கள்',
     searchTransactions: 'பரிவர்த்தனைகளைத் தேடுங்கள்…',
@@ -13422,6 +13438,11 @@ const hi: UiStrings = {
   },
 
   personal: {
+    addLoanSub: 'जो पैसा आपने उधार लिया या दिया, उसका हिसाब रखें।',
+    noLoansBody: 'जो पैसा आपको देना है या मिलना है, उसका हिसाब रखने के लिए लोन जोड़ें।',
+    loanAmount: 'रकम',
+    loanForPlaceholder: 'जैसे पर्सनल लोन, किराया, यात्रा',
+    pickName: 'पिछले लोन से किसी को चुनें',
     all: 'सभी',
     transfers: 'ट्रांसफ़र',
     searchTransactions: 'लेन-देन खोजें…',
@@ -17081,6 +17102,11 @@ const ar: UiStrings = {
   },
 
   personal: {
+    addLoanSub: 'تتبّع المال الذي اقترضته أو أقرضته.',
+    noLoansBody: 'أضِف قرضًا لتتبّع المال الذي عليك أو لك.',
+    loanAmount: 'المبلغ',
+    loanForPlaceholder: 'مثلًا: قرض شخصي، إيجار، سفر',
+    pickName: 'اختر شخصًا من قروض سابقة',
     all: 'الكل',
     transfers: 'التحويلات',
     searchTransactions: 'ابحث في المعاملات…',
