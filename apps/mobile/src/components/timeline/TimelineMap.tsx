@@ -71,6 +71,14 @@ function shortDay(day: string, locale: string): { weekday: string; date: string 
   };
 }
 
+/** Where the map is looking: carried from the inline map to the full-screen
+ *  one and back, so switching never drops the day, the pin or the camera. */
+export interface TimelineMapView {
+  dayKey: string | null;
+  selectedId: string | null;
+  region: MapRegion;
+}
+
 export function TimelineMap({
   days,
   focusId,
@@ -78,6 +86,8 @@ export function TimelineMap({
   bottomInset,
   fullScreen = false,
   onToggleFullScreen,
+  view = null,
+  onViewChange,
 }: {
   days: readonly TimelineDay[];
   focusId: string | null;
@@ -87,6 +97,10 @@ export function TimelineMap({
   fullScreen?: boolean;
   /** Shows the corner button that opens (or closes) the full-screen map. */
   onToggleFullScreen?: () => void;
+  /** Where to start looking, if another instance of this map was just open. */
+  view?: TimelineMapView | null;
+  /** Told whenever the day, the pin or the camera moves. */
+  onViewChange?: (view: TimelineMapView) => void;
 }) {
   const theme = useTheme();
   const { t, locale } = useStrings();
@@ -104,6 +118,7 @@ export function TimelineMap({
   // The day on the map: the focused bill's, when it has one on the map, else
   // the newest day with a place.
   const [dayKey, setDayKey] = useState<string | null>(() => {
+    if (view) return view.dayKey;
     if (focus && strip.some((day) => day.day === focus.day)) return focus.day;
     return strip[0]?.day ?? null;
   });
@@ -111,10 +126,11 @@ export function TimelineMap({
   const route = useMemo(() => dayRoute(day), [day]);
 
   const [selectedId, setSelectedId] = useState<string | null>(() =>
-    focus?.place ? focus.id : (route[0]?.id ?? null),
+    view ? view.selectedId : focus?.place ? focus.id : (route[0]?.id ?? null),
   );
 
   const initialRegion = useMemo<MapRegion>(() => {
+    if (view) return view.region;
     if (focus?.place) {
       return {
         latitude: focus.place.lat,
@@ -137,6 +153,11 @@ export function TimelineMap({
   }, []);
 
   const [region, setRegion] = useState<MapRegion>(initialRegion);
+  useEffect(() => {
+    onViewChange?.({ dayKey, selectedId, region });
+    // The callback is the host's setter of a ref; only the view itself counts.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dayKey, selectedId, region]);
   const [mapSize, setMapSize] = useState({ width: screenWidth, height: 400 });
   const clusters = useMemo(
     () => clusterPins(withPlace, region, mapSize),
