@@ -3698,6 +3698,12 @@ export interface UiStrings {
   /** The private personal-finance ledger (A48): the "Me" tab and its screens —
    *  solo expenses/income, recurring rules, loans and monthly budgets. */
   personal: {
+    all: string;
+    transfers: string;
+    searchTransactions: string;
+    filterCategory: string;
+    clearFilter: string;
+    txnCount: PluralForms;
     noBudgetsBody: string;
     addBudgetSub: string;
     budgetAboutMonth: string;
@@ -6896,6 +6902,12 @@ const en: UiStrings = {
   },
 
   personal: {
+    all: 'All',
+    transfers: 'Transfers',
+    searchTransactions: 'Search transactions…',
+    filterCategory: 'Filter by category',
+    clearFilter: 'Clear filter',
+    txnCount: { one: '{n} transaction', other: '{n} transactions' },
     noBudgetsBody: 'Set a budget to keep your spending on track and reach your goals.',
     addBudgetSub: 'Set a monthly limit for your spending.',
     budgetAboutMonth: 'About {average} a month.',
@@ -10214,6 +10226,12 @@ const ta: UiStrings = {
   },
 
   personal: {
+    all: 'அனைத்தும்',
+    transfers: 'பரிமாற்றங்கள்',
+    searchTransactions: 'பரிவர்த்தனைகளைத் தேடுங்கள்…',
+    filterCategory: 'வகைப்படி வடிகட்டு',
+    clearFilter: 'வடிகட்டியை அழி',
+    txnCount: { one: '{n} பரிவர்த்தனை', other: '{n} பரிவர்த்தனைகள்' },
     noBudgetsBody: 'செலவைக் கட்டுக்குள் வைத்து இலக்குகளை அடைய ஒரு பட்ஜெட்டை அமையுங்கள்.',
     addBudgetSub: 'உங்கள் செலவுக்கு ஒரு மாத வரம்பை அமையுங்கள்.',
     budgetAboutMonth: 'மாதம் சுமார் {average}.',
@@ -13404,6 +13422,12 @@ const hi: UiStrings = {
   },
 
   personal: {
+    all: 'सभी',
+    transfers: 'ट्रांसफ़र',
+    searchTransactions: 'लेन-देन खोजें…',
+    filterCategory: 'श्रेणी से छाँटें',
+    clearFilter: 'फ़िल्टर हटाएँ',
+    txnCount: { one: '{n} लेन-देन', other: '{n} लेन-देन' },
     noBudgetsBody: 'खर्च काबू में रखने और अपने लक्ष्य पाने के लिए बजट तय करें।',
     addBudgetSub: 'अपने खर्च की एक मासिक सीमा तय करें।',
     budgetAboutMonth: 'लगभग {average} हर महीने।',
@@ -17057,6 +17081,19 @@ const ar: UiStrings = {
   },
 
   personal: {
+    all: 'الكل',
+    transfers: 'التحويلات',
+    searchTransactions: 'ابحث في المعاملات…',
+    filterCategory: 'التصفية حسب الفئة',
+    clearFilter: 'مسح التصفية',
+    txnCount: {
+      zero: '{n} معاملة',
+      one: 'معاملة واحدة',
+      two: 'معاملتان',
+      few: '{n} معاملات',
+      many: '{n} معاملة',
+      other: '{n} معاملة',
+    },
     noBudgetsBody: 'حدّد ميزانية لتبقي إنفاقك تحت السيطرة وتبلغ أهدافك.',
     addBudgetSub: 'حدّد حدًا شهريًا لإنفاقك.',
     budgetAboutMonth: 'نحو {average} في الشهر.',

@@ -27,7 +27,7 @@ describe('budget sheet evidence links', () => {
     const transactions = source('personal/transactions.tsx');
 
     expect(transactions).toContain(
-      "const filter = typeof params.category === 'string' ? params.category : null;",
+      "const paramCategory = typeof params.category === 'string' ? params.category : null;",
     );
   });
 });
