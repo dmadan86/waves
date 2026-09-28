@@ -359,10 +359,12 @@ function PersonalTransactionsScreenBody() {
                     style={{
                       fontSize: 15,
                       fontWeight: '700',
-                      color: income ? INCOME_INK : EXPENSE_INK,
+                      color: item.net === 0n ? muted : income ? INCOME_INK : EXPENSE_INK,
                     }}
                   >
-                    {signed(item.net, item.currency, income)}
+                    {item.net === 0n
+                      ? format(money(0n, item.currency), { locale })
+                      : signed(item.net, item.currency, income)}
                   </Text>
                 ) : null}
               </Row>
