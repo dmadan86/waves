@@ -2006,6 +2006,14 @@ export interface UiStrings {
   };
   /** Backing up scanned receipts to the user's own cloud drive (Drive/Dropbox/OneDrive). */
   storage: {
+    usedLabel: string;
+    perksTitle: string;
+    perkUnlimited: string;
+    perkUnlimitedSub: string;
+    perkBackup: string;
+    perkBackupSub: string;
+    perkDevices: string;
+    perkDevicesSub: string;
     row: string;
     rowHint: string;
     title: string;
@@ -3152,6 +3160,10 @@ export interface UiStrings {
   };
   /** Bringing a ledger in from Splitwise or from Waves's own export. */
   importLedger: {
+    anExistingGroup: string;
+    anExistingGroupHint: string;
+    chooseGroup: string;
+    tapToChange: string;
     importFailed: string;
     splitwiseTitle: string;
     ledgerTitle: string;
@@ -3686,6 +3698,20 @@ export interface UiStrings {
   /** The private personal-finance ledger (A48): the "Me" tab and its screens —
    *  solo expenses/income, recurring rules, loans and monthly budgets. */
   personal: {
+    addLoanSub: string;
+    noLoansBody: string;
+    loanAmount: string;
+    loanForPlaceholder: string;
+    pickName: string;
+    all: string;
+    transfers: string;
+    searchTransactions: string;
+    filterCategory: string;
+    clearFilter: string;
+    txnCount: PluralForms;
+    noBudgetsBody: string;
+    addBudgetSub: string;
+    budgetAboutMonth: string;
     tab: string;
     title: string;
     subtitle: string;
@@ -5374,6 +5400,14 @@ const en: UiStrings = {
     saveTag: 'Save tag',
   },
   storage: {
+    usedLabel: 'Storage used',
+    perksTitle: 'Upgrade to unlock more',
+    perkUnlimited: 'Unlimited storage',
+    perkUnlimitedSub: 'Keep all your photos and receipts',
+    perkBackup: 'Automatic backup',
+    perkBackupSub: 'Your data is always safe',
+    perkDevices: 'Access from all devices',
+    perkDevicesSub: 'View your data anywhere',
     row: 'Storage usage',
     rowHint: 'Photos & receipts in the cloud',
     title: 'Storage usage',
@@ -6371,6 +6405,10 @@ const en: UiStrings = {
     hadItem: '{name} had {label}',
   },
   importLedger: {
+    anExistingGroup: 'An existing group',
+    anExistingGroupHint: 'Add to a group you already have',
+    chooseGroup: 'Choose a group',
+    tapToChange: 'Tap to change',
     importFailed: 'Could not bring in that file. Please try again.',
     splitwiseTitle: 'Import a Splitwise export',
     ledgerTitle: 'Import a ledger',
@@ -6869,6 +6907,20 @@ const en: UiStrings = {
   },
 
   personal: {
+    addLoanSub: 'Track money you owe or money you lent.',
+    noLoansBody: 'Add a loan to keep track of money you owe or are owed.',
+    loanAmount: 'Amount',
+    loanForPlaceholder: 'E.g. Personal loan, rent, travel, etc.',
+    pickName: 'Pick someone from earlier loans',
+    all: 'All',
+    transfers: 'Transfers',
+    searchTransactions: 'Search transactions…',
+    filterCategory: 'Filter by category',
+    clearFilter: 'Clear filter',
+    txnCount: { one: '{n} transaction', other: '{n} transactions' },
+    noBudgetsBody: 'Set a budget to keep your spending on track and reach your goals.',
+    addBudgetSub: 'Set a monthly limit for your spending.',
+    budgetAboutMonth: 'About {average} a month.',
     tab: 'Personal',
     title: 'Personal',
     subtitle: 'Your own money — private to you.',
@@ -8576,6 +8628,14 @@ const ta: UiStrings = {
     saveTag: 'குறிச்சொல்லைச் சேமி',
   },
   storage: {
+    usedLabel: 'பயன்படுத்திய சேமிப்பிடம்',
+    perksTitle: 'மேலும் திறக்க மேம்படுத்துங்கள்',
+    perkUnlimited: 'வரம்பற்ற சேமிப்பிடம்',
+    perkUnlimitedSub: 'உங்கள் எல்லா புகைப்படங்களையும் ரசீதுகளையும் வைத்திருங்கள்',
+    perkBackup: 'தானியங்கி காப்புப்பிரதி',
+    perkBackupSub: 'உங்கள் தரவு எப்போதும் பாதுகாப்பாக',
+    perkDevices: 'எல்லா சாதனங்களிலிருந்தும் அணுகல்',
+    perkDevicesSub: 'உங்கள் தரவை எங்கிருந்தும் பாருங்கள்',
     row: '\u0b9a\u0bc7\u0bae\u0bbf\u0baa\u0bcd\u0baa\u0bc1 \u0baa\u0baf\u0ba9\u0bcd\u0baa\u0bbe\u0b9f\u0bc1',
     rowHint:
       '\u0b95\u0bbf\u0bb3\u0bb5\u0bc1\u0b9f\u0bbf\u0bb2\u0bcd \u0b89\u0bb3\u0bcd\u0bb3 \u0baa\u0b9f\u0b99\u0bcd\u0b95\u0bb3\u0bcd & \u0bb0\u0b9a\u0bc0\u0ba4\u0bc1\u0b95\u0bb3\u0bcd',
@@ -9644,6 +9704,10 @@ const ta: UiStrings = {
     hadItem: '{name} {label} சாப்பிட்டார்',
   },
   importLedger: {
+    anExistingGroup: 'ஏற்கனவே உள்ள குழு',
+    anExistingGroupHint: 'உங்களிடம் உள்ள ஒரு குழுவில் சேர்க்கவும்',
+    chooseGroup: 'ஒரு குழுவைத் தேர்ந்தெடுக்கவும்',
+    tapToChange: 'மாற்ற தட்டவும்',
     importFailed: 'அந்தக் கோப்பை இறக்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்.',
     splitwiseTitle: 'Splitwise ஏற்றுமதியை இறக்குமதி செய்',
     ledgerTitle: 'ஒரு கணக்கை இறக்குமதி செய்',
@@ -10172,6 +10236,21 @@ const ta: UiStrings = {
   },
 
   personal: {
+    addLoanSub: 'நீங்கள் கடன் வாங்கியதையும் கொடுத்ததையும் கண்காணியுங்கள்.',
+    noLoansBody:
+      'நீங்கள் தர வேண்டிய அல்லது பெற வேண்டிய பணத்தைக் கண்காணிக்க ஒரு கடனைச் சேர்க்கவும்.',
+    loanAmount: 'தொகை',
+    loanForPlaceholder: 'எ.கா. தனிநபர் கடன், வாடகை, பயணம்',
+    pickName: 'முந்தைய கடன்களில் இருந்து ஒருவரைத் தேர்ந்தெடுக்கவும்',
+    all: 'அனைத்தும்',
+    transfers: 'பரிமாற்றங்கள்',
+    searchTransactions: 'பரிவர்த்தனைகளைத் தேடுங்கள்…',
+    filterCategory: 'வகைப்படி வடிகட்டு',
+    clearFilter: 'வடிகட்டியை அழி',
+    txnCount: { one: '{n} பரிவர்த்தனை', other: '{n} பரிவர்த்தனைகள்' },
+    noBudgetsBody: 'செலவைக் கட்டுக்குள் வைத்து இலக்குகளை அடைய ஒரு பட்ஜெட்டை அமையுங்கள்.',
+    addBudgetSub: 'உங்கள் செலவுக்கு ஒரு மாத வரம்பை அமையுங்கள்.',
+    budgetAboutMonth: 'மாதம் சுமார் {average}.',
     tab: 'தனிப்பட்டது',
     title: 'தனிப்பட்டது',
     subtitle: 'உங்கள் சொந்தப் பணம் — உங்களுக்கு மட்டும் தனிப்பட்டது.',
@@ -11833,6 +11912,14 @@ const hi: UiStrings = {
     saveTag: 'टैग सहेजें',
   },
   storage: {
+    usedLabel: 'इस्तेमाल हुई जगह',
+    perksTitle: 'और पाने के लिए अपग्रेड करें',
+    perkUnlimited: 'असीमित स्टोरेज',
+    perkUnlimitedSub: 'अपनी सारी फ़ोटो और रसीदें रखें',
+    perkBackup: 'अपने-आप बैकअप',
+    perkBackupSub: 'आपका डेटा हमेशा सुरक्षित',
+    perkDevices: 'सभी डिवाइस से पहुँच',
+    perkDevicesSub: 'अपना डेटा कहीं भी देखें',
     row: '\u0938\u094d\u091f\u094b\u0930\u0947\u091c \u0909\u092a\u092f\u094b\u0917',
     rowHint:
       '\u0915\u094d\u0932\u093e\u0909\u0921 \u092e\u0947\u0902 \u092b\u093c\u094b\u091f\u094b \u0914\u0930 \u0930\u0938\u0940\u0926\u0947\u0902',
@@ -12843,6 +12930,10 @@ const hi: UiStrings = {
     hadItem: '{name} ने {label} लिया',
   },
   importLedger: {
+    anExistingGroup: 'पहले से बना ग्रुप',
+    anExistingGroupHint: 'अपने किसी मौजूदा ग्रुप में जोड़ें',
+    chooseGroup: 'ग्रुप चुनें',
+    tapToChange: 'बदलने के लिए टैप करें',
     importFailed: 'वह फ़ाइल नहीं लाई जा सकी। कृपया फिर कोशिश करें।',
     splitwiseTitle: 'Splitwise निर्यात आयात करें',
     ledgerTitle: 'हिसाब आयात करें',
@@ -13347,6 +13438,20 @@ const hi: UiStrings = {
   },
 
   personal: {
+    addLoanSub: 'जो पैसा आपने उधार लिया या दिया, उसका हिसाब रखें।',
+    noLoansBody: 'जो पैसा आपको देना है या मिलना है, उसका हिसाब रखने के लिए लोन जोड़ें।',
+    loanAmount: 'रकम',
+    loanForPlaceholder: 'जैसे पर्सनल लोन, किराया, यात्रा',
+    pickName: 'पिछले लोन से किसी को चुनें',
+    all: 'सभी',
+    transfers: 'ट्रांसफ़र',
+    searchTransactions: 'लेन-देन खोजें…',
+    filterCategory: 'श्रेणी से छाँटें',
+    clearFilter: 'फ़िल्टर हटाएँ',
+    txnCount: { one: '{n} लेन-देन', other: '{n} लेन-देन' },
+    noBudgetsBody: 'खर्च काबू में रखने और अपने लक्ष्य पाने के लिए बजट तय करें।',
+    addBudgetSub: 'अपने खर्च की एक मासिक सीमा तय करें।',
+    budgetAboutMonth: 'लगभग {average} हर महीने।',
     tab: 'निजी',
     title: 'निजी',
     subtitle: 'आपका अपना पैसा — सिर्फ़ आपके लिए निजी।',
@@ -15137,6 +15242,14 @@ const ar: UiStrings = {
     saveTag: 'حفظ الوسم',
   },
   storage: {
+    usedLabel: 'المساحة المستخدمة',
+    perksTitle: 'قم بالترقية لفتح المزيد',
+    perkUnlimited: 'تخزين غير محدود',
+    perkUnlimitedSub: 'احتفظ بكل صورك وإيصالاتك',
+    perkBackup: 'نسخ احتياطي تلقائي',
+    perkBackupSub: 'بياناتك آمنة دائمًا',
+    perkDevices: 'الوصول من كل الأجهزة',
+    perkDevicesSub: 'اطّلع على بياناتك من أي مكان',
     row: '\u0627\u0633\u062a\u062e\u062f\u0627\u0645 \u0627\u0644\u062a\u062e\u0632\u064a\u0646',
     rowHint:
       '\u0627\u0644\u0635\u0648\u0631 \u0648\u0627\u0644\u0625\u064a\u0635\u0627\u0644\u0627\u062a \u0641\u064a \u0627\u0644\u0633\u062d\u0627\u0628\u0629',
@@ -16368,6 +16481,10 @@ const ar: UiStrings = {
     hadItem: '{name} تناول {label}',
   },
   importLedger: {
+    anExistingGroup: 'مجموعة موجودة',
+    anExistingGroupHint: 'أضِف إلى مجموعة لديك بالفعل',
+    chooseGroup: 'اختر مجموعة',
+    tapToChange: 'اضغط للتغيير',
     importFailed: 'تعذّر إحضار ذلك الملف. حاول مرة أخرى.',
     splitwiseTitle: 'استيراد ملف Splitwise',
     ledgerTitle: 'استيراد دفتر',
@@ -16985,6 +17102,27 @@ const ar: UiStrings = {
   },
 
   personal: {
+    addLoanSub: 'تتبّع المال الذي اقترضته أو أقرضته.',
+    noLoansBody: 'أضِف قرضًا لتتبّع المال الذي عليك أو لك.',
+    loanAmount: 'المبلغ',
+    loanForPlaceholder: 'مثلًا: قرض شخصي، إيجار، سفر',
+    pickName: 'اختر شخصًا من قروض سابقة',
+    all: 'الكل',
+    transfers: 'التحويلات',
+    searchTransactions: 'ابحث في المعاملات…',
+    filterCategory: 'التصفية حسب الفئة',
+    clearFilter: 'مسح التصفية',
+    txnCount: {
+      zero: '{n} معاملة',
+      one: 'معاملة واحدة',
+      two: 'معاملتان',
+      few: '{n} معاملات',
+      many: '{n} معاملة',
+      other: '{n} معاملة',
+    },
+    noBudgetsBody: 'حدّد ميزانية لتبقي إنفاقك تحت السيطرة وتبلغ أهدافك.',
+    addBudgetSub: 'حدّد حدًا شهريًا لإنفاقك.',
+    budgetAboutMonth: 'نحو {average} في الشهر.',
     tab: 'الشخصي',
     title: 'الشخصي',
     subtitle: 'أموالك الخاصة — خاصة بك وحدك.',

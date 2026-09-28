@@ -14,6 +14,7 @@ import {
   encodeLoan,
   format,
   loanOutstanding,
+  currencySymbol,
   money,
   type LoanDirection,
   type PersonalLoan,
@@ -24,18 +25,17 @@ import {
   Card,
   directionalIcon,
   Divider,
-  EmptyState,
   IconButton,
   iconSize,
   Row,
   Screen,
   Sheet,
-  SegmentedTabs,
   Text,
   useTheme,
 } from '@waves/ui';
 
 import { DetailRow } from '@/components/DetailRows';
+import { PersonalNoteField } from '@/components/PersonalNoteField';
 import {
   localIsoDate,
   todayIso,
@@ -46,10 +46,11 @@ import {
 import { useDefaultCurrency } from '@/lib/currency';
 import { useStrings } from '@/i18n';
 import { PersonalGuard } from '@/components/PersonalGuard';
-import { PersonalNoteField } from '@/components/PersonalNoteField';
 import { useBottomClearance } from '@/lib/clearance';
 import { router } from '@/lib/navigation';
 import { useDialog } from '@/lib/dialog';
+import { dateTimeFormat } from '@/lib/dateTimeFormat';
+import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
 
 function LoansScreenBody() {
   const theme = useTheme();
@@ -57,6 +58,9 @@ function LoansScreenBody() {
   const { t, locale } = useStrings();
   const dc = useDefaultCurrency();
   const { loans, txns } = usePersonalLedger();
+  const { ink, muted } = useLoanInks();
+  // Everyone a loan has been with before, for the sheet's "With" suggestions.
+  const names = [...new Set(loans.map((loan) => loan.counterpart.trim()).filter(Boolean))];
 
   const [today] = useState(() => todayIso());
   const [editing, setEditing] = useState<PersonalLoan | null>(null);
@@ -109,8 +113,22 @@ function LoansScreenBody() {
         </Text>
 
         {sorted.length === 0 ? (
-          <View style={{ paddingTop: theme.spacing.xxxl }}>
-            <EmptyState title={t.personal.noLoans} />
+          <View style={{ paddingTop: theme.spacing.lg, alignItems: 'center', gap: 8 }}>
+            <WalletArt />
+            <Text style={{ fontSize: 20, fontWeight: '800', color: ink, textAlign: 'center' }}>
+              {t.personal.noLoans}
+            </Text>
+            <Text
+              style={{
+                fontSize: 14,
+                lineHeight: 20,
+                color: muted,
+                textAlign: 'center',
+                paddingHorizontal: theme.spacing.lg,
+              }}
+            >
+              {t.personal.noLoansBody}
+            </Text>
           </View>
         ) : (
           sorted.map((loan) => {
@@ -181,10 +199,16 @@ function LoansScreenBody() {
       </ScrollView>
 
       {creating ? (
-        <LoanEditor currency={dc} today={today} onClose={() => setCreating(false)} />
+        <LoanEditor currency={dc} today={today} names={names} onClose={() => setCreating(false)} />
       ) : null}
       {editing ? (
-        <LoanEditor loan={editing} currency={dc} today={today} onClose={() => setEditing(null)} />
+        <LoanEditor
+          loan={editing}
+          currency={dc}
+          today={today}
+          names={names}
+          onClose={() => setEditing(null)}
+        />
       ) : null}
     </Screen>
   );
@@ -194,15 +218,20 @@ function LoanEditor({
   loan,
   currency,
   today,
+  names,
   onClose,
 }: {
   loan?: PersonalLoan;
   currency: string;
   today: string;
+  /** People earlier loans were with, offered under the "With" field. */
+  names: readonly string[];
   onClose: () => void;
 }) {
   const theme = useTheme();
-  const { t } = useStrings();
+  const { t, locale } = useStrings();
+  const { dark, ink, muted, accent, lavender } = useLoanInks();
+  const [namesOpen, setNamesOpen] = useState(false);
   const { confirm } = useDialog();
   const upsert = useUpsertPersonalRecord();
   const remove = useDeletePersonalRecord();
@@ -238,83 +267,196 @@ function LoanEditor({
     );
   };
 
+  const loanCurrency = loan?.currency ?? currency;
+  const others = names.filter((name) => name !== counterpart.trim());
+  const fieldBox = {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 12,
+    minHeight: 52,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    backgroundColor: lavender,
+  };
+
   return (
-    <Sheet visible onClose={onClose} padded={false} style={{ maxHeight: '90%' }}>
+    <Sheet visible onClose={onClose} padded={false} style={{ maxHeight: '92%' }}>
       <ScrollView
-        contentContainerStyle={{ padding: theme.spacing.xl, gap: theme.spacing.lg }}
+        contentContainerStyle={{
+          paddingHorizontal: theme.spacing.xl,
+          paddingTop: theme.spacing.md,
+          paddingBottom: theme.spacing.xl,
+          gap: 12,
+        }}
         keyboardShouldPersistTaps="handled"
       >
-        <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-          <Text variant="heading">{loan ? t.personal.editLoan : t.personal.addLoan}</Text>
-          <IconButton label={t.common.close} onPress={onClose}>
-            <Ionicons name="close" size={iconSize.lg} color={theme.color.text} />
-          </IconButton>
+        <Row style={{ alignItems: 'flex-start', gap: theme.spacing.md }}>
+          <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+            <Text style={{ fontSize: 24, fontWeight: '800', color: ink }} numberOfLines={1}>
+              {loan ? t.personal.editLoan : t.personal.addLoan}
+            </Text>
+            <Text style={{ fontSize: 14, color: muted }}>{t.personal.addLoanSub}</Text>
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t.common.close}
+            onPress={onClose}
+            hitSlop={6}
+            style={({ pressed }) => ({
+              width: 36,
+              height: 36,
+              borderRadius: 18,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: lavender,
+              opacity: pressed ? 0.7 : 1,
+            })}
+          >
+            <Ionicons name="close" size={20} color={ink} />
+          </Pressable>
         </Row>
 
-        <SegmentedTabs
-          value={direction}
-          onChange={setDirection}
-          tabs={[
-            { value: 'borrowed', label: t.personal.borrowed },
-            { value: 'lent', label: t.personal.lent },
-          ]}
-        />
+        <Row
+          accessibilityRole="tablist"
+          style={{ padding: 4, borderRadius: 26, backgroundColor: lavender, gap: 4 }}
+        >
+          {(
+            [
+              { value: 'borrowed', label: t.personal.borrowed, icon: 'arrow-down-circle-outline' },
+              { value: 'lent', label: t.personal.lent, icon: 'arrow-up-circle-outline' },
+            ] as const
+          ).map((tab) => {
+            const on = tab.value === direction;
+            return (
+              <Pressable
+                key={tab.value}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: on }}
+                onPress={() => setDirection(tab.value)}
+                style={{
+                  flex: 1,
+                  height: 42,
+                  borderRadius: 21,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  backgroundColor: on ? accent : 'transparent',
+                }}
+              >
+                <Ionicons name={tab.icon} size={20} color={on ? '#FFFFFF' : ink} />
+                <Text
+                  style={{
+                    fontSize: 15,
+                    fontWeight: on ? '700' : '500',
+                    color: on ? '#FFFFFF' : ink,
+                  }}
+                >
+                  {tab.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </Row>
 
-        <View style={{ alignItems: 'center', paddingVertical: theme.spacing.md }}>
-          <AmountField
-            currency={loan?.currency ?? currency}
-            value={principal}
-            onChange={setPrincipal}
-          />
-        </View>
-
-        <View style={{ gap: theme.spacing.sm }}>
-          <Text variant="caption" tone="muted">
-            {t.personal.counterpart}
+        <FieldLabel>{t.personal.loanAmount}</FieldLabel>
+        <View style={fieldBox}>
+          <Text style={{ fontSize: 22, fontWeight: '600', color: ink }}>
+            {currencySymbol(loanCurrency, locale)}
           </Text>
-          <TextInput
-            value={counterpart}
-            onChangeText={setCounterpart}
-            placeholder={t.personal.counterpartPlaceholder}
-            placeholderTextColor={theme.color.textFaint}
-            style={{
-              fontSize: 16,
-              color: theme.color.text,
-              paddingVertical: theme.spacing.md,
-              paddingHorizontal: theme.spacing.lg,
-              backgroundColor: theme.color.surfaceMuted,
-              borderRadius: theme.radius.md,
-            }}
+          <View
+            style={{ width: 1, height: 26, backgroundColor: dark ? theme.color.border : '#E0DCF3' }}
           />
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <AmountField
+              currency={loanCurrency}
+              value={principal}
+              onChange={setPrincipal}
+              size="compact"
+              showSymbol={false}
+              align="start"
+            />
+          </View>
         </View>
 
-        {/* The person the loan is with is handed to the recogniser: "lent to
-            Ravi for the deposit" is exactly the sentence a general model turns
-            into a name that was never said. */}
+        <FieldLabel>{t.personal.counterpart}</FieldLabel>
+        <View style={{ gap: 6 }}>
+          <View style={fieldBox}>
+            <Ionicons name="person-outline" size={20} color={muted} />
+            <TextInput
+              value={counterpart}
+              onChangeText={setCounterpart}
+              placeholder={t.personal.counterpartPlaceholder}
+              placeholderTextColor={theme.color.textFaint}
+              accessibilityLabel={t.personal.counterpart}
+              style={{ flex: 1, fontSize: 16, color: ink, paddingVertical: 12 }}
+            />
+            {/* Only a dropdown when there is somebody to offer: a chevron over
+                an empty list would be a control that does nothing. */}
+            {others.length > 0 ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t.personal.pickName}
+                accessibilityState={{ expanded: namesOpen }}
+                onPress={() => setNamesOpen((open) => !open)}
+                hitSlop={10}
+              >
+                <Ionicons name={namesOpen ? 'chevron-up' : 'chevron-down'} size={20} color={ink} />
+              </Pressable>
+            ) : null}
+          </View>
+          {namesOpen && others.length > 0 ? (
+            <View
+              style={{
+                borderRadius: 14,
+                backgroundColor: theme.color.surface,
+                borderWidth: 1,
+                borderColor: dark ? theme.color.border : '#E7E3F7',
+              }}
+            >
+              {others.map((name, index) => (
+                <Pressable
+                  key={name}
+                  accessibilityRole="button"
+                  onPress={() => {
+                    setCounterpart(name);
+                    setNamesOpen(false);
+                  }}
+                  style={({ pressed }) => ({
+                    paddingVertical: 12,
+                    paddingHorizontal: 16,
+                    borderTopWidth: index > 0 ? 1 : 0,
+                    borderTopColor: dark ? theme.color.border : '#F0EEF7',
+                    opacity: pressed ? 0.6 : 1,
+                  })}
+                >
+                  <Text style={{ fontSize: 15, color: ink }}>{name}</Text>
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
+        </View>
+
+        <FieldLabel>{t.personal.notePlaceholder}</FieldLabel>
+        {/* The shared note field, so the mic comes with it. The person the
+            loan is with is handed to the recogniser: "lent to Ravi for the
+            deposit" is exactly the sentence a general model turns into a name
+            that was never said. */}
         <PersonalNoteField
           value={note}
           onChange={setNote}
-          placeholder={t.personal.notePlaceholder}
+          placeholder={t.personal.loanForPlaceholder}
           accessibilityLabel={t.personal.note}
           hints={counterpart.trim() ? [counterpart.trim()] : undefined}
         />
 
-        {/* The same `DetailRow` the expense and personal-entry forms state their
-            date in. This used to be a bare box with the raw value and a glyph
-            on the wrong side and no label at all — a screen reader had nothing
-            to say for it beyond the date itself, which does not say it is a
-            date. */}
-        <View
-          style={{
-            backgroundColor: theme.color.surfaceMuted,
-            borderRadius: theme.radius.md,
-            paddingHorizontal: theme.spacing.lg,
-          }}
-        >
+        {/* The same `DetailRow` the expense and personal-entry forms state
+            their date in, so a screen reader hears what the date is for. */}
+        <View style={{ borderRadius: 16, backgroundColor: lavender, paddingHorizontal: 16 }}>
           <DetailRow
             icon="calendar-outline"
             label={t.personal.startsOn}
-            value={startDate}
+            value={dateLabel(startDate, locale)}
             onPress={() => setShowDate(true)}
           />
         </View>
@@ -345,7 +487,32 @@ function LoanEditor({
           </Row>
         ) : null}
 
-        <Button label={t.personal.save} size="lg" fullWidth onPress={onSave} disabled={!canSave} />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t.personal.save}
+          accessibilityState={{ disabled: !canSave }}
+          disabled={!canSave}
+          onPress={onSave}
+          style={({ pressed }) => ({
+            marginTop: 6,
+            height: 54,
+            borderRadius: 27,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: canSave ? accent : theme.color.surfaceMuted,
+            opacity: pressed ? 0.88 : 1,
+          })}
+        >
+          <Text
+            style={{
+              fontSize: 17,
+              fontWeight: '700',
+              color: canSave ? '#FFFFFF' : theme.color.textFaint,
+            }}
+          >
+            {t.personal.save}
+          </Text>
+        </Pressable>
 
         {loan ? (
           <Button
@@ -366,6 +533,120 @@ function LoanEditor({
         ) : null}
       </ScrollView>
     </Sheet>
+  );
+}
+
+/** The mockup's inks in the light theme; the theme's own in the dark. */
+function useLoanInks() {
+  const theme = useTheme();
+  const dark = theme.scheme === 'dark';
+  return {
+    dark,
+    ink: dark ? theme.color.text : SPEC_INK,
+    muted: dark ? theme.color.textMuted : SPEC_MUTED,
+    accent: dark ? theme.color.brand : SPEC_ACCENT,
+    lavender: dark ? theme.color.surfaceMuted : '#F3F0FE',
+  };
+}
+
+function FieldLabel({ children }: { children: string }) {
+  const { ink } = useLoanInks();
+  return (
+    <Text style={{ fontSize: 15, fontWeight: '600', color: ink, marginTop: 4 }}>{children}</Text>
+  );
+}
+
+/** "28 Sep 2026", from the ledger's calendar-day string. */
+function dateLabel(day: string, locale: string): string {
+  try {
+    return dateTimeFormat(locale, {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      timeZone: 'UTC',
+    }).format(new Date(`${day}T00:00:00Z`));
+  } catch {
+    return day;
+  }
+}
+
+/** The empty list's picture: a wallet with a note tucked in and a rupee coin.
+ *  Drawn from views and glyphs, so it themes and costs no asset. */
+function WalletArt() {
+  const theme = useTheme();
+  const dark = theme.scheme === 'dark';
+  const accent = dark ? theme.color.brand : SPEC_ACCENT;
+  return (
+    <View
+      pointerEvents="none"
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={{ width: 150, height: 120 }}
+    >
+      <View
+        style={{
+          position: 'absolute',
+          left: 42,
+          top: 6,
+          width: 56,
+          height: 60,
+          borderRadius: 6,
+          padding: 8,
+          gap: 6,
+          backgroundColor: dark ? theme.color.surface : '#FFFFFF',
+          borderWidth: 2,
+          borderColor: dark ? '#5A52A8' : '#C9C2FA',
+          transform: [{ rotate: '-6deg' }],
+        }}
+      >
+        <View style={{ height: 3, borderRadius: 2, backgroundColor: '#C9C2FA' }} />
+        <View style={{ height: 3, width: 26, borderRadius: 2, backgroundColor: '#C9C2FA' }} />
+      </View>
+      <View
+        style={{
+          position: 'absolute',
+          left: 28,
+          top: 40,
+          width: 84,
+          height: 68,
+          borderRadius: 12,
+          backgroundColor: accent,
+        }}
+      >
+        <View
+          style={{
+            position: 'absolute',
+            right: -6,
+            top: 22,
+            width: 28,
+            height: 22,
+            borderRadius: 8,
+            backgroundColor: dark ? '#4A4290' : '#4D33C9',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: '#C9C2FA' }} />
+        </View>
+      </View>
+      <View
+        style={{
+          position: 'absolute',
+          right: 18,
+          top: 26,
+          width: 40,
+          height: 40,
+          borderRadius: 20,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: '#F2B233',
+          borderWidth: 3,
+          borderColor: '#E39C18',
+        }}
+      >
+        <Text style={{ fontSize: 18, fontWeight: '800', color: '#FFF6DC' }}>₹</Text>
+      </View>
+    </View>
   );
 }
 
