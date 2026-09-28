@@ -66,6 +66,8 @@ export interface EntryDraft {
   readonly loanId: string | null;
   /** Set when a rule minted the entry being edited; kept so the link survives. */
   readonly recurringId: string | null;
+  /** How it was paid; only a one-off entry keeps one. */
+  readonly paymentMethod?: string | null;
 }
 
 /** Exactly the upsert the ledger takes — see `useUpsertPersonalRecord`. */
@@ -113,6 +115,7 @@ export function entryRecord(
         date: draft.date,
         loanId: draft.loanId,
         recurringId: draft.recurringId,
+        paymentMethod: draft.paymentMethod ?? null,
         // Carried through so editing a txn here never drops a field a newer
         // version of the app wrote — see personal/types.ts. The form rebuilds
         // the payload from its own state, so without this the round trip is

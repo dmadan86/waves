@@ -1540,6 +1540,9 @@ export interface UiStrings {
     addCurrency: string;
     simplifySub: string;
     suggested: string;
+    descriptionLabel: string;
+    optional: string;
+    seeAll: string;
   };
   /** The Save an expense screen's row subtitles, header line and receipt / location tiles. */
   captureForm: {
@@ -2818,6 +2821,9 @@ export interface UiStrings {
   };
   /** Pasting bank messages in, and what can be made of them (TDR §10). */
   smsImport: {
+    /** The paste screen's headline and the steps card's title. */
+    heroTitle: string;
+    howToTitle: string;
     title: string;
     howTo: string;
     whyNotAutomatic: string;
@@ -3641,6 +3647,23 @@ export interface UiStrings {
     tab: string;
     title: string;
     subtitle: string;
+    /** The entry form: its header line, sections, note prompt and payment methods. */
+    entryScreen: {
+      expenseSub: string;
+      incomeSub: string;
+      category: string;
+      source: string;
+      viewAll: string;
+      more: string;
+      whatFor: string;
+      notePlaceholder: string;
+      paymentMethod: string;
+      saveExpense: string;
+      saveIncome: string;
+      calculator: string;
+      notSet: string;
+      methods: Record<'cash' | 'upi' | 'card' | 'bank' | 'wallet' | 'other', string>;
+    };
     /** The Personal tab's dashboard. */
     dash: {
       tagline: string;
@@ -3842,6 +3865,10 @@ export interface UiStrings {
     spendingEmpty: string;
     spendingEmptyBody: string;
     billsAndSubs: string;
+    /** The Spending card's row lines: what each figure is. */
+    incomeSub: string;
+    billsSub: string;
+    everydaySub: string;
     everyday: string;
     /**
      * Never "saved", and never "left for savings". The app cannot see a savings
@@ -4963,9 +4990,9 @@ const en: UiStrings = {
     descriptionExample: 'e.g. Friends trip, Weekend getaway',
     addFriendsSub: 'Add people to start sharing expenses',
     addContacts: 'Add contacts',
-    personPlaceholder: 'Type a name to add',
+    personPlaceholder: 'Search name or phone number',
     groupType: 'Group type',
-    groupTypeSub: 'Choose what this group is for',
+    groupTypeSub: 'Choose a type to personalize your group',
     datesSub: 'Set your travel dates (optional)',
     budgetSub: 'Set a budget for better tracking',
     ratesSub: 'Choose the currency for this trip',
@@ -4973,6 +5000,9 @@ const en: UiStrings = {
     addCurrency: 'Add a currency',
     simplifySub: 'Automatically minimize the number of payments',
     suggested: 'Suggested',
+    descriptionLabel: 'Description (optional)',
+    optional: '(optional)',
+    seeAll: 'See all',
   },
   captureForm: {
     headerSub: 'Record your spending in a few seconds',
@@ -5990,6 +6020,8 @@ const en: UiStrings = {
     wavesVersionOut: 'Waves {latest} is out',
   },
   smsImport: {
+    heroTitle: 'Quickly add payments',
+    howToTitle: 'How to add',
     title: 'Add from bank messages',
     howTo:
       'Open your messages app, select the bank messages from this trip, copy them, and paste them here. Waves reads them on this phone — nothing is sent anywhere until you confirm an expense.',
@@ -6060,8 +6092,8 @@ const en: UiStrings = {
       'Copy a payment message from your messages app and paste it here. Waves reads it on this phone and puts the payment in Review for you.',
     howToSteps: {
       open: 'Open your messages app.',
-      copy: 'Press and hold a bank message, then tap Copy.',
-      comeBack: 'Come back here and tap Paste.',
+      copy: '**Press** and hold a bank message, then tap **Copy**.',
+      comeBack: 'Come back here and tap **Paste**.',
     },
     chosenCount: { one: '{n} chosen', other: '{n} chosen' },
     foundCount: {
@@ -6756,6 +6788,29 @@ const en: UiStrings = {
     tab: 'Personal',
     title: 'Personal',
     subtitle: 'Your own money — private to you.',
+    entryScreen: {
+      expenseSub: 'Track your spending easily',
+      incomeSub: 'Record the money that came in',
+      category: 'Category',
+      source: 'Source',
+      viewAll: 'View all',
+      more: 'More',
+      whatFor: 'What was it for?',
+      notePlaceholder: 'Add a note (e.g. Lunch with friends)',
+      paymentMethod: 'Payment method',
+      saveExpense: 'Save expense',
+      saveIncome: 'Save income',
+      calculator: 'Calculator',
+      notSet: 'Not set',
+      methods: {
+        cash: 'Cash',
+        upi: 'UPI',
+        card: 'Card',
+        bank: 'Bank transfer',
+        wallet: 'Wallet',
+        other: 'Other',
+      },
+    },
     dash: {
       tagline: 'Track your money, live smarter',
       totalSpentThisMonth: 'Total spent this month',
@@ -6932,6 +6987,9 @@ const en: UiStrings = {
     spendingEmptyBody:
       'Add an expense or some income, and this is where the month gets taken apart.',
     billsAndSubs: 'Bills & subs',
+    incomeSub: 'Total money received',
+    billsSub: 'Recurring bills and subscriptions',
+    everydaySub: 'All other expenses',
     everyday: 'Spending',
     leftOver: 'Left over',
     leftOverHint:
@@ -8082,9 +8140,9 @@ const ta: UiStrings = {
     descriptionExample: 'எ.கா. நண்பர்கள் பயணம், வார இறுதி சுற்றுலா',
     addFriendsSub: 'செலவுகளைப் பகிர நபர்களைச் சேர்க்கவும்',
     addContacts: 'தொடர்புகள்',
-    personPlaceholder: 'சேர்க்க ஒரு பெயரை உள்ளிடுங்கள்',
+    personPlaceholder: 'பெயர் அல்லது தொலைபேசி எண்ணைத் தேடுங்கள்',
     groupType: 'குழு வகை',
-    groupTypeSub: 'இந்தக் குழு எதற்கு என்று தேர்ந்தெடுங்கள்',
+    groupTypeSub: 'உங்கள் குழுவுக்கு ஏற்ற வகையைத் தேர்வுசெய்யுங்கள்',
     datesSub: 'பயணத் தேதிகள் (விருப்பம்)',
     budgetSub: 'சிறந்த கண்காணிப்புக்கு ஒரு பட்ஜெட்',
     ratesSub: 'இந்தப் பயணத்துக்கான நாணயத்தைத் தேர்ந்தெடுங்கள்',
@@ -8092,6 +8150,9 @@ const ta: UiStrings = {
     addCurrency: 'நாணயம் சேர்',
     simplifySub: 'செலுத்துதல்களின் எண்ணிக்கையைத் தானாகக் குறைக்கும்',
     suggested: 'பரிந்துரைக்கப்பட்டவை',
+    descriptionLabel: 'விளக்கம் (விருப்பத்தேர்வு)',
+    optional: '(விருப்பத்தேர்வு)',
+    seeAll: 'அனைத்தும்',
   },
   captureForm: {
     headerSub: 'சில நொடிகளில் உங்கள் செலவைப் பதிவு செய்யுங்கள்',
@@ -9168,6 +9229,8 @@ const ta: UiStrings = {
     wavesVersionOut: 'Waves {latest} வெளியாகிவிட்டது',
   },
   smsImport: {
+    heroTitle: 'பணப்பரிமாற்றங்களை விரைவாகச் சேருங்கள்',
+    howToTitle: 'எப்படிச் சேர்ப்பது',
     title: 'வங்கிச் செய்திகளிலிருந்து சேர்',
     howTo:
       'உங்கள் செய்தி செயலியைத் திறந்து, இந்தப் பயணத்தின் வங்கிச் செய்திகளைத் தேர்ந்தெடுத்து, நகலெடுத்து இங்கே ஒட்டுங்கள். Waves அவற்றை இந்த ஃபோனிலேயே படிக்கும் — நீங்கள் ஒரு செலவை உறுதி செய்யும் வரை எதுவும் எங்கும் அனுப்பப்படாது.',
@@ -9983,6 +10046,29 @@ const ta: UiStrings = {
     tab: 'தனிப்பட்டது',
     title: 'தனிப்பட்டது',
     subtitle: 'உங்கள் சொந்தப் பணம் — உங்களுக்கு மட்டும் தனிப்பட்டது.',
+    entryScreen: {
+      expenseSub: 'உங்கள் செலவுகளை எளிதாகக் கண்காணியுங்கள்',
+      incomeSub: 'வந்த பணத்தைப் பதிவு செய்யுங்கள்',
+      category: 'வகை',
+      source: 'ஆதாரம்',
+      viewAll: 'அனைத்தும்',
+      more: 'மேலும்',
+      whatFor: 'எதற்காக?',
+      notePlaceholder: 'குறிப்பு சேர்க்கவும் (எ.கா. நண்பர்களுடன் மதிய உணவு)',
+      paymentMethod: 'பணம் செலுத்திய முறை',
+      saveExpense: 'செலவைச் சேமி',
+      saveIncome: 'வருமானத்தைச் சேமி',
+      calculator: 'கணிப்பான்',
+      notSet: 'அமைக்கப்படவில்லை',
+      methods: {
+        cash: 'பணம்',
+        upi: 'UPI',
+        card: 'அட்டை',
+        bank: 'வங்கிப் பரிமாற்றம்',
+        wallet: 'வாலெட்',
+        other: 'மற்றவை',
+      },
+    },
     dash: {
       tagline: 'உங்கள் பணத்தைக் கண்காணியுங்கள், புத்திசாலித்தனமாக வாழுங்கள்',
       totalSpentThisMonth: 'இந்த மாதம் மொத்தச் செலவு',
@@ -10159,6 +10245,9 @@ const ta: UiStrings = {
     spendingEmptyBody:
       'Add an expense or some income, and this is where the month gets taken apart.',
     billsAndSubs: 'Bills & subs',
+    incomeSub: 'பெற்ற மொத்தப் பணம்',
+    billsSub: 'தொடர் பில்கள் மற்றும் சந்தாக்கள்',
+    everydaySub: 'மற்ற அனைத்துச் செலவுகள்',
     everyday: 'Spending',
     leftOver: 'Left over',
     leftOverHint:
@@ -11273,9 +11362,9 @@ const hi: UiStrings = {
     descriptionExample: 'जैसे दोस्तों की ट्रिप, वीकेंड घूमना',
     addFriendsSub: 'खर्च बाँटने के लिए लोगों को जोड़ें',
     addContacts: 'संपर्क जोड़ें',
-    personPlaceholder: 'जोड़ने के लिए नाम लिखें',
+    personPlaceholder: 'नाम या फ़ोन नंबर खोजें',
     groupType: 'समूह का प्रकार',
-    groupTypeSub: 'चुनें कि यह समूह किसलिए है',
+    groupTypeSub: 'अपने ग्रुप के लिए एक प्रकार चुनें',
     datesSub: 'यात्रा की तारीखें (वैकल्पिक)',
     budgetSub: 'बेहतर हिसाब के लिए बजट तय करें',
     ratesSub: 'इस ट्रिप की मुद्रा चुनें',
@@ -11283,6 +11372,9 @@ const hi: UiStrings = {
     addCurrency: 'मुद्रा जोड़ें',
     simplifySub: 'भुगतानों की संख्या अपने आप कम करता है',
     suggested: 'सुझाए गए',
+    descriptionLabel: 'विवरण (वैकल्पिक)',
+    optional: '(वैकल्पिक)',
+    seeAll: 'सभी देखें',
   },
   captureForm: {
     headerSub: 'कुछ ही सेकंड में अपना खर्च दर्ज करें',
@@ -12313,6 +12405,8 @@ const hi: UiStrings = {
     wavesVersionOut: 'Waves {latest} आ गया है',
   },
   smsImport: {
+    heroTitle: 'भुगतान झटपट जोड़ें',
+    howToTitle: 'कैसे जोड़ें',
     title: 'बैंक संदेशों से जोड़ें',
     howTo:
       'अपना मैसेज ऐप खोलें, इस यात्रा के बैंक संदेश चुनें, कॉपी करें और यहाँ पेस्ट करें। Waves उन्हें इसी फ़ोन पर पढ़ता है — जब तक आप कोई खर्च पक्का नहीं करते, कुछ भी कहीं नहीं भेजा जाता।',
@@ -13083,6 +13177,29 @@ const hi: UiStrings = {
     tab: 'निजी',
     title: 'निजी',
     subtitle: 'आपका अपना पैसा — सिर्फ़ आपके लिए निजी।',
+    entryScreen: {
+      expenseSub: 'अपने खर्च आसानी से ट्रैक करें',
+      incomeSub: 'आई हुई रकम दर्ज करें',
+      category: 'श्रेणी',
+      source: 'स्रोत',
+      viewAll: 'सभी देखें',
+      more: 'और',
+      whatFor: 'यह किस लिए था?',
+      notePlaceholder: 'नोट जोड़ें (जैसे दोस्तों के साथ लंच)',
+      paymentMethod: 'भुगतान का तरीका',
+      saveExpense: 'खर्च सहेजें',
+      saveIncome: 'आय सहेजें',
+      calculator: 'कैलकुलेटर',
+      notSet: 'सेट नहीं',
+      methods: {
+        cash: 'नकद',
+        upi: 'UPI',
+        card: 'कार्ड',
+        bank: 'बैंक ट्रांसफ़र',
+        wallet: 'वॉलेट',
+        other: 'अन्य',
+      },
+    },
     dash: {
       tagline: 'अपने पैसों पर नज़र रखें, समझदारी से जिएँ',
       totalSpentThisMonth: 'इस महीने कुल खर्च',
@@ -13258,6 +13375,9 @@ const hi: UiStrings = {
     spendingEmptyBody:
       'Add an expense or some income, and this is where the month gets taken apart.',
     billsAndSubs: 'Bills & subs',
+    incomeSub: 'कुल मिली रकम',
+    billsSub: 'नियमित बिल और सब्सक्रिप्शन',
+    everydaySub: 'बाकी सभी खर्च',
     everyday: 'Spending',
     leftOver: 'Left over',
     leftOverHint:
@@ -14445,9 +14565,9 @@ const ar: UiStrings = {
     descriptionExample: 'مثال: رحلة أصدقاء، عطلة نهاية الأسبوع',
     addFriendsSub: 'أضف أشخاصًا لبدء تقاسم المصروفات',
     addContacts: 'إضافة جهات اتصال',
-    personPlaceholder: 'اكتب اسمًا لإضافته',
+    personPlaceholder: 'ابحث بالاسم أو رقم الهاتف',
     groupType: 'نوع المجموعة',
-    groupTypeSub: 'اختر الغرض من هذه المجموعة',
+    groupTypeSub: 'اختر نوعاً يناسب مجموعتك',
     datesSub: 'حدّد تواريخ السفر (اختياري)',
     budgetSub: 'حدّد ميزانية لتتبع أفضل',
     ratesSub: 'اختر عملة هذه الرحلة',
@@ -14455,6 +14575,9 @@ const ar: UiStrings = {
     addCurrency: 'إضافة عملة',
     simplifySub: 'تقليل عدد الدفعات تلقائيًا',
     suggested: 'مقترحون',
+    descriptionLabel: 'الوصف (اختياري)',
+    optional: '(اختياري)',
+    seeAll: 'عرض الكل',
   },
   captureForm: {
     headerSub: 'سجّل مصروفك في ثوانٍ',
@@ -15637,6 +15760,8 @@ const ar: UiStrings = {
     wavesVersionOut: 'صدر Waves {latest}',
   },
   smsImport: {
+    heroTitle: 'أضف المدفوعات بسرعة',
+    howToTitle: 'طريقة الإضافة',
     title: 'الإضافة من رسائل البنك',
     howTo:
       'افتح تطبيق الرسائل، واختر رسائل البنك الخاصة بهذه الرحلة، وانسخها والصقها هنا. يقرأها Waves على هذا الهاتف — ولا يُرسل أي شيء إلى أي مكان حتى تؤكّد مصروفًا.',
@@ -16648,6 +16773,29 @@ const ar: UiStrings = {
     tab: 'الشخصي',
     title: 'الشخصي',
     subtitle: 'أموالك الخاصة — خاصة بك وحدك.',
+    entryScreen: {
+      expenseSub: 'تتبّع مصروفاتك بسهولة',
+      incomeSub: 'سجّل المال الذي وصلك',
+      category: 'الفئة',
+      source: 'المصدر',
+      viewAll: 'عرض الكل',
+      more: 'المزيد',
+      whatFor: 'لأي غرض؟',
+      notePlaceholder: 'أضف ملاحظة (مثل غداء مع الأصدقاء)',
+      paymentMethod: 'طريقة الدفع',
+      saveExpense: 'احفظ المصروف',
+      saveIncome: 'احفظ الدخل',
+      calculator: 'الآلة الحاسبة',
+      notSet: 'غير محدد',
+      methods: {
+        cash: 'نقداً',
+        upi: 'UPI',
+        card: 'بطاقة',
+        bank: 'تحويل بنكي',
+        wallet: 'محفظة',
+        other: 'أخرى',
+      },
+    },
     dash: {
       tagline: 'تابع أموالك وعِش بذكاء',
       totalSpentThisMonth: 'إجمالي الإنفاق هذا الشهر',
@@ -16830,6 +16978,9 @@ const ar: UiStrings = {
     spendingEmptyBody:
       'Add an expense or some income, and this is where the month gets taken apart.',
     billsAndSubs: 'Bills & subs',
+    incomeSub: 'إجمالي المال المستلم',
+    billsSub: 'الفواتير والاشتراكات المتكررة',
+    everydaySub: 'كل المصروفات الأخرى',
     everyday: 'Spending',
     leftOver: 'Left over',
     leftOverHint:

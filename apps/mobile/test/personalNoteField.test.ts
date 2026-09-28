@@ -31,7 +31,9 @@ const source = (name: string): string => readFileSync(join(PERSONAL_DIR, name), 
  * variable name: a screen that merely *displays* a saved note (the ledger list)
  * never asks for that placeholder.
  */
-const editors = SCREENS.filter((name) => source(name).includes('t.personal.notePlaceholder'));
+const editors = SCREENS.filter((name) =>
+  /t\.personal\.(entryScreen\.)?notePlaceholder/.test(source(name)),
+);
 
 describe('the private ledger’s note', () => {
   it('is typed on the screens this test knows about', () => {
@@ -53,7 +55,9 @@ describe('the private ledger’s note', () => {
     // The failure this catches: a note box written inline, which renders
     // identically and silently has no way to speak into it.
     for (const name of editors) {
-      const inline = /<TextInput[^>]*\bt\.personal\.notePlaceholder/s.test(source(name));
+      const inline = /<TextInput[^>]*\bt\.personal\.(entryScreen\.)?notePlaceholder/s.test(
+        source(name),
+      );
       expect(inline, `${name} writes its own note field instead of PersonalNoteField`).toBe(false);
     }
   });
