@@ -7,7 +7,7 @@
  * a new one, so everything entered as a guest comes with them.
  */
 
-import { useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams } from 'expo-router';
 import { ActivityIndicator, Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
@@ -44,8 +44,17 @@ import { ProfileAvatar } from '@/components/ProfileAvatar';
 import { useAvatarEditor } from '@/lib/avatarEditor';
 import { requestCountry } from '@/lib/countryPickerBridge';
 import { friendlyError } from '@/lib/errors';
-import { confirmContact, startAddingContact, ContactChannel } from '@/data/api';
-import { deviceCountry, useStrings } from '@/i18n';
+import {
+  confirmContact,
+  ContactChannel,
+  ContactUnlinkRefused,
+  fetchContactUnlinks,
+  startAddingContact,
+  unlinkContact,
+} from '@/data/api';
+import { deviceCountry, fill, useStrings } from '@/i18n';
+import { useDialog } from '@/lib/dialog';
+import { displayPhone } from '@/lib/phone';
 import { useAuth } from '@/lib/auth';
 import { useIdentityTaken } from '@/lib/useIdentityTaken';
 import { router } from '@/lib/navigation';
@@ -84,7 +93,7 @@ export default function AccountScreen() {
 function AccountForm() {
   const theme = useTheme();
   const clearance = useTabBarClearance();
-  const { t } = useStrings();
+  const { t, locale } = useStrings();
   const { session, profile, isGuest, refresh, updateProfile, withGoogle, withApple } = useAuth();
   const resolveIdentityTaken = useIdentityTaken();
 
@@ -128,7 +137,7 @@ function AccountForm() {
     (line) => line && line !== t.account.saved,
   );
 
-  const [channel, setChannel] = useState<ContactChannel>(ContactChannel.Email);
+  const [pickedChannel, setChannel] = useState<ContactChannel>(ContactChannel.Email);
   const [value, setValue] = useState('');
   // The dial code is a control, not a prefix baked into the field: the phone's
   // region is a guess, wrong for anyone whose language is English (US) while
@@ -141,11 +150,6 @@ function AccountForm() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
-
-  const existing =
-    channel === ContactChannel.Email
-      ? (session?.user.email ?? null)
-      : (session?.user.phone ?? null);
 
   // A stable subtitle for the identity header: the account's own contact,
   // independent of which channel the form below is currently pointed at, so it
@@ -180,6 +184,94 @@ function AccountForm() {
   const linkedProviders = new Set(
     (session?.user.identities ?? []).map((identity) => identity.provider),
   );
+
+  // ── Linked email and phone, and the week either way ──────────────────────
+  // A contact can be unlinked a week after it was linked, and a new one linked
+  // a week after an unlink. The server enforces both (`contact-unlink`, and a
+  // guard on the auth row); these dates are only so the screen can say when.
+  const WEEK = 7 * 24 * 60 * 60 * 1000;
+  const [now, setNow] = useState(() => Date.now());
+  const [unlinks, setUnlinks] = useState<Partial<Record<ContactChannel, string>>>({});
+  const [unlinking, setUnlinking] = useState<ContactChannel | null>(null);
+  const { confirm: confirmDialog } = useDialog();
+  const loadUnlinks = useCallback(() => {
+    void fetchContactUnlinks().then((rows) => {
+      setUnlinks(rows);
+      setNow(Date.now());
+    });
+  }, []);
+  useEffect(() => {
+    loadUnlinks();
+  }, [loadUnlinks]);
+
+  const user = session?.user;
+  const linkedContacts = [
+    user?.email
+      ? {
+          channel: ContactChannel.Email,
+          value: user.email,
+          unlockAt: Date.parse(user.email_confirmed_at ?? '') + WEEK || 0,
+        }
+      : null,
+    user?.phone
+      ? {
+          channel: ContactChannel.Phone,
+          value: displayPhone(user.phone),
+          unlockAt: Date.parse(user.phone_confirmed_at ?? '') + WEEK || 0,
+        }
+      : null,
+  ].filter((contact) => contact !== null);
+  // Every way back in: a linked email or phone, or a Google / Apple identity.
+  const waysIn =
+    linkedContacts.length +
+    (linkedProviders.has('google') ? 1 : 0) +
+    (linkedProviders.has('apple') ? 1 : 0);
+  const onlyWayIn = waysIn <= 1;
+  const addable = [
+    ...(user?.email ? [] : [ContactChannel.Email]),
+    ...(user?.phone || !phoneSignInAvailable() ? [] : [ContactChannel.Phone]),
+  ];
+  // The form follows whatever is left to add: once email is linked, it is the
+  // phone form, and the other way round.
+  const channel = addable.includes(pickedChannel) ? pickedChannel : (addable[0] ?? pickedChannel);
+  const unlinkedAt = unlinks[channel];
+  const relinkAt = unlinkedAt ? Date.parse(unlinkedAt) + WEEK : null;
+  const shortDate = (at: number): string =>
+    new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long' }).format(new Date(at));
+
+  const unlink = async (which: ContactChannel): Promise<void> => {
+    const phoneRow = which === ContactChannel.Phone;
+    const sure = await confirmDialog({
+      title: phoneRow ? t.contact.unlinkPhoneTitle : t.contact.unlinkEmailTitle,
+      body: phoneRow ? t.contact.unlinkPhoneBody : t.contact.unlinkEmailBody,
+      confirmLabel: t.contact.unlink,
+      tone: 'danger',
+    });
+    if (!sure) return;
+    setError(null);
+    setUnlinking(which);
+    try {
+      await unlinkContact(which);
+      await refresh();
+      loadUnlinks();
+    } catch (caught) {
+      // A refusal is not a failure: it says why, in words the rows use.
+      if (caught instanceof ContactUnlinkRefused) {
+        setError(
+          caught.code === 'TOO_SOON' && caught.unlockAt !== null
+            ? fill(t.contact.unlinkFrom, { date: shortDate(caught.unlockAt) })
+            : caught.code === 'LAST_SIGN_IN'
+              ? t.contact.onlyWayIn
+              : t.couldNotSave,
+        );
+        loadUnlinks();
+      } else {
+        setError(friendlyError(caught, t.couldNotSave, 'account.unlinkContact'));
+      }
+    } finally {
+      setUnlinking(null);
+    }
+  };
 
   const link = async (start: () => Promise<void>): Promise<void> => {
     setError(null);
@@ -517,151 +609,190 @@ function AccountForm() {
           <Text style={{ fontSize: 13, color: muted }}>{t.contact.securitySub}</Text>
         </View>
 
-        {/* An email or phone — either signs you back in on another phone. */}
+        {/* An email or phone — either signs you back in on another phone. What
+            is linked shows as a plain row with Unlink (a week after it was
+            linked, and never the last way in); what is not gets the form. */}
         <SoftCard>
-          <Row style={{ gap: 12, alignItems: 'center' }}>
-            <Disc
-              icon={channel === ContactChannel.Email ? 'mail-outline' : 'call-outline'}
-              tint={theme.tint.lilac}
-            />
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={{ fontSize: 15, fontWeight: '700', color: ink }}>
-                {channel === ContactChannel.Email ? t.contact.email : t.contact.phone}
-              </Text>
-              <Text numberOfLines={1} style={{ fontSize: 13, color: muted }}>
-                {existing
-                  ? t.contact.alreadyAdded.replace('{value}', existing)
-                  : channel === ContactChannel.Email
-                    ? t.contact.emailAddress
-                    : t.contact.phoneNumber}
-              </Text>
+          {linkedContacts.map((contact, index) => (
+            <View key={contact.channel}>
+              {index > 0 ? <Divider /> : null}
+              <LinkedContactRow
+                icon={contact.channel === ContactChannel.Email ? 'mail-outline' : 'call-outline'}
+                title={contact.channel === ContactChannel.Email ? t.contact.email : t.contact.phone}
+                value={contact.value}
+                note={
+                  onlyWayIn
+                    ? t.contact.onlyWayIn
+                    : contact.unlockAt > now
+                      ? fill(t.contact.unlinkFrom, { date: shortDate(contact.unlockAt) })
+                      : null
+                }
+                canUnlink={!onlyWayIn && contact.unlockAt <= now}
+                busy={unlinking === contact.channel}
+                label={t.contact.unlink}
+                onUnlink={() => void unlink(contact.channel)}
+              />
             </View>
-          </Row>
+          ))}
 
-          {/* Phone only where the build can prove one: the code comes from a
-              native module, so an older binary would leave the chip dead. */}
-          {phoneSignInAvailable() ? (
-            <ChipRow<ContactChannel>
-              value={channel}
-              onChange={(next) => {
-                // Not mid-request: switching the target while a code is in
-                // flight would check it against a different address.
-                if (busy) return;
-                setChannel(next);
-                setSent(false);
-                setDone(false);
-                setError(null);
-                setValue('');
-              }}
-              options={[
-                { value: ContactChannel.Email, label: t.contact.email },
-                { value: ContactChannel.Phone, label: t.contact.phone },
-              ]}
-            />
-          ) : null}
-
-          {sent ? (
-            <View style={{ gap: theme.spacing.xs }}>
-              <Text style={{ fontSize: 12, color: muted }}>
-                {channel === ContactChannel.Email ? t.contact.codeEmailed : t.contact.codeTexted}
-              </Text>
-              <Row style={{ gap: theme.spacing.sm }}>
-                <TextInput
-                  value={code}
-                  onChangeText={setCode}
-                  editable={!busy}
-                  keyboardType="number-pad"
-                  maxLength={6}
-                  // The code has just arrived — let the OS offer the one-tap
-                  // fill: `sms-otp` on Android, `oneTimeCode` on iOS.
-                  autoComplete="sms-otp"
-                  textContentType="oneTimeCode"
-                  accessibilityLabel={t.contact.verificationCode}
-                  placeholder="123456"
-                  placeholderTextColor={theme.color.textFaint}
-                  style={[inputStyle, { flex: 1, fontWeight: '700', letterSpacing: 4 }]}
+          {addable.length > 0 ? (
+            <>
+              {linkedContacts.length > 0 ? <Divider /> : null}
+              <Row style={{ gap: 12, alignItems: 'center' }}>
+                <Disc
+                  icon={channel === ContactChannel.Email ? 'mail-outline' : 'call-outline'}
+                  tint={theme.tint.lilac}
                 />
-                <PillButton
-                  label={actionLabel}
-                  disabled={actionDisabled}
-                  busy={busy}
-                  onPress={() => void confirm()}
-                />
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={{ fontSize: 15, fontWeight: '700', color: ink }}>
+                    {linkedContacts.length > 0
+                      ? t.contact.addAnother
+                      : channel === ContactChannel.Email
+                        ? t.contact.email
+                        : t.contact.phone}
+                  </Text>
+                  <Text numberOfLines={1} style={{ fontSize: 13, color: muted }}>
+                    {channel === ContactChannel.Email
+                      ? t.contact.emailAddress
+                      : t.contact.phoneNumber}
+                  </Text>
+                </View>
               </Row>
-              <Button
-                label={t.contact.useDifferent}
-                variant="ghost"
-                size="sm"
-                onPress={() => setSent(false)}
-              />
-            </View>
-          ) : channel === ContactChannel.Email ? (
-            <Row style={{ gap: theme.spacing.sm }}>
-              <TextInput
-                value={value}
-                onChangeText={(next) => {
-                  setValue(next);
-                  setSent(false);
-                  setDone(false);
-                }}
-                editable={!busy}
-                autoCapitalize="none"
-                autoComplete="email"
-                keyboardType="email-address"
-                accessibilityLabel={t.contact.emailAddress}
-                placeholder={t.contact.emailPlaceholder}
-                placeholderTextColor={theme.color.textFaint}
-                style={[inputStyle, { flex: 1 }]}
-              />
-              <PillButton
-                label={actionLabel}
-                disabled={actionDisabled}
-                busy={busy}
-                onPress={() => void send()}
-              />
-            </Row>
-          ) : (
-            // The dial code is its own control; the field beside it holds only
-            // local digits.
-            <View style={{ gap: theme.spacing.sm }}>
-              <Row style={{ gap: theme.spacing.sm, alignItems: 'stretch' }}>
-                <CountryCodePicker
-                  code={phoneCountry}
+
+              {/* Only the channels not linked yet — and phone only where the
+                  build can prove one: the code comes from a native module. */}
+              {addable.length > 1 ? (
+                <ChipRow<ContactChannel>
+                  value={channel}
                   onChange={(next) => {
-                    // A new dial code is a new number: any code already sent no
-                    // longer matches. Never mid-request.
+                    // Not mid-request: switching the target while a code is in
+                    // flight would check it against a different address.
                     if (busy) return;
-                    setPhoneCountry(next);
+                    setChannel(next);
                     setSent(false);
                     setDone(false);
                     setError(null);
-                    setCode('');
+                    setValue('');
                   }}
+                  options={addable.map((option) => ({
+                    value: option,
+                    label: option === ContactChannel.Email ? t.contact.email : t.contact.phone,
+                  }))}
                 />
-                <TextInput
-                  value={value}
-                  onChangeText={(next) => {
-                    setValue(next);
-                    setSent(false);
-                    setDone(false);
-                  }}
-                  editable={!busy}
-                  autoComplete="tel"
-                  keyboardType="phone-pad"
-                  accessibilityLabel={t.contact.phoneNumber}
-                  placeholder={t.contact.phonePlaceholder.replace('{code}', '').trim()}
-                  placeholderTextColor={theme.color.textFaint}
-                  style={[inputStyle, { flex: 1 }]}
-                />
-              </Row>
-              <PillButton
-                label={actionLabel}
-                disabled={actionDisabled}
-                busy={busy}
-                onPress={() => void send()}
-              />
-            </View>
-          )}
+              ) : null}
+
+              {relinkAt !== null && relinkAt > now ? (
+                // Unlinked less than a week ago: the server would refuse a new
+                // one, so the form waits and says until when.
+                <Text style={{ fontSize: 13, color: muted }}>
+                  {fill(t.contact.relinkFrom, { date: shortDate(relinkAt) })}
+                </Text>
+              ) : sent ? (
+                <View style={{ gap: theme.spacing.xs }}>
+                  <Text style={{ fontSize: 12, color: muted }}>
+                    {channel === ContactChannel.Email
+                      ? t.contact.codeEmailed
+                      : t.contact.codeTexted}
+                  </Text>
+                  <Row style={{ gap: theme.spacing.sm }}>
+                    <TextInput
+                      value={code}
+                      onChangeText={setCode}
+                      editable={!busy}
+                      keyboardType="number-pad"
+                      maxLength={6}
+                      // The code has just arrived — let the OS offer the one-tap
+                      // fill: `sms-otp` on Android, `oneTimeCode` on iOS.
+                      autoComplete="sms-otp"
+                      textContentType="oneTimeCode"
+                      accessibilityLabel={t.contact.verificationCode}
+                      placeholder="123456"
+                      placeholderTextColor={theme.color.textFaint}
+                      style={[inputStyle, { flex: 1, fontWeight: '700', letterSpacing: 4 }]}
+                    />
+                    <PillButton
+                      label={actionLabel}
+                      disabled={actionDisabled}
+                      busy={busy}
+                      onPress={() => void confirm()}
+                    />
+                  </Row>
+                  <Button
+                    label={t.contact.useDifferent}
+                    variant="ghost"
+                    size="sm"
+                    onPress={() => setSent(false)}
+                  />
+                </View>
+              ) : channel === ContactChannel.Email ? (
+                <Row style={{ gap: theme.spacing.sm }}>
+                  <TextInput
+                    value={value}
+                    onChangeText={(next) => {
+                      setValue(next);
+                      setSent(false);
+                      setDone(false);
+                    }}
+                    editable={!busy}
+                    autoCapitalize="none"
+                    autoComplete="email"
+                    keyboardType="email-address"
+                    accessibilityLabel={t.contact.emailAddress}
+                    placeholder={t.contact.emailPlaceholder}
+                    placeholderTextColor={theme.color.textFaint}
+                    style={[inputStyle, { flex: 1 }]}
+                  />
+                  <PillButton
+                    label={actionLabel}
+                    disabled={actionDisabled}
+                    busy={busy}
+                    onPress={() => void send()}
+                  />
+                </Row>
+              ) : (
+                // The dial code is its own control; the field beside it holds only
+                // local digits.
+                <View style={{ gap: theme.spacing.sm }}>
+                  <Row style={{ gap: theme.spacing.sm, alignItems: 'stretch' }}>
+                    <CountryCodePicker
+                      code={phoneCountry}
+                      onChange={(next) => {
+                        // A new dial code is a new number: any code already sent no
+                        // longer matches. Never mid-request.
+                        if (busy) return;
+                        setPhoneCountry(next);
+                        setSent(false);
+                        setDone(false);
+                        setError(null);
+                        setCode('');
+                      }}
+                    />
+                    <TextInput
+                      value={value}
+                      onChangeText={(next) => {
+                        setValue(next);
+                        setSent(false);
+                        setDone(false);
+                      }}
+                      editable={!busy}
+                      autoComplete="tel"
+                      keyboardType="phone-pad"
+                      accessibilityLabel={t.contact.phoneNumber}
+                      placeholder={t.contact.phonePlaceholder.replace('{code}', '').trim()}
+                      placeholderTextColor={theme.color.textFaint}
+                      style={[inputStyle, { flex: 1 }]}
+                    />
+                  </Row>
+                  <PillButton
+                    label={actionLabel}
+                    disabled={actionDisabled}
+                    busy={busy}
+                    onPress={() => void send()}
+                  />
+                </View>
+              )}
+            </>
+          ) : null}
 
           {done ? (
             <Text variant="caption" tone="positive">
@@ -795,6 +926,59 @@ function Disc({ icon, tint }: { icon: IconName; tint: { bg: string; ink: string 
     >
       <Ionicons name={icon} size={17} color={tint.ink} />
     </View>
+  );
+}
+
+/**
+ * A linked email or phone: its glyph, what it is, the address or number, and
+ * Unlink — or, when unlinking is not open yet, the line that says why.
+ */
+function LinkedContactRow({
+  icon,
+  title,
+  value,
+  note,
+  canUnlink,
+  busy,
+  label,
+  onUnlink,
+}: {
+  icon: IconName;
+  title: string;
+  value: string;
+  note: string | null;
+  canUnlink: boolean;
+  busy: boolean;
+  label: string;
+  onUnlink: () => void;
+}) {
+  const theme = useTheme();
+  const dark = theme.scheme === 'dark';
+  const ink = dark ? theme.color.text : SPEC_INK;
+  const muted = dark ? theme.color.textMuted : SPEC_MUTED;
+  return (
+    <Row style={{ gap: 12, paddingVertical: 4, alignItems: 'center' }}>
+      <Disc icon={icon} tint={theme.tint.lilac} />
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text style={{ fontSize: 15, fontWeight: '700', color: ink }}>{title}</Text>
+        <Text numberOfLines={1} style={{ fontSize: 14, color: ink }}>
+          {value}
+        </Text>
+        {note ? <Text style={{ fontSize: 12, color: muted }}>{note}</Text> : null}
+      </View>
+      {canUnlink ? (
+        <Button
+          label={label}
+          accessibilityLabel={`${label} ${value}`}
+          variant="ghostDanger"
+          size="sm"
+          disabled={busy}
+          icon={busy ? <ActivityIndicator size="small" color={theme.color.negative} /> : undefined}
+          hitSlop={8}
+          onPress={onUnlink}
+        />
+      ) : null}
+    </Row>
   );
 }
 

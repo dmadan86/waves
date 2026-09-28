@@ -213,8 +213,49 @@ function digitsOf(value: string | null | undefined): string {
   return (value ?? '').replace(/\D/g, '');
 }
 
-/** Attached just now, already there, spoken for by somebody else, or broken. */
-type AttachOutcome = 'attached' | 'already' | 'taken' | 'failed';
+/**
+ * Attached just now, already there, spoken for by somebody else, refused
+ * because a number came off this account less than a week ago, or broken.
+ */
+type AttachOutcome = 'attached' | 'already' | 'taken' | 'cooldown' | 'failed';
+
+/** Said the same way whether the pre-check or the trigger caught it. */
+const RELINK_COOLDOWN_MESSAGE =
+  'You unlinked a number recently. You can add a new one 7 days after that.';
+
+/**
+ * When this account may take a new number again, or null if it already may —
+ * or if we could not tell, because the trigger on `auth.users` refuses the
+ * attach regardless and this is only here to say so before anything is spent.
+ */
+async function relinkOpensAt(service: SupabaseClient, caller: string): Promise<string | null> {
+  try {
+    const { data, error } = await service.rpc('waves_contact_relink_open_at', {
+      p_user: caller,
+      p_channel: 'phone',
+    });
+    if (error) {
+      console.error('phone-verify could not check the relink cooldown:', error.message);
+      return null;
+    }
+    if (typeof data !== 'string') return null;
+    const at = new Date(data);
+    return Number.isNaN(at.getTime()) ? null : at.toISOString();
+  } catch {
+    return null;
+  }
+}
+
+function relinkCooldown(unlockAt: string | null): Response {
+  return new Response(
+    JSON.stringify({
+      code: 'RELINK_COOLDOWN',
+      message: RELINK_COOLDOWN_MESSAGE,
+      ...(unlockAt ? { unlockAt } : {}),
+    }),
+    { status: 409, headers: { 'Content-Type': 'application/json' } },
+  );
+}
 
 /**
  * Put the proved number on the account in hand.
@@ -251,6 +292,13 @@ async function attachNumber(
 
   if (/already|registered|duplicate|exists/i.test(error.message)) {
     return (await holdsIt()) ? 'already' : 'taken';
+  }
+  // The trigger on `auth.users`: a number came off this account less than a
+  // week ago (`contact-unlink`). GoTrue usually wraps a trigger's exception as a
+  // bare "Database error", so the message is not relied on — the cooldown is
+  // asked for directly before this is called 'failed'.
+  if (/CONTACT_RELINK_COOLDOWN/.test(error.message) || (await relinkOpensAt(service, caller))) {
+    return 'cooldown';
   }
   console.error('phone-verify could not attach the number:', error.message);
   return 'failed';
@@ -326,6 +374,12 @@ export async function handlePhoneVerify(
   if (mode === 'attach') {
     caller = await deps.callerId(request);
     if (!caller) return fail(401, 'NOT_AUTHENTICATED', 'Sign in first');
+
+    // A number came off this account less than a week ago. The trigger on
+    // `auth.users` would refuse the attach anyway; asking here is what stops the
+    // proof and one of the number's three codes for the day being spent first.
+    const opensAt = await relinkOpensAt(service, caller);
+    if (opensAt) return relinkCooldown(opensAt);
   }
 
   // Signing in leans on GoTrue accepting a phone sign-in at all; attaching never
@@ -439,6 +493,12 @@ export async function handlePhoneVerify(
       // too: GoTrue's unique index decides, one comes away holding the number
       // and the other is told plainly that it is spoken for.
       return fail(409, 'PHONE_TAKEN', 'That number is already on another Waves account');
+    }
+    if (attached === 'cooldown') {
+      // An answer, not our failure: the proof was spent getting it, like
+      // PHONE_TAKEN. Normally caught above before anything is spent; this is
+      // the race where the unlink landed in between.
+      return relinkCooldown(await relinkOpensAt(service, caller!));
     }
     if (attached === 'failed') {
       await giveItBack();

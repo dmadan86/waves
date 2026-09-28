@@ -1880,6 +1880,22 @@ model FirebaseAssertion {
   @@schema("public")
 }
 
+/// The latest time an account took its phone or email off itself.
+///
+/// Written only by `waves_unlink_contact` (via `contact-unlink`); a new contact
+/// on the same channel is refused for seven days after `unlinkedAt` by a
+/// trigger on `auth.users`. The owner can read their own row, to show when a new
+/// one can go on. `channel` is 'phone' or 'email' (CHECK constraint).
+model ContactUnlink {
+  userId     String   @map("user_id") @db.Uuid
+  channel    String
+  unlinkedAt DateTime @default(now()) @map("unlinked_at") @db.Timestamptz(6)
+
+  @@id([userId, channel])
+  @@map("contact_unlinks")
+  @@schema("public")
+}
+
 /// A sign-in code in flight between `phone-verify` and `otp-send`.
 ///
 /// Firebase can prove somebody holds a number but cannot mint a Supabase

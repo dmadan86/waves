@@ -14,7 +14,27 @@ import { describe, expect, it } from 'vitest';
 
 import { redirectSystemPath } from '@/app/+native-intent';
 
-const go = (path: string): string => redirectSystemPath({ path, initial: true });
+const go = (path: string): string | null => redirectSystemPath({ path, initial: true });
+
+describe("Firebase's phone check returning from reCAPTCHA", () => {
+  const link =
+    'waves://firebaseauth/link?deep_link_id=https%3A%2F%2Fwaves-3e7b8.firebaseapp.com%2F__%2Fauth%2Fcallback%3FauthType%3DverifyApp';
+
+  it('is left to Firebase while the app is open', () => {
+    expect(redirectSystemPath({ path: link, initial: false })).toBeNull();
+    expect(
+      redirectSystemPath({
+        path: 'app-1-654054834944-ios-a1864d97b1dd417368e9e5://firebaseauth/link?x=1',
+        initial: false,
+      }),
+    ).toBeNull();
+    expect(redirectSystemPath({ path: '/firebaseauth/link?x=1', initial: false })).toBeNull();
+  });
+
+  it('lands on Home if it ever starts the app', () => {
+    expect(go(link)).toBe('/');
+  });
+});
 
 describe('an invite arriving as an App Link', () => {
   it('carries the fragment token through to the join screen', () => {
