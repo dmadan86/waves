@@ -37,6 +37,22 @@ describe('the phone sign-in module', () => {
     expect(loadFirebaseAuth()).toBe(auth);
   });
 
+  it('wraps the modular API (v22+, the only one v26 ships) into the same shape', async () => {
+    const auth = { app: 'default' };
+    const confirmation = { confirm: vi.fn() };
+    const getAuth = vi.fn(() => auth);
+    const signInWithPhoneNumber = vi.fn(async () => confirmation);
+    const signOut = vi.fn(async () => undefined);
+    packages({ '@react-native-firebase/auth': { getAuth, signInWithPhoneNumber, signOut } });
+
+    const loaded = loadFirebaseAuth();
+    expect(loaded).not.toBeNull();
+    await expect(loaded!().signInWithPhoneNumber('+919876543210')).resolves.toBe(confirmation);
+    expect(signInWithPhoneNumber).toHaveBeenCalledWith(auth, '+919876543210');
+    await loaded!().signOut();
+    expect(signOut).toHaveBeenCalledWith(auth);
+  });
+
   it('is null, not a crash, on a build without it', () => {
     packages({});
     expect(loadFirebaseAuth()).toBeNull();

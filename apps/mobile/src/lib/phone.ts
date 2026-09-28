@@ -65,3 +65,20 @@ export function isPhoneCountryError(caught: unknown): boolean {
   }`;
   return /PHONE_NEEDS_COUNTRY_CODE|PHONE_NOT_VALID/.test(haystack);
 }
+
+/**
+ * A stored number as a person reads it: `919901511077` → `+91 99015 11077`.
+ * Auth keeps numbers as bare digits; India and North America get their usual
+ * grouping, anything else the country code and the rest.
+ */
+export function displayPhone(raw: string | null | undefined): string {
+  const digits = (raw ?? '').replace(/[^\d]/g, '');
+  if (!digits) return '';
+  if (digits.length === 12 && digits.startsWith('91')) {
+    return `+91 ${digits.slice(2, 7)} ${digits.slice(7)}`;
+  }
+  if (digits.length === 11 && digits.startsWith('1')) {
+    return `+1 ${digits.slice(1, 4)} ${digits.slice(4, 7)} ${digits.slice(7)}`;
+  }
+  return `+${digits}`;
+}

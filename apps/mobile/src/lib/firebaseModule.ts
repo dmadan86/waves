@@ -29,7 +29,31 @@ export interface FirebaseAuth {
 export function loadFirebaseAuth(): FirebaseAuth | null {
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const loaded = require('@react-native-firebase/auth') as { default?: FirebaseAuth };
+    const loaded = require('@react-native-firebase/auth') as {
+      default?: FirebaseAuth;
+      getAuth?: () => unknown;
+      signInWithPhoneNumber?: (auth: unknown, phone: string) => Promise<PhoneConfirmation>;
+      signOut?: (auth: unknown) => Promise<void>;
+    };
+    // v22 onwards is modular, and v26 dropped the default export altogether:
+    // reading only `default` made every build since the upgrade answer "no
+    // phone sign-in here", hiding the phone door on every screen. The
+    // functions are wrapped back into the one shape the callers use.
+    const { getAuth, signInWithPhoneNumber, signOut } = loaded;
+    if (
+      typeof getAuth === 'function' &&
+      typeof signInWithPhoneNumber === 'function' &&
+      typeof signOut === 'function'
+    ) {
+      return () => {
+        const auth = getAuth();
+        return {
+          signInWithPhoneNumber: (phone: string) => signInWithPhoneNumber(auth, phone),
+          signOut: () => signOut(auth),
+        };
+      };
+    }
+    // An older binary's namespaced module.
     return loaded.default ?? null;
   } catch {
     return null;

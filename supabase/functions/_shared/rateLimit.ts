@@ -59,6 +59,12 @@ export const LIMITS = {
    */
   'account-delete': { limit: 5, windowSeconds: 3600 },
   /**
+   * Taking a phone or email off the account. A person does this a handful of
+   * times in the life of an account; the cap keeps a stuck retry from walking
+   * the row lock on `auth.users` all hour.
+   */
+  'contact-unlink': { limit: 10, windowSeconds: 3600 },
+  /**
    * Sign-in codes, three to a number a day.
    *
    * Not enforced here any more, and the entry stays only so this file remains

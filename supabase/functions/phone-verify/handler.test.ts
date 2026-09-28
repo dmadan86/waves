@@ -79,6 +79,8 @@ function deps(
     /** A settings endpoint that will not answer, or answers with nonsense. */
     settingsStatus?: number;
     settingsBody?: string;
+    /** When `waves_contact_relink_open_at` says a new number may go on. */
+    relinkOpenAt?: string | null;
   } = {},
 ): PhoneVerifyDeps & {
   rpc: ReturnType<typeof vi.fn>;
@@ -109,6 +111,9 @@ function deps(
       return overrides.relayOpenErrored
         ? Promise.resolve({ data: null, error: { message: 'no relay' } })
         : Promise.resolve({ data: 'exchange-1', error: null });
+    }
+    if (name === 'waves_contact_relink_open_at') {
+      return Promise.resolve({ data: overrides.relinkOpenAt ?? null, error: null });
     }
     if (name === 'waves_otp_relay_claim') {
       return Promise.resolve({
@@ -736,5 +741,93 @@ describe('an attach with nobody signed in', () => {
     expect(response.status).toBe(401);
     expect(rpcNames(d)).not.toContain('waves_phone_gate');
     expect(rpcNames(d)).not.toContain('waves_firebase_assertion_use');
+  });
+});
+
+/**
+ * A number came off this account less than a week ago (`contact-unlink`), and a
+ * trigger on `auth.users` refuses a new one until the week is up. The person is
+ * told that, in words — not "could not add that number", which they would retry.
+ */
+describe('attaching within a week of unlinking a number', () => {
+  const attach = () => request({ idToken: 'a.b.c', mode: 'attach' });
+
+  it('is refused up front, before the proof or the day is spent', async () => {
+    const d = deps({ callerId: 'user-1', relinkOpenAt: '2026-10-05T09:30:00+00:00' });
+    const response = await handlePhoneVerify(attach(), d);
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({
+      code: 'RELINK_COOLDOWN',
+      message: 'You unlinked a number recently. You can add a new one 7 days after that.',
+      unlockAt: '2026-10-05T09:30:00.000Z',
+    });
+    expect(d.updateUserById).not.toHaveBeenCalled();
+    expect(rpcNames(d)).not.toContain('waves_firebase_assertion_use');
+    expect(rpcNames(d)).not.toContain('waves_phone_gate');
+  });
+
+  it('maps the trigger’s refusal to the same answer when it gets that far', async () => {
+    // The unlink landed between the pre-check and the attach: the trigger is
+    // what refuses, and GoTrue passes its exception text through.
+    const d = deps({
+      callerId: 'user-1',
+      attachError: { message: 'CONTACT_RELINK_COOLDOWN: a new phone can be added from …' },
+    });
+    const response = await handlePhoneVerify(attach(), d);
+
+    expect(response.status).toBe(409);
+    const json = await response.json();
+    expect(json.code).toBe('RELINK_COOLDOWN');
+    expect(json.message).toBe(
+      'You unlinked a number recently. You can add a new one 7 days after that.',
+    );
+    // An answer, not our failure: nothing is handed back.
+    expect(rpcNames(d)).not.toContain('waves_phone_gate_refund');
+  });
+
+  it('recognises it behind GoTrue’s generic database error too', async () => {
+    // GoTrue usually reports a trigger's exception as a bare "Database error",
+    // so the handler asks the cooldown directly before calling it a failure.
+    const d = deps({
+      callerId: 'user-1',
+      attachError: { message: 'Database error updating user' },
+    });
+    let asked = 0;
+    const original = d.rpc.getMockImplementation()!;
+    d.rpc.mockImplementation((name: string, args: unknown) => {
+      if (name === 'waves_contact_relink_open_at') {
+        asked += 1;
+        // Open at the pre-check, closed by the time the attach ran.
+        return Promise.resolve({
+          data: asked === 1 ? null : '2026-10-05T09:30:00+00:00',
+          error: null,
+        });
+      }
+      return original(name, args);
+    });
+    const response = await handlePhoneVerify(attach(), d);
+
+    expect(response.status).toBe(409);
+    expect((await response.json()).code).toBe('RELINK_COOLDOWN');
+  });
+
+  it('is still an ordinary failure when there is no cooldown', async () => {
+    const d = deps({
+      callerId: 'user-1',
+      attachError: { message: 'Database error updating user' },
+    });
+    const response = await handlePhoneVerify(attach(), d);
+
+    expect(response.status).toBe(502);
+    expect((await response.json()).code).toBe('UPSTREAM');
+  });
+
+  it('never asks on a sign-in', async () => {
+    const d = deps({ relinkOpenAt: '2026-10-05T09:30:00+00:00' });
+    const response = await handlePhoneVerify(request(), d);
+
+    expect(response.status).toBe(200);
+    expect(rpcNames(d)).not.toContain('waves_contact_relink_open_at');
   });
 });

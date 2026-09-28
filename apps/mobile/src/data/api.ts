@@ -1165,6 +1165,60 @@ export async function confirmContact(
 }
 
 /**
+ * Take a phone number or an email off the account.
+ *
+ * The rules live on the server (`contact-unlink`), not here: a contact can be
+ * unlinked only a week after it was linked, never when it is the last way back
+ * in, and a new one cannot be linked for a week after. The screen reads the same
+ * dates to explain itself, but the function is what refuses. Its `message` is
+ * written to be read, so it is passed through as the error.
+ */
+export async function unlinkContact(channel: ContactChannel): Promise<void> {
+  const { data, error } = await backend.functions.invoke('contact-unlink', {
+    body: { channel },
+  });
+  if (error) {
+    const response = (error as { context?: unknown }).context;
+    if (response instanceof Response) {
+      try {
+        const body = (await response.clone().json()) as { message?: unknown };
+        if (typeof body.message === 'string' && body.message) throw new Error(body.message);
+      } catch (caught) {
+        if (caught instanceof Error && caught.message) throw caught;
+      }
+    }
+    throw new Error('Could not unlink that just now.');
+  }
+  if (!(data as { unlinked?: boolean } | null)?.unlinked) {
+    throw new Error('Could not unlink that just now.');
+  }
+  // The user held on this device still carries the contact until the token is
+  // reissued; refreshing is what makes the screen agree with the server.
+  await backend.auth.refreshSession();
+}
+
+/**
+ * When each channel was last unlinked, for the "add a new one from…" line.
+ * Empty on any failure, including a server that predates the table: the server
+ * still refuses a relink inside the week, so this is explanation, not the rule.
+ */
+export async function fetchContactUnlinks(): Promise<Partial<Record<ContactChannel, string>>> {
+  try {
+    const { data, error } = await backend.from('contact_unlinks').select('channel, unlinked_at');
+    if (error || !data) return {};
+    const out: Partial<Record<ContactChannel, string>> = {};
+    for (const row of data as { channel: string; unlinked_at: string }[]) {
+      if (row.channel === ContactChannel.Email || row.channel === ContactChannel.Phone) {
+        out[row.channel] = row.unlinked_at;
+      }
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+/**
  * Both failures here are project configuration rather than anything the person
  * did wrong, and the raw messages ("Manual linking is disabled") would send
  * them looking for a mistake they did not make.

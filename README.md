@@ -168,6 +168,7 @@ passes every test and delivers nothing.
 | `storage-sweep`      | Reclaims R2 bytes nothing points at, and expires abandoned reservations        |
 | `storage-recount`    | Re-reads an object's true size after the image worker transcoded it            |
 | `account-delete`     | The half of erasure a database role cannot do — removes the `auth.users` row   |
+| `contact-unlink`     | Takes a phone or email off an account — not within 7 days, never the last one  |
 | `campaign-broadcast` | Mails a campaign to its cohort, holdout excluded (TDR A21)                     |
 
 Sixteen in all; `supabase/functions/` is the list, and the table names the ones a

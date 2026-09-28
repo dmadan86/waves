@@ -27,8 +27,26 @@ import { tokenFromScan } from '@/lib/inviteLink';
  * @param path the incoming link. Named `path` but it is the full URL (e.g.
  *   `waves://auth#…`), not just the path portion.
  */
-export function redirectSystemPath({ path }: { path: string; initial: boolean }): string {
+export function redirectSystemPath({
+  path,
+  initial,
+}: {
+  path: string;
+  initial: boolean;
+}): string | null {
   try {
+    // Firebase's phone check coming back from its reCAPTCHA page
+    // (`waves://firebaseauth/link?deep_link_id=…`). The Firebase SDK reads it
+    // natively; it is not a screen, and handing it to the router drew
+    // "Unmatched Route" over the code field on iPhone and iPad. Ignored while
+    // the app is running (null tells the router to stay put); on the unlikely
+    // cold start it lands on Home rather than on nothing.
+    if (
+      /^[a-z][a-z0-9+.-]*:\/\/firebaseauth(\/|\?|$)/i.test(path) ||
+      path.startsWith('/firebaseauth')
+    ) {
+      return initial ? '/' : null;
+    }
     // An invite, arriving as an App Link. The token is in the fragment
     // (`https://app.wavs.co.in/join#abc`), and a fragment is not a route: left
     // alone, expo-router matches `/join` with no params and the screen asks for
