@@ -23,7 +23,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useMemo } from 'react';
 import { Pressable, View } from 'react-native';
 
-import { format, money, type PersonalTxn } from '@waves/core';
+import { format, money, resolveCategory, type PersonalTxn } from '@waves/core';
 import {
   Card,
   directionalIcon,
@@ -55,8 +55,17 @@ function PersonalTransactionsScreenBody() {
   const clearance = useBottomClearance();
   const { t, locale } = useStrings();
   const { txns } = usePersonalLedger();
-  const params = useLocalSearchParams<{ category?: string; kind?: string; month?: string }>();
+  const params = useLocalSearchParams<{
+    category?: string;
+    categoryMode?: string;
+    kind?: string;
+    month?: string;
+  }>();
   const filter = typeof params.category === 'string' ? params.category : null;
+  // The dashboard's columns are buckets: a custom or unknown category is counted
+  // under Other there, so it has to be listed under Other here too. Budgets pass
+  // an exact id, custom ones included, and keep matching it exactly.
+  const bucketed = params.categoryMode === 'bucket';
   const kind = params.kind === 'income' || params.kind === 'expense' ? params.kind : null;
   const month =
     typeof params.month === 'string' && /^\d{4}-\d{2}$/.test(params.month) ? params.month : null;
@@ -69,9 +78,14 @@ function PersonalTransactionsScreenBody() {
    * way the group month screen does.
    */
   const items: LedgerItem[] = useMemo(() => {
+    const matchesCategory = (category: string | null | undefined): boolean =>
+      !filter ||
+      (bucketed
+        ? (resolveCategory(category ?? null, null).builtinId ?? 'other') === filter
+        : category === filter);
     const shown = txns.filter(
       (txn) =>
-        (!filter || txn.category === filter) &&
+        matchesCategory(txn.category) &&
         (!kind || txn.kind === kind) &&
         (!month || txn.date.slice(0, 7) === month),
     );
@@ -85,7 +99,7 @@ function PersonalTransactionsScreenBody() {
       list.push({ kind: 'txn', key: txn.id, txn });
     }
     return list;
-  }, [txns, filter, kind, month]);
+  }, [txns, filter, bucketed, kind, month]);
 
   const labelFor = (id: string | null): string | null =>
     id ? (t.categories[id as keyof typeof t.categories] ?? null) : null;

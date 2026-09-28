@@ -249,7 +249,9 @@ export function GroupHero({
               numberOfLines={2}
               style={{ fontSize: 20, lineHeight: 25, fontWeight: '700' }}
             >
-              {cleanLabel(groupLabel(group, members ?? [], profileId))}
+              {group.name?.trim()
+                ? group.name.trim()
+                : cleanLabel(groupLabel(group, members ?? [], profileId))}
             </Text>
             <Text variant="caption" tone="onBrand" style={{ opacity: 0.85 }}>
               {plural(locale, members?.length ?? 0, t.memberCount)}
@@ -484,7 +486,8 @@ export function GroupHero({
 const AVATAR_TILE = 52;
 
 /** A name built from people's names reads without the punctuation an address
- *  book puts in front of one (".Rvs Anoop" → "Rvs Anoop"). */
+ *  book puts in front of one (".Rvs Anoop" → "Rvs Anoop"). Only for that
+ *  fallback: a name the group was given (".NET Team") is shown as typed. */
 function cleanLabel(label: string): string {
   return label.replace(/(^|,\s*)[^\p{L}\p{N}\s]+(?=\p{L}|\p{N})/gu, '$1');
 }

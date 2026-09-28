@@ -658,7 +658,8 @@ export default function GroupScreen() {
     [windowed, tabData],
   );
   // The Expenses tab with nothing on it: the empty state fits the screen, so it
-  // holds still (no scroll, no bounce).
+  // doesn't bounce. It still scrolls when drafts, receipts or large text push
+  // the content past the screen, so nothing below is out of reach.
   const emptyExpenses = tab === Tab.Expenses && listData.length === 0;
 
   if (group.isLoading) {
@@ -1099,7 +1100,8 @@ export default function GroupScreen() {
         ) : (
           <FlashList
             ref={listRef}
-            scrollEnabled={!emptyExpenses}
+            bounces={!emptyExpenses}
+            overScrollMode={emptyExpenses ? 'never' : 'auto'}
             data={listData}
             // Not the tab: switching tabs already hands `data` a different array,
             // and naming it here only made every mounted cell re-render a second

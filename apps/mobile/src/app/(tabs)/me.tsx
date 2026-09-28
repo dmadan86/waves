@@ -524,7 +524,12 @@ function MeLedger() {
                     onPress={() =>
                       router.push({
                         pathname: '/personal/transactions',
-                        params: { category: category.key, kind: 'expense', month },
+                        params: {
+                          category: category.key,
+                          categoryMode: 'bucket',
+                          kind: 'expense',
+                          month,
+                        },
                       })
                     }
                     category={category.key}
