@@ -3325,6 +3325,7 @@ export interface UiStrings {
   };
   /** The door where a paid tier would be, and what stays free. */
   upgradeScreen: {
+    promise: string;
     moreScans: string;
     moreScansBody: string;
     biggerTransfers: string;
@@ -3343,6 +3344,7 @@ export interface UiStrings {
    * to check the wrong thing three times.
    */
   promo: {
+    clear: string;
     row: string;
     rowHint: string;
     title: string;
@@ -6516,6 +6518,7 @@ const en: UiStrings = {
     noneBody: 'No activity falls on the dates you picked. Try a wider range or clear the filter.',
   },
   upgradeScreen: {
+    promise: 'No subscriptions. No locked ledger.',
     moreScans: 'More scanned bills',
     moreScansBody:
       'Photograph a receipt and have the lines read off it. Every scan costs real money to run, which is the honest reason it is the thing with a limit.',
@@ -6531,6 +6534,7 @@ const en: UiStrings = {
       'The ledger. Groups, expenses, splits, balances, settling up, and getting all of it back out again — {free}. A ledger you can only half read is not a ledger.',
   },
   promo: {
+    clear: 'Clear',
     row: 'Redeem a code',
     rowHint: 'If somebody gave you one',
     title: 'Redeem a code',
@@ -9803,6 +9807,7 @@ const ta: UiStrings = {
       'நீங்கள் தேர்ந்தெடுத்த தேதிகளில் எந்தச் செயல்பாடும் இல்லை. பரந்த வரம்பை முயற்சிக்கவும் அல்லது வடிப்பானை அழிக்கவும்.',
   },
   upgradeScreen: {
+    promise: 'சந்தா இல்லை. பூட்டிய கணக்கேடு இல்லை.',
     moreScans: 'அதிக ரசீது ஸ்கேன்கள்',
     moreScansBody:
       'ஒரு ரசீதைப் புகைப்படம் எடுத்தால் அதன் வரிகள் படிக்கப்படும். ஒவ்வொரு ஸ்கேனுக்கும் உண்மையான செலவு ஆகிறது — அதனால்தான் இதற்கு மட்டும் வரம்பு உள்ளது.',
@@ -9818,6 +9823,7 @@ const ta: UiStrings = {
       'கணக்கு. குழுக்கள், செலவுகள், பிரிவுகள், இருப்புகள், தீர்த்தல், அனைத்தையும் திரும்பப் பெறுதல் — {free}. பாதி மட்டுமே படிக்கக்கூடிய கணக்கு கணக்கே அல்ல.',
   },
   promo: {
+    clear: 'அழி',
     row: 'குறியீட்டைப் பயன்படுத்து',
     rowHint: 'யாராவது உங்களுக்குக் கொடுத்திருந்தால்',
     title: 'குறியீட்டைப் பயன்படுத்து',
@@ -12989,6 +12995,7 @@ const hi: UiStrings = {
     noneBody: 'आपकी चुनी तारीख़ों में कोई गतिविधि नहीं है. बड़ा दायरा चुनें या फ़िल्टर हटाएँ.',
   },
   upgradeScreen: {
+    promise: 'कोई सब्सक्रिप्शन नहीं। कोई बंद खाता-बही नहीं।',
     moreScans: 'ज़्यादा बिल स्कैन',
     moreScansBody:
       'रसीद की फ़ोटो लें और उसकी पंक्तियाँ पढ़ ली जाएँ। हर स्कैन पर सचमुच पैसा लगता है — यही ईमानदार वजह है कि सीमा इसी पर है।',
@@ -13004,6 +13011,7 @@ const hi: UiStrings = {
       'हिसाब। समूह, खर्च, बँटवारा, बकाया, निपटान, और यह सब वापस बाहर निकालना — {free}। जो हिसाब आप आधा ही पढ़ सकें, वह हिसाब नहीं।',
   },
   promo: {
+    clear: 'मिटाएँ',
     row: 'कोड इस्तेमाल करें',
     rowHint: 'अगर किसी ने आपको दिया हो',
     title: 'कोड इस्तेमाल करें',
@@ -16594,6 +16602,7 @@ const ar: UiStrings = {
     noneBody: 'لا يوجد نشاط في التواريخ التي اخترتها. جرّب نطاقًا أوسع أو امسح التصفية.',
   },
   upgradeScreen: {
+    promise: 'لا اشتراكات. لا سجل مقفل.',
     moreScans: 'مسح فواتير أكثر',
     moreScansBody:
       'صوّر إيصالًا لتُقرأ أصنافه. كل عملية مسح تكلّف مالًا حقيقيًا، وهذا هو السبب الصريح لكونها الشيء الوحيد المحدود.',
@@ -16609,6 +16618,7 @@ const ar: UiStrings = {
       'الدفتر. المجموعات والمصاريف والتقسيمات والأرصدة والتسوية، وإخراج كل ذلك مرة أخرى — {free}. الدفتر الذي لا تقرأ منه إلا نصفه ليس دفترًا.',
   },
   promo: {
+    clear: 'مسح',
     row: 'استخدام رمز',
     rowHint: 'إن أعطاك أحدهم واحدًا',
     title: 'استخدام رمز',
