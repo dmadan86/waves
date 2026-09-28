@@ -165,6 +165,10 @@ export default function ImportScreen() {
   const [fileGroups, setFileGroups] = useState<readonly WavesImportGroup[]>([]);
   const [fileGroupIndex, setFileGroupIndex] = useState(0);
   const [target, setTarget] = useState<string>(NEW_GROUP);
+  const chosenGroup =
+    target === NEW_GROUP
+      ? null
+      : ((groups.data ?? []).find((group) => group.id === target) ?? null);
   // The name a new group is created with. Seeded from the file (the Splitwise
   // default, or the export's own name) and then the person's to change — they no
   // longer have to accept "Splitwise" or rename it afterwards.
@@ -180,6 +184,7 @@ export default function ImportScreen() {
 
   const [busy, setBusy] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [stage, setStage] = useState<Stage | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<{
@@ -634,6 +639,8 @@ export default function ImportScreen() {
             {parsed.expenses.length > 0 ? (
               <View style={{ gap: 8 }}>
                 <SectionTitle>{t.importLedger.whereItGoes}</SectionTitle>
+                {/* Two choices, not a list of every group: a new group is the
+                    usual answer, and the rest wait behind one tap in a sheet. */}
                 <SoftCard style={{ padding: 6, gap: 0 }}>
                   <TargetRow
                     label={t.importLedger.aNewGroup}
@@ -643,20 +650,20 @@ export default function ImportScreen() {
                     selected={target === NEW_GROUP}
                     onPress={() => void chooseTarget(NEW_GROUP)}
                   />
-                  {/* The member count under each group, the way the dashboard
-                      lists them: the name says which, the count says how big. */}
-                  {(groups.data ?? []).map((group, index) => (
-                    <TargetRow
-                      key={group.id}
-                      label={labelOf(group)}
-                      hint={plural(locale, summary.memberCountFor(group.id), t.memberCount)}
-                      icon="people-outline"
-                      tint={index + 1}
-                      divider
-                      selected={target === group.id}
-                      onPress={() => void chooseTarget(group.id)}
-                    />
-                  ))}
+                  <TargetRow
+                    label={chosenGroup ? labelOf(chosenGroup) : t.importLedger.anExistingGroup}
+                    hint={
+                      chosenGroup
+                        ? `${plural(locale, summary.memberCountFor(chosenGroup.id), t.memberCount)} · ${t.importLedger.tapToChange}`
+                        : t.importLedger.anExistingGroupHint
+                    }
+                    icon="people-outline"
+                    tint={1}
+                    divider
+                    chevron={!chosenGroup}
+                    selected={chosenGroup !== null}
+                    onPress={() => setPickerOpen(true)}
+                  />
                 </SoftCard>
 
                 {/* Name the new group here rather than accept the file's default.
@@ -836,6 +843,37 @@ export default function ImportScreen() {
 
         {error ? <Callout tone="negative">{error}</Callout> : null}
       </ScrollView>
+
+      {/* Every group I am in, to pick the one the rows go into. Picking one
+          closes the sheet; the card behind then names it. */}
+      <Sheet
+        visible={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        padded={false}
+        closeLabel={t.common.close}
+        style={{ paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.lg, gap: 10 }}
+      >
+        <Text style={{ fontSize: 20, fontWeight: '800', color: ink, paddingHorizontal: 8 }}>
+          {t.importLedger.chooseGroup}
+        </Text>
+        <ScrollView style={{ maxHeight: 420 }} showsVerticalScrollIndicator={false}>
+          {(groups.data ?? []).map((group, index) => (
+            <TargetRow
+              key={group.id}
+              label={labelOf(group)}
+              hint={plural(locale, summary.memberCountFor(group.id), t.memberCount)}
+              icon="people-outline"
+              tint={index + 1}
+              divider={index > 0}
+              selected={target === group.id}
+              onPress={() => {
+                setPickerOpen(false);
+                void chooseTarget(group.id);
+              }}
+            />
+          ))}
+        </ScrollView>
+      </Sheet>
 
       {/* How it works, on tap of the header's help glyph. This sheet is where
           the longer explanation lives, so the screen itself can stay short:
@@ -1030,6 +1068,7 @@ function TargetRow({
   icon,
   tint,
   divider = false,
+  chevron = false,
   selected,
   onPress,
 }: {
@@ -1038,6 +1077,8 @@ function TargetRow({
   icon: IconName;
   tint: number;
   divider?: boolean;
+  /** Leads to a choice rather than being one: a chevron in place of the radio. */
+  chevron?: boolean;
   selected: boolean;
   onPress: () => void;
 }) {
@@ -1047,7 +1088,7 @@ function TargetRow({
   return (
     <Pressable
       onPress={onPress}
-      accessibilityRole="radio"
+      accessibilityRole={chevron ? 'button' : 'radio'}
       accessibilityLabel={hint ? `${label}, ${hint}` : label}
       accessibilityState={{ selected }}
       style={({ pressed }) => ({
@@ -1091,11 +1132,19 @@ function TargetRow({
         </Text>
         {hint ? <Text style={{ fontSize: 12, color: muted }}>{hint}</Text> : null}
       </View>
-      <Ionicons
-        name={selected ? 'radio-button-on' : 'radio-button-off'}
-        size={22}
-        color={selected ? accent : theme.color.textFaint}
-      />
+      {chevron ? (
+        <Ionicons
+          name={directionalIcon('chevron-forward')}
+          size={20}
+          color={theme.color.textFaint}
+        />
+      ) : (
+        <Ionicons
+          name={selected ? 'radio-button-on' : 'radio-button-off'}
+          size={22}
+          color={selected ? accent : theme.color.textFaint}
+        />
+      )}
     </Pressable>
   );
 }

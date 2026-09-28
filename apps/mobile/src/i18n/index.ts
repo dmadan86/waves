@@ -3160,6 +3160,10 @@ export interface UiStrings {
   };
   /** Bringing a ledger in from Splitwise or from Waves's own export. */
   importLedger: {
+    anExistingGroup: string;
+    anExistingGroupHint: string;
+    chooseGroup: string;
+    tapToChange: string;
     importFailed: string;
     splitwiseTitle: string;
     ledgerTitle: string;
@@ -6390,6 +6394,10 @@ const en: UiStrings = {
     hadItem: '{name} had {label}',
   },
   importLedger: {
+    anExistingGroup: 'An existing group',
+    anExistingGroupHint: 'Add to a group you already have',
+    chooseGroup: 'Choose a group',
+    tapToChange: 'Tap to change',
     importFailed: 'Could not bring in that file. Please try again.',
     splitwiseTitle: 'Import a Splitwise export',
     ledgerTitle: 'Import a ledger',
@@ -9674,6 +9682,10 @@ const ta: UiStrings = {
     hadItem: '{name} {label} சாப்பிட்டார்',
   },
   importLedger: {
+    anExistingGroup: 'ஏற்கனவே உள்ள குழு',
+    anExistingGroupHint: 'உங்களிடம் உள்ள ஒரு குழுவில் சேர்க்கவும்',
+    chooseGroup: 'ஒரு குழுவைத் தேர்ந்தெடுக்கவும்',
+    tapToChange: 'மாற்ற தட்டவும்',
     importFailed: 'அந்தக் கோப்பை இறக்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்.',
     splitwiseTitle: 'Splitwise ஏற்றுமதியை இறக்குமதி செய்',
     ledgerTitle: 'ஒரு கணக்கை இறக்குமதி செய்',
@@ -12884,6 +12896,10 @@ const hi: UiStrings = {
     hadItem: '{name} ने {label} लिया',
   },
   importLedger: {
+    anExistingGroup: 'पहले से बना ग्रुप',
+    anExistingGroupHint: 'अपने किसी मौजूदा ग्रुप में जोड़ें',
+    chooseGroup: 'ग्रुप चुनें',
+    tapToChange: 'बदलने के लिए टैप करें',
     importFailed: 'वह फ़ाइल नहीं लाई जा सकी। कृपया फिर कोशिश करें।',
     splitwiseTitle: 'Splitwise निर्यात आयात करें',
     ledgerTitle: 'हिसाब आयात करें',
@@ -16420,6 +16436,10 @@ const ar: UiStrings = {
     hadItem: '{name} تناول {label}',
   },
   importLedger: {
+    anExistingGroup: 'مجموعة موجودة',
+    anExistingGroupHint: 'أضِف إلى مجموعة لديك بالفعل',
+    chooseGroup: 'اختر مجموعة',
+    tapToChange: 'اضغط للتغيير',
     importFailed: 'تعذّر إحضار ذلك الملف. حاول مرة أخرى.',
     splitwiseTitle: 'استيراد ملف Splitwise',
     ledgerTitle: 'استيراد دفتر',
