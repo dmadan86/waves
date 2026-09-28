@@ -38,6 +38,9 @@ interface GroupPhotoProps {
    * photo" describes a button that no longer exists.
    */
   accessibilityLabel?: string;
+  /** The tile behind the mark, when not the soft brand fill — the group hero
+   *  sets it white so the mark reads on its scene. */
+  background?: string;
 }
 
 export function GroupPhoto({
@@ -48,6 +51,7 @@ export function GroupPhoto({
   onPress,
   busy = false,
   accessibilityLabel,
+  background,
 }: GroupPhotoProps) {
   const theme = useTheme();
   const { t } = useStrings();
@@ -63,7 +67,7 @@ export function GroupPhoto({
         overflow: 'hidden',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: theme.color.brandSoft,
+        backgroundColor: background ?? theme.color.brandSoft,
       }}
     >
       {busy ? (

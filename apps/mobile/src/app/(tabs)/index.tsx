@@ -534,7 +534,6 @@ export default function HomeScreen() {
                     onReports={openReports}
                     onSettleUp={() => setSettleOpen(true)}
                     onNewGroup={openNewGroup}
-                    gradient={HERO_WASH}
                     radius={theme.radius.xl}
                   />
                 }
@@ -1061,11 +1060,6 @@ function todayIn(timeZone: string): string {
     return new Date().toISOString().slice(0, 10);
   }
 }
-
-/** The hero's wash: violet running to blue, brighter than the brand's own so
- *  the white balance card riding over it reads as lifted off the colour. Every
- *  stop holds white text. */
-const HERO_WASH = ['#4F55E8', '#6A5AEC', '#8469F0'] as const;
 
 /** How far the balance card rides up over the bottom of the hero. */
 const HERO_OVERLAP = 56;

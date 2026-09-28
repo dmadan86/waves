@@ -10,6 +10,11 @@
  * deliberately the longer list — "show me what I spent this on" is a question
  * about the ledger, and a list that quietly hid rows would be the harder thing
  * to explain.
+ *
+ * `kind` (income or expense) and `month` (YYYY-MM) narrow it the way the
+ * Personal tab's tiles ask: its Income tile lands on the month's income, its
+ * Spent tile on the month's spends, and a top category on that category's
+ * entries for the month. Each narrowing is named under the title.
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -37,6 +42,7 @@ import { usePersonalLedger } from '@/data/personal';
 import { useStrings } from '@/i18n';
 import { PersonalGuard } from '@/components/PersonalGuard';
 import { useBottomClearance } from '@/lib/clearance';
+import { dateTimeFormat } from '@/lib/dateTimeFormat';
 import { router } from '@/lib/navigation';
 
 /** One row of the flattened ledger: a day heading, or an entry under it. */
@@ -49,8 +55,11 @@ function PersonalTransactionsScreenBody() {
   const clearance = useBottomClearance();
   const { t, locale } = useStrings();
   const { txns } = usePersonalLedger();
-  const params = useLocalSearchParams<{ category?: string }>();
+  const params = useLocalSearchParams<{ category?: string; kind?: string; month?: string }>();
   const filter = typeof params.category === 'string' ? params.category : null;
+  const kind = params.kind === 'income' || params.kind === 'expense' ? params.kind : null;
+  const month =
+    typeof params.month === 'string' && /^\d{4}-\d{2}$/.test(params.month) ? params.month : null;
 
   /**
    * Grouped by day, flattened into one recyclable list — a heading item where
@@ -60,7 +69,12 @@ function PersonalTransactionsScreenBody() {
    * way the group month screen does.
    */
   const items: LedgerItem[] = useMemo(() => {
-    const shown = filter ? txns.filter((txn) => txn.category === filter) : txns;
+    const shown = txns.filter(
+      (txn) =>
+        (!filter || txn.category === filter) &&
+        (!kind || txn.kind === kind) &&
+        (!month || txn.date.slice(0, 7) === month),
+    );
     const list: LedgerItem[] = [];
     let day: string | null = null;
     for (const txn of shown) {
@@ -71,7 +85,7 @@ function PersonalTransactionsScreenBody() {
       list.push({ kind: 'txn', key: txn.id, txn });
     }
     return list;
-  }, [txns, filter]);
+  }, [txns, filter, kind, month]);
 
   const labelFor = (id: string | null): string | null =>
     id ? (t.categories[id as keyof typeof t.categories] ?? null) : null;
@@ -97,8 +111,18 @@ function PersonalTransactionsScreenBody() {
               the screen says what it is a list *of* rather than leaving the
               person to wonder where the rest of their ledger went. */}
           <Text variant="heading" numberOfLines={1}>
-            {(filter ? labelFor(filter) : null) ?? t.personal.transactions}
+            {(filter ? labelFor(filter) : null) ??
+              (kind === 'income'
+                ? t.personal.income
+                : kind === 'expense'
+                  ? t.personal.expenses
+                  : t.personal.transactions)}
           </Text>
+          {month ? (
+            <Text variant="caption" tone="muted" numberOfLines={1}>
+              {monthName(month, locale)}
+            </Text>
+          ) : null}
         </View>
         <IconButton
           label={t.personal.add}
@@ -203,4 +227,15 @@ export default function PersonalTransactionsScreen() {
       <PersonalTransactionsScreenBody />
     </PersonalGuard>
   );
+}
+
+/** A month as "September 2026" for the line under the title, timezone-safe. */
+function monthName(month: string, locale: string): string {
+  try {
+    return dateTimeFormat(locale, { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(
+      new Date(`${month}-01T00:00:00Z`),
+    );
+  } catch {
+    return month;
+  }
 }

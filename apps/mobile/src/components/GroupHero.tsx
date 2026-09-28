@@ -2,12 +2,15 @@ import { useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import {
   I18nManager,
+  Image,
   Platform,
   Pressable,
   ScrollView,
+  StyleSheet,
   View,
   useWindowDimensions,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
@@ -112,6 +115,9 @@ export function GroupHero({
   // settle / who-pays-whom pair sat beside "Add expense" and then jumped right.
   const slideW = heroSlideW || windowW - theme.spacing.xl * 2;
   const [heroPage, setHeroPage] = useState(0);
+  // The hero's measured height. The scene is sized from it in points: an
+  // absolutely placed image sized by its edges lays out at zero on Android.
+  const [heroHeight, setHeroHeight] = useState(0);
   const heroDeckRef = useRef<ScrollView>(null);
 
   const busy = confirmSettlement.isPending || disputeSettlement.isPending;
@@ -143,12 +149,54 @@ export function GroupHero({
       style={{
         paddingTop: insets.top + theme.spacing.md,
         paddingHorizontal: theme.spacing.xl,
-        paddingBottom: theme.spacing.md,
+        paddingBottom: theme.spacing.lg,
         borderBottomLeftRadius: theme.radius.xxl,
         borderBottomRightRadius: theme.radius.xxl,
         gap: theme.spacing.lg,
+        overflow: 'hidden',
       }}
     >
+      {/* Measures the hero for the scene above; draws nothing. */}
+      <View
+        pointerEvents="none"
+        style={StyleSheet.absoluteFill}
+        onLayout={(event) => setHeroHeight(Math.round(event.nativeEvent.layout.height))}
+      />
+      {/* The scene on the right of the hero — hills at dusk, a cup and a plant
+          on a table — at the hero's full height, fading into the wash towards
+          the left, where the name and the balance sit. The fade runs across the
+          whole hero, so there is no edge where the picture begins. */}
+      {heroHeight > 0 ? (
+        <View
+          pointerEvents="none"
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          style={{ position: 'absolute', top: 0, left: 0, width: windowW, height: heroHeight }}
+        >
+          <Image
+            source={GROUP_HERO_ART}
+            resizeMode="cover"
+            style={{
+              position: 'absolute',
+              top: 0,
+              right: 0,
+              width: Math.round(windowW * 0.72),
+              height: heroHeight,
+            }}
+          />
+          <LinearGradient
+            colors={[
+              heroGradient[0] ?? '#4F55E8',
+              heroGradient[0] ?? '#4F55E8',
+              `${heroGradient[0] ?? '#4F55E8'}00`,
+            ]}
+            locations={[0, 0.3, 0.64]}
+            start={{ x: 0, y: 0.5 }}
+            end={{ x: 1, y: 0.5 }}
+            style={{ position: 'absolute', top: 0, left: 0, width: windowW, height: heroHeight }}
+          />
+        </View>
+      ) : null}
       <Row style={{ gap: theme.spacing.sm }}>
         <Pressable
           onPress={goBack}
@@ -175,12 +223,35 @@ export function GroupHero({
             opacity: pressed ? 0.6 : 1,
           })}
         >
-          <GroupPhoto photoPath={group.photo_path} emoji={group.cover_emoji} size={34} />
+          {/* The group's mark straight on a white tile, so it reads on any scene. */}
+          <View
+            style={{
+              borderRadius: AVATAR_TILE / 3,
+              shadowColor: '#1B1340',
+              shadowOpacity: 0.15,
+              shadowRadius: 8,
+              shadowOffset: { width: 0, height: 3 },
+              elevation: 3,
+            }}
+          >
+            <GroupPhoto
+              photoPath={group.photo_path}
+              emoji={group.cover_emoji}
+              size={AVATAR_TILE}
+              background="#FFFFFF"
+            />
+          </View>
           <View style={{ flexShrink: 1 }}>
-            <Text variant="subheading" tone="onBrand" numberOfLines={1}>
-              {groupLabel(group, members ?? [], profileId)}
+            {/* Two lines before an ellipsis: a group named by its people
+                ("You, Anoop and 4 others") needs the room. */}
+            <Text
+              tone="onBrand"
+              numberOfLines={2}
+              style={{ fontSize: 20, lineHeight: 25, fontWeight: '700' }}
+            >
+              {cleanLabel(groupLabel(group, members ?? [], profileId))}
             </Text>
-            <Text variant="micro" tone="onBrand" style={{ opacity: 0.85 }}>
+            <Text variant="caption" tone="onBrand" style={{ opacity: 0.85 }}>
               {plural(locale, members?.length ?? 0, t.memberCount)}
             </Text>
           </View>
@@ -233,6 +304,7 @@ export function GroupHero({
           {/* Slide 0 — balance as a verdict, then the three hero actions. */}
           <View style={{ width: slideW, gap: theme.spacing.md }}>
             <HeroFigureLine
+              colon={false}
               label={myBalance === 0n ? t.allSettled : myBalance > 0n ? t.youAreOwed : t.youOwe}
               trailing={
                 pending !== 0n ? <Badge label={t.pendingConfirmation} tone="brand" /> : undefined
@@ -407,3 +479,15 @@ export function GroupHero({
     </Gradient>
   );
 }
+
+/** The white tile the group's mark sits on. */
+const AVATAR_TILE = 52;
+
+/** A name built from people's names reads without the punctuation an address
+ *  book puts in front of one (".Rvs Anoop" → "Rvs Anoop"). */
+function cleanLabel(label: string): string {
+  return label.replace(/(^|,\s*)[^\p{L}\p{N}\s]+(?=\p{L}|\p{N})/gu, '$1');
+}
+
+/** The hero's scene: hills at dusk, a cup and a plant on a table. */
+const GROUP_HERO_ART = require('../../assets/images/group-hero.webp') as number;

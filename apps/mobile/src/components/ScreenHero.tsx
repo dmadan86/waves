@@ -208,10 +208,14 @@ export function HeroFigureLine({
   label,
   children,
   trailing,
+  colon = true,
 }: {
   label: string;
   children: ReactNode;
   trailing?: ReactNode;
+  /** "Label: figure" — or, where the hero sets the two apart by size alone
+   *  (the group hero's "All settled  ₹0.00"), without the colon. */
+  colon?: boolean;
 }) {
   const theme = useTheme();
   return (
@@ -222,7 +226,7 @@ export function HeroFigureLine({
         numberOfLines={1}
         style={{ flexShrink: 1, fontWeight: '600', opacity: 0.85 }}
       >
-        {`${label}:`}
+        {colon ? `${label}:` : label}
       </Text>
       <View style={{ flexShrink: 1 }}>{children}</View>
       {trailing ? <View style={{ marginStart: 'auto' }}>{trailing}</View> : null}
