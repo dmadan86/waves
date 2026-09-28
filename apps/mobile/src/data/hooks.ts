@@ -472,6 +472,21 @@ export function useMyTimeline(): LocalRead<TimelineEntry[]> {
           if (payer.member_id === me) paid += BigInt(payer.amount);
         for (const share of version.shares)
           if (share.member_id === me) owed += BigInt(share.amount);
+        // Who else is on it, as names: payers first, then whoever owes a share.
+        const others: string[] = [];
+        const seen = new Set<string>();
+        for (const id of [
+          ...version.payers.map((payer) => payer.member_id),
+          ...version.shares.map((share) => share.member_id),
+        ]) {
+          if (id === me || seen.has(id)) continue;
+          seen.add(id);
+          const member = members.find((it) => it.id === id);
+          const name = (member?.profile?.display_name ?? member?.ghost_name ?? '')
+            .replace(/^[^\p{L}\p{N}]+/u, '')
+            .trim();
+          if (name) others.push(name);
+        }
         const place = version.location;
         out.push({
           id: expense.id,
@@ -491,6 +506,7 @@ export function useMyTimeline(): LocalRead<TimelineEntry[]> {
           mine: paid > 0n || owed > 0n,
           myNet: paid - owed,
           pending: expense.pending === true,
+          others,
         });
       }
     }

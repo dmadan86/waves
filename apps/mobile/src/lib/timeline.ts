@@ -51,6 +51,9 @@ export interface TimelineEntry {
   readonly myNet: bigint;
   /** Still on this phone's queue, not yet on the server. */
   readonly pending: boolean;
+  /** Everyone else on the bill (paid or owes), by name, in the order they
+   *  appear on it. Absent where a caller does not know them. */
+  readonly others?: readonly string[];
 }
 
 export type TimelineRange = 'all' | '7d' | '30d' | '90d';
