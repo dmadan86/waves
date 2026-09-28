@@ -76,11 +76,17 @@ export function TimelineMap({
   focusId,
   onOpen,
   bottomInset,
+  fullScreen = false,
+  onToggleFullScreen,
 }: {
   days: readonly TimelineDay[];
   focusId: string | null;
   onOpen: (entry: TimelineEntry) => void;
   bottomInset: number;
+  /** Drawn over the whole screen, headers hidden; the corner button shrinks it. */
+  fullScreen?: boolean;
+  /** Shows the corner button that opens (or closes) the full-screen map. */
+  onToggleFullScreen?: () => void;
 }) {
   const theme = useTheme();
   const { t, locale } = useStrings();
@@ -388,7 +394,8 @@ export function TimelineMap({
             position: 'absolute',
             top: theme.spacing.md,
             left: theme.spacing.xl,
-            right: theme.spacing.xl,
+            // Clear of the full-screen button in the corner.
+            right: onToggleFullScreen ? theme.spacing.xl + 52 : theme.spacing.xl,
             gap: theme.spacing.sm,
             alignItems: 'flex-start',
           }}
@@ -417,6 +424,40 @@ export function TimelineMap({
             />
           ) : null}
         </View>
+
+        {/* Top-right: the map on its own, over the whole screen, for a small
+            phone where the group's hero and tabs leave it a strip. */}
+        {onToggleFullScreen ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={fullScreen ? t.timeline.exitFullScreen : t.timeline.fullScreen}
+            onPress={onToggleFullScreen}
+            hitSlop={6}
+            style={({ pressed }) => ({
+              position: 'absolute',
+              top: theme.spacing.md,
+              right: theme.spacing.md,
+              width: 42,
+              height: 42,
+              borderRadius: 21,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: theme.color.surface,
+              shadowColor: '#000000',
+              shadowOpacity: 0.15,
+              shadowRadius: 8,
+              shadowOffset: { width: 0, height: 2 },
+              elevation: 4,
+              opacity: pressed ? 0.8 : 1,
+            })}
+          >
+            <Ionicons
+              name={fullScreen ? 'contract-outline' : 'expand-outline'}
+              size={20}
+              color={theme.color.text}
+            />
+          </Pressable>
+        ) : null}
 
         {ended && day ? (
           <View

@@ -11,9 +11,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { FlashListRef } from '@shopify/flash-list';
-import { Pressable, ScrollView, View } from 'react-native';
+import { Modal, Pressable, ScrollView, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Button, EmptyState, iconSize, SegmentedTabs, Text, useTheme } from '@waves/ui';
+import {
+  Button,
+  EmptyState,
+  iconSize,
+  MODAL_ORIENTATIONS,
+  SegmentedTabs,
+  Text,
+  useTheme,
+} from '@waves/ui';
 
 import { TimelineList } from '@/components/timeline/TimelineList';
 import { TimelineMap } from '@/components/timeline/TimelineMap';
@@ -58,7 +67,11 @@ export function TimelineBody({
   const { choose } = useDialog();
   const clearance = useBottomClearance();
 
+  const insets = useSafeAreaInsets();
   const [chosenView, setView] = useState<View_>(initialView);
+  // The map over the whole screen: the group's hero, tabs and the tab bar all
+  // hidden, which on a small phone is most of the map back.
+  const [mapFull, setMapFull] = useState(false);
   const view = fixedView ?? chosenView;
   const [filter, setFilter] = useState<TimelineFilter>({
     range: 'all',
@@ -229,7 +242,45 @@ export function TimelineBody({
       ) : days.length === 0 ? (
         empty
       ) : (
-        <TimelineMap days={days} focusId={focusId} onOpen={open} bottomInset={clearance} />
+        <>
+          <TimelineMap
+            days={days}
+            focusId={focusId}
+            onOpen={open}
+            bottomInset={clearance}
+            onToggleFullScreen={() => setMapFull(true)}
+          />
+          <Modal
+            visible={mapFull}
+            animationType="fade"
+            statusBarTranslucent
+            navigationBarTranslucent
+            supportedOrientations={MODAL_ORIENTATIONS}
+            onRequestClose={() => setMapFull(false)}
+          >
+            <View
+              style={{
+                flex: 1,
+                paddingTop: insets.top,
+                backgroundColor: theme.color.bg,
+              }}
+            >
+              <TimelineMap
+                days={days}
+                focusId={focusId}
+                // A bill opens its own screen, which sits under this modal, so
+                // the modal steps aside first.
+                onOpen={(entry) => {
+                  setMapFull(false);
+                  open(entry);
+                }}
+                bottomInset={insets.bottom}
+                fullScreen
+                onToggleFullScreen={() => setMapFull(false)}
+              />
+            </View>
+          </Modal>
+        </>
       )}
     </View>
   );
