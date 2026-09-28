@@ -171,7 +171,7 @@ passes every test and delivers nothing.
 | `contact-unlink`     | Takes a phone or email off an account — not within 7 days, never the last one  |
 | `campaign-broadcast` | Mails a campaign to its cohort, holdout excluded (TDR A21)                     |
 
-Sixteen in all; `supabase/functions/` is the list, and the table names the ones a
+Eighteen in all; `supabase/functions/` is the list, and the table names the ones a
 reader needs to place.
 
 `email-events`, `email-unsubscribe` and `otp-send` are the three functions that do

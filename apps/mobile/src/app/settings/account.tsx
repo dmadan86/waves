@@ -47,6 +47,7 @@ import { friendlyError } from '@/lib/errors';
 import {
   confirmContact,
   ContactChannel,
+  ContactUnlinkRefused,
   fetchContactUnlinks,
   startAddingContact,
   unlinkContact,
@@ -254,7 +255,19 @@ function AccountForm() {
       await refresh();
       loadUnlinks();
     } catch (caught) {
-      setError(friendlyError(caught, t.couldNotSave, 'account.unlinkContact'));
+      // A refusal is not a failure: it says why, in words the rows use.
+      if (caught instanceof ContactUnlinkRefused) {
+        setError(
+          caught.code === 'TOO_SOON' && caught.unlockAt !== null
+            ? fill(t.contact.unlinkFrom, { date: shortDate(caught.unlockAt) })
+            : caught.code === 'LAST_SIGN_IN'
+              ? t.contact.onlyWayIn
+              : t.couldNotSave,
+        );
+        loadUnlinks();
+      } else {
+        setError(friendlyError(caught, t.couldNotSave, 'account.unlinkContact'));
+      }
     } finally {
       setUnlinking(null);
     }

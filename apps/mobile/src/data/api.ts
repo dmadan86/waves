@@ -1173,21 +1173,44 @@ export async function confirmContact(
  * dates to explain itself, but the function is what refuses. Its `message` is
  * written to be read, so it is passed through as the error.
  */
+export class ContactUnlinkRefused extends Error {
+  constructor(
+    readonly code: 'TOO_SOON' | 'LAST_SIGN_IN' | 'NOT_LINKED',
+    /** When unlinking opens, for `TOO_SOON`; epoch ms, or null. */
+    readonly unlockAt: number | null,
+  ) {
+    super(code);
+    this.name = 'ContactUnlinkRefused';
+  }
+}
+
 export async function unlinkContact(channel: ContactChannel): Promise<void> {
   const { data, error } = await backend.functions.invoke('contact-unlink', {
     body: { channel },
   });
   if (error) {
+    // The refusals come back as a code the screen words in the person's own
+    // language — the server's sentence is English only. Anything else is a
+    // failure like any other.
+    let refused: ContactUnlinkRefused | null = null;
     const response = (error as { context?: unknown }).context;
     if (response instanceof Response) {
       try {
-        const body = (await response.clone().json()) as { message?: unknown };
-        if (typeof body.message === 'string' && body.message) throw new Error(body.message);
-      } catch (caught) {
-        if (caught instanceof Error && caught.message) throw caught;
+        const body = (await response.clone().json()) as { code?: unknown; unlockAt?: unknown };
+        if (
+          body.code === 'TOO_SOON' ||
+          body.code === 'LAST_SIGN_IN' ||
+          body.code === 'NOT_LINKED'
+        ) {
+          const at = typeof body.unlockAt === 'string' ? Date.parse(body.unlockAt) : NaN;
+          refused = new ContactUnlinkRefused(body.code, Number.isNaN(at) ? null : at);
+        }
+      } catch {
+        // A body that is not our JSON says nothing worth showing.
       }
     }
-    throw new Error('Could not unlink that just now.');
+    if (refused) throw refused;
+    throw error;
   }
   if (!(data as { unlinked?: boolean } | null)?.unlinked) {
     throw new Error('Could not unlink that just now.');
