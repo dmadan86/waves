@@ -3,12 +3,15 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams } from 'expo-router';
 import {
   AccessibilityInfo,
+  Image,
   InteractionManager,
   Pressable,
   RefreshControl,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { FlashList, type FlashListRef } from '@shopify/flash-list';
+import Svg, { Path } from 'react-native-svg';
 import { StatusBar } from 'expo-status-bar';
 
 import {
@@ -17,7 +20,6 @@ import {
   Button,
   Card,
   directionalIcon,
-  EmptyState,
   iconSize,
   MoneyText,
   Row,
@@ -71,6 +73,7 @@ import { convertedTotal } from '@/lib/expenseConversion';
 import { useViewerId } from '@/lib/auth';
 import { canRemindFromBalanceRow } from '@/lib/balanceRowActions';
 import { router, useGoBack } from '@/lib/navigation';
+import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
 
 import { CategoryBadge } from '@/components/Category';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
@@ -459,7 +462,8 @@ export default function GroupScreen() {
   // once the bar (60) and its breath (16) are taken out, kept so the ledger
   // renders exactly as it did. Derived rather than hardcoded so it follows
   // `BAR_HEIGHT` instead of quietly sliding under a taller bar one day.
-  const clearance = useTabBarClearance() + 36;
+  const tabBarClearance = useTabBarClearance();
+  const clearance = tabBarClearance + 36;
   const pull = usePullRefresh();
   const { t, locale } = useStrings();
   const { confirm } = useDialog();
@@ -653,6 +657,10 @@ export default function GroupScreen() {
     () => (windowed && tabData.length > SWITCH_WINDOW ? tabData.slice(0, SWITCH_WINDOW) : tabData),
     [windowed, tabData],
   );
+  // The Expenses tab with nothing on it: the empty state fits the screen, so
+  // Android draws no overscroll glow over it. It still scrolls when drafts, receipts or large text push
+  // the content past the screen, so nothing below is out of reach.
+  const emptyExpenses = tab === Tab.Expenses && listData.length === 0;
 
   if (group.isLoading) {
     return <GroupSkeleton />;
@@ -1073,6 +1081,9 @@ export default function GroupScreen() {
           />
         </View>
 
+        {/* The waves close the page above the tab bar on every tab, behind the
+            content — rows and cards scroll over them. */}
+        <FooterWaves bottom={tabBarClearance - WAVES_TUCK} />
         {tab === Tab.Settle ? (
           // Settling up, as a face of the group rather than a button on its
           // hero: the same flow as the Settle up screen. Recorded, it shows
@@ -1089,6 +1100,9 @@ export default function GroupScreen() {
         ) : (
           <FlashList
             ref={listRef}
+            // Bounce stays on: on iOS it is what pull-to-refresh pulls.
+            bounces
+            overScrollMode={emptyExpenses ? 'never' : 'auto'}
             data={listData}
             // Not the tab: switching tabs already hands `data` a different array,
             // and naming it here only made every mounted cell re-render a second
@@ -1305,23 +1319,11 @@ export default function GroupScreen() {
                 // An empty list that only describes itself leaves the one thing to
                 // do on the screen to a floating button in the corner. The way out
                 // of an empty state belongs inside it.
-                <EmptyState
+                <GroupEmptyExpenses
                   title={t.nothingYet}
                   body={t.nothingYetBody}
-                  icon={
-                    <Ionicons
-                      name="receipt-outline"
-                      size={iconSize.xxl}
-                      color={theme.color.brand}
-                    />
-                  }
-                  action={
-                    <Button
-                      label={t.addExpense}
-                      onPress={() => router.push(`/group/${groupId}/add-expense`)}
-                      icon={<Ionicons name="add" size={iconSize.md} color={theme.color.onBrand} />}
-                    />
-                  }
+                  action={t.addExpense}
+                  onAdd={() => router.push(`/group/${groupId}/add-expense`)}
                 />
               ) : null
             }
@@ -1335,3 +1337,120 @@ export default function GroupScreen() {
     </Screen>
   );
 }
+
+/**
+ * A group with no expenses yet: a receipt and a plant, the fact in bold, what to
+ * do about it, and the way to do it — inside the empty state rather than left
+ * to a button somewhere else on the screen. Soft waves under it close the page.
+ */
+function GroupEmptyExpenses({
+  title,
+  body,
+  action,
+  onAdd,
+}: {
+  title: string;
+  body: string;
+  action: string;
+  onAdd: () => void;
+}) {
+  const theme = useTheme();
+  const dark = theme.scheme === 'dark';
+  const accent = dark ? theme.color.brand : SPEC_ACCENT;
+  return (
+    <View style={{ alignItems: 'center', gap: theme.spacing.md, paddingTop: theme.spacing.lg }}>
+      <Image
+        source={GROUP_EMPTY_ART}
+        resizeMode="contain"
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        style={{ width: EMPTY_ART_WIDTH, height: EMPTY_ART_WIDTH / EMPTY_ART_RATIO }}
+      />
+      <Text
+        style={{
+          fontSize: 26,
+          lineHeight: 32,
+          fontWeight: '800',
+          textAlign: 'center',
+          color: dark ? theme.color.text : SPEC_INK,
+        }}
+      >
+        {title}
+      </Text>
+      <Text
+        style={{
+          fontSize: 16,
+          lineHeight: 23,
+          textAlign: 'center',
+          maxWidth: 300,
+          color: dark ? theme.color.textMuted : SPEC_MUTED,
+        }}
+      >
+        {body}
+      </Text>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={action}
+        onPress={onAdd}
+        style={({ pressed }) => ({
+          marginTop: theme.spacing.md,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: theme.spacing.sm,
+          height: 54,
+          paddingHorizontal: theme.spacing.xxl,
+          borderRadius: 27,
+          backgroundColor: accent,
+          shadowColor: accent,
+          shadowOpacity: 0.3,
+          shadowRadius: 12,
+          shadowOffset: { width: 0, height: 6 },
+          elevation: 4,
+          opacity: pressed ? 0.85 : 1,
+        })}
+      >
+        <Ionicons name="add" size={24} color="#FFFFFF" />
+        <Text style={{ fontSize: 18, fontWeight: '700', color: '#FFFFFF' }}>{action}</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+/** The empty state's picture: a receipt and a plant. Its shape (width over
+ *  height, 1536 × 1024) and how wide it sits. */
+const GROUP_EMPTY_ART = require('../../../../assets/images/group-empty.webp') as number;
+const EMPTY_ART_RATIO = 1536 / 1024;
+const EMPTY_ART_WIDTH = 200;
+
+/**
+ * Two soft waves across the foot of the screen, just above the tab bar — the
+ * page's quiet close, on every tab. Decoration only.
+ */
+function FooterWaves({ bottom }: { bottom: number }) {
+  const theme = useTheme();
+  const { width } = useWindowDimensions();
+  const dark = theme.scheme === 'dark';
+  return (
+    <View
+      pointerEvents="none"
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={{ position: 'absolute', left: 0, right: 0, bottom }}
+    >
+      <Svg width={width} height={WAVES_HEIGHT} viewBox="0 0 400 90" preserveAspectRatio="none">
+        <Path
+          d="M0 40 Q 60 10 130 30 T 260 38 T 400 20 L400 90 L0 90 Z"
+          fill={dark ? 'rgba(255,255,255,0.04)' : '#ECEAFB'}
+        />
+        <Path
+          d="M0 62 Q 90 40 180 58 T 400 48 L400 90 L0 90 Z"
+          fill={dark ? 'rgba(255,255,255,0.06)' : '#E3E0FA'}
+        />
+      </Svg>
+    </View>
+  );
+}
+
+/** How tall the waves stand, and how far they tuck under the tab bar's rounded top. */
+const WAVES_HEIGHT = 90;
+const WAVES_TUCK = 24;

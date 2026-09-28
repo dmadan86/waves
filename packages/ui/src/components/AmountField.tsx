@@ -39,6 +39,8 @@ export function AmountField({
   tone = 'default',
   framed = false,
   autoFocus = false,
+  showSymbol = true,
+  align = 'default',
 }: {
   currency: CurrencyCode;
   value: bigint;
@@ -69,6 +71,12 @@ export function AmountField({
    * "white at 70%" because nothing else needs one.
    */
   tone?: 'default' | 'onBrand';
+  /** Draw the currency symbol before the digits. Off where the symbol already
+   *  stands on its own beside the field (the personal entry's currency disc). */
+  showSymbol?: boolean;
+  /** 'start' sets a display-size amount against the leading edge instead of
+   *  centring it — for a field that sits in a row beside other controls. */
+  align?: 'default' | 'start';
 }) {
   const theme = useTheme();
   const compact = size === 'compact';
@@ -162,7 +170,7 @@ export function AmountField({
       style={{
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: compact ? 'flex-end' : hero ? 'flex-start' : 'center',
+        justifyContent: compact ? 'flex-end' : hero || align === 'start' ? 'flex-start' : 'center',
         gap: theme.spacing.xs,
         // The hero takes every point its line does not owe to something else and
         // gives them back when the amount is long: it grows into the gap between
@@ -186,16 +194,18 @@ export function AmountField({
           : null),
       }}
     >
-      <Text
-        style={{
-          fontSize: symbolSize,
-          lineHeight: metrics.line,
-          fontWeight: '700',
-          color: symbolInk,
-        }}
-      >
-        {currencySymbol(currency)}
-      </Text>
+      {showSymbol ? (
+        <Text
+          style={{
+            fontSize: symbolSize,
+            lineHeight: metrics.line,
+            fontWeight: '700',
+            color: symbolInk,
+          }}
+        >
+          {currencySymbol(currency)}
+        </Text>
+      ) : null}
       <TextInput
         value={text}
         onChangeText={onType}

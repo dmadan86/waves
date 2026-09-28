@@ -72,6 +72,10 @@ export interface PersonalTxn {
   readonly loanId: string | null;
   /** Set when a recurring rule minted this txn (idempotency: rule id + date). */
   readonly recurringId: string | null;
+  /** How it was paid or received — 'cash', 'upi', 'card', 'bank', 'wallet' or
+   *  'other'. Absent on entries written before the field existed, and on ones
+   *  where nobody said; the ledger's arithmetic never reads it. */
+  readonly paymentMethod?: string | null;
   /** Fields from the stored blob this version of the app did not recognise,
    *  kept so that editing a record here never deletes something a newer
    *  version wrote. Re-emitted by the encoder; see the note at the top. */
@@ -168,6 +172,7 @@ const KNOWN_TXN = [
   'date',
   'loanId',
   'recurringId',
+  'paymentMethod',
 ];
 const KNOWN_RECURRING = [
   'txnKind',
@@ -236,6 +241,7 @@ function withCarried(
 // ─────────────────────────────────────────────────────────── decoders ──
 
 export function decodeTxn(id: string, data: Record<string, unknown>): PersonalTxn {
+  const paymentMethod = str(data.paymentMethod);
   return {
     id,
     kind: oneOf(data.kind, ['expense', 'income'] as const, 'expense'),
@@ -246,6 +252,9 @@ export function decodeTxn(id: string, data: Record<string, unknown>): PersonalTx
     date: str(data.date) ?? '',
     loanId: str(data.loanId),
     recurringId: str(data.recurringId),
+    // Only when the blob has one, so an entry without it decodes exactly as it
+    // did before the field existed.
+    ...(paymentMethod !== null ? { paymentMethod } : {}),
     carried: carry(data, KNOWN_TXN),
   };
 }
@@ -318,6 +327,9 @@ export function encodeTxn(txn: Omit<PersonalTxn, 'id'>): Record<string, unknown>
       date: txn.date,
       loanId: txn.loanId,
       recurringId: txn.recurringId,
+      // Written only when set, so an entry that never had one stays byte-for-byte
+      // the blob it always was.
+      ...(txn.paymentMethod ? { paymentMethod: txn.paymentMethod } : {}),
     },
     txn.carried,
   );

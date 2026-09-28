@@ -37,6 +37,7 @@ export function PersonalNoteField({
   accessibilityLabel,
   label,
   hints,
+  plain = false,
 }: {
   value: string;
   onChange: (next: string) => void;
@@ -51,6 +52,9 @@ export function PersonalNoteField({
   label?: string;
   /** Names to bias the recogniser towards — see {@link DictateButton}. */
   hints?: readonly string[];
+  /** Drop the field's own fill and padding, for a box that already sits in a
+   *  card of its own (the entry form's note card). The mic stays. */
+  plain?: boolean;
 }): React.JSX.Element {
   const theme = useTheme();
   return (
@@ -73,15 +77,19 @@ export function PersonalNoteField({
           placeholder={placeholder}
           placeholderTextColor={theme.color.textFaint}
           accessibilityLabel={accessibilityLabel}
-          style={{
-            flex: 1,
-            fontSize: 16,
-            color: theme.color.text,
-            paddingVertical: theme.spacing.md,
-            paddingHorizontal: theme.spacing.lg,
-            backgroundColor: theme.color.surfaceMuted,
-            borderRadius: theme.radius.md,
-          }}
+          style={
+            plain
+              ? { flex: 1, fontSize: 15, color: theme.color.text, paddingVertical: 2 }
+              : {
+                  flex: 1,
+                  fontSize: 16,
+                  color: theme.color.text,
+                  paddingVertical: theme.spacing.md,
+                  paddingHorizontal: theme.spacing.lg,
+                  backgroundColor: theme.color.surfaceMuted,
+                  borderRadius: theme.radius.md,
+                }
+          }
         />
         {/* Renders nothing on web, and nothing on a binary built before the
             speech module existed. Both leave the field exactly as it is today. */}
