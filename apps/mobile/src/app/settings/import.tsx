@@ -18,11 +18,12 @@
  * allocations are new, and that is what "lossless" honestly covers (M5).
  */
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { randomUUID } from 'expo-crypto';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, ScrollView, TextInput, View } from 'react-native';
 
 import {
@@ -34,10 +35,9 @@ import {
   type ImportProblem,
 } from '@waves/core';
 import {
-  Badge,
+  Avatar,
   Button,
   Callout,
-  Card,
   ChipRow,
   directionalIcon,
   Divider,
@@ -47,9 +47,9 @@ import {
   ProgressBar,
   Row,
   Screen,
-  SectionHeader,
   Sheet,
   Text,
+  tintForKey,
   useTheme,
 } from '@waves/ui';
 
@@ -60,10 +60,13 @@ import { importProblemLine, importProblemText } from '@/lib/problemText';
 import { plural, useStrings, type UiStrings } from '@/i18n';
 import { router } from '@/lib/navigation';
 import { useReducedMotion } from '@/lib/reducedMotion';
-import { useGroupLabeller, useGroups } from '@/data/hooks';
+import { useGroupLabeller, useGroups, useHomeSummary } from '@/data/hooks';
 import { displayName, GroupType, isViewer, type MemberRow } from '@/data/types';
-import { useViewerId } from '@/lib/auth';
+import { useAuth, useViewerId } from '@/lib/auth';
+import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
 import { useBottomClearance } from '@/lib/clearance';
+
+type IconName = keyof typeof Ionicons.glyphMap;
 
 /** What a column in the file has been mapped to. */
 type Mapping = { kind: 'me' } | { kind: 'member'; memberId: string } | { kind: 'ghost' };
@@ -140,6 +143,9 @@ export default function ImportScreen() {
   const { t, locale } = useStrings();
   const reduceMotion = useReducedMotion();
   const groups = useGroups();
+  const { profile } = useAuth();
+  const summary = useHomeSummary(profile?.id ?? null);
+  const { dark, ink, muted, accent, lavender, line } = useImportInks();
 
   // Identity for "which member am I", from the session rather than the profile:
   // the session is on the device at launch, the profile is a fetch that lands
@@ -159,6 +165,10 @@ export default function ImportScreen() {
   const [fileGroups, setFileGroups] = useState<readonly WavesImportGroup[]>([]);
   const [fileGroupIndex, setFileGroupIndex] = useState(0);
   const [target, setTarget] = useState<string>(NEW_GROUP);
+  const chosenGroup =
+    target === NEW_GROUP
+      ? null
+      : ((groups.data ?? []).find((group) => group.id === target) ?? null);
   // The name a new group is created with. Seeded from the file (the Splitwise
   // default, or the export's own name) and then the person's to change — they no
   // longer have to accept "Splitwise" or rename it afterwards.
@@ -174,6 +184,7 @@ export default function ImportScreen() {
 
   const [busy, setBusy] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [stage, setStage] = useState<Stage | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<{
@@ -464,78 +475,78 @@ export default function ImportScreen() {
 
   return (
     <Screen>
-      <Row style={{ paddingHorizontal: theme.spacing.xl, paddingTop: theme.spacing.md }}>
+      <Row style={{ paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.sm }}>
         <IconButton label={t.common.back} onPress={() => router.back()}>
-          <Ionicons
-            name={directionalIcon('chevron-back')}
-            size={iconSize.lg}
-            color={theme.color.text}
-          />
+          <Ionicons name={directionalIcon('chevron-back')} size={iconSize.lg} color={ink} />
         </IconButton>
         <View style={{ flex: 1, alignItems: 'center' }}>
-          <Text variant="heading">{t.importLedger.ledgerTitle}</Text>
+          <Text style={{ fontSize: 20, fontWeight: '700', color: ink }}>
+            {t.importLedger.ledgerTitle}
+          </Text>
         </View>
         <IconButton label={t.importLedger.helpTitle} onPress={() => setHelpOpen(true)}>
-          <Ionicons name="help-circle-outline" size={iconSize.lg} color={theme.color.text} />
+          <Ionicons name="help-circle-outline" size={iconSize.lg} color={ink} />
         </IconButton>
       </Row>
 
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
-          paddingHorizontal: theme.spacing.xl,
+          paddingHorizontal: theme.spacing.lg,
           paddingBottom: clearance,
-          paddingTop: theme.spacing.lg,
-          gap: theme.spacing.xl,
+          paddingTop: theme.spacing.sm,
+          gap: 12,
         }}
         showsVerticalScrollIndicator={false}
       >
-        <Card style={{ gap: theme.spacing.sm }}>
-          <Row style={{ justifyContent: 'space-between' }}>
-            <Text variant="subheading">{t.importLedger.bringHistory}</Text>
-            <Badge label={t.importLedger.free} tone="positive" />
-          </Row>
-          <Text variant="caption" tone="muted">
-            {t.importLedger.ledgerHowTo}
-          </Text>
-        </Card>
+        <LinearGradient
+          colors={dark ? [theme.color.surface, theme.color.surface] : ['#FFFFFF', '#F1EEFD']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{
+            borderRadius: 18,
+            paddingVertical: 14,
+            paddingLeft: 16,
+            paddingRight: 8,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 6,
+            overflow: 'hidden',
+          }}
+        >
+          <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
+            <Text style={{ fontSize: 17, fontWeight: '800', color: ink }}>
+              {t.importLedger.bringHistory}
+            </Text>
+            <Text style={{ fontSize: 13, lineHeight: 18, color: muted }}>
+              {t.importLedger.ledgerHowTo}
+            </Text>
+          </View>
+          <CsvArt />
+        </LinearGradient>
 
         {/* Two ways in, one flow: the file's contents decide the format either
             way (see choose()), so these only set the picker's expectation and
             the wording the person reads. Once a file is loaded, the block below
             takes over; the buttons stay as the way to pick a different one. */}
-        <View style={{ gap: theme.spacing.md }}>
-          <Button
-            label={t.importLedger.fromSplitwise}
-            size="lg"
-            fullWidth
-            variant="primary"
-            disabled={busy}
-            onPress={() => void choose('splitwise')}
-            icon={
-              <Ionicons
-                name="document-attach-outline"
-                size={iconSize.md}
-                color={theme.color.onBrand}
-              />
-            }
-          />
-          <Button
-            label={t.importLedger.fromOther}
-            size="lg"
-            fullWidth
-            variant="secondary"
-            disabled={busy}
-            onPress={() => void choose('other')}
-            icon={
-              <Ionicons name="folder-open-outline" size={iconSize.md} color={theme.color.brand} />
-            }
-          />
-        </View>
+        <PillButton
+          label={t.importLedger.fromSplitwise}
+          icon="document-text-outline"
+          chevron
+          disabled={busy}
+          onPress={() => void choose('splitwise')}
+        />
+        <PillButton
+          label={t.importLedger.fromOther}
+          icon="folder-open-outline"
+          variant="soft"
+          disabled={busy}
+          onPress={() => void choose('other')}
+        />
 
         {stage === 'reading' || stage === 'parsing' ? (
           <View style={{ gap: theme.spacing.sm }}>
-            <Text variant="caption" tone="muted">
+            <Text style={{ fontSize: 13, color: muted }}>
               {stage === 'reading' ? t.importLedger.reading : t.importLedger.parsing}
             </Text>
             <ProgressBar animated={!reduceMotion} />
@@ -544,8 +555,8 @@ export default function ImportScreen() {
 
         {/* A file holding several groups: one at a time, chosen here. */}
         {fileGroups.length > 1 && !done ? (
-          <View style={{ gap: theme.spacing.md }}>
-            <SectionHeader title={t.importLedger.whichGroup} />
+          <View style={{ gap: 8 }}>
+            <SectionTitle>{t.importLedger.whichGroup}</SectionTitle>
             <ChipRow<string>
               // Keyed by position, not by name: two groups in one export can
               // share a name, and matching on the name loads the first of them
@@ -569,164 +580,212 @@ export default function ImportScreen() {
 
         {parsed && !done ? (
           <>
-            <Card style={{ gap: theme.spacing.sm }}>
-              <Text variant="subheading">{file}</Text>
-              <Text variant="caption" tone="muted">
-                {plural(locale, parsed.expenses.length, t.importLedger.expenseCount)}
-                {parsed.settlements.length > 0
-                  ? ` · ${plural(locale, parsed.settlements.length, t.importLedger.settlementCount)}`
-                  : ''}{' '}
-                · {plural(locale, parsed.people.length, t.importLedger.peopleCount)} ·{' '}
-                {parsed.currency}
-              </Text>
-
-              <Divider />
-
-              <Text variant="caption" tone="muted">
+            <SoftCard>
+              <Row style={{ alignItems: 'center', gap: 12 }}>
+                <FileBadge kind={parsed.origin === 'waves' ? 'JSON' : 'CSV'} />
+                <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+                  <Text style={{ fontSize: 16, fontWeight: '700', color: ink }} numberOfLines={1}>
+                    {file}
+                  </Text>
+                  <Text style={{ fontSize: 13, color: muted }}>
+                    {plural(locale, parsed.expenses.length, t.importLedger.expenseCount)}
+                    {parsed.settlements.length > 0
+                      ? ` · ${plural(locale, parsed.settlements.length, t.importLedger.settlementCount)}`
+                      : ''}{' '}
+                    · {plural(locale, parsed.people.length, t.importLedger.peopleCount)} ·{' '}
+                    {parsed.currency}
+                  </Text>
+                </View>
+                {parsed.expenses.length > 0 ? (
+                  <Ionicons name="checkmark-circle" size={28} color="#1FA463" />
+                ) : null}
+              </Row>
+              <View style={{ height: 1, backgroundColor: line }} />
+              <Text style={{ fontSize: 13, lineHeight: 18, color: muted }}>
                 {parsed.origin === 'waves'
                   ? t.importLedger.fromWavesNote
                   : t.importLedger.fromSplitwiseNote}
               </Text>
-
               {parsed.otherCurrencies.length > 0 ? (
-                <Text variant="micro" tone="muted">
+                <Text style={{ fontSize: 12, color: muted }}>
                   {t.importLedger.otherCurrenciesNote
                     .replace('{currency}', parsed.currency)
                     .replace('{others}', parsed.otherCurrencies.join(', '))}
                 </Text>
               ) : null}
-            </Card>
+            </SoftCard>
 
             {parsed.problems.length > 0 ? (
-              <Card style={{ gap: theme.spacing.sm }}>
-                <Text variant="subheading" tone="negative">
+              <SoftCard>
+                <Text style={{ fontSize: 15, fontWeight: '700', color: theme.color.negative }}>
                   {plural(locale, parsed.problems.length, t.importLedger.rowsSkipped)}
                 </Text>
                 {parsed.problems.slice(0, 6).map((problem) => (
-                  <Text key={`${problem.kind}-${problem.row}`} variant="caption" tone="muted">
+                  <Text
+                    key={`${problem.kind}-${problem.row}`}
+                    style={{ fontSize: 13, color: muted }}
+                  >
                     {importProblemLine(problem, t.importLedger)}
                   </Text>
                 ))}
                 {parsed.problems.length > 6 ? (
-                  <Text variant="micro" tone="muted">
+                  <Text style={{ fontSize: 12, color: muted }}>
                     {t.importLedger.andMore.replace('{n}', String(parsed.problems.length - 6))}
                   </Text>
                 ) : null}
-              </Card>
+              </SoftCard>
             ) : null}
 
             {parsed.expenses.length > 0 ? (
-              <View>
-                <SectionHeader title={t.importLedger.whereItGoes} />
-                <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
+              <View style={{ gap: 8 }}>
+                <SectionTitle>{t.importLedger.whereItGoes}</SectionTitle>
+                {/* Two choices, not a list of every group: a new group is the
+                    usual answer, and the rest wait behind one tap in a sheet. */}
+                <SoftCard style={{ padding: 6, gap: 0 }}>
                   <TargetRow
                     label={t.importLedger.aNewGroup}
                     hint={t.importLedger.nameItBelow}
+                    icon="add"
+                    tint={0}
                     selected={target === NEW_GROUP}
                     onPress={() => void chooseTarget(NEW_GROUP)}
                   />
-                  {/* No hint on an existing group: the group's own name already
-                      says where the rows land, and repeating "Add to this
-                      group" down every row was noise the eye has to skip. */}
-                  {(groups.data ?? []).map((group) => (
+                  {(groups.data ?? []).length > 0 ? (
                     <TargetRow
-                      key={group.id}
-                      label={labelOf(group)}
-                      selected={target === group.id}
-                      onPress={() => void chooseTarget(group.id)}
+                      label={chosenGroup ? labelOf(chosenGroup) : t.importLedger.anExistingGroup}
+                      hint={
+                        chosenGroup
+                          ? `${plural(locale, summary.memberCountFor(chosenGroup.id), t.memberCount)} · ${t.importLedger.tapToChange}`
+                          : t.importLedger.anExistingGroupHint
+                      }
+                      icon="people-outline"
+                      tint={1}
+                      divider
+                      chevron={!chosenGroup}
+                      selected={chosenGroup !== null}
+                      onPress={() => setPickerOpen(true)}
                     />
-                  ))}
-                </Card>
+                  ) : null}
+                </SoftCard>
 
                 {/* Name the new group here rather than accept the file's default.
                     Only for a new group — an existing target already has a name. */}
                 {target === NEW_GROUP ? (
-                  <View style={{ marginTop: theme.spacing.md, gap: theme.spacing.xs }}>
-                    <Text
-                      variant="micro"
-                      tone="muted"
-                      style={{ paddingHorizontal: theme.spacing.sm }}
-                    >
+                  <View style={{ marginTop: 4, gap: 6 }}>
+                    <Text style={{ fontSize: 13, color: muted, paddingHorizontal: 4 }}>
                       {t.group.groupName}
                     </Text>
-                    <Card style={{ paddingVertical: theme.spacing.md }}>
-                      <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
-                        <Ionicons
-                          name="people-outline"
-                          size={iconSize.md}
-                          color={theme.color.textFaint}
-                        />
-                        <TextInput
-                          value={newGroupName}
-                          onChangeText={setNewGroupName}
-                          placeholder={parsed.suggestedName}
-                          placeholderTextColor={theme.color.textFaint}
-                          accessibilityLabel={t.group.groupName}
-                          returnKeyType="done"
-                          style={{
-                            flex: 1,
-                            fontSize: 16,
-                            fontWeight: '600',
-                            color: theme.color.text,
-                            paddingVertical: 0,
-                          }}
-                        />
-                        {newGroupName.length > 0 ? (
-                          <Pressable
-                            accessibilityRole="button"
-                            accessibilityLabel={t.entry.clear}
-                            onPress={() => setNewGroupName('')}
-                            hitSlop={8}
-                            style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
-                          >
-                            <Ionicons
-                              name="close-circle"
-                              size={iconSize.md}
-                              color={theme.color.textFaint}
-                            />
-                          </Pressable>
-                        ) : null}
-                      </Row>
-                    </Card>
+                    <Row
+                      style={{
+                        alignItems: 'center',
+                        gap: 12,
+                        height: 48,
+                        paddingHorizontal: 14,
+                        borderRadius: 14,
+                        borderWidth: 1,
+                        borderColor: line,
+                        backgroundColor: theme.color.surface,
+                      }}
+                    >
+                      <Ionicons name="people-outline" size={20} color={muted} />
+                      <TextInput
+                        value={newGroupName}
+                        onChangeText={setNewGroupName}
+                        placeholder={parsed.suggestedName}
+                        placeholderTextColor={theme.color.textFaint}
+                        accessibilityLabel={t.group.groupName}
+                        returnKeyType="done"
+                        style={{
+                          flex: 1,
+                          fontSize: 16,
+                          fontWeight: '600',
+                          color: ink,
+                          paddingVertical: 0,
+                        }}
+                      />
+                      {newGroupName.length > 0 ? (
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel={t.entry.clear}
+                          onPress={() => setNewGroupName('')}
+                          hitSlop={8}
+                          style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
+                        >
+                          <Ionicons name="close-circle" size={20} color={theme.color.textFaint} />
+                        </Pressable>
+                      ) : null}
+                    </Row>
                   </View>
                 ) : null}
               </View>
             ) : null}
 
             {parsed.expenses.length > 0 ? (
-              <View>
-                <SectionHeader title={t.importLedger.whoIsWho} />
-                <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
-                  {parsed.people.map((person, index) => (
-                    <View key={person}>
-                      {index > 0 ? <Divider /> : null}
+              <View style={{ gap: 8 }}>
+                <SectionTitle>{t.importLedger.whoIsWho}</SectionTitle>
+                <SoftCard style={{ paddingVertical: 4, paddingHorizontal: 14, gap: 0 }}>
+                  {parsed.people.map((person, index) => {
+                    const claimed = mapping[person]?.kind !== 'ghost';
+                    return (
                       <Pressable
+                        key={person}
                         onPress={() => cycle(person)}
                         accessibilityRole="button"
                         accessibilityLabel={t.importLedger.personIsMapped
                           .replace('{name}', person)
                           .replace('{who}', describeMapping(person))}
-                        style={{ paddingVertical: theme.spacing.lg, gap: 2 }}
+                        style={({ pressed }) => ({
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          gap: 12,
+                          paddingVertical: 8,
+                          borderTopWidth: index > 0 ? 1 : 0,
+                          borderTopColor: line,
+                          opacity: pressed ? 0.7 : 1,
+                        })}
                       >
-                        <Row style={{ justifyContent: 'space-between' }}>
-                          <Text variant="subheading">{person}</Text>
-                          <Row style={{ gap: theme.spacing.sm }}>
-                            <MoneyText
-                              amount={parsed.balances[person] ?? 0n}
-                              currency={parsed.currency}
-                              variant="caption"
-                            />
-                            <Badge
-                              label={describeMapping(person)}
-                              tone={mapping[person]?.kind === 'ghost' ? 'neutral' : 'brand'}
-                            />
-                          </Row>
-                        </Row>
+                        <Avatar name={person} size={32} tint={tintForKey(person)} />
+                        <Text
+                          style={{
+                            flex: 1,
+                            minWidth: 0,
+                            fontSize: 15,
+                            fontWeight: '600',
+                            color: ink,
+                          }}
+                          numberOfLines={1}
+                        >
+                          {person}
+                        </Text>
+                        <MoneyText
+                          amount={parsed.balances[person] ?? 0n}
+                          currency={parsed.currency}
+                          variant="caption"
+                        />
+                        <View
+                          style={{
+                            paddingHorizontal: 10,
+                            paddingVertical: 4,
+                            borderRadius: 12,
+                            backgroundColor: claimed ? accent : lavender,
+                          }}
+                        >
+                          <Text
+                            style={{
+                              fontSize: 12,
+                              fontWeight: '600',
+                              color: claimed ? '#FFFFFF' : accent,
+                            }}
+                            numberOfLines={1}
+                          >
+                            {describeMapping(person)}
+                          </Text>
+                        </View>
                       </Pressable>
-                    </View>
-                  ))}
-                </Card>
-                <Text variant="micro" tone="muted" style={{ paddingTop: theme.spacing.sm }}>
+                    );
+                  })}
+                </SoftCard>
+                <Text style={{ fontSize: 12, color: muted, paddingHorizontal: 4 }}>
                   {t.importLedger.tapANameNote}
                 </Text>
               </View>
@@ -734,26 +793,18 @@ export default function ImportScreen() {
 
             {parsed.expenses.length > 0 ? (
               <>
-                <Button
+                <PillButton
                   label={
                     busy
                       ? t.importLedger.importing
                       : plural(locale, parsed.expenses.length, t.importLedger.importCount)
                   }
-                  size="lg"
-                  fullWidth
+                  icon="cloud-upload-outline"
                   disabled={busy || !claimedByMe}
                   onPress={() => run()}
-                  icon={
-                    <Ionicons
-                      name="cloud-upload-outline"
-                      size={iconSize.md}
-                      color={theme.color.onBrand}
-                    />
-                  }
                 />
                 {!claimedByMe ? (
-                  <Text variant="caption" tone="muted" align="center">
+                  <Text style={{ fontSize: 13, color: muted, textAlign: 'center' }}>
                     {t.importLedger.tapYourNameFirst}
                   </Text>
                 ) : null}
@@ -763,11 +814,14 @@ export default function ImportScreen() {
         ) : null}
 
         {done ? (
-          <Card style={{ gap: theme.spacing.md }}>
-            <Text variant="subheading" tone="positive">
-              {t.importLedger.imported}
-            </Text>
-            <Text variant="caption" tone="muted">
+          <SoftCard>
+            <Row style={{ alignItems: 'center', gap: 10 }}>
+              <Ionicons name="checkmark-circle" size={26} color="#1FA463" />
+              <Text style={{ fontSize: 17, fontWeight: '700', color: ink }}>
+                {t.importLedger.imported}
+              </Text>
+            </Row>
+            <Text style={{ fontSize: 13, color: muted }}>
               {plural(locale, done.expenses, t.importLedger.expenseCount)}
               {done.settlements > 0
                 ? ` · ${plural(locale, done.settlements, t.importLedger.settlementCount)}`
@@ -777,20 +831,51 @@ export default function ImportScreen() {
                 : ''}
             </Text>
             {done.settlementsPending > 0 ? (
-              <Text variant="caption" tone="muted">
+              <Text style={{ fontSize: 13, color: muted }}>
                 {plural(locale, done.settlementsPending, t.importLedger.settlementsPending)}
               </Text>
             ) : null}
-            <Button
+            <PillButton
               label={t.importLedger.openTheGroup}
-              fullWidth
+              icon="people-outline"
               onPress={() => router.replace(`/group/${done.groupId}`)}
             />
-          </Card>
+          </SoftCard>
         ) : null}
 
         {error ? <Callout tone="negative">{error}</Callout> : null}
       </ScrollView>
+
+      {/* Every group I am in, to pick the one the rows go into. Picking one
+          closes the sheet; the card behind then names it. */}
+      <Sheet
+        visible={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        padded={false}
+        closeLabel={t.common.close}
+        style={{ paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.lg, gap: 10 }}
+      >
+        <Text style={{ fontSize: 20, fontWeight: '800', color: ink, paddingHorizontal: 8 }}>
+          {t.importLedger.chooseGroup}
+        </Text>
+        <ScrollView style={{ maxHeight: 420 }} showsVerticalScrollIndicator={false}>
+          {(groups.data ?? []).map((group, index) => (
+            <TargetRow
+              key={group.id}
+              label={labelOf(group)}
+              hint={plural(locale, summary.memberCountFor(group.id), t.memberCount)}
+              icon="people-outline"
+              tint={index + 1}
+              divider={index > 0}
+              selected={target === group.id}
+              onPress={() => {
+                setPickerOpen(false);
+                void chooseTarget(group.id);
+              }}
+            />
+          ))}
+        </ScrollView>
+      </Sheet>
 
       {/* How it works, on tap of the header's help glyph. This sheet is where
           the longer explanation lives, so the screen itself can stay short:
@@ -844,42 +929,312 @@ export default function ImportScreen() {
   );
 }
 
+/** The mockup's inks in the light theme; the theme's own in the dark. */
+function useImportInks() {
+  const theme = useTheme();
+  const dark = theme.scheme === 'dark';
+  return {
+    dark,
+    ink: dark ? theme.color.text : SPEC_INK,
+    muted: dark ? theme.color.textMuted : SPEC_MUTED,
+    accent: dark ? theme.color.brand : SPEC_ACCENT,
+    lavender: dark ? theme.color.surfaceMuted : '#EFEBFD',
+    line: dark ? theme.color.border : '#ECEAF4',
+  };
+}
+
+/** Rotating soft tints for the group discs, so neighbours never match. */
+const DISC_TINTS: readonly { fg: string; bg: string }[] = [
+  { fg: '#6845E8', bg: '#EFEBFD' },
+  { fg: '#2F6FE4', bg: '#E7F0FE' },
+  { fg: '#E8871E', bg: '#FFF1E0' },
+  { fg: '#1F9D74', bg: '#E3F6EF' },
+  { fg: '#D6457E', bg: '#FDE8F1' },
+];
+
+/** A white card with the redesign's soft corners and lift. */
+function SoftCard({ children, style }: { children: ReactNode; style?: object }) {
+  const theme = useTheme();
+  return (
+    <View
+      style={[
+        {
+          backgroundColor: theme.color.surface,
+          borderRadius: 18,
+          padding: 14,
+          gap: 10,
+          shadowColor: '#2A1E6B',
+          shadowOpacity: theme.scheme === 'dark' ? 0 : 0.06,
+          shadowRadius: 14,
+          shadowOffset: { width: 0, height: 4 },
+          elevation: 2,
+        },
+        style,
+      ]}
+    >
+      {children}
+    </View>
+  );
+}
+
+function SectionTitle({ children }: { children: string }) {
+  const { ink } = useImportInks();
+  return (
+    <Text accessibilityRole="header" style={{ fontSize: 18, fontWeight: '800', color: ink }}>
+      {children}
+    </Text>
+  );
+}
+
+/** A full-width pill: deep violet for the way forward, lavender for the other
+ *  way in. */
+function PillButton({
+  label,
+  icon,
+  onPress,
+  disabled = false,
+  chevron = false,
+  variant = 'solid',
+}: {
+  label: string;
+  icon: IconName;
+  onPress: () => void;
+  disabled?: boolean;
+  chevron?: boolean;
+  variant?: 'solid' | 'soft';
+}) {
+  const theme = useTheme();
+  const { dark, accent, lavender } = useImportInks();
+  const solid = variant === 'solid';
+  const fg = solid ? '#FFFFFF' : accent;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled }}
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        height: 50,
+        borderRadius: 25,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 10,
+        paddingHorizontal: 20,
+        backgroundColor: solid ? (dark ? theme.color.brand : '#3E2A9E') : lavender,
+        opacity: disabled ? 0.5 : pressed ? 0.88 : 1,
+      })}
+    >
+      <Ionicons name={icon} size={20} color={fg} />
+      <Text style={{ fontSize: 16, fontWeight: '700', color: fg }} numberOfLines={1}>
+        {label}
+      </Text>
+      {chevron ? (
+        <Ionicons
+          name={directionalIcon('chevron-forward')}
+          size={18}
+          color={fg}
+          style={{ position: 'absolute', end: 18 }}
+        />
+      ) : null}
+    </Pressable>
+  );
+}
+
+/** The loaded file's type, as a folded green page with its extension. */
+function FileBadge({ kind }: { kind: string }) {
+  return (
+    <View
+      style={{
+        width: 44,
+        height: 50,
+        borderRadius: 8,
+        borderTopRightRadius: 16,
+        backgroundColor: '#DDF3E7',
+        justifyContent: 'flex-end',
+        alignItems: 'center',
+        paddingBottom: 6,
+      }}
+    >
+      <View style={{ paddingHorizontal: 4, borderRadius: 3, backgroundColor: '#1FA463' }}>
+        <Text style={{ fontSize: 9, fontWeight: '800', color: '#FFFFFF' }}>{kind}</Text>
+      </View>
+    </View>
+  );
+}
+
 function TargetRow({
   label,
   hint,
+  icon,
+  tint,
+  divider = false,
+  chevron = false,
   selected,
   onPress,
 }: {
   label: string;
-  /** Omitted where the label speaks for itself — see the call site. */
   hint?: string;
+  icon: IconName;
+  tint: number;
+  divider?: boolean;
+  /** Leads to a choice rather than being one: a chevron in place of the radio. */
+  chevron?: boolean;
   selected: boolean;
   onPress: () => void;
 }) {
   const theme = useTheme();
+  const { dark, ink, muted, accent, lavender, line } = useImportInks();
+  const disc = DISC_TINTS[tint % DISC_TINTS.length] ?? DISC_TINTS[0]!;
   return (
     <Pressable
       onPress={onPress}
-      accessibilityRole="radio"
+      accessibilityRole={chevron ? 'button' : 'radio'}
+      accessibilityLabel={hint ? `${label}, ${hint}` : label}
       accessibilityState={{ selected }}
-      style={{ paddingVertical: theme.spacing.lg }}
+      style={({ pressed }) => ({
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        paddingVertical: 8,
+        paddingHorizontal: 8,
+        borderRadius: 14,
+        backgroundColor: selected ? lavender : 'transparent',
+        opacity: pressed ? 0.8 : 1,
+      })}
     >
-      <Row style={{ justifyContent: 'space-between' }}>
-        <View style={{ gap: 2 }}>
-          <Text variant="subheading">{label}</Text>
-          {hint ? (
-            <Text variant="caption" tone="muted">
-              {hint}
-            </Text>
-          ) : null}
-        </View>
+      {divider && !selected ? (
+        <View
+          style={{
+            position: 'absolute',
+            top: 0,
+            start: 8,
+            end: 8,
+            height: 1,
+            backgroundColor: line,
+          }}
+        />
+      ) : null}
+      <View
+        style={{
+          width: 38,
+          height: 38,
+          borderRadius: 19,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: dark ? theme.color.surfaceMuted : disc.bg,
+        }}
+      >
+        <Ionicons name={icon} size={icon === 'add' ? 22 : 18} color={disc.fg} />
+      </View>
+      <View style={{ flex: 1, minWidth: 0, gap: 1 }}>
+        <Text style={{ fontSize: 15, fontWeight: '600', color: ink }} numberOfLines={1}>
+          {label}
+        </Text>
+        {hint ? <Text style={{ fontSize: 12, color: muted }}>{hint}</Text> : null}
+      </View>
+      {chevron ? (
+        <Ionicons
+          name={directionalIcon('chevron-forward')}
+          size={20}
+          color={theme.color.textFaint}
+        />
+      ) : (
         <Ionicons
           name={selected ? 'radio-button-on' : 'radio-button-off'}
-          size={iconSize.xl}
-          color={selected ? theme.color.brand : theme.color.textFaint}
+          size={22}
+          color={selected ? accent : theme.color.textFaint}
         />
-      </Row>
+      )}
     </Pressable>
+  );
+}
+
+/** The hero's picture: a CSV page, a dashed arrow, and the people it becomes.
+ *  Drawn from views and glyphs, so it themes and costs no asset. */
+function CsvArt() {
+  const theme = useTheme();
+  const dark = theme.scheme === 'dark';
+  const disc = (color: string, size: number, style: object) => (
+    <View
+      style={[
+        {
+          position: 'absolute',
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: color,
+          borderWidth: 2,
+          borderColor: dark ? theme.color.surface : '#FFFFFF',
+        },
+        style,
+      ]}
+    >
+      <Ionicons name="person" size={size * 0.5} color="#FFFFFF" />
+    </View>
+  );
+  return (
+    <View
+      pointerEvents="none"
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={{ width: 118, height: 84 }}
+    >
+      <View
+        style={{
+          position: 'absolute',
+          left: 6,
+          top: 14,
+          width: 50,
+          height: 62,
+          borderRadius: 8,
+          padding: 7,
+          gap: 5,
+          backgroundColor: dark ? theme.color.surfaceMuted : '#FFFFFF',
+          transform: [{ rotate: '-8deg' }],
+          shadowColor: '#2A1E6B',
+          shadowOpacity: 0.12,
+          shadowRadius: 6,
+          shadowOffset: { width: 0, height: 3 },
+          elevation: 3,
+        }}
+      >
+        <View style={{ height: 3, borderRadius: 2, backgroundColor: '#DCD6FA' }} />
+        <View style={{ height: 3, width: 22, borderRadius: 2, backgroundColor: '#DCD6FA' }} />
+        <View
+          style={{
+            marginTop: 8,
+            alignSelf: 'flex-start',
+            paddingHorizontal: 5,
+            paddingVertical: 1,
+            borderRadius: 4,
+            backgroundColor: '#5A3FD8',
+          }}
+        >
+          <Text style={{ fontSize: 10, fontWeight: '800', color: '#FFFFFF' }}>CSV</Text>
+        </View>
+      </View>
+      <View
+        style={{
+          position: 'absolute',
+          left: 44,
+          top: 4,
+          width: 40,
+          height: 24,
+          borderTopWidth: 1.5,
+          borderRightWidth: 1.5,
+          borderStyle: 'dashed',
+          borderColor: '#8C7BF0',
+          borderTopRightRadius: 20,
+        }}
+      />
+      {disc('#9C8CF2', 30, { right: 6, top: 4 })}
+      {disc('#6FA4F5', 30, { right: 30, top: 42 })}
+      {disc('#F5A66F', 24, { right: 0, top: 44 })}
+    </View>
   );
 }
 
