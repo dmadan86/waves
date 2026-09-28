@@ -18,7 +18,8 @@
  *
  * On top of those, the screen's own search, kind tabs and category filter narrow
  * further in place. "Transfers" are the loan repayments: money moving between
- * the person and a loan rather than spent or earned.
+ * the person and a loan. They also stay under Expenses or Income, which is
+ * how the Personal tab's tiles count them.
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -124,7 +125,9 @@ function PersonalTransactionsScreenBody() {
         ? true
         : tab === 'transfer'
           ? txn.loanId !== null
-          : txn.kind === tab && txn.loanId === null;
+          : // Repayments stay under their kind too: the Personal tab's Spent and
+            // Income tiles count them, and the list they open has to add up.
+            txn.kind === tab;
     const shown = txns.filter(
       (txn) =>
         matchesCategory(txn.category) &&
