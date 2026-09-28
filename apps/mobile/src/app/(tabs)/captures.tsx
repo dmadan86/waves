@@ -1972,7 +1972,9 @@ export default function CapturesScreen() {
                 // from was a bank message, so the source is a true name on both
                 // and a more useful one than the favour: it says at a glance
                 // which half of Review fills itself.
-                label: t.captures.tabSms,
+                // Where the phone cannot read SMS (iPhone, iPad) nothing here
+                // came from its inbox, so the tab is named for what is pasted.
+                label: smsReader ? t.captures.tabSms : t.captures.tabBankMessages,
                 count: byTab.found.length,
                 icon: (color) => (
                   <Ionicons name="chatbubbles-outline" size={iconSize.md} color={color} />

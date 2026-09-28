@@ -1802,6 +1802,9 @@ export interface UiStrings {
      */
     tabFound: string;
     tabSms: string;
+    /** The same tab on a phone that cannot read SMS (iPhone, iPad): only pasted
+     *  bank messages are in it, so it is named for them. */
+    tabBankMessages: string;
     tabAdded: string;
     /** The hero's line over the count of drafts still waiting to be filed. */
     heroWaiting: string;
@@ -2682,6 +2685,13 @@ export interface UiStrings {
   };
   /** Starting a group, joining one by link, and the odds and ends around both. */
   misc: {
+    settleYouOweTotal: string;
+    settleOwedTotal: string;
+    settlePickPayee: string;
+    settlePickPayer: string;
+    settleClearsAll: string;
+    settleAllOwed: string;
+    settleLeftOver: string;
     couldNotAddGeneric: string;
     tryAgainMoment: string;
     couldNotJoin: string;
@@ -3345,6 +3355,8 @@ export interface UiStrings {
    */
   /** Your timeline: every expense across groups, as a day-by-day list and a map. */
   timeline: {
+    fullScreen: string;
+    exitFullScreen: string;
     title: string;
     viewTimeline: string;
     viewMap: string;
@@ -5183,6 +5195,7 @@ const en: UiStrings = {
     sectionReady: 'Ready',
     tabFound: 'Found for you',
     tabSms: 'SMS',
+    tabBankMessages: 'Bank messages',
     tabAdded: 'Added by you',
     heroWaiting: 'Waiting on you',
     heroCaughtUp: 'All caught up',
@@ -5895,6 +5908,13 @@ const en: UiStrings = {
     },
   },
   misc: {
+    settleYouOweTotal: 'You owe {amount} in this group',
+    settleOwedTotal: "You're owed {amount} in this group",
+    settlePickPayee: "Pay it to anyone the group owes. Under each name is what you'd pay them.",
+    settlePickPayer: "Anyone who owes can pay you. Under each name is what they'd pay you.",
+    settleClearsAll: 'This clears everything you owe here.',
+    settleAllOwed: "That's everything you're owed here.",
+    settleLeftOver: '{amount} left to settle with others.',
     couldNotAddGeneric: 'Could not add everyone. Please try again.',
     tryAgainMoment: 'Please try again in a moment.',
     couldNotJoin: 'Could not open this invite. Please try again.',
@@ -6506,6 +6526,8 @@ const en: UiStrings = {
     couldNotRedeem: 'The code could not be checked just now. Try again in a moment.',
   },
   timeline: {
+    fullScreen: 'Full screen map',
+    exitFullScreen: 'Exit full screen',
     title: 'Your timeline',
     viewTimeline: 'Timeline',
     viewMap: 'Map',
@@ -8357,6 +8379,7 @@ const ta: UiStrings = {
     sectionReady: 'தயார்',
     tabFound: 'கண்டறியப்பட்டவை',
     tabSms: 'எஸ்எம்எஸ்',
+    tabBankMessages: 'வங்கிச் செய்திகள்',
     tabAdded: 'நீங்கள் சேர்த்தவை',
     heroWaiting: 'உங்கள் கவனத்திற்கு',
     heroCaughtUp: 'எல்லாம் முடிந்தது',
@@ -9112,6 +9135,15 @@ const ta: UiStrings = {
     },
   },
   misc: {
+    settleYouOweTotal: 'இந்தக் குழுவில் நீங்கள் {amount} தர வேண்டும்',
+    settleOwedTotal: 'இந்தக் குழுவில் உங்களுக்கு {amount} வர வேண்டும்',
+    settlePickPayee:
+      'குழு பணம் தர வேண்டிய யாருக்கும் செலுத்தலாம். ஒவ்வொரு பெயரின் கீழும் நீங்கள் அவருக்குச் செலுத்தும் தொகை.',
+    settlePickPayer:
+      'கடன்பட்ட யாரும் உங்களுக்குச் செலுத்தலாம். ஒவ்வொரு பெயரின் கீழும் அவர் உங்களுக்குச் செலுத்தும் தொகை.',
+    settleClearsAll: 'இது நீங்கள் இங்கே தர வேண்டிய அனைத்தையும் தீர்க்கிறது.',
+    settleAllOwed: 'இங்கே உங்களுக்கு வர வேண்டியது இவ்வளவுதான்.',
+    settleLeftOver: 'மற்றவர்களுடன் தீர்க்க {amount} மீதம்.',
     couldNotAddGeneric: 'எல்லாரையும் சேர்க்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்.',
     tryAgainMoment: 'சிறிது நேரத்தில் மீண்டும் முயற்சிக்கவும்.',
     couldNotJoin: 'இந்த அழைப்பைத் திறக்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்.',
@@ -9772,6 +9804,8 @@ const ta: UiStrings = {
     couldNotRedeem: 'இப்போது குறியீட்டைச் சரிபார்க்க முடியவில்லை. சிறிது நேரம் கழித்து முயலுங்கள்.',
   },
   timeline: {
+    fullScreen: 'முழுத்திரை வரைபடம்',
+    exitFullScreen: 'முழுத்திரையிலிருந்து வெளியேறு',
     title: 'உங்கள் காலவரிசை',
     viewTimeline: 'காலவரிசை',
     viewMap: 'வரைபடம்',
@@ -11597,6 +11631,7 @@ const hi: UiStrings = {
     sectionReady: 'तैयार',
     tabFound: 'आपके लिए मिले',
     tabSms: 'एसएमएस',
+    tabBankMessages: 'बैंक संदेश',
     tabAdded: 'आपने जोड़े',
     heroWaiting: 'आपके इंतज़ार में',
     heroCaughtUp: 'सब हो गया',
@@ -12317,6 +12352,15 @@ const hi: UiStrings = {
     },
   },
   misc: {
+    settleYouOweTotal: 'इस ग्रुप में आपको {amount} देने हैं',
+    settleOwedTotal: 'इस ग्रुप में आपको {amount} मिलने हैं',
+    settlePickPayee:
+      'ग्रुप जिसे भी पैसे देता है, उसे चुका सकते हैं। हर नाम के नीचे वह रकम है जो आप उन्हें देंगे।',
+    settlePickPayer:
+      'जिस पर भी उधार है, वह आपको चुका सकता है। हर नाम के नीचे वह रकम है जो वे आपको देंगे।',
+    settleClearsAll: 'इससे यहाँ आपका पूरा बकाया चुक जाता है।',
+    settleAllOwed: 'यहाँ आपको बस इतना ही मिलना है।',
+    settleLeftOver: '{amount} दूसरों के साथ चुकाना बाकी।',
     couldNotAddGeneric: 'सभी को नहीं जोड़ा जा सका। कृपया फिर कोशिश करें।',
     tryAgainMoment: 'कृपया थोड़ी देर में फिर कोशिश करें।',
     couldNotJoin: 'यह निमंत्रण नहीं खुल सका। कृपया फिर कोशिश करें।',
@@ -12933,6 +12977,8 @@ const hi: UiStrings = {
     couldNotRedeem: 'अभी कोड जाँचा नहीं जा सका। थोड़ी देर बाद कोशिश करें।',
   },
   timeline: {
+    fullScreen: 'फ़ुल स्क्रीन मैप',
+    exitFullScreen: 'फ़ुल स्क्रीन से बाहर निकलें',
     title: 'आपकी टाइमलाइन',
     viewTimeline: 'टाइमलाइन',
     viewMap: 'नक्शा',
@@ -14833,6 +14879,7 @@ const ar: UiStrings = {
     sectionReady: 'جاهزة',
     tabFound: 'وجدناها لك',
     tabSms: 'الرسائل',
+    tabBankMessages: 'رسائل البنك',
     tabAdded: 'أضفتها أنت',
     heroWaiting: 'بانتظارك',
     heroCaughtUp: 'لا شيء متبقٍّ',
@@ -15669,6 +15716,13 @@ const ar: UiStrings = {
     },
   },
   misc: {
+    settleYouOweTotal: 'عليك {amount} في هذه المجموعة',
+    settleOwedTotal: 'لك {amount} في هذه المجموعة',
+    settlePickPayee: 'ادفعه لأي شخص تدين له المجموعة. تحت كل اسم ما ستدفعه له.',
+    settlePickPayer: 'يمكن لأي مدين أن يدفع لك. تحت كل اسم ما سيدفعه لك.',
+    settleClearsAll: 'هذا يسدّد كل ما عليك هنا.',
+    settleAllOwed: 'هذا كل ما لك هنا.',
+    settleLeftOver: 'يتبقى {amount} لتسويته مع الآخرين.',
     couldNotAddGeneric: 'تعذّرت إضافة الجميع. حاول مرة أخرى.',
     tryAgainMoment: 'يُرجى المحاولة مرة أخرى بعد قليل.',
     couldNotJoin: 'تعذّر فتح هذه الدعوة. حاول مرة أخرى.',
@@ -16517,6 +16571,8 @@ const ar: UiStrings = {
     couldNotRedeem: 'تعذّر التحقق من الرمز الآن. حاول بعد قليل.',
   },
   timeline: {
+    fullScreen: 'خريطة بملء الشاشة',
+    exitFullScreen: 'الخروج من ملء الشاشة',
     title: 'خطك الزمني',
     viewTimeline: 'الخط الزمني',
     viewMap: 'الخريطة',
