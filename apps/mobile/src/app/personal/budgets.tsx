@@ -42,13 +42,11 @@ import {
   Button,
   Card,
   directionalIcon,
-  EmptyState,
   IconButton,
   iconSize,
   Row,
   Screen,
   Sheet,
-  SegmentedTabs,
   Text,
   useTheme,
 } from '@waves/ui';
@@ -66,6 +64,7 @@ import { PersonalGuard } from '@/components/PersonalGuard';
 import { useBottomClearance } from '@/lib/clearance';
 import { router } from '@/lib/navigation';
 import { useDialog } from '@/lib/dialog';
+import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
 
 function BudgetsScreenBody() {
   const theme = useTheme();
@@ -77,6 +76,8 @@ function BudgetsScreenBody() {
   const [month] = useState(() => todayIso().slice(0, 7));
   const [editing, setEditing] = useState<PersonalBudget | null>(null);
   const [creating, setCreating] = useState(false);
+
+  const { ink, muted } = useBudgetInks();
 
   const labelFor = (id: string | null): string =>
     id ? (t.categories[id as keyof typeof t.categories] ?? id) : t.personal.overall;
@@ -123,8 +124,22 @@ function BudgetsScreenBody() {
         </Text>
 
         {budgets.length === 0 ? (
-          <View style={{ paddingTop: theme.spacing.xxxl }}>
-            <EmptyState title={t.personal.noBudgets} />
+          <View style={{ paddingTop: theme.spacing.lg, alignItems: 'center', gap: 8 }}>
+            <ClipboardArt />
+            <Text style={{ fontSize: 20, fontWeight: '800', color: ink, textAlign: 'center' }}>
+              {t.personal.noBudgets}
+            </Text>
+            <Text
+              style={{
+                fontSize: 14,
+                lineHeight: 20,
+                color: muted,
+                textAlign: 'center',
+                paddingHorizontal: theme.spacing.lg,
+              }}
+            >
+              {t.personal.noBudgetsBody}
+            </Text>
           </View>
         ) : (
           budgets.map((budget) => {
@@ -219,6 +234,7 @@ function BudgetEditor({
   const theme = useTheme();
   const { t, locale } = useStrings();
   const { confirm } = useDialog();
+  const { ink, muted, accent, lavender } = useBudgetInks();
   const upsert = useUpsertPersonalRecord();
   const remove = useDeletePersonalRecord();
 
@@ -310,30 +326,60 @@ function BudgetEditor({
     );
   };
 
+  // The six-month figure, split so the total can be set in bold the way the
+  // mockup leads with it; the average goes on its own quieter line.
+  const [contextLead, contextTail] = (() => {
+    if (!measuring || recent.monthsWithSpend === 0) return [null, null];
+    const parts = t.personal.budgetContextTotal.split('{total}');
+    return [parts[0] ?? '', parts.slice(1).join('')];
+  })();
+
   return (
     <Sheet visible onClose={onClose} padded={false} style={{ maxHeight: '90%' }}>
       <ScrollView
-        contentContainerStyle={{ padding: theme.spacing.xl, gap: theme.spacing.lg }}
+        contentContainerStyle={{
+          paddingHorizontal: theme.spacing.xl,
+          paddingTop: theme.spacing.md,
+          paddingBottom: theme.spacing.xl,
+          gap: 14,
+        }}
         keyboardShouldPersistTaps="handled"
       >
-        <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+        <Row style={{ alignItems: 'flex-start', gap: theme.spacing.md }}>
           {/* The badge says which budget this is before the heading does, and
               carries the one colour the sheet is allowed to use. */}
           {tinted ? <CategoryBadge category={chosenCategory} meta={null} size={36} /> : null}
-          <Text variant="heading" style={{ flex: 1 }} numberOfLines={1}>
-            {budget ? t.personal.editBudget : t.personal.addBudget}
-          </Text>
-          <IconButton label={t.common.close} onPress={onClose}>
-            <Ionicons name="close" size={iconSize.lg} color={theme.color.text} />
-          </IconButton>
+          <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+            <Text style={{ fontSize: 24, fontWeight: '800', color: ink }} numberOfLines={1}>
+              {budget ? t.personal.editBudget : t.personal.addBudget}
+            </Text>
+            <Text style={{ fontSize: 14, color: muted }}>{t.personal.addBudgetSub}</Text>
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t.common.close}
+            onPress={onClose}
+            hitSlop={6}
+            style={({ pressed }) => ({
+              width: 36,
+              height: 36,
+              borderRadius: 18,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: theme.color.surfaceMuted,
+              opacity: pressed ? 0.7 : 1,
+            })}
+          >
+            <Ionicons name="close" size={20} color={ink} />
+          </Pressable>
         </Row>
 
-        <SegmentedTabs
+        <ScopeTabs
           value={scope}
           onChange={setScope}
           tabs={[
-            { value: 'overall', label: t.personal.overall },
-            { value: 'category', label: t.personal.category },
+            { value: 'overall', label: t.personal.overall, icon: 'bar-chart-outline' },
+            { value: 'category', label: t.personal.category, icon: 'grid-outline' },
           ]}
         />
 
@@ -341,83 +387,149 @@ function BudgetEditor({
           <CategoryPicker value={category} onChange={(picked) => setCategory(picked)} />
         ) : null}
 
-        <View style={{ gap: theme.spacing.sm }}>
-          <Text variant="caption" tone="muted">
+        <Row style={{ alignItems: 'center', justifyContent: 'space-between' }}>
+          <Text style={{ fontSize: 16, fontWeight: '600', color: ink }}>
             {t.personal.monthlyLimit}
           </Text>
-          <View
+          {/* Every budget is monthly, so this is a label and not a menu: a
+              chevron here would open a list of one. */}
+          <Row
             style={{
-              borderRadius: theme.radius.lg,
-              backgroundColor: tinted ? tint.bg : theme.color.surfaceMuted,
-              paddingVertical: theme.spacing.lg,
-              paddingHorizontal: theme.spacing.sm,
-              gap: theme.spacing.sm,
+              alignItems: 'center',
+              gap: 6,
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+              borderRadius: 14,
+              backgroundColor: lavender,
             }}
           >
-            <Row style={{ alignItems: 'center', justifyContent: 'center', gap: theme.spacing.sm }}>
-              {/* `repeatable`, because a stepper is the one control somebody is
-                  meant to press again immediately — the default single-action
-                  guard would swallow the second tap and read as a dead button. */}
-              <IconButton
-                label={t.personal.lowerLimit.replace('{amount}', asMoney(step))}
-                repeatable
-                onPress={limit > 0n ? () => stepped(-step) : undefined}
-              >
-                <Ionicons
-                  name="remove"
-                  size={iconSize.lg}
-                  color={limit > 0n ? contextInk : theme.color.textFaint}
-                />
-              </IconButton>
+            <Ionicons name="calendar-outline" size={15} color={accent} />
+            <Text style={{ fontSize: 13, fontWeight: '600', color: ink }}>
+              {t.personal.monthly}
+            </Text>
+          </Row>
+        </Row>
 
-              <AmountField currency={budgetCurrency} value={limit} onChange={setLimit} />
-
-              <IconButton
-                label={t.personal.raiseLimit.replace('{amount}', asMoney(step))}
-                repeatable
-                onPress={() => stepped(step)}
-              >
-                <Ionicons name="add" size={iconSize.lg} color={contextInk} />
-              </IconButton>
-            </Row>
-
-            {context ? (
-              <Text variant="micro" align="center" style={{ color: contextInk }}>
-                {context}
-              </Text>
-            ) : null}
+        <Row
+          style={{
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            borderRadius: 18,
+            backgroundColor: tinted ? tint.bg : lavender,
+            paddingVertical: 12,
+            paddingHorizontal: 20,
+          }}
+        >
+          {/* `repeatable`, because a stepper is the one control somebody is
+              meant to press again immediately — the default single-action
+              guard would swallow the second tap and read as a dead button. */}
+          <StepDisc
+            icon="remove"
+            label={t.personal.lowerLimit.replace('{amount}', asMoney(step))}
+            onPress={limit > 0n ? () => stepped(-step) : undefined}
+          />
+          <View style={{ flex: 1, alignItems: 'center' }}>
+            <AmountField currency={budgetCurrency} value={limit} onChange={setLimit} />
           </View>
+          <StepDisc
+            icon="add"
+            label={t.personal.raiseLimit.replace('{amount}', asMoney(step))}
+            onPress={() => stepped(step)}
+          />
+        </Row>
 
-          {measuring ? (
-            <Pressable
-              accessibilityRole="link"
-              accessibilityLabel={t.personal.viewTransactions}
-              onPress={openTransactions}
-              style={({ pressed }) => ({
-                flexDirection: 'row',
+        {context ? (
+          <Row
+            style={{
+              alignItems: 'center',
+              gap: 12,
+              borderRadius: 18,
+              padding: 14,
+              backgroundColor: tinted ? tint.bg : lavender,
+            }}
+          >
+            <View
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: 19,
                 alignItems: 'center',
-                alignSelf: 'center',
-                gap: theme.spacing.xs,
-                minHeight: 44,
-                paddingHorizontal: theme.spacing.sm,
-                opacity: pressed ? 0.7 : 1,
-              })}
+                justifyContent: 'center',
+                backgroundColor: theme.color.surface,
+              }}
             >
-              <Text variant="caption" style={{ color: theme.color.brand }}>
-                {t.personal.viewTransactions}
-              </Text>
-              {/* A chevron *is* directional, unlike the stepper's glyphs, so this
-                  one goes through the mirror. */}
-              <Ionicons
-                name={directionalIcon('chevron-forward')}
-                size={iconSize.md}
-                color={theme.color.brand}
-              />
-            </Pressable>
-          ) : null}
-        </View>
+              <Ionicons name="bar-chart-outline" size={18} color={accent} />
+            </View>
+            <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+              {contextLead !== null ? (
+                <>
+                  <Text style={{ fontSize: 14, color: tinted ? contextInk : ink }}>
+                    {contextLead}
+                    <Text style={{ fontWeight: '800' }}>{asMoney(recent.total)}</Text>
+                    {contextTail}
+                  </Text>
+                  {recent.monthsWithSpend > 1 ? (
+                    <Text style={{ fontSize: 13, color: tinted ? contextInk : muted }}>
+                      {t.personal.budgetAboutMonth.replace('{average}', asMoney(recent.average))}
+                    </Text>
+                  ) : null}
+                </>
+              ) : (
+                <Text style={{ fontSize: 14, color: tinted ? contextInk : muted }}>{context}</Text>
+              )}
+            </View>
+          </Row>
+        ) : null}
 
-        <Button label={t.personal.save} size="lg" fullWidth onPress={onSave} disabled={!canSave} />
+        {measuring ? (
+          <Pressable
+            accessibilityRole="link"
+            accessibilityLabel={t.personal.viewTransactions}
+            onPress={openTransactions}
+            style={({ pressed }) => ({
+              flexDirection: 'row',
+              alignItems: 'center',
+              alignSelf: 'center',
+              gap: theme.spacing.xs,
+              minHeight: 40,
+              paddingHorizontal: theme.spacing.sm,
+              opacity: pressed ? 0.7 : 1,
+            })}
+          >
+            <Text style={{ fontSize: 15, fontWeight: '600', color: accent }}>
+              {t.personal.viewTransactions}
+            </Text>
+            {/* A chevron *is* directional, unlike the stepper's glyphs, so this
+                one goes through the mirror. */}
+            <Ionicons name={directionalIcon('chevron-forward')} size={18} color={accent} />
+          </Pressable>
+        ) : null}
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t.personal.save}
+          accessibilityState={{ disabled: !canSave }}
+          disabled={!canSave}
+          onPress={onSave}
+          style={({ pressed }) => ({
+            height: 54,
+            borderRadius: 27,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: canSave ? accent : theme.color.surfaceMuted,
+            opacity: pressed ? 0.88 : 1,
+          })}
+        >
+          <Text
+            style={{
+              fontSize: 17,
+              fontWeight: '700',
+              color: canSave ? '#FFFFFF' : theme.color.textFaint,
+            }}
+          >
+            {t.personal.save}
+          </Text>
+        </Pressable>
 
         {budget ? (
           <Button
@@ -438,6 +550,187 @@ function BudgetEditor({
         ) : null}
       </ScrollView>
     </Sheet>
+  );
+}
+
+/** The mockup's inks in the light theme; the theme's own in the dark. */
+function useBudgetInks() {
+  const theme = useTheme();
+  const dark = theme.scheme === 'dark';
+  return {
+    dark,
+    ink: dark ? theme.color.text : SPEC_INK,
+    muted: dark ? theme.color.textMuted : SPEC_MUTED,
+    accent: dark ? theme.color.brand : SPEC_ACCENT,
+    lavender: dark ? theme.color.surfaceMuted : '#F3F0FE',
+  };
+}
+
+type IconName = keyof typeof Ionicons.glyphMap;
+
+/** Overall or Category, as a lavender track with the chosen half lit. */
+function ScopeTabs<T extends string>({
+  value,
+  onChange,
+  tabs,
+}: {
+  value: T;
+  onChange: (next: T) => void;
+  tabs: readonly { value: T; label: string; icon: IconName }[];
+}) {
+  const { dark, ink, accent, lavender } = useBudgetInks();
+  return (
+    <Row
+      accessibilityRole="tablist"
+      style={{ padding: 4, borderRadius: 24, backgroundColor: lavender, gap: 4 }}
+    >
+      {tabs.map((tab) => {
+        const on = tab.value === value;
+        return (
+          <Pressable
+            key={tab.value}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: on }}
+            onPress={() => onChange(tab.value)}
+            style={{
+              flex: 1,
+              height: 40,
+              borderRadius: 20,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              backgroundColor: on ? (dark ? '#3A3470' : '#E2DAFD') : 'transparent',
+            }}
+          >
+            <Ionicons name={tab.icon} size={17} color={on ? accent : ink} />
+            <Text
+              style={{ fontSize: 15, fontWeight: on ? '700' : '500', color: on ? accent : ink }}
+            >
+              {tab.label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </Row>
+  );
+}
+
+/** A round − or + beside the amount; faded when it would do nothing. */
+function StepDisc({
+  icon,
+  label,
+  onPress,
+}: {
+  icon: 'add' | 'remove';
+  label: string;
+  onPress?: () => void;
+}) {
+  const theme = useTheme();
+  const { dark, accent } = useBudgetInks();
+  return (
+    <IconButton label={label} repeatable onPress={onPress}>
+      <View
+        style={{
+          width: 36,
+          height: 36,
+          borderRadius: 18,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: dark ? theme.color.surface : '#E2DAFD',
+          opacity: onPress ? 1 : 0.5,
+        }}
+      >
+        <Ionicons name={icon} size={20} color={accent} />
+      </View>
+    </IconButton>
+  );
+}
+
+/** The empty list's picture: a clipboard with a small bar chart, a rupee coin
+ *  and a leaf. Drawn from views and glyphs, so it themes and costs no asset. */
+function ClipboardArt() {
+  const theme = useTheme();
+  const dark = theme.scheme === 'dark';
+  const accent = dark ? theme.color.brand : SPEC_ACCENT;
+  return (
+    <View
+      pointerEvents="none"
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={{ width: 150, height: 130 }}
+    >
+      <View
+        style={{
+          position: 'absolute',
+          left: 15,
+          top: 12,
+          width: 120,
+          height: 110,
+          borderRadius: 60,
+          backgroundColor: dark ? theme.color.surfaceMuted : '#EFEBFD',
+        }}
+      />
+      <Ionicons
+        name="leaf"
+        size={40}
+        color={dark ? '#3F8C7A' : '#5FAE9C'}
+        style={{ position: 'absolute', right: 10, bottom: 18, transform: [{ rotate: '30deg' }] }}
+      />
+      <View
+        style={{
+          position: 'absolute',
+          left: 42,
+          top: 10,
+          width: 66,
+          height: 96,
+          borderRadius: 10,
+          borderWidth: 4,
+          borderColor: accent,
+          backgroundColor: dark ? theme.color.surface : '#FFFFFF',
+          transform: [{ rotate: '6deg' }],
+          alignItems: 'center',
+          justifyContent: 'flex-end',
+          paddingBottom: 14,
+        }}
+      >
+        <View
+          style={{
+            position: 'absolute',
+            top: -8,
+            width: 24,
+            height: 10,
+            borderRadius: 4,
+            backgroundColor: accent,
+          }}
+        />
+        <Row style={{ alignItems: 'flex-end', gap: 5 }}>
+          {[14, 22, 34].map((h) => (
+            <View
+              key={h}
+              style={{ width: 8, height: h, borderRadius: 2, backgroundColor: accent }}
+            />
+          ))}
+        </Row>
+      </View>
+      <View
+        style={{
+          position: 'absolute',
+          left: 22,
+          bottom: 16,
+          width: 40,
+          height: 40,
+          borderRadius: 20,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: '#F2B233',
+          borderWidth: 3,
+          borderColor: '#E39C18',
+        }}
+      >
+        <Text style={{ fontSize: 18, fontWeight: '800', color: '#FFF6DC' }}>₹</Text>
+      </View>
+    </View>
   );
 }
 

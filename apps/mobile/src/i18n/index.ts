@@ -3694,6 +3694,9 @@ export interface UiStrings {
   /** The private personal-finance ledger (A48): the "Me" tab and its screens —
    *  solo expenses/income, recurring rules, loans and monthly budgets. */
   personal: {
+    noBudgetsBody: string;
+    addBudgetSub: string;
+    budgetAboutMonth: string;
     tab: string;
     title: string;
     subtitle: string;
@@ -6885,6 +6888,9 @@ const en: UiStrings = {
   },
 
   personal: {
+    noBudgetsBody: 'Set a budget to keep your spending on track and reach your goals.',
+    addBudgetSub: 'Set a monthly limit for your spending.',
+    budgetAboutMonth: 'About {average} a month.',
     tab: 'Personal',
     title: 'Personal',
     subtitle: 'Your own money — private to you.',
@@ -10196,6 +10202,9 @@ const ta: UiStrings = {
   },
 
   personal: {
+    noBudgetsBody: 'செலவைக் கட்டுக்குள் வைத்து இலக்குகளை அடைய ஒரு பட்ஜெட்டை அமையுங்கள்.',
+    addBudgetSub: 'உங்கள் செலவுக்கு ஒரு மாத வரம்பை அமையுங்கள்.',
+    budgetAboutMonth: 'மாதம் சுமார் {average}.',
     tab: 'தனிப்பட்டது',
     title: 'தனிப்பட்டது',
     subtitle: 'உங்கள் சொந்தப் பணம் — உங்களுக்கு மட்டும் தனிப்பட்டது.',
@@ -13379,6 +13388,9 @@ const hi: UiStrings = {
   },
 
   personal: {
+    noBudgetsBody: 'खर्च काबू में रखने और अपने लक्ष्य पाने के लिए बजट तय करें।',
+    addBudgetSub: 'अपने खर्च की एक मासिक सीमा तय करें।',
+    budgetAboutMonth: 'लगभग {average} हर महीने।',
     tab: 'निजी',
     title: 'निजी',
     subtitle: 'आपका अपना पैसा — सिर्फ़ आपके लिए निजी।',
@@ -17025,6 +17037,9 @@ const ar: UiStrings = {
   },
 
   personal: {
+    noBudgetsBody: 'حدّد ميزانية لتبقي إنفاقك تحت السيطرة وتبلغ أهدافك.',
+    addBudgetSub: 'حدّد حدًا شهريًا لإنفاقك.',
+    budgetAboutMonth: 'نحو {average} في الشهر.',
     tab: 'الشخصي',
     title: 'الشخصي',
     subtitle: 'أموالك الخاصة — خاصة بك وحدك.',
