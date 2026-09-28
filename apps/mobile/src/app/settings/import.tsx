@@ -650,20 +650,22 @@ export default function ImportScreen() {
                     selected={target === NEW_GROUP}
                     onPress={() => void chooseTarget(NEW_GROUP)}
                   />
-                  <TargetRow
-                    label={chosenGroup ? labelOf(chosenGroup) : t.importLedger.anExistingGroup}
-                    hint={
-                      chosenGroup
-                        ? `${plural(locale, summary.memberCountFor(chosenGroup.id), t.memberCount)} · ${t.importLedger.tapToChange}`
-                        : t.importLedger.anExistingGroupHint
-                    }
-                    icon="people-outline"
-                    tint={1}
-                    divider
-                    chevron={!chosenGroup}
-                    selected={chosenGroup !== null}
-                    onPress={() => setPickerOpen(true)}
-                  />
+                  {(groups.data ?? []).length > 0 ? (
+                    <TargetRow
+                      label={chosenGroup ? labelOf(chosenGroup) : t.importLedger.anExistingGroup}
+                      hint={
+                        chosenGroup
+                          ? `${plural(locale, summary.memberCountFor(chosenGroup.id), t.memberCount)} · ${t.importLedger.tapToChange}`
+                          : t.importLedger.anExistingGroupHint
+                      }
+                      icon="people-outline"
+                      tint={1}
+                      divider
+                      chevron={!chosenGroup}
+                      selected={chosenGroup !== null}
+                      onPress={() => setPickerOpen(true)}
+                    />
+                  ) : null}
                 </SoftCard>
 
                 {/* Name the new group here rather than accept the file's default.
