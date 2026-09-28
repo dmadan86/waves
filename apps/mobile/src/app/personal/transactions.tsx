@@ -15,125 +15,184 @@
  * Personal tab's tiles ask: its Income tile lands on the month's income, its
  * Spent tile on the month's spends, and a top category on that category's
  * entries for the month. Each narrowing is named under the title.
+ *
+ * On top of those, the screen's own search, kind tabs and category filter narrow
+ * further in place. "Transfers" are the loan repayments: money moving between
+ * the person and a loan rather than spent or earned.
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { FlashList } from '@shopify/flash-list';
 import { useLocalSearchParams } from 'expo-router';
-import { useMemo } from 'react';
-import { Pressable, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { Pressable, TextInput, View } from 'react-native';
 
 import { format, money, resolveCategory, type PersonalTxn } from '@waves/core';
 import {
-  Card,
+  Button,
   directionalIcon,
   EmptyState,
   IconButton,
   iconSize,
   Row,
   Screen,
+  Sheet,
   Text,
   useTheme,
 } from '@waves/ui';
 
-import { CategoryBadge } from '@/components/Category';
-import { dayHeading } from '@/data/activity';
+import { CategoryBadge, CategoryPicker } from '@/components/Category';
 import { usePersonalLedger } from '@/data/personal';
-import { useStrings } from '@/i18n';
+import { plural, useStrings } from '@/i18n';
 import { PersonalGuard } from '@/components/PersonalGuard';
 import { useBottomClearance } from '@/lib/clearance';
 import { dateTimeFormat } from '@/lib/dateTimeFormat';
 import { router } from '@/lib/navigation';
+import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
 
-/** One row of the flattened ledger: a day heading, or an entry under it. */
+type Tab = 'all' | 'expense' | 'income' | 'transfer';
+
+/** One row of the flattened ledger: a day heading, or an entry under it. The
+ *  entry knows whether it opens or closes its day, so the rows of one day draw
+ *  as one card. */
 type LedgerItem =
-  | { kind: 'day'; key: string; day: string; first: boolean }
-  | { kind: 'txn'; key: string; txn: PersonalTxn };
+  | { kind: 'day'; key: string; day: string; count: number; net: bigint; currency: string }
+  | { kind: 'txn'; key: string; txn: PersonalTxn; first: boolean; last: boolean };
+
+const INCOME_INK = '#16935B';
+const EXPENSE_INK = '#C8283E';
 
 function PersonalTransactionsScreenBody() {
   const theme = useTheme();
   const clearance = useBottomClearance();
   const { t, locale } = useStrings();
   const { txns } = usePersonalLedger();
+  const dark = theme.scheme === 'dark';
+  const ink = dark ? theme.color.text : SPEC_INK;
+  const muted = dark ? theme.color.textMuted : SPEC_MUTED;
+  const accent = dark ? theme.color.brand : SPEC_ACCENT;
+  const lavender = dark ? theme.color.surfaceMuted : '#EFEDFA';
   const params = useLocalSearchParams<{
     category?: string;
     categoryMode?: string;
     kind?: string;
     month?: string;
   }>();
-  const filter = typeof params.category === 'string' ? params.category : null;
+  const paramCategory = typeof params.category === 'string' ? params.category : null;
   // The dashboard's columns are buckets: a custom or unknown category is counted
   // under Other there, so it has to be listed under Other here too. Budgets pass
   // an exact id, custom ones included, and keep matching it exactly.
   const bucketed = params.categoryMode === 'bucket';
-  const kind = params.kind === 'income' || params.kind === 'expense' ? params.kind : null;
+  const kindParam = params.kind === 'income' || params.kind === 'expense' ? params.kind : null;
   const month =
     typeof params.month === 'string' && /^\d{4}-\d{2}$/.test(params.month) ? params.month : null;
+
+  const [tab, setTab] = useState<Tab>(kindParam ?? 'all');
+  const [query, setQuery] = useState('');
+  // The filter sheet's pick replaces the one the screen was opened with.
+  const [picked, setPicked] = useState<string | null | undefined>(undefined);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const filter = picked === undefined ? paramCategory : picked;
+
+  const labelFor = (id: string | null): string | null =>
+    id ? (t.categories[id as keyof typeof t.categories] ?? null) : null;
 
   /**
    * Grouped by day, flattened into one recyclable list — a heading item where
    * the day changes, then its entries. The ledger already comes newest first,
-   * so days do too. It was a SectionList, which keeps every row it has ever
-   * rendered mounted; FlashList recycles each kind against its own pool, the
-   * way the group month screen does.
+   * so days do too. FlashList recycles each kind against its own pool, the way
+   * the group month screen does.
    */
   const items: LedgerItem[] = useMemo(() => {
     const matchesCategory = (category: string | null | undefined): boolean =>
       !filter ||
-      (bucketed
+      (bucketed && picked === undefined
         ? (resolveCategory(category ?? null, null).builtinId ?? 'other') === filter
         : category === filter);
+    const needle = query.trim().toLocaleLowerCase(locale);
+    const matchesQuery = (txn: PersonalTxn): boolean => {
+      if (!needle) return true;
+      const label = txn.category
+        ? (t.categories[txn.category as keyof typeof t.categories] ?? txn.category)
+        : '';
+      return [txn.note ?? '', label, format(money(txn.amount, txn.currency), { locale })].some(
+        (text) => text.toLocaleLowerCase(locale).includes(needle),
+      );
+    };
+    const matchesTab = (txn: PersonalTxn): boolean =>
+      tab === 'all'
+        ? true
+        : tab === 'transfer'
+          ? txn.loanId !== null
+          : txn.kind === tab && txn.loanId === null;
     const shown = txns.filter(
       (txn) =>
         matchesCategory(txn.category) &&
-        (!kind || txn.kind === kind) &&
+        matchesTab(txn) &&
+        matchesQuery(txn) &&
         (!month || txn.date.slice(0, 7) === month),
     );
+
     const list: LedgerItem[] = [];
-    let day: string | null = null;
-    for (const txn of shown) {
-      if (txn.date !== day) {
-        list.push({ kind: 'day', key: `day-${txn.date}`, day: txn.date, first: day === null });
-        day = txn.date;
-      }
-      list.push({ kind: 'txn', key: txn.id, txn });
+    for (let index = 0; index < shown.length;) {
+      const day = shown[index]!.date;
+      let end = index;
+      while (end < shown.length && shown[end]!.date === day) end += 1;
+      const rows = shown.slice(index, end);
+      const currency = rows[0]!.currency;
+      // The day's net, in the day's first currency; a day that mixes currencies
+      // shows no total rather than a sum of unlike things.
+      const mixed = rows.some((row) => row.currency !== currency);
+      const net = mixed
+        ? 0n
+        : rows.reduce((sum, row) => sum + (row.kind === 'income' ? row.amount : -row.amount), 0n);
+      list.push({
+        kind: 'day',
+        key: `day-${day}`,
+        day,
+        count: rows.length,
+        net,
+        currency: mixed ? '' : currency,
+      });
+      rows.forEach((txn, at) =>
+        list.push({ kind: 'txn', key: txn.id, txn, first: at === 0, last: at === rows.length - 1 }),
+      );
+      index = end;
     }
     return list;
-  }, [txns, filter, bucketed, kind, month]);
+  }, [txns, filter, picked, bucketed, month, tab, query, locale, t]);
 
-  const labelFor = (id: string | null): string | null =>
-    id ? (t.categories[id as keyof typeof t.categories] ?? null) : null;
+  const signed = (amount: bigint, currency: string, income: boolean): string =>
+    `${income ? '+' : '-'}${format(money(amount < 0n ? -amount : amount, currency), { locale })}`;
+
+  const tabs: { value: Tab; label: string }[] = [
+    { value: 'all', label: t.personal.all },
+    { value: 'expense', label: t.personal.expenses },
+    { value: 'income', label: t.personal.income },
+    { value: 'transfer', label: t.personal.transfers },
+  ];
 
   return (
     <Screen>
       <Row
         style={{
-          paddingHorizontal: theme.spacing.xl,
-          paddingTop: theme.spacing.md,
+          paddingHorizontal: theme.spacing.lg,
+          paddingTop: theme.spacing.sm,
           alignItems: 'center',
         }}
       >
         <IconButton label={t.common.back} onPress={() => router.back()}>
-          <Ionicons
-            name={directionalIcon('chevron-back')}
-            size={iconSize.lg}
-            color={theme.color.text}
-          />
+          <Ionicons name={directionalIcon('chevron-back')} size={iconSize.lg} color={ink} />
         </IconButton>
         <View style={{ flex: 1, alignItems: 'center' }}>
           {/* The category's own name is the title when one is being shown, so
               the screen says what it is a list *of* rather than leaving the
               person to wonder where the rest of their ledger went. */}
-          <Text variant="heading" numberOfLines={1}>
-            {(filter ? labelFor(filter) : null) ??
-              (kind === 'income'
-                ? t.personal.income
-                : kind === 'expense'
-                  ? t.personal.expenses
-                  : t.personal.transactions)}
+          <Text style={{ fontSize: 20, fontWeight: '700', color: ink }} numberOfLines={1}>
+            {(filter ? labelFor(filter) : null) ?? t.personal.transactions}
           </Text>
           {month ? (
-            <Text variant="caption" tone="muted" numberOfLines={1}>
+            <Text style={{ fontSize: 12, color: muted }} numberOfLines={1}>
               {monthName(month, locale)}
             </Text>
           ) : null}
@@ -142,9 +201,105 @@ function PersonalTransactionsScreenBody() {
           label={t.personal.add}
           onPress={() => router.push({ pathname: '/personal/entry', params: { kind: 'expense' } })}
         >
-          <Ionicons name="add" size={iconSize.xxl} color={theme.color.brand} />
+          <Ionicons name="add" size={iconSize.xxl} color={accent} />
         </IconButton>
       </Row>
+
+      <View style={{ paddingHorizontal: theme.spacing.lg, gap: 10, paddingTop: 6 }}>
+        <Row style={{ alignItems: 'center', gap: 10 }}>
+          <Row
+            style={{
+              flex: 1,
+              alignItems: 'center',
+              gap: 10,
+              height: 44,
+              paddingHorizontal: 14,
+              borderRadius: 22,
+              backgroundColor: lavender,
+            }}
+          >
+            <Ionicons name="search" size={18} color={muted} />
+            <TextInput
+              value={query}
+              onChangeText={setQuery}
+              placeholder={t.personal.searchTransactions}
+              placeholderTextColor={muted}
+              accessibilityLabel={t.personal.searchTransactions}
+              returnKeyType="search"
+              autoCorrect={false}
+              style={{ flex: 1, fontSize: 15, color: ink, paddingVertical: 0 }}
+            />
+            {query ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t.entry.clear}
+                onPress={() => setQuery('')}
+                hitSlop={8}
+              >
+                <Ionicons name="close-circle" size={18} color={theme.color.textFaint} />
+              </Pressable>
+            ) : null}
+          </Row>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t.personal.filterCategory}
+            accessibilityState={{ selected: filter !== null }}
+            onPress={() => setFilterOpen(true)}
+            style={({ pressed }) => ({
+              width: 44,
+              height: 44,
+              borderRadius: 22,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: filter ? accent : theme.color.surface,
+              opacity: pressed ? 0.8 : 1,
+              shadowColor: '#2A1E6B',
+              shadowOpacity: dark ? 0 : 0.08,
+              shadowRadius: 8,
+              shadowOffset: { width: 0, height: 2 },
+              elevation: 2,
+            })}
+          >
+            <Ionicons name="filter" size={20} color={filter ? '#FFFFFF' : ink} />
+          </Pressable>
+        </Row>
+
+        <Row
+          accessibilityRole="tablist"
+          style={{ padding: 4, borderRadius: 24, backgroundColor: lavender, gap: 2 }}
+        >
+          {tabs.map((item) => {
+            const on = item.value === tab;
+            return (
+              <Pressable
+                key={item.value}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: on }}
+                onPress={() => setTab(item.value)}
+                style={{
+                  flex: 1,
+                  height: 36,
+                  borderRadius: 18,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: on ? accent : 'transparent',
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 14,
+                    fontWeight: on ? '700' : '500',
+                    color: on ? '#FFFFFF' : muted,
+                  }}
+                  numberOfLines={1}
+                >
+                  {item.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </Row>
+      </View>
 
       <FlashList
         data={items}
@@ -155,80 +310,177 @@ function PersonalTransactionsScreenBody() {
         // fling down a long ledger never outruns recycling and flashes blank rows.
         drawDistance={1500}
         contentContainerStyle={{
-          paddingHorizontal: theme.spacing.xl,
+          paddingHorizontal: theme.spacing.lg,
           paddingBottom: clearance,
         }}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
         ListEmptyComponent={
           <View style={{ paddingTop: theme.spacing.xxxl }}>
             <EmptyState title={t.personal.empty} />
           </View>
         }
-        // Rows sit `sm` apart (a margin, since FlashList has no gap). A new day
-        // opens a section's `xl` below the last row (`xs` + the label's `lg`),
-        // and its label sits `sm` above its first row — the screen standard.
-        // (This used to carry the old SectionList's `2 × sm` over, which put
-        // days 32 apart.)
         ListFooterComponent={
           items.length > 0 ? <View style={{ height: theme.spacing.sm }} /> : null
         }
         renderItem={({ item }) => {
           if (item.kind === 'day') {
+            const income = item.net > 0n;
             return (
-              <Text
-                variant="micro"
-                tone="faint"
+              <Row
                 style={{
-                  letterSpacing: 0.8,
-                  marginTop: item.first ? 0 : theme.spacing.xs,
-                  paddingTop: theme.spacing.lg,
-                  paddingBottom: 0,
+                  alignItems: 'center',
+                  gap: 8,
+                  paddingTop: 16,
+                  paddingBottom: 8,
+                  paddingHorizontal: 4,
                 }}
               >
-                {/* The day as a person says it — "Today", "Yesterday", "Friday",
-                    then "18 September" — not the ISO key the ledger groups by. The
-                    same `dayHeading` the activity feed, the captures inbox and the
-                    SMS threads use, so every dated list in the app reads alike. */}
-                {dayHeading(locale, item.day)}
-              </Text>
+                <Text
+                  style={{ flex: 1, fontSize: 15, fontWeight: '600', color: ink }}
+                  numberOfLines={1}
+                >
+                  {dayLabel(item.day, locale)}
+                </Text>
+                <View
+                  style={{
+                    paddingHorizontal: 10,
+                    paddingVertical: 3,
+                    borderRadius: 11,
+                    backgroundColor: lavender,
+                  }}
+                >
+                  <Text style={{ fontSize: 12, color: muted }}>
+                    {plural(locale, item.count, t.personal.txnCount)}
+                  </Text>
+                </View>
+                {item.currency ? (
+                  <Text
+                    style={{
+                      fontSize: 15,
+                      fontWeight: '700',
+                      color: income ? INCOME_INK : EXPENSE_INK,
+                    }}
+                  >
+                    {signed(item.net, item.currency, income)}
+                  </Text>
+                ) : null}
+              </Row>
             );
           }
-          const txn = item.txn;
+          const { txn, first, last } = item;
           const income = txn.kind === 'income';
-          const title = txn.note?.trim() || labelFor(txn.category) || '—';
+          const categoryLabel = labelFor(txn.category) ?? t.categories.other;
+          const title = txn.note?.trim() || categoryLabel;
+          const method = txn.paymentMethod
+            ? t.personal.entryScreen.methods[
+                txn.paymentMethod as keyof typeof t.personal.entryScreen.methods
+              ]
+            : null;
           return (
             <Pressable
               accessibilityRole="button"
+              accessibilityLabel={`${title}, ${categoryLabel}, ${signed(txn.amount, txn.currency, income)}`}
               onPress={() => router.push({ pathname: '/personal/entry', params: { id: txn.id } })}
-              style={{ marginTop: theme.spacing.sm }}
+              style={({ pressed }) => ({
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 14,
+                paddingHorizontal: 14,
+                paddingVertical: 12,
+                backgroundColor: pressed ? theme.color.surfaceMuted : theme.color.surface,
+                borderTopLeftRadius: first ? 18 : 0,
+                borderTopRightRadius: first ? 18 : 0,
+                borderBottomLeftRadius: last ? 18 : 0,
+                borderBottomRightRadius: last ? 18 : 0,
+                borderTopWidth: first ? 0 : 1,
+                borderTopColor: dark ? theme.color.border : '#EFEEF5',
+              })}
             >
-              <Card
-                padded={false}
-                style={{ paddingHorizontal: theme.spacing.lg, paddingVertical: theme.spacing.sm }}
-              >
-                <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
-                  <CategoryBadge category={txn.category ?? 'other'} meta={null} size={32} />
-                  <Text variant="body" numberOfLines={1} style={{ flex: 1 }}>
-                    {title}
-                  </Text>
-                  <Text
-                    variant="body"
-                    style={{
-                      fontWeight: '700',
-                      color: income ? theme.color.positive : theme.color.text,
-                    }}
-                  >
-                    {income ? '+' : '−'}
-                    {format(money(txn.amount, txn.currency), { locale })}
-                  </Text>
-                </Row>
-              </Card>
+              <CategoryBadge
+                category={txn.category ?? 'other'}
+                description={txn.note ?? undefined}
+                meta={null}
+                size={42}
+              />
+              <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+                <Text style={{ fontSize: 16, fontWeight: '600', color: ink }} numberOfLines={1}>
+                  {title}
+                </Text>
+                <Text style={{ fontSize: 13, color: muted }} numberOfLines={1}>
+                  {categoryLabel}
+                </Text>
+              </View>
+              <View style={{ alignItems: 'flex-end', gap: 2 }}>
+                <Text
+                  style={{
+                    fontSize: 16,
+                    fontWeight: '700',
+                    color: income ? INCOME_INK : EXPENSE_INK,
+                  }}
+                >
+                  {signed(txn.amount, txn.currency, income)}
+                </Text>
+                {method ? <Text style={{ fontSize: 12, color: muted }}>{method}</Text> : null}
+              </View>
+              <Ionicons
+                name={directionalIcon('chevron-forward')}
+                size={18}
+                color={theme.color.textFaint}
+              />
             </Pressable>
           );
         }}
       />
+
+      <Sheet
+        visible={filterOpen}
+        onClose={() => setFilterOpen(false)}
+        padded={false}
+        closeLabel={t.common.close}
+        style={{ paddingHorizontal: theme.spacing.xl, paddingTop: theme.spacing.lg, gap: 14 }}
+      >
+        <Text style={{ fontSize: 20, fontWeight: '800', color: ink }}>
+          {t.personal.filterCategory}
+        </Text>
+        <CategoryPicker
+          value={filter}
+          onChange={(key) => {
+            setPicked(key);
+            setFilterOpen(false);
+          }}
+        />
+        {filter ? (
+          <Button
+            label={t.personal.clearFilter}
+            variant="secondary"
+            fullWidth
+            onPress={() => {
+              setPicked(null);
+              setFilterOpen(false);
+            }}
+          />
+        ) : null}
+      </Sheet>
     </Screen>
   );
+}
+
+/** "Thu, 18 September" — the weekday short, the date long, the year only when
+ *  it is not this one. Timezone-safe: the ledger's dates are calendar days. */
+function dayLabel(day: string, locale: string): string {
+  try {
+    const sameYear = day.slice(0, 4) === String(new Date().getFullYear());
+    return dateTimeFormat(locale, {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'long',
+      ...(sameYear ? {} : { year: 'numeric' }),
+      timeZone: 'UTC',
+    }).format(new Date(`${day}T00:00:00Z`));
+  } catch {
+    return day;
+  }
 }
 
 /**
