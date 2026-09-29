@@ -21,7 +21,8 @@
 
 import { useEffect, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Platform, Pressable, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Platform, Pressable, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, {
   Easing,
@@ -34,9 +35,8 @@ import Animated, {
 import { Callout, directionalIcon, iconSize, Row, Text, useTheme } from '@waves/ui';
 
 import { LegalLine } from '@/components/LegalLine';
-import { ScatterBand } from '@/components/ScatterBand';
-import { ProviderButton, SocialTile } from '@/components/SocialTile';
-import { useStrings } from '@/i18n';
+import { AppleMark, GoogleMark } from '@/components/SocialTile';
+import { LANGUAGE_NAMES, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { friendlyError } from '@/lib/errors';
 import { router } from '@/lib/navigation';
@@ -54,12 +54,22 @@ const RISE = 14;
 /** The Skip pill's face on the light field: the brand at its softest, which
     reads as a control without becoming a second button competing with the
     provider below. */
-const SKIP_FACE = 'brandSoft' as const;
+/** The door's own light palette: a front-of-house screen, the same in every
+    theme, drawn to sit on the picture. */
+const INK = '#16163A';
+const MUTED = '#5C6078';
+const ACCENT = '#6A45E8';
+const LINE = '#E6E4F0';
+const SHEET = '#F8F7FC';
 
 export default function WelcomeScreen() {
   const theme = useTheme();
-  const { t } = useStrings();
+  const { t, language } = useStrings();
   const { withGoogle, withApple } = useAuth();
+  const { height: screenHeight } = useWindowDimensions();
+  // The picture fills the top of the screen down past where the sheet begins,
+  // so the sheet's rounded corners sit on it.
+  const heroHeight = Math.round(screenHeight * 0.62);
   const canGoBack = router.canGoBack();
 
   // The same busy/error pair the auth sheet keeps: one provider round-trip at a
@@ -121,230 +131,330 @@ export default function WelcomeScreen() {
   // Google leads everywhere else, where Apple is only a browser fallback.
   const appleFirst = Platform.OS === 'ios';
 
-  const googleTile = (
-    <SocialTile
-      key="google"
-      testID="auth-google"
-      provider="google"
-      field="surface"
-      accessibilityLabel={t.signIn.continueGoogle}
-      caption={t.signIn.providerGoogle}
-      disabled={busy}
-      onPress={() => run(withGoogle)}
-    />
-  );
-  const appleTile = (
-    <SocialTile
-      key="apple"
-      testID="auth-apple"
-      provider="apple"
-      field="surface"
-      accessibilityLabel={t.signIn.continueApple}
-      caption={t.signIn.providerApple}
-      disabled={busy}
-      onPress={() => run(withApple)}
-    />
-  );
+  const signInWith = (provider: 'google' | 'apple') =>
+    run(provider === 'apple' ? withApple : withGoogle);
+  const first: 'google' | 'apple' = appleFirst ? 'apple' : 'google';
+  const second: 'google' | 'apple' = appleFirst ? 'google' : 'apple';
+  const labelFor = (provider: 'google' | 'apple') =>
+    provider === 'apple' ? t.signIn.continueApple : t.signIn.continueGoogle;
 
   return (
-    <View style={{ flex: 1 }}>
-      {/* A light field, not a coloured one. The door used to be a green wash
-          with white type on it, which makes every word on the screen shout at
-          the same volume; on white the headline is the loudest thing and the
-          ways in sit quietly under it, which is the order somebody meeting the
-          app needs them in. */}
-      <View style={{ flex: 1, backgroundColor: theme.color.bg }}>
-        <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
-          {/* The header: back when there is somewhere to go back to, otherwise
-              the language globe; and Skip, which is the guest way in. */}
-          <Row
-            style={{
-              minHeight: 44,
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              paddingHorizontal: theme.spacing.sm,
-            }}
-          >
-            {canGoBack ? (
-              <HeaderGlyph
-                label={t.common.back}
-                icon={directionalIcon('chevron-back')}
-                onPress={() => router.back()}
-              />
-            ) : (
-              <HeaderGlyph
-                label={t.language}
-                icon="globe-outline"
-                onPress={() => router.push('/language')}
-              />
-            )}
+    <View style={{ flex: 1, backgroundColor: SHEET }}>
+      {/* The picture: the top of the screen, under the header and the words.
+          A warm evening wash until the scene itself is dropped in. */}
+      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: heroHeight }}>
+        <LinearGradient
+          colors={['#FFF6EC', '#FBE3CC', '#F4C9A6', '#E9B38E']}
+          locations={[0, 0.35, 0.75, 1]}
+          style={{ flex: 1 }}
+        />
+        {/* A light veil top-left, so the headline always reads. */}
+        <LinearGradient
+          colors={['rgba(255,255,255,0.85)', 'rgba(255,255,255,0)']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0.9, y: 0.7 }}
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+        />
+      </View>
+
+      <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
+        {/* The header: back when there is somewhere to go back to, otherwise
+            the language; and Skip, which is the guest way in. */}
+        <Row
+          style={{
+            minHeight: 44,
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingHorizontal: theme.spacing.lg,
+          }}
+        >
+          {canGoBack ? (
+            <HeaderGlyph
+              label={t.common.back}
+              icon={directionalIcon('chevron-back')}
+              onPress={() => router.back()}
+            />
+          ) : (
             <Pressable
-              testID="welcome-skip"
               accessibilityRole="button"
-              accessibilityLabel={t.common.skip}
-              accessibilityState={{ disabled: busy }}
-              disabled={busy}
-              onPress={() => router.push('/guest-welcome')}
+              accessibilityLabel={t.language}
+              onPress={() => router.push('/language')}
               hitSlop={8}
               style={({ pressed }) => ({
-                height: 44,
-                paddingHorizontal: theme.spacing.lg,
-                borderRadius: theme.radius.pill,
-                backgroundColor: theme.color[SKIP_FACE],
+                flexDirection: 'row',
                 alignItems: 'center',
-                justifyContent: 'center',
-                opacity: busy ? 0.45 : pressed ? 0.7 : 1,
+                gap: 6,
+                height: 40,
+                opacity: pressed ? 0.6 : 1,
               })}
             >
-              <Text variant="subheading" tone="brand" style={{ fontWeight: '700' }}>
-                {t.common.skip}
+              <Ionicons name="globe-outline" size={20} color={INK} />
+              <Text style={{ fontSize: 15, fontWeight: '600', color: INK }}>
+                {LANGUAGE_NAMES[language].own}
               </Text>
+              <Ionicons name="chevron-down" size={16} color={INK} />
             </Pressable>
+          )}
+          <Pressable
+            testID="welcome-skip"
+            accessibilityRole="button"
+            accessibilityLabel={t.common.skip}
+            accessibilityState={{ disabled: busy }}
+            disabled={busy}
+            onPress={() => router.push('/guest-welcome')}
+            hitSlop={8}
+            style={({ pressed }) => ({
+              height: 40,
+              paddingHorizontal: 16,
+              borderRadius: 20,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+              backgroundColor: 'rgba(255,255,255,0.8)',
+              opacity: busy ? 0.45 : pressed ? 0.7 : 1,
+            })}
+          >
+            <Text style={{ fontSize: 16, fontWeight: '700', color: INK }}>{t.common.skip}</Text>
+            <Ionicons name={directionalIcon('arrow-forward')} size={18} color={INK} />
+          </Pressable>
+        </Row>
+
+        {/* The words, over the top of the picture, rising into place. */}
+        <Animated.View
+          style={[{ paddingHorizontal: theme.spacing.xl, paddingTop: 12, gap: 8 }, heroStyle]}
+        >
+          <Text
+            style={{
+              fontSize: 40,
+              lineHeight: 46,
+              fontWeight: '800',
+              fontStyle: 'italic',
+              color: ACCENT,
+              letterSpacing: -0.5,
+            }}
+          >
+            {t.common.appName}
+          </Text>
+          <Text
+            style={{
+              fontSize: 34,
+              lineHeight: 40,
+              fontWeight: '800',
+              color: INK,
+              letterSpacing: -0.8,
+            }}
+          >
+            {t.signIn.splitAnything}
+          </Text>
+          <Text style={{ fontSize: 16, lineHeight: 23, color: MUTED, maxWidth: 320 }}>
+            {t.signIn.heroTagline}
+          </Text>
+        </Animated.View>
+        <View style={{ flex: 1 }} />
+
+        {/* The ways in, on a white sheet that rises over the picture's foot. */}
+        <Animated.View
+          style={[
+            {
+              backgroundColor: SHEET,
+              borderTopLeftRadius: 32,
+              borderTopRightRadius: 32,
+              paddingHorizontal: theme.spacing.xl,
+              paddingTop: 22,
+              paddingBottom: theme.spacing.md,
+              gap: 12,
+            },
+            waysStyle,
+          ]}
+        >
+          {error ? <Callout tone="negative">{error}</Callout> : null}
+
+          <Pressable
+            testID="welcome-provider"
+            accessibilityRole="button"
+            accessibilityLabel={labelFor(first)}
+            accessibilityState={{ disabled: busy }}
+            disabled={busy}
+            onPress={() => signInWith(first)}
+            style={({ pressed }) => ({ opacity: busy ? 0.5 : pressed ? 0.9 : 1 })}
+          >
+            <LinearGradient
+              colors={['#5B6CF5', '#7A5CF5', '#8E5CF0']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={providerRow}
+            >
+              <View style={markDisc}>
+                {first === 'apple' ? <AppleMark size={22} /> : <GoogleMark size={22} />}
+              </View>
+              <Text
+                style={{
+                  flex: 1,
+                  textAlign: 'center',
+                  fontSize: 17,
+                  fontWeight: '700',
+                  color: '#FFFFFF',
+                }}
+              >
+                {labelFor(first)}
+              </Text>
+              <Ionicons name={directionalIcon('chevron-forward')} size={20} color="#FFFFFF" />
+            </LinearGradient>
+          </Pressable>
+
+          <Pressable
+            testID={`auth-${second}`}
+            accessibilityRole="button"
+            accessibilityLabel={labelFor(second)}
+            accessibilityState={{ disabled: busy }}
+            disabled={busy}
+            onPress={() => signInWith(second)}
+            style={({ pressed }) => [
+              providerRow,
+              {
+                backgroundColor: '#FFFFFF',
+                borderWidth: 1,
+                borderColor: LINE,
+                opacity: busy ? 0.5 : pressed ? 0.9 : 1,
+              },
+            ]}
+          >
+            <View style={[markDisc, { backgroundColor: 'transparent' }]}>
+              {second === 'apple' ? <AppleMark size={24} /> : <GoogleMark size={22} />}
+            </View>
+            <Text
+              style={{ flex: 1, textAlign: 'center', fontSize: 17, fontWeight: '700', color: INK }}
+            >
+              {labelFor(second)}
+            </Text>
+            <Ionicons name={directionalIcon('chevron-forward')} size={20} color={INK} />
+          </Pressable>
+
+          <Row style={{ alignItems: 'center', gap: 12, marginVertical: 2 }}>
+            <View style={{ flex: 1, height: 1, backgroundColor: LINE }} />
+            <Text style={{ fontSize: 14, color: MUTED }}>{t.signIn.orContinueWithCap}</Text>
+            <View style={{ flex: 1, height: 1, backgroundColor: LINE }} />
           </Row>
 
-          {/* The scatter has a band of its own between the header and the
-              headline, and is clipped to it. It used to be an absolute field
-              behind the whole screen, which put a house over "No account needed
-              to start" and a card through the middle of the body copy — a
-              backdrop you cannot read the page through is not a backdrop. Given
-              its own box it cannot reach the words, and the page keeps the shape
-              the reference has: the picture above, everything you read below. */}
-          <ScatterBand />
-
-          {/* The hero: a small brand tag, the headline that says what the app is
-              for, and one line under it. It rises into place once the scatter is
-              in, so the screen composes itself rather than appearing whole. */}
-          <Animated.View
-            style={[
-              {
-                paddingHorizontal: theme.spacing.xxl,
-                gap: theme.spacing.sm,
-                alignItems: 'center',
-              },
-              heroStyle,
-            ]}
-          >
-            <Text variant="subheading" tone="brand" style={{ fontWeight: '800' }}>
-              {t.common.appName}
-            </Text>
-            {/* Centred, and the string already carries its own line break, so
-                the two lines break where they were written to break rather than
-                wherever the width runs out. */}
-            <Text
-              style={{
-                fontSize: 38,
-                lineHeight: 44,
-                fontWeight: '800',
-                letterSpacing: -1,
-                textAlign: 'center',
-                color: theme.color.text,
-              }}
-            >
-              {t.signIn.splitAnything}
-            </Text>
-            <Text variant="body" tone="muted" style={{ textAlign: 'center' }}>
-              {t.signIn.welcomeBody}
-            </Text>
-          </Animated.View>
-          <View style={{ flex: 1 }} />
-
-          {/* The ways in, anchored to the bottom: the legal line, one primary
-              provider, the rest as tiles, and the way back for a member. */}
-          <Animated.View
-            style={[
-              {
-                paddingHorizontal: theme.spacing.xxl,
-                paddingBottom: theme.spacing.xl,
-                gap: theme.spacing.md,
-              },
-              waysStyle,
-            ]}
-          >
-            {error ? <Callout tone="negative">{error}</Callout> : null}
-
-            <LegalLine
-              textStyle={{
-                color: theme.color.textMuted,
-                lineHeight: 20,
-                marginBottom: theme.spacing.xs,
-              }}
-            />
-
-            <ProviderButton
-              testID="welcome-provider"
-              provider={appleFirst ? 'apple' : 'google'}
-              label={appleFirst ? t.signIn.continueApple : t.signIn.continueGoogle}
-              disabled={busy}
-              onPress={() => run(appleFirst ? withApple : withGoogle)}
-            />
-
-            <Row
-              style={{
-                justifyContent: 'center',
-                gap: theme.spacing.xxl,
-                marginTop: theme.spacing.sm,
-              }}
-            >
-              {appleFirst ? googleTile : appleTile}
-              {/* Only where the build can actually do it. Firebase sends the
-                  code and Firebase is a native module, so a JavaScript-only
-                  update landing on a binary made before it existed would draw
-                  this tile over nothing — a door offered and then dead under the
-                  finger, which is worse than no door. */}
-              {phoneSignInAvailable() ? (
-                <SocialTile
-                  testID="auth-phone"
-                  provider="phone"
-                  field="surface"
-                  accessibilityLabel={t.signIn.continuePhone}
-                  caption={t.signIn.providerPhone}
-                  disabled={busy}
-                  onPress={() => router.push('/phone')}
-                />
-              ) : null}
-              <SocialTile
-                testID="auth-email"
-                provider="email"
-                field="surface"
-                accessibilityLabel={t.signIn.continueEmail}
-                caption={t.signIn.providerEmail}
+          <Row style={{ gap: 12 }}>
+            {/* Only where the build can actually do it: Firebase sends the code,
+                and a binary made before it existed would draw a dead door. */}
+            {phoneSignInAvailable() ? (
+              <WayTile
+                testID="auth-phone"
+                icon="call-outline"
+                label={t.signIn.providerPhone}
+                accessibilityLabel={t.signIn.continuePhone}
                 disabled={busy}
-                onPress={() => router.push('/sign-up')}
+                onPress={() => router.push('/phone')}
               />
-            </Row>
+            ) : null}
+            <WayTile
+              testID="auth-email"
+              icon="mail-outline"
+              label={t.signIn.providerEmail}
+              accessibilityLabel={t.signIn.continueEmail}
+              disabled={busy}
+              onPress={() => router.push('/sign-up')}
+            />
+          </Row>
 
-            <Row
-              style={{
-                justifyContent: 'center',
+          <LegalLine textStyle={{ color: MUTED, lineHeight: 20, marginTop: 4 }} />
+
+          <View style={{ height: 1, backgroundColor: LINE, marginHorizontal: 40, marginTop: 4 }} />
+
+          <Row style={{ justifyContent: 'center', alignItems: 'center', gap: 8 }}>
+            <Text style={{ fontSize: 16, color: MUTED }}>{t.signIn.haveAccountPrompt}</Text>
+            <Pressable
+              testID="welcome-sign-in"
+              accessibilityRole="button"
+              accessibilityLabel={t.signIn.signInAction}
+              accessibilityState={{ disabled: busy }}
+              disabled={busy}
+              onPress={() => router.push('/sign-in')}
+              hitSlop={8}
+              style={({ pressed }) => ({
+                flexDirection: 'row',
                 alignItems: 'center',
-                gap: theme.spacing.xs,
-                marginTop: theme.spacing.sm,
-              }}
+                gap: 4,
+                opacity: pressed ? 0.6 : 1,
+              })}
             >
-              <Text variant="body" tone="muted">
-                {t.signIn.haveAccountPrompt}
+              <Text style={{ fontSize: 17, fontWeight: '800', color: ACCENT }}>
+                {t.signIn.signInAction}
               </Text>
-              <Pressable
-                testID="welcome-sign-in"
-                accessibilityRole="button"
-                accessibilityLabel={t.signIn.signInAction}
-                accessibilityState={{ disabled: busy }}
-                disabled={busy}
-                onPress={() => router.push('/sign-in')}
-                hitSlop={8}
-                style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
-              >
-                <Text variant="body" tone="brand" style={{ fontWeight: '700' }}>
-                  {t.signIn.signInAction}
-                </Text>
-              </Pressable>
-            </Row>
-          </Animated.View>
-        </SafeAreaView>
-      </View>
+              <Ionicons name={directionalIcon('arrow-forward')} size={18} color={ACCENT} />
+            </Pressable>
+          </Row>
+        </Animated.View>
+      </SafeAreaView>
     </View>
   );
 }
+
+/** Phone or Email: a white tile with its glyph and one word. */
+function WayTile({
+  testID,
+  icon,
+  label,
+  accessibilityLabel,
+  disabled,
+  onPress,
+}: {
+  testID: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  accessibilityLabel: string;
+  disabled: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      testID={testID}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={{ disabled }}
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        flex: 1,
+        height: 54,
+        borderRadius: 18,
+        borderWidth: 1,
+        borderColor: LINE,
+        backgroundColor: '#FFFFFF',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 12,
+        opacity: disabled ? 0.5 : pressed ? 0.85 : 1,
+      })}
+    >
+      <Ionicons name={icon} size={24} color={ACCENT} />
+      <Text style={{ fontSize: 17, fontWeight: '700', color: INK }}>{label}</Text>
+    </Pressable>
+  );
+}
+
+/** Both provider pills share their shape: 56 tall, the mark on a disc at the
+ *  leading edge, the label centred, a chevron trailing. */
+const providerRow = {
+  height: 56,
+  borderRadius: 28,
+  flexDirection: 'row' as const,
+  alignItems: 'center' as const,
+  paddingStart: 6,
+  paddingEnd: 20,
+  gap: 8,
+};
+const markDisc = {
+  width: 44,
+  height: 44,
+  borderRadius: 22,
+  alignItems: 'center' as const,
+  justifyContent: 'center' as const,
+  backgroundColor: '#FFFFFF',
+};
 
 /** A 44pt header glyph on the brand field — back, or the language globe. */
 function HeaderGlyph({
