@@ -1315,6 +1315,11 @@ function GroupRow({
  *  it. A still image on a transparent ground, so it sits on either theme. */
 const NO_GROUPS_ART = require('../../../assets/images/home-no-groups.webp') as number;
 
+/** Fixed sizes: a percentage width with an aspect ratio rendered zoomed and
+ *  cropped on Android. The art is 720×475. */
+const ART_W = 260;
+const ART_H = 190;
+
 function NoGroupsArt() {
   const theme = useTheme();
   const dark = theme.scheme === 'dark';
@@ -1322,13 +1327,13 @@ function NoGroupsArt() {
     <View
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
-      style={{ width: 260, aspectRatio: 260 / 190, justifyContent: 'flex-end' }}
+      style={{ width: ART_W, height: ART_H, justifyContent: 'flex-end' }}
     >
       {/* The soft lavender wave behind the people, as in the mockup: a cloud
           of a hill with a small puff of cloud to its left. */}
       <Svg
-        width="100%"
-        height="100%"
+        width={ART_W}
+        height={ART_H}
         viewBox="0 0 260 190"
         style={{ position: 'absolute', top: 0, left: 0 }}
       >
@@ -1345,7 +1350,7 @@ function NoGroupsArt() {
         source={NO_GROUPS_ART}
         accessibilityIgnoresInvertColors
         resizeMode="contain"
-        style={{ width: '100%', aspectRatio: 720 / 475 }}
+        style={{ width: ART_W, height: (ART_W * 475) / 720 }}
       />
     </View>
   );
