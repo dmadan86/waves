@@ -20,28 +20,21 @@
 import { useEffect, useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { LinearGradient } from 'expo-linear-gradient';
 import {
   ActivityIndicator,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
   ScrollView,
   TextInput,
+  useWindowDimensions,
   View,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Path } from 'react-native-svg';
 
-import {
-  Button,
-  Callout,
-  Card,
-  directionalIcon,
-  iconSize,
-  Row,
-  Screen,
-  Text,
-  useTheme,
-} from '@waves/ui';
+import { Callout, directionalIcon, Row, Screen, Text, useTheme } from '@waves/ui';
 
 import { dialingCodeForCountry, splitDialCode } from '@waves/core';
 
@@ -58,9 +51,30 @@ const RESEND_SECONDS = 60;
     leaves the person a fourth after they have gone away and come back. */
 const MAX_RESENDS = 3;
 
+/** The auth pages' own light palette and type: front-of-house, every theme. */
+const PAGE = '#F6F4FD';
+const INK = '#16163A';
+const MUTED = '#5C6078';
+const ACCENT = '#6A45E8';
+const FIELD_LINE = '#ECE9F5';
+const DISPLAY = 'PlusJakartaSans-ExtraBold';
+const BODY = 'PlusJakartaSans-Medium';
+const CARD = {
+  backgroundColor: '#FFFFFF',
+  borderRadius: 22,
+  padding: 18,
+  shadowColor: '#2A1E6B',
+  shadowOpacity: 0.06,
+  shadowRadius: 16,
+  shadowOffset: { width: 0, height: 6 },
+  elevation: 3,
+} as const;
+const WORDMARK = require('../../assets/images/wordmark-script.webp') as number;
+const ART = require('../../assets/images/verify-phone.webp') as number;
+
 export default function PhoneScreen() {
   const theme = useTheme();
-  const insets = useSafeAreaInsets();
+  const { width: windowWidth } = useWindowDimensions();
   const { t } = useStrings();
   const { sendOtp, verifyOtp, continueAsGuest } = useAuth();
 
@@ -148,235 +162,416 @@ export default function PhoneScreen() {
     else router.replace('/welcome');
   };
 
+  const artW = windowWidth * 0.46;
+
   return (
-    <Screen edges={['top', 'bottom']} style={{ backgroundColor: theme.color.brand }}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={{ flex: 1 }}
+    <View style={{ flex: 1, backgroundColor: PAGE }}>
+      {/* A soft lavender page, swells of the brand along its foot. */}
+      <LinearGradient
+        colors={['#F7F5FE', '#F2EFFD', '#EEEAFC']}
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+      />
+      <Svg
+        pointerEvents="none"
+        width={windowWidth}
+        height={260}
+        viewBox="0 0 400 260"
+        preserveAspectRatio="none"
+        style={{ position: 'absolute', left: 0, bottom: 0 }}
       >
-        <ScrollView
+        <Path
+          d="M0 70 C 110 20, 210 120, 300 80 S 380 20, 400 30 L400 260 L0 260 Z"
+          fill="#E9E3FC"
+          opacity={0.7}
+        />
+        <Path
+          d="M0 150 C 120 110, 230 190, 330 140 S 390 110, 400 115 L400 260 L0 260 Z"
+          fill="#DCD2FA"
+          opacity={0.6}
+        />
+      </Svg>
+
+      <Screen edges={['top', 'bottom']} style={{ backgroundColor: 'transparent' }}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={{ flex: 1 }}
-          contentContainerStyle={{
-            flexGrow: 1,
-            paddingHorizontal: theme.spacing.xl,
-            paddingBottom: insets.bottom + theme.spacing.xl,
-            gap: theme.spacing.xl,
-          }}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
         >
-          {/* Back on the left, in the primary ink — steps to the number from the
-              code, then out to the door. */}
-          <Row style={{ paddingTop: theme.spacing.md }}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t.common.back}
-              hitSlop={12}
-              onPress={onBack}
-              style={({ pressed }) => ({
-                width: 44,
-                height: 44,
-                alignItems: 'center',
-                justifyContent: 'center',
-                opacity: pressed ? 0.6 : 1,
-              })}
-            >
-              <Ionicons
-                name={directionalIcon('chevron-back')}
-                size={iconSize.lg}
-                color={theme.color.onBrand}
-              />
-            </Pressable>
-          </Row>
+          <ScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={{
+              flexGrow: 1,
+              paddingHorizontal: 22,
+              paddingBottom: theme.spacing.lg,
+            }}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            {/* Back — steps to the number from the code, then out to the door. */}
+            <Row style={{ paddingTop: 10 }}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t.common.back}
+                hitSlop={12}
+                onPress={onBack}
+                style={({ pressed }) => ({
+                  width: 42,
+                  height: 42,
+                  borderRadius: 21,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: 'rgba(255,255,255,0.9)',
+                  borderWidth: 1,
+                  borderColor: 'rgba(230,226,244,0.9)',
+                  opacity: pressed ? 0.6 : 1,
+                })}
+              >
+                <Ionicons name={directionalIcon('chevron-back')} size={20} color={INK} />
+              </Pressable>
+            </Row>
 
-          {stage === 'phone' ? (
-            <>
-              <View style={{ gap: theme.spacing.sm }}>
-                <Text
+            {/* The heading beside the picture: the logo, what this step is, and
+                the promise under it. The picture stands down once a field has
+                the keyboard, and on the code step. */}
+            <View style={{ marginTop: 18, minHeight: stage === 'phone' ? artW * 1.2 : undefined }}>
+              {stage === 'phone' ? (
+                <View
+                  pointerEvents="none"
+                  accessibilityElementsHidden
+                  importantForAccessibility="no-hide-descendants"
                   style={{
-                    fontSize: 30,
-                    lineHeight: 38,
-                    fontWeight: '800',
-                    letterSpacing: -0.5,
-                    color: theme.color.onBrand,
+                    position: 'absolute',
+                    right: -22,
+                    top: 30,
+                    width: artW,
+                    height: artW * (500 / 410),
                   }}
                 >
-                  {t.entry.verifyPhoneTitle}
-                </Text>
-                <Text variant="body" tone="onBrand" style={{ opacity: 0.9 }}>
-                  {t.entry.verifyPhoneBody}
-                </Text>
-              </View>
-
-              {/* The field as a filled card — a label above the value, the way
-                  the reference lays its inputs out. The country is a tapped
-                  control, so the field beside it holds the local digits alone. */}
-              <Card style={{ gap: theme.spacing.xs }}>
-                <Text variant="caption" tone="muted">
-                  {t.signIn.phoneNumber}
-                </Text>
-                <Row style={{ gap: theme.spacing.sm, alignItems: 'center' }}>
-                  <CountryCodePicker code={country} onChange={setCountry} />
-                  <TextInput
-                    value={phone}
-                    onChangeText={setPhone}
-                    keyboardType="phone-pad"
-                    autoComplete="tel"
-                    autoFocus
-                    accessibilityLabel={t.signIn.phoneNumber}
-                    placeholderTextColor={theme.color.textFaint}
-                    style={{
-                      flex: 1,
-                      fontSize: 22,
-                      fontWeight: '600',
-                      color: theme.color.text,
-                      paddingVertical: theme.spacing.sm,
-                    }}
+                  <Image
+                    source={ART}
+                    resizeMode="cover"
+                    style={{ width: '100%', height: '100%' }}
                   />
-                </Row>
-              </Card>
-              {error ? <Callout tone="negative">{error}</Callout> : null}
-
-              {/* The action pinned to the foot: a spacer eats the middle so it
-                  sits at the bottom on a tall screen and scrolls up with the
-                  keyboard on a short one. */}
-              <View style={{ flex: 1 }} />
-              <Button
-                label={t.signIn.sendCode}
-                size="lg"
-                fullWidth
-                disabled={busy || phone.replace(/\D/g, '').length < 6}
-                onPress={() =>
-                  void run(async () => {
-                    // Dev build: no SMS to send — go straight to the code field,
-                    // where 000000 stands in.
-                    if (!devStub) await sendOtp(fullPhone);
-                    setSeconds(RESEND_SECONDS);
-                    setStage('code');
-                  })
-                }
+                  {/* Its edges feathered into the page so it has no frame. */}
+                  <LinearGradient
+                    colors={[PAGE, `${PAGE}00`]}
+                    style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 36 }}
+                  />
+                  <LinearGradient
+                    colors={[`${PAGE}00`, PAGE]}
+                    style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 36 }}
+                  />
+                  <LinearGradient
+                    colors={[PAGE, `${PAGE}00`]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: 30 }}
+                  />
+                </View>
+              ) : null}
+              <Image
+                source={WORDMARK}
+                accessibilityLabel={t.common.appName}
+                resizeMode="contain"
+                style={{ width: windowWidth * 0.3, height: windowWidth * 0.3 * (256 / 720) }}
               />
-              {busy ? <ActivityIndicator color={theme.color.brand} /> : null}
-            </>
-          ) : (
-            <>
-              {/* The heading says what to do; the number it went to is the
-                  answer to "which number?" and belongs under it, not as the
-                  title. A long number set as a 30pt heading wraps to three
-                  lines and buries the instruction. */}
-              <View style={{ gap: theme.spacing.sm }}>
-                <Text
-                  style={{
-                    fontSize: 30,
-                    lineHeight: 38,
-                    fontWeight: '800',
-                    letterSpacing: -0.5,
-                    color: theme.color.onBrand,
-                  }}
-                >
-                  {t.signIn.enterCodeTitle}
-                </Text>
-                <Text variant="body" tone="onBrand" style={{ opacity: 0.9 }}>
-                  {t.signIn.codeSentTo.replace('{value}', `${dialCode} ${phone}`)}
-                </Text>
-                {/* Mistyping the number is the likeliest reason nothing came,
-                    so the way back to it sits with the number itself rather
-                    than behind the back chevron. */}
-                <Pressable
-                  accessibilityRole="button"
-                  hitSlop={8}
-                  onPress={onBack}
-                  style={({ pressed }) => ({ alignSelf: 'flex-start', opacity: pressed ? 0.6 : 1 })}
-                >
-                  <Text
-                    style={{
-                      fontWeight: '700',
-                      color: theme.color.onBrand,
-                      textDecorationLine: 'underline',
-                    }}
-                  >
-                    {t.signIn.differentNumber}
-                  </Text>
-                </Pressable>
-                {devStub ? (
-                  <Text variant="micro" tone="onBrand" style={{ opacity: 0.85 }}>
-                    Dev build — enter {DEV_OTP} to continue.
-                  </Text>
-                ) : null}
-              </View>
-
-              <OtpInput
-                value={code}
-                onChangeText={setCode}
-                length={OTP_LEN}
-                accessibilityLabel={t.contact.verificationCode}
-                autoFocus
-              />
-
-              {/* Countdown, then a live link, then the note that the road runs
-                  out — the same three states as the email code screen. The
-                  fixed height keeps the boxes still as it changes. */}
-              <View style={{ alignItems: 'center', minHeight: 24 }}>
-                {seconds > 0 ? (
-                  <Text variant="caption" tone="onBrand" style={{ opacity: 0.85 }}>
-                    {t.signIn.resendIn.replace('{s}', String(seconds))}
-                  </Text>
-                ) : resends < MAX_RESENDS ? (
+              <Text
+                maxFontSizeMultiplier={1}
+                style={{
+                  fontFamily: DISPLAY,
+                  fontSize: 34,
+                  lineHeight: 40,
+                  color: INK,
+                  letterSpacing: -0.8,
+                  marginTop: 14,
+                  maxWidth: stage === 'phone' ? windowWidth * 0.52 : undefined,
+                }}
+              >
+                {stage === 'phone' ? t.entry.verifyPhoneTitle : t.signIn.enterCodeTitle}
+              </Text>
+              <Text
+                maxFontSizeMultiplier={1}
+                style={{
+                  fontFamily: BODY,
+                  fontSize: 15,
+                  lineHeight: 22,
+                  color: MUTED,
+                  marginTop: 10,
+                  maxWidth: stage === 'phone' ? windowWidth * 0.5 : undefined,
+                }}
+              >
+                {stage === 'phone'
+                  ? t.entry.verifyPhoneBody
+                  : t.signIn.codeSentTo.replace('{value}', `${dialCode} ${phone}`)}
+              </Text>
+              {stage === 'code' ? (
+                <>
+                  {/* Mistyping the number is the likeliest reason nothing came,
+                      so the way back to it sits with the number itself. */}
                   <Pressable
                     accessibilityRole="button"
-                    disabled={!canResend}
                     hitSlop={8}
-                    onPress={() =>
-                      void run(async () => {
-                        await sendOtp(fullPhone);
-                        setResends((n) => n + 1);
-                        setSeconds(RESEND_SECONDS);
-                      })
-                    }
+                    onPress={onBack}
                     style={({ pressed }) => ({
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: theme.spacing.xs,
-                      opacity: pressed || !canResend ? 0.6 : 1,
+                      alignSelf: 'flex-start',
+                      marginTop: 8,
+                      opacity: pressed ? 0.6 : 1,
                     })}
                   >
-                    <Ionicons name="refresh" size={iconSize.md} color={theme.color.onBrand} />
-                    <Text style={{ fontWeight: '700', color: theme.color.onBrand }}>
-                      {t.entry.resendCode}
+                    <Text style={{ fontSize: 15, fontWeight: '700', color: ACCENT }}>
+                      {t.signIn.differentNumber}
                     </Text>
                   </Pressable>
-                ) : (
-                  <Text variant="caption" tone="onBrand" style={{ opacity: 0.85 }}>
-                    {t.entry.resendLimit}
+                  {devStub ? (
+                    <Text style={{ fontSize: 12, color: MUTED, marginTop: 6 }}>
+                      Dev build — enter {DEV_OTP} to continue.
+                    </Text>
+                  ) : null}
+                </>
+              ) : null}
+            </View>
+
+            {stage === 'phone' ? (
+              <>
+                {/* The field on a white card — a label above it, the country a
+                    tapped control, the local digits beside it. */}
+                <View style={[CARD, { marginTop: 18 }]}>
+                  <Text
+                    maxFontSizeMultiplier={1}
+                    style={{ fontSize: 15, fontWeight: '600', color: '#4A4E68', marginBottom: 10 }}
+                  >
+                    {t.signIn.phoneNumber}
                   </Text>
-                )}
-              </View>
+                  <Row
+                    style={{
+                      alignItems: 'center',
+                      gap: 12,
+                      minHeight: 56,
+                      paddingHorizontal: 8,
+                      borderRadius: 16,
+                      borderWidth: 1,
+                      borderColor: FIELD_LINE,
+                    }}
+                  >
+                    <CountryCodePicker code={country} onChange={setCountry} />
+                    <View style={{ width: 1, height: 26, backgroundColor: FIELD_LINE }} />
+                    <TextInput
+                      maxFontSizeMultiplier={1}
+                      value={phone}
+                      onChangeText={setPhone}
+                      keyboardType="phone-pad"
+                      autoComplete="tel"
+                      autoFocus
+                      accessibilityLabel={t.signIn.phoneNumber}
+                      placeholder={t.entry.phonePlaceholder}
+                      placeholderTextColor="#9A9EB2"
+                      style={{
+                        flex: 1,
+                        fontSize: 17,
+                        fontWeight: '600',
+                        color: INK,
+                        paddingVertical: 10,
+                      }}
+                    />
+                  </Row>
+                </View>
 
-              {error ? <Callout tone="negative">{error}</Callout> : null}
+                {/* What the number is for, said once and plainly. */}
+                <Row style={{ alignItems: 'center', gap: 14, marginTop: 20, paddingHorizontal: 4 }}>
+                  <View
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 20,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: '#ECE7FD',
+                    }}
+                  >
+                    <Ionicons name="lock-closed-outline" size={18} color={ACCENT} />
+                  </View>
+                  <Text
+                    maxFontSizeMultiplier={1}
+                    style={{ flex: 1, fontSize: 14, lineHeight: 20, color: '#4A4E68' }}
+                  >
+                    {t.entry.phoneNote}
+                  </Text>
+                </Row>
+                {error ? (
+                  <View style={{ marginTop: 14 }}>
+                    <Callout tone="negative">{error}</Callout>
+                  </View>
+                ) : null}
 
-              <View style={{ flex: 1 }} />
-              <Button
-                label={t.signIn.verify}
-                size="lg"
-                fullWidth
-                disabled={busy || code.length !== OTP_LEN}
-                onPress={() =>
-                  void run(async () => {
-                    // Dev build: the fixed code takes a guest session so the app
-                    // is walkable until real phone OTP is wired. Never in release.
-                    if (devStub && code.trim() === DEV_OTP) {
-                      await continueAsGuest();
-                      return;
-                    }
-                    await verifyOtp(fullPhone, code.trim());
-                  })
-                }
-              />
-              {busy ? <ActivityIndicator color={theme.color.brand} /> : null}
-            </>
-          )}
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </Screen>
+                {/* The action pinned to the foot: a spacer eats the middle so it
+                    sits at the bottom on a tall screen and rides up with the
+                    keyboard on a short one. */}
+                <View style={{ flex: 1, minHeight: 24 }} />
+                <Pill
+                  label={t.signIn.sendCode}
+                  disabled={busy || phone.replace(/\D/g, '').length < 6}
+                  busy={busy}
+                  onPress={() =>
+                    void run(async () => {
+                      // Dev build: no SMS to send — go straight to the code
+                      // field, where 000000 stands in.
+                      if (!devStub) await sendOtp(fullPhone);
+                      setSeconds(RESEND_SECONDS);
+                      setStage('code');
+                    })
+                  }
+                />
+              </>
+            ) : (
+              <>
+                <View style={[CARD, { marginTop: 22 }]}>
+                  <OtpInput
+                    value={code}
+                    onChangeText={setCode}
+                    length={OTP_LEN}
+                    accessibilityLabel={t.contact.verificationCode}
+                    autoFocus
+                  />
+                </View>
+
+                {/* Countdown, then a live link, then the note that the road runs
+                    out — the same three states as the email code screen. The
+                    fixed height keeps the boxes still as it changes. */}
+                <View style={{ alignItems: 'center', minHeight: 24, marginTop: 16 }}>
+                  {seconds > 0 ? (
+                    <Text style={{ fontSize: 14, color: MUTED }}>
+                      {t.signIn.resendIn.replace('{s}', String(seconds))}
+                    </Text>
+                  ) : resends < MAX_RESENDS ? (
+                    <Pressable
+                      accessibilityRole="button"
+                      disabled={!canResend}
+                      hitSlop={8}
+                      onPress={() =>
+                        void run(async () => {
+                          await sendOtp(fullPhone);
+                          setResends((n) => n + 1);
+                          setSeconds(RESEND_SECONDS);
+                        })
+                      }
+                      style={({ pressed }) => ({
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: 6,
+                        opacity: pressed || !canResend ? 0.6 : 1,
+                      })}
+                    >
+                      <Ionicons name="refresh" size={18} color={ACCENT} />
+                      <Text style={{ fontSize: 15, fontWeight: '700', color: ACCENT }}>
+                        {t.entry.resendCode}
+                      </Text>
+                    </Pressable>
+                  ) : (
+                    <Text style={{ fontSize: 14, color: MUTED }}>{t.entry.resendLimit}</Text>
+                  )}
+                </View>
+
+                {error ? (
+                  <View style={{ marginTop: 14 }}>
+                    <Callout tone="negative">{error}</Callout>
+                  </View>
+                ) : null}
+
+                <View style={{ flex: 1, minHeight: 24 }} />
+                <Pill
+                  label={t.signIn.verify}
+                  disabled={busy || code.length !== OTP_LEN}
+                  busy={busy}
+                  onPress={() =>
+                    void run(async () => {
+                      // Dev build: the fixed code takes a guest session so the
+                      // app is walkable. Never in release.
+                      if (devStub && code.trim() === DEV_OTP) {
+                        await continueAsGuest();
+                        return;
+                      }
+                      await verifyOtp(fullPhone, code.trim());
+                    })
+                  }
+                />
+              </>
+            )}
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </Screen>
+    </View>
+  );
+}
+
+/** The one action: the Waves gradient pill, a quiet lavender until it can go. */
+function Pill({
+  label,
+  disabled,
+  busy,
+  onPress,
+}: {
+  label: string;
+  disabled: boolean;
+  busy: boolean;
+  onPress: () => void;
+}) {
+  const inner = busy ? (
+    <ActivityIndicator color="#FFFFFF" />
+  ) : (
+    <>
+      <Text
+        maxFontSizeMultiplier={1}
+        style={{
+          fontSize: 17,
+          fontWeight: '700',
+          color: disabled ? 'rgba(255,255,255,0.92)' : '#FFFFFF',
+        }}
+      >
+        {label}
+      </Text>
+      <Ionicons
+        name={directionalIcon('arrow-forward')}
+        size={20}
+        color={disabled ? 'rgba(255,255,255,0.92)' : '#FFFFFF'}
+      />
+    </>
+  );
+  const shape = {
+    height: 56,
+    borderRadius: 28,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    gap: 10,
+  };
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled, busy }}
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        borderRadius: 28,
+        opacity: pressed ? 0.9 : 1,
+        shadowColor: '#6A45E8',
+        shadowOpacity: disabled ? 0 : 0.25,
+        shadowRadius: 12,
+        shadowOffset: { width: 0, height: 6 },
+        elevation: disabled ? 0 : 4,
+      })}
+    >
+      {disabled && !busy ? (
+        <View style={[shape, { backgroundColor: '#CFC4F6' }]}>{inner}</View>
+      ) : (
+        <LinearGradient
+          colors={['#6A45E8', '#8B6CF6']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={shape}
+        >
+          {inner}
+        </LinearGradient>
+      )}
+    </Pressable>
   );
 }
