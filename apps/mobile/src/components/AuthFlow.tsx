@@ -301,7 +301,7 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
   const HIDDEN = 0.2;
   const friendsH = Math.max(
     80,
-    Math.min(windowWidth * 0.9 * (614 / 1200), (heroSpace - 46) / (1 - HIDDEN)),
+    Math.min(windowWidth * (614 / 1200), (heroSpace - 46) / (1 - HIDDEN)),
   );
   const friendsW = friendsH * (1200 / 614);
 
@@ -316,6 +316,7 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
           <View style={[fieldStyle, { marginBottom: 12 }]}>
             <Ionicons name="person-outline" size={20} color={GLYPH} />
             <TextInput
+              maxFontSizeMultiplier={1}
               value={name}
               onChangeText={setName}
               autoCapitalize="words"
@@ -332,6 +333,7 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
         <View style={fieldStyle}>
           <Ionicons name="mail-outline" size={20} color={GLYPH} />
           <TextInput
+            maxFontSizeMultiplier={1}
             value={identifier}
             onChangeText={setIdentifier}
             autoCapitalize="none"
@@ -349,6 +351,7 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
         <View style={[fieldStyle, { marginTop: 12 }]}>
           <Ionicons name="lock-closed-outline" size={20} color={GLYPH} />
           <TextInput
+            maxFontSizeMultiplier={1}
             value={password}
             onChangeText={setPassword}
             secureTextEntry={!passwordShown}
@@ -433,6 +436,7 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
         </Text>
         <View style={fieldStyle}>
           <TextInput
+            maxFontSizeMultiplier={1}
             testID="auth-code"
             value={code}
             onChangeText={setCode}
@@ -604,7 +608,7 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
                 bottom: 0,
                 borderTopLeftRadius: 30,
                 borderTopRightRadius: 30,
-                backgroundColor: 'rgba(255,255,255,0.97)',
+                backgroundColor: '#FFFFFF',
                 shadowColor: '#2A1E6B',
                 shadowOpacity: 0.06,
                 shadowRadius: 16,
@@ -628,7 +632,7 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
                   }
                 >
                   <Text
-                    maxFontSizeMultiplier={1.15}
+                    maxFontSizeMultiplier={1}
                     style={{
                       fontFamily: DISPLAY,
                       fontSize: 29,
@@ -640,7 +644,7 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
                     {title}
                   </Text>
                   <Text
-                    maxFontSizeMultiplier={1.15}
+                    maxFontSizeMultiplier={1}
                     style={{
                       fontFamily: BODY,
                       fontSize: 16,
@@ -664,7 +668,9 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
                   <View style={{ marginTop: 22, gap: 16 }}>
                     <Row style={{ alignItems: 'center', gap: 12 }}>
                       <View style={{ flex: 1, height: 1, backgroundColor: LINE }} />
-                      <Text style={{ fontSize: 14, color: MUTED }}>{t.signIn.orContinueWith}</Text>
+                      <Text maxFontSizeMultiplier={1} style={{ fontSize: 14, color: MUTED }}>
+                        {t.signIn.orContinueWith}
+                      </Text>
                       <View style={{ flex: 1, height: 1, backgroundColor: LINE }} />
                     </Row>
                     <SocialTiles
@@ -766,7 +772,7 @@ function PrimaryPill({
   const face = (
     <>
       <Text
-        maxFontSizeMultiplier={1.15}
+        maxFontSizeMultiplier={1}
         style={{
           fontSize: 17,
           fontWeight: '700',
@@ -882,7 +888,7 @@ function TextLink({
       hitSlop={8}
       style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
     >
-      <Text maxFontSizeMultiplier={1.15} style={{ fontSize: 16, fontWeight: '600', color }}>
+      <Text maxFontSizeMultiplier={1} style={{ fontSize: 16, fontWeight: '600', color }}>
         {children}
       </Text>
     </Pressable>
@@ -1008,7 +1014,7 @@ function RoundWay({
       >
         {children}
       </View>
-      <Text maxFontSizeMultiplier={1.15} style={{ fontSize: 14, color: MUTED }}>
+      <Text maxFontSizeMultiplier={1} style={{ fontSize: 14, color: MUTED }}>
         {caption}
       </Text>
     </Pressable>
