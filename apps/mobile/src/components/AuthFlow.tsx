@@ -249,7 +249,7 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
   // them. Fixed height so a box does not breathe when the platform's text
   // input decides on its own padding.
   const fieldStyle = {
-    height: 50,
+    height: 48,
     borderWidth: 1,
     borderColor: LINE,
     borderRadius: 16,
@@ -279,7 +279,7 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
       ? t.signIn.signupSubline
       : t.signIn.loginSubline;
 
-  const heroFriendsH = windowWidth * 0.88 * (614 / 1200);
+  const heroFriendsH = windowWidth * 0.94 * (614 / 1200);
 
   return (
     <View style={{ flex: 1, backgroundColor: PAGE }}>
@@ -291,8 +291,8 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
         style={{
           position: 'absolute',
           top: 0,
+          bottom: 0,
           right: 0,
-          height: screenHeight,
           width: Math.max(windowWidth, screenHeight * (849 / 1852)),
         }}
       />
@@ -307,6 +307,26 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
           backgroundColor: 'rgba(250,246,255,0.62)',
         }}
       />
+      {/* Soft lavender swells along the foot, under the card. */}
+      <Svg
+        pointerEvents="none"
+        width={windowWidth}
+        height={150}
+        viewBox="0 0 400 150"
+        preserveAspectRatio="none"
+        style={{ position: 'absolute', left: 0, bottom: 0 }}
+      >
+        <Path
+          d="M0 70 C 90 30, 170 100, 260 70 S 360 30, 400 50 L400 150 L0 150 Z"
+          fill="#E6DEFB"
+          opacity={0.8}
+        />
+        <Path
+          d="M0 105 C 110 70, 200 130, 300 100 S 380 80, 400 90 L400 150 L0 150 Z"
+          fill="#D8CCF8"
+          opacity={0.75}
+        />
+      </Svg>
       <Screen edges={['top', 'bottom']} style={{ backgroundColor: 'transparent' }}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -338,9 +358,12 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
             />
           </Row>
 
+          {/* One screen, as drawn: it only scrolls while the keyboard is up
+              and the card has to move to stay reachable. */}
           <ScrollView
             style={{ flex: 1 }}
-            contentContainerStyle={{ flexGrow: 1, paddingBottom: clearance }}
+            scrollEnabled={keyboardOpen}
+            contentContainerStyle={{ flexGrow: 1, paddingBottom: keyboardOpen ? clearance : 0 }}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
@@ -356,7 +379,7 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
                 importantForAccessibility="no-hide-descendants"
                 style={{ alignItems: 'center' }}
               >
-                <View style={{ width: windowWidth, height: 78 }}>
+                <View style={{ width: windowWidth, height: 70 }}>
                   <Svg width={windowWidth} height={80} style={{ position: 'absolute' }}>
                     <Path
                       d={`M0 40 C ${windowWidth * 0.18} 10, ${windowWidth * 0.32} 70, ${windowWidth * 0.5} 52 S ${windowWidth * 0.8} 10, ${windowWidth} 30`}
@@ -373,7 +396,7 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
                 <Image
                   source={FRIENDS}
                   resizeMode="contain"
-                  style={{ width: windowWidth * 0.88, height: heroFriendsH, marginBottom: -26 }}
+                  style={{ width: windowWidth * 0.94, height: heroFriendsH, marginBottom: -22 }}
                 />
               </View>
             )}
@@ -384,9 +407,9 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
                 marginHorizontal: theme.spacing.lg,
                 borderRadius: 28,
                 backgroundColor: 'rgba(255,255,255,0.97)',
-                paddingHorizontal: 22,
-                paddingTop: 22,
-                paddingBottom: 18,
+                paddingHorizontal: 20,
+                paddingTop: 20,
+                paddingBottom: 16,
                 shadowColor: '#2A1E6B',
                 shadowOpacity: 0.1,
                 shadowRadius: 20,
@@ -394,7 +417,7 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
                 elevation: 6,
               }}
             >
-              <View style={{ gap: 4, marginBottom: 16 }}>
+              <View style={{ gap: 2, marginBottom: 14 }}>
                 <Text
                   maxFontSizeMultiplier={1.15}
                   style={{
@@ -409,7 +432,7 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
                 </Text>
                 <Text
                   maxFontSizeMultiplier={1.15}
-                  style={{ fontFamily: BODY, fontSize: 15, color: MUTED }}
+                  style={{ fontFamily: BODY, fontSize: 14, color: MUTED }}
                 >
                   {subline}
                 </Text>
@@ -419,7 +442,7 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
                 <Animated.View
                   key="form"
                   entering={reduceMotion ? undefined : FadeIn.duration(160)}
-                  style={{ gap: 12 }}
+                  style={{ gap: 10 }}
                 >
                   {/* First, because it is the first thing anybody would say.
                       Optional — it is a name, not a credential, and refusing to
@@ -604,7 +627,7 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
               ) : null}
 
               {/* The other ways in: a seam, then round buttons. */}
-              <View style={{ gap: 14, marginTop: 18 }}>
+              <View style={{ gap: 12, marginTop: 14 }}>
                 <Row style={{ alignItems: 'center', gap: 12 }}>
                   <View style={{ flex: 1, height: 1, backgroundColor: LINE }} />
                   <Text style={{ fontSize: 14, color: MUTED }}>{t.signIn.orContinueWith}</Text>
@@ -715,8 +738,8 @@ function PrimaryPill({
       disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => ({
-        marginTop: 6,
-        borderRadius: 26,
+        marginTop: 4,
+        borderRadius: 23,
         opacity: disabled ? 0.55 : pressed ? 0.9 : 1,
         shadowColor: '#6A45E8',
         shadowOpacity: disabled ? 0 : 0.3,
@@ -730,8 +753,8 @@ function PrimaryPill({
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         style={{
-          height: 52,
-          borderRadius: 26,
+          height: 46,
+          borderRadius: 23,
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'center',
@@ -925,9 +948,9 @@ function RoundWay({
     >
       <View
         style={{
-          width: 52,
-          height: 52,
-          borderRadius: 26,
+          width: 48,
+          height: 48,
+          borderRadius: 24,
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: face,
