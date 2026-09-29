@@ -70,6 +70,13 @@ const BODY = 'PlusJakartaSans-Medium';
 const SCENE = require('../../assets/images/welcome-scene.webp') as number;
 const FRIENDS = require('../../assets/images/welcome-friends.webp') as number;
 const HEADLINE = require('../../assets/images/welcome-headline.webp') as number;
+/** The four friends' own faces, cut from their picture, for the cards. */
+const FACES: readonly number[] = [
+  require('../../assets/images/face-1.webp') as number,
+  require('../../assets/images/face-2.webp') as number,
+  require('../../assets/images/face-3.webp') as number,
+  require('../../assets/images/face-4.webp') as number,
+];
 const WORDMARK = require('../../assets/images/wordmark-script.webp') as number;
 
 export default function WelcomeScreen() {
@@ -95,7 +102,14 @@ export default function WelcomeScreen() {
   const [stage, setStage] = useState(0);
   const friendsH = Math.max(90, Math.min(windowWidth * 1.08 * (614 / 1200), stage - 8));
   const friendsW = friendsH * (1200 / 614);
-  const headlineW = Math.min(windowWidth - 90, 292);
+  // The mockup's lockup is 53% of the screen's width (measured off the design at
+  // 849px wide: 450px, from a 50px margin), whatever the phone.
+  const headlineW = windowWidth * 0.53;
+  // Where each card floats, as the mockup has it: its top a share of the
+  // screen's height above the sheet's edge (the stage's foot). Held inside the
+  // stage, so a short phone never pushes one up over the words.
+  const chipAt = (aboveSheet: number): number =>
+    Math.max(0, Math.min(screenHeight * aboveSheet, stage) - 46);
   const canGoBack = router.canGoBack();
 
   // The same busy/error pair the auth sheet keeps: one provider round-trip at a
@@ -349,25 +363,25 @@ export default function WelcomeScreen() {
             icon="home-outline"
             label={t.signIn.chipRent}
             amount={chipAmount(320)}
-            faces={2}
-            style={{ position: 'absolute', left: 14, bottom: friendsH * 0.74 }}
+            faces={[0, 1]}
+            style={{ position: 'absolute', left: windowWidth * 0.077, bottom: chipAt(0.267) }}
           />
           <SplitChip
             icon="airplane-outline"
             label={t.signIn.chipTrip}
             amount={chipAmount(620)}
-            faces={3}
-            style={{ position: 'absolute', right: 36, bottom: friendsH * 0.74 + 16 }}
+            faces={[2, 1, 0]}
+            style={{ position: 'absolute', left: windowWidth * 0.473, bottom: chipAt(0.31) }}
           />
           <SplitChip
             icon="restaurant-outline"
             label={t.signIn.chipDinner}
             amount={chipAmount(48)}
-            faces={3}
+            faces={[3, 1, 2]}
             style={{
               position: 'absolute',
-              right: -14,
-              bottom: friendsH * 0.52,
+              left: windowWidth * 0.727,
+              bottom: chipAt(0.254),
               transform: [{ rotate: '4deg' }],
             }}
           />
@@ -542,10 +556,10 @@ function SplitChip({
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   amount: string;
-  faces: number;
+  /** Which of the four friends it was split between, by their faces. */
+  faces: readonly number[];
   style: object;
 }) {
-  const tints = ['#F2C4A0', '#C7A77F', '#E3B28C'];
   return (
     <View
       style={[
@@ -588,23 +602,19 @@ function SplitChip({
         </Text>
       </View>
       <View style={{ flexDirection: 'row', marginStart: 4 }}>
-        {Array.from({ length: faces }, (_, index) => (
-          <View
-            key={index}
+        {faces.map((face, index) => (
+          <Image
+            key={face}
+            source={FACES[face]!}
             style={{
-              width: 18,
-              height: 18,
-              borderRadius: 9,
-              marginStart: index === 0 ? 0 : -6,
+              width: 24,
+              height: 24,
+              borderRadius: 12,
+              marginStart: index === 0 ? 0 : -8,
               borderWidth: 1.5,
               borderColor: '#FFFFFF',
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: tints[index % tints.length],
             }}
-          >
-            <Ionicons name="person" size={11} color="#6B4A32" />
-          </View>
+          />
         ))}
       </View>
     </View>
