@@ -228,6 +228,8 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
    * and it takes the same amount and currency.
    */
   const handOff = (): void => {
+    // The note travels with the amount: read before the reset empties it.
+    const typed = note.trim();
     closeAndReset();
     if (chosen) {
       router.push({
@@ -236,6 +238,7 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
           id: chosen.id,
           amount: amount.toString(),
           currency,
+          ...(typed ? { description: typed } : {}),
           // Says where this came from, which is what lets the form seed the
           // amount rather than read it as a stale draft and drop it.
           quick: '1',
@@ -246,11 +249,19 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
     if (personalPicked) {
       router.push({
         pathname: '/personal/entry',
-        params: { amount: amount.toString(), currency, kind: 'expense' },
+        params: {
+          amount: amount.toString(),
+          currency,
+          kind: 'expense',
+          ...(typed ? { note: typed } : {}),
+        },
       });
       return;
     }
-    router.push({ pathname: '/capture', params: { amount: amount.toString(), cur: currency } });
+    router.push({
+      pathname: '/capture',
+      params: { amount: amount.toString(), cur: currency, ...(typed ? { desc: typed } : {}) },
+    });
   };
 
   return (
@@ -458,6 +469,7 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
             // for them. That is a lasting thing to do behind a sheet called
             // quick, so it goes to the screen built for a spend with no home.
             onResolvePeople={() => {
+              const typed = note.trim();
               setPickerOpen(false);
               closeAndReset();
               // Carrying what was typed, exactly as Advanced does. The reset
@@ -466,7 +478,11 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
               // is the thing this branch already fixes everywhere else.
               router.push({
                 pathname: '/capture',
-                params: { amount: amount.toString(), cur: currency },
+                params: {
+                  amount: amount.toString(),
+                  cur: currency,
+                  ...(typed ? { desc: typed } : {}),
+                },
               });
             }}
           />

@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { useFocusEffect } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BackHandler, Pressable, ScrollView, View } from 'react-native';
 
@@ -170,15 +171,19 @@ export default function PrivacyScreen() {
     setDetail(id);
     scrollRef.current?.scrollTo({ y: 0, animated: false });
   };
-  // Android's back steps out of a point to the index before it leaves.
-  useEffect(() => {
-    if (!detail) return;
-    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-      setDetail(null);
-      return true;
-    });
-    return () => sub.remove();
-  }, [detail]);
+  // Android's back steps out of a point to the index before it leaves — only
+  // while this screen is in front, so a screen pushed over it (Export) keeps
+  // its own back.
+  useFocusEffect(
+    useCallback(() => {
+      if (!detail) return undefined;
+      const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+        setDetail(null);
+        return true;
+      });
+      return () => sub.remove();
+    }, [detail]),
+  );
 
   const lastUpdated = t.privacy.lastUpdated.replace(
     '{date}',
