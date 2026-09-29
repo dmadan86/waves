@@ -685,7 +685,18 @@ function AuthGate() {
           {/* Signing in and out replaces the whole tree; sliding it would suggest a
             place to go back to, and there is not one. */}
           <Stack.Screen name="welcome" options={{ animation: 'none' }} />
-          <Stack.Screen name="sign-in" options={{ animation: 'none' }} />
+          {/* From the door, sign-in cross-fades rather than cutting: the two
+              share the terrace, the friends and the wordmark, so a fade reads
+              as the door opening onto the card. A slide would drag the whole
+              picture sideways. (Arriving here after signing out it fades the
+              same way, which suggests no place to go back to.) */}
+          <Stack.Screen
+            name="sign-in"
+            options={{
+              animation: reduceMotion ? 'none' : 'fade',
+              animationDuration: reduceMotion ? 0 : 260,
+            }}
+          />
           {/* The sign-up page slides in from the login screen and back out, so it
               keeps a normal push — unlike sign-in, which replaces the whole tree. */}
           <Stack.Screen name="sign-up" />
