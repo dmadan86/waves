@@ -36,7 +36,7 @@ import { Callout, directionalIcon, iconSize, Row, Text, useTheme } from '@waves/
 
 import { LegalLine } from '@/components/LegalLine';
 import { AppleMark, GoogleMark } from '@/components/SocialTile';
-import { deviceDefaultCurrency, LANGUAGE_NAMES, useStrings } from '@/i18n';
+import { deviceDefaultCurrency, Language, LANGUAGE_NAMES, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { friendlyError } from '@/lib/errors';
 import { router } from '@/lib/navigation';
@@ -69,6 +69,7 @@ const BODY = 'PlusJakartaSans-Medium';
 
 const SCENE = require('../../assets/images/welcome-scene.webp') as number;
 const FRIENDS = require('../../assets/images/welcome-friends.webp') as number;
+const HEADLINE = require('../../assets/images/welcome-headline.webp') as number;
 const WORDMARK = require('../../assets/images/wordmark-script.webp') as number;
 
 export default function WelcomeScreen() {
@@ -94,6 +95,7 @@ export default function WelcomeScreen() {
   const [stage, setStage] = useState(0);
   const friendsH = Math.max(90, Math.min(windowWidth * 1.08 * (614 / 1200), stage - 8));
   const friendsW = friendsH * (1200 / 614);
+  const headlineW = Math.min(windowWidth - 90, 292);
   const canGoBack = router.canGoBack();
 
   // The same busy/error pair the auth sheet keeps: one provider round-trip at a
@@ -278,38 +280,55 @@ export default function WelcomeScreen() {
         <Animated.View
           style={[{ paddingHorizontal: theme.spacing.xl, paddingTop: 12, gap: 8 }, heroStyle]}
         >
-          <Image
-            source={WORDMARK}
-            accessibilityRole="header"
-            accessibilityLabel={t.common.appName}
-            resizeMode="contain"
-            style={{ width: 140, height: 140 * (256 / 720), marginBottom: 2 }}
-          />
-          <Text
-            maxFontSizeMultiplier={1.15}
-            style={{
-              fontFamily: DISPLAY,
-              fontSize: 38,
-              lineHeight: 44,
-              color: INK,
-              letterSpacing: -1,
-            }}
-          >
-            {t.signIn.splitAnything}
-          </Text>
-          <Text
-            maxFontSizeMultiplier={1.15}
-            // Narrow enough to break after "bills", where the mockup breaks it.
-            style={{
-              fontFamily: BODY,
-              fontSize: 16,
-              lineHeight: 23,
-              color: '#4A4E68',
-              maxWidth: 226,
-            }}
-          >
-            {t.signIn.heroTagline}
-          </Text>
+          {language === Language.En ? (
+            // English: the designed lockup — wordmark, headline and line — as
+            // drawn. Read out as the words it shows.
+            <Image
+              source={HEADLINE}
+              accessible
+              accessibilityRole="header"
+              accessibilityLabel={`${t.common.appName}. ${t.signIn.splitAnything.replace('\n', ' ')}. ${t.signIn.heroTagline}`}
+              resizeMode="contain"
+              style={{ width: headlineW, height: headlineW * (693 / 1000), marginTop: 4 }}
+            />
+          ) : (
+            // Every other language sets the same three lines in type, since
+            // the drawing only speaks English.
+            <>
+              <Image
+                source={WORDMARK}
+                accessibilityRole="header"
+                accessibilityLabel={t.common.appName}
+                resizeMode="contain"
+                style={{ width: 140, height: 140 * (256 / 720), marginBottom: 2 }}
+              />
+              <Text
+                maxFontSizeMultiplier={1.15}
+                style={{
+                  fontFamily: DISPLAY,
+                  fontSize: 38,
+                  lineHeight: 44,
+                  color: INK,
+                  letterSpacing: -1,
+                }}
+              >
+                {t.signIn.splitAnything}
+              </Text>
+              <Text
+                maxFontSizeMultiplier={1.15}
+                // Narrow enough to break after "bills", where the mockup breaks it.
+                style={{
+                  fontFamily: BODY,
+                  fontSize: 16,
+                  lineHeight: 23,
+                  color: '#4A4E68',
+                  maxWidth: 226,
+                }}
+              >
+                {t.signIn.heroTagline}
+              </Text>
+            </>
+          )}
         </Animated.View>
 
         {/* The friends at their table, standing on the sheet's edge, with a few
