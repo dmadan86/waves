@@ -253,19 +253,19 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
   // them. Fixed height so a box does not breathe when the platform's text
   // input decides on its own padding.
   const fieldStyle = {
-    height: 58,
+    height: 46,
     borderWidth: 1,
     borderColor: FIELD_LINE,
-    borderRadius: 16,
+    borderRadius: 14,
     backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
+    gap: 12,
   } as const;
   const inputStyle = {
     flex: 1,
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '500',
     color: INK,
     paddingVertical: 0,
@@ -314,7 +314,7 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
             the profile keeps its placeholder and settings can rename it. */}
         {askName ? (
           <View style={[fieldStyle, { marginBottom: 12 }]}>
-            <Ionicons name="person-outline" size={20} color={GLYPH} />
+            <Ionicons name="person-outline" size={18} color={GLYPH} />
             <TextInput
               maxFontSizeMultiplier={1}
               value={name}
@@ -331,7 +331,7 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
           </View>
         ) : null}
         <View style={fieldStyle}>
-          <Ionicons name="mail-outline" size={20} color={GLYPH} />
+          <Ionicons name="mail-outline" size={18} color={GLYPH} />
           <TextInput
             maxFontSizeMultiplier={1}
             value={identifier}
@@ -348,8 +348,8 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
             style={inputStyle}
           />
         </View>
-        <View style={[fieldStyle, { marginTop: 12 }]}>
-          <Ionicons name="lock-closed-outline" size={20} color={GLYPH} />
+        <View style={[fieldStyle, { marginTop: 10 }]}>
+          <Ionicons name="lock-closed-outline" size={18} color={GLYPH} />
           <TextInput
             maxFontSizeMultiplier={1}
             value={password}
@@ -388,7 +388,7 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
             neither is for a guest (a fresh code cannot upgrade their account in
             place). */}
         {!isGuest ? (
-          <Row style={{ justifyContent: 'center', alignItems: 'center', gap: 10, marginTop: 14 }}>
+          <Row style={{ justifyContent: 'center', alignItems: 'center', gap: 10, marginTop: 12 }}>
             {!isSignup ? (
               <>
                 <TextLink testID="auth-forgot" onPress={sendCode} disabled={busy}>
@@ -415,7 +415,7 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
           </Row>
         ) : null}
 
-        <View style={{ marginTop: 22 }}>
+        <View style={{ marginTop: 16 }}>
           <PrimaryPill
             testID="auth-submit"
             label={submitLabel}
@@ -621,8 +621,8 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
                 contentContainerStyle={{
-                  paddingHorizontal: 24,
-                  paddingTop: 26,
+                  paddingHorizontal: 22,
+                  paddingTop: 20,
                   paddingBottom: insets.bottom + 16,
                 }}
               >
@@ -635,8 +635,8 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
                     maxFontSizeMultiplier={1}
                     style={{
                       fontFamily: DISPLAY,
-                      fontSize: 29,
-                      lineHeight: 35,
+                      fontSize: 24,
+                      lineHeight: 30,
                       color: INK,
                       letterSpacing: -0.6,
                     }}
@@ -647,16 +647,16 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
                     maxFontSizeMultiplier={1}
                     style={{
                       fontFamily: BODY,
-                      fontSize: 16,
-                      lineHeight: 22,
+                      fontSize: 14,
+                      lineHeight: 20,
                       color: MUTED,
-                      marginTop: 4,
+                      marginTop: 2,
                     }}
                   >
                     {subline}
                   </Text>
 
-                  <View style={{ marginTop: 22 }}>{form}</View>
+                  <View style={{ marginTop: 16 }}>{form}</View>
 
                   {error ? (
                     <View style={{ marginTop: 14 }}>
@@ -665,7 +665,7 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
                   ) : null}
 
                   {/* The other ways in: a seam, then three equal round buttons. */}
-                  <View style={{ marginTop: 22, gap: 16 }}>
+                  <View style={{ marginTop: 16, gap: 12 }}>
                     <Row style={{ alignItems: 'center', gap: 12 }}>
                       <View style={{ flex: 1, height: 1, backgroundColor: LINE }} />
                       <Text maxFontSizeMultiplier={1} style={{ fontSize: 14, color: MUTED }}>
@@ -774,7 +774,7 @@ function PrimaryPill({
       <Text
         maxFontSizeMultiplier={1}
         style={{
-          fontSize: 17,
+          fontSize: 15,
           fontWeight: '700',
           color: disabled ? 'rgba(255,255,255,0.92)' : '#FFFFFF',
         }}
@@ -783,14 +783,14 @@ function PrimaryPill({
       </Text>
       <Ionicons
         name={directionalIcon('arrow-forward')}
-        size={20}
+        size={18}
         color={disabled ? 'rgba(255,255,255,0.92)' : '#FFFFFF'}
       />
     </>
   );
   const shape = {
-    height: 54,
-    borderRadius: 27,
+    height: 46,
+    borderRadius: 23,
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
@@ -805,7 +805,7 @@ function PrimaryPill({
       disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => ({
-        borderRadius: 27,
+        borderRadius: 23,
         opacity: pressed ? 0.9 : 1,
         shadowColor: '#6A45E8',
         shadowOpacity: disabled ? 0 : 0.22,
@@ -888,7 +888,7 @@ function TextLink({
       hitSlop={8}
       style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
     >
-      <Text maxFontSizeMultiplier={1} style={{ fontSize: 16, fontWeight: '600', color }}>
+      <Text maxFontSizeMultiplier={1} style={{ fontSize: 14, fontWeight: '600', color }}>
         {children}
       </Text>
     </Pressable>
@@ -935,7 +935,7 @@ function SocialTiles({
       onPress={onGoogle}
       face="#FFFFFF"
     >
-      <GoogleMark size={22} />
+      <GoogleMark size={19} />
     </RoundWay>
   );
   const apple = (
@@ -948,7 +948,7 @@ function SocialTiles({
       onPress={onApple}
       face="#FFFFFF"
     >
-      <AppleMark size={22} color="#111111" />
+      <AppleMark size={19} color="#111111" />
     </RoundWay>
   );
   const phone = onPhone ? (
@@ -961,7 +961,7 @@ function SocialTiles({
       onPress={onPhone}
       face="#FFFFFF"
     >
-      <Ionicons name="call-outline" size={22} color={ACCENT} />
+      <Ionicons name="call-outline" size={19} color={ACCENT} />
     </RoundWay>
   ) : null;
   const order = Platform.OS === 'ios' ? [apple, google, phone] : [google, apple, phone];
@@ -1002,9 +1002,9 @@ function RoundWay({
     >
       <View
         style={{
-          width: 52,
-          height: 52,
-          borderRadius: 26,
+          width: 44,
+          height: 44,
+          borderRadius: 22,
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: face,
@@ -1014,7 +1014,7 @@ function RoundWay({
       >
         {children}
       </View>
-      <Text maxFontSizeMultiplier={1} style={{ fontSize: 14, color: MUTED }}>
+      <Text maxFontSizeMultiplier={1} style={{ fontSize: 13, color: MUTED }}>
         {caption}
       </Text>
     </Pressable>
