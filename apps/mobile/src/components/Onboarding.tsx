@@ -181,7 +181,7 @@ export function IntroCards({
           left: theme.spacing.xxxl,
           right: theme.spacing.xxxl,
           bottom: insets.bottom + theme.spacing.xxl,
-          height: 56,
+          height: 46,
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -225,21 +225,24 @@ export function IntroCards({
         >
           <Animated.View
             style={{
-              minHeight: 56,
+              minHeight: 46,
               flexDirection: 'row',
               alignItems: 'center',
               gap: theme.spacing.sm,
-              paddingHorizontal: theme.spacing.xl,
+              paddingHorizontal: theme.spacing.lg,
               paddingVertical: theme.spacing.sm,
               borderRadius: theme.radius.pill,
               backgroundColor: dotInk,
             }}
           >
-            <Text style={{ fontSize: 17, fontWeight: '700', color: '#FFFFFF', flexShrink: 1 }}>
+            <Text
+              maxFontSizeMultiplier={1}
+              style={{ fontSize: 15, fontWeight: '700', color: '#FFFFFF', flexShrink: 1 }}
+            >
               {isLast ? t.getStarted : t.next}
             </Text>
             {/* Mirrored with the layout: "next" never points backwards. */}
-            <Ionicons name={directionalIcon('arrow-forward')} size={iconSize.lg} color="#FFFFFF" />
+            <Ionicons name={directionalIcon('arrow-forward')} size={18} color="#FFFFFF" />
           </Animated.View>
         </Pressable>
       </View>
@@ -279,7 +282,7 @@ const SlideCard = memo(function SlideCard({
 }) {
   const theme = useTheme();
   const { ink, inkMuted } = slide;
-  const artSize = Math.min(width - 48, 330);
+  const artSize = Math.min(width - 80, 270);
 
   return (
     <View
@@ -302,7 +305,9 @@ const SlideCard = memo(function SlideCard({
         style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
       />
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Text style={{ fontSize: 24, fontWeight: '800', color: ink }}>{appName}</Text>
+        <Text maxFontSizeMultiplier={1} style={{ fontSize: 20, fontWeight: '800', color: ink }}>
+          {appName}
+        </Text>
         {/* Skip carries the card's own ink, so it reads on every card. A
             chevron makes it look like the shortcut it is, and it mirrors with
             the layout. */}
@@ -313,7 +318,7 @@ const SlideCard = memo(function SlideCard({
           hitSlop={12}
           style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs }}
         >
-          <Text variant="caption" style={{ color: ink, fontWeight: '600' }}>
+          <Text maxFontSizeMultiplier={1} style={{ fontSize: 14, color: ink, fontWeight: '600' }}>
             {skipLabel}
           </Text>
           <Ionicons name={directionalIcon('chevron-forward')} size={iconSize.sm} color={ink} />
@@ -350,14 +355,21 @@ const SlideCard = memo(function SlideCard({
         </View>
       </View>
 
-      <View style={{ gap: theme.spacing.md }}>
-        <Text style={{ fontSize: 38, lineHeight: 44, fontWeight: '800', color: ink }}>{title}</Text>
-        <Text style={{ fontSize: 17, lineHeight: 25, color: inkMuted }}>{body}</Text>
+      <View style={{ gap: theme.spacing.sm }}>
+        <Text
+          maxFontSizeMultiplier={1}
+          style={{ fontSize: 28, lineHeight: 34, fontWeight: '800', color: ink }}
+        >
+          {title}
+        </Text>
+        <Text maxFontSizeMultiplier={1} style={{ fontSize: 15, lineHeight: 22, color: inkMuted }}>
+          {body}
+        </Text>
       </View>
 
       {/* The room the dots and arrow take: they are one overlay (see
           Onboarding), so the card only reserves their space. */}
-      <View style={{ marginTop: theme.spacing.xxl, height: 56 }} />
+      <View style={{ marginTop: theme.spacing.xl, height: 46 }} />
     </View>
   );
 });
