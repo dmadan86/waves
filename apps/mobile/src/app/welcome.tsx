@@ -119,8 +119,7 @@ export default function WelcomeScreen() {
 
   const reduceMotion = useReducedMotion();
 
-  // The door composes itself: the scatter lands first (each mark on its own
-  // delay, inside `ScatterBand`), then the headline rises under it, then the
+  // The door composes itself: the headline rises over the picture, then the
   // ways in. The order is the reading order, a third of a second apart, so the
   // screen arrives the way somebody reads it rather than all at once. The
   // splash's own field lifts just before this, so the two read as one move.
