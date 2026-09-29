@@ -9,40 +9,89 @@
  * you to type it. Somebody who never reads this loses nothing they cannot find
  * later.
  *
- * Full-bleed tint per card rather than one background: the colour changing
+ * Full-bleed colour per card rather than one background: the colour changing
  * under your thumb is the progress indicator that needs no explanation, and the
- * dots are there for anyone who wants to count.
+ * dots are there for anyone who wants to count. Each card has its own ink, and
+ * the dots and the button take it on as the page moves.
  */
 
 import { memo, useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Animated, Pressable, useWindowDimensions, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Animated, Image, Pressable, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { directionalIcon, iconSize, isRtlLayout, Text, type TintName, useTheme } from '@waves/ui';
+import { directionalIcon, iconSize, isRtlLayout, Text, useTheme } from '@waves/ui';
 
 import { TourPager, type TourPagerHandle } from '@/components/TourPager';
 import { useStrings } from '@/i18n';
+import { COMPACT_TYPE_CAP } from '@/lib/typeCap';
 
-interface Slide {
-  readonly tint: TintName;
-  readonly emoji: string;
+export interface IntroSlide {
+  readonly key: string;
+  /** The card's field, top to bottom. */
+  readonly bg: readonly [string, string];
+  /** Title, wordmark, dots and button. */
+  readonly ink: string;
+  readonly inkMuted: string;
+  /** A soft shape behind the picture, a shade off the field. */
+  readonly glow: string;
+  readonly art: number;
 }
 
 /**
- * Emoji rather than illustration. Not for want of an artist: art has to ship as
- * a binary asset in every build, and this screen is the one that renders before
- * the app has proved anything about itself. The group covers are emoji for the
- * same reason, so the tour looks like the product rather than like a brochure
- * bolted to the front of it.
+ * The cards' own light palette in every theme: this is a front-of-house screen,
+ * seen before anything else, and it reads as one piece with the art. Each
+ * picture is a transparent still, a few kilobytes, drawn for its card.
  */
-const SLIDES: readonly Slide[] = [
-  { tint: 'lilac', emoji: '🧾' },
-  { tint: 'mint', emoji: '🔗' },
-  { tint: 'peach', emoji: '⚡' },
+const SLIDES: readonly IntroSlide[] = [
+  {
+    key: 'split',
+    bg: ['#FFF5E8', '#FCEBD6'],
+    ink: '#3A220F',
+    inkMuted: '#8A5B35',
+    glow: '#F8DDBC',
+    art: require('../../assets/images/onboard-split.webp') as number,
+  },
+  {
+    key: 'link',
+    bg: ['#EEEFFF', '#E3E5FD'],
+    ink: '#14166B',
+    inkMuted: '#4A4E8C',
+    glow: '#D8DAFB',
+    art: require('../../assets/images/onboard-link.webp') as number,
+  },
+  {
+    key: 'settle',
+    bg: ['#EDFAF5', '#DDF3EA'],
+    ink: '#0F3A2C',
+    inkMuted: '#3F6B5C',
+    glow: '#CDEBDF',
+    art: require('../../assets/images/onboard-settle.webp') as number,
+  },
 ];
 
 export function Onboarding({ onDone }: { onDone: () => void }) {
+  const { t } = useStrings();
+  return <IntroCards slides={SLIDES} copy={t.onboarding} skipLabel={t.skip} onDone={onDone} />;
+}
+
+/**
+ * A run of full-bleed cards with dots and a Next button — the first-run intro,
+ * and the Personal tab's. The words come in with the cards; this only knows the
+ * look.
+ */
+export function IntroCards({
+  slides: SLIDES,
+  copy: COPY,
+  skipLabel,
+  onDone,
+}: {
+  slides: readonly IntroSlide[];
+  copy: readonly { title: string; body: string }[];
+  skipLabel: string;
+  onDone: () => void;
+}) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { t } = useStrings();
@@ -65,9 +114,9 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
   };
 
   const isLast = index === SLIDES.length - 1;
-  // The dots take the ink of the card they sit over, blending between two as
-  // the page moves.
-  const inks = SLIDES.map((slide) => theme.tint[slide.tint].ink);
+  // The dots and the button take the ink of the card they sit over, blending
+  // between two as the page moves.
+  const inks = SLIDES.map((slide) => slide.ink);
   const dotInk =
     SLIDES.length > 1
       ? progress.interpolate({
@@ -87,16 +136,15 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
     () =>
       SLIDES.map((slide, slideIndex) => {
         // The words live in the string table; this file only knows the look.
-        const copy = t.onboarding[slideIndex] ?? t.onboarding[0]!;
+        const copy = COPY[slideIndex] ?? COPY[0]!;
         return (
           <SlideCard
-            key={slide.tint}
-            emoji={slide.emoji}
-            tint={slide.tint}
+            key={slide.key}
+            slide={slide}
             title={copy.title}
             body={copy.body}
             appName={t.common.appName}
-            skipLabel={t.skip}
+            skipLabel={skipLabel}
             width={width}
             height={height}
             rtl={rtl}
@@ -106,7 +154,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
           />
         );
       }),
-    [rtl, t, width, height, insets.top, insets.bottom, onDone],
+    [SLIDES, COPY, skipLabel, rtl, t, width, height, insets.top, insets.bottom, onDone],
   );
 
   return (
@@ -134,7 +182,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
           left: theme.spacing.xxxl,
           right: theme.spacing.xxxl,
           bottom: insets.bottom + theme.spacing.xxl,
-          height: 56,
+          height: 46,
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -151,13 +199,13 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
             };
             return (
               <Animated.View
-                key={dot.tint}
+                key={dot.key}
                 style={{
                   height: 8,
-                  width: progress.interpolate({ ...near, outputRange: [8, 24, 8] }),
+                  width: progress.interpolate({ ...near, outputRange: [8, 26, 8] }),
                   borderRadius: theme.radius.pill,
                   backgroundColor: dotInk,
-                  opacity: progress.interpolate({ ...near, outputRange: [0.3, 1, 0.3] }),
+                  opacity: progress.interpolate({ ...near, outputRange: [0.25, 1, 0.25] }),
                 }}
               />
             );
@@ -174,38 +222,29 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
           onPress={() => goTo(index + 1)}
           accessibilityRole="button"
           accessibilityLabel={isLast ? t.getStarted : t.next}
-          style={({ pressed }) => ({
-            minHeight: 56,
-            flexShrink: 1,
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: theme.spacing.sm,
-            paddingHorizontal: theme.spacing.xl,
-            paddingVertical: theme.spacing.sm,
-            borderRadius: theme.radius.pill,
-            backgroundColor: theme.color.buttonPrimary,
-            opacity: pressed ? 0.85 : 1,
-            ...theme.shadow.soft,
-          })}
+          style={({ pressed }) => ({ flexShrink: 1, opacity: pressed ? 0.85 : 1 })}
         >
-          <Text
+          <Animated.View
             style={{
-              fontSize: 17,
-              fontWeight: '700',
-              color: theme.color.onButtonPrimary,
-              flexShrink: 1,
+              minHeight: 46,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: theme.spacing.sm,
+              paddingHorizontal: theme.spacing.lg,
+              paddingVertical: theme.spacing.sm,
+              borderRadius: theme.radius.pill,
+              backgroundColor: dotInk,
             }}
           >
-            {isLast ? t.getStarted : t.next}
-          </Text>
-          <Ionicons
-            // A tick means the same in both directions; an arrow does not, and
-            // this one kept pointing right in a mirrored screen — "next"
-            // pointing backwards, on the very first screen.
-            name={isLast ? 'checkmark' : directionalIcon('arrow-forward')}
-            size={iconSize.lg}
-            color={theme.color.onButtonPrimary}
-          />
+            <Text
+              maxFontSizeMultiplier={COMPACT_TYPE_CAP}
+              style={{ fontSize: 15, fontWeight: '700', color: '#FFFFFF', flexShrink: 1 }}
+            >
+              {isLast ? t.getStarted : t.next}
+            </Text>
+            {/* Mirrored with the layout: "next" never points backwards. */}
+            <Ionicons name={directionalIcon('arrow-forward')} size={18} color="#FFFFFF" />
+          </Animated.View>
         </Pressable>
       </View>
     </View>
@@ -218,8 +257,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
  * overlay above tracks the index; a card is a fixed painting the pager slides.
  */
 const SlideCard = memo(function SlideCard({
-  emoji,
-  tint,
+  slide,
   title,
   body,
   appName,
@@ -231,8 +269,7 @@ const SlideCard = memo(function SlideCard({
   bottomInset,
   onSkip,
 }: {
-  emoji: string;
-  tint: TintName;
+  slide: IntroSlide;
   title: string;
   body: string;
   appName: string;
@@ -245,10 +282,16 @@ const SlideCard = memo(function SlideCard({
   onSkip: () => void;
 }) {
   const theme = useTheme();
-  const { bg, ink, inkMuted } = theme.tint[tint];
+  const { ink, inkMuted } = slide;
+  const artSize = Math.min(width - 80, 270);
 
   return (
     <View
+      // A card is a still painting the pager slides: drawn once into a
+      // texture and moved as a bitmap, rather than re-rasterising its gradient
+      // and translucent art on every frame of a swipe.
+      renderToHardwareTextureAndroid
+      shouldRasterizeIOS
       style={{
         width,
         // Stated rather than stretched: a horizontal ScrollView sizes itself to
@@ -258,18 +301,25 @@ const SlideCard = memo(function SlideCard({
         // The card mirrors even though the pager holding it does not, so the
         // wordmark and skip sit where an Arabic reader expects them.
         direction: rtl ? 'rtl' : 'ltr',
-        backgroundColor: bg,
         paddingTop: topInset + theme.spacing.md,
         paddingBottom: bottomInset + theme.spacing.xxl,
         paddingHorizontal: theme.spacing.xxxl,
       }}
     >
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-        <Text style={{ fontSize: 20, fontWeight: '700', color: ink }}>{appName}</Text>
-        {/* Skip carries the card's own ink, the colour the title is in, so it
-            reads on every tint — the old brand purple all but vanished on the
-            pastel backgrounds. A chevron makes it look like the shortcut it is,
-            and it mirrors with the layout. */}
+      <LinearGradient
+        colors={slide.bg}
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+      />
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Text
+          maxFontSizeMultiplier={COMPACT_TYPE_CAP}
+          style={{ fontSize: 20, fontWeight: '800', color: ink }}
+        >
+          {appName}
+        </Text>
+        {/* Skip carries the card's own ink, so it reads on every card. A
+            chevron makes it look like the shortcut it is, and it mirrors with
+            the layout. */}
         <Pressable
           onPress={onSkip}
           accessibilityRole="button"
@@ -277,7 +327,10 @@ const SlideCard = memo(function SlideCard({
           hitSlop={12}
           style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs }}
         >
-          <Text variant="caption" style={{ color: ink, fontWeight: '600' }}>
+          <Text
+            maxFontSizeMultiplier={COMPACT_TYPE_CAP}
+            style={{ fontSize: 14, color: ink, fontWeight: '600' }}
+          >
             {skipLabel}
           </Text>
           <Ionicons name={directionalIcon('chevron-forward')} size={iconSize.sm} color={ink} />
@@ -285,24 +338,56 @@ const SlideCard = memo(function SlideCard({
       </View>
 
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        {/* Decorative: the sentence below says the same thing, and a screen
-            reader announcing "receipt" adds nothing. */}
-        <Text accessibilityElementsHidden importantForAccessibility="no" style={{ fontSize: 120 }}>
-          {emoji}
-        </Text>
+        {/* Decorative: the sentence below says the same thing. */}
+        <View
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          style={{
+            width: artSize,
+            height: artSize,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <View
+            style={{
+              position: 'absolute',
+              width: artSize * 0.86,
+              height: artSize * 0.86,
+              borderRadius: artSize,
+              backgroundColor: slide.glow,
+              opacity: 0.55,
+            }}
+          />
+          <Image
+            source={slide.art}
+            // No fade-in: Android fades a picture over 300ms by default, which
+            // reads as the art arriving late behind every swipe.
+            fadeDuration={0}
+            resizeMode="contain"
+            style={{ width: artSize, height: artSize * 0.86 }}
+          />
+        </View>
       </View>
 
-      <View style={{ gap: theme.spacing.md }}>
-        <Text style={{ fontSize: 36, fontWeight: '700', color: ink }}>{title}</Text>
-        <Text variant="body" style={{ color: inkMuted }}>
+      <View style={{ gap: theme.spacing.sm }}>
+        <Text
+          maxFontSizeMultiplier={COMPACT_TYPE_CAP}
+          style={{ fontSize: 28, lineHeight: 34, fontWeight: '800', color: ink }}
+        >
+          {title}
+        </Text>
+        <Text
+          maxFontSizeMultiplier={COMPACT_TYPE_CAP}
+          style={{ fontSize: 15, lineHeight: 22, color: inkMuted }}
+        >
           {body}
         </Text>
       </View>
 
-      {/* The room the dots and arrow used to take. They are one overlay now (see
-          Onboarding), so the card only reserves their space to keep the
-          paragraph at the height it has always sat at. */}
-      <View style={{ marginTop: theme.spacing.xxl, height: 56 }} />
+      {/* The room the dots and arrow take: they are one overlay (see
+          Onboarding), so the card only reserves their space. */}
+      <View style={{ marginTop: theme.spacing.xl, height: 46 }} />
     </View>
   );
 });

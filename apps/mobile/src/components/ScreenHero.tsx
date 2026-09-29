@@ -66,14 +66,14 @@ import { useReducedMotion } from '@/lib/reducedMotion';
  * a worse bug than the one being fixed. On focus it takes the bar; on blur it
  * hands it back to whatever the theme says at rest.
  */
-export function useHeroStatusBar(): void {
+export function useHeroStatusBar(style: 'light' | 'dark' = 'light'): void {
   const theme = useTheme();
   const resting = theme.scheme === 'dark' ? 'light' : 'dark';
   useFocusEffect(
     useCallback(() => {
-      setStatusBarStyle('light');
+      setStatusBarStyle(style);
       return () => setStatusBarStyle(resting);
-    }, [resting]),
+    }, [style, resting]),
   );
 }
 

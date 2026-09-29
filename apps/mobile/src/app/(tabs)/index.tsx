@@ -3,8 +3,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurTargetView } from 'expo-blur';
+import Svg, { Path } from 'react-native-svg';
 import {
   Animated,
+  Image,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -16,7 +18,6 @@ import { dayNumber, type GuestGate } from '@waves/core';
 import {
   Button,
   directionalIcon,
-  EmptyState,
   iconSize,
   MoneyText,
   Popup,
@@ -42,6 +43,8 @@ import { orderByPin } from '@/lib/groupPinOrder';
 import { plural, useStrings, type UiStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { useGuestGuard } from '@/lib/guestGuard';
+import { SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
+import { HERO_THEMES } from '@/lib/scene';
 import { router } from '@/lib/navigation';
 import { usePromptSlot } from '@/lib/promptQueue';
 import { useDashboardTips } from '@/lib/tips';
@@ -72,6 +75,8 @@ import { usePullRefresh } from '@/lib/pullRefresh';
 /** Dashboard route with duplicate-safe jumps to stable primary destinations. */
 export default function HomeScreen() {
   const theme = useTheme();
+  const emptyInk = theme.scheme === 'dark' ? theme.color.text : SPEC_INK;
+  const emptyMuted = theme.scheme === 'dark' ? theme.color.textMuted : SPEC_MUTED;
   const pull = usePullRefresh();
   const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
@@ -356,7 +361,11 @@ export default function HomeScreen() {
   const sceneHeight = cardTop + cardHeight * SCENE_INTO_CARD;
   // The scene runs up under the status bar, so the clock and battery go white
   // while Home is the screen in front (and back to the theme's when it is not).
-  useHeroStatusBar();
+  // The greeting's ink follows the sky: dark on a pale scene, white on a deep
+  // one — and the status bar's clock and icons with it.
+  const darkInk = HERO_THEMES[scene].ink === 'dark';
+  const heroInk = darkInk ? SPEC_INK : '#FFFFFF';
+  useHeroStatusBar(darkInk ? 'dark' : 'light');
 
   // The bell's red dot: somebody else has done something since Activity was
   // last opened. Your own expenses are not news.
@@ -442,6 +451,7 @@ export default function HomeScreen() {
               photoUrl={avatarUrl}
               onPress={() => router.navigate('/profile')}
               label={t.profile}
+              ink={darkInk ? heroInk : undefined}
             />
             {/* The name gives way first: it shrinks to an ellipsis before it
                 ever reaches the icons, and the wave stays whole after it. */}
@@ -459,7 +469,6 @@ export default function HomeScreen() {
             >
               <Row style={{ alignItems: 'center', minWidth: 0 }}>
                 <Text
-                  tone="onBrand"
                   numberOfLines={1}
                   ellipsizeMode="tail"
                   style={{
@@ -468,29 +477,34 @@ export default function HomeScreen() {
                     fontSize: 18,
                     lineHeight: 23,
                     fontWeight: '700',
+                    color: heroInk,
                   }}
                 >
                   {t.dashHero.hi.replace('{name}', displayName)}
                 </Text>
-                <Text tone="onBrand" style={{ fontSize: 18, lineHeight: 23 }}>
-                  {' 👋'}
-                </Text>
+                <Text style={{ fontSize: 18, lineHeight: 23, color: heroInk }}>{' 👋'}</Text>
               </Row>
-              <Text variant="body" tone="onBrand" numberOfLines={1} style={{ opacity: 0.9 }}>
+              <Text
+                variant="body"
+                numberOfLines={1}
+                style={{ color: heroInk, opacity: darkInk ? 0.75 : 0.9 }}
+              >
                 {`${t.dashHero[greetKey]}!`}
               </Text>
             </Pressable>
-            <SyncStatusIcon onBrand />
+            <SyncStatusIcon onBrand ink={heroInk} />
             <HeroIconButton
               icon="notifications-outline"
               label={unseenActivity ? `${t.activity}, ${t.tagNew}` : t.activity}
               onPress={() => router.navigate('/activity')}
               dot={unseenActivity}
+              ink={heroInk}
             />
             <HeroIconButton
               icon="ellipsis-vertical"
               label={t.account.faceSettings}
               onPress={() => setMenuOpen(true)}
+              ink={heroInk}
             />
           </Row>
         </View>
@@ -548,18 +562,55 @@ export default function HomeScreen() {
           {showSkeleton ? (
             <SkeletonList rows={3} />
           ) : list.length === 0 ? (
-            <View style={{ flex: 1, justifyContent: 'center' }}>
+            <ScrollView
+              style={{ flex: 1 }}
+              // Scrolls, and clears the tab bar, so the button under the
+              // picture is never hidden behind the bar on a short phone.
+              contentContainerStyle={{
+                flexGrow: 1,
+                justifyContent: 'center',
+                paddingBottom: clearance,
+              }}
+              showsVerticalScrollIndicator={false}
+            >
               {/* The one screen where somebody has nothing to act on yet gets
                   the action spelled out. */}
-              <EmptyState
-                title={t.tabs.noGroups}
-                body={t.tabs.noGroupsBody}
-                action={<Button label={t.newGroup} onPress={openNewGroup} />}
-                icon={
-                  <Ionicons name="people-outline" size={iconSize.xxl} color={theme.color.brand} />
-                }
-              />
-            </View>
+              <View style={{ alignItems: 'center', gap: 8, paddingHorizontal: theme.spacing.md }}>
+                <NoGroupsArt />
+                <Text
+                  accessibilityRole="header"
+                  style={{ fontSize: 22, fontWeight: '800', color: emptyInk, textAlign: 'center' }}
+                >
+                  {t.tabs.noGroups}
+                </Text>
+                <Text
+                  style={{ fontSize: 14, lineHeight: 20, color: emptyMuted, textAlign: 'center' }}
+                >
+                  {t.tabs.noGroupsBody}
+                </Text>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t.newGroup}
+                  onPress={openNewGroup}
+                  style={({ pressed }) => ({
+                    marginTop: 6,
+                    height: 42,
+                    paddingHorizontal: 22,
+                    borderRadius: 21,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 8,
+                    backgroundColor: theme.scheme === 'dark' ? theme.color.brand : '#3E2A9E',
+                    opacity: pressed ? 0.88 : 1,
+                  })}
+                >
+                  <Ionicons name="people-outline" size={18} color="#FFFFFF" />
+                  <Text style={{ fontSize: 15, fontWeight: '700', color: '#FFFFFF' }}>
+                    {t.newGroup}
+                  </Text>
+                </Pressable>
+              </View>
+            </ScrollView>
           ) : (
             <View style={{ gap: theme.spacing.sm, flex: 1 }}>
               {/* The heading carries the door to the full list: the card below is
@@ -1267,5 +1318,50 @@ function GroupRow({
         )}
       </Pressable>
     </Animated.View>
+  );
+}
+
+/** The empty Home's picture: two people unpacking a box with the group sign in
+ *  it. A still image on a transparent ground, so it sits on either theme. */
+const NO_GROUPS_ART = require('../../../assets/images/home-no-groups.webp') as number;
+
+/** Fixed sizes: a percentage width with an aspect ratio rendered zoomed and
+ *  cropped on Android. The art is 720×475. */
+const ART_W = 260;
+const ART_H = 190;
+
+function NoGroupsArt() {
+  const theme = useTheme();
+  const dark = theme.scheme === 'dark';
+  return (
+    <View
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={{ width: ART_W, height: ART_H, justifyContent: 'flex-end' }}
+    >
+      {/* The soft lavender wave behind the people, as in the mockup: a cloud
+          of a hill with a small puff of cloud to its left. */}
+      <Svg
+        width={ART_W}
+        height={ART_H}
+        viewBox="0 0 260 190"
+        style={{ position: 'absolute', top: 0, left: 0 }}
+      >
+        <Path
+          d="M18 172 C 10 120, 40 92, 80 96 C 92 52, 150 30, 196 58 C 232 70, 256 110, 246 172 Z"
+          fill={dark ? theme.color.surfaceMuted : '#ECE8FB'}
+        />
+        <Path
+          d="M34 70 c 2 -8 14 -10 18 -3 c 6 -6 16 -2 16 6 l -34 0 z"
+          fill={dark ? theme.color.surface : '#E4DEFA'}
+        />
+      </Svg>
+      <Image
+        source={NO_GROUPS_ART}
+        accessibilityIgnoresInvertColors
+        resizeMode="contain"
+        style={{ width: ART_W, height: (ART_W * 475) / 720 }}
+      />
+    </View>
   );
 }

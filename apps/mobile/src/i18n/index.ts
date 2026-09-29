@@ -1324,6 +1324,9 @@ export interface UiStrings {
   /** Entry copy — the signed-out screens (phone, verify-email, guest intro,
       gateway legal) and the push soft-ask. Kept translatable and RTL-safe. */
   entry: {
+    /** The phone step's placeholder and its one line on privacy. */
+    phonePlaceholder: string;
+    phoneNote: string;
     verifyPhoneTitle: string;
     verifyPhoneBody: string;
     resendCode: string;
@@ -1371,6 +1374,13 @@ export interface UiStrings {
   };
   /** The welcome and the ways in (ADR-006: nobody registers to split a bill). */
   signIn: {
+    /** The door's floating example cards. */
+    chipRent: string;
+    chipTrip: string;
+    chipDinner: string;
+    /** The door's line under the headline, and its divider's capitalised form. */
+    heroTagline: string;
+    orContinueWithCap: string;
     tagline: string;
     splitAnything: string;
     welcomeBody: string;
@@ -1726,6 +1736,7 @@ export interface UiStrings {
    * rather than asking for it twice.
    */
   quickExpense: {
+    notePlaceholder: string;
     title: string;
     /** Above the row of recent destinations. */
     where: string;
@@ -3457,6 +3468,7 @@ export interface UiStrings {
     badge: string;
   };
   privacy: {
+    exportMine: string;
     row: string;
     rowHint: string;
     title: string;
@@ -3698,6 +3710,9 @@ export interface UiStrings {
   /** The private personal-finance ledger (A48): the "Me" tab and its screens —
    *  solo expenses/income, recurring rules, loans and monthly budgets. */
   personal: {
+    /** The Personal tab's first-visit intro cards, and their skip. */
+    introCards: readonly { title: string; body: string }[];
+    introSkip: string;
     addLoanSub: string;
     noLoansBody: string;
     loanAmount: string;
@@ -4886,6 +4901,8 @@ const en: UiStrings = {
       'Your guest trial has ended, so the app is read-only for now. Add a way to sign in to keep adding — your groups and expenses are all still here.',
   },
   entry: {
+    phonePlaceholder: 'Enter your phone number',
+    phoneNote: 'We’ll only use your number for verification and account security.',
     verifyPhoneTitle: 'Verify your phone',
     verifyPhoneBody:
       'We send a one-time code to this number to sign you in. No password to remember.',
@@ -4934,6 +4951,11 @@ const en: UiStrings = {
     doneBody: 'That is the tour. You can replay it any time from the menu.',
   },
   signIn: {
+    chipRent: 'House Rent',
+    chipTrip: 'Trip to Bali',
+    chipDinner: 'Dinner',
+    heroTagline: 'Trips, dinners, household bills and more — together, made simple.',
+    orContinueWithCap: 'Or continue with',
     tagline: 'Waves · what is left over',
     splitAnything: 'Split anything\nwith anyone',
     welcomeBody:
@@ -5216,6 +5238,7 @@ const en: UiStrings = {
     paidHint: 'Group photos are a Plus feature. Pick an icon, or upgrade to add a photo.',
   },
   quickExpense: {
+    notePlaceholder: 'Add a note (optional)',
     title: 'Quick expense',
     where: 'Where does it go?',
     otherPlaces: 'Others',
@@ -6670,6 +6693,7 @@ const en: UiStrings = {
     badge: 'Blocked',
   },
   privacy: {
+    exportMine: 'Export my data',
     row: 'Privacy',
     rowHint: 'What is stored, and how it is kept',
     title: 'Privacy',
@@ -6907,6 +6931,29 @@ const en: UiStrings = {
   },
 
   personal: {
+    introCards: [
+      {
+        title: 'Your money, all in one place',
+        body: 'Track personal expenses, loans, recurring bills and more — easily with Waves.',
+      },
+      {
+        title: 'Track personal expenses',
+        body: 'Add your daily expenses and they are sorted into categories as you go.',
+      },
+      {
+        title: 'Manage your loans',
+        body: 'Keep track of EMIs, outstanding amounts and due dates in one place.',
+      },
+      {
+        title: 'Never miss a bill',
+        body: 'Add recurring payments like subscriptions, utilities and rent, and get a reminder before each one.',
+      },
+      {
+        title: 'See insights at a glance',
+        body: 'See your spending, upcoming bills and savings, and make smarter money decisions.',
+      },
+    ],
+    introSkip: 'Skip',
     addLoanSub: 'Track money you owe or money you lent.',
     noLoansBody: 'Add a loan to keep track of money you owe or are owed.',
     loanAmount: 'Amount',
@@ -8096,6 +8143,8 @@ const ta: UiStrings = {
       'உங்கள் விருந்தினர் காலம் முடிந்துவிட்டது, எனவே இப்போது ஆப் படிக்க மட்டுமே. தொடர்ந்து சேர்க்க உள்நுழையும் வழியைச் சேர்க்கவும் — உங்கள் குழுக்களும் செலவுகளும் இங்கேயே உள்ளன.',
   },
   entry: {
+    phonePlaceholder: 'உங்கள் தொலைபேசி எண்ணை உள்ளிடுங்கள்',
+    phoneNote: 'உங்கள் எண்ணை சரிபார்ப்புக்கும் கணக்குப் பாதுகாப்புக்கும் மட்டுமே பயன்படுத்துவோம்.',
     verifyPhoneTitle: 'உங்கள் தொலைபேசியைச் சரிபார்க்கவும்',
     verifyPhoneBody:
       'உங்களை உள்நுழைய இந்த எண்ணுக்கு ஒரு முறை குறியீட்டை அனுப்புகிறோம். கடவுச்சொல் நினைவில் வைக்க வேண்டாம்.',
@@ -8149,6 +8198,11 @@ const ta: UiStrings = {
     doneBody: 'அதுதான் சுற்றுப்பயணம். மெனுவிலிருந்து எப்போது வேண்டுமானாலும் மீண்டும் காணலாம்.',
   },
   signIn: {
+    chipRent: 'வீட்டு வாடகை',
+    chipTrip: 'பாலி பயணம்',
+    chipDinner: 'இரவு உணவு',
+    heroTagline: 'பயணங்கள், விருந்துகள், வீட்டுக் கட்டணங்கள் — ஒன்றாக, எளிதாக.',
+    orContinueWithCap: 'அல்லது இதனுடன் தொடரவும்',
     tagline: 'Waves · மீதம் இருப்பது',
     splitAnything: 'எதையும் பிரி\nயாருடனும்',
     welcomeBody:
@@ -8439,6 +8493,7 @@ const ta: UiStrings = {
       'குழு புகைப்படங்கள் Plus அம்சம். ஒரு ஐகானைத் தேர்ந்தெடுக்கவும், அல்லது புகைப்படம் சேர்க்க மேம்படுத்தவும்.',
   },
   quickExpense: {
+    notePlaceholder: 'குறிப்பு சேர்க்கவும் (விருப்பம்)',
     title: 'Quick expense',
     where: 'Where does it go?',
     otherPlaces: 'Others',
@@ -9988,6 +10043,7 @@ const ta: UiStrings = {
     badge: 'தடுக்கப்பட்டது',
   },
   privacy: {
+    exportMine: 'என் தரவை ஏற்றுமதி செய்',
     row: 'தனியுரிமை',
     rowHint: 'என்ன சேமிக்கப்படுகிறது, எப்படி பாதுகாக்கப்படுகிறது',
     title: 'தனியுரிமை',
@@ -10236,6 +10292,29 @@ const ta: UiStrings = {
   },
 
   personal: {
+    introCards: [
+      {
+        title: 'உங்கள் பணம், ஒரே இடத்தில்',
+        body: 'தனிப்பட்ட செலவுகள், கடன்கள், தொடர் கட்டணங்கள் — எல்லாவற்றையும் Waves-இல் எளிதாகக் கண்காணியுங்கள்.',
+      },
+      {
+        title: 'தனிப்பட்ட செலவுகளைக் கண்காணியுங்கள்',
+        body: 'தினசரி செலவுகளைச் சேர்த்தால், அவை வகைகளாகப் பிரிக்கப்படும்.',
+      },
+      {
+        title: 'உங்கள் கடன்களை நிர்வகியுங்கள்',
+        body: 'EMI-கள், நிலுவைத் தொகைகள், கெடு தேதிகள் — ஒரே இடத்தில்.',
+      },
+      {
+        title: 'எந்தக் கட்டணத்தையும் தவறவிடாதீர்கள்',
+        body: 'சந்தாக்கள், பயன்பாட்டுக் கட்டணங்கள், வாடகை போன்ற தொடர் கட்டணங்களைச் சேர்த்து, ஒவ்வொன்றுக்கும் முன் நினைவூட்டல் பெறுங்கள்.',
+      },
+      {
+        title: 'ஒரே பார்வையில் நுண்ணறிவு',
+        body: 'உங்கள் செலவு, வரவிருக்கும் கட்டணங்கள், சேமிப்பைப் பார்த்து சிறந்த முடிவுகள் எடுங்கள்.',
+      },
+    ],
+    introSkip: 'தவிர்',
     addLoanSub: 'நீங்கள் கடன் வாங்கியதையும் கொடுத்ததையும் கண்காணியுங்கள்.',
     noLoansBody:
       'நீங்கள் தர வேண்டிய அல்லது பெற வேண்டிய பணத்தைக் கண்காணிக்க ஒரு கடனைச் சேர்க்கவும்.',
@@ -11398,6 +11477,8 @@ const hi: UiStrings = {
       'आपकी मेहमान अवधि खत्म हो गई है, इसलिए अभी ऐप सिर्फ़ पढ़ने के लिए है। जोड़ते रहने के लिए साइन इन का कोई तरीका जोड़ें — आपके समूह और खर्च सब यहीं मौजूद हैं।',
   },
   entry: {
+    phonePlaceholder: 'अपना फ़ोन नंबर डालें',
+    phoneNote: 'हम आपका नंबर सिर्फ़ पुष्टि और खाते की सुरक्षा के लिए इस्तेमाल करेंगे।',
     verifyPhoneTitle: 'अपना फ़ोन सत्यापित करें',
     verifyPhoneBody:
       'आपको साइन इन करने के लिए हम इस नंबर पर एक बार का कोड भेजते हैं। कोई पासवर्ड याद रखने की ज़रूरत नहीं।',
@@ -11447,6 +11528,11 @@ const hi: UiStrings = {
     doneBody: 'यही टूर था। आप इसे मेन्यू से कभी भी फिर से देख सकते हैं।',
   },
   signIn: {
+    chipRent: 'घर का किराया',
+    chipTrip: 'बाली ट्रिप',
+    chipDinner: 'डिनर',
+    heroTagline: 'यात्राएँ, डिनर, घर के बिल और बहुत कुछ — साथ मिलकर, आसानी से।',
+    orContinueWithCap: 'या इससे जारी रखें',
     tagline: 'Waves · जो बच रहता है',
     splitAnything: 'कुछ भी बाँटें\nकिसी के साथ भी',
     welcomeBody:
@@ -11731,6 +11817,7 @@ const hi: UiStrings = {
     paidHint: 'ग्रुप फ़ोटो एक Plus सुविधा है। कोई आइकन चुनें, या फ़ोटो जोड़ने के लिए अपग्रेड करें।',
   },
   quickExpense: {
+    notePlaceholder: 'नोट जोड़ें (वैकल्पिक)',
     title: 'Quick expense',
     where: 'Where does it go?',
     otherPlaces: 'Others',
@@ -13201,6 +13288,7 @@ const hi: UiStrings = {
     badge: 'अवरोधित',
   },
   privacy: {
+    exportMine: 'मेरा डेटा एक्सपोर्ट करें',
     row: 'निजता',
     rowHint: 'क्या रखा जाता है, और कैसे सुरक्षित रहता है',
     title: 'निजता',
@@ -13438,6 +13526,26 @@ const hi: UiStrings = {
   },
 
   personal: {
+    introCards: [
+      {
+        title: 'आपका पैसा, एक ही जगह',
+        body: 'निजी खर्च, लोन, बार-बार के बिल और भी बहुत कुछ — Waves के साथ आसानी से ट्रैक करें।',
+      },
+      {
+        title: 'निजी खर्च ट्रैक करें',
+        body: 'रोज़ के खर्च जोड़ें, वे अपने-आप श्रेणियों में बँट जाते हैं।',
+      },
+      { title: 'अपने लोन संभालें', body: 'EMI, बकाया रकम और देय तारीखें एक ही जगह रखें।' },
+      {
+        title: 'कोई बिल न छूटे',
+        body: 'सब्सक्रिप्शन, बिजली-पानी और किराए जैसे नियमित भुगतान जोड़ें और हर एक से पहले याद दिलाया जाए।',
+      },
+      {
+        title: 'एक नज़र में जानकारी',
+        body: 'अपना खर्च, आने वाले बिल और बचत देखें, और पैसे के बेहतर फ़ैसले लें।',
+      },
+    ],
+    introSkip: 'छोड़ें',
     addLoanSub: 'जो पैसा आपने उधार लिया या दिया, उसका हिसाब रखें।',
     noLoansBody: 'जो पैसा आपको देना है या मिलना है, उसका हिसाब रखने के लिए लोन जोड़ें।',
     loanAmount: 'रकम',
@@ -14665,6 +14773,8 @@ const ar: UiStrings = {
       'انتهت فترتك كضيف، لذا التطبيق للقراءة فقط الآن. أضف طريقة لتسجيل الدخول لمواصلة الإضافة — مجموعاتك ومصروفاتك كلها لا تزال هنا.',
   },
   entry: {
+    phonePlaceholder: 'أدخل رقم هاتفك',
+    phoneNote: 'لن نستخدم رقمك إلا للتحقق وأمان الحساب.',
     verifyPhoneTitle: 'تحقق من هاتفك',
     verifyPhoneBody: 'نرسل رمزًا لمرة واحدة إلى هذا الرقم لتسجيل دخولك. لا حاجة لتذكر كلمة مرور.',
     resendCode: 'إعادة إرسال الرمز',
@@ -14710,6 +14820,11 @@ const ar: UiStrings = {
     doneBody: 'تلك هي الجولة. يمكنك إعادتها في أي وقت من القائمة.',
   },
   signIn: {
+    chipRent: 'إيجار المنزل',
+    chipTrip: 'رحلة إلى بالي',
+    chipDinner: 'عشاء',
+    heroTagline: 'رحلات وعشاء وفواتير منزلية وغيرها — معًا، وببساطة.',
+    orContinueWithCap: 'أو تابع باستخدام',
     tagline: 'Waves · ما يتبقّى',
     splitAnything: 'قسّم أي شيء\nمع أي أحد',
     welcomeBody: 'لا حاجة لحساب للبدء — أضف واحدًا لاحقًا وسيأتي معك كل ما أدخلته.',
@@ -15018,6 +15133,7 @@ const ar: UiStrings = {
     paidHint: 'صور المجموعة ميزة Plus. اختر أيقونة، أو قم بالترقية لإضافة صورة.',
   },
   quickExpense: {
+    notePlaceholder: 'أضف ملاحظة (اختياري)',
     title: 'Quick expense',
     where: 'Where does it go?',
     otherPlaces: 'Others',
@@ -16851,6 +16967,7 @@ const ar: UiStrings = {
     badge: 'محظور',
   },
   privacy: {
+    exportMine: 'تصدير بياناتي',
     row: 'الخصوصية',
     rowHint: 'ما الذي يُحفظ، وكيف يُحمى',
     title: 'الخصوصية',
@@ -17102,6 +17219,26 @@ const ar: UiStrings = {
   },
 
   personal: {
+    introCards: [
+      {
+        title: 'أموالك في مكان واحد',
+        body: 'تتبّع مصاريفك الشخصية وقروضك وفواتيرك المتكررة وغير ذلك — بسهولة مع Waves.',
+      },
+      { title: 'تتبّع مصاريفك الشخصية', body: 'أضف مصاريفك اليومية فتُصنَّف في فئات أولًا بأول.' },
+      {
+        title: 'أدِر قروضك',
+        body: 'تابع الأقساط والمبالغ المتبقية ومواعيد الاستحقاق في مكان واحد.',
+      },
+      {
+        title: 'لا تفوّتك فاتورة',
+        body: 'أضف المدفوعات المتكررة كالاشتراكات والخدمات والإيجار، وتلقَّ تذكيرًا قبل كل منها.',
+      },
+      {
+        title: 'نظرة سريعة على أموالك',
+        body: 'اطّلع على إنفاقك وفواتيرك القادمة ومدخراتك، واتخذ قرارات مالية أذكى.',
+      },
+    ],
+    introSkip: 'تخطٍّ',
     addLoanSub: 'تتبّع المال الذي اقترضته أو أقرضته.',
     noLoansBody: 'أضِف قرضًا لتتبّع المال الذي عليك أو لك.',
     loanAmount: 'المبلغ',

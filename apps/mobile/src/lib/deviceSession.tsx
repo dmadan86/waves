@@ -47,6 +47,7 @@ import { deviceIdentity } from '@/lib/device';
 import { useAuth } from '@/lib/auth';
 import { backend } from '@/lib/backend';
 import { DEVICE_LIMIT_ART, DEVICE_LIMIT_ART_RATIO } from '@/lib/deviceLimitArt';
+import { COMPACT_TYPE_CAP } from '@/lib/typeCap';
 import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
 
 /** How stale a registration may get before a foreground refreshes it. */
@@ -282,8 +283,8 @@ function DeviceLimitGate({
           <View style={{ gap: theme.spacing.sm }}>
             <Text
               style={{
-                fontSize: 22,
-                lineHeight: 28,
+                fontSize: 20,
+                lineHeight: 26,
                 fontWeight: '800',
                 color: ink,
                 textAlign: 'center',
@@ -291,7 +292,7 @@ function DeviceLimitGate({
             >
               {t.devices.gateTitle}
             </Text>
-            <Text style={{ fontSize: 15, lineHeight: 22, color: muted, textAlign: 'center' }}>
+            <Text style={{ fontSize: 14, lineHeight: 20, color: muted, textAlign: 'center' }}>
               {t.devices.gateBody}
             </Text>
           </View>
@@ -319,8 +320,8 @@ function DeviceLimitGate({
                 }}
               />
               <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-                <Text style={{ fontSize: 17, lineHeight: 22, color: ink }}>
-                  <Text style={{ fontSize: 17, fontWeight: '800', color: accent }}>
+                <Text style={{ fontSize: 15, lineHeight: 20, color: ink }}>
+                  <Text style={{ fontSize: 15, fontWeight: '800', color: accent }}>
                     {fill(t.devices.gateDevices, { active: status.activeCount })}
                   </Text>
                   {`  ·  ${fill(t.devices.gateAllowed, { limit: status.limit })}`}
@@ -366,22 +367,26 @@ function DeviceLimitGate({
                 }
               }}
               style={({ pressed }) => ({
-                height: 56,
-                borderRadius: 28,
+                minHeight: 46,
+                paddingVertical: 8,
+                borderRadius: 23,
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: theme.spacing.sm,
                 backgroundColor: accent,
                 shadowColor: accent,
-                shadowOpacity: 0.3,
-                shadowRadius: 12,
+                shadowOpacity: 0.22,
+                shadowRadius: 10,
                 shadowOffset: { width: 0, height: 6 },
                 elevation: 4,
                 opacity: busy ? 0.7 : pressed ? 0.85 : 1,
               })}
             >
-              <Text style={{ fontSize: 17, fontWeight: '700', color: '#FFFFFF' }}>
+              <Text
+                maxFontSizeMultiplier={COMPACT_TYPE_CAP}
+                style={{ fontSize: 15, fontWeight: '700', color: '#FFFFFF' }}
+              >
                 {t.devices.gateAction}
               </Text>
               {/* The spinner takes the arrow's place: the button keeps its width
@@ -389,7 +394,7 @@ function DeviceLimitGate({
               {busy ? (
                 <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
-                <Ionicons name={directionalIcon('arrow-forward')} size={20} color="#FFFFFF" />
+                <Ionicons name={directionalIcon('arrow-forward')} size={18} color="#FFFFFF" />
               )}
             </Pressable>
             <Pressable
@@ -397,8 +402,9 @@ function DeviceLimitGate({
               accessibilityLabel={t.devices.gateDismiss}
               onPress={onDismiss}
               style={({ pressed }) => ({
-                height: 52,
-                borderRadius: 26,
+                minHeight: 44,
+                paddingVertical: 8,
+                borderRadius: 22,
                 alignItems: 'center',
                 justifyContent: 'center',
                 borderWidth: 1.5,
@@ -407,7 +413,10 @@ function DeviceLimitGate({
                 opacity: pressed ? 0.6 : 1,
               })}
             >
-              <Text style={{ fontSize: 16, fontWeight: '700', color: accent }}>
+              <Text
+                maxFontSizeMultiplier={COMPACT_TYPE_CAP}
+                style={{ fontSize: 15, fontWeight: '700', color: accent }}
+              >
                 {t.devices.gateDismiss}
               </Text>
             </Pressable>
@@ -432,14 +441,27 @@ const ARCH = 22;
  */
 
 function DeviceLimitArt() {
+  // Measured, then drawn at fixed pixels: a percentage width with an aspect
+  // ratio is read by Android as the image's own size and zoomed, cropping
+  // everything but the plant. Capped in height so the words and the two ways
+  // out always fit under it.
+  const [width, setWidth] = useState(0);
+  const height = Math.min(width / DEVICE_LIMIT_ART_RATIO, 170);
   return (
-    <Image
-      source={DEVICE_LIMIT_ART}
-      resizeMode="contain"
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
-      style={{ width: '100%', aspectRatio: DEVICE_LIMIT_ART_RATIO, marginTop: 8 }}
-    />
+    <View
+      onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
+      style={{ width: '100%', height: width ? height + 8 : 1, alignItems: 'center', paddingTop: 8 }}
+    >
+      {width ? (
+        <Image
+          source={DEVICE_LIMIT_ART}
+          resizeMode="contain"
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          style={{ width: height * DEVICE_LIMIT_ART_RATIO, height }}
+        />
+      ) : null}
+    </View>
   );
 }
 
