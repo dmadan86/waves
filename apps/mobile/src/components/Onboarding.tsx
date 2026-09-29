@@ -25,6 +25,7 @@ import { directionalIcon, iconSize, isRtlLayout, Text, useTheme } from '@waves/u
 
 import { TourPager, type TourPagerHandle } from '@/components/TourPager';
 import { useStrings } from '@/i18n';
+import { COMPACT_TYPE_CAP } from '@/lib/typeCap';
 
 export interface IntroSlide {
   readonly key: string;
@@ -236,7 +237,7 @@ export function IntroCards({
             }}
           >
             <Text
-              maxFontSizeMultiplier={1}
+              maxFontSizeMultiplier={COMPACT_TYPE_CAP}
               style={{ fontSize: 15, fontWeight: '700', color: '#FFFFFF', flexShrink: 1 }}
             >
               {isLast ? t.getStarted : t.next}
@@ -310,7 +311,10 @@ const SlideCard = memo(function SlideCard({
         style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
       />
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Text maxFontSizeMultiplier={1} style={{ fontSize: 20, fontWeight: '800', color: ink }}>
+        <Text
+          maxFontSizeMultiplier={COMPACT_TYPE_CAP}
+          style={{ fontSize: 20, fontWeight: '800', color: ink }}
+        >
           {appName}
         </Text>
         {/* Skip carries the card's own ink, so it reads on every card. A
@@ -323,7 +327,10 @@ const SlideCard = memo(function SlideCard({
           hitSlop={12}
           style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs }}
         >
-          <Text maxFontSizeMultiplier={1} style={{ fontSize: 14, color: ink, fontWeight: '600' }}>
+          <Text
+            maxFontSizeMultiplier={COMPACT_TYPE_CAP}
+            style={{ fontSize: 14, color: ink, fontWeight: '600' }}
+          >
             {skipLabel}
           </Text>
           <Ionicons name={directionalIcon('chevron-forward')} size={iconSize.sm} color={ink} />
@@ -365,12 +372,15 @@ const SlideCard = memo(function SlideCard({
 
       <View style={{ gap: theme.spacing.sm }}>
         <Text
-          maxFontSizeMultiplier={1}
+          maxFontSizeMultiplier={COMPACT_TYPE_CAP}
           style={{ fontSize: 28, lineHeight: 34, fontWeight: '800', color: ink }}
         >
           {title}
         </Text>
-        <Text maxFontSizeMultiplier={1} style={{ fontSize: 15, lineHeight: 22, color: inkMuted }}>
+        <Text
+          maxFontSizeMultiplier={COMPACT_TYPE_CAP}
+          style={{ fontSize: 15, lineHeight: 22, color: inkMuted }}
+        >
           {body}
         </Text>
       </View>

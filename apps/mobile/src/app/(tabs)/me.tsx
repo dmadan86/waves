@@ -75,7 +75,7 @@ import {
 } from '@/data/personal';
 import { useDefaultCurrency } from '@/lib/currency';
 import { dateTimeFormat } from '@/lib/dateTimeFormat';
-import { useAuth } from '@/lib/auth';
+import { useAuth, useViewerId } from '@/lib/auth';
 import { usePersonalGate } from '@/lib/lock';
 import { router } from '@/lib/navigation';
 import { useHeroScene } from '@/lib/heroScenePreference';
@@ -256,20 +256,24 @@ function MeLedger() {
   // A refused check stays here with a way to try again, rather than sending the
   // user backwards without a word.
   // The tab's own intro, once per account, after the lock has let them in.
-  const [introOpen, setIntroOpen] = useState(false);
-  const ownerId = profile?.id ?? null;
+  // Keyed on the session's user rather than the profile, which can arrive late
+  // or not at all; and held as *which* account it is open for, so a switch to
+  // another account never carries the first one's open intro across.
+  const ownerId = useViewerId();
+  const [introFor, setIntroFor] = useState<string | null>(null);
+  const introOpen = introFor !== null && introFor === ownerId;
   useEffect(() => {
     if (!gate.unlocked || !ownerId) return;
     let live = true;
     void personalIntroSeen(ownerId).then((seen) => {
-      if (live && !seen) setIntroOpen(true);
+      if (live && !seen) setIntroFor(ownerId);
     });
     return () => {
       live = false;
     };
   }, [gate.unlocked, ownerId]);
   const closeIntro = useCallback(() => {
-    setIntroOpen(false);
+    setIntroFor(null);
     if (ownerId) void rememberPersonalIntroSeen(ownerId);
   }, [ownerId]);
 

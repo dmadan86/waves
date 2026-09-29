@@ -40,6 +40,7 @@ import { deviceDefaultCurrency, Language, LANGUAGE_NAMES, useStrings } from '@/i
 import { useAuth } from '@/lib/auth';
 import { friendlyError } from '@/lib/errors';
 import { router } from '@/lib/navigation';
+import { COMPACT_TYPE_CAP } from '@/lib/typeCap';
 import { useReducedMotion } from '@/lib/reducedMotion';
 import { phoneSignInAvailable } from '@/lib/phoneAuth';
 
@@ -252,7 +253,7 @@ export default function WelcomeScreen() {
             >
               <Ionicons name="globe-outline" size={20} color={INK} />
               <Text
-                maxFontSizeMultiplier={1.15}
+                maxFontSizeMultiplier={COMPACT_TYPE_CAP}
                 style={{ fontSize: 15, fontWeight: '600', color: INK }}
               >
                 {LANGUAGE_NAMES[language].own}
@@ -280,7 +281,7 @@ export default function WelcomeScreen() {
             })}
           >
             <Text
-              maxFontSizeMultiplier={1.15}
+              maxFontSizeMultiplier={COMPACT_TYPE_CAP}
               style={{ fontSize: 16, fontWeight: '700', color: INK }}
             >
               {t.common.skip}
@@ -300,7 +301,7 @@ export default function WelcomeScreen() {
               source={HEADLINE}
               accessible
               accessibilityRole="header"
-              accessibilityLabel={`${t.common.appName}. ${t.signIn.splitAnything.replace('\n', ' ')}. ${t.signIn.heroTagline}`}
+              accessibilityLabel={`${t.common.appName}. ${t.signIn.splitAnything.replace(/\n/g, ' ')}. ${t.signIn.heroTagline}`}
               resizeMode="contain"
               style={{ width: headlineW, height: headlineW * (693 / 1000), marginTop: 4 }}
             />
@@ -316,7 +317,7 @@ export default function WelcomeScreen() {
                 style={{ width: 140, height: 140 * (256 / 720), marginBottom: 2 }}
               />
               <Text
-                maxFontSizeMultiplier={1.15}
+                maxFontSizeMultiplier={COMPACT_TYPE_CAP}
                 style={{
                   fontFamily: DISPLAY,
                   fontSize: 38,
@@ -328,7 +329,7 @@ export default function WelcomeScreen() {
                 {t.signIn.splitAnything}
               </Text>
               <Text
-                maxFontSizeMultiplier={1.15}
+                maxFontSizeMultiplier={COMPACT_TYPE_CAP}
                 // Narrow enough to break after "bills", where the mockup breaks it.
                 style={{
                   fontFamily: BODY,
@@ -426,7 +427,7 @@ export default function WelcomeScreen() {
                 )}
               </View>
               <Text
-                maxFontSizeMultiplier={1.15}
+                maxFontSizeMultiplier={COMPACT_TYPE_CAP}
                 style={{
                   flex: 1,
                   textAlign: 'center',
@@ -466,7 +467,7 @@ export default function WelcomeScreen() {
               )}
             </View>
             <Text
-              maxFontSizeMultiplier={1.15}
+              maxFontSizeMultiplier={COMPACT_TYPE_CAP}
               style={{ flex: 1, textAlign: 'center', fontSize: 15, fontWeight: '700', color: INK }}
             >
               {labelFor(second)}
@@ -476,7 +477,7 @@ export default function WelcomeScreen() {
 
           <Row style={{ alignItems: 'center', gap: 12, marginVertical: 2 }}>
             <View style={{ flex: 1, height: 1, backgroundColor: LINE }} />
-            <Text maxFontSizeMultiplier={1.15} style={{ fontSize: 14, color: MUTED }}>
+            <Text maxFontSizeMultiplier={COMPACT_TYPE_CAP} style={{ fontSize: 14, color: MUTED }}>
               {t.signIn.orContinueWithCap}
             </Text>
             <View style={{ flex: 1, height: 1, backgroundColor: LINE }} />
@@ -510,7 +511,7 @@ export default function WelcomeScreen() {
           <View style={{ height: 1, backgroundColor: LINE, marginHorizontal: 40, marginTop: 4 }} />
 
           <Row style={{ justifyContent: 'center', alignItems: 'center', gap: 8 }}>
-            <Text maxFontSizeMultiplier={1.15} style={{ fontSize: 16, color: MUTED }}>
+            <Text maxFontSizeMultiplier={COMPACT_TYPE_CAP} style={{ fontSize: 16, color: MUTED }}>
               {t.signIn.haveAccountPrompt}
             </Text>
             <Pressable
@@ -529,7 +530,7 @@ export default function WelcomeScreen() {
               })}
             >
               <Text
-                maxFontSizeMultiplier={1.15}
+                maxFontSizeMultiplier={COMPACT_TYPE_CAP}
                 style={{ fontSize: 17, fontWeight: '800', color: ACCENT }}
               >
                 {t.signIn.signInAction}
@@ -593,10 +594,13 @@ function SplitChip({
         <Ionicons name={icon} size={18} color={ACCENT} />
       </View>
       <View>
-        <Text maxFontSizeMultiplier={1.15} style={{ fontSize: 11, color: INK }}>
+        <Text maxFontSizeMultiplier={COMPACT_TYPE_CAP} style={{ fontSize: 11, color: INK }}>
           {label}
         </Text>
-        <Text maxFontSizeMultiplier={1.15} style={{ fontSize: 13, fontWeight: '700', color: INK }}>
+        <Text
+          maxFontSizeMultiplier={COMPACT_TYPE_CAP}
+          style={{ fontSize: 13, fontWeight: '700', color: INK }}
+        >
           {amount}
         </Text>
       </View>
@@ -659,7 +663,10 @@ function WayTile({
       })}
     >
       <Ionicons name={icon} size={20} color={ACCENT} />
-      <Text maxFontSizeMultiplier={1.15} style={{ fontSize: 15, fontWeight: '700', color: INK }}>
+      <Text
+        maxFontSizeMultiplier={COMPACT_TYPE_CAP}
+        style={{ fontSize: 15, fontWeight: '700', color: INK }}
+      >
         {label}
       </Text>
     </Pressable>

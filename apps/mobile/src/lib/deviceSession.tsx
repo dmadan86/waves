@@ -47,6 +47,7 @@ import { deviceIdentity } from '@/lib/device';
 import { useAuth } from '@/lib/auth';
 import { backend } from '@/lib/backend';
 import { DEVICE_LIMIT_ART, DEVICE_LIMIT_ART_RATIO } from '@/lib/deviceLimitArt';
+import { COMPACT_TYPE_CAP } from '@/lib/typeCap';
 import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
 
 /** How stale a registration may get before a foreground refreshes it. */
@@ -366,7 +367,8 @@ function DeviceLimitGate({
                 }
               }}
               style={({ pressed }) => ({
-                height: 46,
+                minHeight: 46,
+                paddingVertical: 8,
                 borderRadius: 23,
                 flexDirection: 'row',
                 alignItems: 'center',
@@ -382,7 +384,7 @@ function DeviceLimitGate({
               })}
             >
               <Text
-                maxFontSizeMultiplier={1}
+                maxFontSizeMultiplier={COMPACT_TYPE_CAP}
                 style={{ fontSize: 15, fontWeight: '700', color: '#FFFFFF' }}
               >
                 {t.devices.gateAction}
@@ -400,7 +402,8 @@ function DeviceLimitGate({
               accessibilityLabel={t.devices.gateDismiss}
               onPress={onDismiss}
               style={({ pressed }) => ({
-                height: 44,
+                minHeight: 44,
+                paddingVertical: 8,
                 borderRadius: 22,
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -411,7 +414,7 @@ function DeviceLimitGate({
               })}
             >
               <Text
-                maxFontSizeMultiplier={1}
+                maxFontSizeMultiplier={COMPACT_TYPE_CAP}
                 style={{ fontSize: 15, fontWeight: '700', color: accent }}
               >
                 {t.devices.gateDismiss}

@@ -7,6 +7,7 @@
  * Same cards, same controls, its own pictures and palettes.
  */
 
+import { StatusBar } from 'expo-status-bar';
 import { Modal } from 'react-native';
 
 import { MODAL_ORIENTATIONS } from '@waves/ui';
@@ -68,6 +69,8 @@ export function PersonalIntro({ visible, onDone }: { visible: boolean; onDone: (
       navigationBarTranslucent
       supportedOrientations={MODAL_ORIENTATIONS}
     >
+      {/* Pale cards under the status bar: its icons go dark while this is up. */}
+      <StatusBar style="dark" />
       <IntroCards
         slides={PERSONAL_SLIDES}
         copy={t.personal.introCards}

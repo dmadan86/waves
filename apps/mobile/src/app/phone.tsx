@@ -44,6 +44,7 @@ import { deviceCountry, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { friendlyError } from '@/lib/errors';
 import { router } from '@/lib/navigation';
+import { COMPACT_TYPE_CAP } from '@/lib/typeCap';
 
 /** Matches the email code screen, so the two waits feel like one product. */
 const RESEND_SECONDS = 60;
@@ -275,7 +276,7 @@ export default function PhoneScreen() {
                 style={{ width: windowWidth * 0.24, height: windowWidth * 0.24 * (256 / 720) }}
               />
               <Text
-                maxFontSizeMultiplier={1}
+                maxFontSizeMultiplier={COMPACT_TYPE_CAP}
                 style={{
                   fontFamily: DISPLAY,
                   fontSize: 26,
@@ -289,7 +290,7 @@ export default function PhoneScreen() {
                 {stage === 'phone' ? t.entry.verifyPhoneTitle : t.signIn.enterCodeTitle}
               </Text>
               <Text
-                maxFontSizeMultiplier={1}
+                maxFontSizeMultiplier={COMPACT_TYPE_CAP}
                 style={{
                   fontFamily: BODY,
                   fontSize: 14,
@@ -336,7 +337,7 @@ export default function PhoneScreen() {
                     tapped control, the local digits beside it. */}
                 <View style={[CARD, { marginTop: 18 }]}>
                   <Text
-                    maxFontSizeMultiplier={1}
+                    maxFontSizeMultiplier={COMPACT_TYPE_CAP}
                     style={{ fontSize: 13, fontWeight: '600', color: '#4A4E68', marginBottom: 8 }}
                   >
                     {t.signIn.phoneNumber}
@@ -355,7 +356,7 @@ export default function PhoneScreen() {
                     <CountryCodePicker code={country} onChange={setCountry} />
                     <View style={{ width: 1, height: 26, backgroundColor: FIELD_LINE }} />
                     <TextInput
-                      maxFontSizeMultiplier={1}
+                      maxFontSizeMultiplier={COMPACT_TYPE_CAP}
                       value={phone}
                       onChangeText={setPhone}
                       keyboardType="phone-pad"
@@ -390,7 +391,7 @@ export default function PhoneScreen() {
                     <Ionicons name="lock-closed-outline" size={16} color={ACCENT} />
                   </View>
                   <Text
-                    maxFontSizeMultiplier={1}
+                    maxFontSizeMultiplier={COMPACT_TYPE_CAP}
                     style={{ flex: 1, fontSize: 13, lineHeight: 18, color: '#4A4E68' }}
                   >
                     {t.entry.phoneNote}
@@ -519,7 +520,7 @@ function Pill({
   ) : (
     <>
       <Text
-        maxFontSizeMultiplier={1}
+        maxFontSizeMultiplier={COMPACT_TYPE_CAP}
         style={{
           fontSize: 15,
           fontWeight: '700',

@@ -58,6 +58,7 @@ import { friendlyError } from '@/lib/errors';
 import { router, useGoBack } from '@/lib/navigation';
 import { CodeRoute, codeRouteFor, looksLikePhone } from '@/lib/authCodeRoute';
 import { phoneSignInAvailable } from '@/lib/phoneAuth';
+import { COMPACT_TYPE_CAP } from '@/lib/typeCap';
 
 export type AuthFlowKind = 'login' | 'signup';
 
@@ -316,7 +317,7 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
           <View style={[fieldStyle, { marginBottom: 12 }]}>
             <Ionicons name="person-outline" size={18} color={GLYPH} />
             <TextInput
-              maxFontSizeMultiplier={1}
+              maxFontSizeMultiplier={COMPACT_TYPE_CAP}
               value={name}
               onChangeText={setName}
               autoCapitalize="words"
@@ -333,7 +334,7 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
         <View style={fieldStyle}>
           <Ionicons name="mail-outline" size={18} color={GLYPH} />
           <TextInput
-            maxFontSizeMultiplier={1}
+            maxFontSizeMultiplier={COMPACT_TYPE_CAP}
             value={identifier}
             onChangeText={setIdentifier}
             autoCapitalize="none"
@@ -351,7 +352,7 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
         <View style={[fieldStyle, { marginTop: 10 }]}>
           <Ionicons name="lock-closed-outline" size={18} color={GLYPH} />
           <TextInput
-            maxFontSizeMultiplier={1}
+            maxFontSizeMultiplier={COMPACT_TYPE_CAP}
             value={password}
             onChangeText={setPassword}
             secureTextEntry={!passwordShown}
@@ -436,7 +437,7 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
         </Text>
         <View style={fieldStyle}>
           <TextInput
-            maxFontSizeMultiplier={1}
+            maxFontSizeMultiplier={COMPACT_TYPE_CAP}
             testID="auth-code"
             value={code}
             onChangeText={setCode}
@@ -617,7 +618,9 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
               }}
             >
               <ScrollView
-                scrollEnabled={keyboardOpen}
+                // With the keyboard up, or when the card holds more than the room
+                // under the hero on a short page, it scrolls; otherwise it sits.
+                scrollEnabled={keyboardOpen || cardH > pageH - cardTop + 1}
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
                 contentContainerStyle={{
@@ -632,7 +635,7 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
                   }
                 >
                   <Text
-                    maxFontSizeMultiplier={1}
+                    maxFontSizeMultiplier={COMPACT_TYPE_CAP}
                     style={{
                       fontFamily: DISPLAY,
                       fontSize: 24,
@@ -644,7 +647,7 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
                     {title}
                   </Text>
                   <Text
-                    maxFontSizeMultiplier={1}
+                    maxFontSizeMultiplier={COMPACT_TYPE_CAP}
                     style={{
                       fontFamily: BODY,
                       fontSize: 14,
@@ -668,7 +671,10 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
                   <View style={{ marginTop: 16, gap: 12 }}>
                     <Row style={{ alignItems: 'center', gap: 12 }}>
                       <View style={{ flex: 1, height: 1, backgroundColor: LINE }} />
-                      <Text maxFontSizeMultiplier={1} style={{ fontSize: 14, color: MUTED }}>
+                      <Text
+                        maxFontSizeMultiplier={COMPACT_TYPE_CAP}
+                        style={{ fontSize: 14, color: MUTED }}
+                      >
                         {t.signIn.orContinueWith}
                       </Text>
                       <View style={{ flex: 1, height: 1, backgroundColor: LINE }} />
@@ -772,7 +778,7 @@ function PrimaryPill({
   const face = (
     <>
       <Text
-        maxFontSizeMultiplier={1}
+        maxFontSizeMultiplier={COMPACT_TYPE_CAP}
         style={{
           fontSize: 15,
           fontWeight: '700',
@@ -888,7 +894,10 @@ function TextLink({
       hitSlop={8}
       style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
     >
-      <Text maxFontSizeMultiplier={1} style={{ fontSize: 14, fontWeight: '600', color }}>
+      <Text
+        maxFontSizeMultiplier={COMPACT_TYPE_CAP}
+        style={{ fontSize: 14, fontWeight: '600', color }}
+      >
         {children}
       </Text>
     </Pressable>
@@ -1014,7 +1023,7 @@ function RoundWay({
       >
         {children}
       </View>
-      <Text maxFontSizeMultiplier={1} style={{ fontSize: 13, color: MUTED }}>
+      <Text maxFontSizeMultiplier={COMPACT_TYPE_CAP} style={{ fontSize: 13, color: MUTED }}>
         {caption}
       </Text>
     </Pressable>
