@@ -26,7 +26,7 @@ import { directionalIcon, iconSize, isRtlLayout, Text, useTheme } from '@waves/u
 import { TourPager, type TourPagerHandle } from '@/components/TourPager';
 import { useStrings } from '@/i18n';
 
-interface Slide {
+export interface IntroSlide {
   readonly key: string;
   /** The card's field, top to bottom. */
   readonly bg: readonly [string, string];
@@ -43,7 +43,7 @@ interface Slide {
  * seen before anything else, and it reads as one piece with the art. Each
  * picture is a transparent still, a few kilobytes, drawn for its card.
  */
-const SLIDES: readonly Slide[] = [
+const SLIDES: readonly IntroSlide[] = [
   {
     key: 'split',
     bg: ['#FFF5E8', '#FCEBD6'],
@@ -71,6 +71,26 @@ const SLIDES: readonly Slide[] = [
 ];
 
 export function Onboarding({ onDone }: { onDone: () => void }) {
+  const { t } = useStrings();
+  return <IntroCards slides={SLIDES} copy={t.onboarding} skipLabel={t.skip} onDone={onDone} />;
+}
+
+/**
+ * A run of full-bleed cards with dots and a Next button — the first-run intro,
+ * and the Personal tab's. The words come in with the cards; this only knows the
+ * look.
+ */
+export function IntroCards({
+  slides: SLIDES,
+  copy: COPY,
+  skipLabel,
+  onDone,
+}: {
+  slides: readonly IntroSlide[];
+  copy: readonly { title: string; body: string }[];
+  skipLabel: string;
+  onDone: () => void;
+}) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { t } = useStrings();
@@ -115,7 +135,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
     () =>
       SLIDES.map((slide, slideIndex) => {
         // The words live in the string table; this file only knows the look.
-        const copy = t.onboarding[slideIndex] ?? t.onboarding[0]!;
+        const copy = COPY[slideIndex] ?? COPY[0]!;
         return (
           <SlideCard
             key={slide.key}
@@ -123,7 +143,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
             title={copy.title}
             body={copy.body}
             appName={t.common.appName}
-            skipLabel={t.skip}
+            skipLabel={skipLabel}
             width={width}
             height={height}
             rtl={rtl}
@@ -133,7 +153,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
           />
         );
       }),
-    [rtl, t, width, height, insets.top, insets.bottom, onDone],
+    [SLIDES, COPY, skipLabel, rtl, t, width, height, insets.top, insets.bottom, onDone],
   );
 
   return (
@@ -245,7 +265,7 @@ const SlideCard = memo(function SlideCard({
   bottomInset,
   onSkip,
 }: {
-  slide: Slide;
+  slide: IntroSlide;
   title: string;
   body: string;
   appName: string;

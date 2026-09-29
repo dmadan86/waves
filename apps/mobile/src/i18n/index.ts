@@ -3698,6 +3698,9 @@ export interface UiStrings {
   /** The private personal-finance ledger (A48): the "Me" tab and its screens —
    *  solo expenses/income, recurring rules, loans and monthly budgets. */
   personal: {
+    /** The Personal tab's first-visit intro cards, and their skip. */
+    introCards: readonly { title: string; body: string }[];
+    introSkip: string;
     addLoanSub: string;
     noLoansBody: string;
     loanAmount: string;
@@ -6907,6 +6910,29 @@ const en: UiStrings = {
   },
 
   personal: {
+    introCards: [
+      {
+        title: 'Your money, all in one place',
+        body: 'Track personal expenses, loans, recurring bills and more — easily with Waves.',
+      },
+      {
+        title: 'Track personal expenses',
+        body: 'Add your daily expenses and they are sorted into categories as you go.',
+      },
+      {
+        title: 'Manage your loans',
+        body: 'Keep track of EMIs, outstanding amounts and due dates in one place.',
+      },
+      {
+        title: 'Never miss a bill',
+        body: 'Add recurring payments like subscriptions, utilities and rent, and get a reminder before each one.',
+      },
+      {
+        title: 'See insights at a glance',
+        body: 'See your spending, upcoming bills and savings, and make smarter money decisions.',
+      },
+    ],
+    introSkip: 'Skip',
     addLoanSub: 'Track money you owe or money you lent.',
     noLoansBody: 'Add a loan to keep track of money you owe or are owed.',
     loanAmount: 'Amount',
@@ -10236,6 +10262,29 @@ const ta: UiStrings = {
   },
 
   personal: {
+    introCards: [
+      {
+        title: 'உங்கள் பணம், ஒரே இடத்தில்',
+        body: 'தனிப்பட்ட செலவுகள், கடன்கள், தொடர் கட்டணங்கள் — எல்லாவற்றையும் Waves-இல் எளிதாகக் கண்காணியுங்கள்.',
+      },
+      {
+        title: 'தனிப்பட்ட செலவுகளைக் கண்காணியுங்கள்',
+        body: 'தினசரி செலவுகளைச் சேர்த்தால், அவை வகைகளாகப் பிரிக்கப்படும்.',
+      },
+      {
+        title: 'உங்கள் கடன்களை நிர்வகியுங்கள்',
+        body: 'EMI-கள், நிலுவைத் தொகைகள், கெடு தேதிகள் — ஒரே இடத்தில்.',
+      },
+      {
+        title: 'எந்தக் கட்டணத்தையும் தவறவிடாதீர்கள்',
+        body: 'சந்தாக்கள், பயன்பாட்டுக் கட்டணங்கள், வாடகை போன்ற தொடர் கட்டணங்களைச் சேர்த்து, ஒவ்வொன்றுக்கும் முன் நினைவூட்டல் பெறுங்கள்.',
+      },
+      {
+        title: 'ஒரே பார்வையில் நுண்ணறிவு',
+        body: 'உங்கள் செலவு, வரவிருக்கும் கட்டணங்கள், சேமிப்பைப் பார்த்து சிறந்த முடிவுகள் எடுங்கள்.',
+      },
+    ],
+    introSkip: 'தவிர்',
     addLoanSub: 'நீங்கள் கடன் வாங்கியதையும் கொடுத்ததையும் கண்காணியுங்கள்.',
     noLoansBody:
       'நீங்கள் தர வேண்டிய அல்லது பெற வேண்டிய பணத்தைக் கண்காணிக்க ஒரு கடனைச் சேர்க்கவும்.',
@@ -13438,6 +13487,26 @@ const hi: UiStrings = {
   },
 
   personal: {
+    introCards: [
+      {
+        title: 'आपका पैसा, एक ही जगह',
+        body: 'निजी खर्च, लोन, बार-बार के बिल और भी बहुत कुछ — Waves के साथ आसानी से ट्रैक करें।',
+      },
+      {
+        title: 'निजी खर्च ट्रैक करें',
+        body: 'रोज़ के खर्च जोड़ें, वे अपने-आप श्रेणियों में बँट जाते हैं।',
+      },
+      { title: 'अपने लोन संभालें', body: 'EMI, बकाया रकम और देय तारीखें एक ही जगह रखें।' },
+      {
+        title: 'कोई बिल न छूटे',
+        body: 'सब्सक्रिप्शन, बिजली-पानी और किराए जैसे नियमित भुगतान जोड़ें और हर एक से पहले याद दिलाया जाए।',
+      },
+      {
+        title: 'एक नज़र में जानकारी',
+        body: 'अपना खर्च, आने वाले बिल और बचत देखें, और पैसे के बेहतर फ़ैसले लें।',
+      },
+    ],
+    introSkip: 'छोड़ें',
     addLoanSub: 'जो पैसा आपने उधार लिया या दिया, उसका हिसाब रखें।',
     noLoansBody: 'जो पैसा आपको देना है या मिलना है, उसका हिसाब रखने के लिए लोन जोड़ें।',
     loanAmount: 'रकम',
@@ -17102,6 +17171,26 @@ const ar: UiStrings = {
   },
 
   personal: {
+    introCards: [
+      {
+        title: 'أموالك في مكان واحد',
+        body: 'تتبّع مصاريفك الشخصية وقروضك وفواتيرك المتكررة وغير ذلك — بسهولة مع Waves.',
+      },
+      { title: 'تتبّع مصاريفك الشخصية', body: 'أضف مصاريفك اليومية فتُصنَّف في فئات أولًا بأول.' },
+      {
+        title: 'أدِر قروضك',
+        body: 'تابع الأقساط والمبالغ المتبقية ومواعيد الاستحقاق في مكان واحد.',
+      },
+      {
+        title: 'لا تفوّتك فاتورة',
+        body: 'أضف المدفوعات المتكررة كالاشتراكات والخدمات والإيجار، وتلقَّ تذكيرًا قبل كل منها.',
+      },
+      {
+        title: 'نظرة سريعة على أموالك',
+        body: 'اطّلع على إنفاقك وفواتيرك القادمة ومدخراتك، واتخذ قرارات مالية أذكى.',
+      },
+    ],
+    introSkip: 'تخطٍّ',
     addLoanSub: 'تتبّع المال الذي اقترضته أو أقرضته.',
     noLoansBody: 'أضِف قرضًا لتتبّع المال الذي عليك أو لك.',
     loanAmount: 'المبلغ',

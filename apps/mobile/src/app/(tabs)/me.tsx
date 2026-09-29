@@ -20,7 +20,7 @@
  * it was last open (idempotent — see `postDueRecurring`).
  */
 
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { BlurTargetView } from 'expo-blur';
 import { Animated, Pressable, ScrollView, StyleSheet, View } from 'react-native';
@@ -61,6 +61,8 @@ import { HeroAvatar, HeroIconButton } from '@/components/home/HeroControls';
 import { PersonalHeroBackground } from '@/components/home/PersonalHeroBackground';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { PersonalLocked } from '@/components/PersonalGuard';
+import { PersonalIntro } from '@/components/PersonalIntro';
+import { personalIntroSeen, rememberPersonalIntroSeen } from '@/lib/onboardingSeen';
 import { useAvatarUrl } from '@/components/ProfileAvatar';
 import { useSourceLabel } from '@/components/IncomeSource';
 import { useHeroStatusBar } from '@/components/ScreenHero';
@@ -253,6 +255,24 @@ function MeLedger() {
   // shield — no hero, no figures — so nothing is on show behind the OS prompt.
   // A refused check stays here with a way to try again, rather than sending the
   // user backwards without a word.
+  // The tab's own intro, once per account, after the lock has let them in.
+  const [introOpen, setIntroOpen] = useState(false);
+  const ownerId = profile?.id ?? null;
+  useEffect(() => {
+    if (!gate.unlocked || !ownerId) return;
+    let live = true;
+    void personalIntroSeen(ownerId).then((seen) => {
+      if (live && !seen) setIntroOpen(true);
+    });
+    return () => {
+      live = false;
+    };
+  }, [gate.unlocked, ownerId]);
+  const closeIntro = useCallback(() => {
+    setIntroOpen(false);
+    if (ownerId) void rememberPersonalIntroSeen(ownerId);
+  }, [ownerId]);
+
   if (!gate.unlocked) return <PersonalLocked gate={gate} />;
 
   // Nothing in the section at all — no entry, no recurring rule, no loan, no
@@ -266,7 +286,14 @@ function MeLedger() {
     ledger.recurrings.length === 0 &&
     ledger.loans.length === 0 &&
     ledger.budgets.length === 0;
-  if (blank) return <PersonalFirstRun t={t} />;
+  if (blank) {
+    return (
+      <>
+        <PersonalFirstRun t={t} />
+        <PersonalIntro visible={introOpen} onDone={closeIntro} />
+      </>
+    );
+  }
 
   const canBrowse = maxBack > 0;
   const monthItems: OverflowMenuItem[] = Array.from(
@@ -638,6 +665,7 @@ function MeLedger() {
           { icon: 'lock-closed-outline', label: t.personal.dash.settings, route: '/settings/lock' },
         ]}
       />
+      <PersonalIntro visible={introOpen} onDone={closeIntro} />
     </Screen>
   );
 }
