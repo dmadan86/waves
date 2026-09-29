@@ -19,8 +19,20 @@ export function isLargeScreen(): boolean {
   return Math.min(width, height) >= LARGE_SCREEN_DP;
 }
 
-/** Lock a phone to portrait. A no-op on web and on large screens. */
+function apply(): void {
+  const lock = isLargeScreen()
+    ? ScreenOrientation.unlockAsync()
+    : ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+  void lock.catch(() => {});
+}
+
+/**
+ * Lock a phone to portrait, and keep deciding as the screen changes: a foldable
+ * opened after launch becomes a large screen and is let go, and folded again it
+ * is held upright. A no-op on web.
+ */
 export function holdPhonesUpright(): void {
-  if (Platform.OS === 'web' || isLargeScreen()) return;
-  void ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
+  if (Platform.OS === 'web') return;
+  apply();
+  Dimensions.addEventListener('change', apply);
 }
