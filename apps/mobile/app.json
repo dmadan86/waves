@@ -3,7 +3,7 @@
     "name": "Waves",
     "slug": "waves",
     "version": "1.1.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "waves",
     "userInterfaceStyle": "automatic",
@@ -81,6 +81,7 @@
     },
     "plugins": [
       "./plugins/withSceneLifecycle",
+      "./plugins/withLargeScreenOrientation",
       "./plugins/withForegroundOnlyLocation",
       [
         "expo-build-properties",
