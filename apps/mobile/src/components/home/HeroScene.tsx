@@ -60,6 +60,11 @@ export function HeroScene({
   // top edge is what they disappear under, and rise about half the open sky.
   const rangeHeight = Math.max(90, horizon * 0.55);
   const rangeBottom = horizon + 28;
+  // The frame the ranges are drawn in is never shorter than the drawing at the
+  // screen's width. Shorter, the `slice` fit cut the peaks off in a straight
+  // line across the sky — hidden under the old dark shade, plain under the
+  // light one pale skies now wear.
+  const rangeFrame = Math.max(rangeHeight, width * (RANGE_VIEW.h / RANGE_VIEW.w));
   const sun = { x: width * 0.72, y: rangeBottom - rangeHeight * 0.62 };
 
   // The branch: at most 30% of the width, at its own shape.
@@ -121,10 +126,10 @@ export function HeroScene({
           screen crops its sides rather than squeezing the peaks. */}
       <Svg
         width={width}
-        height={rangeHeight}
+        height={rangeFrame}
         viewBox={`0 0 ${RANGE_VIEW.w} ${RANGE_VIEW.h}`}
         preserveAspectRatio="xMidYMax slice"
-        style={{ position: 'absolute', left: 0, top: rangeBottom - rangeHeight }}
+        style={{ position: 'absolute', left: 0, top: rangeBottom - rangeFrame }}
       >
         <Path d={FAR_RANGE} fill={theme.mountains[0]} />
         <Rect x={0} y={80} width={RANGE_VIEW.w} height={80} fill={theme.haze} />
