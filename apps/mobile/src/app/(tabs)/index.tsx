@@ -44,6 +44,7 @@ import { plural, useStrings, type UiStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { useGuestGuard } from '@/lib/guestGuard';
 import { SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
+import { HERO_THEMES } from '@/lib/scene';
 import { router } from '@/lib/navigation';
 import { usePromptSlot } from '@/lib/promptQueue';
 import { useDashboardTips } from '@/lib/tips';
@@ -360,7 +361,11 @@ export default function HomeScreen() {
   const sceneHeight = cardTop + cardHeight * SCENE_INTO_CARD;
   // The scene runs up under the status bar, so the clock and battery go white
   // while Home is the screen in front (and back to the theme's when it is not).
-  useHeroStatusBar();
+  // The greeting's ink follows the sky: dark on a pale scene, white on a deep
+  // one — and the status bar's clock and icons with it.
+  const darkInk = HERO_THEMES[scene].ink === 'dark';
+  const heroInk = darkInk ? SPEC_INK : '#FFFFFF';
+  useHeroStatusBar(darkInk ? 'dark' : 'light');
 
   // The bell's red dot: somebody else has done something since Activity was
   // last opened. Your own expenses are not news.
@@ -446,6 +451,7 @@ export default function HomeScreen() {
               photoUrl={avatarUrl}
               onPress={() => router.navigate('/profile')}
               label={t.profile}
+              ink={darkInk ? heroInk : undefined}
             />
             {/* The name gives way first: it shrinks to an ellipsis before it
                 ever reaches the icons, and the wave stays whole after it. */}
@@ -463,7 +469,6 @@ export default function HomeScreen() {
             >
               <Row style={{ alignItems: 'center', minWidth: 0 }}>
                 <Text
-                  tone="onBrand"
                   numberOfLines={1}
                   ellipsizeMode="tail"
                   style={{
@@ -472,29 +477,34 @@ export default function HomeScreen() {
                     fontSize: 18,
                     lineHeight: 23,
                     fontWeight: '700',
+                    color: heroInk,
                   }}
                 >
                   {t.dashHero.hi.replace('{name}', displayName)}
                 </Text>
-                <Text tone="onBrand" style={{ fontSize: 18, lineHeight: 23 }}>
-                  {' 👋'}
-                </Text>
+                <Text style={{ fontSize: 18, lineHeight: 23, color: heroInk }}>{' 👋'}</Text>
               </Row>
-              <Text variant="body" tone="onBrand" numberOfLines={1} style={{ opacity: 0.9 }}>
+              <Text
+                variant="body"
+                numberOfLines={1}
+                style={{ color: heroInk, opacity: darkInk ? 0.75 : 0.9 }}
+              >
                 {`${t.dashHero[greetKey]}!`}
               </Text>
             </Pressable>
-            <SyncStatusIcon onBrand />
+            <SyncStatusIcon onBrand ink={heroInk} />
             <HeroIconButton
               icon="notifications-outline"
               label={unseenActivity ? `${t.activity}, ${t.tagNew}` : t.activity}
               onPress={() => router.navigate('/activity')}
               dot={unseenActivity}
+              ink={heroInk}
             />
             <HeroIconButton
               icon="ellipsis-vertical"
               label={t.account.faceSettings}
               onPress={() => setMenuOpen(true)}
+              ink={heroInk}
             />
           </Row>
         </View>

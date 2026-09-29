@@ -22,11 +22,14 @@ export function HeroAvatar({
   photoUrl,
   onPress,
   label,
+  ink,
 }: {
   name: string;
   photoUrl?: string | null;
   onPress: () => void;
   label: string;
+  /** The glyph and ring colour; white by default. */
+  ink?: string;
 }) {
   const theme = useTheme();
   if (photoUrl) {
@@ -54,11 +57,11 @@ export function HeroAvatar({
         justifyContent: 'center',
         backgroundColor: 'transparent',
         borderWidth: 2,
-        borderColor: 'rgba(255, 255, 255, 0.55)',
-        opacity: pressed ? 0.6 : 1,
+        borderColor: ink ?? 'rgba(255, 255, 255, 0.55)',
+        opacity: pressed ? (ink ? 0.5 : 0.6) : ink ? 0.7 : 1,
       })}
     >
-      <Ionicons name="person-outline" size={iconSize.lg} color={theme.color.onBrand} />
+      <Ionicons name="person-outline" size={iconSize.lg} color={ink ?? theme.color.onBrand} />
     </Pressable>
   );
 }
@@ -72,7 +75,10 @@ export function HeroIconButton({
   onPress,
   family = 'ionicons',
   dot = false,
+  ink,
 }: {
+  /** The glyph colour; white by default. */
+  ink?: string;
   icon: string;
   label: string;
   onPress: () => void;
@@ -92,7 +98,7 @@ export function HeroIconButton({
       hitSlop={10}
       style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1, padding: theme.spacing.xs })}
     >
-      <Glyph name={icon as never} size={iconSize.xxl} color={theme.color.onBrand} />
+      <Glyph name={icon as never} size={iconSize.xxl} color={ink ?? theme.color.onBrand} />
       {dot ? (
         <View
           style={{
