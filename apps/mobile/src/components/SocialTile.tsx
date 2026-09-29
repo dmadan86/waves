@@ -46,7 +46,7 @@ export type SocialField = 'surface' | 'brand';
  * the same reason as Google's mark — a brand glyph that followed the theme is
  * no longer the brand glyph.
  */
-function AppleMark({ size = 20 }: { size?: number }) {
+export function AppleMark({ size = 20 }: { size?: number }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24">
       <Path
@@ -62,7 +62,7 @@ function AppleMark({ size = 20 }: { size?: number }) {
  * Left as fixed hex rather than theme colours on purpose: a brand mark that
  * changed with the app's palette would no longer be the brand mark.
  */
-function GoogleMark({ size = 20 }: { size?: number }) {
+export function GoogleMark({ size = 20 }: { size?: number }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 48 48">
       <Path

@@ -1371,6 +1371,9 @@ export interface UiStrings {
   };
   /** The welcome and the ways in (ADR-006: nobody registers to split a bill). */
   signIn: {
+    /** The door's line under the headline, and its divider's capitalised form. */
+    heroTagline: string;
+    orContinueWithCap: string;
     tagline: string;
     splitAnything: string;
     welcomeBody: string;
@@ -4937,6 +4940,8 @@ const en: UiStrings = {
     doneBody: 'That is the tour. You can replay it any time from the menu.',
   },
   signIn: {
+    heroTagline: 'Trips, dinners, household bills and more — together, made simple.',
+    orContinueWithCap: 'Or continue with',
     tagline: 'Waves · what is left over',
     splitAnything: 'Split anything\nwith anyone',
     welcomeBody:
@@ -8175,6 +8180,8 @@ const ta: UiStrings = {
     doneBody: 'அதுதான் சுற்றுப்பயணம். மெனுவிலிருந்து எப்போது வேண்டுமானாலும் மீண்டும் காணலாம்.',
   },
   signIn: {
+    heroTagline: 'பயணங்கள், விருந்துகள், வீட்டுக் கட்டணங்கள் — ஒன்றாக, எளிதாக.',
+    orContinueWithCap: 'அல்லது இதனுடன் தொடரவும்',
     tagline: 'Waves · மீதம் இருப்பது',
     splitAnything: 'எதையும் பிரி\nயாருடனும்',
     welcomeBody:
@@ -11496,6 +11503,8 @@ const hi: UiStrings = {
     doneBody: 'यही टूर था। आप इसे मेन्यू से कभी भी फिर से देख सकते हैं।',
   },
   signIn: {
+    heroTagline: 'यात्राएँ, डिनर, घर के बिल और बहुत कुछ — साथ मिलकर, आसानी से।',
+    orContinueWithCap: 'या इससे जारी रखें',
     tagline: 'Waves · जो बच रहता है',
     splitAnything: 'कुछ भी बाँटें\nकिसी के साथ भी',
     welcomeBody:
@@ -14779,6 +14788,8 @@ const ar: UiStrings = {
     doneBody: 'تلك هي الجولة. يمكنك إعادتها في أي وقت من القائمة.',
   },
   signIn: {
+    heroTagline: 'رحلات وعشاء وفواتير منزلية وغيرها — معًا، وببساطة.',
+    orContinueWithCap: 'أو تابع باستخدام',
     tagline: 'Waves · ما يتبقّى',
     splitAnything: 'قسّم أي شيء\nمع أي أحد',
     welcomeBody: 'لا حاجة لحساب للبدء — أضف واحدًا لاحقًا وسيأتي معك كل ما أدخلته.',
