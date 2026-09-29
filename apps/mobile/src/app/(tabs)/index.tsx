@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurTargetView } from 'expo-blur';
 import {
   Animated,
+  Image,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -16,7 +17,6 @@ import { dayNumber, type GuestGate } from '@waves/core';
 import {
   Button,
   directionalIcon,
-  EmptyState,
   iconSize,
   MoneyText,
   Popup,
@@ -42,6 +42,7 @@ import { orderByPin } from '@/lib/groupPinOrder';
 import { plural, useStrings, type UiStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { useGuestGuard } from '@/lib/guestGuard';
+import { SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
 import { router } from '@/lib/navigation';
 import { usePromptSlot } from '@/lib/promptQueue';
 import { useDashboardTips } from '@/lib/tips';
@@ -72,6 +73,8 @@ import { usePullRefresh } from '@/lib/pullRefresh';
 /** Dashboard route with duplicate-safe jumps to stable primary destinations. */
 export default function HomeScreen() {
   const theme = useTheme();
+  const emptyInk = theme.scheme === 'dark' ? theme.color.text : SPEC_INK;
+  const emptyMuted = theme.scheme === 'dark' ? theme.color.textMuted : SPEC_MUTED;
   const pull = usePullRefresh();
   const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
@@ -551,14 +554,41 @@ export default function HomeScreen() {
             <View style={{ flex: 1, justifyContent: 'center' }}>
               {/* The one screen where somebody has nothing to act on yet gets
                   the action spelled out. */}
-              <EmptyState
-                title={t.tabs.noGroups}
-                body={t.tabs.noGroupsBody}
-                action={<Button label={t.newGroup} onPress={openNewGroup} />}
-                icon={
-                  <Ionicons name="people-outline" size={iconSize.xxl} color={theme.color.brand} />
-                }
-              />
+              <View style={{ alignItems: 'center', gap: 10, paddingHorizontal: theme.spacing.md }}>
+                <NoGroupsArt />
+                <Text
+                  accessibilityRole="header"
+                  style={{ fontSize: 22, fontWeight: '800', color: emptyInk, textAlign: 'center' }}
+                >
+                  {t.tabs.noGroups}
+                </Text>
+                <Text
+                  style={{ fontSize: 14, lineHeight: 20, color: emptyMuted, textAlign: 'center' }}
+                >
+                  {t.tabs.noGroupsBody}
+                </Text>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t.newGroup}
+                  onPress={openNewGroup}
+                  style={({ pressed }) => ({
+                    marginTop: 8,
+                    height: 50,
+                    paddingHorizontal: 32,
+                    borderRadius: 25,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 10,
+                    backgroundColor: theme.scheme === 'dark' ? theme.color.brand : '#3E2A9E',
+                    opacity: pressed ? 0.88 : 1,
+                  })}
+                >
+                  <Ionicons name="people-outline" size={22} color="#FFFFFF" />
+                  <Text style={{ fontSize: 17, fontWeight: '700', color: '#FFFFFF' }}>
+                    {t.newGroup}
+                  </Text>
+                </Pressable>
+              </View>
             </View>
           ) : (
             <View style={{ gap: theme.spacing.sm, flex: 1 }}>
@@ -1267,5 +1297,22 @@ function GroupRow({
         )}
       </Pressable>
     </Animated.View>
+  );
+}
+
+/** The empty Home's picture: two people unpacking a box with the group sign in
+ *  it. A still image on a transparent ground, so it sits on either theme. */
+const NO_GROUPS_ART = require('../../../assets/images/home-no-groups.webp') as number;
+
+function NoGroupsArt() {
+  return (
+    <Image
+      source={NO_GROUPS_ART}
+      accessibilityIgnoresInvertColors
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      resizeMode="contain"
+      style={{ width: '100%', maxWidth: 330, aspectRatio: 720 / 475 }}
+    />
   );
 }
