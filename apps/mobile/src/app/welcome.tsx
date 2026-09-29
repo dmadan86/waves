@@ -62,6 +62,11 @@ const ACCENT = '#6A45E8';
 const LINE = '#E6E4F0';
 const SHEET = '#F8F7FC';
 
+/** The door's typeface, embedded (assets/fonts, OFL): the headline in its
+    ExtraBold, the lines under it in Medium. */
+const DISPLAY = 'PlusJakartaSans-ExtraBold';
+const BODY = 'PlusJakartaSans-Medium';
+
 const SCENE = require('../../assets/images/welcome-scene.webp') as number;
 const FRIENDS = require('../../assets/images/welcome-friends.webp') as number;
 const WORDMARK = require('../../assets/images/wordmark-script.webp') as number;
@@ -162,24 +167,39 @@ export default function WelcomeScreen() {
       {/* The picture: a terrace at sunset across the top of the screen, down
           past where the sheet begins so its rounded corners sit on it. */}
       <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: screenHeight }}>
-        {/* Lifted a little, so the hills and the bay sit behind the friends
-            rather than behind the sheet. */}
+        {/* Held to its right edge, where the vines, the lamp and the pergola
+            are, and lifted a little so the hills and the bay sit behind the
+            friends — the frame the mockup shows. */}
         <Image
           source={SCENE}
           resizeMode="cover"
           style={{
             position: 'absolute',
-            top: -screenHeight * 0.1,
-            left: 0,
+            top: -screenHeight * 0.08,
             right: 0,
-            height: screenHeight * 1.1,
+            height: screenHeight * 1.08,
+            width: Math.max(windowWidth, screenHeight * 1.08 * (849 / 1852)),
           }}
         />
-        {/* A light veil over the top of the sky only, where the words are; the
-            sunset, the hills and the sea below it show as they are. */}
+        {/* The whole scene a shade paler, the evening light rather than its
+            glare, as the mockup has it. */}
+        <View
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(255,244,236,0.18)',
+          }}
+        />
+        {/* A soft haze from the top-left only, where the words are; the vines,
+            the lamp and the sunset stay as they are. */}
         <LinearGradient
-          colors={['rgba(255,255,255,0.75)', 'rgba(255,255,255,0.35)', 'rgba(255,255,255,0)']}
-          locations={[0, 0.18, 0.32]}
+          colors={['rgba(255,255,255,0.8)', 'rgba(255,255,255,0.35)', 'rgba(255,255,255,0)']}
+          locations={[0, 0.35, 0.7]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0.85, y: 0.42 }}
           style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
         />
       </View>
@@ -268,18 +288,25 @@ export default function WelcomeScreen() {
           <Text
             maxFontSizeMultiplier={1.15}
             style={{
-              fontSize: 32,
-              lineHeight: 40,
-              fontWeight: '800',
+              fontFamily: DISPLAY,
+              fontSize: 38,
+              lineHeight: 44,
               color: INK,
-              letterSpacing: -0.8,
+              letterSpacing: -1,
             }}
           >
             {t.signIn.splitAnything}
           </Text>
           <Text
             maxFontSizeMultiplier={1.15}
-            style={{ fontSize: 16, lineHeight: 23, color: MUTED, maxWidth: 320 }}
+            // Narrow enough to break after "bills", where the mockup breaks it.
+            style={{
+              fontFamily: BODY,
+              fontSize: 16,
+              lineHeight: 23,
+              color: '#4A4E68',
+              maxWidth: 226,
+            }}
           >
             {t.signIn.heroTagline}
           </Text>
