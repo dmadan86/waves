@@ -286,6 +286,11 @@ const SlideCard = memo(function SlideCard({
 
   return (
     <View
+      // A card is a still painting the pager slides: drawn once into a
+      // texture and moved as a bitmap, rather than re-rasterising its gradient
+      // and translucent art on every frame of a swipe.
+      renderToHardwareTextureAndroid
+      shouldRasterizeIOS
       style={{
         width,
         // Stated rather than stretched: a horizontal ScrollView sizes itself to
@@ -349,6 +354,9 @@ const SlideCard = memo(function SlideCard({
           />
           <Image
             source={slide.art}
+            // No fade-in: Android fades a picture over 300ms by default, which
+            // reads as the art arriving late behind every swipe.
+            fadeDuration={0}
             resizeMode="contain"
             style={{ width: artSize, height: artSize * 0.86 }}
           />

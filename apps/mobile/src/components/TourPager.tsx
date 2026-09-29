@@ -50,6 +50,9 @@ export const TourPager = forwardRef<TourPagerHandle, TourPagerProps>(function To
       layoutDirection={rtl ? 'rtl' : 'ltr'}
       // No glow or stretch past the first or last card; there is nothing there.
       overScrollMode="never"
+      // Every card built up front (there are at most five), so a swipe never
+      // waits on the next one being laid out and its picture decoded mid-drag.
+      offscreenPageLimit={4}
       onPageScroll={(event) => onProgress(event.nativeEvent.position + event.nativeEvent.offset)}
       onPageSelected={(event) => onSlideChange(event.nativeEvent.position)}
     >
