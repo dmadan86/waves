@@ -20,17 +20,10 @@
 
 import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { ActivityIndicator, Pressable, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import Svg, {
-  Circle,
-  Defs,
-  LinearGradient as SvgGradient,
-  Path,
-  RadialGradient,
-  Stop,
-} from 'react-native-svg';
+import Svg, { Defs, Path, RadialGradient, Stop } from 'react-native-svg';
 
 import { Callout, directionalIcon, iconSize, Text, useTheme } from '@waves/ui';
 
@@ -42,14 +35,10 @@ import { useGoBack } from '@/lib/navigation';
 
 /** The screen's own dark-green field and the light on it — a front-of-house
     palette, held apart from the app theme on purpose. */
-const FIELD = '#10200C';
-const FIELD_TOP = '#1C3417';
+/** The art's own edges are all but black; the field meets them there. */
+const FIELD = '#050F07';
+const FIELD_TOP = '#0B2010';
 const GLOW = '#3E6B2E';
-const SUN_CORE = '#FFFBE8';
-const SUN_EDGE = '#F1F3C8';
-const HILL_LIGHT = '#6E9A4E';
-const HILL_MID = '#3F6A2C';
-const HILL_DARK = '#1E3A16';
 const EDGE = '#C9E3A0';
 /** The name in the title, and the button: the brand's violet. */
 const VIOLET = '#7B5CF5';
@@ -86,7 +75,7 @@ export default function GuestWelcomeScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: FIELD }}>
       <LinearGradient
-        colors={[FIELD_TOP, FIELD, '#0B1708']}
+        colors={[FIELD_TOP, FIELD, '#030904']}
         locations={[0, 0.55, 1]}
         style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
       />
@@ -123,11 +112,14 @@ export default function GuestWelcomeScreen() {
               flex: 1,
               justifyContent: 'center',
               alignItems: 'center',
-              gap: 28,
+              gap: 20,
               paddingHorizontal: theme.spacing.md,
             }}
           >
-            <SunriseArt />
+            {/* Full bleed: out through the column's padding to both edges. */}
+            <View style={{ marginHorizontal: -(theme.spacing.xl + theme.spacing.md) }}>
+              <SunriseArt />
+            </View>
             <View style={{ gap: theme.spacing.md }}>
               {/* The app name is highlighted in brand wherever it falls in the
                   translated title — split on the {app} placeholder so the accent
@@ -234,79 +226,59 @@ function FieldGlows() {
   );
 }
 
-/** A sun rising over layered hills, in rings of its own light — the screen's
-    one picture. Static: it is a picture, not a thing to watch. */
+/** The sunrise over rolling hills, in rings of its own light — the screen's one
+    picture, full width, its edges feathered into the field so it has no frame.
+    Static: it is a picture, not a thing to watch. */
+const SUNRISE = require('../../assets/images/guest-sunrise.webp') as number;
+
 function SunriseArt() {
-  const w = 340;
-  const h = 230;
-  const cx = w / 2;
-  const horizon = 150;
-
+  const { width } = useWindowDimensions();
+  const height = width / 1.5;
+  const fade = (
+    colors: [string, string],
+    start: { x: number; y: number },
+    end: { x: number; y: number },
+    style: object,
+  ) => (
+    <LinearGradient
+      colors={colors}
+      start={start}
+      end={end}
+      style={[{ position: 'absolute' }, style]}
+    />
+  );
   return (
-    <Svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
-      <Defs>
-        <RadialGradient id="halo" cx="50%" cy="50%" r="50%">
-          <Stop offset="0" stopColor="#E9F5B8" stopOpacity="0.55" />
-          <Stop offset="0.45" stopColor="#8DB860" stopOpacity="0.28" />
-          <Stop offset="1" stopColor="#3E6B2E" stopOpacity="0" />
-        </RadialGradient>
-        <SvgGradient id="sun" x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor={SUN_CORE} />
-          <Stop offset="1" stopColor={SUN_EDGE} />
-        </SvgGradient>
-        <SvgGradient id="hillBack" x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor={HILL_LIGHT} />
-          <Stop offset="1" stopColor={HILL_DARK} />
-        </SvgGradient>
-        <SvgGradient id="hillFront" x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor={HILL_MID} />
-          <Stop offset="1" stopColor={FIELD} />
-        </SvgGradient>
-      </Defs>
-
-      {/* The glow, then the rings of light around the sun. */}
-      <Circle cx={cx} cy={horizon - 10} r={130} fill="url(#halo)" />
-      <Circle cx={cx} cy={horizon - 10} r={112} stroke={EDGE} strokeOpacity={0.14} fill="none" />
-      <Circle cx={cx} cy={horizon - 10} r={86} stroke={EDGE} strokeOpacity={0.18} fill="none" />
-      <Circle cx={cx} cy={horizon - 10} r={64} stroke={EDGE} strokeOpacity={0.22} fill="none" />
-      <Circle cx={cx} cy={horizon - 6} r={44} fill="url(#sun)" />
-
-      {/* The far hills, lit along their crests, then the near ones over the
-          sun's foot. */}
-      <Path
-        d={`M4 ${horizon + 34} C 60 ${horizon - 2}, 110 ${horizon - 6}, 160 ${horizon + 14}
-            S 250 ${horizon + 18}, 300 ${horizon + 2} S 336 ${horizon + 12}, 340 ${horizon + 16}
-            L340 ${h} L4 ${h} Z`}
-        fill="url(#hillBack)"
-      />
-      <Path
-        d={`M4 ${horizon + 34} C 60 ${horizon - 2}, 110 ${horizon - 6}, 160 ${horizon + 14}
-            S 250 ${horizon + 18}, 300 ${horizon + 2} S 336 ${horizon + 12}, 340 ${horizon + 16}`}
-        stroke={EDGE}
-        strokeOpacity={0.55}
-        strokeWidth={1.4}
-        fill="none"
-      />
-      <Path
-        d={`M0 ${horizon + 50} C 70 ${horizon + 22}, 150 ${horizon + 30}, 200 ${horizon + 46}
-            S 300 ${horizon + 30}, 340 ${horizon + 40} L340 ${h} L0 ${h} Z`}
-        fill="url(#hillFront)"
-      />
-      <Path
-        d={`M0 ${horizon + 50} C 70 ${horizon + 22}, 150 ${horizon + 30}, 200 ${horizon + 46}
-            S 300 ${horizon + 30}, 340 ${horizon + 40}`}
-        stroke={EDGE}
-        strokeOpacity={0.35}
-        strokeWidth={1.2}
-        fill="none"
-      />
-      <Path
-        d={`M20 ${h - 6} C 120 ${horizon + 50}, 220 ${horizon + 60}, 330 ${h - 20}`}
-        stroke={EDGE}
-        strokeOpacity={0.12}
-        strokeWidth={1}
-        fill="none"
-      />
-    </Svg>
+    <View
+      pointerEvents="none"
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={{ width, height }}
+    >
+      <Image source={SUNRISE} style={{ width, height }} resizeMode="cover" />
+      {fade(
+        [`${FIELD}00`, FIELD],
+        { x: 0, y: 0 },
+        { x: 0, y: 1 },
+        { left: 0, right: 0, bottom: 0, height: height * 0.3 },
+      )}
+      {fade(
+        [FIELD, `${FIELD}00`],
+        { x: 0, y: 0 },
+        { x: 0, y: 1 },
+        { left: 0, right: 0, top: 0, height: height * 0.15 },
+      )}
+      {fade(
+        [FIELD, `${FIELD}00`],
+        { x: 0, y: 0 },
+        { x: 1, y: 0 },
+        { left: 0, top: 0, bottom: 0, width: width * 0.12 },
+      )}
+      {fade(
+        [`${FIELD}00`, FIELD],
+        { x: 0, y: 0 },
+        { x: 1, y: 0 },
+        { right: 0, top: 0, bottom: 0, width: width * 0.12 },
+      )}
+    </View>
   );
 }
