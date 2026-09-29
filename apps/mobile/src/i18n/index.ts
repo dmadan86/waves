@@ -1736,6 +1736,7 @@ export interface UiStrings {
    * rather than asking for it twice.
    */
   quickExpense: {
+    notePlaceholder: string;
     title: string;
     /** Above the row of recent destinations. */
     where: string;
@@ -5237,6 +5238,7 @@ const en: UiStrings = {
     paidHint: 'Group photos are a Plus feature. Pick an icon, or upgrade to add a photo.',
   },
   quickExpense: {
+    notePlaceholder: 'Add a note (optional)',
     title: 'Quick expense',
     where: 'Where does it go?',
     otherPlaces: 'Others',
@@ -8491,6 +8493,7 @@ const ta: UiStrings = {
       'குழு புகைப்படங்கள் Plus அம்சம். ஒரு ஐகானைத் தேர்ந்தெடுக்கவும், அல்லது புகைப்படம் சேர்க்க மேம்படுத்தவும்.',
   },
   quickExpense: {
+    notePlaceholder: 'குறிப்பு சேர்க்கவும் (விருப்பம்)',
     title: 'Quick expense',
     where: 'Where does it go?',
     otherPlaces: 'Others',
@@ -11814,6 +11817,7 @@ const hi: UiStrings = {
     paidHint: 'ग्रुप फ़ोटो एक Plus सुविधा है। कोई आइकन चुनें, या फ़ोटो जोड़ने के लिए अपग्रेड करें।',
   },
   quickExpense: {
+    notePlaceholder: 'नोट जोड़ें (वैकल्पिक)',
     title: 'Quick expense',
     where: 'Where does it go?',
     otherPlaces: 'Others',
@@ -15129,6 +15133,7 @@ const ar: UiStrings = {
     paidHint: 'صور المجموعة ميزة Plus. اختر أيقونة، أو قم بالترقية لإضافة صورة.',
   },
   quickExpense: {
+    notePlaceholder: 'أضف ملاحظة (اختياري)',
     title: 'Quick expense',
     where: 'Where does it go?',
     otherPlaces: 'Others',
