@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurTargetView } from 'expo-blur';
+import Svg, { Path } from 'react-native-svg';
 import {
   Animated,
   Image,
@@ -551,10 +552,20 @@ export default function HomeScreen() {
           {showSkeleton ? (
             <SkeletonList rows={3} />
           ) : list.length === 0 ? (
-            <View style={{ flex: 1, justifyContent: 'center' }}>
+            <ScrollView
+              style={{ flex: 1 }}
+              // Scrolls, and clears the tab bar, so the button under the
+              // picture is never hidden behind the bar on a short phone.
+              contentContainerStyle={{
+                flexGrow: 1,
+                justifyContent: 'center',
+                paddingBottom: clearance,
+              }}
+              showsVerticalScrollIndicator={false}
+            >
               {/* The one screen where somebody has nothing to act on yet gets
                   the action spelled out. */}
-              <View style={{ alignItems: 'center', gap: 10, paddingHorizontal: theme.spacing.md }}>
+              <View style={{ alignItems: 'center', gap: 8, paddingHorizontal: theme.spacing.md }}>
                 <NoGroupsArt />
                 <Text
                   accessibilityRole="header"
@@ -589,7 +600,7 @@ export default function HomeScreen() {
                   </Text>
                 </Pressable>
               </View>
-            </View>
+            </ScrollView>
           ) : (
             <View style={{ gap: theme.spacing.sm, flex: 1 }}>
               {/* The heading carries the door to the full list: the card below is
@@ -1305,14 +1316,37 @@ function GroupRow({
 const NO_GROUPS_ART = require('../../../assets/images/home-no-groups.webp') as number;
 
 function NoGroupsArt() {
+  const theme = useTheme();
+  const dark = theme.scheme === 'dark';
   return (
-    <Image
-      source={NO_GROUPS_ART}
-      accessibilityIgnoresInvertColors
+    <View
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
-      resizeMode="contain"
-      style={{ width: '100%', maxWidth: 330, aspectRatio: 720 / 475 }}
-    />
+      style={{ width: 260, aspectRatio: 260 / 190, justifyContent: 'flex-end' }}
+    >
+      {/* The soft lavender wave behind the people, as in the mockup: a cloud
+          of a hill with a small puff of cloud to its left. */}
+      <Svg
+        width="100%"
+        height="100%"
+        viewBox="0 0 260 190"
+        style={{ position: 'absolute', top: 0, left: 0 }}
+      >
+        <Path
+          d="M18 172 C 10 120, 40 92, 80 96 C 92 52, 150 30, 196 58 C 232 70, 256 110, 246 172 Z"
+          fill={dark ? theme.color.surfaceMuted : '#ECE8FB'}
+        />
+        <Path
+          d="M34 70 c 2 -8 14 -10 18 -3 c 6 -6 16 -2 16 6 l -34 0 z"
+          fill={dark ? theme.color.surface : '#E4DEFA'}
+        />
+      </Svg>
+      <Image
+        source={NO_GROUPS_ART}
+        accessibilityIgnoresInvertColors
+        resizeMode="contain"
+        style={{ width: '100%', aspectRatio: 720 / 475 }}
+      />
+    </View>
   );
 }
