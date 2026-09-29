@@ -1324,6 +1324,9 @@ export interface UiStrings {
   /** Entry copy — the signed-out screens (phone, verify-email, guest intro,
       gateway legal) and the push soft-ask. Kept translatable and RTL-safe. */
   entry: {
+    /** The phone step's placeholder and its one line on privacy. */
+    phonePlaceholder: string;
+    phoneNote: string;
     verifyPhoneTitle: string;
     verifyPhoneBody: string;
     resendCode: string;
@@ -4896,6 +4899,8 @@ const en: UiStrings = {
       'Your guest trial has ended, so the app is read-only for now. Add a way to sign in to keep adding — your groups and expenses are all still here.',
   },
   entry: {
+    phonePlaceholder: 'Enter your phone number',
+    phoneNote: 'We’ll only use your number for verification and account security.',
     verifyPhoneTitle: 'Verify your phone',
     verifyPhoneBody:
       'We send a one-time code to this number to sign you in. No password to remember.',
@@ -8134,6 +8139,8 @@ const ta: UiStrings = {
       'உங்கள் விருந்தினர் காலம் முடிந்துவிட்டது, எனவே இப்போது ஆப் படிக்க மட்டுமே. தொடர்ந்து சேர்க்க உள்நுழையும் வழியைச் சேர்க்கவும் — உங்கள் குழுக்களும் செலவுகளும் இங்கேயே உள்ளன.',
   },
   entry: {
+    phonePlaceholder: 'உங்கள் தொலைபேசி எண்ணை உள்ளிடுங்கள்',
+    phoneNote: 'உங்கள் எண்ணை சரிபார்ப்புக்கும் கணக்குப் பாதுகாப்புக்கும் மட்டுமே பயன்படுத்துவோம்.',
     verifyPhoneTitle: 'உங்கள் தொலைபேசியைச் சரிபார்க்கவும்',
     verifyPhoneBody:
       'உங்களை உள்நுழைய இந்த எண்ணுக்கு ஒரு முறை குறியீட்டை அனுப்புகிறோம். கடவுச்சொல் நினைவில் வைக்க வேண்டாம்.',
@@ -11464,6 +11471,8 @@ const hi: UiStrings = {
       'आपकी मेहमान अवधि खत्म हो गई है, इसलिए अभी ऐप सिर्फ़ पढ़ने के लिए है। जोड़ते रहने के लिए साइन इन का कोई तरीका जोड़ें — आपके समूह और खर्च सब यहीं मौजूद हैं।',
   },
   entry: {
+    phonePlaceholder: 'अपना फ़ोन नंबर डालें',
+    phoneNote: 'हम आपका नंबर सिर्फ़ पुष्टि और खाते की सुरक्षा के लिए इस्तेमाल करेंगे।',
     verifyPhoneTitle: 'अपना फ़ोन सत्यापित करें',
     verifyPhoneBody:
       'आपको साइन इन करने के लिए हम इस नंबर पर एक बार का कोड भेजते हैं। कोई पासवर्ड याद रखने की ज़रूरत नहीं।',
@@ -14756,6 +14765,8 @@ const ar: UiStrings = {
       'انتهت فترتك كضيف، لذا التطبيق للقراءة فقط الآن. أضف طريقة لتسجيل الدخول لمواصلة الإضافة — مجموعاتك ومصروفاتك كلها لا تزال هنا.',
   },
   entry: {
+    phonePlaceholder: 'أدخل رقم هاتفك',
+    phoneNote: 'لن نستخدم رقمك إلا للتحقق وأمان الحساب.',
     verifyPhoneTitle: 'تحقق من هاتفك',
     verifyPhoneBody: 'نرسل رمزًا لمرة واحدة إلى هذا الرقم لتسجيل دخولك. لا حاجة لتذكر كلمة مرور.',
     resendCode: 'إعادة إرسال الرمز',
