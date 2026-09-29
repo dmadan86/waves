@@ -84,6 +84,10 @@ export function QuickAmountRow({
   onPickCurrency: () => void;
 }) {
   const theme = useTheme();
+  const dark = theme.scheme === 'dark';
+  const soft = dark ? theme.color.surfaceMuted : '#F1EEFD';
+  const accent = dark ? theme.color.brand : '#6A45E8';
+  const line = dark ? theme.color.border : '#ECE9F5';
   const { t } = useStrings();
 
   // The live amount, for the repeating hold. The interval is started inside a
@@ -143,32 +147,38 @@ export function QuickAmountRow({
       onPressOut={stopRepeating}
       hitSlop={6}
       style={({ pressed }) => ({
-        width: 44,
-        height: 44,
-        borderRadius: 22,
+        width: 42,
+        height: 42,
+        borderRadius: 21,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: theme.color.surfaceMuted,
+        backgroundColor: soft,
         opacity: direction === -1 && value === 0n ? 0.4 : pressed ? 0.6 : 1,
       })}
     >
-      <Ionicons
-        name={direction === 1 ? 'add' : 'remove'}
-        size={iconSize.md}
-        color={theme.color.text}
-      />
+      <Ionicons name={direction === 1 ? 'add' : 'remove'} size={iconSize.md} color={accent} />
     </Pressable>
   );
 
   return (
-    <View style={{ gap: theme.spacing.xs }}>
+    // One outlined card: the figure between its steps, the jumps under it.
+    <View
+      style={{
+        gap: theme.spacing.md,
+        padding: theme.spacing.md,
+        borderRadius: 18,
+        borderWidth: 1,
+        borderColor: line,
+        backgroundColor: theme.color.surface,
+      }}
+    >
       <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
         {stepper(-1)}
 
         {/* The figure and its unit, on one line and centred between the steps. */}
         <View style={{ flex: 1, alignItems: 'center' }}>
           <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-            <AmountField currency={currency} value={value} onChange={onChange} size="hero" />
+            <AmountField currency={currency} value={value} onChange={onChange} size="display" />
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={t.quickExpense.pickCurrency.replace('{currency}', currency)}
@@ -177,18 +187,18 @@ export function QuickAmountRow({
               style={({ pressed }) => ({
                 flexDirection: 'row',
                 alignItems: 'center',
-                gap: 2,
-                minHeight: 32,
-                paddingHorizontal: theme.spacing.sm,
+                gap: 4,
+                minHeight: 34,
+                paddingHorizontal: 12,
                 borderRadius: theme.radius.pill,
-                backgroundColor: theme.color.surfaceMuted,
+                backgroundColor: soft,
                 opacity: pressed ? 0.6 : 1,
               })}
             >
-              <Text variant="caption" tone="muted">
+              <Text style={{ fontSize: 14, fontWeight: '600', color: theme.color.text }}>
                 {currency}
               </Text>
-              <Ionicons name="chevron-down" size={iconSize.sm} color={theme.color.textMuted} />
+              <Ionicons name="chevron-down" size={14} color={theme.color.text} />
             </Pressable>
           </Row>
         </View>
@@ -200,7 +210,7 @@ export function QuickAmountRow({
           on a chai, +₹500 on a flight, recomputed as it grows. Additive rather
           than absolute because an expense is a number you are topping up —
           the tip, the extra round — not one you are replacing. */}
-      <Row style={{ justifyContent: 'center', gap: theme.spacing.sm }}>
+      <Row style={{ gap: theme.spacing.sm }}>
         {quickAdds(value, currency).map((add) => (
           <Pressable
             key={add.toString()}
@@ -212,15 +222,16 @@ export function QuickAmountRow({
             onPress={() => onChange(value + add)}
             hitSlop={6}
             style={({ pressed }) => ({
-              minHeight: 32,
+              flex: 1,
+              minHeight: 36,
+              alignItems: 'center',
               justifyContent: 'center',
-              paddingHorizontal: theme.spacing.md,
               borderRadius: theme.radius.pill,
-              backgroundColor: theme.color.surfaceMuted,
+              backgroundColor: soft,
               opacity: pressed ? 0.6 : 1,
             })}
           >
-            <Text variant="caption" tone="muted">
+            <Text style={{ fontSize: 14, fontWeight: '600', color: accent }} numberOfLines={1}>
               {`+${formatMinorInput(add, currency)}`}
             </Text>
           </Pressable>
