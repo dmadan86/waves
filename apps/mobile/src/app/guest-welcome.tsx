@@ -22,9 +22,17 @@ import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { ActivityIndicator, Pressable, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Circle, Line, Path } from 'react-native-svg';
+import { LinearGradient } from 'expo-linear-gradient';
+import Svg, {
+  Circle,
+  Defs,
+  LinearGradient as SvgGradient,
+  Path,
+  RadialGradient,
+  Stop,
+} from 'react-native-svg';
 
-import { Button, Callout, directionalIcon, iconSize, Text, useTheme } from '@waves/ui';
+import { Callout, directionalIcon, iconSize, Text, useTheme } from '@waves/ui';
 
 import { LegalLine } from '@/components/LegalLine';
 import { useStrings } from '@/i18n';
@@ -34,11 +42,18 @@ import { useGoBack } from '@/lib/navigation';
 
 /** The screen's own dark-green field and the light on it — a front-of-house
     palette, held apart from the app theme on purpose. */
-const FIELD = '#14240D';
-const SUN = '#EAF7DF';
-const HILL_NEAR = '#2E5A1E';
-const HILL_FAR = '#24451A';
-const RAY = '#EAF7DF';
+const FIELD = '#10200C';
+const FIELD_TOP = '#1C3417';
+const GLOW = '#3E6B2E';
+const SUN_CORE = '#FFFBE8';
+const SUN_EDGE = '#F1F3C8';
+const HILL_LIGHT = '#6E9A4E';
+const HILL_MID = '#3F6A2C';
+const HILL_DARK = '#1E3A16';
+const EDGE = '#C9E3A0';
+/** The name in the title, and the button: the brand's violet. */
+const VIOLET = '#7B5CF5';
+const VIOLET_DEEP = '#6444EE';
 
 /** The placeholder in `entry.guestIntroTitle` where the app name is tinted. */
 const APP_TOKEN = '{app}';
@@ -70,6 +85,12 @@ export default function GuestWelcomeScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: FIELD }}>
+      <LinearGradient
+        colors={[FIELD_TOP, FIELD, '#0B1708']}
+        locations={[0, 0.55, 1]}
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+      />
+      <FieldGlows />
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
         <View
           style={{
@@ -96,22 +117,30 @@ export default function GuestWelcomeScreen() {
           </Pressable>
         </View>
 
-        <View style={{ flex: 1, paddingHorizontal: theme.spacing.xxxl }}>
-          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', gap: 36 }}>
+        <View style={{ flex: 1, paddingHorizontal: theme.spacing.xl }}>
+          <View
+            style={{
+              flex: 1,
+              justifyContent: 'center',
+              alignItems: 'center',
+              gap: 28,
+              paddingHorizontal: theme.spacing.md,
+            }}
+          >
             <SunriseArt />
             <View style={{ gap: theme.spacing.md }}>
               {/* The app name is highlighted in brand wherever it falls in the
                   translated title — split on the {app} placeholder so the accent
                   survives word-order differences across languages. */}
-              <Text align="center" style={{ fontSize: 30, lineHeight: 38, fontWeight: '800' }}>
+              <Text align="center" style={{ fontSize: 32, lineHeight: 40, fontWeight: '800' }}>
                 {titleParts.map((part, index) =>
                   part === APP_TOKEN ? (
                     <Text
                       key={index}
                       style={{
-                        color: theme.color.brand,
-                        fontSize: 30,
-                        lineHeight: 38,
+                        color: VIOLET,
+                        fontSize: 32,
+                        lineHeight: 40,
                         fontWeight: '800',
                       }}
                     >
@@ -120,14 +149,14 @@ export default function GuestWelcomeScreen() {
                   ) : (
                     <Text
                       key={index}
-                      style={{ color: '#FFFFFF', fontSize: 30, lineHeight: 38, fontWeight: '800' }}
+                      style={{ color: '#FFFFFF', fontSize: 32, lineHeight: 40, fontWeight: '800' }}
                     >
                       {part}
                     </Text>
                   ),
                 )}
               </Text>
-              <Text align="center" style={{ color: '#FFFFFFCC', fontSize: 16, lineHeight: 24 }}>
+              <Text align="center" style={{ color: '#FFFFFFD9', fontSize: 16, lineHeight: 25 }}>
                 {t.entry.guestIntroBody}
               </Text>
             </View>
@@ -137,15 +166,42 @@ export default function GuestWelcomeScreen() {
 
           <View style={{ paddingBottom: theme.spacing.xl, gap: theme.spacing.md }}>
             <LegalLine textStyle={{ color: '#FFFFFF80', fontSize: 12, lineHeight: 18 }} />
-            <Button
-              label={t.entry.continueLabel}
-              variant="brand"
-              size="lg"
-              fullWidth
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t.entry.continueLabel}
+              accessibilityState={{ disabled: busy, busy }}
               disabled={busy}
               onPress={() => void onContinue()}
-            />
-            {busy ? <ActivityIndicator color="#FFFFFF" /> : null}
+              style={({ pressed }) => ({
+                borderRadius: 30,
+                opacity: pressed ? 0.88 : 1,
+                shadowColor: VIOLET,
+                shadowOpacity: 0.45,
+                shadowRadius: 16,
+                shadowOffset: { width: 0, height: 6 },
+                elevation: 6,
+              })}
+            >
+              <LinearGradient
+                colors={['#8B6CFF', VIOLET_DEEP]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={{
+                  height: 58,
+                  borderRadius: 30,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                {busy ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: '700' }}>
+                    {t.entry.continueLabel}
+                  </Text>
+                )}
+              </LinearGradient>
+            </Pressable>
           </View>
         </View>
       </SafeAreaView>
@@ -153,50 +209,103 @@ export default function GuestWelcomeScreen() {
   );
 }
 
-/** A sun rising over layered hills — a small hand-drawn hero on the dark field,
-    echoing the reference. Static: it is a picture, not a thing to watch. */
+/** The field's own light: a soft glow high on the right, and the curve of a
+    hill low on the left. Behind everything, and never read. */
+function FieldGlows() {
+  return (
+    <Svg
+      pointerEvents="none"
+      style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+      width="100%"
+      height="100%"
+      viewBox="0 0 400 860"
+      preserveAspectRatio="xMidYMid slice"
+    >
+      <Defs>
+        <RadialGradient id="corner" cx="100%" cy="0%" r="60%">
+          <Stop offset="0" stopColor={GLOW} stopOpacity="0.55" />
+          <Stop offset="1" stopColor={GLOW} stopOpacity="0" />
+        </RadialGradient>
+      </Defs>
+      <Path d="M0 0 H400 V520 H0 Z" fill="url(#corner)" />
+      <Path d="M-40 560 C 60 600, 120 700, 140 860 L -40 860 Z" fill={GLOW} opacity={0.22} />
+      <Path d="M-40 620 C 40 660, 90 740, 100 860" stroke={EDGE} strokeOpacity={0.12} fill="none" />
+    </Svg>
+  );
+}
+
+/** A sun rising over layered hills, in rings of its own light — the screen's
+    one picture. Static: it is a picture, not a thing to watch. */
 function SunriseArt() {
-  const size = 220;
-  const cx = size / 2;
+  const w = 340;
+  const h = 230;
+  const cx = w / 2;
   const horizon = 150;
-  const rays = Array.from({ length: 9 }, (_, i) => {
-    const angle = Math.PI - (Math.PI / 8) * i; // 180° → 0°, above the horizon
-    const inner = 58;
-    const outer = 82;
-    return {
-      x1: cx + inner * Math.cos(angle),
-      y1: horizon + inner * Math.sin(angle) * -1,
-      x2: cx + outer * Math.cos(angle),
-      y2: horizon + outer * Math.sin(angle) * -1,
-    };
-  });
 
   return (
-    <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-      {rays.map((ray, i) => (
-        <Line
-          key={i}
-          x1={ray.x1}
-          y1={ray.y1}
-          x2={ray.x2}
-          y2={ray.y2}
-          stroke={RAY}
-          strokeWidth={3}
-          strokeLinecap="round"
-          opacity={0.75}
-        />
-      ))}
-      <Circle cx={cx} cy={horizon} r={40} fill={SUN} />
-      {/* Far hill, then the near one over it and the sun's foot. */}
+    <Svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
+      <Defs>
+        <RadialGradient id="halo" cx="50%" cy="50%" r="50%">
+          <Stop offset="0" stopColor="#E9F5B8" stopOpacity="0.55" />
+          <Stop offset="0.45" stopColor="#8DB860" stopOpacity="0.28" />
+          <Stop offset="1" stopColor="#3E6B2E" stopOpacity="0" />
+        </RadialGradient>
+        <SvgGradient id="sun" x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor={SUN_CORE} />
+          <Stop offset="1" stopColor={SUN_EDGE} />
+        </SvgGradient>
+        <SvgGradient id="hillBack" x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor={HILL_LIGHT} />
+          <Stop offset="1" stopColor={HILL_DARK} />
+        </SvgGradient>
+        <SvgGradient id="hillFront" x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor={HILL_MID} />
+          <Stop offset="1" stopColor={FIELD} />
+        </SvgGradient>
+      </Defs>
+
+      {/* The glow, then the rings of light around the sun. */}
+      <Circle cx={cx} cy={horizon - 10} r={130} fill="url(#halo)" />
+      <Circle cx={cx} cy={horizon - 10} r={112} stroke={EDGE} strokeOpacity={0.14} fill="none" />
+      <Circle cx={cx} cy={horizon - 10} r={86} stroke={EDGE} strokeOpacity={0.18} fill="none" />
+      <Circle cx={cx} cy={horizon - 10} r={64} stroke={EDGE} strokeOpacity={0.22} fill="none" />
+      <Circle cx={cx} cy={horizon - 6} r={44} fill="url(#sun)" />
+
+      {/* The far hills, lit along their crests, then the near ones over the
+          sun's foot. */}
       <Path
-        d={`M0 ${horizon + 6} Q70 ${horizon - 34} 150 ${horizon + 2} T${size} ${horizon - 2}
-               L${size} ${size} L0 ${size} Z`}
-        fill={HILL_FAR}
+        d={`M4 ${horizon + 34} C 60 ${horizon - 2}, 110 ${horizon - 6}, 160 ${horizon + 14}
+            S 250 ${horizon + 18}, 300 ${horizon + 2} S 336 ${horizon + 12}, 340 ${horizon + 16}
+            L340 ${h} L4 ${h} Z`}
+        fill="url(#hillBack)"
       />
       <Path
-        d={`M0 ${horizon + 30} Q60 ${horizon - 4} 130 ${horizon + 26} T${size} ${horizon + 20}
-               L${size} ${size} L0 ${size} Z`}
-        fill={HILL_NEAR}
+        d={`M4 ${horizon + 34} C 60 ${horizon - 2}, 110 ${horizon - 6}, 160 ${horizon + 14}
+            S 250 ${horizon + 18}, 300 ${horizon + 2} S 336 ${horizon + 12}, 340 ${horizon + 16}`}
+        stroke={EDGE}
+        strokeOpacity={0.55}
+        strokeWidth={1.4}
+        fill="none"
+      />
+      <Path
+        d={`M0 ${horizon + 50} C 70 ${horizon + 22}, 150 ${horizon + 30}, 200 ${horizon + 46}
+            S 300 ${horizon + 30}, 340 ${horizon + 40} L340 ${h} L0 ${h} Z`}
+        fill="url(#hillFront)"
+      />
+      <Path
+        d={`M0 ${horizon + 50} C 70 ${horizon + 22}, 150 ${horizon + 30}, 200 ${horizon + 46}
+            S 300 ${horizon + 30}, 340 ${horizon + 40}`}
+        stroke={EDGE}
+        strokeOpacity={0.35}
+        strokeWidth={1.2}
+        fill="none"
+      />
+      <Path
+        d={`M20 ${h - 6} C 120 ${horizon + 50}, 220 ${horizon + 60}, 330 ${h - 20}`}
+        stroke={EDGE}
+        strokeOpacity={0.12}
+        strokeWidth={1}
+        fill="none"
       />
     </Svg>
   );
