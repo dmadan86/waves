@@ -72,7 +72,11 @@ import { initClarity } from '@/lib/clarity';
 import { initObservability, withObservability } from '@/lib/observability';
 import { ensureAndroidChannel, pushSupported, routeForNotification } from '@/lib/push';
 import { applyStoredSessionReplayConsent } from '@/lib/sessionReplay';
+import { holdPhonesUpright } from '@/lib/phoneOrientation';
 import { SyncProvider } from '@/sync';
+
+// Before the first screen draws, so a phone never shows a sideways frame.
+holdPhonesUpright();
 
 // Hold the native splash up past its auto-hide, so `AnimatedSplash` can take
 // over the field without a blank frame between them. Native only — there is no
