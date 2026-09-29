@@ -22,7 +22,7 @@
 import { useEffect, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Platform, Pressable, useWindowDimensions, View } from 'react-native';
+import { Image, Platform, Pressable, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, {
   Easing,
@@ -36,7 +36,7 @@ import { Callout, directionalIcon, iconSize, Row, Text, useTheme } from '@waves/
 
 import { LegalLine } from '@/components/LegalLine';
 import { AppleMark, GoogleMark } from '@/components/SocialTile';
-import { LANGUAGE_NAMES, useStrings } from '@/i18n';
+import { deviceDefaultCurrency, LANGUAGE_NAMES, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { friendlyError } from '@/lib/errors';
 import { router } from '@/lib/navigation';
@@ -62,11 +62,27 @@ const ACCENT = '#6A45E8';
 const LINE = '#E6E4F0';
 const SHEET = '#F8F7FC';
 
+const SCENE = require('../../assets/images/welcome-scene.webp') as number;
+const FRIENDS = require('../../assets/images/welcome-friends.webp') as number;
+const WORDMARK = require('../../assets/images/wordmark-script.webp') as number;
+
 export default function WelcomeScreen() {
   const theme = useTheme();
-  const { t, language } = useStrings();
+  const { t, language, locale } = useStrings();
   const { withGoogle, withApple } = useAuth();
-  const { height: screenHeight } = useWindowDimensions();
+  const { height: screenHeight, width: windowWidth } = useWindowDimensions();
+  // The chips' amounts in the phone's own currency, whole units.
+  const chipAmount = (value: number): string => {
+    try {
+      return new Intl.NumberFormat(locale, {
+        style: 'currency',
+        currency: deviceDefaultCurrency(),
+        maximumFractionDigits: 0,
+      }).format(value);
+    } catch {
+      return String(value);
+    }
+  };
   // The picture fills the top of the screen down past where the sheet begins,
   // so the sheet's rounded corners sit on it.
   const heroHeight = Math.round(screenHeight * 0.62);
@@ -140,19 +156,18 @@ export default function WelcomeScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: SHEET }}>
-      {/* The picture: the top of the screen, under the header and the words.
-          A warm evening wash until the scene itself is dropped in. */}
+      {/* The picture: a terrace at sunset across the top of the screen, down
+          past where the sheet begins so its rounded corners sit on it. */}
       <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: heroHeight }}>
-        <LinearGradient
-          colors={['#FFF6EC', '#FBE3CC', '#F4C9A6', '#E9B38E']}
-          locations={[0, 0.35, 0.75, 1]}
-          style={{ flex: 1 }}
+        <Image
+          source={SCENE}
+          resizeMode="cover"
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
         />
-        {/* A light veil top-left, so the headline always reads. */}
+        {/* A light veil from the top, so the headline always reads. */}
         <LinearGradient
-          colors={['rgba(255,255,255,0.85)', 'rgba(255,255,255,0)']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0.9, y: 0.7 }}
+          colors={['rgba(255,255,255,0.92)', 'rgba(255,255,255,0.7)', 'rgba(255,255,255,0)']}
+          locations={[0, 0.3, 0.55]}
           style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
         />
       </View>
@@ -223,18 +238,13 @@ export default function WelcomeScreen() {
         <Animated.View
           style={[{ paddingHorizontal: theme.spacing.xl, paddingTop: 12, gap: 8 }, heroStyle]}
         >
-          <Text
-            style={{
-              fontSize: 40,
-              lineHeight: 46,
-              fontWeight: '800',
-              fontStyle: 'italic',
-              color: ACCENT,
-              letterSpacing: -0.5,
-            }}
-          >
-            {t.common.appName}
-          </Text>
+          <Image
+            source={WORDMARK}
+            accessibilityRole="header"
+            accessibilityLabel={t.common.appName}
+            resizeMode="contain"
+            style={{ width: 150, height: 150 * (256 / 720), marginBottom: 4 }}
+          />
           <Text
             style={{
               fontSize: 34,
@@ -250,7 +260,47 @@ export default function WelcomeScreen() {
             {t.signIn.heroTagline}
           </Text>
         </Animated.View>
-        <View style={{ flex: 1 }} />
+
+        {/* The friends at their table, standing on the sheet's edge, with a few
+            of the things they split floating over them. Decorative. */}
+        <View
+          pointerEvents="none"
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          style={{ flex: 1, justifyContent: 'flex-end', minHeight: 120 }}
+        >
+          <Image
+            source={FRIENDS}
+            resizeMode="contain"
+            style={{ width: windowWidth, height: windowWidth * (614 / 1200), marginBottom: -26 }}
+          />
+          <SplitChip
+            icon="home-outline"
+            label={t.signIn.chipRent}
+            amount={chipAmount(320)}
+            faces={2}
+            style={{ position: 'absolute', left: 16, bottom: windowWidth * 0.38 }}
+          />
+          <SplitChip
+            icon="airplane-outline"
+            label={t.signIn.chipTrip}
+            amount={chipAmount(620)}
+            faces={3}
+            style={{ position: 'absolute', right: 40, bottom: windowWidth * 0.46 }}
+          />
+          <SplitChip
+            icon="restaurant-outline"
+            label={t.signIn.chipDinner}
+            amount={chipAmount(48)}
+            faces={3}
+            style={{
+              position: 'absolute',
+              right: -10,
+              bottom: windowWidth * 0.33,
+              transform: [{ rotate: '4deg' }],
+            }}
+          />
+        </View>
 
         {/* The ways in, on a white sheet that rises over the picture's foot. */}
         <Animated.View
@@ -388,6 +438,83 @@ export default function WelcomeScreen() {
           </Row>
         </Animated.View>
       </SafeAreaView>
+    </View>
+  );
+}
+
+/** One of the floating cards over the friends: what was split, how much, and
+ *  the little row of faces it was split between. */
+function SplitChip({
+  icon,
+  label,
+  amount,
+  faces,
+  style,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  amount: string;
+  faces: number;
+  style: object;
+}) {
+  const tints = ['#F2C4A0', '#C7A77F', '#E3B28C'];
+  return (
+    <View
+      style={[
+        {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 10,
+          paddingVertical: 8,
+          paddingStart: 8,
+          paddingEnd: 12,
+          borderRadius: 18,
+          backgroundColor: 'rgba(255,255,255,0.92)',
+          shadowColor: '#2A1E6B',
+          shadowOpacity: 0.12,
+          shadowRadius: 10,
+          shadowOffset: { width: 0, height: 4 },
+          elevation: 4,
+        },
+        style,
+      ]}
+    >
+      <View
+        style={{
+          width: 34,
+          height: 34,
+          borderRadius: 17,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: '#EFEBFD',
+        }}
+      >
+        <Ionicons name={icon} size={18} color={ACCENT} />
+      </View>
+      <View>
+        <Text style={{ fontSize: 12, color: INK }}>{label}</Text>
+        <Text style={{ fontSize: 14, fontWeight: '700', color: INK }}>{amount}</Text>
+      </View>
+      <View style={{ flexDirection: 'row', marginStart: 4 }}>
+        {Array.from({ length: faces }, (_, index) => (
+          <View
+            key={index}
+            style={{
+              width: 20,
+              height: 20,
+              borderRadius: 10,
+              marginStart: index === 0 ? 0 : -6,
+              borderWidth: 1.5,
+              borderColor: '#FFFFFF',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: tints[index % tints.length],
+            }}
+          >
+            <Ionicons name="person" size={11} color="#6B4A32" />
+          </View>
+        ))}
+      </View>
     </View>
   );
 }

@@ -1371,6 +1371,10 @@ export interface UiStrings {
   };
   /** The welcome and the ways in (ADR-006: nobody registers to split a bill). */
   signIn: {
+    /** The door's floating example cards. */
+    chipRent: string;
+    chipTrip: string;
+    chipDinner: string;
     /** The door's line under the headline, and its divider's capitalised form. */
     heroTagline: string;
     orContinueWithCap: string;
@@ -4940,6 +4944,9 @@ const en: UiStrings = {
     doneBody: 'That is the tour. You can replay it any time from the menu.',
   },
   signIn: {
+    chipRent: 'House Rent',
+    chipTrip: 'Trip to Bali',
+    chipDinner: 'Dinner',
     heroTagline: 'Trips, dinners, household bills and more — together, made simple.',
     orContinueWithCap: 'Or continue with',
     tagline: 'Waves · what is left over',
@@ -8180,6 +8187,9 @@ const ta: UiStrings = {
     doneBody: 'அதுதான் சுற்றுப்பயணம். மெனுவிலிருந்து எப்போது வேண்டுமானாலும் மீண்டும் காணலாம்.',
   },
   signIn: {
+    chipRent: 'வீட்டு வாடகை',
+    chipTrip: 'பாலி பயணம்',
+    chipDinner: 'இரவு உணவு',
     heroTagline: 'பயணங்கள், விருந்துகள், வீட்டுக் கட்டணங்கள் — ஒன்றாக, எளிதாக.',
     orContinueWithCap: 'அல்லது இதனுடன் தொடரவும்',
     tagline: 'Waves · மீதம் இருப்பது',
@@ -11503,6 +11513,9 @@ const hi: UiStrings = {
     doneBody: 'यही टूर था। आप इसे मेन्यू से कभी भी फिर से देख सकते हैं।',
   },
   signIn: {
+    chipRent: 'घर का किराया',
+    chipTrip: 'बाली ट्रिप',
+    chipDinner: 'डिनर',
     heroTagline: 'यात्राएँ, डिनर, घर के बिल और बहुत कुछ — साथ मिलकर, आसानी से।',
     orContinueWithCap: 'या इससे जारी रखें',
     tagline: 'Waves · जो बच रहता है',
@@ -14788,6 +14801,9 @@ const ar: UiStrings = {
     doneBody: 'تلك هي الجولة. يمكنك إعادتها في أي وقت من القائمة.',
   },
   signIn: {
+    chipRent: 'إيجار المنزل',
+    chipTrip: 'رحلة إلى بالي',
+    chipDinner: 'عشاء',
     heroTagline: 'رحلات وعشاء وفواتير منزلية وغيرها — معًا، وببساطة.',
     orContinueWithCap: 'أو تابع باستخدام',
     tagline: 'Waves · ما يتبقّى',
