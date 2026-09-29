@@ -52,6 +52,7 @@ import { suggestPeople } from '@/lib/addFromAnotherGroup';
 import { HeroScene } from '@/components/home/HeroScene';
 import { useHeroStatusBar } from '@/components/ScreenHero';
 import { useHeroScene } from '@/lib/heroScenePreference';
+import { HERO_THEMES } from '@/lib/scene';
 import { shortPersonNames } from '@/lib/shortPersonName';
 import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
 import { assignCaptureHref } from '@/lib/captureAssign';
@@ -114,7 +115,10 @@ export default function NewGroupScreen() {
   const insetsTop = useSafeAreaInsets().top;
   // The scene is under the status bar, so the clock goes white while this
   // screen is in front.
-  useHeroStatusBar();
+  // The title's ink follows the sky, as Home's greeting does: dark on a pale
+  // scene, white on a deep one — and the status bar with it.
+  const darkInk = HERO_THEMES[scene].ink === 'dark';
+  useHeroStatusBar(darkInk ? 'dark' : 'light');
   // "Add contacts" beside the Add friends title only where both fit whole; on
   // a smaller phone it takes a line of its own rather than truncate the title.
   const contactsInline = screenWidth >= CONTACTS_INLINE_WIDTH;
@@ -626,7 +630,10 @@ export default function NewGroupScreen() {
           </View>
         ) : null}
         <View onLayout={(event) => setHeaderHeight(event.nativeEvent.layout.height)}>
-          <NewGroupHeader title={cloning ? t.clone.duplicateTitle : t.newGroupForm.title} />
+          <NewGroupHeader
+            title={cloning ? t.clone.duplicateTitle : t.newGroupForm.title}
+            ink={darkInk ? SPEC_INK : '#FFFFFF'}
+          />
         </View>
 
         <View
@@ -1156,7 +1163,7 @@ const muted = (theme: Theme): string => (theme.scheme === 'dark' ? theme.color.t
 /** Home's scene behind the header: the room under the title row where its
  *  landscape shows, how far the first card rides up over its foot, and how far
  *  it runs on under that card before it has faded into the page. */
-const SCENE_ROOM = 96;
+const SCENE_ROOM = 52;
 const SCENE_OVERLAP = 40;
 const SCENE_INTO_CARD = 60;
 /** The header row's own height (the 44pt back button plus its top padding),
@@ -1274,10 +1281,10 @@ function FormCard({ children, style }: { children: ReactNode; style?: object }) 
 
 /**
  * The header: a back chevron and the title on one line — the Activity screen's
- * shape — in white over Home's scene, with room under the row for the scene's
+ * shape — over Home's scene in the ink its sky calls for, with room under the row for the scene's
  * landscape to show before the first card rides up over it.
  */
-function NewGroupHeader({ title }: { title: string }) {
+function NewGroupHeader({ title, ink: headerInk }: { title: string; ink: string }) {
   const theme = useTheme();
   const { t } = useStrings();
   const insets = useSafeAreaInsets();
@@ -1294,11 +1301,7 @@ function NewGroupHeader({ title }: { title: string }) {
       }}
     >
       <IconButton label={t.common.back} onPress={() => router.back()}>
-        <Ionicons
-          name={directionalIcon('chevron-back')}
-          size={iconSize.xl}
-          color={theme.color.onBrand}
-        />
+        <Ionicons name={directionalIcon('chevron-back')} size={iconSize.xl} color={headerInk} />
       </IconButton>
       <Text
         numberOfLines={1}
@@ -1306,10 +1309,10 @@ function NewGroupHeader({ title }: { title: string }) {
         minimumFontScale={0.8}
         style={{
           flex: 1,
-          fontSize: 26,
-          lineHeight: 32,
+          fontSize: 22,
+          lineHeight: 28,
           fontWeight: '800',
-          color: theme.color.onBrand,
+          color: headerInk,
         }}
       >
         {title}

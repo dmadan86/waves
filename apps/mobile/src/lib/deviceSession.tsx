@@ -282,8 +282,8 @@ function DeviceLimitGate({
           <View style={{ gap: theme.spacing.sm }}>
             <Text
               style={{
-                fontSize: 22,
-                lineHeight: 28,
+                fontSize: 20,
+                lineHeight: 26,
                 fontWeight: '800',
                 color: ink,
                 textAlign: 'center',
@@ -291,7 +291,7 @@ function DeviceLimitGate({
             >
               {t.devices.gateTitle}
             </Text>
-            <Text style={{ fontSize: 15, lineHeight: 22, color: muted, textAlign: 'center' }}>
+            <Text style={{ fontSize: 14, lineHeight: 20, color: muted, textAlign: 'center' }}>
               {t.devices.gateBody}
             </Text>
           </View>
@@ -319,8 +319,8 @@ function DeviceLimitGate({
                 }}
               />
               <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-                <Text style={{ fontSize: 17, lineHeight: 22, color: ink }}>
-                  <Text style={{ fontSize: 17, fontWeight: '800', color: accent }}>
+                <Text style={{ fontSize: 15, lineHeight: 20, color: ink }}>
+                  <Text style={{ fontSize: 15, fontWeight: '800', color: accent }}>
                     {fill(t.devices.gateDevices, { active: status.activeCount })}
                   </Text>
                   {`  ·  ${fill(t.devices.gateAllowed, { limit: status.limit })}`}
@@ -366,22 +366,25 @@ function DeviceLimitGate({
                 }
               }}
               style={({ pressed }) => ({
-                height: 56,
-                borderRadius: 28,
+                height: 46,
+                borderRadius: 23,
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: theme.spacing.sm,
                 backgroundColor: accent,
                 shadowColor: accent,
-                shadowOpacity: 0.3,
-                shadowRadius: 12,
+                shadowOpacity: 0.22,
+                shadowRadius: 10,
                 shadowOffset: { width: 0, height: 6 },
                 elevation: 4,
                 opacity: busy ? 0.7 : pressed ? 0.85 : 1,
               })}
             >
-              <Text style={{ fontSize: 17, fontWeight: '700', color: '#FFFFFF' }}>
+              <Text
+                maxFontSizeMultiplier={1}
+                style={{ fontSize: 15, fontWeight: '700', color: '#FFFFFF' }}
+              >
                 {t.devices.gateAction}
               </Text>
               {/* The spinner takes the arrow's place: the button keeps its width
@@ -389,7 +392,7 @@ function DeviceLimitGate({
               {busy ? (
                 <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
-                <Ionicons name={directionalIcon('arrow-forward')} size={20} color="#FFFFFF" />
+                <Ionicons name={directionalIcon('arrow-forward')} size={18} color="#FFFFFF" />
               )}
             </Pressable>
             <Pressable
@@ -397,8 +400,8 @@ function DeviceLimitGate({
               accessibilityLabel={t.devices.gateDismiss}
               onPress={onDismiss}
               style={({ pressed }) => ({
-                height: 52,
-                borderRadius: 26,
+                height: 44,
+                borderRadius: 22,
                 alignItems: 'center',
                 justifyContent: 'center',
                 borderWidth: 1.5,
@@ -407,7 +410,10 @@ function DeviceLimitGate({
                 opacity: pressed ? 0.6 : 1,
               })}
             >
-              <Text style={{ fontSize: 16, fontWeight: '700', color: accent }}>
+              <Text
+                maxFontSizeMultiplier={1}
+                style={{ fontSize: 15, fontWeight: '700', color: accent }}
+              >
                 {t.devices.gateDismiss}
               </Text>
             </Pressable>
