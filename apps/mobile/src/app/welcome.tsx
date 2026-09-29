@@ -83,9 +83,12 @@ export default function WelcomeScreen() {
       return String(value);
     }
   };
-  // The picture fills the top of the screen down past where the sheet begins,
-  // so the sheet's rounded corners sit on it.
-  const heroHeight = Math.round(screenHeight * 0.62);
+  // The room between the tagline and the sheet, measured: the friends and the
+  // cards over them are sized to it, so on a short phone they shrink rather
+  // than climb over the words.
+  const [stage, setStage] = useState(0);
+  const friendsH = Math.max(90, Math.min(windowWidth * 1.08 * (614 / 1200), stage - 8));
+  const friendsW = friendsH * (1200 / 614);
   const canGoBack = router.canGoBack();
 
   // The same busy/error pair the auth sheet keeps: one provider round-trip at a
@@ -158,16 +161,25 @@ export default function WelcomeScreen() {
     <View style={{ flex: 1, backgroundColor: SHEET }}>
       {/* The picture: a terrace at sunset across the top of the screen, down
           past where the sheet begins so its rounded corners sit on it. */}
-      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: heroHeight }}>
+      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: screenHeight }}>
+        {/* Lifted a little, so the hills and the bay sit behind the friends
+            rather than behind the sheet. */}
         <Image
           source={SCENE}
           resizeMode="cover"
-          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+          style={{
+            position: 'absolute',
+            top: -screenHeight * 0.1,
+            left: 0,
+            right: 0,
+            height: screenHeight * 1.1,
+          }}
         />
-        {/* A light veil from the top, so the headline always reads. */}
+        {/* A light veil over the top of the sky only, where the words are; the
+            sunset, the hills and the sea below it show as they are. */}
         <LinearGradient
-          colors={['rgba(255,255,255,0.92)', 'rgba(255,255,255,0.7)', 'rgba(255,255,255,0)']}
-          locations={[0, 0.3, 0.55]}
+          colors={['rgba(255,255,255,0.75)', 'rgba(255,255,255,0.35)', 'rgba(255,255,255,0)']}
+          locations={[0, 0.18, 0.32]}
           style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
         />
       </View>
@@ -204,7 +216,10 @@ export default function WelcomeScreen() {
               })}
             >
               <Ionicons name="globe-outline" size={20} color={INK} />
-              <Text style={{ fontSize: 15, fontWeight: '600', color: INK }}>
+              <Text
+                maxFontSizeMultiplier={1.15}
+                style={{ fontSize: 15, fontWeight: '600', color: INK }}
+              >
                 {LANGUAGE_NAMES[language].own}
               </Text>
               <Ionicons name="chevron-down" size={16} color={INK} />
@@ -229,7 +244,12 @@ export default function WelcomeScreen() {
               opacity: busy ? 0.45 : pressed ? 0.7 : 1,
             })}
           >
-            <Text style={{ fontSize: 16, fontWeight: '700', color: INK }}>{t.common.skip}</Text>
+            <Text
+              maxFontSizeMultiplier={1.15}
+              style={{ fontSize: 16, fontWeight: '700', color: INK }}
+            >
+              {t.common.skip}
+            </Text>
             <Ionicons name={directionalIcon('arrow-forward')} size={18} color={INK} />
           </Pressable>
         </Row>
@@ -243,11 +263,12 @@ export default function WelcomeScreen() {
             accessibilityRole="header"
             accessibilityLabel={t.common.appName}
             resizeMode="contain"
-            style={{ width: 150, height: 150 * (256 / 720), marginBottom: 4 }}
+            style={{ width: 140, height: 140 * (256 / 720), marginBottom: 2 }}
           />
           <Text
+            maxFontSizeMultiplier={1.15}
             style={{
-              fontSize: 34,
+              fontSize: 32,
               lineHeight: 40,
               fontWeight: '800',
               color: INK,
@@ -256,7 +277,10 @@ export default function WelcomeScreen() {
           >
             {t.signIn.splitAnything}
           </Text>
-          <Text style={{ fontSize: 16, lineHeight: 23, color: MUTED, maxWidth: 320 }}>
+          <Text
+            maxFontSizeMultiplier={1.15}
+            style={{ fontSize: 16, lineHeight: 23, color: MUTED, maxWidth: 320 }}
+          >
             {t.signIn.heroTagline}
           </Text>
         </Animated.View>
@@ -267,26 +291,27 @@ export default function WelcomeScreen() {
           pointerEvents="none"
           accessibilityElementsHidden
           importantForAccessibility="no-hide-descendants"
-          style={{ flex: 1, justifyContent: 'flex-end', minHeight: 120 }}
+          onLayout={(event) => setStage(event.nativeEvent.layout.height)}
+          style={{ flex: 1, justifyContent: 'flex-end', alignItems: 'center' }}
         >
           <Image
             source={FRIENDS}
             resizeMode="contain"
-            style={{ width: windowWidth, height: windowWidth * (614 / 1200), marginBottom: -26 }}
+            style={{ width: friendsW, height: friendsH, marginBottom: -22 }}
           />
           <SplitChip
             icon="home-outline"
             label={t.signIn.chipRent}
             amount={chipAmount(320)}
             faces={2}
-            style={{ position: 'absolute', left: 16, bottom: windowWidth * 0.38 }}
+            style={{ position: 'absolute', left: 14, bottom: friendsH * 0.74 }}
           />
           <SplitChip
             icon="airplane-outline"
             label={t.signIn.chipTrip}
             amount={chipAmount(620)}
             faces={3}
-            style={{ position: 'absolute', right: 40, bottom: windowWidth * 0.46 }}
+            style={{ position: 'absolute', right: 36, bottom: friendsH * 0.74 + 16 }}
           />
           <SplitChip
             icon="restaurant-outline"
@@ -295,8 +320,8 @@ export default function WelcomeScreen() {
             faces={3}
             style={{
               position: 'absolute',
-              right: -10,
-              bottom: windowWidth * 0.33,
+              right: -14,
+              bottom: friendsH * 0.52,
               transform: [{ rotate: '4deg' }],
             }}
           />
@@ -310,9 +335,9 @@ export default function WelcomeScreen() {
               borderTopLeftRadius: 32,
               borderTopRightRadius: 32,
               paddingHorizontal: theme.spacing.xl,
-              paddingTop: 22,
-              paddingBottom: theme.spacing.md,
-              gap: 12,
+              paddingTop: 16,
+              paddingBottom: theme.spacing.sm,
+              gap: 9,
             },
             waysStyle,
           ]}
@@ -335,13 +360,18 @@ export default function WelcomeScreen() {
               style={providerRow}
             >
               <View style={markDisc}>
-                {first === 'apple' ? <AppleMark size={22} /> : <GoogleMark size={22} />}
+                {first === 'apple' ? (
+                  <AppleMark size={20} color="#000000" />
+                ) : (
+                  <GoogleMark size={20} />
+                )}
               </View>
               <Text
+                maxFontSizeMultiplier={1.15}
                 style={{
                   flex: 1,
                   textAlign: 'center',
-                  fontSize: 17,
+                  fontSize: 15,
                   fontWeight: '700',
                   color: '#FFFFFF',
                 }}
@@ -370,10 +400,15 @@ export default function WelcomeScreen() {
             ]}
           >
             <View style={[markDisc, { backgroundColor: 'transparent' }]}>
-              {second === 'apple' ? <AppleMark size={24} /> : <GoogleMark size={22} />}
+              {second === 'apple' ? (
+                <AppleMark size={24} color="#000000" />
+              ) : (
+                <GoogleMark size={20} />
+              )}
             </View>
             <Text
-              style={{ flex: 1, textAlign: 'center', fontSize: 17, fontWeight: '700', color: INK }}
+              maxFontSizeMultiplier={1.15}
+              style={{ flex: 1, textAlign: 'center', fontSize: 15, fontWeight: '700', color: INK }}
             >
               {labelFor(second)}
             </Text>
@@ -382,7 +417,9 @@ export default function WelcomeScreen() {
 
           <Row style={{ alignItems: 'center', gap: 12, marginVertical: 2 }}>
             <View style={{ flex: 1, height: 1, backgroundColor: LINE }} />
-            <Text style={{ fontSize: 14, color: MUTED }}>{t.signIn.orContinueWithCap}</Text>
+            <Text maxFontSizeMultiplier={1.15} style={{ fontSize: 14, color: MUTED }}>
+              {t.signIn.orContinueWithCap}
+            </Text>
             <View style={{ flex: 1, height: 1, backgroundColor: LINE }} />
           </Row>
 
@@ -409,12 +446,14 @@ export default function WelcomeScreen() {
             />
           </Row>
 
-          <LegalLine textStyle={{ color: MUTED, lineHeight: 20, marginTop: 4 }} />
+          <LegalLine textStyle={{ color: MUTED, fontSize: 13, lineHeight: 18, marginTop: 2 }} />
 
           <View style={{ height: 1, backgroundColor: LINE, marginHorizontal: 40, marginTop: 4 }} />
 
           <Row style={{ justifyContent: 'center', alignItems: 'center', gap: 8 }}>
-            <Text style={{ fontSize: 16, color: MUTED }}>{t.signIn.haveAccountPrompt}</Text>
+            <Text maxFontSizeMultiplier={1.15} style={{ fontSize: 16, color: MUTED }}>
+              {t.signIn.haveAccountPrompt}
+            </Text>
             <Pressable
               testID="welcome-sign-in"
               accessibilityRole="button"
@@ -430,7 +469,10 @@ export default function WelcomeScreen() {
                 opacity: pressed ? 0.6 : 1,
               })}
             >
-              <Text style={{ fontSize: 17, fontWeight: '800', color: ACCENT }}>
+              <Text
+                maxFontSizeMultiplier={1.15}
+                style={{ fontSize: 17, fontWeight: '800', color: ACCENT }}
+              >
                 {t.signIn.signInAction}
               </Text>
               <Ionicons name={directionalIcon('arrow-forward')} size={18} color={ACCENT} />
@@ -464,11 +506,11 @@ function SplitChip({
         {
           flexDirection: 'row',
           alignItems: 'center',
-          gap: 10,
-          paddingVertical: 8,
-          paddingStart: 8,
-          paddingEnd: 12,
-          borderRadius: 18,
+          gap: 8,
+          paddingVertical: 6,
+          paddingStart: 6,
+          paddingEnd: 10,
+          borderRadius: 16,
           backgroundColor: 'rgba(255,255,255,0.92)',
           shadowColor: '#2A1E6B',
           shadowOpacity: 0.12,
@@ -481,9 +523,9 @@ function SplitChip({
     >
       <View
         style={{
-          width: 34,
-          height: 34,
-          borderRadius: 17,
+          width: 30,
+          height: 30,
+          borderRadius: 15,
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: '#EFEBFD',
@@ -492,17 +534,21 @@ function SplitChip({
         <Ionicons name={icon} size={18} color={ACCENT} />
       </View>
       <View>
-        <Text style={{ fontSize: 12, color: INK }}>{label}</Text>
-        <Text style={{ fontSize: 14, fontWeight: '700', color: INK }}>{amount}</Text>
+        <Text maxFontSizeMultiplier={1.15} style={{ fontSize: 11, color: INK }}>
+          {label}
+        </Text>
+        <Text maxFontSizeMultiplier={1.15} style={{ fontSize: 13, fontWeight: '700', color: INK }}>
+          {amount}
+        </Text>
       </View>
       <View style={{ flexDirection: 'row', marginStart: 4 }}>
         {Array.from({ length: faces }, (_, index) => (
           <View
             key={index}
             style={{
-              width: 20,
-              height: 20,
-              borderRadius: 10,
+              width: 18,
+              height: 18,
+              borderRadius: 9,
               marginStart: index === 0 ? 0 : -6,
               borderWidth: 1.5,
               borderColor: '#FFFFFF',
@@ -545,8 +591,8 @@ function WayTile({
       onPress={onPress}
       style={({ pressed }) => ({
         flex: 1,
-        height: 54,
-        borderRadius: 18,
+        height: 44,
+        borderRadius: 14,
         borderWidth: 1,
         borderColor: LINE,
         backgroundColor: '#FFFFFF',
@@ -557,8 +603,10 @@ function WayTile({
         opacity: disabled ? 0.5 : pressed ? 0.85 : 1,
       })}
     >
-      <Ionicons name={icon} size={24} color={ACCENT} />
-      <Text style={{ fontSize: 17, fontWeight: '700', color: INK }}>{label}</Text>
+      <Ionicons name={icon} size={20} color={ACCENT} />
+      <Text maxFontSizeMultiplier={1.15} style={{ fontSize: 15, fontWeight: '700', color: INK }}>
+        {label}
+      </Text>
     </Pressable>
   );
 }
@@ -566,8 +614,8 @@ function WayTile({
 /** Both provider pills share their shape: 56 tall, the mark on a disc at the
  *  leading edge, the label centred, a chevron trailing. */
 const providerRow = {
-  height: 56,
-  borderRadius: 28,
+  height: 46,
+  borderRadius: 23,
   flexDirection: 'row' as const,
   alignItems: 'center' as const,
   paddingStart: 6,
@@ -575,9 +623,9 @@ const providerRow = {
   gap: 8,
 };
 const markDisc = {
-  width: 44,
-  height: 44,
-  borderRadius: 22,
+  width: 36,
+  height: 36,
+  borderRadius: 18,
   alignItems: 'center' as const,
   justifyContent: 'center' as const,
   backgroundColor: '#FFFFFF',
