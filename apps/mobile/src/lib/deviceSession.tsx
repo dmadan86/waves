@@ -432,14 +432,27 @@ const ARCH = 22;
  */
 
 function DeviceLimitArt() {
+  // Measured, then drawn at fixed pixels: a percentage width with an aspect
+  // ratio is read by Android as the image's own size and zoomed, cropping
+  // everything but the plant. Capped in height so the words and the two ways
+  // out always fit under it.
+  const [width, setWidth] = useState(0);
+  const height = Math.min(width / DEVICE_LIMIT_ART_RATIO, 170);
   return (
-    <Image
-      source={DEVICE_LIMIT_ART}
-      resizeMode="contain"
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
-      style={{ width: '100%', aspectRatio: DEVICE_LIMIT_ART_RATIO, marginTop: 8 }}
-    />
+    <View
+      onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
+      style={{ width: '100%', height: width ? height + 8 : 1, alignItems: 'center', paddingTop: 8 }}
+    >
+      {width ? (
+        <Image
+          source={DEVICE_LIMIT_ART}
+          resizeMode="contain"
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          style={{ width: height * DEVICE_LIMIT_ART_RATIO, height }}
+        />
+      ) : null}
+    </View>
   );
 }
 
