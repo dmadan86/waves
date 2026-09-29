@@ -44,12 +44,12 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import Animated, { FadeIn, useReducedMotion } from 'react-native-reanimated';
 
-import { Callout, directionalIcon, Row, Screen, Text, useTheme } from '@waves/ui';
+import { Callout, directionalIcon, Row, Screen, Text } from '@waves/ui';
 
-import { useBottomClearance } from '@/lib/clearance';
 import { AppleMark, GoogleMark } from '@/components/SocialTile';
 import { useStrings, type UiStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
@@ -78,6 +78,11 @@ const FAINT = '#8F93A8';
 const ACCENT = '#6A45E8';
 const LINE = '#E6E4F0';
 const PAGE = '#F6F3FC';
+const FIELD_LINE = '#ECE9F5';
+const GLYPH = '#4A4E68';
+const PLACEHOLDER = '#8E92A6';
+/** The Sign in pill before it can be pressed: a quiet lavender, on purpose. */
+const PILL_REST = '#CFC4F6';
 const DISPLAY = 'PlusJakartaSans-ExtraBold';
 const BODY = 'PlusJakartaSans-Medium';
 
@@ -86,7 +91,6 @@ const FRIENDS = require('../../assets/images/welcome-friends.webp') as number;
 const WORDMARK = require('../../assets/images/wordmark-script.webp') as number;
 
 export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
-  const theme = useTheme();
   const { t } = useStrings();
   const goBack = useGoBack('/welcome');
   const reduceMotion = useReducedMotion();
@@ -128,8 +132,8 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const clearance = useBottomClearance(theme.spacing.xxl);
   const { width: windowWidth, height: screenHeight } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
 
   // Whether the keyboard is up, so the scatter band above the title can stand
   // down and give the form the room. `KeyboardAvoidingView` moves the content
@@ -249,9 +253,9 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
   // them. Fixed height so a box does not breathe when the platform's text
   // input decides on its own padding.
   const fieldStyle = {
-    height: 48,
+    height: 58,
     borderWidth: 1,
-    borderColor: LINE,
+    borderColor: FIELD_LINE,
     borderRadius: 16,
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 16,
@@ -265,6 +269,8 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
     fontWeight: '500',
     color: INK,
     paddingVertical: 0,
+    // The glyph, the words and the eye share one centre line.
+    textAlignVertical: 'center',
   } as const;
 
   const title = isSignup ? t.signIn.createAccount : t.signIn.welcomeBack;
@@ -279,15 +285,213 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
       ? t.signIn.signupSubline
       : t.signIn.loginSubline;
 
-  const heroFriendsH = windowWidth * 0.94 * (614 / 1200);
+  // The composition, measured rather than assumed, so it holds on any Android
+  // height: the card starts at 44% of the page, unless its own content needs
+  // more room, and the hero — bubbles and friends — takes what is above it.
+  const [pageH, setPageH] = useState(0);
+  const [headerH, setHeaderH] = useState(56);
+  const [cardH, setCardH] = useState(0);
+  const OVERLAP = 26;
+  const cardTop = keyboardOpen
+    ? headerH + 8
+    : Math.max(headerH + 120, Math.min(pageH * 0.44, pageH - cardH));
+  const heroSpace = cardTop - headerH;
+  // The friends' table is hidden under the card: the picture's lower fifth
+  // tucks behind it, which leaves the four faces well clear of the card edge.
+  const HIDDEN = 0.2;
+  const friendsH = Math.max(
+    80,
+    Math.min(windowWidth * 0.9 * (614 / 1200), (heroSpace - 46) / (1 - HIDDEN)),
+  );
+  const friendsW = friendsH * (1200 / 614);
+
+  const form =
+    stage === Stage.Form ? (
+      <Animated.View key="form" entering={reduceMotion ? undefined : FadeIn.duration(160)}>
+        {/* First, because it is the first thing anybody would say. Optional —
+            it is a name, not a credential, and refusing to create an account
+            over a blank one would be picking a fight at the door. Left blank,
+            the profile keeps its placeholder and settings can rename it. */}
+        {askName ? (
+          <View style={[fieldStyle, { marginBottom: 12 }]}>
+            <Ionicons name="person-outline" size={20} color={GLYPH} />
+            <TextInput
+              value={name}
+              onChangeText={setName}
+              autoCapitalize="words"
+              autoCorrect={false}
+              autoComplete="name"
+              textContentType="name"
+              accessibilityLabel={t.common.yourName}
+              placeholder={t.common.yourName}
+              placeholderTextColor={PLACEHOLDER}
+              style={inputStyle}
+            />
+          </View>
+        ) : null}
+        <View style={fieldStyle}>
+          <Ionicons name="mail-outline" size={20} color={GLYPH} />
+          <TextInput
+            value={identifier}
+            onChangeText={setIdentifier}
+            autoCapitalize="none"
+            autoCorrect={false}
+            // The field takes either kind of thing, and this keyboard has the
+            // letters, the digits and the "@" all on it.
+            keyboardType="email-address"
+            autoComplete="username"
+            accessibilityLabel={t.signIn.identifier}
+            placeholder={t.signIn.identifier}
+            placeholderTextColor={PLACEHOLDER}
+            style={inputStyle}
+          />
+        </View>
+        <View style={[fieldStyle, { marginTop: 12 }]}>
+          <Ionicons name="lock-closed-outline" size={20} color={GLYPH} />
+          <TextInput
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry={!passwordShown}
+            autoCapitalize="none"
+            autoComplete={isSignup ? 'new-password' : 'current-password'}
+            accessibilityLabel={t.signIn.password}
+            placeholder={t.signIn.password}
+            placeholderTextColor={PLACEHOLDER}
+            style={inputStyle}
+          />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={passwordShown ? t.signIn.hidePassword : t.signIn.showPassword}
+            onPress={() => setPasswordShown((shown) => !shown)}
+            hitSlop={12}
+            style={({ pressed }) => ({
+              width: 28,
+              height: 28,
+              alignItems: 'center',
+              justifyContent: 'center',
+              opacity: pressed ? 0.6 : 1,
+            })}
+          >
+            <Ionicons
+              name={passwordShown ? 'eye-off-outline' : 'eye-outline'}
+              size={20}
+              color={GLYPH}
+            />
+          </Pressable>
+        </View>
+
+        {/* Passwordless conveniences as text links on one row, not buttons:
+            "Forgot password" is login-only, "Email me a code" is on both doors,
+            neither is for a guest (a fresh code cannot upgrade their account in
+            place). */}
+        {!isGuest ? (
+          <Row style={{ justifyContent: 'center', alignItems: 'center', gap: 10, marginTop: 14 }}>
+            {!isSignup ? (
+              <>
+                <TextLink testID="auth-forgot" onPress={sendCode} disabled={busy}>
+                  {t.signIn.forgotPassword}
+                </TextLink>
+                {/* Decorative only: a screen reader should hear the two links,
+                    not the dot between them. */}
+                <Text
+                  style={{ color: PLACEHOLDER }}
+                  accessibilityElementsHidden
+                  importantForAccessibility="no-hide-descendants"
+                >
+                  ·
+                </Text>
+              </>
+            ) : null}
+            <TextLink testID="auth-email-code" onPress={sendCode} disabled={busy}>
+              {/* The label follows the field, because the link does: a number
+                  in the field sends a text. */}
+              {phoneCodeOffered && looksLikePhone(identifier)
+                ? t.signIn.textMeACode
+                : t.signIn.emailMeACode}
+            </TextLink>
+          </Row>
+        ) : null}
+
+        <View style={{ marginTop: 22 }}>
+          <PrimaryPill
+            testID="auth-submit"
+            label={submitLabel}
+            disabled={busy || !identifier.trim() || password.length < 8}
+            onPress={submitPassword}
+          />
+        </View>
+      </Animated.View>
+    ) : (
+      <Animated.View
+        key="code"
+        entering={reduceMotion ? undefined : FadeIn.duration(160)}
+        style={{ gap: 12 }}
+      >
+        {/* The code face: what was mailed, where, and the way back. */}
+        <Text style={{ fontSize: 14, color: MUTED }}>
+          {t.signIn.emailCodeSentTo.replace('{value}', identifier.trim())}
+        </Text>
+        <View style={fieldStyle}>
+          <TextInput
+            testID="auth-code"
+            value={code}
+            onChangeText={setCode}
+            keyboardType="number-pad"
+            autoComplete="one-time-code"
+            accessibilityLabel={t.contact.verificationCode}
+            placeholder="123456"
+            placeholderTextColor={PLACEHOLDER}
+            style={{
+              flex: 1,
+              fontSize: 26,
+              fontWeight: '700',
+              letterSpacing: 8,
+              color: INK,
+              paddingVertical: 0,
+            }}
+          />
+        </View>
+        <PrimaryPill
+          testID="auth-verify"
+          label={t.signIn.verify}
+          disabled={busy || code.trim().length < 6}
+          onPress={() => void run(() => verifyEmailOtp(identifier.trim(), code.trim()))}
+        />
+        <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+          <TextLink
+            tone="muted"
+            onPress={() => {
+              setStage(Stage.Form);
+              setCode('');
+              setError(null);
+            }}
+          >
+            {t.signIn.usePasswordInstead}
+          </TextLink>
+          <TextLink
+            testID="auth-resend"
+            onPress={sendCode}
+            disabled={busy || resendLeft > 0}
+            tone={resendLeft > 0 ? 'faint' : 'brand'}
+          >
+            {resendLeft > 0
+              ? t.signIn.resendIn.replace('{s}', String(resendLeft))
+              : t.signIn.resendCode}
+          </TextLink>
+        </Row>
+      </Animated.View>
+    );
 
   return (
     <View style={{ flex: 1, backgroundColor: PAGE }}>
-      {/* The door's terrace, softened to a pastel behind the form: the same
-          place as the door, a step further in. */}
+      {/* The door's terrace, quietened: a lavender-white wash that is almost
+          solid across the top — where the logo, the controls and the bubbles
+          are — and thins toward the card, so the place is felt rather than
+          competing with the page. */}
       <Image
         source={SCENE}
         resizeMode="cover"
+        blurRadius={2}
         style={{
           position: 'absolute',
           top: 0,
@@ -296,380 +500,212 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
           width: Math.max(windowWidth, screenHeight * (849 / 1852)),
         }}
       />
-      <View
+      <LinearGradient
         pointerEvents="none"
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(250,246,255,0.62)',
-        }}
+        colors={[
+          'rgba(248,245,255,0.94)',
+          'rgba(246,242,255,0.82)',
+          'rgba(244,239,253,0.58)',
+          'rgba(244,239,253,0.5)',
+        ]}
+        locations={[0, 0.28, 0.45, 1]}
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
       />
-      {/* Soft lavender swells along the foot, under the card. */}
-      <Svg
-        pointerEvents="none"
-        width={windowWidth}
-        height={150}
-        viewBox="0 0 400 150"
-        preserveAspectRatio="none"
-        style={{ position: 'absolute', left: 0, bottom: 0 }}
-      >
-        <Path
-          d="M0 70 C 90 30, 170 100, 260 70 S 360 30, 400 50 L400 150 L0 150 Z"
-          fill="#E6DEFB"
-          opacity={0.8}
-        />
-        <Path
-          d="M0 105 C 110 70, 200 130, 300 100 S 380 80, 400 90 L400 150 L0 150 Z"
-          fill="#D8CCF8"
-          opacity={0.75}
-        />
-      </Svg>
-      <Screen edges={['top', 'bottom']} style={{ backgroundColor: 'transparent' }}>
+
+      <Screen edges={['top']} style={{ backgroundColor: 'transparent' }}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={{ flex: 1 }}
         >
-          {/* Header: back on the leading side, language on the trailing side —
-              reachable from the first frame for somebody who opened the app in a
-              script they cannot read. Round white buttons over the picture. */}
-          <Row style={{ paddingHorizontal: theme.spacing.lg, minHeight: 48 }}>
-            <HeaderGlyph
-              label={t.common.back}
-              icon={directionalIcon('chevron-back')}
-              onPress={goBack}
-            />
-            <View style={{ flex: 1, alignItems: 'center' }}>
-              {keyboardOpen ? null : (
+          <View style={{ flex: 1 }} onLayout={(event) => setPageH(event.nativeEvent.layout.height)}>
+            {/* Header: back on the leading side, language on the trailing side —
+                reachable from the first frame for somebody who opened the app
+                in a script they cannot read. One size, one treatment, one
+                baseline; the logo centred between them. */}
+            <View
+              onLayout={(event) => setHeaderH(event.nativeEvent.layout.height)}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                paddingHorizontal: 20,
+                paddingTop: 10,
+                paddingBottom: 6,
+              }}
+            >
+              <HeaderGlyph
+                label={t.common.back}
+                icon={directionalIcon('chevron-back')}
+                onPress={goBack}
+              />
+              <View style={{ flex: 1, alignItems: 'center' }}>
                 <Image
                   source={WORDMARK}
                   accessibilityLabel={t.common.appName}
                   resizeMode="contain"
-                  style={{ width: windowWidth * 0.34, height: windowWidth * 0.34 * (256 / 720) }}
+                  style={{ width: windowWidth * 0.26, height: windowWidth * 0.26 * (256 / 720) }}
                 />
-              )}
+              </View>
+              <HeaderGlyph
+                label={t.language}
+                icon="globe-outline"
+                onPress={() => router.push('/language')}
+              />
             </View>
-            <HeaderGlyph
-              label={t.language}
-              icon="globe-outline"
-              onPress={() => router.push('/language')}
-            />
-          </Row>
 
-          {/* One screen, as drawn: it only scrolls while the keyboard is up
-              and the card has to move to stay reachable. */}
-          <ScrollView
-            style={{ flex: 1 }}
-            scrollEnabled={keyboardOpen}
-            contentContainerStyle={{ flexGrow: 1, paddingBottom: keyboardOpen ? clearance : 0 }}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-          >
-            {/* The picture above the card: the wordmark, the things people split
-                strung on a line, and the friends. Stands down while the keyboard
-                is up — somebody typing a password needs the room. */}
-            {keyboardOpen ? (
-              <View style={{ height: theme.spacing.md }} />
-            ) : (
+            {/* The hero: bubbles strung above the friends, the friends standing
+                behind the card with their table tucked out of sight. Stands down
+                while the keyboard is up. */}
+            {keyboardOpen || pageH === 0 ? null : (
               <View
                 pointerEvents="none"
                 accessibilityElementsHidden
                 importantForAccessibility="no-hide-descendants"
-                style={{ alignItems: 'center' }}
+                style={{
+                  position: 'absolute',
+                  top: headerH,
+                  left: 0,
+                  right: 0,
+                  height: heroSpace + OVERLAP + friendsH * HIDDEN,
+                }}
               >
-                <View style={{ width: windowWidth, height: 70 }}>
-                  <Svg width={windowWidth} height={80} style={{ position: 'absolute' }}>
-                    <Path
-                      d={`M0 40 C ${windowWidth * 0.18} 10, ${windowWidth * 0.32} 70, ${windowWidth * 0.5} 52 S ${windowWidth * 0.8} 10, ${windowWidth} 30`}
-                      stroke="#D9D2FB"
-                      strokeWidth={2}
-                      fill="none"
-                    />
-                  </Svg>
-                  <Bubble icon="receipt-outline" fg="#B7792E" bg="#FCE6C8" left={0.08} top={2} />
-                  <Bubble icon="cafe-outline" fg="#6A45E8" bg="#E6E0FB" left={0.27} top={24} />
-                  <Bubble icon="card-outline" fg="#D6457E" bg="#FBDDE8" left={0.6} top={16} />
-                  <Bubble icon="people-outline" fg="#2F6FE4" bg="#D9E8FC" left={0.77} top={-6} />
-                </View>
+                <Svg width={windowWidth} height={60} style={{ position: 'absolute', top: 4 }}>
+                  <Path
+                    d={`M0 34 C ${windowWidth * 0.2} 8, ${windowWidth * 0.36} 58, ${windowWidth * 0.52} 40 S ${windowWidth * 0.8} 8, ${windowWidth} 24`}
+                    stroke="#E4DEFA"
+                    strokeWidth={1.5}
+                    fill="none"
+                  />
+                </Svg>
+                <Bubble icon="receipt-outline" fg="#B98A4A" bg="#FBEBD6" left={0.08} top={12} />
+                <Bubble icon="cafe-outline" fg="#7A5CF0" bg="#ECE7FD" left={0.27} top={30} />
+                <Bubble icon="card-outline" fg="#D15C8B" bg="#FBE4EC" left={0.62} top={28} />
+                <Bubble icon="people-outline" fg="#4C7FE0" bg="#E2ECFC" left={0.8} top={6} />
                 <Image
                   source={FRIENDS}
                   resizeMode="contain"
-                  style={{ width: windowWidth * 0.94, height: heroFriendsH, marginBottom: -22 }}
+                  style={{
+                    position: 'absolute',
+                    bottom: 0,
+                    alignSelf: 'center',
+                    width: friendsW,
+                    height: friendsH,
+                  }}
                 />
               </View>
             )}
 
-            {/* The card: the whole form, on white. */}
+            {/* The card: a floating bottom sheet over the friends' feet. */}
             <View
               style={{
-                marginHorizontal: theme.spacing.lg,
-                borderRadius: 28,
+                position: 'absolute',
+                top: cardTop,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                borderTopLeftRadius: 30,
+                borderTopRightRadius: 30,
                 backgroundColor: 'rgba(255,255,255,0.97)',
-                paddingHorizontal: 20,
-                paddingTop: 20,
-                paddingBottom: 16,
                 shadowColor: '#2A1E6B',
-                shadowOpacity: 0.1,
-                shadowRadius: 20,
-                shadowOffset: { width: 0, height: 8 },
-                elevation: 6,
+                shadowOpacity: 0.06,
+                shadowRadius: 16,
+                shadowOffset: { width: 0, height: -4 },
+                elevation: 3,
               }}
             >
-              <View style={{ gap: 2, marginBottom: 14 }}>
-                <Text
-                  maxFontSizeMultiplier={1.15}
-                  style={{
-                    fontFamily: DISPLAY,
-                    fontSize: 30,
-                    lineHeight: 36,
-                    color: INK,
-                    letterSpacing: -0.6,
-                  }}
+              <ScrollView
+                scrollEnabled={keyboardOpen}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                contentContainerStyle={{
+                  paddingHorizontal: 24,
+                  paddingTop: 26,
+                  paddingBottom: insets.bottom + 16,
+                }}
+              >
+                <View
+                  onLayout={(event) =>
+                    setCardH(event.nativeEvent.layout.height + 42 + insets.bottom)
+                  }
                 >
-                  {title}
-                </Text>
-                <Text
-                  maxFontSizeMultiplier={1.15}
-                  style={{ fontFamily: BODY, fontSize: 14, color: MUTED }}
-                >
-                  {subline}
-                </Text>
-              </View>
+                  <Text
+                    maxFontSizeMultiplier={1.15}
+                    style={{
+                      fontFamily: DISPLAY,
+                      fontSize: 29,
+                      lineHeight: 35,
+                      color: INK,
+                      letterSpacing: -0.6,
+                    }}
+                  >
+                    {title}
+                  </Text>
+                  <Text
+                    maxFontSizeMultiplier={1.15}
+                    style={{
+                      fontFamily: BODY,
+                      fontSize: 16,
+                      lineHeight: 22,
+                      color: MUTED,
+                      marginTop: 4,
+                    }}
+                  >
+                    {subline}
+                  </Text>
 
-              {stage === Stage.Form ? (
-                <Animated.View
-                  key="form"
-                  entering={reduceMotion ? undefined : FadeIn.duration(160)}
-                  style={{ gap: 10 }}
-                >
-                  {/* First, because it is the first thing anybody would say.
-                      Optional — it is a name, not a credential, and refusing to
-                      create an account over a blank one would be picking a fight
-                      at the door. Left blank, the profile keeps its placeholder
-                      and settings can rename it later. */}
-                  {askName ? (
-                    <View style={fieldStyle}>
-                      <Ionicons name="person-outline" size={20} color={INK} />
-                      <TextInput
-                        value={name}
-                        onChangeText={setName}
-                        autoCapitalize="words"
-                        autoCorrect={false}
-                        autoComplete="name"
-                        textContentType="name"
-                        accessibilityLabel={t.common.yourName}
-                        placeholder={t.common.yourName}
-                        placeholderTextColor={FAINT}
-                        style={inputStyle}
-                      />
+                  <View style={{ marginTop: 22 }}>{form}</View>
+
+                  {error ? (
+                    <View style={{ marginTop: 14 }}>
+                      <Callout tone="negative">{error}</Callout>
                     </View>
                   ) : null}
-                  <View style={fieldStyle}>
-                    <Ionicons name="mail-outline" size={20} color={INK} />
-                    <TextInput
-                      value={identifier}
-                      onChangeText={setIdentifier}
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                      // The field takes either kind of thing, and this keyboard
-                      // has the letters, the digits and the "@" all on it.
-                      keyboardType="email-address"
-                      autoComplete="username"
-                      accessibilityLabel={t.signIn.identifier}
-                      placeholder={t.signIn.identifier}
-                      placeholderTextColor={FAINT}
-                      style={inputStyle}
-                    />
-                  </View>
-                  <View style={fieldStyle}>
-                    <Ionicons name="lock-closed-outline" size={20} color={INK} />
-                    <TextInput
-                      value={password}
-                      onChangeText={setPassword}
-                      secureTextEntry={!passwordShown}
-                      autoCapitalize="none"
-                      autoComplete={isSignup ? 'new-password' : 'current-password'}
-                      accessibilityLabel={t.signIn.password}
-                      placeholder={t.signIn.password}
-                      placeholderTextColor={FAINT}
-                      style={inputStyle}
-                    />
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel={
-                        passwordShown ? t.signIn.hidePassword : t.signIn.showPassword
-                      }
-                      onPress={() => setPasswordShown((shown) => !shown)}
-                      hitSlop={12}
-                      style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
-                    >
-                      <Ionicons
-                        name={passwordShown ? 'eye-off-outline' : 'eye-outline'}
-                        size={21}
-                        color={INK}
-                      />
-                    </Pressable>
-                  </View>
 
-                  {/* Passwordless conveniences as text links on one row, not
-                      buttons: "Forgot password" is login-only, "Email me a code"
-                      is on both doors, neither is for a guest (a fresh code
-                      cannot upgrade their account in place). */}
-                  {!isGuest ? (
-                    <Row
-                      style={{
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        gap: 10,
-                        marginTop: 2,
-                      }}
-                    >
-                      {!isSignup ? (
-                        <>
-                          <TextLink testID="auth-forgot" onPress={sendCode} disabled={busy}>
-                            {t.signIn.forgotPassword}
-                          </TextLink>
-                          {/* Decorative only: a screen reader should hear the
-                              two links, not the dot between them. */}
-                          <Text
-                            style={{ color: ACCENT }}
-                            accessibilityElementsHidden
-                            importantForAccessibility="no-hide-descendants"
-                          >
-                            ·
-                          </Text>
-                        </>
-                      ) : null}
-                      <TextLink testID="auth-email-code" onPress={sendCode} disabled={busy}>
-                        {/* The label follows the field, because the link does: a
-                            number in the field sends a text. */}
-                        {phoneCodeOffered && looksLikePhone(identifier)
-                          ? t.signIn.textMeACode
-                          : t.signIn.emailMeACode}
-                      </TextLink>
+                  {/* The other ways in: a seam, then three equal round buttons. */}
+                  <View style={{ marginTop: 22, gap: 16 }}>
+                    <Row style={{ alignItems: 'center', gap: 12 }}>
+                      <View style={{ flex: 1, height: 1, backgroundColor: LINE }} />
+                      <Text style={{ fontSize: 14, color: MUTED }}>{t.signIn.orContinueWith}</Text>
+                      <View style={{ flex: 1, height: 1, backgroundColor: LINE }} />
                     </Row>
-                  ) : null}
-
-                  <PrimaryPill
-                    testID="auth-submit"
-                    label={submitLabel}
-                    disabled={busy || !identifier.trim() || password.length < 8}
-                    onPress={submitPassword}
-                  />
-                </Animated.View>
-              ) : (
-                <Animated.View
-                  key="code"
-                  entering={reduceMotion ? undefined : FadeIn.duration(160)}
-                  style={{ gap: 12 }}
-                >
-                  {/* The code face: what was mailed, where, and the way back. */}
-                  <Text style={{ fontSize: 14, color: MUTED }}>
-                    {t.signIn.emailCodeSentTo.replace('{value}', identifier.trim())}
-                  </Text>
-                  <View style={[fieldStyle, { height: 64 }]}>
-                    <TextInput
-                      testID="auth-code"
-                      value={code}
-                      onChangeText={setCode}
-                      keyboardType="number-pad"
-                      autoComplete="one-time-code"
-                      accessibilityLabel={t.contact.verificationCode}
-                      placeholder="123456"
-                      placeholderTextColor={FAINT}
-                      style={{
-                        flex: 1,
-                        fontSize: 28,
-                        fontWeight: '700',
-                        letterSpacing: 8,
-                        color: INK,
-                        paddingVertical: 0,
-                      }}
+                    <SocialTiles
+                      busy={busy}
+                      onGoogle={() => void run(withGoogle)}
+                      onApple={() => void run(withApple)}
+                      // Absent from sign-up by the rule below, and absent from a
+                      // build that cannot do it at all: Firebase is a native
+                      // module, and a tile over nothing is worse than no tile.
+                      onPhone={
+                        isSignup || !phoneSignInAvailable()
+                          ? undefined
+                          : () => router.push('/phone')
+                      }
+                      t={t}
                     />
+                    {/* ADR-006 addendum: the guest way in belongs to the sign-up
+                        page — a text link, one tap, still before any detail. */}
+                    {isSignup && !isGuest ? (
+                      <View style={{ alignItems: 'center' }}>
+                        <TextLink
+                          testID="auth-guest"
+                          onPress={() => router.push('/guest-welcome')}
+                          disabled={busy}
+                        >
+                          {t.signIn.continueGuest}
+                        </TextLink>
+                      </View>
+                    ) : null}
+                    {/* Only the guest upgrade, where the reassurance answers a
+                        real question: "does my week of expenses come with me?" */}
+                    {isGuest ? (
+                      <Text style={{ fontSize: 12, color: MUTED, textAlign: 'center' }}>
+                        {t.signIn.guestFootnote}
+                      </Text>
+                    ) : null}
                   </View>
-                  <PrimaryPill
-                    testID="auth-verify"
-                    label={t.signIn.verify}
-                    disabled={busy || code.trim().length < 6}
-                    onPress={() => void run(() => verifyEmailOtp(identifier.trim(), code.trim()))}
-                  />
-                  <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                    <TextLink
-                      tone="muted"
-                      onPress={() => {
-                        setStage(Stage.Form);
-                        setCode('');
-                        setError(null);
-                      }}
-                    >
-                      {t.signIn.usePasswordInstead}
-                    </TextLink>
-                    <TextLink
-                      testID="auth-resend"
-                      onPress={sendCode}
-                      disabled={busy || resendLeft > 0}
-                      tone={resendLeft > 0 ? 'faint' : 'brand'}
-                    >
-                      {resendLeft > 0
-                        ? t.signIn.resendIn.replace('{s}', String(resendLeft))
-                        : t.signIn.resendCode}
-                    </TextLink>
-                  </Row>
-                </Animated.View>
-              )}
-
-              {error ? (
-                <View style={{ marginTop: 14 }}>
-                  <Callout tone="negative">{error}</Callout>
                 </View>
-              ) : null}
-
-              {/* The other ways in: a seam, then round buttons. */}
-              <View style={{ gap: 12, marginTop: 14 }}>
-                <Row style={{ alignItems: 'center', gap: 12 }}>
-                  <View style={{ flex: 1, height: 1, backgroundColor: LINE }} />
-                  <Text style={{ fontSize: 14, color: MUTED }}>{t.signIn.orContinueWith}</Text>
-                  <View style={{ flex: 1, height: 1, backgroundColor: LINE }} />
-                </Row>
-                <SocialTiles
-                  busy={busy}
-                  onGoogle={() => void run(withGoogle)}
-                  onApple={() => void run(withApple)}
-                  // Absent from sign-up by the rule below, and absent from a
-                  // build that cannot do it at all. Firebase is a native module:
-                  // a JavaScript-only update onto a binary made before it
-                  // existed leaves this tile drawn and every tap behind it dead.
-                  onPhone={
-                    isSignup || !phoneSignInAvailable() ? undefined : () => router.push('/phone')
-                  }
-                  t={t}
-                />
-                {/* ADR-006 addendum: the guest way in belongs to the sign-up
-                    page — a text link, one tap, still before any detail. */}
-                {isSignup && !isGuest ? (
-                  <View style={{ alignItems: 'center' }}>
-                    <TextLink
-                      testID="auth-guest"
-                      onPress={() => router.push('/guest-welcome')}
-                      disabled={busy}
-                    >
-                      {t.signIn.continueGuest}
-                    </TextLink>
-                  </View>
-                ) : null}
-                {/* Only the guest upgrade, where the reassurance answers a real
-                    question: "does the trip I have been adding to all week come
-                    with me?" */}
-                {isGuest ? (
-                  <Text style={{ fontSize: 12, color: MUTED, textAlign: 'center' }}>
-                    {t.signIn.guestFootnote}
-                  </Text>
-                ) : null}
-              </View>
+              </ScrollView>
             </View>
-          </ScrollView>
+          </View>
         </KeyboardAvoidingView>
       </Screen>
     </View>
@@ -698,20 +734,16 @@ function Bubble({
         position: 'absolute',
         left: width * left,
         top,
-        width: 50,
-        height: 50,
-        borderRadius: 25,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: bg,
-        shadowColor: '#2A1E6B',
-        shadowOpacity: 0.08,
-        shadowRadius: 8,
-        shadowOffset: { width: 0, height: 3 },
-        elevation: 2,
+        opacity: 0.92,
       }}
     >
-      <Ionicons name={icon} size={24} color={fg} />
+      <Ionicons name={icon} size={19} color={fg} />
     </View>
   );
 }
@@ -729,6 +761,35 @@ function PrimaryPill({
   disabled: boolean;
   testID?: string;
 }) {
+  // At rest it is a quiet lavender with soft-white words — plainly waiting, not
+  // broken. With both fields filled it takes the full Waves gradient.
+  const face = (
+    <>
+      <Text
+        maxFontSizeMultiplier={1.15}
+        style={{
+          fontSize: 17,
+          fontWeight: '700',
+          color: disabled ? 'rgba(255,255,255,0.92)' : '#FFFFFF',
+        }}
+      >
+        {label}
+      </Text>
+      <Ionicons
+        name={directionalIcon('arrow-forward')}
+        size={20}
+        color={disabled ? 'rgba(255,255,255,0.92)' : '#FFFFFF'}
+      />
+    </>
+  );
+  const shape = {
+    height: 54,
+    borderRadius: 27,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    gap: 10,
+  };
   return (
     <Pressable
       testID={testID}
@@ -738,37 +799,27 @@ function PrimaryPill({
       disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => ({
-        marginTop: 4,
-        borderRadius: 23,
-        opacity: disabled ? 0.55 : pressed ? 0.9 : 1,
+        borderRadius: 27,
+        opacity: pressed ? 0.9 : 1,
         shadowColor: '#6A45E8',
-        shadowOpacity: disabled ? 0 : 0.3,
-        shadowRadius: 12,
-        shadowOffset: { width: 0, height: 6 },
-        elevation: disabled ? 0 : 4,
+        shadowOpacity: disabled ? 0 : 0.22,
+        shadowRadius: 10,
+        shadowOffset: { width: 0, height: 4 },
+        elevation: disabled ? 0 : 3,
       })}
     >
-      <LinearGradient
-        colors={['#7A5CF5', '#8E6CF7']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={{
-          height: 46,
-          borderRadius: 23,
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 10,
-        }}
-      >
-        <Text
-          maxFontSizeMultiplier={1.15}
-          style={{ fontSize: 17, fontWeight: '700', color: '#FFFFFF' }}
+      {disabled ? (
+        <View style={[shape, { backgroundColor: PILL_REST }]}>{face}</View>
+      ) : (
+        <LinearGradient
+          colors={['#6A45E8', '#8B6CF6']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={shape}
         >
-          {label}
-        </Text>
-        <Ionicons name={directionalIcon('arrow-forward')} size={20} color="#FFFFFF" />
-      </LinearGradient>
+          {face}
+        </LinearGradient>
+      )}
     </Pressable>
   );
 }
@@ -790,21 +841,18 @@ function HeaderGlyph({
       hitSlop={12}
       onPress={onPress}
       style={({ pressed }) => ({
-        width: 44,
-        height: 44,
-        borderRadius: 22,
+        width: 42,
+        height: 42,
+        borderRadius: 21,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: 'rgba(255,255,255,0.92)',
+        backgroundColor: 'rgba(255,255,255,0.88)',
+        borderWidth: 1,
+        borderColor: 'rgba(230,226,244,0.9)',
         opacity: pressed ? 0.6 : 1,
-        shadowColor: '#2A1E6B',
-        shadowOpacity: 0.08,
-        shadowRadius: 8,
-        shadowOffset: { width: 0, height: 2 },
-        elevation: 2,
       })}
     >
-      <Ionicons name={icon} size={22} color={INK} />
+      <Ionicons name={icon} size={20} color={INK} />
     </Pressable>
   );
 }
@@ -881,7 +929,7 @@ function SocialTiles({
       onPress={onGoogle}
       face="#FFFFFF"
     >
-      <GoogleMark size={26} />
+      <GoogleMark size={22} />
     </RoundWay>
   );
   const apple = (
@@ -892,9 +940,9 @@ function SocialTiles({
       caption={t.signIn.providerApple}
       disabled={busy}
       onPress={onApple}
-      face="#000000"
+      face="#FFFFFF"
     >
-      <AppleMark size={28} />
+      <AppleMark size={22} color="#111111" />
     </RoundWay>
   );
   const phone = onPhone ? (
@@ -905,13 +953,13 @@ function SocialTiles({
       caption={t.signIn.providerPhone}
       disabled={busy}
       onPress={onPhone}
-      face="#F1EDFD"
+      face="#FFFFFF"
     >
-      <Ionicons name="call-outline" size={24} color={ACCENT} />
+      <Ionicons name="call-outline" size={22} color={ACCENT} />
     </RoundWay>
   ) : null;
   const order = Platform.OS === 'ios' ? [apple, google, phone] : [google, apple, phone];
-  return <Row style={{ justifyContent: 'center', gap: 30 }}>{order.filter(Boolean)}</Row>;
+  return <Row style={{ justifyContent: 'space-evenly' }}>{order.filter(Boolean)}</Row>;
 }
 
 /** One round way in, with its one-word caption under it. */
@@ -948,19 +996,14 @@ function RoundWay({
     >
       <View
         style={{
-          width: 48,
-          height: 48,
-          borderRadius: 24,
+          width: 52,
+          height: 52,
+          borderRadius: 26,
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: face,
-          borderWidth: face === '#FFFFFF' ? 1 : 0,
-          borderColor: LINE,
-          shadowColor: '#2A1E6B',
-          shadowOpacity: 0.08,
-          shadowRadius: 8,
-          shadowOffset: { width: 0, height: 3 },
-          elevation: 2,
+          borderWidth: 1,
+          borderColor: FIELD_LINE,
         }}
       >
         {children}
