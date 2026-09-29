@@ -3467,6 +3467,7 @@ export interface UiStrings {
     badge: string;
   };
   privacy: {
+    exportMine: string;
     row: string;
     rowHint: string;
     title: string;
@@ -6690,6 +6691,7 @@ const en: UiStrings = {
     badge: 'Blocked',
   },
   privacy: {
+    exportMine: 'Export my data',
     row: 'Privacy',
     rowHint: 'What is stored, and how it is kept',
     title: 'Privacy',
@@ -10038,6 +10040,7 @@ const ta: UiStrings = {
     badge: 'தடுக்கப்பட்டது',
   },
   privacy: {
+    exportMine: 'என் தரவை ஏற்றுமதி செய்',
     row: 'தனியுரிமை',
     rowHint: 'என்ன சேமிக்கப்படுகிறது, எப்படி பாதுகாக்கப்படுகிறது',
     title: 'தனியுரிமை',
@@ -13281,6 +13284,7 @@ const hi: UiStrings = {
     badge: 'अवरोधित',
   },
   privacy: {
+    exportMine: 'मेरा डेटा एक्सपोर्ट करें',
     row: 'निजता',
     rowHint: 'क्या रखा जाता है, और कैसे सुरक्षित रहता है',
     title: 'निजता',
@@ -16958,6 +16962,7 @@ const ar: UiStrings = {
     badge: 'محظور',
   },
   privacy: {
+    exportMine: 'تصدير بياناتي',
     row: 'الخصوصية',
     rowHint: 'ما الذي يُحفظ، وكيف يُحمى',
     title: 'الخصوصية',
