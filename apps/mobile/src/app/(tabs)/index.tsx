@@ -583,19 +583,19 @@ export default function HomeScreen() {
                   accessibilityLabel={t.newGroup}
                   onPress={openNewGroup}
                   style={({ pressed }) => ({
-                    marginTop: 8,
-                    height: 50,
-                    paddingHorizontal: 32,
-                    borderRadius: 25,
+                    marginTop: 6,
+                    height: 42,
+                    paddingHorizontal: 22,
+                    borderRadius: 21,
                     flexDirection: 'row',
                     alignItems: 'center',
-                    gap: 10,
+                    gap: 8,
                     backgroundColor: theme.scheme === 'dark' ? theme.color.brand : '#3E2A9E',
                     opacity: pressed ? 0.88 : 1,
                   })}
                 >
-                  <Ionicons name="people-outline" size={22} color="#FFFFFF" />
-                  <Text style={{ fontSize: 17, fontWeight: '700', color: '#FFFFFF' }}>
+                  <Ionicons name="people-outline" size={18} color="#FFFFFF" />
+                  <Text style={{ fontSize: 15, fontWeight: '700', color: '#FFFFFF' }}>
                     {t.newGroup}
                   </Text>
                 </Pressable>
