@@ -61,8 +61,8 @@ const DISPLAY = 'PlusJakartaSans-ExtraBold';
 const BODY = 'PlusJakartaSans-Medium';
 const CARD = {
   backgroundColor: '#FFFFFF',
-  borderRadius: 22,
-  padding: 18,
+  borderRadius: 18,
+  padding: 14,
   shadowColor: '#2A1E6B',
   shadowOpacity: 0.06,
   shadowRadius: 16,
@@ -162,7 +162,7 @@ export default function PhoneScreen() {
     else router.replace('/welcome');
   };
 
-  const artW = windowWidth * 0.46;
+  const artW = windowWidth * 0.4;
 
   return (
     <View style={{ flex: 1, backgroundColor: PAGE }}>
@@ -214,9 +214,9 @@ export default function PhoneScreen() {
                 hitSlop={12}
                 onPress={onBack}
                 style={({ pressed }) => ({
-                  width: 42,
-                  height: 42,
-                  borderRadius: 21,
+                  width: 38,
+                  height: 38,
+                  borderRadius: 19,
                   alignItems: 'center',
                   justifyContent: 'center',
                   backgroundColor: 'rgba(255,255,255,0.9)',
@@ -232,7 +232,7 @@ export default function PhoneScreen() {
             {/* The heading beside the picture: the logo, what this step is, and
                 the promise under it. The picture stands down once a field has
                 the keyboard, and on the code step. */}
-            <View style={{ marginTop: 18, minHeight: stage === 'phone' ? artW * 1.2 : undefined }}>
+            <View style={{ marginTop: 18, minHeight: stage === 'phone' ? artW * 1.05 : undefined }}>
               {stage === 'phone' ? (
                 <View
                   pointerEvents="none"
@@ -272,17 +272,17 @@ export default function PhoneScreen() {
                 source={WORDMARK}
                 accessibilityLabel={t.common.appName}
                 resizeMode="contain"
-                style={{ width: windowWidth * 0.3, height: windowWidth * 0.3 * (256 / 720) }}
+                style={{ width: windowWidth * 0.24, height: windowWidth * 0.24 * (256 / 720) }}
               />
               <Text
                 maxFontSizeMultiplier={1}
                 style={{
                   fontFamily: DISPLAY,
-                  fontSize: 34,
-                  lineHeight: 40,
+                  fontSize: 26,
+                  lineHeight: 32,
                   color: INK,
                   letterSpacing: -0.8,
-                  marginTop: 14,
+                  marginTop: 10,
                   maxWidth: stage === 'phone' ? windowWidth * 0.52 : undefined,
                 }}
               >
@@ -292,10 +292,10 @@ export default function PhoneScreen() {
                 maxFontSizeMultiplier={1}
                 style={{
                   fontFamily: BODY,
-                  fontSize: 15,
-                  lineHeight: 22,
+                  fontSize: 14,
+                  lineHeight: 20,
                   color: MUTED,
-                  marginTop: 10,
+                  marginTop: 8,
                   maxWidth: stage === 'phone' ? windowWidth * 0.5 : undefined,
                 }}
               >
@@ -337,7 +337,7 @@ export default function PhoneScreen() {
                 <View style={[CARD, { marginTop: 18 }]}>
                   <Text
                     maxFontSizeMultiplier={1}
-                    style={{ fontSize: 15, fontWeight: '600', color: '#4A4E68', marginBottom: 10 }}
+                    style={{ fontSize: 13, fontWeight: '600', color: '#4A4E68', marginBottom: 8 }}
                   >
                     {t.signIn.phoneNumber}
                   </Text>
@@ -345,9 +345,9 @@ export default function PhoneScreen() {
                     style={{
                       alignItems: 'center',
                       gap: 12,
-                      minHeight: 56,
-                      paddingHorizontal: 8,
-                      borderRadius: 16,
+                      minHeight: 46,
+                      paddingHorizontal: 6,
+                      borderRadius: 14,
                       borderWidth: 1,
                       borderColor: FIELD_LINE,
                     }}
@@ -366,32 +366,32 @@ export default function PhoneScreen() {
                       placeholderTextColor="#9A9EB2"
                       style={{
                         flex: 1,
-                        fontSize: 17,
+                        fontSize: 15,
                         fontWeight: '600',
                         color: INK,
-                        paddingVertical: 10,
+                        paddingVertical: 6,
                       }}
                     />
                   </Row>
                 </View>
 
                 {/* What the number is for, said once and plainly. */}
-                <Row style={{ alignItems: 'center', gap: 14, marginTop: 20, paddingHorizontal: 4 }}>
+                <Row style={{ alignItems: 'center', gap: 12, marginTop: 14, paddingHorizontal: 4 }}>
                   <View
                     style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 20,
+                      width: 34,
+                      height: 34,
+                      borderRadius: 17,
                       alignItems: 'center',
                       justifyContent: 'center',
                       backgroundColor: '#ECE7FD',
                     }}
                   >
-                    <Ionicons name="lock-closed-outline" size={18} color={ACCENT} />
+                    <Ionicons name="lock-closed-outline" size={16} color={ACCENT} />
                   </View>
                   <Text
                     maxFontSizeMultiplier={1}
-                    style={{ flex: 1, fontSize: 14, lineHeight: 20, color: '#4A4E68' }}
+                    style={{ flex: 1, fontSize: 13, lineHeight: 18, color: '#4A4E68' }}
                   >
                     {t.entry.phoneNote}
                   </Text>
@@ -521,7 +521,7 @@ function Pill({
       <Text
         maxFontSizeMultiplier={1}
         style={{
-          fontSize: 17,
+          fontSize: 15,
           fontWeight: '700',
           color: disabled ? 'rgba(255,255,255,0.92)' : '#FFFFFF',
         }}
@@ -530,14 +530,14 @@ function Pill({
       </Text>
       <Ionicons
         name={directionalIcon('arrow-forward')}
-        size={20}
+        size={18}
         color={disabled ? 'rgba(255,255,255,0.92)' : '#FFFFFF'}
       />
     </>
   );
   const shape = {
-    height: 56,
-    borderRadius: 28,
+    height: 46,
+    borderRadius: 23,
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
@@ -551,7 +551,7 @@ function Pill({
       disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => ({
-        borderRadius: 28,
+        borderRadius: 23,
         opacity: pressed ? 0.9 : 1,
         shadowColor: '#6A45E8',
         shadowOpacity: disabled ? 0 : 0.25,
