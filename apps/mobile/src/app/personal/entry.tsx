@@ -112,6 +112,8 @@ function PersonalEntryScreenBody() {
         there, so the form opens on it rather than throwing it away. */
     amount?: string;
     currency?: string;
+    /** The quick sheet's note, when one was typed before "Advanced". */
+    note?: string;
   }>();
   const { hydrated } = useSync();
   const { txns, recurrings } = usePersonalLedger();
@@ -164,6 +166,7 @@ function PersonalEntryScreenBody() {
       paramLoanId={typeof params.loanId === 'string' ? params.loanId : null}
       startRepeating={params.repeats === '1'}
       startAmount={routeAmount(params.amount)}
+      startNote={typeof params.note === 'string' ? params.note : ''}
       currency={editingTxn?.currency ?? editingRule?.currency ?? params.currency ?? dc}
       t={t}
     />
@@ -177,6 +180,7 @@ function EntryForm({
   paramLoanId,
   startRepeating,
   startAmount,
+  startNote,
   currency,
   t,
 }: {
@@ -187,6 +191,7 @@ function EntryForm({
   startRepeating: boolean;
   /** What a hand-off already knows the amount to be; zero for a bare new entry. */
   startAmount: bigint;
+  startNote: string;
   currency: string;
   t: ReturnType<typeof useStrings>['t'];
 }) {
@@ -202,7 +207,7 @@ function EntryForm({
     editingTxn?.kind ?? editingRule?.txnKind ?? defaultKind,
   );
   const [amount, setAmount] = useState<bigint>(editing?.amount ?? startAmount);
-  const [note, setNote] = useState(editing?.note ?? '');
+  const [note, setNote] = useState(editing?.note ?? startNote);
   const [category, setCategory] = useState<string | null>(editing?.category ?? null);
   // For a one-off this is the day it happened; for a repeating one it is the day
   // the schedule *starts*, which is why an existing rule opens on its anchor and

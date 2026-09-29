@@ -52,6 +52,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
  * a suffixed one.
  */
 const introSlot = (ownerId: string): string => `waves.onboarding_seen.${ownerId}`;
+/** The Personal tab's own intro, met the first time that tab opens. */
+const personalIntroSlot = (ownerId: string): string => `waves.personal_intro_seen.${ownerId}`;
 /** Bumping the `v1` re-shows the coach-marks to everyone after they change shape. */
 const tourSlot = (ownerId: string): string => `waves.tour_seen_v1.${ownerId}`;
 
@@ -97,6 +99,19 @@ export const tourSeen = (ownerId: string): Promise<boolean> => readFlag(tourSlot
 export const rememberTourSeen = (ownerId: string): Promise<void> => writeFlag(tourSlot(ownerId));
 
 /**
+ * Has this account already been shown the Personal tab's intro? Never rejects.
+ *
+ * Unreadable storage reports "seen": the intro is a full-screen layer over the
+ * tab, and a phone that cannot answer must not trap somebody behind it.
+ */
+export const personalIntroSeen = (ownerId: string): Promise<boolean> =>
+  readFlag(personalIntroSlot(ownerId), true);
+
+/** Remember that this account is done with the Personal intro. Never rejects. */
+export const rememberPersonalIntroSeen = (ownerId: string): Promise<void> =>
+  writeFlag(personalIntroSlot(ownerId));
+
+/**
  * Drop both answers for an account that no longer exists. Never rejects.
  *
  * Only for erasure, and deliberately not for signing out: an account that signs
@@ -110,6 +125,7 @@ export async function forgetTours(ownerId: string): Promise<void> {
   try {
     await AsyncStorage.removeItem(introSlot(ownerId));
     await AsyncStorage.removeItem(tourSlot(ownerId));
+    await AsyncStorage.removeItem(personalIntroSlot(ownerId));
   } catch {
     // Sixty bytes that outlive the account they describe. Not worth a word to
     // the person who is in the middle of deleting everything they own.

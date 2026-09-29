@@ -20,7 +20,7 @@
  * it was last open (idempotent — see `postDueRecurring`).
  */
 
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { BlurTargetView } from 'expo-blur';
 import { Animated, Pressable, ScrollView, StyleSheet, View } from 'react-native';
@@ -61,6 +61,8 @@ import { HeroAvatar, HeroIconButton } from '@/components/home/HeroControls';
 import { PersonalHeroBackground } from '@/components/home/PersonalHeroBackground';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { PersonalLocked } from '@/components/PersonalGuard';
+import { PersonalIntro } from '@/components/PersonalIntro';
+import { personalIntroSeen, rememberPersonalIntroSeen } from '@/lib/onboardingSeen';
 import { useAvatarUrl } from '@/components/ProfileAvatar';
 import { useSourceLabel } from '@/components/IncomeSource';
 import { useHeroStatusBar } from '@/components/ScreenHero';
@@ -73,7 +75,7 @@ import {
 } from '@/data/personal';
 import { useDefaultCurrency } from '@/lib/currency';
 import { dateTimeFormat } from '@/lib/dateTimeFormat';
-import { useAuth } from '@/lib/auth';
+import { useAuth, useViewerId } from '@/lib/auth';
 import { usePersonalGate } from '@/lib/lock';
 import { router } from '@/lib/navigation';
 import { useHeroScene } from '@/lib/heroScenePreference';
@@ -253,6 +255,28 @@ function MeLedger() {
   // shield — no hero, no figures — so nothing is on show behind the OS prompt.
   // A refused check stays here with a way to try again, rather than sending the
   // user backwards without a word.
+  // The tab's own intro, once per account, after the lock has let them in.
+  // Keyed on the session's user rather than the profile, which can arrive late
+  // or not at all; and held as *which* account it is open for, so a switch to
+  // another account never carries the first one's open intro across.
+  const ownerId = useViewerId();
+  const [introFor, setIntroFor] = useState<string | null>(null);
+  const introOpen = introFor !== null && introFor === ownerId;
+  useEffect(() => {
+    if (!gate.unlocked || !ownerId) return;
+    let live = true;
+    void personalIntroSeen(ownerId).then((seen) => {
+      if (live && !seen) setIntroFor(ownerId);
+    });
+    return () => {
+      live = false;
+    };
+  }, [gate.unlocked, ownerId]);
+  const closeIntro = useCallback(() => {
+    setIntroFor(null);
+    if (ownerId) void rememberPersonalIntroSeen(ownerId);
+  }, [ownerId]);
+
   if (!gate.unlocked) return <PersonalLocked gate={gate} />;
 
   // Nothing in the section at all — no entry, no recurring rule, no loan, no
@@ -266,7 +290,14 @@ function MeLedger() {
     ledger.recurrings.length === 0 &&
     ledger.loans.length === 0 &&
     ledger.budgets.length === 0;
-  if (blank) return <PersonalFirstRun t={t} />;
+  if (blank) {
+    return (
+      <>
+        <PersonalFirstRun t={t} />
+        <PersonalIntro visible={introOpen} onDone={closeIntro} />
+      </>
+    );
+  }
 
   const canBrowse = maxBack > 0;
   const monthItems: OverflowMenuItem[] = Array.from(
@@ -638,6 +669,7 @@ function MeLedger() {
           { icon: 'lock-closed-outline', label: t.personal.dash.settings, route: '/settings/lock' },
         ]}
       />
+      <PersonalIntro visible={introOpen} onDone={closeIntro} />
     </Screen>
   );
 }

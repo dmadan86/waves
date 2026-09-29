@@ -44,11 +44,15 @@ export type HeroTheme = {
   haze: string;
   /** The foreground leaves: their body and the edge the light catches. */
   foliage: { leaf: string; highlight: string; stem: string };
-  /** The readability shade across the top, under the greeting. */
+  /** The readability shade across the top, under the greeting: a light wash
+   *  under dark ink, a dark one under white. */
   overlay: string;
   /** The scene's own accent — lanterns, lights, the sun's rays. */
   accent: string;
   decoration: SceneDecoration;
+  /** The greeting's ink: dark on a pale sky, white on a deep one. The icons
+   *  and the status bar follow it. */
+  ink: 'dark' | 'light';
 };
 
 export const HERO_THEMES: Readonly<Record<Scene, HeroTheme>> = {
@@ -58,9 +62,10 @@ export const HERO_THEMES: Readonly<Record<Scene, HeroTheme>> = {
     mountains: ['#A9BEDC', '#7F9DC4'],
     haze: 'rgba(252, 240, 222, 0.55)',
     foliage: { leaf: '#4E9A5B', highlight: '#8FD08A', stem: '#3E6B3F' },
-    overlay: 'rgba(28, 40, 80, 0.32)',
+    overlay: 'rgba(255, 255, 255, 0.35)',
     accent: '#FFE3A3',
     decoration: SceneDecoration.Sunbeams,
+    ink: 'dark',
   },
   [Scene.Afternoon]: {
     sky: ['#3C8BE6', '#7DB8F2', '#CDE6FA'],
@@ -68,9 +73,10 @@ export const HERO_THEMES: Readonly<Record<Scene, HeroTheme>> = {
     mountains: ['#8DB2DE', '#5C8BC4'],
     haze: 'rgba(220, 238, 252, 0.5)',
     foliage: { leaf: '#3F9A4A', highlight: '#7ED36F', stem: '#2F6A35' },
-    overlay: 'rgba(20, 40, 90, 0.32)',
+    overlay: 'rgba(255, 255, 255, 0.35)',
     accent: '#FFFFFF',
     decoration: SceneDecoration.Birds,
+    ink: 'dark',
   },
   [Scene.Sunset]: {
     sky: ['#D9624A', '#F29A5C', '#FBD08A'],
@@ -81,6 +87,7 @@ export const HERO_THEMES: Readonly<Record<Scene, HeroTheme>> = {
     overlay: 'rgba(60, 20, 40, 0.34)',
     accent: '#FFB347',
     decoration: SceneDecoration.Lanterns,
+    ink: 'light',
   },
   [Scene.Evening]: {
     sky: ['#3E2F7A', '#7A4FB0', '#D98BA8'],
@@ -91,6 +98,7 @@ export const HERO_THEMES: Readonly<Record<Scene, HeroTheme>> = {
     overlay: 'rgba(20, 12, 50, 0.3)',
     accent: '#FFCB6B',
     decoration: SceneDecoration.FairyLights,
+    ink: 'light',
   },
   [Scene.Night]: {
     sky: ['#0E1540', '#1F2A66', '#3B4A8C'],
@@ -101,6 +109,7 @@ export const HERO_THEMES: Readonly<Record<Scene, HeroTheme>> = {
     overlay: 'rgba(5, 8, 30, 0.24)',
     accent: '#DDE4FF',
     decoration: SceneDecoration.Stars,
+    ink: 'light',
   },
   [Scene.Winter]: {
     sky: ['#8E86C8', '#BDC3EA', '#EEF1FB'],
@@ -108,9 +117,10 @@ export const HERO_THEMES: Readonly<Record<Scene, HeroTheme>> = {
     mountains: ['#C7CFEA', '#9DA8D2'],
     haze: 'rgba(240, 244, 252, 0.6)',
     foliage: { leaf: '#3C5A5E', highlight: '#FFFFFF', stem: '#2C3E42' },
-    overlay: 'rgba(40, 36, 90, 0.32)',
+    overlay: 'rgba(255, 255, 255, 0.35)',
     accent: '#FFFFFF',
     decoration: SceneDecoration.Snow,
+    ink: 'dark',
   },
 };
 

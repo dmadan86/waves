@@ -35,7 +35,12 @@ import { SyncStatus, useSync } from '@/sync';
 export function SyncStatusIcon({
   onBrand = false,
   groupId,
-}: { onBrand?: boolean; groupId?: string } = {}) {
+  ink,
+}: {
+  onBrand?: boolean;
+  groupId?: string;
+  /** Overrides the neutral glyph colour. */ ink?: string;
+} = {}) {
   const theme = useTheme();
   const reduceMotion = useReducedMotion();
   const { t, locale } = useStrings();
@@ -88,7 +93,7 @@ export function SyncStatusIcon({
   // On the green hero the glyph rides white ink (onBrand); everywhere else the
   // neutral header ink. Red still wins for a refused change — it needs to read
   // as an alert whatever it sits on.
-  const neutral = onBrand ? theme.color.onBrand : theme.color.text;
+  const neutral = ink ?? (onBrand ? theme.color.onBrand : theme.color.text);
   const state =
     stopped > 0
       ? {
