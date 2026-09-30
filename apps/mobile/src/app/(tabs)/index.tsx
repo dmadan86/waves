@@ -23,7 +23,6 @@ import {
   Popup,
   Row,
   Screen,
-  Sheet,
   Skeleton,
   Text,
   useTabBarClearance,
@@ -47,7 +46,6 @@ import { SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
 import { HERO_THEMES } from '@/lib/scene';
 import { router } from '@/lib/navigation';
 import { usePromptSlot } from '@/lib/promptQueue';
-import { useDashboardTips } from '@/lib/tips';
 import { TourTarget, useTour } from '@/lib/tour';
 import { GroupMark } from '@/components/GroupMark';
 import { SyncStatusIcon } from '@/components/SyncBanner';
@@ -64,6 +62,7 @@ import { BALANCE_MASK, HomeBalanceCard } from '@/components/home/HomeBalanceCard
 import { HeroAvatar, HeroIconButton } from '@/components/home/HeroControls';
 import { HeroScene } from '@/components/home/HeroScene';
 import { HomeQuickActions } from '@/components/home/HomeQuickActions';
+import { TipSheet } from '@/components/home/TipSheet';
 import { useHeroStatusBar } from '@/components/ScreenHero';
 import { SettlePickerSheet, type SettleCandidate } from '@/components/home/SettlePickerSheet';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
@@ -756,7 +755,7 @@ export default function HomeScreen() {
       ) : null}
 
       {/* The daily tip, surfaced as a sheet on the first Home open of the day. */}
-      <TipSheet t={t} />
+      <TipSheet />
 
       <QuickAddSheet
         visible={quickAddOpen}
@@ -953,153 +952,6 @@ function GuestPopup({
         />
       </View>
     </Popup>
-  );
-}
-
-/** The day the tip sheet was last shown, so it surfaces once a day and no more. */
-const TIP_SHEET_KEY = 'dashboardTips:shownOn';
-
-/**
- * How long the tip waits once it is cleared to show. On a first run this is the
- * beat after the tour finishes before the hint lands; on any other day it is a
- * small settle so the tip does not race the dashboard in. See `usePromptSlot`.
- */
-const TIP_DELAY_MS = 1400;
-
-/**
- * The daily tip, as a bottom sheet.
- *
- * It shows itself once on the first Home open of each day — the deck rotates by
- * the day (see `useDashboardTips`), so a new move surfaces each time rather than
- * the same card sitting inline forever. A big icon over the "TIP" kicker, the
- * title and body, then the way out: a primary that walks to the feature when the
- * tip points somewhere (only the receipt scan does today), and a plain "Got it"
- * otherwise. Tapping the backdrop dismisses it too — a hint never traps.
- *
- * The show is stamped for the day the moment it opens, not on close, so a person
- * who reads it and backgrounds the app is not shown it again on the next open.
- */
-function TipSheet({ t }: { t: UiStrings }) {
-  const theme = useTheme();
-  const { tip } = useDashboardTips(t);
-
-  // The day the sheet was last shown, read once on mount — the same shape the
-  // guest prompt's daily dismissal uses, and for the same reason: reading it in a
-  // plain mount effect (not one gated on the tip loading) is what actually runs.
-  // `ready` gates the first paint so the sheet never flashes before we know.
-  const [shownOn, setShownOn] = useState<string | null>(null);
-  const [ready, setReady] = useState(false);
-  const [closed, setClosed] = useState(false);
-
-  useEffect(() => {
-    let alive = true;
-    AsyncStorage.getItem(TIP_SHEET_KEY)
-      .then((value) => {
-        if (alive) setShownOn(value);
-      })
-      .catch(() => {})
-      .finally(() => {
-        if (alive) setReady(true);
-      });
-    return () => {
-      alive = false;
-    };
-  }, []);
-
-  // Wants to show, on the merits: read, unshown today, not closed, has a tip.
-  const wants = ready && shownOn !== localToday() && !closed && Boolean(tip);
-  // But it only actually opens once the prompt queue clears it — behind the
-  // tour on a first run, and after a short delay either way (see TIP_DELAY_MS).
-  const granted = usePromptSlot({
-    id: 'dashboardTip',
-    priority: 10,
-    active: wants,
-    delayMs: TIP_DELAY_MS,
-  });
-  const open = wants && granted;
-
-  // Stamp the day the moment the sheet is shown — not on close — so someone who
-  // reads it and backgrounds the app is not shown it again on the next open. The
-  // write goes straight to storage and deliberately does not touch `shownOn`, so
-  // the sheet stays up this session until the person closes it.
-  const stamped = useRef(false);
-  useEffect(() => {
-    if (!open || stamped.current) return;
-    stamped.current = true;
-    void AsyncStorage.setItem(TIP_SHEET_KEY, localToday()).catch(() => {});
-  }, [open]);
-
-  const close = () => setClosed(true);
-  const act = () => {
-    if (tip?.route) {
-      // The scan tip's route carries a constant `scan=` sentinel; swap it for a
-      // fresh nonce so the capture screen fires the camera exactly once and does
-      // not reopen it when Android recreates the screen on the camera's return.
-      const href = tip.route.includes('scan=') ? `/capture?scan=${Date.now()}` : tip.route;
-      router.push(href as never);
-    }
-    close();
-  };
-
-  // Presented through the shared Sheet, which mounts fresh with visible=true
-  // (never the mount-false-then-toggle that failed to present on Android). Gated
-  // on `tip` so an empty sheet never slides up before the day's tip is chosen.
-  return (
-    <Sheet
-      visible={open && Boolean(tip)}
-      onClose={close}
-      closeLabel={t.common.close}
-      style={{
-        paddingHorizontal: theme.spacing.xxl,
-        paddingTop: theme.spacing.xl,
-        gap: theme.spacing.lg,
-      }}
-    >
-      {tip ? (
-        <>
-          <View style={{ alignItems: 'center', gap: theme.spacing.md }}>
-            <View
-              style={{
-                width: 64,
-                height: 64,
-                borderRadius: 32,
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: theme.color.buttonPrimary,
-              }}
-            >
-              <Ionicons name={tip.icon} size={iconSize.xxl} color={theme.color.onBrand} />
-            </View>
-            <Text variant="micro" tone="brand" style={{ letterSpacing: 0.8 }}>
-              {t.tips.label.toUpperCase()}
-            </Text>
-            <Text variant="title" align="center">
-              {tip.title}
-            </Text>
-            <Text variant="body" tone="muted" align="center">
-              {tip.body}
-            </Text>
-          </View>
-
-          <View style={{ gap: theme.spacing.sm }}>
-            {tip.route ? (
-              <>
-                <Button label={t.tips.action} size="lg" fullWidth onPress={act} />
-                <Button
-                  label={t.misc.gotIt}
-                  variant="secondary"
-                  size="sm"
-                  fullWidth
-                  onPress={close}
-                />
-              </>
-            ) : (
-              <Button label={t.misc.gotIt} size="lg" fullWidth onPress={close} />
-            )}
-          </View>
-        </>
-      ) : null}
-    </Sheet>
   );
 }
 
