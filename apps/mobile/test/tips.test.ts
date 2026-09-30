@@ -59,6 +59,21 @@ describe('useDashboardTips', () => {
     expect(view.result.current.tip).toMatchObject({ id: 'scan', route: '/capture?scan=1' });
   });
 
+  it('hands the sheet the whole live deck, turned so the day’s tip leads', async () => {
+    vi.setSystemTime(DAY_MS * 7); // day 7 → index 2 of five
+    const view = renderHook(() => useDashboardTips(t));
+    expect(view.result.current.tips).toEqual([]);
+    await flush();
+    expect(view.result.current.tips.map((tip) => tip.id)).toEqual([
+      'remind',
+      'offline',
+      'scan',
+      'voice',
+      'split',
+    ]);
+    expect(view.result.current.tips[0]).toBe(view.result.current.tip);
+  });
+
   it('skips what was dismissed before', async () => {
     vi.setSystemTime(DAY_MS * 5);
     await AsyncStorage.setItem(KEY, JSON.stringify(['voice']));
