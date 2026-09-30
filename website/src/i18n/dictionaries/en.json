@@ -80,6 +80,7 @@
     "eyebrow": "What it does",
     "title": "Built around the part that goes wrong",
     "subtitle": "Splitting is the easy half. Waves is designed for the other half — remembering, reconciling, and actually getting paid back.",
+    "explore": "Explore the product surface",
     "tablistLabel": "Choose a feature",
     "items": [
       {
@@ -326,11 +327,24 @@
         }
       ],
       "note": "Nine IOUs between four people become two transfers. Anyone in the group can open the arithmetic that got there."
-    }
+    },
+    "cards": [
+      {
+        "number": "01",
+        "title": "Share the link",
+        "body": "No account required for guests."
+      },
+      {
+        "number": "02",
+        "title": "Add the expense",
+        "body": "Scan, speak, or type it."
+      }
+    ]
   },
   "audience": {
     "eyebrow": "Who it's for",
     "title": "However your money tangles",
+    "tagline": "One ledger. Different kinds of money getting tangled.",
     "items": [
       {
         "title": "Trips",

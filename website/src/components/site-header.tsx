@@ -102,13 +102,17 @@ export function SiteHeader({ locale, nav, appUrl }: { locale: Locale; nav: Nav; 
       </a>
 
       <header
-        className={`fixed inset-x-0 top-0 z-50 transition-all duration-200 ${scrolled
-          ? 'px-3 pt-3 sm:px-5 bg-transparent'
-          : 'px-0 pt-0'}`}
+        className={`fixed inset-x-0 top-0 z-50 transition-all duration-200 ${
+          scrolled ? 'px-3 pt-3 sm:px-5 bg-transparent' : 'px-0 pt-0'
+        }`}
       >
-        <div className={`mx-auto flex h-14 max-w-7xl items-center gap-3 px-5 transition-all sm:h-16 sm:px-8 ${scrolled
-          ? 'rounded-2xl border border-white/12 bg-[color:var(--w-paper)]/88 shadow-[var(--w-shadow-md)] backdrop-blur-xl'
-          : 'bg-transparent'}`}>
+        <div
+          className={`mx-auto flex h-14 max-w-7xl items-center gap-3 px-5 transition-all sm:h-16 sm:px-8 ${
+            scrolled
+              ? 'rounded-2xl border border-white/12 bg-[color:var(--w-paper)]/88 shadow-[var(--w-shadow-md)] backdrop-blur-xl'
+              : 'bg-transparent'
+          }`}
+        >
           <Link href={`/${locale}`} aria-label={site.name} className="shrink-0 rounded-sm">
             <Wordmark />
           </Link>
@@ -141,7 +145,9 @@ export function SiteHeader({ locale, nav, appUrl }: { locale: Locale; nav: Nav; 
               >
                 <Globe className="h-[1.05rem] w-[1.05rem]" />
                 <span className="font-mono text-xs tracking-[0.04em] uppercase">{locale}</span>
-                <Chevron className={`h-3.5 w-3.5 transition-transform ${langOpen ? 'rotate-180' : ''}`} />
+                <Chevron
+                  className={`h-3.5 w-3.5 transition-transform ${langOpen ? 'rotate-180' : ''}`}
+                />
               </button>
 
               {langOpen ? (
@@ -157,13 +163,24 @@ export function SiteHeader({ locale, nav, appUrl }: { locale: Locale; nav: Nav; 
                         aria-current={l === locale ? 'page' : undefined}
                         onClick={() => setLangOpenOn(null)}
                         className={`flex min-h-11 items-center justify-between gap-3 rounded-lg px-3 transition-colors ${
-                          l === locale ? 'bg-accent-wash text-accent' : 'text-ink-2 hover:bg-chip hover:text-ink'
+                          l === locale
+                            ? 'bg-accent-wash text-ink-2'
+                            : 'text-ink-2 hover:bg-chip hover:text-ink'
                         }`}
                       >
                         <span lang={l}>{languageNames[l].endonym}</span>
                         <span className="flex items-center gap-2">
-                          <span lang="en" className="font-mono text-[0.6875rem] text-ink-3">{languageNames[l].english}</span>
-                          {l === locale ? <Check className="h-3.5 w-3.5 text-accent" aria-hidden="true" /> : <span className="h-3.5 w-3.5" aria-hidden="true" />}
+                          <span
+                            lang="en"
+                            className={`font-mono text-[0.6875rem] ${l === locale ? 'text-ink-2' : 'text-ink-3'}`}
+                          >
+                            {languageNames[l].english}
+                          </span>
+                          {l === locale ? (
+                            <Check className="h-3.5 w-3.5 text-accent" aria-hidden="true" />
+                          ) : (
+                            <span className="h-3.5 w-3.5" aria-hidden="true" />
+                          )}
                         </span>
                       </Link>
                     </li>
@@ -209,19 +226,31 @@ export function SiteHeader({ locale, nav, appUrl }: { locale: Locale; nav: Nav; 
         <div className="min-h-dvh w-full bg-bg">
           <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-5 sm:h-16 sm:px-8">
             <Wordmark />
-            <button type="button" onClick={closeMenu} aria-label={nav.close} className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-ink hover:bg-chip">
+            <button
+              type="button"
+              onClick={closeMenu}
+              aria-label={nav.close}
+              className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-ink hover:bg-chip"
+            >
               <Close />
             </button>
           </div>
           <div className="mx-auto max-w-7xl px-5 pb-10 sm:px-8">
             <nav aria-label="Mobile" className="border-t border-line">
               {links.map((link) => (
-                <a key={link.href} href={link.href} onClick={closeMenu} className="flex min-h-15 items-center border-b border-line text-[1.0625rem] text-ink">
+                <a
+                  key={link.href}
+                  href={link.href}
+                  onClick={closeMenu}
+                  className="flex min-h-15 items-center border-b border-line text-[1.0625rem] text-ink"
+                >
                   {link.label}
                 </a>
               ))}
             </nav>
-            <p className="mt-8 font-mono text-[0.6875rem] tracking-[0.14em] text-ink-3 uppercase">{nav.language}</p>
+            <p className="mt-8 font-mono text-[0.6875rem] tracking-[0.14em] text-ink-3 uppercase">
+              {nav.language}
+            </p>
             <div className="mt-3 grid grid-cols-2 gap-2">
               {locales.map((l) => (
                 <Link
@@ -230,16 +259,22 @@ export function SiteHeader({ locale, nav, appUrl }: { locale: Locale; nav: Nav; 
                   lang={l}
                   hrefLang={l}
                   aria-current={l === locale ? 'page' : undefined}
-                  className={`flex min-h-11 items-center justify-center rounded-lg text-sm ${l === locale ? 'bg-accent-wash text-accent' : 'bg-chip text-ink-2'}`}
+                  className={`flex min-h-11 items-center justify-center rounded-lg text-sm ${l === locale ? 'bg-accent-wash text-ink-2' : 'bg-chip text-ink-2'}`}
                 >
                   {languageNames[l].endonym}
                 </Link>
               ))}
             </div>
-            <a href={appUrl} className="mt-8 flex h-12 items-center justify-center rounded-lg bg-accent text-sm font-medium text-accent-ink">
+            <a
+              href={appUrl}
+              className="mt-8 flex h-12 items-center justify-center rounded-lg bg-accent text-sm font-medium text-accent-ink"
+            >
               {nav.getApp}
             </a>
-            <a href={appUrl} className="mt-2 flex h-12 items-center justify-center rounded-lg text-sm font-medium text-ink-2">
+            <a
+              href={appUrl}
+              className="mt-2 flex h-12 items-center justify-center rounded-lg text-sm font-medium text-ink-2"
+            >
               {nav.openApp}
             </a>
           </div>

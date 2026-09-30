@@ -15,7 +15,10 @@ export function Hero({
 }) {
   return (
     <section className="noise relative overflow-hidden border-b border-line pt-28 pb-20 sm:pt-32 sm:pb-28 lg:pt-40 lg:pb-32">
-      <div aria-hidden="true" className="hero-grid pointer-events-none absolute inset-x-0 top-0 h-[48rem] opacity-70" />
+      <div
+        aria-hidden="true"
+        className="hero-grid pointer-events-none absolute inset-x-0 top-0 h-[48rem] opacity-70"
+      />
       <div aria-hidden="true" className="hero-orb pointer-events-none -end-48 top-20" />
 
       <Container>
@@ -26,7 +29,10 @@ export function Hero({
                 href="#pricing"
                 className="inline-flex items-center gap-2 rounded-full border border-line bg-paper/70 px-3 py-1.5 font-mono text-[0.68rem] tracking-[0.04em] text-ink-2 shadow-[var(--w-shadow-sm)] backdrop-blur-sm transition hover:border-line-strong hover:text-ink"
               >
-                <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-accent shadow-[0_0_0_4px_var(--w-accent-wash)]" />
+                <span
+                  aria-hidden="true"
+                  className="h-1.5 w-1.5 rounded-full bg-accent shadow-[0_0_0_4px_var(--w-accent-wash)]"
+                />
                 <span>{banner.text}</span>
                 <span className="text-accent">{banner.link} ↗</span>
               </a>
@@ -64,7 +70,10 @@ export function Hero({
             <Reveal delay={250}>
               <ul className="mt-8 grid max-w-xl grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4">
                 {t.facts.map((fact) => (
-                  <li key={fact} className="border-l border-accent/50 ps-3 font-mono text-[0.68rem] leading-relaxed text-ink-3">
+                  <li
+                    key={fact}
+                    className="border-l border-accent/50 ps-3 font-mono text-[0.68rem] leading-relaxed text-ink-3"
+                  >
                     {fact}
                   </li>
                 ))}

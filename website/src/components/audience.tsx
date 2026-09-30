@@ -13,17 +13,22 @@ export function Audience({ t }: { t: Dictionary['audience'] }) {
             <Eyebrow index="04">{t.eyebrow}</Eyebrow>
             <SectionTitle className="mt-5">{t.title}</SectionTitle>
           </div>
-          <p className="max-w-sm font-mono text-[0.7rem] leading-relaxed text-ink-3">One ledger. Different kinds of money getting tangled.</p>
+          <p className="max-w-sm font-mono text-[0.7rem] leading-relaxed text-ink-3">{t.tagline}</p>
         </div>
         <div className="mt-12 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {t.items.map((item, index) => {
             const Icon = icons[index] ?? Compass;
             return (
-              <article key={item.title} className="group min-h-[17rem] rounded-[1.5rem] border border-line bg-surface p-6 transition-all hover:-translate-y-1 hover:border-accent/35 hover:shadow-[var(--w-shadow-md)]">
+              <article
+                key={item.title}
+                className="group min-h-[17rem] rounded-[1.5rem] border border-line bg-surface p-6 transition-all hover:-translate-y-1 hover:border-accent/35 hover:shadow-[var(--w-shadow-md)]"
+              >
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-chip text-ink-2 transition group-hover:bg-accent-wash group-hover:text-accent">
                   <Icon className="h-4 w-4" />
                 </div>
-                <h3 className="mt-14 text-[1.1rem] font-semibold tracking-[-0.02em] text-ink">{item.title}</h3>
+                <h3 className="mt-14 text-[1.1rem] font-semibold tracking-[-0.02em] text-ink">
+                  {item.title}
+                </h3>
                 <p className="mt-3 text-[0.84rem] leading-[1.7] text-ink-2">{item.body}</p>
               </article>
             );
