@@ -61,7 +61,12 @@ function buildTips(t: UiStrings): Tip[] {
  * and once nothing is left to show. The live tip is picked by the day so it
  * changes daily, and skips anything already dismissed.
  */
-export function useDashboardTips(t: UiStrings): { tip: Tip | null; dismiss: () => void } {
+export function useDashboardTips(t: UiStrings): {
+  tip: Tip | null;
+  /** The whole live deck, today's tip first, for a sheet that pages through it. */
+  tips: readonly Tip[];
+  dismiss: () => void;
+} {
   const [dismissed, setDismissed] = useState<readonly string[]>([]);
   const [ready, setReady] = useState(false);
   // The day index is read once, off the render path — `Date.now()` is impure, so
@@ -101,6 +106,13 @@ export function useDashboardTips(t: UiStrings): { tip: Tip | null; dismiss: () =
 
   const tip =
     !ready || day === null || available.length === 0 ? null : available[day % available.length];
+  // The deck turned so today's tip leads: the sheet opens on it, and a swipe
+  // walks the rest in order.
+  const tips = useMemo(() => {
+    if (!ready || day === null || available.length === 0) return [];
+    const start = day % available.length;
+    return [...available.slice(start), ...available.slice(0, start)];
+  }, [ready, day, available]);
 
   const dismiss = useCallback(() => {
     if (!tip) return;
@@ -112,5 +124,5 @@ export function useDashboardTips(t: UiStrings): { tip: Tip | null; dismiss: () =
     });
   }, [tip]);
 
-  return { tip, dismiss };
+  return { tip, tips, dismiss };
 }
