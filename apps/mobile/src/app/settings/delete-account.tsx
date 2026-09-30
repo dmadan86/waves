@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useQuery } from '@tanstack/react-query';
-import { ActivityIndicator, ScrollView, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, TextInput, View } from 'react-native';
 
 import {
   Button,
@@ -18,7 +18,7 @@ import {
 } from '@waves/ui';
 
 import { deleteMyAccount, erasurePreview } from '@/data/api';
-import { fill, plural, useStrings } from '@/i18n';
+import { plural, useStrings } from '@/i18n';
 import { friendlyError } from '@/lib/errors';
 import { useAuth } from '@/lib/auth';
 import { router } from '@/lib/navigation';
@@ -95,9 +95,54 @@ export default function DeleteAccountScreen() {
     );
   }
 
+  const data = preview.data;
+  const stats: {
+    icon: keyof typeof Ionicons.glyphMap;
+    tint: 'lilac' | 'mint' | 'peach' | 'pink';
+    value: string;
+    label: string;
+    detail?: string;
+  }[] = data
+    ? [
+        {
+          icon: 'people-outline',
+          tint: 'lilac',
+          value: String(data.groups_count),
+          label: t.deleteForm.statGroups,
+        },
+        {
+          icon: 'document-text-outline',
+          tint: 'mint',
+          value: String(data.expenses_authored),
+          label: t.deleteForm.statExpenses,
+        },
+        {
+          icon: 'swap-horizontal',
+          tint: 'peach',
+          value: String(data.settlements_involved),
+          label: t.deleteForm.statSettlements,
+        },
+        ...(data.outstanding_currencies.length > 0
+          ? [
+              {
+                icon: 'cash-outline' as const,
+                tint: 'pink' as const,
+                value: plural(
+                  locale,
+                  data.outstanding_currencies.length,
+                  t.deleteForm.statCurrencies,
+                ),
+                label: t.deleteForm.statUnsettled,
+                detail: data.outstanding_currencies.join(', '),
+              },
+            ]
+          : []),
+      ]
+    : [];
+
   return (
     <Screen>
-      <Row style={{ paddingHorizontal: theme.spacing.xl, paddingTop: theme.spacing.md }}>
+      <Row style={{ paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.sm }}>
         <IconButton label={t.common.back} onPress={() => router.back()}>
           <Ionicons
             name={directionalIcon('chevron-back')}
@@ -114,97 +159,156 @@ export default function DeleteAccountScreen() {
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
-          paddingHorizontal: theme.spacing.xl,
+          paddingHorizontal: theme.spacing.lg,
           paddingBottom: clearance,
-          paddingTop: theme.spacing.lg,
-          gap: theme.spacing.xl,
+          paddingTop: theme.spacing.sm,
+          gap: theme.spacing.md,
         }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <Text variant="body" tone="muted">
-          {t.privacy.deleteIntro}
-        </Text>
+        {/* The warning, with a basket of your things and a shield drawn beside it. */}
+        <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+          <View style={{ flex: 1, gap: theme.spacing.xs }}>
+            <Text
+              style={{ fontSize: 24, lineHeight: 29, fontWeight: '800', color: theme.color.text }}
+            >
+              {t.deleteForm.heroTitle}
+            </Text>
+            <Text variant="caption" tone="muted" style={{ lineHeight: 19 }}>
+              {t.privacy.deleteIntro}
+            </Text>
+          </View>
+          <BasketArt />
+        </Row>
 
         {/* What stays comes first: it is the surprising half. */}
-        <Card style={{ gap: theme.spacing.sm, borderWidth: 1, borderColor: theme.color.border }}>
-          <Row style={{ gap: theme.spacing.sm }}>
-            <Ionicons name="people-outline" size={iconSize.md} color={theme.color.text} />
-            <Text variant="subheading">{t.privacy.deleteStaysTitle}</Text>
-          </Row>
-          <Text variant="caption" tone="muted">
+        <Card style={{ padding: theme.spacing.md, gap: theme.spacing.md }}>
+          <SectionHead
+            icon="people-outline"
+            tint={theme.tint.mint}
+            title={t.privacy.deleteStaysTitle}
+            pill={t.deleteForm.staysPill}
+          />
+          <Text variant="caption" tone="muted" style={{ lineHeight: 19 }}>
             {t.privacy.deleteStaysBody}
           </Text>
           {/* Labelled, because the first version of this rendered as "1 · 3 · 0
               · INR" — four numbers with nothing saying what any of them
               counted, on the screen where somebody is deciding whether to
               erase themselves. */}
-          {preview.data ? (
-            <View style={{ gap: 2, paddingTop: theme.spacing.xs }}>
-              <Text variant="micro" tone="muted">
-                {plural(locale, preview.data.groups_count, t.privacy.previewGroups)}
-              </Text>
-              <Text variant="micro" tone="muted">
-                {plural(locale, preview.data.expenses_authored, t.privacy.previewExpenses)}
-              </Text>
-              <Text variant="micro" tone="muted">
-                {plural(locale, preview.data.settlements_involved, t.privacy.previewSettlements)}
-              </Text>
-              {preview.data.outstanding_currencies.length > 0 ? (
-                <Text variant="micro" tone="negative">
-                  {fill(t.privacy.previewOutstanding, {
-                    list: preview.data.outstanding_currencies.join(', '),
-                  })}
-                </Text>
-              ) : null}
+          {stats.length > 0 ? (
+            <View
+              style={{
+                flexDirection: 'row',
+                flexWrap: 'wrap',
+                rowGap: theme.spacing.md,
+                padding: theme.spacing.md,
+                borderRadius: theme.radius.lg,
+                backgroundColor: theme.scheme === 'dark' ? theme.color.surfaceMuted : '#F6F5FB',
+              }}
+            >
+              {stats.map((stat) => (
+                <Row key={stat.label} style={{ width: '50%', gap: theme.spacing.sm }}>
+                  <View
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 18,
+                      backgroundColor: theme.tint[stat.tint].bg,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Ionicons
+                      name={stat.icon}
+                      size={iconSize.md}
+                      color={theme.tint[stat.tint].ink}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text variant="body" style={{ fontWeight: '800' }} numberOfLines={1}>
+                      {stat.value}
+                    </Text>
+                    <Text variant="micro" tone="muted">
+                      {stat.label}
+                    </Text>
+                    {stat.detail ? (
+                      <Text variant="micro" tone="negative" style={{ fontWeight: '700' }}>
+                        {stat.detail}
+                      </Text>
+                    ) : null}
+                  </View>
+                </Row>
+              ))}
             </View>
           ) : null}
         </Card>
 
-        <Card style={{ gap: theme.spacing.sm }}>
-          <Row style={{ gap: theme.spacing.sm }}>
-            <Ionicons name="trash-outline" size={iconSize.md} color={theme.color.negative} />
-            <Text variant="subheading">{t.privacy.deleteGoesTitle}</Text>
-          </Row>
-          <Text variant="caption" tone="muted">
+        <Card
+          style={{
+            padding: theme.spacing.md,
+            gap: theme.spacing.md,
+            backgroundColor: theme.scheme === 'dark' ? theme.color.surface : '#FFF6F7',
+          }}
+        >
+          <SectionHead
+            icon="trash-outline"
+            tint={theme.tint.pink}
+            title={t.privacy.deleteGoesTitle}
+            pill={t.deleteForm.goesPill}
+            danger
+          />
+          <Text variant="caption" tone="muted" style={{ lineHeight: 19 }}>
             {t.privacy.deleteGoesBody}
           </Text>
-        </Card>
+          <Row
+            style={{
+              gap: theme.spacing.sm,
+              padding: theme.spacing.md,
+              borderRadius: theme.radius.lg,
+              backgroundColor: theme.color.brandSoft,
+            }}
+          >
+            <Ionicons name="information-circle" size={iconSize.md} color={theme.color.brand} />
+            <Text variant="caption" tone="brand" style={{ flex: 1, fontWeight: '600' }}>
+              {t.deleteForm.cannotRecover}
+            </Text>
+          </Row>
 
-        <Button
-          label={t.privacy.deleteExportFirst}
-          variant="secondary"
-          onPress={() => router.push('/settings/export')}
-        />
+          {/* Export first, on the way out rather than as an afterthought. */}
+          <Button
+            label={t.privacy.deleteExportFirst}
+            variant="secondary"
+            onPress={() => router.push('/settings/export')}
+          />
 
-        <View style={{ gap: theme.spacing.xs }}>
-          <Text variant="caption" tone="muted">
-            {t.privacy.deleteWhyLabel}
-          </Text>
-          <Card>
-            <TextInput
-              value={reason}
-              onChangeText={setReason}
-              placeholder={t.privacy.deleteWhyPlaceholder}
-              placeholderTextColor={theme.color.textFaint}
-              accessibilityLabel={t.privacy.deleteWhyLabel}
-              multiline
-              maxLength={4000}
-              style={{
-                minHeight: 80,
-                fontSize: 15,
-                color: theme.color.text,
-                textAlignVertical: 'top',
-              }}
-            />
-          </Card>
-        </View>
+          <TextInput
+            value={reason}
+            onChangeText={setReason}
+            placeholder={t.privacy.deleteWhyPlaceholder}
+            placeholderTextColor={theme.color.textFaint}
+            accessibilityLabel={t.privacy.deleteWhyLabel}
+            multiline
+            maxLength={4000}
+            style={{
+              minHeight: 64,
+              fontSize: 15,
+              color: theme.color.text,
+              textAlignVertical: 'top',
+              padding: theme.spacing.md,
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: theme.color.border,
+              backgroundColor: theme.color.surface,
+            }}
+          />
 
-        <View style={{ gap: theme.spacing.xs }}>
-          <Text variant="caption" tone="muted">
-            {t.privacy.deleteConfirmLabel}
-          </Text>
-          <Card>
+          {/* The typed word stays: one tap must never erase an account. */}
+          <View style={{ gap: theme.spacing.xs }}>
+            <Text variant="caption" tone="muted">
+              {t.privacy.deleteConfirmLabel}
+            </Text>
             <TextInput
               value={confirm}
               onChangeText={setConfirm}
@@ -213,23 +317,175 @@ export default function DeleteAccountScreen() {
               accessibilityLabel={t.privacy.deleteConfirmLabel}
               autoCapitalize="characters"
               autoCorrect={false}
-              style={{ fontSize: 18, fontWeight: '700', color: theme.color.text }}
+              style={{
+                height: 48,
+                fontSize: 17,
+                fontWeight: '700',
+                color: theme.color.text,
+                paddingHorizontal: theme.spacing.md,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: armed ? theme.color.negative : theme.color.border,
+                backgroundColor: theme.color.surface,
+              }}
             />
-          </Card>
-        </View>
+          </View>
 
-        {error ? <Callout tone="negative">{error}</Callout> : null}
-        {busy ? <ActivityIndicator color={theme.color.negative} /> : null}
+          {error ? <Callout tone="negative">{error}</Callout> : null}
 
-        <Button
-          label={busy ? t.privacy.deleteWorking : t.privacy.deleteButton}
-          size="lg"
-          fullWidth
-          variant="danger"
-          disabled={!armed || busy}
-          onPress={() => void run()}
-        />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={busy ? t.privacy.deleteWorking : t.privacy.deleteButton}
+            accessibilityState={{ disabled: !armed || busy }}
+            disabled={!armed || busy}
+            onPress={() => void run()}
+            style={({ pressed }) => ({
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: theme.spacing.sm,
+              minHeight: 54,
+              borderRadius: theme.radius.pill,
+              backgroundColor: theme.color.negative,
+              opacity: !armed || busy ? 0.45 : pressed ? 0.85 : 1,
+            })}
+          >
+            {busy ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Ionicons name="trash-outline" size={iconSize.lg} color="#FFFFFF" />
+            )}
+            <Text variant="subheading" style={{ color: '#FFFFFF', fontWeight: '700' }}>
+              {busy ? t.privacy.deleteWorking : t.privacy.deleteButton}
+            </Text>
+          </Pressable>
+        </Card>
       </ScrollView>
     </Screen>
+  );
+}
+
+/** A card's head: a tinted disc, the title, and a small pill saying the verdict. */
+function SectionHead({
+  icon,
+  tint,
+  title,
+  pill,
+  danger = false,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  tint: { bg: string; ink: string };
+  title: string;
+  pill: string;
+  danger?: boolean;
+}) {
+  const theme = useTheme();
+  return (
+    <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+      <View
+        style={{
+          width: 40,
+          height: 40,
+          borderRadius: 20,
+          backgroundColor: tint.bg,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Ionicons name={icon} size={iconSize.md} color={tint.ink} />
+      </View>
+      <Text variant="subheading" style={{ flex: 1 }} numberOfLines={2}>
+        {title}
+      </Text>
+      <View
+        style={{
+          paddingHorizontal: theme.spacing.sm,
+          paddingVertical: 3,
+          borderRadius: theme.radius.pill,
+          backgroundColor: danger ? theme.color.negativeSoft : theme.color.positiveSoft,
+        }}
+      >
+        <Text
+          variant="micro"
+          style={{
+            fontWeight: '700',
+            color: danger ? theme.color.negative : theme.color.positive,
+          }}
+        >
+          {pill}
+        </Text>
+      </View>
+    </Row>
+  );
+}
+
+/**
+ * The warning's picture: a brand basket holding a profile card and a photo,
+ * with a red shield at its front, drawn from views. Decoration only.
+ */
+function BasketArt() {
+  const theme = useTheme();
+  return (
+    <View
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      pointerEvents="none"
+      style={{ width: 104, height: 96 }}
+    >
+      <View
+        style={{
+          position: 'absolute',
+          inset: 0,
+          borderRadius: 48,
+          backgroundColor: theme.color.negativeSoft,
+          opacity: 0.6,
+        }}
+      />
+      <View
+        style={{
+          position: 'absolute',
+          start: 26,
+          top: 6,
+          width: 44,
+          height: 54,
+          borderRadius: 8,
+          backgroundColor: theme.color.surface,
+          alignItems: 'center',
+          justifyContent: 'center',
+          transform: [{ rotate: '-8deg' }],
+        }}
+      >
+        <Ionicons name="person" size={22} color={theme.color.brand} />
+      </View>
+      <View
+        style={{
+          position: 'absolute',
+          start: 16,
+          bottom: 8,
+          width: 72,
+          height: 40,
+          borderBottomLeftRadius: 14,
+          borderBottomRightRadius: 14,
+          borderTopLeftRadius: 4,
+          borderTopRightRadius: 4,
+          backgroundColor: theme.color.brand,
+        }}
+      />
+      <View
+        style={{
+          position: 'absolute',
+          end: 6,
+          bottom: 0,
+          width: 34,
+          height: 34,
+          borderRadius: 17,
+          backgroundColor: theme.color.surface,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Ionicons name="shield" size={20} color={theme.color.negative} />
+      </View>
+    </View>
   );
 }
