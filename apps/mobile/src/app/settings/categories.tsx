@@ -12,7 +12,7 @@
  * app's own string table.
  */
 
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, View } from 'react-native';
 import DraggableFlatList, {
@@ -47,7 +47,16 @@ export default function CategoriesSettingsScreen() {
   const { t } = useStrings();
   const upsertTag = useUpsertTag();
 
-  const { all } = useCategoryCatalog((id) => t.categories[id as keyof typeof t.categories]);
+  // Stable across renders (it changes only with the language). The catalog
+  // memoises on it, and the order below resyncs whenever the catalog's `all`
+  // changes identity — so a fresh function every render rebuilt `all` every
+  // render, resynced, re-rendered, and looped until React gave up ("Too many
+  // re-renders") and the screen fell over.
+  const labelForBuiltin = useCallback(
+    (id: string) => t.categories[id as keyof typeof t.categories],
+    [t],
+  );
+  const { all } = useCategoryCatalog(labelForBuiltin);
 
   // The editor sheet: an entry to edit, or the "new tag" flag.
   const [editing, setEditing] = useState<CatalogEntry | null>(null);
