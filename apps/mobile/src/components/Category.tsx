@@ -20,6 +20,7 @@
  * one more setting with an answer.
  */
 
+import { useCallback } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, ScrollView, View } from 'react-native';
 
@@ -31,6 +32,21 @@ import { ChoiceRow, SheetOverlay } from '@/components/expense/SheetOverlay';
 import { useCategoryCatalog } from '@/data/hooks';
 import { useStrings } from '@/i18n';
 
+/**
+ * The category catalog labelled in the current language. The labeller is
+ * memoised on the strings table: the catalog memoises on it, so an inline
+ * function would rebuild the catalog on every render — and a screen that
+ * resyncs state from the catalog during render would then loop until React
+ * throws "Too many re-renders".
+ */
+export function useLabelledCategoryCatalog(): ReturnType<typeof useCategoryCatalog> {
+  const { t } = useStrings();
+  const labelForBuiltin = useCallback(
+    (id: string) => t.categories[id as keyof typeof t.categories],
+    [t],
+  );
+  return useCategoryCatalog(labelForBuiltin);
+}
 export function CategoryBadge({
   category,
   meta,
@@ -88,7 +104,7 @@ export function CategoryPicker({
 }) {
   const theme = useTheme();
   const { t } = useStrings();
-  const { visible } = useCategoryCatalog((id) => t.categories[id as keyof typeof t.categories]);
+  const { visible } = useLabelledCategoryCatalog();
 
   return (
     <ScrollView
@@ -205,7 +221,7 @@ export function CategoryRow({
 }) {
   const theme = useTheme();
   const { t } = useStrings();
-  const { visible } = useCategoryCatalog((id) => t.categories[id as keyof typeof t.categories]);
+  const { visible } = useLabelledCategoryCatalog();
 
   const entry = visible.find((it) => it.key === value);
   const resolved = resolveCategory(value, meta ?? null);
@@ -278,7 +294,7 @@ export function CategoryChoices({
 }) {
   const theme = useTheme();
   const { t } = useStrings();
-  const { visible } = useCategoryCatalog((id) => t.categories[id as keyof typeof t.categories]);
+  const { visible } = useLabelledCategoryCatalog();
 
   return (
     <View style={{ gap: theme.spacing.xs }}>
