@@ -1535,6 +1535,46 @@ export interface UiStrings {
     hideBalance: string;
     showBalance: string;
   };
+  /** Settings › Delete my data: the warning, the pills and the stat labels. */
+  deleteForm: {
+    heroTitle: string;
+    staysPill: string;
+    goesPill: string;
+    cannotRecover: string;
+    statGroups: string;
+    statExpenses: string;
+    statSettlements: string;
+    statUnsettled: string;
+    statCurrencies: PluralForms;
+  };
+  /** Settings › Export your data: the promise card, the tiles and the included note. */
+  exportForm: {
+    heroTitle: string;
+    heroBody: string;
+    freeBadge: string;
+    chooseFormat: string;
+    chooseFormatSub: string;
+    jsonSub: string;
+    csvSub: string;
+    pdfSub: string;
+    whatSub: string;
+    everything: string;
+    oneGroup: string;
+    oneGroupSub: string;
+    includedTitle: string;
+    includedBody: string;
+    exportAction: string;
+    or: string;
+    pickGroup: string;
+  };
+  /** Settings › Receiving payments: header lines and the country card. */
+  receiving: {
+    title: string;
+    subtitle: string;
+    howSub: string;
+    change: string;
+    settlesWith: string;
+  };
   /** The Activity screen: its subtitle, filter chips and row menu. */
   activityScreen: {
     subtitle: string;
@@ -5079,6 +5119,45 @@ const en: UiStrings = {
     hideBalance: 'Hide balance',
     showBalance: 'Show balance',
   },
+  deleteForm: {
+    heroTitle: 'This cannot be undone',
+    staysPill: 'Remains in your groups',
+    goesPill: 'Permanently deleted',
+    cannotRecover: 'Your data will be permanently deleted and cannot be recovered.',
+    statGroups: 'Groups you are in',
+    statExpenses: 'Expenses that will stay',
+    statSettlements: 'Settlements with your name',
+    statUnsettled: 'Unsettled balance',
+    statCurrencies: { one: '{n} currency', other: '{n} currencies' },
+  },
+  exportForm: {
+    heroTitle: 'Your data, always yours',
+    heroBody:
+      'Export a complete record of your expenses, settlements and activity whenever you need it — for free.',
+    freeBadge: 'No paywall. 100% free.',
+    chooseFormat: 'Choose format',
+    chooseFormatSub: 'Pick the file format that works for you.',
+    jsonSub: '(lossless)',
+    csvSub: '(spreadsheet)',
+    pdfSub: '(print friendly)',
+    whatSub: 'Choose which data you want to include.',
+    everything: 'Export everything',
+    oneGroup: 'One group',
+    oneGroupSub: 'Selected group only',
+    includedTitle: 'What’s included?',
+    includedBody:
+      'All expenses, who paid, who owed, settlements with their per-expense allocations, and the full activity trail.',
+    exportAction: 'Export data',
+    or: 'OR',
+    pickGroup: 'Which group?',
+  },
+  receiving: {
+    title: 'Receiving payments',
+    subtitle: 'Choose how your friends can pay you',
+    howSub: 'Add your payment details so friends can settle up with you easily.',
+    change: 'Change',
+    settlesWith: 'Settles with {rails}',
+  },
   activityScreen: {
     subtitle: 'Your recent transactions and updates',
     all: 'All',
@@ -8328,6 +8407,45 @@ const ta: UiStrings = {
     evening: 'மாலை வணக்கம்',
     hideBalance: 'இருப்பை மறை',
     showBalance: 'இருப்பைக் காட்டு',
+  },
+  deleteForm: {
+    heroTitle: 'இதைத் திரும்பப் பெற முடியாது',
+    staysPill: 'உங்கள் குழுக்களில் இருக்கும்',
+    goesPill: 'நிரந்தரமாக நீக்கப்படும்',
+    cannotRecover: 'உங்கள் தரவு நிரந்தரமாக நீக்கப்படும், மீட்க முடியாது.',
+    statGroups: 'நீங்கள் உள்ள குழுக்கள்',
+    statExpenses: 'இருக்கும் செலவுகள்',
+    statSettlements: 'உங்கள் பெயருடன் தீர்வுகள்',
+    statUnsettled: 'தீர்க்கப்படாத இருப்பு',
+    statCurrencies: { one: '{n} நாணயம்', other: '{n} நாணயங்கள்' },
+  },
+  exportForm: {
+    heroTitle: 'உங்கள் தரவு, எப்போதும் உங்களுடையது',
+    heroBody:
+      'உங்கள் செலவுகள், தீர்வுகள், செயல்பாடுகளின் முழுப் பதிவையும் தேவைப்படும்போது ஏற்றுமதி செய்யுங்கள் — இலவசமாக.',
+    freeBadge: 'கட்டணம் இல்லை. 100% இலவசம்.',
+    chooseFormat: 'வடிவத்தைத் தேர்ந்தெடு',
+    chooseFormatSub: 'உங்களுக்கு ஏற்ற கோப்பு வடிவத்தைத் தேர்ந்தெடுங்கள்.',
+    jsonSub: '(இழப்பில்லை)',
+    csvSub: '(விரிதாள்)',
+    pdfSub: '(அச்சிட ஏற்றது)',
+    whatSub: 'எந்தத் தரவைச் சேர்க்க வேண்டும் என்பதைத் தேர்ந்தெடுங்கள்.',
+    everything: 'அனைத்தையும் ஏற்றுமதி செய்',
+    oneGroup: 'ஒரு குழு',
+    oneGroupSub: 'தேர்ந்தெடுத்த குழு மட்டும்',
+    includedTitle: 'என்ன அடங்கும்?',
+    includedBody:
+      'எல்லாச் செலவுகள், யார் செலுத்தினார், யார் தர வேண்டியது, ஒவ்வொரு செலவுக்கான ஒதுக்கீடுகளுடன் தீர்வுகள், முழுச் செயல்பாட்டுப் பதிவு.',
+    exportAction: 'தரவை ஏற்றுமதி செய்',
+    or: 'அல்லது',
+    pickGroup: 'எந்தக் குழு?',
+  },
+  receiving: {
+    title: 'பணம் பெறுதல்',
+    subtitle: 'நண்பர்கள் உங்களுக்கு எப்படிப் பணம் செலுத்தலாம் என்பதைத் தேர்வுசெய்யுங்கள்',
+    howSub: 'நண்பர்கள் எளிதாகக் கணக்குத் தீர்க்க உங்கள் பணம் பெறும் விவரங்களைச் சேர்க்கவும்.',
+    change: 'மாற்று',
+    settlesWith: '{rails} மூலம் தீர்க்கப்படும்',
   },
   activityScreen: {
     subtitle: 'உங்கள் சமீபத்திய பரிவர்த்தனைகளும் புதுப்பிப்புகளும்',
@@ -11655,6 +11773,44 @@ const hi: UiStrings = {
     hideBalance: 'बैलेंस छिपाएँ',
     showBalance: 'बैलेंस दिखाएँ',
   },
+  deleteForm: {
+    heroTitle: 'इसे वापस नहीं किया जा सकता',
+    staysPill: 'आपके समूहों में रहता है',
+    goesPill: 'स्थायी रूप से हटाया जाएगा',
+    cannotRecover: 'आपका डेटा स्थायी रूप से हट जाएगा और वापस नहीं आ सकेगा।',
+    statGroups: 'आपके समूह',
+    statExpenses: 'खर्च जो रहेंगे',
+    statSettlements: 'आपके नाम के हिसाब',
+    statUnsettled: 'बकाया राशि',
+    statCurrencies: { one: '{n} मुद्रा', other: '{n} मुद्राएँ' },
+  },
+  exportForm: {
+    heroTitle: 'आपका डेटा, हमेशा आपका',
+    heroBody: 'अपने खर्च, हिसाब और गतिविधि का पूरा रिकॉर्ड जब चाहें निर्यात करें — मुफ़्त।',
+    freeBadge: 'कोई पेवॉल नहीं। 100% मुफ़्त।',
+    chooseFormat: 'फ़ॉर्मैट चुनें',
+    chooseFormatSub: 'अपने काम का फ़ाइल फ़ॉर्मैट चुनें।',
+    jsonSub: '(बिना नुकसान)',
+    csvSub: '(स्प्रेडशीट)',
+    pdfSub: '(प्रिंट के लिए)',
+    whatSub: 'चुनें कि कौन सा डेटा शामिल करना है।',
+    everything: 'सब कुछ निर्यात करें',
+    oneGroup: 'एक समूह',
+    oneGroupSub: 'केवल चुना हुआ समूह',
+    includedTitle: 'क्या शामिल है?',
+    includedBody:
+      'सभी खर्च, किसने दिए, किसे देने थे, हर खर्च के बँटवारे के साथ हिसाब, और पूरी गतिविधि।',
+    exportAction: 'डेटा निर्यात करें',
+    or: 'या',
+    pickGroup: 'कौन सा समूह?',
+  },
+  receiving: {
+    title: 'भुगतान पाना',
+    subtitle: 'चुनें कि दोस्त आपको कैसे भुगतान करें',
+    howSub: 'अपने भुगतान विवरण जोड़ें ताकि दोस्त आसानी से हिसाब चुका सकें।',
+    change: 'बदलें',
+    settlesWith: '{rails} से हिसाब होता है',
+  },
   activityScreen: {
     subtitle: 'आपके हाल के लेन-देन और अपडेट',
     all: 'सभी',
@@ -14956,6 +15112,50 @@ const ar: UiStrings = {
     evening: 'مساء الخير',
     hideBalance: 'إخفاء الرصيد',
     showBalance: 'إظهار الرصيد',
+  },
+  deleteForm: {
+    heroTitle: 'لا يمكن التراجع عن هذا',
+    staysPill: 'يبقى في مجموعاتك',
+    goesPill: 'يُحذف نهائيًا',
+    cannotRecover: 'ستُحذف بياناتك نهائيًا ولا يمكن استعادتها.',
+    statGroups: 'المجموعات التي أنت فيها',
+    statExpenses: 'المصروفات التي ستبقى',
+    statSettlements: 'التسويات باسمك',
+    statUnsettled: 'رصيد غير مسوّى',
+    statCurrencies: {
+      one: 'عملة واحدة',
+      two: 'عملتان',
+      few: '{n} عملات',
+      many: '{n} عملة',
+      other: '{n} عملة',
+    },
+  },
+  exportForm: {
+    heroTitle: 'بياناتك، دائمًا لك',
+    heroBody: 'صدّر سجلًا كاملًا لمصروفاتك وتسوياتك ونشاطك وقتما تشاء — مجانًا.',
+    freeBadge: 'بلا جدار دفع. مجاني 100%.',
+    chooseFormat: 'اختر الصيغة',
+    chooseFormatSub: 'اختر صيغة الملف المناسبة لك.',
+    jsonSub: '(بلا فقد)',
+    csvSub: '(جدول بيانات)',
+    pdfSub: '(للطباعة)',
+    whatSub: 'اختر البيانات التي تريد تضمينها.',
+    everything: 'تصدير كل شيء',
+    oneGroup: 'مجموعة واحدة',
+    oneGroupSub: 'المجموعة المحددة فقط',
+    includedTitle: 'ما المُضمَّن؟',
+    includedBody:
+      'كل المصروفات، من دفع، من عليه، التسويات مع توزيعاتها لكل مصروف، وسجل النشاط الكامل.',
+    exportAction: 'تصدير البيانات',
+    or: 'أو',
+    pickGroup: 'أي مجموعة؟',
+  },
+  receiving: {
+    title: 'استلام المدفوعات',
+    subtitle: 'اختر كيف يدفع لك أصدقاؤك',
+    howSub: 'أضف بيانات الدفع ليتمكن أصدقاؤك من التسوية معك بسهولة.',
+    change: 'تغيير',
+    settlesWith: 'التسوية عبر {rails}',
   },
   activityScreen: {
     subtitle: 'معاملاتك وتحديثاتك الأخيرة',
