@@ -12,7 +12,7 @@
  * app's own string table.
  */
 
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, View } from 'react-native';
 import DraggableFlatList, {
@@ -35,9 +35,9 @@ import {
   useTheme,
 } from '@waves/ui';
 
-import { CategoryBadge } from '@/components/Category';
+import { CategoryBadge, useLabelledCategoryCatalog } from '@/components/Category';
 import { TagEditorSheet } from '@/components/TagEditorSheet';
-import { useCategoryCatalog, useUpsertTag, type TagUpsertInput } from '@/data/hooks';
+import { useUpsertTag, type TagUpsertInput } from '@/data/hooks';
 import { useStrings } from '@/i18n';
 import { router } from '@/lib/navigation';
 
@@ -47,16 +47,9 @@ export default function CategoriesSettingsScreen() {
   const { t } = useStrings();
   const upsertTag = useUpsertTag();
 
-  // Stable across renders (it changes only with the language). The catalog
-  // memoises on it, and the order below resyncs whenever the catalog's `all`
-  // changes identity — so a fresh function every render rebuilt `all` every
-  // render, resynced, re-rendered, and looped until React gave up ("Too many
-  // re-renders") and the screen fell over.
-  const labelForBuiltin = useCallback(
-    (id: string) => t.categories[id as keyof typeof t.categories],
-    [t],
-  );
-  const { all } = useCategoryCatalog(labelForBuiltin);
+  // Stable across renders, so the order resync below runs only when the
+  // catalog really changes (see useLabelledCategoryCatalog).
+  const { all } = useLabelledCategoryCatalog();
 
   // The editor sheet: an entry to edit, or the "new tag" flag.
   const [editing, setEditing] = useState<CatalogEntry | null>(null);
