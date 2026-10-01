@@ -331,27 +331,27 @@ function Step({
   const accent = theme.scheme === 'dark' ? theme.color.brand : SPEC_ACCENT;
   const ink = theme.scheme === 'dark' ? theme.color.text : SPEC_INK;
   return (
-    <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+    <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
       {/* The number, with a dotted rule running down to the next one. */}
       <View style={{ alignItems: 'center', alignSelf: 'stretch', justifyContent: 'center' }}>
         <View
           style={{
-            width: 30,
-            height: 30,
-            borderRadius: 15,
+            width: 26,
+            height: 26,
+            borderRadius: 13,
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: theme.color.brandSoft,
           }}
         >
-          <Text style={{ fontSize: 15, fontWeight: '700', color: accent }}>{String(index)}</Text>
+          <Text style={{ fontSize: 13, fontWeight: '700', color: accent }}>{String(index)}</Text>
         </View>
         {last ? null : (
           <View
             style={{
               position: 'absolute',
               top: '75%',
-              bottom: -theme.spacing.md,
+              bottom: -theme.spacing.sm,
               width: 0,
               borderLeftWidth: 1.5,
               borderStyle: 'dashed',
@@ -362,17 +362,17 @@ function Step({
       </View>
       <View
         style={{
-          width: 44,
-          height: 44,
-          borderRadius: 22,
+          width: 36,
+          height: 36,
+          borderRadius: 18,
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: theme.scheme === 'dark' ? theme.color.surfaceMuted : '#EEF1FB',
         }}
       >
-        <Ionicons name={icon} size={20} color={accent} />
+        <Ionicons name={icon} size={18} color={accent} />
       </View>
-      <Text style={{ flex: 1, fontSize: 15, lineHeight: 21, color: ink }}>
+      <Text style={{ flex: 1, fontSize: 14, lineHeight: 19, color: ink }}>
         {/* A word the reader has to find on their own screen — Copy, Paste —
             is bold, marked in the string as **word**. */}
         {text.split(/(\*\*[^*]+\*\*)/).map((part, i) =>
@@ -407,7 +407,7 @@ function PasteArt(): React.JSX.Element {
 const PASTE_ART = require('../../../assets/images/paste-art.webp') as number;
 /** Its width over its height (1225 × 1284), and how wide it sits. */
 const PASTE_ART_RATIO = 1225 / 1284;
-const PASTE_ART_WIDTH = 150;
+const PASTE_ART_WIDTH = 104;
 
 /** The foot's action: a full-width pill with an arrow — grey while there is
  *  nothing to add, the brand's blue-to-violet once there is. */
@@ -742,7 +742,7 @@ function PasteMessages(): React.JSX.Element {
   const done = added !== null && error === null && fresh.length === 0;
 
   const header = (
-    <View style={{ gap: theme.spacing.lg }}>
+    <View style={{ gap: theme.spacing.md }}>
       <Row style={{ paddingTop: theme.spacing.md, alignItems: 'center', gap: theme.spacing.md }}>
         {/* Close on a soft disc, so it holds its own against the page. */}
         <Pressable
@@ -779,7 +779,7 @@ function PasteMessages(): React.JSX.Element {
           a bank message lifted off it. */}
       <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
         <View style={{ flex: 1, minWidth: 0, gap: theme.spacing.sm }}>
-          <Text style={{ fontSize: 30, lineHeight: 35, fontWeight: '800', color: ink }}>
+          <Text style={{ fontSize: 24, lineHeight: 29, fontWeight: '800', color: ink }}>
             {t.smsImport.heroTitle}
           </Text>
           {/* The instruction, or the state. Never both: with a reader running,
@@ -795,7 +795,7 @@ function PasteMessages(): React.JSX.Element {
               onRefresh={() => void auto.refresh()}
             />
           ) : (
-            <Text style={{ fontSize: 15, lineHeight: 21, color: muted }}>
+            <Text style={{ fontSize: 14, lineHeight: 19, color: muted }}>
               {t.smsImport.howToDrafts}
             </Text>
           )}
@@ -804,8 +804,8 @@ function PasteMessages(): React.JSX.Element {
       </Row>
 
       {firstRun ? (
-        <Card style={{ gap: theme.spacing.md }}>
-          <Text style={{ fontSize: 19, fontWeight: '700', color: ink }}>
+        <Card style={{ gap: theme.spacing.sm }}>
+          <Text style={{ fontSize: 17, fontWeight: '700', color: ink }}>
             {t.smsImport.howToTitle}
           </Text>
           <Step index={1} icon="chatbox-ellipses" text={t.smsImport.howToSteps.open} />
@@ -846,8 +846,8 @@ function PasteMessages(): React.JSX.Element {
             placeholder={t.smsImport.pastePlaceholder}
             placeholderTextColor={theme.color.textFaint}
             style={{
-              minHeight: 120,
-              fontSize: 17,
+              minHeight: 88,
+              fontSize: 16,
               color: theme.color.text,
               textAlignVertical: 'top',
             }}
