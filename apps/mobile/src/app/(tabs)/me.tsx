@@ -602,7 +602,11 @@ function MeLedger() {
           </SectionCard>
 
           <SectionCard icon="layers-outline" title={t.personal.dash.moneyTools}>
-            <Row style={{ gap: theme.spacing.sm }}>
+            {/* Stretched, not centred: Recurring carries a row of category
+                badges that Loans does not, and `Row` centres by default — so the
+                shorter tile floated half a row lower and the pair read as two
+                different sizes. Same height, tops aligned. */}
+            <Row style={{ gap: theme.spacing.sm, alignItems: 'stretch' }}>
               <ToolTile
                 tint="mint"
                 icon="repeat"
