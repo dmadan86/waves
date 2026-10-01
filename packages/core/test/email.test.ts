@@ -5,6 +5,7 @@ import {
   escapeHtml,
   normaliseAddress,
   signUnsubscribe,
+  splitDeviceFact,
   templateForKind,
   unsubscribeUrlFor,
   verifyUnsubscribe,
@@ -364,7 +365,7 @@ describe('a security mail', () => {
 
   it('names the device it is warning about', () => {
     const built = buildEmail(SIGN_IN, OPTIONS);
-    expect(built?.subject).toBe('New sign-in on Pixel 9 · android');
+    expect(built?.subject).toBe('New sign-in on Pixel 9 - Android');
   });
 
   /**
@@ -384,6 +385,34 @@ describe('a security mail', () => {
     const built = buildEmail(SIGN_IN, OPTIONS);
     expect(built?.html).toContain('somebody signed in to your Waves account');
     expect(built?.html).toContain('Review your devices');
+  });
+
+  it('lays the sign-in out as the design: badge, headline, details, button', () => {
+    const built = buildEmail(SIGN_IN, { ...OPTIONS, now: new Date('2026-10-01T07:05:00Z') });
+    expect(built?.html).toContain('Account security');
+    // The platform is split off the device and shown in the brand colour.
+    expect(built?.html).toContain('Pixel 9 - <span style="color:#5B3FD1;">Android</span>');
+    expect(built?.html).toContain('Operating system');
+    expect(built?.html).toContain('UTC');
+    expect(built?.text).toContain('Device: Pixel 9');
+    expect(built?.text).toContain('Operating system: Android');
+    expect(built?.text).toMatch(/Time: .*2026.* UTC/);
+  });
+
+  it('never lets a device name carry markup into the headline', () => {
+    const built = buildEmail(
+      { ...SIGN_IN, facts: { device: '<img src=x onerror=alert(1)> · ios' } },
+      OPTIONS,
+    );
+    expect(built?.html).not.toContain('<img');
+    expect(built?.html).toContain('&lt;img');
+    expect(built?.html).toContain('>iOS</span>');
+  });
+
+  it('lays a right-to-left language out right to left', () => {
+    const built = buildEmail({ ...SIGN_IN, locale: 'ar' }, OPTIONS);
+    expect(built?.html).toContain('dir="rtl"');
+    expect(built?.html).toContain('أمان الحساب');
   });
 
   it('leaves ordinary mail with its unsubscribe intact', () => {
@@ -415,5 +444,32 @@ describe('why a mail arrived', () => {
   it('still names the group when there is one', () => {
     const built = buildEmail(ROW, OPTIONS);
     expect(built?.text).toContain('because of Goa trip on Waves');
+  });
+});
+
+describe('splitDeviceFact', () => {
+  it('splits a label from its platform and names the platform', () => {
+    expect(splitDeviceFact('Pixel 9 · android')).toEqual({ label: 'Pixel 9', platform: 'Android' });
+    expect(splitDeviceFact('iPad Air · ios')).toEqual({ label: 'iPad Air', platform: 'iOS' });
+  });
+
+  it('keeps a label without a platform whole', () => {
+    expect(splitDeviceFact('This device')).toEqual({ label: 'This device', platform: null });
+    expect(splitDeviceFact(undefined)).toEqual({ label: '', platform: null });
+  });
+
+  it('treats a platform named after a prototype key as plain text', () => {
+    expect(splitDeviceFact('Pixel · constructor')).toEqual({
+      label: 'Pixel',
+      platform: 'constructor',
+    });
+    expect(splitDeviceFact('Pixel · __proto__')).toEqual({ label: 'Pixel', platform: '__proto__' });
+  });
+
+  it('splits on the last separator, so a label may contain one', () => {
+    expect(splitDeviceFact('Work · phone · android')).toEqual({
+      label: 'Work · phone',
+      platform: 'Android',
+    });
   });
 });

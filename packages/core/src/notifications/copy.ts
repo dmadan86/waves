@@ -116,6 +116,19 @@ export interface EmailChrome {
   readonly securityReason: string;
   /** Button on a security mail — straight to the list of signed-in devices. */
   readonly securityAction: string;
+  /** The pill above a security mail's headline, so it reads as one at a glance. */
+  readonly securityBadge: string;
+  /**
+   * The lead under a sign-in alert's headline. The "it was me" half comes
+   * first because it is the common case; the push body carries the other half.
+   */
+  readonly securityLead: string;
+  /** Labels on the sign-in alert's detail rows. */
+  readonly securityDevice: string;
+  readonly securitySystem: string;
+  readonly securityTime: string;
+  /** Under the button: where the devices list lives, for somebody not tapping it. */
+  readonly securityManage: string;
   /**
    * The footer reason on a digest, which has no group to name — it is a summary
    * of all of them. Without it `why` interpolates its `{group}` placeholder with
@@ -249,6 +262,14 @@ const en: CopyStrings = {
     promoReason: 'You are getting this because you use Waves.',
     securityReason: 'You are getting this because somebody signed in to your Waves account.',
     securityAction: 'Review your devices',
+    securityBadge: 'Account security',
+    securityLead:
+      'We noticed a new sign-in to your Waves account. If this was you, there is nothing to do. If it was not, sign that device out and change how you sign in.',
+    securityDevice: 'Device',
+    securitySystem: 'Operating system',
+    securityTime: 'Time',
+    securityManage:
+      'You can see and sign out every device on your account in Waves › Settings › Devices.',
     digestReason: 'You are getting this because you turned on the weekly digest.',
     unsubscribe: 'Stop emails like this',
     signature: 'Waves',
@@ -365,6 +386,14 @@ const ta: CopyStrings = {
     promoReason: 'நீங்கள் Waves-ஐப் பயன்படுத்துவதால் இந்த மின்னஞ்சல் வந்துள்ளது.',
     securityReason: 'உங்கள் Waves கணக்கில் யாரோ உள்நுழைந்ததால் இந்த மின்னஞ்சல் வந்துள்ளது.',
     securityAction: 'உங்கள் சாதனங்களைப் பார்க்கவும்',
+    securityBadge: 'கணக்குப் பாதுகாப்பு',
+    securityLead:
+      'உங்கள் Waves கணக்கில் புதிய உள்நுழைவு நடந்துள்ளது. இது நீங்கள் என்றால், எதுவும் செய்ய வேண்டியதில்லை. இல்லையென்றால், அந்தச் சாதனத்தை வெளியேற்றி உள்நுழையும் முறையை மாற்றவும்.',
+    securityDevice: 'சாதனம்',
+    securitySystem: 'இயக்க முறைமை',
+    securityTime: 'நேரம்',
+    securityManage:
+      'உங்கள் கணக்கில் உள்ள எல்லாச் சாதனங்களையும் Waves › அமைப்புகள் › சாதனங்கள் இல் பார்த்து வெளியேற்றலாம்.',
     digestReason: 'வாராந்திர சுருக்கத்தை நீங்கள் இயக்கியதால் இந்த மின்னஞ்சல் வந்துள்ளது.',
     unsubscribe: 'இதுபோன்ற மின்னஞ்சல்களை நிறுத்தவும்',
     signature: 'Waves',
@@ -478,6 +507,14 @@ const hi: CopyStrings = {
     promoReason: 'यह मेल इसलिए आया है क्योंकि आप Waves इस्तेमाल करते हैं।',
     securityReason: 'यह मेल इसलिए आया है क्योंकि किसी ने आपके Waves खाते में साइन इन किया।',
     securityAction: 'अपने डिवाइस देखें',
+    securityBadge: 'खाते की सुरक्षा',
+    securityLead:
+      'आपके Waves खाते में एक नया साइन-इन हुआ है। अगर यह आप थे, तो कुछ करने की ज़रूरत नहीं। अगर नहीं, तो उस डिवाइस को साइन आउट करें और साइन-इन का तरीका बदलें।',
+    securityDevice: 'डिवाइस',
+    securitySystem: 'ऑपरेटिंग सिस्टम',
+    securityTime: 'समय',
+    securityManage:
+      'अपने खाते के सभी डिवाइस आप Waves › सेटिंग्स › डिवाइस में देख और साइन आउट कर सकते हैं।',
     digestReason: 'यह मेल इसलिए आया है क्योंकि आपने साप्ताहिक सारांश चालू किया है।',
     unsubscribe: 'ऐसे मेल बंद करें',
     signature: 'Waves',
@@ -591,6 +628,13 @@ const ar: CopyStrings = {
     promoReason: 'وصلك هذا البريد لأنك تستخدم Waves.',
     securityReason: 'وصلك هذا البريد لأن أحدهم سجّل الدخول إلى حسابك في Waves.',
     securityAction: 'راجع أجهزتك',
+    securityBadge: 'أمان الحساب',
+    securityLead:
+      'لاحظنا تسجيل دخول جديدًا إلى حسابك في Waves. إن كان هذا أنت، فلا داعي لفعل شيء. وإن لم يكن، فسجّل خروج ذلك الجهاز وغيّر طريقة دخولك.',
+    securityDevice: 'الجهاز',
+    securitySystem: 'نظام التشغيل',
+    securityTime: 'الوقت',
+    securityManage: 'يمكنك رؤية كل الأجهزة على حسابك وتسجيل خروجها من Waves › الإعدادات › الأجهزة.',
     digestReason: 'وصلك هذا البريد لأنك فعّلت الملخص الأسبوعي.',
     unsubscribe: 'أوقف هذه الرسائل',
     signature: 'Waves',
