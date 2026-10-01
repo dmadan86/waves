@@ -970,6 +970,16 @@ export default function CapturesScreen() {
   // live before the first load carries rows is the tab seeding will choose.
   const activeTab: ReviewTabId = tab ?? 'added';
   const tabRows = byTab[activeTab];
+  // The other half, for the empty state: an empty tab with drafts waiting next
+  // door must say so rather than "Nothing needs you".
+  const otherTab: ReviewTabId = activeTab === 'added' ? 'found' : 'added';
+  const otherTabCount = byTab[otherTab].length;
+  const otherTabLabel =
+    otherTab === 'added'
+      ? t.captures.tabAdded
+      : smsReader
+        ? t.captures.tabSms
+        : t.captures.tabBankMessages;
   // Ticking belongs to the SMS tab only. That pile is a stream the app fills on
   // its own — a hundred and forty rows, most of them a card bill or a transfer
   // to yourself — and it is answered in handfuls. The drafts somebody added
@@ -2026,6 +2036,41 @@ export default function CapturesScreen() {
         ListEmptyComponent={
           captures.isLoading ? (
             <InboxSkeleton />
+          ) : otherTabCount > 0 ? (
+            /* This tab is empty but the other one is not. "Nothing needs you"
+               here contradicted the hero right above it, which counts both
+               tabs — so the empty tab says where the waiting ones are and
+               offers the way there. */
+            <View
+              style={{
+                minHeight: Math.max(0, listHeight - clearance - theme.spacing.lg),
+                justifyContent: 'center',
+              }}
+            >
+              <EmptyState
+                icon={
+                  <Ionicons
+                    name="file-tray-outline"
+                    size={iconSize.huge}
+                    color={theme.color.brand}
+                  />
+                }
+                title={t.captures.emptyTabTitle}
+                body={plural(locale, otherTabCount, t.captures.emptyTabWaiting).replace(
+                  '{tab}',
+                  otherTabLabel,
+                )}
+                action={
+                  <Button
+                    label={t.captures.emptyTabShow.replace('{tab}', otherTabLabel)}
+                    onPress={() => {
+                      setTab(otherTab);
+                      setSelected(new Set());
+                    }}
+                  />
+                }
+              />
+            </View>
           ) : (
             /* The zero state, designed as carefully as the full one. Review is
                trying to reach *this*: it is the app's list of questions, and a

@@ -1894,6 +1894,12 @@ export interface UiStrings {
      * The zero state, which is the state Review is trying to reach — it is the
      * app's list of questions, and a good week is one where it has none.
      */
+    /** An empty tab while the other tab still has something waiting. */
+    emptyTabTitle: string;
+    /** `{tab}` is the other tab's name. */
+    emptyTabWaiting: PluralForms;
+    /** Switches to the other tab; `{tab}` is its name. */
+    emptyTabShow: string;
     nothingNeedsYou: string;
     filedThisWeek: PluralForms;
     watchingNothingYet: string;
@@ -5361,6 +5367,12 @@ const en: UiStrings = {
     fileTo: 'Add to {name}',
     notAnExpense: 'Not an expense',
     notAnExpenseDone: 'Taken off your list',
+    emptyTabTitle: 'Nothing to review here',
+    emptyTabWaiting: {
+      one: '{n} expense is waiting in {tab}.',
+      other: '{n} expenses are waiting in {tab}.',
+    },
+    emptyTabShow: 'Show {tab}',
     nothingNeedsYou: 'Nothing needs you',
     filedThisWeek: {
       one: '{n} payment from this week is already in its group.',
@@ -8655,6 +8667,12 @@ const ta: UiStrings = {
     fileTo: '{name} இல் சேர்',
     notAnExpense: 'இது செலவு அல்ல',
     notAnExpenseDone: 'உங்கள் பட்டியலிலிருந்து நீக்கப்பட்டது',
+    emptyTabTitle: 'இங்கே பார்க்க எதுவும் இல்லை',
+    emptyTabWaiting: {
+      one: '{n} செலவு {tab} இல் காத்திருக்கிறது.',
+      other: '{n} செலவுகள் {tab} இல் காத்திருக்கின்றன.',
+    },
+    emptyTabShow: '{tab} ஐக் காட்டு',
     nothingNeedsYou: 'உங்களிடம் எதுவும் கேட்கவில்லை',
     filedThisWeek: {
       one: 'இந்த வாரத்தின் {n} பணம் ஏற்கனவே அதன் குழுவில் உள்ளது.',
@@ -12017,6 +12035,12 @@ const hi: UiStrings = {
     fileTo: '{name} में डालें',
     notAnExpense: 'यह खर्च नहीं है',
     notAnExpenseDone: 'आपकी सूची से हटा दिया',
+    emptyTabTitle: 'यहाँ देखने को कुछ नहीं',
+    emptyTabWaiting: {
+      one: '{n} खर्च {tab} में इंतज़ार कर रहा है।',
+      other: '{n} खर्च {tab} में इंतज़ार कर रहे हैं।',
+    },
+    emptyTabShow: '{tab} दिखाएँ',
     nothingNeedsYou: 'आपसे कुछ नहीं पूछा जा रहा',
     filedThisWeek: {
       one: 'इस हफ़्ते का {n} भुगतान पहले ही अपने समूह में है।',
@@ -15391,6 +15415,9 @@ const ar: UiStrings = {
     fileTo: 'أضِف إلى {name}',
     notAnExpense: 'ليس مصروفًا',
     notAnExpenseDone: 'أُزيل من قائمتك',
+    emptyTabTitle: 'لا شيء للمراجعة هنا',
+    emptyTabWaiting: { one: 'مصروف واحد ينتظر في {tab}.', other: '{n} مصاريف تنتظر في {tab}.' },
+    emptyTabShow: 'اعرض {tab}',
     nothingNeedsYou: 'لا شيء يحتاجك',
     filedThisWeek: {
       zero: 'لا مدفوعات من هذا الأسبوع في مجموعاتها بعد.',
