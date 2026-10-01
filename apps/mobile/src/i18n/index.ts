@@ -1271,6 +1271,21 @@ export interface UiStrings {
     savedForLaterBody: string;
   };
   /** Attaching an email or phone to the account you already have (ADR-006). */
+  /** The ask to add a phone number, shown after sign-in until one is linked. */
+  phonePrompt: {
+    title: string;
+    body: string;
+    requiredBody: string;
+    add: string;
+    later: string;
+    signOut: string;
+    sendCode: string;
+    codeSent: string;
+    confirm: string;
+    changeNumber: string;
+    done: string;
+    doneAction: string;
+  };
   contact: {
     unlink: string;
     unlinkPhoneTitle: string;
@@ -4891,6 +4906,21 @@ const en: UiStrings = {
     savedForLaterBody:
       'If one is still waiting for a group a day later, this phone reminds you in the evening. On a day you have not opened Waves at all, it asks instead whether anything needs splitting. Once a day at most, and only ever one of the two.',
   },
+  phonePrompt: {
+    title: 'Add your phone number',
+    body: 'Friends find you on Waves by your number, so adding it is the quickest way into their groups. It is only used to find you and to sign in, and it is never shown to anyone.',
+    requiredBody:
+      'Add your phone number to keep using Waves. Friends find you by it, and it is never shown to anyone.',
+    add: 'Add phone number',
+    later: 'Later',
+    signOut: 'Sign out',
+    sendCode: 'Send code',
+    codeSent: 'Enter the six-digit code we texted to {phone}',
+    confirm: 'Confirm',
+    changeNumber: 'Change number',
+    done: 'You are all set. Friends can now find you by your number.',
+    doneAction: 'Done',
+  },
   contact: {
     unlink: 'Unlink',
     unlinkPhoneTitle: 'Unlink this number?',
@@ -8171,6 +8201,21 @@ const ta: UiStrings = {
     savedForLater: 'பிறகு சேமித்த செலவுகள்',
     savedForLaterBody:
       'ஒரு நாள் கழித்தும் ஒரு செலவு குழுவுக்காகக் காத்திருந்தால், இந்த ஃபோன் மாலையில் நினைவூட்டும். நீங்கள் Waves-ஐத் திறக்காத நாளில், பிரிக்க ஏதேனும் உள்ளதா என்று கேட்கும். நாளொன்றுக்கு ஒரு முறை மட்டுமே; இரண்டில் ஒன்று மட்டுமே.',
+  },
+  phonePrompt: {
+    title: 'உங்கள் தொலைபேசி எண்ணைச் சேர்க்கவும்',
+    body: 'நண்பர்கள் உங்கள் எண்ணைக் கொண்டு Waves இல் உங்களைக் கண்டுபிடிப்பார்கள், எனவே அவர்களின் குழுக்களில் சேர இதுவே எளிய வழி. இது உங்களைக் கண்டுபிடிக்கவும் உள்நுழையவும் மட்டுமே பயன்படும், யாருக்கும் காட்டப்படாது.',
+    requiredBody:
+      'Waves ஐத் தொடர்ந்து பயன்படுத்த உங்கள் தொலைபேசி எண்ணைச் சேர்க்கவும். நண்பர்கள் இதைக் கொண்டு உங்களைக் கண்டுபிடிப்பார்கள், இது யாருக்கும் காட்டப்படாது.',
+    add: 'தொலைபேசி எண்ணைச் சேர்',
+    later: 'பிறகு',
+    signOut: 'வெளியேறு',
+    sendCode: 'குறியீட்டை அனுப்பு',
+    codeSent: '{phone} க்கு அனுப்பிய ஆறு இலக்கக் குறியீட்டை உள்ளிடவும்',
+    confirm: 'உறுதிப்படுத்து',
+    changeNumber: 'எண்ணை மாற்று',
+    done: 'எல்லாம் தயார். நண்பர்கள் இப்போது உங்கள் எண்ணைக் கொண்டு உங்களைக் கண்டுபிடிக்கலாம்.',
+    doneAction: 'முடிந்தது',
   },
   contact: {
     unlink: 'இணைப்பை நீக்கு',
@@ -11545,6 +11590,21 @@ const hi: UiStrings = {
     savedForLaterBody:
       'अगर कोई खर्च एक दिन बाद भी किसी समूह का इंतज़ार कर रहा हो, तो यह फ़ोन शाम को याद दिलाता है। जिस दिन आपने Waves खोला ही न हो, उस दिन यह पूछता है कि बाँटने के लिए कुछ है क्या। दिन में ज़्यादा से ज़्यादा एक बार, और दोनों में से सिर्फ़ एक।',
   },
+  phonePrompt: {
+    title: 'अपना फ़ोन नंबर जोड़ें',
+    body: 'दोस्त आपके नंबर से Waves पर आपको ढूँढते हैं, इसलिए उनके ग्रुप में जुड़ने का यही सबसे आसान तरीका है। यह सिर्फ़ आपको ढूँढने और साइन इन के लिए है, और किसी को दिखाया नहीं जाता।',
+    requiredBody:
+      'Waves इस्तेमाल करते रहने के लिए अपना फ़ोन नंबर जोड़ें। दोस्त आपको इसी से ढूँढते हैं, और यह किसी को दिखाया नहीं जाता।',
+    add: 'फ़ोन नंबर जोड़ें',
+    later: 'बाद में',
+    signOut: 'साइन आउट',
+    sendCode: 'कोड भेजें',
+    codeSent: '{phone} पर भेजा गया छह अंकों का कोड डालें',
+    confirm: 'पुष्टि करें',
+    changeNumber: 'नंबर बदलें',
+    done: 'सब तैयार है। अब दोस्त आपको आपके नंबर से ढूँढ सकते हैं।',
+    doneAction: 'हो गया',
+  },
   contact: {
     unlink: 'अनलिंक करें',
     unlinkPhoneTitle: 'यह नंबर अनलिंक करें?',
@@ -14878,6 +14938,20 @@ const ar: UiStrings = {
     savedForLater: 'مصاريف محفوظة لوقت لاحق',
     savedForLaterBody:
       'إذا بقي مصروف ينتظر مجموعة بعد يوم كامل، يذكّرك هذا الهاتف مساءً. وفي يوم لم تفتح فيه Waves إطلاقًا، يسألك بدلًا من ذلك إن كان هناك ما تريد تقسيمه. مرة واحدة في اليوم على الأكثر، وواحد من الاثنين فقط.',
+  },
+  phonePrompt: {
+    title: 'أضف رقم هاتفك',
+    body: 'يجدك أصدقاؤك على Waves برقمك، لذا إضافته أسرع طريق للانضمام إلى مجموعاتهم. يُستخدم فقط للعثور عليك ولتسجيل الدخول، ولا يُعرض لأحد.',
+    requiredBody: 'أضف رقم هاتفك لمتابعة استخدام Waves. يجدك أصدقاؤك به، ولا يُعرض لأحد.',
+    add: 'أضف رقم الهاتف',
+    later: 'لاحقًا',
+    signOut: 'تسجيل الخروج',
+    sendCode: 'أرسل الرمز',
+    codeSent: 'أدخل الرمز المكوّن من ستة أرقام الذي أرسلناه إلى {phone}',
+    confirm: 'تأكيد',
+    changeNumber: 'غيّر الرقم',
+    done: 'كل شيء جاهز. يمكن لأصدقائك الآن العثور عليك برقمك.',
+    doneAction: 'تم',
   },
   contact: {
     unlink: 'إلغاء الربط',

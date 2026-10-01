@@ -38,6 +38,7 @@ import { LanguageRestartPrompt } from '@/components/LanguageRestartPrompt';
 import { TransferProgressBar } from '@/components/TransferProgressBar';
 import { CampaignPopup } from '@/components/CampaignPopup';
 import { NotificationPrompt } from '@/components/NotificationPrompt';
+import { PhoneLinkPrompt } from '@/components/PhoneLinkPrompt';
 import { TourOverlay } from '@/components/TourOverlay';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { StatusBanner, UpdateGate } from '@/components/AppStatus';
@@ -304,6 +305,9 @@ function RootLayout() {
                                         signed-in person whose permission is
                                         still undetermined. */}
                                             <NotificationPrompt />
+                                            {/* The ask to add a phone number, so
+                                        friends can find this account. */}
+                                            <PhoneLinkPrompt />
                                           </DeviceSessionProvider>
                                         </LockGate>
                                         {/* The coach-mark tour, over the whole app but
