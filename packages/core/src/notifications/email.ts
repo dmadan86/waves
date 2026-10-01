@@ -166,6 +166,12 @@ export interface EmailOptions {
   readonly webUrl?: string | null;
   /** Signed, address-specific, and safe to POST without a session. */
   readonly unsubscribeUrl: string;
+  /**
+   * When the mail is built — the sign-in alert's "Time" row. The fanout runs
+   * every few minutes, so this is within minutes of the sign-in itself.
+   * Injectable so a test can pin it.
+   */
+  readonly now?: Date;
 }
 
 /**
@@ -257,6 +263,17 @@ export function buildEmail(row: EmailableNotification, options: EmailOptions): B
         : copy.email.promoReason;
   const direction = RIGHT_TO_LEFT.has(language) ? 'rtl' : 'ltr';
 
+  if (security) {
+    return buildSecurityEmail(row, template, {
+      locale,
+      direction,
+      title,
+      link,
+      copy: copy.email,
+      now: options.now ?? new Date(),
+    });
+  }
+
   return {
     notificationId: row.id,
     to: row.to,
@@ -337,6 +354,239 @@ ${button}
 <p style="margin:28px 0 0;font-size:12px;line-height:1.6;color:#78716c;">${escapeHtml(parts.why)}${optOut}</p>
 </div>
 <p style="max-width:520px;margin:16px auto 0;font-size:12px;color:#a8a29e;text-align:${align};">${escapeHtml(parts.signature)}</p>
+</body>
+</html>`;
+}
+
+// ──────────────────────────────────────────────────── the sign-in alert ──
+
+/** How the platform the app reports (`Platform.OS`) is written for a person. */
+const PLATFORM_NAMES: Readonly<Record<string, string>> = {
+  android: 'Android',
+  ios: 'iOS',
+  ipados: 'iPadOS',
+  web: 'Web',
+  macos: 'macOS',
+  windows: 'Windows',
+};
+
+/**
+ * `waves_register_device` writes the device fact as `label · platform`
+ * ("Pixel 9 · android"). The mail shows the two on separate rows, so they are
+ * split back apart here; a fact without the separator is all label.
+ */
+export function splitDeviceFact(fact: string | undefined): {
+  readonly label: string;
+  readonly platform: string | null;
+} {
+  const value = (fact ?? '').trim();
+  const at = value.lastIndexOf(' · ');
+  if (at < 0) return { label: value, platform: null };
+  const raw = value.slice(at + 3).trim();
+  return {
+    label: value.slice(0, at).trim(),
+    // Own keys only: the platform is whatever a client sent, and `constructor`
+    // or `__proto__` would otherwise find something on Object's prototype.
+    platform: raw
+      ? Object.hasOwn(PLATFORM_NAMES, raw.toLowerCase())
+        ? PLATFORM_NAMES[raw.toLowerCase()]!
+        : raw
+      : null,
+  };
+}
+
+/**
+ * The time row. UTC and said so: the sender knows nothing about where the
+ * reader is, and a time in an unnamed zone is one somebody checks against
+ * their own clock and wrongly decides was not them.
+ */
+function signInTime(now: Date, locale: string): string {
+  try {
+    return `${new Intl.DateTimeFormat(locale, {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+      timeZone: 'UTC',
+    }).format(now)} UTC`;
+  } catch {
+    return `${now.toISOString().slice(0, 16).replace('T', ' ')} UTC`;
+  }
+}
+
+interface SecurityParts {
+  readonly locale: string;
+  readonly direction: 'ltr' | 'rtl';
+  readonly title: string;
+  readonly link: string | null;
+  readonly copy: ReturnType<typeof copyFor>['email'];
+  readonly now: Date;
+}
+
+/** Stands in for the device in the headline until it is safe to add markup. */
+const DEVICE_SLOT = '\u0000device\u0000';
+
+function buildSecurityEmail(
+  row: EmailableNotification,
+  template: EmailTemplate,
+  parts: SecurityParts,
+): BuiltEmail {
+  const { copy } = parts;
+  const { label, platform } = splitDeviceFact(row.facts?.device);
+  const time = signInTime(parts.now, parts.locale);
+  const named = platform ? `${label} - ${platform}` : label;
+  // The subject says the device the way the headline does, rather than the
+  // raw fact's "Pixel 9 · android".
+  const subject = row.facts?.device
+    ? renderNotification(row.kind, { ...row.facts, device: named }, parts.locale, {
+        title: row.title,
+        body: row.body,
+      }).title
+    : parts.title;
+
+  // The headline is the translated title with the device dropped in, and the
+  // platform in the brand colour. It is rendered with a placeholder, escaped,
+  // and only then given its markup — so no device name can carry HTML in.
+  const headline = renderNotification(
+    row.kind,
+    { ...row.facts, device: DEVICE_SLOT },
+    parts.locale,
+    { title: row.title, body: row.body },
+  ).title;
+  const deviceHtml = platform
+    ? `${escapeHtml(label)} - <span style="color:${BRAND};">${escapeHtml(platform)}</span>`
+    : escapeHtml(label);
+  const headlineHtml = headline.includes(DEVICE_SLOT)
+    ? escapeHtml(headline).replace(DEVICE_SLOT, deviceHtml)
+    : escapeHtml(parts.title);
+
+  const details: { icon: string; label: string; value: string }[] = [
+    { icon: '&#128241;', label: copy.securityDevice, value: label },
+    ...(platform ? [{ icon: '&#9881;&#65039;', label: copy.securitySystem, value: platform }] : []),
+    { icon: '&#128339;', label: copy.securityTime, value: time },
+  ];
+
+  return {
+    notificationId: row.id,
+    to: row.to,
+    subject,
+    html: renderSecurityHtml({
+      direction: parts.direction,
+      badge: copy.securityBadge,
+      headlineHtml,
+      lead: copy.securityLead,
+      details,
+      action: copy.securityAction,
+      link: parts.link,
+      manage: copy.securityManage,
+      why: copy.securityReason,
+      signature: copy.signature,
+      platform,
+    }),
+    text: [
+      subject,
+      '',
+      copy.securityLead,
+      '',
+      ...details.map((detail) => `${detail.label}: ${detail.value}`),
+      '',
+      parts.link ? `${copy.securityAction}: ${parts.link}` : '',
+      '',
+      copy.securityManage,
+      copy.securityReason,
+    ]
+      .join('\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim(),
+    template,
+    // No `List-Unsubscribe`: see `SECURITY_TEMPLATES`.
+    headers: {},
+  };
+}
+
+/** The Waves brand violet (`gradients.light[1]` in @waves/ui). */
+const BRAND = '#5B3FD1';
+
+interface SecurityHtml {
+  readonly direction: 'ltr' | 'rtl';
+  readonly badge: string;
+  /** Already escaped — it carries the platform's colour span. */
+  readonly headlineHtml: string;
+  readonly lead: string;
+  readonly details: readonly { icon: string; label: string; value: string }[];
+  readonly action: string;
+  readonly link: string | null;
+  readonly manage: string;
+  readonly why: string;
+  readonly signature: string;
+  readonly platform: string | null;
+}
+
+/**
+ * The sign-in alert's own layout: a badge, a large headline, the facts as a
+ * list, one dark button, and a phone drawn beside it.
+ *
+ * Built from tables and inline styles because that is what mail clients
+ * render; the phone is CSS, not an image, for the same no-remote-images reason
+ * as `renderHtml`. On a narrow screen the phone column drops away
+ * (`.waves-art`) and the text takes the full width — clients that ignore the
+ * media query simply keep both columns.
+ */
+function renderSecurityHtml(parts: SecurityHtml): string {
+  const align = parts.direction === 'rtl' ? 'right' : 'left';
+  const rows = parts.details
+    .map(
+      (detail) => `<tr>
+<td width="40" valign="top" style="padding:10px 0;font-size:20px;line-height:24px;">${detail.icon}</td>
+<td valign="top" style="padding:10px 0;">
+<div style="font-size:15px;font-weight:700;color:#1c1917;line-height:20px;">${escapeHtml(detail.label)}</div>
+<div style="font-size:15px;color:#57534e;line-height:22px;">${escapeHtml(detail.value)}</div>
+</td>
+</tr>`,
+    )
+    .join('\n');
+  const button = parts.link
+    ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 0;"><tr><td style="border-radius:999px;background:#1c1917;">
+<a href="${escapeHtml(parts.link)}" style="display:inline-block;padding:15px 36px;border-radius:999px;color:#ffffff;text-decoration:none;font-size:16px;font-weight:700;">${escapeHtml(parts.action)} &rarr;</a>
+</td></tr></table>`
+    : '';
+  const phone = `<td class="waves-art" width="190" valign="middle" align="center" style="padding:0 0 0 16px;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-radius:110px;background:#ede9fe;padding:28px;"><tr><td align="center">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="112" style="width:112px;border:6px solid #1c1917;border-radius:24px;background:#f5f3ff;"><tr>
+<td align="center" valign="middle" height="190" style="height:190px;font-family:inherit;">
+<div style="font-size:22px;font-weight:800;color:${BRAND};letter-spacing:-0.5px;">Waves</div>
+${parts.platform ? `<div style="font-size:15px;font-weight:700;color:#1c1917;margin-top:6px;">${escapeHtml(parts.platform)}</div>` : ''}
+<div style="margin:16px auto 0;width:44px;height:44px;line-height:44px;border-radius:22px;background:${BRAND};color:#ffffff;font-size:24px;font-weight:700;text-align:center;">&#10003;</div>
+</td></tr></table>
+</td></tr></table>
+</td>`;
+
+  return `<!doctype html>
+<html dir="${parts.direction}">
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+@media (max-width: 600px) { .waves-art { display: none !important; } .waves-card { padding: 24px !important; } .waves-h1 { font-size: 26px !important; } }
+</style>
+</head>
+<body style="margin:0;padding:24px 12px;background:#f5f5f4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:680px;margin:0 auto;">
+<tr><td style="padding:0 8px 16px;text-align:${align};font-size:26px;font-weight:800;color:${BRAND};letter-spacing:-0.5px;">Waves</td></tr>
+<tr><td class="waves-card" style="background:#ffffff;border-radius:20px;padding:36px 40px;text-align:${align};">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"><tr>
+<td valign="top">
+<span style="display:inline-block;padding:6px 14px;border-radius:999px;background:#ede9fe;color:${BRAND};font-size:13px;font-weight:600;">&#128737;&#65039; ${escapeHtml(parts.badge)}</span>
+<h1 class="waves-h1" style="margin:18px 0 12px;font-size:32px;line-height:1.2;font-weight:800;color:#1c1917;">${parts.headlineHtml}</h1>
+<p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#57534e;">${escapeHtml(parts.lead)}</p>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-top:1px solid #e7e5e4;margin:0 0 20px;">
+${rows}
+</table>
+${button}
+</td>
+${phone}
+</tr></table>
+<p style="margin:24px 0 0;font-size:13px;line-height:1.6;color:#78716c;">${escapeHtml(parts.manage)}<br />${escapeHtml(parts.why)}</p>
+</td></tr>
+<tr><td style="padding:16px 8px 0;font-size:12px;color:#a8a29e;text-align:${align};">${escapeHtml(parts.signature)}</td></tr>
+</table>
 </body>
 </html>`;
 }
