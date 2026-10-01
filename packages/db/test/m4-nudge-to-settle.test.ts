@@ -177,6 +177,27 @@ describe('a nudge that is real', () => {
   });
 });
 
+describe('a group with no name', () => {
+  // `groups.name` may be NULL, and the inbox body used to be built by joining
+  // text to it — NULL, so the insert failed and Remind showed "Couldn't send
+  // the reminder" in every unnamed group.
+  it('still sends, and says "your group" where the name would be', async () => {
+    const { asha, ravi, groupId, raviMember } = await owingPair();
+    await client.query(`UPDATE groups SET name = NULL WHERE id = $1`, [groupId]);
+
+    const result = await nudge(asha, groupId, raviMember);
+    expect(result.rows[0].id).not.toBeNull();
+
+    const { rows } = await client.query(
+      `SELECT body, payload FROM notifications WHERE profile_id = $1 AND kind = 'nudge'`,
+      [ravi],
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0].body).toBe('You have a pending balance in your group');
+    expect(rows[0].payload.group).toBeNull();
+  });
+});
+
 describe('the refusals that keep it kind', () => {
   it('refuses a second nudge the same day', async () => {
     const { asha, groupId, raviMember } = await owingPair();
