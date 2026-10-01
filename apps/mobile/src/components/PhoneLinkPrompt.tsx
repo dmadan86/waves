@@ -140,13 +140,17 @@ export function PhoneLinkPrompt() {
       // having a number, and with it the ask would drop out of the queue for a
       // render before the "you're set" card claimed it back.
       setStage(Stage.Done);
-      await refresh();
     } catch (caught) {
       setFailed(true);
       setError(friendlyError(caught, t.couldNotSave, 'phonePrompt.confirm'));
+      return;
     } finally {
       setBusy(false);
     }
+    // Outside the try: the number is linked by now, and a refresh that fails is
+    // not a failed link. `attachProof` already refreshed once; this is only so
+    // the screen reads the new number without waiting for the token to roll.
+    await refresh().catch(() => undefined);
   };
 
   if (!wants || !granted) return null;

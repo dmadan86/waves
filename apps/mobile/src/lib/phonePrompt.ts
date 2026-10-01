@@ -85,7 +85,10 @@ export function localDay(now: Date = new Date()): string {
   try {
     return new Intl.DateTimeFormat('en-CA').format(now);
   } catch {
-    return now.toISOString().slice(0, 10);
+    // Local getters, not `toISOString` — that is UTC, and near midnight it
+    // names a different day from the one on the person's phone.
+    const pad = (value: number): string => String(value).padStart(2, '0');
+    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
   }
 }
 
