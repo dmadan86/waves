@@ -385,7 +385,13 @@ export function splitDeviceFact(fact: string | undefined): {
   const raw = value.slice(at + 3).trim();
   return {
     label: value.slice(0, at).trim(),
-    platform: raw ? (PLATFORM_NAMES[raw.toLowerCase()] ?? raw) : null,
+    // Own keys only: the platform is whatever a client sent, and `constructor`
+    // or `__proto__` would otherwise find something on Object's prototype.
+    platform: raw
+      ? Object.hasOwn(PLATFORM_NAMES, raw.toLowerCase())
+        ? PLATFORM_NAMES[raw.toLowerCase()]!
+        : raw
+      : null,
   };
 }
 

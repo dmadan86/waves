@@ -458,6 +458,14 @@ describe('splitDeviceFact', () => {
     expect(splitDeviceFact(undefined)).toEqual({ label: '', platform: null });
   });
 
+  it('treats a platform named after a prototype key as plain text', () => {
+    expect(splitDeviceFact('Pixel · constructor')).toEqual({
+      label: 'Pixel',
+      platform: 'constructor',
+    });
+    expect(splitDeviceFact('Pixel · __proto__')).toEqual({ label: 'Pixel', platform: '__proto__' });
+  });
+
   it('splits on the last separator, so a label may contain one', () => {
     expect(splitDeviceFact('Work · phone · android')).toEqual({
       label: 'Work · phone',
