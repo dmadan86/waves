@@ -3163,7 +3163,7 @@ export interface UiStrings {
     newPayments: PluralForms;
     reviewAndAdd: string;
     /** `{n}` is how many are ticked. */
-    addSelected: string;
+    addSelected: PluralForms;
     /** Said when Add selected is tapped with nothing ticked. */
     addSelectedHint: string;
     /** Behind the ⓘ beside "N not counted". */
@@ -6496,7 +6496,7 @@ const en: UiStrings = {
     undo: 'Undo',
     newPayments: { one: '{n} new payment', other: '{n} new payments' },
     reviewAndAdd: 'Review and add to your expenses',
-    addSelected: 'Add selected ({n})',
+    addSelected: { one: 'Add selected ({n})', other: 'Add selected ({n})' },
     addSelectedHint: 'Tick the payments you want to add first.',
     notCountedWhy:
       'Left out of the total: a different currency, or an amount Waves could not read.',
@@ -9897,7 +9897,7 @@ const ta: UiStrings = {
     undo: 'மீட்டமை',
     newPayments: { one: '{n} புதிய கொடுப்பனவு', other: '{n} புதிய கொடுப்பனவுகள்' },
     reviewAndAdd: 'பார்த்து உங்கள் செலவுகளில் சேருங்கள்',
-    addSelected: 'தேர்ந்தவற்றைச் சேர் ({n})',
+    addSelected: { one: 'தேர்ந்தவற்றைச் சேர் ({n})', other: 'தேர்ந்தவற்றைச் சேர் ({n})' },
     addSelectedHint: 'முதலில் சேர்க்க வேண்டிய கொடுப்பனவுகளைத் தேர்ந்தெடுங்கள்.',
     notCountedWhy: 'மொத்தத்தில் சேர்க்கப்படவில்லை: வேறு நாணயம், அல்லது Waves படிக்க முடியாத தொகை.',
     isNew: 'புதியது',
@@ -13235,7 +13235,7 @@ const hi: UiStrings = {
     undo: 'वापस लें',
     newPayments: { one: '{n} नया भुगतान', other: '{n} नए भुगतान' },
     reviewAndAdd: 'देखें और अपने ख़र्चों में जोड़ें',
-    addSelected: 'चुने हुए जोड़ें ({n})',
+    addSelected: { one: 'चुने हुए जोड़ें ({n})', other: 'चुने हुए जोड़ें ({n})' },
     addSelectedHint: 'पहले वे भुगतान चुनें जिन्हें जोड़ना है।',
     notCountedWhy: 'कुल में शामिल नहीं: दूसरी मुद्रा, या ऐसी रकम जिसे Waves पढ़ नहीं पाया।',
     isNew: 'नया',
@@ -16878,7 +16878,14 @@ const ar: UiStrings = {
       other: '{n} دفعة جديدة',
     },
     reviewAndAdd: 'راجعها وأضفها إلى مصروفاتك',
-    addSelected: 'أضف المحدد ({n})',
+    addSelected: {
+      zero: 'أضف المحدد ({n})',
+      one: 'أضف المحدد ({n})',
+      two: 'أضف المحددين ({n})',
+      few: 'أضف المحددين ({n})',
+      many: 'أضف المحددين ({n})',
+      other: 'أضف المحددين ({n})',
+    },
     addSelectedHint: 'حدّد أولًا المدفوعات التي تريد إضافتها.',
     notCountedWhy: 'غير محسوبة في المجموع: عملة مختلفة، أو مبلغ لم يتمكن Waves من قراءته.',
     isNew: 'جديد',

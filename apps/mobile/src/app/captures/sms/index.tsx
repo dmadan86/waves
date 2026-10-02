@@ -841,7 +841,7 @@ export default function SmsInboxScreen(): React.JSX.Element | null {
           subtitle={t.smsInbox.reviewAndAdd}
           secondaryLabel={selecting ? plural(locale, 1, t.smsInbox.setAside) : null}
           onSecondary={() => void setAside()}
-          actionLabel={t.smsInbox.addSelected.replace('{n}', String(chosen.length))}
+          actionLabel={plural(locale, chosen.length, t.smsInbox.addSelected)}
           // Never greyed out at zero: a tap with nothing ticked says how to
           // use it rather than doing nothing.
           disabled={placing}
