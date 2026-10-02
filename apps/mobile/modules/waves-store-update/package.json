@@ -1,0 +1,7 @@
+{
+  "name": "waves-store-update",
+  "version": "1.0.0",
+  "description": "Google Play in-app updates (flexible and immediate) for the Waves app.",
+  "main": "index.ts",
+  "private": true
+}

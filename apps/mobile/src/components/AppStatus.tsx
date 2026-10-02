@@ -48,6 +48,7 @@ import { fill, Language, LANGUAGE_NAMES, useStrings, type UiStrings } from '@/i1
 import { gregorianFormatter } from '@/lib/calendarGrid';
 import { usePromptQueueClear } from '@/lib/promptQueue';
 import { useAppStatus } from '@/lib/appStatus';
+import { useStoreUpdate } from '@/lib/storeUpdate';
 
 export function UpdateGate({ children }: { children: React.ReactNode }) {
   const { gate } = useAppStatus();
@@ -297,8 +298,13 @@ export function StatusBanner(): React.JSX.Element | null {
   const when = useWindowText();
   const clear = usePromptQueueClear();
   const { banner, dismissNotice, dismissUpdate, now, openStore } = useAppStatus();
+  const storeUpdate = useStoreUpdate();
 
   if (!banner || !clear) return null;
+  // One update prompt, not two: when the store itself says there is an update,
+  // the bar above the navigation carries it (with Play's own download and
+  // restart), and the operator's softer "update available" card stands down.
+  if (banner.channel === 'update' && storeUpdate.phase.kind !== 'none') return null;
 
   const wording = wordingFor(banner, t, now, when);
   const tint = wording.urgent ? theme.color.warning : theme.color.brand;
