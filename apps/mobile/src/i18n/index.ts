@@ -3209,6 +3209,34 @@ export interface UiStrings {
     entryTitle: string;
     entryWaiting: PluralForms;
     entryNothing: string;
+    /** The detail screen's status pill — `inReview` above already covers the
+     *  third state. */
+    statusSetAside: string;
+    statusAdded: string;
+    /** The summary card's bank line: "Card • 4006". */
+    cardShort: string;
+    /** "What do you want to do?" — the three actions under the message. */
+    whatNext: string;
+    createExpense: string;
+    ignoreMessage: string;
+    /** The pill on the message card. */
+    copyText: string;
+    copiedToClipboard: string;
+    /** The fourth quick-pick chip, into the full category catalog. */
+    categoryMore: string;
+    /** "3 earlier payments to ABHISHEK · ₹1,350 total". `{merchant}` and
+     *  `{amount}` are filled in after the plural form is chosen. */
+    seenBefore: PluralForms;
+    recurringChip: string;
+    /** The transaction-type badge, for the two classifications that carry no
+     *  `reason` of their own — the rest reuse `reasonCardBill` etc. above. */
+    badgeDebit: string;
+    badgeCredit: string;
+    badgeAtm: string;
+    /** Accessibility-only: what a tap on a highlighted span would announce. */
+    highlightAmount: string;
+    highlightDate: string;
+    highlightMerchant: string;
   };
   /** Splitting one bill line by line, on one phone or several. */
   itemize: {
@@ -6520,7 +6548,7 @@ const en: UiStrings = {
     reasonSelfTransfer: 'Your own account',
     reasonCashWithdrawal: 'Cash out',
     reasonRefund: 'Refund',
-    detailTitle: 'Message',
+    detailTitle: 'Message details',
     fromTheMessage: 'From the message',
     seeMessage: 'See the message',
     onThisPhoneOnly: 'On this phone only',
@@ -6539,6 +6567,26 @@ const en: UiStrings = {
     entryTitle: 'Bank messages',
     entryWaiting: { one: '{n} new', other: '{n} new' },
     entryNothing: 'Nothing waiting',
+    statusSetAside: 'Set aside',
+    statusAdded: 'Added',
+    cardShort: 'Card • {tail}',
+    whatNext: 'What do you want to do?',
+    createExpense: 'Create expense',
+    ignoreMessage: 'Ignore this message',
+    copyText: 'Copy text',
+    copiedToClipboard: 'Copied',
+    categoryMore: 'More',
+    seenBefore: {
+      one: '{n} earlier payment to {merchant} · {amount} total',
+      other: '{n} earlier payments to {merchant} · {amount} total',
+    },
+    recurringChip: 'Looks recurring',
+    badgeDebit: 'Debit',
+    badgeCredit: 'Credit',
+    badgeAtm: 'ATM withdrawal',
+    highlightAmount: 'Amount, {value}',
+    highlightDate: 'Date, {value}',
+    highlightMerchant: 'Merchant, {value}',
   },
   itemize: {
     title: 'Split by item',
@@ -9924,7 +9972,7 @@ const ta: UiStrings = {
     reasonSelfTransfer: 'உங்கள் சொந்தக் கணக்கு',
     reasonCashWithdrawal: 'பணம் எடுத்தல்',
     reasonRefund: 'திரும்பப் பெற்றது',
-    detailTitle: 'செய்தி',
+    detailTitle: 'செய்தி விவரங்கள்',
     fromTheMessage: 'செய்தியிலிருந்து',
     seeMessage: 'செய்தியைப் பார்க்கவும்',
     onThisPhoneOnly: 'இந்த ஃபோனில் மட்டும்',
@@ -9945,6 +9993,26 @@ const ta: UiStrings = {
     entryTitle: 'வங்கிச் செய்திகள்',
     entryWaiting: { one: '{n} புதியது', other: '{n} புதியவை' },
     entryNothing: 'காத்திருப்பது ஒன்றுமில்லை',
+    statusSetAside: 'ஒதுக்கப்பட்டது',
+    statusAdded: 'சேர்க்கப்பட்டது',
+    cardShort: 'கார்டு • {tail}',
+    whatNext: 'அடுத்து என்ன செய்ய வேண்டும்?',
+    createExpense: 'செலவை உருவாக்கு',
+    ignoreMessage: 'இந்தச் செய்தியைப் புறக்கணி',
+    copyText: 'உரையை நகலெடு',
+    copiedToClipboard: 'நகலெடுக்கப்பட்டது',
+    categoryMore: 'மேலும்',
+    seenBefore: {
+      one: '{merchant}-க்கு முன் {n} கொடுப்பனவு · மொத்தம் {amount}',
+      other: '{merchant}-க்கு முன் {n} கொடுப்பனவுகள் · மொத்தம் {amount}',
+    },
+    recurringChip: 'தொடர்ச்சியாகத் தெரிகிறது',
+    badgeDebit: 'செலவு',
+    badgeCredit: 'வரவு',
+    badgeAtm: 'ATM எடுப்பு',
+    highlightAmount: 'தொகை, {value}',
+    highlightDate: 'தேதி, {value}',
+    highlightMerchant: 'கடை, {value}',
   },
   itemize: {
     title: 'பொருள் வாரியாகப் பிரி',
@@ -13266,7 +13334,7 @@ const hi: UiStrings = {
     reasonSelfTransfer: 'आपका अपना खाता',
     reasonCashWithdrawal: 'नक़द निकासी',
     reasonRefund: 'रिफ़ंड',
-    detailTitle: 'संदेश',
+    detailTitle: 'संदेश का विवरण',
     fromTheMessage: 'संदेश से',
     seeMessage: 'संदेश देखें',
     onThisPhoneOnly: 'सिर्फ़ इस फ़ोन पर',
@@ -13285,6 +13353,26 @@ const hi: UiStrings = {
     entryTitle: 'बैंक संदेश',
     entryWaiting: { one: '{n} नया', other: '{n} नए' },
     entryNothing: 'कुछ बाक़ी नहीं',
+    statusSetAside: 'अलग रखा गया',
+    statusAdded: 'जोड़ा गया',
+    cardShort: 'कार्ड • {tail}',
+    whatNext: 'आगे क्या करना है?',
+    createExpense: 'ख़र्च बनाएँ',
+    ignoreMessage: 'इस संदेश को नज़रअंदाज़ करें',
+    copyText: 'टेक्स्ट कॉपी करें',
+    copiedToClipboard: 'कॉपी हो गया',
+    categoryMore: 'और',
+    seenBefore: {
+      one: '{merchant} को पहले {n} भुगतान · कुल {amount}',
+      other: '{merchant} को पहले {n} भुगतान · कुल {amount}',
+    },
+    recurringChip: 'बार-बार होता दिख रहा है',
+    badgeDebit: 'ख़र्च',
+    badgeCredit: 'आया',
+    badgeAtm: 'ATM निकासी',
+    highlightAmount: 'रकम, {value}',
+    highlightDate: 'तारीख़, {value}',
+    highlightMerchant: 'दुकान, {value}',
   },
   itemize: {
     title: 'चीज़-वार बाँटें',
@@ -16927,7 +17015,7 @@ const ar: UiStrings = {
     reasonSelfTransfer: 'حسابك أنت',
     reasonCashWithdrawal: 'سحب نقدي',
     reasonRefund: 'استرداد',
-    detailTitle: 'الرسالة',
+    detailTitle: 'تفاصيل الرسالة',
     fromTheMessage: 'من الرسالة',
     seeMessage: 'عرض الرسالة',
     onThisPhoneOnly: 'على هذا الهاتف فقط',
@@ -16953,6 +17041,30 @@ const ar: UiStrings = {
       other: '{n} جديدة',
     },
     entryNothing: 'لا شيء ينتظر',
+    statusSetAside: 'نُحِّي جانبًا',
+    statusAdded: 'أُضيف',
+    cardShort: 'بطاقة • {tail}',
+    whatNext: 'ما الذي تريد فعله؟',
+    createExpense: 'إنشاء مصروف',
+    ignoreMessage: 'تجاهل هذه الرسالة',
+    copyText: 'نسخ النص',
+    copiedToClipboard: 'تم النسخ',
+    categoryMore: 'أكثر',
+    seenBefore: {
+      zero: 'لا مدفوعات سابقة إلى {merchant}',
+      one: 'دفعة سابقة واحدة إلى {merchant} · إجمالي {amount}',
+      two: 'دفعتان سابقتان إلى {merchant} · إجمالي {amount}',
+      few: '{n} دفعات سابقة إلى {merchant} · إجمالي {amount}',
+      many: '{n} دفعة سابقة إلى {merchant} · إجمالي {amount}',
+      other: '{n} دفعة سابقة إلى {merchant} · إجمالي {amount}',
+    },
+    recurringChip: 'يبدو متكررًا',
+    badgeDebit: 'مدين',
+    badgeCredit: 'دائن',
+    badgeAtm: 'سحب من ATM',
+    highlightAmount: 'المبلغ، {value}',
+    highlightDate: 'التاريخ، {value}',
+    highlightMerchant: 'المتجر، {value}',
   },
   itemize: {
     title: 'التقسيم حسب الصنف',
