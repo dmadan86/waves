@@ -47,6 +47,7 @@ import { deviceIdentity } from '@/lib/device';
 import { useAuth } from '@/lib/auth';
 import { backend } from '@/lib/backend';
 import { DEVICE_LIMIT_ART, DEVICE_LIMIT_ART_RATIO } from '@/lib/deviceLimitArt';
+import { usePromptSlot } from '@/lib/promptQueue';
 import { COMPACT_TYPE_CAP } from '@/lib/typeCap';
 import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
 
@@ -175,7 +176,12 @@ export function DeviceSessionProvider({ children }: { children: ReactNode }) {
     await register();
   }, [register]);
 
-  const showGate = eligible && status?.overLimit === true && !dismissed;
+  const wantsGate = eligible && status?.overLimit === true && !dismissed;
+  // In the prompt queue, at the top. It used to open on its own, so the daily
+  // tip sheet (or any other ask) could slide up over it and the screen showed
+  // two popups at once. Claiming the highest priority means everything else
+  // waits until this one is answered or put away.
+  const showGate = usePromptSlot({ id: 'deviceLimit', priority: 200, active: wantsGate });
 
   return (
     <DeviceSessionContext.Provider value={{ status, signOutOthers, refresh }}>

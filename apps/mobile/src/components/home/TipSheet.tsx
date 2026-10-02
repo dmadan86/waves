@@ -17,7 +17,7 @@
 import { useEffect, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, ScrollView, View, type NativeScrollEvent } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 
 import { Gradient, iconSize, Row, Sheet, Text, useTheme } from '@waves/ui';
 
@@ -96,6 +96,20 @@ export function TipSheet() {
 
   const close = () => setClosed(true);
   const tip: Tip | undefined = tips[Math.min(page, tips.length - 1)];
+  const pager = useRef<ScrollView>(null);
+  const last = page >= tips.length - 1;
+  /** Turn to a tip by tapping, the same place a swipe would land. */
+  const goTo = (index: number) => {
+    const next = Math.max(0, Math.min(index, tips.length - 1));
+    setPage(next);
+    pager.current?.scrollTo({ x: next * pageWidth, animated: true });
+  };
+  /** The dot follows the finger: whichever tip is more than half in view. */
+  const onScroll = (x: number) => {
+    if (pageWidth <= 0) return;
+    const next = Math.max(0, Math.min(tips.length - 1, Math.round(x / pageWidth)));
+    if (next !== page) setPage(next);
+  };
   const act = () => {
     if (tip?.route) {
       // The scan tip's route carries a constant `scan=` sentinel; swap it for a
@@ -105,9 +119,6 @@ export function TipSheet() {
       router.push(href as never);
     }
     close();
-  };
-  const onPage = ({ contentOffset }: NativeScrollEvent) => {
-    if (pageWidth > 0) setPage(Math.round(contentOffset.x / pageWidth));
   };
 
   // Presented through the shared Sheet, which mounts fresh with visible=true
@@ -120,15 +131,34 @@ export function TipSheet() {
       style={{ paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.md }}
     >
       {tips.length > 0 ? (
-        <View style={{ gap: theme.spacing.lg }}>
+        <View style={{ gap: theme.spacing.md }}>
           {/* The pager, with the close riding its top corner. */}
-          <View onLayout={(event) => setPageWidth(event.nativeEvent.layout.width)}>
+          {/* Claims the touch itself. The sheet card is a Pressable (so a tap
+              inside never reaches the scrim), and on Android a touchable around
+              a horizontal ScrollView can take the gesture first — the deck once
+              showed five dots and would not turn. */}
+          <View
+            onStartShouldSetResponder={() => true}
+            onLayout={(event) => setPageWidth(event.nativeEvent.layout.width)}
+          >
             {pageWidth > 0 ? (
               <ScrollView
+                ref={pager}
                 horizontal
-                pagingEnabled
+                nestedScrollEnabled
                 showsHorizontalScrollIndicator={false}
-                onMomentumScrollEnd={(event) => onPage(event.nativeEvent)}
+                // One tip per swipe, snapped with a short, decisive settle.
+                // `pagingEnabled` on Android is a fling and then a separate
+                // snap, which is what read as sluggish; snapping to the page
+                // width with fast deceleration lands in one motion, and
+                // `disableIntervalMomentum` stops a hard flick skipping tips.
+                snapToInterval={pageWidth}
+                snapToAlignment="start"
+                decelerationRate="fast"
+                disableIntervalMomentum
+                overScrollMode="never"
+                scrollEventThrottle={16}
+                onScroll={(event) => onScroll(event.nativeEvent.contentOffset.x)}
               >
                 {tips.map((entry) => (
                   <TipPage key={entry.id} tip={entry} width={pageWidth} label={t.tips.label} />
@@ -160,25 +190,45 @@ export function TipSheet() {
           {/* Dots: one per tip, the live one in the brand. Only when there is
               more than one to swipe to. */}
           {tips.length > 1 ? (
-            <Row style={{ justifyContent: 'center', gap: theme.spacing.sm }}>
+            // No gap: each dot's own padding spaces them, and that padding is
+            // its touch area. A small mark in a 28pt-square target, rather than an
+            // 8pt one — `hitSlop` cannot reach past the row it sits in.
+            <Row style={{ justifyContent: 'center', gap: 0 }}>
               {tips.map((entry, index) => (
-                <View
+                <Pressable
                   key={entry.id}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${index + 1} / ${tips.length}`}
+                  accessibilityState={{ selected: index === page }}
+                  onPress={() => goTo(index)}
                   style={{
-                    width: 10,
-                    height: 10,
-                    borderRadius: 5,
-                    backgroundColor: index === page ? theme.color.brand : theme.color.brandSoft,
+                    minWidth: 28,
+                    height: 28,
+                    paddingHorizontal: 4,
+                    alignItems: 'center',
+                    justifyContent: 'center',
                   }}
-                />
+                >
+                  <View
+                    style={{
+                      width: index === page ? 20 : 8,
+                      height: 8,
+                      borderRadius: 4,
+                      backgroundColor: index === page ? theme.color.brand : theme.color.brandSoft,
+                    }}
+                  />
+                </Pressable>
               ))}
             </Row>
           ) : null}
 
+          {/* "Next" turns the deck until the last tip, so moving through it
+              never depends on finding the swipe. A tip with somewhere to go
+              still offers to go there. */}
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={tip?.route ? t.tips.action : t.misc.gotIt}
-            onPress={tip?.route ? act : close}
+            accessibilityLabel={tip?.route ? t.tips.action : last ? t.misc.gotIt : t.tour.next}
+            onPress={tip?.route ? act : last ? close : () => goTo(page + 1)}
             style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
           >
             <Gradient
@@ -188,14 +238,14 @@ export function TipSheet() {
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: theme.spacing.sm,
-                minHeight: 56,
+                gap: theme.spacing.xs,
+                minHeight: 48,
               }}
             >
-              <Text variant="subheading" style={{ color: theme.color.onBrand, fontWeight: '700' }}>
-                {tip?.route ? t.tips.action : t.misc.gotIt}
+              <Text style={{ fontSize: 16, fontWeight: '700', color: theme.color.onBrand }}>
+                {tip?.route ? t.tips.action : last ? t.misc.gotIt : t.tour.next}
               </Text>
-              <Ionicons name="arrow-forward" size={iconSize.lg} color={theme.color.onBrand} />
+              <Ionicons name="arrow-forward" size={iconSize.md} color={theme.color.onBrand} />
             </Gradient>
           </Pressable>
         </View>
@@ -208,7 +258,7 @@ export function TipSheet() {
 function TipPage({ tip, width, label }: { tip: Tip; width: number; label: string }) {
   const theme = useTheme();
   return (
-    <View style={{ width, alignItems: 'center', gap: theme.spacing.md }}>
+    <View style={{ width, alignItems: 'center', gap: theme.spacing.sm }}>
       <TipArt icon={tip.icon} />
       <View
         style={{
@@ -224,7 +274,7 @@ function TipPage({ tip, width, label }: { tip: Tip; width: number; label: string
       </View>
       <Text
         align="center"
-        style={{ fontSize: 28, lineHeight: 34, fontWeight: '800', color: theme.color.text }}
+        style={{ fontSize: 24, lineHeight: 30, fontWeight: '800', color: theme.color.text }}
       >
         {tip.title}
       </Text>
@@ -232,7 +282,7 @@ function TipPage({ tip, width, label }: { tip: Tip; width: number; label: string
         variant="body"
         tone="muted"
         align="center"
-        style={{ paddingHorizontal: theme.spacing.lg, lineHeight: 24 }}
+        style={{ paddingHorizontal: theme.spacing.lg, lineHeight: 22 }}
       >
         {tip.body}
       </Text>
@@ -252,13 +302,13 @@ function TipArt({ icon }: { icon: Tip['icon'] }) {
     <View
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
-      style={{ width: 240, height: 200, alignItems: 'center', justifyContent: 'center' }}
+      style={{ width: 210, height: 160, alignItems: 'center', justifyContent: 'center' }}
     >
       <View
         style={{
           position: 'absolute',
-          width: 230,
-          height: 170,
+          width: 200,
+          height: 140,
           borderTopLeftRadius: 110,
           borderTopRightRadius: 70,
           borderBottomLeftRadius: 80,
@@ -269,9 +319,9 @@ function TipArt({ icon }: { icon: Tip['icon'] }) {
       />
       <View
         style={{
-          width: 116,
-          height: 116,
-          borderRadius: 24,
+          width: 96,
+          height: 96,
+          borderRadius: 22,
           backgroundColor: theme.color.surface,
           borderWidth: 1,
           borderColor: theme.color.border,
@@ -287,15 +337,15 @@ function TipArt({ icon }: { icon: Tip['icon'] }) {
       >
         <View
           style={{
-            width: 64,
-            height: 64,
-            borderRadius: 32,
+            width: 54,
+            height: 54,
+            borderRadius: 27,
             backgroundColor: brand,
             alignItems: 'center',
             justifyContent: 'center',
           }}
         >
-          <Ionicons name={icon} size={34} color={theme.color.onBrand} />
+          <Ionicons name={icon} size={28} color={theme.color.onBrand} />
         </View>
       </View>
       {[-28, 0, 28].map((angle, index) => (
