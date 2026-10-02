@@ -69,6 +69,7 @@ import { ThemePreferenceProvider, useThemePreference } from '@/lib/theme';
 import { DialogProvider } from '@/lib/dialog';
 import { ToastProvider } from '@/lib/toast';
 import { AppStatusProvider } from '@/lib/appStatus';
+import { StoreUpdateProvider } from '@/lib/storeUpdate';
 import { initClarity } from '@/lib/clarity';
 import { initObservability, withObservability } from '@/lib/observability';
 import { ensureAndroidChannel, pushSupported, routeForNotification } from '@/lib/push';
@@ -222,65 +223,66 @@ function RootLayout() {
                 <LockProvider>
                   <SyncNetworkProvider>
                     <AppStatusProvider>
-                      <ThemePreferenceProvider>
-                        <ReducedMotionProvider>
-                          <TourProvider>
-                            <PromptQueueProvider>
-                              <RecentCountProvider>
-                                <ThemedRoot>
-                                  {/* Wraps the whole app because that is what a
+                      <StoreUpdateProvider>
+                        <ThemePreferenceProvider>
+                          <ReducedMotionProvider>
+                            <TourProvider>
+                              <PromptQueueProvider>
+                                <RecentCountProvider>
+                                  <ThemedRoot>
+                                    {/* Wraps the whole app because that is what a
                                       confirmation for something that *finishes* a
                                       screen needs: it has to still be there once
                                       that screen has gone. The children are the
                                       same element across its own state changes,
                                       so showing one does not re-render the app. */}
-                                  <ToastProvider>
-                                    {/* Beside the toast host and for the same
+                                    <ToastProvider>
+                                      {/* Beside the toast host and for the same
                                         reason: a question can outlive the screen
                                         that asked it, and the surface that draws
                                         it has to sit above the navigation stack.
                                         Inside the toast provider so a dialog's
                                         outcome can raise one. */}
-                                    <DialogProvider>
-                                      <ThemedStatusBar />
-                                      {/* Renders nothing: it draws the "open the app
+                                      <DialogProvider>
+                                        <ThemedStatusBar />
+                                        {/* Renders nothing: it draws the "open the app
                                         again to mirror it" question that
                                         `LanguageProvider` can only raise as a
                                         value, being above every surface. */}
-                                      <LanguageRestartPrompt />
-                                      {/* Renders nothing: it keeps the app-icon long-press
+                                        <LanguageRestartPrompt />
+                                        {/* Renders nothing: it keeps the app-icon long-press
                                       menu in step with the session. Outside every
                                       gate because the menu lives on the home screen,
                                       not in the app — it has to be cleared when
                                       somebody signs out, and an upgrade has to replace
                                       the single shortcut the old version published,
                                       whether or not this launch gets past the lock. */}
-                                      <QuickShortcutsMenu />
-                                      {/* Outside the lock and the auth gate on purpose: a build
+                                        <QuickShortcutsMenu />
+                                        {/* Outside the lock and the auth gate on purpose: a build
                             we have stopped trusting should not be unlocking a
                             ledger or signing anybody in either. */}
-                                      <UpdateGate>
-                                        <PushRouting />
-                                        <LockGate>
-                                          {/* Below the lock and update gates so the watch
+                                        <UpdateGate>
+                                          <PushRouting />
+                                          <LockGate>
+                                            {/* Below the lock and update gates so the watch
                                 bridge never turns a wrist tap into a capture
                                 while the app is locked or on a build we have
                                 stopped trusting. */}
-                                          <WatchBridgeProvider />
-                                          {/* Same reasoning, one step further: an
+                                            <WatchBridgeProvider />
+                                            {/* Same reasoning, one step further: an
                                 automatic backup must not run on a build we
                                 have stopped trusting, and must not decrypt a
                                 ledger while the app is still locked. */}
-                                          <AutoBackup />
-                                          {/* Renders nothing: it decides whether this phone
+                                            <AutoBackup />
+                                            {/* Renders nothing: it decides whether this phone
                                 should remind anybody about the expenses they
                                 saved for later, and sets or cancels the local
                                 alarm that does it. Beside the backup and inside
                                 the same gates — the count it speaks about is
                                 read from the mirror, which must not be touched
                                 while the app is still locked. */}
-                                          <CaptureNudge />
-                                          {/* Renders nothing: it reads the bank
+                                            <CaptureNudge />
+                                            {/* Renders nothing: it reads the bank
                                 messages this phone is allowed to read, on a
                                 permission somebody already granted, and keeps
                                 the hourly background check in step with the
@@ -288,48 +290,49 @@ function RootLayout() {
                                 — a build we have stopped trusting should not be
                                 reading anybody's inbox, and nothing should touch
                                 the mirror while the app is still locked. */}
-                                          <SmsAutoRead />
-                                          {/* Local SMS drafts: the one-time move off the server, and
+                                            <SmsAutoRead />
+                                            {/* Local SMS drafts: the one-time move off the server, and
                                               closing drafts once their expense has synced. */}
-                                          <SmsDraftUpkeep />
-                                          {/* Inside the lock so the two-device gate never
+                                            <SmsDraftUpkeep />
+                                            {/* Inside the lock so the two-device gate never
                                 paints over the lock screen, and past auth so it
                                 only ever asks a signed-in account. */}
-                                          <DeviceSessionProvider>
-                                            <AuthGate />
-                                            {/* Inside the lock on purpose: a promotion is not a
+                                            <DeviceSessionProvider>
+                                              <AuthGate />
+                                              {/* Inside the lock on purpose: a promotion is not a
                                   reason to show somebody's phone anything before
                                   they have unlocked it. */}
-                                            <CampaignPopup />
-                                            {/* The soft ask for push, once, to a
+                                              <CampaignPopup />
+                                              {/* The soft ask for push, once, to a
                                         signed-in person whose permission is
                                         still undetermined. */}
-                                            <NotificationPrompt />
-                                            {/* The ask to add a phone number, so
+                                              <NotificationPrompt />
+                                              {/* The ask to add a phone number, so
                                         friends can find this account. */}
-                                            <PhoneLinkPrompt />
-                                          </DeviceSessionProvider>
-                                        </LockGate>
-                                        {/* The coach-mark tour, over the whole app but
+                                              <PhoneLinkPrompt />
+                                            </DeviceSessionProvider>
+                                          </LockGate>
+                                          {/* The coach-mark tour, over the whole app but
                                     only ever started from Home. Above the gate
                                     so its scrim covers the screen. */}
-                                        <TourOverlay />
-                                        {/* Last, so it paints over the screen rather than
+                                          <TourOverlay />
+                                          {/* Last, so it paints over the screen rather than
                               under it. */}
-                                        <StatusBanner />
-                                      </UpdateGate>
-                                      {/* Topmost of all: the launch field, painting over
+                                          <StatusBanner />
+                                        </UpdateGate>
+                                        {/* Topmost of all: the launch field, painting over
                                   the whole app until it fades itself out. Native
                                   only; renders nothing on web. */}
-                                      <AnimatedSplash />
-                                    </DialogProvider>
-                                  </ToastProvider>
-                                </ThemedRoot>
-                              </RecentCountProvider>
-                            </PromptQueueProvider>
-                          </TourProvider>
-                        </ReducedMotionProvider>
-                      </ThemePreferenceProvider>
+                                        <AnimatedSplash />
+                                      </DialogProvider>
+                                    </ToastProvider>
+                                  </ThemedRoot>
+                                </RecentCountProvider>
+                              </PromptQueueProvider>
+                            </TourProvider>
+                          </ReducedMotionProvider>
+                        </ThemePreferenceProvider>
+                      </StoreUpdateProvider>
                     </AppStatusProvider>
                   </SyncNetworkProvider>
                 </LockProvider>
