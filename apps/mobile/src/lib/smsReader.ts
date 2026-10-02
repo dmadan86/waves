@@ -276,6 +276,40 @@ export async function readSms(
 }
 
 /**
+ * Ask Android for `READ_SMS`, and only ask — nothing is read.
+ *
+ * For the Bank messages screen's one-tap scan: the disclosure screen raises the
+ * dialog through this, then hands back to the screen that scans. True when the
+ * permission is held afterwards. Like {@link readSms}, a grant wakes the
+ * automatic reader on the spot.
+ */
+export async function requestSmsPermission(
+  rationale: SmsPermissionRationale,
+): Promise<PermissionOutcome> {
+  try {
+    const { Platform, PermissionsAndroid } =
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      require('react-native') as typeof import('react-native');
+    if (Platform.OS !== 'android') return PermissionOutcome.Denied;
+    const status = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.READ_SMS, {
+      title: rationale.title,
+      message: rationale.message,
+      buttonPositive: rationale.allow,
+      buttonNegative: rationale.notNow,
+    });
+    if (status === PermissionsAndroid.RESULTS.GRANTED) {
+      noteSmsPermissionGranted();
+      return PermissionOutcome.Granted;
+    }
+    return status === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN
+      ? PermissionOutcome.Blocked
+      : PermissionOutcome.Denied;
+  } catch {
+    return PermissionOutcome.Denied;
+  }
+}
+
+/**
  * Is `READ_SMS` already granted on this phone?
  *
  * A *check*, never a request: no dialog is raised, nothing is shown, and false
