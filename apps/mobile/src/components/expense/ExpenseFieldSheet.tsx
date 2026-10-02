@@ -24,7 +24,19 @@ import DateTimePicker, { type DateTimePickerEvent } from '@react-native-communit
 import { ActivityIndicator, Platform, Pressable, ScrollView, View } from 'react-native';
 
 import { MutationKind, type CurrencyCode, type MemberId } from '@waves/core';
-import { AmountField, Avatar, Button, Callout, Row, Sheet, Text, useTheme } from '@waves/ui';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import {
+  AmountField,
+  Avatar,
+  Button,
+  Callout,
+  Gradient,
+  MoneyText,
+  Row,
+  Sheet,
+  Text,
+  useTheme,
+} from '@waves/ui';
 
 import { CategoryChoices } from '@/components/Category';
 import { DetailRow } from '@/components/DetailRows';
@@ -32,7 +44,7 @@ import { DescriptionField } from '@/components/expense/DescriptionField';
 import { ChoiceRow } from '@/components/expense/SheetOverlay';
 import { SplitKindChips, SplitParticipants } from '@/components/expense/SplitEditor';
 import { displayName, isGhost, type ExpenseVersionRow, type MemberRow } from '@/data/types';
-import { useStrings } from '@/i18n';
+import { plural, useStrings } from '@/i18n';
 import { friendlyError } from '@/lib/errors';
 import { dateFrom, isoDate, showDate } from '@/lib/expenseDay';
 import {
@@ -311,16 +323,13 @@ export function ExpenseFieldSheet({
       );
   } else if (field === 'payer') {
     body = severalPayers ? (
-      <View style={{ gap: theme.spacing.md }}>
-        <Text variant="body" tone="muted">
-          {t.expense.severalPayersHint}
-        </Text>
-        <Button
-          label={t.expense.fullEditor}
-          variant="secondary"
-          onPress={() => leave(() => onOpenEditor('payers'))}
-        />
-      </View>
+      <SeveralPayers
+        payers={state.payers}
+        members={members}
+        viewerId={viewerId}
+        currency={state.currency}
+        onOpenEditor={() => leave(() => onOpenEditor('payers'))}
+      />
     ) : (
       <View style={{ gap: theme.spacing.xs }}>
         {members.map((member) => (
@@ -460,5 +469,171 @@ export function ExpenseFieldSheet({
         </View>
       )}
     </Sheet>
+  );
+}
+
+/**
+ * Paid by, when several people paid: who they are at a glance, the amounts
+ * behind "View details", and the one way to change it — the full editor.
+ */
+function SeveralPayers({
+  payers,
+  members,
+  viewerId,
+  currency,
+  onOpenEditor,
+}: {
+  payers: ReadonlyMap<MemberId, bigint>;
+  members: readonly MemberRow[];
+  viewerId: string | null | undefined;
+  currency: string;
+  onOpenEditor: () => void;
+}): React.JSX.Element {
+  const theme = useTheme();
+  const { t, locale } = useStrings();
+  const [open, setOpen] = useState(false);
+  const paying = members.filter((member) => payers.has(member.id));
+  const shown = paying.slice(0, 3);
+  const more = paying.length - shown.length;
+
+  return (
+    <View style={{ gap: theme.spacing.md }}>
+      <Row style={{ gap: theme.spacing.md, alignItems: 'center' }}>
+        <View
+          style={{
+            width: 44,
+            height: 44,
+            borderRadius: 22,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: theme.color.brandSoft,
+          }}
+        >
+          <Ionicons name="wallet-outline" size={22} color={theme.color.brand} />
+        </View>
+        <Text variant="caption" tone="muted" style={{ flex: 1 }}>
+          {t.expense.severalPayersHint}
+        </Text>
+      </Row>
+
+      <View
+        style={{
+          borderRadius: theme.radius.lg,
+          backgroundColor: theme.color.surfaceMuted,
+          padding: theme.spacing.sm,
+          gap: theme.spacing.sm,
+        }}
+      >
+        <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+          <Row>
+            {shown.map((member, index) => (
+              <View
+                key={member.id}
+                style={{
+                  marginStart: index === 0 ? 0 : -10,
+                  borderRadius: 18,
+                  borderWidth: 2,
+                  borderColor: theme.color.surfaceMuted,
+                }}
+              >
+                <Avatar name={displayName(member)} ghost={isGhost(member)} size={32} />
+              </View>
+            ))}
+            {more > 0 ? (
+              <View
+                style={{
+                  marginStart: -10,
+                  width: 36,
+                  height: 36,
+                  borderRadius: 18,
+                  borderWidth: 2,
+                  borderColor: theme.color.surfaceMuted,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: theme.color.warningSoft,
+                }}
+              >
+                <Text style={{ fontSize: 12, fontWeight: '700', color: theme.color.warning }}>
+                  {`+${more}`}
+                </Text>
+              </View>
+            ) : null}
+          </Row>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text
+              numberOfLines={1}
+              style={{ fontSize: 15, fontWeight: '700', color: theme.color.text }}
+            >
+              {plural(locale, paying.length, t.expense.peoplePaid)}
+            </Text>
+            <Text variant="micro" tone="muted" numberOfLines={1}>
+              {t.expense.splitAcrossPayments}
+            </Text>
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ expanded: open }}
+            onPress={() => setOpen((current) => !current)}
+            hitSlop={8}
+            style={({ pressed }) => ({
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 2,
+              height: 30,
+              paddingHorizontal: theme.spacing.sm,
+              borderRadius: theme.radius.pill,
+              backgroundColor: theme.color.brandSoft,
+              opacity: pressed ? 0.8 : 1,
+            })}
+          >
+            <Text style={{ fontSize: 12.5, fontWeight: '700', color: theme.color.brand }}>
+              {open ? t.expense.hideDetails : t.expense.viewDetails}
+            </Text>
+            <Ionicons
+              name={open ? 'chevron-up' : 'chevron-forward'}
+              size={14}
+              color={theme.color.brand}
+            />
+          </Pressable>
+        </Row>
+
+        {open
+          ? paying.map((member) => (
+              <Row key={member.id} style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+                <Avatar name={displayName(member)} ghost={isGhost(member)} size={24} />
+                <Text variant="caption" numberOfLines={1} style={{ flex: 1 }}>
+                  {displayName(member, viewerId)}
+                </Text>
+                <MoneyText
+                  amount={payers.get(member.id) ?? 0n}
+                  currency={currency}
+                  locale={locale}
+                  variant="caption"
+                />
+              </Row>
+            ))
+          : null}
+      </View>
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t.expense.fullEditor}
+        onPress={onOpenEditor}
+        style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
+      >
+        <Gradient
+          colors={theme.gradient.brand}
+          radius={theme.radius.pill}
+          style={{ height: 46, justifyContent: 'center' }}
+        >
+          <Row style={{ alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+            <Text style={{ fontSize: 15, fontWeight: '700', color: theme.color.onBrand }}>
+              {t.expense.fullEditor}
+            </Text>
+            <Ionicons name="arrow-forward" size={16} color={theme.color.onBrand} />
+          </Row>
+        </Gradient>
+      </Pressable>
+    </View>
   );
 }
