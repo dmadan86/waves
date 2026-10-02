@@ -114,6 +114,8 @@ export default function ExpenseDetailScreen() {
   // The page has two faces: its breakdown, and its edit history. The hero stays
   // above both; only the body below the tab bar swaps.
   const [tab, setTab] = useState<'details' | 'history'>('details');
+  // The Location row's map, folded away until asked for.
+  const [mapOpen, setMapOpen] = useState(false);
   // The fact being changed in a pop-up, if one is open (ExpenseFieldSheet).
   const [editingField, setEditingField] = useState<ExpenseField | null>(null);
   const deleteExpense = useDeleteExpense(groupId);
@@ -687,6 +689,57 @@ export default function ExpenseDetailScreen() {
                     router.push({ pathname: '/timeline', params: { focus: expenseId ?? '' } })
                   }
                 />
+                {/* Where it happened (A43), folded into the facts: the place's
+                    name, and a tap opens the map here rather than spending a
+                    card's height on it for everyone. The map's corner opens it
+                    full screen on the timeline's map; a tap on the map itself
+                    opens the phone's maps app. */}
+                {location ? (
+                  <DetailRow
+                    icon="location-outline"
+                    label={t.location.label}
+                    value={location.name?.trim() || coordLabel(location)}
+                    onPress={() => setMapOpen((open) => !open)}
+                    expanded={mapOpen}
+                    accessibilityLabel={`${t.location.label}, ${location.name?.trim() || coordLabel(location)}`}
+                  />
+                ) : null}
+                {location && mapOpen ? (
+                  <View style={{ paddingBottom: theme.spacing.md }}>
+                    <MapPreview
+                      location={location}
+                      height={180}
+                      accessibilityLabel={t.location.openMap}
+                      onPress={() => void Linking.openURL(mapsUrl(location)).catch(() => undefined)}
+                    />
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={t.timeline.seeOnMap}
+                      hitSlop={8}
+                      onPress={() =>
+                        router.push({
+                          pathname: '/timeline',
+                          params: { focus: expenseId ?? '', view: 'map' },
+                        })
+                      }
+                      style={({ pressed }) => ({
+                        position: 'absolute',
+                        top: theme.spacing.sm,
+                        end: theme.spacing.sm,
+                        width: 36,
+                        height: 36,
+                        borderRadius: 18,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: theme.color.surface,
+                        opacity: pressed ? 0.8 : 1,
+                        ...theme.shadow.lifted,
+                      })}
+                    >
+                      <Ionicons name="expand" size={iconSize.md} color={theme.color.text} />
+                    </Pressable>
+                  </View>
+                ) : null}
               </DetailRows>
             </Card>
 
@@ -700,62 +753,6 @@ export default function ExpenseDetailScreen() {
                   <Text variant="body">{note}</Text>
                 </Card>
               </View>
-            ) : null}
-
-            {/* Where it happened (A43): a little map of the point, and a tap
-            anywhere on the card opens it in the phone's maps app. Absent when
-            the author attached no location. */}
-            {location ? (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={t.location.openMap}
-                onPress={() => void Linking.openURL(mapsUrl(location)).catch(() => undefined)}
-              >
-                <Card style={{ gap: theme.spacing.sm, padding: theme.spacing.sm }}>
-                  <MapPreview location={location} accessibilityLabel={t.location.openMap} />
-                  <Row style={{ gap: theme.spacing.md, alignItems: 'center' }}>
-                    <Ionicons name="location" size={iconSize.md} color={theme.color.brand} />
-                    <View style={{ flex: 1, minWidth: 0 }}>
-                      <Text variant="subheading" numberOfLines={1}>
-                        {location.name?.trim() || coordLabel(location)}
-                      </Text>
-                      <Text variant="micro" tone="muted" numberOfLines={1}>
-                        {t.location.openMap}
-                      </Text>
-                    </View>
-                    <Ionicons
-                      name={directionalIcon('chevron-forward')}
-                      size={iconSize.md}
-                      color={theme.color.textFaint}
-                    />
-                  </Row>
-                </Card>
-              </Pressable>
-            ) : null}
-            {location ? (
-              <Pressable
-                accessibilityRole="button"
-                onPress={() =>
-                  router.push({
-                    pathname: '/timeline',
-                    params: { focus: expenseId ?? '', view: 'map' },
-                  })
-                }
-                style={({ pressed }) => ({
-                  alignSelf: 'flex-start',
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 6,
-                  marginTop: -theme.spacing.md,
-                  paddingVertical: theme.spacing.xs,
-                  opacity: pressed ? 0.6 : 1,
-                })}
-              >
-                <Ionicons name="map-outline" size={iconSize.sm} color={theme.color.brand} />
-                <Text variant="caption" tone="brand" style={{ fontWeight: '700' }}>
-                  {t.timeline.seeOnMap}
-                </Text>
-              </Pressable>
             ) : null}
 
             {version.payers.length > 1 ? (
