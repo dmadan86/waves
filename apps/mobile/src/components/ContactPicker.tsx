@@ -62,13 +62,14 @@ import {
 } from '@waves/ui';
 
 import { fill, plural, useStrings } from '@/i18n';
+import { useAuth } from '@/lib/auth';
 import {
   lookupKnown,
   matchesContactQuery,
   type KnownIndex,
   type KnownPerson,
 } from '@/lib/contactMatch';
-import { normaliseContactPhone } from '@/lib/phone';
+import { displayPhone, normaliseContactPhone } from '@/lib/phone';
 import { SkeletonList } from '@/components/Skeletons';
 
 export interface PickedContact {
@@ -180,9 +181,11 @@ const RAIL_WIDTH = 24;
 const RAIL_LETTER_HEIGHT = 15;
 const STRIP_HEIGHT = 62;
 
-/** The dedicated screen's denser row and heading — see `compact` above. */
-const COMPACT_ROW_HEIGHT = 56;
-const COMPACT_HEADING_HEIGHT = 30;
+/** The dedicated screen's denser escape row and heading — a contact row's own
+ *  height now comes from its content and padding instead (see `ContactRow`),
+ *  but the escape row has no second line to size itself against. */
+const COMPACT_ROW_HEIGHT = 52;
+const COMPACT_HEADING_HEIGHT = 22;
 
 /**
  * How many already-known people ride at the top before the alphabet takes over.
@@ -233,6 +236,13 @@ export function ContactPicker({
 }: ContactPickerProps): React.JSX.Element {
   const theme = useTheme();
   const { t, locale } = useStrings();
+  // The account's own country (set on "Your account") — preferred over the
+  // device's region when reading a bare local number, because a device whose
+  // Region setting disagrees with where the person actually is (or is simply
+  // never set) is not rare, and a confident wrong country code is worse than
+  // asking the device at all. See `regionDialCode` in `lib/phone`.
+  const { profile } = useAuth();
+  const accountCountry = profile?.country_code ?? null;
   const [access, setAccess] = useState<Access>(Access.Asking);
   // iOS 18 and up can grant access to a chosen handful rather than the book.
   // Kept apart from `access` because the list works either way — it is a
@@ -297,7 +307,7 @@ export function ContactPicker({
       .map((row) => ({
         name: (row.fullName ?? [row.givenName, row.familyName].filter(Boolean).join(' ')).trim(),
         email: row.emails?.[0]?.address?.trim().toLowerCase() ?? null,
-        phone: normalisePhone(row.phones?.[0]?.number ?? null),
+        phone: normalisePhone(row.phones?.[0]?.number ?? null, accountCountry),
       }))
       // Somebody with neither an email nor a number cannot be invited, so
       // showing them would only be an invitation to tap and be refused.
@@ -306,7 +316,7 @@ export function ContactPicker({
     }
     setContacts([...unique.values()].sort((a, b) => a.name.localeCompare(b.name)));
     setAccess(Access.Granted);
-  }, []);
+  }, [accountCountry]);
 
   // Read on a tick rather than in the effect body: the React Compiler counts a
   // synchronous call that can setState as a cascading render, and reading an
@@ -742,8 +752,12 @@ function Heading({
   compact?: boolean;
 }): React.JSX.Element {
   const theme = useTheme();
-  const single = [...label].length === 1;
-  const badge = compact ? 22 : 26;
+  // Compact drops the filled badge even for a single letter — a 22pt purple
+  // circle stops being a quiet rail marker once the rows around it have
+  // shrunk to the same scale, and starts reading as the loudest thing on the
+  // card. A plain muted letter says the same thing at the size this screen's
+  // rows actually earn.
+  const single = !compact && [...label].length === 1;
   return (
     <View
       style={{
@@ -757,8 +771,8 @@ function Heading({
       {single ? (
         <View
           style={{
-            width: badge,
-            height: badge,
+            width: 26,
+            height: 26,
             borderRadius: theme.radius.sm,
             alignItems: 'center',
             justifyContent: 'center',
@@ -770,7 +784,12 @@ function Heading({
           </Text>
         </View>
       ) : (
-        <Text variant="micro" tone="muted" numberOfLines={1}>
+        <Text
+          variant="micro"
+          tone="muted"
+          numberOfLines={1}
+          style={compact ? { fontSize: 12 } : null}
+        >
           {label}
         </Text>
       )}
@@ -884,7 +903,7 @@ function ContactRow({
   const subtitle = already
     ? t.pickers.alreadyInGroup
     : compact
-      ? (contact.email ?? contact.phone ?? '')
+      ? (contact.email ?? (contact.phone ? displayPhone(contact.phone) : ''))
       : known
         ? known.groupIds.length === 1
           ? fill(t.pickers.knownInGroup, { group: known.groupNames[0] ?? '' })
@@ -926,28 +945,42 @@ function ContactRow({
       })}
     >
       <Row
-        style={{
-          height: compact ? COMPACT_ROW_HEIGHT : ROW_HEIGHT,
-          paddingHorizontal: theme.spacing.lg,
-          gap: theme.spacing.md,
-        }}
+        style={
+          compact
+            ? {
+                paddingHorizontal: theme.spacing.lg,
+                paddingVertical: 6,
+                gap: theme.spacing.md,
+              }
+            : {
+                height: ROW_HEIGHT,
+                paddingHorizontal: theme.spacing.lg,
+                gap: theme.spacing.md,
+              }
+        }
       >
         <Avatar name={contact.name} size={avatarSize} />
         <View style={{ flex: 1 }}>
-          <Text variant="body" numberOfLines={1} style={compact ? { fontWeight: '700' } : null}>
+          <Text
+            variant="body"
+            numberOfLines={1}
+            style={compact ? { fontSize: 15, fontWeight: '600' } : null}
+          >
             {contact.name}
           </Text>
           <Text
             variant="micro"
             tone={!already && !compact && known ? 'brand' : 'muted'}
             numberOfLines={1}
+            style={compact ? { fontSize: 12, lineHeight: 16 } : null}
           >
             {subtitle}
           </Text>
         </View>
-        {/* The on/off-Waves pill: compact's own read of `known`, skipped once
-            a row is already greyed — "already in this group" has said enough. */}
-        {compact && !single && !already ? <StatusPill on={Boolean(known)} /> : null}
+        {/* The on-Waves pill — only the minority state earns one; see
+            `StatusPill`. Skipped once a row is already greyed, too —
+            "already in this group" has said enough. */}
+        {compact && !single && !already && known ? <StatusPill /> : null}
         {single ? (
           <Ionicons
             name={directionalIcon('chevron-forward')}
@@ -1048,13 +1081,17 @@ function PickedStrip({
 }
 
 /**
- * A row's own read of `known`, next to the checkbox: "On Waves" in the app's
- * positive colour (this palette's is blue, not green — `theme.color.positive`
- * is what "positive" means here, whatever hue that turns out to be) or "Not on
- * Waves" in a soft brand tint. Both labels are the local read of `known`
- * described on `compact` above, not a server's answer about who has joined.
+ * A row's own read of `known`: "On Waves", in the app's positive colour (this
+ * palette's is blue, not green — `theme.color.positive` is what "positive"
+ * means here, whatever hue that turns out to be).
+ *
+ * Only ever drawn for the minority — the row already shown below only calls
+ * this when `known` is truthy. Printing "Not on Waves" on every other row said
+ * the same thing as every other row and cost each one real width to say it;
+ * the majority state is silence, the same way an unread badge is silent once
+ * there is nothing unread.
  */
-function StatusPill({ on }: { on: boolean }): React.JSX.Element {
+function StatusPill(): React.JSX.Element {
   const theme = useTheme();
   const { t } = useStrings();
   return (
@@ -1065,21 +1102,12 @@ function StatusPill({ on }: { on: boolean }): React.JSX.Element {
         paddingHorizontal: 7,
         height: 20,
         borderRadius: theme.radius.pill,
-        backgroundColor: on ? theme.color.positiveSoft : theme.color.brandSoft,
+        backgroundColor: theme.color.positiveSoft,
       }}
     >
-      <Ionicons
-        name={on ? 'checkmark' : 'person-add-outline'}
-        size={iconSize.xs}
-        color={on ? theme.color.positive : theme.color.brand}
-      />
-      <Text
-        variant="micro"
-        tone={on ? 'positive' : 'brand'}
-        numberOfLines={1}
-        style={{ fontWeight: '700' }}
-      >
-        {on ? t.pickers.filterOnWaves : t.pickers.filterNotOnWaves}
+      <Ionicons name="checkmark" size={iconSize.xs} color={theme.color.positive} />
+      <Text variant="micro" tone="positive" numberOfLines={1} style={{ fontWeight: '700' }}>
+        {t.pickers.filterOnWaves}
       </Text>
     </Row>
   );
@@ -1140,7 +1168,10 @@ function FilterPills({
       horizontal
       showsHorizontalScrollIndicator={false}
       style={{ flexGrow: 0, flexShrink: 0 }}
-      contentContainerStyle={{ gap: theme.spacing.sm }}
+      // The trailing gap matters more than it looks: with none, the last
+      // pill's own edge lands flush on the card's edge and reads as clipped
+      // even while the row still scrolls to it perfectly well.
+      contentContainerStyle={{ gap: theme.spacing.sm, paddingEnd: theme.spacing.lg }}
     >
       {pills.map((pill) => {
         const active = filter === pill.key;
@@ -1243,10 +1274,10 @@ function CompactConfirmBar({
         <Gradient
           colors={theme.gradient.brand}
           radius={theme.radius.pill}
-          style={{ height: 52, justifyContent: 'center', paddingHorizontal: theme.spacing.xl }}
+          style={{ height: 48, justifyContent: 'center', paddingHorizontal: theme.spacing.xl }}
         >
           <Row style={{ alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ fontSize: 16, fontWeight: '700', color: theme.color.onBrand }}>
+            <Text style={{ fontSize: 15, fontWeight: '700', color: theme.color.onBrand }}>
               {count === 0
                 ? t.pickers.nobodyPickedYet
                 : plural(locale, count, t.pickers.addPeopleToWaves)}
@@ -1262,7 +1293,7 @@ function CompactConfirmBar({
           </Row>
         </Gradient>
       </Pressable>
-      <Text variant="micro" tone="muted" align="center">
+      <Text variant="micro" tone="muted" align="center" numberOfLines={1}>
         {t.pickers.onlyPickedAreSent}
       </Text>
     </View>
@@ -1407,20 +1438,25 @@ function keyOf(contact: PickedContact): string {
 /**
  * A contact card writes a number however the owner typed it.
  *
- * A bare local number is read in the device's own region — the WhatsApp-style
- * default every messaging app on the phone already uses — so the address the
- * picker shows matches the E.164 the server keeps, and a contact already in the
- * group greys out instead of looking new. This is best-effort and never throws:
- * if there is no region to read it in, or the result is not a valid number, the
- * cleaned digits are kept so the person is still invitable (the add path
- * normalises once more, with the group's region, before anything is queued).
+ * A bare local number is read in the account's own country, else the
+ * device's region — the WhatsApp-style default every messaging app on the
+ * phone already uses — so the address the picker shows matches the E.164 the
+ * server keeps, and a contact already in the group greys out instead of
+ * looking new. The account's own country is asked first rather than only the
+ * device's, because the device's Region setting is not always this person's:
+ * it can be unset, or simply wrong for where they actually are, and a number
+ * silently read in the wrong country is the "+1 on an Indian mobile" bug this
+ * guards against. This is best-effort and never throws: if there is no region
+ * to read it in, or the result is not a valid number, the cleaned digits are
+ * kept so the person is still invitable (the add path normalises once more,
+ * with the same account country, before anything is queued).
  */
-function normalisePhone(raw: string | null): string | null {
+function normalisePhone(raw: string | null, accountCountry: string | null): string | null {
   if (!raw) return null;
   const cleaned = raw.replace(/[^0-9+]/g, '');
   if (cleaned.length < 8) return null;
   try {
-    return normaliseContactPhone(cleaned) ?? cleaned;
+    return normaliseContactPhone(cleaned, accountCountry) ?? cleaned;
   } catch {
     return cleaned;
   }
