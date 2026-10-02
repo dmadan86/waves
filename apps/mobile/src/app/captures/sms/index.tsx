@@ -657,7 +657,11 @@ export default function SmsInboxScreen(): React.JSX.Element | null {
             }
             amount={kind === SmsKind.Other ? null : (selecting ? chosenTotal : period).total}
             currency={(selecting ? chosenTotal : period).currency}
-            countText={plural(locale, period.count, t.smsImport.messageCount)}
+            countText={plural(
+              locale,
+              (selecting ? chosenTotal : period).count,
+              t.smsImport.messageCount,
+            )}
             uncountedText={
               kind !== SmsKind.Other && (selecting ? chosenTotal : period).uncounted > 0
                 ? plural(
@@ -838,8 +842,12 @@ export default function SmsInboxScreen(): React.JSX.Element | null {
           secondaryLabel={selecting ? plural(locale, 1, t.smsInbox.setAside) : null}
           onSecondary={() => void setAside()}
           actionLabel={t.smsInbox.addSelected.replace('{n}', String(chosen.length))}
-          disabled={!selecting || placing}
-          onAction={() => setPickerOpen(true)}
+          // Never greyed out at zero: a tap with nothing ticked says how to
+          // use it rather than doing nothing.
+          disabled={placing}
+          onAction={() =>
+            selecting ? setPickerOpen(true) : toast.show(t.smsInbox.addSelectedHint)
+          }
           bottom={clearance + theme.spacing.md}
         />
       ) : null}

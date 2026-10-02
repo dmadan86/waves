@@ -402,7 +402,7 @@ export function SmsAddBar({
         accessibilityState={{ disabled }}
         disabled={disabled}
         onPress={onAction}
-        style={({ pressed }) => ({ opacity: disabled ? 0.8 : pressed ? 0.85 : 1 })}
+        style={({ pressed }) => ({ opacity: disabled ? 0.45 : pressed ? 0.85 : 1 })}
       >
         <Gradient
           colors={theme.gradient.brand}
