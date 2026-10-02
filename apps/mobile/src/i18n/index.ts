@@ -3414,6 +3414,21 @@ export interface UiStrings {
     removeName: string;
     remindZoneNote: string;
     useMyTimezone: string;
+    /** The compact contact-picker's subtitle, under its hero title. */
+    fromYourContactsSubtitle: string;
+    /** The compact picker's filter pills — "All (907)". */
+    filterAll: string;
+    /** Shared by the "On Waves" filter pill and a row's own status pill. */
+    filterOnWaves: string;
+    /** Shared by the "Not on Waves" filter pill and a row's own status pill. */
+    filterNotOnWaves: string;
+    filterSelected: string;
+    /** The compact picker's bottom strip: "{n} people selected". */
+    peopleSelectedCount: PluralForms;
+    /** Drops everyone ticked, from the compact picker's bottom strip. */
+    clearAllSelected: string;
+    /** The compact picker's confirm button: "Add {n} people to Waves". */
+    addPeopleToWaves: PluralForms;
   };
   /** The Activity feed's date-range filter — narrowing a long feed to a span. */
   activityFilter: {
@@ -6733,6 +6748,14 @@ const en: UiStrings = {
     removeName: 'Remove {name}',
     remindZoneNote: 'Asked in {zone} — where the trip is, not where each person is.',
     useMyTimezone: 'Use my timezone ({zone})',
+    fromYourContactsSubtitle: 'Select people to add to Waves',
+    filterAll: 'All',
+    filterOnWaves: 'On Waves',
+    filterNotOnWaves: 'Not on Waves',
+    filterSelected: 'Selected',
+    peopleSelectedCount: { one: '{n} person selected', other: '{n} people selected' },
+    clearAllSelected: 'Clear all',
+    addPeopleToWaves: { one: 'Add {n} person to Waves', other: 'Add {n} people to Waves' },
   },
   activityFilter: {
     open: 'Filter by date',
@@ -10159,6 +10182,20 @@ const ta: UiStrings = {
     remindZoneNote:
       '{zone} இல் கேட்கப்படுகிறது — பயணம் இருக்கும் இடம், ஒவ்வொருவரும் இருக்கும் இடம் அல்ல.',
     useMyTimezone: 'என் நேர மண்டலத்தைப் பயன்படுத்து ({zone})',
+    fromYourContactsSubtitle: 'Waves-இல் சேர்க்க நபர்களைத் தேர்ந்தெடுக்கவும்',
+    filterAll: 'அனைத்தும்',
+    filterOnWaves: 'Waves-இல் உள்ளனர்',
+    filterNotOnWaves: 'Waves-இல் இல்லை',
+    filterSelected: 'தேர்ந்தெடுக்கப்பட்டவை',
+    peopleSelectedCount: {
+      one: '{n} நபர் தேர்ந்தெடுக்கப்பட்டார்',
+      other: '{n} நபர்கள் தேர்ந்தெடுக்கப்பட்டனர்',
+    },
+    clearAllSelected: 'அனைத்தையும் அழி',
+    addPeopleToWaves: {
+      one: 'Waves-இல் {n} நபரைச் சேர்க்கவும்',
+      other: 'Waves-இல் {n} நபர்களைச் சேர்க்கவும்',
+    },
   },
   activityFilter: {
     open: 'தேதி வாரியாக வடிகட்டு',
@@ -13485,6 +13522,14 @@ const hi: UiStrings = {
     removeName: '{name} को हटाएँ',
     remindZoneNote: '{zone} में पूछा जाता है — जहाँ यात्रा है, न कि जहाँ हर कोई है।',
     useMyTimezone: 'मेरा टाइमज़ोन इस्तेमाल करें ({zone})',
+    fromYourContactsSubtitle: 'Waves में जोड़ने के लिए लोगों को चुनें',
+    filterAll: 'सभी',
+    filterOnWaves: 'Waves पर हैं',
+    filterNotOnWaves: 'Waves पर नहीं हैं',
+    filterSelected: 'चुने गए',
+    peopleSelectedCount: { one: '{n} व्यक्ति चुना गया', other: '{n} लोग चुने गए' },
+    clearAllSelected: 'सभी हटाएं',
+    addPeopleToWaves: { one: 'Waves में {n} व्यक्ति जोड़ें', other: 'Waves में {n} लोग जोड़ें' },
   },
   activityFilter: {
     open: 'तारीख़ से छाँटें',
@@ -17249,6 +17294,28 @@ const ar: UiStrings = {
     removeName: 'إزالة {name}',
     remindZoneNote: 'يُسأل بتوقيت {zone} — حيث الرحلة، لا حيث كل شخص.',
     useMyTimezone: 'استخدم منطقتي الزمنية ({zone})',
+    fromYourContactsSubtitle: 'اختر الأشخاص لإضافتهم إلى Waves',
+    filterAll: 'الكل',
+    filterOnWaves: 'على Waves',
+    filterNotOnWaves: 'ليس على Waves',
+    filterSelected: 'المحدد',
+    peopleSelectedCount: {
+      zero: 'لم يتم اختيار أي شخص',
+      one: 'تم اختيار شخص واحد',
+      two: 'تم اختيار شخصين',
+      few: 'تم اختيار {n} أشخاص',
+      many: 'تم اختيار {n} شخصًا',
+      other: 'تم اختيار {n} شخص',
+    },
+    clearAllSelected: 'إلغاء تحديد الكل',
+    addPeopleToWaves: {
+      zero: 'لا أحد لإضافته إلى Waves',
+      one: 'أضف شخصًا واحدًا إلى Waves',
+      two: 'أضف شخصين إلى Waves',
+      few: 'أضف {n} أشخاص إلى Waves',
+      many: 'أضف {n} شخصًا إلى Waves',
+      other: 'أضف {n} شخص إلى Waves',
+    },
   },
   activityFilter: {
     open: 'التصفية حسب التاريخ',
