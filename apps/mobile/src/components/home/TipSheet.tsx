@@ -190,7 +190,10 @@ export function TipSheet() {
           {/* Dots: one per tip, the live one in the brand. Only when there is
               more than one to swipe to. */}
           {tips.length > 1 ? (
-            <Row style={{ justifyContent: 'center', gap: theme.spacing.sm }}>
+            // No gap: each dot's own padding spaces them, and that padding is
+            // its touch area. A small mark in a 28pt-square target, rather than an
+            // 8pt one — `hitSlop` cannot reach past the row it sits in.
+            <Row style={{ justifyContent: 'center', gap: 0 }}>
               {tips.map((entry, index) => (
                 <Pressable
                   key={entry.id}
@@ -198,14 +201,23 @@ export function TipSheet() {
                   accessibilityLabel={`${index + 1} / ${tips.length}`}
                   accessibilityState={{ selected: index === page }}
                   onPress={() => goTo(index)}
-                  hitSlop={8}
                   style={{
-                    width: index === page ? 20 : 8,
-                    height: 8,
-                    borderRadius: 4,
-                    backgroundColor: index === page ? theme.color.brand : theme.color.brandSoft,
+                    minWidth: 28,
+                    height: 28,
+                    paddingHorizontal: 4,
+                    alignItems: 'center',
+                    justifyContent: 'center',
                   }}
-                />
+                >
+                  <View
+                    style={{
+                      width: index === page ? 20 : 8,
+                      height: 8,
+                      borderRadius: 4,
+                      backgroundColor: index === page ? theme.color.brand : theme.color.brandSoft,
+                    }}
+                  />
+                </Pressable>
               ))}
             </Row>
           ) : null}
