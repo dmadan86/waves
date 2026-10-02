@@ -54,13 +54,6 @@ const { readSms, readSmsGranted, smsPermissionGranted, SmsReadFailure } =
   await import('@/lib/smsReader');
 
 const WINDOW = { from: '2026-07-01', to: '2026-07-08' };
-const RATIONALE = {
-  title: 'Read bank SMS',
-  message: 'To find expenses',
-  allow: 'OK',
-  notNow: 'No',
-};
-
 /** Swap the optional native module. `null` is a build that never bundled it. */
 function installModule(exports: unknown): void {
   nodeRequire.cache[smsModulePath]!.exports = exports;
@@ -86,7 +79,7 @@ describe('readSms', () => {
   it('is unavailable — not a crash — when the native module is missing from the build', async () => {
     installModule(null);
 
-    const result = await readSms(WINDOW, RATIONALE);
+    const result = await readSms(WINDOW);
 
     expect(result).toEqual({ ok: false, reason: SmsReadFailure.Unavailable });
     // Nobody is asked for a permission the build could never use.
@@ -97,7 +90,7 @@ describe('readSms', () => {
   it('reports a denial', async () => {
     reactNative.PermissionsAndroid.request.mockResolvedValue(RESULTS.DENIED);
 
-    await expect(readSms(WINDOW, RATIONALE)).resolves.toEqual({
+    await expect(readSms(WINDOW)).resolves.toEqual({
       ok: false,
       reason: SmsReadFailure.Denied,
     });
@@ -107,7 +100,7 @@ describe('readSms', () => {
   it('reports never-ask-again as blocked', async () => {
     reactNative.PermissionsAndroid.request.mockResolvedValue(RESULTS.NEVER_ASK_AGAIN);
 
-    await expect(readSms(WINDOW, RATIONALE)).resolves.toEqual({
+    await expect(readSms(WINDOW)).resolves.toEqual({
       ok: false,
       reason: SmsReadFailure.Blocked,
     });
@@ -116,28 +109,22 @@ describe('readSms', () => {
   it('treats a permission request that throws as a denial', async () => {
     reactNative.PermissionsAndroid.request.mockRejectedValue(new Error('activity gone'));
 
-    await expect(readSms(WINDOW, RATIONALE)).resolves.toEqual({
+    await expect(readSms(WINDOW)).resolves.toEqual({
       ok: false,
       reason: SmsReadFailure.Denied,
     });
   });
 
-  it('shows the rationale in the app’s own words', async () => {
-    await readSms(WINDOW, RATIONALE);
+  it('asks with the system dialog alone, never a second rationale dialog first', async () => {
+    await readSms(WINDOW);
 
     expect(reactNative.PermissionsAndroid.request).toHaveBeenCalledWith(
       'android.permission.READ_SMS',
-      {
-        title: 'Read bank SMS',
-        message: 'To find expenses',
-        buttonPositive: 'OK',
-        buttonNegative: 'No',
-      },
     );
   });
 
   it('reads, and notes the grant, when allowed', async () => {
-    const result = await readSms(WINDOW, RATIONALE);
+    const result = await readSms(WINDOW);
 
     expect(result.ok).toBe(true);
     expect(result.ok && result.messages.map((message) => message.body)).toEqual(['Rs 500 debited']);
@@ -147,7 +134,7 @@ describe('readSms', () => {
   it('is unsupported off Android', async () => {
     reactNative.Platform.OS = 'ios';
 
-    await expect(readSms(WINDOW, RATIONALE)).resolves.toEqual({
+    await expect(readSms(WINDOW)).resolves.toEqual({
       ok: false,
       reason: SmsReadFailure.Unsupported,
     });
