@@ -273,7 +273,7 @@ export default function ReadMessagesScreen(): React.JSX.Element | null {
     setReading(true);
     setError(null);
     if (forScan) {
-      const outcome = await requestSmsPermission(t.smsImport.permissionRationale);
+      const outcome = await requestSmsPermission();
       setReading(false);
       if (outcome === PermissionOutcome.Granted) {
         requestScanOnReturn();
@@ -290,11 +290,8 @@ export default function ReadMessagesScreen(): React.JSX.Element | null {
     }
     try {
       // The system dialog is raised inside here — after this screen, never
-      // instead of it. `permissionRationale` is what Android then shows.
-      const result = await readSms(
-        { from: daysAgo(days), to: today() },
-        t.smsImport.permissionRationale,
-      );
+      // instead of it.
+      const result = await readSms({ from: daysAgo(days), to: today() });
       if (!result.ok) {
         setError(readFailureMessage(result.reason, t));
         return;

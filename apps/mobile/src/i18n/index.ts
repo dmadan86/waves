@@ -2997,13 +2997,6 @@ export interface UiStrings {
     readUnsupported: string;
     readUnavailable: string;
     readFailed: string;
-    /** The Android runtime-permission dialog shown before READ_SMS is granted. */
-    permissionRationale: {
-      title: string;
-      message: string;
-      allow: string;
-      notNow: string;
-    };
     /** Note under a candidate whose date was inferred, not read from the text. */
     dateNotInMessage: string;
     /**
@@ -3062,8 +3055,8 @@ export interface UiStrings {
     /**
      * The disclosure shown BEFORE Android's own permission dialog, in the app's
      * own words. Google Play requires a prominent disclosure for a sensitive
-     * permission, and a rationale attached to the system prompt is not one —
-     * `permissionRationale` above is what that system dialog then says.
+     * permission, and a rationale attached to the system prompt is not one.
+     * The system dialog that follows is Android's alone, with no second one.
      */
     disclosure: {
       /** The part in `[brackets]` is drawn in the brand colour. */
@@ -6376,13 +6369,6 @@ const en: UiStrings = {
     readUnsupported: 'Reading messages only works on Android. Paste them below instead.',
     readUnavailable: 'This build cannot read messages. Paste them below instead.',
     readFailed: 'Could not read your messages. Paste them below instead.',
-    permissionRationale: {
-      title: 'Read bank messages',
-      message:
-        'Waves reads bank payment messages on this phone to suggest expenses for your trip. The messages stay on your phone — nothing is sent anywhere until you confirm an expense.',
-      allow: 'Allow',
-      notNow: 'Not now',
-    },
     dateNotInMessage: 'The message did not say which day this was.',
     howToDrafts:
       'Copy a payment message from your messages app and paste it here. Waves reads it on this phone and puts the payment in Review for you.',
@@ -9765,13 +9751,6 @@ const ta: UiStrings = {
       'செய்திகளைப் படிப்பது Android-இல் மட்டுமே இயங்கும். அதற்குப் பதிலாக கீழே ஒட்டவும்.',
     readUnavailable: 'இந்தப் பதிப்பால் செய்திகளைப் படிக்க முடியாது. கீழே ஒட்டவும்.',
     readFailed: 'உங்கள் செய்திகளைப் படிக்க முடியவில்லை. கீழே ஒட்டவும்.',
-    permissionRationale: {
-      title: 'வங்கிச் செய்திகளைப் படிக்க',
-      message:
-        'உங்கள் பயணத்திற்கான செலவுகளைப் பரிந்துரைக்க Waves இந்த ஃபோனில் உள்ள வங்கிப் பணச் செய்திகளைப் படிக்கிறது. செய்திகள் உங்கள் ஃபோனிலேயே இருக்கும் — நீங்கள் ஒரு செலவை உறுதிப்படுத்தும் வரை எதுவும் எங்கும் அனுப்பப்படாது.',
-      allow: 'அனுமதி',
-      notNow: 'இப்போது வேண்டாம்',
-    },
     dateNotInMessage: 'இது எந்த நாள் என்று செய்தி சொல்லவில்லை.',
     howToDrafts:
       'உங்கள் செய்தி செயலியிலிருந்து ஒரு கொடுப்பனவுச் செய்தியை நகலெடுத்து இங்கே ஒட்டுங்கள். Waves அதை இந்த ஃபோனிலேயே படித்து, அந்தக் கொடுப்பனவை மறுபார்வையில் வைக்கும்.',
@@ -13118,13 +13097,6 @@ const hi: UiStrings = {
     readUnsupported: 'संदेश पढ़ना केवल Android पर काम करता है। नीचे उन्हें पेस्ट करें।',
     readUnavailable: 'यह बिल्ड संदेश नहीं पढ़ सकता। नीचे उन्हें पेस्ट करें।',
     readFailed: 'आपके संदेश पढ़े नहीं जा सके। नीचे उन्हें पेस्ट करें।',
-    permissionRationale: {
-      title: 'बैंक संदेश पढ़ें',
-      message:
-        'आपकी यात्रा के ख़र्चे सुझाने के लिए Waves इस फ़ोन पर बैंक भुगतान संदेश पढ़ता है। संदेश आपके फ़ोन पर ही रहते हैं — जब तक आप कोई ख़र्च पुष्टि न करें, कुछ भी कहीं नहीं भेजा जाता।',
-      allow: 'अनुमति दें',
-      notNow: 'अभी नहीं',
-    },
     dateNotInMessage: 'संदेश में यह नहीं लिखा कि यह किस दिन हुआ।',
     howToDrafts:
       'अपने मैसेज ऐप से कोई भुगतान वाला संदेश कॉपी करके यहाँ पेस्ट करें। Waves उसे इसी फ़ोन पर पढ़ता है और वह भुगतान आपके लिए समीक्षा में रख देता है।',
@@ -16673,13 +16645,6 @@ const ar: UiStrings = {
     readUnsupported: 'قراءة الرسائل تعمل على أندرويد فقط. الصقها بالأسفل بدلًا من ذلك.',
     readUnavailable: 'هذا الإصدار لا يستطيع قراءة الرسائل. الصقها بالأسفل.',
     readFailed: 'تعذّرت قراءة رسائلك. الصقها بالأسفل.',
-    permissionRationale: {
-      title: 'قراءة رسائل البنك',
-      message:
-        'يقرأ Waves رسائل مدفوعات البنك على هذا الهاتف ليقترح مصروفات رحلتك. تبقى الرسائل على هاتفك — لا يُرسل أي شيء إلى أي مكان حتى تؤكّد مصروفًا.',
-      allow: 'السماح',
-      notNow: 'ليس الآن',
-    },
     dateNotInMessage: 'لم تذكر الرسالة في أي يوم كان هذا.',
     howToDrafts:
       'انسخ رسالة دفع من تطبيق الرسائل وألصقها هنا. يقرأها Waves على هذا الهاتف ويضع الدفعة في المراجعة نيابةً عنك.',

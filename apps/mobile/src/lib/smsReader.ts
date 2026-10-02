@@ -216,17 +216,26 @@ export async function readSmsInbox(window: SmsWindow, deps: SmsReaderDeps): Prom
 }
 
 /**
- * The words shown in the Android runtime-permission dialog for READ_SMS.
+ * Ask Android for `READ_SMS`: the system dialog and nothing else.
  *
- * Threaded in from the screen rather than hardcoded here: this file is reached
- * on a background path with no `useStrings`, so the caller passes the reader's
- * own language, the same way the other non-hook lib helpers receive strings.
+ * No rationale is passed to `PermissionsAndroid.request`. Given one, React
+ * Native puts up a second dialog of its own before the system's whenever the
+ * permission was refused once — and the disclosure screen in front of this
+ * call already *is* the explanation, in the app's own words. Two dialogs in a
+ * row asking the same question is what this used to do.
  */
-export interface SmsPermissionRationale {
-  readonly title: string;
-  readonly message: string;
-  readonly allow: string;
-  readonly notNow: string;
+async function askForSms(): Promise<PermissionOutcome> {
+  try {
+    const { PermissionsAndroid } =
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      require('react-native') as typeof import('react-native');
+    const status = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.READ_SMS);
+    if (status === PermissionsAndroid.RESULTS.GRANTED) return PermissionOutcome.Granted;
+    if (status === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN) return PermissionOutcome.Blocked;
+    return PermissionOutcome.Denied;
+  } catch {
+    return PermissionOutcome.Denied;
+  }
 }
 
 /**
@@ -239,31 +248,14 @@ export interface SmsPermissionRationale {
  * so the type checker treats a missing module as `any` rather than an error —
  * this package is intentionally optional.
  */
-export async function readSms(
-  window: SmsWindow,
-  rationale: SmsPermissionRationale,
-): Promise<SmsReadResult> {
+export async function readSms(window: SmsWindow): Promise<SmsReadResult> {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { Platform, PermissionsAndroid } = require('react-native') as typeof import('react-native');
+  const { Platform } = require('react-native') as typeof import('react-native');
 
   const result = await readSmsInbox(window, {
     platformOS: Platform.OS,
     loadModule: loadSmsModule,
-    requestPermission: async () => {
-      try {
-        const status = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.READ_SMS, {
-          title: rationale.title,
-          message: rationale.message,
-          buttonPositive: rationale.allow,
-          buttonNegative: rationale.notNow,
-        });
-        if (status === PermissionsAndroid.RESULTS.GRANTED) return PermissionOutcome.Granted;
-        if (status === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN) return PermissionOutcome.Blocked;
-        return PermissionOutcome.Denied;
-      } catch {
-        return PermissionOutcome.Denied;
-      }
-    },
+    requestPermission: askForSms,
   });
 
   // A read that happened is proof the dialog was answered "allow" — and that
@@ -283,30 +275,13 @@ export async function readSms(
  * permission is held afterwards. Like {@link readSms}, a grant wakes the
  * automatic reader on the spot.
  */
-export async function requestSmsPermission(
-  rationale: SmsPermissionRationale,
-): Promise<PermissionOutcome> {
-  try {
-    const { Platform, PermissionsAndroid } =
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      require('react-native') as typeof import('react-native');
-    if (Platform.OS !== 'android') return PermissionOutcome.Denied;
-    const status = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.READ_SMS, {
-      title: rationale.title,
-      message: rationale.message,
-      buttonPositive: rationale.allow,
-      buttonNegative: rationale.notNow,
-    });
-    if (status === PermissionsAndroid.RESULTS.GRANTED) {
-      noteSmsPermissionGranted();
-      return PermissionOutcome.Granted;
-    }
-    return status === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN
-      ? PermissionOutcome.Blocked
-      : PermissionOutcome.Denied;
-  } catch {
-    return PermissionOutcome.Denied;
-  }
+export async function requestSmsPermission(): Promise<PermissionOutcome> {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { Platform } = require('react-native') as typeof import('react-native');
+  if (Platform.OS !== 'android') return PermissionOutcome.Denied;
+  const outcome = await askForSms();
+  if (outcome === PermissionOutcome.Granted) noteSmsPermissionGranted();
+  return outcome;
 }
 
 /**
