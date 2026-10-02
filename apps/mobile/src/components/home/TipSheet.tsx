@@ -17,7 +17,7 @@
 import { useEffect, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, ScrollView, View, type NativeScrollEvent } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 
 import { Gradient, iconSize, Row, Sheet, Text, useTheme } from '@waves/ui';
 
@@ -104,6 +104,12 @@ export function TipSheet() {
     setPage(next);
     pager.current?.scrollTo({ x: next * pageWidth, animated: true });
   };
+  /** The dot follows the finger: whichever tip is more than half in view. */
+  const onScroll = (x: number) => {
+    if (pageWidth <= 0) return;
+    const next = Math.max(0, Math.min(tips.length - 1, Math.round(x / pageWidth)));
+    if (next !== page) setPage(next);
+  };
   const act = () => {
     if (tip?.route) {
       // The scan tip's route carries a constant `scan=` sentinel; swap it for a
@@ -113,9 +119,6 @@ export function TipSheet() {
       router.push(href as never);
     }
     close();
-  };
-  const onPage = ({ contentOffset }: NativeScrollEvent) => {
-    if (pageWidth > 0) setPage(Math.round(contentOffset.x / pageWidth));
   };
 
   // Presented through the shared Sheet, which mounts fresh with visible=true
@@ -132,7 +135,7 @@ export function TipSheet() {
           {/* The pager, with the close riding its top corner. */}
           {/* Claims the touch itself. The sheet card is a Pressable (so a tap
               inside never reaches the scrim), and on Android a touchable around
-              a horizontal ScrollView can take the gesture first — the deck
+              a horizontal ScrollView can take the gesture first — the deck once
               showed five dots and would not turn. */}
           <View
             onStartShouldSetResponder={() => true}
@@ -143,9 +146,19 @@ export function TipSheet() {
                 ref={pager}
                 horizontal
                 nestedScrollEnabled
-                pagingEnabled
                 showsHorizontalScrollIndicator={false}
-                onMomentumScrollEnd={(event) => onPage(event.nativeEvent)}
+                // One tip per swipe, snapped with a short, decisive settle.
+                // `pagingEnabled` on Android is a fling and then a separate
+                // snap, which is what read as sluggish; snapping to the page
+                // width with fast deceleration lands in one motion, and
+                // `disableIntervalMomentum` stops a hard flick skipping tips.
+                snapToInterval={pageWidth}
+                snapToAlignment="start"
+                decelerationRate="fast"
+                disableIntervalMomentum
+                overScrollMode="never"
+                scrollEventThrottle={16}
+                onScroll={(event) => onScroll(event.nativeEvent.contentOffset.x)}
               >
                 {tips.map((entry) => (
                   <TipPage key={entry.id} tip={entry} width={pageWidth} label={t.tips.label} />
