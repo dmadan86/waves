@@ -84,3 +84,22 @@ describe('the links that were already rewritten', () => {
     expect(go('not a url at all')).toBe('not a url at all');
   });
 });
+
+describe('the voice widget handing over what it heard', () => {
+  // `VoiceCaptureActivity` opens exactly this shape. The voice screen reads
+  // `heard` and `hn` off it; anything that rewrote it — to `/`, or with the
+  // query dropped — is the "opened the dashboard and did nothing" bug.
+  const link = 'waves:///voice?heard=Add%2080%20for%20lunch&hn=1759398740000';
+
+  it('reaches the voice screen untouched on a cold start', () => {
+    expect(redirectSystemPath({ path: link, initial: true })).toBe(link);
+  });
+
+  it('reaches the voice screen untouched while the app is already open', () => {
+    expect(redirectSystemPath({ path: link, initial: false })).toBe(link);
+  });
+
+  it('opens the voice screen even when nothing was heard', () => {
+    expect(redirectSystemPath({ path: 'waves:///voice', initial: true })).toBe('waves:///voice');
+  });
+});
