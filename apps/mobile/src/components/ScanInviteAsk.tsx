@@ -31,7 +31,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { Button, Gradient, iconSize, Row, Text, useTheme } from '@waves/ui';
+import { Gradient, iconSize, Row, Text, useTheme } from '@waves/ui';
 
 import { useStrings } from '@/i18n';
 import { useReducedMotion } from '@/lib/reducedMotion';
@@ -164,8 +164,10 @@ function ScanSweep() {
   );
 }
 
-/** One of the three small features under the paste pill: an icon, a bold
- *  label and a muted line, a third of the row each. */
+/** One of the three small features under the paste pill: an icon in a soft
+ *  circle, a bold one-line label and a one-line muted line, a third of the
+ *  row each. Both lines are capped to one line on purpose — three short
+ *  phrases read as a row; a wrapped one breaks the row's rhythm. */
 function Feature({
   icon,
   title,
@@ -177,17 +179,31 @@ function Feature({
 }) {
   const theme = useTheme();
   return (
-    <View style={{ flex: 1, alignItems: 'center', gap: 4, paddingHorizontal: 4 }}>
-      <Ionicons name={icon} size={iconSize.lg} color={theme.color.brand} />
+    <View style={{ flex: 1, alignItems: 'center', gap: 1, paddingHorizontal: 2 }}>
+      <View
+        style={{
+          width: 36,
+          height: 36,
+          borderRadius: 18,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: theme.color.brandSoft,
+        }}
+      >
+        <Ionicons name={icon} size={28} color={theme.color.brand} />
+      </View>
       <Text
-        variant="caption"
         align="center"
-        style={{ fontWeight: '700', color: theme.color.text }}
         numberOfLines={1}
+        style={{ fontSize: 13, lineHeight: 15, fontWeight: '700', color: theme.color.text }}
       >
         {title}
       </Text>
-      <Text variant="caption" tone="muted" align="center" numberOfLines={2}>
+      <Text
+        align="center"
+        numberOfLines={1}
+        style={{ fontSize: 11, lineHeight: 13, color: theme.color.textMuted }}
+      >
         {body}
       </Text>
     </View>
@@ -249,33 +265,33 @@ export default function ScanInviteAsk({
         <View
           style={{
             alignItems: 'center',
-            gap: theme.spacing.sm,
+            gap: 6,
             paddingHorizontal: theme.spacing.xxl,
-            paddingTop: theme.spacing.lg,
+            paddingTop: theme.spacing.sm,
           }}
         >
           <View
             style={{
-              width: 56,
-              height: 56,
-              borderRadius: theme.radius.lg,
+              width: 48,
+              height: 48,
+              borderRadius: theme.radius.md,
               alignItems: 'center',
               justifyContent: 'center',
               backgroundColor: theme.color.brand,
-              marginBottom: theme.spacing.xs,
               ...theme.shadow.soft,
             }}
           >
-            <Ionicons name="scan-outline" size={iconSize.jumbo} color="#FFFFFF" />
+            <Ionicons name="scan-outline" size={iconSize.xxl} color="#FFFFFF" />
           </View>
           <AccentTitle text={t.misc.scanAskTitle} />
           <Text
             align="center"
+            numberOfLines={2}
             style={{
-              fontSize: 15,
-              lineHeight: 21,
+              fontSize: 14,
+              lineHeight: 19,
               color: 'rgba(255,255,255,0.8)',
-              maxWidth: 300,
+              maxWidth: 280,
             }}
           >
             {t.misc.scanAskSubtitle}
@@ -305,10 +321,10 @@ export default function ScanInviteAsk({
           backgroundColor: theme.color.surface,
           borderTopLeftRadius: theme.radius.xxl,
           borderTopRightRadius: theme.radius.xxl,
-          paddingHorizontal: theme.spacing.xl,
+          paddingHorizontal: theme.spacing.lg,
           paddingTop: theme.spacing.lg,
-          paddingBottom: insets.bottom + theme.spacing.md,
-          gap: theme.spacing.md,
+          paddingBottom: insets.bottom + theme.spacing.sm,
+          gap: theme.spacing.sm,
           ...theme.shadow.lifted,
         }}
       >
@@ -322,15 +338,15 @@ export default function ScanInviteAsk({
             radius={theme.radius.pill}
             colors={theme.gradient.brand}
             style={{
-              height: 52,
+              height: 46,
               flexDirection: 'row',
               alignItems: 'center',
               justifyContent: 'center',
               gap: theme.spacing.sm,
             }}
           >
-            <Ionicons name="camera" size={iconSize.lg} color="#FFFFFF" />
-            <Text style={{ fontSize: 16, fontWeight: '700', color: '#FFFFFF' }}>
+            <Ionicons name="camera" size={iconSize.md} color="#FFFFFF" />
+            <Text style={{ fontSize: 15, fontWeight: '700', color: '#FFFFFF' }}>
               {t.misc.scanAskAllow}
             </Text>
           </Gradient>
@@ -344,19 +360,32 @@ export default function ScanInviteAsk({
           <View style={{ flex: 1, height: 1, backgroundColor: theme.color.border }} />
         </Row>
 
-        <Button
-          label={t.misc.scanPasteLink}
-          variant="secondary"
-          size="lg"
-          fullWidth
-          icon={<Ionicons name="link" size={iconSize.base} color={theme.color.brand} />}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t.misc.scanPasteLink}
           onPress={onPasteLink}
-        />
+          style={({ pressed }) => ({
+            height: 44,
+            borderRadius: theme.radius.pill,
+            backgroundColor: theme.color.brandSoft,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: theme.spacing.sm,
+            opacity: pressed ? 0.85 : 1,
+          })}
+        >
+          <Ionicons name="link" size={iconSize.base} color={theme.color.brand} />
+          <Text style={{ fontSize: 15, fontWeight: '700', color: theme.color.brand }}>
+            {t.misc.scanPasteLink}
+          </Text>
+        </Pressable>
 
         <Row
           gap={0}
           style={{
-            alignItems: 'stretch',
+            alignItems: 'center',
+            minHeight: 64,
             paddingTop: theme.spacing.xs,
             borderTopWidth: 1,
             borderTopColor: theme.color.border,
