@@ -39,3 +39,21 @@ export function takeReadMessages(): SmsMessage[] | null {
 export function clearReadMessages(): void {
   pending = null;
 }
+
+/**
+ * The other handoff the disclosure screen makes: "permission granted, now
+ * scan". Set just before it goes back to Bank messages, which takes it on focus
+ * and starts the scan there — so granting and scanning are one tap.
+ */
+let scanWanted = false;
+
+export function requestScanOnReturn(): void {
+  scanWanted = true;
+}
+
+/** True once per request: reads and clears in one step. */
+export function takeScanRequest(): boolean {
+  const wanted = scanWanted;
+  scanWanted = false;
+  return wanted;
+}

@@ -45,6 +45,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { FlashList } from '@shopify/flash-list';
 import { randomUUID } from 'expo-crypto';
@@ -75,7 +76,7 @@ import { HeroFigureLine, ScreenHero, useHeroStatusBar } from '@/components/Scree
 import { filterLabel, SmsFilterSheet } from '@/components/SmsFilterSheet';
 import { SignInWall } from '@/components/SignInWall';
 import { SmsMessageRow } from '@/components/SmsMessageRow';
-import { SmsScanSheet } from '@/components/SmsScanSheet';
+import { SmsScanOptionsSheet, SmsScanProgress, useSmsScan } from '@/components/SmsScanSheet';
 import {
   useAddGhostMember,
   useAssignCapture,
@@ -112,6 +113,8 @@ import { settleMessages } from '@/lib/smsMessageStore';
 import { smsCaptureId } from '@/lib/smsCaptureId';
 import { useSmsInboxReader } from '@/lib/smsFeature';
 import { smsRowAsCapture, splitPlaceable } from '@/lib/smsPlacement';
+import { takeScanRequest } from '@/lib/smsReadBridge';
+import { ScanScope } from '@/lib/smsScan';
 import { useToast } from '@/lib/toast';
 import { usePlaceInPersonal } from '@/lib/usePlaceInPersonal';
 import { useTabBarStandDown } from '@/lib/useTabBarStandDown';
@@ -157,7 +160,18 @@ export default function SmsInboxScreen(): React.JSX.Element | null {
   // so leaving the theme out strands rows in the scheme they were last drawn
   // in after a light/dark switch.
   const listExtraData = useMemo(() => ({ selected, theme }), [selected, theme]);
-  const [scanOpen, setScanOpen] = useState(false);
+  const [scanOptionsOpen, setScanOptionsOpen] = useState(false);
+  const reloadAfterScan = useCallback(() => void reload(), [reload]);
+  const scan = useSmsScan(ownerId, reloadAfterScan);
+  const startScan = scan.start;
+
+  // Back from the disclosure screen with the permission just granted: scan
+  // now, so granting and scanning were one tap.
+  useFocusEffect(
+    useCallback(() => {
+      if (takeScanRequest()) void startScan(ScanScope.Recent);
+    }, [startScan]),
+  );
   const [filterOpen, setFilterOpen] = useState(false);
   const [placing, setPlacing] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -581,7 +595,16 @@ export default function SmsInboxScreen(): React.JSX.Element | null {
             label: t.smsInbox.filterTitle,
             onPress: () => setFilterOpen(true),
           },
-          { icon: 'refresh', label: t.smsInbox.scan, onPress: () => setScanOpen(true) },
+          {
+            icon: 'ellipsis-horizontal',
+            label: t.smsInbox.scanTitle,
+            onPress: () => setScanOptionsOpen(true),
+          },
+          {
+            icon: 'refresh',
+            label: t.smsInbox.scan,
+            onPress: () => void startScan(ScanScope.Recent),
+          },
         ]}
       >
         <View style={{ gap: theme.spacing.md }}>
@@ -732,6 +755,13 @@ export default function SmsInboxScreen(): React.JSX.Element | null {
         ]}
       />
 
+      {/* The scan, happening here rather than in a sheet over the screen. */}
+      {scan.progress ? (
+        <View style={{ paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.sm }}>
+          <SmsScanProgress progress={scan.progress} />
+        </View>
+      ) : null}
+
       <FlashList
         data={loading ? [] : visible}
         keyExtractor={(item) => item.dedupeKey}
@@ -813,7 +843,11 @@ export default function SmsInboxScreen(): React.JSX.Element | null {
                 }
                 action={
                   rows.length === 0 ? (
-                    <Button label={t.smsInbox.scan} onPress={() => setScanOpen(true)} />
+                    <Button
+                      label={t.smsInbox.scan}
+                      disabled={scan.progress !== null}
+                      onPress={() => void startScan(ScanScope.Recent)}
+                    />
                   ) : null
                 }
               />
@@ -899,11 +933,10 @@ export default function SmsInboxScreen(): React.JSX.Element | null {
         </View>
       ) : null}
 
-      <SmsScanSheet
-        visible={scanOpen}
-        ownerId={ownerId}
-        onClose={() => setScanOpen(false)}
-        onFinished={() => void reload()}
+      <SmsScanOptionsSheet
+        visible={scanOptionsOpen}
+        onClose={() => setScanOptionsOpen(false)}
+        onScanEverything={() => void startScan(ScanScope.Everything)}
       />
 
       <SmsFilterSheet

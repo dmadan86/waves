@@ -1,39 +1,24 @@
 /**
- * Starting a scan, and watching it happen.
+ * Scanning the inbox from Bank messages, in as few steps as it can be.
  *
- * The reader used to work invisibly — a pass ran, rows appeared somewhere, and
- * the only evidence was a list that had got longer while nobody was looking.
- * That is right for a background job and wrong for a button. A button that
- * returns instantly and changes a number on another screen is a button people
- * press once, disbelieve, and never press again.
+ * It used to be a sheet with a choice in it (how far back), a switch, a
+ * progress view and a result view, and a scan on a phone that had never
+ * granted the permission went through all of it to say so and then sent the
+ * person to the disclosure screen. Four states for one button. Now:
  *
- * So this sheet is the whole event, start to finish, in one place:
+ *   - **Scan** scans the last month at once, on the screen, with a slim
+ *     progress card at the top of the list, and says what it found in a toast.
+ *   - **No permission yet** goes straight to the disclosure screen, whose
+ *     Continue grants it and comes back here to scan (`requestScanOnReturn`).
+ *   - **Everything on this phone** and **the hourly check** are the two
+ *     choices most people never touch, so they live behind the options glyph
+ *     in {@link SmsScanOptionsSheet}, not in the way of the button.
  *
- *   1. **How far back?** Two choices, not a date picker, because there are two
- *      questions people actually have — catch up, or go back and get
- *      everything. The slow one says it is slow on the row that offers it,
- *      rather than in a toast after it has been chosen.
- *   2. **The hourly check, as a switch.** Whether Waves may wake the phone to
- *      look for new messages, or should only look when it is opened. It used to
- *      be a warning here — several manufacturers stop scheduled work by default
- *      (`lib/smsBattery.ts`) — and a warning is the wrong shape for it: there is
- *      nothing wrong, nothing to fix in the app, and messages are read on the
- *      way in either way. The question mark beside the switch holds what to
- *      change on the phones where the check does get stopped, named by maker.
- *   3. **Progress, in three honest stages.** Reading is indeterminate because
- *      the native call genuinely has no progress to report, and a fake bar is a
- *      small lie told every time. Sorting counts real messages. Saving is the
- *      short tail.
- *   4. **What it found.** Including the two numbers most apps leave out: how
- *      many looked like payments and could not be read, and how many were clear
- *      enough to have gone straight to Review without being asked about.
- *
- * The sheet cannot be dismissed while a scan is running. Not to trap anybody —
- * the scan would finish either way — but because leaving mid-progress is how a
- * person concludes it did not work.
+ * Progress is still told in three honest stages: reading has no progress to
+ * report, so its bar slides; sorting counts real messages; saving is the tail.
  */
 
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, View } from 'react-native';
 
@@ -50,18 +35,20 @@ import {
 } from '@waves/ui';
 
 import { plural, useStrings, type UiStrings } from '@/i18n';
-import { batteryLimitsLikely, deviceMaker, openAppSettings } from '@/lib/smsBattery';
-import { useBackgroundCheck } from '@/lib/useBackgroundCheck';
-import { useReducedMotion } from '@/lib/reducedMotion';
 import { router } from '@/lib/navigation';
-import { failureIsAskable, readFailureMessage } from '@/lib/smsFailureMessage';
-import { ScanScope, scanFor, type ScanProgress, type ScanResult } from '@/lib/smsScan';
-
-/** What the sheet is showing: the choice, the work, or the outcome. */
-type Phase =
-  | { readonly kind: 'choosing' }
-  | { readonly kind: 'working'; readonly progress: ScanProgress }
-  | { readonly kind: 'done'; readonly result: ScanResult };
+import { useReducedMotion } from '@/lib/reducedMotion';
+import { batteryLimitsLikely, deviceMaker, openAppSettings } from '@/lib/smsBattery';
+import { readFailureMessage } from '@/lib/smsFailureMessage';
+import { SmsReadFailure } from '@/lib/smsReader';
+import {
+  deviceGateReason,
+  ScanScope,
+  scanFor,
+  type ScanProgress,
+  type ScanResult,
+} from '@/lib/smsScan';
+import { useToast } from '@/lib/toast';
+import { useBackgroundCheck } from '@/lib/useBackgroundCheck';
 
 /**
  * How far a bar should be filled for a stage.
@@ -87,245 +74,180 @@ function stageWords(progress: ScanProgress, t: UiStrings): string {
     .replace('{total}', String(progress.total));
 }
 
-/** One of the two scopes, as a row you can tap anywhere on. */
-function ScopeRow({
-  label,
-  note,
-  selected,
-  onPress,
-}: {
-  label: string;
-  note: string;
-  selected: boolean;
-  onPress: () => void;
-}): React.JSX.Element {
+/** What a finished scan says, in one toast. */
+function resultWords(result: ScanResult, t: UiStrings, locale: string): string {
+  if (!result.ok) {
+    return result.failure ? readFailureMessage(result.failure, t) : t.smsImport.readFailed;
+  }
+  if (result.added === 0) return t.smsInbox.scanNothingNew;
+  const found = plural(locale, result.added, t.smsInbox.scanFound);
+  return result.drafted > 0
+    ? `${found}. ${plural(locale, result.drafted, t.smsInbox.scanDrafted)}`
+    : found;
+}
+
+export interface SmsScan {
+  /** Non-null while a scan runs: what to draw in the progress card. */
+  readonly progress: ScanProgress | null;
+  /** Start a scan, or go and get the permission first. Never rejects. */
+  readonly start: (scope: ScanScope) => Promise<void>;
+}
+
+/**
+ * The scan as a hook: one call does the whole event, and the screen draws
+ * `progress` while it runs.
+ */
+export function useSmsScan(ownerId: string, onFinished: () => void): SmsScan {
+  const { t, locale } = useStrings();
+  const toast = useToast();
+  const [progress, setProgress] = useState<ScanProgress | null>(null);
+  const running = useRef(false);
+
+  const start = useCallback(
+    async (scope: ScanScope): Promise<void> => {
+      if (running.current) return;
+      running.current = true;
+      try {
+        const gate = await deviceGateReason();
+        if (gate === SmsReadFailure.Denied) {
+          // Never granted (or taken back): the disclosure screen asks, and
+          // comes back here to scan. The only place allowed to raise the dialog.
+          router.push({ pathname: '/captures/messages', params: { then: 'scan' } });
+          return;
+        }
+        if (gate) {
+          toast.show(readFailureMessage(gate, t), 'negative');
+          return;
+        }
+        setProgress({ stage: 'reading' });
+        const result = await scanFor(ownerId, scope, setProgress);
+        onFinished();
+        toast.show(resultWords(result, t, locale), result.ok ? undefined : 'negative');
+      } finally {
+        setProgress(null);
+        running.current = false;
+      }
+    },
+    [locale, onFinished, ownerId, t, toast],
+  );
+
+  return { progress, start };
+}
+
+/** The slim card at the top of the list while a scan runs. */
+export function SmsScanProgress({ progress }: { progress: ScanProgress }): React.JSX.Element {
   const theme = useTheme();
+  const { t } = useStrings();
+  const reduceMotion = useReducedMotion();
   return (
-    <Pressable
-      accessibilityRole="radio"
-      accessibilityState={{ selected }}
-      accessibilityLabel={`${label}. ${note}`}
-      onPress={onPress}
-      style={({ pressed }) => ({
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: theme.spacing.md,
-        paddingVertical: theme.spacing.md,
-        paddingHorizontal: theme.spacing.lg,
+    <View
+      accessibilityLiveRegion="polite"
+      style={{
+        gap: theme.spacing.sm,
+        padding: theme.spacing.md,
         borderRadius: theme.radius.lg,
+        backgroundColor: theme.color.surface,
         borderWidth: 1,
-        borderColor: selected ? theme.color.brand : theme.color.border,
-        backgroundColor: selected ? theme.color.brandSoft : theme.color.surface,
-        opacity: pressed ? 0.85 : 1,
-      })}
+        borderColor: theme.color.border,
+      }}
     >
-      {/* The state is in the words and the tick together, never in colour
-          alone — the rule the design audit (#191) left behind. */}
-      <Ionicons
-        name={selected ? 'radio-button-on' : 'radio-button-off'}
-        size={iconSize.md}
-        color={selected ? theme.color.brand : theme.color.textMuted}
-      />
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Text variant="body">{label}</Text>
-        <Text variant="caption" tone="muted">
-          {note}
+      <Row style={{ alignItems: 'center', justifyContent: 'space-between', gap: theme.spacing.sm }}>
+        <Text variant="body" style={{ flexShrink: 1 }}>
+          {stageWords(progress, t)}
         </Text>
-      </View>
-    </Pressable>
+        <Row style={{ gap: 4, alignItems: 'center' }}>
+          <Ionicons name="phone-portrait-outline" size={iconSize.sm} color={theme.color.brand} />
+          <Text variant="micro" tone="muted">
+            {t.smsInbox.onDevice}
+          </Text>
+        </Row>
+      </Row>
+      <ProgressBar progress={fractionOf(progress)} animated={!reduceMotion} />
+    </View>
   );
 }
 
-export function SmsScanSheet({
+/**
+ * The two choices most people never need: read everything on the phone, and
+ * whether Waves checks on its own every hour.
+ */
+export function SmsScanOptionsSheet({
   visible,
-  ownerId,
   onClose,
-  onFinished,
+  onScanEverything,
 }: {
   visible: boolean;
-  ownerId: string;
   onClose: () => void;
-  /** Fired once a scan completes, so the list behind can read the store again. */
-  onFinished: (result: ScanResult) => void;
+  onScanEverything: () => void;
 }): React.JSX.Element {
   const theme = useTheme();
-  const { t, locale } = useStrings();
-  const reduceMotion = useReducedMotion();
-
-  const [scope, setScope] = useState<ScanScope>(ScanScope.Recent);
-  const [phase, setPhase] = useState<Phase>({ kind: 'choosing' });
+  const { t } = useStrings();
   const [helpOpen, setHelpOpen] = useState(false);
   const background = useBackgroundCheck();
-
   const warnBattery = batteryLimitsLikely();
   const maker = deviceMaker();
-
-  const start = useCallback(async (): Promise<void> => {
-    setPhase({ kind: 'working', progress: { stage: 'reading' } });
-    const result = await scanFor(ownerId, scope, (progress) => {
-      setPhase({ kind: 'working', progress });
-    });
-    setPhase({ kind: 'done', result });
-    onFinished(result);
-  }, [onFinished, ownerId, scope]);
-
-  const close = useCallback((): void => {
-    // Reopening always opens on the choice, never on the last result.
-    setPhase({ kind: 'choosing' });
-    onClose();
-  }, [onClose]);
 
   return (
     <Sheet
       visible={visible}
-      // While a scan is running the backdrop does nothing. The work would
-      // finish either way; leaving mid-progress is simply how somebody
-      // concludes that it did not.
-      onClose={phase.kind === 'working' ? () => {} : close}
+      onClose={onClose}
       closeLabel={t.common.close}
       style={{ paddingHorizontal: theme.spacing.xl, gap: theme.spacing.lg }}
     >
-      <Text variant="heading">{t.smsInbox.scanTitle}</Text>
-
-      {phase.kind === 'choosing' ? (
-        <>
-          <View style={{ gap: theme.spacing.sm }}>
-            <ScopeRow
-              label={t.smsInbox.scanRecent}
-              note={t.smsInbox.scanRecentNote}
-              selected={scope === ScanScope.Recent}
-              onPress={() => setScope(ScanScope.Recent)}
-            />
-            <ScopeRow
-              label={t.smsInbox.scanEverything}
-              note={t.smsInbox.scanEverythingNote}
-              selected={scope === ScanScope.Everything}
-              onPress={() => setScope(ScanScope.Everything)}
-            />
-          </View>
-
-          {/* The one thing people are actually afraid of when they see the word
-              "rescan": that it will undo what they have already sorted out. */}
-          <Text variant="caption" tone="muted">
-            {t.smsInbox.scanKeepsWhatYouDid}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${t.smsInbox.scanEverything}. ${t.smsInbox.scanEverythingNote}`}
+        onPress={() => {
+          onClose();
+          onScanEverything();
+        }}
+        style={({ pressed }) => ({
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: theme.spacing.md,
+          opacity: pressed ? 0.7 : 1,
+        })}
+      >
+        <Ionicons name="albums-outline" size={iconSize.md} color={theme.color.brand} />
+        <View style={{ flex: 1, gap: 2 }}>
+          <Text variant="body">{t.smsInbox.scanEverything}</Text>
+          <Text variant="micro" tone="muted">
+            {t.smsInbox.scanEverythingNote}
           </Text>
-
-          {/* The hourly wake-up, as a switch rather than an alarm. What stood
-              here was an orange panel telling somebody their phone would
-              probably stop the feature working — true on about half of Android,
-              and no use to anybody: it is not a fault, there is nothing to fix
-              in the app, and new messages are read whenever it is opened
-              regardless. A switch says the same fact without the fright, and
-              the question mark beside it holds what to change on the phones
-              where the check does get stopped. */}
-          <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
-            <View style={{ flex: 1, gap: 2 }}>
-              <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
-                <Text variant="body">{t.smsInbox.backgroundTitle}</Text>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={t.smsInbox.backgroundHelp}
-                  hitSlop={10}
-                  onPress={() => setHelpOpen(true)}
-                >
-                  <Ionicons
-                    name="help-circle-outline"
-                    size={iconSize.md}
-                    color={theme.color.brand}
-                  />
-                </Pressable>
-              </Row>
-              <Text variant="micro" tone="muted">
-                {t.smsInbox.backgroundNote}
-              </Text>
-            </View>
-            <Toggle
-              value={background.wanted}
-              onValueChange={background.setWanted}
-              accessibilityLabel={t.smsInbox.backgroundTitle}
-            />
-          </Row>
-
-          <Button label={t.smsInbox.scan} fullWidth onPress={() => void start()} />
-        </>
-      ) : phase.kind === 'working' ? (
-        <View style={{ gap: theme.spacing.md, paddingVertical: theme.spacing.md }}>
-          <Text variant="body">{stageWords(phase.progress, t)}</Text>
-          <ProgressBar progress={fractionOf(phase.progress)} animated={!reduceMotion} />
-          {/* The promise, repeated exactly where somebody is watching their own
-              bank messages be read. This is the moment it is worth saying. */}
-          <Row style={{ gap: theme.spacing.xs, alignItems: 'center' }}>
-            <Ionicons name="phone-portrait-outline" size={iconSize.sm} color={theme.color.brand} />
-            <Text variant="micro" tone="muted">
-              {t.smsInbox.onDevice}
-            </Text>
-          </Row>
         </View>
-      ) : (
-        <View style={{ gap: theme.spacing.md }}>
-          {/* A scan that could not read is not a scan that found nothing.
+        <Ionicons name="chevron-forward" size={iconSize.sm} color={theme.color.textMuted} />
+      </Pressable>
 
-              This branch used to look only at `added`, so every failure -- a
-              permission never granted, a revoked one, an iPhone, a build with
-              no reader in it -- came out as "Nothing new since last time." On a
-              phone that had never been asked for the permission that made Scan
-              a button which always reported success and never did anything,
-              with the screen behind it still saying nothing had ever been read.
-
-              `ok` is checked first, because `added === 0` is true in both cases
-              and only one of them is worth saying. */}
-          <Text variant="body">
-            {!phase.result.ok
-              ? phase.result.failure
-                ? readFailureMessage(phase.result.failure, t)
-                : t.smsImport.readFailed
-              : phase.result.added === 0
-                ? t.smsInbox.scanNothingNew
-                : plural(locale, phase.result.added, t.smsInbox.scanFound)}
+      <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+        <Ionicons name="time-outline" size={iconSize.md} color={theme.color.brand} />
+        <View style={{ flex: 1, gap: 2 }}>
+          <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
+            <Text variant="body">{t.smsInbox.backgroundTitle}</Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t.smsInbox.backgroundHelp}
+              hitSlop={10}
+              onPress={() => setHelpOpen(true)}
+            >
+              <Ionicons name="help-circle-outline" size={iconSize.sm} color={theme.color.brand} />
+            </Pressable>
+          </Row>
+          <Text variant="micro" tone="muted">
+            {t.smsInbox.backgroundNote}
           </Text>
-          {/* The one failure somebody can still do something about, with the
-              door to doing it. The scan path only ever *checks* the permission
-              -- asking belongs to the disclosure screen, which is the only
-              place allowed to raise that dialog -- so a sentence alone would
-              leave the reader with no way to act on it.
-
-              The sheet closes first: the screen it opens is a route, and
-              pushing one from under an open sheet leaves the sheet over it. */}
-          {!phase.result.ok && failureIsAskable(phase.result.failure) ? (
-            <Button
-              label={t.smsImport.readMessages}
-              fullWidth
-              onPress={() => {
-                close();
-                router.push('/captures/messages');
-              }}
-            />
-          ) : null}
-          {phase.result.ok && phase.result.drafted > 0 ? (
-            <Text variant="caption" tone="muted">
-              {plural(locale, phase.result.drafted, t.smsInbox.scanDrafted)}
-            </Text>
-          ) : null}
-          {/* The number most apps of this kind leave out. It is the only signal
-              a person has that the parser has a gap, and hiding it would make
-              "nothing found" and "nothing understood" look identical. */}
-          {phase.result.ok && phase.result.unreadable > 0 ? (
-            <Text variant="caption" tone="muted">
-              {plural(locale, phase.result.unreadable, t.smsInbox.scanUnreadable)}
-            </Text>
-          ) : null}
-          <Button label={t.common.done} fullWidth onPress={close} />
         </View>
-      )}
+        <Toggle
+          value={background.wanted}
+          onValueChange={background.setWanted}
+          accessibilityLabel={t.smsInbox.backgroundTitle}
+        />
+      </Row>
+
       <Popup visible={helpOpen} onClose={() => setHelpOpen(false)} closeLabel={t.common.close}>
         <Text variant="heading">{t.smsInbox.backgroundHelpTitle}</Text>
         <Text variant="caption" tone="muted">
           {t.smsInbox.backgroundHelpBody}
         </Text>
-        {/* Named only where the naming is worth something: the phones that do
-            this have the setting in different places, and "usually under
-            Battery" is the difference between a person finding it and giving
-            up. Everyone else is told nothing they would have to translate. */}
         {warnBattery && maker ? (
           <Text variant="caption" tone="muted">
             {t.smsInbox.backgroundHelpMaker.replace('{maker}', maker)}

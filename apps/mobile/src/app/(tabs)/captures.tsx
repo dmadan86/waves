@@ -143,8 +143,8 @@ import {
   type ReviewFeedItem,
 } from '@/lib/reviewFeed';
 import { useReducedMotion } from '@/lib/reducedMotion';
-import { SmsScanSheet } from '@/components/SmsScanSheet';
 import { useSmsAutoRead } from '@/lib/smsAutoRead';
+import { requestScanOnReturn } from '@/lib/smsReadBridge';
 import { useSmsInboxReader } from '@/lib/smsFeature';
 import { useSmsMessages } from '@/lib/smsMessages';
 import { totalWaiting } from '@/lib/smsInbox';
@@ -828,7 +828,6 @@ export default function CapturesScreen() {
   // second control. It was only ever on the other screen, behind a glyph in a
   // header somebody had to know to open; a reader that cannot be asked to look
   // is indistinguishable from one that is not working.
-  const [scanOpen, setScanOpen] = useState(false);
   const reduceMotion = useReducedMotion();
 
   // One slow clock for the whole screen: the status line's "2 min ago" and the
@@ -1832,7 +1831,16 @@ export default function CapturesScreen() {
                   onPress: () => router.push('/captures/sms'),
                   primary: true,
                 },
-                { icon: 'refresh', label: t.smsInbox.scan, onPress: () => setScanOpen(true) },
+                // "Look now" scans where the messages are: Bank messages, which
+                // takes the request on focus and shows the scan as it runs.
+                {
+                  icon: 'refresh',
+                  label: t.smsInbox.scan,
+                  onPress: () => {
+                    requestScanOnReturn();
+                    router.push('/captures/sms');
+                  },
+                },
               ]
             : [
                 // The only action here, and the main way a spend arrives on a
@@ -2421,21 +2429,6 @@ export default function CapturesScreen() {
             />
           </Row>
         </Reanimated.View>
-      ) : null}
-
-      {/* The inbox read on demand — the Bank messages screen's own sheet, which
-          owns the choice of how far back to reach, the progress while it reads,
-          and the count of what it found. Mounted here so the answer to "has
-          anything new come in?" is on the screen that asks the question. */}
-      {smsReader ? (
-        <SmsScanSheet
-          visible={scanOpen}
-          ownerId={viewerId ?? ''}
-          onClose={() => setScanOpen(false)}
-          // A scan writes drafts of its own, so the list behind this sheet
-          // has new rows to show the moment it closes.
-          onFinished={() => pull.onRefresh()}
-        />
       ) : null}
 
       {/* The row's ⋯ overflow, as a small sheet. Every gesture this screen has
