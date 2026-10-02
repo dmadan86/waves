@@ -25,6 +25,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -48,7 +49,7 @@ import {
 interface NativeStoreUpdate {
   check(): Promise<PlayUpdateInfo | null>;
   start(immediate: boolean): Promise<boolean>;
-  complete(): Promise<void>;
+  complete(): Promise<boolean>;
   addListener(event: 'onStatus', listener: (event: PlayStatusEvent) => void): { remove(): void };
 }
 
@@ -117,13 +118,19 @@ async function askStore(): Promise<UpdatePhase | null> {
 export function StoreUpdateProvider({ children }: { children: ReactNode }) {
   const [phase, setPhase] = useState<UpdatePhase>(NO_UPDATE);
   const [dismissed, setDismissed] = useState<string | null>(null);
+  /** Only the newest check may land: an older answer is out of date. */
+  const checks = useRef(0);
   /** Ask the store, then show what it said. Never rejects. */
   const check = useCallback(() => {
+    const id = ++checks.current;
     void askStore().then((next) => {
-      if (!next) return;
-      // A check never undoes a download this session is already following.
+      if (!next || id !== checks.current) return;
+      // A check never undoes a download this session is already following, or
+      // one that has finished while the check was in flight.
       setPhase((current) =>
-        current.kind === 'downloading' && next.kind === 'available' ? current : next,
+        (current.kind === 'downloading' || current.kind === 'ready') && next.kind === 'available'
+          ? current
+          : next,
       );
     });
   }, []);
@@ -160,8 +167,14 @@ export function StoreUpdateProvider({ children }: { children: ReactNode }) {
   }, [check]);
 
   const restart = useCallback(() => {
-    void native?.complete().catch(() => undefined);
-  }, []);
+    void native
+      ?.complete()
+      .then((installing) => {
+        // Play could not start the install: ask again, so the bar says what is true.
+        if (!installing) check();
+      })
+      .catch(() => undefined);
+  }, [check]);
 
   const dismiss = useCallback(() => {
     if (phase.kind !== 'available') return;

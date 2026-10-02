@@ -76,9 +76,11 @@ export function phaseAfter(phase: UpdatePhase, event: PlayStatusEvent): UpdatePh
   const { version } = phase;
   switch (event.status) {
     // Said yes on Play's sheet: the download is about to start.
+    // Play does not order this against the install-state listener, so a late
+    // one must not take a finished download back to "downloading".
     case 'ACCEPTED':
     case 'PENDING':
-      return { kind: 'downloading', version, progress: null };
+      return phase.kind === 'ready' ? phase : { kind: 'downloading', version, progress: null };
     case 'DOWNLOADING':
       return { kind: 'downloading', version, progress: progressOf(event.downloaded, event.total) };
     case 'DOWNLOADED':

@@ -62,6 +62,12 @@ describe('what Play reports next', () => {
     });
   });
 
+  it('keeps a finished download when a late ACCEPTED or PENDING arrives', () => {
+    const ready = { kind: 'ready', version: '9' } as const;
+    expect(phaseAfter(ready, { status: 'ACCEPTED' })).toEqual(ready);
+    expect(phaseAfter(ready, { status: 'PENDING' })).toEqual(ready);
+  });
+
   it('follows the bytes', () => {
     const downloading = phaseAfter(offer, { status: 'DOWNLOADING', downloaded: 3, total: 4 });
     expect(downloading).toEqual({ kind: 'downloading', version: '9', progress: 0.75 });

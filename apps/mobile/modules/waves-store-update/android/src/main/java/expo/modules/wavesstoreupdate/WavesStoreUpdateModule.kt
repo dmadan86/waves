@@ -114,23 +114,39 @@ class WavesStoreUpdateModule : Module() {
             promise.resolve(false)
             return@addOnSuccessListener
           }
-          @Suppress("DEPRECATION")
+          // Play can fail to launch its sheet (SendIntentException). Caught
+          // here: this runs in a later callback, where an escaped exception
+          // would leave the promise hanging and could take the app down.
           val started =
-            updates.startUpdateFlowForResult(
-              info,
-              activity,
-              AppUpdateOptions.newBuilder(type).build(),
-              REQUEST_CODE,
-            )
+            try {
+              @Suppress("DEPRECATION")
+              updates.startUpdateFlowForResult(
+                info,
+                activity,
+                AppUpdateOptions.newBuilder(type).build(),
+                REQUEST_CODE,
+              )
+            } catch (_: Exception) {
+              false
+            }
           promise.resolve(started)
         }
         .addOnFailureListener { promise.resolve(false) }
     }
 
     // Installs a downloaded flexible update. Play shows its own "Installing…"
-    // screen and the app restarts into the new version.
-    AsyncFunction("complete") {
-      manager()?.completeUpdate()
+    // screen and the app restarts into the new version. Settles from Play's
+    // own task: false when the install could not be started, so the caller
+    // can ask the store again instead of leaving "Restart" doing nothing.
+    AsyncFunction("complete") { promise: Promise ->
+      val updates = manager()
+      if (updates == null) {
+        promise.resolve(false)
+        return@AsyncFunction
+      }
+      updates.completeUpdate()
+        .addOnSuccessListener { promise.resolve(true) }
+        .addOnFailureListener { promise.resolve(false) }
     }
 
     OnActivityResult { _, payload ->
