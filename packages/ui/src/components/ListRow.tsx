@@ -8,6 +8,11 @@ import { Text } from './Text';
 export interface ListRowProps {
   title: string;
   subtitle?: string;
+  /**
+   * What the subtitle line draws, when it needs more than plain text — nested
+   * `Text` spans in their own colours. `subtitle` is still what is spoken.
+   */
+  subtitleContent?: ReactNode;
   leading?: ReactNode;
   trailing?: ReactNode;
   onPress?: () => void;
@@ -33,6 +38,7 @@ export interface ListRowProps {
 export function ListRow({
   title,
   subtitle,
+  subtitleContent,
   leading,
   trailing,
   onPress,
@@ -64,9 +70,9 @@ export function ListRow({
         <Text variant="subheading" tone={destructive ? 'negative' : undefined} numberOfLines={1}>
           {title}
         </Text>
-        {subtitle ? (
+        {subtitleContent || subtitle ? (
           <Text variant="caption" tone="muted" numberOfLines={1}>
-            {subtitle}
+            {subtitleContent ?? subtitle}
           </Text>
         ) : null}
       </View>
