@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.31.0",
-    "@sentry/nextjs": "^10.75.1",
+    "@sentry/nextjs": "^11.1.0",
     "@supabase/supabase-js": "^2.117.2",
     "@waves/agent-mcp": "workspace:*",
     "@waves/api-client": "workspace:*",

@@ -19,6 +19,8 @@ import { beforeAll, describe, expect, it } from 'vitest';
 
 import { scrub } from '@waves/core';
 
+import { SENTRY_DATA_COLLECTION } from '../src/lib/sentryPrivacy';
+
 import { DIAGNOSIS, SECRETS } from './fixtures';
 
 const sent: string[] = [];
@@ -35,7 +37,8 @@ beforeAll(async () => {
       },
       flush: () => Promise.resolve(true),
     }),
-    sendDefaultPii: false,
+    // The production settings, so this proves what production sends.
+    dataCollection: SENTRY_DATA_COLLECTION,
     beforeSend: (event) => scrub(event),
   });
 
