@@ -82,3 +82,13 @@ describe('isRouteAllowed', () => {
     expect(isRouteAllowed(['settings', 'offline-voice'], true, false, flags)).toBe(true);
   });
 });
+
+describe('the voice screen, opened by the widget', () => {
+  // A signed-in launch on `/voice` must not be redirected: the root layout
+  // replaces any disallowed route with the dashboard, which is where a widget
+  // capture would otherwise be lost.
+  it('is allowed for a signed-in person, so the launch stays on it', () => {
+    expect(isRouteAllowed(['voice'], true, false, { paywall: false })).toBe(true);
+    expect(isRouteAllowed(['voice'], true, false, { paywall: true })).toBe(true);
+  });
+});

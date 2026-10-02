@@ -40,7 +40,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as SplashScreen from 'expo-splash-screen';
-import { Platform, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Linking, Platform, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, {
   cancelAnimation,
   Easing,
@@ -196,6 +196,17 @@ export function AnimatedSplash() {
     const begin = () => {
       if (cancelled) return;
       drawnTimer = setTimeout(() => setDrawn(true), reduceMotion ? 0 : liftAt);
+      // Opened by the voice widget: the person has just spoken an expense and
+      // is waiting for it, so the field lifts the moment the screen is ready
+      // rather than finishing the mark first.
+      void Linking.getInitialURL()
+        .then((url) => {
+          if (!cancelled && url && /\/voice\b/.test(url)) {
+            if (drawnTimer) clearTimeout(drawnTimer);
+            setDrawn(true);
+          }
+        })
+        .catch(() => {});
       waitTimer = setTimeout(() => setWaitedEnough(true), MAX_WAIT_MS);
 
       if (reduceMotion) {
