@@ -142,7 +142,7 @@ export const SmsMessageRow = memo(function SmsMessageRow({
         <Pressable
           accessibilityRole="checkbox"
           accessibilityState={{ checked: selected }}
-          accessibilityLabel={`${name}. ${t.smsInbox.selectAll}`}
+          accessibilityLabel={name}
           hitSlop={10}
           onPress={onToggle}
         >
