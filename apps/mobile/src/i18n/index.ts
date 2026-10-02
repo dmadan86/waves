@@ -1286,6 +1286,15 @@ export interface UiStrings {
     done: string;
     doneAction: string;
   };
+  /** The in-app update bar above the navigation. */
+  storeUpdate: {
+    available: string;
+    downloading: string;
+    ready: string;
+    downloadingAction: string;
+    restart: string;
+    notNow: string;
+  };
   contact: {
     unlink: string;
     unlinkPhoneTitle: string;
@@ -4941,6 +4950,14 @@ const en: UiStrings = {
     done: 'You are all set. Friends can now find you by your number.',
     doneAction: 'Done',
   },
+  storeUpdate: {
+    available: 'A new version is available',
+    downloading: 'Downloading…',
+    ready: 'Downloaded. Restart to finish.',
+    downloadingAction: 'Downloading',
+    restart: 'Restart',
+    notNow: 'Not now',
+  },
   contact: {
     unlink: 'Unlink',
     unlinkPhoneTitle: 'Unlink this number?',
@@ -8254,6 +8271,14 @@ const ta: UiStrings = {
     changeNumber: 'எண்ணை மாற்று',
     done: 'எல்லாம் தயார். நண்பர்கள் இப்போது உங்கள் எண்ணைக் கொண்டு உங்களைக் கண்டுபிடிக்கலாம்.',
     doneAction: 'முடிந்தது',
+  },
+  storeUpdate: {
+    available: 'புதிய பதிப்பு கிடைக்கிறது',
+    downloading: 'புதுப்பிப்பு பதிவிறக்கப்படுகிறது',
+    ready: 'புதுப்பிப்பு பதிவிறக்கப்பட்டது. முடிக்க மறுதொடக்கம் செய்யவும்.',
+    downloadingAction: 'பதிவிறக்குகிறது',
+    restart: 'மறுதொடக்கம்',
+    notNow: 'இப்போது வேண்டாம்',
   },
   contact: {
     unlink: 'இணைப்பை நீக்கு',
@@ -11661,6 +11686,14 @@ const hi: UiStrings = {
     done: 'सब तैयार है। अब दोस्त आपको आपके नंबर से ढूँढ सकते हैं।',
     doneAction: 'हो गया',
   },
+  storeUpdate: {
+    available: 'नया वर्ज़न उपलब्ध है',
+    downloading: 'अपडेट डाउनलोड हो रहा है',
+    ready: 'अपडेट डाउनलोड हो गया। पूरा करने के लिए रीस्टार्ट करें।',
+    downloadingAction: 'डाउनलोड हो रहा है',
+    restart: 'रीस्टार्ट',
+    notNow: 'अभी नहीं',
+  },
   contact: {
     unlink: 'अनलिंक करें',
     unlinkPhoneTitle: 'यह नंबर अनलिंक करें?',
@@ -15027,6 +15060,14 @@ const ar: UiStrings = {
     changeNumber: 'غيّر الرقم',
     done: 'كل شيء جاهز. يمكن لأصدقائك الآن العثور عليك برقمك.',
     doneAction: 'تم',
+  },
+  storeUpdate: {
+    available: 'يتوفر إصدار جديد',
+    downloading: 'جارٍ تنزيل التحديث',
+    ready: 'تم تنزيل التحديث. أعد التشغيل لإكماله.',
+    downloadingAction: 'جارٍ التنزيل',
+    restart: 'إعادة التشغيل',
+    notNow: 'ليس الآن',
   },
   contact: {
     unlink: 'إلغاء الربط',
