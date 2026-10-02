@@ -81,6 +81,11 @@ vi.mock('@/data/api', () => ({
 vi.mock('@/lib/device', () => ({ deviceIdentity: () => world.identity() }));
 vi.mock('@/lib/deviceLimitArt', () => ({ DEVICE_LIMIT_ART: 1, DEVICE_LIMIT_ART_RATIO: 2 }));
 vi.mock('@/lib/auth', () => ({ useAuth: () => world.auth }));
+// The gate takes its turn in the prompt queue. Alone on the screen it is
+// always the winner, so the stand-in grants whatever is claimed.
+vi.mock('@/lib/promptQueue', () => ({
+  usePromptSlot: ({ active }: { active: boolean }) => active,
+}));
 vi.mock('@/lib/backend', () => ({
   backend: { auth: { signOut: (...args: unknown[]) => world.signOut(...args) } },
 }));
