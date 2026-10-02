@@ -3059,8 +3059,6 @@ export interface UiStrings {
      */
     addDraftCount: PluralForms;
     addedDraftCount: PluralForms;
-    /** Under the window chips on the read screen — why there is a window at all. */
-    readWindowNote: string;
     /**
      * The disclosure shown BEFORE Android's own permission dialog, in the app's
      * own words. Google Play requires a prominent disclosure for a sensitive
@@ -6419,21 +6417,16 @@ const en: UiStrings = {
       one: '{n} payment is waiting in Review. It stays on this phone until you use it.',
       other: '{n} payments are waiting in Review. They stay on this phone until you use them.',
     },
-    readWindowNote:
-      'Waves only looks at this stretch of your inbox. Everything older stays untouched.',
     disclosure: {
       title: 'Let Waves read your [bank messages]',
-      intro:
-        'Waves can look through the bank messages already on this phone and turn the payments into drafts for you.',
+      intro: 'Turn the bank messages on this phone into drafts.',
       readsWhatTitle: 'Finds your payments',
-      readsWhat: 'Reads message text for an amount, a shop and a date.',
+      readsWhat: 'Picks out the amount, shop and date.',
       staysHereTitle: 'Stays on this phone',
-      staysHere: 'Messages are never saved or sent to Waves.',
+      staysHere: 'Never saved or sent to Waves.',
       neverSentTitle: 'You stay in control',
-      neverSent:
-        'Drafts stay on this phone until you use them. Nothing is added to a group until you say so.',
-      nextScreen:
-        'Next, Android asks whether Waves may read your messages. You can say no — pasting still works.',
+      neverSent: 'Nothing goes into a group until you say so.',
+      nextScreen: 'Only messages from these days are read. Android asks for permission next.',
       windowLabel: 'Look at messages from',
       draftLabel: 'Waves draft',
       continue: 'Continue',
@@ -9819,21 +9812,17 @@ const ta: UiStrings = {
       one: '{n} payment is waiting in Review. It stays on this phone until you use it.',
       other: '{n} payments are waiting in Review. They stay on this phone until you use them.',
     },
-    readWindowNote:
-      'உங்கள் இன்பாக்ஸில் இந்தப் பகுதியை மட்டுமே Waves பார்க்கும். அதற்கு முந்தையவை தொடப்படாது.',
     disclosure: {
       title: 'உங்கள் [வங்கிச் செய்திகளைப்] படிக்க Waves-க்கு அனுமதி',
-      intro:
-        'இந்த ஃபோனில் ஏற்கனவே உள்ள வங்கிச் செய்திகளை Waves பார்த்து, கொடுப்பனவுகளை வரைவுகளாக மாற்றித் தரும்.',
+      intro: 'இந்த ஃபோனில் உள்ள வங்கிச் செய்திகளை வரைவுகளாக மாற்றும்.',
       readsWhatTitle: 'உங்கள் கொடுப்பனவுகளைக் கண்டறியும்',
-      readsWhat: 'செய்தியில் தொகை, கடை, தேதியைத் தேடிப் படிக்கும்.',
+      readsWhat: 'தொகை, கடை, தேதியை எடுக்கும்.',
       staysHereTitle: 'இந்த ஃபோனிலேயே இருக்கும்',
-      staysHere: 'செய்திகள் சேமிக்கப்படாது, Waves-க்கு அனுப்பப்படாது.',
+      staysHere: 'சேமிக்கப்படாது, Waves-க்கு அனுப்பப்படாது.',
       neverSentTitle: 'கட்டுப்பாடு உங்களிடமே',
-      neverSent:
-        'நீங்கள் பயன்படுத்தும் வரை வரைவுகள் இந்த ஃபோனிலேயே இருக்கும். நீங்கள் சொல்லும் வரை எந்தக் குழுவிலும் எதுவும் சேர்க்கப்படாது.',
+      neverSent: 'நீங்கள் சொல்லும் வரை எந்தக் குழுவிலும் எதுவும் சேராது.',
       nextScreen:
-        'அடுத்து, உங்கள் செய்திகளை Waves படிக்கலாமா என்று Android கேட்கும். வேண்டாம் எனச் சொல்லலாம் — ஒட்டுவது அப்போதும் வேலை செய்யும்.',
+        'இந்த நாட்களின் செய்திகள் மட்டுமே படிக்கப்படும். அடுத்து Android அனுமதி கேட்கும்.',
       windowLabel: 'இந்தக் காலச் செய்திகளைப் பார்',
       draftLabel: 'Waves வரைவு',
       continue: 'தொடரவும்',
@@ -13167,21 +13156,16 @@ const hi: UiStrings = {
       one: '{n} payment is waiting in Review. It stays on this phone until you use it.',
       other: '{n} payments are waiting in Review. They stay on this phone until you use them.',
     },
-    readWindowNote:
-      'Waves आपके इनबॉक्स का सिर्फ़ इतना हिस्सा देखता है। इससे पुराना सब कुछ अछूता रहता है।',
     disclosure: {
       title: 'Waves को अपने [बैंक संदेश] पढ़ने दें',
-      intro:
-        'Waves इसी फ़ोन पर मौजूद बैंक संदेशों को देखकर भुगतानों को आपके लिए ड्राफ़्ट बना सकता है।',
+      intro: 'इस फ़ोन के बैंक संदेशों को ड्राफ़्ट में बदलें।',
       readsWhatTitle: 'आपके भुगतान ढूँढ़ता है',
-      readsWhat: 'संदेश में रकम, दुकान और तारीख़ पढ़ता है।',
+      readsWhat: 'रकम, दुकान और तारीख़ निकालता है।',
       staysHereTitle: 'इसी फ़ोन पर रहता है',
-      staysHere: 'संदेश न सेव होते हैं, न Waves को भेजे जाते हैं।',
+      staysHere: 'न सेव होते हैं, न Waves को भेजे जाते हैं।',
       neverSentTitle: 'नियंत्रण आपके हाथ में',
-      neverSent:
-        'ड्राफ़्ट इस्तेमाल होने तक इसी फ़ोन पर रहते हैं। आपके कहे बिना किसी ग्रुप में कुछ नहीं जुड़ता।',
-      nextScreen:
-        'इसके बाद Android पूछेगा कि Waves आपके संदेश पढ़ सकता है या नहीं। आप मना कर सकते हैं — पेस्ट करना तब भी काम करता है।',
+      neverSent: 'आपके कहे बिना किसी ग्रुप में कुछ नहीं जुड़ता।',
+      nextScreen: 'सिर्फ़ इन दिनों के संदेश पढ़े जाते हैं। इसके बाद Android अनुमति माँगेगा।',
       windowLabel: 'इतने समय के संदेश देखें',
       draftLabel: 'Waves ड्राफ़्ट',
       continue: 'जारी रखें',
@@ -16756,20 +16740,16 @@ const ar: UiStrings = {
       many: '{n} payments are waiting in Review. They stay on this phone until you use them.',
       other: '{n} payments are waiting in Review. They stay on this phone until you use them.',
     },
-    readWindowNote: 'لا ينظر Waves إلا في هذا الجزء من صندوق رسائلك، ويبقى كل ما هو أقدم دون مساس.',
     disclosure: {
       title: 'اسمح لـ Waves بقراءة [رسائل بنكك]',
-      intro:
-        'يمكن لـ Waves أن يتصفّح رسائل البنك الموجودة على هذا الهاتف ويحوّل المدفوعات إلى مسوّدات نيابةً عنك.',
+      intro: 'حوّل رسائل البنك على هذا الهاتف إلى مسوّدات.',
       readsWhatTitle: 'يجد مدفوعاتك',
-      readsWhat: 'يقرأ نص الرسالة بحثًا عن مبلغ ومتجر وتاريخ.',
+      readsWhat: 'يلتقط المبلغ والمتجر والتاريخ.',
       staysHereTitle: 'تبقى على هذا الهاتف',
-      staysHere: 'لا تُحفظ الرسائل أبدًا ولا تُرسل إلى Waves.',
+      staysHere: 'لا تُحفظ ولا تُرسل إلى Waves أبدًا.',
       neverSentTitle: 'التحكم بيدك',
-      neverSent:
-        'تبقى المسوّدات على هذا الهاتف حتى تستخدمها. لا يُضاف شيء إلى أي مجموعة حتى تقرّر ذلك.',
-      nextScreen:
-        'بعد ذلك سيسألك أندرويد إن كان يحقّ لـ Waves قراءة رسائلك. يمكنك الرفض — واللصق يظل يعمل.',
+      neverSent: 'لا يُضاف شيء إلى أي مجموعة حتى تقرّر ذلك.',
+      nextScreen: 'تُقرأ رسائل هذه الأيام فقط. بعد ذلك سيطلب أندرويد الإذن.',
       windowLabel: 'اقرأ الرسائل من',
       draftLabel: 'مسودة Waves',
       continue: 'متابعة',

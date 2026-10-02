@@ -389,9 +389,6 @@ export default function ReadMessagesScreen(): React.JSX.Element | null {
               );
             })}
           </Row>
-          <Text variant="micro" tone="muted">
-            {t.smsImport.readWindowNote}
-          </Text>
         </View>
 
         {error ? <Callout tone="negative">{error}</Callout> : null}
@@ -423,8 +420,8 @@ export default function ReadMessagesScreen(): React.JSX.Element | null {
               </Row>
             </Gradient>
           </Pressable>
-          {/* Names the dialog that comes next, so the system prompt is a thing
-              they were told about rather than a thing that happened to them. */}
+          {/* One line for both: only the chosen days are read, and Android asks
+              next — so the system prompt is a thing they were told about. */}
           <Text variant="micro" tone="muted" align="center">
             {d.nextScreen}
           </Text>
