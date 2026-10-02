@@ -50,18 +50,16 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { FlashList } from '@shopify/flash-list';
 import { randomUUID } from 'expo-crypto';
 import { Pressable, ScrollView, TextInput, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { MutationKind, peopleSignatureKey, SmsKind } from '@waves/core';
 import {
   Button,
-  Divider,
   EmptyState,
+  IconButton,
   iconSize,
   MoneyText,
   Row,
   Screen,
-  SegmentedTabs,
   Sheet,
   Text,
   useTheme,
@@ -72,7 +70,13 @@ import {
   type DestinationSelection,
   type PersonChoice,
 } from '@/components/DestinationPicker';
-import { HeroFigureLine, ScreenHero, useHeroStatusBar } from '@/components/ScreenHero';
+import {
+  capped,
+  SmsAddBar,
+  SmsDayHeader,
+  SmsKindTabs,
+  SmsTotalCard,
+} from '@/components/SmsInboxParts';
 import { filterLabel, SmsFilterSheet } from '@/components/SmsFilterSheet';
 import { SignInWall } from '@/components/SignInWall';
 import { SmsMessageRow } from '@/components/SmsMessageRow';
@@ -88,6 +92,7 @@ import {
   useOneToOneGroupIds,
   usePeopleBalances,
 } from '@/data/hooks';
+import { dayHeading } from '@/data/activity';
 import { groupLabel, GroupType, isViewer } from '@/data/types';
 import { plural, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
@@ -117,18 +122,24 @@ import { takeScanRequest } from '@/lib/smsReadBridge';
 import { ScanScope } from '@/lib/smsScan';
 import { useToast } from '@/lib/toast';
 import { usePlaceInPersonal } from '@/lib/usePlaceInPersonal';
-import { useTabBarStandDown } from '@/lib/useTabBarStandDown';
 import { useSync } from '@/sync';
+
+/** What the bar at the foot takes up, so the last row can scroll clear of it. */
+const BAR_RUNWAY = 100;
+
+type ListItem =
+  | {
+      readonly type: 'day';
+      readonly label: string;
+      readonly total: bigint | null;
+      readonly currency: string;
+    }
+  | { readonly type: 'row'; readonly row: StoredSms };
 
 export default function SmsInboxScreen(): React.JSX.Element | null {
   const theme = useTheme();
-  // White clock and battery over the hero's wash, for as long as this screen is
-  // the one in front — and handed back on the way out, which a mounted
-  // `<StatusBar>` does not do (`useHeroStatusBar`).
-  useHeroStatusBar();
   const { t, locale } = useStrings();
   const clearance = useBottomClearance();
-  const insets = useSafeAreaInsets();
   const { session, isGuest } = useAuth();
   const ownerId = session?.user?.id ?? '';
   const reader = useSmsInboxReader();
@@ -201,19 +212,38 @@ export default function SmsInboxScreen(): React.JSX.Element | null {
   const chosen = useMemo(() => selectedRows(visible, selected), [visible, selected]);
   const chosenTotal = useMemo(() => sumOf(chosen), [chosen]);
 
-  /**
-   * While rows are ticked, the bottom of the phone belongs to this screen's own
-   * action bar — the same deal Review makes (`lib/tabBarSuppress`).
-   *
-   * Without it the foot is paid for twice: the navigation is a root-level bar
-   * over the whole stack, so the action bar reserved room for it
-   * (`useBottomClearance`) *and* sat under it, which is the band of empty
-   * surface between "Add to a group" and the system's own bar. Ask the
-   * navigation to stand down and the only thing left to clear is the gesture
-   * pill or the three buttons.
-   */
+  /** The list as days: a heading with the day's total, then that day's rows. */
+  const items = useMemo((): ListItem[] => {
+    const out: ListItem[] = [];
+    let day: StoredSms[] = [];
+    let label = '';
+    const flush = (): void => {
+      if (day.length === 0) return;
+      const sum = sumOf(day);
+      out.push({
+        type: 'day',
+        label,
+        total: kind === SmsKind.Other ? null : sum.total,
+        currency: sum.currency,
+      });
+      for (const row of day) out.push({ type: 'row', row });
+    };
+    for (const row of visible) {
+      const heading = dayHeading(locale, row.at, now);
+      if (heading !== label) {
+        flush();
+        day = [];
+        label = heading;
+      }
+      day.push(row);
+    }
+    flush();
+    return out;
+  }, [visible, locale, now, kind]);
+
+  // Ticking keeps the navigation: the bar at the foot sits above it, and is
+  // there whether or not anything is ticked.
   const selecting = chosen.length > 0;
-  useTabBarStandDown(selecting);
 
   // ─────────────────────────────────────────────── where things go ──
 
@@ -534,20 +564,28 @@ export default function SmsInboxScreen(): React.JSX.Element | null {
 
   // ───────────────────────────────────────────────────── rendering ──
 
-  const renderRow = useCallback(
-    ({ item }: { item: StoredSms }) => (
-      <SmsMessageRow
-        row={item}
-        selected={selected.has(item.dedupeKey)}
-        locale={locale}
-        now={now}
-        t={t}
-        onToggle={() => setSelected((current) => toggleSelected(current, item.dedupeKey))}
-        onOpen={() =>
-          router.push({ pathname: '/captures/sms/[key]', params: { key: item.dedupeKey } })
-        }
-      />
-    ),
+  const renderItem = useCallback(
+    ({ item }: { item: ListItem }) =>
+      item.type === 'day' ? (
+        <SmsDayHeader
+          label={item.label}
+          total={item.total}
+          currency={item.currency}
+          locale={locale}
+        />
+      ) : (
+        <SmsMessageRow
+          row={item.row}
+          selected={selected.has(item.row.dedupeKey)}
+          locale={locale}
+          now={now}
+          t={t}
+          onToggle={() => setSelected((current) => toggleSelected(current, item.row.dedupeKey))}
+          onOpen={() =>
+            router.push({ pathname: '/captures/sms/[key]', params: { key: item.row.dedupeKey } })
+          }
+        />
+      ),
     [locale, now, selected, t],
   );
 
@@ -573,187 +611,124 @@ export default function SmsInboxScreen(): React.JSX.Element | null {
         : t.smsInbox.tabOther;
 
   return (
-    <Screen edges={[]}>
-      {/* Bank messages opens on the same panel a group does. It is not a
-          sub-page of Review — it is a screen people come to and work, and it
-          used to announce itself with the small-glyph-and-title row of a
-          settings page. Same shell as the group hero (`ScreenHero`), so the
-          two cannot drift.
-
-          The panel carries three things: what this is and the promise about
-          where the messages stay, the figure for the pile currently shown, and
-          the search. Search belongs up here rather than in a band of its own —
-          it is how this screen is used, and on the panel it costs no vertical
-          room at all. */}
-      <ScreenHero
-        icon="chatbubbles"
-        title={t.smsInbox.title}
-        back={{ label: t.common.back, onPress: () => router.back() }}
-        actions={[
-          {
-            icon: 'options-outline',
-            label: t.smsInbox.filterTitle,
-            onPress: () => setFilterOpen(true),
-          },
-          {
-            icon: 'ellipsis-horizontal',
-            label: t.smsInbox.scanTitle,
-            onPress: () => setScanOptionsOpen(true),
-          },
-          {
-            icon: 'refresh',
-            label: t.smsInbox.scan,
-            onPress: () => void startScan(ScanScope.Recent),
-          },
-        ]}
+    <Screen edges={['top']}>
+      {/* A plain header on the screen's own background: back, the name, the
+          date filter and the scan options. The figure, the search and the
+          piles sit below it as cards of their own. */}
+      <Row
+        style={{
+          alignItems: 'center',
+          gap: theme.spacing.sm,
+          paddingHorizontal: theme.spacing.sm,
+          paddingTop: theme.spacing.xs,
+        }}
       >
-        <View style={{ gap: theme.spacing.md }}>
-          {/* The figure that justified the old band under the tabs: a filtered
-              list with no total makes a person add the rows up themselves. No
-              money for the third pile, deliberately — those are the rows that
-              must not be summed as spending — so it shows how many there are
-              instead. */}
-          {chosen.length > 0 ? (
-            /* Ticked rows take the panel over, exactly as they do on Review:
-                the count is a state and states are reported up here, which
-                leaves the bar at the bottom holding nothing but actions. The
-                period's total is not lost — the bar shows the total of what
-                is *selected*, which while choosing is the more useful of the
-                two figures anyway. */
-            <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
-              <Text variant="title" tone="onBrand" numberOfLines={1} style={{ flex: 1 }}>
-                {plural(locale, chosen.length, t.smsInbox.selected)}
-              </Text>
-              <Button
-                label={everythingTicked ? t.smsInbox.selectNone : t.smsInbox.selectAll}
-                variant="onBrandOutline"
-                size="sm"
-                onPress={() => setSelected((current) => toggleAll(visible, current))}
-              />
-            </Row>
-          ) : period.count > 0 ? (
-            <Row style={{ alignItems: 'flex-end', gap: theme.spacing.md }}>
-              <View style={{ flex: 1 }}>
-                {/* Which pile, and over what stretch of time, then the figure —
-                    one line, the way the dashboard's balance reads. The stretch
-                    used to be a whole band of chips below the panel; it is a
-                    fact about the figure, so it is said here and changed in the
-                    filter sheet the glyph above already opens. */}
-                <HeroFigureLine label={`${kindLabel} · ${filterLabel(date, locale, t)}`}>
-                  {period.total !== null && kind !== SmsKind.Other ? (
-                    <MoneyText
-                      amount={period.total}
-                      currency={period.currency}
-                      locale={locale}
-                      variant="title"
-                      tone="default"
-                      numberOfLines={1}
-                      adjustsFontSizeToFit
-                      minimumFontScale={0.6}
-                      style={{ color: theme.color.onBrand }}
-                    />
-                  ) : (
-                    <Text variant="title" tone="onBrand" numberOfLines={1}>
-                      {plural(locale, period.count, t.smsImport.messageCount)}
-                    </Text>
-                  )}
-                </HeroFigureLine>
-                {/* Said out loud rather than left to be noticed: a total that
-                  quietly skipped rows is a number with nothing to question. */}
-                {period.uncounted > 0 && kind !== SmsKind.Other ? (
-                  <Text variant="micro" tone="onBrand" style={{ opacity: 0.85 }}>
-                    {plural(locale, period.uncounted, t.smsInbox.notCounted)}
-                  </Text>
-                ) : null}
-              </View>
-              {/* "Select all" lives beside the figure whether or not anything
-                  is ticked — one home, not a band of its own that appears and
-                  disappears. It means the rows on screen, never the ones a
-                  search is hiding. */}
-              {visible.length > 0 ? (
-                <Button
-                  label={everythingTicked ? t.smsInbox.selectNone : t.smsInbox.selectAll}
-                  variant="onBrandOutline"
-                  size="sm"
-                  onPress={() => setSelected((current) => toggleAll(visible, current))}
-                />
-              ) : null}
-            </Row>
+        <IconButton label={t.common.back} onPress={() => router.back()}>
+          <Ionicons name="chevron-back" size={iconSize.xl} color={theme.color.text} />
+        </IconButton>
+        <Ionicons name="chatbubbles" size={iconSize.lg} color={theme.color.text} />
+        <Text variant="title" numberOfLines={1} style={{ flex: 1, fontWeight: '800' }}>
+          {t.smsInbox.title}
+        </Text>
+        <IconButton label={t.smsInbox.filterTitle} onPress={() => setFilterOpen(true)}>
+          <Ionicons name="options-outline" size={iconSize.lg} color={theme.color.text} />
+        </IconButton>
+        <IconButton label={t.smsInbox.scanTitle} onPress={() => setScanOptionsOpen(true)}>
+          <Ionicons name="ellipsis-horizontal" size={iconSize.lg} color={theme.color.text} />
+        </IconButton>
+      </Row>
+
+      <View
+        style={{
+          gap: theme.spacing.md,
+          paddingHorizontal: theme.spacing.lg,
+          paddingTop: theme.spacing.sm,
+        }}
+      >
+        {/* The figure for the pile on screen — or, while rows are ticked, for
+            what is ticked. No money for the third pile, deliberately: those
+            are the rows that must not be summed as spending. */}
+        {visible.length > 0 ? (
+          <SmsTotalCard
+            label={
+              selecting
+                ? plural(locale, chosen.length, t.smsInbox.selected)
+                : `${kindLabel} · ${filterLabel(date, locale, t)}`
+            }
+            amount={kind === SmsKind.Other ? null : (selecting ? chosenTotal : period).total}
+            currency={(selecting ? chosenTotal : period).currency}
+            countText={plural(
+              locale,
+              (selecting ? chosenTotal : period).count,
+              t.smsImport.messageCount,
+            )}
+            uncountedText={
+              kind !== SmsKind.Other && (selecting ? chosenTotal : period).uncounted > 0
+                ? plural(
+                    locale,
+                    (selecting ? chosenTotal : period).uncounted,
+                    t.smsInbox.notCounted,
+                  )
+                : null
+            }
+            onUncountedInfo={() => toast.show(t.smsInbox.notCountedWhy)}
+            selectLabel={everythingTicked ? t.smsInbox.selectNone : t.smsInbox.selectAll}
+            onSelect={() => setSelected((current) => toggleAll(visible, current))}
+            locale={locale}
+          />
+        ) : null}
+
+        {/* Search: a plain field, because this is a list people look through. */}
+        <Row
+          style={{
+            alignItems: 'center',
+            gap: theme.spacing.sm,
+            paddingHorizontal: theme.spacing.lg,
+            height: 42,
+            borderRadius: theme.radius.pill,
+            backgroundColor: theme.color.surface,
+            borderWidth: 1,
+            borderColor: theme.color.border,
+          }}
+        >
+          <Ionicons name="search" size={iconSize.md} color={theme.color.textMuted} />
+          <TextInput
+            value={query}
+            onChangeText={setQuery}
+            placeholder={t.smsInbox.searchPlaceholder}
+            placeholderTextColor={theme.color.textFaint}
+            accessibilityLabel={t.smsInbox.searchPlaceholder}
+            autoCorrect={false}
+            style={{ flex: 1, color: theme.color.text, fontSize: 15, paddingVertical: 0 }}
+          />
+          {query !== '' ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t.smsInbox.searchClear}
+              hitSlop={8}
+              onPress={() => setQuery('')}
+            >
+              <Ionicons name="close-circle" size={iconSize.md} color={theme.color.textMuted} />
+            </Pressable>
           ) : null}
+        </Row>
 
-          {/* Search. A plain field rather than an icon that expands into one:
-              this screen is a list people come to *look through*, and a search
-              hidden behind a tap on a list like that is a search most people
-              never use. On the panel it wears the dim white of every other
-              on-hero control rather than the body's muted grey. */}
-          <Row
-            style={{
-              alignItems: 'center',
-              gap: theme.spacing.sm,
-              paddingHorizontal: theme.spacing.lg,
-              height: 44,
-              borderRadius: theme.radius.pill,
-              backgroundColor: 'rgba(255, 255, 255, 0.18)',
-            }}
-          >
-            <Ionicons name="search" size={iconSize.sm} color={theme.color.onBrand} />
-            <TextInput
-              value={query}
-              onChangeText={setQuery}
-              placeholder={t.smsInbox.searchPlaceholder}
-              placeholderTextColor="rgba(255, 255, 255, 0.7)"
-              accessibilityLabel={t.smsInbox.searchPlaceholder}
-              autoCorrect={false}
-              style={{ flex: 1, color: theme.color.onBrand, fontSize: 15, paddingVertical: 0 }}
-            />
-            {query !== '' ? (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={t.smsInbox.searchClear}
-                hitSlop={8}
-                onPress={() => setQuery('')}
-              >
-                <Ionicons name="close-circle" size={iconSize.sm} color={theme.color.onBrand} />
-              </Pressable>
-            ) : null}
-          </Row>
-        </View>
-      </ScreenHero>
-
-      <SegmentedTabs
-        value={kind}
-        onChange={setKind}
-        // A glyph on each, the same convention the group ledger's three tabs
-        // wear. Direction is the whole distinction between the first two, so
-        // the marks carry it: money leaving, money arriving, and a pile that is
-        // neither and must never be summed as either.
-        tabs={[
-          {
-            value: SmsKind.Expense,
-            label: t.smsInbox.tabExpenses,
-            count: counts[SmsKind.Expense],
-            icon: (color) => (
-              <Ionicons name="arrow-up-circle-outline" size={iconSize.md} color={color} />
-            ),
-          },
-          {
-            value: SmsKind.Income,
-            label: t.smsInbox.tabIncome,
-            count: counts[SmsKind.Income],
-            icon: (color) => (
-              <Ionicons name="arrow-down-circle-outline" size={iconSize.md} color={color} />
-            ),
-          },
-          {
-            value: SmsKind.Other,
-            label: t.smsInbox.tabOther,
-            count: counts[SmsKind.Other],
-            icon: (color) => (
-              <Ionicons name="help-circle-outline" size={iconSize.md} color={color} />
-            ),
-          },
-        ]}
-      />
+        {/* Three piles: Spent, Received, Neither — the third is the debits
+            that must not be counted as spending (card bills, top-ups). */}
+        <SmsKindTabs
+          value={kind}
+          onChange={setKind}
+          tabs={[
+            {
+              value: SmsKind.Expense,
+              label: t.smsInbox.tabExpenses,
+              count: counts[SmsKind.Expense],
+            },
+            { value: SmsKind.Income, label: t.smsInbox.tabIncome, count: counts[SmsKind.Income] },
+            { value: SmsKind.Other, label: t.smsInbox.tabOther, count: counts[SmsKind.Other] },
+          ]}
+        />
+      </View>
 
       {/* The scan, happening here rather than in a sheet over the screen. */}
       {scan.progress ? (
@@ -763,9 +738,10 @@ export default function SmsInboxScreen(): React.JSX.Element | null {
       ) : null}
 
       <FlashList
-        data={loading ? [] : visible}
-        keyExtractor={(item) => item.dedupeKey}
-        renderItem={renderRow}
+        data={loading ? [] : items}
+        keyExtractor={(item) => (item.type === 'day' ? `day:${item.label}` : item.row.dedupeKey)}
+        getItemType={(item) => item.type}
+        renderItem={renderItem}
         extraData={listExtraData}
         // Half the group ledger's 2500, and the reason is which frame is
         // expensive here rather than how fast anybody flings. Draw distance is
@@ -776,7 +752,6 @@ export default function SmsInboxScreen(): React.JSX.Element | null {
         // finger is moving rather than while it is waiting.
         drawDistance={1200}
         showsVerticalScrollIndicator={false}
-        ItemSeparatorComponent={Divider}
         // The promise, at the foot of what it is a promise about. It used to be
         // the hero's subtitle, a second line of type above every control on a
         // screen whose problem was how much stood between opening it and
@@ -805,14 +780,10 @@ export default function SmsInboxScreen(): React.JSX.Element | null {
           )
         }
         contentContainerStyle={{
-          paddingHorizontal: theme.spacing.xl,
-          // With each row's own `sm` of padding, the first message starts `lg`
-          // under the tabs, as the Review tab's first card does.
-          paddingTop: theme.spacing.sm,
-          // The bar is this screen's own while ticking and the navigation is
-          // gone under it, so the runway is the system inset plus the bar's own
-          // height — not the navigation's clearance on top of it.
-          paddingBottom: selecting ? insets.bottom + 128 : clearance,
+          paddingHorizontal: theme.spacing.lg,
+          paddingTop: theme.spacing.xs,
+          // Room for the bar at the foot, which sits above the navigation.
+          paddingBottom: clearance + BAR_RUNWAY,
         }}
         ListEmptyComponent={
           loading ? null : (
@@ -856,81 +827,29 @@ export default function SmsInboxScreen(): React.JSX.Element | null {
         }
       />
 
-      {/* The action bar, present only when something is ticked. It carries the
-          count *and* the total, because "add 6" and "add ₹4,310" are two
-          different things to be sure about before pressing. */}
-      {selecting ? (
-        <View
-          style={{
-            position: 'absolute',
-            left: 0,
-            right: 0,
-            bottom: 0,
-            paddingHorizontal: theme.spacing.xl,
-            paddingTop: theme.spacing.md,
-            // Clears the system's bar and nothing else: the app's navigation
-            // has stood down for as long as this is up.
-            paddingBottom: insets.bottom + theme.spacing.md,
-            gap: theme.spacing.sm,
-            backgroundColor: theme.color.surface,
-            borderTopWidth: 1,
-            borderTopColor: theme.color.border,
-          }}
-        >
-          {/* What the selection *costs*, and nothing else — the count that
-              used to lead this line is on the panel now. This figure stays
-              down here on purpose: it is the one number that has to be read
-              in the same glance as the button that commits it. */}
-          {chosenTotal.total !== null || chosenTotal.uncounted > 0 ? (
-            <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-              {chosenTotal.total !== null ? (
-                <MoneyText
-                  amount={chosenTotal.total}
-                  currency={chosenTotal.currency}
-                  locale={locale}
-                  variant="caption"
-                />
-              ) : null}
-              {/* The same disclosure the band above carries, and for the same
-                  reason — more so here, because this figure sits directly
-                  beside the button that acts on the rows. A total that quietly
-                  skipped rows would be wrong exactly where somebody is about
-                  to commit. */}
-              {chosenTotal.uncounted > 0 ? (
-                <Text variant="micro" tone="muted">
-                  {plural(locale, chosenTotal.uncounted, t.smsInbox.notCounted)}
-                </Text>
-              ) : null}
-            </Row>
-          ) : null}
-          <Row style={{ gap: theme.spacing.sm }}>
-            {/* Both placements are buttons of the same build — a bare text
-                link beside a filled pill reads as a footnote, and "set aside"
-                is not a footnote, it is half of what this bar is for. */}
-            <Button
-              // Deliberately the singular wording whatever the count is: the
-              // panel above already says how many are ticked, and a button
-              // that repeats it is the label that wrapped and took this bar's
-              // alignment with it. `plural` at 1 gives the countless form in
-              // every language, and falls back the way every other caller does
-              // rather than reaching into the table for a form that is
-              // optional in the type.
-              label={plural(locale, 1, t.smsInbox.setAside)}
-              variant="secondary"
-              style={{ flex: 1 }}
-              // No confirm. Setting aside is reversible — the row comes back
-              // from the detail screen — and a dialog in front of a reversible
-              // action is a dialog people learn to dismiss without reading.
-              onPress={() => void setAside()}
-            />
-            <Button
-              label={t.captures.assignTitle}
-              style={{ flex: 1.4 }}
-              disabled={placing}
-              onPress={() => setPickerOpen(true)}
-            />
-          </Row>
-        </View>
+      {/* The bar at the foot, there whenever the pile has rows: how many are
+          new, or what is ticked with "Set aside", and the one action. */}
+      {visible.length > 0 ? (
+        <SmsAddBar
+          // The ticked count is on the card above and in the button; the title
+          // stays what is waiting, and "Set aside" takes the line under it.
+          title={
+            counts[kind] > 99
+              ? t.smsInbox.newPayments.other.replace('{n}', capped(counts[kind]))
+              : plural(locale, counts[kind], t.smsInbox.newPayments)
+          }
+          subtitle={t.smsInbox.reviewAndAdd}
+          secondaryLabel={selecting ? plural(locale, 1, t.smsInbox.setAside) : null}
+          onSecondary={() => void setAside()}
+          actionLabel={plural(locale, chosen.length, t.smsInbox.addSelected)}
+          // Never greyed out at zero: a tap with nothing ticked says how to
+          // use it rather than doing nothing.
+          disabled={placing}
+          onAction={() =>
+            selecting ? setPickerOpen(true) : toast.show(t.smsInbox.addSelectedHint)
+          }
+          bottom={clearance + theme.spacing.md}
+        />
       ) : null}
 
       <SmsScanOptionsSheet
