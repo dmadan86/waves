@@ -66,6 +66,7 @@ import { TipSheet } from '@/components/home/TipSheet';
 import { useHeroStatusBar } from '@/components/ScreenHero';
 import { SettlePickerSheet, type SettleCandidate } from '@/components/home/SettlePickerSheet';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
+import { BackupReminder } from '@/components/BackupReminder';
 import { RestorePrompt } from '@/components/RestorePrompt';
 import { useAvatarUrl } from '@/components/ProfileAvatar';
 import { groupLabel, GroupType } from '@/data/types';
@@ -747,6 +748,11 @@ export default function HomeScreen() {
           Drive backup back. It decides for itself whether it applies; see
           `lib/backup/restorePrompt`. Outranks the guest and tip prompts. */}
       <RestorePrompt />
+
+      {/* Once a day, when the personal ledger has something a backup would
+          save and none has landed in the last day: back it up to Drive. See
+          `lib/backup/reminder`. */}
+      <BackupReminder />
 
       {/* Guests are nudged to secure their account as a popup — once a day,
           dismissible, held back while the tour is up. */}
