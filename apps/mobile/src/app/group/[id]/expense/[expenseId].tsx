@@ -832,7 +832,9 @@ export default function ExpenseDetailScreen() {
                   // subtitle said would otherwise be dropped from the audio.
                   const subtitle =
                     [
-                      member && isGhost(member) ? t.notJoinedYet : null,
+                      // Not "not joined yet": on a bill the question is who owes
+                      // what, and whether somebody has an account is noise here
+                      // (the members list and their own page still say it).
                       // Only for somebody who put money in: their row shows a
                       // net, and without this the two numbers it came from are
                       // nowhere on the screen.
