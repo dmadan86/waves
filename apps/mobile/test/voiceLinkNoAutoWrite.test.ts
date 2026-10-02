@@ -8,7 +8,7 @@
  *
  * The one exception is the voice widget's everyday case: an expense with no
  * group, which saves itself as a draft only the reader sees ("Saved for
- * later") and lands on Home. A group, a person or a command still waits.
+ * later") and lands on Review. A group, a person or a command still waits.
  *
  * Source-reading, like `screenHeroShape.test.ts`: the voice screen pulls in the
  * mic, Reanimated and the sheets, which this node-environment suite cannot
@@ -76,8 +76,8 @@ describe('a linked-in expense with no group', () => {
     expect(voice).toContain('(!locating || linkWaitOver)');
   });
 
-  it('lands on Home rather than the Review queue', () => {
+  it('lands on Review, where the saved expense is at the top', () => {
     const inbox = between("if (dest.kind === 'unassigned') {", 'return;');
-    expect(inbox).toContain("router.replace(heardFromLink.current ? '/' : '/captures')");
+    expect(inbox).toContain("router.replace('/captures')");
   });
 });

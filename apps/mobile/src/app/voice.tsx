@@ -1172,9 +1172,9 @@ export default function VoiceScreen() {
         await persistDraftsToInbox();
         committed.current = true;
         confirmSaved();
-        // From the widget, Home: the person spoke from their home screen and
-        // wants to be done, not handed a queue to work through.
-        router.replace(heardFromLink.current ? '/' : '/captures');
+        // Review, from the widget too: the expense just saved is at the top of
+        // that list, which is the proof it landed and the place to file it.
+        router.replace('/captures');
         return;
       }
 
