@@ -39,6 +39,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button, Callout, iconSize, palette, Row, Text, useTheme } from '@waves/ui';
 
+import ScanInviteAsk from '@/components/ScanInviteAsk';
 import { useStrings } from '@/i18n';
 import { tokenFromScan } from '@/lib/qrScan';
 
@@ -309,20 +310,30 @@ export default function ScannerCamera({
   }
 
   if (!permission.granted) {
-    // Two different refusals. "Not asked yet" can still be asked; a permanent
-    // no can only be undone in the system settings, and a button that says
-    // "Allow camera" and then does nothing is the worst of both.
-    const canAsk = permission.canAskAgain;
+    // Two different refusals. "Not asked yet" can still be asked, and wears
+    // the full photo ask screen — the one place this leaf shows a picture
+    // rather than the plain dark field. A permanent no can only be undone in
+    // the system settings, which stays the plain dark state: there is nothing
+    // left to ask for, so there is nothing left to sell.
+    if (permission.canAskAgain) {
+      return (
+        <ScanInviteAsk
+          onAllow={() => void requestPermission()}
+          onClose={onClose}
+          onPasteLink={onPasteLink}
+        />
+      );
+    }
     return (
       <DarkState
-        title={canAsk ? t.misc.scanAllowTitle : t.misc.scanDeniedTitle}
-        body={canAsk ? t.misc.scanAllowBody : t.misc.scanDenied}
+        title={t.misc.scanDeniedTitle}
+        body={t.misc.scanDenied}
         action={
           <Button
-            label={canAsk ? t.misc.scanAllow : t.pickers.openSettings}
+            label={t.pickers.openSettings}
             variant="onBrand"
             size="lg"
-            onPress={() => void (canAsk ? requestPermission() : Linking.openSettings())}
+            onPress={() => void Linking.openSettings()}
           />
         }
         onClose={onClose}
