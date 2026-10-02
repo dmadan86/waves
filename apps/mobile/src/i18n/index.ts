@@ -3159,6 +3159,15 @@ export interface UiStrings {
     setAsideDone: PluralForms;
     placed: PluralForms;
     undo: string;
+    /** The bar at the foot: how many are waiting, and the one action. */
+    newPayments: PluralForms;
+    reviewAndAdd: string;
+    /** `{n}` is how many are ticked. */
+    addSelected: PluralForms;
+    /** Said when Add selected is tapped with nothing ticked. */
+    addSelectedHint: string;
+    /** Behind the ⓘ beside "N not counted". */
+    notCountedWhy: string;
     /** Row furniture. */
     isNew: string;
     inReview: string;
@@ -6485,6 +6494,12 @@ const en: UiStrings = {
     setAsideDone: { one: 'Set aside', other: '{n} set aside' },
     placed: { one: 'Added to {name}', other: '{n} added to {name}' },
     undo: 'Undo',
+    newPayments: { one: '{n} new payment', other: '{n} new payments' },
+    reviewAndAdd: 'Review and add to your expenses',
+    addSelected: { one: 'Add selected ({n})', other: 'Add selected ({n})' },
+    addSelectedHint: 'Tick the payments you want to add first.',
+    notCountedWhy:
+      'Left out of the total: a different currency, or an amount Waves could not read.',
     isNew: 'New',
     inReview: 'In Review',
     dateGuessed: 'Date guessed',
@@ -9880,6 +9895,11 @@ const ta: UiStrings = {
     setAsideDone: { one: 'ஒதுக்கப்பட்டது', other: '{n} ஒதுக்கப்பட்டன' },
     placed: { one: '{name} இல் சேர்க்கப்பட்டது', other: '{name} இல் {n} சேர்க்கப்பட்டன' },
     undo: 'மீட்டமை',
+    newPayments: { one: '{n} புதிய கொடுப்பனவு', other: '{n} புதிய கொடுப்பனவுகள்' },
+    reviewAndAdd: 'பார்த்து உங்கள் செலவுகளில் சேருங்கள்',
+    addSelected: { one: 'தேர்ந்தவற்றைச் சேர் ({n})', other: 'தேர்ந்தவற்றைச் சேர் ({n})' },
+    addSelectedHint: 'முதலில் சேர்க்க வேண்டிய கொடுப்பனவுகளைத் தேர்ந்தெடுங்கள்.',
+    notCountedWhy: 'மொத்தத்தில் சேர்க்கப்படவில்லை: வேறு நாணயம், அல்லது Waves படிக்க முடியாத தொகை.',
     isNew: 'புதியது',
     inReview: 'Review இல்',
     dateGuessed: 'தேதி ஊகம்',
@@ -13213,6 +13233,11 @@ const hi: UiStrings = {
     setAsideDone: { one: 'अलग रखा गया', other: '{n} अलग रखे गए' },
     placed: { one: '{name} में जोड़ा गया', other: '{name} में {n} जोड़े गए' },
     undo: 'वापस लें',
+    newPayments: { one: '{n} नया भुगतान', other: '{n} नए भुगतान' },
+    reviewAndAdd: 'देखें और अपने ख़र्चों में जोड़ें',
+    addSelected: { one: 'चुने हुए जोड़ें ({n})', other: 'चुने हुए जोड़ें ({n})' },
+    addSelectedHint: 'पहले वे भुगतान चुनें जिन्हें जोड़ना है।',
+    notCountedWhy: 'कुल में शामिल नहीं: दूसरी मुद्रा, या ऐसी रकम जिसे Waves पढ़ नहीं पाया।',
     isNew: 'नया',
     inReview: 'Review में',
     dateGuessed: 'तारीख़ अनुमानित',
@@ -16844,6 +16869,25 @@ const ar: UiStrings = {
       other: 'أُضيف {n} إلى {name}',
     },
     undo: 'تراجع',
+    newPayments: {
+      zero: 'لا دفعات جديدة',
+      one: 'دفعة جديدة واحدة',
+      two: 'دفعتان جديدتان',
+      few: '{n} دفعات جديدة',
+      many: '{n} دفعة جديدة',
+      other: '{n} دفعة جديدة',
+    },
+    reviewAndAdd: 'راجعها وأضفها إلى مصروفاتك',
+    addSelected: {
+      zero: 'أضف المحدد ({n})',
+      one: 'أضف المحدد ({n})',
+      two: 'أضف المحددين ({n})',
+      few: 'أضف المحددين ({n})',
+      many: 'أضف المحددين ({n})',
+      other: 'أضف المحددين ({n})',
+    },
+    addSelectedHint: 'حدّد أولًا المدفوعات التي تريد إضافتها.',
+    notCountedWhy: 'غير محسوبة في المجموع: عملة مختلفة، أو مبلغ لم يتمكن Waves من قراءته.',
     isNew: 'جديد',
     inReview: 'في Review',
     dateGuessed: 'التاريخ تقديري',

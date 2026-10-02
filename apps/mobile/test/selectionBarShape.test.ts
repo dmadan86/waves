@@ -56,10 +56,9 @@ const actionBar = (screen: string): string => {
   return below.slice(start, Math.min(...ends));
 };
 
-const SCREENS = [
-  ['Review', 'app/(tabs)/captures.tsx'],
-  ['Bank messages', 'app/captures/sms/index.tsx'],
-] as const;
+// Bank messages has its own shape now — a total card that reports the
+// selection and a bar at the foot that is always there — pinned at the end.
+const SCREENS = [['Review', 'app/(tabs)/captures.tsx']] as const;
 
 describe('a selection is reported on the panel, not in the action bar', () => {
   for (const [name, path] of SCREENS) {
@@ -92,7 +91,6 @@ describe('the action bar holds actions, and the destructive one is set apart', (
 
   for (const [name, path, secondary] of [
     ['Review', 'app/(tabs)/captures.tsx', 't.voice.justMe'],
-    ['Bank messages', 'app/captures/sms/index.tsx', 't.smsInbox.setAside'],
   ] as const) {
     it(`${name} gives both placements the same build`, () => {
       const bar = actionBar(source(path));
@@ -108,4 +106,27 @@ describe('the action bar holds actions, and the destructive one is set apart', (
       expect(variant?.[1]).toBe('secondary');
     });
   }
+});
+
+describe('Bank messages reports a selection on its total card', () => {
+  const screen = source('app/captures/sms/index.tsx');
+
+  it('labels the card with the ticked count and offers select all there', () => {
+    const card = screen.slice(
+      screen.indexOf('<SmsTotalCard'),
+      screen.indexOf('/>', screen.indexOf('<SmsTotalCard')),
+    );
+    expect(card).toMatch(/t\.smsInbox\.selected/);
+    expect(card).toMatch(/t\.smsInbox\.selectNone/);
+  });
+
+  it('keeps the count out of the bar title, and set aside beside the action', () => {
+    const bar = screen.slice(
+      screen.indexOf('<SmsAddBar'),
+      screen.indexOf('/>', screen.indexOf('<SmsAddBar')),
+    );
+    expect(bar).not.toMatch(/t\.smsInbox\.selected\b/);
+    expect(bar).toMatch(/t\.smsInbox\.setAside/);
+    expect(bar).toMatch(/t\.smsInbox\.addSelected/);
+  });
 });

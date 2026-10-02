@@ -26,8 +26,9 @@ const source = (relativePath: string): string => readFileSync(join(SRC, relative
 
 describe('every hero is the same hero', () => {
   for (const [name, path] of [
+    // Bank messages left the shared panel for a light header and a total
+    // card of its own (see `SmsInboxParts`); Review is the hero screen here.
     ['Review', 'app/(tabs)/captures.tsx'],
-    ['Bank messages', 'app/captures/sms/index.tsx'],
   ] as const) {
     it(`${name} opens on the shared panel, not a panel of its own`, () => {
       const screen = source(path);
@@ -78,8 +79,8 @@ describe('every hero is the same hero', () => {
       'components/GroupHero.tsx',
       'app/(tabs)/friends.tsx',
       // Personal is left out: its scenic hero says "Total spent this month"
-      // over the figure, the way Home's balance card does.
-      'app/captures/sms/index.tsx',
+      // over the figure, the way Home's balance card does. Bank messages too:
+      // its figure is on a light card with the label above it.
     ]) {
       expect(source(file), file).toMatch(/<HeroFigureLine\b/);
     }
