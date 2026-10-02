@@ -2259,6 +2259,12 @@ export interface UiStrings {
     restorePromptLater: string;
     restorePromptLaterLabel: string;
     restorePromptWhere: string;
+    /** The daily "back up" reminder on Home. */
+    reminderTitle: string;
+    reminderBodyNever: string;
+    reminderBodyStale: string;
+    reminderAction: string;
+    reminderLater: string;
 
     /** Why a run did nothing. Each one is a different way out. */
     refusedNotConnected: string;
@@ -5704,6 +5710,13 @@ const en: UiStrings = {
     restorePromptLater: 'Not now',
     restorePromptLaterLabel: 'Not now. Restore later from the Backup screen.',
     restorePromptWhere: 'You can do this later: tap the ••• menu on Home, then Backup.',
+    reminderTitle: 'Back up your records',
+    reminderBodyNever:
+      "Your personal records are only on this phone. Back them up to your Google Drive so a lost or new phone doesn't take them with it.",
+    reminderBodyStale:
+      'Your last backup was more than a day ago. Back up now to keep everything since then safe in your Google Drive.',
+    reminderAction: 'Back up now',
+    reminderLater: 'Not now',
 
     refusedNotConnected: 'Link a Google account first.',
     refusedNoKey: 'Create your backup key first.',
@@ -9037,6 +9050,13 @@ const ta: UiStrings = {
       'இப்போது வேண்டாம். பின்னர் காப்புப்பிரதி திரையிலிருந்து மீட்டெடுக்கலாம்.',
     restorePromptWhere:
       'இதைப் பின்னரும் செய்யலாம்: முகப்பில் ••• மெனுவைத் தட்டி, காப்புப்பிரதி என்பதைத் தேர்ந்தெடுங்கள்.',
+    reminderTitle: 'உங்கள் பதிவுகளைக் காப்புப்பிரதி எடுங்கள்',
+    reminderBodyNever:
+      'உங்கள் தனிப்பட்ட பதிவுகள் இந்த போனில் மட்டுமே உள்ளன. போன் தொலைந்தாலோ மாற்றினாலோ அவை இழக்கப்படாமல் இருக்க உங்கள் Google Drive-இல் காப்புப்பிரதி எடுங்கள்.',
+    reminderBodyStale:
+      'உங்கள் கடைசி காப்புப்பிரதி ஒரு நாளுக்கு மேல் பழையது. அதன் பிறகு சேர்த்தவை பாதுகாப்பாக இருக்க இப்போதே Google Drive-இல் காப்புப்பிரதி எடுங்கள்.',
+    reminderAction: 'இப்போது காப்புப்பிரதி எடு',
+    reminderLater: 'இப்போது வேண்டாம்',
 
     refusedNotConnected: 'முதலில் ஒரு Google கணக்கை இணையுங்கள்.',
     refusedNoKey: 'முதலில் உங்கள் காப்புச் சாவியை உருவாக்குங்கள்.',
@@ -12402,6 +12422,13 @@ const hi: UiStrings = {
     restorePromptLater: 'अभी नहीं',
     restorePromptLaterLabel: 'अभी नहीं। बाद में बैकअप स्क्रीन से वापस ला सकते हैं।',
     restorePromptWhere: 'यह बाद में भी कर सकते हैं: होम पर ••• मेन्यू दबाएँ, फिर बैकअप चुनें।',
+    reminderTitle: 'अपने रिकॉर्ड का बैकअप लें',
+    reminderBodyNever:
+      'आपके निजी रिकॉर्ड सिर्फ़ इसी फ़ोन पर हैं। उन्हें अपनी Google Drive पर बैकअप करें, ताकि फ़ोन खोने या बदलने पर वे खो न जाएँ।',
+    reminderBodyStale:
+      'आपका पिछला बैकअप एक दिन से ज़्यादा पुराना है। उसके बाद का सब कुछ सुरक्षित रखने के लिए अभी Google Drive पर बैकअप लें।',
+    reminderAction: 'अभी बैकअप लें',
+    reminderLater: 'अभी नहीं',
 
     refusedNotConnected: 'पहले एक Google खाता जोड़ें।',
     refusedNoKey: 'पहले अपनी बैकअप चाबी बनाएँ।',
@@ -15838,6 +15865,13 @@ const ar: UiStrings = {
     restorePromptLaterLabel: 'ليس الآن. يمكنك الاستعادة لاحقًا من شاشة النسخ الاحتياطي.',
     restorePromptWhere:
       'يمكنك فعل ذلك لاحقًا: اضغط قائمة ••• في الصفحة الرئيسية، ثم النسخ الاحتياطي.',
+    reminderTitle: 'انسخ سجلاتك احتياطيًا',
+    reminderBodyNever:
+      'سجلاتك الشخصية موجودة على هذا الهاتف فقط. انسخها احتياطيًا إلى Google Drive حتى لا تضيع إذا فقدت هاتفك أو غيّرته.',
+    reminderBodyStale:
+      'آخر نسخة احتياطية كانت قبل أكثر من يوم. انسخ الآن لتبقى كل إضافاتك منذ ذلك الحين آمنة في Google Drive.',
+    reminderAction: 'انسخ الآن',
+    reminderLater: 'ليس الآن',
 
     refusedNotConnected: 'اربط حساب Google أولًا.',
     refusedNoKey: 'أنشئ مفتاح النسخة أولًا.',

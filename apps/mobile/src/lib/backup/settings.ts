@@ -49,6 +49,11 @@ const TIER_KEY = 'waves.backup.tier';
  * sign-in. See `restorePrompt.ts` for why that is the right boundary.
  */
 const RESTORE_PROMPT_KEY = 'waves.backup.restore_prompt';
+/**
+ * The local day (`YYYY-MM-DD`) the daily backup reminder was last answered on.
+ * Here for the same reason as the restore flag: it joins the sign-out wipe.
+ */
+const REMINDER_DAY_KEY = 'waves.backup.reminder_day';
 
 /** Every stored key, for the sign-out wipe. */
 const ALL_KEYS = [
@@ -58,6 +63,7 @@ const ALL_KEYS = [
   KEY_SEEN_KEY,
   TIER_KEY,
   RESTORE_PROMPT_KEY,
+  REMINDER_DAY_KEY,
 ] as const;
 
 const scoped = (base: string, ownerId: string): string => `${base}.${ownerId}`;
@@ -198,6 +204,17 @@ export async function loadRestorePromptDismissed(ownerId: string): Promise<boole
 export async function markRestorePromptDismissed(ownerId: string): Promise<void> {
   if (!ownerId) return;
   await AsyncStorage.setItem(scoped(RESTORE_PROMPT_KEY, ownerId), '1');
+}
+
+/** The day the backup reminder was last answered, or null if never. */
+export async function loadBackupReminderDay(ownerId: string): Promise<string | null> {
+  if (!ownerId) return null;
+  return AsyncStorage.getItem(scoped(REMINDER_DAY_KEY, ownerId)).catch(() => null);
+}
+
+export async function saveBackupReminderDay(ownerId: string, day: string): Promise<void> {
+  if (!ownerId) return;
+  await AsyncStorage.setItem(scoped(REMINDER_DAY_KEY, ownerId), day);
 }
 
 /**
