@@ -1,0 +1,21 @@
+// The expo-module-gradle-plugin alone applies com.android.library + Kotlin and
+// wires the `release` software component autolinking expects.
+apply plugin: 'expo-module-gradle-plugin'
+
+group = 'expo.modules.wavesstoreupdate'
+version = '1.0.0'
+
+android {
+  namespace 'expo.modules.wavesstoreupdate'
+  defaultConfig {
+    minSdkVersion 24
+    versionCode 1
+    versionName '1.0.0'
+  }
+}
+
+dependencies {
+  // Play Core's in-app updates: the same "Update available" sheet, background
+  // download and install that Play's own apps use.
+  implementation 'com.google.android.play:app-update:2.1.0'
+}

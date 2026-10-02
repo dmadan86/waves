@@ -29,6 +29,7 @@ import { Platform, Vibration } from 'react-native';
 import { iconSize, PillTabBar, type PillTabAction, type PillTabItem } from '@waves/ui';
 
 import { useCaptures } from '@/data/hooks';
+import { UpdateBar } from '@/components/UpdateBar';
 import { isRtl, plural, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { foldedCaptureCount } from '@/lib/captureBatch';
@@ -232,6 +233,11 @@ export function AppTabBar() {
   if ((hidden || suppressed) && !holding) return null;
 
   return (
-    <PillTabBar items={items} activeKey={activeKey} onSelect={go} animated centerAction={voice} />
+    <>
+      {/* The in-app update bar rides on the navigation: there wherever the bar
+          is, gone wherever it is not. */}
+      <UpdateBar />
+      <PillTabBar items={items} activeKey={activeKey} onSelect={go} animated centerAction={voice} />
+    </>
   );
 }
