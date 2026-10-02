@@ -1288,10 +1288,12 @@ export interface UiStrings {
   };
   /** The in-app update bar above the navigation. */
   storeUpdate: {
+    /** The small capitals above the title, one per stage. */
+    eyebrowAvailable: string;
+    eyebrowDownloading: string;
+    eyebrowReady: string;
     available: string;
     downloading: string;
-    /** `{percent}` is a whole number. */
-    downloadingPercent: string;
     ready: string;
     downloadingAction: string;
     restart: string;
@@ -4939,9 +4941,11 @@ const en: UiStrings = {
     doneAction: 'Done',
   },
   storeUpdate: {
-    available: 'A new version is ready to download',
+    eyebrowAvailable: 'New update',
+    eyebrowDownloading: 'Downloading',
+    eyebrowReady: 'Ready to install',
+    available: 'A new version is ready, with improvements and new features.',
     downloading: 'Downloading the update',
-    downloadingPercent: 'Downloading the update · {percent}%',
     ready: 'Update downloaded. Restart to finish.',
     downloadingAction: 'Downloading',
     restart: 'Restart',
@@ -8250,9 +8254,11 @@ const ta: UiStrings = {
     doneAction: 'முடிந்தது',
   },
   storeUpdate: {
-    available: 'புதிய பதிப்பு பதிவிறக்கத் தயாராக உள்ளது',
+    eyebrowAvailable: 'புதிய புதுப்பிப்பு',
+    eyebrowDownloading: 'பதிவிறக்குகிறது',
+    eyebrowReady: 'நிறுவத் தயார்',
+    available: 'மேம்பாடுகள் மற்றும் புதிய அம்சங்களுடன் புதிய பதிப்பு பதிவிறக்கத் தயாராக உள்ளது.',
     downloading: 'புதுப்பிப்பு பதிவிறக்கப்படுகிறது',
-    downloadingPercent: 'புதுப்பிப்பு பதிவிறக்கப்படுகிறது · {percent}%',
     ready: 'புதுப்பிப்பு பதிவிறக்கப்பட்டது. முடிக்க மறுதொடக்கம் செய்யவும்.',
     downloadingAction: 'பதிவிறக்குகிறது',
     restart: 'மறுதொடக்கம்',
@@ -11653,9 +11659,11 @@ const hi: UiStrings = {
     doneAction: 'हो गया',
   },
   storeUpdate: {
-    available: 'नया वर्ज़न डाउनलोड के लिए तैयार है',
+    eyebrowAvailable: 'नया अपडेट',
+    eyebrowDownloading: 'डाउनलोड हो रहा है',
+    eyebrowReady: 'इंस्टॉल के लिए तैयार',
+    available: 'सुधारों और नई सुविधाओं के साथ नया वर्ज़न डाउनलोड के लिए तैयार है।',
     downloading: 'अपडेट डाउनलोड हो रहा है',
-    downloadingPercent: 'अपडेट डाउनलोड हो रहा है · {percent}%',
     ready: 'अपडेट डाउनलोड हो गया। पूरा करने के लिए रीस्टार्ट करें।',
     downloadingAction: 'डाउनलोड हो रहा है',
     restart: 'रीस्टार्ट',
@@ -15016,9 +15024,11 @@ const ar: UiStrings = {
     doneAction: 'تم',
   },
   storeUpdate: {
-    available: 'إصدار جديد جاهز للتنزيل',
+    eyebrowAvailable: 'تحديث جديد',
+    eyebrowDownloading: 'جارٍ التنزيل',
+    eyebrowReady: 'جاهز للتثبيت',
+    available: 'إصدار جديد جاهز للتنزيل مع تحسينات وميزات جديدة.',
     downloading: 'جارٍ تنزيل التحديث',
-    downloadingPercent: 'جارٍ تنزيل التحديث · {percent}%',
     ready: 'تم تنزيل التحديث. أعد التشغيل لإكماله.',
     downloadingAction: 'جارٍ التنزيل',
     restart: 'إعادة التشغيل',
