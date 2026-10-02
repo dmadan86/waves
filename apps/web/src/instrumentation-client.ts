@@ -19,6 +19,8 @@ import * as Sentry from '@sentry/nextjs';
 
 import { scrub } from '@waves/core';
 
+import { SENTRY_DATA_COLLECTION } from '@/lib/sentryPrivacy';
+
 const DSN = process.env.NEXT_PUBLIC_SENTRY_DSN;
 
 if (DSN) {
@@ -26,7 +28,7 @@ if (DSN) {
     dsn: DSN,
     environment: process.env.NEXT_PUBLIC_ENV ?? process.env.NODE_ENV,
 
-    sendDefaultPii: false,
+    dataCollection: SENTRY_DATA_COLLECTION,
 
     // No session replay. A replay of this app is a recording of somebody's
     // ledger, and the masking options are a setting somebody can get wrong
