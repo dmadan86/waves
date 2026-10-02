@@ -35,7 +35,6 @@ import {
   categoryBreakdown,
   dueInMonth,
   format,
-  loanOutstanding,
   money,
   monthOutlook,
   personalBudgetProgress,
@@ -43,7 +42,6 @@ import {
   resolveCategory,
   spendDelta,
   worstOverBudget,
-  type PersonalRecurring,
   type PersonalTxn,
 } from '@waves/core';
 import {
@@ -59,6 +57,7 @@ import {
   Text,
   useTabBarClearance,
   useTheme,
+  type TintName,
 } from '@waves/ui';
 
 import { CategoryBadge } from '@/components/Category';
@@ -281,28 +280,74 @@ function MeLedger() {
       share: (prev?.share ?? 0) + row.share,
     });
   }
-  const topCategories = [...buckets]
+  const categoryBuckets = [...buckets]
     .sort((a, b) =>
       b[1].spent === a[1].spent ? (a[0] < b[0] ? -1 : 1) : b[1].spent > a[1].spent ? 1 : -1,
     )
-    .slice(0, 4)
     .map(([key, agg]) => ({ key, ...agg }));
+  // The donut and its list show the five biggest categories; whatever is left
+  // folds into one "Others" row and segment, so the two always add up to the
+  // whole month rather than quietly dropping the tail.
+  const topCategories = categoryBuckets.slice(0, TOP_CATEGORY_COUNT);
+  const otherCategoryTail = categoryBuckets.slice(TOP_CATEGORY_COUNT);
+  const othersBucket =
+    otherCategoryTail.length > 0
+      ? otherCategoryTail.reduce(
+          (sum, bucket) => ({ spent: sum.spent + bucket.spent, share: sum.share + bucket.share }),
+          { spent: 0n, share: 0 },
+        )
+      : null;
 
   // The month's latest spends, newest first.
   const recentExpenses = ledger.txns
     .filter((txn) => txn.kind === 'expense' && txn.date.slice(0, 7) === month)
     .slice(0, 4);
 
-  // The tools: what the recurring bills cost a month, and what is still owed on
-  // the open loans.
-  const activeRules = ledger.recurrings.filter((rule) => rule.active);
-  const monthlyBills = activeRules
-    .filter((rule) => rule.txnKind === 'expense' && rule.currency === dc)
-    .reduce((sum, rule) => sum + monthlyEquivalent(rule), 0n);
-  const activeLoans = ledger.loans.filter((loan) => loan.status === 'active');
-  const outstanding = activeLoans
-    .filter((loan) => loan.currency === dc)
-    .reduce((sum, loan) => sum + loanOutstanding(loan, ledger.txns), 0n);
+  // The money-tools grid: one tile per feature Personal already links to
+  // elsewhere on the tab or under Settings. Goals has no screen of its own
+  // yet, so it is left out rather than drawn as a dead tile.
+  const moneyTools: ToolTileSpec[] = [
+    {
+      key: 'recurring',
+      tint: 'mint',
+      icon: 'repeat',
+      title: t.personal.recurring,
+      subtitle: t.personal.dash.toolRecurringSub,
+      onPress: () => router.push('/personal/recurring'),
+    },
+    {
+      key: 'loans',
+      tint: 'lilac',
+      icon: 'business-outline',
+      title: t.personal.loans,
+      subtitle: t.personal.dash.toolLoansSub,
+      onPress: () => router.push('/personal/loans'),
+    },
+    {
+      key: 'budgets',
+      tint: 'peach',
+      icon: 'wallet-outline',
+      title: t.personal.dash.toolBudgets,
+      subtitle: t.personal.dash.toolBudgetsSub,
+      onPress: () => router.push('/personal/budgets'),
+    },
+    {
+      key: 'analytics',
+      tint: 'sky',
+      icon: 'stats-chart-outline',
+      title: t.personal.dash.toolAnalytics,
+      subtitle: t.personal.dash.toolAnalyticsSub,
+      onPress: () => router.push('/personal/spending'),
+    },
+    {
+      key: 'categories',
+      tint: 'coral',
+      icon: 'pricetags-outline',
+      title: t.personal.dash.toolCategories,
+      subtitle: t.personal.dash.toolCategoriesSub,
+      onPress: () => router.push('/settings/categories'),
+    },
+  ];
 
   // Private ledger: while the biometric gate is unresolved the whole screen is a
   // shield — no hero, no figures — so nothing is on show behind the OS prompt.
@@ -627,34 +672,102 @@ function MeLedger() {
             </View>
           ) : null}
 
-          {topCategories.length > 0 ? (
+          {categoryBuckets.length > 0 ? (
             <SectionCard
-              icon="bar-chart"
+              icon="pie-chart"
               title={t.personal.dash.topCategories}
+              subtitle={t.personal.dash.topCategoriesSubtitle}
               action={t.personal.dash.viewAll}
               onAction={() => router.push('/personal/spending')}
             >
-              <Row style={{ gap: theme.spacing.sm }}>
-                {topCategories.map((category) => (
-                  <CategoryColumn
-                    key={category.key}
-                    onPress={() =>
-                      router.push({
-                        pathname: '/personal/transactions',
-                        params: {
-                          category: category.key,
-                          categoryMode: 'bucket',
-                          kind: 'expense',
-                          month,
-                        },
-                      })
-                    }
-                    category={category.key}
-                    label={catLabel(category.key) ?? t.categories.other}
-                    amount={fmt(category.spent)}
-                    share={category.share}
-                  />
-                ))}
+              <Row style={{ gap: theme.spacing.lg, alignItems: 'center' }}>
+                <CategoryDonut
+                  size={124}
+                  strokeWidth={15}
+                  segments={[
+                    ...topCategories.map((category) => ({
+                      share: category.share,
+                      color: theme.tint[resolveCategory(category.key, null).tint].ink,
+                    })),
+                    ...(othersBucket
+                      ? [{ share: othersBucket.share, color: theme.color.textMuted }]
+                      : []),
+                  ]}
+                >
+                  <Text
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.6}
+                    style={{ fontSize: 15, lineHeight: 18, fontWeight: '800' }}
+                  >
+                    {fmt(summary.expense)}
+                  </Text>
+                  <Text variant="micro" tone="muted" numberOfLines={1}>
+                    {t.personal.dash.totalSpent}
+                  </Text>
+                  {change !== null ? (
+                    <Row style={{ alignItems: 'center', gap: 2, marginTop: 2 }}>
+                      <Ionicons
+                        name={change > 0 ? 'arrow-up' : change < 0 ? 'arrow-down' : 'remove'}
+                        size={9}
+                        color={
+                          change > 0
+                            ? theme.color.negative
+                            : change < 0
+                              ? theme.color.positive
+                              : theme.color.textMuted
+                        }
+                      />
+                      <Text
+                        variant="micro"
+                        numberOfLines={1}
+                        style={{
+                          fontWeight: '700',
+                          color:
+                            change > 0
+                              ? theme.color.negative
+                              : change < 0
+                                ? theme.color.positive
+                                : theme.color.textMuted,
+                        }}
+                      >
+                        {`${Math.abs(change)}%`}
+                      </Text>
+                    </Row>
+                  ) : null}
+                </CategoryDonut>
+
+                <View style={{ flex: 1, minWidth: 0, gap: theme.spacing.sm }}>
+                  {topCategories.map((category) => (
+                    <TopCategoryRow
+                      key={category.key}
+                      category={category.key}
+                      label={catLabel(category.key) ?? t.categories.other}
+                      amount={fmt(category.spent)}
+                      share={category.share}
+                      onPress={() =>
+                        router.push({
+                          pathname: '/personal/transactions',
+                          params: {
+                            category: category.key,
+                            categoryMode: 'bucket',
+                            kind: 'expense',
+                            month,
+                          },
+                        })
+                      }
+                    />
+                  ))}
+                  {othersBucket ? (
+                    <TopCategoryRow
+                      isOthers
+                      label={t.personal.dash.others}
+                      amount={fmt(othersBucket.spent)}
+                      share={othersBucket.share}
+                      onPress={() => router.push('/personal/spending')}
+                    />
+                  ) : null}
+                </View>
               </Row>
             </SectionCard>
           ) : null}
@@ -662,6 +775,7 @@ function MeLedger() {
           <SectionCard
             icon="time-outline"
             title={t.personal.dash.recentExpenses}
+            subtitle={t.personal.dash.recentExpensesSubtitle}
             action={t.personal.dash.viewAll}
             onAction={() => router.push('/personal/transactions')}
           >
@@ -687,44 +801,28 @@ function MeLedger() {
             )}
           </SectionCard>
 
-          <SectionCard icon="layers-outline" title={t.personal.dash.moneyTools}>
-            {/* Stretched, not centred: Recurring carries a row of category
-                badges that Loans does not, and `Row` centres by default — so the
-                shorter tile floated half a row lower and the pair read as two
-                different sizes. Same height, tops aligned. */}
-            <Row style={{ gap: theme.spacing.sm, alignItems: 'stretch' }}>
-              <ToolTile
-                tint="mint"
-                icon="repeat"
-                label={t.personal.recurring}
-                value={monthlyBills > 0n ? fmt(monthlyBills) : '—'}
-                unit={monthlyBills > 0n ? t.personal.dash.perMonth : undefined}
-                detail={
-                  activeRules.length > 0
-                    ? fill(t.personal.dash.activeCount, { count: String(activeRules.length) })
-                    : t.personal.dash.noneYet
-                }
-                badges={activeRules.slice(0, 3).map((rule) => rule.category ?? 'other')}
-                more={Math.max(0, activeRules.length - 3)}
-                onPress={() => router.push('/personal/recurring')}
-              />
-              <ToolTile
-                tint="lilac"
-                icon="business-outline"
-                label={t.personal.loans}
-                value={activeLoans.length > 0 ? fmt(outstanding) : '—'}
-                unit={activeLoans.length > 0 ? t.personal.outstanding.toLowerCase() : undefined}
-                detail={
-                  activeLoans.length > 0
-                    ? fill(t.personal.dash.activeCount, { count: String(activeLoans.length) })
-                    : t.personal.dash.noneYet
-                }
-                onPress={() => router.push('/personal/loans')}
-              />
-            </Row>
+          <SectionCard
+            icon="layers-outline"
+            title={t.personal.dash.moneyTools}
+            subtitle={t.personal.dash.moneyToolsSubtitle}
+          >
+            {/* A 2×3 grid of plain nav tiles — one per money tool Personal
+                already links to elsewhere. Chunked into rows of two rather
+                than a flex-wrap, so an odd tile out (Categories, with no
+                sixth to pair against) stretches to fill its row instead of
+                sitting half-width beside empty space. */}
+            <View style={{ gap: theme.spacing.sm }}>
+              {chunkPairs(moneyTools).map((pair, rowIndex) => (
+                <Row key={rowIndex} style={{ gap: theme.spacing.sm, alignItems: 'stretch' }}>
+                  {pair.map(({ key, ...tile }) => (
+                    <ToolGridTile key={key} {...tile} />
+                  ))}
+                </Row>
+              ))}
+            </View>
           </SectionCard>
 
-          <PrivateNote />
+          <PrivacyFooterPill />
         </View>
       </Animated.ScrollView>
       {/* The status bar stays light over this tab (the scene is under it at
@@ -774,21 +872,6 @@ function HeroStatusBar() {
 /** How far the month tiles ride up over the bottom of the hero. */
 const HERO_OVERLAP = 48;
 
-/** What a recurring rule costs in an average month, whatever its cadence. */
-function monthlyEquivalent(rule: PersonalRecurring): bigint {
-  const every = BigInt(Math.max(1, rule.interval));
-  switch (rule.cadence) {
-    case 'weekly':
-      return (rule.amount * 52n) / (12n * every);
-    case 'semimonthly':
-      return rule.amount * 2n;
-    case 'monthly':
-      return rule.amount / every;
-    case 'yearly':
-      return rule.amount / (12n * every);
-  }
-}
-
 // ─────────────────────────────────────────────────────────────── month ──
 
 // Shift a YYYY-MM by whole calendar months. Date maths on the first of the month
@@ -829,6 +912,10 @@ const HEADLINE_STYLE = { fontSize: 32, lineHeight: 38, fontWeight: '800' } as co
 
 /** How many months the faint bar chart behind the headline covers. */
 const SPEND_HISTORY_MONTHS = 7;
+
+/** How many of the month's categories the donut and its list name on their
+ *  own before the rest folds into one "Others" row. */
+const TOP_CATEGORY_COUNT = 5;
 
 /** How this month's spend moved against last month's: up is red (more went
  *  out), down is green — a tinted chip on the summary card. */
@@ -1039,11 +1126,13 @@ function FlowTile({
 
 // ──────────────────────────────────────────────────────────────── body ──
 
-/** A white card with a titled header — a tinted disc, the title, and an
- *  optional "View all" link on the right. */
+/** A white card with a titled header — a tinted disc, the title (with an
+ *  optional one-line subtitle under it), and an optional "View all" link on
+ *  the right. */
 function SectionCard({
   icon,
   title,
+  subtitle,
   action,
   onAction,
   trailing,
@@ -1051,6 +1140,9 @@ function SectionCard({
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   title: string;
+  /** A short one-line line under the title, the way the reference's cards
+   *  each say what the card is for ("Where your money goes this month"). */
+  subtitle?: string;
   action?: string;
   onAction?: () => void;
   /** Drawn at the header's end in place of a link. */
@@ -1073,9 +1165,16 @@ function SectionCard({
         >
           <Ionicons name={icon} size={iconSize.md} color={theme.color.brand} />
         </View>
-        <Text variant="subheading" numberOfLines={1} style={{ flex: 1 }}>
-          {title}
-        </Text>
+        <View style={{ flex: 1, minWidth: 0, gap: 1 }}>
+          <Text variant="subheading" numberOfLines={1}>
+            {title}
+          </Text>
+          {subtitle ? (
+            <Text variant="caption" tone="muted" numberOfLines={1}>
+              {subtitle}
+            </Text>
+          ) : null}
+        </View>
         {trailing}
         {action && onAction ? (
           <Pressable
@@ -1287,24 +1386,109 @@ function BudgetJarArt() {
   );
 }
 
-/** One of the month's top categories: its badge, name, amount, share, and a
- *  small bar in its own colour. */
-function CategoryColumn({
+/**
+ * The donut behind the top-categories card: one ring segment per category
+ * (plus one for the "Others" tail), each coloured with that category's own
+ * tint so the chart and the list beside it read as the same breakdown. Drawn
+ * as stacked `Circle`s with a `strokeDasharray`/`strokeDashoffset` pair —
+ * the same plain-primitives approach as the bar sparkline above, no charting
+ * library — rotated -90° so the first segment starts at twelve o'clock. The
+ * centre is free for whatever the caller wants to say about the whole month.
+ */
+function CategoryDonut({
+  size,
+  strokeWidth,
+  segments,
+  children,
+}: {
+  size: number;
+  strokeWidth: number;
+  segments: readonly { share: number; color: string }[];
+  children: ReactNode;
+}) {
+  const theme = useTheme();
+  const r = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * r;
+  const cx = size / 2;
+  const cy = size / 2;
+  // Each arc's length and where it starts, built with a fold rather than a
+  // running total mutated inside the map below — the React compiler forbids
+  // reassigning a render-local variable from inside a callback.
+  const arcs = segments.reduce<{ color: string; dash: number; offset: number }[]>(
+    (acc, segment) => {
+      if (segment.share <= 0) return acc;
+      const drawnSoFar =
+        acc.length > 0 ? acc[acc.length - 1]!.offset + acc[acc.length - 1]!.dash : 0;
+      const dash = segment.share * circumference;
+      acc.push({ color: segment.color, dash, offset: drawnSoFar });
+      return acc;
+    },
+    [],
+  );
+  return (
+    <View style={{ width: size, height: size }}>
+      <Svg
+        width={size}
+        height={size}
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+      >
+        <Circle
+          cx={cx}
+          cy={cy}
+          r={r}
+          stroke={theme.color.surfaceMuted}
+          strokeWidth={strokeWidth}
+          fill="none"
+        />
+        {arcs.map((arc, index) => (
+          <Circle
+            key={index}
+            cx={cx}
+            cy={cy}
+            r={r}
+            stroke={arc.color}
+            strokeWidth={strokeWidth}
+            strokeDasharray={`${arc.dash} ${circumference - arc.dash}`}
+            strokeDashoffset={circumference - arc.offset}
+            fill="none"
+            transform={`rotate(-90 ${cx} ${cy})`}
+          />
+        ))}
+      </Svg>
+      <View
+        pointerEvents="none"
+        style={[
+          StyleSheet.absoluteFill,
+          { alignItems: 'center', justifyContent: 'center', paddingHorizontal: strokeWidth },
+        ]}
+      >
+        {children}
+      </View>
+    </View>
+  );
+}
+
+/** One row of the top-categories list: a tinted badge, the name, its amount
+ *  and share, and a chevron through to that category's spends. `isOthers`
+ *  swaps the badge for a plain dot — the aggregate row has no one category to
+ *  draw an icon for. */
+function TopCategoryRow({
   category,
   label,
   amount,
   share,
+  isOthers = false,
   onPress,
 }: {
-  category: string;
+  category?: string;
   label: string;
   amount: string;
   share: number;
-  /** Opens the month's spends in this category. */
+  isOthers?: boolean;
   onPress: () => void;
 }) {
   const theme = useTheme();
-  const tint = theme.tint[resolveCategory(category, null).tint];
   const percent = Math.round(share * 100);
   return (
     <Pressable
@@ -1312,48 +1496,41 @@ function CategoryColumn({
       accessibilityLabel={`${label}, ${amount}, ${percent}%`}
       onPress={onPress}
       style={({ pressed }) => ({
-        flex: 1,
-        minWidth: 0,
+        flexDirection: 'row',
         alignItems: 'center',
-        gap: 2,
+        gap: theme.spacing.sm,
+        paddingVertical: theme.spacing.xs,
         opacity: pressed ? 0.6 : 1,
       })}
     >
-      <CategoryBadge category={category} meta={null} size={48} />
-      <Text variant="caption" numberOfLines={1} style={{ marginTop: theme.spacing.xs }}>
-        {label}
-      </Text>
-      <Text
-        variant="body"
-        numberOfLines={1}
-        adjustsFontSizeToFit
-        minimumFontScale={0.7}
-        style={{ fontWeight: '700' }}
-      >
-        {amount}
-      </Text>
-      <Text variant="micro" tone="muted">
-        {`${percent}%`}
-      </Text>
-      <View
-        style={{
-          alignSelf: 'stretch',
-          height: 5,
-          borderRadius: 3,
-          marginTop: theme.spacing.xs,
-          backgroundColor: theme.color.surfaceMuted,
-          overflow: 'hidden',
-        }}
-      >
+      {isOthers ? (
         <View
           style={{
-            width: `${Math.min(100, Math.max(percent, 4))}%`,
-            height: 5,
-            borderRadius: 3,
-            backgroundColor: tint.ink,
+            width: 28,
+            height: 28,
+            borderRadius: 14,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: theme.color.surfaceMuted,
           }}
-        />
-      </View>
+        >
+          <Ionicons name="ellipsis-horizontal" size={iconSize.xs} color={theme.color.textMuted} />
+        </View>
+      ) : (
+        <CategoryBadge category={category} meta={null} size={28} />
+      )}
+      <Text variant="caption" numberOfLines={1} style={{ flex: 1, minWidth: 0 }}>
+        {label}
+      </Text>
+      <Text variant="caption" numberOfLines={1} style={{ fontWeight: '700' }}>
+        {amount}
+        <Text variant="micro" tone="muted">{` · ${percent}%`}</Text>
+      </Text>
+      <Ionicons
+        name={directionalIcon('chevron-forward')}
+        size={iconSize.xs}
+        color={theme.color.textMuted}
+      />
     </Pressable>
   );
 }
@@ -1434,92 +1611,67 @@ function ExpenseRow({
   );
 }
 
-/** A money tool on a tinted tile: its disc, name, headline figure with its unit,
- *  how many are active, and — for recurring — the first few rules' badges. */
-function ToolTile({
-  tint: tintName,
-  icon,
-  label,
-  value,
-  unit,
-  detail,
-  badges = [],
-  more = 0,
-  onPress,
-}: {
-  tint: 'mint' | 'lilac';
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  value: string;
-  unit?: string;
-  detail: string;
-  badges?: readonly string[];
-  more?: number;
-  onPress: () => void;
-}) {
+/** One tile of the money-tools grid: round icon, title, a chevron, and a
+ *  one-line subtitle naming what it's for. */
+interface ToolTileSpec {
+  readonly key: string;
+  readonly tint: TintName;
+  readonly icon: keyof typeof Ionicons.glyphMap;
+  readonly title: string;
+  readonly subtitle: string;
+  readonly onPress: () => void;
+}
+
+/** `moneyTools` chunked into rows of two, for the grid below. The last row is
+ *  shorter than two when the tile count is odd (no filler tile is invented to
+ *  square it off). */
+function chunkPairs<T>(items: readonly T[]): T[][] {
+  const pairs: T[][] = [];
+  for (let i = 0; i < items.length; i += 2) pairs.push(items.slice(i, i + 2));
+  return pairs;
+}
+
+function ToolGridTile({ tint: tintName, icon, title, subtitle, onPress }: ToolTileSpec) {
   const theme = useTheme();
   const tint = theme.tint[tintName];
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${label}. ${value}${unit ? ` ${unit}` : ''}. ${detail}`}
+      accessibilityLabel={`${title}. ${subtitle}`}
       onPress={onPress}
       style={({ pressed }) => ({
         flex: 1,
         minWidth: 0,
-        gap: 2,
-        padding: theme.spacing.md,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.sm,
+        padding: theme.spacing.sm,
         borderRadius: theme.radius.lg,
         backgroundColor: tint.bg,
         opacity: pressed ? 0.7 : 1,
       })}
     >
-      <Row style={{ alignItems: 'center', justifyContent: 'space-between' }}>
-        <View
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: 20,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: theme.color.surface,
-          }}
-        >
-          <Ionicons name={icon} size={iconSize.md} color={tint.ink} />
-        </View>
-        <Ionicons name={directionalIcon('chevron-forward')} size={iconSize.sm} color={tint.ink} />
-      </Row>
-      <Text variant="caption" numberOfLines={1} style={{ marginTop: theme.spacing.sm }}>
-        {label}
-      </Text>
-      <Text
-        numberOfLines={1}
-        adjustsFontSizeToFit
-        minimumFontScale={0.7}
-        style={{ fontSize: 18, lineHeight: 23, fontWeight: '800', color: theme.color.text }}
+      <View
+        style={{
+          width: 36,
+          height: 36,
+          borderRadius: 18,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: theme.color.surface,
+        }}
       >
-        {value}
-        {unit ? (
-          <Text variant="caption" tone="muted" style={{ fontWeight: '400' }}>
-            {` ${unit}`}
-          </Text>
-        ) : null}
-      </Text>
-      <Text variant="micro" tone="muted" numberOfLines={1}>
-        {detail}
-      </Text>
-      {badges.length > 0 ? (
-        <Row style={{ gap: 4, marginTop: theme.spacing.xs, alignItems: 'center' }}>
-          {badges.map((category, index) => (
-            <CategoryBadge key={`${category}:${index}`} category={category} meta={null} size={24} />
-          ))}
-          {more > 0 ? (
-            <Text variant="micro" style={{ color: tint.ink, fontWeight: '700' }}>
-              {`+${more}`}
-            </Text>
-          ) : null}
-        </Row>
-      ) : null}
+        <Ionicons name={icon} size={iconSize.md} color={tint.ink} />
+      </View>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text variant="caption" numberOfLines={1} style={{ fontWeight: '700' }}>
+          {title}
+        </Text>
+        <Text variant="micro" tone="muted" numberOfLines={1}>
+          {subtitle}
+        </Text>
+      </View>
+      <Ionicons name={directionalIcon('chevron-forward')} size={iconSize.sm} color={tint.ink} />
     </Pressable>
   );
 }
@@ -1720,6 +1872,48 @@ function PrivateNote() {
         {t.personal.privateNote}
       </Text>
     </Row>
+  );
+}
+
+/**
+ * The same reassurance as `PrivateNote`, but said once at the foot of the
+ * dashboard proper as a lavender strip rather than a quiet caption — closer
+ * to a pressable fact than a footnote. Opens the backup screen, which is the
+ * one place that actually explains what "not shared" means for this ledger
+ * (where its backup lives and whose key locks it); where that door does not
+ * make sense (the first run, with nothing backed up yet) the plain
+ * `PrivateNote` is still the right weight.
+ */
+function PrivacyFooterPill() {
+  const theme = useTheme();
+  const { t } = useStrings();
+  const tint = theme.tint.lilac;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={t.personal.privateNote}
+      onPress={() => router.push('/settings/backup')}
+      style={({ pressed }) => ({
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.sm,
+        paddingHorizontal: theme.spacing.md,
+        paddingVertical: theme.spacing.sm,
+        borderRadius: theme.radius.pill,
+        backgroundColor: tint.bg,
+        opacity: pressed ? 0.7 : 1,
+      })}
+    >
+      <Ionicons name="lock-closed" size={iconSize.sm} color={tint.ink} />
+      <Text
+        variant="caption"
+        numberOfLines={1}
+        style={{ flex: 1, minWidth: 0, color: tint.ink, fontWeight: '600' }}
+      >
+        {t.personal.privateNote}
+      </Text>
+      <Ionicons name={directionalIcon('chevron-forward')} size={iconSize.sm} color={tint.ink} />
+    </Pressable>
   );
 }
 

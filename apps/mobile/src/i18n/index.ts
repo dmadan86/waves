@@ -3855,10 +3855,27 @@ export interface UiStrings {
       overBy: string;
       allWithin: string;
       topCategories: string;
+      topCategoriesSubtitle: string;
       viewAll: string;
+      /** The donut's centre: the month's spend, under its headline figure. */
+      totalSpent: string;
+      /** The category list's overflow row, aggregating everything past the top five. */
+      others: string;
       recentExpenses: string;
+      recentExpensesSubtitle: string;
       noExpenses: string;
       moneyTools: string;
+      moneyToolsSubtitle: string;
+      /** The money-tools grid's own tile copy — distinct from the fuller
+       *  `recurringSub`/`loans` strings used elsewhere, kept one line each. */
+      toolRecurringSub: string;
+      toolLoansSub: string;
+      toolBudgets: string;
+      toolBudgetsSub: string;
+      toolAnalytics: string;
+      toolAnalyticsSub: string;
+      toolCategories: string;
+      toolCategoriesSub: string;
       perMonth: string;
       activeCount: string;
       noneYet: string;
@@ -7179,10 +7196,23 @@ const en: UiStrings = {
       overBy: '{name}: {amount} over',
       allWithin: 'All within budget',
       topCategories: 'Top categories',
+      topCategoriesSubtitle: 'Where your money goes this month',
       viewAll: 'View all',
+      totalSpent: 'Total spent',
+      others: 'Others',
       recentExpenses: 'Recent expenses',
+      recentExpensesSubtitle: 'Your latest transactions',
       noExpenses: 'No expenses this month yet',
       moneyTools: 'Money tools',
+      moneyToolsSubtitle: 'Plan better, stay in control',
+      toolRecurringSub: 'Manage subscriptions',
+      toolLoansSub: 'Track your loans',
+      toolBudgets: 'Budgets',
+      toolBudgetsSub: 'Set monthly limits',
+      toolAnalytics: 'Analytics',
+      toolAnalyticsSub: 'Understand spending patterns',
+      toolCategories: 'Categories',
+      toolCategoriesSub: 'Organize expenses',
       perMonth: '/ month',
       activeCount: '{count} active',
       noneYet: 'None yet',
@@ -10621,10 +10651,23 @@ const ta: UiStrings = {
       overBy: '{name}: {amount} அதிகம்',
       allWithin: 'அனைத்தும் பட்ஜெட்டுக்குள்',
       topCategories: 'முதன்மை வகைகள்',
+      topCategoriesSubtitle: 'இந்த மாதம் உங்கள் பணம் எங்கே செல்கிறது',
       viewAll: 'அனைத்தும்',
+      totalSpent: 'மொத்த செலவு',
+      others: 'மற்றவை',
       recentExpenses: 'சமீபத்திய செலவுகள்',
+      recentExpensesSubtitle: 'உங்கள் சமீபத்திய பரிவர்த்தனைகள்',
       noExpenses: 'இந்த மாதம் இன்னும் செலவுகள் இல்லை',
       moneyTools: 'பணக் கருவிகள்',
+      moneyToolsSubtitle: 'சிறப்பாகத் திட்டமிடுங்கள், கட்டுப்பாட்டில் இருங்கள்',
+      toolRecurringSub: 'சந்தாக்களை நிர்வகிக்கவும்',
+      toolLoansSub: 'உங்கள் கடன்களைக் கண்காணிக்கவும்',
+      toolBudgets: 'பட்ஜெட்கள்',
+      toolBudgetsSub: 'மாத வரம்புகளை அமைக்கவும்',
+      toolAnalytics: 'பகுப்பாய்வு',
+      toolAnalyticsSub: 'செலவு முறைகளைப் புரிந்துகொள்ளுங்கள்',
+      toolCategories: 'வகைகள்',
+      toolCategoriesSub: 'செலவுகளை ஒழுங்குபடுத்துங்கள்',
       perMonth: '/ மாதம்',
       activeCount: '{count} செயலில்',
       noneYet: 'இன்னும் இல்லை',
@@ -13929,10 +13972,23 @@ const hi: UiStrings = {
       overBy: '{name}: {amount} ज़्यादा',
       allWithin: 'सब बजट के भीतर',
       topCategories: 'शीर्ष श्रेणियाँ',
+      topCategoriesSubtitle: 'इस महीने आपका पैसा कहाँ जाता है',
       viewAll: 'सभी देखें',
+      totalSpent: 'कुल खर्च',
+      others: 'अन्य',
       recentExpenses: 'हाल के खर्च',
+      recentExpensesSubtitle: 'आपके नवीनतम ट्रांज़ैक्शन',
       noExpenses: 'इस महीने अभी कोई खर्च नहीं',
       moneyTools: 'पैसों के टूल',
+      moneyToolsSubtitle: 'बेहतर योजना बनाएं, नियंत्रण में रहें',
+      toolRecurringSub: 'सब्सक्रिप्शन मैनेज करें',
+      toolLoansSub: 'अपने लोन ट्रैक करें',
+      toolBudgets: 'बजट',
+      toolBudgetsSub: 'मासिक सीमा तय करें',
+      toolAnalytics: 'एनालिटिक्स',
+      toolAnalyticsSub: 'खर्च के पैटर्न समझें',
+      toolCategories: 'श्रेणियाँ',
+      toolCategoriesSub: 'खर्चों को व्यवस्थित करें',
       perMonth: '/ महीना',
       activeCount: '{count} सक्रिय',
       noneYet: 'अभी कोई नहीं',
@@ -17738,10 +17794,23 @@ const ar: UiStrings = {
       overBy: '{name}: تجاوز بـ{amount}',
       allWithin: 'الكل ضمن الميزانية',
       topCategories: 'أعلى الفئات',
+      topCategoriesSubtitle: 'إلى أين يذهب مالك هذا الشهر',
       viewAll: 'عرض الكل',
+      totalSpent: 'إجمالي المصروف',
+      others: 'أخرى',
       recentExpenses: 'أحدث المصروفات',
+      recentExpensesSubtitle: 'أحدث معاملاتك',
       noExpenses: 'لا مصروفات هذا الشهر بعد',
       moneyTools: 'أدوات المال',
+      moneyToolsSubtitle: 'خطّط بشكل أفضل، وابقَ في السيطرة',
+      toolRecurringSub: 'إدارة الاشتراكات',
+      toolLoansSub: 'تتبّع قروضك',
+      toolBudgets: 'الميزانيات',
+      toolBudgetsSub: 'حدّد الحدود الشهرية',
+      toolAnalytics: 'التحليلات',
+      toolAnalyticsSub: 'فهم أنماط الإنفاق',
+      toolCategories: 'الفئات',
+      toolCategoriesSub: 'تنظيم المصروفات',
       perMonth: '/ شهر',
       activeCount: '{count} نشطة',
       noneYet: 'لا شيء بعد',
