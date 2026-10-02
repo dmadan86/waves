@@ -34,7 +34,7 @@ for.** Three findings, in order of how much they change the plan:
 **(a) Two of the three features you want to sell for coins are too cheap to be worth rationing.**
 A cloud voice expense — speech-to-text plus LLM structuring — costs **$0.00015–$0.00017**
 (_derived_ from AssemblyAI Universal-2 at $0.15/hr and GPT-5 nano at $0.05/$0.40 per M tokens,
-both *list*). A cloud receipt read by a vision model costs **~$0.00022** on Gemini 2.5 Flash-Lite
+both _list_). A cloud receipt read by a vision model costs **~$0.00022** on Gemini 2.5 Flash-Lite
 (_derived_). One completed rewarded impression in India — this app's largest market and its
 lowest-eCPM one — nets on the order of **$0.0007–$0.001** (_derived_ from a _secondary_ eCPM,
 after a vertical discount and fill; §7). **One ad funds four to seven voice expenses in India and
@@ -45,8 +45,8 @@ allowance — the meter for which is **already built and shipped dark** (`voice_
 `app_config.voice_stt_free_seconds = 300`, `waves_my_voice_access`).
 
 **(b) One feature is genuinely expensive, and its price spans four orders of magnitude.** A
-20-page bank statement costs **$0.0057** on Gemini 2.5 Flash-Lite (*derived*), **$0.077** on
-Claude Haiku 4.5 (_derived_), **$0.30** through AWS Textract table extraction (*list*), and
+20-page bank statement costs **$0.0057** on Gemini 2.5 Flash-Lite (_derived_), **$0.077** on
+Claude Haiku 4.5 (_derived_), **$0.30** through AWS Textract table extraction (_list_), and
 **$10–$40** through Ocrolus or Inscribe (_estimate_, no vendor-published price exists). Multiply
 the LLM figures by **2–3×** for the chunked per-page extraction and balance-continuity
 reconciliation the feature actually needs. At the specialist end **a single free-tier statement
@@ -56,7 +56,7 @@ legal and privacy risk in the request (§8).
 
 **(c) Ad revenue is not a business model at this app's scale and geography; it is a demo budget.**
 At 0.1–0.5 rewarded impressions per DAU (_estimate_) and a tier-3 net of ~$0.0008 per completed
-view, ads yield roughly **$0.03–$0.15 per DAU per year** in India (*derived*). A subscription at
+view, ads yield roughly **$0.03–$0.15 per DAU per year** in India (_derived_). A subscription at
 the ADR-011 India tier (₹49–99/mo) nets roughly **$9–$12 per subscriber per year**. Ads are about
 **1%** of a subscription's value there, and about **2%** in the United States. Budget the whole
 thing as customer acquisition — a way to let a free user _feel_ the AI features before deciding —
@@ -1168,7 +1168,7 @@ rate against a 63% global average. Fetching the cited source gave ">95%" globall
 India-specific figure at all**. It is not in this document.
 
 **MENA is bimodal and the regional average conceals it** — UAE blends to $14.55 while the Middle
-East regional *Android* average is $2.30. Gulf states behave like tier 1–2, North Africa like
+East regional _Android_ average is $2.30. Gulf states behave like tier 1–2, North Africa like
 tier 3. Any per-region logic keyed on "MENA" would be wrong in both directions.
 
 ### 7.2 Geo arbitrage runs the other way — and region-priced coins are not implementable anyway
@@ -1331,7 +1331,7 @@ and a mid-stack one in six to nine days.
 
 ADR-011 rule (3) sets regional pricing at local purchasing power, India ~₹49–99/mo. Take ₹79/mo
 ≈ **$0.95**, less a 15% store commission ≈ **$0.80/month net**, ≈ **$9.60/year**. US, using the
-Splitwise *estimate* of $4.99/mo as the category anchor, ≈ **$4.24/month net**, ≈ **$50/year**.
+Splitwise _estimate_ of $4.99/mo as the category anchor, ≈ **$4.24/month net**, ≈ **$50/year**.
 
 **Ad revenue per DAU** at 0.1–0.5 rewarded impressions/DAU (_estimate_):
 

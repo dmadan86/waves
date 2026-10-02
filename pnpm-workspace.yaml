@@ -35,7 +35,7 @@ minimumReleaseAgeExclude:
   - '@expo/cli@57.0.12 || 57.0.13 || 57.0.14 || 57.0.26'
   - '@expo/router-server@57.0.5'
   - '@expo/ui@57.0.9 || 57.0.10 || 57.0.19'
-  - expo-constants@57.0.9 || 57.0.10 || 57.0.19
+  - expo-constants@57.0.9 || 57.0.10 || 57.0.19 || 57.0.20
   - expo-image@57.0.2
   - expo-linking@57.0.5
   - expo-modules-core@57.0.9 || 57.0.10
@@ -89,7 +89,7 @@ minimumReleaseAgeExclude:
 # the app's own pin was silently ignored — which `expo doctor` then reported as
 # a version mismatch the app's package.json appeared to have already fixed.
 overrides:
-  expo-constants: 57.0.19
+  expo-constants: 57.0.20
   # GHSA-vcc3-ghjq-m6fr: decode-uri-component <=0.4.2 decodes malformed
   # percent-encoding in exponential time. It reaches us through expo-router's
   # query-string@7, which parses every deep link, so a crafted link could hang
