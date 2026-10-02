@@ -264,6 +264,11 @@ export default function FriendsScreen() {
   const { t, locale } = useStrings();
 
   const { profile } = useAuth();
+  // The one eye for every balance on the phone (Home's own preference, A48):
+  // shared with `FriendsScene`'s own call below through the same store, so a
+  // toggle there is reflected in every row this screen renders, not only in
+  // the balance card.
+  const { hidden: balanceHidden, ready: balanceReady } = useBalanceHidden();
   // Local-first (ADR-005): who owes whom is computed from the mirror, so Friends
   // works with no connection — the same rows the RPC returns, folded by the
   // viewer's own ghost merges pulled into the mirror (A38).
@@ -549,7 +554,7 @@ export default function FriendsScreen() {
               // be told to re-render its rows when it changes (the tick, the
               // fill). The length rides along because the last row draws the
               // card's foot.
-              extraData={`${selectMode}|${[...selectedKeys].join(',')}|${locale}|${theme.scheme}|${persons.length}`}
+              extraData={`${selectMode}|${[...selectedKeys].join(',')}|${locale}|${theme.scheme}|${persons.length}|${balanceHidden}|${balanceReady}`}
               keyExtractor={(item) => item.person_key}
               // A single-currency row and a multi-currency (stacked amounts) row
               // are structurally different subtrees; typing them lets FlashList
@@ -593,6 +598,7 @@ export default function FriendsScreen() {
                       person={item}
                       locale={locale}
                       t={t}
+                      hidden={balanceHidden || !balanceReady}
                       divider={!first}
                       duplicate={duplicates.keys.has(item.person_key)}
                       selectMode={selectMode}
@@ -1535,6 +1541,7 @@ const PersonRow = memo(function PersonRow({
   person,
   locale,
   t,
+  hidden,
   divider,
   duplicate,
   selectMode,
@@ -1545,6 +1552,9 @@ const PersonRow = memo(function PersonRow({
   person: PersonGroup;
   locale: string;
   t: ReturnType<typeof useStrings>['t'];
+  /** The eye toggle's state, shared with the balance card above: masks this
+      row's amounts (and their accessibility labels) the same way. */
+  hidden: boolean;
   /** A hairline above the row — every row but the first, so the card reads as one
       divided list. */
   divider: boolean;
@@ -1621,14 +1631,16 @@ const PersonRow = memo(function PersonRow({
 
   // What a screen reader hears: who, then each currency's spoken direction and
   // amount, the group scope, and — for a guest — that they have not joined.
-  const moneyLabels = entries.map((e) =>
-    moneyAccessibilityLabel(
-      { minor: BigInt(e.net), currency: e.currency },
-      balanceDirection(BigInt(e.net)),
-      copyFor(locale).money,
-      { locale },
-    ),
-  );
+  const moneyLabels = hidden
+    ? [BALANCE_MASK]
+    : entries.map((e) =>
+        moneyAccessibilityLabel(
+          { minor: BigInt(e.net), currency: e.currency },
+          balanceDirection(BigInt(e.net)),
+          copyFor(locale).money,
+          { locale },
+        ),
+      );
   const statusPart = person.is_ghost ? (soloGroup ? t.people.invite : t.tabs.notJoined) : '';
   const rowA11yLabel = [shownName, ...moneyLabels, scope ?? '', statusPart]
     .filter(Boolean)
@@ -1779,22 +1791,28 @@ const PersonRow = memo(function PersonRow({
             two, so the column that should read as one row of figures carried
             16px and 13px side by side. The lead figure is the row's answer; the
             currencies under it are the detail. Never summed across them. */}
-        {shownEntries.map((entry, index) => (
-          <MoneyText
-            key={entry.currency}
-            amount={BigInt(entry.net)}
-            currency={entry.currency}
-            locale={locale}
-            variant={index === 0 ? 'subheading' : 'caption'}
-            mode="balance"
-            // Every line, not only the lead: the column is capped at 46% of the
-            // row, and a wrapped amount anywhere in the stack grows the row —
-            // the exact thing this list was fixed to stop doing.
-            numberOfLines={1}
-            ellipsizeMode="tail"
-          />
-        ))}
-        {hiddenCurrencies > 0 ? (
+        {hidden ? (
+          <Text variant="subheading" style={{ fontWeight: '600' }}>
+            {BALANCE_MASK}
+          </Text>
+        ) : (
+          shownEntries.map((entry, index) => (
+            <MoneyText
+              key={entry.currency}
+              amount={BigInt(entry.net)}
+              currency={entry.currency}
+              locale={locale}
+              variant={index === 0 ? 'subheading' : 'caption'}
+              mode="balance"
+              // Every line, not only the lead: the column is capped at 46% of
+              // the row, and a wrapped amount anywhere in the stack grows the
+              // row — the exact thing this list was fixed to stop doing.
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            />
+          ))
+        )}
+        {!hidden && hiddenCurrencies > 0 ? (
           <Text variant="micro" tone="faint">
             {plural(locale, hiddenCurrencies, t.tabs.moreCurrencies)}
           </Text>
