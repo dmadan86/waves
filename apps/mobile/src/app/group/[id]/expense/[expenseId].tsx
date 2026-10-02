@@ -883,6 +883,15 @@ export default function ExpenseDetailScreen() {
                         onPress={openMember}
                         accessibilityLabel={rowLabel}
                         subtitle={subtitle}
+                        subtitleContent={
+                          row.paid > 0n ? (
+                            <PaidAndShare
+                              template={t.expense.paidAndShare}
+                              paid={format(money(row.paid, currency), { locale })}
+                              share={format(money(row.share, currency), { locale })}
+                            />
+                          ) : undefined
+                        }
                         leading={
                           <MemberAvatar
                             name={avatarNameOf(row.memberId)}
@@ -975,5 +984,54 @@ export default function ExpenseDetailScreen() {
         />
       ) : null}
     </Screen>
+  );
+}
+
+/**
+ * "paid ₹2,000 · share ₹20,000", with the two figures told apart by colour.
+ *
+ * The words stay muted; only the amounts are coloured. **Paid** wears the
+ * app's "gets money back" colour — putting money in is what earns a refund, so
+ * it reads as a credit at a glance, the same hue the row's net takes when they
+ * are owed. **Share** wears the brand purple: the person's own part, neutral.
+ * Not red — every share would then look like a debt, and the net on the right
+ * already says who owes. The template is split on its placeholders, so each
+ * language keeps its own word order.
+ */
+function PaidAndShare({
+  template,
+  paid,
+  share,
+}: {
+  template: string;
+  paid: string;
+  share: string;
+}): React.JSX.Element {
+  const theme = useTheme();
+  const parts = template.split(/(\{paid\}|\{share\})/);
+  return (
+    <>
+      {parts.map((part, index) =>
+        part === '{paid}' ? (
+          <Text
+            key={index}
+            variant="caption"
+            style={{ color: theme.color.positive, fontWeight: '700' }}
+          >
+            {paid}
+          </Text>
+        ) : part === '{share}' ? (
+          <Text
+            key={index}
+            variant="caption"
+            style={{ color: theme.color.brand, fontWeight: '700' }}
+          >
+            {share}
+          </Text>
+        ) : (
+          part
+        ),
+      )}
+    </>
   );
 }
