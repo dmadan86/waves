@@ -23,6 +23,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
+import { useLocalSearchParams } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, ScrollView, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
@@ -33,9 +34,9 @@ import { useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
 import { router } from '@/lib/navigation';
 import { useSmsInboxReader } from '@/lib/smsFeature';
-import { offerReadMessages } from '@/lib/smsReadBridge';
+import { offerReadMessages, requestScanOnReturn } from '@/lib/smsReadBridge';
 import { readFailureMessage } from '@/lib/smsFailureMessage';
-import { readSms, SmsReadFailure } from '@/lib/smsReader';
+import { PermissionOutcome, readSms, requestSmsPermission, SmsReadFailure } from '@/lib/smsReader';
 
 /** How far back a read reaches. A month, unless a person narrows it. */
 const WINDOWS = [7, 30] as const;
@@ -261,10 +262,32 @@ export default function ReadMessagesScreen(): React.JSX.Element | null {
     if (!offered) router.back();
   }, [offered]);
 
+  // Opened from Bank messages' Scan: this screen only has to get the
+  // permission. Bank messages scans the moment it is back in front, so the
+  // person taps Continue once and watches the scan — no window to choose here.
+  const { then } = useLocalSearchParams<{ then?: string }>();
+  const forScan = then === 'scan';
+
   const allow = useCallback(async (): Promise<void> => {
     if (reading) return;
     setReading(true);
     setError(null);
+    if (forScan) {
+      const outcome = await requestSmsPermission(t.smsImport.permissionRationale);
+      setReading(false);
+      if (outcome === PermissionOutcome.Granted) {
+        requestScanOnReturn();
+        router.back();
+      } else {
+        setError(
+          readFailureMessage(
+            outcome === PermissionOutcome.Blocked ? SmsReadFailure.Blocked : SmsReadFailure.Denied,
+            t,
+          ),
+        );
+      }
+      return;
+    }
     try {
       // The system dialog is raised inside here — after this screen, never
       // instead of it. `permissionRationale` is what Android then shows.
@@ -290,7 +313,7 @@ export default function ReadMessagesScreen(): React.JSX.Element | null {
     } finally {
       setReading(false);
     }
-  }, [days, reading, t]);
+  }, [days, forScan, reading, t]);
 
   if (!offered) return null;
 
@@ -343,53 +366,56 @@ export default function ReadMessagesScreen(): React.JSX.Element | null {
           </Pledge>
         </View>
 
-        {/* How far back. A month by default: far enough to be worth doing, near
-            enough that the answer is about this month's spending. */}
-        <View style={{ gap: theme.spacing.sm }}>
-          <Text
-            variant="micro"
-            tone="muted"
-            style={{ textTransform: 'uppercase', letterSpacing: 0.6 }}
-          >
-            {d.windowLabel}
-          </Text>
-          <Row style={{ gap: theme.spacing.sm }}>
-            {WINDOWS.map((window) => {
-              const selected = days === window;
-              return (
-                <Pressable
-                  key={window}
-                  accessibilityRole="radio"
-                  accessibilityState={{ selected }}
-                  onPress={() => setDays(window)}
-                  style={({ pressed }) => ({
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 6,
-                    height: 40,
-                    paddingHorizontal: theme.spacing.lg,
-                    borderRadius: theme.radius.pill,
-                    backgroundColor: selected ? theme.color.brand : theme.color.brandSoft,
-                    opacity: pressed ? 0.85 : 1,
-                  })}
-                >
-                  {selected ? (
-                    <Ionicons name="checkmark" size={16} color={theme.color.onBrand} />
-                  ) : null}
-                  <Text
-                    style={{
-                      fontSize: 14,
-                      fontWeight: '600',
-                      color: selected ? theme.color.onBrand : theme.color.brand,
-                    }}
+        {/* How far back, for the paste flow only. A month by default: far
+            enough to be worth doing, near enough that the answer is about this
+            month's spending. A scan picks its own window. */}
+        {forScan ? null : (
+          <View style={{ gap: theme.spacing.sm }}>
+            <Text
+              variant="micro"
+              tone="muted"
+              style={{ textTransform: 'uppercase', letterSpacing: 0.6 }}
+            >
+              {d.windowLabel}
+            </Text>
+            <Row style={{ gap: theme.spacing.sm }}>
+              {WINDOWS.map((window) => {
+                const selected = days === window;
+                return (
+                  <Pressable
+                    key={window}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected }}
+                    onPress={() => setDays(window)}
+                    style={({ pressed }) => ({
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 6,
+                      height: 40,
+                      paddingHorizontal: theme.spacing.lg,
+                      borderRadius: theme.radius.pill,
+                      backgroundColor: selected ? theme.color.brand : theme.color.brandSoft,
+                      opacity: pressed ? 0.85 : 1,
+                    })}
                   >
-                    {window === 7 ? t.smsImport.last7 : t.smsImport.last30}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </Row>
-        </View>
+                    {selected ? (
+                      <Ionicons name="checkmark" size={16} color={theme.color.onBrand} />
+                    ) : null}
+                    <Text
+                      style={{
+                        fontSize: 14,
+                        fontWeight: '600',
+                        color: selected ? theme.color.onBrand : theme.color.brand,
+                      }}
+                    >
+                      {window === 7 ? t.smsImport.last7 : t.smsImport.last30}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </Row>
+          </View>
+        )}
 
         {error ? <Callout tone="negative">{error}</Callout> : null}
 
@@ -423,7 +449,7 @@ export default function ReadMessagesScreen(): React.JSX.Element | null {
           {/* One line for both: only the chosen days are read, and Android asks
               next — so the system prompt is a thing they were told about. */}
           <Text variant="micro" tone="muted" align="center">
-            {d.nextScreen}
+            {forScan ? d.nextScreenScan : d.nextScreen}
           </Text>
         </View>
       </ScrollView>

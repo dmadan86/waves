@@ -303,13 +303,28 @@ export function scanFor(
   });
 }
 
+/** The end of the queue of scans: each one starts when the one before it ends. */
+let lastScan: Promise<unknown> = Promise.resolve();
+
 /**
  * Read the inbox once, sort it, keep it, and draft what is beyond doubt.
  *
  * Never throws. Every failure comes back described, because a screen showing a
  * stack trace about a bank-message parser is both useless and a leak.
+ *
+ * Scans take turns. Granting the permission starts the automatic backfill and,
+ * from Bank messages, a scan of its own at the same moment; run side by side,
+ * both would read "what is already kept" before either wrote, and the same
+ * payment would be drafted twice. One after the other, the second sees the
+ * first's rows and adds nothing it already has.
  */
-export async function runScan(input: ScanInput): Promise<ScanResult> {
+export function runScan(input: ScanInput): Promise<ScanResult> {
+  const run = lastScan.then(() => scanOnce(input));
+  lastScan = run.catch(() => undefined);
+  return run;
+}
+
+async function scanOnce(input: ScanInput): Promise<ScanResult> {
   const report = input.onProgress ?? ((): void => {});
   if (!input.ownerId) return NOTHING;
   const shut = await deviceGateReason();

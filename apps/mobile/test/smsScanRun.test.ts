@@ -196,6 +196,39 @@ describe('runScan', () => {
     expect(progress.at(-1)).toBe('saving');
   });
 
+  it('runs two scans one after the other, so the second adds nothing the first kept', async () => {
+    // Given the backfill and a button scan starting at the same moment, with
+    // the first read held open…
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => (release = resolve));
+    const kept: string[] = [];
+    h.knownKeys.mockImplementation(async () => [...kept]);
+    h.saveMessages.mockImplementation(async (_owner, rows: { dedupeKey: string }[]) => {
+      kept.push(...rows.map((row) => row.dedupeKey));
+      return rows.length;
+    });
+    h.read
+      .mockImplementationOnce(async () => {
+        await held;
+        return { ok: true, messages: [FRESH_A] };
+      })
+      .mockResolvedValueOnce({ ok: true, messages: [FRESH_A] });
+
+    const first = runScan({ ownerId: 'owner-1', window: WINDOW, maxCount: 50 });
+    const second = runScan({ ownerId: 'owner-1', window: WINDOW, maxCount: 50 });
+    await new Promise((resolve) => setTimeout(resolve, 10));
+
+    // …the second has not started reading while the first is still going.
+    expect(h.read).toHaveBeenCalledTimes(1);
+
+    release();
+    const [a, b] = await Promise.all([first, second]);
+    expect(h.read).toHaveBeenCalledTimes(2);
+    expect(a.added).toBe(1);
+    expect(b.added).toBe(0);
+    expect(h.draftWrites).toHaveBeenCalledTimes(1);
+  });
+
   it('reports why when the inbox cannot be read, without throwing', async () => {
     h.read.mockResolvedValue({ ok: false, reason: 'denied' });
 

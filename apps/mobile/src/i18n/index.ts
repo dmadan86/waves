@@ -3077,6 +3077,8 @@ export interface UiStrings {
       neverSent: string;
       /** Names what the *next* screen asks, so the system dialog is no surprise. */
       nextScreen: string;
+      /** The same note when the screen was opened by Scan, which has no window. */
+      nextScreenScan: string;
       windowLabel: string;
       /** The label on the drawn draft card in the illustration. */
       draftLabel: string;
@@ -6427,6 +6429,7 @@ const en: UiStrings = {
       neverSentTitle: 'You stay in control',
       neverSent: 'Nothing goes into a group until you say so.',
       nextScreen: 'Only messages from these days are read. Android asks for permission next.',
+      nextScreenScan: 'Android asks for permission next, then Waves scans your recent messages.',
       windowLabel: 'Look at messages from',
       draftLabel: 'Waves draft',
       continue: 'Continue',
@@ -9823,6 +9826,8 @@ const ta: UiStrings = {
       neverSent: 'நீங்கள் சொல்லும் வரை எந்தக் குழுவிலும் எதுவும் சேராது.',
       nextScreen:
         'இந்த நாட்களின் செய்திகள் மட்டுமே படிக்கப்படும். அடுத்து Android அனுமதி கேட்கும்.',
+      nextScreenScan:
+        'அடுத்து Android அனுமதி கேட்கும், பிறகு Waves உங்கள் சமீபத்திய செய்திகளை ஸ்கேன் செய்யும்.',
       windowLabel: 'இந்தக் காலச் செய்திகளைப் பார்',
       draftLabel: 'Waves வரைவு',
       continue: 'தொடரவும்',
@@ -13166,6 +13171,7 @@ const hi: UiStrings = {
       neverSentTitle: 'नियंत्रण आपके हाथ में',
       neverSent: 'आपके कहे बिना किसी ग्रुप में कुछ नहीं जुड़ता।',
       nextScreen: 'सिर्फ़ इन दिनों के संदेश पढ़े जाते हैं। इसके बाद Android अनुमति माँगेगा।',
+      nextScreenScan: 'इसके बाद Android अनुमति माँगेगा, फिर Waves आपके हाल के संदेश स्कैन करेगा।',
       windowLabel: 'इतने समय के संदेश देखें',
       draftLabel: 'Waves ड्राफ़्ट',
       continue: 'जारी रखें',
@@ -16750,6 +16756,7 @@ const ar: UiStrings = {
       neverSentTitle: 'التحكم بيدك',
       neverSent: 'لا يُضاف شيء إلى أي مجموعة حتى تقرّر ذلك.',
       nextScreen: 'تُقرأ رسائل هذه الأيام فقط. بعد ذلك سيطلب أندرويد الإذن.',
+      nextScreenScan: 'بعد ذلك سيطلب أندرويد الإذن، ثم يفحص Waves رسائلك الأخيرة.',
       windowLabel: 'اقرأ الرسائل من',
       draftLabel: 'مسودة Waves',
       continue: 'متابعة',
