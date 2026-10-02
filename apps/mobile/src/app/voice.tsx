@@ -404,6 +404,8 @@ export default function VoiceScreen() {
 
   // A confident command writes itself after this many ms, unless Undo is tapped.
   const AUTO_COMMIT_MS = 4000;
+  // From the widget, how long an automatic save waits for the location fix.
+  const LINK_LOCATION_WAIT_MS = 1500;
 
   // Arm the auto-act window: show the banner, hold in 'committing', and fire the
   // current `save` when it elapses. A fresh parse, Undo, or unmount cancels it.
@@ -1170,7 +1172,9 @@ export default function VoiceScreen() {
         await persistDraftsToInbox();
         committed.current = true;
         confirmSaved();
-        router.replace('/captures');
+        // From the widget, Home: the person spoke from their home screen and
+        // wants to be done, not handed a queue to work through.
+        router.replace(heardFromLink.current ? '/' : '/captures');
         return;
       }
 
@@ -1338,6 +1342,32 @@ export default function VoiceScreen() {
   // Every draft must carry a real amount — an empty or non-numeric field would
   // otherwise be silently skipped, and a screenful of them would "save" nothing
   // while still navigating away.
+  // From the widget, the save is not waited on by anyone: it goes by itself,
+  // and it waits for the location fix at most `LINK_LOCATION_WAIT_MS`.
+  const [linkWaitOver, setLinkWaitOver] = useState(false);
+  useEffect(() => {
+    if (phase !== 'review' || !heardFromLink.current) return;
+    const timer = setTimeout(() => setLinkWaitOver(true), LINK_LOCATION_WAIT_MS);
+    return () => clearTimeout(timer);
+  }, [phase]);
+  const linkReady =
+    drafts.length > 0 &&
+    !saving &&
+    (!locating || linkWaitOver) &&
+    drafts.every((draft) => toMinor(draft.amount, draft.currency ?? dc) !== null);
+  // Only into the inbox. Anything can open a `waves://voice?heard=` link, so
+  // what a link may write unattended is a draft only the reader sees ("Saved
+  // for later"); a group, a person or a command still waits for their tap.
+  const autoSaved = useRef(false);
+  useEffect(() => {
+    if (!heardFromLink.current || autoSaved.current) return;
+    if (phase !== 'review' || !linkReady || dest.kind !== 'unassigned') return;
+    autoSaved.current = true;
+    void Promise.resolve().then(() => save());
+    // `save` is a fresh closure each render; this fires once per widget capture.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, linkReady, dest.kind]);
+
   const canSave =
     drafts.length > 0 &&
     !saving &&
