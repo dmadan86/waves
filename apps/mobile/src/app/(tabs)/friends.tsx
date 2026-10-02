@@ -30,9 +30,9 @@ import {
   View,
 } from 'react-native';
 import { FlashList, useRecyclingState } from '@shopify/flash-list';
-import Reanimated, { LinearTransition } from 'react-native-reanimated';
+import Reanimated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Circle, Path } from 'react-native-svg';
+import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import {
   Button,
@@ -72,7 +72,6 @@ import {
 } from '@/lib/friendsTotals';
 import { PressableScale } from '@/lib/anim';
 import { router } from '@/lib/navigation';
-import { useReducedMotion } from '@/lib/reducedMotion';
 import { useAvatarUrl } from '@/components/ProfileAvatar';
 import { GlassSurface } from '@/components/home/GlassSurface';
 import { HeroScene } from '@/components/home/HeroScene';
@@ -262,7 +261,6 @@ export default function FriendsScreen() {
   const theme = useTheme();
   const pull = usePullRefresh();
   const clearance = useTabBarClearance();
-  const reduceMotion = useReducedMotion();
   const { t, locale } = useStrings();
 
   const { profile } = useAuth();
@@ -311,6 +309,14 @@ export default function FriendsScreen() {
   const [sortKey, setSortKey] = useState<SortKey>(SortKey.Amount);
   const [sortDir, setSortDir] = useState<SortDir>(SortDir.Desc);
   const [sortOpen, setSortOpen] = useState(false);
+  // Where the sort pill sits on screen, so its menu drops from it instead of a
+  // fixed spot near the top — the pill moved down to "Your friends" and the
+  // menu has to follow it there.
+  const [sortAnchor, setSortAnchor] = useState<MenuAnchor | null>(null);
+  const openSortMenu = (anchor: MenuAnchor | null): void => {
+    setSortAnchor(anchor);
+    setSortOpen(true);
+  };
 
   // The "add someone" family — add a person, pull from contacts, scan an invite
   // QR — folded behind one `+` so the header reads as a title row, not a
@@ -480,6 +486,7 @@ export default function FriendsScreen() {
 
       <SortMenu
         open={sortOpen}
+        anchor={sortAnchor}
         onClose={() => setSortOpen(false)}
         sortKey={sortKey}
         sortDir={sortDir}
@@ -501,11 +508,17 @@ export default function FriendsScreen() {
           Boxing the card short of the bar instead left a band of empty
           background under the last row at every scroll position. The card is
           drawn per row (the first rounds the top, the last rounds the foot)
-          so it scrolls inside the FlashList instead of clipping it. */}
-      <Reanimated.View
-        layout={reduceMotion ? undefined : LinearTransition.duration(160)}
-        style={{ flex: 1 }}
-      >
+          so it scrolls inside the FlashList instead of clipping it.
+
+          A plain `View`, deliberately not an animated one: the balance card
+          above grows the instant `loading` resolves (the two direction pills
+          only render once it has), which moves this block's own top edge in
+          the same frame. An animated `layout` transition here used to tween
+          *that* move over 160ms, so the first real frame could land mid-slide
+          — "Your friends" drawn over the action row the card had just grown
+          to make room for. Nothing here needs to animate; the card settling
+          once, immediately, is the fix. */}
+      <View style={{ flex: 1 }}>
         {people.isLoading ? (
           <View style={{ paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.lg }}>
             <PeopleSkeleton />
@@ -526,12 +539,7 @@ export default function FriendsScreen() {
           // "Your friends" and its sort pill stay put — only the FlashList
           // below them (flex: 1) scrolls.
           <View style={{ flex: 1 }}>
-            <FriendsListHeader
-              t={t}
-              sortKey={sortKey}
-              sortDir={sortDir}
-              onSort={() => setSortOpen(true)}
-            />
+            <FriendsListHeader t={t} sortKey={sortKey} sortDir={sortDir} onSort={openSortMenu} />
             {/* The only virtualized list on this screen — same FlashList setup
                 the group ledger uses (recycled rows, a wide draw distance so a
                 fast fling never outruns recycling into blank rows). */}
@@ -598,7 +606,7 @@ export default function FriendsScreen() {
             />
           </View>
         )}
-      </Reanimated.View>
+      </View>
     </Screen>
   );
 }
@@ -882,6 +890,17 @@ function FriendsBalanceCard({
 
   const owedCount = owedGroup ? personCountByDirection(rows, owedGroup.head.currency).owed : 0;
   const owingCount = owingGroup ? personCountByDirection(rows, owingGroup.head.currency).owing : 0;
+  // A pill states one currency (its direction's biggest, ADR-003) — somebody
+  // owed in both INR and USD still gets one green pill, not two, or one that
+  // silently adds a rate-free total. `directionGroups`' own `rest` is exactly
+  // the currencies that figure leaves out, so it is named here rather than
+  // dropped, the same count `moreCurrencies` already speaks on a person row.
+  const owedExtra = owedGroup?.rest.length
+    ? plural(locale, owedGroup.rest.length, t.tabs.moreCurrencies)
+    : null;
+  const owingExtra = owingGroup?.rest.length
+    ? plural(locale, owingGroup.rest.length, t.tabs.moreCurrencies)
+    : null;
 
   return (
     <View
@@ -950,6 +969,7 @@ function FriendsBalanceCard({
               net={owedGroup.head.net}
               currency={owedGroup.head.currency}
               locale={locale}
+              extra={owedExtra}
             />
           ) : null}
           {owingGroup ? (
@@ -959,6 +979,7 @@ function FriendsBalanceCard({
               net={owingGroup.head.net}
               currency={owingGroup.head.currency}
               locale={locale}
+              extra={owingExtra}
             />
           ) : null}
         </Row>
@@ -986,12 +1007,16 @@ function BalancePill({
   net,
   currency,
   locale,
+  extra,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   net: bigint;
   currency: string;
   locale: string;
+  /** "+N more currencies" when this direction holds more than the one
+   *  currency shown — never folded into the figure above it (ADR-003). */
+  extra?: string | null;
 }): React.JSX.Element {
   const theme = useTheme();
   const owed = net > 0n;
@@ -1034,29 +1059,38 @@ function BalancePill({
           numberOfLines={1}
           style={{ fontWeight: '800' }}
         />
+        {extra ? (
+          <Text variant="micro" tone="muted" numberOfLines={1}>
+            {extra}
+          </Text>
+        ) : null}
       </View>
     </View>
   );
 }
 
-/** The wallet illustration's box — a touch wider than tall so the coins have
- *  room to spill past its top-right corner. */
-const WALLET_W = 58;
-const WALLET_H = 56;
+/** The wallet illustration's box — square-ish and close to 96dp on a side, so
+ *  the coins and the peeking card have room above the billfold itself. */
+const WALLET_W = 96;
+const WALLET_H = 88;
 
 /**
  * The soft lavender wallet on the balance card's shoulder: a rounded billfold
- * wearing the app's own lilac tint, a fold line where its flap sits, a couple
- * of warm "gold" coins (the peach tint — the palette has no literal gold or
- * green) spilling off its corner, and the viewer's own currency symbol on its
- * face, drawn with `react-native-svg` rather than an image asset so it themes
- * itself for free. Replaces the old two-people mark, which the empty screen's
- * own `NoFriendsHero` still draws for itself below (`Face`).
+ * wearing the app's own lilac tint, a darker flap folded over its top third, a
+ * pale card peeking out from behind that flap, three stacked "gold" coins (a
+ * warm amber face with a lighter rim — the palette has no literal gold or
+ * green, see tokens.ts) spilling off its corner, a couple of soft lavender
+ * leaves tucked behind the whole thing, and the viewer's own currency symbol
+ * on its face. Drawn with `react-native-svg` rather than an image asset so it
+ * themes itself for free. Replaces the old two-people mark, which the empty
+ * screen's own `NoFriendsHero` still draws for itself below (`Face`).
  */
 function WalletArt({ currency, locale }: { currency: string; locale: string }): React.JSX.Element {
   const theme = useTheme();
   const lilac = theme.tint.lilac;
   const peach = theme.tint.peach;
+  const sky = theme.tint.sky;
+  const gold = theme.color.warning;
   const symbol = currencySymbol(currency, locale);
   return (
     <View
@@ -1065,30 +1099,56 @@ function WalletArt({ currency, locale }: { currency: string; locale: string }): 
       style={{ width: WALLET_W, height: WALLET_H }}
     >
       <Svg width={WALLET_W} height={WALLET_H} viewBox={`0 0 ${WALLET_W} ${WALLET_H}`}>
-        {/* Two small leaves tucked behind the wallet's shoulder — a stylised
-            shape rather than a literal green, which the palette does not
-            carry (see tokens.ts). */}
-        <Path d="M2 20 C 8 12, 18 12, 20 20 C 14 24, 6 24, 2 20 Z" fill={lilac.bg} opacity={0.6} />
-        <Path d="M0 28 C 6 22, 14 22, 16 28 C 10 32, 4 32, 0 28 Z" fill={lilac.bg} opacity={0.4} />
-        {/* The wallet itself: a rounded billfold with a fold line near the top. */}
+        {/* Two leaves tucked behind everything else — a stylised shape rather
+            than a literal green, which the palette does not carry. */}
         <Path
-          d="M10 20 h38 a6 6 0 0 1 6 6 v20 a6 6 0 0 1 -6 6 h-38 a6 6 0 0 1 -6 -6 v-20 a6 6 0 0 1 6 -6 Z"
+          d="M2 34 C 10 22, 24 22, 26 34 C 18 40, 8 40, 2 34 Z"
           fill={lilac.bg}
+          opacity={0.55}
         />
-        <Path d="M10 30 h44" stroke={lilac.ink} strokeOpacity={0.25} strokeWidth={2} />
-        {/* Two coins spilling off the flap. */}
-        <Circle cx={44} cy={17} r={7} fill={peach.bg} stroke={peach.ink} strokeWidth={1.5} />
-        <Circle cx={35} cy={11} r={6} fill={peach.bg} stroke={peach.ink} strokeWidth={1.5} />
+        <Path d="M0 46 C 8 38, 18 38, 20 46 C 12 52, 4 52, 0 46 Z" fill={lilac.bg} opacity={0.35} />
+        {/* A card peeking out from behind the flap, a shade cooler than the
+            wallet so it reads as its own object rather than the wallet's own
+            corner. */}
+        <Rect
+          x={30}
+          y={4}
+          width={40}
+          height={26}
+          rx={6}
+          fill={sky.bg}
+          rotation={-8}
+          origin="50,17"
+        />
+        {/* The billfold itself. */}
+        <Rect x={14} y={30} width={68} height={50} rx={10} fill={lilac.bg} />
+        {/* Its flap — the same shape as the body's top third, filled with a
+            translucent wash of the body's own ink so it reads as a darker
+            fold rather than a second, disconnected colour. */}
+        <Path
+          d="M24,30 H72 A10,10 0 0 1 82,40 V48 H14 V40 A10,10 0 0 1 24,30 Z"
+          fill={lilac.ink}
+          opacity={0.16}
+        />
+        <Path d="M14 48 H82" stroke={lilac.ink} strokeOpacity={0.3} strokeWidth={1.5} />
+        {/* Three coins spilling off the flap, back to front: a lighter rim
+            disc under a smaller, darker gold face. */}
+        <Circle cx={62} cy={14} r={9} fill={peach.bg} />
+        <Circle cx={62} cy={14} r={7} fill={gold} />
+        <Circle cx={76} cy={22} r={10} fill={peach.bg} />
+        <Circle cx={76} cy={22} r={7.8} fill={gold} />
+        <Circle cx={84} cy={34} r={10} fill={peach.bg} />
+        <Circle cx={84} cy={34} r={7.8} fill={gold} />
       </Svg>
       <Text
         numberOfLines={1}
         style={{
           position: 'absolute',
-          left: 10,
-          right: 6,
-          top: 33,
+          left: 14,
+          right: 14,
+          top: 52,
           textAlign: 'center',
-          fontSize: 18,
+          fontSize: 22,
           fontWeight: '800',
           color: lilac.ink,
         }}
@@ -1269,9 +1329,19 @@ function FriendsListHeader({
   t: UiStrings;
   sortKey: SortKey;
   sortDir: SortDir;
-  onSort: () => void;
+  /** Told where the pill sits on screen, so the menu drops from it rather
+   *  than a hard-coded spot near the top of the screen. */
+  onSort: (anchor: MenuAnchor | null) => void;
 }): React.JSX.Element {
   const theme = useTheme();
+  const pillRef = useRef<View>(null);
+  const openSort = (): void => {
+    const pill = pillRef.current;
+    if (!pill) return onSort(null);
+    pill.measureInWindow((x, y, width, height) =>
+      onSort(width > 0 ? { x, y, width, height } : null),
+    );
+  };
   return (
     <Row
       style={{
@@ -1285,34 +1355,36 @@ function FriendsListHeader({
       <Text variant="subheading" style={{ fontWeight: '800' }}>
         {t.yourFriends}
       </Text>
-      <Pressable
-        onPress={onSort}
-        accessibilityRole="button"
-        accessibilityLabel={`${t.sort.by}: ${sortLabel(sortKey, t)}`}
-        hitSlop={8}
-        style={({ pressed }) => ({
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 4,
-          height: 32,
-          paddingHorizontal: theme.spacing.md,
-          borderRadius: theme.radius.pill,
-          backgroundColor: theme.color.surface,
-          borderWidth: 1,
-          borderColor: theme.color.border,
-          opacity: pressed ? 0.7 : 1,
-        })}
-      >
-        <Ionicons name="reorder-three-outline" size={iconSize.sm} color={theme.color.textMuted} />
-        <Text variant="caption" numberOfLines={1} style={{ fontWeight: '600' }}>
-          {t.sort.by}: {sortLabel(sortKey, t)}
-        </Text>
-        <Ionicons
-          name={sortDir === SortDir.Asc ? 'chevron-up' : 'chevron-down'}
-          size={iconSize.sm}
-          color={theme.color.textMuted}
-        />
-      </Pressable>
+      <View ref={pillRef} collapsable={false}>
+        <Pressable
+          onPress={openSort}
+          accessibilityRole="button"
+          accessibilityLabel={`${t.sort.by}: ${sortLabel(sortKey, t)}`}
+          hitSlop={8}
+          style={({ pressed }) => ({
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 4,
+            height: 32,
+            paddingHorizontal: theme.spacing.md,
+            borderRadius: theme.radius.pill,
+            backgroundColor: theme.color.surface,
+            borderWidth: 1,
+            borderColor: theme.color.border,
+            opacity: pressed ? 0.7 : 1,
+          })}
+        >
+          <Ionicons name="reorder-three-outline" size={iconSize.sm} color={theme.color.textMuted} />
+          <Text variant="caption" numberOfLines={1} style={{ fontWeight: '600' }}>
+            {t.sort.by}: {sortLabel(sortKey, t)}
+          </Text>
+          <Ionicons
+            name={sortDir === SortDir.Asc ? 'chevron-up' : 'chevron-down'}
+            size={iconSize.sm}
+            color={theme.color.textMuted}
+          />
+        </Pressable>
+      </View>
     </Row>
   );
 }
@@ -1985,13 +2057,30 @@ function RemindButton({ row }: { row: PersonBalanceRow }): React.JSX.Element | n
   return <RowAction icon="notifications-outline" label={t.people.remind} onPress={run} />;
 }
 
+/** The sort menu's fixed width — "~220dp" per the mockup, so the trailing-edge
+ *  math below has a known box to align rather than an intrinsic one. */
+const SORT_MENU_WIDTH = 220;
+
+/** A conservative guess at the open menu's height (the "Sort by" label plus
+ *  three rows), used only to decide whether it should flip above the pill
+ *  instead of below it — a slight overestimate costs nothing, an underestimate
+ *  would open the menu off the bottom of the screen. */
+const SORT_MENU_HEIGHT_ESTIMATE = 200;
+
 /**
  * The sort dropdown — a bare corner card, WhatsApp-style, matching the app's
  * other overflow menus. One row per key with its icon; the active key wears the
  * brand ink and a direction arrow, and tapping it again flips the arrow.
+ *
+ * Anchored to the "Sort by" pill rather than a fixed spot near the top of the
+ * screen: it drops directly below the pill, its trailing edge lined up with
+ * the pill's own (the same `measureInWindow` + physical/logical edge math
+ * `AddMenu` below uses for its leading edge), and flips to open above the
+ * pill instead when there is not enough room underneath it.
  */
 function SortMenu({
   open,
+  anchor,
   onClose,
   sortKey,
   sortDir,
@@ -1999,6 +2088,8 @@ function SortMenu({
   t,
 }: {
   open: boolean;
+  /** The sort pill it opens from; null falls back to a fixed corner. */
+  anchor: MenuAnchor | null;
   onClose: () => void;
   sortKey: SortKey;
   sortDir: SortDir;
@@ -2007,6 +2098,28 @@ function SortMenu({
 }): React.JSX.Element {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const { width: windowW, height: windowH } = useWindowDimensions();
+
+  const trailing = anchor
+    ? I18nManager.isRTL
+      ? anchor.x
+      : windowW - (anchor.x + anchor.width)
+    : 0;
+  const openAbove =
+    anchor !== null &&
+    windowH - (anchor.y + anchor.height) < SORT_MENU_HEIGHT_ESTIMATE + theme.spacing.sm &&
+    anchor.y > SORT_MENU_HEIGHT_ESTIMATE;
+  const place = anchor
+    ? {
+        ...(openAbove
+          ? { bottom: windowH - anchor.y + theme.spacing.sm }
+          : { top: anchor.y + anchor.height + theme.spacing.sm }),
+        end: Math.max(
+          theme.spacing.lg,
+          Math.min(trailing, windowW - SORT_MENU_WIDTH - theme.spacing.lg),
+        ),
+      }
+    : { top: insets.top + 56, end: theme.spacing.xl };
 
   return (
     <Modal
@@ -2025,11 +2138,10 @@ function SortMenu({
         <View
           style={{
             position: 'absolute',
-            top: insets.top + 56,
-            right: theme.spacing.xl,
-            minWidth: 220,
+            width: SORT_MENU_WIDTH,
             borderRadius: theme.radius.lg,
             ...theme.shadow.lifted,
+            ...place,
           }}
         >
           <View
