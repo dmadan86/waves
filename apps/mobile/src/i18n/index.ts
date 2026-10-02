@@ -1288,10 +1288,6 @@ export interface UiStrings {
   };
   /** The in-app update bar above the navigation. */
   storeUpdate: {
-    /** The small capitals above the title, one per stage. */
-    eyebrowAvailable: string;
-    eyebrowDownloading: string;
-    eyebrowReady: string;
     available: string;
     downloading: string;
     ready: string;
@@ -4941,12 +4937,9 @@ const en: UiStrings = {
     doneAction: 'Done',
   },
   storeUpdate: {
-    eyebrowAvailable: 'New update',
-    eyebrowDownloading: 'Downloading',
-    eyebrowReady: 'Ready to install',
-    available: 'A new version is ready, with improvements and new features.',
-    downloading: 'Downloading the update',
-    ready: 'Update downloaded. Restart to finish.',
+    available: 'A new version is available',
+    downloading: 'Downloading…',
+    ready: 'Downloaded. Restart to finish.',
     downloadingAction: 'Downloading',
     restart: 'Restart',
     notNow: 'Not now',
@@ -8254,10 +8247,7 @@ const ta: UiStrings = {
     doneAction: 'முடிந்தது',
   },
   storeUpdate: {
-    eyebrowAvailable: 'புதிய புதுப்பிப்பு',
-    eyebrowDownloading: 'பதிவிறக்குகிறது',
-    eyebrowReady: 'நிறுவத் தயார்',
-    available: 'மேம்பாடுகள் மற்றும் புதிய அம்சங்களுடன் புதிய பதிப்பு பதிவிறக்கத் தயாராக உள்ளது.',
+    available: 'புதிய பதிப்பு கிடைக்கிறது',
     downloading: 'புதுப்பிப்பு பதிவிறக்கப்படுகிறது',
     ready: 'புதுப்பிப்பு பதிவிறக்கப்பட்டது. முடிக்க மறுதொடக்கம் செய்யவும்.',
     downloadingAction: 'பதிவிறக்குகிறது',
@@ -11659,10 +11649,7 @@ const hi: UiStrings = {
     doneAction: 'हो गया',
   },
   storeUpdate: {
-    eyebrowAvailable: 'नया अपडेट',
-    eyebrowDownloading: 'डाउनलोड हो रहा है',
-    eyebrowReady: 'इंस्टॉल के लिए तैयार',
-    available: 'सुधारों और नई सुविधाओं के साथ नया वर्ज़न डाउनलोड के लिए तैयार है।',
+    available: 'नया वर्ज़न उपलब्ध है',
     downloading: 'अपडेट डाउनलोड हो रहा है',
     ready: 'अपडेट डाउनलोड हो गया। पूरा करने के लिए रीस्टार्ट करें।',
     downloadingAction: 'डाउनलोड हो रहा है',
@@ -15024,10 +15011,7 @@ const ar: UiStrings = {
     doneAction: 'تم',
   },
   storeUpdate: {
-    eyebrowAvailable: 'تحديث جديد',
-    eyebrowDownloading: 'جارٍ التنزيل',
-    eyebrowReady: 'جاهز للتثبيت',
-    available: 'إصدار جديد جاهز للتنزيل مع تحسينات وميزات جديدة.',
+    available: 'يتوفر إصدار جديد',
     downloading: 'جارٍ تنزيل التحديث',
     ready: 'تم تنزيل التحديث. أعد التشغيل لإكماله.',
     downloadingAction: 'جارٍ التنزيل',

@@ -1,8 +1,7 @@
 /**
- * The update bar: a card just above the navigation that says a new version is
- * ready, and carries the whole update from there. A small illustration (a
- * tilted phone taking a download, with a few sparkles), a "New update"
- * eyebrow, the title and a two-line explanation, and one gradient pill.
+ * The update bar: a compact card just above the navigation that says a new
+ * version is ready, and carries the whole update from there — a small drawing
+ * (a tilted phone taking a download), the title and one line, one pill.
  *
  *   - **Update** — Play's own "Update available" sheet on Android, the App Store
  *     page on iOS. A small ✕ puts this version away.
@@ -63,7 +62,7 @@ export function UpdateBar() {
       : phase.kind === 'downloading'
         ? t.storeUpdate.downloading
         : t.storeUpdate.available;
-  // While downloading, the pill counts up; the eyebrow already says what it is.
+  // While downloading, the pill counts the percent.
   const action =
     phase.kind === 'ready'
       ? t.storeUpdate.restart
@@ -72,13 +71,6 @@ export function UpdateBar() {
           ? t.storeUpdate.downloadingAction
           : `${Math.round(progress * 100)}%`
         : t.misc.update;
-  const eyebrow =
-    phase.kind === 'ready'
-      ? t.storeUpdate.eyebrowReady
-      : phase.kind === 'downloading'
-        ? t.storeUpdate.eyebrowDownloading
-        : t.storeUpdate.eyebrowAvailable;
-  const canDismiss = phase.kind === 'available';
   const onAction = phase.kind === 'ready' ? restart : phase.kind === 'available' ? update : null;
 
   return (
@@ -98,62 +90,32 @@ export function UpdateBar() {
         accessibilityLiveRegion="polite"
         style={{
           overflow: 'hidden',
-          borderRadius: 28,
+          borderRadius: theme.radius.xl,
           backgroundColor: theme.color.surface,
           borderWidth: 1,
           borderColor: theme.color.border,
           ...theme.shadow.lifted,
         }}
       >
-        {/* A soft lavender swell behind the button, so the card reads as
-            lit from that side rather than flat white. */}
-        <View
-          pointerEvents="none"
-          style={{
-            position: 'absolute',
-            end: -70,
-            top: -50,
-            width: 220,
-            height: 220,
-            borderRadius: 110,
-            backgroundColor: theme.color.brandSoft,
-            opacity: 0.6,
-          }}
-        />
-
         <Row
           style={{
             alignItems: 'center',
-            paddingVertical: theme.spacing.md,
-            paddingStart: theme.spacing.xs,
-            paddingEnd: theme.spacing.md,
+            gap: theme.spacing.sm,
+            paddingVertical: 8,
+            paddingStart: 6,
+            paddingEnd: 10,
           }}
         >
           <UpdateArt theme={theme} done={phase.kind === 'ready'} />
 
-          <View style={{ flex: 1, minWidth: 0, marginStart: theme.spacing.xs }}>
+          <View style={{ flex: 1, minWidth: 0 }}>
             <Text
               numberOfLines={1}
-              style={{
-                fontSize: 11,
-                fontWeight: '700',
-                letterSpacing: 1,
-                textTransform: 'uppercase',
-                color: theme.color.brand,
-              }}
-            >
-              {eyebrow}
-            </Text>
-            <Text
-              numberOfLines={1}
-              style={{ fontSize: 18, fontWeight: '800', color: theme.color.text, marginTop: 2 }}
+              style={{ fontSize: 15, fontWeight: '700', color: theme.color.text }}
             >
               {t.misc.updateWaves}
             </Text>
-            <Text
-              numberOfLines={3}
-              style={{ fontSize: 12.5, lineHeight: 17, color: theme.color.textMuted, marginTop: 2 }}
-            >
+            <Text numberOfLines={1} style={{ fontSize: 12, color: theme.color.textMuted }}>
               {subtitle}
             </Text>
           </View>
@@ -165,76 +127,60 @@ export function UpdateBar() {
             disabled={!onAction}
             onPress={onAction ?? undefined}
             style={({ pressed }) => ({
-              marginStart: theme.spacing.sm,
-              marginTop: canDismiss ? 26 : 0,
               opacity: pressed ? 0.85 : 1,
               transform: [{ scale: pressed ? 0.97 : 1 }],
             })}
           >
             {onAction ? (
-              <View
-                style={{
-                  borderRadius: theme.radius.pill,
-                  shadowColor: theme.color.brand,
-                  shadowOpacity: 0.35,
-                  shadowRadius: 10,
-                  shadowOffset: { width: 0, height: 4 },
-                  elevation: 6,
-                }}
+              <Gradient
+                colors={theme.gradient.brand}
+                radius={theme.radius.pill}
+                style={{ paddingStart: 14, paddingEnd: 8, height: 34, justifyContent: 'center' }}
               >
-                <Gradient
-                  colors={theme.gradient.brand}
-                  radius={theme.radius.pill}
-                  style={{ paddingStart: 16, paddingEnd: 10, height: 42, justifyContent: 'center' }}
-                >
-                  <Row style={{ alignItems: 'center', gap: 4 }}>
-                    <Text style={{ fontSize: 15, fontWeight: '700', color: theme.color.onBrand }}>
-                      {action}
-                    </Text>
-                    <Ionicons name="chevron-forward" size={16} color={theme.color.onBrand} />
-                  </Row>
-                </Gradient>
-              </View>
+                <Row style={{ alignItems: 'center', gap: 2 }}>
+                  <Text style={{ fontSize: 13.5, fontWeight: '700', color: theme.color.onBrand }}>
+                    {action}
+                  </Text>
+                  <Ionicons name="chevron-forward" size={14} color={theme.color.onBrand} />
+                </Row>
+              </Gradient>
             ) : (
               <View
                 style={{
-                  paddingHorizontal: 16,
-                  height: 42,
+                  paddingHorizontal: 14,
+                  height: 34,
                   justifyContent: 'center',
                   borderRadius: theme.radius.pill,
                   backgroundColor: theme.color.brandSoft,
                 }}
               >
-                <Text style={{ fontSize: 14, fontWeight: '700', color: theme.color.brand }}>
+                <Text style={{ fontSize: 13.5, fontWeight: '700', color: theme.color.brand }}>
                   {action}
                 </Text>
               </View>
             )}
           </Pressable>
-        </Row>
 
-        {canDismiss ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t.storeUpdate.notNow}
-            onPress={dismiss}
-            hitSlop={8}
-            style={({ pressed }) => ({
-              position: 'absolute',
-              top: 10,
-              end: 10,
-              width: 30,
-              height: 30,
-              borderRadius: 15,
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: theme.color.surfaceMuted,
-              opacity: pressed ? 0.6 : 1,
-            })}
-          >
-            <Ionicons name="close" size={18} color={theme.color.text} />
-          </Pressable>
-        ) : null}
+          {phase.kind === 'available' ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t.storeUpdate.notNow}
+              onPress={dismiss}
+              hitSlop={10}
+              style={({ pressed }) => ({
+                width: 26,
+                height: 26,
+                borderRadius: 13,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: theme.color.surfaceMuted,
+                opacity: pressed ? 0.6 : 1,
+              })}
+            >
+              <Ionicons name="close" size={15} color={theme.color.textMuted} />
+            </Pressable>
+          ) : null}
+        </Row>
 
         {/* The download's progress, as a hairline along the card's foot. An
             unknown size shows a short brand stub rather than a false number. */}
@@ -272,7 +218,7 @@ function UpdateArt({ theme, done }: { theme: Theme; done: boolean }) {
     theme.gradient.brand[theme.gradient.brand.length - 1],
   ];
   return (
-    <Svg width={76} height={80} viewBox="0 0 100 104" accessible={false}>
+    <Svg width={44} height={46} viewBox="0 0 100 104" accessible={false}>
       <Defs>
         <LinearGradient id="ua-body" x1="0" y1="0" x2="1" y2="1">
           <Stop offset="0" stopColor={theme.color.surface} />
