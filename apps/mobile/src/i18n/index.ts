@@ -2750,6 +2750,11 @@ export interface UiStrings {
     fullEditor: string;
     /** Shown in the "paid by" pop-up on a bill several people paid for. */
     severalPayersHint: string;
+    /** The Paid by pop-up when several people paid. */
+    peoplePaid: PluralForms;
+    splitAcrossPayments: string;
+    viewDetails: string;
+    hideDetails: string;
     /** Title of the amount pop-up on the expense screen. */
     amountTitle: string;
     history: string;
@@ -6119,6 +6124,10 @@ const en: UiStrings = {
     detailTapHint: 'Double tap to change',
     fullEditor: 'Full editor',
     severalPayersHint: 'Several people paid for this. Change who paid what in the full editor.',
+    peoplePaid: { one: '{n} person paid', other: '{n} people paid' },
+    splitAcrossPayments: 'Split across several payments',
+    viewDetails: 'View details',
+    hideDetails: 'Hide details',
     amountTitle: 'Amount',
     history: 'History',
     restore: 'Restore this expense',
@@ -9492,6 +9501,10 @@ const ta: UiStrings = {
     detailTapHint: 'Double tap to change',
     fullEditor: 'Full editor',
     severalPayersHint: 'Several people paid for this. Change who paid what in the full editor.',
+    peoplePaid: { one: '{n} பேர் கொடுத்தார்', other: '{n} பேர் கொடுத்தார்கள்' },
+    splitAcrossPayments: 'பல கொடுப்பனவுகளாகப் பிரிக்கப்பட்டது',
+    viewDetails: 'விவரங்கள்',
+    hideDetails: 'மறை',
     amountTitle: 'Amount',
     history: 'வரலாறு',
     restore: 'இந்தச் செலவை மீட்டெடு',
@@ -12856,6 +12869,10 @@ const hi: UiStrings = {
     detailTapHint: 'Double tap to change',
     fullEditor: 'Full editor',
     severalPayersHint: 'Several people paid for this. Change who paid what in the full editor.',
+    peoplePaid: { one: '{n} व्यक्ति ने दिया', other: '{n} लोगों ने दिया' },
+    splitAcrossPayments: 'कई भुगतानों में बँटा',
+    viewDetails: 'विवरण देखें',
+    hideDetails: 'छिपाएँ',
     amountTitle: 'Amount',
     history: 'इतिहास',
     restore: 'यह खर्च वापस लाएँ',
@@ -16364,6 +16381,17 @@ const ar: UiStrings = {
     detailTapHint: 'Double tap to change',
     fullEditor: 'Full editor',
     severalPayersHint: 'Several people paid for this. Change who paid what in the full editor.',
+    peoplePaid: {
+      zero: 'لم يدفع أحد',
+      one: 'دفع شخص واحد',
+      two: 'دفع شخصان',
+      few: 'دفع {n} أشخاص',
+      many: 'دفع {n} شخصًا',
+      other: 'دفع {n} شخص',
+    },
+    splitAcrossPayments: 'مقسّمة على عدة دفعات',
+    viewDetails: 'عرض التفاصيل',
+    hideDetails: 'إخفاء التفاصيل',
     amountTitle: 'Amount',
     history: 'السجل',
     restore: 'استرجاع هذا المصروف',
