@@ -1526,6 +1526,12 @@ export interface UiStrings {
     owedByCount: PluralForms;
     /** The friends balance card's subline, how many friends you owe. */
     owingCount: PluralForms;
+    /** The green "owed to you" pill's short label, beside its own figure —
+     *  distinct from `owedByCount`'s full sentence, which the subline above
+     *  the figure still uses. */
+    pillOwed: PluralForms;
+    /** The red "you owe" pill's short label. */
+    pillOwing: PluralForms;
     /** Headline card label over the overall per-currency balances. */
     overall: string;
     /** Headline line when a currency's overall net is in your favour. */
@@ -5176,6 +5182,8 @@ const en: UiStrings = {
     youOweThem: 'You owe',
     owedByCount: { one: 'You are owed by {n} friend', other: 'You are owed by {n} friends' },
     owingCount: { one: 'You owe {n} friend', other: 'You owe {n} friends' },
+    pillOwed: { one: '{n} owes you', other: '{n} owe you' },
+    pillOwing: { one: 'You owe {n}', other: 'You owe {n}' },
     overall: 'Overall',
     youAreOwed: 'You’re owed',
     nobodyOwesYou: 'Nobody owes you anything right now.',
@@ -8514,6 +8522,14 @@ const ta: UiStrings = {
     owingCount: {
       one: '{n} நண்பருக்கு நீங்கள் தர வேண்டும்',
       other: '{n} நண்பர்களுக்கு நீங்கள் தர வேண்டும்',
+    },
+    pillOwed: {
+      one: '{n} பேர் உங்களுக்குத் தர வேண்டும்',
+      other: '{n} பேர் உங்களுக்குத் தர வேண்டும்',
+    },
+    pillOwing: {
+      one: 'நீங்கள் {n} பேருக்குத் தர வேண்டும்',
+      other: 'நீங்கள் {n} பேருக்குத் தர வேண்டும்',
     },
     overall: 'மொத்தம்',
     youAreOwed: 'உங்களுக்கு வர வேண்டியது',
@@ -11931,6 +11947,8 @@ const hi: UiStrings = {
       one: 'आप {n} मित्र को देने वाले हैं',
       other: 'आप {n} मित्रों को देने वाले हैं',
     },
+    pillOwed: { one: '{n} आपको देने वाला है', other: '{n} आपको देने वाले हैं' },
+    pillOwing: { one: 'आप {n} को देने वाले हैं', other: 'आप {n} को देने वाले हैं' },
     overall: 'कुल मिलाकर',
     youAreOwed: 'आपको मिलने हैं',
     nobodyOwesYou: 'अभी किसी पर आपका कुछ बाकी नहीं है।',
@@ -15313,6 +15331,22 @@ const ar: UiStrings = {
       few: 'تدين لـ {n} أصدقاء',
       many: 'تدين لـ {n} صديقًا',
       other: 'تدين لـ {n} صديق',
+    },
+    pillOwed: {
+      zero: 'لا أحد يدين لك',
+      one: 'صديق يدين لك',
+      two: 'صديقان يدينان لك',
+      few: '{n} يدينون لك',
+      many: '{n} يدينون لك',
+      other: '{n} يدين لك',
+    },
+    pillOwing: {
+      zero: 'لا تدين لأحد',
+      one: 'تدين لواحد',
+      two: 'تدين لاثنين',
+      few: 'تدين لـ {n}',
+      many: 'تدين لـ {n}',
+      other: 'تدين لـ {n}',
     },
     overall: 'الإجمالي',
     youAreOwed: 'لك عندهم',

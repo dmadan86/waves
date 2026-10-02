@@ -32,6 +32,7 @@ import {
 import { FlashList, useRecyclingState } from '@shopify/flash-list';
 import Reanimated, { LinearTransition } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Circle, Path } from 'react-native-svg';
 
 import {
   Button,
@@ -50,13 +51,14 @@ import {
   MODAL_ORIENTATIONS,
 } from '@waves/ui';
 
-import { balanceDirection, copyFor, moneyAccessibilityLabel } from '@waves/core';
+import { balanceDirection, copyFor, currencySymbol, moneyAccessibilityLabel } from '@waves/core';
 
 import { type PersonBalanceRow } from '@/data/api';
 import { sendNudge } from '@/lib/nudge';
 import { useBlockedUsers } from '@/data/blocked';
 import { defaultMergeName } from '@/data/mergePeople';
-import { useKnownPeopleCount, usePeopleBalances } from '@/data/hooks';
+import { useGroups, useHomeSummary, useKnownPeopleCount, usePeopleBalances } from '@/data/hooks';
+import { groupLabel } from '@/data/types';
 import { useAuth } from '@/lib/auth';
 import {
   commonOnlyGroupId,
@@ -74,6 +76,7 @@ import { useReducedMotion } from '@/lib/reducedMotion';
 import { useAvatarUrl } from '@/components/ProfileAvatar';
 import { GlassSurface } from '@/components/home/GlassSurface';
 import { HeroScene } from '@/components/home/HeroScene';
+import { SettlePickerSheet, type SettleCandidate } from '@/components/home/SettlePickerSheet';
 import { SplitMoney } from '@/components/SplitMoney';
 import { useHeroCrossfade, useHeroStatusBar } from '@/components/ScreenHero';
 import { PeopleSkeleton } from '@/components/Skeletons';
@@ -272,6 +275,31 @@ export default function FriendsScreen() {
   // they want opposite screens — see `EmptyFriends`.
   const known = useKnownPeopleCount(profile?.id ?? null);
 
+  // Settle up from Friends asks which group first, the same picker Home's own
+  // quick action opens — settling happens inside a group, never here, so there
+  // is no second flow to keep in step with the dashboard's.
+  const groups = useGroups();
+  const homeSummary = useHomeSummary(profile?.id ?? null);
+  const [settleOpen, setSettleOpen] = useState(false);
+  const settleCandidates: SettleCandidate[] = useMemo(
+    () =>
+      groups.data
+        .map((group) => ({
+          id: group.id,
+          title: groupLabel(group, homeSummary.membersFor(group.id), profile?.id ?? null),
+          coverEmoji: group.cover_emoji,
+          balance: homeSummary.balanceFor(group.id),
+          currency: group.default_currency,
+        }))
+        .filter((group) => group.balance !== 0n)
+        .sort((a, b) => {
+          const size = (x: bigint) => (x < 0n ? -x : x);
+          const d = size(b.balance) - size(a.balance);
+          return d > 0n ? 1 : d < 0n ? -1 : 0;
+        }),
+    [groups.data, homeSummary, profile?.id],
+  );
+
   // Which guests look like the same person seen twice — the only thing merge is
   // for. Surfaced as a slim strip that points at the actual duplicates (and
   // marks their rows), not a paragraph that fired on any two guests at all.
@@ -434,13 +462,11 @@ export default function FriendsScreen() {
         persons={persons}
         locale={locale}
         t={t}
-        sortKey={sortKey}
-        sortDir={sortDir}
         onAdd={(anchor) => {
           setAddAnchor(anchor);
           setAddOpen(true);
         }}
-        onSort={() => setSortOpen(true)}
+        onSettleUp={() => setSettleOpen(true)}
         duplicateCount={duplicates.count >= 2 && !selectMode ? duplicates.count : 0}
         onDuplicates={openDuplicates}
         selectMode={selectMode}
@@ -461,14 +487,21 @@ export default function FriendsScreen() {
         t={t}
       />
 
-      {/* Only this scrolls — the list, beneath the fixed header. It runs to the
-          foot of the screen and under the bottom bar, the way Home's groups do:
-          the rows scroll behind the bar, and the clearance is paid on the
-          content, so at the end of the list the card's rounded foot comes to
-          rest above the bar. Boxing the card short of the bar instead left a
-          band of empty background under the last row at every scroll position.
-          The card is drawn per row (the first rounds the top, the last rounds
-          the foot) so it scrolls inside the FlashList instead of clipping it. */}
+      <SettlePickerSheet
+        visible={settleOpen}
+        onClose={() => setSettleOpen(false)}
+        groups={settleCandidates}
+      />
+
+      {/* Only this scrolls — the list, beneath the fixed scene, card and the
+          "Your friends" + sort row. It runs to the foot of the screen and
+          under the bottom bar, the way Home's groups do: the rows scroll
+          behind the bar, and the clearance is paid on the content, so at the
+          end of the list the card's rounded foot comes to rest above the bar.
+          Boxing the card short of the bar instead left a band of empty
+          background under the last row at every scroll position. The card is
+          drawn per row (the first rounds the top, the last rounds the foot)
+          so it scrolls inside the FlashList instead of clipping it. */}
       <Reanimated.View
         layout={reduceMotion ? undefined : LinearTransition.duration(160)}
         style={{ flex: 1 }}
@@ -490,71 +523,80 @@ export default function FriendsScreen() {
             <EmptyFriends hasPeople={known.data > 0} t={t} />
           </View>
         ) : (
-          // The only virtualized list on this screen — same FlashList setup the
-          // group ledger uses (recycled rows, a wide draw distance so a fast fling
-          // never outruns recycling into blank rows).
-          <FlashList
-            data={persons}
-            // Selection state lives outside the row data, so the list has to be
-            // told to re-render its rows when it changes (the tick, the fill).
-            // The length rides along because the last row draws the card's foot.
-            extraData={`${selectMode}|${[...selectedKeys].join(',')}|${locale}|${theme.scheme}|${persons.length}`}
-            keyExtractor={(item) => item.person_key}
-            // A single-currency row and a multi-currency (stacked amounts) row are
-            // structurally different subtrees; typing them lets FlashList recycle
-            // like with like rather than reflowing one shape into the other.
-            getItemType={(item) => (item.entries.length === 1 ? 'single' : 'multi')}
-            drawDistance={1500}
-            // "Your friends" and the link across to the groups list — scrolls
-            // with the rows rather than floating as a sibling above the list.
-            ListHeaderComponent={<FriendsListHeader t={t} />}
-            contentContainerStyle={{
-              paddingHorizontal: theme.spacing.lg,
-              paddingTop: theme.spacing.lg,
-              paddingBottom: clearance,
-            }}
-            showsVerticalScrollIndicator={false}
-            refreshControl={
-              <RefreshControl
-                refreshing={pull.refreshing}
-                onRefresh={pull.onRefresh}
-                tintColor={theme.color.brand}
-              />
-            }
-            renderItem={({ item, index }) => {
-              const first = index === 0;
-              const last = index === persons.length - 1;
-              return (
-                <View
-                  style={{
-                    backgroundColor: theme.color.surface,
-                    borderColor: theme.color.border,
-                    borderLeftWidth: 1,
-                    borderRightWidth: 1,
-                    borderTopWidth: first ? 1 : 0,
-                    borderBottomWidth: last ? 1 : 0,
-                    borderTopLeftRadius: first ? theme.radius.lg : 0,
-                    borderTopRightRadius: first ? theme.radius.lg : 0,
-                    borderBottomLeftRadius: last ? theme.radius.lg : 0,
-                    borderBottomRightRadius: last ? theme.radius.lg : 0,
-                    overflow: 'hidden',
-                  }}
-                >
-                  <PersonRow
-                    person={item}
-                    locale={locale}
-                    t={t}
-                    divider={!first}
-                    duplicate={duplicates.keys.has(item.person_key)}
-                    selectMode={selectMode}
-                    selected={selectedKeys.has(item.person_key)}
-                    onEnterSelect={enterSelect}
-                    onToggleSelect={toggleSelect}
-                  />
-                </View>
-              );
-            }}
-          />
+          // "Your friends" and its sort pill stay put — only the FlashList
+          // below them (flex: 1) scrolls.
+          <View style={{ flex: 1 }}>
+            <FriendsListHeader
+              t={t}
+              sortKey={sortKey}
+              sortDir={sortDir}
+              onSort={() => setSortOpen(true)}
+            />
+            {/* The only virtualized list on this screen — same FlashList setup
+                the group ledger uses (recycled rows, a wide draw distance so a
+                fast fling never outruns recycling into blank rows). */}
+            <FlashList
+              data={persons}
+              // Selection state lives outside the row data, so the list has to
+              // be told to re-render its rows when it changes (the tick, the
+              // fill). The length rides along because the last row draws the
+              // card's foot.
+              extraData={`${selectMode}|${[...selectedKeys].join(',')}|${locale}|${theme.scheme}|${persons.length}`}
+              keyExtractor={(item) => item.person_key}
+              // A single-currency row and a multi-currency (stacked amounts) row
+              // are structurally different subtrees; typing them lets FlashList
+              // recycle like with like rather than reflowing one shape into the
+              // other.
+              getItemType={(item) => (item.entries.length === 1 ? 'single' : 'multi')}
+              drawDistance={1500}
+              contentContainerStyle={{
+                paddingHorizontal: theme.spacing.lg,
+                paddingTop: theme.spacing.sm,
+                paddingBottom: clearance,
+              }}
+              showsVerticalScrollIndicator={false}
+              refreshControl={
+                <RefreshControl
+                  refreshing={pull.refreshing}
+                  onRefresh={pull.onRefresh}
+                  tintColor={theme.color.brand}
+                />
+              }
+              renderItem={({ item, index }) => {
+                const first = index === 0;
+                const last = index === persons.length - 1;
+                return (
+                  <View
+                    style={{
+                      backgroundColor: theme.color.surface,
+                      borderColor: theme.color.border,
+                      borderLeftWidth: 1,
+                      borderRightWidth: 1,
+                      borderTopWidth: first ? 1 : 0,
+                      borderBottomWidth: last ? 1 : 0,
+                      borderTopLeftRadius: first ? theme.radius.lg : 0,
+                      borderTopRightRadius: first ? theme.radius.lg : 0,
+                      borderBottomLeftRadius: last ? theme.radius.lg : 0,
+                      borderBottomRightRadius: last ? theme.radius.lg : 0,
+                      overflow: 'hidden',
+                    }}
+                  >
+                    <PersonRow
+                      person={item}
+                      locale={locale}
+                      t={t}
+                      divider={!first}
+                      duplicate={duplicates.keys.has(item.person_key)}
+                      selectMode={selectMode}
+                      selected={selectedKeys.has(item.person_key)}
+                      onEnterSelect={enterSelect}
+                      onToggleSelect={toggleSelect}
+                    />
+                  </View>
+                );
+              }}
+            />
+          </View>
         )}
       </Reanimated.View>
     </Screen>
@@ -571,9 +613,11 @@ export default function FriendsScreen() {
  *
  * What rides on it is still Friends' own: "Net receivable" (or payable, or
  * settled), how many friends that is, the eye that hides it — the same
- * switch Home's balance wears, one shared preference — and three actions
- * this screen already had (add a person, sort, merge likely duplicates),
- * drawn as the lavender discs the mockup asks for rather than invented ones.
+ * switch Home's balance wears — and three actions, drawn as the lavender
+ * discs the mockup asks for: add a person, settle up (Home's own group
+ * picker, so the two tabs open the identical flow), and merge likely
+ * duplicates. Sort moved off this strip onto the "Your friends" row below,
+ * where it now lives beside the list it orders.
  *
  * Merge selection is a mode *inside* the title row, not a replacement for
  * it: `useHeroCrossfade` — the same 150ms ease Review's own balance-figure
@@ -587,10 +631,8 @@ function FriendsScene({
   persons,
   locale,
   t,
-  sortKey,
-  sortDir,
   onAdd,
-  onSort,
+  onSettleUp,
   duplicateCount,
   onDuplicates,
   selectMode,
@@ -604,11 +646,10 @@ function FriendsScene({
   persons: readonly PersonGroup[];
   locale: string;
   t: UiStrings;
-  sortKey: SortKey;
-  sortDir: SortDir;
   /** Opens the add menu, told where the tile is so the menu drops from it. */
   onAdd: (anchor: MenuAnchor | null) => void;
-  onSort: () => void;
+  /** Opens the same group picker Home's own Settle up quick action does. */
+  onSettleUp: () => void;
   /** Likely duplicate guests; 0 hides the badge. */
   duplicateCount: number;
   onDuplicates: () => void;
@@ -757,9 +798,7 @@ function FriendsScene({
                 <FriendsQuickActions
                   addTileRef={addTileRef}
                   onAdd={openAdd}
-                  sortKey={sortKey}
-                  sortDir={sortDir}
-                  onSort={onSort}
+                  onSettleUp={onSettleUp}
                   duplicateCount={duplicateCount}
                   onMerge={onDuplicates}
                   t={t}
@@ -785,13 +824,17 @@ const SCENE_INTO_CARD = 0.72;
 /**
  * The balance card's body: "Net receivable" (or payable, or settled), the eye,
  * the big figure with its paise drawn lighter (`SplitMoney`, the same figure
- * Home's own balance card and group rows use), how many friends that is, and
- * a soft lavender pair of faces on the shoulder — drawn, not an image asset.
+ * Home's own balance card and group rows use), how many friends that is, a
+ * soft lavender wallet on the shoulder — drawn, not an image asset — and, under
+ * all of that, the two directions as their own tinted pills.
  *
- * Never a total across currencies (ADR-003) or across directions: the
- * headline leads with whichever direction has the bigger currency to show
- * (owed first, the happier half), and the other direction — when both exist —
- * still gets its own quiet line rather than disappearing into a folded net.
+ * Never a total across currencies (ADR-003): the headline leads with whichever
+ * direction has the bigger currency to show (owed first, the happier half),
+ * and each pill below states its own direction's *head* currency rather than
+ * folding two currencies into one figure. A person holding more currencies
+ * than that still reads correctly — the pill says the biggest, as the old
+ * secondary line did — it is just no longer spelled out underneath it, which
+ * is what kept this compact.
  */
 function FriendsBalanceCard({
   rows,
@@ -817,7 +860,11 @@ function FriendsBalanceCard({
   const theme = useTheme();
   const deck = directionGroups(totals);
   const primary = deck[0] ?? null;
-  const secondary = deck[1] ?? null;
+  // The two pills, independent of which direction leads the headline: one
+  // slot for "owed to you", one for "you owe", each null when nobody stands in
+  // that direction (which hides its pill below).
+  const owedGroup = deck.find((group) => group.owed) ?? null;
+  const owingGroup = deck.find((group) => !group.owed) ?? null;
 
   const label =
     primary === null ? t.allSettled : primary.owed ? t.dashHero.netOwed : t.dashHero.netOwe;
@@ -833,8 +880,17 @@ function FriendsBalanceCard({
     subline = plural(locale, friendCount, primary.owed ? t.tabs.owedByCount : t.tabs.owingCount);
   }
 
+  const owedCount = owedGroup ? personCountByDirection(rows, owedGroup.head.currency).owed : 0;
+  const owingCount = owingGroup ? personCountByDirection(rows, owingGroup.head.currency).owing : 0;
+
   return (
-    <View style={{ paddingTop: theme.spacing.md, paddingBottom: theme.spacing.md }}>
+    <View
+      style={{
+        paddingTop: theme.spacing.md,
+        paddingBottom: theme.spacing.md,
+        gap: theme.spacing.md,
+      }}
+    >
       <Row
         style={{ alignItems: 'center', gap: theme.spacing.lg, paddingHorizontal: theme.spacing.lg }}
       >
@@ -878,48 +934,35 @@ function FriendsBalanceCard({
               {subline}
             </Text>
           ) : null}
-          {/* The same direction's other currencies — never summed into the
-              headline, just counted underneath it (ADR-003). */}
-          {!loading && !hidden && primary && primary.rest.length > 0 ? (
-            <Row style={{ flexWrap: 'wrap', columnGap: theme.spacing.sm, marginTop: 2 }}>
-              {primary.rest.map((total) => (
-                <MoneyText
-                  key={total.currency}
-                  amount={absBig(total.net)}
-                  currency={total.currency}
-                  locale={locale}
-                  variant="caption"
-                  tone="muted"
-                />
-              ))}
-            </Row>
-          ) : null}
-          {/* The direction the net figure omits, when it also exists — a
-              balance that runs both ways always says so, in words rather
-              than disappearing into one folded number. */}
-          {!loading && !hidden && secondary ? (
-            <Row style={{ alignItems: 'center', gap: 4, marginTop: 2 }}>
-              <Ionicons
-                name={secondary.owed ? 'arrow-up' : 'arrow-down'}
-                size={iconSize.xs}
-                color={secondary.owed ? theme.color.positive : theme.color.negative}
-              />
-              <Text variant="caption" tone="muted" numberOfLines={1}>
-                {secondary.owed ? t.dashHero.owedToYou : t.dashHero.owedByYou}
-              </Text>
-              <MoneyText
-                amount={absBig(secondary.head.net)}
-                currency={secondary.head.currency}
-                locale={locale}
-                variant="caption"
-                mode="plain"
-                style={{ fontWeight: '700' }}
-              />
-            </Row>
-          ) : null}
         </View>
-        <TwoPeopleArt />
+        <WalletArt currency={figureCurrency} locale={locale} />
       </Row>
+      {/* Each direction as its own pill — green-tinted "owed to you", red-tinted
+          "you owe" — rather than the old single quiet line for whichever
+          direction the headline figure omitted. A direction with nobody in it
+          has no pill at all. */}
+      {!loading && !hidden && (owedGroup || owingGroup) ? (
+        <Row style={{ gap: theme.spacing.sm, paddingHorizontal: theme.spacing.lg }}>
+          {owedGroup ? (
+            <BalancePill
+              icon="arrow-up"
+              label={plural(locale, owedCount, t.tabs.pillOwed)}
+              net={owedGroup.head.net}
+              currency={owedGroup.head.currency}
+              locale={locale}
+            />
+          ) : null}
+          {owingGroup ? (
+            <BalancePill
+              icon="arrow-down"
+              label={plural(locale, owingCount, t.tabs.pillOwing)}
+              net={owingGroup.head.net}
+              currency={owingGroup.head.currency}
+              locale={locale}
+            />
+          ) : null}
+        </Row>
+      ) : null}
       {footer}
     </View>
   );
@@ -931,24 +974,127 @@ const BALANCE_MASK = '••••••';
 const AMOUNT_STYLE = { fontSize: 30, lineHeight: 36, fontWeight: '800' } as const;
 
 /**
- * The soft lavender pair of faces on the balance card's shoulder — two
- * overlapping circles wearing the app's own lilac tint, built from Views and
- * an Ionicon rather than an image asset. The exact mark `NoFriendsHero` below
- * draws for the empty screen (`Face`), reused here at a smaller size so the
- * same "two people" shape says the same thing in both places.
+ * One direction's own pill: a round tinted disc carrying an up or down arrow,
+ * a short label ("17 owe you", "You owe 3") and that direction's own figure
+ * underneath it, both in the direction's money colour (`MoneyText`'s own
+ * `mode="balance"`, the same rule every other balance on this screen obeys —
+ * owed-to-you blue, you-owe red; ADR's palette has no green to borrow instead).
  */
-function TwoPeopleArt(): React.JSX.Element {
+function BalancePill({
+  icon,
+  label,
+  net,
+  currency,
+  locale,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  net: bigint;
+  currency: string;
+  locale: string;
+}): React.JSX.Element {
+  const theme = useTheme();
+  const owed = net > 0n;
+  const soft = owed ? theme.color.positiveSoft : theme.color.negativeSoft;
+  const ink = owed ? theme.color.positive : theme.color.negative;
+  return (
+    <View
+      style={{
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.sm,
+        padding: theme.spacing.sm,
+        borderRadius: theme.radius.lg,
+        backgroundColor: soft,
+      }}
+    >
+      <View
+        style={{
+          width: 28,
+          height: 28,
+          borderRadius: 14,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: theme.color.surface,
+        }}
+      >
+        <Ionicons name={icon} size={14} color={ink} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text variant="micro" numberOfLines={1} style={{ fontWeight: '700', color: ink }}>
+          {label}
+        </Text>
+        <MoneyText
+          amount={net}
+          currency={currency}
+          locale={locale}
+          mode="balance"
+          variant="body"
+          numberOfLines={1}
+          style={{ fontWeight: '800' }}
+        />
+      </View>
+    </View>
+  );
+}
+
+/** The wallet illustration's box — a touch wider than tall so the coins have
+ *  room to spill past its top-right corner. */
+const WALLET_W = 58;
+const WALLET_H = 56;
+
+/**
+ * The soft lavender wallet on the balance card's shoulder: a rounded billfold
+ * wearing the app's own lilac tint, a fold line where its flap sits, a couple
+ * of warm "gold" coins (the peach tint — the palette has no literal gold or
+ * green) spilling off its corner, and the viewer's own currency symbol on its
+ * face, drawn with `react-native-svg` rather than an image asset so it themes
+ * itself for free. Replaces the old two-people mark, which the empty screen's
+ * own `NoFriendsHero` still draws for itself below (`Face`).
+ */
+function WalletArt({ currency, locale }: { currency: string; locale: string }): React.JSX.Element {
   const theme = useTheme();
   const lilac = theme.tint.lilac;
-  const D = 40;
+  const peach = theme.tint.peach;
+  const symbol = currencySymbol(currency, locale);
   return (
     <View
       accessible={false}
       importantForAccessibility="no-hide-descendants"
-      style={{ width: D * 1.6, height: D }}
+      style={{ width: WALLET_W, height: WALLET_H }}
     >
-      <Face x={0} d={D} bg={lilac.bg} ink={lilac.ink} borderColor={theme.color.surface} />
-      <Face x={D * 0.6} d={D} bg={lilac.bg} ink={lilac.ink} borderColor={theme.color.surface} />
+      <Svg width={WALLET_W} height={WALLET_H} viewBox={`0 0 ${WALLET_W} ${WALLET_H}`}>
+        {/* Two small leaves tucked behind the wallet's shoulder — a stylised
+            shape rather than a literal green, which the palette does not
+            carry (see tokens.ts). */}
+        <Path d="M2 20 C 8 12, 18 12, 20 20 C 14 24, 6 24, 2 20 Z" fill={lilac.bg} opacity={0.6} />
+        <Path d="M0 28 C 6 22, 14 22, 16 28 C 10 32, 4 32, 0 28 Z" fill={lilac.bg} opacity={0.4} />
+        {/* The wallet itself: a rounded billfold with a fold line near the top. */}
+        <Path
+          d="M10 20 h38 a6 6 0 0 1 6 6 v20 a6 6 0 0 1 -6 6 h-38 a6 6 0 0 1 -6 -6 v-20 a6 6 0 0 1 6 -6 Z"
+          fill={lilac.bg}
+        />
+        <Path d="M10 30 h44" stroke={lilac.ink} strokeOpacity={0.25} strokeWidth={2} />
+        {/* Two coins spilling off the flap. */}
+        <Circle cx={44} cy={17} r={7} fill={peach.bg} stroke={peach.ink} strokeWidth={1.5} />
+        <Circle cx={35} cy={11} r={6} fill={peach.bg} stroke={peach.ink} strokeWidth={1.5} />
+      </Svg>
+      <Text
+        numberOfLines={1}
+        style={{
+          position: 'absolute',
+          left: 10,
+          right: 6,
+          top: 33,
+          textAlign: 'center',
+          fontSize: 18,
+          fontWeight: '800',
+          color: lilac.ink,
+        }}
+      >
+        {symbol}
+      </Text>
     </View>
   );
 }
@@ -956,18 +1102,18 @@ function TwoPeopleArt(): React.JSX.Element {
 /**
  * The round lavender quick-action row along the balance card's foot — the
  * same disc-and-label strip Home's own quick actions draw (a small tinted
- * disc over a one-line word, in equal columns), carrying the three actions
- * this screen already had rather than Home's four: add a person, sort the
- * list, and merge likely duplicates. Lilac rather than Home's brand-tinted
+ * disc over a one-line word, in equal columns): add a person, settle up (the
+ * same group picker Home's own "Settle up" opens), and merge likely
+ * duplicates. Sort used to be the middle tile here; it now lives beside "Your
+ * friends" below, next to the list it orders, so this row only ever carries
+ * actions rather than a view option. Lilac rather than Home's brand-tinted
  * discs, so the row reads as this card's own and matches the mockup's
  * "lavender" asks.
  */
 function FriendsQuickActions({
   addTileRef,
   onAdd,
-  sortKey,
-  sortDir,
-  onSort,
+  onSettleUp,
   duplicateCount,
   onMerge,
   t,
@@ -975,9 +1121,7 @@ function FriendsQuickActions({
 }: {
   addTileRef: React.RefObject<View | null>;
   onAdd: () => void;
-  sortKey: SortKey;
-  sortDir: SortDir;
-  onSort: () => void;
+  onSettleUp: () => void;
   duplicateCount: number;
   onMerge: () => void;
   t: UiStrings;
@@ -992,9 +1136,6 @@ function FriendsQuickActions({
     icon: keyof typeof Ionicons.glyphMap;
     onPress: () => void;
     badge?: number;
-    /** A small glyph on the disc's shoulder — the sort direction, the one
-     *  thing its icon alone cannot say. */
-    cornerIcon?: keyof typeof Ionicons.glyphMap;
     ref?: React.RefObject<View | null>;
   }[] = [
     {
@@ -1005,17 +1146,19 @@ function FriendsQuickActions({
       ref: addTileRef,
     },
     {
-      key: 'sort',
-      label: t.sort.by,
-      icon: SORT_META[sortKey].icon,
-      onPress: onSort,
-      cornerIcon: sortDir === SortDir.Asc ? 'arrow-up' : 'arrow-down',
+      key: 'settle',
+      label: t.homeDash.settleUp,
+      icon: 'cash-outline',
+      onPress: onSettleUp,
     },
     {
       key: 'merge',
       label: t.mergePeople.entry,
       icon: 'git-merge-outline',
       onPress: onMerge,
+      // Hidden at 0 or when the count is not yet known (`duplicateCount` is 0
+      // in both cases — see `findDuplicates`), never a "(0)" badge nobody asked
+      // to see.
       badge: duplicateCount,
     },
   ];
@@ -1085,27 +1228,6 @@ function FriendsQuickActions({
                     </Text>
                   </View>
                 ) : null}
-                {tile.cornerIcon ? (
-                  <View
-                    accessible={false}
-                    pointerEvents="none"
-                    style={{
-                      position: 'absolute',
-                      bottom: -2,
-                      right: -2,
-                      width: 14,
-                      height: 14,
-                      borderRadius: 7,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      backgroundColor: theme.color.surface,
-                      borderWidth: 1,
-                      borderColor: lilac.bg,
-                    }}
-                  >
-                    <Ionicons name={tile.cornerIcon} size={9} color={lilac.ink} />
-                  </View>
-                ) : null}
               </View>
               <Text
                 variant="micro"
@@ -1128,42 +1250,67 @@ function FriendsQuickActions({
 const DISC = 34;
 
 /**
- * The list's own section header — "Your friends", with a "View groups" link
- * across to the groups list (`router.navigate('/groups')`, the same route
- * Home's own "All groups" link opens). A `ListHeaderComponent` rather than a
- * sibling above the `FlashList`, so it scrolls with the rows instead of
- * floating over them.
+ * The list's own section header — "Your friends" on the left, the sort
+ * control on the right. The "View groups" link that used to sit here is gone
+ * (the list is the whole of this screen now; a detour to the groups list has
+ * nowhere better to put itself), and sort moved up from the balance card's
+ * quick-action strip to sit beside the thing it actually orders.
+ *
+ * A fixed sibling above the `FlashList` rather than its `ListHeaderComponent`:
+ * this row, the scene and the card all stay put while only the rows beneath
+ * them scroll.
  */
-function FriendsListHeader({ t }: { t: UiStrings }): React.JSX.Element {
+function FriendsListHeader({
+  t,
+  sortKey,
+  sortDir,
+  onSort,
+}: {
+  t: UiStrings;
+  sortKey: SortKey;
+  sortDir: SortDir;
+  onSort: () => void;
+}): React.JSX.Element {
   const theme = useTheme();
   return (
     <Row
       style={{
         alignItems: 'center',
         justifyContent: 'space-between',
+        paddingHorizontal: theme.spacing.lg,
+        paddingTop: theme.spacing.lg,
         paddingBottom: theme.spacing.sm,
       }}
     >
-      <Text variant="subheading">{t.yourFriends}</Text>
+      <Text variant="subheading" style={{ fontWeight: '800' }}>
+        {t.yourFriends}
+      </Text>
       <Pressable
-        onPress={() => router.navigate('/groups')}
+        onPress={onSort}
         accessibilityRole="button"
-        accessibilityLabel={t.viewGroups}
+        accessibilityLabel={`${t.sort.by}: ${sortLabel(sortKey, t)}`}
         hitSlop={8}
         style={({ pressed }) => ({
           flexDirection: 'row',
           alignItems: 'center',
-          gap: 2,
-          opacity: pressed ? 0.5 : 1,
+          gap: 4,
+          height: 32,
+          paddingHorizontal: theme.spacing.md,
+          borderRadius: theme.radius.pill,
+          backgroundColor: theme.color.surface,
+          borderWidth: 1,
+          borderColor: theme.color.border,
+          opacity: pressed ? 0.7 : 1,
         })}
       >
-        <Text variant="caption" tone="brand" style={{ fontWeight: '700' }}>
-          {t.viewGroups}
+        <Ionicons name="reorder-three-outline" size={iconSize.sm} color={theme.color.textMuted} />
+        <Text variant="caption" numberOfLines={1} style={{ fontWeight: '600' }}>
+          {t.sort.by}: {sortLabel(sortKey, t)}
         </Text>
         <Ionicons
-          name={directionalIcon('chevron-forward')}
-          size={iconSize.md}
-          color={theme.color.brand}
+          name={sortDir === SortDir.Asc ? 'chevron-up' : 'chevron-down'}
+          size={iconSize.sm}
+          color={theme.color.textMuted}
         />
       </Pressable>
     </Row>
