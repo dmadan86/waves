@@ -2,12 +2,14 @@
  * The "Me" tab — the private personal-finance ledger (A48).
  *
  * A person's own money, nothing shared. It wears Home's clothes: the time of
- * day's scene runs up under the status bar, carrying the section's name, this
- * month's spend big with how it compares to last month, and a month picker;
- * the month's three figures (income, spent, what is left) sit on glass over the
- * scene's foot. Below, on the plain page, the month reads top-down the way a
- * person scans it: the budget, what is still due, the top categories, the
- * latest spends, and the money tools (recurring bills and loans).
+ * day's scene runs up under the status bar, carrying just the section's name
+ * and its face; one white card rides up over the scene's foot — on glass,
+ * blended into it exactly like Home's balance card — carrying this month's
+ * spend big with how it compares to last month, a short bar history, the
+ * month picker, and the three figures beneath it (income, spent, what is
+ * left). Below, on the plain page, the month reads top-down the way a person
+ * scans it: the budget, what is still due, the top categories, the latest
+ * spends, and the money tools (recurring bills and loans).
  *
  * Everything is local-first from the mirror and every figure is computed on
  * the device.
@@ -21,12 +23,15 @@
  */
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { BlurTargetView } from 'expo-blur';
 import { Animated, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import {
+  cashflowTrend,
   categoryBreakdown,
   dueInMonth,
   format,
@@ -34,6 +39,7 @@ import {
   money,
   monthOutlook,
   personalBudgetProgress,
+  recentMonths,
   resolveCategory,
   spendDelta,
   worstOverBudget,
@@ -57,6 +63,7 @@ import {
 
 import { CategoryBadge } from '@/components/Category';
 import { GlassSurface } from '@/components/home/GlassSurface';
+import { BALANCE_MASK } from '@/components/home/HomeBalanceCard';
 import { HeroAvatar, HeroIconButton } from '@/components/home/HeroControls';
 import { PersonalHeroBackground } from '@/components/home/PersonalHeroBackground';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
@@ -89,6 +96,40 @@ const SAVED_WASH = ['#1E5A8C', '#0C2E4A'] as const;
 // One faint watermark glyph, bled off the hero's corner.
 const HERO_GLYPH = 'wallet-outline' as const;
 
+/** The AsyncStorage key remembering whether the dashboard's figures are
+ *  hidden behind the eye — its own key, so it is independent of Home's. */
+const AMOUNTS_HIDDEN_KEY = 'personal:amountsHidden';
+
+/**
+ * The eye toggle's state, remembered across opens — the same shape as Home's
+ * `useBalanceHidden`, kept local because this ledger's figures are a separate
+ * concern from the shared dashboard's balance. Reads once on mount so a
+ * hidden month stays hidden after a relaunch, and writes on every toggle.
+ * Defaults to shown.
+ */
+function usePersonalAmountsHidden(): { hidden: boolean; toggle: () => void } {
+  const [hidden, setHidden] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    AsyncStorage.getItem(AMOUNTS_HIDDEN_KEY)
+      .then((value) => {
+        if (alive && value === '1') setHidden(true);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+  const toggle = useCallback(() => {
+    setHidden((was) => {
+      const next = !was;
+      void AsyncStorage.setItem(AMOUNTS_HIDDEN_KEY, next ? '1' : '0').catch(() => {});
+      return next;
+    });
+  }, []);
+  return { hidden, toggle };
+}
+
 /**
  * The account wall stands outside the ledger, not inside it: a guest session
  * cannot be signed back into, so a year of private spending kept under one is a
@@ -114,6 +155,9 @@ function MeLedger() {
   const avatarUrl = useAvatarUrl(profile?.avatar_url);
   const ledger = usePersonalLedger();
   const upsert = useUpsertPersonalRecord();
+  // The eye on the summary card: masks every figure on it (and the three
+  // tiles beneath it), the same privacy the dashboard's own eye gives Home.
+  const { hidden: amountsHidden, toggle: toggleAmountsHidden } = usePersonalAmountsHidden();
 
   // The Me tab is the home of the private personal ledger — ask for biometrics
   // on entry and keep the screen a shield until it succeeds (below), so the
@@ -151,8 +195,8 @@ function MeLedger() {
   // down to the lower part of the month tiles, its shade ending where they
   // begin.
   const sceneRef = useRef<View>(null);
-  const [heroHeight, setHeroHeight] = useState(insets.top + 220);
-  const [tilesHeight, setTilesHeight] = useState(110);
+  const [heroHeight, setHeroHeight] = useState(insets.top + 120);
+  const [tilesHeight, setTilesHeight] = useState(260);
   const tilesTop = heroHeight - HERO_OVERLAP;
   const sceneHeight = tilesTop + tilesHeight * 0.72;
 
@@ -193,6 +237,15 @@ function MeLedger() {
   const delta = spendDelta(ledger.txns, month, dc);
   const change =
     delta && delta.prevExpense > 0n ? Number((delta.delta * 1000n) / delta.prevExpense) / 10 : null;
+
+  // The last few months' spend, ending at the browsed month — the faint bars
+  // behind the headline figure. Short on history (a fresh ledger), it is just
+  // shorter; the chart never invents months that never happened.
+  const spendHistory = cashflowTrend(
+    ledger.txns,
+    recentMonths(month, SPEND_HISTORY_MONTHS),
+    dc,
+  ).map((entry) => entry.expense);
 
   // The overall monthly cap, when one is set, and how far into it the month is.
   const overallBudget = ledger.budgets.find(
@@ -388,42 +441,6 @@ function MeLedger() {
               onPress={() => setGearOpen(true)}
             />
           </Row>
-
-          {/* The month's spend, big, with how it compares to the month before;
-              the month itself is a picker on the right. */}
-          <Row style={{ alignItems: 'flex-start', gap: theme.spacing.md }}>
-            <View style={{ flex: 1, minWidth: 0, gap: theme.spacing.xs }}>
-              <Text variant="body" tone="onBrand" numberOfLines={1} style={{ opacity: 0.9 }}>
-                {monthsBack === 0
-                  ? t.personal.dash.totalSpentThisMonth
-                  : fill(t.personal.dash.totalSpentIn, { month: monthLabel(month, locale) })}
-              </Text>
-              <Text
-                tone="onBrand"
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                minimumFontScale={0.6}
-                style={{ fontSize: 38, lineHeight: 46, fontWeight: '800' }}
-              >
-                {fmt(summary.expense)}
-              </Text>
-              {change !== null ? (
-                <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-                  <ChangePill change={change} />
-                  <Text variant="caption" tone="onBrand" numberOfLines={1} style={{ opacity: 0.9 }}>
-                    {fill(t.personal.dash.vsMonth, {
-                      month: monthShortYear(shiftMonth(month, -1), locale),
-                    })}
-                  </Text>
-                </Row>
-              ) : null}
-            </View>
-            <MonthPill
-              label={monthLabel(month, locale)}
-              spokenLabel={t.personal.dash.pickMonth}
-              onPress={canBrowse ? () => setMonthMenuOpen(true) : undefined}
-            />
-          </Row>
         </View>
 
         <View
@@ -433,47 +450,116 @@ function MeLedger() {
             gap: theme.spacing.lg,
           }}
         >
-          {/* In, out, and what is left — on glass over the scene's foot. */}
+          {/* The month's whole headline — the spend, how it moved, a short
+              history, and the three figures beneath it — blended into the
+              scene's foot in one card, exactly like Home's balance card. */}
           <View onLayout={(event) => setTilesHeight(event.nativeEvent.layout.height)}>
-            <GlassSurface blurTarget={sceneRef} style={{ padding: theme.spacing.sm }}>
-              <Row style={{ gap: theme.spacing.sm }}>
-                <FlowTile
-                  icon="wallet-outline"
-                  tone="positive"
-                  label={t.personal.income}
-                  value={fmt(summary.income)}
-                  // The month's income, entry by entry.
-                  onPress={() =>
-                    router.push({
-                      pathname: '/personal/transactions',
-                      params: { kind: 'income', month },
-                    })
-                  }
-                />
-                <FlowTile
-                  icon="arrow-up"
-                  tone="negative"
-                  label={t.personal.spent}
-                  value={fmt(summary.expense)}
-                  // The month's spends, entry by entry.
-                  onPress={() =>
-                    router.push({
-                      pathname: '/personal/transactions',
-                      params: { kind: 'expense', month },
-                    })
-                  }
-                />
-                <FlowTile
-                  icon="wallet"
-                  tone="brand"
-                  label={t.personal.dash.available}
-                  value={`${summary.net < 0n ? '−' : ''}${fmt(summary.net < 0n ? -summary.net : summary.net)}`}
-                  negative={summary.net < 0n}
-                  // What is left and where the rest went: the Spending screen's
-                  // own subject, rather than a third copy of the ledger.
-                  onPress={() => router.push('/personal/spending')}
-                />
-              </Row>
+            <GlassSurface blurTarget={sceneRef} style={{ padding: theme.spacing.lg }}>
+              <View style={{ gap: theme.spacing.lg }}>
+                <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+                  <Row
+                    style={{ flex: 1, minWidth: 0, alignItems: 'center', gap: theme.spacing.sm }}
+                  >
+                    <Text variant="body" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
+                      {monthsBack === 0
+                        ? t.personal.dash.totalSpentThisMonth
+                        : fill(t.personal.dash.totalSpentIn, { month: monthLabel(month, locale) })}
+                    </Text>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={
+                        amountsHidden ? t.dashHero.showBalance : t.dashHero.hideBalance
+                      }
+                      onPress={toggleAmountsHidden}
+                      hitSlop={10}
+                      style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
+                    >
+                      <Ionicons
+                        name={amountsHidden ? 'eye-off-outline' : 'eye-outline'}
+                        size={iconSize.md}
+                        color={theme.color.textMuted}
+                      />
+                    </Pressable>
+                  </Row>
+                  <MonthPill
+                    label={monthLabel(month, locale)}
+                    spokenLabel={t.personal.dash.pickMonth}
+                    onPress={canBrowse ? () => setMonthMenuOpen(true) : undefined}
+                  />
+                </Row>
+
+                <Row style={{ alignItems: 'flex-start', gap: theme.spacing.md }}>
+                  <View style={{ flex: 1, minWidth: 0, gap: theme.spacing.xs }}>
+                    {amountsHidden ? (
+                      <Text numberOfLines={1} style={HEADLINE_STYLE}>
+                        {BALANCE_MASK}
+                      </Text>
+                    ) : (
+                      <Text
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.6}
+                        style={HEADLINE_STYLE}
+                      >
+                        {fmt(summary.expense)}
+                      </Text>
+                    )}
+                    {change !== null && !amountsHidden ? (
+                      <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+                        <ChangePill change={change} />
+                        <Text variant="caption" tone="muted" numberOfLines={1}>
+                          {fill(t.personal.dash.vsMonth, {
+                            month: monthShortYear(shiftMonth(month, -1), locale),
+                          })}
+                        </Text>
+                      </Row>
+                    ) : null}
+                  </View>
+                  {!amountsHidden ? <SpendHistoryChart values={spendHistory} /> : null}
+                </Row>
+
+                <Row style={{ gap: theme.spacing.sm }}>
+                  <FlowTile
+                    icon="wallet-outline"
+                    tone="income"
+                    label={t.personal.income}
+                    value={fmt(summary.income)}
+                    hidden={amountsHidden}
+                    // The month's income, entry by entry.
+                    onPress={() =>
+                      router.push({
+                        pathname: '/personal/transactions',
+                        params: { kind: 'income', month },
+                      })
+                    }
+                  />
+                  <FlowTile
+                    icon="arrow-up"
+                    tone="negative"
+                    label={t.personal.spent}
+                    value={fmt(summary.expense)}
+                    hidden={amountsHidden}
+                    // The month's spends, entry by entry.
+                    onPress={() =>
+                      router.push({
+                        pathname: '/personal/transactions',
+                        params: { kind: 'expense', month },
+                      })
+                    }
+                  />
+                  <FlowTile
+                    icon="wallet"
+                    tone="brand"
+                    label={t.personal.dash.available}
+                    value={`${summary.net < 0n ? '−' : ''}${fmt(summary.net < 0n ? -summary.net : summary.net)}`}
+                    negative={summary.net < 0n}
+                    hidden={amountsHidden}
+                    // What is left and where the rest went: the Spending screen's
+                    // own subject, rather than a third copy of the ledger.
+                    onPress={() => router.push('/personal/spending')}
+                  />
+                </Row>
+              </View>
             </GlassSurface>
           </View>
 
@@ -576,7 +662,7 @@ function MeLedger() {
           <SectionCard
             icon="time-outline"
             title={t.personal.dash.recentExpenses}
-            action={t.personal.seeAll}
+            action={t.personal.dash.viewAll}
             onAction={() => router.push('/personal/transactions')}
           >
             {recentExpenses.length === 0 ? (
@@ -737,16 +823,25 @@ function monthLabel(month: string, locale: string): string {
 
 // ─────────────────────────────────────────────────────────────── hero ──
 
+/** The big headline figure's text style, shared between the live amount and
+ *  its mask so neither drifts from the other's size. */
+const HEADLINE_STYLE = { fontSize: 32, lineHeight: 38, fontWeight: '800' } as const;
+
+/** How many months the faint bar chart behind the headline covers. */
+const SPEND_HISTORY_MONTHS = 7;
+
 /** How this month's spend moved against last month's: up is red (more went
- *  out), down is green. On a near-white chip so it reads on any sky. */
+ *  out), down is green — a tinted chip on the summary card. */
 function ChangePill({ change }: { change: number }) {
   const theme = useTheme();
   const up = change > 0;
-  const color = up
-    ? theme.color.negative
-    : change < 0
-      ? theme.color.positive
-      : theme.color.textMuted;
+  const down = change < 0;
+  const color = up ? theme.color.negative : down ? theme.color.positive : theme.color.textMuted;
+  const bg = up
+    ? theme.color.negativeSoft
+    : down
+      ? theme.color.positiveSoft
+      : theme.color.surfaceMuted;
   return (
     <Row
       style={{
@@ -755,17 +850,57 @@ function ChangePill({ change }: { change: number }) {
         paddingHorizontal: theme.spacing.sm,
         paddingVertical: 3,
         borderRadius: theme.radius.pill,
-        backgroundColor: 'rgba(255, 255, 255, 0.92)',
+        backgroundColor: bg,
       }}
     >
       <Ionicons
-        name={up ? 'arrow-up' : change < 0 ? 'arrow-down' : 'remove'}
+        name={up ? 'arrow-up' : down ? 'arrow-down' : 'remove'}
         size={iconSize.xs}
         color={color}
       />
       <Text variant="caption" style={{ color, fontWeight: '700' }}>
         {`${Math.abs(change)}%`}
       </Text>
+    </Row>
+  );
+}
+
+/** How tall the mini bar chart stands. */
+const SPEND_CHART_HEIGHT = 40;
+
+/**
+ * The faint bar chart beside the headline: the last several months' spend,
+ * each a bar in the card's own brand tint, tallest never taller than the
+ * chart itself. Drawn with plain `View`s — a sparkline with no library and
+ * nothing to animate, so it costs nothing on the one screen that already
+ * blurs a scene behind glass.
+ */
+function SpendHistoryChart({ values }: { values: readonly bigint[] }) {
+  const theme = useTheme();
+  if (values.length < 2) return null;
+  const max = values.reduce((m, v) => (v > m ? v : m), 0n);
+  return (
+    <Row
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={{ alignItems: 'flex-end', gap: 3, height: SPEND_CHART_HEIGHT, paddingBottom: 1 }}
+    >
+      {values.map((value, index) => {
+        const ratio = max > 0n ? Number(value) / Number(max) : 0;
+        const height = Math.max(3, Math.round(ratio * (SPEND_CHART_HEIGHT - 3)));
+        const latest = index === values.length - 1;
+        return (
+          <View
+            key={index}
+            style={{
+              width: 6,
+              height,
+              borderRadius: 3,
+              backgroundColor: latest ? theme.color.brand : theme.color.brandSoft,
+            }}
+          />
+        );
+      })}
     </Row>
   );
 }
@@ -812,41 +947,46 @@ function MonthPill({
   );
 }
 
-/** One of the three month figures on the glass: a tinted disc, what it is, the
- *  amount, and a chevron — tappable through to where it comes from. */
+/** One of the three month figures on the card: a tinted disc, what it is, the
+ *  amount, and a chevron — tappable through to where it comes from. Income
+ *  wears the blue tint, Spent the red-on-pink pair, Available the brand's own
+ *  lilac — the reference's three tile colours. */
 function FlowTile({
   icon,
   tone,
   label,
   value,
   negative = false,
+  hidden = false,
   onPress,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
-  tone: 'positive' | 'negative' | 'brand';
+  tone: 'income' | 'negative' | 'brand';
   label: string;
   value: string;
   /** The figure is below zero — drawn in the negative colour. */
   negative?: boolean;
+  /** The eye is shut: show the mask in place of the amount. */
+  hidden?: boolean;
   onPress: () => void;
 }) {
   const theme = useTheme();
   const ink =
-    tone === 'positive'
-      ? theme.color.positive
+    tone === 'income'
+      ? theme.tint.sky.ink
       : tone === 'negative'
         ? theme.color.negative
         : theme.color.brand;
   const soft =
-    tone === 'positive'
-      ? theme.color.positiveSoft
+    tone === 'income'
+      ? theme.tint.sky.bg
       : tone === 'negative'
         ? theme.color.negativeSoft
         : theme.color.brandSoft;
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${label}. ${value}`}
+      accessibilityLabel={hidden ? label : `${label}. ${value}`}
       onPress={onPress}
       style={({ pressed }) => ({
         flex: 1,
@@ -888,10 +1028,10 @@ function FlowTile({
           fontSize: 16,
           lineHeight: 21,
           fontWeight: '800',
-          color: negative ? theme.color.negative : theme.color.text,
+          color: hidden ? theme.color.text : negative ? theme.color.negative : theme.color.text,
         }}
       >
-        {value}
+        {hidden ? BALANCE_MASK : value}
       </Text>
     </Pressable>
   );
@@ -1086,17 +1226,64 @@ function BudgetCard({
             </Text>
           </View>
         ) : (
-          <View style={{ gap: 2 }}>
-            <Text variant="body" tone="brand" style={{ fontWeight: '700' }}>
-              {t.personal.dash.setBudget}
-            </Text>
-            <Text variant="caption" tone="muted">
-              {t.personal.dash.setBudgetHint}
-            </Text>
-          </View>
+          <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text variant="body" tone="brand" style={{ fontWeight: '700' }}>
+                {t.personal.dash.setBudget}
+              </Text>
+              <Text variant="caption" tone="muted">
+                {t.personal.dash.setBudgetHint}
+              </Text>
+            </View>
+            <BudgetJarArt />
+          </Row>
         )}
       </SectionCard>
     </Pressable>
+  );
+}
+
+/** The budget card's jar-of-coins, for the invitation state only — a soft
+ *  lavender jar with a coin peeking over its rim, themed off the lilac tint
+ *  so it sits quietly beside "Set a monthly budget" rather than competing
+ *  with it. */
+function BudgetJarArt() {
+  const theme = useTheme();
+  const tint = theme.tint.lilac;
+  return (
+    <Svg
+      width={56}
+      height={56}
+      viewBox="0 0 64 64"
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+    >
+      <Rect
+        x={14}
+        y={24}
+        width={36}
+        height={32}
+        rx={10}
+        fill={tint.bg}
+        stroke={tint.ink}
+        strokeWidth={2}
+      />
+      <Path d="M20 34 H44" stroke={tint.ink} strokeWidth={2} strokeLinecap="round" opacity={0.5} />
+      <Path d="M20 42 H44" stroke={tint.ink} strokeWidth={2} strokeLinecap="round" opacity={0.5} />
+      <Rect
+        x={20}
+        y={14}
+        width={24}
+        height={10}
+        rx={5}
+        fill={tint.bg}
+        stroke={tint.ink}
+        strokeWidth={2}
+      />
+      <Circle cx={26} cy={14} r={6} fill={theme.color.brand} />
+      <Circle cx={36} cy={10} r={6} fill={theme.color.brand} />
+      <Circle cx={32} cy={18} r={6} fill={tint.bg} stroke={theme.color.brand} strokeWidth={1.5} />
+    </Svg>
   );
 }
 
@@ -1188,7 +1375,8 @@ function ExpenseRow({
 }) {
   const theme = useTheme();
   const tint = theme.tint[resolveCategory(txn.category ?? 'other', null).tint];
-  const amount = format(money(txn.amount, txn.currency), { locale });
+  const expense = txn.kind === 'expense';
+  const amount = `${expense ? '−' : '+'}${format(money(txn.amount, txn.currency), { locale })}`;
   return (
     <Pressable
       accessibilityRole="button"
@@ -1230,7 +1418,11 @@ function ExpenseRow({
           {categoryLabel}
         </Text>
       </View>
-      <Text variant="body" numberOfLines={1} style={{ fontWeight: '700' }}>
+      <Text
+        variant="body"
+        numberOfLines={1}
+        style={{ fontWeight: '700', color: expense ? theme.color.negative : theme.color.positive }}
+      >
         {amount}
       </Text>
       <Ionicons
