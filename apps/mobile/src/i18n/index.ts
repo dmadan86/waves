@@ -2033,6 +2033,14 @@ export interface UiStrings {
     /** Chip label on a pre-aimed row: "Add to {name}" (the group it was tagged for). */
     addTo: string;
     assignTitle: string;
+    /** The assign sheet's own way to the editor: a pencil beside the amount
+     *  it is about to place, so fixing a wrong field never has to mean
+     *  backing out to the row's ⋯ first. Shown as a short pill ("Edit
+     *  expense") and, with `{item}` replaced by the draft's own name, as the
+     *  tap target's screen-reader label. Hidden when more than one draft is
+     *  riding on the sheet — there is no single expense left to edit. */
+    assignEditExpense: string;
+    assignEditExpenseFor: string;
     assignSearch: string;
     assignNew: string;
     assignNewBody: string;
@@ -5660,6 +5668,8 @@ const en: UiStrings = {
     assign: 'Add to group',
     addTo: 'Add to {name}',
     assignTitle: 'Add to a group',
+    assignEditExpense: 'Edit expense',
+    assignEditExpenseFor: 'Edit {item}',
     assignSearch: 'Search groups',
     assignNew: 'New group',
     assignNewBody: 'Create one and add this to it',
@@ -9088,6 +9098,8 @@ const ta: UiStrings = {
     assign: 'குழுவில் சேர்',
     addTo: '{name} இல் சேர்',
     assignTitle: 'ஒரு குழுவில் சேர்க்கவும்',
+    assignEditExpense: 'செலவைத் திருத்து',
+    assignEditExpenseFor: '{item} ஐத் திருத்து',
     assignSearch: 'குழுக்களைத் தேடு',
     assignNew: 'புதிய குழு',
     assignNewBody: 'ஒன்றை உருவாக்கி இதை அதில் சேருங்கள்',
@@ -12577,6 +12589,8 @@ const hi: UiStrings = {
     assign: 'समूह में जोड़ें',
     addTo: '{name} में जोड़ें',
     assignTitle: 'किसी समूह में जोड़ें',
+    assignEditExpense: 'खर्च संपादित करें',
+    assignEditExpenseFor: '{item} संपादित करें',
     assignSearch: 'समूह खोजें',
     assignNew: 'नया समूह',
     assignNewBody: 'एक बनाएँ और इसे उसमें जोड़ें',
@@ -16122,6 +16136,8 @@ const ar: UiStrings = {
     assign: 'أضِف إلى مجموعة',
     addTo: 'أضِف إلى {name}',
     assignTitle: 'أضِف إلى مجموعة',
+    assignEditExpense: 'تعديل المصروف',
+    assignEditExpenseFor: 'تعديل {item}',
     assignSearch: 'ابحث عن المجموعات',
     assignNew: 'مجموعة جديدة',
     assignNewBody: 'أنشئ واحدة وأضف هذا إليها',
