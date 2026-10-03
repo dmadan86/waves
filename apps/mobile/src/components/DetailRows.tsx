@@ -63,6 +63,7 @@ export function DetailRow({
   accessibilityLabel,
   accessibilityHint,
   tint,
+  dense = false,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   /** When the glyph belongs to the *answer* rather than to the question — a
@@ -103,6 +104,11 @@ export function DetailRow({
    *  and the label reads as the row's title — bold, in full ink — over its
    *  subtitle, rather than as a muted caption. */
   tint?: { bg: string; ink: string };
+  /** The "Save an expense" card's own rows: a smaller 28pt disc and tighter
+   *  vertical padding, so five or six facts read as one dense list rather
+   *  than a stack of 68pt rows. Still floored at 48pt — a touch target, not a
+   *  suggestion — just no taller than it has to be. */
+  dense?: boolean;
 }) {
   const theme = useTheme();
   const chevron = onPress
@@ -112,6 +118,7 @@ export function DetailRow({
         ? 'chevron-up'
         : 'chevron-down'
     : null;
+  const discSize = dense ? 28 : 44;
 
   const content = (
     <Row
@@ -119,10 +126,11 @@ export function DetailRow({
         justifyContent: 'space-between',
         alignItems: 'center',
         gap: theme.spacing.md,
-        paddingVertical: theme.spacing.md,
-        // A tappable row is a target before it is a statement, so it is floored
-        // at the 44pt minimum even when its one line of text is shorter.
-        minHeight: onPress ? 44 : undefined,
+        paddingVertical: dense ? theme.spacing.sm : theme.spacing.md,
+        // A tappable row is a target before it is a statement, so it is
+        // floored at the platform minimum even when its one line of text is
+        // shorter — 48pt for the dense card, 44pt everywhere else.
+        minHeight: onPress ? (dense ? 48 : 44) : undefined,
       }}
     >
       <Row
@@ -149,15 +157,19 @@ export function DetailRow({
         {tint ? (
           <View
             style={{
-              width: 44,
-              height: 44,
-              borderRadius: 22,
+              width: discSize,
+              height: discSize,
+              borderRadius: discSize / 2,
               backgroundColor: tint.bg,
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
-            <Ionicons name={icon} size={iconSize.lg} color={iconColor ?? tint.ink} />
+            <Ionicons
+              name={icon}
+              size={dense ? iconSize.base : iconSize.lg}
+              color={iconColor ?? tint.ink}
+            />
           </View>
         ) : (
           <Ionicons name={icon} size={iconSize.md} color={iconColor ?? theme.color.textMuted} />
