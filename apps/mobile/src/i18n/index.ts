@@ -190,6 +190,10 @@ export interface UiStrings {
   allSettled: string;
   yourGroups: string;
   allGroups: string;
+  /** Friends screen section header, over the friends list. */
+  yourFriends: string;
+  /** Friends screen's link across to the groups list. */
+  viewGroups: string;
   /** Title of the full groups screen — plainer than "All groups", which read like a database view. */
   groupsTitle: string;
   /** Placeholder in the groups search field. */
@@ -1518,6 +1522,16 @@ export interface UiStrings {
     allSquareBody: string;
     owesYou: string;
     youOweThem: string;
+    /** The friends balance card's subline, how many friends you are owed by. */
+    owedByCount: PluralForms;
+    /** The friends balance card's subline, how many friends you owe. */
+    owingCount: PluralForms;
+    /** The green "owed to you" pill's short label, beside its own figure —
+     *  distinct from `owedByCount`'s full sentence, which the subline above
+     *  the figure still uses. */
+    pillOwed: PluralForms;
+    /** The red "you owe" pill's short label. */
+    pillOwing: PluralForms;
     /** Headline card label over the overall per-currency balances. */
     overall: string;
     /** Headline line when a currency's overall net is in your favour. */
@@ -4128,6 +4142,8 @@ const en: UiStrings = {
   allSettled: 'All settled',
   yourGroups: 'Your groups',
   allGroups: 'All groups',
+  yourFriends: 'Your friends',
+  viewGroups: 'View groups',
   groupsTitle: 'Groups',
   searchGroups: 'Search groups',
   noGroupsMatch: 'No groups match your search',
@@ -5192,6 +5208,10 @@ const en: UiStrings = {
     allSquareBody: 'Nobody owes you and you owe nobody. New balances show up here.',
     owesYou: 'Owes you',
     youOweThem: 'You owe',
+    owedByCount: { one: 'You are owed by {n} friend', other: 'You are owed by {n} friends' },
+    owingCount: { one: 'You owe {n} friend', other: 'You owe {n} friends' },
+    pillOwed: { one: '{n} owes you', other: '{n} owe you' },
+    pillOwing: { one: 'You owe {n}', other: 'You owe {n}' },
     overall: 'Overall',
     youAreOwed: 'You’re owed',
     nobodyOwesYou: 'Nobody owes you anything right now.',
@@ -7449,6 +7469,8 @@ const ta: UiStrings = {
   youOwe: 'நீங்கள் தர வேண்டியது',
   allSettled: 'எல்லாம் சரி',
   yourGroups: 'உங்கள் குழுக்கள்',
+  yourFriends: 'உங்கள் நண்பர்கள்',
+  viewGroups: 'குழுக்களைப் பார்க்க',
   allGroups: 'அனைத்து குழுக்கள்',
   groupsTitle: 'குழுக்கள்',
   searchGroups: 'குழுக்களைத் தேடு',
@@ -8541,6 +8563,22 @@ const ta: UiStrings = {
       'உங்களுக்கு யாரும் தர வேண்டியதில்லை, நீங்களும் யாருக்கும் தர வேண்டியதில்லை. புதிய பாக்கிகள் இங்கே தோன்றும்.',
     owesYou: 'உங்களுக்குத் தர வேண்டியவர்கள்',
     youOweThem: 'நீங்கள் தர வேண்டியவர்கள்',
+    owedByCount: {
+      one: '{n} நண்பர் உங்களுக்குத் தர வேண்டும்',
+      other: '{n} நண்பர்கள் உங்களுக்குத் தர வேண்டும்',
+    },
+    owingCount: {
+      one: '{n} நண்பருக்கு நீங்கள் தர வேண்டும்',
+      other: '{n} நண்பர்களுக்கு நீங்கள் தர வேண்டும்',
+    },
+    pillOwed: {
+      one: '{n} பேர் உங்களுக்குத் தர வேண்டும்',
+      other: '{n} பேர் உங்களுக்குத் தர வேண்டும்',
+    },
+    pillOwing: {
+      one: 'நீங்கள் {n} பேருக்குத் தர வேண்டும்',
+      other: 'நீங்கள் {n} பேருக்குத் தர வேண்டும்',
+    },
     overall: 'மொத்தம்',
     youAreOwed: 'உங்களுக்கு வர வேண்டியது',
     nobodyOwesYou: 'இப்போது உங்களுக்கு யாரும் தர வேண்டியதில்லை.',
@@ -10904,6 +10942,8 @@ const hi: UiStrings = {
   allSettled: 'सब बराबर',
   yourGroups: 'आपके समूह',
   allGroups: 'सभी समूह',
+  yourFriends: 'आपके मित्र',
+  viewGroups: 'समूह देखें',
   groupsTitle: 'समूह',
   searchGroups: 'समूह खोजें',
   noGroupsMatch: 'आपकी खोज से कोई समूह मेल नहीं खाता',
@@ -11967,6 +12007,16 @@ const hi: UiStrings = {
     allSquareBody: 'न किसी पर आपका बाकी है, न आप पर किसी का। नए हिसाब यहाँ दिखेंगे।',
     owesYou: 'आपको देने हैं',
     youOweThem: 'आपको देने हैं जिन्हें',
+    owedByCount: {
+      one: '{n} मित्र आपको देने वाला है',
+      other: '{n} मित्र आपको देने वाले हैं',
+    },
+    owingCount: {
+      one: 'आप {n} मित्र को देने वाले हैं',
+      other: 'आप {n} मित्रों को देने वाले हैं',
+    },
+    pillOwed: { one: '{n} आपको देने वाला है', other: '{n} आपको देने वाले हैं' },
+    pillOwing: { one: 'आप {n} को देने वाले हैं', other: 'आप {n} को देने वाले हैं' },
     overall: 'कुल मिलाकर',
     youAreOwed: 'आपको मिलने हैं',
     nobodyOwesYou: 'अभी किसी पर आपका कुछ बाकी नहीं है।',
@@ -14242,6 +14292,8 @@ const ar: UiStrings = {
   allSettled: 'تمت التسوية',
   yourGroups: 'مجموعاتك',
   allGroups: 'كل المجموعات',
+  yourFriends: 'أصدقاؤك',
+  viewGroups: 'عرض المجموعات',
   groupsTitle: 'المجموعات',
   searchGroups: 'ابحث في المجموعات',
   noGroupsMatch: 'لا توجد مجموعات تطابق بحثك',
@@ -15352,6 +15404,38 @@ const ar: UiStrings = {
     allSquareBody: 'لا أحد يدين لك ولا أنت تدين لأحد. ستظهر هنا أي مبالغ جديدة.',
     owesYou: 'لك عندهم',
     youOweThem: 'عليك لهم',
+    owedByCount: {
+      zero: 'لا يوجد أصدقاء يدينون لك',
+      one: 'صديق واحد يدين لك',
+      two: 'صديقان يدينان لك',
+      few: '{n} أصدقاء يدينون لك',
+      many: '{n} صديقًا يدين لك',
+      other: '{n} صديق يدين لك',
+    },
+    owingCount: {
+      zero: 'لا تدين لأي صديق',
+      one: 'تدين لصديق واحد',
+      two: 'تدين لصديقين',
+      few: 'تدين لـ {n} أصدقاء',
+      many: 'تدين لـ {n} صديقًا',
+      other: 'تدين لـ {n} صديق',
+    },
+    pillOwed: {
+      zero: 'لا أحد يدين لك',
+      one: 'صديق يدين لك',
+      two: 'صديقان يدينان لك',
+      few: '{n} يدينون لك',
+      many: '{n} يدينون لك',
+      other: '{n} يدين لك',
+    },
+    pillOwing: {
+      zero: 'لا تدين لأحد',
+      one: 'تدين لواحد',
+      two: 'تدين لاثنين',
+      few: 'تدين لـ {n}',
+      many: 'تدين لـ {n}',
+      other: 'تدين لـ {n}',
+    },
     overall: 'الإجمالي',
     youAreOwed: 'لك عندهم',
     nobodyOwesYou: 'لا أحد يدين لك بشيء الآن.',

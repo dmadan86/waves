@@ -77,13 +77,31 @@ describe('every hero is the same hero', () => {
     // row again has drifted from the rest.
     for (const file of [
       'components/GroupHero.tsx',
-      'app/(tabs)/friends.tsx',
       // Personal is left out: its scenic hero says "Total spent this month"
       // over the figure, the way Home's balance card does. Bank messages too:
-      // its figure is on a light card with the label above it.
+      // its figure is on a light card with the label above it. Friends moved
+      // here too (see below) once it traded the indigo `ScreenHero` panel for
+      // Home's own scenic hero and glass balance card — its label now sits
+      // above the figure on that white card, the same shape Personal and Bank
+      // messages already use, not the shared shell's "Label: figure" line.
     ]) {
       expect(source(file), file).toMatch(/<HeroFigureLine\b/);
     }
+  });
+
+  it("Friends wears Home's own scenic hero, not the shared gradient shell", () => {
+    // Friends used to open on `ScreenHero`, the same indigo panel Review and
+    // the group ledger do. The redesign asks for Home's mountain scene and
+    // overlapping glass card instead — a second hero shape by design, not a
+    // screen that has drifted from the shared one, so it is pinned here
+    // rather than left for the test above to flag as a regression.
+    const screen = source('app/(tabs)/friends.tsx');
+    expect(screen).toMatch(/import \{[^}]*HeroScene[^}]*\} from '@\/components\/home\/HeroScene';/);
+    expect(screen).toMatch(
+      /import \{[^}]*GlassSurface[^}]*\} from '@\/components\/home\/GlassSurface';/,
+    );
+    expect(screen).not.toMatch(/<ScreenHero\b/);
+    expect(screen).toMatch(/<Screen edges=\{\[\]\}>/);
   });
 });
 
