@@ -89,14 +89,18 @@ describe('every hero is the same hero', () => {
     }
   });
 
-  it("Friends wears Home's own scenic hero, not the shared gradient shell", () => {
+  it("Friends wears Home's own hero shape, not the shared gradient shell", () => {
     // Friends used to open on `ScreenHero`, the same indigo panel Review and
-    // the group ledger do. The redesign asks for Home's mountain scene and
-    // overlapping glass card instead — a second hero shape by design, not a
-    // screen that has drifted from the shared one, so it is pinned here
-    // rather than left for the test above to flag as a regression.
+    // the group ledger do. The redesign asks for Home's overlapping glass
+    // card instead, over the owner's own photograph of the three friends
+    // (`FriendsHeroBackground`) rather than Home's drawn mountains — a second
+    // hero shape by design, not a screen that has drifted from the shared
+    // one, so it is pinned here rather than left for the test above to flag
+    // as a regression.
     const screen = source('app/(tabs)/friends.tsx');
-    expect(screen).toMatch(/import \{[^}]*HeroScene[^}]*\} from '@\/components\/home\/HeroScene';/);
+    expect(screen).toMatch(
+      /import \{[^}]*FriendsHeroBackground[^}]*\} from '@\/components\/home\/FriendsHeroBackground';/,
+    );
     expect(screen).toMatch(
       /import \{[^}]*GlassSurface[^}]*\} from '@\/components\/home\/GlassSurface';/,
     );
