@@ -68,6 +68,16 @@ export interface ExpenseEditState {
   payers: PayerMap;
   paymentMethod: PaymentMethod;
   location: ExpenseLocation | null;
+  /** Which sub-event this spend belongs to (`event-organizer.md`); null for an
+   *  untagged expense or a non-Event group. */
+  subEventId: string | null;
+  /** This expense is a vendor deposit with a balance still owing. */
+  isDeposit: boolean;
+  /** What is still owed, in minor units of `currency`. Meaningless unless
+   *  `isDeposit`, same as `balanceDueDate`. */
+  balanceDueMinor: bigint | null;
+  /** ISO day (YYYY-MM-DD) the balance above is due, or null for "no known date". */
+  balanceDueDate: string | null;
 }
 
 /** The split kind a saved `split_type` reopens as. Itemized and adjustment
@@ -137,6 +147,10 @@ export function editStateFromVersion(
     payers,
     paymentMethod: (version.payment_method as PaymentMethod | null) ?? 'cash',
     location: version.location ?? null,
+    subEventId: version.sub_event_id ?? null,
+    isDeposit: version.is_deposit ?? false,
+    balanceDueMinor: version.balance_due_minor == null ? null : BigInt(version.balance_due_minor),
+    balanceDueDate: version.balance_due_date ?? null,
   };
 }
 
@@ -312,6 +326,10 @@ export function expenseWritePayload(input: {
     payers: serialisePayers(state.payers),
     paymentMethod: state.paymentMethod,
     location: state.location,
+    subEventId: state.subEventId,
+    isDeposit: state.isDeposit,
+    balanceDueMinor: state.balanceDueMinor == null ? null : state.balanceDueMinor.toString(),
+    balanceDueDate: state.balanceDueDate,
     notes: editing?.notes ?? undefined,
     receiptId: editing?.receipt_id ?? undefined,
     receiptShareUrl: editing?.receipt_share_url ?? undefined,
