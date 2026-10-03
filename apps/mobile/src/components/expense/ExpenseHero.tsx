@@ -73,14 +73,17 @@ export function ExpenseHero({
       radius={0}
       colors={theme.gradient.brand}
       style={{
-        paddingTop: insets.top + theme.spacing.md,
+        // Shorter than this used to be: the header's one job is to say what
+        // screen this is and hold the amount, not to spend a third of the
+        // first screenful on a status-bar-sized gutter above a 40pt badge.
+        paddingTop: insets.top + theme.spacing.sm,
         paddingHorizontal: theme.spacing.xl,
-        paddingBottom: theme.spacing.lg,
-        borderBottomLeftRadius: theme.radius.xxl,
-        borderBottomRightRadius: theme.radius.xxl,
+        paddingBottom: theme.spacing.md,
+        borderBottomLeftRadius: theme.radius.xl,
+        borderBottomRightRadius: theme.radius.xl,
       }}
     >
-      <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+      <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
         <Pressable
           onPress={goBack}
           accessibilityRole="button"
@@ -90,19 +93,21 @@ export function ExpenseHero({
         >
           <Ionicons
             name={leading === 'back' ? directionalIcon('chevron-back') : 'close'}
-            size={iconSize.xxl}
+            size={iconSize.xl}
             color={theme.color.onBrand}
           />
         </Pressable>
 
         {/* The same badge, in the same place, as on the expense screen — it moves
             as the note is typed, so the guess is visible before saving rather
-            than a surprise on the bill afterwards. */}
+            than a surprise on the bill afterwards. Smaller than it drew before:
+            the title/amount block beside it is the one thing on this row that
+            has to earn its height. */}
         <CategoryBadge
           category={category}
           meta={categoryMeta}
           description={description}
-          size={40}
+          size={32}
         />
 
         <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
