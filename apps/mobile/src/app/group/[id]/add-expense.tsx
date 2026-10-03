@@ -1061,8 +1061,14 @@ export default function AddExpenseScreen() {
 
   // Closed by default, same as "paid by": a plain equal split reads as a
   // fact ("Equally") until the row is tapped, and an edit that already split
-  // some other way opens straight to the controls that explain why.
-  const showSplitSection = splitSectionChoice ?? splitKind !== SplitKind.Equal;
+  // some other way opens straight to the controls that explain why. A split
+  // the person closed by hand reopens itself the moment it stops adding up —
+  // changing the amount afterwards (a scan, say) can unbalance an exact split
+  // that was fine when it was collapsed, and `saveHint` below does not repeat
+  // the split card's own reason, so a Save left disabled by a closed card
+  // would otherwise have nothing on screen to explain it.
+  const showSplitSection =
+    splitIssue !== null || (splitSectionChoice ?? splitKind !== SplitKind.Equal);
   const splitKindLabel =
     splitKind === SplitKind.Equal
       ? t.expense.equally
@@ -1523,6 +1529,24 @@ export default function AddExpenseScreen() {
                 accessibilityHint={capLocked ? t.expense.capReachedBody : t.captureForm.receiptSub}
                 disabled={scanning || saving || (!capLocked && capStatus === 'loading')}
                 onPress={() => (capLocked ? void attach() : void scan())}
+                // The row's trailing control — "Upgrade" once capped, the
+                // "Add photo" pill otherwise — is a `Pressable`/`Button`
+                // nested inside this one, which VoiceOver and TalkBack treat
+                // as a single accessible element: a screen-reader user could
+                // reach the row but never that control. An accessibility
+                // action exposes it as a second, named action on the same
+                // element instead, without changing the sighted layout.
+                accessibilityActions={
+                  scanning
+                    ? undefined
+                    : capLocked
+                      ? [{ name: 'upgrade', label: t.expense.capUpgrade }]
+                      : [{ name: 'attach', label: t.expense.addPhoto }]
+                }
+                onAccessibilityAction={(event) => {
+                  if (event.nativeEvent.actionName === 'upgrade') router.push('/settings/upgrade');
+                  else if (event.nativeEvent.actionName === 'attach') void attach();
+                }}
                 style={({ pressed }) => ({
                   flexDirection: 'row',
                   alignItems: 'center',
