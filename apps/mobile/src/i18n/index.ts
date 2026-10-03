@@ -2509,11 +2509,19 @@ export interface UiStrings {
     role: string;
     makeAdmin: string;
     removeAdmin: string;
+    /** Compact member page: the role row's label, which opens the toggle
+     *  rather than naming the action outright. */
+    manageRole: string;
+    /** That row's subtitle when the member is an admin today. */
+    currentRoleAdmin: string;
+    /** That row's subtitle when the member is a plain member today. */
+    currentRoleMember: string;
     adminNote: string;
     adminNeedsAccount: string;
     you: string;
     memberName: string;
-    /** Member detail: label over their per-currency outlay (currency exposure). */
+    /** Member detail: label over their per-currency outlay (currency exposure),
+     *  and the compact page's "Total paid" summary tile. */
     paidAcross: string;
     /** Heading over what this person put into this group. */
     inThisGroup: string;
@@ -2521,6 +2529,16 @@ export interface UiStrings {
     expensesLabel: string;
     /** Heading over role and blocking. */
     manageTitle: string;
+    /** The compact member page's two-tile card: paid and expense count. */
+    groupSummary: string;
+    /** That card's link to the group's own spending breakdown. */
+    viewDetails: string;
+    /** The compact member page's secondary button — opens the group's
+     *  existing invite/QR share sheet. */
+    shareGroup: string;
+    /** The expense list's sort pill, newest-first (the default) and oldest-first. */
+    sortNewestFirst: string;
+    sortOldestFirst: string;
     /** Said when a typed UPI handle is not a handle. */
     upiInvalid: string;
     ghostNote: string;
@@ -6035,14 +6053,22 @@ const en: UiStrings = {
     role: 'Role',
     makeAdmin: 'Make admin',
     removeAdmin: 'Remove admin',
+    manageRole: 'Manage role',
+    currentRoleAdmin: 'Current role: Admin',
+    currentRoleMember: 'Current role: Member',
     adminNote: 'Admins can edit the group, manage members, and set the overall budget.',
     adminNeedsAccount: 'They have not joined yet. Only a member with an account can be an admin.',
     you: 'you',
     memberName: 'Member name',
-    paidAcross: 'Paid',
+    paidAcross: 'Total paid',
     inThisGroup: 'In this group',
     expensesLabel: 'Expenses',
     manageTitle: 'Manage',
+    groupSummary: 'Group summary',
+    viewDetails: 'View details',
+    shareGroup: 'Share group',
+    sortNewestFirst: 'Newest first',
+    sortOldestFirst: 'Oldest first',
     upiInvalid: 'That does not look like a UPI ID.',
     ghostNote: 'This person holds real balances. When they join, they can claim this history.',
     upiForGroup: 'UPI ID for this group',
@@ -9474,16 +9500,24 @@ const ta: UiStrings = {
     role: 'பங்கு',
     makeAdmin: 'நிர்வாகியாக்கு',
     removeAdmin: 'நிர்வாகியை நீக்கு',
+    manageRole: 'பங்கை நிர்வகி',
+    currentRoleAdmin: 'தற்போதைய பங்கு: நிர்வாகி',
+    currentRoleMember: 'தற்போதைய பங்கு: உறுப்பினர்',
     adminNote:
       'நிர்வாகிகள் குழுவைத் திருத்தலாம், உறுப்பினர்களை நிர்வகிக்கலாம், மொத்த பட்ஜெட்டை அமைக்கலாம்.',
     adminNeedsAccount:
       'இவர் இன்னும் சேரவில்லை. கணக்கு உள்ள உறுப்பினர் மட்டுமே நிர்வாகியாக முடியும்.',
     you: 'நீங்கள்',
     memberName: 'உறுப்பினர் பெயர்',
-    paidAcross: 'செலுத்தியது',
+    paidAcross: 'செலுத்திய தொகை',
     inThisGroup: 'இந்தக் குழுவில்',
     expensesLabel: 'செலவுகள்',
     manageTitle: 'நிர்வகி',
+    groupSummary: 'குழு சுருக்கம்',
+    viewDetails: 'விவரங்களைப் பார்',
+    shareGroup: 'குழுவைப் பகிர்',
+    sortNewestFirst: 'புதியவை முதலில்',
+    sortOldestFirst: 'பழையவை முதலில்',
     upiInvalid: 'இது UPI ஐடி போலத் தெரியவில்லை.',
     ghostNote:
       'இவருக்கு உண்மையான இருப்புகள் உள்ளன. அவர்கள் சேரும்போது இந்த வரலாற்றைத் தங்களுடையதாக்கிக் கொள்ளலாம்.',
@@ -12931,13 +12965,21 @@ const hi: UiStrings = {
     role: 'भूमिका',
     makeAdmin: 'एडमिन बनाएँ',
     removeAdmin: 'एडमिन हटाएँ',
+    manageRole: 'भूमिका प्रबंधित करें',
+    currentRoleAdmin: 'मौजूदा भूमिका: एडमिन',
+    currentRoleMember: 'मौजूदा भूमिका: सदस्य',
     adminNote: 'एडमिन ग्रुप बदल सकते हैं, सदस्य संभाल सकते हैं, और कुल बजट तय कर सकते हैं.',
     adminNeedsAccount: 'ये अभी शामिल नहीं हुए हैं. सिर्फ़ अकाउंट वाला सदस्य ही एडमिन बन सकता है.',
     you: 'आप',
     memberName: 'सदस्य का नाम',
-    paidAcross: 'चुकाया',
+    paidAcross: 'कुल चुकाया',
     inThisGroup: 'इस ग्रुप में',
     expensesLabel: 'खर्च',
+    groupSummary: 'समूह सारांश',
+    viewDetails: 'विवरण देखें',
+    shareGroup: 'समूह साझा करें',
+    sortNewestFirst: 'नवीनतम पहले',
+    sortOldestFirst: 'पुराने पहले',
     manageTitle: 'प्रबंधित करें',
     upiInvalid: 'यह UPI आईडी जैसी नहीं लगती।',
     ghostNote: 'इस व्यक्ति का असली हिसाब है। जुड़ने पर वे यह इतिहास अपने नाम कर सकते हैं।',
@@ -16521,13 +16563,21 @@ const ar: UiStrings = {
     role: 'الدور',
     makeAdmin: 'تعيين كمشرف',
     removeAdmin: 'إزالة الإشراف',
+    manageRole: 'إدارة الدور',
+    currentRoleAdmin: 'الدور الحالي: مشرف',
+    currentRoleMember: 'الدور الحالي: عضو',
     adminNote: 'يمكن للمشرفين تعديل المجموعة وإدارة الأعضاء وتحديد الميزانية الإجمالية.',
     adminNeedsAccount: 'لم ينضم بعد. المشرف يجب أن يكون عضوًا لديه حساب.',
     you: 'أنت',
     memberName: 'اسم العضو',
-    paidAcross: 'دفع',
+    paidAcross: 'إجمالي المدفوع',
     inThisGroup: 'في هذه المجموعة',
     expensesLabel: 'المصاريف',
+    groupSummary: 'ملخص المجموعة',
+    viewDetails: 'عرض التفاصيل',
+    shareGroup: 'مشاركة المجموعة',
+    sortNewestFirst: 'الأحدث أولاً',
+    sortOldestFirst: 'الأقدم أولاً',
     manageTitle: 'إدارة',
     upiInvalid: 'لا يبدو هذا معرّف UPI صالحًا.',
     ghostNote: 'لهذا الشخص أرصدة حقيقية. حين ينضم يمكنه أن يطالب بهذا السجل.',
