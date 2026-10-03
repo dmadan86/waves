@@ -33,6 +33,7 @@ const STRINGS = {
   chooseWhoPaid: 'Choose who paid',
   saveNeedsAmount: 'Enter an amount to save',
   saveNeedsWho: 'Pick who’s splitting',
+  sharesDecimalPlaces: 'Shares can have at most two decimal places.',
 };
 
 function version(overrides: Partial<ExpenseVersionRow> = {}): ExpenseVersionRow {
@@ -187,6 +188,17 @@ describe('editStateFromVersion', () => {
     expect(exact.splitKind).toBe(SplitKind.Exact);
     expect(exact.exacts).toEqual({ 'm-a': '250.50', 'm-b': '749.50' });
   });
+
+  it('puts a half share back exactly, with no trailing zero', () => {
+    const shares = editStateFromVersion(
+      version({
+        split_type: 'shares',
+        split_params: { kind: 'shares', weights: { 'm-a': 0.5, 'm-b': 1.25, 'm-c': 2 } },
+      }),
+      null,
+    );
+    expect(shares.weights).toEqual({ 'm-a': '0.5', 'm-b': '1.25', 'm-c': '2' });
+  });
 });
 
 describe('expenseWritePayload', () => {
@@ -205,6 +217,13 @@ describe('expenseWritePayload', () => {
       saved: version({
         split_type: 'shares',
         split_params: { kind: 'shares', weights: { 'm-a': 2, 'm-b': 1, 'm-c': 1 } },
+      }),
+    },
+    {
+      name: 'fractional shares',
+      saved: version({
+        split_type: 'shares',
+        split_params: { kind: 'shares', weights: { 'm-a': 0.5, 'm-b': 1, 'm-c': 1.5 } },
       }),
     },
     {

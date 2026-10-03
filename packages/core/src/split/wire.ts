@@ -91,7 +91,7 @@ export function parseSplitParams(raw: unknown): SplitParams {
       requireRecord(weights, 'weights');
       return {
         kind: 'shares',
-        weights: mapValues(weights, (value) => safeNumberInteger(value, 'weights')),
+        weights: mapValues(weights, (value) => shareWeight(value, 'weights')),
       };
     }
 
@@ -153,6 +153,44 @@ function integer(value: unknown, field: string): bigint {
 
 function maybeInteger(value: unknown, field: string): bigint | undefined {
   return value === undefined ? undefined : integer(value, field);
+}
+
+/** Generous enough for any real split; keeps `weight * 100` far inside the
+ *  safe integer range so `computeShares`'s centi-scaling never loses a unit. */
+const MAX_SHARE_WEIGHT = 1_000_000;
+
+/**
+ * A shares weight off the wire: a non-negative number with at most two
+ * decimal places — "half a share" is 0.5, not a whole number forced on it.
+ * Unlike money and basis points, this does not need the bigint-string
+ * treatment: a weight is a small ratio, nowhere near where a JSON number
+ * loses precision. The value comes back as a plain `number`; `computeShares`
+ * does the ×100 integer scaling so the proportional split itself stays
+ * integer-only.
+ */
+function shareWeight(value: unknown, field: string): number {
+  let num: number;
+  if (typeof value === 'number') {
+    num = value;
+  } else if (typeof value === 'bigint') {
+    num = Number(value);
+  } else if (typeof value === 'string' && /^\d+(?:\.\d{1,2})?$/.test(value.trim())) {
+    num = Number(value.trim());
+  } else {
+    throw new SplitWireError('NOT_AN_INTEGER', `${field}: ${String(value)} is not a weight`);
+  }
+
+  if (!Number.isFinite(num) || num < 0 || num > MAX_SHARE_WEIGHT) {
+    throw new SplitWireError(
+      'NOT_AN_INTEGER',
+      `${field}: ${num} is outside the allowed weight range`,
+    );
+  }
+  const centi = Math.round(num * 100);
+  if (Math.abs(num * 100 - centi) > 1e-6) {
+    throw new SplitWireError('NOT_AN_INTEGER', `${field}: ${num} has more than two decimal places`);
+  }
+  return centi / 100;
 }
 
 function safeNumberInteger(value: unknown, field: string): number {
