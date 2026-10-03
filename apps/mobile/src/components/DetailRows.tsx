@@ -107,8 +107,9 @@ export function DetailRow({
   /** The "Save an expense" card's own rows: a smaller 28pt disc and tighter
    *  vertical padding, so five or six facts read as one dense list rather
    *  than a stack of 68pt rows. Still floored at 48pt — a touch target, not a
-   *  suggestion — just no taller than it has to be. Off everywhere else: the
-   *  expense screen and add-expense keep the roomier row this started as. */
+   *  suggestion — just no taller than it has to be. The group add-expense
+   *  card wears it too, for the same reason; the plain expense screen keeps
+   *  the roomier row this started as. */
   dense?: boolean;
 }) {
   const theme = useTheme();
