@@ -2310,6 +2310,10 @@ export interface UiStrings {
     reminderBodyStale: string;
     reminderAction: string;
     reminderLater: string;
+    /** The three cells of the reminder's feature strip — one short label each. */
+    reminderFeatureSafe: string;
+    reminderFeatureDevices: string;
+    reminderFeatureQuick: string;
 
     /** Why a run did nothing. Each one is a different way out. */
     refusedNotConnected: string;
@@ -5872,6 +5876,9 @@ const en: UiStrings = {
       'Your last backup was more than a day ago. Back up now to keep everything since then safe in your Google Drive.',
     reminderAction: 'Back up now',
     reminderLater: 'Not now',
+    reminderFeatureSafe: 'Keep your data safe',
+    reminderFeatureDevices: 'Restore on any device',
+    reminderFeatureQuick: 'Quick and easy',
 
     refusedNotConnected: 'Link a Google account first.',
     refusedNoKey: 'Create your backup key first.',
@@ -9304,6 +9311,9 @@ const ta: UiStrings = {
       'உங்கள் கடைசி காப்புப்பிரதி ஒரு நாளுக்கு மேல் பழையது. அதன் பிறகு சேர்த்தவை பாதுகாப்பாக இருக்க இப்போதே Google Drive-இல் காப்புப்பிரதி எடுங்கள்.',
     reminderAction: 'இப்போது காப்புப்பிரதி எடு',
     reminderLater: 'இப்போது வேண்டாம்',
+    reminderFeatureSafe: 'உங்கள் தரவைப் பாதுகாப்பாக வையுங்கள்',
+    reminderFeatureDevices: 'எந்த சாதனத்திலும் மீட்டெடுக்கவும்',
+    reminderFeatureQuick: 'விரைவானது, எளிதானது',
 
     refusedNotConnected: 'முதலில் ஒரு Google கணக்கை இணையுங்கள்.',
     refusedNoKey: 'முதலில் உங்கள் காப்புச் சாவியை உருவாக்குங்கள்.',
@@ -12768,6 +12778,9 @@ const hi: UiStrings = {
       'आपका पिछला बैकअप एक दिन से ज़्यादा पुराना है। उसके बाद का सब कुछ सुरक्षित रखने के लिए अभी Google Drive पर बैकअप लें।',
     reminderAction: 'अभी बैकअप लें',
     reminderLater: 'अभी नहीं',
+    reminderFeatureSafe: 'अपना डेटा सुरक्षित रखें',
+    reminderFeatureDevices: 'किसी भी डिवाइस पर वापस लाएँ',
+    reminderFeatureQuick: 'तेज़ और आसान',
 
     refusedNotConnected: 'पहले एक Google खाता जोड़ें।',
     refusedNoKey: 'पहले अपनी बैकअप चाबी बनाएँ।',
@@ -16330,6 +16343,9 @@ const ar: UiStrings = {
       'آخر نسخة احتياطية كانت قبل أكثر من يوم. انسخ الآن لتبقى كل إضافاتك منذ ذلك الحين آمنة في Google Drive.',
     reminderAction: 'انسخ الآن',
     reminderLater: 'ليس الآن',
+    reminderFeatureSafe: 'حافظ على أمان بياناتك',
+    reminderFeatureDevices: 'استعد بياناتك على أي جهاز',
+    reminderFeatureQuick: 'سريع وسهل',
 
     refusedNotConnected: 'اربط حساب Google أولًا.',
     refusedNoKey: 'أنشئ مفتاح النسخة أولًا.',
