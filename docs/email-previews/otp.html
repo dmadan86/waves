@@ -16,7 +16,7 @@
         width: 0;
       "
     >
-      591499 is your Waves sign-in code. It expires in 15 minutes.
+      591499 is your Waves verification code (OTP). It expires in 15 minutes.
     </div>
     <table
       role="presentation"
@@ -58,59 +58,54 @@
                 >
                   Waves
                 </p>
-                <h1
-                  style="
-                    margin: 0 0 10px;
-                    font-size: 24px;
-                    line-height: 1.25;
-                    font-weight: 700;
-                    letter-spacing: -0.5px;
-                    color: #12100e;
-                  "
-                >
-                  Your Waves sign-in code
-                </h1>
-                <p style="margin: 0 0 20px; font-size: 15px; line-height: 1.6; color: #57534e">
-                  Use this code to sign in to Waves:
+                <!-- Deliberately plain, and deliberately no heading between
+                     the wordmark and this line. The CDSL-style mail Gmail
+                     draws its "Code requested — Copy code" card above reads,
+                     in order: a sentence naming "One Time Password(OTP)", the
+                     digits alone on their own line, then an expiry line — no
+                     headline, no box, no colour on the code. This mirrors
+                     that shape as closely as a branded mail reasonably can,
+                     because that structure is what the classification keys
+                     off, not the subject alone. -->
+                <p style="margin: 0 0 16px; font-size: 15px; line-height: 1.6; color: #57534e">
+                  Your one-time password (OTP) for Waves is:
                 </p>
               </td>
             </tr>
             <tr>
               <td style="padding: 0 32px">
-                <!-- The code: one unbroken digit string, large, bold and
-                     monospace, with no letter-spacing and no per-digit boxes.
-                     Gmail's "Copy code" chip and iOS/macOS Mail + Safari's
-                     AutoFill both pattern-match a contiguous numeric token
-                     near the word "code" — a split or letter-spaced string
-                     is not that token, even though it reads the same to a
-                     person. Plain text, not an image, so it stays selectable
-                     and survives GoTrue's own plain-text derivation. -->
-                <table
-                  role="presentation"
-                  width="100%"
-                  cellpadding="0"
-                  cellspacing="0"
-                  style="border: 1px solid #e7e5e4; border-radius: 12px; background: #fafaf9"
+                <!-- The code: plain digits alone on their own line. No box,
+                     no border, no background, no letter-spacing, and no
+                     per-digit cells — every one of those is a way of drawing
+                     a "code field" that the classifier Gmail uses for its own
+                     OTP card has not been trained to expect from a code mail;
+                     the CDSL example that reliably triggers the card has none
+                     of them either. Bold and larger than body text is the
+                     only emphasis left, which is also what keeps it legible
+                     and selectable as plain text. -->
+                <p
+                  style="
+                    margin: 0;
+                    font-size: 32px;
+                    line-height: 1.3;
+                    font-weight: 700;
+                    letter-spacing: normal;
+                    color: #12100e;
+                    text-align: left;
+                  "
                 >
-                  <tr>
-                    <td
-                      align="center"
-                      style="
-                        padding: 20px 12px;
-                        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-                        font-size: 34px;
-                        line-height: 1.1;
-                        font-weight: 700;
-                        letter-spacing: normal;
-                        color: #12100e;
-                      "
-                    >
-                      591499
-                    </td>
-                  </tr>
-                </table>
-                <p style="margin: 12px 0 0; font-size: 13px; line-height: 1.6; color: #78716c">
-                  This code expires in 15 minutes.
+                  591499
+                </p>
+                <p
+                  style="
+                    margin: 12px 0 0;
+                    font-size: 13px;
+                    line-height: 1.6;
+                    color: #78716c;
+                    text-align: left;
+                  "
+                >
+                  This OTP expires in 15 minutes.
                 </p>
               </td>
             </tr>

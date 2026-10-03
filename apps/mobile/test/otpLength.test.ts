@@ -90,11 +90,11 @@ describe('how long the code lasts', () => {
  * own Copy button, and it shows in the notification before anyone opens it.
  * A subject without it ("Your Waves sign-in code") gets none of that.
  *
- * `magic_link` is the one exception: its code leads the subject instead
- * ("123456 is your Waves sign-in code"), matching Google's and Amazon's own
- * sign-in-code mail — see `supabase/templates/_README.md`. Either shape keeps
- * the token in the subject, which is the part Gmail's and Apple's autofill
- * actually look for.
+ * `magic_link` is the one exception: its code leads the subject instead, and
+ * names both "verification code" and "OTP" — see
+ * `supabase/templates/_README.md` for why. Every shape here keeps the token
+ * in the subject, which is the part Gmail's and Apple's autofill actually
+ * look for.
  */
 describe('every code mail subject', () => {
   const subjects = [
@@ -115,36 +115,64 @@ describe('every code mail subject', () => {
     },
   );
 
-  it('magic_link leads with the token instead', () => {
+  it('magic_link leads with the token and names the code keywords', () => {
     const magicLink = subjects.find((match) => match[1] === 'magic_link');
-    expect(magicLink?.[2]).toBe('{{ .Token }} is your Waves sign-in code');
+    expect(magicLink?.[2]).toBe('{{ .Token }} is your Waves verification code (OTP)');
   });
 });
 
 /**
  * The sign-in code mail specifically: the one redesigned to read like
- * Google's or Amazon's verification-code mail rather than like a generic
- * code-in-a-box template. These checks are what keep the next edit from
- * sliding back to letter-spacing or a split token without anyone noticing.
+ * Google's or Amazon's verification-code mail, and shaped to match the mail
+ * Gmail is known to draw its own "Code requested — Copy code" card above
+ * (a plain "Your One Time Password(OTP) is:" line, the digits alone, then an
+ * expiry line — no box, no border, no letter-spacing on the code). These
+ * checks are what keep the next edit from sliding back to a styled code
+ * field or a split token without anyone noticing.
  */
 describe('the sign-in code mail (magic-link.html)', () => {
   const html = readFileSync(join(TEMPLATE_DIR, 'magic-link.html'), 'utf8');
+  // The token appears twice: once in the hidden preheader, once in the
+  // visible body. The second is the one the box/border/letter-spacing checks
+  // below care about — the preheader is plain text with no styling at all.
+  const firstTokenAt = html.indexOf('{{ .Token }}');
+  const tokenAt = html.indexOf('{{ .Token }}', firstTokenAt + 1);
 
-  it('renders the code as one unbroken token, not split or letter-spaced', () => {
+  it('renders the code as one unbroken token, not split', () => {
     // The token placeholder itself must appear whole, with no characters or
     // markup injected between `{{` and `}}` that would slice the rendered
     // digits apart (e.g. one tag per digit).
     expect(html).toContain('{{ .Token }}');
-    // The field holding the code must not carry CSS letter-spacing, which is
-    // the same visual trick as a per-digit box and risks the same thing:
-    // Gmail's "Copy code" chip and iOS/macOS AutoFill pattern-match a
-    // contiguous digit string.
-    const codeField = html.slice(html.indexOf('{{ .Token }}') - 600, html.indexOf('{{ .Token }}'));
-    expect(codeField).not.toMatch(/letter-spacing:\s*(?!normal)\S/);
+    expect(tokenAt).toBeGreaterThan(-1);
   });
 
-  it('keeps the code in the preview text, code first', () => {
-    expect(html).toMatch(/\{\{ \.Token \}\} is your Waves sign-in code/);
+  it('gives the code no box, border, background, or letter-spacing', () => {
+    // Every one of these is a way of drawing a "code field" — the same
+    // family of visual trick as a per-digit box — that the CDSL-style mail
+    // Gmail is known to classify as an OTP does not use. Scoped to the 400
+    // characters around the token rather than the whole file, so a border or
+    // background used elsewhere in the layout (the card, the footer rule)
+    // does not fail this.
+    const nearby = html.slice(Math.max(0, tokenAt - 400), tokenAt + 200);
+    expect(nearby).not.toMatch(/border(?!-radius)/);
+    expect(nearby).not.toMatch(/background/);
+    expect(nearby).not.toMatch(/letter-spacing:\s*(?!normal)\S/);
+  });
+
+  it('introduces the code in plain words, then states it alone, then its expiry', () => {
+    // The three lines the owner's target mail uses, in order: the lead
+    // sentence, the bare digits, the expiry. Each must be its own block so
+    // GoTrue's plain-text derivation keeps them on separate lines too.
+    const lead = html.indexOf('Your one-time password (OTP) for Waves is:');
+    const expiry = html.indexOf('This OTP expires in 15 minutes.');
+    expect(lead).toBeGreaterThan(-1);
+    expect(expiry).toBeGreaterThan(-1);
+    expect(lead).toBeLessThan(tokenAt);
+    expect(tokenAt).toBeLessThan(expiry);
+  });
+
+  it('keeps the code in the subject and preview text, with the OTP keyword', () => {
+    expect(html).toMatch(/\{\{ \.Token \}\} is your Waves verification code \(OTP\)/);
   });
 
   it('uses the brand purple, not the old off-brand green', () => {
