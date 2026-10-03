@@ -50,12 +50,23 @@ vi.mock('expo-crypto', () => ({
   CryptoDigestAlgorithm: { SHA256: 'SHA-256' },
 }));
 
+// `requireOptionalNativeModule` is never called in these tests — every case
+// goes through `setGoogleNonceModuleForTests` instead, same as the other two
+// native modules — but it still has to resolve to *something* harmless the
+// one time a test exercises the real lazy `require` path (see "reaching for
+// the real native modules" below).
+vi.mock('expo', () => ({ requireOptionalNativeModule: () => null }));
+
 const {
   appleNativeAvailable,
   appleNativeSignIn,
   googleNativeAvailable,
   googleNativeSignIn,
+  jwtNonceClaim,
+  newNonce,
+  nonceToPass,
   setAppleAuthForTests,
+  setGoogleNonceModuleForTests,
   setGoogleSigninForTests,
 } = await import('../src/lib/nativeIdentity');
 
@@ -72,13 +83,47 @@ interface GoogleState {
 
 const google: GoogleState = { signIn: 'success', play: 'present' };
 const apple = { signIn: 'success' as 'success' | 'no-token' | 'cancelled' | 'throws' };
+const googleNonce = {
+  signIn: 'success' as 'success' | 'no-token' | 'canceled' | 'throws',
+};
 
 const calls = {
   configured: vi.fn(),
   playServices: vi.fn(),
   signIn: vi.fn(),
   appleSignIn: vi.fn(),
+  nonceSignIn: vi.fn(),
 };
+
+/**
+ * A three-part JWT with the given payload, unsigned — `jwtNonceClaim` never
+ * checks the signature, only decodes the middle segment, so a fixture needs
+ * no real one. `null` builds a string that is not a JWT at all.
+ */
+function makeIdToken(payload: Record<string, unknown> | null): string {
+  if (payload === null) return 'not-a-jwt';
+  const segment = (value: unknown) => Buffer.from(JSON.stringify(value)).toString('base64url');
+  return `${segment({ alg: 'none' })}.${segment(payload)}.signature`;
+}
+
+/** What `GIDSignIn` would hand back once given this attempt's hash. */
+function fakeGoogleNonceModule() {
+  return {
+    async signIn(hashedNonce: string) {
+      calls.nonceSignIn(hashedNonce);
+      if (googleNonce.signIn === 'canceled') {
+        throw Object.assign(new Error('The user canceled the sign in request.'), {
+          code: 'ERR_CANCELED',
+        });
+      }
+      if (googleNonce.signIn === 'throws') {
+        throw new Error('No presenting view controller found.');
+      }
+      if (googleNonce.signIn === 'no-token') return { idToken: null };
+      return { idToken: makeIdToken({ sub: 'user-1', nonce: hashedNonce }) };
+    },
+  };
+}
 
 function withCode(code: string): Error & { code: string } {
   return Object.assign(new Error('refused'), { code });
@@ -144,6 +189,7 @@ beforeEach(() => {
   google.signIn = 'success';
   google.play = 'present';
   apple.signIn = 'success';
+  googleNonce.signIn = 'success';
   delete process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB;
   delete process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_IOS;
   delete process.env.EXPO_PUBLIC_GOOGLE_DRIVE_CLIENT_ID_WEB;
@@ -153,6 +199,10 @@ beforeEach(() => {
     fakeGoogleModule() as unknown as Parameters<typeof setGoogleSigninForTests>[0],
   );
   setAppleAuthForTests(fakeAppleModule() as unknown as Parameters<typeof setAppleAuthForTests>[0]);
+  // No native nonce module by default: every existing Google test exercises
+  // the plain wrapper call unchanged, and the describe block below turns this
+  // on explicitly where it matters.
+  setGoogleNonceModuleForTests(null);
 });
 
 describe('Google, through the phone rather than a browser', () => {
@@ -302,6 +352,149 @@ describe('Google, through the phone rather than a browser', () => {
       setGoogleSigninForTests(null);
       expect(googleNativeAvailable()).toBe(false);
     });
+  });
+});
+
+describe("Google's own nonce, iOS, when the build carries waves-google-nonce", () => {
+  beforeEach(() => {
+    platform.OS = 'ios';
+    process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_IOS = 'ios-client.apps.googleusercontent.com';
+    setGoogleNonceModuleForTests(
+      fakeGoogleNonceModule() as unknown as Parameters<typeof setGoogleNonceModuleForTests>[0],
+    );
+  });
+
+  it('still configures the wrapper first — the native call reuses that configuration', async () => {
+    await googleNativeSignIn();
+    expect(calls.configured).toHaveBeenCalledWith(
+      expect.objectContaining({ iosClientId: 'ios-client.apps.googleusercontent.com' }),
+    );
+    expect(calls.playServices).toHaveBeenCalled();
+  });
+
+  it('hands GIDSignIn the hash directly, rather than the wrapper’s own signIn', async () => {
+    const outcome = await googleNativeSignIn();
+    expect(outcome).toEqual({
+      kind: 'credential',
+      credential: {
+        idToken: makeIdToken({ sub: 'user-1', nonce: 'sha256:raw-nonce' }),
+        nonce: 'raw-nonce',
+      },
+    });
+    expect(calls.nonceSignIn).toHaveBeenCalledWith('sha256:raw-nonce');
+    // The one call this module replaces on iOS — asserting it is never made
+    // is the whole reason `googleSignInWithoutOwnNonce` is a separate function.
+    expect(calls.signIn).not.toHaveBeenCalled();
+  });
+
+  it('passes no nonce when the token the SDK returns carries no claim', async () => {
+    // A `GoogleSignin.signIn()`-shaped response would never reach this path,
+    // but a future SDK that silently drops an unrecognized parameter should
+    // fail safe rather than hand Supabase a raw value matching nothing.
+    setGoogleNonceModuleForTests({
+      async signIn() {
+        return { idToken: makeIdToken({ sub: 'user-1' }) };
+      },
+    } as unknown as Parameters<typeof setGoogleNonceModuleForTests>[0]);
+    const outcome = await googleNativeSignIn();
+    expect(outcome).toMatchObject({ credential: { nonce: undefined } });
+  });
+
+  it('passes no nonce when the token’s claim is not this attempt’s hash', async () => {
+    // Defensive: if this ever happens, a stale or foreign nonce is exactly the
+    // value that must never be forwarded — it cannot be right, and passing it
+    // trades one Supabase mismatch for another.
+    setGoogleNonceModuleForTests({
+      async signIn() {
+        return { idToken: makeIdToken({ sub: 'user-1', nonce: 'someone-elses-hash' }) };
+      },
+    } as unknown as Parameters<typeof setGoogleNonceModuleForTests>[0]);
+    const outcome = await googleNativeSignIn();
+    expect(outcome).toMatchObject({ credential: { nonce: undefined } });
+  });
+
+  it('treats a canceled sheet as a decision, not a failure', async () => {
+    googleNonce.signIn = 'canceled';
+    await expect(googleNativeSignIn()).resolves.toEqual({ kind: 'dismissed' });
+    expect(reportHandled).not.toHaveBeenCalled();
+  });
+
+  it('falls back when the native call fails for any other reason', async () => {
+    googleNonce.signIn = 'throws';
+    await expect(googleNativeSignIn()).resolves.toEqual({ kind: 'unavailable' });
+    expect(reportHandled).toHaveBeenCalledTimes(1);
+    const [, where] = reportHandled.mock.calls[0] as [Error, string];
+    expect(where).toBe('auth.googleNative');
+  });
+
+  it('reports a success that carried no token', async () => {
+    googleNonce.signIn = 'no-token';
+    await expect(googleNativeSignIn()).resolves.toEqual({ kind: 'unavailable' });
+    expect(reportHandled).toHaveBeenCalledTimes(1);
+  });
+
+  it('falls back to the wrapper’s own call on a build without the module', async () => {
+    setGoogleNonceModuleForTests(null);
+    const outcome = await googleNativeSignIn();
+    expect(outcome).toEqual({ kind: 'credential', credential: { idToken: 'google-id-token' } });
+    expect(calls.nonceSignIn).not.toHaveBeenCalled();
+    expect(calls.signIn).toHaveBeenCalled();
+  });
+
+  it('never loads the module on Android', async () => {
+    platform.OS = 'android';
+    process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB = 'web-client.apps.googleusercontent.com';
+    const outcome = await googleNativeSignIn();
+    expect(outcome).toEqual({ kind: 'credential', credential: { idToken: 'google-id-token' } });
+    expect(calls.nonceSignIn).not.toHaveBeenCalled();
+  });
+});
+
+describe('the pure nonce decision: what to hand signInWithIdToken', () => {
+  it('generates a raw value and its SHA-256 hash', async () => {
+    const sent = await newNonce();
+    expect(sent).toEqual({ raw: 'raw-nonce', hashed: 'sha256:raw-nonce' });
+  });
+
+  it('reads the nonce claim out of a JWT payload, unverified', () => {
+    expect(jwtNonceClaim(makeIdToken({ nonce: 'abc' }))).toBe('abc');
+  });
+
+  it('reads no claim from a token that has none', () => {
+    expect(jwtNonceClaim(makeIdToken({ sub: 'user-1' }))).toBeUndefined();
+  });
+
+  it('reads no claim from something that is not a JWT at all', () => {
+    expect(jwtNonceClaim('not-a-jwt')).toBeUndefined();
+    expect(jwtNonceClaim('two.parts')).toBeUndefined();
+    expect(jwtNonceClaim('')).toBeUndefined();
+  });
+
+  it('reads no claim from a payload segment that is not JSON', () => {
+    expect(jwtNonceClaim('header.not-base64-json.sig')).toBeUndefined();
+  });
+
+  it('passes the raw value when the claim matches what was sent', () => {
+    const sent = { raw: 'raw-nonce', hashed: 'sha256:raw-nonce' };
+    const token = makeIdToken({ nonce: 'sha256:raw-nonce' });
+    expect(nonceToPass(token, sent)).toBe('raw-nonce');
+  });
+
+  it('passes nothing for an old token with no claim at all', () => {
+    const sent = { raw: 'raw-nonce', hashed: 'sha256:raw-nonce' };
+    const token = makeIdToken({ sub: 'user-1' });
+    expect(nonceToPass(token, sent)).toBeUndefined();
+  });
+
+  it('passes nothing when no nonce was sent for this attempt', () => {
+    const token = makeIdToken({ nonce: 'sha256:raw-nonce' });
+    expect(nonceToPass(token, undefined)).toBeUndefined();
+  });
+
+  it('passes nothing when the claim is present but does not match', () => {
+    const sent = { raw: 'raw-nonce', hashed: 'sha256:raw-nonce' };
+    const token = makeIdToken({ nonce: 'a-different-hash' });
+    expect(nonceToPass(token, sent)).toBeUndefined();
   });
 });
 
