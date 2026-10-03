@@ -55,12 +55,17 @@ import { addGhostMember } from '@/data/api';
 import { useGroupLabeller, useGroups } from '@/data/hooks';
 import { useKnownContacts } from '@/data/knownContacts';
 import { type MemberRow } from '@/data/types';
+import { useAuth } from '@/lib/auth';
 import { router } from '@/lib/navigation';
 
 export default function ContactsScreen(): React.JSX.Element {
   const theme = useTheme();
   const { t, locale } = useStrings();
   const queryClient = useQueryClient();
+  // The account's own country, read before the device's — see `normalisePhone`
+  // in `components/ContactPicker` for why a device's Region setting is not
+  // trusted alone.
+  const { profile } = useAuth();
 
   const [picked, setPicked] = useState<readonly PickedContact[]>([]);
   const [added, setAdded] = useState<number | null>(null);
@@ -119,10 +124,12 @@ export default function ContactsScreen(): React.JSX.Element {
       const failed: string[] = [];
       for (const contact of fresh) {
         try {
-          await addGhostMember(groupId, contact.name, {
-            email: contact.email,
-            phone: contact.phone,
-          });
+          await addGhostMember(
+            groupId,
+            contact.name,
+            { email: contact.email, phone: contact.phone },
+            profile?.country_code,
+          );
         } catch (caught) {
           failed.push(contact.name);
           // Report each real failure for its side effect (the raw server message
