@@ -70,6 +70,7 @@ import { BackupReminder } from '@/components/BackupReminder';
 import { RestorePrompt } from '@/components/RestorePrompt';
 import { useAvatarUrl } from '@/components/ProfileAvatar';
 import { groupLabel, GroupType } from '@/data/types';
+import { useBalanceHidden } from '@/lib/balanceHidden';
 import { usePullRefresh } from '@/lib/pullRefresh';
 
 /** Dashboard route with duplicate-safe jumps to stable primary destinations. */
@@ -772,45 +773,6 @@ export default function HomeScreen() {
       <QuickExpenseSheet visible={quickExpenseOpen} onClose={() => setQuickExpenseOpen(false)} />
     </Screen>
   );
-}
-
-/** The AsyncStorage key remembering whether the balance is hidden behind the eye. */
-const BALANCE_HIDDEN_KEY = 'dashboard:balanceHidden';
-
-/**
- * The eye toggle's state, remembered across opens. Reads once on mount (so a
- * hidden balance stays hidden after a relaunch, not flashing the number first)
- * and writes on every toggle. Defaults to shown.
- */
-function useBalanceHidden(): { hidden: boolean; ready: boolean; toggle: () => void } {
-  const [hidden, setHidden] = useState(false);
-  // `hidden` starts shown and the stored value arrives a frame or more later,
-  // so without a gate the real number paints before the mask does — exactly the
-  // flash the doc above promises not to do. `ready` flips once the read settles
-  // (success or failure) so the caller can hold the skeleton until then.
-  const [ready, setReady] = useState(false);
-  useEffect(() => {
-    let alive = true;
-    AsyncStorage.getItem(BALANCE_HIDDEN_KEY)
-      .then((value) => {
-        if (alive && value === '1') setHidden(true);
-      })
-      .catch(() => {})
-      .finally(() => {
-        if (alive) setReady(true);
-      });
-    return () => {
-      alive = false;
-    };
-  }, []);
-  const toggle = useCallback(() => {
-    setHidden((was) => {
-      const next = !was;
-      void AsyncStorage.setItem(BALANCE_HIDDEN_KEY, next ? '1' : '0').catch(() => {});
-      return next;
-    });
-  }, []);
-  return { hidden, ready, toggle };
 }
 
 /** How long after creation a group still counts as "New" — 48 hours. */

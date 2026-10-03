@@ -182,6 +182,29 @@ export function rowAction(person: ActionablePerson): 'invite' | 'remind' | null 
   return null;
 }
 
+/**
+ * How many distinct people are owed-to and owing-from, in one currency.
+ *
+ * Scoped to a single currency on purpose — the same reason the headline figure
+ * never sums across them (ADR-003): a count that mixed a person owed in INR
+ * with one owing in USD would answer a question ("how many friends?") with a
+ * number that has no single currency behind it.
+ */
+export function personCountByDirection(
+  rows: readonly { person_key: string; currency: string; net: string | bigint }[],
+  currency: string,
+): { owed: number; owing: number } {
+  const owedKeys = new Set<string>();
+  const owingKeys = new Set<string>();
+  for (const row of rows) {
+    if (row.currency !== currency) continue;
+    const net = BigInt(row.net);
+    if (net > 0n) owedKeys.add(row.person_key);
+    else if (net < 0n) owingKeys.add(row.person_key);
+  }
+  return { owed: owedKeys.size, owing: owingKeys.size };
+}
+
 /** Which way a person's balance runs, or null when it runs both ways. */
 export type PersonDirection = 'owed' | 'owing' | null;
 
