@@ -73,8 +73,8 @@ import { PressableScale } from '@/lib/anim';
 import { router } from '@/lib/navigation';
 import { useAvatarUrl } from '@/components/ProfileAvatar';
 import { BalanceSide } from '@/components/home/BalanceSide';
+import { FriendsHeroBackground } from '@/components/home/FriendsHeroBackground';
 import { GlassSurface } from '@/components/home/GlassSurface';
-import { HeroScene } from '@/components/home/HeroScene';
 import { QuickActionsRow, type QuickAction } from '@/components/home/QuickActionsRow';
 import { SettlePickerSheet, type SettleCandidate } from '@/components/home/SettlePickerSheet';
 import { SplitMoney } from '@/components/SplitMoney';
@@ -618,13 +618,19 @@ export default function FriendsScreen() {
 }
 
 /**
- * The Friends hero: the same scenic mountain art Home opens on, the same
- * overlapping glass balance card (`BalanceSide`'s "Owed to you" / "You owe"
- * either side of a hairline, exactly as Home's own card draws its "You lent" /
- * "You owe"), and the same disc-and-label quick-action strip along its foot
- * (`QuickActionsRow`) — not a hand-rolled panel that happened to look similar,
- * the very components Home's own dashboard draws itself with, so the two tabs
- * read as one app rather than two designers.
+ * The Friends hero: its own photograph — the three friends on the rock,
+ * watching the same lake and city through morning, midday, sunset, dusk and
+ * night (`FriendsHeroBackground`) — standing in for the mountain art Home
+ * draws in vector layers, but wearing the scene the same way Home's hero
+ * does: the same clock (or the same Background-screen pick), the same top
+ * shade for legibility, the same crossfade when the moment turns. Beneath it
+ * sits the same overlapping glass balance card (`BalanceSide`'s "Owed to
+ * you" / "You owe" either side of a hairline, exactly as Home's own card
+ * draws its "You lent" / "You owe"), and the same disc-and-label
+ * quick-action strip along its foot (`QuickActionsRow`) — not a hand-rolled
+ * panel that happened to look similar, the very components Home's own
+ * dashboard draws itself with, so the two tabs read as one app rather than
+ * two designers.
  *
  * What rides on it is still Friends' own: "Net receivable" (or payable, or
  * settled), the eye that hides it — the same switch Home's balance wears —
@@ -714,7 +720,7 @@ function FriendsScene({
         pointerEvents="none"
         style={{ position: 'absolute', top: 0, left: 0, right: 0, height: sceneHeight }}
       >
-        <HeroScene
+        <FriendsHeroBackground
           scene={scene}
           width={windowWidth}
           height={sceneHeight}
