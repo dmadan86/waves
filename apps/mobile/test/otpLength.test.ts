@@ -71,7 +71,9 @@ describe('how long the code lasts', () => {
     const minutes = configuredExpirySeconds() / 60;
     for (const name of TEMPLATES) {
       const html = readFileSync(join(TEMPLATE_DIR, name), 'utf8');
-      const stated = /Expires in (\d+) minutes/.exec(html);
+      // `magic_link` reads "This code expires in …"; the rest read "Expires
+      // in … , and works once." — both end in "xpires in N minutes".
+      const stated = /xpires in (\d+) minutes/.exec(html);
       expect(stated, `${name} does not state an expiry`).not.toBeNull();
       expect(Number(stated?.[1]), name).toBe(minutes);
     }
@@ -87,11 +89,18 @@ describe('how long the code lasts', () => {
  * "Use code 123456 to ...". Gmail then draws the code above the mail with its
  * own Copy button, and it shows in the notification before anyone opens it.
  * A subject without it ("Your Waves sign-in code") gets none of that.
+ *
+ * `magic_link` is the one exception: its code leads the subject instead
+ * ("123456 is your Waves sign-in code"), matching Google's and Amazon's own
+ * sign-in-code mail — see `supabase/templates/_README.md`. Either shape keeps
+ * the token in the subject, which is the part Gmail's and Apple's autofill
+ * actually look for.
  */
 describe('every code mail subject', () => {
   const subjects = [
     ...CONFIG.matchAll(/^\[auth\.email\.template\.(\w+)\]\s*\nsubject = "([^"]*)"/gm),
   ];
+  const other = subjects.filter((match) => match[1] !== 'magic_link');
 
   it('covers every template', () => {
     expect(subjects.map((match) => match[1]).sort()).toEqual(
@@ -99,10 +108,51 @@ describe('every code mail subject', () => {
     );
   });
 
-  it.each(subjects.map((match) => [match[1], match[2]] as const))(
+  it.each(other.map((match) => [match[1], match[2]] as const))(
     '%s starts with "Use code {{ .Token }}"',
     (_name, subject) => {
       expect(subject.startsWith('Use code {{ .Token }} to ')).toBe(true);
     },
   );
+
+  it('magic_link leads with the token instead', () => {
+    const magicLink = subjects.find((match) => match[1] === 'magic_link');
+    expect(magicLink?.[2]).toBe('{{ .Token }} is your Waves sign-in code');
+  });
+});
+
+/**
+ * The sign-in code mail specifically: the one redesigned to read like
+ * Google's or Amazon's verification-code mail rather than like a generic
+ * code-in-a-box template. These checks are what keep the next edit from
+ * sliding back to letter-spacing or a split token without anyone noticing.
+ */
+describe('the sign-in code mail (magic-link.html)', () => {
+  const html = readFileSync(join(TEMPLATE_DIR, 'magic-link.html'), 'utf8');
+
+  it('renders the code as one unbroken token, not split or letter-spaced', () => {
+    // The token placeholder itself must appear whole, with no characters or
+    // markup injected between `{{` and `}}` that would slice the rendered
+    // digits apart (e.g. one tag per digit).
+    expect(html).toContain('{{ .Token }}');
+    // The field holding the code must not carry CSS letter-spacing, which is
+    // the same visual trick as a per-digit box and risks the same thing:
+    // Gmail's "Copy code" chip and iOS/macOS AutoFill pattern-match a
+    // contiguous digit string.
+    const codeField = html.slice(html.indexOf('{{ .Token }}') - 600, html.indexOf('{{ .Token }}'));
+    expect(codeField).not.toMatch(/letter-spacing:\s*(?!normal)\S/);
+  });
+
+  it('keeps the code in the preview text, code first', () => {
+    expect(html).toMatch(/\{\{ \.Token \}\} is your Waves sign-in code/);
+  });
+
+  it('uses the brand purple, not the old off-brand green', () => {
+    expect(html).not.toContain('#4f9a2e');
+    expect(html.toLowerCase()).toContain('#6c4ee3');
+  });
+
+  it('still names the recipient address in the footer', () => {
+    expect(html).toContain('Sent to {{ .Email }}');
+  });
 });

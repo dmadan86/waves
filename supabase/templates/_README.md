@@ -23,10 +23,12 @@ of decoration is a byte that can render wrong in Outlook.
 Three things in the layout are not decoration, and each was taken from how the
 apps that do this well handle it on screen:
 
-- **The code sits in its own bordered field**, tracked wide, rather than loose in
-  a paragraph. Per-digit boxes would be better still — that is what the app's own
-  screen shows — but a Go template cannot slice a string, so one field with
-  letter-spacing is as close as this gets.
+- **The code sits in its own field.** `magic_link` — the sign-in code, the one
+  people see most — renders it as a single unbroken digit string: large, bold,
+  monospace, no letter-spacing. That was a deliberate change (see below); the
+  other four still use a bordered, letter-spaced field, which is a worse match
+  for autofill but costs nothing on a code that has no caller in the app today
+  (`recovery`, `reauthentication`) or is seen far less often.
 - **The expiry is a number**, not "shortly". It has to match `otp_expiry` in
   `config.toml`, and `apps/mobile/test/otpLength.test.ts` fails if it does not:
   a mail promising fifteen minutes against a server that allows sixty is the app
@@ -39,13 +41,26 @@ The hidden `div` at the top is preview text: what an inbox list shows beside the
 subject. Left out, mail clients show the first words of the markup instead. It opens
 with the code for the same reason the subject does.
 
-**The code is in the subject** (`config.toml`): "Use code 123456 to sign in to
-Waves". That wording is what Gmail and the phones' autofill read as a one-time
-code: Gmail draws it above the mail as digit boxes with a Copy button, and it is
-readable in the notification without opening anything. The boxes are Gmail's,
-not ours; the mail itself keeps its single field. GoTrue runs the subject
-through the same Go template as the body, so `{{ .Token }}` works there.
-`apps/mobile/test/otpLength.test.ts` holds every subject to that shape.
+**The code is in the subject** (`config.toml`). Four templates still read "Use
+code 123456 to ...", which is what Gmail and the phones' autofill read as a
+one-time code: Gmail draws it above the mail as digit boxes with a Copy
+button, and it is readable in the notification without opening anything. The
+boxes are Gmail's, not ours; the mail itself keeps its single field. GoTrue
+runs the subject through the same Go template as the body, so `{{ .Token }}`
+works there.
+
+`magic_link`'s subject instead reads "123456 is your Waves sign-in code" —
+code first, the way Google's and Amazon's own sign-in-code mail does, because
+a notification shade truncates the end of a subject before the start. Gmail's
+chip and iOS/macOS autofill are both documented as pattern-matching a
+contiguous digit string near the word "code", not a fixed sentence shape, so
+this still qualifies. The per-digit letter-spacing in the old _body_ layout is
+the thing more likely to have risked that match — it is the same visual trick
+per-digit boxes use on a single string — and this redesign removes it from
+`magic_link`'s code field for that reason, not just for the brand colour.
+
+`apps/mobile/test/otpLength.test.ts` holds every subject's shape — `magic_link`
+is checked against its own pattern, the other four against the shared one.
 
 The Go template variables GoTrue exposes are `{{ .Token }}`, `{{ .TokenHash }}`,
 `{{ .ConfirmationURL }}`, `{{ .SiteURL }}`, `{{ .Email }}` and `{{ .NewEmail }}`.
