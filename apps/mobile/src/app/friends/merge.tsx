@@ -33,6 +33,13 @@
  * is no targeted send in this app — invites are one durable join link per group
  * (see `group/[id]/invite`) — so "invite them" here is a sheet that shares that
  * same link for each of the merged person's groups.
+ *
+ * Laid out as three numbered cards (compact — the roster can run long and the
+ * pinned footer is the one action that always has to stay in view): pick the
+ * surviving name, see who is being folded in, optionally add one more before
+ * writing anything. The card shapes are new; every rule above them — who can be
+ * picked, what gets pre-ticked, how a name is suggested, what the merge writes —
+ * is unchanged.
  */
 import { useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -41,9 +48,11 @@ import { useMutation } from '@tanstack/react-query';
 import { useLocalSearchParams } from 'expo-router';
 import {
   ActivityIndicator,
+  Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
+  Pressable,
   ScrollView,
   Share,
   TextInput,
@@ -52,6 +61,7 @@ import {
 
 import {
   Avatar,
+  Badge,
   Button,
   Callout,
   Card,
@@ -85,6 +95,7 @@ import { ContactPicker, type PickedContact } from '@/components/ContactPicker';
 import { PeopleSkeleton } from '@/components/Skeletons';
 import { friendlyError } from '@/lib/errors';
 import { router } from '@/lib/navigation';
+import { displayPhone } from '@/lib/phone';
 import { useSync } from '@/sync';
 import { fill, plural, useStrings, type UiStrings } from '@/i18n';
 import { isUnasked, useDialog } from '@/lib/dialog';
@@ -100,6 +111,12 @@ const ROSTER_PAGE = 25;
 /** Nothing ticked. Hoisted so it is one stable object, not a new set per render. */
 const EMPTY: ReadonlySet<string> = new Set();
 
+/** The art beside the header — decoration only, hidden from screen readers. */
+const MERGE_ART = require('../../../assets/images/merge-people.webp') as number;
+/** Its width over its height (360 × 196), and how wide it sits. */
+const MERGE_ART_RATIO = 360 / 196;
+const MERGE_ART_WIDTH = 120;
+
 /** One group the merged person belongs to, for the post-merge invite sheet. */
 interface InviteGroup {
   readonly id: string;
@@ -111,7 +128,8 @@ export default function MergePeopleScreen() {
   const theme = useTheme();
   // This screen renders under the persistent bottom nav (like friends/contacts),
   // so it needs the tab-bar clearance — the plain screen inset left the Merge
-  // button hidden behind the bar, unreachable by scrolling.
+  // button hidden behind the bar, unreachable by scrolling. It now lands on the
+  // pinned footer instead of the scroll view (see the bottom of the return).
   const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
   const { ask, confirm } = useDialog();
@@ -178,6 +196,16 @@ export default function MergePeopleScreen() {
   const [pickedContact, setPickedContact] = useState<PickedContact | null>(null);
   const [pickingContact, setPickingContact] = useState(false);
 
+  // Card 3's "Search in Waves" tile: a filter over the same roster the
+  // "suggested from your contacts" list already draws from, not a new data
+  // source or a round-trip. Open state plus whatever is typed.
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Focuses the name field when the pencil beside it is tapped — the field is
+  // always editable (as it always was); the pencil just points at it.
+  const nameInputRef = useRef<TextInput>(null);
+
   // The post-merge invite step: the merged person's name and the groups they
   // span, or null while the sheet is closed.
   const [inviteFor, setInviteFor] = useState<{ name: string; groups: InviteGroup[] } | null>(null);
@@ -192,12 +220,24 @@ export default function MergePeopleScreen() {
     () => guests.filter((row) => selected.has(row.person_key)),
     [guests, selected],
   );
-  /** The guests not in the merge yet — what the "add a person" list offers. */
+  /** The guests not in the merge yet — what "add another person" offers. */
   const remaining = useMemo(
     () => guests.filter((row) => !selected.has(row.person_key)),
     [guests, selected],
   );
   const shownRemaining = showAllGuests ? remaining : remaining.slice(0, ROSTER_PAGE);
+
+  // Card 3's search tile filters the very same `remaining` roster by whatever
+  // was typed — name, number or address — rather than reaching a server a
+  // second time. Clearing the box shows everybody again.
+  const searchResults = useMemo(() => {
+    const needle = searchQuery.trim().toLowerCase();
+    if (!needle) return remaining;
+    return remaining.filter((row) => {
+      const haystack = `${row.display_name} ${row.phone ?? ''} ${row.email ?? ''}`.toLowerCase();
+      return haystack.includes(needle);
+    });
+  }, [remaining, searchQuery]);
 
   // The name the merge would keep if nobody typed one: the identified person's
   // (see `defaultMergeName`). It follows the picks, so removing the person it
@@ -223,6 +263,17 @@ export default function MergePeopleScreen() {
   const seededName = typeof params.name === 'string' ? params.name : '';
   const name = typedName ?? (suggestedName || seededName);
   const showingSuggestion = typedName === null && name.trim().length > 0;
+
+  // Card 1's row shows one phone (or address) under the name — the identified
+  // person's, the same one `defaultMergeName` leans on, so the two agree about
+  // who this merge is really naming.
+  const primaryContact = useMemo(
+    () => selectedRows.find((row) => hasContact(row)) ?? selectedRows[0] ?? null,
+    [selectedRows],
+  );
+  const primaryContactLine = primaryContact
+    ? displayPhone(primaryContact.phone) || primaryContact.email?.trim() || ''
+    : '';
 
   /** Somebody in the merge whose membership has not reached the server yet. */
   const pendingPicked = selectedRows.some((row) => row.pending);
@@ -279,6 +330,8 @@ export default function MergePeopleScreen() {
 
   const ready = canMerge(selectedRows) && !pendingPicked && name.trim().length > 0;
   const nothingToMergeYet = guests.length === 0;
+  /** Distinct people in the merge right now — what the pinned button counts. */
+  const mergeCount = new Set(selectedRows.map((row) => row.person_key)).size;
 
   /**
    * The groups the currently-selected guests span, deduped by group id. Read off
@@ -360,7 +413,7 @@ export default function MergePeopleScreen() {
       title: t.mergePeople.warningTitle,
       body: who,
       note: t.mergePeople.warningBody,
-      confirmLabel: t.mergePeople.cta,
+      confirmLabel: plural(locale, mergeCount, t.mergePeople.mergeCount),
       tone: 'danger',
     });
     if (!ok) return;
@@ -393,6 +446,8 @@ export default function MergePeopleScreen() {
     }
   };
 
+  const lavender = theme.scheme === 'dark' ? theme.color.surfaceMuted : '#F1EFFC';
+
   return (
     <Screen>
       {/* On edge-to-edge Android the resize inset does not always lift the
@@ -404,7 +459,17 @@ export default function MergePeopleScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1 }}
       >
-        <Row style={{ paddingHorizontal: theme.spacing.xl, paddingTop: theme.spacing.md }}>
+        {/* Compact header: round back button, a two-line-max subtitle, and the
+            art — capped so the three together never run past ~120dp. */}
+        <Row
+          style={{
+            paddingHorizontal: theme.spacing.lg,
+            paddingTop: theme.spacing.sm,
+            paddingBottom: theme.spacing.sm,
+            alignItems: 'center',
+            gap: theme.spacing.sm,
+          }}
+        >
           <IconButton label={t.common.back} onPress={() => router.back()}>
             <Ionicons
               name={directionalIcon('chevron-back')}
@@ -412,18 +477,29 @@ export default function MergePeopleScreen() {
               color={theme.color.text}
             />
           </IconButton>
-          <View style={{ flex: 1, alignItems: 'center' }}>
-            <Text variant="heading">{t.mergePeople.title}</Text>
+          <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+            <Text variant="heading" numberOfLines={1}>
+              {t.mergePeople.title}
+            </Text>
+            <Text variant="caption" tone="muted" numberOfLines={2}>
+              {t.mergePeople.subtitle}
+            </Text>
           </View>
-          <View style={{ width: 44 }} />
+          <Image
+            source={MERGE_ART}
+            resizeMode="contain"
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            style={{ width: MERGE_ART_WIDTH, height: MERGE_ART_WIDTH / MERGE_ART_RATIO }}
+          />
         </Row>
         <ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={{
-            paddingHorizontal: theme.spacing.xl,
-            paddingTop: theme.spacing.lg,
-            paddingBottom: clearance,
-            gap: theme.spacing.xl,
+            paddingHorizontal: theme.spacing.lg,
+            paddingTop: theme.spacing.xs,
+            paddingBottom: theme.spacing.lg,
+            gap: 10,
           }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
@@ -434,56 +510,81 @@ export default function MergePeopleScreen() {
             <EmptyState title={t.mergePeople.title} body={t.mergePeople.empty} />
           ) : (
             <>
-              {/* The one thing this screen decides: the name the merged person
-                  carries on Friends. Editable inline — a plain underlined field
-                  with a pencil so it reads as "tap to change." */}
-              <View style={{ gap: theme.spacing.xs }}>
-                <Text variant="caption" tone="muted">
-                  {t.mergePeople.nameLabel}
+              {/* Card 1 — the one thing this screen decides: the name the
+                  merged person carries on Friends. The field stays a plain
+                  TextInput (always editable, as it always was); the pencil
+                  just focuses it. */}
+              <View style={{ gap: theme.spacing.sm }}>
+                <StepHeader step={1} title={t.mergePeople.step1Title} />
+                <Text variant="caption" tone="muted" style={{ marginLeft: 36 }}>
+                  {t.mergePeople.step1Subtitle}
                 </Text>
-                <Row
-                  style={{
-                    alignItems: 'center',
-                    gap: theme.spacing.sm,
-                    borderBottomWidth: 1,
-                    borderBottomColor: theme.color.border,
-                  }}
-                >
-                  <TextInput
-                    value={name}
-                    onChangeText={setTypedName}
-                    editable={selectedRows.length > 0}
-                    accessibilityLabel={t.mergePeople.nameLabel}
-                    placeholder={t.mergePeople.namePlaceholder}
-                    placeholderTextColor={theme.color.textFaint}
+                <Card style={{ padding: theme.spacing.md }}>
+                  <Row
                     style={{
-                      flex: 1,
-                      fontSize: 22,
-                      fontWeight: '800',
-                      color: theme.color.text,
-                      paddingVertical: theme.spacing.xs,
+                      backgroundColor: lavender,
+                      borderRadius: theme.radius.md,
+                      padding: theme.spacing.md,
+                      gap: theme.spacing.md,
                     }}
-                  />
-                  <Ionicons name="pencil" size={iconSize.md} color={theme.color.textFaint} />
-                </Row>
-                {/* Say out loud that the name is a suggestion. It is filled from
-                    the person we already have details for, which is right often
-                    enough to save a typing — and wrong often enough that it must
-                    never read as settled. */}
-                {showingSuggestion ? (
-                  <Text variant="micro" tone="muted">
-                    {t.mergePeople.nameSuggested}
-                  </Text>
-                ) : null}
+                  >
+                    <Avatar name={name.trim() || t.misc.someone} size={40} />
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <TextInput
+                        ref={nameInputRef}
+                        value={name}
+                        onChangeText={setTypedName}
+                        editable={selectedRows.length > 0}
+                        accessibilityLabel={t.mergePeople.nameLabel}
+                        placeholder={t.mergePeople.namePlaceholder}
+                        placeholderTextColor={theme.color.textFaint}
+                        style={{
+                          fontSize: 16,
+                          fontWeight: '700',
+                          color: theme.color.text,
+                          padding: 0,
+                        }}
+                      />
+                      {primaryContactLine ? (
+                        <Text
+                          variant="caption"
+                          tone="muted"
+                          numberOfLines={1}
+                          style={{ writingDirection: 'ltr' }}
+                        >
+                          {primaryContactLine}
+                        </Text>
+                      ) : null}
+                    </View>
+                    <IconButton label={t.common.edit} onPress={() => nameInputRef.current?.focus()}>
+                      <Ionicons name="pencil" size={iconSize.md} color={theme.color.textFaint} />
+                    </IconButton>
+                  </Row>
+                  {/* Say out loud that the name is a suggestion. It is filled
+                      from the person we already have details for, which is
+                      right often enough to save a typing — and wrong often
+                      enough that it must never read as settled. */}
+                  {showingSuggestion ? (
+                    <Text
+                      variant="micro"
+                      tone="muted"
+                      style={{ marginTop: theme.spacing.xs, marginHorizontal: theme.spacing.xs }}
+                    >
+                      {t.mergePeople.nameSuggested}
+                    </Text>
+                  ) : null}
+                </Card>
               </View>
 
-              {/* Only the people actually being merged — not the whole roster.
-                  Each is removable; the list below adds more. */}
+              {/* Card 2 — only the people actually being merged, not the whole
+                  roster. Each is removable; card 3 adds more. */}
               <View style={{ gap: theme.spacing.sm }}>
-                <Text variant="caption" tone="muted">
-                  {selectedRows.length > 0
-                    ? plural(locale, selectedRows.length, t.mergePeople.peopleHeader)
-                    : t.mergePeople.needTwo}
+                <StepHeader
+                  step={2}
+                  title={plural(locale, selectedRows.length, t.mergePeople.peopleToMergeHeader)}
+                />
+                <Text variant="caption" tone="muted" style={{ marginLeft: 36 }}>
+                  {t.mergePeople.step2Subtitle}
                 </Text>
                 {/* These were ticked by the screen, not by the user. Saying so
                     is what keeps it a suggestion: they share a number, which is
@@ -493,78 +594,89 @@ export default function MergePeopleScreen() {
                   <Callout tone="info">{t.mergePeople.suggestedPicks}</Callout>
                 ) : null}
                 {selectedRows.length > 0 ? (
-                  <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
+                  <Card padded={false} style={{ padding: theme.spacing.md }}>
                     {selectedRows.map((row, index) => (
                       <View key={row.person_key}>
-                        <MergeMemberRow
-                          name={row.display_name}
-                          subtitle={identityLine(row, locale, t)}
-                          spoken={identitySpoken(row, locale, t)}
-                          identified={hasContact(row)}
-                          identifiedLabel={t.mergePeople.hasContact}
+                        <MergeSelectedRow
+                          row={row}
+                          locale={locale}
+                          t={t}
+                          onToggle={() => toggle(row)}
                           removeLabel={fill(t.pickers.removeName, { name: row.display_name })}
-                          onRemove={() => toggle(row)}
                         />
                         {index < selectedRows.length - 1 ? <Divider /> : null}
                       </View>
                     ))}
                   </Card>
+                ) : (
+                  <Text variant="caption" tone="muted">
+                    {t.mergePeople.needTwo}
+                  </Text>
+                )}
+                {/* Somebody in the merge is still only in the queue. Saying so
+                    here beats the server's refusal, which would call them a
+                    person you share no group with. */}
+                {pendingPicked ? (
+                  <Callout tone="warning">{t.mergePeople.pendingBlocked}</Callout>
                 ) : null}
               </View>
 
-              {/* Everybody else you could merge — the step this screen lost, and
-                  without which a person who was not pre-picked on Friends could
-                  not be reached at all. Each row says what makes them somebody
-                  already: the number or address you wrote down, how many groups
-                  they turn up in, and whether they are still waiting to sync.
-                  Ready-and-identified people sort first.
-
-                  Drawn a page at a time rather than all at once: the roster is
-                  every ghost in every active group, which is unbounded, and this
-                  screen cannot hand it to a FlashList — the list would have to
-                  own the whole scroll (nesting one inside this ScrollView
-                  defeats it), which would put the name field in a header that
-                  remounts and loses focus mid-typing. A "show the rest" tap is
-                  the honest trade. */}
+              {/* Card 3 — optionally add one more duplicate before writing
+                  anything: a search over the same roster, or a device
+                  contact, then the rest of the roster itself. */}
               <View style={{ gap: theme.spacing.sm }}>
-                <Text variant="caption" tone="muted">
-                  {t.mergePeople.addGuestTitle}
+                <StepHeader
+                  step={3}
+                  title={t.mergePeople.step3Title}
+                  trailing={<Badge label={t.mergePeople.optional} />}
+                />
+                <Text variant="caption" tone="muted" style={{ marginLeft: 36 }}>
+                  {t.mergePeople.step3Subtitle}
                 </Text>
+
+                <Row style={{ gap: theme.spacing.sm, alignItems: 'stretch' }}>
+                  <OptionTile
+                    icon={<Ionicons name="search" size={iconSize.lg} color={theme.color.brand} />}
+                    title={t.mergePeople.searchInWaves}
+                    hint={t.mergePeople.searchInWavesHint}
+                    onPress={() => setSearchOpen(true)}
+                  />
+                  <OptionTile
+                    icon={
+                      <MaterialCommunityIcons
+                        name={pickedContact ? 'account-check-outline' : 'book-account-outline'}
+                        size={iconSize.lg}
+                        color={theme.color.brand}
+                      />
+                    }
+                    title={
+                      pickedContact
+                        ? fill(t.mergePeople.assignedTo, { name: pickedContact.name })
+                        : t.tabs.fromContacts
+                    }
+                    hint={t.mergePeople.fromContactsHint}
+                    onPress={() => setPickingContact(true)}
+                  />
+                </Row>
+
+                {/* The contact's name fitted several guests. Nobody was ticked
+                    — this says why, and the roster below is where they
+                    choose. */}
+                {contactNotice ? <Callout tone="info">{contactNotice}</Callout> : null}
+
                 {remaining.length === 0 ? (
                   <Text variant="caption" tone="muted">
                     {t.mergePeople.noMoreGuests}
                   </Text>
                 ) : (
-                  <>
-                    <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
+                  <View style={{ gap: theme.spacing.sm }}>
+                    <Text variant="caption" tone="muted">
+                      {t.mergePeople.addGuestTitle}
+                    </Text>
+                    <Card padded={false} style={{ padding: theme.spacing.md }}>
                       {shownRemaining.map((row, index) => (
                         <View key={row.person_key}>
-                          <ListRow
-                            title={row.display_name}
-                            subtitle={identityLine(row, locale, t)}
-                            // The tick the selected rows wear has nowhere to go
-                            // on a ListRow, so the fact it stands for is spoken
-                            // here instead — the number itself is on the row.
-                            accessibilityLabel={[
-                              row.display_name,
-                              hasContact(row) ? t.mergePeople.hasContact : '',
-                              identitySpoken(row, locale, t),
-                            ]
-                              .filter(Boolean)
-                              .join(', ')}
-                            accessibilityState={{ disabled: row.pending }}
-                            leading={<Avatar name={row.display_name} size={40} ghost />}
-                            trailing={
-                              <Ionicons
-                                name={row.pending ? 'cloud-upload-outline' : 'add-circle'}
-                                size={iconSize.xl}
-                                color={row.pending ? theme.color.textFaint : theme.color.brand}
-                              />
-                            }
-                            // Inert while their membership is only in the queue:
-                            // the server would refuse the whole merge over them.
-                            onPress={row.pending ? undefined : () => toggle(row)}
-                          />
+                          <SuggestedRow row={row} locale={locale} t={t} onAdd={() => toggle(row)} />
                           {index < shownRemaining.length - 1 ? <Divider /> : null}
                         </View>
                       ))}
@@ -581,62 +693,95 @@ export default function MergePeopleScreen() {
                         onPress={() => setShowAllGuests(true)}
                       />
                     ) : null}
-                  </>
+                  </View>
                 )}
               </View>
-
-              {/* Give the merged person a real identity: assign them a device
-                  contact. A contact whose name fits exactly one guest ticks
-                  them; several matches tick nobody and say so. Either way the
-                  contact's name becomes the merged name (see onPickContact). No
-                  guest is created and no group is chosen. */}
-              <Button
-                label={
-                  pickedContact
-                    ? fill(t.mergePeople.assignedTo, { name: pickedContact.name })
-                    : t.mergePeople.addPerson
-                }
-                variant="secondary"
-                fullWidth
-                disabled={merge.isPending}
-                onPress={() => setPickingContact(true)}
-                icon={
-                  <MaterialCommunityIcons
-                    name={pickedContact ? 'account-check-outline' : 'book-account-outline'}
-                    size={iconSize.md}
-                    color={theme.color.brand}
-                  />
-                }
-              />
-
-              {/* The contact's name fitted several guests. Nobody was ticked —
-                  this says why, and the roster above is where they choose. */}
-              {contactNotice ? <Callout tone="info">{contactNotice}</Callout> : null}
-
-              {/* Somebody in the merge is still only in the queue. Saying so
-                  here beats the server's refusal, which would call them a person
-                  you share no group with. */}
-              {pendingPicked ? (
-                <Callout tone="warning">{t.mergePeople.pendingBlocked}</Callout>
-              ) : null}
-
-              {error ? <Callout tone="negative">{error}</Callout> : null}
-
-              {/* The irreversibility is confirmed in a dialog on tap rather than
-                  shouted inline — one clear "are you sure, this can't be undone"
-                  before anything is written. */}
-              <Button
-                label={t.mergePeople.cta}
-                size="lg"
-                fullWidth
-                disabled={!ready || merge.isPending}
-                onPress={() => void confirmMerge()}
-              />
-              {merge.isPending ? <ActivityIndicator color={theme.color.brand} /> : null}
             </>
           )}
         </ScrollView>
+
+        {/* Pinned: the one action, always in view. Only the content above
+            scrolls — a long roster must never push the Merge button off the
+            bottom of the phone. */}
+        <View
+          style={{
+            paddingHorizontal: theme.spacing.lg,
+            paddingTop: theme.spacing.sm,
+            paddingBottom: clearance,
+            borderTopWidth: 1,
+            borderTopColor: theme.color.border,
+            backgroundColor: theme.color.surface,
+            gap: theme.spacing.sm,
+          }}
+        >
+          {error ? <Callout tone="negative">{error}</Callout> : null}
+          <Button
+            label={`\u{1F465} ${plural(locale, mergeCount, t.mergePeople.mergeCount)}`}
+            variant="brand"
+            size="lg"
+            fullWidth
+            disabled={!ready || merge.isPending}
+            onPress={() => void confirmMerge()}
+          />
+          {merge.isPending ? <ActivityIndicator color={theme.color.brand} /> : null}
+        </View>
       </KeyboardAvoidingView>
+
+      {/* Card 3's search tile: a filter over the same mergeable roster the
+          list below already draws from — no new data, just a box to narrow
+          it by name, number or address. */}
+      <Modal
+        supportedOrientations={MODAL_ORIENTATIONS}
+        visible={searchOpen}
+        animationType="slide"
+        onRequestClose={() => setSearchOpen(false)}
+      >
+        <Screen edges={['top', 'bottom']} inModal>
+          <View style={{ flex: 1, paddingHorizontal: theme.spacing.xl, gap: theme.spacing.lg }}>
+            <Row style={{ paddingTop: theme.spacing.md }}>
+              <IconButton label={t.common.close} onPress={() => setSearchOpen(false)}>
+                <Ionicons name="close" size={iconSize.lg} color={theme.color.text} />
+              </IconButton>
+              <View style={{ flex: 1, alignItems: 'center' }}>
+                <Text variant="heading">{t.mergePeople.searchInWaves}</Text>
+              </View>
+              <View style={{ width: 44 }} />
+            </Row>
+            <Card>
+              <TextInput
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                accessibilityLabel={t.pickers.searchContacts}
+                placeholder={t.pickers.searchContacts}
+                placeholderTextColor={theme.color.textFaint}
+                autoFocus
+                style={{ fontSize: 16, color: theme.color.text, padding: 0 }}
+              />
+            </Card>
+            <ScrollView
+              style={{ flex: 1 }}
+              contentContainerStyle={{ paddingBottom: theme.spacing.xl }}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
+              {searchResults.length === 0 ? (
+                <Text variant="caption" tone="muted">
+                  {t.mergePeople.noMoreGuests}
+                </Text>
+              ) : (
+                <Card padded={false} style={{ padding: theme.spacing.md }}>
+                  {searchResults.map((row, index) => (
+                    <View key={row.person_key}>
+                      <SuggestedRow row={row} locale={locale} t={t} onAdd={() => toggle(row)} />
+                      {index < searchResults.length - 1 ? <Divider /> : null}
+                    </View>
+                  ))}
+                </Card>
+              )}
+            </ScrollView>
+          </View>
+        </Screen>
+      </Modal>
 
       {/* Picking a device contact to name the merge. Mounted only while open,
           for the same reason add-person's own contact modal is — a React Native
@@ -749,106 +894,251 @@ export default function MergePeopleScreen() {
 
 /** The one address we hold for this guest — a number first, else an email. */
 function contactAddress(person: MergeCandidate): string {
-  return person.phone?.trim() || person.email?.trim() || '';
+  return displayPhone(person.phone) || person.email?.trim() || '';
 }
 
-/** The facts the identity line is made of, unformatted. */
-function identityParts(
-  person: MergeCandidate,
-  locale: string,
-  t: UiStrings,
-): { address: string; reach: string; pending: string } {
-  return {
-    address: contactAddress(person),
-    reach:
-      person.group_ids.length === 1
-        ? t.tabs.inOneGroup
-        : plural(locale, person.group_ids.length, t.tabs.acrossGroups),
-    pending: person.pending ? t.mergePeople.pendingTag : '',
-  };
+/** How far this guest reaches, with the emoji the reference wears: "👥 in one
+ *  group" / "👥 across {n} groups". Pending carries its own pill instead — the
+ *  reach does not matter while the membership itself cannot be picked. */
+function reachPill(person: MergeCandidate, locale: string, t: UiStrings): string {
+  const reach =
+    person.group_ids.length === 1
+      ? t.tabs.inOneGroup
+      : plural(locale, person.group_ids.length, t.tabs.acrossGroups);
+  return `\u{1F465} ${reach}`;
 }
 
-/**
- * What makes this guest somebody already, in one line.
- *
- * The number or address you wrote down when you invited them comes first — it is
- * the nearest thing to proof of a particular human a guest can carry, and it is
- * the whole reason one of two same-looking names is the one to keep. Their reach
- * across groups follows it, and whether they are still waiting to sync last.
- *
- * The address is wrapped in a Unicode isolate (U+2068 … U+2069) because it is
- * the one strongly-LTR run in a line that is otherwise the UI language: without
- * it a leading `+` walks to the wrong end of an Arabic subtitle. `ListRow`'s
- * subtitle takes a string, not a node, so the isolation is in the text rather
- * than in a nested `writingDirection` Text the way `friends/person/[key]` does
- * it. Screen readers skip the controls, but {@link identitySpoken} is built from
- * the bare address anyway so nothing depends on that.
- */
-function identityLine(person: MergeCandidate, locale: string, t: UiStrings): string {
-  const { address, reach, pending } = identityParts(person, locale, t);
-  // Spelled as escapes on purpose: FSI and PDI are invisible, and a copy-paste
-  // or an editor that strips format characters would silently undo the fix.
-  const isolated = address ? `\u2068${address}\u2069` : '';
-  return [isolated, reach, pending].filter(Boolean).join(' · ');
-}
-
-/** The same facts for a spoken label — no isolate controls, comma-separated. */
-function identitySpoken(person: MergeCandidate, locale: string, t: UiStrings): string {
-  const { address, reach, pending } = identityParts(person, locale, t);
-  return [address, reach, pending].filter(Boolean).join(', ');
-}
-
-/**
- * One person in the merge selection: their name, what makes them somebody
- * already, and a remove control. No avatar — the identity being built is the
- * name at the top, so the rows stay a compact, glanceable list rather than a
- * stack of circles. Removing is the only edit here — there is no "unpick to
- * unmerged," only "not part of this merge," so it reads as a delete, not a
- * toggle.
- */
-function MergeMemberRow({
-  name,
-  subtitle,
-  spoken,
-  identified,
-  identifiedLabel,
-  removeLabel,
-  onRemove,
+/** The numbered step circle plus its title, shared by all three cards. The
+ *  caption under it is drawn by the caller — it sits at its own left margin so
+ *  a wrapped two-line caption does not fight the circle's width. */
+function StepHeader({
+  step,
+  title,
+  trailing,
 }: {
-  name: string;
-  subtitle: string;
-  /** The same line without the bidi isolate controls, for a screen reader. */
-  spoken: string;
-  /** We hold an address for them — the tick that says "this one is a real someone". */
-  identified: boolean;
-  identifiedLabel: string;
-  removeLabel: string;
-  onRemove: () => void;
+  step: number;
+  title: string;
+  trailing?: React.ReactNode;
 }): React.JSX.Element {
   const theme = useTheme();
   return (
-    <Row style={{ paddingVertical: theme.spacing.sm, alignItems: 'center', minHeight: 44 }}>
-      <View style={{ flex: 1 }}>
-        <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
-          <Text variant="subheading" numberOfLines={1} style={{ flexShrink: 1 }}>
-            {name}
-          </Text>
-          {identified ? (
-            <MaterialCommunityIcons
-              name="account-check"
-              size={iconSize.sm}
-              color={theme.color.brand}
-              accessibilityLabel={identifiedLabel}
-            />
-          ) : null}
-        </Row>
-        <Text variant="caption" tone="muted" numberOfLines={1} accessibilityLabel={spoken}>
-          {subtitle}
+    <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+      <View
+        style={{
+          width: 28,
+          height: 28,
+          borderRadius: 14,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: theme.color.brand,
+        }}
+      >
+        <Text variant="caption" style={{ color: theme.color.onBrand, fontWeight: '700' }}>
+          {step}
         </Text>
       </View>
-      <IconButton label={removeLabel} onPress={onRemove}>
-        <Ionicons name="close-circle" size={iconSize.xl} color={theme.color.textFaint} />
+      <Text variant="subheading" numberOfLines={1} style={{ flex: 1, flexShrink: 1 }}>
+        {title}
+      </Text>
+      {trailing}
+    </Row>
+  );
+}
+
+/** One of the two Card 3 choices: search the roster, or pick a device contact. */
+function OptionTile({
+  icon,
+  title,
+  hint,
+  onPress,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  hint: string;
+  onPress: () => void;
+}): React.JSX.Element {
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${title}. ${hint}`}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        flex: 1,
+        minWidth: 0,
+        gap: 4,
+        padding: theme.spacing.md,
+        borderRadius: theme.radius.md,
+        borderWidth: 1,
+        borderColor: theme.color.border,
+        backgroundColor: theme.color.surface,
+        opacity: pressed ? 0.7 : 1,
+      })}
+    >
+      {icon}
+      <Text variant="subheading" numberOfLines={1}>
+        {title}
+      </Text>
+      <Text variant="micro" tone="muted" numberOfLines={1}>
+        {hint}
+      </Text>
+    </Pressable>
+  );
+}
+
+/** A small filled brand circle with a "+" glyph — Card 3's add control, round
+ *  and small enough to sit at the end of a compact 52dp row (the shared
+ *  `IconButton` is fixed at 44pt, too wide for this slot). */
+function RoundAddButton({ onPress, label }: { onPress: () => void; label: string }) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: theme.color.brand,
+        opacity: pressed ? 0.8 : 1,
+      })}
+    >
+      <Ionicons name="add" size={iconSize.md} color={theme.color.onBrand} />
+    </Pressable>
+  );
+}
+
+/**
+ * One person already in the merge (Card 2): a checkbox (always checked — this
+ * list only ever holds the ticked people, so unticking it is the same removal
+ * the trailing ✕ performs), their coloured initials, name and address, how far
+ * they reach, and the ✕ to take them back out. No ambiguity between the two
+ * controls: either one removes, there is nothing else a tick here could mean.
+ */
+function MergeSelectedRow({
+  row,
+  locale,
+  t,
+  onToggle,
+  removeLabel,
+}: {
+  row: MergeCandidate;
+  locale: string;
+  t: UiStrings;
+  onToggle: () => void;
+  removeLabel: string;
+}): React.JSX.Element {
+  const theme = useTheme();
+  const address = contactAddress(row);
+  return (
+    <Row style={{ minHeight: 52, paddingVertical: theme.spacing.xs, gap: theme.spacing.sm }}>
+      <Pressable
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: true }}
+        accessibilityLabel={removeLabel}
+        onPress={onToggle}
+        hitSlop={8}
+      >
+        <Ionicons name="checkmark-circle" size={iconSize.xl} color={theme.color.brand} />
+      </Pressable>
+      <Avatar name={row.display_name} size={36} ghost />
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text variant="subheading" numberOfLines={1}>
+          {row.display_name}
+        </Text>
+        {address ? (
+          <Text
+            variant="caption"
+            tone="muted"
+            numberOfLines={1}
+            style={{ writingDirection: 'ltr' }}
+          >
+            {address}
+          </Text>
+        ) : null}
+      </View>
+      <View
+        style={{
+          paddingHorizontal: theme.spacing.sm,
+          paddingVertical: 2,
+          borderRadius: theme.radius.pill,
+          backgroundColor: row.pending ? theme.color.negativeSoft : theme.color.surfaceMuted,
+        }}
+      >
+        <Text variant="micro" tone="muted" numberOfLines={1}>
+          {row.pending ? t.mergePeople.pendingTag : reachPill(row, locale, t)}
+        </Text>
+      </View>
+      <IconButton label={removeLabel} onPress={onToggle}>
+        <Ionicons name="close-circle" size={iconSize.lg} color={theme.color.textFaint} />
       </IconButton>
+    </Row>
+  );
+}
+
+/**
+ * One person not yet in the merge (Card 3's roster, and its search results):
+ * coloured initials, name and address, how far they reach, and a round brand
+ * "+" that adds them. Inert while their membership is only in the local queue
+ * — the server would refuse the whole merge over them.
+ */
+function SuggestedRow({
+  row,
+  locale,
+  t,
+  onAdd,
+}: {
+  row: MergeCandidate;
+  locale: string;
+  t: UiStrings;
+  onAdd: () => void;
+}): React.JSX.Element {
+  const theme = useTheme();
+  const address = contactAddress(row);
+  const label = [row.display_name, address, row.pending ? t.mergePeople.pendingTag : null]
+    .filter(Boolean)
+    .join(', ');
+  return (
+    <Row style={{ minHeight: 52, paddingVertical: theme.spacing.xs, gap: theme.spacing.sm }}>
+      <Avatar name={row.display_name} size={36} ghost />
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text variant="subheading" numberOfLines={1}>
+          {row.display_name}
+        </Text>
+        {address ? (
+          <Text
+            variant="caption"
+            tone="muted"
+            numberOfLines={1}
+            style={{ writingDirection: 'ltr' }}
+          >
+            {address}
+          </Text>
+        ) : null}
+      </View>
+      <View
+        style={{
+          paddingHorizontal: theme.spacing.sm,
+          paddingVertical: 2,
+          borderRadius: theme.radius.pill,
+          backgroundColor: theme.color.surfaceMuted,
+        }}
+      >
+        <Text variant="micro" tone="muted" numberOfLines={1}>
+          {row.pending ? t.mergePeople.pendingTag : reachPill(row, locale, t)}
+        </Text>
+      </View>
+      {row.pending ? (
+        // Inert while this membership is only in the local queue — the server
+        // would refuse the whole merge over it. The pending pill above already
+        // says so to a screen reader; this just reserves the add button's slot.
+        <View style={{ width: 28, height: 28 }} />
+      ) : (
+        <RoundAddButton label={label} onPress={onAdd} />
+      )}
     </Row>
   );
 }

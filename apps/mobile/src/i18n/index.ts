@@ -1770,6 +1770,28 @@ export interface UiStrings {
     /** Slim strip on Friends naming how many likely-duplicate guests were spotted
      *  (same name across groups). `{n}` is the count. */
     duplicates: PluralForms;
+    /** Card 1's title on the compact merge screen: picking the surviving name. */
+    step1Title: string;
+    /** Card 1's caption, under {@link step1Title}. */
+    step1Subtitle: string;
+    /** Card 2's caption, under the {@link peopleToMergeHeader} count. */
+    step2Subtitle: string;
+    /** Card 2's header, e.g. "People to merge (3)". `{n}` is the count. */
+    peopleToMergeHeader: PluralForms;
+    /** Card 3's title: optionally picking up another duplicate before merging. */
+    step3Title: string;
+    /** Card 3's caption, under {@link step3Title}. */
+    step3Subtitle: string;
+    /** The pill beside {@link step3Title} saying this step may be skipped. */
+    optional: string;
+    /** Card 3 tile: a search over the mergeable roster itself, by name or number. */
+    searchInWaves: string;
+    /** Caption under {@link searchInWaves}. */
+    searchInWavesHint: string;
+    /** Caption under the "from contacts" tile (the {@link addPerson} flow). */
+    fromContactsHint: string;
+    /** The pinned footer button, e.g. "Merge 3 people". `{n}` is the live count. */
+    mergeCount: PluralForms;
   };
   /** Group photos are a paid feature; the cover emoji stays free for everyone. */
   /**
@@ -5408,7 +5430,7 @@ const en: UiStrings = {
     entry: 'Merge people',
     title: 'Merge people',
     subtitle:
-      'Pick the guests who are the same person. Their balances are combined under one name.',
+      'Combine duplicate contacts so all their expenses and groups appear under one person.',
     empty: 'No guests to merge — only people without a Waves account can be merged.',
     nameLabel: 'Name for the merged person',
     namePlaceholder: 'e.g. Alex',
@@ -5445,11 +5467,22 @@ const en: UiStrings = {
     needTwo: 'Add at least two people to merge them into one.',
     addPerson: 'Assign to a contact',
     assignedTo: 'Assigned to {name}',
-    addGuestTitle: 'Add a person',
+    addGuestTitle: 'Suggested from your contacts',
     noMoreGuests:
       'Everyone you can merge is already added. Add someone from your contacts instead.',
     hint: 'Seeing the same guest in more than one group? Merge the duplicates into one person.',
     duplicates: { one: '{n} possible duplicate', other: '{n} possible duplicates' },
+    step1Title: 'Choose the final name',
+    step1Subtitle: 'This will be the name after merging.',
+    step2Subtitle: 'All their expenses and groups will be combined.',
+    peopleToMergeHeader: { one: 'Person to merge ({n})', other: 'People to merge ({n})' },
+    step3Title: 'Add another person',
+    step3Subtitle: 'Find more duplicates from your contacts or search.',
+    optional: 'Optional',
+    searchInWaves: 'Search in Waves',
+    searchInWavesHint: 'Find existing people',
+    fromContactsHint: 'Add from your contacts',
+    mergeCount: { one: 'Merge {n} person', other: 'Merge {n} people' },
   },
   groupMarks: {
     beach: 'Beach',
@@ -8803,7 +8836,7 @@ const ta: UiStrings = {
     entry: 'நபர்களை இணை',
     title: 'நபர்களை இணை',
     subtitle:
-      'ஒரே நபராக இருக்கும் விருந்தினர்களைத் தேர்ந்தெடுக்கவும். அவர்களின் இருப்புகள் ஒரே பெயரின் கீழ் இணைக்கப்படும்.',
+      'நகல் தொடர்புகளை இணைக்கவும், அவர்களின் எல்லா செலவுகளும் குழுக்களும் ஒரே நபரின் கீழ் தோன்றும்.',
     empty: 'இணைக்க விருந்தினர்கள் இல்லை — Waves கணக்கு இல்லாதவர்களை மட்டுமே இணைக்க முடியும்.',
     nameLabel: 'இணைந்த நபருக்கான பெயர்',
     namePlaceholder: 'எ.கா. அலெக்ஸ்',
@@ -8844,11 +8877,25 @@ const ta: UiStrings = {
     needTwo: 'ஒரே நபராக இணைக்க குறைந்தது இரண்டு நபர்களைச் சேர்க்கவும்.',
     addPerson: 'தொடர்பிற்கு ஒதுக்கு',
     assignedTo: '{name} உடன் இணைக்கப்பட்டது',
-    addGuestTitle: 'ஒரு நபரைச் சேர்க்கவும்',
+    addGuestTitle: 'உங்கள் தொடர்புகளிலிருந்து பரிந்துரைக்கப்பட்டவை',
     noMoreGuests:
       'இணைக்கக்கூடிய அனைவரும் ஏற்கனவே சேர்க்கப்பட்டுள்ளனர். பதிலாக உங்கள் தொடர்புகளிலிருந்து ஒருவரைச் சேர்க்கவும்.',
     hint: 'ஒரே விருந்தினர் ஒன்றுக்கு மேற்பட்ட குழுக்களில் தெரிகிறாரா? நகல்களை ஒரே நபராக இணைக்கவும்.',
     duplicates: { one: '{n} சாத்தியமான நகல்', other: '{n} சாத்தியமான நகல்கள்' },
+    step1Title: 'இறுதிப் பெயரைத் தேர்ந்தெடுக்கவும்',
+    step1Subtitle: 'இணைத்த பிறகு இதுவே பெயராக இருக்கும்.',
+    step2Subtitle: 'அவர்களின் அனைத்து செலவுகளும் குழுக்களும் இணைக்கப்படும்.',
+    peopleToMergeHeader: {
+      one: 'இணைக்க வேண்டிய நபர் ({n})',
+      other: 'இணைக்க வேண்டிய நபர்கள் ({n})',
+    },
+    step3Title: 'மற்றொரு நபரைச் சேர்க்கவும்',
+    step3Subtitle: 'உங்கள் தொடர்புகளில் இருந்து மேலும் நகல்களைக் கண்டறியவும் அல்லது தேடவும்.',
+    optional: 'விருப்பத்தேர்வு',
+    searchInWaves: 'Waves இல் தேடு',
+    searchInWavesHint: 'இருக்கும் நபர்களைக் கண்டறியவும்',
+    fromContactsHint: 'உங்கள் தொடர்புகளிலிருந்து சேர்க்கவும்',
+    mergeCount: { one: '{n} நபரை இணை', other: '{n} நபர்களை இணை' },
   },
   groupMarks: {
     beach: 'கடற்கரை',
@@ -12273,8 +12320,7 @@ const hi: UiStrings = {
   mergePeople: {
     entry: 'लोगों को मर्ज करें',
     title: 'लोगों को मर्ज करें',
-    subtitle:
-      'उन मेहमानों को चुनें जो एक ही व्यक्ति हैं। उनके बैलेंस एक नाम के तहत जोड़ दिए जाएँगे.',
+    subtitle: 'डुप्लिकेट संपर्कों को मिलाएँ ताकि उनके सभी खर्च और समूह एक ही व्यक्ति के तहत दिखें.',
     empty:
       'मर्ज करने के लिए कोई मेहमान नहीं — केवल बिना Waves खाते वाले लोग ही मर्ज किए जा सकते हैं.',
     nameLabel: 'मर्ज किए गए व्यक्ति का नाम',
@@ -12314,11 +12360,25 @@ const hi: UiStrings = {
     needTwo: 'एक व्यक्ति में मर्ज करने के लिए कम से कम दो लोगों को जोड़ें.',
     addPerson: 'संपर्क से लिंक करें',
     assignedTo: '{name} से लिंक किया गया',
-    addGuestTitle: 'एक व्यक्ति जोड़ें',
+    addGuestTitle: 'आपके संपर्कों से सुझाए गए',
     noMoreGuests:
       'जिन्हें आप मर्ज कर सकते हैं वे सभी पहले से जुड़े हैं. इसके बजाय अपने संपर्कों से किसी को जोड़ें.',
     hint: 'एक ही मेहमान कई समूहों में दिख रहा है? डुप्लिकेट को एक व्यक्ति में मर्ज करें.',
     duplicates: { one: '{n} संभावित डुप्लिकेट', other: '{n} संभावित डुप्लिकेट' },
+    step1Title: 'अंतिम नाम चुनें',
+    step1Subtitle: 'मर्ज करने के बाद यही नाम रहेगा.',
+    step2Subtitle: 'उनके सभी खर्च और समूह एक साथ जोड़ दिए जाएँगे.',
+    peopleToMergeHeader: {
+      one: 'मर्ज करने के लिए व्यक्ति ({n})',
+      other: 'मर्ज करने के लिए लोग ({n})',
+    },
+    step3Title: 'एक और व्यक्ति जोड़ें',
+    step3Subtitle: 'अपने संपर्कों से और डुप्लिकेट ढूँढें या खोजें.',
+    optional: 'वैकल्पिक',
+    searchInWaves: 'Waves में खोजें',
+    searchInWavesHint: 'मौजूदा लोगों को खोजें',
+    fromContactsHint: 'अपने संपर्कों से जोड़ें',
+    mergeCount: { one: '{n} व्यक्ति मर्ज करें', other: '{n} लोग मर्ज करें' },
   },
   groupMarks: {
     beach: 'समुद्र तट',
@@ -15747,7 +15807,7 @@ const ar: UiStrings = {
   mergePeople: {
     entry: 'دمج الأشخاص',
     title: 'دمج الأشخاص',
-    subtitle: 'اختر الضيوف الذين هم الشخص نفسه. تُجمع أرصدتهم تحت اسم واحد.',
+    subtitle: 'ادمج جهات الاتصال المكرَّرة بحيث تظهر جميع نفقاتهم ومجموعاتهم تحت شخص واحد.',
     empty: 'لا يوجد ضيوف للدمج — يمكن دمج من ليس لديهم حساب Waves فقط.',
     nameLabel: 'اسم الشخص المدمج',
     namePlaceholder: 'مثال: أليكس',
@@ -15789,7 +15849,7 @@ const ar: UiStrings = {
     needTwo: 'أضف شخصين على الأقل لدمجهما في شخص واحد.',
     addPerson: 'ربطه بجهة اتصال',
     assignedTo: 'مرتبط بـ {name}',
-    addGuestTitle: 'إضافة شخص',
+    addGuestTitle: 'مقترح من جهات اتصالك',
     noMoreGuests: 'كل من يمكنك دمجهم مُضافون بالفعل. أضِف شخصًا من جهات اتصالك بدلاً من ذلك.',
     hint: 'هل ترى نفس الضيف في أكثر من مجموعة؟ ادمج المكرَّرين في شخص واحد.',
     duplicates: {
@@ -15799,6 +15859,31 @@ const ar: UiStrings = {
       few: '{n} مكرَّرين محتملين',
       many: '{n} مكرَّرًا محتملًا',
       other: '{n} مكرَّر محتمل',
+    },
+    step1Title: 'اختر الاسم النهائي',
+    step1Subtitle: 'سيكون هذا هو الاسم بعد الدمج.',
+    step2Subtitle: 'ستُجمع جميع نفقاتهم ومجموعاتهم معًا.',
+    peopleToMergeHeader: {
+      zero: 'لا أشخاص للدمج',
+      one: 'شخص واحد للدمج',
+      two: 'شخصان للدمج',
+      few: '{n} أشخاص للدمج',
+      many: '{n} شخصًا للدمج',
+      other: '{n} شخص للدمج',
+    },
+    step3Title: 'إضافة شخص آخر',
+    step3Subtitle: 'ابحث عن مزيد من المكرَّرين من جهات اتصالك أو عبر البحث.',
+    optional: 'اختياري',
+    searchInWaves: 'البحث في Waves',
+    searchInWavesHint: 'العثور على أشخاص موجودين',
+    fromContactsHint: 'أضف من جهات اتصالك',
+    mergeCount: {
+      zero: 'دمج لا أحد',
+      one: 'دمج شخص واحد',
+      two: 'دمج شخصين',
+      few: 'دمج {n} أشخاص',
+      many: 'دمج {n} شخصًا',
+      other: 'دمج {n} شخص',
     },
   },
   groupMarks: {
