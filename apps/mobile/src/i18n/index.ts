@@ -2701,6 +2701,8 @@ export interface UiStrings {
     exactly: string;
     /** The amount field beside one person in an exact split. `{name}` is theirs. */
     exactShareLabel: string;
+    /** A shares field with more than two decimal places — half a share is fine, a third decimal is not. */
+    sharesDecimalPlaces: string;
     splitBetween: string;
     ofCount: string;
     saveChanges: string;
@@ -6196,6 +6198,7 @@ const en: UiStrings = {
     equally: 'Equally',
     exactly: 'Exact',
     exactShareLabel: "{name}'s share",
+    sharesDecimalPlaces: 'Shares can have at most two decimal places.',
     shares: 'Shares',
     percent: 'Percent',
     splitBetween: 'Split between',
@@ -9649,6 +9652,7 @@ const ta: UiStrings = {
     equally: 'சமமாக',
     exactly: 'சரியாக',
     exactShareLabel: '{name} இன் பங்கு',
+    sharesDecimalPlaces: 'பங்குகளில் அதிகபட்சம் இரண்டு தசம இடங்கள் மட்டுமே இருக்கலாம்.',
     shares: 'பங்குகள்',
     percent: 'சதவீதம்',
     splitBetween: 'யாருக்கிடையே',
@@ -13096,6 +13100,7 @@ const hi: UiStrings = {
     equally: 'बराबर',
     exactly: 'सटीक',
     exactShareLabel: '{name} का हिस्सा',
+    sharesDecimalPlaces: 'हिस्सों में अधिकतम दो दशमलव स्थान हो सकते हैं।',
     shares: 'हिस्से',
     percent: 'प्रतिशत',
     splitBetween: 'किनके बीच',
@@ -16699,6 +16704,7 @@ const ar: UiStrings = {
     equally: 'بالتساوي',
     exactly: 'بالضبط',
     exactShareLabel: 'حصة {name}',
+    sharesDecimalPlaces: 'يمكن أن تحتوي الحصص على رقمين عشريين على الأكثر.',
     shares: 'حصص',
     percent: 'نسبة مئوية',
     splitBetween: 'التقسيم بين',

@@ -19,9 +19,23 @@ describe('parseEntry', () => {
     expect(parseEntry('shares', ' 12 ')).toBe(12);
   });
 
-  it('refuses a fractional share rather than rounding it', () => {
-    expect(parseEntry('shares', '1.5')).toBeNull();
+  it('reads a half share — fractional shares up to two decimal places', () => {
+    expect(parseEntry('shares', '0.5')).toBe(0.5);
+    expect(parseEntry('shares', '1.5')).toBe(1.5);
+    expect(parseEntry('shares', '2.25')).toBe(2.25);
+    expect(parseEntry('shares', '.5')).toBe(0.5);
+  });
+
+  it('accepts a comma as the decimal separator, like some locales type one', () => {
+    expect(parseEntry('shares', '1,5')).toBe(1.5);
+    expect(parseEntry('shares', '0,5')).toBe(0.5);
+  });
+
+  it('refuses a third decimal place, a negative share, and junk, rather than rounding', () => {
+    expect(parseEntry('shares', '1.333')).toBeNull();
+    expect(parseEntry('shares', '0.001')).toBeNull();
     expect(parseEntry('shares', '-1')).toBeNull();
+    expect(parseEntry('shares', '-0.5')).toBeNull();
     expect(parseEntry('shares', 'two')).toBeNull();
   });
 
@@ -64,6 +78,13 @@ describe('formatEntry', () => {
       expect(formatEntry('percent', parseEntry('percent', text) ?? -1)).toBe(text);
     }
   });
+
+  it('shows a share with no trailing zero', () => {
+    expect(formatEntry('shares', 0.5)).toBe('0.5');
+    expect(formatEntry('shares', 1)).toBe('1');
+    expect(formatEntry('shares', 1.25)).toBe('1.25');
+    expect(formatEntry('shares', 2)).toBe('2');
+  });
 });
 
 describe('splitProblem', () => {
@@ -75,6 +96,10 @@ describe('splitProblem', () => {
 
   it('accepts shares with at least one positive weight', () => {
     expect(splitProblem(SplitKind.Shares, { a: '2', b: '1', c: '0' }, people)).toBeNull();
+  });
+
+  it('accepts a half share — fractional weights are not a problem', () => {
+    expect(splitProblem(SplitKind.Shares, { a: '0.5', b: '1', c: '1.5' }, people)).toBeNull();
   });
 
   it('refuses shares that are all zero', () => {
@@ -109,9 +134,23 @@ describe('splitProblem', () => {
 
   it('maps invalid participant fields to zero only after splitProblem has flagged them', () => {
     expect(splitProblem(SplitKind.Shares, { a: 'abc', b: '2' }, ['a', 'b'])).toBe(
-      'Shares must be whole numbers.',
+      'Shares can have at most two decimal places.',
     );
     expect(entryValues('shares', { a: 'abc', b: '2' }, ['a', 'b'])).toEqual({ a: 0, b: 2 });
+  });
+
+  it('flags a third decimal place, not just junk', () => {
+    expect(splitProblem(SplitKind.Shares, { a: '1.333', b: '2' }, ['a', 'b'])).toBe(
+      'Shares can have at most two decimal places.',
+    );
+  });
+
+  it('speaks the caller’s translated message when one is given', () => {
+    expect(
+      splitProblem(SplitKind.Shares, { a: 'abc', b: '2' }, ['a', 'b'], {
+        sharesDecimalPlaces: 'हिस्सों में अधिकतम दो दशमलव स्थान हो सकते हैं।',
+      }),
+    ).toBe('हिस्सों में अधिकतम दो दशमलव स्थान हो सकते हैं।');
   });
 });
 

@@ -30,8 +30,12 @@ const TOTAL_BASIS_POINTS = 10000;
 /** Up to three digits, then at most two decimal places. */
 const PERCENT = /^(?:\d{1,3}|\d{0,3}\.\d{1,2})$/;
 
-/** Whole numbers only, and not so many digits that the field stops being one. */
-const WEIGHT = /^\d{1,9}$/;
+/**
+ * Shares: not so many digits that the field stops being one, and at most two
+ * decimal places — half a share is a real, common thing to type ("1.5"), a
+ * third decimal place is not ("1.333").
+ */
+const WEIGHT = /^(?:\d{1,9}|\d{0,9}\.\d{1,2})$/;
 
 /**
  * One typed entry as a number — basis points for percent, a weight for shares.
@@ -41,7 +45,10 @@ const WEIGHT = /^\d{1,9}$/;
  * malformed comes back as `null`.
  */
 export function parseEntry(kind: 'shares' | 'percent', text: string): number | null {
-  const value = text.trim();
+  // A shares field takes a decimal keypad, and some locales' decimal keypad
+  // types "," rather than ".". Only the first comma is swapped — "1,,5" is
+  // still typo'd, not a number — so WEIGHT still refuses it.
+  const value = kind === 'shares' ? text.trim().replace(',', '.') : text.trim();
   if (value === '' || value === '.') return 0;
 
   if (kind === 'shares') {
@@ -84,6 +91,11 @@ export function entryValues(
   return values;
 }
 
+/** The one `splitProblem` message that is translated — see i18n/index.ts. */
+export interface SplitProblemStrings {
+  readonly sharesDecimalPlaces: string;
+}
+
 /**
  * What is wrong with these entries, in words somebody can act on — or `null`
  * when the split is ready to save.
@@ -92,11 +104,16 @@ export function entryValues(
  * basis points sum to exactly 10000, and a thrown preview looks to the user
  * like the screen simply stopped working. Saying "3.5% left" instead is the
  * whole point of this function.
+ *
+ * `strings` is optional so every other caller — including every test in this
+ * file — can keep calling this with three arguments; only the shares-decimals
+ * message is translated, via the caller's `t.expense`.
  */
 export function splitProblem(
   kind: SplitKind,
   entries: SplitEntries,
   participants: readonly string[],
+  strings?: SplitProblemStrings,
 ): string | null {
   if (kind === 'equal') return null;
   // An exact split's complaint is money, and money needs a currency and a total
@@ -108,7 +125,7 @@ export function splitProblem(
   for (const id of participants) {
     if (parseEntry(kind, entries[id] ?? '') === null) {
       return kind === 'shares'
-        ? 'Shares must be whole numbers.'
+        ? (strings?.sharesDecimalPlaces ?? 'Shares can have at most two decimal places.')
         : 'Percentages can have at most two decimal places.';
     }
   }

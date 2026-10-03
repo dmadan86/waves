@@ -10,24 +10,17 @@
  * changed on the full screen.
  */
 
+import { useCallback, useEffect, useRef } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, TextInput, View } from 'react-native';
 
 import { currencySymbol, sanitiseMinorInput, type CurrencyCode, type MemberId } from '@waves/core';
-import {
-  amountKeyboard,
-  Avatar,
-  ChipRow,
-  iconSize,
-  MoneyText,
-  Row,
-  Text,
-  useTheme,
-} from '@waves/ui';
+import { amountKeyboard, Avatar, Chip, iconSize, MoneyText, Row, Text, useTheme } from '@waves/ui';
 
 import { splitIcon } from '@/components/expense/splitIcon';
 import { displayName, isGhost, type MemberRow } from '@/data/types';
 import { fill, useStrings } from '@/i18n';
+import { useReducedMotion } from '@/lib/reducedMotion';
 import { SplitKind, type SplitEntries } from '@/lib/split';
 
 /**
@@ -75,7 +68,9 @@ export function SplitEntryField({
           onChange(exact ? sanitiseMinorInput(text, currency as CurrencyCode) : text)
         }
         keyboardType={
-          exact ? amountKeyboard(currency as CurrencyCode) : percent ? 'decimal-pad' : 'number-pad'
+          // Shares and percent both take a fraction now — "1.5" shares, "33.33"
+          // percent — so both get the keypad with a decimal point on it.
+          exact ? amountKeyboard(currency as CurrencyCode) : 'decimal-pad'
         }
         selectTextOnFocus
         placeholder={kind === SplitKind.Shares ? '1' : '0'}
@@ -112,11 +107,22 @@ export function SplitEntryField({
   );
 }
 
+/** Breathing room kept between a revealed chip and the edge of the lane. */
+const CHIP_REVEAL_PADDING = 16;
+
 /**
  * The four ways to split, as one scrolling lane of chips — word plus glyph, the
  * glyph being what the expense screen's split row wears afterwards. The lane
  * scrolls rather than wraps: four labelled modes do not fit one narrow line in
  * every language, and a fourth chip alone on a second row reads as broken.
+ *
+ * Built on `Chip` rather than the generic `ChipRow` because the selected chip
+ * must always be scrolled fully into view — a tap on "Exact" used to select it
+ * while leaving it clipped in the overflow, which looks like the tap did
+ * nothing. Each chip reports its own x/width on layout; the lane scrolls to
+ * whichever one is selected, with a little padding so it never sits flush
+ * against the edge. That has to run on first paint too — opening an already
+ * "Exact" expense must not leave it off-screen either.
  */
 export function SplitKindChips({
   value,
@@ -126,27 +132,87 @@ export function SplitKindChips({
   onChange: (next: SplitKind) => void;
 }): React.JSX.Element {
   const { t } = useStrings();
+  const theme = useTheme();
+  const reduceMotion = useReducedMotion();
+  const scrollRef = useRef<ScrollView>(null);
+  const viewportWidthRef = useRef(0);
+  const contentWidthRef = useRef(0);
+  const chipLayoutsRef = useRef<Partial<Record<SplitKind, { x: number; width: number }>>>({});
+
+  const options = [SplitKind.Equal, SplitKind.Shares, SplitKind.Percent, SplitKind.Exact].map(
+    (kind) => ({
+      value: kind,
+      label:
+        kind === SplitKind.Equal
+          ? t.expense.equally
+          : kind === SplitKind.Shares
+            ? t.expense.shares
+            : kind === SplitKind.Percent
+              ? t.expense.percent
+              : t.expense.exactly,
+      icon: (color: string) => <Ionicons name={splitIcon(kind)} size={iconSize.md} color={color} />,
+    }),
+  );
+
+  const revealChip = useCallback(
+    (kind: SplitKind, animated: boolean) => {
+      const layout = chipLayoutsRef.current[kind];
+      const scrollView = scrollRef.current;
+      const viewportWidth = viewportWidthRef.current;
+      if (!layout || !scrollView || viewportWidth <= 0) return;
+      const maxScroll = Math.max(0, contentWidthRef.current - viewportWidth);
+      // Lands the chip's left edge `CHIP_REVEAL_PADDING` in from the lane's
+      // left edge, clamped to what the lane can actually scroll — a chip near
+      // either end does not try to scroll past the content it has.
+      const target = Math.min(Math.max(layout.x - CHIP_REVEAL_PADDING, 0), maxScroll);
+      scrollView.scrollTo({ x: target, animated: animated && !reduceMotion });
+    },
+    [reduceMotion],
+  );
+
+  // The selected chip changing — by a tap, or by opening with a non-default
+  // value already set — must always end with it fully on screen.
+  useEffect(() => {
+    revealChip(value, true);
+  }, [value, revealChip]);
+
   return (
-    <ChipRow<SplitKind>
-      value={value}
-      onChange={onChange}
-      options={[SplitKind.Equal, SplitKind.Shares, SplitKind.Percent, SplitKind.Exact].map(
-        (kind) => ({
-          value: kind,
-          label:
-            kind === SplitKind.Equal
-              ? t.expense.equally
-              : kind === SplitKind.Shares
-                ? t.expense.shares
-                : kind === SplitKind.Percent
-                  ? t.expense.percent
-                  : t.expense.exactly,
-          icon: (color: string) => (
-            <Ionicons name={splitIcon(kind)} size={iconSize.md} color={color} />
-          ),
-        }),
-      )}
-    />
+    <ScrollView
+      ref={scrollRef}
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      onLayout={(event) => {
+        viewportWidthRef.current = event.nativeEvent.layout.width;
+      }}
+      onContentSizeChange={(width) => {
+        contentWidthRef.current = width;
+      }}
+      contentContainerStyle={{ gap: theme.spacing.sm, paddingRight: theme.spacing.xl }}
+    >
+      {options.map((option) => (
+        <View
+          key={option.value}
+          onLayout={(event) => {
+            chipLayoutsRef.current[option.value] = {
+              x: event.nativeEvent.layout.x,
+              width: event.nativeEvent.layout.width,
+            };
+            // First paint of the chip that is already selected (e.g. opening a
+            // saved "Exact" expense) must land in view without waiting for a
+            // tap — the layout above may resolve after the viewport's own.
+            if (option.value === value) revealChip(value, false);
+          }}
+        >
+          <Chip
+            label={option.label}
+            icon={option.icon}
+            selected={option.value === value}
+            onPress={() => onChange(option.value)}
+            repeatable
+          />
+        </View>
+      ))}
+    </ScrollView>
   );
 }
 
