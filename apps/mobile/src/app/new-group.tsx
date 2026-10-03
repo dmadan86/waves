@@ -14,11 +14,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   currencySymbol,
+  EVENT_TEMPLATES,
   guessGroupEmoji,
   guessGroupType,
   minorUnitExponent,
   minorUnitScale,
   MutationKind,
+  type EventTemplateId,
 } from '@waves/core';
 import {
   AmountField,
@@ -171,6 +173,11 @@ export default function NewGroupScreen() {
   // group called "Goa" still becomes one, "Dinner" does not, and an untyped
   // name falls back to Other rather than dragging trip fields in behind it.
   const [pickedType, setPickedType] = useState<GroupType | null>(null);
+  // Event organizer (docs/event-organizer.md): which fixed sub-event list an
+  // Event group starts with. Null until somebody picks one — a group is
+  // allowed to stay a plain Event with no template, same as it is allowed to
+  // stay untyped.
+  const [eventTemplate, setEventTemplate] = useState<EventTemplateId | null>(null);
   // Which attribute row of the settings card is unfolded, if any — one at a
   // time, so the card stays a short list until you open the one you want.
   //
@@ -181,7 +188,9 @@ export default function NewGroupScreen() {
   // split, as a stack of named facts with their values, each one a tap from
   // being changed. Nothing here is required; the point is that the screen reads
   // as already filled in rather than as a form still to be completed.
-  const [openAttr, setOpenAttr] = useState<'kind' | 'dates' | 'budget' | 'rates' | null>(null);
+  const [openAttr, setOpenAttr] = useState<
+    'kind' | 'dates' | 'budget' | 'rates' | 'eventTemplate' | null
+  >(null);
 
   /**
    * Bring an unfolded row back into view.
@@ -498,6 +507,14 @@ export default function NewGroupScreen() {
       const trimmedDescription = normaliseGroupDescription(description);
       if (trimmedDescription) {
         await mutate(MutationKind.GroupUpdate, groupId, { description: trimmedDescription });
+      }
+
+      // The event template, if one was picked. Same ordered queue behind the
+      // create as the description above — an ordinary member-writable field
+      // (docs/event-organizer.md), not admin-gated, so a plain group.update is
+      // enough; no new mutation kind earns its keep for one string.
+      if (type === GroupType.Event && eventTemplate) {
+        await mutate(MutationKind.GroupUpdate, groupId, { event_template: eventTemplate });
       }
 
       // Trip dates are not part of the create call, so they ride behind it as
@@ -1028,6 +1045,39 @@ export default function NewGroupScreen() {
                   {openAttr === 'rates' ? (
                     <View style={{ paddingBottom: theme.spacing.md }}>
                       <TripRatesCard store={rateStore} groupCurrency={currency} canEdit embedded />
+                    </View>
+                  ) : null}
+                </View>
+              ) : null}
+
+              {/* Event organizer (docs/event-organizer.md): which fixed
+                  sub-event list this Event starts with — a wedding's
+                  ceremonies, a birthday's spend areas, or none at all.
+                  Event-only, like the trip-only rows above it. */}
+              {type === GroupType.Event ? (
+                <View>
+                  <DetailRow
+                    icon="sparkles-outline"
+                    label={t.eventOrganizer.templateLabel}
+                    value={eventTemplate ? t.eventOrganizer.templateNames[eventTemplate] : t.add}
+                    placeholder={!eventTemplate}
+                    expanded={openAttr === 'eventTemplate'}
+                    onPress={() =>
+                      setOpenAttr((current) =>
+                        current === 'eventTemplate' ? null : 'eventTemplate',
+                      )
+                    }
+                  />
+                  {openAttr === 'eventTemplate' ? (
+                    <View style={{ paddingBottom: theme.spacing.md }}>
+                      <ChipRow<EventTemplateId>
+                        value={eventTemplate ?? 'other'}
+                        onChange={setEventTemplate}
+                        options={EVENT_TEMPLATES.map((template) => ({
+                          value: template.id,
+                          label: t.eventOrganizer.templateNames[template.id],
+                        }))}
+                      />
                     </View>
                   ) : null}
                 </View>

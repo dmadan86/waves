@@ -193,6 +193,15 @@ export interface MirrorExpense extends MirrorRow {
      */
     readonly fx?: unknown;
     readonly receipt_id?: string | null;
+    /** Which sub-event this spend belongs to (`event-organizer.md`), or null.
+     *  Optional for the same reason `fx` is — a row mirrored before this shipped
+     *  does not carry the column. */
+    readonly sub_event_id?: string | null;
+    /** A vendor deposit with a balance still owing, and what/when
+     *  (`event-organizer.md`). Optional for the same reason as `sub_event_id`. */
+    readonly is_deposit?: boolean;
+    readonly balance_due_minor?: string | null;
+    readonly balance_due_date?: string | null;
     readonly created_at: string;
     readonly payers: readonly { member_id: string; amount: string }[];
     readonly shares: readonly { member_id: string; amount: string }[];
@@ -299,6 +308,10 @@ function applyPending(
           // no receipt — silently dropping the rate and unlinking the bill.
           fx: (payload as { fx?: unknown }).fx ?? null,
           receipt_id: payload.receiptId ?? null,
+          sub_event_id: payload.subEventId ?? null,
+          is_deposit: payload.isDeposit ?? false,
+          balance_due_minor: payload.balanceDueMinor ?? null,
+          balance_due_date: payload.balanceDueDate ?? null,
           created_at: mutation.clientCreatedAt,
           payers: Object.entries(payload.payers).map(([member_id, amount]) => ({
             member_id,

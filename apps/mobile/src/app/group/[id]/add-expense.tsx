@@ -24,6 +24,7 @@ import {
   money,
   MutationKind,
   rebalancePayers,
+  subEventsForTemplate,
   validatePayers,
   type CategoryMeta,
   type CurrencyCode,
@@ -34,11 +35,13 @@ import {
   type SplitParams,
 } from '@waves/core';
 import {
+  AmountField,
   amountKeyboard,
   Avatar,
   Button,
   Callout,
   Card,
+  ChipRow,
   EmptyState,
   iconSize,
   MoneyText,
@@ -488,6 +491,15 @@ export default function AddExpenseScreen() {
   // (and without a synchronous setState inside the effect).
   const autoLocatedRef = useRef(false);
 
+  // Event organizer (docs/event-organizer.md): which sub-event this spend is
+  // for, and whether it is a vendor deposit still owing a balance. Both are
+  // optional metadata, like paymentMethod/location above — null/false until
+  // the person opts in, seeded from the version when editing.
+  const [subEventId, setSubEventId] = useState<string | null>(null);
+  const [isDeposit, setIsDeposit] = useState(false);
+  const [balanceDueMinor, setBalanceDueMinor] = useState<bigint | null>(null);
+  const [balanceDueDate, setBalanceDueDate] = useState<string | null>(null);
+
   // The per-group receipt ceiling. A group holds a few receipts for free (the
   // number is an admin knob); past it, scanning is a paid feature. A paid group
   // has no cap. This only draws the affordance — the server enforces the same
@@ -685,6 +697,10 @@ export default function AddExpenseScreen() {
       setPayersFor(`${seeded.amount}:${seeded.currency}`);
       setPaymentMethod(seeded.paymentMethod);
       setLocation(seeded.location);
+      setSubEventId(seeded.subEventId);
+      setIsDeposit(seeded.isDeposit);
+      setBalanceDueMinor(seeded.balanceDueMinor);
+      setBalanceDueDate(seeded.balanceDueDate);
       setParticipants(seeded.participants);
       setSplitKind(seeded.splitKind);
       setWeights(seeded.weights);
@@ -792,6 +808,18 @@ export default function AddExpenseScreen() {
     if (Platform.OS === 'android') setEditingDate(false);
     if (event.type === 'dismissed' || !picked) return;
     setPickedDate(isoDate(picked));
+  };
+
+  // Event organizer (docs/event-organizer.md): the fixed sub-event list this
+  // group's template suggests — empty for a Trip/Home/Couple/Friends/Other
+  // group, for an Event made before templates shipped, and for 'other'.
+  const eventSubEvents = subEventsForTemplate(group.data?.event_template);
+
+  const [editingBalanceDueDate, setEditingBalanceDueDate] = useState(false);
+  const applyBalanceDueDate = (event: DateTimePickerEvent, picked?: Date): void => {
+    if (Platform.OS === 'android') setEditingBalanceDueDate(false);
+    if (event.type === 'dismissed' || !picked) return;
+    setBalanceDueDate(isoDate(picked));
   };
 
   const payerIds = [...payers.keys()];
@@ -1112,6 +1140,10 @@ export default function AddExpenseScreen() {
             payers,
             paymentMethod,
             location,
+            subEventId,
+            isDeposit,
+            balanceDueMinor,
+            balanceDueDate,
           },
           editing: editing?.currentVersion,
         }),
@@ -1626,6 +1658,86 @@ export default function AddExpenseScreen() {
               mode="date"
               display={Platform.OS === 'ios' ? 'inline' : 'default'}
               onChange={applyDate}
+            />
+          ) : null}
+
+          {/* Event organizer (docs/event-organizer.md): which sub-event this
+              spend is for — only on an Event group whose template suggests
+              any. A chip row, not another sheet: five or six options read
+              faster as chips than behind one more tap, and "none" is always
+              on offer for the spend nobody wants to pin to one occasion. */}
+          {eventSubEvents.length > 0 ? (
+            <Card
+              padded={false}
+              style={{
+                paddingHorizontal: theme.spacing.lg,
+                paddingVertical: theme.spacing.md,
+                gap: theme.spacing.sm,
+              }}
+            >
+              <Text variant="caption" tone="muted">
+                {t.eventOrganizer.subEventLabel}
+              </Text>
+              <ChipRow
+                options={[
+                  { value: 'none', label: t.eventOrganizer.noSubEvent },
+                  ...eventSubEvents.map((subEvent) => ({
+                    value: subEvent.id,
+                    label: `${subEvent.emoji} ${t.eventSubEvents[subEvent.id] ?? subEvent.id}`,
+                  })),
+                ]}
+                value={subEventId ?? 'none'}
+                onChange={(picked) => setSubEventId(picked === 'none' ? null : picked)}
+              />
+            </Card>
+          ) : null}
+
+          {/* A vendor deposit: this expense is a part-payment, with a balance
+              still owing. Collapsed by default — most expenses are not a
+              deposit — and the row's own disclosure chevron is what unfolds
+              the amount and due date in place, the same idiom `DetailRow`
+              already uses elsewhere. */}
+          <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
+            <DetailRows>
+              <DetailRow
+                icon="pricetag-outline"
+                label={t.eventOrganizer.depositLabel}
+                value={isDeposit ? t.eventOrganizer.depositOn : t.eventOrganizer.depositOff}
+                expanded={isDeposit}
+                onPress={() => setIsDeposit((was) => !was)}
+              />
+              {isDeposit ? (
+                <DetailRow
+                  icon="cash-outline"
+                  label={t.eventOrganizer.balanceDueLabel}
+                  trailing={
+                    <AmountField
+                      currency={currency}
+                      value={balanceDueMinor ?? 0n}
+                      onChange={setBalanceDueMinor}
+                      size="compact"
+                    />
+                  }
+                />
+              ) : null}
+              {isDeposit ? (
+                <DetailRow
+                  icon="calendar-outline"
+                  label={t.eventOrganizer.balanceDueDateLabel}
+                  value={balanceDueDate ? showDate(balanceDueDate, locale) : t.add}
+                  placeholder={!balanceDueDate}
+                  onPress={() => setEditingBalanceDueDate(true)}
+                />
+              ) : null}
+            </DetailRows>
+          </Card>
+
+          {editingBalanceDueDate ? (
+            <DateTimePicker
+              value={dateFrom(balanceDueDate ?? expenseDate)}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'inline' : 'default'}
+              onChange={applyBalanceDueDate}
             />
           ) : null}
 

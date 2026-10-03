@@ -68,6 +68,16 @@ interface ExpenseWriteRequest {
    */
   categoryMeta?: CategoryMeta | null;
   receiptId?: string | null;
+  /** Which sub-event this spend belongs to (`event-organizer.md`); null for an
+   *  untagged expense. */
+  subEventId?: string | null;
+  /** This expense is a vendor deposit with a balance still owing
+   *  (`event-organizer.md`). */
+  isDeposit?: boolean;
+  /** What is still owed, in minor units of `currency`. Null unless `isDeposit`. */
+  balanceDueMinor?: string | null;
+  /** When the balance above is due (ISO date). Null unless `isDeposit`. */
+  balanceDueDate?: string | null;
   /**
    * The rate used, when the expense is not in the group's currency (ADR-003).
    * Stored as an exact rational so the conversion can be reproduced a year
@@ -204,6 +214,11 @@ serveWithCors(async (request) => {
         receiptShareUrl: body.receiptShareUrl ?? null,
         categoryMeta: body.categoryMeta,
         location: body.location,
+        subEventId: body.subEventId ?? null,
+        isDeposit: body.isDeposit ?? false,
+        balanceDueMinor:
+          body.balanceDueMinor == null ? null : parseMinor(body.balanceDueMinor, 'balanceDueMinor'),
+        balanceDueDate: body.balanceDueDate ?? null,
       }),
     );
 
