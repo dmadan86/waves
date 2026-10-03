@@ -147,26 +147,26 @@ export function QuickAmountRow({
       onPressOut={stopRepeating}
       hitSlop={6}
       style={({ pressed }) => ({
-        width: 42,
-        height: 42,
-        borderRadius: 21,
+        width: 34,
+        height: 34,
+        borderRadius: 17,
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: soft,
         opacity: direction === -1 && value === 0n ? 0.4 : pressed ? 0.6 : 1,
       })}
     >
-      <Ionicons name={direction === 1 ? 'add' : 'remove'} size={iconSize.md} color={accent} />
+      <Ionicons name={direction === 1 ? 'add' : 'remove'} size={iconSize.sm} color={accent} />
     </Pressable>
   );
 
   return (
-    // One outlined card: the figure between its steps, the jumps under it.
+    // One dense card: the figure between its steps, the jumps under it.
     <View
       style={{
-        gap: theme.spacing.md,
-        padding: theme.spacing.md,
-        borderRadius: 18,
+        gap: theme.spacing.sm,
+        padding: theme.spacing.sm,
+        borderRadius: 16,
         borderWidth: 1,
         borderColor: line,
         backgroundColor: theme.color.surface,
@@ -175,10 +175,12 @@ export function QuickAmountRow({
       <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
         {stepper(-1)}
 
-        {/* The figure and its unit, on one line and centred between the steps. */}
+        {/* The figure and its unit, on one line and centred between the steps.
+            `hero` keeps the digits large without being the full-screen size a
+            sheet this short has no room for. */}
         <View style={{ flex: 1, alignItems: 'center' }}>
-          <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-            <AmountField currency={currency} value={value} onChange={onChange} size="display" />
+          <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
+            <AmountField currency={currency} value={value} onChange={onChange} size="hero" />
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={t.quickExpense.pickCurrency.replace('{currency}', currency)}
@@ -188,17 +190,17 @@ export function QuickAmountRow({
                 flexDirection: 'row',
                 alignItems: 'center',
                 gap: 4,
-                minHeight: 34,
-                paddingHorizontal: 12,
+                minHeight: 28,
+                paddingHorizontal: 10,
                 borderRadius: theme.radius.pill,
                 backgroundColor: soft,
                 opacity: pressed ? 0.6 : 1,
               })}
             >
-              <Text style={{ fontSize: 14, fontWeight: '600', color: theme.color.text }}>
+              <Text style={{ fontSize: 13, fontWeight: '600', color: theme.color.text }}>
                 {currency}
               </Text>
-              <Ionicons name="chevron-down" size={14} color={theme.color.text} />
+              <Ionicons name="chevron-down" size={13} color={theme.color.text} />
             </Pressable>
           </Row>
         </View>
@@ -210,7 +212,7 @@ export function QuickAmountRow({
           on a chai, +₹500 on a flight, recomputed as it grows. Additive rather
           than absolute because an expense is a number you are topping up —
           the tip, the extra round — not one you are replacing. */}
-      <Row style={{ gap: theme.spacing.sm }}>
+      <Row style={{ gap: theme.spacing.xs }}>
         {quickAdds(value, currency).map((add) => (
           <Pressable
             key={add.toString()}
@@ -223,7 +225,7 @@ export function QuickAmountRow({
             hitSlop={6}
             style={({ pressed }) => ({
               flex: 1,
-              minHeight: 36,
+              minHeight: 30,
               alignItems: 'center',
               justifyContent: 'center',
               borderRadius: theme.radius.pill,
@@ -231,7 +233,7 @@ export function QuickAmountRow({
               opacity: pressed ? 0.6 : 1,
             })}
           >
-            <Text style={{ fontSize: 14, fontWeight: '600', color: accent }} numberOfLines={1}>
+            <Text style={{ fontSize: 13, fontWeight: '600', color: accent }} numberOfLines={1}>
               {`+${formatMinorInput(add, currency)}`}
             </Text>
           </Pressable>
