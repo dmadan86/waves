@@ -23,6 +23,7 @@ import {
 import {
   AmountField,
   Callout,
+  ChipRow,
   directionalIcon,
   IconButton,
   iconSize,
@@ -34,7 +35,7 @@ import {
   useTheme,
 } from '@waves/ui';
 
-import { DetailRows } from '@/components/DetailRows';
+import { DetailRow, DetailRows } from '@/components/DetailRows';
 import { GroupPhoto } from '@/components/GroupPhoto';
 import { friendlyError } from '@/lib/errors';
 import { GROUP_DESCRIPTION_MAX, normaliseGroupDescription } from '@/lib/groupDescription';
@@ -126,9 +127,6 @@ export default function NewGroupScreen() {
   // neighbours, rather than squeeze the row's title onto two lines.
   const roomyRows = screenWidth >= ROOMY_ROW_WIDTH;
   const cover = narrow ? COVER_NARROW : COVER;
-  // The type tiles' row, measured, so five tiles that cannot fit side by side
-  // on a small phone scroll sideways instead of squeezing their labels.
-  const [typeRowWidth, setTypeRowWidth] = useState(0);
   const { t, locale } = useStrings();
   const createGroup = useCreateGroup();
   const { profile } = useAuth();
@@ -642,13 +640,13 @@ export default function NewGroupScreen() {
             // The first card rides up over the scene's foot, as Home's balance
             // card does.
             marginTop: -SCENE_OVERLAP,
-            gap: theme.spacing.md,
+            gap: theme.spacing.sm,
           }}
         >
           {/* The group's own account of itself: its cover — tapped to choose
               an icon — beside the name and the sentence that says what it is
               for, each a labelled, outlined field. */}
-          <FormCard style={{ flexDirection: 'row', gap: theme.spacing.md }}>
+          <FormCard style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={t.group.chooseIcon}
@@ -656,7 +654,7 @@ export default function NewGroupScreen() {
               style={({ pressed }) => ({
                 width: cover,
                 height: cover,
-                borderRadius: 18,
+                borderRadius: 16,
                 backgroundColor: theme.color.brandSoft,
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -669,8 +667,8 @@ export default function NewGroupScreen() {
               <View
                 style={{
                   position: 'absolute',
-                  end: 8,
-                  bottom: 8,
+                  end: 6,
+                  bottom: 6,
                   width: CAMERA_FAB,
                   height: CAMERA_FAB,
                   borderRadius: CAMERA_FAB / 2,
@@ -684,11 +682,15 @@ export default function NewGroupScreen() {
                   elevation: 4,
                 }}
               >
-                <Ionicons name="camera" size={20} color={accent(theme)} />
+                <Ionicons name="camera" size={16} color={accent(theme)} />
               </View>
             </Pressable>
-            <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
-              <FieldLabel icon="people-outline">{t.group.groupName}</FieldLabel>
+            {/* The name and the (optional) sentence under it, each one dense
+                line — the field's own placeholder says what it is, so the
+                label that used to sit above each box is gone rather than
+                costing a row of its own; the accessibility label underneath
+                still names the field for a screen reader. */}
+            <View style={{ flex: 1, minWidth: 0, justifyContent: 'center', gap: theme.spacing.xs }}>
               <Row style={[fieldBox(theme), { paddingEnd: theme.spacing.sm }]}>
                 <TextInput
                   value={name}
@@ -721,9 +723,6 @@ export default function NewGroupScreen() {
                   </Pressable>
                 ) : null}
               </Row>
-              <FieldLabel icon="document-text-outline" style={{ marginTop: 4 }}>
-                {t.newGroupForm.descriptionLabel}
-              </FieldLabel>
               {/* One line, like the name above it, capped at the column's own limit
                   so the field stops taking keystrokes rather than letting somebody
                   type a sentence the database would refuse on Create. */}
@@ -773,19 +772,19 @@ export default function NewGroupScreen() {
           {/* People sit directly under the name — they are the group. Contacts
               is a real button on the title row; typing a name is the quieter
               second way in. Nobody's address book is uploaded (ADR-006). */}
-          <FormCard style={{ gap: theme.spacing.md }}>
-            <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+          <FormCard style={{ gap: theme.spacing.sm }}>
+            <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
               <View
                 style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 22,
+                  width: 36,
+                  height: 36,
+                  borderRadius: 18,
                   backgroundColor: theme.color.brandSoft,
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
               >
-                <Ionicons name="people" size={22} color={accent(theme)} />
+                <Ionicons name="people" size={18} color={accent(theme)} />
               </View>
               <Pressable
                 accessibilityRole="button"
@@ -795,19 +794,16 @@ export default function NewGroupScreen() {
               >
                 <Text
                   numberOfLines={1}
-                  style={{ fontSize: 20, lineHeight: 25, fontWeight: '600', color: ink(theme) }}
+                  style={{ fontSize: 16, lineHeight: 20, fontWeight: '600', color: ink(theme) }}
                 >
                   {t.extras.addPeopleByName}
-                </Text>
-                <Text style={{ fontSize: 14, lineHeight: 19, color: muted(theme) }}>
-                  {t.newGroupForm.addFriendsSub}
                 </Text>
               </Pressable>
               {contactsInline ? (
                 <AddContactsButton label={t.newGroupForm.addContacts} onPress={openContactPicker} />
               ) : null}
             </Row>
-            {/* On a narrow phone the button would squeeze the title to an
+            {/* On a narrow phone the pill would squeeze the title to an
                 ellipsis, so it takes a line of its own under it. */}
             {contactsInline ? null : (
               <AddContactsButton
@@ -825,14 +821,14 @@ export default function NewGroupScreen() {
             <Row
               style={{
                 alignItems: 'center',
-                gap: theme.spacing.md,
-                height: 52,
-                paddingHorizontal: theme.spacing.lg,
-                borderRadius: 26,
+                gap: theme.spacing.sm,
+                height: 40,
+                paddingHorizontal: theme.spacing.md,
+                borderRadius: 20,
                 backgroundColor: theme.scheme === 'dark' ? theme.color.surfaceMuted : '#F5F5FA',
               }}
             >
-              <Ionicons name="search" size={20} color={theme.color.textMuted} />
+              <Ionicons name="search" size={16} color={theme.color.textMuted} />
               <TextInput
                 value={ghostName}
                 onChangeText={setGhostName}
@@ -844,7 +840,7 @@ export default function NewGroupScreen() {
                 style={{
                   flex: 1,
                   minWidth: 0,
-                  fontSize: 16,
+                  fontSize: 15,
                   color: ink(theme),
                   paddingVertical: 0,
                 }}
@@ -857,155 +853,109 @@ export default function NewGroupScreen() {
                   hitSlop={8}
                   style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
                 >
-                  <Text style={{ fontSize: 16, fontWeight: '700', color: accent(theme) }}>
+                  <Text style={{ fontSize: 15, fontWeight: '700', color: accent(theme) }}>
                     {t.add}
                   </Text>
                 </Pressable>
               ) : null}
             </Row>
 
-            {/* People from your other groups, one tap to add. Only placeholders
-                are offered: a real account joins a group by invite. */}
-            {shownSuggestions.length > 0 ? (
-              <View style={{ gap: theme.spacing.sm }}>
-                <Row style={{ alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Text style={{ fontSize: 15, fontWeight: '600', color: muted(theme) }}>
-                    {t.newGroupForm.suggested}
-                  </Text>
-                  {/* Everyone else is in the address book. */}
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={t.people.browseContacts}
-                    onPress={openContactPicker}
-                    hitSlop={8}
-                    style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
-                  >
-                    <Text style={{ fontSize: 15, fontWeight: '600', color: accent(theme) }}>
-                      {t.newGroupForm.seeAll}
+            {/* People from your other groups, one tap to add — and whoever has
+                already been added, as the same small inline faces — kept to
+                one dense strip rather than a tall block. Only placeholders are
+                offered as suggestions: a real account joins a group by invite. */}
+            {shownSuggestions.length > 0 || ghosts.length > 0 ? (
+              <View style={{ gap: theme.spacing.xs }}>
+                {shownSuggestions.length > 0 ? (
+                  <Row style={{ alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Text style={{ fontSize: 13, fontWeight: '600', color: muted(theme) }}>
+                      {t.newGroupForm.suggested}
                     </Text>
-                  </Pressable>
-                </Row>
+                    {/* Everyone else is in the address book. */}
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={t.people.browseContacts}
+                      onPress={openContactPicker}
+                      hitSlop={8}
+                      style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
+                    >
+                      <Text style={{ fontSize: 13, fontWeight: '600', color: accent(theme) }}>
+                        {t.newGroupForm.seeAll}
+                      </Text>
+                    </Pressable>
+                  </Row>
+                ) : null}
                 {/* Scrolls sideways inside the card: the list runs to the card's
                     own edges (the negative margin undoes the card's padding) so a
                     face is cut by the card, never by the padding, and the page
                     itself never scrolls sideways. */}
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  keyboardShouldPersistTaps="handled"
-                  style={{ marginHorizontal: -theme.spacing.lg }}
-                  contentContainerStyle={{
-                    gap: theme.spacing.sm,
-                    paddingHorizontal: theme.spacing.lg,
-                  }}
-                >
-                  {shownSuggestions.map(({ person, label }, index) => (
-                    <SuggestedPersonButton
-                      key={person.key}
-                      name={label}
-                      index={index}
-                      label={fill(t.voice.addNamed, { name: person.name })}
-                      onPress={() =>
-                        setGhosts((current) => [
-                          ...current,
-                          { name: person.name, email: person.email, phone: person.phone },
-                        ])
-                      }
-                    />
-                  ))}
-                </ScrollView>
+                {shownSuggestions.length > 0 ? (
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
+                    style={{ marginHorizontal: -theme.spacing.md }}
+                    contentContainerStyle={{
+                      gap: theme.spacing.sm,
+                      paddingHorizontal: theme.spacing.md,
+                    }}
+                  >
+                    {shownSuggestions.map(({ person, label }, index) => (
+                      <SuggestedPersonButton
+                        key={person.key}
+                        name={label}
+                        index={index}
+                        label={fill(t.voice.addNamed, { name: person.name })}
+                        onPress={() =>
+                          setGhosts((current) => [
+                            ...current,
+                            { name: person.name, email: person.email, phone: person.phone },
+                          ])
+                        }
+                      />
+                    ))}
+                  </ScrollView>
+                ) : null}
+                {ghosts.length > 0 ? (
+                  <Row style={{ flexWrap: 'wrap', gap: theme.spacing.xs }}>
+                    {ghosts.map((ghost, index) => (
+                      <PersonChip
+                        key={`${keyOfGhost(ghost)}-${index}`}
+                        name={ghost.name}
+                        index={index}
+                        removeLabel={fill(t.itemize.removeItem, { label: ghost.name })}
+                        onRemove={() =>
+                          setGhosts((current) => current.filter((_, i) => i !== index))
+                        }
+                      />
+                    ))}
+                  </Row>
+                ) : null}
               </View>
-            ) : null}
-
-            {ghosts.length > 0 ? (
-              <Row style={{ flexWrap: 'wrap', gap: theme.spacing.sm }}>
-                {ghosts.map((ghost, index) => (
-                  <PersonChip
-                    key={`${keyOfGhost(ghost)}-${index}`}
-                    name={ghost.name}
-                    index={index}
-                    removeLabel={fill(t.itemize.removeItem, { label: ghost.name })}
-                    onRemove={() => setGhosts((current) => current.filter((_, i) => i !== index))}
-                  />
-                ))}
-              </Row>
             ) : null}
           </FormCard>
 
-          {/* What kind of group, as five tiles in a row: the kind decides which
-              settings follow, so it is asked out loud. A name that reads as an
-              event ("Birthday party") keeps its kind; Other is lit for it, the
-              nearest of the five. */}
-          <FormCard style={{ gap: theme.spacing.md }}>
-            <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
-              <View
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 22,
-                  backgroundColor: theme.color.brandSoft,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Ionicons name="briefcase" size={22} color={accent(theme)} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text
-                  style={{ fontSize: 20, lineHeight: 25, fontWeight: '600', color: ink(theme) }}
-                >
-                  {t.newGroupForm.groupType}
-                  <Text style={{ fontSize: 15, fontWeight: '400', color: muted(theme) }}>
-                    {` ${t.newGroupForm.optional}`}
-                  </Text>
-                </Text>
-                <Text style={{ fontSize: 14, lineHeight: 19, color: muted(theme) }}>
-                  {t.newGroupForm.groupTypeSub}
-                </Text>
-              </View>
-            </Row>
-            {/* Six tiles side by side while each can be at least TILE_MIN wide;
-                below that (a 320pt phone) they keep that width and the row
-                scrolls sideways inside the card rather than crushing "Friends"
-                into an ellipsis. */}
-            {(() => {
-              const gap = theme.spacing.sm;
-              const tilesFit =
-                typeRowWidth === 0 ||
-                (typeRowWidth - gap * (TILE_TYPES.length - 1)) / TILE_TYPES.length >= TILE_MIN;
-              const tiles = TILE_TYPES.map((kind) => {
-                const option = typeOptions.find((it) => it.value === kind);
-                if (!option) return null;
-                const lit = kind === type;
-                return (
-                  <TypeTile
-                    key={kind}
-                    icon={TILE_ICON[kind]}
-                    iconSelected={TILE_ICON_LIT[kind]}
-                    label={option.label}
-                    selected={lit}
-                    width={tilesFit ? undefined : TILE_MIN}
-                    onPress={() => setPickedType(kind)}
-                  />
-                );
-              });
-              return (
-                <View onLayout={(event) => setTypeRowWidth(event.nativeEvent.layout.width)}>
-                  {tilesFit ? (
-                    <Row style={{ gap }}>{tiles}</Row>
-                  ) : (
-                    <ScrollView
-                      horizontal
-                      showsHorizontalScrollIndicator={false}
-                      style={{ marginHorizontal: -theme.spacing.lg }}
-                      contentContainerStyle={{ gap, paddingHorizontal: theme.spacing.lg }}
-                    >
-                      {tiles}
-                    </ScrollView>
-                  )}
-                </View>
-              );
-            })()}
+          {/* What kind of group, as one row of compact pills — the same chip
+              row group settings wears for the same choice, so picking a kind
+              here and changing it later look like the same control. A name
+              that reads as an event ("Birthday party") keeps its kind; Other
+              is lit for it, the nearest of the six. */}
+          <FormCard style={{ gap: theme.spacing.sm }}>
+            <FieldLabel icon="briefcase-outline">
+              {t.newGroupForm.groupType}
+              <Text style={{ fontSize: 13, fontWeight: '400', color: muted(theme) }}>
+                {` ${t.newGroupForm.optional}`}
+              </Text>
+            </FieldLabel>
+            <ChipRow<GroupType>
+              value={type}
+              onChange={setPickedType}
+              options={typeOptions.map((option) => ({
+                value: option.value,
+                label: option.label,
+                icon: chipIcon(option.icon),
+              }))}
+            />
           </FormCard>
 
           {/* The group's settings. Dates and budget are trip-only, so a dinner
@@ -1016,12 +966,11 @@ export default function NewGroupScreen() {
             <DetailRows>
               {type === GroupType.Trip ? (
                 <View>
-                  <SettingRow
+                  <DetailRow
                     icon="calendar-outline"
-                    title={t.misc.tripDatesTitle}
-                    subtitle={t.newGroupForm.datesSub}
-                    value={tripDates.start_date && tripDates.end_date ? dateSummary : null}
-                    action={t.add}
+                    label={t.misc.tripDatesTitle}
+                    value={tripDates.start_date && tripDates.end_date ? dateSummary : t.add}
+                    placeholder={!(tripDates.start_date && tripDates.end_date)}
                     expanded={openAttr === 'dates'}
                     onPress={() => setOpenAttr((current) => (current === 'dates' ? null : 'dates'))}
                   />
@@ -1040,12 +989,11 @@ export default function NewGroupScreen() {
 
               {type === GroupType.Trip ? (
                 <View>
-                  <SettingRow
+                  <DetailRow
                     icon="wallet-outline"
-                    title={t.extras.tripBudget}
-                    subtitle={t.newGroupForm.budgetSub}
-                    value={budget > 0n ? budgetSummary : null}
-                    action={t.add}
+                    label={t.extras.tripBudget}
+                    value={budget > 0n ? budgetSummary : t.add}
+                    placeholder={budget <= 0n}
                     expanded={openAttr === 'budget'}
                     onPress={() =>
                       setOpenAttr((current) => (current === 'budget' ? null : 'budget'))
@@ -1063,12 +1011,17 @@ export default function NewGroupScreen() {
                   against the group's own. Trips only, like dates and budget. */}
               {type === GroupType.Trip ? (
                 <View>
-                  <SettingRow
+                  <DetailRow
                     icon="cash-outline"
-                    title={t.newGroupForm.tripCurrency}
-                    subtitle={t.newGroupForm.ratesSub}
-                    value={liveRates.length > 0 ? ratesSummary : null}
-                    action={roomyRows ? t.newGroupForm.addCurrency : t.add}
+                    label={t.newGroupForm.tripCurrency}
+                    value={
+                      liveRates.length > 0
+                        ? ratesSummary
+                        : roomyRows
+                          ? t.newGroupForm.addCurrency
+                          : t.add
+                    }
+                    placeholder={liveRates.length === 0}
                     expanded={openAttr === 'rates'}
                     onPress={() => setOpenAttr((current) => (current === 'rates' ? null : 'rates'))}
                   />
@@ -1082,11 +1035,9 @@ export default function NewGroupScreen() {
 
               {/* The one row whose control says the value and changes it in the
                   same gesture, so it has no chevron. */}
-              <SettingRow
+              <DetailRow
                 icon="flash-outline"
-                title={t.group.simplifyDebts}
-                info
-                subtitle={t.newGroupForm.simplifySub}
+                label={t.group.simplifyDebts}
                 trailing={
                   <Toggle
                     value={effectiveSimplify}
@@ -1129,9 +1080,9 @@ export default function NewGroupScreen() {
       <View
         style={{
           paddingHorizontal: theme.spacing.lg,
-          paddingTop: theme.spacing.sm,
-          paddingBottom: theme.spacing.md,
-          gap: theme.spacing.sm,
+          paddingTop: theme.spacing.xs,
+          paddingBottom: theme.spacing.sm,
+          gap: theme.spacing.xs,
           backgroundColor: theme.color.bg,
         }}
       >
@@ -1163,7 +1114,7 @@ const muted = (theme: Theme): string => (theme.scheme === 'dark' ? theme.color.t
 /** Home's scene behind the header: the room under the title row where its
  *  landscape shows, how far the first card rides up over its foot, and how far
  *  it runs on under that card before it has faded into the page. */
-const SCENE_ROOM = 52;
+const SCENE_ROOM = 36;
 const SCENE_OVERLAP = 40;
 const SCENE_INTO_CARD = 60;
 /** The header row's own height (the 44pt back button plus its top padding),
@@ -1171,8 +1122,8 @@ const SCENE_INTO_CARD = 60;
 const HEADER_ROW = 52;
 /** The cover tile's side — a little smaller on a narrow phone, so the two
  *  fields beside it keep a usable width. */
-const COVER = 108;
-const COVER_NARROW = 92;
+const COVER = 80;
+const COVER_NARROW = 68;
 /** Below this screen width (pt) the layout takes its narrow measures. */
 const NARROW_WIDTH = 360;
 /** From this width "Add contacts" fits beside the Add friends title. */
@@ -1180,46 +1131,23 @@ const CONTACTS_INLINE_WIDTH = 380;
 /** From this width a setting row has room for "Add a currency ›". */
 const ROOMY_ROW_WIDTH = 400;
 /** The camera button floating on the cover's corner. */
-const CAMERA_FAB = 44;
-/** The narrowest a type tile may be before the row scrolls instead. */
-const TILE_MIN = 52;
+const CAMERA_FAB = 34;
 
-/** The kinds offered as tiles, in the spec's order, with their glyphs. Couple
- *  sits before Other so it can still be picked when a name doesn't imply it. */
-const TILE_TYPES = [
-  GroupType.Trip,
-  GroupType.Home,
-  GroupType.Friends,
-  GroupType.Event,
-  GroupType.Couple,
-  GroupType.Other,
-] as const;
-/** Each tile's glyph: outlined at rest, filled when it is the chosen kind. */
-const TILE_ICON: Record<(typeof TILE_TYPES)[number], keyof typeof Ionicons.glyphMap> = {
-  [GroupType.Trip]: 'airplane-outline',
-  [GroupType.Home]: 'home-outline',
-  [GroupType.Friends]: 'people-outline',
-  [GroupType.Event]: 'sparkles-outline',
-  [GroupType.Couple]: 'heart-outline',
-  [GroupType.Other]: 'ellipsis-horizontal',
-};
-const TILE_ICON_LIT: Record<(typeof TILE_TYPES)[number], keyof typeof Ionicons.glyphMap> = {
-  [GroupType.Trip]: 'airplane',
-  [GroupType.Home]: 'home',
-  [GroupType.Friends]: 'people',
-  [GroupType.Event]: 'sparkles',
-  [GroupType.Couple]: 'heart',
-  [GroupType.Other]: 'ellipsis-horizontal',
-};
+/** The kind-of-group icon, one place, matching the chip row group settings
+ *  wears so changing a group's kind looks like the same control everywhere. */
+const chipIcon =
+  (name: keyof typeof Ionicons.glyphMap) =>
+  // eslint-disable-next-line react/display-name
+  (color: string): ReactNode => <Ionicons name={name} size={iconSize.base} color={color} />;
 
 /** An outlined input box: 50pt tall, 12pt corners, the hairline border. */
 function fieldBox(theme: Theme) {
   return {
     alignItems: 'center' as const,
-    minHeight: 54,
+    minHeight: 42,
     borderWidth: 1,
     borderColor: theme.scheme === 'dark' ? theme.color.border : '#E5E5ED',
-    borderRadius: 13,
+    borderRadius: 12,
     paddingHorizontal: theme.spacing.md,
     backgroundColor: theme.color.surface,
   };
@@ -1263,8 +1191,8 @@ function FormCard({ children, style }: { children: ReactNode; style?: object }) 
       style={[
         {
           backgroundColor: theme.color.surface,
-          borderRadius: 22,
-          padding: theme.spacing.lg,
+          borderRadius: 20,
+          padding: theme.spacing.md,
           shadowColor: '#2A1E6B',
           shadowOpacity: 0.06,
           shadowRadius: 12,
@@ -1291,7 +1219,7 @@ function NewGroupHeader({ title, ink: headerInk }: { title: string; ink: string 
   return (
     <Row
       style={{
-        paddingTop: insets.top + theme.spacing.sm,
+        paddingTop: insets.top + theme.spacing.xs,
         paddingHorizontal: theme.spacing.lg,
         // Room under the row for the scene's mountains before the first card
         // rides up over their foot.
@@ -1309,8 +1237,8 @@ function NewGroupHeader({ title, ink: headerInk }: { title: string; ink: string 
         minimumFontScale={0.8}
         style={{
           flex: 1,
-          fontSize: 22,
-          lineHeight: 28,
+          fontSize: 19,
+          lineHeight: 24,
           fontWeight: '800',
           color: headerInk,
         }}
@@ -1318,63 +1246,6 @@ function NewGroupHeader({ title, ink: headerInk }: { title: string; ink: string 
         {title}
       </Text>
     </Row>
-  );
-}
-
-/** One kind of group as a tile: its glyph over its name, lit when chosen. */
-function TypeTile({
-  icon,
-  iconSelected,
-  label,
-  selected,
-  width,
-  onPress,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  /** The glyph drawn while this tile is the chosen one. */
-  iconSelected: keyof typeof Ionicons.glyphMap;
-  label: string;
-  selected: boolean;
-  /** A fixed width when the row scrolls; shares the row evenly when absent. */
-  width?: number;
-  onPress: () => void;
-}) {
-  const theme = useTheme();
-  const dark = theme.scheme === 'dark';
-  const tileInk = selected ? accent(theme) : dark ? theme.color.textMuted : '#52586C';
-  return (
-    <Pressable
-      accessibilityRole="radio"
-      accessibilityState={{ selected }}
-      accessibilityLabel={label}
-      onPress={onPress}
-      style={({ pressed }) => ({
-        ...(width ? { width } : { flex: 1, minWidth: 0 }),
-        height: 88,
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 6,
-        borderRadius: 16,
-        borderWidth: selected ? 1.5 : 1,
-        borderColor: selected ? accent(theme) : dark ? theme.color.border : '#E5E5ED',
-        backgroundColor: selected
-          ? dark
-            ? theme.color.brandSoft
-            : '#F3EFFF'
-          : theme.color.surface,
-        opacity: pressed ? 0.7 : 1,
-      })}
-    >
-      <Ionicons name={selected ? iconSelected : icon} size={26} color={tileInk} />
-      <Text
-        numberOfLines={1}
-        adjustsFontSizeToFit
-        minimumFontScale={0.85}
-        style={{ fontSize: 14, fontWeight: selected ? '600' : '500', color: tileInk }}
-      >
-        {label}
-      </Text>
-    </Pressable>
   );
 }
 
@@ -1400,130 +1271,37 @@ function PersonChip({
       style={({ pressed }) => ({
         flexDirection: 'row',
         alignItems: 'center',
-        gap: theme.spacing.sm,
-        paddingStart: 5,
-        paddingEnd: theme.spacing.md,
-        height: 48,
-        borderRadius: 24,
+        gap: theme.spacing.xs,
+        paddingStart: 4,
+        paddingEnd: theme.spacing.sm,
+        height: 38,
+        borderRadius: 19,
         backgroundColor: theme.scheme === 'dark' ? theme.color.surfaceMuted : '#F5F5FA',
         opacity: pressed ? 0.6 : 1,
       })}
     >
       <View
         style={{
-          width: 38,
-          height: 38,
-          borderRadius: 19,
+          width: 30,
+          height: 30,
+          borderRadius: 15,
           backgroundColor: tint.bg,
           alignItems: 'center',
           justifyContent: 'center',
         }}
       >
-        <Text style={{ fontSize: 17, color: tint.ink, fontWeight: '700' }}>
+        <Text style={{ fontSize: 14, color: tint.ink, fontWeight: '700' }}>
           {name.trim().charAt(0).toUpperCase()}
         </Text>
       </View>
-      <Text style={{ fontSize: 15, fontWeight: '500', color: theme.color.text }}>{name}</Text>
-      <Ionicons name="close" size={18} color={theme.color.textMuted} />
+      <Text style={{ fontSize: 14, fontWeight: '500', color: theme.color.text }}>{name}</Text>
+      <Ionicons name="close" size={15} color={theme.color.textMuted} />
     </Pressable>
   );
 }
 
 /** Blue, mint, peach and round again — the spec's three people, in order. */
 const CHIP_TINTS = ['sky', 'mint', 'peach', 'lilac', 'pink', 'coral'] as const;
-
-/**
- * One setting: an outlined glyph, the name over a line on what it does, and on
- * the end either its value with a chevron, a soft "Add ›" pill while it is
- * unset, or a control (`trailing`) that says the value itself.
- */
-function SettingRow({
-  icon,
-  title,
-  subtitle,
-  value,
-  action,
-  expanded,
-  onPress,
-  trailing,
-  info = false,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  title: string;
-  subtitle: string;
-  value?: string | null;
-  action?: string;
-  expanded?: boolean;
-  onPress?: () => void;
-  trailing?: ReactNode;
-  /** A small ⓘ after the title, for a setting whose name needs its line read. */
-  info?: boolean;
-}) {
-  const theme = useTheme();
-  const chevron = expanded ? 'chevron-up' : directionalIcon('chevron-forward');
-  const body = (
-    <Row
-      style={{ alignItems: 'center', gap: theme.spacing.md, minHeight: 74, paddingVertical: 12 }}
-    >
-      {/* A fixed box, so every row's words start on the same line whatever
-          the glyph's own width. */}
-      <View style={{ width: 32, alignItems: 'center' }}>
-        <Ionicons name={icon} size={24} color={ink(theme)} />
-      </View>
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Row style={{ alignItems: 'center', gap: 4 }}>
-          <Text style={{ fontSize: 16, lineHeight: 21, fontWeight: '600', color: ink(theme) }}>
-            {title}
-          </Text>
-          {info ? (
-            <Ionicons name="information-circle-outline" size={16} color={theme.color.textMuted} />
-          ) : null}
-        </Row>
-        <Text style={{ fontSize: 13, lineHeight: 18, color: muted(theme) }}>{subtitle}</Text>
-      </View>
-      {trailing ??
-        (value ? (
-          <Row style={{ alignItems: 'center', gap: 2, maxWidth: '42%' }}>
-            <Text
-              numberOfLines={1}
-              style={{ fontSize: 14, fontWeight: '600', flexShrink: 1, color: theme.color.text }}
-            >
-              {value}
-            </Text>
-            <Ionicons name={chevron} size={16} color={theme.color.textFaint} />
-          </Row>
-        ) : action ? (
-          <Row
-            style={{
-              alignItems: 'center',
-              gap: 4,
-              height: 36,
-              paddingHorizontal: theme.spacing.md,
-              borderRadius: 18,
-              backgroundColor: theme.scheme === 'dark' ? theme.color.surfaceMuted : '#F7F6F3',
-            }}
-          >
-            <Text style={{ fontSize: 14, fontWeight: '600', color: theme.color.text }}>
-              {action}
-            </Text>
-            <Ionicons name={chevron} size={16} color={theme.color.text} />
-          </Row>
-        ) : null)}
-    </Row>
-  );
-  if (!onPress) return body;
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={expanded === undefined ? undefined : { expanded }}
-      accessibilityLabel={`${title}, ${value ?? action ?? ''}`}
-      onPress={onPress}
-      style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
-    >
-      {body}
-    </Pressable>
-  );
-}
 
 /** Create, as a full-width pill in the blue-to-violet wash with an arrow. */
 function CreateButton({
@@ -1547,16 +1325,16 @@ function CreateButton({
     >
       <Gradient
         colors={CREATE_WASH}
-        radius={29}
+        radius={25}
         style={{
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'center',
           gap: theme.spacing.sm,
-          height: 58,
+          height: 50,
         }}
       >
-        <Text style={{ fontSize: 18, fontWeight: '600', color: '#FFFFFF' }}>{label}</Text>
+        <Text style={{ fontSize: 17, fontWeight: '600', color: '#FFFFFF' }}>{label}</Text>
         <View
           style={{
             width: 1,
@@ -1599,16 +1377,15 @@ function SuggestedPersonButton({
       style={({ pressed }) => ({
         width: SUGGEST_WIDTH,
         alignItems: 'center',
-        gap: 6,
-        paddingTop: 2,
+        gap: 4,
         opacity: pressed ? 0.6 : 1,
       })}
     >
       <View
         style={{
-          width: 56,
-          height: 56,
-          borderRadius: 28,
+          width: 42,
+          height: 42,
+          borderRadius: 21,
           backgroundColor: more ? theme.color.surface : tint.bg,
           borderWidth: more ? 1.5 : 0,
           borderStyle: more ? 'dashed' : 'solid',
@@ -1618,9 +1395,9 @@ function SuggestedPersonButton({
         }}
       >
         {more ? (
-          <Ionicons name="ellipsis-horizontal" size={22} color={accent(theme)} />
+          <Ionicons name="ellipsis-horizontal" size={18} color={accent(theme)} />
         ) : (
-          <Text style={{ fontSize: 21, fontWeight: '700', color: tint.ink }}>
+          <Text style={{ fontSize: 16, fontWeight: '700', color: tint.ink }}>
             {name.charAt(0).toUpperCase()}
           </Text>
         )}
@@ -1630,17 +1407,17 @@ function SuggestedPersonButton({
               position: 'absolute',
               end: -2,
               bottom: -2,
-              width: 22,
-              height: 22,
-              borderRadius: 11,
+              width: 17,
+              height: 17,
+              borderRadius: 9,
               backgroundColor: accent(theme),
-              borderWidth: 2,
+              borderWidth: 1.5,
               borderColor: theme.color.surface,
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
-            <Ionicons name="add" size={13} color="#FFFFFF" />
+            <Ionicons name="add" size={10} color="#FFFFFF" />
           </View>
         )}
       </View>
@@ -1649,8 +1426,8 @@ function SuggestedPersonButton({
         ellipsizeMode="tail"
         style={{
           maxWidth: SUGGEST_WIDTH,
-          fontSize: 13,
-          lineHeight: 17,
+          fontSize: 12,
+          lineHeight: 15,
           color: more ? accent(theme) : ink(theme),
           fontWeight: more ? '600' : '400',
         }}
@@ -1662,7 +1439,7 @@ function SuggestedPersonButton({
 }
 
 /** A suggested person's column: room for "Priya" or "Karthik" under the face. */
-const SUGGEST_WIDTH = 78;
+const SUGGEST_WIDTH = 62;
 
 const SUGGEST_TINTS = ['lilac', 'peach', 'mint', 'sky', 'pink', 'coral'] as const;
 
@@ -1688,17 +1465,17 @@ function AddContactsButton({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 6,
-        height: fullWidth ? 44 : 40,
-        paddingHorizontal: 14,
-        borderRadius: 22,
+        gap: 4,
+        height: fullWidth ? 36 : 30,
+        paddingHorizontal: 12,
+        borderRadius: 18,
         borderWidth: 1.5,
         borderColor: accent(theme),
         opacity: pressed ? 0.6 : 1,
       })}
     >
-      <Ionicons name="person-add-outline" size={16} color={accent(theme)} />
-      <Text numberOfLines={1} style={{ fontSize: 14, fontWeight: '600', color: accent(theme) }}>
+      <Ionicons name="person-add-outline" size={13} color={accent(theme)} />
+      <Text numberOfLines={1} style={{ fontSize: 13, fontWeight: '600', color: accent(theme) }}>
         {label}
       </Text>
     </Pressable>
