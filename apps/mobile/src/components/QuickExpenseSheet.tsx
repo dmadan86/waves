@@ -57,6 +57,7 @@ import { encodeTxn, toFxRecord, type ExpenseLocation } from '@waves/core';
 import { Button, Divider, Row, Sheet, Text, useTheme } from '@waves/ui';
 
 import { DestinationPicker } from '@/components/DestinationPicker';
+import { DictateButton } from '@/components/DictateButton';
 import { QuickAmountRow } from '@/components/QuickAmountRow';
 import { GroupMark } from '@/components/GroupMark';
 import {
@@ -425,6 +426,9 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
                 numberOfLines={1}
                 style={{ flex: 1, fontSize: 14, color: theme.color.text, paddingVertical: 0 }}
               />
+              {/* Renders nothing on web or on a binary built before the speech
+                  module existed — the row is exactly as wide either way. */}
+              <DictateButton value={note} onChange={setNote} compact />
             </Row>
 
             {/* The slim footer: one 46dp save action (or the save/draft pair),
