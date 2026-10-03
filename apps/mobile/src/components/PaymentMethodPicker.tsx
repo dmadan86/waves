@@ -79,12 +79,16 @@ export function PaymentMethodRow({
   onPress,
   subtitle,
   tinted = false,
+  dense = false,
 }: {
   value: PaymentMethod | null;
   onPress: () => void;
   /** The form look (Save an expense): a subtitle, and the rail's glyph in a disc. */
   subtitle?: string;
   tinted?: boolean;
+  /** The compact "Save an expense" card: a 28pt disc and tighter row, same as
+   *  every other fact in that card. See {@link DetailRow}'s own `dense`. */
+  dense?: boolean;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
@@ -108,6 +112,7 @@ export function PaymentMethodRow({
       value={value ? label(value) : t.captures.paidNotSaid}
       placeholder={!value}
       onPress={onPress}
+      dense={dense}
     />
   );
 }
