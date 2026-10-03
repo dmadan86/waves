@@ -36,6 +36,7 @@ export function LocationField({
   autoFill = false,
   busy: busyExternal = false,
   tiles = false,
+  compact = false,
 }: {
   value: ExpenseLocation | null;
   onChange: (location: ExpenseLocation | null) => void;
@@ -66,10 +67,23 @@ export function LocationField({
    * buttons.
    */
   tiles?: boolean;
+  /**
+   * The one-line look the voice review wants: a pin, the address, and a small
+   * square map thumbnail that doubles as the disclosure — tapping the row
+   * folds the full map (and the change/clear actions) open in place, the same
+   * idiom the expense screen's own Location row uses. Mutually exclusive with
+   * `tiles` in practice; a caller passing both gets this one.
+   */
+  compact?: boolean;
 }): React.JSX.Element | null {
   const theme = useTheme();
   const { t } = useStrings();
   const [working, setWorking] = useState(false);
+  // Compact only: whether the full map (and its change/clear actions) is
+  // folded open under the one-line row. Closed by default — the whole point
+  // of the compact row is not spending the screen's height on a map nobody
+  // asked to see yet.
+  const [expanded, setExpanded] = useState(false);
   // 'denied' offers Settings; 'unavailable' just invites another try. Cleared
   // the moment a fresh attempt starts.
   const [failure, setFailure] = useState<LocationFailure | null>(null);
@@ -153,13 +167,100 @@ export function LocationField({
             <Text variant="body" tone="muted">{` ${t.captureForm.optional}`}</Text>
           </Text>
         </Row>
-      ) : (
+      ) : compact ? null : (
         <Text variant="caption" tone="muted">
           {t.location.label}
         </Text>
       )}
 
-      {value ? (
+      {value && compact ? (
+        <View style={{ gap: theme.spacing.sm }}>
+          {/* One line: a pin, the address, a thumbnail of the point. Tapping
+              anywhere folds the full map (and the change/clear actions) open
+              beneath it — the same disclosure the expense screen's own
+              Location row uses, so a spoken place costs one line until asked
+              to say more. */}
+          <Pressable
+            onPress={() => setExpanded((open) => !open)}
+            accessibilityRole="button"
+            accessibilityState={{ expanded }}
+            accessibilityLabel={`${t.location.label}, ${label}`}
+            style={({ pressed }) => ({
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: theme.spacing.sm,
+              opacity: pressed ? 0.6 : 1,
+            })}
+          >
+            <Ionicons name="location" size={iconSize.md} color={theme.color.brand} />
+            <Text numberOfLines={1} style={{ flex: 1, color: theme.color.text }}>
+              {label}
+            </Text>
+            <View
+              style={{
+                width: 56,
+                height: 56,
+                borderRadius: theme.radius.md,
+                overflow: 'hidden',
+              }}
+            >
+              <MapPreview location={value} height={56} />
+            </View>
+          </Pressable>
+          {expanded ? (
+            <View style={{ gap: theme.spacing.sm }}>
+              <MapPreview
+                location={value}
+                onPress={() => setPickerOpen(true)}
+                accessibilityLabel={t.location.adjust}
+              />
+              <Row style={{ gap: theme.spacing.lg, justifyContent: 'flex-end' }}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t.location.adjust}
+                  onPress={() => setPickerOpen(true)}
+                  hitSlop={8}
+                  style={({ pressed }) => ({
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: theme.spacing.xs,
+                    opacity: pressed ? 0.6 : 1,
+                  })}
+                >
+                  <Ionicons name="create-outline" size={iconSize.sm} color={theme.color.brand} />
+                  <Text variant="caption" style={{ color: theme.color.brand, fontWeight: '600' }}>
+                    {t.location.adjust}
+                  </Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t.location.remove}
+                  onPress={() => {
+                    setExpanded(false);
+                    onChange(null);
+                  }}
+                  hitSlop={8}
+                  style={({ pressed }) => ({
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: theme.spacing.xs,
+                    opacity: pressed ? 0.6 : 1,
+                  })}
+                >
+                  <Ionicons
+                    name="close-circle-outline"
+                    size={iconSize.sm}
+                    color={theme.color.textFaint}
+                  />
+                  <Text variant="caption" tone="muted" style={{ fontWeight: '600' }}>
+                    {t.location.remove}
+                  </Text>
+                </Pressable>
+              </Row>
+            </View>
+          ) : null}
+        </View>
+      ) : value ? (
         <Card style={{ gap: theme.spacing.sm, padding: theme.spacing.sm }}>
           {/* A little map of the point — tap it to open the picker and adjust. */}
           <MapPreview
@@ -196,10 +297,53 @@ export function LocationField({
         // A fix is on its way — read the current place rather than showing empty
         // buttons that look like nothing has happened.
         <Row
-          style={{ gap: theme.spacing.sm, alignItems: 'center', paddingVertical: theme.spacing.xs }}
+          style={{
+            gap: theme.spacing.sm,
+            alignItems: 'center',
+            paddingVertical: compact ? 0 : theme.spacing.xs,
+          }}
         >
           <ActivityIndicator size="small" color={theme.color.brand} />
           <Text tone="muted">{t.location.adding}</Text>
+        </Row>
+      ) : compact ? (
+        // No pin yet: the same two ways in as the ordinary row, but as slim
+        // inline text rather than a pair of bordered buttons.
+        <Row style={{ gap: theme.spacing.lg, alignItems: 'center' }}>
+          <Pressable
+            onPress={() => void add()}
+            accessibilityRole="button"
+            accessibilityLabel={t.location.add}
+            hitSlop={8}
+            style={({ pressed }) => ({
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: theme.spacing.xs,
+              opacity: pressed ? 0.6 : 1,
+            })}
+          >
+            <Ionicons name="location-outline" size={iconSize.sm} color={theme.color.brand} />
+            <Text variant="caption" style={{ color: theme.color.brand, fontWeight: '600' }}>
+              {t.location.add}
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={() => setPickerOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel={t.location.pick}
+            hitSlop={8}
+            style={({ pressed }) => ({
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: theme.spacing.xs,
+              opacity: pressed ? 0.6 : 1,
+            })}
+          >
+            <Ionicons name="map-outline" size={iconSize.sm} color={theme.color.brand} />
+            <Text variant="caption" style={{ color: theme.color.brand, fontWeight: '600' }}>
+              {t.location.pick}
+            </Text>
+          </Pressable>
         </Row>
       ) : tiles ? (
         <Row style={{ gap: theme.spacing.sm }}>

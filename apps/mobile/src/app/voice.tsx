@@ -1479,8 +1479,8 @@ export default function VoiceScreen() {
         onContentSizeChange={(_width, height) => setContentHeight(height)}
         contentContainerStyle={{
           paddingHorizontal: theme.spacing.xl,
-          paddingBottom: phase === 'review' ? theme.spacing.xl : clearance,
-          gap: theme.spacing.xl,
+          paddingBottom: phase === 'review' ? theme.spacing.lg : clearance,
+          gap: phase === 'review' ? theme.spacing.md : theme.spacing.xl,
           // Fill the viewport when the capture surface is shorter than it, so the
           // mic panel's own footer (the offline-voice offer) can sit at the foot of
           // the screen rather than tucked under the mic. `flexGrow` only ever sets a
@@ -1494,7 +1494,7 @@ export default function VoiceScreen() {
       >
         <Row
           style={{
-            paddingTop: theme.spacing.md,
+            paddingTop: phase === 'review' ? theme.spacing.xs : theme.spacing.md,
             justifyContent: 'space-between',
             alignItems: 'center',
           }}
@@ -1502,9 +1502,13 @@ export default function VoiceScreen() {
           {/* The Activity screen's header shape — a left-aligned brand glyph and a
               big bold title — so the review reads as the same family of screen.
               Here the glyph is the mic that started the capture. */}
-          <Row style={{ gap: theme.spacing.sm, alignItems: 'center' }}>
-            <Ionicons name="mic" size={iconSize.xl} color={theme.color.brand} />
-            <Text variant="title">
+          <Row style={{ gap: theme.spacing.xs, alignItems: 'center' }}>
+            <Ionicons
+              name="mic"
+              size={phase === 'review' ? iconSize.lg : iconSize.xl}
+              color={theme.color.brand}
+            />
+            <Text variant={phase === 'review' ? 'heading' : 'title'}>
               {phase === 'review'
                 ? t.voice.review
                 : phase === 'answer'
@@ -1530,7 +1534,7 @@ export default function VoiceScreen() {
             <Text tone="muted">{t.voice.thinking}</Text>
           </View>
         ) : phase === 'review' ? (
-          <View style={{ gap: theme.spacing.xl }}>
+          <View style={{ gap: theme.spacing.md }}>
             {/* Confirmation, not an edit form. Each expense reads as a quiet
                 summary line — what we heard, and the amount — inside one grouped
                 card, the way a receipt lists what it charged. Tapping a line opens
@@ -1562,7 +1566,9 @@ export default function VoiceScreen() {
 
             {/* Speak again and append — another expense (or several) onto the
                 batch, keeping the ones already here and the chosen destination.
-                The one and only "add another"; the header carries no rival mic. */}
+                The one and only "add another"; the header carries no rival mic.
+                A slim inline text-button, not a tall box: it is one more line
+                under the list, not a second card competing with it. */}
             <Pressable
               onPress={startAddMore}
               accessibilityRole="button"
@@ -1572,26 +1578,21 @@ export default function VoiceScreen() {
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: theme.spacing.xs,
-                paddingVertical: theme.spacing.md,
-                borderRadius: theme.radius.lg,
-                borderWidth: 1,
-                borderColor: theme.color.brand,
-                borderStyle: 'dashed',
-                backgroundColor: theme.color.brandSoft,
+                paddingVertical: theme.spacing.sm,
                 opacity: pressed ? 0.6 : 1,
               })}
             >
-              <Ionicons name="mic-outline" size={iconSize.md} color={theme.color.brand} />
+              <Ionicons name="mic-outline" size={iconSize.sm} color={theme.color.brand} />
               <Text variant="caption" style={{ color: theme.color.brand, fontWeight: '600' }}>
                 {t.voice.addMore}
               </Text>
             </Pressable>
 
-            {/* One opinionated destination row: "Save to <where>" with a single
-                Change. No chips, no badges, no tabs out here — the taxonomy of
-                groups and people only appears once the reader taps Change and the
-                picker sheet opens. The answer to "where does this go?" is one
-                line, not a wall. */}
+            {/* One opinionated destination row: "Save to · <where> · Change",
+                all on one line. No chips, no badges, no tabs out here — the
+                taxonomy of groups and people only appears once the reader taps
+                Change and the picker sheet opens. The answer to "where does
+                this go?" is one line, not a card's worth of it. */}
             <Card padded={false} style={{ overflow: 'hidden' }}>
               <Pressable
                 onPress={() => setPickerOpen(true)}
@@ -1600,36 +1601,33 @@ export default function VoiceScreen() {
                 style={({ pressed }) => ({
                   flexDirection: 'row',
                   alignItems: 'center',
-                  gap: theme.spacing.md,
-                  paddingVertical: theme.spacing.md,
-                  paddingHorizontal: theme.spacing.lg,
+                  gap: theme.spacing.sm,
+                  paddingVertical: theme.spacing.sm,
+                  paddingHorizontal: theme.spacing.md,
                   opacity: pressed ? 0.6 : 1,
                 })}
               >
                 <View
                   style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 18,
+                    width: 24,
+                    height: 24,
+                    borderRadius: 12,
                     alignItems: 'center',
                     justifyContent: 'center',
                     backgroundColor: theme.color.buttonPrimary,
                   }}
                 >
                   {current.emoji ? (
-                    <Text style={{ fontSize: 18 }}>{current.emoji}</Text>
+                    <Text style={{ fontSize: 12 }}>{current.emoji}</Text>
                   ) : (
-                    <Ionicons name={current.icon} size={iconSize.md} color={theme.color.onBrand} />
+                    <Ionicons name={current.icon} size={iconSize.xs} color={theme.color.onBrand} />
                   )}
                 </View>
-                <View style={{ flex: 1, gap: 1 }}>
-                  <Text variant="micro" tone="faint" style={{ letterSpacing: 0.6 }}>
-                    {t.voice.saveTo.toUpperCase()}
-                  </Text>
-                  <Text numberOfLines={1} style={{ color: theme.color.text, fontWeight: '600' }}>
-                    {current.label}
-                  </Text>
-                </View>
+                <Text numberOfLines={1} style={{ flex: 1, color: theme.color.text }}>
+                  <Text tone="muted">{t.voice.saveTo}</Text>
+                  <Text tone="faint"> · </Text>
+                  <Text style={{ fontWeight: '600' }}>{current.label}</Text>
+                </Text>
                 <Text variant="caption" style={{ color: theme.color.brand, fontWeight: '600' }}>
                   {t.voice.change}
                 </Text>
@@ -1638,8 +1636,15 @@ export default function VoiceScreen() {
 
             {/* One place for the whole batch (A43) — read once when the review
                 opens and pinned by default; the reader can clear or move it. It
-                rides onto every expense saved from this review. */}
-            <LocationField value={location} onChange={handleLocationChange} busy={locating} />
+                rides onto every expense saved from this review. Compact: one
+                line until tapped, the way the expense screen's own Location row
+                folds its map away. */}
+            <LocationField
+              value={location}
+              onChange={handleLocationChange}
+              busy={locating}
+              compact
+            />
           </View>
         ) : phase === 'committing' ? (
           // The Undo window. A confident command is about to write itself; the
@@ -1736,10 +1741,10 @@ export default function VoiceScreen() {
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
-            gap: theme.spacing.lg,
+            gap: theme.spacing.md,
             paddingHorizontal: theme.spacing.xl,
-            paddingTop: theme.spacing.md,
-            paddingBottom: insets.bottom + theme.spacing.md,
+            paddingTop: theme.spacing.sm,
+            paddingBottom: insets.bottom + theme.spacing.sm,
             borderTopWidth: 1,
             borderTopColor: theme.color.border,
             backgroundColor: theme.color.surface,
@@ -1766,7 +1771,7 @@ export default function VoiceScreen() {
               <Text variant="subheading">{plural(locale, drafts.length, t.voice.count)}</Text>
             )}
           </View>
-          <Button label={saveLabel} onPress={() => void save()} disabled={!canSave} />
+          <Button label={saveLabel} size="sm" onPress={() => void save()} disabled={!canSave} />
         </View>
       ) : null}
 
@@ -1925,16 +1930,16 @@ function DraftRow({
         style={({ pressed }) => ({
           flexDirection: 'row',
           alignItems: 'center',
-          gap: theme.spacing.md,
-          paddingVertical: theme.spacing.md,
-          paddingHorizontal: theme.spacing.lg,
+          gap: theme.spacing.sm,
+          paddingVertical: theme.spacing.sm,
+          paddingHorizontal: theme.spacing.md,
           opacity: pressed ? 0.6 : 1,
         })}
       >
         {/* The icon reads the description: a coffee cup for a chai, a car for the
             cab — guessed from the note, tinted by its category, so the line is
             recognisable at a glance instead of a row of identical receipts. */}
-        <CategoryBadge category={draft.category} description={draft.note} size={36} />
+        <CategoryBadge category={draft.category} description={draft.note} size={28} />
         <Text numberOfLines={1} style={{ flex: 1, color: theme.color.text }}>
           {title}
         </Text>
@@ -1952,12 +1957,12 @@ function DraftRow({
     <View
       style={{
         gap: theme.spacing.sm,
-        paddingVertical: theme.spacing.md,
-        paddingHorizontal: theme.spacing.lg,
+        paddingVertical: theme.spacing.sm,
+        paddingHorizontal: theme.spacing.md,
       }}
     >
-      <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
-        <CategoryBadge category={draft.category} description={draft.note} size={40} />
+      <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+        <CategoryBadge category={draft.category} description={draft.note} size={36} />
         <TextInput
           value={draft.amount}
           onChangeText={(value) => onEdit(draft.key, { amount: value })}
