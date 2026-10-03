@@ -1,0 +1,7 @@
+{
+  "name": "waves-google-nonce",
+  "version": "1.0.0",
+  "description": "Google sign-in via GIDSignIn directly, so the ID token carries this app's own nonce (iOS only).",
+  "main": "index.ts",
+  "private": true
+}

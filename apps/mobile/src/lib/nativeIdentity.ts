@@ -42,6 +42,7 @@
  */
 
 import { Platform } from 'react-native';
+import { requireOptionalNativeModule } from 'expo';
 import * as Crypto from 'expo-crypto';
 
 import { reportHandled } from '@/lib/observability';
@@ -61,6 +62,16 @@ export type NativeSignIn<T> =
 /** Google's answer: a JWT saying who this is, for Supabase to verify. */
 export interface GoogleCredential {
   readonly idToken: string;
+  /**
+   * The raw nonce — present only when this attempt asked `GIDSignIn` (through
+   * `modules/waves-google-nonce`, iOS only) to embed its hash in the token and
+   * the token that came back confirms it did. `undefined` everywhere else:
+   * Android, a build without that module, or a token whose `nonce` claim does
+   * not match what was sent — so a sign-in that cannot produce the matching
+   * raw value never hands Supabase one that would fail the check instead of
+   * skip it. See `nonceToPass`.
+   */
+  readonly nonce?: string;
 }
 
 /** Apple's answer, plus the two things only Apple attaches to it. */
@@ -140,6 +151,145 @@ function googleIosClientId(): string | undefined {
   return id && id.length > 0 ? id : undefined;
 }
 
+/* -------------------------------------------------------------------------- */
+/* Google's own nonce (iOS only)                                               */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The one call `@react-native-google-signin/google-signin` cannot make: its
+ * `signIn()` has no nonce parameter (see `googleNativeSignIn` below), so
+ * giving Google a hash to bind the token to means calling `GIDSignIn`
+ * directly. `modules/waves-google-nonce` is that one call, iOS only — a tiny
+ * native module in this app rather than a fork of the wrapper.
+ */
+interface GoogleNonceModule {
+  signIn(hashedNonce: string): Promise<{ idToken: string | null }>;
+}
+
+let googleNonceModule: GoogleNonceModule | null | undefined;
+
+function loadGoogleNonce(): GoogleNonceModule | null {
+  if (googleNonceModule !== undefined) return googleNonceModule;
+  try {
+    googleNonceModule = requireOptionalNativeModule<GoogleNonceModule>('WavesGoogleNonce');
+  } catch {
+    googleNonceModule = null;
+  }
+  return googleNonceModule;
+}
+
+/** Stand a fake native module in, for tests. See `setGoogleSigninForTests`. */
+export function setGoogleNonceModuleForTests(module: GoogleNonceModule | null): void {
+  googleNonceModule = module;
+}
+
+/** One sign-in attempt's nonce: the hash Google is given, and the raw value
+ *  that Supabase hashes to check it. Kept together so neither is passed
+ *  without the other going somewhere it can still be matched against. */
+export interface SentNonce {
+  readonly raw: string;
+  readonly hashed: string;
+}
+
+export async function newNonce(): Promise<SentNonce> {
+  const raw = Crypto.randomUUID();
+  const hashed = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, raw);
+  return { raw, hashed };
+}
+
+const BASE64_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+const BASE64_LOOKUP: Record<string, number> = {};
+for (let i = 0; i < BASE64_CHARS.length; i += 1) {
+  BASE64_LOOKUP[BASE64_CHARS[i] as string] = i;
+}
+
+/**
+ * Base64url → UTF-8 text, by hand. Hermes's `atob` is not guaranteed on every
+ * engine this app runs under (this module already avoids assuming one native
+ * SDK's behavior elsewhere), and a JWT segment is base64url regardless — `-`
+ * and `_` in place of `+` and `/`, no padding — which `atob` does not accept
+ * even where it exists.
+ */
+function base64UrlToUtf8(segment: string): string {
+  const clean = segment
+    .replace(/-/g, '+')
+    .replace(/_/g, '/')
+    .replace(/[^A-Za-z0-9+/]/g, '');
+  const bytes: number[] = [];
+  let bits = 0;
+  let value = 0;
+  for (const char of clean) {
+    const sextet = BASE64_LOOKUP[char];
+    if (sextet === undefined) continue;
+    value = (value << 6) | sextet;
+    bits += 6;
+    if (bits >= 8) {
+      bits -= 8;
+      bytes.push((value >> bits) & 0xff);
+    }
+  }
+  // Each byte becomes a %-escape and `decodeURIComponent` reassembles the
+  // UTF-8 sequence into text — the standard trick for this without a
+  // `TextDecoder`, which Hermes also does not promise.
+  return decodeURIComponent(bytes.map((b) => '%' + b.toString(16).padStart(2, '0')).join(''));
+}
+
+/**
+ * The `nonce` claim of a JWT's payload, read without checking the token's
+ * signature — safe only because this never informs a trust decision.
+ * Supabase is what verifies the token; this merely decides whether handing it
+ * a `nonce` would be answering a question the token does not ask. Anything
+ * that is not a three-part JWT with a JSON payload reads as "no claim", the
+ * same as a well-formed token that simply carries none — `signInWithIdToken`
+ * is left to reject the token itself either way.
+ */
+export function jwtNonceClaim(idToken: string): string | undefined {
+  const parts = idToken.split('.');
+  if (parts.length !== 3) return undefined;
+  try {
+    const payload: unknown = JSON.parse(base64UrlToUtf8(parts[1] as string));
+    const nonce = (payload as { nonce?: unknown } | null)?.nonce;
+    return typeof nonce === 'string' ? nonce : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Which raw nonce, if any, to hand `signInWithIdToken` alongside this token.
+ *
+ * A token with no `nonce` claim gets none passed back — Supabase's own rule
+ * is that the two must both exist or neither may, and an old build (one that
+ * never asked Google for a nonce, or predates `waves-google-nonce` entirely)
+ * produces exactly that. A token that carries this attempt's hash, verbatim,
+ * gets the one raw value that hashes to it, kept nowhere but `sent`. Anything
+ * else — a claim present but not this attempt's hash, which is not a case
+ * this sign-in can resolve — gets the same answer as no claim at all: passing
+ * a value that cannot be right would only trade one mismatch for another.
+ */
+export function nonceToPass(idToken: string, sent: SentNonce | undefined): string | undefined {
+  const claim = jwtNonceClaim(idToken);
+  if (claim === undefined) return undefined;
+  return sent && claim === sent.hashed ? sent.raw : undefined;
+}
+
+/**
+ * Whether the native module's rejection means "they closed the sheet" —
+ * `SignInCanceledException`'s own `code`, from the Swift side.
+ */
+function isGoogleNonceCancellation(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    (error as { code?: unknown }).code === 'ERR_CANCELED'
+  );
+}
+
+function googleNonceFault(error: unknown): Error {
+  const detail = error instanceof Error ? error.message : String(error);
+  return new Error(`Google native sign-in (own nonce) failed: ${detail}`);
+}
+
 /**
  * Whether Google's own sheet can be presented at all — asked before the tile is
  * even offered a native path, so an unconfigured build falls through to the
@@ -184,13 +334,17 @@ const DEVELOPER_ERROR = '10';
  * who tapped Google with an errand about an unrelated app, when the browser
  * behind this can serve them perfectly well.
  *
- * No custom nonce: the installed SDK's original sign-in API takes none (its
- * `SignInParams` is `loginHint` and nothing else), so there is no value to bind
- * the token to and hash into it. Supabase still checks the signature, the
- * issuer, the expiry and — the part that matters here — that the audience is
- * this project's own client id, which is the check the "Authorized Client IDs"
- * list in the Supabase Google provider exists to satisfy. Apple below does
- * carry a nonce, because its API accepts one.
+ * A nonce, on iOS, when the build carries `modules/waves-google-nonce`: the
+ * installed SDK's own sign-in API takes none (its `SignInParams` is
+ * `loginHint` and nothing else), so asking `GIDSignIn` to bind the token to a
+ * value this app keeps means calling it directly, which is what that module
+ * does — the one call the wrapper cannot make, nothing else about this flow.
+ * Android is unchanged (no module is ever loaded there), and a build without
+ * the module falls through to the same call this function has always made.
+ * Supabase still checks the signature, the issuer, the expiry and the
+ * audience (the "Authorized Client IDs" list in its Google provider) either
+ * way; the nonce is the one check `external_google_skip_nonce_check` is
+ * standing in for until this has shipped.
  */
 export async function googleNativeSignIn(): Promise<NativeSignIn<GoogleCredential>> {
   const module = loadGoogle();
@@ -206,6 +360,22 @@ export async function googleNativeSignIn(): Promise<NativeSignIn<GoogleCredentia
       ...(Platform.OS === 'ios' ? { iosClientId } : {}),
     });
     await module.GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: false });
+  } catch (error) {
+    if (isGoogleCancellation(module, error)) return dismissed;
+    reportHandled(googleFault(module, error), 'auth.googleNative');
+    return unavailable;
+  }
+
+  const nonceModule = Platform.OS === 'ios' ? loadGoogleNonce() : null;
+  if (nonceModule) return googleSignInWithOwnNonce(nonceModule);
+  return googleSignInWithoutOwnNonce(module);
+}
+
+/** Today's call, unchanged: no nonce offered, none passed back. */
+async function googleSignInWithoutOwnNonce(
+  module: SigninModule,
+): Promise<NativeSignIn<GoogleCredential>> {
+  try {
     const response = await module.GoogleSignin.signIn();
     if (!module.isSuccessResponse(response)) return dismissed;
 
@@ -221,6 +391,26 @@ export async function googleNativeSignIn(): Promise<NativeSignIn<GoogleCredentia
   } catch (error) {
     if (isGoogleCancellation(module, error)) return dismissed;
     reportHandled(googleFault(module, error), 'auth.googleNative');
+    return unavailable;
+  }
+}
+
+/** The new call: Google is given this attempt's hash, and the token that
+ *  comes back is checked for it before the matching raw value goes anywhere. */
+async function googleSignInWithOwnNonce(
+  nonceModule: GoogleNonceModule,
+): Promise<NativeSignIn<GoogleCredential>> {
+  const sent = await newNonce();
+  try {
+    const { idToken } = await nonceModule.signIn(sent.hashed);
+    if (!idToken) {
+      reportHandled(new Error('Google sign-in returned no identity token'), 'auth.googleNative');
+      return unavailable;
+    }
+    return { kind: 'credential', credential: { idToken, nonce: nonceToPass(idToken, sent) } };
+  } catch (error) {
+    if (isGoogleNonceCancellation(error)) return dismissed;
+    reportHandled(googleNonceFault(error), 'auth.googleNative');
     return unavailable;
   }
 }
