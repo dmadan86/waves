@@ -743,6 +743,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const { data, error } = await backend.auth.signInWithIdToken({
               provider: 'google',
               token: outcome.credential.idToken,
+              ...(outcome.credential.nonce ? { nonce: outcome.credential.nonce } : {}),
             });
             if (error) throw error;
             setSession(data.session);
@@ -832,6 +833,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               : await backend.auth.signInWithIdToken({
                   provider: 'google',
                   token: native.credential.idToken,
+                  ...(native.credential.nonce ? { nonce: native.credential.nonce } : {}),
                 });
           if (error) throw error;
           setSession(data.session);

@@ -2310,6 +2310,10 @@ export interface UiStrings {
     reminderBodyStale: string;
     reminderAction: string;
     reminderLater: string;
+    /** The three cells of the reminder's feature strip — one short label each. */
+    reminderFeatureSafe: string;
+    reminderFeatureDevices: string;
+    reminderFeatureQuick: string;
 
     /** Why a run did nothing. Each one is a different way out. */
     refusedNotConnected: string;
@@ -2509,11 +2513,19 @@ export interface UiStrings {
     role: string;
     makeAdmin: string;
     removeAdmin: string;
+    /** Compact member page: the role row's label, which opens the toggle
+     *  rather than naming the action outright. */
+    manageRole: string;
+    /** That row's subtitle when the member is an admin today. */
+    currentRoleAdmin: string;
+    /** That row's subtitle when the member is a plain member today. */
+    currentRoleMember: string;
     adminNote: string;
     adminNeedsAccount: string;
     you: string;
     memberName: string;
-    /** Member detail: label over their per-currency outlay (currency exposure). */
+    /** Member detail: label over their per-currency outlay (currency exposure),
+     *  and the compact page's "Total paid" summary tile. */
     paidAcross: string;
     /** Heading over what this person put into this group. */
     inThisGroup: string;
@@ -2521,6 +2533,16 @@ export interface UiStrings {
     expensesLabel: string;
     /** Heading over role and blocking. */
     manageTitle: string;
+    /** The compact member page's two-tile card: paid and expense count. */
+    groupSummary: string;
+    /** That card's link to the group's own spending breakdown. */
+    viewDetails: string;
+    /** The compact member page's secondary button — opens the group's
+     *  existing invite/QR share sheet. */
+    shareGroup: string;
+    /** The expense list's sort pill, newest-first (the default) and oldest-first. */
+    sortNewestFirst: string;
+    sortOldestFirst: string;
     /** Said when a typed UPI handle is not a handle. */
     upiInvalid: string;
     ghostNote: string;
@@ -2701,6 +2723,8 @@ export interface UiStrings {
     exactly: string;
     /** The amount field beside one person in an exact split. `{name}` is theirs. */
     exactShareLabel: string;
+    /** A shares field with more than two decimal places — half a share is fine, a third decimal is not. */
+    sharesDecimalPlaces: string;
     splitBetween: string;
     ofCount: string;
     saveChanges: string;
@@ -5872,6 +5896,9 @@ const en: UiStrings = {
       'Your last backup was more than a day ago. Back up now to keep everything since then safe in your Google Drive.',
     reminderAction: 'Back up now',
     reminderLater: 'Not now',
+    reminderFeatureSafe: 'Keep your data safe',
+    reminderFeatureDevices: 'Restore on any device',
+    reminderFeatureQuick: 'Quick and easy',
 
     refusedNotConnected: 'Link a Google account first.',
     refusedNoKey: 'Create your backup key first.',
@@ -6035,14 +6062,22 @@ const en: UiStrings = {
     role: 'Role',
     makeAdmin: 'Make admin',
     removeAdmin: 'Remove admin',
+    manageRole: 'Manage role',
+    currentRoleAdmin: 'Current role: Admin',
+    currentRoleMember: 'Current role: Member',
     adminNote: 'Admins can edit the group, manage members, and set the overall budget.',
     adminNeedsAccount: 'They have not joined yet. Only a member with an account can be an admin.',
     you: 'you',
     memberName: 'Member name',
-    paidAcross: 'Paid',
+    paidAcross: 'Total paid',
     inThisGroup: 'In this group',
     expensesLabel: 'Expenses',
     manageTitle: 'Manage',
+    groupSummary: 'Group summary',
+    viewDetails: 'View details',
+    shareGroup: 'Share group',
+    sortNewestFirst: 'Newest first',
+    sortOldestFirst: 'Oldest first',
     upiInvalid: 'That does not look like a UPI ID.',
     ghostNote: 'This person holds real balances. When they join, they can claim this history.',
     upiForGroup: 'UPI ID for this group',
@@ -6196,6 +6231,7 @@ const en: UiStrings = {
     equally: 'Equally',
     exactly: 'Exact',
     exactShareLabel: "{name}'s share",
+    sharesDecimalPlaces: 'Shares can have at most two decimal places.',
     shares: 'Shares',
     percent: 'Percent',
     splitBetween: 'Split between',
@@ -9304,6 +9340,9 @@ const ta: UiStrings = {
       'உங்கள் கடைசி காப்புப்பிரதி ஒரு நாளுக்கு மேல் பழையது. அதன் பிறகு சேர்த்தவை பாதுகாப்பாக இருக்க இப்போதே Google Drive-இல் காப்புப்பிரதி எடுங்கள்.',
     reminderAction: 'இப்போது காப்புப்பிரதி எடு',
     reminderLater: 'இப்போது வேண்டாம்',
+    reminderFeatureSafe: 'உங்கள் தரவைப் பாதுகாப்பாக வையுங்கள்',
+    reminderFeatureDevices: 'எந்த சாதனத்திலும் மீட்டெடுக்கவும்',
+    reminderFeatureQuick: 'விரைவானது, எளிதானது',
 
     refusedNotConnected: 'முதலில் ஒரு Google கணக்கை இணையுங்கள்.',
     refusedNoKey: 'முதலில் உங்கள் காப்புச் சாவியை உருவாக்குங்கள்.',
@@ -9474,16 +9513,24 @@ const ta: UiStrings = {
     role: 'பங்கு',
     makeAdmin: 'நிர்வாகியாக்கு',
     removeAdmin: 'நிர்வாகியை நீக்கு',
+    manageRole: 'பங்கை நிர்வகி',
+    currentRoleAdmin: 'தற்போதைய பங்கு: நிர்வாகி',
+    currentRoleMember: 'தற்போதைய பங்கு: உறுப்பினர்',
     adminNote:
       'நிர்வாகிகள் குழுவைத் திருத்தலாம், உறுப்பினர்களை நிர்வகிக்கலாம், மொத்த பட்ஜெட்டை அமைக்கலாம்.',
     adminNeedsAccount:
       'இவர் இன்னும் சேரவில்லை. கணக்கு உள்ள உறுப்பினர் மட்டுமே நிர்வாகியாக முடியும்.',
     you: 'நீங்கள்',
     memberName: 'உறுப்பினர் பெயர்',
-    paidAcross: 'செலுத்தியது',
+    paidAcross: 'செலுத்திய தொகை',
     inThisGroup: 'இந்தக் குழுவில்',
     expensesLabel: 'செலவுகள்',
     manageTitle: 'நிர்வகி',
+    groupSummary: 'குழு சுருக்கம்',
+    viewDetails: 'விவரங்களைப் பார்',
+    shareGroup: 'குழுவைப் பகிர்',
+    sortNewestFirst: 'புதியவை முதலில்',
+    sortOldestFirst: 'பழையவை முதலில்',
     upiInvalid: 'இது UPI ஐடி போலத் தெரியவில்லை.',
     ghostNote:
       'இவருக்கு உண்மையான இருப்புகள் உள்ளன. அவர்கள் சேரும்போது இந்த வரலாற்றைத் தங்களுடையதாக்கிக் கொள்ளலாம்.',
@@ -9649,6 +9696,7 @@ const ta: UiStrings = {
     equally: 'சமமாக',
     exactly: 'சரியாக',
     exactShareLabel: '{name} இன் பங்கு',
+    sharesDecimalPlaces: 'பங்குகளில் அதிகபட்சம் இரண்டு தசம இடங்கள் மட்டுமே இருக்கலாம்.',
     shares: 'பங்குகள்',
     percent: 'சதவீதம்',
     splitBetween: 'யாருக்கிடையே',
@@ -12768,6 +12816,9 @@ const hi: UiStrings = {
       'आपका पिछला बैकअप एक दिन से ज़्यादा पुराना है। उसके बाद का सब कुछ सुरक्षित रखने के लिए अभी Google Drive पर बैकअप लें।',
     reminderAction: 'अभी बैकअप लें',
     reminderLater: 'अभी नहीं',
+    reminderFeatureSafe: 'अपना डेटा सुरक्षित रखें',
+    reminderFeatureDevices: 'किसी भी डिवाइस पर वापस लाएँ',
+    reminderFeatureQuick: 'तेज़ और आसान',
 
     refusedNotConnected: 'पहले एक Google खाता जोड़ें।',
     refusedNoKey: 'पहले अपनी बैकअप चाबी बनाएँ।',
@@ -12931,13 +12982,21 @@ const hi: UiStrings = {
     role: 'भूमिका',
     makeAdmin: 'एडमिन बनाएँ',
     removeAdmin: 'एडमिन हटाएँ',
+    manageRole: 'भूमिका प्रबंधित करें',
+    currentRoleAdmin: 'मौजूदा भूमिका: एडमिन',
+    currentRoleMember: 'मौजूदा भूमिका: सदस्य',
     adminNote: 'एडमिन ग्रुप बदल सकते हैं, सदस्य संभाल सकते हैं, और कुल बजट तय कर सकते हैं.',
     adminNeedsAccount: 'ये अभी शामिल नहीं हुए हैं. सिर्फ़ अकाउंट वाला सदस्य ही एडमिन बन सकता है.',
     you: 'आप',
     memberName: 'सदस्य का नाम',
-    paidAcross: 'चुकाया',
+    paidAcross: 'कुल चुकाया',
     inThisGroup: 'इस ग्रुप में',
     expensesLabel: 'खर्च',
+    groupSummary: 'समूह सारांश',
+    viewDetails: 'विवरण देखें',
+    shareGroup: 'समूह साझा करें',
+    sortNewestFirst: 'नवीनतम पहले',
+    sortOldestFirst: 'पुराने पहले',
     manageTitle: 'प्रबंधित करें',
     upiInvalid: 'यह UPI आईडी जैसी नहीं लगती।',
     ghostNote: 'इस व्यक्ति का असली हिसाब है। जुड़ने पर वे यह इतिहास अपने नाम कर सकते हैं।',
@@ -13096,6 +13155,7 @@ const hi: UiStrings = {
     equally: 'बराबर',
     exactly: 'सटीक',
     exactShareLabel: '{name} का हिस्सा',
+    sharesDecimalPlaces: 'हिस्सों में अधिकतम दो दशमलव स्थान हो सकते हैं।',
     shares: 'हिस्से',
     percent: 'प्रतिशत',
     splitBetween: 'किनके बीच',
@@ -16330,6 +16390,9 @@ const ar: UiStrings = {
       'آخر نسخة احتياطية كانت قبل أكثر من يوم. انسخ الآن لتبقى كل إضافاتك منذ ذلك الحين آمنة في Google Drive.',
     reminderAction: 'انسخ الآن',
     reminderLater: 'ليس الآن',
+    reminderFeatureSafe: 'حافظ على أمان بياناتك',
+    reminderFeatureDevices: 'استعد بياناتك على أي جهاز',
+    reminderFeatureQuick: 'سريع وسهل',
 
     refusedNotConnected: 'اربط حساب Google أولًا.',
     refusedNoKey: 'أنشئ مفتاح النسخة أولًا.',
@@ -16521,13 +16584,21 @@ const ar: UiStrings = {
     role: 'الدور',
     makeAdmin: 'تعيين كمشرف',
     removeAdmin: 'إزالة الإشراف',
+    manageRole: 'إدارة الدور',
+    currentRoleAdmin: 'الدور الحالي: مشرف',
+    currentRoleMember: 'الدور الحالي: عضو',
     adminNote: 'يمكن للمشرفين تعديل المجموعة وإدارة الأعضاء وتحديد الميزانية الإجمالية.',
     adminNeedsAccount: 'لم ينضم بعد. المشرف يجب أن يكون عضوًا لديه حساب.',
     you: 'أنت',
     memberName: 'اسم العضو',
-    paidAcross: 'دفع',
+    paidAcross: 'إجمالي المدفوع',
     inThisGroup: 'في هذه المجموعة',
     expensesLabel: 'المصاريف',
+    groupSummary: 'ملخص المجموعة',
+    viewDetails: 'عرض التفاصيل',
+    shareGroup: 'مشاركة المجموعة',
+    sortNewestFirst: 'الأحدث أولاً',
+    sortOldestFirst: 'الأقدم أولاً',
     manageTitle: 'إدارة',
     upiInvalid: 'لا يبدو هذا معرّف UPI صالحًا.',
     ghostNote: 'لهذا الشخص أرصدة حقيقية. حين ينضم يمكنه أن يطالب بهذا السجل.',
@@ -16699,6 +16770,7 @@ const ar: UiStrings = {
     equally: 'بالتساوي',
     exactly: 'بالضبط',
     exactShareLabel: 'حصة {name}',
+    sharesDecimalPlaces: 'يمكن أن تحتوي الحصص على رقمين عشريين على الأكثر.',
     shares: 'حصص',
     percent: 'نسبة مئوية',
     splitBetween: 'التقسيم بين',

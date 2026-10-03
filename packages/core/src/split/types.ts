@@ -28,7 +28,15 @@ export interface PercentParams {
   readonly basisPoints: Readonly<Record<MemberId, number>>;
 }
 
-/** Weights / shares, e.g. { asha: 2, ravi: 1 } → Asha pays two thirds. */
+/**
+ * Weights / shares, e.g. { asha: 2, ravi: 1 } → Asha pays two thirds.
+ *
+ * A weight may carry up to two decimal places — { asha: 0.5, ravi: 1 } is a
+ * real, common split ("half a share"). `computeShares` scales every weight by
+ * 100 before the proportional algorithm runs, so the result for whole-number
+ * weights is byte-identical to before: multiplying every weight by the same
+ * constant never changes a ratio.
+ */
 export interface SharesParams {
   readonly kind: 'shares';
   readonly weights: Readonly<Record<MemberId, number>>;

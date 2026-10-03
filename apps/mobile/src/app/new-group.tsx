@@ -386,11 +386,11 @@ export default function NewGroupScreen() {
     });
   }, [cloning, sourceGroup, sourceMembers, viewerId, t]);
 
-  // The kind is a reading of the name, unless somebody has chosen one, and
-  // Other when the name says nothing — never Trip by default, so the trip-only
-  // dates and budget stay out of the way of a dinner or a flat.
+  // The kind is a reading of the name ("Flat rent" reads as Home), unless
+  // somebody has chosen one, and Trip when the name says nothing — most new
+  // groups are trips, so that is what the picker starts on.
   const type: GroupType =
-    pickedType ?? (guessGroupType(name) as GroupType | null) ?? GroupType.Other;
+    pickedType ?? (guessGroupType(name) as GroupType | null) ?? GroupType.Trip;
   // The icon is a reading of the name, unless somebody has chosen one; it
   // changes under the caret as they type "Goa" and again if they change the
   // kind of group.
