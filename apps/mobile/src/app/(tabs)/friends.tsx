@@ -17,9 +17,9 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { BlurTargetView } from 'expo-blur';
 import {
   ActivityIndicator,
-  Animated,
   BackHandler,
   I18nManager,
   Image,
@@ -30,11 +30,13 @@ import {
   View,
 } from 'react-native';
 import { FlashList, useRecyclingState } from '@shopify/flash-list';
-import Reanimated, { FadeIn, FadeOut, LinearTransition } from 'react-native-reanimated';
+import Reanimated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import {
   Button,
+  directionalIcon,
   EmptyState,
   iconSize,
   initialsOf,
@@ -49,18 +51,20 @@ import {
   MODAL_ORIENTATIONS,
 } from '@waves/ui';
 
-import { balanceDirection, copyFor, moneyAccessibilityLabel } from '@waves/core';
+import { balanceDirection, copyFor, currencySymbol, moneyAccessibilityLabel } from '@waves/core';
 
 import { type PersonBalanceRow } from '@/data/api';
 import { sendNudge } from '@/lib/nudge';
 import { useBlockedUsers } from '@/data/blocked';
 import { defaultMergeName } from '@/data/mergePeople';
-import { useKnownPeopleCount, usePeopleBalances } from '@/data/hooks';
+import { useGroups, useHomeSummary, useKnownPeopleCount, usePeopleBalances } from '@/data/hooks';
+import { groupLabel } from '@/data/types';
 import { useAuth } from '@/lib/auth';
 import {
   commonOnlyGroupId,
   currencyTotals,
   directionGroups,
+  personCountByDirection,
   personDirection,
   rowAction,
   shownAmounts,
@@ -68,18 +72,19 @@ import {
 } from '@/lib/friendsTotals';
 import { PressableScale } from '@/lib/anim';
 import { router } from '@/lib/navigation';
-import { useReducedMotion } from '@/lib/reducedMotion';
 import { useAvatarUrl } from '@/components/ProfileAvatar';
-import { HeroDots } from '@/components/HeroDots';
-import {
-  HeroActionCircle,
-  HeroFigureLine,
-  HeroPillButton,
-  ScreenHero,
-} from '@/components/ScreenHero';
+import { GlassSurface } from '@/components/home/GlassSurface';
+import { HeroScene } from '@/components/home/HeroScene';
+import { SettlePickerSheet, type SettleCandidate } from '@/components/home/SettlePickerSheet';
+import { SplitMoney } from '@/components/SplitMoney';
+import { useHeroCrossfade, useHeroStatusBar } from '@/components/ScreenHero';
 import { PeopleSkeleton } from '@/components/Skeletons';
 import { plural, useStrings, type UiStrings } from '@/i18n';
+import { useBalanceHidden } from '@/lib/balanceHidden';
+import { useHeroScene } from '@/lib/heroScenePreference';
 import { usePullRefresh } from '@/lib/pullRefresh';
+import { HERO_THEMES } from '@/lib/scene';
+import { SPEC_INK } from '@/lib/specPalette';
 
 enum SortKey {
   Amount = 'amount',
@@ -256,10 +261,14 @@ export default function FriendsScreen() {
   const theme = useTheme();
   const pull = usePullRefresh();
   const clearance = useTabBarClearance();
-  const reduceMotion = useReducedMotion();
   const { t, locale } = useStrings();
 
   const { profile } = useAuth();
+  // The one eye for every balance on the phone (Home's own preference, A48):
+  // shared with `FriendsScene`'s own call below through the same store, so a
+  // toggle there is reflected in every row this screen renders, not only in
+  // the balance card.
+  const { hidden: balanceHidden, ready: balanceReady } = useBalanceHidden();
   // Local-first (ADR-005): who owes whom is computed from the mirror, so Friends
   // works with no connection — the same rows the RPC returns, folded by the
   // viewer's own ghost merges pulled into the mirror (A38).
@@ -268,6 +277,31 @@ export default function FriendsScreen() {
   // Nobody yet, or everybody square? Both arrive here as an empty `rows`, and
   // they want opposite screens — see `EmptyFriends`.
   const known = useKnownPeopleCount(profile?.id ?? null);
+
+  // Settle up from Friends asks which group first, the same picker Home's own
+  // quick action opens — settling happens inside a group, never here, so there
+  // is no second flow to keep in step with the dashboard's.
+  const groups = useGroups();
+  const homeSummary = useHomeSummary(profile?.id ?? null);
+  const [settleOpen, setSettleOpen] = useState(false);
+  const settleCandidates: SettleCandidate[] = useMemo(
+    () =>
+      groups.data
+        .map((group) => ({
+          id: group.id,
+          title: groupLabel(group, homeSummary.membersFor(group.id), profile?.id ?? null),
+          coverEmoji: group.cover_emoji,
+          balance: homeSummary.balanceFor(group.id),
+          currency: group.default_currency,
+        }))
+        .filter((group) => group.balance !== 0n)
+        .sort((a, b) => {
+          const size = (x: bigint) => (x < 0n ? -x : x);
+          const d = size(b.balance) - size(a.balance);
+          return d > 0n ? 1 : d < 0n ? -1 : 0;
+        }),
+    [groups.data, homeSummary, profile?.id],
+  );
 
   // Which guests look like the same person seen twice — the only thing merge is
   // for. Surfaced as a slim strip that points at the actual duplicates (and
@@ -280,6 +314,14 @@ export default function FriendsScreen() {
   const [sortKey, setSortKey] = useState<SortKey>(SortKey.Amount);
   const [sortDir, setSortDir] = useState<SortDir>(SortDir.Desc);
   const [sortOpen, setSortOpen] = useState(false);
+  // Where the sort pill sits on screen, so its menu drops from it instead of a
+  // fixed spot near the top — the pill moved down to "Your friends" and the
+  // menu has to follow it there.
+  const [sortAnchor, setSortAnchor] = useState<MenuAnchor | null>(null);
+  const openSortMenu = (anchor: MenuAnchor | null): void => {
+    setSortAnchor(anchor);
+    setSortOpen(true);
+  };
 
   // The "add someone" family — add a person, pull from contacts, scan an invite
   // QR — folded behind one `+` so the header reads as a title row, not a
@@ -420,22 +462,22 @@ export default function FriendsScreen() {
 
   return (
     <Screen edges={[]}>
-      {/* The header is fixed — it does not ride the scroll. Only the list and the
-          merge strip below move under it. Selection is a mode *within* the hero,
-          not a replacement for it: the same indigo panel stays, and its title
-          line swaps to close / count / Merge, so the header never blinks away
-          under a long press. */}
-      <FriendsHero
+      {/* The header is fixed — it does not ride the scroll. Only the list below
+          moves under it. Selection is a mode *within* the title row, not a
+          replacement for it: the same scene stays, and its title line swaps to
+          close / count / Merge, so the header never blinks away under a long
+          press. */}
+      <FriendsScene
+        rows={rows}
         totals={totals}
+        persons={persons}
         locale={locale}
         t={t}
-        sortKey={sortKey}
-        sortDir={sortDir}
         onAdd={(anchor) => {
           setAddAnchor(anchor);
           setAddOpen(true);
         }}
-        onSort={() => setSortOpen(true)}
+        onSettleUp={() => setSettleOpen(true)}
         duplicateCount={duplicates.count >= 2 && !selectMode ? duplicates.count : 0}
         onDuplicates={openDuplicates}
         selectMode={selectMode}
@@ -449,6 +491,7 @@ export default function FriendsScreen() {
 
       <SortMenu
         open={sortOpen}
+        anchor={sortAnchor}
         onClose={() => setSortOpen(false)}
         sortKey={sortKey}
         sortDir={sortDir}
@@ -456,18 +499,31 @@ export default function FriendsScreen() {
         t={t}
       />
 
-      {/* Only this scrolls — the list, beneath the fixed header. It runs to the
-          foot of the screen and under the bottom bar, the way Home's groups do:
-          the rows scroll behind the bar, and the clearance is paid on the
-          content, so at the end of the list the card's rounded foot comes to
-          rest above the bar. Boxing the card short of the bar instead left a
-          band of empty background under the last row at every scroll position.
-          The card is drawn per row (the first rounds the top, the last rounds
-          the foot) so it scrolls inside the FlashList instead of clipping it. */}
-      <Reanimated.View
-        layout={reduceMotion ? undefined : LinearTransition.duration(160)}
-        style={{ flex: 1 }}
-      >
+      <SettlePickerSheet
+        visible={settleOpen}
+        onClose={() => setSettleOpen(false)}
+        groups={settleCandidates}
+      />
+
+      {/* Only this scrolls — the list, beneath the fixed scene, card and the
+          "Your friends" + sort row. It runs to the foot of the screen and
+          under the bottom bar, the way Home's groups do: the rows scroll
+          behind the bar, and the clearance is paid on the content, so at the
+          end of the list the card's rounded foot comes to rest above the bar.
+          Boxing the card short of the bar instead left a band of empty
+          background under the last row at every scroll position. The card is
+          drawn per row (the first rounds the top, the last rounds the foot)
+          so it scrolls inside the FlashList instead of clipping it.
+
+          A plain `View`, deliberately not an animated one: the balance card
+          above grows the instant `loading` resolves (the two direction pills
+          only render once it has), which moves this block's own top edge in
+          the same frame. An animated `layout` transition here used to tween
+          *that* move over 160ms, so the first real frame could land mid-slide
+          — "Your friends" drawn over the action row the card had just grown
+          to make room for. Nothing here needs to animate; the card settling
+          once, immediately, is the fix. */}
+      <View style={{ flex: 1 }}>
         {people.isLoading ? (
           <View style={{ paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.lg }}>
             <PeopleSkeleton />
@@ -485,100 +541,112 @@ export default function FriendsScreen() {
             <EmptyFriends hasPeople={known.data > 0} t={t} />
           </View>
         ) : (
-          // The only virtualized list on this screen — same FlashList setup the
-          // group ledger uses (recycled rows, a wide draw distance so a fast fling
-          // never outruns recycling into blank rows).
-          <FlashList
-            data={persons}
-            // Selection state lives outside the row data, so the list has to be
-            // told to re-render its rows when it changes (the tick, the fill).
-            // The length rides along because the last row draws the card's foot.
-            extraData={`${selectMode}|${[...selectedKeys].join(',')}|${locale}|${theme.scheme}|${persons.length}`}
-            keyExtractor={(item) => item.person_key}
-            // A single-currency row and a multi-currency (stacked amounts) row are
-            // structurally different subtrees; typing them lets FlashList recycle
-            // like with like rather than reflowing one shape into the other.
-            getItemType={(item) => (item.entries.length === 1 ? 'single' : 'multi')}
-            drawDistance={1500}
-            contentContainerStyle={{
-              paddingHorizontal: theme.spacing.lg,
-              paddingTop: theme.spacing.lg,
-              paddingBottom: clearance,
-            }}
-            showsVerticalScrollIndicator={false}
-            refreshControl={
-              <RefreshControl
-                refreshing={pull.refreshing}
-                onRefresh={pull.onRefresh}
-                tintColor={theme.color.brand}
-              />
-            }
-            renderItem={({ item, index }) => {
-              const first = index === 0;
-              const last = index === persons.length - 1;
-              return (
-                <View
-                  style={{
-                    backgroundColor: theme.color.surface,
-                    borderColor: theme.color.border,
-                    borderLeftWidth: 1,
-                    borderRightWidth: 1,
-                    borderTopWidth: first ? 1 : 0,
-                    borderBottomWidth: last ? 1 : 0,
-                    borderTopLeftRadius: first ? theme.radius.lg : 0,
-                    borderTopRightRadius: first ? theme.radius.lg : 0,
-                    borderBottomLeftRadius: last ? theme.radius.lg : 0,
-                    borderBottomRightRadius: last ? theme.radius.lg : 0,
-                    overflow: 'hidden',
-                  }}
-                >
-                  <PersonRow
-                    person={item}
-                    locale={locale}
-                    t={t}
-                    divider={!first}
-                    duplicate={duplicates.keys.has(item.person_key)}
-                    selectMode={selectMode}
-                    selected={selectedKeys.has(item.person_key)}
-                    onEnterSelect={enterSelect}
-                    onToggleSelect={toggleSelect}
-                  />
-                </View>
-              );
-            }}
-          />
+          // "Your friends" and its sort pill stay put — only the FlashList
+          // below them (flex: 1) scrolls.
+          <View style={{ flex: 1 }}>
+            <FriendsListHeader t={t} sortKey={sortKey} sortDir={sortDir} onSort={openSortMenu} />
+            {/* The only virtualized list on this screen — same FlashList setup
+                the group ledger uses (recycled rows, a wide draw distance so a
+                fast fling never outruns recycling into blank rows). */}
+            <FlashList
+              data={persons}
+              // Selection state lives outside the row data, so the list has to
+              // be told to re-render its rows when it changes (the tick, the
+              // fill). The length rides along because the last row draws the
+              // card's foot.
+              extraData={`${selectMode}|${[...selectedKeys].join(',')}|${locale}|${theme.scheme}|${persons.length}|${balanceHidden}|${balanceReady}`}
+              keyExtractor={(item) => item.person_key}
+              // A single-currency row and a multi-currency (stacked amounts) row
+              // are structurally different subtrees; typing them lets FlashList
+              // recycle like with like rather than reflowing one shape into the
+              // other.
+              getItemType={(item) => (item.entries.length === 1 ? 'single' : 'multi')}
+              drawDistance={1500}
+              contentContainerStyle={{
+                paddingHorizontal: theme.spacing.lg,
+                paddingTop: theme.spacing.sm,
+                paddingBottom: clearance,
+              }}
+              showsVerticalScrollIndicator={false}
+              refreshControl={
+                <RefreshControl
+                  refreshing={pull.refreshing}
+                  onRefresh={pull.onRefresh}
+                  tintColor={theme.color.brand}
+                />
+              }
+              renderItem={({ item, index }) => {
+                const first = index === 0;
+                const last = index === persons.length - 1;
+                return (
+                  <View
+                    style={{
+                      backgroundColor: theme.color.surface,
+                      borderColor: theme.color.border,
+                      borderLeftWidth: 1,
+                      borderRightWidth: 1,
+                      borderTopWidth: first ? 1 : 0,
+                      borderBottomWidth: last ? 1 : 0,
+                      borderTopLeftRadius: first ? theme.radius.lg : 0,
+                      borderTopRightRadius: first ? theme.radius.lg : 0,
+                      borderBottomLeftRadius: last ? theme.radius.lg : 0,
+                      borderBottomRightRadius: last ? theme.radius.lg : 0,
+                      overflow: 'hidden',
+                    }}
+                  >
+                    <PersonRow
+                      person={item}
+                      locale={locale}
+                      t={t}
+                      hidden={balanceHidden || !balanceReady}
+                      divider={!first}
+                      duplicate={duplicates.keys.has(item.person_key)}
+                      selectMode={selectMode}
+                      selected={selectedKeys.has(item.person_key)}
+                      onEnterSelect={enterSelect}
+                      onToggleSelect={toggleSelect}
+                    />
+                  </View>
+                );
+              }}
+            />
+          </View>
         )}
-      </Reanimated.View>
+      </View>
     </Screen>
   );
 }
 
 /**
- * The Friends hero — now the same shell Review opens on (`ScreenHero`), rather
- * than a hand-rolled panel that happened to look similar. Its own watermark
- * (`art`) and its solid white "+" (`primary`) are the shell's own features now,
- * not private code, so Review can (and does) reach for the same two things.
- * The sort control stays a bare glyph — secondary, not the screen's button —
- * and the overall balance sits underneath as the shell's `children`.
+ * The Friends hero: the same scenic mountain art Home opens on, the same
+ * overlapping glass balance card, and the same disc-and-label quick-action
+ * strip along its foot — not a hand-rolled panel that happened to look
+ * similar, the very geometry (`HeroScene`, `GlassSurface`, the negative
+ * overlap) Home's own dashboard draws itself with, so the two tabs read as
+ * one app rather than two designers.
  *
- * The overall balance rides transparent on the colour (no inner card) — one line
- * per currency, because there is no honest single total across currencies without
- * a rate (ADR-003). All square, or nobody added? Then the balance says nothing
- * and the hero is just the title row.
+ * What rides on it is still Friends' own: "Net receivable" (or payable, or
+ * settled), how many friends that is, the eye that hides it — the same
+ * switch Home's balance wears — and three actions, drawn as the lavender
+ * discs the mockup asks for: add a person, settle up (Home's own group
+ * picker, so the two tabs open the identical flow), and merge likely
+ * duplicates. Sort moved off this strip onto the "Your friends" row below,
+ * where it now lives beside the list it orders.
  *
- * Merge selection is a mode *inside* the hero, not a replacement for it: the
- * shell's `overlay` crossfades the title row into close / count / Merge on the
- * same panel, on the same 150ms `useHeroCrossfade` Review's own balance-figure
- * swap rides, so the two gestures stay identical instead of drifting apart.
+ * Merge selection is a mode *inside* the title row, not a replacement for
+ * it: `useHeroCrossfade` — the same 150ms ease Review's own balance-figure
+ * swap rides — dissolves the people glyph and "Friends" into close / count /
+ * Merge on the same scene, so the two gestures stay identical instead of
+ * drifting apart.
  */
-function FriendsHero({
+function FriendsScene({
+  rows,
   totals,
+  persons,
   locale,
   t,
-  sortKey,
-  sortDir,
   onAdd,
-  onSort,
+  onSettleUp,
   duplicateCount,
   onDuplicates,
   selectMode,
@@ -587,86 +655,116 @@ function FriendsHero({
   onMerge,
   loading,
 }: {
+  rows: readonly PersonBalanceRow[];
   totals: readonly CurrencyTotal[];
+  persons: readonly PersonGroup[];
   locale: string;
   t: UiStrings;
-  sortKey: SortKey;
-  sortDir: SortDir;
-  /** Opens the add menu, told where the pill is so the menu drops from it. */
+  /** Opens the add menu, told where the tile is so the menu drops from it. */
   onAdd: (anchor: MenuAnchor | null) => void;
-  onSort: () => void;
-  /** Likely duplicate guests; 0 hides the merge disc. */
+  /** Opens the same group picker Home's own Settle up quick action does. */
+  onSettleUp: () => void;
+  /** Likely duplicate guests; 0 hides the badge. */
   duplicateCount: number;
   onDuplicates: () => void;
-  /** Merge selection is a mode inside the hero — its title line swaps to the
-      close / count / Merge controls while it runs, on the same indigo panel. */
   selectMode: boolean;
   selectedCount: number;
   onExitSelect: () => void;
   onMerge: () => void;
-  /** Cold launch, mirror not read yet — the hero paints a shimmering balance so
-      the panel reads as a full Friends header rather than a bare title bar over
-      an empty screen while the rows hydrate. */
   loading: boolean;
 }): React.JSX.Element {
   const theme = useTheme();
-  const reduceMotion = useReducedMotion();
-  // The balance pages like Home's: one slide per direction ("Net receivable",
-  // "You owe"), swiped, with the dot pager between the pill and the edge. Two
-  // stacked blocks made the hero tall and cramped. Until the deck measures
-  // itself, a slide is the window less the hero's side padding, so the first
-  // frame does not shrink a slide to its text and then jump.
-  const { width: windowW } = useWindowDimensions();
-  const [measuredW, setMeasuredW] = useState(0);
-  const slideW = measuredW || windowW - theme.spacing.xl * 2;
-  const [scrollX] = useState(() => new Animated.Value(0));
-  const pillRef = useRef<View>(null);
+  const insets = useSafeAreaInsets();
+  const { width: windowWidth } = useWindowDimensions();
+
+  // The scene wears the time of day, or the one picked on the Background
+  // screen — Home's own hook, so the two tabs always agree on what hour it is.
+  const scene = useHeroScene();
+  const darkInk = HERO_THEMES[scene].ink === 'dark';
+  const heroInk = darkInk ? SPEC_INK : '#FFFFFF';
+  useHeroStatusBar(darkInk ? 'dark' : 'light');
+
+  // The scene's geometry, measured exactly as Home measures its own: the
+  // title row's height sets where the scene's shade can end, the card's
+  // height sets how far the scene reaches before fading into the page.
+  const [headerHeight, setHeaderHeight] = useState(insets.top + 120);
+  const [cardHeight, setCardHeight] = useState(220);
+  const cardTop = headerHeight - HERO_OVERLAP;
+  const sceneHeight = cardTop + cardHeight * SCENE_INTO_CARD;
+  const sceneRef = useRef<View>(null);
+
+  const { restingStyle, overlayStyle } = useHeroCrossfade(selectMode);
+
+  // The one eye for every balance on the phone (Home's own preference, A48):
+  // shutting the money here shuts it there too.
+  const { hidden: balanceHidden, ready: balanceReady, toggle: toggleBalance } = useBalanceHidden();
+
+  const addTileRef = useRef<View>(null);
   const openAdd = (): void => {
-    const pill = pillRef.current;
-    if (!pill) return onAdd(null);
-    pill.measureInWindow((x, y, width, height) =>
+    const tile = addTileRef.current;
+    if (!tile) return onAdd(null);
+    tile.measureInWindow((x, y, width, height) =>
       onAdd(width > 0 ? { x, y, width, height } : null),
     );
   };
-  const deck = directionGroups(totals);
 
   return (
-    <ScreenHero
-      icon="people"
-      title={t.friends}
-      // The watermark: a big faint people glyph and a couple of translucent
-      // rings, so the panel reads as a designed surface rather than a flat
-      // rectangle of colour — this hero's own art, passed to the shared shell.
-      art={<HeroArt />}
-      actions={[
-        // Adding a person moved down to the "+ Friend" pill under the balance,
-        // where Home keeps its "+ Expense": the title row keeps only sort.
-        {
-          // Sort wears its own state — the active key's glyph and the
-          // direction arrow — so a glance says how the list is ordered. No
-          // single `Ionicons` name carries both, hence `render` over `icon`.
-          label: `${t.sort.by}: ${sortLabel(sortKey, t)}`,
-          onPress: onSort,
-          render: (
-            <Row style={{ alignItems: 'center', gap: 2 }}>
-              <Ionicons
-                name={SORT_META[sortKey].icon}
-                size={iconSize.lg}
-                color={theme.color.onBrand}
-              />
-              <Ionicons
-                name={sortDir === SortDir.Asc ? 'arrow-up' : 'arrow-down'}
-                size={iconSize.sm}
-                color={theme.color.onBrand}
-              />
+    <View>
+      <BlurTargetView
+        ref={sceneRef}
+        pointerEvents="none"
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, height: sceneHeight }}
+      >
+        <HeroScene
+          scene={scene}
+          width={windowWidth}
+          height={sceneHeight}
+          horizon={cardTop}
+          headerBottom={insets.top + theme.spacing.sm + 34}
+          pageColor={theme.color.bg}
+        />
+      </BlurTargetView>
+
+      <View
+        onLayout={(event) => setHeaderHeight(event.nativeEvent.layout.height)}
+        style={{
+          paddingTop: insets.top + theme.spacing.sm,
+          paddingHorizontal: theme.spacing.lg,
+          paddingBottom: HERO_OVERLAP + theme.spacing.sm,
+        }}
+      >
+        {/* The title row and the selection toolbar share the same spot — one
+            crossfades into the other, never both at once. There is no
+            top-right currency/convert action today, so the row is just the
+            glyph and the name. */}
+        <View style={{ minHeight: 32, justifyContent: 'center' }}>
+          <Reanimated.View pointerEvents={selectMode ? 'none' : 'auto'} style={restingStyle}>
+            <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+              <Ionicons name="people" size={iconSize.xl} color={heroInk} />
+              <Text
+                numberOfLines={1}
+                style={{ flex: 1, fontSize: 22, lineHeight: 27, fontWeight: '800', color: heroInk }}
+              >
+                {t.friends}
+              </Text>
             </Row>
-          ),
-        },
-      ]}
-      overlay={{
-        active: selectMode,
-        content: (
-          <>
+          </Reanimated.View>
+          <Reanimated.View
+            pointerEvents={selectMode ? 'auto' : 'none'}
+            style={[
+              {
+                position: 'absolute',
+                left: 0,
+                right: 0,
+                top: 0,
+                bottom: 0,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: theme.spacing.md,
+              },
+              overlayStyle,
+            ]}
+          >
             <PressableScale
               accessibilityRole="button"
               accessibilityLabel={t.common.close}
@@ -674,9 +772,12 @@ function FriendsHero({
               hitSlop={10}
               style={{ padding: theme.spacing.xs }}
             >
-              <Ionicons name="close" size={iconSize.xl} color={theme.color.onBrand} />
+              <Ionicons name="close" size={iconSize.xl} color={heroInk} />
             </PressableScale>
-            <Text variant="heading" tone="onBrand" style={{ flex: 1 }} numberOfLines={1}>
+            <Text
+              style={{ flex: 1, fontSize: 18, lineHeight: 23, fontWeight: '700', color: heroInk }}
+              numberOfLines={1}
+            >
               {plural(locale, selectedCount, t.mergePeople.selected)}
             </Text>
             <Button
@@ -686,232 +787,611 @@ function FriendsHero({
               disabled={selectedCount < 2}
               onPress={onMerge}
             />
-          </>
-        ),
+          </Reanimated.View>
+        </View>
+      </View>
+
+      <View
+        style={{
+          paddingHorizontal: theme.spacing.lg,
+          marginTop: -HERO_OVERLAP,
+        }}
+      >
+        <View onLayout={(event) => setCardHeight(event.nativeEvent.layout.height)}>
+          <GlassSurface blurTarget={sceneRef}>
+            <FriendsBalanceCard
+              rows={rows}
+              totals={totals}
+              persons={persons}
+              locale={locale}
+              t={t}
+              hidden={balanceHidden || !balanceReady}
+              onToggleHide={toggleBalance}
+              loading={loading}
+              footer={
+                <FriendsQuickActions
+                  addTileRef={addTileRef}
+                  onAdd={openAdd}
+                  onSettleUp={onSettleUp}
+                  duplicateCount={duplicateCount}
+                  onMerge={onDuplicates}
+                  t={t}
+                  radius={theme.radius.xl}
+                />
+              }
+            />
+          </GlassSurface>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+/** How far the balance card rides up over the bottom of the scene — the same
+ *  measure Home's own dashboard card uses, so the two overlap identically. */
+const HERO_OVERLAP = 56;
+
+/** How far down the balance card the scene reaches before fading into the
+ *  page — Home's own fraction. */
+const SCENE_INTO_CARD = 0.72;
+
+/**
+ * The balance card's body: "Net receivable" (or payable, or settled), the eye,
+ * the big figure with its paise drawn lighter (`SplitMoney`, the same figure
+ * Home's own balance card and group rows use), how many friends that is, a
+ * soft lavender wallet on the shoulder — drawn, not an image asset — and, under
+ * all of that, the two directions as their own tinted pills.
+ *
+ * Never a total across currencies (ADR-003): the headline leads with whichever
+ * direction has the bigger currency to show (owed first, the happier half),
+ * and each pill below states its own direction's *head* currency rather than
+ * folding two currencies into one figure. A person holding more currencies
+ * than that still reads correctly — the pill says the biggest, as the old
+ * secondary line did — it is just no longer spelled out underneath it, which
+ * is what kept this compact.
+ */
+function FriendsBalanceCard({
+  rows,
+  totals,
+  persons,
+  locale,
+  t,
+  hidden,
+  onToggleHide,
+  loading,
+  footer,
+}: {
+  rows: readonly PersonBalanceRow[];
+  totals: readonly CurrencyTotal[];
+  persons: readonly PersonGroup[];
+  locale: string;
+  t: UiStrings;
+  hidden: boolean;
+  onToggleHide: () => void;
+  loading: boolean;
+  footer: React.ReactNode;
+}): React.JSX.Element {
+  const theme = useTheme();
+  const deck = directionGroups(totals);
+  const primary = deck[0] ?? null;
+  // The two pills, independent of which direction leads the headline: one
+  // slot for "owed to you", one for "you owe", each null when nobody stands in
+  // that direction (which hides its pill below).
+  const owedGroup = deck.find((group) => group.owed) ?? null;
+  const owingGroup = deck.find((group) => !group.owed) ?? null;
+
+  const label =
+    primary === null ? t.allSettled : primary.owed ? t.dashHero.netOwed : t.dashHero.netOwe;
+  const figureAmount = primary ? absBig(primary.head.net) : 0n;
+  const figureCurrency = primary?.head.currency ?? totals[0]?.currency ?? 'INR';
+
+  let subline: string | null = null;
+  if (primary === null) {
+    subline = persons.length > 0 ? t.tabs.allSquare : null;
+  } else {
+    const counts = personCountByDirection(rows, primary.head.currency);
+    const friendCount = primary.owed ? counts.owed : counts.owing;
+    subline = plural(locale, friendCount, primary.owed ? t.tabs.owedByCount : t.tabs.owingCount);
+  }
+
+  const owedCount = owedGroup ? personCountByDirection(rows, owedGroup.head.currency).owed : 0;
+  const owingCount = owingGroup ? personCountByDirection(rows, owingGroup.head.currency).owing : 0;
+  // A pill states one currency (its direction's biggest, ADR-003) — somebody
+  // owed in both INR and USD still gets one green pill, not two, or one that
+  // silently adds a rate-free total. `directionGroups`' own `rest` is exactly
+  // the currencies that figure leaves out, so it is named here rather than
+  // dropped, the same count `moreCurrencies` already speaks on a person row.
+  const owedExtra = owedGroup?.rest.length
+    ? plural(locale, owedGroup.rest.length, t.tabs.moreCurrencies)
+    : null;
+  const owingExtra = owingGroup?.rest.length
+    ? plural(locale, owingGroup.rest.length, t.tabs.moreCurrencies)
+    : null;
+
+  return (
+    <View
+      style={{
+        paddingTop: theme.spacing.md,
+        paddingBottom: theme.spacing.md,
+        gap: theme.spacing.md,
       }}
     >
-      {!selectMode && loading ? (
-        // Cold launch: a shimmering stand-in for the OVERALL balance, tinted
-        // translucent-white so it reads on the indigo (the grey skeleton default
-        // is overridden by the trailing style). Keeps the hero a full header
-        // while the mirror hydrates instead of a bare title bar over blank.
-        <View style={{ gap: theme.spacing.sm }}>
-          <Skeleton width="30%" height={12} style={{ backgroundColor: 'rgba(255,255,255,0.20)' }} />
-          <Row style={{ justifyContent: 'space-between', alignItems: 'flex-end' }}>
-            <Skeleton
-              width="28%"
-              height={18}
-              style={{ backgroundColor: 'rgba(255,255,255,0.14)' }}
-            />
-            <Skeleton
-              width="52%"
-              height={34}
-              radius={theme.radius.sm}
-              style={{ backgroundColor: 'rgba(255,255,255,0.22)' }}
-            />
-          </Row>
-        </View>
-      ) : !selectMode && deck.length > 0 ? (
-        <Reanimated.View
-          entering={reduceMotion ? undefined : FadeIn.duration(160)}
-          exiting={reduceMotion ? undefined : FadeOut.duration(100)}
-          onLayout={(event) => setMeasuredW(event.nativeEvent.layout.width)}
-        >
-          <Animated.ScrollView
-            horizontal
-            // Home's deck, not `pagingEnabled`: paging snaps by the platform's
-            // slower page fling, which is what made this carousel feel heavier
-            // than the dashboard's. A snap step plus the fast deceleration, one
-            // slide per flick, is the same feel.
-            snapToInterval={slideW}
-            snapToAlignment="start"
-            decelerationRate="fast"
-            disableIntervalMomentum
-            showsHorizontalScrollIndicator={false}
-            scrollEnabled={deck.length > 1}
-            scrollEventThrottle={16}
-            onScroll={Animated.event([{ nativeEvent: { contentOffset: { x: scrollX } } }], {
-              useNativeDriver: true,
-            })}
-          >
-            {deck.map((group, index) => (
-              // Label above the amount, not beside it — the same order GroupHero
-              // reads its own balance in (caption verdict, then the title-sized
-              // figure), rather than a row that made this hero the odd one out.
-              //
-              // The slide being dragged in grows and brightens into focus as it
-              // reaches centre, exactly as Home's do. Transform and opacity only,
-              // both native-driven off the same `scrollX` the dots read.
-              <Animated.View
-                key={group.owed ? 'owed' : 'owing'}
-                style={{
-                  width: slideW,
-                  opacity: scrollX.interpolate({
-                    inputRange: [(index - 1) * slideW, index * slideW, (index + 1) * slideW],
-                    outputRange: [0.75, 1, 0.75],
-                    extrapolate: 'clamp',
-                  }),
-                  transform: [
-                    {
-                      scale: scrollX.interpolate({
-                        inputRange: [(index - 1) * slideW, index * slideW, (index + 1) * slideW],
-                        outputRange: [0.94, 1, 0.94],
-                        extrapolate: 'clamp',
-                      }),
-                    },
-                  ],
-                }}
-              >
-                <View
-                  // Home's rhythm: `sm` between the label and the figure.
-                  style={{ gap: theme.spacing.sm }}
-                >
-                  {/* Home's wording and shape: "Net receivable: ₹12,345" on one
-                    line. The symbol says the currency, so the code that used to
-                    trail the label ("· INR") is gone; a second currency stacks
-                    small under the figure it belongs with. */}
-                  <View style={{ gap: 2 }}>
-                    <HeroFigureLine label={group.owed ? t.dashHero.netOwed : t.dashHero.netOwe}>
-                      <MoneyText
-                        amount={group.head.net < 0n ? -group.head.net : group.head.net}
-                        currency={group.head.currency}
-                        locale={locale}
-                        variant="title"
-                        tone="default"
-                        numberOfLines={1}
-                        adjustsFontSizeToFit
-                        minimumFontScale={0.6}
-                        style={{ color: theme.color.onBrand }}
-                      />
-                    </HeroFigureLine>
-                    {group.rest.length > 0 ? (
-                      // The same direction's other currencies, small and under the
-                      // number they belong to. Wrapped rather than clipped — six
-                      // currencies costs a second line here instead of six headlines.
-                      <Row
-                        style={{
-                          justifyContent: 'flex-start',
-                          flexWrap: 'wrap',
-                          columnGap: theme.spacing.sm,
-                        }}
-                      >
-                        {group.rest.map((total) => (
-                          <MoneyText
-                            key={total.currency}
-                            amount={total.net < 0n ? -total.net : total.net}
-                            currency={total.currency}
-                            locale={locale}
-                            variant="caption"
-                            tone="onBrand"
-                            style={{ opacity: 0.8 }}
-                          />
-                        ))}
-                      </Row>
-                    ) : null}
-                  </View>
-                </View>
-              </Animated.View>
-            ))}
-          </Animated.ScrollView>
-        </Reanimated.View>
-      ) : null}
-      {!selectMode ? (
-        // Home's row: the white pill that hugs its word, the pager centred in
-        // the slack, and a white disc on the shoulder — here the merge, wearing
-        // the count of likely duplicates the way a notification wears its
-        // number. Everything that adds a person (type a name, pull from
-        // contacts, scan an invite QR) is behind the pill.
-        <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
-          <View ref={pillRef} collapsable={false}>
-            <HeroPillButton
-              icon="person-add-outline"
-              label={t.tabs.friendShort}
-              spokenLabel={t.tabs.addSomeone}
-              gradient={theme.gradient.brand}
-              onPress={openAdd}
-            />
-          </View>
-          <View style={{ flex: 1, alignItems: 'center' }}>
-            {deck.length > 1 ? (
-              <HeroDots count={deck.length} scrollX={scrollX} snap={slideW} />
-            ) : null}
-          </View>
-          {duplicateCount > 0 ? (
-            <View>
-              <HeroActionCircle
-                icon="git-merge-outline"
-                solid
-                ink={theme.gradient.brand[0]}
-                label={`${plural(locale, duplicateCount, t.mergePeople.duplicates)}. ${t.mergePeople.entry}`}
-                onPress={onDuplicates}
+      <Row
+        style={{ alignItems: 'center', gap: theme.spacing.lg, paddingHorizontal: theme.spacing.lg }}
+      >
+        <View style={{ flex: 1, gap: 2 }}>
+          <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+            <Text variant="body" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
+              {label}
+            </Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={hidden ? t.dashHero.showBalance : t.dashHero.hideBalance}
+              onPress={onToggleHide}
+              hitSlop={10}
+              style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
+            >
+              <Ionicons
+                name={hidden ? 'eye-off-outline' : 'eye-outline'}
+                size={iconSize.md}
+                color={theme.color.textMuted}
               />
-              <View
-                accessible={false}
-                pointerEvents="none"
-                style={{
-                  position: 'absolute',
-                  top: -4,
-                  right: -4,
-                  minWidth: 20,
-                  height: 20,
-                  paddingHorizontal: 5,
-                  borderRadius: 10,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: theme.color.negative,
-                  borderWidth: 2,
-                  borderColor: theme.color.onBrand,
-                }}
-              >
-                <Text variant="micro" style={{ color: '#FFFFFF', fontWeight: '700' }}>
-                  {duplicateCount > 99 ? '99+' : String(duplicateCount)}
-                </Text>
-              </View>
-            </View>
+            </Pressable>
+          </Row>
+          {loading ? (
+            <Skeleton width={180} height={32} radius={10} />
+          ) : hidden ? (
+            <Text style={AMOUNT_STYLE} numberOfLines={1}>
+              {BALANCE_MASK}
+            </Text>
+          ) : (
+            <SplitMoney
+              amount={figureAmount}
+              currency={figureCurrency}
+              locale={locale}
+              color={theme.color.text}
+              fontSize={AMOUNT_STYLE.fontSize}
+              weight="800"
+            />
+          )}
+          {!loading && !hidden && subline ? (
+            <Text variant="caption" tone="muted" numberOfLines={1}>
+              {subline}
+            </Text>
+          ) : null}
+        </View>
+        <WalletArt currency={figureCurrency} locale={locale} />
+      </Row>
+      {/* Each direction as its own pill — green-tinted "owed to you", red-tinted
+          "you owe" — rather than the old single quiet line for whichever
+          direction the headline figure omitted. A direction with nobody in it
+          has no pill at all. */}
+      {!loading && !hidden && (owedGroup || owingGroup) ? (
+        <Row style={{ gap: theme.spacing.sm, paddingHorizontal: theme.spacing.lg }}>
+          {owedGroup ? (
+            <BalancePill
+              icon="arrow-up"
+              label={plural(locale, owedCount, t.tabs.pillOwed)}
+              net={owedGroup.head.net}
+              currency={owedGroup.head.currency}
+              locale={locale}
+              extra={owedExtra}
+            />
+          ) : null}
+          {owingGroup ? (
+            <BalancePill
+              icon="arrow-down"
+              label={plural(locale, owingCount, t.tabs.pillOwing)}
+              net={owingGroup.head.net}
+              currency={owingGroup.head.currency}
+              locale={locale}
+              extra={owingExtra}
+            />
           ) : null}
         </Row>
       ) : null}
-    </ScreenHero>
+      {footer}
+    </View>
+  );
+}
+
+/** What stands in for the figure while the eye is shut. */
+const BALANCE_MASK = '••••••';
+
+const AMOUNT_STYLE = { fontSize: 30, lineHeight: 36, fontWeight: '800' } as const;
+
+/**
+ * One direction's own pill: a round tinted disc carrying an up or down arrow,
+ * a short label ("17 owe you", "You owe 3") and that direction's own figure
+ * underneath it, both in the direction's money colour (`MoneyText`'s own
+ * `mode="balance"`, the same rule every other balance on this screen obeys —
+ * owed-to-you blue, you-owe red; ADR's palette has no green to borrow instead).
+ */
+function BalancePill({
+  icon,
+  label,
+  net,
+  currency,
+  locale,
+  extra,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  net: bigint;
+  currency: string;
+  locale: string;
+  /** "+N more currencies" when this direction holds more than the one
+   *  currency shown — never folded into the figure above it (ADR-003). */
+  extra?: string | null;
+}): React.JSX.Element {
+  const theme = useTheme();
+  const owed = net > 0n;
+  const soft = owed ? theme.color.positiveSoft : theme.color.negativeSoft;
+  const ink = owed ? theme.color.positive : theme.color.negative;
+  return (
+    <View
+      style={{
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.sm,
+        padding: theme.spacing.sm,
+        borderRadius: theme.radius.lg,
+        backgroundColor: soft,
+      }}
+    >
+      <View
+        style={{
+          width: 28,
+          height: 28,
+          borderRadius: 14,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: theme.color.surface,
+        }}
+      >
+        <Ionicons name={icon} size={14} color={ink} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text variant="micro" numberOfLines={1} style={{ fontWeight: '700', color: ink }}>
+          {label}
+        </Text>
+        <MoneyText
+          amount={net}
+          currency={currency}
+          locale={locale}
+          mode="balance"
+          variant="body"
+          numberOfLines={1}
+          style={{ fontWeight: '800' }}
+        />
+        {extra ? (
+          <Text variant="micro" tone="muted" numberOfLines={1}>
+            {extra}
+          </Text>
+        ) : null}
+      </View>
+    </View>
+  );
+}
+
+/** The wallet illustration's box — square-ish and close to 96dp on a side, so
+ *  the coins and the peeking card have room above the billfold itself. */
+const WALLET_W = 96;
+const WALLET_H = 88;
+
+/**
+ * The soft lavender wallet on the balance card's shoulder: a rounded billfold
+ * wearing the app's own lilac tint, a darker flap folded over its top third, a
+ * pale card peeking out from behind that flap, three stacked "gold" coins (a
+ * warm amber face with a lighter rim — the palette has no literal gold or
+ * green, see tokens.ts) spilling off its corner, a couple of soft lavender
+ * leaves tucked behind the whole thing, and the viewer's own currency symbol
+ * on its face. Drawn with `react-native-svg` rather than an image asset so it
+ * themes itself for free. Replaces the old two-people mark, which the empty
+ * screen's own `NoFriendsHero` still draws for itself below (`Face`).
+ */
+function WalletArt({ currency, locale }: { currency: string; locale: string }): React.JSX.Element {
+  const theme = useTheme();
+  const lilac = theme.tint.lilac;
+  const peach = theme.tint.peach;
+  const sky = theme.tint.sky;
+  const gold = theme.color.warning;
+  const symbol = currencySymbol(currency, locale);
+  return (
+    <View
+      accessible={false}
+      importantForAccessibility="no-hide-descendants"
+      style={{ width: WALLET_W, height: WALLET_H }}
+    >
+      <Svg width={WALLET_W} height={WALLET_H} viewBox={`0 0 ${WALLET_W} ${WALLET_H}`}>
+        {/* Two leaves tucked behind everything else — a stylised shape rather
+            than a literal green, which the palette does not carry. */}
+        <Path
+          d="M2 34 C 10 22, 24 22, 26 34 C 18 40, 8 40, 2 34 Z"
+          fill={lilac.bg}
+          opacity={0.55}
+        />
+        <Path d="M0 46 C 8 38, 18 38, 20 46 C 12 52, 4 52, 0 46 Z" fill={lilac.bg} opacity={0.35} />
+        {/* A card peeking out from behind the flap, a shade cooler than the
+            wallet so it reads as its own object rather than the wallet's own
+            corner. */}
+        <Rect
+          x={30}
+          y={4}
+          width={40}
+          height={26}
+          rx={6}
+          fill={sky.bg}
+          rotation={-8}
+          origin="50,17"
+        />
+        {/* The billfold itself. */}
+        <Rect x={14} y={30} width={68} height={50} rx={10} fill={lilac.bg} />
+        {/* Its flap — the same shape as the body's top third, filled with a
+            translucent wash of the body's own ink so it reads as a darker
+            fold rather than a second, disconnected colour. */}
+        <Path
+          d="M24,30 H72 A10,10 0 0 1 82,40 V48 H14 V40 A10,10 0 0 1 24,30 Z"
+          fill={lilac.ink}
+          opacity={0.16}
+        />
+        <Path d="M14 48 H82" stroke={lilac.ink} strokeOpacity={0.3} strokeWidth={1.5} />
+        {/* Three coins spilling off the flap, back to front: a lighter rim
+            disc under a smaller, darker gold face. */}
+        <Circle cx={62} cy={14} r={9} fill={peach.bg} />
+        <Circle cx={62} cy={14} r={7} fill={gold} />
+        <Circle cx={76} cy={22} r={10} fill={peach.bg} />
+        <Circle cx={76} cy={22} r={7.8} fill={gold} />
+        <Circle cx={84} cy={34} r={10} fill={peach.bg} />
+        <Circle cx={84} cy={34} r={7.8} fill={gold} />
+      </Svg>
+      <Text
+        numberOfLines={1}
+        style={{
+          position: 'absolute',
+          left: 14,
+          right: 14,
+          top: 52,
+          textAlign: 'center',
+          fontSize: 22,
+          fontWeight: '800',
+          color: lilac.ink,
+        }}
+      >
+        {symbol}
+      </Text>
+    </View>
   );
 }
 
 /**
- * The hero's artwork — depth without an illustration pipeline. A big people
- * watermark bled off the bottom-right corner, and a couple of translucent rings
- * floating over the wash, so the panel reads as a designed surface rather than a
- * flat rectangle of colour. All white at low alpha, so it sits the same on the
- * indigo in either theme; `pointerEvents none` so it never intercepts a tap.
+ * The round lavender quick-action row along the balance card's foot — the
+ * same disc-and-label strip Home's own quick actions draw (a small tinted
+ * disc over a one-line word, in equal columns): add a person, settle up (the
+ * same group picker Home's own "Settle up" opens), and merge likely
+ * duplicates. Sort used to be the middle tile here; it now lives beside "Your
+ * friends" below, next to the list it orders, so this row only ever carries
+ * actions rather than a view option. Lilac rather than Home's brand-tinted
+ * discs, so the row reads as this card's own and matches the mockup's
+ * "lavender" asks.
  */
-function HeroArt(): React.JSX.Element {
+function FriendsQuickActions({
+  addTileRef,
+  onAdd,
+  onSettleUp,
+  duplicateCount,
+  onMerge,
+  t,
+  radius,
+}: {
+  addTileRef: React.RefObject<View | null>;
+  onAdd: () => void;
+  onSettleUp: () => void;
+  duplicateCount: number;
+  onMerge: () => void;
+  t: UiStrings;
+  radius: number;
+}): React.JSX.Element {
   const theme = useTheme();
-  const ring = (size: number, top: number, left: number, alpha: number): React.JSX.Element => (
-    <View
-      style={{
-        position: 'absolute',
-        top,
-        left,
-        width: size,
-        height: size,
-        borderRadius: size / 2,
-        borderWidth: 2,
-        borderColor: `rgba(255,255,255,${alpha})`,
-      }}
-    />
-  );
+  const lilac = theme.tint.lilac;
+
+  const tiles: {
+    key: string;
+    label: string;
+    icon: keyof typeof Ionicons.glyphMap;
+    onPress: () => void;
+    badge?: number;
+    ref?: React.RefObject<View | null>;
+  }[] = [
+    {
+      key: 'add',
+      label: t.tabs.friendShort,
+      icon: 'person-add-outline',
+      onPress: onAdd,
+      ref: addTileRef,
+    },
+    {
+      key: 'settle',
+      label: t.homeDash.settleUp,
+      icon: 'cash-outline',
+      onPress: onSettleUp,
+    },
+    {
+      key: 'merge',
+      label: t.mergePeople.entry,
+      icon: 'git-merge-outline',
+      onPress: onMerge,
+      // Hidden at 0 or when the count is not yet known (`duplicateCount` is 0
+      // in both cases — see `findDuplicates`), never a "(0)" badge nobody asked
+      // to see.
+      badge: duplicateCount,
+    },
+  ];
+
   return (
     <View
-      pointerEvents="none"
-      style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+      style={{
+        flexDirection: 'row',
+        borderBottomLeftRadius: radius,
+        borderBottomRightRadius: radius,
+        paddingVertical: theme.spacing.sm,
+        paddingHorizontal: theme.spacing.xs,
+      }}
     >
-      {ring(150, -60, -40, 0.1)}
-      {ring(90, 20, -30, 0.08)}
-      <View style={{ position: 'absolute', right: -30, bottom: -46 }}>
-        <Ionicons name="people" size={190} color="rgba(255,255,255,0.09)" />
-      </View>
-      <View style={{ position: 'absolute', right: 54, top: -18 }}>
-        <Ionicons name="heart" size={26} color={theme.color.onBrand} style={{ opacity: 0.12 }} />
-      </View>
+      {tiles.map((tile) => {
+        const disc = (
+          <View
+            style={{
+              width: DISC,
+              height: DISC,
+              borderRadius: DISC / 2,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: lilac.bg,
+            }}
+          >
+            <Ionicons name={tile.icon} size={16} color={lilac.ink} />
+          </View>
+        );
+        return (
+          <View key={tile.key} style={{ flex: 1 }} ref={tile.ref} collapsable={false}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={tile.badge ? `${tile.label} (${tile.badge})` : tile.label}
+              onPress={tile.onPress}
+              hitSlop={4}
+              style={({ pressed }) => ({
+                alignItems: 'center',
+                gap: 4,
+                paddingHorizontal: 2,
+                opacity: pressed ? 0.6 : 1,
+              })}
+            >
+              <View>
+                {disc}
+                {tile.badge ? (
+                  <View
+                    accessible={false}
+                    pointerEvents="none"
+                    style={{
+                      position: 'absolute',
+                      top: -4,
+                      right: -4,
+                      minWidth: 18,
+                      height: 18,
+                      paddingHorizontal: 4,
+                      borderRadius: 9,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: theme.color.negative,
+                      borderWidth: 2,
+                      borderColor: theme.color.surface,
+                    }}
+                  >
+                    <Text variant="micro" style={{ color: '#FFFFFF', fontWeight: '700' }}>
+                      {tile.badge > 99 ? '99+' : String(tile.badge)}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
+              <Text
+                variant="micro"
+                align="center"
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.8}
+                style={{ fontWeight: '600', color: theme.color.text }}
+              >
+                {tile.label}
+              </Text>
+            </Pressable>
+          </View>
+        );
+      })}
     </View>
+  );
+}
+
+const DISC = 34;
+
+/**
+ * The list's own section header — "Your friends" on the left, the sort
+ * control on the right. The "View groups" link that used to sit here is gone
+ * (the list is the whole of this screen now; a detour to the groups list has
+ * nowhere better to put itself), and sort moved up from the balance card's
+ * quick-action strip to sit beside the thing it actually orders.
+ *
+ * A fixed sibling above the `FlashList` rather than its `ListHeaderComponent`:
+ * this row, the scene and the card all stay put while only the rows beneath
+ * them scroll.
+ */
+function FriendsListHeader({
+  t,
+  sortKey,
+  sortDir,
+  onSort,
+}: {
+  t: UiStrings;
+  sortKey: SortKey;
+  sortDir: SortDir;
+  /** Told where the pill sits on screen, so the menu drops from it rather
+   *  than a hard-coded spot near the top of the screen. */
+  onSort: (anchor: MenuAnchor | null) => void;
+}): React.JSX.Element {
+  const theme = useTheme();
+  const pillRef = useRef<View>(null);
+  const openSort = (): void => {
+    const pill = pillRef.current;
+    if (!pill) return onSort(null);
+    pill.measureInWindow((x, y, width, height) =>
+      onSort(width > 0 ? { x, y, width, height } : null),
+    );
+  };
+  return (
+    <Row
+      style={{
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: theme.spacing.lg,
+        paddingTop: theme.spacing.lg,
+        paddingBottom: theme.spacing.sm,
+      }}
+    >
+      <Text variant="subheading" style={{ fontWeight: '800' }}>
+        {t.yourFriends}
+      </Text>
+      <View ref={pillRef} collapsable={false}>
+        <Pressable
+          onPress={openSort}
+          accessibilityRole="button"
+          accessibilityLabel={`${t.sort.by}: ${sortLabel(sortKey, t)}`}
+          hitSlop={8}
+          style={({ pressed }) => ({
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 4,
+            height: 32,
+            paddingHorizontal: theme.spacing.md,
+            borderRadius: theme.radius.pill,
+            backgroundColor: theme.color.surface,
+            borderWidth: 1,
+            borderColor: theme.color.border,
+            opacity: pressed ? 0.7 : 1,
+          })}
+        >
+          <Ionicons name="reorder-three-outline" size={iconSize.sm} color={theme.color.textMuted} />
+          <Text variant="caption" numberOfLines={1} style={{ fontWeight: '600' }}>
+            {t.sort.by}: {sortLabel(sortKey, t)}
+          </Text>
+          <Ionicons
+            name={sortDir === SortDir.Asc ? 'chevron-up' : 'chevron-down'}
+            size={iconSize.sm}
+            color={theme.color.textMuted}
+          />
+        </Pressable>
+      </View>
+    </Row>
   );
 }
 
@@ -1061,6 +1541,7 @@ const PersonRow = memo(function PersonRow({
   person,
   locale,
   t,
+  hidden,
   divider,
   duplicate,
   selectMode,
@@ -1071,6 +1552,9 @@ const PersonRow = memo(function PersonRow({
   person: PersonGroup;
   locale: string;
   t: ReturnType<typeof useStrings>['t'];
+  /** The eye toggle's state, shared with the balance card above: masks this
+      row's amounts (and their accessibility labels) the same way. */
+  hidden: boolean;
   /** A hairline above the row — every row but the first, so the card reads as one
       divided list. */
   divider: boolean;
@@ -1147,14 +1631,16 @@ const PersonRow = memo(function PersonRow({
 
   // What a screen reader hears: who, then each currency's spoken direction and
   // amount, the group scope, and — for a guest — that they have not joined.
-  const moneyLabels = entries.map((e) =>
-    moneyAccessibilityLabel(
-      { minor: BigInt(e.net), currency: e.currency },
-      balanceDirection(BigInt(e.net)),
-      copyFor(locale).money,
-      { locale },
-    ),
-  );
+  const moneyLabels = hidden
+    ? [BALANCE_MASK]
+    : entries.map((e) =>
+        moneyAccessibilityLabel(
+          { minor: BigInt(e.net), currency: e.currency },
+          balanceDirection(BigInt(e.net)),
+          copyFor(locale).money,
+          { locale },
+        ),
+      );
   const statusPart = person.is_ghost ? (soloGroup ? t.people.invite : t.tabs.notJoined) : '';
   const rowA11yLabel = [shownName, ...moneyLabels, scope ?? '', statusPart]
     .filter(Boolean)
@@ -1305,27 +1791,45 @@ const PersonRow = memo(function PersonRow({
             two, so the column that should read as one row of figures carried
             16px and 13px side by side. The lead figure is the row's answer; the
             currencies under it are the detail. Never summed across them. */}
-        {shownEntries.map((entry, index) => (
-          <MoneyText
-            key={entry.currency}
-            amount={BigInt(entry.net)}
-            currency={entry.currency}
-            locale={locale}
-            variant={index === 0 ? 'subheading' : 'caption'}
-            mode="balance"
-            // Every line, not only the lead: the column is capped at 46% of the
-            // row, and a wrapped amount anywhere in the stack grows the row —
-            // the exact thing this list was fixed to stop doing.
-            numberOfLines={1}
-            ellipsizeMode="tail"
-          />
-        ))}
-        {hiddenCurrencies > 0 ? (
+        {hidden ? (
+          <Text variant="subheading" style={{ fontWeight: '600' }}>
+            {BALANCE_MASK}
+          </Text>
+        ) : (
+          shownEntries.map((entry, index) => (
+            <MoneyText
+              key={entry.currency}
+              amount={BigInt(entry.net)}
+              currency={entry.currency}
+              locale={locale}
+              variant={index === 0 ? 'subheading' : 'caption'}
+              mode="balance"
+              // Every line, not only the lead: the column is capped at 46% of
+              // the row, and a wrapped amount anywhere in the stack grows the
+              // row — the exact thing this list was fixed to stop doing.
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            />
+          ))
+        )}
+        {!hidden && hiddenCurrencies > 0 ? (
           <Text variant="micro" tone="faint">
             {plural(locale, hiddenCurrencies, t.tabs.moreCurrencies)}
           </Text>
         ) : null}
       </View>
+      {/* The row opens onto the person (or their one group) — a trailing
+          chevron says so, the way every other navigable list card in the app
+          ends. Hidden in selection mode, where the row's "button" is the
+          checkbox at its lead edge instead. */}
+      {!selectMode ? (
+        <Ionicons
+          name={directionalIcon('chevron-forward')}
+          size={iconSize.sm}
+          color={theme.color.textFaint}
+          style={{ alignSelf: oneFigure ? 'center' : 'flex-start', marginTop: oneFigure ? 0 : 2 }}
+        />
+      ) : null}
     </Row>
   );
 
@@ -1571,13 +2075,30 @@ function RemindButton({ row }: { row: PersonBalanceRow }): React.JSX.Element | n
   return <RowAction icon="notifications-outline" label={t.people.remind} onPress={run} />;
 }
 
+/** The sort menu's fixed width — "~220dp" per the mockup, so the trailing-edge
+ *  math below has a known box to align rather than an intrinsic one. */
+const SORT_MENU_WIDTH = 220;
+
+/** A conservative guess at the open menu's height (the "Sort by" label plus
+ *  three rows), used only to decide whether it should flip above the pill
+ *  instead of below it — a slight overestimate costs nothing, an underestimate
+ *  would open the menu off the bottom of the screen. */
+const SORT_MENU_HEIGHT_ESTIMATE = 200;
+
 /**
  * The sort dropdown — a bare corner card, WhatsApp-style, matching the app's
  * other overflow menus. One row per key with its icon; the active key wears the
  * brand ink and a direction arrow, and tapping it again flips the arrow.
+ *
+ * Anchored to the "Sort by" pill rather than a fixed spot near the top of the
+ * screen: it drops directly below the pill, its trailing edge lined up with
+ * the pill's own (the same `measureInWindow` + physical/logical edge math
+ * `AddMenu` below uses for its leading edge), and flips to open above the
+ * pill instead when there is not enough room underneath it.
  */
 function SortMenu({
   open,
+  anchor,
   onClose,
   sortKey,
   sortDir,
@@ -1585,6 +2106,8 @@ function SortMenu({
   t,
 }: {
   open: boolean;
+  /** The sort pill it opens from; null falls back to a fixed corner. */
+  anchor: MenuAnchor | null;
   onClose: () => void;
   sortKey: SortKey;
   sortDir: SortDir;
@@ -1593,6 +2116,28 @@ function SortMenu({
 }): React.JSX.Element {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const { width: windowW, height: windowH } = useWindowDimensions();
+
+  const trailing = anchor
+    ? I18nManager.isRTL
+      ? anchor.x
+      : windowW - (anchor.x + anchor.width)
+    : 0;
+  const openAbove =
+    anchor !== null &&
+    windowH - (anchor.y + anchor.height) < SORT_MENU_HEIGHT_ESTIMATE + theme.spacing.sm &&
+    anchor.y > SORT_MENU_HEIGHT_ESTIMATE;
+  const place = anchor
+    ? {
+        ...(openAbove
+          ? { bottom: windowH - anchor.y + theme.spacing.sm }
+          : { top: anchor.y + anchor.height + theme.spacing.sm }),
+        end: Math.max(
+          theme.spacing.lg,
+          Math.min(trailing, windowW - SORT_MENU_WIDTH - theme.spacing.lg),
+        ),
+      }
+    : { top: insets.top + 56, end: theme.spacing.xl };
 
   return (
     <Modal
@@ -1611,11 +2156,10 @@ function SortMenu({
         <View
           style={{
             position: 'absolute',
-            top: insets.top + 56,
-            right: theme.spacing.xl,
-            minWidth: 220,
+            width: SORT_MENU_WIDTH,
             borderRadius: theme.radius.lg,
             ...theme.shadow.lifted,
+            ...place,
           }}
         >
           <View
