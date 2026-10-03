@@ -57,6 +57,7 @@ import { encodeTxn, toFxRecord, type ExpenseLocation } from '@waves/core';
 import { Button, Divider, Row, Sheet, Text, useTheme } from '@waves/ui';
 
 import { DestinationPicker } from '@/components/DestinationPicker';
+import { DictateButton } from '@/components/DictateButton';
 import { QuickAmountRow } from '@/components/QuickAmountRow';
 import { GroupMark } from '@/components/GroupMark';
 import {
@@ -93,15 +94,16 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
   const dark = theme.scheme === 'dark';
   const soft = dark ? theme.color.surfaceMuted : '#F3F0FE';
   const accent = dark ? theme.color.brand : '#6A45E8';
-  // A destination tile: a lavender card, outlined in violet when chosen.
+  // A destination pill: a lavender chip, outlined in violet when chosen.
   const tile = (picked: boolean) => ({
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    gap: 10,
-    minHeight: 52,
-    paddingHorizontal: 14,
-    borderRadius: 16,
-    borderWidth: 1.5,
+    gap: 6,
+    minHeight: 38,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 19,
+    borderWidth: 1.25,
     borderColor: picked ? accent : 'transparent',
     backgroundColor: picked ? (dark ? theme.color.brandSoft : '#FFFFFF') : soft,
   });
@@ -270,30 +272,31 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
       onClose={closeAndReset}
       title={t.quickExpense.title}
       titleAction={
+        // A small text link rather than a button — it is the escape hatch,
+        // not a second call to action beside the heading. The hit area stays
+        // full-sized through `hitSlop` even though the chip it used to sit in
+        // is gone.
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={t.quickExpense.advancedLong}
           onPress={handOff}
-          hitSlop={6}
+          hitSlop={10}
           style={({ pressed }) => ({
             flexDirection: 'row',
             alignItems: 'center',
-            gap: 6,
-            height: 36,
-            paddingHorizontal: 14,
-            borderRadius: 18,
-            backgroundColor: soft,
-            opacity: pressed ? 0.7 : 1,
+            gap: 4,
+            paddingVertical: 4,
+            opacity: pressed ? 0.6 : 1,
           })}
         >
-          <Ionicons name="settings-outline" size={16} color={accent} />
-          <Text style={{ fontSize: 14, fontWeight: '600', color: accent }}>
+          <Text style={{ fontSize: 13, fontWeight: '600', color: accent }}>
             {t.quickExpense.advanced}
           </Text>
+          <Ionicons name="chevron-forward" size={13} color={accent} />
         </Pressable>
       }
     >
-      <View style={{ gap: theme.spacing.lg }}>
+      <View style={{ gap: theme.spacing.md }}>
         <QuickAmountRow
           currency={currency}
           value={amount}
@@ -324,86 +327,80 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
           <>
             <Divider />
 
-            <View style={{ gap: theme.spacing.sm }}>
-              <Text style={{ fontSize: 16, fontWeight: '600', color: theme.color.text }}>
+            <View style={{ gap: theme.spacing.xs }}>
+              <Text style={{ fontSize: 13, fontWeight: '600', color: theme.color.textMuted }}>
                 {t.quickExpense.where}
               </Text>
+              {/* One compact row of pills, the catch-all included — rather than
+                  a tall stack of cards plus a separate "other places" link
+                  underneath saying the same thing. The catch-all pill is drawn
+                  every time, empty destinations included, so the picker stays
+                  one tap away even on a fresh install with nothing to suggest
+                  yet; the caption above just says why the row is short. */}
               {chips.length === 0 && !personalOffered ? (
                 <Text variant="caption" tone="faint">
                   {t.quickExpense.noPlacesYet}
                 </Text>
-              ) : (
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                  <Row style={{ gap: theme.spacing.sm, alignItems: 'stretch' }}>
-                    {/* The private ledger, first and always — a spend that is
-                    nobody else's business is the one destination that never
-                    depends on which groups you happen to be in. Hidden from a
-                    guest, who has no private ledger to write to. */}
-                    {personalOffered ? (
-                      <Pressable
-                        accessibilityRole="button"
-                        accessibilityState={{ selected: personalPicked }}
-                        onPress={() => setChosenId('personal')}
-                        style={tile(personalPicked)}
-                      >
-                        <Ionicons name="person-outline" size={20} color={theme.color.text} />
-                        <Text style={{ fontSize: 15, fontWeight: '600', color: theme.color.text }}>
-                          {t.quickExpense.justMe}
-                        </Text>
-                        {personalPicked ? <PickedTick color={accent} /> : null}
-                      </Pressable>
-                    ) : null}
-                    {chips.map((group) => (
-                      <Pressable
-                        key={group.id}
-                        accessibilityRole="button"
-                        accessibilityState={{ selected: group.id === chosenId }}
-                        onPress={() => setChosenId(group.id)}
-                        style={[tile(group.id === chosenId), { maxWidth: 230 }]}
-                      >
-                        {group.cover_emoji ? (
-                          <GroupMark emoji={group.cover_emoji} size={20} />
-                        ) : (
-                          <Ionicons name="paper-plane-outline" size={19} color={accent} />
-                        )}
-                        <Text
-                          numberOfLines={2}
-                          style={{
-                            flexShrink: 1,
-                            fontSize: 14,
-                            fontWeight: '600',
-                            color: theme.color.text,
-                          }}
-                        >
-                          {labelOf(group)}
-                        </Text>
-                        {group.id === chosenId ? <PickedTick color={accent} /> : null}
-                      </Pressable>
-                    ))}
-                    {/* Every other group and person, behind one tile. */}
+              ) : null}
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <Row style={{ gap: theme.spacing.sm, alignItems: 'center' }}>
+                  {/* The private ledger, first and always — a spend that is
+                  nobody else's business is the one destination that never
+                  depends on which groups you happen to be in. Hidden from a
+                  guest, who has no private ledger to write to. */}
+                  {personalOffered ? (
                     <Pressable
                       accessibilityRole="button"
-                      accessibilityLabel={t.quickExpense.otherPlaces}
-                      onPress={() => setPickerOpen(true)}
-                      style={[tile(false), { paddingHorizontal: 16 }]}
+                      accessibilityState={{ selected: personalPicked }}
+                      onPress={() => setChosenId('personal')}
+                      style={tile(personalPicked)}
                     >
-                      <Ionicons name="people-outline" size={21} color={accent} />
+                      <Ionicons name="person-outline" size={16} color={theme.color.text} />
+                      <Text style={{ fontSize: 14, fontWeight: '600', color: theme.color.text }}>
+                        {t.quickExpense.justMe}
+                      </Text>
+                      {personalPicked ? <PickedTick color={accent} /> : null}
                     </Pressable>
-                  </Row>
-                </ScrollView>
-              )}
-
-              <Pressable
-                accessibilityRole="button"
-                // A one-line caption link: the slop gives it a 44pt touch, but only
-                // 6 upward — the group chips sit 8 above and must keep their taps.
-                hitSlop={{ top: 6, bottom: 14, left: 14, right: 14 }}
-                onPress={() => setPickerOpen(true)}
-              >
-                <Text style={{ fontSize: 14, fontWeight: '600', color: accent }}>
-                  {t.quickExpense.otherPlaces}
-                </Text>
-              </Pressable>
+                  ) : null}
+                  {chips.map((group) => (
+                    <Pressable
+                      key={group.id}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: group.id === chosenId }}
+                      onPress={() => setChosenId(group.id)}
+                      style={[tile(group.id === chosenId), { maxWidth: 180 }]}
+                    >
+                      {group.cover_emoji ? (
+                        <GroupMark emoji={group.cover_emoji} size={16} />
+                      ) : (
+                        <Ionicons name="paper-plane-outline" size={15} color={accent} />
+                      )}
+                      <Text
+                        numberOfLines={1}
+                        style={{
+                          flexShrink: 1,
+                          fontSize: 13,
+                          fontWeight: '600',
+                          color: theme.color.text,
+                        }}
+                      >
+                        {labelOf(group)}
+                      </Text>
+                      {group.id === chosenId ? <PickedTick color={accent} /> : null}
+                    </Pressable>
+                  ))}
+                  {/* Every other group and person, behind one pill — the sheet's
+                      only way to the full picker once Advanced has left with it. */}
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={t.quickExpense.otherPlaces}
+                    onPress={() => setPickerOpen(true)}
+                    style={[tile(false), { paddingHorizontal: 12 }]}
+                  >
+                    <Ionicons name="people-outline" size={17} color={accent} />
+                  </Pressable>
+                </Row>
+              </ScrollView>
             </View>
 
             {/* A word about what it was, if there is one to hand. Optional —
@@ -411,14 +408,14 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
             <Row
               style={{
                 alignItems: 'center',
-                gap: 12,
-                minHeight: 46,
-                paddingHorizontal: 14,
-                borderRadius: 14,
+                gap: 10,
+                minHeight: 40,
+                paddingHorizontal: 12,
+                borderRadius: 12,
                 backgroundColor: soft,
               }}
             >
-              <Ionicons name="reorder-three-outline" size={20} color={theme.color.textMuted} />
+              <Ionicons name="reorder-three-outline" size={18} color={theme.color.textMuted} />
               <TextInput
                 value={note}
                 onChangeText={setNote}
@@ -426,10 +423,17 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
                 placeholderTextColor={theme.color.textFaint}
                 accessibilityLabel={t.quickExpense.notePlaceholder}
                 returnKeyType="done"
-                style={{ flex: 1, fontSize: 15, color: theme.color.text, paddingVertical: 8 }}
+                numberOfLines={1}
+                style={{ flex: 1, fontSize: 14, color: theme.color.text, paddingVertical: 0 }}
               />
+              {/* Renders nothing on web or on a binary built before the speech
+                  module existed — the row is exactly as wide either way. */}
+              <DictateButton value={note} onChange={setNote} compact />
             </Row>
 
+            {/* The slim footer: one 46dp save action (or the save/draft pair),
+                never taller than the primary button plus its one line of
+                context. */}
             {personalPicked ? (
               <QuickPersonalFooter
                 amount={amount}
@@ -447,7 +451,13 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
                 onSaved={closeAndReset}
               />
             ) : (
-              <Button label={t.quickExpense.save} fullWidth disabled onPress={() => undefined} />
+              <Button
+                label={t.quickExpense.save}
+                fullWidth
+                disabled
+                style={{ height: 46 }}
+                onPress={() => undefined}
+              />
             )}
           </>
         )}
@@ -686,13 +696,13 @@ function QuickExpenseFooter({
           label={t.quickExpense.saveDraft}
           accessibilityLabel={t.quickExpense.saveDraftLong}
           variant="secondary"
-          style={{ flex: 1 }}
+          style={{ flex: 1, height: 46 }}
           disabled={!canSave}
           onPress={() => void keepDraft()}
         />
         <Button
           label={t.quickExpense.save}
-          style={{ flex: 1 }}
+          style={{ flex: 1, height: 46 }}
           disabled={!canSave}
           onPress={() => void save()}
         />
@@ -768,26 +778,27 @@ function QuickPersonalFooter({
         label={t.quickExpense.save}
         fullWidth
         disabled={!canSave}
+        style={{ height: 46 }}
         onPress={() => void save()}
       />
     </View>
   );
 }
 
-/** The chosen tile's mark: a filled violet disc with a tick. */
+/** The chosen pill's mark: a filled violet disc with a tick. */
 function PickedTick({ color }: { color: string }) {
   return (
     <View
       style={{
-        width: 22,
-        height: 22,
-        borderRadius: 11,
+        width: 17,
+        height: 17,
+        borderRadius: 8.5,
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: color,
       }}
     >
-      <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+      <Ionicons name="checkmark" size={11} color="#FFFFFF" />
     </View>
   );
 }
