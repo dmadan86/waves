@@ -2822,12 +2822,22 @@ export interface UiStrings {
     newGroupPlaceholder: string;
     scanToJoin: string;
     scanHint: string;
-    scanAllowBody: string;
-    scanAllow: string;
     scanDenied: string;
     scanInvalid: string;
     scanRebuild: string;
-    scanAllowTitle: string;
+    /** Title on the pre-permission "ask" screen. The `[bracketed]` part is drawn in brand purple. */
+    scanAskTitle: string;
+    scanAskSubtitle: string;
+    /** The gradient pill that requests camera permission. */
+    scanAskAllow: string;
+    /** The divider word between the gradient pill and the paste-a-link pill. */
+    scanAskOr: string;
+    scanAskFeatureSecureTitle: string;
+    scanAskFeatureSecureBody: string;
+    scanAskFeatureFastTitle: string;
+    scanAskFeatureFastBody: string;
+    scanAskFeatureNoDataTitle: string;
+    scanAskFeatureNoDataBody: string;
     scanDeniedTitle: string;
     scanCameraFailedTitle: string;
     scanCameraFailed: string;
@@ -6251,12 +6261,19 @@ const en: UiStrings = {
     newGroupPlaceholder: 'Name this group',
     scanToJoin: 'Scan to join',
     scanHint: "Point at a group's invite QR code",
-    scanAllowBody: 'Allow the camera to read an invite QR code.',
-    scanAllow: 'Allow camera',
     scanDenied: 'Camera access is off. Turn it on in Settings to scan.',
     scanInvalid: 'That is not a Waves invite code.',
     scanRebuild: 'Update the app to scan invite codes.',
-    scanAllowTitle: 'Turn on the camera',
+    scanAskTitle: 'Scan invite [QR code]',
+    scanAskSubtitle: 'Join a group instantly by scanning the QR code from your friend.',
+    scanAskAllow: 'Allow camera',
+    scanAskOr: 'or',
+    scanAskFeatureSecureTitle: 'Secure',
+    scanAskFeatureSecureBody: 'Invite codes only',
+    scanAskFeatureFastTitle: 'Fast',
+    scanAskFeatureFastBody: 'Join instantly',
+    scanAskFeatureNoDataTitle: 'No data shared',
+    scanAskFeatureNoDataBody: 'Stays on this phone',
     scanDeniedTitle: 'The camera is switched off',
     scanCameraFailedTitle: 'The camera would not start',
     scanCameraFailed:
@@ -9689,12 +9706,19 @@ const ta: UiStrings = {
     newGroupPlaceholder: 'இந்தக் குழுவுக்குப் பெயரிடுங்கள்',
     scanToJoin: 'ஸ்கேன் செய்து சேரவும்',
     scanHint: 'குழுவின் அழைப்பு QR குறியீட்டை நோக்கிக் காட்டவும்',
-    scanAllowBody: 'அழைப்பு QR குறியீட்டைப் படிக்க கேமராவை அனுமதிக்கவும்.',
-    scanAllow: 'கேமராவை அனுமதி',
     scanDenied: 'கேமரா அணுகல் அணைக்கப்பட்டுள்ளது. ஸ்கேன் செய்ய அமைப்புகளில் இயக்கவும்.',
     scanInvalid: 'இது Waves அழைப்புக் குறியீடு அல்ல.',
     scanRebuild: 'அழைப்புக் குறியீடுகளை ஸ்கேன் செய்ய ஆப்பைப் புதுப்பிக்கவும்.',
-    scanAllowTitle: 'கேமராவை இயக்கவும்',
+    scanAskTitle: 'அழைப்பு [QR குறியீட்டை] ஸ்கேன் செய்யவும்',
+    scanAskSubtitle: 'உங்கள் நண்பரின் QR குறியீட்டை ஸ்கேன் செய்து உடனடியாகக் குழுவில் சேரவும்.',
+    scanAskAllow: 'கேமராவை அனுமதி',
+    scanAskOr: 'அல்லது',
+    scanAskFeatureSecureTitle: 'பாதுகாப்பானது',
+    scanAskFeatureSecureBody: 'அழைப்புக் குறியீடு மட்டும்',
+    scanAskFeatureFastTitle: 'வேகமானது',
+    scanAskFeatureFastBody: 'உடனடியாகச் சேரவும்',
+    scanAskFeatureNoDataTitle: 'தரவு பகிரப்படாது',
+    scanAskFeatureNoDataBody: 'இந்த மொபைலில் மட்டும்',
     scanDeniedTitle: 'கேமரா அணைக்கப்பட்டுள்ளது',
     scanCameraFailedTitle: 'கேமரா தொடங்கவில்லை',
     scanCameraFailed:
@@ -13116,12 +13140,19 @@ const hi: UiStrings = {
     newGroupPlaceholder: 'इस ग्रुप को नाम दें',
     scanToJoin: 'स्कैन करके जुड़ें',
     scanHint: 'ग्रुप के इनवाइट QR कोड की ओर कैमरा करें',
-    scanAllowBody: 'इनवाइट QR कोड पढ़ने के लिए कैमरे की अनुमति दें।',
-    scanAllow: 'कैमरा अनुमति दें',
     scanDenied: 'कैमरा एक्सेस बंद है। स्कैन करने के लिए सेटिंग्स में चालू करें।',
     scanInvalid: 'यह Waves इनवाइट कोड नहीं है।',
     scanRebuild: 'इनवाइट कोड स्कैन करने के लिए ऐप अपडेट करें।',
-    scanAllowTitle: 'कैमरा चालू करें',
+    scanAskTitle: 'इनवाइट [QR कोड] स्कैन करें',
+    scanAskSubtitle: 'अपने दोस्त का QR कोड स्कैन करके तुरंत ग्रुप से जुड़ें।',
+    scanAskAllow: 'कैमरा अनुमति दें',
+    scanAskOr: 'या',
+    scanAskFeatureSecureTitle: 'सुरक्षित',
+    scanAskFeatureSecureBody: 'सिर्फ़ इनवाइट कोड',
+    scanAskFeatureFastTitle: 'तेज़',
+    scanAskFeatureFastBody: 'तुरंत जुड़ें',
+    scanAskFeatureNoDataTitle: 'कोई डेटा साझा नहीं',
+    scanAskFeatureNoDataBody: 'इसी फ़ोन में रहता है',
     scanDeniedTitle: 'कैमरा बंद है',
     scanCameraFailedTitle: 'कैमरा शुरू नहीं हो सका',
     scanCameraFailed:
@@ -16708,12 +16739,19 @@ const ar: UiStrings = {
     newGroupPlaceholder: 'سمِّ هذه المجموعة',
     scanToJoin: 'امسح للانضمام',
     scanHint: 'وجّه الكاميرا إلى رمز QR الخاص بدعوة المجموعة',
-    scanAllowBody: 'اسمح للكاميرا بقراءة رمز QR الخاص بالدعوة.',
-    scanAllow: 'السماح للكاميرا',
     scanDenied: 'الوصول إلى الكاميرا متوقف. فعّله من الإعدادات للمسح.',
     scanInvalid: 'هذا ليس رمز دعوة Waves.',
     scanRebuild: 'حدّث التطبيق لمسح رموز الدعوة.',
-    scanAllowTitle: 'شغّل الكاميرا',
+    scanAskTitle: 'امسح [رمز QR] للدعوة',
+    scanAskSubtitle: 'انضم إلى مجموعة فورًا بمسح رمز QR من صديقك.',
+    scanAskAllow: 'السماح للكاميرا',
+    scanAskOr: 'أو',
+    scanAskFeatureSecureTitle: 'آمن',
+    scanAskFeatureSecureBody: 'رموز الدعوة فقط',
+    scanAskFeatureFastTitle: 'سريع',
+    scanAskFeatureFastBody: 'انضمام فوري',
+    scanAskFeatureNoDataTitle: 'لا تتم مشاركة البيانات',
+    scanAskFeatureNoDataBody: 'يبقى على هاتفك',
     scanDeniedTitle: 'الكاميرا متوقفة',
     scanCameraFailedTitle: 'تعذّر تشغيل الكاميرا',
     scanCameraFailed: 'قد يستخدمها تطبيق آخر. أغلق هذه الشاشة وحاول مرة أخرى، أو ألصق رابط الدعوة.',
