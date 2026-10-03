@@ -37,6 +37,10 @@ const PERCENT = /^(?:\d{1,3}|\d{0,3}\.\d{1,2})$/;
  */
 const WEIGHT = /^(?:\d{1,9}|\d{0,9}\.\d{1,2})$/;
 
+/** `@waves/core`'s own ceiling on a shares weight — kept in step so a value
+ *  the field accepts is never one the write and sync handlers then refuse. */
+const MAX_SHARE_WEIGHT = 1_000_000;
+
 /**
  * One typed entry as a number — basis points for percent, a weight for shares.
  *
@@ -52,7 +56,9 @@ export function parseEntry(kind: 'shares' | 'percent', text: string): number | n
   if (value === '' || value === '.') return 0;
 
   if (kind === 'shares') {
-    return WEIGHT.test(value) ? Number(value) : null;
+    if (!WEIGHT.test(value)) return null;
+    const weight = Number(value);
+    return weight <= MAX_SHARE_WEIGHT ? weight : null;
   }
 
   if (!PERCENT.test(value)) return null;

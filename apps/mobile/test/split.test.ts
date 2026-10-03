@@ -40,8 +40,17 @@ describe('parseEntry', () => {
   });
 
   it('rejects share weights too large for the input field contract', () => {
-    expect(parseEntry('shares', '999999999')).toBe(999999999);
+    expect(parseEntry('shares', '999999999')).toBeNull();
     expect(parseEntry('shares', '1000000000')).toBeNull();
+  });
+
+  it('rejects a weight above the wire limit before it ever reaches the server', () => {
+    // `@waves/core`'s own ceiling — a value past it is well-formed by WEIGHT's
+    // digit count alone, but the write and sync handlers refuse it, so the
+    // field has to refuse it first rather than let it fail late and unclearly.
+    expect(parseEntry('shares', '1000000')).toBe(1_000_000);
+    expect(parseEntry('shares', '1000000.01')).toBeNull();
+    expect(parseEntry('shares', '1000001')).toBeNull();
   });
 
   it('reads percentages as basis points', () => {

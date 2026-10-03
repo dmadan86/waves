@@ -163,8 +163,13 @@ export function SplitKindChips({
       const maxScroll = Math.max(0, contentWidthRef.current - viewportWidth);
       // Lands the chip's left edge `CHIP_REVEAL_PADDING` in from the lane's
       // left edge, clamped to what the lane can actually scroll — a chip near
-      // either end does not try to scroll past the content it has.
-      const target = Math.min(Math.max(layout.x - CHIP_REVEAL_PADDING, 0), maxScroll);
+      // either end does not try to scroll past the content it has. A chip
+      // wide enough (a long translated label) that the left-aligned target
+      // would still clip its right edge instead lands flush against the
+      // lane's right edge, by the same padding.
+      const leftTarget = layout.x - CHIP_REVEAL_PADDING;
+      const rightTarget = layout.x + layout.width + CHIP_REVEAL_PADDING - viewportWidth;
+      const target = Math.min(Math.max(Math.max(leftTarget, rightTarget), 0), maxScroll);
       scrollView.scrollTo({ x: target, animated: animated && !reduceMotion });
     },
     [reduceMotion],
@@ -183,9 +188,14 @@ export function SplitKindChips({
       showsHorizontalScrollIndicator={false}
       onLayout={(event) => {
         viewportWidthRef.current = event.nativeEvent.layout.width;
+        // A viewport resize (rotation, a split-view resize) can newly clip a
+        // selected chip whose own layout and `value` never changed, so the
+        // value-change effect above would not retry it — retry here instead.
+        revealChip(value, false);
       }}
       onContentSizeChange={(width) => {
         contentWidthRef.current = width;
+        revealChip(value, false);
       }}
       contentContainerStyle={{ gap: theme.spacing.sm, paddingRight: theme.spacing.xl }}
     >
@@ -207,7 +217,15 @@ export function SplitKindChips({
             label={option.label}
             icon={option.icon}
             selected={option.value === value}
-            onPress={() => onChange(option.value)}
+            onPress={() => {
+              // Pressing the chip that is already selected leaves `value`
+              // unchanged, so the value-change effect above never runs — if
+              // the user scrolled until it was partly clipped and tapped its
+              // visible sliver, reveal it directly rather than relying on
+              // that effect.
+              revealChip(option.value, true);
+              onChange(option.value);
+            }}
             repeatable
           />
         </View>
