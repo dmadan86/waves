@@ -167,6 +167,7 @@
       "./plugins/withWavesWidgets",
       "./plugins/withWavesWear",
       "@bacons/apple-targets",
+      "expo-iap",
       "expo-secure-store",
       "expo-sharing",
       "@react-native-community/datetimepicker",

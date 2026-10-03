@@ -1,334 +1,416 @@
 /**
  * Choose your plan — the paywall, presented as a sheet.
  *
- * UI only for now: the plans, prices and dates below are placeholders, and
- * nothing here talks to a store. "Subscribe" does not buy anything yet — the
- * purchase, the products and the real prices get wired in later.
+ * Wired to the store: `expo-iap`'s `useIAP()` fetches the real, localized
+ * prices for `waves_pro_monthly` and `waves_pro_yearly` the moment it
+ * connects, and Subscribe / Restore go through the platform's own purchase
+ * sheet. The regional price table in `@/lib/pricing` is shown only when the
+ * store has not answered yet (no connection — a dev build, a simulator, a
+ * network blip) — marked "approximate" on screen, and never the number an
+ * actual purchase charges.
  *
- * NOTE — this screen sells a paid tier, which runs against `settings/upgrade`,
- * the screen that today says there is nothing to buy (the ledger is free
- * forever, only convenience would ever be charged for). Before this ships the
- * two have to be reconciled: either upgrade points here, or this stays behind a
- * flag. Left as a deliberate follow-up.
+ * NOTE — still behind the `paywall` route flag and still not reconciled with
+ * `settings/upgrade`, which says there is nothing to buy. That reconciliation
+ * (point upgrade here, or keep this behind the flag indefinitely) is a
+ * product decision for whoever owns it, not something this change makes.
  *
- * Copy is hardcoded English — the i18n pass comes with the wiring, not before.
+ * Receipts are not verified server-side yet. `useEntitlement`'s doc comment
+ * and docs/pricing.md both say so — nothing here, or anywhere downstream,
+ * should treat a purchase on this screen as proof of anything
+ * security-sensitive until that lands.
  */
 
-import { useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { ErrorCode, getUserFriendlyErrorMessage, isUserCancelledError, useIAP } from 'expo-iap';
 import { Pressable, ScrollView, View } from 'react-native';
 
-import { IconButton, iconSize, Screen, Text, useTheme } from '@waves/ui';
+import { Button, IconButton, iconSize, Screen, Text, useTheme } from '@waves/ui';
 
+import { deviceCountry, fill, useStrings } from '@/i18n';
 import { router } from '@/lib/navigation';
+import {
+  entitlementFromActiveSubscriptions,
+  fallbackPriceFor,
+  formatApproxMoney,
+  freeMonthsForYearly,
+  monthlyEquivalent,
+  MONTHLY_PRODUCT_ID,
+  PRO_PRODUCT_IDS,
+  YEARLY_PRODUCT_ID,
+  YEARLY_TRIAL_DAYS,
+  type ProPlanId,
+} from '@/lib/pricing';
+import { useToast } from '@/lib/toast';
 
-/** The reference's warm gold, for the badge and the call to action. Local, not
-    a brand token: the app's brand is purple, and this is placeholder styling to
-    match the concept until the paywall's real look is decided. */
-const GOLD = '#F5C518';
-const GOLD_INK = '#1A1A2E';
+const SUBSCRIPTION_SKUS = [MONTHLY_PRODUCT_ID, YEARLY_PRODUCT_ID];
 
-type PlanId = 'annual' | 'monthly';
-
-interface Plan {
-  id: PlanId;
-  badge?: string;
-  title: string;
-  price: string;
-  cadence: string;
-  note: string;
-}
-
-const PLANS: Plan[] = [
-  {
-    id: 'annual',
-    badge: 'Best Value',
-    title: 'Annual + 7-day free trial',
-    price: '$49.98',
-    cadence: '/ year',
-    note: 'Cancel up to 24 hours before trial ends',
-  },
-  {
-    id: 'monthly',
-    title: 'Monthly',
-    price: '$14.98',
-    cadence: '/ month',
-    note: 'Recurring billing. Cancel anytime.',
-  },
-];
-
-/** A placeholder renewal date so the timeline reads as real. Wiring replaces
-    this with the store's own date. */
-function renewalLabel(plan: PlanId): string {
-  const d = new Date();
-  if (plan === 'annual') {
-    d.setDate(d.getDate() + 7);
-  } else {
-    // Adding a month naively overflows a short month — 31 Jan + 1 = 3 Mar.
-    // Move to the first, step the month, then clamp the day to that month's last.
-    const day = d.getDate();
-    d.setDate(1);
-    d.setMonth(d.getMonth() + 1);
-    const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
-    d.setDate(Math.min(day, lastDay));
-  }
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+/** One plan's price, however it was sourced. Only ever used for display and
+ *  for the savings/per-month math below — the purchase itself always goes
+ *  through the store by product id, never by this number. */
+interface PlanPrice {
+  display: string;
+  amount: number;
+  fromStore: boolean;
 }
 
 export default function PaywallScreen() {
   const theme = useTheme();
-  const [selected, setSelected] = useState<PlanId>('monthly');
+  const { t, locale } = useStrings();
+  const toast = useToast();
+  const [selected, setSelected] = useState<ProPlanId>('yearly');
+  const [purchasing, setPurchasing] = useState<ProPlanId | null>(null);
+  const [restoring, setRestoring] = useState(false);
 
-  const isAnnual = selected === 'annual';
-  const howTitle = isAnnual ? 'How your free trial works' : 'How monthly subscriptions work';
-  const firstBody = isAnnual ? 'Your 7-day free trial starts now' : 'You are billed for one month';
-  const renewBody = isAnnual
-    ? 'Your subscription begins and you are billed for one year unless you cancel before this date.'
-    : 'Your subscription is renewed for another month unless you cancel before this date.';
+  const {
+    connected,
+    subscriptions,
+    activeSubscriptions,
+    fetchProducts,
+    requestPurchase,
+    restorePurchases,
+    finishTransaction,
+    hasActiveSubscriptions,
+  } = useIAP();
+
+  useEffect(() => {
+    if (!connected) return;
+    void fetchProducts({ skus: SUBSCRIPTION_SKUS, type: 'subs' });
+  }, [connected, fetchProducts]);
+
+  const country = useMemo(() => deviceCountry(), []);
+  const fallback = useMemo(() => fallbackPriceFor(country), [country]);
+
+  const priceFor = useCallback(
+    (plan: ProPlanId): PlanPrice => {
+      const productId = PRO_PRODUCT_IDS[plan];
+      const product = subscriptions.find((sub) => sub.id === productId);
+      if (product?.price != null) {
+        return { display: product.displayPrice, amount: product.price, fromStore: true };
+      }
+      const amount = plan === 'monthly' ? fallback.monthly : fallback.yearly;
+      return {
+        display: formatApproxMoney(amount, fallback.currency, locale),
+        amount,
+        fromStore: false,
+      };
+    },
+    [subscriptions, fallback, locale],
+  );
+
+  const monthlyPrice = priceFor('monthly');
+  const yearlyPrice = priceFor('yearly');
+  const bothFromStore = monthlyPrice.fromStore && yearlyPrice.fromStore;
+
+  // The "2 months free" / per-month maths only mean something when both
+  // numbers are in the same currency. When the store has only answered for
+  // one plan, compare the fallback pair instead of two different storefronts'
+  // numbers against each other.
+  const comparison = bothFromStore
+    ? { monthly: monthlyPrice.amount, yearly: yearlyPrice.amount }
+    : { monthly: fallback.monthly, yearly: fallback.yearly };
+  const freeMonths = freeMonthsForYearly(comparison.monthly, comparison.yearly);
+  const perMonthDisplay = formatApproxMoney(
+    monthlyEquivalent(yearlyPrice.amount),
+    bothFromStore
+      ? (subscriptions.find((sub) => sub.id === YEARLY_PRODUCT_ID)?.currency ?? fallback.currency)
+      : fallback.currency,
+    locale,
+  );
+
+  const entitlement = useMemo(
+    () => entitlementFromActiveSubscriptions(activeSubscriptions),
+    [activeSubscriptions],
+  );
+
+  const buy = useCallback(
+    async (plan: ProPlanId) => {
+      if (entitlement.isPro || purchasing) return;
+      const productId = PRO_PRODUCT_IDS[plan];
+      setPurchasing(plan);
+      try {
+        const androidOffer = subscriptions.find(
+          (sub) => sub.id === productId && sub.platform === 'android',
+        )?.subscriptionOffers?.[0];
+        const result = await requestPurchase({
+          type: 'subs',
+          request: {
+            apple: { sku: productId },
+            google: {
+              skus: [productId],
+              subscriptionOffers: androidOffer?.offerTokenAndroid
+                ? [{ sku: productId, offerToken: androidOffer.offerTokenAndroid }]
+                : undefined,
+            },
+          },
+        });
+
+        const purchases = Array.isArray(result) ? result : result ? [result] : [];
+        for (const purchase of purchases) {
+          // No backend to verify the receipt against yet (see the file doc
+          // comment), so the purchase is finished as soon as the store
+          // confirms it, rather than left in the queue waiting on a check
+          // that does not exist. Revisit once server-side verification lands.
+          await finishTransaction({ purchase, isConsumable: false });
+        }
+        if (purchases.length > 0) router.back();
+      } catch (error) {
+        const purchaseError = error as { code?: ErrorCode; message?: string };
+        if (isUserCancelledError(error)) {
+          // A closed purchase sheet is not a failure worth a message.
+        } else if (purchaseError.code === ErrorCode.Pending) {
+          toast.show(t.paywall.purchasePending, 'info');
+        } else {
+          toast.show(
+            getUserFriendlyErrorMessage(purchaseError) || t.paywall.genericError,
+            'negative',
+          );
+        }
+      } finally {
+        setPurchasing(null);
+      }
+    },
+    [entitlement.isPro, purchasing, requestPurchase, subscriptions, finishTransaction, toast, t],
+  );
+
+  const restore = useCallback(async () => {
+    setRestoring(true);
+    try {
+      await restorePurchases();
+      const owns = await hasActiveSubscriptions(SUBSCRIPTION_SKUS);
+      toast.show(
+        owns ? t.paywall.restoredSuccess : t.paywall.restoredNothing,
+        owns ? 'positive' : 'info',
+      );
+    } catch {
+      toast.show(t.paywall.genericError, 'negative');
+    } finally {
+      setRestoring(false);
+    }
+  }, [restorePurchases, hasActiveSubscriptions, toast, t]);
+
+  const trialLine =
+    selected === 'yearly'
+      ? fill(t.paywall.trialLine, { days: YEARLY_TRIAL_DAYS, price: yearlyPrice.display })
+      : fill(t.paywall.noTrialLine, { price: monthlyPrice.display });
 
   return (
     <Screen edges={['top', 'bottom']}>
-      {/* Header: close on the left, title centred, a spacer to balance it. */}
       <View
         style={{
           flexDirection: 'row',
           alignItems: 'center',
-          paddingHorizontal: theme.spacing.xl,
+          paddingHorizontal: theme.spacing.lg,
           paddingTop: theme.spacing.sm,
         }}
       >
-        <IconButton label="Close" onPress={() => router.back()}>
+        <IconButton label={t.common.back} onPress={() => router.back()}>
           <Ionicons name="close" size={iconSize.lg} color={theme.color.text} />
         </IconButton>
         <View style={{ flex: 1, alignItems: 'center' }}>
-          <Text variant="heading">Choose your plan</Text>
+          <Text variant="heading">{t.paywall.title}</Text>
         </View>
         <View style={{ width: 44 }} />
       </View>
+
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
-          paddingHorizontal: theme.spacing.xl,
-          paddingTop: theme.spacing.lg,
-          paddingBottom: theme.spacing.xxxl,
-          gap: theme.spacing.xl,
+          paddingHorizontal: theme.spacing.lg,
+          paddingTop: theme.spacing.md,
+          paddingBottom: theme.spacing.xl,
+          gap: theme.spacing.lg,
         }}
         showsVerticalScrollIndicator={false}
       >
-        {/* The plans. Tapping one selects it; the selected card wears the brand
-            border and a green check. */}
-        <View accessibilityRole="radiogroup" style={{ gap: theme.spacing.lg }}>
-          {PLANS.map((plan) => {
-            const active = plan.id === selected;
-            return (
-              <Pressable
-                key={plan.id}
-                accessibilityRole="radio"
-                accessibilityState={{ selected: active }}
-                accessibilityLabel={`${plan.badge ? `${plan.badge}, ` : ''}${plan.title}, ${plan.price} ${plan.cadence}. ${plan.note}`}
-                onPress={() => setSelected(plan.id)}
-                style={({ pressed }) => [
-                  {
-                    backgroundColor: theme.color.surface,
-                    borderRadius: theme.radius.lg,
-                    padding: theme.spacing.xl,
-                    borderWidth: 2,
-                    borderColor: active ? theme.color.brand : theme.color.border,
-                    opacity: pressed ? 0.95 : 1,
-                    gap: theme.spacing.sm,
-                  },
-                  theme.shadow.soft,
-                ]}
-              >
-                <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-                  <View style={{ flex: 1, gap: theme.spacing.sm }}>
-                    {plan.badge ? (
-                      <View
-                        style={{
-                          alignSelf: 'flex-start',
-                          backgroundColor: GOLD,
-                          borderRadius: theme.radius.pill,
-                          paddingHorizontal: theme.spacing.md,
-                          paddingVertical: theme.spacing.xs,
-                        }}
-                      >
-                        <Text variant="micro" style={{ color: GOLD_INK, fontWeight: '800' }}>
-                          {plan.badge}
-                        </Text>
-                      </View>
-                    ) : null}
-                    <Text variant="subheading" style={{ fontWeight: '800' }}>
-                      {plan.title}
-                    </Text>
-                  </View>
-                  {/* The check sits top-right; an empty ring holds the space on
-                      the card that is not chosen, so nothing shifts on tap. */}
-                  {active ? (
-                    <View
-                      style={{
-                        width: 30,
-                        height: 30,
-                        borderRadius: 15,
-                        backgroundColor: theme.color.positive,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <Ionicons name="checkmark" size={18} color="#FFFFFF" />
-                    </View>
-                  ) : (
-                    <View
-                      style={{
-                        width: 30,
-                        height: 30,
-                        borderRadius: 15,
-                        borderWidth: 2,
-                        borderColor: theme.color.border,
-                      }}
-                    />
-                  )}
-                </View>
-
-                <View
-                  style={{ flexDirection: 'row', alignItems: 'baseline', gap: theme.spacing.xs }}
-                >
-                  <Text style={{ fontSize: 34, fontWeight: '800', color: theme.color.text }}>
-                    {plan.price}
-                  </Text>
-                  <Text variant="body" tone="muted">
-                    {plan.cadence}
-                  </Text>
-                </View>
-
-                <Text variant="caption" tone="muted">
-                  {plan.note}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-
-        {/* How it works — a two-step timeline, the icons joined by a line. */}
-        <View style={{ gap: theme.spacing.lg }}>
-          <Text variant="subheading" align="center" style={{ fontWeight: '800' }}>
-            {howTitle}
-          </Text>
-
-          <View>
-            <TimelineStep
-              icon="lock-closed"
-              iconBg={GOLD}
-              iconInk={GOLD_INK}
-              connector
-              title="Today: Get instant access"
-              body={firstBody}
-            />
-            <TimelineStep
-              icon="refresh"
-              iconBg={theme.color.surface}
-              iconInk={theme.color.text}
-              iconBordered
-              title={`${renewalLabel(selected)}: Renewal`}
-              body={renewBody}
-            />
+        {entitlement.isPro ? (
+          <View
+            style={{
+              backgroundColor: theme.color.brandSoft,
+              borderRadius: theme.radius.md,
+              padding: theme.spacing.md,
+            }}
+          >
+            <Text variant="body" tone="brand" style={{ fontWeight: '700' }}>
+              {t.paywall.alreadySubscribed}
+            </Text>
           </View>
+        ) : null}
+
+        <View accessibilityRole="radiogroup" style={{ gap: theme.spacing.md }}>
+          <PlanCard
+            active={selected === 'yearly'}
+            badge={fill(t.paywall.yearlyBadge, { months: freeMonths })}
+            title={t.paywall.yearlyTitle}
+            price={yearlyPrice.display}
+            cadence="/yr"
+            note={fill(t.paywall.perMonthEquivalent, { price: perMonthDisplay })}
+            onPress={() => setSelected('yearly')}
+          />
+          <PlanCard
+            active={selected === 'monthly'}
+            title={t.paywall.monthlyTitle}
+            price={monthlyPrice.display}
+            cadence="/mo"
+            note={t.paywall.monthlySubtitle}
+            onPress={() => setSelected('monthly')}
+          />
         </View>
+
+        {!bothFromStore ? (
+          <Text variant="caption" tone="muted" align="center">
+            {t.paywall.approxNote}
+          </Text>
+        ) : null}
+
+        <Text variant="caption" tone="muted" align="center">
+          {trialLine}
+        </Text>
       </ScrollView>
 
-      {/* Terms and the call to action, pinned under the scroll. */}
       <View
         style={{
-          paddingHorizontal: theme.spacing.xl,
-          paddingTop: theme.spacing.md,
+          paddingHorizontal: theme.spacing.lg,
+          paddingTop: theme.spacing.sm,
           paddingBottom: theme.spacing.md,
-          gap: theme.spacing.lg,
+          gap: theme.spacing.md,
         }}
       >
-        <Pressable
-          accessibilityRole="link"
-          accessibilityLabel="Terms and conditions"
-          onPress={() => router.push('/settings/privacy')}
-          hitSlop={8}
-          style={{ alignSelf: 'center' }}
-        >
-          <Text tone="brand" style={{ fontWeight: '700' }}>
-            Terms and conditions
-          </Text>
-        </Pressable>
+        <Button
+          label={
+            entitlement.isPro
+              ? t.paywall.alreadySubscribed
+              : purchasing
+                ? t.paywall.subscribing
+                : t.paywall.subscribe
+          }
+          variant="brand"
+          size="lg"
+          fullWidth
+          disabled={entitlement.isPro || purchasing !== null}
+          onPress={() => void buy(selected)}
+        />
 
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Subscribe"
-          onPress={() => {}}
-          style={({ pressed }) => ({
-            height: 56,
-            borderRadius: theme.radius.pill,
-            backgroundColor: GOLD,
-            alignItems: 'center',
-            justifyContent: 'center',
-            opacity: pressed ? 0.9 : 1,
-          })}
+          accessibilityLabel={restoring ? t.paywall.restoring : t.paywall.restore}
+          accessibilityState={{ disabled: restoring }}
+          disabled={restoring}
+          onPress={() => void restore()}
+          hitSlop={8}
+          style={{ alignSelf: 'center' }}
         >
-          <Text variant="subheading" style={{ color: GOLD_INK, fontWeight: '800' }}>
-            Subscribe
+          <Text tone="brand" style={{ fontWeight: '700', opacity: restoring ? 0.6 : 1 }}>
+            {restoring ? t.paywall.restoring : t.paywall.restore}
           </Text>
         </Pressable>
+
+        <View style={{ flexDirection: 'row', justifyContent: 'center', gap: theme.spacing.lg }}>
+          <Pressable
+            accessibilityRole="link"
+            accessibilityLabel={t.paywall.terms}
+            onPress={() => router.push('/settings/privacy')}
+            hitSlop={8}
+          >
+            <Text variant="caption" tone="muted">
+              {t.paywall.terms}
+            </Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="link"
+            accessibilityLabel={t.paywall.privacy}
+            onPress={() => router.push('/settings/privacy')}
+            hitSlop={8}
+          >
+            <Text variant="caption" tone="muted">
+              {t.paywall.privacy}
+            </Text>
+          </Pressable>
+        </View>
       </View>
     </Screen>
   );
 }
 
-/** One step in the "how it works" timeline: a round icon, an optional line to
-    the next step, and the text beside it. */
-function TimelineStep({
-  icon,
-  iconBg,
-  iconInk,
-  iconBordered = false,
-  connector = false,
+/** One plan, in the brand's purple rather than the old gold placeholder. */
+function PlanCard({
+  active,
+  badge,
   title,
-  body,
+  price,
+  cadence,
+  note,
+  onPress,
 }: {
-  icon: keyof typeof Ionicons.glyphMap;
-  iconBg: string;
-  iconInk: string;
-  iconBordered?: boolean;
-  connector?: boolean;
+  active: boolean;
+  badge?: string;
   title: string;
-  body: string;
+  price: string;
+  cadence: string;
+  note: string;
+  onPress: () => void;
 }) {
   const theme = useTheme();
   return (
-    <View style={{ flexDirection: 'row', gap: theme.spacing.lg }}>
-      <View style={{ alignItems: 'center', width: 44 }}>
+    <Pressable
+      accessibilityRole="radio"
+      accessibilityState={{ selected: active }}
+      accessibilityLabel={`${badge ? `${badge}, ` : ''}${title}, ${price} ${cadence}. ${note}`}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        backgroundColor: active ? theme.color.brandSoft : theme.color.surface,
+        borderRadius: theme.radius.lg,
+        padding: theme.spacing.lg,
+        borderWidth: 2,
+        borderColor: active ? theme.color.brand : theme.color.border,
+        opacity: pressed ? 0.95 : 1,
+        gap: theme.spacing.xs,
+      })}
+    >
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
+        {badge ? (
+          <View
+            style={{
+              backgroundColor: theme.color.brand,
+              borderRadius: theme.radius.pill,
+              paddingHorizontal: theme.spacing.sm,
+              paddingVertical: 2,
+            }}
+          >
+            <Text variant="micro" tone="onBrand" style={{ fontWeight: '800' }}>
+              {badge}
+            </Text>
+          </View>
+        ) : null}
+        <Text variant="subheading" style={{ fontWeight: '800', flex: 1 }}>
+          {title}
+        </Text>
         <View
           style={{
-            width: 44,
-            height: 44,
-            borderRadius: 22,
-            backgroundColor: iconBg,
-            borderWidth: iconBordered ? 1 : 0,
+            width: 22,
+            height: 22,
+            borderRadius: 11,
+            backgroundColor: active ? theme.color.positive : 'transparent',
+            borderWidth: active ? 0 : 2,
             borderColor: theme.color.border,
             alignItems: 'center',
             justifyContent: 'center',
           }}
         >
-          <Ionicons name={icon} size={iconSize.md} color={iconInk} />
+          {active ? <Ionicons name="checkmark" size={14} color="#FFFFFF" /> : null}
         </View>
-        {connector ? (
-          <View style={{ flex: 1, width: 2, backgroundColor: theme.color.border, marginTop: 2 }} />
-        ) : null}
       </View>
-      <View
-        style={{ flex: 1, paddingBottom: connector ? theme.spacing.xxl : 0, gap: theme.spacing.xs }}
-      >
-        <Text variant="subheading" style={{ fontWeight: '700' }}>
-          {title}
-        </Text>
-        <Text variant="body" tone="muted">
-          {body}
+
+      <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: theme.spacing.xs }}>
+        <Text style={{ fontSize: 26, fontWeight: '800', color: theme.color.text }}>{price}</Text>
+        <Text variant="caption" tone="muted">
+          {cadence}
         </Text>
       </View>
-    </View>
+
+      <Text variant="caption" tone="muted">
+        {note}
+      </Text>
+    </Pressable>
   );
 }
