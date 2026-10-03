@@ -54,6 +54,7 @@ import {
   Callout,
   directionalIcon,
   EmptyState,
+  Gradient,
   iconSize,
   Row,
   Text,
@@ -61,13 +62,14 @@ import {
 } from '@waves/ui';
 
 import { fill, plural, useStrings } from '@/i18n';
+import { useAuth } from '@/lib/auth';
 import {
   lookupKnown,
   matchesContactQuery,
   type KnownIndex,
   type KnownPerson,
 } from '@/lib/contactMatch';
-import { normaliseContactPhone } from '@/lib/phone';
+import { displayPhone, normaliseContactPhone } from '@/lib/phone';
 import { SkeletonList } from '@/components/Skeletons';
 
 export interface PickedContact {
@@ -107,6 +109,20 @@ interface ContactPickerProps {
    * screen: adding a friend is a different act from adding to an open group.
    */
   escape?: { readonly label: string; readonly onPress: () => void };
+  /**
+   * The dedicated picker screen's denser dress: a shorter row, a square tick
+   * box instead of a circle, a small "on Waves" / "not on Waves" pill (read off
+   * `known`, since there is no server this app will ask who else has joined —
+   * ADR-006), filter pills above the list, and the selection strip and confirm
+   * button folded into one bar at the foot instead of a strip above the list
+   * and a plain button below it.
+   *
+   * Every other caller — Friends, a group's members, the merge screen — omits
+   * this and keeps the picker it already had; the two dresses share every
+   * behaviour (search, the recent section, the escape row) and differ only in
+   * how a row and the foot are drawn.
+   */
+  compact?: boolean;
 }
 
 /**
@@ -165,6 +181,12 @@ const RAIL_WIDTH = 24;
 const RAIL_LETTER_HEIGHT = 15;
 const STRIP_HEIGHT = 62;
 
+/** The dedicated screen's denser escape row and heading — a contact row's own
+ *  height now comes from its content and padding instead (see `ContactRow`),
+ *  but the escape row has no second line to size itself against. */
+const COMPACT_ROW_HEIGHT = 52;
+const COMPACT_HEADING_HEIGHT = 22;
+
 /**
  * How many already-known people ride at the top before the alphabet takes over.
  *
@@ -172,6 +194,34 @@ const STRIP_HEIGHT = 62;
  * past the cap is still in their letter section, where they always were.
  */
 const RECENT_LIMIT = 8;
+
+/**
+ * The compact screen's filter pills, above the list.
+ *
+ * `OnWaves` and `NotOnWaves` read off `known` — the same local "who Waves
+ * already has" index the recent section and the subtitle already use — rather
+ * than any server answer about who else has joined, which this app does not
+ * ask for (ADR-006). A contact is "on Waves" here exactly when it is a ghost
+ * in one of your own groups, which is the only thing on the device that could
+ * honestly mean that.
+ */
+enum ContactFilter {
+  All = 'all',
+  OnWaves = 'onWaves',
+  NotOnWaves = 'notOnWaves',
+  Selected = 'selected',
+}
+
+/** A count, written in the locale's own digits — Western for English, the
+ *  Arabic-Indic ones for `ar`, and so on. Falls back to a bare `String` on a
+ *  platform whose `Intl` cannot name the locale, same as `plural` does. */
+function localeCount(locale: string, count: number): string {
+  try {
+    return new Intl.NumberFormat(locale).format(count);
+  } catch {
+    return String(count);
+  }
+}
 
 export function ContactPicker({
   onConfirm,
@@ -182,9 +232,17 @@ export function ContactPicker({
   single = false,
   known,
   escape,
+  compact = false,
 }: ContactPickerProps): React.JSX.Element {
   const theme = useTheme();
   const { t, locale } = useStrings();
+  // The account's own country (set on "Your account") — preferred over the
+  // device's region when reading a bare local number, because a device whose
+  // Region setting disagrees with where the person actually is (or is simply
+  // never set) is not rare, and a confident wrong country code is worse than
+  // asking the device at all. See `regionDialCode` in `lib/phone`.
+  const { profile } = useAuth();
+  const accountCountry = profile?.country_code ?? null;
   const [access, setAccess] = useState<Access>(Access.Asking);
   // iOS 18 and up can grant access to a chosen handful rather than the book.
   // Kept apart from `access` because the list works either way — it is a
@@ -203,6 +261,10 @@ export function ContactPicker({
   // changes, so leaving the theme out strands rows in the scheme they were
   // last drawn in after a light/dark switch.
   const listExtraData = useMemo(() => ({ picked, theme }), [picked, theme]);
+
+  // The compact screen's filter pills. Unused — and left at `All` — on every
+  // other caller, which has no pills to drive it.
+  const [filter, setFilter] = useState<ContactFilter>(ContactFilter.All);
 
   const cancelled = useRef(false);
 
@@ -245,7 +307,7 @@ export function ContactPicker({
       .map((row) => ({
         name: (row.fullName ?? [row.givenName, row.familyName].filter(Boolean).join(' ')).trim(),
         email: row.emails?.[0]?.address?.trim().toLowerCase() ?? null,
-        phone: normalisePhone(row.phones?.[0]?.number ?? null),
+        phone: normalisePhone(row.phones?.[0]?.number ?? null, accountCountry),
       }))
       // Somebody with neither an email nor a number cannot be invited, so
       // showing them would only be an invitation to tap and be refused.
@@ -254,7 +316,7 @@ export function ContactPicker({
     }
     setContacts([...unique.values()].sort((a, b) => a.name.localeCompare(b.name)));
     setAccess(Access.Granted);
-  }, []);
+  }, [accountCountry]);
 
   // Read on a tick rather than in the effect body: the React Compiler counts a
   // synchronous call that can setState as a cascading render, and reading an
@@ -308,6 +370,17 @@ export function ContactPicker({
     [people, query],
   );
 
+  // The compact screen's second narrowing, on top of the search above. Every
+  // other caller leaves `filter` at `All`, where this is just `matches` again.
+  const filtered = useMemo(() => {
+    if (filter === ContactFilter.OnWaves) return matches.filter((row) => row.known !== null);
+    if (filter === ContactFilter.NotOnWaves) return matches.filter((row) => row.known === null);
+    if (filter === ContactFilter.Selected) {
+      return matches.filter((row) => picked.has(keyOf(row.contact)));
+    }
+    return matches;
+  }, [matches, filter, picked]);
+
   /**
    * The flat list, the indices that stick, and where each letter starts.
    *
@@ -315,19 +388,23 @@ export function ContactPicker({
    * to a stale index scrolls to the wrong person, and that is the kind of wrong
    * that only shows up on somebody else's address book.
    *
-   * The already-known section is skipped while a search is running. A search
-   * returning three rows, one of them printed twice, reads as a bug rather than
-   * as a shortcut; the shortcut is for the list you did not narrow.
+   * The already-known section is skipped while a search is running, and so is
+   * the escape row and the recent section while a filter pill has narrowed the
+   * list to something other than everyone — "add a new contact" pinned above
+   * three people already on Waves reads as a stray row, not a shortcut. A
+   * search returning three rows, one of them printed twice, reads as a bug
+   * rather than as a shortcut; the shortcut is for the list you did not narrow.
    */
   const sections = useMemo(() => {
     const entries: Entry[] = [];
     const sticky: number[] = [];
     const starts = new Map<string, number>();
+    const unfiltered = filter === ContactFilter.All;
 
-    if (hasEscape) entries.push({ kind: 'escape' });
+    if (hasEscape && unfiltered) entries.push({ kind: 'escape' });
 
-    if (!query.trim()) {
-      const recent = matches
+    if (!query.trim() && unfiltered) {
+      const recent = filtered
         .filter((row): row is { contact: PickedContact; known: KnownPerson } => row.known !== null)
         .slice(0, RECENT_LIMIT);
       if (recent.length > 0) {
@@ -347,7 +424,7 @@ export function ContactPicker({
     }
 
     let current: string | null = null;
-    for (const row of matches) {
+    for (const row of filtered) {
       const letter = bucketOf(row.contact.name);
       if (letter !== current) {
         current = letter;
@@ -365,7 +442,7 @@ export function ContactPicker({
     return { entries, sticky, starts, letters: [...starts.keys()] };
     // `hasEscape` rather than `escape` itself: callers build that object inline,
     // so a new identity every render would rebuild the whole list every render.
-  }, [matches, query, hasEscape, t.pickers.splitWithBefore]);
+  }, [filtered, filter, query, hasEscape, t.pickers.splitWithBefore]);
 
   const listRef = useRef<FlashListRef<Entry>>(null);
   // Tapping the search row (the magnifier or its padding, not just the input's
@@ -459,7 +536,11 @@ export function ContactPicker({
           height: 44,
           paddingHorizontal: theme.spacing.lg,
           borderRadius: theme.radius.pill,
-          backgroundColor: theme.color.surfaceMuted,
+          // Compact rides up over the hero's scene (the caller's own negative
+          // margin does the overlap) and needs to read as a card floating on
+          // it, not the flat search field every other caller still gets.
+          backgroundColor: compact ? theme.color.surface : theme.color.surfaceMuted,
+          ...(compact ? theme.shadow.soft : null),
         }}
       >
         <Ionicons name="search" size={iconSize.md} color={theme.color.textFaint} />
@@ -489,6 +570,20 @@ export function ContactPicker({
         ) : null}
       </Pressable>
 
+      {/* The compact screen's own row, filtering the very list below rather
+          than opening a sheet — four pills is little enough to stay on
+          screen, and a filter you cannot see the effect of while picking it
+          is a filter you check twice. */}
+      {compact && !single ? (
+        <FilterPills
+          filter={filter}
+          onChange={setFilter}
+          locale={locale}
+          allCount={contacts.length}
+          selectedCount={chosen.length}
+        />
+      ) : null}
+
       {/* Said out loud rather than left to look like a short address book: on
           iOS 18 a "limited" grant means the phone is showing Waves a handful the
           person chose, and the way to widen it is the same settings screen the
@@ -501,9 +596,13 @@ export function ContactPicker({
         </Callout>
       ) : null}
 
-      {!single && chosen.length > 0 ? <PickedStrip chosen={chosen} onRemove={toggle} /> : null}
+      {/* Compact folds the strip into the bottom bar instead, beside the
+          confirm button — see below. */}
+      {!single && !compact && chosen.length > 0 ? (
+        <PickedStrip chosen={chosen} onRemove={toggle} />
+      ) : null}
 
-      {matches.length === 0 ? (
+      {filtered.length === 0 ? (
         <EmptyState
           icon={
             <Ionicons
@@ -551,10 +650,12 @@ export function ContactPicker({
               renderItem={({ item }) => {
                 if (item.kind === 'escape') {
                   return escape ? (
-                    <EscapeRow label={escape.label} onPress={escape.onPress} />
+                    <EscapeRow label={escape.label} onPress={escape.onPress} compact={compact} />
                   ) : null;
                 }
-                if (item.kind === 'heading') return <Heading label={item.label} />;
+                if (item.kind === 'heading') {
+                  return <Heading label={item.label} compact={compact} />;
+                }
                 const { contact } = item;
                 const key = keyOf(contact);
                 const already = Boolean(
@@ -567,6 +668,7 @@ export function ContactPicker({
                     already={already}
                     known={item.known}
                     single={single}
+                    compact={compact}
                     // Single-pick confirms on the tap, so `busy` has no button to
                     // disable — it has to lock the rows themselves, or a second
                     // tap fires a second confirm while the first is still writing.
@@ -594,13 +696,29 @@ export function ContactPicker({
         </View>
       )}
 
-      <Text variant="micro" tone="muted">
-        {t.pickers.onlyPickedAreSent}
-      </Text>
+      {/* The compact screen's own bar carries this line itself, right under
+          its gradient button — everyone else keeps it here, plain, above
+          whatever comes next (a button, or nothing while picking singly). */}
+      {compact ? null : (
+        <Text variant="micro" tone="muted">
+          {t.pickers.onlyPickedAreSent}
+        </Text>
+      )}
 
-      {/* Single-pick confirms on the tap itself, so there is no set to send and
-          no button to send it — the row is the action. */}
-      {single ? null : (
+      {/* Single-pick confirms on the tap itself, so there is no set to send
+          and nothing more to draw here. Otherwise the compact screen folds
+          the strip, the confirm button and the lock line into one bar; every
+          other caller keeps the plain button it always had. */}
+      {single ? null : compact ? (
+        <CompactConfirmBar
+          chosen={chosen}
+          onRemove={toggle}
+          onClearAll={() => setPicked(new Map())}
+          onConfirm={() => onConfirm(chosen)}
+          busy={busy}
+          locale={locale}
+        />
+      ) : (
         <Button
           label={
             chosen.length === 0
@@ -625,13 +743,25 @@ export function ContactPicker({
  * is a phrase, and a phrase in a 26pt box would either wrap or be cut, so it is
  * set as plain muted text instead of squeezed into a shape built for one glyph.
  */
-function Heading({ label }: { label: string }): React.JSX.Element {
+function Heading({
+  label,
+  compact = false,
+}: {
+  label: string;
+  /** The dedicated screen's shallower section band — see `compact` above. */
+  compact?: boolean;
+}): React.JSX.Element {
   const theme = useTheme();
-  const single = [...label].length === 1;
+  // Compact drops the filled badge even for a single letter — a 22pt purple
+  // circle stops being a quiet rail marker once the rows around it have
+  // shrunk to the same scale, and starts reading as the loudest thing on the
+  // card. A plain muted letter says the same thing at the size this screen's
+  // rows actually earn.
+  const single = !compact && [...label].length === 1;
   return (
     <View
       style={{
-        height: HEADING_HEIGHT,
+        height: compact ? COMPACT_HEADING_HEIGHT : HEADING_HEIGHT,
         justifyContent: 'center',
         paddingHorizontal: theme.spacing.lg,
         // Opaque: a sticky heading floats over the rows sliding under it.
@@ -654,7 +784,12 @@ function Heading({ label }: { label: string }): React.JSX.Element {
           </Text>
         </View>
       ) : (
-        <Text variant="micro" tone="muted" numberOfLines={1}>
+        <Text
+          variant="micro"
+          tone="muted"
+          numberOfLines={1}
+          style={compact ? { fontSize: 12 } : null}
+        >
           {label}
         </Text>
       )}
@@ -672,7 +807,15 @@ function Heading({ label }: { label: string }): React.JSX.Element {
  * entry point, and this is the same row: a name typed by hand is a first-class
  * way to add a person here, not the fallback for when the good one failed.
  */
-function EscapeRow({ label, onPress }: { label: string; onPress: () => void }): React.JSX.Element {
+function EscapeRow({
+  label,
+  onPress,
+  compact = false,
+}: {
+  label: string;
+  onPress: () => void;
+  compact?: boolean;
+}): React.JSX.Element {
   const theme = useTheme();
   const inset = theme.spacing.lg + 40 + theme.spacing.md;
   return (
@@ -685,7 +828,11 @@ function EscapeRow({ label, onPress }: { label: string; onPress: () => void }): 
       })}
     >
       <Row
-        style={{ height: ROW_HEIGHT, paddingHorizontal: theme.spacing.lg, gap: theme.spacing.md }}
+        style={{
+          height: compact ? COMPACT_ROW_HEIGHT : ROW_HEIGHT,
+          paddingHorizontal: theme.spacing.lg,
+          gap: theme.spacing.md,
+        }}
       >
         <View
           style={{
@@ -720,6 +867,7 @@ function ContactRow({
   selected,
   single = false,
   disabled = false,
+  compact = false,
   onPress,
 }: {
   contact: PickedContact;
@@ -731,11 +879,14 @@ function ContactRow({
   single?: boolean;
   /** Locked for a reason other than membership (a single-pick write in flight). */
   disabled?: boolean;
+  /** The dedicated screen's dress — see `compact` on `ContactPicker` above. */
+  compact?: boolean;
   onPress: () => void;
 }): React.JSX.Element {
   const theme = useTheme();
   const { t, locale } = useStrings();
-  const inset = theme.spacing.lg + 40 + theme.spacing.md;
+  const avatarSize = compact ? 36 : 40;
+  const inset = theme.spacing.lg + avatarSize + theme.spacing.md;
   // `already` is one reason a row is inert (and the only one that renames the
   // subtitle); `disabled` is the other. Both dim and deafen the row the same way.
   const locked = already || disabled;
@@ -744,13 +895,31 @@ function ContactRow({
   // question first: can I even pick this person, then do I already know them,
   // then who is this. `already` beats `known` because "in this group" is the
   // more specific truth when both are true.
+  //
+  // Compact says the same "already have them" with the status pill instead
+  // (see below), so its subtitle keeps only the address — the group name a
+  // non-compact row spells out would just repeat what the pill already said,
+  // on a row with less height to say it in.
   const subtitle = already
     ? t.pickers.alreadyInGroup
+    : compact
+      ? (contact.email ?? (contact.phone ? displayPhone(contact.phone) : ''))
+      : known
+        ? known.groupIds.length === 1
+          ? fill(t.pickers.knownInGroup, { group: known.groupNames[0] ?? '' })
+          : plural(locale, known.groupIds.length, t.pickers.knownInGroups)
+        : (contact.email ?? contact.phone ?? '');
+
+  // Screen readers hear the full story even where the pill carries it visually.
+  const a11ySubtitle = already
+    ? subtitle
     : known
-      ? known.groupIds.length === 1
-        ? fill(t.pickers.knownInGroup, { group: known.groupNames[0] ?? '' })
-        : plural(locale, known.groupIds.length, t.pickers.knownInGroups)
-      : (contact.email ?? contact.phone ?? '');
+      ? compact
+        ? known.groupIds.length === 1
+          ? fill(t.pickers.knownInGroup, { group: known.groupNames[0] ?? '' })
+          : plural(locale, known.groupIds.length, t.pickers.knownInGroups)
+        : subtitle
+      : null;
 
   return (
     <Pressable
@@ -766,8 +935,8 @@ function ContactRow({
       accessibilityLabel={
         already
           ? t.pickers.alreadyAddedName.replace('{name}', contact.name)
-          : known
-            ? `${contact.name}, ${subtitle}`
+          : a11ySubtitle
+            ? `${contact.name}, ${a11ySubtitle}`
             : contact.name
       }
       style={({ pressed }) => ({
@@ -776,26 +945,53 @@ function ContactRow({
       })}
     >
       <Row
-        style={{
-          height: ROW_HEIGHT,
-          paddingHorizontal: theme.spacing.lg,
-          gap: theme.spacing.md,
-        }}
+        style={
+          compact
+            ? {
+                paddingHorizontal: theme.spacing.lg,
+                paddingVertical: 6,
+                gap: theme.spacing.md,
+              }
+            : {
+                height: ROW_HEIGHT,
+                paddingHorizontal: theme.spacing.lg,
+                gap: theme.spacing.md,
+              }
+        }
       >
-        <Avatar name={contact.name} size={40} />
+        <Avatar name={contact.name} size={avatarSize} />
         <View style={{ flex: 1 }}>
-          <Text variant="body" numberOfLines={1}>
+          <Text
+            variant="body"
+            numberOfLines={1}
+            style={compact ? { fontSize: 15, fontWeight: '600' } : null}
+          >
             {contact.name}
           </Text>
-          <Text variant="micro" tone={!already && known ? 'brand' : 'muted'} numberOfLines={1}>
+          <Text
+            variant="micro"
+            tone={!already && !compact && known ? 'brand' : 'muted'}
+            numberOfLines={1}
+            style={compact ? { fontSize: 12, lineHeight: 16 } : null}
+          >
             {subtitle}
           </Text>
         </View>
+        {/* The on-Waves pill — only the minority state earns one; see
+            `StatusPill`. Skipped once a row is already greyed, too —
+            "already in this group" has said enough. */}
+        {compact && !single && !already && known ? <StatusPill /> : null}
         {single ? (
           <Ionicons
             name={directionalIcon('chevron-forward')}
             size={iconSize.lg}
             color={theme.color.textFaint}
+          />
+        ) : compact ? (
+          <Ionicons
+            name={selected ? 'checkbox' : 'square-outline'}
+            size={iconSize.xl}
+            color={selected ? theme.color.brand : theme.color.border}
           />
         ) : (
           <Ionicons
@@ -881,6 +1077,226 @@ function PickedStrip({
         </Pressable>
       ))}
     </ScrollView>
+  );
+}
+
+/**
+ * A row's own read of `known`: "On Waves", in the app's positive colour (this
+ * palette's is blue, not green — `theme.color.positive` is what "positive"
+ * means here, whatever hue that turns out to be).
+ *
+ * Only ever drawn for the minority — the row already shown below only calls
+ * this when `known` is truthy. Printing "Not on Waves" on every other row said
+ * the same thing as every other row and cost each one real width to say it;
+ * the majority state is silence, the same way an unread badge is silent once
+ * there is nothing unread.
+ */
+function StatusPill(): React.JSX.Element {
+  const theme = useTheme();
+  const { t } = useStrings();
+  return (
+    <Row
+      style={{
+        alignItems: 'center',
+        gap: 3,
+        paddingHorizontal: 7,
+        height: 20,
+        borderRadius: theme.radius.pill,
+        backgroundColor: theme.color.positiveSoft,
+      }}
+    >
+      <Ionicons name="checkmark" size={iconSize.xs} color={theme.color.positive} />
+      <Text variant="micro" tone="positive" numberOfLines={1} style={{ fontWeight: '700' }}>
+        {t.pickers.filterOnWaves}
+      </Text>
+    </Row>
+  );
+}
+
+/**
+ * The compact screen's filter row: four pills, one always on, that narrow the
+ * very list underneath rather than opening a sheet to choose among them.
+ *
+ * "On Waves" and "Not on Waves" carry no count in the reference — only `All`
+ * and `Selected` do, because those two are the ones whose number changes the
+ * story ("All" says how big the book is, "Selected" says how far along you
+ * are); the other two are already named by the pill itself.
+ */
+function FilterPills({
+  filter,
+  onChange,
+  locale,
+  allCount,
+  selectedCount,
+}: {
+  filter: ContactFilter;
+  onChange: (filter: ContactFilter) => void;
+  locale: string;
+  allCount: number;
+  selectedCount: number;
+}): React.JSX.Element {
+  const theme = useTheme();
+  const { t } = useStrings();
+  const pills: {
+    key: ContactFilter;
+    label: string;
+    icon: keyof typeof Ionicons.glyphMap;
+  }[] = [
+    {
+      key: ContactFilter.All,
+      label: `${t.pickers.filterAll} (${localeCount(locale, allCount)})`,
+      icon: 'people-outline',
+    },
+    {
+      key: ContactFilter.OnWaves,
+      label: t.pickers.filterOnWaves,
+      icon: 'checkmark-circle-outline',
+    },
+    {
+      key: ContactFilter.NotOnWaves,
+      label: t.pickers.filterNotOnWaves,
+      icon: 'person-add-outline',
+    },
+    {
+      key: ContactFilter.Selected,
+      label: `${t.pickers.filterSelected} (${localeCount(locale, selectedCount)})`,
+      icon: 'checkbox-outline',
+    },
+  ];
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      style={{ flexGrow: 0, flexShrink: 0 }}
+      // The trailing gap matters more than it looks: with none, the last
+      // pill's own edge lands flush on the card's edge and reads as clipped
+      // even while the row still scrolls to it perfectly well.
+      contentContainerStyle={{ gap: theme.spacing.sm, paddingEnd: theme.spacing.lg }}
+    >
+      {pills.map((pill) => {
+        const active = filter === pill.key;
+        return (
+          <Pressable
+            key={pill.key}
+            onPress={() => onChange(pill.key)}
+            accessibilityRole="button"
+            accessibilityState={{ selected: active }}
+            accessibilityLabel={pill.label}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 4,
+              height: 32,
+              paddingHorizontal: theme.spacing.md,
+              borderRadius: theme.radius.pill,
+              backgroundColor: active ? theme.color.brandSoft : theme.color.surfaceMuted,
+            }}
+          >
+            <Ionicons
+              name={pill.icon}
+              size={iconSize.sm}
+              color={active ? theme.color.brand : theme.color.textMuted}
+            />
+            <Text
+              variant="caption"
+              tone={active ? 'brand' : 'muted'}
+              numberOfLines={1}
+              style={active ? { fontWeight: '700' } : null}
+            >
+              {pill.label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </ScrollView>
+  );
+}
+
+/**
+ * The compact screen's foot: who is ticked (the count, then the same faces
+ * `PickedStrip` draws elsewhere, moved down here instead of riding above the
+ * list), the gradient confirm button the reference board wears, and the lock
+ * line every dress of this picker carries — in that order, so a thumb meets
+ * the action last, right where it already is.
+ */
+function CompactConfirmBar({
+  chosen,
+  onRemove,
+  onClearAll,
+  onConfirm,
+  busy,
+  locale,
+}: {
+  chosen: readonly PickedContact[];
+  onRemove: (key: string, contact: PickedContact) => void;
+  onClearAll: () => void;
+  onConfirm: () => void;
+  busy: boolean;
+  locale: string;
+}): React.JSX.Element {
+  const theme = useTheme();
+  const { t } = useStrings();
+  const count = chosen.length;
+  const disabled = count === 0 || busy;
+  return (
+    <View style={{ gap: theme.spacing.sm }}>
+      {count > 0 ? (
+        <>
+          <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text variant="caption" tone="muted">
+              {plural(locale, count, t.pickers.peopleSelectedCount)}
+            </Text>
+            <Pressable
+              onPress={onClearAll}
+              accessibilityRole="button"
+              accessibilityLabel={t.pickers.clearAllSelected}
+              hitSlop={8}
+            >
+              <Text variant="caption" tone="brand" style={{ fontWeight: '700' }}>
+                {t.pickers.clearAllSelected}
+              </Text>
+            </Pressable>
+          </Row>
+          <PickedStrip chosen={chosen} onRemove={onRemove} />
+        </>
+      ) : null}
+      <Pressable
+        onPress={onConfirm}
+        disabled={disabled}
+        accessibilityRole="button"
+        accessibilityLabel={
+          count === 0
+            ? t.pickers.nobodyPickedYet
+            : plural(locale, count, t.pickers.addPeopleToWaves)
+        }
+        style={({ pressed }) => ({ opacity: disabled ? 0.45 : pressed ? 0.85 : 1 })}
+      >
+        <Gradient
+          colors={theme.gradient.brand}
+          radius={theme.radius.pill}
+          style={{ height: 48, justifyContent: 'center', paddingHorizontal: theme.spacing.xl }}
+        >
+          <Row style={{ alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ fontSize: 15, fontWeight: '700', color: theme.color.onBrand }}>
+              {count === 0
+                ? t.pickers.nobodyPickedYet
+                : plural(locale, count, t.pickers.addPeopleToWaves)}
+            </Text>
+            {count > 0 ? (
+              <Ionicons
+                name={directionalIcon('arrow-forward')}
+                size={iconSize.lg}
+                color={theme.color.onBrand}
+                style={{ position: 'absolute', end: 0 }}
+              />
+            ) : null}
+          </Row>
+        </Gradient>
+      </Pressable>
+      <Text variant="micro" tone="muted" align="center" numberOfLines={1}>
+        {t.pickers.onlyPickedAreSent}
+      </Text>
+    </View>
   );
 }
 
@@ -1022,20 +1438,25 @@ function keyOf(contact: PickedContact): string {
 /**
  * A contact card writes a number however the owner typed it.
  *
- * A bare local number is read in the device's own region — the WhatsApp-style
- * default every messaging app on the phone already uses — so the address the
- * picker shows matches the E.164 the server keeps, and a contact already in the
- * group greys out instead of looking new. This is best-effort and never throws:
- * if there is no region to read it in, or the result is not a valid number, the
- * cleaned digits are kept so the person is still invitable (the add path
- * normalises once more, with the group's region, before anything is queued).
+ * A bare local number is read in the account's own country, else the
+ * device's region — the WhatsApp-style default every messaging app on the
+ * phone already uses — so the address the picker shows matches the E.164 the
+ * server keeps, and a contact already in the group greys out instead of
+ * looking new. The account's own country is asked first rather than only the
+ * device's, because the device's Region setting is not always this person's:
+ * it can be unset, or simply wrong for where they actually are, and a number
+ * silently read in the wrong country is the "+1 on an Indian mobile" bug this
+ * guards against. This is best-effort and never throws: if there is no region
+ * to read it in, or the result is not a valid number, the cleaned digits are
+ * kept so the person is still invitable (the add path normalises once more,
+ * with the same account country, before anything is queued).
  */
-function normalisePhone(raw: string | null): string | null {
+function normalisePhone(raw: string | null, accountCountry: string | null): string | null {
   if (!raw) return null;
   const cleaned = raw.replace(/[^0-9+]/g, '');
   if (cleaned.length < 8) return null;
   try {
-    return normaliseContactPhone(cleaned) ?? cleaned;
+    return normaliseContactPhone(cleaned, accountCountry) ?? cleaned;
   } catch {
     return cleaned;
   }

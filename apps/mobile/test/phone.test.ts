@@ -49,6 +49,41 @@ describe('normaliseContactPhone', () => {
     expect(normaliseContactPhone('+44 7700 900123', 'AE')).toBe('+447700900123');
   });
 
+  /**
+   * The exact shape of the bug this guards: a 10-digit Indian mobile, no
+   * trunk zero, saved bare in the address book the way most contact cards
+   * actually write one down. On a device whose region reads IN, this must
+   * come back `+91…`, never `+1…` — the symptom was a contact picker that
+   * quietly dialled every bare number into the US.
+   */
+  it('reads a 10-digit Indian mobile in the device region, with no trunk zero to drop', () => {
+    device.country = 'IN';
+    expect(normaliseContactPhone('9894068745')).toBe('+919894068745');
+    expect(normaliseContactPhone('98940 68745')).toBe('+919894068745');
+  });
+
+  it('reads a bare national number in the device region for the other markets this app ships in', () => {
+    device.country = 'GB';
+    expect(normaliseContactPhone('07700 900123')).toBe('+447700900123');
+
+    device.country = 'AU';
+    expect(normaliseContactPhone('0412 345 678')).toBe('+61412345678');
+
+    device.country = 'AE';
+    expect(normaliseContactPhone('050 123 4567')).toBe('+971501234567');
+  });
+
+  /**
+   * The account's own country wins over the device's, which is the whole
+   * point of asking for both: a device whose Region setting is wrong — set to
+   * the US by a setup flow that never asked, say — must not silently relabel
+   * a correctly-recognised Indian account's contacts as American.
+   */
+  it('trusts the account country over a device region that disagrees with it', () => {
+    device.country = 'US';
+    expect(normaliseContactPhone('9894068745', 'IN')).toBe('+919894068745');
+  });
+
   it('refuses a bare number when there is no region to read it in', () => {
     device.country = null;
     let caught: unknown;
