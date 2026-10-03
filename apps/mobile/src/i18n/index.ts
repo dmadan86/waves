@@ -190,6 +190,10 @@ export interface UiStrings {
   allSettled: string;
   yourGroups: string;
   allGroups: string;
+  /** Friends screen section header, over the friends list. */
+  yourFriends: string;
+  /** Friends screen's link across to the groups list. */
+  viewGroups: string;
   /** Title of the full groups screen — plainer than "All groups", which read like a database view. */
   groupsTitle: string;
   /** Placeholder in the groups search field. */
@@ -1518,6 +1522,16 @@ export interface UiStrings {
     allSquareBody: string;
     owesYou: string;
     youOweThem: string;
+    /** The friends balance card's subline, how many friends you are owed by. */
+    owedByCount: PluralForms;
+    /** The friends balance card's subline, how many friends you owe. */
+    owingCount: PluralForms;
+    /** The green "owed to you" pill's short label, beside its own figure —
+     *  distinct from `owedByCount`'s full sentence, which the subline above
+     *  the figure still uses. */
+    pillOwed: PluralForms;
+    /** The red "you owe" pill's short label. */
+    pillOwing: PluralForms;
     /** Headline card label over the overall per-currency balances. */
     overall: string;
     /** Headline line when a currency's overall net is in your favour. */
@@ -2830,12 +2844,22 @@ export interface UiStrings {
     newGroupPlaceholder: string;
     scanToJoin: string;
     scanHint: string;
-    scanAllowBody: string;
-    scanAllow: string;
     scanDenied: string;
     scanInvalid: string;
     scanRebuild: string;
-    scanAllowTitle: string;
+    /** Title on the pre-permission "ask" screen. The `[bracketed]` part is drawn in brand purple. */
+    scanAskTitle: string;
+    scanAskSubtitle: string;
+    /** The gradient pill that requests camera permission. */
+    scanAskAllow: string;
+    /** The divider word between the gradient pill and the paste-a-link pill. */
+    scanAskOr: string;
+    scanAskFeatureSecureTitle: string;
+    scanAskFeatureSecureBody: string;
+    scanAskFeatureFastTitle: string;
+    scanAskFeatureFastBody: string;
+    scanAskFeatureNoDataTitle: string;
+    scanAskFeatureNoDataBody: string;
     scanDeniedTitle: string;
     scanCameraFailedTitle: string;
     scanCameraFailed: string;
@@ -3464,6 +3488,21 @@ export interface UiStrings {
     removeName: string;
     remindZoneNote: string;
     useMyTimezone: string;
+    /** The compact contact-picker's subtitle, under its hero title. */
+    fromYourContactsSubtitle: string;
+    /** The compact picker's filter pills — "All (907)". */
+    filterAll: string;
+    /** Shared by the "On Waves" filter pill and a row's own status pill. */
+    filterOnWaves: string;
+    /** Shared by the "Not on Waves" filter pill and a row's own status pill. */
+    filterNotOnWaves: string;
+    filterSelected: string;
+    /** The compact picker's bottom strip: "{n} people selected". */
+    peopleSelectedCount: PluralForms;
+    /** Drops everyone ticked, from the compact picker's bottom strip. */
+    clearAllSelected: string;
+    /** The compact picker's confirm button: "Add {n} people to Waves". */
+    addPeopleToWaves: PluralForms;
   };
   /** The Activity feed's date-range filter — narrowing a long feed to a span. */
   activityFilter: {
@@ -3905,10 +3944,27 @@ export interface UiStrings {
       overBy: string;
       allWithin: string;
       topCategories: string;
+      topCategoriesSubtitle: string;
       viewAll: string;
+      /** The donut's centre: the month's spend, under its headline figure. */
+      totalSpent: string;
+      /** The category list's overflow row, aggregating everything past the top five. */
+      others: string;
       recentExpenses: string;
+      recentExpensesSubtitle: string;
       noExpenses: string;
       moneyTools: string;
+      moneyToolsSubtitle: string;
+      /** The money-tools grid's own tile copy — distinct from the fuller
+       *  `recurringSub`/`loans` strings used elsewhere, kept one line each. */
+      toolRecurringSub: string;
+      toolLoansSub: string;
+      toolBudgets: string;
+      toolBudgetsSub: string;
+      toolAnalytics: string;
+      toolAnalyticsSub: string;
+      toolCategories: string;
+      toolCategoriesSub: string;
       perMonth: string;
       activeCount: string;
       noneYet: string;
@@ -4150,6 +4206,8 @@ const en: UiStrings = {
   allSettled: 'All settled',
   yourGroups: 'Your groups',
   allGroups: 'All groups',
+  yourFriends: 'Your friends',
+  viewGroups: 'View groups',
   groupsTitle: 'Groups',
   searchGroups: 'Search groups',
   noGroupsMatch: 'No groups match your search',
@@ -5214,6 +5272,10 @@ const en: UiStrings = {
     allSquareBody: 'Nobody owes you and you owe nobody. New balances show up here.',
     owesYou: 'Owes you',
     youOweThem: 'You owe',
+    owedByCount: { one: 'You are owed by {n} friend', other: 'You are owed by {n} friends' },
+    owingCount: { one: 'You owe {n} friend', other: 'You owe {n} friends' },
+    pillOwed: { one: '{n} owes you', other: '{n} owe you' },
+    pillOwing: { one: 'You owe {n}', other: 'You owe {n}' },
     overall: 'Overall',
     youAreOwed: 'You’re owed',
     nobodyOwesYou: 'Nobody owes you anything right now.',
@@ -6232,12 +6294,19 @@ const en: UiStrings = {
     newGroupPlaceholder: 'Name this group',
     scanToJoin: 'Scan to join',
     scanHint: "Point at a group's invite QR code",
-    scanAllowBody: 'Allow the camera to read an invite QR code.',
-    scanAllow: 'Allow camera',
     scanDenied: 'Camera access is off. Turn it on in Settings to scan.',
     scanInvalid: 'That is not a Waves invite code.',
     scanRebuild: 'Update the app to scan invite codes.',
-    scanAllowTitle: 'Turn on the camera',
+    scanAskTitle: 'Scan invite [QR code]',
+    scanAskSubtitle: 'Join a group instantly by scanning the QR code from your friend.',
+    scanAskAllow: 'Allow camera',
+    scanAskOr: 'or',
+    scanAskFeatureSecureTitle: 'Secure',
+    scanAskFeatureSecureBody: 'Invite codes only',
+    scanAskFeatureFastTitle: 'Fast',
+    scanAskFeatureFastBody: 'Join instantly',
+    scanAskFeatureNoDataTitle: 'No data shared',
+    scanAskFeatureNoDataBody: 'Stays on this phone',
     scanDeniedTitle: 'The camera is switched off',
     scanCameraFailedTitle: 'The camera would not start',
     scanCameraFailed:
@@ -6814,6 +6883,14 @@ const en: UiStrings = {
     removeName: 'Remove {name}',
     remindZoneNote: 'Asked in {zone} — where the trip is, not where each person is.',
     useMyTimezone: 'Use my timezone ({zone})',
+    fromYourContactsSubtitle: 'Select people to add to Waves',
+    filterAll: 'All',
+    filterOnWaves: 'On Waves',
+    filterNotOnWaves: 'Not on Waves',
+    filterSelected: 'Selected',
+    peopleSelectedCount: { one: '{n} person selected', other: '{n} people selected' },
+    clearAllSelected: 'Clear all',
+    addPeopleToWaves: { one: 'Add {n} person to Waves', other: 'Add {n} people to Waves' },
   },
   activityFilter: {
     open: 'Filter by date',
@@ -7260,10 +7337,23 @@ const en: UiStrings = {
       overBy: '{name}: {amount} over',
       allWithin: 'All within budget',
       topCategories: 'Top categories',
+      topCategoriesSubtitle: 'Where your money goes this month',
       viewAll: 'View all',
+      totalSpent: 'Total spent',
+      others: 'Others',
       recentExpenses: 'Recent expenses',
+      recentExpensesSubtitle: 'Your latest transactions',
       noExpenses: 'No expenses this month yet',
       moneyTools: 'Money tools',
+      moneyToolsSubtitle: 'Plan better, stay in control',
+      toolRecurringSub: 'Manage subscriptions',
+      toolLoansSub: 'Track your loans',
+      toolBudgets: 'Budgets',
+      toolBudgetsSub: 'Set monthly limits',
+      toolAnalytics: 'Analytics',
+      toolAnalyticsSub: 'Understand spending patterns',
+      toolCategories: 'Categories',
+      toolCategoriesSub: 'Organize expenses',
       perMonth: '/ month',
       activeCount: '{count} active',
       noneYet: 'None yet',
@@ -7482,6 +7572,8 @@ const ta: UiStrings = {
   youOwe: 'நீங்கள் தர வேண்டியது',
   allSettled: 'எல்லாம் சரி',
   yourGroups: 'உங்கள் குழுக்கள்',
+  yourFriends: 'உங்கள் நண்பர்கள்',
+  viewGroups: 'குழுக்களைப் பார்க்க',
   allGroups: 'அனைத்து குழுக்கள்',
   groupsTitle: 'குழுக்கள்',
   searchGroups: 'குழுக்களைத் தேடு',
@@ -8574,6 +8666,22 @@ const ta: UiStrings = {
       'உங்களுக்கு யாரும் தர வேண்டியதில்லை, நீங்களும் யாருக்கும் தர வேண்டியதில்லை. புதிய பாக்கிகள் இங்கே தோன்றும்.',
     owesYou: 'உங்களுக்குத் தர வேண்டியவர்கள்',
     youOweThem: 'நீங்கள் தர வேண்டியவர்கள்',
+    owedByCount: {
+      one: '{n} நண்பர் உங்களுக்குத் தர வேண்டும்',
+      other: '{n} நண்பர்கள் உங்களுக்குத் தர வேண்டும்',
+    },
+    owingCount: {
+      one: '{n} நண்பருக்கு நீங்கள் தர வேண்டும்',
+      other: '{n} நண்பர்களுக்கு நீங்கள் தர வேண்டும்',
+    },
+    pillOwed: {
+      one: '{n} பேர் உங்களுக்குத் தர வேண்டும்',
+      other: '{n} பேர் உங்களுக்குத் தர வேண்டும்',
+    },
+    pillOwing: {
+      one: 'நீங்கள் {n} பேருக்குத் தர வேண்டும்',
+      other: 'நீங்கள் {n} பேருக்குத் தர வேண்டும்',
+    },
     overall: 'மொத்தம்',
     youAreOwed: 'உங்களுக்கு வர வேண்டியது',
     nobodyOwesYou: 'இப்போது உங்களுக்கு யாரும் தர வேண்டியதில்லை.',
@@ -9645,12 +9753,19 @@ const ta: UiStrings = {
     newGroupPlaceholder: 'இந்தக் குழுவுக்குப் பெயரிடுங்கள்',
     scanToJoin: 'ஸ்கேன் செய்து சேரவும்',
     scanHint: 'குழுவின் அழைப்பு QR குறியீட்டை நோக்கிக் காட்டவும்',
-    scanAllowBody: 'அழைப்பு QR குறியீட்டைப் படிக்க கேமராவை அனுமதிக்கவும்.',
-    scanAllow: 'கேமராவை அனுமதி',
     scanDenied: 'கேமரா அணுகல் அணைக்கப்பட்டுள்ளது. ஸ்கேன் செய்ய அமைப்புகளில் இயக்கவும்.',
     scanInvalid: 'இது Waves அழைப்புக் குறியீடு அல்ல.',
     scanRebuild: 'அழைப்புக் குறியீடுகளை ஸ்கேன் செய்ய ஆப்பைப் புதுப்பிக்கவும்.',
-    scanAllowTitle: 'கேமராவை இயக்கவும்',
+    scanAskTitle: 'அழைப்பு [QR குறியீட்டை] ஸ்கேன் செய்யவும்',
+    scanAskSubtitle: 'உங்கள் நண்பரின் QR குறியீட்டை ஸ்கேன் செய்து உடனடியாகக் குழுவில் சேரவும்.',
+    scanAskAllow: 'கேமராவை அனுமதி',
+    scanAskOr: 'அல்லது',
+    scanAskFeatureSecureTitle: 'பாதுகாப்பானது',
+    scanAskFeatureSecureBody: 'அழைப்புக் குறியீடு மட்டும்',
+    scanAskFeatureFastTitle: 'வேகமானது',
+    scanAskFeatureFastBody: 'உடனடியாகச் சேரவும்',
+    scanAskFeatureNoDataTitle: 'தரவு பகிரப்படாது',
+    scanAskFeatureNoDataBody: 'இந்த மொபைலில் மட்டும்',
     scanDeniedTitle: 'கேமரா அணைக்கப்பட்டுள்ளது',
     scanCameraFailedTitle: 'கேமரா தொடங்கவில்லை',
     scanCameraFailed:
@@ -10274,6 +10389,20 @@ const ta: UiStrings = {
     remindZoneNote:
       '{zone} இல் கேட்கப்படுகிறது — பயணம் இருக்கும் இடம், ஒவ்வொருவரும் இருக்கும் இடம் அல்ல.',
     useMyTimezone: 'என் நேர மண்டலத்தைப் பயன்படுத்து ({zone})',
+    fromYourContactsSubtitle: 'Waves-இல் சேர்க்க நபர்களைத் தேர்ந்தெடுக்கவும்',
+    filterAll: 'அனைத்தும்',
+    filterOnWaves: 'Waves-இல் உள்ளனர்',
+    filterNotOnWaves: 'Waves-இல் இல்லை',
+    filterSelected: 'தேர்ந்தெடுக்கப்பட்டவை',
+    peopleSelectedCount: {
+      one: '{n} நபர் தேர்ந்தெடுக்கப்பட்டார்',
+      other: '{n} நபர்கள் தேர்ந்தெடுக்கப்பட்டனர்',
+    },
+    clearAllSelected: 'அனைத்தையும் அழி',
+    addPeopleToWaves: {
+      one: 'Waves-இல் {n} நபரைச் சேர்க்கவும்',
+      other: 'Waves-இல் {n} நபர்களைச் சேர்க்கவும்',
+    },
   },
   activityFilter: {
     open: 'தேதி வாரியாக வடிகட்டு',
@@ -10736,10 +10865,23 @@ const ta: UiStrings = {
       overBy: '{name}: {amount} அதிகம்',
       allWithin: 'அனைத்தும் பட்ஜெட்டுக்குள்',
       topCategories: 'முதன்மை வகைகள்',
+      topCategoriesSubtitle: 'இந்த மாதம் உங்கள் பணம் எங்கே செல்கிறது',
       viewAll: 'அனைத்தும்',
+      totalSpent: 'மொத்த செலவு',
+      others: 'மற்றவை',
       recentExpenses: 'சமீபத்திய செலவுகள்',
+      recentExpensesSubtitle: 'உங்கள் சமீபத்திய பரிவர்த்தனைகள்',
       noExpenses: 'இந்த மாதம் இன்னும் செலவுகள் இல்லை',
       moneyTools: 'பணக் கருவிகள்',
+      moneyToolsSubtitle: 'சிறப்பாகத் திட்டமிடுங்கள், கட்டுப்பாட்டில் இருங்கள்',
+      toolRecurringSub: 'சந்தாக்களை நிர்வகிக்கவும்',
+      toolLoansSub: 'உங்கள் கடன்களைக் கண்காணிக்கவும்',
+      toolBudgets: 'பட்ஜெட்கள்',
+      toolBudgetsSub: 'மாத வரம்புகளை அமைக்கவும்',
+      toolAnalytics: 'பகுப்பாய்வு',
+      toolAnalyticsSub: 'செலவு முறைகளைப் புரிந்துகொள்ளுங்கள்',
+      toolCategories: 'வகைகள்',
+      toolCategoriesSub: 'செலவுகளை ஒழுங்குபடுத்துங்கள்',
       perMonth: '/ மாதம்',
       activeCount: '{count} செயலில்',
       noneYet: 'இன்னும் இல்லை',
@@ -10951,6 +11093,8 @@ const hi: UiStrings = {
   allSettled: 'सब बराबर',
   yourGroups: 'आपके समूह',
   allGroups: 'सभी समूह',
+  yourFriends: 'आपके मित्र',
+  viewGroups: 'समूह देखें',
   groupsTitle: 'समूह',
   searchGroups: 'समूह खोजें',
   noGroupsMatch: 'आपकी खोज से कोई समूह मेल नहीं खाता',
@@ -12014,6 +12158,16 @@ const hi: UiStrings = {
     allSquareBody: 'न किसी पर आपका बाकी है, न आप पर किसी का। नए हिसाब यहाँ दिखेंगे।',
     owesYou: 'आपको देने हैं',
     youOweThem: 'आपको देने हैं जिन्हें',
+    owedByCount: {
+      one: '{n} मित्र आपको देने वाला है',
+      other: '{n} मित्र आपको देने वाले हैं',
+    },
+    owingCount: {
+      one: 'आप {n} मित्र को देने वाले हैं',
+      other: 'आप {n} मित्रों को देने वाले हैं',
+    },
+    pillOwed: { one: '{n} आपको देने वाला है', other: '{n} आपको देने वाले हैं' },
+    pillOwing: { one: 'आप {n} को देने वाले हैं', other: 'आप {n} को देने वाले हैं' },
     overall: 'कुल मिलाकर',
     youAreOwed: 'आपको मिलने हैं',
     nobodyOwesYou: 'अभी किसी पर आपका कुछ बाकी नहीं है।',
@@ -13046,12 +13200,19 @@ const hi: UiStrings = {
     newGroupPlaceholder: 'इस ग्रुप को नाम दें',
     scanToJoin: 'स्कैन करके जुड़ें',
     scanHint: 'ग्रुप के इनवाइट QR कोड की ओर कैमरा करें',
-    scanAllowBody: 'इनवाइट QR कोड पढ़ने के लिए कैमरे की अनुमति दें।',
-    scanAllow: 'कैमरा अनुमति दें',
     scanDenied: 'कैमरा एक्सेस बंद है। स्कैन करने के लिए सेटिंग्स में चालू करें।',
     scanInvalid: 'यह Waves इनवाइट कोड नहीं है।',
     scanRebuild: 'इनवाइट कोड स्कैन करने के लिए ऐप अपडेट करें।',
-    scanAllowTitle: 'कैमरा चालू करें',
+    scanAskTitle: 'इनवाइट [QR कोड] स्कैन करें',
+    scanAskSubtitle: 'अपने दोस्त का QR कोड स्कैन करके तुरंत ग्रुप से जुड़ें।',
+    scanAskAllow: 'कैमरा अनुमति दें',
+    scanAskOr: 'या',
+    scanAskFeatureSecureTitle: 'सुरक्षित',
+    scanAskFeatureSecureBody: 'सिर्फ़ इनवाइट कोड',
+    scanAskFeatureFastTitle: 'तेज़',
+    scanAskFeatureFastBody: 'तुरंत जुड़ें',
+    scanAskFeatureNoDataTitle: 'कोई डेटा साझा नहीं',
+    scanAskFeatureNoDataBody: 'इसी फ़ोन में रहता है',
     scanDeniedTitle: 'कैमरा बंद है',
     scanCameraFailedTitle: 'कैमरा शुरू नहीं हो सका',
     scanCameraFailed:
@@ -13633,6 +13794,14 @@ const hi: UiStrings = {
     removeName: '{name} को हटाएँ',
     remindZoneNote: '{zone} में पूछा जाता है — जहाँ यात्रा है, न कि जहाँ हर कोई है।',
     useMyTimezone: 'मेरा टाइमज़ोन इस्तेमाल करें ({zone})',
+    fromYourContactsSubtitle: 'Waves में जोड़ने के लिए लोगों को चुनें',
+    filterAll: 'सभी',
+    filterOnWaves: 'Waves पर हैं',
+    filterNotOnWaves: 'Waves पर नहीं हैं',
+    filterSelected: 'चुने गए',
+    peopleSelectedCount: { one: '{n} व्यक्ति चुना गया', other: '{n} लोग चुने गए' },
+    clearAllSelected: 'सभी हटाएं',
+    addPeopleToWaves: { one: 'Waves में {n} व्यक्ति जोड़ें', other: 'Waves में {n} लोग जोड़ें' },
   },
   activityFilter: {
     open: 'तारीख़ से छाँटें',
@@ -14077,10 +14246,23 @@ const hi: UiStrings = {
       overBy: '{name}: {amount} ज़्यादा',
       allWithin: 'सब बजट के भीतर',
       topCategories: 'शीर्ष श्रेणियाँ',
+      topCategoriesSubtitle: 'इस महीने आपका पैसा कहाँ जाता है',
       viewAll: 'सभी देखें',
+      totalSpent: 'कुल खर्च',
+      others: 'अन्य',
       recentExpenses: 'हाल के खर्च',
+      recentExpensesSubtitle: 'आपके नवीनतम ट्रांज़ैक्शन',
       noExpenses: 'इस महीने अभी कोई खर्च नहीं',
       moneyTools: 'पैसों के टूल',
+      moneyToolsSubtitle: 'बेहतर योजना बनाएं, नियंत्रण में रहें',
+      toolRecurringSub: 'सब्सक्रिप्शन मैनेज करें',
+      toolLoansSub: 'अपने लोन ट्रैक करें',
+      toolBudgets: 'बजट',
+      toolBudgetsSub: 'मासिक सीमा तय करें',
+      toolAnalytics: 'एनालिटिक्स',
+      toolAnalyticsSub: 'खर्च के पैटर्न समझें',
+      toolCategories: 'श्रेणियाँ',
+      toolCategoriesSub: 'खर्चों को व्यवस्थित करें',
       perMonth: '/ महीना',
       activeCount: '{count} सक्रिय',
       noneYet: 'अभी कोई नहीं',
@@ -14302,6 +14484,8 @@ const ar: UiStrings = {
   allSettled: 'تمت التسوية',
   yourGroups: 'مجموعاتك',
   allGroups: 'كل المجموعات',
+  yourFriends: 'أصدقاؤك',
+  viewGroups: 'عرض المجموعات',
   groupsTitle: 'المجموعات',
   searchGroups: 'ابحث في المجموعات',
   noGroupsMatch: 'لا توجد مجموعات تطابق بحثك',
@@ -15412,6 +15596,38 @@ const ar: UiStrings = {
     allSquareBody: 'لا أحد يدين لك ولا أنت تدين لأحد. ستظهر هنا أي مبالغ جديدة.',
     owesYou: 'لك عندهم',
     youOweThem: 'عليك لهم',
+    owedByCount: {
+      zero: 'لا يوجد أصدقاء يدينون لك',
+      one: 'صديق واحد يدين لك',
+      two: 'صديقان يدينان لك',
+      few: '{n} أصدقاء يدينون لك',
+      many: '{n} صديقًا يدين لك',
+      other: '{n} صديق يدين لك',
+    },
+    owingCount: {
+      zero: 'لا تدين لأي صديق',
+      one: 'تدين لصديق واحد',
+      two: 'تدين لصديقين',
+      few: 'تدين لـ {n} أصدقاء',
+      many: 'تدين لـ {n} صديقًا',
+      other: 'تدين لـ {n} صديق',
+    },
+    pillOwed: {
+      zero: 'لا أحد يدين لك',
+      one: 'صديق يدين لك',
+      two: 'صديقان يدينان لك',
+      few: '{n} يدينون لك',
+      many: '{n} يدينون لك',
+      other: '{n} يدين لك',
+    },
+    pillOwing: {
+      zero: 'لا تدين لأحد',
+      one: 'تدين لواحد',
+      two: 'تدين لاثنين',
+      few: 'تدين لـ {n}',
+      many: 'تدين لـ {n}',
+      other: 'تدين لـ {n}',
+    },
     overall: 'الإجمالي',
     youAreOwed: 'لك عندهم',
     nobodyOwesYou: 'لا أحد يدين لك بشيء الآن.',
@@ -16608,12 +16824,19 @@ const ar: UiStrings = {
     newGroupPlaceholder: 'سمِّ هذه المجموعة',
     scanToJoin: 'امسح للانضمام',
     scanHint: 'وجّه الكاميرا إلى رمز QR الخاص بدعوة المجموعة',
-    scanAllowBody: 'اسمح للكاميرا بقراءة رمز QR الخاص بالدعوة.',
-    scanAllow: 'السماح للكاميرا',
     scanDenied: 'الوصول إلى الكاميرا متوقف. فعّله من الإعدادات للمسح.',
     scanInvalid: 'هذا ليس رمز دعوة Waves.',
     scanRebuild: 'حدّث التطبيق لمسح رموز الدعوة.',
-    scanAllowTitle: 'شغّل الكاميرا',
+    scanAskTitle: 'امسح [رمز QR] للدعوة',
+    scanAskSubtitle: 'انضم إلى مجموعة فورًا بمسح رمز QR من صديقك.',
+    scanAskAllow: 'السماح للكاميرا',
+    scanAskOr: 'أو',
+    scanAskFeatureSecureTitle: 'آمن',
+    scanAskFeatureSecureBody: 'رموز الدعوة فقط',
+    scanAskFeatureFastTitle: 'سريع',
+    scanAskFeatureFastBody: 'انضمام فوري',
+    scanAskFeatureNoDataTitle: 'لا تتم مشاركة البيانات',
+    scanAskFeatureNoDataBody: 'يبقى على هاتفك',
     scanDeniedTitle: 'الكاميرا متوقفة',
     scanCameraFailedTitle: 'تعذّر تشغيل الكاميرا',
     scanCameraFailed: 'قد يستخدمها تطبيق آخر. أغلق هذه الشاشة وحاول مرة أخرى، أو ألصق رابط الدعوة.',
@@ -17446,6 +17669,28 @@ const ar: UiStrings = {
     removeName: 'إزالة {name}',
     remindZoneNote: 'يُسأل بتوقيت {zone} — حيث الرحلة، لا حيث كل شخص.',
     useMyTimezone: 'استخدم منطقتي الزمنية ({zone})',
+    fromYourContactsSubtitle: 'اختر الأشخاص لإضافتهم إلى Waves',
+    filterAll: 'الكل',
+    filterOnWaves: 'على Waves',
+    filterNotOnWaves: 'ليس على Waves',
+    filterSelected: 'المحدد',
+    peopleSelectedCount: {
+      zero: 'لم يتم اختيار أي شخص',
+      one: 'تم اختيار شخص واحد',
+      two: 'تم اختيار شخصين',
+      few: 'تم اختيار {n} أشخاص',
+      many: 'تم اختيار {n} شخصًا',
+      other: 'تم اختيار {n} شخص',
+    },
+    clearAllSelected: 'إلغاء تحديد الكل',
+    addPeopleToWaves: {
+      zero: 'لا أحد لإضافته إلى Waves',
+      one: 'أضف شخصًا واحدًا إلى Waves',
+      two: 'أضف شخصين إلى Waves',
+      few: 'أضف {n} أشخاص إلى Waves',
+      many: 'أضف {n} شخصًا إلى Waves',
+      other: 'أضف {n} شخص إلى Waves',
+    },
   },
   activityFilter: {
     open: 'التصفية حسب التاريخ',
@@ -17935,10 +18180,23 @@ const ar: UiStrings = {
       overBy: '{name}: تجاوز بـ{amount}',
       allWithin: 'الكل ضمن الميزانية',
       topCategories: 'أعلى الفئات',
+      topCategoriesSubtitle: 'إلى أين يذهب مالك هذا الشهر',
       viewAll: 'عرض الكل',
+      totalSpent: 'إجمالي المصروف',
+      others: 'أخرى',
       recentExpenses: 'أحدث المصروفات',
+      recentExpensesSubtitle: 'أحدث معاملاتك',
       noExpenses: 'لا مصروفات هذا الشهر بعد',
       moneyTools: 'أدوات المال',
+      moneyToolsSubtitle: 'خطّط بشكل أفضل، وابقَ في السيطرة',
+      toolRecurringSub: 'إدارة الاشتراكات',
+      toolLoansSub: 'تتبّع قروضك',
+      toolBudgets: 'الميزانيات',
+      toolBudgetsSub: 'حدّد الحدود الشهرية',
+      toolAnalytics: 'التحليلات',
+      toolAnalyticsSub: 'فهم أنماط الإنفاق',
+      toolCategories: 'الفئات',
+      toolCategoriesSub: 'تنظيم المصروفات',
       perMonth: '/ شهر',
       activeCount: '{count} نشطة',
       noneYet: 'لا شيء بعد',
