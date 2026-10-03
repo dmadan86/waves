@@ -299,9 +299,9 @@ describe('share splits — every composition of ten shares', () => {
     );
   });
 
-  it('rejects negative and fractional weights', () => {
+  it('rejects negative weights and weights with more than two decimal places', () => {
     const ids = members(2);
-    for (const bad of [-1, 1.5, Number.NaN]) {
+    for (const bad of [-1, 1.001, 0.333, Number.NaN, Number.POSITIVE_INFINITY]) {
       expectSplitError(
         () =>
           computeShares({
@@ -314,6 +314,46 @@ describe('share splits — every composition of ten shares', () => {
         SplitErrorCode.InvalidWeight,
       );
     }
+  });
+
+  it('accepts a half share — fractional weights up to two decimal places', () => {
+    const ids = members(2);
+    const shares = computeShares({
+      amount: 1500n,
+      currency: INR,
+      params: { kind: 'shares', weights: { m1: 0.5, m2: 1 } },
+      participants: ids,
+      seed: SEED,
+    });
+    // 0.5 : 1 is the same ratio as 1 : 2 — Asha pays a third, Ravi two thirds.
+    expect(shares.get('m1')).toBe(500n);
+    expect(shares.get('m2')).toBe(1000n);
+  });
+
+  it('sums to the total exactly, with a deterministic remainder, on an amount that does not divide evenly', () => {
+    const ids = members(3);
+    const weights = { m1: 0.5, m2: 1, m3: 1.5 };
+    const amount = 1001n;
+
+    const first = computeShares({
+      amount,
+      currency: INR,
+      params: { kind: 'shares', weights },
+      participants: ids,
+      seed: SEED,
+    });
+    expect(sumShares(first)).toBe(amount);
+
+    // Same inputs, computed again — the remainder rotation must land on the
+    // same person every time, on this device and on the server.
+    const second = computeShares({
+      amount,
+      currency: INR,
+      params: { kind: 'shares', weights },
+      participants: ids,
+      seed: SEED,
+    });
+    expect([...second]).toEqual([...first]);
   });
 });
 

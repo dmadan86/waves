@@ -102,14 +102,9 @@ function computeByType(
       let positive = false;
       for (const [member, weight] of Object.entries(input.params.weights)) {
         requireParticipant(member, participantSet);
-        if (!Number.isInteger(weight) || weight < 0) {
-          throw new SplitError(
-            SplitErrorCode.InvalidWeight,
-            `Weights must be non-negative integers, got ${weight} for ${member}`,
-          );
-        }
-        if (weight > 0) positive = true;
-        weights.set(member, BigInt(weight));
+        const centiWeight = toCentiWeight(weight, member);
+        if (centiWeight > 0n) positive = true;
+        weights.set(member, centiWeight);
       }
       if (!positive) {
         throw new SplitError(
@@ -117,6 +112,8 @@ function computeByType(
           'At least one member needs a positive weight',
         );
       }
+      // Scaled by 100 — see SharesParams. distributeProportionally only ever
+      // uses weight / totalWeight, which the scaling leaves unchanged.
       return distributeProportionally(input.amount, weights, input.seed);
     }
 
@@ -268,6 +265,29 @@ function validateParticipants(participants: readonly MemberId[]): MemberId[] {
     throw new SplitError(SplitErrorCode.DuplicateParticipant, 'Participants must be unique');
   }
   return [...participants];
+}
+
+/**
+ * A shares weight as hundredths, so "half a share" (0.5) becomes the integer
+ * 50 before it ever reaches the proportional split — no float enters the
+ * ledger. Validated here, not trusted from the caller: `computeShares` is
+ * called directly by tests and by `/sync`, not only through `parseSplitParams`.
+ */
+function toCentiWeight(weight: number, member: MemberId): bigint {
+  if (!Number.isFinite(weight) || weight < 0) {
+    throw new SplitError(
+      SplitErrorCode.InvalidWeight,
+      `Weights must be non-negative, got ${weight} for ${member}`,
+    );
+  }
+  const centi = Math.round(weight * 100);
+  if (Math.abs(weight * 100 - centi) > 1e-6) {
+    throw new SplitError(
+      SplitErrorCode.InvalidWeight,
+      `Weights can have at most two decimal places, got ${weight} for ${member}`,
+    );
+  }
+  return BigInt(centi);
 }
 
 function requireParticipant(member: MemberId, participants: ReadonlySet<MemberId>): void {

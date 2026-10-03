@@ -224,6 +224,8 @@ export interface EditIssueStrings {
   paidLeftToAssign: string;
   paidOverAssigned: string;
   chooseWhoPaid: string;
+  /** A shares field typed with more than two decimal places. */
+  sharesDecimalPlaces: string;
 }
 
 /**
@@ -248,7 +250,7 @@ export function splitIssueFor(
       );
     }
   }
-  return splitProblem(state.splitKind, entriesFor(state), state.participants);
+  return splitProblem(state.splitKind, entriesFor(state), state.participants, strings);
 }
 
 /** Why the payers do not add up to the total, in money; null when they do. */

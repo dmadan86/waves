@@ -15,6 +15,7 @@ import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 
 import {
+  computeShares,
   MoneyError,
   parseAmount,
   parseSplitParams,
@@ -36,7 +37,15 @@ const anySplitParams: fc.Arbitrary<SplitParams> = fc.oneof(
     .dictionary(memberId, fc.integer({ min: 0, max: 10000 }), { minKeys: 1 })
     .map((basisPoints) => ({ kind: 'percent', basisPoints }) as SplitParams),
   fc
-    .dictionary(memberId, fc.integer({ min: 1, max: 100 }), { minKeys: 1 })
+    // Centi-shares, 0.01 to 100.00 — exercises whole numbers and the two
+    // decimal places a half or quarter share needs.
+    .dictionary(
+      memberId,
+      fc.integer({ min: 1, max: 10000 }).map((centi) => centi / 100),
+      {
+        minKeys: 1,
+      },
+    )
     .map((weights) => ({ kind: 'shares', weights }) as SplitParams),
   fc
     .dictionary(memberId, minor, { minKeys: 1 })
@@ -175,22 +184,77 @@ describe('parsing what an older or stranger client sent', () => {
     ).toEqual({ kind: 'adjustment', adjustments: { ravi: 12000n, asha: -4000n } });
   });
 
-  it('refuses unsafe integer weights before a double can round them', () => {
-    expect(() =>
-      parseSplitParams({ kind: 'shares', weights: { asha: '9007199254740993' } }),
-    ).toThrow(/safe integer/);
+  it('refuses unsafe integer basis points before a double can round them', () => {
     expect(() =>
       parseSplitParams({ kind: 'percent', basisPoints: { asha: '9007199254740993' } }),
     ).toThrow(/safe integer/);
   });
 
-  it('refuses negative wire weights before computeShares sees them', () => {
-    expect(() => parseSplitParams({ kind: 'shares', weights: { asha: '-1' } })).toThrow(
-      /safe integer/,
-    );
+  it('refuses negative wire basis points before computeShares sees them', () => {
     expect(() => parseSplitParams({ kind: 'percent', basisPoints: { asha: '-1' } })).toThrow(
       /safe integer/,
     );
+  });
+
+  it('refuses a shares weight outside the allowed range before computeShares sees it', () => {
+    expect(() =>
+      parseSplitParams({ kind: 'shares', weights: { asha: '9007199254740993' } }),
+    ).toThrow(/weight range/);
+  });
+
+  it('refuses a negative wire shares weight before computeShares sees it', () => {
+    expect(() => parseSplitParams({ kind: 'shares', weights: { asha: '-1' } })).toThrow(
+      /not a weight/,
+    );
+    expect(() => parseSplitParams({ kind: 'shares', weights: { asha: -1 } })).toThrow(
+      /weight range/,
+    );
+  });
+
+  it('accepts a half share, and only up to two decimal places', () => {
+    expect(parseSplitParams({ kind: 'shares', weights: { asha: 0.5, ravi: 1 } })).toEqual({
+      kind: 'shares',
+      weights: { asha: 0.5, ravi: 1 },
+    });
+    expect(parseSplitParams({ kind: 'shares', weights: { asha: '1.25' } })).toEqual({
+      kind: 'shares',
+      weights: { asha: 1.25 },
+    });
+    expect(() => parseSplitParams({ kind: 'shares', weights: { asha: 0.001 } })).toThrow(
+      /more than two decimal places/,
+    );
+    expect(() => parseSplitParams({ kind: 'shares', weights: { asha: 1.333 } })).toThrow(
+      /more than two decimal places/,
+    );
+  });
+
+  it('recomputes the same shares from a half-share split after a trip over the wire', () => {
+    // What the client would do: compute a preview locally, send the params
+    // over JSON, and the server parses + recomputes with the exact same
+    // function. The two must agree byte-for-byte, or the write is a
+    // SHARE_MISMATCH (TDR §4).
+    const params: SplitParams = {
+      kind: 'shares',
+      weights: { asha: 0.5, ravi: 1, priya: 1.5 },
+    };
+    const clientPreview = computeShares({
+      amount: 1001n,
+      currency: 'INR',
+      params,
+      participants: ['asha', 'ravi', 'priya'],
+      seed: 'exp-half-share',
+    });
+
+    const overTheWire = parseSplitParams(JSON.parse(JSON.stringify(serialiseSplitParams(params))));
+    const serverRecompute = computeShares({
+      amount: 1001n,
+      currency: 'INR',
+      params: overTheWire,
+      participants: ['asha', 'ravi', 'priya'],
+      seed: 'exp-half-share',
+    });
+
+    expect([...serverRecompute]).toEqual([...clientPreview]);
   });
 
   it('refuses null itemized optionals instead of treating them as absent', () => {
