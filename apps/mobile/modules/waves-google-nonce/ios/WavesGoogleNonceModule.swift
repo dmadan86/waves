@@ -29,9 +29,8 @@ import GoogleSignIn
  * `GIDSignIn.sharedInstance.configuration` — the two share one `GIDSignIn`
  * singleton, so this only replaces the one call the wrapper cannot make.
  *
- * UNVERIFIED: written without Xcode (no native build tooling in this
- * environment). Build on a Mac/EAS and exercise a real sign-in before trusting
- * it; `nativeIdentity.ts` falls back to the wrapper's own `signIn()` if this
+ * Compiled with Xcode; exercise a real sign-in before trusting it in a
+ * release. `nativeIdentity.ts` falls back to the wrapper's own `signIn()` if this
  * module is ever missing, so a build that skipped that step costs nothing
  * worse than today's behavior.
  */
@@ -40,7 +39,8 @@ public final class WavesGoogleNonceModule: Module {
     Name("WavesGoogleNonce")
 
     AsyncFunction("signIn") { (hashedNonce: String) -> [String: Any?] in
-      let presenter = await MainActor.run { Utilities().currentViewController() }
+      let utilities = self.appContext?.utilities
+      let presenter = await MainActor.run { utilities?.currentViewController() }
       guard let presenter else {
         throw NoPresenterException()
       }
