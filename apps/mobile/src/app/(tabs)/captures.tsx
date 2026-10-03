@@ -204,6 +204,19 @@ function wasFound(capture: CaptureRow): boolean {
 }
 
 /**
+ * A plain-text name for a draft: its note, or failing that its category, or
+ * failing that "Unassigned" — the same fallback chain the row's own title
+ * uses. Pulled out so the assign sheet's "Edit {item}" accessibility label
+ * names the same thing the row already does, rather than drifting from it.
+ */
+function captureTitle(capture: CaptureRow, t: UiStrings): string {
+  const categoryLabel = capture.category
+    ? (t.categories as Record<string, string>)[capture.category]
+    : undefined;
+  return capture.description?.trim() || categoryLabel || t.captures.unassigned;
+}
+
+/**
  * The bank message this draft was read out of, if there is one.
  *
  * A person cannot trust a parser they cannot check. The row says "PLASTICS
@@ -338,10 +351,7 @@ function CaptureListRow({
   // The note names the spend; with none, its category does; with neither, it is
   // simply still unassigned. The amount always sits at the trailing edge, so the
   // title never has to carry it.
-  const categoryLabel = capture.category
-    ? (t.categories as Record<string, string>)[capture.category]
-    : undefined;
-  const title = capture.description?.trim() || categoryLabel || t.captures.unassigned;
+  const title = captureTitle(capture, t);
   const doubts = bare ? [] : doubtsAbout(capture);
   const dismissLabel = wasFound(capture) ? t.captures.notAnExpense : t.captures.delete;
 
@@ -944,6 +954,19 @@ export default function CapturesScreen() {
     };
   }, [shownAssigning]);
 
+  // What the assign sheet's "Edit" affordance would open, if anything. A
+  // single row offers it outright; a ticked pile offers it only when exactly
+  // one draft is riding on the answer — editing is a question about one
+  // expense's own fields, and a pile of several has no single set of fields
+  // to open. (A spoken batch's ⋯ opens the picker on more than one row too,
+  // but that path always carries more than one item, so it falls out of the
+  // same check without a separate one.)
+  const editTarget: CaptureRow | null =
+    assigningCapture ??
+    (shownAssigning?.kind === 'batch' && shownAssigning.items.length === 1
+      ? shownAssigning.items[0]!
+      : null);
+
   const rows = useMemo(() => captures.data ?? [], [captures.data]);
   // Two errands, two tabs: what the app found in the phone's bank messages,
   // and what its user added on purpose and has not filed yet. The rule and the
@@ -1268,6 +1291,19 @@ export default function CapturesScreen() {
   );
 
   const closeAssign = useCallback((): void => setAssigning(null), []);
+
+  // The assign sheet's own way to the editor — tapping what it is about to
+  // place rather than backing out to the row's ⋯ first. Same route, same
+  // params, same "every value rides along" as `openEdit`; this only decides
+  // *when* it fires. The sheet closes first rather than after, matching how
+  // every other choice on this picker already leaves (`onChoose`'s `create`
+  // case): the next thing on screen is a full route, not a modal stacked on
+  // one still closing.
+  const editFromAssign = useCallback((): void => {
+    if (!editTarget) return;
+    closeAssign();
+    openEdit(editTarget);
+  }, [closeAssign, editTarget, openEdit]);
 
   /**
    * Drafts into one group, in one go — one row swiped, or a whole spoken batch.
@@ -2194,11 +2230,22 @@ export default function CapturesScreen() {
                         variant="subheading"
                       />
                     ),
-                    note: assigningCapture.description ? (
+                    // The note now carries the date alongside the description
+                    // — amount and description alone left the one other field
+                    // the editor can fix (and the reason a merchant's date is
+                    // sometimes the wrong half of a UPI string) unsaid here.
+                    note: (
                       <Text variant="caption" tone="muted" numberOfLines={1}>
-                        {assigningCapture.description}
+                        {assigningCapture.description
+                          ? `${assigningCapture.description} · ${dayHeading(locale, assigningCapture.expense_date)}`
+                          : dayHeading(locale, assigningCapture.expense_date)}
                       </Text>
-                    ) : null,
+                    ),
+                    onEdit: editFromAssign,
+                    editLabel: t.captures.assignEditExpenseFor.replace(
+                      '{item}',
+                      captureTitle(assigningCapture, t),
+                    ),
                   }
                 : batchPreview
                   ? {
@@ -2234,6 +2281,18 @@ export default function CapturesScreen() {
                           {plural(locale, batchPreview.count, t.captures.batchExpenses)}
                         </Text>
                       ),
+                      // Only ever set when exactly one draft is ticked: see
+                      // `editTarget`. A pile of several has no edit of its
+                      // own to offer, so the pencil affordance stays off.
+                      ...(editTarget
+                        ? {
+                            onEdit: editFromAssign,
+                            editLabel: t.captures.assignEditExpenseFor.replace(
+                              '{item}',
+                              captureTitle(editTarget, t),
+                            ),
+                          }
+                        : {}),
                     }
                   : null
             }

@@ -99,6 +99,17 @@ export interface DestinationSubject {
   title: React.ReactNode;
   /** The quieter second line: a note, a count, a merchant. */
   note?: React.ReactNode;
+  /**
+   * Edit the thing being filed instead of placing it. Given one, the subject
+   * itself becomes a button — the whole badge-and-text block, not a separate
+   * row — with a small pencil-and-label underneath so the affordance reads
+   * before anybody has tapped it. Absent where there is nothing singular to
+   * edit, such as a batch of several drafts placed at once.
+   */
+  onEdit?: () => void;
+  /** Screen-reader label for the edit affordance, naming what it edits
+   *  ("Edit {item}"). Falls back to a generic "Edit expense" when left out. */
+  editLabel?: string;
 }
 
 /** Past this many groups the Groups tab earns a search field; a short list is
@@ -454,11 +465,49 @@ export function DestinationPicker({
           neither has to know the other's width. */}
       {subject ? (
         <Row style={{ gap: theme.spacing.md, alignItems: 'center' }}>
-          {subject.leading ?? null}
-          <View style={{ flexShrink: 1, minWidth: 0 }}>
-            {subject.title}
-            {subject.note ?? null}
-          </View>
+          {subject.onEdit ? (
+            // The subject becomes the edit entry point: the badge, the
+            // amount and the note are what this sheet is placing, and
+            // tapping that same block to fix a wrong one of them is the
+            // same gesture a person already reaches for everywhere else in
+            // the app (a row opens the thing it names). The pencil-and-label
+            // underneath is what tells them the block takes a tap at all —
+            // an amount with no visible affordance just looks like a
+            // heading.
+            <Pressable
+              onPress={subject.onEdit}
+              accessibilityRole="button"
+              accessibilityLabel={subject.editLabel ?? t.captures.assignEditExpense}
+              style={({ pressed }) => ({
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: theme.spacing.md,
+                flexShrink: 1,
+                minWidth: 0,
+                opacity: pressed ? 0.6 : 1,
+              })}
+            >
+              {subject.leading ?? null}
+              <View style={{ flexShrink: 1, minWidth: 0 }}>
+                {subject.title}
+                {subject.note ?? null}
+                <Row style={{ gap: 3, alignItems: 'center', marginTop: 2 }}>
+                  <Ionicons name="pencil" size={iconSize.xs} color={theme.color.brand} />
+                  <Text variant="micro" style={{ color: theme.color.brand, fontWeight: '600' }}>
+                    {t.captures.assignEditExpense}
+                  </Text>
+                </Row>
+              </View>
+            </Pressable>
+          ) : (
+            <>
+              {subject.leading ?? null}
+              <View style={{ flexShrink: 1, minWidth: 0 }}>
+                {subject.title}
+                {subject.note ?? null}
+              </View>
+            </>
+          )}
           {pinnedRows.length > 0 ? (
             <Row style={{ gap: theme.spacing.sm, marginStart: 'auto' }}>
               {pinnedRows.map(renderChip)}
