@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useLocalSearchParams } from 'expo-router';
-import { ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 
 import { currencyExposure, format, isValidVpa, money, type CurrencyCode } from '@waves/core';
 import {
@@ -19,7 +20,6 @@ import {
   Screen,
   SectionHeader,
   Text,
-  TintCard,
   useTheme,
 } from '@waves/ui';
 
@@ -28,6 +28,7 @@ import { ProfileAvatar } from '@/components/ProfileAvatar';
 import { SettingsSection, type SettingsRow } from '@/components/SettingsSection';
 import {
   useClaimMemberAsMe,
+  useGhostMergePersonIds,
   useGroup,
   useGroupLedger,
   useSetMemberRole,
@@ -35,13 +36,184 @@ import {
 } from '@/data/hooks';
 import { friendlyError } from '@/lib/errors';
 import { expenseTitle } from '@/data/expenseTitle';
+import { personKeyOf } from '@/data/peopleBalances';
 import { useBlockedUsers } from '@/data/blocked';
-import { displayName, groupLabel, isBlockedMember, isGhost, isViewer } from '@/data/types';
+import {
+  displayName,
+  groupLabel,
+  GroupType,
+  isBlockedMember,
+  isGhost,
+  isViewer,
+} from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
 import { useAuth, useViewerId } from '@/lib/auth';
 import { useBottomClearance } from '@/lib/clearance';
 import { router } from '@/lib/navigation';
 import { useDialog } from '@/lib/dialog';
+
+/** The crown's gold — there is no theme token for it, and it has to read as
+ *  gold on both the light and dark palettes, the one thing a theme colour
+ *  would not promise. */
+const CROWN_GOLD = '#E3A008';
+
+/**
+ * The compact member page's own "Group type" word, off the same enum the
+ * create and settings screens read from — this is the one place it is only
+ * shown, never chosen, so it has no `ChipRow` beside it.
+ */
+function groupTypeLabel(type: string | null | undefined, t: ReturnType<typeof useStrings>['t']) {
+  switch (type) {
+    case GroupType.Trip:
+      return t.extras.typeTrip;
+    case GroupType.Home:
+      return t.extras.typeHome;
+    case GroupType.Couple:
+      return t.extras.typeCouple;
+    case GroupType.Event:
+      return t.extras.typeEvent;
+    case GroupType.Friends:
+      return t.extras.typeFriends;
+    default:
+      return t.extras.typeOther;
+  }
+}
+
+/** One of the header's two small facts — member count, group type. */
+function HeaderPill({ label }: { label: string }) {
+  const theme = useTheme();
+  return (
+    <View
+      style={{
+        paddingHorizontal: theme.spacing.sm,
+        paddingVertical: 2,
+        borderRadius: theme.radius.pill,
+        backgroundColor: theme.color.surfaceMuted,
+      }}
+    >
+      <Text variant="micro" tone="muted" numberOfLines={1}>
+        {label}
+      </Text>
+    </View>
+  );
+}
+
+/** The small gold crown on an admin's avatar — the one glyph this app has no
+ *  other use for, so it carries no theme token of its own. */
+function AdminCrown({ avatarSize }: { avatarSize: number }) {
+  const theme = useTheme();
+  const size = Math.round(avatarSize * 0.44);
+  return (
+    <View
+      style={{
+        position: 'absolute',
+        top: -4,
+        right: -4,
+        width: size,
+        height: size,
+        borderRadius: size,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: theme.color.surface,
+        borderWidth: 1.5,
+        borderColor: theme.color.surface,
+        ...theme.shadow.soft,
+      }}
+    >
+      <MaterialCommunityIcons name="crown" size={Math.round(size * 0.6)} color={CROWN_GOLD} />
+    </View>
+  );
+}
+
+/** One tile of the "Group summary" card — a tinted icon, a label, a value,
+ *  and a chevron onto the group's own spending breakdown. */
+function SummaryTile({
+  icon,
+  iconBg,
+  iconColor,
+  label,
+  value,
+  onPress,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  iconBg: string;
+  iconColor: string;
+  label: string;
+  value: string;
+  onPress: () => void;
+}) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${label}, ${value}`}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        flex: 1,
+        minWidth: 0,
+        gap: 4,
+        opacity: pressed ? 0.7 : 1,
+      })}
+    >
+      <Row style={{ alignItems: 'center', justifyContent: 'space-between' }}>
+        <View
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: theme.radius.sm,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: iconBg,
+          }}
+        >
+          <Ionicons name={icon} size={iconSize.base} color={iconColor} />
+        </View>
+        <Ionicons
+          name={directionalIcon('chevron-forward')}
+          size={iconSize.sm}
+          color={theme.color.textFaint}
+        />
+      </Row>
+      <Text variant="caption" tone="muted" numberOfLines={1}>
+        {label}
+      </Text>
+      <Text variant="subheading" numberOfLines={1}>
+        {value}
+      </Text>
+    </Pressable>
+  );
+}
+
+/** The expense list's sort pill — a toggle rather than a menu: two orders,
+ *  one tap apart, which is all a group member's own feed has ever needed. */
+function SortPill({ oldestFirst, onToggle }: { oldestFirst: boolean; onToggle: () => void }) {
+  const theme = useTheme();
+  const { t } = useStrings();
+  const label = oldestFirst ? t.people.sortOldestFirst : t.people.sortNewestFirst;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onToggle}
+      style={({ pressed }) => ({
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.xs,
+        paddingHorizontal: theme.spacing.sm,
+        paddingVertical: 4,
+        borderRadius: theme.radius.pill,
+        backgroundColor: theme.color.surfaceMuted,
+        opacity: pressed ? 0.7 : 1,
+      })}
+    >
+      <Ionicons name="swap-vertical-outline" size={iconSize.sm} color={theme.color.textMuted} />
+      <Text variant="micro" tone="muted" numberOfLines={1}>
+        {label}
+      </Text>
+      <Ionicons name="chevron-down" size={iconSize.xs} color={theme.color.textFaint} />
+    </Pressable>
+  );
+}
 
 export default function MemberScreen() {
   const theme = useTheme();
@@ -64,6 +236,7 @@ export default function MemberScreen() {
   const setRole = useSetMemberRole(groupId);
   const claimAsMe = useClaimMemberAsMe(groupId);
   const { blockedIds, block, unblock } = useBlockedUsers();
+  const mergePersonIds = useGhostMergePersonIds();
 
   const member = members.data?.find((row) => row.id === memberId);
   const isMe = member ? isViewer(member, viewerId) : false;
@@ -78,6 +251,8 @@ export default function MemberScreen() {
   const [claimNote, setClaimNote] = useState<{ text: string; ok: boolean } | null>(null);
   /** Which editable row has its sheet open, or null. */
   const [editing, setEditing] = useState<'name' | 'vpa' | null>(null);
+  /** The expense feed's own order — newest first until flipped. */
+  const [oldestFirst, setOldestFirst] = useState(false);
 
   // Seed the editors from the member the moment the query resolves, and again
   // if the row identity changes — synced in render (the app's idiom for
@@ -105,6 +280,20 @@ export default function MemberScreen() {
   // action. Blocking is display-only; it never touches the balance shown here.
   const shownName = displayName(member, viewerId, blockedIds, t.misc.someone);
   const realName = member.profile?.display_name ?? member.ghost_name ?? t.misc.someone;
+
+  // Where the name+chevron on the person card leads: that person, un-collapsed
+  // across every group shared with them — the same destination and the same
+  // dead-end rules the group screen's own balance rows use (see
+  // `GroupScreen.personKeyFor`). Yourself and a member only in the local queue
+  // are dead ends; a blocked person is not, and travels under their mask.
+  const personKey =
+    isMe || member.pending
+      ? null
+      : personKeyOf({
+          profileId: member.profile_id,
+          mergePersonId: mergePersonIds.get(member.id) ?? null,
+          memberId: member.id,
+        });
 
   const confirmBlock = async (): Promise<void> => {
     if (!member.profile_id) return;
@@ -172,6 +361,7 @@ export default function MemberScreen() {
   // pair keeps the amount readable on the tint.
   const heroTint = balance > 0n ? 'mint' : balance < 0n ? 'pink' : 'lilac';
   const heroInk = theme.tint[heroTint].ink;
+  const showSettle = balance !== 0n && !isMe;
 
   /**
    * Promote, demote, block, unblock — whichever of them apply to this person.
@@ -198,8 +388,15 @@ export default function MemberScreen() {
           {
             icon: (member.role === 'admin' ? 'shield-outline' : 'shield-checkmark-outline') as
               'shield-outline' | 'shield-checkmark-outline',
-            label: member.role === 'admin' ? t.people.removeAdmin : t.people.makeAdmin,
-            hint: ghost ? t.people.adminNeedsAccount : t.people.adminNote,
+            // Relabelled from the old "Make admin" / "Remove admin" to a
+            // neutral "Manage role" with the role read off as the subtitle —
+            // the tap still toggles it immediately, same as before.
+            label: t.people.manageRole,
+            hint: ghost
+              ? t.people.adminNeedsAccount
+              : member.role === 'admin'
+                ? t.people.currentRoleAdmin
+                : t.people.currentRoleMember,
             onPress:
               ghost || setRole.isPending
                 ? undefined
@@ -235,6 +432,16 @@ export default function MemberScreen() {
   const involved = expenses.rows.filter((expense) =>
     expense.currentVersion?.shares.some((share) => share.member_id === member.id),
   );
+  // The feed's own sort, newest-first by default: an explicit chronological
+  // order rather than trusting whatever order the rows happened to arrive in,
+  // so the "Newest first" pill always tells the truth about what is below it.
+  // Plain, not memoized: the per-member expense list is never long enough for
+  // a re-sort on render to be a cost worth guarding against.
+  const sortedInvolved = [...involved].sort((a, b) => {
+    const dateA = a.currentVersion?.expense_date ?? '';
+    const dateB = b.currentVersion?.expense_date ?? '';
+    return oldestFirst ? dateA.localeCompare(dateB) : dateB.localeCompare(dateA);
+  });
 
   // What this person actually fronted, per currency (ADR-004: never summed into
   // one). "You paid ₹12,400, €90 and ฿2,100" — the honest answer on a trip that
@@ -250,6 +457,14 @@ export default function MemberScreen() {
       return acc;
     }, {}),
   );
+  const paidSummaryValue =
+    paidExposure.length > 0
+      ? paidExposure
+          .map((entry) =>
+            format(money(entry.amountMinor, entry.currency as CurrencyCode), { locale }),
+          )
+          .join(' · ')
+      : format(money(0n, currency as CurrencyCode), { locale });
 
   const save = (patch: { ghost_name?: string; vpa?: string | null }): void => {
     setStatus(null);
@@ -262,9 +477,106 @@ export default function MemberScreen() {
     );
   };
 
+  // The header: the group's own name and roster, not this member's — "whose
+  // group this member belongs to" rather than "who this member is", which the
+  // person card right under it already says. `groupLabel` with no group row
+  // (just the members) is the plain "You, X and Y" sentence; with the group
+  // row it is that sentence only for an unnamed group, else the group's name.
+  const activeMembers = (members.data ?? []).filter((row) => !row.left_at);
+  const groupTitle = group.data?.name?.trim() || groupLabel(group.data, members.data, viewerId);
+  const membersSummary = groupLabel(undefined, members.data, viewerId);
+
+  const goToInsights = (): void => router.push(`/group/${groupId}/insights`);
+
+  const greenBg = theme.color.positiveSoft;
+  const greenIcon = theme.color.positive;
+  const amberBg = theme.scheme === 'dark' ? theme.color.surfaceMuted : '#FDF1DC';
+  const amberIcon = theme.scheme === 'dark' ? theme.color.textMuted : '#B9740A';
+
+  // The person card's identity block — avatar, name, admin crown and badges —
+  // built once and wrapped in a Pressable only when there is somewhere for it
+  // to lead (see `personKey` above), the same shape the group screen's own
+  // balance rows use for the same reason.
+  const identity = (
+    <>
+      <View>
+        <ProfileAvatar
+          name={shownName}
+          avatarUrl={ghost || blocked ? null : (member.profile?.avatar_url ?? null)}
+          size={44}
+        />
+        {member.role === 'admin' ? <AdminCrown avatarSize={44} /> : null}
+      </View>
+      <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+        <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
+          <Text variant="subheading" numberOfLines={1} style={{ flexShrink: 1 }}>
+            {shownName}
+          </Text>
+          {personKey ? (
+            <Ionicons
+              name={directionalIcon('chevron-forward')}
+              size={iconSize.sm}
+              color={theme.color.textFaint}
+            />
+          ) : null}
+        </Row>
+        <Row style={{ gap: theme.spacing.xs, flexWrap: 'wrap' }}>
+          {ghost ? <Badge label={t.notJoinedYet} /> : null}
+          {blocked ? <Badge label={t.blocked.badge} /> : null}
+          {member.role === 'admin' ? <Badge label={t.people.admin} tone="brand" /> : null}
+          {isMe ? <Badge label={t.people.you} tone="positive" /> : null}
+        </Row>
+      </View>
+    </>
+  );
+  const identityBlock = personKey ? (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={shownName}
+      accessibilityHint={t.people.seeSharedGroups}
+      onPress={() =>
+        router.push(
+          `/friends/person/${encodeURIComponent(personKey)}?name=${encodeURIComponent(
+            shownName,
+          )}` as never,
+        )
+      }
+      style={({ pressed }) => ({
+        flex: 1,
+        minWidth: 0,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.sm,
+        opacity: pressed ? 0.7 : 1,
+      })}
+    >
+      {identity}
+    </Pressable>
+  ) : (
+    <View
+      style={{
+        flex: 1,
+        minWidth: 0,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.sm,
+      }}
+    >
+      {identity}
+    </View>
+  );
+
   return (
     <Screen>
-      <Row style={{ paddingHorizontal: theme.spacing.xl, paddingTop: theme.spacing.md }}>
+      <Row
+        style={{
+          paddingHorizontal: theme.spacing.lg,
+          paddingTop: theme.spacing.sm,
+          paddingBottom: theme.spacing.sm,
+          alignItems: 'center',
+          gap: theme.spacing.sm,
+        }}
+      >
         <IconButton label={t.common.back} onPress={() => router.back()}>
           <Ionicons
             name={directionalIcon('chevron-back')}
@@ -272,122 +584,152 @@ export default function MemberScreen() {
             color={theme.color.text}
           />
         </IconButton>
-        <View style={{ flex: 1, alignItems: 'center' }}>
-          <Text variant="heading">{shownName}</Text>
-          <Text variant="micro" tone="muted">
-            {groupLabel(group.data, members.data ?? [])}
+        <View style={{ flex: 1, minWidth: 0, alignItems: 'center', gap: 2 }}>
+          <Text variant="heading" numberOfLines={1}>
+            {groupTitle}
           </Text>
+          <Text variant="caption" tone="muted" numberOfLines={1}>
+            {membersSummary}
+          </Text>
+          <Row style={{ gap: theme.spacing.xs, marginTop: 2 }}>
+            <HeaderPill
+              label={`\u{1F465} ${plural(locale, activeMembers.length, t.memberCount)}`}
+            />
+            <HeaderPill label={groupTypeLabel(group.data?.type, t)} />
+          </Row>
         </View>
-        <View style={{ width: 44 }} />
+        <IconButton label={t.group.more} onPress={() => router.push(`/group/${groupId}/settings`)}>
+          <Ionicons name="ellipsis-vertical" size={iconSize.lg} color={theme.color.text} />
+        </IconButton>
       </Row>
 
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
-          paddingHorizontal: theme.spacing.xl,
-          paddingTop: theme.spacing.lg,
+          paddingHorizontal: theme.spacing.lg,
+          paddingTop: theme.spacing.xs,
           paddingBottom: clearance,
-          gap: theme.spacing.xl,
+          gap: 10,
         }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {/* Who, how much, and which way round.
-            
-            The amount used to stand alone: a number in a tinted card with no
-            word next to it, so "¥58,039" could as easily have been money owed
-            to this person as money they owe. The colour said which — and colour
-            alone is the one thing a balance must never rely on (ADR-009 and the
-            #191 regression this app already had once). Splitwise puts the
-            direction in words above the figure; bunq labels the hero outright.
-            So does this now, in the same words the Friends tab already uses.
+        {/* The person card: who, whether they are an admin, and — across a
+            divider — which way the balance runs and by how much. The amount
+            used to stand alone in a big tinted hero; a direction in words
+            beside a smaller figure reads just as clearly in a fraction of the
+            height (ADR-009 and the #191 regression still apply — colour alone
+            never carries the meaning). */}
+        <Card style={{ padding: theme.spacing.md }}>
+          <Row style={{ alignItems: 'center' }}>
+            {identityBlock}
 
-            The portrait is `ProfileAvatar`, so a member who has a photo shows
-            it. `Avatar` drew initials and nothing else, which meant the one
-            screen entirely about a person was the one screen that never showed
-            their face. */}
-        <TintCard
-          tint={heroTint}
-          style={{
-            alignItems: 'center',
-            gap: theme.spacing.sm,
-            borderRadius: theme.radius.xl,
-            padding: theme.spacing.xl,
-          }}
-        >
-          <ProfileAvatar
-            name={shownName}
-            avatarUrl={ghost || blocked ? null : (member.profile?.avatar_url ?? null)}
-            size={78}
-          />
-          {balance !== 0n ? (
-            <Text variant="caption" style={{ color: heroInk, opacity: 0.85 }}>
-              {balance > 0n ? t.tabs.owesYou : t.tabs.youOweThem}
-            </Text>
-          ) : null}
-          <MoneyText
-            amount={balance}
-            currency={currency}
-            locale={locale}
-            mode="balance"
-            variant="title"
-            tone="default"
-            style={{ color: heroInk }}
-          />
-          {balance === 0n ? (
-            <Text variant="caption" style={{ color: heroInk, opacity: 0.85 }}>
-              {t.tabs.allSquare}
-            </Text>
-          ) : null}
-          <Row style={{ gap: theme.spacing.sm, flexWrap: 'wrap', justifyContent: 'center' }}>
-            {ghost ? <Badge label={t.notJoinedYet} /> : null}
-            {blocked ? <Badge label={t.blocked.badge} /> : null}
-            {member.role === 'admin' ? <Badge label={t.people.admin} tone="brand" /> : null}
-            {isMe ? <Badge label={t.people.you} tone="positive" /> : null}
+            <View
+              style={{
+                width: 1,
+                alignSelf: 'stretch',
+                backgroundColor: theme.color.border,
+                marginHorizontal: theme.spacing.sm,
+              }}
+            />
+
+            <View style={{ alignItems: 'flex-end' }}>
+              <Text variant="caption" style={{ color: heroInk, opacity: 0.85 }}>
+                {balance > 0n
+                  ? t.tabs.owesYou
+                  : balance < 0n
+                    ? t.tabs.youOweThem
+                    : t.tabs.allSquare}
+              </Text>
+              <MoneyText
+                amount={balance}
+                currency={currency}
+                locale={locale}
+                mode="balance"
+                variant="title"
+                tone="default"
+                style={{ color: heroInk }}
+              />
+            </View>
           </Row>
-          {balance !== 0n && !isMe ? (
-            // Full width, and the only filled button on the screen. It was a
-            // content-width pill sitting against the leading edge of a centred
-            // card, which read as an afterthought rather than as the thing this
-            // screen is for.
+        </Card>
+
+        {/* Two buttons: settling up (only when there is a direction to settle,
+            same condition as before) and the group's existing invite/QR share,
+            now a one-tap shortcut from this page too. */}
+        <Row style={{ gap: 10 }}>
+          {showSettle ? (
             <Button
               label={t.settleUp}
-              fullWidth
+              variant="brand"
+              icon={
+                <Ionicons
+                  name="paper-plane-outline"
+                  size={iconSize.md}
+                  color={theme.color.onBrand}
+                />
+              }
+              style={{ flex: 1.3, height: 46 }}
               onPress={() => router.push(`/group/${groupId}/settle`)}
             />
           ) : null}
-        </TintCard>
+          <Button
+            label={t.people.shareGroup}
+            variant="secondary"
+            icon={<Ionicons name="qr-code-outline" size={iconSize.md} color={theme.color.brand} />}
+            style={{ flex: 1, height: 46 }}
+            onPress={() => router.push(`/group/${groupId}/invite`)}
+          />
+        </Row>
 
-        {/* What this person has actually put in, as rows rather than a card per
-            figure. Two facts read down a column in the time it takes to read
-            one sentence, which is the bunq and Wanderlog shape. Paid stays
-            per-currency and unsummed (ADR-004): a trip that touched yen and
-            dollars has no single true total. */}
-        <SettingsSection
-          title={t.people.inThisGroup}
-          rows={[
-            ...(paidExposure.length > 0
-              ? [
-                  {
-                    icon: 'card-outline' as const,
-                    label: t.people.paidAcross,
-                    value: paidExposure
-                      .map((entry) =>
-                        format(money(entry.amountMinor, entry.currency as CurrencyCode), {
-                          locale,
-                        }),
-                      )
-                      .join(' · '),
-                  },
-                ]
-              : []),
-            {
-              icon: 'receipt-outline' as const,
-              label: t.people.expensesLabel,
-              value: String(involved.length),
-            },
-          ]}
-        />
+        {/* Group summary: the same two facts the old "In this group" list
+            carried (what they paid, how many expenses), now two tiles with
+            their own chevron onto the group's spending breakdown. */}
+        <View style={{ gap: theme.spacing.sm }}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`${t.people.groupSummary}. ${t.people.viewDetails}`}
+            onPress={goToInsights}
+            style={({ pressed }) => ({
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              opacity: pressed ? 0.7 : 1,
+            })}
+          >
+            <Text variant="subheading">{t.people.groupSummary}</Text>
+            <Row style={{ gap: 2, alignItems: 'center' }}>
+              <Text variant="caption" tone="muted">
+                {t.people.viewDetails}
+              </Text>
+              <Ionicons
+                name={directionalIcon('chevron-forward')}
+                size={iconSize.sm}
+                color={theme.color.textFaint}
+              />
+            </Row>
+          </Pressable>
+          <Card style={{ padding: theme.spacing.md }}>
+            <Row style={{ gap: 10 }}>
+              <SummaryTile
+                icon="card-outline"
+                iconBg={greenBg}
+                iconColor={greenIcon}
+                label={t.people.paidAcross}
+                value={paidSummaryValue}
+                onPress={goToInsights}
+              />
+              <SummaryTile
+                icon="receipt-outline"
+                iconBg={amberBg}
+                iconColor={amberIcon}
+                label={t.people.expensesLabel}
+                value={String(involved.length)}
+                onPress={goToInsights}
+              />
+            </Row>
+          </Card>
+        </View>
 
         {/* The two editable facts, as rows that open a sheet — the same pattern
             the account screen uses, so a field is one line until somebody wants
@@ -425,7 +767,7 @@ export default function MemberScreen() {
         ) : null}
 
         {/* Managing this person: one section of rows rather than a card each.
-            
+
             These were two cards, each a caption over a button over a note, at
             two different weights — a soft lavender "Make admin" and a red
             "Block" — for two things that are both just controls. GoPay files
@@ -455,9 +797,14 @@ export default function MemberScreen() {
         ) : null}
 
         <View>
-          <SectionHeader title={plural(locale, involved.length, t.expense.inCount)} />
-          <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
-            {involved.map((expense, index) => {
+          <SectionHeader
+            title={plural(locale, involved.length, t.expense.inCount)}
+            action={
+              <SortPill oldestFirst={oldestFirst} onToggle={() => setOldestFirst((v) => !v)} />
+            }
+          />
+          <Card padded={false} style={{ paddingHorizontal: theme.spacing.md }}>
+            {sortedInvolved.map((expense, index) => {
               const share = expense.currentVersion?.shares.find(
                 (row) => row.member_id === member.id,
               );
@@ -478,7 +825,7 @@ export default function MemberScreen() {
                           }).format(new Date(expense.currentVersion.expense_date))
                         : undefined
                     }
-                    leading={<Avatar name={expense.currentVersion?.description ?? '?'} size={38} />}
+                    leading={<Avatar name={expense.currentVersion?.description ?? '?'} size={36} />}
                     onPress={() => router.push(`/group/${groupId}/expense/${expense.id}`)}
                     trailing={
                       share ? (
@@ -491,7 +838,7 @@ export default function MemberScreen() {
                       ) : null
                     }
                   />
-                  {index < involved.length - 1 ? (
+                  {index < sortedInvolved.length - 1 ? (
                     <View style={{ height: 1, backgroundColor: theme.color.border }} />
                   ) : null}
                 </View>
