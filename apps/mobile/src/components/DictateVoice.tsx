@@ -27,9 +27,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-speech-recognition';
-import { Linking, Pressable, View } from 'react-native';
+import { Animated, Easing, Linking, Pressable, View } from 'react-native';
 
-import { iconSize, Text, useTheme } from '@waves/ui';
+import { iconSize, Text, useTheme, type Theme } from '@waves/ui';
 
 import { useStrings } from '@/i18n';
 import {
@@ -38,7 +38,61 @@ import {
   onDeviceLocaleInstalled,
   speechLocale,
 } from '@/lib/dictation';
+import { useReducedMotion } from '@/lib/reducedMotion';
 import { speechMic } from '@/lib/speechMic';
+
+/**
+ * A soft halo that breathes behind a listening mic button — the same low-cost
+ * "I am hearing you" signal `VoiceCapture`'s full-screen mic uses, scaled down
+ * to sit behind a small inline button. Mounted only while listening and motion
+ * is not reduced (see call sites), so there is nothing to gate inside: the
+ * loop starts on mount and is torn down on unmount.
+ */
+function MicPulse({ theme, size }: { theme: Theme; size: number }) {
+  const [pulse] = useState(() => new Animated.Value(0));
+
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, {
+          toValue: 1,
+          duration: 900,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulse, {
+          toValue: 0,
+          duration: 900,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    loop.start();
+    return () => {
+      loop.stop();
+      pulse.setValue(0);
+    };
+  }, [pulse]);
+
+  const haloSize = size * 1.7;
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={{
+        position: 'absolute',
+        top: -(haloSize - size) / 2,
+        left: -(haloSize - size) / 2,
+        width: haloSize,
+        height: haloSize,
+        borderRadius: haloSize / 2,
+        backgroundColor: theme.color.brand,
+        opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.12, 0.26] }),
+        transform: [{ scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.15] }) }],
+      }}
+    />
+  );
+}
 
 // Hand the shared arbiter the real recogniser. Safe at module scope: this file
 // is only reached through `DictateButton`'s guarded require, so getting here at
@@ -58,6 +112,13 @@ export interface DictateProps {
    * platform gives us over that.
    */
   hints?: readonly string[];
+  /**
+   * A smaller button for a single-line field that has no room for the
+   * "Listening…" caption underneath (the quick-expense note). The button
+   * shrinks, the caption drops, and a listening button gets a subtle pulse
+   * behind it instead — the live feedback the caption used to carry.
+   */
+  compact?: boolean;
 }
 
 /** Whether this phone has a recogniser at all. A phone without one gets no mic. */
@@ -128,9 +189,10 @@ async function installedOnDeviceFor(langTag: string): Promise<boolean> {
   }
 }
 
-export function DictateVoice({ value, onChange, hints }: DictateProps) {
+export function DictateVoice({ value, onChange, hints, compact = false }: DictateProps) {
   const theme = useTheme();
   const { t, language, locale } = useStrings();
+  const reduceMotion = useReducedMotion();
 
   // Asked once, on the first render: this is a property of the phone, not
   // something that changes while somebody is looking at an expense.
@@ -291,32 +353,37 @@ export function DictateVoice({ value, onChange, hints }: DictateProps) {
 
   if (!available) return null;
 
+  const size = compact ? 32 : 44;
+
   return (
     <View style={{ alignItems: 'flex-end', gap: theme.spacing.xs }}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={listening ? t.misc.stopDictating : t.misc.dictateNote}
-        accessibilityState={{ busy: listening }}
-        onPress={() => (listening ? stop() : void start())}
-        hitSlop={8}
-        style={({ pressed }) => ({
-          width: 44,
-          height: 44,
-          borderRadius: theme.radius.pill,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: listening ? theme.color.brand : theme.color.brandSoft,
-          opacity: pressed ? 0.85 : 1,
-        })}
-      >
-        <Ionicons
-          name={listening ? 'stop' : 'mic-outline'}
-          size={iconSize.lg}
-          color={listening ? theme.color.onBrand : theme.color.brand}
-        />
-      </Pressable>
+      <View style={{ width: size, height: size }}>
+        {listening && !reduceMotion ? <MicPulse theme={theme} size={size} /> : null}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={listening ? t.misc.stopDictating : t.misc.dictateNote}
+          accessibilityState={{ busy: listening }}
+          onPress={() => (listening ? stop() : void start())}
+          hitSlop={compact ? 10 : 8}
+          style={({ pressed }) => ({
+            width: size,
+            height: size,
+            borderRadius: theme.radius.pill,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: listening ? theme.color.brand : theme.color.brandSoft,
+            opacity: pressed ? 0.85 : 1,
+          })}
+        >
+          <Ionicons
+            name={listening ? (compact ? 'mic' : 'stop') : 'mic-outline'}
+            size={compact ? iconSize.md : iconSize.lg}
+            color={listening ? theme.color.onBrand : theme.color.brand}
+          />
+        </Pressable>
+      </View>
 
-      {listening ? (
+      {!compact && listening ? (
         <Text variant="micro" tone="brand">
           {t.misc.listening}
         </Text>
