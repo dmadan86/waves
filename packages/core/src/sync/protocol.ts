@@ -135,6 +135,22 @@ export interface ExpenseCreatePayload {
    * and never part of the split or a balance.
    */
   readonly location?: ExpenseLocation | null;
+  /**
+   * Which sub-event (of the group's `eventTemplate`) this spend belongs to —
+   * 'mehendi' | 'sangeet' | … (`event-organizer.md`). Optional and null unless
+   * the group is an Event with a template and the person tagged it; never part
+   * of the split or a balance, like `category`.
+   */
+  readonly subEventId?: string | null;
+  /**
+   * This expense is a part-payment to a vendor with a balance still owing
+   * (`event-organizer.md`). Optional, defaults to false server-side.
+   */
+  readonly isDeposit?: boolean;
+  /** What is still owed, in minor units of `currency`. Null unless `isDeposit`. */
+  readonly balanceDueMinor?: string | null;
+  /** When the balance above is due (ISO date). Null unless `isDeposit`. */
+  readonly balanceDueDate?: string | null;
 }
 
 /** The four ways an expense is paid for; optional everywhere it appears. */

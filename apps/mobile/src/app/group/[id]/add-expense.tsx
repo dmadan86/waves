@@ -24,6 +24,7 @@ import {
   money,
   MutationKind,
   rebalancePayers,
+  subEventsForTemplate,
   validatePayers,
   type CategoryMeta,
   type CurrencyCode,
@@ -34,11 +35,13 @@ import {
   type SplitParams,
 } from '@waves/core';
 import {
+  AmountField,
   amountKeyboard,
   Avatar,
   Button,
   Callout,
   Card,
+  ChipRow,
   EmptyState,
   iconSize,
   MoneyText,
@@ -488,6 +491,15 @@ export default function AddExpenseScreen() {
   // (and without a synchronous setState inside the effect).
   const autoLocatedRef = useRef(false);
 
+  // Event organizer (docs/event-organizer.md): which sub-event this spend is
+  // for, and whether it is a vendor deposit still owing a balance. Both are
+  // optional metadata, like paymentMethod/location above — null/false until
+  // the person opts in, seeded from the version when editing.
+  const [subEventId, setSubEventId] = useState<string | null>(null);
+  const [isDeposit, setIsDeposit] = useState(false);
+  const [balanceDueMinor, setBalanceDueMinor] = useState<bigint | null>(null);
+  const [balanceDueDate, setBalanceDueDate] = useState<string | null>(null);
+
   // The per-group receipt ceiling. A group holds a few receipts for free (the
   // number is an admin knob); past it, scanning is a paid feature. A paid group
   // has no cap. This only draws the affordance — the server enforces the same
@@ -685,6 +697,10 @@ export default function AddExpenseScreen() {
       setPayersFor(`${seeded.amount}:${seeded.currency}`);
       setPaymentMethod(seeded.paymentMethod);
       setLocation(seeded.location);
+      setSubEventId(seeded.subEventId);
+      setIsDeposit(seeded.isDeposit);
+      setBalanceDueMinor(seeded.balanceDueMinor);
+      setBalanceDueDate(seeded.balanceDueDate);
       setParticipants(seeded.participants);
       setSplitKind(seeded.splitKind);
       setWeights(seeded.weights);
@@ -788,6 +804,21 @@ export default function AddExpenseScreen() {
     if (Platform.OS === 'android') setEditingDate(false);
     if (event.type === 'dismissed' || !picked) return;
     setPickedDate(isoDate(picked));
+  };
+
+  // Event organizer (docs/event-organizer.md): the fixed sub-event list this
+  // group's template suggests — empty for a Trip/Home/Couple/Friends/Other
+  // group, for an Event made before templates shipped, and for 'other'.
+  const eventSubEvents = subEventsForTemplate(group.data?.event_template);
+  // Collapsed like the split/payer rows beside it — closed until tapped,
+  // since there is no equivalent of `manyPayers` to auto-open it on.
+  const [showSubEventSection, setShowSubEventSection] = useState(false);
+
+  const [editingBalanceDueDate, setEditingBalanceDueDate] = useState(false);
+  const applyBalanceDueDate = (event: DateTimePickerEvent, picked?: Date): void => {
+    if (Platform.OS === 'android') setEditingBalanceDueDate(false);
+    if (event.type === 'dismissed' || !picked) return;
+    setBalanceDueDate(isoDate(picked));
   };
 
   const payerIds = [...payers.keys()];
@@ -1155,6 +1186,10 @@ export default function AddExpenseScreen() {
             payers,
             paymentMethod,
             location,
+            subEventId,
+            isDeposit,
+            balanceDueMinor,
+            balanceDueDate,
           },
           editing: editing?.currentVersion,
         }),
@@ -1674,17 +1709,58 @@ export default function AddExpenseScreen() {
                 dense
               />
 
-              {/* Who paid — on an edit as much as on a new expense, and now as
-                many people as actually put money in. Collapsed, the row says
-                who in a word ("You", "You +2"); tapping it unfolds the same
-                lane of avatars — and, once several are on it, each one's own
-                figure — this used to carry in a card of its own below.
+              {/* Event organizer (docs/event-organizer.md): which sub-event this
+              spend is for — a row like the ones beside it, collapsed to its
+              label until tapped. Only on an Event group whose template
+              suggests any; a plain Trip/Home/Couple/Friends/Other group, or
+              an Event with no template, never grows this row. */}
+              {eventSubEvents.length > 0 ? (
+                <View>
+                  <DetailRow
+                    icon="sparkles-outline"
+                    tint={theme.tint.mint}
+                    dense
+                    label={t.eventOrganizer.subEventLabel}
+                    value={
+                      subEventId
+                        ? `${eventSubEvents.find((subEvent) => subEvent.id === subEventId)?.emoji ?? ''} ${
+                            t.eventSubEvents[subEventId] ?? subEventId
+                          }`.trim()
+                        : t.eventOrganizer.noSubEvent
+                    }
+                    placeholder={!subEventId}
+                    expanded={showSubEventSection}
+                    onPress={() => setShowSubEventSection((was) => !was)}
+                  />
+                  {showSubEventSection ? (
+                    <View style={{ paddingBottom: theme.spacing.sm }}>
+                      <ChipRow
+                        options={[
+                          { value: 'none', label: t.eventOrganizer.noSubEvent },
+                          ...eventSubEvents.map((subEvent) => ({
+                            value: subEvent.id,
+                            label: `${subEvent.emoji} ${t.eventSubEvents[subEvent.id] ?? subEvent.id}`,
+                          })),
+                        ]}
+                        value={subEventId ?? 'none'}
+                        onChange={(picked) => setSubEventId(picked === 'none' ? null : picked)}
+                      />
+                    </View>
+                  ) : null}
+                </View>
+              ) : null}
 
-                The picker used to be hidden the moment the form opened on an
-                existing bill, so the correction people most often come back
-                to make had no control anywhere on the screen; and it was
-                single-select, so "she got the taxi, I got the tickets" had to
-                be entered as two expenses. Both fixes are unchanged here. */}
+              {/* Who paid — on an edit as much as on a new expense, and now as
+              many people as actually put money in. Collapsed, the row says
+              who in a word ("You", "You +2"); tapping it unfolds the same
+              lane of avatars — and, once several are on it, each one's own
+              figure — this used to carry in a card of its own below.
+
+              The picker used to be hidden the moment the form opened on an
+              existing bill, so the correction people most often come back
+              to make had no control anywhere on the screen; and it was
+              single-select, so "she got the taxi, I got the tickets" had to
+              be entered as two expenses. Both fixes are unchanged here. */}
               <View
                 onLayout={(event) => {
                   if (focus !== 'payers' || scrolledToPayers.current) return;
@@ -1988,6 +2064,55 @@ export default function AddExpenseScreen() {
                 value={`${currencySymbol(currency)} ${currency}`}
                 onPress={() => setPickingCurrency(true)}
               />
+
+              {/* Event organizer (docs/event-organizer.md): a vendor deposit
+                  — this expense is a part-payment, with a balance still
+                  owing. The row's own control states the value and changes
+                  it in the same gesture (tapping toggles it on/off), the same
+                  idiom the "simplify debts" row elsewhere in the app uses;
+                  the amount and due date unfold under it once it is on. */}
+              <View>
+                <DetailRow
+                  icon="pricetag-outline"
+                  tint={theme.tint.coral}
+                  dense
+                  label={t.eventOrganizer.depositLabel}
+                  value={isDeposit ? t.eventOrganizer.depositOn : t.eventOrganizer.depositOff}
+                  expanded={isDeposit}
+                  onPress={() => setIsDeposit((was) => !was)}
+                />
+                {isDeposit ? (
+                  <View style={{ gap: theme.spacing.xs, paddingBottom: theme.spacing.sm }}>
+                    <DetailRow
+                      icon="cash-outline"
+                      label={t.eventOrganizer.balanceDueLabel}
+                      trailing={
+                        <AmountField
+                          currency={currency}
+                          value={balanceDueMinor ?? 0n}
+                          onChange={setBalanceDueMinor}
+                          size="compact"
+                        />
+                      }
+                    />
+                    <DetailRow
+                      icon="calendar-outline"
+                      label={t.eventOrganizer.balanceDueDateLabel}
+                      value={balanceDueDate ? showDate(balanceDueDate, locale) : t.add}
+                      placeholder={!balanceDueDate}
+                      onPress={() => setEditingBalanceDueDate(true)}
+                    />
+                    {editingBalanceDueDate ? (
+                      <DateTimePicker
+                        value={dateFrom(balanceDueDate ?? expenseDate)}
+                        mode="date"
+                        display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                        onChange={applyBalanceDueDate}
+                      />
+                    ) : null}
+                  </View>
+                ) : null}
+              </View>
 
               {/* Where it happened (A43) — optional, opt-in, never a background
                 track — as the one-line row `compact` draws: a pin, the

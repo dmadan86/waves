@@ -99,6 +99,37 @@ export function spendByCategory(
   return out;
 }
 
+/** One expense, reduced to what a sub-event budget needs (`event-organizer.md`):
+ *  which sub-event it was tagged with, its currency and its full amount — a
+ *  sub-event cap measures the whole spend filed under it, not one share, the
+ *  same reason {@link CategorisedExpense} does. */
+export interface SubEventExpense {
+  readonly subEventId: string | null;
+  readonly currency: string;
+  readonly amountMinor: bigint;
+}
+
+/**
+ * Spend per sub-event, per currency (ADR-004: never mixed) — the Event-group
+ * twin of {@link spendByCategory}. Untagged spend (a null sub-event) is left
+ * out for the same reason an uncategorised expense is: a cap is only ever set
+ * on a named sub-event, so folding the rest in would measure it against
+ * nothing.
+ */
+export function spendBySubEvent(
+  expenses: readonly SubEventExpense[],
+): Map<string, Record<string, bigint>> {
+  const out = new Map<string, Record<string, bigint>>();
+  for (const expense of expenses) {
+    if (!expense.subEventId) continue;
+    const currency = expense.currency.toUpperCase();
+    const row = out.get(expense.subEventId) ?? {};
+    row[currency] = (row[currency] ?? 0n) + expense.amountMinor;
+    out.set(expense.subEventId, row);
+  }
+  return out;
+}
+
 /**
  * A budget against a spend map, in the budget's own currency. Returns null when
  * there is no budget to measure — "unset" is not the same as a cap of zero, and

@@ -11,8 +11,10 @@ import {
   budgetProgress,
   spendByCategory,
   spendByMember,
+  spendBySubEvent,
   type CategorisedExpense,
   type SharedExpense,
+  type SubEventExpense,
 } from '../src/trip/budget';
 
 const expenses: SharedExpense[] = [
@@ -64,6 +66,35 @@ describe('spendByCategory', () => {
     const spend = spendByCategory(expenses);
     const p = budgetProgress({ amountMinor: 6000n, currency: 'INR' }, spend.get('food'));
     expect(p).toMatchObject({ spentMinor: 5500n, remainingMinor: 500n, over: false });
+  });
+});
+
+describe('spendBySubEvent (event-organizer.md)', () => {
+  const expenses: SubEventExpense[] = [
+    { subEventId: 'mehendi', currency: 'INR', amountMinor: 75000n },
+    { subEventId: 'mehendi', currency: 'INR', amountMinor: 25000n },
+    { subEventId: 'sangeet', currency: 'INR', amountMinor: 400000n },
+    { subEventId: 'mehendi', currency: 'USD', amountMinor: 2000n },
+    { subEventId: null, currency: 'INR', amountMinor: 999n },
+  ];
+
+  it('sums the whole amount per sub-event, per currency — never one share', () => {
+    const spend = spendBySubEvent(expenses);
+    expect(spend.get('mehendi')).toEqual({ INR: 100000n, USD: 2000n });
+    expect(spend.get('sangeet')).toEqual({ INR: 400000n });
+  });
+
+  it('leaves untagged spend out entirely, same as an uncategorised expense', () => {
+    const spend = spendBySubEvent(expenses);
+    expect(spend.has('null')).toBe(false);
+    const totalInrAttributed = [...spend.values()].reduce((sum, row) => sum + (row.INR ?? 0n), 0n);
+    expect(totalInrAttributed).toBe(500000n);
+  });
+
+  it('plugs straight into budgetProgress, keyed by sub-event like a category cap', () => {
+    const spend = spendBySubEvent(expenses);
+    const p = budgetProgress({ amountMinor: 150000n, currency: 'INR' }, spend.get('mehendi'));
+    expect(p).toMatchObject({ spentMinor: 100000n, remainingMinor: 50000n, over: false });
   });
 });
 

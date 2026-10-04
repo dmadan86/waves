@@ -115,6 +115,16 @@ export interface ExpenseWriteBodyInput {
    * absence on the direct path was the parity hole this shared builder closes.
    */
   readonly baseVersionNo?: number | null;
+  /** Which sub-event this spend belongs to (`event-organizer.md`); null for an
+   *  untagged expense. */
+  readonly subEventId?: string | null;
+  /** This expense is a vendor deposit with a balance still owing
+   *  (`event-organizer.md`). */
+  readonly isDeposit?: boolean;
+  /** What is still owed, in minor units of `currency`. Null unless `isDeposit`. */
+  readonly balanceDueMinor?: bigint | null;
+  /** When the balance above is due (ISO date). Null unless `isDeposit`. */
+  readonly balanceDueDate?: string | null;
   /** Idempotency key: a retry after a flaky network must not double-post. */
   readonly clientMutationId: string;
 }
@@ -140,6 +150,10 @@ export interface ExpenseWriteBody {
   readonly receiptId: string | null;
   readonly fx: FxRecord | null;
   readonly baseVersionNo: number | null;
+  readonly subEventId: string | null;
+  readonly isDeposit: boolean;
+  readonly balanceDueMinor: string | null;
+  readonly balanceDueDate: string | null;
   readonly clientMutationId: string;
 }
 
@@ -176,6 +190,10 @@ export function buildExpenseWriteBody(input: ExpenseWriteBodyInput): ExpenseWrit
     receiptId: input.receiptId ?? null,
     fx: input.fx ?? null,
     baseVersionNo: input.baseVersionNo ?? null,
+    subEventId: input.subEventId ?? null,
+    isDeposit: input.isDeposit ?? false,
+    balanceDueMinor: input.balanceDueMinor == null ? null : input.balanceDueMinor.toString(),
+    balanceDueDate: input.balanceDueDate ?? null,
     clientMutationId: input.clientMutationId,
   };
 }
@@ -214,6 +232,15 @@ export interface ApplyExpenseArgsInput {
   readonly categoryMeta?: unknown;
   /** Raw client value; sanitised in the builder. */
   readonly location?: unknown;
+  /** Which sub-event this spend belongs to (`event-organizer.md`); null for an
+   *  untagged expense. */
+  readonly subEventId?: string | null;
+  /** This expense is a vendor deposit with a balance still owing. */
+  readonly isDeposit?: boolean;
+  /** What is still owed, in minor units of `currency`. Null unless `isDeposit`. */
+  readonly balanceDueMinor?: bigint | null;
+  /** When the balance above is due (ISO date). Null unless `isDeposit`. */
+  readonly balanceDueDate?: string | null;
 }
 
 /** The named arguments passed to `waves_apply_expense`. `p_source` is left to
@@ -240,6 +267,10 @@ export interface ApplyExpenseRpcArgs {
   readonly p_receipt_share_url: string | null;
   readonly p_category_meta: CategoryMeta | null;
   readonly p_location: ExpenseLocation | null;
+  readonly p_sub_event_id: string | null;
+  readonly p_is_deposit: boolean;
+  readonly p_balance_due_minor: string | null;
+  readonly p_balance_due_date: string | null;
 }
 
 /**
@@ -273,5 +304,9 @@ export function buildApplyExpenseArgs(input: ApplyExpenseArgsInput): ApplyExpens
     p_receipt_share_url: input.receiptShareUrl ?? null,
     p_category_meta: sanitiseCategoryMeta(input.categoryMeta),
     p_location: sanitiseExpenseLocation(input.location),
+    p_sub_event_id: input.subEventId ?? null,
+    p_is_deposit: input.isDeposit ?? false,
+    p_balance_due_minor: input.balanceDueMinor == null ? null : input.balanceDueMinor.toString(),
+    p_balance_due_date: input.balanceDueDate ?? null,
   };
 }
