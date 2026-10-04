@@ -71,16 +71,17 @@ describe('the Storage skeleton mirrors the loaded screen', () => {
   });
 
   it('crossfades the figures instead of swapping them with a cut', () => {
-    const values = screen.match(/function MeterValues\([\s\S]*?\n\}\n\n\/\*\* One thing/);
+    const values = screen.match(/function MeterValues\([\s\S]*?\n\}\n\n[\s\S]*?One thing/);
     expect(values, 'storage.tsx should define MeterValues').not.toBeNull();
     const text = values![0];
     expect(text).toMatch(/useCrossfade\(ready/);
     expect(text).toMatch(/reveal\.fromStyle/);
     expect(text).toMatch(/reveal\.toStyle/);
-    // The skeleton's own bar matches the real bar's height and radius, so
-    // revealing the real one never changes the card's box.
-    expect(text).toMatch(/Skeleton width="100%" height=\{10\} radius=\{5\}/);
-    expect(text).toMatch(/height: 10,[\s\S]*?borderRadius: 5,/);
+    // The skeleton's own bar matches the real bar's height and radius — the
+    // compact 6pt bar this screen tightened down to — so revealing the real
+    // one never changes the card's box.
+    expect(text).toMatch(/Skeleton width="100%" height=\{6\} radius=\{3\}/);
+    expect(text).toMatch(/height: 6,[\s\S]*?borderRadius: 3,/);
   });
 
   it('imports the crossfade hook from the shared motion module, not a one-off', () => {

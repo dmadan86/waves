@@ -73,12 +73,12 @@ export default function StorageUsageScreen() {
   });
 
   const header = (
-    <Row style={{ paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.sm }}>
+    <Row style={{ paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.xs }}>
       <IconButton label={t.common.back} onPress={() => router.back()}>
         <Ionicons name={directionalIcon('chevron-back')} size={iconSize.lg} color={ink} />
       </IconButton>
       <View style={{ flex: 1, alignItems: 'center' }}>
-        <Text style={{ fontSize: 20, fontWeight: '700', color: ink }}>{t.storage.title}</Text>
+        <Text style={{ fontSize: 18, fontWeight: '700', color: ink }}>{t.storage.title}</Text>
       </View>
       <View style={{ width: 44 }} />
     </Row>
@@ -94,8 +94,8 @@ export default function StorageUsageScreen() {
     if (isPaid || (isPaid !== undefined && !r2Enabled())) {
       return (
         <MeterCard>
-          <Text style={{ fontSize: 26, fontWeight: '800', color: ink }}>{t.storage.unlimited}</Text>
-          <Text style={{ fontSize: 13, lineHeight: 19, color: muted }}>
+          <Text style={{ fontSize: 20, fontWeight: '800', color: ink }}>{t.storage.unlimited}</Text>
+          <Text style={{ fontSize: 12, lineHeight: 16, color: muted }}>
             {t.storage.unlimitedBody}
           </Text>
         </MeterCard>
@@ -140,7 +140,7 @@ export default function StorageUsageScreen() {
                 t.storage.freeBody.replace('{cap}', formatBytes(data.capBytes, locale))
               )
             ) : (
-              <Skeleton width="70%" height={13} />
+              <Skeleton width="70%" height={12} />
             )
           }
           alarm={ready && full}
@@ -156,7 +156,7 @@ export default function StorageUsageScreen() {
         </MeterCard>
 
         <SoftCard>
-          <Text style={{ fontSize: 17, fontWeight: '800', color: ink }}>
+          <Text style={{ fontSize: 15, fontWeight: '800', color: ink }}>
             {t.storage.perksTitle}
           </Text>
           <Perk
@@ -184,23 +184,26 @@ export default function StorageUsageScreen() {
             accessibilityRole="button"
             accessibilityLabel={t.storage.upgrade}
             onPress={() => router.push('/settings/upgrade')}
-            style={({ pressed }) => ({ marginTop: 4, opacity: pressed ? 0.88 : 1 })}
+            style={({ pressed }) => ({ marginTop: theme.spacing.xs, opacity: pressed ? 0.88 : 1 })}
           >
             <LinearGradient
               colors={dark ? [theme.color.brand, theme.color.brand] : ['#5A3FD8', '#7A5CF5']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={{
-                height: 50,
-                borderRadius: 25,
+                // The standard button height (and this screen's 44pt floor
+                // for anything tappable) — the old 50pt disc read as a hero
+                // action this screen doesn't have room for any more.
+                height: 44,
+                borderRadius: 22,
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: 10,
+                gap: theme.spacing.sm,
               }}
             >
-              <Ionicons name="rocket-outline" size={20} color="#FFFFFF" />
-              <Text style={{ fontSize: 16, fontWeight: '700', color: '#FFFFFF' }}>
+              <Ionicons name="rocket-outline" size={18} color="#FFFFFF" />
+              <Text style={{ fontSize: 15, fontWeight: '700', color: '#FFFFFF' }}>
                 {t.storage.upgrade}
               </Text>
             </LinearGradient>
@@ -218,8 +221,11 @@ export default function StorageUsageScreen() {
         contentContainerStyle={{
           paddingHorizontal: theme.spacing.lg,
           paddingBottom: clearance,
-          paddingTop: theme.spacing.sm,
-          gap: 16,
+          paddingTop: theme.spacing.xs,
+          // Tight enough that the meter card and the perks card both read as
+          // one screen rather than a scroll — see the density note on
+          // `MeterCard` and `SoftCard` below.
+          gap: theme.spacing.sm,
         }}
         showsVerticalScrollIndicator={false}
       >
@@ -249,9 +255,9 @@ function SoftCard({ children }: { children: ReactNode }) {
     <View
       style={{
         backgroundColor: theme.color.surface,
-        borderRadius: 20,
-        padding: 18,
-        gap: 14,
+        borderRadius: theme.radius.md,
+        padding: theme.spacing.md,
+        gap: theme.spacing.sm,
         shadowColor: '#2A1E6B',
         shadowOpacity: theme.scheme === 'dark' ? 0 : 0.06,
         shadowRadius: 14,
@@ -291,43 +297,43 @@ function MeterCard({
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={{
-        borderRadius: 20,
-        padding: 18,
-        gap: 14,
+        borderRadius: theme.radius.md,
+        padding: theme.spacing.md,
+        gap: theme.spacing.sm,
         overflow: 'hidden',
       }}
     >
-      <Row style={{ alignItems: 'center', gap: 8 }}>
-        <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
+      <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+        <View style={{ flex: 1, minWidth: 0, gap: theme.spacing.xs }}>
           <Text style={{ fontSize: 12, fontWeight: '600', letterSpacing: 0.6, color: muted }}>
             {t.storage.usedLabel.toLocaleUpperCase()}
           </Text>
           {children}
         </View>
-        <FolderArt />
+        <FolderArt size={56} />
       </Row>
       {note ? (
         <Row
           style={{
             alignItems: 'center',
-            gap: 10,
-            paddingHorizontal: 12,
-            paddingVertical: 10,
-            borderRadius: 12,
+            gap: theme.spacing.sm,
+            paddingHorizontal: theme.spacing.sm,
+            paddingVertical: theme.spacing.xs,
+            borderRadius: theme.radius.sm,
             backgroundColor: lavender,
           }}
         >
           <Ionicons
             name="information-circle-outline"
-            size={20}
+            size={16}
             color={alarm ? theme.color.negative : accent}
           />
           <View style={{ flex: 1 }}>
             {typeof note === 'string' ? (
               <Text
+                numberOfLines={1}
                 style={{
-                  fontSize: 13,
-                  lineHeight: 18,
+                  fontSize: 12,
                   color: alarm ? theme.color.negative : muted,
                 }}
               >
@@ -344,8 +350,11 @@ function MeterCard({
 }
 
 /**
- * `MeterCard`'s figures: the used-of-cap line, the percent line, and the bar —
- * the three data-dependent pieces the loading state has to stand in for.
+ * `MeterCard`'s figures: the used-of-cap/percent row and the bar beneath it —
+ * the data-dependent pieces the loading state has to stand in for. Compacted
+ * onto one row ("7.2 MB of 10 MB" beside "72% used") and a 6pt bar, rather
+ * than the three stacked lines this used to take — the same figures, in the
+ * height a single list row would cost elsewhere in the app.
  *
  * Both faces stay mounted across the swap: a skeleton-shaped placeholder in
  * the normal flow (which is what gives this block its height before any data
@@ -385,34 +394,50 @@ function MeterValues({
       <Reanimated.View
         pointerEvents="none"
         importantForAccessibility="no-hide-descendants"
-        style={[{ gap: 4 }, reveal.fromStyle]}
+        style={[{ gap: theme.spacing.xs }, reveal.fromStyle]}
       >
-        <Skeleton width="60%" height={24} animated={!ready} />
-        <Skeleton width="40%" height={13} animated={!ready} />
-        <Skeleton width="100%" height={10} radius={5} animated={!ready} style={{ marginTop: 8 }} />
+        <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+          <Skeleton width="55%" height={18} animated={!ready} />
+          <Skeleton width={36} height={12} animated={!ready} />
+        </Row>
+        <Skeleton width="100%" height={6} radius={3} animated={!ready} />
       </Reanimated.View>
       {ready ? (
-        <Reanimated.View style={[StyleSheet.absoluteFill, { gap: 4 }, reveal.toStyle]}>
-          <Text
-            style={{ fontSize: 24, fontWeight: '800', color: ink }}
-            numberOfLines={1}
-            adjustsFontSizeToFit
-          >
-            {t.storage.usedOfCap
-              .replace('{used}', formatBytes(usedBytes, locale))
-              .replace('{cap}', formatBytes(capBytes, locale))}
-          </Text>
-          <Text style={{ fontSize: 13, color: full ? theme.color.negative : muted }}>
-            {t.storage.percentUsed.replace('{percent}', String(percent))}
-          </Text>
-          {/* The bar. A flex row so the fill grows from the writing start — left
-              in LTR, right in RTL — without any manual direction handling. */}
+        <Reanimated.View
+          style={[StyleSheet.absoluteFill, { gap: theme.spacing.xs }, reveal.toStyle]}
+        >
+          {/* Used-of-cap and the percent now share one row — the two used to
+              stack as their own lines, which is most of what made this card
+              tall. */}
+          <Row style={{ alignItems: 'baseline', gap: theme.spacing.sm }}>
+            <Text
+              style={{ flex: 1, fontSize: 18, fontWeight: '800', color: ink }}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+            >
+              {t.storage.usedOfCap
+                .replace('{used}', formatBytes(usedBytes, locale))
+                .replace('{cap}', formatBytes(capBytes, locale))}
+            </Text>
+            <Text
+              style={{
+                fontSize: 12,
+                fontWeight: '700',
+                color: full ? theme.color.negative : muted,
+              }}
+              numberOfLines={1}
+            >
+              {t.storage.percentUsed.replace('{percent}', String(percent))}
+            </Text>
+          </Row>
+          {/* The bar, slimmed to 6pt. A flex row so the fill grows from the
+              writing start — left in LTR, right in RTL — without any manual
+              direction handling. */}
           <View
             style={{
               flexDirection: 'row',
-              height: 10,
-              marginTop: 8,
-              borderRadius: 5,
+              height: 6,
+              borderRadius: 3,
               backgroundColor: dark ? theme.color.surfaceMuted : '#ECEAF4',
               overflow: 'hidden',
             }}
@@ -421,7 +446,7 @@ function MeterValues({
               style={{
                 width: `${Math.max(percent, usedBytes > 0 ? 4 : 0)}%`,
                 backgroundColor: fill,
-                borderRadius: 5,
+                borderRadius: 3,
               }}
             />
           </View>
@@ -431,7 +456,16 @@ function MeterValues({
   );
 }
 
-/** One thing an upgrade brings: a tinted disc, a title and a line. */
+/**
+ * One thing an upgrade brings: a tinted disc, a title and a line.
+ *
+ * Not a tappable row — just three facts in a list — so it carries none of the
+ * 44pt touch-target floor the upgrade button below it does, and can run as
+ * tight as `SettingsSection`'s own rows: a smaller disc (32pt, an 18pt glyph,
+ * the same `iconSize.md` the rest of the app's list rows draw at), a tighter
+ * gap to the text, and both lines capped to one so three perks plus the
+ * button fit without the card growing past a phone's fold.
+ */
 function Perk({
   icon,
   fg,
@@ -448,22 +482,26 @@ function Perk({
   const theme = useTheme();
   const { dark, ink, muted } = useStorageInks();
   return (
-    <Row style={{ alignItems: 'center', gap: 14 }}>
+    <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
       <View
         style={{
-          width: 44,
-          height: 44,
-          borderRadius: 22,
+          width: 32,
+          height: 32,
+          borderRadius: 16,
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: dark ? theme.color.surfaceMuted : bg,
         }}
       >
-        <Ionicons name={icon} size={22} color={fg} />
+        <Ionicons name={icon} size={iconSize.md} color={fg} />
       </View>
-      <View style={{ flex: 1, minWidth: 0, gap: 1 }}>
-        <Text style={{ fontSize: 15, fontWeight: '700', color: ink }}>{title}</Text>
-        <Text style={{ fontSize: 13, color: muted }}>{sub}</Text>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text style={{ fontSize: 14, fontWeight: '700', color: ink }} numberOfLines={1}>
+          {title}
+        </Text>
+        <Text style={{ fontSize: 12, color: muted }} numberOfLines={1}>
+          {sub}
+        </Text>
       </View>
     </Row>
   );
@@ -471,18 +509,52 @@ function Perk({
 
 /** The meter's picture: a photo and a receipt tucked into a folder, a cloud
  *  above, two leaves. Drawn from views and glyphs, so it themes and costs no
- *  asset. */
-function FolderArt() {
+ *  asset, at its native 108×110 — `size` scales that whole drawing down
+ *  (via `transform`, centred in the box it reserves) rather than re-tuning
+ *  every coordinate by hand, which is how the compact meter card fits this
+ *  picture into a corner instead of a card's worth of its own height. */
+function FolderArt({ size = 108 }: { size?: number }) {
   const theme = useTheme();
   const dark = theme.scheme === 'dark';
   const folder = dark ? '#4A4290' : '#C9C2FA';
+  const scale = size / 108;
+  const height = 110 * scale;
   return (
     <View
       pointerEvents="none"
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
-      style={{ width: 108, height: 110 }}
+      style={{ width: size, height }}
     >
+      <View
+        style={{
+          position: 'absolute',
+          left: (size - 108) / 2,
+          top: (height - 110) / 2,
+          width: 108,
+          height: 110,
+          transform: [{ scale }],
+        }}
+      >
+        <FolderArtDrawing dark={dark} folder={folder} theme={theme} />
+      </View>
+    </View>
+  );
+}
+
+/** The drawing itself, at its native 108×110 — unchanged from before `size`
+ *  existed, just pulled out so `FolderArt` can scale it as one unit. */
+function FolderArtDrawing({
+  dark,
+  folder,
+  theme,
+}: {
+  dark: boolean;
+  folder: string;
+  theme: ReturnType<typeof useTheme>;
+}) {
+  return (
+    <>
       <Ionicons
         name="cloud"
         size={40}
@@ -566,6 +638,6 @@ function FolderArt() {
           borderRadius: 10,
         }}
       />
-    </View>
+    </>
   );
 }
