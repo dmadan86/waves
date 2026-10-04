@@ -38,9 +38,10 @@ interface ExpoLocation {
   requestForegroundPermissionsAsync(): Promise<{ status: string; canAskAgain: boolean }>;
   getCurrentPositionAsync(options?: {
     accuracy?: number;
-  }): Promise<{ coords: { latitude: number; longitude: number } }>;
+  }): Promise<{ coords: { latitude: number; longitude: number }; timestamp?: number }>;
   getLastKnownPositionAsync(): Promise<{
     coords: { latitude: number; longitude: number };
+    timestamp?: number;
   } | null>;
   reverseGeocodeAsync(location: {
     latitude: number;
@@ -157,42 +158,82 @@ function placeName(address: LocationGeocodedAddress | undefined): string | null 
 }
 
 /**
- * A position fix that neither hangs nor gives up too easily.
- *
- * A fresh GPS read is raced against a short timeout — indoors or on a cold
- * receiver it can otherwise block for tens of seconds, or never resolve — and if
- * it loses, the last known fix is used instead. Either is good enough to name a
- * place and drop a pin, and the point is to come back with *something* far more
- * often than a bare `getCurrentPositionAsync` does, which is what left the field
- * empty when a spend was logged indoors. `null` only when neither is available.
+ * How old a cached fix can be and still count as "fresh enough to use
+ * immediately" — skipping a new GPS read entirely. Two minutes covers the gap
+ * between opening the app and speaking an expense; anything older is more
+ * likely to be a stale cache from a previous session than where the person is
+ * now.
  */
-async function readPosition(
+const FRESH_FIX_MS = 2 * 60 * 1000;
+
+/**
+ * How long a fresh GPS read gets before we give up on it. Short on purpose:
+ * saving an expense must never wait on a slow or missing fix, only on this
+ * brief attempt. Indoors or on a cold receiver `getCurrentPositionAsync` can
+ * otherwise block for tens of seconds, or never resolve at all.
+ */
+const FAST_FIX_TIMEOUT_MS = 2000;
+
+/**
+ * Pure: whether a cached fix's `timestamp` is recent enough to skip a new GPS
+ * read. Exported for unit testing the fast-fix decision without touching
+ * `expo-location`. A missing or non-finite timestamp, or one in the future
+ * (a clock oddity), is never "fresh".
+ */
+export function isFixFresh(timestamp: number | undefined, now: number): boolean {
+  if (typeof timestamp !== 'number' || !Number.isFinite(timestamp)) return false;
+  const age = now - timestamp;
+  return age >= 0 && age <= FRESH_FIX_MS;
+}
+
+/**
+ * A coordinate fix that is fast above all else — this is the only hardware
+ * call {@link captureLocation} waits on, so saving an expense is never held up
+ * by it for more than {@link FAST_FIX_TIMEOUT_MS}.
+ *
+ * The last known fix is used immediately when it is fresh (see
+ * {@link isFixFresh}) — no GPS read at all. Otherwise a new read is raced
+ * against the short timeout, low/balanced accuracy being plenty for naming a
+ * place and dropping a pin; losing that race falls back to the last known fix
+ * even if stale, since a slightly-off pin beats none. `null` only when neither
+ * is available.
+ */
+async function readCoordsFast(
   Location: ExpoLocation,
 ): Promise<{ latitude: number; longitude: number } | null> {
+  let last: { coords: { latitude: number; longitude: number }; timestamp?: number } | null = null;
+  try {
+    last = await Location.getLastKnownPositionAsync();
+  } catch {
+    last = null;
+  }
+  if (last?.coords && isFixFresh(last.timestamp, Date.now())) {
+    return last.coords;
+  }
+
   try {
     const fresh = await Promise.race([
       Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
-      new Promise<null>((resolve) => setTimeout(() => resolve(null), 6000)),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), FAST_FIX_TIMEOUT_MS)),
     ]);
     if (fresh?.coords) return fresh.coords;
   } catch {
-    // A hardware failure on the fresh read is not the end — try the cache below.
+    // A hardware failure on the fresh read is not the end — fall back below.
   }
-  try {
-    const last = await Location.getLastKnownPositionAsync();
-    if (last?.coords) return last.coords;
-  } catch {
-    // Nothing usable; the caller reports "unavailable".
-  }
+
+  if (last?.coords) return last.coords;
   return null;
 }
 
 /**
- * Ask (once, just-in-time), read the current fix, and name it.
+ * Ask (once, just-in-time) and read a fast coordinate fix.
  *
- * A refusal comes back as `denied` — an answer, not an error. Reverse-geocoding
- * is best-effort: if it fails or runs offline the coordinates still come back
- * with a null name, because a point on a map is worth more than nothing.
+ * A refusal comes back as `denied` — an answer, not an error. This never waits
+ * on reverse-geocoding: the place name is not part of what this resolves, so a
+ * caller that wants one must ask for it separately with {@link reverseGeocode},
+ * on its own time. That is what keeps saving an expense from ever waiting on a
+ * map to load — offline, reverse-geocoding can hang far longer than the
+ * coordinate fix itself does, and a save needs only the coordinates.
  */
 export async function captureLocation(): Promise<LocationResult> {
   const Location = loadLocation();
@@ -206,22 +247,12 @@ export async function captureLocation(): Promise<LocationResult> {
         : (await Location.requestForegroundPermissionsAsync()).status;
     if (status !== 'granted') return { ok: false, why: LocationFailure.Denied };
 
-    const coords = await readPosition(Location);
+    const coords = await readCoordsFast(Location);
     if (!coords || !Number.isFinite(coords.latitude) || !Number.isFinite(coords.longitude)) {
       return { ok: false, why: LocationFailure.Unavailable };
     }
-    const lat = coords.latitude;
-    const lng = coords.longitude;
 
-    let name: string | null = null;
-    try {
-      const addresses = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng });
-      name = placeName(addresses[0]);
-    } catch {
-      name = null;
-    }
-
-    return { ok: true, location: { lat, lng, name } };
+    return { ok: true, location: { lat: coords.latitude, lng: coords.longitude, name: null } };
   } catch {
     return { ok: false, why: LocationFailure.Unavailable };
   }
@@ -235,7 +266,9 @@ export async function captureLocation(): Promise<LocationResult> {
  * module exists to avoid), so a fix is read only when the person has already
  * said yes on an earlier explicit "Add location". Undetermined, denied, no
  * module, or no GPS lock all come back as `null`, and the expense saves with no
- * place exactly as before. Reverse-geocoding stays best-effort.
+ * place exactly as before. Like {@link captureLocation}, this never waits on
+ * reverse-geocoding — the name comes back `null`; ask {@link reverseGeocode}
+ * separately for one, on its own time.
  */
 export async function captureLocationIfGranted(): Promise<ExpenseLocation | null> {
   const Location = loadLocation();
@@ -243,20 +276,11 @@ export async function captureLocationIfGranted(): Promise<ExpenseLocation | null
   try {
     const { status } = await Location.getForegroundPermissionsAsync();
     if (status !== 'granted') return null; // deliberately never requests here
-    const coords = await readPosition(Location);
+    const coords = await readCoordsFast(Location);
     if (!coords || !Number.isFinite(coords.latitude) || !Number.isFinite(coords.longitude)) {
       return null;
     }
-    const lat = coords.latitude;
-    const lng = coords.longitude;
-    let name: string | null = null;
-    try {
-      const addresses = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng });
-      name = placeName(addresses[0]);
-    } catch {
-      name = null;
-    }
-    return { lat, lng, name };
+    return { lat: coords.latitude, lng: coords.longitude, name: null };
   } catch {
     return null;
   }
@@ -278,6 +302,27 @@ export async function reverseGeocode(lat: number, lng: number): Promise<string |
   } catch {
     return null;
   }
+}
+
+/**
+ * Pure: whether `current` is still the same point that a background
+ * {@link reverseGeocode} resolved a name for.
+ *
+ * Every caller that patches a name in after the fact — the voice review, the
+ * add-expense form, the shared location field — reads a fix fast, shows it
+ * with no name, and only later (never awaited, never blocking Save) finds out
+ * what it is called. By the time that name arrives the reader may have moved
+ * the pin, cleared it, or picked a different spot by hand; patching in a name
+ * for a point that is no longer pinned would silently relabel whatever is
+ * there now. `current` is `null` (cleared) or at a different lat/lng: not the
+ * same point, so the name is dropped.
+ */
+export function locationUnchanged(
+  current: ExpenseLocation | null,
+  lat: number,
+  lng: number,
+): current is ExpenseLocation {
+  return current !== null && current.lat === lat && current.lng === lng;
 }
 
 /**

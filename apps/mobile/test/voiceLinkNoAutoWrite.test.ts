@@ -69,11 +69,17 @@ describe('a linked-in expense with no group', () => {
     expect(effect).toContain("dest.kind !== 'unassigned'");
   });
 
-  it('waits for the location fix only a moment', () => {
-    expect(voice).toMatch(/const LINK_LOCATION_WAIT_MS = \d+;/);
-    const ms = Number(voice.match(/const LINK_LOCATION_WAIT_MS = (\d+);/)?.[1]);
-    expect(ms).toBeLessThanOrEqual(2000);
-    expect(voice).toContain('(!locating || linkWaitOver)');
+  it('never waits on the location fix', () => {
+    // Save (and the widget's auto-save) must not hold for a location read —
+    // lib/location's own fast-fix timeout is the only wait, and it is never
+    // awaited here. Neither `canSave` nor `linkReady` gates on `locating`.
+    expect(voice).not.toContain('LINK_LOCATION_WAIT_MS');
+    expect(voice).not.toContain('linkWaitOver');
+    const canSave = between(
+      'const canSave =',
+      'drafts.every((draft) => toMinor(draft.amount, draft.currency ?? dc) !== null);',
+    );
+    expect(canSave).not.toContain('locating');
   });
 
   it('lands on Review, where the saved expense is at the top', () => {
