@@ -78,6 +78,16 @@ export interface GroupRow {
   budget_currency?: string | null;
   /** True while this row exists only in the local queue (ADR-005). */
   pending?: boolean;
+  /**
+   * True for the one client-side fixture group (`@/demo`), never for a real
+   * one. It never arrives from the mirror or the server — `@/data/hooks`
+   * stamps it on the single row it splices in — and every screen that reads
+   * it uses it for exactly one thing: showing the "Demo" mark. Nothing that
+   * decides whether a write reaches the server reads this flag; that guard
+   * goes by id (`demo/guard.ts`), because a flag is something a stale prop
+   * could drop and an id cannot.
+   */
+  isDemo?: boolean;
 }
 
 export interface MemberRow {

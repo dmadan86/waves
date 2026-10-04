@@ -118,6 +118,7 @@ vi.mock('@/lib/storage', () => ({ putImage: vi.fn(), removeRestrictedImage: vi.f
 vi.mock('@/lib/image', () => ({ pickAlbumPhoto: vi.fn() }));
 
 const hooks = await import('@/data/hooks');
+const { __resetDemoStoreForTest } = await import('@/demo/store');
 
 const ME = 'p-me';
 const OWNER = 'user-me';
@@ -131,6 +132,11 @@ beforeEach(() => {
   realtime.client.rpc.mockReset();
   observability.reportHandled.mockClear();
   auth.value = { session: { user: { id: OWNER } }, profile: { id: ME } };
+  // Every test here signs in as the same fixed `OWNER`; without a reset the
+  // first test with zero groups would seed the demo as `active` for that id
+  // once, in `@/demo/store`'s module-level cache, and every later test sharing
+  // the id would then see the demo group whether or not it belongs there.
+  __resetDemoStoreForTest();
 });
 
 afterEach(() => {
@@ -571,6 +577,7 @@ describe('people', () => {
         group_count: 1,
         only_group_id: 'g-1',
         last_activity_at: '2026-02-01',
+        is_demo: false,
       },
     ]);
   });

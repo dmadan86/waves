@@ -130,6 +130,9 @@ interface PersonGroup {
   topAbs: bigint;
   /** Newest activity across their rows, for the recent sort. */
   lastActivityAt: string | null;
+  /** One of the three demo friends (`@/demo`) — never a real person, and
+   *  never mixed with one: a demo person's rows are always all-demo. */
+  is_demo: boolean;
 }
 
 function absBig(v: bigint): bigint {
@@ -157,6 +160,7 @@ function groupByPerson(rows: PersonBalanceRow[]): PersonGroup[] {
         entries: [],
         topAbs: 0n,
         lastActivityAt: null,
+        is_demo: false,
       };
       map.set(row.person_key, g);
     }
@@ -166,6 +170,7 @@ function groupByPerson(rows: PersonBalanceRow[]): PersonGroup[] {
     const abs = absBig(BigInt(row.net));
     if (abs > g.topAbs) g.topAbs = abs;
     g.lastActivityAt = laterDate(g.lastActivityAt, row.last_activity_at);
+    g.is_demo = g.is_demo || row.is_demo === true;
   }
   return [...map.values()];
 }
@@ -1505,6 +1510,20 @@ const PersonRow = memo(function PersonRow({
           >
             {shownName}
           </Text>
+          {person.is_demo ? (
+            <View
+              style={{
+                paddingHorizontal: 6,
+                paddingVertical: 1,
+                borderRadius: 6,
+                backgroundColor: theme.color.surfaceMuted,
+              }}
+            >
+              <Text variant="micro" tone="muted" style={{ fontWeight: '700' }}>
+                {t.demo.badge}
+              </Text>
+            </View>
+          ) : null}
           {action === 'invite' && soloGroup ? (
             // A guest with no account yet: the useful action is the invite link
             // that also lets them claim this balance (A25). One group, one link.

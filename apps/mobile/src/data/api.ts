@@ -1364,6 +1364,10 @@ export interface PersonBalanceRow {
   only_group_id: string | null;
   /** Newest expense/settlement touching this person; null if none is visible. */
   last_activity_at: string | null;
+  /** True for one of the three demo friends (`@/demo`) — never a real person.
+   *  Set by `usePeopleBalances`/`aggregatePeopleBalances`, never by the RPC
+   *  this type otherwise mirrors. */
+  is_demo?: boolean;
 }
 
 /** One group's worth of a single person's balance, for the person-detail screen. */

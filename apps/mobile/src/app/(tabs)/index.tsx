@@ -670,9 +670,18 @@ export default function HomeScreen() {
                     const balance = summary.balanceFor(group.id);
                     // A running trip earns a live "on trip" tag; failing that, a
                     // just-made group wears "New" for its first couple of days.
+                    // The demo group outranks both — it is never "New" and
+                    // never genuinely "on trip", and it needs to read as
+                    // what it is before anything else about the row does.
                     const onTrip = ongoingTripIds.has(group.id);
                     const isNew = nowMs - Date.parse(group.created_at) < NEW_GROUP_WINDOW_MS;
-                    const tag = onTrip ? t.tagOnTrip : isNew ? t.tagNew : null;
+                    const tag = group.isDemo
+                      ? t.demo.badge
+                      : onTrip
+                        ? t.tagOnTrip
+                        : isNew
+                          ? t.tagNew
+                          : null;
                     return (
                       <GroupRow
                         key={group.id}
@@ -703,7 +712,7 @@ export default function HomeScreen() {
                         }
                         pendingLabel={summary.hasPending(group.id) ? t.pendingConfirmation : null}
                         tag={tag}
-                        tagTone={onTrip ? 'positive' : 'brand'}
+                        tagTone={group.isDemo ? 'neutral' : onTrip ? 'positive' : 'brand'}
                         divider={index > 0}
                         // The eye in the hero shuts the whole screen's money, not
                         // just the headline: masking one figure while twelve sit
@@ -980,7 +989,7 @@ function GroupRow({
   directionLabel: string;
   pendingLabel: string | null;
   tag: string | null;
-  tagTone: 'positive' | 'brand';
+  tagTone: 'positive' | 'brand' | 'neutral';
   /** The dashboard's eye is shut: show the mask in place of the amount. The
       row's standing ("You owe") stays — it is the figure that is private. */
   hidden?: boolean;
@@ -1080,12 +1089,18 @@ function GroupRow({
                   paddingVertical: 1,
                   borderRadius: 6,
                   backgroundColor:
-                    tagTone === 'positive' ? theme.color.positiveSoft : theme.color.brandSoft,
+                    tagTone === 'positive'
+                      ? theme.color.positiveSoft
+                      : tagTone === 'neutral'
+                        ? theme.color.surfaceMuted
+                        : theme.color.brandSoft,
                 }}
               >
                 <Text
                   variant="micro"
-                  tone={tagTone === 'positive' ? 'positive' : 'brand'}
+                  tone={
+                    tagTone === 'positive' ? 'positive' : tagTone === 'neutral' ? 'muted' : 'brand'
+                  }
                   style={{ fontWeight: '700' }}
                 >
                   {tag}

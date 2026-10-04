@@ -30,6 +30,8 @@ import {
 } from '@waves/ui';
 
 import { ensureGroupJoinToken, groupJoinLink } from '@/data/api';
+import { requestDemoGate } from '@/demo/gateStore';
+import { isDemoGroupId } from '@/demo/ids';
 import { friendlyError } from '@/lib/errors';
 import { useGroup } from '@/data/hooks';
 import { router } from '@/lib/navigation';
@@ -83,6 +85,13 @@ export default function InviteScreen() {
   const link = joinToken ? groupJoinLink(joinToken) : null;
 
   const ensure = async (): Promise<void> => {
+    // The demo trip has no row on the server for a join link to point at —
+    // inviting into it would be a real invite into a group that does not
+    // exist. Same sheet every other blocked demo write shows.
+    if (isDemoGroupId(groupId)) {
+      requestDemoGate();
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -105,11 +114,13 @@ export default function InviteScreen() {
     started.current = true;
     // Already have a link from the mirror → nothing to do; the QR is showing.
     if (group.data.join_token) return;
+    // The demo trip never gets a token at all — see `ensure()`.
+    if (isDemoGroupId(groupId)) return;
     // Deferred a microtask so the state ensure() sets does not run synchronously
     // inside the effect (that cascades renders); the mint still starts at once.
     void Promise.resolve().then(() => ensure());
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [group.isLoading, group.data]);
+  }, [group.isLoading, group.data, groupId]);
 
   const label = groupLabel(group.data, members.data ?? [], profile?.id);
   const message = t.people.shareMessage.replace('{group}', label).replace('{link}', link ?? '');

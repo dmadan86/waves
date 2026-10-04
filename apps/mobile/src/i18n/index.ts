@@ -4290,6 +4290,28 @@ export interface UiStrings {
     expenseSide: string;
     incomeSide: string;
   };
+  /** The client-side demo trip a brand-new account sees before it has any
+   *  group of its own — the "Demo" pill, the group's banner, the
+   *  write-blocked sheet, and Settings' own remove row. See `@/demo`. */
+  demo: {
+    /** The small pill on the demo group's card and on each demo friend's row. */
+    badge: string;
+    /** The banner across the top of the demo group's own screen. */
+    bannerTitle: string;
+    /** The destructive row — the group's ••• menu and Settings alike. */
+    removeAction: string;
+    /** Settings' own subtitle under `removeAction`. */
+    removeHint: string;
+    removeConfirmTitle: string;
+    removeConfirmBody: string;
+    removeConfirmCta: string;
+    /** The sheet shown instead of saving, the moment a demo write is
+     *  attempted — add expense, settle up, add a member, edit, invite. */
+    gateTitle: string;
+    gateBody: string;
+    gateCreateGroup: string;
+    gateKeepExploring: string;
+  };
 }
 
 const en: UiStrings = {
@@ -7698,6 +7720,20 @@ const en: UiStrings = {
     askSent: 'Thank you — we read every one of these.',
     expenseSide: 'Spending',
     incomeSide: 'Income',
+  },
+  demo: {
+    badge: 'Demo',
+    bannerTitle: 'This is a demo group — explore freely',
+    removeAction: 'Remove demo',
+    removeHint: "Takes the demo trip off your dashboard. This can't be undone.",
+    removeConfirmTitle: 'Remove the demo group?',
+    removeConfirmBody:
+      'This removes the demo trip and its three demo friends from your dashboard for good. Nothing of yours is affected — it was never saved anywhere.',
+    removeConfirmCta: 'Remove',
+    gateTitle: 'This is a demo',
+    gateBody: "Changes here aren't saved. Create your own group to start splitting real expenses.",
+    gateCreateGroup: 'Create a group',
+    gateKeepExploring: 'Keep exploring',
   },
 };
 
@@ -11270,6 +11306,21 @@ const ta: UiStrings = {
     expenseSide: 'செலவு',
     incomeSide: 'வருமானம்',
   },
+  demo: {
+    badge: 'டெமோ',
+    bannerTitle: 'இது ஒரு டெமோ குழு — தாராளமாக ஆராயுங்கள்',
+    removeAction: 'டெமோவை அகற்று',
+    removeHint: 'டெமோ பயணத்தை உங்கள் டாஷ்போர்டிலிருந்து அகற்றும். இதை மாற்ற முடியாது.',
+    removeConfirmTitle: 'டெமோ குழுவை அகற்றவா?',
+    removeConfirmBody:
+      'இது டெமோ பயணத்தையும் அதன் மூன்று டெமோ நண்பர்களையும் உங்கள் டாஷ்போர்டிலிருந்து நிரந்தரமாக அகற்றும். உங்களுடையது எதுவும் பாதிக்கப்படாது — இது எங்கும் சேமிக்கப்படவில்லை.',
+    removeConfirmCta: 'அகற்று',
+    gateTitle: 'இது ஒரு டெமோ',
+    gateBody:
+      'இங்கே செய்யும் மாற்றங்கள் சேமிக்கப்படாது. உண்மையான செலவுகளைப் பிரிக்க உங்கள் சொந்தக் குழுவை உருவாக்குங்கள்.',
+    gateCreateGroup: 'குழு உருவாக்கு',
+    gateKeepExploring: 'தொடர்ந்து ஆராயுங்கள்',
+  },
 };
 
 const hi: UiStrings = {
@@ -14694,6 +14745,20 @@ const hi: UiStrings = {
     askSent: 'धन्यवाद — हम हर एक पढ़ते हैं।',
     expenseSide: 'ख़र्च',
     incomeSide: 'आय',
+  },
+  demo: {
+    badge: 'डेमो',
+    bannerTitle: 'यह एक डेमो ग्रुप है — बेझिझक इसे एक्सप्लोर करें',
+    removeAction: 'डेमो हटाएं',
+    removeHint: 'डेमो ट्रिप को आपके डैशबोर्ड से हटा देता है। इसे पूर्ववत नहीं किया जा सकता।',
+    removeConfirmTitle: 'डेमो ग्रुप हटाएं?',
+    removeConfirmBody:
+      'इससे डेमो ट्रिप और उसके तीन डेमो दोस्त आपके डैशबोर्ड से हमेशा के लिए हट जाएंगे। आपकी किसी चीज़ पर असर नहीं पड़ेगा — यह कहीं सेव ही नहीं हुआ था।',
+    removeConfirmCta: 'हटाएं',
+    gateTitle: 'यह एक डेमो है',
+    gateBody: 'यहां किए बदलाव सेव नहीं होते। असली खर्च बांटने के लिए अपना ग्रुप बनाएं।',
+    gateCreateGroup: 'ग्रुप बनाएं',
+    gateKeepExploring: 'एक्सप्लोर करते रहें',
   },
 };
 
@@ -18658,6 +18723,20 @@ const ar: UiStrings = {
     askSent: 'شكراً — نقرأ كل واحدة منها.',
     expenseSide: 'الإنفاق',
     incomeSide: 'الدخل',
+  },
+  demo: {
+    badge: 'تجربة',
+    bannerTitle: 'هذي مجموعة تجريبية — تصفّح بحرية',
+    removeAction: 'إزالة التجربة',
+    removeHint: 'يشيل رحلة التجربة من لوحتك. ما يمكن التراجع عن هذا.',
+    removeConfirmTitle: 'إزالة المجموعة التجريبية؟',
+    removeConfirmBody:
+      'هذا بيشيل رحلة التجربة وأصدقاءها التجريبيين الثلاثة من لوحتك للأبد. ما يأثر على شي تبعك — أصلاً ما كان محفوظ بأي مكان.',
+    removeConfirmCta: 'إزالة',
+    gateTitle: 'هذي تجربة',
+    gateBody: 'التغييرات هنا ما تُحفظ. أنشئ مجموعتك الخاصة لتبدأ تقسّم مصاريف حقيقية.',
+    gateCreateGroup: 'إنشاء مجموعة',
+    gateKeepExploring: 'أكمل التصفّح',
   },
 };
 

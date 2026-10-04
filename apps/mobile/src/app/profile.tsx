@@ -22,6 +22,8 @@ import { SettingsSection } from '@/components/SettingsSection';
 import { SignOutSheet } from '@/components/SignOutSheet';
 import { SkeletonList } from '@/components/Skeletons';
 import { useSettledTotals } from '@/data/hooks';
+import { useDemoActive } from '@/demo/useDemoActive';
+import { useRemoveDemo } from '@/demo/useRemoveDemo';
 import { isRtlLanguage, LANGUAGE_NAMES, plural, useStrings } from '@/i18n';
 import { useLanguage } from '@/i18n/language';
 import { useAuth } from '@/lib/auth';
@@ -182,6 +184,8 @@ function ProfileForm() {
   const { preference: syncNetwork } = useSyncNetwork();
   const { preference: themePreference, overridden: themeOverridden } = useThemePreference();
   const { language, stored: languageChosen, restartNeeded } = useLanguage();
+  const demoActive = useDemoActive(profile?.id ?? null, false);
+  const removeDemo = useRemoveDemo();
 
   // The portrait, its sheet and its spinner are one behaviour shared with the
   // account screen — see `lib/avatarEditor`.
@@ -433,6 +437,19 @@ function ProfileForm() {
               label: t.privacy.row,
               route: '/settings/privacy',
             },
+            // Only while the demo trip is actually there to remove — once it
+            // is gone, this row would be an action with nothing left to act on.
+            ...(demoActive
+              ? [
+                  {
+                    icon: 'flask-outline' as const,
+                    label: t.demo.removeAction,
+                    hint: t.demo.removeHint,
+                    destructive: true,
+                    onPress: () => void removeDemo(),
+                  },
+                ]
+              : []),
           ]}
         />
 

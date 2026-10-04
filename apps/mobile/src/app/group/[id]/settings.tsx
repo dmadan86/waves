@@ -42,6 +42,7 @@ import { router } from '@/lib/navigation';
 import { isPhoneCountryError } from '@/lib/phone';
 import { CountryRow } from '@/components/CountryPicker';
 import { GroupCoverSheet } from '@/components/CoverEmojiPicker';
+import { useRemoveDemo } from '@/demo/useRemoveDemo';
 import { InfoDisclosure } from '@/components/InfoDisclosure';
 import { TripDates } from '@/components/TripDates';
 import { SettlesInRow, TripRatesCard, useGroupTripRateStore } from '@/components/TripRates';
@@ -165,6 +166,7 @@ export default function GroupSettingsScreen() {
   const { group, members, expenses } = useGroup(groupId);
   const ledger = useGroupLedger(groupId, viewerId);
   const updateGroup = useUpdateGroup(groupId);
+  const removeDemo = useRemoveDemo();
   const leaveGroup = useLeaveGroup(groupId);
   const deleteGroup = useDeleteGroup(groupId);
   const { isFavorite, toggle: toggleFavorite } = useFavorites();
@@ -1104,60 +1106,88 @@ export default function GroupSettingsScreen() {
             same grammar the account screen's danger zone uses; a section that
             ends things announces itself by being set off, not by a heading. */}
         <View style={{ gap: theme.spacing.xl }}>
-          <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
-            {/* One row, both directions. The mark stays the same either way: an
-                undo arrow would read better and points left, which is the wrong
-                way round in Arabic and is not in the mirror table — a
-                directional glyph for a reversible action is not worth a
-                wrong-facing arrow. The title says which way this row goes. */}
-            <ListRow
-              title={archived ? t.group.unarchive : t.group.archiveGroup}
-              subtitle={archived ? t.group.unarchiveHint : t.group.archiveHint}
-              leading={<ExitChip icon="archive-outline" tone="quiet" />}
-              onPress={archived ? unarchive : () => void archive()}
-            />
-            <View style={{ height: 1, backgroundColor: theme.color.border }} />
-            <ListRow
-              title={t.group.leaveGroup}
-              subtitle={t.group.leaveHint}
-              destructive
-              // Not `exit-outline`: that glyph is an arrow through a door, and
-              // an arrow drawn to the right still points right in a mirrored
-              // layout. Taking yourself off the list is direction-free.
-              leading={<ExitChip icon="person-remove-outline" tone="soft" />}
-              onPress={() => void leave()}
-            />
-          </Card>
-
-          {/* Deleting drops the group for everyone, so it is an admin-only
-              power (the RPC refuses it regardless) and stands alone. */}
-          {isAdmin ? (
-            <View style={{ gap: theme.spacing.sm }}>
-              <Card
-                padded={false}
-                style={{
-                  paddingHorizontal: theme.spacing.lg,
-                  borderWidth: 1,
-                  borderColor: theme.color.negative,
-                  opacity: deleteGroup.isPending ? 0.45 : 1,
-                }}
-              >
+          {group.data?.isDemo ? (
+            // The demo group has exactly one way out — archiving and leaving
+            // both assume a real membership and a real server row, neither of
+            // which this group has.
+            <Card
+              padded={false}
+              style={{
+                paddingHorizontal: theme.spacing.lg,
+                borderWidth: 1,
+                borderColor: theme.color.negative,
+              }}
+            >
+              <ListRow
+                title={t.demo.removeAction}
+                subtitle={t.demo.removeHint}
+                destructive
+                leading={<ExitChip icon="flask-outline" tone="loud" />}
+                onPress={() =>
+                  void removeDemo().then((removed) => {
+                    if (removed) router.replace('/');
+                  })
+                }
+              />
+            </Card>
+          ) : (
+            <>
+              <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
+                {/* One row, both directions. The mark stays the same either way: an
+                    undo arrow would read better and points left, which is the wrong
+                    way round in Arabic and is not in the mirror table — a
+                    directional glyph for a reversible action is not worth a
+                    wrong-facing arrow. The title says which way this row goes. */}
                 <ListRow
-                  title={t.group.deleteGroup}
-                  subtitle={t.group.deleteHint}
+                  title={archived ? t.group.unarchive : t.group.archiveGroup}
+                  subtitle={archived ? t.group.unarchiveHint : t.group.archiveHint}
+                  leading={<ExitChip icon="archive-outline" tone="quiet" />}
+                  onPress={archived ? unarchive : () => void archive()}
+                />
+                <View style={{ height: 1, backgroundColor: theme.color.border }} />
+                <ListRow
+                  title={t.group.leaveGroup}
+                  subtitle={t.group.leaveHint}
                   destructive
-                  leading={<ExitChip icon="trash-outline" tone="loud" />}
-                  onPress={deleteGroup.isPending ? undefined : () => void confirmDelete()}
+                  // Not `exit-outline`: that glyph is an arrow through a door, and
+                  // an arrow drawn to the right still points right in a mirrored
+                  // layout. Taking yourself off the list is direction-free.
+                  leading={<ExitChip icon="person-remove-outline" tone="soft" />}
+                  onPress={() => void leave()}
                 />
               </Card>
-              {/* An admin looking at an unsettled group should know what the
-                  row costs before they tap it, not only in the alert after. */}
-              {!ledger.groupSettled ? (
-                <Callout tone="negative">{t.group.deleteUnsettledHint}</Callout>
+
+              {/* Deleting drops the group for everyone, so it is an admin-only
+                  power (the RPC refuses it regardless) and stands alone. */}
+              {isAdmin ? (
+                <View style={{ gap: theme.spacing.sm }}>
+                  <Card
+                    padded={false}
+                    style={{
+                      paddingHorizontal: theme.spacing.lg,
+                      borderWidth: 1,
+                      borderColor: theme.color.negative,
+                      opacity: deleteGroup.isPending ? 0.45 : 1,
+                    }}
+                  >
+                    <ListRow
+                      title={t.group.deleteGroup}
+                      subtitle={t.group.deleteHint}
+                      destructive
+                      leading={<ExitChip icon="trash-outline" tone="loud" />}
+                      onPress={deleteGroup.isPending ? undefined : () => void confirmDelete()}
+                    />
+                  </Card>
+                  {/* An admin looking at an unsettled group should know what the
+                      row costs before they tap it, not only in the alert after. */}
+                  {!ledger.groupSettled ? (
+                    <Callout tone="negative">{t.group.deleteUnsettledHint}</Callout>
+                  ) : null}
+                  {deleteError !== null ? <Callout tone="negative">{deleteError}</Callout> : null}
+                </View>
               ) : null}
-              {deleteError !== null ? <Callout tone="negative">{deleteError}</Callout> : null}
-            </View>
-          ) : null}
+            </>
+          )}
         </View>
       </ScrollView>
     </Screen>

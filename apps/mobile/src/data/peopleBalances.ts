@@ -34,6 +34,10 @@ export interface PersonContribution {
   lastActivityAt: string | null;
   /** The person id of a viewer-recorded ghost merge (A38), else null. */
   mergePersonId: string | null;
+  /** True for a contribution drawn from the client-side demo fixture
+   *  (`@/demo`), never from a real group. Carried through to the aggregated
+   *  row so the Friends screen can mark that person as a demo friend. */
+  isDemo?: boolean;
 }
 
 /** The little of a member row this file needs to count people. */
@@ -99,6 +103,9 @@ interface Group {
   net: bigint;
   groupIds: Set<string>;
   last_activity_at: string | null;
+  /** Set once a demo contribution is folded in — a demo friend's person key
+   *  never collides with a real one's, so this never flips back off. */
+  is_demo: boolean;
 }
 
 /**
@@ -128,6 +135,7 @@ export function aggregatePeopleBalances(
         net: 0n,
         groupIds: new Set(),
         last_activity_at: null,
+        is_demo: false,
       };
       groups.set(mapKey, group);
     }
@@ -139,6 +147,7 @@ export function aggregatePeopleBalances(
     group.avatar_url = maxOrNull(group.avatar_url, c.avatarUrl);
     group.is_ghost = group.is_ghost && c.isGhost;
     group.last_activity_at = maxOrNull(group.last_activity_at, c.lastActivityAt);
+    group.is_demo = group.is_demo || c.isDemo === true;
   }
 
   const rows: PersonBalanceRow[] = [];
@@ -157,6 +166,7 @@ export function aggregatePeopleBalances(
       group_count: group.groupIds.size,
       only_group_id: group.groupIds.size === 1 ? [...group.groupIds][0]! : null,
       last_activity_at: group.last_activity_at,
+      is_demo: group.is_demo,
     });
   }
 
