@@ -145,7 +145,7 @@ export function BackupReminder(): React.JSX.Element | null {
       visible
       onClose={answer}
       closeLabel={t.backup.reminderLater}
-      style={{ maxWidth: 312, alignItems: 'center', gap: 10, padding: 16 }}
+      style={{ maxWidth: 312, alignItems: 'center', gap: 8, padding: 14 }}
     >
       <View style={{ alignSelf: 'stretch', flexDirection: 'row', justifyContent: 'flex-end' }}>
         <Pressable
@@ -166,12 +166,12 @@ export function BackupReminder(): React.JSX.Element | null {
         </Pressable>
       </View>
 
-      <BackupIllustration height={150} />
+      <BackupIllustration height={104} />
 
-      <Text variant="title" align="center">
+      <Text variant="title" align="center" style={{ fontSize: 20 }}>
         {t.backup.reminderTitle}
       </Text>
-      <Text variant="body" tone="muted" align="center" numberOfLines={3}>
+      <Text variant="caption" tone="muted" align="center" numberOfLines={2}>
         {reads?.lastBackupAt == null ? t.backup.reminderBodyNever : t.backup.reminderBodyStale}
       </Text>
 
@@ -180,24 +180,24 @@ export function BackupReminder(): React.JSX.Element | null {
           alignSelf: 'stretch',
           flexDirection: 'row',
           alignItems: 'center',
+          justifyContent: 'space-between',
           backgroundColor: theme.color.brandSoft,
           borderRadius: theme.radius.lg,
-          paddingVertical: 10,
+          paddingVertical: 6,
+          gap: 6,
         }}
       >
-        <FeatureCell
+        <FeatureChip
           icon="shield-checkmark-outline"
           iconColor={theme.color.brand}
           label={t.backup.reminderFeatureSafe}
         />
-        <View style={{ width: 1, height: 28, backgroundColor: theme.color.border }} />
-        <FeatureCell
+        <FeatureChip
           icon="phone-portrait-outline"
           iconColor={theme.color.brand}
           label={t.backup.reminderFeatureDevices}
         />
-        <View style={{ width: 1, height: 28, backgroundColor: theme.color.border }} />
-        <FeatureCell
+        <FeatureChip
           icon="cloud-done-outline"
           iconColor={DRIVE_GREEN}
           label={t.backup.reminderFeatureQuick}
@@ -214,7 +214,7 @@ export function BackupReminder(): React.JSX.Element | null {
           radius={theme.radius.pill}
           colors={theme.gradient.brand}
           style={{
-            height: 48,
+            height: 46,
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'center',
@@ -231,17 +231,20 @@ export function BackupReminder(): React.JSX.Element | null {
 
       <Button
         label={t.backup.reminderLater}
-        variant="secondary"
+        variant="ghost"
+        size="sm"
         fullWidth
-        style={{ height: 44 }}
+        style={{ height: 36 }}
         onPress={answer}
       />
     </Popup>
   );
 }
 
-/** One cell of the feature strip: a round icon over a two-line label. */
-function FeatureCell({
+/** One chip of the feature strip: a small icon beside a one-line label, laid
+ *  out in a row rather than stacked, so the whole strip reads as a single
+ *  compact band instead of three tall cells. */
+function FeatureChip({
   icon,
   iconColor,
   label,
@@ -250,22 +253,18 @@ function FeatureCell({
   iconColor: string;
   label: string;
 }) {
-  const theme = useTheme();
   return (
-    <View style={{ flex: 1, alignItems: 'center', gap: 4, paddingHorizontal: 4 }}>
-      <View
-        style={{
-          width: 28,
-          height: 28,
-          borderRadius: 14,
-          backgroundColor: theme.color.surface,
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <Ionicons name={icon} size={16} color={iconColor} />
-      </View>
-      <Text variant="micro" align="center" numberOfLines={2}>
+    <View
+      style={{
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 4,
+      }}
+    >
+      <Ionicons name={icon} size={14} color={iconColor} />
+      <Text variant="micro" tone="muted" numberOfLines={1}>
         {label}
       </Text>
     </View>
