@@ -305,6 +305,27 @@ describe('deciding whether a cached fix is fresh enough to skip a new GPS read',
   });
 });
 
+describe('deciding whether to patch a name onto a pin', () => {
+  it('patches only when the pin is still at the resolved point', async () => {
+    const { locationUnchanged } = await load();
+    const current = { lat: 12.9, lng: 77.6, name: null };
+    expect(locationUnchanged(current, 12.9, 77.6)).toBe(true);
+  });
+
+  it('refuses once the pin has been cleared', async () => {
+    const { locationUnchanged } = await load();
+    expect(locationUnchanged(null, 12.9, 77.6)).toBe(false);
+  });
+
+  it('refuses once the pin has moved — a hand-picked spot, or a fresh fix', async () => {
+    const { locationUnchanged } = await load();
+    const movedLat = { lat: 1, lng: 77.6, name: null };
+    const movedLng = { lat: 12.9, lng: 2, name: null };
+    expect(locationUnchanged(movedLat, 12.9, 77.6)).toBe(false);
+    expect(locationUnchanged(movedLng, 12.9, 77.6)).toBe(false);
+  });
+});
+
 describe('naming a point picked on the map', () => {
   it.each([
     [{ street: '100 Feet Rd', city: 'Bengaluru' }, '100 Feet Rd, Bengaluru'],

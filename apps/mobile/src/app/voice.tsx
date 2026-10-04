@@ -82,7 +82,12 @@ import {
 import { VoiceMicPanel } from '@/components/VoiceMicPanel';
 import { LocationField } from '@/components/LocationField';
 import { CategoryBadge } from '@/components/Category';
-import { captureLocation, locationAvailable, reverseGeocode } from '@/lib/location';
+import {
+  captureLocation,
+  locationAvailable,
+  locationUnchanged,
+  reverseGeocode,
+} from '@/lib/location';
 import { router } from '@/lib/navigation';
 import { pushToTalk } from '@/lib/pushToTalk';
 import { useToast } from '@/lib/toast';
@@ -1091,7 +1096,7 @@ export default function VoiceScreen() {
           if (!name) return;
           if (locationGen.current !== gen || locationTouched.current) return;
           setLocation((current) =>
-            current && current.lat === lat && current.lng === lng ? { ...current, name } : current,
+            locationUnchanged(current, lat, lng) ? { ...current, name } : current,
           );
         });
       } finally {

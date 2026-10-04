@@ -305,6 +305,27 @@ export async function reverseGeocode(lat: number, lng: number): Promise<string |
 }
 
 /**
+ * Pure: whether `current` is still the same point that a background
+ * {@link reverseGeocode} resolved a name for.
+ *
+ * Every caller that patches a name in after the fact — the voice review, the
+ * add-expense form, the shared location field — reads a fix fast, shows it
+ * with no name, and only later (never awaited, never blocking Save) finds out
+ * what it is called. By the time that name arrives the reader may have moved
+ * the pin, cleared it, or picked a different spot by hand; patching in a name
+ * for a point that is no longer pinned would silently relabel whatever is
+ * there now. `current` is `null` (cleared) or at a different lat/lng: not the
+ * same point, so the name is dropped.
+ */
+export function locationUnchanged(
+  current: ExpenseLocation | null,
+  lat: number,
+  lng: number,
+): current is ExpenseLocation {
+  return current !== null && current.lat === lat && current.lng === lng;
+}
+
+/**
  * A deep link that opens the point in Google Maps — the Google Maps app when it
  * is installed (this universal `/maps/search/` URL hands off to it on both iOS
  * and Android), else Google Maps in the browser. One provider on every platform,
