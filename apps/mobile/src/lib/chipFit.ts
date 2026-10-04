@@ -22,10 +22,19 @@ export interface ChipMetrics {
   gap: number;
 }
 
-export const CHIP_METRICS: ChipMetrics = { fontSize: 12, padX: 6, gap: 4 };
+/** Inline text: no padding, and `gap` is the width of the " · " separator. */
+export const CHIP_METRICS: ChipMetrics = { fontSize: 13, padX: 0, gap: 12 };
+
+/** Width taken by the leading "+ " before the first amount. */
+export const LEAD_WIDTH = 12;
+
+/** The trailing overflow label's text. */
+export function overflowLabel(n: number): string {
+  return `+${n} more`;
+}
 
 /** Average glyph width as a fraction of font size; digits and symbols run wide. */
-const GLYPH_EM = 0.62;
+const GLYPH_EM = 0.6;
 
 /** Estimated rendered width of a chip carrying `label`. */
 export function estimateChipWidth(label: string, metrics: ChipMetrics = CHIP_METRICS): number {
@@ -47,7 +56,7 @@ export function fitChips(
 
   const rowWidth = (count: number, overflow: number): number => {
     const parts = widths.slice(0, count);
-    if (overflow > 0) parts.push(estimateChipWidth(`+${overflow}`, metrics));
+    if (overflow > 0) parts.push(estimateChipWidth(overflowLabel(overflow), metrics));
     return parts.reduce((sum, w) => sum + w, 0) + Math.max(0, parts.length - 1) * metrics.gap;
   };
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { estimateChipWidth, fitChips } from '@/lib/chipFit';
+import { CHIP_METRICS, estimateChipWidth, fitChips, overflowLabel } from '@/lib/chipFit';
 
 describe('fitChips', () => {
   const labels = ['$120.50', '€40', 'AED 300', '¥5,000', '£9'];
@@ -17,9 +17,10 @@ describe('fitChips', () => {
     expect(fitChips(labels, 1000, 3)).toEqual({ shown: 3, hidden: 2 });
   });
 
-  it('leaves room for the +N chip', () => {
+  it('leaves room for the overflow label', () => {
     const w = (s: string): number => estimateChipWidth(s);
-    const avail = w(labels[0]!) + 4 + w(labels[1]!) + 4 + w('+3');
+    const avail =
+      w(labels[0]!) + CHIP_METRICS.gap + w(labels[1]!) + CHIP_METRICS.gap + w(overflowLabel(3));
     expect(fitChips(labels, avail)).toEqual({ shown: 2, hidden: 3 });
   });
 
@@ -31,7 +32,7 @@ describe('fitChips', () => {
   });
 
   it('shows only +N when no chip fits beside it', () => {
-    const avail = estimateChipWidth('+5');
+    const avail = estimateChipWidth(overflowLabel(5));
     expect(fitChips(labels, avail)).toEqual({ shown: 0, hidden: 5 });
   });
 

@@ -19,7 +19,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { iconSize, Row, Skeleton, Text, useTheme } from '@waves/ui';
 
 import { SplitMoney } from '@/components/SplitMoney';
-import { CHIP_METRICS, fitChips } from '@/lib/chipFit';
+import { fitChips, LEAD_WIDTH, overflowLabel } from '@/lib/chipFit';
 import { format, money } from '@waves/core';
 
 /** The other currencies a side holds, drawn as small chips under its figure. */
@@ -70,7 +70,7 @@ export function BalanceSide({
   );
   // Until measured, assume the narrowest plausible half-card so first paint
   // never overflows; the real width replaces it a frame later.
-  const fit = fitChips(labels, width > 0 ? width : 150);
+  const fit = fitChips(labels, (width > 0 ? width : 150) - LEAD_WIDTH);
   const showChips = !loading && !hidden && labels.length > 0;
   return (
     <View
@@ -111,34 +111,17 @@ export function BalanceSide({
         </Text>
       ) : null}
       {showChips ? (
-        <Row style={{ gap: CHIP_METRICS.gap, flexWrap: 'nowrap', overflow: 'hidden' }}>
+        <Text variant="caption" tone="muted" numberOfLines={1} style={{ fontSize: 13 }}>
+          {'+ '}
           {labels.slice(0, fit.shown).map((label, i) => (
-            <Chip key={chips![i]!.currency} label={label} color={color} />
+            <Text key={chips![i]!.currency}>
+              {i > 0 ? ' · ' : ''}
+              <Text style={{ color, fontWeight: '600', fontSize: 13 }}>{label}</Text>
+            </Text>
           ))}
-          {fit.hidden > 0 ? <Chip label={`+${fit.hidden}`} color={color} /> : null}
-        </Row>
+          {fit.hidden > 0 ? `${fit.shown > 0 ? ' · ' : ''}${overflowLabel(fit.hidden)}` : ''}
+        </Text>
       ) : null}
-    </View>
-  );
-}
-
-function Chip({ label, color }: { label: string; color: string }) {
-  return (
-    <View
-      style={{
-        paddingHorizontal: CHIP_METRICS.padX,
-        paddingVertical: 1,
-        borderRadius: 999,
-        borderWidth: 1,
-        borderColor: color,
-      }}
-    >
-      <Text
-        numberOfLines={1}
-        style={{ fontSize: CHIP_METRICS.fontSize, lineHeight: 16, fontWeight: '600', color }}
-      >
-        {label}
-      </Text>
     </View>
   );
 }
