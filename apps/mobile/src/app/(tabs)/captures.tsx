@@ -2315,7 +2315,11 @@ export default function CapturesScreen() {
                         ) : null,
                       note: (
                         <Text variant="caption" tone="muted" numberOfLines={1}>
-                          {plural(locale, batchPreview.count, t.captures.batchExpenses)}
+                          {editTarget
+                            ? editTarget.description
+                              ? `${editTarget.description} · ${dayHeading(locale, editTarget.expense_date)}`
+                              : dayHeading(locale, editTarget.expense_date)
+                            : plural(locale, batchPreview.count, t.captures.batchExpenses)}
                         </Text>
                       ),
                     }
