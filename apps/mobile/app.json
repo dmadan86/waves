@@ -93,6 +93,7 @@
         }
       ],
       "./plugins/withForegroundOnlyLocation",
+      "./plugins/withFirebaseInitFallback",
       [
         "expo-build-properties",
         {
