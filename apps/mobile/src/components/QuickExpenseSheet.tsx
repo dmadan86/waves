@@ -82,6 +82,7 @@ import type { PickedImage } from '@/lib/image';
 import { captureLocationIfGranted } from '@/lib/location';
 import { router } from '@/lib/navigation';
 import { useQuickReceipt } from '@/lib/quickReceipt';
+import { useToast } from '@/lib/toast';
 import { tripRateFor } from '@/lib/tripRates';
 import {
   groupDestination,
@@ -570,6 +571,7 @@ function QuickExpenseFooter({
   const labelOf = useGroupLabeller();
   const theme = useTheme();
   const { t } = useStrings();
+  const toast = useToast();
   const viewerId = useViewerId();
   const { members } = useGroup(group.id);
   const write = useWriteExpense(group.id);
@@ -721,16 +723,19 @@ function QuickExpenseFooter({
       });
       if (receipt) {
         // After the write, not beside it — the kept bill (E2) is keyed by
-        // groupId/expenseId, and the expense has to exist first. Best-effort
-        // and never awaited by the sheet's own close: the money is already
-        // saved, and a failed upload here is no worse than never having
-        // attached one — the bill can still be added from the full form.
+        // groupId/expenseId, and the expense has to exist first. Not awaited:
+        // the money is already saved and the sheet is closing, so this runs
+        // past that point rather than holding Save open for an upload. Unlike
+        // `lib/receiptQueue` this has no retry queue behind it, so a failure
+        // here is a real, permanent loss — the one thing the sheet still owes
+        // the reader is saying so, in a toast that outlives it, rather than
+        // leaving them to discover a missing bill later with no idea why.
         void uploadExpenseReceipt({
           groupId: group.id,
           expenseId,
           base64: receipt.base64,
           mimeType: receipt.mimeType,
-        }).catch(() => {});
+        }).catch(() => toast.show(t.receipts.couldNotAdd, 'negative'));
       }
       noteDestination(groupDestination(group.id));
       onSaved();
