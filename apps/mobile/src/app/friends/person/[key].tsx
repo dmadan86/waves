@@ -302,7 +302,9 @@ export default function PersonDetailScreen() {
                 label={t.person.notOnWaves}
                 action={t.people.invite}
                 actionLabel={fill(t.person.inviteA11y, { name: realName })}
-                onInvite={inviteGroupId ? () => router.push(`/group/${inviteGroupId}/invite`) : null}
+                onInvite={
+                  inviteGroupId ? () => router.push(`/group/${inviteGroupId}/invite`) : null
+                }
               />
             ) : null}
             {profile && !profile.is_ghost && !blocked && ready ? (

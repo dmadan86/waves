@@ -130,7 +130,9 @@ export function PersonActions({
     // No app to hand off to: show where to send it, then offer to record.
     const recordIt = await confirm({
       title: fill(t.misc.settlePayTitle, { name }),
-      body: t.misc.settlePayBody.replace('{rail}', payable.rail).replace('{handle}', payable.handle),
+      body: t.misc.settlePayBody
+        .replace('{rail}', payable.rail)
+        .replace('{handle}', payable.handle),
       confirmLabel: t.misc.recordIt,
     });
     if (recordIt) await record();
@@ -146,7 +148,11 @@ export function PersonActions({
             label={t.people.remind}
             accessibilityLabel={fill(t.person.remindA11y, { name })}
             icon={
-              <Ionicons name="notifications-outline" size={iconSize.sm} color={theme.color.onBrand} />
+              <Ionicons
+                name="notifications-outline"
+                size={iconSize.sm}
+                color={theme.color.onBrand}
+              />
             }
             disabled={nudge.pending}
             onPress={nudge.send}
