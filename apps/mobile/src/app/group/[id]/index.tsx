@@ -43,6 +43,7 @@ import {
   useSetGroupPin,
 } from '@/data/hooks';
 import { myStake } from '@/data/activity';
+import { useRemoveDemo } from '@/demo/useRemoveDemo';
 import { sendNudge, useNudge } from '@/lib/nudge';
 import { expenseTitle } from '@/data/expenseTitle';
 import { personKeyOf } from '@/data/peopleBalances';
@@ -496,6 +497,7 @@ export default function GroupScreen() {
   const pinnedIds = usePinnedGroupIds();
   const isPinned = pinnedIds.has(groupId);
   const setGroupPin = useSetGroupPin();
+  const removeDemo = useRemoveDemo();
   const openReceipts = useOpenReceipts(groupId);
   const cancelSettlement = useCancelSettlement(groupId);
 
@@ -786,6 +788,7 @@ export default function GroupScreen() {
   // Whether the list header has any card in it — it keeps its section gap
   // below only when it does, so an empty header adds nothing under the tabs.
   const hasHeaderCards =
+    groupData.isDemo === true ||
     stalledHere ||
     groupDrafts.length > 0 ||
     showTripNudge ||
@@ -819,6 +822,22 @@ export default function GroupScreen() {
       : []),
     { icon: 'download-outline', label: t.groupExport.menu, route: `/group/${groupId}/export` },
     { icon: 'settings-outline', label: t.group.settings, route: `/group/${groupId}/settings` },
+    // The demo's own way out, reachable from the same menu as everything
+    // else about the group — not only from the banner, which a person may
+    // have already scrolled past.
+    ...(groupData.isDemo
+      ? [
+          {
+            icon: 'flask-outline',
+            label: t.demo.removeAction,
+            onPress: () =>
+              void removeDemo().then((removed) => {
+                if (removed) router.replace('/');
+              }),
+            tone: 'danger',
+          } as OverflowMenuItem,
+        ]
+      : []),
   ];
 
   // A month heading or an expense row. Headings carry the between-section gap the
@@ -1154,6 +1173,40 @@ export default function GroupScreen() {
                     onClose={() => setMenuOpen(false)}
                     items={menuItems}
                   />
+
+                  {/* The demo trip says what it is before anything else on the
+              screen does — a banner, not a badge easy to miss on the way in,
+              with the one action that ends it right there beside the words. */}
+                  {groupData.isDemo ? (
+                    <Card style={{ backgroundColor: theme.color.surfaceMuted, gap: theme.spacing.sm }}>
+                      <Row style={{ gap: theme.spacing.sm, alignItems: 'center' }}>
+                        <Ionicons name="flask-outline" size={iconSize.md} color={theme.color.textMuted} />
+                        <Text variant="subheading" style={{ flex: 1 }}>
+                          {t.demo.bannerTitle}
+                        </Text>
+                      </Row>
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={t.demo.removeAction}
+                        hitSlop={8}
+                        onPress={() =>
+                          void removeDemo().then((removed) => {
+                            if (removed) router.replace('/');
+                          })
+                        }
+                        style={({ pressed }) => ({
+                          alignSelf: 'flex-start',
+                          minHeight: 44,
+                          justifyContent: 'center',
+                          opacity: pressed ? 0.6 : 1,
+                        })}
+                      >
+                        <Text variant="caption" tone="negative" style={{ fontWeight: '600' }}>
+                          {t.demo.removeAction}
+                        </Text>
+                      </Pressable>
+                    </Card>
+                  ) : null}
 
                   {/* Only the banners that need a decision survive inline — they
               carry the retry / discard buttons the header glyph cannot. Offline,

@@ -62,6 +62,16 @@ import {
 } from '@waves/core';
 
 import { isCrossCheckComparable } from '@/data/crossCheck';
+import { DEMO_GROUP_ID, isDemoGroupId } from '@/demo/ids';
+import { DemoWriteBlockedError } from '@/demo/guard';
+import { requestDemoGate } from '@/demo/gateStore';
+import { useDemoActive } from '@/demo/useDemoActive';
+import {
+  demoExpenses,
+  demoGroupRow,
+  demoMembers,
+  demoSettlements,
+} from '@/demo/fixtures';
 import { useAuth, useViewerId } from '@/lib/auth';
 import { reportHandled } from '@/lib/observability';
 import { normaliseContactPhone } from '@/lib/phone';
@@ -179,9 +189,19 @@ function useLocalRead<T>(data: T): LocalRead<T> {
  */
 export function useGroups(): LocalRead<GroupRow[]> {
   const { mirror, queue } = useSync();
-  const groups = useMemo(
+  const viewerId = useViewerId();
+  const realGroups = useMemo(
     () => materialiseGroups(mirror, queue) as unknown as GroupRow[],
     [mirror, queue],
+  );
+  // The authoritative "is this account brand new" read: this is the hook
+  // every list screen calls first, Home included, so it is the one place the
+  // demo decision (`demo/store.ts`) can trust `realGroups.length === 0` as
+  // meaning zero groups rather than zero groups *loaded so far*.
+  const demoActive = useDemoActive(viewerId, realGroups.length === 0);
+  const groups = useMemo(
+    () => (demoActive ? [...realGroups, demoGroupRow()] : realGroups),
+    [realGroups, demoActive],
   );
   return useLocalRead(groups);
 }
@@ -525,6 +545,11 @@ export function useMyTimeline(): LocalRead<TimelineEntry[]> {
 export function useHomeSummary(profileId: string | null) {
   const { mirror, queue, hydrated, status, hasSynced, flush } = useSync();
   const monthPrefix = useLocalMonthPrefix();
+  const realGroupsForDemo = useMemo(
+    () => materialiseGroups(mirror, queue) as unknown as GroupRow[],
+    [mirror, queue],
+  );
+  const demoActive = useDemoActive(profileId, realGroupsForDemo.length === 0);
 
   const summary = useMemo(() => {
     const membersByGroup = new Map<string, MemberRow[]>();
@@ -556,7 +581,7 @@ export function useHomeSummary(profileId: string | null) {
     // settlement's own timestamps. See `groupActivityOrder`.
     const activityByGroup = new Map<string, number>();
 
-    for (const group of materialiseGroups(mirror, queue) as unknown as GroupRow[]) {
+    for (const group of realGroupsForDemo) {
       const currency = group.default_currency ?? 'INR';
       membersByGroup.set(
         group.id,
@@ -629,10 +654,50 @@ export function useHomeSummary(profileId: string | null) {
       }
     }
 
+    // The demo group's own card needs a real balance and a real "last
+    // active" so it never looks broken — but its money is not the account's
+    // money, so it is deliberately left out of `totals`/`monthSpent` below
+    // (the hero's headline figures) rather than folded into them with a
+    // footnote. See the demo PR for why exclude won over an "incl. demo" label.
+    if (demoActive && profileId) {
+      const demo = demoGroupRow();
+      const demoMembersList = demoMembers(profileId);
+      membersByGroup.set(demo.id, demoMembersList);
+      const demoSettlementsList = demoSettlements();
+      const demoExpensesList = demoExpenses();
+      const demoSnapshots = demoExpensesList
+        .map((expense) => toSnapshot(expense))
+        .filter((snapshot): snapshot is ExpenseSnapshot => snapshot !== null);
+      withLedger.add(demo.id);
+
+      let lastActive = activityTime(demo.created_at);
+      for (const expense of demoExpensesList) {
+        const at = Math.max(activityTime(expense.created_at), activityTime(expense.deleted_at));
+        if (at > lastActive) lastActive = at;
+      }
+      for (const settlement of demoSettlementsList) {
+        const raised = activityTime(settlement.initiated_at);
+        if (raised > lastActive) lastActive = raised;
+        const confirmed = activityTime(settlement.confirmed_at);
+        if (confirmed > lastActive) lastActive = confirmed;
+      }
+      activityByGroup.set(demo.id, lastActive);
+
+      const demoNet = computeNetBalances(demoSnapshots, toSettlementSnapshots(demoSettlementsList));
+      const mine = demoMembersList.find((member) => isViewer(member, profileId));
+      if (mine) {
+        byGroup.set(demo.id, demoNet.get(demo.default_currency)?.get(mine.id) ?? 0n);
+        currencyByGroup.set(demo.id, demo.default_currency);
+      }
+    }
+
+    // The demo group sits in `byGroup` so its own card reads correctly, but
+    // never here: the hero's headline total is real money only (see the
+    // comment where the demo group's entry is built, above).
     const totals = totalsByCurrency(
-      [...byGroup].map(
-        ([groupId, balance]) => [currencyByGroup.get(groupId) ?? 'INR', balance] as const,
-      ),
+      [...byGroup]
+        .filter(([groupId]) => groupId !== DEMO_GROUP_ID)
+        .map(([groupId, balance]) => [currencyByGroup.get(groupId) ?? 'INR', balance] as const),
     );
 
     const monthSpent = [...monthByCurrency]
@@ -654,7 +719,7 @@ export function useHomeSummary(profileId: string | null) {
       withLedger,
       activityByGroup,
     };
-  }, [mirror, queue, profileId, monthPrefix]);
+  }, [mirror, queue, profileId, monthPrefix, realGroupsForDemo, demoActive]);
 
   // Memoised so the returned object keeps a stable identity across renders that
   // didn't change the underlying data. Without this every consumer got a fresh
@@ -818,6 +883,7 @@ export function useMergeCandidates(someoneLabel: string): LocalRead<MergeCandida
  */
 export function useKnownPeopleCount(profileId: string | null): LocalRead<number> {
   const { mirror, queue } = useSync();
+  const demoActive = useDemoActive(profileId, false);
 
   const count = useMemo(() => {
     if (!profileId) return 0;
@@ -828,8 +894,12 @@ export function useKnownPeopleCount(profileId: string | null): LocalRead<number>
       }) as unknown as MemberRow[];
       total += countOthersInGroup(members, profileId);
     }
+    // The three demo friends count too — "no friends yet" has to stop
+    // showing the moment a brand-new account's demo trip has friends in it,
+    // same as it would for a real one.
+    if (demoActive) total += countOthersInGroup(demoMembers(profileId), profileId);
     return total;
-  }, [mirror, queue, profileId]);
+  }, [mirror, queue, profileId, demoActive]);
 
   return useLocalRead(count);
 }
@@ -873,6 +943,7 @@ export function useGhostMergePersonIds(): ReadonlyMap<string, string> {
  */
 export function usePeopleBalances(profileId: string | null): LocalRead<PersonBalanceRow[]> {
   const { mirror, queue } = useSync();
+  const demoActive = useDemoActive(profileId, false);
 
   const rows = useMemo(() => {
     if (!profileId) return [];
@@ -881,19 +952,33 @@ export function usePeopleBalances(profileId: string | null): LocalRead<PersonBal
     const mergeByMember = new Map(ghostMerges(mirror).map((merge) => [merge.member_id, merge]));
 
     const contributions: PersonContribution[] = [];
-    for (const group of materialiseLedgerGroups(mirror, queue) as unknown as GroupRow[]) {
-      const members = materialiseMembers(mirror, queue, {
-        groupId: group.id,
-      }) as unknown as MemberRow[];
+    // The demo trip rides the same loop as every real group: its three
+    // friends are rows this screen already knows how to fold and sum, not a
+    // second list bolted on beside it.
+    const groups: GroupRow[] = [
+      ...(materialiseLedgerGroups(mirror, queue) as unknown as GroupRow[]),
+      ...(demoActive ? [demoGroupRow()] : []),
+    ];
+    for (const group of groups) {
+      const isDemo = group.id === DEMO_GROUP_ID;
+      const members = isDemo
+        ? demoMembers(profileId)
+        : (materialiseMembers(mirror, queue, { groupId: group.id }) as unknown as MemberRow[]);
       const me = members.find((member) => isViewer(member, profileId) && member.left_at === null);
       if (!me) continue;
       const byId = new Map(members.map((member) => [member.id, member] as const));
 
-      const snapshots = materialiseExpenses(mirror, queue, { groupId: group.id })
+      const snapshots = (isDemo
+        ? demoExpenses()
+        : (materialiseExpenses(mirror, queue, { groupId: group.id }) as unknown as ExpenseRow[])
+      )
         .map((expense) => toSnapshot(expense as unknown as ExpenseRow))
         .filter((snapshot): snapshot is ExpenseSnapshot => snapshot !== null);
       const settlementSnapshots = toSettlementSnapshots(
-        materialiseSettlements(mirror, queue, { groupId: group.id }) as unknown as SettlementRow[],
+        (isDemo
+          ? demoSettlements()
+          : (materialiseSettlements(mirror, queue, { groupId: group.id }) as unknown as SettlementRow[])
+        ) as unknown as SettlementRow[],
       );
 
       const activity = lastActivityByMember(snapshots, settlementSnapshots);
@@ -929,12 +1014,13 @@ export function usePeopleBalances(profileId: string | null): LocalRead<PersonBal
           net,
           lastActivityAt: activity.get(other.id) ?? null,
           mergePersonId: merge?.person_id ?? null,
+          isDemo,
         });
       }
     }
 
     return aggregatePeopleBalances(contributions);
-  }, [mirror, queue, profileId]);
+  }, [mirror, queue, profileId, demoActive]);
 
   return useLocalRead(rows);
 }
@@ -1024,8 +1110,33 @@ export function useDestinationUsage(): Map<string, DestinationUsage> {
  */
 export function useGroup(groupId: string) {
   const { mirror, queue } = useSync();
+  const viewerId = useViewerId();
+  const demo = isDemoGroupId(groupId);
+  // `isNewAccount` is `false` here on purpose, not a real read of the group
+  // count: this hook opens one already-known group, which on every ordinary
+  // path (tap a row on Home or Groups) means `useGroups` has already made
+  // the account's one-time demo decision. A deep link straight into a group
+  // screen on a brand-new install is the one path that could ask first; in
+  // that narrow case the demo simply does not resolve on this screen, and
+  // resolves normally a moment later once Home mounts and decides for real.
+  const demoActive = useDemoActive(demo ? viewerId : null, false);
+  const showDemo = demo && demoActive && viewerId !== null;
 
   const rows = useMemo(() => {
+    if (demo) {
+      if (!showDemo || !viewerId) {
+        return { group: null, members: [], settlements: [], activity: [], stored: [], withPending: [] };
+      }
+      const expenses = demoExpenses();
+      return {
+        group: demoGroupRow(),
+        members: demoMembers(viewerId),
+        settlements: demoSettlements(),
+        activity: [] as ActivityRow[],
+        stored: expenses,
+        withPending: expenses,
+      };
+    }
     // Build the one group we want instead of materialising and sorting every
     // group only to `.find` a single row.
     const built = materialiseGroup(mirror, queue, groupId) as unknown as GroupRow | undefined;
@@ -1060,7 +1171,7 @@ export function useGroup(groupId: string) {
     }) as unknown as ExpenseRow[];
 
     return { group, members, settlements, activity, stored, withPending };
-  }, [mirror, queue, groupId]);
+  }, [mirror, queue, groupId, demo, showDemo, viewerId]);
 
   const group = useLocalRead(rows.group);
   const members = useLocalRead(rows.members);
@@ -1071,7 +1182,9 @@ export function useGroup(groupId: string) {
   const balances = useQuery({
     queryKey: keys.balances(groupId),
     queryFn: () => fetchBalances(groupId),
-    enabled: Boolean(groupId),
+    // The demo group has no server row to cross-check against — asking would
+    // just be a network call that 404s on every open of a demo trip.
+    enabled: Boolean(groupId) && !demo,
   });
 
   return {
@@ -1896,6 +2009,19 @@ export function useUpdateGroup(groupId: string) {
   });
 }
 
+/**
+ * `updateMember`, `setMemberRole`, `leaveGroup` and `deleteGroup` all call a
+ * direct RPC rather than `mutate()` — the one choke point `touchesDemo` (and
+ * `@/sync/provider`'s `mutate`) already guards, documented over `mutate`
+ * itself. These four are the only writes that go around it, so each one
+ * guards itself the same way: a demo group id never reaches the network,
+ * and the person sees the demo sheet instead of a request that would 404.
+ */
+function rejectDemoWrite<T>(): Promise<T> {
+  requestDemoGate();
+  return Promise.reject(new DemoWriteBlockedError());
+}
+
 export function useUpdateMember(groupId: string) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -1905,7 +2031,7 @@ export function useUpdateMember(groupId: string) {
     }: {
       memberId: string;
       patch: Parameters<typeof updateMember>[1];
-    }) => updateMember(memberId, patch),
+    }) => (isDemoGroupId(groupId) ? rejectDemoWrite<void>() : updateMember(memberId, patch)),
     onSuccess: () => invalidateGroup(queryClient, groupId),
   });
 }
@@ -1915,7 +2041,7 @@ export function useSetMemberRole(groupId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ memberId, role }: { memberId: string; role: 'admin' | 'member' }) =>
-      setMemberRole(memberId, role),
+      isDemoGroupId(groupId) ? rejectDemoWrite<void>() : setMemberRole(memberId, role),
     onSuccess: () => invalidateGroup(queryClient, groupId),
   });
 }
@@ -1924,7 +2050,8 @@ export function useLeaveGroup(groupId: string) {
   const queryClient = useQueryClient();
   const { forgetGroup } = useSync();
   return useMutation({
-    mutationFn: leaveGroup,
+    mutationFn: (memberId: string) =>
+      isDemoGroupId(groupId) ? rejectDemoWrite<void>() : leaveGroup(memberId),
     // Leaving hides the group server-side (RLS), so it can never be pulled again
     // to signal its removal — the client must forget it locally, or it lingers
     // on the dashboard forever. Purge the mirror first, then refresh what is left.
@@ -1947,7 +2074,7 @@ export function useDeleteGroup(groupId: string) {
   const queryClient = useQueryClient();
   const { forgetGroup } = useSync();
   return useMutation({
-    mutationFn: () => deleteGroup(groupId),
+    mutationFn: () => (isDemoGroupId(groupId) ? rejectDemoWrite<void>() : deleteGroup(groupId)),
     onSuccess: async () => {
       await forgetGroup(groupId);
       invalidateGroup(queryClient, groupId);
@@ -2601,7 +2728,9 @@ export function useDecideMemberClaim(groupId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ claimId, approve }: { claimId: string; approve: boolean }) =>
-      decideMemberClaim(claimId, approve),
+      isDemoGroupId(groupId)
+        ? rejectDemoWrite<{ ok: boolean; reason?: string; status?: string }>()
+        : decideMemberClaim(claimId, approve),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: keys.memberClaims(groupId) });
       invalidateGroup(queryClient, groupId);
@@ -2617,7 +2746,10 @@ export function useDecideMemberClaim(groupId: string) {
 export function useClaimMemberAsMe(groupId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (memberId: string) => claimMemberAsMe(memberId),
+    mutationFn: (memberId: string) =>
+      isDemoGroupId(groupId)
+        ? rejectDemoWrite<{ ok: boolean; reason?: string; status?: string }>()
+        : claimMemberAsMe(memberId),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: keys.memberClaims(groupId) });
       invalidateGroup(queryClient, groupId);

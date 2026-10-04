@@ -326,6 +326,7 @@ export default function AllGroupsScreen() {
                     pinned={pinned}
                     pinLabel={`${pinned ? t.group.unpin : t.group.pin} ${row.item.label}`}
                     onTogglePin={() => setGroupPin.mutate({ groupId: group.id, pinned: !pinned })}
+                    isDemo={group.isDemo === true}
                   />
                 );
               }}
@@ -580,6 +581,7 @@ const GroupListRow = memo(function GroupListRow({
   pinned = false,
   pinLabel,
   onTogglePin,
+  isDemo = false,
 }: {
   groupId: string;
   label: string;
@@ -599,6 +601,9 @@ const GroupListRow = memo(function GroupListRow({
   /** Sorted to the top by `orderByPin`; carries the small pin glyph and is
       announced in the row's accessibility label. */
   pinned?: boolean;
+  /** The one client-side demo group (`@/demo`) — wears a small "Demo" pill
+      beside its name, same word the dashboard's own row and Friends use. */
+  isDemo?: boolean;
   /** "Pin Goa trip" / "Unpin Goa trip" — required whenever `onTogglePin` is
       passed; what a screen reader announces for the toggle below. */
   pinLabel?: string;
@@ -663,9 +668,27 @@ const GroupListRow = memo(function GroupListRow({
               the dashboard's preview clips it at one. */}
           <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
             {pinned ? <Ionicons name="pin" size={12} color={theme.color.textMuted} /> : null}
-            <Text variant="body" numberOfLines={2} style={{ flexShrink: 1, fontWeight: '600' }}>
+            <Text
+              variant="body"
+              numberOfLines={2}
+              style={{ flexShrink: 1, fontWeight: '600' }}
+            >
               {label}
             </Text>
+            {isDemo ? (
+              <View
+                style={{
+                  paddingHorizontal: 6,
+                  paddingVertical: 1,
+                  borderRadius: 6,
+                  backgroundColor: theme.color.surfaceMuted,
+                }}
+              >
+                <Text variant="micro" tone="muted" style={{ fontWeight: '700' }}>
+                  {t.demo.badge}
+                </Text>
+              </View>
+            ) : null}
           </Row>
           <Text variant="caption" tone="muted" numberOfLines={1}>
             {subtitle}
