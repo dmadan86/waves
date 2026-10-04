@@ -15,7 +15,8 @@ import type { ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useQuery } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Pressable, ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import Reanimated from 'react-native-reanimated';
 
 import {
   Button,
@@ -25,6 +26,7 @@ import {
   iconSize,
   Row,
   Screen,
+  Skeleton,
   Text,
   useTabBarClearance,
   useTheme,
@@ -33,7 +35,7 @@ import {
 import { canUploadGroupPhoto, myStorageUsage } from '@/data/api';
 import { formatBytes } from '@/lib/bytes';
 import { useStrings } from '@/i18n';
-import { SkeletonList } from '@/components/Skeletons';
+import { useCrossfade } from '@/lib/anim';
 import { router } from '@/lib/navigation';
 import { r2Enabled } from '@/lib/storage';
 import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
@@ -84,9 +86,12 @@ export default function StorageUsageScreen() {
 
   const body = () => {
     // Paid, or R2 not yet live: no ceiling applies, so state it plainly rather
-    // than drawing an empty bar.
-    if (isPaid === undefined) return <SkeletonList rows={2} />;
-    if (isPaid || !r2Enabled()) {
+    // than drawing an empty bar. Still a skeleton's business to stand in for —
+    // `isPaid === undefined` falls through to the meter-shaped skeleton below
+    // instead of a card of its own, because the common case (a free account)
+    // ends on that shape and a skeleton is for what is *likely* coming, not a
+    // third shape nobody else on the screen ever shows.
+    if (isPaid || (isPaid !== undefined && !r2Enabled())) {
       return (
         <MeterCard>
           <Text style={{ fontSize: 26, fontWeight: '800', color: ink }}>{t.storage.unlimited}</Text>
@@ -113,56 +118,37 @@ export default function StorageUsageScreen() {
       );
     }
 
-    if (usage.isLoading || !usage.data) return <SkeletonList rows={2} />;
-
-    const { usedBytes, capBytes } = usage.data;
-    const fraction = capBytes > 0 ? usedBytes / capBytes : 0;
+    // `isPaid === undefined` (still checking who pays) and `usage.isLoading`
+    // (checking the bytes) both land here, in the exact shape the free loaded
+    // screen below renders — meter card, then perks card — so there is nothing
+    // to swap when either resolves, only values inside that shape to reveal.
+    const ready = isPaid === false && !usage.isLoading && !!usage.data;
+    const data = usage.data;
+    const fraction = data && data.capBytes > 0 ? data.usedBytes / data.capBytes : 0;
     const percent = Math.min(100, Math.round(fraction * 100));
-    const full = usedBytes >= capBytes && capBytes > 0;
+    const full = Boolean(data && data.usedBytes >= data.capBytes && data.capBytes > 0);
     const fill = full ? theme.color.negative : accent;
 
     return (
       <>
         <MeterCard
           note={
-            full
-              ? t.storage.full
-              : t.storage.freeBody.replace('{cap}', formatBytes(capBytes, locale))
+            ready && data ? (
+              full ? t.storage.full : t.storage.freeBody.replace('{cap}', formatBytes(data.capBytes, locale))
+            ) : (
+              <Skeleton width="70%" height={13} />
+            )
           }
-          alarm={full}
+          alarm={ready && full}
         >
-          <Text
-            style={{ fontSize: 24, fontWeight: '800', color: ink }}
-            numberOfLines={1}
-            adjustsFontSizeToFit
-          >
-            {t.storage.usedOfCap
-              .replace('{used}', formatBytes(usedBytes, locale))
-              .replace('{cap}', formatBytes(capBytes, locale))}
-          </Text>
-          <Text style={{ fontSize: 13, color: full ? theme.color.negative : muted }}>
-            {t.storage.percentUsed.replace('{percent}', String(percent))}
-          </Text>
-          {/* The bar. A flex row so the fill grows from the writing start — left
-              in LTR, right in RTL — without any manual direction handling. */}
-          <View
-            style={{
-              flexDirection: 'row',
-              height: 10,
-              marginTop: 8,
-              borderRadius: 5,
-              backgroundColor: dark ? theme.color.surfaceMuted : '#ECEAF4',
-              overflow: 'hidden',
-            }}
-          >
-            <View
-              style={{
-                width: `${Math.max(percent, usedBytes > 0 ? 4 : 0)}%`,
-                backgroundColor: fill,
-                borderRadius: 5,
-              }}
-            />
-          </View>
+          <MeterValues
+            ready={ready}
+            usedBytes={data?.usedBytes ?? 0}
+            capBytes={data?.capBytes ?? 0}
+            percent={percent}
+            full={full}
+            fill={fill}
+          />
         </MeterCard>
 
         <SoftCard>
@@ -282,7 +268,14 @@ function MeterCard({
   alarm,
 }: {
   children: ReactNode;
-  note?: string;
+  /**
+   * A string renders in the free-tier note's own colour (muted, or alarm red
+   * when full); anything else — the loading skeleton's placeholder line — is
+   * rendered as given, since a grey bar has no "alarm" colour to carry. Either
+   * way the icon and lavender band around it are real from the first frame:
+   * only the sentence inside is ever in question.
+   */
+  note?: ReactNode;
   alarm?: boolean;
 }) {
   const theme = useTheme();
@@ -325,19 +318,112 @@ function MeterCard({
             size={20}
             color={alarm ? theme.color.negative : accent}
           />
-          <Text
-            style={{
-              flex: 1,
-              fontSize: 13,
-              lineHeight: 18,
-              color: alarm ? theme.color.negative : muted,
-            }}
-          >
-            {note}
-          </Text>
+          <View style={{ flex: 1 }}>
+            {typeof note === 'string' ? (
+              <Text
+                style={{
+                  fontSize: 13,
+                  lineHeight: 18,
+                  color: alarm ? theme.color.negative : muted,
+                }}
+              >
+                {note}
+              </Text>
+            ) : (
+              note
+            )}
+          </View>
         </Row>
       ) : null}
     </LinearGradient>
+  );
+}
+
+/**
+ * `MeterCard`'s figures: the used-of-cap line, the percent line, and the bar —
+ * the three data-dependent pieces the loading state has to stand in for.
+ *
+ * Both faces stay mounted across the swap: a skeleton-shaped placeholder in
+ * the normal flow (which is what gives this block its height before any data
+ * exists) and the real figures laid over it once they arrive, each carrying
+ * half of a 180ms opacity crossfade (`useCrossfade`) so the numbers dissolve
+ * into place rather than popping in. The placeholder's own height and the
+ * bar's own height and radius match the real ones exactly, so nothing about
+ * the card's box changes size when the swap happens — only what is drawn
+ * inside it.
+ */
+function MeterValues({
+  ready,
+  usedBytes,
+  capBytes,
+  percent,
+  full,
+  fill,
+}: {
+  ready: boolean;
+  usedBytes: number;
+  capBytes: number;
+  percent: number;
+  full: boolean;
+  fill: string;
+}) {
+  const theme = useTheme();
+  const { t, locale } = useStrings();
+  const { dark, ink, muted } = useStorageInks();
+  const reveal = useCrossfade(ready);
+
+  return (
+    <View
+      accessible={!ready}
+      accessibilityRole={ready ? undefined : 'progressbar'}
+      accessibilityLabel={ready ? undefined : t.common.loading}
+    >
+      <Reanimated.View
+        pointerEvents="none"
+        importantForAccessibility="no-hide-descendants"
+        style={[{ gap: 4 }, reveal.fromStyle]}
+      >
+        <Skeleton width="60%" height={24} animated={!ready} />
+        <Skeleton width="40%" height={13} animated={!ready} />
+        <Skeleton width="100%" height={10} radius={5} animated={!ready} style={{ marginTop: 8 }} />
+      </Reanimated.View>
+      {ready ? (
+        <Reanimated.View style={[StyleSheet.absoluteFill, { gap: 4 }, reveal.toStyle]}>
+          <Text
+            style={{ fontSize: 24, fontWeight: '800', color: ink }}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+          >
+            {t.storage.usedOfCap
+              .replace('{used}', formatBytes(usedBytes, locale))
+              .replace('{cap}', formatBytes(capBytes, locale))}
+          </Text>
+          <Text style={{ fontSize: 13, color: full ? theme.color.negative : muted }}>
+            {t.storage.percentUsed.replace('{percent}', String(percent))}
+          </Text>
+          {/* The bar. A flex row so the fill grows from the writing start — left
+              in LTR, right in RTL — without any manual direction handling. */}
+          <View
+            style={{
+              flexDirection: 'row',
+              height: 10,
+              marginTop: 8,
+              borderRadius: 5,
+              backgroundColor: dark ? theme.color.surfaceMuted : '#ECEAF4',
+              overflow: 'hidden',
+            }}
+          >
+            <View
+              style={{
+                width: `${Math.max(percent, usedBytes > 0 ? 4 : 0)}%`,
+                backgroundColor: fill,
+                borderRadius: 5,
+              }}
+            />
+          </View>
+        </Reanimated.View>
+      ) : null}
+    </View>
   );
 }
 
