@@ -62,6 +62,7 @@ import { ReducedMotionProvider, useReducedMotion } from '@/lib/reducedMotion';
 import { RecentCountProvider } from '@/lib/recentCount';
 import { WatchBridgeProvider } from '@/lib/watch/bridge';
 import { QuickShortcutRouting, QuickShortcutsMenu } from '@/components/QuickShortcuts';
+import { DemoGateHost } from '@/components/demo/DemoGateHost';
 import { TourProvider, useTour } from '@/lib/tour';
 import { PromptQueueProvider } from '@/lib/promptQueue';
 import { SyncNetworkProvider } from '@/lib/syncNetwork';
@@ -258,6 +259,14 @@ function RootLayout() {
                                       the single shortcut the old version published,
                                       whether or not this launch gets past the lock. */}
                                         <QuickShortcutsMenu />
+                                        {/* Renders nothing: it is the one listener for a write
+                                      the sync layer blocked because it touched the demo
+                                      group (`@/sync/provider`'s `mutate` cannot reach
+                                      `useDialog()` itself — it sits above this provider).
+                                      Inside `DialogProvider` so it can actually show the
+                                      sheet; outside every gate because a signed-in screen
+                                      can attempt a demo write at any point past them. */}
+                                        <DemoGateHost />
                                         {/* Outside the lock and the auth gate on purpose: a build
                             we have stopped trusting should not be unlocking a
                             ledger or signing anybody in either. */}

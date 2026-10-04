@@ -23,6 +23,8 @@ import { randomUUID } from 'expo-crypto';
 import { pendingMutations } from '@waves/core';
 import type { MutationEnvelope, MutationKind } from '@waves/core';
 
+import { DemoWriteBlockedError, touchesDemo } from '@/demo/guard';
+import { requestDemoGate } from '@/demo/gateStore';
 import { useAuth } from '@/lib/auth';
 import { reportHandled } from '@/lib/observability';
 import { flushReceiptQueue } from '@/lib/receiptQueue';
@@ -323,6 +325,16 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       payload: Record<string, unknown>,
       clientMutationId?: string,
     ): Promise<string> => {
+      // Every write goes through here (the comment above `mutate` says why),
+      // which makes this the one place a demo id — the group itself, one of
+      // its members, one of its expenses, its settlement — has to be caught
+      // for the promise never to be kept to the server. Nothing is enqueued,
+      // nothing touches SQLite; the person sees the demo sheet instead (see
+      // `DemoGateHost`, which is the thing actually listening for this).
+      if (touchesDemo(groupId, payload)) {
+        requestDemoGate();
+        throw new DemoWriteBlockedError();
+      }
       const envelope: MutationEnvelope = {
         clientMutationId: clientMutationId ?? randomUUID(),
         kind,
