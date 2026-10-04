@@ -31,12 +31,30 @@ export const SHORTCUT_ACTIONS: readonly ShortcutAction[] = ['add', 'scan', 'voic
 /** The dynamic-quick-action ids we route on when the app is opened from one. */
 const ID_PREFIX = 'waves.shortcut.';
 
-const ICON: Record<ShortcutAction, string> = {
-  // Symbol names resolve on iOS; Android falls back to no icon, which is fine.
-  add: 'symbol:plus',
-  scan: 'symbol:camera',
-  voice: 'symbol:mic',
+/**
+ * iOS resolves a `symbol:` name to an SF Symbol natively — no asset needed.
+ * Android has no such catalogue: `expo-quick-actions` looks the string up as
+ * the name of a drawable resource in the app's own `res/`, so these are the
+ * purple-badge icons `plugins/withShortcutIcons.js` writes at prebuild time
+ * (see that file for the art). `asset:` is the documented prefix for a local
+ * resource; the native module strips it before the lookup.
+ */
+const IOS_ICON: Record<ShortcutAction, string> = {
+  add: 'symbol:plus.circle.fill',
+  scan: 'symbol:doc.text.viewfinder',
+  voice: 'symbol:mic.fill',
 };
+
+const ANDROID_ICON: Record<ShortcutAction, string> = {
+  add: 'asset:ic_shortcut_add',
+  scan: 'asset:ic_shortcut_scan',
+  voice: 'asset:ic_shortcut_voice',
+};
+
+/** The icon to publish a shortcut with, for whichever platform this is. */
+function iconFor(action: ShortcutAction): string {
+  return Platform.OS === 'android' ? ANDROID_ICON[action] : IOS_ICON[action];
+}
 
 type QuickActionsModule = {
   setItems: (items: unknown[]) => Promise<void> | void;
@@ -115,7 +133,7 @@ export async function syncQuickActions(titles: Record<ShortcutAction, string>): 
       SHORTCUT_ACTIONS.map((action) => ({
         id: `${ID_PREFIX}${action}`,
         title: titles[action],
-        icon: ICON[action],
+        icon: iconFor(action),
         params: { action },
       })),
     );

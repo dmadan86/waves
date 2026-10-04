@@ -117,6 +117,7 @@
       "expo-sqlite",
       "expo-apple-authentication",
       "expo-quick-actions",
+      "./plugins/withShortcutIcons",
       "./plugins/withAnimatedSplashMark",
       [
         "expo-splash-screen",
