@@ -10,13 +10,13 @@ Two plans. Monthly is pay-as-you-go; yearly is paid once a year, at roughly
 ten months' worth of the monthly price — "2 months free" — with a 7-day free
 trial.
 
-| Market | Currency | Monthly | Yearly | Yearly ≈ monthly × | Free trial |
-| --- | --- | --- | --- | --- | --- |
-| US | USD | $0.99 | $9.99 | 10.09× | 7 days, yearly only |
-| UK | GBP | £0.99 | £9.99 | 10.09× | 7 days, yearly only |
-| Australia | AUD | A$1.49 | A$14.99 | 10.06× | 7 days, yearly only |
-| UAE / Gulf¹ | AED | 3.99 | 39.99 | 10.02× | 7 days, yearly only |
-| India | INR | ₹39 | ₹399 | 10.23× | 7 days, yearly only |
+| Market      | Currency | Monthly | Yearly  | Yearly ≈ monthly × | Free trial          |
+| ----------- | -------- | ------- | ------- | ------------------ | ------------------- |
+| US          | USD      | $0.99   | $9.99   | 10.09×             | 7 days, yearly only |
+| UK          | GBP      | £0.99   | £9.99   | 10.09×             | 7 days, yearly only |
+| Australia   | AUD      | A$1.49  | A$14.99 | 10.06×             | 7 days, yearly only |
+| UAE / Gulf¹ | AED      | 3.99    | 39.99   | 10.02×             | 7 days, yearly only |
+| India       | INR      | ₹39     | ₹399    | 10.23×             | 7 days, yearly only |
 
 ¹ "Gulf" means the AED price is also the fallback shown for Saudi Arabia,
 Qatar, Kuwait, Bahrain and Oman (`fallbackRegionForCountry` in
@@ -100,7 +100,7 @@ any purchase flow on a device or simulator.
    done): Play Console → your app → Monetize → Subscriptions.
 2. **Create `waves_pro_monthly`**: "Create subscription" → product ID
    `waves_pro_monthly` → name "Waves Pro (monthly)". Add one base plan:
-   - Base plan ID: `monthly` (or any id — the *product* id is what the app
+   - Base plan ID: `monthly` (or any id — the _product_ id is what the app
      queries by, the base plan id is Google's internal detail).
    - Billing period: 1 month, auto-renewing.
    - Price: set each market's local price from the table above (plus every
@@ -125,7 +125,7 @@ any purchase flow on a device or simulator.
 
 1. **Create a Subscription Group** (once): App Store Connect → your app →
    Monetization → Subscriptions → "+" next to Subscription Groups — e.g.
-   "Waves Pro". Both plans must live in the *same* group so App Store treats
+   "Waves Pro". Both plans must live in the _same_ group so App Store treats
    them as alternatives (a buyer can be on at most one at a time, and
    switching is an upgrade/downgrade rather than two separate purchases).
 2. **Create the monthly subscription**: inside that group, "+" → Reference
@@ -160,31 +160,31 @@ any purchase flow on a device or simulator.
 - **VAT/GST is already included in the listed price** in every market except
   the US (this is how Apple and Google price subscriptions everywhere VAT/GST
   applies — the buyer never sees a price that grows at checkout). The
-  commission is computed on the *tax-exclusive* amount, because the tax
+  commission is computed on the _tax-exclusive_ amount, because the tax
   portion is collected and remitted to the relevant tax authority by the
   store, not kept by the developer and not commissioned.
 - **US sales tax is added on top of the listed price at checkout** (it is
   destination-based and varies by the buyer's state/county, so it cannot be
   baked into one listed price the way a national VAT can). It is not part of
   developer proceeds either way, so it does not change the "net" column — the
-  developer's net is 85% of the *listed* price, full stop, for the US row.
+  developer's net is 85% of the _listed_ price, full stop, for the US row.
 - Rates used: India GST 18%, UK VAT 20%, Australia GST 10%, UAE VAT 5%.
 
 **Net = listed price ÷ (1 + VAT/GST rate) × 0.85** (US: **listed price × 0.85**,
 no VAT/GST divide).
 
-| Market | Plan | Listed price | Net to Waves |
-| --- | --- | --- | --- |
-| US | Monthly | $0.99 | $0.84 |
-| US | Yearly | $9.99 | $8.49 |
-| UK | Monthly | £0.99 | £0.70 |
-| UK | Yearly | £9.99 | £7.08 |
-| Australia | Monthly | A$1.49 | A$1.15 |
-| Australia | Yearly | A$14.99 | A$11.58 |
-| UAE | Monthly | AED 3.99 | AED 3.23 |
-| UAE | Yearly | AED 39.99 | AED 32.37 |
-| India | Monthly | ₹39 | ₹28.09 |
-| India | Yearly | ₹399 | ₹287.42 |
+| Market    | Plan    | Listed price | Net to Waves |
+| --------- | ------- | ------------ | ------------ |
+| US        | Monthly | $0.99        | $0.84        |
+| US        | Yearly  | $9.99        | $8.49        |
+| UK        | Monthly | £0.99        | £0.70        |
+| UK        | Yearly  | £9.99        | £7.08        |
+| Australia | Monthly | A$1.49       | A$1.15       |
+| Australia | Yearly  | A$14.99      | A$11.58      |
+| UAE       | Monthly | AED 3.99     | AED 3.23     |
+| UAE       | Yearly  | AED 39.99    | AED 32.37    |
+| India     | Monthly | ₹39          | ₹28.09       |
+| India     | Yearly  | ₹399         | ₹287.42      |
 
 (Figures rounded to the nearest minor unit. Real settlement will also move
 with exchange rates on non-USD markets and with whichever exact commission
@@ -209,7 +209,7 @@ in the four shipped languages; this pricing/setup doc.
   endpoint that verifies the App Store / Play receipt (or uses
   [IAPKit](https://kit.openiap.dev/docs) / the stores' own server
   notifications — `App Store Server Notifications V2`, Play's Real-time
-  Developer Notifications) and is the *only* thing that ever grants
+  Developer Notifications) and is the _only_ thing that ever grants
   anything security-sensitive.
 - **The `paywall` route flag stays off.** This PR does not turn it on, and
   does not reconcile the paywall with `settings/upgrade` (which still tells
