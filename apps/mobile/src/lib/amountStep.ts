@@ -80,15 +80,16 @@ export function nudge(value: bigint, direction: 1 | -1, currency: CurrencyCode):
  * A fixed set — ₹100, ₹500, ₹1,000 — is right for exactly one size of bill and
  * silly for every other; offering "+₹500" on a ₹9 chai is the same mistake as
  * a ₹1 stepper on a flight, in the other direction. These are multiples of the
- * step the amount already earned, so they say +₹5/+₹10/+₹50 on a small figure
- * and +₹50/+₹100/+₹500 on a large one, and they change under your thumb as the
- * figure grows.
+ * step the amount already earned, so they say +₹5/+₹10/+₹50/+₹100 on a small
+ * figure and +₹50/+₹100/+₹500/+₹1,000 on a large one, and they change under
+ * your thumb as the figure grows. Four, to fill the row the amount card gives
+ * them edge to edge rather than leaving a gap.
  *
  * Additive rather than absolute, because on an expense you are topping up a
  * number you already have — the tip, the extra round — where an investing app's
  * quick amounts replace it.
  */
-export const QUICK_MULTIPLES = [5n, 10n, 50n] as const;
+export const QUICK_MULTIPLES = [5n, 10n, 50n, 100n] as const;
 
 export function quickAdds(value: bigint, currency: CurrencyCode): readonly bigint[] {
   const step = stepFor(value, currency);

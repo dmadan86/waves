@@ -55,12 +55,13 @@ import { randomUUID } from 'expo-crypto';
 import { Image } from 'expo-image';
 import { ActivityIndicator, Pressable, ScrollView, TextInput, View } from 'react-native';
 
-import { encodeTxn, toFxRecord, type ExpenseLocation } from '@waves/core';
-import { Button, Divider, iconSize, Row, Sheet, Text, useTheme } from '@waves/ui';
+import { encodeTxn, toFxRecord, type CategoryMeta, type ExpenseLocation } from '@waves/core';
+import { Button, iconSize, Row, Sheet, Text, useTheme } from '@waves/ui';
 
 import { DestinationPicker } from '@/components/DestinationPicker';
 import { DictateButton } from '@/components/DictateButton';
 import { QuickAmountRow } from '@/components/QuickAmountRow';
+import { QuickCategoryRow } from '@/components/QuickCategoryRow';
 import { GroupMark } from '@/components/GroupMark';
 import { uploadCapturePhoto, uploadExpenseReceipt } from '@/data/api';
 import {
@@ -69,11 +70,12 @@ import {
   useGroupFxRates,
   useGroupLabeller,
   useGroups,
+  useHomeSummary,
   useWriteExpense,
 } from '@/data/hooks';
 import { todayIso, useUpsertPersonalRecord } from '@/data/personal';
 import { isGhost, isViewer, type GroupRow } from '@/data/types';
-import { fill, useStrings } from '@/i18n';
+import { fill, plural, useStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
 import { useDefaultCurrency } from '@/lib/currency';
 import { CurrencyChoices } from '@/components/expense/CurrencySheet';
@@ -113,11 +115,16 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
     borderColor: picked ? accent : 'transparent',
     backgroundColor: picked ? (dark ? theme.color.brandSoft : '#FFFFFF') : soft,
   });
-  const { t } = useStrings();
+  const { t, locale } = useStrings();
   const defaultCurrency = useDefaultCurrency();
   const groups = useGroups();
   const labelOf = useGroupLabeller();
   const recents = useRecentDestinations();
+  const viewerId = useViewerId();
+  // The same per-group member count the groups list and dashboard already
+  // compute — read here rather than a query per chip, which is what a
+  // `useGroup(group.id)` inside the chip's own row would have been.
+  const { memberCountFor } = useHomeSummary(viewerId);
   // The one receipt a quick add can carry — held here, not uploaded until the
   // footer below actually saves (see lib/quickReceipt). Destructured rather
   // than passed around as one object, so the reset effect below can name the
@@ -146,6 +153,15 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
   // not a group and does not split. Everything else is a group id.
   const [chosenId, setChosenId] = useState<string | 'personal' | null>(null);
   const [note, setNote] = useState('');
+  // Optional, and guessed at nothing: see QuickCategoryRow's own doc comment
+  // for why this never pre-selects. `meta` is the custom-tag snapshot and is
+  // only ever set alongside a custom `category` key, never a built-in one.
+  const [category, setCategoryState] = useState<string | null>(null);
+  const [categoryMeta, setCategoryMeta] = useState<CategoryMeta | null>(null);
+  const setCategory = (key: string | null, meta: CategoryMeta | null): void => {
+    setCategoryState(key);
+    setCategoryMeta(meta);
+  };
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickingCurrency, setPickingCurrency] = useState(false);
 
@@ -196,6 +212,7 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
     setAmount(0n);
     setChosenId(null);
     setNote('');
+    setCategory(null, null);
     setPickerOpen(false);
     setPickingCurrency(false);
     setPlace(null);
@@ -255,8 +272,11 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
    * and it takes the same amount and currency.
    */
   const handOff = (): void => {
-    // The note travels with the amount: read before the reset empties it.
+    // The note and category travel with the amount: read before the reset
+    // empties them.
     const typed = note.trim();
+    const carriedCategory = category;
+    const carriedMeta = categoryMeta;
     closeAndReset();
     if (chosen) {
       router.push({
@@ -266,6 +286,8 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
           amount: amount.toString(),
           currency,
           ...(typed ? { description: typed } : {}),
+          ...(carriedCategory ? { category: carriedCategory } : {}),
+          ...(carriedMeta ? { categoryMeta: JSON.stringify(carriedMeta) } : {}),
           // Says where this came from, which is what lets the form seed the
           // amount rather than read it as a stale draft and drop it.
           quick: '1',
@@ -287,41 +309,62 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
     }
     router.push({
       pathname: '/capture',
-      params: { amount: amount.toString(), cur: currency, ...(typed ? { desc: typed } : {}) },
+      params: {
+        amount: amount.toString(),
+        cur: currency,
+        ...(typed ? { desc: typed } : {}),
+        ...(carriedCategory ? { category: carriedCategory } : {}),
+        ...(carriedMeta ? { categoryMeta: JSON.stringify(carriedMeta) } : {}),
+      },
     });
   };
 
   return (
-    <Sheet
-      visible={visible}
-      onClose={closeAndReset}
-      title={t.quickExpense.title}
-      titleAction={
-        // A small text link rather than a button — it is the escape hatch,
-        // not a second call to action beside the heading. The hit area stays
-        // full-sized through `hitSlop` even though the chip it used to sit in
-        // is gone.
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t.quickExpense.advancedLong}
-          onPress={handOff}
-          hitSlop={10}
-          style={({ pressed }) => ({
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 4,
-            paddingVertical: 4,
-            opacity: pressed ? 0.6 : 1,
-          })}
-        >
-          <Text style={{ fontSize: 13, fontWeight: '600', color: accent }}>
-            {t.quickExpense.advanced}
-          </Text>
-          <Ionicons name="chevron-forward" size={13} color={accent} />
-        </Pressable>
-      }
-    >
+    <Sheet visible={visible} onClose={closeAndReset} handle>
       <View style={{ gap: theme.spacing.md }}>
+        {/* The sheet's own heading, drawn by hand rather than through the
+            Sheet's `title`/`titleAction` pair: those hold one line, and this
+            sheet wants two — the name, and the sentence under it saying what
+            it is for. The grab handle above still comes from the Sheet. */}
+        <Row
+          style={{
+            alignItems: 'flex-start',
+            justifyContent: 'space-between',
+            gap: theme.spacing.sm,
+          }}
+        >
+          <View style={{ flex: 1 }}>
+            <Text variant="title">{t.quickExpense.title}</Text>
+            <Text variant="caption" tone="muted">
+              {t.quickExpense.subtitle}
+            </Text>
+          </View>
+          {/* The escape hatch, a pill rather than a text link — it carries the
+              same weight as the destination and category pills beside it now
+              that the sheet has more than one row of them. */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t.quickExpense.advancedLong}
+            onPress={handOff}
+            hitSlop={8}
+            style={({ pressed }) => ({
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 2,
+              minHeight: 34,
+              paddingHorizontal: 14,
+              borderRadius: theme.radius.pill,
+              backgroundColor: soft,
+              opacity: pressed ? 0.6 : 1,
+            })}
+          >
+            <Text style={{ fontSize: 13, fontWeight: '700', color: accent }}>
+              {t.quickExpense.advanced}
+            </Text>
+            <Ionicons name="chevron-forward" size={14} color={accent} />
+          </Pressable>
+        </Row>
+
         <QuickAmountRow
           currency={currency}
           value={amount}
@@ -350,12 +393,35 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
           </ScrollView>
         ) : (
           <>
-            <Divider />
+            <QuickCategoryRow value={category} meta={categoryMeta} onChange={setCategory} />
 
             <View style={{ gap: theme.spacing.xs }}>
-              <Text style={{ fontSize: 13, fontWeight: '600', color: theme.color.textMuted }}>
-                {t.quickExpense.where}
-              </Text>
+              <Row style={{ alignItems: 'center', justifyContent: 'space-between' }}>
+                <Text style={{ fontSize: 13, fontWeight: '600', color: theme.color.textMuted }}>
+                  {t.quickExpense.where}
+                </Text>
+                {/* The one place this sheet's always-equal split can be
+                    changed — the full form's own editor, not a second one
+                    built here (see the file's own "What it refuses to do"). */}
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t.quickExpense.splitLink}
+                  onPress={handOff}
+                  hitSlop={8}
+                  style={({ pressed }) => ({
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 4,
+                    paddingVertical: 2,
+                    opacity: pressed ? 0.6 : 1,
+                  })}
+                >
+                  <Ionicons name="people-outline" size={14} color={accent} />
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: accent }}>
+                    {t.quickExpense.splitLink}
+                  </Text>
+                </Pressable>
+              </Row>
               {/* One compact row of pills, the catch-all included — rather than
                   a tall stack of cards plus a separate "other places" link
                   underneath saying the same thing. The catch-all pill is drawn
@@ -392,6 +458,7 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
                       key={group.id}
                       accessibilityRole="button"
                       accessibilityState={{ selected: group.id === chosenId }}
+                      accessibilityLabel={`${labelOf(group)}, ${plural(locale, memberCountFor(group.id), t.memberCount)}`}
                       onPress={() => setChosenId(group.id)}
                       style={[tile(group.id === chosenId), { maxWidth: 180 }]}
                     >
@@ -400,17 +467,20 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
                       ) : (
                         <Ionicons name="paper-plane-outline" size={15} color={accent} />
                       )}
-                      <Text
-                        numberOfLines={1}
-                        style={{
-                          flexShrink: 1,
-                          fontSize: 13,
-                          fontWeight: '600',
-                          color: theme.color.text,
-                        }}
-                      >
-                        {labelOf(group)}
-                      </Text>
+                      <View style={{ flexShrink: 1 }}>
+                        <Text
+                          numberOfLines={1}
+                          style={{ fontSize: 13, fontWeight: '600', color: theme.color.text }}
+                        >
+                          {labelOf(group)}
+                        </Text>
+                        <Text
+                          numberOfLines={1}
+                          style={{ fontSize: 11, color: theme.color.textMuted }}
+                        >
+                          {plural(locale, memberCountFor(group.id), t.memberCount)}
+                        </Text>
+                      </View>
                       {group.id === chosenId ? <PickedTick color={accent} /> : null}
                     </Pressable>
                   ))}
@@ -485,6 +555,8 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
                 currency={currency}
                 note={note}
                 place={place}
+                category={category}
+                categoryMeta={categoryMeta}
                 receipt={receipt}
                 onSaved={closeAndReset}
               />
@@ -553,6 +625,8 @@ function QuickExpenseFooter({
   currency,
   note,
   place,
+  category,
+  categoryMeta,
   receipt,
   onSaved,
 }: {
@@ -564,6 +638,10 @@ function QuickExpenseFooter({
   /** Where this was paid, when the reader had already granted location. Null
    *  is the ordinary case and means the row simply carries no place. */
   place: ExpenseLocation | null;
+  /** A built-in id or a custom tag's id; null for "optional, and skipped". */
+  category: string | null;
+  /** The custom tag's denormalised display, when `category` is one. */
+  categoryMeta: CategoryMeta | null;
   /** The bill picked above, if any — held, not yet uploaded. */
   receipt: PickedImage | null;
   onSaved: () => void;
@@ -669,6 +747,8 @@ function QuickExpenseFooter({
       expenseDate: new Date().toISOString().slice(0, 10),
       currency,
       amount,
+      category,
+      categoryMeta,
       // Tagged with where it is going, so picking it up again is one tap
       // rather than the "which group was this?" question a second time.
       targetGroupId: group.id,
@@ -708,6 +788,8 @@ function QuickExpenseFooter({
         expenseDate: new Date().toISOString().slice(0, 10),
         currency,
         amount,
+        category,
+        categoryMeta,
         splitParams: { kind: 'equal' },
         participants,
         payers: { [myMemberId]: amount },
