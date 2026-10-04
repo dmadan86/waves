@@ -2,14 +2,21 @@
  * The scene above the daily backup reminder: a cloud carrying the Google
  * Drive mark, a phone sending its records up to it, and the kinds of things
  * that get backed up — a receipt, a photo, a group of people — floating
- * around it on dotted threads.
+ * around it.
  *
  * Vector throughout (no raster asset), so it stays sharp at any width and
  * never ships a PNG that drifts from the theme. Only the Drive triangle's
  * three facets keep their official brand colours regardless of light or dark
- * mode — everything else (the cloud, the phone, the floating tiles, the
- * dotted threads) reads off the theme, the same rule `HeroScene` follows for
- * its own scenery.
+ * mode — everything else (the cloud, the phone, the floating tiles) reads off
+ * the theme, the same rule `HeroScene` follows for its own scenery.
+ *
+ * The scene itself is drawn once at its natural (roomier) size and then
+ * uniformly shrunk by `SCENE_SCALE` about its own centre — not stretched to
+ * fit a flatter box, which would squash the cloud and shear the tilted tiles.
+ * A smaller scene centred in a shorter box is what keeps the compact popup
+ * from looking cramped. The faint dotted threads that used to connect the
+ * tiles to the cloud were dropped entirely: they cost vertical room and
+ * weren't worth it at this size.
  */
 
 import { View } from 'react-native';
@@ -22,11 +29,25 @@ const DRIVE_GREEN = '#0F9D58';
 const DRIVE_YELLOW = '#F4B400';
 const DRIVE_BLUE = '#4285F4';
 
-/** The scene is drawn in this fixed box and then scaled to fill its width. */
+/** The scene is drawn in this fixed box, then scaled down to fit the shorter
+ *  viewBox below before being scaled again (by the SVG itself) to fill the
+ *  rendered width. */
 const VIEW_W = 300;
-const VIEW_H = 150;
+const VIEW_H = 104;
 
-export function BackupIllustration({ height = 150 }: { height?: number }) {
+/** How much smaller the scene is drawn than its original 300×150 box — picked
+ *  so the whole composition (cloud top to phone bottom) clears the new 104dp
+ *  box with an even margin, uniformly, so nothing in it looks squashed. */
+const SCENE_SCALE = 0.75;
+/** The scene's own centre in its original coordinate space, and where that
+ *  centre lands in the new viewBox once scaled — see the module doc. */
+const SCENE_PIVOT = { x: 150, y: 67.5 };
+const SCENE_CENTER = { x: 150, y: VIEW_H / 2 };
+const SCENE_TRANSFORM =
+  `translate(${SCENE_CENTER.x - SCENE_SCALE * SCENE_PIVOT.x}, ` +
+  `${SCENE_CENTER.y - SCENE_SCALE * SCENE_PIVOT.y}) scale(${SCENE_SCALE})`;
+
+export function BackupIllustration({ height = VIEW_H }: { height?: number }) {
   const theme = useTheme();
   const cloudFill = theme.color.surfaceMuted;
   const sky = theme.tint.sky.bg;
@@ -41,63 +62,58 @@ export function BackupIllustration({ height = 150 }: { height?: number }) {
       style={{ width: '100%', height }}
     >
       <Svg width="100%" height="100%" viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}>
-        {/* Dotted threads first, under everything they connect. */}
-        <G stroke={theme.color.border} strokeWidth={1.2} strokeDasharray="3,3">
-          <Line x1={56} y1={64} x2={106} y2={48} />
-          <Line x1={224} y1={32} x2={186} y2={34} />
-          <Line x1={232} y1={82} x2={190} y2={58} />
-        </G>
+        <G transform={SCENE_TRANSFORM}>
+          {/* Floating tiles: receipt (left), photo (top-right), people (right). */}
+          <ReceiptTile fill={lilac} ink={theme.color.brand} />
+          <PhotoTile fill={sky} ink={theme.color.text} />
+          <PeopleTile fill={pink} ink={theme.color.text} />
 
-        {/* Floating tiles: receipt (left), photo (top-right), people (right). */}
-        <ReceiptTile fill={lilac} ink={theme.color.brand} />
-        <PhotoTile fill={sky} ink={theme.color.text} />
-        <PeopleTile fill={pink} ink={theme.color.text} />
+          {/* The cloud. */}
+          <G fill={cloudFill}>
+            <Circle cx={116} cy={42} r={23} />
+            <Circle cx={176} cy={39} r={25} />
+            <Circle cx={147} cy={30} r={21} />
+            <Rect x={96} y={52} width={108} height={21} rx={10} />
+            <Rect x={96} y={30} width={108} height={22} />
+          </G>
 
-        {/* The cloud. */}
-        <G fill={cloudFill}>
-          <Circle cx={116} cy={42} r={23} />
-          <Circle cx={176} cy={39} r={25} />
-          <Circle cx={147} cy={30} r={21} />
-          <Rect x={96} y={52} width={108} height={21} rx={10} />
-          <Rect x={96} y={30} width={108} height={22} />
-        </G>
+          {/* The Drive triangle, centred in the cloud — fixed brand colours. */}
+          <Path d="M150,27 L139,45 L150,51 L161,45 Z" fill={DRIVE_BLUE} />
+          <Path d="M128,63 L150,63 L150,51 L139,45 Z" fill={DRIVE_GREEN} />
+          <Path d="M172,63 L161,45 L150,51 L150,63 Z" fill={DRIVE_YELLOW} />
 
-        {/* The Drive triangle, centred in the cloud — fixed brand colours. */}
-        <Path d="M150,27 L139,45 L150,51 L161,45 Z" fill={DRIVE_BLUE} />
-        <Path d="M128,63 L150,63 L150,51 L139,45 Z" fill={DRIVE_GREEN} />
-        <Path d="M172,63 L161,45 L150,51 L150,63 Z" fill={DRIVE_YELLOW} />
-
-        {/* The purple up-arrow, phone to cloud. */}
-        <Line
-          x1={150}
-          y1={88}
-          x2={150}
-          y2={77}
-          stroke={theme.color.brand}
-          strokeWidth={3}
-          strokeLinecap="round"
-        />
-        <Path d="M150,70 L143,79 L157,79 Z" fill={theme.color.brand} />
-
-        {/* The phone, lying flat. */}
-        <G>
-          <Rect
-            x={111}
-            y={90}
-            width={78}
-            height={36}
-            rx={10}
-            fill={theme.color.surface}
-            stroke={theme.color.border}
-            strokeWidth={1.5}
+          {/* The purple up-arrow, phone to cloud. */}
+          <Line
+            x1={150}
+            y1={88}
+            x2={150}
+            y2={77}
+            stroke={theme.color.brand}
+            strokeWidth={3}
+            strokeLinecap="round"
           />
-          <Rect x={119} y={97} width={62} height={22} rx={4} fill={theme.color.brandSoft} />
-          <Circle cx={119} cy={108} r={1.8} fill={theme.color.border} />
-        </G>
+          <Path d="M150,70 L143,79 L157,79 Z" fill={theme.color.brand} />
 
-        {/* Two small sparkles. */}
-        <Sparkle x={72} y={22} fill={theme.color.brand} />
-        <Sparkle x={222} y={66} fill={theme.color.brand} scale={0.8} />
+          {/* The phone, lying flat. */}
+          <G>
+            <Rect
+              x={111}
+              y={90}
+              width={78}
+              height={36}
+              rx={10}
+              fill={theme.color.surface}
+              stroke={theme.color.border}
+              strokeWidth={1.5}
+            />
+            <Rect x={119} y={97} width={62} height={22} rx={4} fill={theme.color.brandSoft} />
+            <Circle cx={119} cy={108} r={1.8} fill={theme.color.border} />
+          </G>
+
+          {/* Two small sparkles. */}
+          <Sparkle x={72} y={22} fill={theme.color.brand} />
+          <Sparkle x={222} y={66} fill={theme.color.brand} scale={0.8} />
+        </G>
       </Svg>
     </View>
   );
