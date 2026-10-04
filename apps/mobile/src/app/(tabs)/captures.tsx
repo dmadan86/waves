@@ -2175,14 +2175,53 @@ export default function CapturesScreen() {
         onClose={closeAssign}
         padded={false}
         closeLabel={t.common.close}
+        title={t.captures.assignTitle}
+        // The sheet's own title row, not a second heading in the body: the
+        // header is already the drag surface and the tap-to-close target, so
+        // a title handed here rides along with both rather than sitting
+        // under a plain `<Text>` that offers neither. "Edit" rides the far
+        // end of that same line — on the title row, beside what it is
+        // naming, rather than under the summary where it used to compete
+        // with the subject's own badge and amount for a second kind of tap.
+        // Only present with exactly one expense on the sheet: see
+        // `editTarget`.
+        titleAction={
+          editTarget ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t.captures.assignEditExpenseFor.replace(
+                '{item}',
+                captureTitle(editTarget, t),
+              )}
+              onPress={editFromAssign}
+              // The pill stays small; the reach it answers to does not — a
+              // 44pt target sat on a compact pill rather than being grown to
+              // one.
+              hitSlop={{ top: 14, bottom: 14, left: 10, right: 10 }}
+              style={({ pressed }) => ({
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 4,
+                paddingHorizontal: theme.spacing.sm,
+                paddingVertical: 4,
+                borderRadius: theme.radius.pill,
+                backgroundColor: theme.color.brandSoft,
+                opacity: pressed ? 0.6 : 1,
+              })}
+            >
+              <Ionicons name="pencil" size={iconSize.xs} color={theme.color.brand} />
+              <Text variant="micro" style={{ color: theme.color.brand, fontWeight: '700' }}>
+                {t.captures.assignEditExpense}
+              </Text>
+            </Pressable>
+          ) : null
+        }
         style={{
           paddingHorizontal: theme.spacing.xl,
           gap: theme.spacing.md,
           maxHeight: pickerMaxHeight,
         }}
       >
-        <Text variant="heading">{t.captures.assignTitle}</Text>
-
         {/* The same picker the voice review opens, so "where does this go?" is
             one control in the app rather than two that drifted apart.
 
@@ -2234,17 +2273,15 @@ export default function CapturesScreen() {
                     // — amount and description alone left the one other field
                     // the editor can fix (and the reason a merchant's date is
                     // sometimes the wrong half of a UPI string) unsaid here.
+                    // The summary itself is inert: editing lives on the
+                    // title row now (`titleAction` above), so the subject
+                    // does not also need to answer for it.
                     note: (
                       <Text variant="caption" tone="muted" numberOfLines={1}>
                         {assigningCapture.description
                           ? `${assigningCapture.description} · ${dayHeading(locale, assigningCapture.expense_date)}`
                           : dayHeading(locale, assigningCapture.expense_date)}
                       </Text>
-                    ),
-                    onEdit: editFromAssign,
-                    editLabel: t.captures.assignEditExpenseFor.replace(
-                      '{item}',
-                      captureTitle(assigningCapture, t),
                     ),
                   }
                 : batchPreview
@@ -2281,18 +2318,6 @@ export default function CapturesScreen() {
                           {plural(locale, batchPreview.count, t.captures.batchExpenses)}
                         </Text>
                       ),
-                      // Only ever set when exactly one draft is ticked: see
-                      // `editTarget`. A pile of several has no edit of its
-                      // own to offer, so the pencil affordance stays off.
-                      ...(editTarget
-                        ? {
-                            onEdit: editFromAssign,
-                            editLabel: t.captures.assignEditExpenseFor.replace(
-                              '{item}',
-                              captureTitle(editTarget, t),
-                            ),
-                          }
-                        : {}),
                     }
                   : null
             }
