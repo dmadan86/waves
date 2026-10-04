@@ -57,9 +57,16 @@ export function MapPreview({
     setWidth(event.nativeEvent.layout.width);
   };
 
+  // Google refuses the request outright when the key's project is not set up
+  // for Static Maps (billing off, API disabled, key restricted) — a 403 with a
+  // text body, not an image. Without this the frame stays blank, so a failed
+  // Google image hands over to the CARTO tiles for the rest of this preview.
+  const [googleFailed, setGoogleFailed] = useState(false);
+
   // Google Static Maps when a key is configured, else the CARTO tile grid. One
   // composite image vs a mosaic of {z}/{x}/{y} tiles — see `googleStaticMapUrl`.
-  const googleUrl = width > 0 ? googleStaticMapUrl(location, zoom, width, height) : null;
+  const googleUrl =
+    width > 0 && !googleFailed ? googleStaticMapUrl(location, zoom, width, height) : null;
   const tiles = width > 0 && !googleUrl ? tileGrid(location, zoom, width, height) : [];
 
   const body = (
@@ -82,6 +89,7 @@ export function MapPreview({
           // each view must re-request. So no disk/memory cache here (unlike the
           // CARTO tiles below, whose licence permits the normal image cache).
           cachePolicy="none"
+          onError={() => setGoogleFailed(true)}
         />
       ) : null}
       {tiles.map((tile) => (
