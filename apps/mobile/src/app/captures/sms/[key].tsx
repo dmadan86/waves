@@ -422,27 +422,13 @@ export default function SmsMessageScreen(): React.JSX.Element | null {
               {t.smsInbox.fromTheMessage}
             </Text>
             {row.body !== '' ? (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={t.smsInbox.copyText}
+              <Button
+                label={t.smsInbox.copyText}
+                variant="secondary"
+                size="sm"
                 onPress={() => void copyBody()}
-                hitSlop={8}
-                style={({ pressed }) => ({
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 4,
-                  paddingHorizontal: theme.spacing.sm,
-                  height: 26,
-                  borderRadius: theme.radius.pill,
-                  backgroundColor: theme.color.surfaceMuted,
-                  opacity: pressed ? 0.7 : 1,
-                })}
-              >
-                <Ionicons name="copy-outline" size={13} color={theme.color.textMuted} />
-                <Text variant="micro" tone="muted">
-                  {t.smsInbox.copyText}
-                </Text>
-              </Pressable>
+                icon={<Ionicons name="copy-outline" size={13} color={theme.color.brand} />}
+              />
             ) : null}
           </Row>
           <Text variant="body" style={{ marginTop: theme.spacing.sm }} selectable>
@@ -470,7 +456,6 @@ export default function SmsMessageScreen(): React.JSX.Element | null {
               icon="checkmark-circle"
               label={t.smsInbox.createExpense}
               filled
-              trailing
               disabled={placement.placing}
               onPress={() => setPickerOpen(true)}
             />
@@ -723,51 +708,35 @@ function HighlightedBody({
 }
 
 /** One row under "What do you want to do?" — a filled brand row for the
- *  primary action, an outline row for the other two. Not `Button`: the brand
- *  row needs both a leading icon and a trailing chevron, which `Button` has
- *  no slot for. */
+ *  primary action, secondary for the other two. */
 function DetailActionRow({
   icon,
   label,
   onPress,
   disabled = false,
   filled = false,
-  trailing = false,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   onPress: () => void;
   disabled?: boolean;
   filled?: boolean;
-  trailing?: boolean;
 }) {
   const theme = useTheme();
-  const ink = filled ? theme.color.onBrand : theme.color.text;
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      accessibilityState={{ disabled }}
+    <Button
+      label={label}
+      variant={filled ? 'primary' : 'secondary'}
+      fullWidth
       disabled={disabled}
       onPress={onPress}
-      style={({ pressed }) => ({
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: theme.spacing.sm,
-        minHeight: 52,
-        paddingHorizontal: theme.spacing.lg,
-        borderRadius: theme.radius.pill,
-        backgroundColor: filled ? theme.color.brand : 'transparent',
-        borderWidth: filled ? 0 : 1,
-        borderColor: theme.color.border,
-        opacity: disabled ? 0.5 : pressed ? 0.8 : 1,
-      })}
-    >
-      <Ionicons name={icon} size={iconSize.md} color={ink} />
-      <Text style={{ flex: 1, fontWeight: '600', color: ink }}>{label}</Text>
-      {trailing ? (
-        <Ionicons name={directionalIcon('chevron-forward')} size={iconSize.sm} color={ink} />
-      ) : null}
-    </Pressable>
+      icon={
+        <Ionicons
+          name={icon}
+          size={iconSize.md}
+          color={filled ? theme.color.onBrand : theme.color.brand}
+        />
+      }
+    />
   );
 }

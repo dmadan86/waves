@@ -11,7 +11,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, View } from 'react-native';
 
 import { SmsKind } from '@waves/core';
-import { Gradient, iconSize, MoneyText, Row, Text, useTheme } from '@waves/ui';
+import { Button, iconSize, MoneyText, Row, Text, useTheme } from '@waves/ui';
 
 /** Counts on a tab or a bar: the number, or "99+" past it. */
 export function capped(n: number): string {
@@ -167,27 +167,13 @@ export function SmsTotalCard({
         ) : null}
       </View>
       {selectLabel ? (
-        <Pressable
-          accessibilityRole="button"
+        <Button
+          label={selectLabel}
+          variant="onBrand"
+          size="sm"
           onPress={onSelect}
-          style={({ pressed }) => ({
-            position: 'absolute',
-            right: theme.spacing.md,
-            top: '50%',
-            marginTop: -18,
-            height: 34,
-            paddingHorizontal: theme.spacing.lg,
-            justifyContent: 'center',
-            borderRadius: theme.radius.pill,
-            backgroundColor: theme.color.surface,
-            opacity: pressed ? 0.8 : 1,
-            ...theme.shadow.lifted,
-          })}
-        >
-          <Text style={{ fontSize: 14, fontWeight: '700', color: theme.color.brand }}>
-            {selectLabel}
-          </Text>
-        </Pressable>
+          style={{ position: 'absolute', right: theme.spacing.md, top: '50%', marginTop: -19 }}
+        />
       ) : null}
     </View>
   );
@@ -397,26 +383,13 @@ export function SmsAddBar({
           </Text>
         )}
       </View>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityState={{ disabled }}
+      <Button
+        label={actionLabel}
+        size="sm"
         disabled={disabled}
         onPress={onAction}
-        style={({ pressed }) => ({ opacity: disabled ? 0.45 : pressed ? 0.85 : 1 })}
-      >
-        <Gradient
-          colors={theme.gradient.brand}
-          radius={theme.radius.pill}
-          style={{ height: 40, paddingStart: 14, paddingEnd: 10, justifyContent: 'center' }}
-        >
-          <Row style={{ alignItems: 'center', gap: 6 }}>
-            <Text style={{ fontSize: 14, fontWeight: '700', color: theme.color.onBrand }}>
-              {actionLabel}
-            </Text>
-            <Ionicons name="arrow-forward" size={16} color={theme.color.onBrand} />
-          </Row>
-        </Gradient>
-      </Pressable>
+        icon={<Ionicons name="arrow-forward" size={16} color={theme.color.onBrand} />}
+      />
     </View>
   );
 }
