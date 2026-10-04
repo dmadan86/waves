@@ -78,6 +78,7 @@ export function HomeQuickActions({
       radius={radius}
       discColor={theme.color.brandSoft}
       iconColor={theme.color.brand}
+      rowPadding={theme.spacing.xs}
     />
   );
 }
