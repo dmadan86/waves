@@ -71,7 +71,32 @@ export default function PaywallScreen() {
     restorePurchases,
     finishTransaction,
     hasActiveSubscriptions,
-  } = useIAP();
+  } = useIAP({
+    // The outcome of a purchase arrives here, not through `requestPurchase`'s
+    // return value — expo-iap dispatches that call and settles the actual
+    // result (success, store-side failure, or a closed sheet) through these
+    // listeners instead. Finishing the transaction, and clearing `purchasing`,
+    // both wait for whichever of these actually fires.
+    onPurchaseSuccess: (purchase) => {
+      // No backend to verify the receipt against yet (see the file doc
+      // comment), so the purchase is finished as soon as the store confirms
+      // it, rather than left in the queue waiting on a check that does not
+      // exist. Revisit once server-side verification lands.
+      void finishTransaction({ purchase, isConsumable: false })
+        .then(() => router.back())
+        .finally(() => setPurchasing(null));
+    },
+    onPurchaseError: (error) => {
+      setPurchasing(null);
+      if (isUserCancelledError(error)) {
+        // A closed purchase sheet is not a failure worth a message.
+      } else if (error.code === ErrorCode.Pending) {
+        toast.show(t.paywall.purchasePending, 'info');
+      } else {
+        toast.show(getUserFriendlyErrorMessage(error) || t.paywall.genericError, 'negative');
+      }
+    },
+  });
 
   useEffect(() => {
     if (!connected) return;
@@ -110,8 +135,12 @@ export default function PaywallScreen() {
     ? { monthly: monthlyPrice.amount, yearly: yearlyPrice.amount }
     : { monthly: fallback.monthly, yearly: fallback.yearly };
   const freeMonths = freeMonthsForYearly(comparison.monthly, comparison.yearly);
+  // `comparison.yearly`, not `yearlyPrice.amount`: the latter is in the
+  // store's own currency even when `bothFromStore` is false (the store
+  // answered for yearly but not monthly), which would pair a store amount
+  // with the fallback currency label below and show the wrong number.
   const perMonthDisplay = formatApproxMoney(
-    monthlyEquivalent(yearlyPrice.amount),
+    monthlyEquivalent(comparison.yearly),
     bothFromStore
       ? (subscriptions.find((sub) => sub.id === YEARLY_PRODUCT_ID)?.currency ?? fallback.currency)
       : fallback.currency,
@@ -132,7 +161,11 @@ export default function PaywallScreen() {
         const androidOffer = subscriptions.find(
           (sub) => sub.id === productId && sub.platform === 'android',
         )?.subscriptionOffers?.[0];
-        const result = await requestPurchase({
+        // Only dispatches the request — expo-iap settles the outcome through
+        // `onPurchaseSuccess` / `onPurchaseError` above, not this call's
+        // return value. `purchasing` therefore stays set past this `await`;
+        // the two listeners are what clear it.
+        await requestPurchase({
           type: 'subs',
           request: {
             apple: { sku: productId },
@@ -144,33 +177,21 @@ export default function PaywallScreen() {
             },
           },
         });
-
-        const purchases = Array.isArray(result) ? result : result ? [result] : [];
-        for (const purchase of purchases) {
-          // No backend to verify the receipt against yet (see the file doc
-          // comment), so the purchase is finished as soon as the store
-          // confirms it, rather than left in the queue waiting on a check
-          // that does not exist. Revisit once server-side verification lands.
-          await finishTransaction({ purchase, isConsumable: false });
-        }
-        if (purchases.length > 0) router.back();
       } catch (error) {
-        const purchaseError = error as { code?: ErrorCode; message?: string };
-        if (isUserCancelledError(error)) {
-          // A closed purchase sheet is not a failure worth a message.
-        } else if (purchaseError.code === ErrorCode.Pending) {
-          toast.show(t.paywall.purchasePending, 'info');
-        } else {
+        // A synchronous rejection from the store itself (not prepared, bad
+        // request) — the listeners above never fire for this, so clear
+        // `purchasing` and report it here.
+        setPurchasing(null);
+        if (!isUserCancelledError(error)) {
+          const purchaseError = error as { code?: ErrorCode; message?: string };
           toast.show(
             getUserFriendlyErrorMessage(purchaseError) || t.paywall.genericError,
             'negative',
           );
         }
-      } finally {
-        setPurchasing(null);
       }
     },
-    [entitlement.isPro, purchasing, requestPurchase, subscriptions, finishTransaction, toast, t],
+    [entitlement.isPro, purchasing, requestPurchase, subscriptions, toast, t],
   );
 
   const restore = useCallback(async () => {
@@ -243,7 +264,7 @@ export default function PaywallScreen() {
             badge={fill(t.paywall.yearlyBadge, { months: freeMonths })}
             title={t.paywall.yearlyTitle}
             price={yearlyPrice.display}
-            cadence="/yr"
+            cadence={t.paywall.perYear}
             note={fill(t.paywall.perMonthEquivalent, { price: perMonthDisplay })}
             onPress={() => setSelected('yearly')}
           />
@@ -251,7 +272,7 @@ export default function PaywallScreen() {
             active={selected === 'monthly'}
             title={t.paywall.monthlyTitle}
             price={monthlyPrice.display}
-            cadence="/mo"
+            cadence={t.paywall.perMonth}
             note={t.paywall.monthlySubtitle}
             onPress={() => setSelected('monthly')}
           />

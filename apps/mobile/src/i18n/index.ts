@@ -3575,6 +3575,10 @@ export interface UiStrings {
     title: string;
     yearlyTitle: string;
     yearlyBadge: string;
+    /** The yearly plan card's cadence suffix, beside its price — "/yr". */
+    perYear: string;
+    /** The monthly plan card's cadence suffix, beside its price — "/mo". */
+    perMonth: string;
     perMonthEquivalent: string;
     monthlyTitle: string;
     monthlySubtitle: string;
@@ -6988,11 +6992,13 @@ const en: UiStrings = {
   },
   paywall: {
     title: 'Choose your plan',
-    yearlyTitle: 'Yearly — pay once',
+    yearlyTitle: 'Yearly',
     yearlyBadge: '{months} months free',
+    perYear: '/yr',
+    perMonth: '/mo',
     perMonthEquivalent: '≈ {price} / month',
     monthlyTitle: 'Monthly',
-    monthlySubtitle: 'Pay as you go',
+    monthlySubtitle: 'Billed monthly',
     trialLine: '{days}-day free trial, then {price} billed yearly. Cancel anytime.',
     noTrialLine: '{price} billed every month. Cancel anytime.',
     approxNote: 'Approximate — the store shows the exact price at checkout.',
@@ -10523,11 +10529,13 @@ const ta: UiStrings = {
   },
   paywall: {
     title: 'உங்கள் திட்டத்தைத் தேர்ந்தெடுக்கவும்',
-    yearlyTitle: 'வருடாந்திரம் — ஒருமுறை செலுத்துங்கள்',
+    yearlyTitle: 'வருடாந்திரம்',
     yearlyBadge: '{months} மாதங்கள் இலவசம்',
+    perYear: '/ஆண்டு',
+    perMonth: '/மாதம்',
     perMonthEquivalent: '≈ {price} / மாதம்',
     monthlyTitle: 'மாதாந்திரம்',
-    monthlySubtitle: 'பயன்படுத்தும்போது செலுத்துங்கள்',
+    monthlySubtitle: 'மாதந்தோறும் கட்டணம்',
     trialLine:
       '{days} நாள் இலவச சோதனை, பிறகு வருடத்திற்கு {price} கட்டணம். எப்போதும் ரத்து செய்யலாம்.',
     noTrialLine: 'மாதந்தோறும் {price} கட்டணம். எப்போதும் ரத்து செய்யலாம்.',
@@ -13949,11 +13957,13 @@ const hi: UiStrings = {
   },
   paywall: {
     title: 'अपना प्लान चुनें',
-    yearlyTitle: 'सालाना — एक बार भुगतान',
+    yearlyTitle: 'सालाना',
     yearlyBadge: '{months} महीने मुफ़्त',
+    perYear: '/वर्ष',
+    perMonth: '/महीना',
     perMonthEquivalent: '≈ {price} / महीना',
     monthlyTitle: 'मासिक',
-    monthlySubtitle: 'जितना इस्तेमाल करें, उतना भुगतान करें',
+    monthlySubtitle: 'हर महीने बिल होगा',
     trialLine: '{days} दिन का मुफ़्त ट्रायल, फिर सालाना {price} बिल होगा। कभी भी रद्द करें।',
     noTrialLine: 'हर महीने {price} बिल होगा। कभी भी रद्द करें।',
     approxNote: 'अनुमानित — सही कीमत स्टोर चेकआउट पर दिखेगी।',
@@ -17849,11 +17859,13 @@ const ar: UiStrings = {
   },
   paywall: {
     title: 'اختر خطتك',
-    yearlyTitle: 'سنويًا — دفعة واحدة',
+    yearlyTitle: 'سنويًا',
     yearlyBadge: '{months} أشهر مجانًا',
+    perYear: '/سنة',
+    perMonth: '/شهر',
     perMonthEquivalent: '≈ {price} / شهريًا',
     monthlyTitle: 'شهريًا',
-    monthlySubtitle: 'ادفع كلما استخدمت',
+    monthlySubtitle: 'تُحصَّل شهريًا',
     trialLine: 'تجربة مجانية لمدة {days} أيام، ثم {price} سنويًا. يمكنك الإلغاء في أي وقت.',
     noTrialLine: '{price} شهريًا. يمكنك الإلغاء في أي وقت.',
     approxNote: 'تقريبي — سيظهر السعر الدقيق عند الدفع في المتجر.',
