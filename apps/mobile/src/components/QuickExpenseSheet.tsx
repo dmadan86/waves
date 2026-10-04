@@ -121,8 +121,12 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
   // footer below actually saves (see lib/quickReceipt). Destructured rather
   // than passed around as one object, so the reset effect below can name the
   // one function it depends on instead of the whole bundle.
-  const { receipt, busy: attachingReceipt, attach: attachReceipt, clear: clearReceipt } =
-    useQuickReceipt();
+  const {
+    receipt,
+    busy: attachingReceipt,
+    attach: attachReceipt,
+    clear: clearReceipt,
+  } = useQuickReceipt();
 
   const [amount, setAmount] = useState(0n);
   const [currency, setCurrency] = useState(defaultCurrency);
