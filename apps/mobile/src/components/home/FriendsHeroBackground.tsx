@@ -5,7 +5,9 @@
  * this one is a photograph, because the owner's own art is this scene and
  * redrawing it as shapes would lose the thing that makes it theirs.
  *
- *   photo    the scene, `cover`-fitted and anchored bottom-centre, so the
+ *   photo    the scene, `cover`-fitted and anchored bottom-centre, then
+ *            nudged up past that anchor by `VERTICAL_LIFT` so the friends
+ *            sit with air above the card rather than against its edge — the
  *            three friends and the horizon stay in frame on a short hero
  *            rather than being trimmed the way a centred crop would — shown
  *            at full strength, not washed under a wash the size of the whole
@@ -50,6 +52,16 @@ import { useReducedMotion } from '@/lib/reducedMotion';
  * on a narrow phone without pushing the tree on the left out of its corner.
  */
 const FOCAL_X = 0.62;
+
+/**
+ * How far every photo is nudged up past its plain bottom-anchor, so the
+ * friends sit with clear air above the card rather than hugging its edge —
+ * cropping a little more sky at the top for it. Kept at or under Friends'
+ * own `HERO_OVERLAP` (28dp, `app/(tabs)/friends.tsx`): the sliver this opens
+ * up at the photo's own foot is exactly what the card already rides up
+ * over, so it is never actually seen, only the lift above it is.
+ */
+const VERTICAL_LIFT = 20;
 
 /** The five photographs, one per moment. */
 const FRIENDS_SCENE_PHOTOS: Readonly<Record<FriendsMoment, number>> = {
@@ -187,11 +199,13 @@ export function FriendsHeroBackground({
   );
 }
 
-/** One photo, `cover`-fitted by hand: anchored to the hero's foot vertically,
- *  so the crop always comes off the sky rather than the friends, and
- *  centred on `FOCAL_X` horizontally rather than on the frame's midpoint, so
- *  a narrow phone keeps the group in frame instead of splitting the
- *  difference between them and the tree in the corner. */
+/** One photo, `cover`-fitted by hand: anchored to the hero's foot vertically
+ *  and then lifted `VERTICAL_LIFT` short of it, so the crop always comes off
+ *  the sky rather than the friends and they end up sitting a little clear of
+ *  the card rather than right against it, and centred on `FOCAL_X`
+ *  horizontally rather than on the frame's midpoint, so a narrow phone keeps
+ *  the group in frame instead of splitting the difference between them and
+ *  the tree in the corner. */
 function CoverPhoto({
   moment,
   width,
@@ -217,7 +231,7 @@ function CoverPhoto({
         width: renderedWidth,
         height: renderedHeight,
         left: -leftFraction * renderedWidth,
-        top: height - renderedHeight,
+        top: height - renderedHeight - VERTICAL_LIFT,
       }}
     />
   );

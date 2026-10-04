@@ -74,7 +74,6 @@ import { useAvatarUrl } from '@/components/ProfileAvatar';
 import { BalanceSide } from '@/components/home/BalanceSide';
 import { FriendsHeroBackground } from '@/components/home/FriendsHeroBackground';
 import { GlassSurface } from '@/components/home/GlassSurface';
-import { HeroIconButton } from '@/components/home/HeroControls';
 import { QuickActionsRow, type QuickAction } from '@/components/home/QuickActionsRow';
 import { SettlePickerSheet, type SettleCandidate } from '@/components/home/SettlePickerSheet';
 import { useHeroCrossfade, useHeroStatusBar } from '@/components/ScreenHero';
@@ -690,14 +689,14 @@ function FriendsScene({
   useHeroStatusBar('light');
 
   // The picture band: visible at full strength from the top of the screen
-  // down to just above the balance card, ~155-175dp including the status
+  // down to just above the balance card, ~130-150dp including the status
   // bar — tall enough that the friends on the rock are plainly the picture,
-  // short enough that the title sits close under the status bar and the
-  // card close under the title, rather than leaving the top of the screen
+  // short enough that the title sits right under the status bar and the
+  // card right under the title, rather than leaving the top of the screen
   // mostly empty. The header block is asked to be exactly this tall (below),
   // so what `onLayout` measures back is this same figure; the card rides up
   // over only its last `HERO_OVERLAP`.
-  const bandHeight = Math.min(175, Math.max(155, insets.top + 125));
+  const bandHeight = Math.min(150, Math.max(130, insets.top + 100));
   const [headerHeight, setHeaderHeight] = useState(bandHeight);
   const cardTop = headerHeight - HERO_OVERLAP;
   // No deeper than the band itself: the old formula ran the photo on down
@@ -710,8 +709,9 @@ function FriendsScene({
   const { restingStyle, overlayStyle } = useHeroCrossfade(selectMode);
 
   // The one eye for every balance on the phone (Home's own preference, A48):
-  // shutting the money here shuts it there too.
-  const { hidden: balanceHidden, ready: balanceReady, toggle: toggleBalance } = useBalanceHidden();
+  // shutting the money on Home shuts it here too. No toggle on this card —
+  // just the shared answer, read here.
+  const { hidden: balanceHidden, ready: balanceReady } = useBalanceHidden();
 
   const addTileRef = useRef<View>(null);
   const openAdd = (): void => {
@@ -734,7 +734,7 @@ function FriendsScene({
           width={windowWidth}
           height={sceneHeight}
           horizon={cardTop}
-          headerBottom={insets.top + theme.spacing.xs + 34}
+          headerBottom={insets.top + 30}
           pageColor={theme.color.bg}
         />
       </BlurTargetView>
@@ -743,15 +743,19 @@ function FriendsScene({
         onLayout={(event) => setHeaderHeight(event.nativeEvent.layout.height)}
         style={{
           minHeight: bandHeight,
-          paddingTop: insets.top + theme.spacing.xs,
+          // Minimal — right under the safe-area inset, not a further spacing
+          // token on top of it, so the title sits as close to the status bar
+          // as the status bar's own glyphs do.
+          paddingTop: insets.top,
           paddingHorizontal: theme.spacing.lg,
           paddingBottom: HERO_OVERLAP + theme.spacing.xs,
         }}
       >
         {/* The title row and the selection toolbar share the same spot — one
-            crossfades into the other, never both at once. The scan button on
-            the right is Home's own header icon button, bare and white, not a
-            currency/convert action — Friends has no equivalent of either. */}
+            crossfades into the other, never both at once. There is no
+            top-right currency/convert action today, so the row is just the
+            glyph and the name; scanning an invite QR has its own tile in the
+            balance card's round-button row instead of a header icon. */}
         <View style={{ minHeight: 32, justifyContent: 'center' }}>
           <Reanimated.View pointerEvents={selectMode ? 'none' : 'auto'} style={restingStyle}>
             <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
@@ -772,16 +776,6 @@ function FriendsScene({
               >
                 {t.friends}
               </Text>
-              {/* The same scan-to-join flow the "Add people" menu's own scan
-                  row used to open (`/scan`) — moved here so it is reachable
-                  without opening that menu first, the way Home's own header
-                  icons sit beside its greeting rather than behind a menu. */}
-              <HeroIconButton
-                icon="qr-code-outline"
-                label={t.misc.scanToJoin}
-                onPress={() => router.push('/scan' as never)}
-                ink={heroInk}
-              />
             </Row>
           </Reanimated.View>
           <Reanimated.View
@@ -846,12 +840,12 @@ function FriendsScene({
             locale={locale}
             t={t}
             hidden={balanceHidden || !balanceReady}
-            onToggleHide={toggleBalance}
             loading={loading}
             footer={
               <FriendsQuickActions
                 addTileRef={addTileRef}
                 onAdd={openAdd}
+                onScan={() => router.push('/scan' as never)}
                 onSettleUp={onSettleUp}
                 duplicateCount={duplicateCount}
                 onMerge={onDuplicates}
@@ -889,9 +883,11 @@ const HERO_TITLE_SHADOW = {
  * two sides that already say it only cost height the friends list wanted
  * back, so the card opens straight on the two sides instead.
  *
- * The eye that hides every amount on the phone (Home's own preference, A48)
- * still lives on the card — a small glyph at its top-right corner, the one
- * place left for it once the headline it used to sit beside was cut.
+ * No eye on this card either: the preference it would toggle (Home's own,
+ * A48) is one switch for the whole phone, and Home already carries the
+ * control for it. `hidden` still masks every amount here exactly as it did
+ * with the toggle — switching it off on Home still closes it here too — this
+ * card simply does not offer a second place to flip it.
  *
  * Never a total across currencies (ADR-003): each side of the row states its
  * own direction's *head* currency rather than folding two currencies into one
@@ -905,7 +901,6 @@ function FriendsBalanceCard({
   locale,
   t,
   hidden,
-  onToggleHide,
   loading,
   footer,
 }: {
@@ -913,8 +908,9 @@ function FriendsBalanceCard({
   totals: readonly CurrencyTotal[];
   locale: string;
   t: UiStrings;
+  /** Whether to mask every amount — Home's own eye preference (A48); there
+   *  is no toggle on this card, only the shared switch's current answer. */
   hidden: boolean;
-  onToggleHide: () => void;
   loading: boolean;
   footer: React.ReactNode;
 }): React.JSX.Element {
@@ -944,27 +940,10 @@ function FriendsBalanceCard({
     <>
       <View
         style={{
-          paddingTop: theme.spacing.xs,
-          paddingBottom: theme.spacing.md,
-          gap: theme.spacing.xs,
+          paddingTop: theme.spacing.sm,
+          paddingBottom: theme.spacing.sm,
         }}
       >
-        <Row style={{ justifyContent: 'flex-end', paddingHorizontal: theme.spacing.lg }}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={hidden ? t.dashHero.showBalance : t.dashHero.hideBalance}
-            onPress={onToggleHide}
-            hitSlop={10}
-            style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
-          >
-            <Ionicons
-              name={hidden ? 'eye-off-outline' : 'eye-outline'}
-              size={iconSize.md}
-              color={theme.color.textMuted}
-            />
-          </Pressable>
-        </Row>
-
         <Row style={{ alignItems: 'center', paddingHorizontal: theme.spacing.lg }}>
           <BalanceSide
             icon="arrow-up"
@@ -1007,15 +986,22 @@ const BALANCE_MASK = '••••••';
  * `QuickActionsRow`, the very component Home's own quick actions use (a small
  * tinted disc over a one-line word, in equal columns), lilac-tinted rather
  * than Home's brand so the row reads as this card's own and matches the
- * mockup's "lavender" asks: add a person, settle up (the same group picker
- * Home's own "Settle up" opens), and merge likely duplicates, wearing a red
- * count badge. Sort used to be the middle tile here; it now lives beside
- * "Your friends" below, next to the list it orders, so this row only ever
- * carries actions rather than a view option.
+ * mockup's "lavender" asks: add a person, scan an invite QR (the same flow
+ * the "Add people" menu's own scan row used to open, before QR before Settle
+ * up — scanning somebody else's invite and settling up are both "do a thing
+ * with a person I may not have added yet", so it sits with that half of the
+ * row rather than after it), settle up (the same group picker Home's own
+ * "Settle up" opens), and merge likely duplicates, wearing a red count badge.
+ * Sort used to be the middle tile here; it now lives beside "Your friends"
+ * below, next to the list it orders, so this row only ever carries actions
+ * rather than a view option. Four tiles rather than three now, so the discs
+ * and labels run a size smaller than Home's own (`DISC_SIZE`, `LABEL_SIZE`)
+ * — still a single line each, just a narrower column to fit it in.
  */
 function FriendsQuickActions({
   addTileRef,
   onAdd,
+  onScan,
   onSettleUp,
   duplicateCount,
   onMerge,
@@ -1024,6 +1010,7 @@ function FriendsQuickActions({
 }: {
   addTileRef: React.RefObject<View | null>;
   onAdd: () => void;
+  onScan: () => void;
   onSettleUp: () => void;
   duplicateCount: number;
   onMerge: () => void;
@@ -1040,6 +1027,12 @@ function FriendsQuickActions({
       glyph: (color) => <Ionicons name="person-add-outline" size={16} color={color} />,
       onPress: onAdd,
       ref: addTileRef,
+    },
+    {
+      key: 'scan',
+      label: t.misc.scanToJoin,
+      glyph: (color) => <Ionicons name="qr-code-outline" size={16} color={color} />,
+      onPress: onScan,
     },
     {
       key: 'settle',
@@ -1060,9 +1053,25 @@ function FriendsQuickActions({
   ];
 
   return (
-    <QuickActionsRow actions={actions} radius={radius} discColor={lilac.bg} iconColor={lilac.ink} />
+    <QuickActionsRow
+      actions={actions}
+      radius={radius}
+      discColor={lilac.bg}
+      iconColor={lilac.ink}
+      discSize={FRIENDS_DISC_SIZE}
+      labelSize={FRIENDS_LABEL_SIZE}
+      rowPadding={theme.spacing.xs}
+    />
   );
 }
+
+/** The quick-action row's own, smaller disc — Home's 34dp reads as the
+ *  right weight for three tiles; a fourth asked for one size down. */
+const FRIENDS_DISC_SIZE = 30;
+
+/** 12pt labels for the same row, a point above the shared `micro` variant's
+ *  11 — legible at the narrower column four tiles leave each one. */
+const FRIENDS_LABEL_SIZE = 12;
 
 /**
  * The list's own section header — "Your friends" on the left, the sort
@@ -1103,7 +1112,7 @@ function FriendsListHeader({
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: theme.spacing.lg,
-        paddingTop: theme.spacing.lg,
+        paddingTop: theme.spacing.sm,
         paddingBottom: theme.spacing.sm,
       }}
     >
@@ -1978,12 +1987,12 @@ function SortMenu({
 /**
  * The "Add people" menu, dropped from its pill: pull from contacts, or find
  * by address or number. Scanning an invite QR used to be a third row here;
- * it now has its own button on the hero's title row (`HeroIconButton`,
- * `t.misc.scanToJoin`), reachable without opening this menu first, so it was
- * dropped from here rather than offered twice. Typing a bare name is not
- * here either — it lives on the empty Friends screen and inside the
- * contacts picker ("someone not in my contacts"), where it is the answer
- * rather than a first choice.
+ * it now has its own tile in the balance card's round-button row instead
+ * (`FriendsQuickActions`, `t.misc.scanToJoin`), reachable without opening
+ * this menu first, so it was dropped from here rather than offered twice.
+ * Typing a bare name is not here either — it lives on the empty Friends
+ * screen and inside the contacts picker ("someone not in my contacts"),
+ * where it is the answer rather than a first choice.
  */
 function AddMenu({
   open,
