@@ -10,7 +10,7 @@
  * a test rather than by watching the screen.
  */
 
-import { type ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { Pressable, type PressableProps, type ViewStyle } from 'react-native';
 import Animated, {
   FadeInDown,
@@ -25,6 +25,27 @@ import { useReducedMotion } from './reducedMotion';
 import { staggerDelay } from './motionMath';
 
 export { easeOutCubic, lerpBig, MAX_SAFE_MINOR, staggerDelay } from './motionMath';
+
+/**
+ * A short opacity crossfade between a skeleton value and the real one it
+ * stands in for — both stay mounted across the swap, which is what lets the
+ * dissolve happen in place instead of the layout jumping as one unmounts and
+ * the other takes its spot. The same device `ScreenHero`'s `useHeroCrossfade`
+ * uses for its title/selection swap, generalised to a plain before/after pair
+ * with no translate, since a figure or a bar settling into its final value
+ * has nowhere to travel from. Off entirely under reduced motion, where the
+ * swap is a hard cut rather than a dissolve.
+ */
+export function useCrossfade(active: boolean, duration = 180) {
+  const reduceMotion = useReducedMotion();
+  const sel = useSharedValue(active ? 1 : 0);
+  useEffect(() => {
+    sel.set(reduceMotion ? (active ? 1 : 0) : withTiming(active ? 1 : 0, { duration }));
+  }, [active, reduceMotion, sel, duration]);
+  const fromStyle = useAnimatedStyle(() => ({ opacity: 1 - sel.get() }));
+  const toStyle = useAnimatedStyle(() => ({ opacity: sel.get() }));
+  return { fromStyle, toStyle };
+}
 
 /** How long a screen transition runs. Short enough to feel like a response,
     not a scene — used by the navigator's `animationDuration`. */
