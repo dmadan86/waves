@@ -754,8 +754,10 @@ function QuickExpenseFooter({
         });
       } catch {
         // Best-effort, matching the capture screen's own upload: the draft is
-        // still worth keeping without its photo.
+        // still worth keeping without its photo — but, same as the group
+        // path, the person who took it should be told it did not stick.
         photoPath = null;
+        toast.show(t.receipts.couldNotAdd, 'negative');
       }
     }
     await createCapture.mutateAsync({

@@ -114,12 +114,24 @@ export function QuickAmountRow({
               minHeight: 32,
               alignItems: 'center',
               justifyContent: 'center',
+              paddingHorizontal: 4,
               borderRadius: theme.radius.pill,
               backgroundColor: theme.color.surface,
               opacity: pressed ? 0.6 : 1,
             })}
           >
-            <Text style={{ fontSize: 13, fontWeight: '600', color: accent }} numberOfLines={1}>
+            {/* Four chips share a narrow row, and the largest currencies'
+                figures (₫1,000,000) are long enough to clip at 1.6× system
+                text scaling. Shrinking the glyph keeps the whole amount on
+                one line rather than truncating it to something that reads as
+                a smaller, wrong figure; the accessibility label above still
+                carries the full amount regardless of what fits visually. */}
+            <Text
+              style={{ fontSize: 13, fontWeight: '600', color: accent }}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.7}
+            >
               {`+${formatMinorInput(add, currency)}`}
             </Text>
           </Pressable>

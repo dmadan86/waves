@@ -99,7 +99,7 @@ export function QuickCategoryRow({
         </Pressable>
       </Row>
 
-      <Row style={{ gap: theme.spacing.sm }}>
+      <Row style={{ gap: theme.spacing.sm }} accessibilityRole="radiogroup">
         {visible.slice(0, SHOWN).map((entry) => {
           const selected = entry.key === value;
           const entryMeta: CategoryMeta | null = entry.custom
@@ -109,7 +109,10 @@ export function QuickCategoryRow({
             <Pressable
               key={entry.key}
               accessibilityRole="radio"
-              accessibilityState={{ selected }}
+              // A radio's state is read through `checked`, not `selected` —
+              // VoiceOver/TalkBack say nothing about which one is chosen
+              // without it.
+              accessibilityState={{ checked: selected }}
               accessibilityLabel={entry.label}
               onPress={() => choose(entry.key, entryMeta)}
               style={({ pressed }) => ({
