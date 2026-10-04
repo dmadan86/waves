@@ -82,10 +82,25 @@ export function LocationField({
   const { t } = useStrings();
   const [working, setWorking] = useState(false);
   // Compact only: whether the full map (and its change/clear actions) is
-  // folded open under the one-line row. Closed by default — the whole point
-  // of the compact row is not spending the screen's height on a map nobody
-  // asked to see yet.
-  const [expanded, setExpanded] = useState(false);
+  // folded open under the one-line row. Starts open the moment a place is
+  // already on the field — before compact mode existed the map was never
+  // behind a fold at all, so an edit opening on a saved location, or a voice
+  // review reading one back, showed it immediately. Staying closed until an
+  // explicit tap is only right for the field that opens with nothing in it,
+  // where there is genuinely no map yet to show.
+  const [expanded, setExpanded] = useState(value !== null);
+  // `hadValue` is what `value !== null` was as of the last render — the same
+  // "adjust state during render" shape `ratedFor` below uses — so a place
+  // landing on a field that started with none (a fresh "Add location" tap, or
+  // a voice capture arriving) re-opens the fold the instant it does, rather
+  // than leaving the pin one more tap away. An explicit fold-away (the row's
+  // own tap, or Remove, which already closes this) sticks, because nothing
+  // here fires again until the next none-to-something transition.
+  const [hadValue, setHadValue] = useState(value !== null);
+  if ((value !== null) !== hadValue) {
+    setHadValue(value !== null);
+    if (value !== null) setExpanded(true);
+  }
   // 'denied' offers Settings; 'unavailable' just invites another try. Cleared
   // the moment a fresh attempt starts.
   const [failure, setFailure] = useState<LocationFailure | null>(null);

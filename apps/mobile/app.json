@@ -2,7 +2,7 @@
   "expo": {
     "name": "Waves",
     "slug": "waves",
-    "version": "1.2.0",
+    "version": "1.2.1",
     "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "waves",
@@ -31,7 +31,7 @@
     "android": {
       "package": "app.waves.mobile",
       "allowBackup": false,
-      "versionCode": 8,
+      "versionCode": 9,
       "permissions": [],
       "blockedPermissions": [
         "android.permission.SYSTEM_ALERT_WINDOW",
@@ -168,6 +168,7 @@
       "./plugins/withWavesWidgets",
       "./plugins/withWavesWear",
       "@bacons/apple-targets",
+      "expo-iap",
       "expo-secure-store",
       "expo-sharing",
       "@react-native-community/datetimepicker",
