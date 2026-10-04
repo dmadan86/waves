@@ -2684,7 +2684,16 @@ export interface UiStrings {
     /** They allow it, but there is genuinely nothing on the account. */
     noContact: string;
     /** A ghost — no account, so no contact to withhold or to show. */
-    ghostContact: string;
+    notOnWaves: string;
+    inviteA11y: string;
+    pay: string;
+    markPaid: string;
+    markPaidTitle: string;
+    markPaidBody: string;
+    remindA11y: string;
+    payA11y: string;
+    markPaidA11y: string;
+    settleUpA11y: string;
     call: string;
     message: string;
     copy: string;
@@ -6296,7 +6305,16 @@ const en: UiStrings = {
     paidVia: 'Gets paid at',
     contactWithheld: '{name} keeps their contact details to themselves.',
     noContact: 'No phone or email on this account.',
-    ghostContact: 'Not on Waves yet, so there is nothing to show here.',
+    notOnWaves: 'Not on Waves yet',
+    inviteA11y: 'Invite {name} to Waves',
+    pay: 'Pay',
+    markPaid: 'Mark as paid',
+    markPaidTitle: 'Mark as paid to {name}?',
+    markPaidBody: 'This records a payment you have already made. Waves does not move money.',
+    remindA11y: 'Remind {name} to settle up',
+    payA11y: 'Pay {name}',
+    markPaidA11y: 'Mark {name} as paid',
+    settleUpA11y: 'Settle up with {name}',
     call: 'Call',
     message: 'Message',
     copy: 'Copy',
@@ -9831,7 +9849,16 @@ const ta: UiStrings = {
     paidVia: 'பணம் பெறும் முகவரி',
     contactWithheld: '{name} தமது தொடர்பு விவரங்களைத் தமக்குள்ளேயே வைத்திருக்கிறார்.',
     noContact: 'இந்தக் கணக்கில் தொலைபேசி எண்ணோ மின்னஞ்சலோ இல்லை.',
-    ghostContact: 'இவர் இன்னும் Waves-இல் சேரவில்லை, அதனால் இங்கே காட்ட ஒன்றுமில்லை.',
+    notOnWaves: 'இன்னும் Waves-இல் இல்லை',
+    inviteA11y: '{name}-ஐ Waves-க்கு அழை',
+    pay: 'செலுத்து',
+    markPaid: 'செலுத்தியதாகக் குறி',
+    markPaidTitle: '{name}-க்கு செலுத்தியதாகக் குறிக்கவா?',
+    markPaidBody: 'நீங்கள் ஏற்கெனவே செலுத்திய தொகையை இது பதிவு செய்கிறது. Waves பணத்தை நகர்த்தாது.',
+    remindA11y: '{name}-ஐ கணக்கு தீர்க்க நினைவூட்டு',
+    payA11y: '{name}-க்கு செலுத்து',
+    markPaidA11y: '{name}-க்கு செலுத்தியதாகக் குறி',
+    settleUpA11y: '{name}-உடன் கணக்கு தீர்',
     call: 'அழை',
     message: 'செய்தி',
     copy: 'நகலெடு',
@@ -13380,7 +13407,16 @@ const hi: UiStrings = {
     paidVia: 'भुगतान यहाँ लेते हैं',
     contactWithheld: '{name} ने अपने संपर्क विवरण अपने पास रखे हैं।',
     noContact: 'इस खाते पर कोई फ़ोन नंबर या ईमेल नहीं है।',
-    ghostContact: 'ये अभी Waves पर नहीं हैं, इसलिए यहाँ दिखाने को कुछ नहीं है।',
+    notOnWaves: 'अभी Waves पर नहीं हैं',
+    inviteA11y: '{name} को Waves पर बुलाएँ',
+    pay: 'भुगतान करें',
+    markPaid: 'चुकाया हुआ चिह्नित करें',
+    markPaidTitle: '{name} को चुकाया हुआ चिह्नित करें?',
+    markPaidBody: 'यह वह भुगतान दर्ज करता है जो आप कर चुके हैं। Waves पैसे नहीं भेजता।',
+    remindA11y: '{name} को हिसाब चुकाने की याद दिलाएँ',
+    payA11y: '{name} को भुगतान करें',
+    markPaidA11y: '{name} को चुकाया हुआ चिह्नित करें',
+    settleUpA11y: '{name} के साथ हिसाब चुकाएँ',
     call: 'कॉल',
     message: 'संदेश',
     copy: 'कॉपी',
@@ -17064,7 +17100,16 @@ const ar: UiStrings = {
     paidVia: 'يستلم المدفوعات على',
     contactWithheld: 'يحتفظ {name} ببيانات تواصله لنفسه.',
     noContact: 'لا يوجد هاتف أو بريد على هذا الحساب.',
-    ghostContact: 'لم ينضم إلى Waves بعد، فلا شيء لعرضه هنا.',
+    notOnWaves: 'ليس على Waves بعد',
+    inviteA11y: 'ادعُ {name} إلى Waves',
+    pay: 'ادفع',
+    markPaid: 'تحديد كمدفوع',
+    markPaidTitle: 'تحديد المبلغ كمدفوع لـ {name}؟',
+    markPaidBody: 'يسجّل هذا دفعة أجريتها بالفعل. لا ينقل Waves الأموال.',
+    remindA11y: 'ذكّر {name} بالتسوية',
+    payA11y: 'ادفع لـ {name}',
+    markPaidA11y: 'حدد {name} كمدفوع',
+    settleUpA11y: 'تسوية الحساب مع {name}',
     call: 'اتصال',
     message: 'رسالة',
     copy: 'نسخ',

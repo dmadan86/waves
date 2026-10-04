@@ -64,6 +64,8 @@ import { PeopleSkeleton } from '@/components/Skeletons';
 import { ViewerButton } from '@/components/ViewerButton';
 import { ZoomableGallery } from '@/components/ZoomableGallery';
 import { currencyTotals, directionGroups, type CurrencyTotal } from '@/lib/friendsTotals';
+import { PersonActions } from '@/components/person/PersonActions';
+import { actionTarget, isUnregistered } from '@/lib/personActions';
 import { personAvatarPath } from '@/lib/personDetail';
 import { fill, plural, useStrings } from '@/i18n';
 import { router } from '@/lib/navigation';
@@ -171,6 +173,13 @@ export default function PersonDetailScreen() {
     };
   }, [rows]);
 
+  const unregistered = isUnregistered(profile, rows);
+  // The one group a Remind / Pay / Settle up is aimed at: where the headline
+  // direction is biggest. Computed from the same totals the card shows.
+  const headTotal = directionGroups(totals)[0]?.head;
+  const target = actionTarget(groups, headTotal);
+  const inviteGroupId = target?.groupId ?? groups[0]?.groupId ?? null;
+
   const loading = who.isLoading || person.isLoading;
   const failed = who.isError && person.isError;
 
@@ -258,9 +267,9 @@ export default function PersonDetailScreen() {
         style={{ flex: 1 }}
         contentContainerStyle={{
           paddingHorizontal: theme.spacing.xl,
-          paddingTop: theme.spacing.lg,
+          paddingTop: theme.spacing.md,
           paddingBottom: clearance,
-          gap: theme.spacing.xl,
+          gap: theme.spacing.lg,
         }}
         showsVerticalScrollIndicator={false}
       >
@@ -288,14 +297,24 @@ export default function PersonDetailScreen() {
           <EmptyState title={t.person.notFound} body={t.person.notFoundBody} />
         ) : (
           <>
-            {profile && !blocked && ready ? <ContactCard profile={profile} /> : null}
+            {unregistered && !blocked && ready ? (
+              <InvitePrompt
+                label={t.person.notOnWaves}
+                action={t.people.invite}
+                actionLabel={fill(t.person.inviteA11y, { name: realName })}
+                onInvite={inviteGroupId ? () => router.push(`/group/${inviteGroupId}/invite`) : null}
+              />
+            ) : null}
+            {profile && !profile.is_ghost && !blocked && ready ? (
+              <ContactCard profile={profile} />
+            ) : null}
 
             {totals.length > 0 ? (
               // Each direction said once, however many currencies it holds —
               // the rule the dashboard headline and the Friends hero already
               // follow. One row per currency meant reading "Owes you" three
               // times down a card whose whole job is to state two facts.
-              <Card style={{ gap: theme.spacing.md }}>
+              <Card style={{ gap: theme.spacing.sm, padding: theme.spacing.lg }}>
                 {directionGroups(totals).map((group) => (
                   <View key={group.owed ? 'owed' : 'owing'} style={{ gap: 2 }}>
                     <Row
@@ -315,7 +334,8 @@ export default function PersonDetailScreen() {
                         amount={group.head.net}
                         currency={group.head.currency}
                         locale={locale}
-                        variant="heading"
+                        variant="title"
+                        style={{ fontSize: 30, lineHeight: 36 }}
                         mode="balance"
                         numberOfLines={1}
                       />
@@ -346,6 +366,15 @@ export default function PersonDetailScreen() {
                     ) : null}
                   </View>
                 ))}
+                {target && headTotal && !blocked && ready ? (
+                  <PersonActions
+                    personKey={key}
+                    name={realName}
+                    target={target}
+                    currency={headTotal.currency}
+                    owed={headTotal.net > 0n}
+                  />
+                ) : null}
               </Card>
             ) : (
               // Square, not broken — and now the person is still here to say so
@@ -372,7 +401,7 @@ export default function PersonDetailScreen() {
                       : t.tabs.acrossGroups.other.replace('{n}', String(groups.length))
                   }
                 />
-                <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
+                <Card padded={false} style={{ paddingHorizontal: theme.spacing.md }}>
                   {groups.map((group, index) => {
                     // The group's biggest figure leads on the row's own line,
                     // level with its name and its emoji; anything else it holds
@@ -391,28 +420,29 @@ export default function PersonDetailScreen() {
                         >
                           <Row
                             style={{
-                              paddingTop: theme.spacing.sm,
+                              minHeight: 56,
+                              paddingTop: theme.spacing.xs,
                               // The row's own bottom padding, unless the extra
                               // currencies below are carrying it. Said here
                               // rather than left to an empty wrapper: a group
                               // holding one currency used to render a `Row` with
                               // no children whose only job was its padding, and
                               // padding is not a thing to express as a component.
-                              paddingBottom: rest.length > 0 ? 0 : theme.spacing.sm,
+                              paddingBottom: rest.length > 0 ? 0 : theme.spacing.xs,
                               alignItems: 'center',
                             }}
                           >
                             <View
                               style={{
-                                width: 44,
-                                height: 44,
+                                width: 40,
+                                height: 40,
                                 borderRadius: theme.radius.pill,
                                 backgroundColor: theme.color.surfaceMuted,
                                 alignItems: 'center',
                                 justifyContent: 'center',
                               }}
                             >
-                              <Text style={{ fontSize: 22 }}>{group.coverEmoji ?? '👥'}</Text>
+                              <Text style={{ fontSize: 20 }}>{group.coverEmoji ?? '👥'}</Text>
                             </View>
                             <Text
                               variant="subheading"
@@ -543,14 +573,6 @@ function ContactCard({ profile }: { profile: PersonProfileRow }) {
     setCopied(value);
   };
 
-  if (profile.is_ghost) {
-    return (
-      <Card>
-        <Text tone="muted">{t.person.ghostContact}</Text>
-      </Card>
-    );
-  }
-
   if (profile.contact_withheld) {
     return (
       <Card>
@@ -655,6 +677,56 @@ function ContactLine({
         <IconButton label={actionLabel ?? ''} onPress={onAction}>
           <Ionicons name={actionIcon} size={iconSize.md} color={theme.color.brand} />
         </IconButton>
+      ) : null}
+    </Row>
+  );
+}
+
+/**
+ * One line for somebody without an account, instead of a card announcing there
+ * is "nothing to show" above the balances that are plainly there. Says the one
+ * thing that is true — they are not on Waves — and offers the way to change it.
+ */
+function InvitePrompt({
+  label,
+  action,
+  actionLabel,
+  onInvite,
+}: {
+  label: string;
+  action: string;
+  actionLabel: string;
+  /** Null when no group is known to invite them to: the line is then only a fact. */
+  onInvite: (() => void) | null;
+}) {
+  const theme = useTheme();
+  return (
+    <Row
+      style={{
+        alignItems: 'center',
+        gap: theme.spacing.sm,
+        paddingHorizontal: theme.spacing.md,
+        minHeight: 44,
+        borderRadius: theme.radius.pill,
+        backgroundColor: theme.color.surfaceMuted,
+      }}
+    >
+      <Ionicons name="person-add-outline" size={iconSize.md} color={theme.color.brand} />
+      <Text variant="caption" tone="muted" style={{ flex: 1 }} numberOfLines={2}>
+        {label}
+      </Text>
+      {onInvite ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={actionLabel}
+          onPress={onInvite}
+          hitSlop={8}
+          style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+        >
+          <Text variant="caption" tone="brand" style={{ fontWeight: '700' }}>
+            {action}
+          </Text>
+        </Pressable>
       ) : null}
     </Row>
   );
