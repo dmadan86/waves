@@ -40,7 +40,7 @@ Two people, not one:
   own vendor set and budget order of magnitude: Haldi+Mehendi (₹35k–₹2L
   combined), Sangeet (₹2L–₹6L), the wedding ceremony, and the Reception —
   usually the single largest line (reports cite $250–$350/guest). Planners
-  and spreadsheets universally budget *by function*, not only by category —
+  and spreadsheets universally budget _by function_, not only by category —
   "Sangeet decor" and "Reception decor" are different envelopes even though
   both are "decor". A flat category list (Food/Decor/Transport) cannot
   represent this; a second, function-shaped axis can.
@@ -75,8 +75,8 @@ Two people, not one:
   `waves_set_category_budget`) already does per-category planned-vs-spent
   with a tested `budgetProgress`/`spendByCategory` pair in `@waves/core`;
   `TripPlanItem` already does planned-vs-actual per day. The missing pieces
-  were narrower than "build a budgeting feature": a sub-event *tag* on an
-  expense, a *template* to seed the UI, and a *deposit/balance-due* reminder.
+  were narrower than "build a budgeting feature": a sub-event _tag_ on an
+  expense, a _template_ to seed the UI, and a _deposit/balance-due_ reminder.
 - **Multi-payer support (already shipped) is what the "two families split
   a vendor bill" and "my side paid the caterer, yours paid the hall" cases
   need** — Waves does not need a new concept for "who from each family paid",
@@ -113,12 +113,12 @@ Two people, not one:
   group — renaming or extending a template later reaches every group that
   picked it, the way a built-in category's label already does.
 - **`expense_versions.sub_event_id`** (new nullable column): which sub-event
-  (`mehendi`, `sangeet`, …) an expense is tagged with. Rides the *existing*
+  (`mehendi`, `sangeet`, …) an expense is tagged with. Rides the _existing_
   expense create/update path exactly the way `category`/`payment_method`
   already do — additive parameters on `waves_apply_expense`, no new mutation
   kind, no new sync plumbing.
 - **Event budget**: a sub-event's planned amount lives in the group's
-  *existing* `category_budgets` JSON map, keyed by sub-event id instead of a
+  _existing_ `category_budgets` JSON map, keyed by sub-event id instead of a
   category id (the two never collide — an Event group's expenses carry a
   `sub_event_id`, not a spend category, as the budgeted key). "Spent" comes
   from a new, ~15-line `spendBySubEvent` in `@waves/core` (`spendByCategory`'s
