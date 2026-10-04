@@ -134,7 +134,11 @@ export default function StorageUsageScreen() {
         <MeterCard
           note={
             ready && data ? (
-              full ? t.storage.full : t.storage.freeBody.replace('{cap}', formatBytes(data.capBytes, locale))
+              full ? (
+                t.storage.full
+              ) : (
+                t.storage.freeBody.replace('{cap}', formatBytes(data.capBytes, locale))
+              )
             ) : (
               <Skeleton width="70%" height={13} />
             )

@@ -17,10 +17,7 @@ import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-const screen = readFileSync(
-  join(__dirname, '../src/app/settings/storage.tsx'),
-  'utf8',
-);
+const screen = readFileSync(join(__dirname, '../src/app/settings/storage.tsx'), 'utf8');
 
 describe('the Storage skeleton mirrors the loaded screen', () => {
   it('no longer reaches for the generic list skeleton', () => {
