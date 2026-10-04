@@ -51,15 +51,18 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, ScrollView, TextInput, View } from 'react-native';
+import { randomUUID } from 'expo-crypto';
+import { Image } from 'expo-image';
+import { ActivityIndicator, Pressable, ScrollView, TextInput, View } from 'react-native';
 
 import { encodeTxn, toFxRecord, type ExpenseLocation } from '@waves/core';
-import { Button, Divider, Row, Sheet, Text, useTheme } from '@waves/ui';
+import { Button, Divider, iconSize, Row, Sheet, Text, useTheme } from '@waves/ui';
 
 import { DestinationPicker } from '@/components/DestinationPicker';
 import { DictateButton } from '@/components/DictateButton';
 import { QuickAmountRow } from '@/components/QuickAmountRow';
 import { GroupMark } from '@/components/GroupMark';
+import { uploadCapturePhoto, uploadExpenseReceipt } from '@/data/api';
 import {
   useCreateCapture,
   useGroup,
@@ -75,8 +78,10 @@ import { useViewerId } from '@/lib/auth';
 import { useDefaultCurrency } from '@/lib/currency';
 import { CurrencyChoices } from '@/components/expense/CurrencySheet';
 import { usePersonalOffered } from '@/lib/guestGuard';
+import type { PickedImage } from '@/lib/image';
 import { captureLocationIfGranted } from '@/lib/location';
 import { router } from '@/lib/navigation';
+import { useQuickReceipt } from '@/lib/quickReceipt';
 import { tripRateFor } from '@/lib/tripRates';
 import {
   groupDestination,
@@ -112,6 +117,12 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
   const groups = useGroups();
   const labelOf = useGroupLabeller();
   const recents = useRecentDestinations();
+  // The one receipt a quick add can carry — held here, not uploaded until the
+  // footer below actually saves (see lib/quickReceipt). Destructured rather
+  // than passed around as one object, so the reset effect below can name the
+  // one function it depends on instead of the whole bundle.
+  const { receipt, busy: attachingReceipt, attach: attachReceipt, clear: clearReceipt } =
+    useQuickReceipt();
 
   const [amount, setAmount] = useState(0n);
   const [currency, setCurrency] = useState(defaultCurrency);
@@ -185,6 +196,7 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
     setPlace(null);
     currencyChosen.current = false;
     setCurrency(defaultCurrency);
+    clearReceipt();
     onClose();
   };
 
@@ -218,6 +230,14 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
   const personalOffered = usePersonalOffered();
   const personalPicked = chosenId === 'personal';
   const chosen = chosenId && !personalPicked ? byId.get(chosenId) : undefined;
+
+  // The private ledger has no column for a receipt (A48's blob has none), so a
+  // bill picked while a group was still chosen would otherwise sit on the chip
+  // promising something the save a line below cannot do. Dropped the moment
+  // "Just me" is picked, rather than silently ignored at save time.
+  useEffect(() => {
+    if (personalPicked) clearReceipt();
+  }, [personalPicked, clearReceipt]);
 
   /**
    * The long way round: the full form for wherever this is headed, carrying what
@@ -429,6 +449,18 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
               {/* Renders nothing on web or on a binary built before the speech
                   module existed — the row is exactly as wide either way. */}
               <DictateButton value={note} onChange={setNote} compact />
+              {/* The same size and shape as the mic beside it — a bill is as
+                  optional as the note it sits next to. Disabled once "Just
+                  me" is picked, which has nowhere to put a receipt. */}
+              <QuickReceiptControl
+                receipt={receipt}
+                busy={attachingReceipt}
+                disabled={personalPicked}
+                onAttach={attachReceipt}
+                onRemove={clearReceipt}
+                addLabel={t.quickExpense.addReceipt}
+                removeLabel={t.quickExpense.removeReceipt}
+              />
             </Row>
 
             {/* The slim footer: one 46dp save action (or the save/draft pair),
@@ -448,6 +480,7 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
                 currency={currency}
                 note={note}
                 place={place}
+                receipt={receipt}
                 onSaved={closeAndReset}
               />
             ) : (
@@ -515,6 +548,7 @@ function QuickExpenseFooter({
   currency,
   note,
   place,
+  receipt,
   onSaved,
 }: {
   group: GroupRow;
@@ -525,6 +559,8 @@ function QuickExpenseFooter({
   /** Where this was paid, when the reader had already granted location. Null
    *  is the ordinary case and means the row simply carries no place. */
   place: ExpenseLocation | null;
+  /** The bill picked above, if any — held, not yet uploaded. */
+  receipt: PickedImage | null;
   onSaved: () => void;
 }) {
   const labelOf = useGroupLabeller();
@@ -600,7 +636,29 @@ function QuickExpenseFooter({
   const canWriteExpense = myMemberId !== null && participants.length > 0;
 
   const writeDraft = async (): Promise<void> => {
+    // A capture is not an expense yet (A34), so the kept-bill path above —
+    // keyed by groupId/expenseId — has nothing to attach to. Its own photo
+    // field is a direct upload under the capture's own id instead, exactly as
+    // the inbox's own capture screen keeps one; the id is minted here, ahead
+    // of the write, so the upload and the capture row agree on it.
+    const captureId = randomUUID();
+    let photoPath: string | null = null;
+    if (receipt && viewerId) {
+      try {
+        photoPath = await uploadCapturePhoto({
+          ownerUserId: viewerId,
+          captureId,
+          base64: receipt.base64,
+          mimeType: receipt.mimeType,
+        });
+      } catch {
+        // Best-effort, matching the capture screen's own upload: the draft is
+        // still worth keeping without its photo.
+        photoPath = null;
+      }
+    }
     await createCapture.mutateAsync({
+      captureId,
       description: note.trim(),
       expenseDate: new Date().toISOString().slice(0, 10),
       currency,
@@ -609,6 +667,7 @@ function QuickExpenseFooter({
       // rather than the "which group was this?" question a second time.
       targetGroupId: group.id,
       location: place,
+      photoPath,
     });
     noteDestination(groupDestination(group.id));
     onSaved();
@@ -638,7 +697,7 @@ function QuickExpenseFooter({
         await writeDraft();
         return;
       }
-      await write.mutateAsync({
+      const expenseId = await write.mutateAsync({
         description: note.trim(),
         expenseDate: new Date().toISOString().slice(0, 10),
         currency,
@@ -656,6 +715,19 @@ function QuickExpenseFooter({
         // split is computable at all.
         expectedShares: undefined,
       });
+      if (receipt) {
+        // After the write, not beside it — the kept bill (E2) is keyed by
+        // groupId/expenseId, and the expense has to exist first. Best-effort
+        // and never awaited by the sheet's own close: the money is already
+        // saved, and a failed upload here is no worse than never having
+        // attached one — the bill can still be added from the full form.
+        void uploadExpenseReceipt({
+          groupId: group.id,
+          expenseId,
+          base64: receipt.base64,
+          mimeType: receipt.mimeType,
+        }).catch(() => {});
+      }
       noteDestination(groupDestination(group.id));
       onSaved();
     } finally {
@@ -800,5 +872,97 @@ function PickedTick({ color }: { color: string }) {
     >
       <Ionicons name="checkmark" size={11} color="#FFFFFF" />
     </View>
+  );
+}
+
+/**
+ * The camera button beside the note field, or — once a bill is picked — the
+ * same-sized chip showing it.
+ *
+ * Deliberately the mic's own size and shape (a 32pt soft-brand pill): the note
+ * field already offers one optional way to fill itself in without typing, and
+ * this is the other one. It never grows past that square, even carrying a
+ * photo — a thumbnail big enough to recognise the bill by is a gallery's job,
+ * not this row's; the chip here only has to say "something is attached".
+ */
+function QuickReceiptControl({
+  receipt,
+  busy,
+  disabled,
+  onAttach,
+  onRemove,
+  addLabel,
+  removeLabel,
+}: {
+  receipt: PickedImage | null;
+  busy: boolean;
+  disabled: boolean;
+  onAttach: () => void;
+  onRemove: () => void;
+  addLabel: string;
+  removeLabel: string;
+}) {
+  const theme = useTheme();
+  const size = 32;
+
+  if (receipt) {
+    return (
+      <View style={{ width: size, height: size }}>
+        <Image
+          source={{ uri: receipt.uri }}
+          style={{ width: size, height: size, borderRadius: theme.radius.sm }}
+          contentFit="cover"
+        />
+        {/* The chip's own "x" — removing here never asks to confirm, unlike the
+            full gallery's remove: nothing has been uploaded yet, so there is
+            nothing to lose but a re-tap of the camera button. */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={removeLabel}
+          onPress={onRemove}
+          hitSlop={8}
+          style={({ pressed }) => ({
+            position: 'absolute',
+            top: -6,
+            right: -6,
+            width: 18,
+            height: 18,
+            borderRadius: 9,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: theme.color.text,
+            opacity: pressed ? 0.7 : 1,
+          })}
+        >
+          <Ionicons name="close" size={12} color={theme.color.onBrand} />
+        </Pressable>
+      </View>
+    );
+  }
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={addLabel}
+      accessibilityState={{ disabled: disabled || busy, busy }}
+      disabled={disabled || busy}
+      onPress={onAttach}
+      hitSlop={10}
+      style={({ pressed }) => ({
+        width: size,
+        height: size,
+        borderRadius: theme.radius.pill,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: theme.color.brandSoft,
+        opacity: disabled ? 0.4 : pressed ? 0.85 : 1,
+      })}
+    >
+      {busy ? (
+        <ActivityIndicator size="small" color={theme.color.brand} />
+      ) : (
+        <Ionicons name="camera-outline" size={iconSize.md} color={theme.color.brand} />
+      )}
+    </Pressable>
   );
 }

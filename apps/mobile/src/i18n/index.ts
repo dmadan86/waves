@@ -1832,6 +1832,13 @@ export interface UiStrings {
    */
   quickExpense: {
     notePlaceholder: string;
+    /** The camera button beside the note field, and the chooser's title. */
+    addReceipt: string;
+    /** The chooser's two doors: the camera, and the photo library. */
+    takePhoto: string;
+    chooseFromLibrary: string;
+    /** The attached receipt's chip: the "x" that drops it before saving. */
+    removeReceipt: string;
     title: string;
     /** Above the row of recent destinations. */
     where: string;
@@ -5571,6 +5578,10 @@ const en: UiStrings = {
   },
   quickExpense: {
     notePlaceholder: 'Add a note (optional)',
+    addReceipt: 'Add receipt',
+    takePhoto: 'Take photo',
+    chooseFromLibrary: 'Choose from library',
+    removeReceipt: 'Remove receipt',
     title: 'Quick expense',
     where: 'Where does it go?',
     otherPlaces: 'Others',
@@ -9007,6 +9018,10 @@ const ta: UiStrings = {
   },
   quickExpense: {
     notePlaceholder: 'குறிப்பு சேர்க்கவும் (விருப்பம்)',
+    addReceipt: 'Add receipt',
+    takePhoto: 'Take photo',
+    chooseFromLibrary: 'Choose from library',
+    removeReceipt: 'Remove receipt',
     title: 'Quick expense',
     where: 'Where does it go?',
     otherPlaces: 'Others',
@@ -12520,6 +12535,10 @@ const hi: UiStrings = {
   },
   quickExpense: {
     notePlaceholder: 'नोट जोड़ें (वैकल्पिक)',
+    addReceipt: 'Add receipt',
+    takePhoto: 'Take photo',
+    chooseFromLibrary: 'Choose from library',
+    removeReceipt: 'Remove receipt',
     title: 'Quick expense',
     where: 'Where does it go?',
     otherPlaces: 'Others',
@@ -16040,6 +16059,10 @@ const ar: UiStrings = {
   },
   quickExpense: {
     notePlaceholder: 'أضف ملاحظة (اختياري)',
+    addReceipt: 'Add receipt',
+    takePhoto: 'Take photo',
+    chooseFromLibrary: 'Choose from library',
+    removeReceipt: 'Remove receipt',
     title: 'Quick expense',
     where: 'Where does it go?',
     otherPlaces: 'Others',
