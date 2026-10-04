@@ -204,6 +204,19 @@ function wasFound(capture: CaptureRow): boolean {
 }
 
 /**
+ * A plain-text name for a draft: its note, or failing that its category, or
+ * failing that "Unassigned" — the same fallback chain the row's own title
+ * uses. Pulled out so the assign sheet's "Edit {item}" accessibility label
+ * names the same thing the row already does, rather than drifting from it.
+ */
+function captureTitle(capture: CaptureRow, t: UiStrings): string {
+  const categoryLabel = capture.category
+    ? (t.categories as Record<string, string>)[capture.category]
+    : undefined;
+  return capture.description?.trim() || categoryLabel || t.captures.unassigned;
+}
+
+/**
  * The bank message this draft was read out of, if there is one.
  *
  * A person cannot trust a parser they cannot check. The row says "PLASTICS
@@ -338,10 +351,7 @@ function CaptureListRow({
   // The note names the spend; with none, its category does; with neither, it is
   // simply still unassigned. The amount always sits at the trailing edge, so the
   // title never has to carry it.
-  const categoryLabel = capture.category
-    ? (t.categories as Record<string, string>)[capture.category]
-    : undefined;
-  const title = capture.description?.trim() || categoryLabel || t.captures.unassigned;
+  const title = captureTitle(capture, t);
   const doubts = bare ? [] : doubtsAbout(capture);
   const dismissLabel = wasFound(capture) ? t.captures.notAnExpense : t.captures.delete;
 
@@ -944,6 +954,19 @@ export default function CapturesScreen() {
     };
   }, [shownAssigning]);
 
+  // What the assign sheet's "Edit" affordance would open, if anything. A
+  // single row offers it outright; a ticked pile offers it only when exactly
+  // one draft is riding on the answer — editing is a question about one
+  // expense's own fields, and a pile of several has no single set of fields
+  // to open. (A spoken batch's ⋯ opens the picker on more than one row too,
+  // but that path always carries more than one item, so it falls out of the
+  // same check without a separate one.)
+  const editTarget: CaptureRow | null =
+    assigningCapture ??
+    (shownAssigning?.kind === 'batch' && shownAssigning.items.length === 1
+      ? shownAssigning.items[0]!
+      : null);
+
   const rows = useMemo(() => captures.data ?? [], [captures.data]);
   // Two errands, two tabs: what the app found in the phone's bank messages,
   // and what its user added on purpose and has not filed yet. The rule and the
@@ -1268,6 +1291,19 @@ export default function CapturesScreen() {
   );
 
   const closeAssign = useCallback((): void => setAssigning(null), []);
+
+  // The assign sheet's own way to the editor — tapping what it is about to
+  // place rather than backing out to the row's ⋯ first. Same route, same
+  // params, same "every value rides along" as `openEdit`; this only decides
+  // *when* it fires. The sheet closes first rather than after, matching how
+  // every other choice on this picker already leaves (`onChoose`'s `create`
+  // case): the next thing on screen is a full route, not a modal stacked on
+  // one still closing.
+  const editFromAssign = useCallback((): void => {
+    if (!editTarget) return;
+    closeAssign();
+    openEdit(editTarget);
+  }, [closeAssign, editTarget, openEdit]);
 
   /**
    * Drafts into one group, in one go — one row swiped, or a whole spoken batch.
@@ -2139,14 +2175,53 @@ export default function CapturesScreen() {
         onClose={closeAssign}
         padded={false}
         closeLabel={t.common.close}
+        title={t.captures.assignTitle}
+        // The sheet's own title row, not a second heading in the body: the
+        // header is already the drag surface and the tap-to-close target, so
+        // a title handed here rides along with both rather than sitting
+        // under a plain `<Text>` that offers neither. "Edit" rides the far
+        // end of that same line — on the title row, beside what it is
+        // naming, rather than under the summary where it used to compete
+        // with the subject's own badge and amount for a second kind of tap.
+        // Only present with exactly one expense on the sheet: see
+        // `editTarget`.
+        titleAction={
+          editTarget ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t.captures.assignEditExpenseFor.replace(
+                '{item}',
+                captureTitle(editTarget, t),
+              )}
+              onPress={editFromAssign}
+              // The pill stays small; the reach it answers to does not — a
+              // 44pt target sat on a compact pill rather than being grown to
+              // one.
+              hitSlop={{ top: 14, bottom: 14, left: 10, right: 10 }}
+              style={({ pressed }) => ({
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 4,
+                paddingHorizontal: theme.spacing.sm,
+                paddingVertical: 4,
+                borderRadius: theme.radius.pill,
+                backgroundColor: theme.color.brandSoft,
+                opacity: pressed ? 0.6 : 1,
+              })}
+            >
+              <Ionicons name="pencil" size={iconSize.xs} color={theme.color.brand} />
+              <Text variant="micro" style={{ color: theme.color.brand, fontWeight: '700' }}>
+                {t.captures.assignEditExpense}
+              </Text>
+            </Pressable>
+          ) : null
+        }
         style={{
           paddingHorizontal: theme.spacing.xl,
           gap: theme.spacing.md,
           maxHeight: pickerMaxHeight,
         }}
       >
-        <Text variant="heading">{t.captures.assignTitle}</Text>
-
         {/* The same picker the voice review opens, so "where does this go?" is
             one control in the app rather than two that drifted apart.
 
@@ -2194,11 +2269,20 @@ export default function CapturesScreen() {
                         variant="subheading"
                       />
                     ),
-                    note: assigningCapture.description ? (
+                    // The note now carries the date alongside the description
+                    // — amount and description alone left the one other field
+                    // the editor can fix (and the reason a merchant's date is
+                    // sometimes the wrong half of a UPI string) unsaid here.
+                    // The summary itself is inert: editing lives on the
+                    // title row now (`titleAction` above), so the subject
+                    // does not also need to answer for it.
+                    note: (
                       <Text variant="caption" tone="muted" numberOfLines={1}>
-                        {assigningCapture.description}
+                        {assigningCapture.description
+                          ? `${assigningCapture.description} · ${dayHeading(locale, assigningCapture.expense_date)}`
+                          : dayHeading(locale, assigningCapture.expense_date)}
                       </Text>
-                    ) : null,
+                    ),
                   }
                 : batchPreview
                   ? {
@@ -2231,7 +2315,11 @@ export default function CapturesScreen() {
                         ) : null,
                       note: (
                         <Text variant="caption" tone="muted" numberOfLines={1}>
-                          {plural(locale, batchPreview.count, t.captures.batchExpenses)}
+                          {editTarget
+                            ? editTarget.description
+                              ? `${editTarget.description} · ${dayHeading(locale, editTarget.expense_date)}`
+                              : dayHeading(locale, editTarget.expense_date)
+                            : plural(locale, batchPreview.count, t.captures.batchExpenses)}
                         </Text>
                       ),
                     }
