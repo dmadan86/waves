@@ -10,54 +10,99 @@
  * an app kill. The caller (`QuickExpenseSheet`) uploads the held `PickedImage`
  * itself once it knows which expense it belongs to, the same way the full
  * form's own "kept bill" (`uploadExpenseReceipt`) does.
+ *
+ * The camera button opens the in-app camera directly (no chooser); the camera
+ * carries its own gallery button. Where the binary has no camera module the
+ * button falls back to the document scanner / system camera, as before.
  */
 
 import { useCallback, useState } from 'react';
 
 import { useStrings } from '@/i18n';
-import { useDialog } from '@/lib/dialog';
-import { captureReceipt, pickReceiptImage, type PickedImage } from '@/lib/image';
-import { receiptPhotoActions } from '@/lib/receiptPhotoActions';
+import { captureReceipt, pickReceiptImage, receiptFromFile, type PickedImage } from '@/lib/image';
+import { cameraAvailable } from '@/lib/qrScan';
+import { useToast } from '@/lib/toast';
+
+export interface CameraShot {
+  readonly uri: string;
+  readonly width: number;
+  readonly height: number;
+}
 
 export interface QuickReceipt {
   /** The held photo, or null before one is picked (or after it is removed). */
   readonly receipt: PickedImage | null;
-  /** Between the chooser's answer and the picker returning. */
+  /** Between a shot or pick being made and its image being ready. */
   readonly busy: boolean;
-  /** Opens the camera/library chooser. */
+  /** Whether the in-app camera is showing. */
+  readonly cameraOpen: boolean;
+  /** The camera button: opens the camera straight away. */
   readonly attach: () => void;
+  /** Backs out of the camera. */
+  readonly closeCamera: () => void;
+  /** The shutter produced a file. */
+  readonly onShot: (shot: CameraShot) => void;
+  /** The camera's gallery button. A cancelled pick leaves the camera open. */
+  readonly onLibrary: () => void;
+  /** Camera permission was refused: say so, and open the library instead. */
+  readonly onDenied: () => void;
   /** Drops the held photo — the chip's "x", and the sheet's own reset. */
   readonly clear: () => void;
 }
 
 export function useQuickReceipt(): QuickReceipt {
   const { t } = useStrings();
-  const { choose } = useDialog();
+  const toast = useToast();
   const [receipt, setReceipt] = useState<PickedImage | null>(null);
   const [busy, setBusy] = useState(false);
+  const [cameraOpen, setCameraOpen] = useState(false);
+
+  const run = useCallback(async (get: () => Promise<PickedImage | null>): Promise<boolean> => {
+    setBusy(true);
+    try {
+      const image = await get();
+      if (image) setReceipt(image);
+      return image != null;
+    } catch {
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  }, []);
 
   const attach = useCallback((): void => {
+    if (cameraAvailable()) {
+      setCameraOpen(true);
+      return;
+    }
+    // No camera module in this build: the scanner / system camera, as before.
+    void run(captureReceipt);
+  }, [run]);
+
+  const closeCamera = useCallback((): void => setCameraOpen(false), []);
+
+  const onShot = useCallback(
+    (shot: CameraShot): void => {
+      setCameraOpen(false);
+      void run(() => receiptFromFile(shot.uri, shot));
+    },
+    [run],
+  );
+
+  const onLibrary = useCallback((): void => {
     void (async () => {
-      const picked = await choose({
-        title: t.quickExpense.addReceipt,
-        options: receiptPhotoActions(t.quickExpense),
-      });
-      if (picked !== 'camera' && picked !== 'library') return;
-      setBusy(true);
-      try {
-        // Camera first tries the document scanner (a flatter, easier-to-read
-        // crop than a photo of a table); library goes straight to the photo
-        // roll for a bill already on the phone. Both are the same helpers the
-        // full expense form attaches with.
-        const image = picked === 'camera' ? await captureReceipt() : await pickReceiptImage();
-        if (image) setReceipt(image);
-      } finally {
-        setBusy(false);
-      }
+      const ok = await run(pickReceiptImage);
+      if (ok) setCameraOpen(false);
     })();
-  }, [choose, t.quickExpense]);
+  }, [run]);
+
+  const onDenied = useCallback((): void => {
+    setCameraOpen(false);
+    toast.show(t.quickExpense.receiptCameraDenied);
+    void run(pickReceiptImage);
+  }, [run, toast, t.quickExpense.receiptCameraDenied]);
 
   const clear = useCallback((): void => setReceipt(null), []);
 
-  return { receipt, busy, attach, clear };
+  return { receipt, busy, cameraOpen, attach, closeCamera, onShot, onLibrary, onDenied, clear };
 }

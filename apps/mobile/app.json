@@ -150,7 +150,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Waves uses the camera to scan a group's invite QR code, so you can join without typing the link."
+          "cameraPermission": "Waves uses the camera to scan a group's invite QR code, so you can join without typing the link, and to photograph a receipt to attach to an expense."
         }
       ],
       [

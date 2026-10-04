@@ -49,7 +49,7 @@
  * goes through the same durable queue every other expense uses, so it saves
  * with no network and syncs later.
  */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { randomUUID } from 'expo-crypto';
 import { Image } from 'expo-image';
@@ -93,6 +93,10 @@ import {
   PERSONAL_DESTINATION,
   useRecentDestinations,
 } from '@/lib/recentDestinations';
+
+// Only pulled in when the in-app camera opens (and only reachable when the
+// binary has the native module — see `useQuickReceipt`).
+const ReceiptCamera = lazy(() => import('@/components/ReceiptCamera'));
 
 /** How many chips the row offers. More than this and the row stops being a
     glance and starts being a list — which is what the picker is for. */
@@ -148,6 +152,11 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
     busy: attachingReceipt,
     attach: attachReceipt,
     clear: clearReceipt,
+    cameraOpen: receiptCameraOpen,
+    closeCamera: closeReceiptCamera,
+    onShot: onReceiptShot,
+    onLibrary: onReceiptLibrary,
+    onDenied: onReceiptDenied,
   } = useQuickReceipt();
 
   const [amount, setAmount] = useState(0n);
@@ -624,6 +633,16 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
             }}
           />
         </Sheet>
+      ) : null}
+      {receiptCameraOpen ? (
+        <Suspense fallback={null}>
+          <ReceiptCamera
+            onShot={onReceiptShot}
+            onLibrary={onReceiptLibrary}
+            onClose={closeReceiptCamera}
+            onDenied={onReceiptDenied}
+          />
+        </Suspense>
       ) : null}
     </Sheet>
   );
