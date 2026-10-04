@@ -1,5 +1,5 @@
 /**
- * Friends' hero background: the same three friends on the same rock, over the
+ * Friends' hero background: the same group of five friends on the same rock, over the
  * same lake and city, at five moments of one day — morning, midday, sunset,
  * dusk, night. Where Home's hero is drawn in vector layers (`HeroScene`),
  * this one is a photograph, because the owner's own art is this scene and
@@ -8,7 +8,7 @@
  *   photo    the scene, `cover`-fitted and anchored bottom-centre, then
  *            nudged up past that anchor by `VERTICAL_LIFT` so the friends
  *            sit with air above the card rather than against its edge — the
- *            three friends and the horizon stay in frame on a short hero
+ *            five friends and the horizon stay in frame on a short hero
  *            rather than being trimmed the way a centred crop would — shown
  *            at full strength, not washed under a wash the size of the whole
  *            band, so it actually reads as the owner's picture rather than a
@@ -42,16 +42,16 @@ import { HERO_THEMES, Scene } from '@/lib/scene';
 import { useReducedMotion } from '@/lib/reducedMotion';
 
 /**
- * Where the three friends sit, left to right, as a fraction of each photo's
+ * Where the five friends sit, left to right, as a fraction of each photo's
  * own width — one number for all five, not one per scene: the five shots
- * share one composition (the same rock, the same three backs), only the
+ * share one composition (the same rock, the same five backs), only the
  * light changes, so a dark-cluster scan of the heads/shoulders band (the
  * sky above them is always the lightest thing nearby, in every one of the
  * five) lands within a few percent of this same figure in every shot.
- * Slightly right of centre, which keeps the yellow hoodie's sleeve in frame
- * on a narrow phone without pushing the tree on the left out of its corner.
+ * Dead centre, which keeps all five in frame
+ * on a narrow phone as far as the width allows.
  */
-const FOCAL_X = 0.62;
+const FOCAL_X = 0.5;
 
 /**
  * How far every photo is nudged up past its plain bottom-anchor, so the
@@ -76,11 +76,11 @@ const FRIENDS_SCENE_PHOTOS: Readonly<Record<FriendsMoment, number>> = {
  *  than trusted to the native `resizeMode`, which centres vertically too and
  *  would risk trimming the friends' heads on a short, wide hero. */
 const FRIENDS_SCENE_SIZE: Readonly<Record<FriendsMoment, { width: number; height: number }>> = {
-  morning: { width: 1080, height: 397 },
-  midday: { width: 1080, height: 397 },
-  sunset: { width: 1080, height: 472 },
-  dusk: { width: 1080, height: 473 },
-  night: { width: 1080, height: 472 },
+  morning: { width: 1072, height: 372 },
+  midday: { width: 1072, height: 372 },
+  sunset: { width: 707, height: 328 },
+  dusk: { width: 702, height: 328 },
+  night: { width: 714, height: 328 },
 };
 
 const CROSSFADE_MS = 400;
