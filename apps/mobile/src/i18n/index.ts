@@ -1858,11 +1858,14 @@ export interface UiStrings {
    */
   quickExpense: {
     notePlaceholder: string;
-    /** The camera button beside the note field, and the chooser's title. */
+    /** The camera button beside the note field. */
     addReceipt: string;
-    /** The chooser's two doors: the camera, and the photo library. */
-    takePhoto: string;
-    chooseFromLibrary: string;
+    /** The in-app receipt camera: shutter, flash toggle, gallery button, and
+     *  the line shown when camera access is refused and the library opens. */
+    receiptShutter: string;
+    receiptFlash: string;
+    receiptGallery: string;
+    receiptCameraDenied: string;
     /** The attached receipt's chip: the "x" that drops it before saving. */
     removeReceipt: string;
     title: string;
@@ -5724,8 +5727,10 @@ const en: UiStrings = {
   quickExpense: {
     notePlaceholder: 'Add a note (optional)',
     addReceipt: 'Add receipt',
-    takePhoto: 'Take photo',
-    chooseFromLibrary: 'Choose from library',
+    receiptShutter: 'Take photo',
+    receiptFlash: 'Flash',
+    receiptGallery: 'Choose from gallery',
+    receiptCameraDenied: 'Camera access is off, so pick a photo instead',
     removeReceipt: 'Remove receipt',
     title: 'Quick expense',
     subtitle: 'Add an expense and split it with friends',
@@ -9258,8 +9263,10 @@ const ta: UiStrings = {
   quickExpense: {
     notePlaceholder: 'குறிப்பு சேர்க்கவும் (விருப்பம்)',
     addReceipt: 'Add receipt',
-    takePhoto: 'Take photo',
-    chooseFromLibrary: 'Choose from library',
+    receiptShutter: 'புகைப்படம் எடு',
+    receiptFlash: 'ஃபிளாஷ்',
+    receiptGallery: 'கேலரியில் இருந்து தேர்ந்தெடு',
+    receiptCameraDenied: 'கேமரா அணுகல் இல்லை, அதனால் ஒரு புகைப்படத்தைத் தேர்ந்தெடுக்கவும்',
     removeReceipt: 'Remove receipt',
     title: 'Quick expense',
     subtitle: 'Add an expense and split it with friends',
@@ -12870,8 +12877,10 @@ const hi: UiStrings = {
   quickExpense: {
     notePlaceholder: 'नोट जोड़ें (वैकल्पिक)',
     addReceipt: 'Add receipt',
-    takePhoto: 'Take photo',
-    chooseFromLibrary: 'Choose from library',
+    receiptShutter: 'फ़ोटो लें',
+    receiptFlash: 'फ़्लैश',
+    receiptGallery: 'गैलरी से चुनें',
+    receiptCameraDenied: 'कैमरा की अनुमति बंद है, इसलिए एक फ़ोटो चुनें',
     removeReceipt: 'Remove receipt',
     title: 'Quick expense',
     subtitle: 'Add an expense and split it with friends',
@@ -16495,8 +16504,10 @@ const ar: UiStrings = {
   quickExpense: {
     notePlaceholder: 'أضف ملاحظة (اختياري)',
     addReceipt: 'Add receipt',
-    takePhoto: 'Take photo',
-    chooseFromLibrary: 'Choose from library',
+    receiptShutter: 'التقاط صورة',
+    receiptFlash: 'الفلاش',
+    receiptGallery: 'اختر من المعرض',
+    receiptCameraDenied: 'الوصول إلى الكاميرا متوقف، لذا اختر صورة',
     removeReceipt: 'Remove receipt',
     title: 'Quick expense',
     subtitle: 'Add an expense and split it with friends',
