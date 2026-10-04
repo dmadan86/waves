@@ -42,7 +42,6 @@ import {
   MoneyText,
   Row,
   Screen,
-  Skeleton,
   Text,
   tintForKey,
   useTabBarClearance,
@@ -77,7 +76,6 @@ import { FriendsHeroBackground } from '@/components/home/FriendsHeroBackground';
 import { GlassSurface } from '@/components/home/GlassSurface';
 import { QuickActionsRow, type QuickAction } from '@/components/home/QuickActionsRow';
 import { SettlePickerSheet, type SettleCandidate } from '@/components/home/SettlePickerSheet';
-import { SplitMoney } from '@/components/SplitMoney';
 import { useHeroCrossfade, useHeroStatusBar } from '@/components/ScreenHero';
 import { PeopleSkeleton } from '@/components/Skeletons';
 import { plural, useStrings, type UiStrings } from '@/i18n';
@@ -691,12 +689,14 @@ function FriendsScene({
   useHeroStatusBar('light');
 
   // The picture band: visible at full strength from the top of the screen
-  // down to just above the balance card, ~200-220dp including the status
+  // down to just above the balance card, ~155-175dp including the status
   // bar — tall enough that the friends on the rock are plainly the picture,
-  // not a sliver of it hiding behind the card. The header block is asked to
-  // be exactly this tall (below), so what `onLayout` measures back is this
-  // same figure; the card rides up over only its last `HERO_OVERLAP`.
-  const bandHeight = Math.min(220, Math.max(200, insets.top + 170));
+  // short enough that the title sits close under the status bar and the
+  // card close under the title, rather than leaving the top of the screen
+  // mostly empty. The header block is asked to be exactly this tall (below),
+  // so what `onLayout` measures back is this same figure; the card rides up
+  // over only its last `HERO_OVERLAP`.
+  const bandHeight = Math.min(175, Math.max(155, insets.top + 125));
   const [headerHeight, setHeaderHeight] = useState(bandHeight);
   const cardTop = headerHeight - HERO_OVERLAP;
   // No deeper than the band itself: the old formula ran the photo on down
@@ -733,7 +733,7 @@ function FriendsScene({
           width={windowWidth}
           height={sceneHeight}
           horizon={cardTop}
-          headerBottom={insets.top + theme.spacing.sm + 34}
+          headerBottom={insets.top + theme.spacing.xs + 34}
           pageColor={theme.color.bg}
         />
       </BlurTargetView>
@@ -742,9 +742,9 @@ function FriendsScene({
         onLayout={(event) => setHeaderHeight(event.nativeEvent.layout.height)}
         style={{
           minHeight: bandHeight,
-          paddingTop: insets.top + theme.spacing.sm,
+          paddingTop: insets.top + theme.spacing.xs,
           paddingHorizontal: theme.spacing.lg,
-          paddingBottom: HERO_OVERLAP + theme.spacing.sm,
+          paddingBottom: HERO_OVERLAP + theme.spacing.xs,
         }}
       >
         {/* The title row and the selection toolbar share the same spot — one
@@ -869,21 +869,24 @@ const HERO_TITLE_SHADOW = {
 } as const;
 
 /**
- * The balance card's body — now Home's own shape, not a hand-rolled one:
- * "Net receivable" (or payable, or settled) and the eye, the big figure with
- * its paise drawn lighter (`SplitMoney`, the same figure Home's own balance
- * card and group rows use), then the same quiet two-column row Home's own
- * card draws below its figure — "Owed to you" / "You owe", each with how many
- * friends that is — across a hairline divider (`BalanceSide`, the exact
- * component Home uses, not a lookalike).
+ * The balance card's body: the same quiet two-column row Home's own card
+ * draws below its headline figure — "Owed to you" / "You owe", each with how
+ * many friends that is — across a hairline divider (`BalanceSide`, the exact
+ * component Home uses, not a lookalike). There is no headline here: no "Net
+ * receivable" label, no big net figure. With the picture band now doing the
+ * work of identifying the screen, repeating a single net number above the
+ * two sides that already say it only cost height the friends list wanted
+ * back, so the card opens straight on the two sides instead.
  *
- * Never a total across currencies (ADR-003): the headline leads with whichever
- * direction has the bigger currency to show (owed first, the happier half),
- * and each side of the row below states its own direction's *head* currency
- * rather than folding two currencies into one figure. A person holding more
- * currencies than that still reads correctly — a small muted line under the
- * side's own count names how many more there are, where the old pill used to
- * say the same thing (`BalanceSide`'s `extra`).
+ * The eye that hides every amount on the phone (Home's own preference, A48)
+ * still lives on the card — a small glyph at its top-right corner, the one
+ * place left for it once the headline it used to sit beside was cut.
+ *
+ * Never a total across currencies (ADR-003): each side of the row states its
+ * own direction's *head* currency rather than folding two currencies into one
+ * figure. A person holding more currencies than that still reads correctly —
+ * a small muted line under the side's own count names how many more there
+ * are (`BalanceSide`'s `extra`).
  */
 function FriendsBalanceCard({
   rows,
@@ -906,18 +909,11 @@ function FriendsBalanceCard({
 }): React.JSX.Element {
   const theme = useTheme();
   const deck = directionGroups(totals);
-  const primary = deck[0] ?? null;
-  // The two sides of the row below, independent of which direction leads the
-  // headline: one slot for "owed to you", one for "you owe", each null when
-  // nobody stands in that direction (which still draws as a zero, the way
-  // Home's own two sides always both draw).
+  // The two sides of the row, each null when nobody stands in that direction
+  // (which still draws as a zero, the way Home's own two sides always draw).
   const owedGroup = deck.find((group) => group.owed) ?? null;
   const owingGroup = deck.find((group) => !group.owed) ?? null;
-
-  const label =
-    primary === null ? t.allSettled : primary.owed ? t.dashHero.netOwed : t.dashHero.netOwe;
-  const figureAmount = primary ? absBig(primary.head.net) : 0n;
-  const figureCurrency = primary?.head.currency ?? totals[0]?.currency ?? 'INR';
+  const fallbackCurrency = totals[0]?.currency ?? 'INR';
 
   const owedCount = owedGroup ? personCountByDirection(rows, owedGroup.head.currency).owed : 0;
   const owingCount = owingGroup ? personCountByDirection(rows, owingGroup.head.currency).owing : 0;
@@ -937,54 +933,25 @@ function FriendsBalanceCard({
     <>
       <View
         style={{
-          paddingTop: theme.spacing.md,
+          paddingTop: theme.spacing.xs,
           paddingBottom: theme.spacing.md,
-          gap: theme.spacing.md,
+          gap: theme.spacing.xs,
         }}
       >
-        <Row
-          style={{
-            alignItems: 'flex-start',
-            gap: theme.spacing.sm,
-            paddingHorizontal: theme.spacing.lg,
-          }}
-        >
-          <View style={{ flex: 1, gap: 2 }}>
-            <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-              <Text variant="body" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
-                {label}
-              </Text>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={hidden ? t.dashHero.showBalance : t.dashHero.hideBalance}
-                onPress={onToggleHide}
-                hitSlop={10}
-                style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
-              >
-                <Ionicons
-                  name={hidden ? 'eye-off-outline' : 'eye-outline'}
-                  size={iconSize.md}
-                  color={theme.color.textMuted}
-                />
-              </Pressable>
-            </Row>
-            {loading ? (
-              <Skeleton width={180} height={32} radius={10} />
-            ) : hidden ? (
-              <Text style={AMOUNT_STYLE} numberOfLines={1}>
-                {BALANCE_MASK}
-              </Text>
-            ) : (
-              <SplitMoney
-                amount={figureAmount}
-                currency={figureCurrency}
-                locale={locale}
-                color={theme.color.text}
-                fontSize={AMOUNT_STYLE.fontSize}
-                weight="800"
-              />
-            )}
-          </View>
+        <Row style={{ justifyContent: 'flex-end', paddingHorizontal: theme.spacing.lg }}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={hidden ? t.dashHero.showBalance : t.dashHero.hideBalance}
+            onPress={onToggleHide}
+            hitSlop={10}
+            style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
+          >
+            <Ionicons
+              name={hidden ? 'eye-off-outline' : 'eye-outline'}
+              size={iconSize.md}
+              color={theme.color.textMuted}
+            />
+          </Pressable>
         </Row>
 
         <Row style={{ alignItems: 'center', paddingHorizontal: theme.spacing.lg }}>
@@ -995,7 +962,7 @@ function FriendsBalanceCard({
             label={t.tabs.owedToYouLabel}
             detail={plural(locale, owedCount, t.tabs.friendCount)}
             extra={owedExtra}
-            currency={owedGroup ? owedGroup.head.currency : figureCurrency}
+            currency={owedGroup ? owedGroup.head.currency : fallbackCurrency}
             locale={locale}
             hidden={hidden}
             loading={loading}
@@ -1008,7 +975,7 @@ function FriendsBalanceCard({
             label={t.homeDash.youOwe}
             detail={plural(locale, owingCount, t.tabs.friendCount)}
             extra={owingExtra}
-            currency={owingGroup ? owingGroup.head.currency : figureCurrency}
+            currency={owingGroup ? owingGroup.head.currency : fallbackCurrency}
             locale={locale}
             hidden={hidden}
             loading={loading}
@@ -1021,10 +988,8 @@ function FriendsBalanceCard({
   );
 }
 
-/** What stands in for the figure while the eye is shut. */
+/** What stands in for an amount while the eye is shut. */
 const BALANCE_MASK = '••••••';
-
-const AMOUNT_STYLE = { fontSize: 30, lineHeight: 36, fontWeight: '800' } as const;
 
 /**
  * The round quick-action row along the balance card's foot — drawn by

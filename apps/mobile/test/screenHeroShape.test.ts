@@ -79,11 +79,11 @@ describe('every hero is the same hero', () => {
       'components/GroupHero.tsx',
       // Personal is left out: its scenic hero says "Total spent this month"
       // over the figure, the way Home's balance card does. Bank messages too:
-      // its figure is on a light card with the label above it. Friends moved
-      // here too (see below) once it traded the indigo `ScreenHero` panel for
-      // Home's own scenic hero and glass balance card — its label now sits
-      // above the figure on that white card, the same shape Personal and Bank
-      // messages already use, not the shared shell's "Label: figure" line.
+      // its figure is on a light card with the label above it. Friends has no
+      // headline figure at all any more (see below) — its glass card opens
+      // straight on the two-sided "Owed to you" / "You owe" row, the owner
+      // having asked for the repeated net figure above it to be cut once the
+      // picture band itself took over saying what screen this is.
     ]) {
       expect(source(file), file).toMatch(/<HeroFigureLine\b/);
     }
