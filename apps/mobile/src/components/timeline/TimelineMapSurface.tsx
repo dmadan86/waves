@@ -12,12 +12,13 @@
  * stay testable and this file stays a thin skin over the native view.
  */
 
-import { View } from 'react-native';
-import MapView, { Marker, Polyline, PROVIDER_GOOGLE, type Region } from 'react-native-maps';
+import { Platform, View } from 'react-native';
+import MapView, { Marker, Polyline, type Region } from 'react-native-maps';
 
 import { format, money, type CurrencyCode } from '@waves/core';
 import { Text, useTheme } from '@waves/ui';
 
+import { mapViewProviderProp } from '@/lib/mapProvider';
 import type { MapRegion, PinCluster } from '@/lib/timeline';
 
 export type TimelineMapHandle = Pick<
@@ -55,7 +56,9 @@ export function TimelineMapSurface({
   return (
     <MapView
       ref={mapRef as React.RefObject<MapView>}
-      provider={PROVIDER_GOOGLE}
+      // Apple Maps on iOS (default provider, no key); Google on Android.
+      provider={mapViewProviderProp(Platform.OS)}
+      userInterfaceStyle={theme.scheme}
       style={{ flex: 1 }}
       initialRegion={initialRegion as Region}
       onRegionChangeComplete={(region) => onRegionChange(region)}
