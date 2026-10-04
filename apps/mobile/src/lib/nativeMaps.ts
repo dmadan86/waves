@@ -13,10 +13,12 @@
 import type {
   GoogleMapSurface as GoogleMapSurfaceType,
   regionForCenter,
+  StaticMapSurface as StaticMapSurfaceType,
 } from '@/components/GoogleMapSurface';
 
 interface NativeMaps {
   GoogleMapSurface: typeof GoogleMapSurfaceType;
+  StaticMapSurface: typeof StaticMapSurfaceType;
   regionForCenter: typeof regionForCenter;
 }
 

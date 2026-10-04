@@ -190,7 +190,6 @@ export default ({ config: fromAppJson }: ConfigContext): ExpoConfig => {
   // the whole job the current way: the subspec, `GMSApiKey` in the Info.plist,
   // and `GMSServices.provideAPIKey` at launch.
   const androidKey = googleMapsKey('android');
-  const iosKey = googleMapsKey('ios');
   const withPush: ExpoConfig = {
     ...config,
     extra: { ...config.extra, smsReader: smsReaderBuild(), commit: commit() },
@@ -203,19 +202,14 @@ export default ({ config: fromAppJson }: ConfigContext): ExpoConfig => {
     // `androidGoogleMapsApiKey`, undoing the entry `android.config.googleMaps`
     // just wrote — and a Google map with no key does not render blank on
     // Android, it takes the whole app down the moment it mounts.
-    plugins:
-      iosKey || androidKey
-        ? [
-            ...(config.plugins ?? []),
-            [
-              'react-native-maps',
-              {
-                ...(iosKey ? { iosGoogleMapsApiKey: iosKey } : {}),
-                ...(androidKey ? { androidGoogleMapsApiKey: androidKey } : {}),
-              },
-            ],
-          ]
-        : config.plugins,
+    //
+    // iOS is handed no key on purpose: iOS maps are Apple Maps now, and the
+    // plugin only adds the Google Maps iOS SDK subspec (and `GMSApiKey`) when
+    // `iosGoogleMapsApiKey` is set. Nothing else on iOS uses that SDK (Google
+    // sign-in and Drive are separate pods), so leaving it out drops the pod.
+    plugins: androidKey
+      ? [...(config.plugins ?? []), ['react-native-maps', { androidGoogleMapsApiKey: androidKey }]]
+      : config.plugins,
   };
 
   const googleSignIn = googleSignInPlugin();
