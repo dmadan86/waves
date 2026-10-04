@@ -18,7 +18,10 @@ const nodeRequire = createRequire(import.meta.url);
 const locationPath = nodeRequire.resolve('expo-location');
 const original = nodeRequire.cache[locationPath];
 
-type Coords = { coords: { latitude: number; longitude: number } };
+type Coords = {
+  coords: { latitude: number; longitude: number };
+  timestamp?: number;
+};
 const Location = {
   getForegroundPermissionsAsync: vi.fn<() => Promise<{ status: string; canAskAgain: boolean }>>(),
   requestForegroundPermissionsAsync:
@@ -121,15 +124,43 @@ describe('reading the current permission without asking', () => {
 });
 
 describe('capturing a location on an explicit tap', () => {
-  it('names the place with the point of interest and its locality', async () => {
+  it('returns the coordinates immediately, never waiting on reverse-geocoding', async () => {
     const result = await (await load()).captureLocation();
 
+    // A missing name still yields a saveable (coordinates-only) location: the
+    // place name is never part of what `captureLocation` resolves, even though
+    // the mocked `reverseGeocodeAsync` above would gladly return one.
     expect(result).toEqual({
       ok: true,
-      location: { lat: 12.97159, lng: 77.64115, name: 'Third Wave Coffee, Indiranagar' },
+      location: { lat: 12.97159, lng: 77.64115, name: null },
     });
     expect(Location.getCurrentPositionAsync).toHaveBeenCalledWith({ accuracy: 3 });
     expect(Location.requestForegroundPermissionsAsync).not.toHaveBeenCalled();
+    expect(Location.reverseGeocodeAsync).not.toHaveBeenCalled();
+  });
+
+  it('uses a fresh cached fix immediately, skipping a new GPS read', async () => {
+    Location.getLastKnownPositionAsync.mockResolvedValue({
+      coords: { latitude: 9, longitude: 10 },
+      timestamp: Date.now() - 1000,
+    });
+
+    const result = await (await load()).captureLocation();
+
+    expect(result).toEqual({ ok: true, location: { lat: 9, lng: 10, name: null } });
+    expect(Location.getCurrentPositionAsync).not.toHaveBeenCalled();
+  });
+
+  it('reads a new fix when the cached one is too old to trust', async () => {
+    Location.getLastKnownPositionAsync.mockResolvedValue({
+      coords: { latitude: 9, longitude: 10 },
+      timestamp: Date.now() - 10 * 60 * 1000,
+    });
+
+    const result = await (await load()).captureLocation();
+
+    expect(Location.getCurrentPositionAsync).toHaveBeenCalledWith({ accuracy: 3 });
+    expect(result).toMatchObject({ ok: true, location: { lat: 12.97159, lng: 77.64115 } });
   });
 
   it('asks just in time when nobody has answered yet, and respects a no', async () => {
@@ -170,15 +201,18 @@ describe('capturing a location on an explicit tap', () => {
     expect(result).toMatchObject({ ok: true, location: { lat: 1, lng: 2 } });
   });
 
-  it('gives up on a hanging fresh read after six seconds and uses the cached fix', async () => {
+  it('gives up on a hanging fresh read after the fast-fix timeout and uses the cached fix', async () => {
     vi.useFakeTimers();
     Location.getCurrentPositionAsync.mockReturnValue(new Promise(() => {}));
+    // No timestamp, so this cached fix is never "fresh" — it is used only as
+    // the fallback once the fresh read times out, not read up front.
     Location.getLastKnownPositionAsync.mockResolvedValue({
       coords: { latitude: 5, longitude: 6 },
     });
 
     const pending = (await load()).captureLocation();
-    await vi.advanceTimersByTimeAsync(6000);
+    // The fast-fix timeout is short (~2s) precisely so Save never waits long.
+    await vi.advanceTimersByTimeAsync(2000);
 
     await expect(pending).resolves.toMatchObject({ ok: true, location: { lat: 5, lng: 6 } });
   });
@@ -204,19 +238,6 @@ describe('capturing a location on an explicit tap', () => {
     });
   });
 
-  it('keeps the coordinates with no name when geocoding fails or finds nothing', async () => {
-    Location.reverseGeocodeAsync.mockRejectedValue(new Error('offline'));
-    await expect((await load()).captureLocation()).resolves.toEqual({
-      ok: true,
-      location: { lat: 12.97159, lng: 77.64115, name: null },
-    });
-
-    Location.reverseGeocodeAsync.mockResolvedValue([]);
-    await expect((await load()).captureLocation()).resolves.toMatchObject({
-      location: { name: null },
-    });
-  });
-
   it('reports unavailable if the permission check itself throws', async () => {
     Location.getForegroundPermissionsAsync.mockRejectedValue(new Error('binder died'));
     await expect((await load()).captureLocation()).resolves.toEqual({
@@ -237,30 +258,50 @@ describe('stamping a location automatically', () => {
     expect(Location.getCurrentPositionAsync).not.toHaveBeenCalled();
   });
 
-  it('returns the named place once granted', async () => {
-    await expect((await load()).captureLocationIfGranted()).resolves.toEqual({
-      lat: 12.97159,
-      lng: 77.64115,
-      name: 'Third Wave Coffee, Indiranagar',
-    });
-  });
-
-  it('comes back empty without a fix, and nameless when geocoding fails', async () => {
-    Location.getCurrentPositionAsync.mockRejectedValue(new Error('no GPS'));
-    await expect((await load()).captureLocationIfGranted()).resolves.toBeNull();
-
-    Location.getCurrentPositionAsync.mockResolvedValue(HERE);
-    Location.reverseGeocodeAsync.mockRejectedValue(new Error('offline'));
+  it('returns the coordinates once granted, with no name and no geocode call', async () => {
     await expect((await load()).captureLocationIfGranted()).resolves.toEqual({
       lat: 12.97159,
       lng: 77.64115,
       name: null,
     });
+    expect(Location.reverseGeocodeAsync).not.toHaveBeenCalled();
+  });
+
+  it('comes back empty without a fix', async () => {
+    Location.getCurrentPositionAsync.mockRejectedValue(new Error('no GPS'));
+    await expect((await load()).captureLocationIfGranted()).resolves.toBeNull();
   });
 
   it('swallows a failing permission check', async () => {
     Location.getForegroundPermissionsAsync.mockRejectedValue(new Error('boom'));
     await expect((await load()).captureLocationIfGranted()).resolves.toBeNull();
+  });
+});
+
+describe('deciding whether a cached fix is fresh enough to skip a new GPS read', () => {
+  it.each([
+    [0, true],
+    [60_000, true],
+    [120_000, true], // exactly the two-minute boundary
+  ])('is fresh at %d ms old', async (age, expected) => {
+    const { isFixFresh } = await load();
+    const now = 1_700_000_000_000;
+    expect(isFixFresh(now - age, now)).toBe(expected);
+  });
+
+  it('is stale just past the two-minute boundary', async () => {
+    const { isFixFresh } = await load();
+    const now = 1_700_000_000_000;
+    expect(isFixFresh(now - 120_001, now)).toBe(false);
+  });
+
+  it('is never fresh with no timestamp, or a nonsensical one', async () => {
+    const { isFixFresh } = await load();
+    const now = 1_700_000_000_000;
+    expect(isFixFresh(undefined, now)).toBe(false);
+    expect(isFixFresh(Number.NaN, now)).toBe(false);
+    // A timestamp in the future (a clock oddity) is not "fresh" either.
+    expect(isFixFresh(now + 1000, now)).toBe(false);
   });
 });
 

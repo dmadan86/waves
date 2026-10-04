@@ -82,7 +82,7 @@ import {
 import { VoiceMicPanel } from '@/components/VoiceMicPanel';
 import { LocationField } from '@/components/LocationField';
 import { CategoryBadge } from '@/components/Category';
-import { captureLocation, locationAvailable } from '@/lib/location';
+import { captureLocation, locationAvailable, reverseGeocode } from '@/lib/location';
 import { router } from '@/lib/navigation';
 import { pushToTalk } from '@/lib/pushToTalk';
 import { useToast } from '@/lib/toast';
@@ -404,8 +404,6 @@ export default function VoiceScreen() {
 
   // A confident command writes itself after this many ms, unless Undo is tapped.
   const AUTO_COMMIT_MS = 4000;
-  // From the widget, how long an automatic save waits for the location fix.
-  const LINK_LOCATION_WAIT_MS = 1500;
 
   // Arm the auto-act window: show the banner, hold in 'committing', and fire the
   // current `save` when it elapses. A fresh parse, Undo, or unmount cancels it.
@@ -1062,6 +1060,13 @@ export default function VoiceScreen() {
   // "Add location" / "Pick on map" buttons rather than failing loudly. Never
   // overrides a pin the reader has since set or cleared: the latch runs it
   // exactly once per parsed batch.
+  //
+  // `captureLocation` only ever waits on a fast coordinate fix (lib/location's
+  // `FAST_FIX_TIMEOUT_MS`) — never on reverse-geocoding, which can hang far
+  // longer offline. `locating` therefore clears quickly, and Save is never held
+  // up by the map/place-name lookup. The human-readable name, when there is
+  // one, is resolved separately below and folds in only if it beats the
+  // reader to Save; arriving after is fine to drop.
   useEffect(() => {
     if (phase !== 'review' || autoLocated.current) return;
     autoLocated.current = true;
@@ -1077,7 +1082,18 @@ export default function VoiceScreen() {
         // Drop a fix that lost its race: the reader has since set or cleared the
         // pin by hand, or a fresh utterance moved on to a new batch.
         if (locationGen.current !== gen || locationTouched.current) return;
+        const { lat, lng } = result.location;
         setLocation(result.location);
+        // Best-effort, and never awaited: a name that lands after the pin was
+        // touched, the batch moved on, or the expense was already saved is
+        // simply dropped — coordinates alone are a saveable location.
+        void reverseGeocode(lat, lng).then((name) => {
+          if (!name) return;
+          if (locationGen.current !== gen || locationTouched.current) return;
+          setLocation((current) =>
+            current && current.lat === lat && current.lng === lng ? { ...current, name } : current,
+          );
+        });
       } finally {
         setLocating(false);
       }
@@ -1343,17 +1359,11 @@ export default function VoiceScreen() {
   // otherwise be silently skipped, and a screenful of them would "save" nothing
   // while still navigating away.
   // From the widget, the save is not waited on by anyone: it goes by itself,
-  // and it waits for the location fix at most `LINK_LOCATION_WAIT_MS`.
-  const [linkWaitOver, setLinkWaitOver] = useState(false);
-  useEffect(() => {
-    if (phase !== 'review' || !heardFromLink.current) return;
-    const timer = setTimeout(() => setLinkWaitOver(true), LINK_LOCATION_WAIT_MS);
-    return () => clearTimeout(timer);
-  }, [phase]);
+  // and never waits on the location fix — `save` writes whatever `location` has
+  // resolved to by that moment (coordinates, or none at all).
   const linkReady =
     drafts.length > 0 &&
     !saving &&
-    (!locating || linkWaitOver) &&
     drafts.every((draft) => toMinor(draft.amount, draft.currency ?? dc) !== null);
   // Only into the inbox. Anything can open a `waves://voice?heard=` link, so
   // what a link may write unattended is a draft only the reader sees ("Saved
@@ -1368,13 +1378,12 @@ export default function VoiceScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, linkReady, dest.kind]);
 
+  // Save is never held up by location: it is not in this list. `save` picks up
+  // whatever `location` holds the moment it runs — coordinates if the fast fix
+  // landed in time, nothing otherwise — rather than waiting on it.
   const canSave =
     drafts.length > 0 &&
     !saving &&
-    // Hold Save while the location fix is still in flight, so an expense is not
-    // persisted with location === null a moment before the read would have filled
-    // it in. captureLocation races a short timeout, so this is a brief wait.
-    !locating &&
     drafts.every((draft) => toMinor(draft.amount, draft.currency ?? dc) !== null);
 
   // The footer total must read in the same currency the Save will persist, or
