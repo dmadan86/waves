@@ -68,27 +68,28 @@ export function PersonalLocked({ gate }: { gate: PersonalGateValue }) {
   return (
     <Screen edges={[]}>
       {/* Two soft circles bled off opposite corners — the page's only
-          decoration, so the lock stays the thing looked at. */}
+          decoration, kept small and faint so the lock stays the thing
+          looked at. */}
       <View pointerEvents="none" style={StyleSheet.absoluteFill}>
         <View
           style={{
             position: 'absolute',
-            top: -140,
-            left: -120,
-            width: 320,
-            height: 320,
-            borderRadius: 160,
+            top: -90,
+            left: -80,
+            width: 200,
+            height: 200,
+            borderRadius: 100,
             backgroundColor: dark ? 'rgba(255,255,255,0.03)' : '#EFEDFB',
           }}
         />
         <View
           style={{
             position: 'absolute',
-            bottom: -170,
-            right: -110,
-            width: 360,
-            height: 360,
-            borderRadius: 180,
+            bottom: -100,
+            right: -70,
+            width: 220,
+            height: 220,
+            borderRadius: 110,
             backgroundColor: dark ? 'rgba(255,255,255,0.03)' : '#EAE7FB',
           }}
         />
@@ -98,16 +99,15 @@ export function PersonalLocked({ gate }: { gate: PersonalGateValue }) {
           flex: 1,
           alignItems: 'center',
           justifyContent: 'center',
-          gap: theme.spacing.lg,
+          gap: theme.spacing.md,
           paddingHorizontal: theme.spacing.xl,
         }}
       >
         <LockMedallion accent={accent} dark={dark} />
         <Text
           style={{
-            marginTop: theme.spacing.lg,
-            fontSize: 28,
-            lineHeight: 34,
+            fontSize: 22,
+            lineHeight: 27,
             fontWeight: '800',
             color: ink,
             textAlign: 'center',
@@ -115,7 +115,7 @@ export function PersonalLocked({ gate }: { gate: PersonalGateValue }) {
         >
           {t.lock.personalLockedTitle}
         </Text>
-        <Text style={{ fontSize: 17, lineHeight: 24, color: muted, textAlign: 'center' }}>
+        <Text style={{ fontSize: 14, lineHeight: 20, color: muted, textAlign: 'center' }}>
           {gate.failed ? t.lock.personalLockedRefused : t.lock.personalLockedBody}
         </Text>
         {/* Only one of the three: a spinner while the OS sheet is up, the way
@@ -126,15 +126,15 @@ export function PersonalLocked({ gate }: { gate: PersonalGateValue }) {
           <ActivityIndicator color={accent} />
         ) : gate.failed ? (
           <View
-            style={{ alignSelf: 'stretch', gap: theme.spacing.md, marginTop: theme.spacing.sm }}
+            style={{ alignSelf: 'stretch', gap: theme.spacing.sm, marginTop: theme.spacing.xs }}
           >
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={t.extras.unlock}
               onPress={gate.retry}
               style={({ pressed }) => ({
-                height: 56,
-                borderRadius: 28,
+                height: 48,
+                borderRadius: 24,
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -148,30 +148,28 @@ export function PersonalLocked({ gate }: { gate: PersonalGateValue }) {
                 opacity: pressed ? 0.85 : 1,
               })}
             >
-              <Ionicons name="lock-open" size={20} color="#FFFFFF" />
-              <Text style={{ fontSize: 17, fontWeight: '700', color: '#FFFFFF' }}>
+              <Ionicons name="lock-open" size={18} color="#FFFFFF" />
+              <Text style={{ fontSize: 16, fontWeight: '700', color: '#FFFFFF' }}>
                 {t.extras.unlock}
               </Text>
             </Pressable>
+            {/* Lighter than the unlock action: no fill, no border — a way out,
+                not a competing call to action. */}
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={t.common.back}
               onPress={goBack}
               style={({ pressed }) => ({
-                height: 54,
-                borderRadius: 27,
+                height: 48,
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: theme.spacing.sm,
-                borderWidth: 1.5,
-                borderColor: dark ? theme.color.border : '#D9D3F7',
-                backgroundColor: dark ? 'transparent' : '#FAF9FF',
                 opacity: pressed ? 0.6 : 1,
               })}
             >
-              <Ionicons name={directionalIcon('arrow-back')} size={20} color={accent} />
-              <Text style={{ fontSize: 17, fontWeight: '700', color: accent }}>
+              <Ionicons name={directionalIcon('arrow-back')} size={18} color={accent} />
+              <Text style={{ fontSize: 15, fontWeight: '600', color: accent }}>
                 {t.common.back}
               </Text>
             </Pressable>
@@ -202,15 +200,15 @@ function LockMedallion({ accent, dark }: { accent: string; dark: boolean }) {
           backgroundColor: dark ? 'rgba(255,255,255,0.06)' : '#EFEDFA',
         }}
       >
-        <Ionicons name="lock-closed" size={MEDALLION * 0.52} color={dark ? accent : '#8C7CF0'} />
+        <Ionicons name="lock-closed" size={44} color={dark ? accent : '#8C7CF0'} />
         <View
           style={{
             position: 'absolute',
             top: MEDALLION * 0.22,
             right: MEDALLION * 0.24,
-            width: 4,
-            height: 18,
-            borderRadius: 2,
+            width: 2.5,
+            height: 10,
+            borderRadius: 1.5,
             backgroundColor: accent,
             transform: [{ rotate: '25deg' }],
           }}
@@ -220,9 +218,9 @@ function LockMedallion({ accent, dark }: { accent: string; dark: boolean }) {
             position: 'absolute',
             top: MEDALLION * 0.33,
             right: MEDALLION * 0.14,
-            width: 18,
-            height: 4,
-            borderRadius: 2,
+            width: 10,
+            height: 2.5,
+            borderRadius: 1.5,
             backgroundColor: accent,
             transform: [{ rotate: '-22deg' }],
           }}
@@ -232,9 +230,9 @@ function LockMedallion({ accent, dark }: { accent: string; dark: boolean }) {
       <View
         style={{
           width: MEDALLION * 0.62,
-          height: 8,
-          marginTop: -4,
-          borderRadius: 4,
+          height: 5,
+          marginTop: -2,
+          borderRadius: 2.5,
           backgroundColor: dark ? 'rgba(0,0,0,0.25)' : 'rgba(104, 69, 232, 0.12)',
         }}
       />
@@ -243,4 +241,4 @@ function LockMedallion({ accent, dark }: { accent: string; dark: boolean }) {
 }
 
 /** The lock medallion's diameter. */
-const MEDALLION = 176;
+const MEDALLION = 96;
