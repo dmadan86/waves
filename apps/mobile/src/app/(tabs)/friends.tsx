@@ -62,7 +62,6 @@ import {
   commonOnlyGroupId,
   currencyTotals,
   directionGroups,
-  personCountByDirection,
   personDirection,
   rowAction,
   shownAmounts,
@@ -934,19 +933,11 @@ function FriendsBalanceCard({
   const owingGroup = deck.find((group) => !group.owed) ?? null;
   const fallbackCurrency = totals[0]?.currency ?? 'INR';
 
-  const owedCount = owedGroup ? personCountByDirection(rows, owedGroup.head.currency).owed : 0;
-  const owingCount = owingGroup ? personCountByDirection(rows, owingGroup.head.currency).owing : 0;
-  // A side states one currency (its direction's biggest, ADR-003) — somebody
-  // owed in both INR and USD still gets one line, not two, or one that
-  // silently adds a rate-free total. `directionGroups`' own `rest` is exactly
-  // the currencies that figure leaves out, so it is named here rather than
-  // dropped, the same count `moreCurrencies` already speaks on a person row.
-  const owedExtra = owedGroup?.rest.length
-    ? plural(locale, owedGroup.rest.length, t.tabs.moreCurrencies)
-    : null;
-  const owingExtra = owingGroup?.rest.length
-    ? plural(locale, owingGroup.rest.length, t.tabs.moreCurrencies)
-    : null;
+  // A side states one currency large (its direction's biggest, ADR-003); the
+  // direction's other currencies ride beneath it as chips with their real
+  // amounts (`BalanceSide` fits as many as the line allows, then "+N").
+  const owedChips = owedGroup?.rest.map((c) => ({ amount: c.net, currency: c.currency }));
+  const owingChips = owingGroup?.rest.map((c) => ({ amount: absBig(c.net), currency: c.currency }));
 
   return (
     <>
@@ -962,8 +953,7 @@ function FriendsBalanceCard({
             color={theme.color.positive}
             amount={owedGroup ? owedGroup.head.net : 0n}
             label={t.tabs.owedToYouLabel}
-            detail={plural(locale, owedCount, t.tabs.friendCount)}
-            extra={owedExtra}
+            chips={owedChips}
             currency={owedGroup ? owedGroup.head.currency : fallbackCurrency}
             locale={locale}
             hidden={hidden}
@@ -975,8 +965,7 @@ function FriendsBalanceCard({
             color={theme.color.negative}
             amount={owingGroup ? absBig(owingGroup.head.net) : 0n}
             label={t.homeDash.youOwe}
-            detail={plural(locale, owingCount, t.tabs.friendCount)}
-            extra={owingExtra}
+            chips={owingChips}
             currency={owingGroup ? owingGroup.head.currency : fallbackCurrency}
             locale={locale}
             hidden={hidden}
