@@ -1832,7 +1832,30 @@ export interface UiStrings {
    */
   quickExpense: {
     notePlaceholder: string;
+    /** The camera button beside the note field, and the chooser's title. */
+    addReceipt: string;
+    /** The chooser's two doors: the camera, and the photo library. */
+    takePhoto: string;
+    chooseFromLibrary: string;
+    /** The attached receipt's chip: the "x" that drops it before saving. */
+    removeReceipt: string;
     title: string;
+    /** Under the title, naming what the sheet is for in one line. */
+    subtitle: string;
+    /** The "Category (optional)" label, and the dropdown pill's fallback
+     *  before anything is chosen. */
+    category: string;
+    /** The "(optional)" that follows the category label, said separately so
+     *  it can be drawn in a quieter weight than the label itself. */
+    categoryOptional: string;
+    /** The dropdown pill's spoken form. {category} is what it currently shows. */
+    categoryPicker: string;
+    /** The circular row's last glyph: the rest of the catalog, in a sheet. */
+    moreCategories: string;
+    /** The short link beside "Where does it go?" — opens the full form's own
+     *  split editor, the one place this sheet's always-equal split can be
+     *  changed. */
+    splitLink: string;
     /** Above the row of recent destinations. */
     where: string;
     /** Opens the full Groups/People picker the voice review already uses —
@@ -5585,7 +5608,17 @@ const en: UiStrings = {
   },
   quickExpense: {
     notePlaceholder: 'Add a note (optional)',
+    addReceipt: 'Add receipt',
+    takePhoto: 'Take photo',
+    chooseFromLibrary: 'Choose from library',
+    removeReceipt: 'Remove receipt',
     title: 'Quick expense',
+    subtitle: 'Add an expense and split it with friends',
+    category: 'Category',
+    categoryOptional: '(optional)',
+    categoryPicker: 'Category, {category}',
+    moreCategories: 'More',
+    splitLink: 'Split equally',
     where: 'Where does it go?',
     otherPlaces: 'Others',
     advanced: 'Advanced',
@@ -9028,7 +9061,17 @@ const ta: UiStrings = {
   },
   quickExpense: {
     notePlaceholder: 'குறிப்பு சேர்க்கவும் (விருப்பம்)',
+    addReceipt: 'Add receipt',
+    takePhoto: 'Take photo',
+    chooseFromLibrary: 'Choose from library',
+    removeReceipt: 'Remove receipt',
     title: 'Quick expense',
+    subtitle: 'Add an expense and split it with friends',
+    category: 'Category',
+    categoryOptional: '(optional)',
+    categoryPicker: 'Category, {category}',
+    moreCategories: 'More',
+    splitLink: 'Split equally',
     where: 'Where does it go?',
     otherPlaces: 'Others',
     advanced: 'Advanced',
@@ -12548,7 +12591,17 @@ const hi: UiStrings = {
   },
   quickExpense: {
     notePlaceholder: 'नोट जोड़ें (वैकल्पिक)',
+    addReceipt: 'Add receipt',
+    takePhoto: 'Take photo',
+    chooseFromLibrary: 'Choose from library',
+    removeReceipt: 'Remove receipt',
     title: 'Quick expense',
+    subtitle: 'Add an expense and split it with friends',
+    category: 'Category',
+    categoryOptional: '(optional)',
+    categoryPicker: 'Category, {category}',
+    moreCategories: 'More',
+    splitLink: 'Split equally',
     where: 'Where does it go?',
     otherPlaces: 'Others',
     advanced: 'Advanced',
@@ -16075,7 +16128,17 @@ const ar: UiStrings = {
   },
   quickExpense: {
     notePlaceholder: 'أضف ملاحظة (اختياري)',
+    addReceipt: 'Add receipt',
+    takePhoto: 'Take photo',
+    chooseFromLibrary: 'Choose from library',
+    removeReceipt: 'Remove receipt',
     title: 'Quick expense',
+    subtitle: 'Add an expense and split it with friends',
+    category: 'Category',
+    categoryOptional: '(optional)',
+    categoryPicker: 'Category, {category}',
+    moreCategories: 'More',
+    splitLink: 'Split equally',
     where: 'Where does it go?',
     otherPlaces: 'Others',
     advanced: 'Advanced',
