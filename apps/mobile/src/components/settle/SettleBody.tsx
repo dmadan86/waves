@@ -1,57 +1,70 @@
 /**
- * Settling up with one person in a group — who, how much, which rail, then the
- * hand-off and the record — without a screen around it.
+ * Settling up in a group, as plainly as it can be said: who owes me (remind
+ * them), whom I owe (pay them), and nothing else until asked.
  *
  * Two homes: the Settle up screen (reached from a balance, a reminder, the
- * pending list) and a group's own Settle up tab. Moved out of
- * `app/group/[id]/settle.tsx` whole, so the two cannot drift.
+ * pending list) and a group's own Settle up tab, so the two cannot drift.
+ *
+ * Presentation only. The plan is the ledger's own (`useGroupLedger().transfers`,
+ * simplified or pairwise as the group chose), reminders go through `useNudge`,
+ * payments through the same hand-off + `useRecordSettlement` the screen has
+ * always used (ADR-007: Waves records, it never moves money). Debts between
+ * other members and the payment history sit behind one "See all balances" link.
  */
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { ActivityIndicator, Linking, Pressable, ScrollView, View } from 'react-native';
 
 import {
   allocateSettlement,
+  BalanceDirection,
   buildPaymentUri,
   defaultRailFor,
   format,
   money,
   railById,
-  railsFor,
   toMajorString,
   type CurrencyCode,
-  type MemberId,
   type Receivable,
 } from '@waves/core';
 import {
   Avatar,
-  Badge,
   Button,
   Callout,
-  Card,
-  ChipRow,
   EmptyState,
   iconSize,
   MoneyText,
   Row,
   Text,
-  TintCard,
-  tintForKey,
   useTheme,
   useScreenClearance,
 } from '@waves/ui';
 
-import { useNudge } from '@/lib/nudge';
-import { toSnapshot, useGroup, useGroupLedger, useRecordSettlement } from '@/data/hooks';
-import { friendlyError } from '@/lib/errors';
-import { expenseTitle } from '@/data/expenseTitle';
-import { displayName, isGhost, payableAt, type MemberRow } from '@/data/types';
+import { useBlockedUsers } from '@/data/blocked';
+import {
+  memberLookup,
+  toSnapshot,
+  useGroup,
+  useGroupLedger,
+  useRecordSettlement,
+} from '@/data/hooks';
+import {
+  displayName,
+  isBlockedMember,
+  isGhost,
+  payableAt,
+  SettlementStatus,
+  type MemberRow,
+} from '@/data/types';
 import { fill, useStrings } from '@/i18n';
+import { friendlyError } from '@/lib/errors';
 import { useAuth } from '@/lib/auth';
+import { useDialog } from '@/lib/dialog';
 import { useGuestGuard } from '@/lib/guestGuard';
 import { router } from '@/lib/navigation';
-import { useDialog } from '@/lib/dialog';
+import { useNudge } from '@/lib/nudge';
+import { splitSettlePlan, summariseSettlePlan, type PlanTransfer } from '@/lib/settlePlan';
 
 export function SettleBody({
   groupId,
@@ -67,147 +80,71 @@ export function SettleBody({
   const theme = useTheme();
   const clearance = useScreenClearance();
   const { t, locale } = useStrings();
-  const { confirm, notify } = useDialog();
+  const { confirm } = useDialog();
   const { profile } = useAuth();
+  const { blockedIds } = useBlockedUsers();
 
-  const { group, members, expenses } = useGroup(groupId);
+  const { group, members, expenses, settlements } = useGroup(groupId);
   const ledger = useGroupLedger(groupId, profile?.id ?? null);
   const recordSettlement = useRecordSettlement(groupId);
   const guard = useGuestGuard();
 
-  const [selected, setSelected] = useState<MemberId | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showAll, setShowAll] = useState(false);
 
   const currency = group.data?.default_currency ?? 'INR';
-  const settleInk = theme.tint[tintForKey(groupId)].ink;
-  const settleInkMuted = theme.tint[tintForKey(groupId)].inkMuted;
-  /**
-   * Where this group settles decides what it can settle with. A group that
-   * never said still gets bank, cash and the cross-border wallets — never an
-   * empty list, because a group that cannot record a payment is not a group
-   * anybody can use.
-   */
   const country = group.data?.country_code ?? null;
-  const rails = useMemo(() => railsFor(country), [country]);
-  const [rail, setRail] = useState<string | null>(null);
   const myMemberId = ledger.myMemberId;
+  const lookup = useMemo(() => memberLookup(members.data), [members.data]);
 
-  // Only people on the other side of my ledger can settle with me: if I am owed
-  // overall I can be paid by a debtor, and if I owe I can pay a creditor. Listing
-  // a fellow debtor (or fellow creditor) offered a settlement that nets negative
-  // — the amount below went below zero and the button stayed enabled, so the
-  // server got a payment for a negative sum and refused it in the user's face.
-  const counterparties = useMemo(
-    () =>
-      (members.data ?? []).filter((member) => {
-        if (member.id === myMemberId) return false;
-        const balance = ledger.balances.get(member.id) ?? 0n;
-        if (ledger.myBalance > 0n) return balance < 0n;
-        if (ledger.myBalance < 0n) return balance > 0n;
-        return false;
-      }),
-    [members.data, myMemberId, ledger.balances, ledger.myBalance],
+  const split = useMemo(
+    () => splitSettlePlan(ledger.transfers, myMemberId),
+    [ledger.transfers, myMemberId],
   );
+  const summary = useMemo(() => summariseSettlePlan(split, currency), [split, currency]);
 
-  const counterparty: MemberRow | undefined =
-    counterparties.find((member) => member.id === selected) ?? counterparties[0];
+  const nameOf = (memberId: string): string => {
+    const member = lookup.get(memberId);
+    return member ? displayName(member, null, blockedIds, t.misc.someone) : t.misc.someone;
+  };
+  const fmt = (value: bigint, code: string = currency): string =>
+    format(money(value, code as CurrencyCode), { locale });
 
   /**
-   * The rail this settlement is on.
-   *
-   * Seeded from the payee, not from the group's country. The link is built from
-   * *their* stored rail (`payableAt` below) while `settlements.rail` recorded
-   * whatever the picker said, so the two could disagree: the button read "Pay
-   * via Pix" over a UPI intent, and the row afterwards named a rail nobody
-   * used. One truth, and it is the person being paid — they are the only party
-   * who knows what will actually reach them. The country default is what is
-   * left when they have said nothing at all, and the picker still overrides
-   * both, because cash is always a possibility no profile records.
+   * What the payer still owes the payee, expense by expense — the payment is
+   * applied against these oldest-first (ADR-007).
    */
-  const payeeRail = counterparty ? (payableAt(counterparty)?.rail ?? null) : null;
-  const method = rail ?? payeeRail ?? defaultRailFor(country);
-
-  const theirBalance = counterparty ? (ledger.balances.get(counterparty.id) ?? 0n) : 0n;
-  const iPay = ledger.myBalance < 0n && theirBalance > 0n;
-  const rawAmount = counterparty
-    ? iPay
-      ? min(-ledger.myBalance, theirBalance)
-      : min(ledger.myBalance, theirBalance < 0n ? -theirBalance : 0n)
-    : 0n;
-  // Never below zero: the counterparty filter already keeps us on opposite sides,
-  // and this is the belt to that braces — a settlement is a positive movement or
-  // it is nothing, and the button below disables on 0.
-  const amount = rawAmount > 0n ? rawAmount : 0n;
-
-  /** What settling with this person moves: my side of the ledger, capped by
-   *  theirs. The same sum the card below shows once they are picked. */
-  const settleWith = (member: MemberRow): bigint => {
-    const theirs = ledger.balances.get(member.id) ?? 0n;
-    const mine = ledger.myBalance;
-    const worth = mine < 0n ? min(-mine, theirs) : min(mine, theirs < 0n ? -theirs : 0n);
-    return worth > 0n ? worth : 0n;
-  };
-  /** My whole balance in the group, however it is split between people. */
-  const myTotal = ledger.myBalance < 0n ? -ledger.myBalance : ledger.myBalance;
-  const leftOver = myTotal > amount ? myTotal - amount : 0n;
-  const fmt = (value: bigint): string => format(money(value, currency as CurrencyCode), { locale });
-
-  // What the payer still owes the payee, expense by expense — the settle sheet
-  // applies the payment against these oldest-first (ADR-007).
-  const receivables: Receivable[] = useMemo(() => {
-    if (!counterparty || !myMemberId) return [];
-    const from = iPay ? myMemberId : counterparty.id;
-    const to = iPay ? counterparty.id : myMemberId;
-    return expenses.rows
+  const receivablesFor = (fromId: string, toId: string): Receivable[] =>
+    expenses.rows
       .map(toSnapshot)
       .filter((snapshot): snapshot is NonNullable<typeof snapshot> => snapshot !== null)
       .map((snapshot) => {
-        const owes = BigInt(snapshot.shares[from] ?? 0n);
-        const paidByOther = BigInt(snapshot.payers[to] ?? 0n);
+        const owes = BigInt(snapshot.shares[fromId] ?? 0n);
+        const paidByOther = BigInt(snapshot.payers[toId] ?? 0n);
         const portion = owes > 0n && paidByOther > 0n ? (owes * paidByOther) / snapshot.amount : 0n;
         return { expenseId: snapshot.id, date: snapshot.date, amount: portion };
       })
       .filter((receivable) => receivable.amount > 0n);
-  }, [expenses.rows, counterparty, myMemberId, iPay]);
 
-  const allocation =
-    amount > 0n && receivables.length > 0
-      ? allocateSettlement({ amount }, receivables)
-      : { allocations: [], unallocated: amount };
-
-  const titleFor = (expenseId: string): string => {
-    const version = expenses.rows.find((expense) => expense.id === expenseId)?.currentVersion;
-    return expenseTitle(version?.description, version?.category, t, version?.category_meta);
-  };
-
-  /**
-   * Whether the button hands off to something before recording.
-   *
-   * Only when I am the one paying, and only on a rail that has somewhere to
-   * send me — either an app to open or a handle to copy. Recording that
-   * somebody *else* paid me never opens anything.
-   */
-  const handsOff = iPay && (railById(method)?.handle ?? 'none') !== 'none';
-
-  const settleLabel = handsOff
-    ? fill(t.payViaRail, { rail: railById(method)?.label ?? '' })
-    : method === 'cash'
-      ? t.paidInCash
-      : t.bankOther;
-
-  const record = async (): Promise<void> => {
+  /** Record one transfer of the plan as paid. The only write on this screen. */
+  const record = async (transfer: PlanTransfer, rail: string): Promise<void> => {
     // A settlement is a write; an expired guest is read-only (ADR-006 addendum).
     if (guard.blockWrite()) return;
-    if (!counterparty || !myMemberId || amount === 0n) return;
+    if (transfer.amount <= 0n) return;
     setError(null);
+    const receivables = receivablesFor(transfer.from, transfer.to);
+    const allocation =
+      receivables.length > 0
+        ? allocateSettlement({ amount: transfer.amount }, receivables)
+        : { allocations: [], unallocated: transfer.amount };
     try {
       await recordSettlement.mutateAsync({
         groupId,
-        fromMemberId: iPay ? myMemberId : counterparty.id,
-        toMemberId: iPay ? counterparty.id : myMemberId,
-        amount,
-        rail: method,
-        currency,
+        fromMemberId: transfer.from,
+        toMemberId: transfer.to,
+        amount: transfer.amount,
+        rail,
+        currency: transfer.currency,
         allocations: allocation.allocations,
       });
       if (onRecorded) onRecorded();
@@ -217,59 +154,61 @@ export function SettleBody({
     }
   };
 
+  /** Somebody paid me: ask before writing, it is easy to mis-tap a row. */
+  const markReceived = async (transfer: PlanTransfer): Promise<void> => {
+    const yes = await confirm({
+      title: fill(t.misc.settleReceivedTitle, {
+        amount: fmt(transfer.amount, transfer.currency),
+        name: nameOf(transfer.from),
+      }),
+      body: t.misc.settleReceivedBody,
+      confirmLabel: t.misc.settleReceivedConfirm,
+      cancelLabel: t.misc.recordNo,
+    });
+    if (yes) void record(transfer, defaultRailFor(country));
+  };
+
+  /** I already paid, outside the app. */
+  const markPaid = async (transfer: PlanTransfer): Promise<void> => {
+    const yes = await confirm({
+      title: fill(t.misc.settleMarkPaidTitle, {
+        amount: fmt(transfer.amount, transfer.currency),
+        name: nameOf(transfer.to),
+      }),
+      body: t.misc.settleMarkPaidBody,
+      confirmLabel: t.misc.settleMarkPaidConfirm,
+      cancelLabel: t.misc.recordNo,
+    });
+    if (yes) void record(transfer, defaultRailFor(country));
+  };
+
   /**
-   * Hand off to their payment app if this rail has one, and otherwise show the
-   * handle to copy.
-   *
-   * The second half is not a degraded case — it is the ordinary one. UPI is the
-   * only rail with a scheme we can stand behind, so everywhere except India
-   * this shows a Pix key or a mobile number and the person finishes in their
-   * own bank app. Either way Waves never moves the money (ADR-007); it records
-   * that somebody says they did, and the person paid confirms it.
+   * Pay: hand off to their payment app if their saved rail has one, otherwise
+   * show the handle to copy; with no details at all it is simply "record it".
+   * Either way Waves never moves the money (ADR-007); it records that somebody
+   * says they did.
    */
-  const payThen = async (): Promise<void> => {
-    if (!counterparty) return;
-
-    const payable = payableAt(counterparty);
-    const railInfo = railById(method);
-
-    if (!payable) {
-      // Why the tap did nothing, so it is a notice with a door rather than a
-      // toast: the next thing to do is go and ask this person for their details.
-      await notify({
-        title: t.misc.settleNoDetailsTitle.replace(
-          '{rail}',
-          railInfo?.label ?? t.misc.settleRailFallback,
-        ),
-        body: t.misc.settleNoDetailsBody.replace('{name}', displayName(counterparty)),
-      });
+  const pay = async (transfer: PlanTransfer): Promise<void> => {
+    const payee = lookup.get(transfer.to);
+    const payable = payee ? payableAt(payee) : null;
+    if (!payee || !payable) {
+      await markPaid(transfer);
       return;
     }
-
-    // Only when the picker is still on the rail this handle belongs to. A
-    // handle is not portable between rails — somebody who overrides the picker
-    // to Wise has not given us a Wise handle, and building a link out of their
-    // UPI id under a Wise label is a tap that cannot work dressed as one that
-    // can. The fallback below is the honest answer in that case.
-    const uri =
-      method !== payable.rail
-        ? null
-        : buildPaymentUri(
-            {
-              railId: payable.rail,
-              handle: payable.handle,
-              payeeName: displayName(counterparty),
-              amount,
-              currency,
-              note: `Waves ${group.data?.name ?? ''}`.trim(),
-            },
-            (value, code) => toMajorString({ minor: value, currency: code }),
-          );
-
-    // An 'app' scheme is asked about first: a custom scheme with nothing
-    // installed to answer it fails silently, and a tap that looks like it
-    // worked while no money moved is the worst outcome here. An https link
-    // always opens — worst case a web page — so it needs no permission.
+    const railInfo = railById(payable.rail);
+    const uri = buildPaymentUri(
+      {
+        railId: payable.rail,
+        handle: payable.handle,
+        payeeName: displayName(payee),
+        amount: transfer.amount,
+        currency: transfer.currency,
+        note: `Waves ${group.data?.name ?? ''}`.trim(),
+      },
+      (value, code) => toMajorString({ minor: value, currency: code }),
+    );
+    // A custom scheme with nothing installed fails silently, so ask first; an
+    // https link always opens (worst case a web page).
     const canOpen = uri
       ? uri.kind === 'web' || (await Linking.canOpenURL(uri.uri).catch(() => false))
       : false;
@@ -281,21 +220,17 @@ export function SettleBody({
         confirmLabel: t.misc.recordYes,
         cancelLabel: t.misc.recordNo,
       });
-      if (paid) void record();
+      if (paid) void record(transfer, payable.rail);
       return;
     }
-
     const recordIt = await confirm({
-      title: t.misc.settlePayTitle.replace('{name}', displayName(counterparty)),
+      title: t.misc.settlePayTitle.replace('{name}', displayName(payee)),
       body: t.misc.settlePayBody
-        // `payable.rail`, because the handle underneath belongs to it — naming
-        // the picker's rail here is what let the button say "Pay via Pix" over
-        // a dialog reading "UPI".
-        .replace('{rail}', railById(payable.rail)?.label ?? t.misc.settleSendTo)
+        .replace('{rail}', railInfo?.label ?? t.misc.settleSendTo)
         .replace('{handle}', payable.handle),
       confirmLabel: t.misc.recordIt,
     });
-    if (recordIt) void record();
+    if (recordIt) void record(transfer, payable.rail);
   };
 
   if (group.isLoading || members.isLoading) {
@@ -306,6 +241,26 @@ export function SettleBody({
     );
   }
 
+  const headline =
+    summary.kind === 'settled'
+      ? t.misc.settleSimpleSettled
+      : summary.net > 0n
+        ? fill(t.misc.settleSimpleOwed, { amount: fmt(summary.net) })
+        : summary.net < 0n
+          ? fill(t.misc.settleSimpleOwe, { amount: fmt(-summary.net) })
+          : t.misc.settleSimpleEven;
+
+  const history = (settlements.data ?? [])
+    .filter((row) => row.status !== SettlementStatus.Cancelled)
+    .slice()
+    .sort((a, b) => b.initiated_at.localeCompare(a.initiated_at));
+
+  const hasMore = split.others.length > 0 || history.length > 0;
+
+  const personFor = (memberId: string): MemberRow | undefined => lookup.get(memberId);
+  const ghostFor = (member: MemberRow | undefined): boolean =>
+    Boolean(member && (isGhost(member) || isBlockedMember(member, blockedIds)));
+
   return (
     <View style={{ flex: 1 }}>
       <ScrollView
@@ -314,11 +269,15 @@ export function SettleBody({
           paddingHorizontal: theme.spacing.xl,
           paddingTop: theme.spacing.lg,
           paddingBottom: clearance,
-          gap: theme.spacing.xl,
+          gap: theme.spacing.lg,
         }}
         showsVerticalScrollIndicator={false}
       >
-        {counterparties.length === 0 || !counterparty ? (
+        <Text variant="heading" accessibilityRole="header">
+          {headline}
+        </Text>
+
+        {summary.kind === 'settled' ? (
           <EmptyState
             title={t.allSettled}
             body={t.group.nobodyOwes}
@@ -326,195 +285,289 @@ export function SettleBody({
               <Ionicons name="checkmark-circle" size={iconSize.xxl} color={theme.color.positive} />
             }
           />
-        ) : (
-          <>
-            <Card style={{ gap: theme.spacing.md }}>
-              {/* The total first, then who it can go to. Each face used to carry
-                  that person's balance with the whole group — Nina "₹47,320"
-                  over a card saying "You pay Nina ₹33,274" — which read as a
-                  debt of mine to her that did not exist. */}
-              <View style={{ gap: 2 }}>
-                <Text variant="subheading">
-                  {fill(ledger.myBalance < 0n ? t.misc.settleYouOweTotal : t.misc.settleOwedTotal, {
-                    amount: fmt(myTotal),
-                  })}
-                </Text>
-                <Text variant="caption" tone="muted">
-                  {ledger.myBalance < 0n ? t.misc.settlePickPayee : t.misc.settlePickPayer}
-                </Text>
-              </View>
-              {/* Each face carries what settling with them moves, so choosing
-                  between people never means tapping each one to find out. */}
-              <Row style={{ flexWrap: 'wrap', gap: theme.spacing.lg }}>
-                {counterparties.map((member) => {
-                  const worth = settleWith(member);
-                  const active = counterparty.id === member.id;
-                  return (
-                    <Pressable
-                      key={member.id}
-                      accessibilityRole="radio"
-                      accessibilityState={{ selected: active }}
-                      accessibilityLabel={displayName(member)}
-                      onPress={() => setSelected(member.id)}
-                      style={{ alignItems: 'center', gap: 4, opacity: active ? 1 : 0.45 }}
-                    >
-                      <Avatar name={displayName(member)} ghost={isGhost(member)} size={52} />
-                      <Text variant="micro" tone={active ? 'brand' : 'muted'}>
-                        {displayName(member)}
-                      </Text>
-                      {/* What this settlement would be, not their balance with
-                          the whole group: a payment, so neutral ink. */}
-                      <MoneyText
-                        amount={worth}
-                        currency={currency}
-                        locale={locale}
-                        variant="micro"
-                        style={{ color: active ? theme.color.text : theme.color.textMuted }}
-                      />
-                    </Pressable>
-                  );
-                })}
-              </Row>
-            </Card>
+        ) : null}
 
-            {/* The amount being paid, in the group's own colour — a payment, not
-                a balance, so it is neutral (no green/red) and drawn in the tint's
-                ink for contrast. */}
-            <TintCard
-              tint={tintForKey(groupId)}
-              style={{
-                alignItems: 'center',
-                gap: theme.spacing.sm,
-                borderRadius: theme.radius.xl,
-                padding: theme.spacing.xl,
-              }}
-            >
-              <Text variant="caption" style={{ color: settleInkMuted }}>
-                {iPay
-                  ? fill(t.youPayName, { name: displayName(counterparty) })
-                  : fill(t.namePaysYou, { name: displayName(counterparty) })}
-              </Text>
-              <MoneyText
-                amount={amount}
-                currency={currency}
-                locale={locale}
-                variant="display"
-                style={{ color: settleInk }}
-              />
-              <Text variant="caption" align="center" style={{ color: settleInkMuted }}>
-                {leftOver > 0n
-                  ? fill(t.misc.settleLeftOver, { amount: fmt(leftOver) })
-                  : iPay
-                    ? t.misc.settleClearsAll
-                    : t.misc.settleAllOwed}
-              </Text>
-              <Badge label={t.group.recordedNotMoved} />
-            </TintCard>
+        {error ? <Callout tone="negative">{error}</Callout> : null}
 
-            {/* Whatever this country pays with, best first. In India that is
-                still UPI, cash, bank; in the UAE it is Aani, Wise, Revolut,
-                bank, cash — the screen does not know the difference. */}
-            <ChipRow<string>
-              value={method}
-              onChange={setRail}
-              options={rails.map((entry) => ({ value: entry.id, label: entry.label }))}
-            />
-
-            {allocation.allocations.length > 0 ? (
-              <Card style={{ gap: theme.spacing.md }}>
-                <Text variant="caption" tone="muted">
-                  {t.perExpense}
-                </Text>
-                {allocation.allocations.map((entry) => (
-                  <Row key={entry.expenseId} style={{ justifyContent: 'space-between' }}>
-                    <Text variant="body" numberOfLines={1} style={{ flex: 1 }}>
-                      {titleFor(entry.expenseId)}
-                    </Text>
-                    <MoneyText
-                      amount={entry.amount}
-                      currency={currency}
-                      locale={locale}
-                      variant="caption"
-                    />
-                  </Row>
-                ))}
-                {allocation.unallocated > 0n ? (
-                  <Text variant="micro" tone="muted">
-                    {t.extras.restAppliesOverall}
-                  </Text>
-                ) : null}
-              </Card>
-            ) : null}
-
-            {error ? <Callout tone="negative">{error}</Callout> : null}
-
-            <Button
-              label={settleLabel}
-              size="lg"
-              fullWidth
-              disabled={amount === 0n || recordSettlement.isPending}
-              onPress={() => (handsOff ? void payThen() : void record())}
-              icon={
-                handsOff ? (
-                  <Ionicons name="open-outline" size={iconSize.md} color={theme.color.onBrand} />
-                ) : undefined
-              }
-            />
-
-            {/* When the money is coming the other way, recording it is not the
-                only thing somebody came here to do — the other half of "settle
-                up" is asking. One tap, the server's one-a-day rule (ADR-010),
-                and no follow-up that reads like a collections notice. */}
-            {/* Only somebody with an account can be reminded: a member added by
-                name has no inbox, and the server refuses (GHOST_NO_INBOX) — which
-                reached people as a bare "Couldn't send the reminder". The group
-                screen already hides Remind for them; this says why instead. */}
-            {!iPay ? (
-              isGhost(counterparty) ? (
-                <Text variant="caption" tone="muted" align="center">
-                  {sentenceCase(t.notJoinedYet)}
-                </Text>
-              ) : (
-                <RemindRow groupId={groupId} memberId={counterparty.id} currency={currency} />
-              )
-            ) : null}
-
-            {recordSettlement.isPending ? <ActivityIndicator color={theme.color.brand} /> : null}
-
-            <Text variant="micro" tone="muted" align="center">
-              {iPay
-                ? fill(t.settleConfirmYouPay, { name: displayName(counterparty) })
-                : t.settleConfirmTheyPay}
+        {split.owesMe.length > 0 ? (
+          <View>
+            <Text variant="caption" tone="muted" accessibilityRole="header">
+              {t.misc.settleOwesYou}
             </Text>
-          </>
-        )}
+            {split.owesMe.map((transfer) => {
+              const person = personFor(transfer.from);
+              const name = nameOf(transfer.from);
+              return (
+                <PersonRow
+                  key={`${transfer.from}-${transfer.currency}`}
+                  name={name}
+                  ghost={ghostFor(person)}
+                  amount={transfer.amount}
+                  currency={transfer.currency}
+                  direction={BalanceDirection.OwedToYou}
+                  locale={locale}
+                  onPress={() => void markReceived(transfer)}
+                  accessibilityLabel={`${name}. ${fmt(transfer.amount, transfer.currency)}`}
+                  accessibilityHint={t.misc.settleReceivedHint}
+                  action={
+                    person && !isGhost(person) ? (
+                      <RemindButton
+                        groupId={groupId}
+                        memberId={transfer.from}
+                        currency={transfer.currency}
+                        label={fill(t.misc.settleRemindA11y, {
+                          name,
+                          amount: fmt(transfer.amount, transfer.currency),
+                        })}
+                      />
+                    ) : (
+                      <Text variant="micro" tone="muted">
+                        {t.notJoinedYet}
+                      </Text>
+                    )
+                  }
+                />
+              );
+            })}
+          </View>
+        ) : null}
+
+        {split.iOwe.length > 0 ? (
+          <View>
+            <Text variant="caption" tone="muted" accessibilityRole="header">
+              {t.misc.settleYouOweHeading}
+            </Text>
+            {split.iOwe.map((transfer) => {
+              const person = personFor(transfer.to);
+              const name = nameOf(transfer.to);
+              const amountText = fmt(transfer.amount, transfer.currency);
+              return (
+                <PersonRow
+                  key={`${transfer.to}-${transfer.currency}`}
+                  name={name}
+                  ghost={ghostFor(person)}
+                  amount={transfer.amount}
+                  currency={transfer.currency}
+                  direction={BalanceDirection.YouOwe}
+                  locale={locale}
+                  accessibilityLabel={`${name}. ${amountText}`}
+                  subAction={
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={fill(t.misc.settleMarkPaidA11y, {
+                        name,
+                        amount: amountText,
+                      })}
+                      disabled={recordSettlement.isPending}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      onPress={() => void markPaid(transfer)}
+                    >
+                      <Text variant="micro" tone="brand">
+                        {t.misc.settleMarkPaid}
+                      </Text>
+                    </Pressable>
+                  }
+                  action={
+                    <Button
+                      label={t.misc.settlePay}
+                      size="sm"
+                      accessibilityLabel={fill(t.misc.settlePayA11y, { name, amount: amountText })}
+                      disabled={recordSettlement.isPending}
+                      onPress={() => void pay(transfer)}
+                    />
+                  }
+                />
+              );
+            })}
+          </View>
+        ) : null}
+
+        {recordSettlement.isPending ? <ActivityIndicator color={theme.color.brand} /> : null}
+
+        {hasMore ? (
+          <View>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ expanded: showAll }}
+              accessibilityLabel={showAll ? t.misc.settleHideAll : t.misc.settleSeeAll}
+              onPress={() => setShowAll((open) => !open)}
+              style={{ minHeight: 44, justifyContent: 'center' }}
+            >
+              <Row style={{ gap: theme.spacing.xs, alignItems: 'center' }}>
+                <Text variant="caption" tone="brand">
+                  {showAll ? t.misc.settleHideAll : t.misc.settleSeeAll}
+                </Text>
+                <Ionicons
+                  name={showAll ? 'chevron-up' : 'chevron-down'}
+                  size={iconSize.sm}
+                  color={theme.color.brand}
+                />
+              </Row>
+            </Pressable>
+
+            {showAll ? (
+              <View style={{ gap: theme.spacing.md }}>
+                {split.others.length > 0 ? (
+                  <View>
+                    <Text variant="caption" tone="muted" accessibilityRole="header">
+                      {t.misc.settleBetweenOthers}
+                    </Text>
+                    {split.others.map((transfer) => (
+                      <PersonRow
+                        key={`${transfer.from}-${transfer.to}-${transfer.currency}-${transfer.amount}`}
+                        name={fill(t.simplifyPaysWhom, {
+                          from: nameOf(transfer.from),
+                          to: nameOf(transfer.to),
+                        })}
+                        ghost={ghostFor(personFor(transfer.from))}
+                        avatarName={nameOf(transfer.from)}
+                        amount={transfer.amount}
+                        currency={transfer.currency}
+                        direction={null}
+                        locale={locale}
+                      />
+                    ))}
+                  </View>
+                ) : null}
+
+                <View>
+                  <Text variant="caption" tone="muted" accessibilityRole="header">
+                    {t.misc.settleHistory}
+                  </Text>
+                  {history.length === 0 ? (
+                    <Text
+                      variant="caption"
+                      tone="muted"
+                      style={{ paddingVertical: theme.spacing.md }}
+                    >
+                      {t.misc.settleNoHistory}
+                    </Text>
+                  ) : (
+                    history.map((row) => (
+                      <PersonRow
+                        key={row.id}
+                        name={fill(t.misc.settleHistoryPaid, {
+                          from: nameOf(row.from_member_id),
+                          to: nameOf(row.to_member_id),
+                        })}
+                        ghost={ghostFor(personFor(row.from_member_id))}
+                        avatarName={nameOf(row.from_member_id)}
+                        amount={BigInt(row.amount)}
+                        currency={row.currency}
+                        direction={null}
+                        locale={locale}
+                      />
+                    ))
+                  )}
+                </View>
+
+                {/* The full who-pays-whom list is still one tap away. */}
+                <Pressable
+                  accessibilityRole="link"
+                  accessibilityLabel={t.whoPaysWhom}
+                  onPress={() => router.push(`/group/${groupId}/simplify`)}
+                  style={{ minHeight: 44, justifyContent: 'center' }}
+                >
+                  <Text variant="caption" tone="brand">
+                    {t.whoPaysWhom}
+                  </Text>
+                </Pressable>
+              </View>
+            ) : null}
+          </View>
+        ) : null}
       </ScrollView>
     </View>
   );
 }
 
-/** "not joined yet" is written to follow a name; alone it opens a sentence. */
-function sentenceCase(text: string): string {
-  return text.charAt(0).toLocaleUpperCase() + text.slice(1);
-}
+/**
+ * One compact line: avatar, name, amount, and at most one action. Held to a
+ * 56pt floor so a short row is still a comfortable target. The row is one
+ * control only when it has somewhere to go (`onPress`).
+ */
+function PersonRow({
+  name,
+  avatarName,
+  ghost,
+  amount,
+  currency,
+  direction,
+  locale,
+  action,
+  subAction,
+  onPress,
+  accessibilityLabel,
+  accessibilityHint,
+}: {
+  name: string;
+  avatarName?: string;
+  ghost: boolean;
+  amount: bigint;
+  currency: string;
+  /** Null leaves the amount neutral (a payment between other people). */
+  direction: BalanceDirection | null;
+  locale: string;
+  action?: ReactNode;
+  subAction?: ReactNode;
+  onPress?: () => void;
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
+}) {
+  const theme = useTheme();
+  const body = (
+    <Row style={{ gap: theme.spacing.md, alignItems: 'center', minHeight: 56 }}>
+      <Avatar name={avatarName ?? name} ghost={ghost} size={36} />
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text variant="subheading" numberOfLines={2}>
+          {name}
+        </Text>
+        {subAction ?? null}
+      </View>
+      <MoneyText
+        amount={amount}
+        currency={currency}
+        locale={locale}
+        mode={direction === null ? 'plain' : 'balance'}
+        direction={direction ?? undefined}
+      />
+      {action ?? null}
+    </Row>
+  );
 
-function min(a: bigint, b: bigint): bigint {
-  return a < b ? a : b;
+  return (
+    <View style={{ borderBottomWidth: 1, borderBottomColor: theme.color.border }}>
+      {onPress ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={accessibilityLabel}
+          accessibilityHint={accessibilityHint}
+          onPress={onPress}
+          style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+        >
+          {body}
+        </Pressable>
+      ) : (
+        body
+      )}
+    </View>
+  );
 }
 
 /**
- * The nudge under the settle button, for the case where somebody else is the one
- * who owes. Same rule and same manner as the Friends tab: it goes once, and the
- * daily limit reads as "already nudged today" rather than as a failure.
+ * The nudge: it goes once, and the server's one-a-day rule (ADR-010) reads as
+ * "already nudged today" rather than as a failure.
  */
-function RemindRow({
+function RemindButton({
   groupId,
   memberId,
   currency,
+  label,
 }: {
   groupId: string;
-  memberId: MemberId;
+  memberId: string;
   currency: string;
+  label: string;
 }) {
   const { t } = useStrings();
   const nudge = useNudge({ groupId, memberId, currency });
@@ -522,7 +575,7 @@ function RemindRow({
 
   if (note) {
     return (
-      <Text variant="caption" tone="muted" align="center">
+      <Text variant="micro" tone="muted" style={{ maxWidth: 110 }}>
         {note}
       </Text>
     );
@@ -530,12 +583,10 @@ function RemindRow({
 
   return (
     <Button
-      // The name is on the card above; gluing it to the verb here would be a
-      // sentence assembled in English word order and wrong in three locales.
       label={t.people.remind}
       variant="secondary"
-      size="lg"
-      fullWidth
+      size="sm"
+      accessibilityLabel={label}
       disabled={nudge.pending}
       onPress={nudge.send}
     />

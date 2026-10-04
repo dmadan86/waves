@@ -1858,11 +1858,14 @@ export interface UiStrings {
    */
   quickExpense: {
     notePlaceholder: string;
-    /** The camera button beside the note field, and the chooser's title. */
+    /** The camera button beside the note field. */
     addReceipt: string;
-    /** The chooser's two doors: the camera, and the photo library. */
-    takePhoto: string;
-    chooseFromLibrary: string;
+    /** The in-app receipt camera: shutter, flash toggle, gallery button, and
+     *  the line shown when camera access is refused and the library opens. */
+    receiptShutter: string;
+    receiptFlash: string;
+    receiptGallery: string;
+    receiptCameraDenied: string;
     /** The attached receipt's chip: the "x" that drops it before saving. */
     removeReceipt: string;
     title: string;
@@ -2684,7 +2687,16 @@ export interface UiStrings {
     /** They allow it, but there is genuinely nothing on the account. */
     noContact: string;
     /** A ghost — no account, so no contact to withhold or to show. */
-    ghostContact: string;
+    notOnWaves: string;
+    inviteA11y: string;
+    pay: string;
+    markPaid: string;
+    markPaidTitle: string;
+    markPaidBody: string;
+    remindA11y: string;
+    payA11y: string;
+    markPaidA11y: string;
+    settleUpA11y: string;
     call: string;
     message: string;
     copy: string;
@@ -2926,6 +2938,30 @@ export interface UiStrings {
     settleClearsAll: string;
     settleAllOwed: string;
     settleLeftOver: string;
+    settleSimpleOwed: string;
+    settleSimpleOwe: string;
+    settleSimpleSettled: string;
+    settleSimpleEven: string;
+    settleOwesYou: string;
+    settleYouOweHeading: string;
+    settlePay: string;
+    settleMarkPaid: string;
+    settleReceivedTitle: string;
+    settleReceivedBody: string;
+    settleReceivedConfirm: string;
+    settleMarkPaidTitle: string;
+    settleMarkPaidBody: string;
+    settleMarkPaidConfirm: string;
+    settleRemindA11y: string;
+    settlePayA11y: string;
+    settleMarkPaidA11y: string;
+    settleReceivedHint: string;
+    settleSeeAll: string;
+    settleHideAll: string;
+    settleBetweenOthers: string;
+    settleHistory: string;
+    settleHistoryPaid: string;
+    settleNoHistory: string;
     couldNotAddGeneric: string;
     tryAgainMoment: string;
     couldNotJoin: string;
@@ -5691,8 +5727,10 @@ const en: UiStrings = {
   quickExpense: {
     notePlaceholder: 'Add a note (optional)',
     addReceipt: 'Add receipt',
-    takePhoto: 'Take photo',
-    chooseFromLibrary: 'Choose from library',
+    receiptShutter: 'Take photo',
+    receiptFlash: 'Flash',
+    receiptGallery: 'Choose from gallery',
+    receiptCameraDenied: 'Camera access is off, so pick a photo instead',
     removeReceipt: 'Remove receipt',
     title: 'Quick expense',
     subtitle: 'Add an expense and split it with friends',
@@ -6296,7 +6334,16 @@ const en: UiStrings = {
     paidVia: 'Gets paid at',
     contactWithheld: '{name} keeps their contact details to themselves.',
     noContact: 'No phone or email on this account.',
-    ghostContact: 'Not on Waves yet, so there is nothing to show here.',
+    notOnWaves: 'Not on Waves yet',
+    inviteA11y: 'Invite {name} to Waves',
+    pay: 'Pay',
+    markPaid: 'Mark as paid',
+    markPaidTitle: 'Mark as paid to {name}?',
+    markPaidBody: 'This records a payment you have already made. Waves does not move money.',
+    remindA11y: 'Remind {name} to settle up',
+    payA11y: 'Pay {name}',
+    markPaidA11y: 'Mark {name} as paid',
+    settleUpA11y: 'Settle up with {name}',
     call: 'Call',
     message: 'Message',
     copy: 'Copy',
@@ -6490,6 +6537,30 @@ const en: UiStrings = {
     settleClearsAll: 'This clears everything you owe here.',
     settleAllOwed: "That's everything you're owed here.",
     settleLeftOver: '{amount} left to settle with others.',
+    settleSimpleOwed: "You're owed {amount}",
+    settleSimpleOwe: 'You owe {amount}',
+    settleSimpleSettled: 'All settled up 🎉',
+    settleSimpleEven: "You're even in this group",
+    settleOwesYou: 'Owes you',
+    settleYouOweHeading: 'You owe',
+    settlePay: 'Pay',
+    settleMarkPaid: 'Mark as paid',
+    settleReceivedTitle: 'Got {amount} from {name}?',
+    settleReceivedBody: 'This records the payment in the group.',
+    settleReceivedConfirm: 'Yes, received',
+    settleMarkPaidTitle: 'Mark {amount} to {name} as paid?',
+    settleMarkPaidBody: 'Only if you already paid them.',
+    settleMarkPaidConfirm: 'Yes, I paid',
+    settleRemindA11y: 'Remind {name} about {amount}',
+    settlePayA11y: 'Pay {name} {amount}',
+    settleMarkPaidA11y: 'Mark {amount} to {name} as paid',
+    settleReceivedHint: 'Marks it as received',
+    settleSeeAll: 'See all balances',
+    settleHideAll: 'Hide balances',
+    settleBetweenOthers: 'Between others',
+    settleHistory: 'History',
+    settleHistoryPaid: '{from} paid {to}',
+    settleNoHistory: 'No payments yet',
     couldNotAddGeneric: 'Could not add everyone. Please try again.',
     tryAgainMoment: 'Please try again in a moment.',
     couldNotJoin: 'Could not open this invite. Please try again.',
@@ -9192,8 +9263,10 @@ const ta: UiStrings = {
   quickExpense: {
     notePlaceholder: 'குறிப்பு சேர்க்கவும் (விருப்பம்)',
     addReceipt: 'Add receipt',
-    takePhoto: 'Take photo',
-    chooseFromLibrary: 'Choose from library',
+    receiptShutter: 'புகைப்படம் எடு',
+    receiptFlash: 'ஃபிளாஷ்',
+    receiptGallery: 'கேலரியில் இருந்து தேர்ந்தெடு',
+    receiptCameraDenied: 'கேமரா அணுகல் இல்லை, அதனால் ஒரு புகைப்படத்தைத் தேர்ந்தெடுக்கவும்',
     removeReceipt: 'Remove receipt',
     title: 'Quick expense',
     subtitle: 'Add an expense and split it with friends',
@@ -9831,7 +9904,16 @@ const ta: UiStrings = {
     paidVia: 'பணம் பெறும் முகவரி',
     contactWithheld: '{name} தமது தொடர்பு விவரங்களைத் தமக்குள்ளேயே வைத்திருக்கிறார்.',
     noContact: 'இந்தக் கணக்கில் தொலைபேசி எண்ணோ மின்னஞ்சலோ இல்லை.',
-    ghostContact: 'இவர் இன்னும் Waves-இல் சேரவில்லை, அதனால் இங்கே காட்ட ஒன்றுமில்லை.',
+    notOnWaves: 'இன்னும் Waves-இல் இல்லை',
+    inviteA11y: '{name}-ஐ Waves-க்கு அழை',
+    pay: 'செலுத்து',
+    markPaid: 'செலுத்தியதாகக் குறி',
+    markPaidTitle: '{name}-க்கு செலுத்தியதாகக் குறிக்கவா?',
+    markPaidBody: 'நீங்கள் ஏற்கெனவே செலுத்திய தொகையை இது பதிவு செய்கிறது. Waves பணத்தை நகர்த்தாது.',
+    remindA11y: '{name}-ஐ கணக்கு தீர்க்க நினைவூட்டு',
+    payA11y: '{name}-க்கு செலுத்து',
+    markPaidA11y: '{name}-க்கு செலுத்தியதாகக் குறி',
+    settleUpA11y: '{name}-உடன் கணக்கு தீர்',
     call: 'அழை',
     message: 'செய்தி',
     copy: 'நகலெடு',
@@ -10038,6 +10120,30 @@ const ta: UiStrings = {
     settleClearsAll: 'இது நீங்கள் இங்கே தர வேண்டிய அனைத்தையும் தீர்க்கிறது.',
     settleAllOwed: 'இங்கே உங்களுக்கு வர வேண்டியது இவ்வளவுதான்.',
     settleLeftOver: 'மற்றவர்களுடன் தீர்க்க {amount} மீதம்.',
+    settleSimpleOwed: 'உங்களுக்கு {amount} வர வேண்டும்',
+    settleSimpleOwe: 'நீங்கள் {amount} தர வேண்டும்',
+    settleSimpleSettled: 'எல்லாம் தீர்ந்தது 🎉',
+    settleSimpleEven: 'இந்தக் குழுவில் கணக்கு சமம்',
+    settleOwesYou: 'உங்களுக்குத் தர வேண்டியவர்கள்',
+    settleYouOweHeading: 'நீங்கள் தர வேண்டியவர்கள்',
+    settlePay: 'செலுத்து',
+    settleMarkPaid: 'செலுத்தியதாகக் குறி',
+    settleReceivedTitle: '{name} இடமிருந்து {amount} கிடைத்ததா?',
+    settleReceivedBody: 'இது குழுவில் பணம் செலுத்தப்பட்டதாகப் பதிவு செய்யும்.',
+    settleReceivedConfirm: 'ஆம், கிடைத்தது',
+    settleMarkPaidTitle: '{name}க்கு {amount} செலுத்தியதாகக் குறிக்கவா?',
+    settleMarkPaidBody: 'நீங்கள் ஏற்கெனவே செலுத்தியிருந்தால் மட்டும்.',
+    settleMarkPaidConfirm: 'ஆம், செலுத்தினேன்',
+    settleRemindA11y: '{amount} பற்றி {name}க்கு நினைவூட்டு',
+    settlePayA11y: '{name}க்கு {amount} செலுத்து',
+    settleMarkPaidA11y: '{name}க்கு {amount} செலுத்தியதாகக் குறி',
+    settleReceivedHint: 'கிடைத்ததாகக் குறிக்கும்',
+    settleSeeAll: 'எல்லா இருப்புகளையும் காண்க',
+    settleHideAll: 'இருப்புகளை மறை',
+    settleBetweenOthers: 'மற்றவர்களுக்கிடையே',
+    settleHistory: 'வரலாறு',
+    settleHistoryPaid: '{from} → {to} செலுத்தினார்',
+    settleNoHistory: 'இன்னும் கட்டணங்கள் இல்லை',
     couldNotAddGeneric: 'எல்லாரையும் சேர்க்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்.',
     tryAgainMoment: 'சிறிது நேரத்தில் மீண்டும் முயற்சிக்கவும்.',
     couldNotJoin: 'இந்த அழைப்பைத் திறக்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்.',
@@ -12771,8 +12877,10 @@ const hi: UiStrings = {
   quickExpense: {
     notePlaceholder: 'नोट जोड़ें (वैकल्पिक)',
     addReceipt: 'Add receipt',
-    takePhoto: 'Take photo',
-    chooseFromLibrary: 'Choose from library',
+    receiptShutter: 'फ़ोटो लें',
+    receiptFlash: 'फ़्लैश',
+    receiptGallery: 'गैलरी से चुनें',
+    receiptCameraDenied: 'कैमरा की अनुमति बंद है, इसलिए एक फ़ोटो चुनें',
     removeReceipt: 'Remove receipt',
     title: 'Quick expense',
     subtitle: 'Add an expense and split it with friends',
@@ -13380,7 +13488,16 @@ const hi: UiStrings = {
     paidVia: 'भुगतान यहाँ लेते हैं',
     contactWithheld: '{name} ने अपने संपर्क विवरण अपने पास रखे हैं।',
     noContact: 'इस खाते पर कोई फ़ोन नंबर या ईमेल नहीं है।',
-    ghostContact: 'ये अभी Waves पर नहीं हैं, इसलिए यहाँ दिखाने को कुछ नहीं है।',
+    notOnWaves: 'अभी Waves पर नहीं हैं',
+    inviteA11y: '{name} को Waves पर बुलाएँ',
+    pay: 'भुगतान करें',
+    markPaid: 'चुकाया हुआ चिह्नित करें',
+    markPaidTitle: '{name} को चुकाया हुआ चिह्नित करें?',
+    markPaidBody: 'यह वह भुगतान दर्ज करता है जो आप कर चुके हैं। Waves पैसे नहीं भेजता।',
+    remindA11y: '{name} को हिसाब चुकाने की याद दिलाएँ',
+    payA11y: '{name} को भुगतान करें',
+    markPaidA11y: '{name} को चुकाया हुआ चिह्नित करें',
+    settleUpA11y: '{name} के साथ हिसाब चुकाएँ',
     call: 'कॉल',
     message: 'संदेश',
     copy: 'कॉपी',
@@ -13581,6 +13698,30 @@ const hi: UiStrings = {
     settleClearsAll: 'इससे यहाँ आपका पूरा बकाया चुक जाता है।',
     settleAllOwed: 'यहाँ आपको बस इतना ही मिलना है।',
     settleLeftOver: '{amount} दूसरों के साथ चुकाना बाकी।',
+    settleSimpleOwed: 'आपको {amount} मिलने हैं',
+    settleSimpleOwe: 'आपको {amount} देने हैं',
+    settleSimpleSettled: 'सब चुकता 🎉',
+    settleSimpleEven: 'इस ग्रुप में हिसाब बराबर है',
+    settleOwesYou: 'आपको देने हैं',
+    settleYouOweHeading: 'आपको देना है',
+    settlePay: 'चुकाएँ',
+    settleMarkPaid: 'चुकाया हुआ मानें',
+    settleReceivedTitle: '{name} से {amount} मिले?',
+    settleReceivedBody: 'इससे ग्रुप में भुगतान दर्ज हो जाएगा।',
+    settleReceivedConfirm: 'हाँ, मिल गए',
+    settleMarkPaidTitle: '{name} को {amount} चुकाया हुआ मानें?',
+    settleMarkPaidBody: 'केवल तभी जब आप उन्हें पहले ही चुका चुके हों।',
+    settleMarkPaidConfirm: 'हाँ, मैंने चुकाया',
+    settleRemindA11y: '{name} को {amount} के बारे में याद दिलाएँ',
+    settlePayA11y: '{name} को {amount} चुकाएँ',
+    settleMarkPaidA11y: '{name} को {amount} चुकाया हुआ मानें',
+    settleReceivedHint: 'इसे मिला हुआ दर्ज करता है',
+    settleSeeAll: 'सभी बैलेंस देखें',
+    settleHideAll: 'बैलेंस छिपाएँ',
+    settleBetweenOthers: 'दूसरों के बीच',
+    settleHistory: 'इतिहास',
+    settleHistoryPaid: '{from} ने {to} को चुकाया',
+    settleNoHistory: 'अभी कोई भुगतान नहीं',
     couldNotAddGeneric: 'सभी को नहीं जोड़ा जा सका। कृपया फिर कोशिश करें।',
     tryAgainMoment: 'कृपया थोड़ी देर में फिर कोशिश करें।',
     couldNotJoin: 'यह निमंत्रण नहीं खुल सका। कृपया फिर कोशिश करें।',
@@ -16363,8 +16504,10 @@ const ar: UiStrings = {
   quickExpense: {
     notePlaceholder: 'أضف ملاحظة (اختياري)',
     addReceipt: 'Add receipt',
-    takePhoto: 'Take photo',
-    chooseFromLibrary: 'Choose from library',
+    receiptShutter: 'التقاط صورة',
+    receiptFlash: 'الفلاش',
+    receiptGallery: 'اختر من المعرض',
+    receiptCameraDenied: 'الوصول إلى الكاميرا متوقف، لذا اختر صورة',
     removeReceipt: 'Remove receipt',
     title: 'Quick expense',
     subtitle: 'Add an expense and split it with friends',
@@ -17064,7 +17207,16 @@ const ar: UiStrings = {
     paidVia: 'يستلم المدفوعات على',
     contactWithheld: 'يحتفظ {name} ببيانات تواصله لنفسه.',
     noContact: 'لا يوجد هاتف أو بريد على هذا الحساب.',
-    ghostContact: 'لم ينضم إلى Waves بعد، فلا شيء لعرضه هنا.',
+    notOnWaves: 'ليس على Waves بعد',
+    inviteA11y: 'ادعُ {name} إلى Waves',
+    pay: 'ادفع',
+    markPaid: 'تحديد كمدفوع',
+    markPaidTitle: 'تحديد المبلغ كمدفوع لـ {name}؟',
+    markPaidBody: 'يسجّل هذا دفعة أجريتها بالفعل. لا ينقل Waves الأموال.',
+    remindA11y: 'ذكّر {name} بالتسوية',
+    payA11y: 'ادفع لـ {name}',
+    markPaidA11y: 'حدد {name} كمدفوع',
+    settleUpA11y: 'تسوية الحساب مع {name}',
     call: 'اتصال',
     message: 'رسالة',
     copy: 'نسخ',
@@ -17290,6 +17442,30 @@ const ar: UiStrings = {
     settleClearsAll: 'هذا يسدّد كل ما عليك هنا.',
     settleAllOwed: 'هذا كل ما لك هنا.',
     settleLeftOver: 'يتبقى {amount} لتسويته مع الآخرين.',
+    settleSimpleOwed: 'لك {amount}',
+    settleSimpleOwe: 'عليك {amount}',
+    settleSimpleSettled: 'تمت التسوية بالكامل 🎉',
+    settleSimpleEven: 'لا شيء بينك وبين المجموعة',
+    settleOwesYou: 'مدينون لك',
+    settleYouOweHeading: 'أنت مدين لـ',
+    settlePay: 'ادفع',
+    settleMarkPaid: 'تحديد كمدفوع',
+    settleReceivedTitle: 'هل استلمت {amount} من {name}؟',
+    settleReceivedBody: 'سيُسجَّل هذا الدفع في المجموعة.',
+    settleReceivedConfirm: 'نعم، استلمت',
+    settleMarkPaidTitle: 'تحديد {amount} إلى {name} كمدفوع؟',
+    settleMarkPaidBody: 'فقط إذا كنت قد دفعت لهم بالفعل.',
+    settleMarkPaidConfirm: 'نعم، دفعت',
+    settleRemindA11y: 'ذكّر {name} بمبلغ {amount}',
+    settlePayA11y: 'ادفع {amount} إلى {name}',
+    settleMarkPaidA11y: 'تحديد {amount} إلى {name} كمدفوع',
+    settleReceivedHint: 'يحدده كمستلم',
+    settleSeeAll: 'عرض كل الأرصدة',
+    settleHideAll: 'إخفاء الأرصدة',
+    settleBetweenOthers: 'بين الآخرين',
+    settleHistory: 'السجل',
+    settleHistoryPaid: '{from} دفع إلى {to}',
+    settleNoHistory: 'لا توجد مدفوعات بعد',
     couldNotAddGeneric: 'تعذّرت إضافة الجميع. حاول مرة أخرى.',
     tryAgainMoment: 'يُرجى المحاولة مرة أخرى بعد قليل.',
     couldNotJoin: 'تعذّر فتح هذه الدعوة. حاول مرة أخرى.',

@@ -103,6 +103,7 @@ import {
   type DestinationSelection,
   type PersonChoice,
 } from '@/components/DestinationPicker';
+import { SortMenu, type MenuAnchor } from '@/components/SortMenu';
 import { PendingMark } from '@/components/PendingMark';
 import { ReviewHeroBackground } from '@/components/ReviewHeroBackground';
 import { useHeroCrossfade, useHeroStatusBar } from '@/components/ScreenHero';
@@ -155,6 +156,15 @@ import { useDialog } from '@/lib/dialog';
 import { useToast } from '@/lib/toast';
 import { usePlaceInPersonal } from '@/lib/usePlaceInPersonal';
 import { useSync } from '@/sync';
+
+const REVIEW_SORT_OPTIONS: readonly {
+  key: ReviewSortOrder;
+  icon: React.ComponentProps<typeof Ionicons>['name'];
+}[] = [
+  { key: 'newest', icon: 'time-outline' },
+  { key: 'oldest', icon: 'hourglass-outline' },
+  { key: 'amount', icon: 'cash-outline' },
+];
 
 /**
  * What the ⋯ overflow sheet is open on: a single capture (file it, add to group,
@@ -1011,6 +1021,21 @@ export default function CapturesScreen() {
   // screen (`lib/reviewFeed.ts`), not a server-side order.
   const [sortOrder, setSortOrder] = useState<ReviewSortOrder>('newest');
   const [sortOpen, setSortOpen] = useState(false);
+  // Where the pill sits on screen, so the menu drops from it.
+  const [sortAnchor, setSortAnchor] = useState<MenuAnchor | null>(null);
+  const sortPillRef = useRef<View>(null);
+  const openSortMenu = (): void => {
+    const pill = sortPillRef.current;
+    if (!pill) {
+      setSortAnchor(null);
+      setSortOpen(true);
+      return;
+    }
+    pill.measureInWindow((x, y, width, height) => {
+      setSortAnchor(width > 0 ? { x, y, width, height } : null);
+      setSortOpen(true);
+    });
+  };
   // The hero's "filter" button, on a phone that reads its own messages: a
   // small sheet rather than a second screen, holding the one thing that used
   // to be a bare glyph beside "open inbox" on the old dark panel — "look now"
@@ -1984,33 +2009,39 @@ export default function CapturesScreen() {
         >
           {firstDayItem ? dayHeading(locale, firstDayItem.on) : ''}
         </Text>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t.captures.sortByLabel.replace(
-            '{option}',
-            sortOptionLabel(sortOrder),
-          )}
-          onPress={() => setSortOpen(true)}
-          style={({ pressed }) => [
-            {
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: theme.spacing.xs,
-              paddingHorizontal: theme.spacing.sm,
-              paddingVertical: 4,
-              borderRadius: theme.radius.pill,
-              backgroundColor: theme.color.surface,
-              opacity: pressed ? 0.7 : 1,
-            },
-            theme.shadow.soft,
-          ]}
-        >
-          <Ionicons name="swap-vertical-outline" size={iconSize.sm} color={theme.color.textMuted} />
-          <Text variant="micro" numberOfLines={1}>
-            {t.captures.sortByLabel.replace('{option}', sortOptionLabel(sortOrder))}
-          </Text>
-          <Ionicons name="chevron-down" size={iconSize.xs} color={theme.color.textFaint} />
-        </Pressable>
+        <View ref={sortPillRef} collapsable={false}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t.captures.sortByLabel.replace(
+              '{option}',
+              sortOptionLabel(sortOrder),
+            )}
+            onPress={openSortMenu}
+            style={({ pressed }) => [
+              {
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: theme.spacing.xs,
+                paddingHorizontal: theme.spacing.sm,
+                paddingVertical: 4,
+                borderRadius: theme.radius.pill,
+                backgroundColor: theme.color.surface,
+                opacity: pressed ? 0.7 : 1,
+              },
+              theme.shadow.soft,
+            ]}
+          >
+            <Ionicons
+              name="swap-vertical-outline"
+              size={iconSize.sm}
+              color={theme.color.textMuted}
+            />
+            <Text variant="micro" numberOfLines={1}>
+              {t.captures.sortByLabel.replace('{option}', sortOptionLabel(sortOrder))}
+            </Text>
+            <Ionicons name="chevron-down" size={iconSize.xs} color={theme.color.textFaint} />
+          </Pressable>
+        </View>
       </View>
     ) : null;
 
@@ -2836,31 +2867,26 @@ export default function CapturesScreen() {
         ) : null}
       </Sheet>
 
-      {/* The sort pill's own sheet: three plain rows, a checkmark on
-          whichever is live. Three options are a sheet rather than the
-          member ledger's own two-way toggle pill — a tap cycling through
-          three states is a control nobody can predict the next press of. */}
-      <Sheet
-        visible={sortOpen}
+      {/* The sort pill's menu: the same anchored pop-up Friends uses, a
+          check mark on whichever order is live. */}
+      <SortMenu
+        open={sortOpen}
+        anchor={sortAnchor}
         onClose={() => setSortOpen(false)}
-        padded={false}
-        closeLabel={t.common.close}
         title={t.captures.sortTitle}
-        style={{ paddingHorizontal: theme.spacing.xl, gap: theme.spacing.xs }}
-      >
-        {(['newest', 'oldest', 'amount'] as const).map((order) => (
-          <ActionSheetRow
-            key={order}
-            icon={sortOrder === order ? 'checkmark-circle' : 'ellipse-outline'}
-            label={sortOptionLabel(order)}
-            tone={sortOrder === order ? 'brand' : 'default'}
-            onPress={() => {
-              setSortOrder(order);
-              setSortOpen(false);
-            }}
-          />
-        ))}
-      </Sheet>
+        closeLabel={t.common.close}
+        options={REVIEW_SORT_OPTIONS.map(({ key, icon }) => ({
+          key,
+          icon,
+          label: sortOptionLabel(key),
+        }))}
+        activeKey={sortOrder}
+        activeIndicator="checkmark"
+        onPick={(order) => {
+          setSortOrder(order);
+          setSortOpen(false);
+        }}
+      />
 
       {/* The hero's "filter" button, on a phone that reads its own
           messages: the one action search's move to Bank messages left
