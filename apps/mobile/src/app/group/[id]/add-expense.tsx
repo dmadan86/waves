@@ -54,7 +54,7 @@ import { ExpenseReceipts } from '@/components/ExpenseReceipts';
 import { TagEditorSheet } from '@/components/TagEditorSheet';
 import { PaymentMethodRow, PaymentMethodSheet } from '@/components/PaymentMethodPicker';
 import { LocationField } from '@/components/LocationField';
-import { captureLocationIfGranted } from '@/lib/location';
+import { captureLocationIfGranted, locationUnchanged, reverseGeocode } from '@/lib/location';
 import { friendlyError } from '@/lib/errors';
 import { receiptProblemText } from '@/lib/problemText';
 import { CurrencyRate } from '@/components/CurrencyRate';
@@ -1013,7 +1013,17 @@ export default function AddExpenseScreen() {
     let active = true;
     void captureLocationIfGranted().then((loc) => {
       // Never override a place set in the meantime — only fill an empty pin.
-      if (active && loc) setLocation((current) => current ?? loc);
+      if (!active || !loc) return;
+      setLocation((current) => current ?? loc);
+      // The name is resolved separately, never awaited, so it cannot delay the
+      // fix above. Patched in only if the pin still matches this fix — the
+      // reader has not since cleared or moved it by hand, or picked a spot.
+      void reverseGeocode(loc.lat, loc.lng).then((name) => {
+        if (!active || !name) return;
+        setLocation((current) =>
+          locationUnchanged(current, loc.lat, loc.lng) ? { ...current, name } : current,
+        );
+      });
     });
     return () => {
       active = false;

@@ -28,6 +28,8 @@ import {
   coordLabel,
   LocationFailure,
   locationAvailable,
+  locationUnchanged,
+  reverseGeocode,
 } from '@/lib/location';
 
 export function LocationField({
@@ -124,6 +126,13 @@ export function LocationField({
    * A field that is already filled has nothing to read, so it never starts.
    */
   const [autoReading, setAutoReading] = useState(autoFill && value === null);
+  // The latest `value`, for the background name patches below to check against
+  // — they resolve well after the render that kicked them off, so a closure
+  // over `value` would see a stale pin instead of whatever is there now.
+  const valueRef = useRef(value);
+  useEffect(() => {
+    valueRef.current = value;
+  }, [value]);
 
   useEffect(() => {
     if (!autoFill || filled.current) return;
@@ -135,7 +144,18 @@ export function LocationField({
       .then((found) => {
         // `live` because a fix can land after the form is gone — on a cold GPS
         // this is seconds, and the person may well have saved and left.
-        if (live && found) onChange(found);
+        if (!live || !found) return;
+        onChange(found);
+        // The name is resolved separately and patched in if it beats the
+        // reader to a change — never awaited, so it cannot delay this fix or
+        // hold `autoReading` open. Dropped if the pin has since moved, been
+        // cleared, or the form is gone.
+        const { lat, lng } = found;
+        void reverseGeocode(lat, lng).then((name) => {
+          if (!live || !name) return;
+          const current = valueRef.current;
+          if (locationUnchanged(current, lat, lng)) onChange({ ...current, name });
+        });
       })
       .finally(() => {
         if (live) setAutoReading(false);
@@ -159,6 +179,14 @@ export function LocationField({
       const result = await captureLocation();
       if (result.ok) {
         onChange(result.location);
+        // Same best-effort, never-awaited name patch as the auto-fill above —
+        // `working` clears right after the fix, not after this.
+        const { lat, lng } = result.location;
+        void reverseGeocode(lat, lng).then((name) => {
+          if (!name) return;
+          const current = valueRef.current;
+          if (locationUnchanged(current, lat, lng)) onChange({ ...current, name });
+        });
       } else if (result.why !== LocationFailure.Unsupported) {
         setFailure(result.why);
       }
