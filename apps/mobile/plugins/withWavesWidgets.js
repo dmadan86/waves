@@ -1,7 +1,7 @@
 /**
  * Home-screen launcher widgets for Android.
  *
- * Three 1×1 widgets — quick-add an expense, scan a receipt, and voice — each a
+ * Three 1×1 widgets (plus a 4×2 "Waves" home widget, see HOME_WIDGET) — quick-add an expense, scan a receipt, and voice — each a
  * single tap that fires the deep link the app already resolves (`/capture`,
  * `/capture?scan=…`, `/voice`, routed through `+native-intent.ts`). They hold
  * no data and run no timeline; they are pure shortcuts, the home-screen sibling
@@ -60,6 +60,253 @@ const WIDGETS = [
 ];
 
 const ACCENT = '#7A5AF8';
+
+/**
+ * The 4x2 "Waves" home widget: an Add-expense pill (camera + voice on its right)
+ * over a row of four navigation tiles. Unlike the 1x1 shortcuts above it is a
+ * different size class, so it sits beside them rather than replacing them.
+ * Every target is a deep link already routed by expo-router (`src/app/*`).
+ */
+const HOME_WIDGET = {
+  className: 'WavesHomeWidget',
+  key: 'home',
+  label: 'Waves',
+  description: 'Add expenses from your home screen',
+  pill: { id: 'widget_pill', link: `${SCHEME}:///capture`, label: 'Add expense', requestCode: 10 },
+  camera: { id: 'widget_camera', link: `${SCHEME}:///capture?scan=1`, label: 'Scan receipt', requestCode: 11 },
+  // Voice goes through the same trampoline as the 1x1 voice widget.
+  voice: { id: 'widget_voice', label: 'Voice', requestCode: 12 },
+  // "Settle up" has no route of its own (it is a picker sheet on Home/Friends),
+  // so Activity takes the slot.
+  tiles: [
+    { id: 'widget_tile_groups', label: 'Groups', icon: 'ic_widget_groups', link: `${SCHEME}:///groups`, requestCode: 13 },
+    { id: 'widget_tile_friends', label: 'Friends', icon: 'ic_widget_friends', link: `${SCHEME}:///friends`, requestCode: 14 },
+    { id: 'widget_tile_activity', label: 'Activity', icon: 'ic_widget_activity', link: `${SCHEME}:///activity`, requestCode: 15 },
+    { id: 'widget_tile_scan', label: 'Scan QR', icon: 'ic_widget_qr', link: `${SCHEME}:///scan`, requestCode: 16 },
+  ],
+};
+
+const ALL_WIDGETS = [...WIDGETS, HOME_WIDGET];
+
+// Light / dark surfaces. Android resolves values-night per the system theme when
+// the RemoteViews inflate, so the widget follows dark mode with no code.
+const COLORS_LIGHT = `<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <color name="waves_widget_container">#F4F4F5</color>
+  <color name="waves_widget_tile">#FFFFFF</color>
+  <color name="waves_widget_pill">#FFFFFF</color>
+  <color name="waves_widget_fg">#1F1F1F</color>
+  <color name="waves_widget_accent">${ACCENT}</color>
+</resources>
+`;
+const COLORS_DARK = `<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <color name="waves_widget_container">#1F1F1F</color>
+  <color name="waves_widget_tile">#2B2B2B</color>
+  <color name="waves_widget_pill">#2B2B2B</color>
+  <color name="waves_widget_fg">#FFFFFF</color>
+  <color name="waves_widget_accent">#9B82FF</color>
+</resources>
+`;
+const STRINGS_XML = `<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="waves_widget_home_description">${HOME_WIDGET.description}</string>
+</resources>
+`;
+
+const roundedRect = (color, radius) => `<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+  <solid android:color="${color}" />
+  <corners android:radius="${radius}dp" />
+</shape>
+`;
+
+const vec = (pathData) => `<vector xmlns:android="http://schemas.android.com/apk/res/android"
+  android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
+  <path android:fillColor="@color/waves_widget_fg" android:pathData="${pathData}" />
+</vector>
+`;
+
+const HOME_DRAWABLES = {
+  widget_home_container: roundedRect('@color/waves_widget_container', 28),
+  widget_home_pill: roundedRect('@color/waves_widget_pill', 22),
+  widget_home_tile: roundedRect('@color/waves_widget_tile', 16),
+  // The Waves mark (assets/brand/wave-mark.json): a zig-zag stroke plus a dot.
+  ic_widget_mark: `<vector xmlns:android="http://schemas.android.com/apk/res/android"
+  android:width="32dp" android:height="32dp" android:viewportWidth="72" android:viewportHeight="72">
+  <path android:strokeColor="@color/waves_widget_accent" android:strokeWidth="6"
+    android:strokeLineCap="round" android:strokeLineJoin="round"
+    android:pathData="M10,24L17,56L25,42L36,22L47,42L55,56L62,24" />
+  <path android:fillColor="@color/waves_widget_accent"
+    android:pathData="M62,13a4,4 0,1 0,0.01 0z" />
+</vector>
+`,
+  ic_widget_camera: vec('M9,3L7.17,5H4a2,2 0,0 0,-2 2v12a2,2 0,0 0,2 2h16a2,2 0,0 0,2 -2V7a2,2 0,0 0,-2 -2h-3.17L15,3H9zM12,17.5a4.5,4.5 0,1 1,0 -9 4.5,4.5 0,0 1,0 9zM12,15.5a2.5,2.5 0,1 0,0 -5 2.5,2.5 0,0 0,0 5z'),
+  ic_widget_waveform: vec('M11,3h2v18h-2zM7,8h2v8H7zM15,7h2v10h-2zM3,11h2v2H3zM19,10h2v4h-2z'),
+  ic_widget_groups: vec('M16,11a3,3 0,1 0,0 -6 3,3 0,0 0,0 6zM8,11a3,3 0,1 0,0 -6 3,3 0,0 0,0 6zM8,13c-2.33,0 -7,1.17 -7,3.5V19h14v-2.5C15,14.17 10.33,13 8,13zM16,13c-0.29,0 -0.62,0.02 -0.97,0.05 1.16,0.84 1.97,1.97 1.97,3.45V19h6v-2.5c0,-2.33 -4.67,-3.5 -7,-3.5z'),
+  ic_widget_friends: vec('M12,12a4,4 0,1 0,0 -8 4,4 0,0 0,0 8zM12,14c-2.67,0 -8,1.34 -8,4v2h16v-2c0,-2.66 -5.33,-4 -8,-4z'),
+  ic_widget_activity: vec('M13,3a9,9 0,0 0,-9 9H1l3.89,3.89 0.07,0.14L9,12H6a7,7 0,1 1,2.05 4.95l-1.42,1.42A9,9 0,1 0,13 3zM12,8v5l4.28,2.54 0.72,-1.21 -3.5,-2.08V8z'),
+  ic_widget_qr: vec('M3,3h8v8H3zM5,5v4h4V5zM13,3h8v8h-8zM15,5v4h4V5zM3,13h8v8H3zM5,15v4h4v-4zM13,13h3v3h-3zM18,13h3v3h-3zM13,18h3v3h-3zM18,18h3v3h-3z'),
+};
+
+const homeInfoXml = `<?xml version="1.0" encoding="utf-8"?>
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+  android:minWidth="250dp"
+  android:minHeight="110dp"
+  android:minResizeWidth="180dp"
+  android:minResizeHeight="100dp"
+  android:targetCellWidth="4"
+  android:targetCellHeight="2"
+  android:resizeMode="horizontal|vertical"
+  android:widgetCategory="home_screen"
+  android:description="@string/waves_widget_home_description"
+  android:previewImage="@drawable/ic_widget_mark"
+  android:previewLayout="@layout/widget_home"
+  android:initialLayout="@layout/widget_home" />
+`;
+
+const homeLayoutXml = () => {
+  const tile = (t) => `    <LinearLayout
+      android:id="@+id/${t.id}"
+      android:layout_width="0dp"
+      android:layout_height="match_parent"
+      android:layout_weight="1"
+      android:layout_marginStart="3dp"
+      android:layout_marginEnd="3dp"
+      android:orientation="vertical"
+      android:gravity="center"
+      android:background="@drawable/widget_home_tile"
+      android:contentDescription="${t.label}">
+      <ImageView
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:src="@drawable/${t.icon}" />
+      <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:text="${t.label}"
+        android:textColor="@color/waves_widget_fg"
+        android:textSize="12sp"
+        android:maxLines="1"
+        android:ellipsize="end" />
+    </LinearLayout>`;
+  return `<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+  android:id="@+id/widget_root"
+  android:layout_width="match_parent"
+  android:layout_height="match_parent"
+  android:orientation="vertical"
+  android:padding="8dp"
+  android:background="@drawable/widget_home_container">
+  <LinearLayout
+    android:id="@+id/${HOME_WIDGET.pill.id}"
+    android:layout_width="match_parent"
+    android:layout_height="0dp"
+    android:layout_weight="1"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingStart="14dp"
+    android:paddingEnd="6dp"
+    android:background="@drawable/widget_home_pill"
+    android:contentDescription="${HOME_WIDGET.pill.label}">
+    <ImageView
+      android:layout_width="26dp"
+      android:layout_height="26dp"
+      android:src="@drawable/ic_widget_mark" />
+    <TextView
+      android:layout_width="0dp"
+      android:layout_height="wrap_content"
+      android:layout_weight="1"
+      android:layout_marginStart="10dp"
+      android:text="${HOME_WIDGET.pill.label}"
+      android:textColor="@color/waves_widget_fg"
+      android:textSize="17sp"
+      android:textStyle="bold"
+      android:maxLines="1"
+      android:ellipsize="end" />
+    <ImageView
+      android:id="@+id/${HOME_WIDGET.camera.id}"
+      android:layout_width="44dp"
+      android:layout_height="match_parent"
+      android:padding="10dp"
+      android:src="@drawable/ic_widget_camera"
+      android:contentDescription="${HOME_WIDGET.camera.label}" />
+    <ImageView
+      android:id="@+id/${HOME_WIDGET.voice.id}"
+      android:layout_width="44dp"
+      android:layout_height="match_parent"
+      android:padding="10dp"
+      android:src="@drawable/ic_widget_waveform"
+      android:contentDescription="${HOME_WIDGET.voice.label}" />
+  </LinearLayout>
+  <LinearLayout
+    android:layout_width="match_parent"
+    android:layout_height="0dp"
+    android:layout_weight="1.6"
+    android:layout_marginTop="6dp"
+    android:orientation="horizontal">
+${HOME_WIDGET.tiles.map(tile).join('\n')}
+  </LinearLayout>
+</LinearLayout>
+`;
+};
+
+const homeKotlinProvider = (pkg) => {
+  const deepLink = (id, link, code) => `    views.setOnClickPendingIntent(
+      R.id.${id},
+      PendingIntent.getActivity(context, ${code}, deepLink("${link}"), FLAGS),
+    )`;
+  const w = HOME_WIDGET;
+  return `package ${pkg}.widget
+
+import android.app.PendingIntent
+import android.appwidget.AppWidgetManager
+import android.appwidget.AppWidgetProvider
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.widget.RemoteViews
+import ${pkg}.R
+
+/**
+ * ${w.label} — the 4x2 home widget: an Add-expense pill (camera, voice) over four
+ * navigation tiles. Colours come from res/values and res/values-night, so it
+ * follows the system theme. Generated by plugins/withWavesWidgets.js.
+ */
+class ${w.className} : AppWidgetProvider() {
+  override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) {
+    for (id in ids) {
+      val views = RemoteViews(context.packageName, R.layout.widget_${w.key})
+      bind(context, views)
+      manager.updateAppWidget(id, views)
+    }
+  }
+
+  private fun bind(context: Context, views: RemoteViews) {
+    fun deepLink(url: String) =
+      Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+        setPackage(context.packageName)
+        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+      }
+${deepLink(w.pill.id, w.pill.link, w.pill.requestCode)}
+${deepLink(w.camera.id, w.camera.link, w.camera.requestCode)}
+    val voice = Intent(context, VoiceCaptureActivity::class.java).apply {
+      addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
+    views.setOnClickPendingIntent(
+      R.id.${w.voice.id},
+      PendingIntent.getActivity(context, ${w.voice.requestCode}, voice, FLAGS),
+    )
+${w.tiles.map((t) => deepLink(t.id, t.link, t.requestCode)).join('\n')}
+  }
+
+  companion object {
+    private const val FLAGS = PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+  }
+}
+`;
+};
 
 // --- res/ file bodies ---------------------------------------------------------
 
@@ -261,7 +508,7 @@ function addReceivers(androidManifest) {
   const application = AndroidConfig.Manifest.getMainApplicationOrThrow(androidManifest);
   application.receiver = application.receiver ?? [];
 
-  for (const widget of WIDGETS) {
+  for (const widget of ALL_WIDGETS) {
     const name = `.widget.${widget.className}`;
     // Idempotent: prebuild may run this more than once.
     const exists = application.receiver.some((r) => r?.$?.['android:name'] === name);
@@ -333,6 +580,16 @@ function writeNativeSources(projectRoot, pkg) {
     writeFile(path.join(res, 'layout', `widget_${widget.key}.xml`), widgetLayoutXml(widget));
     writeFile(path.join(kotlinDir, `${widget.className}.kt`), kotlinProvider(widget, pkg));
   }
+  // The 4x2 home widget.
+  for (const [name, body] of Object.entries(HOME_DRAWABLES)) {
+    writeFile(path.join(res, 'drawable', `${name}.xml`), body);
+  }
+  writeFile(path.join(res, 'values', 'waves_widget_colors.xml'), COLORS_LIGHT);
+  writeFile(path.join(res, 'values-night', 'waves_widget_colors.xml'), COLORS_DARK);
+  writeFile(path.join(res, 'values', 'waves_widget_strings.xml'), STRINGS_XML);
+  writeFile(path.join(res, 'xml', `widget_${HOME_WIDGET.key}_info.xml`), homeInfoXml);
+  writeFile(path.join(res, 'layout', `widget_${HOME_WIDGET.key}.xml`), homeLayoutXml());
+  writeFile(path.join(kotlinDir, `${HOME_WIDGET.className}.kt`), homeKotlinProvider(pkg));
   // The trampoline Activity, emitted once when any widget uses it.
   if (WIDGETS.some((w) => w.trampoline)) {
     writeFile(path.join(kotlinDir, 'VoiceCaptureActivity.kt'), trampolineActivity(pkg));
@@ -365,6 +622,12 @@ module.exports = function withWavesWidgets(config) {
 // of the plugin's runtime contract.
 module.exports._internals = {
   WIDGETS,
+  HOME_WIDGET,
+  HOME_DRAWABLES,
+  homeLayoutXml,
+  homeKotlinProvider,
+  COLORS_LIGHT,
+  COLORS_DARK,
   addReceivers,
   addVoiceActivity,
   writeNativeSources,

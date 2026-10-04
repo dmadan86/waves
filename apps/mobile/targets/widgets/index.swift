@@ -100,11 +100,103 @@ struct VoiceWidget: Widget {
     }
 }
 
+// The medium "Waves" home widget — the iOS twin of Android's WavesHomeWidget: an
+// Add-expense pill over four navigation tiles. WidgetKit has no per-region tap
+// on iOS 16, so each region is a `Link`, which works in static widgets from
+// iOS 17 (iOS 16 falls back to the whole widget opening Add expense).
+struct HomeTile: View {
+    let systemImage: String
+    let title: String
+    let url: String
+    let fg: Color
+    let fill: Color
+
+    var body: some View {
+        Link(destination: URL(string: url)!) {
+            VStack(spacing: 5) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 20, weight: .regular))
+                Text(title)
+                    .font(.system(size: 11, weight: .medium))
+                    .lineLimit(1)
+            }
+            .foregroundStyle(fg)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(fill, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        }
+    }
+}
+
+struct HomeView: View {
+    @Environment(\.colorScheme) private var scheme
+
+    var body: some View {
+        let dark = scheme == .dark
+        let container = dark ? Color(white: 0.12) : Color(white: 0.96)
+        let surface = dark ? Color(white: 0.17) : Color.white
+        let fg = dark ? Color.white : Color(white: 0.12)
+
+        VStack(spacing: 6) {
+            HStack(spacing: 0) {
+                Link(destination: URL(string: "waves:///capture")!) {
+                    HStack(spacing: 10) {
+                        Image(systemName: "waveform.path")
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundStyle(wavesAccent)
+                        Text("Add expense")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundStyle(fg)
+                            .lineLimit(1)
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.leading, 12)
+                }
+                Link(destination: URL(string: "waves:///capture?scan=1")!) {
+                    Image(systemName: "camera")
+                        .font(.system(size: 18))
+                        .foregroundStyle(fg)
+                        .frame(width: 40, height: 40)
+                }
+                Link(destination: URL(string: "waves:///voice")!) {
+                    Image(systemName: "waveform")
+                        .font(.system(size: 18))
+                        .foregroundStyle(fg)
+                        .frame(width: 40, height: 40)
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(surface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+
+            HStack(spacing: 6) {
+                HomeTile(systemImage: "person.3", title: "Groups", url: "waves:///groups", fg: fg, fill: surface)
+                HomeTile(systemImage: "person.2", title: "Friends", url: "waves:///friends", fg: fg, fill: surface)
+                HomeTile(systemImage: "clock.arrow.circlepath", title: "Activity", url: "waves:///activity", fg: fg, fill: surface)
+                HomeTile(systemImage: "qrcode.viewfinder", title: "Scan QR", url: "waves:///scan", fg: fg, fill: surface)
+            }
+            .frame(maxHeight: .infinity)
+        }
+        .widgetBackground(container)
+        .widgetURL(URL(string: "waves:///capture"))
+    }
+}
+
+struct WavesHomeWidget: Widget {
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: "WavesHome", provider: LauncherProvider()) { _ in
+            HomeView()
+        }
+        .configurationDisplayName("Waves")
+        .description("Add expenses from your home screen")
+        .supportedFamilies([.systemMedium])
+    }
+}
+
 @main
 struct WavesWidgets: WidgetBundle {
     var body: some Widget {
         QuickExpenseWidget()
         ScanReceiptWidget()
         VoiceWidget()
+        WavesHomeWidget()
     }
 }

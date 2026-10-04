@@ -7,7 +7,8 @@ import { describe, expect, it } from 'vitest';
 // The config plugin is plain JS; pull out the internals it exposes for testing.
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { _internals } = require('../plugins/withWavesWidgets.js');
-const { WIDGETS, addReceivers, writeNativeSources } = _internals as {
+const { WIDGETS, HOME_WIDGET, addReceivers, writeNativeSources } = _internals as {
+  HOME_WIDGET: { className: string; key: string; tiles: { id: string; link: string }[] };
   WIDGETS: { className: string; key: string; label: string; link: string; icon: string }[];
   addReceivers: (m: unknown) => { manifest: { application: { receiver?: unknown[] }[] } };
   writeNativeSources: (projectRoot: string, pkg: string) => void;
@@ -35,9 +36,9 @@ describe('withWavesWidgets — manifest receivers', () => {
       'meta-data': { $: Record<string, string> }[];
     }[];
 
-    expect(receivers).toHaveLength(WIDGETS.length);
+    expect(receivers).toHaveLength(WIDGETS.length + 1);
 
-    for (const widget of WIDGETS) {
+    for (const widget of [...WIDGETS, HOME_WIDGET]) {
       const receiver = receivers.find((r) => r.$['android:name'] === `.widget.${widget.className}`);
       expect(receiver, `receiver for ${widget.className}`).toBeTruthy();
       expect(receiver!.$['android:exported']).toBe('true');
@@ -54,7 +55,7 @@ describe('withWavesWidgets — manifest receivers', () => {
     const manifest = emptyManifest();
     addReceivers(manifest);
     const out = addReceivers(manifest);
-    expect(out.manifest.application[0].receiver).toHaveLength(WIDGETS.length);
+    expect(out.manifest.application[0].receiver).toHaveLength(WIDGETS.length + 1);
   });
 });
 
@@ -132,5 +133,50 @@ describe('withWavesWidgets — emitted native sources', () => {
       expect(layout).toContain('@+id/widget_root');
       expect(layout).toContain(`@drawable/${widget.icon}`);
     }
+  });
+});
+
+describe('withWavesWidgets — 4x2 home widget', () => {
+  const root = mkdtempSync(join(tmpdir(), 'waves-home-widget-'));
+  writeNativeSources(root, PKG);
+  const main = join(root, 'android', 'app', 'src', 'main');
+  const read = (p: string) => readFileSync(join(main, p), 'utf8');
+
+  it('is a 4x2 resizable provider with a picker description', () => {
+    const info = read(join('res', 'xml', 'widget_home_info.xml'));
+    expect(info).toContain('android:targetCellWidth="4"');
+    expect(info).toContain('android:targetCellHeight="2"');
+    expect(info).toContain('@string/waves_widget_home_description');
+    expect(read(join('res', 'values', 'waves_widget_strings.xml'))).toContain(
+      'Add expenses from your home screen',
+    );
+  });
+
+  it('ships light and dark colours', () => {
+    expect(read(join('res', 'values-night', 'waves_widget_colors.xml'))).toContain('#2B2B2B');
+    expect(read(join('res', 'values', 'waves_widget_colors.xml'))).toContain('waves_widget_tile');
+  });
+
+  it('wires the pill, camera, voice and four tiles to their targets', () => {
+    const layout = read(join('res', 'layout', 'widget_home.xml'));
+    const kotlin = read(join('java', ...PKG.split('.'), 'widget', 'WavesHomeWidget.kt'));
+    for (const id of ['widget_pill', 'widget_camera', 'widget_voice']) {
+      expect(layout).toContain(`@+id/${id}`);
+      expect(kotlin).toContain(`R.id.${id}`);
+    }
+    expect(kotlin).toContain('waves:///capture"');
+    expect(kotlin).toContain('waves:///capture?scan=1');
+    expect(kotlin).toContain('VoiceCaptureActivity::class.java');
+    expect(HOME_WIDGET.tiles.map((t) => t.link)).toEqual([
+      'waves:///groups',
+      'waves:///friends',
+      'waves:///activity',
+      'waves:///scan',
+    ]);
+    for (const tile of HOME_WIDGET.tiles) {
+      expect(layout).toContain(`@+id/${tile.id}`);
+      expect(kotlin).toContain(`R.id.${tile.id}`);
+    }
+    expect(kotlin).toContain('FLAG_IMMUTABLE');
   });
 });
