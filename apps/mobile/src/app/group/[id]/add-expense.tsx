@@ -86,7 +86,6 @@ import { resolveDraftCurrency, resolveDraftFx } from '@/lib/expenseDraft';
 import { dateFrom, isoDate, showDate } from '@/lib/expenseDay';
 import {
   expenseDateFor,
-  expenseDetailsVisible,
   planCollapseToOne,
   planEvenly,
   planToggle,
@@ -740,21 +739,6 @@ export default function AddExpenseScreen() {
   // plain heading, so changing a split is the tap that changes it rather than a
   // tap to open, then a tap to change.
 
-  // "More details" is now just the FX rate: category, payment method and
-  // location all moved up into the dense facts card below, each its own
-  // always-visible row. The rate is the one answer that is still genuinely
-  // rare (only a foreign-currency bill needs it) and must still be typed
-  // before saving when it does, so it keeps a fold of its own rather than
-  // sitting open on every bill in the group's own currency. It opens itself
-  // whenever the currency is not the group's, so a foreign bill (or an edit
-  // of one) is not hidden behind the fold on arrival.
-  //
-  // `null` means "nobody has said": follow that rule. A tap replaces it with a
-  // decision, in either direction. It used to be a plain boolean OR-ed with the
-  // rule, and the header was disabled while the rule said open — so on a bill
-  // that carried any detail, "Fewer details" sat there looking tappable and did
-  // nothing.
-  const [detailsChoice, setDetailsChoice] = useState<boolean | null>(null);
   // The "paid by" and "split" rows unfold the same way: closed on the common
   // case (one payer, an equal split) so the dense card reads as a handful of
   // short facts, and open on its own the moment the bill is already in the
@@ -1390,25 +1374,6 @@ export default function AddExpenseScreen() {
   const canSave =
     amount > 0n && participants.length > 0 && splitIssue === null && payerProblem === null;
 
-  // The fold starts open, and starts open the same way whether this is a new
-  // expense or an edit.
-  //
-  // It used to derive its default from whether anything inside carried a
-  // non-default value — and `categoryChosen` was one of those. Every saved
-  // expense has a category, so that flag is true on essentially every edit and
-  // false on every new one: the fold stood open on the edit form and shut on the
-  // add form, and one screen quietly had two layouts. Worse, it shut in exactly
-  // the case where the rows are most use — a new expense, where the day, the
-  // rail and the currency have not been set by anybody yet.
-  //
-  // A foreign currency still forces it open over a collapse: the rate card lives
-  // inside the fold and the expense cannot be saved without a rate.
-  const showDetails = expenseDetailsVisible({
-    choice: detailsChoice,
-    currency,
-    groupCurrency,
-  });
-
   // The bottom-bar sub-line. When an equal split lands the same amount on every
   // head, say it in money — "3 people owe ₹200 each" — which is the number
   // people actually care about; otherwise the plain headcount.
@@ -2032,36 +1997,26 @@ export default function AddExpenseScreen() {
               <View style={{ paddingVertical: theme.spacing.sm }}>
                 <LocationField value={location} onChange={setLocation} compact />
               </View>
-
-              {/* The one thing left that is still genuinely optional: the FX
-                rate for a foreign-currency bill. Category, payment method and
-                location all used to live behind this same "More details" fold
-                — they are not optional in that sense (the category is always
-                guessed, the rail defaults to cash), so the fold was hiding
-                answers the form had already given. They are rows of their own
-                above now, and this is down to the one answer only a foreign
-                bill ever needs. */}
-              <DetailRow
-                icon="ellipsis-horizontal"
-                dense
-                label={showDetails ? t.expense.fewerDetails : t.expense.moreDetails}
-                expanded={showDetails}
-                onPress={() => setDetailsChoice(!showDetails)}
-                accessibilityLabel={t.expense.moreDetails}
-              />
             </DetailRows>
           </Card>
 
-          {showDetails ? (
-            <CurrencyRate
-              groupCurrency={groupCurrency}
-              currency={currency}
-              amount={amount}
-              fx={fx}
-              onFxChange={setFx}
-              tripRate={tripRate}
-            />
-          ) : null}
+          {/* The one thing left that is still genuinely optional: the FX rate
+            for a foreign-currency bill. This used to sit behind a "More
+            details" row that, by the time category, payment method and
+            location each got a row of their own above, toggled nothing —
+            `CurrencyRate` already renders nothing for a same-currency bill and
+            the rate card for a foreign one regardless of that toggle's state,
+            so the fold had become a tap that changed nothing on screen. It is
+            gone; `CurrencyRate` shows itself exactly when there is a rate to
+            give. */}
+          <CurrencyRate
+            groupCurrency={groupCurrency}
+            currency={currency}
+            amount={amount}
+            fx={fx}
+            onFxChange={setFx}
+            tripRate={tripRate}
+          />
         </ScrollView>
 
         {/* The one action, pinned. The screen is tall — keypad, scan, currency,
