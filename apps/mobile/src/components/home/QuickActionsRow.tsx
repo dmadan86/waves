@@ -40,6 +40,9 @@ export function QuickActionsRow({
   radius,
   discColor,
   iconColor,
+  discSize = DISC,
+  labelSize,
+  rowPadding,
 }: {
   actions: readonly QuickAction[];
   /** The card's corner radius, which the strip's bottom corners follow. */
@@ -48,6 +51,14 @@ export function QuickActionsRow({
   discColor: string;
   /** The glyph's own colour, handed to each action's `glyph`. */
   iconColor: string;
+  /** The disc's diameter; Home's own 34dp unless a caller asks smaller. */
+  discSize?: number;
+  /** The label's font size; the shared `micro` variant's 11 unless a caller
+   *  asks a specific size. */
+  labelSize?: number;
+  /** The strip's own vertical padding; `theme.spacing.sm` unless a caller
+   *  asks tighter. */
+  rowPadding?: number;
 }) {
   const theme = useTheme();
 
@@ -57,7 +68,7 @@ export function QuickActionsRow({
         flexDirection: 'row',
         borderBottomLeftRadius: radius,
         borderBottomRightRadius: radius,
-        paddingVertical: theme.spacing.sm,
+        paddingVertical: rowPadding ?? theme.spacing.sm,
         paddingHorizontal: theme.spacing.xs,
       }}
     >
@@ -65,9 +76,9 @@ export function QuickActionsRow({
         const disc = (
           <View
             style={{
-              width: DISC,
-              height: DISC,
-              borderRadius: DISC / 2,
+              width: discSize,
+              height: discSize,
+              borderRadius: discSize / 2,
               alignItems: 'center',
               justifyContent: 'center',
               backgroundColor: discColor,
@@ -123,7 +134,11 @@ export function QuickActionsRow({
               numberOfLines={1}
               adjustsFontSizeToFit
               minimumFontScale={0.8}
-              style={{ fontWeight: '600', color: theme.color.text }}
+              style={{
+                fontWeight: '600',
+                color: theme.color.text,
+                ...(labelSize ? { fontSize: labelSize, lineHeight: labelSize + 4 } : null),
+              }}
             >
               {action.label}
             </Text>

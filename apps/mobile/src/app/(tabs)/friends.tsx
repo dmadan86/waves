@@ -42,7 +42,6 @@ import {
   MoneyText,
   Row,
   Screen,
-  Skeleton,
   Text,
   tintForKey,
   useTabBarClearance,
@@ -73,19 +72,16 @@ import { PressableScale } from '@/lib/anim';
 import { router } from '@/lib/navigation';
 import { useAvatarUrl } from '@/components/ProfileAvatar';
 import { BalanceSide } from '@/components/home/BalanceSide';
+import { FriendsHeroBackground } from '@/components/home/FriendsHeroBackground';
 import { GlassSurface } from '@/components/home/GlassSurface';
-import { HeroScene } from '@/components/home/HeroScene';
 import { QuickActionsRow, type QuickAction } from '@/components/home/QuickActionsRow';
 import { SettlePickerSheet, type SettleCandidate } from '@/components/home/SettlePickerSheet';
-import { SplitMoney } from '@/components/SplitMoney';
 import { useHeroCrossfade, useHeroStatusBar } from '@/components/ScreenHero';
 import { PeopleSkeleton } from '@/components/Skeletons';
 import { plural, useStrings, type UiStrings } from '@/i18n';
 import { useBalanceHidden } from '@/lib/balanceHidden';
 import { useHeroScene } from '@/lib/heroScenePreference';
 import { usePullRefresh } from '@/lib/pullRefresh';
-import { HERO_THEMES } from '@/lib/scene';
-import { SPEC_INK } from '@/lib/specPalette';
 
 enum SortKey {
   Amount = 'amount',
@@ -618,13 +614,19 @@ export default function FriendsScreen() {
 }
 
 /**
- * The Friends hero: the same scenic mountain art Home opens on, the same
- * overlapping glass balance card (`BalanceSide`'s "Owed to you" / "You owe"
- * either side of a hairline, exactly as Home's own card draws its "You lent" /
- * "You owe"), and the same disc-and-label quick-action strip along its foot
- * (`QuickActionsRow`) — not a hand-rolled panel that happened to look similar,
- * the very components Home's own dashboard draws itself with, so the two tabs
- * read as one app rather than two designers.
+ * The Friends hero: its own photograph — the three friends on the rock,
+ * watching the same lake and city through morning, midday, sunset, dusk and
+ * night (`FriendsHeroBackground`) — standing in for the mountain art Home
+ * draws in vector layers, but wearing the scene the same way Home's hero
+ * does: the same clock (or the same Background-screen pick), the same top
+ * shade for legibility, the same crossfade when the moment turns. Beneath it
+ * sits the same overlapping glass balance card (`BalanceSide`'s "Owed to
+ * you" / "You owe" either side of a hairline, exactly as Home's own card
+ * draws its "You lent" / "You owe"), and the same disc-and-label
+ * quick-action strip along its foot (`QuickActionsRow`) — not a hand-rolled
+ * panel that happened to look similar, the very components Home's own
+ * dashboard draws itself with, so the two tabs read as one app rather than
+ * two designers.
  *
  * What rides on it is still Friends' own: "Net receivable" (or payable, or
  * settled), the eye that hides it — the same switch Home's balance wears —
@@ -679,24 +681,37 @@ function FriendsScene({
   // The scene wears the time of day, or the one picked on the Background
   // screen — Home's own hook, so the two tabs always agree on what hour it is.
   const scene = useHeroScene();
-  const darkInk = HERO_THEMES[scene].ink === 'dark';
-  const heroInk = darkInk ? SPEC_INK : '#FFFFFF';
-  useHeroStatusBar(darkInk ? 'dark' : 'light');
+  // Unlike Home's drawn sky, every one of the five photos is lit brightly
+  // enough at the top (even night's moon glow) that a white title over the
+  // scrim always wins — so the title and the status bar stay white and light
+  // on all five, not just the darker scenes the vector hero kept it for.
+  const heroInk = '#FFFFFF';
+  useHeroStatusBar('light');
 
-  // The scene's geometry, measured exactly as Home measures its own: the
-  // title row's height sets where the scene's shade can end, the card's
-  // height sets how far the scene reaches before fading into the page.
-  const [headerHeight, setHeaderHeight] = useState(insets.top + 120);
-  const [cardHeight, setCardHeight] = useState(220);
+  // The picture band: visible at full strength from the top of the screen
+  // down to just above the balance card, ~130-150dp including the status
+  // bar — tall enough that the friends on the rock are plainly the picture,
+  // short enough that the title sits right under the status bar and the
+  // card right under the title, rather than leaving the top of the screen
+  // mostly empty. The header block is asked to be exactly this tall (below),
+  // so what `onLayout` measures back is this same figure; the card rides up
+  // over only its last `HERO_OVERLAP`.
+  const bandHeight = Math.min(150, Math.max(130, insets.top + 100));
+  const [headerHeight, setHeaderHeight] = useState(bandHeight);
   const cardTop = headerHeight - HERO_OVERLAP;
-  const sceneHeight = cardTop + cardHeight * SCENE_INTO_CARD;
+  // No deeper than the band itself: the old formula ran the photo on down
+  // through most of the card's own height for the glass to blur, which also
+  // ran the friends themselves down there, out of sight behind the card's
+  // opaque fill. The glass still gets the band's last `HERO_OVERLAP` to blur.
+  const sceneHeight = headerHeight;
   const sceneRef = useRef<View>(null);
 
   const { restingStyle, overlayStyle } = useHeroCrossfade(selectMode);
 
   // The one eye for every balance on the phone (Home's own preference, A48):
-  // shutting the money here shuts it there too.
-  const { hidden: balanceHidden, ready: balanceReady, toggle: toggleBalance } = useBalanceHidden();
+  // shutting the money on Home shuts it here too. No toggle on this card —
+  // just the shared answer, read here.
+  const { hidden: balanceHidden, ready: balanceReady } = useBalanceHidden();
 
   const addTileRef = useRef<View>(null);
   const openAdd = (): void => {
@@ -714,12 +729,12 @@ function FriendsScene({
         pointerEvents="none"
         style={{ position: 'absolute', top: 0, left: 0, right: 0, height: sceneHeight }}
       >
-        <HeroScene
+        <FriendsHeroBackground
           scene={scene}
           width={windowWidth}
           height={sceneHeight}
           horizon={cardTop}
-          headerBottom={insets.top + theme.spacing.sm + 34}
+          headerBottom={insets.top + 30}
           pageColor={theme.color.bg}
         />
       </BlurTargetView>
@@ -727,15 +742,20 @@ function FriendsScene({
       <View
         onLayout={(event) => setHeaderHeight(event.nativeEvent.layout.height)}
         style={{
-          paddingTop: insets.top + theme.spacing.sm,
+          minHeight: bandHeight,
+          // Minimal — right under the safe-area inset, not a further spacing
+          // token on top of it, so the title sits as close to the status bar
+          // as the status bar's own glyphs do.
+          paddingTop: insets.top,
           paddingHorizontal: theme.spacing.lg,
-          paddingBottom: HERO_OVERLAP + theme.spacing.sm,
+          paddingBottom: HERO_OVERLAP + theme.spacing.xs,
         }}
       >
         {/* The title row and the selection toolbar share the same spot — one
             crossfades into the other, never both at once. There is no
             top-right currency/convert action today, so the row is just the
-            glyph and the name. */}
+            glyph and the name; scanning an invite QR has its own tile in the
+            balance card's round-button row instead of a header icon. */}
         <View style={{ minHeight: 32, justifyContent: 'center' }}>
           <Reanimated.View pointerEvents={selectMode ? 'none' : 'auto'} style={restingStyle}>
             <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
@@ -745,7 +765,14 @@ function FriendsScene({
                   same scene. */}
               <Text
                 numberOfLines={1}
-                style={{ flex: 1, fontSize: 18, lineHeight: 23, fontWeight: '700', color: heroInk }}
+                style={{
+                  flex: 1,
+                  fontSize: 18,
+                  lineHeight: 23,
+                  fontWeight: '700',
+                  color: heroInk,
+                  ...HERO_TITLE_SHADOW,
+                }}
               >
                 {t.friends}
               </Text>
@@ -777,7 +804,14 @@ function FriendsScene({
               <Ionicons name="close" size={iconSize.xl} color={heroInk} />
             </PressableScale>
             <Text
-              style={{ flex: 1, fontSize: 18, lineHeight: 23, fontWeight: '700', color: heroInk }}
+              style={{
+                flex: 1,
+                fontSize: 18,
+                lineHeight: 23,
+                fontWeight: '700',
+                color: heroInk,
+                ...HERO_TITLE_SHADOW,
+              }}
               numberOfLines={1}
             >
               {plural(locale, selectedCount, t.mergePeople.selected)}
@@ -799,59 +833,67 @@ function FriendsScene({
           marginTop: -HERO_OVERLAP,
         }}
       >
-        <View onLayout={(event) => setCardHeight(event.nativeEvent.layout.height)}>
-          <GlassSurface blurTarget={sceneRef}>
-            <FriendsBalanceCard
-              rows={rows}
-              totals={totals}
-              locale={locale}
-              t={t}
-              hidden={balanceHidden || !balanceReady}
-              onToggleHide={toggleBalance}
-              loading={loading}
-              footer={
-                <FriendsQuickActions
-                  addTileRef={addTileRef}
-                  onAdd={openAdd}
-                  onSettleUp={onSettleUp}
-                  duplicateCount={duplicateCount}
-                  onMerge={onDuplicates}
-                  t={t}
-                  radius={theme.radius.xl}
-                />
-              }
-            />
-          </GlassSurface>
-        </View>
+        <GlassSurface blurTarget={sceneRef}>
+          <FriendsBalanceCard
+            rows={rows}
+            totals={totals}
+            locale={locale}
+            t={t}
+            hidden={balanceHidden || !balanceReady}
+            loading={loading}
+            footer={
+              <FriendsQuickActions
+                addTileRef={addTileRef}
+                onAdd={openAdd}
+                onScan={() => router.push('/scan' as never)}
+                onSettleUp={onSettleUp}
+                duplicateCount={duplicateCount}
+                onMerge={onDuplicates}
+                t={t}
+                radius={theme.radius.xl}
+              />
+            }
+          />
+        </GlassSurface>
       </View>
     </View>
   );
 }
 
-/** How far the balance card rides up over the bottom of the scene — the same
- *  measure Home's own dashboard card uses, so the two overlap identically. */
-const HERO_OVERLAP = 56;
+/** How far the balance card rides up over the bottom of the picture band —
+ *  just enough to anchor it there, not so much that it climbs over the
+ *  friends themselves, who sit in the band just above this line. */
+const HERO_OVERLAP = 28;
 
-/** How far down the balance card the scene reaches before fading into the
- *  page — Home's own fraction. */
-const SCENE_INTO_CARD = 0.72;
+/** A subtle dark lift under the white title, so it stays legible over the
+ *  brighter patches of sky the short scrim alone does not reach. */
+const HERO_TITLE_SHADOW = {
+  textShadowColor: 'rgba(0, 0, 0, 0.35)',
+  textShadowOffset: { width: 0, height: 1 },
+  textShadowRadius: 3,
+} as const;
 
 /**
- * The balance card's body — now Home's own shape, not a hand-rolled one:
- * "Net receivable" (or payable, or settled) and the eye, the big figure with
- * its paise drawn lighter (`SplitMoney`, the same figure Home's own balance
- * card and group rows use), then the same quiet two-column row Home's own
- * card draws below its figure — "Owed to you" / "You owe", each with how many
- * friends that is — across a hairline divider (`BalanceSide`, the exact
- * component Home uses, not a lookalike).
+ * The balance card's body: the same quiet two-column row Home's own card
+ * draws below its headline figure — "Owed to you" / "You owe", each with how
+ * many friends that is — across a hairline divider (`BalanceSide`, the exact
+ * component Home uses, not a lookalike). There is no headline here: no "Net
+ * receivable" label, no big net figure. With the picture band now doing the
+ * work of identifying the screen, repeating a single net number above the
+ * two sides that already say it only cost height the friends list wanted
+ * back, so the card opens straight on the two sides instead.
  *
- * Never a total across currencies (ADR-003): the headline leads with whichever
- * direction has the bigger currency to show (owed first, the happier half),
- * and each side of the row below states its own direction's *head* currency
- * rather than folding two currencies into one figure. A person holding more
- * currencies than that still reads correctly — a small muted line under the
- * side's own count names how many more there are, where the old pill used to
- * say the same thing (`BalanceSide`'s `extra`).
+ * No eye on this card either: the preference it would toggle (Home's own,
+ * A48) is one switch for the whole phone, and Home already carries the
+ * control for it. `hidden` still masks every amount here exactly as it did
+ * with the toggle — switching it off on Home still closes it here too — this
+ * card simply does not offer a second place to flip it.
+ *
+ * Never a total across currencies (ADR-003): each side of the row states its
+ * own direction's *head* currency rather than folding two currencies into one
+ * figure. A person holding more currencies than that still reads correctly —
+ * a small muted line under the side's own count names how many more there
+ * are (`BalanceSide`'s `extra`).
  */
 function FriendsBalanceCard({
   rows,
@@ -859,7 +901,6 @@ function FriendsBalanceCard({
   locale,
   t,
   hidden,
-  onToggleHide,
   loading,
   footer,
 }: {
@@ -867,25 +908,19 @@ function FriendsBalanceCard({
   totals: readonly CurrencyTotal[];
   locale: string;
   t: UiStrings;
+  /** Whether to mask every amount — Home's own eye preference (A48); there
+   *  is no toggle on this card, only the shared switch's current answer. */
   hidden: boolean;
-  onToggleHide: () => void;
   loading: boolean;
   footer: React.ReactNode;
 }): React.JSX.Element {
   const theme = useTheme();
   const deck = directionGroups(totals);
-  const primary = deck[0] ?? null;
-  // The two sides of the row below, independent of which direction leads the
-  // headline: one slot for "owed to you", one for "you owe", each null when
-  // nobody stands in that direction (which still draws as a zero, the way
-  // Home's own two sides always both draw).
+  // The two sides of the row, each null when nobody stands in that direction
+  // (which still draws as a zero, the way Home's own two sides always draw).
   const owedGroup = deck.find((group) => group.owed) ?? null;
   const owingGroup = deck.find((group) => !group.owed) ?? null;
-
-  const label =
-    primary === null ? t.allSettled : primary.owed ? t.dashHero.netOwed : t.dashHero.netOwe;
-  const figureAmount = primary ? absBig(primary.head.net) : 0n;
-  const figureCurrency = primary?.head.currency ?? totals[0]?.currency ?? 'INR';
+  const fallbackCurrency = totals[0]?.currency ?? 'INR';
 
   const owedCount = owedGroup ? personCountByDirection(rows, owedGroup.head.currency).owed : 0;
   const owingCount = owingGroup ? personCountByDirection(rows, owingGroup.head.currency).owing : 0;
@@ -905,56 +940,10 @@ function FriendsBalanceCard({
     <>
       <View
         style={{
-          paddingTop: theme.spacing.md,
-          paddingBottom: theme.spacing.md,
-          gap: theme.spacing.md,
+          paddingTop: theme.spacing.sm,
+          paddingBottom: theme.spacing.sm,
         }}
       >
-        <Row
-          style={{
-            alignItems: 'flex-start',
-            gap: theme.spacing.sm,
-            paddingHorizontal: theme.spacing.lg,
-          }}
-        >
-          <View style={{ flex: 1, gap: 2 }}>
-            <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-              <Text variant="body" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
-                {label}
-              </Text>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={hidden ? t.dashHero.showBalance : t.dashHero.hideBalance}
-                onPress={onToggleHide}
-                hitSlop={10}
-                style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
-              >
-                <Ionicons
-                  name={hidden ? 'eye-off-outline' : 'eye-outline'}
-                  size={iconSize.md}
-                  color={theme.color.textMuted}
-                />
-              </Pressable>
-            </Row>
-            {loading ? (
-              <Skeleton width={180} height={32} radius={10} />
-            ) : hidden ? (
-              <Text style={AMOUNT_STYLE} numberOfLines={1}>
-                {BALANCE_MASK}
-              </Text>
-            ) : (
-              <SplitMoney
-                amount={figureAmount}
-                currency={figureCurrency}
-                locale={locale}
-                color={theme.color.text}
-                fontSize={AMOUNT_STYLE.fontSize}
-                weight="800"
-              />
-            )}
-          </View>
-        </Row>
-
         <Row style={{ alignItems: 'center', paddingHorizontal: theme.spacing.lg }}>
           <BalanceSide
             icon="arrow-up"
@@ -963,7 +952,7 @@ function FriendsBalanceCard({
             label={t.tabs.owedToYouLabel}
             detail={plural(locale, owedCount, t.tabs.friendCount)}
             extra={owedExtra}
-            currency={owedGroup ? owedGroup.head.currency : figureCurrency}
+            currency={owedGroup ? owedGroup.head.currency : fallbackCurrency}
             locale={locale}
             hidden={hidden}
             loading={loading}
@@ -976,7 +965,7 @@ function FriendsBalanceCard({
             label={t.homeDash.youOwe}
             detail={plural(locale, owingCount, t.tabs.friendCount)}
             extra={owingExtra}
-            currency={owingGroup ? owingGroup.head.currency : figureCurrency}
+            currency={owingGroup ? owingGroup.head.currency : fallbackCurrency}
             locale={locale}
             hidden={hidden}
             loading={loading}
@@ -989,25 +978,30 @@ function FriendsBalanceCard({
   );
 }
 
-/** What stands in for the figure while the eye is shut. */
+/** What stands in for an amount while the eye is shut. */
 const BALANCE_MASK = '••••••';
-
-const AMOUNT_STYLE = { fontSize: 30, lineHeight: 36, fontWeight: '800' } as const;
 
 /**
  * The round quick-action row along the balance card's foot — drawn by
  * `QuickActionsRow`, the very component Home's own quick actions use (a small
  * tinted disc over a one-line word, in equal columns), lilac-tinted rather
  * than Home's brand so the row reads as this card's own and matches the
- * mockup's "lavender" asks: add a person, settle up (the same group picker
- * Home's own "Settle up" opens), and merge likely duplicates, wearing a red
- * count badge. Sort used to be the middle tile here; it now lives beside
- * "Your friends" below, next to the list it orders, so this row only ever
- * carries actions rather than a view option.
+ * mockup's "lavender" asks: add a person, scan an invite QR (the same flow
+ * the "Add people" menu's own scan row used to open, before QR before Settle
+ * up — scanning somebody else's invite and settling up are both "do a thing
+ * with a person I may not have added yet", so it sits with that half of the
+ * row rather than after it), settle up (the same group picker Home's own
+ * "Settle up" opens), and merge likely duplicates, wearing a red count badge.
+ * Sort used to be the middle tile here; it now lives beside "Your friends"
+ * below, next to the list it orders, so this row only ever carries actions
+ * rather than a view option. Four tiles rather than three now, so the discs
+ * and labels run a size smaller than Home's own (`DISC_SIZE`, `LABEL_SIZE`)
+ * — still a single line each, just a narrower column to fit it in.
  */
 function FriendsQuickActions({
   addTileRef,
   onAdd,
+  onScan,
   onSettleUp,
   duplicateCount,
   onMerge,
@@ -1016,6 +1010,7 @@ function FriendsQuickActions({
 }: {
   addTileRef: React.RefObject<View | null>;
   onAdd: () => void;
+  onScan: () => void;
   onSettleUp: () => void;
   duplicateCount: number;
   onMerge: () => void;
@@ -1032,6 +1027,12 @@ function FriendsQuickActions({
       glyph: (color) => <Ionicons name="person-add-outline" size={16} color={color} />,
       onPress: onAdd,
       ref: addTileRef,
+    },
+    {
+      key: 'scan',
+      label: t.misc.scanToJoin,
+      glyph: (color) => <Ionicons name="qr-code-outline" size={16} color={color} />,
+      onPress: onScan,
     },
     {
       key: 'settle',
@@ -1052,9 +1053,25 @@ function FriendsQuickActions({
   ];
 
   return (
-    <QuickActionsRow actions={actions} radius={radius} discColor={lilac.bg} iconColor={lilac.ink} />
+    <QuickActionsRow
+      actions={actions}
+      radius={radius}
+      discColor={lilac.bg}
+      iconColor={lilac.ink}
+      discSize={FRIENDS_DISC_SIZE}
+      labelSize={FRIENDS_LABEL_SIZE}
+      rowPadding={theme.spacing.xs}
+    />
   );
 }
+
+/** The quick-action row's own, smaller disc — Home's 34dp reads as the
+ *  right weight for three tiles; a fourth asked for one size down. */
+const FRIENDS_DISC_SIZE = 30;
+
+/** 12pt labels for the same row, a point above the shared `micro` variant's
+ *  11 — legible at the narrower column four tiles leave each one. */
+const FRIENDS_LABEL_SIZE = 12;
 
 /**
  * The list's own section header — "Your friends" on the left, the sort
@@ -1095,7 +1112,7 @@ function FriendsListHeader({
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: theme.spacing.lg,
-        paddingTop: theme.spacing.lg,
+        paddingTop: theme.spacing.sm,
         paddingBottom: theme.spacing.sm,
       }}
     >
@@ -1968,10 +1985,14 @@ function SortMenu({
 }
 
 /**
- * The "Add people" menu, dropped from its pill: pull from contacts, find by
- * address or number, scan an invite QR. Typing a bare name is not here — it
- * lives on the empty Friends screen and inside the contacts picker ("someone
- * not in my contacts"), where it is the answer rather than a first choice.
+ * The "Add people" menu, dropped from its pill: pull from contacts, or find
+ * by address or number. Scanning an invite QR used to be a third row here;
+ * it now has its own tile in the balance card's round-button row instead
+ * (`FriendsQuickActions`, `t.misc.scanToJoin`), reachable without opening
+ * this menu first, so it was dropped from here rather than offered twice.
+ * Typing a bare name is not here either — it lives on the empty Friends
+ * screen and inside the contacts picker ("someone not in my contacts"),
+ * where it is the answer rather than a first choice.
  */
 function AddMenu({
   open,
@@ -2037,12 +2058,6 @@ function AddMenu({
       label: t.person.findTitle,
       icon: <Ionicons name="search-outline" size={iconSize.lg} color={theme.color.text} />,
       onPress: () => go('/friends/find'),
-    },
-    {
-      key: 'scan',
-      label: t.misc.scanToJoin,
-      icon: <Ionicons name="qr-code-outline" size={iconSize.lg} color={theme.color.text} />,
-      onPress: () => go('/scan'),
     },
   ];
 
