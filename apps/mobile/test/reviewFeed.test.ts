@@ -13,14 +13,12 @@ import { describe, expect, it } from 'vitest';
 
 import { CaptureStatus, type CaptureRow } from '../src/data/types';
 import {
-  blockEdges,
   buildReviewFeed,
   doubtsAbout,
   openingTab,
   reviewItemKey,
   splitByTab,
   tabFor,
-  type ReviewFeedItem,
 } from '../src/lib/reviewFeed';
 
 function capture(
@@ -265,49 +263,69 @@ describe('which tab to open on', () => {
   });
 });
 
-describe('a run of drafts is one card', () => {
-  const day = (key: string): ReviewFeedItem => ({
-    kind: 'day',
-    key,
-    on: '2026-09-10T12:00:00',
-  });
-  const single = (id: string): ReviewFeedItem => ({
-    kind: 'single',
-    capture: capture(id, '2026-09-10T10:00:00Z'),
-  });
-  const batch = (id: string): ReviewFeedItem => ({
-    kind: 'batch',
-    id,
-    items: [capture(`${id}-a`, '2026-09-10T10:00:00Z')],
-  });
-
-  it('rounds the first and last of a run, and neither in between', () => {
-    const feed = [single('a'), single('b'), single('c')];
-    expect(feed.map((_, i) => blockEdges(feed, i))).toEqual([
-      { first: true, last: false },
-      { first: false, last: false },
-      { first: false, last: true },
+describe('buildReviewFeed sort order', () => {
+  // The compact redesign put a sort pill over the first day heading. Newest
+  // is the list's long-standing default (pinned above); this pins the other
+  // two the pill offers.
+  it('reverses to oldest-first on request, keeping day headings', () => {
+    const items = buildReviewFeed(
+      [
+        capture('a', '2026-09-10T10:00:00Z'),
+        capture('b', '2026-09-09T10:00:00Z'),
+        capture('c', '2026-09-08T10:00:00Z'),
+      ],
+      'oldest',
+    );
+    expect(items).toMatchObject([
+      { kind: 'day', key: 'day-2026-09-08' },
+      { kind: 'single', capture: { id: 'c' } },
+      { kind: 'day', key: 'day-2026-09-09' },
+      { kind: 'single', capture: { id: 'b' } },
+      { kind: 'day', key: 'day-2026-09-10' },
+      { kind: 'single', capture: { id: 'a' } },
     ]);
   });
 
-  it('a lone draft is both ends of its own run', () => {
-    const feed = [single('only')];
-    expect(blockEdges(feed, 0)).toEqual({ first: true, last: true });
+  it('keeps same-day writes in arrival order when reversed to oldest', () => {
+    const items = buildReviewFeed(
+      [capture('first', '2026-09-10T08:00:00Z'), capture('second', '2026-09-10T09:00:00Z')],
+      'oldest',
+    );
+    expect(items).toMatchObject([
+      { kind: 'single', capture: { id: 'first' } },
+      { kind: 'single', capture: { id: 'second' } },
+    ]);
   });
 
-  it('a day heading starts a new card', () => {
-    const feed = [single('a'), day('d2'), single('b'), single('c')];
-    expect(blockEdges(feed, 0)).toEqual({ first: true, last: true });
-    expect(blockEdges(feed, 2)).toEqual({ first: true, last: false });
-    expect(blockEdges(feed, 3)).toEqual({ first: false, last: true });
+  it('sorts by amount, largest first, with no day headings at all', () => {
+    const items = buildReviewFeed(
+      [
+        { ...capture('small', '2026-09-10T10:00:00Z'), amount: '100' },
+        { ...capture('big', '2026-09-09T10:00:00Z'), amount: '9000' },
+        { ...capture('mid', '2026-09-08T10:00:00Z'), amount: '500' },
+      ],
+      'amount',
+    );
+    expect(items.some((item) => item.kind === 'day')).toBe(false);
+    expect(items).toMatchObject([
+      { kind: 'single', capture: { id: 'big' } },
+      { kind: 'single', capture: { id: 'mid' } },
+      { kind: 'single', capture: { id: 'small' } },
+    ]);
   });
 
-  it('a spoken batch keeps its own card and breaks the run around it', () => {
-    // The batch card expands into its own contents; folding it into a divided
-    // run would make one card look like two different things at once.
-    const feed = [single('a'), batch('v1'), single('b')];
-    expect(blockEdges(feed, 0)).toEqual({ first: true, last: true });
-    expect(blockEdges(feed, 1)).toEqual({ first: true, last: true });
-    expect(blockEdges(feed, 2)).toEqual({ first: true, last: true });
+  it('still folds a spoken batch together when sorted by amount', () => {
+    const items = buildReviewFeed(
+      [
+        { ...capture('alone', '2026-09-10T10:00:00Z'), amount: '50' },
+        { ...capture('spoken-1', '2026-09-09T10:00:00Z', { voiceBatchId: 'v1' }), amount: '9000' },
+        { ...capture('spoken-2', '2026-09-09T09:59:00Z', { voiceBatchId: 'v1' }), amount: '9000' },
+      ],
+      'amount',
+    );
+    expect(items).toMatchObject([
+      { kind: 'batch', id: 'v1', items: [{ id: 'spoken-1' }, { id: 'spoken-2' }] },
+      { kind: 'single', capture: { id: 'alone' } },
+    ]);
   });
 });

@@ -150,7 +150,17 @@ export function openingTab(rows: readonly CaptureRow[]): ReviewTabId {
 }
 
 /**
- * The list, cut into the days the money moved on, newest first.
+ * The order the sort pill over the first day heading offers. `newest` is
+ * where this list has always opened; `oldest` is the same arithmetic run
+ * backwards; `amount` answers a different question ("what's the biggest
+ * thing waiting?") and is not a calendar order at all, so it drops the day
+ * headings rather than let them claim a grouping that is no longer there.
+ */
+export type ReviewSortOrder = 'newest' | 'oldest' | 'amount';
+
+/**
+ * The list, cut into the days the money moved on, in the order `sort` asks
+ * for (newest first unless told otherwise).
  *
  * **By `expense_date`, not by `created_at`.** The drafts used to be grouped by
  * the moment the row was written, which is the same thing for anything a person
@@ -171,16 +181,31 @@ export function openingTab(rows: readonly CaptureRow[]): ReviewTabId {
  * Expenses spoken in one breath are still folded into one card, and they share
  * a day, so folding happens inside a day exactly as it did.
  */
-export function buildReviewFeed(rows: readonly CaptureRow[]): ReviewFeedItem[] {
+export function buildReviewFeed(
+  rows: readonly CaptureRow[],
+  sort: ReviewSortOrder = 'newest',
+): ReviewFeedItem[] {
   if (rows.length === 0) return [];
 
-  // Newest spend first; two spends on one day keep the order they were written
-  // in, which is what makes a spoken run stay a run.
+  if (sort === 'amount') {
+    // Largest first. There is no calendar grouping to put a heading over —
+    // "biggest first" does not read as a run of days — so this skips the day
+    // headings entirely rather than draw one that would be a lie.
+    const byAmount = [...rows].sort((a, b) => {
+      const diff = BigInt(b.amount) - BigInt(a.amount);
+      return diff > 0n ? 1 : diff < 0n ? -1 : 0;
+    });
+    return foldCaptureBatches(byAmount);
+  }
+
+  // Newest spend first (or oldest, reversed); two spends on one day keep the
+  // order they were written in, which is what makes a spoken run stay a run.
+  const direction = sort === 'oldest' ? -1 : 1;
   const byDate = [...rows].sort((a, b) => {
     const left = spendDay(a);
     const right = spendDay(b);
-    if (left !== right) return left < right ? 1 : -1;
-    return a.created_at < b.created_at ? 1 : a.created_at > b.created_at ? -1 : 0;
+    if (left !== right) return left < right ? direction : -direction;
+    return a.created_at < b.created_at ? direction : a.created_at > b.created_at ? -direction : 0;
   });
 
   const items: ReviewFeedItem[] = [];
@@ -222,28 +247,4 @@ export function reviewItemKey(item: ReviewFeedItem): string {
     case 'single':
       return item.capture.id;
   }
-}
-
-/**
- * Where a draft sits in its run of neighbours — the two facts a row needs to
- * draw itself as part of one card rather than as a card of its own.
- *
- * The list used to be a stack of little white cards with a gap between each,
- * and at seven rows a screen most of what the eye landed on was the gap. A run
- * of plain rows divided by a hairline, inside one rounded surface, is the same
- * information in about two thirds of the height — it is what the Friends tab
- * already does, and what a list of like things is supposed to look like.
- *
- * A **run** is a maximal stretch of single drafts. A day heading ends one, for
- * the obvious reason. So does a spoken batch: that is a card in its own right,
- * with its own expanding contents, and swallowing it into a divided run would
- * make one card look like two things at once.
- */
-export function blockEdges(
-  items: readonly ReviewFeedItem[],
-  index: number,
-): { first: boolean; last: boolean } {
-  const runs = (item: ReviewFeedItem | undefined): boolean => item?.kind === 'single';
-  if (!runs(items[index])) return { first: true, last: true };
-  return { first: !runs(items[index - 1]), last: !runs(items[index + 1]) };
 }
