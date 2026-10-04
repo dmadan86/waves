@@ -1098,7 +1098,9 @@ function GroupRow({
               >
                 <Text
                   variant="micro"
-                  tone={tagTone === 'positive' ? 'positive' : tagTone === 'neutral' ? 'muted' : 'brand'}
+                  tone={
+                    tagTone === 'positive' ? 'positive' : tagTone === 'neutral' ? 'muted' : 'brand'
+                  }
                   style={{ fontWeight: '700' }}
                 >
                   {tag}

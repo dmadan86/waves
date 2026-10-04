@@ -28,15 +28,9 @@ describe('touchesDemo', () => {
   });
 
   it('catches a demo id buried anywhere in the payload', () => {
-    expect(
-      touchesDemo('real-group', { groupId: DEMO_GROUP_ID, pinId: 'pin-1' }),
-    ).toBe(true);
-    expect(
-      touchesDemo('real-group', { memberId: DEMO_MEMBER_PRIYA_ID }),
-    ).toBe(true);
-    expect(
-      touchesDemo('real-group', { expenseId: DEMO_EXPENSE_FLIGHTS_ID }),
-    ).toBe(true);
+    expect(touchesDemo('real-group', { groupId: DEMO_GROUP_ID, pinId: 'pin-1' })).toBe(true);
+    expect(touchesDemo('real-group', { memberId: DEMO_MEMBER_PRIYA_ID })).toBe(true);
+    expect(touchesDemo('real-group', { expenseId: DEMO_EXPENSE_FLIGHTS_ID })).toBe(true);
     expect(touchesDemo('real-group', { settlementId: DEMO_SETTLEMENT_ID })).toBe(true);
   });
 

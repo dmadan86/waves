@@ -66,12 +66,7 @@ import { DEMO_GROUP_ID, isDemoGroupId } from '@/demo/ids';
 import { DemoWriteBlockedError } from '@/demo/guard';
 import { requestDemoGate } from '@/demo/gateStore';
 import { useDemoActive } from '@/demo/useDemoActive';
-import {
-  demoExpenses,
-  demoGroupRow,
-  demoMembers,
-  demoSettlements,
-} from '@/demo/fixtures';
+import { demoExpenses, demoGroupRow, demoMembers, demoSettlements } from '@/demo/fixtures';
 import { useAuth, useViewerId } from '@/lib/auth';
 import { reportHandled } from '@/lib/observability';
 import { normaliseContactPhone } from '@/lib/phone';
@@ -968,17 +963,19 @@ export function usePeopleBalances(profileId: string | null): LocalRead<PersonBal
       if (!me) continue;
       const byId = new Map(members.map((member) => [member.id, member] as const));
 
-      const snapshots = (isDemo
-        ? demoExpenses()
-        : (materialiseExpenses(mirror, queue, { groupId: group.id }) as unknown as ExpenseRow[])
+      const snapshots = (
+        isDemo
+          ? demoExpenses()
+          : (materialiseExpenses(mirror, queue, { groupId: group.id }) as unknown as ExpenseRow[])
       )
         .map((expense) => toSnapshot(expense as unknown as ExpenseRow))
         .filter((snapshot): snapshot is ExpenseSnapshot => snapshot !== null);
       const settlementSnapshots = toSettlementSnapshots(
         (isDemo
           ? demoSettlements()
-          : (materialiseSettlements(mirror, queue, { groupId: group.id }) as unknown as SettlementRow[])
-        ) as unknown as SettlementRow[],
+          : (materialiseSettlements(mirror, queue, {
+              groupId: group.id,
+            }) as unknown as SettlementRow[])) as unknown as SettlementRow[],
       );
 
       const activity = lastActivityByMember(snapshots, settlementSnapshots);
@@ -1125,7 +1122,14 @@ export function useGroup(groupId: string) {
   const rows = useMemo(() => {
     if (demo) {
       if (!showDemo || !viewerId) {
-        return { group: null, members: [], settlements: [], activity: [], stored: [], withPending: [] };
+        return {
+          group: null,
+          members: [],
+          settlements: [],
+          activity: [],
+          stored: [],
+          withPending: [],
+        };
       }
       const expenses = demoExpenses();
       return {

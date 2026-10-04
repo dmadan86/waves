@@ -17,12 +17,7 @@ import { describe, expect, it } from 'vitest';
 import { computeNetBalances, computePairwiseBalances } from '@waves/core';
 import type { ExpenseSnapshot, SettlementSnapshot } from '@waves/core';
 
-import {
-  demoExpenses,
-  demoGroupRow,
-  demoMembers,
-  demoSettlements,
-} from '@/demo/fixtures';
+import { demoExpenses, demoGroupRow, demoMembers, demoSettlements } from '@/demo/fixtures';
 import {
   DEMO_MEMBER_ALEX_ID,
   DEMO_MEMBER_ME_ID,
@@ -69,7 +64,7 @@ describe('the demo fixture', () => {
     expect(members.filter((m) => isGhost(m))).toHaveLength(3);
   });
 
-  it('sums every expense\'s payers and shares to its own amount', () => {
+  it("sums every expense's payers and shares to its own amount", () => {
     for (const expense of demoExpenses()) {
       const version = expense.currentVersion!;
       const amount = BigInt(version.amount);
@@ -95,7 +90,7 @@ describe('the demo fixture', () => {
     expect(receipted?.currentVersion?.notes).toMatch(/Grilled fish/);
   });
 
-  it("computes a net balance for every member, and the group as a whole clears to zero", () => {
+  it('computes a net balance for every member, and the group as a whole clears to zero', () => {
     const snapshots = demoExpenses().map(snapshotOf);
     const settlementSnapshots = demoSettlements().map(settlementSnapshotOf);
     const group = demoGroupRow();
@@ -127,7 +122,10 @@ describe('the demo fixture', () => {
   it('settles part of a real debt rather than floating free of the expenses', () => {
     const snapshots = demoExpenses().map(snapshotOf);
     const withoutSettlement = computeNetBalances(snapshots, []);
-    const withSettlement = computeNetBalances(snapshots, demoSettlements().map(settlementSnapshotOf));
+    const withSettlement = computeNetBalances(
+      snapshots,
+      demoSettlements().map(settlementSnapshotOf),
+    );
 
     const currency = demoGroupRow().default_currency;
     const alexBefore = withoutSettlement.get(currency)?.get(DEMO_MEMBER_ALEX_ID) ?? 0n;
@@ -146,8 +144,11 @@ describe('the demo fixture', () => {
     // shares/payers — Alex and Sam never touched the duty-free buy.
     const usdEdges = pairwise.filter((edge) => edge.currency === 'USD');
     const touchesAlexOrSam = usdEdges.some(
-      (edge) => edge.from === DEMO_MEMBER_ALEX_ID || edge.to === DEMO_MEMBER_ALEX_ID ||
-        edge.from === DEMO_MEMBER_SAM_ID || edge.to === DEMO_MEMBER_SAM_ID,
+      (edge) =>
+        edge.from === DEMO_MEMBER_ALEX_ID ||
+        edge.to === DEMO_MEMBER_ALEX_ID ||
+        edge.from === DEMO_MEMBER_SAM_ID ||
+        edge.to === DEMO_MEMBER_SAM_ID,
     );
     expect(touchesAlexOrSam).toBe(false);
   });

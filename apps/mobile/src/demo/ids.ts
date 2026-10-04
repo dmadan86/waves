@@ -28,10 +28,7 @@ export const DEMO_FRIEND_MEMBER_IDS: readonly string[] = [
   DEMO_MEMBER_SAM_ID,
 ];
 
-export const DEMO_MEMBER_IDS: readonly string[] = [
-  DEMO_MEMBER_ME_ID,
-  ...DEMO_FRIEND_MEMBER_IDS,
-];
+export const DEMO_MEMBER_IDS: readonly string[] = [DEMO_MEMBER_ME_ID, ...DEMO_FRIEND_MEMBER_IDS];
 
 export const DEMO_EXPENSE_FLIGHTS_ID = 'demo-expense-flights';
 export const DEMO_EXPENSE_STAY_ID = 'demo-expense-stay';

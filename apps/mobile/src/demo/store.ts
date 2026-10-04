@@ -80,7 +80,10 @@ async function writeState(ownerId: string, state: DemoState): Promise<void> {
  * has yet. `isNewAccount` is only consulted on that first decision — once
  * `active` or `skipped` is stored, every later call simply returns it.
  */
-export async function ensureDemoDecision(ownerId: string, isNewAccount: boolean): Promise<DemoState> {
+export async function ensureDemoDecision(
+  ownerId: string,
+  isNewAccount: boolean,
+): Promise<DemoState> {
   const known = cache.get(ownerId);
   if (known) return known;
 

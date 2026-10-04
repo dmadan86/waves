@@ -393,7 +393,14 @@ export function demoExpenses(): ExpenseRow[] {
           { memberId: DEMO_MEMBER_PRIYA_ID, amount: 2_000n },
         ],
         createdAt: timestampDaysAgo(6, 0),
-        fx: { num: '83', den: '1', from: 'USD', to: 'INR', ts: timestampDaysAgo(6, 0), source: 'demo' },
+        fx: {
+          num: '83',
+          den: '1',
+          from: 'USD',
+          to: 'INR',
+          ts: timestampDaysAgo(6, 0),
+          source: 'demo',
+        },
       }),
     },
     {

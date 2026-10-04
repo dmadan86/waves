@@ -1178,9 +1178,15 @@ export default function GroupScreen() {
               screen does — a banner, not a badge easy to miss on the way in,
               with the one action that ends it right there beside the words. */}
                   {groupData.isDemo ? (
-                    <Card style={{ backgroundColor: theme.color.surfaceMuted, gap: theme.spacing.sm }}>
+                    <Card
+                      style={{ backgroundColor: theme.color.surfaceMuted, gap: theme.spacing.sm }}
+                    >
                       <Row style={{ gap: theme.spacing.sm, alignItems: 'center' }}>
-                        <Ionicons name="flask-outline" size={iconSize.md} color={theme.color.textMuted} />
+                        <Ionicons
+                          name="flask-outline"
+                          size={iconSize.md}
+                          color={theme.color.textMuted}
+                        />
                         <Text variant="subheading" style={{ flex: 1 }}>
                           {t.demo.bannerTitle}
                         </Text>

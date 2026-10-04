@@ -668,11 +668,7 @@ const GroupListRow = memo(function GroupListRow({
               the dashboard's preview clips it at one. */}
           <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
             {pinned ? <Ionicons name="pin" size={12} color={theme.color.textMuted} /> : null}
-            <Text
-              variant="body"
-              numberOfLines={2}
-              style={{ flexShrink: 1, fontWeight: '600' }}
-            >
+            <Text variant="body" numberOfLines={2} style={{ flexShrink: 1, fontWeight: '600' }}>
               {label}
             </Text>
             {isDemo ? (
