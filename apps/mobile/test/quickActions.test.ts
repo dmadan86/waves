@@ -10,6 +10,7 @@
 
 import { createRequire } from 'node:module';
 
+import { Platform } from 'react-native';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -98,31 +99,46 @@ describe('app-icon quick shortcuts', () => {
     expect(takeInitialQuickAction()).toBeNull();
   });
 
-  it('publishes the whole menu, and clears it for a signed-out phone', async () => {
+  it('publishes the whole menu with SF Symbol icons on iOS, and clears it for a signed-out phone', async () => {
     await syncQuickActions(TITLES);
     expect(quickActions.published.at(-1)).toEqual([
       {
         id: 'waves.shortcut.add',
         title: 'Add an expense',
-        icon: 'symbol:plus',
+        icon: 'symbol:plus.circle.fill',
         params: expect.any(Object),
       },
       {
         id: 'waves.shortcut.scan',
         title: 'Scan a receipt',
-        icon: 'symbol:camera',
+        icon: 'symbol:doc.text.viewfinder',
         params: expect.any(Object),
       },
       {
         id: 'waves.shortcut.voice',
         title: 'Speak an expense',
-        icon: 'symbol:mic',
+        icon: 'symbol:mic.fill',
         params: expect.any(Object),
       },
     ]);
 
     await clearQuickActions();
     expect(quickActions.published.at(-1)).toEqual([]);
+  });
+
+  it('publishes the menu with its own purple-badge drawables on Android', async () => {
+    Platform.OS = 'android';
+    try {
+      await syncQuickActions(TITLES);
+      const icons = (quickActions.published.at(-1) as { icon: string }[]).map((item) => item.icon);
+      expect(icons).toEqual([
+        'asset:ic_shortcut_add',
+        'asset:ic_shortcut_scan',
+        'asset:ic_shortcut_voice',
+      ]);
+    } finally {
+      Platform.OS = 'ios';
+    }
   });
 
   it('forwards taps on a shortcut while running, and stops on unsubscribe', () => {
