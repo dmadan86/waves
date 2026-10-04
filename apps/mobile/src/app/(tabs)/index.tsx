@@ -436,9 +436,9 @@ export default function HomeScreen() {
         <View
           onLayout={(event) => setHeaderHeight(event.nativeEvent.layout.height)}
           style={{
-            paddingTop: insets.top + theme.spacing.sm,
+            paddingTop: insets.top + theme.spacing.xs,
             paddingHorizontal: theme.spacing.lg,
-            paddingBottom: HERO_OVERLAP + theme.spacing.sm,
+            paddingBottom: HERO_OVERLAP + theme.spacing.xs,
           }}
         >
           {/* Face, "Hi, {name} 👋" over the time of day; then the glyphs that
@@ -516,7 +516,7 @@ export default function HomeScreen() {
           style={{
             paddingHorizontal: theme.spacing.lg,
             marginTop: -HERO_OVERLAP,
-            gap: theme.spacing.md,
+            gap: theme.spacing.xs,
             flex: 1,
           }}
         >
