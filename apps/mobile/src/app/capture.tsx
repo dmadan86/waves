@@ -46,6 +46,7 @@ import { CurrencySheet } from '@/components/expense/CurrencySheet';
 import { DescriptionField } from '@/components/expense/DescriptionField';
 import { ChoiceRow, SheetOverlay } from '@/components/expense/SheetOverlay';
 import { DetailRow, DetailRows } from '@/components/DetailRows';
+import { ReceiptAddRow } from '@/components/ReceiptAddRow';
 import {
   useCreateCapture,
   useDeleteCapture,
@@ -160,16 +161,16 @@ function isCurrentTrip(group: GroupRow): boolean {
 const consumedScans = new Set<string>();
 
 /**
- * The bill, as a slim one-line row rather than the tall dashed tile this used
- * to be: a small thumbnail (or a plain camera glyph before one exists) with
- * the row's own words beside it. Tapping the row opens the camera — a capture
- * is usually filed at the till, camera in hand — Browse takes one from the
- * gallery, and an attached photo's own thumbnail opens the full-frame preview
- * instead of re-scanning (the same split the tall tile this replaces made,
- * just drawn smaller). The itemised breakdown a confident scan read off the
- * bill still unfolds beneath once there is one to show — this is the one part
- * of the screen allowed to grow past the fold, since it only appears once a
- * receipt already has.
+ * The bill, as a flush row rather than a boxed card: the same `ReceiptAddRow`
+ * look the expense screen's own empty gallery wears (A46), so this screen's
+ * one mismatch with its sibling forms is gone. A plain camera glyph sits in
+ * the tinted disc before a photo exists; once one does, the row's own
+ * thumbnail takes its place and opens the full-frame preview instead of
+ * re-scanning — tapping the rest of the row still re-scans, Browse still
+ * takes one from the gallery. The itemised breakdown a confident scan read
+ * off the bill still unfolds beneath once there is one to show — this is the
+ * one part of the screen allowed to grow past the fold, since it only
+ * appears once a receipt already has.
  */
 function ReceiptField({
   photo,
@@ -195,41 +196,58 @@ function ReceiptField({
   const theme = useTheme();
   const { t } = useStrings();
 
-  return (
-    <View
-      style={{
-        gap: theme.spacing.sm,
-        padding: theme.spacing.sm,
-        borderRadius: theme.radius.lg,
-        borderWidth: 1,
-        borderColor: theme.color.border,
-        backgroundColor: theme.color.surface,
-      }}
+  // Browse (or, while scanning, a spinner in its place) is the row's trailing
+  // control either way — only the leading glyph and the row's own label
+  // change once a photo exists.
+  const trailing = scanning ? (
+    <ActivityIndicator color={theme.color.brand} />
+  ) : (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={t.captureForm.browse}
+      disabled={disabled}
+      onPress={onBrowse}
+      hitSlop={6}
+      style={({ pressed }) => ({
+        paddingHorizontal: theme.spacing.sm,
+        paddingVertical: theme.spacing.xs,
+        borderRadius: theme.radius.pill,
+        backgroundColor: theme.color.brandSoft,
+        opacity: pressed ? 0.6 : 1,
+      })}
     >
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={t.captures.addReceipt}
-        disabled={scanning || disabled}
-        onPress={onAdd}
-        style={({ pressed }) => ({
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: theme.spacing.sm,
-          minHeight: 48,
-          opacity: pressed ? 0.7 : 1,
-        })}
-      >
-        {photo ? (
-          // Tap the thumbnail to see the whole bill: the small crop is enough
-          // to confirm the right photo attached, but reading the lines needs
-          // the full frame. A sibling of the row's own Pressable, same as the
-          // tall tile this replaces, so a tap here previews rather than
-          // retaking — only the row's text and background re-scan.
+      <Text variant="caption" tone="brand" style={{ fontWeight: '700' }}>
+        {t.captureForm.browse}
+      </Text>
+    </Pressable>
+  );
+
+  return (
+    <View style={{ gap: theme.spacing.sm }}>
+      {photo ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t.captures.addReceipt}
+          disabled={scanning || disabled}
+          onPress={onAdd}
+          style={({ pressed }) => ({
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: theme.spacing.md,
+            minHeight: 48,
+            opacity: pressed ? 0.7 : 1,
+          })}
+        >
+          {/* Tap the thumbnail to see the whole bill: the small crop is enough
+              to confirm the right photo attached, but reading the lines needs
+              the full frame. A sibling of the row's own Pressable, so a tap
+              here previews rather than retaking — only the row's text and
+              background re-scan. */}
           <Pressable
             accessibilityRole="imagebutton"
             accessibilityLabel={t.captures.previewReceipt}
             onPress={onPreview}
-            style={{ borderRadius: theme.radius.sm, overflow: 'hidden' }}
+            style={{ borderRadius: theme.radius.md, overflow: 'hidden' }}
           >
             <Image
               source={{ uri: photo.uri }}
@@ -238,53 +256,24 @@ function ReceiptField({
               transition={150}
             />
           </Pressable>
-        ) : (
-          <View
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: 18,
-              backgroundColor: theme.color.brandSoft,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Ionicons name="camera-outline" size={iconSize.md} color={theme.color.brand} />
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text variant="subheading" numberOfLines={1}>
+              {t.captures.addReceipt}
+            </Text>
           </View>
-        )}
-        <View style={{ flex: 1 }}>
-          <Text variant="body" numberOfLines={1} style={{ fontWeight: '600' }}>
-            {t.captures.addReceipt}
-          </Text>
-          {!photo ? (
-            <Text variant="caption" tone="muted" numberOfLines={1}>
-              {t.captureForm.receiptSub}
-            </Text>
-          ) : null}
-        </View>
-        {scanning ? (
-          <ActivityIndicator color={theme.color.brand} />
-        ) : (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t.captureForm.browse}
-            disabled={disabled}
-            onPress={onBrowse}
-            hitSlop={6}
-            style={({ pressed }) => ({
-              paddingHorizontal: theme.spacing.sm,
-              paddingVertical: theme.spacing.xs,
-              borderRadius: theme.radius.pill,
-              backgroundColor: theme.color.brandSoft,
-              opacity: pressed ? 0.6 : 1,
-            })}
-          >
-            <Text variant="caption" tone="brand" style={{ fontWeight: '700' }}>
-              {t.captureForm.browse}
-            </Text>
-          </Pressable>
-        )}
-      </Pressable>
+          {trailing}
+        </Pressable>
+      ) : (
+        <ReceiptAddRow
+          title={t.captures.addReceipt}
+          subtitle={t.captureForm.receiptSub}
+          disabled={disabled}
+          onPress={onAdd}
+          accessibilityLabel={t.captures.addReceipt}
+          accessibilityHint={t.captureForm.receiptSub}
+          trailing={trailing}
+        />
+      )}
 
       {/* What the phone read off the bill. A confident parse shows the lines
           and the total it filled in; a scan it could not make sense of says
@@ -801,32 +790,6 @@ export default function CaptureScreen() {
           />
         </Card>
 
-        {/* The bill, right under the amount — the order add-expense reads a bill
-            in, and for the same reason: scanning one fills in the amount above
-            and the note below, so it belongs before the fields it populates,
-            not after them. A slim one-line row rather than the tall dashed tile
-            this used to be: a small thumbnail (or a plain camera glyph before
-            one exists) with the row's own words beside it, the same "small
-            thumbnail row" the rest of this screen's facts read as. Tapping the
-            row opens the camera — a capture is usually filed at the till,
-            camera in hand — Browse takes one from the gallery, and an attached
-            photo's own thumbnail opens the full-frame preview instead of
-            re-scanning. The itemised breakdown a confident scan read off the
-            bill still unfolds beneath once there is one to show — it is the one
-            part of this screen allowed to grow past the fold (see this
-            screen's compactness target: no receipt, no scroll). */}
-        <ReceiptField
-          photo={photo}
-          scanning={scanning}
-          parsed={parsed}
-          currency={currency}
-          locale={locale}
-          disabled={saving}
-          onAdd={() => void addReceipt()}
-          onBrowse={() => void addReceipt({ fromLibrary: true })}
-          onPreview={() => setPreviewing(true)}
-        />
-
         {/* Description, as a single underlined field rather than a boxed card —
             with the mic to speak it instead of type (A5). Group names are handed
             to the recogniser as hints — a general model mangles Indian names,
@@ -838,6 +801,28 @@ export default function CaptureScreen() {
           accessibilityLabel={t.captures.description}
           hints={groupNameHints}
           boxed
+        />
+
+        {/* The bill, right under the description — the same flush
+            `ReceiptAddRow` look the expense screen's own empty gallery wears
+            (A46), not the boxed tile this used to be. Tapping the row opens
+            the camera — a capture is usually filed at the till, camera in
+            hand — Browse takes one from the gallery, and an attached photo's
+            own thumbnail opens the full-frame preview instead of re-scanning.
+            The itemised breakdown a confident scan read off the bill still
+            unfolds beneath once there is one to show — it is the one part of
+            this screen allowed to grow past the fold (see this screen's
+            compactness target: no receipt, no scroll). */}
+        <ReceiptField
+          photo={photo}
+          scanning={scanning}
+          parsed={parsed}
+          currency={currency}
+          locale={locale}
+          disabled={saving}
+          onAdd={() => void addReceipt()}
+          onBrowse={() => void addReceipt({ fromLibrary: true })}
+          onPreview={() => setPreviewing(true)}
         />
 
         {/* What for, paid with, destination, date and place, folded into one
