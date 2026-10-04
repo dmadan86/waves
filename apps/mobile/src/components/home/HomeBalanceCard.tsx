@@ -26,6 +26,7 @@ import { iconSize, Row, Skeleton, Text, useTheme } from '@waves/ui';
 
 import { plural, useStrings } from '@/i18n';
 import { SplitMoney } from '@/components/SplitMoney';
+import { BalanceSide } from '@/components/home/BalanceSide';
 import { GlassSurface } from '@/components/home/GlassSurface';
 import { percentChange } from '@/lib/homeDashboard';
 
@@ -185,7 +186,7 @@ export function HomeBalanceCard({
         </Row>
 
         <Row style={{ alignItems: 'center', paddingHorizontal: theme.spacing.lg }}>
-          <Side
+          <BalanceSide
             icon="arrow-up"
             color={theme.color.positive}
             amount={owed}
@@ -197,7 +198,7 @@ export function HomeBalanceCard({
             loading={loading}
           />
           <View style={{ width: 1, alignSelf: 'stretch', backgroundColor: theme.color.border }} />
-          <Side
+          <BalanceSide
             icon="arrow-down"
             color={theme.color.negative}
             amount={owing}
@@ -217,68 +218,3 @@ export function HomeBalanceCard({
 }
 
 const AMOUNT_STYLE = { fontSize: 30, lineHeight: 36, fontWeight: '800' } as const;
-
-/** One side of the balance: a small arrow beside what it is — the Me tab's
- *  figure shape, so it costs a line rather than a disc — then the figure and how
- *  many groups it comes from. */
-function Side({
-  icon,
-  color,
-  amount,
-  label,
-  detail,
-  currency,
-  locale,
-  hidden,
-  loading,
-  trailing = false,
-}: {
-  icon: 'arrow-up' | 'arrow-down';
-  color: string;
-  amount: bigint;
-  label: string;
-  detail: string;
-  currency: string;
-  locale: string;
-  hidden: boolean;
-  loading: boolean;
-  /** The right-hand side: inset from the divider. */
-  trailing?: boolean;
-}) {
-  const theme = useTheme();
-  return (
-    <View
-      style={{
-        flex: 1,
-        gap: 2,
-        paddingStart: trailing ? theme.spacing.lg : 0,
-        paddingEnd: trailing ? 0 : theme.spacing.sm,
-      }}
-    >
-      <Row style={{ alignItems: 'center', gap: 4 }}>
-        <Ionicons name={icon} size={iconSize.xs} color={color} />
-        <Text variant="caption" tone="muted" numberOfLines={1}>
-          {label}
-        </Text>
-      </Row>
-      {loading ? (
-        <Skeleton width={80} height={18} radius={6} />
-      ) : hidden ? (
-        <Text variant="subheading" style={{ fontWeight: '700' }}>
-          {BALANCE_MASK}
-        </Text>
-      ) : (
-        <SplitMoney
-          amount={amount}
-          currency={currency}
-          locale={locale}
-          color={theme.color.text}
-          fontSize={18}
-        />
-      )}
-      <Text variant="micro" tone="muted" numberOfLines={1}>
-        {detail}
-      </Text>
-    </View>
-  );
-}
