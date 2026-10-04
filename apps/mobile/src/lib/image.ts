@@ -464,23 +464,29 @@ export async function captureReceipt(): Promise<PickedImage | null> {
   // camera — the old code fell back here and surprised the person with the OS
   // camera. Do nothing.
   if (outcome.kind === 'cancelled') return null;
-  const scanned = outcome.uri;
+  return receiptFromFile(outcome.uri);
+}
 
-  // The scanner reports no dimensions, and `shrink` caps whichever edge is
-  // longer. Asking the file is cheap; failing to ask would send a 4000px scan
-  // up whole, so an unreadable size is a reason to skip the resize rather than
-  // to abandon the scan.
-  const size = await imageSize(scanned);
+/**
+ * A receipt file already on disk (a scan, or a frame from the in-app camera),
+ * sized and compressed like every other receipt. `known` skips the size lookup
+ * when the source already reported its dimensions.
+ */
+export async function receiptFromFile(
+  uri: string,
+  known?: { width: number; height: number },
+): Promise<PickedImage> {
+  const size = known && known.width > 0 && known.height > 0 ? known : await imageSize(uri);
   const shrunk =
     (size
       ? await shrinkWithBytes({
-          uri: scanned,
+          uri: uri,
           width: size.width,
           height: size.height,
           maxEdge: RECEIPT_MAX_EDGE,
           compress: 0.9,
         })
-      : null) ?? (await readUnshrunk(scanned));
+      : null) ?? (await readUnshrunk(uri));
   return { base64: shrunk.base64, mimeType: shrunk.mimeType ?? 'image/jpeg', uri: shrunk.uri };
 }
 
