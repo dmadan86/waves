@@ -57,13 +57,14 @@ import { ExpenseReceipts } from '@/components/ExpenseReceipts';
 import { TagEditorSheet } from '@/components/TagEditorSheet';
 import { PaymentMethodRow, PaymentMethodSheet } from '@/components/PaymentMethodPicker';
 import { LocationField } from '@/components/LocationField';
-import { captureLocationIfGranted } from '@/lib/location';
+import { captureLocationIfGranted, locationUnchanged, reverseGeocode } from '@/lib/location';
 import { friendlyError } from '@/lib/errors';
 import { receiptProblemText } from '@/lib/problemText';
 import { CurrencyRate } from '@/components/CurrencyRate';
 import { DescriptionField } from '@/components/expense/DescriptionField';
 import { CurrencySheet } from '@/components/expense/CurrencySheet';
 import { ExpenseHero } from '@/components/expense/ExpenseHero';
+import { splitIcon } from '@/components/expense/splitIcon';
 import { DetailRow, DetailRows } from '@/components/DetailRows';
 import {
   canAddReceipt,
@@ -88,7 +89,6 @@ import { resolveDraftCurrency, resolveDraftFx } from '@/lib/expenseDraft';
 import { dateFrom, isoDate, showDate } from '@/lib/expenseDay';
 import {
   expenseDateFor,
-  expenseDetailsVisible,
   planCollapseToOne,
   planEvenly,
   planToggle,
@@ -755,17 +755,13 @@ export default function AddExpenseScreen() {
   // plain heading, so changing a split is the tap that changes it rather than a
   // tap to open, then a tap to change.
 
-  // "More details" folds category, payment method, location and the FX rate off
-  // the common path. It opens itself whenever one of those carries a non-default
-  // value, so an edit (or a foreign currency, whose rate must be typed to save)
-  // is not hidden behind the fold on arrival.
-  //
-  // `null` means "nobody has said": follow that rule. A tap replaces it with a
-  // decision, in either direction. It used to be a plain boolean OR-ed with the
-  // rule, and the header was disabled while the rule said open — so on a bill
-  // that carried any detail, "Fewer details" sat there looking tappable and did
-  // nothing.
-  const [detailsChoice, setDetailsChoice] = useState<boolean | null>(null);
+  // The "paid by" and "split" rows unfold the same way: closed on the common
+  // case (one payer, an equal split) so the dense card reads as a handful of
+  // short facts, and open on its own the moment the bill is already in the
+  // less common shape — several payers, or a split that is not equal — so
+  // reopening an edit never hides a configuration that is already unusual.
+  const [payerSectionChoice, setPayerSectionChoice] = useState<boolean | null>(null);
+  const [splitSectionChoice, setSplitSectionChoice] = useState<boolean | null>(null);
 
   const groupCurrency = group.data?.default_currency ?? 'INR';
   // The expense keeps the currency it was paid in; the group's is only the
@@ -814,6 +810,9 @@ export default function AddExpenseScreen() {
   // group's template suggests — empty for a Trip/Home/Couple/Friends/Other
   // group, for an Event made before templates shipped, and for 'other'.
   const eventSubEvents = subEventsForTemplate(group.data?.event_template);
+  // Collapsed like the split/payer rows beside it — closed until tapped,
+  // since there is no equivalent of `manyPayers` to auto-open it on.
+  const [showSubEventSection, setShowSubEventSection] = useState(false);
 
   const [editingBalanceDueDate, setEditingBalanceDueDate] = useState(false);
   const applyBalanceDueDate = (event: DateTimePickerEvent, picked?: Date): void => {
@@ -839,6 +838,24 @@ export default function AddExpenseScreen() {
     const rows = members.data ?? [];
     return [...rows].sort((a, b) => Number(payers.has(b.id)) - Number(payers.has(a.id)));
   }, [members.data, payers]);
+
+  // Closed by default: the "paid by" row reads as a fact ("You") rather than a
+  // control until it is tapped, or until the bill already has several payers
+  // (an edit, or the several-payer link tapped earlier in this same visit).
+  const showPayerSection = payerSectionChoice ?? manyPayers;
+  // One line for the dense row: who is carrying the bill, in words rather than
+  // avatars — "You" for the common single payer, "You +2" once several are on
+  // it. The full lane of avatars (and, in several-payer mode, each one's own
+  // figure) only draws once the row is tapped open.
+  const payerSummary = (() => {
+    const names = payerIds.map((memberId) => {
+      const member = (members.data ?? []).find((row) => row.id === memberId);
+      return member ? displayName(member, viewerId) : t.misc.someone;
+    });
+    if (names.length === 0) return t.misc.someone;
+    if (names.length === 1) return names[0]!;
+    return `${names[0]} +${names.length - 1}`;
+  })();
 
   /** Re-derive the figures, then refresh every field except the typed ones. */
   const applyPayers = (
@@ -1027,7 +1044,17 @@ export default function AddExpenseScreen() {
     let active = true;
     void captureLocationIfGranted().then((loc) => {
       // Never override a place set in the meantime — only fill an empty pin.
-      if (active && loc) setLocation((current) => current ?? loc);
+      if (!active || !loc) return;
+      setLocation((current) => current ?? loc);
+      // The name is resolved separately, never awaited, so it cannot delay the
+      // fix above. Patched in only if the pin still matches this fix — the
+      // reader has not since cleared or moved it by hand, or picked a spot.
+      void reverseGeocode(loc.lat, loc.lng).then((name) => {
+        if (!active || !name) return;
+        setLocation((current) =>
+          locationUnchanged(current, loc.lat, loc.lng) ? { ...current, name } : current,
+        );
+      });
     });
     return () => {
       active = false;
@@ -1056,6 +1083,25 @@ export default function AddExpenseScreen() {
     t.expense,
     locale,
   );
+
+  // Closed by default, same as "paid by": a plain equal split reads as a
+  // fact ("Equally") until the row is tapped, and an edit that already split
+  // some other way opens straight to the controls that explain why. A split
+  // the person closed by hand reopens itself the moment it stops adding up —
+  // changing the amount afterwards (a scan, say) can unbalance an exact split
+  // that was fine when it was collapsed, and `saveHint` below does not repeat
+  // the split card's own reason, so a Save left disabled by a closed card
+  // would otherwise have nothing on screen to explain it.
+  const showSplitSection =
+    splitIssue !== null || (splitSectionChoice ?? splitKind !== SplitKind.Equal);
+  const splitKindLabel =
+    splitKind === SplitKind.Equal
+      ? t.expense.equally
+      : splitKind === SplitKind.Shares
+        ? t.expense.shares
+        : splitKind === SplitKind.Percent
+          ? t.expense.percent
+          : t.expense.exactly;
 
   if (group.isLoading || members.isLoading || restored.loading) {
     // Shell first: the back button and title paint instantly on navigation, and
@@ -1363,25 +1409,6 @@ export default function AddExpenseScreen() {
   const canSave =
     amount > 0n && participants.length > 0 && splitIssue === null && payerProblem === null;
 
-  // The fold starts open, and starts open the same way whether this is a new
-  // expense or an edit.
-  //
-  // It used to derive its default from whether anything inside carried a
-  // non-default value — and `categoryChosen` was one of those. Every saved
-  // expense has a category, so that flag is true on essentially every edit and
-  // false on every new one: the fold stood open on the edit form and shut on the
-  // add form, and one screen quietly had two layouts. Worse, it shut in exactly
-  // the case where the rows are most use — a new expense, where the day, the
-  // rail and the currency have not been set by anybody yet.
-  //
-  // A foreign currency still forces it open over a collapse: the rate card lives
-  // inside the fold and the expense cannot be saved without a rate.
-  const showDetails = expenseDetailsVisible({
-    choice: detailsChoice,
-    currency,
-    groupCurrency,
-  });
-
   // The bottom-bar sub-line. When an equal split lands the same amount on every
   // head, say it in money — "3 people owe ₹200 each" — which is the number
   // people actually care about; otherwise the plain headcount.
@@ -1453,16 +1480,16 @@ export default function AddExpenseScreen() {
         <ScrollView
           ref={scrollRef}
           style={{ flex: 1 }}
-          // The form is long — amount, note, receipts, split, two rosters — and a
-          // 20pt gutter between every block plus each card's own padding meant a
-          // screenful held about two questions. `lg` between blocks and `md`
-          // inside them keeps the grouping legible while fitting the split and
-          // who-paid on one screen instead of two.
+          // Most of what used to be separate blocks here — facts, paid by,
+          // split, location — is one dense card now, so this gutter only ever
+          // separates the receipt row, the note, that card, and (rarely) the
+          // FX rate. `md` between them keeps the grouping legible without
+          // spending height a dense card no longer needs it to.
           contentContainerStyle={{
             paddingHorizontal: theme.spacing.xl,
-            paddingTop: theme.spacing.md,
-            paddingBottom: theme.spacing.lg,
-            gap: theme.spacing.lg,
+            paddingTop: theme.spacing.sm,
+            paddingBottom: theme.spacing.md,
+            gap: theme.spacing.md,
           }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
@@ -1487,63 +1514,122 @@ export default function AddExpenseScreen() {
             bills are added and removed — it carries its own add tile — so these
             two would be a second door to the same room, one of which (scan)
             would also re-read a bill that has already been entered. */}
-          <View style={{ gap: theme.spacing.sm }}>
+          <View style={{ gap: theme.spacing.xs }}>
+            {/* The bill, as one slim row rather than a pair of ghost buttons
+              plus the gallery's own "Add receipt" row stacked under them — on a
+              brand-new expense those used to be two separate invitations to do
+              the same thing. A small disc (a camera glyph, or the thumbnail
+              once something is attached via `ExpenseReceipts` below), the
+              row's words, and a trailing action: scan while nothing is capped,
+              a plain attach once it is. Scanning is the primary tap — a bill is
+              usually in hand when this screen opens — and "Add photo" is the
+              small pill beside it, the same split `ReceiptField` on the
+              no-group capture screen draws. New expenses only: an existing
+              one's bills are already managed by the gallery beneath this. */}
             {!editing ? (
-              <>
-                <Row style={{ gap: theme.spacing.sm, flexWrap: 'wrap' }}>
-                  {!capLocked ? (
-                    <Button
-                      label={scanning ? t.expense.reading : t.expense.scanReceipt}
-                      variant="ghost"
-                      size="sm"
-                      disabled={scanning || saving || capStatus === 'loading'}
-                      onPress={() => void scan()}
-                      icon={
-                        <Ionicons
-                          name="camera-outline"
-                          size={iconSize.md}
-                          color={theme.color.brand}
-                        />
-                      }
-                    />
-                  ) : null}
-                  <Button
-                    label={t.expense.addPhoto}
-                    variant="ghost"
-                    size="sm"
-                    disabled={scanning || saving}
-                    onPress={() => void attach()}
-                    icon={
-                      <Ionicons name="image-outline" size={iconSize.md} color={theme.color.brand} />
-                    }
-                  />
-                </Row>
-                {capLocked ? (
-                  <Row style={{ gap: theme.spacing.sm, alignItems: 'center', flexWrap: 'wrap' }}>
-                    <Text variant="caption" tone="muted" style={{ flex: 1, minWidth: 0 }}>
-                      {t.expense.capReachedBody}
-                    </Text>
-                    <Button
-                      label={t.expense.capUpgrade}
-                      size="sm"
-                      onPress={() => router.push('/settings/upgrade')}
-                    />
-                  </Row>
-                ) : null}
-                {scanning ? <ActivityIndicator color={theme.color.brand} /> : null}
-                {scanNote ? (
-                  <Text variant="caption" tone="brand">
-                    {scanNote}
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={
+                  capLocked
+                    ? t.expense.addPhoto
+                    : scanning
+                      ? t.expense.reading
+                      : t.expense.scanReceipt
+                }
+                accessibilityHint={capLocked ? t.expense.capReachedBody : t.captureForm.receiptSub}
+                disabled={scanning || saving || (!capLocked && capStatus === 'loading')}
+                onPress={() => (capLocked ? void attach() : void scan())}
+                // The row's trailing control — "Upgrade" once capped, the
+                // "Add photo" pill otherwise — is a `Pressable`/`Button`
+                // nested inside this one, which VoiceOver and TalkBack treat
+                // as a single accessible element: a screen-reader user could
+                // reach the row but never that control. An accessibility
+                // action exposes it as a second, named action on the same
+                // element instead, without changing the sighted layout.
+                accessibilityActions={
+                  scanning
+                    ? undefined
+                    : capLocked
+                      ? [{ name: 'upgrade', label: t.expense.capUpgrade }]
+                      : [{ name: 'attach', label: t.expense.addPhoto }]
+                }
+                onAccessibilityAction={(event) => {
+                  if (event.nativeEvent.actionName === 'upgrade') router.push('/settings/upgrade');
+                  else if (event.nativeEvent.actionName === 'attach') void attach();
+                }}
+                style={({ pressed }) => ({
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  minHeight: 48,
+                  gap: theme.spacing.md,
+                  opacity: pressed ? 0.7 : 1,
+                })}
+              >
+                <View
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 18,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: theme.color.brandSoft,
+                  }}
+                >
+                  <Ionicons name="camera-outline" size={iconSize.md} color={theme.color.brand} />
+                </View>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text variant="subheading" numberOfLines={1}>
+                    {capLocked
+                      ? t.expense.addPhoto
+                      : scanning
+                        ? t.expense.reading
+                        : t.expense.scanReceipt}
                   </Text>
-                ) : null}
-              </>
+                  <Text variant="micro" tone="muted" numberOfLines={1}>
+                    {capLocked ? t.expense.capReachedBody : t.captureForm.receiptSub}
+                  </Text>
+                </View>
+                {scanning ? (
+                  <ActivityIndicator color={theme.color.brand} />
+                ) : capLocked ? (
+                  <Button
+                    label={t.expense.capUpgrade}
+                    size="sm"
+                    onPress={() => router.push('/settings/upgrade')}
+                  />
+                ) : (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={t.expense.addPhoto}
+                    disabled={saving}
+                    onPress={() => void attach()}
+                    hitSlop={6}
+                    style={({ pressed }) => ({
+                      paddingHorizontal: theme.spacing.sm,
+                      paddingVertical: theme.spacing.xs,
+                      borderRadius: theme.radius.pill,
+                      backgroundColor: theme.color.brandSoft,
+                      opacity: pressed ? 0.6 : 1,
+                    })}
+                  >
+                    <Text variant="caption" tone="brand" style={{ fontWeight: '700' }}>
+                      {t.expense.addPhoto}
+                    </Text>
+                  </Pressable>
+                )}
+              </Pressable>
+            ) : null}
+            {scanNote ? (
+              <Text variant="caption" tone="brand">
+                {scanNote}
+              </Text>
             ) : null}
 
             {/* The bills kept against this expense — the same gallery the expense
-              screen shows, not a second design for the same thing. A one-line
-              thumbnail of the legacy bill used to stand here, which meant an
-              expense with four receipts showed one of them on the screen where
-              you go to change it.
+              screen shows, not a second design for the same thing. `externalAdd`
+              on a new expense: the row above already owns adding (scan or
+              attach), so the gallery draws only once something exists rather
+              than repeating its own "Add receipt" invitation under it.
 
               On a new expense there is no row to attach to yet, so the gallery
               runs in draft mode: what is added is parked on the device, held,
@@ -1556,6 +1642,7 @@ export default function AddExpenseScreen() {
                 canManage={editing ? isExpenseParty : true}
                 canRemoveLegacy={isExpenseParty || iAmGroupAdmin}
                 legacyReceiptPath={receiptUri ? receiptPath : null}
+                externalAdd={!editing}
                 onLegacyRemoved={() => {
                   setReceiptUri(null);
                   setReceiptPath(null);
@@ -1581,485 +1668,480 @@ export default function AddExpenseScreen() {
             so it is on the way to the note rather than in front of it. The names
             are handed to the recogniser as hints; a general model guesses at
             Indian names and the note is where they turn up. */}
+          {/* One line, not several: the note is a short "what for", and a tall
+            multiline well cost more height than anything else on this screen
+            ever needed back. The field still scrolls its own text if someone
+            types past the edge — nothing is lost, it just no longer grows the
+            screen to show it. */}
           <DescriptionField
             value={description}
             onChange={setDescription}
             placeholder={t.expense.descriptionPlaceholder}
             accessibilityLabel={t.description}
             hints={nameHints}
-            multiline
           />
 
-          {/* The bill's facts, as one labelled card — the same card the expense
-            screen shows under its receipts, with the answers editable instead of
-            printed.
+          {/* Every fact about this bill — what for, who paid, when, how it is
+            split, how it was paid, what it is in, where, and anything still
+            optional — as one dense card of single-line rows instead of five
+            separate sections each wearing its own heading and padding.
+            `DetailRows` puts a hairline in the gap between each pair, so none
+            of this needs a divider of its own; `dense` shrinks every row to a
+            48pt line with a 28pt icon disc, so eight facts read as one short
+            list rather than a stack of 68pt cards.
 
-            These four are all the same kind of question: a short answer, already
-            filled in, changed from a sheet. They used to be spread across three
-            places — the day in a card of its own here, the category and the rail
-            behind the "More details" fold, and the currency only as a pill in
-            the header — so a form that could have said what it knew in four
-            lines instead made you find three different controls to read it.
-
-            None of them is an advanced setting. An expense filed on the wrong
-            day lands in the wrong month, the wrong trip and the wrong place in
-            the feed; a bill paid on a card recorded as cash is wrong on the
-            statement it is checked against; and a total in the wrong currency is
-            simply a different number. Untouched, the day still inherits whatever
-            it always had, so editing a note never moves a three-week-old dinner.
-
-            Category is here as well as on the hero badge above: the badge shows
-            the guess, which is what you want while typing the note, but it is
-            not a control — this row is where the guess is overruled.
-
-            Literally the same card, now: `DetailRows` inside a `Card` with no
-            padding of its own is the markup the expense screen uses, down to the
-            hairlines it puts in the gaps rather than between siblings. These
-            rows used to be drawn the other way up — the question in full weight,
-            the answer muted beside it — so a bill you had just filed came back
-            reading as a different screen's idea of the same four facts. The
-            answers are what somebody scans for on both, so the answers are the
-            loud half on both. */}
+            Category, payment method, the day and the currency are plain
+            facts — a short, already-chosen answer, changed from a sheet — and
+            stay open, the same rows this card has always carried. "Paid by"
+            and "split" are facts with a control behind them, so each is now a
+            row that unfolds its own picker in place rather than a card of its
+            own: closed on the common shape (one payer, split evenly) so the
+            card reads short, and open on its own the moment it is not — an
+            edit with several payers, say, or a split that was never equal.
+            Nothing inside either fold changed; only the shell around it did. */}
           <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
             <DetailRows>
-              <DetailRow
-                icon="calendar-outline"
-                label={t.captures.date}
-                value={showDate(expenseDate, locale)}
-                onPress={() => setEditingDate(true)}
-              />
               <CategoryRow
                 value={category}
                 meta={categoryMeta}
                 onPress={() => setPickingCategory(true)}
+                tinted
+                dense
               />
-              <PaymentMethodRow value={paymentMethod} onPress={() => setPickingPayment(true)} />
-              {/* What it was paid in, as a named row rather than only as the pill
-                in the header. The pill is still there and still works — but it is
-                a hairline outline on a gradient beside a large amount, and "there
-                is no currency selection" is what somebody looking for one
-                reported. This names the field and opens the same sheet.
 
-                Not `cash-outline`: the rail row directly above wears that glyph
-                whenever the answer is cash, which is the default — two rows with
-                the same mark read as one repeated question. */}
+              {/* Event organizer (docs/event-organizer.md): which sub-event this
+              spend is for — a row like the ones beside it, collapsed to its
+              label until tapped. Only on an Event group whose template
+              suggests any; a plain Trip/Home/Couple/Friends/Other group, or
+              an Event with no template, never grows this row. */}
+              {eventSubEvents.length > 0 ? (
+                <View>
+                  <DetailRow
+                    icon="sparkles-outline"
+                    tint={theme.tint.mint}
+                    dense
+                    label={t.eventOrganizer.subEventLabel}
+                    value={
+                      subEventId
+                        ? `${eventSubEvents.find((subEvent) => subEvent.id === subEventId)?.emoji ?? ''} ${
+                            t.eventSubEvents[subEventId] ?? subEventId
+                          }`.trim()
+                        : t.eventOrganizer.noSubEvent
+                    }
+                    placeholder={!subEventId}
+                    expanded={showSubEventSection}
+                    onPress={() => setShowSubEventSection((was) => !was)}
+                  />
+                  {showSubEventSection ? (
+                    <View style={{ paddingBottom: theme.spacing.sm }}>
+                      <ChipRow
+                        options={[
+                          { value: 'none', label: t.eventOrganizer.noSubEvent },
+                          ...eventSubEvents.map((subEvent) => ({
+                            value: subEvent.id,
+                            label: `${subEvent.emoji} ${t.eventSubEvents[subEvent.id] ?? subEvent.id}`,
+                          })),
+                        ]}
+                        value={subEventId ?? 'none'}
+                        onChange={(picked) => setSubEventId(picked === 'none' ? null : picked)}
+                      />
+                    </View>
+                  ) : null}
+                </View>
+              ) : null}
+
+              {/* Who paid — on an edit as much as on a new expense, and now as
+              many people as actually put money in. Collapsed, the row says
+              who in a word ("You", "You +2"); tapping it unfolds the same
+              lane of avatars — and, once several are on it, each one's own
+              figure — this used to carry in a card of its own below.
+
+              The picker used to be hidden the moment the form opened on an
+              existing bill, so the correction people most often come back
+              to make had no control anywhere on the screen; and it was
+              single-select, so "she got the taxi, I got the tickets" had to
+              be entered as two expenses. Both fixes are unchanged here. */}
+              <View
+                onLayout={(event) => {
+                  if (focus !== 'payers' || scrolledToPayers.current) return;
+                  scrolledToPayers.current = true;
+                  const top = Math.max(0, event.nativeEvent.layout.y - theme.spacing.lg);
+                  requestAnimationFrame(() =>
+                    scrollRef.current?.scrollTo({ y: top, animated: true }),
+                  );
+                }}
+              >
+                <DetailRow
+                  icon="people-outline"
+                  tint={theme.tint.sky}
+                  dense
+                  label={t.paidBy}
+                  value={payerSummary}
+                  expanded={showPayerSection}
+                  onPress={() => setPayerSectionChoice(!showPayerSection)}
+                />
+                {showPayerSection ? (
+                  <View style={{ gap: theme.spacing.sm, paddingBottom: theme.spacing.sm }}>
+                    <Row style={{ justifyContent: 'flex-end' }}>
+                      <Row style={{ gap: theme.spacing.lg, alignItems: 'center', flexShrink: 0 }}>
+                        {manyPayers && payers.size > 1 ? (
+                          <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel={t.expense.splitPaidEvenly}
+                            onPress={splitPaidEvenly}
+                            hitSlop={LINK_HIT_SLOP}
+                          >
+                            <Text variant="micro" tone="brand" style={{ fontWeight: '700' }}>
+                              {t.expense.splitPaidEvenly}
+                            </Text>
+                          </Pressable>
+                        ) : null}
+                        {/* The way in and out of several-payer mode. A link
+                            rather than a hidden long-press: nobody discovers a
+                            long-press, and this is the whole feature. */}
+                        <Pressable
+                          accessibilityRole="switch"
+                          accessibilityState={{ checked: manyPayers }}
+                          accessibilityLabel={
+                            manyPayers ? t.expense.paidByOne : t.expense.paidBySeveral
+                          }
+                          onPress={() => setManyPayers(!manyPayers)}
+                          hitSlop={LINK_HIT_SLOP}
+                        >
+                          <Text variant="micro" tone="brand" style={{ fontWeight: '700' }}>
+                            {manyPayers ? t.expense.paidByOne : t.expense.paidBySeveral}
+                          </Text>
+                        </Pressable>
+                      </Row>
+                    </Row>
+
+                    {/* One lane that scrolls, not a grid that reflows. Every
+                      tile is the same width, the name gets one line and an
+                      ellipsis, and the overflow goes sideways where a tap can
+                      reach it. Whoever is paying leads the lane
+                      (`payerChoices`), so on a long member list the answer is
+                      at the start rather than somewhere off the right-hand
+                      edge. */}
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={{
+                        gap: theme.spacing.xs,
+                        paddingRight: theme.spacing.xl,
+                      }}
+                    >
+                      {payerChoices.map((member) => {
+                        const isPayer = payers.has(member.id);
+                        return (
+                          <Pressable
+                            key={member.id}
+                            // The role follows the mode, because the gesture
+                            // does: one payer is a radio (tapping replaces),
+                            // several is a checkbox (tapping adds).
+                            accessibilityRole={manyPayers ? 'checkbox' : 'radio'}
+                            accessibilityState={
+                              manyPayers ? { checked: isPayer } : { selected: isPayer }
+                            }
+                            accessibilityLabel={`${t.paidBy}: ${displayName(member, viewerId)}`}
+                            onPress={() => togglePayer(member.id)}
+                            style={{
+                              width: PAYER_TILE_WIDTH,
+                              alignItems: 'center',
+                              gap: 4,
+                              opacity: isPayer ? 1 : 0.45,
+                            }}
+                          >
+                            <Avatar name={displayName(member)} ghost={isGhost(member)} />
+                            <Text
+                              variant="micro"
+                              tone={isPayer ? 'brand' : 'muted'}
+                              numberOfLines={1}
+                              style={{ textAlign: 'center' }}
+                            >
+                              {displayName(member, viewerId)}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                    </ScrollView>
+
+                    {manyPayers && payers.size > 1 ? (
+                      <View style={{ gap: theme.spacing.xs }}>
+                        {payerIds.map((memberId) => {
+                          const member = (members.data ?? []).find((row) => row.id === memberId);
+                          const name = member ? displayName(member, viewerId) : t.misc.someone;
+                          return (
+                            <Row
+                              key={memberId}
+                              style={{ gap: theme.spacing.md, alignItems: 'center' }}
+                            >
+                              <Avatar
+                                name={member ? displayName(member) : name}
+                                ghost={member ? isGhost(member) : false}
+                                size={32}
+                              />
+                              <Text
+                                variant="body"
+                                numberOfLines={1}
+                                style={{ flex: 1, minWidth: 0 }}
+                              >
+                                {name}
+                              </Text>
+                              {/* The figure may be long — a six-figure trip
+                                  total, a yen amount, a large accessibility
+                                  font. It gives way to the name rather than
+                                  clipping, down to a floor wide enough to
+                                  still read as a field. */}
+                              <Row
+                                style={{
+                                  gap: theme.spacing.xs,
+                                  alignItems: 'center',
+                                  flexShrink: 1,
+                                  minWidth: 96,
+                                  maxWidth: '60%',
+                                }}
+                              >
+                                <Text variant="caption" tone="muted">
+                                  {currencySymbol(currency)}
+                                </Text>
+                                <TextInput
+                                  value={paidText[memberId] ?? ''}
+                                  onChangeText={(text) => setPaidEntry(memberId, text)}
+                                  keyboardType={amountKeyboard(currency as CurrencyCode)}
+                                  selectTextOnFocus
+                                  placeholder="0"
+                                  placeholderTextColor={theme.color.textFaint}
+                                  accessibilityLabel={t.expense.paidByNameAmount
+                                    .replace('{name}', name)
+                                    .replace(
+                                      '{amount}',
+                                      format(money(payers.get(memberId) ?? 0n, currency), {
+                                        locale,
+                                      }),
+                                    )}
+                                  // What is wrong with the set of figures, on
+                                  // each field that can put it right. React
+                                  // Native has no invalid accessibility state,
+                                  // so the message itself is the hint —
+                                  // otherwise the only announcement of a bill
+                                  // that does not add up arrives at the save
+                                  // button.
+                                  accessibilityHint={payerMessage ?? undefined}
+                                  style={{
+                                    flexGrow: 1,
+                                    flexShrink: 1,
+                                    minWidth: 72,
+                                    minHeight: 44,
+                                    fontSize: 16,
+                                    fontWeight: '700',
+                                    textAlign: 'right',
+                                    textAlignVertical: 'center',
+                                    color: theme.color.text,
+                                    backgroundColor: theme.color.bg,
+                                    borderRadius: theme.radius.sm,
+                                    paddingVertical: theme.spacing.sm,
+                                    paddingHorizontal: theme.spacing.sm,
+                                  }}
+                                />
+                              </Row>
+                            </Row>
+                          );
+                        })}
+                      </View>
+                    ) : null}
+
+                    {/* What is still unaccounted for, or claimed twice over.
+                      Only once the bill has a total: "₹0 left to assign" on an
+                      empty form is noise rather than guidance. A single payer
+                      always holds the whole bill, so there is nothing to
+                      report — that row gets the hint instead. */}
+                    {payerMessage && amount > 0n ? (
+                      <Text
+                        variant="micro"
+                        tone="negative"
+                        accessibilityRole="alert"
+                        accessibilityLiveRegion="polite"
+                      >
+                        {payerMessage}
+                      </Text>
+                    ) : null}
+                  </View>
+                ) : null}
+              </View>
+
+              <View>
+                <DetailRow
+                  icon="calendar-outline"
+                  tint={theme.tint.pink}
+                  dense
+                  label={t.captures.date}
+                  value={showDate(expenseDate, locale)}
+                  onPress={() => setEditingDate(true)}
+                />
+                {editingDate ? (
+                  <DateTimePicker
+                    value={dateFrom(expenseDate)}
+                    mode="date"
+                    display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                    onChange={applyDate}
+                  />
+                ) : null}
+              </View>
+
+              {/* "How is this split" — a row like the one above it, collapsed
+                to its summary ("Equally") until tapped. The chips, the itemize
+                shortcut and the full participant list — all unchanged — unfold
+                beneath it instead of standing as their own blocks below. */}
+              <View>
+                <DetailRow
+                  icon={splitIcon(splitKind)}
+                  tint={theme.tint.peach}
+                  dense
+                  label={t.expense.howToSplit}
+                  value={splitKindLabel}
+                  expanded={showSplitSection}
+                  onPress={() => setSplitSectionChoice(!showSplitSection)}
+                />
+                {showSplitSection ? (
+                  <View style={{ gap: theme.spacing.md, paddingBottom: theme.spacing.sm }}>
+                    {/* Splitting the bill line by line is another answer to
+                        "how is this split". New expenses only — an existing
+                        one is edited in place, not re-itemised. */}
+                    {!editing ? (
+                      <Row style={{ justifyContent: 'flex-end' }}>
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel={t.expense.splitByItem}
+                          onPress={() => router.replace(`/group/${groupId}/itemize`)}
+                          hitSlop={LINK_HIT_SLOP}
+                        >
+                          <Text variant="micro" tone="brand" style={{ fontWeight: '700' }}>
+                            {t.expense.splitByItem}
+                          </Text>
+                        </Pressable>
+                      </Row>
+                    ) : null}
+                    {/* Word plus glyph, not four identical word-pills: the icon
+                      is what carries over to the expense screen, where the
+                      same split comes back as a marked row rather than a bare
+                      word. */}
+                    <SplitKindChips value={splitKind} onChange={setSplitKind} />
+                    <SplitParticipants
+                      members={members.data ?? []}
+                      viewerId={viewerId}
+                      participants={participants}
+                      onToggle={toggleParticipant}
+                      splitKind={splitKind}
+                      entries={entries}
+                      onEntryChange={setEntry}
+                      currency={currency}
+                      amount={amount}
+                      lineAmount={lineAmount}
+                      splitIssue={splitIssue}
+                    />
+                  </View>
+                ) : null}
+              </View>
+
+              <PaymentMethodRow
+                value={paymentMethod}
+                onPress={() => setPickingPayment(true)}
+                tinted
+                dense
+              />
+
+              {/* What it was paid in, as a named row rather than only as the
+                pill in the header. The pill is still there and still works —
+                but it is a hairline outline on a gradient beside a large
+                amount, and "there is no currency selection" is what somebody
+                looking for one reported. This names the field and opens the
+                same sheet. */}
               <DetailRow
                 icon="globe-outline"
+                tint={theme.tint.lilac}
+                dense
                 label={t.captures.currencyLabel}
                 value={`${currencySymbol(currency)} ${currency}`}
                 onPress={() => setPickingCurrency(true)}
               />
-            </DetailRows>
-          </Card>
 
-          {editingDate ? (
-            <DateTimePicker
-              value={dateFrom(expenseDate)}
-              mode="date"
-              display={Platform.OS === 'ios' ? 'inline' : 'default'}
-              onChange={applyDate}
-            />
-          ) : null}
-
-          {/* Event organizer (docs/event-organizer.md): which sub-event this
-              spend is for — only on an Event group whose template suggests
-              any. A chip row, not another sheet: five or six options read
-              faster as chips than behind one more tap, and "none" is always
-              on offer for the spend nobody wants to pin to one occasion. */}
-          {eventSubEvents.length > 0 ? (
-            <Card
-              padded={false}
-              style={{
-                paddingHorizontal: theme.spacing.lg,
-                paddingVertical: theme.spacing.md,
-                gap: theme.spacing.sm,
-              }}
-            >
-              <Text variant="caption" tone="muted">
-                {t.eventOrganizer.subEventLabel}
-              </Text>
-              <ChipRow
-                options={[
-                  { value: 'none', label: t.eventOrganizer.noSubEvent },
-                  ...eventSubEvents.map((subEvent) => ({
-                    value: subEvent.id,
-                    label: `${subEvent.emoji} ${t.eventSubEvents[subEvent.id] ?? subEvent.id}`,
-                  })),
-                ]}
-                value={subEventId ?? 'none'}
-                onChange={(picked) => setSubEventId(picked === 'none' ? null : picked)}
-              />
-            </Card>
-          ) : null}
-
-          {/* A vendor deposit: this expense is a part-payment, with a balance
-              still owing. Collapsed by default — most expenses are not a
-              deposit — and the row's own disclosure chevron is what unfolds
-              the amount and due date in place, the same idiom `DetailRow`
-              already uses elsewhere. */}
-          <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
-            <DetailRows>
-              <DetailRow
-                icon="pricetag-outline"
-                label={t.eventOrganizer.depositLabel}
-                value={isDeposit ? t.eventOrganizer.depositOn : t.eventOrganizer.depositOff}
-                expanded={isDeposit}
-                onPress={() => setIsDeposit((was) => !was)}
-              />
-              {isDeposit ? (
+              {/* Event organizer (docs/event-organizer.md): a vendor deposit
+                  — this expense is a part-payment, with a balance still
+                  owing. The row's own control states the value and changes
+                  it in the same gesture (tapping toggles it on/off), the same
+                  idiom the "simplify debts" row elsewhere in the app uses;
+                  the amount and due date unfold under it once it is on. */}
+              <View>
                 <DetailRow
-                  icon="cash-outline"
-                  label={t.eventOrganizer.balanceDueLabel}
-                  trailing={
-                    <AmountField
-                      currency={currency}
-                      value={balanceDueMinor ?? 0n}
-                      onChange={setBalanceDueMinor}
-                      size="compact"
-                    />
-                  }
+                  icon="pricetag-outline"
+                  tint={theme.tint.coral}
+                  dense
+                  label={t.eventOrganizer.depositLabel}
+                  value={isDeposit ? t.eventOrganizer.depositOn : t.eventOrganizer.depositOff}
+                  expanded={isDeposit}
+                  onPress={() => setIsDeposit((was) => !was)}
                 />
-              ) : null}
-              {isDeposit ? (
-                <DetailRow
-                  icon="calendar-outline"
-                  label={t.eventOrganizer.balanceDueDateLabel}
-                  value={balanceDueDate ? showDate(balanceDueDate, locale) : t.add}
-                  placeholder={!balanceDueDate}
-                  onPress={() => setEditingBalanceDueDate(true)}
-                />
-              ) : null}
-            </DetailRows>
-          </Card>
-
-          {editingBalanceDueDate ? (
-            <DateTimePicker
-              value={dateFrom(balanceDueDate ?? expenseDate)}
-              mode="date"
-              display={Platform.OS === 'ios' ? 'inline' : 'default'}
-              onChange={applyBalanceDueDate}
-            />
-          ) : null}
-
-          {/* "How is this split" as one block instead of three.
-
-            The heading, the row of modes and the itemise button used to be three
-            siblings of the scroll view with a 16pt gutter between each, so a
-            question with one answer looked like three separate decisions — and
-            the last of them was a full-width button, the widest control on the
-            screen, for the rarest of the four ways to split. Here the heading
-            owns the block, carries the one action that is not a mode (itemising
-            leaves for another screen) at the end of its own line, and the
-            choices sit directly under it — the shape the payer card's heading
-            below already has, so the two read as the same kind of question. */}
-          <View style={{ gap: theme.spacing.sm }}>
-            <Row style={{ justifyContent: 'space-between' }}>
-              <Text variant="caption" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
-                {t.expense.howToSplit}
-              </Text>
-              {/* Splitting the bill line by line is another answer to "how is
-                  this split", so it belongs to this heading rather than to the
-                  top bar, where it competed with the title. A link like the
-                  payer card's, not a button: it goes somewhere, and the controls
-                  that change something on this screen are all chips. New
-                  expenses only — an existing one is edited in place, not
-                  re-itemised. */}
-              {!editing ? (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={t.expense.splitByItem}
-                  onPress={() => router.replace(`/group/${groupId}/itemize`)}
-                  hitSlop={LINK_HIT_SLOP}
-                  style={{ flexShrink: 0 }}
-                >
-                  <Text
-                    variant="micro"
-                    tone="brand"
-                    numberOfLines={1}
-                    style={{ fontWeight: '700' }}
-                  >
-                    {t.expense.splitByItem}
-                  </Text>
-                </Pressable>
-              ) : null}
-            </Row>
-
-            {/* Word plus glyph, not four identical word-pills: the icon is what
-              carries over to the expense screen, where the same split comes back
-              as a marked row rather than a bare word. Four labelled modes do not
-              fit one line on a narrow phone in any of the four languages, so the
-              lane scrolls rather than wraps: a fourth chip alone on a second row
-              is what reads as a broken control, where a chip cut off at the edge
-              reads as more to the side. Each chip states its own selected state
-              to the screen reader; the fill is not the only thing saying which
-              one is on. */}
-            <SplitKindChips value={splitKind} onChange={setSplitKind} />
-          </View>
-
-          {/* Who paid — on an edit as much as on a new expense, and now as many
-            people as actually put money in.
-
-            Two things used to be wrong here. The picker was hidden the moment
-            the form opened on an existing bill, so the correction people most
-            often come back to make had no control anywhere on the screen. And it
-            was single-select, so "she got the taxi, I got the tickets" had to be
-            entered as two expenses — two rows in the feed, two things to edit,
-            two things to delete — even though the ledger has always stored
-            payers as a table.
-
-            One payer stays exactly one tap: a row of avatars, no figures, no
-            arithmetic. The amounts appear only once a second person is on it. */}
-          <Card
-            style={{ gap: theme.spacing.sm }}
-            onLayout={(event) => {
-              if (focus !== 'payers' || scrolledToPayers.current) return;
-              scrolledToPayers.current = true;
-              const top = Math.max(0, event.nativeEvent.layout.y - theme.spacing.lg);
-              requestAnimationFrame(() => scrollRef.current?.scrollTo({ y: top, animated: true }));
-            }}
-          >
-            <Row style={{ justifyContent: 'space-between' }}>
-              <Text variant="caption" tone="muted">
-                {t.paidBy}
-              </Text>
-              <Row style={{ gap: theme.spacing.lg, alignItems: 'center', flexShrink: 0 }}>
-                {manyPayers && payers.size > 1 ? (
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={t.expense.splitPaidEvenly}
-                    onPress={splitPaidEvenly}
-                    hitSlop={LINK_HIT_SLOP}
-                  >
-                    <Text variant="micro" tone="brand" style={{ fontWeight: '700' }}>
-                      {t.expense.splitPaidEvenly}
-                    </Text>
-                  </Pressable>
-                ) : null}
-                {/* The way in and out of several-payer mode. A link rather than a
-                    hidden long-press: nobody discovers a long-press, and this is
-                    the whole feature. */}
-                <Pressable
-                  accessibilityRole="switch"
-                  accessibilityState={{ checked: manyPayers }}
-                  accessibilityLabel={manyPayers ? t.expense.paidByOne : t.expense.paidBySeveral}
-                  onPress={() => setManyPayers(!manyPayers)}
-                  hitSlop={LINK_HIT_SLOP}
-                >
-                  <Text variant="micro" tone="brand" style={{ fontWeight: '700' }}>
-                    {manyPayers ? t.expense.paidByOne : t.expense.paidBySeveral}
-                  </Text>
-                </Pressable>
-              </Row>
-            </Row>
-
-            {/* One lane that scrolls, not a grid that reflows. Wrapping made the
-              row's height depend on how long the names in this group happen to
-              be — one "Lokesh Rangasamy" pushed the whole card taller and shoved
-              its neighbours onto a second line, so the same control was a
-              different shape in every group. Every tile is now the same width,
-              the name gets one line and an ellipsis, and the overflow goes
-              sideways where a tap can reach it.
-
-              Whoever is paying leads the lane (`payerChoices`), so on a long
-              member list the answer is at the start rather than somewhere off
-              the right-hand edge. */}
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              // The lane sits inside a Card, which already pads it — the extra
-              // right padding is the "there is more this way" gutter.
-              contentContainerStyle={{ gap: theme.spacing.xs, paddingRight: theme.spacing.xl }}
-            >
-              {payerChoices.map((member) => {
-                const isPayer = payers.has(member.id);
-                return (
-                  <Pressable
-                    key={member.id}
-                    // The role follows the mode, because the gesture does: one
-                    // payer is a radio (tapping replaces), several is a checkbox
-                    // (tapping adds). Announcing the wrong one tells somebody
-                    // using a screen reader the opposite of what will happen.
-                    accessibilityRole={manyPayers ? 'checkbox' : 'radio'}
-                    accessibilityState={manyPayers ? { checked: isPayer } : { selected: isPayer }}
-                    accessibilityLabel={`${t.paidBy}: ${displayName(member, viewerId)}`}
-                    onPress={() => togglePayer(member.id)}
-                    style={{
-                      width: PAYER_TILE_WIDTH,
-                      alignItems: 'center',
-                      gap: 4,
-                      opacity: isPayer ? 1 : 0.45,
-                    }}
-                  >
-                    <Avatar name={displayName(member)} ghost={isGhost(member)} />
-                    <Text
-                      variant="micro"
-                      tone={isPayer ? 'brand' : 'muted'}
-                      numberOfLines={1}
-                      style={{ textAlign: 'center' }}
-                    >
-                      {displayName(member, viewerId)}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-
-            {manyPayers && payers.size > 1 ? (
-              <View style={{ gap: theme.spacing.xs }}>
-                {payerIds.map((memberId) => {
-                  const member = (members.data ?? []).find((row) => row.id === memberId);
-                  const name = member ? displayName(member, viewerId) : t.misc.someone;
-                  return (
-                    <Row key={memberId} style={{ gap: theme.spacing.md, alignItems: 'center' }}>
-                      <Avatar
-                        name={member ? displayName(member) : name}
-                        ghost={member ? isGhost(member) : false}
-                        size={32}
-                      />
-                      <Text variant="body" numberOfLines={1} style={{ flex: 1, minWidth: 0 }}>
-                        {name}
-                      </Text>
-                      {/* The figure may be long — a six-figure trip total, a
-                          yen amount, a large accessibility font. It gives way
-                          to the name rather than clipping, down to a floor
-                          wide enough to still read as a field. */}
-                      <Row
-                        style={{
-                          gap: theme.spacing.xs,
-                          alignItems: 'center',
-                          flexShrink: 1,
-                          minWidth: 96,
-                          maxWidth: '60%',
-                        }}
-                      >
-                        <Text variant="caption" tone="muted">
-                          {currencySymbol(currency)}
-                        </Text>
-                        <TextInput
-                          value={paidText[memberId] ?? ''}
-                          onChangeText={(text) => setPaidEntry(memberId, text)}
-                          keyboardType={amountKeyboard(currency as CurrencyCode)}
-                          selectTextOnFocus
-                          placeholder="0"
-                          placeholderTextColor={theme.color.textFaint}
-                          accessibilityLabel={t.expense.paidByNameAmount
-                            .replace('{name}', name)
-                            .replace(
-                              '{amount}',
-                              format(money(payers.get(memberId) ?? 0n, currency), { locale }),
-                            )}
-                          // What is wrong with the set of figures, on each field
-                          // that can put it right. React Native has no invalid
-                          // accessibility state, so the message itself is the
-                          // hint — otherwise the only announcement of a bill
-                          // that does not add up arrives at the save button.
-                          accessibilityHint={payerMessage ?? undefined}
-                          style={{
-                            flexGrow: 1,
-                            flexShrink: 1,
-                            minWidth: 72,
-                            minHeight: 44,
-                            fontSize: 16,
-                            fontWeight: '700',
-                            textAlign: 'right',
-                            textAlignVertical: 'center',
-                            color: theme.color.text,
-                            backgroundColor: theme.color.bg,
-                            borderRadius: theme.radius.sm,
-                            paddingVertical: theme.spacing.sm,
-                            paddingHorizontal: theme.spacing.sm,
-                          }}
+                {isDeposit ? (
+                  <View style={{ gap: theme.spacing.xs, paddingBottom: theme.spacing.sm }}>
+                    <DetailRow
+                      icon="cash-outline"
+                      label={t.eventOrganizer.balanceDueLabel}
+                      trailing={
+                        <AmountField
+                          currency={currency}
+                          value={balanceDueMinor ?? 0n}
+                          onChange={setBalanceDueMinor}
+                          size="compact"
                         />
-                      </Row>
-                    </Row>
-                  );
-                })}
+                      }
+                    />
+                    <DetailRow
+                      icon="calendar-outline"
+                      label={t.eventOrganizer.balanceDueDateLabel}
+                      value={balanceDueDate ? showDate(balanceDueDate, locale) : t.add}
+                      placeholder={!balanceDueDate}
+                      onPress={() => setEditingBalanceDueDate(true)}
+                    />
+                    {editingBalanceDueDate ? (
+                      <DateTimePicker
+                        value={dateFrom(balanceDueDate ?? expenseDate)}
+                        mode="date"
+                        display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                        onChange={applyBalanceDueDate}
+                      />
+                    ) : null}
+                  </View>
+                ) : null}
               </View>
-            ) : null}
 
-            {/* What is still unaccounted for, or claimed twice over. Only once
-              the bill has a total: "₹0 left to assign" on an empty form is noise
-              rather than guidance. A single payer always holds the whole bill, so
-              there is nothing to report — that row gets the hint instead. */}
-            {payerMessage && amount > 0n ? (
-              <Text
-                variant="micro"
-                tone="negative"
-                // Announced as it changes, rather than only when the field it
-                // belongs to happens to be focused.
-                accessibilityRole="alert"
-                accessibilityLiveRegion="polite"
-              >
-                {payerMessage}
-              </Text>
-            ) : null}
+              {/* Where it happened (A43) — optional, opt-in, never a background
+                track — as the one-line row `compact` draws: a pin, the
+                address, a small map thumbnail that doubles as the fold into
+                the full map and the change/clear actions, the same disclosure
+                every other row in this card uses. */}
+              <View style={{ paddingVertical: theme.spacing.sm }}>
+                <LocationField value={location} onChange={setLocation} compact />
+              </View>
+            </DetailRows>
           </Card>
 
-          <Card style={{ gap: theme.spacing.sm }}>
-            <SplitParticipants
-              members={members.data ?? []}
-              viewerId={viewerId}
-              participants={participants}
-              onToggle={toggleParticipant}
-              splitKind={splitKind}
-              entries={entries}
-              onEntryChange={setEntry}
-              currency={currency}
-              amount={amount}
-              lineAmount={lineAmount}
-              splitIssue={splitIssue}
-            />
-
-            {/* No "Add someone" here: the form splits between the people the
-              group already has. Adding a member is the group's own job, on its
-              members screen, not a detour out of a half-typed expense. */}
-          </Card>
-
-          {/* What is genuinely optional: where it happened, and — once the
-            currency is not the group's — the rate that converts it.
-
-            The category and the rail used to live down here too. They are not
-            optional in the same sense: both are always set (the category is
-            guessed from the note, the rail defaults to cash), so the fold was
-            hiding two answers the form had already given rather than two
-            questions nobody had asked. They are up in the facts card now, beside
-            the day and the currency, and this keeps the two that really can be
-            left empty. */}
-          <Pressable
-            accessibilityRole="button"
-            accessibilityState={{ expanded: showDetails }}
-            accessibilityLabel={t.expense.moreDetails}
-            onPress={() => setDetailsChoice(!showDetails)}
-          >
-            <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-              <Text variant="caption" tone="brand" style={{ fontWeight: '700' }}>
-                {showDetails ? t.expense.fewerDetails : t.expense.moreDetails}
-              </Text>
-              <Ionicons
-                name={showDetails ? 'chevron-up' : 'chevron-down'}
-                size={iconSize.md}
-                color={theme.color.brand}
-              />
-            </Row>
-          </Pressable>
-
-          <View style={{ gap: theme.spacing.xl, display: showDetails ? 'flex' : 'none' }}>
-            {/* Where it happened (A43) — optional, opt-in, never a background track. */}
-            <LocationField value={location} onChange={setLocation} />
-
-            {/* Currency is chosen from the facts card above (and from the header
-              pill); this collapses to the FX rate alone — nothing while the
-              expense is in the group's currency, the rate methods once it is
-              foreign (ADR-003). */}
-            <CurrencyRate
-              groupCurrency={groupCurrency}
-              currency={currency}
-              amount={amount}
-              fx={fx}
-              onFxChange={setFx}
-              tripRate={tripRate}
-            />
-          </View>
+          {/* The one thing left that is still genuinely optional: the FX rate
+            for a foreign-currency bill. This used to sit behind a "More
+            details" row that, by the time category, payment method and
+            location each got a row of their own above, toggled nothing —
+            `CurrencyRate` already renders nothing for a same-currency bill and
+            the rate card for a foreign one regardless of that toggle's state,
+            so the fold had become a tap that changed nothing on screen. It is
+            gone; `CurrencyRate` shows itself exactly when there is a rate to
+            give. */}
+          <CurrencyRate
+            groupCurrency={groupCurrency}
+            currency={currency}
+            amount={amount}
+            fx={fx}
+            onFxChange={setFx}
+            tripRate={tripRate}
+          />
         </ScrollView>
 
         {/* The one action, pinned. The screen is tall — keypad, scan, currency,
@@ -2072,7 +2154,7 @@ export default function AddExpenseScreen() {
         <View
           style={{
             paddingHorizontal: theme.spacing.xl,
-            paddingTop: theme.spacing.md,
+            paddingTop: theme.spacing.sm,
             // The bar is the last thing on the screen, so it is the one that
             // owes the navigation bar its room — and it pays it as padding, not
             // as a gap: the fill and the hairline run all the way to the bottom
@@ -2081,7 +2163,7 @@ export default function AddExpenseScreen() {
             // pressed against the system bar on any phone whose bar is drawn
             // over the app.
             paddingBottom: clearance,
-            gap: theme.spacing.sm,
+            gap: theme.spacing.xs,
             borderTopWidth: 1,
             borderTopColor: theme.color.border,
             backgroundColor: theme.color.surface,
@@ -2097,9 +2179,13 @@ export default function AddExpenseScreen() {
             </View>
             <Row style={{ gap: theme.spacing.md, flexGrow: 0, flexShrink: 0 }}>
               {saving ? <ActivityIndicator color={theme.color.brand} /> : null}
+              {/* 46pt, not the stock 56pt `lg` button: a slimmer footer needs a
+                  shorter Save to match, and the label stays one line at this
+                  height on every locale this form ships in. */}
               <Button
                 label={editing ? t.expense.saveChanges : t.expense.saveExpense}
                 size="lg"
+                style={{ height: 46 }}
                 disabled={!canSave || saving}
                 onPress={() => void submit()}
               />

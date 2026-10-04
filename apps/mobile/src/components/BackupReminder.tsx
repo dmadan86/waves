@@ -15,10 +15,11 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { AppState, View } from 'react-native';
+import { AppState, Pressable, View } from 'react-native';
 
-import { Button, Popup, Text, useTheme } from '@waves/ui';
+import { Button, Gradient, Popup, Text, useSingleAction, useTheme } from '@waves/ui';
 
+import { BackupIllustration } from '@/components/BackupIllustration';
 import { useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { PRIMARY_PROVIDER } from '@/lib/backup/engine';
@@ -34,6 +35,10 @@ import { localDay } from '@/lib/phonePrompt';
 import { usePromptSlot } from '@/lib/promptQueue';
 import { usePersonalRecords } from '@/data/personal';
 import { useSync } from '@/sync';
+
+/** The Drive-green used for the one icon tied to Drive's own brand mark,
+ *  the sole exception to the app's otherwise green-free palette. */
+const DRIVE_GREEN = '#0F9D58';
 
 /**
  * Under the restore offer (90), the phone-number ask (85) and the push soft-ask
@@ -131,6 +136,7 @@ export function BackupReminder(): React.JSX.Element | null {
     answer();
     router.push('/settings/backup');
   };
+  const pressBackUp = useSingleAction(onBackUp);
 
   if (!wants || !granted) return null;
 
@@ -139,40 +145,128 @@ export function BackupReminder(): React.JSX.Element | null {
       visible
       onClose={answer}
       closeLabel={t.backup.reminderLater}
-      style={{ maxWidth: 360, alignItems: 'center', gap: theme.spacing.lg }}
+      style={{ maxWidth: 312, alignItems: 'center', gap: 8, padding: 14 }}
     >
+      <View style={{ alignSelf: 'stretch', flexDirection: 'row', justifyContent: 'flex-end' }}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t.backup.reminderLater}
+          onPress={answer}
+          style={({ pressed }) => ({
+            width: 28,
+            height: 28,
+            borderRadius: 14,
+            backgroundColor: theme.color.border,
+            alignItems: 'center',
+            justifyContent: 'center',
+            opacity: pressed ? 0.8 : 1,
+          })}
+        >
+          <Ionicons name="close" size={16} color={theme.color.textMuted} />
+        </Pressable>
+      </View>
+
+      <BackupIllustration height={104} />
+
+      <Text variant="title" align="center" style={{ fontSize: 20 }}>
+        {t.backup.reminderTitle}
+      </Text>
+      <Text variant="caption" tone="muted" align="center" numberOfLines={2}>
+        {reads?.lastBackupAt == null ? t.backup.reminderBodyNever : t.backup.reminderBodyStale}
+      </Text>
+
       <View
         style={{
-          width: 72,
-          height: 72,
-          borderRadius: 36,
-          backgroundColor: theme.color.brandSoft,
+          alignSelf: 'stretch',
+          flexDirection: 'row',
           alignItems: 'center',
-          justifyContent: 'center',
+          justifyContent: 'space-between',
+          backgroundColor: theme.color.brandSoft,
+          borderRadius: theme.radius.lg,
+          paddingVertical: 6,
+          gap: 6,
         }}
       >
-        <Ionicons name="cloud-upload-outline" size={38} color={theme.color.brand} />
-      </View>
-
-      <View style={{ gap: theme.spacing.sm }}>
-        <Text variant="heading" align="center">
-          {t.backup.reminderTitle}
-        </Text>
-        <Text variant="body" tone="muted" align="center">
-          {reads?.lastBackupAt == null ? t.backup.reminderBodyNever : t.backup.reminderBodyStale}
-        </Text>
-      </View>
-
-      <View style={{ alignSelf: 'stretch', gap: theme.spacing.sm }}>
-        <Button label={t.backup.reminderAction} size="lg" fullWidth onPress={onBackUp} />
-        <Button
-          label={t.backup.reminderLater}
-          variant="ghost"
-          size="lg"
-          fullWidth
-          onPress={answer}
+        <FeatureChip
+          icon="shield-checkmark-outline"
+          iconColor={theme.color.brand}
+          label={t.backup.reminderFeatureSafe}
+        />
+        <FeatureChip
+          icon="phone-portrait-outline"
+          iconColor={theme.color.brand}
+          label={t.backup.reminderFeatureDevices}
+        />
+        <FeatureChip
+          icon="cloud-done-outline"
+          iconColor={DRIVE_GREEN}
+          label={t.backup.reminderFeatureQuick}
         />
       </View>
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t.backup.reminderAction}
+        onPress={pressBackUp}
+        style={({ pressed }) => ({ alignSelf: 'stretch', opacity: pressed ? 0.9 : 1 })}
+      >
+        <Gradient
+          radius={theme.radius.pill}
+          colors={theme.gradient.brand}
+          style={{
+            height: 46,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: theme.spacing.sm,
+          }}
+        >
+          <Ionicons name="triangle-outline" size={16} color="#FFFFFF" />
+          <Text variant="subheading" tone="onBrand">
+            {t.backup.reminderAction}
+          </Text>
+          <Ionicons name="chevron-forward" size={16} color="#FFFFFF" />
+        </Gradient>
+      </Pressable>
+
+      <Button
+        label={t.backup.reminderLater}
+        variant="ghost"
+        size="sm"
+        fullWidth
+        style={{ height: 36 }}
+        onPress={answer}
+      />
     </Popup>
+  );
+}
+
+/** One chip of the feature strip: a small icon beside a one-line label, laid
+ *  out in a row rather than stacked, so the whole strip reads as a single
+ *  compact band instead of three tall cells. */
+function FeatureChip({
+  icon,
+  iconColor,
+  label,
+}: {
+  icon: 'shield-checkmark-outline' | 'phone-portrait-outline' | 'cloud-done-outline';
+  iconColor: string;
+  label: string;
+}) {
+  return (
+    <View
+      style={{
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 4,
+      }}
+    >
+      <Ionicons name={icon} size={14} color={iconColor} />
+      <Text variant="micro" tone="muted" numberOfLines={1}>
+        {label}
+      </Text>
+    </View>
   );
 }

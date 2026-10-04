@@ -46,6 +46,7 @@ import { CurrencySheet } from '@/components/expense/CurrencySheet';
 import { DescriptionField } from '@/components/expense/DescriptionField';
 import { ChoiceRow, SheetOverlay } from '@/components/expense/SheetOverlay';
 import { DetailRow, DetailRows } from '@/components/DetailRows';
+import { ReceiptAddRow } from '@/components/ReceiptAddRow';
 import {
   useCreateCapture,
   useDeleteCapture,
@@ -158,6 +159,169 @@ function isCurrentTrip(group: GroupRow): boolean {
  * new tap carries a fresh `Date.now()` nonce and so still opens the camera.
  */
 const consumedScans = new Set<string>();
+
+/**
+ * The bill, as a flush row rather than a boxed card: the same `ReceiptAddRow`
+ * look the expense screen's own empty gallery wears (A46), so this screen's
+ * one mismatch with its sibling forms is gone. A plain camera glyph sits in
+ * the tinted disc before a photo exists; once one does, the row's own
+ * thumbnail takes its place and opens the full-frame preview instead of
+ * re-scanning — tapping the rest of the row still re-scans, Browse still
+ * takes one from the gallery. The itemised breakdown a confident scan read
+ * off the bill still unfolds beneath once there is one to show — this is the
+ * one part of the screen allowed to grow past the fold, since it only
+ * appears once a receipt already has.
+ */
+function ReceiptField({
+  photo,
+  scanning,
+  parsed,
+  currency,
+  locale,
+  disabled,
+  onAdd,
+  onBrowse,
+  onPreview,
+}: {
+  photo: PickedImage | null;
+  scanning: boolean;
+  parsed: HeuristicReceipt | null;
+  currency: string;
+  locale: string;
+  disabled: boolean;
+  onAdd: () => void;
+  onBrowse: () => void;
+  onPreview: () => void;
+}): React.JSX.Element {
+  const theme = useTheme();
+  const { t } = useStrings();
+
+  // Browse (or, while scanning, a spinner in its place) is the row's trailing
+  // control either way — only the leading glyph and the row's own label
+  // change once a photo exists.
+  const trailing = scanning ? (
+    <ActivityIndicator color={theme.color.brand} />
+  ) : (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={t.captureForm.browse}
+      disabled={disabled}
+      onPress={onBrowse}
+      hitSlop={6}
+      style={({ pressed }) => ({
+        paddingHorizontal: theme.spacing.sm,
+        paddingVertical: theme.spacing.xs,
+        borderRadius: theme.radius.pill,
+        backgroundColor: theme.color.brandSoft,
+        opacity: pressed ? 0.6 : 1,
+      })}
+    >
+      <Text variant="caption" tone="brand" style={{ fontWeight: '700' }}>
+        {t.captureForm.browse}
+      </Text>
+    </Pressable>
+  );
+
+  return (
+    <View style={{ gap: theme.spacing.sm }}>
+      {photo ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t.captures.addReceipt}
+          disabled={scanning || disabled}
+          onPress={onAdd}
+          style={({ pressed }) => ({
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: theme.spacing.md,
+            minHeight: 48,
+            opacity: pressed ? 0.7 : 1,
+          })}
+        >
+          {/* Tap the thumbnail to see the whole bill: the small crop is enough
+              to confirm the right photo attached, but reading the lines needs
+              the full frame. A sibling of the row's own Pressable, so a tap
+              here previews rather than retaking — only the row's text and
+              background re-scan. */}
+          <Pressable
+            accessibilityRole="imagebutton"
+            accessibilityLabel={t.captures.previewReceipt}
+            onPress={onPreview}
+            style={{ borderRadius: theme.radius.md, overflow: 'hidden' }}
+          >
+            <Image
+              source={{ uri: photo.uri }}
+              style={{ width: 40, height: 40 }}
+              contentFit="cover"
+              transition={150}
+            />
+          </Pressable>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text variant="subheading" numberOfLines={1}>
+              {t.captures.addReceipt}
+            </Text>
+          </View>
+          {trailing}
+        </Pressable>
+      ) : (
+        <ReceiptAddRow
+          title={t.captures.addReceipt}
+          subtitle={t.captureForm.receiptSub}
+          disabled={disabled}
+          onPress={onAdd}
+          accessibilityLabel={t.captures.addReceipt}
+          accessibilityHint={t.captureForm.receiptSub}
+          trailing={trailing}
+        />
+      )}
+
+      {/* What the phone read off the bill. A confident parse shows the lines
+          and the total it filled in; a scan it could not make sense of says
+          so and leaves the amount to the person. */}
+      {parsed && parsed.items.length > 0 ? (
+        <View style={{ gap: theme.spacing.sm }}>
+          <Divider />
+          <Row style={{ justifyContent: 'space-between' }}>
+            <Text variant="caption" tone="muted">
+              {t.captures.itemizedTitle}
+            </Text>
+            <Text variant="caption" tone="muted">
+              {plural(locale, parsed.items.length, t.captures.itemCount)}
+            </Text>
+          </Row>
+          {parsed.items.map((item, index) => (
+            <Row
+              key={`${item.label}-${index}`}
+              style={{ justifyContent: 'space-between', gap: theme.spacing.md }}
+            >
+              <Text variant="body" numberOfLines={1} style={{ flex: 1 }}>
+                {item.label}
+              </Text>
+              <MoneyText
+                amount={safeMinor(item.total)}
+                currency={currency as never}
+                locale={locale}
+                variant="body"
+              />
+            </Row>
+          ))}
+          <Divider />
+          <Row style={{ justifyContent: 'space-between' }}>
+            <Text variant="subheading">{t.captures.amount}</Text>
+            <MoneyText
+              amount={safeMinor(parsed.grandTotal)}
+              currency={currency as never}
+              locale={locale}
+              variant="subheading"
+            />
+          </Row>
+        </View>
+      ) : parsed && photo ? (
+        <Callout tone="info">{t.captures.couldNotRead}</Callout>
+      ) : null}
+    </View>
+  );
+}
 
 /**
  * Catch an expense before it has a group.
@@ -598,29 +762,25 @@ export default function CaptureScreen() {
 
   return (
     <Screen edges={['top']}>
-      <CaptureHeader
-        title={isEditing ? t.captures.editTitle : t.captures.newTitle}
-        subtitle={isEditing ? undefined : t.captureForm.headerSub}
-      />
+      <CaptureHeader title={isEditing ? t.captures.editTitle : t.captures.newTitle} />
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
           paddingHorizontal: theme.spacing.lg,
-          paddingTop: theme.spacing.lg,
-          paddingBottom: theme.spacing.xl,
-          gap: theme.spacing.lg,
+          paddingTop: theme.spacing.md,
+          paddingBottom: theme.spacing.lg,
+          gap: theme.spacing.md,
         }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
         {/* Amount-forward: the number is the point of this screen, so it leads,
-            on a card of its own with the currency beside it (the
-            Splitwise/PayPal amount-first pattern). Shared with add-expense;
-            `soft` is this screen's brand-tinted steppers, chips and flag. */}
-        <Card style={{ gap: 0 }}>
-          <Text variant="body" tone="muted">
-            {t.captures.amount}
-          </Text>
+            as one compact line with the currency beside it (the Splitwise/
+            PayPal amount-first pattern) rather than a label over a hero figure
+            — the currency pill and the digits already say "amount" on their
+            own. Shared with add-expense; `soft` is this screen's brand-tinted
+            steppers, chips and flag. */}
+        <Card style={{ padding: theme.spacing.md }}>
           <AmountHeader
             currency={currency}
             amount={amount}
@@ -629,147 +789,6 @@ export default function CaptureScreen() {
             soft
           />
         </Card>
-
-        {/* The bill, right under the amount — the order add-expense reads a bill
-            in, and for the same reason: scanning one fills in the amount above
-            and the note below, so it belongs before the fields it populates, not
-            after them. It used to sit at the foot of this form, last of
-            everything, which meant the one shortcut that saves the most typing
-            was the one thing a person had to scroll past six other fields to
-            find.
-
-            Simpler than add-expense's pair of buttons on purpose: this capture
-            has no group yet, so there is no metered `scanReceipt` edge function
-            to call and no per-group receipt cap to draw around it — only the
-            on-device camera and OCR (A5), which is `addReceipt` below. The whole
-            dashed tile opens the camera — a capture is usually filed at the
-            till, camera in hand — and Browse takes one from the gallery. */}
-        <View
-          style={{
-            gap: theme.spacing.md,
-            padding: theme.spacing.md,
-            borderRadius: theme.radius.lg,
-            borderWidth: 1.5,
-            borderStyle: 'dashed',
-            borderColor: theme.scheme === 'dark' ? theme.color.border : '#CFC7F5',
-            backgroundColor: theme.color.surface,
-          }}
-        >
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t.captures.addReceipt}
-            disabled={scanning || saving}
-            onPress={() => void addReceipt()}
-            style={({ pressed }) => ({
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: theme.spacing.md,
-              opacity: pressed ? 0.7 : 1,
-            })}
-          >
-            <ReceiptArt />
-            <View style={{ flex: 1 }}>
-              <Text variant="subheading">{t.captures.addReceipt}</Text>
-              <Text variant="caption" tone="muted" numberOfLines={2}>
-                {t.captureForm.receiptSub}
-              </Text>
-            </View>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t.captureForm.browse}
-              disabled={scanning || saving}
-              onPress={() => void addReceipt({ fromLibrary: true })}
-              hitSlop={6}
-              style={({ pressed }) => ({
-                paddingHorizontal: theme.spacing.md,
-                paddingVertical: theme.spacing.sm,
-                borderRadius: theme.radius.pill,
-                backgroundColor: theme.color.brandSoft,
-                opacity: pressed ? 0.6 : 1,
-              })}
-            >
-              <Text variant="body" tone="brand" style={{ fontWeight: '700' }}>
-                {t.captureForm.browse}
-              </Text>
-            </Pressable>
-          </Pressable>
-          {scanning ? <ActivityIndicator color={theme.color.brand} /> : null}
-          {photo ? (
-            // Tap the thumbnail to see the whole bill: the cropped cover view is
-            // enough to confirm the right photo attached, but reading the lines
-            // needs the full frame.
-            <Pressable
-              accessibilityRole="imagebutton"
-              accessibilityLabel={t.captures.previewReceipt}
-              onPress={() => setPreviewing(true)}
-              style={{ borderRadius: theme.radius.md, overflow: 'hidden' }}
-            >
-              <Image
-                source={{ uri: photo.uri }}
-                style={{ width: '100%', height: 180 }}
-                contentFit="cover"
-                transition={150}
-              />
-              <View
-                style={{
-                  position: 'absolute',
-                  right: theme.spacing.sm,
-                  bottom: theme.spacing.sm,
-                  padding: theme.spacing.xs,
-                  borderRadius: theme.radius.sm,
-                  backgroundColor: 'rgba(10, 10, 26, 0.55)',
-                }}
-              >
-                <Ionicons name="expand-outline" size={iconSize.sm} color="#ffffff" />
-              </View>
-            </Pressable>
-          ) : null}
-
-          {/* What the phone read off the bill. A confident parse shows the lines
-              and the total it filled in; a scan it could not make sense of says
-              so and leaves the amount to the person. */}
-          {parsed && parsed.items.length > 0 ? (
-            <View style={{ gap: theme.spacing.sm }}>
-              <Divider />
-              <Row style={{ justifyContent: 'space-between' }}>
-                <Text variant="caption" tone="muted">
-                  {t.captures.itemizedTitle}
-                </Text>
-                <Text variant="caption" tone="muted">
-                  {plural(locale, parsed.items.length, t.captures.itemCount)}
-                </Text>
-              </Row>
-              {parsed.items.map((item, index) => (
-                <Row
-                  key={`${item.label}-${index}`}
-                  style={{ justifyContent: 'space-between', gap: theme.spacing.md }}
-                >
-                  <Text variant="body" numberOfLines={1} style={{ flex: 1 }}>
-                    {item.label}
-                  </Text>
-                  <MoneyText
-                    amount={safeMinor(item.total)}
-                    currency={currency as never}
-                    locale={locale}
-                    variant="body"
-                  />
-                </Row>
-              ))}
-              <Divider />
-              <Row style={{ justifyContent: 'space-between' }}>
-                <Text variant="subheading">{t.captures.amount}</Text>
-                <MoneyText
-                  amount={safeMinor(parsed.grandTotal)}
-                  currency={currency as never}
-                  locale={locale}
-                  variant="subheading"
-                />
-              </Row>
-            </View>
-          ) : parsed && photo ? (
-            <Callout tone="info">{t.captures.couldNotRead}</Callout>
-          ) : null}
-        </View>
 
         {/* Description, as a single underlined field rather than a boxed card —
             with the mic to speak it instead of type (A5). Group names are handed
@@ -784,32 +803,65 @@ export default function CaptureScreen() {
           boxed
         />
 
-        {/* What for, paid with, destination and date, folded into one card of
-            divided rows rather than four scattered controls — the facts a
-            capture carries, grouped so it reads as one block, the same
-            `DetailRows` the group expense form and the expense screen wear.
+        {/* The bill, right under the description — the same flush
+            `ReceiptAddRow` look the expense screen's own empty gallery wears
+            (A46), not the boxed tile this used to be. Tapping the row opens
+            the camera — a capture is usually filed at the till, camera in
+            hand — Browse takes one from the gallery, and an attached photo's
+            own thumbnail opens the full-frame preview instead of re-scanning.
+            The itemised breakdown a confident scan read off the bill still
+            unfolds beneath once there is one to show — it is the one part of
+            this screen allowed to grow past the fold (see this screen's
+            compactness target: no receipt, no scroll). */}
+        <ReceiptField
+          photo={photo}
+          scanning={scanning}
+          parsed={parsed}
+          currency={currency}
+          locale={locale}
+          disabled={saving}
+          onAdd={() => void addReceipt()}
+          onBrowse={() => void addReceipt({ fromLibrary: true })}
+          onPreview={() => setPreviewing(true)}
+        />
+
+        {/* What for, paid with, destination, date and place, folded into one
+            card of divided rows rather than scattered controls and separate
+            tall cards — the facts a capture carries, grouped so it reads as
+            one dense list, the same `DetailRows` the group expense form and
+            the expense screen wear. `dense` shrinks every row in this card to
+            a 48pt line with a 28pt icon disc — label, value, chevron — so five
+            facts read as one short list rather than a stack of full-size rows.
 
             What for and paid with used to be lanes of chips under the
             description — a picker each, so choosing them read as a different
             kind of question from the group and the date sitting in their own
-            card below. Now all four are the same kind of row: a short,
-            already-chosen answer, changed from a sheet. `CategoryRow` and
-            `PaymentMethodRow` are the exact rows add-expense's own facts card
-            uses for the same two fields, so a capture assigned into a group
-            keeps reading as the same two facts rather than restating them in a
-            different shape.
+            card below. Now every fact is the same kind of row: a short,
+            already-chosen answer, changed from a sheet (or, for location,
+            unfolded in place). `CategoryRow` and `PaymentMethodRow` are the
+            exact rows add-expense's own facts card uses for the same two
+            fields, so a capture assigned into a group keeps reading as the
+            same two facts rather than restating them in a different shape.
 
             "Decide later" is the default group, and with it chosen this card
-            asks four things about a capture and nothing about splitting — there
-            is nobody to split it among yet. Picking any other group from this
-            row's sheet does not stay on this card at all: it hands the draft
+            asks about a capture and nothing about splitting — there is nobody
+            to split it among yet. Picking any other group from this row's
+            sheet does not stay on this card at all: it hands the draft
             straight to that group's add-expense form, where who paid and how it
             is split are asked for real (see this screen's own header comment).
 
             The date picker is wrapped with its row rather than left as a
             sibling: `DetailRows` puts a hairline in every gap between its
             children, so an unfolded date wheel counted as a row of its own
-            would be ruled off from the row that opened it. */}
+            would be ruled off from the row that opened it. Location (A43) used
+            to sit below this card as a pair of tiles with a heading of its
+            own; `compact` folds it into the same card as a one-line row — a
+            pin, the address, a tiny map thumbnail — that unfolds the full map
+            and its change/clear actions in place on tap, the same disclosure
+            the expense screen's own Location row uses. Still optional and
+            opt-in, and still off while editing (reading the phone's fix on a
+            saved expense would quietly move a restaurant in Goa to the
+            reader's kitchen a week later). */}
         <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
           <DetailRows>
             <CategoryRow
@@ -817,34 +869,34 @@ export default function CaptureScreen() {
               meta={categoryMeta}
               onPress={() => setPickingCategory(true)}
               label={t.captureForm.category}
-              subtitle={t.captureForm.categorySub}
               tinted
+              dense
             />
             <PaymentMethodRow
               value={paymentMethod}
               onPress={() => setPickingPayment(true)}
-              subtitle={t.captureForm.paidWithSub}
               tinted
+              dense
             />
             <DetailRow
               icon="people"
               tint={theme.tint.sky}
-              subtitle={t.captureForm.groupSub}
               label={t.captures.group}
               value={targetGroupName}
               placeholder={!targetGroup}
               onPress={() => setPickingGroup(true)}
               accessibilityLabel={`${t.captures.group}: ${targetGroupName}`}
+              dense
             />
             <View>
               <DetailRow
                 icon="calendar"
                 tint={theme.tint.pink}
-                subtitle={t.captureForm.dateSub}
                 label={t.captures.date}
                 value={showDate(date, locale)}
                 onPress={() => setEditingDate(true)}
                 accessibilityLabel={`${t.captures.date}: ${showDate(date, locale)}`}
+                dense
               />
               {editingDate ? (
                 <DateTimePicker
@@ -857,32 +909,22 @@ export default function CaptureScreen() {
                 />
               ) : null}
             </View>
+            <View style={{ paddingVertical: theme.spacing.sm }}>
+              <LocationField
+                value={location}
+                onChange={setLocation}
+                autoFill={!isEditing}
+                compact
+              />
+            </View>
           </DetailRows>
         </Card>
-
-        {/* Where it happened (A43) — below the facts, not above them.
-
-            It sat between the note and this card, which put two buttons nobody
-            presses on most expenses directly in the path of the four things
-            everybody fills in. It is still optional and still opt-in; what
-            changed is that it no longer interrupts.
-
-            `autoFill` only does anything for somebody who has already granted
-            the permission on an earlier expense — it never asks — and the cross
-            on the result clears it for good on this form.
-
-            Off while editing. A saved expense already has its answer, including
-            when that answer was "nowhere": reading the phone's fix on an edit
-            would quietly move a restaurant in Goa to the reader's kitchen a
-            week later. The field's own guard only covers an expense that
-            *recorded* a place; this covers the ones that did not. */}
-        <LocationField value={location} onChange={setLocation} autoFill={!isEditing} tiles />
       </ScrollView>
 
       <View
         style={{
-          paddingHorizontal: theme.spacing.xl,
-          paddingTop: theme.spacing.md,
+          paddingHorizontal: theme.spacing.lg,
+          paddingTop: theme.spacing.sm,
           // The bar carries the navigation-bar inset itself rather than letting
           // the Screen hold it off the bottom edge: its fill and hairline reach
           // the edge, Save keeps a breath under it, and the picker sheets — which
@@ -1231,19 +1273,21 @@ function GroupPicker({
 }
 
 /**
- * The screen's header: close on the left, then a soft brand disc with the
- * receipt glyph beside the title and a line on what the screen is for.
+ * The screen's header: close on the left, a small brand disc with the receipt
+ * glyph beside the title. Shorter than it was — one line, a smaller disc, and
+ * no subtitle under the title — so it costs the screen as little height as a
+ * header can and still say what it is and offer the way out.
  */
-function CaptureHeader({ title, subtitle }: { title: string; subtitle?: string }) {
+function CaptureHeader({ title }: { title: string }) {
   const theme = useTheme();
   const { t } = useStrings();
   return (
     <Row
       style={{
         alignItems: 'center',
-        gap: theme.spacing.md,
+        gap: theme.spacing.sm,
         paddingHorizontal: theme.spacing.lg,
-        paddingTop: theme.spacing.md,
+        paddingTop: theme.spacing.sm,
       }}
     >
       <IconButton label={t.common.close} onPress={() => router.back()}>
@@ -1251,74 +1295,22 @@ function CaptureHeader({ title, subtitle }: { title: string; subtitle?: string }
       </IconButton>
       <View
         style={{
-          width: 52,
-          height: 52,
-          borderRadius: 26,
+          width: 36,
+          height: 36,
+          borderRadius: 18,
           backgroundColor: theme.color.brandSoft,
           alignItems: 'center',
           justifyContent: 'center',
         }}
       >
-        <Ionicons name="receipt-outline" size={iconSize.xl} color={theme.color.brand} />
+        <Ionicons name="receipt-outline" size={iconSize.lg} color={theme.color.brand} />
       </View>
       <View style={{ flex: 1 }}>
         <Text variant="title" numberOfLines={1}>
           {title}
         </Text>
-        {subtitle ? (
-          <Text variant="caption" tone="muted" numberOfLines={1}>
-            {subtitle}
-          </Text>
-        ) : null}
       </View>
     </Row>
-  );
-}
-
-/** A bill with a camera badge, drawn from views: the receipt tile's picture. */
-function ReceiptArt() {
-  const theme = useTheme();
-  return (
-    <View
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
-      style={{ width: 60, height: 60 }}
-    >
-      <View
-        style={{
-          width: 52,
-          height: 56,
-          borderRadius: theme.radius.md,
-          backgroundColor: theme.color.brandSoft,
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <Ionicons
-          name="document-text"
-          size={28}
-          color={theme.color.brand}
-          style={{ opacity: 0.55 }}
-        />
-      </View>
-      <View
-        style={{
-          position: 'absolute',
-          end: 0,
-          bottom: 0,
-          width: 26,
-          height: 26,
-          borderRadius: 13,
-          backgroundColor: theme.color.brand,
-          borderWidth: 2,
-          borderColor: theme.color.surface,
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <Ionicons name="camera" size={13} color={theme.color.onBrand} />
-      </View>
-    </View>
   );
 }
 
@@ -1350,7 +1342,7 @@ function SaveButton({
           alignItems: 'center',
           justifyContent: 'center',
           gap: theme.spacing.sm,
-          minHeight: 56,
+          minHeight: 46,
         }}
       >
         <Text variant="subheading" style={{ color: theme.color.onBrand, fontWeight: '700' }}>

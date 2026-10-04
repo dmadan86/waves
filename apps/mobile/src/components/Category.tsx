@@ -206,6 +206,7 @@ export function CategoryRow({
   label: title,
   subtitle,
   tinted = false,
+  dense = false,
 }: {
   value: string | null;
   /** The custom tag's denormalised display, when the value is a custom tag. */
@@ -218,6 +219,9 @@ export function CategoryRow({
   label?: string;
   subtitle?: string;
   tinted?: boolean;
+  /** The compact "Save an expense" card: a 28pt disc and tighter row, same as
+   *  every other fact in that card. See {@link DetailRow}'s own `dense`. */
+  dense?: boolean;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
@@ -242,6 +246,7 @@ export function CategoryRow({
       value={label}
       onPress={onPress}
       accessibilityHint={accessibilityHint}
+      dense={dense}
     />
   );
 }

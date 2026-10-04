@@ -9,26 +9,18 @@
  * the type / scan / speak sheet. All four wear the same quiet disc: none is
  * lit up over the others. Add expense and New group keep their tour anchors,
  * so the coach-marks still spotlight them.
+ *
+ * Draws itself with `QuickActionsRow`, the same disc-and-label strip
+ * Friends' own quick actions use — brand-tinted here, lilac there.
  */
 
-import type { ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, View } from 'react-native';
 
-import { Text, useTheme } from '@waves/ui';
+import { useTheme } from '@waves/ui';
 
 import { GroupAddIcon } from '@/components/GroupAddIcon';
+import { QuickActionsRow, type QuickAction } from '@/components/home/QuickActionsRow';
 import { useStrings } from '@/i18n';
-import { TourTarget } from '@/lib/tour';
-
-interface QuickAction {
-  key: string;
-  label: string;
-  glyph: (color: string) => ReactNode;
-  onPress: () => void;
-  onLongPress?: () => void;
-  tourId?: string;
-}
 
 export function HomeQuickActions({
   onAddExpense,
@@ -80,72 +72,13 @@ export function HomeQuickActions({
     },
   ];
 
-  // The strip along the foot of the balance card: four equal columns, each a
-  // small soft brand disc over a one-line word. It carries the card's own bottom corners so
-  // it can run edge to edge without the card clipping (and losing its shadow).
-  // No fill and no rule of its own: the card's landscape runs on under the
-  // actions, so the strip reads as part of the card rather than a band cut
-  // off from it.
   return (
-    <View
-      style={{
-        flexDirection: 'row',
-        borderBottomLeftRadius: radius,
-        borderBottomRightRadius: radius,
-        paddingVertical: theme.spacing.sm,
-        paddingHorizontal: theme.spacing.xs,
-      }}
-    >
-      {actions.map((action) => {
-        const disc = (
-          <View
-            style={{
-              width: DISC,
-              height: DISC,
-              borderRadius: DISC / 2,
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: theme.color.brandSoft,
-            }}
-          >
-            {action.glyph(theme.color.brand)}
-          </View>
-        );
-        const button = (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={action.label}
-            onPress={action.onPress}
-            onLongPress={action.onLongPress}
-            hitSlop={4}
-            style={({ pressed }) => ({
-              alignItems: 'center',
-              gap: 4,
-              paddingHorizontal: 2,
-              opacity: pressed ? 0.6 : 1,
-            })}
-          >
-            {disc}
-            <Text
-              variant="micro"
-              align="center"
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.8}
-              style={{ fontWeight: '600', color: theme.color.text }}
-            >
-              {action.label}
-            </Text>
-          </Pressable>
-        );
-        return (
-          <View key={action.key} style={{ flex: 1 }}>
-            {action.tourId ? <TourTarget id={action.tourId}>{button}</TourTarget> : button}
-          </View>
-        );
-      })}
-    </View>
+    <QuickActionsRow
+      actions={actions}
+      radius={radius}
+      discColor={theme.color.brandSoft}
+      iconColor={theme.color.brand}
+      rowPadding={theme.spacing.xs}
+    />
   );
 }
-
-const DISC = 34;

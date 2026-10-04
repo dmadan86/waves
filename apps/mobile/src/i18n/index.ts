@@ -1548,16 +1548,11 @@ export interface UiStrings {
     allSquareBody: string;
     owesYou: string;
     youOweThem: string;
-    /** The friends balance card's subline, how many friends you are owed by. */
-    owedByCount: PluralForms;
-    /** The friends balance card's subline, how many friends you owe. */
-    owingCount: PluralForms;
-    /** The green "owed to you" pill's short label, beside its own figure —
-     *  distinct from `owedByCount`'s full sentence, which the subline above
-     *  the figure still uses. */
-    pillOwed: PluralForms;
-    /** The red "you owe" pill's short label. */
-    pillOwing: PluralForms;
+    /** The friends balance card's two-column row, left side — "Owed to you"
+     *  over the figure, the same shape Home's own card wears over "You lent". */
+    owedToYouLabel: string;
+    /** Either side of that same row's count, under the figure — "17 friends". */
+    friendCount: PluralForms;
     /** Headline card label over the overall per-currency balances. */
     overall: string;
     /** Headline line when a currency's overall net is in your favour. */
@@ -1863,7 +1858,30 @@ export interface UiStrings {
    */
   quickExpense: {
     notePlaceholder: string;
+    /** The camera button beside the note field, and the chooser's title. */
+    addReceipt: string;
+    /** The chooser's two doors: the camera, and the photo library. */
+    takePhoto: string;
+    chooseFromLibrary: string;
+    /** The attached receipt's chip: the "x" that drops it before saving. */
+    removeReceipt: string;
     title: string;
+    /** Under the title, naming what the sheet is for in one line. */
+    subtitle: string;
+    /** The "Category (optional)" label, and the dropdown pill's fallback
+     *  before anything is chosen. */
+    category: string;
+    /** The "(optional)" that follows the category label, said separately so
+     *  it can be drawn in a quieter weight than the label itself. */
+    categoryOptional: string;
+    /** The dropdown pill's spoken form. {category} is what it currently shows. */
+    categoryPicker: string;
+    /** The circular row's last glyph: the rest of the catalog, in a sheet. */
+    moreCategories: string;
+    /** The short link beside "Where does it go?" — opens the full form's own
+     *  split editor, the one place this sheet's always-equal split can be
+     *  changed. */
+    splitLink: string;
     /** Above the row of recent destinations. */
     where: string;
     /** Opens the full Groups/People picker the voice review already uses —
@@ -2059,6 +2077,14 @@ export interface UiStrings {
     /** Chip label on a pre-aimed row: "Add to {name}" (the group it was tagged for). */
     addTo: string;
     assignTitle: string;
+    /** The assign sheet's own way to the editor: a pencil beside the amount
+     *  it is about to place, so fixing a wrong field never has to mean
+     *  backing out to the row's ⋯ first. Shown as a short pill ("Edit
+     *  expense") and, with `{item}` replaced by the draft's own name, as the
+     *  tap target's screen-reader label. Hidden when more than one draft is
+     *  riding on the sheet — there is no single expense left to edit. */
+    assignEditExpense: string;
+    assignEditExpenseFor: string;
     assignSearch: string;
     assignNew: string;
     assignNewBody: string;
@@ -2097,6 +2123,20 @@ export interface UiStrings {
      *  claims anything about what was spent, because the phone does not know. */
     checkInTitle: string;
     checkInBody: string;
+    /** The compact hero's top-right glyphs. Search opens Bank messages, which
+     *  is where Review's own search field already lives (`captures/sms`);
+     *  filter opens a small sheet holding whichever of "look now" / "from a
+     *  message" this phone's hero used to show inline, now that the row only
+     *  has room for two round buttons. */
+    heroSearch: string;
+    heroFilter: string;
+    /** The pill over the first day heading: "Sort by: {option}", and the
+     *  sheet it opens, headed by the plain form of the same question. */
+    sortByLabel: string;
+    sortTitle: string;
+    sortNewest: string;
+    sortOldest: string;
+    sortAmount: string;
   };
   /** Attaching where a spend happened (A43): the opt-in control on the expense
    *  forms and the tappable place on the expense detail. */
@@ -2336,6 +2376,10 @@ export interface UiStrings {
     reminderBodyStale: string;
     reminderAction: string;
     reminderLater: string;
+    /** The three cells of the reminder's feature strip — one short label each. */
+    reminderFeatureSafe: string;
+    reminderFeatureDevices: string;
+    reminderFeatureQuick: string;
 
     /** Why a run did nothing. Each one is a different way out. */
     refusedNotConnected: string;
@@ -2535,11 +2579,19 @@ export interface UiStrings {
     role: string;
     makeAdmin: string;
     removeAdmin: string;
+    /** Compact member page: the role row's label, which opens the toggle
+     *  rather than naming the action outright. */
+    manageRole: string;
+    /** That row's subtitle when the member is an admin today. */
+    currentRoleAdmin: string;
+    /** That row's subtitle when the member is a plain member today. */
+    currentRoleMember: string;
     adminNote: string;
     adminNeedsAccount: string;
     you: string;
     memberName: string;
-    /** Member detail: label over their per-currency outlay (currency exposure). */
+    /** Member detail: label over their per-currency outlay (currency exposure),
+     *  and the compact page's "Total paid" summary tile. */
     paidAcross: string;
     /** Heading over what this person put into this group. */
     inThisGroup: string;
@@ -2547,6 +2599,16 @@ export interface UiStrings {
     expensesLabel: string;
     /** Heading over role and blocking. */
     manageTitle: string;
+    /** The compact member page's two-tile card: paid and expense count. */
+    groupSummary: string;
+    /** That card's link to the group's own spending breakdown. */
+    viewDetails: string;
+    /** The compact member page's secondary button — opens the group's
+     *  existing invite/QR share sheet. */
+    shareGroup: string;
+    /** The expense list's sort pill, newest-first (the default) and oldest-first. */
+    sortNewestFirst: string;
+    sortOldestFirst: string;
     /** Said when a typed UPI handle is not a handle. */
     upiInvalid: string;
     ghostNote: string;
@@ -2727,6 +2789,8 @@ export interface UiStrings {
     exactly: string;
     /** The amount field beside one person in an exact split. `{name}` is theirs. */
     exactShareLabel: string;
+    /** A shares field with more than two decimal places — half a share is fine, a third decimal is not. */
+    sharesDecimalPlaces: string;
     splitBetween: string;
     ofCount: string;
     saveChanges: string;
@@ -3564,6 +3628,37 @@ export interface UiStrings {
     whatWouldCost: string;
     whatNeverWill: string;
     whatNeverWillBody: string;
+  };
+  /**
+   * The paywall (`/paywall`, behind the `paywall` route flag): two Pro plans
+   * priced from the store, a free trial on the yearly one, and the
+   * restore-purchases row both app stores require.
+   */
+  paywall: {
+    title: string;
+    yearlyTitle: string;
+    yearlyBadge: string;
+    /** The yearly plan card's cadence suffix, beside its price — "/yr". */
+    perYear: string;
+    /** The monthly plan card's cadence suffix, beside its price — "/mo". */
+    perMonth: string;
+    perMonthEquivalent: string;
+    monthlyTitle: string;
+    monthlySubtitle: string;
+    trialLine: string;
+    noTrialLine: string;
+    approxNote: string;
+    subscribe: string;
+    subscribing: string;
+    restore: string;
+    restoring: string;
+    restoredSuccess: string;
+    restoredNothing: string;
+    purchasePending: string;
+    genericError: string;
+    alreadySubscribed: string;
+    terms: string;
+    privacy: string;
   };
   /**
    * Typing in a promotion code.
@@ -5333,10 +5428,8 @@ const en: UiStrings = {
     allSquareBody: 'Nobody owes you and you owe nobody. New balances show up here.',
     owesYou: 'Owes you',
     youOweThem: 'You owe',
-    owedByCount: { one: 'You are owed by {n} friend', other: 'You are owed by {n} friends' },
-    owingCount: { one: 'You owe {n} friend', other: 'You owe {n} friends' },
-    pillOwed: { one: '{n} owes you', other: '{n} owe you' },
-    pillOwing: { one: 'You owe {n}', other: 'You owe {n}' },
+    owedToYouLabel: 'Owed to you',
+    friendCount: { one: '{n} friend', other: '{n} friends' },
     overall: 'Overall',
     youAreOwed: 'You’re owed',
     nobodyOwesYou: 'Nobody owes you anything right now.',
@@ -5576,7 +5669,17 @@ const en: UiStrings = {
   },
   quickExpense: {
     notePlaceholder: 'Add a note (optional)',
+    addReceipt: 'Add receipt',
+    takePhoto: 'Take photo',
+    chooseFromLibrary: 'Choose from library',
+    removeReceipt: 'Remove receipt',
     title: 'Quick expense',
+    subtitle: 'Add an expense and split it with friends',
+    category: 'Category',
+    categoryOptional: '(optional)',
+    categoryPicker: 'Category, {category}',
+    moreCategories: 'More',
+    splitLink: 'Split equally',
     where: 'Where does it go?',
     otherPlaces: 'Others',
     advanced: 'Advanced',
@@ -5697,6 +5800,8 @@ const en: UiStrings = {
     assign: 'Add to group',
     addTo: 'Add to {name}',
     assignTitle: 'Add to a group',
+    assignEditExpense: 'Edit expense',
+    assignEditExpenseFor: 'Edit {item}',
     assignSearch: 'Search groups',
     assignNew: 'New group',
     assignNewBody: 'Create one and add this to it',
@@ -5727,6 +5832,13 @@ const en: UiStrings = {
     },
     checkInTitle: 'Anything to split today?',
     checkInBody: 'Add it now — it is harder to remember on Sunday.',
+    heroSearch: 'Search',
+    heroFilter: 'Filter',
+    sortByLabel: 'Sort by: {option}',
+    sortTitle: 'Sort by',
+    sortNewest: 'Newest',
+    sortOldest: 'Oldest',
+    sortAmount: 'Amount',
   },
   location: {
     label: 'Location',
@@ -5927,12 +6039,13 @@ const en: UiStrings = {
     restorePromptLaterLabel: 'Not now. Restore later from the Backup screen.',
     restorePromptWhere: 'You can do this later: tap the ••• menu on Home, then Backup.',
     reminderTitle: 'Back up your records',
-    reminderBodyNever:
-      "Your personal records are only on this phone. Back them up to your Google Drive so a lost or new phone doesn't take them with it.",
-    reminderBodyStale:
-      'Your last backup was more than a day ago. Back up now to keep everything since then safe in your Google Drive.',
+    reminderBodyNever: 'Your records live only on this phone. Back up to Drive to keep them safe.',
+    reminderBodyStale: 'Your last backup was over a day ago. Back up now to stay safe.',
     reminderAction: 'Back up now',
     reminderLater: 'Not now',
+    reminderFeatureSafe: 'Safe',
+    reminderFeatureDevices: 'Any device',
+    reminderFeatureQuick: 'Quick',
 
     refusedNotConnected: 'Link a Google account first.',
     refusedNoKey: 'Create your backup key first.',
@@ -6096,14 +6209,22 @@ const en: UiStrings = {
     role: 'Role',
     makeAdmin: 'Make admin',
     removeAdmin: 'Remove admin',
+    manageRole: 'Manage role',
+    currentRoleAdmin: 'Current role: Admin',
+    currentRoleMember: 'Current role: Member',
     adminNote: 'Admins can edit the group, manage members, and set the overall budget.',
     adminNeedsAccount: 'They have not joined yet. Only a member with an account can be an admin.',
     you: 'you',
     memberName: 'Member name',
-    paidAcross: 'Paid',
+    paidAcross: 'Total paid',
     inThisGroup: 'In this group',
     expensesLabel: 'Expenses',
     manageTitle: 'Manage',
+    groupSummary: 'Group summary',
+    viewDetails: 'View details',
+    shareGroup: 'Share group',
+    sortNewestFirst: 'Newest first',
+    sortOldestFirst: 'Oldest first',
     upiInvalid: 'That does not look like a UPI ID.',
     ghostNote: 'This person holds real balances. When they join, they can claim this history.',
     upiForGroup: 'UPI ID for this group',
@@ -6257,6 +6378,7 @@ const en: UiStrings = {
     equally: 'Equally',
     exactly: 'Exact',
     exactShareLabel: "{name}'s share",
+    sharesDecimalPlaces: 'Shares can have at most two decimal places.',
     shares: 'Shares',
     percent: 'Percent',
     splitBetween: 'Split between',
@@ -6982,6 +7104,30 @@ const en: UiStrings = {
     whatNeverWill: 'What never will',
     whatNeverWillBody:
       'The ledger. Groups, expenses, splits, balances, settling up, and getting all of it back out again — {free}. A ledger you can only half read is not a ledger.',
+  },
+  paywall: {
+    title: 'Choose your plan',
+    yearlyTitle: 'Yearly',
+    yearlyBadge: '{months} months free',
+    perYear: '/yr',
+    perMonth: '/mo',
+    perMonthEquivalent: '≈ {price} / month',
+    monthlyTitle: 'Monthly',
+    monthlySubtitle: 'Billed monthly',
+    trialLine: '{days}-day free trial, then {price} billed yearly. Cancel anytime.',
+    noTrialLine: '{price} billed every month. Cancel anytime.',
+    approxNote: 'Approximate — the store shows the exact price at checkout.',
+    subscribe: 'Subscribe',
+    subscribing: 'Subscribing…',
+    restore: 'Restore purchases',
+    restoring: 'Restoring…',
+    restoredSuccess: 'Your purchase was restored.',
+    restoredNothing: 'No previous purchase was found on this account.',
+    purchasePending: 'Your purchase is pending approval. It unlocks as soon as it clears.',
+    genericError: 'That did not go through. Try again in a moment.',
+    alreadySubscribed: 'You are already on Waves Pro.',
+    terms: 'Terms',
+    privacy: 'Privacy',
   },
   promo: {
     clear: 'Clear',
@@ -8762,22 +8908,8 @@ const ta: UiStrings = {
       'உங்களுக்கு யாரும் தர வேண்டியதில்லை, நீங்களும் யாருக்கும் தர வேண்டியதில்லை. புதிய பாக்கிகள் இங்கே தோன்றும்.',
     owesYou: 'உங்களுக்குத் தர வேண்டியவர்கள்',
     youOweThem: 'நீங்கள் தர வேண்டியவர்கள்',
-    owedByCount: {
-      one: '{n} நண்பர் உங்களுக்குத் தர வேண்டும்',
-      other: '{n} நண்பர்கள் உங்களுக்குத் தர வேண்டும்',
-    },
-    owingCount: {
-      one: '{n} நண்பருக்கு நீங்கள் தர வேண்டும்',
-      other: '{n} நண்பர்களுக்கு நீங்கள் தர வேண்டும்',
-    },
-    pillOwed: {
-      one: '{n} பேர் உங்களுக்குத் தர வேண்டும்',
-      other: '{n} பேர் உங்களுக்குத் தர வேண்டும்',
-    },
-    pillOwing: {
-      one: 'நீங்கள் {n} பேருக்குத் தர வேண்டும்',
-      other: 'நீங்கள் {n} பேருக்குத் தர வேண்டும்',
-    },
+    owedToYouLabel: 'உங்களுக்கு வர வேண்டியது',
+    friendCount: { one: '{n} நண்பர்', other: '{n} நண்பர்கள்' },
     overall: 'மொத்தம்',
     youAreOwed: 'உங்களுக்கு வர வேண்டியது',
     nobodyOwesYou: 'இப்போது உங்களுக்கு யாரும் தர வேண்டியதில்லை.',
@@ -9025,7 +9157,17 @@ const ta: UiStrings = {
   },
   quickExpense: {
     notePlaceholder: 'குறிப்பு சேர்க்கவும் (விருப்பம்)',
+    addReceipt: 'Add receipt',
+    takePhoto: 'Take photo',
+    chooseFromLibrary: 'Choose from library',
+    removeReceipt: 'Remove receipt',
     title: 'Quick expense',
+    subtitle: 'Add an expense and split it with friends',
+    category: 'Category',
+    categoryOptional: '(optional)',
+    categoryPicker: 'Category, {category}',
+    moreCategories: 'More',
+    splitLink: 'Split equally',
     where: 'Where does it go?',
     otherPlaces: 'Others',
     advanced: 'Advanced',
@@ -9148,6 +9290,8 @@ const ta: UiStrings = {
     assign: 'குழுவில் சேர்',
     addTo: '{name} இல் சேர்',
     assignTitle: 'ஒரு குழுவில் சேர்க்கவும்',
+    assignEditExpense: 'செலவைத் திருத்து',
+    assignEditExpenseFor: '{item} ஐத் திருத்து',
     assignSearch: 'குழுக்களைத் தேடு',
     assignNew: 'புதிய குழு',
     assignNewBody: 'ஒன்றை உருவாக்கி இதை அதில் சேருங்கள்',
@@ -9178,6 +9322,13 @@ const ta: UiStrings = {
     },
     checkInTitle: 'இன்று பிரிக்க ஏதேனும் உள்ளதா?',
     checkInBody: 'இப்போதே சேர்த்து விடுங்கள் — ஞாயிறு அன்று நினைவில் இருக்காது.',
+    heroSearch: 'தேடல்',
+    heroFilter: 'வடிகட்டி',
+    sortByLabel: 'வகைப்படி: {option}',
+    sortTitle: 'வகைப்படுத்து',
+    sortNewest: 'புதியவை',
+    sortOldest: 'பழையவை',
+    sortAmount: 'தொகை',
   },
   location: {
     label: 'இடம்',
@@ -9395,11 +9546,14 @@ const ta: UiStrings = {
       'இதைப் பின்னரும் செய்யலாம்: முகப்பில் ••• மெனுவைத் தட்டி, காப்புப்பிரதி என்பதைத் தேர்ந்தெடுங்கள்.',
     reminderTitle: 'உங்கள் பதிவுகளைக் காப்புப்பிரதி எடுங்கள்',
     reminderBodyNever:
-      'உங்கள் தனிப்பட்ட பதிவுகள் இந்த போனில் மட்டுமே உள்ளன. போன் தொலைந்தாலோ மாற்றினாலோ அவை இழக்கப்படாமல் இருக்க உங்கள் Google Drive-இல் காப்புப்பிரதி எடுங்கள்.',
+      'உங்கள் பதிவுகள் இந்த போனில் மட்டுமே உள்ளன. பாதுகாப்பாக Google Drive-இல் காப்புப்பிரதி எடுங்கள்.',
     reminderBodyStale:
-      'உங்கள் கடைசி காப்புப்பிரதி ஒரு நாளுக்கு மேல் பழையது. அதன் பிறகு சேர்த்தவை பாதுகாப்பாக இருக்க இப்போதே Google Drive-இல் காப்புப்பிரதி எடுங்கள்.',
+      'உங்கள் கடைசி காப்புப்பிரதி ஒரு நாளுக்கு மேல் பழையது. இப்போதே Google Drive-இல் காப்புப்பிரதி எடுங்கள்.',
     reminderAction: 'இப்போது காப்புப்பிரதி எடு',
     reminderLater: 'இப்போது வேண்டாம்',
+    reminderFeatureSafe: 'பாதுகாப்பு',
+    reminderFeatureDevices: 'எந்த சாதனமும்',
+    reminderFeatureQuick: 'விரைவு',
 
     refusedNotConnected: 'முதலில் ஒரு Google கணக்கை இணையுங்கள்.',
     refusedNoKey: 'முதலில் உங்கள் காப்புச் சாவியை உருவாக்குங்கள்.',
@@ -9570,16 +9724,24 @@ const ta: UiStrings = {
     role: 'பங்கு',
     makeAdmin: 'நிர்வாகியாக்கு',
     removeAdmin: 'நிர்வாகியை நீக்கு',
+    manageRole: 'பங்கை நிர்வகி',
+    currentRoleAdmin: 'தற்போதைய பங்கு: நிர்வாகி',
+    currentRoleMember: 'தற்போதைய பங்கு: உறுப்பினர்',
     adminNote:
       'நிர்வாகிகள் குழுவைத் திருத்தலாம், உறுப்பினர்களை நிர்வகிக்கலாம், மொத்த பட்ஜெட்டை அமைக்கலாம்.',
     adminNeedsAccount:
       'இவர் இன்னும் சேரவில்லை. கணக்கு உள்ள உறுப்பினர் மட்டுமே நிர்வாகியாக முடியும்.',
     you: 'நீங்கள்',
     memberName: 'உறுப்பினர் பெயர்',
-    paidAcross: 'செலுத்தியது',
+    paidAcross: 'செலுத்திய தொகை',
     inThisGroup: 'இந்தக் குழுவில்',
     expensesLabel: 'செலவுகள்',
     manageTitle: 'நிர்வகி',
+    groupSummary: 'குழு சுருக்கம்',
+    viewDetails: 'விவரங்களைப் பார்',
+    shareGroup: 'குழுவைப் பகிர்',
+    sortNewestFirst: 'புதியவை முதலில்',
+    sortOldestFirst: 'பழையவை முதலில்',
     upiInvalid: 'இது UPI ஐடி போலத் தெரியவில்லை.',
     ghostNote:
       'இவருக்கு உண்மையான இருப்புகள் உள்ளன. அவர்கள் சேரும்போது இந்த வரலாற்றைத் தங்களுடையதாக்கிக் கொள்ளலாம்.',
@@ -9745,6 +9907,7 @@ const ta: UiStrings = {
     equally: 'சமமாக',
     exactly: 'சரியாக',
     exactShareLabel: '{name} இன் பங்கு',
+    sharesDecimalPlaces: 'பங்குகளில் அதிகபட்சம் இரண்டு தசம இடங்கள் மட்டுமே இருக்கலாம்.',
     shares: 'பங்குகள்',
     percent: 'சதவீதம்',
     splitBetween: 'யாருக்கிடையே',
@@ -10530,6 +10693,31 @@ const ta: UiStrings = {
     whatNeverWill: 'எதற்கு ஒருபோதும் இல்லை',
     whatNeverWillBody:
       'கணக்கு. குழுக்கள், செலவுகள், பிரிவுகள், இருப்புகள், தீர்த்தல், அனைத்தையும் திரும்பப் பெறுதல் — {free}. பாதி மட்டுமே படிக்கக்கூடிய கணக்கு கணக்கே அல்ல.',
+  },
+  paywall: {
+    title: 'உங்கள் திட்டத்தைத் தேர்ந்தெடுக்கவும்',
+    yearlyTitle: 'வருடாந்திரம்',
+    yearlyBadge: '{months} மாதங்கள் இலவசம்',
+    perYear: '/ஆண்டு',
+    perMonth: '/மாதம்',
+    perMonthEquivalent: '≈ {price} / மாதம்',
+    monthlyTitle: 'மாதாந்திரம்',
+    monthlySubtitle: 'மாதந்தோறும் கட்டணம்',
+    trialLine:
+      '{days} நாள் இலவச சோதனை, பிறகு வருடத்திற்கு {price} கட்டணம். எப்போதும் ரத்து செய்யலாம்.',
+    noTrialLine: 'மாதந்தோறும் {price} கட்டணம். எப்போதும் ரத்து செய்யலாம்.',
+    approxNote: 'தோராயமானது — சரியான விலையை கடை செக்அவுட்டில் காட்டும்.',
+    subscribe: 'சந்தா செய்யுங்கள்',
+    subscribing: 'சந்தா செய்கிறது…',
+    restore: 'வாங்கியதை மீட்டமைக்கவும்',
+    restoring: 'மீட்டமைக்கிறது…',
+    restoredSuccess: 'உங்கள் வாங்குதல் மீட்டமைக்கப்பட்டது.',
+    restoredNothing: 'இந்தக் கணக்கில் முந்தைய வாங்குதல் எதுவும் கிடைக்கவில்லை.',
+    purchasePending: 'உங்கள் வாங்குதல் ஒப்புதலுக்காக நிலுவையில் உள்ளது. அது தீர்ந்ததும் திறக்கும்.',
+    genericError: 'அது முடியவில்லை. சிறிது நேரத்தில் மீண்டும் முயற்சிக்கவும்.',
+    alreadySubscribed: 'நீங்கள் ஏற்கெனவே Waves Pro-வில் உள்ளீர்கள்.',
+    terms: 'விதிமுறைகள்',
+    privacy: 'தனியுரிமை',
   },
   promo: {
     clear: 'அழி',
@@ -12289,16 +12477,8 @@ const hi: UiStrings = {
     allSquareBody: 'न किसी पर आपका बाकी है, न आप पर किसी का। नए हिसाब यहाँ दिखेंगे।',
     owesYou: 'आपको देने हैं',
     youOweThem: 'आपको देने हैं जिन्हें',
-    owedByCount: {
-      one: '{n} मित्र आपको देने वाला है',
-      other: '{n} मित्र आपको देने वाले हैं',
-    },
-    owingCount: {
-      one: 'आप {n} मित्र को देने वाले हैं',
-      other: 'आप {n} मित्रों को देने वाले हैं',
-    },
-    pillOwed: { one: '{n} आपको देने वाला है', other: '{n} आपको देने वाले हैं' },
-    pillOwing: { one: 'आप {n} को देने वाले हैं', other: 'आप {n} को देने वाले हैं' },
+    owedToYouLabel: 'आपको मिलने हैं',
+    friendCount: { one: '{n} मित्र', other: '{n} मित्र' },
     overall: 'कुल मिलाकर',
     youAreOwed: 'आपको मिलने हैं',
     nobodyOwesYou: 'अभी किसी पर आपका कुछ बाकी नहीं है।',
@@ -12542,7 +12722,17 @@ const hi: UiStrings = {
   },
   quickExpense: {
     notePlaceholder: 'नोट जोड़ें (वैकल्पिक)',
+    addReceipt: 'Add receipt',
+    takePhoto: 'Take photo',
+    chooseFromLibrary: 'Choose from library',
+    removeReceipt: 'Remove receipt',
     title: 'Quick expense',
+    subtitle: 'Add an expense and split it with friends',
+    category: 'Category',
+    categoryOptional: '(optional)',
+    categoryPicker: 'Category, {category}',
+    moreCategories: 'More',
+    splitLink: 'Split equally',
     where: 'Where does it go?',
     otherPlaces: 'Others',
     advanced: 'Advanced',
@@ -12660,6 +12850,8 @@ const hi: UiStrings = {
     assign: 'समूह में जोड़ें',
     addTo: '{name} में जोड़ें',
     assignTitle: 'किसी समूह में जोड़ें',
+    assignEditExpense: 'खर्च संपादित करें',
+    assignEditExpenseFor: '{item} संपादित करें',
     assignSearch: 'समूह खोजें',
     assignNew: 'नया समूह',
     assignNewBody: 'एक बनाएँ और इसे उसमें जोड़ें',
@@ -12690,6 +12882,13 @@ const hi: UiStrings = {
     },
     checkInTitle: 'आज कुछ बाँटना है?',
     checkInBody: 'अभी जोड़ लें — रविवार को याद रखना मुश्किल होगा।',
+    heroSearch: 'खोजें',
+    heroFilter: 'फ़िल्टर',
+    sortByLabel: 'क्रम: {option}',
+    sortTitle: 'इस क्रम में',
+    sortNewest: 'नवीनतम',
+    sortOldest: 'पुराना',
+    sortAmount: 'राशि',
   },
   location: {
     label: 'स्थान',
@@ -12894,11 +13093,13 @@ const hi: UiStrings = {
     restorePromptWhere: 'यह बाद में भी कर सकते हैं: होम पर ••• मेन्यू दबाएँ, फिर बैकअप चुनें।',
     reminderTitle: 'अपने रिकॉर्ड का बैकअप लें',
     reminderBodyNever:
-      'आपके निजी रिकॉर्ड सिर्फ़ इसी फ़ोन पर हैं। उन्हें अपनी Google Drive पर बैकअप करें, ताकि फ़ोन खोने या बदलने पर वे खो न जाएँ।',
-    reminderBodyStale:
-      'आपका पिछला बैकअप एक दिन से ज़्यादा पुराना है। उसके बाद का सब कुछ सुरक्षित रखने के लिए अभी Google Drive पर बैकअप लें।',
+      'आपके रिकॉर्ड सिर्फ़ इस फ़ोन पर हैं। सुरक्षित रखने के लिए Google Drive पर बैकअप करें।',
+    reminderBodyStale: 'आपका पिछला बैकअप एक दिन से पुराना है। अभी Google Drive पर बैकअप लें।',
     reminderAction: 'अभी बैकअप लें',
     reminderLater: 'अभी नहीं',
+    reminderFeatureSafe: 'सुरक्षित',
+    reminderFeatureDevices: 'कोई भी डिवाइस',
+    reminderFeatureQuick: 'तेज़',
 
     refusedNotConnected: 'पहले एक Google खाता जोड़ें।',
     refusedNoKey: 'पहले अपनी बैकअप चाबी बनाएँ।',
@@ -13062,13 +13263,21 @@ const hi: UiStrings = {
     role: 'भूमिका',
     makeAdmin: 'एडमिन बनाएँ',
     removeAdmin: 'एडमिन हटाएँ',
+    manageRole: 'भूमिका प्रबंधित करें',
+    currentRoleAdmin: 'मौजूदा भूमिका: एडमिन',
+    currentRoleMember: 'मौजूदा भूमिका: सदस्य',
     adminNote: 'एडमिन ग्रुप बदल सकते हैं, सदस्य संभाल सकते हैं, और कुल बजट तय कर सकते हैं.',
     adminNeedsAccount: 'ये अभी शामिल नहीं हुए हैं. सिर्फ़ अकाउंट वाला सदस्य ही एडमिन बन सकता है.',
     you: 'आप',
     memberName: 'सदस्य का नाम',
-    paidAcross: 'चुकाया',
+    paidAcross: 'कुल चुकाया',
     inThisGroup: 'इस ग्रुप में',
     expensesLabel: 'खर्च',
+    groupSummary: 'समूह सारांश',
+    viewDetails: 'विवरण देखें',
+    shareGroup: 'समूह साझा करें',
+    sortNewestFirst: 'नवीनतम पहले',
+    sortOldestFirst: 'पुराने पहले',
     manageTitle: 'प्रबंधित करें',
     upiInvalid: 'यह UPI आईडी जैसी नहीं लगती।',
     ghostNote: 'इस व्यक्ति का असली हिसाब है। जुड़ने पर वे यह इतिहास अपने नाम कर सकते हैं।',
@@ -13227,6 +13436,7 @@ const hi: UiStrings = {
     equally: 'बराबर',
     exactly: 'सटीक',
     exactShareLabel: '{name} का हिस्सा',
+    sharesDecimalPlaces: 'हिस्सों में अधिकतम दो दशमलव स्थान हो सकते हैं।',
     shares: 'हिस्से',
     percent: 'प्रतिशत',
     splitBetween: 'किनके बीच',
@@ -13963,6 +14173,30 @@ const hi: UiStrings = {
     whatNeverWill: 'किसके कभी नहीं',
     whatNeverWillBody:
       'हिसाब। समूह, खर्च, बँटवारा, बकाया, निपटान, और यह सब वापस बाहर निकालना — {free}। जो हिसाब आप आधा ही पढ़ सकें, वह हिसाब नहीं।',
+  },
+  paywall: {
+    title: 'अपना प्लान चुनें',
+    yearlyTitle: 'सालाना',
+    yearlyBadge: '{months} महीने मुफ़्त',
+    perYear: '/वर्ष',
+    perMonth: '/महीना',
+    perMonthEquivalent: '≈ {price} / महीना',
+    monthlyTitle: 'मासिक',
+    monthlySubtitle: 'हर महीने बिल होगा',
+    trialLine: '{days} दिन का मुफ़्त ट्रायल, फिर सालाना {price} बिल होगा। कभी भी रद्द करें।',
+    noTrialLine: 'हर महीने {price} बिल होगा। कभी भी रद्द करें।',
+    approxNote: 'अनुमानित — सही कीमत स्टोर चेकआउट पर दिखेगी।',
+    subscribe: 'सब्सक्राइब करें',
+    subscribing: 'सब्सक्राइब हो रहा है…',
+    restore: 'खरीदारी वापस लाएँ',
+    restoring: 'वापस लाया जा रहा है…',
+    restoredSuccess: 'आपकी खरीदारी वापस लाई गई।',
+    restoredNothing: 'इस खाते पर कोई पुरानी खरीदारी नहीं मिली।',
+    purchasePending: 'आपकी खरीदारी मंज़ूरी के लिए लंबित है। मंज़ूर होते ही यह खुल जाएगी।',
+    genericError: 'यह नहीं हो पाया। कुछ देर में फिर से कोशिश करें।',
+    alreadySubscribed: 'आप पहले से ही Waves Pro पर हैं।',
+    terms: 'शर्तें',
+    privacy: 'निजता',
   },
   promo: {
     clear: 'मिटाएँ',
@@ -15769,37 +16003,14 @@ const ar: UiStrings = {
     allSquareBody: 'لا أحد يدين لك ولا أنت تدين لأحد. ستظهر هنا أي مبالغ جديدة.',
     owesYou: 'لك عندهم',
     youOweThem: 'عليك لهم',
-    owedByCount: {
-      zero: 'لا يوجد أصدقاء يدينون لك',
-      one: 'صديق واحد يدين لك',
-      two: 'صديقان يدينان لك',
-      few: '{n} أصدقاء يدينون لك',
-      many: '{n} صديقًا يدين لك',
-      other: '{n} صديق يدين لك',
-    },
-    owingCount: {
-      zero: 'لا تدين لأي صديق',
-      one: 'تدين لصديق واحد',
-      two: 'تدين لصديقين',
-      few: 'تدين لـ {n} أصدقاء',
-      many: 'تدين لـ {n} صديقًا',
-      other: 'تدين لـ {n} صديق',
-    },
-    pillOwed: {
-      zero: 'لا أحد يدين لك',
-      one: 'صديق يدين لك',
-      two: 'صديقان يدينان لك',
-      few: '{n} يدينون لك',
-      many: '{n} يدينون لك',
-      other: '{n} يدين لك',
-    },
-    pillOwing: {
-      zero: 'لا تدين لأحد',
-      one: 'تدين لواحد',
-      two: 'تدين لاثنين',
-      few: 'تدين لـ {n}',
-      many: 'تدين لـ {n}',
-      other: 'تدين لـ {n}',
+    owedToYouLabel: 'المستحق لك',
+    friendCount: {
+      zero: '{n} صديق',
+      one: 'صديق واحد',
+      two: 'صديقان',
+      few: '{n} أصدقاء',
+      many: '{n} صديقًا',
+      other: '{n} صديق',
     },
     overall: 'الإجمالي',
     youAreOwed: 'لك عندهم',
@@ -16090,7 +16301,17 @@ const ar: UiStrings = {
   },
   quickExpense: {
     notePlaceholder: 'أضف ملاحظة (اختياري)',
+    addReceipt: 'Add receipt',
+    takePhoto: 'Take photo',
+    chooseFromLibrary: 'Choose from library',
+    removeReceipt: 'Remove receipt',
     title: 'Quick expense',
+    subtitle: 'Add an expense and split it with friends',
+    category: 'Category',
+    categoryOptional: '(optional)',
+    categoryPicker: 'Category, {category}',
+    moreCategories: 'More',
+    splitLink: 'Split equally',
     where: 'Where does it go?',
     otherPlaces: 'Others',
     advanced: 'Advanced',
@@ -16235,6 +16456,8 @@ const ar: UiStrings = {
     assign: 'أضِف إلى مجموعة',
     addTo: 'أضِف إلى {name}',
     assignTitle: 'أضِف إلى مجموعة',
+    assignEditExpense: 'تعديل المصروف',
+    assignEditExpenseFor: 'تعديل {item}',
     assignSearch: 'ابحث عن المجموعات',
     assignNew: 'مجموعة جديدة',
     assignNewBody: 'أنشئ واحدة وأضف هذا إليها',
@@ -16278,6 +16501,13 @@ const ar: UiStrings = {
     },
     checkInTitle: 'هل من شيء لتقسيمه اليوم؟',
     checkInBody: 'أضفه الآن — تذكُّره يوم الأحد أصعب.',
+    heroSearch: 'بحث',
+    heroFilter: 'تصفية',
+    sortByLabel: 'الترتيب: {option}',
+    sortTitle: 'الترتيب حسب',
+    sortNewest: 'الأحدث',
+    sortOldest: 'الأقدم',
+    sortAmount: 'المبلغ',
   },
   location: {
     label: 'الموقع',
@@ -16497,12 +16727,13 @@ const ar: UiStrings = {
     restorePromptWhere:
       'يمكنك فعل ذلك لاحقًا: اضغط قائمة ••• في الصفحة الرئيسية، ثم النسخ الاحتياطي.',
     reminderTitle: 'انسخ سجلاتك احتياطيًا',
-    reminderBodyNever:
-      'سجلاتك الشخصية موجودة على هذا الهاتف فقط. انسخها احتياطيًا إلى Google Drive حتى لا تضيع إذا فقدت هاتفك أو غيّرته.',
-    reminderBodyStale:
-      'آخر نسخة احتياطية كانت قبل أكثر من يوم. انسخ الآن لتبقى كل إضافاتك منذ ذلك الحين آمنة في Google Drive.',
+    reminderBodyNever: 'سجلاتك موجودة على هذا الهاتف فقط. احفظها بأمان في Google Drive.',
+    reminderBodyStale: 'آخر نسخة احتياطية مضى عليها أكثر من يوم. انسخ الآن للحفاظ على بياناتك.',
     reminderAction: 'انسخ الآن',
     reminderLater: 'ليس الآن',
+    reminderFeatureSafe: 'آمن',
+    reminderFeatureDevices: 'أي جهاز',
+    reminderFeatureQuick: 'سريع',
 
     refusedNotConnected: 'اربط حساب Google أولًا.',
     refusedNoKey: 'أنشئ مفتاح النسخة أولًا.',
@@ -16694,13 +16925,21 @@ const ar: UiStrings = {
     role: 'الدور',
     makeAdmin: 'تعيين كمشرف',
     removeAdmin: 'إزالة الإشراف',
+    manageRole: 'إدارة الدور',
+    currentRoleAdmin: 'الدور الحالي: مشرف',
+    currentRoleMember: 'الدور الحالي: عضو',
     adminNote: 'يمكن للمشرفين تعديل المجموعة وإدارة الأعضاء وتحديد الميزانية الإجمالية.',
     adminNeedsAccount: 'لم ينضم بعد. المشرف يجب أن يكون عضوًا لديه حساب.',
     you: 'أنت',
     memberName: 'اسم العضو',
-    paidAcross: 'دفع',
+    paidAcross: 'إجمالي المدفوع',
     inThisGroup: 'في هذه المجموعة',
     expensesLabel: 'المصاريف',
+    groupSummary: 'ملخص المجموعة',
+    viewDetails: 'عرض التفاصيل',
+    shareGroup: 'مشاركة المجموعة',
+    sortNewestFirst: 'الأحدث أولاً',
+    sortOldestFirst: 'الأقدم أولاً',
     manageTitle: 'إدارة',
     upiInvalid: 'لا يبدو هذا معرّف UPI صالحًا.',
     ghostNote: 'لهذا الشخص أرصدة حقيقية. حين ينضم يمكنه أن يطالب بهذا السجل.',
@@ -16872,6 +17111,7 @@ const ar: UiStrings = {
     equally: 'بالتساوي',
     exactly: 'بالضبط',
     exactShareLabel: 'حصة {name}',
+    sharesDecimalPlaces: 'يمكن أن تحتوي الحصص على رقمين عشريين على الأكثر.',
     shares: 'حصص',
     percent: 'نسبة مئوية',
     splitBetween: 'التقسيم بين',
@@ -17894,6 +18134,30 @@ const ar: UiStrings = {
     whatNeverWill: 'وما لن يكلّف أبدًا',
     whatNeverWillBody:
       'الدفتر. المجموعات والمصاريف والتقسيمات والأرصدة والتسوية، وإخراج كل ذلك مرة أخرى — {free}. الدفتر الذي لا تقرأ منه إلا نصفه ليس دفترًا.',
+  },
+  paywall: {
+    title: 'اختر خطتك',
+    yearlyTitle: 'سنويًا',
+    yearlyBadge: '{months} أشهر مجانًا',
+    perYear: '/سنة',
+    perMonth: '/شهر',
+    perMonthEquivalent: '≈ {price} / شهريًا',
+    monthlyTitle: 'شهريًا',
+    monthlySubtitle: 'تُحصَّل شهريًا',
+    trialLine: 'تجربة مجانية لمدة {days} أيام، ثم {price} سنويًا. يمكنك الإلغاء في أي وقت.',
+    noTrialLine: '{price} شهريًا. يمكنك الإلغاء في أي وقت.',
+    approxNote: 'تقريبي — سيظهر السعر الدقيق عند الدفع في المتجر.',
+    subscribe: 'اشترك',
+    subscribing: 'جارٍ الاشتراك…',
+    restore: 'استرجاع عمليات الشراء',
+    restoring: 'جارٍ الاسترجاع…',
+    restoredSuccess: 'تم استرجاع عملية الشراء.',
+    restoredNothing: 'لم يُعثر على عملية شراء سابقة على هذا الحساب.',
+    purchasePending: 'عملية الشراء في انتظار الموافقة. ستُفعَّل بمجرد اكتمالها.',
+    genericError: 'لم تنجح العملية. حاول مرة أخرى بعد قليل.',
+    alreadySubscribed: 'أنت مشترك بالفعل في Waves Pro.',
+    terms: 'الشروط',
+    privacy: 'الخصوصية',
   },
   promo: {
     clear: 'مسح',

@@ -1,8 +1,10 @@
 <!doctype html>
 <html>
   <body style="margin: 0; padding: 0; background: #f4f4f2">
-    <!-- Preview text: what the inbox list shows beside the subject. Hidden in
-         the mail itself by the zero height + hidden colour. -->
+    <!-- Preview text: what the inbox list and notification shade show beside
+         the subject. Hidden in the mail itself by the zero height + hidden
+         colour. The code is first, matching the subject, because that is what
+         a notification shade shows before anybody opens the mail. -->
     <div
       style="
         display: none;
@@ -14,7 +16,7 @@
         width: 0;
       "
     >
-      Your code is {{ .Token }}. Your Waves sign-in code, good for 15 minutes.
+      {{ .Token }} is your Waves verification code (OTP). It expires in 15 minutes.
     </div>
     <table
       role="presentation"
@@ -41,70 +43,76 @@
                     sans-serif;
                 "
               >
+                <!-- The mark: a purple text wordmark. No hosted logo image
+                     exists for mail today (see supabase/templates/_README.md),
+                     and an inline SVG/data-URI mark is stripped by Gmail, so
+                     this is the one reliable option until one is hosted. -->
                 <p
                   style="
                     margin: 0 0 28px;
                     font-size: 15px;
                     font-weight: 700;
                     letter-spacing: -0.2px;
-                    color: #4f9a2e;
+                    color: #6c4ee3;
                   "
                 >
                   Waves
                 </p>
-                <h1
-                  style="
-                    margin: 0 0 10px;
-                    font-size: 24px;
-                    line-height: 1.25;
-                    font-weight: 700;
-                    letter-spacing: -0.5px;
-                    color: #12100e;
-                  "
-                >
-                  Your sign-in code
-                </h1>
-                <p style="margin: 0 0 24px; font-size: 15px; line-height: 1.6; color: #57534e">
-                  Type this into Waves to sign in.
+                <!-- Deliberately plain, and deliberately no heading between
+                     the wordmark and this line. The CDSL-style mail Gmail
+                     draws its "Code requested — Copy code" card above reads,
+                     in order: a sentence naming "One Time Password(OTP)", the
+                     digits alone on their own line, then an expiry line — no
+                     headline, no box, no colour on the code. This mirrors
+                     that shape as closely as a branded mail reasonably can,
+                     because that structure is what the classification keys
+                     off, not the subject alone. -->
+                <p style="margin: 0 0 16px; font-size: 15px; line-height: 1.6; color: #57534e">
+                  Your one-time password (OTP) for Waves is:
                 </p>
               </td>
             </tr>
             <tr>
               <td style="padding: 0 32px">
-                <table
-                  role="presentation"
-                  width="100%"
-                  cellpadding="0"
-                  cellspacing="0"
-                  style="border: 1px solid #e7e5e4; border-radius: 12px; background: #fafaf9"
+                <!-- The code: plain digits alone on their own line. No box,
+                     no border, no background, no letter-spacing, and no
+                     per-digit cells — every one of those is a way of drawing
+                     a "code field" that the classifier Gmail uses for its own
+                     OTP card has not been trained to expect from a code mail;
+                     the CDSL example that reliably triggers the card has none
+                     of them either. Bold and larger than body text is the
+                     only emphasis left, which is also what keeps it legible
+                     and selectable as plain text. -->
+                <p
+                  style="
+                    margin: 0;
+                    font-size: 32px;
+                    line-height: 1.3;
+                    font-weight: 700;
+                    letter-spacing: normal;
+                    color: #12100e;
+                    text-align: left;
+                  "
                 >
-                  <tr>
-                    <td
-                      align="center"
-                      style="
-                        padding: 20px 12px;
-                        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-                        font-size: 34px;
-                        line-height: 1.1;
-                        font-weight: 700;
-                        letter-spacing: 10px;
-                        text-indent: 10px;
-                        color: #12100e;
-                      "
-                    >
-                      {{ .Token }}
-                    </td>
-                  </tr>
-                </table>
-                <p style="margin: 12px 0 0; font-size: 13px; line-height: 1.6; color: #78716c">
-                  Expires in 15 minutes, and works once.
+                  {{ .Token }}
+                </p>
+                <p
+                  style="
+                    margin: 12px 0 0;
+                    font-size: 13px;
+                    line-height: 1.6;
+                    color: #78716c;
+                    text-align: left;
+                  "
+                >
+                  This OTP expires in 15 minutes.
                 </p>
               </td>
             </tr>
             <tr>
               <td
                 style="
-                  padding: 28px 32px 32px;
+                  padding: 20px 32px 32px;
                   font-family:
                     -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial,
                     sans-serif;
@@ -119,15 +127,9 @@
                 >
                   <tr>
                     <td style="padding-top: 20px">
-                      <p
-                        style="margin: 0 0 10px; font-size: 13px; line-height: 1.6; color: #57534e"
-                      >
-                        Did not try to sign in? Ignore this. Nothing changes, and nobody gets in
-                        without the code.
-                      </p>
-                      <p style="margin: 0; font-size: 13px; line-height: 1.6; color: #a8a29e">
-                        Waves will never ask you for this code &mdash; not by email, not on a call,
-                        not in a chat.
+                      <p style="margin: 0; font-size: 13px; line-height: 1.6; color: #57534e">
+                        If you did not request this, you can ignore this email. Waves will never
+                        ask you for this code.
                       </p>
                     </td>
                   </tr>
@@ -144,6 +146,7 @@
               color: #a8a29e;
             "
           >
+            You are getting this because you tried to sign in to Waves with this address.<br />
             Sent to {{ .Email }} &middot; Waves
           </p>
         </td>

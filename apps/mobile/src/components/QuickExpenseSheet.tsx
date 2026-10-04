@@ -51,31 +51,41 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, ScrollView, TextInput, View } from 'react-native';
+import { randomUUID } from 'expo-crypto';
+import { Image } from 'expo-image';
+import { ActivityIndicator, Pressable, ScrollView, TextInput, View } from 'react-native';
 
-import { encodeTxn, toFxRecord, type ExpenseLocation } from '@waves/core';
-import { Button, Divider, Row, Sheet, Text, useTheme } from '@waves/ui';
+import { encodeTxn, toFxRecord, type CategoryMeta, type ExpenseLocation } from '@waves/core';
+import { Avatar, Button, iconSize, Row, Sheet, Text, useTheme } from '@waves/ui';
 
 import { DestinationPicker } from '@/components/DestinationPicker';
+import { DictateButton } from '@/components/DictateButton';
 import { QuickAmountRow } from '@/components/QuickAmountRow';
+import { QuickCategoryRow } from '@/components/QuickCategoryRow';
 import { GroupMark } from '@/components/GroupMark';
+import { useAvatarUrl } from '@/components/ProfileAvatar';
+import { uploadCapturePhoto, uploadExpenseReceipt } from '@/data/api';
 import {
   useCreateCapture,
   useGroup,
   useGroupFxRates,
   useGroupLabeller,
   useGroups,
+  useHomeSummary,
   useWriteExpense,
 } from '@/data/hooks';
 import { todayIso, useUpsertPersonalRecord } from '@/data/personal';
 import { isGhost, isViewer, type GroupRow } from '@/data/types';
-import { fill, useStrings } from '@/i18n';
-import { useViewerId } from '@/lib/auth';
+import { fill, plural, useStrings } from '@/i18n';
+import { useAuth, useViewerId } from '@/lib/auth';
 import { useDefaultCurrency } from '@/lib/currency';
 import { CurrencyChoices } from '@/components/expense/CurrencySheet';
 import { usePersonalOffered } from '@/lib/guestGuard';
+import type { PickedImage } from '@/lib/image';
 import { captureLocationIfGranted } from '@/lib/location';
 import { router } from '@/lib/navigation';
+import { useQuickReceipt } from '@/lib/quickReceipt';
+import { useToast } from '@/lib/toast';
 import { tripRateFor } from '@/lib/tripRates';
 import {
   groupDestination,
@@ -88,28 +98,57 @@ import {
     glance and starts being a list — which is what the picker is for. */
 const CHIPS = 5;
 
+/** Every destination chip's height, fixed rather than left to its content —
+ *  a group chip carries two lines (name, member count) and "Just me" carries
+ *  one, and a row where some pills are taller than others reads as a layout
+ *  bug rather than a row of peers. Tall enough for the two-line chip with its
+ *  padding; everything shorter is centred in it by `tile`'s own
+ *  `alignItems: 'center'`, which is what keeps "Just me" centred rather than
+ *  pinned to the top of the row. */
+const CHIP_HEIGHT = 48;
+
 export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const theme = useTheme();
   const dark = theme.scheme === 'dark';
   const soft = dark ? theme.color.surfaceMuted : '#F3F0FE';
   const accent = dark ? theme.color.brand : '#6A45E8';
-  // A destination tile: a lavender card, outlined in violet when chosen.
+  // A destination pill: a lavender chip, outlined in violet when chosen.
   const tile = (picked: boolean) => ({
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    gap: 10,
-    minHeight: 52,
-    paddingHorizontal: 14,
-    borderRadius: 16,
-    borderWidth: 1.5,
+    gap: 6,
+    height: CHIP_HEIGHT,
+    paddingHorizontal: 12,
+    borderRadius: 19,
+    borderWidth: 1.25,
     borderColor: picked ? accent : 'transparent',
     backgroundColor: picked ? (dark ? theme.color.brandSoft : '#FFFFFF') : soft,
   });
-  const { t } = useStrings();
+  const { t, locale } = useStrings();
   const defaultCurrency = useDefaultCurrency();
   const groups = useGroups();
   const labelOf = useGroupLabeller();
   const recents = useRecentDestinations();
+  const viewerId = useViewerId();
+  // The same per-group member count the groups list and dashboard already
+  // compute — read here rather than a query per chip, which is what a
+  // `useGroup(group.id)` inside the chip's own row would have been.
+  const { memberCountFor } = useHomeSummary(viewerId);
+  // Your own face for the "Just me" chip — the same resolution (signed URL,
+  // falling back to initials) the account screen's own portrait uses.
+  const { profile } = useAuth();
+  const myName = profile?.display_name ?? t.quickExpense.justMe;
+  const myAvatarUrl = useAvatarUrl(profile?.avatar_url);
+  // The one receipt a quick add can carry — held here, not uploaded until the
+  // footer below actually saves (see lib/quickReceipt). Destructured rather
+  // than passed around as one object, so the reset effect below can name the
+  // one function it depends on instead of the whole bundle.
+  const {
+    receipt,
+    busy: attachingReceipt,
+    attach: attachReceipt,
+    clear: clearReceipt,
+  } = useQuickReceipt();
 
   const [amount, setAmount] = useState(0n);
   const [currency, setCurrency] = useState(defaultCurrency);
@@ -128,6 +167,15 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
   // not a group and does not split. Everything else is a group id.
   const [chosenId, setChosenId] = useState<string | 'personal' | null>(null);
   const [note, setNote] = useState('');
+  // Optional, and guessed at nothing: see QuickCategoryRow's own doc comment
+  // for why this never pre-selects. `meta` is the custom-tag snapshot and is
+  // only ever set alongside a custom `category` key, never a built-in one.
+  const [category, setCategoryState] = useState<string | null>(null);
+  const [categoryMeta, setCategoryMeta] = useState<CategoryMeta | null>(null);
+  const setCategory = (key: string | null, meta: CategoryMeta | null): void => {
+    setCategoryState(key);
+    setCategoryMeta(meta);
+  };
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickingCurrency, setPickingCurrency] = useState(false);
 
@@ -178,11 +226,13 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
     setAmount(0n);
     setChosenId(null);
     setNote('');
+    setCategory(null, null);
     setPickerOpen(false);
     setPickingCurrency(false);
     setPlace(null);
     currencyChosen.current = false;
     setCurrency(defaultCurrency);
+    clearReceipt();
     onClose();
   };
 
@@ -217,6 +267,14 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
   const personalPicked = chosenId === 'personal';
   const chosen = chosenId && !personalPicked ? byId.get(chosenId) : undefined;
 
+  // The private ledger has no column for a receipt (A48's blob has none), so a
+  // bill picked while a group was still chosen would otherwise sit on the chip
+  // promising something the save a line below cannot do. Dropped the moment
+  // "Just me" is picked, rather than silently ignored at save time.
+  useEffect(() => {
+    if (personalPicked) clearReceipt();
+  }, [personalPicked, clearReceipt]);
+
   /**
    * The long way round: the full form for wherever this is headed, carrying what
    * has been typed.
@@ -228,8 +286,11 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
    * and it takes the same amount and currency.
    */
   const handOff = (): void => {
-    // The note travels with the amount: read before the reset empties it.
+    // The note and category travel with the amount: read before the reset
+    // empties them.
     const typed = note.trim();
+    const carriedCategory = category;
+    const carriedMeta = categoryMeta;
     closeAndReset();
     if (chosen) {
       router.push({
@@ -239,6 +300,8 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
           amount: amount.toString(),
           currency,
           ...(typed ? { description: typed } : {}),
+          ...(carriedCategory ? { category: carriedCategory } : {}),
+          ...(carriedMeta ? { categoryMeta: JSON.stringify(carriedMeta) } : {}),
           // Says where this came from, which is what lets the form seed the
           // amount rather than read it as a stale draft and drop it.
           quick: '1',
@@ -260,40 +323,62 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
     }
     router.push({
       pathname: '/capture',
-      params: { amount: amount.toString(), cur: currency, ...(typed ? { desc: typed } : {}) },
+      params: {
+        amount: amount.toString(),
+        cur: currency,
+        ...(typed ? { desc: typed } : {}),
+        ...(carriedCategory ? { category: carriedCategory } : {}),
+        ...(carriedMeta ? { categoryMeta: JSON.stringify(carriedMeta) } : {}),
+      },
     });
   };
 
   return (
-    <Sheet
-      visible={visible}
-      onClose={closeAndReset}
-      title={t.quickExpense.title}
-      titleAction={
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t.quickExpense.advancedLong}
-          onPress={handOff}
-          hitSlop={6}
-          style={({ pressed }) => ({
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 6,
-            height: 36,
-            paddingHorizontal: 14,
-            borderRadius: 18,
-            backgroundColor: soft,
-            opacity: pressed ? 0.7 : 1,
-          })}
+    <Sheet visible={visible} onClose={closeAndReset} handle>
+      <View style={{ gap: theme.spacing.md }}>
+        {/* The sheet's own heading, drawn by hand rather than through the
+            Sheet's `title`/`titleAction` pair: those hold one line, and this
+            sheet wants two — the name, and the sentence under it saying what
+            it is for. The grab handle above still comes from the Sheet. */}
+        <Row
+          style={{
+            alignItems: 'flex-start',
+            justifyContent: 'space-between',
+            gap: theme.spacing.sm,
+          }}
         >
-          <Ionicons name="settings-outline" size={16} color={accent} />
-          <Text style={{ fontSize: 14, fontWeight: '600', color: accent }}>
-            {t.quickExpense.advanced}
-          </Text>
-        </Pressable>
-      }
-    >
-      <View style={{ gap: theme.spacing.lg }}>
+          <View style={{ flex: 1 }}>
+            <Text variant="title">{t.quickExpense.title}</Text>
+            <Text variant="caption" tone="muted">
+              {t.quickExpense.subtitle}
+            </Text>
+          </View>
+          {/* The escape hatch, a pill rather than a text link — it carries the
+              same weight as the destination and category pills beside it now
+              that the sheet has more than one row of them. */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t.quickExpense.advancedLong}
+            onPress={handOff}
+            hitSlop={8}
+            style={({ pressed }) => ({
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 2,
+              minHeight: 34,
+              paddingHorizontal: 14,
+              borderRadius: theme.radius.pill,
+              backgroundColor: soft,
+              opacity: pressed ? 0.6 : 1,
+            })}
+          >
+            <Text style={{ fontSize: 13, fontWeight: '700', color: accent }}>
+              {t.quickExpense.advanced}
+            </Text>
+            <Ionicons name="chevron-forward" size={14} color={accent} />
+          </Pressable>
+        </Row>
+
         <QuickAmountRow
           currency={currency}
           value={amount}
@@ -322,88 +407,112 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
           </ScrollView>
         ) : (
           <>
-            <Divider />
+            <QuickCategoryRow value={category} meta={categoryMeta} onChange={setCategory} />
 
-            <View style={{ gap: theme.spacing.sm }}>
-              <Text style={{ fontSize: 16, fontWeight: '600', color: theme.color.text }}>
-                {t.quickExpense.where}
-              </Text>
+            <View style={{ gap: theme.spacing.xs }}>
+              <Row style={{ alignItems: 'center', justifyContent: 'space-between' }}>
+                <Text style={{ fontSize: 13, fontWeight: '600', color: theme.color.textMuted }}>
+                  {t.quickExpense.where}
+                </Text>
+                {/* The one place this sheet's always-equal split can be
+                    changed — the full form's own editor, not a second one
+                    built here (see the file's own "What it refuses to do"). */}
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t.quickExpense.splitLink}
+                  onPress={handOff}
+                  hitSlop={8}
+                  style={({ pressed }) => ({
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 4,
+                    paddingVertical: 2,
+                    opacity: pressed ? 0.6 : 1,
+                  })}
+                >
+                  <Ionicons name="people-outline" size={14} color={accent} />
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: accent }}>
+                    {t.quickExpense.splitLink}
+                  </Text>
+                </Pressable>
+              </Row>
+              {/* One compact row of pills, the catch-all included — rather than
+                  a tall stack of cards plus a separate "other places" link
+                  underneath saying the same thing. The catch-all pill is drawn
+                  every time, empty destinations included, so the picker stays
+                  one tap away even on a fresh install with nothing to suggest
+                  yet; the caption above just says why the row is short. */}
               {chips.length === 0 && !personalOffered ? (
                 <Text variant="caption" tone="faint">
                   {t.quickExpense.noPlacesYet}
                 </Text>
-              ) : (
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                  <Row style={{ gap: theme.spacing.sm, alignItems: 'stretch' }}>
-                    {/* The private ledger, first and always — a spend that is
-                    nobody else's business is the one destination that never
-                    depends on which groups you happen to be in. Hidden from a
-                    guest, who has no private ledger to write to. */}
-                    {personalOffered ? (
-                      <Pressable
-                        accessibilityRole="button"
-                        accessibilityState={{ selected: personalPicked }}
-                        onPress={() => setChosenId('personal')}
-                        style={tile(personalPicked)}
-                      >
-                        <Ionicons name="person-outline" size={20} color={theme.color.text} />
-                        <Text style={{ fontSize: 15, fontWeight: '600', color: theme.color.text }}>
-                          {t.quickExpense.justMe}
-                        </Text>
-                        {personalPicked ? <PickedTick color={accent} /> : null}
-                      </Pressable>
-                    ) : null}
-                    {chips.map((group) => (
-                      <Pressable
-                        key={group.id}
-                        accessibilityRole="button"
-                        accessibilityState={{ selected: group.id === chosenId }}
-                        onPress={() => setChosenId(group.id)}
-                        style={[tile(group.id === chosenId), { maxWidth: 230 }]}
-                      >
-                        {group.cover_emoji ? (
-                          <GroupMark emoji={group.cover_emoji} size={20} />
-                        ) : (
-                          <Ionicons name="paper-plane-outline" size={19} color={accent} />
-                        )}
+              ) : null}
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <Row style={{ gap: theme.spacing.sm, alignItems: 'center' }}>
+                  {/* The private ledger, first and always — a spend that is
+                  nobody else's business is the one destination that never
+                  depends on which groups you happen to be in. Hidden from a
+                  guest, who has no private ledger to write to. */}
+                  {personalOffered ? (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: personalPicked }}
+                      onPress={() => setChosenId('personal')}
+                      style={tile(personalPicked)}
+                    >
+                      {/* Your own face, the same as everywhere else it is
+                          shown — initials when there is no photo, exactly as
+                          `Avatar` already falls back for any other person. */}
+                      <Avatar name={myName} photoUrl={myAvatarUrl} size={24} />
+                      <Text style={{ fontSize: 14, fontWeight: '600', color: theme.color.text }}>
+                        {t.quickExpense.justMe}
+                      </Text>
+                      {personalPicked ? <PickedTick color={accent} /> : null}
+                    </Pressable>
+                  ) : null}
+                  {chips.map((group) => (
+                    <Pressable
+                      key={group.id}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: group.id === chosenId }}
+                      accessibilityLabel={`${labelOf(group)}, ${plural(locale, memberCountFor(group.id), t.memberCount)}`}
+                      onPress={() => setChosenId(group.id)}
+                      style={[tile(group.id === chosenId), { maxWidth: 180 }]}
+                    >
+                      {group.cover_emoji ? (
+                        <GroupMark emoji={group.cover_emoji} size={16} />
+                      ) : (
+                        <Ionicons name="paper-plane-outline" size={15} color={accent} />
+                      )}
+                      <View style={{ flexShrink: 1 }}>
                         <Text
-                          numberOfLines={2}
-                          style={{
-                            flexShrink: 1,
-                            fontSize: 14,
-                            fontWeight: '600',
-                            color: theme.color.text,
-                          }}
+                          numberOfLines={1}
+                          style={{ fontSize: 13, fontWeight: '600', color: theme.color.text }}
                         >
                           {labelOf(group)}
                         </Text>
-                        {group.id === chosenId ? <PickedTick color={accent} /> : null}
-                      </Pressable>
-                    ))}
-                    {/* Every other group and person, behind one tile. */}
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel={t.quickExpense.otherPlaces}
-                      onPress={() => setPickerOpen(true)}
-                      style={[tile(false), { paddingHorizontal: 16 }]}
-                    >
-                      <Ionicons name="people-outline" size={21} color={accent} />
+                        <Text
+                          numberOfLines={1}
+                          style={{ fontSize: 11, color: theme.color.textMuted }}
+                        >
+                          {plural(locale, memberCountFor(group.id), t.memberCount)}
+                        </Text>
+                      </View>
+                      {group.id === chosenId ? <PickedTick color={accent} /> : null}
                     </Pressable>
-                  </Row>
-                </ScrollView>
-              )}
-
-              <Pressable
-                accessibilityRole="button"
-                // A one-line caption link: the slop gives it a 44pt touch, but only
-                // 6 upward — the group chips sit 8 above and must keep their taps.
-                hitSlop={{ top: 6, bottom: 14, left: 14, right: 14 }}
-                onPress={() => setPickerOpen(true)}
-              >
-                <Text style={{ fontSize: 14, fontWeight: '600', color: accent }}>
-                  {t.quickExpense.otherPlaces}
-                </Text>
-              </Pressable>
+                  ))}
+                  {/* Every other group and person, behind one pill — the sheet's
+                      only way to the full picker once Advanced has left with it. */}
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={t.quickExpense.otherPlaces}
+                    onPress={() => setPickerOpen(true)}
+                    style={[tile(false), { paddingHorizontal: 12 }]}
+                  >
+                    <Ionicons name="people-outline" size={17} color={accent} />
+                  </Pressable>
+                </Row>
+              </ScrollView>
             </View>
 
             {/* A word about what it was, if there is one to hand. Optional —
@@ -411,14 +520,14 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
             <Row
               style={{
                 alignItems: 'center',
-                gap: 12,
-                minHeight: 46,
-                paddingHorizontal: 14,
-                borderRadius: 14,
+                gap: 10,
+                minHeight: 40,
+                paddingHorizontal: 12,
+                borderRadius: 12,
                 backgroundColor: soft,
               }}
             >
-              <Ionicons name="reorder-three-outline" size={20} color={theme.color.textMuted} />
+              <Ionicons name="reorder-three-outline" size={18} color={theme.color.textMuted} />
               <TextInput
                 value={note}
                 onChangeText={setNote}
@@ -426,10 +535,29 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
                 placeholderTextColor={theme.color.textFaint}
                 accessibilityLabel={t.quickExpense.notePlaceholder}
                 returnKeyType="done"
-                style={{ flex: 1, fontSize: 15, color: theme.color.text, paddingVertical: 8 }}
+                numberOfLines={1}
+                style={{ flex: 1, fontSize: 14, color: theme.color.text, paddingVertical: 0 }}
+              />
+              {/* Renders nothing on web or on a binary built before the speech
+                  module existed — the row is exactly as wide either way. */}
+              <DictateButton value={note} onChange={setNote} compact />
+              {/* The same size and shape as the mic beside it — a bill is as
+                  optional as the note it sits next to. Disabled once "Just
+                  me" is picked, which has nowhere to put a receipt. */}
+              <QuickReceiptControl
+                receipt={receipt}
+                busy={attachingReceipt}
+                disabled={personalPicked}
+                onAttach={attachReceipt}
+                onRemove={clearReceipt}
+                addLabel={t.quickExpense.addReceipt}
+                removeLabel={t.quickExpense.removeReceipt}
               />
             </Row>
 
+            {/* The slim footer: one 46dp save action (or the save/draft pair),
+                never taller than the primary button plus its one line of
+                context. */}
             {personalPicked ? (
               <QuickPersonalFooter
                 amount={amount}
@@ -444,10 +572,19 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
                 currency={currency}
                 note={note}
                 place={place}
+                category={category}
+                categoryMeta={categoryMeta}
+                receipt={receipt}
                 onSaved={closeAndReset}
               />
             ) : (
-              <Button label={t.quickExpense.save} fullWidth disabled onPress={() => undefined} />
+              <Button
+                label={t.quickExpense.save}
+                fullWidth
+                disabled
+                style={{ height: 46 }}
+                onPress={() => undefined}
+              />
             )}
           </>
         )}
@@ -505,6 +642,9 @@ function QuickExpenseFooter({
   currency,
   note,
   place,
+  category,
+  categoryMeta,
+  receipt,
   onSaved,
 }: {
   group: GroupRow;
@@ -515,11 +655,18 @@ function QuickExpenseFooter({
   /** Where this was paid, when the reader had already granted location. Null
    *  is the ordinary case and means the row simply carries no place. */
   place: ExpenseLocation | null;
+  /** A built-in id or a custom tag's id; null for "optional, and skipped". */
+  category: string | null;
+  /** The custom tag's denormalised display, when `category` is one. */
+  categoryMeta: CategoryMeta | null;
+  /** The bill picked above, if any — held, not yet uploaded. */
+  receipt: PickedImage | null;
   onSaved: () => void;
 }) {
   const labelOf = useGroupLabeller();
   const theme = useTheme();
   const { t } = useStrings();
+  const toast = useToast();
   const viewerId = useViewerId();
   const { members } = useGroup(group.id);
   const write = useWriteExpense(group.id);
@@ -590,15 +737,42 @@ function QuickExpenseFooter({
   const canWriteExpense = myMemberId !== null && participants.length > 0;
 
   const writeDraft = async (): Promise<void> => {
+    // A capture is not an expense yet (A34), so the kept-bill path above —
+    // keyed by groupId/expenseId — has nothing to attach to. Its own photo
+    // field is a direct upload under the capture's own id instead, exactly as
+    // the inbox's own capture screen keeps one; the id is minted here, ahead
+    // of the write, so the upload and the capture row agree on it.
+    const captureId = randomUUID();
+    let photoPath: string | null = null;
+    if (receipt && viewerId) {
+      try {
+        photoPath = await uploadCapturePhoto({
+          ownerUserId: viewerId,
+          captureId,
+          base64: receipt.base64,
+          mimeType: receipt.mimeType,
+        });
+      } catch {
+        // Best-effort, matching the capture screen's own upload: the draft is
+        // still worth keeping without its photo — but, same as the group
+        // path, the person who took it should be told it did not stick.
+        photoPath = null;
+        toast.show(t.receipts.couldNotAdd, 'negative');
+      }
+    }
     await createCapture.mutateAsync({
+      captureId,
       description: note.trim(),
       expenseDate: new Date().toISOString().slice(0, 10),
       currency,
       amount,
+      category,
+      categoryMeta,
       // Tagged with where it is going, so picking it up again is one tap
       // rather than the "which group was this?" question a second time.
       targetGroupId: group.id,
       location: place,
+      photoPath,
     });
     noteDestination(groupDestination(group.id));
     onSaved();
@@ -628,11 +802,13 @@ function QuickExpenseFooter({
         await writeDraft();
         return;
       }
-      await write.mutateAsync({
+      const expenseId = await write.mutateAsync({
         description: note.trim(),
         expenseDate: new Date().toISOString().slice(0, 10),
         currency,
         amount,
+        category,
+        categoryMeta,
         splitParams: { kind: 'equal' },
         participants,
         payers: { [myMemberId]: amount },
@@ -646,6 +822,22 @@ function QuickExpenseFooter({
         // split is computable at all.
         expectedShares: undefined,
       });
+      if (receipt) {
+        // After the write, not beside it — the kept bill (E2) is keyed by
+        // groupId/expenseId, and the expense has to exist first. Not awaited:
+        // the money is already saved and the sheet is closing, so this runs
+        // past that point rather than holding Save open for an upload. Unlike
+        // `lib/receiptQueue` this has no retry queue behind it, so a failure
+        // here is a real, permanent loss — the one thing the sheet still owes
+        // the reader is saying so, in a toast that outlives it, rather than
+        // leaving them to discover a missing bill later with no idea why.
+        void uploadExpenseReceipt({
+          groupId: group.id,
+          expenseId,
+          base64: receipt.base64,
+          mimeType: receipt.mimeType,
+        }).catch(() => toast.show(t.receipts.couldNotAdd, 'negative'));
+      }
       noteDestination(groupDestination(group.id));
       onSaved();
     } finally {
@@ -686,13 +878,13 @@ function QuickExpenseFooter({
           label={t.quickExpense.saveDraft}
           accessibilityLabel={t.quickExpense.saveDraftLong}
           variant="secondary"
-          style={{ flex: 1 }}
+          style={{ flex: 1, height: 46 }}
           disabled={!canSave}
           onPress={() => void keepDraft()}
         />
         <Button
           label={t.quickExpense.save}
-          style={{ flex: 1 }}
+          style={{ flex: 1, height: 46 }}
           disabled={!canSave}
           onPress={() => void save()}
         />
@@ -768,26 +960,119 @@ function QuickPersonalFooter({
         label={t.quickExpense.save}
         fullWidth
         disabled={!canSave}
+        style={{ height: 46 }}
         onPress={() => void save()}
       />
     </View>
   );
 }
 
-/** The chosen tile's mark: a filled violet disc with a tick. */
+/** The chosen pill's mark: a filled violet disc with a tick. */
 function PickedTick({ color }: { color: string }) {
   return (
     <View
       style={{
-        width: 22,
-        height: 22,
-        borderRadius: 11,
+        width: 17,
+        height: 17,
+        borderRadius: 8.5,
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: color,
       }}
     >
-      <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+      <Ionicons name="checkmark" size={11} color="#FFFFFF" />
     </View>
+  );
+}
+
+/**
+ * The camera button beside the note field, or — once a bill is picked — the
+ * same-sized chip showing it.
+ *
+ * Deliberately the mic's own size and shape (a 32pt soft-brand pill): the note
+ * field already offers one optional way to fill itself in without typing, and
+ * this is the other one. It never grows past that square, even carrying a
+ * photo — a thumbnail big enough to recognise the bill by is a gallery's job,
+ * not this row's; the chip here only has to say "something is attached".
+ */
+function QuickReceiptControl({
+  receipt,
+  busy,
+  disabled,
+  onAttach,
+  onRemove,
+  addLabel,
+  removeLabel,
+}: {
+  receipt: PickedImage | null;
+  busy: boolean;
+  disabled: boolean;
+  onAttach: () => void;
+  onRemove: () => void;
+  addLabel: string;
+  removeLabel: string;
+}) {
+  const theme = useTheme();
+  const size = 32;
+
+  if (receipt) {
+    return (
+      <View style={{ width: size, height: size }}>
+        <Image
+          source={{ uri: receipt.uri }}
+          style={{ width: size, height: size, borderRadius: theme.radius.sm }}
+          contentFit="cover"
+        />
+        {/* The chip's own "x" — removing here never asks to confirm, unlike the
+            full gallery's remove: nothing has been uploaded yet, so there is
+            nothing to lose but a re-tap of the camera button. */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={removeLabel}
+          onPress={onRemove}
+          hitSlop={8}
+          style={({ pressed }) => ({
+            position: 'absolute',
+            top: -6,
+            right: -6,
+            width: 18,
+            height: 18,
+            borderRadius: 9,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: theme.color.text,
+            opacity: pressed ? 0.7 : 1,
+          })}
+        >
+          <Ionicons name="close" size={12} color={theme.color.onBrand} />
+        </Pressable>
+      </View>
+    );
+  }
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={addLabel}
+      accessibilityState={{ disabled: disabled || busy, busy }}
+      disabled={disabled || busy}
+      onPress={onAttach}
+      hitSlop={10}
+      style={({ pressed }) => ({
+        width: size,
+        height: size,
+        borderRadius: theme.radius.pill,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: theme.color.brandSoft,
+        opacity: disabled ? 0.4 : pressed ? 0.85 : 1,
+      })}
+    >
+      {busy ? (
+        <ActivityIndicator size="small" color={theme.color.brand} />
+      ) : (
+        <Ionicons name="camera-outline" size={iconSize.md} color={theme.color.brand} />
+      )}
+    </Pressable>
   );
 }

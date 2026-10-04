@@ -28,10 +28,14 @@ import { describe, expect, it } from 'vitest';
 const SRC = join(__dirname, '../src');
 const source = (relativePath: string): string => readFileSync(join(SRC, relativePath), 'utf8');
 
-/** The hero half of a screen, and everything written after the panel closes. */
+/** The hero half of a screen, and everything written after the panel closes.
+ *  `</ReviewHero>` now, not `</ScreenHero>` — Review's compact redesign
+ *  left the shared shell for its own photo hero (`screenHeroShape.test.ts`),
+ *  but the split this file cares about (what the panel says versus what the
+ *  action bar does) is the same question either way. */
 const halves = (screen: string): { hero: string; below: string } => {
-  const end = screen.indexOf('</ScreenHero>');
-  expect(end, 'the screen should render the shared hero').toBeGreaterThan(-1);
+  const end = screen.indexOf('</ReviewHero>');
+  expect(end, 'the screen should render its hero').toBeGreaterThan(-1);
   return { hero: screen.slice(0, end), below: screen.slice(end) };
 };
 

@@ -1,14 +1,19 @@
 /**
- * One hero, not four.
+ * One hero shell, even where every screen that opens on it has, one by one,
+ * asked for a different face.
  *
- * The gradient panel that a group opens with — running up under the status bar,
- * carrying the name of the thing, one number that is the point of the screen,
- * and the actions that number invites — is now also what Review and Bank
- * messages open with. It is a *shared shell* (`components/ScreenHero`), and the
- * only way it stays shared is if nobody quietly hand-rolls a fifth copy the
- * next time a screen wants one: four `Gradient` panels with four sets of
- * padding drift within a release, and then the app has four ideas about how
- * tall a header is.
+ * `components/ScreenHero` was the gradient panel a group, Review and Bank
+ * messages all opened with — the wash running up under the status bar, the
+ * name of the thing, one number that is the point of the screen, and the
+ * actions that number invites. Bank messages left it first, for a light
+ * header and a total card of its own (`SmsInboxParts`); Friends left it for
+ * Home's own glass card over a photograph; Review leaves it last, in this
+ * change, for its own photograph over a lighter shell (`ReviewHero`). No
+ * screen renders `<ScreenHero>` any more, so this file no longer loops over
+ * one — what it still guards is the controls `ScreenHero` left behind
+ * (`HeroActionCircle`, `HeroPillButton`, `HeroFigureLine`), which the group
+ * ledger still wears, and that each departure is a deliberate new shape
+ * rather than a screen that has quietly drifted from a shared one.
  *
  * Source-reading, like `captureGroupHandoff.test.ts` and `captureFactsCard`:
  * these screens pull in Reanimated and gesture-handler by way of their sheets,
@@ -24,42 +29,7 @@ import { describe, expect, it } from 'vitest';
 const SRC = join(__dirname, '../src');
 const source = (relativePath: string): string => readFileSync(join(SRC, relativePath), 'utf8');
 
-describe('every hero is the same hero', () => {
-  for (const [name, path] of [
-    // Bank messages left the shared panel for a light header and a total
-    // card of its own (see `SmsInboxParts`); Review is the hero screen here.
-    ['Review', 'app/(tabs)/captures.tsx'],
-  ] as const) {
-    it(`${name} opens on the shared panel, not a panel of its own`, () => {
-      const screen = source(path);
-      expect(screen).toMatch(/import \{[^}]*ScreenHero[^}]*\} from '@\/components\/ScreenHero';/);
-      expect(screen).toMatch(/<ScreenHero\b/);
-      // A `Gradient` of its own would be the beginning of a second hero. The
-      // shell owns the wash, the inset and the rounded bottom; a screen that
-      // needs a different one passes stops, it does not draw its own panel.
-      expect(screen).not.toMatch(/<Gradient\b/);
-    });
-
-    it(`${name} lets the panel run under the status bar`, () => {
-      // `edges={['top']}` would inset the screen and leave a band of body
-      // colour above the gradient — the bug that makes a hero look pasted on.
-      expect(source(path)).toMatch(/<Screen edges=\{\[\]\}>/);
-    });
-
-    it(`${name} takes the status bar for as long as it is in front`, () => {
-      const screen = source(path);
-      // Running under the status bar means owning it: the root layout sets dark
-      // glyphs under the light theme, which is unreadable on the wash.
-      expect(screen).toMatch(/useHeroStatusBar\(\);/);
-      // And it must be the focus-scoped hook, not a status bar mounted into the
-      // tree — a tab screen stays mounted after you leave it, so that spelling
-      // holds the bar light over the next white screen you walk to. Checked by
-      // the import rather than by the element, so the prose in these files can
-      // go on naming the thing it is explaining.
-      expect(screen).not.toMatch(/from 'expo-status-bar'/);
-    });
-  }
-
+describe('every hero is a deliberate shape, not a drift from the shared one', () => {
   it('the group hero uses the shared controls rather than its own copies', () => {
     const hero = source('components/GroupHero.tsx');
     const shared = hero.match(/import \{([^}]*)\} from '@\/components\/ScreenHero';/);
@@ -79,29 +49,65 @@ describe('every hero is the same hero', () => {
       'components/GroupHero.tsx',
       // Personal is left out: its scenic hero says "Total spent this month"
       // over the figure, the way Home's balance card does. Bank messages too:
-      // its figure is on a light card with the label above it. Friends moved
-      // here too (see below) once it traded the indigo `ScreenHero` panel for
-      // Home's own scenic hero and glass balance card — its label now sits
-      // above the figure on that white card, the same shape Personal and Bank
-      // messages already use, not the shared shell's "Label: figure" line.
+      // its figure is on a light card with the label above it. Friends has no
+      // headline figure at all any more (see below) — its glass card opens
+      // straight on the two-sided "Owed to you" / "You owe" row, the owner
+      // having asked for the repeated net figure above it to be cut once the
+      // picture band itself took over saying what screen this is.
     ]) {
       expect(source(file), file).toMatch(/<HeroFigureLine\b/);
     }
   });
 
-  it("Friends wears Home's own scenic hero, not the shared gradient shell", () => {
+  it("Friends wears Home's own hero shape, not the shared gradient shell", () => {
     // Friends used to open on `ScreenHero`, the same indigo panel Review and
-    // the group ledger do. The redesign asks for Home's mountain scene and
-    // overlapping glass card instead — a second hero shape by design, not a
-    // screen that has drifted from the shared one, so it is pinned here
-    // rather than left for the test above to flag as a regression.
+    // the group ledger do. The redesign asks for Home's overlapping glass
+    // card instead, over the owner's own photograph of the three friends
+    // (`FriendsHeroBackground`) rather than Home's drawn mountains — a second
+    // hero shape by design, not a screen that has drifted from the shared
+    // one, so it is pinned here rather than left for the test above to flag
+    // as a regression.
     const screen = source('app/(tabs)/friends.tsx');
-    expect(screen).toMatch(/import \{[^}]*HeroScene[^}]*\} from '@\/components\/home\/HeroScene';/);
+    expect(screen).toMatch(
+      /import \{[^}]*FriendsHeroBackground[^}]*\} from '@\/components\/home\/FriendsHeroBackground';/,
+    );
     expect(screen).toMatch(
       /import \{[^}]*GlassSurface[^}]*\} from '@\/components\/home\/GlassSurface';/,
     );
     expect(screen).not.toMatch(/<ScreenHero\b/);
     expect(screen).toMatch(/<Screen edges=\{\[\]\}>/);
+  });
+
+  it('Review wears its own photo hero, not the shared gradient shell', () => {
+    // Review's compact redesign swaps the indigo panel for the owner's own
+    // lakeside photograph (`ReviewHeroBackground`, folded by time of day
+    // through `reviewMomentFor`) behind a lighter title row — a second,
+    // deliberately different hero shape for the same reason Friends' is,
+    // so it is pinned here rather than left for the test above to flag as
+    // a regression the next time somebody touches this screen.
+    const screen = source('app/(tabs)/captures.tsx');
+    expect(screen).toMatch(
+      /import \{ ReviewHeroBackground \} from '@\/components\/ReviewHeroBackground';/,
+    );
+    expect(screen).toMatch(/import \{ reviewMomentFor \} from '@\/lib\/reviewScene';/);
+    expect(screen).toMatch(/<ReviewHero>/);
+    expect(screen).toMatch(/<ReviewHeroBackground\b/);
+    expect(screen).not.toMatch(/<ScreenHero\b/);
+    expect(screen).not.toMatch(/<Gradient\b/);
+    expect(screen).toMatch(/<Screen edges=\{\[\]\}>/);
+  });
+
+  it('Review still takes the status bar for as long as it is in front', () => {
+    // The photo runs dark enough under the status bar on every one of its
+    // four scenes to want light glyphs — the same reasoning `ScreenHero`
+    // callers used to share, now carried by `ReviewHero` instead of by the
+    // shell itself.
+    const screen = source('app/(tabs)/captures.tsx');
+    expect(screen).toMatch(
+      /import \{ useHeroCrossfade, useHeroStatusBar \} from '@\/components\/ScreenHero';/,
+    );
+    expect(screen).toMatch(/useHeroStatusBar\(\);/);
+    expect(screen).not.toMatch(/from 'expo-status-bar'/);
   });
 });
 

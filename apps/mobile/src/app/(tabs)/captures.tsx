@@ -24,11 +24,11 @@
  *    a dot and "Watching your bank messages · 2 min ago", read in two seconds,
  *    tappable to look again. It is shown only while something really is
  *    watching (`useSmsAutoRead`), because a line claiming to watch when nothing
- *    does would be worse than no line at all. It now rides on the same gradient
- *    hero a group opens with (`components/ScreenHero`) — one of the three
- *    screens in the bottom bar should not announce itself with the small-glyph
- *    row of a settings page — over the count of what is still waiting and the
- *    button that adds to it.
+ *    does would be worse than no line at all. It now rides on a hero of its
+ *    own (`ReviewHero`, over the owner's own lakeside photograph) — one of
+ *    the three screens in the bottom bar should not announce itself with the
+ *    small-glyph row of a settings page — over the count of what is still
+ *    waiting and the button that adds to it.
  *
  * 2. **Two errands in tabs, two confidences in sections.** The tabs are *where
  *    a draft came from*: **SMS** — read off the phone's inbox, or pasted in on
@@ -104,7 +104,8 @@ import {
   type PersonChoice,
 } from '@/components/DestinationPicker';
 import { PendingMark } from '@/components/PendingMark';
-import { ScreenHero, useHeroCrossfade, useHeroStatusBar } from '@/components/ScreenHero';
+import { ReviewHeroBackground } from '@/components/ReviewHeroBackground';
+import { useHeroCrossfade, useHeroStatusBar } from '@/components/ScreenHero';
 import { InboxSkeleton } from '@/components/Skeletons';
 import { WatchingLine } from '@/components/WatchingLine';
 import { dayHeading } from '@/data/activity';
@@ -129,20 +130,22 @@ import { planCaptureAssign, stillWaiting, type AssignMember } from '@/lib/captur
 import { friendlyError } from '@/lib/errors';
 import { useGuestGuard, usePersonalOffered } from '@/lib/guestGuard';
 import { suggestGroup, tripWindowsOf, type GroupSuggestion } from '@/lib/groupSuggestion';
+import { useHeroScene } from '@/lib/heroScenePreference';
 import { router } from '@/lib/navigation';
 import { usePullRefresh } from '@/lib/pullRefresh';
 import { useTabBarStandDown } from '@/lib/useTabBarStandDown';
 import {
-  blockEdges,
   buildReviewFeed,
   openingTab,
   splitByTab,
+  type ReviewSortOrder,
   type ReviewTabId,
   doubtsAbout,
   reviewItemKey,
   type ReviewFeedItem,
 } from '@/lib/reviewFeed';
 import { useReducedMotion } from '@/lib/reducedMotion';
+import { reviewMomentFor } from '@/lib/reviewScene';
 import { useSmsAutoRead } from '@/lib/smsAutoRead';
 import { requestScanOnReturn } from '@/lib/smsReadBridge';
 import { useSmsInboxReader } from '@/lib/smsFeature';
@@ -204,6 +207,19 @@ function wasFound(capture: CaptureRow): boolean {
 }
 
 /**
+ * A plain-text name for a draft: its note, or failing that its category, or
+ * failing that "Unassigned" — the same fallback chain the row's own title
+ * uses. Pulled out so the assign sheet's "Edit {item}" accessibility label
+ * names the same thing the row already does, rather than drifting from it.
+ */
+function captureTitle(capture: CaptureRow, t: UiStrings): string {
+  const categoryLabel = capture.category
+    ? (t.categories as Record<string, string>)[capture.category]
+    : undefined;
+  return capture.description?.trim() || categoryLabel || t.captures.unassigned;
+}
+
+/**
  * The bank message this draft was read out of, if there is one.
  *
  * A person cannot trust a parser they cannot check. The row says "PLASTICS
@@ -240,8 +256,11 @@ function DestinationChip({ name, t }: { name: string | null; t: UiStrings }): Re
         gap: 3,
         alignItems: 'center',
         alignSelf: 'flex-start',
-        paddingHorizontal: theme.spacing.sm,
-        paddingVertical: 2,
+        paddingHorizontal: 6,
+        // 1, not the chip's old 2: the compact row's meta line is a single
+        // line now (no second-line wrap to spare the height to), so every
+        // point this pill carries is a point the row carries too.
+        paddingVertical: 1,
         borderRadius: theme.radius.pill,
         backgroundColor: known ? theme.color.brandSoft : theme.color.warningSoft,
         maxWidth: '100%',
@@ -252,10 +271,20 @@ function DestinationChip({ name, t }: { name: string | null; t: UiStrings }): Re
         size={iconSize.xs}
         color={known ? theme.color.brand : theme.color.warning}
       />
+      {/* 12/14, not the shared `micro` token's 11/15 — a point under the
+          floor a compact row is still allowed to read at. Bank messages and
+          Friends' own secondary lines sit at 12-13; this chip is the one
+          piece of `micro` text that rides on every single row, so it is the
+          one worth lifting rather than leaving at the token's usual 11. */}
       <Text
-        variant="micro"
         numberOfLines={1}
-        style={{ color: known ? theme.color.brand : theme.color.warning, flexShrink: 1 }}
+        style={{
+          fontSize: 12,
+          lineHeight: 14,
+          fontWeight: '600',
+          color: known ? theme.color.brand : theme.color.warning,
+          flexShrink: 1,
+        }}
       >
         {known ? name : t.captures.whichGroup}
       </Text>
@@ -285,8 +314,27 @@ function DestinationChip({ name, t }: { name: string | null; t: UiStrings }): Re
  * destination, answered once on the batch's own ⋯.
  */
 /** The batch mark's diameter — `CategoryBadge`'s size on a single row, so the
-    two kinds of row share one left column. */
-const BATCH_MARK = 40;
+    two kinds of row share one left column. Shrunk from 40 alongside that
+    badge (see `ROW_PAD_V`) — a phone's complaint was that the list read as
+    loose, and the two marks have to move together or the column breaks. */
+const BATCH_MARK = 32;
+
+/** The gap between two cards in the list — tighter than `theme.spacing.xs`
+ *  (4) and short of `sm` (8), picked to match the reference board's compact
+ *  stack of separate cards rather than the joined run it replaced. Left
+ *  alone by the density pass below: it already matches Home's own Activity
+ *  feed, which uses this same 6px between its own cards. */
+const CARD_GAP = 6;
+
+/** A single row's own top-and-bottom padding — between `theme.spacing.xs`
+ *  (4, too tight to breathe) and `sm` (8, what the row wore before this
+ *  pass). A phone test called the list "not compact": each row was landing
+ *  near 70px end to end (card + gap), well short of Friends' and Activity's
+ *  own ~54-60px rows. 7 here, together with the smaller mark and the
+ *  single-line meta below, lands a row with no chip doubt at ~49px tall —
+ *  still clear of the 44pt touch-target floor — for roughly a third more
+ *  rows in the same screen. */
+const ROW_PAD_V = 7;
 
 function CaptureListRow({
   capture,
@@ -301,7 +349,6 @@ function CaptureListRow({
   selected = false,
   onToggleSelected,
   bare = false,
-  divider = false,
 }: {
   capture: CaptureRow;
   locale: string;
@@ -330,18 +377,12 @@ function CaptureListRow({
   onToggleSelected?: () => void;
   /** A row nested in a batch card: no card frame of its own, and no chip. */
   bare?: boolean;
-  /** A hairline above the row — every row of a run but its first, so a day's
-      drafts read as one divided list rather than a stack of loose cards. */
-  divider?: boolean;
 }): React.JSX.Element {
   const theme = useTheme();
   // The note names the spend; with none, its category does; with neither, it is
   // simply still unassigned. The amount always sits at the trailing edge, so the
   // title never has to carry it.
-  const categoryLabel = capture.category
-    ? (t.categories as Record<string, string>)[capture.category]
-    : undefined;
-  const title = capture.description?.trim() || categoryLabel || t.captures.unassigned;
+  const title = captureTitle(capture, t);
   const doubts = bare ? [] : doubtsAbout(capture);
   const dismissLabel = wasFound(capture) ? t.captures.notAnExpense : t.captures.delete;
 
@@ -388,21 +429,18 @@ function CaptureListRow({
           ? { opacity: pressed ? 0.6 : 1 }
           : {
               opacity: pressed ? 0.85 : 1,
-              // No card, no border, no radius of its own. The run this row
-              // belongs to is the card (see `blockEdges`); a row draws only the
-              // hairline that separates it from the one above.
+              // The row is the whole card now — each draft its own white,
+              // fully rounded surface (the caller gives it the radius and the
+              // fill), rather than a hairline inside a run several rows share.
+              // `sm` on each side, not the `md` this wore before a phone test
+              // called the list loose — the row's content (the 32pt mark and
+              // the single-line meta below) is the thing that sets its height
+              // now, not this padding, so there was room to give back here.
               paddingHorizontal: theme.spacing.sm,
-              borderTopWidth: divider ? 1 : 0,
-              borderTopColor: theme.color.border,
             }
       }
     >
-      <Row
-        // `sm`, not `md`. Seven rows of a hundred-and-forty-row list fitted on
-        // a screen, and the thing filling it was padding: the row's own, plus
-        // the gap between cards, plus the chip sitting on a line of its own.
-        style={{ gap: theme.spacing.sm, alignItems: 'center', paddingVertical: theme.spacing.sm }}
-      >
+      <Row style={{ gap: theme.spacing.sm, alignItems: 'center', paddingVertical: ROW_PAD_V }}>
         {/* Always drawn — except inside an opened batch. Ticking is Review's
             main verb now: the list is a hundred rows deep on a phone whose
             messages the app reads, and answering it row by row is not
@@ -425,24 +463,30 @@ function CaptureListRow({
           category={capture.category}
           meta={capture.category_meta}
           description={capture.description}
-          size={40}
+          size={32}
         />
 
-        <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-          <Text variant="body" numberOfLines={1} style={{ fontWeight: '600' }}>
+        <View style={{ flex: 1, minWidth: 0, gap: 1 }}>
+          {/* 15/18, not the `body` variant's 15/21 — the same size, a tighter
+              lead, matching the Home activity feed's own title line. */}
+          <Text numberOfLines={1} style={{ fontSize: 15, lineHeight: 18, fontWeight: '600' }}>
             {title}
           </Text>
-          {/* Line two, and there is only one of it now. Where the draft goes,
-              what the parser was unsure of, and whether the write is still in
-              the queue used to take a line each — three lines under a title on
-              a row that is one of a hundred and forty. They wrap onto a second
-              line only when they genuinely do not fit. */}
+          {/* Line two, and there is only one of it now — and, since this pass,
+              only one *row* of it too. Where the draft goes, what the parser
+              was unsure of, and whether the write is still in the queue used
+              to take a line each on the un-compacted list; they wrapped onto
+              a second line here as recently as this same pass. A list this
+              dense has no second line to spare, so the rarer of the two
+              (a doubt) now loses the space race to the chip that is on every
+              row — still reachable from the row's own ⋯ and from the swipe's
+              accessibility action, just not written out beneath a hundred and
+              forty titles at once. */}
           <Row
             style={{
-              flexWrap: 'wrap',
+              flexWrap: 'nowrap',
               alignItems: 'center',
               gap: theme.spacing.xs,
-              rowGap: 2,
             }}
           >
             {bare ? null : <DestinationChip name={destinationName} t={t} />}
@@ -456,14 +500,18 @@ function CaptureListRow({
                   size={iconSize.xs}
                   color={theme.color.warning}
                 />
-                <Text variant="micro" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
+                <Text
+                  tone="muted"
+                  numberOfLines={1}
+                  style={{ fontSize: 12, lineHeight: 14, flexShrink: 1 }}
+                >
                   {doubt === 'date-inferred'
                     ? t.smsImport.dateNotInMessage
                     : t.smsImport.hardToRead}
                 </Text>
               </Row>
             ))}
-            {capture.pending ? <PendingMark /> : null}
+            {capture.pending ? <PendingMark size={12} /> : null}
           </Row>
         </View>
 
@@ -480,11 +528,24 @@ function CaptureListRow({
         {/* One quiet ⋯: everything that is not the card's own tap lives behind
             it. Its own hitbox for a sighted tap, but hidden from the a11y tree —
             a focusable nested in the accessible row can be unreachable, so
-            screen readers reach it through the row's "more" action instead. */}
+            screen readers reach it through the row's "more" action instead.
+
+            A plain `Pressable` with `hitSlop`, not the shared `IconButton` —
+            that disc is a fixed 44x44, which was quietly the tallest thing in
+            the row and the real reason the compact pass above still landed
+            near 70pt: shrinking the badge and the text did nothing while this
+            still forced the row to its height. Home's own Activity feed
+            never reaches for `IconButton` on a dense per-row control either,
+            for the same reason; its own trailing ⋯ is this same shape. The
+            padding plus `hitSlop` still clears 44pt end to end. */}
         <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-          <IconButton label={t.captures.moreActions} onPress={onMore}>
+          <Pressable
+            onPress={onMore}
+            hitSlop={10}
+            style={({ pressed }) => ({ padding: 6, opacity: pressed ? 0.6 : 1 })}
+          >
             <Ionicons name="ellipsis-horizontal" size={iconSize.md} color={theme.color.textMuted} />
-          </IconButton>
+          </Pressable>
         </View>
       </Row>
     </Pressable>
@@ -538,7 +599,9 @@ function BatchGroupCard({
     // grouped-transactions grammar (Monarch, PayPal, Commons).
     <View
       style={{
-        borderRadius: theme.radius.lg,
+        // `md`, matching the single-row card's own corner — see
+        // `CaptureListRow`'s renderItem wrapper.
+        borderRadius: theme.radius.md,
         borderWidth: 1,
         borderColor: theme.color.border,
         backgroundColor: theme.color.surface,
@@ -621,14 +684,21 @@ function BatchGroupCard({
               </Text>
             )}
           </View>
+          {/* Same compact control as a single row's own ⋯ — see
+              `CaptureListRow` — so the batch card's header matches the rows
+              it stands for rather than reverting to the taller shared disc. */}
           <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-            <IconButton label={t.captures.moreActions} onPress={onMoreBatch}>
+            <Pressable
+              onPress={onMoreBatch}
+              hitSlop={10}
+              style={({ pressed }) => ({ padding: 6, opacity: pressed ? 0.6 : 1 })}
+            >
               <Ionicons
                 name="ellipsis-horizontal"
                 size={iconSize.md}
                 color={theme.color.textMuted}
               />
-            </IconButton>
+            </Pressable>
           </View>
         </Row>
       </Pressable>
@@ -719,39 +789,99 @@ function ActionSheetRow({
 }
 
 /**
- * Review's watermark — the shell's own `art` slot, filled with this screen's
- * own imagery rather than Friends' people: the same tray the header glyph
- * uses, filled rather than outlined so it reads as a bold shape at this size,
- * bled off the corner behind a couple of translucent rings. The rings are
- * Friends' own watermark's shape, reused as-is, so the two panels carry the
- * same kind of depth without one screen borrowing the other's icon.
+ * The compact hero Review opens on — the owner's own lakeside photograph
+ * (`ReviewHeroBackground`) behind the title row and the waiting count, in
+ * place of `ScreenHero`'s saturated gradient. Pulled out as its own
+ * component (rather than written inline) so the shape has one name a test
+ * can point at, the way `ScreenHero` itself is pinned for the screens that
+ * still open on it.
+ *
+ * Review left the shared panel for the same reason Friends did (see
+ * `screenHeroShape.test.ts`): a second, deliberately different hero shape is
+ * not drift from the shared one when it is the redesign asking for it. Both
+ * screens land on a photograph in the end, for the same reason — a drawn
+ * gradient was never going to carry "this is a real desk, a real cup of
+ * something" the way the owner's own picture does — so this stays close to
+ * `FriendsHeroBackground`'s own shape rather than inventing a second one.
+ *
+ * Measures its own box (`onLayout`) and hands that size to the background,
+ * which needs real pixels to `cover`-fit the photo by hand; nothing is drawn
+ * until that first layout lands.
  */
-function ReviewHeroArt(): React.JSX.Element {
-  const ring = (size: number, top: number, left: number, alpha: number): React.JSX.Element => (
-    <View
-      style={{
-        position: 'absolute',
-        top,
-        left,
-        width: size,
-        height: size,
-        borderRadius: size / 2,
-        borderWidth: 2,
-        borderColor: `rgba(255,255,255,${alpha})`,
-      }}
-    />
-  );
+function ReviewHero({ children }: { children: React.ReactNode }): React.JSX.Element {
+  const theme = useTheme();
+  const insets = useSafeAreaInsets();
+  const scene = useHeroScene();
+  const moment = reviewMomentFor(scene);
+  const [box, setBox] = useState({ width: 0, height: 0 });
   return (
     <View
-      pointerEvents="none"
-      style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+      onLayout={(event) => {
+        const { width, height } = event.nativeEvent.layout;
+        setBox((current) =>
+          current.width === width && current.height === height ? current : { width, height },
+        );
+      }}
+      style={{ overflow: 'hidden', backgroundColor: theme.color.bg }}
     >
-      {ring(150, -60, -40, 0.1)}
-      {ring(90, 20, -30, 0.08)}
-      <View style={{ position: 'absolute', right: -30, bottom: -46 }}>
-        <Ionicons name="file-tray-full" size={190} color="rgba(255,255,255,0.09)" />
+      <ReviewHeroBackground moment={moment} width={box.width} height={box.height} />
+      <View
+        style={{
+          paddingTop: insets.top + theme.spacing.md,
+          paddingHorizontal: theme.spacing.xl,
+          paddingBottom: theme.spacing.lg,
+          gap: theme.spacing.lg,
+        }}
+      >
+        {children}
       </View>
     </View>
+  );
+}
+
+/** One of the hero's two round, white top-right buttons — search and
+ *  filter/tune on a reader-equipped phone, collapsing to the single
+ *  "from a message" action where there is only one (see `heroActions`
+ *  in `CapturesScreen`). Solid white, the same disc `ScreenHero`'s own
+ *  `primary` action wears — a translucent one would wash out against the
+ *  photo behind it on the brighter scenes (morning, midday). */
+function HeroRoundButton({
+  icon,
+  label,
+  onPress,
+  primary = false,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  onPress: () => void;
+  primary?: boolean;
+}): React.JSX.Element {
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      hitSlop={6}
+      style={({ pressed }) => [
+        {
+          width: 40,
+          height: 40,
+          borderRadius: 20,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: theme.color.surface,
+          opacity: pressed ? 0.75 : 1,
+        },
+        theme.shadow.soft,
+      ]}
+    >
+      <Ionicons
+        name={icon}
+        size={iconSize.md}
+        color={primary ? theme.color.brand : theme.color.text}
+      />
+    </Pressable>
   );
 }
 
@@ -759,9 +889,10 @@ function ReviewHeroArt(): React.JSX.Element {
 export default function CapturesScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  // The hero runs dark under the status bar, so the clock and the battery go
-  // white — but only while this tab is the one you are looking at. See
-  // `useHeroStatusBar`: a tab does not unmount when you leave it.
+  // The photo runs dark enough under the status bar (every one of the four
+  // scenes carries the same scrim) that the clock and the battery want
+  // light glyphs — but only while this tab is the one you are looking at.
+  // See `useHeroStatusBar`: a tab does not unmount when you leave it.
   useHeroStatusBar();
   const { height } = useWindowDimensions();
   const clearance = useTabBarClearance();
@@ -875,6 +1006,18 @@ export default function CapturesScreen() {
   // sheet open, if any. Null when nothing is open.
   const [menu, setMenu] = useState<CaptureMenu>(null);
 
+  // The sort pill over the first day heading. Newest is where this list has
+  // always opened; the other two are pure arithmetic over what is already on
+  // screen (`lib/reviewFeed.ts`), not a server-side order.
+  const [sortOrder, setSortOrder] = useState<ReviewSortOrder>('newest');
+  const [sortOpen, setSortOpen] = useState(false);
+  // The hero's "filter" button, on a phone that reads its own messages: a
+  // small sheet rather than a second screen, holding the one thing that used
+  // to be a bare glyph beside "open inbox" on the old dark panel — "look now"
+  // — now that the top row only has room for two round buttons and the other
+  // one (search) already goes to the screen that scan feeds.
+  const [heroFilterOpen, setHeroFilterOpen] = useState(false);
+
   // Only groups the viewer still belongs to belong in the picker — or on a chip.
   // Leaving a group sets `left_at`; it does not remove the group row, so a left
   // (or owner-removed) group lingers in the local mirror and `useGroups` still
@@ -944,6 +1087,19 @@ export default function CapturesScreen() {
     };
   }, [shownAssigning]);
 
+  // What the assign sheet's "Edit" affordance would open, if anything. A
+  // single row offers it outright; a ticked pile offers it only when exactly
+  // one draft is riding on the answer — editing is a question about one
+  // expense's own fields, and a pile of several has no single set of fields
+  // to open. (A spoken batch's ⋯ opens the picker on more than one row too,
+  // but that path always carries more than one item, so it falls out of the
+  // same check without a separate one.)
+  const editTarget: CaptureRow | null =
+    assigningCapture ??
+    (shownAssigning?.kind === 'batch' && shownAssigning.items.length === 1
+      ? shownAssigning.items[0]!
+      : null);
+
   const rows = useMemo(() => captures.data ?? [], [captures.data]);
   // Two errands, two tabs: what the app found in the phone's bank messages,
   // and what its user added on purpose and has not filed yet. The rule and the
@@ -986,7 +1142,25 @@ export default function CapturesScreen() {
   // making and each wanting its own destination, so a tick box there would be
   // furniture on every row for a gesture that half of them never fits.
   const ticking = activeTab === 'found';
-  const feedItems = useMemo(() => buildReviewFeed(tabRows), [tabRows]);
+  const feedItems = useMemo(() => buildReviewFeed(tabRows, sortOrder), [tabRows, sortOrder]);
+  // The pill's own label — "Sort by: Newest" — and the sheet it opens.
+  const sortOptionLabel = useCallback(
+    (order: ReviewSortOrder): string =>
+      order === 'newest'
+        ? t.captures.sortNewest
+        : order === 'oldest'
+          ? t.captures.sortOldest
+          : t.captures.sortAmount,
+    [t],
+  );
+  // The very first thing in the feed, when it is a day heading — shown on the
+  // sort row itself rather than a second time just under it, which is what
+  // `listData` below leaves out of the rows FlashList actually draws.
+  const firstDayItem = feedItems[0]?.kind === 'day' ? feedItems[0] : null;
+  const listData = useMemo(() => {
+    if (captures.isLoading || rows.length === 0) return [];
+    return firstDayItem ? feedItems.slice(1) : feedItems;
+  }, [captures.isLoading, rows.length, firstDayItem, feedItems]);
 
   // Ticking several drafts and placing them together. Held as ids rather than
   // rows so a refresh that replaces the row objects does not silently drop a
@@ -1268,6 +1442,19 @@ export default function CapturesScreen() {
   );
 
   const closeAssign = useCallback((): void => setAssigning(null), []);
+
+  // The assign sheet's own way to the editor — tapping what it is about to
+  // place rather than backing out to the row's ⋯ first. Same route, same
+  // params, same "every value rides along" as `openEdit`; this only decides
+  // *when* it fires. The sheet closes first rather than after, matching how
+  // every other choice on this picker already leaves (`onChoose`'s `create`
+  // case): the next thing on screen is a full route, not a modal stacked on
+  // one still closing.
+  const editFromAssign = useCallback((): void => {
+    if (!editTarget) return;
+    closeAssign();
+    openEdit(editTarget);
+  }, [closeAssign, editTarget, openEdit]);
 
   /**
    * Drafts into one group, in one go — one row swiped, or a whole spoken batch.
@@ -1584,8 +1771,11 @@ export default function CapturesScreen() {
                 // a margin on a cell root is height FlashList cannot see.
                 // The first heading sits right under the list's own top
                 // padding; later ones leave a day's gap after the cards above.
+                // `6` under it, not `sm` (8) — a smaller section header for a
+                // denser list, matching the gap Home's own day headings
+                // leave above their rows.
                 paddingTop: index === 0 ? 0 : theme.spacing.sm,
-                paddingBottom: theme.spacing.sm,
+                paddingBottom: 6,
               }}
             >
               {dayHeading(locale, item.on)}
@@ -1610,9 +1800,6 @@ export default function CapturesScreen() {
           const capture = item.capture;
           const destination = destinations.get(capture.id) ?? null;
           const destinationName = destination ? nameOfGroup(destination.groupId) : null;
-          // Where this row sits in its run of neighbours: the run is the card,
-          // and the row draws the corners only at its ends.
-          const edges = blockEdges(feedItems, index);
           // "File it where the chip says" is offered only when the chip
           // actually names somewhere, so it can never do something the row did
           // not first state. That condition used to ride on the swipe's leading
@@ -1630,14 +1817,14 @@ export default function CapturesScreen() {
               ticking={ticking}
               selected={selected.has(capture.id)}
               onToggleSelected={() => toggleSelected(capture.id)}
-              divider={!edges.first}
             />
           );
           return (
-            /* The surface is here rather than on the row, so a run of drafts is
-               one card with a hairline every few rows — the Friends tab's list,
-               and about two thirds of the height the old stack of separate
-               cards took for the same rows.
+            /* Its own card now, not a hairline inside a run several drafts
+               shared — compact (`CARD_GAP` between them, not a margin FlashList
+               cannot see) reads closer to the reference board than the tall
+               joined blocks did, and it is what lets a run mix ticked and
+               unticked rows without one card looking half-selected.
 
                No swipe. A drag that both ticks a row and files it somewhere is
                two answers to one gesture, and the one it would win is whichever
@@ -1645,14 +1832,14 @@ export default function CapturesScreen() {
                the swipe had to go. Both of its answers survive as plain rows in
                the ⋯ sheet, and "not an expense" now also answers a whole ticked
                pile at once, which is what the gesture was really for. */
-            <View style={{ paddingBottom: edges.last ? theme.spacing.md : 0 }}>
+            <View style={{ paddingBottom: CARD_GAP }}>
               <View
                 style={{
                   backgroundColor: theme.color.surface,
-                  borderTopLeftRadius: edges.first ? theme.radius.lg : 0,
-                  borderTopRightRadius: edges.first ? theme.radius.lg : 0,
-                  borderBottomLeftRadius: edges.last ? theme.radius.lg : 0,
-                  borderBottomRightRadius: edges.last ? theme.radius.lg : 0,
+                  // `md` (16), not `lg` (20) — a smaller card wears a smaller
+                  // corner, and it is one less point of chrome around
+                  // content that is already tighter.
+                  borderRadius: theme.radius.md,
                 }}
               >
                 {row}
@@ -1675,10 +1862,9 @@ export default function CapturesScreen() {
       ticking,
       toggleSelected,
       openCaptureMenu,
-      feedItems,
       t,
       theme.color.surface,
-      theme.radius.lg,
+      theme.radius.md,
       theme.spacing.md,
       theme.spacing.sm,
       toggleBatch,
@@ -1773,88 +1959,133 @@ export default function CapturesScreen() {
       </Pressable>
     ) : null;
 
+  // The sort pill, over whichever day heading the first visible row would
+  // otherwise carry — folded into one header row with it rather than left as
+  // a second banner above it, so the two read as one line the way the
+  // reference board draws them. `firstDayItem` is left out of `listData`
+  // for exactly this reason: shown here, it would otherwise be shown twice.
+  const sortRow =
+    rows.length > 0 ? (
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: theme.spacing.sm,
+          // Matches the day heading's own tightened gap below it.
+          paddingBottom: 6,
+        }}
+      >
+        <Text
+          variant="micro"
+          tone="muted"
+          numberOfLines={1}
+          style={{ textTransform: 'uppercase', flexShrink: 1 }}
+        >
+          {firstDayItem ? dayHeading(locale, firstDayItem.on) : ''}
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t.captures.sortByLabel.replace(
+            '{option}',
+            sortOptionLabel(sortOrder),
+          )}
+          onPress={() => setSortOpen(true)}
+          style={({ pressed }) => [
+            {
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: theme.spacing.xs,
+              paddingHorizontal: theme.spacing.sm,
+              paddingVertical: 4,
+              borderRadius: theme.radius.pill,
+              backgroundColor: theme.color.surface,
+              opacity: pressed ? 0.7 : 1,
+            },
+            theme.shadow.soft,
+          ]}
+        >
+          <Ionicons name="swap-vertical-outline" size={iconSize.sm} color={theme.color.textMuted} />
+          <Text variant="micro" numberOfLines={1}>
+            {t.captures.sortByLabel.replace('{option}', sortOptionLabel(sortOrder))}
+          </Text>
+          <Ionicons name="chevron-down" size={iconSize.xs} color={theme.color.textFaint} />
+        </Pressable>
+      </View>
+    ) : null;
+
   return (
     <Screen edges={[]}>
-      {/* Review opens on the same panel a group does — the gradient running up
-          under the status bar, the name of the thing, one number that is the
-          point of the screen, and the action that number invites. It used to
-          open on a white row with a small glyph, which is the layout of a
-          settings page; on one of the three screens in the bottom bar that read
-          as somewhere you had wandered into rather than somewhere you meant to
-          go. `ScreenHero` is the group hero's own shell, so the two cannot
-          drift.
+      {/* Review opens on the owner's own photograph now, not the shared
+          indigo gradient `ScreenHero` gives a group — the name of the thing,
+          one number that is the point of the screen, and the two round
+          buttons that used to be bare glyphs in `ScreenHero`'s corner. See
+          `ReviewHero` for why this is its own component rather than a third
+          caller of the shared shell.
 
-          No back chevron: this is a bar destination and there is nowhere "back"
-          from a tab. `edges={[]}` lets the panel run under the status bar the
-          way the dashboard's does; the FlashList's `paddingBottom: clearance`
-          still reserves the room the tab bar needs at the other end. */}
-      <ScreenHero
-        icon="file-tray-full-outline"
-        title={t.captures.title}
-        // The shell's own watermark slot — Review's own glyph, not Friends'
-        // people, so the two panels carry the same kind of depth without
-        // literally sharing one screen's imagery.
-        art={<ReviewHeroArt />}
-        // The line under the name is a *state*, not an instruction: with
-        // something reading, it says so and when it last looked. With nothing
-        // reading there is no state to report, and the hero's own count below
-        // already says how much is waiting.
-        subtitle={
-          auto.enabled ? (
-            <WatchingLine
-              onBrand
-              checking={auto.checking}
-              lastCheckedAt={auto.lastCheckedAt}
-              now={now}
-              locale={locale}
-              t={t}
-              onRefresh={() => void auto.refresh()}
+          No back chevron: this is a bar destination and there is nowhere
+          "back" from a tab. `edges={[]}` lets the band run under the status
+          bar the way the dashboard's does; the FlashList's
+          `paddingBottom: clearance` still reserves the room the tab bar
+          needs at the other end. */}
+      <ReviewHero>
+        <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+          <Ionicons name="file-tray-full-outline" size={iconSize.xl} color={theme.color.onBrand} />
+          <Text
+            variant="title"
+            tone="onBrand"
+            numberOfLines={1}
+            style={{ flex: 1, fontWeight: '800' }}
+          >
+            {t.captures.title}
+          </Text>
+          {/* The hero's two round buttons, where a phone reads its own
+              messages: search goes straight to Bank messages, which is
+              where this screen's real search field already lives
+              (`captures/sms`) — the same destination "open inbox" used to
+              be a bare primary glyph for; filter opens a small sheet
+              holding "look now", the one thing left over once search took
+              the other action's old spot. Where nothing reads (iPhone,
+              iPad, no tier of the API) there is only ever one thing this
+              screen can be asked to do, so it gets the one button rather
+              than a second that would open onto nothing. */}
+          {smsReader ? (
+            <>
+              <HeroRoundButton
+                icon="search-outline"
+                label={t.captures.heroSearch}
+                onPress={() => router.push('/captures/sms')}
+              />
+              <HeroRoundButton
+                icon="options-outline"
+                label={t.captures.heroFilter}
+                onPress={() => setHeroFilterOpen(true)}
+              />
+            </>
+          ) : (
+            <HeroRoundButton
+              icon="chatbubble-ellipses-outline"
+              label={t.captures.fromMessage}
+              primary
+              onPress={() => router.push('/captures/paste')}
             />
-          ) : undefined
-        }
-        // Everything this screen can be *asked* to do sits in the top corner,
-        // where a header's controls live, rather than as discs under the
-        // number: the panel's job is to say how much is waiting, and two
-        // buttons below that figure pushed the list a row further down every
-        // screen. Where a phone reads messages that is the inbox and a "look
-        // now"; where it does not it is the paste path, which on an iPhone is
-        // the main way a spend arrives and must not be buried.
-        actions={
-          smsReader
-            ? [
-                // The inbox is the main path in on a phone that reads its own
-                // messages — the screen's one real button, so it gets the
-                // shell's primary treatment; "look now" stays a bare glyph.
-                {
-                  icon: 'chatbubbles-outline',
-                  label: t.smsInbox.entryTitle,
-                  onPress: () => router.push('/captures/sms'),
-                  primary: true,
-                },
-                // "Look now" scans where the messages are: Bank messages, which
-                // takes the request on focus and shows the scan as it runs.
-                {
-                  icon: 'refresh',
-                  label: t.smsInbox.scan,
-                  onPress: () => {
-                    requestScanOnReturn();
-                    router.push('/captures/sms');
-                  },
-                },
-              ]
-            : [
-                // The only action here, and the main way a spend arrives on a
-                // phone with no reading API at any tier — primary because
-                // there is nowhere else this screen sends you to add one.
-                {
-                  icon: 'chatbubble-ellipses-outline',
-                  label: t.captures.fromMessage,
-                  onPress: () => router.push('/captures/paste'),
-                  primary: true,
-                },
-              ]
-        }
-      >
+          )}
+        </Row>
+        {/* The line under the name is a *state*, not an instruction: with
+            something reading, it says so and when it last looked. With
+            nothing reading there is no state to report, and the hero's own
+            count below already says how much is waiting. */}
+        {auto.enabled ? (
+          <WatchingLine
+            onBrand
+            checking={auto.checking}
+            lastCheckedAt={auto.lastCheckedAt}
+            now={now}
+            locale={locale}
+            t={t}
+            onRefresh={() => void auto.refresh()}
+          />
+        ) : null}
         <View style={{ gap: theme.spacing.md }}>
           {/* The panel's two faces share one slot and dissolve between them.
               What is waiting sits in flow and gives the slot its height; the
@@ -1944,7 +2175,7 @@ export default function CapturesScreen() {
               with the rest of the header — a panel whose job is one figure
               should not be pushing the list down with buttons. */}
         </View>
-      </ScreenHero>
+      </ReviewHero>
 
       {/* The two errands, pinned between the header and the list exactly as the
           group ledger pins its three — fixed here rather than riding in
@@ -2007,7 +2238,7 @@ export default function CapturesScreen() {
           works while loading or empty, but a pasted month only mounts the rows
           near the viewport. */}
       <FlashList
-        data={captures.isLoading || rows.length === 0 ? [] : feedItems}
+        data={listData}
         keyExtractor={reviewItemKey}
         renderItem={renderItem}
         getItemType={(item) => item.kind}
@@ -2024,8 +2255,9 @@ export default function CapturesScreen() {
         onLayout={(event) => setListHeight(event.nativeEvent.layout.height)}
         contentContainerStyle={{
           paddingHorizontal: theme.spacing.xl,
-          // The first card used to sit flush against the tab bar.
-          paddingTop: theme.spacing.lg,
+          // The first card used to sit flush against the tab bar. `md`, not
+          // `lg` — one more small cut in a list a phone test called loose.
+          paddingTop: theme.spacing.md,
           // Room for whatever is at the foot. With nothing ticked that is the
           // navigation; with something ticked the navigation has stood down and
           // the action bar is there instead — one row of buttons now that the
@@ -2040,7 +2272,12 @@ export default function CapturesScreen() {
             tintColor={theme.color.brand}
           />
         }
-        ListHeaderComponent={bankMessagesRow}
+        ListHeaderComponent={
+          <>
+            {sortRow}
+            {bankMessagesRow}
+          </>
+        }
         ListEmptyComponent={
           captures.isLoading ? (
             <InboxSkeleton />
@@ -2139,14 +2376,53 @@ export default function CapturesScreen() {
         onClose={closeAssign}
         padded={false}
         closeLabel={t.common.close}
+        title={t.captures.assignTitle}
+        // The sheet's own title row, not a second heading in the body: the
+        // header is already the drag surface and the tap-to-close target, so
+        // a title handed here rides along with both rather than sitting
+        // under a plain `<Text>` that offers neither. "Edit" rides the far
+        // end of that same line — on the title row, beside what it is
+        // naming, rather than under the summary where it used to compete
+        // with the subject's own badge and amount for a second kind of tap.
+        // Only present with exactly one expense on the sheet: see
+        // `editTarget`.
+        titleAction={
+          editTarget ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t.captures.assignEditExpenseFor.replace(
+                '{item}',
+                captureTitle(editTarget, t),
+              )}
+              onPress={editFromAssign}
+              // The pill stays small; the reach it answers to does not — a
+              // 44pt target sat on a compact pill rather than being grown to
+              // one.
+              hitSlop={{ top: 14, bottom: 14, left: 10, right: 10 }}
+              style={({ pressed }) => ({
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 4,
+                paddingHorizontal: theme.spacing.sm,
+                paddingVertical: 4,
+                borderRadius: theme.radius.pill,
+                backgroundColor: theme.color.brandSoft,
+                opacity: pressed ? 0.6 : 1,
+              })}
+            >
+              <Ionicons name="pencil" size={iconSize.xs} color={theme.color.brand} />
+              <Text variant="micro" style={{ color: theme.color.brand, fontWeight: '700' }}>
+                {t.captures.assignEditExpense}
+              </Text>
+            </Pressable>
+          ) : null
+        }
         style={{
           paddingHorizontal: theme.spacing.xl,
           gap: theme.spacing.md,
           maxHeight: pickerMaxHeight,
         }}
       >
-        <Text variant="heading">{t.captures.assignTitle}</Text>
-
         {/* The same picker the voice review opens, so "where does this go?" is
             one control in the app rather than two that drifted apart.
 
@@ -2194,11 +2470,20 @@ export default function CapturesScreen() {
                         variant="subheading"
                       />
                     ),
-                    note: assigningCapture.description ? (
+                    // The note now carries the date alongside the description
+                    // — amount and description alone left the one other field
+                    // the editor can fix (and the reason a merchant's date is
+                    // sometimes the wrong half of a UPI string) unsaid here.
+                    // The summary itself is inert: editing lives on the
+                    // title row now (`titleAction` above), so the subject
+                    // does not also need to answer for it.
+                    note: (
                       <Text variant="caption" tone="muted" numberOfLines={1}>
-                        {assigningCapture.description}
+                        {assigningCapture.description
+                          ? `${assigningCapture.description} · ${dayHeading(locale, assigningCapture.expense_date)}`
+                          : dayHeading(locale, assigningCapture.expense_date)}
                       </Text>
-                    ) : null,
+                    ),
                   }
                 : batchPreview
                   ? {
@@ -2231,7 +2516,11 @@ export default function CapturesScreen() {
                         ) : null,
                       note: (
                         <Text variant="caption" tone="muted" numberOfLines={1}>
-                          {plural(locale, batchPreview.count, t.captures.batchExpenses)}
+                          {editTarget
+                            ? editTarget.description
+                              ? `${editTarget.description} · ${dayHeading(locale, editTarget.expense_date)}`
+                              : dayHeading(locale, editTarget.expense_date)
+                            : plural(locale, batchPreview.count, t.captures.batchExpenses)}
                         </Text>
                       ),
                     }
@@ -2546,6 +2835,57 @@ export default function CapturesScreen() {
           </>
         ) : null}
       </Sheet>
+
+      {/* The sort pill's own sheet: three plain rows, a checkmark on
+          whichever is live. Three options are a sheet rather than the
+          member ledger's own two-way toggle pill — a tap cycling through
+          three states is a control nobody can predict the next press of. */}
+      <Sheet
+        visible={sortOpen}
+        onClose={() => setSortOpen(false)}
+        padded={false}
+        closeLabel={t.common.close}
+        title={t.captures.sortTitle}
+        style={{ paddingHorizontal: theme.spacing.xl, gap: theme.spacing.xs }}
+      >
+        {(['newest', 'oldest', 'amount'] as const).map((order) => (
+          <ActionSheetRow
+            key={order}
+            icon={sortOrder === order ? 'checkmark-circle' : 'ellipse-outline'}
+            label={sortOptionLabel(order)}
+            tone={sortOrder === order ? 'brand' : 'default'}
+            onPress={() => {
+              setSortOrder(order);
+              setSortOpen(false);
+            }}
+          />
+        ))}
+      </Sheet>
+
+      {/* The hero's "filter" button, on a phone that reads its own
+          messages: the one action search's move to Bank messages left
+          without a home — "look now", which scans on the screen search
+          already opens rather than duplicating a result here. */}
+      {smsReader ? (
+        <Sheet
+          visible={heroFilterOpen}
+          onClose={() => setHeroFilterOpen(false)}
+          padded={false}
+          closeLabel={t.common.close}
+          style={{ paddingHorizontal: theme.spacing.xl, gap: theme.spacing.xs }}
+        >
+          <ActionSheetRow
+            icon="refresh"
+            label={t.smsInbox.scan}
+            tone="brand"
+            onPress={() => {
+              setHeroFilterOpen(false);
+              requestScanOnReturn();
+              router.push('/captures/sms');
+            }}
+          />
+        </Sheet>
+      ) : null}
     </Screen>
   );
 }
