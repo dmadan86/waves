@@ -7,13 +7,18 @@
  *
  *   photo    the scene, `cover`-fitted and anchored bottom-centre, so the
  *            three friends and the horizon stay in frame on a short hero
- *            rather than being trimmed the way a centred crop would
+ *            rather than being trimmed the way a centred crop would — shown
+ *            at full strength, not washed under a wash the size of the whole
+ *            band, so it actually reads as the owner's picture rather than a
+ *            tint
  *   crossfade  when the moment changes under a running clock, the new
  *            photo eases in over the old one rather than cutting to it;
  *            skipped under reduced motion, which jumps straight there
- *   scrim    Home's own top shade for this scene (`HERO_THEMES[scene].overlay`),
- *            so the white title and the status bar read the same way they
- *            do over Home's sky, on every one of the five photos
+ *   scrim    a short, fixed dark wash hugging the status bar and the title —
+ *            not the scene's own ink (every one of the five photos is lit
+ *            brightly enough at the top that a white title always wants a
+ *            dark backer, morning and midday included), and short enough
+ *            that it clears the friends' heads with room to spare
  *   fade     the photo's foot running into the page behind the glass card,
  *            Home's own formula
  *
@@ -33,6 +38,18 @@ import Reanimated, {
 import { friendsMomentFor, type FriendsMoment } from '@/lib/friendsScene';
 import { HERO_THEMES, Scene } from '@/lib/scene';
 import { useReducedMotion } from '@/lib/reducedMotion';
+
+/**
+ * Where the three friends sit, left to right, as a fraction of each photo's
+ * own width — one number for all five, not one per scene: the five shots
+ * share one composition (the same rock, the same three backs), only the
+ * light changes, so a dark-cluster scan of the heads/shoulders band (the
+ * sky above them is always the lightest thing nearby, in every one of the
+ * five) lands within a few percent of this same figure in every shot.
+ * Slightly right of centre, which keeps the yellow hoodie's sleeve in frame
+ * on a narrow phone without pushing the tree on the left out of its corner.
+ */
+const FOCAL_X = 0.62;
 
 /** The five photographs, one per moment. */
 const FRIENDS_SCENE_PHOTOS: Readonly<Record<FriendsMoment, number>> = {
@@ -144,17 +161,18 @@ export function FriendsHeroBackground({
         </Reanimated.View>
       ) : null}
 
-      {/* Readability: the same top shade Home's own hero wears for this
-          scene, so the white title and the status bar read the same way
-          over the photo as they do over the drawn sky. */}
+      {/* Readability: a short dark wash under the status bar and the title
+          only — not the scene's own ink, and not the whole band, so the
+          photo still reads as a photo everywhere past the title row. */}
       <LinearGradient
-        colors={[HERO_THEMES[scene].overlay, 'rgba(0, 0, 0, 0)']}
+        colors={['rgba(8, 12, 28, 0.5)', 'rgba(8, 12, 28, 0.2)', 'rgba(8, 12, 28, 0)']}
+        locations={[0, 0.65, 1]}
         style={{
           position: 'absolute',
           left: 0,
           right: 0,
           top: 0,
-          height: headerBottom + 40,
+          height: Math.min(height, headerBottom + 20),
         }}
       />
 
@@ -169,11 +187,11 @@ export function FriendsHeroBackground({
   );
 }
 
-/** One photo, `cover`-fitted by hand and anchored bottom-centre — centred
- *  side to side, its foot held to the hero's foot — so the three friends and
- *  the horizon they are watching stay in frame rather than being centred
- *  into, which on a short hero would crop their heads instead of the sky
- *  above them. */
+/** One photo, `cover`-fitted by hand: anchored to the hero's foot vertically,
+ *  so the crop always comes off the sky rather than the friends, and
+ *  centred on `FOCAL_X` horizontally rather than on the frame's midpoint, so
+ *  a narrow phone keeps the group in frame instead of splitting the
+ *  difference between them and the tree in the corner. */
 function CoverPhoto({
   moment,
   width,
@@ -187,6 +205,10 @@ function CoverPhoto({
   const scale = Math.max(width / size.width, height / size.height);
   const renderedWidth = size.width * scale;
   const renderedHeight = size.height * scale;
+  // The window `cover` leaves visible, as a fraction of the rendered image —
+  // always ≤ 1, since `scale` guarantees renderedWidth ≥ width.
+  const visibleFraction = Math.min(1, width / renderedWidth);
+  const leftFraction = Math.max(0, Math.min(1 - visibleFraction, FOCAL_X - visibleFraction / 2));
   return (
     <Image
       source={FRIENDS_SCENE_PHOTOS[moment]}
@@ -194,7 +216,7 @@ function CoverPhoto({
         position: 'absolute',
         width: renderedWidth,
         height: renderedHeight,
-        left: (width - renderedWidth) / 2,
+        left: -leftFraction * renderedWidth,
         top: height - renderedHeight,
       }}
     />

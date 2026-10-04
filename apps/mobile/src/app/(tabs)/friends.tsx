@@ -84,8 +84,6 @@ import { plural, useStrings, type UiStrings } from '@/i18n';
 import { useBalanceHidden } from '@/lib/balanceHidden';
 import { useHeroScene } from '@/lib/heroScenePreference';
 import { usePullRefresh } from '@/lib/pullRefresh';
-import { HERO_THEMES } from '@/lib/scene';
-import { SPEC_INK } from '@/lib/specPalette';
 
 enum SortKey {
   Amount = 'amount',
@@ -685,17 +683,27 @@ function FriendsScene({
   // The scene wears the time of day, or the one picked on the Background
   // screen — Home's own hook, so the two tabs always agree on what hour it is.
   const scene = useHeroScene();
-  const darkInk = HERO_THEMES[scene].ink === 'dark';
-  const heroInk = darkInk ? SPEC_INK : '#FFFFFF';
-  useHeroStatusBar(darkInk ? 'dark' : 'light');
+  // Unlike Home's drawn sky, every one of the five photos is lit brightly
+  // enough at the top (even night's moon glow) that a white title over the
+  // scrim always wins — so the title and the status bar stay white and light
+  // on all five, not just the darker scenes the vector hero kept it for.
+  const heroInk = '#FFFFFF';
+  useHeroStatusBar('light');
 
-  // The scene's geometry, measured exactly as Home measures its own: the
-  // title row's height sets where the scene's shade can end, the card's
-  // height sets how far the scene reaches before fading into the page.
-  const [headerHeight, setHeaderHeight] = useState(insets.top + 120);
-  const [cardHeight, setCardHeight] = useState(220);
+  // The picture band: visible at full strength from the top of the screen
+  // down to just above the balance card, ~200-220dp including the status
+  // bar — tall enough that the friends on the rock are plainly the picture,
+  // not a sliver of it hiding behind the card. The header block is asked to
+  // be exactly this tall (below), so what `onLayout` measures back is this
+  // same figure; the card rides up over only its last `HERO_OVERLAP`.
+  const bandHeight = Math.min(220, Math.max(200, insets.top + 170));
+  const [headerHeight, setHeaderHeight] = useState(bandHeight);
   const cardTop = headerHeight - HERO_OVERLAP;
-  const sceneHeight = cardTop + cardHeight * SCENE_INTO_CARD;
+  // No deeper than the band itself: the old formula ran the photo on down
+  // through most of the card's own height for the glass to blur, which also
+  // ran the friends themselves down there, out of sight behind the card's
+  // opaque fill. The glass still gets the band's last `HERO_OVERLAP` to blur.
+  const sceneHeight = headerHeight;
   const sceneRef = useRef<View>(null);
 
   const { restingStyle, overlayStyle } = useHeroCrossfade(selectMode);
@@ -733,6 +741,7 @@ function FriendsScene({
       <View
         onLayout={(event) => setHeaderHeight(event.nativeEvent.layout.height)}
         style={{
+          minHeight: bandHeight,
           paddingTop: insets.top + theme.spacing.sm,
           paddingHorizontal: theme.spacing.lg,
           paddingBottom: HERO_OVERLAP + theme.spacing.sm,
@@ -751,7 +760,14 @@ function FriendsScene({
                   same scene. */}
               <Text
                 numberOfLines={1}
-                style={{ flex: 1, fontSize: 18, lineHeight: 23, fontWeight: '700', color: heroInk }}
+                style={{
+                  flex: 1,
+                  fontSize: 18,
+                  lineHeight: 23,
+                  fontWeight: '700',
+                  color: heroInk,
+                  ...HERO_TITLE_SHADOW,
+                }}
               >
                 {t.friends}
               </Text>
@@ -783,7 +799,14 @@ function FriendsScene({
               <Ionicons name="close" size={iconSize.xl} color={heroInk} />
             </PressableScale>
             <Text
-              style={{ flex: 1, fontSize: 18, lineHeight: 23, fontWeight: '700', color: heroInk }}
+              style={{
+                flex: 1,
+                fontSize: 18,
+                lineHeight: 23,
+                fontWeight: '700',
+                color: heroInk,
+                ...HERO_TITLE_SHADOW,
+              }}
               numberOfLines={1}
             >
               {plural(locale, selectedCount, t.mergePeople.selected)}
@@ -805,42 +828,45 @@ function FriendsScene({
           marginTop: -HERO_OVERLAP,
         }}
       >
-        <View onLayout={(event) => setCardHeight(event.nativeEvent.layout.height)}>
-          <GlassSurface blurTarget={sceneRef}>
-            <FriendsBalanceCard
-              rows={rows}
-              totals={totals}
-              locale={locale}
-              t={t}
-              hidden={balanceHidden || !balanceReady}
-              onToggleHide={toggleBalance}
-              loading={loading}
-              footer={
-                <FriendsQuickActions
-                  addTileRef={addTileRef}
-                  onAdd={openAdd}
-                  onSettleUp={onSettleUp}
-                  duplicateCount={duplicateCount}
-                  onMerge={onDuplicates}
-                  t={t}
-                  radius={theme.radius.xl}
-                />
-              }
-            />
-          </GlassSurface>
-        </View>
+        <GlassSurface blurTarget={sceneRef}>
+          <FriendsBalanceCard
+            rows={rows}
+            totals={totals}
+            locale={locale}
+            t={t}
+            hidden={balanceHidden || !balanceReady}
+            onToggleHide={toggleBalance}
+            loading={loading}
+            footer={
+              <FriendsQuickActions
+                addTileRef={addTileRef}
+                onAdd={openAdd}
+                onSettleUp={onSettleUp}
+                duplicateCount={duplicateCount}
+                onMerge={onDuplicates}
+                t={t}
+                radius={theme.radius.xl}
+              />
+            }
+          />
+        </GlassSurface>
       </View>
     </View>
   );
 }
 
-/** How far the balance card rides up over the bottom of the scene — the same
- *  measure Home's own dashboard card uses, so the two overlap identically. */
-const HERO_OVERLAP = 56;
+/** How far the balance card rides up over the bottom of the picture band —
+ *  just enough to anchor it there, not so much that it climbs over the
+ *  friends themselves, who sit in the band just above this line. */
+const HERO_OVERLAP = 28;
 
-/** How far down the balance card the scene reaches before fading into the
- *  page — Home's own fraction. */
-const SCENE_INTO_CARD = 0.72;
+/** A subtle dark lift under the white title, so it stays legible over the
+ *  brighter patches of sky the short scrim alone does not reach. */
+const HERO_TITLE_SHADOW = {
+  textShadowColor: 'rgba(0, 0, 0, 0.35)',
+  textShadowOffset: { width: 0, height: 1 },
+  textShadowRadius: 3,
+} as const;
 
 /**
  * The balance card's body — now Home's own shape, not a hand-rolled one:
