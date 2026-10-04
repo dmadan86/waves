@@ -2074,6 +2074,20 @@ export interface UiStrings {
      *  claims anything about what was spent, because the phone does not know. */
     checkInTitle: string;
     checkInBody: string;
+    /** The compact hero's top-right glyphs. Search opens Bank messages, which
+     *  is where Review's own search field already lives (`captures/sms`);
+     *  filter opens a small sheet holding whichever of "look now" / "from a
+     *  message" this phone's hero used to show inline, now that the row only
+     *  has room for two round buttons. */
+    heroSearch: string;
+    heroFilter: string;
+    /** The pill over the first day heading: "Sort by: {option}", and the
+     *  sheet it opens, headed by the plain form of the same question. */
+    sortByLabel: string;
+    sortTitle: string;
+    sortNewest: string;
+    sortOldest: string;
+    sortAmount: string;
   };
   /** Attaching where a spend happened (A43): the opt-in control on the expense
    *  forms and the tappable place on the expense detail. */
@@ -5724,6 +5738,13 @@ const en: UiStrings = {
     },
     checkInTitle: 'Anything to split today?',
     checkInBody: 'Add it now — it is harder to remember on Sunday.',
+    heroSearch: 'Search',
+    heroFilter: 'Filter',
+    sortByLabel: 'Sort by: {option}',
+    sortTitle: 'Sort by',
+    sortNewest: 'Newest',
+    sortOldest: 'Oldest',
+    sortAmount: 'Amount',
   },
   location: {
     label: 'Location',
@@ -9162,6 +9183,13 @@ const ta: UiStrings = {
     },
     checkInTitle: 'இன்று பிரிக்க ஏதேனும் உள்ளதா?',
     checkInBody: 'இப்போதே சேர்த்து விடுங்கள் — ஞாயிறு அன்று நினைவில் இருக்காது.',
+    heroSearch: 'தேடல்',
+    heroFilter: 'வடிகட்டி',
+    sortByLabel: 'வகைப்படி: {option}',
+    sortTitle: 'வகைப்படுத்து',
+    sortNewest: 'புதியவை',
+    sortOldest: 'பழையவை',
+    sortAmount: 'தொகை',
   },
   location: {
     label: 'இடம்',
@@ -12670,6 +12698,13 @@ const hi: UiStrings = {
     },
     checkInTitle: 'आज कुछ बाँटना है?',
     checkInBody: 'अभी जोड़ लें — रविवार को याद रखना मुश्किल होगा।',
+    heroSearch: 'खोजें',
+    heroFilter: 'फ़िल्टर',
+    sortByLabel: 'क्रम: {option}',
+    sortTitle: 'इस क्रम में',
+    sortNewest: 'नवीनतम',
+    sortOldest: 'पुराना',
+    sortAmount: 'राशि',
   },
   location: {
     label: 'स्थान',
@@ -16230,6 +16265,13 @@ const ar: UiStrings = {
     },
     checkInTitle: 'هل من شيء لتقسيمه اليوم؟',
     checkInBody: 'أضفه الآن — تذكُّره يوم الأحد أصعب.',
+    heroSearch: 'بحث',
+    heroFilter: 'تصفية',
+    sortByLabel: 'الترتيب: {option}',
+    sortTitle: 'الترتيب حسب',
+    sortNewest: 'الأحدث',
+    sortOldest: 'الأقدم',
+    sortAmount: 'المبلغ',
   },
   location: {
     label: 'الموقع',
