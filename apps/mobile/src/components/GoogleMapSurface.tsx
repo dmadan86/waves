@@ -15,11 +15,12 @@
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { View } from 'react-native';
-import MapView, { PROVIDER_GOOGLE, type Region } from 'react-native-maps';
+import { Platform, View } from 'react-native';
+import MapView, { type Region } from 'react-native-maps';
 
 import { iconSize, useTheme } from '@waves/ui';
 
+import { mapViewProviderProp, regionForZoom } from '@/lib/mapProvider';
 import type { LatLng } from '@/lib/mapTiles';
 
 /**
@@ -35,6 +36,40 @@ export function regionForCenter(center: LatLng, span: 'point' | 'world', aspect:
     latitudeDelta,
     longitudeDelta: latitudeDelta * (aspect > 0 ? aspect : 1),
   };
+}
+
+/**
+ * A small, non-interactive map for `MapPreview` — iOS only (Apple Maps). All
+ * gestures are off and touches pass through to the wrapping `Pressable`.
+ */
+export function StaticMapSurface({
+  center,
+  zoom,
+  width,
+  height,
+}: {
+  center: LatLng;
+  zoom: number;
+  width: number;
+  height: number;
+}): React.JSX.Element {
+  const theme = useTheme();
+  return (
+    <MapView
+      pointerEvents="none"
+      style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0 }}
+      provider={mapViewProviderProp(Platform.OS)}
+      userInterfaceStyle={theme.scheme}
+      initialRegion={regionForZoom(center, zoom, width, height)}
+      scrollEnabled={false}
+      zoomEnabled={false}
+      rotateEnabled={false}
+      pitchEnabled={false}
+      toolbarEnabled={false}
+      showsUserLocation={false}
+      showsMyLocationButton={false}
+    />
+  );
 }
 
 export type GoogleMapHandle = Pick<MapView, 'animateToRegion'>;
@@ -53,7 +88,9 @@ export function GoogleMapSurface({
     <View style={{ flex: 1 }}>
       <MapView
         ref={mapRef}
-        provider={PROVIDER_GOOGLE}
+        // Apple Maps on iOS (default provider, no key); Google on Android.
+        provider={mapViewProviderProp(Platform.OS)}
+        userInterfaceStyle={theme.scheme}
         style={{ flex: 1 }}
         initialRegion={initialRegion}
         onRegionChangeComplete={(region) =>

@@ -17,7 +17,7 @@
 import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
-import { type LayoutChangeEvent, Pressable, View } from 'react-native';
+import { type LayoutChangeEvent, Platform, Pressable, View } from 'react-native';
 
 import type { ExpenseLocation } from '@waves/core';
 import { iconSize, Text, useTheme } from '@waves/ui';
@@ -32,6 +32,8 @@ import {
   tileGrid,
   tileUrl,
 } from '@/lib/mapTiles';
+import { staticGoogleAllowed } from '@/lib/mapProvider';
+import { nativeMaps } from '@/lib/nativeMaps';
 
 const TILE_URL = process.env.EXPO_PUBLIC_MAP_TILE_URL || DEFAULT_TILE_URL;
 
@@ -65,9 +67,15 @@ export function MapPreview({
 
   // Google Static Maps when a key is configured, else the CARTO tile grid. One
   // composite image vs a mosaic of {z}/{x}/{y} tiles — see `googleStaticMapUrl`.
+  // On iOS the preview is a tiny non-interactive Apple map (free, no key) when
+  // the native module is in the binary; otherwise the CARTO tile grid. Google
+  // Static Maps is never called on iOS.
+  const appleMap = Platform.OS === 'ios' && nativeMaps !== null;
   const googleUrl =
-    width > 0 && !googleFailed ? googleStaticMapUrl(location, zoom, width, height) : null;
-  const tiles = width > 0 && !googleUrl ? tileGrid(location, zoom, width, height) : [];
+    width > 0 && !googleFailed && !appleMap && staticGoogleAllowed(Platform.OS)
+      ? googleStaticMapUrl(location, zoom, width, height)
+      : null;
+  const tiles = width > 0 && !googleUrl && !appleMap ? tileGrid(location, zoom, width, height) : [];
 
   const body = (
     <View
@@ -79,6 +87,14 @@ export function MapPreview({
         backgroundColor: theme.color.bg,
       }}
     >
+      {appleMap && nativeMaps && width > 0 ? (
+        <nativeMaps.StaticMapSurface
+          center={{ lat: location.lat, lng: location.lng }}
+          zoom={zoom}
+          width={width}
+          height={height}
+        />
+      ) : null}
       {googleUrl ? (
         <Image
           source={{ uri: googleUrl }}
@@ -135,7 +151,7 @@ export function MapPreview({
       {/* Attribution — required by the tile licence (OSM data, CARTO tiles).
           Not translated: it is a fixed credit, like a copyright line. Hidden for
           the Google image, which carries Google's own credit baked in. */}
-      {googleUrl ? null : (
+      {googleUrl || appleMap ? null : (
         <View
           pointerEvents="none"
           style={{
