@@ -77,6 +77,7 @@ import { GlassSurface } from '@/components/home/GlassSurface';
 import { QuickActionsRow, type QuickAction } from '@/components/home/QuickActionsRow';
 import { SettlePickerSheet, type SettleCandidate } from '@/components/home/SettlePickerSheet';
 import { useHeroCrossfade, useHeroStatusBar } from '@/components/ScreenHero';
+import { SortMenu } from '@/components/SortMenu';
 import { PeopleSkeleton } from '@/components/Skeletons';
 import { plural, useStrings, type UiStrings } from '@/i18n';
 import { useBalanceHidden } from '@/lib/balanceHidden';
@@ -494,10 +495,16 @@ export default function FriendsScreen() {
         open={sortOpen}
         anchor={sortAnchor}
         onClose={() => setSortOpen(false)}
-        sortKey={sortKey}
-        sortDir={sortDir}
+        title={t.sort.by}
+        closeLabel={t.common.close}
+        options={SORT_ORDER.map((key) => ({
+          key,
+          label: sortLabel(key, t),
+          icon: SORT_META[key].icon,
+        }))}
+        activeKey={sortKey}
+        activeIndicator={sortDir === SortDir.Asc ? 'arrow-up' : 'arrow-down'}
         onPick={pickSort}
-        t={t}
       />
 
       <SettlePickerSheet
@@ -1850,157 +1857,6 @@ function RemindButton({ row }: { row: PersonBalanceRow }): React.JSX.Element | n
     );
 
   return <RowAction icon="notifications-outline" label={t.people.remind} onPress={run} />;
-}
-
-/** The sort menu's fixed width — "~220dp" per the mockup, so the trailing-edge
- *  math below has a known box to align rather than an intrinsic one. */
-const SORT_MENU_WIDTH = 220;
-
-/** A conservative guess at the open menu's height (the "Sort by" label plus
- *  three rows), used only to decide whether it should flip above the pill
- *  instead of below it — a slight overestimate costs nothing, an underestimate
- *  would open the menu off the bottom of the screen. */
-const SORT_MENU_HEIGHT_ESTIMATE = 200;
-
-/**
- * The sort dropdown — a bare corner card, WhatsApp-style, matching the app's
- * other overflow menus. One row per key with its icon; the active key wears the
- * brand ink and a direction arrow, and tapping it again flips the arrow.
- *
- * Anchored to the "Sort by" pill rather than a fixed spot near the top of the
- * screen: it drops directly below the pill, its trailing edge lined up with
- * the pill's own (the same `measureInWindow` + physical/logical edge math
- * `AddMenu` below uses for its leading edge), and flips to open above the
- * pill instead when there is not enough room underneath it.
- */
-function SortMenu({
-  open,
-  anchor,
-  onClose,
-  sortKey,
-  sortDir,
-  onPick,
-  t,
-}: {
-  open: boolean;
-  /** The sort pill it opens from; null falls back to a fixed corner. */
-  anchor: MenuAnchor | null;
-  onClose: () => void;
-  sortKey: SortKey;
-  sortDir: SortDir;
-  onPick: (key: SortKey) => void;
-  t: UiStrings;
-}): React.JSX.Element {
-  const theme = useTheme();
-  const insets = useSafeAreaInsets();
-  const { width: windowW, height: windowH } = useWindowDimensions();
-
-  const trailing = anchor
-    ? I18nManager.isRTL
-      ? anchor.x
-      : windowW - (anchor.x + anchor.width)
-    : 0;
-  const openAbove =
-    anchor !== null &&
-    windowH - (anchor.y + anchor.height) < SORT_MENU_HEIGHT_ESTIMATE + theme.spacing.sm &&
-    anchor.y > SORT_MENU_HEIGHT_ESTIMATE;
-  const place = anchor
-    ? {
-        ...(openAbove
-          ? { bottom: windowH - anchor.y + theme.spacing.sm }
-          : { top: anchor.y + anchor.height + theme.spacing.sm }),
-        end: Math.max(
-          theme.spacing.lg,
-          Math.min(trailing, windowW - SORT_MENU_WIDTH - theme.spacing.lg),
-        ),
-      }
-    : { top: insets.top + 56, end: theme.spacing.xl };
-
-  return (
-    <Modal
-      supportedOrientations={MODAL_ORIENTATIONS}
-      visible={open}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
-    >
-      <Pressable
-        onPress={onClose}
-        accessibilityRole="button"
-        accessibilityLabel={t.common.close}
-        style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.12)' }}
-      >
-        <View
-          style={{
-            position: 'absolute',
-            width: SORT_MENU_WIDTH,
-            borderRadius: theme.radius.lg,
-            ...theme.shadow.lifted,
-            ...place,
-          }}
-        >
-          <View
-            style={{
-              borderRadius: theme.radius.lg,
-              borderWidth: 1,
-              borderColor: theme.color.border,
-              backgroundColor: theme.color.surface,
-              paddingVertical: theme.spacing.xs,
-              overflow: 'hidden',
-            }}
-          >
-            <Text
-              variant="micro"
-              tone="faint"
-              style={{ paddingHorizontal: theme.spacing.lg, paddingVertical: theme.spacing.xs }}
-            >
-              {t.sort.by}
-            </Text>
-            {SORT_ORDER.map((key) => {
-              const active = key === sortKey;
-              const label = sortLabel(key, t);
-              return (
-                <Pressable
-                  key={key}
-                  onPress={() => onPick(key)}
-                  accessibilityRole="button"
-                  accessibilityLabel={label}
-                  accessibilityState={{ selected: active }}
-                  style={({ pressed }) => ({
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: theme.spacing.md,
-                    paddingHorizontal: theme.spacing.lg,
-                    paddingVertical: theme.spacing.md,
-                    backgroundColor: pressed ? theme.color.surfaceMuted : 'transparent',
-                  })}
-                >
-                  <Ionicons
-                    name={SORT_META[key].icon}
-                    size={iconSize.lg}
-                    color={active ? theme.color.brand : theme.color.textMuted}
-                  />
-                  <Text
-                    variant="body"
-                    style={{ flex: 1, color: active ? theme.color.brand : theme.color.text }}
-                  >
-                    {label}
-                  </Text>
-                  {active ? (
-                    <Ionicons
-                      name={sortDir === SortDir.Asc ? 'arrow-up' : 'arrow-down'}
-                      size={iconSize.md}
-                      color={theme.color.brand}
-                    />
-                  ) : null}
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
-      </Pressable>
-    </Modal>
-  );
 }
 
 /**
