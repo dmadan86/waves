@@ -56,13 +56,14 @@ import { Image } from 'expo-image';
 import { ActivityIndicator, Pressable, ScrollView, TextInput, View } from 'react-native';
 
 import { encodeTxn, toFxRecord, type CategoryMeta, type ExpenseLocation } from '@waves/core';
-import { Button, iconSize, Row, Sheet, Text, useTheme } from '@waves/ui';
+import { Avatar, Button, iconSize, Row, Sheet, Text, useTheme } from '@waves/ui';
 
 import { DestinationPicker } from '@/components/DestinationPicker';
 import { DictateButton } from '@/components/DictateButton';
 import { QuickAmountRow } from '@/components/QuickAmountRow';
 import { QuickCategoryRow } from '@/components/QuickCategoryRow';
 import { GroupMark } from '@/components/GroupMark';
+import { useAvatarUrl } from '@/components/ProfileAvatar';
 import { uploadCapturePhoto, uploadExpenseReceipt } from '@/data/api';
 import {
   useCreateCapture,
@@ -76,7 +77,7 @@ import {
 import { todayIso, useUpsertPersonalRecord } from '@/data/personal';
 import { isGhost, isViewer, type GroupRow } from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
-import { useViewerId } from '@/lib/auth';
+import { useAuth, useViewerId } from '@/lib/auth';
 import { useDefaultCurrency } from '@/lib/currency';
 import { CurrencyChoices } from '@/components/expense/CurrencySheet';
 import { usePersonalOffered } from '@/lib/guestGuard';
@@ -97,6 +98,15 @@ import {
     glance and starts being a list — which is what the picker is for. */
 const CHIPS = 5;
 
+/** Every destination chip's height, fixed rather than left to its content —
+ *  a group chip carries two lines (name, member count) and "Just me" carries
+ *  one, and a row where some pills are taller than others reads as a layout
+ *  bug rather than a row of peers. Tall enough for the two-line chip with its
+ *  padding; everything shorter is centred in it by `tile`'s own
+ *  `alignItems: 'center'`, which is what keeps "Just me" centred rather than
+ *  pinned to the top of the row. */
+const CHIP_HEIGHT = 48;
+
 export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const theme = useTheme();
   const dark = theme.scheme === 'dark';
@@ -107,9 +117,8 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
     gap: 6,
-    minHeight: 38,
+    height: CHIP_HEIGHT,
     paddingHorizontal: 12,
-    paddingVertical: 6,
     borderRadius: 19,
     borderWidth: 1.25,
     borderColor: picked ? accent : 'transparent',
@@ -125,6 +134,11 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
   // compute — read here rather than a query per chip, which is what a
   // `useGroup(group.id)` inside the chip's own row would have been.
   const { memberCountFor } = useHomeSummary(viewerId);
+  // Your own face for the "Just me" chip — the same resolution (signed URL,
+  // falling back to initials) the account screen's own portrait uses.
+  const { profile } = useAuth();
+  const myName = profile?.display_name ?? t.quickExpense.justMe;
+  const myAvatarUrl = useAvatarUrl(profile?.avatar_url);
   // The one receipt a quick add can carry — held here, not uploaded until the
   // footer below actually saves (see lib/quickReceipt). Destructured rather
   // than passed around as one object, so the reset effect below can name the
@@ -446,7 +460,10 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
                       onPress={() => setChosenId('personal')}
                       style={tile(personalPicked)}
                     >
-                      <Ionicons name="person-outline" size={16} color={theme.color.text} />
+                      {/* Your own face, the same as everywhere else it is
+                          shown — initials when there is no photo, exactly as
+                          `Avatar` already falls back for any other person. */}
+                      <Avatar name={myName} photoUrl={myAvatarUrl} size={24} />
                       <Text style={{ fontSize: 14, fontWeight: '600', color: theme.color.text }}>
                         {t.quickExpense.justMe}
                       </Text>
