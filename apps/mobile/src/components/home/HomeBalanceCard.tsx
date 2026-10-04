@@ -97,9 +97,9 @@ export function HomeBalanceCard({
     <GlassSurface blurTarget={blurTarget}>
       <View
         style={{
-          paddingTop: theme.spacing.md,
-          paddingBottom: theme.spacing.md,
-          gap: theme.spacing.md,
+          paddingTop: theme.spacing.sm,
+          paddingBottom: theme.spacing.xs,
+          gap: theme.spacing.xs,
         }}
       >
         <Row
