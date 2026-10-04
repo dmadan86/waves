@@ -74,6 +74,7 @@ import { useAvatarUrl } from '@/components/ProfileAvatar';
 import { BalanceSide } from '@/components/home/BalanceSide';
 import { FriendsHeroBackground } from '@/components/home/FriendsHeroBackground';
 import { GlassSurface } from '@/components/home/GlassSurface';
+import { HeroIconButton } from '@/components/home/HeroControls';
 import { QuickActionsRow, type QuickAction } from '@/components/home/QuickActionsRow';
 import { SettlePickerSheet, type SettleCandidate } from '@/components/home/SettlePickerSheet';
 import { useHeroCrossfade, useHeroStatusBar } from '@/components/ScreenHero';
@@ -748,9 +749,9 @@ function FriendsScene({
         }}
       >
         {/* The title row and the selection toolbar share the same spot — one
-            crossfades into the other, never both at once. There is no
-            top-right currency/convert action today, so the row is just the
-            glyph and the name. */}
+            crossfades into the other, never both at once. The scan button on
+            the right is Home's own header icon button, bare and white, not a
+            currency/convert action — Friends has no equivalent of either. */}
         <View style={{ minHeight: 32, justifyContent: 'center' }}>
           <Reanimated.View pointerEvents={selectMode ? 'none' : 'auto'} style={restingStyle}>
             <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
@@ -771,6 +772,16 @@ function FriendsScene({
               >
                 {t.friends}
               </Text>
+              {/* The same scan-to-join flow the "Add people" menu's own scan
+                  row used to open (`/scan`) — moved here so it is reachable
+                  without opening that menu first, the way Home's own header
+                  icons sit beside its greeting rather than behind a menu. */}
+              <HeroIconButton
+                icon="qr-code-outline"
+                label={t.misc.scanToJoin}
+                onPress={() => router.push('/scan' as never)}
+                ink={heroInk}
+              />
             </Row>
           </Reanimated.View>
           <Reanimated.View
@@ -1965,10 +1976,14 @@ function SortMenu({
 }
 
 /**
- * The "Add people" menu, dropped from its pill: pull from contacts, find by
- * address or number, scan an invite QR. Typing a bare name is not here — it
- * lives on the empty Friends screen and inside the contacts picker ("someone
- * not in my contacts"), where it is the answer rather than a first choice.
+ * The "Add people" menu, dropped from its pill: pull from contacts, or find
+ * by address or number. Scanning an invite QR used to be a third row here;
+ * it now has its own button on the hero's title row (`HeroIconButton`,
+ * `t.misc.scanToJoin`), reachable without opening this menu first, so it was
+ * dropped from here rather than offered twice. Typing a bare name is not
+ * here either — it lives on the empty Friends screen and inside the
+ * contacts picker ("someone not in my contacts"), where it is the answer
+ * rather than a first choice.
  */
 function AddMenu({
   open,
@@ -2034,12 +2049,6 @@ function AddMenu({
       label: t.person.findTitle,
       icon: <Ionicons name="search-outline" size={iconSize.lg} color={theme.color.text} />,
       onPress: () => go('/friends/find'),
-    },
-    {
-      key: 'scan',
-      label: t.misc.scanToJoin,
-      icon: <Ionicons name="qr-code-outline" size={iconSize.lg} color={theme.color.text} />,
-      onPress: () => go('/scan'),
     },
   ];
 
