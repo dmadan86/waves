@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { _internals } = require('../plugins/withWavesWidgets.js');
 const { WIDGETS, HOME_WIDGET, addReceivers, writeNativeSources } = _internals as {
-  HOME_WIDGET: { className: string; key: string; tiles: { id: string; link: string }[] };
+  HOME_WIDGET: { className: string; key: string; tiles: { id: string; link?: string }[] };
   WIDGETS: { className: string; key: string; label: string; link: string; icon: string }[];
   addReceivers: (m: unknown) => { manifest: { application: { receiver?: unknown[] }[] } };
   writeNativeSources: (projectRoot: string, pkg: string) => void;
@@ -168,11 +168,12 @@ describe('withWavesWidgets — 4x2 home widget', () => {
     expect(kotlin).toContain('waves:///capture?scan=1');
     expect(kotlin).toContain('VoiceCaptureActivity::class.java');
     expect(HOME_WIDGET.tiles.map((t) => t.link)).toEqual([
-      'waves:///groups',
-      'waves:///friends',
-      'waves:///activity',
-      'waves:///scan',
+      undefined,
+      'waves:///capture?gallery=1',
+      'waves:///capture',
     ]);
+    expect(kotlin).toContain('waves:///capture?gallery=1');
+    expect(kotlin).not.toContain('activity');
     for (const tile of HOME_WIDGET.tiles) {
       expect(layout).toContain(`@+id/${tile.id}`);
       expect(kotlin).toContain(`R.id.${tile.id}`);

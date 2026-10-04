@@ -101,7 +101,7 @@ struct VoiceWidget: Widget {
 }
 
 // The medium "Waves" home widget — the iOS twin of Android's WavesHomeWidget: an
-// Add-expense pill over four navigation tiles. WidgetKit has no per-region tap
+// Add-expense pill over three tiles. WidgetKit has no per-region tap
 // on iOS 16, so each region is a `Link`, which works in static widgets from
 // iOS 17 (iOS 16 falls back to the whole widget opening Add expense).
 struct HomeTile: View {
@@ -168,10 +168,9 @@ struct HomeView: View {
             .background(surface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
 
             HStack(spacing: 6) {
-                HomeTile(systemImage: "person.3", title: "Groups", url: "waves:///groups", fg: fg, fill: surface)
-                HomeTile(systemImage: "person.2", title: "Friends", url: "waves:///friends", fg: fg, fill: surface)
-                HomeTile(systemImage: "clock.arrow.circlepath", title: "Activity", url: "waves:///activity", fg: fg, fill: surface)
-                HomeTile(systemImage: "qrcode.viewfinder", title: "Scan QR", url: "waves:///scan", fg: fg, fill: surface)
+                HomeTile(systemImage: "mic", title: "Mic", url: "waves:///voice", fg: fg, fill: surface)
+                HomeTile(systemImage: "photo", title: "Photo", url: "waves:///capture?gallery=1", fg: fg, fill: surface)
+                HomeTile(systemImage: "plus", title: "Add expense", url: "waves:///capture", fg: fg, fill: surface)
             }
             .frame(maxHeight: .infinity)
         }
