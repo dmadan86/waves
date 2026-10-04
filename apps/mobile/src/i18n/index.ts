@@ -1522,16 +1522,11 @@ export interface UiStrings {
     allSquareBody: string;
     owesYou: string;
     youOweThem: string;
-    /** The friends balance card's subline, how many friends you are owed by. */
-    owedByCount: PluralForms;
-    /** The friends balance card's subline, how many friends you owe. */
-    owingCount: PluralForms;
-    /** The green "owed to you" pill's short label, beside its own figure —
-     *  distinct from `owedByCount`'s full sentence, which the subline above
-     *  the figure still uses. */
-    pillOwed: PluralForms;
-    /** The red "you owe" pill's short label. */
-    pillOwing: PluralForms;
+    /** The friends balance card's two-column row, left side — "Owed to you"
+     *  over the figure, the same shape Home's own card wears over "You lent". */
+    owedToYouLabel: string;
+    /** Either side of that same row's count, under the figure — "17 friends". */
+    friendCount: PluralForms;
     /** Headline card label over the overall per-currency balances. */
     overall: string;
     /** Headline line when a currency's overall net is in your favour. */
@@ -2033,6 +2028,14 @@ export interface UiStrings {
     /** Chip label on a pre-aimed row: "Add to {name}" (the group it was tagged for). */
     addTo: string;
     assignTitle: string;
+    /** The assign sheet's own way to the editor: a pencil beside the amount
+     *  it is about to place, so fixing a wrong field never has to mean
+     *  backing out to the row's ⋯ first. Shown as a short pill ("Edit
+     *  expense") and, with `{item}` replaced by the draft's own name, as the
+     *  tap target's screen-reader label. Hidden when more than one draft is
+     *  riding on the sheet — there is no single expense left to edit. */
+    assignEditExpense: string;
+    assignEditExpenseFor: string;
     assignSearch: string;
     assignNew: string;
     assignNewBody: string;
@@ -5296,10 +5299,8 @@ const en: UiStrings = {
     allSquareBody: 'Nobody owes you and you owe nobody. New balances show up here.',
     owesYou: 'Owes you',
     youOweThem: 'You owe',
-    owedByCount: { one: 'You are owed by {n} friend', other: 'You are owed by {n} friends' },
-    owingCount: { one: 'You owe {n} friend', other: 'You owe {n} friends' },
-    pillOwed: { one: '{n} owes you', other: '{n} owe you' },
-    pillOwing: { one: 'You owe {n}', other: 'You owe {n}' },
+    owedToYouLabel: 'Owed to you',
+    friendCount: { one: '{n} friend', other: '{n} friends' },
     overall: 'Overall',
     youAreOwed: 'You’re owed',
     nobodyOwesYou: 'Nobody owes you anything right now.',
@@ -5660,6 +5661,8 @@ const en: UiStrings = {
     assign: 'Add to group',
     addTo: 'Add to {name}',
     assignTitle: 'Add to a group',
+    assignEditExpense: 'Edit expense',
+    assignEditExpenseFor: 'Edit {item}',
     assignSearch: 'Search groups',
     assignNew: 'New group',
     assignNewBody: 'Create one and add this to it',
@@ -5890,15 +5893,13 @@ const en: UiStrings = {
     restorePromptLaterLabel: 'Not now. Restore later from the Backup screen.',
     restorePromptWhere: 'You can do this later: tap the ••• menu on Home, then Backup.',
     reminderTitle: 'Back up your records',
-    reminderBodyNever:
-      "Your personal records are only on this phone. Back them up to your Google Drive so a lost or new phone doesn't take them with it.",
-    reminderBodyStale:
-      'Your last backup was more than a day ago. Back up now to keep everything since then safe in your Google Drive.',
+    reminderBodyNever: 'Your records live only on this phone. Back up to Drive to keep them safe.',
+    reminderBodyStale: 'Your last backup was over a day ago. Back up now to stay safe.',
     reminderAction: 'Back up now',
     reminderLater: 'Not now',
-    reminderFeatureSafe: 'Keep your data safe',
-    reminderFeatureDevices: 'Restore on any device',
-    reminderFeatureQuick: 'Quick and easy',
+    reminderFeatureSafe: 'Safe',
+    reminderFeatureDevices: 'Any device',
+    reminderFeatureQuick: 'Quick',
 
     refusedNotConnected: 'Link a Google account first.',
     refusedNoKey: 'Create your backup key first.',
@@ -8702,22 +8703,8 @@ const ta: UiStrings = {
       'உங்களுக்கு யாரும் தர வேண்டியதில்லை, நீங்களும் யாருக்கும் தர வேண்டியதில்லை. புதிய பாக்கிகள் இங்கே தோன்றும்.',
     owesYou: 'உங்களுக்குத் தர வேண்டியவர்கள்',
     youOweThem: 'நீங்கள் தர வேண்டியவர்கள்',
-    owedByCount: {
-      one: '{n} நண்பர் உங்களுக்குத் தர வேண்டும்',
-      other: '{n} நண்பர்கள் உங்களுக்குத் தர வேண்டும்',
-    },
-    owingCount: {
-      one: '{n} நண்பருக்கு நீங்கள் தர வேண்டும்',
-      other: '{n} நண்பர்களுக்கு நீங்கள் தர வேண்டும்',
-    },
-    pillOwed: {
-      one: '{n} பேர் உங்களுக்குத் தர வேண்டும்',
-      other: '{n} பேர் உங்களுக்குத் தர வேண்டும்',
-    },
-    pillOwing: {
-      one: 'நீங்கள் {n} பேருக்குத் தர வேண்டும்',
-      other: 'நீங்கள் {n} பேருக்குத் தர வேண்டும்',
-    },
+    owedToYouLabel: 'உங்களுக்கு வர வேண்டியது',
+    friendCount: { one: '{n} நண்பர்', other: '{n} நண்பர்கள்' },
     overall: 'மொத்தம்',
     youAreOwed: 'உங்களுக்கு வர வேண்டியது',
     nobodyOwesYou: 'இப்போது உங்களுக்கு யாரும் தர வேண்டியதில்லை.',
@@ -9088,6 +9075,8 @@ const ta: UiStrings = {
     assign: 'குழுவில் சேர்',
     addTo: '{name} இல் சேர்',
     assignTitle: 'ஒரு குழுவில் சேர்க்கவும்',
+    assignEditExpense: 'செலவைத் திருத்து',
+    assignEditExpenseFor: '{item} ஐத் திருத்து',
     assignSearch: 'குழுக்களைத் தேடு',
     assignNew: 'புதிய குழு',
     assignNewBody: 'ஒன்றை உருவாக்கி இதை அதில் சேருங்கள்',
@@ -9335,14 +9324,14 @@ const ta: UiStrings = {
       'இதைப் பின்னரும் செய்யலாம்: முகப்பில் ••• மெனுவைத் தட்டி, காப்புப்பிரதி என்பதைத் தேர்ந்தெடுங்கள்.',
     reminderTitle: 'உங்கள் பதிவுகளைக் காப்புப்பிரதி எடுங்கள்',
     reminderBodyNever:
-      'உங்கள் தனிப்பட்ட பதிவுகள் இந்த போனில் மட்டுமே உள்ளன. போன் தொலைந்தாலோ மாற்றினாலோ அவை இழக்கப்படாமல் இருக்க உங்கள் Google Drive-இல் காப்புப்பிரதி எடுங்கள்.',
+      'உங்கள் பதிவுகள் இந்த போனில் மட்டுமே உள்ளன. பாதுகாப்பாக Google Drive-இல் காப்புப்பிரதி எடுங்கள்.',
     reminderBodyStale:
-      'உங்கள் கடைசி காப்புப்பிரதி ஒரு நாளுக்கு மேல் பழையது. அதன் பிறகு சேர்த்தவை பாதுகாப்பாக இருக்க இப்போதே Google Drive-இல் காப்புப்பிரதி எடுங்கள்.',
+      'உங்கள் கடைசி காப்புப்பிரதி ஒரு நாளுக்கு மேல் பழையது. இப்போதே Google Drive-இல் காப்புப்பிரதி எடுங்கள்.',
     reminderAction: 'இப்போது காப்புப்பிரதி எடு',
     reminderLater: 'இப்போது வேண்டாம்',
-    reminderFeatureSafe: 'உங்கள் தரவைப் பாதுகாப்பாக வையுங்கள்',
-    reminderFeatureDevices: 'எந்த சாதனத்திலும் மீட்டெடுக்கவும்',
-    reminderFeatureQuick: 'விரைவானது, எளிதானது',
+    reminderFeatureSafe: 'பாதுகாப்பு',
+    reminderFeatureDevices: 'எந்த சாதனமும்',
+    reminderFeatureQuick: 'விரைவு',
 
     refusedNotConnected: 'முதலில் ஒரு Google கணக்கை இணையுங்கள்.',
     refusedNoKey: 'முதலில் உங்கள் காப்புச் சாவியை உருவாக்குங்கள்.',
@@ -12206,16 +12195,8 @@ const hi: UiStrings = {
     allSquareBody: 'न किसी पर आपका बाकी है, न आप पर किसी का। नए हिसाब यहाँ दिखेंगे।',
     owesYou: 'आपको देने हैं',
     youOweThem: 'आपको देने हैं जिन्हें',
-    owedByCount: {
-      one: '{n} मित्र आपको देने वाला है',
-      other: '{n} मित्र आपको देने वाले हैं',
-    },
-    owingCount: {
-      one: 'आप {n} मित्र को देने वाले हैं',
-      other: 'आप {n} मित्रों को देने वाले हैं',
-    },
-    pillOwed: { one: '{n} आपको देने वाला है', other: '{n} आपको देने वाले हैं' },
-    pillOwing: { one: 'आप {n} को देने वाले हैं', other: 'आप {n} को देने वाले हैं' },
+    owedToYouLabel: 'आपको मिलने हैं',
+    friendCount: { one: '{n} मित्र', other: '{n} मित्र' },
     overall: 'कुल मिलाकर',
     youAreOwed: 'आपको मिलने हैं',
     nobodyOwesYou: 'अभी किसी पर आपका कुछ बाकी नहीं है।',
@@ -12577,6 +12558,8 @@ const hi: UiStrings = {
     assign: 'समूह में जोड़ें',
     addTo: '{name} में जोड़ें',
     assignTitle: 'किसी समूह में जोड़ें',
+    assignEditExpense: 'खर्च संपादित करें',
+    assignEditExpenseFor: '{item} संपादित करें',
     assignSearch: 'समूह खोजें',
     assignNew: 'नया समूह',
     assignNewBody: 'एक बनाएँ और इसे उसमें जोड़ें',
@@ -12811,14 +12794,13 @@ const hi: UiStrings = {
     restorePromptWhere: 'यह बाद में भी कर सकते हैं: होम पर ••• मेन्यू दबाएँ, फिर बैकअप चुनें।',
     reminderTitle: 'अपने रिकॉर्ड का बैकअप लें',
     reminderBodyNever:
-      'आपके निजी रिकॉर्ड सिर्फ़ इसी फ़ोन पर हैं। उन्हें अपनी Google Drive पर बैकअप करें, ताकि फ़ोन खोने या बदलने पर वे खो न जाएँ।',
-    reminderBodyStale:
-      'आपका पिछला बैकअप एक दिन से ज़्यादा पुराना है। उसके बाद का सब कुछ सुरक्षित रखने के लिए अभी Google Drive पर बैकअप लें।',
+      'आपके रिकॉर्ड सिर्फ़ इस फ़ोन पर हैं। सुरक्षित रखने के लिए Google Drive पर बैकअप करें।',
+    reminderBodyStale: 'आपका पिछला बैकअप एक दिन से पुराना है। अभी Google Drive पर बैकअप लें।',
     reminderAction: 'अभी बैकअप लें',
     reminderLater: 'अभी नहीं',
-    reminderFeatureSafe: 'अपना डेटा सुरक्षित रखें',
-    reminderFeatureDevices: 'किसी भी डिवाइस पर वापस लाएँ',
-    reminderFeatureQuick: 'तेज़ और आसान',
+    reminderFeatureSafe: 'सुरक्षित',
+    reminderFeatureDevices: 'कोई भी डिवाइस',
+    reminderFeatureQuick: 'तेज़',
 
     refusedNotConnected: 'पहले एक Google खाता जोड़ें।',
     refusedNoKey: 'पहले अपनी बैकअप चाबी बनाएँ।',
@@ -15656,37 +15638,14 @@ const ar: UiStrings = {
     allSquareBody: 'لا أحد يدين لك ولا أنت تدين لأحد. ستظهر هنا أي مبالغ جديدة.',
     owesYou: 'لك عندهم',
     youOweThem: 'عليك لهم',
-    owedByCount: {
-      zero: 'لا يوجد أصدقاء يدينون لك',
-      one: 'صديق واحد يدين لك',
-      two: 'صديقان يدينان لك',
-      few: '{n} أصدقاء يدينون لك',
-      many: '{n} صديقًا يدين لك',
-      other: '{n} صديق يدين لك',
-    },
-    owingCount: {
-      zero: 'لا تدين لأي صديق',
-      one: 'تدين لصديق واحد',
-      two: 'تدين لصديقين',
-      few: 'تدين لـ {n} أصدقاء',
-      many: 'تدين لـ {n} صديقًا',
-      other: 'تدين لـ {n} صديق',
-    },
-    pillOwed: {
-      zero: 'لا أحد يدين لك',
-      one: 'صديق يدين لك',
-      two: 'صديقان يدينان لك',
-      few: '{n} يدينون لك',
-      many: '{n} يدينون لك',
-      other: '{n} يدين لك',
-    },
-    pillOwing: {
-      zero: 'لا تدين لأحد',
-      one: 'تدين لواحد',
-      two: 'تدين لاثنين',
-      few: 'تدين لـ {n}',
-      many: 'تدين لـ {n}',
-      other: 'تدين لـ {n}',
+    owedToYouLabel: 'المستحق لك',
+    friendCount: {
+      zero: '{n} صديق',
+      one: 'صديق واحد',
+      two: 'صديقان',
+      few: '{n} أصدقاء',
+      many: '{n} صديقًا',
+      other: '{n} صديق',
     },
     overall: 'الإجمالي',
     youAreOwed: 'لك عندهم',
@@ -16122,6 +16081,8 @@ const ar: UiStrings = {
     assign: 'أضِف إلى مجموعة',
     addTo: 'أضِف إلى {name}',
     assignTitle: 'أضِف إلى مجموعة',
+    assignEditExpense: 'تعديل المصروف',
+    assignEditExpenseFor: 'تعديل {item}',
     assignSearch: 'ابحث عن المجموعات',
     assignNew: 'مجموعة جديدة',
     assignNewBody: 'أنشئ واحدة وأضف هذا إليها',
@@ -16384,15 +16345,13 @@ const ar: UiStrings = {
     restorePromptWhere:
       'يمكنك فعل ذلك لاحقًا: اضغط قائمة ••• في الصفحة الرئيسية، ثم النسخ الاحتياطي.',
     reminderTitle: 'انسخ سجلاتك احتياطيًا',
-    reminderBodyNever:
-      'سجلاتك الشخصية موجودة على هذا الهاتف فقط. انسخها احتياطيًا إلى Google Drive حتى لا تضيع إذا فقدت هاتفك أو غيّرته.',
-    reminderBodyStale:
-      'آخر نسخة احتياطية كانت قبل أكثر من يوم. انسخ الآن لتبقى كل إضافاتك منذ ذلك الحين آمنة في Google Drive.',
+    reminderBodyNever: 'سجلاتك موجودة على هذا الهاتف فقط. احفظها بأمان في Google Drive.',
+    reminderBodyStale: 'آخر نسخة احتياطية مضى عليها أكثر من يوم. انسخ الآن للحفاظ على بياناتك.',
     reminderAction: 'انسخ الآن',
     reminderLater: 'ليس الآن',
-    reminderFeatureSafe: 'حافظ على أمان بياناتك',
-    reminderFeatureDevices: 'استعد بياناتك على أي جهاز',
-    reminderFeatureQuick: 'سريع وسهل',
+    reminderFeatureSafe: 'آمن',
+    reminderFeatureDevices: 'أي جهاز',
+    reminderFeatureQuick: 'سريع',
 
     refusedNotConnected: 'اربط حساب Google أولًا.',
     refusedNoKey: 'أنشئ مفتاح النسخة أولًا.',
