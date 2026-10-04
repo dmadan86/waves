@@ -5893,15 +5893,13 @@ const en: UiStrings = {
     restorePromptLaterLabel: 'Not now. Restore later from the Backup screen.',
     restorePromptWhere: 'You can do this later: tap the ••• menu on Home, then Backup.',
     reminderTitle: 'Back up your records',
-    reminderBodyNever:
-      "Your personal records are only on this phone. Back them up to your Google Drive so a lost or new phone doesn't take them with it.",
-    reminderBodyStale:
-      'Your last backup was more than a day ago. Back up now to keep everything since then safe in your Google Drive.',
+    reminderBodyNever: 'Your records live only on this phone. Back up to Drive to keep them safe.',
+    reminderBodyStale: 'Your last backup was over a day ago. Back up now to stay safe.',
     reminderAction: 'Back up now',
     reminderLater: 'Not now',
-    reminderFeatureSafe: 'Keep your data safe',
-    reminderFeatureDevices: 'Restore on any device',
-    reminderFeatureQuick: 'Quick and easy',
+    reminderFeatureSafe: 'Safe',
+    reminderFeatureDevices: 'Any device',
+    reminderFeatureQuick: 'Quick',
 
     refusedNotConnected: 'Link a Google account first.',
     refusedNoKey: 'Create your backup key first.',
@@ -9326,14 +9324,14 @@ const ta: UiStrings = {
       'இதைப் பின்னரும் செய்யலாம்: முகப்பில் ••• மெனுவைத் தட்டி, காப்புப்பிரதி என்பதைத் தேர்ந்தெடுங்கள்.',
     reminderTitle: 'உங்கள் பதிவுகளைக் காப்புப்பிரதி எடுங்கள்',
     reminderBodyNever:
-      'உங்கள் தனிப்பட்ட பதிவுகள் இந்த போனில் மட்டுமே உள்ளன. போன் தொலைந்தாலோ மாற்றினாலோ அவை இழக்கப்படாமல் இருக்க உங்கள் Google Drive-இல் காப்புப்பிரதி எடுங்கள்.',
+      'உங்கள் பதிவுகள் இந்த போனில் மட்டுமே உள்ளன. பாதுகாப்பாக Google Drive-இல் காப்புப்பிரதி எடுங்கள்.',
     reminderBodyStale:
-      'உங்கள் கடைசி காப்புப்பிரதி ஒரு நாளுக்கு மேல் பழையது. அதன் பிறகு சேர்த்தவை பாதுகாப்பாக இருக்க இப்போதே Google Drive-இல் காப்புப்பிரதி எடுங்கள்.',
+      'உங்கள் கடைசி காப்புப்பிரதி ஒரு நாளுக்கு மேல் பழையது. இப்போதே Google Drive-இல் காப்புப்பிரதி எடுங்கள்.',
     reminderAction: 'இப்போது காப்புப்பிரதி எடு',
     reminderLater: 'இப்போது வேண்டாம்',
-    reminderFeatureSafe: 'உங்கள் தரவைப் பாதுகாப்பாக வையுங்கள்',
-    reminderFeatureDevices: 'எந்த சாதனத்திலும் மீட்டெடுக்கவும்',
-    reminderFeatureQuick: 'விரைவானது, எளிதானது',
+    reminderFeatureSafe: 'பாதுகாப்பு',
+    reminderFeatureDevices: 'எந்த சாதனமும்',
+    reminderFeatureQuick: 'விரைவு',
 
     refusedNotConnected: 'முதலில் ஒரு Google கணக்கை இணையுங்கள்.',
     refusedNoKey: 'முதலில் உங்கள் காப்புச் சாவியை உருவாக்குங்கள்.',
@@ -12796,14 +12794,13 @@ const hi: UiStrings = {
     restorePromptWhere: 'यह बाद में भी कर सकते हैं: होम पर ••• मेन्यू दबाएँ, फिर बैकअप चुनें।',
     reminderTitle: 'अपने रिकॉर्ड का बैकअप लें',
     reminderBodyNever:
-      'आपके निजी रिकॉर्ड सिर्फ़ इसी फ़ोन पर हैं। उन्हें अपनी Google Drive पर बैकअप करें, ताकि फ़ोन खोने या बदलने पर वे खो न जाएँ।',
-    reminderBodyStale:
-      'आपका पिछला बैकअप एक दिन से ज़्यादा पुराना है। उसके बाद का सब कुछ सुरक्षित रखने के लिए अभी Google Drive पर बैकअप लें।',
+      'आपके रिकॉर्ड सिर्फ़ इस फ़ोन पर हैं। सुरक्षित रखने के लिए Google Drive पर बैकअप करें।',
+    reminderBodyStale: 'आपका पिछला बैकअप एक दिन से पुराना है। अभी Google Drive पर बैकअप लें।',
     reminderAction: 'अभी बैकअप लें',
     reminderLater: 'अभी नहीं',
-    reminderFeatureSafe: 'अपना डेटा सुरक्षित रखें',
-    reminderFeatureDevices: 'किसी भी डिवाइस पर वापस लाएँ',
-    reminderFeatureQuick: 'तेज़ और आसान',
+    reminderFeatureSafe: 'सुरक्षित',
+    reminderFeatureDevices: 'कोई भी डिवाइस',
+    reminderFeatureQuick: 'तेज़',
 
     refusedNotConnected: 'पहले एक Google खाता जोड़ें।',
     refusedNoKey: 'पहले अपनी बैकअप चाबी बनाएँ।',
@@ -16348,15 +16345,13 @@ const ar: UiStrings = {
     restorePromptWhere:
       'يمكنك فعل ذلك لاحقًا: اضغط قائمة ••• في الصفحة الرئيسية، ثم النسخ الاحتياطي.',
     reminderTitle: 'انسخ سجلاتك احتياطيًا',
-    reminderBodyNever:
-      'سجلاتك الشخصية موجودة على هذا الهاتف فقط. انسخها احتياطيًا إلى Google Drive حتى لا تضيع إذا فقدت هاتفك أو غيّرته.',
-    reminderBodyStale:
-      'آخر نسخة احتياطية كانت قبل أكثر من يوم. انسخ الآن لتبقى كل إضافاتك منذ ذلك الحين آمنة في Google Drive.',
+    reminderBodyNever: 'سجلاتك موجودة على هذا الهاتف فقط. احفظها بأمان في Google Drive.',
+    reminderBodyStale: 'آخر نسخة احتياطية مضى عليها أكثر من يوم. انسخ الآن للحفاظ على بياناتك.',
     reminderAction: 'انسخ الآن',
     reminderLater: 'ليس الآن',
-    reminderFeatureSafe: 'حافظ على أمان بياناتك',
-    reminderFeatureDevices: 'استعد بياناتك على أي جهاز',
-    reminderFeatureQuick: 'سريع وسهل',
+    reminderFeatureSafe: 'آمن',
+    reminderFeatureDevices: 'أي جهاز',
+    reminderFeatureQuick: 'سريع',
 
     refusedNotConnected: 'اربط حساب Google أولًا.',
     refusedNoKey: 'أنشئ مفتاح النسخة أولًا.',
