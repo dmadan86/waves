@@ -246,6 +246,15 @@ model Group {
   /// ADR-009: simplification is a per-group presentation setting.
   simplifyDebts   Boolean   @default(true) @map("simplify_debts")
   coverEmoji      String?   @map("cover_emoji")
+  /// Which event template this group was started from (`event-organizer.md`):
+  /// 'wedding_in' | 'wedding_west' | 'birthday' | 'other'. Drives the fixed list
+  /// of sub-events the app offers for tagging an expense (Mehendi, Sangeet, …) —
+  /// the list itself is client-side data (`@waves/core` `EVENT_TEMPLATES`), not
+  /// stored per-group, so this one column is enough to reopen it later. NULL for
+  /// every group made before this shipped, and for any non-Event group. An
+  /// ordinary member-writable field like `type`/`coverEmoji`, not admin-gated —
+  /// picking a template is part of describing the group, not a budget decision.
+  eventTemplate   String?   @map("event_template")
 
   /// An admin's overall spend ceiling for the trip, in minor units of
   /// `budgetCurrency`. NULL is "no cap set" — a different thing from zero.
@@ -578,6 +587,29 @@ model ExpenseVersion {
   /// explicit opt-in. Reverse-geocoded to a readable name on-device. A plain
   /// label, never part of the split or a balance — like paymentMethod beside it.
   location         Json?
+  /// Which sub-event this spend belongs to (`event-organizer.md`), e.g.
+  /// 'mehendi' | 'sangeet' | 'wedding' | 'reception' — one of the fixed ids the
+  /// group's `eventTemplate` offers, or null for an expense nobody tagged (every
+  /// Trip/Home/Couple/Friends/Other expense, and most Event ones too). A plain
+  /// label like `category`, never part of the split or a balance; the id, not a
+  /// display string, so renaming a sub-event's label in a later app update does
+  /// not require touching old expenses.
+  subEventId       String?       @map("sub_event_id")
+  /// True when this expense is a vendor deposit still owing a balance
+  /// (`event-organizer.md`) — a part-payment with more to come, not the vendor's
+  /// full price. Never part of the split or a balance: the deposit itself is an
+  /// ordinary expense for whatever was actually paid; this and the two fields
+  /// below are a reminder bolted on top.
+  isDeposit        Boolean       @default(false) @map("is_deposit")
+  /// What is still owed to the vendor, in minor units of `currency` (this
+  /// version's, not the group's) — null unless `isDeposit`. Cleared (an edit
+  /// setting it back to null) once the balance is paid; that payment is filed as
+  /// its own ordinary expense, so nothing here moves a balance.
+  balanceDueMinor  BigInt?       @map("balance_due_minor")
+  /// When the balance above is due. Null unless `isDeposit`; a deposit with no
+  /// known due date carries an amount but no date, which the "Upcoming
+  /// payments" list reads as "due, whenever" rather than hiding it.
+  balanceDueDate   DateTime?     @map("balance_due_date") @db.Date
   /// Idempotency key from the offline mutation queue (ADR-005).
   clientMutationId String?       @unique @map("client_mutation_id") @db.Uuid
   source           ExpenseSource @default(manual)

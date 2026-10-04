@@ -39,6 +39,7 @@ import {
   RailId,
   type CategoryId,
   type CurrencyCode,
+  type EventTemplateId,
 } from '@waves/core';
 
 export enum Language {
@@ -368,6 +369,31 @@ export interface UiStrings {
     noneYet: string;
     categoryBudgets: string;
   };
+  /** Event organizer (docs/event-organizer.md): templates, sub-event tagging,
+   *  the per-sub-event budget and vendor-deposit tracking on an Event group. */
+  eventOrganizer: {
+    templateLabel: string;
+    templateNames: Record<EventTemplateId, string>;
+    subEventLabel: string;
+    /** The chip that clears a chosen sub-event back to "untagged". */
+    noSubEvent: string;
+    depositLabel: string;
+    depositOn: string;
+    depositOff: string;
+    balanceDueLabel: string;
+    balanceDueDateLabel: string;
+    /** Section title for the per-sub-event budget bars. */
+    budgetTitle: string;
+    upcomingPaymentsTitle: string;
+    /** A deposit's balance with no due date typed yet. */
+    dueWhenever: string;
+    overdueCount: PluralForms;
+  };
+  /** Display labels for a template's sub-event ids (`@waves/core`'s
+   *  `EVENT_TEMPLATES`) — `mehendi`, `sangeet`, … Loosely typed rather than a
+   *  closed union, so a template gaining a sub-event id later is a missing
+   *  translation, never a type error that blocks every other string. */
+  eventSubEvents: Record<string, string>;
   /** Trip album (shared photos). */
   /** Expense attachments (images on a bill, group- or party-visible). */
   attachments: {
@@ -4459,6 +4485,41 @@ const en: UiStrings = {
     noneYet: 'Nothing to recap yet',
     categoryBudgets: 'Category budgets',
   },
+  eventOrganizer: {
+    templateLabel: 'Event template',
+    templateNames: {
+      wedding_in: 'Wedding (Indian)',
+      wedding_west: 'Wedding (Western)',
+      birthday: 'Birthday party',
+      other: 'Other',
+    },
+    subEventLabel: 'Sub-event',
+    noSubEvent: 'None',
+    depositLabel: 'Vendor deposit',
+    depositOn: 'Yes',
+    depositOff: 'No',
+    balanceDueLabel: 'Balance due',
+    balanceDueDateLabel: 'Due date',
+    budgetTitle: 'Event budget',
+    upcomingPaymentsTitle: 'Upcoming payments',
+    dueWhenever: 'Due date not set',
+    overdueCount: { one: '{n} overdue', other: '{n} overdue' },
+  },
+  eventSubEvents: {
+    engagement: 'Engagement',
+    mehendi: 'Mehendi',
+    haldi: 'Haldi',
+    sangeet: 'Sangeet',
+    wedding: 'Wedding',
+    reception: 'Reception',
+    bachelor_party: 'Bachelor/ette party',
+    rehearsal_dinner: 'Rehearsal dinner',
+    ceremony: 'Ceremony',
+    venue_decor: 'Venue & decor',
+    catering: 'Catering & cake',
+    entertainment: 'Entertainment',
+    favors: 'Favors & gifts',
+  },
   attachments: {
     title: 'Attachments',
     add: 'Add attachment',
@@ -7892,6 +7953,41 @@ const ta: UiStrings = {
     expenseCount: '{n} செலவுகள்',
     noneYet: 'இன்னும் சுருக்க எதுவும் இல்லை',
     categoryBudgets: 'வகை பட்ஜெட்',
+  },
+  eventOrganizer: {
+    templateLabel: 'நிகழ்வு வார்ப்புரு',
+    templateNames: {
+      wedding_in: 'திருமணம் (இந்திய)',
+      wedding_west: 'திருமணம் (மேற்கத்திய)',
+      birthday: 'பிறந்தநாள் விழா',
+      other: 'மற்றவை',
+    },
+    subEventLabel: 'உப-நிகழ்வு',
+    noSubEvent: 'எதுவுமில்லை',
+    depositLabel: 'விற்பனையாளர் முன்பணம்',
+    depositOn: 'ஆம்',
+    depositOff: 'இல்லை',
+    balanceDueLabel: 'செலுத்த வேண்டிய இருப்பு',
+    balanceDueDateLabel: 'செலுத்த வேண்டிய தேதி',
+    budgetTitle: 'நிகழ்வு பட்ஜெட்',
+    upcomingPaymentsTitle: 'வரவிருக்கும் பணம் செலுத்துதல்கள்',
+    dueWhenever: 'தேதி குறிப்பிடப்படவில்லை',
+    overdueCount: { one: '{n} தாமதமானது', other: '{n} தாமதமானவை' },
+  },
+  eventSubEvents: {
+    engagement: 'நிச்சயதார்த்தம்',
+    mehendi: 'மெஹந்தி',
+    haldi: 'மஞ்சள் நீராட்டு',
+    sangeet: 'சங்கீத்',
+    wedding: 'திருமணம்',
+    reception: 'வரவேற்பு',
+    bachelor_party: 'இறுதி விருந்து',
+    rehearsal_dinner: 'ஒத்திகை இரவு உணவு',
+    ceremony: 'சடங்கு',
+    venue_decor: 'இடம் & அலங்காரம்',
+    catering: 'உணவு & கேக்',
+    entertainment: 'இன்னிசை நிகழ்ச்சி',
+    favors: 'பரிசுகள்',
   },
   attachments: {
     title: 'இணைப்புகள்',
@@ -11468,6 +11564,41 @@ const hi: UiStrings = {
     noneYet: 'अभी सार के लिए कुछ नहीं',
     categoryBudgets: 'श्रेणी बजट',
   },
+  eventOrganizer: {
+    templateLabel: 'इवेंट टेम्पलेट',
+    templateNames: {
+      wedding_in: 'शादी (भारतीय)',
+      wedding_west: 'शादी (पश्चिमी)',
+      birthday: 'जन्मदिन पार्टी',
+      other: 'अन्य',
+    },
+    subEventLabel: 'उप-कार्यक्रम',
+    noSubEvent: 'कोई नहीं',
+    depositLabel: 'वेंडर जमा राशि',
+    depositOn: 'हाँ',
+    depositOff: 'नहीं',
+    balanceDueLabel: 'बकाया राशि',
+    balanceDueDateLabel: 'देय तिथि',
+    budgetTitle: 'इवेंट बजट',
+    upcomingPaymentsTitle: 'आने वाले भुगतान',
+    dueWhenever: 'देय तिथि तय नहीं',
+    overdueCount: { one: '{n} बकाया', other: '{n} बकाया' },
+  },
+  eventSubEvents: {
+    engagement: 'सगाई',
+    mehendi: 'मेहंदी',
+    haldi: 'हल्दी',
+    sangeet: 'संगीत',
+    wedding: 'शादी',
+    reception: 'रिसेप्शन',
+    bachelor_party: 'बैचलर/बैचलरेट पार्टी',
+    rehearsal_dinner: 'रिहर्सल डिनर',
+    ceremony: 'समारोह',
+    venue_decor: 'स्थल व सजावट',
+    catering: 'खानपान व केक',
+    entertainment: 'मनोरंजन',
+    favors: 'उपहार',
+  },
   attachments: {
     title: 'अटैचमेंट',
     add: 'अटैचमेंट जोड़ें',
@@ -14925,6 +15056,48 @@ const ar: UiStrings = {
     expenseCount: '{n} مصاريف',
     noneYet: 'لا شيء للتلخيص بعد',
     categoryBudgets: 'ميزانيات الفئات',
+  },
+  eventOrganizer: {
+    templateLabel: 'قالب المناسبة',
+    templateNames: {
+      wedding_in: 'زفاف (هندي)',
+      wedding_west: 'زفاف (غربي)',
+      birthday: 'حفلة عيد ميلاد',
+      other: 'أخرى',
+    },
+    subEventLabel: 'فعالية فرعية',
+    noSubEvent: 'بلا',
+    depositLabel: 'دفعة للمورّد',
+    depositOn: 'نعم',
+    depositOff: 'لا',
+    balanceDueLabel: 'الرصيد المستحق',
+    balanceDueDateLabel: 'تاريخ الاستحقاق',
+    budgetTitle: 'ميزانية المناسبة',
+    upcomingPaymentsTitle: 'الدفعات القادمة',
+    dueWhenever: 'لم يُحدَّد تاريخ الاستحقاق',
+    overdueCount: {
+      zero: 'لا دفعات متأخرة',
+      one: 'دفعة واحدة متأخرة',
+      two: 'دفعتان متأخرتان',
+      few: '{n} دفعات متأخرة',
+      many: '{n} دفعة متأخرة',
+      other: '{n} دفعة متأخرة',
+    },
+  },
+  eventSubEvents: {
+    engagement: 'الخطوبة',
+    mehendi: 'المهندي',
+    haldi: 'الهالدي',
+    sangeet: 'السانجيت',
+    wedding: 'الزفاف',
+    reception: 'حفل الاستقبال',
+    bachelor_party: 'حفلة العزوبية',
+    rehearsal_dinner: 'عشاء التجربة',
+    ceremony: 'حفل الزفاف',
+    venue_decor: 'المكان والديكور',
+    catering: 'الضيافة والكيك',
+    entertainment: 'التسلية',
+    favors: 'الهدايا',
   },
   attachments: {
     title: 'المرفقات',

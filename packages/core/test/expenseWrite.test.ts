@@ -46,6 +46,10 @@ const APPLY_EXPENSE_KEYS = [
   'p_receipt_share_url',
   'p_category_meta',
   'p_location',
+  'p_sub_event_id',
+  'p_is_deposit',
+  'p_balance_due_minor',
+  'p_balance_due_date',
 ].sort();
 
 /** A representative custom-tag snapshot reused across the cases. */
@@ -145,6 +149,25 @@ describe('buildApplyExpenseArgs — the edge → RPC contract', () => {
     expect(args.p_receipt_share_url).toBeNull();
     expect(args.p_receipt_id).toBeNull();
     expect(args.p_notes).toBeNull();
+    expect(args.p_sub_event_id).toBeNull();
+    expect(args.p_is_deposit).toBe(false);
+    expect(args.p_balance_due_minor).toBeNull();
+    expect(args.p_balance_due_date).toBeNull();
+  });
+
+  it('carries a vendor deposit through: sub-event, the flag and the balance due (event-organizer.md)', () => {
+    const args = buildApplyExpenseArgs(
+      baseArgs({
+        subEventId: 'sangeet',
+        isDeposit: true,
+        balanceDueMinor: 450000n,
+        balanceDueDate: '2027-02-10',
+      }),
+    );
+    expect(args.p_sub_event_id).toBe('sangeet');
+    expect(args.p_is_deposit).toBe(true);
+    expect(args.p_balance_due_minor).toBe('450000');
+    expect(args.p_balance_due_date).toBe('2027-02-10');
   });
 });
 
@@ -188,6 +211,32 @@ describe('buildExpenseWriteBody — the client → edge contract', () => {
     expect(body.baseVersionNo).toBeNull();
     expect(body.paymentMethod).toBeNull();
     expect(body.location).toBeNull();
+    expect(body.subEventId).toBeNull();
+    expect(body.isDeposit).toBe(false);
+    expect(body.balanceDueMinor).toBeNull();
+    expect(body.balanceDueDate).toBeNull();
+  });
+
+  it('carries the vendor-deposit fields and stringifies the balance (event-organizer.md)', () => {
+    const body = buildExpenseWriteBody({
+      groupId: 'g',
+      description: 'Decor deposit',
+      expenseDate: '2026-11-01',
+      currency: 'INR',
+      amount: 50000n,
+      splitParams: { kind: 'equal' },
+      participants: ['m1'],
+      payers: { m1: 50000n },
+      clientMutationId: 'mut-2',
+      subEventId: 'wedding',
+      isDeposit: true,
+      balanceDueMinor: 150000n,
+      balanceDueDate: '2027-01-15',
+    });
+    expect(body.subEventId).toBe('wedding');
+    expect(body.isDeposit).toBe(true);
+    expect(body.balanceDueMinor).toBe('150000');
+    expect(body.balanceDueDate).toBe('2027-01-15');
   });
 });
 

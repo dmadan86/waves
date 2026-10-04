@@ -76,6 +76,13 @@ export interface GroupRow {
    *  row (a full `*` pull) always carries it. */
   budget_minor?: string | null;
   budget_currency?: string | null;
+  /** Which event template this group was started from (`event-organizer.md`):
+   *  'wedding_in' | 'wedding_west' | 'birthday' | 'other', or null for every
+   *  group made before this shipped and for every non-Event group. Drives the
+   *  fixed sub-event list `@waves/core`'s `subEventsForTemplate` offers.
+   *  Optional for the same reason `budget_minor` is — a narrow REST select can
+   *  omit it; the mirror row (a full `*` pull) always carries it. */
+  event_template?: string | null;
   /** True while this row exists only in the local queue (ADR-005). */
   pending?: boolean;
   /**
@@ -168,6 +175,17 @@ export interface ExpenseVersionRow {
   created_at: string;
   payers: { member_id: MemberId; amount: string }[];
   shares: { member_id: MemberId; amount: string }[];
+  /**
+   * Which sub-event this spend belongs to (`event-organizer.md`), or null for
+   * an untagged expense. Optional for the same reason `fx` is — a row
+   * mirrored before this shipped does not carry the column.
+   */
+  sub_event_id?: string | null;
+  /** A vendor deposit with a balance still owing (`event-organizer.md`), and
+   *  what/when. `is_deposit` optional for the same reason as `sub_event_id`. */
+  is_deposit?: boolean;
+  balance_due_minor?: string | null;
+  balance_due_date?: string | null;
 }
 
 export interface ExpenseRow {

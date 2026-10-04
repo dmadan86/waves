@@ -25,8 +25,10 @@ import {
   dayNumber,
   forecast,
   spendByMember,
+  subEventsForTemplate,
   type BudgetProgress,
   type PlanItem,
+  type SubEventExpense,
   type TimelineExpense,
 } from '@waves/core';
 import {
@@ -64,6 +66,9 @@ import { friendlyError } from '@/lib/errors';
 import { useViewerId } from '@/lib/auth';
 import { SkeletonList } from '@/components/Skeletons';
 import { CategoryBudgets } from '@/components/CategoryBudgets';
+import { SubEventBudgets } from '@/components/SubEventBudgets';
+import { UpcomingPayments } from '@/components/UpcomingPayments';
+import { type DepositCandidate } from '@/lib/upcomingPayments';
 import { fill, useStrings, type UiStrings } from '@/i18n';
 import { router } from '@/lib/navigation';
 
@@ -153,6 +158,39 @@ export default function PlanScreen() {
           category: expense.currentVersion!.category,
           amountMinor: BigInt(expense.currentVersion!.amount),
           currency: expense.currentVersion!.currency,
+        })),
+    [expenses.rows],
+  );
+
+  // Event organizer (docs/event-organizer.md): the sub-event tag and the
+  // vendor-deposit fields, read off the same live expenses `spend` above
+  // reads — two more views of one list, not a second fetch.
+  const subEventSpend: SubEventExpense[] = useMemo(
+    () =>
+      expenses.rows
+        .filter((expense) => expense.currentVersion && !expense.deleted_at)
+        .map((expense) => ({
+          subEventId: expense.currentVersion!.sub_event_id ?? null,
+          currency: expense.currentVersion!.currency,
+          amountMinor: BigInt(expense.currentVersion!.amount),
+        })),
+    [expenses.rows],
+  );
+
+  const depositCandidates: DepositCandidate[] = useMemo(
+    () =>
+      expenses.rows
+        .filter((expense) => expense.currentVersion && !expense.deleted_at)
+        .map((expense) => ({
+          expenseId: expense.id,
+          description: expense.currentVersion!.description,
+          currency: expense.currentVersion!.currency,
+          isDeposit: expense.currentVersion!.is_deposit ?? false,
+          balanceDueMinor:
+            expense.currentVersion!.balance_due_minor == null
+              ? null
+              : BigInt(expense.currentVersion!.balance_due_minor),
+          balanceDueDate: expense.currentVersion!.balance_due_date ?? null,
         })),
     [expenses.rows],
   );
@@ -306,6 +344,10 @@ export default function PlanScreen() {
   };
 
   const isTrip = group.data?.type === 'trip';
+  // Event organizer (docs/event-organizer.md): the fixed sub-event list this
+  // Event's template suggests — empty for a group with no template, which is
+  // what hides the "Event budget" card below.
+  const eventSubEvents = subEventsForTemplate(group.data?.event_template);
 
   // Burn-rate: the pace so far, projected across the whole trip, per currency
   // and against the overall cap in its own currency (ADR-004). Empty until the
@@ -639,6 +681,25 @@ export default function PlanScreen() {
             expenses={spend}
           />
         ) : null}
+
+        {/* Event organizer (docs/event-organizer.md): one sub-event's planned
+            budget against the ledger's own spend under that tag. Only on an
+            Event group whose template suggests any sub-events — a plain
+            Event with none picked gets no empty card. */}
+        {eventSubEvents.length > 0 ? (
+          <SubEventBudgets
+            groupId={groupId}
+            currency={currency}
+            isAdmin={isAdmin}
+            expenses={subEventSpend}
+            subEvents={eventSubEvents}
+          />
+        ) : null}
+
+        {/* Vendor deposits still owing a balance — on any group, not only an
+            Event: a trip's hotel deposit is the same shape. Hidden by
+            `UpcomingPayments` itself when there are none. */}
+        <UpcomingPayments groupId={groupId} expenses={depositCandidates} today={today} />
 
         {isTrip && forecasts.length > 0 ? (
           <Card style={{ gap: theme.spacing.sm }}>

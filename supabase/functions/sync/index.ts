@@ -175,6 +175,11 @@ const GROUP_UPDATABLE_FIELDS = [
   'remind_daily',
   'remind_morning_at',
   'remind_evening_at',
+  // Which event template this group was started from (event-organizer.md);
+  // ordinary member-writable, like `type`/`cover_emoji` above it — kept in
+  // step with `waves_guard_group_columns`'s allowlist, the same pairing this
+  // comment block already warns has drifted before.
+  'event_template',
 ] as const;
 
 function pick(source: Record<string, unknown>, keys: readonly string[]): Record<string, unknown> {
@@ -215,6 +220,7 @@ const EXPENSE_SELECT = `
     split_type, split_params, author_member_id, notes, payment_method, receipt_share_url,
     fx, receipt_id,
     location, created_at,
+    sub_event_id, is_deposit, balance_due_minor, balance_due_date,
     payers:expense_payers ( member_id, amount ),
     shares:expense_shares ( member_id, amount )
   )
@@ -715,6 +721,10 @@ export class SyncSession {
       location?: { lat: number; lng: number; name?: string | null } | null;
       receiptId?: string | null;
       baseVersionNo?: number;
+      subEventId?: string | null;
+      isDeposit?: boolean;
+      balanceDueMinor?: string | null;
+      balanceDueDate?: string | null;
     };
 
     const amount = parseMinor(payload.amount, 'amount');
@@ -794,6 +804,13 @@ export class SyncSession {
         receiptShareUrl: payload.receiptShareUrl ?? null,
         categoryMeta: payload.categoryMeta,
         location: payload.location,
+        subEventId: payload.subEventId ?? null,
+        isDeposit: payload.isDeposit ?? false,
+        balanceDueMinor:
+          payload.balanceDueMinor == null
+            ? null
+            : parseMinor(payload.balanceDueMinor, 'balanceDueMinor'),
+        balanceDueDate: payload.balanceDueDate ?? null,
       }),
     );
     if (error) throw error;
