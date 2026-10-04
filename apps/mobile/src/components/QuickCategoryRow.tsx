@@ -1,9 +1,9 @@
 /**
  * "Category (optional)" — the quick sheet's one nod to TDR §8's charts.
  *
- * A dropdown pill naming the choice, and the catalog's first few entries as
- * circular glyphs under it so the common ones are one tap rather than a sheet
- * away. Both open the same full list for everything else (`CategoryChoices`,
+ * The catalog's first few entries as circular glyphs so the common ones are
+ * one tap rather than a sheet away, and "More" for the full list
+ * (`CategoryChoices`,
  * the same catalog the capture screen's chip row and the expense form's own
  * category field draw from — nothing here is a second category system).
  *
@@ -18,7 +18,7 @@ import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, View } from 'react-native';
 
-import { resolveCategory, type CategoryMeta } from '@waves/core';
+import { resolveCategory, type CategoryMeta, type ResolvedCategory } from '@waves/core';
 import { Row, Sheet, Text, useTheme } from '@waves/ui';
 
 import { CategoryChoices, useLabelledCategoryCatalog } from '@/components/Category';
@@ -48,12 +48,16 @@ export function QuickCategoryRow({
   // lives — and the snapshot handed in as a fallback for the one case the
   // catalog cannot answer: a custom tag deleted since this was chosen. Null
   // is "nothing picked", not "picked something gone", so it still falls
-  // through to the plain pill rather than resolving to "Other".
+  // through to nothing selected rather than resolving to "Other".
   const chosen = value
     ? (visible.find((entry) => entry.key === value) ?? resolveCategory(value, meta))
     : null;
-  const pillLabel = chosen?.label ?? t.quickExpense.category;
-  const pillIcon = chosen?.icon ?? 'pricetag-outline';
+  // With no label naming the choice, a pick from "More" takes the last circle
+  // so the row always shows what is selected.
+  const shown: ((typeof visible)[number] | ResolvedCategory)[] = visible.slice(0, SHOWN);
+  if (chosen && !shown.some((entry) => entry.key === chosen.key)) {
+    shown[shown.length - 1] = chosen;
+  }
 
   const choose = (key: string, nextMeta: CategoryMeta | null): void => {
     // A second tap on what is already chosen is how an optional field goes
@@ -65,42 +69,15 @@ export function QuickCategoryRow({
 
   return (
     <View style={{ gap: theme.spacing.xs }}>
-      <Row style={{ alignItems: 'center', justifyContent: 'space-between' }}>
-        <Text style={{ fontSize: 13, fontWeight: '600', color: theme.color.text }}>
-          {t.quickExpense.category}{' '}
-          <Text style={{ fontSize: 13, fontWeight: '400', color: theme.color.textMuted }}>
-            {t.quickExpense.categoryOptional}
-          </Text>
+      <Text style={{ fontSize: 13, fontWeight: '600', color: theme.color.text }}>
+        {t.quickExpense.category}{' '}
+        <Text style={{ fontSize: 13, fontWeight: '400', color: theme.color.textMuted }}>
+          {t.quickExpense.categoryOptional}
         </Text>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t.quickExpense.categoryPicker.replace('{category}', pillLabel)}
-          onPress={() => setSheetOpen(true)}
-          hitSlop={8}
-          style={({ pressed }) => ({
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 6,
-            minHeight: 32,
-            paddingHorizontal: 10,
-            borderRadius: theme.radius.pill,
-            backgroundColor: soft,
-            opacity: pressed ? 0.6 : 1,
-          })}
-        >
-          <Ionicons name={pillIcon as keyof typeof Ionicons.glyphMap} size={15} color={accent} />
-          <Text
-            numberOfLines={1}
-            style={{ fontSize: 13, fontWeight: '600', color: theme.color.text, maxWidth: 110 }}
-          >
-            {pillLabel}
-          </Text>
-          <Ionicons name="chevron-down" size={13} color={theme.color.textMuted} />
-        </Pressable>
-      </Row>
+      </Text>
 
       <Row style={{ gap: theme.spacing.sm }} accessibilityRole="radiogroup">
-        {visible.slice(0, SHOWN).map((entry) => {
+        {shown.map((entry) => {
           const selected = entry.key === value;
           const entryMeta: CategoryMeta | null = entry.custom
             ? { label: entry.label, icon: entry.icon, tint: entry.tint }

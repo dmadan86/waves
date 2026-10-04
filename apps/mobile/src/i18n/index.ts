@@ -1875,7 +1875,6 @@ export interface UiStrings {
      *  it can be drawn in a quieter weight than the label itself. */
     categoryOptional: string;
     /** The dropdown pill's spoken form. {category} is what it currently shows. */
-    categoryPicker: string;
     /** The circular row's last glyph: the rest of the catalog, in a sheet. */
     moreCategories: string;
     /** The short link beside "Where does it go?" — opens the full form's own
@@ -5699,7 +5698,6 @@ const en: UiStrings = {
     subtitle: 'Add an expense and split it with friends',
     category: 'Category',
     categoryOptional: '(optional)',
-    categoryPicker: 'Category, {category}',
     moreCategories: 'More',
     splitLink: 'Split equally',
     where: 'Where does it go?',
@@ -9201,7 +9199,6 @@ const ta: UiStrings = {
     subtitle: 'Add an expense and split it with friends',
     category: 'Category',
     categoryOptional: '(optional)',
-    categoryPicker: 'Category, {category}',
     moreCategories: 'More',
     splitLink: 'Split equally',
     where: 'Where does it go?',
@@ -12781,7 +12778,6 @@ const hi: UiStrings = {
     subtitle: 'Add an expense and split it with friends',
     category: 'Category',
     categoryOptional: '(optional)',
-    categoryPicker: 'Category, {category}',
     moreCategories: 'More',
     splitLink: 'Split equally',
     where: 'Where does it go?',
@@ -16374,7 +16370,6 @@ const ar: UiStrings = {
     subtitle: 'Add an expense and split it with friends',
     category: 'Category',
     categoryOptional: '(optional)',
-    categoryPicker: 'Category, {category}',
     moreCategories: 'More',
     splitLink: 'Split equally',
     where: 'Where does it go?',
