@@ -161,14 +161,27 @@ sender_name = "Waves"
 # here because GoTrue will send its own link-shaped default the moment one
 # appears, and the failure would be silent.
 
-# The code is in every subject, worded "Use code 123456 to ...". That is the
-# shape Gmail (and iOS / Android autofill) read as a one-time code: Gmail
-# draws it as its own digit boxes with a Copy button above the mail, and the
-# code shows in the notification without opening anything. GoTrue executes
-# the subject as a Go template with the same data as the body.
+# The code is in every subject. Four of the five still read "Use code 123456
+# to ...", which is the shape Gmail (and iOS / Android autofill) read as a
+# one-time code: Gmail draws it as its own digit boxes with a Copy button
+# above the mail, and the code shows in the notification without opening
+# anything. GoTrue executes the subject as a Go template with the same data
+# as the body.
+#
+# `magic_link` leads with the code instead — "123456 is your Waves
+# verification code (OTP)" — matching Google's and Amazon's own sign-in-code
+# mail, which put the number first because that is the one subject word a
+# notification shade does not truncate away. "verification code (OTP)" over
+# the shorter "Waves OTP: 123456": it stays one sentence rather than a label
+# with a colon (which reads more like a notification a filter has seen from
+# bulk senders), and it carries both words — "verification code" and "OTP" —
+# that Gmail's own OTP classifier is known to key off, rather than betting on
+# just one. Gmail's and Apple's autofill still find the digits either way:
+# both pattern-match a contiguous digit string near "code", not a fixed
+# sentence shape.
 
 [auth.email.template.magic_link]
-subject = "Use code {{ .Token }} to sign in to Waves"
+subject = "{{ .Token }} is your Waves verification code (OTP)"
 content_path = "./supabase/templates/magic-link.html"
 
 [auth.email.template.confirmation]
