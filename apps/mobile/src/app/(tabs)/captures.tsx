@@ -469,10 +469,7 @@ function CaptureListRow({
         <View style={{ flex: 1, minWidth: 0, gap: 1 }}>
           {/* 15/18, not the `body` variant's 15/21 — the same size, a tighter
               lead, matching the Home activity feed's own title line. */}
-          <Text
-            numberOfLines={1}
-            style={{ fontSize: 15, lineHeight: 18, fontWeight: '600' }}
-          >
+          <Text numberOfLines={1} style={{ fontSize: 15, lineHeight: 18, fontWeight: '600' }}>
             {title}
           </Text>
           {/* Line two, and there is only one of it now — and, since this pass,
