@@ -114,15 +114,8 @@ export default function ExpenseDetailScreen() {
   // The page has two faces: its breakdown, and its edit history. The hero stays
   // above both; only the body below the tab bar swaps.
   const [tab, setTab] = useState<'details' | 'history'>('details');
-  // The Location row's map. Starts open the moment the expense has a saved
-  // place — before this row existed the map was never behind a fold at all, it
-  // just sat on the screen. This state's own initializer runs before `version`
-  // (and so `location`) has loaded, so `hadLocation` below — the same "adjust
-  // state during render" shape the expense form's `CurrencyRate` uses for
-  // `ratedFor` — flips it open on the render where a place first shows up. An
-  // explicit fold-away still sticks after that.
+  // The Location row's map, folded away until asked for.
   const [mapOpen, setMapOpen] = useState(false);
-  const [hadLocation, setHadLocation] = useState(false);
   // The fact being changed in a pop-up, if one is open (ExpenseFieldSheet).
   const [editingField, setEditingField] = useState<ExpenseField | null>(null);
   const deleteExpense = useDeleteExpense(groupId);
@@ -303,10 +296,6 @@ export default function ExpenseDetailScreen() {
   // Where it happened (A43), when the author attached one. A plain snapshot — a
   // tap opens the point in the phone's maps app.
   const location = version.location;
-  if ((location !== null) !== hadLocation) {
-    setHadLocation(location !== null);
-    if (location !== null) setMapOpen(true);
-  }
   // The typed note. It also names the expense in the hero, but that heading is
   // clamped to a single line while the field is multiline — so a long or
   // multi-line note is only half-shown up top. Render the full text as a "Note"
