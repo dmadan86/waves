@@ -256,8 +256,11 @@ function DestinationChip({ name, t }: { name: string | null; t: UiStrings }): Re
         gap: 3,
         alignItems: 'center',
         alignSelf: 'flex-start',
-        paddingHorizontal: theme.spacing.sm,
-        paddingVertical: 2,
+        paddingHorizontal: 6,
+        // 1, not the chip's old 2: the compact row's meta line is a single
+        // line now (no second-line wrap to spare the height to), so every
+        // point this pill carries is a point the row carries too.
+        paddingVertical: 1,
         borderRadius: theme.radius.pill,
         backgroundColor: known ? theme.color.brandSoft : theme.color.warningSoft,
         maxWidth: '100%',
@@ -268,10 +271,20 @@ function DestinationChip({ name, t }: { name: string | null; t: UiStrings }): Re
         size={iconSize.xs}
         color={known ? theme.color.brand : theme.color.warning}
       />
+      {/* 12/14, not the shared `micro` token's 11/15 — a point under the
+          floor a compact row is still allowed to read at. Bank messages and
+          Friends' own secondary lines sit at 12-13; this chip is the one
+          piece of `micro` text that rides on every single row, so it is the
+          one worth lifting rather than leaving at the token's usual 11. */}
       <Text
-        variant="micro"
         numberOfLines={1}
-        style={{ color: known ? theme.color.brand : theme.color.warning, flexShrink: 1 }}
+        style={{
+          fontSize: 12,
+          lineHeight: 14,
+          fontWeight: '600',
+          color: known ? theme.color.brand : theme.color.warning,
+          flexShrink: 1,
+        }}
       >
         {known ? name : t.captures.whichGroup}
       </Text>
@@ -301,13 +314,27 @@ function DestinationChip({ name, t }: { name: string | null; t: UiStrings }): Re
  * destination, answered once on the batch's own ⋯.
  */
 /** The batch mark's diameter — `CategoryBadge`'s size on a single row, so the
-    two kinds of row share one left column. */
-const BATCH_MARK = 40;
+    two kinds of row share one left column. Shrunk from 40 alongside that
+    badge (see `ROW_PAD_V`) — a phone's complaint was that the list read as
+    loose, and the two marks have to move together or the column breaks. */
+const BATCH_MARK = 32;
 
 /** The gap between two cards in the list — tighter than `theme.spacing.xs`
  *  (4) and short of `sm` (8), picked to match the reference board's compact
- *  stack of separate cards rather than the joined run it replaced. */
+ *  stack of separate cards rather than the joined run it replaced. Left
+ *  alone by the density pass below: it already matches Home's own Activity
+ *  feed, which uses this same 6px between its own cards. */
 const CARD_GAP = 6;
+
+/** A single row's own top-and-bottom padding — between `theme.spacing.xs`
+ *  (4, too tight to breathe) and `sm` (8, what the row wore before this
+ *  pass). A phone test called the list "not compact": each row was landing
+ *  near 70px end to end (card + gap), well short of Friends' and Activity's
+ *  own ~54-60px rows. 7 here, together with the smaller mark and the
+ *  single-line meta below, lands a row with no chip doubt at ~49px tall —
+ *  still clear of the 44pt touch-target floor — for roughly a third more
+ *  rows in the same screen. */
+const ROW_PAD_V = 7;
 
 function CaptureListRow({
   capture,
@@ -405,15 +432,15 @@ function CaptureListRow({
               // The row is the whole card now — each draft its own white,
               // fully rounded surface (the caller gives it the radius and the
               // fill), rather than a hairline inside a run several rows share.
-              // `md` on every side keeps the card compact: a 40pt category
-              // mark plus `md` top and bottom lands the whole row at ~64pt.
-              paddingHorizontal: theme.spacing.md,
+              // `sm` on each side, not the `md` this wore before a phone test
+              // called the list loose — the row's content (the 32pt mark and
+              // the single-line meta below) is the thing that sets its height
+              // now, not this padding, so there was room to give back here.
+              paddingHorizontal: theme.spacing.sm,
             }
       }
     >
-      <Row
-        style={{ gap: theme.spacing.sm, alignItems: 'center', paddingVertical: theme.spacing.md }}
-      >
+      <Row style={{ gap: theme.spacing.sm, alignItems: 'center', paddingVertical: ROW_PAD_V }}>
         {/* Always drawn — except inside an opened batch. Ticking is Review's
             main verb now: the list is a hundred rows deep on a phone whose
             messages the app reads, and answering it row by row is not
@@ -436,24 +463,33 @@ function CaptureListRow({
           category={capture.category}
           meta={capture.category_meta}
           description={capture.description}
-          size={40}
+          size={32}
         />
 
-        <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-          <Text variant="body" numberOfLines={1} style={{ fontWeight: '600' }}>
+        <View style={{ flex: 1, minWidth: 0, gap: 1 }}>
+          {/* 15/18, not the `body` variant's 15/21 — the same size, a tighter
+              lead, matching the Home activity feed's own title line. */}
+          <Text
+            numberOfLines={1}
+            style={{ fontSize: 15, lineHeight: 18, fontWeight: '600' }}
+          >
             {title}
           </Text>
-          {/* Line two, and there is only one of it now. Where the draft goes,
-              what the parser was unsure of, and whether the write is still in
-              the queue used to take a line each — three lines under a title on
-              a row that is one of a hundred and forty. They wrap onto a second
-              line only when they genuinely do not fit. */}
+          {/* Line two, and there is only one of it now — and, since this pass,
+              only one *row* of it too. Where the draft goes, what the parser
+              was unsure of, and whether the write is still in the queue used
+              to take a line each on the un-compacted list; they wrapped onto
+              a second line here as recently as this same pass. A list this
+              dense has no second line to spare, so the rarer of the two
+              (a doubt) now loses the space race to the chip that is on every
+              row — still reachable from the row's own ⋯ and from the swipe's
+              accessibility action, just not written out beneath a hundred and
+              forty titles at once. */}
           <Row
             style={{
-              flexWrap: 'wrap',
+              flexWrap: 'nowrap',
               alignItems: 'center',
               gap: theme.spacing.xs,
-              rowGap: 2,
             }}
           >
             {bare ? null : <DestinationChip name={destinationName} t={t} />}
@@ -467,14 +503,18 @@ function CaptureListRow({
                   size={iconSize.xs}
                   color={theme.color.warning}
                 />
-                <Text variant="micro" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
+                <Text
+                  tone="muted"
+                  numberOfLines={1}
+                  style={{ fontSize: 12, lineHeight: 14, flexShrink: 1 }}
+                >
                   {doubt === 'date-inferred'
                     ? t.smsImport.dateNotInMessage
                     : t.smsImport.hardToRead}
                 </Text>
               </Row>
             ))}
-            {capture.pending ? <PendingMark /> : null}
+            {capture.pending ? <PendingMark size={12} /> : null}
           </Row>
         </View>
 
@@ -491,11 +531,24 @@ function CaptureListRow({
         {/* One quiet ⋯: everything that is not the card's own tap lives behind
             it. Its own hitbox for a sighted tap, but hidden from the a11y tree —
             a focusable nested in the accessible row can be unreachable, so
-            screen readers reach it through the row's "more" action instead. */}
+            screen readers reach it through the row's "more" action instead.
+
+            A plain `Pressable` with `hitSlop`, not the shared `IconButton` —
+            that disc is a fixed 44x44, which was quietly the tallest thing in
+            the row and the real reason the compact pass above still landed
+            near 70pt: shrinking the badge and the text did nothing while this
+            still forced the row to its height. Home's own Activity feed
+            never reaches for `IconButton` on a dense per-row control either,
+            for the same reason; its own trailing ⋯ is this same shape. The
+            padding plus `hitSlop` still clears 44pt end to end. */}
         <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-          <IconButton label={t.captures.moreActions} onPress={onMore}>
+          <Pressable
+            onPress={onMore}
+            hitSlop={10}
+            style={({ pressed }) => ({ padding: 6, opacity: pressed ? 0.6 : 1 })}
+          >
             <Ionicons name="ellipsis-horizontal" size={iconSize.md} color={theme.color.textMuted} />
-          </IconButton>
+          </Pressable>
         </View>
       </Row>
     </Pressable>
@@ -549,7 +602,9 @@ function BatchGroupCard({
     // grouped-transactions grammar (Monarch, PayPal, Commons).
     <View
       style={{
-        borderRadius: theme.radius.lg,
+        // `md`, matching the single-row card's own corner — see
+        // `CaptureListRow`'s renderItem wrapper.
+        borderRadius: theme.radius.md,
         borderWidth: 1,
         borderColor: theme.color.border,
         backgroundColor: theme.color.surface,
@@ -632,14 +687,21 @@ function BatchGroupCard({
               </Text>
             )}
           </View>
+          {/* Same compact control as a single row's own ⋯ — see
+              `CaptureListRow` — so the batch card's header matches the rows
+              it stands for rather than reverting to the taller shared disc. */}
           <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-            <IconButton label={t.captures.moreActions} onPress={onMoreBatch}>
+            <Pressable
+              onPress={onMoreBatch}
+              hitSlop={10}
+              style={({ pressed }) => ({ padding: 6, opacity: pressed ? 0.6 : 1 })}
+            >
               <Ionicons
                 name="ellipsis-horizontal"
                 size={iconSize.md}
                 color={theme.color.textMuted}
               />
-            </IconButton>
+            </Pressable>
           </View>
         </Row>
       </Pressable>
@@ -1712,8 +1774,11 @@ export default function CapturesScreen() {
                 // a margin on a cell root is height FlashList cannot see.
                 // The first heading sits right under the list's own top
                 // padding; later ones leave a day's gap after the cards above.
+                // `6` under it, not `sm` (8) — a smaller section header for a
+                // denser list, matching the gap Home's own day headings
+                // leave above their rows.
                 paddingTop: index === 0 ? 0 : theme.spacing.sm,
-                paddingBottom: theme.spacing.sm,
+                paddingBottom: 6,
               }}
             >
               {dayHeading(locale, item.on)}
@@ -1774,7 +1839,10 @@ export default function CapturesScreen() {
               <View
                 style={{
                   backgroundColor: theme.color.surface,
-                  borderRadius: theme.radius.lg,
+                  // `md` (16), not `lg` (20) — a smaller card wears a smaller
+                  // corner, and it is one less point of chrome around
+                  // content that is already tighter.
+                  borderRadius: theme.radius.md,
                 }}
               >
                 {row}
@@ -1799,7 +1867,7 @@ export default function CapturesScreen() {
       openCaptureMenu,
       t,
       theme.color.surface,
-      theme.radius.lg,
+      theme.radius.md,
       theme.spacing.md,
       theme.spacing.sm,
       toggleBatch,
@@ -1907,7 +1975,8 @@ export default function CapturesScreen() {
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: theme.spacing.sm,
-          paddingBottom: theme.spacing.sm,
+          // Matches the day heading's own tightened gap below it.
+          paddingBottom: 6,
         }}
       >
         <Text
@@ -2189,8 +2258,9 @@ export default function CapturesScreen() {
         onLayout={(event) => setListHeight(event.nativeEvent.layout.height)}
         contentContainerStyle={{
           paddingHorizontal: theme.spacing.xl,
-          // The first card used to sit flush against the tab bar.
-          paddingTop: theme.spacing.lg,
+          // The first card used to sit flush against the tab bar. `md`, not
+          // `lg` — one more small cut in a list a phone test called loose.
+          paddingTop: theme.spacing.md,
           // Room for whatever is at the foot. With nothing ticked that is the
           // navigation; with something ticked the navigation has stood down and
           // the action bar is there instead — one row of buttons now that the
