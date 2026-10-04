@@ -30,6 +30,7 @@ import { saveImageToDevice } from '@/lib/saveImage';
 import { ViewerButton } from '@/components/ViewerButton';
 import { ZoomableGallery, type GalleryPage } from '@/components/ZoomableGallery';
 import { ModalNotice } from '@/components/ModalNotice';
+import { ReceiptAddRow } from '@/components/ReceiptAddRow';
 import { ReceiptAnnotator } from '@/components/ReceiptAnnotator';
 import { ReceiptCropper } from '@/components/ReceiptCropper';
 import {
@@ -795,62 +796,26 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
           // lone 96px tile left a wide empty band under it; a full-width row that
           // reads "Add receipt" fills the space and makes the affordance obvious.
           //
-          // Flush against the gutter, with no box of its own. This used to be a
-          // dashed card carrying `lg` of side padding, which set its camera glyph
-          // 16pt further in than every other leading glyph on the form it sits in
-          // — the note field's receipt icon, the "just for me" lock — so the one
-          // control wearing a border was also the one that looked out of line.
-          // The border is what the padding was there for, and neither is doing
-          // work the row needs: it is full width, it has a tinted glyph and two
-          // lines of type, and that is already more affordance than the rows it
-          // now lines up with.
-          <Pressable
+          // Flush against the gutter, with no box of its own — `ReceiptAddRow`,
+          // shared with the no-group capture form's own bill prompt. This used
+          // to be a dashed card carrying `lg` of side padding, which set its
+          // camera glyph 16pt further in than every other leading glyph on the
+          // form it sits in — the note field's receipt icon, the "just for me"
+          // lock — so the one control wearing a border was also the one that
+          // looked out of line. The border is what the padding was there for,
+          // and neither is doing work the row needs: it is full width, it has a
+          // tinted glyph and two lines of type, and that is already more
+          // affordance than the rows it now lines up with.
+          <ReceiptAddRow
+            title={t.receipts.add}
+            subtitle={t.receipts.addHint}
+            busy={preparing !== null}
+            disabled={preparing !== null}
             onPress={handleAddPress}
             onLongPress={handleAddLongPress}
-            disabled={preparing !== null}
-            accessibilityRole="button"
             accessibilityLabel={t.receipts.add}
             accessibilityHint={t.receipts.addHint}
-            // Tall enough to be a comfortable target (48, the Android minimum)
-            // and no taller. It used to pad itself `sm` above and below, which
-            // widened the gaps around it past the screen's gaps between
-            // sections. Hit slop can't stand in for that: React Native clips it
-            // to the parent, and the parent here is exactly this row.
-            style={({ pressed }) => ({
-              flexDirection: 'row',
-              alignItems: 'center',
-              minHeight: 48,
-              gap: theme.spacing.md,
-              opacity: pressed ? 0.6 : 1,
-            })}
-          >
-            <View
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: theme.radius.md,
-                alignItems: 'center',
-                justifyContent: 'center',
-                // Tinted rather than plain surface: with the surrounding card
-                // gone, a surface-on-background square would have all but
-                // disappeared against the form.
-                backgroundColor: theme.color.brandSoft,
-              }}
-            >
-              {preparing !== null ? (
-                <ActivityIndicator color={theme.color.brand} />
-              ) : (
-                <Ionicons name="camera-outline" size={iconSize.lg} color={theme.color.brand} />
-              )}
-            </View>
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Text variant="subheading">{t.receipts.add}</Text>
-              <Text variant="micro" tone="muted">
-                {t.receipts.addHint}
-              </Text>
-            </View>
-            <Ionicons name="add" size={iconSize.lg} color={theme.color.brand} />
-          </Pressable>
+          />
         ) : (
           <ScrollView
             horizontal

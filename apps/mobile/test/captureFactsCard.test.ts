@@ -3,9 +3,9 @@
  * between the description and a separate card that held only the destination
  * and the date — three different controls for four facts that read as one
  * question on the group expense form. This is the guard on folding all four
- * into the one card add-expense already wears, and on the receipt moving up to
- * where add-expense reads a bill: right under the amount, ahead of the fields
- * scanning it fills in.
+ * into the one card add-expense already wears, and on the receipt sitting
+ * right under the description, in the flush `ReceiptAddRow` look the expense
+ * screen's own empty gallery wears, ahead of the facts card.
  *
  * Source-reading, like `rowIdiom.test.ts` this extends: the screen pulls in
  * Reanimated and gesture-handler by way of `SheetOverlay`, neither of which
@@ -64,15 +64,26 @@ describe('capture folds what-for, paid-with, group and date into one card', () =
     expect(capture).not.toMatch(/\{t\.captures\.category\}\s*<\/Text>/);
   });
 
-  it('reads the bill before the fields scanning it fills in, the order add-expense uses', () => {
-    const receiptAt = capture.indexOf('t.captures.addReceipt');
+  it('reads the bill right under the description, ahead of the facts card', () => {
+    // `indexOf` on the raw source would find `ReceiptField`'s own function
+    // body — defined, like every component here, above the screen that
+    // renders it — rather than where it is actually placed in the JSX, so
+    // this looks for the JSX usage of each instead.
     const descriptionAt = capture.indexOf('<DescriptionField');
+    const receiptAt = capture.indexOf('<ReceiptField');
     const factsCardAt = capture.indexOf('<DetailRows>');
-    expect(receiptAt).toBeGreaterThan(-1);
     expect(descriptionAt).toBeGreaterThan(-1);
+    expect(receiptAt).toBeGreaterThan(-1);
     expect(factsCardAt).toBeGreaterThan(-1);
-    expect(receiptAt).toBeLessThan(descriptionAt);
-    expect(descriptionAt).toBeLessThan(factsCardAt);
+    expect(descriptionAt).toBeLessThan(receiptAt);
+    expect(receiptAt).toBeLessThan(factsCardAt);
+  });
+
+  it("restyles the bill as the expense screen's flush ReceiptAddRow, not a boxed card", () => {
+    expect(capture).toMatch(
+      /import\s*\{\s*ReceiptAddRow\s*\}\s*from\s*'@\/components\/ReceiptAddRow'/,
+    );
+    expect(capture).toMatch(/<ReceiptAddRow/);
   });
 
   it("keeps paid-with's not-said answer reachable from the sheet, not only the old chip lane", () => {
