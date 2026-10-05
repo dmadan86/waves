@@ -176,7 +176,7 @@ export function ContactPickerScene({
  * one instead (`darkInk`, the same flag the title text follows), so this is
  * its own small button rather than a second meaning bolted onto that one.
  */
-function TranslucentBackButton({
+export function TranslucentBackButton({
   dark,
   label,
   onPress,

@@ -412,6 +412,15 @@ export interface UiStrings {
     vendorsEmptyTitle: string;
     vendorsEmptyBody: string;
     vendorsFilteredEmpty: string;
+    planSubtitle: string;
+    planOverall: string;
+    noBudgetSet: string;
+    statLeft: string;
+    statOver: string;
+    percentUsed: string;
+    addEventBudget: string;
+    nothingDue: string;
+    viewAll: string;
   };
   /** Display labels for a template's sub-event ids (`@waves/core`'s
    *  `EVENT_TEMPLATES`) — `mehendi`, `sangeet`, … Loosely typed rather than a
@@ -4587,6 +4596,15 @@ const en: UiStrings = {
     vendorsEmptyBody:
       'Mark an expense as a vendor deposit to track what you have paid each vendor and what is still owed.',
     vendorsFilteredEmpty: 'Nothing matches this filter.',
+    planSubtitle: 'Plan and track your budget',
+    planOverall: 'Overall',
+    noBudgetSet: 'No budget set',
+    statLeft: 'Left',
+    statOver: 'Over',
+    percentUsed: '{n}% of plan used',
+    addEventBudget: 'Add event budget',
+    nothingDue: 'Nothing due right now',
+    viewAll: 'View all',
   },
   eventSubEvents: {
     engagement: 'Engagement',
@@ -8115,6 +8133,15 @@ const ta: UiStrings = {
     vendorsEmptyBody:
       'ஒவ்வொரு விற்பனையாளருக்கும் செலுத்தியதையும் நிலுவையையும் அறிய செலவை விற்பனையாளர் முன்பணமாக குறியிடுங்கள்.',
     vendorsFilteredEmpty: 'இந்த வடிகட்டிக்கு எதுவும் பொருந்தவில்லை.',
+    planSubtitle: 'உங்கள் பட்ஜெட்டை திட்டமிட்டு கண்காணிக்கவும்',
+    planOverall: 'மொத்தம்',
+    noBudgetSet: 'பட்ஜெட் அமைக்கப்படவில்லை',
+    statLeft: 'மீதம்',
+    statOver: 'அதிகம்',
+    percentUsed: 'திட்டத்தில் {n}% பயன்படுத்தப்பட்டது',
+    addEventBudget: 'நிகழ்வு பட்ஜெட்டை சேர்',
+    nothingDue: 'இப்போது நிலுவை எதுவும் இல்லை',
+    viewAll: 'அனைத்தும் பார்',
   },
   eventSubEvents: {
     engagement: 'நிச்சயதார்த்தம்',
@@ -11784,6 +11811,15 @@ const hi: UiStrings = {
     vendorsEmptyBody:
       'हर वेंडर को दी गई राशि और बकाया देखने के लिए खर्च को वेंडर जमा राशि के रूप में चिह्नित करें।',
     vendorsFilteredEmpty: 'इस फ़िल्टर से कुछ नहीं मिला।',
+    planSubtitle: 'अपना बजट बनाएँ और ट्रैक करें',
+    planOverall: 'कुल',
+    noBudgetSet: 'बजट तय नहीं',
+    statLeft: 'बचा',
+    statOver: 'अधिक',
+    percentUsed: 'योजना का {n}% उपयोग हुआ',
+    addEventBudget: 'इवेंट बजट जोड़ें',
+    nothingDue: 'अभी कुछ बकाया नहीं',
+    viewAll: 'सभी देखें',
   },
   eventSubEvents: {
     engagement: 'सगाई',
@@ -15342,6 +15378,15 @@ const ar: UiStrings = {
     vendorsEmptyTitle: 'لا توجد دفعات مقدّمة بعد',
     vendorsEmptyBody: 'حدّد المصروف كدفعة للمورّد لتتبّع ما دفعته لكل مورّد وما تبقّى.',
     vendorsFilteredEmpty: 'لا شيء يطابق هذا التصفية.',
+    planSubtitle: 'خطّط لميزانيتك وتابعها',
+    planOverall: 'الإجمالي',
+    noBudgetSet: 'لم تُحدَّد ميزانية',
+    statLeft: 'المتبقي',
+    statOver: 'الزيادة',
+    percentUsed: 'تم استخدام {n}% من الخطة',
+    addEventBudget: 'إضافة ميزانية المناسبة',
+    nothingDue: 'لا شيء مستحق الآن',
+    viewAll: 'عرض الكل',
   },
   eventSubEvents: {
     engagement: 'الخطوبة',

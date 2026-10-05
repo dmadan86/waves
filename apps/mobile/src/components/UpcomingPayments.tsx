@@ -1,77 +1,135 @@
 /**
- * "Upcoming payments" (docs/event-organizer.md): a compact list of the
- * vendor deposits still owing a balance on this group — soonest/overdue
- * first. All the maths lives in `lib/upcomingPayments`; this only draws it.
+ * "Upcoming payments" (docs/event-organizer.md): the vendor balances still
+ * OWED on this group, soonest/overdue first. Built from the same data as the
+ * Vendors tab (`lib/eventVendors`), so the two cannot disagree; an advance
+ * that is already paid never shows here. All the maths lives in the lib; this
+ * only draws it.
  */
 
-import { Badge, Card, MoneyText, Row, Text, useTheme } from '@waves/ui';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { Badge, Card, iconSize, MoneyText, Row, Text, useTheme } from '@waves/ui';
 import { Pressable, View } from 'react-native';
 
-import { overdueCount, upcomingPayments, type DepositCandidate } from '@/lib/upcomingPayments';
 import { showDate } from '@/lib/expenseDay';
+import { upcomingVendorPayments, type VendorCandidate } from '@/lib/eventVendors';
 import { router } from '@/lib/navigation';
-import { plural, useStrings } from '@/i18n';
+import { fill, plural, useStrings } from '@/i18n';
 
-/** How many rows the compact card shows before the rest wait for the full
- *  expense list — a reminder, not a ledger. */
-const MAX_ROWS = 4;
+/** How many rows the compact card shows before "View all" takes over. */
+const MAX_ROWS = 3;
 
 export function UpcomingPayments({
   groupId,
-  expenses,
+  candidates,
   today,
+  subEventLabel,
+  showEmpty = false,
+  onViewAll,
 }: {
   groupId: string;
-  expenses: readonly DepositCandidate[];
-  /** ISO day, so the card agrees with the rest of the trip about what "today"
-   *  is — the trip's own time zone, same as the plan screen's `todayIn`. */
+  candidates: readonly VendorCandidate[];
+  /** ISO day in the group's own time zone. */
   today: string;
+  /** "emoji Label" for a sub-event id, or '' when it is unknown. */
+  subEventLabel: (id: string) => string;
+  /** Show "Nothing due" instead of hiding the card when there is nothing owed. */
+  showEmpty?: boolean;
+  /** Opens the Vendors tab filtered to Due; omitted where there is no such tab. */
+  onViewAll?: () => void;
 }) {
   const theme = useTheme();
   const { t, locale } = useStrings();
-  const payments = upcomingPayments(expenses, today);
-  if (payments.length === 0) return null;
-  const overdue = overdueCount(payments);
+  const o = t.eventOrganizer;
+  const payments = upcomingVendorPayments(candidates, today);
+  if (payments.length === 0 && !showEmpty) return null;
+  const overdue = payments.filter((p) => p.overdue).length;
 
   return (
-    <Card style={{ gap: theme.spacing.sm }}>
+    <Card style={{ gap: theme.spacing.sm, paddingVertical: theme.spacing.md }}>
       <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-        <Text variant="subheading">{t.eventOrganizer.upcomingPaymentsTitle}</Text>
-        {overdue > 0 ? (
-          <Badge label={plural(locale, overdue, t.eventOrganizer.overdueCount)} tone="negative" />
-        ) : null}
+        <View style={{ flex: 1 }}>
+          <Text variant="subheading" accessibilityRole="header">
+            {o.upcomingPaymentsTitle}
+          </Text>
+          {payments.length === 0 ? (
+            <Text variant="micro" tone="muted">
+              {o.nothingDue}
+            </Text>
+          ) : null}
+        </View>
+        <Row style={{ gap: theme.spacing.sm, alignItems: 'center' }}>
+          {overdue > 0 ? (
+            <Badge label={plural(locale, overdue, o.overdueCount)} tone="negative" />
+          ) : null}
+          {onViewAll && payments.length > 0 ? (
+            <Pressable
+              onPress={onViewAll}
+              accessibilityRole="button"
+              accessibilityLabel={o.viewAll}
+              hitSlop={8}
+              style={({ pressed }) => ({
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 2,
+                opacity: pressed ? 0.7 : 1,
+              })}
+            >
+              <Text variant="caption" tone="brand">
+                {o.viewAll}
+              </Text>
+              <Ionicons name="chevron-forward" size={iconSize.sm} color={theme.color.brand} />
+            </Pressable>
+          ) : null}
+        </Row>
       </Row>
-      <View style={{ gap: theme.spacing.sm }}>
-        {payments.slice(0, MAX_ROWS).map((payment) => (
+      {payments.slice(0, MAX_ROWS).map((payment) => {
+        const sub = payment.subEventId ? subEventLabel(payment.subEventId) : '';
+        const due = payment.dueDate
+          ? fill(o.dueOn, { date: showDate(payment.dueDate, locale) })
+          : o.dueWhenever;
+        return (
           <Pressable
             key={payment.expenseId}
             onPress={() => router.push(`/group/${groupId}/expense/${payment.expenseId}`)}
             accessibilityRole="button"
-            accessibilityLabel={payment.description}
+            accessibilityLabel={`${payment.vendorName}, ${sub ? `${sub}, ` : ''}${due}`}
             style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
           >
             <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-              <Text variant="caption" numberOfLines={1} style={{ flex: 1 }}>
-                {payment.description}
-              </Text>
-              <Row style={{ gap: theme.spacing.xs, alignItems: 'center' }}>
+              <View style={{ flex: 1 }}>
+                <Text variant="caption" numberOfLines={1}>
+                  {payment.vendorName}
+                </Text>
+                {sub ? (
+                  <Text variant="micro" tone="muted" numberOfLines={1}>
+                    {sub}
+                  </Text>
+                ) : null}
+              </View>
+              <View style={{ alignItems: 'flex-end' }}>
                 <MoneyText
-                  amount={payment.balanceDueMinor}
+                  amount={payment.balanceMinor}
                   currency={payment.currency}
                   locale={locale}
                   variant="caption"
                   mode="plain"
                 />
-                <Text variant="micro" tone={payment.overdue ? 'negative' : 'muted'}>
-                  {payment.balanceDueDate
-                    ? showDate(payment.balanceDueDate, locale)
-                    : t.eventOrganizer.dueWhenever}
+                <Text
+                  variant="micro"
+                  tone={payment.overdue ? 'negative' : 'muted'}
+                  style={
+                    payment.dueSoon && !payment.overdue
+                      ? { color: theme.color.warning, fontWeight: '600' }
+                      : undefined
+                  }
+                >
+                  {due}
                 </Text>
-              </Row>
+              </View>
             </Row>
           </Pressable>
-        ))}
-      </View>
+        );
+      })}
     </Card>
   );
 }

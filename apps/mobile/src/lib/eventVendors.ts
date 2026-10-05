@@ -234,6 +234,52 @@ export function vendorSummary(
   };
 }
 
+/** One vendor balance still owed, for the Plan screen's "Upcoming payments". */
+export interface UpcomingVendorPayment {
+  readonly expenseId: string;
+  readonly vendorName: string;
+  readonly subEventId: string | null;
+  readonly currency: string;
+  readonly balanceMinor: bigint;
+  readonly dueDate: string | null;
+  readonly overdue: boolean;
+  readonly dueSoon: boolean;
+}
+
+/**
+ * What is still OWED, from the same data as the Vendors tab (one source of
+ * truth): every advance with a balance above zero, soonest first (overdue ones
+ * therefore first), undated last. An advance already paid off, or a plain
+ * expense, never appears.
+ */
+export function upcomingVendorPayments(
+  candidates: readonly VendorCandidate[],
+  today: string,
+): readonly UpcomingVendorPayment[] {
+  const rows: UpcomingVendorPayment[] = [];
+  for (const slot of collect(candidates, today).values()) {
+    for (const entry of slot.entries) {
+      if (entry.balanceMinor <= 0n) continue;
+      rows.push({
+        expenseId: entry.expenseId,
+        vendorName: slot.name,
+        subEventId: entry.subEventId,
+        currency: entry.currency,
+        balanceMinor: entry.balanceMinor,
+        dueDate: entry.balanceDueDate,
+        overdue: entry.status === VendorStatus.Overdue,
+        dueSoon: entry.dueSoon,
+      });
+    }
+  }
+  return rows.sort((a, b) => {
+    if (a.dueDate === b.dueDate) return a.vendorName.localeCompare(b.vendorName);
+    if (a.dueDate === null) return 1;
+    if (b.dueDate === null) return -1;
+    return a.dueDate < b.dueDate ? -1 : 1;
+  });
+}
+
 /** The distinct sub-event ids advances are tagged with, for the filter chips. */
 export function vendorSubEventIds(candidates: readonly VendorCandidate[]): readonly string[] {
   return [

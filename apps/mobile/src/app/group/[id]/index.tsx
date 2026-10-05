@@ -476,7 +476,18 @@ export default function GroupScreen() {
   // `?welcome=trip` is set once, by the create screen, when a trip is made
   // without dates — it opens this group with a one-time plan-your-trip nudge.
   // The param is gone on any later visit, so the nudge is a moment, not a nag.
-  const { id, welcome } = useLocalSearchParams<{ id: string; welcome?: string }>();
+  const {
+    id,
+    welcome,
+    tab: tabParam,
+    vendorFilter,
+  } = useLocalSearchParams<{
+    id: string;
+    welcome?: string;
+    /** 'vendors' opens the Vendors tab (Plan's "View all"). */
+    tab?: string;
+    vendorFilter?: string;
+  }>();
   const groupId = id ?? '';
   // Identity for "which member am I", from the session rather than the profile:
   // the session is on the device at launch, the profile is a fetch that lands
@@ -484,7 +495,7 @@ export default function GroupScreen() {
   // to match, but only if it is given the right thing to compare. See
   // `lib/auth.useViewerId`.
   const viewerId = useViewerId();
-  const [tab, setTab] = useState<Tab>(Tab.Expenses);
+  const [tab, setTab] = useState<Tab>(tabParam === 'vendors' ? Tab.Vendors : Tab.Expenses);
   const [menuOpen, setMenuOpen] = useState(false);
   const [tripNudgeDismissed, setTripNudgeDismissed] = useState(false);
 
@@ -1126,6 +1137,9 @@ export default function GroupScreen() {
         {activeTab === Tab.Vendors ? (
           <VendorsBody
             groupId={groupId}
+            initialFilter={
+              vendorFilter === 'due' || vendorFilter === 'overdue' ? vendorFilter : 'all'
+            }
             today={todayInZone(groupData.time_zone ?? 'Asia/Kolkata')}
           />
         ) : tab === Tab.Settle ? (

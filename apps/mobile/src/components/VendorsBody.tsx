@@ -45,14 +45,22 @@ import {
 import { router } from '@/lib/navigation';
 import { useViewerId } from '@/lib/auth';
 
-export function VendorsBody({ groupId, today }: { groupId: string; today: string }) {
+export function VendorsBody({
+  groupId,
+  today,
+  initialFilter = 'all',
+}: {
+  groupId: string;
+  today: string;
+  initialFilter?: VendorFilter;
+}) {
   const theme = useTheme();
   const { t, locale } = useStrings();
   const clearance = useScreenClearance();
   const viewerId = useViewerId();
   const { blockedIds } = useBlockedUsers();
   const { group, members, expenses } = useGroup(groupId);
-  const [filter, setFilter] = useState<VendorFilter>('all');
+  const [filter, setFilter] = useState<VendorFilter>(initialFilter);
   const [subEvent, setSubEvent] = useState<string | null>(null);
 
   const lookup = useMemo(() => memberLookup(members.data), [members.data]);
