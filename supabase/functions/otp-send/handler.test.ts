@@ -146,6 +146,16 @@ describe('otp-send', () => {
     expect(JSON.parse(sent.get('ContentVariables') ?? '{}')).toEqual({ '1': '123456' });
   });
 
+  it('accepts the bare digits GoTrue sends and adds the plus back', async () => {
+    const body = JSON.stringify({ user: { phone: '919876543210' }, sms: { otp: '123456' } });
+    const d = deps();
+    const response = await handleOtpSend(request(body), d);
+
+    expect(response.status).toBe(200);
+    const [, init] = d.fetchImpl.mock.calls[0] as [string, RequestInit];
+    expect(new URLSearchParams(init.body as string).get('To')).toBe('whatsapp:+919876543210');
+  });
+
   it('counts the ask against the number, not an IP or a profile', async () => {
     const d = deps();
     await handleOtpSend(request(), d);
@@ -202,7 +212,7 @@ describe('otp-send', () => {
   });
 
   it('rejects a phone number that is not E.164', async () => {
-    const body = JSON.stringify({ user: { phone: '9876543210' }, sms: { otp: '123456' } });
+    const body = JSON.stringify({ user: { phone: '98765' }, sms: { otp: '123456' } });
     const d = deps();
     const response = await handleOtpSend(request(body), d);
 
