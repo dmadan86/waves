@@ -42,7 +42,6 @@ import {
   Callout,
   Card,
   ChipRow,
-  EmptyState,
   iconSize,
   MoneyText,
   Row,
@@ -81,6 +80,7 @@ import { tripRateFor } from '@/lib/tripRates';
 import { NotUploaderError, StorageCapError } from '@/lib/storage';
 import { useAssignCapture, useGroup, useGroupFxRates } from '@/data/hooks';
 import { displayName, groupLabel, isGhost, isViewer } from '@/data/types';
+import { GroupNotFound } from '@/components/GroupNotFound';
 import { fill, plural, useStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
 import { useGuestGuard } from '@/lib/guestGuard';
@@ -1175,11 +1175,7 @@ export default function AddExpenseScreen() {
   }
 
   if (!group.data) {
-    return (
-      <Screen>
-        <EmptyState title={t.group.notFound} body={t.group.notFoundArchived} />
-      </Screen>
-    );
+    return <GroupNotFound groupId={groupId} />;
   }
 
   const submit = async (): Promise<void> => {
