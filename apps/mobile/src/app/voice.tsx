@@ -26,13 +26,18 @@ import { ActivityIndicator, Pressable, ScrollView, TextInput, View } from 'react
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
+  buildVoiceSplit,
   computeShares,
   encodeTxn,
   guessCategory,
   minorUnitScale,
   peopleSignatureKey,
+  resolveIntentPeople,
   type ExpenseLocation,
   type SplitParams,
+  type VoiceIntent,
+  type VoiceNameCandidate,
+  type VoiceSplitPlan,
 } from '@waves/core';
 import {
   Button,
@@ -65,7 +70,7 @@ import {
 } from '@/data/hooks';
 import { nudgeToSettle } from '@/data/api';
 import { useUpsertPersonalRecord } from '@/data/personal';
-import { displayName, GroupType, isViewer, type GroupRow } from '@/data/types';
+import { displayName, GroupType, isViewer, type GroupRow, type MemberRow } from '@/data/types';
 import { isRtl, plural, useStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
 import { useViewerIdentity } from '@/lib/viewerIdentity';
@@ -191,6 +196,72 @@ function toMinor(amount: string, currency: string): bigint | null {
   return BigInt(Math.round(value * Number(minorUnitScale(currency))));
 }
 
+/** The reader's corrections to who paid and who shares. */
+interface WhoEdit {
+  payerId?: string;
+  participantIds?: string[];
+}
+
+/** A group's members as the voice parser matches names against them. */
+function toCandidates(
+  members: readonly MemberRow[] | undefined,
+  viewerId: string | null | undefined,
+): VoiceNameCandidate[] {
+  return (members ?? []).map((member) => ({
+    id: member.id,
+    // The viewer is "You" on screen but answers to their real name when spoken.
+    name: member.profile?.display_name ?? displayName(member, viewerId),
+    isMe: isViewer(member, viewerId),
+  }));
+}
+
+/** The payer, people and split Save will write, and anything still in the way. */
+interface WhoView {
+  intent: VoiceIntent;
+  payerId: string | null;
+  participantIds: readonly string[];
+  params: SplitParams;
+  problems: VoiceSplitPlan['problems'];
+  /** What the sentence meant and not the reader's correction on top of it. */
+  edited: boolean;
+}
+
+function planWho(
+  intent: VoiceIntent,
+  members: readonly VoiceNameCandidate[],
+  edit: WhoEdit | null,
+  amountMinor: bigint | null,
+  draftCount: number,
+): WhoView {
+  const resolved = resolveIntentPeople(intent, members);
+  const plan = buildVoiceSplit(resolved, {
+    memberIds: members.map((member) => member.id),
+    meMemberId: members.find((member) => member.isMe)?.id ?? null,
+    amountMinor,
+  });
+  let { payerId, participants: participantIds, params } = plan;
+  let problems = [...plan.problems];
+  // One exact total cannot be spread over several expenses.
+  if (params.kind === 'exact' && draftCount > 1) problems.push({ code: 'exact_sum_mismatch' });
+  if (edit?.payerId) {
+    payerId = edit.payerId;
+    problems = problems.filter((problem) => problem.code !== 'payer_unresolved');
+  }
+  if (edit?.participantIds) {
+    participantIds = edit.participantIds;
+    params = EQUAL;
+    problems = problems.filter(
+      (problem) =>
+        problem.code !== 'participant_unresolved' &&
+        problem.code !== 'exact_sum_mismatch' &&
+        problem.code !== 'percent_sum_mismatch' &&
+        problem.code !== 'no_participants',
+    );
+    if (participantIds.length === 0) problems.push({ code: 'no_participants' });
+  }
+  return { intent: resolved, payerId, participantIds, params, problems, edited: edit !== null };
+}
+
 export default function VoiceScreen() {
   const labelOf = useGroupLabeller();
   const theme = useTheme();
@@ -297,6 +368,16 @@ export default function VoiceScreen() {
   const [voicePeopleText, setVoicePeopleText] = useState<string | null>(null);
   const [voiceSplitCount, setVoiceSplitCount] = useState<number | null>(null);
   const [voiceExpenseDate, setVoiceExpenseDate] = useState<string | null>(null);
+  // Who paid, which group and how it divides, as spoken. Read against the chosen
+  // group's members below, so the review can show it and Save can write it.
+  const [intent, setIntent] = useState<VoiceIntent | null>(null);
+  // The reader's corrections to the payer and the people, laid over the spoken
+  // intent. Dropped whenever a new sentence or a different group comes in.
+  const [whoEdit, setWhoEdit] = useState<WhoEdit | null>(null);
+  const [whoOpen, setWhoOpen] = useState(false);
+  // A spoken group name that fit nothing, or several groups, stays flagged until
+  // the reader picks a destination themselves.
+  const [groupChosen, setGroupChosen] = useState(false);
   // One place for the whole spoken batch — a run of "coffee, then the taxi" all
   // happened where you are standing (A43). The current place is read on its own
   // when the review opens and pinned by default; the reader can still clear or
@@ -389,6 +470,13 @@ export default function VoiceScreen() {
       ? dest.groupId
       : '';
   const target = useGroup(targetGroupId);
+  // The group the mic was opened in: its members let the parser tell a person
+  // from a description ("for Arjun" vs "for dinner") while the sentence is read.
+  const launchGroup = useGroup(launchGroupId ?? '');
+  const launchMembers = useMemo(
+    () => (launchGroupId ? toCandidates(launchGroup.members.data, viewerId) : undefined),
+    [launchGroupId, launchGroup.members.data, viewerId],
+  );
   // Only the group destinations carry a group id to write into; unassigned and
   // "just me" have none, so the write hook reads the empty id and stays inert.
   const writeGroupId =
@@ -476,6 +564,16 @@ export default function VoiceScreen() {
     }
   };
 
+  // A tap on one of the groups a spoken name could have meant.
+  const chooseGroup = (groupId: string): void => {
+    groupCreated.current = false;
+    ghostMemberIds.current = null;
+    setRequested(null);
+    setDest({ kind: 'existing', groupId });
+    setGroupChosen(true);
+    setWhoEdit(null);
+  };
+
   // Reset the per-parse bookkeeping — a fresh parse is a fresh group to create,
   // fresh ghosts to mint, and a fresh location to read.
   const resetForNewParse = (): void => {
@@ -500,6 +598,8 @@ export default function VoiceScreen() {
       setVoicePeopleText(null);
       setVoiceSplitCount(null);
       setVoiceExpenseDate(null);
+      setIntent(null);
+      setWhoEdit(null);
       setRequested(created);
       setDest({ kind: 'create', ...created });
       beginAutoCommit({
@@ -527,6 +627,9 @@ export default function VoiceScreen() {
     setVoicePeopleText(result.peopleText);
     setVoiceSplitCount(result.splitCount);
     setVoiceExpenseDate(result.expenseDate);
+    setIntent(result.intent);
+    setWhoEdit(null);
+    setGroupChosen(false);
     resetForNewParse();
     // Default the destination to what was heard: a new group to make, an
     // existing group named, else the capture inbox.
@@ -537,6 +640,14 @@ export default function VoiceScreen() {
     } else if (result.group?.kind === 'existing') {
       setRequested(null);
       setDest({ kind: 'existing', groupId: result.group.groupId });
+    } else if (
+      result.intent &&
+      (result.intent.groupSource === 'ambiguous' || result.intent.groupSource === 'unresolved')
+    ) {
+      // A group was named but is not clearly one of theirs. Not the launch group,
+      // not a guess: the inbox, with the question shown, until they choose.
+      setRequested(null);
+      setDest({ kind: 'unassigned' });
     } else if (result.personal) {
       // "Just for me" — a private expense on the Me ledger. This beats the
       // launch-group context below: an explicit solo marker is a clear choice.
@@ -588,7 +699,10 @@ export default function VoiceScreen() {
   // group, several expenses in a breath, a spoken new group, "just for me".
   const interpret = useCallback(
     async (transcript: string): Promise<VoiceParseResult> => {
-      const final = parseVoiceExpenses(transcript, groupRefs);
+      const final = parseVoiceExpenses(transcript, groupRefs, {
+        members: launchMembers,
+        currentGroupId: launchGroupId,
+      });
       // Report what was heard when nothing usable came back, so the parser can be
       // improved against a real miss. Best-effort: the lib decides whether to send
       // (only failures, only with consent) and never throws — see lib/voiceLog.
@@ -600,7 +714,7 @@ export default function VoiceScreen() {
       });
       return final;
     },
-    [groupRefs, locale],
+    [groupRefs, locale, launchMembers, launchGroupId],
   );
 
   // Drafts minted from heard expenses — the shared shape for the opening batch
@@ -639,6 +753,10 @@ export default function VoiceScreen() {
     if (result.peopleText) setVoicePeopleText(result.peopleText);
     if (result.splitCount !== null) setVoiceSplitCount(result.splitCount);
     if (result.expenseDate) setVoiceExpenseDate(result.expenseDate);
+    if (result.intent?.hasSocialDetail) {
+      setIntent(result.intent);
+      setWhoEdit(null);
+    }
     setNoAmount(false);
     setMicMode('replace');
     setPhase('review');
@@ -1123,6 +1241,41 @@ export default function VoiceScreen() {
     toast.show(plural(locale, drafts.length, t.voice.savedCount));
   };
 
+  // Who paid and who shares, once the destination group's members are known: the
+  // spoken intent read against them, with the reader's corrections on top. Only
+  // for an existing group — a new one has nobody to name yet.
+  const targetMembers = useMemo(
+    () => toCandidates(target.members.data, viewerId),
+    [target.members.data, viewerId],
+  );
+  const who: WhoView | null = (() => {
+    // A plain "I paid, split equally" keeps the way it has always been written;
+    // the card and the plan exist for sentences that said something more.
+    if (!intent?.hasSocialDetail || dest.kind !== 'existing' || targetMembers.length === 0)
+      return null;
+    const first = drafts[0];
+    const firstCurrency = first
+      ? voiceSaveCurrency(first.currency, target.group.data?.default_currency ?? dc, dc)
+      : dc;
+    return planWho(
+      intent,
+      targetMembers,
+      whoEdit,
+      first ? toMinor(first.amount, firstCurrency) : null,
+      drafts.length,
+    );
+  })();
+  // Someone other than me paid: nowhere but a group can keep that.
+  const payerElsewhere = intent?.payer.explicit === true && intent.payer.kind === 'member';
+  const groupPending =
+    intent !== null &&
+    (intent.groupSource === 'ambiguous' || intent.groupSource === 'unresolved') &&
+    !groupChosen;
+  const whoBlocked =
+    groupPending ||
+    (who !== null && who.problems.length > 0) ||
+    (payerElsewhere && dest.kind !== 'existing');
+
   const save = async (): Promise<void> => {
     setError(null);
     setSaving(true);
@@ -1274,26 +1427,34 @@ export default function VoiceScreen() {
               dc,
             ));
       const groupMembers = target.members.data ?? [];
+      // A named payer or people are never defaulted: Save is held until every one
+      // is matched to a member (see `whoBlocked`), so this only ever runs with a plan.
+      if (who && who.problems.length > 0) throw new Error('payer or people not resolved');
       const payer =
         dest.kind === 'existing'
-          ? (groupMembers.find((member) => isViewer(member, viewerId))?.id ?? groupMembers[0]?.id)
+          ? (who?.payerId ??
+            groupMembers.find((member) => isViewer(member, viewerId))?.id ??
+            groupMembers[0]?.id)
           : dest.memberId;
       if (!payer) throw new Error('no members to split among');
-      const participants =
-        dest.kind === 'existing'
-          ? resolveVoiceParticipants({
-              all: groupMembers.map((member) => member.id),
-              payer,
-              members: groupMembers.map((member) => ({
-                id: member.id,
-                name: displayName(member, viewerId),
-              })),
-              peopleText: voicePeopleText,
-              splitCount: voiceSplitCount,
-            })
-          : dest.kind === 'people'
-            ? [dest.memberId, ...(ghostMemberIds.current ?? [])]
-            : [dest.memberId];
+      const splitParams: SplitParams = dest.kind === 'existing' && who ? who.params : EQUAL;
+      const participants: readonly string[] =
+        dest.kind === 'existing' && who
+          ? who.participantIds
+          : dest.kind === 'existing'
+            ? resolveVoiceParticipants({
+                all: groupMembers.map((member) => member.id),
+                payer,
+                members: groupMembers.map((member) => ({
+                  id: member.id,
+                  name: displayName(member, viewerId),
+                })),
+                peopleText: voicePeopleText,
+                splitCount: voiceSplitCount,
+              })
+            : dest.kind === 'people'
+              ? [dest.memberId, ...(ghostMemberIds.current ?? [])]
+              : [dest.memberId];
 
       if (participants.length === 0) throw new Error('no members to split among');
 
@@ -1303,16 +1464,17 @@ export default function VoiceScreen() {
         const currency = voiceSaveCurrency(draft.currency, groupCurrency, dc);
         const amount = toMinor(draft.amount, currency);
         if (amount === null) continue;
-        // Every spoken expense is "I paid, split it equally" — everyone in, me
-        // as payer. The reader can refine any of it on
-        // the expense afterwards; this is the sane default, not a guess to hide.
+        // Unless the sentence said otherwise, a spoken expense is "I paid, split
+        // it equally" — everyone in, me as payer; when it named a payer, people
+        // or a split, those are what is written (and what the review showed).
+        // The reader can refine any of it on the expense afterwards.
         // The draft's stable id is the expense id (and the split seed), so a
         // retry appends no duplicate.
         const expenseId = draft.key;
         const shares = computeShares({
           amount,
           currency,
-          params: EQUAL,
+          params: splitParams,
           participants,
           seed: expenseId,
         });
@@ -1326,8 +1488,8 @@ export default function VoiceScreen() {
           expenseDate: date,
           currency,
           amount,
-          splitParams: EQUAL,
-          participants,
+          splitParams,
+          participants: [...participants],
           payers: { [payer]: amount },
           // ShareMap is a Map; the write input wants a plain record.
           expectedShares: Object.fromEntries(shares),
@@ -1369,6 +1531,7 @@ export default function VoiceScreen() {
   const linkReady =
     drafts.length > 0 &&
     !saving &&
+    !whoBlocked &&
     drafts.every((draft) => toMinor(draft.amount, draft.currency ?? dc) !== null);
   // Only into the inbox. Anything can open a `waves://voice?heard=` link, so
   // what a link may write unattended is a draft only the reader sees ("Saved
@@ -1389,6 +1552,7 @@ export default function VoiceScreen() {
   const canSave =
     drafts.length > 0 &&
     !saving &&
+    !whoBlocked &&
     drafts.every((draft) => toMinor(draft.amount, draft.currency ?? dc) !== null);
 
   // The footer total must read in the same currency the Save will persist, or
@@ -1602,12 +1766,51 @@ export default function VoiceScreen() {
               </Text>
             </Pressable>
 
+            {/* A group that was named but is not clearly one of theirs: say so and
+                offer the candidates, instead of filing it somewhere on a guess. */}
+            {groupPending && intent ? (
+              <Callout tone="warning">
+                {intent.groupSource === 'ambiguous'
+                  ? t.voice.whichGroup
+                  : t.voice.noGroupNamed.replace('{name}', intent.groupHint?.name ?? '')}
+              </Callout>
+            ) : null}
+            {groupPending && intent?.groupSource === 'ambiguous' ? (
+              <Row gap={theme.spacing.xs} style={{ flexWrap: 'wrap' }}>
+                {(intent.groupHint?.candidates ?? []).map((candidate) => (
+                  <Pressable
+                    key={candidate.id}
+                    onPress={() => chooseGroup(candidate.id)}
+                    accessibilityRole="button"
+                    style={({ pressed }) => ({
+                      paddingVertical: theme.spacing.xs,
+                      paddingHorizontal: theme.spacing.md,
+                      borderRadius: 999,
+                      borderWidth: 1,
+                      borderColor: theme.color.warning,
+                      opacity: pressed ? 0.6 : 1,
+                    })}
+                  >
+                    <Text variant="caption" style={{ fontWeight: '600' }}>
+                      {candidate.name}
+                    </Text>
+                  </Pressable>
+                ))}
+              </Row>
+            ) : null}
+
             {/* One opinionated destination row: "Save to · <where> · Change",
                 all on one line. No chips, no badges, no tabs out here — the
                 taxonomy of groups and people only appears once the reader taps
                 Change and the picker sheet opens. The answer to "where does
                 this go?" is one line, not a card's worth of it. */}
-            <Card padded={false} style={{ overflow: 'hidden' }}>
+            <Card
+              padded={false}
+              style={{
+                overflow: 'hidden',
+                ...(groupPending ? { borderWidth: 1, borderColor: theme.color.warning } : null),
+              }}
+            >
               <Pressable
                 onPress={() => setPickerOpen(true)}
                 accessibilityRole="button"
@@ -1647,6 +1850,26 @@ export default function VoiceScreen() {
                 </Text>
               </Pressable>
             </Card>
+
+            {/* What was understood about who paid and who shares: one compact card,
+                each line tappable to correct. A name nobody matched shows as a
+                question, never a default, and holds Save until it is answered. */}
+            {who ? (
+              <WhoCard
+                who={who}
+                members={targetMembers}
+                currency={destCurrency ?? dc}
+                onOpen={() => setWhoOpen(true)}
+                t={t}
+                theme={theme}
+              />
+            ) : intent?.hasSocialDetail && dest.kind !== 'existing' && !groupPending ? (
+              <Callout tone={payerElsewhere ? 'warning' : 'info'}>
+                {payerElsewhere
+                  ? t.voice.needGroupForPayer.replace('{name}', intent.payer.name)
+                  : t.voice.needGroupForSplit}
+              </Callout>
+            ) : null}
 
             {/* One place for the whole batch (A43) — read once when the review
                 opens and pinned by default; the reader can clear or move it. It
@@ -1826,6 +2049,10 @@ export default function VoiceScreen() {
               // so drop the once-only latches for the new one.
               groupCreated.current = false;
               ghostMemberIds.current = null;
+              // Their own choice of destination settles a spoken name that was in
+              // doubt, and the payer and people are read afresh for the new group.
+              setGroupChosen(true);
+              setWhoEdit(null);
               // 'create' is the picker naming a row, not a destination: the
               // group id and my member id were minted when the name was
               // heard, and this screen holds them.
@@ -1842,6 +2069,29 @@ export default function VoiceScreen() {
             t={t}
           />
         </ScrollView>
+      </Sheet>
+
+      {/* Correct who paid and who shares — the heard names as members to pick. */}
+      <Sheet
+        visible={whoOpen && who !== null}
+        onClose={() => setWhoOpen(false)}
+        closeLabel={t.common.close}
+        style={{
+          backgroundColor: theme.color.bg,
+          paddingHorizontal: theme.spacing.xl,
+          maxHeight: '80%',
+        }}
+      >
+        {who ? (
+          <WhoSheet
+            who={who}
+            members={targetMembers}
+            onChange={(next) => setWhoEdit((current) => ({ ...current, ...next }))}
+            onClose={() => setWhoOpen(false)}
+            t={t}
+            theme={theme}
+          />
+        ) : null}
       </Sheet>
     </Screen>
   );
@@ -1884,6 +2134,274 @@ function describeDest(
     emoji: group.cover_emoji,
     icon: GROUP_TYPE_ICON[group.type] ?? 'people-outline',
   };
+}
+
+type Strings = ReturnType<typeof useStrings>['t'];
+type ThemeT = ReturnType<typeof useTheme>;
+
+/** A member's name as the review writes it: "You" for the speaker. */
+function whoName(members: readonly VoiceNameCandidate[], id: string, t: Strings): string {
+  const member = members.find((candidate) => candidate.id === id);
+  if (!member) return '';
+  return member.isMe ? t.voice.youLabel : member.name;
+}
+
+/** "Equally · You, Arjun" / "Exact · Arjun 300, Meera 200" / "All on Arjun". */
+function describeSplit(
+  who: WhoView,
+  members: readonly VoiceNameCandidate[],
+  currency: string,
+  t: Strings,
+): string {
+  const names = who.participantIds.map((id) => whoName(members, id, t));
+  const { params } = who;
+  if (params.kind === 'exact') {
+    const scale = Number(minorUnitScale(currency));
+    const parts = who.participantIds.map(
+      (id, index) => `${names[index]} ${Number(params.amounts[id] ?? 0n) / scale}`,
+    );
+    return t.voice.splitExact.replace('{names}', parts.join(', '));
+  }
+  if (params.kind === 'percent') {
+    const parts = who.participantIds.map(
+      (id, index) => `${names[index]} ${(params.basisPoints[id] ?? 0) / 100}%`,
+    );
+    return t.voice.splitPercent.replace('{names}', parts.join(', '));
+  }
+  if (who.intent.splitMode === 'full_on' && !who.edited)
+    return t.voice.splitFullOn.replace('{names}', names.join(', '));
+  if (who.participantIds.length === members.length) return t.voice.splitEveryone;
+  return t.voice.splitEqual.replace('{names}', names.join(', '));
+}
+
+/**
+ * Who paid and how it divides, as understood. Two quiet lines in one card; the
+ * line that is still a question (nobody matched, or a split that does not add
+ * up) turns warning-coloured and says what to do, and Save waits on it.
+ */
+function WhoCard({
+  who,
+  members,
+  currency,
+  onOpen,
+  t,
+  theme,
+}: {
+  who: WhoView;
+  members: readonly VoiceNameCandidate[];
+  currency: string;
+  onOpen: () => void;
+  t: Strings;
+  theme: ThemeT;
+}) {
+  const payerOpen = who.problems.some((problem) => problem.code === 'payer_unresolved');
+  const peopleOpen = who.problems.find((problem) => problem.code === 'participant_unresolved');
+  const invalid = who.problems.some(
+    (problem) =>
+      problem.code === 'exact_sum_mismatch' ||
+      problem.code === 'percent_sum_mismatch' ||
+      problem.code === 'no_participants',
+  );
+  const { payer } = who.intent;
+  const payerName = who.payerId ? whoName(members, who.payerId, t) : '';
+  const heard = payer.explicit && payer.fuzzy && !payerOpen ? payer.name : null;
+  const rowStyle = {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: theme.spacing.sm,
+    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.md,
+  };
+  const warn = theme.color.warning;
+  return (
+    <Card
+      padded={false}
+      style={{
+        overflow: 'hidden',
+        ...(payerOpen || peopleOpen || invalid ? { borderWidth: 1, borderColor: warn } : null),
+      }}
+    >
+      <Pressable
+        onPress={onOpen}
+        accessibilityRole="button"
+        accessibilityLabel={`${t.voice.paidBy}: ${payerOpen ? t.voice.whoPaid : payerName}. ${t.voice.change}`}
+        style={({ pressed }) => ({ ...rowStyle, opacity: pressed ? 0.6 : 1 })}
+      >
+        <Ionicons
+          name={payerOpen ? 'help-circle-outline' : 'wallet-outline'}
+          size={iconSize.sm}
+          color={payerOpen ? warn : theme.color.textMuted}
+        />
+        <View style={{ flex: 1 }}>
+          <Text numberOfLines={1}>
+            <Text tone="muted">{t.voice.paidBy}</Text>
+            <Text tone="faint"> · </Text>
+            <Text style={{ fontWeight: '600', color: payerOpen ? warn : theme.color.text }}>
+              {payerOpen ? `${t.voice.whoPaid} “${payer.name}”` : payerName}
+            </Text>
+          </Text>
+          {heard ? (
+            <Text variant="micro" tone="muted">
+              {t.voice.heardAs.replace('{heard}', heard)}
+            </Text>
+          ) : null}
+        </View>
+        <Text variant="caption" style={{ color: theme.color.brand, fontWeight: '600' }}>
+          {t.voice.change}
+        </Text>
+      </Pressable>
+      <Divider />
+      <Pressable
+        onPress={onOpen}
+        accessibilityRole="button"
+        accessibilityLabel={`${t.voice.splitLabel}. ${t.voice.change}`}
+        style={({ pressed }) => ({ ...rowStyle, opacity: pressed ? 0.6 : 1 })}
+      >
+        <Ionicons
+          name={peopleOpen || invalid ? 'help-circle-outline' : 'git-branch-outline'}
+          size={iconSize.sm}
+          color={peopleOpen || invalid ? warn : theme.color.textMuted}
+        />
+        <View style={{ flex: 1 }}>
+          <Text numberOfLines={2}>
+            <Text tone="muted">{t.voice.splitLabel}</Text>
+            <Text tone="faint"> · </Text>
+            <Text style={{ fontWeight: '600' }}>{describeSplit(who, members, currency, t)}</Text>
+          </Text>
+          {peopleOpen && peopleOpen.code === 'participant_unresolved' ? (
+            <Text variant="micro" style={{ color: warn }}>
+              {t.voice.whoUnknown.replace('{name}', peopleOpen.name)}
+            </Text>
+          ) : invalid ? (
+            <Text variant="micro" style={{ color: warn }}>
+              {t.voice.splitInvalid}
+            </Text>
+          ) : null}
+        </View>
+        <Text variant="caption" style={{ color: theme.color.brand, fontWeight: '600' }}>
+          {t.voice.change}
+        </Text>
+      </Pressable>
+    </Card>
+  );
+}
+
+/** Pick the payer and who shares from the group's own members. */
+function WhoSheet({
+  who,
+  members,
+  onChange,
+  onClose,
+  t,
+  theme,
+}: {
+  who: WhoView;
+  members: readonly VoiceNameCandidate[];
+  onChange: (next: WhoEdit) => void;
+  onClose: () => void;
+  t: Strings;
+  theme: ThemeT;
+}) {
+  const unknown = who.problems.find((problem) => problem.code === 'participant_unresolved');
+  const payerUnknown = who.problems.some((problem) => problem.code === 'payer_unresolved');
+  const toggle = (id: string): void => {
+    const next = who.participantIds.includes(id)
+      ? who.participantIds.filter((other) => other !== id)
+      : [...who.participantIds, id];
+    onChange({ participantIds: next });
+  };
+  const row = (
+    id: string,
+    label: string,
+    on: boolean,
+    kind: 'radio' | 'check',
+    press: () => void,
+  ) => (
+    <Pressable
+      key={`${kind}-${id}`}
+      onPress={press}
+      accessibilityRole={kind === 'radio' ? 'radio' : 'checkbox'}
+      accessibilityState={{ selected: on, checked: on }}
+      style={({ pressed }) => ({
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.sm,
+        paddingVertical: theme.spacing.sm,
+        opacity: pressed ? 0.6 : 1,
+      })}
+    >
+      <Ionicons
+        name={
+          kind === 'radio'
+            ? on
+              ? 'radio-button-on'
+              : 'radio-button-off'
+            : on
+              ? 'checkbox'
+              : 'square-outline'
+        }
+        size={iconSize.md}
+        color={on ? theme.color.brand : theme.color.textMuted}
+      />
+      <Text style={{ flex: 1 }}>{label}</Text>
+    </Pressable>
+  );
+  return (
+    <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+      <View style={{ gap: theme.spacing.xs, paddingBottom: theme.spacing.lg }}>
+        <Text variant="heading">{t.voice.whoTitle}</Text>
+        <Text
+          variant="micro"
+          tone="muted"
+          style={{ textTransform: 'uppercase', marginTop: theme.spacing.sm }}
+        >
+          {t.voice.whoPaidSection}
+        </Text>
+        {payerUnknown ? (
+          <Text variant="caption" style={{ color: theme.color.warning }}>
+            {t.voice.whoUnknown.replace('{name}', who.intent.payer.name)}
+          </Text>
+        ) : null}
+        {members.map((member) =>
+          row(
+            member.id,
+            member.isMe ? t.voice.youLabel : member.name,
+            who.payerId === member.id,
+            'radio',
+            () => onChange({ payerId: member.id }),
+          ),
+        )}
+        <Divider />
+        <Text
+          variant="micro"
+          tone="muted"
+          style={{ textTransform: 'uppercase', marginTop: theme.spacing.sm }}
+        >
+          {t.voice.whoSharesSection}
+        </Text>
+        {unknown && unknown.code === 'participant_unresolved' ? (
+          <Text variant="caption" style={{ color: theme.color.warning }}>
+            {t.voice.whoUnknown.replace('{name}', unknown.name)}
+          </Text>
+        ) : null}
+        {members.map((member) =>
+          row(
+            member.id,
+            member.isMe ? t.voice.youLabel : member.name,
+            who.participantIds.includes(member.id),
+            'check',
+            () => toggle(member.id),
+          ),
+        )}
+        {who.params.kind !== 'equal' ? (
+          <Text variant="micro" tone="muted">
+            {t.voice.whoResets}
+          </Text>
+        ) : null}
+        <Button label={t.common.done} onPress={onClose} />
+      </View>
+    </ScrollView>
+  );
 }
 
 /**

@@ -808,7 +808,14 @@ describe('parseVoiceExpenses (several in one breath)', () => {
       '800 rupees dinner on Goa trip split with Ravi and Priya',
       groups,
     );
-    expect(result.peopleText).toBe('800 rupees dinner on Goa trip split with Ravi and Priya');
+    // The people now travel in the intent, resolved against the group's members
+    // on the review; the old free-text clause is left empty for sentences it read.
+    expect(result.peopleText).toBeNull();
+    expect(result.intent?.participants?.map((person) => person.name)).toEqual([
+      'me',
+      'ravi',
+      'priya',
+    ]);
     expect(result.items[0].note).toBe('dinner');
   });
 
@@ -879,15 +886,13 @@ describe('parseVoiceExpenses (several in one breath)', () => {
     expect(result.items[0].note).toBe('dinner');
   });
 
-  it('does not create items from unsupported negative, repayment, refund, or third-party payer intents', () => {
+  it('does not create items from unsupported negative, repayment, or refund intents', () => {
     for (const sentence of [
       "don't add 500 rupees for dinner",
       'don’t add 500 rupees for dinner',
       'delete 500 rupees dinner',
       'refund 200 rupees hotel',
       'Ravi paid me back 500 rupees',
-      'Ravi paid 500 rupees for dinner',
-      'Priya paid twenty dollars for cab',
       'I did not pay 500 rupees for dinner',
       "I didn't pay 500 rupees for dinner",
       'I didn’t pay 500 rupees for dinner',
@@ -900,6 +905,24 @@ describe('parseVoiceExpenses (several in one breath)', () => {
       expect(parseVoiceExpenses(sentence, groups).items, sentence).toEqual([]);
     }
     expect(parseVoiceExpenses('I paid 500 rupees for dinner', groups).items).toHaveLength(1);
+  });
+
+  it('reads a third-party payer into the intent instead of booking it as mine', () => {
+    for (const [sentence, payer] of [
+      ['Ravi paid 500 rupees for dinner', 'ravi'],
+      ['Priya paid twenty dollars for cab', 'priya'],
+    ] as const) {
+      const result = parseVoiceExpenses(sentence, groups);
+      expect(result.items, sentence).toHaveLength(1);
+      expect(result.intent?.payer, sentence).toMatchObject({
+        kind: 'member',
+        name: payer,
+        explicit: true,
+        status: 'unresolved',
+      });
+      // Never acted on without a look: someone else paying is a decision to confirm.
+      expect(voiceAutoAction(result), sentence).toBeNull();
+    }
   });
 
   it('keeps safe expenses while skipping unsupported neighbouring clauses', () => {
@@ -1288,7 +1311,7 @@ describe('voiceAutoAction', () => {
       'add 800 rupees dinner to the latest group split with Ravi',
       groups,
     );
-    expect(result.peopleText).toContain('Ravi');
+    expect(result.intent?.participants?.map((person) => person.name)).toContain('ravi');
     expect(voiceAutoAction(result)).toBeNull();
   });
 

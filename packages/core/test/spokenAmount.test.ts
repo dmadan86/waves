@@ -39,6 +39,9 @@ describe('foldSpokenPriceIdiom', () => {
 
   const untouched = [
     '5 10', // two numbers, not 510
+    'split 500 60 40', // a percentage split, not 6040
+    'split 500 sixty forty',
+    'split 800 70 30 with arjun',
     '5 rupees snacks 10 rupees tea',
     'three fifteen', // reads as a time as often as a price
     'meeting at three fifty',
