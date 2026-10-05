@@ -186,7 +186,6 @@ export default function ContactsScreen(): React.JSX.Element {
     return (
       <ContactPickerScene
         onConfirm={setPicked}
-        confirmVerb={t.misc.continueWith}
         known={known}
         subtitle={outcome}
         // The person who is not in the address book at all. Waves already has a

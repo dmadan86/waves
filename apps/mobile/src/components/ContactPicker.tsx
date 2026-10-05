@@ -86,8 +86,6 @@ interface ContactPickerProps {
   /** Already chosen elsewhere on the screen — opens ticked and in the strip, so
    *  the picker reflects who is already selected rather than starting blank. */
   initialSelected?: readonly PickedContact[];
-  /** The verb on the confirm button. The count and noun are added here. */
-  confirmVerb?: string;
   /** Disables confirming while the caller is still writing the last lot away. */
   busy?: boolean;
   /**
@@ -117,10 +115,9 @@ interface ContactPickerProps {
    * button folded into one bar at the foot instead of a strip above the list
    * and a plain button below it.
    *
-   * Every other caller — Friends, a group's members, the merge screen — omits
-   * this and keeps the picker it already had; the two dresses share every
-   * behaviour (search, the recent section, the escape row) and differ only in
-   * how a row and the foot are drawn.
+   * Picking several people always uses this dress (via `ContactPickerScene`).
+   * The plain dress is left only for single-pick callers — adding one person,
+   * the merge screen — which confirm on the tap and draw no foot at all.
    */
   compact?: boolean;
 }
@@ -227,7 +224,6 @@ export function ContactPicker({
   onConfirm,
   existing,
   initialSelected,
-  confirmVerb,
   busy = false,
   single = false,
   known,
@@ -596,12 +592,6 @@ export function ContactPicker({
         </Callout>
       ) : null}
 
-      {/* Compact folds the strip into the bottom bar instead, beside the
-          confirm button — see below. */}
-      {!single && !compact && chosen.length > 0 ? (
-        <PickedStrip chosen={chosen} onRemove={toggle} />
-      ) : null}
-
       {filtered.length === 0 ? (
         <EmptyState
           icon={
@@ -706,10 +696,10 @@ export function ContactPicker({
       )}
 
       {/* Single-pick confirms on the tap itself, so there is no set to send
-          and nothing more to draw here. Otherwise the compact screen folds
-          the strip, the confirm button and the lock line into one bar; every
-          other caller keeps the plain button it always had. */}
-      {single ? null : compact ? (
+          and nothing more to draw here. Picking several always goes through
+          the compact screen (`ContactPickerScene`), whose bar folds the
+          strip, the confirm button and the lock line into one. */}
+      {single ? null : (
         <CompactConfirmBar
           chosen={chosen}
           onRemove={toggle}
@@ -717,17 +707,6 @@ export function ContactPicker({
           onConfirm={() => onConfirm(chosen)}
           busy={busy}
           locale={locale}
-        />
-      ) : (
-        <Button
-          label={
-            chosen.length === 0
-              ? t.pickers.nobodyPickedYet
-              : `${confirmVerb ?? t.add} ${plural(locale, chosen.length, t.pickers.personCount)}`
-          }
-          fullWidth
-          disabled={chosen.length === 0 || busy}
-          onPress={() => onConfirm(chosen)}
         />
       )}
     </View>
