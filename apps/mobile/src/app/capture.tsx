@@ -369,6 +369,7 @@ export default function CaptureScreen() {
   // destination.
   const {
     scan,
+    gallery,
     editId,
     amount: amountParam,
     desc: descParam,
@@ -385,6 +386,8 @@ export default function CaptureScreen() {
     parsed: parsedParam,
   } = useLocalSearchParams<{
     scan?: string;
+    /** Nonce: open the photo library straight away (the home widget's Photo tile). */
+    gallery?: string;
     editId?: string;
     amount?: string;
     desc?: string;
@@ -474,8 +477,9 @@ export default function CaptureScreen() {
   // the form is not what the person asked for, the camera is. Seeded false on a
   // remount whose nonce is already consumed (Android recreates the screen when
   // it returns from the native camera) so the form is not blocked a second time.
+  const entryNonce = scan ?? (gallery ? `g${gallery}` : undefined);
   const [awaitingScan, setAwaitingScan] = useState<boolean>(() =>
-    scan ? !consumedScans.has(scan) : false,
+    entryNonce ? !consumedScans.has(entryNonce) : false,
   );
 
   // How it was paid and which group it is bound for — both tags that ride the
@@ -605,16 +609,16 @@ export default function CaptureScreen() {
   // what makes it exactly once even across the remount Android forces when it
   // returns from the native camera (see the set's own note).
   useEffect(() => {
-    if (scan && !consumedScans.has(scan)) {
-      consumedScans.add(scan);
+    if (entryNonce && !consumedScans.has(entryNonce)) {
+      consumedScans.add(entryNonce);
       // Deferred a microtask so the state addReceipt sets on entry does not run
       // synchronously inside the effect body — the same async-callback shape the
       // other effects here use. The camera still opens effectively at once.
-      void Promise.resolve().then(() => addReceipt({ scanEntry: true }));
+      void Promise.resolve().then(() => addReceipt({ scanEntry: true, fromLibrary: !scan }));
     }
     // addReceipt is stable enough for a one-shot; deps intentionally minimal.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scan]);
+  }, [entryNonce]);
 
   const submit = async (): Promise<void> => {
     setError(null);
