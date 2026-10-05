@@ -17,7 +17,8 @@
 import { useEffect, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, ScrollView, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import PagerView from 'react-native-pager-view';
 
 import { Gradient, iconSize, Row, Sheet, Text, useTheme } from '@waves/ui';
 
@@ -96,19 +97,16 @@ export function TipSheet() {
 
   const close = () => setClosed(true);
   const tip: Tip | undefined = tips[Math.min(page, tips.length - 1)];
-  const pager = useRef<ScrollView>(null);
+  const pager = useRef<PagerView>(null);
+  // The tallest tip, measured off its own content: a native pager needs a
+  // height up front, and the tips are not all the same length.
+  const [pageHeight, setPageHeight] = useState(0);
   const last = page >= tips.length - 1;
   /** Turn to a tip by tapping, the same place a swipe would land. */
   const goTo = (index: number) => {
     const next = Math.max(0, Math.min(index, tips.length - 1));
     setPage(next);
-    pager.current?.scrollTo({ x: next * pageWidth, animated: true });
-  };
-  /** The dot follows the finger: whichever tip is more than half in view. */
-  const onScroll = (x: number) => {
-    if (pageWidth <= 0) return;
-    const next = Math.max(0, Math.min(tips.length - 1, Math.round(x / pageWidth)));
-    if (next !== page) setPage(next);
+    pager.current?.setPage(next);
   };
   const act = () => {
     if (tip?.route) {
@@ -142,28 +140,30 @@ export function TipSheet() {
             onLayout={(event) => setPageWidth(event.nativeEvent.layout.width)}
           >
             {pageWidth > 0 ? (
-              <ScrollView
+              // The platform's own pager (ViewPager2 / UIPageViewController),
+              // not a horizontal ScrollView: inside the sheet's Modal and its
+              // Pressable card a JS-side scroll had to win the gesture first,
+              // and a swipe that started a little diagonal never turned the tip.
+              <PagerView
                 ref={pager}
-                horizontal
-                nestedScrollEnabled
-                showsHorizontalScrollIndicator={false}
-                // One tip per swipe, snapped with a short, decisive settle.
-                // `pagingEnabled` on Android is a fling and then a separate
-                // snap, which is what read as sluggish; snapping to the page
-                // width with fast deceleration lands in one motion, and
-                // `disableIntervalMomentum` stops a hard flick skipping tips.
-                snapToInterval={pageWidth}
-                snapToAlignment="start"
-                decelerationRate="fast"
-                disableIntervalMomentum
-                overScrollMode="never"
-                scrollEventThrottle={16}
-                onScroll={(event) => onScroll(event.nativeEvent.contentOffset.x)}
+                style={{ width: pageWidth, height: Math.max(pageHeight, 1) }}
+                initialPage={0}
+                overdrag={false}
+                onPageSelected={(event) => setPage(event.nativeEvent.position)}
               >
                 {tips.map((entry) => (
-                  <TipPage key={entry.id} tip={entry} width={pageWidth} label={t.tips.label} />
+                  <View key={entry.id} collapsable={false}>
+                    <View
+                      onLayout={(event) => {
+                        const h = Math.ceil(event.nativeEvent.layout.height);
+                        setPageHeight((current) => (h > current ? h : current));
+                      }}
+                    >
+                      <TipPage tip={entry} width={pageWidth} label={t.tips.label} />
+                    </View>
+                  </View>
                 ))}
-              </ScrollView>
+              </PagerView>
             ) : null}
             <Pressable
               accessibilityRole="button"
