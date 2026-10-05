@@ -62,7 +62,7 @@ import {
 } from '@waves/core';
 
 import { isCrossCheckComparable } from '@/data/crossCheck';
-import { DEMO_GROUP_ID, isDemoGroupId } from '@/demo/ids';
+import { DEMO_GROUP_ID, isDemoGroupId, isDemoId } from '@/demo/ids';
 import { DemoWriteBlockedError } from '@/demo/guard';
 import { requestDemoGate } from '@/demo/gateStore';
 import { useDemoActive } from '@/demo/useDemoActive';
@@ -1483,7 +1483,8 @@ export function useGroupRealtime(groupId: string): void {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    if (!groupId) return;
+    // The demo group has no server rows to watch.
+    if (!groupId || isDemoGroupId(groupId)) return;
 
     const channel = backend
       .channel(`group:${groupId}:${++realtimeChannelSeq}`)
@@ -2001,7 +2002,8 @@ export function useExpenseVersions(expenseId: string) {
   return useQuery({
     queryKey: ['expense', expenseId, 'versions'],
     queryFn: () => fetchExpenseVersions(expenseId),
-    enabled: Boolean(expenseId),
+    // A demo expense has no server history, and its id is not a UUID.
+    enabled: Boolean(expenseId) && !isDemoId(expenseId),
   });
 }
 
@@ -2716,7 +2718,7 @@ export function useMemberClaims(groupId: string) {
   return useQuery({
     queryKey: keys.memberClaims(groupId),
     queryFn: () => fetchMemberClaims(groupId),
-    enabled: groupId !== '',
+    enabled: groupId !== '' && !isDemoGroupId(groupId),
   });
 }
 
@@ -2816,7 +2818,7 @@ export function useOpenReceipts(groupId: string) {
   return useQuery({
     queryKey: ['open-receipts', groupId],
     queryFn: () => fetchOpenReceipts(groupId),
-    enabled: groupId !== '',
+    enabled: groupId !== '' && !isDemoGroupId(groupId),
   });
 }
 
