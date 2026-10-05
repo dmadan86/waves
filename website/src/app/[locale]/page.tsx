@@ -117,9 +117,9 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         <Hero t={t.hero} banner={t.banner} appUrl={site.appUrl} />
         <Custody t={t.custody} />
         <Features t={t.features} visuals={t.visuals} />
-        <Currencies t={t.currencies} rows={currencyRows(locale)} />
         <HowItWorks t={t.how} />
         <Audience t={t.audience} />
+        <Currencies t={t.currencies} rows={currencyRows(locale)} />
         <PrivacySection t={t.privacy} />
         {/* Between "here is what we hold" and "here is what it costs" — the
             visitor has the product in their head by now and the next honest
