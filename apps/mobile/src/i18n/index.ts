@@ -387,6 +387,10 @@ export interface UiStrings {
     upcomingPaymentsTitle: string;
     /** A deposit's balance with no due date typed yet. */
     dueWhenever: string;
+    /** Details row for a deposit: what has been paid so far (the expense amount). */
+    advancePaid: string;
+    /** Details row value: the balance and when it is due; {amount}, {date}. */
+    balanceDueValue: string;
     overdueCount: PluralForms;
   };
   /** Display labels for a template's sub-event ids (`@waves/core`'s
@@ -4539,6 +4543,8 @@ const en: UiStrings = {
     budgetTitle: 'Event budget',
     upcomingPaymentsTitle: 'Upcoming payments',
     dueWhenever: 'Due date not set',
+    advancePaid: 'Advance paid',
+    balanceDueValue: '{amount} · due {date}',
     overdueCount: { one: '{n} overdue', other: '{n} overdue' },
   },
   eventSubEvents: {
@@ -8044,6 +8050,8 @@ const ta: UiStrings = {
     budgetTitle: 'நிகழ்வு பட்ஜெட்',
     upcomingPaymentsTitle: 'வரவிருக்கும் பணம் செலுத்துதல்கள்',
     dueWhenever: 'தேதி குறிப்பிடப்படவில்லை',
+    advancePaid: 'செலுத்திய முன்பணம்',
+    balanceDueValue: '{amount} · {date} அன்று செலுத்த வேண்டும்',
     overdueCount: { one: '{n} தாமதமானது', other: '{n} தாமதமானவை' },
   },
   eventSubEvents: {
@@ -11690,6 +11698,8 @@ const hi: UiStrings = {
     budgetTitle: 'इवेंट बजट',
     upcomingPaymentsTitle: 'आने वाले भुगतान',
     dueWhenever: 'देय तिथि तय नहीं',
+    advancePaid: 'अग्रिम भुगतान',
+    balanceDueValue: '{amount} · देय {date}',
     overdueCount: { one: '{n} बकाया', other: '{n} बकाया' },
   },
   eventSubEvents: {
@@ -15219,6 +15229,8 @@ const ar: UiStrings = {
     budgetTitle: 'ميزانية المناسبة',
     upcomingPaymentsTitle: 'الدفعات القادمة',
     dueWhenever: 'لم يُحدَّد تاريخ الاستحقاق',
+    advancePaid: 'الدفعة المقدّمة',
+    balanceDueValue: '{amount} · مستحق في {date}',
     overdueCount: {
       zero: 'لا دفعات متأخرة',
       one: 'دفعة واحدة متأخرة',
