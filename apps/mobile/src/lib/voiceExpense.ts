@@ -19,6 +19,7 @@ import {
   isCurrencyCode,
   minorUnitScale,
   normaliseDigits,
+  normaliseSpokenAmounts,
   type CategoryId,
 } from '@waves/core';
 
@@ -747,15 +748,69 @@ export function matchMemberNames(
   text: string,
   members: readonly { id: string; name: string }[],
 ): string[] {
-  const heard = new Set(tokenize(text));
-  const ids: string[] = [];
-  for (const member of members) {
-    const nameTokens = tokenize(member.name).filter(
-      (token) => token.length >= 2 && !STOPWORDS.has(token),
-    );
-    if (nameTokens.some((token) => heard.has(token))) ids.push(member.id);
+  const heardTokens = tokenize(text);
+  const heard = new Set(heardTokens);
+  const memberTokens = members.map((member) => ({
+    id: member.id,
+    tokens: tokenize(member.name).filter((token) => token.length >= 2 && !STOPWORDS.has(token)),
+  }));
+  const ids = new Set<string>();
+  for (const member of memberTokens) {
+    if (member.tokens.some((token) => heard.has(token))) ids.add(member.id);
   }
-  return ids;
+
+  // Speech recognisers spell names the way they sound — "Pria" for Priya,
+  // "Arrun" for Arun. A word that matched nobody exactly may still be a
+  // near-miss of exactly one member's name; it counts only when it is
+  // unambiguous, so a near-miss of two people never picks one for you.
+  const exactNames = new Set(memberTokens.flatMap((member) => member.tokens));
+  for (const word of heardTokens) {
+    if (word.length < 3 || exactNames.has(word) || STOPWORDS.has(word) || /^\d/.test(word))
+      continue;
+    const candidates = memberTokens.filter((member) =>
+      member.tokens.some((token) => namesSoundAlike(word, token)),
+    );
+    if (candidates.length === 1) ids.add(candidates[0].id);
+  }
+  return [...ids];
+}
+
+/** A rough sound key: enough to equate "Priya"/"Pria", "Sumit"/"Sumeet", "Arun"/"Arrun". */
+function phoneticKey(word: string): string {
+  return word
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/ph/g, 'f')
+    .replace(/w/g, 'v')
+    .replace(/(?<=[a-z])h/g, '')
+    .replace(/ee|ea|ie|y/g, 'i')
+    .replace(/oo/g, 'u')
+    .replace(/ck|c(?=[aou])|q/g, 'k')
+    .replace(/(.)\1+/g, '$1')
+    .replace(/(?<=.)[aeiou]/g, 'a');
+}
+
+/** Edit distance of at most one (insert, delete, substitute, or swap). */
+function withinOneEdit(a: string, b: string): boolean {
+  if (a === b) return true;
+  if (Math.abs(a.length - b.length) > 1) return false;
+  let i = 0;
+  while (i < a.length && i < b.length && a[i] === b[i]) i += 1;
+  if (a.length === b.length) {
+    if (a.slice(i + 1) === b.slice(i + 1)) return true;
+    return a[i] === b[i + 1] && a[i + 1] === b[i] && a.slice(i + 2) === b.slice(i + 2);
+  }
+  const [long, short] = a.length > b.length ? [a, b] : [b, a];
+  return long.slice(i + 1) === short.slice(i);
+}
+
+function namesSoundAlike(heard: string, name: string): boolean {
+  if (heard === name) return true;
+  if (Math.min(heard.length, name.length) < 4) return false;
+  if (Math.min(heard.length, name.length) >= 5 && withinOneEdit(heard, name)) return true;
+  const key = phoneticKey(heard);
+  return key.length >= 3 && key === phoneticKey(name);
 }
 
 /**
@@ -813,11 +868,53 @@ function addDays(date: Date, days: number): Date {
   return next;
 }
 
+const DAY_COUNT_WORDS: Record<string, number> = {
+  one: 1,
+  two: 2,
+  three: 3,
+  four: 4,
+  five: 5,
+  six: 6,
+  seven: 7,
+};
+const WEEKDAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+const WEEKDAY_PHRASE = new RegExp(`\\b(?:last|on|this\\s+past)\\s+(${WEEKDAYS.join('|')})\\b`, 'i');
+const ORDINAL_DAY_PHRASE = /\b(?:on\s+)?(?:the\s+)?(\d{1,2})(?:st|nd|rd|th)\b/i;
+
 export function parseVoiceExpenseDate(text: string, now: Date = new Date()): string | null {
   if (/\bday\s+before\s+yesterday\b/i.test(text)) return localIsoDate(addDays(now, -2));
   if (/\byesterday\b/i.test(text)) return localIsoDate(addDays(now, -1));
   if (/\btomorrow\b/i.test(text)) return localIsoDate(addDays(now, 1));
   if (/\btoday\b/i.test(text)) return localIsoDate(now);
+
+  const ago = text.match(
+    new RegExp(`\\b(\\d{1,2}|${Object.keys(DAY_COUNT_WORDS).join('|')})\\s+days?\\s+ago\\b`, 'i'),
+  );
+  if (ago) {
+    const count = /^\d/.test(ago[1]) ? Number(ago[1]) : DAY_COUNT_WORDS[ago[1].toLowerCase()];
+    return localIsoDate(addDays(now, -count));
+  }
+
+  // "last Friday" / "on Friday": the most recent such day before today — an
+  // expense is something that already happened.
+  const weekday = text.match(WEEKDAY_PHRASE);
+  if (weekday) {
+    const target = WEEKDAYS.indexOf(weekday[1].toLowerCase());
+    const back = (now.getDay() - target + 7) % 7 || 7;
+    return localIsoDate(addDays(now, -back));
+  }
+
+  // "on the 5th": that day of this month, or last month if it is still ahead.
+  const ordinal = text.match(ORDINAL_DAY_PHRASE);
+  if (ordinal) {
+    const day = Number(ordinal[1]);
+    if (day >= 1 && day <= 31) {
+      const monthOffset = day > now.getDate() ? -1 : 0;
+      const date = new Date(now.getFullYear(), now.getMonth() + monthOffset, day);
+      if (date.getDate() === day) return localIsoDate(date);
+    }
+    return null;
+  }
 
   const iso = text.match(/\b(?:on\s+)?(\d{4})-(\d{1,2})-(\d{1,2})\b/);
   if (!iso) return null;
@@ -836,6 +933,15 @@ function stripDatePhrases(text: string): string {
     .replace(/\b(?:on\s+)?\d{4}-\d{1,2}-\d{1,2}\b/gi, ' ')
     .replace(/\bday\s+before\s+yesterday\b/gi, ' ')
     .replace(/\b(?:today|yesterday|tomorrow)\b/gi, ' ')
+    .replace(
+      new RegExp(
+        `\\b(?:\\d{1,2}|${Object.keys(DAY_COUNT_WORDS).join('|')})\\s+days?\\s+ago\\b`,
+        'gi',
+      ),
+      ' ',
+    )
+    .replace(new RegExp(`\\b(?:last|on|this\\s+past)\\s+(?:${WEEKDAYS.join('|')})\\b`, 'gi'), ' ')
+    .replace(/\b(?:on\s+)?(?:the\s+)?\d{1,2}(?:st|nd|rd|th)\b/gi, ' ')
     .replace(/[ \t]{2,}/g, ' ')
     .trim();
 }
@@ -1297,7 +1403,12 @@ function normalizeLocalizedVoiceWords(text: string): string {
 }
 
 function normalizeVoiceInput(text: string): string {
-  return normalizeLocalizedVoiceWords(normalizeCurrencyPrefixes(normalizeDigits(text)));
+  // The price idiom ("three fifty", "three 50", "3 50" = 350) and "2k" shorthand
+  // are folded here, before the number-word reader sums "three fifty" into 53 or
+  // the amount patterns see "3" and "50" as two expenses.
+  return normaliseSpokenAmounts(
+    normalizeLocalizedVoiceWords(normalizeCurrencyPrefixes(normalizeDigits(text))),
+  );
 }
 
 /** Words for numbers, and the Indian/Western multipliers that scale them. */
