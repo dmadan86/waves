@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { createSignedUrlCache, signedUrlKey } from '../src/lib/signedUrlCache';
+import {
+  SIGNED_URL_ABSENT,
+  createSignedUrlCache,
+  signedUrlKey,
+  type MintResult,
+} from '../src/lib/signedUrlCache';
 
 const MIN = 60 * 1000;
 
@@ -118,6 +123,57 @@ describe('signed URL cache', () => {
     await cache.get('a', mint);
     await cache.get('b', mint);
     expect(mint).toHaveBeenCalledTimes(4);
+  });
+});
+
+describe('a definite "no such object"', () => {
+  function absentSetup() {
+    let clock = 0;
+    const cache = createSignedUrlCache({
+      freshForMs: 45 * MIN,
+      absentForMs: 10 * MIN,
+      now: () => clock,
+    });
+    const mint = vi.fn(async (): Promise<MintResult> => SIGNED_URL_ABSENT);
+    return { cache, mint, advance: (ms: number) => (clock += ms) };
+  }
+
+  it('is served as null without asking again, until the backoff passes', async () => {
+    const { cache, mint, advance } = absentSetup();
+    expect(await cache.get('receipts|g/e.jpg', mint)).toBeNull();
+    expect(await cache.get('receipts|g/e.jpg', mint)).toBeNull();
+    expect(mint).toHaveBeenCalledTimes(1);
+    advance(11 * MIN);
+    await cache.get('receipts|g/e.jpg', mint);
+    expect(mint).toHaveBeenCalledTimes(2);
+  });
+
+  it('is forgotten on invalidate, so a fresh upload shows at once', async () => {
+    const { cache, mint } = absentSetup();
+    await cache.get('k', mint);
+    cache.invalidate('k');
+    await cache.get('k', mint);
+    expect(mint).toHaveBeenCalledTimes(2);
+  });
+
+  it('is not stored when the object changed while the request was out', async () => {
+    const { cache } = absentSetup();
+    const slow = deferred();
+    const first = cache.get('k', () => slow.promise);
+    cache.invalidate('k');
+    slow.resolve(SIGNED_URL_ABSENT as unknown as string);
+    await first;
+    const mint = vi.fn(async () => 'https://img/new');
+    expect(await cache.get('k', mint)).toBe('https://img/new');
+  });
+
+  it('is not kept at all when no backoff is configured', async () => {
+    const { cache, mint } = setup();
+    const absent = vi.fn(async (): Promise<MintResult> => SIGNED_URL_ABSENT);
+    await cache.get('k', absent);
+    await cache.get('k', absent);
+    expect(absent).toHaveBeenCalledTimes(2);
+    expect(mint).not.toHaveBeenCalled();
   });
 });
 

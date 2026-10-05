@@ -19,7 +19,7 @@
 import { decode } from 'base64-arraybuffer';
 
 import { backend } from '@/lib/backend';
-import { signedUrlKey, signedUrls } from '@/lib/signedUrlCache';
+import { SIGNED_URL_ABSENT, signedUrlKey, signedUrls, type MintResult } from '@/lib/signedUrlCache';
 
 /** The four private buckets. Values match the R2 namespace and the old bucket. */
 export type LogicalBucket =
@@ -63,6 +63,14 @@ export class NotUploaderError extends Error {
   }
 }
 
+/** `r2-sign` answered 404 NOT_FOUND: the object does not exist (yet). */
+export class ObjectNotFoundError extends Error {
+  constructor(message = 'No such object') {
+    super(message);
+    this.name = 'ObjectNotFoundError';
+  }
+}
+
 export function r2Enabled(): boolean {
   return process.env.EXPO_PUBLIC_R2_ENABLED === 'true';
 }
@@ -80,6 +88,7 @@ async function asStorageError(error: unknown): Promise<Error> {
     try {
       const parsed = (await context.clone().json()) as { code?: string; message?: string };
       if (parsed.code === 'STORAGE_CAP') return new StorageCapError(parsed.message);
+      if (parsed.code === 'NOT_FOUND') return new ObjectNotFoundError(parsed.message);
       if (parsed.code === 'NOT_UPLOADER') return new NotUploaderError(parsed.message);
       if (parsed.message) return new Error(parsed.message);
     } catch {
@@ -248,7 +257,7 @@ export async function imageUrl(bucket: LogicalBucket, path: string | null): Prom
   return signedUrls.get(signedUrlKey(bucket, path), () => mintImageUrl(bucket, path));
 }
 
-async function mintImageUrl(bucket: LogicalBucket, path: string): Promise<string | null> {
+async function mintImageUrl(bucket: LogicalBucket, path: string): Promise<MintResult> {
   if (!r2Enabled()) {
     const { data, error } = await backend.storage
       .from(bucket)
@@ -260,8 +269,10 @@ async function mintImageUrl(bucket: LogicalBucket, path: string): Promise<string
   try {
     const { url } = await signCall({ action: 'get', bucket, path });
     return url ?? null;
-  } catch {
-    return null;
+  } catch (caught) {
+    // A 404 is an answer, not a hiccup: remember it so the next focus does not
+    // ask again. Anything else (offline, 5xx) stays uncached and retries.
+    return caught instanceof ObjectNotFoundError ? SIGNED_URL_ABSENT : null;
   }
 }
 
