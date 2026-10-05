@@ -47,6 +47,7 @@ import { useRemoveDemo } from '@/demo/useRemoveDemo';
 import { sendNudge, useNudge } from '@/lib/nudge';
 import { expenseTitle } from '@/data/expenseTitle';
 import { personKeyOf } from '@/data/peopleBalances';
+import { GroupNotFound } from '@/components/GroupNotFound';
 import { GroupSkeleton } from '@/components/Skeletons';
 import {
   balanceDirection,
@@ -74,7 +75,7 @@ import { fill, plural, useStrings } from '@/i18n';
 import { convertedTotal } from '@/lib/expenseConversion';
 import { useViewerId } from '@/lib/auth';
 import { canRemindFromBalanceRow } from '@/lib/balanceRowActions';
-import { router, useGoBack } from '@/lib/navigation';
+import { router } from '@/lib/navigation';
 import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
 
 import { CategoryBadge } from '@/components/Category';
@@ -460,7 +461,6 @@ const ExpenseFeedRow = memo(function ExpenseFeedRow({
 
 export default function GroupScreen() {
   const theme = useTheme();
-  const goBack = useGoBack('/');
   // The root bar is over this screen, so the room starts from the bar's own
   // clearance rather than the bare system inset. The extra 36 has no cause
   // anywhere in this file — there is no floating action and no pinned footer
@@ -685,79 +685,7 @@ export default function GroupScreen() {
   }
 
   if (group.isError || !group.data) {
-    // A group can vanish for ordinary reasons — archived, left, a link that has
-    // gone stale — so this is a place to step back from, not a crash. It wears
-    // the shape the category's own not-found screens use: an escape at the top,
-    // a soft-tinted tile so the state looks like the app rather than a failure,
-    // and the one way out as a full-width bar under the thumb rather than a pill
-    // adrift in the middle of the page.
-    return (
-      <Screen edges={['top', 'bottom']}>
-        <View style={{ flex: 1, paddingHorizontal: theme.spacing.xl }}>
-          <Row style={{ paddingTop: theme.spacing.md }}>
-            {/* Never a dead control: a cold open from a notification or a stale
-                invite link has no history to pop, so the chevron falls back to
-                home rather than silently doing nothing. */}
-            <Pressable
-              onPress={goBack}
-              accessibilityRole="button"
-              accessibilityLabel={t.common.back}
-              hitSlop={10}
-            >
-              <Ionicons
-                name={directionalIcon('chevron-back')}
-                size={iconSize.xxl}
-                color={theme.color.text}
-              />
-            </Pressable>
-          </Row>
-
-          <View
-            style={{
-              flex: 1,
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: theme.spacing.md,
-            }}
-          >
-            {/* Decorative: the title carries the meaning. A tile the size of a
-                group cover, in the soft brand tint the app uses for its empty
-                states. */}
-            <View
-              accessibilityElementsHidden
-              importantForAccessibility="no"
-              style={{
-                width: 96,
-                height: 96,
-                borderRadius: theme.radius.xl,
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: theme.color.buttonPrimary,
-                marginBottom: theme.spacing.sm,
-              }}
-            >
-              <Ionicons name="compass-outline" size={48} color={theme.color.onBrand} />
-            </View>
-            <Text variant="title" align="center" accessibilityRole="header">
-              {t.group.notFound}
-            </Text>
-            <Text variant="body" tone="muted" align="center">
-              {t.group.notFoundBody}
-            </Text>
-          </View>
-
-          {/* The reliable way out. This state is most often reached by following
-              a link to a group that has gone, where there is no back stack — so
-              the primary action goes home for certain, the way join.tsx does. */}
-          <Button
-            label={t.misc.goToWaves}
-            onPress={() => router.replace('/')}
-            fullWidth
-            style={{ marginBottom: theme.spacing.xl }}
-          />
-        </View>
-      </Screen>
-    );
+    return <GroupNotFound />;
   }
 
   const groupData = group.data;

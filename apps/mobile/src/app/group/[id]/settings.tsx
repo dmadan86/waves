@@ -12,7 +12,6 @@ import {
   Card,
   ChipRow,
   directionalIcon,
-  EmptyState,
   IconButton,
   iconSize,
   ListRow,
@@ -64,6 +63,8 @@ import {
   useUpdateGroup,
 } from '@/data/hooks';
 import { useKnownContacts } from '@/data/knownContacts';
+import { GroupNotFound } from '@/components/GroupNotFound';
+import { GroupSkeleton } from '@/components/Skeletons';
 import { fill, plural, useStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
 import { useFavorites } from '@/lib/favorites';
@@ -452,12 +453,10 @@ export default function GroupSettingsScreen() {
     }
   };
 
+  if (group.isLoading) return <GroupSkeleton />;
+
   if (!group.data) {
-    return (
-      <Screen>
-        <EmptyState title={t.group.notFound} body={t.group.notFoundArchived} />
-      </Screen>
-    );
+    return <GroupNotFound />;
   }
 
   const settled = ledger.myBalance === 0n;
