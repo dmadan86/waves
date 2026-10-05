@@ -23,6 +23,10 @@ export const TAB_BAR_HIDDEN_ROUTES: ReadonlySet<string> = new Set([
   'language',
   'capture',
   'contact-picker',
+  // Full-screen pickers with a confirm button anchored to the bottom: under the
+  // bar that button is hidden and nobody can add anyone.
+  'contacts',
+  'add-from-another-group',
   'scan',
   'new-group',
   'add-expense',

@@ -76,6 +76,8 @@ describe('resolveTabBar', () => {
     expect(resolveTabBar(['join']).hidden).toBe(true);
     expect(resolveTabBar(['language']).hidden).toBe(true);
     expect(resolveTabBar(['new-group']).hidden).toBe(true);
+    expect(resolveTabBar(['friends', 'contacts']).hidden).toBe(true);
+    expect(resolveTabBar(['add-from-another-group']).hidden).toBe(true);
     expect(resolveTabBar(['paywall']).hidden).toBe(true);
   });
 
